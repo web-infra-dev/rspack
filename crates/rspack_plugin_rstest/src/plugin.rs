@@ -8,11 +8,12 @@ use cow_utils::CowUtils;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxPlugin, ChunkUkey, Compilation, CompilationOptimizeDependencies, CompilationParams,
-  CompilationProcessAssets, CompilationRuntimeModule, CompilerCompilation, Dependency,
-  DependencyRef, DependencyType, ExportsInfoArtifact, FactoryMeta, ModuleFactoryCreateData,
-  ModuleIdentifier, ModuleType, NormalModuleFactoryBeforeResolve, NormalModuleFactoryParser,
-  ParserAndGenerator, ParserOptions, Plugin, PluginExt, ResolveOptionsWithDependencyType,
-  ResolveResult, RuntimeGlobals, RuntimeModule, RuntimeVariable, SideEffectsOptimizeArtifact,
+  CompilationProcessAssets, CompilationRuntimeModule, CompilationRuntimeRequirementInTree,
+  CompilerCompilation, Dependency, DependencyRef, DependencyType, ExportsInfoArtifact, FactoryMeta,
+  ModuleFactoryCreateData, ModuleIdentifier, ModuleType, NormalModuleFactoryBeforeResolve,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PluginExt,
+  ResolveOptionsWithDependencyType, ResolveResult, RuntimeGlobals, RuntimeModule, RuntimeVariable,
+  SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   module_declared_side_effect_free,
   resolver::ResolveInnerError,
@@ -82,6 +83,7 @@ pub struct RstestPluginOptions {
   pub update_import_mock_api: bool,
   pub update_require_mock_api: bool,
   pub inject_require_resolve_origin: Option<RstestRequireResolveOriginOptions>,
+  pub inject_import_meta_resolve_origin: Option<RstestImportMetaResolveOriginOptions>,
 }
 
 pub fn builtin_plugins() -> Vec<BoxPlugin> {
@@ -141,6 +143,24 @@ async fn runtime_module(
   Ok(())
 }
 
+#[plugin_hook(CompilationRuntimeRequirementInTree for RstestRuntimePlugin)]
+async fn runtime_requirements_in_tree(
+  &self,
+  _compilation: &Compilation,
+  _chunk_ukey: &ChunkUkey,
+  _all_runtime_requirements: &RuntimeGlobals,
+  _runtime_requirements: &RuntimeGlobals,
+  runtime_requirements_mut: &mut RuntimeGlobals,
+  _runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
+) -> Result<Option<()>> {
+  // Rstest injects mock module factories that call `__webpack_require__.d` at
+  // runtime. When every ESM export in a bundle is value-bound, no generated
+  // module source references the `.d` runtime global and it can be tree-shaken
+  // away, so keep it available unconditionally.
+  runtime_requirements_mut.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+  Ok(None)
+}
+
 impl Plugin for RstestRuntimePlugin {
   fn name(&self) -> &'static str {
     "rstest runtime"
@@ -151,6 +171,10 @@ impl Plugin for RstestRuntimePlugin {
       .compilation_hooks
       .runtime_module
       .tap(runtime_module::new(self));
+    ctx
+      .compilation_hooks
+      .runtime_requirement_in_tree
+      .tap(runtime_requirements_in_tree::new(self));
 
     Ok(())
   }
@@ -167,6 +191,13 @@ pub struct RstestDynamicImportOriginOptions {
 pub struct RstestRequireResolveOriginOptions {
   /// Overrides the rewrite callee. When `None`, defaults to
   /// `__rstest_require_resolve__`.
+  pub function_name: Option<String>,
+}
+
+#[derive(Debug, Default)]
+pub struct RstestImportMetaResolveOriginOptions {
+  /// Runtime factory receiving the source path and returning its resolver.
+  /// Defaults to `__rstest_import_meta_resolve__`.
   pub function_name: Option<String>,
 }
 
@@ -558,8 +589,10 @@ async fn nmf_parser(
       .require_resolve_origin_callee
       .get()
       .is_some_and(|c| c.is_some());
-    let commonjs_magic_comments = parser_options
-      .and_then(|options| options.get_javascript())
+    let javascript_options = parser_options.and_then(|options| options.get_javascript());
+    let import_meta_resolve =
+      javascript_options.is_some_and(|options| options.import_meta_resolve == Some(true));
+    let commonjs_magic_comments = javascript_options
       .and_then(|options| options.commonjs_magic_comments)
       .unwrap_or(false);
 
@@ -575,6 +608,17 @@ async fn nmf_parser(
         update_import_mock_api: self.options.update_import_mock_api,
         update_require_mock_api: self.options.update_require_mock_api,
         inject_require_resolve_origin,
+        import_meta_resolve_factory: self
+          .options
+          .inject_import_meta_resolve_origin
+          .as_ref()
+          .filter(|_| !import_meta_resolve)
+          .map(|options| {
+            options
+              .function_name
+              .clone()
+              .unwrap_or_else(|| "__rstest_import_meta_resolve__".into())
+          }),
         commonjs_magic_comments,
       },
     )) as BoxJavascriptParserPlugin);
@@ -831,6 +875,7 @@ impl Plugin for RstestPlugin {
       || self.options.inject_import_meta_rstest_origin
       || self.options.inject_dynamic_import_origin.is_some()
       || self.options.inject_require_resolve_origin.is_some()
+      || self.options.inject_import_meta_resolve_origin.is_some()
     {
       ctx
         .normal_module_factory_hooks

@@ -38,6 +38,7 @@ paste                      = { workspace = true }
 rayon                      = { workspace = true }
 regex                      = { workspace = true }
 rkyv                       = { workspace = true, optional = true }
+rspack-allocative          = { workspace = true, optional = true }
 rspack_cacheable           = { workspace = true }
 rspack_collections         = { workspace = true }
 rspack_dojang              = { workspace = true }
@@ -78,10 +79,10 @@ urlencoding                = { workspace = true }
 ustr                       = { workspace = true }
 winnow                     = { workspace = true }
 
-swc_experimental_allocator     = { workspace = true }
-swc_experimental_ecma_ast      = { workspace = true }
-swc_experimental_ecma_parser   = { workspace = true }
-swc_experimental_ecma_semantic = { workspace = true }
+swc_next_allocator     = { workspace = true }
+swc_next_ecma_ast      = { workspace = true }
+swc_next_ecma_parser   = { workspace = true }
+swc_next_ecma_semantic = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 turbo-persistence = { workspace = true }
@@ -93,7 +94,7 @@ pretty_assertions = { workspace = true }
 workspace = true
 
 [features]
-allocative = ["rspack_sources/allocative", "rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative"]
+allocative = ["dep:rspack-allocative", "rspack_napi?/allocative", "rspack_util/allocative", "rspack_sources/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_paths/allocative", "rspack_resolver/allocative", "rspack_storage/allocative", "rspack_regex/allocative", "rspack_location/allocative", "rspack_error/allocative", "rspack_dojang/allocative"]
 codspeed   = ["rspack_parallel/codspeed"]
 debug_tool = ["rspack_util/debug_tool"]
 default    = []

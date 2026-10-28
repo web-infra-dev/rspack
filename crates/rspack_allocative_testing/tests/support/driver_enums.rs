@@ -11,7 +11,7 @@ pub enum Conditional {
 
 macro_rules! generated_enum {
   () => {
-    #[derive(allocative::Allocative)]
+    #[derive(rspack_allocative::Allocative)]
     pub enum Generated {
       Text(String),
     }

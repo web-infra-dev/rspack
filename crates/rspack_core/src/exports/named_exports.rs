@@ -16,6 +16,11 @@ use super::ExportInfoData;
 /// them (a CSS module exposes one class per export, inserted in source order),
 /// so once a module outgrows [`INLINE_EXPORTS`] the entries move back into a
 /// BTreeMap. Both variants iterate in key order.
+///
+/// Lookups in the inline variant scan linearly: Atom equality is a raw word
+/// comparison (plus a hash comparison for non-inline atoms), which is cheaper
+/// than the string comparisons of a binary search at this size. Keys are
+/// unique, so the result is the same.
 #[derive(Debug, Clone)]
 pub enum NamedExports {
   Inline(SmallVec<[(Atom, ExportInfoData); 1]>),
@@ -53,9 +58,8 @@ impl NamedExports {
   pub fn get(&self, name: &Atom) -> Option<&ExportInfoData> {
     match self {
       Self::Inline(exports) => exports
-        .binary_search_by(|(key, _)| key.cmp(name))
-        .ok()
-        .map(|index| &exports[index].1),
+        .iter()
+        .find_map(|(key, info)| (key == name).then_some(info)),
       Self::Spilled(exports) => exports.get(name),
     }
   }
@@ -63,10 +67,9 @@ impl NamedExports {
   #[inline]
   pub fn get_mut(&mut self, name: &Atom) -> Option<&mut ExportInfoData> {
     match self {
-      Self::Inline(exports) => match exports.binary_search_by(|(key, _)| key.cmp(name)) {
-        Ok(index) => Some(&mut exports[index].1),
-        Err(_) => None,
-      },
+      Self::Inline(exports) => exports
+        .iter_mut()
+        .find_map(|(key, info)| (key == name).then_some(info)),
       Self::Spilled(exports) => exports.get_mut(name),
     }
   }

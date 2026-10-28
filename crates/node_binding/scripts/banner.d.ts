@@ -12,31 +12,7 @@ export type AssetInfo = KnownAssetInfo & Record<string, any>;
 
 export type CustomPluginName = string;
 
-export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
-
-export const COMPILATION_HOOKS_MAP_SYMBOL: unique symbol;
-
-export const BUILD_INFO_ASSETS_SYMBOL: unique symbol;
-export const BUILD_INFO_FILE_DEPENDENCIES_SYMBOL: unique symbol;
-export const BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL: unique symbol;
-export const BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL: unique symbol;
-export const BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL: unique symbol;
-export const COMMIT_CUSTOM_FIELDS_SYMBOL: unique symbol;
-
-export const RUST_ERROR_SYMBOL: unique symbol;
-
-export const CIRCULAR_CONNECTION_SYMBOL: unique symbol;
-export const TRANSITIVE_ONLY_SYMBOL: unique symbol;
-export type ConnectionState = boolean | typeof CIRCULAR_CONNECTION_SYMBOL | typeof TRANSITIVE_ONLY_SYMBOL;
-
-interface KnownBuildInfo {
-	[BUILD_INFO_ASSETS_SYMBOL]: Assets,
-	[BUILD_INFO_FILE_DEPENDENCIES_SYMBOL]: string[],
-	[BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL]: string[],
-	[BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL]: string[],
-	[BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL]: string[],
-	[COMMIT_CUSTOM_FIELDS_SYMBOL](): void;
-}
+export type ConnectionState = boolean | symbol;
 
 export type BuildInfo = KnownBuildInfo & Record<string, any>;
 
@@ -99,6 +75,12 @@ export interface JsSource {
 	source: string | Buffer
 	map?: string
 }
+
+export type JsSourceFromJs =
+	| { kind: "raw"; content: string | Buffer; map?: string }
+	| { kind: "native"; handle: JsNativeSource }
+	| { kind: "concat"; children: JsSourceFromJs[] }
+	| { kind: "replace"; original: JsSourceFromJs; replacements: JsReplaceSourceEdit[]; fallback: () => JsSourceFromJs }
 
 export type CompilerId = void;
 /* -- banner.d.ts end -- */

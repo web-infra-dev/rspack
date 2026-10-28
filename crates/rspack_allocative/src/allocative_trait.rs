@@ -19,7 +19,8 @@ use crate::Visitor;
 /// Derive an adapter when an active enum variant must be selected:
 ///
 /// ```
-/// use allocative::Allocative;
+/// # extern crate rspack_allocative;
+/// use rspack_allocative::Allocative;
 ///
 /// #[derive(Allocative)]
 /// enum Foo {
@@ -32,7 +33,7 @@ use crate::Visitor;
 /// only `Self: 'static`. They add no per-parameter `Allocative` or `Visit` bounds.
 /// The derive also supports `skip`, `bound`, and `visit` field policies.
 /// Types with custom policies or lifetime/const parameters retain typed traversal.
-/// For generic typed adapters use `#[allocative(bound = "T: allocative::Visit")]`
+/// For generic typed adapters use `#[allocative(bound = "T: rspack_allocative::Visit")]`
 /// (and the required lifetime bounds) to traverse unannotated payloads through `Visit`.
 ///
 /// ## `#[allocative(skip)]`
@@ -42,7 +43,8 @@ use crate::Visitor;
 /// are cheap).
 ///
 /// ```
-/// use allocative::Allocative;
+/// # extern crate rspack_allocative;
+/// use rspack_allocative::Allocative;
 ///
 /// /// This does not implement `Allocative`.
 /// struct Unsupported;
@@ -65,9 +67,10 @@ use crate::Visitor;
 ///
 ///
 /// ```
+/// # extern crate rspack_allocative;
 /// use std::marker::PhantomData;
 ///
-/// use allocative::Allocative;
+/// use rspack_allocative::Allocative;
 ///
 /// struct Unsupported;
 ///
@@ -113,13 +116,14 @@ use crate::Visitor;
 /// is especially useful if the type of the field does not implement `Allocative`.
 ///
 /// The annotation takes the path to a method with a signature `for<'a, 'b>(&T, &'a
-/// mut allocative::Visitor<'b>)` where `T` is the type of the field. The function
+/// mut rspack_allocative::Visitor<'b>)` where `T` is the type of the field. The function
 /// you provide is basically the same as if you implemented [`Allocative::visit`].
 ///
 /// As an example
 ///
 /// ```
-/// use allocative::{Allocative, Key, Visitor};
+/// # extern crate rspack_allocative;
+/// use rspack_allocative::{Allocative, Key, Visitor};
 /// // use third_party_lib::Unsupported;
 /// # struct Unsupported<T>(T);
 /// # impl<T> Unsupported<T> {

@@ -37,7 +37,6 @@ use rspack_util::json_stringify;
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
 
 use super::{
-  create_resource_identifier_for_esm_dependency,
   esm_import_dependency::esm_import_dependency_get_linking_error, esm_import_dependency_apply,
 };
 use crate::{Atom, connection_active_inline_value_for_esm_export_imported_specifier};
@@ -82,10 +81,9 @@ impl ESMExportImportedSpecifierDependency {
     export_presence_mode: ExportPresenceMode,
     phase: ImportPhase,
     attributes: Option<ImportAttributes>,
+    resource_identifier: ResourceIdentifier,
     loc: Option<DependencyLocation>,
   ) -> Self {
-    let resource_identifier =
-      create_resource_identifier_for_esm_dependency(&request, phase, attributes.as_ref());
     Self {
       id: DependencyId::new(),
       source_order,
@@ -604,12 +602,11 @@ impl ESMExportImportedSpecifierDependency {
           && let Some(target_module) = target_module
           && !target_module.build_meta().has_top_level_await()
         {
-          let exports_type = get_exports_type(
+          let exports_type = target_module.get_exports_type(
             mg,
             mg_cache,
             exports_info_artifact,
-            &self.id,
-            &module_identifier,
+            module.get_strict_esm_module(),
           );
           let (namespace_cache, namespace_expr) = self
             .get_reexport_deferred_namespace_object_fragments(
@@ -649,12 +646,11 @@ impl ESMExportImportedSpecifierDependency {
           && let Some(target_module) = target_module
           && !target_module.build_meta().has_top_level_await()
         {
-          let exports_type = get_exports_type(
+          let exports_type = target_module.get_exports_type(
             mg,
             mg_cache,
             exports_info_artifact,
-            &self.id,
-            &module_identifier,
+            module.get_strict_esm_module(),
           );
           let (namespace_cache, namespace_expr) = self
             .get_reexport_deferred_namespace_object_fragments(
@@ -777,9 +773,6 @@ impl ESMExportImportedSpecifierDependency {
 
         let use_runtime =
           self.has_repeated_dynamic_reexports(mg, runtime, mg_cache, exports_info_artifact);
-        let module = mg
-          .module_by_identifier(&module.identifier())
-          .expect("should have module graph module");
         let exports_name = module.get_exports_argument();
         let is_async =
           ModuleGraph::is_async(&compilation.async_modules_artifact, &module.identifier());

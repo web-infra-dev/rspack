@@ -318,7 +318,7 @@ impl EsmLibraryPlugin {
             factory_scope
               .global_scope_ident
               .iter()
-              .map(|ident| Atom::from(&ident.id.sym)),
+              .map(|ident| ident.name.clone()),
           );
           let factories = name_allocator.find_new_name("__rspack_shared_modules__", &[]);
           decl_source.add(RawStringSource::from(format!("var {factories} = {{\n")));
@@ -871,13 +871,13 @@ var {} = {{}};
 
         for ident in refs.iter().map(|index| &info.idents[*index as usize]) {
           let name = if ident.shorthand {
-            Cow::Owned(format!("{}: {}", &ident.id.sym, &final_name))
+            Cow::Owned(format!("{}: {}", &ident.name, &final_name))
           } else {
             final_name.clone()
           };
           source.replace(
-            ident.id.span.real_lo(),
-            ident.id.span.real_hi() + 2,
+            ident.span.real_lo(),
+            ident.span.real_hi() + 2,
             name.into_owned(),
             None,
           );
@@ -886,17 +886,17 @@ var {} = {{}};
     }
 
     for ident in &info.idents {
-      if ident.id.ctxt != info.module_ctxt {
+      if ident.scope != info.module_ctxt {
         continue;
       }
 
-      if let Some(internal_name) = info.get_internal_name(&ident.id.sym) {
+      if let Some(internal_name) = info.get_internal_name(&ident.name) {
         let name = if ident.shorthand {
-          format!("{}: {}", &ident.id.sym, &internal_name)
+          format!("{}: {}", &ident.name, &internal_name)
         } else {
           internal_name.to_string()
         };
-        source.replace(ident.id.span.real_lo(), ident.id.span.real_hi(), name, None);
+        source.replace(ident.span.real_lo(), ident.span.real_hi(), name, None);
       }
     }
 

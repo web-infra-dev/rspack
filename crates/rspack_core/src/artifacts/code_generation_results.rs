@@ -270,19 +270,6 @@ pub struct CodeGenerationResult {
   value: Arc<CodeGenerationResultInner>,
 }
 
-#[cfg(allocative)]
-impl rspack_util::allocative::Allocative for CodeGenerationResult {
-  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut rspack_util::allocative::Visitor<'b>) {
-    let mut visitor = visitor.enter_self(self);
-    visitor.visit_field_with(rspack_util::allocative::ident_key!(sources), 0, |visitor| {
-      for source in self.sources().values() {
-        rspack_util::allocative::Allocative::visit(source, visitor);
-      }
-    });
-    visitor.exit();
-  }
-}
-
 impl CodeGenerationResult {
   pub fn sources(&self) -> &HashMap<SourceType, BoxSource> {
     &self.value.sources
@@ -396,23 +383,6 @@ impl CodeGenerationResultBuilder {
 #[derive(Debug, Default)]
 pub struct CodeGenerationResults {
   map: IdentifierMap<RuntimeSpecMap<BindingCell<CodeGenerationResult>>>,
-}
-
-#[cfg(allocative)]
-impl rspack_util::allocative::Allocative for CodeGenerationResults {
-  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut rspack_util::allocative::Visitor<'b>) {
-    use rspack_util::allocative::ident_key;
-
-    let mut visitor = visitor.enter_self(self);
-    visitor.visit_field_with(ident_key!(map), 0, |visitor| {
-      for results in self.map.values() {
-        for result in results.values() {
-          result.as_ref().visit(visitor);
-        }
-      }
-    });
-    visitor.exit();
-  }
 }
 
 impl ArtifactExt for CodeGenerationResults {

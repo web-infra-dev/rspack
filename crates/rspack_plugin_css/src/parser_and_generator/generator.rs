@@ -1,32 +1,30 @@
-use std::{borrow::Cow, collections::VecDeque};
+use std::borrow::Cow;
 
 use concat_string::concat_string;
-use rspack_collections::IdentifierSet;
 use rspack_core::{
-  ChunkGraph, Context, CssBuildInfo, CssExport, CssExportType, CssExports,
-  CssModuleRenderCondition, Dependency, DependencyCodeGeneration, DependencyId, DependencyType,
-  GenerateContext, Module, ModuleArgument, ModuleIdentifier, ModuleInitFragments,
-  RESERVED_IDENTIFIER, RuntimeGlobals, SourceType, TemplateContext, UsageState, UsedNameItem,
-  css_module_render_conditions_identifier,
-  rspack_sources::{
-    BoxSource, ConcatSource, OriginalSource, RawStringSource, ReplaceSource, Source, SourceExt,
-  },
+  ChunkGraph, Compilation, Context, CssBuildInfo, CssExportType, CssModuleRenderCondition,
+  Dependency, DependencyCodeGeneration, DependencyId, DependencyType, GenerateContext, Module,
+  ModuleArgument, ModuleIdentifier, ModuleInitFragments, RESERVED_IDENTIFIER, RuntimeGlobals,
+  SourceType, TemplateContext, UsageState, UsedNameItem, css_module_render_conditions_identifier,
+  rspack_sources::{BoxSource, OriginalSource, RawStringSource, ReplaceSource, Source, SourceExt},
   to_identifier,
 };
 use rspack_error::Result;
 use rspack_intern::Atom;
-use rspack_util::{
-  fx_hash::{FxIndexMap, FxIndexSet},
-  itoa, json_stringify, json_stringify_str,
-};
-use rustc_hash::FxHashSet as HashSet;
+use rspack_util::{fx_hash::FxIndexMap, itoa, json_stringify, json_stringify_str};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use smol_str::SmolStr;
 
+use super::walker::{CssExportRequirements, CssModuleGraphSink, CssModuleGraphWalker};
 use crate::{
-  css_syntax::unescape_identifier,
-  dependency::CssImportDependency,
+  css_exports::{css_export_dependency, css_export_name, find_css_export_target, find_export},
+  css_syntax::{escape_identifier, unescape_identifier},
+  dependency::{
+    CssIcssExportDependency, CssIcssImportDependency, CssIcssSymbolDependency, CssIcssSymbolKind,
+    CssImportDependency,
+  },
   parser_and_generator::{
-    CssExportsRef, CssSourceBuilder, get_unused_local_ident, get_used_exports,
+    CodeGenerationDataUnusedLocalIdent, CssExportsRef, CssSourceBuilder, get_used_exports,
   },
   utils::{css_generator_options, css_module_export_type, replace_css_module_id_placeholder},
 };
@@ -35,32 +33,17 @@ fn css_javascript_source_map_module_name(module: &dyn Module, context: &Context)
   concat_string!("css ", module.readable_identifier(context))
 }
 
-pub fn update_css_exports(exports: &mut CssExports, name: &str, css_export: CssExport) -> bool {
-  if let Some(existing) = exports.get_mut(name) {
-    existing.insert(css_export)
-  } else {
-    exports
-      .insert(name.into(), FxIndexSet::from_iter([css_export]))
-      .is_none()
-  }
-}
-
-fn dependency_request(dependency: &dyn Dependency) -> Option<&str> {
-  dependency
-    .as_module_dependency()
-    .map(|dep| dep.request())
-    .or_else(|| dependency.as_context_dependency().map(|dep| dep.request()))
-}
-
 fn render_dependency_template(
   dependency: &dyn DependencyCodeGeneration,
   source: &mut ReplaceSource,
   context: &mut TemplateContext,
 ) {
-  if let Some(template) = dependency
-    .dependency_template()
-    .and_then(|template_type| context.compilation.get_dependency_template(template_type))
-  {
+  // Some dependencies only contribute to hashing. ICSS imports, for example,
+  // are expanded by this generator and do not have a source template.
+  let Some(template_type) = dependency.dependency_template() else {
+    return;
+  };
+  if let Some(template) = context.compilation.get_dependency_template(template_type) {
     template.render(dependency, source, context)
   } else {
     panic!(
@@ -70,13 +53,31 @@ fn render_dependency_template(
   }
 }
 
-struct CssImportedModule {
-  module_identifier: ModuleIdentifier,
-  render_conditions: Vec<CssModuleRenderCondition>,
+// Both representations are collected during the same dependency traversal.
+// Each temporary result is moved into its parent when the traversal returns.
+#[derive(Default)]
+pub(super) struct CssExportValue<'a> {
+  css: Option<Vec<Cow<'a, str>>>,
+  js: Option<Vec<Cow<'a, str>>>,
+}
+
+impl<'a> CssExportValue<'a> {
+  fn append_text(&mut self, text: Cow<'a, str>, requirements: CssExportRequirements) {
+    if requirements.js {
+      self
+        .js
+        .get_or_insert_with(Vec::new)
+        .push(Cow::Owned(json_stringify_str(&text)));
+    }
+    if requirements.css {
+      self.css.get_or_insert_with(Vec::new).push(text);
+    }
+  }
 }
 
 pub(crate) struct CssModuleGenerator<'a, 'g> {
-  source: BoxSource,
+  css_output: ReplaceSource,
+  js_output: HashMap<DependencyId, String>,
   module: &'a dyn Module,
   css_build_info: &'a CssBuildInfo,
   generate_context: &'a mut GenerateContext<'g>,
@@ -87,7 +88,9 @@ pub(crate) struct CssModuleGenerator<'a, 'g> {
   module_argument: Option<String>,
   css_inject_style: Option<String>,
   css_style_sheet: Option<String>,
-  concat_source: ConcatSource,
+  css_output_prepared: bool,
+  used_local_idents: HashSet<DependencyId>,
+  outputs_prepared: bool,
 }
 
 impl<'a, 'g> CssModuleGenerator<'a, 'g> {
@@ -102,7 +105,8 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let generator_options = css_generator_options(generate_context.module_generator_options);
 
     Self {
-      source,
+      css_output: ReplaceSource::new(source),
+      js_output: Default::default(),
       module,
       css_build_info,
       generate_context,
@@ -115,7 +119,9 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       module_argument: None,
       css_inject_style: None,
       css_style_sheet: None,
-      concat_source: Default::default(),
+      css_output_prepared: false,
+      used_local_idents: Default::default(),
+      outputs_prepared: false,
     }
   }
 
@@ -146,7 +152,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     })
   }
 
-  fn collect_used_css_exports<'b>(&mut self) -> CssExportsRef<'b>
+  fn collect_used_css_exports<'b>(&self) -> CssExportsRef<'b>
   where
     'a: 'b,
     'g: 'b,
@@ -154,17 +160,9 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let identifier = self.module.identifier();
     let runtime = self.generate_context.runtime;
     let exports_info_artifact = &self.generate_context.compilation.exports_info_artifact;
-    if let Some(unused_exports) = get_unused_local_ident(
-      self.css_build_info,
-      identifier,
-      runtime,
-      exports_info_artifact,
-    ) {
-      self.generate_context.data.insert(unused_exports);
-    }
-
     get_used_exports(
       self.css_build_info,
+      self.generate_context.compilation.get_module_graph(),
       identifier,
       runtime,
       exports_info_artifact,
@@ -172,42 +170,39 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     .unwrap_or_default()
   }
 
-  pub(crate) fn generate_css_source(mut self) -> BoxSource {
+  pub(crate) fn generate_css_source(mut self) -> Result<BoxSource> {
     self
       .generate_context
       .runtime_template
       .runtime_requirements_mut()
       .insert(RuntimeGlobals::HAS_CSS_MODULES);
-    self.render_css_module_source()
+    let source = self.render_css_module_source()?;
+    self.store_unused_local_idents();
+    Ok(source)
   }
 
   pub fn generate_javascript_source(mut self) -> Result<BoxSource> {
-    match self.export_type {
+    let generated_source = match self.export_type {
       Some(CssExportType::Text) => {
-        let css = self.css_text_expr_with_imports();
-        let source = self.generate_css_text_exports(&css)?;
-        self.concat_source.add(RawStringSource::from(source));
+        let css = self.css_text_expr_with_imports()?;
+        self.generate_css_text_exports(&css)?
       }
       Some(CssExportType::CssStyleSheet) => {
-        let css = self.css_text_expr_with_imports();
-        let source = self.generate_css_style_sheet_exports(&css)?;
-        self.concat_source.add(RawStringSource::from(source));
+        let css = self.css_text_expr_with_imports()?;
+        self.generate_css_style_sheet_exports(&css)?
       }
       Some(CssExportType::Style) if !self.exports_only => {
         let mut visited_inlined_modules = HashSet::default();
-        let imports = self.render_style_imports(&mut visited_inlined_modules);
-        let css_source = self.render_css_module_source();
+        let imports = self.render_style_imports(&mut visited_inlined_modules)?;
+        let css_source = self.render_css_module_source()?;
         let css = self.css_text_expr(css_source, &[]);
-        self.concat_source.add(RawStringSource::from(imports));
         let inject_style = self.render_css_inject_style(&css);
-        self.concat_source.add(RawStringSource::from(inject_style));
-        self.generate_js_exports()?;
+        let exports = self.generate_js_exports()?;
+        concat_string!(imports, inject_style, exports)
       }
-      _ => {
-        self.generate_js_exports()?;
-      }
-    }
-    let generated_source = self.concat_source.source().into_string_lossy().into_owned();
+      _ => self.generate_js_exports()?,
+    };
+    self.store_unused_local_idents();
     if self.module.get_source_map_kind().enabled() {
       let source_name = css_javascript_source_map_module_name(
         self.module,
@@ -219,11 +214,11 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     }
   }
 
-  fn generate_js_exports(&mut self) -> Result<()> {
+  fn generate_js_exports(&mut self) -> Result<String> {
+    self.prepare_outputs(false)?;
     if self.generate_context.concatenation_scope.is_some() {
       let exports = self.collect_used_css_exports();
-      self.concat_css_exports_inner(None, exports)?;
-      return Ok(());
+      return self.concat_css_exports_inner(None, exports);
     }
 
     let (ns_obj, left, right) = self.render_namespace_object_parts();
@@ -260,8 +255,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       )
     };
 
-    self.concat_source.add(RawStringSource::from(exports_str));
-    Ok(())
+    Ok(exports_str)
   }
 
   fn child_generator<'b>(
@@ -280,12 +274,117 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     )
   }
 
-  pub(crate) fn render_css_module_source(&mut self) -> BoxSource {
-    let mut source = ReplaceSource::new(self.source.clone());
-    let compilation = self.generate_context.compilation;
+  pub(crate) fn render_css_module_source(&mut self) -> Result<BoxSource> {
+    self.prepare_outputs(true)?;
+    Ok(
+      std::mem::replace(
+        &mut self.css_output,
+        ReplaceSource::new(RawStringSource::from("")),
+      )
+      .boxed(),
+    )
+  }
+
+  fn prepare_outputs(&mut self, render_css: bool) -> Result<()> {
+    if self.outputs_prepared && (!render_css || self.css_output_prepared) {
+      return Ok(());
+    }
+    self.outputs_prepared = true;
+
+    let roots = self.collect_css_export_roots(render_css);
+    let css_values = self.visit_css_exports(roots)?;
+    if render_css {
+      self.render_css_dependencies(&css_values);
+      self.css_output_prepared = true;
+    }
+    Ok(())
+  }
+
+  fn collect_css_export_roots(
+    &self,
+    render_css: bool,
+  ) -> FxIndexMap<DependencyId, CssExportRequirements> {
+    let emit_js = self.generate_context.requested_source_type == SourceType::JavaScript;
+    let mut roots = FxIndexMap::default();
+    // Used exports keep local identifiers alive without needing their CSS value.
+    // Only ICSS references that rewrite CSS request the expanded CSS value.
+    for dependency in self.collect_used_css_exports().values() {
+      roots.insert(
+        *dependency.id(),
+        CssExportRequirements {
+          css: false,
+          js: emit_js,
+        },
+      );
+    }
+    for dependency in self.module.get_dependencies() {
+      if let Some(symbol) = dependency.downcast_ref::<CssIcssSymbolDependency>()
+        && symbol.kind != CssIcssSymbolKind::LocalDeclaration
+      {
+        // Local symbols such as `animation: spin` keep their definitions alive
+        // even though rendering the use only needs the generated identifier.
+        roots.entry(symbol.target).or_default().css |=
+          render_css && symbol.kind == CssIcssSymbolKind::IcssReference;
+      }
+    }
+    roots
+  }
+
+  fn visit_css_exports(
+    &mut self,
+    roots: FxIndexMap<DependencyId, CssExportRequirements>,
+  ) -> Result<HashMap<DependencyId, Option<String>>> {
+    let mut walker = CssModuleGraphWalker::new(self.generate_context.compilation);
+    let mut css_values = HashMap::default();
+    for (id, requirements) in roots {
+      let mut value = walker.visit_css_export_dependency(self, id, requirements, true)?;
+      if requirements.js {
+        if value.js.is_none() {
+          // A pure self-import cycle still needs a valid runtime expression.
+          value.js = walker
+            .visit_css_export_dependency(
+              self,
+              id,
+              CssExportRequirements {
+                css: false,
+                js: true,
+              },
+              false,
+            )?
+            .js;
+        }
+        self.js_output.insert(
+          id,
+          value
+            .js
+            .map_or_else(|| json_stringify_str(""), |parts| parts.join(" + ")),
+        );
+      }
+      if requirements.css {
+        css_values.insert(id, value.css.map(|parts| parts.join("")));
+      }
+    }
+    Ok(css_values)
+  }
+
+  fn render_local_ident(
+    compilation: &Compilation,
+    module: &dyn Module,
+    definition: &CssIcssExportDependency,
+  ) -> String {
+    escape_identifier(&replace_css_module_id_placeholder(
+      &definition.value,
+      compilation,
+      module,
+    ))
+    .into_owned()
+  }
+
+  fn render_css_dependencies(&mut self, css_values: &HashMap<DependencyId, Option<String>>) {
+    let mut local_idents = HashMap::default();
     let mut init_fragments = ModuleInitFragments::default();
     let mut context = TemplateContext {
-      compilation,
+      compilation: self.generate_context.compilation,
       module: self.module,
       runtime: self.generate_context.runtime,
       init_fragments: &mut init_fragments,
@@ -293,59 +392,94 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       data: self.generate_context.data,
       runtime_template: self.generate_context.runtime_template,
     };
-
-    self.module.get_dependencies().iter().for_each(|dep| {
-      if let Some(dependency) = dep.as_dependency_code_generation() {
-        render_dependency_template(dependency, &mut source, &mut context);
+    // Keep each source occurrence in parser order, including imports and URLs.
+    // Grouping replacements by definition makes ReplaceSource repeatedly shift
+    // its sorted replacement vector for interleaved occurrences.
+    for dependency in self.module.get_dependencies() {
+      if let Some(symbol) = dependency.downcast_ref::<CssIcssSymbolDependency>() {
+        let value = match symbol.kind {
+          CssIcssSymbolKind::LocalDeclaration | CssIcssSymbolKind::LocalReference => {
+            let value = local_idents.entry(symbol.target).or_insert_with(|| {
+              let definition =
+                css_export_dependency(context.compilation.get_module_graph(), &symbol.target);
+              Self::render_local_ident(context.compilation, context.module, definition)
+            });
+            Some(value.as_str())
+          }
+          CssIcssSymbolKind::IcssReference => {
+            css_values.get(&symbol.target).and_then(Option::as_deref)
+          }
+        };
+        if let Some(value) = value {
+          let range = symbol
+            .range()
+            .expect("CSS symbol should have a source range");
+          self
+            .css_output
+            .replace(range.start, range.end, value.to_owned(), None);
+        }
+      } else if dependency.dependency_type() != &DependencyType::CssIcssExport
+        && let Some(dependency) = dependency.as_dependency_code_generation()
+      {
+        render_dependency_template(dependency, &mut self.css_output, &mut context);
       }
-    });
-
+    }
     if let Some(dependencies) = self.module.get_presentational_dependencies() {
-      dependencies.iter().for_each(|dependency| {
-        render_dependency_template(dependency.as_ref(), &mut source, &mut context);
-      });
-    };
-
+      for dependency in dependencies {
+        render_dependency_template(dependency.as_ref(), &mut self.css_output, &mut context);
+      }
+    }
     self.generate_context.concatenation_scope = context.concatenation_scope.take();
-
-    source.boxed()
   }
 
-  fn css_text_expr_with_imports(&mut self) -> String {
+  fn store_unused_local_idents(&mut self) {
+    let Some(local_names) = self.css_build_info.local_names() else {
+      return;
+    };
+    let graph = self.generate_context.compilation.get_module_graph();
+    let idents = local_names
+      .values()
+      .filter(|id| !self.used_local_idents.contains(id))
+      .map(|id| css_export_dependency(graph, id).value.clone())
+      .collect();
+    // Only the top-level generator publishes data; children share its context
+    // but track identifiers belonging to their own module.
+    self
+      .generate_context
+      .data
+      .insert(CodeGenerationDataUnusedLocalIdent { idents });
+  }
+
+  fn css_text_expr_with_imports(&mut self) -> Result<String> {
     let has_css_imports = self
       .module
       .get_dependencies()
       .iter()
       .any(|dependency| matches!(dependency.dependency_type(), DependencyType::CssImport));
     if !has_css_imports {
-      let css_source = self.render_css_module_source();
-      return self.css_text_expr(css_source, &[]);
+      let css_source = self.render_css_module_source()?;
+      return Ok(self.css_text_expr(css_source, &[]));
     }
 
-    let mut seen = IdentifierSet::default();
+    let mut walker = CssModuleGraphWalker::new(self.generate_context.compilation);
     let mut builder = self.css_source_builder(false);
     let render_conditions = self
       .css_build_info
       .render_conditions()
       .cloned()
       .collect::<Vec<_>>();
-    self.render_ordered_css_sources(&mut builder, &render_conditions, &mut seen);
-    json_stringify_str(&builder.into_css_text())
+    self.render_ordered_css_sources(&mut walker, &mut builder, &render_conditions)?;
+    Ok(json_stringify_str(&builder.into_css_text()))
   }
 
   fn render_ordered_css_sources(
     &mut self,
+    walker: &mut CssModuleGraphWalker<'g>,
     builder: &mut CssSourceBuilder,
     render_conditions: &[CssModuleRenderCondition],
-    seen: &mut IdentifierSet,
-  ) {
-    let module = self.module;
-    if !seen.insert(module.identifier()) {
-      return;
-    }
-
-    self.render_css_import_sources(builder, seen);
-    let css_source = self.render_css_module_source();
+  ) -> Result<()> {
+    self.render_css_import_sources(walker, builder)?;
+    let css_source = self.render_css_module_source()?;
     if !css_source.source().is_empty() {
       if self.css_build_info.has_charset {
         builder.set_has_charset();
@@ -356,64 +490,23 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         self.css_build_info.has_charset,
       );
     }
-    seen.remove(&module.identifier());
+    Ok(())
   }
 
   fn render_css_import_sources(
     &mut self,
+    walker: &mut CssModuleGraphWalker<'g>,
     builder: &mut CssSourceBuilder,
-    seen: &mut IdentifierSet,
-  ) {
-    let compilation = self.generate_context.compilation;
-    let module_graph = compilation.get_module_graph();
-
-    for css_import in self.css_import_modules() {
-      let Some(imported_module) = module_graph.module_by_identifier(&css_import.module_identifier)
-      else {
-        continue;
-      };
-      let Some(imported_source) = imported_module.source() else {
-        continue;
-      };
-
-      let build_info = imported_module.build_info();
-      let css_build_info = build_info
-        .css
-        .as_deref()
-        .expect("imported CSS module should have build info");
-      let mut child = self.child_generator(
-        imported_source.clone(),
-        imported_module.as_ref(),
-        css_build_info,
-      );
-      child.render_ordered_css_sources(builder, &css_import.render_conditions, seen);
-    }
-  }
-
-  fn css_import_modules(&self) -> impl Iterator<Item = CssImportedModule> + 'a {
-    let compilation = self.generate_context.compilation;
-    let module_graph = compilation.get_module_graph();
-
-    self
-      .module
-      .get_dependencies()
-      .iter()
-      .filter_map(move |dependency| {
-        if !matches!(dependency.dependency_type(), DependencyType::CssImport) {
-          return None;
-        }
-        let Some(css_import_dep) = dependency.downcast_ref::<CssImportDependency>() else {
-          panic!(
-            "dependency with type DependencyType::CssImport should only be CssImportDependency"
-          );
-        };
-        let imported_module = module_graph.module_graph_module_by_dependency_id(dependency.id())?;
-
-        Some(CssImportedModule {
-          module_identifier: imported_module.module_identifier,
-          render_conditions: css_import_dep.render_conditions().cloned().collect(),
-        })
-      })
+  ) -> Result<()> {
+    let module = self.module;
+    walker.walk_css_imports(
+      &mut CssSourceSink {
+        generator: self,
+        builder,
+      },
+      module,
+      true,
+    )
   }
 
   fn css_text_expr(
@@ -522,86 +615,21 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     }
   }
 
-  fn render_style_imports(&mut self, visited_inlined_modules: &mut HashSet<String>) -> String {
-    let compilation = self.generate_context.compilation;
-    let module_graph = compilation.get_module_graph();
-    let (require, require_left, require_right) = self.render_require_call_parts();
-    let mut code = String::new();
-
-    let has_render_condition = !self.css_build_info.has_render_conditions();
-
-    for css_import in self.css_import_modules() {
-      let Some(module_id) = ChunkGraph::get_module_id(
-        &compilation.module_ids_artifact,
-        css_import.module_identifier,
-      ) else {
-        continue;
-      };
-
-      let Some(imported_module) = module_graph.module_by_identifier(&css_import.module_identifier)
-      else {
-        continue;
-      };
-
-      if matches!(
-        css_module_export_type(imported_module.as_ref()),
-        Some(CssExportType::Style)
-      ) && has_render_condition
-        && css_import.render_conditions.is_empty()
-      {
-        let is_concatenated_import = self
-          .generate_context
-          .concatenation_scope
-          .as_ref()
-          .is_some_and(|scope| {
-            scope.is_module_in_scope(&css_import.module_identifier)
-              && scope.is_module_concatenated(&css_import.module_identifier)
-          });
-        if !is_concatenated_import {
-          code.push_str(&concat_string!(
-            require,
-            require_left,
-            json_stringify(module_id),
-            require_right,
-            ";\n"
-          ));
-        }
-        continue;
-      }
-
-      let Some(source) = imported_module.source() else {
-        continue;
-      };
-      let render_conditions_key =
-        css_module_render_conditions_identifier(&css_import.render_conditions).unwrap_or_default();
-      let inlined_module_key = concat_string!(
-        imported_module.identifier().as_str(),
-        "|",
-        render_conditions_key
-      );
-      if !visited_inlined_modules.insert(inlined_module_key) {
-        continue;
-      }
-
-      let build_info = imported_module.build_info();
-      let css_build_info = build_info
-        .css
-        .as_deref()
-        .expect("imported CSS module should have build info");
-      let mut child =
-        self.child_generator(source.clone(), imported_module.as_ref(), css_build_info);
-      code.push_str(&child.render_style_imports(visited_inlined_modules));
-      let css_source = child.render_css_module_source();
-      let css = child.css_text_expr(css_source, &css_import.render_conditions);
-      let style_module_id = if render_conditions_key.is_empty() {
-        module_id.to_string()
-      } else {
-        concat_string!(module_id.to_string(), "|", render_conditions_key)
-      };
-      code.push_str(&self.render_inject_style_call(json_stringify_str(&style_module_id), &css));
-    }
-
-    code
+  fn render_style_imports(
+    &mut self,
+    visited_inlined_modules: &mut HashSet<String>,
+  ) -> Result<String> {
+    let require = self.render_require_call_parts();
+    let mut walker = CssModuleGraphWalker::new(self.generate_context.compilation);
+    let mut sink = CssStyleSink {
+      generator: self,
+      visited: visited_inlined_modules,
+      code: String::new(),
+      require,
+    };
+    let module = sink.generator.module;
+    walker.walk_css_imports(&mut sink, module, false)?;
+    Ok(sink.code)
   }
 
   fn render_css_inject_style(&mut self, css: &str) -> String {
@@ -631,8 +659,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let css_style_sheet = self.css_style_sheet();
     let css_style_sheet_expr = concat_string!(css_style_sheet, "(", css, ")");
     if self.generate_context.concatenation_scope.is_some() {
-      self.concat_css_exports_with_default(Some(css_style_sheet_expr))?;
-      return Ok(String::new());
+      return self.concat_css_exports_with_default(Some(css_style_sheet_expr));
     }
 
     let sheet_code = concat_string!("var __css_style_sheet = ", css_style_sheet_expr, ";\n");
@@ -642,8 +669,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
 
   fn generate_css_text_exports(&mut self, css: &str) -> Result<String> {
     if self.generate_context.concatenation_scope.is_some() {
-      self.concat_css_exports_with_default(Some(css.to_string()))?;
-      return Ok(String::new());
+      return self.concat_css_exports_with_default(Some(css.to_string()));
     }
 
     Ok(self.generate_css_default_exports("", css))
@@ -691,7 +717,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     }
   }
 
-  fn concat_css_exports_with_default(&mut self, default_expr: Option<String>) -> Result<()> {
+  fn concat_css_exports_with_default(&mut self, default_expr: Option<String>) -> Result<String> {
     let exports = self.collect_used_css_exports();
     self.concat_css_exports_inner(default_expr, exports)
   }
@@ -699,10 +725,10 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   fn concat_css_exports_inner<'b>(
     &mut self,
     default_expr: Option<String>,
-    exports: FxIndexMap<&'b str, &'b FxIndexSet<CssExport>>,
-  ) -> Result<()> {
+    exports: FxIndexMap<&'b str, &'b CssIcssExportDependency>,
+  ) -> Result<String> {
     if self.generate_context.concatenation_scope.is_none() {
-      return Ok(());
+      return Ok(String::new());
     }
 
     let module = self.module;
@@ -711,16 +737,22 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let exports_info = compilation
       .exports_info_artifact
       .get_exports_info_data(&module.identifier());
-    let mut state = CssConcatenationState::new(compilation);
+    let mut used_identifiers = HashSet::default();
+    let mut source = String::new();
 
     if let Some(default_expr) = default_expr {
       let export_info = exports_info.get_read_only_export_info(&Atom::from("default"));
       if let Some(UsedNameItem::Str(used_name)) = export_info.get_used_name(None, runtime) {
-        self.register_concat_export("default", &default_expr, &used_name, &mut state);
+        source.push_str(&self.register_concat_export(
+          "default",
+          &default_expr,
+          &used_name,
+          &mut used_identifiers,
+        ));
       }
     }
 
-    for (key, elements) in exports {
+    for (key, _) in exports {
       let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
       let used_name = export_info.get_used_name(None, runtime);
       let used_name: Cow<'_, str> = match used_name {
@@ -728,11 +760,16 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         _ => Cow::Borrowed(key),
       };
 
-      let content = self.render_concat_export_content(elements, &mut state);
-      self.register_concat_export(key, &content, &used_name, &mut state);
+      let content = self.render_css_export_content(key);
+      source.push_str(&self.register_concat_export(
+        key,
+        &content,
+        &used_name,
+        &mut used_identifiers,
+      ));
     }
 
-    Ok(())
+    Ok(source)
   }
 
   fn register_concat_export(
@@ -740,15 +777,15 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     key: &str,
     content: &str,
     used_name: &str,
-    state: &mut CssConcatenationState<'_>,
-  ) {
+    used_identifiers: &mut HashSet<SmolStr>,
+  ) -> String {
     let mut identifier = to_identifier(used_name).into_owned();
-    if RESERVED_IDENTIFIER.contains(identifier.as_str()) {
+    if identifier.is_empty() || RESERVED_IDENTIFIER.contains(identifier.as_str()) {
       identifier = concat_string!("_", identifier);
     }
     let base_identifier = identifier.clone();
     let mut i = 0;
-    while state.used_identifiers.contains(&identifier) {
+    while used_identifiers.contains(identifier.as_str()) {
       let mut i_buffer = itoa::Buffer::new();
       let i_str = i_buffer.format(i);
       identifier = concat_string!(base_identifier, i_str);
@@ -756,113 +793,85 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     }
 
     let export_source = concat_string!("var ", identifier, " = ", content, ";\n");
-    self.concat_source.add(RawStringSource::from(export_source));
-    state.used_identifiers.insert(identifier.clone());
+    used_identifiers.insert(SmolStr::new(&identifier));
     let Some(ref mut scope) = self.generate_context.concatenation_scope else {
       unreachable!();
     };
     scope.register_export(key.into(), identifier);
+    export_source
   }
 
-  fn render_css_export_content(&mut self, elements: &FxIndexSet<CssExport>) -> String {
-    let mut content = String::new();
-    for CssExport {
-      ident,
-      from,
-      id,
-      orig_name: _,
-    } in elements
-    {
-      let part = match from {
-        None => self.render_local_css_export(ident),
-        Some(from_name) => self.render_standard_css_reexport(ident, from_name, id.as_ref()),
-      };
-      push_joined(&mut content, &part, " + \" \" + ");
-    }
-    content
+  fn render_css_export_content(&self, name: &str) -> String {
+    let Some(id) = find_export(self.module, name) else {
+      return String::new();
+    };
+    self
+      .js_output
+      .get(&id)
+      .expect("CSS export should be collected before rendering JavaScript")
+      .clone()
   }
 
-  fn render_local_css_export(&self, ident: &str) -> String {
-    let ident =
-      replace_css_module_id_placeholder(ident, self.generate_context.compilation, self.module);
-    json_stringify_str(&ident)
-  }
-
-  fn render_standard_css_reexport(
+  fn visit_imported_css_export(
     &mut self,
+    walker: &mut CssModuleGraphWalker<'g>,
+    target: &dyn Module,
+    id: DependencyId,
+  ) -> Result<CssExportValue<'g>> {
+    let build_info = target.build_info();
+    let Some(css_build_info) = build_info.css.as_deref() else {
+      return Ok(CssExportValue::default());
+    };
+    let mut child = self.child_generator(
+      target
+        .source()
+        .expect("CSS module should have a source")
+        .clone(),
+      target,
+      css_build_info,
+    );
+    // The walker owns cycle detection across modules. The child generator only
+    // tracks local output and identifier usage for its module.
+    let value = walker.visit_css_export_dependency(
+      &mut child,
+      id,
+      CssExportRequirements {
+        css: true,
+        js: false,
+      },
+      true,
+    )?;
+    Ok(value)
+  }
+
+  fn render_css_import_expression(
+    &mut self,
+    walker: &mut CssModuleGraphWalker<'g>,
+    id: DependencyId,
+    import_name: &str,
+    css_value: &mut Option<Vec<Cow<'g, str>>>,
+  ) -> Result<String> {
+    if self.generate_context.concatenation_scope.is_some() {
+      return self.render_concat_reexport(walker, import_name, &id, css_value);
+    }
+
+    let (target_identifier, export_name) = {
+      let compilation = self.generate_context.compilation;
+      let target =
+        find_css_export_target(compilation, &id).expect("CSS import should resolve to a module");
+      (target.identifier(), css_export_name(target, import_name))
+    };
+    let used_name = self.stringified_used_export_name(target_identifier, &export_name, true);
+    Ok(self.render_require_property_access(target_identifier, &used_name))
+  }
+
+  fn render_concat_reexport(
+    &mut self,
+    walker: &mut CssModuleGraphWalker<'g>,
     ident: &str,
-    from_name: &str,
-    id: Option<&DependencyId>,
-  ) -> String {
-    let compilation = self.generate_context.compilation;
-    let module_graph = compilation.get_module_graph();
-    let find_target_module =
-      |dep_id: &DependencyId| module_graph.get_module_by_dependency_id(dep_id);
-    let from = id
-      .and_then(find_target_module)
-      .or_else(|| {
-        self.module.get_dependencies().iter().find_map(|dependency| {
-          let request = dependency_request(dependency.as_ref());
-          if let Some(request) = request
-            && request == from_name
-          {
-            return find_target_module(dependency.id());
-          }
-          None
-        })
-      })
-      .unwrap_or_else(|| {
-        let dependency_requests = self
-          .module
-          .get_dependencies()
-          .iter()
-          .filter_map(|dependency| dependency_request(dependency.as_ref()))
-          .collect::<Vec<_>>();
-        panic!(
-          "should have css from module: ident={ident}, from={from_name}, id={id:?}, dependency_requests={dependency_requests:?}"
-        );
-      });
-
-    let from_identifier = from.identifier();
-    let from_used_name = self.stringified_used_export_name(from_identifier, ident, true);
-    self.render_require_property_access(from_identifier, &from_used_name)
-  }
-
-  fn render_concat_export_content<'b>(
-    &mut self,
-    elements: &'b FxIndexSet<CssExport>,
-    state: &mut CssConcatenationState<'b>,
-  ) -> String
-  where
-    'g: 'b,
-  {
-    let mut content = String::new();
-    for CssExport {
-      ident,
-      from,
-      id,
-      orig_name: _,
-    } in elements
-    {
-      let part = match from {
-        None => self.render_local_css_export(ident),
-        Some(from_name) => self.render_concat_reexport(ident, from_name, id.as_ref(), state),
-      };
-      push_joined(&mut content, &part, " + \" \" + ");
-    }
-    content
-  }
-
-  fn render_concat_reexport<'b>(
-    &mut self,
-    ident: &'b str,
-    from_name: &str,
-    id: Option<&'b DependencyId>,
-    state: &mut CssConcatenationState<'b>,
-  ) -> String
-  where
-    'g: 'b,
-  {
+    id: &DependencyId,
+    css_value: &mut Option<Vec<Cow<'g, str>>>,
+  ) -> Result<String> {
     let compilation = self.generate_context.compilation;
     let module = self.module;
     let module_graph = compilation.get_module_graph();
@@ -892,25 +901,8 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_identifier).is_some(),
       )
     };
-    let find_target_module = |dep_id: &DependencyId| {
-      module_graph
-        .get_module_by_dependency_id(dep_id)
-        .map(|target| {
-          let priority = candidate_priority(target.as_ref());
-          (target, priority)
-        })
-    };
-    let from = id
-      .and_then(find_target_module)
-      .or_else(|| {
-        module
-          .get_dependencies()
-          .iter()
-          .filter(|dependency| dependency_request(dependency.as_ref()) == Some(from_name))
-          .filter_map(|dependency| find_target_module(dependency.id()))
-          .max_by_key(|(_, priority)| *priority)
-      })
-      .map(|(target, _)| target)
+    let from = module_graph
+      .get_module_by_dependency_id(id)
       .and_then(|target| {
         if target
           .source_types(module_graph)
@@ -938,32 +930,46 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       .source_types(module_graph)
       .contains(&SourceType::JavaScript)
     {
-      let resolved = state
-        .resolve_static_export(from.as_ref(), ident)
-        .expect("should resolve static css export");
-      json_stringify_str(&resolved)
+      // Only a static fallback needs the target's CSS value. Runtime module
+      // references must not recursively expand an unused representation.
+      if css_value.is_none() {
+        let export = find_export(from.as_ref(), ident).expect("should have CSS export");
+        *css_value = self
+          .visit_imported_css_export(walker, from.as_ref(), export)?
+          .css;
+      }
+      Ok(json_stringify_str(
+        &css_value
+          .as_ref()
+          .expect("should resolve static css export")
+          .join(""),
+      ))
     } else {
-      let from_used_name = self.stringified_used_export_name(from.identifier(), ident, false);
-      self.render_require_property_access(from.identifier(), &from_used_name)
+      let from_used_name = self.stringified_used_export_name(
+        from.identifier(),
+        &crate::css_exports::css_export_name(from.as_ref(), ident),
+        false,
+      );
+      Ok(self.render_require_property_access(from.identifier(), &from_used_name))
     }
   }
 
   fn stringified_exports<'b>(
     &mut self,
-    exports: FxIndexMap<&'b str, &'b FxIndexSet<CssExport>>,
+    exports: FxIndexMap<&'b str, &'b CssIcssExportDependency>,
   ) -> (&'static str, String) {
     let module = self.module;
+    let compilation = self.generate_context.compilation;
+    let runtime = self.generate_context.runtime;
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(&module.identifier());
     let mut stringified_exports = String::new();
 
-    for (key, elements) in exports {
+    for (key, _) in exports {
       let used_name: Cow<'_, str> = {
-        let exports_info = self
-          .generate_context
-          .compilation
-          .exports_info_artifact
-          .get_exports_info_data(&module.identifier());
         let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
-        match export_info.get_used_name(None, self.generate_context.runtime) {
+        match export_info.get_used_name(None, runtime) {
           Some(UsedNameItem::Str(name)) => Cow::Owned(name.to_string()),
           _ => Cow::Borrowed(key),
         }
@@ -972,7 +978,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       stringified_exports.push_str("  ");
       stringified_exports.push_str(&json_stringify_str(&used_name));
       stringified_exports.push_str(": ");
-      stringified_exports.push_str(&self.render_css_export_content(elements));
+      stringified_exports.push_str(&self.render_css_export_content(key));
 
       stringified_exports.push_str(",\n");
     }
@@ -1013,165 +1019,250 @@ if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_
   }
 }
 
-struct CssConcatenationState<'a> {
-  compilation: &'a rspack_core::Compilation,
-  used_identifiers: HashSet<String>,
-  seen_static_exports: HashSet<(rspack_core::ModuleIdentifier, SmolStr)>,
-  static_export_queue: VecDeque<StaticCssExportFrame<'a>>,
-}
+impl<'g> CssModuleGraphSink<'g> for CssModuleGenerator<'_, 'g> {
+  type ExportValue = CssExportValue<'g>;
+  type State = ();
 
-struct StaticCssExportFrame<'a> {
-  module: &'a dyn Module,
-  css_build_info: rspack_core::FreezeReadGuard<'a, CssBuildInfo>,
-  export_name: SmolStr,
-  next_index: usize,
-  resolved: String,
-}
+  fn local(
+    &mut self,
+    export: &'g CssIcssExportDependency,
+    requirements: CssExportRequirements,
+  ) -> CssExportValue<'g> {
+    self.used_local_idents.insert(*export.id());
+    let mut resolved = CssExportValue::default();
+    if requirements.css || requirements.js {
+      let text = replace_css_module_id_placeholder(
+        &export.value,
+        self.generate_context.compilation,
+        self.module,
+      );
+      resolved.append_text(text, requirements);
+    }
+    resolved
+  }
 
-impl<'a> CssConcatenationState<'a> {
-  fn new(compilation: &'a rspack_core::Compilation) -> Self {
-    Self {
-      compilation,
-      used_identifiers: Default::default(),
-      seen_static_exports: Default::default(),
-      static_export_queue: Default::default(),
+  fn append_literal(
+    &self,
+    value: &mut Self::ExportValue,
+    text: &'g str,
+    requirements: CssExportRequirements,
+  ) {
+    value.append_text(
+      replace_css_module_id_placeholder(text, self.generate_context.compilation, self.module),
+      requirements,
+    );
+  }
+
+  fn append_reference(&self, value: &mut Self::ExportValue, reference: Self::ExportValue) {
+    if let Some(parts) = reference.css {
+      value.css.get_or_insert_with(Vec::new).extend(parts);
+    }
+    if let Some(parts) = reference.js {
+      value.js.get_or_insert_with(Vec::new).extend(parts);
     }
   }
 
-  fn resolve_static_export(&mut self, module: &'a dyn Module, export_name: &str) -> Option<String> {
-    self.seen_static_exports.clear();
-    self.static_export_queue.clear();
-
-    self.push_static_export_frame(module, export_name)?;
-
-    let module_graph = self.compilation.get_module_graph();
-    while let Some(step) = self.next_static_export_step() {
-      match step {
-        StaticCssExportStep::Complete(resolved) => {
-          if let Some(parent) = self.static_export_queue.back_mut() {
-            if !resolved.is_empty() {
-              push_joined(&mut parent.resolved, &resolved, " ");
-            }
-          } else {
-            return (!resolved.is_empty()).then_some(resolved);
-          }
-        }
-        StaticCssExportStep::Resolve { module, css_export } => match css_export.from.as_deref() {
-          None => {
-            let value =
-              replace_css_module_id_placeholder(&css_export.ident, self.compilation, module);
-            if let Some(frame) = self.static_export_queue.back_mut() {
-              push_joined(&mut frame.resolved, value.as_ref(), " ");
-            }
-          }
-          Some(from_request) => {
-            let Some(target_identifier) = find_static_export_target(
-              self.compilation,
-              module,
-              from_request,
-              css_export.id.as_ref(),
-            ) else {
-              continue;
-            };
-            let Some(target_module) = module_graph.module_by_identifier(&target_identifier) else {
-              continue;
-            };
-            let _ = self.push_static_export_frame(target_module.as_ref(), &css_export.ident);
-          }
-        },
+  fn append_compose(&self, value: &mut Self::ExportValue, compose: Self::ExportValue) {
+    if let Some(parts) = compose.css {
+      if let Some(parts) = &mut value.css {
+        parts.push(Cow::Borrowed(" "));
       }
+      value.css.get_or_insert_with(Vec::new).extend(parts);
     }
-
-    None
+    if let Some(parts) = compose.js {
+      if let Some(parts) = &mut value.js {
+        parts.push(Cow::Owned(json_stringify_str(" ")));
+      }
+      value.js.get_or_insert_with(Vec::new).extend(parts);
+    }
   }
 
-  fn push_static_export_frame(&mut self, module: &'a dyn Module, export_name: &str) -> Option<()> {
-    let css_build_info = module.build_info().map(|info| {
-      info
-        .css
-        .as_deref()
-        .expect("CssParserAndGenerator should populate BuildInfo.css during parse")
-    });
-    css_build_info.exports.get(export_name)?;
-    let module_identifier = module.identifier();
-    if !self
-      .seen_static_exports
-      .insert((module_identifier, export_name.into()))
-    {
-      return None;
+  fn visit_icss_import(
+    &mut self,
+    walker: &mut CssModuleGraphWalker<'g>,
+    import: &'g CssIcssImportDependency,
+    target: &'g dyn Module,
+    requirements: CssExportRequirements,
+    follow_self_imports: bool,
+  ) -> Result<CssExportValue<'g>> {
+    let id = *import.id();
+    let target_export = find_export(target, import.import_name());
+    let is_self_import = target.identifier() == self.module.identifier();
+    let mut value = if let Some(target_export) = target_export {
+      if is_self_import {
+        walker.visit_css_export_dependency(
+          self,
+          target_export,
+          CssExportRequirements {
+            css: requirements.css,
+            js: requirements.js && follow_self_imports,
+          },
+          follow_self_imports,
+        )?
+      } else if requirements.css {
+        self.visit_imported_css_export(walker, target, target_export)?
+      } else {
+        CssExportValue::default()
+      }
+    } else {
+      CssExportValue::default()
+    };
+
+    if requirements.js && (!is_self_import || !follow_self_imports) {
+      value.js = Some(vec![Cow::Owned(self.render_css_import_expression(
+        walker,
+        id,
+        import.import_name(),
+        &mut value.css,
+      )?)]);
     }
-    self.static_export_queue.push_back(StaticCssExportFrame {
+    if !requirements.css {
+      value.css = None;
+    }
+    Ok(value)
+  }
+}
+
+struct CssSourceSink<'v, 'a, 'g> {
+  generator: &'v mut CssModuleGenerator<'a, 'g>,
+  builder: &'v mut CssSourceBuilder,
+}
+
+impl<'g> CssModuleGraphSink<'g> for CssSourceSink<'_, '_, 'g> {
+  type ExportValue = ();
+  type State = ();
+
+  fn enter_import(
+    &mut self,
+    _walker: &mut CssModuleGraphWalker<'g>,
+    _dependency: &'g CssImportDependency,
+    module: &'g dyn Module,
+    _include_import_sources: bool,
+  ) -> Result<Option<Self::State>> {
+    Ok(module.source().is_some().then_some(()))
+  }
+
+  fn leave_import(
+    &mut self,
+    dependency: &'g CssImportDependency,
+    module: &'g dyn Module,
+    _state: (),
+  ) -> Result<()> {
+    let build_info = module.build_info();
+    let css_build_info = build_info
+      .css
+      .as_deref()
+      .expect("imported CSS module should have build info");
+    let mut child = self.generator.child_generator(
+      module
+        .source()
+        .expect("imported CSS module should have a source")
+        .clone(),
       module,
       css_build_info,
-      export_name: export_name.into(),
-      next_index: 0,
-      resolved: String::new(),
-    });
-    Some(())
-  }
-
-  fn next_static_export_step(&mut self) -> Option<StaticCssExportStep<'a>> {
-    let frame = self.static_export_queue.back_mut()?;
-    if let Some(css_export) = frame
-      .css_build_info
-      .exports
-      .get(frame.export_name.as_str())
-      .and_then(|elements| elements.get_index(frame.next_index))
-    {
-      frame.next_index += 1;
-      Some(StaticCssExportStep::Resolve {
-        module: frame.module,
-        // The frame retains the metadata guard while the next step mutates
-        // the queue. Retain just this export's small strings for that step.
-        css_export: css_export.clone(),
-      })
-    } else {
-      Some(StaticCssExportStep::Complete(
-        self
-          .static_export_queue
-          .pop_back()
-          .expect("queue should have current frame")
-          .resolved,
-      ))
+    );
+    let source = child.render_css_module_source()?;
+    if !source.source().is_empty() {
+      if css_build_info.has_charset {
+        self.builder.set_has_charset();
+      }
+      self.builder.push_css_source(
+        source,
+        &dependency.render_conditions().cloned().collect::<Vec<_>>(),
+        css_build_info.has_charset,
+      );
     }
+    Ok(())
   }
 }
 
-enum StaticCssExportStep<'a> {
-  Resolve {
-    module: &'a dyn Module,
-    css_export: CssExport,
-  },
-  Complete(String),
+struct CssStyleSink<'v, 'a, 'g> {
+  generator: &'v mut CssModuleGenerator<'a, 'g>,
+  visited: &'v mut HashSet<String>,
+  code: String,
+  require: (String, &'static str, &'static str),
 }
 
-fn push_joined(target: &mut String, value: &str, separator: &str) {
-  if !target.is_empty() {
-    target.push_str(separator);
+impl<'g> CssModuleGraphSink<'g> for CssStyleSink<'_, '_, 'g> {
+  type ExportValue = ();
+  type State = (String, Vec<CssModuleRenderCondition>);
+
+  fn enter_import(
+    &mut self,
+    walker: &mut CssModuleGraphWalker<'g>,
+    dependency: &'g CssImportDependency,
+    module: &'g dyn Module,
+    _include_import_sources: bool,
+  ) -> Result<Option<Self::State>> {
+    let compilation = self.generator.generate_context.compilation;
+    let identifier = module.identifier();
+    let Some(module_id) = ChunkGraph::get_module_id(&compilation.module_ids_artifact, identifier)
+    else {
+      return Ok(None);
+    };
+    if !walker.is_css_import_inlined_style(dependency, module) {
+      let concatenated = self
+        .generator
+        .generate_context
+        .concatenation_scope
+        .as_ref()
+        .is_some_and(|scope| {
+          scope.is_module_in_scope(&identifier) && scope.is_module_concatenated(&identifier)
+        });
+      if !concatenated {
+        self.code.push_str(&concat_string!(
+          self.require.0,
+          self.require.1,
+          json_stringify(module_id),
+          self.require.2,
+          ";\n"
+        ));
+      }
+      return Ok(None);
+    }
+    if module.source().is_none() {
+      return Ok(None);
+    }
+    let conditions: Vec<_> = dependency.render_conditions().cloned().collect();
+    let conditions_key = css_module_render_conditions_identifier(&conditions).unwrap_or_default();
+    let key = concat_string!(identifier.as_str(), "|", conditions_key);
+    if !self.visited.insert(key) {
+      return Ok(None);
+    }
+    let style_module_id = if conditions_key.is_empty() {
+      module_id.to_string()
+    } else {
+      concat_string!(module_id.to_string(), "|", conditions_key)
+    };
+    Ok(Some((style_module_id, conditions)))
   }
-  target.push_str(value);
-}
 
-fn find_static_export_target(
-  compilation: &rspack_core::Compilation,
-  module: &dyn Module,
-  from_request: &str,
-  id: Option<&DependencyId>,
-) -> Option<rspack_core::ModuleIdentifier> {
-  let module_graph = compilation.get_module_graph();
-  id.and_then(|id| {
-    module_graph
-      .get_module_by_dependency_id(id)
-      .map(|module| module.identifier())
-  })
-  .or_else(|| {
-    module.get_dependencies().iter().find_map(|dependency| {
-      let request = dependency_request(dependency.as_ref());
-      (request == Some(from_request)).then(|| {
-        module_graph
-          .get_module_by_dependency_id(dependency.id())
-          .map(|module| module.identifier())
-      })?
-    })
-  })
+  fn leave_import(
+    &mut self,
+    _dependency: &'g CssImportDependency,
+    module: &'g dyn Module,
+    (style_module_id, conditions): Self::State,
+  ) -> Result<()> {
+    let build_info = module.build_info();
+    let css_build_info = build_info
+      .css
+      .as_deref()
+      .expect("imported CSS module should have build info");
+    let mut child = self.generator.child_generator(
+      module
+        .source()
+        .expect("imported CSS module should have a source")
+        .clone(),
+      module,
+      css_build_info,
+    );
+    let source = child.render_css_module_source()?;
+    let css = child.css_text_expr(source, &conditions);
+    self.code.push_str(
+      &self
+        .generator
+        .render_inject_style_call(json_stringify_str(&style_module_id), &css),
+    );
+    Ok(())
+  }
 }

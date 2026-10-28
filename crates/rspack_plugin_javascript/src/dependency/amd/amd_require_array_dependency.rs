@@ -15,7 +15,8 @@ use super::amd_require_item_dependency::AMDRequireItemDependency;
 #[derive(Debug, Clone)]
 pub enum AMDRequireArrayItem {
   Require,
-  String(String),
+  Module,
+  Exports,
   LocalModuleDependency { local_module_variable_name: String },
   AMDRequireItemDependency { dep_id: DependencyId },
 }
@@ -82,7 +83,20 @@ impl AMDRequireArrayDependency {
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::REQUIRE)
         .into(),
-      AMDRequireArrayItem::String(name) => name.into(),
+      AMDRequireArrayItem::Module => {
+        let module_argument = code_generatable_context.module.get_module_argument();
+        code_generatable_context
+          .runtime_template
+          .render_module_argument(module_argument)
+          .into()
+      }
+      AMDRequireArrayItem::Exports => {
+        let exports_argument = code_generatable_context.module.get_exports_argument();
+        code_generatable_context
+          .runtime_template
+          .render_exports_argument(exports_argument)
+          .into()
+      }
       AMDRequireArrayItem::LocalModuleDependency {
         local_module_variable_name,
       } => local_module_variable_name.into(),

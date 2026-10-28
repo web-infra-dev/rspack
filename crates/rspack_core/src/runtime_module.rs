@@ -5,6 +5,7 @@ use std::{
 };
 
 use async_trait::async_trait;
+use futures::future::BoxFuture;
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 use rspack_error::Result;
@@ -15,8 +16,7 @@ use tokio::sync::OnceCell;
 
 use crate::{
   ChunkUkey, CodeGenerationResultBuilder, Compilation, Module, ModuleCodeGenerationContext,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, RuntimeTemplate, SourceType,
-  runtime_mode::RuntimeMode,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeTemplate, SourceType, runtime_mode::RuntimeMode,
 };
 
 pub struct RuntimeModuleGenerateContext<'a> {
@@ -156,32 +156,34 @@ impl RuntimeModuleCommon {
   }
 }
 
-pub async fn runtime_module_get_generated_code(
-  module: &dyn RuntimeModule,
-  common: &RuntimeModuleCommon,
-  compilation: &Compilation,
-) -> Result<Arc<dyn Source>> {
-  let result: Result<&BoxSource> = common
-    .cached_generated_code
-    .get_or_try_init(|| async {
-      let runtime_template = compilation
-        .runtime_template
-        .create_runtime_module_code_template();
-      let context = RuntimeModuleGenerateContext {
-        compilation,
-        runtime_template: &runtime_template,
-      };
-      let source_str = module.generate_with_custom(&context).await?;
-      let source_map_kind = module.get_source_map_kind();
-      Ok(if source_map_kind.enabled() {
-        OriginalSource::new(source_str, module.identifier().as_str()).boxed()
-      } else {
-        RawStringSource::from(source_str).boxed()
+pub fn runtime_module_get_generated_code<'a>(
+  module: &'a dyn RuntimeModule,
+  common: &'a RuntimeModuleCommon,
+  compilation: &'a Compilation,
+) -> BoxFuture<'a, Result<Arc<dyn Source>>> {
+  Box::pin(async move {
+    let result: Result<&BoxSource> = common
+      .cached_generated_code
+      .get_or_try_init(|| async {
+        let runtime_template = compilation
+          .runtime_template
+          .create_runtime_module_code_template();
+        let context = RuntimeModuleGenerateContext {
+          compilation,
+          runtime_template: &runtime_template,
+        };
+        let source_str = module.generate_with_custom(&context).await?;
+        let source_map_kind = module.get_source_map_kind();
+        Ok(if source_map_kind.enabled() {
+          OriginalSource::new(source_str, module.identifier().as_str()).boxed()
+        } else {
+          RawStringSource::from(source_str).boxed()
+        })
       })
-    })
-    .await;
-  let source = result?.clone();
-  Ok(source)
+      .await;
+    let source = result?.clone();
+    Ok(source)
+  })
 }
 
 pub async fn runtime_module_code_generation(
@@ -199,7 +201,6 @@ pub async fn runtime_module_get_runtime_hash(
   module: &dyn RuntimeModule,
   common: &RuntimeModuleCommon,
   compilation: &Compilation,
-  _runtime: Option<&RuntimeSpec>,
 ) -> Result<RspackHashDigest> {
   let mut hasher = RspackHasher::from(&compilation.options.output);
   module.name().hash(&mut hasher);

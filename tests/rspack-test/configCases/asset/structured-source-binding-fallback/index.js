@@ -1,0 +1,35 @@
+const fs = require('node:fs');
+const path = require('node:path');
+
+const read = (name) => fs.readFileSync(path.join(__dirname, name));
+
+it('should preserve native binary sources after reading their content', () => {
+  expect(read('buffer.bin')).toEqual(Buffer.from('abc'));
+});
+
+it('should serialize concatenated Buffers as text', () => {
+  expect(read('single-buffer.txt')).toEqual(Buffer.from('abc'));
+  expect(read('mixed-buffer.txt')).toEqual(Buffer.from('prefix:abc'));
+  expect(read('buffer-child.txt')).toEqual(Buffer.from('body!'));
+});
+
+it('should preserve native sources after reading their maps or buffers', () => {
+  for (const method of ['map', 'sourceAndMap', 'buffer']) {
+    expect(read(`${method}.txt`).toString()).toBe('body');
+    expect(read(`${method}-replace.txt`).toString()).toBe('prefix:body');
+    expect(JSON.parse(read(`${method}-result.json`)).sources).toEqual(['original.txt']);
+    expect(JSON.parse(read(`${method}-replace-result.json`)).sources).toEqual(['original.txt']);
+  }
+});
+
+it('should fall back for source subclasses', () => {
+  expect(read('subclass-concat.txt').toString()).toBe('prefix:body');
+  expect(read('subclass-replace.txt').toString()).toBe('prefix:body');
+});
+
+it('should serialize only the nested source that needs fallback', () => {
+  expect(read('overlap-fallback.txt').toString()).toBe('outer:prefix:body:changed');
+  const map = JSON.parse(read('overlap-map.json'));
+  expect(map.sources).toEqual(['original.txt']);
+  expect(map.names).toContain('replacement');
+});

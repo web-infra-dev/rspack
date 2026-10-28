@@ -104,7 +104,7 @@ In the patterns below, `X` and `Y` are version numbers, and brackets indicate op
 | `web`                      | Browser-like environment                                                                                  |
 | `webworker`                | Web Worker, Shared Worker, or Service Worker environment                                                  |
 
-- Supported ECMAScript targets are `es3`, `es5`, and `es2015` through `es2025`.
+- Supported ECMAScript targets are `es3`, `es5`, and `es2015` through `es2026`.
 - An `esX` target describes syntax capabilities, not a runtime platform. It should usually be combined with a platform target such as `web` or `node`.
 - Versions can be specified for Node.js, Electron, and NW.js targets.
 
@@ -127,8 +127,8 @@ These are defaults. You can override the corresponding options when the target p
 
 When used without an explicit transform target, the following built-in tools inherit a compatible default from `target`:
 
-- [`builtin:swc-loader`](/guide/features/builtin-swc-loader) derives `env.targets` or `jsc.target`
-- [`builtin:lightningcss-loader`](/guide/features/builtin-lightningcss-loader) derives browser targets when available
+- [`builtin:swc-loader`](/guide/builtin-loaders/swc-loader) derives `env.targets` or `jsc.target`
+- [`builtin:lightningcss-loader`](/guide/builtin-loaders/lightningcss-loader) derives browser targets when available
 - [`SwcJsMinimizerRspackPlugin`](/plugins/swc-js-minimizer-rspack-plugin) derives its ECMAScript target
 - [`LightningCssMinimizerRspackPlugin`](/plugins/lightning-css-minimizer-rspack-plugin) derives browser targets when available
 

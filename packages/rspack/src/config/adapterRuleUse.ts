@@ -567,8 +567,23 @@ function createRawModuleRuleUsesImpl(
       optionsCacheKey: use.cache
         ? (JSON.stringify(fingerprintOptions) ?? '')
         : '',
+      codeFilter: createRawLoaderCodeFilter(
+        use.codeFilter,
+        `${path}[${index}].codeFilter`,
+      ),
     };
   });
+}
+
+function createRawLoaderCodeFilter(
+  codeFilter: RuleSetLoaderWithOptions['codeFilter'],
+  path: string,
+): string | RegExp | undefined {
+  if (codeFilter === undefined) return undefined;
+  if (typeof codeFilter === 'string' || codeFilter instanceof RegExp) {
+    return codeFilter;
+  }
+  throw new Error(`Expected a string or RegExp at \`${path}\`.`);
 }
 
 function resolveStringifyLoaders(

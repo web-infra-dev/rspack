@@ -9,14 +9,7 @@ use rspack_core::{
 use rspack_napi::OneShotRef;
 use rustc_hash::FxHashMap;
 
-use crate::{
-  define_symbols, dependency::DependencyWrapper, module::ModuleObject, with_compilation,
-};
-
-define_symbols! {
-  CIRCULAR_CONNECTION_SYMBOL => "CIRCULAR_CONNECTION",
-  TRANSITIVE_ONLY_SYMBOL => "TRANSITIVE_ONLY",
-}
+use crate::{dependency::DependencyWrapper, module::ModuleObject, symbols, with_compilation};
 
 /// Wrapper for ConnectionState that serializes to JS as `boolean | symbol`.
 pub enum JsConnectionState {
@@ -33,14 +26,14 @@ impl ToNapiValue for JsConnectionState {
     unsafe {
       match val {
         JsConnectionState::Bool(b) => ToNapiValue::to_napi_value(env, b),
-        JsConnectionState::CircularConnection => CIRCULAR_CONNECTION_SYMBOL.with(|once_cell| {
-          #[allow(clippy::unwrap_used)]
-          ToNapiValue::to_napi_value(env, once_cell.get().unwrap())
-        }),
-        JsConnectionState::TransitiveOnly => TRANSITIVE_ONLY_SYMBOL.with(|once_cell| {
-          #[allow(clippy::unwrap_used)]
-          ToNapiValue::to_napi_value(env, once_cell.get().unwrap())
-        }),
+        JsConnectionState::CircularConnection => ToNapiValue::to_napi_value(
+          env,
+          napi::Env::from_raw(env).symbol_for(symbols::CIRCULAR_CONNECTION_SYMBOL)?,
+        ),
+        JsConnectionState::TransitiveOnly => ToNapiValue::to_napi_value(
+          env,
+          napi::Env::from_raw(env).symbol_for(symbols::TRANSITIVE_ONLY_SYMBOL)?,
+        ),
       }
     }
   }
@@ -71,12 +64,8 @@ impl ModuleGraphConnection {
   #[napi(getter, ts_return_type = "Dependency")]
   pub fn dependency(&self) -> napi::Result<DependencyWrapper> {
     self.with_ref(|compilation, module_graph| {
-      if let Some(dependency) = internal::try_dependency_by_id(module_graph, &self.dependency_id) {
-        Ok(DependencyWrapper::new(
-          dependency,
-          compilation.id(),
-          Some(compilation),
-        ))
+      if let Some(dependency) = internal::try_dependency_ref_by_id(module_graph, &self.dependency_id) {
+        Ok(DependencyWrapper::from_graph(dependency, compilation.id()))
       } else {
         Err(napi::Error::from_reason(format!(
           "Unable to access Dependency with id = {:#?} now. The Dependency have been removed on the Rust side.",

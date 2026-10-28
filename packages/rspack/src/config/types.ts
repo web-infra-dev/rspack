@@ -881,6 +881,8 @@ export type RuleSetLoader = string;
 
 export type RuleSetLoaderOptions = string | Record<string, any>;
 
+export type RuleSetLoaderCodeFilter = string | RegExp;
+
 export type RuleSetLoaderWithOptions = {
   /**
    * Stable identifier used to reference object-form loader options.
@@ -907,6 +909,12 @@ export type RuleSetLoaderWithOptions = {
    * @experimental
    */
   cache?: boolean;
+
+  /**
+   * Filters the current input before calling the normal loader handler.
+   * The loader pitch function is not filtered.
+   */
+  codeFilter?: RuleSetLoaderCodeFilter;
 
   options?: RuleSetLoaderOptions;
 };
@@ -1345,6 +1353,12 @@ export type JavascriptParserOptions = {
   url?: 'relative' | 'new-url-relative' | boolean;
 
   /**
+   * Enable parsing of dynamic requests in new URL().
+   * @default true
+   */
+  dynamicUrl?: boolean;
+
+  /**
    * Enable warnings for full dynamic dependencies
    * @default true
    * */
@@ -1754,6 +1768,7 @@ type AllowTarget =
   | 'es2023'
   | 'es2024'
   | 'es2025'
+  | 'es2026'
   | 'node'
   | 'async-node'
   | `node${number}`
@@ -2198,35 +2213,6 @@ export type MemoryCacheOptions = {
   type: 'memory';
 };
 
-/** Filesystem cache options. Requires `experiments.newCache` to be enabled. */
-export type FileSystemCacheOptions = {
-  type: 'filesystem';
-  /** Name for the cache. Different names create coexisting caches. */
-  name?: string;
-  /** Build dependencies grouped by category. Changes invalidate the cache. */
-  buildDependencies?: Record<string, string[]>;
-  /** Base directory for the cache. Defaults to `node_modules/.cache/rspack`. */
-  cacheDirectory?: string;
-  /** Cache location. Defaults to `<cacheDirectory>/<name>`. */
-  cacheLocation?: string;
-  /** Cache version. Changing this value invalidates the cache. Defaults to `""`. */
-  version?: string;
-  /** Read existing cache data without writing to disk. Defaults to `false`. */
-  readonly?: boolean;
-  /**
-   * Generations to retain unused entries in memory. Use 0 to disable the memory
-   * cache or Infinity to retain entries forever. Defaults to 5 in development,
-   * Infinity otherwise.
-   */
-  maxMemoryGenerations?: number;
-  /** Idle time before writing to disk, in milliseconds. Defaults to 60000. */
-  idleTimeout?: number;
-  /** Idle time before the initial write, in milliseconds. Defaults to 5000. */
-  idleTimeoutForInitialStore?: number;
-  /** Idle time after large changes, in milliseconds. Defaults to 1000. */
-  idleTimeoutAfterLargeChanges?: number;
-};
-
 /**
  * Options for caching snapshots and intermediate products during the build process.
  * @description Controls whether caching is enabled or disabled.
@@ -2239,10 +2225,7 @@ export type FileSystemCacheOptions = {
  * cache: false
  */
 export type CacheOptions =
-  | boolean
-  | MemoryCacheOptions
-  | PersistentCacheOptions
-  | FileSystemCacheOptions;
+  boolean | MemoryCacheOptions | PersistentCacheOptions;
 //#endregion
 
 //#region Stats
@@ -2779,6 +2762,12 @@ type SharedOptimizationSplitChunksCacheGroup = {
   minSizeReduction?: OptimizationSplitChunksSizes;
 
   /**
+   * Minimum size of the chunk remaining after splitting from a single chunk.
+   * Defaults to 0 in development mode and minSize otherwise.
+   */
+  minRemainingSize?: OptimizationSplitChunksSizes;
+
+  /**
    * Size threshold at which splitting is enforced and other restrictions
    * (minRemainingSize, maxAsyncRequests, maxInitialRequests) are ignored.
    * The value is `50000` in production mode.
@@ -3213,7 +3202,7 @@ export type NewCache = {
   loader?: boolean;
   /** Enable the asset minimization cache. @default true */
   minimize?: boolean;
-  /** Enable the module and loader resolution cache. @default true */
+  /** Enable the module and loader resolution cache. @default false */
   resolver?: boolean;
 };
 
@@ -3325,7 +3314,8 @@ export type WatchOptions = {
    * A function receives each entry and must return `true` to ignore it; unlike
    * the other forms, its path keeps the platform separators.
    */
-  ignored?: string | RegExp | string[] | ((entry: string) => boolean);
+  ignored?:
+    string | RegExp | (string | RegExp)[] | ((entry: string) => boolean);
 
   /**
    * Turn on polling by passing true, or specifying a poll interval in milliseconds.

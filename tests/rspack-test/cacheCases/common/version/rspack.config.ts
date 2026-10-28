@@ -1,8 +1,5 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
-import type {
-  FileSystemCacheOptions,
-  PersistentCacheOptions,
-} from '@rspack/core';
+import type { PersistentCacheOptions } from '@rspack/core';
 import path from 'node:path';
 
 const versions = ['v1', 'v2', 'v1'];
@@ -19,8 +16,7 @@ export default defineConfig({
   plugins: [
     definePlugin({
       apply(compiler) {
-        const cache = compiler.options.cache as
-          PersistentCacheOptions | FileSystemCacheOptions;
+        const cache = compiler.options.cache as PersistentCacheOptions;
         compiler.hooks.beforeCompile.tap('Test Plugin', function () {
           const version = versions[buildIndex++];
           if (version) {

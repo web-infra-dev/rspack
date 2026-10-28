@@ -1,6 +1,6 @@
 use rayon::prelude::*;
 use rspack_collections::IdentifierSet;
-use rspack_core::{ChunkUkey, ModuleIdentifier, SourceType};
+use rspack_core::{ChunkUkey, Compilation, ModuleIdentifier, SourceType};
 
 use super::ModuleGroupMap;
 use crate::{
@@ -100,6 +100,47 @@ pub(crate) fn remove_min_size_violating_modules<T: std::fmt::Display>(
 }
 
 impl SplitChunksPlugin {
+  pub(crate) fn get_min_remaining_size_violations(
+    module_chunks: &ModuleChunkMap,
+    source_chunk: ChunkUkey,
+    compilation: &Compilation,
+    module_sizes: &ModuleSizes,
+    min_remaining_size: &SplitChunkSizes,
+  ) -> Vec<SourceType> {
+    let mut remaining_sizes = SplitChunkSizes::empty();
+    for module in compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_chunk_modules_identifier(&source_chunk)
+    {
+      // Named groups can have different source chunks for each module. Only exclude modules
+      // actually moving out of this chunk after request limits and chunk conditions are applied.
+      if module_chunks
+        .get(module)
+        .is_some_and(|chunks| chunks.contains(&source_chunk))
+      {
+        continue;
+      }
+      for (ty, size) in module_sizes
+        .get(module)
+        .expect("should have module size")
+        .iter()
+      {
+        *remaining_sizes.entry(*ty).or_default() += size;
+      }
+    }
+
+    min_remaining_size
+      .iter()
+      .filter_map(|(ty, min_size)| {
+        remaining_sizes
+          .get(ty)
+          .is_some_and(|size| *size != 0.0 && size < min_size)
+          .then_some(*ty)
+      })
+      .collect()
+  }
+
   pub(crate) fn check_min_size_reduction(
     sizes: &SplitChunkSizes,
     min_size_reduction: &SplitChunkSizes,
@@ -199,24 +240,33 @@ impl SplitChunksPlugin {
           return None;
         }
 
+        // A source type below minSize cannot become eligible by deleting
+        // modules or chunks. Apply native pruning before retaining a candidate;
+        // preserving its pre-pruning module set only duplicates invalid work.
         if remove_min_size_violating_modules(
           module_group_key,
           module_group,
           cache_group,
           module_sizes,
         ) {
-          Some(module_group_key.clone())
+          return Some(module_group_key.clone());
+        }
+        let chunks_len = module_group.chunks.len();
+        if Self::check_min_size_reduction(
+          module_group.get_sizes(module_sizes),
+          &cache_group.min_size_reduction,
+          chunks_len,
+        ) {
+          return None;
+        }
+        // A mixed-type candidate can recover when a later placement removes
+        // the source type that fails minSizeReduction. Keep the candidate itself.
+        if module_group.can_recover(cache_group, module_sizes, chunks_len) {
+          module_group.set_selectable(false);
+          module_group.mark_placement_changed();
+          None
         } else {
-          let chunks_len = module_group.chunks.len();
-          if !Self::check_min_size_reduction(
-            module_group.get_sizes(module_sizes),
-            &cache_group.min_size_reduction,
-            chunks_len,
-          ) {
-            Some(module_group_key.clone())
-          } else {
-            None
-          }
+          Some(module_group_key.clone())
         }
       })
       .collect::<Vec<_>>();

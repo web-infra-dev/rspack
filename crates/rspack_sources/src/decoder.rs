@@ -30,9 +30,9 @@ const B64: [u8; 256] = [
    ERR, ERR, ERR, ERR, ERR, ERR, ERR, ERR, ERR, ERR, ERR, ERR, ERR, ERR, ERR, ERR,  // F
 ];
 
-#[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
+#[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
 pub(crate) struct MappingsDecoder<'a> {
-  #[cfg_attr(feature = "allocative", allocative(skip))]
+  #[cfg_attr(allocative, allocative(skip))]
   mappings_iter: Iter<'a, u8>,
 
   current_data: [u32; 5],
@@ -102,19 +102,24 @@ impl Iterator for MappingsDecoder<'_> {
         };
       } else if (value & CONTINUATION_BIT) == 0 {
         // last sextet
-        self.current_value |= (value as i64) << self.current_value_pos;
-        let final_value = if (self.current_value & 1) != 0 {
-          -(self.current_value >> 1)
+        let current_value = if self.current_value_pos == 0 {
+          value as i64
         } else {
-          self.current_value >> 1
+          let current_value = self.current_value | ((value as i64) << self.current_value_pos);
+          self.current_value_pos = 0;
+          self.current_value = 0;
+          current_value
+        };
+        let final_value = if (current_value & 1) != 0 {
+          -(current_value >> 1)
+        } else {
+          current_value >> 1
         };
         if self.current_data_pos < 5 {
           self.current_data[self.current_data_pos] =
             (self.current_data[self.current_data_pos] as i64 + final_value) as u32;
         }
         self.current_data_pos += 1;
-        self.current_value_pos = 0;
-        self.current_value = 0;
       } else {
         self.current_value |= ((value & DATA_MASK) as i64) << self.current_value_pos;
         self.current_value_pos += 5;

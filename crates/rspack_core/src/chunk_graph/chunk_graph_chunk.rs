@@ -107,7 +107,7 @@ fn get_modules_size(modules: &[&ModuleRef], compilation: &Compilation) -> f64 {
   let module_graph = compilation.get_module_graph();
   for module in modules {
     for source_type in module.source_types(module_graph) {
-      size += module.size(Some(source_type), Some(compilation));
+      size += module.size(Some(source_type));
     }
   }
   size
@@ -1017,10 +1017,17 @@ impl ChunkGraph {
     b: &ChunkUkey,
     chunk_by_ukey: &mut ChunkByUkey,
     chunk_group_by_ukey: &mut ChunkGroupByUkey,
+    named_chunks: &mut FxHashMap<String, ChunkUkey>,
     module_graph: &ModuleGraph,
   ) {
     let chunk_b = chunk_by_ukey.expect_get(b).clone();
     let chunk_a = chunk_by_ukey.expect_get_mut(a);
+
+    for chunk in named_chunks.values_mut() {
+      if chunk == b {
+        *chunk = *a;
+      }
+    }
 
     // Decide for one name (deterministic)
     if let (Some(chunk_a_name), Some(chunk_b_name)) = (chunk_a.name(), chunk_b.name()) {

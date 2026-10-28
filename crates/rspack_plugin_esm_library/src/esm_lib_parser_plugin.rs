@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_core::{DependencyType, collect_ident};
+use rspack_core::{DependencyType, program_has_ident_with_prefix};
 use rspack_plugin_javascript::{
   JavascriptParserPlugin, dependency::ESMCompatibilityDependency, visitors::JavascriptParser,
 };
@@ -23,9 +23,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for EsmLibParserPlugin {
           | DependencyType::CjsFullRequire
           | DependencyType::CjsExportRequire
       )
-    }) && collect_ident(parser.ast.allocator, parser.ast.program)
-      .iter()
-      .any(|ident| ident.id.sym.as_str().starts_with("__rspack_"))
+    }) && program_has_ident_with_prefix(parser.ast.ast, "__rspack_")
     {
       parser.add_presentational_dependency(Arc::new(ExternalBindingBailout));
     }

@@ -73,7 +73,7 @@ export const WebpackError = Error;
 
 export type { Watching } from './Watching';
 
-import * as sources from 'webpack-sources';
+import * as sources from './sources';
 
 export { sources };
 
@@ -375,6 +375,7 @@ export type {
   CssExtractRspackLoaderOptions,
   CssExtractRspackPluginOptions,
   EvalDevToolModulePluginOptions,
+  EvalSourceMapDevToolPluginOptions,
   HtmlRspackPluginOptions,
   LightningCssMinimizerRspackPluginOptions,
   RsdoctorPluginData,

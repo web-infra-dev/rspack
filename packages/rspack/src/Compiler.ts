@@ -11,7 +11,6 @@
 import { createRequire } from 'node:module';
 import type binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
-import type Watchpack from 'watchpack';
 import type { Source } from 'webpack-sources';
 import {
   createRealContentHashPluginHooksRegisters,
@@ -73,6 +72,7 @@ import { unsupported } from './util';
 import { assertNotNill } from './util/assertNotNil';
 import { checkVersion } from './util/bindingVersionCheck';
 import type {
+  ExistenceOnlyTimeEntry,
   InputFileSystem,
   IntermediateFileSystem,
   OutputFileSystem,
@@ -179,10 +179,13 @@ class Compiler {
   records: Record<string, any[]>;
   modifiedFiles?: ReadonlySet<string>;
   removedFiles?: ReadonlySet<string>;
-  fileTimestamps?: ReadonlyMap<string, FileSystemInfoEntry | 'ignore' | null>;
+  fileTimestamps?: ReadonlyMap<
+    string,
+    FileSystemInfoEntry | ExistenceOnlyTimeEntry | 'ignore' | null
+  >;
   contextTimestamps?: ReadonlyMap<
     string,
-    FileSystemInfoEntry | 'ignore' | null
+    FileSystemInfoEntry | ExistenceOnlyTimeEntry | 'ignore' | null
   >;
   fsStartTime?: number;
 
@@ -534,7 +537,7 @@ class Compiler {
    * @returns a compiler watcher
    */
   watch(
-    watchOptions: Watchpack.WatchOptions,
+    watchOptions: WatchOptions,
     handler: liteTapable.Callback<Error, Stats>,
   ): Watching {
     if (this.running) {
