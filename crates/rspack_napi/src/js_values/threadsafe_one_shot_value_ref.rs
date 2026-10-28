@@ -1,7 +1,7 @@
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
 use std::{
-  cell::RefCell,
+  cell::OnceCell,
   ffi::c_void,
   ptr,
   sync::{Arc, Weak},
@@ -16,8 +16,9 @@ use napi::{
 };
 
 thread_local! {
-  // Capture the owner on the JS thread. Off-thread Drop must never read TLS.
-  static DELETE_REF_TS_FN: RefCell<Option<Arc<ReferenceOwner>>> = const { RefCell::new(None) };
+  // Each Node worker has one JS thread and env. Capture its owner once;
+  // off-thread Drop must never read TLS.
+  static DELETE_REF_TS_FN: OnceCell<Arc<ReferenceOwner>> = const { OnceCell::new() };
 }
 
 struct ReferenceOwner {
@@ -139,16 +140,13 @@ impl ThreadsafeOneShotRef {
     let reference_on_error = scopeguard::guard(r, |r| unsafe {
       sys::napi_delete_reference(env, r);
     });
-    let owner = DELETE_REF_TS_FN.with_borrow_mut(|slot| -> Result<_> {
-      if let Some(owner) = slot
-        && owner.env == env
-        && !owner.handle.with_read_aborted(|aborted| aborted)
-      {
+    let owner = DELETE_REF_TS_FN.with(|cell| -> Result<_> {
+      if let Some(owner) = cell.get() {
         return Ok(Arc::clone(owner));
       }
+      // Leave the cell empty if initialization fails so a later call can retry.
       let owner = Arc::new(ReferenceOwner::new(env)?);
-      *slot = Some(Arc::clone(&owner));
-      Ok(owner)
+      Ok(Arc::clone(cell.get_or_init(|| owner)))
     })?;
     Ok(Self {
       napi_ref: scopeguard::ScopeGuard::into_inner(reference_on_error),
