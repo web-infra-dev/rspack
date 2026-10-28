@@ -269,12 +269,15 @@ struct OriginalSourceNapiRef {
   napi_ref: OneShotRef,
 }
 
+thread_local! {
+  static ORIGINAL_SOURCE_REFS: RefCell<FxHashMap<CompilerId, IdentifierMap<OriginalSourceNapiRef>>> = Default::default();
+}
+
 #[napi]
 pub struct Module {
   pub(crate) identifier: ModuleIdentifier,
   ptr: Option<NonNull<dyn rspack_core::Module>>,
   compiler_id: CompilerId,
-  original_source_ref: Option<OriginalSourceNapiRef>,
   pub(crate) build_info_ref: Option<WeakRef>,
 }
 
@@ -414,29 +417,37 @@ impl Module {
       }
     };
 
-    let Some(original_source) = module.source() else {
-      self.original_source_ref = None;
-      return Ok(Either::B(()));
-    };
+    ORIGINAL_SOURCE_REFS.with_borrow_mut(|refs_by_compiler_id| {
+      let Some(original_source) = module.source() else {
+        if let Some(refs) = refs_by_compiler_id.get_mut(&self.compiler_id) {
+          refs.remove(&self.identifier);
+        }
+        return Ok(Either::B(()));
+      };
 
-    if let Some(OriginalSourceNapiRef {
-      related_source,
-      napi_ref,
-    }) = &self.original_source_ref
-      && (related_source.ptr_eq(&Arc::downgrade(original_source)))
-    {
-      return Ok(Either::A(ToNapiValue::into_unknown(napi_ref, env)?));
-    }
+      let refs = refs_by_compiler_id.entry(self.compiler_id).or_default();
+      if let Some(OriginalSourceNapiRef {
+        related_source,
+        napi_ref,
+      }) = refs.get(&self.identifier)
+        && related_source.ptr_eq(&Arc::downgrade(original_source))
+      {
+        return Ok(Either::A(ToNapiValue::into_unknown(napi_ref, env)?));
+      }
 
-    let binding = JsSourceWithLazyMap::to_js(env, original_source)?;
-    let mut one_shot_ref = OneShotRef::new(env.raw(), binding)?;
-    let result = ToNapiValue::into_unknown(&mut one_shot_ref, env)?;
-    self.original_source_ref = Some(OriginalSourceNapiRef {
-      related_source: Arc::downgrade(original_source),
-      napi_ref: one_shot_ref,
-    });
+      let binding = JsSourceWithLazyMap::to_js(env, original_source)?;
+      let mut one_shot_ref = OneShotRef::new(env.raw(), binding)?;
+      let result = ToNapiValue::into_unknown(&mut one_shot_ref, env)?;
+      refs.insert(
+        self.identifier,
+        OriginalSourceNapiRef {
+          related_source: Arc::downgrade(original_source),
+          napi_ref: one_shot_ref,
+        },
+      );
 
-    Ok(Either::A(result))
+      Ok(Either::A(result))
+    })
   }
 
   #[napi]
@@ -628,6 +639,7 @@ impl ModuleObject {
   }
 
   pub fn cleanup_by_compiler_id(compiler_id: &CompilerId) {
+    Self::clear_original_source_cache(compiler_id);
     MODULE_INSTANCE_REFS.with(|refs| {
       let mut refs_by_compiler_id = refs.borrow_mut();
       refs_by_compiler_id.remove(compiler_id)
@@ -636,26 +648,20 @@ impl ModuleObject {
 
   // Called on the owning JS thread so dropping the cached Node-API references is safe.
   pub(crate) fn clear_original_source_cache(compiler_id: &CompilerId) {
-    MODULE_INSTANCE_REFS.with_borrow_mut(|refs_by_compiler_id| {
-      if let Some(refs) = refs_by_compiler_id.get_mut(compiler_id) {
-        for reference in refs.values_mut() {
-          let module: &mut Module = match reference {
-            Either5::A(module) => &mut module.module,
-            Either5::B(module) => &mut module.module,
-            Either5::C(module) => &mut module.module,
-            Either5::D(module) => &mut module.module,
-            Either5::E(module) => module,
-          };
-          module.original_source_ref = None;
-        }
-      }
-    });
+    ORIGINAL_SOURCE_REFS.with_borrow_mut(|refs| refs.remove(compiler_id));
   }
 
   pub fn cleanup_by_module_identifiers(
     compiler_id: &CompilerId,
     revoked_modules: &[ModuleIdentifier],
   ) {
+    ORIGINAL_SOURCE_REFS.with_borrow_mut(|refs_by_compiler_id| {
+      if let Some(refs) = refs_by_compiler_id.get_mut(compiler_id) {
+        for module_identifier in revoked_modules {
+          refs.remove(module_identifier);
+        }
+      }
+    });
     MODULE_INSTANCE_REFS.with(|refs| {
       let mut refs_by_compiler_id = refs.borrow_mut();
       for module_identifier in revoked_modules {
@@ -717,7 +723,6 @@ impl ToNapiValue for ModuleObject {
               identifier: val.identifier,
               compiler_id: val.compiler_id,
               ptr: val.ptr,
-              original_source_ref: None,
               build_info_ref: Default::default(),
             };
             let env_wrapper = Env::from_raw(env);
