@@ -75,6 +75,10 @@ function useFooterData() {
           title: 'Rstest',
           link: 'https://rstest.rs/',
         },
+        {
+          title: 'Rstack CLI',
+          link: 'https://github.com/rstackjs/rstack-cli',
+        },
       ],
     },
     {
