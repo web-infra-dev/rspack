@@ -112,13 +112,7 @@ updateAsset(
 ): void;
 ```
 
-:::note
-
-Treat sources obtained from `getAsset()`, `getAssets()`, or `compilation.assets` as immutable snapshots. Do not modify the Buffers or source-map objects returned by their `source()`, `buffer()`, `map()`, or `sourceAndMap()` methods in place. Writing the same Source back does not apply these edits.
-
-Create a new Source when updating an asset. For binary content, copy the Buffer before editing and wrap the result in a new `RawSource`. To update a source map, construct a new `SourceMapSource` with the content and updated map.
-
-:::
+A `Source` is immutable; to make changes, create a new `Source` or use `ReplaceSource` or `ConcatSource`.
 
 The following code replaces the content of `main.js`:
 
@@ -132,18 +126,6 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
     });
   });
 });
-```
-
-For example, to edit a binary asset during `processAssets`:
-
-```js
-const { RawSource } = compiler.rspack.sources;
-const asset = compilation.getAsset('data.bin');
-if (asset) {
-  const content = Buffer.from(asset.source.buffer());
-  content[0] = 0x42;
-  compilation.updateAsset(asset.name, new RawSource(content));
-}
 ```
 
 <Collapse>
@@ -208,8 +190,6 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
 
 Get the list of asset objects.
 
-The returned sources are immutable snapshots. See [updateAsset](#updateasset) for how to modify asset content or source maps.
-
 ```ts
 getAssets(): ReadonlyArray<{
   name: string;
@@ -253,8 +233,6 @@ compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
 ### getAsset
 
 Get the asset object with the specified name.
-
-The returned source is an immutable snapshot. See [updateAsset](#updateasset) for how to modify asset content or source maps.
 
 ```ts
 getAsset(
@@ -701,8 +679,6 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
 **Type**: `Record<string, Source>`
 
 The mapping from asset filenames and content sources.
-
-Sources read from this mapping are immutable snapshots. See [updateAsset](#updateasset) for how to modify asset content or source maps.
 
 <Collapse>
   <CollapsePanel

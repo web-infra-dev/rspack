@@ -112,13 +112,7 @@ updateAsset(
 ): void;
 ```
 
-:::note
-
-通过 `getAsset()`、`getAssets()` 或 `compilation.assets` 获取的 Source 应视为不可变快照。不要原地修改其 `source()`、`buffer()`、`map()` 或 `sourceAndMap()` 方法返回的 Buffer 或 source map 对象。将同一个 Source 写回不会应用这些修改。
-
-更新产物时应创建新的 Source。对于二进制内容，先复制 Buffer，再修改副本并用新的 `RawSource` 包装。更新 source map 时，使用源码和修改后的 map 构造新的 `SourceMapSource`。
-
-:::
+`Source` 本身是不可变的，如需修改，请重新创建 `Source`，或使用 `ReplaceSource` 或 `ConcatSource`。
 
 以下示例将 `main.js` 的产物内容替换：
 
@@ -132,18 +126,6 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
     });
   });
 });
-```
-
-例如，在 `processAssets` 中修改二进制产物：
-
-```js
-const { RawSource } = compiler.rspack.sources;
-const asset = compilation.getAsset('data.bin');
-if (asset) {
-  const content = Buffer.from(asset.source.buffer());
-  content[0] = 0x42;
-  compilation.updateAsset(asset.name, new RawSource(content));
-}
 ```
 
 <Collapse>
@@ -208,8 +190,6 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
 
 获取产物对象列表。
 
-返回的 Source 为不可变快照。修改产物内容或 source map 的方式请参阅 [updateAsset](#updateasset)。
-
 ```ts
 getAssets(): ReadonlyArray<{
   name: string; // 产物文件名
@@ -253,8 +233,6 @@ compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
 ### getAsset
 
 获取指定名称的产物对象。
-
-返回的 Source 为不可变快照。修改产物内容或 source map 的方式请参阅 [updateAsset](#updateasset)。
 
 ```ts
 getAsset(
@@ -697,8 +675,6 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
 **类型：** `Record<string, Source>`
 
 获取产物映射表。
-
-从此映射表读取的 Source 为不可变快照。修改产物内容或 source map 的方式请参阅 [updateAsset](#updateasset)。
 
 <Collapse>
   <CollapsePanel
