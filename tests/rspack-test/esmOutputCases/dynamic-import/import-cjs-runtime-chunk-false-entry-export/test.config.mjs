@@ -12,6 +12,7 @@ export default {
 
 		const entry = readAsset("index_js.mjs");
 		const dynamic = readAsset("dynamic.mjs");
+		const runtime = readAsset("runtime.mjs");
 
 		expect(dynamic).not.toContain("__rspack_context");
 		expect(dynamic).toContain("moduleFactories.add");
@@ -19,8 +20,11 @@ export default {
 		expect(dynamic).toContain("compatGetDefaultExport(dynamic)");
 
 		expect(entry).not.toContain("export { __rspack_context");
-		expect(entry).toContain("var modules = {};");
-		expect(entry).toContain("function rspackRequire(moduleId)");
+		expect(entry).not.toContain("function rspackRequire(moduleId)");
+		expect(runtime).toContain("var modules = {};");
+		expect(runtime).toContain("function rspackRequire(moduleId)");
+		expect(runtime).toContain("export { rspackRequire };");
+		expect(runtime).not.toContain("moduleFactories.add({");
 		expect(entry).toContain(
 			'createFakeNamespaceObject.bind(rspackRequire, /*! ./dynamic */ "./dynamic.js", 19)'
 		);

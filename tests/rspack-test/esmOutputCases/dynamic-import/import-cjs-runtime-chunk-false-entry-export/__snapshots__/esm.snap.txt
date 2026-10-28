@@ -1,5 +1,5 @@
 ```mjs title=dynamic.mjs
-import { __webpack_require__ } from "./index_js.mjs";
+import { __webpack_require__ } from "./runtime.mjs";
 import "./index_js.mjs";
 
 __webpack_require__.add({
@@ -26,6 +26,45 @@ export default dynamic_default_0;
 ```
 
 ```mjs title=index_js.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+__webpack_require__.add({
+"./shared.js"
+/*!*******************!*\
+  !*** ./shared.js ***!
+  \*******************/
+(__unused_rspack_module, exports) {
+exports.base = 1;
+
+
+},
+});
+// ./index.js
+const shared = __webpack_require__("./shared.js");
+
+
+const direct = shared.base;
+
+it("should keep a single __webpack_require__ export on runtimeChunk false entry chunks", async () => {
+	const mod = await import("./dynamic.mjs").then(__webpack_require__.t.bind(__webpack_require__, /*! ./dynamic */ "./dynamic.js", 19));
+
+	expect(mod.value).toBe(42);
+	expect(direct).toBe(1);
+});
+
+
+
+export { direct };
+
+```
+
+```mjs title=main.mjs
+
+export { direct } from "./index_js.mjs";
+
+```
+
+```mjs title=runtime.mjs
 
 var __webpack_modules__ = {};
 // The module cache
@@ -110,9 +149,6 @@ __webpack_require__.d = (exports, getters, values) => {
 __webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
 
 })();
-// webpack/runtime/export_webpack_require
-var __webpack_require__temp = __webpack_require__;
-export { __webpack_require__temp as __webpack_require__ };
 // webpack/runtime/has_own_property
 (() => {
 __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
@@ -127,76 +163,7 @@ __webpack_require__.r = (exports) => {
 	Object.defineProperty(exports, '__esModule', { value: true });
 };
 })();
-// webpack/runtime/module_chunk_loading
-(() => {
-// no BaseURI
-      // object to store loaded and loading chunks
-      // undefined = chunk not loaded, null = chunk preloaded/prefetched
-      // [resolve, Promise] = chunk loading, 0 = chunk loaded
-      var moduleInstalledChunks = {"index_js": 0,"main": 0,};
-      var moduleInstallChunk = (data) => {
-    var __rspack_esm_ids = data.__rspack_esm_ids;
-    var moreModules = data.__webpack_modules__;
-    var __rspack_esm_runtime = data.__rspack_esm_runtime;
-    // add "modules" to the modules object,
-    // then flag all "ids" as loaded and fire callback
-    var moduleId, chunkId, i = 0;
-    for (moduleId in moreModules) {
-        if (__webpack_require__.o(moreModules, moduleId)) {
-            __webpack_require__.m[moduleId] = moreModules[moduleId];
-        }
-    }
-    if (__rspack_esm_runtime) __rspack_esm_runtime(__webpack_require__);
-    for (; i < __rspack_esm_ids.length; i++) {
-        chunkId = __rspack_esm_ids[i];
-        if (__webpack_require__.o(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
-            moduleInstalledChunks[chunkId][0]();
-        }
-        moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
-    }
-    
-};
-// no chunk on demand loading
 
-        __webpack_require__.C = moduleInstallChunk;
-        // no on chunks loaded
-// no HMR
-// no HMR manifest
-
-})();
-
-__webpack_require__.add({
-"./shared.js"
-/*!*******************!*\
-  !*** ./shared.js ***!
-  \*******************/
-(__unused_rspack_module, exports) {
-exports.base = 1;
-
-
-},
-});
-// ./index.js
-const shared = __webpack_require__("./shared.js");
-
-
-const direct = shared.base;
-
-it("should keep a single __webpack_require__ export on runtimeChunk false entry chunks", async () => {
-	const mod = await import("./dynamic.mjs").then(__webpack_require__.t.bind(__webpack_require__, /*! ./dynamic */ "./dynamic.js", 19));
-
-	expect(mod.value).toBe(42);
-	expect(direct).toBe(1);
-});
-
-
-
-export { direct };
-
-```
-
-```mjs title=main.mjs
-
-export { direct } from "./index_js.mjs";
+export { __webpack_require__ };
 
 ```
