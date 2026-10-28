@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { createFsFromVolume, Volume } from "memfs";
 
-const CACHE_LOGGER = "rspack.cache.IdleFileCache";
+const CACHE_LOGGER = "rspack.cache";
 
 async function run(compiler) {
 	const stats = await new Promise((resolve, reject) => {
