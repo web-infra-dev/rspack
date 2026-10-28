@@ -235,6 +235,8 @@ Enable portable cache mode. When enabled, the generated cache content can be sha
 
 When `portable` is `false`, the cache is bound to the project [context](/config/context). A cache copied or shared to a project at another path is treated as invalid, and Rspack rebuilds it.
 
+The cache backend enabled by [experiments.newCache](/config/experiments#experimentsnewcache) does not rebase paths yet, so it is always bound to the project context, even when `portable` is `true`.
+
 Portable cache is built on top of persistent cache and makes the cache platform-independent by converting platform-specific data (e.g., absolute paths to relative paths) during serialization and deserialization.
 
 **Example:**
