@@ -2,9 +2,12 @@
 <%- var("hotCurrentUpdate") %>;
 <%- var("hotCurrentUpdateRemovedChunks") %>;
 <%- var("hotCurrentUpdateRuntime") %>;
+<%- var("hotCurrentUpdateFullChunks") %>;
 <%- fn("hotApplyHandler") %>(options) {
 	if (<%- weak(ENSURE_CHUNK_HANDLERS) %>) delete <%- weak(ENSURE_CHUNK_HANDLERS) %>.<%- _loading_method %>Hmr;
 	hotCurrentUpdateChunks = undefined;
+	var fullChunks = hotCurrentUpdateFullChunks;
+	hotCurrentUpdateFullChunks = undefined;
 	function getAffectedModuleEffects(updateModuleId) {
 		var outdatedModules = [updateModuleId];
 		var outdatedDependencies = {};
@@ -104,6 +107,16 @@
 	for (var moduleId in hotCurrentUpdate) {
 		if (<%- HAS_OWN_PROPERTY %>(hotCurrentUpdate, moduleId)) {
 			var newModuleFactory = hotCurrentUpdate[moduleId];
+			// Complete chunk payloads also contain unchanged factories. Install them
+			// during apply, preserving existing instances unless explicitly invalidated.
+			if (Array.isArray(newModuleFactory)) {
+				var cachedModule = <%- MODULE_CACHE %>[moduleId];
+				newModuleFactory = newModuleFactory[0];
+				if (!cachedModule || !cachedModule.hot._selfInvalidated) {
+					appliedUpdate[moduleId] = newModuleFactory;
+					continue;
+				}
+			}
 			var result = newModuleFactory ? getAffectedModuleEffects(moduleId) : {
 				type: "disposed",
 				moduleId: moduleId
@@ -294,6 +307,10 @@
 				<% } %>
 			}
 
+			// Only complete payloads establish the ordinary loader's installed state.
+			// All factories and runtime updates are ready before waiting imports resume.
+			if (fullChunks.length) <%- _finish_chunk_loading %>(fullChunks);
+
 			// call accept handlers
 			for (var outdatedModuleId in outdatedDependencies) {
 				if (<%- HAS_OWN_PROPERTY %>(outdatedDependencies, outdatedModuleId)) {
@@ -414,6 +431,7 @@
 	if (!hotCurrentUpdate) {
 		hotCurrentUpdate = {};
 		hotCurrentUpdateRuntime = [];
+		hotCurrentUpdateFullChunks = [];
 		hotCurrentUpdateRemovedChunks = [];
 		applyHandlers.push(hotApplyHandler);
 	}
@@ -428,7 +446,10 @@
 	removedModules,
 	promises,
 	applyHandlers,
-	updatedModulesList
+	updatedModulesList,
+	_css,
+	_miniCss,
+	update
 ) {
 	applyHandlers.push(hotApplyHandler);
 	hotCurrentUpdateChunks = {};
@@ -438,10 +459,11 @@
 		return obj;
 	}, {});
 	hotCurrentUpdateRuntime = [];
+	hotCurrentUpdateFullChunks = [];
 	chunkIds.forEach(function (chunkId) {
 		if (
 			<%- HAS_OWN_PROPERTY %>(<%- _installed_chunks %>, chunkId) &&
-			<%- _installed_chunks %>[chunkId] !== undefined
+			<%- _installed_chunks %>[chunkId] != null
 		) {
 			promises.push(<%- _load_update_chunk %>(chunkId, updatedModulesList));
 			hotCurrentUpdateChunks[chunkId] = true;
@@ -449,6 +471,17 @@
 			hotCurrentUpdateChunks[chunkId] = false;
 		}
 	});
+	if (update) {
+		update.entryIsLoaded = function (entryId) {
+			return <%- HAS_OWN_PROPERTY %>(<%- _installed_chunks %>, entryId) && <%- _installed_chunks %>[entryId] === <%- _loaded_chunk_state %>;
+		};
+		update.chunkHandlers.push(function (chunkId, promises) {
+			if (<%- _installed_chunks %>[chunkId] === <%- _loaded_chunk_state %> || hotCurrentUpdateChunks[chunkId]) return;
+			hotCurrentUpdateChunks[chunkId] = true;
+			hotCurrentUpdateFullChunks.push(chunkId);
+			promises.push(<%- _load_update_chunk %>(chunkId, updatedModulesList, true));
+		});
+	}
 	if (<%- weak(ENSURE_CHUNK_HANDLERS) %>) {
 		<%- weak(ENSURE_CHUNK_HANDLERS) %>.<%- _loading_method %>Hmr = function (chunkId, promises) {
 			if (

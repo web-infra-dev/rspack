@@ -5,11 +5,12 @@ use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rspack_paths::InternedPathSet;
 use rspack_tasks::within_compiler_context;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
 use crate::{
-  ChunkGraph, ChunkKind, Compilation, Compiler, RuntimeSpec,
-  chunk_graph_chunk::ChunkIdMap,
+  AsyncDependenciesBlockIdentifier, ChunkGraph, ChunkKind, Compilation, Compiler, GroupOptions,
+  RuntimeSpec,
+  chunk_graph_chunk::{ChunkId, ChunkIdMap},
   chunk_graph_module::{ModuleIdMap, ModuleIdSet},
   compilation::build_module_graph::ModuleExecutor,
   incremental::{Incremental, IncrementalPasses},
@@ -140,11 +141,20 @@ impl Compiler {
   }
 }
 
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub enum EntryKey {
+  Named(String),
+  Async(AsyncDependenciesBlockIdentifier),
+}
+
+pub type EntryChunks = HashMap<EntryKey, (ChunkId, Vec<ChunkId>)>;
+
 #[derive(Debug)]
 pub struct CompilationRecords {
   pub runtimes: RuntimeSpec,
   pub runtime_modules: IdentifierMap<RspackHashDigest>,
   pub chunks: ChunkIdMap<(RuntimeSpec, ModuleIdSet)>,
+  pub entries: EntryChunks,
   pub modules: ModuleIdMap<ChunkIdMap<RspackHashDigest>>,
   pub hash: Option<RspackHashDigest>,
 }
@@ -155,6 +165,7 @@ impl CompilationRecords {
       runtimes: Self::record_runtimes(compilation),
       runtime_modules: Self::record_runtime_modules(compilation),
       chunks: Self::record_chunks(compilation),
+      entries: Self::record_entries(compilation),
       modules: Self::record_modules(compilation),
       hash: Self::record_hash(compilation),
     }
@@ -243,6 +254,65 @@ impl CompilationRecords {
           .cloned()
           .collect();
         (chunk_id, (chunk_runtime, chunk_modules))
+      })
+      .collect()
+  }
+
+  /// Record startup dependencies for ordinary and async entries, including dependOn parents.
+  pub fn record_entries(compilation: &Compilation) -> EntryChunks {
+    if !compilation.hot {
+      return Default::default();
+    }
+    let graph = &compilation.build_chunk_graph_artifact;
+    let module_graph = compilation.get_module_graph();
+    let entries = compilation
+      .entrypoints()
+      .iter()
+      .map(|(name, group)| (EntryKey::Named(name.clone()), *group));
+    // Keep async entries tied to their dependency blocks across compilations,
+    // even when splitting changes their physical entry chunk IDs.
+    let async_entries = module_graph
+      .blocks()
+      .values()
+      .filter(|block| matches!(block.get_group_options(), Some(GroupOptions::Entrypoint(_))))
+      .filter_map(|block| {
+        graph
+          .chunk_graph
+          .get_block_chunk_group(&block.identifier(), &graph.chunk_group_by_ukey)
+          .map(|group| (EntryKey::Async(block.identifier()), group.ukey()))
+      });
+    entries
+      .chain(async_entries)
+      .map(|(key, entry_group_ukey)| {
+        let entry = graph.chunk_group_by_ukey.expect_get(&entry_group_ukey);
+        let entry_chunk = graph
+          .chunk_by_ukey
+          .expect_get(&entry.get_entrypoint_chunk());
+        let mut groups = vec![entry_group_ukey];
+        let mut visited_groups = FxHashSet::default();
+        let mut chunks = Vec::new();
+        while let Some(group_ukey) = groups.pop() {
+          let group = graph.chunk_group_by_ukey.expect_get(&group_ukey);
+          if (group_ukey != entry_group_ukey && !group.is_initial())
+            || !visited_groups.insert(group_ukey)
+          {
+            continue;
+          }
+          if group.is_initial() {
+            groups.extend(group.parents.iter().copied());
+          }
+          chunks.extend(group.chunks.iter().map(|chunk_ukey| {
+            graph
+              .chunk_by_ukey
+              .expect_get(chunk_ukey)
+              .expect_id()
+              .clone()
+          }));
+        }
+        // This records membership only. Keep manifest serialization deterministic.
+        chunks.sort_unstable();
+        chunks.dedup();
+        (key, (entry_chunk.expect_id().clone(), chunks))
       })
       .collect()
   }

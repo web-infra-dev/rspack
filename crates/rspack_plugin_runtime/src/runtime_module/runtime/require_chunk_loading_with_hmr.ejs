@@ -1,10 +1,14 @@
-<%- fn("requireLoadUpdateChunk") %>(chunkId, updatedModulesList) {
-	var update = require("<%- _output_dir %>" + <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId));
+<%- fn("requireLoadUpdateChunk") %>(chunkId, updatedModulesList, full) {
+	var filename = <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId);
+	var update = require("<%- _output_dir %>" + filename + (full ? (/\.mjs$/.test(filename) ? ".full.mjs" : ".full.js") : ""));
 	var updatedModules = update.modules;
 	var runtime = update.runtime;
 	for (var moduleId in updatedModules) {
 		if (<%- HAS_OWN_PROPERTY %>(updatedModules, moduleId)) {
-			hotCurrentUpdate[moduleId] = updatedModules[moduleId];
+			// Install-only factories must not replace ordinary updates.
+			if (!Array.isArray(updatedModules[moduleId]) || !<%- HAS_OWN_PROPERTY %>(hotCurrentUpdate, moduleId) || Array.isArray(hotCurrentUpdate[moduleId])) {
+				hotCurrentUpdate[moduleId] = updatedModules[moduleId];
+			}
 			if (updatedModulesList) updatedModulesList.push(moduleId);
 		}
 	}
