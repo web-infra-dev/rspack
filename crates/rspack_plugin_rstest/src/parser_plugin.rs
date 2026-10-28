@@ -2,13 +2,16 @@ use std::sync::Arc;
 
 use camino::Utf8PathBuf;
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, ConstDependency, DependencyRange, ImportAttributes,
-  ImportPhase,
+  AsyncDependenciesBlock, BoxDependency, ConstDependency, Dependency, DependencyRange,
+  ImportAttributes, ImportPhase,
 };
 use rspack_intern::Atom;
 use rspack_plugin_javascript::{
   JavascriptParserPlugin,
-  dependency::{CommonJsRequireDependency, ImportDependency, RequireHeaderDependency},
+  dependency::{
+    CommonJsRequireDependency, ESMImportSideEffectDependency, ImportDependency,
+    RequireHeaderDependency,
+  },
   try_extract_magic_comment,
   utils::{
     self,
@@ -23,9 +26,10 @@ use rspack_util::{
   SpanExt, json_stringify_str,
   swc::{AstSubRangeExt, get_swc_next_comments},
 };
+use rustc_hash::FxHashSet;
 use swc_next_ecma_ast::{
   Ast, CallExpression, ChainExpression, Expr, ExprData, GetSpan, IdentifierName,
-  IdentifierReference, ImportDeclaration, ImportExpression, PropertyKeyData, Span, Stmt,
+  IdentifierReference, ImportDeclaration, ImportExpression, PropertyKeyData, Span, Stmt, StmtData,
   UnaryExpression, VariableDeclaration, VariableDeclarator,
 };
 
@@ -38,6 +42,7 @@ use crate::{
   mock_method_dependency::{MockMethod, MockMethodDependency},
   mock_module_id_dependency::MockModuleIdDependency,
   module_path_name_dependency::{ModulePathNameDependency, NameType},
+  plugin::PreservedSideEffectImporters,
   require_resolve_origin_dependency::RstestRequireResolveOriginDependency,
 };
 
@@ -97,6 +102,7 @@ fn is_literal(ast: &Ast<'_>, expr: Expr) -> bool {
 
 #[derive(Debug, Clone)]
 pub struct RstestParserPluginOptions {
+  pub(crate) preserved_side_effect_importers: PreservedSideEffectImporters,
   pub module_path_name: bool,
   pub hoist_mock_module: bool,
   pub import_meta_path_name: bool,
@@ -124,6 +130,7 @@ pub struct RstestParserPluginOptions {
 impl Default for RstestParserPluginOptions {
   fn default() -> Self {
     Self {
+      preserved_side_effect_importers: Default::default(),
       module_path_name: false,
       hoist_mock_module: false,
       import_meta_path_name: false,
@@ -943,6 +950,41 @@ fn is_non_hoisted_mock_api(name: &str) -> bool {
 
 #[rspack_plugin_javascript::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
+  fn finish(&self, parser: &mut JavascriptParser<'p>) -> Option<bool> {
+    let resource_path = parser.resource_data.path()?;
+    if !self
+      .options
+      .preserved_side_effect_importers
+      .read()
+      .expect("importer set lock poisoned")
+      .contains(resource_path)
+    {
+      return None;
+    }
+    let ast = parser.ast.ast;
+    let bare_imports: FxHashSet<DependencyRange> = ast
+      .nodes(parser.ast.program.body(ast))
+      .filter_map(|statement| match ast.stmt_data(statement) {
+        StmtData::ImportDeclaration(import) if import.specifiers(ast).is_empty() => {
+          Some(import.span(ast).into())
+        }
+        _ => None,
+      })
+      .collect();
+    for index in 0..parser.get_dependencies().len() {
+      if let Some(dependency) = parser.get_dependency_mut(index)
+        && let Some(dependency) = dependency.downcast_mut::<ESMImportSideEffectDependency>()
+        && dependency.get_phase() == ImportPhase::Evaluation
+        && dependency
+          .range()
+          .is_some_and(|range| bare_imports.contains(&range))
+      {
+        dependency.preserve_side_effects = true;
+      }
+    }
+    None
+  }
+
   fn import_specifier(
     &self,
     parser: &mut JavascriptParser<'p>,

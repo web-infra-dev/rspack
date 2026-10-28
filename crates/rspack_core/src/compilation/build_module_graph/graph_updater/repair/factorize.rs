@@ -187,5 +187,6 @@ fn skip_side_effect_free_esm_import_side_effect_dependencies(
     && dependencies.iter().all(|dep| {
       dep.dependency_type() == &DependencyType::EsmImport
         && dep.get_phase() == ImportPhase::Evaluation
+        && !dep.force_module_evaluation()
     })
 }

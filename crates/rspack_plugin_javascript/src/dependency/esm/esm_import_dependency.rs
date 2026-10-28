@@ -77,6 +77,7 @@ pub struct ESMImportSideEffectDependency {
   #[cacheable(with=AtomicLoad<Relaxed>)]
   lazy_make: AtomicBool,
   star_export: bool,
+  pub preserve_side_effects: bool,
 }
 
 impl ESMImportSideEffectDependency {
@@ -104,6 +105,7 @@ impl ESMImportSideEffectDependency {
       loc,
       lazy_make: AtomicBool::new(false),
       star_export,
+      preserve_side_effects: false,
     }
   }
 
@@ -575,6 +577,9 @@ impl Dependency for ESMImportSideEffectDependency {
     module_chain: &mut IdentifierSet,
     connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
+    if self.preserve_side_effects {
+      return ConnectionState::Active(true);
+    }
     if let Some(module) = module_graph.get_module_by_dependency_id(&self.id) {
       module.get_side_effects_connection_state(
         module_graph,
@@ -600,6 +605,10 @@ impl Dependency for ESMImportSideEffectDependency {
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {
     vec![]
+  }
+
+  fn force_module_evaluation(&self) -> bool {
+    self.preserve_side_effects
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
@@ -640,6 +649,9 @@ impl ModuleDependency for ESMImportSideEffectDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
+    if self.preserve_side_effects {
+      return None;
+    }
     Some(DependencyCondition::new(
       ESMImportSideEffectDependencyCondition,
     ))

@@ -172,6 +172,11 @@ pub trait Dependency:
     create_exports_object_referenced()
   }
 
+  /// Require evaluation through this dependency without changing the target's side-effect metadata.
+  fn force_module_evaluation(&self) -> bool {
+    false
+  }
+
   fn could_affect_referencing_module(&self) -> AffectType;
 
   fn forward_id(&self) -> ForwardId {

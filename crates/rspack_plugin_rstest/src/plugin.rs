@@ -1,10 +1,12 @@
 use std::{
-  sync::{Arc, LazyLock, OnceLock},
+  sync::{Arc, LazyLock, OnceLock, RwLock},
   time::{Duration, Instant},
 };
 
 use camino::{Utf8Path, Utf8PathBuf};
 use cow_utils::CowUtils;
+use derive_more::Debug;
+use futures::future::BoxFuture;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxPlugin, ChunkUkey, Compilation, CompilationOptimizeDependencies, CompilationParams,
@@ -26,7 +28,7 @@ use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
 use rspack_util::placeholder::PlaceholderFinder;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 static RSTEST_FLAG_PLACEHOLDER: LazyLock<PlaceholderFinder> =
   LazyLock::new(|| PlaceholderFinder::new("/* RSTEST:"));
@@ -70,8 +72,14 @@ use crate::{
   url_dependency::RstestUrlDependencyTemplate,
 };
 
+pub type PreserveSideEffectImportsFn =
+  Box<dyn Fn() -> BoxFuture<'static, Result<Vec<String>>> + Send + Sync>;
+pub(crate) type PreservedSideEffectImporters = Arc<RwLock<HashSet<Utf8PathBuf>>>;
+
 #[derive(Debug)]
 pub struct RstestPluginOptions {
+  #[debug(skip)]
+  pub preserve_side_effect_imports: Option<PreserveSideEffectImportsFn>,
   pub module_path_name: bool,
   pub hoist_mock_module: bool,
   pub import_meta_path_name: bool,
@@ -212,6 +220,7 @@ pub struct ProgressPluginStateInfo {
 #[derive(Debug)]
 pub struct RstestPlugin {
   options: RstestPluginOptions,
+  preserved_side_effect_importers: PreservedSideEffectImporters,
   /// Resolved at `apply` time. `Some(callee)` enables the rewrite; `None`
   /// covers both "feature disabled" and "callee resolved to default `import`"
   /// (incompatible with native syntax — rewriting would yield a SyntaxError).
@@ -221,7 +230,12 @@ pub struct RstestPlugin {
 
 impl RstestPlugin {
   pub fn new(options: RstestPluginOptions) -> Self {
-    Self::new_inner(options, OnceLock::new(), OnceLock::new())
+    Self::new_inner(
+      options,
+      Default::default(),
+      OnceLock::new(),
+      OnceLock::new(),
+    )
   }
 
   fn calc_default_mocked_target(&self, value: &str) -> Utf8PathBuf {
@@ -598,6 +612,7 @@ async fn nmf_parser(
 
     parser.add_parser_plugin(Box::new(RstestParserPlugin::new(
       crate::parser_plugin::RstestParserPluginOptions {
+        preserved_side_effect_importers: Arc::clone(&self.preserved_side_effect_importers),
         module_path_name: self.options.module_path_name,
         hoist_mock_module: self.options.hoist_mock_module,
         import_meta_path_name: self.options.import_meta_path_name,
@@ -633,6 +648,23 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
+  if let Some(get_importers) = &self.options.preserve_side_effect_imports {
+    let importers = get_importers().await?;
+    let mut paths = HashSet::default();
+    for importer in importers {
+      let path = Utf8PathBuf::from(importer);
+      // Keep the original for resolve.symlinks=false and virtual files. Use the
+      // compiler's filesystem so custom and virtual filesystems participate.
+      if let Ok(real_path) = compilation.input_filesystem.canonicalize(&path).await {
+        paths.insert(real_path);
+      }
+      paths.insert(path);
+    }
+    *self
+      .preserved_side_effect_importers
+      .write()
+      .expect("importer set lock poisoned") = paths;
+  }
   compilation.set_dependency_template(
     ModulePathNameDependencyTemplate::template_type(),
     Arc::new(ModulePathNameDependencyTemplate::default()),
@@ -876,6 +908,7 @@ impl Plugin for RstestPlugin {
       || self.options.inject_dynamic_import_origin.is_some()
       || self.options.inject_require_resolve_origin.is_some()
       || self.options.inject_import_meta_resolve_origin.is_some()
+      || self.options.preserve_side_effect_imports.is_some()
     {
       ctx
         .normal_module_factory_hooks

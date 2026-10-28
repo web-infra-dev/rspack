@@ -4,7 +4,7 @@ use std::{
 };
 
 use rayon::prelude::*;
-use rspack_collections::IdentifierMap;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, CanInlineUse, Compilation,
   CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
@@ -183,7 +183,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             |(runtime, force_side_effects, referenced_exports, module_tasks)| {
               let mut nested_tasks = Vec::with_capacity(referenced_exports.len());
               let mut non_nested_tasks = Vec::with_capacity(referenced_exports.len());
-              for (module_id, exports) in referenced_exports {
+              for (module_id, exports, preserve_side_effects) in referenced_exports {
+                let force_side_effects = force_side_effects || preserve_side_effects;
                 let exports_info = self.exports_info_artifact.get_exports_info_data(&module_id);
                 let has_nested = exports.iter().any(|export| export.name.len() > 1);
                 if has_nested {
@@ -316,7 +317,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     force_side_effects: bool,
     global: bool,
   ) -> (
-    Vec<(ModuleIdentifier, Vec<ReferencedExport>)>,
+    Vec<(ModuleIdentifier, Vec<ReferencedExport>, bool)>,
     Vec<ProcessBlockTask>,
   ) {
     let compilation = self.compilation;
@@ -332,10 +333,17 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       global,
     );
     let mut map = IdentifierMap::with_capacity_and_hasher(dependencies.len(), Default::default());
+    let mut preserved_imports = IdentifierSet::default();
     q.reserve(async_blocks.len());
     q.extend(async_blocks);
 
     for (dep_id, module_id) in dependencies {
+      if module_graph
+        .dependency_by_id(&dep_id)
+        .force_module_evaluation()
+      {
+        preserved_imports.insert(module_id);
+      }
       let referenced_exports_result = get_dependency_referenced_exports(
         dep_id,
         module_graph,
@@ -395,6 +403,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
                 .collect::<Vec<_>>(),
               ProcessModuleReferencedExports::ExtendRef(extend_ref) => extend_ref,
             },
+            preserved_imports.contains(&module_id),
           )
         })
         .collect::<Vec<_>>(),
