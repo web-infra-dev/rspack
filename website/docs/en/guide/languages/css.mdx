@@ -386,6 +386,33 @@ export default {
 @import 'tailwindcss';
 ```
 
+You can also use `@tailwindcss/webpack` with [css-loader](https://www.npmjs.com/package/css-loader) and [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin). Install `css-loader` in addition to the Tailwind CSS packages above:
+
+<PackageManagerTabs command="add css-loader -D" />
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        type: 'javascript/auto',
+        use: [
+          rspack.CssExtractRspackPlugin.loader,
+          'css-loader',
+          '@tailwindcss/webpack',
+        ],
+      },
+    ],
+  },
+  plugins: [new rspack.CssExtractRspackPlugin()],
+};
+```
+
+Loaders run from right to left, so `@tailwindcss/webpack` processes the CSS before `css-loader`. Set `type: 'javascript/auto'` to avoid conflicts with Rspack's built-in CSS support.
+
 For Tailwind CSS v3, see [Install Tailwind CSS v3 with Rspack](https://v3.tailwindcss.com/docs/guides/rspack).
 
 ## Sass

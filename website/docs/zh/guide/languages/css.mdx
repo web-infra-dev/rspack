@@ -386,6 +386,33 @@ export default {
 @import 'tailwindcss';
 ```
 
+你也可以将 `@tailwindcss/webpack` 与 [css-loader](https://www.npmjs.com/package/css-loader) 和 [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin) 搭配使用。在上述 Tailwind CSS 包的基础上，额外安装 `css-loader`：
+
+<PackageManagerTabs command="add css-loader -D" />
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        type: 'javascript/auto',
+        use: [
+          rspack.CssExtractRspackPlugin.loader,
+          'css-loader',
+          '@tailwindcss/webpack',
+        ],
+      },
+    ],
+  },
+  plugins: [new rspack.CssExtractRspackPlugin()],
+};
+```
+
+Loader 从右向左执行，因此 `@tailwindcss/webpack` 会先于 `css-loader` 处理 CSS。将 `type` 设置为 `'javascript/auto'`，以避免与 Rspack 的内置 CSS 支持冲突。
+
 对于 Tailwind CSS v3，请参考 [Install Tailwind CSS v3 with Rspack](https://v3.tailwindcss.com/docs/guides/rspack)。
 
 ## Sass
