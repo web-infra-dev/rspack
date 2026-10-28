@@ -207,7 +207,7 @@ impl DependencyTemplate for ImportDependencyTemplate {
       .runtime_template
       .module_namespace_promise(
         code_generatable_context.compilation,
-        code_generatable_context.module.identifier(),
+        code_generatable_context.module.get_strict_esm_module(),
         dep.id(),
         block,
         dep.request(),

@@ -670,7 +670,7 @@ impl ContextModule {
         for (i, info) in block_info.iter().enumerate() {
           let mut import_promise = runtime_template.module_namespace_promise(
             compilation,
-            self.identifier,
+            self.get_strict_esm_module(),
             &info.dep_id,
             Some(&info.block_id),
             &info.user_request,
