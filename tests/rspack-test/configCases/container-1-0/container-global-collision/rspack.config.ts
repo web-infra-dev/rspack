@@ -173,8 +173,13 @@ export default ['var', 'global', 'window', 'self', 'module'].map((type) =>
                     );
                     assert.equal(runInContext('probe', lexical), 42);
 
+                    const ordinaryFile = compilation.entrypoints
+                      .get('main')!
+                      .getFiles()
+                      .find((file) => file.endsWith('.js'));
+                    assert(ordinaryFile, 'the ordinary entry emits JavaScript');
                     const ordinarySource = compilation
-                      .getAsset('main.js')!
+                      .getAsset(ordinaryFile)!
                       .source.source()
                       .toString();
                     const ordinary = makeContext();
