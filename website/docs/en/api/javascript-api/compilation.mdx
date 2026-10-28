@@ -112,7 +112,7 @@ updateAsset(
 ): void;
 ```
 
-A `Source` is immutable; to make changes, create a new `Source` or use `ReplaceSource` or `ConcatSource`.
+A `Source` object cannot be modified in place; to update its content, create a new `Source` or wrap the existing one with `ReplaceSource` or `ConcatSource`.
 
 The following code replaces the content of `main.js`:
 

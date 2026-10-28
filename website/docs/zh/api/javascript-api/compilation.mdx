@@ -112,7 +112,7 @@ updateAsset(
 ): void;
 ```
 
-`Source` 本身是不可变的，如需修改，请重新创建 `Source`，或使用 `ReplaceSource` 或 `ConcatSource`。
+`Source` 对象不可原地修改；如需更新内容，请创建新的 `Source`，或使用 `ReplaceSource`、`ConcatSource` 包装现有 `Source`。
 
 以下示例将 `main.js` 的产物内容替换：
 
