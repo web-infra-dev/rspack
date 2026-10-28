@@ -1,0 +1,15 @@
+(<%- basicFunction("blocks") %> {
+	var map = <%- REQUIRE_SCOPE %>.hmrS_blockChunks;
+	<% if (_full) { %>Object.keys(map).forEach(<%- basicFunction("id") %> {
+		delete map[id];
+	});
+	<% } %>
+	Object.keys(blocks).forEach(<%- basicFunction("blockId") %> {
+		if (blocks[blockId] === null) delete map[blockId];
+		else map[blockId] = blocks[blockId];
+	});
+	var installedBlocks = <%- REQUIRE_SCOPE %>.hmrS_blocks;
+	Object.keys(installedBlocks).forEach(<%- basicFunction("id") %> {
+		if (!map[id]) delete installedBlocks[id];
+	});
+})(<%- _blocks %>);

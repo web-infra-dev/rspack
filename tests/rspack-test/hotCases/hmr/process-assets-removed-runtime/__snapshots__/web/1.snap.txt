@@ -9,7 +9,7 @@
 - Bundle: shared.js
 - Manifest: a.LAST_HASH.hot-update.json, size: 46
 - Manifest: b.LAST_HASH.hot-update.json, size: 25
-- Update: a.LAST_HASH.hot-update.js, size: 273
+- Update: a.LAST_HASH.hot-update.js, size: 655
 - Update: b.LAST_HASH.hot-update.js, size: 178
 
 ## Manifest
@@ -38,8 +38,8 @@
 - ./a.js
 
 #### Changed Runtime Modules
+- webpack/runtime/block_chunk_map
 - webpack/runtime/get_full_hash
-- webpack/runtime/jsonp_chunk_loading
 
 #### Changed Content
 ```js
@@ -55,8 +55,25 @@ module.exports = "removed";
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
 })();
-// webpack/runtime/jsonp_chunk_loading
-/* runtime omitted */
+// webpack/runtime/block_chunk_map
+(() => {
+((blocks) => {
+	var map = __webpack_require__.hmrS_blockChunks;
+	
+	Object.keys(blocks).forEach((blockId) => {
+		if (blocks[blockId] === null) delete map[blockId];
+		else map[blockId] = blocks[blockId];
+	});
+	var installedBlocks = __webpack_require__.hmrS_blocks;
+	Object.keys(installedBlocks).forEach((id) => {
+		if (!map[id]) delete installedBlocks[id];
+	});
+})({"name:shared":null});
+
+})();
+
+}
+);
 ```
 
 

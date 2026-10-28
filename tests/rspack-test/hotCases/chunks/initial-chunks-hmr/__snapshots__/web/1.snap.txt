@@ -10,7 +10,7 @@
 - Bundle: main.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 41
 - Update: initial_js.LAST_HASH.hot-update.js, size: 332
-- Update: main.LAST_HASH.hot-update.js, size: 25821
+- Update: main.LAST_HASH.hot-update.js, size: 26530
 
 ## Manifest
 
@@ -58,6 +58,7 @@ const value = "b";
 - ./index.js
 
 #### Changed Runtime Modules
+- webpack/runtime/block_chunk_map
 - webpack/runtime/css_loading
 - webpack/runtime/get_full_hash
 - webpack/runtime/jsonp_chunk_loading
@@ -123,6 +124,22 @@ __webpack_require__.O = (result, chunkIds, fn, priority) => {
 	}
 	return result;
 };
+
+})();
+// webpack/runtime/block_chunk_map
+(() => {
+((blocks) => {
+	var map = __webpack_require__.hmrS_blockChunks;
+	
+	Object.keys(blocks).forEach((blockId) => {
+		if (blocks[blockId] === null) delete map[blockId];
+		else map[blockId] = blocks[blockId];
+	});
+	var installedBlocks = __webpack_require__.hmrS_blocks;
+	Object.keys(installedBlocks).forEach((id) => {
+		if (!map[id]) delete installedBlocks[id];
+	});
+})({"block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./index.js|dep=esm|./initial|loc=4:8-27":["lib","initial_js"],"block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./index.js|dep=esm|./initial|loc=5:16-35":null});
 
 })();
 // webpack/runtime/css_loading
