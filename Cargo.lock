@@ -4709,6 +4709,7 @@ dependencies = [
  "memchr",
  "rspack-allocative",
  "rspack_cacheable",
+ "simd-utf16-len",
 ]
 
 [[package]]
@@ -5175,6 +5176,7 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+ "simd-utf16-len",
  "smallvec",
  "sugar_path",
  "swc_next_allocator",
@@ -6207,9 +6209,9 @@ dependencies = [
 
 [[package]]
 name = "simd-utf16-len"
-version = "0.2.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08765f7253d069ccd9adbe45ae962652c1c662e6f274a7575e8c9701c6ab5afa"
+checksum = "c5bd2186ecc8a43c3e9d0114a554beeb5708cc3b7969a8a5866b0d3ec56e5347"
 
 [[package]]
 name = "simdutf8"

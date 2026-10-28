@@ -2,6 +2,7 @@ use std::fmt::{self, Debug};
 
 pub use itoa::Buffer;
 use rspack_cacheable::cacheable;
+use simd_utf16_len::utf16_len;
 
 /// Represents a position within a source file (line and column).
 /// Semantics match V8 Error stack positions:
@@ -80,9 +81,8 @@ impl RealDependencyLocation {
     }
 
     // 3. Calculate the UTF-16 length of the start column.
-    // This avoids the overhead of constructing the surrogate pair iterator and only performs numerical accumulation.
     let start_line_slice = source.get(line_start_offset..start_byte)?;
-    let start_utf16_col = start_line_slice.encode_utf16().count() + 1; // 1-based
+    let start_utf16_col = utf16_len(start_line_slice) + 1; // 1-based
 
     let start = SourcePosition {
       line,
@@ -106,12 +106,12 @@ impl RealDependencyLocation {
       let end_line = line.checked_add(newlines_in_span as u32)?;
 
       let end_column = if newlines_in_span == 0 {
-        start_utf16_col + span_slice.encode_utf16().count()
+        start_utf16_col + utf16_len(span_slice)
       } else {
         #[allow(clippy::unwrap_used)]
         let last_newline_pos = span_slice.rfind('\n').unwrap();
         let text_after_last_newline = &span_slice[last_newline_pos + 1..];
-        text_after_last_newline.encode_utf16().count() + 1 // 1-based
+        utf16_len(text_after_last_newline) + 1 // 1-based
       };
 
       Some(SourcePosition {
