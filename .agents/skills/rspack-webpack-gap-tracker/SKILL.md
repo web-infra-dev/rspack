@@ -109,7 +109,7 @@ Use concise checklist entries. Prefer one feature or test group per item.
 Missing feature entry:
 
 ```markdown
-- [ ] `<feature or option>` - Short compatibility note. Recommendation: pending by default; use recommended only when preserving an explicit manual annotation already present in the tracking issue. Source: webpack release/config/PR link.
+- [ ] `<feature or option>` - Short compatibility note. Recommendation: <pending or recommended>. Source: webpack release/config/PR link.
 ```
 
 Completed feature entry:
