@@ -23,7 +23,7 @@ pub use idle_file_cache::IdleFileCache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
 use rspack_fs::ReadableFileSystem;
 pub use snapshot::{FileSystemInfo, Snapshot, SnapshotValidationResult};
-pub use statistics::CacheRecord;
+pub use statistics::{CacheInfo, CacheRecord};
 
 use crate::{
   CompilerOptions, InfrastructureLogSink, InfrastructureLogger, MaxMemoryGenerations,

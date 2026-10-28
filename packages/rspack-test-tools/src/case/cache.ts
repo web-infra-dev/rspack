@@ -1,8 +1,6 @@
 import path from 'node:path';
 import {
   rspack,
-  type Compilation,
-  type Compiler,
   type MultiStats,
   type RspackOptions,
   type Stats,
@@ -34,13 +32,6 @@ export type TCacheCaseOptions = {
   /** Enable persistent newCache, restart unchanged cases, and check cache hits. */
   newCache?: boolean;
 };
-
-type CacheStats = Record<
-  string,
-  { hits: number; misses: number; reused: number; stores: number }
->;
-
-const cacheStatsByCompilation = new WeakMap<Compilation, Promise<CacheStats>>();
 
 interface CacheState {
   compilerIndex: number;
@@ -98,7 +89,7 @@ function createCacheProcessor(
   let buildIndex = 0;
   let testEnv: ITestEnv;
 
-  const checkCache = async (
+  const checkCache = (
     env: ITestEnv,
     context: ITestContext,
     unchanged = false,
@@ -109,7 +100,9 @@ function createCacheProcessor(
         matchStatsSnapshot(env, src, updatePlugin!.getUpdateIndex(), stats);
       return;
     }
-    const cacheStats = await getCacheStats(stats);
+    const cacheStats = ('stats' in stats ? stats.stats : [stats]).map(
+      (stats) => stats.toJson({ all: false, cacheInfo: true }).cacheInfo!,
+    );
     fs.outputJsonSync(
       context.getTemp(`cache-stats/${buildIndex}.json`)!,
       cacheStats,
@@ -165,7 +158,7 @@ function createCacheProcessor(
           manager.createCompiler();
           await manager.build();
           const jsonStats = await checkRestart(env, context, advanceUpdate);
-          await checkCache(env, context, !advanceUpdate);
+          checkCache(env, context, !advanceUpdate);
 
           // Every restart needs fresh runners, including every child of a MultiCompiler.
           context.setValue('modules', []);
@@ -187,7 +180,7 @@ function createCacheProcessor(
           buildIndex++;
           await context.getCompiler().build();
           const jsonStats = await checkRestart(env, context, true);
-          await checkCache(env, context);
+          checkCache(env, context);
           const updatedModules = await module.hot.check(options || true);
           if (!updatedModules) throw new Error('No update available');
           return jsonStats;
@@ -199,7 +192,6 @@ function createCacheProcessor(
     config: async (context) => {
       await base.config(context);
       if (caseOptions.newCache) enableNewCache(context, temp);
-      collectCacheStats(context);
     },
     compiler: base.compiler,
     build: base.build,
@@ -211,7 +203,7 @@ function createCacheProcessor(
       await base.check(env, context);
       testEnv = env;
       if (!context.getCompiler().getStats()) return;
-      await checkCache(env, context);
+      checkCache(env, context);
       if (caseOptions.newCache) {
         // Bundle tests run after processor.check(). Queue this after their tests
         // so explicit NEXT_START calls take precedence over the automatic restart.
@@ -344,79 +336,6 @@ function enableNewCache(context: ITestContext, temp: string) {
             },
     };
   }
-}
-
-function collectCacheStats(context: ITestContext) {
-  const options = context.getCompiler().getOptions();
-  for (const config of Array.isArray(options) ? options : [options]) {
-    if (!config.experiments?.newCache) continue;
-    config.plugins ??= [];
-    config.plugins.push({
-      apply(compiler: Compiler) {
-        const pending: ((stats: CacheStats) => void)[] = [];
-        compiler.hooks.thisCompilation.tap(
-          'NewCacheStatsPlugin',
-          (compilation) => {
-            cacheStatsByCompilation.set(
-              compilation,
-              new Promise((resolve) => pending.push(resolve)),
-            );
-          },
-        );
-        compiler.hooks.infrastructureLog.tap(
-          'NewCacheStatsPlugin',
-          (name, type, args) => {
-            if (
-              name !== 'rspack.cache' ||
-              type !== 'debug' ||
-              typeof args[0] !== 'string' ||
-              !args[0].startsWith('{')
-            )
-              return;
-            const raw: CacheStats = JSON.parse(args[0]);
-            const prefix = `${compiler.compilerPath}|`;
-            const entries = Object.entries(raw)
-              .filter(([name]) => name.startsWith(prefix))
-              .map(
-                ([name, counters]) =>
-                  [name.slice(prefix.length), counters] as const,
-              )
-              .sort(([a], [b]) => a.localeCompare(b));
-            if (entries.length) pending.shift()?.(Object.fromEntries(entries));
-          },
-        );
-      },
-    });
-  }
-}
-
-export function getCacheStats(
-  stats: Stats | MultiStats,
-): Promise<CacheStats[]> {
-  return Promise.all(
-    ('stats' in stats ? stats.stats : [stats]).map(async (stats) => {
-      const cacheStats = cacheStatsByCompilation.get(stats.compilation);
-      if (!cacheStats) throw new Error('Missing cache statistics collector');
-      // Native infrastructure logs can arrive after the compilation callback.
-      let timeout: ReturnType<typeof setTimeout>;
-      try {
-        return await Promise.race([
-          cacheStats,
-          new Promise<never>((_, reject) => {
-            timeout = setTimeout(
-              () =>
-                reject(
-                  new Error('Timed out waiting for cache statistics JSON'),
-                ),
-              5000,
-            );
-          }),
-        ]);
-      } finally {
-        clearTimeout(timeout!);
-      }
-    }),
-  );
 }
 
 function matchStatsSnapshot(

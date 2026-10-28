@@ -1,10 +1,11 @@
 use std::{ops::Deref, sync::Arc, time::Duration};
 
 use rspack_paths::InternedPathSet;
+use rustc_hash::FxHashMap;
 
 use super::{
-  CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult,
-  cache_value::CacheValueData, statistics::CacheStatistics,
+  CacheFacade, CacheInfo, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache,
+  MemoryCacheGetResult, cache_value::CacheValueData, statistics::CacheStatistics,
 };
 use crate::InfrastructureLogger;
 
@@ -48,7 +49,7 @@ impl Cache {
     Self::new(None, None, logger)
   }
 
-  pub(crate) fn logger(&self) -> &InfrastructureLogger {
+  pub fn logger(&self) -> &InfrastructureLogger {
     &self.logger
   }
 
@@ -164,10 +165,7 @@ impl CompilerCache {
     CacheFacade::new(Arc::clone(&self.cache), cache_name.into())
   }
 
-  pub fn report_statistics(&self, full_hash: Option<&str>) {
-    self
-      .cache
-      .statistics()
-      .report(&self.compiler_path, full_hash, self.cache.logger());
+  pub fn cache_info(&self) -> FxHashMap<String, CacheInfo> {
+    self.cache.statistics().snapshot()
   }
 }

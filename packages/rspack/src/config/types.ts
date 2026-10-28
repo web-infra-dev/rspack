@@ -2293,6 +2293,10 @@ export type StatsOptions = {
    */
   assets?: boolean;
   /**
+   * Includes cache hit, miss, reuse, and store counts by cache name.
+   */
+  cacheInfo?: boolean;
+  /**
    * Enables or disables the display of chunk stats.
    * @default true
    */

@@ -1,18 +1,18 @@
 [
   {
-    "meta": {
+    "|meta": {
       "hits": 1,
       "misses": 0,
       "reused": 1,
       "stores": 1
     },
-    "ResolverCache|loader": {
+    "|ResolverCache|loader": {
       "hits": 5,
       "misses": 0,
       "reused": 5,
       "stores": 0
     },
-    "ResolverCache|normal": {
+    "|ResolverCache|normal": {
       "hits": 5,
       "misses": 0,
       "reused": 5,

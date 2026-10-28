@@ -19,7 +19,7 @@ pub use compilation::{
 };
 pub use exports::*;
 pub use new_cache::{
-  Cache, CacheFacade, CacheRecord, CacheValue, CompilerCache, Etag, FileSystemInfo,
+  Cache, CacheFacade, CacheInfo, CacheRecord, CacheValue, CompilerCache, Etag, FileSystemInfo,
   ItemCacheFacade, MultiItemCache, Snapshot, SnapshotValidationResult, create_cache,
 };
 pub use transient_cache::*;

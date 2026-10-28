@@ -318,7 +318,7 @@ class Compiler {
     this.context = context;
     this.cache = new Cache();
 
-    this.compilerPath = '';
+    this.compilerPath = options.name || '';
 
     this.running = false;
 
@@ -434,7 +434,7 @@ class Compiler {
   getCache(name: string): CacheFacade {
     return new CacheFacade(
       this.cache,
-      `${this.compilerPath}${name}`,
+      `${this.compilerPath}|${name}`,
       this.options.output.hashFunction as string,
     );
   }
@@ -735,7 +735,11 @@ class Compiler {
     childCompiler.contextTimestamps = this.contextTimestamps;
     childCompiler.fsStartTime = this.fsStartTime;
     childCompiler.cache = this.cache;
-    childCompiler.compilerPath = `${this.compilerPath}${compilerName}|${compilerIndex}|`;
+    childCompiler.compilerPath = [
+      this.compilerPath,
+      compilerName,
+      compilerIndex,
+    ].join('|');
 
     const relativeCompilerName = makePathsRelative(
       this.context,

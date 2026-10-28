@@ -1,5 +1,4 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
-import { getCacheStats } from '@rspack/test-tools';
 
 const PLUGIN_NAME = 'rspack.SourceMapDevToolPlugin';
 
@@ -18,28 +17,29 @@ export default defineConfig({
   plugins: [
     definePlugin({
       apply(compiler) {
-        compiler.hooks.done.tapPromise(
-          'SourceMapPersistentCacheTest',
-          async (stats) => {
-            const [cacheStats] = await getCacheStats(stats);
-            const { hits, misses } = cacheStats[PLUGIN_NAME];
+        compiler.hooks.done.tap('SourceMapPersistentCacheTest', (stats) => {
+          const cacheStats = stats.toJson({
+            all: false,
+            cacheInfo: true,
+          }).cacheInfo!;
+          const { hits, misses } =
+            cacheStats[`${compiler.compilerPath}|${PLUGIN_NAME}`];
 
-            if (updateIndex === 0) {
-              expect(hits).toBe(0);
-              expect(misses).toBe(2);
-            }
-            if (updateIndex === 1) {
-              expect(hits).toBe(2);
-              expect(misses).toBe(0);
-            }
-            if (updateIndex === 2) {
-              expect(hits).toBe(1);
-              expect(misses).toBe(1);
-            }
+          if (updateIndex === 0) {
+            expect(hits).toBe(0);
+            expect(misses).toBe(2);
+          }
+          if (updateIndex === 1) {
+            expect(hits).toBe(2);
+            expect(misses).toBe(0);
+          }
+          if (updateIndex === 2) {
+            expect(hits).toBe(1);
+            expect(misses).toBe(1);
+          }
 
-            updateIndex++;
-          },
-        );
+          updateIndex++;
+        });
       },
     }),
   ],

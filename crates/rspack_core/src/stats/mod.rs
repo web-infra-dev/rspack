@@ -31,6 +31,7 @@ use crate::{
   ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleRef,
   OptimizationBailoutItem, ProvidedExports, RuntimeSpec, SourceType, StealCell, UsedExports,
   compilation::build_module_graph::{ExecutedRuntimeModule, ModuleExecutor},
+  new_cache::{CacheInfo, CompilerCache},
   rspack_sources::BoxSource,
 };
 
@@ -70,6 +71,10 @@ impl<'compilation> StatsContext<'compilation> {
 
   fn hash(&self) -> Option<&'compilation RspackHashDigest> {
     self.0.hash.as_ref()
+  }
+
+  fn cache(&self) -> &'compilation CompilerCache {
+    &self.0.cache
   }
 
   fn exports_info_artifact(&self) -> &'compilation StealCell<ExportsInfoArtifact> {
@@ -192,6 +197,10 @@ impl<'compilation> Stats<'compilation> {
 
   pub fn hash(&self) -> Option<&'compilation RspackHashDigest> {
     self.context.hash()
+  }
+
+  pub fn cache(&self) -> &'compilation CompilerCache {
+    self.context.cache()
   }
 
   pub fn code_generated_modules(&self) -> &'compilation IdentifierSet {
@@ -1130,6 +1139,10 @@ impl Stats<'_> {
       .hash()
       .as_ref()
       .map(|hash| hash.rendered(self.options().output.hash_digest_length))
+  }
+
+  pub fn get_cache_info(&self) -> HashMap<String, CacheInfo> {
+    self.cache().cache_info()
   }
 
   #[allow(clippy::too_many_arguments)]

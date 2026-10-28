@@ -1,14 +1,19 @@
-use std::{
-  fmt::Write,
-  sync::{
-    Arc,
-    atomic::{AtomicUsize, Ordering},
-  },
+use std::sync::{
+  Arc,
+  atomic::{AtomicUsize, Ordering},
 };
 
 use rspack_util::fx_hash::FxDashMap;
+use rustc_hash::FxHashMap;
 
-use crate::Logger;
+/// Cache event counts for one namespace.
+#[derive(Debug)]
+pub struct CacheInfo {
+  pub hits: usize,
+  pub misses: usize,
+  pub reused: usize,
+  pub stores: usize,
+}
 
 /// A cache lookup, reuse, or write request.
 #[derive(Debug)]
@@ -68,9 +73,8 @@ impl CacheStatistics {
     }
   }
 
-  pub fn report(&self, compiler_path: &str, full_hash: Option<&str>, logger: &impl Logger) {
-    // All compilation work has joined before taking this snapshot.
-    let mut entries = self
+  pub fn snapshot(&self) -> FxHashMap<String, CacheInfo> {
+    self
       .entries
       .iter()
       .filter_map(|entry| {
@@ -79,40 +83,18 @@ impl CacheStatistics {
         let misses = counters.misses.load(Ordering::Relaxed);
         let reused = counters.reused.load(Ordering::Relaxed);
         let stores = counters.stores.load(Ordering::Relaxed);
-        (hits != 0 || misses != 0 || reused != 0 || stores != 0)
-          .then(|| (Arc::clone(entry.key()), hits, misses, reused, stores))
+        (hits != 0 || misses != 0 || reused != 0 || stores != 0).then(|| {
+          (
+            entry.key().to_string(),
+            CacheInfo {
+              hits,
+              misses,
+              reused,
+              stores,
+            },
+          )
+        })
       })
-      .collect::<Vec<_>>();
-    if entries.is_empty() {
-      return;
-    }
-    entries.sort_unstable_by(|a, b| a.0.cmp(&b.0));
-
-    let mut message = String::from("Compilation");
-    if let Some(full_hash) = full_hash {
-      write!(message, " {full_hash}").expect("writing to a String cannot fail");
-    }
-    if !compiler_path.is_empty() {
-      write!(message, " ({compiler_path})").expect("writing to a String cannot fail");
-    }
-    let prefix = format!("{compiler_path}|");
-    let mut raw = serde_json::Map::new();
-    for (name, hits, misses, reused, stores) in entries {
-      raw.insert(
-        name.to_string(),
-        serde_json::json!({ "hits": hits, "misses": misses, "reused": reused, "stores": stores }),
-      );
-      let name = name.strip_prefix(&prefix).unwrap_or(&name);
-      let total = hits + misses;
-      write!(message, "\n  {name}: ").expect("writing to a String cannot fail");
-      if total != 0 {
-        let rate = hits as f64 / total as f64 * 100.0;
-        write!(message, "{rate:.1}% ({hits}/{total}) hits, ")
-          .expect("writing to a String cannot fail");
-      }
-      write!(message, "{reused} reused, {stores} stores").expect("writing to a String cannot fail");
-    }
-    logger.log(message);
-    logger.debug(serde_json::Value::Object(raw).to_string());
+      .collect()
   }
 }

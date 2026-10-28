@@ -46,7 +46,6 @@ impl Compiler {
       }
     };
     self.store_cache_metadata(result.is_ok());
-    self.report_cache_statistics();
     result
   }
 

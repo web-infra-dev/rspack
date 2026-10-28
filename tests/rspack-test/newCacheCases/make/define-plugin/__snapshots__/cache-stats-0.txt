@@ -1,30 +1,30 @@
 [
   {
-    "Compilation/codeGeneration": {
+    "|Compilation/codeGeneration": {
       "hits": 0,
       "misses": 1,
       "reused": 0,
       "stores": 1
     },
-    "Compilation/modules": {
+    "|Compilation/modules": {
       "hits": 0,
       "misses": 4,
       "reused": 0,
       "stores": 4
     },
-    "meta": {
+    "|meta": {
       "hits": 0,
       "misses": 1,
       "reused": 0,
       "stores": 1
     },
-    "ResolverCache|loader": {
+    "|ResolverCache|loader": {
       "hits": 3,
       "misses": 1,
       "reused": 3,
       "stores": 1
     },
-    "ResolverCache|normal": {
+    "|ResolverCache|normal": {
       "hits": 0,
       "misses": 4,
       "reused": 0,

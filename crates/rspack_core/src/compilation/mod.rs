@@ -235,7 +235,7 @@ pub struct Compilation {
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
-  cache: CompilerCache,
+  pub cache: CompilerCache,
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
   pub resolver_cache: Option<crate::ResolverCache>,
   pub file_system_info: FileSystemInfo,

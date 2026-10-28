@@ -1,36 +1,36 @@
 [
   {
-    "Compilation/codeGeneration": {
+    "|Compilation/codeGeneration": {
       "hits": 5,
       "misses": 0,
       "reused": 5,
       "stores": 0
     },
-    "Compilation/modules": {
+    "|Compilation/modules": {
       "hits": 5,
       "misses": 0,
       "reused": 5,
       "stores": 0
     },
-    "meta": {
+    "|meta": {
       "hits": 1,
       "misses": 0,
       "reused": 1,
       "stores": 1
     },
-    "ResolverCache|loader": {
+    "|ResolverCache|loader": {
       "hits": 3,
       "misses": 0,
       "reused": 3,
       "stores": 0
     },
-    "ResolverCache|normal": {
+    "|ResolverCache|normal": {
       "hits": 5,
       "misses": 0,
       "reused": 5,
       "stores": 0
     },
-    "rspack.SwcJsMinimizerRspackPlugin": {
+    "|rspack.SwcJsMinimizerRspackPlugin": {
       "hits": 2,
       "misses": 0,
       "reused": 2,
