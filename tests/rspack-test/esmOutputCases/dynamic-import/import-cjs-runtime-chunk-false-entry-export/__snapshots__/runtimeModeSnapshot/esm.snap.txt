@@ -1,5 +1,5 @@
 ```mjs title=dynamic.mjs
-import { rspackRequire, moduleFactories, compatGetDefaultExport } from "./index_js.mjs";
+import { rspackRequire, moduleFactories, compatGetDefaultExport } from "./runtime.mjs";
 import "./index_js.mjs";
 
 moduleFactories.add({
@@ -26,6 +26,44 @@ export default dynamic_default_0;
 ```
 
 ```mjs title=index_js.mjs
+import { rspackRequire, moduleFactories, createFakeNamespaceObject } from "./runtime.mjs";
+moduleFactories.add({
+"./shared.js"
+/*!*******************!*\
+  !*** ./shared.js ***!
+  \*******************/
+(__unused_rspack_module, exports) {
+exports.base = 1;
+
+
+},
+});
+// ./index.js
+const shared = rspackRequire("./shared.js");
+
+
+const direct = shared.base;
+
+it("should keep a single __webpack_require__ export on runtimeChunk false entry chunks", async () => {
+	const mod = await import("./dynamic.mjs").then(createFakeNamespaceObject.bind(rspackRequire, /*! ./dynamic */ "./dynamic.js", 19));
+
+	expect(mod.value).toBe(42);
+	expect(direct).toBe(1);
+});
+
+
+
+export { direct };
+
+```
+
+```mjs title=main.mjs
+
+export { direct } from "./index_js.mjs";
+
+```
+
+```mjs title=runtime.mjs
 
 var modules = {};
 // The module cache
@@ -47,11 +85,11 @@ modules[moduleId](module, module.exports, rspackRequire);
 // Return the exports of the module
 return module.exports;
 }
+export { rspackRequire };
 // expose the modules object (modules)
 var moduleFactories = modules;
 export { moduleFactories };
 
-var asyncStartup;
 // rspack/runtime/compat_get_default_export
 // getDefaultExport function for compatibility with non-ESM modules
 var compatGetDefaultExport = (module) => {
@@ -106,10 +144,6 @@ var definePropertyGetters = (exports, getters, values) => {
 // rspack/runtime/esm_register_module
 moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
 ;
-// rspack/runtime/export_require
-var rspackRequiretemp = rspackRequire;
-export { rspackRequiretemp as rspackRequire };
-;
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 // rspack/runtime/make_namespace_object
@@ -120,75 +154,6 @@ var makeNamespaceObject = (exports) => {
 	}
 	Object.defineProperty(exports, '__esModule', { value: true });
 };;
-// rspack/runtime/module_chunk_loading
-// no BaseURI
-      // object to store loaded and loading chunks
-      // undefined = chunk not loaded, null = chunk preloaded/prefetched
-      // [resolve, Promise] = chunk loading, 0 = chunk loaded
-      var moduleInstalledChunks = {"index_js": 0,"main": 0,};
-      var moduleInstallChunk = (data) => {
-    var __rspack_esm_ids = data.__rspack_esm_ids;
-    var moreModules = data.modules;
-    var __rspack_esm_runtime = data.__rspack_esm_runtime;
-    // add "modules" to the modules object,
-    // then flag all "ids" as loaded and fire callback
-    var moduleId, chunkId, i = 0;
-    for (moduleId in moreModules) {
-        if (hasOwnProperty(moreModules, moduleId)) {
-            moduleFactories[moduleId] = moreModules[moduleId];
-        }
-    }
-    if (__rspack_esm_runtime) __rspack_esm_runtime(rspackRequire);
-    for (; i < __rspack_esm_ids.length; i++) {
-        chunkId = __rspack_esm_ids[i];
-        if (hasOwnProperty(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
-            moduleInstalledChunks[chunkId][0]();
-        }
-        moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
-    }
-    
-};
-// no chunk on demand loading
 
-        var externalInstallChunk = moduleInstallChunk;
-        // no on chunks loaded
-// no HMR
-// no HMR manifest
-;
-export { externalInstallChunk };
-
-moduleFactories.add({
-"./shared.js"
-/*!*******************!*\
-  !*** ./shared.js ***!
-  \*******************/
-(__unused_rspack_module, exports) {
-exports.base = 1;
-
-
-},
-});
-// ./index.js
-const shared = rspackRequire("./shared.js");
-
-
-const direct = shared.base;
-
-it("should keep a single __webpack_require__ export on runtimeChunk false entry chunks", async () => {
-	const mod = await import("./dynamic.mjs").then(createFakeNamespaceObject.bind(rspackRequire, /*! ./dynamic */ "./dynamic.js", 19));
-
-	expect(mod.value).toBe(42);
-	expect(direct).toBe(1);
-});
-
-
-
-export { direct };
-
-```
-
-```mjs title=main.mjs
-
-export { direct } from "./index_js.mjs";
 
 ```

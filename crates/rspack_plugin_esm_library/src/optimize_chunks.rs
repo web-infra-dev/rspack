@@ -362,21 +362,16 @@ pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) {
       .chunk_graph
       .add_chunk(new_chunk_ukey);
 
-    // move entrypoint runtime as well
-    let entrypoint_ukey = entrypoint_chunks[&entry_chunk_ukey];
-    let entrypoint = compilation
-      .build_chunk_graph_artifact
-      .chunk_group_by_ukey
-      .expect_get(&entrypoint_ukey);
-    if entrypoint.get_runtime_chunk(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
-      == entry_chunk_ukey
-    {
-      let entrypoint = compilation
-        .build_chunk_graph_artifact
-        .chunk_group_by_ukey
-        .expect_get_mut(&entrypoint_ukey);
-      entrypoint.set_runtime_chunk(new_chunk_ukey);
-    }
+    // Keep the entrypoint runtime on the entry chunk instead of moving it into the
+    // chunk that receives the modules. Runtime chunks must stay module-less: other
+    // chunks import a consuming runtime chunk to register module factories, and
+    // importing a chunk that also carries modules executes those modules and can
+    // form an ESM cycle with the chunks it depends on.
+    //
+    // `optimize_runtime_chunks` runs right after this pass and splits a dedicated
+    // module-less runtime chunk for this entrypoint, because its chunk group now
+    // contains the moved modules chunk as well. Entrypoints that already use a
+    // separate runtime chunk are unaffected.
 
     for m in entry_modules {
       compilation
