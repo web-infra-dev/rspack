@@ -266,7 +266,7 @@ fn compute_affected_modules_with_module_graph(
 
   fn get_direct_and_transitive_affected_modules(
     modules: &IdentifierSet,
-    all_affected_modules: &IdentifierSet,
+    propagated_modules: &IdentifierSet,
     module_graph: &ModuleGraph,
   ) -> (IdentifierSet, IdentifierSet) {
     modules
@@ -277,7 +277,7 @@ fn compute_affected_modules_with_module_graph(
           .modules()
           .iter()
           .filter_map(|(referencing_module, connections)| {
-            if all_affected_modules.contains(referencing_module) {
+            if propagated_modules.contains(referencing_module) {
               return None;
             }
             match reduce_affect_type(
@@ -306,14 +306,11 @@ fn compute_affected_modules_with_module_graph(
   let mut all_affected_modules: IdentifierSet = built_modules.clone();
   let mut transitive_affected_modules: IdentifierSet = {
     let (direct_affected_modules, transitive_affected_modules) =
-      get_direct_and_transitive_affected_modules(
-        &built_modules,
-        &all_affected_modules,
-        module_graph,
-      );
+      get_direct_and_transitive_affected_modules(&built_modules, &built_modules, module_graph);
     all_affected_modules.extend(direct_affected_modules);
     transitive_affected_modules
   };
+  let mut propagated_modules = built_modules;
 
   // It's possible that a module is deleted and the incoming dependencies is revoked, and added to
   // process_dependencies tasks queue to update the incoming dependencies, but the incoming dependencies'
@@ -339,13 +336,15 @@ fn compute_affected_modules_with_module_graph(
     };
   }
 
+  transitive_affected_modules.retain(|module| !propagated_modules.contains(module));
   while !transitive_affected_modules.is_empty() {
     let transitive_affected_modules_current = std::mem::take(&mut transitive_affected_modules);
     all_affected_modules.extend(transitive_affected_modules_current.iter().copied());
+    propagated_modules.extend(transitive_affected_modules_current.iter().copied());
     let (direct_affected_modules, new_transitive_affected_modules) =
       get_direct_and_transitive_affected_modules(
         &transitive_affected_modules_current,
-        &all_affected_modules,
+        &propagated_modules,
         module_graph,
       );
     all_affected_modules.extend(direct_affected_modules);
