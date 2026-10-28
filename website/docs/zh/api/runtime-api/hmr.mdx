@@ -60,13 +60,13 @@ import.meta.webpackHot.accept(
 
 在使用 CommonJS 时，你应该通过 `callback` 中的 `require()` 手动更新依赖模块。省略 `callback` 在这里没有任何意义。
 
-`callback` 可以返回 Promise。HMR 会等它完成后，再重新执行接受自身更新的模块并完成本次更新。如果它被拒绝，`module.hot.check(true)` 或 `module.hot.apply()` 返回的 Promise 也会被拒绝。
+`callback` 可以返回 Promise。HMR 会等它完成后，再重新执行接受自身更新的模块并完成本次更新。与 webpack 一样，Promise 被拒绝时，`module.hot.check(true)` 或 `module.hot.apply()` 返回的 Promise 也会被拒绝，接受自身更新的模块不会重新执行。拒绝不会交给 `errorHandler` 或 `onErrored`，也不受 `ignoreErrored` 影响；HMR 状态保持为 `apply`。
 
 #### 为 accept 设置错误处理器
 
 `(err, {moduleId, dependencyId}) => {}`
 
-- `err`：当使用 ESM 依赖项时，回调函数在第二个参数中或在依赖项执行期间抛出的错误。
+- `err`：第二个参数指定的回调函数同步抛出的错误，也包括同步 ESM 依赖执行时抛出的错误。Promise 拒绝不会交给这个处理器。
 - `moduleId`：当前模块 id。
 - `dependencyId`：（第一个）被更改依赖项的模块 id。
 
