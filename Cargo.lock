@@ -3285,9 +3285,9 @@ checksum = "915a1e146535de9163f3987b8944ed8cf49a18bb0056bcebcdcece385cece4ff"
 
 [[package]]
 name = "pnp"
-version = "0.12.12"
+version = "0.12.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a0e591607db15df65036bd424bd57782296da9963d823da5a139ed451f615b5"
+checksum = "e57281b9cdf635e68b57fc347e213b413f099d57cdd708182d5e759418d41485"
 dependencies = [
  "byteorder",
  "concurrent_lru",
@@ -3296,7 +3296,7 @@ dependencies = [
  "nodejs-built-in-modules",
  "pathdiff",
  "radix_trie",
- "regress 0.12.0",
+ "regress",
  "rustc-hash",
  "serde",
  "serde_json",
@@ -3861,15 +3861,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "158a764437582235e3501f683b93a0a6f8d825d04a789dbe5ed30b8799b8908a"
 dependencies = [
  "hashbrown 0.16.1",
- "memchr",
-]
-
-[[package]]
-name = "regress"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32eef8b209c3c1c15dbad02c1f30f9539f00dc7253e0cbcdaae442a50a09d7c1"
-dependencies = [
  "memchr",
 ]
 
@@ -5167,7 +5158,7 @@ dependencies = [
  "once_cell",
  "rayon",
  "regex",
- "regress 0.11.1",
+ "regress",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
@@ -5711,7 +5702,7 @@ dependencies = [
  "napi",
  "regex",
  "regex-syntax",
- "regress 0.11.1",
+ "regress",
  "rspack-allocative",
  "rspack_cacheable",
  "rspack_error",
@@ -6590,7 +6581,7 @@ dependencies = [
  "indexmap",
  "once_cell",
  "regex",
- "regress 0.11.1",
+ "regress",
  "rustc-hash",
  "serde",
  "serde_json",
