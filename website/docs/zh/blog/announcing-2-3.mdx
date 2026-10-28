@@ -260,7 +260,7 @@ Rspack 核心由 Rust 编写，调用 JavaScript loader 时会产生跨语言通
 
 #### 独立构建样式入口 \{#css-entry}
 
-独立发布主题或样式库时，通常只需要生成 CSS 文件。Rspack 现在支持为纯 CSS 入口只生成样式文件，无需输出多余的 JavaScript 文件。例如：
+独立发布主题或样式库时，通常只需要生成 CSS 文件。Rspack 现在支持为[纯 CSS 入口](/zh/guide/languages/css#css-entry)只生成样式文件，无需输出多余的 JavaScript 文件。例如：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -282,7 +282,7 @@ export default {
 
 当 CSS 或图片由 CDN 等外部服务提供时，通常希望浏览器直接加载这些资源，而不是将它们打包进构建产物。
 
-Rspack 新增 `css-import` 和 `asset-url` 两种 [external](/zh/config/externals) 类型，可以将 CSS 中的指定引用保留为外部资源。例如，将样式表和图片配置为 external：
+Rspack 新增 `css-import` 和 `asset-url` 两种 [external](/zh/config/externals) 类型，可以将 CSS 中的指定引用保留为[外部资源](/zh/guide/languages/css#external-resources)。例如，将样式表和图片配置为 external：
 
 ```js title="rspack.config.js"
 module.exports = {
@@ -309,7 +309,7 @@ module.exports = {
 
 上述 `@import` 和 `url()` 会原样输出，不会参与打包。
 
-CSS 中的 `@import`、`url()` 和 `image-set()` 也支持 `rspackIgnore` 和 `webpackIgnore` 注释，可以按需跳过资源打包：
+CSS 中的 `@import`、`url()` 和 `image-set()` 也支持 [`rspackIgnore` 和 `webpackIgnore` 注释](/zh/guide/languages/css#magic-comments)，可以按需跳过资源打包：
 
 ```css title="styles.css"
 @import /* rspackIgnore: true */ url('./runtime-theme.css');
