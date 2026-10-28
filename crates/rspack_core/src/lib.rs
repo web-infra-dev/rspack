@@ -1,4 +1,7 @@
 use std::{fmt, sync::Arc};
+
+#[cfg(allocative)]
+pub use rspack_util::rspack_allocative;
 mod artifacts;
 mod binding;
 mod compilation;
@@ -16,8 +19,8 @@ pub use compilation::{
 };
 pub use exports::*;
 pub use new_cache::{
-  Cache, CacheFacade, CacheValue, CompilerCache, Etag, FileSystemInfo, ItemCacheFacade,
-  MultiItemCache, ResolverCache, Snapshot, SnapshotValidationResult, create_cache,
+  Cache, CacheFacade, CacheInfo, CacheRecord, CacheValue, CompilerCache, Etag, FileSystemInfo,
+  ItemCacheFacade, MultiItemCache, Snapshot, SnapshotValidationResult, create_cache,
 };
 pub use transient_cache::*;
 pub use value_cache_versions::ValueCacheVersions;

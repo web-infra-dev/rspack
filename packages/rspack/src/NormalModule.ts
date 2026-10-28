@@ -5,13 +5,17 @@ import { type Compilation, getOrCreateCompilationHooks } from './Compilation';
 import type { LoaderContext } from './config';
 import type { Module } from './Module';
 import { SourceAdapter } from './util/source';
+import {
+  COMPILATION_HOOKS_MAP_SYMBOL,
+  MODULE_IDENTIFIER_SYMBOL,
+} from './util/symbols';
 
 Object.defineProperty(binding.NormalModule.prototype, 'identifier', {
   enumerable: true,
   configurable: true,
   value(this: binding.NormalModule): string {
     // @ts-expect-error
-    return this[binding.MODULE_IDENTIFIER_SYMBOL];
+    return this[MODULE_IDENTIFIER_SYMBOL];
   },
 });
 Object.defineProperty(binding.NormalModule.prototype, 'originalSource', {
@@ -49,7 +53,7 @@ Object.defineProperty(binding.NormalModule, 'getCompilationHooks', {
   enumerable: true,
   configurable: true,
   value(compilation: Compilation): NormalModuleCompilationHooks {
-    if (!(binding.COMPILATION_HOOKS_MAP_SYMBOL in compilation)) {
+    if (!(COMPILATION_HOOKS_MAP_SYMBOL in compilation)) {
       throw new TypeError(
         "The 'compilation' argument must be an instance of Compilation",
       );

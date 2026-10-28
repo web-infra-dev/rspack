@@ -2,7 +2,7 @@
 description: '由于 Rspack 使用 Rust + TypeScript 代码混合编写，因此会针对两者使用不同的测试方案。'
 ---
 
-# Testing
+# 测试指南 \{#testing}
 
 由于 Rspack 使用 Rust + TypeScript 代码混合编写，因此会针对两者使用不同的测试方案。
 
@@ -205,10 +205,7 @@ Snapshot 结构如下：
 
 - **Changed Files**：引发本次 HMR 构建的源码文件
 - **Asset Files**：本次 HMR 构建的产物文件
-- **Manifest**：本次 HMR 构建的 `hot-update.json` 元数据文件内容，其中
-  - `"c"`：本次 HMR 需要更新的 chunk 的 id
-  - `"r"`：本次 HMR 需要移除的 chunk 的 id
-  - `"m"`：本次 HMR 需要移除的 module 的 id
+- **Manifest**：本次 HMR 构建的 `hot-update.json` 元数据文件内容，各字段的含义请参阅[热更新清单](/plugins/hot-module-replacement-plugin#hot-update-manifest)。
 - **Update**：本次 HMR 构建的 `hot-update.js` 补丁文件信息，其中：
   - **Changed Modules**：补丁中包含的模块列表
   - **Changed Runtime Modules**：补丁中包含的 runtime 模块列表

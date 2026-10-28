@@ -81,10 +81,11 @@ runs:
       # Homebrew's rustup-init (installer-only, no cargo/rustc proxy). The
       # Swatinem cargo cache also captures ~/.cargo/bin, so any earlier
       # repair gets undone on cache restore. Detect the broken symlink
-      # here and run rustup-init -y to replace the shims with real proxy
-      # binaries. ~/.rustup/toolchains is untouched.
+      # here and run the official installer to replace the shims with real
+      # proxy binaries, even when rustup-init is not on PATH.
+      # ~/.rustup/toolchains is untouched.
       run: |
         if [[ "$(readlink "${CARGO_HOME:-$HOME/.cargo}/bin/rustup" 2>/dev/null)" == */rustup-init ]]; then
-          rustup-init -y --default-toolchain none
+          curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
           echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
         fi

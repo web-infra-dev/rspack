@@ -9,9 +9,9 @@
 - Bundle: lazy-module_js.chunk.mjs
 - Bundle: main.mjs
 - Manifest: main.LAST_HASH.hot-update.json.mjs, size: 79
-- Update: async-module_js.LAST_HASH.hot-update.mjs, size: 397
-- Update: lazy-module_js.LAST_HASH.hot-update.mjs, size: 395
-- Update: main.LAST_HASH.hot-update.mjs, size: 288
+- Update: async-module_js.LAST_HASH.hot-update.mjs, size: 347
+- Update: lazy-module_js.LAST_HASH.hot-update.mjs, size: 346
+- Update: main.LAST_HASH.hot-update.mjs, size: 249
 
 ## Manifest
 
@@ -35,7 +35,6 @@
 
 #### Changed Content
 ```js
-export const __rspack_esm_id = "async-module_js";
 export const __rspack_esm_ids = ["async-module_js"];
 export const __webpack_modules__ = {
 "./async-module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
@@ -63,7 +62,6 @@ const message = "Updated async module!";
 
 #### Changed Content
 ```js
-export const __rspack_esm_id = "lazy-module_js";
 export const __rspack_esm_ids = ["lazy-module_js"];
 export const __webpack_modules__ = {
 "./lazy-module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
@@ -95,7 +93,6 @@ const data = {
 
 #### Changed Content
 ```js
-export const __rspack_esm_id = "main";
 export const __rspack_esm_ids = ["main"];
 export const __webpack_modules__ = {};
 export const __rspack_esm_runtime = function(__webpack_require__) {

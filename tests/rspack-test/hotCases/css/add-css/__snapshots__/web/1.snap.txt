@@ -8,7 +8,7 @@
 - Bundle: lazy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 56
 - Update: lazy.LAST_HASH.hot-update.js, size: 334
-- Update: main.LAST_HASH.hot-update.js, size: 7577
+- Update: main.LAST_HASH.hot-update.js, size: 7864
 
 ## Manifest
 
@@ -69,17 +69,8 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 })();
 // webpack/runtime/css_loading
 (() => {
-var cssInstalledChunks = {"main": 0,};
+var cssInstalledChunks = {};
 var cssLoadingUniqueName = "";
-function handleCssComposes(exports, composes) {
-	for (var i = 0; i < composes.length; i += 3) {
-		var moduleId = composes[i];
-		var composeFrom = composes[i + 1];
-		var composeVar = composes[i + 2];
-		var composedId = __webpack_require__(composeFrom)[composeVar];
-		exports[moduleId] = exports[moduleId] + " " + composedId
-	}
-}
 var loadingAttribute = "data-rspack-loading";
 var cssLoadStylesheet = (chunkId, url, done, hmr, fetchPriority) => {
 	var link,
@@ -108,14 +99,31 @@ var cssLoadStylesheet = (chunkId, url, done, hmr, fetchPriority) => {
 	if (!link) {
 		needAttach = true;
 		link = document.createElement("link");
-if (__webpack_require__.nc) {
-  link.setAttribute("nonce", __webpack_require__.nc);
-}
+
+// Browsers may hide the nonce attribute while retaining its property.
+var nonce = __webpack_require__.nc || (hmr && hmr.nonce);
+if (nonce) link.setAttribute("nonce", nonce);
+
 
 
 link.setAttribute(loadingAttribute, 1);
 link.rel = "stylesheet";
 link.href = url;
+
+
+if (hmr) {
+	var attributes = hmr.attributes;
+	for (var i = 0, length = attributes.length; i < length; i++) {
+		var attribute = attributes[i];
+		switch (attribute.name) {
+			case "href": case "integrity": case "disabled": case "nonce":
+			case "onload": case "onerror": case "data-rspack": case "data-rspack-loading":
+				break;
+			default:
+				link.setAttribute(attribute.name, attribute.value);
+		}
+	}
+}
 
 
 	}
@@ -135,7 +143,6 @@ link.href = url;
 		link.onerror = onLinkComplete.bind(null, link.onerror);
 		link.onload = onLinkComplete.bind(null, link.onload);
 	} else onLinkComplete(undefined, { type: "load", target: link });
-	if (hmr && hmr.getAttribute("fetchpriority")) link.setAttribute("fetchpriority", hmr.getAttribute("fetchpriority"));
 	hmr ? document.head.insertBefore(link, hmr) : needAttach && document.head.appendChild(link);
 	return link;
 };
@@ -200,17 +207,16 @@ var cssOldTags = [];
 var cssNewTags = [];
 var cssApplyHandler = (options) => {
 	return {
-		dispose: () => { },
 		apply: () => {
-			cssNewTags.forEach((newTag) => {
-				newTag.sheet.disabled = false;
-			});
+			while (cssNewTags.length) {
+				var entry = cssNewTags.pop(), link = entry.link, oldTag = entry.oldTag;
+				// Read the latest state before removing the old link. Keep downloads enabled until apply.
+				if (oldTag && oldTag.hasAttribute("disabled")) link.setAttribute("disabled", "");
+				else link.sheet.disabled = !!(oldTag && oldTag.sheet && oldTag.sheet.disabled);
+			}
 			while (cssOldTags.length) {
 				var oldTag = cssOldTags.pop();
 				if (oldTag.parentNode) oldTag.parentNode.removeChild(oldTag);
-			}
-			while (cssNewTags.length) {
-				cssNewTags.pop();
 			}
 		}
 	};
@@ -277,7 +283,7 @@ __webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promise
 						} else {
 							link.sheet.disabled = true;
 							if (oldTag) cssOldTags.push(oldTag);
-							cssNewTags.push(link);
+							cssNewTags.push({ link: link, oldTag: oldTag });
 							resolve();
 						}
 					},

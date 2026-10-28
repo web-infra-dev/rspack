@@ -98,6 +98,10 @@ impl ProvideSharedModule {
     &self.share_scope
   }
 
+  pub fn singleton(&self) -> Option<bool> {
+    self.singleton
+  }
+
   pub fn version(&self) -> Option<&str> {
     match &self.version {
       ProvideVersion::Version(version) => Some(version),
@@ -127,7 +131,7 @@ impl DependenciesBlock for ProvideSharedModule {
 impl Module for ProvideSharedModule {
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>) -> f64 {
     42.0
   }
 

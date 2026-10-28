@@ -212,20 +212,24 @@ impl Compiler {
     self.new_cache.facade(name)
   }
 
-  fn store_cache_metadata(&mut self) {
+  fn store_cache_metadata(&mut self, build_succeeded: bool) {
     if self.new_cache.has_file_cache() {
-      if let CacheOptions::FileSystem(options) = &self.options.cache {
-        self.compilation.build_dependencies.extend(
-          options
-            .build_dependencies
-            .iter()
-            .map(|path| InternedPath::from(path.as_path())),
-        );
+      // A fatal error can leave the module graph artifact unavailable.
+      if build_succeeded {
+        if let CacheOptions::Persistent(options) = &self.options.cache {
+          self.compilation.build_dependencies.extend(
+            options
+              .build_dependencies
+              .iter()
+              .map(|path| InternedPath::from(path.as_path())),
+          );
+        }
+        let (build_dependencies, _, _, _) = self.compilation.build_dependencies();
+        self
+          .new_cache
+          .store_build_dependencies(build_dependencies.cloned().collect());
       }
-      let (build_dependencies, _, _, _) = self.compilation.build_dependencies();
-      self
-        .new_cache
-        .store_build_dependencies(build_dependencies.cloned().collect());
+
       self.get_cache("meta").store(
         "state",
         None,
@@ -262,20 +266,22 @@ impl Compiler {
         failed.and(Err(e))
       }
     };
-    self.store_cache_metadata();
+    self.store_cache_metadata(result.is_ok());
     result
   }
 
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
   async fn build_inner(&mut self) -> Result<()> {
-    if self.new_cache.has_file_cache()
-      && let Some(restored) = self.get_cache("meta").get::<Meta>("state", None)
-    {
-      let current = self.compiler_context.dependency_id();
-      if current < restored.max_dependency_id {
-        self
-          .compiler_context
-          .set_dependency_id(restored.max_dependency_id);
+    if self.new_cache.has_file_cache() {
+      let meta_cache = self.get_cache("meta");
+      if let Some(restored) = meta_cache.get::<Meta>("state", None) {
+        let current = self.compiler_context.dependency_id();
+        if current < restored.max_dependency_id {
+          self
+            .compiler_context
+            .set_dependency_id(restored.max_dependency_id);
+          meta_cache.record_reuse();
+        }
       }
     }
     // TODO: clear the outdated cache entries in resolver,
@@ -329,7 +335,7 @@ impl Compiler {
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
     #[cfg(allocative)]
-    crate::utils::snapshot_allocative("build");
+    crate::utils::snapshot_allocative("build", self)?;
 
     Ok(())
   }
@@ -368,10 +374,6 @@ impl Compiler {
       )
       .await?;
     logger.time_end(start);
-
-    if let Some(cache) = &self.compilation.resolver_cache {
-      cache.log(&self.compilation.get_logger("rspack.ResolverCache"));
-    }
 
     // Consume plugin driver diagnostic
     let plugin_driver_diagnostics = self.plugin_driver.take_diagnostic();

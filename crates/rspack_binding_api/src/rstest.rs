@@ -1,7 +1,8 @@
 use derive_more::Debug;
 use napi::Either;
 use rspack_plugin_rstest::{
-  RstestDynamicImportOriginOptions, RstestPluginOptions, RstestRequireResolveOriginOptions,
+  RstestDynamicImportOriginOptions, RstestImportMetaResolveOriginOptions, RstestPluginOptions,
+  RstestRequireResolveOriginOptions,
 };
 
 #[derive(Debug)]
@@ -17,6 +18,12 @@ pub struct RawRstestRequireResolveOriginOptions {
 pub struct RawRstestDynamicImportOriginOptions {
   // Override the callee that replaces `import` in the rewrite. When omitted,
   // rstest falls back to `output.importFunctionName`.
+  pub function_name: Option<String>,
+}
+
+#[derive(Debug)]
+#[napi(object, object_to_js = false)]
+pub struct RawRstestImportMetaResolveOriginOptions {
   pub function_name: Option<String>,
 }
 
@@ -70,6 +77,14 @@ pub struct RawRstestPluginOptions {
   // or pass an object with `functionName` to override the callee independently.
   #[napi(ts_type = "boolean | { functionName?: string }")]
   pub inject_require_resolve_origin: Option<Either<bool, RawRstestRequireResolveOriginOptions>>,
+  /// Replace `import.meta.resolve` with a call to a runtime factory receiving
+  /// the absolute source path. The factory must return a stable resolver for
+  /// that source module. Defaults to `__rstest_import_meta_resolve__`.
+  /// Modules with `parser.importMetaResolve: true` use Rspack's built-in
+  /// resolution instead.
+  #[napi(ts_type = "boolean | { functionName?: string }")]
+  pub inject_import_meta_resolve_origin:
+    Option<Either<bool, RawRstestImportMetaResolveOriginOptions>>,
 }
 
 impl From<RawRstestPluginOptions> for RstestPluginOptions {
@@ -89,6 +104,13 @@ impl From<RawRstestPluginOptions> for RstestPluginOptions {
         function_name: opts.function_name,
       }),
     };
+    let inject_import_meta_resolve_origin = match value.inject_import_meta_resolve_origin {
+      None | Some(Either::A(false)) => None,
+      Some(Either::A(true)) => Some(RstestImportMetaResolveOriginOptions::default()),
+      Some(Either::B(opts)) => Some(RstestImportMetaResolveOriginOptions {
+        function_name: opts.function_name,
+      }),
+    };
     Self {
       module_path_name: value.inject_module_path_name,
       hoist_mock_module: value.hoist_mock_module,
@@ -101,6 +123,7 @@ impl From<RawRstestPluginOptions> for RstestPluginOptions {
       update_import_mock_api: value.update_import_mock_api.unwrap_or(false),
       update_require_mock_api: value.update_require_mock_api.unwrap_or(false),
       inject_require_resolve_origin,
+      inject_import_meta_resolve_origin,
     }
   }
 }

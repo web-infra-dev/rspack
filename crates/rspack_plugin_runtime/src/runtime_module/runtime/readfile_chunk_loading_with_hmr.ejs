@@ -1,6 +1,6 @@
 <%- fn("readFileVmLoadUpdateChunk") %>(chunkId, updatedModulesList) {
 	return new Promise(function(resolve, reject) {
-		var filename = require('path').join(__dirname, "" + <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId));
+		var filename = require('path').join(__dirname, "<%- _output_dir %>" + <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId));
 		require('fs').readFile(filename, 'utf-8', function(err, content) {
 			if(err) return reject(err);
 			var update = {};

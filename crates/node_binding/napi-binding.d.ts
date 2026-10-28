@@ -12,31 +12,7 @@ export type AssetInfo = KnownAssetInfo & Record<string, any>;
 
 export type CustomPluginName = string;
 
-export const MODULE_IDENTIFIER_SYMBOL: unique symbol;
-
-export const COMPILATION_HOOKS_MAP_SYMBOL: unique symbol;
-
-export const BUILD_INFO_ASSETS_SYMBOL: unique symbol;
-export const BUILD_INFO_FILE_DEPENDENCIES_SYMBOL: unique symbol;
-export const BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL: unique symbol;
-export const BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL: unique symbol;
-export const BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL: unique symbol;
-export const COMMIT_CUSTOM_FIELDS_SYMBOL: unique symbol;
-
-export const RUST_ERROR_SYMBOL: unique symbol;
-
-export const CIRCULAR_CONNECTION_SYMBOL: unique symbol;
-export const TRANSITIVE_ONLY_SYMBOL: unique symbol;
-export type ConnectionState = boolean | typeof CIRCULAR_CONNECTION_SYMBOL | typeof TRANSITIVE_ONLY_SYMBOL;
-
-interface KnownBuildInfo {
-	[BUILD_INFO_ASSETS_SYMBOL]: Assets,
-	[BUILD_INFO_FILE_DEPENDENCIES_SYMBOL]: string[],
-	[BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL]: string[],
-	[BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL]: string[],
-	[BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL]: string[],
-	[COMMIT_CUSTOM_FIELDS_SYMBOL](): void;
-}
+export type ConnectionState = boolean | symbol;
 
 export type BuildInfo = KnownBuildInfo & Record<string, any>;
 
@@ -99,6 +75,12 @@ export interface JsSource {
 	source: string | Buffer
 	map?: string
 }
+
+export type JsSourceFromJs =
+	| { kind: "raw"; content: string | Buffer; map?: string }
+	| { kind: "native"; handle: JsNativeSource }
+	| { kind: "concat"; children: JsSourceFromJs[] }
+	| { kind: "replace"; original: JsSourceFromJs; replacements: JsReplaceSourceEdit[]; fallback: () => JsSourceFromJs }
 
 export type CompilerId = void;
 /* -- banner.d.ts end -- */
@@ -191,24 +173,24 @@ export declare class ConcatenatedModule {
   get rootModule(): Module
   get modules(): Module[]
   readableIdentifier(): string
-  _originalSource(): JsSource | undefined
+  _originalSource(): JsSourceWithLazyMap | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
+  _emitFile(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class ContextModule {
   readableIdentifier(): string
-  _originalSource(): JsSource | undefined
+  _originalSource(): JsSourceWithLazyMap | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
+  _emitFile(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class Dependency {
@@ -267,13 +249,13 @@ export type EntryOptionsDTO = EntryOptionsDto
 
 export declare class ExternalModule {
   readableIdentifier(): string
-  _originalSource(): JsSource | undefined
+  _originalSource(): JsSourceWithLazyMap | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
+  _emitFile(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null): void
 }
 
 /** Native operations on the owning compiler's current dependency collection. */
@@ -298,10 +280,11 @@ export declare class JsCache {
 }
 
 export declare class JsCompilation {
-  updateAsset(filename: string, newSourceOrFunction: JsSource | ((source: JsSource) => JsSource), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)): void
+  updateAsset(filename: string, newSourceOrFunction: JsSourceFromJs | ((source: JsSource) => JsSourceFromJs), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)): void
   getAssets(): Readonly<JsAsset>[]
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsSource | null
+  getAssetNativeSource(name: string): JsNativeSource | null
   get modules(): Modules
   get builtModules(): Array<Module>
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
@@ -310,11 +293,11 @@ export declare class JsCompilation {
   getNamedChunk(name: string): Chunk
   getNamedChunkGroupKeys(): Array<string>
   getNamedChunkGroup(name: string): ChunkGroup
-  setAssetSource(name: string, source: JsSource): void
+  setAssetSource(name: string, source: JsSourceFromJs): void
   deleteAssetSource(name: string): void
   getAssetFilenames(): Array<string>
   hasAsset(name: string): boolean
-  emitAsset(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
+  emitAsset(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null): void
   deleteAsset(filename: string): void
   renameAsset(filename: string, newName: string): void
   get entrypoints(): ChunkGroup[]
@@ -416,11 +399,6 @@ export declare class JsExportsInfo {
   getUsed(name: string | string[], runtime: string | string[] | undefined):  0 | 1 | 2 | 3 | 4
 }
 
-export declare class JsLoaderCache {
-  get(loaderIndex: number, content: string | Uint8Array, existing: JsLoaderDependencies): Promise<JsLoaderCacheEntry | null>
-  store(loaderIndex: number, output: JsLoaderCacheEntry): Promise<void>
-}
-
 export declare class JsModuleGraph {
   getModule(dependency: Dependency | EntryDependency): Module | null
   getResolvedModule(dependency: Dependency | EntryDependency): Module | null
@@ -435,6 +413,15 @@ export declare class JsModuleGraph {
   getParentModule(dependency: Dependency | EntryDependency): Module | null
   getParentBlockIndex(dependency: Dependency | EntryDependency): number
   isAsync(module: Module): boolean
+}
+
+/**
+ * An owned source reference transferred from the compiler to JavaScript.
+ *
+ * JavaScript uses this as an opaque handle when updating an existing asset.
+ */
+export declare class JsNativeSource {
+  static fromSource(source: JsSourceFromJs): JsNativeSource
 }
 
 export declare class JsResolver {
@@ -458,13 +445,13 @@ export declare class KnownBuildInfo {
 
 export declare class Module {
   readableIdentifier(): string
-  _originalSource(): JsSource | undefined
+  _originalSource(): JsSourceWithLazyMap | undefined
   nameForCondition(): string | undefined
   get blocks(): AsyncDependenciesBlock[]
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
+  _emitFile(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class ModuleGraphConnection {
@@ -482,11 +469,30 @@ export declare class Modules {
   values(): ReadonlyArray<Module>
 }
 
+/** Owns the timestamp snapshot so either table can be converted after the watcher closes. */
+export declare class NativeTimeInfoEntries {
+  get fileTimestamps(): NativeTimeInfoTable
+  get directoryTimestamps(): NativeTimeInfoTable
+}
+
 export declare class NativeWatcher {
   constructor(options: NativeWatcherOptions)
   watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], startTime: bigint, callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (event: NativeWatchUndelayedEvent) => void): void
   triggerEvent(kind: 'change' | 'remove' | 'create', path: string): void
   close(): Promise<void>
+  /**
+   * watchpack's `aggregatedChanges` / `aggregatedRemovals`: the events that
+   * arrived since the last aggregated batch (while paused), read without
+   * draining them.
+   */
+  peekAggregated(): NativeWatchResult
+  /**
+   * watchpack's `getAggregated`: the same events, drained, for the build
+   * that folds them in.
+   */
+  getAggregated(): NativeWatchResult
+  /** watchpack's `collectTimeInfoEntries`, over every registered path. */
+  collectTimeInfoEntries(): NativeTimeInfoEntries
   pause(): void
 }
 
@@ -598,6 +604,7 @@ export declare enum BuiltinPluginName {
   RuntimePlugin = 'RuntimePlugin',
   JsonModulesPlugin = 'JsonModulesPlugin',
   InferAsyncModulesPlugin = 'InferAsyncModulesPlugin',
+  ImportedByDeferModulesPlugin = 'ImportedByDeferModulesPlugin',
   JavascriptModulesPlugin = 'JavascriptModulesPlugin',
   AsyncWebAssemblyModulesPlugin = 'AsyncWebAssemblyModulesPlugin',
   AssetModulesPlugin = 'AssetModulesPlugin',
@@ -977,14 +984,6 @@ export interface JsLinkPreloadData {
   chunk: Chunk
 }
 
-export interface JsLoaderCacheEntry {
-  content: null | string | Uint8Array
-  sourceMap?: Uint8Array
-  addedDependencies: JsLoaderDependencies
-  removedDependencies: JsLoaderDependencies
-  parseMeta: Record<string, string>
-}
-
 export interface JsLoaderContext {
   resource: string
   _module: Module
@@ -996,11 +995,14 @@ export interface JsLoaderContext {
   sourceMap?: Buffer
   cacheable: boolean
   dependencies: JsLoaderDependencies
+  addedDependencies: JsLoaderDependencies
+  removedDependencies: JsLoaderDependencies
   loaderItems: Array<JsLoaderItem>
   loaderIndex: number
   loaderState: Readonly<JsLoaderState>
+  loaderChainStart: number
+  loaderChainEnd: number
   __internal__error?: RspackError
-  __internal__loaderCache?: JsLoaderCache | undefined
 }
 
 export interface JsLoaderDependencies {
@@ -1017,6 +1019,8 @@ export interface JsLoaderItem {
   data: any
   normalExecuted: boolean
   pitchExecuted: boolean
+  codeFilter?: string | RegExp
+  filterMatched: boolean
   noPitch: boolean
 }
 
@@ -1075,6 +1079,13 @@ export interface JsPathDataChunkLike {
 export interface JsRealContentHashPluginUpdateHashData {
   assets: Array<Buffer>
   oldHash: string
+}
+
+export interface JsReplaceSourceEdit {
+  start: number
+  end: number
+  content: string
+  name?: string
 }
 
 export interface JsResolveData {
@@ -1356,21 +1367,14 @@ export interface JsRuntimeRequirementInTreeResult {
   allRuntimeRequirements: JsRuntimeGlobals
 }
 
-/**
- * Zero copy `JsSourceFromJs` slice shared between Rust and Node.js if buffer is used.
- *
- * It can only be used in non-async context and the lifetime is bound to the fn closure.
- *
- * If you want to use Node.js Buffer in async context or want to extend the lifetime, use `JsSourceToJs` instead.
- */
-export interface JsSourceFromJs {
+export interface JsSourceToJs {
   source: string | Buffer
   map?: string
 }
 
-export interface JsSourceToJs {
+export interface JsSourceWithLazyMap {
   source: string | Buffer
-  map?: string
+  map?: string | (() => string)
 }
 
 export interface JsStatsAsset {
@@ -1410,6 +1414,13 @@ export interface JsStatsAssetInfoRelated {
 export interface JsStatsAssetsByChunkName {
   name: string
   files: Array<string>
+}
+
+export interface JsStatsCacheInfo {
+  hits: number
+  misses: number
+  reused: number
+  stores: number
 }
 
 export interface JsStatsChildGroupChildAssets {
@@ -1465,6 +1476,7 @@ export interface JsStatsChunkGroupChildren {
 export interface JsStatsCompilation {
   assets?: Array<JsStatsAsset>
   assetsByChunkName?: Array<JsStatsAssetsByChunkName>
+  cacheInfo?: Record<string, JsStatsCacheInfo>
   chunks?: Array<JsStatsChunk>
   entrypoints?: Array<JsStatsChunkGroup>
   errors: Array<JsStatsError>
@@ -1573,6 +1585,7 @@ export interface JsStatsOptimizationBailout {
 
 export interface JsStatsOptions {
   assets: boolean
+  cacheInfo: boolean
   cachedModules: boolean
   chunks: boolean
   chunkGroupAuxiliary: boolean
@@ -1826,16 +1839,34 @@ export interface NapiResolveOptions {
   enablePnp?: boolean
 }
 
+/**
+ * One row of watchpack's `TimeInfoEntries`, flattened for napi: a file's
+ * `Entry` carries all three times, a directory's `OnlySafeTimeEntry` only
+ * `safe_time`, and an `ExistenceOnlyTimeEntry` sets `existence_only`.
+ */
+export interface NativeTimeInfoEntry {
+  path: string
+  existenceOnly: boolean
+  safeTime?: number
+  timestamp?: number
+  accuracy?: number
+}
+
+export interface NativeTimeInfoTable {
+  entries: Array<NativeTimeInfoEntry>
+  missing: Array<string>
+}
+
 export interface NativeWatcherOptions {
   followSymlinks?: boolean
   pollInterval?: number
   aggregateTimeout?: number
   /**
    * The ignored paths for the watcher.
-   * It can be a single path, an array of paths, a regular expression, or a
-   * predicate returning `true` for entries to ignore.
+   * It can be a single path, a regular expression, an array mixing paths and
+   * regular expressions, or a predicate returning `true` for entries to ignore.
    */
-  ignored?: string | string[] | RegExp | ((entry: string) => boolean)
+  ignored?: string | RegExp | (string | RegExp)[] | ((entry: string) => boolean)
 }
 
 /**
@@ -1949,6 +1980,7 @@ export interface RawCacheGroupOptions {
   minSize?: number | RawSplitChunkSizes
   minSizeReduction?: number | RawSplitChunkSizes
   enforceSizeThreshold?: number | RawSplitChunkSizes
+  minRemainingSize?: number | RawSplitChunkSizes
   maxSize?: number | RawSplitChunkSizes
   maxAsyncSize?: number | RawSplitChunkSizes
   maxInitialSize?: number | RawSplitChunkSizes
@@ -2399,18 +2431,6 @@ export interface RawFallbackCacheGroupOptions {
   automaticNameDelimiter?: string
 }
 
-export interface RawFileSystemCacheOptions {
-  buildDependencies: Array<string>
-  cacheDirectory: string
-  cacheLocation: string
-  version: string
-  readonly: boolean
-  maxMemoryGenerations?: number
-  idleTimeout: number
-  idleTimeoutForInitialStore: number
-  idleTimeoutAfterLargeChanges: number
-}
-
 export interface RawFlagAllModulesAsUsedPluginOptions {
   explanation: string
 }
@@ -2546,6 +2566,7 @@ export interface RawJavascriptParserCommonjsOptions {
 
 export interface RawJavascriptParserOptions {
   dynamicImportMode?: string
+  dynamicUrl?: boolean
   dynamicImportPreload?: string
   dynamicImportPrefetch?: string
   dynamicImportFetchPriority?: string
@@ -2629,7 +2650,7 @@ export interface RawJsonParserOptions {
 }
 
 export interface RawLazyCompilationOption {
-  currentActiveModules: ((err: Error | null, ) => Set<string>)
+  takeNewlyActiveModules: ((err: Error | null, ) => Set<string>)
   test?: RawLazyCompilationTest
   entries: boolean
   imports: boolean
@@ -2807,6 +2828,7 @@ export interface RawModuleRuleUse {
   options?: string
   cache: boolean
   optionsCacheKey: string
+  codeFilter?: string | RegExp
 }
 
 export interface RawNewCache {
@@ -2865,7 +2887,7 @@ export interface RawOptions {
   module: RawModuleOptions
   optimization: RawOptimizationOptions
   stats: RawStatsOptions
-  cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent) | ({ type: "filesystem" } & RawFileSystemCacheOptions)
+  cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent)
   snapshot: RawSnapshotOptions
   experiments: RawExperiments
 incremental?: false | { [key: string]: boolean }
@@ -3071,6 +3093,10 @@ export interface RawRstestDynamicImportOriginOptions {
   functionName?: string
 }
 
+export interface RawRstestImportMetaResolveOriginOptions {
+  functionName?: string
+}
+
 export interface RawRstestPluginOptions {
   injectModulePathName: boolean
   importMetaPathName: boolean
@@ -3087,6 +3113,14 @@ injectDynamicImportOrigin?: boolean | { functionName?: string }
 updateImportMockAPI?: boolean
 updateRequireMockAPI?: boolean
 injectRequireResolveOrigin?: boolean | { functionName?: string }
+/**
+ * Replace `import.meta.resolve` with a call to a runtime factory receiving
+ * the absolute source path. The factory must return a stable resolver for
+ * that source module. Defaults to `__rstest_import_meta_resolve__`.
+ * Modules with `parser.importMetaResolve: true` use Rspack's built-in
+ * resolution instead.
+ */
+injectImportMetaResolveOrigin?: boolean | { functionName?: string }
 }
 
 export interface RawRstestRequireResolveOriginOptions {
@@ -3205,6 +3239,7 @@ export interface RawStatsOptions {
 export interface RawStorageOptions {
   type: "filesystem"
   directory: string
+  location: string
 }
 
 export interface RawSubresourceIntegrityPluginOptions {

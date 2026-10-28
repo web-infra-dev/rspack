@@ -1,10 +1,13 @@
 aarch
+aaroon
 absolutify
 accum
 ahabhgk
 Akait
 alexander-akait
 alibaba
+allocative
+ALLOCATIVE
 analysable
 ansi
 antd
@@ -68,8 +71,10 @@ fi3ework
 fnames
 funs
 gengkun
+golar
 Hana
 HerringtonDarkholme
+heyq
 htmlrspackplugin
 hyfdev
 idents
@@ -110,6 +115,8 @@ lldb
 LLDB
 llms
 Llms
+lunora
+Lunora
 magic-akari
 memfs
 mimalloc
@@ -149,6 +156,7 @@ nosources
 nuxt
 nwjs
 nyqykk
+octanejs
 Omereshone
 optimizationemitonerrors
 optionsrspackexperiments
@@ -207,6 +215,7 @@ shulaoda
 sockjs
 sokra
 solidjs
+sonda
 sooniter
 statoscope
 struct
@@ -222,6 +231,7 @@ systemjs
 tailwind
 tailwindcss
 Terser
+threejs
 tiktok
 tokio
 Towhk
@@ -229,13 +239,16 @@ Trae
 tsfn
 tsgo
 tsgolint
+TSRX
 tuchg
 typeofs
 TypeScript
 ulivz
 unaccessed
 Undelayed
+unocss
 unplugin
+Ustr
 valorkin
 vant
 verkada

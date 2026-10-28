@@ -1,5 +1,5 @@
 ---
-description: '通过 optimization 来自定义优化配置'
+description: '配置 Rspack 的 tree shaking、代码压缩、模块与 chunk ID、运行时代码提取和代码分割。'
 ---
 
 import { ApiMeta } from '@components/ApiMeta';
@@ -141,7 +141,7 @@ export default {
    - 长度 \<= 6 的 `number`
    - 长度 \<= 6 的 `string`
 
-2. 由 [`builtin:swc-loader collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) 收集的导出 TypeScript 枚举
+2. 由 [`builtin:swc-loader collectTypeScriptInfo.exportedEnum`](/guide/builtin-loaders/swc-loader#collecttypescriptinfoexportedenum) 收集的导出 TypeScript 枚举
 
 这个优化有助于减少产物体积并可以提升运行时性能。
 

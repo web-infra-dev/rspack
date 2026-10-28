@@ -1,5 +1,5 @@
 ---
-description: 'Configure parser options by module type.'
+description: 'Configure module.parser for JavaScript, CSS, JSON, and assets to control dependency collection and syntax handling.'
 ---
 
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
@@ -226,6 +226,14 @@ export default {
   },
 };
 ```
+
+### javascript.dynamicUrl
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Enable context dependencies for dynamic `new URL()` requests, such as ``new URL(`./assets/${name}.png`, import.meta.url)``.
+
+When set to `false`, dynamic requests are evaluated at runtime. Static requests such as `new URL('./icon.png', import.meta.url)` are still bundled. To disable all URL parsing, set [`javascript.url`](#javascripturl) to `false`.
 
 ### javascript.url
 
@@ -518,7 +526,7 @@ When using Rspack to bundle TypeScript, we strongly recommend enabling [isolated
 :::
 
 - `'no-tolerant'`: Default behavior, shows errors for type re-exports.
-- `'tolerant'`: Tolerates type re-exports while verifying the existence of corresponding type exports in child modules. Requires coordination with [`collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#collecttypescriptinfotypeexports) from builtin:swc-loader to collect type export information.
+- `'tolerant'`: Tolerates type re-exports while verifying the existence of corresponding type exports in child modules. Requires coordination with [`collectTypeScriptInfo.typeExports`](/guide/builtin-loaders/swc-loader#collecttypescriptinfotypeexports) from builtin:swc-loader to collect type export information.
 - `'tolerant-no-check'`: Tolerates type re-exports without checking child modules (may incorrectly tolerate some invalid cases, though IDEs usually provide warnings). Better performance as it skeps child module checks.
 
 ```js title="rspack.config.mjs"

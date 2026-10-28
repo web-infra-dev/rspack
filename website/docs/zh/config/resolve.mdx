@@ -1,5 +1,5 @@
 ---
-description: "当你使用 resolve.alias 将包名导入（例如 import 'lib'）重定向到 monorepo 或 nodemodules 中的具体目录时，模块的解析方式会发生变化："
+description: '配置模块解析的路径别名、扩展名、包导出条件、查找目录和 TypeScript 路径。'
 ---
 
 import Attribution from '@components/Attribution';
@@ -665,6 +665,8 @@ Rspack 会按照数组顺序依次尝试每一项。数组项可以是目录名�
 - 对于目录名或相对路径，Rspack 会从发起导入的文件所在目录开始，逐级向父目录查找。例如，`node_modules` 会依次查找 `<导入方所在目录>/node_modules` 以及各级父目录下的 `node_modules`。
 - 对于绝对路径，Rspack 只会使用该路径所指向的固定目录，不会基于各级父目录再次解析。
 
+从名为 `node_modules` 的目录中解析 `foo` 或 `@scope/foo` 这样的包名时，Rspack 会先尝试包目录，再尝试同级的 `foo.js` 等带扩展名的文件。如果包目录没有可解析的入口，则回退到文件解析。匹配 `resolve.extensionAlias` 的请求仍沿用原有解析顺序。其他模块目录和包内子路径请求仍优先尝试文件。
+
 例如，下面的配置支持使用非相对模块请求导入 `src` 中的模块，同时保留从 `node_modules` 查找第三方依赖的默认行为：
 
 ```js title="rspack.config.mjs"
@@ -797,5 +799,71 @@ export default {
 可以通过文件路径用于手动配置，或者使用 `auto` 用于自动读取 `tsconfig.references` 中的文件路径。
 
 使用 `undefined` 将会关闭该功能。
+
+#### reference 匹配规则
+
+解析非相对路径的请求时，Rspack 会逐个检查被引用的 tsconfig，都不匹配时才使用主 tsconfig。检查顺序与 `references` 中的书写顺序一致；如果被引用的 tsconfig 自己也有 references，会先检查这些嵌套的 reference，再检查它本身：
+
+1. 每个 reference 的基准路径默认是该 tsconfig 所在的目录（如果配置了 `baseUrl`，则使用 `baseUrl`）。
+2. 第一个基准路径包含发起导入的文件所在目录的 reference 生效。Rspack 使用这个 reference 的 `paths`，不再继续查找，即使它没有定义 `paths`。
+3. 所有 reference 都不匹配时，才使用主 tsconfig 的 `paths`。
+
+只按目录匹配。和 `tsc` 不同，Rspack 不会读取 `include`、`files` 或 `exclude` 来判断文件属于哪个 project。
+
+例如下面的目录结构：
+
+```
+.
+├── tsconfig.json             # paths: { "@/*": ["./src/*"] }
+│                             # references: [{ "path": "./packages/ui" }, { "path": "./packages/utils" }]
+├── src/
+│   └── index.ts
+└── packages/
+    ├── ui/
+    │   ├── tsconfig.json     # paths: { "@ui/*": ["./src/*"] }
+    │   └── src/button.ts
+    └── utils/
+        ├── tsconfig.json     # 没有 paths
+        └── src/format.ts
+```
+
+| 发起导入的文件                 | 匹配到的 tsconfig                       | 结果                                           |
+| ------------------------------ | --------------------------------------- | ---------------------------------------------- |
+| `src/index.ts`                 | `tsconfig.json`（没有匹配的 reference） | `@/*` 可以解析                                 |
+| `packages/ui/src/button.ts`    | `packages/ui/tsconfig.json`             | `@ui/*` 可以解析，`@/*` 不能解析               |
+| `packages/utils/src/format.ts` | `packages/utils/tsconfig.json`          | 所有别名都不能解析，包括主 tsconfig 中的 `@/*` |
+
+:::tip
+使用 `references: 'auto'` 时，Rspack 会加载 tsconfig 中 `references` 字段列出的所有 tsconfig。应避免把多个被引用的 tsconfig（或被引用的 tsconfig 与主 tsconfig）放在同一个目录下，因为该目录下的文件只能匹配到其中一个。推荐像上面的例子一样，把每个被引用的 tsconfig 放到它所覆盖的文件所在的目录中。这只影响 Rspack 如何解析 `paths` 别名，不影响相对路径导入，也不影响 `tsc`。
+
+例如，把多个 tsconfig 并排放在项目根目录：
+
+```
+.
+├── tsconfig.json         # references: [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
+├── tsconfig.app.json     # include: ["src"]，paths: { "@/*": ["./src/*"] }
+├── tsconfig.node.json    # include: ["scripts"]，paths: { "@scripts/*": ["./scripts/*"] }
+├── src/
+└── scripts/
+```
+
+两个 reference 的基准路径都是项目根目录，`src/` 和 `scripts/` 下的文件都会匹配到 `references` 中排在前面的 `tsconfig.app.json`。结果是 `@/*` 在 `scripts/` 中也能解析，而 `tsconfig.node.json` 中的 `@scripts/*` 和主 `tsconfig.json` 中的 `paths` 都不会生效。
+
+如果无法调整目录结构，也可以把 `references` 配置为数组，只列出目录互不重叠的 reference，明确指定要使用哪个 reference：
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  resolve: {
+    tsConfig: {
+      configFile: path.resolve(import.meta.dirname, './tsconfig.json'),
+      references: [path.resolve(import.meta.dirname, './tsconfig.app.json')],
+    },
+  },
+};
+```
+
+:::
 
 <Attribution url="https://webpack.js.org/configuration/resolve/" />

@@ -29,7 +29,7 @@ it('should support dynamic import', async () => {
 	expect(value).toHaveProperty('value', 1)
 	expect(value2).toHaveProperty('default', 42)
 	expect(value2).toHaveProperty('value', 2)
-})
+});
 
 export {};
 
@@ -104,11 +104,11 @@ __webpack_require__.d(m2_namespaceObject, {
 
 // ./m1.js
 /* export default */ const m1 = (42);
-const value = 1
+const value = 1;
 
 // ./m2.js
 /* export default */ const m2 = (42);
-const m2_value = 2
+const m2_value = 2;
 
 export { m1_namespaceObject, m2_namespaceObject };
 

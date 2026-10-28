@@ -7,8 +7,8 @@ mod etag;
 mod file_cache_strategy;
 mod idle_file_cache;
 mod memory_cache;
-mod resolver_cache;
 pub(crate) mod snapshot;
+mod statistics;
 mod validator;
 
 use std::sync::Arc;
@@ -21,9 +21,9 @@ pub use etag::Etag;
 pub use file_cache_strategy::FileCacheStrategy;
 pub use idle_file_cache::IdleFileCache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
-pub use resolver_cache::ResolverCache;
 use rspack_fs::ReadableFileSystem;
 pub use snapshot::{FileSystemInfo, Snapshot, SnapshotValidationResult};
+pub use statistics::{CacheInfo, CacheRecord};
 
 use crate::{
   CompilerOptions, InfrastructureLogSink, InfrastructureLogger, MaxMemoryGenerations,
@@ -36,39 +36,41 @@ pub fn create_cache(
   input_filesystem: Arc<dyn ReadableFileSystem>,
   infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
 ) -> Cache {
+  let logger = Arc::new(InfrastructureLogger::new(
+    "rspack.cache",
+    infrastructure_log_sink,
+  ));
   if !compiler_options.experiments.new_cache.is_enabled() {
-    return Cache::new_disabled();
+    return Cache::new_disabled(logger);
   }
 
   let options = match &compiler_options.cache {
     crate::CacheOptions::Disabled => {
-      return Cache::new_disabled();
-    }
-    crate::CacheOptions::Persistent(_) => {
-      unreachable!("persistent cache options must be converted before enabling newCache")
+      return Cache::new_disabled(logger);
     }
     crate::CacheOptions::Memory {
       max_generations: _, /* TODO: old cache default to 1, change to 5 and pass to MemoryCache */
       ..
     } => {
-      return Cache::new(Some(MemoryCache::new(5)), None);
+      return Cache::new(Some(MemoryCache::new(5)), None, logger);
     }
-    crate::CacheOptions::FileSystem(options) => options,
+    crate::CacheOptions::Persistent(options) => options,
   };
 
   let codec = Arc::new(CacheCodec::new(None));
-  let logger = Arc::new(InfrastructureLogger::new(
-    "rspack.cache.IdleFileCache",
-    infrastructure_log_sink,
-  ));
   let file_system_info = FileSystemInfo::new(
     input_filesystem,
     logger.get_child("rspack.FileSystemInfo"),
     compiler_options.snapshot.clone(),
+    compiler_options.context.clone(),
     compiler_options.output.hash_function,
   );
-  let base_path = options.cache_directory.clone();
-  let database_path = options.cache_location.clone();
+  let (base_path, database_path) = match &options.storage {
+    crate::StorageOptions::FileSystem {
+      directory,
+      location,
+    } => (directory.clone(), location.clone()),
+  };
   let strategy = FileCacheStrategy::new(
     options.readonly,
     rspack_workspace::rspack_pkg_version!().to_string(),
@@ -80,10 +82,10 @@ pub fn create_cache(
   let idle_file_cache = IdleFileCache::new(
     (base_path, database_path),
     strategy,
-    logger,
-    Some(options.idle_timeout),
-    Some(options.idle_timeout_for_initial_store),
-    Some(options.idle_timeout_after_large_changes),
+    logger.clone(),
+    None,
+    None,
+    None,
   );
   let memory_cache = match options.max_memory_generations {
     MaxMemoryGenerations::Disabled => None,
@@ -91,5 +93,5 @@ pub fn create_cache(
     MaxMemoryGenerations::Finite(max_generations) => Some(MemoryCache::new(max_generations)),
   };
 
-  Cache::new(memory_cache, Some(idle_file_cache))
+  Cache::new(memory_cache, Some(idle_file_cache), logger)
 }

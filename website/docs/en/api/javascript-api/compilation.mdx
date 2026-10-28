@@ -1,5 +1,5 @@
 ---
-description: 'The Compilation object is one of the core objects used in the Rspack build process'
+description: 'Compilation API for managing assets, modules, dependencies, diagnostics, runtime modules, and child compilers.'
 ---
 
 import Attribution from '@components/Attribution';
@@ -54,7 +54,7 @@ class ExamplePlugin {
 
 ### emitAsset
 
-Emit a new asset, throw an error if the asset already exists.
+Emit an asset. Emitting the same filename with identical content is allowed. Emitting different content for an existing filename records a compilation error. Use [updateAsset](#updateasset) to intentionally replace an existing asset.
 
 ```ts
 emitAsset(
@@ -111,6 +111,8 @@ updateAsset(
     | ((assetInfo: AssetInfo) => AssetInfo | undefined)
 ): void;
 ```
+
+A `Source` object cannot be modified in place; to update its content, create a new `Source` or wrap the existing one with `ReplaceSource` or `ConcatSource`.
 
 The following code replaces the content of `main.js`:
 
@@ -382,7 +384,7 @@ getStats(): Stats;
 The following code prints the total number of modules:
 
 ```js
-compiler.hooks.emit.tapAsync('MyPlugin', (compilation) => {
+compiler.hooks.emit.tap('MyPlugin', (compilation) => {
   const modules = compilation.getStats().toJson({ modules: true }).modules;
   console.log(`Total modules: ${modules.length}`);
 });
@@ -396,7 +398,9 @@ compiler.hooks.emit.tapAsync('MyPlugin', (compilation) => {
 
 ### createChildCompiler
 
-Allows running another instance of Rspack inside of Rspack. However, as a child with different settings and configurations applied. It copies all hooks and plugins from the parent (or top-level compiler) and creates a child `Compiler` instance. Returns the created `Compiler`.
+Create a child `Compiler` with its own output options and additional plugins, and return it. The child inherits eligible hook taps and built-in plugins from the parent compiler.
+
+Taps on `make`, `compile`, `emit`, `afterEmit`, `invalid`, `done`, and `thisCompilation` are not copied to the child. Built-in plugins are inherited only when they support child compiler inheritance. Use the `plugins` argument to apply additional plugins to the child compiler.
 
 ```ts
 createChildCompiler(
@@ -450,7 +454,7 @@ export default {
   plugins: [
     {
       apply(compiler) {
-        const { RuntimeModule } = compiler.rspack;
+        const { RuntimeModule, RuntimeGlobals } = compiler.rspack;
 
         class CustomRuntimeModule extends RuntimeModule {
           constructor() {
@@ -507,10 +511,21 @@ The following code will rebuild the module ending with `a.js`:
 compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
   compilation.hooks.finishModules.tapPromise('MyPlugin', async (modules) => {
     const oldModule = Array.from(modules).find((item) =>
-      item.resource.endsWith('a.js'),
+      item.resource?.endsWith('a.js'),
     );
-    compilation.rebuildModule(oldModule, (err, m) => {
-      console.log(`Rebuilt ${m.identifier()}.`);
+    if (!oldModule) {
+      return;
+    }
+
+    await new Promise((resolve, reject) => {
+      compilation.rebuildModule(oldModule, (err, rebuiltModule) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        console.log(`Rebuilt ${rebuiltModule.identifier()}.`);
+        resolve();
+      });
     });
   });
 });
@@ -637,11 +652,27 @@ Current [compiler object](/api/javascript-api/).
 
 The [Compilation hooks](/api/plugin-api/compilation-hooks).
 
-### hash/fullhash
+### hash/fullHash
 
 **Type**: `Readonly<string | null>`
 
-The hash of this compilation.
+The hash representing the current compilation as a whole. Rspack calculates it from the chunks and their content hashes, together with its internal rebuild state.
+
+In Rspack, `hash` and `fullHash` are read-only aliases that return the same value:
+
+- `null`: the compilation hash has not been calculated yet, for example when the `thisCompilation` hook runs.
+- `string`: the compilation hash is available. You can read it in hooks that run after hashing, such as [processAssets](/api/plugin-api/compilation-hooks#processassets) or [afterSeal](/api/plugin-api/compilation-hooks#afterseal).
+
+The hash is calculated before asset processing. Updating assets in `processAssets` does not automatically recalculate this value.
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
+  compilation.hooks.processAssets.tap('MyPlugin', () => {
+    console.log('Compilation hash:', compilation.hash);
+    // compilation.fullHash has the same value.
+  });
+});
+```
 
 ### assets
 
@@ -711,7 +742,9 @@ The mapping from names to chunk groups.
 
 **Type:** `ReadonlySet<Module>`
 
-List of all modules, with the structure as follows:
+All modules in the current compilation. For each module, use `module.identifier()` to identify it, and `module.originalSource()` to read its source after loaders have run. The source can be `null` for modules without source code.
+
+Use [`compilation.moduleGraph`](#modulegraph) to inspect relationships between modules.
 
 <Collapse>
   <CollapsePanel
@@ -738,6 +771,32 @@ List of built modules that were not be cached, with the structure as follows:
     <ModuleType />
   </CollapsePanel>
 </Collapse>
+
+### moduleGraph
+
+Provides access to module dependencies:
+
+- `getModule(dependency)`: the module referenced by a dependency, or `null`.
+- `getOutgoingConnections(module)`: connections from this module to its dependencies; `connection.module` is the target module, or `null`.
+- `getIncomingConnections(module)`: connections from other modules to this module; `connection.originModule` is the importing module, or `null`.
+
+You can query these relationships in the `finishModules` hook, after modules have been built. For example, log each module and the modules it depends on:
+
+```js
+compiler.hooks.compilation.tap('InspectModules', (compilation) => {
+  compilation.hooks.finishModules.tap('InspectModules', (modules) => {
+    for (const module of modules) {
+      const connections =
+        compilation.moduleGraph.getOutgoingConnections(module);
+      for (const connection of connections) {
+        if (connection.module) {
+          console.log(module.identifier(), connection.module.identifier());
+        }
+      }
+    }
+  });
+});
+```
 
 ### chunks
 

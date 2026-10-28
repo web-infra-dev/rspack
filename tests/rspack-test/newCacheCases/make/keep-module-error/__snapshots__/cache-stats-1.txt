@@ -1,12 +1,34 @@
 [
   {
-    "module build cache": {
+    "|Compilation/codeGeneration": {
       "hits": 2,
-      "total": 3
+      "misses": 0,
+      "reused": 2,
+      "stores": 0
     },
-    "resolver cache": {
-      "hits": 7,
-      "total": 7
+    "|Compilation/modules": {
+      "hits": 3,
+      "misses": 0,
+      "reused": 2,
+      "stores": 1
+    },
+    "|meta": {
+      "hits": 1,
+      "misses": 0,
+      "reused": 1,
+      "stores": 1
+    },
+    "|ResolverCache|loader": {
+      "hits": 4,
+      "misses": 0,
+      "reused": 4,
+      "stores": 0
+    },
+    "|ResolverCache|normal": {
+      "hits": 3,
+      "misses": 0,
+      "reused": 3,
+      "stores": 0
     }
   }
 ]

@@ -9,7 +9,7 @@ ERROR in × Module parse failed:
         You may need an appropriate loader to handle this file type.
 
 ERROR in × Module parse failed:
-  ╰─▶   × JavaScript parse error: Expected a semicolon
+  ╰─▶   × JavaScript parse error: Expected a semicolon or an implicit semicolon after a statement, but found '{'
          ╭────
        1 │ const foo {};
          ·           ─

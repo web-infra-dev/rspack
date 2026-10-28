@@ -193,13 +193,17 @@ impl SplitChunksPlugin {
     }
   }
 
-  /// Returns the selected source chunks for modules that can move into `new_chunk`.
+  /// Returns available source placements in the chunks participating in this split. Named groups
+  /// can deduplicate a module from a source selected by another module in the same group; its own
+  /// selected sources are still used separately to validate extraction constraints.
   // #[tracing::instrument(skip_all)]
   pub(crate) async fn get_module_chunks_to_move(
     &self,
     item: &ModuleGroup,
     new_chunk: ChunkUkey,
     original_chunks: &FxHashSet<ChunkUkey>,
+    module_chunks: &[SsoHashSet<ChunkUkey>],
+    module_indices: &IdentifierMap<usize>,
     compilation: &Compilation,
   ) -> Result<ModuleChunkMap> {
     if item.uses_shared_module_chunks() {
@@ -219,11 +223,8 @@ impl SplitChunksPlugin {
       return Ok(ModuleChunkMap::Shared { modules, chunks });
     }
 
-    let mut module_chunks = IdentifierMap::default();
+    let mut placements = IdentifierMap::default();
     for mid in &item.modules {
-      let Some(selected_chunks) = item.get_module_chunks(mid) else {
-        continue;
-      };
       if let Some(module) = compilation.module_by_identifier(mid)
         && module_chunk_condition(module.as_ref(), &new_chunk, compilation)
           .await?
@@ -232,22 +233,19 @@ impl SplitChunksPlugin {
         continue;
       }
 
+      // This set excludes both removed sources and claimed original destinations, and never
+      // includes destinations created by earlier splits. Reuse the existing source traversal.
+      let available_chunks = &module_chunks[module_indices[mid]];
       let chunks = original_chunks
         .iter()
-        .filter(|chunk| {
-          selected_chunks.contains(chunk)
-            && compilation
-              .build_chunk_graph_artifact
-              .chunk_graph
-              .is_module_in_chunk(mid, **chunk)
-        })
+        .filter(|chunk| available_chunks.contains(chunk))
         .copied()
         .collect::<FxHashSet<_>>();
       if !chunks.is_empty() {
-        module_chunks.insert(*mid, chunks);
+        placements.insert(*mid, chunks);
       }
     }
-    Ok(ModuleChunkMap::ByModule(module_chunks))
+    Ok(ModuleChunkMap::ByModule(placements))
   }
 
   /// Moves `modules` into `new_chunk` and removes their selected source placements.
@@ -305,7 +303,6 @@ impl SplitChunksPlugin {
   // #[tracing::instrument(skip_all)]
   pub(crate) fn split_from_original_chunks(
     &self,
-    _item: &ModuleGroup,
     original_chunks: &FxHashSet<ChunkUkey>,
     new_chunk: ChunkUkey,
     compilation: &mut Compilation,

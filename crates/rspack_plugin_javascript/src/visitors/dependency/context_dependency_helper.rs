@@ -9,10 +9,18 @@ use rspack_util::{json_stringify_str, quote_meta};
 use super::create_traceable_error;
 use crate::utils::eval::{BasicEvaluatedExpression, TemplateStringKind};
 
-// Webpack will walk only the dynamic parts of evaluated expression in this function
-// but in our implementation, due to we can't easily implement setExpression for
-// BasicEvaluatedExpression (will introduce lots of lifetime), so this function's
-// caller should consider whether need to walk expressions
+fn walk_evaluated_expression(
+  evaluated: &BasicEvaluatedExpression,
+  parser: &mut crate::visitors::JavascriptParser,
+) {
+  let Some(expression) = evaluated.expression() else {
+    return;
+  };
+  parser.walk_expression_in_ast(expression, evaluated.expression_ast());
+}
+
+// Match webpack by walking only the dynamic parts retained by evaluation. SWC
+// Next expression handles carry their owning flat AST through `BasicEvaluatedExpression`.
 pub fn create_context_dependency(
   param: &BasicEvaluatedExpression,
   parser: &mut crate::visitors::JavascriptParser,
@@ -26,19 +34,19 @@ pub fn create_context_dependency(
     .source();
 
   if param.is_template_string() {
-    let quasis = param.quasis();
-    let Some(prefix) = quasis.first() else {
+    let mut quasis = param.quasis();
+    let Some(prefix) = quasis.next() else {
       unreachable!("the len of quasis should be great than 0")
     };
     // SAFETY: the type of `quasis` must be string
     let prefix_raw = prefix.string();
-    let postfix_raw = if quasis.len() > 1 {
-      Cow::Borrowed(quasis[quasis.len() - 1].string())
+    let postfix_raw = if let Some(postfix) = quasis.next_back() {
+      Cow::Borrowed(postfix.string())
     } else {
       Cow::Owned(String::new())
     };
 
-    let (context, prefix) = split_context_from_prefix(prefix_raw.clone());
+    let (context, prefix) = split_context_from_prefix(prefix_raw.to_owned());
     let (postfix, query, fragment) = match parse_resource(&postfix_raw) {
       Some(data) => (
         data.path.as_str().to_string(),
@@ -50,14 +58,9 @@ pub fn create_context_dependency(
 
     // When there are more than two quasis, the generated RegExp can be more precise
     // We join the quasis with the expression regexp
-    let inner_quasis = if quasis.len() > 1 {
-      quasis[1..quasis.len() - 1]
-        .iter()
-        .map(|q| quote_meta(q.string().as_str()) + wrapped_context_reg_exp)
-        .join("")
-    } else {
-      String::new()
-    };
+    let inner_quasis = quasis
+      .map(|q| quote_meta(q.string()) + wrapped_context_reg_exp)
+      .join("");
 
     let reg = format!(
       "^{}{}{}{}$",
@@ -93,8 +96,8 @@ pub fn create_context_dependency(
           let range = part.range();
           replaces.push((value, range.0, range.1));
         }
-      } else if let Some(expr) = part.expression() {
-        parser.walk_expression(expr);
+      } else {
+        walk_evaluated_expression(part, parser);
       }
     }
 
@@ -184,9 +187,7 @@ pub fn create_context_dependency(
 
     if let Some(inner_expressions) = param.wrapped_inner_expressions() {
       for part in inner_expressions {
-        if let Some(inner_expression) = part.expression() {
-          parser.walk_expression(inner_expression);
-        }
+        walk_evaluated_expression(part, parser);
       }
     }
 
@@ -211,9 +212,7 @@ pub fn create_context_dependency(
       critical = Some(warn);
     }
 
-    if let Some(expr) = param.expression() {
-      parser.walk_expression(expr);
-    }
+    walk_evaluated_expression(param, parser);
 
     ContextModuleScanResult {
       context: String::from("."),

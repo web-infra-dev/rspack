@@ -1,0 +1,40 @@
+[
+  {
+    "root|child|0|Compilation/codeGeneration": {
+      "hits": 1,
+      "misses": 0,
+      "reused": 1,
+      "stores": 0
+    },
+    "root|child|0|Compilation/modules": {
+      "hits": 1,
+      "misses": 0,
+      "reused": 1,
+      "stores": 0
+    },
+    "root|child|0|meta": {
+      "hits": 1,
+      "misses": 0,
+      "reused": 1,
+      "stores": 1
+    },
+    "root|Compilation/codeGeneration": {
+      "hits": 2,
+      "misses": 0,
+      "reused": 2,
+      "stores": 0
+    },
+    "root|Compilation/modules": {
+      "hits": 2,
+      "misses": 0,
+      "reused": 2,
+      "stores": 0
+    },
+    "root|meta": {
+      "hits": 1,
+      "misses": 0,
+      "reused": 1,
+      "stores": 1
+    }
+  }
+]

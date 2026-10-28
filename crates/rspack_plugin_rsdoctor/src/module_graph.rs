@@ -7,7 +7,7 @@ use rspack_core::{
   ExportMode, ExportProvided, ExportsInfoArtifact, Module, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleIdsArtifact, ModuleRef, ModuleType, OptimizationBailoutItem, SideEffectsStateArtifact,
   UsageState, UsedByExports, UsedByExportsCondition, collect_referenced_export_items,
-  rspack_sources::{MapOptions, ObjectPool},
+  rspack_sources::MapOptions,
 };
 use rspack_intern::Atom;
 use rspack_paths::Utf8PathBuf;
@@ -17,7 +17,6 @@ use rspack_plugin_javascript::{
 };
 use rspack_plugin_json::create_object_for_exports_info;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use thread_local::ThreadLocal;
 
 use crate::{
   ChunkUkey, ModuleKind, ModuleUkey, RsdoctorConnectionsOnlyImport,
@@ -192,7 +191,6 @@ pub fn collect_module_original_sources(
 ) -> Vec<RsdoctorModuleOriginalSource> {
   let ifs = compilation.input_filesystem.clone();
 
-  let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
   modules
     .par_iter()
     .filter_map(|(module_id, module)| {
@@ -205,10 +203,9 @@ pub fn collect_module_original_sources(
       };
       let resource = module.resource_resolved_data().resource().to_owned();
       let module_ukey = module_ukeys.get(module_id)?;
-      let object_pool = tls.get_or(ObjectPool::default);
       let source = module
         .source()
-        .and_then(|s| s.map(object_pool, &MapOptions::default()))
+        .and_then(|s| s.map(&MapOptions::default()))
         .and_then(|s| {
           let idx = s.sources().iter().position(|s| s.eq(&resource))?;
           let source = s.sources_content().get(idx)?;

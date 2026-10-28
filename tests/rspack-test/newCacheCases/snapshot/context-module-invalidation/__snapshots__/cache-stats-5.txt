@@ -1,12 +1,40 @@
 [
   {
-    "module build cache": {
-      "hits": 3,
-      "total": 3
+    "|Compilation/codeGeneration": {
+      "hits": 5,
+      "misses": 0,
+      "reused": 5,
+      "stores": 0
     },
-    "resolver cache": {
-      "hits": 8,
-      "total": 8
+    "|Compilation/modules": {
+      "hits": 5,
+      "misses": 0,
+      "reused": 5,
+      "stores": 0
+    },
+    "|meta": {
+      "hits": 1,
+      "misses": 0,
+      "reused": 1,
+      "stores": 1
+    },
+    "|ResolverCache|loader": {
+      "hits": 3,
+      "misses": 0,
+      "reused": 3,
+      "stores": 0
+    },
+    "|ResolverCache|normal": {
+      "hits": 5,
+      "misses": 0,
+      "reused": 5,
+      "stores": 0
+    },
+    "|rspack.SwcJsMinimizerRspackPlugin": {
+      "hits": 2,
+      "misses": 0,
+      "reused": 2,
+      "stores": 0
     }
   }
 ]

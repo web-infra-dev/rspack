@@ -1,5 +1,5 @@
 ---
-description: 'Compilation 对象是 Rspack 构建过程中的核心对象之一，每当 Rspack 执行构建时（包括监听模式下的重新构建），都会创建一个新的 Compilation 实例，它包含了当前构建的所有信息。'
+description: '查阅 Compilation API，管理资源、模块、依赖、错误警告、运行时模块和子编译器。'
 ---
 
 import Attribution from '@components/Attribution';
@@ -54,7 +54,7 @@ class ExamplePlugin {
 
 ### emitAsset
 
-添加一个产物，如果产物已经存在则会抛错。
+添加一个产物。允许使用相同文件名重复添加内容相同的产物。如果同名产物的内容不同，则会记录一个编译错误。如需替换已有产物，请使用 [updateAsset](#updateasset)。
 
 ```ts
 emitAsset(
@@ -111,6 +111,8 @@ updateAsset(
     | ((assetInfo: AssetInfo) => AssetInfo | undefined)
 ): void;
 ```
+
+`Source` 对象不可原地修改；如需更新内容，请创建新的 `Source`，或使用 `ReplaceSource`、`ConcatSource` 包装现有 `Source`。
 
 以下示例将 `main.js` 的产物内容替换：
 
@@ -382,7 +384,7 @@ getStats(): Stats;
 以下示例将输出模块总数：
 
 ```js
-compiler.hooks.emit.tapAsync('MyPlugin', (compilation) => {
+compiler.hooks.emit.tap('MyPlugin', (compilation) => {
   const modules = compilation.getStats().toJson({ modules: true }).modules;
   console.log(`Total modules: ${modules.length}`);
 });
@@ -396,7 +398,9 @@ compiler.hooks.emit.tapAsync('MyPlugin', (compilation) => {
 
 ### createChildCompiler
 
-允许在 Rspack 中运行另一个 Rspack 实例。但是，子编译器会应用不同的设置和配置。他会从父编译器（或者顶级编译器）中复制所有的钩子（hook）和插件（plugin），并且创建一个子 Compiler 实例。 返回值为创建好的 Compiler 实例。
+创建并返回一个子 `Compiler`，可以为其指定输出选项和额外插件。子编译器会继承父编译器中符合条件的钩子回调和内置插件。
+
+`make`、`compile`、`emit`、`afterEmit`、`invalid`、`done` 和 `thisCompilation` 钩子上的回调不会复制到子编译器。内置插件仅在支持子编译器继承时才会被继承。可以通过 `plugins` 参数为子编译器应用额外插件。
 
 ```ts
 createChildCompiler(
@@ -450,7 +454,7 @@ export default {
   plugins: [
     {
       apply(compiler) {
-        const { RuntimeModule } = compiler.rspack;
+        const { RuntimeModule, RuntimeGlobals } = compiler.rspack;
 
         class CustomRuntimeModule extends RuntimeModule {
           constructor() {
@@ -504,10 +508,21 @@ rebuildModule(m: Module, f: (err: Error | null, m: Module | null) => void): void
 compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
   compilation.hooks.finishModules.tapPromise('MyPlugin', async (modules) => {
     const oldModule = Array.from(modules).find((item) =>
-      item.resource.endsWith('a.js'),
+      item.resource?.endsWith('a.js'),
     );
-    compilation.rebuildModule(oldModule, (err, m) => {
-      console.log(`Rebuilt ${m.identifier()}.`);
+    if (!oldModule) {
+      return;
+    }
+
+    await new Promise((resolve, reject) => {
+      compilation.rebuildModule(oldModule, (err, rebuiltModule) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        console.log(`Rebuilt ${rebuiltModule.identifier()}.`);
+        resolve();
+      });
     });
   });
 });
@@ -633,11 +648,27 @@ class MyPlugin {
 
 获取 [Compilation 钩子](/api/plugin-api/compilation-hooks)。
 
-### hash/fullhash
+### hash/fullHash
 
 **类型：** `Readonly<string | null>`
 
-获取此次构建的哈希。
+表示当前整个 compilation 的哈希值。Rspack 根据各个 chunk 的哈希、内容哈希以及内部重建状态计算该值。
+
+在 Rspack 中，`hash` 和 `fullHash` 是只读的别名属性，返回值相同：
+
+- `null`：尚未计算 compilation 的哈希，例如执行 `thisCompilation` 钩子时。
+- `string`：compilation 的哈希已生成。可以在哈希计算之后执行的钩子中读取，例如 [processAssets](/api/plugin-api/compilation-hooks#processassets) 或 [afterSeal](/api/plugin-api/compilation-hooks#afterseal)。
+
+哈希在资源处理阶段之前计算。在 `processAssets` 中更新资源不会自动重新计算该值。
+
+```js
+compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
+  compilation.hooks.processAssets.tap('MyPlugin', () => {
+    console.log('Compilation hash:', compilation.hash);
+    // compilation.fullHash 的值相同。
+  });
+});
+```
 
 ### assets
 
@@ -707,7 +738,9 @@ class MyPlugin {
 
 **类型：** `ReadonlySet<Module>`
 
-获取所有模块，其结构如下：
+当前编译中的所有模块。可以通过 `module.identifier()` 获取其标识，通过 `module.originalSource()` 读取 loader 处理后的源码。没有源码的模块可能返回 `null`。
+
+模块之间的依赖关系可以通过 [`compilation.moduleGraph`](#modulegraph) 查询。
 
 <Collapse>
   <CollapsePanel
@@ -734,6 +767,32 @@ class MyPlugin {
     <ModuleType />
   </CollapsePanel>
 </Collapse>
+
+### moduleGraph
+
+用于查询模块之间的依赖关系：
+
+- `getModule(dependency)`：获取依赖指向的模块，可能返回 `null`。
+- `getOutgoingConnections(module)`：获取该模块对其他模块的引用，`connection.module` 是被引用的模块，可能为 `null`。
+- `getIncomingConnections(module)`：获取其他模块对该模块的引用，`connection.originModule` 是发起引用的模块，可能为 `null`。
+
+可以在模块构建完成后的 `finishModules` 钩子中查询这些依赖关系。例如，打印每个模块及其依赖的模块：
+
+```js
+compiler.hooks.compilation.tap('InspectModules', (compilation) => {
+  compilation.hooks.finishModules.tap('InspectModules', (modules) => {
+    for (const module of modules) {
+      const connections =
+        compilation.moduleGraph.getOutgoingConnections(module);
+      for (const connection of connections) {
+        if (connection.module) {
+          console.log(module.identifier(), connection.module.identifier());
+        }
+      }
+    }
+  });
+});
+```
 
 ### chunks
 

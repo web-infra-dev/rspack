@@ -1,11 +1,13 @@
 use std::{ops::Deref, sync::Arc, time::Duration};
 
 use rspack_paths::InternedPathSet;
+use rustc_hash::FxHashMap;
 
 use super::{
-  CacheFacade, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache, MemoryCacheGetResult,
-  cache_value::CacheValueData,
+  CacheFacade, CacheInfo, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache,
+  MemoryCacheGetResult, cache_value::CacheValueData, statistics::CacheStatistics,
 };
+use crate::InfrastructureLogger;
 
 /// Storage shared by all compiler-scoped cache views.
 #[derive(Debug)]
@@ -21,31 +23,38 @@ struct CacheStorage {
 /// including misses, are recorded in memory for subsequent reads.
 #[derive(Debug)]
 pub struct Cache {
-  storage: Option<CacheStorage>,
+  storage: CacheStorage,
+  logger: Arc<InfrastructureLogger>,
+  statistics: Arc<CacheStatistics>,
 }
 
 impl Cache {
   /// Creates storage from the configured memory and filesystem caches.
-  pub fn new(memory_cache: Option<MemoryCache>, idle_file_cache: Option<IdleFileCache>) -> Self {
-    let storage = if memory_cache.is_some() || idle_file_cache.is_some() {
-      Some(CacheStorage {
+  pub fn new(
+    memory_cache: Option<MemoryCache>,
+    idle_file_cache: Option<IdleFileCache>,
+    logger: Arc<InfrastructureLogger>,
+  ) -> Self {
+    Self {
+      storage: CacheStorage {
         memory_cache,
         idle_file_cache,
-      })
-    } else {
-      None
-    };
-    Self { storage }
+      },
+      logger,
+      statistics: Default::default(),
+    }
   }
 
-  pub fn new_disabled() -> Self {
-    Self::new(None, None)
+  pub fn new_disabled(logger: Arc<InfrastructureLogger>) -> Self {
+    Self::new(None, None, logger)
+  }
+
+  pub fn logger(&self) -> &InfrastructureLogger {
+    &self.logger
   }
 
   pub fn get<T: CacheValueData>(&self, key: CacheKey, etag: Option<Etag>) -> Option<CacheValue<T>> {
-    let Some(storage) = &self.storage else {
-      return None;
-    };
+    let storage = &self.storage;
     if let Some(memory_cache) = &storage.memory_cache {
       match memory_cache.get(&key, etag.as_ref()) {
         MemoryCacheGetResult::Hit(value) => return Some(value),
@@ -78,9 +87,7 @@ impl Cache {
   }
 
   pub fn store<T: CacheValueData>(&self, key: CacheKey, etag: Option<Etag>, value: CacheValue<T>) {
-    let Some(storage) = &self.storage else {
-      return;
-    };
+    let storage = &self.storage;
     if let Some(memory_cache) = &storage.memory_cache {
       memory_cache.store(key.clone(), etag.clone(), value.clone());
     }
@@ -90,25 +97,17 @@ impl Cache {
   }
 
   pub fn store_build_dependencies(&self, dependencies: InternedPathSet) {
-    let Some(storage) = &self.storage else {
-      return;
-    };
-    if let Some(file_cache) = &storage.idle_file_cache {
+    if let Some(file_cache) = &self.storage.idle_file_cache {
       file_cache.store_build_dependencies(dependencies);
     }
   }
 
   pub fn has_file_cache(&self) -> bool {
-    self
-      .storage
-      .as_ref()
-      .is_some_and(|storage| storage.idle_file_cache.is_some())
+    self.storage.idle_file_cache.is_some()
   }
 
   pub fn begin_idle(&self, build_time: Duration) {
-    let Some(storage) = &self.storage else {
-      return;
-    };
+    let storage = &self.storage;
     if let Some(memory_cache) = &storage.memory_cache {
       memory_cache.start_next_generation();
     }
@@ -118,24 +117,24 @@ impl Cache {
   }
 
   pub fn end_idle(&self) {
-    let Some(storage) = &self.storage else {
-      return;
-    };
-    if let Some(file_cache) = &storage.idle_file_cache {
+    self.statistics.reset();
+    if let Some(file_cache) = &self.storage.idle_file_cache {
       file_cache.end_idle();
     }
   }
 
   pub async fn shutdown(&self) {
-    let Some(storage) = &self.storage else {
-      return;
-    };
+    let storage = &self.storage;
     if let Some(file_cache) = &storage.idle_file_cache {
       file_cache.shutdown().await;
     }
     if let Some(memory_cache) = &storage.memory_cache {
       memory_cache.clear();
     }
+  }
+
+  pub fn statistics(&self) -> &CacheStatistics {
+    &self.statistics
   }
 }
 
@@ -164,6 +163,10 @@ impl CompilerCache {
 
   pub fn facade(&self, name: &str) -> CacheFacade {
     let cache_name = [self.compiler_path.as_ref(), name].join("|");
-    CacheFacade::new(Arc::clone(&self.cache), cache_name)
+    CacheFacade::new(Arc::clone(&self.cache), cache_name.into())
+  }
+
+  pub fn cache_info(&self) -> FxHashMap<String, CacheInfo> {
+    self.cache.statistics().snapshot()
   }
 }

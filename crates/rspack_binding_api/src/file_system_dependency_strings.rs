@@ -10,6 +10,7 @@ use rspack_paths::{InternedPath, InternedPathIndexSet};
 use crate::{
   COMPILER_REFERENCES, JsCompiler,
   js_helpers::{IndexedArrayUpdate, js_owned_ref},
+  symbols,
 };
 
 pub(crate) fn upgrade_compiler(
@@ -50,7 +51,7 @@ impl FileSystemDependencyStringPool {
       strings: js_owned_ref(
         env,
         compiler,
-        "rspack.fileSystemDependencyStringPool",
+        symbols::FILE_SYSTEM_DEPENDENCY_STRING_POOL_SYMBOL,
         strings,
       )?,
       entries: Default::default(),
@@ -230,7 +231,7 @@ impl FileSystemDependencyArrayCache {
       self.array = Some(js_owned_ref(
         env,
         owner,
-        "rspack.fileSystemDependencyArray",
+        symbols::FILE_SYSTEM_DEPENDENCY_ARRAY_SYMBOL,
         array,
       )?);
     }

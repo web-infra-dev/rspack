@@ -17,11 +17,7 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher, write_u64_hex};
 use rspack_intern::{Atom, AtomSet, IndexAtomMap};
 use rspack_sources::BoxSource;
-use rspack_util::{
-  ext::AsAny,
-  fx_hash::{FxIndexMap, FxIndexSet},
-  source_map::ModuleSourceMapConfig,
-};
+use rspack_util::{ext::AsAny, fx_hash::FxIndexMap, source_map::ModuleSourceMapConfig};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
 use smol_str::SmolStr;
@@ -141,20 +137,9 @@ impl CanonicalizedDataUrlOption {
   }
 }
 
-#[cacheable]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct CssExport {
-  #[cacheable(with=AsPreset)]
-  pub ident: SmolStr,
-  #[cacheable(with=AsOption<AsPreset>)]
-  pub from: Option<SmolStr>,
-  pub id: Option<DependencyId>,
-  #[cacheable(with=AsPreset)]
-  pub orig_name: SmolStr,
-}
-
-pub type CssExports = FxIndexMap<SmolStr, FxIndexSet<CssExport>>;
-pub type CssLocalNames = HashMap<SmolStr, SmolStr>;
+/// Index into the module graph; CSS export dependencies own the values.
+pub type CssExports = FxIndexMap<SmolStr, DependencyId>;
+pub type CssLocalNames = HashMap<SmolStr, DependencyId>;
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -237,9 +222,9 @@ pub struct CssBuildInfo {
   pub export_type: Option<CssExportType>,
   pub has_charset: bool,
   pub css_import_dependency: bool,
-  #[cacheable(with=AsMap<AsPreset, AsVec>)]
+  #[cacheable(with=AsMap<AsPreset>)]
   pub exports: CssExports,
-  #[cacheable(with=AsMap<AsPreset, AsPreset>)]
+  #[cacheable(with=AsMap<AsPreset>)]
   pub local_names: CssLocalNames,
   /// Conditions inherited from parent CSS modules.
   ///
@@ -299,8 +284,16 @@ pub struct BuildInfo {
   pub value_dependencies: HashMap<String, String>,
   #[cacheable(with=AsVec<AsPreset>)]
   pub esm_named_exports: HashSet<Atom>,
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub mutated_bindings: HashSet<Atom>,
+  pub has_direct_eval: bool,
   pub all_star_exports: Vec<DependencyId>,
   pub need_create_require: bool,
+  /// Whether parsing observed access to the current CommonJS factory's export surface or an
+  /// escape path that may expose it.
+  /// `Some(false)` means an eligible `javascript/auto` module was parsed without observing an
+  /// access. `None` means this signal is unavailable and must not relax concatenation bailouts.
+  pub module_exports_accessed: Option<bool>,
   #[cacheable(with=AsOption<AsPreset>)]
   pub json_data: Option<JsonValue>,
   pub asset: Option<Box<AssetBuildInfo>>,
@@ -339,8 +332,11 @@ impl Default for BuildInfo {
       snapshot: None,
       value_dependencies: HashMap::default(),
       esm_named_exports: HashSet::default(),
+      mutated_bindings: HashSet::default(),
+      has_direct_eval: false,
       all_star_exports: Vec::default(),
       need_create_require: false,
+      module_exports_accessed: None,
       json_data: None,
       asset: None,
       css: None,
@@ -737,8 +733,7 @@ pub trait Module:
   fn readable_identifier(&self, _context: &Context) -> Cow<'_, str>;
 
   /// The size of the original source, which will used as a parameter for code-splitting.
-  /// Only when calculating the size of the RuntimeModule is the Compilation depended on
-  fn size(&self, source_type: Option<&SourceType>, compilation: Option<&Compilation>) -> f64;
+  fn size(&self, source_type: Option<&SourceType>) -> f64;
 
   /// The actual build of the module, which will be called by the `Compilation`.
   /// Build can also returns the dependencies of the module, which will be used by the `Compilation` to build the dependency graph.
@@ -1341,11 +1336,7 @@ mod test {
           unreachable!()
         }
 
-        fn size(
-          &self,
-          _source_type: Option<&SourceType>,
-          _compilation: Option<&Compilation>,
-        ) -> f64 {
+        fn size(&self, _source_type: Option<&SourceType>) -> f64 {
           unreachable!()
         }
 

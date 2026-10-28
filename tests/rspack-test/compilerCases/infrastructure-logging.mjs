@@ -221,7 +221,7 @@ export default [
 			await context.closeCompiler();
 			const warning = nativeInfrastructureLogs.find(
 				log =>
-					log.name === "rspack.cache.IdleFileCache" &&
+					log.name === "rspack.cache" &&
 					log.type === "warn" &&
 					log.args[0].includes("Filesystem cache unavailable for this session") &&
 					log.args[0].includes("Open cache database from")

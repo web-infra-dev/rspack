@@ -11,7 +11,7 @@ use rspack_paths::{InternedPath, InternedPathSet};
 pub(crate) use self::strategy::{StrategyHelper, ValidateResult};
 pub use self::{scope::SnapshotScope, strategy::Strategy};
 use super::storage::Storage;
-use crate::{FutureConsumer, SnapshotOptions, SnapshotStrategyOptions, cache::CacheCodec};
+use crate::{Context, FutureConsumer, SnapshotOptions, SnapshotStrategyOptions, cache::CacheCodec};
 
 /// Snapshot is used to check if files have been modified or deleted.
 ///
@@ -20,6 +20,7 @@ use crate::{FutureConsumer, SnapshotOptions, SnapshotStrategyOptions, cache::Cac
 #[derive(Debug)]
 pub struct Snapshot {
   options: Arc<SnapshotOptions>,
+  context: Context,
   fs: Arc<dyn ReadableFileSystem>,
   codec: Arc<CacheCodec>,
 }
@@ -27,11 +28,13 @@ pub struct Snapshot {
 impl Snapshot {
   pub fn new(
     options: SnapshotOptions,
+    context: Context,
     fs: Arc<dyn ReadableFileSystem>,
     codec: Arc<CacheCodec>,
   ) -> Self {
     Self {
       options: Arc::new(options),
+      context,
       fs,
       codec,
     }
@@ -86,7 +89,11 @@ impl Snapshot {
     scope: SnapshotScope,
     paths: impl Iterator<Item = InternedPath>,
   ) {
-    let helper = Arc::new(StrategyHelper::new(self.fs.clone(), self.options.clone()));
+    let helper = Arc::new(StrategyHelper::new(
+      self.fs.clone(),
+      self.options.clone(),
+      self.context.clone(),
+    ));
     let codec = self.codec.clone();
     // TODO merge package version file
     paths
@@ -131,7 +138,11 @@ impl Snapshot {
     let mut modified_path = InternedPathSet::default();
     let mut deleted_path = InternedPathSet::default();
     let mut no_change_path = InternedPathSet::default();
-    let helper = Arc::new(StrategyHelper::new(self.fs.clone(), self.options.clone()));
+    let helper = Arc::new(StrategyHelper::new(
+      self.fs.clone(),
+      self.options.clone(),
+      self.context.clone(),
+    ));
     let codec = self.codec.clone();
 
     let data = storage.load(scope.name()).await?;
@@ -189,9 +200,9 @@ mod tests {
     let mut storage = MemoryStorage::default();
     let codec = Arc::new(CacheCodec::new(None));
     let options = SnapshotOptions {
-      immutable_paths: vec![PathMatcher::String("constant".into())],
-      unmanaged_paths: vec![PathMatcher::String("node_modules/project".into())],
-      managed_paths: vec![PathMatcher::String("node_modules".into())],
+      immutable_paths: vec![PathMatcher::String("/constant".into())],
+      unmanaged_paths: vec![PathMatcher::String("/node_modules/project".into())],
+      managed_paths: vec![PathMatcher::String("/node_modules".into())],
       resolve_build_dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
       build_dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
       resolve: SnapshotStrategyOptions::hash_and_timestamp(),
@@ -209,7 +220,7 @@ mod tests {
       .unwrap();
     fs.write(
       "/node_modules/project/package.json".into(),
-      r#"{"version":"1.0.0"}"#.as_bytes(),
+      r#"{"name":"project","version":"1.0.0"}"#.as_bytes(),
     )
     .await
     .unwrap();
@@ -218,7 +229,7 @@ mod tests {
       .unwrap();
     fs.write(
       "/node_modules/lib/package.json".into(),
-      r#"{"version":"1.1.0"}"#.as_bytes(),
+      r#"{"name":"lib","version":"1.1.0"}"#.as_bytes(),
     )
     .await
     .unwrap();
@@ -226,7 +237,7 @@ mod tests {
       .await
       .unwrap();
 
-    let snapshot = Snapshot::new(options, fs.clone(), codec);
+    let snapshot = Snapshot::new(options, "/".into(), fs.clone(), codec);
 
     snapshot
       .add(
@@ -267,7 +278,7 @@ mod tests {
 
     fs.write(
       "/node_modules/lib/package.json".into(),
-      r#"{"version":"1.3.0"}"#.as_bytes(),
+      r#"{"name":"lib","version":"1.3.0"}"#.as_bytes(),
     )
     .await
     .unwrap();

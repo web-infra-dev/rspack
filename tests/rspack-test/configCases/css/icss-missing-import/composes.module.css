@@ -1,0 +1,3 @@
+.local {
+	composes: other from "./missing-composes.module.css";
+}

@@ -2,6 +2,8 @@ use std::{ops::Deref, sync::Arc};
 
 use rspack_cacheable::{cacheable, with::AsInnerConverter};
 use rspack_util::fx_hash::FxDashMap;
+#[cfg(allocative)]
+use rspack_util::rspack_allocative;
 
 use crate::{
   AssetGeneratorOptions, AssetParserOptions, AssetResourceGeneratorOptions, CompilationHooks,
@@ -17,8 +19,15 @@ pub type BoxedParserAndGeneratorBuilder =
   Box<dyn 'static + Send + Sync + Fn(Arc<ResolvedModuleOptions>) -> BoxedParserAndGenerator>;
 
 #[derive(Debug)]
+#[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
+#[cfg_attr(
+  allocative,
+  allocative(bound = "T: rspack_allocative::Visit + 'static, U")
+)]
 pub struct ArcComputed<T, U> {
   owner: Arc<T>,
+  // Non-owning projection into owner; visiting it would count the same value twice.
+  #[cfg_attr(allocative, allocative(skip))]
   computed: *const U,
 }
 

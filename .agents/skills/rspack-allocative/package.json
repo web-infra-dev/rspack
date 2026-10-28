@@ -1,0 +1,10 @@
+{
+  "name": "@rspack/skill-allocative",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "csv-stringify": "catalog:",
+    "zx": "catalog:"
+  }
+}

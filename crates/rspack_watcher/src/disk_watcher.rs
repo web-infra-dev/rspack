@@ -1,10 +1,13 @@
 use std::{sync::Arc, time::Duration};
 
-use notify::{Event, EventKind, RecommendedWatcher, Watcher, event::ModifyKind};
+use notify::{
+  Event, EventKind, RecommendedWatcher, Watcher,
+  event::{ModifyKind, RenameMode},
+};
 use rspack_paths::InternedPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
-use crate::{FsEventKind, WatchPattern, trigger};
+use crate::{FsEventKind, WatchPattern, analyzer::Analyzer, trigger};
 
 /// `DiskWatcher` is responsible for managing the underlying file system watcher
 /// and keeping track of the currently watched paths.
@@ -31,33 +34,7 @@ impl DiskWatcher {
 
     let inner = RecommendedWatcher::new(
       move |result: notify::Result<Event>| match result {
-        Ok(event) => {
-          tracing::debug!(
-            target: "rspack_watcher::fs_event",
-            kind = ?event.kind,
-            paths = ?event.paths,
-            "fs_event",
-          );
-
-          if event.paths.is_empty() {
-            return;
-          }
-
-          let kind = match event.kind {
-            EventKind::Create(_) => FsEventKind::Create,
-            EventKind::Modify(
-              ModifyKind::Data(_) | ModifyKind::Any | ModifyKind::Name(_) | ModifyKind::Metadata(_),
-            ) => FsEventKind::Change,
-            EventKind::Remove(_) => FsEventKind::Remove,
-            // TODO: handle this case /path/to/index.js -> /path/to/index.js.map
-            // path/to/index.js should be removed, and path/to/index.js.map should be changed
-            // Now /path/to/index.js and /path/to/index.js.map will both be changed
-            _ => return,
-          };
-          for path in event.paths.into_iter().map(InternedPath::from) {
-            trigger.on_event(&path, kind);
-          }
-        }
+        Ok(event) => handle_event(event, &trigger),
 
         Err(e) => {
           tracing::error!(target: "rspack_watcher::fs_event", "file watcher error: {e:?}");
@@ -96,11 +73,18 @@ impl DiskWatcher {
       .collect();
 
     for path in &stale_paths {
+      // A failed unwatch must not stop the new patterns from being watched. For example, on
+      // Linux `notify` can return `EINVAL` for a subdirectory that was deleted while its parent
+      // was watched recursively (https://github.com/notify-rs/notify/issues/709).
       if let Some(watcher) = &mut self.inner
         && let Err(e) = watcher.unwatch(path)
         && !matches!(e.kind, notify::ErrorKind::WatchNotFound)
       {
-        return Err(rspack_error::error!(e.to_string()));
+        tracing::warn!(
+          target: "rspack_watcher::disk_watcher",
+          path = ?path,
+          "failed to unwatch stale path: {e:?}",
+        );
       }
     }
 
@@ -128,6 +112,46 @@ impl DiskWatcher {
   pub fn close(&mut self) {
     // the trigger.tx is dropped in the FsWatcher
     std::mem::drop(self.inner.take());
+  }
+}
+
+pub(crate) fn handle_event(event: Event, trigger: &trigger::Trigger) {
+  tracing::debug!(
+    target: "rspack_watcher::fs_event",
+    kind = ?event.kind,
+    paths = ?event.paths,
+    "fs_event",
+  );
+
+  if event.need_rescan() {
+    trigger.analyzer.invalidate_all();
+  }
+  if event.paths.is_empty() {
+    return;
+  }
+
+  let appeared = matches!(
+    event.kind,
+    EventKind::Create(_) | EventKind::Modify(ModifyKind::Name(RenameMode::To | RenameMode::Any))
+  );
+  let kind = match event.kind {
+    EventKind::Create(_) => FsEventKind::Create,
+    EventKind::Modify(
+      ModifyKind::Data(_) | ModifyKind::Any | ModifyKind::Name(_) | ModifyKind::Metadata(_),
+    ) => FsEventKind::Change,
+    EventKind::Remove(_) => FsEventKind::Remove,
+    // TODO: handle this case /path/to/index.js -> /path/to/index.js.map
+    // path/to/index.js should be removed, and path/to/index.js.map should be changed
+    // Now /path/to/index.js and /path/to/index.js.map will both be changed
+    _ => return,
+  };
+  for path in event.paths.into_iter().map(InternedPath::from) {
+    // Content writes cannot change which ancestor directory exists.
+    // Invalidate before filtering so suppressed events still refresh watch coverage.
+    if !matches!(event.kind, EventKind::Modify(ModifyKind::Data(_))) {
+      trigger.analyzer.invalidate_path(&path);
+    }
+    trigger.on_disk_event(&path, kind, appeared);
   }
 }
 
@@ -206,5 +230,54 @@ mod tests {
     assert!(paths.contains(&InternedPath::from(dir_b)));
     assert!(paths.contains(&InternedPath::from(dir_c)));
     assert!(!paths.contains(&InternedPath::from(dir_a)));
+  }
+
+  #[cfg(target_os = "linux")]
+  #[test]
+  fn test_watch_continues_after_unwatch_of_deleted_subdirectory() {
+    let temp_dir = tempfile::TempDir::new().unwrap();
+    let base = temp_dir.path().canonicalize().unwrap();
+
+    let dir = base.join("dir");
+    let other = base.join("other");
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::create_dir_all(&other).unwrap();
+
+    let mut watcher = create_disk_watcher();
+    watcher
+      .watch(
+        vec![WatchPattern {
+          path: InternedPath::from(dir.clone()),
+          mode: notify::RecursiveMode::Recursive,
+        }]
+        .into_iter(),
+      )
+      .unwrap();
+
+    // Let the inotify backend add and then drop a watch for the subdirectory.
+    let sub = dir.join("sub");
+    std::fs::create_dir(&sub).unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(200));
+    std::fs::remove_dir(&sub).unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(200));
+
+    // Unwatching `dir` can fail for the deleted subdirectory; `other` must still be watched.
+    watcher
+      .watch(
+        vec![WatchPattern {
+          path: InternedPath::from(other.clone()),
+          mode: notify::RecursiveMode::NonRecursive,
+        }]
+        .into_iter(),
+      )
+      .unwrap();
+
+    let paths: HashSet<_> = watcher
+      .watch_patterns
+      .iter()
+      .map(|p| p.path.clone())
+      .collect();
+    assert_eq!(paths.len(), 1);
+    assert!(paths.contains(&InternedPath::from(other)));
   }
 }
