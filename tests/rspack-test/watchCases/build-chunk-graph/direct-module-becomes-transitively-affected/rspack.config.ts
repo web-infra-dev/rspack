@@ -1,8 +1,8 @@
-import { defineConfig } from "@rspack/cli";
+import { defineConfig } from '@rspack/cli';
 
 export default defineConfig({
-	optimization: {
-		sideEffects: "flag",
-		usedExports: false
-	}
+  optimization: {
+    sideEffects: 'flag',
+    usedExports: false,
+  },
 });
