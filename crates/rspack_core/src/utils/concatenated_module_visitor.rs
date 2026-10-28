@@ -1,10 +1,13 @@
+use std::ops::Range;
+
 use rspack_intern::Atom;
 use rspack_sources::ReplaceSource;
 use rspack_util::{SpanExt, fx_hash::FxIndexMap};
+use smallvec::SmallVec;
 use swc_next_ecma_ast::{Span, SymbolId};
 
 /// An owned declaration or reference position retained after dropping the AST.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct ConcatenatedModuleIdent {
   pub name: Atom,
   pub span: Span,
@@ -22,9 +25,10 @@ pub struct ConcatenatedModuleReference {
 #[derive(Debug)]
 pub struct ConcatenatedModuleSymbol {
   pub name: Atom,
-  pub symbols: Vec<SymbolId>,
+  pub symbols: SmallVec<[SymbolId; 1]>,
   pub top_level: bool,
-  pub references: Vec<ConcatenatedModuleReference>,
+  /// Occurrences in the analysis's shared reference buffer.
+  pub references: Range<usize>,
 }
 
 /// Owned renaming facts extracted from semantic for module rendering and caches.
@@ -33,6 +37,7 @@ pub struct ConcatenatedModuleSymbol {
 #[derive(Debug, Default)]
 pub struct ConcatenatedModuleAnalysis {
   pub binding_to_ref: FxIndexMap<SymbolId, ConcatenatedModuleSymbol>,
+  pub references: Vec<ConcatenatedModuleReference>,
   pub global_scope_ident: Vec<ConcatenatedModuleIdent>,
 }
 
@@ -67,7 +72,7 @@ impl ConcatenatedModuleAnalysis {
   }
 
   pub fn rename_symbol(&self, symbol: SymbolId, name: &str, source: &mut ReplaceSource) {
-    for ident in &self.binding_to_ref[&symbol].references {
+    for ident in &self.references[self.binding_to_ref[&symbol].references.clone()] {
       if ident.shorthand {
         source.insert(ident.span.real_hi(), format!(": {name}"), None);
       } else {

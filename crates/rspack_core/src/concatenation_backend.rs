@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use fixedbitset::FixedBitSet;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierIndexMap, IdentifierMap};
 use rspack_error::{Error, Result};
@@ -9,6 +10,7 @@ use rspack_util::{
   fx_hash::{FxHashMap, FxHashSet},
   itoa,
 };
+use smallvec::SmallVec;
 use swc_next_allocator::Allocator;
 use swc_next_ecma_ast::{
   Ast, BindingIdentifier, DeclData, ExportDefaultDeclarationKindData, GetSpan, IdentifierName,
@@ -567,6 +569,17 @@ pub fn analyze_program_identifiers(
   })
 }
 
+/// Collect only unresolved names when no binding renaming or source positions are needed.
+pub fn analyze_program_unresolved_names(source: &str, jsx: bool) -> Result<FxHashSet<Atom>> {
+  analyze_identifiers(source, jsx, SwcSourceType::Unambiguous, |ast, semantic| {
+    semantic
+      .iter_references()
+      .filter(|entry| entry.reference.symbol.is_none())
+      .map(|entry| Atom::from(ast.get_utf8(entry.reference.name)))
+      .collect()
+  })
+}
+
 fn analyze_identifiers<T>(
   source: &str,
   jsx: bool,
@@ -623,23 +636,27 @@ fn collect_ident(ast: &Ast<'_>, semantic: &Semantic<'_>) -> ConcatenatedModuleAn
     }
   }
   let mut analysis = ConcatenatedModuleAnalysis::default();
-  let mut collected = FxHashSet::default();
+  let mut collected = FixedBitSet::with_capacity(semantic.iter_symbols().count());
+  // Reuse storage across rename groups, including declarations shared by linked symbols.
+  let mut nodes = Vec::new();
   let top_level_scope = ScopeId::program(ast.source_type());
   for entry in semantic.iter_symbols() {
-    if collected.contains(&entry.id) {
+    if collected.contains(entry.id.index()) {
       continue;
     }
-    let symbols = semantic.rename_symbols(entry.id).collect::<Vec<_>>();
+    let symbols = semantic
+      .rename_symbols(entry.id)
+      .collect::<SmallVec<[_; 1]>>();
     let name = Atom::from(
       ast
         .get_wtf8(entry.symbol.name)
         .as_str()
         .expect("JavaScript identifier is UTF-8"),
     );
-    let mut nodes = FxHashSet::default();
+    nodes.clear();
     let mut top_level = false;
     for &symbol in &symbols {
-      collected.insert(symbol);
+      collected.insert(symbol.index());
       top_level |= semantic.scope_of_symbol(symbol) == top_level_scope;
       nodes.extend(
         semantic
@@ -653,14 +670,16 @@ fn collect_ident(ast: &Ast<'_>, semantic: &Semantic<'_>) -> ConcatenatedModuleAn
           .map(|&reference| semantic.reference(reference).node),
       );
     }
-    let mut references = nodes
-      .into_iter()
-      .map(|node| ConcatenatedModuleReference {
+    nodes.sort_unstable_by_key(|&node| (ast.span(node).start, node));
+    nodes.dedup();
+    let start = analysis.references.len();
+    analysis
+      .references
+      .extend(nodes.iter().map(|&node| ConcatenatedModuleReference {
         span: ast.span(node),
         shorthand: shorthand.contains(&node),
-      })
-      .collect::<Vec<_>>();
-    references.sort_unstable_by_key(|ident| ident.span.start);
+      }));
+    let references = start..analysis.references.len();
     analysis.binding_to_ref.insert(
       entry.id,
       ConcatenatedModuleSymbol {
@@ -671,10 +690,16 @@ fn collect_ident(ast: &Ast<'_>, semantic: &Semantic<'_>) -> ConcatenatedModuleAn
       },
     );
   }
-  // Keep first-occurrence order so name allocation remains deterministic.
-  analysis
-    .binding_to_ref
-    .sort_by_cached_key(|_, symbol| symbol.references.first().map(|ident| ident.span.start));
+  // SymbolId breaks ties in original insertion order without allocating cached sort keys.
+  let references = &analysis.references;
+  analysis.binding_to_ref.sort_unstable_by_key(|&id, symbol| {
+    (
+      references[symbol.references.clone()]
+        .first()
+        .map(|ident| ident.span.start),
+      id,
+    )
+  });
   for entry in semantic.iter_references() {
     if entry.reference.symbol.is_none() {
       analysis.global_scope_ident.push(ConcatenatedModuleIdent {

@@ -31,7 +31,8 @@ use rspack_core::{
   ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleAnalysis,
   ConcatenationNameAllocator, ExportsArgument, Module, RuntimeCodeTemplate, RuntimeGlobals,
-  RuntimeVariable, SourceType, analyze_program_identifiers, render_init_fragments,
+  RuntimeVariable, SourceType, analyze_program_identifiers, analyze_program_unresolved_names,
+  render_init_fragments,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
   split_readable_identifier,
@@ -55,7 +56,7 @@ static COMPILATION_HOOKS_MAP: LazyLock<
   SyncRwLock<FxHashMap<CompilationId, Arc<RwLock<JavascriptModulesPluginHooks>>>>,
 > = LazyLock::new(Default::default);
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct WithHash<T> {
   hash: Option<RspackHashDigest>,
   value: T,
@@ -1062,11 +1063,6 @@ var {} = {{}};
       return Ok(None);
     }
 
-    let mut inlined_modules_to_info: IdentifierMap<InlinedModuleInfo> = IdentifierMap::default();
-    let mut non_inlined_module_used_names: HashSet<Atom> = HashSet::default();
-    let mut all_used_names: HashSet<Atom> = RESERVED_NAMES_ATOM_SET.clone();
-    let mut renamed_inline_modules: IdentifierMap<Arc<dyn Source>> = IdentifierMap::default();
-
     let render_module_results = rspack_parallel::scope::<_, _>(|token| {
       all_modules.iter().for_each(|module| {
         let s = unsafe {
@@ -1121,14 +1117,14 @@ var {} = {{}};
     }
 
     // make patch in parallel iteration
-    let rename_info_patch = render_module_sources
+    let rename_info_patch: Result<RenameInfoPatch> = render_module_sources
       .par_iter()
       .fold(
         || {
           Ok(RenameInfoPatch {
             inlined_modules_to_info: IdentifierMap::default(),
             non_inlined_module_used_names: HashSet::default(),
-            all_used_names: RESERVED_NAMES_ATOM_SET.clone(),
+            all_used_names: HashSet::default(),
           })
         },
         |mut acc, (rendered_module, m)| {
@@ -1147,7 +1143,7 @@ var {} = {{}};
                 )
                 && *hash_current == *hash_cache
               {
-                let WithHash { value, .. } = (*ident_info_with_hash).clone();
+                let value = ident_info_with_hash.value.clone();
                 acc
                   .all_used_names
                   .extend(value.analysis.used_names().cloned());
@@ -1162,18 +1158,15 @@ var {} = {{}};
               && *hash_current == *hash_cache
             {
               acc
-                .all_used_names
-                .extend(idents_with_hash.value.iter().cloned());
-              acc
                 .non_inlined_module_used_names
-                .extend(idents_with_hash.value.clone());
+                .extend(idents_with_hash.value.iter().cloned());
               use_cache = true;
             }
 
             if !use_cache {
               let code_string = code.source().into_string_lossy();
-              if let Ok(analysis) = analyze_program_identifiers(code_string.as_ref(), false) {
-                if is_inlined_module {
+              if is_inlined_module {
+                if let Ok(analysis) = analyze_program_identifiers(code_string.as_ref(), false) {
                   acc.all_used_names.extend(analysis.used_names().cloned());
                   let ident = m.identifier();
                   let info = InlinedModuleInfo {
@@ -1193,33 +1186,30 @@ var {} = {{}};
                     }),
                   );
                   acc.inlined_modules_to_info.insert(ident, info);
-                } else {
-                  let names: HashSet<Atom> = analysis
-                    .unresolved_references()
-                    .map(|reference| reference.name.clone())
-                    .collect();
-                  acc.all_used_names.extend(names.iter().cloned());
-                  acc
-                    .non_inlined_module_used_names
-                    .extend(names.iter().cloned());
-                  let module_ident = m.identifier();
-                  let runtime = compilation
-                    .build_chunk_graph_artifact
-                    .chunk_by_ukey
-                    .expect_get(chunk_ukey)
-                    .runtime();
-                  self
-                    .rename_module_cache
-                    .non_inlined_modules_used_names
-                    .insert(
-                      module_ident,
-                      Arc::new(WithHash {
-                        hash: ChunkGraph::get_module_hash(compilation, module_ident, runtime)
-                          .cloned(),
-                        value: names,
-                      }),
-                    );
                 }
+              } else if let Ok(names) =
+                analyze_program_unresolved_names(code_string.as_ref(), false)
+              {
+                acc
+                  .non_inlined_module_used_names
+                  .extend(names.iter().cloned());
+                let module_ident = m.identifier();
+                let runtime = compilation
+                  .build_chunk_graph_artifact
+                  .chunk_by_ukey
+                  .expect_get(chunk_ukey)
+                  .runtime();
+                self
+                  .rename_module_cache
+                  .non_inlined_modules_used_names
+                  .insert(
+                    module_ident,
+                    Arc::new(WithHash {
+                      hash: ChunkGraph::get_module_hash(compilation, module_ident, runtime)
+                        .cloned(),
+                      value: names,
+                    }),
+                  );
               }
             }
           }
@@ -1232,7 +1222,7 @@ var {} = {{}};
           Ok(RenameInfoPatch {
             inlined_modules_to_info: IdentifierMap::default(),
             non_inlined_module_used_names: HashSet::default(),
-            all_used_names: RESERVED_NAMES_ATOM_SET.clone(),
+            all_used_names: HashSet::default(),
           })
         },
         |acc, chunk| match acc {
@@ -1253,24 +1243,24 @@ var {} = {{}};
         },
       );
 
-    match rename_info_patch {
-      Ok(rename_info_patch) => {
-        // update patches
-        inlined_modules_to_info.extend(rename_info_patch.inlined_modules_to_info);
-        non_inlined_module_used_names.extend(rename_info_patch.non_inlined_module_used_names);
-        all_used_names.extend(rename_info_patch.all_used_names);
-      }
-      Err(e) => return Err(e),
-    }
+    let RenameInfoPatch {
+      inlined_modules_to_info,
+      non_inlined_module_used_names,
+      mut all_used_names,
+    } = rename_info_patch?;
+    all_used_names.extend(RESERVED_NAMES_ATOM_SET.iter().cloned());
+    all_used_names.extend(non_inlined_module_used_names.iter().cloned());
     let mut name_allocator = ConcatenationNameAllocator::new(all_used_names);
+    let mut renamed_inline_modules: IdentifierMap<Arc<dyn Source>> =
+      IdentifierMap::with_capacity_and_hasher(inlined_modules_to_info.len(), Default::default());
 
     for (module_id, info) in &inlined_modules_to_info {
       let module = all_modules
         .iter()
         .find(|m| m.identifier() == *module_id)
         .unwrap_or_else(|| panic!("should find inlined module id \"{module_id}\" in all_modules"));
-      let mut source = ReplaceSource::new(info.source.clone());
-      let mut changed = false;
+      let mut source = None;
+      let mut identifier = None;
       let analysis = &info.analysis;
       for symbol in analysis
         .symbol_groups()
@@ -1280,16 +1270,16 @@ var {} = {{}};
         if !non_inlined_module_used_names.contains(name) {
           continue;
         }
-        let context = compilation.options.context.clone();
-        let readable_identifier = module.readable_identifier(&context).to_string();
-        let identifier = split_readable_identifier(&readable_identifier);
-        let new_name = name_allocator.find_new_name(name, &identifier);
-        analysis.rename_symbol(symbol, new_name.as_str(), &mut source);
-        changed = true;
+        let identifier = identifier.get_or_insert_with(|| {
+          split_readable_identifier(&module.readable_identifier(&compilation.options.context))
+        });
+        let new_name = name_allocator.find_new_name(name, identifier);
+        let source = source.get_or_insert_with(|| ReplaceSource::new(info.source.clone()));
+        analysis.rename_symbol(symbol, new_name.as_str(), source);
       }
       renamed_inline_modules.insert(
         *module_id,
-        if changed {
+        if let Some(source) = source {
           Arc::new(source)
         } else {
           info.source.clone()
