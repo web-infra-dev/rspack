@@ -21,6 +21,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 type SharedRuntimeSpec = Option<Arc<RuntimeSpec>>;
 type ProcessBlockTask = (ModuleOrAsyncDependenciesBlock, SharedRuntimeSpec, bool);
+type ProcessModuleTask = (ModuleIdentifier, Vec<ReferencedExport>, bool);
 type NonNestedTask = (SharedRuntimeSpec, bool, Vec<ReferencedExport>);
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
@@ -316,10 +317,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     runtime: &SharedRuntimeSpec,
     force_side_effects: bool,
     global: bool,
-  ) -> (
-    Vec<(ModuleIdentifier, Vec<ReferencedExport>, bool)>,
-    Vec<ProcessBlockTask>,
-  ) {
+  ) -> (Vec<ProcessModuleTask>, Vec<ProcessBlockTask>) {
     let compilation = self.compilation;
     let mut q = vec![];
 
