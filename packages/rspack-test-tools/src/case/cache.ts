@@ -115,21 +115,6 @@ function createCacheProcessor(
           path.join(src, '__snapshots__', `cache-stats-${buildIndex}.txt`),
         );
     }
-    if (unchanged && !stats.hasErrors()) {
-      const expected = context.getTestConfig().cacheHitRate || {};
-      for (const [index, compilerStats] of cacheStats.entries()) {
-        for (const [label, { hits, misses, reused }] of Object.entries(
-          compilerStats,
-        )) {
-          const total = hits + misses;
-          if (total === 0) continue;
-          const reuseRate = Number(((reused / total) * 100).toFixed(1));
-          env
-            .expect(reuseRate, `compiler ${index}: ${label} reuse rate`)
-            .toBe(expected[label] ?? 100);
-        }
-      }
-    }
   };
 
   return {

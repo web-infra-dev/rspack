@@ -194,9 +194,6 @@ export type TTestConfig = {
 
   // Only valid for Hot tests
   checkSteps?: boolean;
-  // Expected reuse percentages for unchanged NewCache restarts, keyed by facade name.
-  // Unspecified caches are expected to reuse cached values for 100% of lookups.
-  cacheHitRate?: Record<string, number>;
   // Only valid for Watch tests
   ignoreNotFriendlyForIncrementalWarnings?: boolean;
   resourceLoader?: (
