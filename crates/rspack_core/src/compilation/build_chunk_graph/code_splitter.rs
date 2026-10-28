@@ -52,6 +52,31 @@ struct PreparedBlockConnection {
   connections: ConnectionIdList,
 }
 
+impl PreparedBlockConnection {
+  fn has_conditional_imports(&self, module_graph: &ModuleGraph) -> bool {
+    let is_async = matches!(
+      self.block,
+      DependenciesBlockIdentifier::AsyncDependenciesBlock(_)
+    );
+    self.connections.iter().any(|dependency_id| {
+      let dependency = module_graph.dependency_by_id(dependency_id);
+      (is_async
+        || matches!(
+          dependency.dependency_type(),
+          DependencyType::DynamicImportEager
+        ))
+        && dependency
+          .as_module_dependency()
+          .and_then(|dependency| dependency.get_condition())
+          .is_some()
+    })
+  }
+}
+
+pub(crate) struct ModuleReuseInfo {
+  has_conditional_imports: bool,
+}
+
 struct PreparedBlockConnectionBuilder {
   block: DependenciesBlockIdentifier,
   module: ModuleIdentifier,
@@ -490,11 +515,24 @@ impl CodeSplitter {
     })
   }
 
-  pub(crate) fn can_reuse_affected_module(
+  pub(crate) fn update_conditional_modules(
+    &mut self,
+    modules: impl IntoIterator<Item = (ModuleIdentifier, ModuleReuseInfo)>,
+  ) {
+    for (module, info) in modules {
+      if info.has_conditional_imports {
+        self.conditional_modules.insert(module);
+      } else {
+        self.conditional_modules.remove(&module);
+      }
+    }
+  }
+
+  pub(crate) fn get_module_reuse_info(
     &self,
     module: ModuleIdentifier,
     compilation: &Compilation,
-  ) -> bool {
+  ) -> Option<ModuleReuseInfo> {
     let module_block = DependenciesBlockIdentifier::Module(module);
     let current_blocks = compilation
       .get_module_graph()
@@ -508,7 +546,7 @@ impl CodeSplitter {
       .unwrap_or_default();
 
     if current_blocks != cached_blocks {
-      return false;
+      return None;
     }
 
     let module_graph = compilation.get_module_graph();
@@ -524,19 +562,22 @@ impl CodeSplitter {
           ))
           .is_some_and(|blocks| !blocks.is_empty())
       {
-        return false;
+        return None;
       }
 
       if block.get_group_options() != self.prepared_block_group_options.get(block_id) {
-        return false;
+        return None;
       }
     }
 
     let mut current_connections_by_block = DependenciesBlockIdentifierMap::default();
     let mut scratch = PreparedConnectionScratch::default();
+    let mut has_conditional_imports = false;
     for connection in
       prepare_module_connection_map(module, module_graph, &mut scratch).unwrap_or_default()
     {
+      has_conditional_imports =
+        has_conditional_imports || connection.has_conditional_imports(module_graph);
       current_connections_by_block
         .entry(connection.block)
         .or_insert_with(Vec::new)
@@ -576,9 +617,7 @@ impl CodeSplitter {
           .copied()
           .map(DependenciesBlockIdentifier::AsyncDependenciesBlock),
       ) {
-        let Some(cached_modules) = block_modules.get(&block) else {
-          return false;
-        };
+        let cached_modules = block_modules.get(&block)?;
         found_cached_root |= block == module_block;
 
         let current_connections = current_connections_by_block
@@ -586,7 +625,7 @@ impl CodeSplitter {
           .map(Vec::as_slice)
           .unwrap_or_default();
         if current_connections.len() != cached_modules.len() {
-          return false;
+          return None;
         }
 
         for (current, (cached_module, cached_state, _)) in
@@ -602,13 +641,15 @@ impl CodeSplitter {
               exports_info_artifact,
             ) != *cached_state
           {
-            return false;
+            return None;
           }
         }
       }
     }
 
-    found_cached_root
+    found_cached_root.then_some(ModuleReuseInfo {
+      has_conditional_imports,
+    })
   }
 
   pub(crate) fn chunk_group_info(&self, ukey: &CgiUkey) -> &ChunkGroupInfo {
@@ -2850,24 +2891,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .filter_map(|(module, connections)| {
         connections
           .iter()
-          .any(|connection| {
-            let is_async = matches!(
-              connection.block,
-              DependenciesBlockIdentifier::AsyncDependenciesBlock(_)
-            );
-            connection.connections.iter().any(|dependency_id| {
-              let dependency = mg.dependency_by_id(dependency_id);
-              (is_async
-                || matches!(
-                  dependency.dependency_type(),
-                  DependencyType::DynamicImportEager
-                ))
-                && dependency
-                  .as_module_dependency()
-                  .and_then(|dependency| dependency.get_condition())
-                  .is_some()
-            })
-          })
+          .any(|connection| connection.has_conditional_imports(mg))
           .then_some(*module)
       })
       .collect();
