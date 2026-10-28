@@ -24,7 +24,7 @@ export default defineConfig({
           dynamicImport: true,
         });
         // Inherited SWC targets remain capped at the supported version.
-        expect(compiler.target.esVersion).toBe(2022);
+        expect(compiler.target.esVersion).toBe(2024);
       });
     },
   ],

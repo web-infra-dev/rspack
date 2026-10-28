@@ -460,8 +460,8 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
       let v = +version;
       if (5 < v && v < 1000) v = v + 2009;
       return {
-        // SWC minifier only supports up to 2022
-        esVersion: v > 2022 ? 2022 : v,
+        // SWC supports explicit ECMAScript targets up to ES2024.
+        esVersion: v > 2024 ? 2024 : v,
         const: v >= 2015,
         computedProperty: v >= 2015,
         templateLiteral: v >= 2015,
