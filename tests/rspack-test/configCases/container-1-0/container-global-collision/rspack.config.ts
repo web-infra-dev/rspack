@@ -23,7 +23,7 @@ export default ['var', 'global', 'window', 'self', 'module'].map((type) =>
       new container.ContainerPlugin({
         name: 'provider',
         filename: 'remoteEntry.js',
-        library: { type, name: 'probe' },
+        library: type === 'module' ? { type } : { type, name: 'probe' },
         exposes: { './message': './index.js' },
       }),
       ...(type === 'module'
