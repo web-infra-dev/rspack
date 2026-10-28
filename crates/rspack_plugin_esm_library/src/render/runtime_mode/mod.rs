@@ -352,7 +352,10 @@ fn render_runtime_global_definition(
   } else if runtime_global == RuntimeGlobals::MODULE_CACHE {
     let module_cache = runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache);
     if runtime_template.render_runtime_globals(&runtime_global) == module_cache {
-      RawStringSource::from_static("")
+      let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+      RawStringSource::from(format!(
+        "Object.defineProperty({require}, \"c\", {{ configurable: true, get: function() {{ return {module_cache}; }}, set: function(value) {{ {module_cache} = value; }} }});\n"
+      ))
     } else {
       RawStringSource::from(format!(
         "// expose the module cache\n{definition} = {module_cache};\n"

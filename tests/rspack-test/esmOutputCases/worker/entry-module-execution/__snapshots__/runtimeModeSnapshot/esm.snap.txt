@@ -68,6 +68,7 @@ return module.exports;
 }
 // expose the modules object (modules)
 var moduleFactories = modules;
+Object.defineProperty(rspackRequire, "c", { configurable: true, get: function() { return moduleCache; }, set: function(value) { moduleCache = value; } });
 
 var entryModuleId;
 // rspack/runtime/async_module
@@ -212,7 +213,7 @@ makeNamespaceObject(exports);
 definePropertyGetters(exports, {
   "default": () => (__rspack_default_export)
 });
-if ((moduleCache[entryModuleId] === module)) {
+if ((rspackRequire.c[entryModuleId] === module)) {
   globalThis.__workerIsMain = true;
 }
 
