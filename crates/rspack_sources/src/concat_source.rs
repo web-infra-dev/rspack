@@ -8,8 +8,9 @@ use std::{
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  BoxSource, MapOptions, RawStringSource, Source, SourceExt, SourceMap, SourceValue,
-  helpers::{Chunks, GeneratedInfo, StreamChunks, get_map},
+  BoxSource, CachedSource, MapOptions, MappingSource, OriginalSource, RawBufferSource,
+  RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource, SourceValue,
+  helpers::{Chunks, GeneratedInfo, StreamChunks, get_map, stream_chunks_of_raw_rope},
   linear_map::LinearMap,
   source::{Mapping, OriginalLocation},
 };
@@ -61,6 +62,7 @@ use crate::{
 pub struct ConcatSource {
   children: Mutex<Vec<BoxSource>>,
   is_optimized: OnceLock<Vec<BoxSource>>,
+  source_only: bool,
 }
 
 impl Clone for ConcatSource {
@@ -75,6 +77,7 @@ impl Clone for ConcatSource {
         }
         None => OnceLock::default(),
       },
+      source_only: self.source_only,
     }
   }
 }
@@ -84,7 +87,12 @@ impl std::fmt::Debug for ConcatSource {
     let indent = f.width().unwrap_or(0);
     let indent_str = format!("{:indent$}", "", indent = indent);
 
-    writeln!(f, "{indent_str}ConcatSource::new(vec![")?;
+    let constructor = if self.source_only {
+      "new_source_only"
+    } else {
+      "new"
+    };
+    writeln!(f, "{indent_str}ConcatSource::{constructor}(vec![")?;
 
     let original_children = self.children.lock().unwrap();
     let children = match self.is_optimized.get() {
@@ -110,6 +118,70 @@ impl ConcatSource {
       concat_source.add(source);
     }
     concat_source
+  }
+
+  /// Preserve a generated text graph without exposing its source mappings.
+  ///
+  /// Devtool uses this after emitting the map separately. Known text sources keep
+  /// their existing backing allocations. Binary and unknown sources retain the
+  /// former `source()` materialization boundary, since their writer, buffer and
+  /// lossy text views are not necessarily interchangeable.
+  #[doc(hidden)]
+  pub fn new_source_only(sources: impl IntoIterator<Item = BoxSource>) -> BoxSource {
+    let sources = sources.into_iter().collect::<Vec<_>>();
+    if !sources.iter().all(|source| has_text_bytes(source.as_ref())) {
+      let mut children = sources
+        .into_iter()
+        .map(|source| match source.source() {
+          SourceValue::String(text) => RawStringSource::from(text.into_owned()).boxed(),
+          SourceValue::Buffer(bytes) => RawBufferSource::from(bytes.into_owned()).boxed(),
+        })
+        .collect::<Vec<_>>();
+      return if children.len() == 1 {
+        children.pop().expect("single normalized source")
+      } else {
+        Self::new(children).boxed()
+      };
+    }
+
+    let mut children = Vec::with_capacity(sources.len());
+    for source in sources {
+      if let Some(concat) = source.as_any().downcast_ref::<Self>()
+        && concat.source_only
+      {
+        // Both boundaries hide mappings, so the inner boundary is redundant.
+        concat.with_children(|inner| children.extend(inner.iter().cloned()));
+      } else {
+        children.push(source);
+      }
+    }
+    Self::from_parts(children, true).boxed()
+  }
+
+  /// Whether this concat is a map-free view of generated text.
+  #[doc(hidden)]
+  pub fn is_source_only(&self) -> bool {
+    self.source_only
+  }
+
+  pub(crate) fn from_parts(children: Vec<BoxSource>, source_only: bool) -> Self {
+    Self {
+      children: Mutex::new(children),
+      is_optimized: OnceLock::new(),
+      source_only,
+    }
+  }
+
+  fn with_children<T>(&self, visit: impl FnOnce(&[BoxSource]) -> T) -> T {
+    if let Some(children) = self.is_optimized.get() {
+      visit(children)
+    } else {
+      let children = self
+        .children
+        .lock()
+        .expect("ConcatSource children mutex poisoned");
+      visit(&children)
+    }
   }
 
   fn optimized_children(&self) -> &[BoxSource] {
@@ -141,7 +213,9 @@ impl ConcatSource {
 
     // First check if it's already a BoxSource containing a ConcatSource
     if let Some(box_source) = source.as_any().downcast_ref::<BoxSource>() {
-      if let Some(concat_source) = box_source.as_ref().as_any().downcast_ref::<ConcatSource>() {
+      if let Some(concat_source) = box_source.as_ref().as_any().downcast_ref::<ConcatSource>()
+        && !concat_source.source_only
+      {
         // Extend with existing children (cheap clone due to Arc)
         let original_children = concat_source.children.lock().unwrap();
         let other_children = match concat_source.is_optimized.get() {
@@ -154,7 +228,9 @@ impl ConcatSource {
     }
 
     // Check if the source itself is a ConcatSource
-    if let Some(concat_source) = source.as_any().downcast_ref::<ConcatSource>() {
+    if let Some(concat_source) = source.as_any().downcast_ref::<ConcatSource>()
+      && !concat_source.source_only
+    {
       // Extend with existing children (cheap clone due to Arc)
       let original_children = concat_source.children.lock().unwrap();
       let other_children = match concat_source.is_optimized.get() {
@@ -215,11 +291,17 @@ impl Source for ConcatSource {
   }
 
   fn map<'a>(&'a self, options: &MapOptions) -> Option<SourceMap<'a>> {
+    if self.source_only {
+      return None;
+    }
     let chunks = self.stream_chunks();
     get_map(chunks.as_ref(), options).map(SourceMap::from_fields)
   }
 
   fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap<'static>> {
+    if self.source_only {
+      return None;
+    }
     let owner = self.clone();
     self.as_ref().map(options).map(|map| map.into_static(owner))
   }
@@ -234,7 +316,11 @@ impl Source for ConcatSource {
 
 impl Hash for ConcatSource {
   fn hash<H: Hasher>(&self, state: &mut H) {
-    "ConcatSource".hash(state);
+    if self.source_only {
+      "SourceOnlyConcatSource".hash(state);
+    } else {
+      "ConcatSource".hash(state);
+    }
     for child in self.optimized_children().iter() {
       child.hash(state);
     }
@@ -243,7 +329,7 @@ impl Hash for ConcatSource {
 
 impl PartialEq for ConcatSource {
   fn eq(&self, other: &Self) -> bool {
-    self.optimized_children() == other.optimized_children()
+    self.source_only == other.source_only && self.optimized_children() == other.optimized_children()
   }
 }
 impl Eq for ConcatSource {}
@@ -427,8 +513,47 @@ impl<'source> Chunks<'source> for ConcatSourceChunks<'source> {
 
 impl StreamChunks for ConcatSource {
   fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a> {
-    Box::new(ConcatSourceChunks::new(self))
+    if self.source_only {
+      Box::new(SourceOnlyChunks(self))
+    } else {
+      Box::new(ConcatSourceChunks::new(self))
+    }
   }
+}
+
+struct SourceOnlyChunks<'a>(&'a ConcatSource);
+
+impl<'source> Chunks<'source> for SourceOnlyChunks<'source> {
+  fn stream<'chunk>(
+    &'chunk self,
+    options: &MapOptions,
+    on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
+    _on_source: crate::helpers::OnSource<'_, 'source>,
+    _on_name: crate::helpers::OnName<'_, 'source>,
+  ) -> GeneratedInfo {
+    stream_chunks_of_raw_rope(self.0, options, on_chunk)
+  }
+}
+
+fn has_text_bytes(source: &dyn Source) -> bool {
+  let source = source.as_any();
+  if source.is::<RawStringSource>()
+    || source.is::<OriginalSource>()
+    || source.is::<SourceMapSource>()
+    || source.is::<MappingSource>()
+  {
+    return true;
+  }
+  if let Some(source) = source.downcast_ref::<ConcatSource>() {
+    return source.with_children(|children| children.iter().all(|s| has_text_bytes(s.as_ref())));
+  }
+  if let Some(source) = source.downcast_ref::<CachedSource>() {
+    return has_text_bytes(source.inner().as_ref());
+  }
+  if let Some(source) = source.downcast_ref::<ReplaceSource>() {
+    return has_text_bytes(source.inner().as_ref());
+  }
+  false
 }
 
 fn optimize(children: &mut Vec<BoxSource>) -> Vec<BoxSource> {

@@ -251,6 +251,15 @@ Important implementation details:
   replacement result. JS binding content requests remain an explicit materialization boundary.
 - `ConcatSource::add` uses `&mut self` and `Mutex::get_mut`; reads lazily optimize children. Mapping
   shifts generated positions and remaps child-local indices into global deduplicated tables.
+  Devtool's internal `new_source_only` constructor preserves known text graphs while hiding their
+  mappings after the map has been emitted separately. This mode is opaque to an ordinary parent
+  concat: flattening it would expose the hidden mappings. Its chunk stream uses the raw rope path,
+  including UTF-16 generated columns, and persistent cache records the mode and exact child graph.
+  Binary or unknown source graphs retain the prior `source()` materialization boundary rather than
+  assuming that their text, buffer, and writer representations are interchangeable. Cold devtool
+  processing and cache restoration must construct the same boundary before appending comments.
+  RCH compares these map-free views by emitted content when deduplicating them alongside the
+  raw strings they replace; ordinary source equality and hashing remain structural.
 - `ReplaceSource` ranges are half-open byte ranges. Edits are ordered by
   `(start, end, enforce, insertion_order)`; ordered producers get the append fast path. Mapping
   repair uses lazy source-content identity checks.
