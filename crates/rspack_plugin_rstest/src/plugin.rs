@@ -18,7 +18,7 @@ use rspack_core::{
   SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   module_declared_side_effect_free,
-  resolver::ResolveInnerError,
+  resolver::{ResolveInnerError, Resolver},
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
   runtime_variable_name,
 };
@@ -27,7 +27,9 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
-use rspack_util::placeholder::PlaceholderFinder;
+use rspack_util::{
+  identifier::insert_zero_width_space_for_fragment, placeholder::PlaceholderFinder,
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 static RSTEST_FLAG_PLACEHOLDER: LazyLock<PlaceholderFinder> =
@@ -651,13 +653,24 @@ async fn compilation(
   if let Some(get_importers) = &self.options.preserve_side_effect_imports {
     let importers = get_importers().await?;
     let mut paths = HashSet::default();
+    // Resolve with the compiler's filesystem to follow parent symlinks on WASI
+    // as well as native targets, without applying user aliases to known paths.
+    let resolver = Resolver::new(
+      Default::default(),
+      Arc::clone(&compilation.input_filesystem),
+    );
     for importer in importers {
       let path = Utf8PathBuf::from(importer);
-      // Keep the original for resolve.symlinks=false and virtual files. Use the
-      // compiler's filesystem so custom and virtual filesystems participate.
-      if let Ok(real_path) = compilation.input_filesystem.canonicalize(&path).await {
-        paths.insert(real_path);
+      if let Ok(ResolveResult::Resource(resource)) = resolver
+        .resolve(
+          compilation.options.context.as_ref(),
+          &insert_zero_width_space_for_fragment(path.as_str()),
+        )
+        .await
+      {
+        paths.insert(resource.path);
       }
+      // Keep the original for resolve.symlinks=false and unresolved virtual files.
       paths.insert(path);
     }
     *self
