@@ -91,6 +91,13 @@ Rspack continues to improve development and build performance by optimizing core
 
 In this [benchmark project](https://github.com/LingyuCoder/rspack-react-10k-benchmark/actions/runs/40302457470), Rspack 2.3.0 reduces HMR and warm build times with caching by around 5% compared with 2.2.0.
 
+In a large real-world project, Rspack 2.3.0 reduced build time by about 23% compared with 2.2.0, while also reducing peak memory usage:
+
+| Metric      |     2.2.0 |     2.3.0 |    Saved | Reduction |
+| ----------- | --------: | --------: | -------: | --------: |
+| Build time  |  197.16 s |  152.25 s |  44.91 s | **22.8%** |
+| Peak memory | 49,178 MB | 46,071 MB | 3,107 MB |  **6.3%** |
+
 ### SplitChunks optimizations \{#split-chunks}
 
 Large projects often have multiple pages or entry points that depend on many of the same modules. If those modules are bundled into multiple output files, they increase output size and may cause users to download the same code more than once.
