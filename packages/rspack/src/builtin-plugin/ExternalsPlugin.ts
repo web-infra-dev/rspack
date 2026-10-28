@@ -16,7 +16,7 @@ import type {
 import { getRawResolve } from '../config/adapter';
 import type { ResolveCallback } from '../config/adapterRuleUse';
 import type { ResolveRequest } from '../Resolver';
-import { resolveByProperty } from '../util/cleverMerge';
+import { resolveLayerExternals } from '../util/resolveLayerExternals';
 import { createBuiltinPlugin, RspackBuiltinPlugin } from './base';
 
 export class ExternalsPlugin extends RspackBuiltinPlugin {
@@ -176,9 +176,8 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
           const layer = contextInfo?.issuerLayer ?? null;
           let resolved = cache.get(layer);
           if (resolved === undefined) {
-            resolved = resolveByProperty(
+            resolved = resolveLayerExternals(
               item,
-              'byLayer',
               layer,
             ) as ExternalItemObjectUnknown;
             cache.set(layer, resolved);
@@ -189,15 +188,13 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
         });
       }
       return {
-        values: getRawExternalObject(
-          resolveByProperty(item, 'byLayer', 'default'),
-        ),
+        values: getRawExternalObject(resolveLayerExternals(item, 'default')),
         byLayer:
           byLayer &&
           Object.fromEntries(
             Object.keys(byLayer).map((layer) => [
               layer,
-              getRawExternalObject(resolveByProperty(item, 'byLayer', layer)),
+              getRawExternalObject(resolveLayerExternals(item, layer)),
             ]),
           ),
       };

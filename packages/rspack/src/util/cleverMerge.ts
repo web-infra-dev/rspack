@@ -51,34 +51,6 @@ const mergeCache = new WeakMap<Obj, WeakMap<Obj, Obj>>();
 
 export const DELETE = Symbol('DELETE');
 
-export const resolveByProperty = <T>(
-  obj: T,
-  byProperty: string,
-  value: string | null,
-): T => {
-  if (typeof obj !== 'object' || obj === null || !(byProperty in obj)) {
-    return obj;
-  }
-  const { [byProperty]: byValue, ...remaining } = obj as Obj;
-  if (typeof byValue === 'object') {
-    const key = String(value);
-    if (key in byValue) {
-      return cachedCleverMerge(remaining, byValue[key]) as T;
-    }
-    if ('default' in byValue) {
-      return cachedCleverMerge(remaining, byValue.default) as T;
-    }
-    return remaining as T;
-  }
-  if (typeof byValue === 'function') {
-    return cachedCleverMerge(
-      remaining,
-      resolveByProperty(byValue(value), byProperty, value),
-    ) as T;
-  }
-  return obj;
-};
-
 /**
  * Merges two given objects and caches the result to avoid computation if same objects passed as arguments again.
  * @example

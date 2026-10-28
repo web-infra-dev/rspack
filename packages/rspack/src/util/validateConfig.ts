@@ -5,7 +5,7 @@ import type {
   ExternalItemObjectKnown,
   ExternalItemUmdValue,
 } from '../config';
-import { resolveByProperty } from './cleverMerge';
+import { resolveLayerExternals } from './resolveLayerExternals';
 
 const ERROR_PREFIX = 'Invalid Rspack configuration:';
 
@@ -55,7 +55,7 @@ const validateExternalUmd = ({
       if (typeof byLayer === 'function') return;
       if (byLayer && typeof byLayer === 'object') {
         for (const layer of ['default', ...Object.keys(byLayer)]) {
-          checkExternalItem(resolveByProperty(externalItem, 'byLayer', layer));
+          checkExternalItem(resolveLayerExternals(externalItem, layer));
         }
         return;
       }

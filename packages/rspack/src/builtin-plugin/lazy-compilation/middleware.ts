@@ -4,7 +4,7 @@ import { type Compiler, MultiCompiler } from '../..';
 import type { LazyCompilationOptions } from '../../config';
 import type { ExternalItem, Externals } from '../../config';
 import type { DevServerMiddlewareHandler } from '../../config/devServer';
-import { resolveByProperty } from '../../util/cleverMerge';
+import { resolveLayerExternals } from '../../util/resolveLayerExternals';
 import { BuiltinLazyCompilationPlugin } from './lazyCompilation';
 
 const require = createRequire(import.meta.url);
@@ -156,7 +156,7 @@ function collectReservedExternals(
     if (!item || typeof item !== 'object' || item instanceof RegExp) {
       return;
     }
-    const resolved = resolveByProperty(item, 'byLayer', layer);
+    const resolved = resolveLayerExternals(item, layer);
     for (const [request, value] of Object.entries(resolved)) {
       // `false` opts out of externalization; every other key mirrors `ExternalsPlugin`.
       if (value === false) {
