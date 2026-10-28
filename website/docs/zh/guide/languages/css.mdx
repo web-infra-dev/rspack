@@ -360,6 +360,34 @@ export default {
 
 上述配置会将所有 `*.css` 文件经过 [postcss-loader](https://github.com/webpack/postcss-loader) 处理，并将生成的结果交给 Rspack 完成 CSS 后续流程的处理。
 
+## Tailwind CSS
+
+[Tailwind CSS](https://tailwindcss.com/) 是一个以 Utility Class 为基础的 CSS 框架和设计系统，可以快速地为组件添加常用样式，同时支持主题样式的灵活扩展。
+
+对于 Tailwind CSS v4 及以上版本，使用 [`@tailwindcss/webpack`](https://www.npmjs.com/package/@tailwindcss/webpack) loader 配合 Rspack 的内置 CSS 支持：
+
+<PackageManagerTabs command="add tailwindcss @tailwindcss/webpack -D" />
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        type: 'css',
+        use: ['@tailwindcss/webpack'],
+      },
+    ],
+  },
+};
+```
+
+```css title="src/styles.css"
+@import 'tailwindcss';
+```
+
+对于 Tailwind CSS v3，请参考 [Install Tailwind CSS v3 with Rspack](https://v3.tailwindcss.com/docs/guides/rspack)。
+
 ## Sass
 
 Rspack 支持使用 [sass-loader](https://github.com/webpack/sass-loader)，你可以这样配置：
@@ -422,31 +450,3 @@ export default {
 ```
 
 上述配置会将所有 `*.less` 文件经过 [less-loader](https://github.com/webpack/less-loader) 处理，并将生成的结果交给 Rspack 完成 CSS 后续流程的处理。
-
-## Tailwind CSS
-
-[Tailwind CSS](https://tailwindcss.com/) 是一个以 Utility Class 为基础的 CSS 框架和设计系统，可以快速地为组件添加常用样式，同时支持主题样式的灵活扩展。
-
-对于 Tailwind CSS v4 及以上版本，使用 [`@tailwindcss/webpack`](https://www.npmjs.com/package/@tailwindcss/webpack) loader 配合 Rspack 的内置 CSS 支持：
-
-<PackageManagerTabs command="add tailwindcss @tailwindcss/webpack -D" />
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.css$/i,
-        type: 'css',
-        use: ['@tailwindcss/webpack'],
-      },
-    ],
-  },
-};
-```
-
-```css title="src/styles.css"
-@import 'tailwindcss';
-```
-
-对于 Tailwind CSS v3，请参考 [Install Tailwind CSS v3 with Rspack](https://v3.tailwindcss.com/docs/guides/rspack)。

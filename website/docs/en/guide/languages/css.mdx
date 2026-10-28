@@ -360,6 +360,34 @@ export default {
 
 The above configuration will have all `*.css` files processed by [postcss-loader](https://github.com/webpack/postcss-loader). The output will be passed to Rspack for CSS post-processing.
 
+## Tailwind CSS
+
+[Tailwind CSS](https://tailwindcss.com/) is a CSS framework and design system based on utility class, which can quickly add common styles to components, and support flexible extension of theme styles.
+
+For Tailwind CSS v4 and later, use the [`@tailwindcss/webpack`](https://www.npmjs.com/package/@tailwindcss/webpack) loader with Rspack's built-in CSS support:
+
+<PackageManagerTabs command="add tailwindcss @tailwindcss/webpack -D" />
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        type: 'css',
+        use: ['@tailwindcss/webpack'],
+      },
+    ],
+  },
+};
+```
+
+```css title="src/styles.css"
+@import 'tailwindcss';
+```
+
+For Tailwind CSS v3, see [Install Tailwind CSS v3 with Rspack](https://v3.tailwindcss.com/docs/guides/rspack).
+
 ## Sass
 
 Rspack supports [sass-loader](https://github.com/webpack/sass-loader), which you can configure like this:
@@ -422,31 +450,3 @@ export default {
 ```
 
 The above configuration runs all `*.less` files through the [less-loader](https://github.com/webpack/less-loader) and passes the generated results to Rspack for CSS post-processing.
-
-## Tailwind CSS
-
-[Tailwind CSS](https://tailwindcss.com/) is a CSS framework and design system based on utility class, which can quickly add common styles to components, and support flexible extension of theme styles.
-
-For Tailwind CSS v4 and later, use the [`@tailwindcss/webpack`](https://www.npmjs.com/package/@tailwindcss/webpack) loader with Rspack's built-in CSS support:
-
-<PackageManagerTabs command="add tailwindcss @tailwindcss/webpack -D" />
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.css$/i,
-        type: 'css',
-        use: ['@tailwindcss/webpack'],
-      },
-    ],
-  },
-};
-```
-
-```css title="src/styles.css"
-@import 'tailwindcss';
-```
-
-For Tailwind CSS v3, see [Install Tailwind CSS v3 with Rspack](https://v3.tailwindcss.com/docs/guides/rspack).
