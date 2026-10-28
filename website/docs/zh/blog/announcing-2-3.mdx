@@ -77,7 +77,9 @@ Rspack 2.3 现已发布！本次更新将 JavaScript 解析器迁移至 SWC Next
 {/* prettier-ignore */}
 ## SWC Next 解析器 \{#swc-next}
 
-[SWC Next](https://github.com/swc-project/swc-next) 是一个用 Rust 编写的高性能 JavaScript 和 TypeScript 工具链，也是 SWC 的从零重写版本。它围绕扁平、基于 ESTree 的 AST 构建，以兼顾性能和可扩展性。根据 SWC Next 的官方基准测试，其原生解析器的速度是 SWC 的 [2–4.5 倍](https://github.com/swc-project/swc-next/blob/main/website/docs/docs/guide/benchmark.mdx#rust-parse)；同时通过 Test262、TypeScript 和 Babel 测试集验证，保证解析器行为的正确性。
+[SWC Next](https://github.com/swc-project/swc-next) 是一个用 Rust 编写的高性能 JavaScript 工具链。它围绕扁平的 ESTree AST 构建，兼顾性能和可扩展性。Rspack 团队正与 SWC 团队合作推进其开发，逐步实现 SWC 原有的各项能力。
+
+根据 SWC Next 的官方基准测试，其原生解析器的速度是 SWC 的 [2–4.5 倍](https://next.swc.rs/guide/benchmark)；同时通过 Test262、TypeScript 等[多项测试集](https://next.swc.rs/guide/testing)验证，保证解析器行为的正确性。
 
 Rspack 在 2.3 中将 JavaScript 解析器迁移至 SWC Next，并借助其更紧凑的 AST 和内存布局同步优化了 Rspack 自身的解析和遍历流程。在使用 6 个 worker 时，解析阶段的耗时和指令数如下：
 

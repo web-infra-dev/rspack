@@ -77,7 +77,9 @@ Notable changes include:
 {/* prettier-ignore */}
 ## SWC Next parser \{#swc-next}
 
-[SWC Next](https://github.com/swc-project/swc-next) is a fast JavaScript and TypeScript toolchain written in Rust. It is a rewrite of SWC from the ground up, built around a flat, ESTree-based AST for performance and extensibility. According to SWC Next's official benchmarks, its native parser is [2–4.5× as fast](https://github.com/swc-project/swc-next/blob/main/website/docs/docs/guide/benchmark.mdx#rust-parse) as SWC's; it is also tested against Test262, TypeScript, and Babel to ensure parser correctness.
+[SWC Next](https://github.com/swc-project/swc-next) is a fast JavaScript toolchain written in Rust. It is built around a flat ESTree AST for performance and extensibility. The Rspack team is collaborating with the SWC team on its development, gradually bringing its capabilities in line with SWC.
+
+According to SWC Next's official benchmarks, its native parser is [2–4.5× as fast](https://next.swc.rs/guide/benchmark) as SWC's; it is also validated using [multiple test suites](https://next.swc.rs/guide/testing), including Test262 and TypeScript, to ensure parser correctness.
 
 Rspack 2.3 moves its JavaScript parser to SWC Next and, with its more compact AST and memory layout, also optimizes Rspack's parsing and traversal. Using 6 workers, parsing time and instruction counts changed as follows:
 
