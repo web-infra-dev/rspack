@@ -429,7 +429,22 @@ console.log(add(1, 2));
 
 #### 支持 TypeScript 7.1 \{#typescript-7-1}
 
-Rslib 1.0.4 支持使用 TypeScript 7.1 Beta 生成类型声明，也支持通过 [Content Mappers](https://devblogs.microsoft.com/typescript/announcing-typescript-7-1-beta/#content-mappers) 扩展对组件文件的类型支持。
+Rslib 1.0.4 支持使用 TypeScript 7.1 Beta 生成类型声明，并支持通过其新增的 [Content Mappers](https://devblogs.microsoft.com/typescript/announcing-typescript-7-1-beta/#content-mappers) 扩展类型生成能力。
+
+使用时，只需安装对应的 mapper，并在 `tsconfig.json` 中注册它处理的文件扩展名。例如，假设已安装一个用于处理 CSS Modules 的 `example-css-modules-mapper`（示例包名），可以这样配置：
+
+```json title="tsconfig.json"
+{
+  "contentMappers": [
+    {
+      "package": "example-css-modules-mapper",
+      "extensions": [".module.css"]
+    }
+  ]
+}
+```
+
+Rslib 在进行类型生成时会自动加载该 mapper，根据 CSS Modules 中的类名生成类型声明。
 
 你可以安装 TypeScript 7.1 Beta 来体验：
 
