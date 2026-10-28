@@ -358,13 +358,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let SemanticReturn {
       semantic,
       diagnostics: semantic_diagnostics,
-    } = analyze(
-      &ast,
-      AnalyzeOptions {
-        check_syntax,
-        build_module_record: false,
-      },
-    );
+    } = analyze(&ast, AnalyzeOptions { check_syntax });
     if !semantic_diagnostics.is_empty() {
       append_swc_next_diagnostics(&mut diagnostics, &source_string, semantic_diagnostics);
       return default_with_diagnostics(source, diagnostics);
