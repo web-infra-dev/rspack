@@ -877,10 +877,25 @@ impl ModuleCodeTemplate {
 
   pub fn render_runtime_globals(&mut self, runtime_globals: &RuntimeGlobals) -> String {
     self.runtime_requirements.insert(*runtime_globals);
-    self.runtime_globals.render(runtime_globals)
+    if self.runtime_globals_render_mode == RuntimeGlobalsRenderMode::RspackExport
+      && *runtime_globals == RuntimeGlobals::MODULE_CACHE
+    {
+      self.runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+    }
+    self.render_runtime_globals_without_adding(runtime_globals)
   }
 
   pub fn render_runtime_globals_without_adding(&self, runtime_globals: &RuntimeGlobals) -> String {
+    // Shared factories receive the executing runtime's require. Resolve cache
+    // access through it as well instead of capturing another runtime's lexical cache.
+    if self.runtime_globals_render_mode == RuntimeGlobalsRenderMode::RspackExport
+      && *runtime_globals == RuntimeGlobals::MODULE_CACHE
+    {
+      return format!(
+        "{}.c",
+        self.runtime_globals.render(&RuntimeGlobals::REQUIRE)
+      );
+    }
     self.runtime_globals.render(runtime_globals)
   }
 
