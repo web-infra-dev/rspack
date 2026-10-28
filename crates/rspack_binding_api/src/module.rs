@@ -265,7 +265,7 @@ struct OriginalSourceNapiRef {
   // the old Arc allocation unavailable for pointer reuse, so identity comparisons remain reliable.
   related_source: Weak<dyn Source>,
   // Keep the converted JavaScript object alive and return that exact object on cache hits. The
-  // reference is replaced on the next call after `module.source()` points to a different Source.
+  // reference is cleared after the build, or replaced when `module.source()` changes.
   napi_ref: OneShotRef,
 }
 
@@ -631,6 +631,24 @@ impl ModuleObject {
     MODULE_INSTANCE_REFS.with(|refs| {
       let mut refs_by_compiler_id = refs.borrow_mut();
       refs_by_compiler_id.remove(compiler_id)
+    });
+  }
+
+  // Called on the owning JS thread so dropping the cached Node-API references is safe.
+  pub(crate) fn clear_original_source_cache(compiler_id: &CompilerId) {
+    MODULE_INSTANCE_REFS.with_borrow_mut(|refs_by_compiler_id| {
+      if let Some(refs) = refs_by_compiler_id.get_mut(compiler_id) {
+        for reference in refs.values_mut() {
+          let module: &mut Module = match reference {
+            Either5::A(module) => &mut module.module,
+            Either5::B(module) => &mut module.module,
+            Either5::C(module) => &mut module.module,
+            Either5::D(module) => &mut module.module,
+            Either5::E(module) => module,
+          };
+          module.original_source_ref = None;
+        }
+      }
     });
   }
 

@@ -566,6 +566,9 @@ struct RunGuard {
 
 impl RunGuard {
   fn finish(self, env: &Env, result: &mut Result<(), ErrorCode>) {
+    // All native hooks, including afterEmit, have finished. Release converted JS sources on
+    // the JS thread before done hooks run; later originalSource() calls can materialize again.
+    ModuleObject::clear_original_source_cache(&self._reference.compiler.id());
     if result.is_ok() {
       *result = self
         ._reference
