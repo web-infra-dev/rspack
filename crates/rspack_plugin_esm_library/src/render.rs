@@ -7,7 +7,8 @@ use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkGroup, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataPreservedAssetImport, Compilation, ConcatenatedModuleInfo, InitFragment,
   ModuleIdentifier, PathData, PathInfo, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable,
-  SourceType, export_name, get_js_chunk_filename_template, get_undo_path, render_init_fragments,
+  SourceType, analyze_module_scope, export_name, get_js_chunk_filename_template, get_undo_path,
+  render_init_fragments,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -304,6 +305,21 @@ impl EsmLibraryPlugin {
           decl_source.add(RawStringSource::from_static("});\n"));
         } else {
           let mut name_allocator = chunk_link.name_allocator.clone();
+          // Wrapped modules are not scope hoisted, so their free identifiers are
+          // missing from the chunk allocator. Reserve them before introducing
+          // bindings into the factories' enclosing scope.
+          let mut factory_scope = ConcatenatedModuleInfo::default();
+          analyze_module_scope(
+            &format!("({{\n{}\n}});", decl_inner.source().into_string_lossy()),
+            false,
+            &mut factory_scope,
+          )?;
+          name_allocator.extend(
+            factory_scope
+              .global_scope_ident
+              .iter()
+              .map(|ident| Atom::from(&ident.id.sym)),
+          );
           let factories = name_allocator.find_new_name("__rspack_shared_modules__", &[]);
           decl_source.add(RawStringSource::from(format!("var {factories} = {{\n")));
           decl_source.add(decl_inner);
