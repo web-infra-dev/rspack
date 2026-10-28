@@ -11,7 +11,7 @@
 - Manifest: main.LAST_HASH.hot-update.json, size: 77
 - Update: initial_js.LAST_HASH.hot-update.js, size: 332
 - Update: lib.LAST_HASH.hot-update.js.full.js, size: 1615
-- Update: main.LAST_HASH.hot-update.js, size: 28409
+- Update: main.LAST_HASH.hot-update.js, size: 28469
 
 ## Manifest
 
@@ -112,7 +112,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 it("should work if there are new initial chunks", async () => {
-	await Promise.all(/* import() */ [__webpack_require__.e("lib"), __webpack_require__.e("initial_js")]).then(__webpack_require__.bind(__webpack_require__, "./initial.js"));
+	await __webpack_require__.eg("block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./index.js|dep=esm|./initial|loc=4:8-27").then(__webpack_require__.bind(__webpack_require__, "./initial.js"));
 	const installedChunks = __webpack_require__.hmrS_jsonp;
 	expect(
 		(installedChunks && installedChunks.lib === 0) ||

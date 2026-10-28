@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: consumer_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 9463
+- Update: main.LAST_HASH.hot-update.js, size: 9570
 
 ## Manifest
 
@@ -43,7 +43,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
-/* export default */ const __rspack_default_export = (() => __webpack_require__.e(/* import() */ "consumer_js").then(__webpack_require__.bind(__webpack_require__, "./consumer.js")).then(({ namespace }) => namespace));
+/* export default */ const __rspack_default_export = (() => __webpack_require__.eg("block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./loader.js|dep=esm|./consumer|loc=1:22-42").then(__webpack_require__.bind(__webpack_require__, "./consumer.js")).then(({ namespace }) => namespace));
 
 
 },

@@ -1,0 +1,140 @@
+# Case complete-hmr-chunk: Step 2
+
+## Changed Files
+- dep.js
+- page.js
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: other.535fa26bf3f783d1.js
+- Bundle: page.27aa75159bd51a4f.js
+- Bundle: shared.a4d4a4571aaf4b02.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 35
+- Update: main.LAST_HASH.hot-update.js, size: 1048
+- Update: page.LAST_HASH.hot-update.js, size: 124
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main","page"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/block_chunk_map
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
+// webpack/runtime/get javascript chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.u = (chunkId) => {
+  // return url for filenames not based on template
+  if (chunkId === "main") return "bundle.js";
+  // return url for filenames based on template
+  return "" + chunkId + "." + {"other": "535fa26bf3f783d1","page": "27aa75159bd51a4f","shared": "a4d4a4571aaf4b02",}[chunkId] + ".js"
+}
+})();
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/block_chunk_map
+(() => {
+((blocks) => {
+	var map = __webpack_require__.hmrS_blockChunks;
+	
+	Object.keys(blocks).forEach((blockId) => {
+		if (blocks[blockId] === null) delete map[blockId];
+		else map[blockId] = blocks[blockId];
+	});
+	var installedBlocks = __webpack_require__.hmrS_blocks;
+	Object.keys(installedBlocks).forEach((id) => {
+		if (!map[id]) delete installedBlocks[id];
+	});
+})({"name:page":["page"]});
+
+})();
+
+}
+);
+```
+
+
+
+### page.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./page.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+self["rspackHotUpdate"]("page", {
+"./page.js"(module) {
+globalThis.completeHmrChunkValue = 9;
+module.hot.accept();
+
+
+},
+
+});
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./page.js
+
+
+Outdated Dependencies:
+```json
+{}
+```
+
+#### Updated
+
+Updated Modules:
+- ./dep.js
+- ./page.js
+
+Updated Runtime:
+- `__webpack_require__.h`
+- `__webpack_require__.u`
+
+
+#### Callback
+
+Accepted Callback:
+
+
+Disposed Callback:

@@ -16,6 +16,7 @@
 // The update info
 <%- var("currentUpdateApplyHandlers") %>;
 <%- var("queuedInvalidatedModules") %>;
+<%- var("hotUpdateBlock") %>;
 
 <%- define(HMR_MODULE_DATA) %> = currentModuleData;
 <% if (_is_rspack_runtime_mode) { %><%- define(INTERCEPT_MODULE_EXECUTION) %> = [];
@@ -53,6 +54,12 @@
 			return Promise.all(chunkPromises);
 		}));
 	};
+	hotUpdateBlock = function (blockId, promises) {
+		prepareChunks(update.load.blocks && update.load.blocks[blockId], promises);
+	};
+	Object.keys(<%- REQUIRE_SCOPE %>.hmrS_blocks).forEach(function (blockId) {
+		hotUpdateBlock(blockId, promises);
+	});
 	promises.push(Promise.resolve().then(function () {
 		var entryPromises = [];
 		var entries = update.load.entries || {};
@@ -61,6 +68,10 @@
 		});
 		return Promise.all(entryPromises);
 	}));
+	applyHandlers.push(function () {
+		hotUpdateBlock = undefined;
+		return {};
+	});
 };
 
 <%- fn("rspackHmrCreateRequire") %>(require, moduleId<% if (_is_rspack_runtime_mode) { %>, context<% } %>) {
@@ -113,7 +124,14 @@
 		return trackBlockingPromise(<% if (_is_rspack_runtime_mode) { %>context.e<% } else { %>require.e<% } %>(chunkId, fetchPriority));
 	};
 	if (<%- weak(ENSURE_CHUNK_GROUP) %>) fn.eg = function (blockId, fetchPriority) {
-		return trackBlockingPromise(<%- weak(ENSURE_CHUNK_GROUP) %>(blockId, fetchPriority));
+		var promises = [];
+		if (hotUpdateBlock) hotUpdateBlock(blockId, promises);
+		var promise = <%- weak(ENSURE_CHUNK_GROUP) %>(blockId, fetchPriority);
+		if (promises.length) {
+			promises.push(promise);
+			promise = Promise.all(promises);
+		}
+		return trackBlockingPromise(promise);
 	};
 
 	return fn;

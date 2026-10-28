@@ -10,7 +10,7 @@
 - Bundle: data_b_json.chunk.CURRENT_HASH.js
 - Bundle: data_b_json_lazy-compilation-proxy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 65
-- Update: data_b_json_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1039
+- Update: data_b_json_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1056
 - Update: main.LAST_HASH.hot-update.js, size: 949
 
 ## Manifest
@@ -39,7 +39,7 @@ self["rspackHotUpdate"]("data_b_json_lazy-compilation-proxy", {
 "./data/b.json!lazy-compilation-proxy"(module, __unused_rspack_exports, __webpack_require__) {
 var client = __webpack_require__("../../../../../../../../packages/rspack/hot/lazy-compilation-web.js?http%3A%2F%2Flocalhost%3APORT%2F_rspack%2Flazy%2Ftrigger");
 var data = "lazy-compilation-proxy|json|<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/import-attributes/data/b.json";
-        module.exports = __webpack_require__.e(/* import() */ "data_b_json").then(__webpack_require__.t.bind(__webpack_require__, "./data/b.json", 19));
+        module.exports = __webpack_require__.eg("block:./data/b.json!lazy-compilation-proxy").then(__webpack_require__.t.bind(__webpack_require__, "./data/b.json", 19));
         if (module.hot) {
           module.hot.accept();
           module.hot.accept("./data/b.json", function() { module.hot.invalidate(); });

@@ -1,0 +1,129 @@
+# Case complete-hmr-without-delta: Step 2
+
+## Changed Files
+- dep.js
+- page.js
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: other.chunk.CURRENT_HASH.js
+- Bundle: page.chunk.CURRENT_HASH.js
+- Bundle: shared.chunk.CURRENT_HASH.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 35
+- Update: main.LAST_HASH.hot-update.js, size: 620
+- Update: page.LAST_HASH.hot-update.js, size: 131
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main","page"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/block_chunk_map
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/block_chunk_map
+(() => {
+((blocks) => {
+	var map = __webpack_require__.hmrS_blockChunks;
+	
+	Object.keys(blocks).forEach((blockId) => {
+		if (blocks[blockId] === null) delete map[blockId];
+		else map[blockId] = blocks[blockId];
+	});
+	var installedBlocks = __webpack_require__.hmrS_blocks;
+	Object.keys(installedBlocks).forEach((id) => {
+		if (!map[id]) delete installedBlocks[id];
+	});
+})({"name:page":["page"]});
+
+})();
+
+}
+);
+```
+
+
+
+### page.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./page.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+self["rspackHotUpdate"]("page", {
+"./page.js"(module) {
+globalThis.completeHmrWithoutDeltaValue = 9;
+module.hot.accept();
+
+
+},
+
+});
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./page.js
+
+
+Outdated Dependencies:
+```json
+{}
+```
+
+#### Updated
+
+Updated Modules:
+- ./dep.js
+- ./page.js
+
+Updated Runtime:
+- `__webpack_require__.h`
+
+
+#### Callback
+
+Accepted Callback:
+
+
+Disposed Callback:

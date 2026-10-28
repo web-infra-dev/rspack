@@ -1,0 +1,129 @@
+# Case named-group-location-change: Step 1
+
+## Changed Files
+- loader.js
+- page.js
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: page.chunk.CURRENT_HASH.js
+- Bundle: shared.chunk.CURRENT_HASH.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 78
+- Update: main.LAST_HASH.hot-update.js, size: 1187
+- Update: page.LAST_HASH.hot-update.js, size: 336
+- Update: shared.LAST_HASH.hot-update.js.full.js, size: 86
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main","page"],"r":[],"m":[],"load":{"blocks":{"name:page":["shared"]}}}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./loader.js
+
+#### Changed Runtime Modules
+- webpack/runtime/block_chunk_map
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {
+"./loader.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  load: () => (load),
+  loadAgain: () => (loadAgain)
+});
+// Moving the imports must not change the identity of the named group.
+const load = () => __webpack_require__.eg("name:page").then(__webpack_require__.bind(__webpack_require__, "./page.js"));
+const loadAgain = () => __webpack_require__.eg("name:page").then(__webpack_require__.bind(__webpack_require__, "./page.js"));
+module.hot.accept();
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/block_chunk_map
+(() => {
+((blocks) => {
+	var map = __webpack_require__.hmrS_blockChunks;
+	
+	Object.keys(blocks).forEach((blockId) => {
+		if (blocks[blockId] === null) delete map[blockId];
+		else map[blockId] = blocks[blockId];
+	});
+	var installedBlocks = __webpack_require__.hmrS_blocks;
+	Object.keys(installedBlocks).forEach((id) => {
+		if (!map[id]) delete installedBlocks[id];
+	});
+})({"name:page":["shared","page"]});
+
+})();
+
+}
+);
+```
+
+
+
+### page.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./page.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("page", {
+"./page.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
+const value = (globalThis.namedGroupValue = __webpack_require__("./dep.js"));
+module.hot.accept();
+
+
+},
+
+});
+```
+
+
+
+### shared.LAST_HASH.hot-update.js.full.js
+
+#### Changed Modules
+- ./dep.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+self["rspackHotUpdate"]("shared", {
+"./dep.js"(module) {
+module.exports = 2;
+
+
+},
+
+});
+```
