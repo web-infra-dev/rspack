@@ -427,13 +427,12 @@ export default {
 
 [Tailwind CSS](https://tailwindcss.com/) 是一个以 Utility Class 为基础的 CSS 框架和设计系统，可以快速地为组件添加常用样式，同时支持主题样式的灵活扩展。
 
-对于 Tailwind CSS v4 及以上版本，使用 [`@tailwindcss/webpack`](https://github.com/tailwindlabs/tailwindcss/blob/main/packages/%40tailwindcss-webpack/README.md) loader 配合 Rspack 的内置 CSS 支持：
+对于 Tailwind CSS v4 及以上版本，使用 [`@tailwindcss/webpack`](https://www.npmjs.com/package/@tailwindcss/webpack) loader 配合 Rspack 的内置 CSS 支持：
 
 <PackageManagerTabs command="add tailwindcss @tailwindcss/webpack -D" />
 
 ```js title="rspack.config.mjs"
 export default {
-  entry: './src/styles.css',
   module: {
     rules: [
       {

@@ -427,13 +427,12 @@ The above configuration runs all `*.less` files through the [less-loader](https:
 
 [Tailwind CSS](https://tailwindcss.com/) is a CSS framework and design system based on utility class, which can quickly add common styles to components, and support flexible extension of theme styles.
 
-For Tailwind CSS v4 and later, use the [`@tailwindcss/webpack`](https://github.com/tailwindlabs/tailwindcss/blob/main/packages/%40tailwindcss-webpack/README.md) loader with Rspack's built-in CSS support:
+For Tailwind CSS v4 and later, use the [`@tailwindcss/webpack`](https://www.npmjs.com/package/@tailwindcss/webpack) loader with Rspack's built-in CSS support:
 
 <PackageManagerTabs command="add tailwindcss @tailwindcss/webpack -D" />
 
 ```js title="rspack.config.mjs"
 export default {
-  entry: './src/styles.css',
   module: {
     rules: [
       {
