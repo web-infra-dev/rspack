@@ -8,7 +8,15 @@ export default ['var', 'global', 'window', 'self', 'module'].map((type) =>
     mode: 'development',
     devtool: false,
     target: 'web',
-    entry: './index.js',
+    entry:
+      type === 'var'
+        ? {
+            main: {
+              import: './index.js',
+              library: { type: 'var', name: 'ordinary' },
+            },
+          }
+        : './index.js',
     experiments: { outputModule: type === 'module' },
     output: { publicPath: '', globalObject: 'globalThis' },
     plugins: [
@@ -18,6 +26,16 @@ export default ['var', 'global', 'window', 'self', 'module'].map((type) =>
         library: { type, name: 'probe' },
         exposes: { './message': './index.js' },
       }),
+      ...(type === 'module'
+        ? []
+        : [
+            new container.ContainerPlugin({
+              name: 'nested_provider',
+              filename: 'nestedRemoteEntry.js',
+              library: { type, name: ['namespace', 'probe'] },
+              exposes: { './message': './index.js' },
+            }),
+          ]),
       definePlugin({
         apply(compiler) {
           compiler.hooks.compilation.tap(
@@ -119,6 +137,33 @@ export default ['var', 'global', 'window', 'self', 'module'].map((type) =>
                     42,
                   );
 
+                  const nestedSource = compilation
+                    .getAsset('nestedRemoteEntry.js')!
+                    .source.source()
+                    .toString();
+                  const nested = makeContext();
+                  runInContext(nestedSource, nested);
+                  assert.equal(typeof nested.namespace.probe.get, 'function');
+                  assert.equal(typeof nested.namespace.probe.init, 'function');
+                  const occupied = makeContext();
+                  occupied.namespace = { probe: 0, keep: 42 };
+                  const original = occupied.namespace;
+                  assert.throws(
+                    () => runInContext(nestedSource, occupied),
+                    /global name is already in use/,
+                  );
+                  assert.equal(occupied.namespace, original);
+                  assert.equal(occupied.namespace.probe, 0);
+                  assert.equal(occupied.namespace.keep, 42);
+
+                  const partial = makeContext();
+                  partial.namespace = { keep: 42 };
+                  const namespace = partial.namespace;
+                  runInContext(nestedSource, partial);
+                  assert.equal(partial.namespace, namespace);
+                  assert.equal(partial.namespace.keep, 42);
+                  assert.equal(typeof partial.namespace.probe.get, 'function');
+
                   if (type === 'var') {
                     const lexical = makeContext();
                     runInContext('const probe = 42;', lexical);
@@ -127,6 +172,15 @@ export default ['var', 'global', 'window', 'self', 'module'].map((type) =>
                       /already been declared/,
                     );
                     assert.equal(runInContext('probe', lexical), 42);
+
+                    const ordinarySource = compilation
+                      .getAsset('main.js')!
+                      .source.source()
+                      .toString();
+                    const ordinary = makeContext();
+                    ordinary.ordinary = 0;
+                    runInContext(ordinarySource, ordinary);
+                    assert.equal(ordinary.ordinary.message, 'federated-ok');
                   }
                 },
               );
