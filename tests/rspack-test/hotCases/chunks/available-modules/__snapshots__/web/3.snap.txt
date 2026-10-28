@@ -103,8 +103,6 @@ check => prepare => dispose => apply => idle
 #### Outdated
 
 Outdated Modules:
-- ./child.js
-- ./m.js
 - ./parent-b.js
 
 

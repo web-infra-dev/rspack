@@ -40,6 +40,29 @@
 <%- define(HMR_DOWNLOAD_UPDATE_HANDLERS) %> = {};
 <%- define(HMR_INVALIDATE_MODULE_HANDLERS) %> = {};
 
+<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.load = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, _css, _miniCss, update) {
+	if (!update || !update.load) return;
+	var prepareChunks = function (chunks, promises) {
+		if (!chunks) return;
+		// Download handlers register their preparers before this microtask runs.
+		promises.push(Promise.resolve().then(function () {
+			var chunkPromises = [];
+			chunks.forEach(function (chunkId) {
+				update.chunkHandlers.forEach(function (handler) { handler(chunkId, chunkPromises); });
+			});
+			return Promise.all(chunkPromises);
+		}));
+	};
+	promises.push(Promise.resolve().then(function () {
+		var entryPromises = [];
+		var entries = update.load.entries || {};
+		Object.keys(entries).forEach(function (entryId) {
+			if (update.entryIsLoaded && update.entryIsLoaded(entryId)) prepareChunks(entries[entryId], entryPromises);
+		});
+		return Promise.all(entryPromises);
+	}));
+};
+
 <%- fn("rspackHmrCreateRequire") %>(require, moduleId<% if (_is_rspack_runtime_mode) { %>, context<% } %>) {
 	var me = hmrInstalledModules[moduleId];
 	if (!me) return require;
@@ -271,6 +294,10 @@
 			return setStatus("prepare").then(function () {
 				var updatedModules = [];
 				currentUpdateApplyHandlers = [];
+				var updateOptions = {
+					load: update.load,
+					chunkHandlers: []
+				};
 
 				return Promise.all(
 					Object.keys(<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>).reduce(function (
@@ -285,7 +312,8 @@
 							currentUpdateApplyHandlers,
 							updatedModules,
 							update.css,
-							update.miniCss
+							update.miniCss,
+							updateOptions
 						);
 						return promises;
 					},

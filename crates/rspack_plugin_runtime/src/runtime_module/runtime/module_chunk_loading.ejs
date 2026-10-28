@@ -1,22 +1,23 @@
-<%- var("moduleInstallChunk") %> = <%- basicFunction("data") %> {
-    var __rspack_esm_ids = data.__rspack_esm_ids;
-    var moreModules = data.<%- _modules %>;
-    var __rspack_esm_runtime = data.__rspack_esm_runtime;
-    // add "modules" to the modules object,
-    // then flag all "ids" as loaded and fire callback
-    var moduleId, chunkId, i = 0;
-    for (moduleId in moreModules) {
-        if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
-            <%- MODULE_FACTORIES %>[moduleId] = moreModules[moduleId];
-        }
-    }
-    if (__rspack_esm_runtime) __rspack_esm_runtime(<%- REQUIRE_SCOPE %>);
-    for (; i < __rspack_esm_ids.length; i++) {
-        chunkId = __rspack_esm_ids[i];
+<%- fn("moduleFinishChunkLoading") %>(__rspack_esm_ids) {
+    for (var i = 0; i < __rspack_esm_ids.length; i++) {
+        var chunkId = __rspack_esm_ids[i];
         if (<%- HAS_OWN_PROPERTY %>(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
             moduleInstalledChunks[chunkId][0]();
         }
         moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
     }
     <% if (_with_on_chunk_load) { %><%- weak(ON_CHUNKS_LOADED) %>();<% } %>
+}
+
+<%- var("moduleInstallChunk") %> = <%- basicFunction("data") %> {
+    var moreModules = data.<%- _modules %>;
+    var __rspack_esm_runtime = data.__rspack_esm_runtime;
+    var moduleId;
+    for (moduleId in moreModules) {
+        if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
+            <%- MODULE_FACTORIES %>[moduleId] = moreModules[moduleId];
+        }
+    }
+    if (__rspack_esm_runtime) __rspack_esm_runtime(<%- REQUIRE_SCOPE %>);
+    moduleFinishChunkLoading(data.__rspack_esm_ids);
 };

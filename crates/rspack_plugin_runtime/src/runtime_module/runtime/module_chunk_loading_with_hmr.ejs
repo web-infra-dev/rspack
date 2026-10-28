@@ -1,14 +1,18 @@
-  <%- fn("moduleLoadUpdateChunk") %>(chunkId, updatedModulesList) {
+  <%- fn("moduleLoadUpdateChunk") %>(chunkId, updatedModulesList, full) {
     return new Promise( <%- basicFunction("resolve, reject")  %> {
       // start update chunk loading
-      var url = <%- PUBLIC_PATH %> + <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId);
+      var filename = <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId);
+      var url = <%- PUBLIC_PATH %> + filename + (full ? (/\.mjs$/.test(filename) ? ".full.mjs" : ".full.js") : "");
       var onResolve = <%- basicFunction("obj") %> {
         var updatedModules = obj.<%- _modules %>;
         var updatedRuntime = obj.__rspack_esm_runtime;
         if (updatedRuntime) hotCurrentUpdateRuntime.push(updatedRuntime);
         for (var moduleId in updatedModules) {
           if ((<%- HAS_OWN_PROPERTY %>)(updatedModules, moduleId)) {
-            hotCurrentUpdate[moduleId] = updatedModules[moduleId];
+            // Install-only factories must not replace ordinary updates.
+            if (!Array.isArray(updatedModules[moduleId]) || !<%- HAS_OWN_PROPERTY %>(hotCurrentUpdate, moduleId) || Array.isArray(hotCurrentUpdate[moduleId])) {
+              hotCurrentUpdate[moduleId] = updatedModules[moduleId];
+            }
             if (updatedModulesList) updatedModulesList.push(moduleId);
           }
         }
