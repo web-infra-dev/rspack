@@ -47,7 +47,7 @@ _October 27, 2026_
 
 ![Rspack 2.3 banner](https://assets.rspack.rs/rspack/rspack-banner-v2.3.png)
 
-Rspack 2.3 is now available! This release moves the JavaScript parser to SWC Next, improves build performance, reduces output size and memory usage, enhances experimental caching, adds support for filtering loaders by code content, and improves built-in CSS and file watching.
+Rspack 2.3 is now available! This release moves the JavaScript parser to SWC Next, improves build performance, reduces memory usage and output size, enhances experimental caching, adds support for filtering loaders by code content, and improves built-in CSS and file watching.
 
 ---
 
@@ -56,8 +56,8 @@ Notable changes include:
 - [SWC Next parser](#swc-next)
 - Performance
   - [Build performance](#build-performance)
-  - [SplitChunks optimizations](#split-chunks)
   - [Memory improvements](#memory-improvements)
+  - [SplitChunks optimizations](#split-chunks)
 - [Experimental cache improvements](#cache-improvements)
 - New features
   - [Filter loaders by code content](#loader-code-filter)
@@ -92,14 +92,24 @@ Rspack 2.3 moves its JavaScript parser to SWC Next and, with its more compact AS
 
 Rspack continues to improve development and build performance by optimizing core processes such as module processing, caching, and HMR. These improvements reduce time spent waiting for builds and provide faster feedback after code changes.
 
-In this [benchmark project](https://github.com/LingyuCoder/rspack-react-10k-benchmark/actions/runs/40302457470), Rspack 2.3.0 reduces HMR and warm build times with caching by around 5% compared with 2.2.0.
+In a large real-world project, Rspack 2.3.0 reduced build time by about 23% compared with 2.2.0:
 
-In a large real-world project, Rspack 2.3.0 reduced build time by about 23% compared with 2.2.0, while also reducing peak memory usage:
+|    2.2.0 |    2.3.0 |   Saved | Reduction |
+| -------: | -------: | ------: | --------: |
+| 197.16 s | 152.25 s | 44.91 s | **22.8%** |
 
-| Metric      |     2.2.0 |     2.3.0 |    Saved | Reduction |
-| ----------- | --------: | --------: | -------: | --------: |
-| Build time  |  197.16 s |  152.25 s |  44.91 s | **22.8%** |
-| Peak memory | 49,178 MB | 46,071 MB | 3,107 MB |  **6.3%** |
+### Memory improvements
+
+Rspack 2.3 further reduces memory usage in large projects without sacrificing build performance. The following table compares RSS in a real-world project:
+
+| Scenario | Metric              |     2.2.0 |     2.3.0 | Reduction |
+| -------- | ------------------- | --------: | --------: | --------- |
+| Build    | Peak RSS            | 28.30 GiB | 20.53 GiB | **27.4%** |
+| Build    | RSS after build     | 25.32 GiB | 16.07 GiB | **36.5%** |
+| Dev      | Peak RSS at startup | 28.63 GiB | 18.96 GiB | **33.8%** |
+| Dev      | Steady-state RSS    | 28.88 GiB | 18.83 GiB | **34.8%** |
+
+Rspack 2.3 also adds memory snapshots based on [allocative](https://github.com/facebook/buck2/tree/main/allocative) to help developers identify memory hotspots during a build. If your project uses a large amount of memory, follow the [memory diagnostics guide](../guide/diagnostics/memory) to capture and submit snapshots. We can help analyze and optimize them.
 
 ### SplitChunks optimizations \{#split-chunks}
 
@@ -117,19 +127,6 @@ The following table compares the Brotli-compressed output sizes of two large rea
 | ------------------------- | -------- | -------- | ------- | --------- |
 | Project A (client JS/CSS) | 23.22 MB | 22.67 MB | 550 KB  | **2.4%**  |
 | Project B (client JS/CSS) | 39.97 MB | 36.00 MB | 3.97 MB | **9.9%**  |
-
-### Memory improvements
-
-Rspack 2.3 further reduces memory usage in large projects without sacrificing build performance. The following table compares RSS in a real-world project:
-
-| Scenario | Metric              |     2.2.0 |     2.3.0 | Reduction |
-| -------- | ------------------- | --------: | --------: | --------- |
-| Build    | Peak RSS            | 28.30 GiB | 20.53 GiB | **27.4%** |
-| Build    | RSS after build     | 25.32 GiB | 16.07 GiB | **36.5%** |
-| Dev      | Peak RSS at startup | 28.63 GiB | 18.96 GiB | **33.8%** |
-| Dev      | Steady-state RSS    | 28.88 GiB | 18.83 GiB | **34.8%** |
-
-Rspack 2.3 also adds memory snapshots based on [allocative](https://github.com/facebook/buck2/tree/main/allocative) to help developers identify memory hotspots during a build. If your project uses a large amount of memory, follow the [memory diagnostics guide](../guide/diagnostics/memory) to capture and submit snapshots. We can help analyze and optimize them.
 
 ## Experimental cache improvements \{#cache-improvements}
 
