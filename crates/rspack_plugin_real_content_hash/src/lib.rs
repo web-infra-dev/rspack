@@ -14,7 +14,10 @@ use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use rspack_core::{
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
-  rspack_sources::{BoxSource, MappingSource, RawStringSource, Source, SourceExt, SourceValue},
+  is_source_equal,
+  rspack_sources::{
+    BoxSource, ConcatSource, MappingSource, RawStringSource, Source, SourceExt, SourceValue,
+  },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHasher;
@@ -223,16 +226,21 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
                 .cloned()
                 .collect::<Vec<_>>();
               asset_contents.dedup_by(|a, b| {
-                if let Some(mapping) = a.as_any().downcast_ref::<MappingSource>() {
-                  // External maps previously used RawStringSource. Preserve
-                  // type-sensitive equality for all other source kinds.
-                  (b.as_any().is::<MappingSource>() || b.as_any().is::<RawStringSource>())
-                    && mapping.content_eq(b.as_ref())
-                } else if let Some(mapping) = b.as_any().downcast_ref::<MappingSource>() {
-                  a.as_any().is::<RawStringSource>() && mapping.content_eq(a.as_ref())
-                } else {
-                  a == b
-                }
+                // Devtool previously materialized these map-free views as raw
+                // strings. Their equality here must still describe the bytes,
+                // even when different source graphs produce the same content.
+                let was_raw_string = |source: &BoxSource| {
+                  source.as_any().is::<RawStringSource>()
+                    || source.as_any().is::<MappingSource>()
+                    || source
+                      .as_any()
+                      .downcast_ref::<ConcatSource>()
+                      .is_some_and(ConcatSource::is_source_only)
+                };
+                a == b
+                  || (was_raw_string(a)
+                    && was_raw_string(b)
+                    && is_source_equal(a.as_ref(), b.as_ref()))
               });
               let updated_hash = hooks
                 .borrow()
