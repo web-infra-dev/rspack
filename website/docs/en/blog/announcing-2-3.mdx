@@ -189,9 +189,9 @@ We will continue to optimize warm build performance and memory usage and plan to
 
 ### Loader cache
 
-The loader cache stores transformation results independently, without requiring caches for other build stages. Even when a module needs to be rebuilt, Rspack can reuse a loader's result and skip the transformation if its input, configuration, and relevant dependencies have not changed.
+The loader cache is part of the new cache and can be enabled independently, without enabling caches for other build stages.
 
-This is especially useful for expensive loaders such as babel-loader: a cache hit skips the transformation and reduces build time.
+In some scenarios, such as switching between build and watch modes, module caches may not be reusable, while loader caches can still be reused. For example, when babel-loader or less-loader produces the same output regardless of mode, its cached results can be reused across modes as long as the input, configuration, and relevant dependencies remain unchanged, speeding up builds.
 
 Enable the top-level `cache` and `experiments.newCache`, then set `cache: true` on a loader. You can configure other cache stages independently through [`experiments.newCache`](/config/experiments#cache-stages).
 
@@ -226,7 +226,7 @@ In a test using babel-loader to process around 10,000 simulated modules, enablin
 | Disabled         | 63.75 s        | 11.16 s       | **5.7x** |
 | Enabled          | 28.50 s        | 11.88 s       | **2.4x** |
 
-You can also use [`cache.maxMemoryGenerations`](/config/cache#maxmemorygenerations) to control how many generations unused cache entries are kept in memory, balancing memory usage against disk reads.
+You can also use [`cache.maxMemoryGenerations`](/config/cache#maxmemorygenerations) to balance memory usage and build speed.
 
 ## New features \{#features}
 
