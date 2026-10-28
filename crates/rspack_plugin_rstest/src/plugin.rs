@@ -676,7 +676,7 @@ async fn compilation(
     }
     compilation
       .value_cache_versions
-      .insert_default(PRESERVED_IMPORTER_VERSION_PREFIX.into(), false.to_string());
+      .insert_default_for_prefix(PRESERVED_IMPORTER_VERSION_PREFIX.into(), false.to_string());
     for path in &paths {
       compilation.value_cache_versions.insert(
         format!("{PRESERVED_IMPORTER_VERSION_PREFIX}{path}"),
