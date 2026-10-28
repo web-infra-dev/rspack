@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use napi::{Either, bindgen_prelude::Either3};
+use rspack_core::rspack_sources::{AssetSource, Source};
 use rspack_fs::{
   Error, FileMetadata, FilePermissions, IntermediateFileSystem, IntermediateFileSystemExtras,
   ReadStream, ReadableFileSystem, Result, RspackResultToFsResultExt, WritableFileSystem,
@@ -11,6 +12,7 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 use tracing::instrument;
 
 use super::node::ThreadsafeNodeFS;
+use crate::source::JsAssetSource;
 
 pub struct NodeFileSystem(Arc<ThreadsafeNodeFS>);
 
@@ -52,6 +54,27 @@ impl WritableFileSystem for NodeFileSystem {
       .call_with_promise((file, data.into()).into())
       .await
       .to_fs_result()
+  }
+
+  async fn write_asset(&self, file: &Utf8Path, source: &AssetSource) -> Result<()> {
+    if let Some(write_asset) = &self.0.write_asset {
+      return write_asset
+        .call_with_promise((file.to_string(), JsAssetSource::new(source)).into())
+        .await
+        .to_fs_result();
+    }
+    self.write(file, &source.buffer()).await
+  }
+
+  async fn compare_asset(&self, file: &Utf8Path, source: &AssetSource) -> Result<bool> {
+    if let Some(compare_asset) = &self.0.compare_asset {
+      return compare_asset
+        .call_with_promise((file.to_string(), JsAssetSource::new(source)).into())
+        .await
+        .to_fs_result();
+    }
+    let existing = self.read_file(file).await?;
+    Ok(source.matches_reader(existing.as_slice())?)
   }
 
   async fn remove_file(&self, file: &Utf8Path) -> Result<()> {

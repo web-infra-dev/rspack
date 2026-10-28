@@ -1,5 +1,11 @@
 import util from 'node:util';
-import type { NodeFsStats, ThreadsafeNodeFS } from '@rspack/binding';
+import { pipeline } from 'node:stream';
+import type {
+  JsAssetSource,
+  NodeFsStats,
+  ThreadsafeNodeFS,
+} from '@rspack/binding';
+import { AssetSource } from './util/AssetSource';
 
 import {
   type InputFileSystem,
@@ -161,6 +167,8 @@ class ThreadsafeInputNodeFS implements ThreadsafeNodeFS {
 }
 
 class ThreadsafeOutputNodeFS implements ThreadsafeNodeFS {
+  writeAsset?: (name: string, source: JsAssetSource) => Promise<void>;
+  compareAsset?: (name: string, source: JsAssetSource) => Promise<boolean>;
   writeFile!: (name: string, content: Buffer) => Promise<void>;
   removeFile!: (name: string) => Promise<void>;
   mkdir!: (name: string) => Promise<void>;
@@ -200,6 +208,64 @@ class ThreadsafeOutputNodeFS implements ThreadsafeNodeFS {
       return;
     }
     this.writeFile = memoizeFn(() => util.promisify(fs.writeFile.bind(fs)));
+    this.writeAsset = async (name, native) => {
+      const source = new AssetSource(native);
+      if (fs.writeAsset) {
+        await new Promise<void>((resolve, reject) => {
+          fs.writeAsset!(name, source, (error) =>
+            error ? reject(error) : resolve(),
+          );
+        });
+      } else if (fs.createWriteStream) {
+        await util.promisify(pipeline)(
+          source.createReadStream(),
+          fs.createWriteStream(name),
+        );
+      } else {
+        // Preserve custom outputFileSystem implementations exposing only writeFile.
+        await this.writeFile(name, source.buffer());
+      }
+    };
+    this.compareAsset = async (name, native) => {
+      const source = new AssetSource(native);
+      if (fs.compareAsset) return fs.compareAsset(name, source);
+      if (!fs.createReadStream) {
+        const bytes = await this.readFile(name);
+        return Buffer.isBuffer(bytes) && source.buffer().equals(bytes);
+      }
+      const reader = native.reader();
+      let decoded = reader.read(64 * 1024);
+      let offset = 0;
+      try {
+        for await (const chunk of fs.createReadStream(
+          name,
+        ) as AsyncIterable<Buffer>) {
+          let start = 0;
+          while (start < chunk.length) {
+            if (!decoded) return false;
+            const length = Math.min(
+              decoded.length - offset,
+              chunk.length - start,
+            );
+            if (
+              !decoded
+                .subarray(offset, offset + length)
+                .equals(chunk.subarray(start, start + length))
+            )
+              return false;
+            start += length;
+            offset += length;
+            if (offset === decoded.length) {
+              decoded = reader.read(64 * 1024);
+              offset = 0;
+            }
+          }
+        }
+        return decoded === null;
+      } finally {
+        reader.close();
+      }
+    };
     this.removeFile = memoizeFn(() => util.promisify(fs.unlink.bind(fs)));
     this.mkdir = memoizeFn(() => util.promisify(fs.mkdir.bind(fs)));
     this.mkdirp = memoizeFn(() => util.promisify(mkdirp.bind(null, fs)));

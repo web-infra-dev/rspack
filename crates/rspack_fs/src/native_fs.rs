@@ -8,6 +8,7 @@ use fs_err::tokio as tokio_fs;
 use fs_err::{self as fs, File};
 use pnp::fs::{FileType, LruZipCache, VPath, VPathInfo, ZipCache};
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
+use rspack_sources::{AssetSource, Source};
 use tracing::instrument;
 
 use crate::{
@@ -47,6 +48,15 @@ impl WritableFileSystem for NativeFileSystem {
   #[instrument(skip(self), level = "debug")]
   async fn write(&self, file: &Utf8Path, data: &[u8]) -> Result<()> {
     fs::write(file, data).to_fs_result()
+  }
+  async fn write_asset(&self, file: &Utf8Path, source: &AssetSource) -> Result<()> {
+    let mut writer = BufWriter::new(File::create(file)?);
+    source.to_writer(&mut writer)?;
+    writer.flush()?;
+    Ok(())
+  }
+  async fn compare_asset(&self, file: &Utf8Path, source: &AssetSource) -> Result<bool> {
+    Ok(source.matches_reader(BufReader::new(File::open(file)?))?)
   }
   #[instrument(skip(self), level = "debug")]
   async fn remove_file(&self, file: &Utf8Path) -> Result<()> {
@@ -99,6 +109,15 @@ impl WritableFileSystem for NativeFileSystem {
   #[instrument(skip(self), level = "debug")]
   async fn write(&self, file: &Utf8Path, data: &[u8]) -> Result<()> {
     fs::write(file, data).to_fs_result()
+  }
+  async fn write_asset(&self, file: &Utf8Path, source: &AssetSource) -> Result<()> {
+    let mut writer = BufWriter::new(File::create(file)?);
+    source.to_writer(&mut writer)?;
+    writer.flush()?;
+    Ok(())
+  }
+  async fn compare_asset(&self, file: &Utf8Path, source: &AssetSource) -> Result<bool> {
+    Ok(source.matches_reader(BufReader::new(File::open(file)?))?)
   }
   #[instrument(skip(self), level = "debug")]
   async fn remove_file(&self, file: &Utf8Path) -> Result<()> {

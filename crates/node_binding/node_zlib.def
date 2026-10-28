@@ -1,0 +1,14 @@
+LIBRARY node.exe
+EXPORTS
+  zlibVersion
+  deflate
+  deflateEnd
+  deflateInit2_
+  deflateReset
+  deflateParams
+  deflateSetDictionary
+  inflate
+  inflateEnd
+  inflateInit2_
+  inflateReset2
+  inflateSetDictionary
