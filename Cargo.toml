@@ -137,9 +137,9 @@ winnow              = { version = "1.0.4", default-features = false, features = 
 xxhash-rust         = { version = "0.8.19", default-features = false }
 
 # Pinned
-napi        = { version = "3.10.5", default-features = false }
-napi-build  = { version = "2.3.2", default-features = false }
-napi-derive = { version = "3.5.10", default-features = false }
+napi        = { version = "3.15.0", default-features = false }
+napi-build  = { version = "2.6.0", default-features = false }
+napi-derive = { version = "3.6.13", default-features = false }
 
 # Serialize and Deserialize
 inventory = { version = "0.3.17", default-features = false }
