@@ -362,7 +362,7 @@ export default {
 
 ## Tailwind CSS
 
-[Tailwind CSS](https://tailwindcss.com/) 是一个以 Utility Class 为基础的 CSS 框架和设计系统，可以快速地为组件添加常用样式，同时支持主题样式的灵活扩展。
+[Tailwind CSS](https://tailwindcss.com/) 是一个提供实用类的 CSS 框架，可以快速为组件添加样式。
 
 对于 Tailwind CSS v4 及以上版本，使用 [`@tailwindcss/webpack`](https://www.npmjs.com/package/@tailwindcss/webpack) loader 配合 Rspack 的内置 CSS 支持：
 
@@ -382,11 +382,13 @@ export default {
 };
 ```
 
+在样式文件中导入 Tailwind CSS：
+
 ```css title="src/styles.css"
 @import 'tailwindcss';
 ```
 
-你也可以将 `@tailwindcss/webpack` 与 [css-loader](https://www.npmjs.com/package/css-loader) 和 [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin) 搭配使用。在上述 Tailwind CSS 包的基础上，额外安装 `css-loader`：
+如果使用 [css-loader](https://www.npmjs.com/package/css-loader) 和 [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin)，则额外安装 `css-loader`，并使用以下配置：
 
 <PackageManagerTabs command="add css-loader -D" />
 
@@ -398,7 +400,6 @@ export default {
     rules: [
       {
         test: /\.css$/i,
-        type: 'javascript/auto',
         use: [
           rspack.CssExtractRspackPlugin.loader,
           'css-loader',
@@ -410,8 +411,6 @@ export default {
   plugins: [new rspack.CssExtractRspackPlugin()],
 };
 ```
-
-Loader 从右向左执行，因此 `@tailwindcss/webpack` 会先于 `css-loader` 处理 CSS。将 `type` 设置为 `'javascript/auto'`，以避免与 Rspack 的内置 CSS 支持冲突。
 
 对于 Tailwind CSS v3，请参考 [Install Tailwind CSS v3 with Rspack](https://v3.tailwindcss.com/docs/guides/rspack)。
 

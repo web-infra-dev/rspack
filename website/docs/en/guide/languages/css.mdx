@@ -362,7 +362,7 @@ The above configuration will have all `*.css` files processed by [postcss-loader
 
 ## Tailwind CSS
 
-[Tailwind CSS](https://tailwindcss.com/) is a CSS framework and design system based on utility class, which can quickly add common styles to components, and support flexible extension of theme styles.
+[Tailwind CSS](https://tailwindcss.com/) is a CSS framework that provides utility classes for styling components.
 
 For Tailwind CSS v4 and later, use the [`@tailwindcss/webpack`](https://www.npmjs.com/package/@tailwindcss/webpack) loader with Rspack's built-in CSS support:
 
@@ -382,11 +382,13 @@ export default {
 };
 ```
 
+Import Tailwind CSS in your stylesheet:
+
 ```css title="src/styles.css"
 @import 'tailwindcss';
 ```
 
-You can also use `@tailwindcss/webpack` with [css-loader](https://www.npmjs.com/package/css-loader) and [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin). Install `css-loader` in addition to the Tailwind CSS packages above:
+To use [css-loader](https://www.npmjs.com/package/css-loader) and [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin) instead, install `css-loader` and use the following configuration:
 
 <PackageManagerTabs command="add css-loader -D" />
 
@@ -398,7 +400,6 @@ export default {
     rules: [
       {
         test: /\.css$/i,
-        type: 'javascript/auto',
         use: [
           rspack.CssExtractRspackPlugin.loader,
           'css-loader',
@@ -410,8 +411,6 @@ export default {
   plugins: [new rspack.CssExtractRspackPlugin()],
 };
 ```
-
-Loaders run from right to left, so `@tailwindcss/webpack` processes the CSS before `css-loader`. Set `type: 'javascript/auto'` to avoid conflicts with Rspack's built-in CSS support.
 
 For Tailwind CSS v3, see [Install Tailwind CSS v3 with Rspack](https://v3.tailwindcss.com/docs/guides/rspack).
 
