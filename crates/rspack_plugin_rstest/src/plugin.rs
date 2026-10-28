@@ -76,7 +76,8 @@ use crate::{
 
 pub type PreserveSideEffectImportsFn =
   Box<dyn Fn() -> BoxFuture<'static, Result<Vec<String>>> + Send + Sync>;
-pub(crate) type PreservedSideEffectImporters = Arc<RwLock<HashSet<Utf8PathBuf>>>;
+pub(crate) type PreservedSideEffectImporters = Arc<RwLock<Option<HashSet<Utf8PathBuf>>>>;
+pub(crate) const PRESERVED_IMPORTER_VERSION_PREFIX: &str = "rspack/RstestPlugin/importer/";
 
 #[derive(Debug)]
 pub struct RstestPluginOptions {
@@ -673,10 +674,19 @@ async fn compilation(
       // Keep the original for resolve.symlinks=false and unresolved virtual files.
       paths.insert(path);
     }
+    compilation
+      .value_cache_versions
+      .insert_default(PRESERVED_IMPORTER_VERSION_PREFIX.into(), false.to_string());
+    for path in &paths {
+      compilation.value_cache_versions.insert(
+        format!("{PRESERVED_IMPORTER_VERSION_PREFIX}{path}"),
+        true.to_string(),
+      );
+    }
     *self
       .preserved_side_effect_importers
       .write()
-      .expect("importer set lock poisoned") = paths;
+      .expect("importer set lock poisoned") = Some(paths);
   }
   compilation.set_dependency_template(
     ModulePathNameDependencyTemplate::template_type(),

@@ -42,7 +42,7 @@ use crate::{
   mock_method_dependency::{MockMethod, MockMethodDependency},
   mock_module_id_dependency::MockModuleIdDependency,
   module_path_name_dependency::{ModulePathNameDependency, NameType},
-  plugin::PreservedSideEffectImporters,
+  plugin::{PRESERVED_IMPORTER_VERSION_PREFIX, PreservedSideEffectImporters},
   require_resolve_origin_dependency::RstestRequireResolveOriginDependency,
 };
 
@@ -952,15 +952,13 @@ fn is_non_hoisted_mock_api(name: &str) -> bool {
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
   fn finish(&self, parser: &mut JavascriptParser<'p>) -> Option<bool> {
     let resource_path = parser.resource_data.path()?;
-    if !self
+    let preserve_side_effects = self
       .options
       .preserved_side_effect_importers
       .read()
       .expect("importer set lock poisoned")
-      .contains(resource_path)
-    {
-      return None;
-    }
+      .as_ref()?
+      .contains(resource_path);
     let ast = parser.ast.ast;
     let bare_imports: FxHashSet<DependencyRange> = ast
       .nodes(parser.ast.program.body(ast))
@@ -971,6 +969,16 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
         _ => None,
       })
       .collect();
+    if bare_imports.is_empty() {
+      return None;
+    }
+    parser.build_info.value_dependencies.insert(
+      format!("{PRESERVED_IMPORTER_VERSION_PREFIX}{resource_path}"),
+      preserve_side_effects.to_string(),
+    );
+    if !preserve_side_effects {
+      return None;
+    }
     for index in 0..parser.get_dependencies().len() {
       if let Some(dependency) = parser.get_dependency_mut(index)
         && let Some(dependency) = dependency.downcast_mut::<ESMImportSideEffectDependency>()
