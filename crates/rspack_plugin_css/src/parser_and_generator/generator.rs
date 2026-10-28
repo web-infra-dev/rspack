@@ -959,17 +959,17 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     exports: FxIndexMap<&'b str, &'b CssIcssExportDependency>,
   ) -> (&'static str, String) {
     let module = self.module;
+    let compilation = self.generate_context.compilation;
+    let runtime = self.generate_context.runtime;
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(&module.identifier());
     let mut stringified_exports = String::new();
 
     for (key, _) in exports {
       let used_name: Cow<'_, str> = {
-        let exports_info = self
-          .generate_context
-          .compilation
-          .exports_info_artifact
-          .get_exports_info_data(&module.identifier());
         let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
-        match export_info.get_used_name(None, self.generate_context.runtime) {
+        match export_info.get_used_name(None, runtime) {
           Some(UsedNameItem::Str(name)) => Cow::Owned(name.to_string()),
           _ => Cow::Borrowed(key),
         }
