@@ -10,7 +10,7 @@
 - Bundle: main.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 41
 - Update: initial_js.LAST_HASH.hot-update.js, size: 332
-- Update: main.LAST_HASH.hot-update.js, size: 25821
+- Update: main.LAST_HASH.hot-update.js, size: 25915
 
 ## Manifest
 
@@ -878,12 +878,25 @@ __webpack_require__.hmrM = () => {
 	);
 };
 __webpack_require__.O.j = (chunkId) => (jsonpInstalledChunks[chunkId] === 0);
+function jsonpFinishChunkLoading(chunkIds, result) {
+	for (var i = 0; i < chunkIds.length; i++) {
+		var chunkId = chunkIds[i];
+		if (__webpack_require__.o(jsonpInstalledChunks, chunkId) && jsonpInstalledChunks[chunkId]) {
+			jsonpInstalledChunks[chunkId][0]();
+		}
+		jsonpInstalledChunks[chunkId] = 0;
+	}
+	
+	return __webpack_require__.O(result);
+	
+}
+
 // install a JSONP callback for chunk loading
 var __rspack_jsonp = (parentChunkLoadingFunction, data) => {
 	var [chunkIds, moreModules, runtime] = data;
 	// add "moreModules" to the modules object,
 	// then flag all "chunkIds" as loaded and fire callback
-	var moduleId, chunkId, i = 0;
+	var moduleId;
 	if (chunkIds.some((id) => (jsonpInstalledChunks[id] !== 0))) {
 		for (moduleId in moreModules) {
 			if (__webpack_require__.o(moreModules, moduleId)) {
@@ -893,19 +906,7 @@ var __rspack_jsonp = (parentChunkLoadingFunction, data) => {
 		if (runtime) var result = runtime(__webpack_require__);
 	}
 	if (parentChunkLoadingFunction) parentChunkLoadingFunction(data);
-	for (; i < chunkIds.length; i++) {
-		chunkId = chunkIds[i];
-		if (
-			__webpack_require__.o(jsonpInstalledChunks, chunkId) &&
-			jsonpInstalledChunks[chunkId]
-		) {
-			jsonpInstalledChunks[chunkId][0]();
-		}
-		jsonpInstalledChunks[chunkId] = 0;
-	}
-	
-	return __webpack_require__.O(result);
-	
+	return jsonpFinishChunkLoading(chunkIds, result);
 };
 
 var jsonpChunkLoadingGlobal = self["__INITIAL_CHUNK_HMR_CHUNKS__"] = self["__INITIAL_CHUNK_HMR_CHUNKS__"] || [];

@@ -1,4 +1,8 @@
 // importScripts chunk loading
+<%- fn("importScriptsFinishChunkLoading") %>(chunkIds) {
+    while (chunkIds.length) importScriptsInstalledChunks[chunkIds.pop()] = 1;
+}
+
 <%- var("importScriptsInstallChunk") %> = <%- basicFunction("data") %> {
     <%- destructureArray("chunkIds, moreModules, runtime", "data") %>
     for (var moduleId in moreModules) {
@@ -7,7 +11,7 @@
         }
     }
     if (runtime) runtime(<%- REQUIRE_SCOPE %>);
-    while (chunkIds.length) importScriptsInstalledChunks[chunkIds.pop()] = 1;
+    importScriptsFinishChunkLoading(chunkIds);
     importScriptsParentChunkLoadingFunction(data);
 };
 

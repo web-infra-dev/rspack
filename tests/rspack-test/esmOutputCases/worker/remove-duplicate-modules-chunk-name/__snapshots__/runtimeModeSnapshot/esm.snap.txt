@@ -203,27 +203,28 @@ __rspack_context.O = onChunksLoaded;
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
       // [resolve, Promise] = chunk loading, 0 = chunk loaded
       var moduleInstalledChunks = {"named-worker-a": 0,};
-      var moduleInstallChunk = (data) => {
-    var __rspack_esm_ids = data.__rspack_esm_ids;
-    var moreModules = data.__rspack_modules;
-    var __rspack_esm_runtime = data.__rspack_esm_runtime;
-    // add "modules" to the modules object,
-    // then flag all "ids" as loaded and fire callback
-    var moduleId, chunkId, i = 0;
-    for (moduleId in moreModules) {
-        if (hasOwnProperty(moreModules, moduleId)) {
-            moduleFactories[moduleId] = moreModules[moduleId];
-        }
-    }
-    if (__rspack_esm_runtime) __rspack_esm_runtime(__rspack_context);
-    for (; i < __rspack_esm_ids.length; i++) {
-        chunkId = __rspack_esm_ids[i];
+      function moduleFinishChunkLoading(__rspack_esm_ids) {
+    for (var i = 0; i < __rspack_esm_ids.length; i++) {
+        var chunkId = __rspack_esm_ids[i];
         if (hasOwnProperty(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
             moduleInstalledChunks[chunkId][0]();
         }
         moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
     }
     onChunksLoaded();
+}
+
+var moduleInstallChunk = (data) => {
+    var moreModules = data.__rspack_modules;
+    var __rspack_esm_runtime = data.__rspack_esm_runtime;
+    var moduleId;
+    for (moduleId in moreModules) {
+        if (hasOwnProperty(moreModules, moduleId)) {
+            moduleFactories[moduleId] = moreModules[moduleId];
+        }
+    }
+    if (__rspack_esm_runtime) __rspack_esm_runtime(__rspack_context);
+    moduleFinishChunkLoading(data.__rspack_esm_ids);
 };
 // no chunk on demand loading
 
@@ -363,27 +364,28 @@ __rspack_context.O = onChunksLoaded;
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
       // [resolve, Promise] = chunk loading, 0 = chunk loaded
       var moduleInstalledChunks = {"named-worker-b": 0,};
-      var moduleInstallChunk = (data) => {
-    var __rspack_esm_ids = data.__rspack_esm_ids;
-    var moreModules = data.__rspack_modules;
-    var __rspack_esm_runtime = data.__rspack_esm_runtime;
-    // add "modules" to the modules object,
-    // then flag all "ids" as loaded and fire callback
-    var moduleId, chunkId, i = 0;
-    for (moduleId in moreModules) {
-        if (hasOwnProperty(moreModules, moduleId)) {
-            moduleFactories[moduleId] = moreModules[moduleId];
-        }
-    }
-    if (__rspack_esm_runtime) __rspack_esm_runtime(__rspack_context);
-    for (; i < __rspack_esm_ids.length; i++) {
-        chunkId = __rspack_esm_ids[i];
+      function moduleFinishChunkLoading(__rspack_esm_ids) {
+    for (var i = 0; i < __rspack_esm_ids.length; i++) {
+        var chunkId = __rspack_esm_ids[i];
         if (hasOwnProperty(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
             moduleInstalledChunks[chunkId][0]();
         }
         moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
     }
     onChunksLoaded();
+}
+
+var moduleInstallChunk = (data) => {
+    var moreModules = data.__rspack_modules;
+    var __rspack_esm_runtime = data.__rspack_esm_runtime;
+    var moduleId;
+    for (moduleId in moreModules) {
+        if (hasOwnProperty(moreModules, moduleId)) {
+            moduleFactories[moduleId] = moreModules[moduleId];
+        }
+    }
+    if (__rspack_esm_runtime) __rspack_esm_runtime(__rspack_context);
+    moduleFinishChunkLoading(data.__rspack_esm_ids);
 };
 // no chunk on demand loading
 

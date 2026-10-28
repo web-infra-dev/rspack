@@ -204,27 +204,28 @@ __webpack_require__.O = (result, chunkIds, fn, priority) => {
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
       // [resolve, Promise] = chunk loading, 0 = chunk loaded
       var moduleInstalledChunks = {"named-worker-a": 0,};
-      var moduleInstallChunk = (data) => {
-    var __rspack_esm_ids = data.__rspack_esm_ids;
-    var moreModules = data.__webpack_modules__;
-    var __rspack_esm_runtime = data.__rspack_esm_runtime;
-    // add "modules" to the modules object,
-    // then flag all "ids" as loaded and fire callback
-    var moduleId, chunkId, i = 0;
-    for (moduleId in moreModules) {
-        if (__webpack_require__.o(moreModules, moduleId)) {
-            __webpack_require__.m[moduleId] = moreModules[moduleId];
-        }
-    }
-    if (__rspack_esm_runtime) __rspack_esm_runtime(__webpack_require__);
-    for (; i < __rspack_esm_ids.length; i++) {
-        chunkId = __rspack_esm_ids[i];
+      function moduleFinishChunkLoading(__rspack_esm_ids) {
+    for (var i = 0; i < __rspack_esm_ids.length; i++) {
+        var chunkId = __rspack_esm_ids[i];
         if (__webpack_require__.o(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
             moduleInstalledChunks[chunkId][0]();
         }
         moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
     }
     __webpack_require__.O();
+}
+
+var moduleInstallChunk = (data) => {
+    var moreModules = data.__webpack_modules__;
+    var __rspack_esm_runtime = data.__rspack_esm_runtime;
+    var moduleId;
+    for (moduleId in moreModules) {
+        if (__webpack_require__.o(moreModules, moduleId)) {
+            __webpack_require__.m[moduleId] = moreModules[moduleId];
+        }
+    }
+    if (__rspack_esm_runtime) __rspack_esm_runtime(__webpack_require__);
+    moduleFinishChunkLoading(data.__rspack_esm_ids);
 };
 // no chunk on demand loading
 
@@ -365,27 +366,28 @@ __webpack_require__.O = (result, chunkIds, fn, priority) => {
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
       // [resolve, Promise] = chunk loading, 0 = chunk loaded
       var moduleInstalledChunks = {"named-worker-b": 0,};
-      var moduleInstallChunk = (data) => {
-    var __rspack_esm_ids = data.__rspack_esm_ids;
-    var moreModules = data.__webpack_modules__;
-    var __rspack_esm_runtime = data.__rspack_esm_runtime;
-    // add "modules" to the modules object,
-    // then flag all "ids" as loaded and fire callback
-    var moduleId, chunkId, i = 0;
-    for (moduleId in moreModules) {
-        if (__webpack_require__.o(moreModules, moduleId)) {
-            __webpack_require__.m[moduleId] = moreModules[moduleId];
-        }
-    }
-    if (__rspack_esm_runtime) __rspack_esm_runtime(__webpack_require__);
-    for (; i < __rspack_esm_ids.length; i++) {
-        chunkId = __rspack_esm_ids[i];
+      function moduleFinishChunkLoading(__rspack_esm_ids) {
+    for (var i = 0; i < __rspack_esm_ids.length; i++) {
+        var chunkId = __rspack_esm_ids[i];
         if (__webpack_require__.o(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
             moduleInstalledChunks[chunkId][0]();
         }
         moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
     }
     __webpack_require__.O();
+}
+
+var moduleInstallChunk = (data) => {
+    var moreModules = data.__webpack_modules__;
+    var __rspack_esm_runtime = data.__rspack_esm_runtime;
+    var moduleId;
+    for (moduleId in moreModules) {
+        if (__webpack_require__.o(moreModules, moduleId)) {
+            __webpack_require__.m[moduleId] = moreModules[moduleId];
+        }
+    }
+    if (__rspack_esm_runtime) __rspack_esm_runtime(__webpack_require__);
+    moduleFinishChunkLoading(data.__rspack_esm_ids);
 };
 // no chunk on demand loading
 
