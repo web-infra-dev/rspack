@@ -269,15 +269,12 @@ struct OriginalSourceNapiRef {
   napi_ref: OneShotRef,
 }
 
-thread_local! {
-  static ORIGINAL_SOURCE_REFS: RefCell<FxHashMap<CompilerId, IdentifierMap<OriginalSourceNapiRef>>> = Default::default();
-}
-
 #[napi]
 pub struct Module {
   pub(crate) identifier: ModuleIdentifier,
   ptr: Option<NonNull<dyn rspack_core::Module>>,
   compiler_id: CompilerId,
+  original_source_ref: Option<OriginalSourceNapiRef>,
   pub(crate) build_info_ref: Option<WeakRef>,
 }
 
@@ -417,37 +414,29 @@ impl Module {
       }
     };
 
-    ORIGINAL_SOURCE_REFS.with_borrow_mut(|refs_by_compiler_id| {
-      let Some(original_source) = module.source() else {
-        if let Some(refs) = refs_by_compiler_id.get_mut(&self.compiler_id) {
-          refs.remove(&self.identifier);
-        }
-        return Ok(Either::B(()));
-      };
+    let Some(original_source) = module.source() else {
+      self.original_source_ref = None;
+      return Ok(Either::B(()));
+    };
 
-      let refs = refs_by_compiler_id.entry(self.compiler_id).or_default();
-      if let Some(OriginalSourceNapiRef {
-        related_source,
-        napi_ref,
-      }) = refs.get(&self.identifier)
-        && related_source.ptr_eq(&Arc::downgrade(original_source))
-      {
-        return Ok(Either::A(ToNapiValue::into_unknown(napi_ref, env)?));
-      }
+    if let Some(OriginalSourceNapiRef {
+      related_source,
+      napi_ref,
+    }) = &self.original_source_ref
+      && (related_source.ptr_eq(&Arc::downgrade(original_source)))
+    {
+      return Ok(Either::A(ToNapiValue::into_unknown(napi_ref, env)?));
+    }
 
-      let binding = JsSourceWithLazyMap::to_js(env, original_source)?;
-      let mut one_shot_ref = OneShotRef::new(env.raw(), binding)?;
-      let result = ToNapiValue::into_unknown(&mut one_shot_ref, env)?;
-      refs.insert(
-        self.identifier,
-        OriginalSourceNapiRef {
-          related_source: Arc::downgrade(original_source),
-          napi_ref: one_shot_ref,
-        },
-      );
+    let binding = JsSourceWithLazyMap::to_js(env, original_source)?;
+    let mut one_shot_ref = OneShotRef::new(env.raw(), binding)?;
+    let result = ToNapiValue::into_unknown(&mut one_shot_ref, env)?;
+    self.original_source_ref = Some(OriginalSourceNapiRef {
+      related_source: Arc::downgrade(original_source),
+      napi_ref: one_shot_ref,
+    });
 
-      Ok(Either::A(result))
-    })
+    Ok(Either::A(result))
   }
 
   #[napi]
@@ -570,13 +559,13 @@ impl Module {
   }
 }
 
-type ModuleInstanceNapiRef = Either5<
-  OneShotInstanceRef<NormalModule>,
-  OneShotInstanceRef<ConcatenatedModule>,
-  OneShotInstanceRef<ContextModule>,
-  OneShotInstanceRef<ExternalModule>,
-  OneShotInstanceRef<Module>,
->;
+enum ModuleInstanceNapiRef {
+  Normal(OneShotInstanceRef<NormalModule>),
+  Concatenated(OneShotInstanceRef<ConcatenatedModule>),
+  Context(OneShotInstanceRef<ContextModule>),
+  External(OneShotInstanceRef<ExternalModule>),
+  Module(OneShotInstanceRef<Module>),
+}
 
 type ModuleInstanceRef<'a> = Either5<
   &'a NormalModule,
@@ -639,7 +628,6 @@ impl ModuleObject {
   }
 
   pub fn cleanup_by_compiler_id(compiler_id: &CompilerId) {
-    Self::clear_original_source_cache(compiler_id);
     MODULE_INSTANCE_REFS.with(|refs| {
       let mut refs_by_compiler_id = refs.borrow_mut();
       refs_by_compiler_id.remove(compiler_id)
@@ -648,20 +636,26 @@ impl ModuleObject {
 
   // Called on the owning JS thread so dropping the cached Node-API references is safe.
   pub(crate) fn clear_original_source_cache(compiler_id: &CompilerId) {
-    ORIGINAL_SOURCE_REFS.with_borrow_mut(|refs| refs.remove(compiler_id));
+    MODULE_INSTANCE_REFS.with_borrow_mut(|refs_by_compiler_id| {
+      if let Some(refs) = refs_by_compiler_id.get_mut(compiler_id) {
+        for reference in refs.values_mut() {
+          let module: &mut Module = match reference {
+            ModuleInstanceNapiRef::Normal(module) => &mut module.module,
+            ModuleInstanceNapiRef::Concatenated(module) => &mut module.module,
+            ModuleInstanceNapiRef::Context(module) => &mut module.module,
+            ModuleInstanceNapiRef::External(module) => &mut module.module,
+            ModuleInstanceNapiRef::Module(module) => module,
+          };
+          module.original_source_ref = None;
+        }
+      }
+    });
   }
 
   pub fn cleanup_by_module_identifiers(
     compiler_id: &CompilerId,
     revoked_modules: &[ModuleIdentifier],
   ) {
-    ORIGINAL_SOURCE_REFS.with_borrow_mut(|refs_by_compiler_id| {
-      if let Some(refs) = refs_by_compiler_id.get_mut(compiler_id) {
-        for module_identifier in revoked_modules {
-          refs.remove(module_identifier);
-        }
-      }
-    });
     MODULE_INSTANCE_REFS.with(|refs| {
       let mut refs_by_compiler_id = refs.borrow_mut();
       for module_identifier in revoked_modules {
@@ -669,11 +663,15 @@ impl ModuleObject {
           && let Some(r) = refs.remove(module_identifier)
         {
           match r {
-            Either5::A(mut normal_module) => normal_module.module.ptr = None,
-            Either5::B(mut concatenated_module) => concatenated_module.module.ptr = None,
-            Either5::C(mut context_module) => context_module.module.ptr = None,
-            Either5::D(mut external_module) => external_module.module.ptr = None,
-            Either5::E(mut module) => module.ptr = None,
+            ModuleInstanceNapiRef::Normal(mut normal_module) => normal_module.module.ptr = None,
+            ModuleInstanceNapiRef::Concatenated(mut concatenated_module) => {
+              concatenated_module.module.ptr = None
+            }
+            ModuleInstanceNapiRef::Context(mut context_module) => context_module.module.ptr = None,
+            ModuleInstanceNapiRef::External(mut external_module) => {
+              external_module.module.ptr = None
+            }
+            ModuleInstanceNapiRef::Module(mut module) => module.ptr = None,
           }
         }
       }
@@ -703,19 +701,21 @@ impl ToNapiValue for ModuleObject {
           std::collections::hash_map::Entry::Occupied(mut entry) => {
             let instance_ref = entry.get_mut();
             let instance = match instance_ref {
-              Either5::A(normal_module) => &mut normal_module.module,
-              Either5::B(concatenated_module) => &mut concatenated_module.module,
-              Either5::C(context_module) => &mut context_module.module,
-              Either5::D(external_module) => &mut external_module.module,
-              Either5::E(module) => &mut **module,
+              ModuleInstanceNapiRef::Normal(normal_module) => &mut normal_module.module,
+              ModuleInstanceNapiRef::Concatenated(concatenated_module) => {
+                &mut concatenated_module.module
+              }
+              ModuleInstanceNapiRef::Context(context_module) => &mut context_module.module,
+              ModuleInstanceNapiRef::External(external_module) => &mut external_module.module,
+              ModuleInstanceNapiRef::Module(module) => &mut **module,
             };
             instance.ptr = val.ptr;
             match instance_ref {
-              Either5::A(r) => ToNapiValue::to_napi_value(env, r),
-              Either5::B(r) => ToNapiValue::to_napi_value(env, r),
-              Either5::C(r) => ToNapiValue::to_napi_value(env, r),
-              Either5::D(r) => ToNapiValue::to_napi_value(env, r),
-              Either5::E(r) => ToNapiValue::to_napi_value(env, r),
+              ModuleInstanceNapiRef::Normal(r) => ToNapiValue::to_napi_value(env, r),
+              ModuleInstanceNapiRef::Concatenated(r) => ToNapiValue::to_napi_value(env, r),
+              ModuleInstanceNapiRef::Context(r) => ToNapiValue::to_napi_value(env, r),
+              ModuleInstanceNapiRef::External(r) => ToNapiValue::to_napi_value(env, r),
+              ModuleInstanceNapiRef::Module(r) => ToNapiValue::to_napi_value(env, r),
             }
           }
           std::collections::hash_map::Entry::Vacant(entry) => {
@@ -723,45 +723,46 @@ impl ToNapiValue for ModuleObject {
               identifier: val.identifier,
               compiler_id: val.compiler_id,
               ptr: val.ptr,
+              original_source_ref: None,
               build_info_ref: Default::default(),
             };
             let env_wrapper = Env::from_raw(env);
 
             let instance_ref = if val.type_id == TypeId::of::<rspack_core::NormalModule>() {
               let instance = NormalModule::new(js_module).into_module_instance(&env_wrapper)?;
-              entry.insert(Either5::A(OneShotInstanceRef::from_instance(
-                env, instance,
-              )?))
+              entry.insert(ModuleInstanceNapiRef::Normal(
+                OneShotInstanceRef::from_instance(env, instance)?,
+              ))
             } else if val.type_id == TypeId::of::<rspack_core::ConcatenatedModule>() {
               let instance =
                 ConcatenatedModule { module: js_module }.into_module_instance(&env_wrapper)?;
-              entry.insert(Either5::B(OneShotInstanceRef::from_instance(
-                env, instance,
-              )?))
+              entry.insert(ModuleInstanceNapiRef::Concatenated(
+                OneShotInstanceRef::from_instance(env, instance)?,
+              ))
             } else if val.type_id == TypeId::of::<rspack_core::ContextModule>() {
               let instance =
                 ContextModule { module: js_module }.into_module_instance(&env_wrapper)?;
-              entry.insert(Either5::C(OneShotInstanceRef::from_instance(
-                env, instance,
-              )?))
+              entry.insert(ModuleInstanceNapiRef::Context(
+                OneShotInstanceRef::from_instance(env, instance)?,
+              ))
             } else if val.type_id == TypeId::of::<rspack_core::ExternalModule>() {
               let instance =
                 ExternalModule { module: js_module }.into_module_instance(&env_wrapper)?;
-              entry.insert(Either5::D(OneShotInstanceRef::from_instance(
-                env, instance,
-              )?))
+              entry.insert(ModuleInstanceNapiRef::External(
+                OneShotInstanceRef::from_instance(env, instance)?,
+              ))
             } else {
               let instance = js_module.into_module_instance(&env_wrapper)?;
-              entry.insert(Either5::E(OneShotInstanceRef::from_instance(
-                env, instance,
-              )?))
+              entry.insert(ModuleInstanceNapiRef::Module(
+                OneShotInstanceRef::from_instance(env, instance)?,
+              ))
             };
             match instance_ref {
-              Either5::A(r) => ToNapiValue::to_napi_value(env, r),
-              Either5::B(r) => ToNapiValue::to_napi_value(env, r),
-              Either5::C(r) => ToNapiValue::to_napi_value(env, r),
-              Either5::D(r) => ToNapiValue::to_napi_value(env, r),
-              Either5::E(r) => ToNapiValue::to_napi_value(env, r),
+              ModuleInstanceNapiRef::Normal(r) => ToNapiValue::to_napi_value(env, r),
+              ModuleInstanceNapiRef::Concatenated(r) => ToNapiValue::to_napi_value(env, r),
+              ModuleInstanceNapiRef::Context(r) => ToNapiValue::to_napi_value(env, r),
+              ModuleInstanceNapiRef::External(r) => ToNapiValue::to_napi_value(env, r),
+              ModuleInstanceNapiRef::Module(r) => ToNapiValue::to_napi_value(env, r),
             }
           }
         }
