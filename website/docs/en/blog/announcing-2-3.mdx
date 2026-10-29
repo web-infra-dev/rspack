@@ -70,7 +70,7 @@ Notable changes include:
   - [Rspress](#rspress)
 - [Upgrade guide](#upgrade-guide)
 
-## SWC Next integration \{#swc-next}
+## SWC next integration \{#swc-next}
 
 [SWC Next](https://github.com/swc-project/swc-next) is a new generation of JavaScript tooling developed jointly by the SWC team and the Rstack team. It will become SWC's next major version. Its new parser architecture, inspired by [Yuku](https://github.com/yuku-toolchain/yuku), centers on a flat, ESTree-based AST designed for speed, memory efficiency, and JavaScript extensibility.
 
@@ -78,7 +78,9 @@ In benchmarks, SWC Next's [native parsing](https://github.com/SoonIter/ecmascrip
 
 ![](https://assets.rspack.rs/rspack/assets/rspack-v2-3-parser-performance.png)
 
-We are gradually migrating SWC's modules to this architecture and replacing Rspack's existing implementations. Rspack 2.3 has adopted SWC Next as its JavaScript parser, using its more compact AST and memory layout to optimize parsing and traversal. In benchmarks, parsing time and instruction counts changed as follows:
+We are gradually migrating SWC's modules to this architecture and replacing Rspack's existing implementations. Rspack 2.3 has adopted SWC Next as its JavaScript parser, using its more compact AST and memory layout to optimize parsing and traversal.
+
+The following benchmarks compare parsing time and instruction counts in Rspack before and after integrating SWC Next:
 
 | Project   | Parsing time                    | Instructions                     |
 | --------- | ------------------------------- | -------------------------------- |
@@ -362,7 +364,22 @@ console.log(add(1, 2));
 
 #### TypeScript 7.1 support \{#typescript-7-1}
 
-Rslib 1.0.4 supports generating type declarations with TypeScript 7.1 Beta and using [Content Mappers](https://devblogs.microsoft.com/typescript/announcing-typescript-7-1-beta/#content-mappers) to extend type support for component files.
+Rslib 1.0.4 supports generating type declarations with TypeScript 7.1 Beta and using [Content Mappers](https://devblogs.microsoft.com/typescript/announcing-typescript-7-1-beta/#content-mappers) to extend type declaration generation.
+
+Install the appropriate mapper and register the file extensions it handles in `tsconfig.json`. For example, assuming you have installed a CSS Modules mapper named `example-css-modules-mapper` (a placeholder package name), configure it as follows:
+
+```json title="tsconfig.json"
+{
+  "contentMappers": [
+    {
+      "package": "example-css-modules-mapper",
+      "extensions": [".module.css"]
+    }
+  ]
+}
+```
+
+During type declaration generation, Rslib automatically loads the mapper to generate declarations from the class names in CSS Modules.
 
 Install TypeScript 7.1 Beta to try it:
 

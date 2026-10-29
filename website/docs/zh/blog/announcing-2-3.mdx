@@ -60,7 +60,7 @@ Rspack 2.3 现已发布！本次更新集成了 SWC Next 解析器，提升构�
 - [新版缓存实现](#cache-improvements)
 - [新特性](#features)
   - [按代码内容过滤 loader](#loader-code-filter)
-  - [内置的 CSS](#built-in-css)
+  - [内置 CSS](#built-in-css)
   - [其他改进](#other-improvements)
 - [生态](#ecosystem)
   - [Rsbuild](#rsbuild)
@@ -78,7 +78,9 @@ Rspack 2.3 现已发布！本次更新集成了 SWC Next 解析器，提升构�
 
 ![](https://assets.rspack.rs/rspack/assets/rspack-v2-3-parser-performance.png)
 
-目前，我们正在逐步将 SWC 的各个模块迁移到这一架构，并在 Rspack 中替换原有实现。Rspack 2.3 已将 JavaScript 解析器迁移至 SWC Next，并借助其更紧凑的 AST 和内存布局，优化了自身的解析和遍历流程。在基准测试中，解析阶段的耗时和指令数变化如下：
+目前，我们正在逐步将 SWC 的各个模块迁移到这一架构，并在 Rspack 中替换原有实现。Rspack 2.3 已将 JavaScript 解析器迁移至 SWC Next，并借助其更紧凑的 AST 和内存布局，优化了自身的解析和遍历流程。
+
+以下是在 Rspack 中集成 SWC Next 前后，解析阶段耗时和指令数的对比：
 
 | 项目      | 解析阶段耗时                     | 指令数                            |
 | --------- | -------------------------------- | --------------------------------- |
