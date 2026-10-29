@@ -9,8 +9,8 @@
 - Bundle: modules_demo_js_lazy-compilation-proxy.chunk.CURRENT_HASH.js
 - Bundle: modules_module_js_lazy-compilation-proxy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 69
-- Update: main.LAST_HASH.hot-update.js, size: 470
-- Update: modules_demo_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1042
+- Update: main.LAST_HASH.hot-update.js, size: 1209
+- Update: modules_demo_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1298
 
 ## Manifest
 
@@ -30,7 +30,9 @@
 - ./generation.js
 
 #### Changed Runtime Modules
+- webpack/runtime/block_chunk_map
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
 
 #### Changed Content
 ```js
@@ -50,6 +52,26 @@ __webpack_require__.d(__webpack_exports__, {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV = {"modules_demo_js":"CHUNK_VERSION","modules_demo_js_lazy-compilation-proxy":"CHUNK_VERSION","modules_module_js_lazy-compilation-proxy":"CHUNK_VERSION"};
+})();
+// webpack/runtime/block_chunk_map
+(() => {
+((blocks) => {
+	var map = __webpack_require__.hmrS_blockChunks;
+	
+	Object.keys(blocks).forEach((blockId) => {
+		if (blocks[blockId] === null) delete map[blockId];
+		else map[blockId] = blocks[blockId];
+	});
+	var installedBlocks = __webpack_require__.hmrS_blocks;
+	Object.keys(installedBlocks).forEach((id) => {
+		if (!map[id]) delete installedBlocks[id];
+	});
+})({"block:./modules/demo.js!lazy-compilation-proxy":["modules_demo_js"]});
+
 })();
 
 }
@@ -72,7 +94,7 @@ self["rspackHotUpdate"]("modules_demo_js_lazy-compilation-proxy", {
 "./modules/demo.js!lazy-compilation-proxy"(module, __unused_rspack_exports, __webpack_require__) {
 var client = __webpack_require__("../../../../../../../../packages/rspack/hot/lazy-compilation-web.js?http%3A%2F%2Flocalhost%3APORT%2F_rspack%2Flazy%2Ftrigger");
 var data = "lazy-compilation-proxy|<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/context/modules/demo.js";
-        module.exports = __webpack_require__.e(/* import() */ "modules_demo_js").then(__webpack_require__.bind(__webpack_require__, "./modules/demo.js"));
+        module.exports = __webpack_require__.eg("block:./modules/demo.js!lazy-compilation-proxy").then(__webpack_require__.bind(__webpack_require__, "./modules/demo.js"));
         if (module.hot) {
           module.hot.accept();
           module.hot.accept("./modules/demo.js", function() { module.hot.invalidate(); });
@@ -84,5 +106,12 @@ var data = "lazy-compilation-proxy|<TEST_TOOLS_ROOT>/dist/helper/hot-update/load
 
 },
 
-});
+},function(__webpack_require__) {
+// webpack/runtime/hot_module_replacement_loaded_chunk_version|modules_demo_js_lazy-compilation-proxy
+(() => {
+__webpack_require__.hmrL["modules_demo_js_lazy-compilation-proxy"] = "CHUNK_VERSION";
+})();
+
+}
+);
 ```

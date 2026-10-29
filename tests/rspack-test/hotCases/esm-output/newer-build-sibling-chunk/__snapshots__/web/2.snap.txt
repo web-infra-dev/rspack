@@ -1,0 +1,147 @@
+# Case newer-build-sibling-chunk: Step 2
+
+## Changed Files
+- dep.js
+- entry.js
+
+## Asset Files
+- Bundle: extra.chunk.mjs
+- Bundle: main.mjs
+- Bundle: page.chunk.mjs
+- Bundle: shared.chunk.mjs
+- Manifest: main.LAST_HASH.hot-update.json.mjs, size: 95
+- Update: extra.LAST_HASH.hot-update.mjs.full.mjs, size: 576
+- Update: main.LAST_HASH.hot-update.mjs, size: 879
+- Update: shared.LAST_HASH.hot-update.mjs, size: 690
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json.mjs
+
+```json
+{"c":["main","shared"],"r":[],"m":[],"load":{"blocks":{"name:page":["extra"]}}}
+```
+
+
+## Update
+
+
+### extra.LAST_HASH.hot-update.mjs.full.mjs
+
+#### Changed Modules
+- ./extra.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+export const __rspack_esm_ids = ["extra"];
+export const __webpack_modules__ = {
+"./extra.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = (3);
+
+
+},
+
+};
+export const __rspack_esm_runtime = function(__webpack_require__) {
+// webpack/runtime/hot_module_replacement_loaded_chunk_version|extra
+(() => {
+__webpack_require__.hmrL["extra"] = "CHUNK_VERSION";
+})();
+
+}
+;
+
+```
+
+
+
+### main.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/block_chunk_map
+- webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
+
+#### Changed Content
+```js
+export const __rspack_esm_ids = ["main"];
+export const __webpack_modules__ = {};
+export const __rspack_esm_runtime = function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV = {"extra":"CHUNK_VERSION","page":"CHUNK_VERSION","shared":"CHUNK_VERSION"};
+})();
+// webpack/runtime/block_chunk_map
+(() => {
+((blocks) => {
+	var map = __webpack_require__.hmrS_blockChunks;
+	
+	Object.keys(blocks).forEach((blockId) => {
+		if (blocks[blockId] === null) delete map[blockId];
+		else map[blockId] = blocks[blockId];
+	});
+	var installedBlocks = __webpack_require__.hmrS_blocks;
+	Object.keys(installedBlocks).forEach((id) => {
+		if (!map[id]) delete installedBlocks[id];
+	});
+})({"name:page":["shared","extra","page"]});
+
+})();
+
+}
+;
+
+```
+
+
+
+### shared.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+- ./dep.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+export const __rspack_esm_ids = ["shared"];
+export const __webpack_modules__ = {
+"./dep.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* import */ var _extra__rspack_import_0 = __webpack_require__("./extra.js");
+
+
+/* export default */ const __rspack_default_export = (_extra__rspack_import_0["default"]);
+
+
+},
+
+};
+export const __rspack_esm_runtime = function(__webpack_require__) {
+// webpack/runtime/hot_module_replacement_loaded_chunk_version|shared
+(() => {
+__webpack_require__.hmrL["shared"] = "CHUNK_VERSION";
+})();
+
+}
+;
+
+```

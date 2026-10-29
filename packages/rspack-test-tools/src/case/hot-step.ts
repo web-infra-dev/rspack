@@ -137,6 +137,13 @@ function createHotStepProcessor(
             return str.split(raw).join(replacement);
           }, str)
           .replaceAll('rspack/runtime/', 'webpack/runtime/')
+          // Chunk versions can include the lazy compilation server's random port.
+          .replace(/(\.hmrV = )([^;]+);/g, (_, prefix, versions) => {
+            const map = JSON.parse(versions);
+            for (const id of Object.keys(map)) map[id] = 'CHUNK_VERSION';
+            return `${prefix}${JSON.stringify(map)};`;
+          })
+          .replace(/(\.hmrL\[[^\n]+\] = )"[^"]+"/g, '$1"CHUNK_VERSION"')
           .replace(/\/\/ (\d+)\s+(?=var cssReload)/, '')
           .replaceAll(/var data = "(?:.*)"/g, (match) => {
             return normalizeRuntimeModulePrefix(
@@ -165,7 +172,9 @@ function createHotStepProcessor(
         );
         if (
           fileName.endsWith('hot-update.js') ||
-          fileName.endsWith('hot-update.mjs')
+          fileName.endsWith('hot-update.mjs') ||
+          fileName.endsWith('hot-update.js.full.js') ||
+          fileName.endsWith('hot-update.mjs.full.mjs')
         ) {
           const modules = fileName.endsWith('.mjs')
             ? Object.keys(

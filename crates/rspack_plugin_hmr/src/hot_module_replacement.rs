@@ -17,6 +17,12 @@ static HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntim
     requirements
       .define
       .insert(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
+    // Complete supplemental chunks and keep the map when the last block is removed.
+    requirements.dependencies.insert(
+      RuntimeGlobals::ENSURE_CHUNK
+        | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+        | RuntimeGlobals::ENSURE_CHUNK_GROUP,
+    );
     requirements
   });
 static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =

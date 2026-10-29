@@ -10,8 +10,8 @@
 - Bundle: data_resolve_txt.chunk.CURRENT_HASH.js
 - Bundle: data_resolve_txt_lazy-compilation-proxy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 70
-- Update: data_resolve_txt_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1023
-- Update: main.LAST_HASH.hot-update.js, size: 470
+- Update: data_resolve_txt_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1281
+- Update: main.LAST_HASH.hot-update.js, size: 1245
 
 ## Manifest
 
@@ -39,7 +39,7 @@ self["rspackHotUpdate"]("data_resolve_txt_lazy-compilation-proxy", {
 "./data/resolve.txt!lazy-compilation-proxy"(module, __unused_rspack_exports, __webpack_require__) {
 var client = __webpack_require__("../../../../../../../../packages/rspack/hot/lazy-compilation-web.js?http%3A%2F%2Flocalhost%3APORT%2F_rspack%2Flazy%2Ftrigger");
 var data = "lazy-compilation-proxy|asset/source|<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/issuer-resolve/data/resolve.txt";
-        module.exports = __webpack_require__.e(/* import() */ "data_resolve_txt").then(__webpack_require__.t.bind(__webpack_require__, "./data/resolve.txt", 17));
+        module.exports = __webpack_require__.eg("block:./data/resolve.txt!lazy-compilation-proxy").then(__webpack_require__.t.bind(__webpack_require__, "./data/resolve.txt", 17));
         if (module.hot) {
           module.hot.accept();
           module.hot.accept("./data/resolve.txt", function() { module.hot.invalidate(); });
@@ -51,7 +51,14 @@ var data = "lazy-compilation-proxy|asset/source|<TEST_ROOT>/js/temp/hot-snapshot
 
 },
 
-});
+},function(__webpack_require__) {
+// webpack/runtime/hot_module_replacement_loaded_chunk_version|data_resolve_txt_lazy-compilation-proxy
+(() => {
+__webpack_require__.hmrL["data_resolve_txt_lazy-compilation-proxy"] = "CHUNK_VERSION";
+})();
+
+}
+);
 ```
 
 
@@ -62,7 +69,9 @@ var data = "lazy-compilation-proxy|asset/source|<TEST_ROOT>/js/temp/hot-snapshot
 - ./generation.js
 
 #### Changed Runtime Modules
+- webpack/runtime/block_chunk_map
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
 
 #### Changed Content
 ```js
@@ -82,6 +91,26 @@ __webpack_require__.d(__webpack_exports__, {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV = {"data_issuer_txt":"CHUNK_VERSION","data_issuer_txt_lazy-compilation-proxy":"CHUNK_VERSION","data_resolve_txt":"CHUNK_VERSION","data_resolve_txt_lazy-compilation-proxy":"CHUNK_VERSION"};
+})();
+// webpack/runtime/block_chunk_map
+(() => {
+((blocks) => {
+	var map = __webpack_require__.hmrS_blockChunks;
+	
+	Object.keys(blocks).forEach((blockId) => {
+		if (blocks[blockId] === null) delete map[blockId];
+		else map[blockId] = blocks[blockId];
+	});
+	var installedBlocks = __webpack_require__.hmrS_blocks;
+	Object.keys(installedBlocks).forEach((id) => {
+		if (!map[id]) delete installedBlocks[id];
+	});
+})({"block:./data/resolve.txt!lazy-compilation-proxy":["data_resolve_txt"]});
+
 })();
 
 }
@@ -126,6 +155,7 @@ Updated Modules:
 
 Updated Runtime:
 - `__webpack_require__.h`
+- `__webpack_require__.hmrV`
 
 
 #### Callback

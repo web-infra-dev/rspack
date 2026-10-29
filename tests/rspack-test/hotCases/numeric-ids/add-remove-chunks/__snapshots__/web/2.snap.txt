@@ -9,7 +9,7 @@
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 46
 - Update: 10.LAST_HASH.hot-update.js, size: 264
-- Update: main.LAST_HASH.hot-update.js, size: 586
+- Update: main.LAST_HASH.hot-update.js, size: 1147
 
 ## Manifest
 
@@ -56,7 +56,9 @@ var value = 3;
 - ./module.js
 
 #### Changed Runtime Modules
+- webpack/runtime/block_chunk_map
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
 
 #### Changed Content
 ```js
@@ -67,7 +69,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
-/* export default */ const __rspack_default_export = (() => __webpack_require__.e(/* import() | 1e1 */ "1e1").then(__webpack_require__.bind(__webpack_require__, "./chunk.js")));
+/* export default */ const __rspack_default_export = (() => __webpack_require__.eg("name:1e1").then(__webpack_require__.bind(__webpack_require__, "./chunk.js")));
 
 
 },
@@ -76,6 +78,26 @@ __webpack_require__.d(__webpack_exports__, {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV = {"1e1":"CHUNK_VERSION"};
+})();
+// webpack/runtime/block_chunk_map
+(() => {
+((blocks) => {
+	var map = __webpack_require__.hmrS_blockChunks;
+	
+	Object.keys(blocks).forEach((blockId) => {
+		if (blocks[blockId] === null) delete map[blockId];
+		else map[blockId] = blocks[blockId];
+	});
+	var installedBlocks = __webpack_require__.hmrS_blocks;
+	Object.keys(installedBlocks).forEach((id) => {
+		if (!map[id]) delete installedBlocks[id];
+	});
+})({"name:10":null,"name:1e1":["1e1"]});
+
 })();
 
 }
@@ -122,6 +144,7 @@ Updated Modules:
 
 Updated Runtime:
 - `__webpack_require__.h`
+- `__webpack_require__.hmrV`
 
 
 #### Callback

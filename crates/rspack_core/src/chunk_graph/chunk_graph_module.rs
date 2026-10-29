@@ -227,6 +227,10 @@ impl ChunkGraph {
       .get(&module_identifier, runtime)
   }
 
+  pub fn get_runtime_module_chunks(&self, module: ModuleIdentifier) -> &FxHashSet<ChunkUkey> {
+    &self.expect_chunk_graph_module(module).runtime_in_chunks
+  }
+
   pub fn get_module_runtimes(
     &self,
     module_identifier: ModuleIdentifier,

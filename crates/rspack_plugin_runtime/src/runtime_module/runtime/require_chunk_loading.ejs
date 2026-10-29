@@ -1,5 +1,10 @@
 // object to store loaded chunks
 // "1" means "loaded", otherwise not loaded yet
+<%- fn("requireFinishChunkLoading") %>(chunkIds) {
+	for (var i = 0; i < chunkIds.length; i++) requireInstalledChunks[chunkIds[i]] = 1;
+	<%- _with_on_chunk_loaded %>
+}
+
 <%- var("requireInstallChunk") %> = <%- basicFunction("chunk") %> {
 	var moreModules = chunk.modules, chunkIds = chunk.ids, runtime = chunk.runtime;
 	for (var moduleId in moreModules) {
@@ -8,6 +13,5 @@
 		}
 	}
 	if (runtime) runtime(<%- REQUIRE_SCOPE %>);
-	for (var i = 0; i < chunkIds.length; i++) requireInstalledChunks[chunkIds[i]] = 1;
-	<%- _with_on_chunk_loaded %>
+	requireFinishChunkLoading(chunkIds);
 };

@@ -1,0 +1,61 @@
+# Case newer-build-sibling-chunk: Step 1
+
+## Changed Files
+- dep.js
+- entry.js
+
+## Asset Files
+- Bundle: main.mjs
+- Bundle: page.chunk.mjs
+- Bundle: shared.chunk.mjs
+- Manifest: main.LAST_HASH.hot-update.json.mjs, size: 44
+- Update: main.LAST_HASH.hot-update.mjs, size: 685
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json.mjs
+
+```json
+{"c":["main"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+- ./entry.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+export const __rspack_esm_ids = ["main"];
+export const __webpack_modules__ = {
+"./entry.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+/* import */ var _store__rspack_import_0 = __webpack_require__("./store.js");
+
+
+_store__rspack_import_0["default"].pending = __webpack_require__.eg("name:page").then(__webpack_require__.bind(__webpack_require__, "./page.js")).then((m) => {
+	_store__rspack_import_0["default"].value = m.default;
+});
+module.hot.accept();
+
+
+},
+
+};
+export const __rspack_esm_runtime = function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+;
+
+```

@@ -1,0 +1,14 @@
+# Case newer-build-sibling-chunk: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: main.mjs
+- Bundle: page.chunk.mjs
+- Bundle: shared.chunk.mjs
+
+## Manifest
+
+
+## Update
