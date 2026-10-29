@@ -243,7 +243,7 @@ The cache backend that [experiments.newCache](/config/experiments#experimentsnew
 
 In the legacy cache backend, Rspack rebuilds entries that still depend on the writer's project root when the root changes. This includes `import.meta.url`, loader output containing absolute project paths, and references outside the project root. Unchanged builds at the same root can still reuse these entries.
 
-The legacy backend rebases entry contexts and module identities under the root, allowing unchanged modules to be reused after relocation even with fresh file timestamps. Portable context dependencies are validated by the names, types (file, directory, or symbolic link), and contents of their entries. Files validated by a content-hash fallback have their timestamp snapshots refreshed for later builds.
+The legacy backend rebases entry contexts and module identities under the root, so a relocated project reuses unchanged modules even when their file timestamps are new. Rspack validates a portable context dependency by the names, types and contents of its entries, where the type is file, directory or symbolic link. When a content-hash fallback validates a file, Rspack refreshes its timestamp snapshot for later builds.
 
 Rspack finds loader output that contains the root by searching cached data for the root's native, forward-slash, JSON-escaped and `file://` URL spellings. This search is best-effort. Loaders that derive output from a path without including one of these spellings (for example, a hash or base64 encoding of `this.resourcePath`) should call `this.cacheable(false)` or use an appropriate `cache.version`.
 

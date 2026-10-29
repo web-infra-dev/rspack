@@ -126,7 +126,7 @@ export class HotUpdatePlugin {
         options.cache.type === 'persistent' &&
         options.cache.portable)
     ) {
-      // Outside-root loaders bind every module, preventing portable fixtures from testing hits.
+      // Outside-root loaders bind every module, so portable fixtures could not test cache hits.
       loader = localLoader;
       if (!fs.existsSync(loader)) {
         fs.copyFileSync(
