@@ -167,9 +167,8 @@ pub fn save_module_graph(
         blocks,
         lazy_info,
       };
-      let key = node_codec
-        .encode(identifier)
-        .expect("should encode identifier");
+      // Keys use the plain codec, like removal, which cannot see the layout of a removed module.
+      let key = codec.encode(identifier).expect("should encode identifier");
       let root_sensitive = module.build_info().root_sensitive;
       match BoundEntry::encode(node_codec, &node, root_sensitive) {
         Ok(bytes) => (key, bytes),
@@ -234,16 +233,7 @@ pub async fn recovery_module_graph(
         if identifier != node.module.as_ref().identifier() {
           return Ok(None);
         }
-        let key_codec = node.module.as_ref().as_context_module().map(|module| {
-          codec.with_context_identifier_layouts(FxHashMap::from_iter([(
-            identifier.to_string(),
-            ContextIdentifierLayout {
-              regexes: module.identifier_regex_ranges(),
-              paths: Vec::new(),
-            },
-          )]))
-        });
-        if key_codec.as_ref().unwrap_or(codec).encode(&identifier)? != key {
+        if codec.encode(&identifier)? != key {
           return Ok(None);
         }
         Ok(Some(node))
