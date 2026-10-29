@@ -1,17 +1,16 @@
 use std::sync::LazyLock;
 
 use rspack_core::{
-  BooleanMatcher, ChunkGroupOrderKey, ChunkLoading, ChunkLoadingType, Compilation,
-  CrossOriginLoading, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
-  RuntimeModuleRuntimeRequirements, RuntimeModuleStage, RuntimeTemplate,
-  chunk_graph_chunk::ChunkIdSet, compile_boolean_matcher, impl_runtime_module,
+  BooleanMatcher, ChunkGroupOrderKey, Compilation, CrossOriginLoading, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements,
+  RuntimeModuleStage, RuntimeTemplate, chunk_graph_chunk::ChunkIdSet, compile_boolean_matcher,
+  impl_runtime_module,
 };
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 use rspack_plugin_runtime::{
   CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimePlugin, chunk_has_css,
   extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs,
-  get_chunk_runtime_requirements, is_enabled_for_chunk, render_chunk_loading_hmr_state_expression,
-  stringify_chunks,
+  get_chunk_runtime_requirements, render_chunk_loading_hmr_state_expression, stringify_chunks,
 };
 use rspack_util::json_stringify;
 
@@ -437,27 +436,12 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         }
 
         if with_hmr {
-          // Synchronous chunk loaders use 1 for loaded chunks; the other loaders use 0.
-          let js_loaded_value = if is_enabled_for_chunk(
-            &chunk_ukey,
-            &ChunkLoading::Enable(ChunkLoadingType::Require),
-            compilation,
-          ) || is_enabled_for_chunk(
-            &chunk_ukey,
-            &ChunkLoading::Enable(ChunkLoadingType::ImportScripts),
-            compilation,
-          ) {
-            1
-          } else {
-            0
-          };
           let source_with_hmr = context.runtime_template.render(
             &self.template_id(TemplateId::WithHmr),
             Some(serde_json::json!({
               "_is_neutral_platform": is_neutral_platform,
               "_css_only_initial_chunk_ids": stringify_chunks(&css_only_initial_chunk_ids, 1),
               "_js_state_expression": render_chunk_loading_hmr_state_expression(runtime_template, &chunk_ukey, compilation),
-              "_js_loaded_value": js_loaded_value,
             })),
           )?;
           source.push_str(&source_with_hmr);
