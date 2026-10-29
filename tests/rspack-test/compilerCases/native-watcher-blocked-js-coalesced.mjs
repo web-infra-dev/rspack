@@ -94,7 +94,8 @@ export default {
 					path.join(context.getValue('source'), `${name}.js`),
 					`module.exports = "${name}-new";`,
 				);
-				block(index === 2 ? 1000 : 500);
+				// The final block must exceed OS event latency plus aggregateTimeout.
+				block(index === 2 ? 2500 : 500);
 			}
 			lastActivity = Date.now();
 			await until(() => builds > initialBuilds && quiet());
