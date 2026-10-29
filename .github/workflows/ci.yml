@@ -21,16 +21,13 @@ jobs:
           node-version: 22.23.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build:js
-      - name: Configure postmortem dumps
+      - name: Configure postmortem debugger
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force diagnostics
-          $key = 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\node.exe'
-          New-Item -Path $key -Force
-          New-ItemProperty -Path $key -Name DumpFolder -Value "$pwd/diagnostics" -PropertyType ExpandString -Force
-          New-ItemProperty -Path $key -Name DumpType -Value 0 -PropertyType DWord -Force
-          New-ItemProperty -Path $key -Name CustomDumpFlags -Value 0x1121 -PropertyType DWord -Force
-          New-ItemProperty -Path $key -Name DumpCount -Value 10 -PropertyType DWord -Force
+          Invoke-WebRequest https://download.sysinternals.com/files/Procdump.zip -OutFile "$env:RUNNER_TEMP/procdump.zip"
+          Expand-Archive "$env:RUNNER_TEMP/procdump.zip" "$env:RUNNER_TEMP/procdump"
+          & "$env:RUNNER_TEMP/procdump/procdump64.exe" -accepteula -mm -i "$pwd\diagnostics"
       - name: Repeat original child bootstrap without debugger
         run: node scripts/worker-windows-probe.mjs
       - name: Analyze crash dumps when debugger is available

@@ -26,7 +26,8 @@ async function probe(scenario, mode, preload, iteration) {
   });
 }
 for (const preload of [false, true]) {
-  for (let iteration = 0; iteration < 30; iteration++) {
+  failures = 0;
+  for (let iteration = 0; iteration < 50; iteration++) {
     await Promise.all([probe('worker-errors', 'close', preload, iteration), probe('worker-references', 'close', preload, iteration), probe('worker-references', 'terminate', preload, iteration)]);
     if (failures >= 5) break;
   }
