@@ -324,7 +324,6 @@ async function checkGitSeeding() {
 		expect(seeded.output).toEqual(cold.output);
 		expect(contents(cacheLocation(main))).toEqual(donor);
 		expect(seeded.built).toEqual(["index.js"]);
-		return { seeded: seeded.output, cold: cold.output };
 	});
 }
 
@@ -372,7 +371,6 @@ async function checkExplicitSeeding() {
 		expect(seedLogs(disabled.logs)).toEqual([]);
 		expect(disabled.built).toEqual(cold.built);
 		expect(disabled.output).toEqual(cold.output);
-		return { seeded: result.output, cold: cold.output };
 	});
 }
 
@@ -417,23 +415,7 @@ export default [
 	{
 		name: "git-worktree-mechanics",
 		description:
-			"honors readonly before automatically seeding an independent compiler unit",
-		skip: !gitAvailable,
-		run: checkGitSeeding
-	},
-	{
-		name: "git-worktree-output-equals-cold",
-		description: "seeded output must equal a cold build after relocation",
-		skip: !gitAvailable,
-		async run() {
-			const { seeded, cold } = await checkGitSeeding();
-			expect(seeded).toEqual(cold);
-		}
-	},
-	{
-		name: "cached-modules-hit-after-seeding",
-		description:
-			"fresh git worktree reuses plain modules and rebuilds root-sensitive modules",
+			"seeds an independent worktree unit, honors readonly, reuses modules and matches cold output",
 		skip: !gitAvailable,
 		run: checkGitSeeding
 	},
@@ -466,16 +448,8 @@ export default [
 	{
 		name: "explicit-seed-without-git",
 		description:
-			"honors readonly and seed false with an explicit donor without git",
+			"honors readonly and seed false with an explicit donor and matches cold output",
 		run: checkExplicitSeeding
-	},
-	{
-		name: "explicit-seed-output-equals-cold",
-		description: "seeded output must equal a cold build after relocation",
-		async run() {
-			const { seeded, cold } = await checkExplicitSeeding();
-			expect(seeded).toEqual(cold);
-		}
 	},
 	...[
 		{
