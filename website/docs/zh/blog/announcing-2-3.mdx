@@ -61,9 +61,6 @@ Rspack 2.3 现已发布！本次更新将 JavaScript 解析器迁移至 SWC Next
 - [新特性](#features)
   - [按代码内容过滤 loader](#loader-code-filter)
   - [内置的 CSS](#built-in-css)
-  - [依赖解析与按需编译](#resolution-and-lazy-compilation)
-  - [Watcher 兼容性改进](#watcher-compatibility)
-  - [插件与工具集成](#plugin-integration)
   - [其他改进](#other-improvements)
 - [生态](#ecosystem)
   - [Rsbuild](#rsbuild)
@@ -312,39 +309,13 @@ CSS 中的 `@import`、`url()` 和 `image-set()` 也支持 [`rspackIgnore` 和 `
 @import /* rspackIgnore: true */ url('./runtime-theme.css');
 ```
 
-### 依赖解析与按需编译 \{#resolution-and-lazy-compilation}
-
-#### 更灵活的资源路径处理 \{#resource-resolution}
-
-新增 [`module.parser.javascript.dynamicUrl`](/zh/config/module-parser#javascriptdynamicurl) 选项。设置为 `false` 时，动态 `new URL()` 路径会在运行时求值，静态 URL 仍会参与打包。这适用于由服务端或 CDN 提供动态资源的场景。
-
-#### 更可靠的懒编译和异步模块 \{#lazy-compilation}
-
-Rspack 2.3 改进了[懒编译](/zh/guide/advanced/lazy-compilation)，在模块首次加载和后续重建时避免重复加载已激活的模块，减少不必要的工作，并修复了导入属性和路径解析相关的兼容性问题。
-
-嵌套异步导入、延迟导入和 HMR 的兼容性也得到了改善。
-
-### Watcher 兼容性改进 \{#watcher-compatibility}
-
-[`experiments.nativeWatcher`](/zh/config/experiments#experimentsnativewatcher) 现在提供了更完整的文件时间信息，改善了与 `ts-loader`、`webpack-virtual-modules`、`vue-loader` 等工具的兼容性。
-
-原生 watcher 还支持使用函数配置 [`watchOptions.ignored`](/zh/config/watch#watchoptionsignored)，并改进了对新增目录、文件删除和重新创建的检测。
-
-### 插件与工具集成 \{#plugin-integration}
-
-本次更新为插件和 loader 作者新增或完善了以下能力：
-
-- 通过 [`NormalModuleFactory`](/zh/api/plugin-api/normal-module-factory-hooks) 的 `ResolveData.attributes` 读取导入属性。
-- 通过 `JavascriptModulesPlugin.getChunkFilenameTemplate()` 查询 chunk 的文件名模板。
-- 并行 loader 支持读写 `this._module.buildInfo` 的自定义字段。
-- 改善插件 hook 与 webpack 的兼容性，并完善 loader、externals 和 stats 的 TypeScript 类型。
-
 ### 其他改进 \{#other-improvements}
 
+- **按需编译**：减少启用[按需编译](/zh/guide/advanced/lazy-compilation)时保存代码触发的重复构建，缩短等待更新的时间。
+- **原生 watcher**：提供更完整的文件时间信息，改善与 `ts-loader`、`webpack-virtual-modules`、`vue-loader` 等工具的兼容性。
+- **原生 watcher**：支持使用函数配置 [`watchOptions.ignored`](/zh/config/watch#watchoptionsignored)，并改进对新增目录、文件删除和重新创建的检测。
+- **插件兼容性与类型**：改善插件 hook 与 webpack 的兼容性，并完善 loader、externals 和 stats 的 TypeScript 类型。
 - **WebAssembly**：新增 [`output.wasmStreamingFallback`](/zh/config/output#outputwasmstreamingfallback)，支持关闭非流式加载回退。
-- **HTTP 导入**：[`experiments.buildHttp`](/zh/config/experiments#experimentsbuildhttp) 加强了冻结构建中的资源完整性校验。
-
-完整改动请查看 [2.2.0 至 2.3.0 的版本对比](https://github.com/web-infra-dev/rspack/compare/v2.2.0...v2.3.0)和 [GitHub Release Notes](https://github.com/web-infra-dev/rspack/releases/tag/v2.3.0)。
 
 ## 生态 \{#ecosystem}
 

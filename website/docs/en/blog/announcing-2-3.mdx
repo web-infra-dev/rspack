@@ -61,9 +61,6 @@ Notable changes include:
 - [New features](#features)
   - [Filter loaders by code content](#loader-code-filter)
   - [Built-in CSS](#built-in-css)
-  - [Resolution and lazy compilation](#resolution-and-lazy-compilation)
-  - [Watcher compatibility](#watcher-compatibility)
-  - [Plugin and tool integration](#plugin-integration)
   - [Other improvements](#other-improvements)
 - [Ecosystem](#ecosystem)
   - [Rsbuild](#rsbuild)
@@ -310,39 +307,13 @@ CSS `@import`, `url()`, and `image-set()` also support [`rspackIgnore` and `webp
 @import /* rspackIgnore: true */ url('./runtime-theme.css');
 ```
 
-### Resolution and lazy compilation
-
-#### Resource path resolution \{#resource-resolution}
-
-The new [`module.parser.javascript.dynamicUrl`](/config/module-parser#javascriptdynamicurl) option controls how dynamic `new URL()` paths are handled. When set to `false`, dynamic paths are evaluated at runtime while static URLs are still bundled. This is useful when dynamic assets are provided by a server or CDN.
-
-#### More reliable lazy compilation and async modules \{#lazy-compilation}
-
-In Rspack 2.3, [lazy compilation](/guide/advanced/lazy-compilation) avoids repeated loads of already activated modules during initial module loading and subsequent rebuilds. This reduces unnecessary work and fixes compatibility issues involving import attributes and path resolution.
-
-Compatibility with nested asynchronous imports, deferred imports, and HMR has also improved.
-
-### Watcher compatibility
-
-[`experiments.nativeWatcher`](/config/experiments#experimentsnativewatcher) now provides more complete file timestamp information, improving compatibility with tools such as `ts-loader`, `webpack-virtual-modules`, and `vue-loader`.
-
-The native watcher also supports functions for [`watchOptions.ignored`](/config/watch#watchoptionsignored) and better detects new directories and deleted or recreated files.
-
-### Plugin and tool integration \{#plugin-integration}
-
-This release adds or improves the following capabilities for plugin and loader authors:
-
-- Read import attributes through `ResolveData.attributes` in [`NormalModuleFactory`](/api/plugin-api/normal-module-factory-hooks).
-- Retrieve a chunk's filename template with `JavascriptModulesPlugin.getChunkFilenameTemplate()`.
-- Read and write custom fields in `this._module.buildInfo` from parallel loaders.
-- Improve webpack compatibility for plugin hooks and TypeScript types for loaders, externals, and stats.
-
 ### Other improvements
 
+- **On-demand compilation**: Reduces redundant builds triggered when saving code with [on-demand compilation](/guide/advanced/lazy-compilation) enabled, shortening the wait for updates.
+- **Native watcher**: Provides more complete file timestamp information, improving compatibility with tools such as `ts-loader`, `webpack-virtual-modules`, and `vue-loader`.
+- **Native watcher**: Supports functions for [`watchOptions.ignored`](/config/watch#watchoptionsignored) and improves detection of new directories and deleted or recreated files.
+- **Plugin compatibility and types**: Improved webpack compatibility for plugin hooks and TypeScript types for loaders, externals, and stats.
 - **WebAssembly**: Added [`output.wasmStreamingFallback`](/config/output#outputwasmstreamingfallback) to allow disabling fallback to non-streaming loading.
-- **HTTP imports**: [`experiments.buildHttp`](/config/experiments#experimentsbuildhttp) now performs stronger resource integrity checks in frozen builds.
-
-See the [version comparison from 2.2.0 to 2.3.0](https://github.com/web-infra-dev/rspack/compare/v2.2.0...v2.3.0) and the [GitHub release notes](https://github.com/web-infra-dev/rspack/releases/tag/v2.3.0) for the full list of changes.
 
 ## Ecosystem
 
