@@ -110,7 +110,7 @@ impl CssLoadingRuntimeModule {
   /// The stylesheet link runtime belongs to the chunk loading runtimes that can
   /// load a `<link>`: jsonp and import. Other chunk loading runtimes still need
   /// the style-sheet/inject runtimes but cannot use link loading.
-  fn link_runtime_enabled(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
+  pub(crate) fn link_runtime_enabled(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
     is_enabled_for_chunk(
       chunk_ukey,
       &ChunkLoading::Enable(ChunkLoadingType::Jsonp),
