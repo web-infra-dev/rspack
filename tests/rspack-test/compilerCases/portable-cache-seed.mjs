@@ -206,7 +206,7 @@ async function build(
 }
 
 async function withFixture(run) {
-	const temp = fs.realpathSync(
+	const temp = fs.realpathSync.native(
 		fs.mkdtempSync(path.join(os.tmpdir(), "rspack-seed-"))
 	);
 	try {
