@@ -352,59 +352,55 @@ Rspack 2.3 改进了[懒编译](/zh/guide/advanced/lazy-compilation)，在模块
 
 ### Rsbuild \{#rsbuild}
 
-Rsbuild 在产物体积、项目创建和开发体验等方面带来了多项更新。
+#### TanStack CLI 支持 Rsbuild \{#rsbuild-tanstack-cli}
 
-#### 默认启用 compact-hashed ID \{#rsbuild-compact-hashed}
+[TanStack CLI](https://tanstack.com/cli/latest/docs/cli-reference) 现已正式支持使用 Rsbuild 创建 TanStack Start 项目。创建项目时，添加 `--build-tool rsbuild` 即可选择 Rsbuild。例如，创建 React 项目：
 
-Rspack 2.2.0 引入了 [`compact-hashed` ID](/zh/blog/announcing-2-2#compact-hashed-ids)，通过生成更短的模块和 chunk ID 减小产物体积，同时保持 ID 稳定。Rsbuild 现在在生产构建中默认启用这一策略。
-
-#### 文件体积报告改进 \{#rsbuild-stats}
-
-如今，主流浏览器普遍支持压缩传输，服务器或 CDN 通常会在传输前压缩文本资源。报告压缩后的文件体积，可以更接近用户实际下载的数据量，帮助评估页面加载体验。
-
-Rsbuild 的文件体积报告支持统计 Brotli 压缩体积，并可配置 gzip 或 Brotli 的压缩等级，方便根据部署环境估算传输体积。体积统计的内存和计算开销也有所降低。
-
-[`performance.printFileSize.detail`](https://rsbuild.rs/zh/config/performance/print-file-size#detail) 还支持设置数字，只显示每个环境中体积最大的指定数量的文件，方便在产物较多时关注重点。例如，显示最大的 20 个文件，并统计 Brotli 体积：
-
-```ts title="rsbuild.config.ts"
-export default {
-  performance: {
-    printFileSize: {
-      detail: 20,
-      compressed: { type: 'brotli', level: 5 },
-    },
-  },
-};
+```bash
+npx @tanstack/cli@latest create my-app --framework React --build-tool rsbuild
 ```
 
-#### 改进的项目模板 \{#rsbuild-project-templates}
-
-[TanStack Start](https://tanstack.com/blog/start-adds-rsbuild-support) 已支持使用 Rsbuild 构建。现在，你也可以通过 `create-rsbuild` 创建 TanStack Start 项目，支持 React 和 Solid。例如，创建 React 项目：
+`create-rsbuild` 也新增了 TanStack Start 选项，会自动调用 TanStack CLI 创建项目。你也可以通过以下命令直接选择该模板：
 
 ```bash
 npx -y create-rsbuild@latest my-app -t tanstack-start-react
 ```
 
-使用 `tanstack-start-solid` 模板可以创建 Solid 项目。
+#### Lynx Rsbuild 插件 \{#rsbuild-lynx}
 
-`create-rsbuild` 新增了 [Lynx](https://lynxjs.org/) 选项，会调用 `@lynx-js/create-lynx` 创建基于 Rsbuild 的 ReactLynx 项目，方便快速开始跨平台应用开发。例如，创建 TypeScript 项目：
+Lynx 推出了 [`@lynx-js/rsbuild-plugin`](https://lynxjs.org/next/zh/api/packages/rsbuild-plugin/index.html)，将原先封装在 Rspeedy 中的 Lynx 专属配置、默认值和构建适配整合到 `pluginLynx` 插件中。现在，Lynx 应用可以直接使用 Rsbuild 和该插件构建，无需依赖 Rspeedy 的封装。
+
+你现在可以使用熟悉的 `rsbuild.config.ts` 和 Rsbuild CLI，按照 Rsbuild 文档配置项目，并继续使用现有的 Rsbuild 和 Lynx 构建插件。
+
+`create-rsbuild` 也新增了 Lynx 选项，会自动调用 `@lynx-js/create-lynx` 创建项目。例如，创建使用 TypeScript 的 ReactLynx 项目：
 
 ```bash
 npx -y create-rsbuild@latest my-app -t lynx-ts
 ```
 
-使用 `lynx-js` 模板可以创建 JavaScript 项目。
+#### 文件体积报告改进 \{#rsbuild-stats}
+
+Rsbuild 的文件体积报告新增了 Brotli 压缩体积统计，并支持配置 gzip 和 Brotli 的压缩等级，便于按部署环境的压缩设置估算传输体积。统计 Brotli 压缩体积只需添加以下配置：
+
+```ts title="rsbuild.config.ts"
+export default {
+  performance: {
+    printFileSize: {
+      compressed: { type: 'brotli' },
+    },
+  },
+};
+```
 
 #### 其他改进 \{#rsbuild-other}
 
-- **开发体验**：在同时开发客户端和服务端的应用时，前端代码的变更可以[更快地在浏览器中生效](https://github.com/web-infra-dev/rsbuild/pull/8729)。
-- **公共资源目录**：支持[按环境配置 `server.publicDir`](https://github.com/web-infra-dev/rsbuild/pull/8711)，为不同环境设置各自的公共资源目录，或按需禁用。
-- **Web Worker**：`output.target: 'web-worker'` 支持配合 [`output.module: true`](https://rsbuild.rs/zh/config/output/module#web-workers) 生成 ES 模块格式的 worker 产物，适用于模块化 Worker 和相关运行时。
-- **Host 校验**：通过 [`server.allowedHosts`](https://rsbuild.rs/zh/config/server/allowed-hosts) 可以限制开发服务器和预览服务器允许访问的主机名。该校验默认关闭，需要显式配置。
-- **预览服务器**：新增 [`onClosePreviewServer`](https://rsbuild.rs/zh/plugins/dev/hooks#onclosepreviewserver) hook，方便插件在预览服务器关闭时清理资源。
-- **插件转换**：[`api.transform`](https://github.com/web-infra-dev/rsbuild/pull/8722) 支持 `codeFilter`，插件可以根据代码内容跳过不必要的转换。
-
-完整改动可查看 [Rsbuild 变更记录](https://github.com/web-infra-dev/rsbuild/compare/v2.2.0...v2.3.0)。
+- **默认启用 compact-hashed ID**：生产构建默认使用 [`compact-hashed` ID](/zh/blog/announcing-2-2#compact-hashed-ids)，通过更短且稳定的模块和 chunk ID 减小产物体积。
+- **开发体验**：开发同时包含客户端和服务端的应用时，前端代码变更可以[更快地在浏览器中生效](https://github.com/web-infra-dev/rsbuild/pull/8729)。
+- **公共资源目录**：支持[按环境配置 `server.publicDir`](https://github.com/web-infra-dev/rsbuild/pull/8711)，为不同环境指定公共资源目录。
+- **Web Worker**：当 `output.target` 为 `'web-worker'` 时，可以通过 [`output.module: true`](https://rsbuild.rs/zh/config/output/module#web-workers) 生成 ES 模块格式的产物。
+- **Host 校验**：[`server.allowedHosts`](https://rsbuild.rs/zh/config/server/allowed-hosts) 可限制用于访问 dev server 和预览服务器的主机名。
+- **预览服务器**：新增 [`onClosePreviewServer`](https://rsbuild.rs/zh/plugins/dev/hooks#onclosepreviewserver) hook，插件可在预览服务器关闭时清理资源。
+- **插件转换**：[`api.transform`](https://github.com/web-infra-dev/rsbuild/pull/8722) 支持通过 `codeFilter` 根据代码内容跳过不必要的转换。
 
 ### Rslib \{#rslib}
 

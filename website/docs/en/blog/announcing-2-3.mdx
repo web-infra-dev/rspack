@@ -350,59 +350,55 @@ Alongside Rspack 2.3, the Rstack ecosystem also includes recent updates across R
 
 ### Rsbuild
 
-Rsbuild brings updates to output size, project creation, and the development experience.
+#### TanStack CLI supports Rsbuild \{#rsbuild-tanstack-cli}
 
-#### Compact-hashed IDs by default \{#rsbuild-compact-hashed}
+[TanStack CLI](https://tanstack.com/cli/latest/docs/cli-reference) now officially supports creating TanStack Start projects with Rsbuild. Add `--build-tool rsbuild` when creating a project to select Rsbuild. For example, to create a React project:
 
-Rspack 2.2.0 introduced [`compact-hashed` IDs](/blog/announcing-2-2#compact-hashed-ids), which reduce output size by generating shorter, stable module and chunk IDs. Rsbuild now enables this strategy by default in production builds.
-
-#### File size reporting improvements \{#rsbuild-stats}
-
-Modern browsers widely support compressed transfers, and servers or CDNs often compress text assets before sending them. Reporting compressed file sizes provides a closer estimate of what users download and helps assess the page loading experience.
-
-Rsbuild's file size reports can show compressed sizes and use configurable gzip or Brotli compression levels, helping you estimate transfer sizes for your deployment. The reports also use less memory and require less computation.
-
-[`performance.printFileSize.detail`](https://rsbuild.rs/config/performance/print-file-size#detail) also accepts a number to limit the report to the largest files in each environment. This helps you focus on the largest assets when a build produces many files. For example, show the 20 largest files and report Brotli sizes:
-
-```ts title="rsbuild.config.ts"
-export default {
-  performance: {
-    printFileSize: {
-      detail: 20,
-      compressed: { type: 'brotli', level: 5 },
-    },
-  },
-};
+```bash
+npx @tanstack/cli@latest create my-app --framework React --build-tool rsbuild
 ```
 
-#### Improved project templates \{#rsbuild-project-templates}
-
-[TanStack Start](https://tanstack.com/blog/start-adds-rsbuild-support) already supports building with Rsbuild. You can now also use `create-rsbuild` to create a TanStack Start project with React or Solid. For example, create a React project:
+`create-rsbuild` also adds a TanStack Start option that automatically calls TanStack CLI to create the project. You can select the template directly with the following command:
 
 ```bash
 npx -y create-rsbuild@latest my-app -t tanstack-start-react
 ```
 
-Use the `tanstack-start-solid` template for a Solid project.
+#### Lynx Rsbuild plugin \{#rsbuild-lynx}
 
-`create-rsbuild` adds a [Lynx](https://lynxjs.org/) option. It delegates to `@lynx-js/create-lynx` to create a ReactLynx project with Rsbuild, helping you get started with cross-platform application development. For example, create a TypeScript project:
+Lynx has introduced [`@lynx-js/rsbuild-plugin`](https://lynxjs.org/next/api/packages/rsbuild-plugin/index.html), moving the Lynx-specific options, defaults, and build integration from Rspeedy into `pluginLynx`. Lynx apps can now build directly with Rsbuild and this plugin, without the Rspeedy wrapper.
+
+You can now use the familiar `rsbuild.config.ts` and Rsbuild CLI, follow the Rsbuild documentation, and continue using existing Rsbuild and Lynx build plugins.
+
+`create-rsbuild` also adds a Lynx option that automatically calls `@lynx-js/create-lynx` to create a project. For example, to create a ReactLynx project with TypeScript:
 
 ```bash
 npx -y create-rsbuild@latest my-app -t lynx-ts
 ```
 
-Use `lynx-js` to create a JavaScript project.
+#### File size reporting improvements \{#rsbuild-stats}
+
+Rsbuild's file size reports now include Brotli sizes and support configurable gzip and Brotli compression levels, so you can estimate transfer sizes using your deployment's compression settings. Add the following configuration to report Brotli sizes:
+
+```ts title="rsbuild.config.ts"
+export default {
+  performance: {
+    printFileSize: {
+      compressed: { type: 'brotli' },
+    },
+  },
+};
+```
 
 #### Other improvements \{#rsbuild-other}
 
+- **Compact-hashed IDs by default**: Production builds now use [`compact-hashed` IDs](/blog/announcing-2-2#compact-hashed-ids) to reduce output size with shorter, stable module and chunk IDs.
 - **Development experience**: When developing applications with both client and server environments, frontend changes can [appear in the browser sooner](https://github.com/web-infra-dev/rsbuild/pull/8729).
-- **Public asset directories**: Configure [`server.publicDir` per environment](https://github.com/web-infra-dev/rsbuild/pull/8711) to use separate public asset directories or disable them as needed.
-- **Web Workers**: `output.target: 'web-worker'` supports [`output.module: true`](https://rsbuild.rs/config/output/module#web-workers) for generating ES module output for module workers and compatible runtimes.
-- **Host validation**: [`server.allowedHosts`](https://rsbuild.rs/config/server/allowed-hosts) can restrict hostnames accepted by the dev and preview servers. Validation is disabled by default and must be configured explicitly.
+- **Public asset directories**: Configure [`server.publicDir` per environment](https://github.com/web-infra-dev/rsbuild/pull/8711) to specify a public asset directory for each environment.
+- **Web Workers**: When `output.target` is `'web-worker'`, set [`output.module: true`](https://rsbuild.rs/config/output/module#web-workers) to generate ES module output.
+- **Host validation**: [`server.allowedHosts`](https://rsbuild.rs/config/server/allowed-hosts) restricts the hostnames used to access the dev server and preview server.
 - **Preview server**: The new [`onClosePreviewServer`](https://rsbuild.rs/plugins/dev/hooks#onclosepreviewserver) hook lets plugins clean up resources when the preview server closes.
 - **Plugin transforms**: Use `codeFilter` with [`api.transform`](https://github.com/web-infra-dev/rsbuild/pull/8722) to skip unnecessary transformations based on the code content.
-
-See the [Rsbuild changelog](https://github.com/web-infra-dev/rsbuild/compare/v2.2.0...v2.3.0) for the full list of changes.
 
 ### Rslib
 
