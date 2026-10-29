@@ -1,5 +1,7 @@
-module.exports = {
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
   mode: 'production',
   experiments: { pureFunctions: true },
   optimization: { minimize: false, concatenateModules: false },
-};
+});

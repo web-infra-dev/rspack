@@ -1,12 +1,11 @@
-'use strict';
-
-const fs = require('fs');
-const path = require('path');
+import { defineConfig } from '@rspack/cli';
+import fs from 'node:fs';
+import path from 'node:path';
 
 // a workspace package: installed as a symlink, so its own files resolve to a
 // real path outside node_modules while the package request resolves through it
 const modulesDirectory = path.resolve(
-  __dirname,
+  import.meta.dirname,
   '../../../js/side-effects-symlinked/node_modules',
 );
 
@@ -14,16 +13,15 @@ fs.mkdirSync(modulesDirectory, { recursive: true });
 
 try {
   fs.symlinkSync(
-    path.join(__dirname, 'package'),
+    path.join(import.meta.dirname, 'package'),
     path.join(modulesDirectory, 'symlinked-sef'),
     'junction',
   );
 } catch (err) {
-  if (/** @type {NodeJS.ErrnoException} */ (err).code !== 'EEXIST') throw err;
+  if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err;
 }
 
-/** @type {import("@rspack/core").Configuration} */
-module.exports = {
+export default defineConfig({
   mode: 'production',
   resolve: {
     modules: [modulesDirectory, 'node_modules'],
@@ -35,4 +33,4 @@ module.exports = {
     concatenateModules: false,
     minimize: false,
   },
-};
+});

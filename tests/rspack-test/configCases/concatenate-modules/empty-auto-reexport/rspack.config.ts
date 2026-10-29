@@ -1,7 +1,7 @@
-const rspack = require('@rspack/core');
+import { defineConfig } from '@rspack/cli';
+import { rspack } from '@rspack/core';
 
-/** @type {import("@rspack/core").Configuration} */
-module.exports = {
+export default defineConfig({
   mode: 'production',
   output: {
     library: { type: 'commonjs2' },
@@ -28,4 +28,4 @@ module.exports = {
     optimizationBailout: true,
     providedExports: true,
   },
-};
+});
