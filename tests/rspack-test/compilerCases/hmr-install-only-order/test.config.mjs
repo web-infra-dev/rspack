@@ -36,7 +36,7 @@ export default {
             c: {
               test: /[\\/]m\.js$/,
               name: 'c',
-              chunks: chunk => ['z', 'x'].includes(chunk.name),
+              chunks: chunk => ['z', 'a'].includes(chunk.name),
               enforce: true,
               minSize: 0,
             },
@@ -53,7 +53,7 @@ export default {
       'a.js': `
         globalThis.req = __webpack_require__;
         globalThis.loadZ = () => import(/* webpackChunkName: 'z', webpackExports: ['a'] */ './m');
-        globalThis.loadX = () => import(/* webpackChunkName: 'x' */ './x');
+        require('./x');
         globalThis.loadY = () => import(/* webpackChunkName: 'y', webpackExports: ['runA'] */ './y').then(m => m.runA());
         module.hot.accept();
       `,
@@ -75,8 +75,8 @@ export default {
     const builds = [];
     for (let step = 0; step < 2; step++) {
       if (step) {
-        // B drops an export, changing M's factory in shared chunk Y. X starts
-        // using M, so A also receives its unchanged factory through chunk C.
+        // B drops an export, changing M's factory in shared chunk Y. A's
+        // synchronous dependency X starts using M, adding C to A's entry.
         fs.writeFileSync(
           path.join(input, 'b.js'),
           sources['b.js'].replaceAll('runB', 'runA'),
@@ -104,7 +104,7 @@ export default {
       ));
     }
 
-    for (const order of [['a', 'x', 'y', 'c'], ['a', 'x', 'c', 'y']]) {
+    for (const order of [['a', 'y', 'c'], ['a', 'c', 'y']]) {
       const sandbox = vm.createContext({
         self: {}, console, Promise, setTimeout, clearTimeout,
       });
@@ -125,7 +125,6 @@ export default {
           done({ type: 'load' });
         }
       };
-      await sandbox.loadX();
       assert.equal(await sandbox.loadY(), 1);
       let disposed = 0;
       req.c['./m.js'].hot.dispose(() => {

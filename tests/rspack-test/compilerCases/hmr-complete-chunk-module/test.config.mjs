@@ -6,7 +6,7 @@ import { rspack } from '@rspack/core';
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 export default {
-  description: 'installs complete ESM chunks and keeps receiving their updates',
+  description: 'installs complete ESM entry dependencies and keeps receiving their updates',
   compiler(_context, compiler) {
     compiler.outputFileSystem = fs;
   },
@@ -22,13 +22,14 @@ export default {
         module: true,
         library: { type: 'module' },
         chunkLoading: 'import',
-        filename: 'main.mjs',
+        filename: '[name].mjs',
         chunkFilename: '[name].[contenthash].mjs',
         hotUpdateChunkFilename: '[id].[fullhash].hot-update.mjs',
         hotUpdateMainFilename: '[runtime].[fullhash].hot-update.json.mjs',
         publicPath: pathToFileURL(`${context.getDist('output')}/`).href,
       },
       optimization: {
+        runtimeChunk: 'single',
         moduleIds: 'named',
         chunkIds: 'named',
         concatenateModules: false,
@@ -36,7 +37,7 @@ export default {
           cacheGroups: {
             default: false,
             defaultVendors: false,
-            shared: { test: /[\\/]dep\.js$/, name: 'shared', chunks: 'async', enforce: true },
+            shared: { test: /[\\/]dep\.js$/, name: 'constructor', chunks: 'all', enforce: true },
           },
         },
       },
@@ -51,7 +52,7 @@ export default {
     const write = (name, source) => fs.writeFileSync(path.join(input, name), source);
     write('index.mjs', `
       export const hot = import.meta.webpackHot;
-      export const loadPage = () => import(/* webpackChunkName: 'page' */ './page.js');
+      import './page.js';
       export const loadOther = () => import(/* webpackChunkName: 'other' */ './other.js');
       import.meta.webpackHot.accept();
     `);
@@ -70,8 +71,14 @@ export default {
         assert.equal(stats.hasErrors(), false, stats.toString());
         if (!step) {
           entry = await import(pathToFileURL(context.getDist('output/main.mjs')).href);
-          await entry.loadPage();
         } else {
+          if (step === 1) {
+            const assets = stats.compilation.getAssets();
+            const manifest = assets.find(asset => asset.name.endsWith('.hot-update.json.mjs'));
+            assert.match(manifest.source.source().toString(), /"entries":\{"main":\["constructor"\]\}/);
+            assert(assets.some(asset => asset.name.startsWith('constructor.') && asset.name.endsWith('.full.mjs')));
+            assert(!assets.some(asset => asset.name.startsWith('constructor.') && asset.name.endsWith('.hot-update.mjs')));
+          }
           await entry.hot.check(true);
         }
         assert.equal(globalThis.completeHmrModuleValue, [1, 2, 9, 9, 4][step]);

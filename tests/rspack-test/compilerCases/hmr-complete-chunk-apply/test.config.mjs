@@ -6,7 +6,7 @@ import { rspack } from "@rspack/core";
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 export default {
-	description: "stages complete chunks until apply and resolves concurrent imports",
+	description: "stages complete entry dependencies until apply and resolves concurrent imports",
 	options(context) {
 		return {
 			context: context.getDist("input"),
@@ -16,7 +16,7 @@ export default {
 			target: "web",
 			output: {
 				path: context.getDist("output"),
-				filename: "main.js",
+				filename: "[name].js",
 				chunkFilename: "[name].js",
 				publicPath: "/"
 			},
@@ -31,9 +31,9 @@ export default {
 						default: false,
 						defaultVendors: false,
 						shared: {
-							test: /[\\/](dep|z)\.js$/,
-							name: "shared",
-							chunks: "async",
+							test: /[\\/]z\.js$/,
+							name: "toString",
+							chunks: "initial",
 							enforce: true
 						}
 					}
@@ -50,7 +50,7 @@ export default {
 			globalThis.req = __webpack_require__;
 			globalThis.hot = module.hot;
 			globalThis.readDep = () => require('./dep');
-			globalThis.loadPage = () => import(/* webpackChunkName: 'page' */ './page');
+			require('./page');
 			globalThis.loadOther = () => import(/* webpackChunkName: 'other' */ './other');
 			module.hot.accept();
 		`);
@@ -89,37 +89,44 @@ export default {
 				if (hold && !name.includes(".hot-update.")) queued.push(execute);
 				else execute();
 			};
-			await sandbox.loadPage();
+			const oldFactory = req.m["./dep.js"];
 			// Prefetching records null without installing factories. It still needs
-			// a complete payload when the loaded page gains this dependency.
-			if (abort) req.hmrS_jsonp.shared = null;
+			// a complete payload when the entry gains this dependency.
+			if (abort) req.hmrS_jsonp.toString = null;
 			assets = builds[1];
 			req.hmrM = async () => JSON.parse(assets[`main.${req.h()}.hot-update.json`]);
+			const manifest = await req.hmrM();
+			assert.deepEqual(manifest.load.entries.main, ["toString"]);
+			assert(!manifest.c.includes("toString"));
 			await hot.check(false);
 			assert.equal(hot.status(), "ready");
 			assert.equal(sandbox.readDep(), 2);
+			assert.equal(req.m["./dep.js"], oldFactory);
+			assert.equal(req.m["./z.js"], undefined);
 			assert(requests.some(name => name.endsWith(".full.js")));
 			if (abort) {
 				req.c["./page.js"].hot.decline();
 				req.c["./page.js"].hot.invalidate();
 				await assert.rejects(hot.apply(), /self decline/);
 				assert.equal(sandbox.readDep(), 2);
-				assert.equal(req.hmrS_jsonp.shared, null);
+				assert.equal(req.m["./z.js"], undefined);
+				assert.equal(req.hmrS_jsonp.toString, null);
 				continue;
 			}
 			let pending;
 			hot.addStatusHandler(status => {
 				if (status !== "dispose") return;
 				hold = true;
-				pending = sandbox.loadOther();
+				pending = Promise.all([req.e("toString"), sandbox.loadOther()]);
 			});
 			await hot.apply();
 			assert.equal(sandbox.readDep(), 3);
+			assert.equal(req.hmrS_jsonp.toString, 0);
 			assert.equal(queued.length, 2);
 			queued.forEach(execute => execute());
 			let timer;
 			try {
-				const other = await Promise.race([
+				const [, other] = await Promise.race([
 					pending,
 					new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("import did not resolve")), 1000); })
 				]);
