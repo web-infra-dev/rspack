@@ -35,6 +35,7 @@ mod remove_bom;
 mod runtime;
 mod source;
 mod source_size_cache;
+mod stable_binding;
 pub mod task_loop;
 mod template;
 mod to_path;
@@ -53,7 +54,7 @@ pub use self::{
   comment::*, extract_source_map::*, extract_url_and_global::*, fast_actions::*,
   file_counter::FileCounter, find_graph_roots::*, identifier::*, module_rules::*,
   property_access::*, property_name::*, remove_bom::*, runtime::*, source::*, source_size_cache::*,
-  template::*, to_path::to_path, topological_sort::*,
+  stable_binding::*, template::*, to_path::to_path, topological_sort::*,
 };
 
 /// join string component in a more human readable way

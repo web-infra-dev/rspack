@@ -44,8 +44,8 @@ use crate::{
   ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition,
   RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState,
-  UsedName, UsedNameItem, analyze_module_scope, escape_identifier, fast_set, filter_runtime,
-  get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  UsedName, UsedNameItem, analyze_module_scope, can_emit_stable_binding_with, escape_identifier,
+  fast_set, filter_runtime, get_runtime_key, impl_source_map_config, merge_runtime_condition,
   merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
@@ -224,6 +224,8 @@ pub struct ConcatenatedModuleInfo {
   pub interop_namespace_object2_name: Option<Atom>,
   pub interop_default_access_used: bool,
   pub interop_default_access_name: Option<Atom>,
+  pub interop_default_value_used: bool,
+  pub interop_default_value_name: Option<Atom>,
   pub global_scope_ident: Vec<ConcatenatedModuleIdent>,
   pub idents: Vec<ConcatenatedModuleIdent>,
   pub all_used_names: HashSet<Atom>,
@@ -394,6 +396,8 @@ pub struct ExternalModuleInfo {
   pub interop_namespace_object2_name: Option<Atom>,
   pub interop_default_access_used: bool,
   pub interop_default_access_name: Option<Atom>,
+  pub interop_default_value_used: bool,
+  pub interop_default_value_name: Option<Atom>,
   pub name: Option<Atom>,
   pub deferred: bool,
   pub deferred_namespace_object_name: Option<Atom>,
@@ -413,6 +417,8 @@ impl ExternalModuleInfo {
       interop_namespace_object2_name: None,
       interop_default_access_used: false,
       interop_default_access_name: None,
+      interop_default_value_used: false,
+      interop_default_value_name: None,
       name: None,
       deferred: false,
       deferred_namespace_object_name: None,
@@ -580,6 +586,20 @@ impl ModuleInfo {
     }
   }
 
+  pub fn get_interop_default_value_name(&self) -> Option<&Atom> {
+    match self {
+      ModuleInfo::External(e) => e.interop_default_value_name.as_ref(),
+      ModuleInfo::Concatenated(c) => c.interop_default_value_name.as_ref(),
+    }
+  }
+
+  pub fn get_interop_default_value_used(&self) -> bool {
+    match self {
+      ModuleInfo::External(e) => e.interop_default_value_used,
+      ModuleInfo::Concatenated(c) => c.interop_default_value_used,
+    }
+  }
+
   pub fn get_deferred_namespace_object_name(&self) -> Option<&Atom> {
     match self {
       ModuleInfo::External(e) => e.deferred_namespace_object_name.as_ref(),
@@ -598,6 +618,20 @@ impl ModuleInfo {
     match self {
       ModuleInfo::External(e) => e.interop_default_access_name = v,
       ModuleInfo::Concatenated(c) => c.interop_default_access_name = v,
+    }
+  }
+
+  pub fn set_interop_default_value_used(&mut self, v: bool) {
+    match self {
+      ModuleInfo::External(e) => e.interop_default_value_used = v,
+      ModuleInfo::Concatenated(c) => c.interop_default_value_used = v,
+    }
+  }
+
+  pub fn set_interop_default_value_name(&mut self, v: Option<Atom>) {
+    match self {
+      ModuleInfo::External(e) => e.interop_default_value_name = v,
+      ModuleInfo::Concatenated(c) => c.interop_default_value_name = v,
     }
   }
 
@@ -1279,6 +1313,7 @@ impl Module for ConcatenatedModule {
         info.get_interop_namespace_object_name(),
         info.get_interop_namespace_object2_name(),
         info.get_interop_default_access_name(),
+        info.get_interop_default_value_name(),
       ]
       .into_iter()
       .flatten()
@@ -1847,6 +1882,17 @@ impl Module for ConcatenatedModule {
           runtime_template.render_runtime_globals(&RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT),
           name.expect("should have name")
         )));
+        if info.get_interop_default_value_used() {
+          result.add(RawStringSource::from(format!(
+            "\nvar {} = {}();",
+            info
+              .get_interop_default_value_name()
+              .expect("should have interop_default_value_name"),
+            info
+              .get_interop_default_access_name()
+              .expect("should have interop_default_access_name"),
+          )));
+        }
       }
 
       if is_conditional {
@@ -2608,6 +2654,7 @@ impl ConcatenatedModule {
       interop_namespace_object_used,
       interop_namespace_object2_used,
       interop_default_access_used,
+      interop_default_value_used,
       deferred_namespace_object_used,
       needed_namespace_object,
     } = final_binding_result;
@@ -2672,6 +2719,7 @@ impl ConcatenatedModule {
         interop_namespace_object_used,
         interop_namespace_object2_used,
         interop_default_access_used,
+        interop_default_value_used,
         deferred_namespace_object_used,
         needed_namespace_object,
       };
@@ -2682,6 +2730,7 @@ impl ConcatenatedModule {
       interop_namespace_object_used,
       interop_namespace_object2_used,
       interop_default_access_used,
+      interop_default_value_used,
       deferred_namespace_object_used,
       needed_namespace_object,
     }
@@ -2747,6 +2796,7 @@ impl ConcatenatedModule {
           interop_namespace_object_used,
           interop_namespace_object2_used,
           interop_default_access_used: None,
+          interop_default_value_used: None,
           deferred_namespace_object_used: is_deferred.then_some(true),
           needed_namespace_object,
         }
@@ -2779,6 +2829,36 @@ impl ConcatenatedModule {
             comment: None,
           }));
         }
+        let can_snapshot = can_emit_stable_binding_with(
+          binding_resolver.context.circular_modules,
+          binding_resolver.context.module_graph,
+          binding_resolver.context.imported_by_defer_modules_artifact,
+          &info_id,
+          None,
+        );
+        if can_snapshot {
+          let default_value_name = info
+            .get_interop_default_value_name()
+            .cloned()
+            .expect("should have default value name");
+          // `export_name` is already stripped of the leading "default" by the
+          // InteropDefault binding plan (e.g. path.resolve → ["resolve"]).
+          return FinalBindingResult {
+            binding: Binding::Raw(RawBinding {
+              raw_name: default_value_name,
+              ids: export_name.clone(),
+              export_name,
+              info_id,
+              comment: None,
+            }),
+            interop_default_access_used: Some(true),
+            interop_default_value_used: Some(true),
+            interop_namespace_object_used: None,
+            interop_namespace_object2_used: None,
+            deferred_namespace_object_used: None,
+            needed_namespace_object: None,
+          };
+        }
         let default_access_name = info
           .get_interop_default_access_name()
           .cloned()
@@ -2802,6 +2882,7 @@ impl ConcatenatedModule {
             comment: None,
           }),
           interop_default_access_used: Some(true),
+          interop_default_value_used: None,
           interop_namespace_object_used: None,
           interop_namespace_object2_used: None,
           deferred_namespace_object_used: None,
@@ -2846,6 +2927,7 @@ impl ConcatenatedModule {
             interop_namespace_object_used: None,
             interop_namespace_object2_used: None,
             interop_default_access_used: None,
+            interop_default_value_used: None,
             deferred_namespace_object_used: None,
           },
           ModuleInfo::External(info) => {
@@ -2864,6 +2946,7 @@ impl ConcatenatedModule {
                 interop_namespace_object_used: None,
                 interop_namespace_object2_used: None,
                 interop_default_access_used: None,
+                interop_default_value_used: None,
                 deferred_namespace_object_used: Some(true),
                 needed_namespace_object: None,
               };
@@ -3081,6 +3164,7 @@ struct FinalBindingResult {
   interop_namespace_object_used: Option<bool>,
   interop_namespace_object2_used: Option<bool>,
   interop_default_access_used: Option<bool>,
+  interop_default_value_used: Option<bool>,
   deferred_namespace_object_used: Option<bool>,
   needed_namespace_object: Option<ModuleIdentifier>,
 }
@@ -3092,6 +3176,7 @@ impl FinalBindingResult {
       interop_namespace_object_used: None,
       interop_namespace_object2_used: None,
       interop_default_access_used: None,
+      interop_default_value_used: None,
       deferred_namespace_object_used: None,
       needed_namespace_object: None,
     }
@@ -3112,6 +3197,7 @@ struct FinalNameResult {
   interop_namespace_object_used: Option<bool>,
   interop_namespace_object2_used: Option<bool>,
   interop_default_access_used: Option<bool>,
+  interop_default_value_used: Option<bool>,
   deferred_namespace_object_used: Option<bool>,
   needed_namespace_object: Option<ModuleIdentifier>,
 }
@@ -3134,6 +3220,9 @@ impl FinalNameResult {
     }
     if let Some(value) = self.interop_default_access_used {
       info.set_interop_default_access_used(value);
+    }
+    if let Some(value) = self.interop_default_value_used {
+      info.set_interop_default_value_used(value);
     }
     if let Some(value) = self.deferred_namespace_object_used {
       info.set_deferred_namespace_object_used(value);
