@@ -24,6 +24,10 @@ if (typeof document === "undefined") return;
 	return linkTag;
 }
 <%- var("extractCssFindStylesheet") %> = function (href, fullhref) {
+	// HMR re-adds tags as `href?<timestamp>`, and the filename itself may carry a query, so
+	// compare paths without their queries.
+	var hrefPath = href.split('?')[0];
+	var fullhrefPath = fullhref.split('?')[0];
 	var existingLinkTags = document.getElementsByTagName("link");
 	for (var i = 0; i < existingLinkTags.length; i++) {
 		var tag = existingLinkTags[i];
@@ -31,7 +35,7 @@ if (typeof document === "undefined") return;
 		if (dataHref) {
 			dataHref = dataHref.split('?')[0]
 		}
-		if (tag.rel === "stylesheet" && (dataHref === href || dataHref === fullhref)) return tag;
+		if (tag.rel === "stylesheet" && (dataHref === hrefPath || dataHref === fullhrefPath)) return tag;
 	}
 
 	var existingStyleTags = document.getElementsByTagName("style");
