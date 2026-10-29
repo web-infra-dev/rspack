@@ -1,0 +1,16 @@
+[
+  {
+    "|Compilation/modules": {
+      "hits": 4,
+      "misses": 0,
+      "reused": 4,
+      "stores": 0
+    },
+    "|meta": {
+      "hits": 1,
+      "misses": 0,
+      "reused": 1,
+      "stores": 1
+    }
+  }
+]

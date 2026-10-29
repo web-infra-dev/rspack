@@ -65,6 +65,7 @@ function createCacheProcessor(
                     compileTemp,
                     target,
                     updatePlugin!,
+                    !!caseOptions.newCache,
                   ),
                 );
             },
@@ -304,22 +305,34 @@ function enableNewCache(context: ITestContext, temp: string) {
         resolver: true,
       },
     };
-    const cache =
-      typeof config.cache === 'object' && config.cache.type === 'persistent'
-        ? config.cache
-        : undefined;
-    const storage = cache?.storage;
-    config.cache = {
-      ...cache,
-      type: 'persistent',
-      storage:
-        storage?.directory !== undefined || storage?.location !== undefined
-          ? storage
-          : {
-              type: 'filesystem',
-              directory: path.join(temp, '.cache', String(index)),
-            },
-    };
+    if (config.cache === undefined) {
+      // NewCache cases need filesystem storage to verify cache restoration;
+      // there is no user cache configuration to preserve.
+      config.cache = {
+        type: 'persistent',
+        storage: {
+          type: 'filesystem',
+          directory: path.join(temp, '.cache', String(index)),
+        },
+      };
+    } else if (
+      typeof config.cache === 'object' &&
+      config.cache !== null &&
+      config.cache.type === 'persistent'
+    ) {
+      // Persist the user's persistent cache options, but give it case-local
+      // storage when none is configured to keep suites from sharing a cache.
+      const storage = config.cache.storage;
+      if (storage?.directory === undefined && storage?.location === undefined) {
+        config.cache = {
+          ...config.cache,
+          storage: {
+            type: 'filesystem',
+            directory: path.join(temp, '.cache', String(index)),
+          },
+        };
+      }
+    }
   }
 }
 
@@ -356,10 +369,13 @@ async function generateOptions(
   temp: string,
   target: TTarget,
   updatePlugin: HotUpdatePlugin,
+  newCache: boolean,
 ): Promise<RspackOptions> {
   let options = {
     context: temp,
-    cache: true,
+    // Legacy cache cases default to memory cache. NewCache cases leave it
+    // unset so an explicit user configuration can take precedence.
+    ...(newCache ? {} : { cache: true }),
     devtool: false,
     output: {
       path: context.getDist(),
