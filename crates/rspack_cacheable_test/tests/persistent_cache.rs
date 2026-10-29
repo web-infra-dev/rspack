@@ -308,9 +308,11 @@ async fn symlink_snapshot_errors_fail_closed_including_managed_roots() {
 
   use rspack_core::PathMatcher;
   let temp = tempfile::tempdir().unwrap();
-  let root = temp.path().assert_utf8();
+  // A canonical root keeps the walk identical on hosts whose temp dir is behind a link.
+  let root = fs::canonicalize(temp.path()).unwrap().assert_utf8();
+  let root = root.as_path();
   fs::create_dir(root.join("scan")).unwrap();
-  symlink("..", root.join("scan/loop")).unwrap();
+  symlink(".", root.join("scan/loop")).unwrap();
   let mut configuration = options();
   configuration
     .managed_paths
