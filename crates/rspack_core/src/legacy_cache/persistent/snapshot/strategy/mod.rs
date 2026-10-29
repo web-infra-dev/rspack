@@ -242,7 +242,12 @@ impl StrategyHelper {
       .hash_helper
       .dir_timestamp_hash(path)
       .await
-      .is_some_and(|timestamp| timestamp.newest >= time)
+      .is_none_or(|timestamp| {
+        timestamp
+          .newest
+          .saturating_add(rspack_util::time::mtime_accuracy(timestamp.newest))
+          >= time
+      })
   }
 
   /// validate path file by target strategy
