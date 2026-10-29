@@ -51,6 +51,7 @@ export { RuntimeGlobals } from './RuntimeGlobals';
 export { RuntimeModule } from './RuntimeModule';
 export type {
   StatsAsset,
+  StatsCacheInfo,
   StatsChunk,
   StatsCompilation,
   StatsError,
@@ -73,7 +74,7 @@ export const WebpackError = Error;
 
 export type { Watching } from './Watching';
 
-import * as sources from 'webpack-sources';
+import * as sources from './sources';
 
 export { sources };
 

@@ -14,22 +14,13 @@ export default defineConfig({
     definePlugin({
       apply(compiler) {
         compiler.hooks.done.tap('Test Plugin', (stats) => {
-          const logging = stats.toJson({
+          const cacheStats = stats.toJson({
             all: false,
-            logging: 'verbose',
-          }).logging;
-          const entries = logging?.['rspack.Compilation']?.entries ?? [];
-          const cacheEntry = entries.find(
-            (entry) =>
-              entry.type === 'cache' &&
-              entry.message?.startsWith('module code generation cache:'),
-          );
-          expect(cacheEntry).toBeTruthy();
-
-          const match = cacheEntry?.message.match(/\((\d+)\/(\d+)\)/);
-          expect(match).toBeTruthy();
-          const hits = Number(match?.[1]);
-          const total = Number(match?.[2]);
+            cacheInfo: true,
+          }).cacheInfo!;
+          const { hits, misses } =
+            cacheStats[`${compiler.compilerPath}|Compilation/codeGeneration`];
+          const total = hits + misses;
           expect(total).toBeGreaterThan(0);
 
           if (compilerIndex === 1 || compilerIndex === 4) {
