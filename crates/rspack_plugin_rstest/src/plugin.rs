@@ -79,6 +79,38 @@ pub type PreserveSideEffectImportsFn =
 pub(crate) type PreservedSideEffectImporters = Arc<RwLock<Option<HashSet<Utf8PathBuf>>>>;
 pub(crate) const PRESERVED_IMPORTER_VERSION_PREFIX: &str = "rspack/RstestPlugin/importer/";
 
+fn resolve_preserved_importers(
+  compilation: &Compilation,
+  importers: Vec<String>,
+) -> BoxFuture<'_, HashSet<Utf8PathBuf>> {
+  // Keep the resolver state machine behind one boxed boundary instead of
+  // duplicating it in the compilation hook's future wrappers.
+  Box::pin(async move {
+    let mut paths = HashSet::default();
+    // Resolve with the compiler's filesystem to follow parent symlinks on WASI
+    // as well as native targets, without applying user aliases to known paths.
+    let resolver = Resolver::new(
+      Default::default(),
+      Arc::clone(&compilation.input_filesystem),
+    );
+    for importer in importers {
+      let path = Utf8PathBuf::from(importer);
+      if let Ok(ResolveResult::Resource(resource)) = resolver
+        .resolve(
+          compilation.options.context.as_ref(),
+          &insert_zero_width_space_for_fragment(path.as_str()),
+        )
+        .await
+      {
+        paths.insert(resource.path);
+      }
+      // Keep the original for resolve.symlinks=false and unresolved virtual files.
+      paths.insert(path);
+    }
+    paths
+  })
+}
+
 #[derive(Debug)]
 pub struct RstestPluginOptions {
   #[debug(skip)]
@@ -653,27 +685,7 @@ async fn compilation(
 ) -> Result<()> {
   if let Some(get_importers) = &self.options.preserve_side_effect_imports {
     let importers = get_importers().await?;
-    let mut paths = HashSet::default();
-    // Resolve with the compiler's filesystem to follow parent symlinks on WASI
-    // as well as native targets, without applying user aliases to known paths.
-    let resolver = Resolver::new(
-      Default::default(),
-      Arc::clone(&compilation.input_filesystem),
-    );
-    for importer in importers {
-      let path = Utf8PathBuf::from(importer);
-      if let Ok(ResolveResult::Resource(resource)) = resolver
-        .resolve(
-          compilation.options.context.as_ref(),
-          &insert_zero_width_space_for_fragment(path.as_str()),
-        )
-        .await
-      {
-        paths.insert(resource.path);
-      }
-      // Keep the original for resolve.symlinks=false and unresolved virtual files.
-      paths.insert(path);
-    }
+    let paths = resolve_preserved_importers(compilation, importers).await;
     compilation
       .value_cache_versions
       .insert_default_for_prefix(PRESERVED_IMPORTER_VERSION_PREFIX.into(), false.to_string());
