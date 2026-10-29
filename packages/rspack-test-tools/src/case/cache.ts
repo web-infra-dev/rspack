@@ -290,48 +290,38 @@ export function createCacheCase(
 
 function enableNewCache(context: ITestContext, temp: string) {
   const options = context.getCompiler().getOptions();
+  const defaultNewCache = {
+    codeGeneration: true,
+    module: true,
+    devtool: true,
+    loader: true,
+    minimize: true,
+    resolver: true,
+  };
   for (const [index, config] of (Array.isArray(options)
     ? options
     : [options]
   ).entries()) {
     config.experiments = {
       ...config.experiments,
-      newCache: config.experiments?.newCache ?? {
-        codeGeneration: true,
-        module: true,
-        devtool: true,
-        loader: true,
-        minimize: true,
-        resolver: true,
-      },
+      newCache: config.experiments?.newCache ?? defaultNewCache,
     };
-    if (config.cache === undefined) {
-      // NewCache cases need filesystem storage to verify cache restoration;
-      // there is no user cache configuration to preserve.
-      config.cache = {
-        type: 'persistent',
-        storage: {
-          type: 'filesystem',
-          directory: path.join(temp, '.cache', String(index)),
-        },
-      };
+    const cache = config.cache;
+    const storage = {
+      type: 'filesystem' as const,
+      directory: path.join(temp, '.cache', String(index)),
+    };
+    if (cache === undefined) {
+      // NewCache cases need filesystem storage to verify cache restoration.
+      config.cache = { type: 'persistent', storage };
     } else if (
-      typeof config.cache === 'object' &&
-      config.cache !== null &&
-      config.cache.type === 'persistent'
+      typeof cache === 'object' &&
+      cache?.type === 'persistent' &&
+      cache.storage?.directory === undefined &&
+      cache.storage?.location === undefined
     ) {
-      // Persist the user's persistent cache options, but give it case-local
-      // storage when none is configured to keep suites from sharing a cache.
-      const storage = config.cache.storage;
-      if (storage?.directory === undefined && storage?.location === undefined) {
-        config.cache = {
-          ...config.cache,
-          storage: {
-            type: 'filesystem',
-            directory: path.join(temp, '.cache', String(index)),
-          },
-        };
-      }
+      // Keep the user's persistent cache options, but isolate its storage.
+      config.cache = { ...cache, storage };
     }
   }
 }
