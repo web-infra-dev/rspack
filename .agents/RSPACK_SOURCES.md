@@ -326,6 +326,9 @@ references.
 `ConcatSource` may lazily build an optimized child list, but it does so before returning borrowed
 spans. Moving its `Vec<BoxSource>` does not move child data because each child is held by `Arc`.
 These rules keep the strings returned by `rope()` immutable and address-stable.
+Child inspection rechecks the optimized list while holding the children mutex, and optimization
+publishes its result before releasing that mutex. This prevents readers from observing the drained
+original list before the optimized list is available. Cloning reads both lists under the same lock.
 
 The `'static` extension in `CachedSource::get_or_init_chunks` is safe only because every clone
 sharing the cache also retains the same inner `BoxSource`; the inner graph cannot be mutated or

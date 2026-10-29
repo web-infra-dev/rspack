@@ -67,8 +67,9 @@ pub struct ConcatSource {
 
 impl Clone for ConcatSource {
   fn clone(&self) -> Self {
+    let children = self.children.lock().unwrap();
     Self {
-      children: Mutex::new(self.children.lock().unwrap().clone()),
+      children: Mutex::new(children.clone()),
       is_optimized: match self.is_optimized.get() {
         Some(children) => {
           let once_lock = OnceLock::new();
@@ -180,15 +181,22 @@ impl ConcatSource {
         .children
         .lock()
         .expect("ConcatSource children mutex poisoned");
-      visit(&children)
+      // Optimization may have completed while this reader waited for the lock.
+      match self.is_optimized.get() {
+        Some(optimized_children) => visit(optimized_children),
+        None => visit(&children),
+      }
     }
   }
 
   fn optimized_children(&self) -> &[BoxSource] {
-    self.is_optimized.get_or_init(|| {
-      let mut children = self.children.lock().unwrap();
-      optimize(&mut children)
-    })
+    if let Some(children) = self.is_optimized.get() {
+      return children;
+    }
+    let mut children = self.children.lock().unwrap();
+    // Keep the lock until publication so readers never see drained children
+    // before the optimized list becomes available.
+    self.is_optimized.get_or_init(|| optimize(&mut children))
   }
 
   /// Get the (optimized) children of this concat source.
