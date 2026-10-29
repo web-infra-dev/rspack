@@ -233,6 +233,8 @@ impl ConcatSource {
         children.extend(other_children.iter().cloned());
         return;
       }
+      children.push(Arc::clone(box_source));
+      return;
     }
 
     // Check if the source itself is a ConcatSource
