@@ -53,22 +53,21 @@ fn context_identifier_layouts(mg: &ModuleGraph) -> FxHashMap<String, ContextIden
   let module_regex = |identifier: &ModuleIdentifier| {
     mg.module_by_identifier(identifier)?
       .as_context_module()?
-      .identifier_regex_range()
+      .identifier_regex_ranges()
+      .into()
   };
   let mut layouts: FxHashMap<String, ContextIdentifierLayout> = FxHashMap::default();
   for (identifier, _) in mg.modules() {
-    if let Some(range) = module_regex(identifier) {
-      layouts.entry(identifier.to_string()).or_default().regexes = vec![range];
+    if let Some(ranges) = module_regex(identifier) {
+      layouts.entry(identifier.to_string()).or_default().regexes = ranges;
     }
   }
   for (_, dependency) in mg.dependencies() {
-    if let Some(dependency) = dependency.as_context_dependency()
-      && let Some(range) = dependency.resource_identifier_regex_range()
-    {
+    if let Some(dependency) = dependency.as_context_dependency() {
       layouts
         .entry(crate::ContextDependency::resource_identifier(dependency).to_string())
         .or_default()
-        .regexes = vec![range];
+        .regexes = dependency.resource_identifier_regex_ranges();
     }
     if let Some(dependency) = dependency.downcast_ref::<ContextElementDependency>()
       && let Some(offset) = dependency.resource_identifier_context_offset()
@@ -81,15 +80,13 @@ fn context_identifier_layouts(mg: &ModuleGraph) -> FxHashMap<String, ContextIden
   }
   for (identifier, block) in mg.blocks() {
     let paths = block.context_element_offsets();
-    if paths.is_empty() {
+    let regexes = module_regex(block.parent()).unwrap_or_default();
+    if paths.is_empty() && regexes.is_empty() {
       continue;
     }
     layouts.insert(
       identifier.as_str().to_string(),
-      ContextIdentifierLayout {
-        regexes: module_regex(block.parent()).into_iter().collect(),
-        paths,
-      },
+      ContextIdentifierLayout { regexes, paths },
     );
   }
   layouts

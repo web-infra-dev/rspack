@@ -36,13 +36,13 @@ fn create_resource_identifier_for_context_dependency(
   context: Option<&str>,
   options: &ContextOptions,
 ) -> ResourceIdentifier {
-  create_resource_identifier_and_regex_range(context, options).0
+  create_resource_identifier_and_regex_ranges(context, options).0
 }
 
-fn create_resource_identifier_and_regex_range(
+fn create_resource_identifier_and_regex_ranges(
   context: Option<&str>,
   options: &ContextOptions,
-) -> (ResourceIdentifier, Option<std::ops::Range<usize>>) {
+) -> (ResourceIdentifier, Vec<std::ops::Range<usize>>) {
   let context = context
     .and_then(|context| context_identifier(&options.compiler_context, context))
     .unwrap_or_default();
@@ -116,14 +116,23 @@ fn create_resource_identifier_and_regex_range(
   }
 
   let prefix = format!("context{context}|ctx request{request} {recursive} ");
-  let regex_range = options
-    .pattern
-    .reg_exp()
-    .map(|_| prefix.len()..prefix.len() + pattern.len());
+  let mut regex_ranges = Vec::new();
+  let pattern_start = prefix.len();
+  if options.pattern.reg_exp().is_some() {
+    regex_ranges.push(pattern_start..pattern_start + pattern.len());
+  }
+  let include_start = pattern_start + pattern.len() + 1;
+  if options.include.is_some() {
+    regex_ranges.push(include_start..include_start + include.len());
+  }
+  let exclude_start = include_start + include.len() + 1;
+  if options.exclude.is_some() {
+    regex_ranges.push(exclude_start..exclude_start + exclude.len());
+  }
   let id = format!(
     "{prefix}{pattern} {include} {exclude} {mode} {group_options} {referenced_exports} {glob_import} {glob_exhaustive}{glob_case_sensitive}",
   );
-  (id.into(), regex_range)
+  (id.into(), regex_ranges)
 }
 
 fn context_dependency_template_as_require_call(

@@ -8,8 +8,8 @@ pub trait ContextDependency: Dependency {
   fn get_context(&self) -> Option<&str>;
   fn resource_identifier(&self) -> &str;
 
-  fn resource_identifier_regex_range(&self) -> Option<std::ops::Range<usize>> {
-    None
+  fn resource_identifier_regex_ranges(&self) -> Vec<std::ops::Range<usize>> {
+    Vec::new()
   }
 
   fn get_optional(&self) -> bool {

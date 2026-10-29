@@ -7,9 +7,7 @@ use rspack_core::{
 };
 use rspack_error::Diagnostic;
 
-use super::{
-  create_resource_identifier_and_regex_range, create_resource_identifier_for_context_dependency,
-};
+use super::create_resource_identifier_for_context_dependency;
 
 #[cacheable]
 #[derive(Debug)]
@@ -88,12 +86,15 @@ impl ContextDependency for RequireContextDependency {
     &self.resource_identifier
   }
 
-  fn resource_identifier_regex_range(&self) -> Option<std::ops::Range<usize>> {
-    let (identifier, range) = create_resource_identifier_and_regex_range(None, &self.options);
-    if identifier == self.resource_identifier {
-      range
+  fn resource_identifier_regex_ranges(&self) -> Vec<std::ops::Range<usize>> {
+    let (identifier, ranges) = super::create_resource_identifier_and_regex_ranges(
+      ContextDependency::get_context(self),
+      self.options(),
+    );
+    if ContextDependency::resource_identifier(self).starts_with(identifier.as_str()) {
+      ranges
     } else {
-      None
+      Vec::new()
     }
   }
 

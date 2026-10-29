@@ -289,12 +289,12 @@ pub struct ContextModule {
 }
 
 impl ContextModule {
-  pub(crate) fn identifier_regex_range(&self) -> Option<Range<usize>> {
+  pub(crate) fn identifier_regex_ranges(&self) -> Vec<Range<usize>> {
     let (identifier, range) = create_identifier(&self.options, None);
     if identifier == self.identifier {
       range
     } else {
-      None
+      Vec::new()
     }
   }
 
@@ -303,7 +303,11 @@ impl ContextModule {
     options: ContextModuleOptions,
     strict: Option<bool>,
   ) -> Self {
-    let mut build_info = BuildInfo::default();
+    let mut build_info = BuildInfo {
+      root_sensitive: options.context_options.include.is_some()
+        || options.context_options.exclude.is_some(),
+      ..Default::default()
+    };
     if let Some(strict) = strict {
       build_info.strict = strict;
     }
@@ -1637,8 +1641,8 @@ impl Identifiable for ContextModule {
 fn create_identifier(
   options: &ContextModuleOptions,
   resource: Option<&str>,
-) -> (Identifier, Option<Range<usize>>) {
-  let mut regex_range = None;
+) -> (Identifier, Vec<Range<usize>>) {
+  let mut regex_ranges = Vec::new();
   let mut id = resource
     .unwrap_or(if options.resource.as_str().is_empty() {
       "false"
@@ -1671,16 +1675,20 @@ fn create_identifier(
       options.context_options.pattern,
       ContextModulePattern::RegExp(_)
     ) {
-      regex_range = Some(start..id.len());
+      regex_ranges.push(start..id.len());
     }
   }
   if let Some(include) = &options.context_options.include {
     id += "|include: ";
+    let start = id.len();
     id += &include.to_source_string();
+    regex_ranges.push(start..id.len());
   }
   if let Some(exclude) = &options.context_options.exclude {
     id += "|exclude: ";
+    let start = id.len();
     id += &exclude.to_source_string();
+    regex_ranges.push(start..id.len());
   }
   if let Some(specifiers) = &options.context_options.referenced_specifiers {
     id += "|referencedExports: ";
@@ -1741,7 +1749,7 @@ fn create_identifier(
     id += "|layer: ";
     id += layer;
   }
-  (id.into(), regex_range)
+  (id.into(), regex_ranges)
 }
 
 fn append_context_identifier(id: &mut String, options: &ContextOptions, prefix: &str) {
