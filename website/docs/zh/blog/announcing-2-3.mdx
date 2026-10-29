@@ -68,7 +68,6 @@ Rspack 2.3 现已发布！本次更新集成了 SWC Next 解析器，提升构�
   - [Rsdoctor](#rsdoctor)
   - [Rstest](#rstest)
   - [Rspress](#rspress)
-- [升级指南](#upgrade-guide)
 
 ## SWC next 集成 \{#swc-next}
 
@@ -223,7 +222,7 @@ Rspack 核心由 Rust 编写，调用 JavaScript loader 时会产生跨语言通
 
 ### 内置 CSS \{#built-in-css}
 
-本次更新改进了对更多 CSS 场景的支持，涵盖 CSS Modules 作用域、组合声明、值引用和嵌套选择器，同时修复了异步样式加载和相对 `publicPath` 相关的问题。
+本次更新改进了对更多 CSS 场景的支持，涵盖 CSS Modules 作用域、组合声明、值引用和嵌套选择器。
 
 #### 独立构建样式入口 \{#css-entry}
 
@@ -440,11 +439,3 @@ console.log(page.markdown);
 你也可以通过 `useWebMcp` Hook 注册自定义工具，扩展站点与 Agent 的交互能力。
 
 更多用法请参阅 [WebMCP 文档](https://rspress.rs/zh/guide/basic/webmcp)。
-
-## 升级指南 \{#upgrade-guide}
-
-如果项目直接使用 Rspack CLI，可以将 `@rspack/core` 和 `@rspack/cli` 一起升级至 2.3：
-
-<PackageManagerTabs command="add @rspack/core@2.3.0 @rspack/cli@2.3.0 -D" />
-
-欢迎试用并通过 [GitHub Issues](https://github.com/web-infra-dev/rspack/issues) 反馈问题。

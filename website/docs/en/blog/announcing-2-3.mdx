@@ -47,7 +47,7 @@ _October 28, 2026_
 
 ![Rspack 2.3 banner](https://assets.rspack.rs/rspack/rspack-banner-v2.3.png)
 
-Rspack 2.3 is now available! This release integrates the SWC Next parser, speeds up builds, and reduces memory usage and bundle size. It also introduces a new experimental cache with support for caching individual loader results, alongside improvements to built-in CSS support.
+Rspack 2.3 is now available! This release integrates the SWC Next parser, speeds up builds, and reduces memory usage and bundle size. It also introduces a new experimental cache with per-loader caching, along with improvements to built-in CSS support.
 
 ---
 
@@ -68,17 +68,16 @@ Notable changes include:
   - [Rsdoctor](#rsdoctor)
   - [Rstest](#rstest)
   - [Rspress](#rspress)
-- [Upgrade guide](#upgrade-guide)
 
-## SWC next integration \{#swc-next}
+## SWC Next integration \{#swc-next}
 
-[SWC Next](https://github.com/swc-project/swc-next) is a new generation of JavaScript tooling developed jointly by the SWC team and the Rstack team. It will become SWC's next major version. Its new parser architecture, inspired by [Yuku](https://github.com/yuku-toolchain/yuku), centers on a flat, ESTree-based AST designed for speed, memory efficiency, and JavaScript extensibility.
+[SWC Next](https://github.com/swc-project/swc-next) is a new JavaScript toolchain developed jointly by the SWC and Rstack teams. It will become SWC's next major version. Its new parser architecture, inspired by [Yuku](https://github.com/yuku-toolchain/yuku), centers on a flat, ESTree-based AST designed for speed, memory efficiency, and JavaScript extensibility.
 
 In benchmarks, SWC Next's [native parsing](https://github.com/SoonIter/ecmascript-parser-benchmark-native) is up to **3×** as fast as SWC, while parsing through the [JavaScript API](https://github.com/SoonIter/ecmascript-parser-benchmark-js) is up to **10×** as fast:
 
 ![](https://assets.rspack.rs/rspack/assets/rspack-v2-3-parser-performance.png)
 
-We are gradually migrating SWC's modules to this architecture and replacing Rspack's existing implementations. Rspack 2.3 has adopted SWC Next as its JavaScript parser, using its more compact AST and memory layout to optimize parsing and traversal.
+We are gradually migrating SWC's modules to this architecture and replacing Rspack's existing implementations. Rspack 2.3 now uses the SWC Next parser, taking advantage of its more compact AST and memory layout to speed up parsing and traversal.
 
 The following benchmarks compare parsing time and instruction counts in Rspack before and after integrating SWC Next:
 
@@ -87,7 +86,7 @@ The following benchmarks compare parsing time and instruction counts in Rspack b
 | three.js  | 23.6 ms → 20.1 ms (**−14.9%**)  | 205.2 M → 155.1 M (**−24.4%**)   |
 | React 10k | 207.2 ms → 193.9 ms (**−6.4%**) | 1597.7 M → 1421.3 M (**−11.0%**) |
 
-SWC Next's next goal is to let developers write fast transform plugins in JavaScript. Today, custom code transformations typically rely on Babel plugins or SWC Wasm plugins. We want developers to benefit from Rust's performance while retaining the flexibility of writing plugins in JavaScript.
+The next step for SWC Next is to let developers write high-performance transform plugins in JavaScript. Today, custom code transformations typically rely on Babel plugins or SWC Wasm plugins. We want developers to benefit from Rust's performance while retaining the flexibility of writing plugins in JavaScript.
 
 SWC Next's flat AST enables efficient data exchange between Rust and JavaScript, making this possible. We expect to introduce a loader based on SWC Next, with support for JavaScript transform plugins, in Rspack 2.4 or 2.5.
 
@@ -95,7 +94,7 @@ SWC Next's flat AST enables efficient data exchange between Rust and JavaScript,
 
 ### Performance improvements
 
-When multiple agents work in parallel, multiple builds and development servers may run at the same time, making memory usage a significant bottleneck. To address this, Rspack 2.3.0 reduces memory usage during builds and development. The following table compares RSS in a real-world project:
+When multiple agents work in parallel, several builds and dev servers may run at once, making memory a significant bottleneck. To address this, Rspack 2.3.0 reduces memory usage during builds and development. The following table compares memory usage (RSS) in a real-world project:
 
 | Scenario | Metric              | 2.2.0    | 2.3.0    | Reduction |
 | -------- | ------------------- | -------- | -------- | --------- |
@@ -104,7 +103,7 @@ When multiple agents work in parallel, multiple builds and development servers m
 | Dev      | Peak RSS at startup | 28.6 GiB | 19.0 GiB | **33.8%** |
 | Dev      | Steady-state RSS    | 28.9 GiB | 18.8 GiB | **34.8%** |
 
-Rspack 2.3 also adds memory snapshots based on [allocative](https://github.com/facebook/buck2/tree/main/allocative) to help developers identify memory hotspots during a build. If your project uses a large amount of memory, follow the [memory diagnostics guide](../guide/diagnostics/memory) to capture and submit snapshots. We can help analyze and optimize them.
+Rspack 2.3 also adds memory snapshots based on [allocative](https://github.com/facebook/buck2/tree/main/allocative) to help developers identify memory hotspots during a build. If your project uses a lot of memory, follow the [memory diagnostics guide](../guide/diagnostics/memory) to capture and submit snapshots. We can use them to help identify ways to reduce memory usage.
 
 SWC Next, memory optimizations, and other micro-optimizations also improve overall build performance in Rspack 2.3.0. Benchmarks show an improvement of around **5%** compared with 2.2.0, and we have observed gains of up to **20%** in some large projects.
 
@@ -114,8 +113,8 @@ Large projects often have multiple pages or entry points that depend on many of 
 
 To reduce duplication, Rspack 2.3 introduces several optimizations that produce smaller output files:
 
-- The new [`splitChunks.dedupDepth`](/plugins/split-chunks-plugin#splitchunksdedupdepth) option identifies more combinations of shared modules across pages and entry points, helping reduce duplicate code. It is enabled by default in production mode (`dedupDepth: 1`).
-- Support for [`splitChunks.minRemainingSize`](/plugins/split-chunks-plugin#splitchunksminremainingsize) helps avoid leaving very small output files when splitting code. This can reduce unnecessary file requests and aligns Rspack's behavior with webpack.
+- The new [`splitChunks.dedupDepth`](/plugins/split-chunks-plugin#splitchunksdedupdepth) option finds more opportunities to extract modules shared across pages and entry points, reducing duplicate code. It is enabled by default in production mode (`dedupDepth: 1`).
+- Support for [`splitChunks.minRemainingSize`](/plugins/split-chunks-plugin#splitchunksminremainingsize) helps avoid creating tiny output files when splitting code. This can reduce unnecessary network requests and aligns Rspack's behavior with webpack.
 - Improved [module deduplication during code splitting](/guide/optimization/code-splitting#modules-already-available-from-parents) helps reuse existing modules more effectively, reducing duplicate code in output files.
 
 The following table compares the Brotli-compressed output sizes of two large real-world projects before and after enabling `dedupDepth: 1`:
@@ -127,11 +126,11 @@ The following table compares the Brotli-compressed output sizes of two large rea
 
 ## New cache implementation \{#cache-improvements}
 
-Rspack 2.3 introduces a new experimental cache focused on reducing disk usage and write overhead, as well as improving reliability when restoring cached results. It addresses three limitations of the old cache:
+Rspack 2.3 introduces a new experimental cache designed to use less disk space, reduce the cost of cache writes, and restore cached results more reliably. It addresses three limitations of the old cache:
 
 - **Large cache files and complex restoration**: The old cache saved the intermediate state of entire build stages, including relationships between modules. This produced large cache files and made restoration prone to errors. The new cache stores results from individual build tasks, such as module builds, reducing the amount of data saved and the risk of restoration errors.
-- **Cache writes blocked compilation**: The old cache converted data into a format suitable for disk storage during compilation, adding to build time. The new cache schedules this work during idle time or at the end of a build, reducing interruptions to compilation.
-- **Reuse differed between development and production**: The old cache was closely tied to incremental compilation in development, making some mechanisms difficult to reuse in production builds. The new cache separates these responsibilities and manages memory and disk caches consistently, making it easier to reuse results across build scenarios and discard cache entries that are no longer needed.
+- **Cache writes blocked compilation**: The old cache prepared data for disk storage during compilation, adding to build time. The new cache schedules this work during idle time or at the end of a build, reducing interruptions to compilation.
+- **Limited reuse between development and production**: The old cache was closely tied to incremental compilation in development, making some mechanisms difficult to reuse in production builds. The new cache separates these responsibilities and manages memory and disk caches consistently, making it easier to reuse results across different builds and discard entries that are no longer needed.
 
 In benchmarks, the new cache reduced disk usage by around **79%** and peak memory during cold builds by around **16%**, though warm builds took slightly longer:
 
@@ -154,13 +153,13 @@ We will continue optimizing performance in upcoming releases and plan to enable 
 
 ### Loader cache
 
-The new cache lets you enable caching for specific loaders to reuse their transformation results.
+With the new cache, you can cache transformation results from individual loaders.
 
-Loader caching is more fine-grained than the overall persistent cache, with independent invalidation conditions for each loader. Even if a change to the Rspack configuration invalidates the overall cache, a loader's cached results may still be reused if its input, configuration, and relevant dependencies remain unchanged. These cached results may also be reused when switching between dev and build modes.
+Loader caching is more fine-grained than the overall persistent cache, and each loader can have its own invalidation conditions. A change to your Rspack configuration may invalidate the overall cache while leaving a loader's cached results reusable, as long as its input, configuration, and dependencies have not changed. You may also be able to reuse these results when switching between dev and build modes.
 
-This is especially useful for expensive loaders such as babel-loader and less-loader: avoiding repeated transformations of unchanged code can shorten build times.
+This is especially useful for expensive loaders such as babel-loader and less-loader, which can skip transforming unchanged code to shorten build times.
 
-The following configuration enables the new persistent cache and turns on caching specifically for babel-loader:
+The following configuration enables the new persistent cache and caches babel-loader results:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -223,11 +222,11 @@ In a benchmark with 10,000 modules where only 10% needed transformation, `codeFi
 
 ### Built-in CSS
 
-This release improves support for CSS scenarios including CSS Modules scoping, composition, value references, and nested selectors. It also fixes issues with asynchronous style loading and relative `publicPath` values.
+This release improves CSS Modules scoping, composition, value references, and support for nested selectors.
 
 #### CSS-only entry points \{#css-entry}
 
-When publishing a theme or style library independently, you often only need CSS output. Rspack can now bundle a [CSS-only entry](/guide/languages/css#css-entry) into a standalone CSS file without emitting an additional JavaScript file. For example:
+If you publish a standalone theme or style library, you may only need CSS output. Rspack can now bundle a [CSS-only entry](/guide/languages/css#css-entry) into a standalone CSS file without emitting an additional JavaScript file. For example:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -249,7 +248,7 @@ This configuration emits only one file: `styles.css`.
 
 When CSS or images are hosted on a CDN or another external service, you may want the browser to load them directly instead of including them in the bundle.
 
-Rspack adds the `css-import` and `asset-url` [external](/config/externals) types to keep specified [CSS references external](/guide/languages/css#external-resources). For example, configure stylesheets and an image as externals:
+The new `css-import` and `asset-url` [external types](/config/externals) let you [exclude resources referenced in CSS from bundling](/guide/languages/css#external-resources). For example, you can mark stylesheets and an image as external:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -272,7 +271,7 @@ Reference these external resources in CSS:
 }
 ```
 
-The `@import` and `url()` references above are emitted unchanged and are not bundled.
+Rspack preserves these `@import` and `url()` references in the output without bundling the referenced resources.
 
 CSS `@import`, `url()`, and `image-set()` also support [`rspackIgnore` and `webpackIgnore` comments](/guide/languages/css#magic-comments), letting you skip bundling specific assets:
 
@@ -285,24 +284,24 @@ CSS `@import`, `url()`, and `image-set()` also support [`rspackIgnore` and `webp
 - **On-demand compilation**: Reduces redundant builds triggered when saving code with [on-demand compilation](/guide/advanced/lazy-compilation) enabled, shortening the wait for updates.
 - **Native watcher**: Provides more complete file timestamp information, improving compatibility with tools such as `ts-loader`, `webpack-virtual-modules`, and `vue-loader`.
 - **Native watcher**: Supports functions for [`watchOptions.ignored`](/config/watch#watchoptionsignored) and improves detection of new directories and deleted or recreated files.
-- **Plugin compatibility and types**: Improved webpack compatibility for plugin hooks and TypeScript types for loaders, externals, and stats.
-- **WebAssembly**: Added [`output.wasmStreamingFallback`](/config/output#outputwasmstreamingfallback) to allow disabling fallback to non-streaming loading.
+- **Plugin compatibility and types**: Improves compatibility with webpack plugin hooks and refines TypeScript types for loaders, externals, and stats.
+- **WebAssembly**: Adds [`output.wasmStreamingFallback`](/config/output#outputwasmstreamingfallback) to allow disabling fallback to non-streaming loading.
 
 ## Ecosystem
 
-Alongside Rspack 2.3, the Rstack ecosystem also includes recent updates across Rsbuild, Rslib, Rsdoctor, Rstest, and Rspress.
+Alongside Rspack 2.3, there are updates across the Rstack ecosystem, including Rsbuild, Rslib, Rsdoctor, Rstest, and Rspress.
 
 ### Rsbuild
 
 #### TanStack CLI supports Rsbuild \{#rsbuild-tanstack-cli}
 
-[TanStack CLI](https://tanstack.com/cli/latest/docs/cli-reference) now officially supports creating TanStack Start projects with Rsbuild. Add `--build-tool rsbuild` when creating a project to select Rsbuild. For example, to create a React project:
+[TanStack CLI](https://tanstack.com/cli/latest/docs/cli-reference) now officially supports creating TanStack Start projects with Rsbuild. Select Rsbuild with the `--build-tool rsbuild` flag. For example, to create a React project:
 
 ```bash
 npx @tanstack/cli@latest create my-app --framework React --build-tool rsbuild
 ```
 
-`create-rsbuild` also adds a TanStack Start option that automatically calls TanStack CLI to create the project. You can select the template directly with the following command:
+`create-rsbuild` also adds a TanStack Start option that automatically calls TanStack CLI to create the project. To use this template directly, run:
 
 ```bash
 npx -y create-rsbuild@latest my-app -t tanstack-start-react
@@ -322,7 +321,7 @@ npx -y create-rsbuild@latest my-app -t lynx-ts
 
 #### File size reporting improvements \{#rsbuild-stats}
 
-Rsbuild's file size reports now include Brotli sizes and support configurable gzip and Brotli compression levels, so you can estimate transfer sizes using your deployment's compression settings. Add the following configuration to report Brotli sizes:
+Rsbuild can now report Brotli-compressed file sizes. You can also set the gzip or Brotli compression level to match your deployment settings for more accurate transfer size estimates. To report Brotli sizes, add:
 
 ```ts title="rsbuild.config.ts"
 export default {
@@ -337,7 +336,7 @@ export default {
 #### Other improvements \{#rsbuild-other}
 
 - **Compact-hashed IDs by default**: Production builds now use [`compact-hashed` IDs](/blog/announcing-2-2#compact-hashed-ids) to reduce output size with shorter, stable module and chunk IDs.
-- **Development experience**: When developing applications with both client and server environments, frontend changes can [appear in the browser sooner](https://github.com/web-infra-dev/rsbuild/pull/8729).
+- **Development experience**: When your application includes both client and server code, frontend changes can [appear in the browser sooner](https://github.com/web-infra-dev/rsbuild/pull/8729).
 - **Public asset directories**: Configure [`server.publicDir` per environment](https://github.com/web-infra-dev/rsbuild/pull/8711) to specify a public asset directory for each environment.
 - **Web Workers**: When `output.target` is `'web-worker'`, set [`output.module: true`](https://rsbuild.rs/config/output/module#web-workers) to generate ES module output.
 - **Host validation**: [`server.allowedHosts`](https://rsbuild.rs/config/server/allowed-hosts) restricts the hostnames used to access the dev server and preview server.
@@ -364,9 +363,9 @@ console.log(add(1, 2));
 
 #### TypeScript 7.1 support \{#typescript-7-1}
 
-Rslib 1.0.4 supports generating type declarations with TypeScript 7.1 Beta and using [Content Mappers](https://devblogs.microsoft.com/typescript/announcing-typescript-7-1-beta/#content-mappers) to extend type declaration generation.
+Rslib 1.0.4 can generate type declarations with TypeScript 7.1 Beta, including support for its new [Content Mappers](https://devblogs.microsoft.com/typescript/announcing-typescript-7-1-beta/#content-mappers) to handle additional file types.
 
-Install the appropriate mapper and register the file extensions it handles in `tsconfig.json`. For example, assuming you have installed a CSS Modules mapper named `example-css-modules-mapper` (a placeholder package name), configure it as follows:
+To use a mapper, install it and register the file extensions it handles in `tsconfig.json`. For example, a CSS Modules mapper could be configured as follows, using `example-css-modules-mapper` as a placeholder package name:
 
 ```json title="tsconfig.json"
 {
@@ -379,7 +378,7 @@ Install the appropriate mapper and register the file extensions it handles in `t
 }
 ```
 
-During type declaration generation, Rslib automatically loads the mapper to generate declarations from the class names in CSS Modules.
+When generating type declarations, Rslib automatically loads the mapper to produce types for the class names in your CSS Modules.
 
 Install TypeScript 7.1 Beta to try it:
 
@@ -387,18 +386,18 @@ Install TypeScript 7.1 Beta to try it:
 
 ### Rsdoctor
 
-[Rsdoctor 2.0](https://rsdoctor.rs/blog/release/release-note-2_0) is now available! The new release recommends using the Agent CLI for AI-assisted analysis. It can read build data directly and produce structured results.
+[Rsdoctor 2.0](https://rsdoctor.rs/blog/release/release-note-2_0) is now available! The Agent CLI is now the recommended way to use Rsdoctor for AI-assisted analysis, with direct access to build data and structured output.
 
-It also improves Rspack analysis and supports reports for multiple compilers. Installation size is reduced by 56%, analysis time by 57%, and HMR time in development mode by around 47%.
+The release also improves Rspack analysis and supports reports for multiple compilers. Installation size is reduced by 56%, analysis time by 57%, and HMR time in development mode by around 47%.
 
 ### Rstest
 
 #### Browser mode API improvements \{#rstest-browser-api}
 
-Recent Browser Mode updates make it easier to test keyboard interactions and React hydration in a real browser:
+Recent browser mode updates make it easier to test keyboard interactions and React hydration in a real browser:
 
 - [`locator.pressSequentially()`](https://rstest.rs/api/runtime-api/browser-mode/locator#presssequentially) types text one character at a time, firing keyboard events for each character. This is useful for autocomplete inputs and other controls that respond to individual keystrokes.
-- [`render()` in `@rstest/browser-react`](https://rstest.rs/guide/browser-testing/framework-guides) now accepts `hydrate` and `createRootOptions`. You can hydrate existing server-rendered markup in a supplied container and pass React root options through to test hydration behavior.
+- [`render()` in `@rstest/browser-react`](https://rstest.rs/guide/browser-testing/framework-guides) now accepts `hydrate` and `createRootOptions`. These let you hydrate existing server-rendered markup in a given container and configure the React root when testing hydration.
 
 ```ts
 await page.getByLabel('Search').pressSequentially('rspack', { delay: 50 });
@@ -407,7 +406,7 @@ await expect.element(page.getByRole('listbox')).toBeVisible();
 
 #### Screenshot testing \{#rstest-screenshot-testing}
 
-[Rstest 0.12.4](https://github.com/web-infra-dev/rstest/releases/tag/v0.12.4) adds visual regression testing in Browser Mode with the Playwright provider. The new [`toMatchScreenshot()`](https://rstest.rs/api/runtime-api/browser-mode/assertion#toMatchScreenshot) matcher compares an element or page against a saved screenshot, helping catch visual changes that DOM assertions alone may miss.
+[Rstest 0.12.4](https://github.com/web-infra-dev/rstest/releases/tag/v0.12.4) adds visual regression testing to browser mode when using the Playwright provider. The new [`toMatchScreenshot()`](https://rstest.rs/api/runtime-api/browser-mode/assertion#toMatchScreenshot) matcher compares an element or page against a saved screenshot, helping catch visual changes that DOM assertions alone may miss.
 
 ```ts title="button.test.ts"
 import { page } from '@rstest/browser';
@@ -427,7 +426,7 @@ When a comparison fails, Rstest saves the actual screenshot and a diff image for
 
 ### Rspress
 
-Rspress 2.1.0 supports [WebMCP](https://developer.chrome.com/docs/ai/webmcp) by default. Its built-in tools for querying site information, searching documentation, and navigating pages let browser-based Agents interact directly with documentation sites.
+Rspress 2.1.0 supports [WebMCP](https://developer.chrome.com/docs/ai/webmcp) by default. Its built-in tools for querying site information, searching documentation, and navigating pages let agents in the browser interact directly with documentation sites.
 
 To try it, run the following code in a browser that supports WebMCP:
 
@@ -438,14 +437,6 @@ const page = JSON.parse(await document.modelContext.executeTool(tool, {}));
 console.log(page.markdown);
 ```
 
-You can also register custom tools with the `useWebMcp` Hook to extend how Agents interact with your site.
+You can also register custom tools with the `useWebMcp` hook to give agents more ways to interact with your site.
 
 See the [WebMCP documentation](https://rspress.rs/guide/basic/webmcp) for details.
-
-## Upgrade guide
-
-If your project uses the Rspack CLI directly, upgrade `@rspack/core` and `@rspack/cli` together to 2.3:
-
-<PackageManagerTabs command="add @rspack/core@2.3.0 @rspack/cli@2.3.0 -D" />
-
-Try it out and report any issues on [GitHub](https://github.com/web-infra-dev/rspack/issues).
