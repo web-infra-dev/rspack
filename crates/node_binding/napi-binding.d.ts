@@ -1416,6 +1416,13 @@ export interface JsStatsAssetsByChunkName {
   files: Array<string>
 }
 
+export interface JsStatsCacheInfo {
+  hits: number
+  misses: number
+  reused: number
+  stores: number
+}
+
 export interface JsStatsChildGroupChildAssets {
   preload?: Array<string>
   prefetch?: Array<string>
@@ -1469,6 +1476,7 @@ export interface JsStatsChunkGroupChildren {
 export interface JsStatsCompilation {
   assets?: Array<JsStatsAsset>
   assetsByChunkName?: Array<JsStatsAssetsByChunkName>
+  cacheInfo?: Record<string, JsStatsCacheInfo>
   chunks?: Array<JsStatsChunk>
   entrypoints?: Array<JsStatsChunkGroup>
   errors: Array<JsStatsError>
@@ -1577,6 +1585,7 @@ export interface JsStatsOptimizationBailout {
 
 export interface JsStatsOptions {
   assets: boolean
+  cacheInfo: boolean
   cachedModules: boolean
   chunks: boolean
   chunkGroupAuxiliary: boolean

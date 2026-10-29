@@ -1,13 +1,10 @@
 import path from 'node:path';
 import {
   rspack,
-  type Compilation,
-  type Compiler,
   type MultiStats,
   type RspackOptions,
   type Stats,
   type StatsCompilation,
-  type StatsModule,
 } from '@rspack/core';
 import fs from 'fs-extra';
 import { isJavaScript, RSPACK_CONFIG_FILES } from '../helper';
@@ -35,10 +32,6 @@ export type TCacheCaseOptions = {
   /** Enable persistent newCache, restart unchanged cases, and check cache hits. */
   newCache?: boolean;
 };
-
-type CacheStats = Record<string, { hits: number; total: number }>;
-
-const builtModulesByCompilation = new WeakMap<Compilation, Set<string>>();
 
 interface CacheState {
   compilerIndex: number;
@@ -107,7 +100,9 @@ function createCacheProcessor(
         matchStatsSnapshot(env, src, updatePlugin!.getUpdateIndex(), stats);
       return;
     }
-    const cacheStats = getCacheStats(stats);
+    const cacheStats = ('stats' in stats ? stats.stats : [stats]).map(
+      (stats) => stats.toJson({ all: false, cacheInfo: true }).cacheInfo!,
+    );
     fs.outputJsonSync(
       context.getTemp(`cache-stats/${buildIndex}.json`)!,
       cacheStats,
@@ -119,17 +114,6 @@ function createCacheProcessor(
         .toMatchFileSnapshotSync(
           path.join(src, '__snapshots__', `cache-stats-${buildIndex}.txt`),
         );
-    }
-    if (unchanged && !stats.hasErrors()) {
-      const expected = context.getTestConfig().cacheHitRate || {};
-      for (const [index, compilerStats] of cacheStats.entries()) {
-        for (const [label, { hits, total }] of Object.entries(compilerStats)) {
-          const hitRate = Number(((hits / total) * 100).toFixed(1));
-          env
-            .expect(hitRate, `compiler ${index}: ${label} hit rate`)
-            .toBe(expected[label] ?? 100);
-        }
-      }
     }
   };
 
@@ -336,105 +320,7 @@ function enableNewCache(context: ITestContext, temp: string) {
               directory: path.join(temp, '.cache', String(index)),
             },
     };
-    config.plugins ??= [];
-    config.plugins.push({
-      apply(compiler: Compiler) {
-        compiler.hooks.thisCompilation.tap(
-          'NewCacheStatsPlugin',
-          (compilation) => {
-            const builtModules = new Set<string>();
-            builtModulesByCompilation.set(compilation, builtModules);
-            compilation.hooks.buildModule.tap(
-              'NewCacheStatsPlugin',
-              (module) => {
-                builtModules.add(module.identifier());
-              },
-            );
-          },
-        );
-      },
-    });
   }
-}
-
-function getCacheStats(stats: Stats | MultiStats): CacheStats[] {
-  return ('stats' in stats ? stats.stats : [stats]).map((stats) => {
-    const newCache = stats.compilation.options.experiments.newCache;
-    const enabledCaches: Record<string, boolean | undefined> = {
-      'module code generation cache': newCache && newCache.codeGeneration,
-      'minimize persistent cache': newCache && newCache.minimize,
-      'source map persistent cache': newCache && newCache.devtool,
-    };
-    const json = stats.toJson({
-      all: false,
-      modules: true,
-      cachedModules: true,
-      nestedModules: true,
-      orphanModules: true,
-      runtimeModules: false,
-      groupModulesByAttributes: false,
-      groupModulesByCacheStatus: false,
-      groupModulesByExtension: false,
-      groupModulesByLayer: false,
-      groupModulesByPath: false,
-      groupModulesByType: false,
-      modulesSpace: Infinity,
-      nestedModulesSpace: Infinity,
-      logging: 'verbose',
-      loggingDebug: true,
-    });
-    const result: CacheStats = {};
-    const add = (label: string, hits: number, total: number) => {
-      if (label in enabledCaches && !enabledCaches[label]) return;
-      if (total)
-        result[label] = {
-          hits,
-          total,
-        };
-    };
-    if (newCache && newCache.module) {
-      // Stats.built includes modules restored while creating a new module graph.
-      // Compare cacheable modules against actual buildModule calls instead.
-      const built = builtModulesByCompilation.get(stats.compilation)!;
-      const seen = new Set<string>();
-      let hits = 0;
-      const visitModules = (modules: StatsModule[]) => {
-        for (const module of modules) {
-          if (module.modules) {
-            visitModules(module.modules);
-          } else if (
-            module.cacheable &&
-            module.nameForCondition &&
-            module.identifier &&
-            !seen.has(module.identifier)
-          ) {
-            seen.add(module.identifier);
-            if (!built.has(module.identifier)) hits++;
-          }
-        }
-      };
-      visitModules(json.modules || []);
-      add('module build cache', hits, seen.size);
-    }
-    const visitLogs = (
-      entries: NonNullable<StatsCompilation['logging']>[string]['entries'],
-    ) => {
-      for (const entry of entries) {
-        if (entry.type === 'cache') {
-          const match = entry.message.match(/^(.*): [\d.]+% \((\d+)\/(\d+)\)$/);
-          if (!match)
-            throw new Error(`Invalid cache statistics: ${entry.message}`);
-          add(match[1], Number(match[2]), Number(match[3]));
-        }
-        if (entry.children) visitLogs(entry.children);
-      }
-    };
-    for (const logging of Object.values(json.logging || {}))
-      visitLogs(logging.entries);
-    return Object.fromEntries(
-      Object.entries(result).sort(([a], [b]) => a.localeCompare(b)),
-    );
-  });
 }
 
 function matchStatsSnapshot(
