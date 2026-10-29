@@ -20,7 +20,7 @@
 // A chunk is present on this page only when the active JavaScript
 // chunk-loading runtime records it as fully loaded.
 <%- var("cssChunkIsLoaded") %> = <%- basicFunction("chunkId") %> {
-	return typeof <%- _js_state_expression %> !== "undefined" && <%- _js_state_expression %> && <%- _js_state_expression %>[chunkId] === 0;
+	return typeof <%- _js_state_expression %> !== "undefined" && <%- _js_state_expression %> && <%- _js_state_expression %>[chunkId] === <%- _js_loaded_value %>;
 };
 <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.css = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css") %> {
 	if (typeof document === 'undefined') return;
@@ -52,7 +52,7 @@
 		// chunks this page never loaded. Without a tag, only a chunk whose JS ran
 		// here (an initial chunk gaining its first stylesheet, or a loaded async
 		// chunk whose stylesheet an earlier update removed) gets a new stylesheet.
-		if (!oldTag && (cssOnlyInitialChunkIds[chunkId] || !cssChunkIsLoaded(chunkId))) return;
+		if (!oldTag && (cssOnlyInitialChunkIds[chunkId] === 1 || !cssChunkIsLoaded(chunkId))) return;
 		promises.push(
 			new Promise(<%- basicFunction("resolve, reject") %> {
 				var link = cssLoadStylesheet(
