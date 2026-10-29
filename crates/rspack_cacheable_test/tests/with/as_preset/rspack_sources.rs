@@ -1,7 +1,8 @@
 use std::{
   collections::hash_map::DefaultHasher,
   hash::{Hash, Hasher},
-  sync::Arc,
+  sync::{Arc, Barrier},
+  thread,
 };
 
 use rspack_cacheable::{enable_cacheable as cacheable, from_bytes, to_bytes, with::AsPreset};
@@ -127,5 +128,44 @@ fn source_only_concat_preserves_binary_materialization() {
     let normalized = ConcatSource::new_source_only([source]);
     assert_eq!(normalized.buffer().as_ref(), expected);
     assert!(normalized.map(&Default::default()).is_none());
+  }
+}
+
+#[test]
+fn source_only_concat_concurrent_wrapping_preserves_content() {
+  const CHILDREN: usize = 4096;
+  const ROUNDS: usize = 64;
+  let fragment = RawStringSource::from_static("generated 😀\n").boxed();
+  let expected = "generated 😀\n".repeat(CHILDREN);
+
+  for _ in 0..ROUNDS {
+    // Keep the concat unoptimized until readers and constructors race below.
+    let source = ConcatSource::new_source_only((0..CHILDREN).map(|_| Arc::clone(&fragment)));
+    let barrier = Barrier::new(5);
+    thread::scope(|scope| {
+      scope.spawn(|| {
+        barrier.wait();
+        assert!(source.buffer().as_ref() == expected.as_bytes());
+      });
+      scope.spawn(|| {
+        barrier.wait();
+        let cloned = source
+          .as_any()
+          .downcast_ref::<ConcatSource>()
+          .unwrap()
+          .clone();
+        assert!(cloned.buffer().as_ref() == expected.as_bytes());
+      });
+      for _ in 0..3 {
+        scope.spawn(|| {
+          barrier.wait();
+          let wrapped = ConcatSource::new_source_only([Arc::clone(&source)]);
+          let actual = wrapped.buffer();
+          assert_eq!(actual.len(), expected.len());
+          assert!(actual.as_ref() == expected.as_bytes());
+          assert!(wrapped.map(&Default::default()).is_none());
+        });
+      }
+    });
   }
 }
