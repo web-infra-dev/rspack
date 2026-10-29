@@ -19,22 +19,48 @@ fn matches(root: &str, haystack: &str) -> bool {
 #[test]
 fn windows_root_forms() {
   let root = r"C:\work\project";
-  let mut found = patterns(root);
-  found.sort();
-  assert_eq!(
-    found,
-    vec![r"C:/work/project", r"C:\\work\\project", r"C:\work\project"]
-  );
-
   for spelling in [
     r"C:\work\project\src\index.js",
     r#""C:\\work\\project\\src\\index.js""#,
     "C:/work/project/src/index.js",
     "file:///C:/work/project/src/index.js",
+    r"c:\work\project\src\index.js",
+    "c:/work/project/src/index.js",
+    r"C:\/work\/project\/src",
   ] {
     assert!(matches(root, spelling), "{spelling}");
   }
   assert!(!matches(root, r"C:\work\other\index.js"));
+  assert!(!matches(root, r"D:\work\project\index.js"));
+}
+
+#[test]
+fn nested_json_strings() {
+  // `JSON.stringify(JSON.stringify(path))`
+  assert!(matches(
+    r"C:\work\project",
+    r#""\"C:\\\\work\\\\project\\\\src\\\\index.js\"""#
+  ));
+  assert!(matches("/work/a\"b", r#""\"/work/a\\\"b/index.js\"""#));
+}
+
+#[test]
+fn json_control_character_escapes() {
+  assert!(matches(
+    "/tmp/project\tname",
+    r#""/tmp/project\tname/src/a.js""#
+  ));
+  assert!(matches("/tmp/a\nproject", r#""/tmp/a\nproject/src/a.js""#));
+  assert!(matches(
+    "/tmp/a\u{1}project",
+    r#""/tmp/a\u0001project/src/a.js""#
+  ));
+  assert!(!matches("/tmp/project\tname", "/tmp/project name/src/a.js"));
+}
+
+#[test]
+fn escaped_solidus() {
+  assert!(matches("/work/project", r"\/work\/project\/src\/a\.js"));
 }
 
 #[test]
@@ -81,23 +107,22 @@ fn trailing_separators_are_ignored() {
 }
 
 #[test]
-fn unix_root_collapses_to_one_pattern() {
-  assert_eq!(patterns("/work/project"), vec!["/work/project"]);
+fn unix_root_patterns() {
+  let mut found = patterns("/work/project");
+  found.sort();
+  assert_eq!(found, vec!["/work/project", r"\/work\/project"]);
 }
 
 #[test]
 fn unix_root_with_special_characters() {
   let root = "/work/my project/a\"b/ü#?";
-  let mut found = patterns(root);
-  found.sort();
-  assert_eq!(
-    found,
-    vec![
-      "/work/my project/a\"b/ü#?",
-      "/work/my project/a\\\"b/ü#?",
-      "/work/my%20project/a%22b/%C3%BC%23%3F",
-    ]
-  );
+  for spelling in [
+    "/work/my project/a\"b/ü#?/index.js",
+    "\"/work/my project/a\\\"b/ü#?/index.js\"",
+    "file:///work/my%20project/a%22b/%C3%BC%23%3F/index.js",
+  ] {
+    assert!(matches(root, spelling), "{spelling}");
+  }
 }
 
 #[cfg(not(windows))]
