@@ -1,6 +1,6 @@
 ---
 description: 'Rspack 2.3 发布：集成 SWC Next，提升构建速度，降低内存占用和产物体积，并带来实验性的新版缓存、loader 缓存和内置 CSS 改进。'
-date: 2026-10-28 14:00:00
+date: 2026-10-29 14:00:00
 sidebar: false
 authors:
   - name: Zhixin Jin
@@ -44,7 +44,7 @@ import { PackageManagerTabs } from '@theme';
 
 # Rspack 2.3 发布公告
 
-_2026 年 10 月 28 日_
+_2026 年 10 月 29 日_
 
 <BlogAuthors />
 
@@ -72,9 +72,9 @@ Rspack 2.3 现已发布！本次更新集成了 SWC Next 解析器，提升构�
   - [Rstest](#rstest)
   - [Rspress](#rspress)
 
-## SWC next 集成 \{#swc-next}
+## SWC Next 集成 \{#swc-next}
 
-[SWC Next](https://github.com/swc-project/swc-next) 是由 SWC 团队和 Rstack 团队共同开发的新一代 JavaScript 语言工具链，将成为 SWC 的下一个大版本。它采用受 [Yuku](https://github.com/yuku-toolchain/yuku) 启发的新解析器架构，以扁平的 ESTree AST 为核心，兼顾执行速度、内存效率和 JavaScript 扩展能力。
+[SWC Next](https://github.com/swc-project/swc-next) 是由 SWC 团队和 Rstack 团队共同开发的新一代 JavaScript 编译器，将成为 SWC 的下一个大版本。它采用受 [Yuku](https://github.com/yuku-toolchain/yuku) 启发的新解析器架构，以扁平的 ESTree AST 为核心，兼顾执行速度、内存效率和 JavaScript 扩展能力。
 
 在基准测试中，SWC Next 的[原生解析速度](https://github.com/SoonIter/ecmascript-parser-benchmark-native)最高可达 SWC 的 **3 倍**，通过 [JavaScript API 解析](https://github.com/SoonIter/ecmascript-parser-benchmark-js)时最高可达 SWC 的 **10 倍**：
 
@@ -84,10 +84,10 @@ Rspack 2.3 现已发布！本次更新集成了 SWC Next 解析器，提升构�
 
 以下是在 Rspack 中集成 SWC Next 前后，解析阶段耗时和指令数的对比：
 
-| 项目      | 解析阶段耗时                     | 指令数                            |
-| --------- | -------------------------------- | --------------------------------- |
-| three.js  | 23.6 ms → 20.1 ms（**−14.9%**）  | 205.2 M → 155.1 M（**−24.4%**）   |
-| React 10k | 207.2 ms → 193.9 ms（**−6.4%**） | 1597.7 M → 1421.3 M（**−11.0%**） |
+| 项目      | 解析阶段耗时               | 指令数                      |
+| --------- | -------------------------- | --------------------------- |
+| three.js  | 23 ms → 20 ms（**−14%**）  | 205 M → 155 M（**−24%**）   |
+| React 10k | 207 ms → 193 ms（**−6%**） | 1597 M → 1421 M（**−11%**） |
 
 SWC Next 的下一目标是让开发者能够用 JavaScript 编写高性能的转换插件。目前，自定义代码转换通常依赖 Babel 插件或 SWC Wasm 插件，我们希望让开发者在享受 Rust 性能的同时，也能保留用 JavaScript 编写插件的灵活性。
 
@@ -122,10 +122,10 @@ SWC Next 的扁平 AST 支持 Rust 与 JavaScript 之间高效的数据交换，
 
 以下是两个大型真实项目在启用 `dedupDepth: 1` 前后的构建产物 Brotli 压缩体积对比：
 
-| 项目                    | 优化前  | 优化后  | 节省   | 降幅     |
-| ----------------------- | ------- | ------- | ------ | -------- |
-| 项目 A（client JS/CSS） | 23.2 MB | 22.7 MB | 550 KB | **2.4%** |
-| 项目 B（client JS/CSS） | 40.0 MB | 36.0 MB | 4.0 MB | **9.9%** |
+| 项目   | 优化前  | 优化后  | 节省   | 降幅     |
+| ------ | ------- | ------- | ------ | -------- |
+| 项目 A | 23.2 MB | 22.7 MB | 550 KB | **2.4%** |
+| 项目 B | 40.0 MB | 36.0 MB | 4.0 MB | **9.9%** |
 
 ## 新版缓存实现 \{#cache-improvements}
 
@@ -276,7 +276,7 @@ export default {
 
 上述 `@import` 和 `url()` 会原样输出，不会参与打包。
 
-CSS 中的 `@import`、`url()` 和 `image-set()` 也支持 [`rspackIgnore` 和 `webpackIgnore` 注释](/zh/guide/languages/css#magic-comments)，可以按需跳过资源打包：
+CSS 中的 `@import`、`url()` 和 `image-set()` 也支持 [`rspackIgnore` 注释](/zh/guide/languages/css#magic-comments)，可以按需跳过资源打包：
 
 ```css title="styles.css"
 @import /* rspackIgnore: true */ url('./runtime-theme.css');
@@ -285,7 +285,7 @@ CSS 中的 `@import`、`url()` 和 `image-set()` 也支持 [`rspackIgnore` 和 `
 ### 其他改进 \{#other-improvements}
 
 - **按需编译**：减少启用[按需编译](/zh/guide/advanced/lazy-compilation)时保存代码触发的重复构建，缩短等待更新的时间。
-- **原生 watcher**：提供更完整的文件时间信息，改善与 `ts-loader`、`webpack-virtual-modules`、`vue-loader` 等工具的兼容性。
+- **原生 watcher**：提供更完整的文件时间信息，改善与 `ts-loader`、`vue-loader` 等库的兼容性。
 - **原生 watcher**：支持使用函数配置 [`watchOptions.ignored`](/zh/config/watch#watchoptionsignored)，并改进对新增目录、文件删除和重新创建的检测。
 - **插件兼容性与类型**：改善插件 hook 与 webpack 的兼容性，并完善 loader、externals 和 stats 的 TypeScript 类型。
 - **WebAssembly**：新增 [`output.wasmStreamingFallback`](/zh/config/output#outputwasmstreamingfallback)，支持关闭非流式加载回退。

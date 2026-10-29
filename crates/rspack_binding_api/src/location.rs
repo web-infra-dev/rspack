@@ -31,7 +31,7 @@ impl From<&SourcePosition> for rspack_core::SourcePosition {
   fn from(value: &SourcePosition) -> Self {
     Self {
       line: value.line,
-      column: value.column.map_or(value.line, |c| c),
+      column: value.column.unwrap_or_default(),
     }
   }
 }
