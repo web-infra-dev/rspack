@@ -21,32 +21,18 @@ jobs:
           node-version: 22.23.4
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build:js
-      - name: Prepare ProcDump
+      - name: Configure postmortem dumps
         shell: pwsh
         run: |
-          Invoke-WebRequest https://download.sysinternals.com/files/Procdump.zip -OutFile "$env:RUNNER_TEMP/procdump.zip"
-          Expand-Archive "$env:RUNNER_TEMP/procdump.zip" "$env:RUNNER_TEMP/procdump"
           New-Item -ItemType Directory -Force diagnostics
-          Get-ChildItem 'C:/Program Files (x86)/Windows Kits' -Recurse -Filter cdb.exe -ErrorAction SilentlyContinue | Select-Object FullName
-      - name: Compare worker exit with parent preload
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Continue'
-          $node = (Get-Command node).Source
-          foreach ($preload in @('no', 'yes')) {
-            foreach ($case in @(@('worker-errors', 'close'), @('worker-references', 'close'), @('worker-references', 'terminate'))) {
-              for ($iteration = 1; $iteration -le 3; $iteration++) {
-                $name = "$($case[0])-$($case[1])-$preload-$iteration"
-                $dump = "diagnostics/$name"
-                New-Item -ItemType Directory -Force $dump | Out-Null
-                Write-Output "RUN $name"
-                & "$env:RUNNER_TEMP/procdump/procdump64.exe" -accepteula -mm -e -x $dump $node --expose-gc scripts/worker-windows-probe.mjs $case[0] $case[1] $preload 2>&1 | Tee-Object -FilePath "diagnostics/$name.log"
-                Write-Output "PROCDUMP_EXIT $LASTEXITCODE"
-                if (Get-ChildItem $dump -Filter '*.dmp') { break }
-              }
-            }
-          }
-          exit 0
+          $key = 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\node.exe'
+          New-Item -Path $key -Force
+          New-ItemProperty -Path $key -Name DumpFolder -Value "$pwd/diagnostics" -PropertyType ExpandString -Force
+          New-ItemProperty -Path $key -Name DumpType -Value 0 -PropertyType DWord -Force
+          New-ItemProperty -Path $key -Name CustomDumpFlags -Value 0x1121 -PropertyType DWord -Force
+          New-ItemProperty -Path $key -Name DumpCount -Value 10 -PropertyType DWord -Force
+      - name: Repeat original child bootstrap without debugger
+        run: node scripts/worker-windows-probe.mjs
       - name: Analyze crash dumps when debugger is available
         if: always()
         shell: pwsh

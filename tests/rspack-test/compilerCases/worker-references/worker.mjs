@@ -1,6 +1,3 @@
-import { writeSync } from 'node:fs';
-import { threadId } from 'node:worker_threads';
-const trace = (stage) => writeSync(2, `TRACE ${threadId} ${stage}\n`);
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { once } from 'node:events';
@@ -65,7 +62,6 @@ parentPort.on('message', () => {});
 try {
   await build();
   parentPort.postMessage('ready');
-  trace('ready sent');
   for (;;) {
     const [command] = await once(parentPort, 'message');
     if (command === 'close') break;
@@ -74,9 +70,6 @@ try {
     parentPort.postMessage('built');
   }
 } finally {
-  trace('compiler close start');
   await closeCompiler(compiler);
-  trace('compiler close done');
   parentPort.close();
-  trace('port closed');
 }
