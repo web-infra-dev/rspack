@@ -57,7 +57,7 @@ Rspack 2.3 现已发布！本次更新将 JavaScript 解析器迁移至 SWC Next
 - [性能](#performance)
   - [性能优化](#performance-improvements)
   - [SplitChunks 优化](#split-chunks)
-- [实验性缓存改进](#cache-improvements)
+- [新版缓存实现](#cache-improvements)
 - [新特性](#features)
   - [按代码内容过滤 loader](#loader-code-filter)
   - [内置的 CSS](#built-in-css)
@@ -70,12 +70,11 @@ Rspack 2.3 现已发布！本次更新将 JavaScript 解析器迁移至 SWC Next
   - [Rspress](#rspress)
 - [升级指南](#upgrade-guide)
 
-{/* prettier-ignore */}
-## SWC Next 集成 \{#swc-next}
+## SWC next 集成 \{#swc-next}
 
 [SWC Next](https://github.com/swc-project/swc-next) 是由 SWC 团队和 Rstack 团队共同开发的新一代 JavaScript 语言工具链，将成为 SWC 的下一个大版本。它采用受 [Yuku](https://github.com/yuku-toolchain/yuku) 启发的新解析器架构，以扁平的 ESTree AST 为核心，兼顾执行速度、内存效率和 JavaScript 扩展能力。
 
-在基准测试中，SWC Next 的[原生解析速度](https://github.com/SoonIter/ecmascript-parser-benchmark-native)最高可达 SWC 的 **3 倍**，通过 [JavaScript API 解析](https://github.com/SoonIter/ecmascript-parser-benchmark-js)时最高可达 SWC 的 **10 倍**。我们也使用 Test262、TypeScript 和 Babel 等[多项测试集](https://next.swc.rs/guide/testing)验证解析器的正确性。
+在基准测试中，SWC Next 的[原生解析速度](https://github.com/SoonIter/ecmascript-parser-benchmark-native)最高可达 SWC 的 **3 倍**，通过 [JavaScript API 解析](https://github.com/SoonIter/ecmascript-parser-benchmark-js)时最高可达 SWC 的 **10 倍**：
 
 ![](https://assets.rspack.rs/rspack/assets/rspack-v2-3-parser-performance.png)
 
@@ -124,25 +123,19 @@ SWC Next 的扁平 AST 支持 Rust 与 JavaScript 之间高效的数据交换，
 | 项目 A（client JS/CSS） | 23.2 MB | 22.7 MB | 550 KB | **2.4%** |
 | 项目 B（client JS/CSS） | 40.0 MB | 36.0 MB | 4.0 MB | **9.9%** |
 
-## 实验性缓存改进 \{#cache-improvements}
+## 新版缓存实现 \{#cache-improvements}
 
-Rspack 2.3 推出了实验性的新缓存。它可以更细粒度地复用构建结果，减少存储体积和写入开销。
+Rspack 2.3 推出了实验性的新版缓存，重点减少缓存文件的磁盘占用和写入开销，并改善缓存恢复的可靠性。这次改进主要针对旧缓存的三个问题：
 
-旧缓存主要存在以下问题：
+- **缓存文件较大，恢复过程复杂**：旧缓存会保存整个构建阶段的中间状态，包括模块之间的依赖关系。这些数据体积较大，恢复复杂状态时也容易出错。新版缓存改为保存模块等独立构建任务的结果，减少需要存储的数据，也降低了缓存恢复出错的风险。
+- **缓存写入阻塞构建**：旧缓存需要在编译过程中将数据转换为可写入磁盘的格式，增加了等待时间。新版缓存将这些工作安排在空闲或构建结束时执行，减少对编译过程的阻塞。
+- **开发和生产场景难以统一复用**：旧缓存与开发模式下的增量构建联系较紧密，部分机制难以用于生产构建。新版缓存将两者分开，并统一内存缓存与磁盘缓存的管理方式，便于在不同构建场景中复用结果、清理不再需要的缓存。
 
-- 缓存粒度较粗：以编译阶段的完整中间结果为单位进行持久化，例如在 `make` 阶段保存和恢复整个模块图。整份中间结果需要保持不可变，复杂的图状态也曾导致缓存恢复时出错甚至 panic。
-- 与增量构建耦合：增量构建面向开发模式，而持久化缓存还需要覆盖生产构建，部分阶段难以复用同一套机制。
-- 内存缓存与持久化缓存的模型不统一，需要在多处增加特殊处理逻辑。
-- 持久化缓存的序列化过程会阻塞编译。
+在基准测试中，新版缓存的磁盘占用减少了约 **79%**，冷构建的峰值内存降低了约 **16%**，但热构建耗时略有增加：
 
-为了解决这些问题，新缓存带来了以下改进：
+![](https://assets.rspack.rs/rspack/assets/rspack-v2-3-cache-performance.png)
 
-- 细化缓存粒度：缓存模块等细粒度计算结果，无需保存和恢复整个模块图，降低复杂图状态带来的正确性风险。同时，只要求被缓存的内容保持不可变。
-- 与增量构建解耦：让缓存独立于增量构建，便于覆盖开发和生产构建场景。
-- 统一缓存模型：内存缓存和持久化缓存采用一致的模型，减少特殊处理逻辑，也更便于淘汰不再使用的缓存，控制多轮开发构建的内存占用。
-- 推迟持久化操作：将序列化和磁盘写入安排在空闲或构建结束时执行，减少对编译的阻塞。
-
-新缓存目前默认关闭，可以通过 [`experiments.newCache`](/zh/config/experiments#experimentsnewcache) 开启：
+新版缓存目前默认关闭，可以通过 [`experiments.newCache`](/zh/config/experiments#experimentsnewcache) 开启：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -155,37 +148,13 @@ export default {
 };
 ```
 
-下面是在 [React 10k](https://github.com/rspack-contrib/build-tools-performance/tree/main/cases/react-10k) 和一个大型真实项目中，新旧缓存的对比结果。
-
-React 10k：
-
-| 指标               | 旧缓存    | 新缓存    | 变化     |
-| ------------------ | --------- | --------- | -------- |
-| 冷构建总耗时       | 2.1 s     | 1.8 s     | -14.5%   |
-| 热构建总耗时       | 776.9 ms  | 837.2 ms  | +7.8%    |
-| 冷构建峰值内存     | 926.5 MiB | 781.3 MiB | -15.7%   |
-| 热构建峰值内存     | 840.5 MiB | 840.7 MiB | 基本持平 |
-| 热构建后的存储占用 | 269.0 MiB | 57.2 MiB  | -78.7%   |
-
-大型真实项目：
-
-| 指标               | 旧缓存     | 新缓存     | 变化   |
-| ------------------ | ---------- | ---------- | ------ |
-| 冷构建总耗时       | 84.9 s     | 83.5 s     | -1.7%  |
-| 热构建总耗时       | 33.2 s     | 35.2 s     | +6.2%  |
-| 冷构建峰值内存     | 11.6 GiB   | 9.7 GiB    | -16.1% |
-| 热构建峰值内存     | 7.7 GiB    | 8.2 GiB    | +7.3%  |
-| 热构建后的存储占用 | 3896.0 MiB | 1092.1 MiB | -72.0% |
-
-在上述测试中，新缓存将存储体积减少了约 75%，也降低了缓存写入开销。细粒度的模块缓存会使 `make` 阶段变慢，因为新缓存不再恢复整个模块图，而是重新构建模块之间的依赖关系。其他阶段则更快，抵消了部分额外开销，因此最终热构建总耗时仅小幅增加。这种取舍避免了恢复复杂的图状态，也更容易保证启用缓存时构建结果的正确性。
-
-我们会优化热构建性能和内存占用，并计划在后续 minor 版本中用新缓存替换旧缓存。
+我们会在后续版本中继续优化性能，并计划在未来的 minor 版本中默认启用新版缓存。
 
 ### loader 缓存 \{#loader-cache}
 
-Loader 缓存是新缓存的一部分，可以单独启用，无需启用其他构建阶段的缓存。
+Loader 缓存可以复用 babel-loader、less-loader 等工具的转换结果，避免重复处理未变化的代码，缩短构建时间。它是新版缓存的一部分，也可以单独启用。
 
-在一些场景中，例如交替使用 build 和 watch 模式时，模块缓存可能无法复用，但 loader 缓存仍可复用。例如，使用 babel-loader、less-loader 时，只要输出结果不受模式影响，且输入、配置和相关依赖保持一致，就可以在不同模式间复用缓存，加快构建速度。
+即使在 build 和 watch 模式之间切换，loader 缓存仍有机会复用：只要输入、配置和相关依赖保持一致，且转换结果不受模式影响，就不必重新执行转换。
 
 启用顶层 `cache` 和 `experiments.newCache` 后，可以为 loader 设置 `cache: true`。其他缓存阶段可以通过 [`experiments.newCache`](/zh/config/experiments#cache-stages) 单独控制。
 
@@ -213,7 +182,7 @@ export default {
 };
 ```
 
-在使用 babel-loader 处理约 10000 个模拟模块的测试中，开启 loader 缓存后，构建耗时降低：
+在使用 babel-loader 处理约 10000 个模拟模块的测试中，开启 loader 缓存后，无论是否启用并行 loader，构建耗时都降至约 11–12 秒：
 
 | 并行 loader | 缓存关闭 | 缓存开启 | 加速比     |
 | ----------- | -------- | -------- | ---------- |

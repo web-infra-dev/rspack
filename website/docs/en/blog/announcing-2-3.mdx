@@ -57,7 +57,7 @@ Notable changes include:
 - [Performance](#performance)
   - [Performance improvements](#performance-improvements)
   - [SplitChunks optimizations](#split-chunks)
-- [Experimental cache improvements](#cache-improvements)
+- [New cache implementation](#cache-improvements)
 - [New features](#features)
   - [Filter loaders by code content](#loader-code-filter)
   - [Built-in CSS](#built-in-css)
@@ -70,12 +70,13 @@ Notable changes include:
   - [Rspress](#rspress)
 - [Upgrade guide](#upgrade-guide)
 
-{/* prettier-ignore */}
 ## SWC Next integration \{#swc-next}
 
 [SWC Next](https://github.com/swc-project/swc-next) is a new generation of JavaScript tooling developed jointly by the SWC team and the Rstack team. It will become SWC's next major version. Its new parser architecture, inspired by [Yuku](https://github.com/yuku-toolchain/yuku), centers on a flat, ESTree-based AST designed for speed, memory efficiency, and JavaScript extensibility.
 
-In benchmarks, SWC Next's [native parsing](https://github.com/SoonIter/ecmascript-parser-benchmark-native) is up to **3×** as fast as SWC, while parsing through the [JavaScript API](https://github.com/SoonIter/ecmascript-parser-benchmark-js) is up to **10×** as fast. We also validate the parser's correctness against [multiple test suites](https://next.swc.rs/guide/testing), including Test262, TypeScript, and Babel.
+In benchmarks, SWC Next's [native parsing](https://github.com/SoonIter/ecmascript-parser-benchmark-native) is up to **3×** as fast as SWC, while parsing through the [JavaScript API](https://github.com/SoonIter/ecmascript-parser-benchmark-js) is up to **10×** as fast:
+
+![](https://assets.rspack.rs/rspack/assets/rspack-v2-3-parser-performance.png)
 
 We are gradually migrating SWC's modules to this architecture and replacing Rspack's existing implementations. Rspack 2.3 has adopted SWC Next as its JavaScript parser, using its more compact AST and memory layout to optimize parsing and traversal. In benchmarks, parsing time and instruction counts changed as follows:
 
@@ -122,23 +123,17 @@ The following table compares the Brotli-compressed output sizes of two large rea
 | Project A (client JS/CSS) | 23.2 MB | 22.7 MB | 550 KB | **2.4%**  |
 | Project B (client JS/CSS) | 40.0 MB | 36.0 MB | 4.0 MB | **9.9%**  |
 
-## Experimental cache improvements \{#cache-improvements}
+## New cache implementation \{#cache-improvements}
 
-Rspack 2.3 introduces a new experimental cache that reuses build results at a finer granularity and reduces storage requirements and write overhead.
+Rspack 2.3 introduces a new experimental cache focused on reducing disk usage and write overhead, as well as improving reliability when restoring cached results. It addresses three limitations of the old cache:
 
-The old cache had several limitations:
+- **Large cache files and complex restoration**: The old cache saved the intermediate state of entire build stages, including relationships between modules. This produced large cache files and made restoration prone to errors. The new cache stores results from individual build tasks, such as module builds, reducing the amount of data saved and the risk of restoration errors.
+- **Cache writes blocked compilation**: The old cache converted data into a format suitable for disk storage during compilation, adding to build time. The new cache schedules this work during idle time or at the end of a build, reducing interruptions to compilation.
+- **Reuse differed between development and production**: The old cache was closely tied to incremental compilation in development, making some mechanisms difficult to reuse in production builds. The new cache separates these responsibilities and manages memory and disk caches consistently, making it easier to reuse results across build scenarios and discard cache entries that are no longer needed.
 
-- Coarse cache granularity: it persisted the complete intermediate results of each compilation stage, such as the entire module graph during `make`. These results had to remain immutable, and the graph's complex state had caused errors or even panics when restoring the cache.
-- Coupling with incremental compilation: incremental compilation targets development mode, while persistent caching also needs to support production builds. This made it difficult to reuse the same mechanism for some stages.
-- Memory and persistent caches used different models, requiring special handling in multiple places.
-- Serializing the persistent cache blocked compilation.
+In benchmarks, the new cache reduced disk usage by around **79%** and peak memory during cold builds by around **16%**, though warm builds took slightly longer:
 
-The new cache addresses these issues with the following improvements:
-
-- Finer cache granularity: it caches individual computation results, such as modules, without saving and restoring the entire module graph. This reduces correctness risks from complex graph state, and only the cached data needs to remain immutable.
-- Decoupled from incremental compilation: caching works independently, making it easier to support both development and production builds.
-- A unified cache model: memory and persistent caches use the same model, reducing special handling and making it easier to evict unused entries and control memory usage across development rebuilds.
-- Deferred persistence: serialization and disk writes run during idle time or at the end of a build, reducing work that blocks compilation.
+![](https://assets.rspack.rs/rspack/assets/rspack-v2-3-cache-performance.png)
 
 The new cache is disabled by default. Enable it with [`experiments.newCache`](/config/experiments#experimentsnewcache):
 
@@ -153,37 +148,13 @@ export default {
 };
 ```
 
-The following tables compare the two cache implementations in [React 10k](https://github.com/rspack-contrib/build-tools-performance/tree/main/cases/react-10k) and a large real-world project.
-
-React 10k:
-
-| Metric                         | Old cache | New cache | Change         |
-| ------------------------------ | --------- | --------- | -------------- |
-| Total cold build time          | 2.1 s     | 1.8 s     | -14.5%         |
-| Total warm build time          | 776.9 ms  | 837.2 ms  | +7.8%          |
-| Peak memory for cold build     | 926.5 MiB | 781.3 MiB | -15.7%         |
-| Peak memory for warm build     | 840.5 MiB | 840.7 MiB | About the same |
-| Storage usage after warm build | 269.0 MiB | 57.2 MiB  | -78.7%         |
-
-Large real-world project:
-
-| Metric                         | Old cache  | New cache  | Change |
-| ------------------------------ | ---------- | ---------- | ------ |
-| Total cold build time          | 84.9 s     | 83.5 s     | -1.7%  |
-| Total warm build time          | 33.2 s     | 35.2 s     | +6.2%  |
-| Peak memory for cold build     | 11.6 GiB   | 9.7 GiB    | -16.1% |
-| Peak memory for warm build     | 7.7 GiB    | 8.2 GiB    | +7.3%  |
-| Storage usage after warm build | 3896.0 MiB | 1092.1 MiB | -72.0% |
-
-In these tests, the new cache reduces storage requirements by around 75% and lowers cache write overhead. Its finer-grained module caching makes the `make` phase slower because dependency relationships must be rebuilt instead of restoring the entire module graph. Other stages become faster and offset part of this overhead, so total warm build time increases only modestly. This tradeoff avoids restoring complex graph state and makes cache correctness easier to maintain.
-
-We will optimize warm build performance and memory usage and plan to replace the old cache with the new cache in a future minor release.
+We will continue optimizing performance in upcoming releases and plan to enable the new cache by default in a future minor release.
 
 ### Loader cache
 
-The loader cache is part of the new cache and can be enabled independently, without enabling caches for other build stages.
+The loader cache reuses transformation results from tools such as babel-loader and less-loader, avoiding repeated work on unchanged code and shortening build times. It is part of the new cache and can also be enabled independently.
 
-In some scenarios, such as switching between build and watch modes, module caches may not be reusable, while loader caches can still be reused. For example, when babel-loader or less-loader produces the same output regardless of mode, its cached results can be reused across modes as long as the input, configuration, and relevant dependencies remain unchanged, speeding up builds.
+Cached loader results can even be reused when switching between build and watch modes, as long as the input, configuration, and relevant dependencies remain unchanged and the transformation result does not depend on the mode.
 
 Enable the top-level `cache` and `experiments.newCache`, then set `cache: true` on a loader. You can configure other cache stages independently through [`experiments.newCache`](/config/experiments#cache-stages).
 
@@ -211,7 +182,7 @@ export default {
 };
 ```
 
-In a test using babel-loader to process around 10,000 simulated modules, enabling the loader cache substantially reduced build time:
+In a test using babel-loader to process around 10,000 simulated modules, enabling the loader cache reduced build time to around 11–12 seconds, with or without parallel loaders:
 
 | Parallel loaders | Cache disabled | Cache enabled | Speedup  |
 | ---------------- | -------------- | ------------- | -------- |
