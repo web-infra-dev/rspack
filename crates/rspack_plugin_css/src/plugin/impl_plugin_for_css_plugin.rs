@@ -450,13 +450,39 @@ async fn runtime_requirements_in_tree(
     ));
   }
 
-  if (all_runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
-    && all_runtime_requirements.intersects(
-      RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS | RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
-    ))
-    || hmr_needs_css_runtime
-  {
-    runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements_basic());
+  // The link runtime is only used by the jsonp and import chunk loading
+  // runtimes; other runtimes only get the style-sheet/inject runtimes below.
+  if is_enabled_for_chunk {
+    if all_runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
+      && all_runtime_requirements.intersects(
+        RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS | RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
+      )
+      || hmr_needs_css_runtime
+    {
+      runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements_basic());
+    }
+
+    if all_runtime_requirements
+      .contains(RuntimeGlobals::HAS_CSS_MODULES | RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+    {
+      runtime_requirements_mut
+        .extend(CssLoadingRuntimeModule::get_runtime_requirements_with_loading());
+      if all_runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS) {
+        runtime_requirements_mut
+          .extend(CssLoadingRuntimeModule::get_runtime_requirements_with_prefetch());
+      }
+      if all_runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS) {
+        runtime_requirements_mut
+          .extend(CssLoadingRuntimeModule::get_runtime_requirements_with_preload());
+      }
+    }
+
+    if all_runtime_requirements
+      .contains(RuntimeGlobals::HAS_CSS_MODULES | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+      || hmr_needs_css_runtime
+    {
+      runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements_with_hmr());
+    }
   }
 
   if all_runtime_requirements.contains(RuntimeGlobals::CSS_INJECT_STYLE) {
@@ -466,28 +492,6 @@ async fn runtime_requirements_in_tree(
   if all_runtime_requirements.contains(RuntimeGlobals::CSS_STYLE_SHEET) {
     let requirements = CssLoadingRuntimeModule::get_runtime_requirements_with_style_sheet();
     runtime_requirements_mut.extend(requirements.dependencies | requirements.define);
-  }
-
-  if all_runtime_requirements
-    .contains(RuntimeGlobals::HAS_CSS_MODULES | RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
-  {
-    runtime_requirements_mut
-      .extend(CssLoadingRuntimeModule::get_runtime_requirements_with_loading());
-    if all_runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS) {
-      runtime_requirements_mut
-        .extend(CssLoadingRuntimeModule::get_runtime_requirements_with_prefetch());
-    }
-    if all_runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS) {
-      runtime_requirements_mut
-        .extend(CssLoadingRuntimeModule::get_runtime_requirements_with_preload());
-    }
-  }
-
-  if all_runtime_requirements
-    .contains(RuntimeGlobals::HAS_CSS_MODULES | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
-    || hmr_needs_css_runtime
-  {
-    runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements_with_hmr());
   }
 
   Ok(None)
