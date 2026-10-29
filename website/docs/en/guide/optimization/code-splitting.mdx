@@ -41,6 +41,8 @@ Building this project produces three chunks: `src_bar_js.js`, `src_foo_js.js`, a
 
 :::
 
+If a dynamically imported chunk fails to load, see [Chunk loading failures](/guide/diagnostics/runtime-issues#chunk-loading-failures) for troubleshooting steps.
+
 ### Modules already available from parents
 
 When an async chunk needs a module that is guaranteed to be loaded on every path to that chunk, Rspack can omit the duplicate module. This happens during code splitting, even with `optimization.splitChunks: false`.

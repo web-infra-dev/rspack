@@ -17,18 +17,45 @@ The top-level output key contains a set of options instructing Rspack on how and
 - **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** `'[hash][ext][query]'`
 
-The same as [`output.filename`](#outputfilename) but for [Asset Modules](/guide/features/asset-module).
+Specifies the filename for [Asset Modules](/guide/features/asset-module) emitted as separate files, using the same placeholders as [`output.filename`](#outputfilename).
 
-`[name]`, `[file]`, `[query]`, `[fragment]`, `[base]`, and `[path]` are set to an empty string for the assets built from data URI replacements.
+This option applies to:
 
-The name of the file to be output by the Asset module. This value can be overridden by [rules[].generator.filename](/config/module-rules#rulesgenerator).
+- Modules of type `'asset/resource'`.
+- Modules of type `'asset'` that do not satisfy [rules[].parser.dataUrlCondition](/config/module-parser#assetdataurlcondition). Assets that satisfy the condition are inlined instead.
 
-:::info Asset module output as a separate file
+For example, emit resource files into the `assets` directory and keep their original filenames: `logo.png` becomes `assets/logo.png`.
 
-- Module type is `'asset'` and asset is set to satisfy [rules[].parser.dataUrlCondition](/config/module-parser#assetdataurlcondition)
-- Module type is `'asset/resource'`
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    assetModuleFilename: 'assets/[name][ext]',
+  },
+};
+```
 
-:::
+For assets imported from data URIs, `[name]` and `[base]` are replaced with the content hash. `[file]`, `[query]`, `[fragment]`, and `[path]` are empty strings.
+
+Use [rules[].generator.filename](/config/module-rules#rulesgenerator) to override the filename for a specific rule. Here, PNG files use `images/[name][ext]` instead of the global setting, so `logo.png` becomes `images/logo.png`:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    assetModuleFilename: 'assets/[name][ext]',
+  },
+  module: {
+    rules: [
+      {
+        test: /\.png$/i,
+        type: 'asset/resource',
+        generator: {
+          filename: 'images/[name][ext]',
+        },
+      },
+    ],
+  },
+};
+```
 
 ## output.asyncChunks
 

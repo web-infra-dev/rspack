@@ -235,7 +235,7 @@ pub struct Compilation {
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
-  cache: CompilerCache,
+  pub cache: CompilerCache,
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
   pub resolver_cache: Option<crate::ResolverCache>,
   pub file_system_info: FileSystemInfo,
@@ -374,13 +374,7 @@ impl Compilation {
     );
     let resolver_cache = (options.experiments.new_cache.resolver
       && !matches!(options.cache, crate::CacheOptions::Disabled))
-    .then(|| {
-      crate::ResolverCache::new(
-        cache.facade("ResolverCache"),
-        file_system_info.clone(),
-        &CompilationLogger::new("rspack.ResolverCache", logging.clone()),
-      )
-    });
+    .then(|| crate::ResolverCache::new(cache.facade("ResolverCache"), file_system_info.clone()));
     Self {
       id: CompilationId::new(),
       compiler_id,
@@ -499,14 +493,7 @@ impl Compilation {
     if self.build_module_graph_artifact.is_stolen() {
       return None;
     }
-    if let Some(module) = self.get_module_graph().module_by_identifier(identifier) {
-      return Some(module);
-    };
-
-    self
-      .build_module_graph_artifact
-      .get_module_graph()
-      .module_by_identifier(identifier)
+    self.get_module_graph().module_by_identifier(identifier)
   }
   pub fn get_module_graph_mut(&mut self) -> &mut ModuleGraph {
     self.build_module_graph_artifact.get_module_graph_mut()

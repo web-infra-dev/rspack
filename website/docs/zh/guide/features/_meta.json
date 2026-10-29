@@ -1,8 +1,6 @@
 [
   "plugin",
   "loader",
-  "builtin-swc-loader",
-  "builtin-lightningcss-loader",
   "dev-server",
   "asset-module",
   "asset-base-path",

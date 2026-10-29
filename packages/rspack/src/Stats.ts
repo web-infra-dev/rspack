@@ -15,6 +15,7 @@ import type { StatsCompilation } from './stats/statsFactoryUtils';
 
 export type {
   StatsAsset,
+  StatsCacheInfo,
   StatsChunk,
   StatsCompilation,
   StatsError,

@@ -168,18 +168,16 @@ pub fn collect_usage_files_for_module(
     let Some(origin) = origin_identifier else {
       continue;
     };
-    if let Some(path) = module_graph
-      .module_by_identifier(&origin)
-      .and_then(|module| module_source_path(module, compilation))
-    {
+    let origin_module = module_graph.module_by_identifier(&origin);
+    if let Some(path) = origin_module.and_then(|module| module_source_path(module, compilation)) {
       files.insert(path);
       continue;
     }
     if let Some(assets) = collect_assets_for_module(compilation, &origin, entry_point_names) {
       files.extend(assets.js.sync);
       files.extend(assets.js.r#async);
-    } else if let Some(origin_module) = module_graph.module_by_identifier(&origin) {
-      files.insert(origin_module.identifier().to_string());
+    } else if origin_module.is_some() {
+      files.insert(origin.to_string());
     }
   }
   let mut collected: Vec<String> = files.into_iter().collect();

@@ -329,6 +329,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         let create_link_raw = context.runtime_template.render(
           &self.template_id(TemplateId::CreateLink),
           Some(serde_json::json!({
+            "_with_hmr": with_hmr,
             "_with_fetch_priority": with_fetch_priority,
             "_cross_origin": match &compilation.options.output.cross_origin_loading {
               CrossOriginLoading::Disable => String::new(),
@@ -466,32 +467,21 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           code.push_str("style.setAttribute(\"data-rspack\", getDataRspackId(key));");
           code
         };
-        let css_inject_style =
-          runtime_template.render_runtime_globals(&RuntimeGlobals::CSS_INJECT_STYLE);
-        let hmr_download_update_handlers =
-          runtime_template.render_runtime_globals(&RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
         let source_with_style = context.runtime_template.render(
           &self.template_id(TemplateId::WithStyle),
           Some(serde_json::json!({
             "_data_rspack_prefix": data_rspack_prefix,
             "_create_style": &create_style_element_code,
-            "_css_inject_style": &css_inject_style,
             "_with_hmr": with_hmr,
-            "HMR_DOWNLOAD_UPDATE_HANDLERS": &hmr_download_update_handlers,
           })),
         )?;
         source.push_str(&source_with_style);
       }
 
       if with_style_sheet {
-        let css_style_sheet =
-          runtime_template.render_runtime_globals(&RuntimeGlobals::CSS_STYLE_SHEET);
-        let source_with_style_sheet = context.runtime_template.render(
-          &self.template_id(TemplateId::WithStyleSheet),
-          Some(serde_json::json!({
-            "CSS_STYLE_SHEET": &css_style_sheet,
-          })),
-        )?;
+        let source_with_style_sheet = context
+          .runtime_template
+          .render(&self.template_id(TemplateId::WithStyleSheet), None)?;
         source.push_str(&source_with_style_sheet);
       }
 
