@@ -221,7 +221,12 @@ impl CacheContext {
         SnapshotScope::MISSING,
       ] {
         match snapshot.calc_modified_paths(&*self.storage, scope).await {
-          Ok((a, b, c, _, observed)) => {
+          Ok((a, b, c, _, observed, dropped)) => {
+            if !self.readonly {
+              for key in dropped {
+                self.storage.remove(scope.name(), &key);
+              }
+            }
             match scope {
               SnapshotScope::FILE => self.refresh_file_snapshots = observed,
               SnapshotScope::CONTEXT => self.observed_context_snapshots = observed,

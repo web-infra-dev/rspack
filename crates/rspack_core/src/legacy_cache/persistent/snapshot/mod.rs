@@ -213,7 +213,9 @@ impl Snapshot {
     InternedPathSet,
     InternedPathSet,
     InternedPathMap<Strategy>,
+    Vec<Vec<u8>>,
   )> {
+    let mut dropped_keys = Vec::new();
     let mut modified_path = InternedPathSet::default();
     let mut deleted_path = InternedPathSet::default();
     let mut no_change_path = InternedPathSet::default();
@@ -236,6 +238,9 @@ impl Snapshot {
         let codec = codec.clone();
         async move {
           let path = codec.decode::<InternedPath>(&key)?;
+          if codec.encode(&path)? != key {
+            return Ok((path, ValidateResult::Modified, None, Some(key)));
+          }
           let validate = match codec.decode::<Strategy>(&value) {
             Ok(strategy) => helper.validate(&path, &strategy).await,
             Err(_) => ValidateResult::Modified,
@@ -248,10 +253,13 @@ impl Snapshot {
             }
             _ => None,
           };
-          Ok::<_, rspack_error::Error>((path, validate, observed))
+          Ok::<_, rspack_error::Error>((path, validate, observed, None))
         }
       })
-      .try_fut_consume(|(path, validate, observed)| {
+      .try_fut_consume(|(path, validate, observed, dropped)| {
+        if let Some(key) = dropped {
+          dropped_keys.push(key);
+        }
         if let Some(strategy) = observed {
           observed_path.insert(path.clone(), strategy);
         }
@@ -279,6 +287,7 @@ impl Snapshot {
       deleted_path,
       no_change_path,
       observed_path,
+      dropped_keys,
     ))
   }
 }
@@ -369,7 +378,7 @@ mod tests {
       .await
       .unwrap();
 
-    let (is_hot_start, modified_paths, deleted_paths, no_change_paths, _) = snapshot
+    let (is_hot_start, modified_paths, deleted_paths, no_change_paths, _, _) = snapshot
       .calc_modified_paths(&storage, SnapshotScope::FILE)
       .await
       .unwrap();
@@ -394,7 +403,7 @@ mod tests {
         [p!("/file1")].into_iter(),
       )
       .await;
-    let (is_hot_start, modified_paths, deleted_paths, no_change_paths, _) = snapshot
+    let (is_hot_start, modified_paths, deleted_paths, no_change_paths, _, _) = snapshot
       .calc_modified_paths(&storage, SnapshotScope::FILE)
       .await
       .unwrap();

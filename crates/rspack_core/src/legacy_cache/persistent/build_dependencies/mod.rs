@@ -100,7 +100,7 @@ impl BuildDeps {
     storage: &dyn Storage,
     has_previous_cache: bool,
   ) -> Result<BuildDepsValidationResult> {
-    let (_, mut modified_files, removed_files, no_changed_files, _) = self
+    let (_, mut modified_files, removed_files, no_changed_files, _, _) = self
       .snapshot
       .calc_modified_paths(storage, SnapshotScope::BUILD)
       .await?;

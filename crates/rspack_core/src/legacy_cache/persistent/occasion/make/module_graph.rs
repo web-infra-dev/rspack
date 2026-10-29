@@ -44,7 +44,7 @@ pub struct RecoveredModuleGraph {
   pub factorization_artifact: FactorizationArtifact,
   pub module_to_lazy_make: ModuleToLazyMake,
   pub entry_dependencies: FxHashSet<DependencyId>,
-  /// Storage keys of nodes bound to another root.
+  /// Original storage keys of nodes rejected by root binding or key validation.
   pub dropped: Vec<Vec<u8>>,
 }
 
@@ -167,7 +167,9 @@ pub fn save_module_graph(
         blocks,
         lazy_info,
       };
-      let key = codec.encode(identifier).expect("should encode identifier");
+      let key = node_codec
+        .encode(identifier)
+        .expect("should encode identifier");
       let root_sensitive = module.build_info().root_sensitive;
       match BoundEntry::encode(node_codec, &node, root_sensitive) {
         Ok(bytes) => (key, bytes),
@@ -211,20 +213,50 @@ pub async fn recovery_module_graph(
   let mut mg = ModuleGraph::default();
   let mut factorization_artifact = FactorizationArtifact::default();
   let mut module_to_lazy_make = ModuleToLazyMake::default();
-  let (nodes, dropped): (Vec<_>, Vec<_>) = storage
-    .load(SCOPE)
-    .await?
+  let entries = storage.load(SCOPE).await?;
+  let mut counts = FxHashMap::<ModuleIdentifier, usize>::default();
+  for (key, _) in &entries {
+    if let Ok(identifier) = codec.decode::<ModuleIdentifier>(key) {
+      *counts.entry(identifier).or_default() += 1;
+    }
+  }
+  let (nodes, dropped): (Vec<_>, Vec<_>) = entries
     .into_par_iter()
-    .filter_map(
-      |(key, value)| match BoundEntry::decode::<Node>(codec, &value) {
+    .filter_map(|(key, value)| {
+      let recover = || -> Result<Option<Node>> {
+        let identifier = codec.decode::<ModuleIdentifier>(&key)?;
+        if counts.get(&identifier).copied().unwrap_or_default() != 1 {
+          return Ok(None);
+        }
+        let Some(node) = BoundEntry::decode::<Node>(codec, &value)? else {
+          return Ok(None);
+        };
+        if identifier != node.module.as_ref().identifier() {
+          return Ok(None);
+        }
+        let key_codec = node.module.as_ref().as_context_module().map(|module| {
+          codec.with_context_identifier_layouts(FxHashMap::from_iter([(
+            identifier.to_string(),
+            ContextIdentifierLayout {
+              regexes: module.identifier_regex_ranges(),
+              paths: Vec::new(),
+            },
+          )]))
+        });
+        if key_codec.as_ref().unwrap_or(codec).encode(&identifier)? != key {
+          return Ok(None);
+        }
+        Ok(Some(node))
+      };
+      match recover() {
         Ok(Some(node)) => Some(Either::Left(node)),
         Ok(None) => Some(Either::Right(key)),
         Err(err) => {
           logger.warn(format!("make persistent cache decode failed: {err}"));
           None
         }
-      },
-    )
+      }
+    })
     .partition_map(|node| node);
   let recovered = nodes
     .iter()
