@@ -22,19 +22,20 @@ const SPECIAL_PATH_SEGMENT: &AsciiSet = &PATH_SEGMENT.add(b'\\');
 
 /// Byte patterns under which `root` can appear in serialized cache data.
 ///
-/// Detection is best-effort: it covers the spellings that path-producing code commonly emits, not
-/// every possible transformation of the root (base64, other escapes, hashes and values computed
-/// from it are not found). For each native spelling of the root, and for a Windows root also its
-/// forward-slash spelling and both drive-letter cases, the patterns cover:
+/// Detection is best-effort. It covers the spellings that path-producing code commonly emits, and
+/// it does not find base64, other escapes, hashes, or other values computed from the root. For each
+/// native spelling of the root, and for a Windows root also its forward-slash spelling and both
+/// drive-letter cases, the patterns cover:
 ///
-/// - the spelling itself, and with every `/` escaped as `\/` (JSON's escaped solidus, regex source);
+/// - the spelling itself, and the spelling with every `/` escaped as `\/`, as in JSON's escaped
+///   solidus or a regex source;
 /// - its `JSON.stringify` string content, once and nested twice;
 /// - the path part of its `file://` URL, with a UNC host normalized the way
 ///   `url::Url::from_file_path` normalizes it.
 ///
-/// The input is read as a Windows path when it starts with a drive letter or `\\`, on every host
-/// platform. Trailing separators are ignored. A pattern that contains another pattern is dropped,
-/// since any match of it is also a match of the shorter one.
+/// On every host platform, a root that starts with a drive letter or `\\` is a Windows path.
+/// Trailing separators do not matter. A pattern that contains another pattern is dropped, because
+/// any match of it also matches the shorter one.
 pub fn root_patterns(root: &str) -> Vec<Vec<u8>> {
   let windows = is_windows_root(root);
   let trimmed = root.trim_end_matches(|c| c == '/' || (windows && c == '\\'));
