@@ -55,8 +55,7 @@ Notable changes include:
 
 - [SWC Next parser](#swc-next)
 - [Performance](#performance)
-  - [Build performance](#build-performance)
-  - [Memory improvements](#memory-improvements)
+  - [Performance improvements](#performance-improvements)
   - [SplitChunks optimizations](#split-chunks)
 - [Experimental cache improvements](#cache-improvements)
 - [New features](#features)
@@ -83,35 +82,27 @@ According to SWC Next's official benchmarks, its native parser is [2–4.5× as 
 
 Rspack 2.3 moves its JavaScript parser to SWC Next and, with its more compact AST and memory layout, also optimizes Rspack's parsing and traversal. Using 6 workers, parsing time and instruction counts changed as follows:
 
-| Project   | Parsing time                      | Instructions                       |
-| --------- | --------------------------------- | ---------------------------------- |
-| three.js  | 23.62 ms → 20.11 ms (**−14.9%**)  | 205.23 M → 155.07 M (**−24.4%**)   |
-| React 10k | 207.16 ms → 193.86 ms (**−6.4%**) | 1597.67 M → 1421.29 M (**−11.0%**) |
+| Project   | Parsing time                    | Instructions                     |
+| --------- | ------------------------------- | -------------------------------- |
+| three.js  | 23.6 ms → 20.1 ms (**−14.9%**)  | 205.2 M → 155.1 M (**−24.4%**)   |
+| React 10k | 207.2 ms → 193.9 ms (**−6.4%**) | 1597.7 M → 1421.3 M (**−11.0%**) |
 
 ## Performance
 
-### Build performance
+### Performance improvements
 
-Rspack continues to improve development and build performance by optimizing core processes such as module processing, caching, and HMR. These improvements reduce time spent waiting for builds and provide faster feedback after code changes.
+When multiple agents work in parallel, multiple builds and development servers may run at the same time, making memory usage a significant bottleneck. To address this, Rspack 2.3.0 reduces memory usage during builds and development. The following table compares RSS in a real-world project:
 
-In a large real-world project, Rspack 2.3.0 reduced build time by about 23% compared with 2.2.0:
-
-|    2.2.0 |    2.3.0 |   Saved | Reduction |
-| -------: | -------: | ------: | --------: |
-| 197.16 s | 152.25 s | 44.91 s | **22.8%** |
-
-### Memory improvements
-
-Rspack 2.3 further reduces memory usage in large projects without sacrificing build performance. The following table compares RSS in a real-world project:
-
-| Scenario | Metric              |     2.2.0 |     2.3.0 | Reduction |
-| -------- | ------------------- | --------: | --------: | --------- |
-| Build    | Peak RSS            | 28.30 GiB | 20.53 GiB | **27.4%** |
-| Build    | RSS after build     | 25.32 GiB | 16.07 GiB | **36.5%** |
-| Dev      | Peak RSS at startup | 28.63 GiB | 18.96 GiB | **33.8%** |
-| Dev      | Steady-state RSS    | 28.88 GiB | 18.83 GiB | **34.8%** |
+| Scenario | Metric              | 2.2.0    | 2.3.0    | Reduction |
+| -------- | ------------------- | -------- | -------- | --------- |
+| Build    | Peak RSS            | 28.3 GiB | 20.5 GiB | **27.4%** |
+| Build    | RSS after build     | 25.3 GiB | 16.1 GiB | **36.5%** |
+| Dev      | Peak RSS at startup | 28.6 GiB | 19.0 GiB | **33.8%** |
+| Dev      | Steady-state RSS    | 28.9 GiB | 18.8 GiB | **34.8%** |
 
 Rspack 2.3 also adds memory snapshots based on [allocative](https://github.com/facebook/buck2/tree/main/allocative) to help developers identify memory hotspots during a build. If your project uses a large amount of memory, follow the [memory diagnostics guide](../guide/diagnostics/memory) to capture and submit snapshots. We can help analyze and optimize them.
+
+SWC Next, memory optimizations, and other micro-optimizations also improve overall build performance in Rspack 2.3.0. Benchmarks show an improvement of around **5%** compared with 2.2.0, and we have observed gains of up to **20%** in some large projects.
 
 ### SplitChunks optimizations \{#split-chunks}
 
@@ -125,10 +116,10 @@ To reduce duplication, Rspack 2.3 introduces several optimizations that produce 
 
 The following table compares the Brotli-compressed output sizes of two large real-world projects before and after enabling `dedupDepth: 1`:
 
-| Project                   | Before   | After    | Saved   | Reduction |
-| ------------------------- | -------- | -------- | ------- | --------- |
-| Project A (client JS/CSS) | 23.22 MB | 22.67 MB | 550 KB  | **2.4%**  |
-| Project B (client JS/CSS) | 39.97 MB | 36.00 MB | 3.97 MB | **9.9%**  |
+| Project                   | Before  | After   | Saved  | Reduction |
+| ------------------------- | ------- | ------- | ------ | --------- |
+| Project A (client JS/CSS) | 23.2 MB | 22.7 MB | 550 KB | **2.4%**  |
+| Project B (client JS/CSS) | 40.0 MB | 36.0 MB | 4.0 MB | **9.9%**  |
 
 ## Experimental cache improvements \{#cache-improvements}
 
@@ -165,23 +156,23 @@ The following tables compare the two cache implementations in [React 10k](https:
 
 React 10k:
 
-| Metric                         | Old cache | New cache |         Change |
-| ------------------------------ | --------: | --------: | -------------: |
-| Total cold build time          |    2.11 s |    1.80 s |         -14.5% |
-| Total warm build time          |  776.9 ms |  837.2 ms |          +7.8% |
-| Peak memory for cold build     | 926.5 MiB | 781.3 MiB |         -15.7% |
+| Metric                         | Old cache | New cache | Change         |
+| ------------------------------ | --------- | --------- | -------------- |
+| Total cold build time          | 2.1 s     | 1.8 s     | -14.5%         |
+| Total warm build time          | 776.9 ms  | 837.2 ms  | +7.8%          |
+| Peak memory for cold build     | 926.5 MiB | 781.3 MiB | -15.7%         |
 | Peak memory for warm build     | 840.5 MiB | 840.7 MiB | About the same |
-| Storage usage after warm build | 269.0 MiB |  57.2 MiB |         -78.7% |
+| Storage usage after warm build | 269.0 MiB | 57.2 MiB  | -78.7%         |
 
 Large real-world project:
 
-| Metric                         |   Old cache |   New cache | Change |
-| ------------------------------ | ----------: | ----------: | -----: |
-| Total cold build time          |     84.89 s |     83.47 s |  -1.7% |
-| Total warm build time          |     33.18 s |     35.24 s |  +6.2% |
-| Peak memory for cold build     |   11.55 GiB |    9.69 GiB | -16.1% |
-| Peak memory for warm build     |    7.67 GiB |    8.23 GiB |  +7.3% |
-| Storage usage after warm build | 3895.98 MiB | 1092.08 MiB | -72.0% |
+| Metric                         | Old cache  | New cache  | Change |
+| ------------------------------ | ---------- | ---------- | ------ |
+| Total cold build time          | 84.9 s     | 83.5 s     | -1.7%  |
+| Total warm build time          | 33.2 s     | 35.2 s     | +6.2%  |
+| Peak memory for cold build     | 11.6 GiB   | 9.7 GiB    | -16.1% |
+| Peak memory for warm build     | 7.7 GiB    | 8.2 GiB    | +7.3%  |
+| Storage usage after warm build | 3896.0 MiB | 1092.1 MiB | -72.0% |
 
 In these tests, the new cache reduces storage requirements by around 75% and lowers cache write overhead. Its finer-grained module caching makes the `make` phase slower because dependency relationships must be rebuilt instead of restoring the entire module graph. Other stages become faster and offset part of this overhead, so total warm build time increases only modestly. This tradeoff avoids restoring complex graph state and makes cache correctness easier to maintain.
 
@@ -223,8 +214,8 @@ In a test using babel-loader to process around 10,000 simulated modules, enablin
 
 | Parallel loaders | Cache disabled | Cache enabled | Speedup  |
 | ---------------- | -------------- | ------------- | -------- |
-| Disabled         | 63.75 s        | 11.16 s       | **5.7x** |
-| Enabled          | 28.50 s        | 11.88 s       | **2.4x** |
+| Disabled         | 63.8 s         | 11.2 s        | **5.7x** |
+| Enabled          | 28.5 s         | 11.9 s        | **2.4x** |
 
 ## New features \{#features}
 
