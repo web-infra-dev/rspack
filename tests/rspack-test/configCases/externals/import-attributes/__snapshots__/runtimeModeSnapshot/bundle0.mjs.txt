@@ -165,7 +165,8 @@ var ensureChunk = (chunkId) => {
 			return promises;
 		}, [])
 	);
-};;
+};
+;
 __rspack_context.e = ensureChunk;
 // rspack/runtime/get javascript chunk filename
 // This function allow to reference chunks
