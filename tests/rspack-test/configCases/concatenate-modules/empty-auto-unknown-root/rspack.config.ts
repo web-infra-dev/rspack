@@ -1,4 +1,6 @@
-module.exports = {
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
   mode: 'production',
   entry: ['./index.js', './compiler.js'],
   output: { library: { type: 'commonjs2' } },
@@ -15,4 +17,4 @@ module.exports = {
     optimizationBailout: true,
     providedExports: true,
   },
-};
+});

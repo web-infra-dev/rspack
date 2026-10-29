@@ -1,12 +1,12 @@
-const {
+import { defineConfig, definePlugin } from '@rspack/cli';
+import {
   CssExtractRspackPlugin,
   SubresourceIntegrityPlugin,
-} = require('@rspack/core');
-const fs = require('fs');
-const path = require('path');
+} from '@rspack/core';
+import fs from 'node:fs';
+import path from 'node:path';
 
-/** @type {import("@rspack/core").Configuration} */
-module.exports = (_, { testPath }) => ({
+export default defineConfig((_, { testPath }) => ({
   target: 'web',
   output: {
     crossOriginLoading: 'anonymous',
@@ -35,7 +35,7 @@ module.exports = (_, { testPath }) => ({
   plugins: [
     new CssExtractRspackPlugin(),
     new SubresourceIntegrityPlugin(),
-    {
+    definePlugin({
       apply(compiler) {
         compiler.hooks.afterEmit.tap('AfterEmitPlugin', () => {
           const content = fs.readFileSync(
@@ -46,7 +46,7 @@ module.exports = (_, { testPath }) => ({
           expect(content).toContain('"styles": "sha384-');
         });
       },
-    },
+    }),
   ],
   module: {
     rules: [
@@ -57,4 +57,4 @@ module.exports = (_, { testPath }) => ({
       },
     ],
   },
-});
+}));

@@ -1,16 +1,10 @@
-'use strict';
+import { defineConfig, definePlugin } from '@rspack/cli';
+import path from 'node:path';
 
-const path = require('path');
+const packageJson = (...segments: string[]) =>
+  path.join(import.meta.dirname, 'node_modules', ...segments, 'package.json');
 
-/**
- * @param {...string} segments directory segments below the case's node_modules
- * @returns {string} absolute path of that directory's package.json
- */
-const packageJson = (...segments) =>
-  path.join(__dirname, 'node_modules', ...segments, 'package.json');
-
-/** @type {import("@rspack/core").Configuration} */
-module.exports = {
+export default defineConfig({
   mode: 'production',
   optimization: {
     sideEffects: true,
@@ -20,7 +14,7 @@ module.exports = {
     minimize: false,
   },
   plugins: [
-    (compiler) => {
+    definePlugin((compiler) => {
       compiler.hooks.afterEmit.tap('Test', (compilation) => {
         // the walk reads ancestors the resolver never looks at, so it reports
         // them itself — otherwise an edited sideEffects would not invalidate
@@ -35,6 +29,6 @@ module.exports = {
           ),
         ).toBe(true);
       });
-    },
+    }),
   ],
-};
+});

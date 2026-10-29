@@ -1,6 +1,7 @@
-const { rspack } = require('@rspack/core');
+import { defineConfig } from '@rspack/cli';
+import { rspack } from '@rspack/core';
 
-module.exports = {
+export default defineConfig({
   target: 'node',
   module: { parser: { javascript: { requireAlias: true } } },
   plugins: [
@@ -9,4 +10,4 @@ module.exports = {
       THIS_VALUE: 'this.value',
     }),
   ],
-};
+});
