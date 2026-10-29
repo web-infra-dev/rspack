@@ -1,7 +1,7 @@
 use std::{
   boxed::Box,
   path::{Path, PathBuf},
-  sync::Arc,
+  sync::{Arc, Mutex},
   time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -291,6 +291,7 @@ impl NativeWatcher {
     let callbacks = Arc::new(JsCallbacks {
       aggregate: callback.create_ref()?,
       undelayed: callback_undelayed.create_ref()?,
+      pending: Mutex::default(),
     });
     let js_event_handler = JsEventHandler {
       delivery: Arc::clone(&delivery),
@@ -428,10 +429,19 @@ type DeliveryFunction = napi::threadsafe_function::ThreadsafeFunction<
 struct JsCallbacks {
   aggregate: FunctionRef<Unknown<'static>, Unknown<'static>>,
   undelayed: FunctionRef<Unknown<'static>, Unknown<'static>>,
+  pending: Mutex<PendingAggregate>,
+}
+
+#[derive(Default)]
+struct PendingAggregate {
+  sequence: u64,
+  changed_files: FxHashSet<String>,
+  removed_files: FxHashSet<String>,
 }
 
 enum JsDelivery {
-  Aggregate(Arc<JsCallbacks>, napi::Result<NativeWatchResult>),
+  Aggregate(Arc<JsCallbacks>, u64),
+  Error(Arc<JsCallbacks>, napi::Error),
   Undelayed(Arc<JsCallbacks>, NativeWatchUndelayedEvent),
 }
 
@@ -442,12 +452,31 @@ impl JsValuesTupleIntoVec for JsDispatchArgs {
   fn into_vec(self, raw_env: napi::sys::napi_env) -> napi::Result<Vec<napi::sys::napi_value>> {
     let env = Env::from_raw(raw_env);
     let args = match self.0 {
-      JsDelivery::Aggregate(callbacks, result) => {
+      JsDelivery::Aggregate(callbacks, sequence) => {
+        let result = {
+          let mut pending = callbacks
+            .pending
+            .lock()
+            .expect("pending aggregate poisoned");
+          // Only the tail entry takes the sets. Earlier entries become no-ops.
+          if pending.sequence != sequence {
+            return Ok(Vec::new());
+          }
+          NativeWatchResult {
+            changed_files: std::mem::take(&mut pending.changed_files)
+              .into_iter()
+              .collect(),
+            removed_files: std::mem::take(&mut pending.removed_files)
+              .into_iter()
+              .collect(),
+          }
+        };
         let callback = callbacks.aggregate.borrow_back(&env)?;
-        match result {
-          Ok(result) => (callback, true, Either::A(Null), Either3::A(result)),
-          Err(error) => (callback, true, Either::B(error), Either3::C(())),
-        }
+        (callback, true, Either::A(Null), Either3::A(result))
+      }
+      JsDelivery::Error(callbacks, error) => {
+        let callback = callbacks.aggregate.borrow_back(&env)?;
+        (callback, true, Either::B(error), Either3::C(()))
       }
       JsDelivery::Undelayed(callbacks, event) => {
         let callback = callbacks.undelayed.borrow_back(&env)?;
@@ -468,7 +497,7 @@ impl JsDeliveryStream {
     // mutation. Keep user invocation in JS so *any* thrown value follows the
     // TSFN's original pending-exception path without Rust Error conversion.
     let dispatch: Function<'_, (), ()> = env.run_script(
-      "(callback, aggregate, error, value) => aggregate ? callback(error, value) : callback(value)",
+      "(callback, aggregate, error, value) => { if (callback) aggregate ? callback(error, value) : callback(value); }",
     )?;
     let inner = dispatch
       .build_threadsafe_function::<JsDelivery>()
@@ -515,22 +544,34 @@ impl rspack_watcher::EventAggregateHandler for JsEventHandler {
     changed_files: rspack_util::fx_hash::FxHashSet<String>,
     deleted_files: rspack_util::fx_hash::FxHashSet<String>,
   ) {
-    let result = NativeWatchResult {
-      changed_files: changed_files.into_iter().collect(),
-      removed_files: deleted_files.into_iter().collect(),
-    };
+    let mut pending = self
+      .callbacks
+      .pending
+      .lock()
+      .expect("pending aggregate poisoned");
+    for path in changed_files {
+      pending.removed_files.remove(&path);
+      pending.changed_files.insert(path);
+    }
+    for path in deleted_files {
+      pending.changed_files.remove(&path);
+      pending.removed_files.insert(path);
+    }
+    pending.sequence = pending.sequence.wrapping_add(1);
+    // Queue at the tail so every preceding raw event runs before this aggregate.
+    // Keep the lock through send so another aggregate cannot overtake this one.
     if let Err(error) = self.delivery.send(JsDelivery::Aggregate(
       Arc::clone(&self.callbacks),
-      Ok(result),
+      pending.sequence,
     )) {
       tracing::debug!("{error}");
     }
   }
 
   fn on_error(&self, error: rspack_error::Error) {
-    if let Err(error) = self.delivery.send(JsDelivery::Aggregate(
+    if let Err(error) = self.delivery.send(JsDelivery::Error(
       Arc::clone(&self.callbacks),
-      Err(napi::Error::from_reason(format!("Watcher error: {error}"))),
+      napi::Error::from_reason(format!("Watcher error: {error}")),
     )) {
       tracing::debug!("{error}");
     }
