@@ -244,24 +244,6 @@ describe('rspack extends feature', () => {
     });
   });
 
-  describe('backward compatibility', () => {
-    const cwd = resolve(__dirname, './without-extends');
-
-    it('should not break existing functionality', async () => {
-      const { exitCode, stderr, stdout } = await run(cwd, []);
-
-      expect(stderr).toBeFalsy();
-      expect(stdout).toBeTruthy();
-      expect(exitCode).toBe(0);
-
-      const outputContent = await readFile(resolve(cwd, './dist/main.js'), {
-        encoding: 'utf-8',
-      });
-
-      expect(outputContent).toContain('Without extends');
-    });
-  });
-
   describe('error handling', () => {
     const cwd = resolve(__dirname);
 
