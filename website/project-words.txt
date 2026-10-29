@@ -269,6 +269,7 @@ xtask
 xxhash
 yannik
 yifancong
+Yuku
 Zack
 Zack Jackson
 zackarychapple

@@ -1,5 +1,5 @@
 ---
-description: 'Rspack 2.3 is now available, featuring the SWC Next parser, an experimental cache, CSS bundling improvements, and performance and developer experience enhancements.'
+description: 'Rspack 2.3 is now available, featuring the SWC Next integration, an experimental cache, CSS bundling improvements, and performance and developer experience enhancements.'
 date: 2026-10-28 14:00:00
 sidebar: false
 authors:
@@ -53,7 +53,7 @@ Rspack 2.3 is now available! This release moves the JavaScript parser to SWC Nex
 
 Notable changes include:
 
-- [SWC Next parser](#swc-next)
+- [SWC Next integration](#swc-next)
 - [Performance](#performance)
   - [Performance improvements](#performance-improvements)
   - [SplitChunks optimizations](#split-chunks)
@@ -74,18 +74,22 @@ Notable changes include:
 - [Upgrade guide](#upgrade-guide)
 
 {/* prettier-ignore */}
-## SWC Next parser \{#swc-next}
+## SWC Next integration \{#swc-next}
 
-[SWC Next](https://github.com/swc-project/swc-next) is a fast JavaScript toolchain written in Rust. It is built around a flat ESTree AST for performance and extensibility. The Rspack team is collaborating with the SWC team on its development, gradually bringing its capabilities in line with SWC.
+[SWC Next](https://github.com/swc-project/swc-next) is a new generation of JavaScript tooling developed jointly by the SWC team and the Rstack team. It will become SWC's next major version. Its new parser architecture, inspired by [Yuku](https://github.com/yuku-toolchain/yuku), centers on a flat, ESTree-based AST designed for speed, memory efficiency, and JavaScript extensibility.
 
-According to SWC Next's official benchmarks, its native parser is [2–4.5× as fast](https://next.swc.rs/guide/benchmark) as SWC's; it is also validated using [multiple test suites](https://next.swc.rs/guide/testing), including Test262 and TypeScript, to ensure parser correctness.
+In benchmarks, SWC Next's [native parsing](https://github.com/SoonIter/ecmascript-parser-benchmark-native) is up to **3×** as fast as SWC, while parsing through the [JavaScript API](https://github.com/SoonIter/ecmascript-parser-benchmark-js) is up to **10×** as fast. We also validate the parser's correctness against [multiple test suites](https://next.swc.rs/guide/testing), including Test262, TypeScript, and Babel.
 
-Rspack 2.3 moves its JavaScript parser to SWC Next and, with its more compact AST and memory layout, also optimizes Rspack's parsing and traversal. Using 6 workers, parsing time and instruction counts changed as follows:
+We are gradually migrating SWC's modules to this architecture and replacing Rspack's existing implementations. Rspack 2.3 has adopted SWC Next as its JavaScript parser, using its more compact AST and memory layout to optimize parsing and traversal. In benchmarks, parsing time and instruction counts changed as follows:
 
 | Project   | Parsing time                    | Instructions                     |
 | --------- | ------------------------------- | -------------------------------- |
 | three.js  | 23.6 ms → 20.1 ms (**−14.9%**)  | 205.2 M → 155.1 M (**−24.4%**)   |
 | React 10k | 207.2 ms → 193.9 ms (**−6.4%**) | 1597.7 M → 1421.3 M (**−11.0%**) |
+
+SWC Next's next goal is to let developers write fast transform plugins in JavaScript. Today, custom code transformations typically rely on Babel plugins or SWC Wasm plugins. We want developers to benefit from Rust's performance while retaining the flexibility of writing plugins in JavaScript.
+
+SWC Next's flat AST enables efficient data exchange between Rust and JavaScript, making this possible. We expect to introduce a loader based on SWC Next, with support for JavaScript transform plugins, in Rspack 2.4 or 2.5.
 
 ## Performance
 
@@ -176,7 +180,7 @@ Large real-world project:
 
 In these tests, the new cache reduces storage requirements by around 75% and lowers cache write overhead. Its finer-grained module caching makes the `make` phase slower because dependency relationships must be rebuilt instead of restoring the entire module graph. Other stages become faster and offset part of this overhead, so total warm build time increases only modestly. This tradeoff avoids restoring complex graph state and makes cache correctness easier to maintain.
 
-We will continue to optimize warm build performance and memory usage and plan to replace the old cache with the new cache in a future minor release.
+We will optimize warm build performance and memory usage and plan to replace the old cache with the new cache in a future minor release.
 
 ### Loader cache
 
@@ -352,7 +356,7 @@ Rsbuild brings updates to output size, project creation, and the development exp
 
 Rspack 2.2.0 introduced [`compact-hashed` IDs](/blog/announcing-2-2#compact-hashed-ids), which reduce output size by generating shorter, stable module and chunk IDs. Rsbuild now enables this strategy by default in production builds.
 
-#### Better file size reporting \{#rsbuild-stats}
+#### File size reporting improvements \{#rsbuild-stats}
 
 Modern browsers widely support compressed transfers, and servers or CDNs often compress text assets before sending them. Reporting compressed file sizes provides a closer estimate of what users download and helps assess the page loading experience.
 
