@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 const helper = readFileSync('packages/rspack-test-tools/src/helper/node-case.ts', 'utf8');
 const template = helper.split('const bootstrap = `')[1].split('`;')[0];
 const resultPrefix = '__RSPACK_NODE_CASE_RESULT__:';
@@ -10,7 +10,7 @@ async function probe(scenario, mode, preload, iteration) {
   const moduleURL = new URL(`../tests/rspack-test/compilerCases/${scenario}/workers.mjs`, import.meta.url);
   const code = (preload ? `await import(${JSON.stringify(new URL('../crates/node_binding/binding.js', import.meta.url).href)});\n` : '') + bootstrap;
   await new Promise(resolve => {
-    const child = spawn(process.execPath, ['--expose-gc', '--input-type=module', '--eval', code, moduleURL.href, JSON.stringify([mode])], { stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(process.env.PROCDUMP, ['-accepteula', '-mm', '-e', '1', '-f', 'C0000005', '-n', '1', '-x', 'diagnostics', process.execPath, '--expose-gc', '--input-type=module', '--eval', code, moduleURL.href, JSON.stringify([mode])], { stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '', stderr = '';
     const timer = setTimeout(() => child.kill(), 60000);
     child.stdout.on('data', data => stdout += data);
@@ -25,11 +25,11 @@ async function probe(scenario, mode, preload, iteration) {
     });
   });
 }
-for (const preload of [false, true]) {
+for (const preload of [false]) {
   failures = 0;
   for (let iteration = 0; iteration < 50; iteration++) {
     await Promise.all([probe('worker-errors', 'close', preload, iteration), probe('worker-references', 'close', preload, iteration), probe('worker-references', 'terminate', preload, iteration)]);
-    if (failures >= 5) break;
+    if (readdirSync('diagnostics').filter(name => name.endsWith('.dmp')).length >= 2) break;
   }
 }
 console.log(JSON.stringify({ failures }));

@@ -27,7 +27,7 @@ jobs:
           New-Item -ItemType Directory -Force diagnostics
           Invoke-WebRequest https://download.sysinternals.com/files/Procdump.zip -OutFile "$env:RUNNER_TEMP/procdump.zip"
           Expand-Archive "$env:RUNNER_TEMP/procdump.zip" "$env:RUNNER_TEMP/procdump"
-          & "$env:RUNNER_TEMP/procdump/procdump64.exe" -accepteula -mm -i "$pwd\diagnostics"
+          "PROCDUMP=$env:RUNNER_TEMP/procdump/procdump64.exe" >> $env:GITHUB_ENV
       - name: Repeat original child bootstrap without debugger
         run: node scripts/worker-windows-probe.mjs
       - name: Analyze crash dumps when debugger is available
