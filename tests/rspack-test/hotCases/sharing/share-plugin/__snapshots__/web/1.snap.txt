@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: common_js_2.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 43427
+- Update: main.LAST_HASH.hot-update.js, size: 43436
 
 ## Manifest
 
@@ -1226,7 +1226,7 @@ __webpack_require__.hmrC.jsonp = function (
 			return __webpack_require__.o(jsonpInstalledChunks, entryId) && jsonpInstalledChunks[entryId] === 0;
 		};
 		update.chunkHandlers.push(function (chunkId, promises) {
-			if (jsonpInstalledChunks[chunkId] === 0 || hotCurrentUpdateChunks[chunkId]) return;
+			if (jsonpInstalledChunks[chunkId] === 0 || hotCurrentUpdateChunks[chunkId] === true) return;
 			hotCurrentUpdateChunks[chunkId] = true;
 			hotCurrentUpdateFullChunks.push(chunkId);
 			promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList, true));
