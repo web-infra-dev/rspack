@@ -236,7 +236,7 @@ describe('rspack extends feature', () => {
     it('should throw an error on recursive extends #2', async () => {
       const { exitCode, stderr } = await run(cwd, [
         '--config',
-        'other.config.js',
+        'other.config.mts',
       ]);
 
       expect(exitCode).not.toBe(0);
@@ -250,7 +250,7 @@ describe('rspack extends feature', () => {
     it('should throw an error when extended config file is not found', async () => {
       const { exitCode, stderr } = await run(cwd, [
         '-c',
-        './error/not-found.config.js',
+        './error/not-found.config.mts',
       ]);
 
       expect(exitCode).not.toBe(0);
