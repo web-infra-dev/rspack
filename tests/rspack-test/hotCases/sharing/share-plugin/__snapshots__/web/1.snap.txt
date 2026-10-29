@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: common_js_2.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 42758
+- Update: main.LAST_HASH.hot-update.js, size: 42825
 
 ## Manifest
 
@@ -720,8 +720,8 @@ function jsonpLoadUpdateChunk(chunkId, updatedModulesList, full) {
 self["rspackHotUpdate"] = (chunkId, moreModules, runtime) => {
 	for (var moduleId in moreModules) {
 		if (__webpack_require__.o(moreModules, moduleId)) {
-			// Install-only factories must not replace ordinary updates.
-			if (!Array.isArray(moreModules[moduleId]) || !__webpack_require__.o(hotCurrentUpdate, moduleId) || Array.isArray(hotCurrentUpdate[moduleId])) {
+			// A remaining chunk can restore a removed factory, but ordinary updates take priority.
+			if (!Array.isArray(moreModules[moduleId]) || !__webpack_require__.o(hotCurrentUpdate, moduleId) || hotCurrentUpdate[moduleId] === false || Array.isArray(hotCurrentUpdate[moduleId])) {
 				hotCurrentUpdate[moduleId] = moreModules[moduleId];
 			}
 			if (hotCurrentUpdatedModulesList) hotCurrentUpdatedModulesList.push(moduleId);
