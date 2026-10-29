@@ -11,19 +11,27 @@ version.workspace = true
 workspace = true
 
 [dev-dependencies]
-camino             = { workspace = true }
-cow-utils          = { workspace = true }
-dashmap            = { workspace = true }
-json               = { workspace = true }
-lightningcss       = { workspace = true }
-once_cell          = { workspace = true }
-rspack_cacheable   = { workspace = true }
-rspack_collections = { workspace = true }
-rspack_intern      = { workspace = true, features = ["atom"] }
-rspack_paths       = { workspace = true, features = ["cacheable"] }
-rspack_sources     = { workspace = true }
-rustc-hash         = { workspace = true }
-serde_json         = { workspace = true }
-url                = { workspace = true, features = ["std"] }
-ustr               = { workspace = true }
-xxhash-rust        = { workspace = true, features = ["const_xxh64"] }
+camino                   = { workspace = true }
+cow-utils                = { workspace = true }
+dashmap                  = { workspace = true }
+json                     = { workspace = true }
+lightningcss             = { workspace = true }
+once_cell                = { workspace = true }
+rspack_cacheable         = { workspace = true }
+rspack_collections       = { workspace = true }
+rspack_core              = { workspace = true }
+rspack_fs                = { workspace = true }
+rspack_intern            = { workspace = true, features = ["atom"] }
+rspack_paths             = { workspace = true, features = ["cacheable"] }
+rspack_plugin_javascript = { workspace = true }
+rspack_regex             = { workspace = true }
+rspack_sources           = { workspace = true }
+rspack_storage           = { workspace = true }
+rspack_tasks             = { workspace = true }
+rustc-hash               = { workspace = true }
+serde_json               = { workspace = true }
+tempfile                 = { workspace = true }
+tokio                    = { workspace = true, features = ["macros"] }
+url                      = { workspace = true, features = ["std"] }
+ustr                     = { workspace = true }
+xxhash-rust              = { workspace = true, features = ["const_xxh64"] }
