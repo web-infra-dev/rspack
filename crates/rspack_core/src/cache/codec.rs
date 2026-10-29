@@ -107,11 +107,11 @@ impl CacheCodec {
   /// or shared to another context must fail validation instead of restoring the other context's
   /// paths.
   ///
-  /// With a portable root, paths are rebased under the reader's root, but some cached values are
-  /// relative to `context` rather than to the root (`__dirname` with `node.__dirname: true`, CSS
-  /// local identifiers). They match only where `context`, the root and its real path have the same
-  /// layout, so the version records that layout without the location that contains it. Portable
-  /// markers are also specific to the host's path syntax, so the version records it too.
+  /// With a portable root, decoding rebases paths under the reader's root. Some cached values are
+  /// relative to `context` instead of the root, such as `__dirname` with `node.__dirname: true`
+  /// and CSS local identifiers. They match only where `context`, the root and its real path have
+  /// the same layout, so the version records that layout without the location that contains it.
+  /// Portable markers also depend on the host's path syntax, so the version records it too.
   ///
   /// Fields are length-prefixed, so a `|` in `version` or in a path cannot make two different
   /// environments render the same version.
@@ -197,8 +197,8 @@ impl CacheCodec {
 
 /// `root`, `canonical_root` and `context`, each as the components below their longest common
 /// ancestor. Two environments with the same layout differ only in where that ancestor is, so a
-/// path relative to any of the three is the same in both. Without a common ancestor (different
-/// Windows prefixes) the absolute paths are the layout.
+/// path relative to any of the three is the same in both. Without a common ancestor, as with
+/// different Windows prefixes, the absolute paths are the layout.
 fn portable_layout(root: &Utf8Path, canonical_root: &Utf8Path, context: &Utf8Path) -> [String; 3] {
   let paths = [root, canonical_root, context];
   let components: Vec<Vec<Utf8Component>> = paths

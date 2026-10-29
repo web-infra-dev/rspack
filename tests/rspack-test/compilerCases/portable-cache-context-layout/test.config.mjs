@@ -64,7 +64,7 @@ export default {
 	description:
 		"should not reuse context-relative values when context moves within the portable root",
 	async run() {
-		// A worktree-like move of the whole root keeps the layout, so every module is reused.
+		// Moving the whole root, as with another worktree, keeps the layout and the cache.
 		{
 			const base = tempDir();
 			try {

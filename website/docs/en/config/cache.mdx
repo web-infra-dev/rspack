@@ -231,9 +231,9 @@ export default {
 - **Type:** `boolean | { root?: string }`
 - **Default:** `false`
 
-Enable portable path encoding with `true` or `{ root }`. The default root is the nearest ancestor of `context` (including itself) containing a `.git` file or directory, or `context` if none exists. Using the git toplevel includes sibling packages and repository-level dependencies in monorepos. An explicit `root` is resolved against `context`. The root keeps the spelling of `context`, so a project reached through a symlink stays portable; paths under the root's real path are rebased as well.
+Enable portable path encoding with `true` or `{ root }`. The default root is the nearest ancestor of `context`, or `context` itself, that contains a `.git` file or directory. Without one, the root is `context`. Using the git toplevel includes sibling packages and repository-level dependencies in monorepos. Rspack resolves an explicit `root` against `context`. The root keeps the spelling of `context`, so a project reached through a symlink stays portable. Rspack also rebases paths under the root's real path.
 
-Only paths under the root are rebased when the cache is restored elsewhere. Paths outside it stay verbatim.
+When Rspack restores the cache elsewhere, it rebases only paths under the root. Paths outside it stay verbatim.
 
 Rspack reuses a portable cache only where the project has the same layout, meaning the same position of `context` under the root and the same relation between the root and its real path. Moving the whole root, as with another Git worktree of the same repository, keeps the layout. Moving a package to another directory of the repository, adding or removing the `.git` that sets the default root, or reaching the project through a symlink in a different place starts a new cache. Two projects with different layouts should not share a cache [name](#name) and [storage](#storage) location. Windows and other operating systems also cannot share a portable cache.
 
