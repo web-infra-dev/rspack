@@ -11,9 +11,8 @@ use rustc_hash::FxHasher;
 use tokio::sync::Mutex;
 
 use super::{ResolveDependencies, ResolveInnerError, ResolveResult};
-use crate::{
-  CacheCount, Logger,
-  new_cache::{CacheFacade, CacheValue, FileSystemInfo, Snapshot, SnapshotValidationResult},
+use crate::new_cache::{
+  CacheFacade, CacheValue, FileSystemInfo, Snapshot, SnapshotValidationResult,
 };
 
 #[cacheable]
@@ -28,20 +27,14 @@ struct CachedResolution {
 pub struct ResolverCache {
   cache: CacheFacade,
   file_system_info: FileSystemInfo,
-  counter: Arc<CacheCount>,
   locks: Arc<FxDashMap<u64, Arc<Mutex<()>>>>,
 }
 
 impl ResolverCache {
-  pub(crate) fn new(
-    cache: CacheFacade,
-    file_system_info: FileSystemInfo,
-    logger: &impl Logger,
-  ) -> Self {
+  pub(crate) fn new(cache: CacheFacade, file_system_info: FileSystemInfo) -> Self {
     Self {
       cache,
       file_system_info,
-      counter: Arc::new(logger.cache("resolver cache")),
       locks: Default::default(),
     }
   }
@@ -50,7 +43,6 @@ impl ResolverCache {
     Self {
       cache: self.cache.get_child_cache(name),
       file_system_info: self.file_system_info.clone(),
-      counter: Arc::clone(&self.counter),
       locks: Default::default(),
     }
   }
@@ -91,10 +83,9 @@ impl ResolverCache {
         Ok(SnapshotValidationResult::Valid)
       )
     {
-      self.counter.hit();
+      self.cache.record_reuse();
       return (Ok(cached.result.clone()), cached.dependencies.clone());
     }
-    self.counter.miss();
 
     let start_time = current_time();
     let (result, dependencies) = generator().await;
@@ -117,9 +108,5 @@ impl ResolverCache {
       }));
     }
     (result, dependencies)
-  }
-
-  pub(crate) fn log(&self, logger: &impl Logger) {
-    logger.cache_end(self.counter.as_ref());
   }
 }

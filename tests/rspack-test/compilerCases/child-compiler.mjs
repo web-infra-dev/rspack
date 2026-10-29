@@ -24,6 +24,7 @@ class MyPlugin {
 				{},
 				[]
 			);
+			expect(childCompiler.compilerPath).toBe(`root|${CHILD_COMPILER_NAME}|0`);
 			new EntryPlugin(compiler.context, "./d").apply(childCompiler);
 
 			inChild = true;
@@ -33,6 +34,10 @@ class MyPlugin {
 			cachedChildCompiler = childCompiler;
 
 			childCompiler.hooks.compilation.tap("Plugin", compilation => {
+				const grandchild = compilation.createChildCompiler("nested", {}, []);
+				expect(grandchild.compilerPath).toBe(
+					`root|${CHILD_COMPILER_NAME}|0|nested|0`
+				);
 				// SAFETY: It's safe to cache `childCompiler` here as we never access its inner content.
 				// NEVER do this in any userland code.
 				cachedChildCompilation = compilation;
@@ -54,6 +59,7 @@ export default {
 		"should pass the new compiler and compilation instance in loader",
 	options(context) {
 		return {
+			name: "root",
 			context: context.getSource(),
 			entry: "./d",
 			plugins: [new MyPlugin()],

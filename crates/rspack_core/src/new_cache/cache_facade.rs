@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use super::{Cache, CacheKey, CacheValue, Etag, cache_value::CacheValueData};
+use super::{
+  Cache, CacheKey, CacheRecord, CacheValue, Etag, cache_value::CacheValueData,
+  statistics::CacheCounters,
+};
 
 /// A namespaced view of the shared cache.
 ///
@@ -9,16 +12,25 @@ use super::{Cache, CacheKey, CacheValue, Etag, cache_value::CacheValueData};
 #[derive(Debug, Clone)]
 pub struct CacheFacade {
   cache: Arc<Cache>,
-  name: String,
+  name: Arc<str>,
+  counters: Arc<CacheCounters>,
 }
 
 impl CacheFacade {
-  pub(crate) fn new(cache: Arc<Cache>, name: String) -> Self {
-    Self { cache, name }
+  pub(super) fn new(cache: Arc<Cache>, name: Arc<str>) -> Self {
+    let counters = cache.statistics().register(Arc::clone(&name));
+    Self {
+      cache,
+      name,
+      counters,
+    }
   }
 
   pub(crate) fn get_child_cache(&self, name: &str) -> Self {
-    Self::new(Arc::clone(&self.cache), format!("{}|{name}", self.name))
+    Self::new(
+      Arc::clone(&self.cache),
+      format!("{}|{name}", self.name).into(),
+    )
   }
 
   pub fn get_item_cache(&self, identifier: &str, etag: Option<Etag>) -> ItemCacheFacade {
@@ -26,6 +38,7 @@ impl CacheFacade {
       cache: self.cache.clone(),
       key: self.key(identifier),
       etag,
+      counters: self.counters.clone(),
     }
   }
 
@@ -34,7 +47,13 @@ impl CacheFacade {
     identifier: &str,
     etag: Option<Etag>,
   ) -> Option<CacheValue<T>> {
-    self.cache.get(self.key(identifier), etag)
+    let value = self.cache.get(self.key(identifier), etag);
+    self.record(if value.is_some() {
+      CacheRecord::Hit
+    } else {
+      CacheRecord::Miss
+    });
+    value
   }
 
   pub fn store<T: CacheValueData>(
@@ -43,11 +62,20 @@ impl CacheFacade {
     etag: Option<Etag>,
     value: CacheValue<T>,
   ) {
+    self.record(CacheRecord::Store);
     self.cache.store(self.key(identifier), etag, value)
   }
 
   fn key(&self, identifier: &str) -> CacheKey {
     CacheKey::from([self.name.as_ref(), identifier].join("|"))
+  }
+
+  fn record(&self, record: CacheRecord) {
+    self.counters.record(record);
+  }
+
+  pub fn record_reuse(&self) {
+    self.record(CacheRecord::Reuse);
   }
 }
 
@@ -57,14 +85,22 @@ pub struct ItemCacheFacade {
   cache: Arc<Cache>,
   key: CacheKey,
   etag: Option<Etag>,
+  counters: Arc<CacheCounters>,
 }
 
 impl ItemCacheFacade {
   pub fn get<T: CacheValueData>(&self) -> Option<CacheValue<T>> {
-    self.cache.get(self.key.clone(), self.etag.clone())
+    let value = self.cache.get(self.key.clone(), self.etag.clone());
+    self.counters.record(if value.is_some() {
+      CacheRecord::Hit
+    } else {
+      CacheRecord::Miss
+    });
+    value
   }
 
   pub fn store<T: CacheValueData>(&self, value: CacheValue<T>) {
+    self.counters.record(CacheRecord::Store);
     self.cache.store(self.key.clone(), self.etag.clone(), value)
   }
 }
