@@ -1,6 +1,6 @@
 ---
 description: 'Rspack 2.3 brings SWC Next, faster builds, lower memory usage, smaller bundles, a new experimental cache, loader caching, and built-in CSS improvements.'
-date: 2026-10-28 14:00:00
+date: 2026-10-29 14:00:00
 sidebar: false
 authors:
   - name: Zhixin Jin
@@ -44,7 +44,7 @@ import { PackageManagerTabs } from '@theme';
 
 # Announcing Rspack 2.3
 
-_October 28, 2026_
+_October 29, 2026_
 
 <BlogAuthors />
 
@@ -74,7 +74,7 @@ Notable changes include:
 
 ## SWC Next integration \{#swc-next}
 
-[SWC Next](https://github.com/swc-project/swc-next) is a new JavaScript toolchain developed jointly by the SWC and Rstack teams. It will become SWC's next major version. Its new parser architecture, inspired by [Yuku](https://github.com/yuku-toolchain/yuku), centers on a flat, ESTree-based AST designed for speed, memory efficiency, and JavaScript extensibility.
+[SWC Next](https://github.com/swc-project/swc-next) is a new JavaScript compiler developed jointly by the SWC and Rstack teams. It will become SWC's next major version. Its new parser architecture, inspired by [Yuku](https://github.com/yuku-toolchain/yuku), centers on a flat, ESTree-based AST designed for speed, memory efficiency, and JavaScript extensibility.
 
 In benchmarks, SWC Next's [native parsing](https://github.com/SoonIter/ecmascript-parser-benchmark-native) is up to **3×** as fast as SWC, while parsing through the [JavaScript API](https://github.com/SoonIter/ecmascript-parser-benchmark-js) is up to **10×** as fast:
 
@@ -276,7 +276,7 @@ Reference these external resources in CSS:
 
 Rspack preserves these `@import` and `url()` references in the output without bundling the referenced resources.
 
-CSS `@import`, `url()`, and `image-set()` also support [`rspackIgnore` and `webpackIgnore` comments](/guide/languages/css#magic-comments), letting you skip bundling specific assets:
+CSS `@import`, `url()`, and `image-set()` also support [`rspackIgnore` comments](/guide/languages/css#magic-comments), letting you skip bundling specific assets:
 
 ```css title="styles.css"
 @import /* rspackIgnore: true */ url('./runtime-theme.css');
@@ -285,7 +285,7 @@ CSS `@import`, `url()`, and `image-set()` also support [`rspackIgnore` and `webp
 ### Other improvements
 
 - **On-demand compilation**: Reduces redundant builds triggered when saving code with [on-demand compilation](/guide/advanced/lazy-compilation) enabled, shortening the wait for updates.
-- **Native watcher**: Provides more complete file timestamp information, improving compatibility with tools such as `ts-loader`, `webpack-virtual-modules`, and `vue-loader`.
+- **Native watcher**: Provides more complete file timestamp information, improving compatibility with libraries such as `ts-loader` and `vue-loader`.
 - **Native watcher**: Supports functions for [`watchOptions.ignored`](/config/watch#watchoptionsignored) and improves detection of new directories and deleted or recreated files.
 - **Plugin compatibility and types**: Improves compatibility with webpack plugin hooks and refines TypeScript types for loaders, externals, and stats.
 - **WebAssembly**: Adds [`output.wasmStreamingFallback`](/config/output#outputwasmstreamingfallback) to allow disabling fallback to non-streaming loading.
