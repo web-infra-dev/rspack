@@ -1,5 +1,5 @@
 ---
-description: 'Rspack 2.3 正式发布，带来 SWC Next 集成、实验性缓存、CSS 打包改进，以及性能和开发体验优化。'
+description: 'Rspack 2.3 发布：集成 SWC Next，提升构建速度，降低内存占用和产物体积，并带来实验性的新版缓存、loader 缓存和内置 CSS 改进。'
 date: 2026-10-28 14:00:00
 sidebar: false
 authors:
@@ -47,7 +47,7 @@ _2026 年 10 月 28 日_
 
 ![](https://assets.rspack.rs/rspack/rspack-banner-v2.3.png)
 
-Rspack 2.3 现已发布！本次更新将 JavaScript 解析器迁移至 SWC Next，优化了构建性能，降低了内存占用和产物体积，改进了实验性缓存，支持按代码内容过滤 loader，并完善了内置 CSS 和文件监听能力。
+Rspack 2.3 现已发布！本次更新集成了 SWC Next 解析器，提升构建速度，降低内存占用和产物体积。同时推出实验性的新版缓存，支持为 loader 单独缓存转换结果，并带来内置 CSS 改进。
 
 ---
 
@@ -152,11 +152,13 @@ export default {
 
 ### loader 缓存 \{#loader-cache}
 
-Loader 缓存可以复用 babel-loader、less-loader 等工具的转换结果，避免重复处理未变化的代码，缩短构建时间。它是新版缓存的一部分，也可以单独启用。
+新版缓存支持为特定 loader 单独开启缓存，复用该 loader 的转换结果。
 
-即使在 build 和 watch 模式之间切换，loader 缓存仍有机会复用：只要输入、配置和相关依赖保持一致，且转换结果不受模式影响，就不必重新执行转换。
+相比整体的持久化缓存，loader 缓存的粒度更细，可以为每个 loader 设置独立的缓存失效条件。因此，即使修改 Rspack 配置导致整体缓存失效，只要某个 loader 的输入、配置和相关依赖没有变化，它的缓存仍有机会复用。在 dev 和 build 模式之间切换时，也有机会复用这些缓存。
 
-启用顶层 `cache` 和 `experiments.newCache` 后，可以为 loader 设置 `cache: true`。其他缓存阶段可以通过 [`experiments.newCache`](/zh/config/experiments#cache-stages) 单独控制。
+这对 babel-loader、less-loader 等性能开销较大的 loader 尤其有帮助，可以避免重复转换未变化的代码，缩短构建时间。
+
+下面的配置启用新版持久化缓存，并为 babel-loader 单独开启缓存：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -182,7 +184,7 @@ export default {
 };
 ```
 
-在使用 babel-loader 处理约 10000 个模拟模块的测试中，开启 loader 缓存后，无论是否启用并行 loader，构建耗时都降至约 11–12 秒：
+在使用 babel-loader 处理约 10000 个模拟模块的测试中，开启 loader 缓存后，构建耗时降至约 11–12 秒：
 
 | 并行 loader | 缓存关闭 | 缓存开启 | 加速比     |
 | ----------- | -------- | -------- | ---------- |

@@ -1,5 +1,5 @@
 ---
-description: 'Rspack 2.3 is now available, featuring the SWC Next integration, an experimental cache, CSS bundling improvements, and performance and developer experience enhancements.'
+description: 'Rspack 2.3 brings SWC Next, faster builds, lower memory usage, smaller bundles, a new experimental cache, loader caching, and built-in CSS improvements.'
 date: 2026-10-28 14:00:00
 sidebar: false
 authors:
@@ -47,7 +47,7 @@ _October 28, 2026_
 
 ![Rspack 2.3 banner](https://assets.rspack.rs/rspack/rspack-banner-v2.3.png)
 
-Rspack 2.3 is now available! This release moves the JavaScript parser to SWC Next, improves build performance, reduces memory usage and output size, enhances experimental caching, adds support for filtering loaders by code content, and improves built-in CSS and file watching.
+Rspack 2.3 is now available! This release integrates the SWC Next parser, speeds up builds, and reduces memory usage and bundle size. It also introduces a new experimental cache with support for caching individual loader results, alongside improvements to built-in CSS support.
 
 ---
 
@@ -152,11 +152,13 @@ We will continue optimizing performance in upcoming releases and plan to enable 
 
 ### Loader cache
 
-The loader cache reuses transformation results from tools such as babel-loader and less-loader, avoiding repeated work on unchanged code and shortening build times. It is part of the new cache and can also be enabled independently.
+The new cache lets you enable caching for specific loaders to reuse their transformation results.
 
-Cached loader results can even be reused when switching between build and watch modes, as long as the input, configuration, and relevant dependencies remain unchanged and the transformation result does not depend on the mode.
+Loader caching is more fine-grained than the overall persistent cache, with independent invalidation conditions for each loader. Even if a change to the Rspack configuration invalidates the overall cache, a loader's cached results may still be reused if its input, configuration, and relevant dependencies remain unchanged. These cached results may also be reused when switching between dev and build modes.
 
-Enable the top-level `cache` and `experiments.newCache`, then set `cache: true` on a loader. You can configure other cache stages independently through [`experiments.newCache`](/config/experiments#cache-stages).
+This is especially useful for expensive loaders such as babel-loader and less-loader: avoiding repeated transformations of unchanged code can shorten build times.
+
+The following configuration enables the new persistent cache and turns on caching specifically for babel-loader:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -182,7 +184,7 @@ export default {
 };
 ```
 
-In a test using babel-loader to process around 10,000 simulated modules, enabling the loader cache reduced build time to around 11–12 seconds, with or without parallel loaders:
+In a test using babel-loader to process around 10,000 simulated modules, enabling the loader cache reduced build time to around 11–12 seconds:
 
 | Parallel loaders | Cache disabled | Cache enabled | Speedup  |
 | ---------------- | -------------- | ------------- | -------- |
