@@ -7,7 +7,10 @@ use rspack_fs::ReadableFileSystem;
 use rspack_paths::{AssertUtf8, InternedPath};
 
 use self::hash_helper::{ContentHash, HashHelper, TimestampHash};
-use crate::{Context, SnapshotOptions, SnapshotStrategyOptions, cache::PackageHelper};
+use crate::{
+  Context, SnapshotOptions, SnapshotStrategyOptions,
+  cache::{CacheCodec, PackageHelper},
+};
 
 /// Snapshot check strategy
 #[cacheable]
@@ -105,13 +108,24 @@ impl StrategyHelper {
     fs: Arc<dyn ReadableFileSystem>,
     snapshot_options: Arc<SnapshotOptions>,
     context: Context,
+    codec: Arc<CacheCodec>,
   ) -> Self {
     let package_helper = Arc::new(PackageHelper::new(fs.clone(), context));
     Self {
       fs: fs.clone(),
-      hash_helper: HashHelper::new(fs, snapshot_options, package_helper.clone()),
+      hash_helper: HashHelper::new(fs, snapshot_options, package_helper.clone(), codec),
       package_helper,
     }
+  }
+
+  /// Inspect the snapshot root before any path shortcuts.
+  pub async fn is_symlink(&self, path: &InternedPath) -> Option<bool> {
+    self
+      .fs
+      .symlink_metadata(path.assert_utf8())
+      .await
+      .ok()
+      .map(|m| m.is_symlink)
   }
 
   /// get path file modified time

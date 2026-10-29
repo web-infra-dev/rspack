@@ -47,6 +47,11 @@ impl Snapshot {
     scope: SnapshotScope,
     portable: bool,
   ) -> Option<Strategy> {
+    match helper.is_symlink(path).await {
+      Some(true) => return Some(helper.dir_hash(path).await),
+      None if !matches!(scope, SnapshotScope::MISSING) => return Some(Strategy::Failed),
+      _ => {}
+    }
     let path_str = path.to_string_lossy();
     if options.is_immutable_path(&path_str) {
       return None;
@@ -126,6 +131,7 @@ impl Snapshot {
       self.fs.clone(),
       self.options.clone(),
       self.context.clone(),
+      self.codec.clone(),
     ));
     let codec = self.codec.clone();
     // TODO merge package version file
@@ -216,6 +222,7 @@ impl Snapshot {
       self.fs.clone(),
       self.options.clone(),
       self.context.clone(),
+      self.codec.clone(),
     ));
     let codec = self.codec.clone();
 
