@@ -4243,6 +4243,7 @@ dependencies = [
  "tracing-subscriber",
  "tracy-client",
  "ustr-fxhash",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
