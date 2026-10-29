@@ -453,23 +453,23 @@ impl JsValuesTupleIntoVec for JsDispatchArgs {
     let env = Env::from_raw(raw_env);
     let args = match self.0 {
       JsDelivery::Aggregate(callbacks, sequence) => {
-        let result = {
+        let (changed_files, removed_files) = {
           let mut pending = callbacks
             .pending
             .lock()
-            .expect("pending aggregate poisoned");
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
           // Only the tail entry takes the sets. Earlier entries become no-ops.
           if pending.sequence != sequence {
             return Ok(Vec::new());
           }
-          NativeWatchResult {
-            changed_files: std::mem::take(&mut pending.changed_files)
-              .into_iter()
-              .collect(),
-            removed_files: std::mem::take(&mut pending.removed_files)
-              .into_iter()
-              .collect(),
-          }
+          (
+            std::mem::take(&mut pending.changed_files),
+            std::mem::take(&mut pending.removed_files),
+          )
+        };
+        let result = NativeWatchResult {
+          changed_files: changed_files.into_iter().collect(),
+          removed_files: removed_files.into_iter().collect(),
         };
         let callback = callbacks.aggregate.borrow_back(&env)?;
         (callback, true, Either::A(Null), Either3::A(result))
@@ -548,23 +548,29 @@ impl rspack_watcher::EventAggregateHandler for JsEventHandler {
       .callbacks
       .pending
       .lock()
-      .expect("pending aggregate poisoned");
-    for path in changed_files {
-      pending.removed_files.remove(&path);
-      pending.changed_files.insert(path);
+      .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if pending.changed_files.is_empty() && pending.removed_files.is_empty() {
+      pending.changed_files = changed_files;
+      pending.removed_files = deleted_files;
+    } else {
+      for path in changed_files {
+        pending.removed_files.remove(&path);
+        pending.changed_files.insert(path);
+      }
+      for path in deleted_files {
+        pending.changed_files.remove(&path);
+        pending.removed_files.insert(path);
+      }
     }
-    for path in deleted_files {
-      pending.changed_files.remove(&path);
-      pending.removed_files.insert(path);
-    }
-    pending.sequence = pending.sequence.wrapping_add(1);
+    let next = pending.sequence + 1;
     // Queue at the tail so every preceding raw event runs before this aggregate.
     // Keep the lock through send so another aggregate cannot overtake this one.
-    if let Err(error) = self.delivery.send(JsDelivery::Aggregate(
-      Arc::clone(&self.callbacks),
-      pending.sequence,
-    )) {
-      tracing::debug!("{error}");
+    match self
+      .delivery
+      .send(JsDelivery::Aggregate(Arc::clone(&self.callbacks), next))
+    {
+      Ok(()) => pending.sequence = next,
+      Err(error) => tracing::debug!("{error}"),
     }
   }
 
