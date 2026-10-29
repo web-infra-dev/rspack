@@ -20,7 +20,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use crate::{
   component_info::{
     ClientComponentImports, ClientComponentImportsByServerEntry, ImportMetaRscImporters,
-    collect_component_info_from_entry_dependency,
+    collect_component_info_from_entry_dependencies,
   },
   constants::{CSS_REGEX, LAYERS_NAMES},
   coordinator::Coordinator,
@@ -347,11 +347,11 @@ impl RscServerPlugin {
       let mut action_entry_imports: FxHashMap<String, Vec<ActionIdNamePair>> = Default::default();
       let mut client_entries_to_inject = Vec::new();
 
-      let Some(entry_dependency) = entry_data.dependencies.first() else {
-        continue;
-      };
-      let component_info =
-        collect_component_info_from_entry_dependency(compilation, &runtime, entry_dependency);
+      let component_info = collect_component_info_from_entry_dependencies(
+        compilation,
+        &runtime,
+        &entry_data.dependencies,
+      );
       for (dep, actions) in component_info.action_imports {
         action_entry_imports.insert(dep, actions);
       }

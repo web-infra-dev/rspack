@@ -60,6 +60,7 @@ impl ModuleBuildCache {
     }
 
     result.reset_for_compilation(module.factory_meta());
+    self.cache.record_reuse();
     Ok(Some(result.as_arc().as_ref().clone()))
   }
 

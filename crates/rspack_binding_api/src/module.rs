@@ -498,9 +498,9 @@ impl Module {
 
   #[napi]
   pub fn size(&mut self, ty: Option<String>) -> napi::Result<f64> {
-    self.with_ref(|compilation, module| {
+    self.with_ref(|_compilation, module| {
       let ty = ty.map(|s| SourceType::from(s.as_str()));
-      Ok(module.size(ty.as_ref(), Some(compilation)))
+      Ok(module.size(ty.as_ref()))
     })
   }
 
@@ -525,7 +525,7 @@ impl Module {
   #[napi(
     js_name = "_emitFile",
     enumerable = false,
-    ts_args_type = "filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null"
+    ts_args_type = "filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null"
   )]
   pub fn emit_file(
     &mut self,

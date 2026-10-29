@@ -6,6 +6,7 @@ use rspack_core::{
   RuntimeModuleStage, RuntimeTemplate, chunk_graph_chunk::ChunkIdSet, compile_boolean_matcher,
   impl_runtime_module,
 };
+use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 use rspack_plugin_runtime::{
   CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimePlugin, chunk_has_css,
   extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs,
@@ -271,16 +272,21 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
       let initial_chunks =
         chunk.get_all_initial_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
-      let mut all_initial_chunk_ids = ChunkIdSet::default();
+      // The JS chunk-loading state pre-marks these as loaded whether or not this
+      // page includes them, so only an existing <link> proves they are present.
+      let mut css_only_initial_chunk_ids = ChunkIdSet::default();
 
-      for chunk_ukey in initial_chunks.iter() {
+      for initial_chunk_ukey in initial_chunks.iter() {
+        if *initial_chunk_ukey == chunk_ukey || chunk_has_js(initial_chunk_ukey, compilation) {
+          continue;
+        }
         let id = compilation
           .build_chunk_graph_artifact
           .chunk_by_ukey
-          .expect_get(chunk_ukey)
+          .expect_get(initial_chunk_ukey)
           .expect_id()
           .clone();
-        all_initial_chunk_ids.insert(id);
+        css_only_initial_chunk_ids.insert(id);
       }
 
       let environment = &compilation.options.output.environment;
@@ -323,6 +329,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         let create_link_raw = context.runtime_template.render(
           &self.template_id(TemplateId::CreateLink),
           Some(serde_json::json!({
+            "_with_hmr": with_hmr,
             "_with_fetch_priority": with_fetch_priority,
             "_cross_origin": match &compilation.options.output.cross_origin_loading {
               CrossOriginLoading::Disable => String::new(),
@@ -433,7 +440,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
             &self.template_id(TemplateId::WithHmr),
             Some(serde_json::json!({
               "_is_neutral_platform": is_neutral_platform,
-              "_initial_chunk_ids": stringify_chunks(&all_initial_chunk_ids, 1),
+              "_css_only_initial_chunk_ids": stringify_chunks(&css_only_initial_chunk_ids, 1),
               "_js_state_expression": render_chunk_loading_hmr_state_expression(runtime_template, &chunk_ukey, compilation),
             })),
           )?;
@@ -460,32 +467,21 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           code.push_str("style.setAttribute(\"data-rspack\", getDataRspackId(key));");
           code
         };
-        let css_inject_style =
-          runtime_template.render_runtime_globals(&RuntimeGlobals::CSS_INJECT_STYLE);
-        let hmr_download_update_handlers =
-          runtime_template.render_runtime_globals(&RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
         let source_with_style = context.runtime_template.render(
           &self.template_id(TemplateId::WithStyle),
           Some(serde_json::json!({
             "_data_rspack_prefix": data_rspack_prefix,
             "_create_style": &create_style_element_code,
-            "_css_inject_style": &css_inject_style,
             "_with_hmr": with_hmr,
-            "HMR_DOWNLOAD_UPDATE_HANDLERS": &hmr_download_update_handlers,
           })),
         )?;
         source.push_str(&source_with_style);
       }
 
       if with_style_sheet {
-        let css_style_sheet =
-          runtime_template.render_runtime_globals(&RuntimeGlobals::CSS_STYLE_SHEET);
-        let source_with_style_sheet = context.runtime_template.render(
-          &self.template_id(TemplateId::WithStyleSheet),
-          Some(serde_json::json!({
-            "CSS_STYLE_SHEET": &css_style_sheet,
-          })),
-        )?;
+        let source_with_style_sheet = context
+          .runtime_template
+          .render(&self.template_id(TemplateId::WithStyleSheet), None)?;
         source.push_str(&source_with_style_sheet);
       }
 

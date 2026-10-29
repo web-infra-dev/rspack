@@ -1,7 +1,7 @@
-body {
+.shared {
 	color: red;
 }
 ---
-body {
+.shared {
 	color: blue;
 }

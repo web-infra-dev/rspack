@@ -299,7 +299,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                 let export = runtime_template.export_from_import(
                   compilation,
                   &mut ModuleInitFragments::default(),
-                  module.identifier(),
+                  module,
                   *runtime,
                   true,
                   dep_module.request,

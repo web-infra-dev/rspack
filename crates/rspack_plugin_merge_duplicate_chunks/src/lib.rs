@@ -149,11 +149,14 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
           let mut chunk_group_by_ukey =
             std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
+          let mut named_chunks =
+            std::mem::take(&mut compilation.build_chunk_graph_artifact.named_chunks);
           chunk_graph.integrate_chunks(
             &chunk_ukey,
             &other_chunk_ukey,
             &mut chunk_by_ukey,
             &mut chunk_group_by_ukey,
+            &mut named_chunks,
             compilation.get_module_graph(),
           );
           if chunk_by_ukey.remove(&other_chunk_ukey).is_some()
@@ -167,6 +170,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           compilation.build_chunk_graph_artifact.chunk_graph = chunk_graph;
           compilation.build_chunk_graph_artifact.chunk_by_ukey = chunk_by_ukey;
           compilation.build_chunk_graph_artifact.chunk_group_by_ukey = chunk_group_by_ukey;
+          compilation.build_chunk_graph_artifact.named_chunks = named_chunks;
         }
       }
     }

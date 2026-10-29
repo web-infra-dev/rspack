@@ -160,10 +160,7 @@ pub(crate) struct ModuleGroup {
   has_modules_without_source_types: bool,
   removed: Vec<ModuleIdentifier>,
   sizes: SplitChunkSizes,
-  /// Anonymous groups: the total size of the remaining modules, which all share `chunks`.
-  /// Named groups: the cached size reduction itself, valid while `SIZE_REDUCTION_STALE` is
-  /// clear. Sharing the slot keeps the struct size unchanged.
-  size_reduction_basis: f64,
+  size_reduction: f64,
 }
 
 // Most consecutive module sizes have the same source type. Keep that running
@@ -253,7 +250,7 @@ impl ModuleGroup {
       pending_initial_sizes: false,
       has_modules_without_source_types: false,
       removed: Default::default(),
-      size_reduction_basis: 0.0,
+      size_reduction: 0.0,
     }
   }
 
@@ -301,6 +298,7 @@ impl ModuleGroup {
       module_chunks.insert(chunk);
       self.chunks.insert(chunk);
     }
+    self.mark_size_reduction_stale();
   }
 
   pub fn add_module_with_shared_chunks(
@@ -498,7 +496,6 @@ impl ModuleGroup {
       for chunks in sources.values_mut() {
         chunks.retain(|chunk| self.chunks.contains(chunk));
       }
-      // Remaining modules can keep fewer selected chunks without being removed.
       self.mark_size_reduction_stale();
       self.mark_placement_changed();
       if self.chunks.len() != before {
@@ -638,27 +635,21 @@ impl ModuleGroup {
       if self.pending_initial_sizes || !self.removed.is_empty() {
         unreachable!("should update sizes before get size reduction");
       }
-      return self.size_reduction_basis * self.chunks.len().saturating_sub(1) as f64;
+      return self.size_reduction * self.chunks.len().saturating_sub(1) as f64;
     };
     if self.candidate_flags & Self::SIZE_REDUCTION_STALE != 0 {
-      self.size_reduction_basis = self
-        .modules
-        .iter()
-        .map(|module| {
-          let chunks = module_chunks
-            .get(module)
-            .expect("should have selected module chunks");
-          let size: f64 = module_sizes
-            .get(module)
-            .expect("should have module size")
-            .values()
-            .sum();
-          size * chunks.len().saturating_sub(1) as f64
-        })
-        .sum();
+      self.size_reduction =
+        get_named_group_size_reduction(&self.modules, module_chunks, module_sizes);
       self.candidate_flags &= !Self::SIZE_REDUCTION_STALE;
+    } else {
+      // Every mutation of a named group's modules or selected chunks must mark the cache stale.
+      debug_assert_eq!(
+        self.size_reduction,
+        get_named_group_size_reduction(&self.modules, module_chunks, module_sizes),
+        "named size reduction cache is stale; a mutation path forgot to invalidate it",
+      );
     }
-    self.size_reduction_basis
+    self.size_reduction
   }
 
   pub fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> &SplitChunkSizes {
@@ -669,7 +660,7 @@ impl ModuleGroup {
       sizes: &mut self.sizes,
       cached: None,
     };
-    let mut total_size = self.size_reduction_basis;
+    let mut total_size = self.size_reduction;
     if self.pending_initial_sizes {
       // The comparison snapshot is captured before any module is removed and
       // before the first size comparison. It also supplies the initial size
@@ -700,10 +691,32 @@ impl ModuleGroup {
     sizes.finish();
     // A named group keeps its own size reduction in the slot instead.
     if self.uses_shared_module_chunks() {
-      self.size_reduction_basis = total_size;
+      self.size_reduction = total_size;
     }
     &self.sizes
   }
+}
+
+/// Each module of a named group saves its size once for every selected chunk beyond the first.
+fn get_named_group_size_reduction(
+  modules: &IdentifierSet,
+  module_chunks: &IdentifierMap<FxHashSet<ChunkUkey>>,
+  module_sizes: &ModuleSizes,
+) -> f64 {
+  modules
+    .iter()
+    .map(|module| {
+      let chunks = module_chunks
+        .get(module)
+        .expect("should have selected module chunks");
+      let size: f64 = module_sizes
+        .get(module)
+        .expect("should have module size")
+        .values()
+        .sum();
+      size * chunks.len().saturating_sub(1) as f64
+    })
+    .sum()
 }
 
 pub(crate) fn compare_entries(

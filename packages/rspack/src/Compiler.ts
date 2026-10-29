@@ -11,7 +11,6 @@
 import { createRequire } from 'node:module';
 import type binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
-import type Watchpack from 'watchpack';
 import type { Source } from 'webpack-sources';
 import {
   createRealContentHashPluginHooksRegisters,
@@ -318,7 +317,7 @@ class Compiler {
     this.context = context;
     this.cache = new Cache();
 
-    this.compilerPath = '';
+    this.compilerPath = options.name || '';
 
     this.running = false;
 
@@ -434,7 +433,7 @@ class Compiler {
   getCache(name: string): CacheFacade {
     return new CacheFacade(
       this.cache,
-      `${this.compilerPath}${name}`,
+      `${this.compilerPath}|${name}`,
       this.options.output.hashFunction as string,
     );
   }
@@ -538,7 +537,7 @@ class Compiler {
    * @returns a compiler watcher
    */
   watch(
-    watchOptions: Watchpack.WatchOptions,
+    watchOptions: WatchOptions,
     handler: liteTapable.Callback<Error, Stats>,
   ): Watching {
     if (this.running) {
@@ -735,7 +734,11 @@ class Compiler {
     childCompiler.contextTimestamps = this.contextTimestamps;
     childCompiler.fsStartTime = this.fsStartTime;
     childCompiler.cache = this.cache;
-    childCompiler.compilerPath = `${this.compilerPath}${compilerName}|${compilerIndex}|`;
+    childCompiler.compilerPath = [
+      this.compilerPath,
+      compilerName,
+      compilerIndex,
+    ].join('|');
 
     const relativeCompilerName = makePathsRelative(
       this.context,
