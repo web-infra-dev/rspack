@@ -1,7 +1,7 @@
 // Port of webpack's HMR sibling injection and retained-module updates.
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  ChunkGraph, Compilation, CompilationRecords, ModuleIdentifier, RuntimeSpec,
+  ChunkGraph, Compilation, CompilationRecords, ModuleIdMap, ModuleIdentifier, RuntimeSpec,
   chunk_graph_chunk::{ChunkId, ChunkIdMap},
 };
 use rspack_hash::RspackHashDigest;
@@ -123,7 +123,7 @@ pub(crate) fn collect_module_updates(
     .module_ids_artifact
     .iter()
     .map(|(module, id)| (id.clone(), *module))
-    .collect::<std::collections::HashMap<_, _>>();
+    .collect::<ModuleIdMap<_>>();
   let mut updates = ChunkIdMap::default();
 
   for (id, (_, old_modules)) in &records.chunks {
