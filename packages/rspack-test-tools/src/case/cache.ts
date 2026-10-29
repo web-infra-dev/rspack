@@ -31,6 +31,8 @@ export type TCacheCaseOptions = {
   type?: 'cache' | 'normal' | 'config';
   /** Enable persistent newCache, restart unchanged cases, and check cache hits. */
   newCache?: boolean;
+  /** Override portable mode while reusing the original cache scenario. */
+  portable?: false;
 };
 
 interface CacheState {
@@ -216,6 +218,15 @@ function createCacheProcessor(
     config: async (context) => {
       await base.config(context);
       if (caseOptions.newCache) enableNewCache(context, temp);
+      if (caseOptions.portable === false) {
+        const options = context.getCompiler().getOptions() as RspackOptions;
+        if (
+          typeof options.cache === 'object' &&
+          options.cache.type === 'persistent'
+        ) {
+          options.cache.portable = false;
+        }
+      }
     },
     compiler: base.compiler,
     build: base.build,
