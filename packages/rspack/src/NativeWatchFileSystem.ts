@@ -10,6 +10,7 @@ import type {
   WatcherInfo,
   WatchFileSystem,
 } from './util/fs';
+import { memoize } from './util/memoize';
 import {
   type ConsumableWatcher,
   consumeWatcherInfo,
@@ -26,7 +27,11 @@ import {
  * https://github.com/webpack/watchpack/blob/main/LICENSE
  */
 type JsWatcherIgnored =
-  string | string[] | RegExp | ((entry: string) => boolean) | undefined;
+  | string
+  | RegExp
+  | (string | RegExp)[]
+  | ((entry: string) => boolean)
+  | undefined;
 
 const toJsWatcherIgnored = (
   ignored: WatchOptions['ignored'],
@@ -46,17 +51,16 @@ const toJsWatcherIgnored = (
 const EXISTENCE_ONLY_TIME_ENTRY: ExistenceOnlyTimeEntry = Object.freeze({});
 
 /** Rebuild watchpack's `TimeInfoEntries` from the flattened native rows. */
-const toTimeInfoEntries = (
-  rows: binding.NativeTimeInfoEntry[],
-): TimeInfoEntries => {
+const toTimeInfoEntries = ({
+  entries: rows,
+  missing,
+}: binding.NativeTimeInfoTable): TimeInfoEntries => {
   const entries: TimeInfoEntries = new Map();
   for (const row of rows) {
     if (row.existenceOnly) {
       entries.set(row.path, EXISTENCE_ONLY_TIME_ENTRY);
-    } else if (row.safeTime == null) {
-      entries.set(row.path, null);
     } else {
-      const entry: FileSystemInfoEntry = { safeTime: row.safeTime };
+      const entry: FileSystemInfoEntry = { safeTime: row.safeTime! };
       if (row.timestamp != null) {
         entry.timestamp = row.timestamp;
       }
@@ -66,8 +70,16 @@ const toTimeInfoEntries = (
       entries.set(row.path, entry);
     }
   }
+  for (const path of missing) {
+    entries.set(path, null);
+  }
   return entries;
 };
+
+const memoizeTimeInfoEntries = (
+  snapshot: binding.NativeTimeInfoEntries,
+  key: 'fileTimestamps' | 'directoryTimestamps',
+) => memoize(() => toTimeInfoEntries(snapshot[key]));
 
 /**
  * Minimal watchpack-compatible shim exposed as `NativeWatchFileSystem.watcher`.
@@ -260,6 +272,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
           this.#events.emit('change', event.path, mtime);
           watcher.emit('change', event.path, mtime);
         } else {
+          callbackUndelayed(event.path, Date.now());
           this.#events.emit('remove', event.path);
           watcher.emit('remove', event.path);
         }
@@ -287,13 +300,16 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
           fs.purge?.(item);
         }
       }
-      const { fileTimeInfoEntries, contextTimeInfoEntries } =
-        this.#fetchTimeInfo(nativeWatcher);
+      const timeInfo = this.#fetchTimeInfo(nativeWatcher);
       return {
         changes,
         removals,
-        fileTimeInfoEntries,
-        contextTimeInfoEntries,
+        get fileTimeInfoEntries() {
+          return timeInfo.fileTimeInfoEntries;
+        },
+        get contextTimeInfoEntries() {
+          return timeInfo.contextTimeInfoEntries;
+        },
       };
     };
 
@@ -325,11 +341,16 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
     fileTimeInfoEntries: TimeInfoEntries;
     contextTimeInfoEntries: TimeInfoEntries;
   } {
-    const { fileTimestamps, directoryTimestamps } =
-      nativeWatcher.collectTimeInfoEntries();
+    const snapshot = nativeWatcher.collectTimeInfoEntries();
+    const files = memoizeTimeInfoEntries(snapshot, 'fileTimestamps');
+    const directories = memoizeTimeInfoEntries(snapshot, 'directoryTimestamps');
     return {
-      fileTimeInfoEntries: toTimeInfoEntries(fileTimestamps),
-      contextTimeInfoEntries: toTimeInfoEntries(directoryTimestamps),
+      get fileTimeInfoEntries() {
+        return files();
+      },
+      get contextTimeInfoEntries() {
+        return directories();
+      },
     };
   }
 
@@ -344,19 +365,22 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
     }
     const { fileTimestamps, directoryTimestamps } =
       this.#inner.collectTimeInfoEntries();
-    for (const row of fileTimestamps) {
+    for (const row of fileTimestamps.entries) {
       // Like watchpack: a file reports the later of its safe time and
       // timestamp, an absent path null, an existence-only entry nothing.
       if (row.existenceOnly) {
         continue;
       }
-      times[row.path] =
-        row.safeTime == null
-          ? null
-          : Math.max(row.safeTime, row.timestamp ?? row.safeTime);
+      times[row.path] = Math.max(row.safeTime!, row.timestamp ?? row.safeTime!);
     }
-    for (const row of directoryTimestamps) {
+    for (const path of fileTimestamps.missing) {
+      times[path] = null;
+    }
+    for (const row of directoryTimestamps.entries) {
       times[row.path] = row.safeTime ?? null;
+    }
+    for (const path of directoryTimestamps.missing) {
+      times[path] = null;
     }
     return times;
   }

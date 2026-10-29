@@ -1,12 +1,15 @@
 use std::sync::{
   Arc,
-  atomic::{AtomicBool, Ordering},
+  atomic::{AtomicBool, AtomicU64, Ordering},
 };
 
 use rspack_util::fx_hash::FxHashSet as HashSet;
-use tokio::sync::{
-  Mutex,
-  mpsc::{self, UnboundedReceiver, UnboundedSender},
+use tokio::{
+  sync::{
+    Mutex,
+    mpsc::{self, UnboundedReceiver, UnboundedSender},
+  },
+  time::{Duration, Instant},
 };
 
 use super::{EventAggregateHandler, EventHandler, FsEventKind};
@@ -32,6 +35,11 @@ impl FilesData {
 
 pub(crate) type Aggregated = Arc<std::sync::Mutex<FilesData>>;
 
+struct AggregateTime {
+  base: Instant,
+  last_unpaused_event: AtomicU64,
+}
+
 /// `WatcherExecutor` is responsible for managing the execution of file system event handlers,
 /// aggregating file change and delete events, and invoking the provided event handler after
 /// a configurable aggregate timeout. It receives events from a channel, tracks changed and
@@ -46,6 +54,7 @@ pub struct Executor {
   exec_rx: ThreadSafetyReceiver<ExecEvent>,
   paused: Arc<AtomicBool>,
   aggregate_running: Arc<AtomicBool>,
+  aggregate_time: Arc<AggregateTime>,
   start_waiting: bool,
   execute_handle: Option<tokio::task::JoinHandle<()>>,
   execute_aggregate_handle: Option<tokio::task::JoinHandle<()>>,
@@ -66,6 +75,7 @@ enum ExecAggregateEvent {
 
 enum ExecEvent {
   Execute(EventBatch),
+  Aggregate(FilesData),
   Close,
 }
 
@@ -84,6 +94,10 @@ impl Executor {
     Self {
       start_waiting: false,
       aggregate_running: Arc::new(AtomicBool::new(false)),
+      aggregate_time: Arc::new(AggregateTime {
+        base: Instant::now(),
+        last_unpaused_event: AtomicU64::new(0),
+      }),
       paused,
       rx: Arc::new(Mutex::new(rx)),
       files_data: Default::default(),
@@ -142,31 +156,41 @@ impl Executor {
       let exec_tx = self.exec_tx.clone();
       let paused = Arc::clone(&self.paused);
       let aggregate_running = Arc::clone(&self.aggregate_running);
+      let aggregate_time = Arc::clone(&self.aggregate_time);
 
       let future = async move {
         while let Some(events) = rx.lock().await.recv().await {
+          // Enqueue raw delivery before allowing an aggregate snapshot to consume it.
           {
-            let mut files_data = files_data.lock().expect("aggregated sets poisoned");
+            let mut files = files_data.lock().expect("aggregated sets poisoned");
             for event in &events {
               let path = event.path.to_string_lossy().to_string();
               match event.kind {
                 FsEventKind::Change | FsEventKind::Create => {
-                  files_data.deleted.remove(&path);
-                  files_data.changed.insert(path);
+                  files.deleted.remove(&path);
+                  files.changed.insert(path);
                 }
                 FsEventKind::Remove => {
-                  files_data.changed.remove(&path);
-                  files_data.deleted.insert(path);
+                  files.changed.remove(&path);
+                  files.deleted.insert(path);
                 }
               }
             }
+            // Like Watchpack, only changes received while unpaused restart the
+            // wait. An empty batch (e.g. an unwatched path removed under the
+            // watch root) must not delay a pending batch.
+            if !events.is_empty() && !paused.load(Ordering::Relaxed) {
+              aggregate_time.last_unpaused_event.store(
+                aggregate_time.base.elapsed().as_nanos() as u64,
+                Ordering::Relaxed,
+              );
+            }
+            let _ = exec_tx.send(ExecEvent::Execute(events));
           }
 
           if !paused.load(Ordering::Relaxed) && !aggregate_running.load(Ordering::Relaxed) {
             let _ = exec_aggregate_tx.send(ExecAggregateEvent::Execute);
           }
-
-          let _ = exec_tx.send(ExecEvent::Execute(events));
         }
 
         let _ = exec_aggregate_tx.send(ExecAggregateEvent::Close);
@@ -204,14 +228,16 @@ impl Executor {
     event_handler: Box<dyn EventHandler + Send>,
   ) {
     self.execute_aggregate_handle = Some(create_execute_aggregate_task(
-      event_aggregate_handler,
+      self.exec_tx.clone(),
       Arc::clone(&self.exec_aggregate_rx),
       Arc::clone(&self.files_data),
       self.aggregate_timeout as u64,
       Arc::clone(&self.aggregate_running),
+      Arc::clone(&self.aggregate_time),
     ));
 
     self.execute_handle = Some(create_execute_task(
+      event_aggregate_handler,
       event_handler,
       Arc::clone(&self.exec_rx),
     ));
@@ -219,6 +245,7 @@ impl Executor {
 }
 
 fn create_execute_task(
+  event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
   event_handler: Box<dyn EventHandler + Send>,
   exec_rx: ThreadSafetyReceiver<ExecEvent>,
 ) -> tokio::task::JoinHandle<()> {
@@ -243,6 +270,9 @@ fn create_execute_task(
             }
           }
         }
+        ExecEvent::Aggregate(files) => {
+          event_aggregate_handler.on_event_handle(files.changed, files.deleted);
+        }
         ExecEvent::Close => {
           break;
         }
@@ -253,11 +283,12 @@ fn create_execute_task(
 }
 
 fn create_execute_aggregate_task(
-  event_handler: Box<dyn EventAggregateHandler + Send>,
+  exec_tx: UnboundedSender<ExecEvent>,
   exec_aggregate_rx: ThreadSafetyReceiver<ExecAggregateEvent>,
   files: Aggregated,
   aggregate_timeout: u64,
   running: Arc<AtomicBool>,
+  aggregate_time: Arc<AggregateTime>,
 ) -> tokio::task::JoinHandle<()> {
   let future = async move {
     loop {
@@ -273,22 +304,33 @@ fn create_execute_aggregate_task(
 
       if let ExecAggregateEvent::Execute = aggregate_rx {
         running.store(true, Ordering::Relaxed);
-        // Wait for the aggregate timeout before executing the handler
-        tokio::time::sleep(tokio::time::Duration::from_millis(aggregate_timeout)).await;
+        let timeout = Duration::from_millis(aggregate_timeout);
+        // Keep the initial wait for a resume flush, and extend it only for
+        // events received while unpaused.
+        let mut deadline = Instant::now() + timeout;
+        let files = loop {
+          tokio::time::sleep_until(deadline).await;
 
-        // Get the files to process
-        let files = {
+          // Check the timestamp and take the batch under the same lock used
+          // when recording events, so a new change cannot slip between them.
           let mut files = files.lock().expect("aggregated sets poisoned");
-          if files.is_empty() {
-            running.store(false, Ordering::Relaxed);
+          let candidate = aggregate_time.base
+            + Duration::from_nanos(aggregate_time.last_unpaused_event.load(Ordering::Relaxed))
+            + timeout;
+          if candidate > deadline {
+            deadline = candidate;
             continue;
           }
-          std::mem::take(&mut *files)
+          break std::mem::take(&mut *files);
         };
+        if files.is_empty() {
+          running.store(false, Ordering::Relaxed);
+          continue;
+        }
 
         // A path is in one set only: `Trigger` reports each event by the
         // path's state on disk, and a later event replaces an earlier one.
-        event_handler.on_event_handle(files.changed, files.deleted);
+        let _ = exec_tx.send(ExecEvent::Aggregate(files));
         running.store(false, Ordering::Relaxed);
       }
     }

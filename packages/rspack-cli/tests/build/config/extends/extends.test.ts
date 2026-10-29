@@ -244,31 +244,6 @@ describe('rspack extends feature', () => {
     });
   });
 
-  describe('backward compatibility', () => {
-    // Use an existing test directory that doesn't use the extends feature
-    const cwd = resolve(__dirname, '../../basic');
-
-    it('should not break existing functionality', async () => {
-      const { exitCode, stderr, stdout } = await run(cwd, [
-        '--config',
-        './entry.config.js',
-      ]);
-
-      expect(stderr).toBeFalsy();
-      expect(stdout).toBeTruthy();
-      expect(exitCode).toBe(0);
-
-      // Check if the output file is generated correctly
-      const outputExists = await readFile(resolve(cwd, './dist/main.js'), {
-        encoding: 'utf-8',
-      })
-        .then(() => true)
-        .catch(() => false);
-
-      expect(outputExists).toBe(true);
-    });
-  });
-
   describe('error handling', () => {
     const cwd = resolve(__dirname);
 

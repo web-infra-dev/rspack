@@ -1,24 +1,46 @@
 [
   {
-    "minimize persistent cache": {
+    "|Compilation/codeGeneration": {
       "hits": 1,
-      "total": 2
+      "misses": 1,
+      "reused": 1,
+      "stores": 1
     },
-    "module build cache": {
-      "hits": 2,
-      "total": 3
+    "|Compilation/modules": {
+      "hits": 3,
+      "misses": 0,
+      "reused": 2,
+      "stores": 1
     },
-    "module code generation cache": {
+    "|meta": {
       "hits": 1,
-      "total": 2
+      "misses": 0,
+      "reused": 1,
+      "stores": 1
     },
-    "resolver cache": {
-      "hits": 5,
-      "total": 6
+    "|ResolverCache|loader": {
+      "hits": 3,
+      "misses": 0,
+      "reused": 3,
+      "stores": 0
     },
-    "source map persistent cache": {
+    "|ResolverCache|normal": {
+      "hits": 3,
+      "misses": 0,
+      "reused": 2,
+      "stores": 1
+    },
+    "|rspack.SourceMapDevToolPlugin": {
       "hits": 1,
-      "total": 2
+      "misses": 1,
+      "reused": 1,
+      "stores": 1
+    },
+    "|rspack.SwcJsMinimizerRspackPlugin": {
+      "hits": 1,
+      "misses": 1,
+      "reused": 1,
+      "stores": 1
     }
   }
 ]

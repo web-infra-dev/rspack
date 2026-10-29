@@ -45,15 +45,16 @@ use crate::{
   parser_and_generator::ParserRuntimeRequirementsData,
   parser_plugin::{
     self, CreatedRequireReferencesState, ImportsReferencesState, InnerGraphParserPlugin,
-    JavaScriptParserPluginDrive, JavascriptParserPlugin, RequireReferencesState,
-    inner_graph::state::InnerGraphState,
+    JavaScriptParserPluginDrive, JavascriptParserPlugin, NESTED_IDENTIFIER_TAG, NestedRequireData,
+    RequireReferencesState, inner_graph::state::InnerGraphState,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
     ParsedJavaScriptAst, PatternIdentifier, ScanDependenciesResult,
     dependency::parser::location_advancer::DependencyLocationAdvancer,
     scope_info::{
-      BindingState, ScopeInfoDB, SymbolBinding, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags,
+      BindingState, ScopeInfoDB, ScopeInfoId, SymbolBinding, TagInfo, TagInfoId, VariableInfo,
+      VariableInfoFlags,
     },
   },
 };
@@ -503,6 +504,9 @@ pub struct JavascriptParser<'parser> {
   pub(crate) plugin_drive: &'parser JavaScriptParserPluginDrive,
   // ===== states =======
   pub(crate) definitions_db: ScopeInfoDB<'parser>,
+  /// Root Rspack scope created with the module AST; used to decide whether a
+  /// mutated binding is top-level for ESM export value-binding eligibility.
+  pub(crate) top_level_definitions: ScopeInfoId,
   pub(crate) top_level_scope: TopLevelScope,
   pub(crate) current_tag_info: Option<TagInfoId>,
   pub in_try: bool,
@@ -692,6 +696,8 @@ impl<'parser> JavascriptParser<'parser> {
     let blocks = Vec::with_capacity(4);
     let presentational_dependencies = Vec::with_capacity(8);
     let parser_exports_state: Option<bool> = None;
+    let definitions_db = ScopeInfoDB::with_semantic(ast);
+    let top_level_definitions = definitions_db.current_scope();
 
     Self {
       last_esm_import_order: 0,
@@ -713,7 +719,8 @@ impl<'parser> JavascriptParser<'parser> {
       top_level_scope: TopLevelScope::Top,
       is_esm: matches!(module_type, ModuleType::JsEsm),
       in_tagged_template_tag: false,
-      definitions_db: ScopeInfoDB::with_semantic(ast),
+      definitions_db,
+      top_level_definitions,
       plugin_drive,
       resource_data,
       factory_meta,
@@ -931,6 +938,25 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn is_top_level_scope(&self) -> bool {
     matches!(self.top_level_scope, TopLevelScope::Top)
+  }
+
+  pub(crate) fn mark_mutated_binding(&mut self, name: Atom) {
+    let top_level_definitions = self.top_level_definitions;
+    let is_top_level = self
+      .get_variable_info(&name)
+      .is_some_and(|info| info.declared_scope == top_level_definitions);
+    if !is_top_level {
+      return;
+    }
+    // Compatibility renames (e.g. `__webpack_exports__`) are referenced under
+    // the renamed identifier, so record that name as well.
+    let renamed = self
+      .get_tag_data::<NestedRequireData>(&name, NESTED_IDENTIFIER_TAG)
+      .map(|data| Atom::from(data.name.as_str()));
+    if let Some(renamed) = renamed {
+      self.build_info.mutated_bindings.insert(renamed);
+    }
+    self.build_info.mutated_bindings.insert(name);
   }
 
   pub fn is_top_level_this(&self) -> bool {
@@ -1160,9 +1186,21 @@ impl<'parser> JavascriptParser<'parser> {
         if name == variable {
           self.definitions_db.delete(scope_id, &name);
         } else {
+          // Preserve the original declaration scope when overlaying a FREE
+          // alias (e.g. `var current = URL` inside a block). Otherwise
+          // mark_mutated_binding would treat later assignments as non-top-level.
+          let declared_scope = self
+            .definitions_db
+            .resolve(&name)
+            .map_or(scope_id, |state| {
+              self
+                .definitions_db
+                .expect_get_variable(state)
+                .declared_scope
+            });
           let variable = VariableInfo::create(
             &mut self.definitions_db,
-            scope_id,
+            declared_scope,
             Some(variable),
             VariableInfoFlags::FREE,
             None,
@@ -1439,6 +1477,9 @@ impl<'parser> JavascriptParser<'parser> {
   {
     let ast = self.ast.ast;
     let name = ast.get_utf8(ident.name(ast));
+    if self.in_assignment_pattern {
+      self.mark_mutated_binding(Atom::from(name));
+    }
     let drive = self.plugin_drive();
     // Declaration hooks inspect the declared name, even when its semantic
     // binding is already initialized as a normal local variable.

@@ -11,13 +11,13 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
-allocative = ["dep:rspack_allocative"]
+allocative = ["dep:rspack-allocative"]
 
 [dependencies]
 bytes               = { workspace = true }
 micromegas-perfetto = { workspace = true }
 prost               = { workspace = true }
-rspack_allocative   = { workspace = true, optional = true }
+rspack-allocative   = { workspace = true, optional = true }
 rustc-hash          = { workspace = true, features = ["std"] }
 tracing             = { workspace = true }
 tracing-subscriber  = { workspace = true }

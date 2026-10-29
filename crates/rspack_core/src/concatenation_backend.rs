@@ -632,6 +632,7 @@ fn collect_ident(
     semantic: &'semantic JsNameResolver<'a>,
     on_ident: F,
     shorthand_binding: Option<BindingIdentifier>,
+    shorthand_reference: Option<IdentifierReference>,
     skipped_class_expression_binding: Option<BindingIdentifier>,
   }
 
@@ -738,7 +739,7 @@ fn collect_ident(
     }
 
     fn visit_identifier_reference(&mut self, node: IdentifierReference) {
-      self.push_reference(node, false);
+      self.push_reference(node, self.shorthand_reference == Some(node));
     }
 
     fn visit_binding_identifier(&mut self, node: BindingIdentifier) {
@@ -754,7 +755,8 @@ fn collect_ident(
     }
 
     fn visit_binding_property(&mut self, node: swc_next_ecma_ast::BindingProperty) {
-      let previous = self.shorthand_binding;
+      let previous_binding = self.shorthand_binding;
+      let previous_reference = self.shorthand_reference;
       if node.shorthand(self.ast) {
         let value = node.value(self.ast);
         self.shorthand_binding = value.as_binding_identifier(self.ast).or_else(|| {
@@ -762,9 +764,24 @@ fn collect_ident(
             .as_assignment_pattern(self.ast)
             .and_then(|assignment| assignment.left(self.ast).as_binding_identifier(self.ast))
         });
+        // Assignment-target patterns use an IdentifierReference rather than a BindingIdentifier.
+        self.shorthand_reference = value
+          .as_simple_assignment_target(self.ast)
+          .and_then(|target| target.as_identifier_reference(self.ast))
+          .or_else(|| {
+            value
+              .as_assignment_pattern(self.ast)
+              .and_then(|assignment| {
+                assignment
+                  .left(self.ast)
+                  .as_simple_assignment_target(self.ast)
+                  .and_then(|target| target.as_identifier_reference(self.ast))
+              })
+          });
       }
       node.visit_children_with(self);
-      self.shorthand_binding = previous;
+      self.shorthand_binding = previous_binding;
+      self.shorthand_reference = previous_reference;
     }
 
     fn visit_object_property(&mut self, node: ObjectProperty) {
@@ -821,6 +838,7 @@ fn collect_ident(
     semantic,
     on_ident,
     shorthand_binding: None,
+    shorthand_reference: None,
     skipped_class_expression_binding: None,
   };
   ast.root_program().visit_with(&mut collector);

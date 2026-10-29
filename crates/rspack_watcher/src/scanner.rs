@@ -30,8 +30,15 @@ impl Scanner {
   /// so a change landing before the watch is on disk and caught here.
   /// align watchpack action: https://github.com/webpack/watchpack/blob/v2.4.4/lib/DirectoryWatcher.js#L565-L568
   pub fn scan(&self, start_time: SystemTime) {
+    let accessor = self.path_manager.access();
+    let has_added_paths = !accessor.files().1.is_empty()
+      || !accessor.directories().1.is_empty()
+      || !accessor.missing().1.is_empty();
+    if !has_added_paths {
+      return;
+    }
+
     if let Some(tx) = self.tx.clone() {
-      let accessor = self.path_manager.access();
       // only apply for added files
       let files = accessor
         .files()
@@ -44,9 +51,10 @@ impl Scanner {
       let files_path_manager = Arc::clone(&self.path_manager);
       tokio::spawn(async move {
         // A file is there as `lstat` sees it, so a dangling link counts.
-        let removed = absent_paths(&files, &missing, |path| {
+        let mut removed = absent_paths(&files, &missing, |path| {
           std::fs::symlink_metadata(path).is_ok()
         });
+        removed.retain(|path| !files_path_manager.is_known_absent(path));
         let changed = files
           .iter()
           .filter(|p| changed_since(p, start_time))

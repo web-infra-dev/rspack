@@ -1,15 +1,7 @@
-use rspack_collections::IdentifierSet;
-use rspack_core::{ChunkGraph, Compilation, DependencyId, Module, ModuleGraph};
-use rspack_hash::{RspackHash, RspackHasher};
-use rustc_hash::FxHashSet;
+use rspack_core::{Compilation, DependencyId, Module, ModuleGraph};
 use smol_str::SmolStr;
 
-use crate::{
-  dependency::{
-    CssIcssExportDependency, CssIcssImportDependency, CssIcssSymbolDependency, CssIcssSymbolKind,
-  },
-  utils::export_locals_convention,
-};
+use crate::{dependency::CssIcssExportDependency, utils::export_locals_convention};
 
 pub(crate) fn css_export_dependency<'a>(
   graph: &'a ModuleGraph,
@@ -62,51 +54,4 @@ pub(crate) fn find_css_export_target<'a>(
     .get_module_graph()
     .get_module_by_dependency_id(id)
     .map(|module| module.as_ref())
-}
-
-pub(crate) fn hash_icss_imports(
-  compilation: &Compilation,
-  module: &dyn Module,
-  hasher: &mut RspackHasher,
-) {
-  let graph = compilation.get_module_graph();
-  let mut pending = module
-    .get_dependencies()
-    .iter()
-    .filter_map(|dep| {
-      dep
-        .downcast_ref::<CssIcssSymbolDependency>()
-        .filter(|dep| dep.kind != CssIcssSymbolKind::LocalDeclaration)
-        .map(|dep| dep.target)
-    })
-    .collect::<Vec<_>>();
-  let mut seen = FxHashSet::default();
-  let mut modules = IdentifierSet::default();
-  while let Some(id) = pending.pop() {
-    if !seen.insert(id) {
-      continue;
-    }
-    let dep = graph.dependency_by_id(&id);
-    if let Some(dep) = dep.downcast_ref::<CssIcssExportDependency>() {
-      pending.extend(
-        dep
-          .references
-          .iter()
-          .map(|reference| reference.dependency_id),
-      );
-      pending.extend(dep.composes.iter().copied());
-    } else if let Some(dep) = dep.downcast_ref::<CssIcssImportDependency>()
-      && let Some(target) = find_css_export_target(compilation, &id)
-    {
-      let identifier = target.identifier();
-      if modules.insert(identifier) {
-        identifier.hash(hasher);
-        ChunkGraph::get_module_id(&compilation.module_ids_artifact, identifier).hash(hasher);
-        target.build_info().hash.hash(hasher);
-      }
-      if let Some(id) = find_export(target, dep.import_name()) {
-        pending.push(id);
-      }
-    }
-  }
 }

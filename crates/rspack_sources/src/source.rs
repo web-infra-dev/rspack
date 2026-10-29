@@ -458,8 +458,35 @@ impl SourceMap<'static> {
   /// Create a [SourceMap] from bytes.
   pub fn from_bytes(mut bytes: Vec<u8>) -> Result<Self> {
     let fields = {
-      let borrowed_value = simd_json::to_borrowed_value(bytes.as_mut_slice())?;
-      let fields = deserialize_source_map_fields(&borrowed_value)?;
+      let tape = simd_json::to_tape(bytes.as_mut_slice())?;
+      let value = tape.as_value();
+      let object = value
+        .as_object()
+        .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedMap))?;
+      let mut raw_fields = [None; 8];
+      let mut duplicate = false;
+      for (key, value) in object.iter() {
+        let index = match key {
+          "mappings" => 0,
+          "file" => 1,
+          "sources" => 2,
+          "sourcesContent" => 3,
+          "names" => 4,
+          "sourceRoot" => 5,
+          "debugId" => 6,
+          "ignoreList" => 7,
+          _ => continue,
+        };
+        duplicate |= raw_fields[index].replace(value).is_some();
+      }
+      let borrowed_value;
+      let fields = if duplicate {
+        // Keep the DOM parser's duplicate-key behavior, including feature-dependent handling.
+        borrowed_value = simd_json::value::lazy::Value::from_tape(value).into_value();
+        deserialize_source_map_fields(&borrowed_value)?
+      } else {
+        deserialize_source_map_tape_fields(raw_fields)?
+      };
       #[allow(unsafe_code)]
       // SAFETY: All borrowed strings in `fields` point into the stable backing
       // allocation of `bytes`; the returned SourceMap stores `bytes` in
@@ -742,6 +769,90 @@ impl Hash for SourceMap<'_> {
   }
 }
 
+fn deserialize_source_map_tape_fields<'a>(
+  fields: [Option<simd_json::tape::Value<'_, 'a>>; 8],
+) -> Result<SourceMapFields<'a>> {
+  let [
+    mappings,
+    file,
+    sources,
+    sources_content,
+    names,
+    source_root,
+    debug_id,
+    ignore_list,
+  ] = fields;
+  let mappings = mappings
+    .and_then(|value| value.into_string())
+    .map(Cow::Borrowed)
+    .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString))?;
+  Ok(SourceMapFields {
+    version: 3,
+    file: optional_tape_string(file)?,
+    sources: Cow::Owned(optional_tape_strings(sources)?),
+    sources_content: Cow::Owned(optional_tape_strings(sources_content)?),
+    names: Cow::Owned(optional_tape_strings(names)?),
+    mappings,
+    source_root: optional_tape_string(source_root)?,
+    debug_id: optional_tape_string(debug_id)?,
+    ignore_list: optional_tape_u32s(ignore_list)?,
+  })
+}
+
+fn optional_tape_string<'a>(
+  value: Option<simd_json::tape::Value<'_, 'a>>,
+) -> Result<Option<Cow<'a, str>>> {
+  let Some(value) = value.filter(|value| !value.is_null()) else {
+    return Ok(None);
+  };
+  value
+    .into_string()
+    .map(|value| Some(Cow::Borrowed(value)))
+    .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString).into())
+}
+
+fn optional_tape_strings<'a>(
+  value: Option<simd_json::tape::Value<'_, 'a>>,
+) -> Result<Vec<Cow<'a, str>>> {
+  let Some(value) = value.filter(|value| !value.is_null()) else {
+    return Ok(Vec::new());
+  };
+  value
+    .as_array()
+    .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedArray))?
+    .iter()
+    .map(|value| {
+      if value.is_null() {
+        Ok(Cow::Borrowed(""))
+      } else {
+        value
+          .into_string()
+          .map(Cow::Borrowed)
+          .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString).into())
+      }
+    })
+    .collect()
+}
+
+fn optional_tape_u32s<'a>(
+  value: Option<simd_json::tape::Value<'_, 'a>>,
+) -> Result<Option<Cow<'a, [u32]>>> {
+  let Some(value) = value.filter(|value| !value.is_null()) else {
+    return Ok(None);
+  };
+  value
+    .as_array()
+    .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedArray))?
+    .iter()
+    .map(|value| {
+      value
+        .as_u32()
+        .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedUnsigned).into())
+    })
+    .collect::<Result<Vec<_>>>()
+    .map(|value| Some(Cow::Owned(value)))
+}
+
 fn deserialize_source_map_fields<'a>(value: &'a BorrowedValue<'a>) -> Result<SourceMapFields<'a>> {
   let object = value
     .as_object()
@@ -802,6 +913,7 @@ fn optional_string_array_field<'a>(
     .as_array()
     .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedArray))?;
   values
+    .as_slice()
     .iter()
     .map(|value| {
       if value.is_null() {

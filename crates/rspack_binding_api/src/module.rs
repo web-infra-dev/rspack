@@ -6,7 +6,7 @@ use std::{
   sync::{Arc, Weak},
 };
 
-use napi::{CallContext, JsObject, JsString, JsSymbol, NapiRaw};
+use napi::{CallContext, JsObject, JsString, NapiRaw};
 use napi_derive::napi;
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
@@ -28,18 +28,12 @@ use crate::{
   chunk::ChunkWrapper,
   codegen_result::JsCodegenerationResults,
   compiler_scoped_tsfn::CompilerScopedTsFnHandle,
-  define_symbols,
   dependency::DependencyWrapper,
   modules::{ConcatenatedModule, ContextModule, ExternalModule, NormalModule},
   shared_properties::define_shared_properties,
   source::{JsSourceFromJs, JsSourceToJs, JsSourceWithLazyMap},
+  symbols,
 };
-
-define_symbols! {
-  MODULE_IDENTIFIER_SYMBOL => "rspack.module.identifier",
-  MODULE_BUILD_INFO_SYMBOL => "rspack.module.buildInfo",
-  COMPILATION_HOOKS_MAP_SYMBOL => "rspack.compilation.hooksMap",
-}
 
 #[napi(object)]
 pub struct JsLibIdentOptions {
@@ -149,14 +143,10 @@ fn module_build_info_getter(ctx: CallContext) -> napi::Result<Object> {
     return r.as_object(env);
   }
   let mut build_info = BuildInfo::new(reference.downgrade()).get_jsobject(env)?;
-  MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
-    let sym = unsafe {
-      #[allow(clippy::unwrap_used)]
-      let napi_val = ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
-      JsSymbol::from_napi_value(env.raw(), napi_val)
-    };
-    this.set_property(sym, build_info)
-  })?;
+  this.set_property(
+    env.symbol_for(symbols::MODULE_BUILD_INFO_SYMBOL)?,
+    build_info,
+  )?;
   let r = WeakRef::new(raw_env, &mut build_info)?;
   let result = r.as_object(env);
   reference.build_info_ref = Some(r);
@@ -192,14 +182,10 @@ fn module_build_info_setter(ctx: CallContext) -> napi::Result<()> {
     }
   }
 
-  MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
-    let sym = unsafe {
-      #[allow(clippy::unwrap_used)]
-      let napi_val = ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
-      JsSymbol::from_napi_value(env.raw(), napi_val)
-    };
-    this.set_property(sym, new_instance)
-  })?;
+  this.set_property(
+    env.symbol_for(symbols::MODULE_BUILD_INFO_SYMBOL)?,
+    new_instance,
+  )?;
   reference.build_info_ref = Some(WeakRef::new(raw_env, &mut new_instance)?);
   Ok(())
 }
@@ -247,18 +233,13 @@ pub(crate) fn define_module_properties(
         .with_utf8_name("buildMeta")?
         .with_value(&Object::new(env)?),
     );
-    MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
-      let identifier = env.create_string(module.identifier().as_str())?;
-      #[allow(clippy::unwrap_used)]
-      let symbol = once_cell.get().unwrap();
-      properties.push(
-        Property::new()
-          .with_name(env, symbol)?
-          .with_value(&identifier)
-          .with_property_attributes(PropertyAttributes::Configurable),
-      );
-      Ok::<(), napi::Error>(())
-    })?;
+    let identifier = env.create_string(module.identifier().as_str())?;
+    properties.push(
+      Property::new()
+        .with_name(env, env.symbol_for(symbols::MODULE_IDENTIFIER_SYMBOL)?)?
+        .with_value(&identifier)
+        .with_property_attributes(PropertyAttributes::Configurable),
+    );
 
     object.define_properties(properties)
   })
@@ -517,9 +498,9 @@ impl Module {
 
   #[napi]
   pub fn size(&mut self, ty: Option<String>) -> napi::Result<f64> {
-    self.with_ref(|compilation, module| {
+    self.with_ref(|_compilation, module| {
       let ty = ty.map(|s| SourceType::from(s.as_str()));
-      Ok(module.size(ty.as_ref(), Some(compilation)))
+      Ok(module.size(ty.as_ref()))
     })
   }
 
@@ -544,7 +525,7 @@ impl Module {
   #[napi(
     js_name = "_emitFile",
     enumerable = false,
-    ts_args_type = "filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null"
+    ts_args_type = "filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null"
   )]
   pub fn emit_file(
     &mut self,

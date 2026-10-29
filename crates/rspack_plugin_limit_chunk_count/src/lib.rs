@@ -80,6 +80,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let mut new_chunk_group_by_ukey =
     std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
   let mut new_chunk_graph = std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_graph);
+  let mut new_named_chunks =
+    std::mem::take(&mut compilation.build_chunk_graph_artifact.named_chunks);
 
   //    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph.clone();
   let module_graph = compilation.get_module_graph();
@@ -208,6 +210,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         &b,
         &mut new_chunk_by_ukey,
         &mut new_chunk_group_by_ukey,
+        &mut new_named_chunks,
         module_graph,
       );
       integrated_chunks.insert(a);
@@ -301,6 +304,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   compilation.build_chunk_graph_artifact.chunk_by_ukey = new_chunk_by_ukey;
   compilation.build_chunk_graph_artifact.chunk_group_by_ukey = new_chunk_group_by_ukey;
   compilation.build_chunk_graph_artifact.chunk_graph = new_chunk_graph;
+  compilation.build_chunk_graph_artifact.named_chunks = new_named_chunks;
 
   if let Some(mut mutations) = compilation.incremental.mutations_write() {
     // ChunkRemove mutations must be added last because a chunk can be removed after another chunk

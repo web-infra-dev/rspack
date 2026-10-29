@@ -207,6 +207,22 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         )
         && let UsedName::Normal(used) = used
       {
+        let local = Atom::from(name);
+        let is_mutated = module.build_info().mutated_bindings.contains(&local);
+        let is_deferred = compilation.get_module_graph().is_deferred(
+          &compilation.imported_by_defer_modules_artifact,
+          &module_identifier,
+        );
+        let has_direct_eval = module.build_info().has_direct_eval;
+        let binding = if matches!(is_circular_module, Some(false))
+          && !is_mutated
+          && !is_deferred
+          && !has_direct_eval
+        {
+          ESMExportBinding::Value(Atom::from(format!("/* export default binding */ {name}")))
+        } else {
+          ESMExportBinding::Getter(Atom::from(format!("/* export default binding */ {name}")))
+        };
         init_fragments.push(Box::new(ESMExportInitFragment::new(
           module.get_exports_argument(),
           vec![(
@@ -216,7 +232,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
               .collect_vec()
               .join("")
               .into(),
-            ESMExportBinding::Getter(Atom::from(format!("/* export default binding */ {name}"))),
+            binding,
           )],
           is_circular_module,
         )));
@@ -250,11 +266,17 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       {
         if let UsedName::Normal(used) = used {
           if supports_const {
-            let binding = if matches!(is_circular_module, Some(false)) {
-              ESMExportBinding::Value(DEFAULT_EXPORT.into())
-            } else {
-              ESMExportBinding::Getter(DEFAULT_EXPORT.into())
-            };
+            let is_deferred = compilation.get_module_graph().is_deferred(
+              &compilation.imported_by_defer_modules_artifact,
+              &module_identifier,
+            );
+            let has_direct_eval = module.build_info().has_direct_eval;
+            let binding =
+              if matches!(is_circular_module, Some(false)) && !is_deferred && !has_direct_eval {
+                ESMExportBinding::Value(DEFAULT_EXPORT.into())
+              } else {
+                ESMExportBinding::Getter(DEFAULT_EXPORT.into())
+              };
             init_fragments.push(Box::new(ESMExportInitFragment::new(
               module.get_exports_argument(),
               vec![(

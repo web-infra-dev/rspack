@@ -8,7 +8,7 @@
  * https://github.com/webpack/loader-runner/blob/main/LICENSE
  */
 import querystring from 'node:querystring';
-import binding, {
+import {
   formatDiagnostic,
   type JsLoaderContext,
   type JsLoaderItem,
@@ -71,6 +71,7 @@ import {
   loadLoader,
   runSyncOrAsync,
 } from './utils';
+import { MODULE_BUILD_INFO_SYMBOL } from '../util/symbols';
 
 const LOADER_PROCESS_NAME = 'Loader Analysis';
 const IS_WASM = Boolean(process.env.WASM);
@@ -1251,7 +1252,7 @@ export async function runLoaders(
 
   if (
     compiler.options?.cache &&
-    Object.hasOwn(context._module, binding.MODULE_BUILD_INFO_SYMBOL)
+    Object.hasOwn(context._module, MODULE_BUILD_INFO_SYMBOL)
   ) {
     commitCustomFieldsToRust(context._module.buildInfo);
   }

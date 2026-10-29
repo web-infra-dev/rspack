@@ -85,6 +85,8 @@ export default {
 
 定义当前应用共享依赖的命名空间。通过在不同的应用之间配置命名空间，可以控制模块的共享行为，包括确定哪些模块在不同的应用之间是共享的。默认的命名空间为 `"default"`。
 
+暴露模块或使用远程模块时，`shareScope` 数组必须包含至少一个元素。这也适用于 `remotes[name].shareScope`。
+
 ### shareStrategy
 
 - 类型：`'version-first' | 'loaded-first'`
@@ -283,7 +285,7 @@ export default {
 
 - 构建产物中存在未降级语法？
 
-  如果你需要兼容低版本浏览器，请添加 [builtin:swc-loader](/guide/features/builtin-swc-loader) 进行语法降级，需要匹配 `@module-federation` scope 下的 npm 包。示例如下：
+  如果你需要兼容低版本浏览器，请添加 [builtin:swc-loader](/guide/builtin-loaders/swc-loader) 进行语法降级，需要匹配 `@module-federation` scope 下的 npm 包。示例如下：
 
   ```js title="rspack.config.mjs"
   export default {
