@@ -236,8 +236,8 @@ catalogs:
       specifier: ^13.0.6
       version: 13.0.6
     heading-case:
-      specifier: ^2.0.2
-      version: 2.0.2
+      specifier: ^2.0.3
+      version: 2.0.3
     html-loader:
       specifier: ^5.1.0
       version: 5.1.0
@@ -469,7 +469,7 @@ importers:
         version: 10.1.0
       heading-case:
         specifier: 'catalog:'
-        version: 2.0.2(prettier@3.9.10)
+        version: 2.0.3(prettier@3.9.10)
       prettier-plugin-toml:
         specifier: 'catalog:'
         version: 2.0.6(prettier@3.9.10)
@@ -5460,8 +5460,8 @@ packages:
   hastscript@9.0.1:
     resolution: {integrity: sha512-g7df9rMFX/SPi34tyGCyUBREQoKkapwdY/T04Qn9TDWfHhAYt4/I0gMVirzK5wEzeUqIjEB+LXC/ypb7Aqno5w==}
 
-  heading-case@2.0.2:
-    resolution: {integrity: sha512-wP5GB7itAbhvu8Qb7o1JdiE56csfkycq2i2rSq+TkzF9I888d2bUiJDOjtnZmHPdsKvfl9qQhShnM15umslBHA==}
+  heading-case@2.0.3:
+    resolution: {integrity: sha512-fx/bz8ogyEGudzfI8QOh7O6sAuZKU19E5N+D03rz1v8Ib0LiPyK78zKWDrbFD2QhfMhZVr8J4g4NRdnyiz2Tww==}
     hasBin: true
     peerDependencies:
       prettier: ^3.0.0
@@ -11883,7 +11883,7 @@ snapshots:
       property-information: 7.2.0
       space-separated-tokens: 2.0.2
 
-  heading-case@2.0.2(prettier@3.9.10):
+  heading-case@2.0.3(prettier@3.9.10):
     dependencies:
       prettier: 3.9.10
 

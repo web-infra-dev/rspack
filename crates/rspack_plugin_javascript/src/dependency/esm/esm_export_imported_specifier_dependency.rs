@@ -602,12 +602,11 @@ impl ESMExportImportedSpecifierDependency {
           && let Some(target_module) = target_module
           && !target_module.build_meta().has_top_level_await()
         {
-          let exports_type = get_exports_type(
+          let exports_type = target_module.get_exports_type(
             mg,
             mg_cache,
             exports_info_artifact,
-            &self.id,
-            &module_identifier,
+            module.get_strict_esm_module(),
           );
           let (namespace_cache, namespace_expr) = self
             .get_reexport_deferred_namespace_object_fragments(
@@ -647,12 +646,11 @@ impl ESMExportImportedSpecifierDependency {
           && let Some(target_module) = target_module
           && !target_module.build_meta().has_top_level_await()
         {
-          let exports_type = get_exports_type(
+          let exports_type = target_module.get_exports_type(
             mg,
             mg_cache,
             exports_info_artifact,
-            &self.id,
-            &module_identifier,
+            module.get_strict_esm_module(),
           );
           let (namespace_cache, namespace_expr) = self
             .get_reexport_deferred_namespace_object_fragments(

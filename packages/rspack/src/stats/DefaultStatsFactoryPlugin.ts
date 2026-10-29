@@ -875,6 +875,14 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
       const statsCompilation = context.getStatsCompilation(compilation);
       object.hash = statsCompilation.hash;
     },
+    cacheInfo: (object, compilation, context: KnownStatsFactoryContext) => {
+      const { cacheInfo } = context.getStatsCompilation(compilation);
+      if (cacheInfo) {
+        object.cacheInfo = Object.fromEntries(
+          Object.entries(cacheInfo).sort(([a], [b]) => a.localeCompare(b)),
+        );
+      }
+    },
     version: (object) => {
       object.version = WEBPACK_VERSION;
       object.rspackVersion = RSPACK_VERSION;

@@ -76,6 +76,12 @@ export interface JsSource {
 	map?: string
 }
 
+export type JsSourceFromJs =
+	| { kind: "raw"; content: string | Buffer; map?: string }
+	| { kind: "native"; handle: JsNativeSource }
+	| { kind: "concat"; children: JsSourceFromJs[] }
+	| { kind: "replace"; original: JsSourceFromJs; replacements: JsReplaceSourceEdit[]; fallback: () => JsSourceFromJs }
+
 export type CompilerId = void;
 /* -- banner.d.ts end -- */
 

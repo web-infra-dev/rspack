@@ -323,6 +323,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         let create_link_raw = context.runtime_template.render(
           &self.template_id(TemplateId::CreateLink),
           Some(serde_json::json!({
+            "_with_hmr": with_hmr,
             "_with_fetch_priority": with_fetch_priority,
             "_cross_origin": match &compilation.options.output.cross_origin_loading {
               CrossOriginLoading::Disable => String::new(),

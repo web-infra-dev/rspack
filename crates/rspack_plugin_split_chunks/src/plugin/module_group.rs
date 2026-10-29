@@ -877,6 +877,7 @@ impl SplitChunksPlugin {
   pub(crate) fn find_best_module_group(
     &self,
     module_group_map: &mut ModuleGroupMap,
+    module_sizes: &ModuleSizes,
   ) -> Option<(ModuleGroupKey, ModuleGroup)> {
     let mut best_entry_index = module_group_map
       .iter()
@@ -886,7 +887,11 @@ impl SplitChunksPlugin {
         .get_disjoint_indices_mut([entry_index, best_entry_index])
         .expect("entry indices should be valid and unique");
       if entry.selectable()
-        && compare_entries((entry_key, entry), (best_entry_key, best_entry)) > 0f64
+        && compare_entries(
+          (entry_key, entry),
+          (best_entry_key, best_entry),
+          module_sizes,
+        ) > 0f64
       {
         best_entry_index = entry_index;
       }

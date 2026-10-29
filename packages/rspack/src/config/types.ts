@@ -1768,6 +1768,7 @@ type AllowTarget =
   | 'es2023'
   | 'es2024'
   | 'es2025'
+  | 'es2026'
   | 'node'
   | 'async-node'
   | `node${number}`
@@ -2292,6 +2293,10 @@ export type StatsOptions = {
    * @default true
    */
   assets?: boolean;
+  /**
+   * Includes cache hit, miss, reuse, and store counts by cache name.
+   */
+  cacheInfo?: boolean;
   /**
    * Enables or disables the display of chunk stats.
    * @default true

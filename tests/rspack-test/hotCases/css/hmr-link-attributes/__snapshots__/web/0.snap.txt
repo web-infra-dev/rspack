@@ -1,4 +1,4 @@
-# Case hmr-keep-media: Step 0
+# Case hmr-link-attributes: Step 0
 
 ## Changed Files
 
