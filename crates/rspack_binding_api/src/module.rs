@@ -64,8 +64,10 @@ pub(crate) trait DerivedModule {
 
 #[js_function]
 fn module_context_getter(ctx: CallContext) -> napi::Result<Either<String, ()>> {
+  // All native references stay inside this synchronous callback.
+  let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
   let this = ctx.this_unchecked::<JsObject>();
-  let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
+  let wrapped_value = unsafe { module_from_napi_mut_ref(ctx.env.raw(), this.raw())? };
   wrapped_value.with_ref(|_, module| {
     Ok(match module.get_context() {
       Some(ctx) => Either::A(ctx.to_string()),
@@ -76,9 +78,11 @@ fn module_context_getter(ctx: CallContext) -> napi::Result<Either<String, ()>> {
 
 #[js_function]
 fn module_layer_getter(ctx: CallContext<'_>) -> napi::Result<Either<JsString<'_>, ()>> {
+  // All native references stay inside this synchronous callback.
+  let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
   let this = ctx.this_unchecked::<JsObject>();
   let env = ctx.env;
-  let wrapped_value = unsafe { Module::from_napi_mut_ref(env.raw(), this.raw())? };
+  let wrapped_value = unsafe { module_from_napi_mut_ref(env.raw(), this.raw())? };
   wrapped_value.with_ref(|_, module| {
     Ok(match module.get_layer() {
       Some(layer) => Either::A(env.create_string(layer)?),
@@ -89,22 +93,28 @@ fn module_layer_getter(ctx: CallContext<'_>) -> napi::Result<Either<JsString<'_>
 
 #[js_function]
 fn module_use_source_map_getter(ctx: CallContext) -> napi::Result<bool> {
+  // All native references stay inside this synchronous callback.
+  let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
   let this = ctx.this_unchecked::<JsObject>();
-  let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
+  let wrapped_value = unsafe { module_from_napi_mut_ref(ctx.env.raw(), this.raw())? };
   wrapped_value.with_ref(|_, module| Ok(module.get_source_map_kind().source_map()))
 }
 
 #[js_function]
 fn module_use_simple_source_map_getter(ctx: CallContext) -> napi::Result<bool> {
+  // All native references stay inside this synchronous callback.
+  let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
   let this = ctx.this_unchecked::<JsObject>();
-  let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
+  let wrapped_value = unsafe { module_from_napi_mut_ref(ctx.env.raw(), this.raw())? };
   wrapped_value.with_ref(|_, module| Ok(module.get_source_map_kind().simple_source_map()))
 }
 
 #[js_function]
 fn module_factory_meta_getter(ctx: CallContext) -> napi::Result<JsFactoryMeta> {
+  // All native references stay inside this synchronous callback.
+  let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
   let this = ctx.this_unchecked::<JsObject>();
-  let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
+  let wrapped_value = unsafe { module_from_napi_mut_ref(ctx.env.raw(), this.raw())? };
   wrapped_value.with_ref(|_, module| {
     Ok(match module.as_normal_module() {
       Some(normal_module) => match normal_module.factory_meta() {
@@ -124,8 +134,10 @@ fn module_factory_meta_getter(ctx: CallContext) -> napi::Result<JsFactoryMeta> {
 
 #[js_function(1)]
 fn module_factory_meta_setter(ctx: CallContext) -> napi::Result<()> {
+  // All native references stay inside this synchronous callback.
+  let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
   let this = ctx.this_unchecked::<JsObject>();
-  let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
+  let wrapped_value = unsafe { module_from_napi_mut_ref(ctx.env.raw(), this.raw())? };
   let module = wrapped_value.as_mut()?;
   let factory_meta = ctx.get::<JsFactoryMeta>(0)?;
   module.set_factory_meta(factory_meta.into());
@@ -134,15 +146,17 @@ fn module_factory_meta_setter(ctx: CallContext) -> napi::Result<()> {
 
 #[js_function]
 fn module_build_info_getter(ctx: CallContext) -> napi::Result<Object> {
+  // All native references stay inside this synchronous callback.
+  let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
   let mut this = ctx.this_unchecked::<JsObject>();
   let env = ctx.env;
   let raw_env = env.raw();
-  let mut reference: Reference<Module> =
-    unsafe { Reference::from_napi_value(raw_env, this.raw())? };
+  let module_reference = unsafe { ModuleWeakReference::from_napi_value(raw_env, this.raw())? };
+  let reference = unsafe { module_from_napi_mut_ref(raw_env, this.raw())? };
   if let Some(r) = &reference.build_info_ref {
     return r.as_object(env);
   }
-  let mut build_info = BuildInfo::new(reference.downgrade()).get_jsobject(env)?;
+  let mut build_info = BuildInfo::new(module_reference).get_jsobject(env)?;
   this.set_property(
     env.symbol_for(symbols::MODULE_BUILD_INFO_SYMBOL)?,
     build_info,
@@ -155,13 +169,15 @@ fn module_build_info_getter(ctx: CallContext) -> napi::Result<Object> {
 
 #[js_function(1)]
 fn module_build_info_setter(ctx: CallContext) -> napi::Result<()> {
+  // All native references stay inside this synchronous callback.
+  let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
   let mut this = ctx.this_unchecked::<JsObject>();
   let input_object = ctx.get::<Object>(0)?;
   let env = ctx.env;
   let raw_env = env.raw();
-  let mut reference: Reference<Module> =
-    unsafe { Reference::from_napi_value(raw_env, this.raw())? };
-  let new_build_info = BuildInfo::new(reference.downgrade());
+  let module_reference = unsafe { ModuleWeakReference::from_napi_value(raw_env, this.raw())? };
+  let reference = unsafe { module_from_napi_mut_ref(raw_env, this.raw())? };
+  let new_build_info = BuildInfo::new(module_reference);
   let mut new_instance = new_build_info.get_jsobject(env)?;
 
   let names = input_object.get_all_property_names(
@@ -583,6 +599,75 @@ type ModuleInstanceMutRef<'a> = Either5<
   &'a mut Module,
 >;
 
+// Shared Module accessors run on several distinct napi classes. Unwrap the
+// concrete class first; its embedded Module does not have the same type tag.
+unsafe fn module_from_napi_mut_ref<'a>(
+  env: sys::napi_env,
+  value: sys::napi_value,
+) -> napi::Result<&'a mut Module> {
+  let instance: ModuleInstanceMutRef = unsafe { FromNapiValue::from_napi_value(env, value)? };
+  Ok(match instance {
+    Either5::A(module) => &mut module.module,
+    Either5::B(module) => &mut module.module,
+    Either5::C(module) => &mut module.module,
+    Either5::D(module) => &mut module.module,
+    Either5::E(module) => module,
+  })
+}
+
+// Cloning this reference only clones the weak finalizer handle. It neither
+// copies the module nor keeps its JavaScript wrapper alive.
+#[derive(Clone)]
+pub(crate) struct ModuleWeakReference(
+  Either5<
+    WeakReference<NormalModule>,
+    WeakReference<ConcatenatedModule>,
+    WeakReference<ContextModule>,
+    WeakReference<ExternalModule>,
+    WeakReference<Module>,
+  >,
+);
+
+impl ModuleWeakReference {
+  unsafe fn from_napi_value(env: sys::napi_env, value: sys::napi_value) -> napi::Result<Self> {
+    // Validation must not create an &Module borrow: napi keeps conversion
+    // borrows alive for the callback, which would conflict with its mutable access.
+    unsafe {
+      if <&NormalModule>::validate(env, value).is_ok() {
+        Ok(Self(Either5::A(
+          Reference::<NormalModule>::from_napi_value(env, value)?.downgrade(),
+        )))
+      } else if <&ConcatenatedModule>::validate(env, value).is_ok() {
+        Ok(Self(Either5::B(
+          Reference::<ConcatenatedModule>::from_napi_value(env, value)?.downgrade(),
+        )))
+      } else if <&ContextModule>::validate(env, value).is_ok() {
+        Ok(Self(Either5::C(
+          Reference::<ContextModule>::from_napi_value(env, value)?.downgrade(),
+        )))
+      } else if <&ExternalModule>::validate(env, value).is_ok() {
+        Ok(Self(Either5::D(
+          Reference::<ExternalModule>::from_napi_value(env, value)?.downgrade(),
+        )))
+      } else {
+        Ok(Self(Either5::E(
+          Reference::<Module>::from_napi_value(env, value)?.downgrade(),
+        )))
+      }
+    }
+  }
+
+  pub(crate) fn get_mut(&mut self) -> Option<&mut Module> {
+    match &mut self.0 {
+      Either5::A(reference) => reference.get_mut().map(|module| &mut module.module),
+      Either5::B(reference) => reference.get_mut().map(|module| &mut module.module),
+      Either5::C(reference) => reference.get_mut().map(|module| &mut module.module),
+      Either5::D(reference) => reference.get_mut().map(|module| &mut module.module),
+      Either5::E(reference) => reference.get_mut(),
+    }
+  }
+}
+
 type ModuleInstanceNapiRefs = IdentifierMap<ModuleInstanceNapiRef>;
 
 type ModuleInstanceNapiRefsByCompilerId = RefCell<FxHashMap<CompilerId, ModuleInstanceNapiRefs>>;
@@ -750,6 +835,8 @@ impl ToNapiValue for ModuleObject {
 impl FromNapiValue for ModuleObject {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
     unsafe {
+      // Only copied identifiers and pointers escape this conversion.
+      let _borrow_scope = NativeBorrowScope::new();
       let instance: ModuleInstanceMutRef = FromNapiValue::from_napi_value(env, napi_val)?;
 
       Ok(match instance {
@@ -796,6 +883,8 @@ pub struct ModuleObjectRef {
 impl FromNapiValue for ModuleObjectRef {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
     unsafe {
+      // Only copied identifiers and pointers escape this conversion.
+      let _borrow_scope = NativeBorrowScope::new();
       let instance: ModuleInstanceRef = FromNapiValue::from_napi_value(env, napi_val)?;
 
       Ok(match instance {

@@ -59,10 +59,12 @@
       "riscv64gc-unknown-linux-gnu",
       "riscv64gc-unknown-linux-musl",
       "powerpc64le-unknown-linux-gnu",
-      "s390x-unknown-linux-gnu"
+      "s390x-unknown-linux-gnu",
+      "wasm32-wasip1-threads"
     ],
     "wasm": {
-      "initialMemory": 16384,
+      "initialMemory": 32768,
+      "maximumMemory": 32768,
       "browser": {
         "fs": true,
         "asyncInit": true,
