@@ -276,14 +276,12 @@ When CSS or images are hosted on a CDN or another external service, you may want
 
 Rspack adds the `css-import` and `asset-url` [external](/config/externals) types to keep specified [CSS references external](/guide/languages/css#external-resources). For example, configure stylesheets and an image as externals:
 
-```js title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   externals: {
     'normalize.css': 'css-import normalize.css',
-    'https://cdn.example.com/theme.css':
-      'css-import https://cdn.example.com/theme.css',
-    'https://cdn.example.com/logo.png':
-      'asset-url https://cdn.example.com/logo.png',
+    'https://example.com/a.css': 'css-import https://example.com/a.css',
+    'https://example.com/a.png': 'asset-url https://example.com/a.png',
   },
 };
 ```
@@ -292,10 +290,10 @@ Reference these external resources in CSS:
 
 ```css title="styles.css"
 @import 'normalize.css';
-@import url('https://cdn.example.com/theme.css');
+@import url('https://example.com/a.css');
 
 .logo {
-  background-image: url('https://cdn.example.com/logo.png');
+  background-image: url('https://example.com/a.png');
 }
 ```
 
