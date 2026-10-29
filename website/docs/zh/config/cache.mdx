@@ -224,6 +224,8 @@ export default {
 
 在其他位置恢复缓存时，只有根目录内的路径会被重定位，根目录外的路径保持原样。
 
+只有在项目布局相同时才会复用可移植缓存：`context` 在根目录中的位置相同，根目录与其真实路径的关系也相同。整体移动根目录（例如同一仓库的另一个 Git worktree）会保持布局不变。将包移动到仓库中的其他目录、添加或删除决定默认根目录的 `.git`，或者从其他位置的符号链接访问项目，都会开始一个新的缓存。布局不同的两个项目不应共用同一个缓存 [name](#name) 和 [storage](#storage) 位置。可移植缓存也不能在 Windows 与其他操作系统之间共享。
+
 当 `portable` 为 `false` 时，缓存与项目的 [context](/config/context) 绑定。复制或共享到其他路径下的项目时，缓存会被视为失效，Rspack 会重新构建缓存。
 
 [experiments.newCache](/config/experiments#experimentsnewcache) 启用的缓存后端尚不支持路径转换，因此即使 `portable` 为 `true`，它也始终与项目 context 绑定。

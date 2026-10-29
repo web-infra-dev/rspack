@@ -1,4 +1,5 @@
 use std::{
+  fmt::Write,
   hash::{Hash, Hasher},
   path::Path,
   sync::Arc,
@@ -11,7 +12,7 @@ use rspack_cacheable::{
   utils::root_patterns,
 };
 use rspack_error::Result;
-use rspack_paths::Utf8Path;
+use rspack_paths::{Utf8Component, Utf8Path};
 use rustc_hash::FxHasher;
 
 use crate::PortableRoot;
@@ -99,18 +100,37 @@ impl CacheCodec {
     }
   }
 
-  /// The cache version to store and compare on restore.
+  /// The cache version to store and compare on restore. It is the only place that decides which
+  /// environments may share a cache, and both cache backends use it.
   ///
-  /// Without a portable project root, encoded data holds absolute paths under `context`,
-  /// so a cache moved or shared to another root must fail validation instead of
-  /// restoring the other root's paths. Portable entries use the `BoundEntry`
-  /// envelope, so the two encodings must not share a cache either.
+  /// Without a portable root, encoded data holds absolute paths under `context`, so a cache moved
+  /// or shared to another context must fail validation instead of restoring the other context's
+  /// paths.
+  ///
+  /// With a portable root, paths are rebased under the reader's root, but some cached values are
+  /// relative to `context` rather than to the root (`__dirname` with `node.__dirname: true`, CSS
+  /// local identifiers). They match only where `context`, the root and its real path have the same
+  /// layout, so the version records that layout without the location that contains it. Portable
+  /// markers are also specific to the host's path syntax, so the version records it too.
+  ///
+  /// Fields are length-prefixed, so a `|` in `version` or in a path cannot make two different
+  /// environments render the same version.
   pub fn validation_version(&self, version: &str, context: &Utf8Path) -> String {
-    if self.context.portable_root.is_some() {
-      format!("{version}|portable")
-    } else {
-      format!("{version}|{context}")
+    let mut fields = vec![version];
+    let layout;
+    match &self.context.portable_root {
+      None => fields.extend(["absolute", context.as_str()]),
+      Some(portable_root) => {
+        layout = portable_layout(&portable_root.root, &portable_root.canonical_root, context);
+        fields.extend(["portable", if cfg!(windows) { "windows" } else { "posix" }]);
+        fields.extend(layout.iter().map(String::as_str));
+      }
     }
+    let mut rendered = String::new();
+    for field in fields {
+      let _ = write!(rendered, "{}:{field}|", field.len());
+    }
+    rendered
   }
 
   pub fn is_portable(&self) -> bool {
@@ -173,4 +193,44 @@ impl CacheCodec {
   {
     from_bytes(bytes, &self.context).map_err(rspack_error::Error::from_error)
   }
+}
+
+/// `root`, `canonical_root` and `context`, each as the components below their longest common
+/// ancestor. Two environments with the same layout differ only in where that ancestor is, so a
+/// path relative to any of the three is the same in both. Without a common ancestor (different
+/// Windows prefixes) the absolute paths are the layout.
+fn portable_layout(root: &Utf8Path, canonical_root: &Utf8Path, context: &Utf8Path) -> [String; 3] {
+  let paths = [root, canonical_root, context];
+  let components: Vec<Vec<Utf8Component>> = paths
+    .iter()
+    .map(|path| path.components().collect())
+    .collect();
+  let common = (0..)
+    .take_while(|&index| {
+      components[0].get(index).is_some_and(|first| {
+        components[1..]
+          .iter()
+          .all(|other| other.get(index) == Some(first))
+      })
+    })
+    .count();
+  if common == 0 {
+    return paths.map(|path| path.as_str().to_string());
+  }
+  let below = |components: &Vec<Utf8Component>| {
+    let below: Vec<&str> = components[common..]
+      .iter()
+      .map(Utf8Component::as_str)
+      .collect();
+    if below.is_empty() {
+      ".".to_string()
+    } else {
+      below.join("/")
+    }
+  };
+  [
+    below(&components[0]),
+    below(&components[1]),
+    below(&components[2]),
+  ]
 }
