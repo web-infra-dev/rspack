@@ -84,10 +84,10 @@ We are gradually migrating SWC's modules to this architecture and replacing Rspa
 
 The following benchmarks compare parsing time and instruction counts in Rspack before and after integrating SWC Next:
 
-| Project   | Parsing time                    | Instructions                     |
-| --------- | ------------------------------- | -------------------------------- |
-| three.js  | 23.6 ms → 20.1 ms (**−14.9%**)  | 205.2 M → 155.1 M (**−24.4%**)   |
-| React 10k | 207.2 ms → 193.9 ms (**−6.4%**) | 1597.7 M → 1421.3 M (**−11.0%**) |
+| Project   | Parsing time              | Instructions               |
+| --------- | ------------------------- | -------------------------- |
+| three.js  | 23 ms → 20 ms (**−14%**)  | 205 M → 155 M (**−24%**)   |
+| React 10k | 207 ms → 193 ms (**−6%**) | 1597 M → 1421 M (**−11%**) |
 
 The next step for SWC Next is to let developers write high-performance transform plugins in JavaScript. Today, custom code transformations typically rely on Babel plugins or SWC Wasm plugins. We want developers to benefit from Rust's performance while retaining the flexibility of writing plugins in JavaScript.
 
@@ -122,10 +122,10 @@ To reduce duplication, Rspack 2.3 introduces several optimizations that produce 
 
 The following table compares the Brotli-compressed output sizes of two large real-world projects before and after enabling `dedupDepth: 1`:
 
-| Project                   | Before  | After   | Saved  | Reduction |
-| ------------------------- | ------- | ------- | ------ | --------- |
-| Project A (client JS/CSS) | 23.2 MB | 22.7 MB | 550 KB | **2.4%**  |
-| Project B (client JS/CSS) | 40.0 MB | 36.0 MB | 4.0 MB | **9.9%**  |
+| Project   | Before  | After   | Saved  | Reduction |
+| --------- | ------- | ------- | ------ | --------- |
+| Project A | 23.2 MB | 22.7 MB | 550 KB | **2.4%**  |
+| Project B | 40.0 MB | 36.0 MB | 4.0 MB | **9.9%**  |
 
 ## New cache implementation \{#cache-improvements}
 
