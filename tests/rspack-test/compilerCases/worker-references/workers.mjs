@@ -1,3 +1,6 @@
+import { writeSync } from 'node:fs';
+import { threadId } from 'node:worker_threads';
+const trace = (stage) => writeSync(2, `TRACE ${threadId} ${stage}\n`);
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { Worker } from 'node:worker_threads';
@@ -9,16 +12,21 @@ export default async function run(mode) {
       execArgv: [],
     });
     workers.push(worker);
+    trace(`spawned ${worker.threadId}`);
+    worker.on('exit', code => trace(`worker exited ${code}`));
     assert.deepEqual(await once(worker, 'message'), ['ready']);
+    trace(`ready ${worker.threadId}`);
     return worker;
   };
   const build = async (worker) => {
     const built = once(worker, 'message');
+    trace(`rebuilding ${worker.threadId}`);
     worker.postMessage('build');
     assert.deepEqual(await built, ['built']);
   };
   const close = async (worker) => {
     const exited = once(worker, 'exit');
+    trace(`closing ${worker.threadId}`);
     worker.postMessage('close');
     assert.deepEqual(await exited, [0]);
   };
@@ -42,6 +50,8 @@ export default async function run(mode) {
     await Promise.all([build(second), build(third)]);
     await Promise.all([close(second), close(third)]);
   } finally {
+    trace('finally terminating remaining workers');
     await Promise.all(workers.map((worker) => worker.terminate()));
+    trace('finally completed');
   }
 }
