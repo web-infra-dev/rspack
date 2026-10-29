@@ -1,0 +1,9 @@
+<%- var("chunkGroups") %> = <%- _groups %>;
+<%- ENSURE_CHUNK_HANDLERS %>.group = function (chunkId, promises, fetchPriority) {
+	var siblings = chunkGroups[chunkId];
+	if (!siblings) return;
+	var keys = Object.keys(<%- ENSURE_CHUNK_HANDLERS %>).filter(function (key) { return key !== "group"; });
+	siblings.forEach(function (id) {
+		keys.forEach(function (key) { <%- ENSURE_CHUNK_HANDLERS %>[key](id, promises, fetchPriority); });
+	});
+};

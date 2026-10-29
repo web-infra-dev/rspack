@@ -8,7 +8,7 @@
 - Bundle: chunk1_js.chunk.CURRENT_HASH.js
 - Manifest: [runtime of chunk2_js].LAST_HASH.hot-update.json, size: 60
 - Manifest: main.LAST_HASH.hot-update.json, size: 41
-- Update: main.LAST_HASH.hot-update.js, size: 18632
+- Update: main.LAST_HASH.hot-update.js, size: 19245
 
 ## Manifest
 
@@ -167,6 +167,7 @@ var hotCurrentUpdateChunks;
 var hotCurrentUpdate;
 var hotCurrentUpdateRemovedChunks;
 var hotCurrentUpdateRuntime;
+var hotCurrentUpdateSupplied;
 function hotApplyHandler(options) {
 	if (__webpack_require__.f) delete __webpack_require__.f.jsonpHmr;
 	hotCurrentUpdateChunks = undefined;
@@ -266,6 +267,13 @@ function hotApplyHandler(options) {
 		throw Error("RuntimeError: factory is undefined(" + module.id + ")");
 	};
 
+	if (hotCurrentUpdateSupplied) {
+		hotCurrentUpdateSupplied.forEach(function (moduleId) {
+			var module = __webpack_require__.c[moduleId];
+			if (module && !module.hot._selfInvalidated) delete hotCurrentUpdate[moduleId];
+		});
+		hotCurrentUpdateSupplied = undefined;
+	}
 	for (var moduleId in hotCurrentUpdate) {
 		if (__webpack_require__.o(hotCurrentUpdate, moduleId)) {
 			var newModuleFactory = hotCurrentUpdate[moduleId];
@@ -591,7 +599,11 @@ __webpack_require__.hmrC.jsonp = function (
 	removedModules,
 	promises,
 	applyHandlers,
-	updatedModulesList
+	updatedModulesList,
+	_css,
+	_miniCss,
+	forceLoadChunkIds,
+	suppliedModules
 ) {
 	applyHandlers.push(hotApplyHandler);
 	hotCurrentUpdateChunks = {};
@@ -601,6 +613,7 @@ __webpack_require__.hmrC.jsonp = function (
 		return obj;
 	}, {});
 	hotCurrentUpdateRuntime = [];
+	hotCurrentUpdateSupplied = suppliedModules;
 	chunkIds.forEach(function (chunkId) {
 		if (
 			__webpack_require__.o(jsonpInstalledChunks, chunkId) &&
@@ -623,6 +636,13 @@ __webpack_require__.hmrC.jsonp = function (
 				hotCurrentUpdateChunks[chunkId] = true;
 			}
 		};
+		if (forceLoadChunkIds) {
+			forceLoadChunkIds.forEach(function (chunkId) {
+				Object.keys(__webpack_require__.f).forEach(function (key) {
+					__webpack_require__.f[key](chunkId, promises);
+				});
+			});
+		}
 	}
 };
 __webpack_require__.hmrM = () => {

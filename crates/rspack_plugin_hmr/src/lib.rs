@@ -1,4 +1,7 @@
+mod chunk_groups;
+mod chunk_versions;
 mod hot_module_replacement;
+mod module_updates;
 
 use std::{
   collections::hash_map,
@@ -10,13 +13,13 @@ use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationContentHash,
-  CompilationParams, CompilationProcessAssets, CompilationRecords, CompilerCompilation,
-  DependencyType, LoaderContext, ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
+  CompilationAdditionalChunkRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationAsset, CompilationContentHash, CompilationParams, CompilationProcessAssets,
+  CompilationRecords, CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType,
+  LoaderContext, ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
   NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData, Plugin, RunnerContext,
   RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec, SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdMap, ChunkIdSet},
-  incremental::{IncrementalPasses, Mutation},
   rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
@@ -79,6 +82,7 @@ async fn compilation(
   compilation: &mut Compilation,
   params: &mut CompilationParams,
 ) -> Result<()> {
+  compilation.hot = true;
   compilation.set_dependency_factory(
     DependencyType::ImportMetaHotAccept,
     params.normal_module_factory.clone(),
@@ -180,12 +184,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let Some(records) = compilation.records.take() else {
     return Ok(());
   };
+  let mut module_updates = module_updates::collect_module_updates(compilation, &records);
   let CompilationRecords {
     chunks: old_chunks,
     runtimes: all_old_runtime,
     modules: old_all_modules,
     runtime_modules: old_runtime_modules,
     hash: old_hash,
+    ..
   } = records.as_ref();
 
   if let Some(old_hash) = &old_hash
@@ -237,18 +243,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .filter(|(module_id, chunks)| !chunks.is_empty() && !all_module_ids.contains_key(*module_id))
     .map(|(module_id, _)| module_id.clone())
     .collect();
-  let changed_chunks = compilation
-    .incremental
-    .mutations_read(IncrementalPasses::CHUNK_ASSET)
-    .map(|mutations| {
-      mutations
-        .iter()
-        .filter_map(|mutation| match mutation {
-          Mutation::ChunkSetHashes { chunk } => Some(*chunk),
-          _ => None,
-        })
-        .collect::<HashSet<_>>()
-    });
 
   for (chunk_id, (old_runtime, old_module_ids)) in old_chunks {
     let mut new_modules = vec![];
@@ -276,40 +270,26 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         continue;
       }
 
-      if old_runtime == &new_runtime
-        && changed_chunks
-          .as_ref()
-          .is_some_and(|chunks| !chunks.contains(&current_chunk.ukey()))
-      {
-        continue;
-      }
-
-      new_modules = compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_chunk_modules_identifier(&current_chunk.ukey())
-        .iter()
-        .filter_map(|&module| {
-          let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module)?;
-          let Some(old_module_hashes) = old_all_modules.get(module_id) else {
-            return Some(module);
-          };
-          let old_hash = old_module_hashes.get(&chunk_id);
-          let new_hash = compilation
-            .code_generation_results
-            .get_hash(&module, Some(current_chunk.runtime()));
-          if old_hash != new_hash {
-            return Some(module);
+      if let Some(update) = module_updates.remove(&chunk_id) {
+        new_modules.extend(update.updated);
+        for runtime in new_runtime.iter() {
+          if let Some(content) = hot_update_main_content_by_runtime.get_mut(runtime) {
+            content
+              .supplied_modules
+              .extend(update.supplied.iter().filter_map(|module| {
+                ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module).cloned()
+              }));
           }
-          None
-        })
-        .collect::<Vec<_>>();
+        }
+      }
 
       new_runtime_modules = compilation
         .build_chunk_graph_artifact
         .chunk_graph
         .get_chunk_runtime_modules_in_order(&current_chunk.ukey(), compilation)
-        .filter(|(module, _)| updated_runtime_modules.contains(module))
+        .filter(|(module, runtime_module)| {
+          updated_runtime_modules.contains(module) && runtime_module.should_hot_update()
+        })
         .map(|(&module, _)| module)
         .collect::<Vec<_>>();
 
@@ -399,12 +379,27 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       } else {
         for removed in removed_from_runtime.iter() {
           if let Some(content) = hot_update_main_content_by_runtime.get_mut(removed) {
-            content.removed_modules.insert(old_module_id.clone());
+            let graph = &compilation.build_chunk_graph_artifact;
+            if let Some(owner) = graph
+              .chunk_graph
+              .get_module_chunks(*module_identifier)
+              .iter()
+              .map(|key| graph.chunk_by_ukey.expect_get(key))
+              .find(|chunk| chunk.runtime().contains(removed))
+            {
+              content
+                .force_load_chunk_ids
+                .insert(owner.expect_id().clone());
+            } else {
+              content.removed_modules.insert(old_module_id.clone());
+            }
           }
         }
       }
     }
 
+    new_modules.sort_unstable();
+    new_modules.dedup();
     if !new_modules.is_empty() || !new_runtime_modules.is_empty() {
       let mut hot_update_chunk = Chunk::new(None, ChunkKind::HotUpdate);
       hot_update_chunk.set_id(chunk_id.clone());
@@ -568,6 +563,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .extend(content.removed_chunk_ids);
         old_content.removed_modules.extend(content.removed_modules);
         old_content
+          .force_load_chunk_ids
+          .extend(content.force_load_chunk_ids);
+        old_content
+          .supplied_modules
+          .extend(content.supplied_modules);
+        old_content
           .css_updated_chunk_ids
           .extend(content.css_updated_chunk_ids);
         old_content
@@ -605,6 +606,12 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
       "r": r,
       "m": m,
     });
+    if !content.force_load_chunk_ids.is_empty() {
+      manifest_json["f"] = serde_json::json!(content.force_load_chunk_ids);
+    }
+    if !content.supplied_modules.is_empty() {
+      manifest_json["s"] = serde_json::json!(content.supplied_modules);
+    }
     if let Some(css) =
       css_manifest_json(content.css_updated_chunk_ids, content.css_removed_chunk_ids)
     {
@@ -684,6 +691,61 @@ async fn additional_tree_runtime_requirements(
   Ok(())
 }
 
+#[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for HotModuleReplacementPlugin)]
+async fn additional_chunk_runtime_requirements(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  _runtime_requirements: &mut RuntimeGlobals,
+  runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
+) -> Result<()> {
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
+  if chunk_versions::is_versioned(compilation, chunk) {
+    runtime_modules.push(
+      chunk_versions::HotModuleReplacementLoadedChunkVersionRuntimeModule::new(
+        &compilation.runtime_template,
+        chunk.expect_id().as_str(),
+      )
+      .boxed(),
+    );
+  }
+  Ok(())
+}
+
+#[plugin_hook(CompilationRuntimeRequirementInTree for HotModuleReplacementPlugin)]
+async fn runtime_requirement_in_tree(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  all_runtime_requirements: &RuntimeGlobals,
+  runtime_requirements: &RuntimeGlobals,
+  _runtime_requirements_mut: &mut RuntimeGlobals,
+  modules: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
+) -> Result<Option<()>> {
+  if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+    && all_runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK)
+  {
+    modules.push((
+      *chunk_ukey,
+      chunk_groups::HotModuleReplacementChunkGroupsRuntimeModule::new(
+        &compilation.runtime_template,
+      )
+      .boxed(),
+    ));
+    modules.push((
+      *chunk_ukey,
+      chunk_versions::HotModuleReplacementChunkVersionsRuntimeModule::new(
+        &compilation.runtime_template,
+      )
+      .boxed(),
+    ));
+  }
+  Ok(None)
+}
+
 impl Plugin for HotModuleReplacementPlugin {
   fn name(&self) -> &'static str {
     "rspack.HotModuleReplacementPlugin"
@@ -691,6 +753,14 @@ impl Plugin for HotModuleReplacementPlugin {
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
+    ctx
+      .compilation_hooks
+      .additional_chunk_runtime_requirements
+      .tap(additional_chunk_runtime_requirements::new(self));
+    ctx
+      .compilation_hooks
+      .runtime_requirement_in_tree
+      .tap(runtime_requirement_in_tree::new(self));
     ctx
       .compilation_hooks
       .content_hash
@@ -720,6 +790,8 @@ struct HotUpdateContent {
   updated_chunk_ids: ChunkIdSet,
   removed_chunk_ids: ChunkIdSet,
   removed_modules: HashSet<ModuleId>,
+  force_load_chunk_ids: ChunkIdSet,
+  supplied_modules: HashSet<ModuleId>,
   css_updated_chunk_ids: ChunkIdSet,
   css_removed_chunk_ids: ChunkIdSet,
   mini_css_updated_chunk_ids: ChunkIdSet,

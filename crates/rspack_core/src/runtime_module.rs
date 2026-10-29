@@ -237,6 +237,9 @@ pub trait RuntimeModule:
   fn dependent_hash(&self) -> bool {
     false
   }
+  fn should_hot_update(&self) -> bool {
+    true
+  }
   // if wrap iife
   fn should_isolate(&self, runtime_mode: RuntimeMode) -> bool {
     matches!(runtime_mode, RuntimeMode::Webpack)

@@ -1,0 +1,15 @@
+# Case loaded-async-new-dependency: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: async_js.chunk.CURRENT_HASH.js
+- Bundle: bundle.js
+- Bundle: other_js.chunk.CURRENT_HASH.js
+- Bundle: shared.chunk.CURRENT_HASH.js
+
+## Manifest
+
+
+## Update

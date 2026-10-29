@@ -1,0 +1,16 @@
+# Case sibling-of-another-group: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: a_js.chunk.CURRENT_HASH.js
+- Bundle: b_js.chunk.CURRENT_HASH.js
+- Bundle: bundle.js
+- Bundle: c.chunk.CURRENT_HASH.js
+- Bundle: x.chunk.CURRENT_HASH.js
+
+## Manifest
+
+
+## Update

@@ -1,0 +1,13 @@
+# Case new-shared-initial-chunk: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: main.mjs
+- Bundle: other.mjs
+
+## Manifest
+
+
+## Update

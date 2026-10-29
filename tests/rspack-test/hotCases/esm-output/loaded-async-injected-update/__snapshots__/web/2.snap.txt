@@ -1,0 +1,163 @@
+# Case loaded-async-injected-update: Step 2
+
+## Changed Files
+- async.js
+- shared.js
+
+## Asset Files
+- Bundle: async_js.chunk.mjs
+- Bundle: main.mjs
+- Bundle: other_js.chunk.mjs
+- Bundle: shared.chunk.mjs
+- Manifest: main.LAST_HASH.hot-update.json.mjs, size: 64
+- Update: async_js.LAST_HASH.hot-update.mjs, size: 379
+- Update: main.LAST_HASH.hot-update.mjs, size: 430
+- Update: shared.LAST_HASH.hot-update.mjs, size: 589
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json.mjs
+
+```json
+{"c":["async_js","main","shared"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### async_js.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+- ./shared.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+export const __rspack_esm_ids = ["async_js"];
+export const __webpack_modules__ = {
+"./shared.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = ("shared 2");
+
+
+},
+
+};
+
+```
+
+
+
+### main.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
+
+#### Changed Content
+```js
+export const __rspack_esm_ids = ["main"];
+export const __webpack_modules__ = {};
+export const __rspack_esm_runtime = function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV = {"async_js":"CHUNK_VERSION","other_js":"CHUNK_VERSION","shared":"CHUNK_VERSION"};
+})();
+
+}
+;
+
+```
+
+
+
+### shared.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+- ./shared.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+export const __rspack_esm_ids = ["shared"];
+export const __webpack_modules__ = {
+"./shared.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = ("shared 2");
+
+
+},
+
+};
+export const __rspack_esm_runtime = function(__webpack_require__) {
+// webpack/runtime/hot_module_replacement_loaded_chunk_version|shared
+(() => {
+__webpack_require__.hmrL["shared"] = "CHUNK_VERSION";
+})();
+
+}
+;
+
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./async.js
+- ./shared.js
+
+
+Outdated Dependencies:
+```json
+{}
+```
+
+#### Updated
+
+Updated Modules:
+- ./async.js
+- ./shared.js
+
+Updated Runtime:
+- `__webpack_require__.h`
+- `__webpack_require__.hmrV`
+
+
+#### Callback
+
+Accepted Callback:
+
+
+Disposed Callback:

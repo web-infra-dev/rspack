@@ -1,0 +1,147 @@
+# Case loaded-sibling-supplied: Step 1
+
+## Changed Files
+- async.js
+
+## Asset Files
+- Bundle: async_js.chunk.CURRENT_HASH.js
+- Bundle: bundle.js
+- Bundle: other_js.chunk.CURRENT_HASH.js
+- Bundle: shared.chunk.CURRENT_HASH.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 68
+- Update: async_js.LAST_HASH.hot-update.js, size: 1024
+- Update: main.LAST_HASH.hot-update.js, size: 870
+- Update: shared.LAST_HASH.hot-update.js, size: 430
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["async_js","main","shared"],"r":[],"m":[],"s":["./shared.js"]}
+```
+
+
+## Update
+
+
+### async_js.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./async.js
+- ./shared.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("async_js", {
+"./async.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+/* import */ var _store__rspack_import_0 = __webpack_require__("./store.js");
+/* import */ var _shared__rspack_import_1 = __webpack_require__("./shared.js");
+
+
+
+_store__rspack_import_0["default"].value = _shared__rspack_import_1["default"];
+module.hot.accept();
+
+
+},
+"./shared.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* import */ var _store__rspack_import_0 = __webpack_require__("./store.js");
+
+
+_store__rspack_import_0["default"].runs++;
+/* export default */ const __rspack_default_export = ("shared");
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/hot_module_replacement_loaded_chunk_version|async_js
+(() => {
+__webpack_require__.hmrL["async_js"] = "CHUNK_VERSION";
+})();
+
+}
+);
+```
+
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_groups
+- webpack/runtime/hot_module_replacement_chunk_versions
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV = {"async_js":"CHUNK_VERSION","other_js":"CHUNK_VERSION","shared":"CHUNK_VERSION"};
+})();
+// webpack/runtime/hot_module_replacement_chunk_groups
+(() => {
+var chunkGroups = {"async_js":["shared"],"other_js":["shared"]};
+__webpack_require__.f.group = function (chunkId, promises, fetchPriority) {
+	var siblings = chunkGroups[chunkId];
+	if (!siblings) return;
+	var keys = Object.keys(__webpack_require__.f).filter(function (key) { return key !== "group"; });
+	siblings.forEach(function (id) {
+		keys.forEach(function (key) { __webpack_require__.f[key](id, promises, fetchPriority); });
+	});
+};
+
+})();
+
+}
+);
+```
+
+
+
+### shared.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./async.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("shared", {
+"./async.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+/* import */ var _store__rspack_import_0 = __webpack_require__("./store.js");
+/* import */ var _shared__rspack_import_1 = __webpack_require__("./shared.js");
+
+
+
+_store__rspack_import_0["default"].value = _shared__rspack_import_1["default"];
+module.hot.accept();
+
+
+},
+
+});
+```

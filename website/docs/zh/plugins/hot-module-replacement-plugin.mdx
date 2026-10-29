@@ -61,11 +61,17 @@ export default {
 | `c`         | 需要更新 JavaScript 的 chunk，运行时会按需加载对应的更新文件。                                 |
 | `r`         | 需要从当前运行时移除的 chunk。                                                                 |
 | `m`         | 需要从当前运行时移除的模块。                                                                   |
+| `f`         | 需要加载的 chunk，让移出旧 chunk 的模块仍由已安装的 chunk 负责后续更新。                       |
+| `s`         | 更新中补入的未变化模块。保留其已有 cache，除非模块主动调用了 invalidate。                      |
 | `css.c`     | 内置 CSS 发生变化的 chunk，运行时会重新加载对应的样式表。                                      |
 | `css.r`     | 内置 CSS 已被移除的 chunk，运行时会移除对应的旧样式表。                                        |
 | `miniCss.c` | 含义同 `css.c`，用于 [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin) 提取的 CSS。 |
 | `miniCss.r` | 含义同 `css.r`，用于 `CssExtractRspackPlugin` 提取的 CSS。                                     |
 
 `css` 和 `miniCss` 是可选对象，其中的 `c`、`r` 字段为空时会省略。
+
+`f` 和 `s` 为空时会省略。已加载的 chunk group 新增依赖时，这些依赖的 factory 会随已有 chunk 的更新一起补入。即使浏览器没有加载它们的普通 chunk 文件，后续更新也会继续维护这些 factory。移到 async chunk 的模块，也会通过原来的 chunk 继续接收更新。
+
+对于异步 import，HMR runtime 会加载目标 chunk 当前所属 group 的其他 chunk。如果请求到的 chunk 文件来自更新的构建，import 会等待相关 hot update 完成后再执行模块。更新不可用或被拒绝时，import 仍会失败；这不改变 HMR 的 accept 边界。
 
 你可以通过 [output.hotUpdateMainFilename](/config/output#outputhotupdatemainfilename) 自定义清单文件的名称。如果将 `output.module` 设为 `true`，Rspack 会将清单生成为 ES 模块，并通过默认导出提供清单内容。

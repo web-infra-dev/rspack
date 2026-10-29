@@ -8,8 +8,8 @@
 - Bundle: file_js.chunk.CURRENT_HASH.js
 - Bundle: vendors-node_modules_vue_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 94
-- Update: file_js.LAST_HASH.hot-update.js, size: 380
-- Update: main.LAST_HASH.hot-update.js, size: 651
+- Update: file_js.LAST_HASH.hot-update.js, size: 782
+- Update: main.LAST_HASH.hot-update.js, size: 861
 
 ## Manifest
 
@@ -27,6 +27,7 @@
 
 #### Changed Modules
 - ./file.js
+- ./node_modules/vue.js
 
 #### Changed Runtime Modules
 
@@ -45,8 +46,24 @@ __webpack_require__.d(__webpack_exports__, {
 
 
 },
-
+"./node_modules/vue.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  Vue: () => (Vue)
 });
+const Vue = 43;
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/hot_module_replacement_loaded_chunk_version|file_js
+(() => {
+__webpack_require__.hmrL["file_js"] = "CHUNK_VERSION";
+})();
+
+}
+);
 ```
 
 
@@ -54,31 +71,37 @@ __webpack_require__.d(__webpack_exports__, {
 ### main.LAST_HASH.hot-update.js
 
 #### Changed Modules
-- ./chunk.js
+
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_groups
+- webpack/runtime/hot_module_replacement_chunk_versions
 
 #### Changed Content
 ```js
 "use strict";
-self["rspackHotUpdate"]("main", {
-"./chunk.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  test: () => (test)
-});
-function test(count) {
-  return Promise.all(/* import() */ [__webpack_require__.e("vendors-node_modules_vue_js"), __webpack_require__.e("file_js")]).then(__webpack_require__.bind(__webpack_require__, "./file.js")).then(({ React, Vue }) => count === 0 ? React : Vue)
-}
-
-
-},
-
-},function(__webpack_require__) {
+self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV = {"file_js":"CHUNK_VERSION","vendors-node_modules_vue_js":"CHUNK_VERSION"};
+})();
+// webpack/runtime/hot_module_replacement_chunk_groups
+(() => {
+var chunkGroups = {"file_js":["vendors-node_modules_vue_js"]};
+__webpack_require__.f.group = function (chunkId, promises, fetchPriority) {
+	var siblings = chunkGroups[chunkId];
+	if (!siblings) return;
+	var keys = Object.keys(__webpack_require__.f).filter(function (key) { return key !== "group"; });
+	siblings.forEach(function (id) {
+		keys.forEach(function (key) { __webpack_require__.f[key](id, promises, fetchPriority); });
+	});
+};
+
 })();
 
 }

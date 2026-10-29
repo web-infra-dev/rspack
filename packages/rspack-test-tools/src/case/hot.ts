@@ -325,6 +325,7 @@ export function createHotRunner(
       'Warning',
       compilerOptions,
     );
+    if (!m) return jsonStats as StatsCompilation;
     const updatedModules = await m.hot.check(options || true);
     if (!updatedModules) {
       throw new Error('No update available');
@@ -349,6 +350,7 @@ export function createHotRunner(
           testConfig.moduleScope(moduleScope, stats, compilerOptions);
         }
         moduleScope.NEXT_HMR = nextHMR;
+        moduleScope.NEXT_BUILD = () => nextHMR(undefined);
         return moduleScope;
       },
     },

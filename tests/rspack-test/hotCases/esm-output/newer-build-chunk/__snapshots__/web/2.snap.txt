@@ -1,0 +1,116 @@
+# Case newer-build-chunk: Step 2
+
+## Changed Files
+- entry.js
+- page.js
+
+## Asset Files
+- Bundle: main.mjs
+- Bundle: page.chunk.mjs
+- Bundle: shared.chunk.mjs
+- Manifest: main.LAST_HASH.hot-update.json.mjs, size: 51
+- Update: main.LAST_HASH.hot-update.mjs, size: 881
+- Update: page.LAST_HASH.hot-update.mjs, size: 959
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json.mjs
+
+```json
+{"c":["main","page"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_groups
+- webpack/runtime/hot_module_replacement_chunk_versions
+
+#### Changed Content
+```js
+export const __rspack_esm_ids = ["main"];
+export const __webpack_modules__ = {};
+export const __rspack_esm_runtime = function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV = {"page":"CHUNK_VERSION","shared":"CHUNK_VERSION"};
+})();
+// webpack/runtime/hot_module_replacement_chunk_groups
+(() => {
+var chunkGroups = {"page":["shared"]};
+__webpack_require__.f.group = function (chunkId, promises, fetchPriority) {
+	var siblings = chunkGroups[chunkId];
+	if (!siblings) return;
+	var keys = Object.keys(__webpack_require__.f).filter(function (key) { return key !== "group"; });
+	siblings.forEach(function (id) {
+		keys.forEach(function (key) { __webpack_require__.f[key](id, promises, fetchPriority); });
+	});
+};
+
+})();
+
+}
+;
+
+```
+
+
+
+### page.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+- ./dep.js
+- ./page.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+export const __rspack_esm_ids = ["page"];
+export const __webpack_modules__ = {
+"./dep.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = (2);
+
+
+},
+"./page.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* import */ var _dep__rspack_import_0 = __webpack_require__("./dep.js");
+
+
+/* export default */ const __rspack_default_export = (_dep__rspack_import_0["default"]);
+
+
+},
+
+};
+export const __rspack_esm_runtime = function(__webpack_require__) {
+// webpack/runtime/hot_module_replacement_loaded_chunk_version|page
+(() => {
+__webpack_require__.hmrL["page"] = "CHUNK_VERSION";
+})();
+
+}
+;
+
+```

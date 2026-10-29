@@ -61,11 +61,17 @@ Each field below is an array of IDs:
 | `c`         | Chunks with JavaScript updates. The runtime loads their update files as needed.                     |
 | `r`         | Chunks to remove from the current runtime.                                                          |
 | `m`         | Modules to remove from the current runtime.                                                         |
+| `f`         | Chunks to load so that modules moved out of a removed chunk retain an installed owner.              |
+| `s`         | Unchanged modules supplied by an update. Cached modules are preserved unless self-invalidated.      |
 | `css.c`     | Chunks with updated built-in CSS. The runtime reloads their stylesheets.                            |
 | `css.r`     | Chunks whose built-in CSS was removed. The runtime removes their old stylesheets.                   |
 | `miniCss.c` | Same as `css.c`, for CSS extracted by [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin). |
 | `miniCss.r` | Same as `css.r`, for CSS extracted by `CssExtractRspackPlugin`.                                     |
 
 `css` and `miniCss` are optional objects. Their `c` and `r` fields are omitted when empty.
+
+`f` and `s` are omitted when empty. When a loaded chunk group gains dependencies, their factories are included in an existing chunk's update. Subsequent updates keep those factories current even if the browser has not loaded their ordinary chunk files. Modules that move to async chunks also continue receiving updates through their previous chunk.
+
+For async imports, the HMR runtime loads the current siblings of the requested chunk. If a chunk file belongs to a newer build, the import waits for the pending hot updates before executing its modules. An unavailable or rejected update still fails the import; this does not make unaccepted updates safe to apply.
 
 You can customize the manifest filename with [output.hotUpdateMainFilename](/config/output#outputhotupdatemainfilename). If you set `output.module` to `true`, Rspack generates the manifest as an ES module with the manifest data as its default export.

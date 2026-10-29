@@ -1,0 +1,152 @@
+# Case retained-async-module: Step 2
+
+## Changed Files
+- holder.js
+- mod.js
+
+## Asset Files
+- Bundle: main.mjs
+- Bundle: mod_js.chunk.mjs
+- Manifest: main.LAST_HASH.hot-update.json.mjs, size: 53
+- Update: main.LAST_HASH.hot-update.mjs, size: 637
+- Update: mod_js.LAST_HASH.hot-update.mjs, size: 556
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json.mjs
+
+```json
+{"c":["main","mod_js"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+- ./mod.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
+
+#### Changed Content
+```js
+export const __rspack_esm_ids = ["main"];
+export const __webpack_modules__ = {
+"./mod.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+/* import */ var _store__rspack_import_0 = __webpack_require__("./store.js");
+
+
+_store__rspack_import_0["default"].value = 3;
+module.hot.accept();
+
+
+},
+
+};
+export const __rspack_esm_runtime = function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV = {"mod_js":"CHUNK_VERSION"};
+})();
+
+}
+;
+
+```
+
+
+
+### mod_js.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+- ./mod.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+export const __rspack_esm_ids = ["mod_js"];
+export const __webpack_modules__ = {
+"./mod.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+/* import */ var _store__rspack_import_0 = __webpack_require__("./store.js");
+
+
+_store__rspack_import_0["default"].value = 3;
+module.hot.accept();
+
+
+},
+
+};
+export const __rspack_esm_runtime = function(__webpack_require__) {
+// webpack/runtime/hot_module_replacement_loaded_chunk_version|mod_js
+(() => {
+__webpack_require__.hmrL["mod_js"] = "CHUNK_VERSION";
+})();
+
+}
+;
+
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./holder.js
+
+
+Outdated Dependencies:
+```json
+{
+  "./index.js": [
+    "./holder.js"
+  ]
+}
+```
+
+#### Updated
+
+Updated Modules:
+- ./holder.js
+
+Updated Runtime:
+- `__webpack_require__.e`
+- `__webpack_require__.f`
+- `__webpack_require__.h`
+- `__webpack_require__.hmrM`
+- `__webpack_require__.hmrS_module`
+- `__webpack_require__.hmrV`
+- `__webpack_require__.u`
+
+
+#### Callback
+
+Accepted Callback:
+- ./holder.js
+
+Disposed Callback:

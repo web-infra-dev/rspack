@@ -220,6 +220,10 @@ pub struct Compilation {
   // The status is different, should generate different hash for `.hot-update.js`
   // So use compilation hash update `hot_index` to fix it.
   pub hot_index: u32,
+  pub hot: bool,
+  // Factories carried by another chunk's hot update, recorded for subsequent updates.
+  pub hot_module_hashes: crate::ModuleIdMap<crate::ChunkIdMap<RspackHashDigest>>,
+  pub hot_injected_modules: crate::ChunkIdMap<crate::chunk_graph_module::ModuleIdSet>,
   pub records: Option<Arc<CompilationRecords>>,
   pub options: Arc<CompilerOptions>,
   pub platform: Arc<CompilerPlatform>,
@@ -379,6 +383,9 @@ impl Compilation {
       id: CompilationId::new(),
       compiler_id,
       hot_index: 0,
+      hot: false,
+      hot_module_hashes: Default::default(),
+      hot_injected_modules: Default::default(),
       runtime_template: RuntimeTemplate::new(options.clone()),
       records,
       options: options.clone(),

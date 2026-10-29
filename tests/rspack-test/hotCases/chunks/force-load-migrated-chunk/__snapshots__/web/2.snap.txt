@@ -1,0 +1,198 @@
+# Case force-load-migrated-chunk: Step 2
+
+## Changed Files
+- mod.js
+- shared.js
+
+## Asset Files
+- Bundle: lazy.js
+- Bundle: main.js
+- Bundle: other.js
+- Bundle: shared.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 35
+- Manifest: other.LAST_HASH.hot-update.json, size: 38
+- Update: lazy.LAST_HASH.hot-update.js, size: 443
+- Update: main.LAST_HASH.hot-update.js, size: 306
+- Update: other.LAST_HASH.hot-update.js, size: 182
+- Update: shared.LAST_HASH.hot-update.js, size: 274
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["lazy","main"],"r":[],"m":[]}
+```
+
+
+
+### other.LAST_HASH.hot-update.json
+
+```json
+{"c":["other","shared"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### lazy.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./shared.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("lazy", {
+"./shared.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
+const value = 2;
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/hot_module_replacement_loaded_chunk_version|lazy
+(() => {
+__webpack_require__.hmrL["lazy"] = "CHUNK_VERSION";
+})();
+
+}
+);
+```
+
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV = {"lazy":"CHUNK_VERSION"};
+})();
+
+}
+);
+```
+
+
+
+### other.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("other", {},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```
+
+
+
+### shared.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./shared.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("shared", {
+"./shared.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
+const value = 2;
+
+
+},
+
+});
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./mod.js
+
+
+Outdated Dependencies:
+```json
+{
+  "./index.js": [
+    "./mod.js"
+  ]
+}
+```
+
+#### Updated
+
+Updated Modules:
+- ./mod.js
+
+Updated Runtime:
+- `__webpack_require__.e`
+- `__webpack_require__.f`
+- `__webpack_require__.h`
+- `__webpack_require__.hmrM`
+- `__webpack_require__.hmrS_jsonp`
+- `__webpack_require__.hmrV`
+- `__webpack_require__.u`
+
+
+#### Callback
+
+Accepted Callback:
+- ./mod.js
+
+Disposed Callback:

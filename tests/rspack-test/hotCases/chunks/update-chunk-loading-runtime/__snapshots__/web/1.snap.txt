@@ -12,7 +12,7 @@
 - Bundle: vendors-node_modules_vendor_js.js
 - Manifest: runtime~main.LAST_HASH.hot-update.json, size: 76
 - Update: main.LAST_HASH.hot-update.js, size: 660
-- Update: runtime~main.LAST_HASH.hot-update.js, size: 19298
+- Update: runtime~main.LAST_HASH.hot-update.js, size: 20531
 - Update: vendors-node_modules_vendor_js.LAST_HASH.hot-update.js, size: 374
 
 ## Manifest
@@ -68,6 +68,8 @@ module.hot.accept();
 #### Changed Runtime Modules
 - webpack/runtime/ensure_chunk
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_groups
+- webpack/runtime/hot_module_replacement_chunk_versions
 - webpack/runtime/jsonp_chunk_loading
 
 #### Changed Content
@@ -76,7 +78,7 @@ module.hot.accept();
 self["rspackHotUpdate"]("runtime~main", {},function(__webpack_require__) {
 // webpack/runtime/ensure_chunk
 (() => {
-__webpack_require__.f = {};
+__webpack_require__.f = __webpack_require__.f || {};
 // This file contains only the entry chunk.
 // The chunk loading function for additional chunks
 __webpack_require__.e = (chunkId) => {
@@ -87,6 +89,7 @@ __webpack_require__.e = (chunkId) => {
 		}, [])
 	);
 };
+
 })();
 // webpack/runtime/get javascript chunk filename
 (() => {
@@ -101,6 +104,10 @@ __webpack_require__.u = (chunkId) => {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV = {"chunk_js":"CHUNK_VERSION"};
 })();
 // webpack/runtime/jsonp_chunk_loading
 (() => {
@@ -211,6 +218,7 @@ var hotCurrentUpdateChunks;
 var hotCurrentUpdate;
 var hotCurrentUpdateRemovedChunks;
 var hotCurrentUpdateRuntime;
+var hotCurrentUpdateSupplied;
 function hotApplyHandler(options) {
 	if (__webpack_require__.f) delete __webpack_require__.f.jsonpHmr;
 	hotCurrentUpdateChunks = undefined;
@@ -310,6 +318,13 @@ function hotApplyHandler(options) {
 		throw Error("RuntimeError: factory is undefined(" + module.id + ")");
 	};
 
+	if (hotCurrentUpdateSupplied) {
+		hotCurrentUpdateSupplied.forEach(function (moduleId) {
+			var module = __webpack_require__.c[moduleId];
+			if (module && !module.hot._selfInvalidated) delete hotCurrentUpdate[moduleId];
+		});
+		hotCurrentUpdateSupplied = undefined;
+	}
 	for (var moduleId in hotCurrentUpdate) {
 		if (__webpack_require__.o(hotCurrentUpdate, moduleId)) {
 			var newModuleFactory = hotCurrentUpdate[moduleId];
@@ -635,7 +650,11 @@ __webpack_require__.hmrC.jsonp = function (
 	removedModules,
 	promises,
 	applyHandlers,
-	updatedModulesList
+	updatedModulesList,
+	_css,
+	_miniCss,
+	forceLoadChunkIds,
+	suppliedModules
 ) {
 	applyHandlers.push(hotApplyHandler);
 	hotCurrentUpdateChunks = {};
@@ -645,6 +664,7 @@ __webpack_require__.hmrC.jsonp = function (
 		return obj;
 	}, {});
 	hotCurrentUpdateRuntime = [];
+	hotCurrentUpdateSupplied = suppliedModules;
 	chunkIds.forEach(function (chunkId) {
 		if (
 			__webpack_require__.o(jsonpInstalledChunks, chunkId) &&
@@ -667,6 +687,13 @@ __webpack_require__.hmrC.jsonp = function (
 				hotCurrentUpdateChunks[chunkId] = true;
 			}
 		};
+		if (forceLoadChunkIds) {
+			forceLoadChunkIds.forEach(function (chunkId) {
+				Object.keys(__webpack_require__.f).forEach(function (key) {
+					__webpack_require__.f[key](chunkId, promises);
+				});
+			});
+		}
 	}
 };
 __webpack_require__.hmrM = () => {
@@ -717,6 +744,19 @@ var __rspack_jsonp = (parentChunkLoadingFunction, data) => {
 var jsonpChunkLoadingGlobal = self["rspackChunk"] = self["rspackChunk"] || [];
 jsonpChunkLoadingGlobal.forEach(__rspack_jsonp.bind(null, 0));
 jsonpChunkLoadingGlobal.push = __rspack_jsonp.bind(null, jsonpChunkLoadingGlobal.push.bind(jsonpChunkLoadingGlobal));
+
+})();
+// webpack/runtime/hot_module_replacement_chunk_groups
+(() => {
+var chunkGroups = {};
+__webpack_require__.f.group = function (chunkId, promises, fetchPriority) {
+	var siblings = chunkGroups[chunkId];
+	if (!siblings) return;
+	var keys = Object.keys(__webpack_require__.f).filter(function (key) { return key !== "group"; });
+	siblings.forEach(function (id) {
+		keys.forEach(function (key) { __webpack_require__.f[key](id, promises, fetchPriority); });
+	});
+};
 
 })();
 

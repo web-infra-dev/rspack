@@ -1,0 +1,12 @@
+# Case retained-async-module: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: main.mjs
+
+## Manifest
+
+
+## Update

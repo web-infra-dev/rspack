@@ -2,6 +2,7 @@
 <%- var("hotCurrentUpdate") %>;
 <%- var("hotCurrentUpdateRemovedChunks") %>;
 <%- var("hotCurrentUpdateRuntime") %>;
+<%- var("hotCurrentUpdateSupplied") %>;
 <%- fn("hotApplyHandler") %>(options) {
 	if (<%- weak(ENSURE_CHUNK_HANDLERS) %>) delete <%- weak(ENSURE_CHUNK_HANDLERS) %>.<%- _loading_method %>Hmr;
 	hotCurrentUpdateChunks = undefined;
@@ -101,6 +102,13 @@
 		throw Error("RuntimeError: factory is undefined(" + <%- MODULE_ID %> + ")");
 	};
 
+	if (hotCurrentUpdateSupplied) {
+		hotCurrentUpdateSupplied.forEach(function (moduleId) {
+			var module = <%- MODULE_CACHE %>[moduleId];
+			if (module && !module.hot._selfInvalidated) delete hotCurrentUpdate[moduleId];
+		});
+		hotCurrentUpdateSupplied = undefined;
+	}
 	for (var moduleId in hotCurrentUpdate) {
 		if (<%- HAS_OWN_PROPERTY %>(hotCurrentUpdate, moduleId)) {
 			var newModuleFactory = hotCurrentUpdate[moduleId];
@@ -428,7 +436,11 @@
 	removedModules,
 	promises,
 	applyHandlers,
-	updatedModulesList
+	updatedModulesList,
+	_css,
+	_miniCss,
+	forceLoadChunkIds,
+	suppliedModules
 ) {
 	applyHandlers.push(hotApplyHandler);
 	hotCurrentUpdateChunks = {};
@@ -438,6 +450,7 @@
 		return obj;
 	}, {});
 	hotCurrentUpdateRuntime = [];
+	hotCurrentUpdateSupplied = suppliedModules;
 	chunkIds.forEach(function (chunkId) {
 		if (
 			<%- HAS_OWN_PROPERTY %>(<%- _installed_chunks %>, chunkId) &&
@@ -460,5 +473,12 @@
 				hotCurrentUpdateChunks[chunkId] = true;
 			}
 		};
+		if (forceLoadChunkIds) {
+			forceLoadChunkIds.forEach(function (chunkId) {
+				Object.keys(<%- weak(ENSURE_CHUNK_HANDLERS) %>).forEach(function (key) {
+					<%- weak(ENSURE_CHUNK_HANDLERS) %>[key](chunkId, promises);
+				});
+			});
+		}
 	}
 };

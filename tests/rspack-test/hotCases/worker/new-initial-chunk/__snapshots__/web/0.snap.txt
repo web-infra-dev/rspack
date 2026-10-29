@@ -1,0 +1,13 @@
+# Case new-initial-chunk: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: main.js
+- Bundle: worker_js.chunk.CURRENT_HASH.js
+
+## Manifest
+
+
+## Update

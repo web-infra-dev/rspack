@@ -1,0 +1,13 @@
+# Case worker-new-initial-chunk: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: main.mjs
+- Bundle: worker_js.chunk.mjs
+
+## Manifest
+
+
+## Update

@@ -1,0 +1,13 @@
+# Case moved-to-shared-chunk: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: main.js
+- Bundle: other.js
+
+## Manifest
+
+
+## Update

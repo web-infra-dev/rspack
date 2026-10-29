@@ -9,7 +9,7 @@ use rustc_hash::FxHashSet;
 
 use crate::{
   ChunkGraph, ChunkKind, Compilation, Compiler, RuntimeSpec,
-  chunk_graph_chunk::ChunkIdMap,
+  chunk_graph_chunk::{ChunkIdMap, ChunkIdSet},
   chunk_graph_module::{ModuleIdMap, ModuleIdSet},
   compilation::build_module_graph::ModuleExecutor,
   incremental::{Incremental, IncrementalPasses},
@@ -146,6 +146,8 @@ pub struct CompilationRecords {
   pub runtime_modules: IdentifierMap<RspackHashDigest>,
   pub chunks: ChunkIdMap<(RuntimeSpec, ModuleIdSet)>,
   pub modules: ModuleIdMap<ChunkIdMap<RspackHashDigest>>,
+  pub chunk_siblings: ChunkIdMap<ChunkIdSet>,
+  pub injected_modules: ChunkIdMap<ModuleIdSet>,
   pub hash: Option<RspackHashDigest>,
 }
 
@@ -156,6 +158,8 @@ impl CompilationRecords {
       runtime_modules: Self::record_runtime_modules(compilation),
       chunks: Self::record_chunks(compilation),
       modules: Self::record_modules(compilation),
+      chunk_siblings: Self::record_chunk_siblings(compilation),
+      injected_modules: compilation.hot_injected_modules.clone(),
       hash: Self::record_hash(compilation),
     }
   }
@@ -165,7 +169,7 @@ impl CompilationRecords {
   }
 
   fn record_modules(compilation: &Compilation) -> ModuleIdMap<ChunkIdMap<RspackHashDigest>> {
-    compilation
+    let mut modules: ModuleIdMap<ChunkIdMap<RspackHashDigest>> = compilation
       .build_chunk_graph_artifact
       .chunk_graph
       .chunk_graph_module_by_module_identifier
@@ -192,7 +196,14 @@ impl CompilationRecords {
         }
         Some((module_id, hashes))
       })
-      .collect()
+      .collect();
+    for (module, hashes) in &compilation.hot_module_hashes {
+      modules
+        .entry(module.clone())
+        .or_default()
+        .extend(hashes.clone());
+    }
+    modules
   }
 
   fn record_runtime_modules(compilation: &Compilation) -> IdentifierMap<RspackHashDigest> {
@@ -226,7 +237,7 @@ impl CompilationRecords {
   }
 
   fn record_chunks(compilation: &Compilation) -> ChunkIdMap<(RuntimeSpec, ModuleIdSet)> {
-    compilation
+    let mut chunks: ChunkIdMap<(RuntimeSpec, ModuleIdSet)> = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
       .values()
@@ -243,6 +254,40 @@ impl CompilationRecords {
           .cloned()
           .collect();
         (chunk_id, (chunk_runtime, chunk_modules))
+      })
+      .collect();
+    for (module, hashes) in &compilation.hot_module_hashes {
+      for chunk_id in hashes.keys() {
+        if !compilation
+          .hot_injected_modules
+          .get(chunk_id)
+          .is_some_and(|ids| ids.contains(module))
+          && let Some((_, modules)) = chunks.get_mut(chunk_id)
+        {
+          modules.insert(module.clone());
+        }
+      }
+    }
+    chunks
+  }
+
+  pub fn record_chunk_siblings(compilation: &Compilation) -> ChunkIdMap<ChunkIdSet> {
+    if !compilation.hot {
+      return Default::default();
+    }
+    let graph = &compilation.build_chunk_graph_artifact;
+    graph
+      .chunk_by_ukey
+      .values()
+      .map(|chunk| {
+        let siblings = chunk
+          .groups()
+          .iter()
+          .flat_map(|group| graph.chunk_group_by_ukey.expect_get(group).chunks.iter())
+          .filter(|key| **key != chunk.ukey())
+          .map(|key| graph.chunk_by_ukey.expect_get(key).expect_id().clone())
+          .collect();
+        (chunk.expect_id().clone(), siblings)
       })
       .collect()
   }

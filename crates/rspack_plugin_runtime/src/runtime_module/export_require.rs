@@ -60,4 +60,8 @@ export {{ {export_temp_name} as {export_name} }};
   fn should_isolate(&self, _runtime_mode: RuntimeMode) -> bool {
     false
   }
+
+  fn should_hot_update(&self) -> bool {
+    false
+  }
 }

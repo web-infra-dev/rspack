@@ -1,0 +1,168 @@
+# Case sibling-of-another-group: Step 1
+
+## Changed Files
+- c.js
+
+## Asset Files
+- Bundle: a_js.chunk.mjs
+- Bundle: b_js.chunk.mjs
+- Bundle: c.chunk.mjs
+- Bundle: main.mjs
+- Bundle: x.chunk.mjs
+- Manifest: main.LAST_HASH.hot-update.json.mjs, size: 83
+- Update: b_js.LAST_HASH.hot-update.mjs, size: 363
+- Update: c.LAST_HASH.hot-update.mjs, size: 639
+- Update: main.LAST_HASH.hot-update.mjs, size: 935
+- Update: x.LAST_HASH.hot-update.mjs, size: 432
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json.mjs
+
+```json
+{"c":["b_js","c","main","x"],"r":[],"m":[],"s":["./b.js","./x.js"]}
+```
+
+
+## Update
+
+
+### b_js.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+- ./x.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+export const __rspack_esm_ids = ["b_js"];
+export const __webpack_modules__ = {
+"./x.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = ("x");
+
+
+},
+
+};
+
+```
+
+
+
+### c.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+- ./c.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+export const __rspack_esm_ids = ["c"];
+export const __webpack_modules__ = {
+"./c.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+/* import */ var _store__rspack_import_0 = __webpack_require__("./store.js");
+/* import */ var _x__rspack_import_1 = __webpack_require__("./x.js");
+
+
+
+_store__rspack_import_0["default"].value = _x__rspack_import_1["default"];
+module.hot.accept();
+
+
+},
+
+};
+export const __rspack_esm_runtime = function(__webpack_require__) {
+// webpack/runtime/hot_module_replacement_loaded_chunk_version|c
+(() => {
+__webpack_require__.hmrL["c"] = "CHUNK_VERSION";
+})();
+
+}
+;
+
+```
+
+
+
+### main.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_groups
+- webpack/runtime/hot_module_replacement_chunk_versions
+
+#### Changed Content
+```js
+export const __rspack_esm_ids = ["main"];
+export const __webpack_modules__ = {};
+export const __rspack_esm_runtime = function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV = {"a_js":"CHUNK_VERSION","b_js":"CHUNK_VERSION","c":"CHUNK_VERSION","x":"CHUNK_VERSION"};
+})();
+// webpack/runtime/hot_module_replacement_chunk_groups
+(() => {
+var chunkGroups = {"a_js":["c","x"],"b_js":["c","x"]};
+__webpack_require__.f.group = function (chunkId, promises, fetchPriority) {
+	var siblings = chunkGroups[chunkId];
+	if (!siblings) return;
+	var keys = Object.keys(__webpack_require__.f).filter(function (key) { return key !== "group"; });
+	siblings.forEach(function (id) {
+		keys.forEach(function (key) { __webpack_require__.f[key](id, promises, fetchPriority); });
+	});
+};
+
+})();
+
+}
+;
+
+```
+
+
+
+### x.LAST_HASH.hot-update.mjs
+
+#### Changed Modules
+- ./b.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+export const __rspack_esm_ids = ["x"];
+export const __webpack_modules__ = {
+"./b.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* import */ var _c__rspack_import_0 = __webpack_require__("./c.js");
+
+
+/* export default */ const __rspack_default_export = ("b");
+
+
+},
+
+};
+
+```

@@ -8,16 +8,16 @@
 - Bundle: async/initial_js.js
 - Bundle: lib.CURRENT_HASH.js
 - Bundle: main.CURRENT_HASH.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 41
-- Update: initial_js.LAST_HASH.hot-update.js, size: 332
-- Update: main.LAST_HASH.hot-update.js, size: 25821
+- Manifest: main.LAST_HASH.hot-update.json, size: 76
+- Update: initial_js.LAST_HASH.hot-update.js, size: 2064
+- Update: main.LAST_HASH.hot-update.js, size: 28329
 
 ## Manifest
 
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["initial_js","main"],"r":[],"m":[]}
+{"c":["initial_js","main"],"r":[],"m":[],"s":["./node_modules/lib-js/a.js"]}
 ```
 
 
@@ -28,6 +28,8 @@
 
 #### Changed Modules
 - ./initial.js
+- ./node_modules/lib-js/a.js
+- ./node_modules/lib-js/b.js
 
 #### Changed Runtime Modules
 
@@ -46,8 +48,33 @@ const value = "b";
 
 
 },
-
+"./node_modules/lib-js/a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  a: () => (a)
 });
+const a = "a";
+
+
+},
+"./node_modules/lib-js/b.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  b: () => (b)
+});
+const b = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/hot_module_replacement_loaded_chunk_version|initial_js
+(() => {
+__webpack_require__.hmrL["initial_js"] = "CHUNK_VERSION";
+})();
+
+}
+);
 ```
 
 
@@ -56,10 +83,13 @@ const value = "b";
 
 #### Changed Modules
 - ./index.js
+- ./node_modules/lib-js/b.js
 
 #### Changed Runtime Modules
 - webpack/runtime/css_loading
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_groups
+- webpack/runtime/hot_module_replacement_chunk_versions
 - webpack/runtime/jsonp_chunk_loading
 - webpack/runtime/on_chunk_loaded
 
@@ -73,7 +103,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 it("should work if there are new initial chunks", async () => {
-	await Promise.all(/* import() */ [__webpack_require__.e("lib"), __webpack_require__.e("initial_js")]).then(__webpack_require__.bind(__webpack_require__, "./initial.js"));
+	await __webpack_require__.e(/* import() */ "initial_js").then(__webpack_require__.bind(__webpack_require__, "./initial.js"));
 	expect(
 		globalThis.__INITIAL_CHUNK_HMR_CHUNKS__.some(([chunkIds]) =>
 			chunkIds.includes("lib")
@@ -83,11 +113,24 @@ it("should work if there are new initial chunks", async () => {
 
 
 },
+"./node_modules/lib-js/b.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  b: () => (b)
+});
+const b = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
+
+},
 
 },function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV = {"initial_js":"CHUNK_VERSION"};
 })();
 // webpack/runtime/on_chunk_loaded
 (() => {
@@ -405,6 +448,7 @@ var hotCurrentUpdateChunks;
 var hotCurrentUpdate;
 var hotCurrentUpdateRemovedChunks;
 var hotCurrentUpdateRuntime;
+var hotCurrentUpdateSupplied;
 function hotApplyHandler(options) {
 	if (__webpack_require__.f) delete __webpack_require__.f.jsonpHmr;
 	hotCurrentUpdateChunks = undefined;
@@ -504,6 +548,13 @@ function hotApplyHandler(options) {
 		throw Error("RuntimeError: factory is undefined(" + module.id + ")");
 	};
 
+	if (hotCurrentUpdateSupplied) {
+		hotCurrentUpdateSupplied.forEach(function (moduleId) {
+			var module = __webpack_require__.c[moduleId];
+			if (module && !module.hot._selfInvalidated) delete hotCurrentUpdate[moduleId];
+		});
+		hotCurrentUpdateSupplied = undefined;
+	}
 	for (var moduleId in hotCurrentUpdate) {
 		if (__webpack_require__.o(hotCurrentUpdate, moduleId)) {
 			var newModuleFactory = hotCurrentUpdate[moduleId];
@@ -829,7 +880,11 @@ __webpack_require__.hmrC.jsonp = function (
 	removedModules,
 	promises,
 	applyHandlers,
-	updatedModulesList
+	updatedModulesList,
+	_css,
+	_miniCss,
+	forceLoadChunkIds,
+	suppliedModules
 ) {
 	applyHandlers.push(hotApplyHandler);
 	hotCurrentUpdateChunks = {};
@@ -839,6 +894,7 @@ __webpack_require__.hmrC.jsonp = function (
 		return obj;
 	}, {});
 	hotCurrentUpdateRuntime = [];
+	hotCurrentUpdateSupplied = suppliedModules;
 	chunkIds.forEach(function (chunkId) {
 		if (
 			__webpack_require__.o(jsonpInstalledChunks, chunkId) &&
@@ -861,6 +917,13 @@ __webpack_require__.hmrC.jsonp = function (
 				hotCurrentUpdateChunks[chunkId] = true;
 			}
 		};
+		if (forceLoadChunkIds) {
+			forceLoadChunkIds.forEach(function (chunkId) {
+				Object.keys(__webpack_require__.f).forEach(function (key) {
+					__webpack_require__.f[key](chunkId, promises);
+				});
+			});
+		}
 	}
 };
 __webpack_require__.hmrM = () => {
@@ -911,6 +974,19 @@ var __rspack_jsonp = (parentChunkLoadingFunction, data) => {
 var jsonpChunkLoadingGlobal = self["__INITIAL_CHUNK_HMR_CHUNKS__"] = self["__INITIAL_CHUNK_HMR_CHUNKS__"] || [];
 jsonpChunkLoadingGlobal.forEach(__rspack_jsonp.bind(null, 0));
 jsonpChunkLoadingGlobal.push = __rspack_jsonp.bind(null, jsonpChunkLoadingGlobal.push.bind(jsonpChunkLoadingGlobal));
+
+})();
+// webpack/runtime/hot_module_replacement_chunk_groups
+(() => {
+var chunkGroups = {"initial_js":["lib"]};
+__webpack_require__.f.group = function (chunkId, promises, fetchPriority) {
+	var siblings = chunkGroups[chunkId];
+	if (!siblings) return;
+	var keys = Object.keys(__webpack_require__.f).filter(function (key) { return key !== "group"; });
+	siblings.forEach(function (id) {
+		keys.forEach(function (key) { __webpack_require__.f[key](id, promises, fetchPriority); });
+	});
+};
 
 })();
 

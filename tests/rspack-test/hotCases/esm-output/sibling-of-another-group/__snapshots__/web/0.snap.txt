@@ -1,0 +1,16 @@
+# Case sibling-of-another-group: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: a_js.chunk.mjs
+- Bundle: b_js.chunk.mjs
+- Bundle: c.chunk.mjs
+- Bundle: main.mjs
+- Bundle: x.chunk.mjs
+
+## Manifest
+
+
+## Update

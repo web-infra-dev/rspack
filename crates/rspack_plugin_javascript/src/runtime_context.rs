@@ -344,6 +344,14 @@ fn render_runtime_chunk_runtime_modules_sync(
       &mut emitted_fields,
       &mut emitted_setters,
     )));
+    if is_hmr_runtime {
+      for key in &hmr_state_keys {
+        let state = runtime_template.render_hmr_runtime_state_expression(key);
+        sources.add(RawStringSource::from(format!(
+          "{runtime_context}.hmrS_{key}={state};\n"
+        )));
+      }
+    }
 
     return sources.boxed();
   }
@@ -401,6 +409,13 @@ fn render_runtime_chunk_runtime_modules_sync(
           lexical_name
         )));
       }
+    }
+  }
+  if is_hmr_runtime {
+    for key in &hmr_state_keys {
+      wrapped_sources.add(RawStringSource::from(format!(
+        "{runtime_context}.hmrS_{key}=hmrS_{key};\n"
+      )));
     }
   }
   if isolate {
@@ -569,7 +584,10 @@ pub async fn render_hot_update_chunk_runtime_modules(
         } else {
           format!("hmrS_{key}")
         };
-      sources.add(RawStringSource::from(format!("var {state_expression};\n")));
+      // Re-emitting a loader must preserve loaded chunks and pending imports.
+      sources.add(RawStringSource::from(format!(
+        "var {state_expression}={runtime_context}.hmrS_{key};\n"
+      )));
     }
   }
 
@@ -613,6 +631,16 @@ Object.defineProperty({runtime_context}, {json_key}, {{ configurable: true, get:
     }
   }
 
+  for key in &hmr_state_keys {
+    let state = if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport {
+      runtime_template.render_hmr_runtime_state_expression(key)
+    } else {
+      format!("hmrS_{key}")
+    };
+    sources.add(RawStringSource::from(format!(
+      "{runtime_context}.hmrS_{key}={state};\n"
+    )));
+  }
   Ok(sources.boxed())
 }
 

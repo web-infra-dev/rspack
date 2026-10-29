@@ -1,0 +1,158 @@
+# Case loaded-async-injected-update: Step 2
+
+## Changed Files
+- async.js
+- shared.js
+
+## Asset Files
+- Bundle: async_js.chunk.CURRENT_HASH.js
+- Bundle: bundle.js
+- Bundle: other_js.chunk.CURRENT_HASH.js
+- Bundle: shared.chunk.CURRENT_HASH.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 48
+- Update: async_js.LAST_HASH.hot-update.js, size: 348
+- Update: main.LAST_HASH.hot-update.js, size: 362
+- Update: shared.LAST_HASH.hot-update.js, size: 521
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["async_js","main","shared"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### async_js.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./shared.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("async_js", {
+"./shared.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = ("shared 2");
+
+
+},
+
+});
+```
+
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV = {"async_js":"CHUNK_VERSION","other_js":"CHUNK_VERSION","shared":"CHUNK_VERSION"};
+})();
+
+}
+);
+```
+
+
+
+### shared.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./shared.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("shared", {
+"./shared.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = ("shared 2");
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/hot_module_replacement_loaded_chunk_version|shared
+(() => {
+__webpack_require__.hmrL["shared"] = "CHUNK_VERSION";
+})();
+
+}
+);
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./async.js
+- ./shared.js
+
+
+Outdated Dependencies:
+```json
+{}
+```
+
+#### Updated
+
+Updated Modules:
+- ./async.js
+- ./shared.js
+
+Updated Runtime:
+- `__webpack_require__.h`
+- `__webpack_require__.hmrV`
+
+
+#### Callback
+
+Accepted Callback:
+
+
+Disposed Callback:

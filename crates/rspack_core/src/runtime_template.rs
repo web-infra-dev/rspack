@@ -1122,9 +1122,15 @@ impl ModuleCodeTemplate {
       })
       .collect::<Vec<_>>();
 
-    if chunks.len() == 1 {
-      let chunk_id = simd_json::to_string(chunks[0].id().expect("should have chunk.id"))
-        .expect("should able to json stringify");
+    if chunks.len() == 1 || (compilation.hot && !chunks.is_empty()) {
+      let chunk_id = simd_json::to_string(
+        chunks
+          .last()
+          .expect("should have chunk")
+          .id()
+          .expect("should have chunk.id"),
+      )
+      .expect("should able to json stringify");
 
       let fetch_priority = chunk_group
         .kind

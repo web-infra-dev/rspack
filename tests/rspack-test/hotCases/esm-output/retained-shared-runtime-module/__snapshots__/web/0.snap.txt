@@ -1,0 +1,14 @@
+# Case retained-shared-runtime-module: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: main.mjs
+- Bundle: mod.chunk.mjs
+- Bundle: other.mjs
+
+## Manifest
+
+
+## Update
