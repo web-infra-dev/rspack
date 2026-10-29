@@ -158,10 +158,10 @@ swc_html_minifier   = { version = "63.0.0", default-features = false }
 swc_plugin_runner   = { version = "34.0.0", default-features = false }
 swc_typescript      = { version = "34.0.1", default-features = false }
 
-swc_next_allocator     = { version = "0.4.0", path = "../swc-next/crates/swc_allocator", default-features = false }
-swc_next_ecma_ast      = { version = "0.4.0", path = "../swc-next/crates/swc_ecma_ast", default-features = false }
-swc_next_ecma_parser   = { version = "0.4.0", path = "../swc-next/crates/swc_ecma_parser", default-features = false }
-swc_next_ecma_semantic = { version = "0.4.0", path = "../swc-next/crates/swc_ecma_semantic", default-features = false }
+swc_next_allocator     = { version = "0.4.1", default-features = false }
+swc_next_ecma_ast      = { version = "0.4.1", default-features = false }
+swc_next_ecma_parser   = { version = "0.4.1", default-features = false }
+swc_next_ecma_semantic = { version = "0.4.1", default-features = false }
 
 tracy-client = { version = "=0.18.4", default-features = false, features = ["enable", "sampling", "demangle", "system-tracing"] }
 wasi-common  = { version = "36.0.19", default-features = false }

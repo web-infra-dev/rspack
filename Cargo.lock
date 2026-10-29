@@ -7529,7 +7529,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_allocator"
-version = "0.4.0"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f74af8524e014feb881c5a62c9ed2ef7b7659ebd9cbfc2a9c82b53cb82afd696"
 dependencies = [
  "allocator-api2",
  "bumpalo",
@@ -7540,7 +7542,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_ast_macros"
-version = "0.4.0"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3d59a4fdc755bf7eb88281ea3e79984875f30284d4309629ae3c959e78ff9d6d"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7549,7 +7553,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_ecma_ast"
-version = "0.4.0"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7001312ca0138a833f16146589e86768b819cac7ebfc73d49644da8a023f4e99"
 dependencies = [
  "cow-utils",
  "num-bigint 0.5.1",
@@ -7560,7 +7566,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_ecma_parser"
-version = "0.4.0"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "07c12ee569197b12d889cd17ea49f65610ed53c7762dc84ef66756fb03ea2e00"
 dependencies = [
  "bitflags 2.13.2",
  "indexmap",
@@ -7574,7 +7582,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_ecma_semantic"
-version = "0.4.0"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc3f4a39d70c8f122d59edb47917955164085bb4fe0010289be7ebe01b95c102"
 dependencies = [
  "bitflags 2.13.2",
  "hashbrown 0.17.1",
@@ -7588,7 +7598,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_regular_expression"
-version = "0.4.0"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d3952c0e4f8a5a661eefbedcb989ad79ee9ce8112561cbe4f914c5d6ea870cf"
 dependencies = [
  "bitflags 2.13.2",
  "phf 0.14.0",
@@ -7599,7 +7611,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_simd"
-version = "0.4.0"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d949da076ab686ff1e3e8a2e56761ef662fdf8b759855f718381b8a334720d1c"
 
 [[package]]
 name = "swc_node_comments"

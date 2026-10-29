@@ -645,7 +645,7 @@ fn collect_ident(ast: &Ast<'_>, semantic: &Semantic<'_>) -> ConcatenatedModuleAn
       continue;
     }
     let symbols = semantic
-      .rename_symbols(entry.id)
+      .linked_symbols(entry.id)
       .collect::<SmallVec<[_; 1]>>();
     let name = Atom::from(
       ast
