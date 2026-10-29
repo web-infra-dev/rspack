@@ -1,0 +1,43 @@
+[package]
+categories           = ["web-programming", "compilers"]
+description          = "A fast, byte-compatible Rust port of the Less CSS compiler (less.js 4.9.1 semantics)"
+edition.workspace    = true
+keywords             = ["less", "css", "preprocessor", "compiler", "stylesheet"]
+license              = "Apache-2.0"
+name                 = "less-rs"
+readme               = "README.md"
+repository.workspace = true
+version.workspace    = true
+
+[features]
+# per-type/call-site arena accounting printed with LESS_RS_TIMING (development)
+arena-stats = []
+default     = ["data-uri", "sourcemap"]
+# source map generation (`sourceMap` options)
+sourcemap = []
+# `miette::Diagnostic` for `Error` (pretty terminal diagnostics)
+data-uri = []
+miette   = ["dep:miette"]
+serde    = ["dep:serde"]
+# `Options::from_json` for less.js-style option objects (used by the bindings)
+json = ["dep:serde_json"]
+# @import over http(s) (less.js UrlFileManager)
+http = ["dep:ureq"]
+
+[dependencies]
+base64     = { workspace = true, features = ["std"] }
+bumpalo    = { workspace = true, features = ["collections", "allocator-api2"] }
+cow-utils  = { workspace = true }
+hashbrown  = { workspace = true, features = ["allocator-api2", "inline-more"] }
+memchr     = { workspace = true, features = ["std"] }
+miette     = { workspace = true, optional = true, features = ["derive"] }
+regex      = { workspace = true, features = ["std", "unicode"] }
+rustc-hash = { workspace = true, features = ["std"] }
+ryu        = { workspace = true }
+serde      = { workspace = true, optional = true, features = ["std"] }
+serde_json = { workspace = true, optional = true }
+smallvec   = { workspace = true, features = ["union"] }
+ureq       = { workspace = true, optional = true, features = ["rustls"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+stacker = { workspace = true }

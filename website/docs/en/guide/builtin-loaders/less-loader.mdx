@@ -1,0 +1,72 @@
+---
+description: 'Compile Less to CSS with the built-in Less loader powered by less-rs.'
+---
+
+# Less loader
+
+`builtin:less-loader` uses `less-rs` to compile Less to CSS. It is included in Rspack and does not require installing `less` or `less-loader`.
+
+Use it with Rspack's CSS support:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        type: 'css/auto',
+        use: [
+          {
+            loader: 'builtin:less-loader',
+            /** @type {import('@rspack/core').LessLoaderOptions} */
+            options: {
+              lessOptions: {
+                math: 'parens-division',
+              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+For example, this input produces `.box { width: 12px; }`:
+
+```less title="style.less"
+@size: 6px;
+.box {
+  width: @size * 2;
+}
+```
+
+Import `style.less` from your application entry. You can also place `css-loader` and `style-loader` before `builtin:less-loader` in `use`, with the module type set to `javascript/auto`.
+
+The loader accepts the following options. The `LessLoaderOptions` and `LessOptions` types are exported by `@rspack/core`.
+
+| Option           | Description                                                                                                                                                      |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sourceMap`      | Generate source maps. Defaults to Rspack's loader source map setting derived from `devtool`. Maps are passed to the next loader and composed with incoming maps. |
+| `additionalData` | A string of Less code prepended to each resource, followed by a newline.                                                                                         |
+| `lessOptions`    | Less compiler options listed below.                                                                                                                              |
+
+`lessOptions` is passed to the Less.js-compatible options parser in `less-rs`. Compiler options include:
+
+- Output and evaluation: `compress`, `strictUnits`, `math`, `strictMath`, `dumpLineNumbers`, `banner`, `globalVars`, and `modifyVars`.
+- Imports and URLs: `filename`, `paths`, `processImports`, `strictImports`, `rewriteUrls`, `relativeUrls`, `rootpath`, and `urlArgs`.
+- Diagnostics and source maps: `quiet`, `quietDeprecations`, and `sourceMap` (a boolean or a Less source map options object).
+
+The loader defaults to `relativeUrls: true` and `filename: resourcePath`, matching JavaScript `less-loader`. `relativeUrls: true` takes precedence over `rewriteUrls`; set `relativeUrls: false` to use `rewriteUrls: 'off'` or `'local'`. Similarly, `strictMath: true` overrides `math` with `'parens'`. Numeric `math` and `rewriteUrls` values are also accepted.
+
+Variable values can be strings or numbers. `paths` accepts a string or an array of strings; relative entries resolve from Rspack's `context`.
+
+When the loader's source map setting is enabled, it replaces `lessOptions.sourceMap` with settings that embed source contents, preserve absolute source paths, and omit the source map URL comment. Otherwise, an explicit `lessOptions.sourceMap` is preserved, matching JavaScript `less-loader`.
+
+Compiler options are interpreted by `less-rs`, including its handling of unknown fields. Unknown loader-level options are rejected.
+
+Less imports use `less-rs` resolution through Rspack's input file system. Imported files and files read by functions such as `data-uri()` are tracked as file dependencies. Missing imports, including optional imports, are tracked for watch mode.
+
+This loader supports a subset of the JavaScript `less-loader` options. It does not support function-valued options, custom JavaScript implementations or plugins, JavaScript evaluation, HTTP imports, or the `webpackImporter` integration with Rspack's resolver (`resolve.alias`, package exports, and `~` imports). Use relative imports, `lessOptions.paths`, or the JavaScript `less-loader` when those features are required.
+
+Passing compiler flags such as `javascriptEnabled`, `insecure`, or `disablePluginRule` does not add JavaScript or HTTP support to `less-rs` or the loader.

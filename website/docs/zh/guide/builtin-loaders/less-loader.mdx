@@ -1,0 +1,72 @@
+---
+description: '使用基于 less-rs 的内置 Less loader 将 Less 编译为 CSS。'
+---
+
+# Less loader
+
+`builtin:less-loader` 使用 `less-rs` 将 Less 编译为 CSS。它随 Rspack 提供，无需安装 `less` 或 `less-loader`。
+
+配合 Rspack 的 CSS 支持使用：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        type: 'css/auto',
+        use: [
+          {
+            loader: 'builtin:less-loader',
+            /** @type {import('@rspack/core').LessLoaderOptions} */
+            options: {
+              lessOptions: {
+                math: 'parens-division',
+              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+例如，下面的输入会生成 `.box { width: 12px; }`：
+
+```less title="style.less"
+@size: 6px;
+.box {
+  width: @size * 2;
+}
+```
+
+在应用入口中导入 `style.less` 即可。也可以在 `use` 中将 `css-loader` 和 `style-loader` 放在 `builtin:less-loader` 前面，并将模块类型设为 `javascript/auto`。
+
+loader 接受以下选项。`@rspack/core` 导出了 `LessLoaderOptions` 和 `LessOptions` 类型。
+
+| 选项             | 说明                                                                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `sourceMap`      | 是否生成 source map，默认使用 Rspack 根据 `devtool` 推导的 loader source map 设置。生成的映射会与输入映射合并，并传给下一个 loader。 |
+| `additionalData` | 添加到每个资源开头的 Less 代码字符串，后面自动添加换行。                                                                             |
+| `lessOptions`    | 下文列出的 Less 编译选项。                                                                                                           |
+
+`lessOptions` 会传给 `less-rs` 中兼容 Less.js 的选项解析器。编译器选项包括：
+
+- 输出和求值：`compress`、`strictUnits`、`math`、`strictMath`、`dumpLineNumbers`、`banner`、`globalVars` 和 `modifyVars`。
+- 导入和 URL：`filename`、`paths`、`processImports`、`strictImports`、`rewriteUrls`、`relativeUrls`、`rootpath` 和 `urlArgs`。
+- 诊断和 source map：`quiet`、`quietDeprecations` 和 `sourceMap`（布尔值或 Less source map 选项对象）。
+
+loader 默认设置 `relativeUrls: true` 和 `filename: resourcePath`，与 JavaScript `less-loader` 一致。`relativeUrls: true` 的优先级高于 `rewriteUrls`；要使用 `rewriteUrls: 'off'` 或 `'local'`，需设置 `relativeUrls: false`。同样，`strictMath: true` 会将 `math` 覆盖为 `'parens'`。`math` 和 `rewriteUrls` 也接受数字形式。
+
+变量值可以是字符串或数字。`paths` 接受字符串或字符串数组，相对路径以 Rspack 的 `context` 为基准。
+
+开启 loader 的 source map 设置时，会覆盖 `lessOptions.sourceMap`，使用内嵌源文件内容、保留源文件绝对路径、不生成 source map URL 注释的配置。否则会保留显式传入的 `lessOptions.sourceMap`，与 JavaScript `less-loader` 一致。
+
+编译器选项及未知字段由 `less-rs` 统一解释。loader 顶层的未知选项会报错。
+
+Less 导入使用 `less-rs` 的解析规则，并通过 Rspack 的输入文件系统读取。导入文件以及 `data-uri()` 等函数读取的文件都会被记录为文件依赖。缺失的导入文件（包括可选导入）也会被跟踪，用于 watch 模式。
+
+该 loader 支持 JavaScript `less-loader` 选项的一个子集，不支持函数形式的选项、自定义 JavaScript 实现或插件、JavaScript 求值、HTTP 导入，也不支持 `webpackImporter` 与 Rspack resolver 的集成（`resolve.alias`、package exports 和 `~` 导入）。需要这些功能时，请使用相对导入、`lessOptions.paths` 或 JavaScript `less-loader`。
+
+传入 `javascriptEnabled`、`insecure` 或 `disablePluginRule` 等编译器标志，不会为 `less-rs` 或 loader 增加 JavaScript 或 HTTP 支持。

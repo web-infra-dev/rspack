@@ -516,6 +516,14 @@ impl CompilerBuilder {
   }
 }
 
+#[cfg(feature = "loader_less")]
+impl CompilerBuilder {
+  /// Enable support for builtin:less-loader.
+  pub fn enable_loader_less(&mut self) -> &mut Self {
+    self.plugin(Box::new(rspack_loader_less::LessLoaderPlugin::new()))
+  }
+}
+
 #[cfg(feature = "loader_swc")]
 impl CompilerBuilder {
   /// Enable support for builtin:swc-loader.

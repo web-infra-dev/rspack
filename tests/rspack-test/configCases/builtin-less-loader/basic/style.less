@@ -1,0 +1,10 @@
+@import './variables';
+@import (optional) './optional';
+@import 'external.css';
+.size(@n) { width: @n * 2; }
+.box {
+  color: @color;
+  .size(6px);
+  .child { color: blue; }
+}
+.icon { background: data-uri('./icon.svg'); }

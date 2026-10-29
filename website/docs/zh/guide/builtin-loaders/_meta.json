@@ -1,1 +1,1 @@
-["swc-loader", "lightningcss-loader"]
+["swc-loader", "lightningcss-loader", "less-loader"]

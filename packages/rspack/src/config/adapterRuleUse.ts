@@ -1,4 +1,5 @@
 import type { AssetInfo, RawModuleRuleUse, RawOptions } from '@rspack/binding';
+import { getLessLoaderOptions } from '../builtin-loader/less';
 import { getLightningcssLoaderOptions } from '../builtin-loader/lightningcss';
 import { getSwcLoaderOptions } from '../builtin-loader/swc';
 import type { Compilation } from '../Compilation';
@@ -515,6 +516,12 @@ function getBuiltinLoaderOptions(
   o: RuleSetLoaderWithOptions['options'],
   options: ComposeJsUseOptions,
 ): RuleSetLoaderWithOptions['options'] {
+  if (
+    identifier.split(/[?#]/, 1)[0] === `${BUILTIN_LOADER_PREFIX}less-loader`
+  ) {
+    return getLessLoaderOptions(o, options);
+  }
+
   if (identifier.startsWith(`${BUILTIN_LOADER_PREFIX}swc-loader`)) {
     return getSwcLoaderOptions(o, options);
   }

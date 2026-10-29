@@ -24,9 +24,11 @@ arc-swap        = { version = "1.9.2", default-features = false }
 async-recursion = { version = "1.2.0", default-features = false }
 async-trait     = { version = "0.1.92", default-features = false }
 atomic_refcell  = { version = "0.1.14", default-features = false }
+base64          = { version = "0.22.1", default-features = false }
 base64-simd     = { version = "0.8.0", default-features = false, features = ["alloc"] }
 bitflags        = { version = "2.13.2", default-features = false }
 browserslist-rs = { version = "0.21.2", default-features = false, features = ["deflate"] }
+bumpalo         = { version = "3.20.3", default-features = false }
 bytes           = { version = "1.12.1", default-features = false }
 camino          = { version = "1.2.6", default-features = false }
 cargo_toml      = { version = "1.0.1", default-features = false }
@@ -66,6 +68,7 @@ itoa                = { version = "1.0.18", default-features = false }
 json                = { version = "0.12.4", default-features = false }
 json-escape-simd    = { version = "3.1.2", default-features = false }
 json-strip-comments = { version = "3.1.2", default-features = false }
+less-rs             = { version = "=0.103.0-beta.1", path = "crates/less-rs", default-features = false }
 lightningcss        = { version = "1.0.0-alpha.72", default-features = false, features = ["serde"] }
 linked-hash-map     = { version = "0.5.6", default-features = false }
 md4                 = { version = "0.10.2", default-features = false }
@@ -95,6 +98,7 @@ regex               = { version = "1.13.1", default-features = false, features =
 regex-syntax        = { version = "0.8.11", default-features = false, features = ["std"] }
 regress             = { version = "0.11.1", default-features = false, features = ["pattern"] }
 rustc-hash          = { version = "2.1.3", default-features = false }
+ryu                 = { version = "1.0", default-features = false }
 ryu-js              = { version = "1.0.3", default-features = false }
 scopeguard          = { version = "1.2.0", default-features = false }
 serde               = { version = "1.0.229", default-features = false, features = ["derive"] }
@@ -128,6 +132,7 @@ twox-hash           = { version = "2.1.5", default-features = false }
 unicase             = { version = "2.9.0", default-features = false }
 unicode-width       = { version = "0.2.2", default-features = false }
 unsize              = { version = "1.1.0", default-features = false }
+ureq                = { version = "3.3.0", default-features = false }
 url                 = { version = "2.5.8", default-features = false }
 urlencoding         = { version = "2.1.3", default-features = false }
 ustr                = { package = "ustr-fxhash", version = "1.0.1", default-features = false }
@@ -191,6 +196,7 @@ rspack_hook                            = { version = "=0.103.0-beta.1", path = "
 rspack_ids                             = { version = "=0.103.0-beta.1", path = "crates/rspack_ids", default-features = false }
 rspack_intern                          = { version = "=0.103.0-beta.1", path = "crates/rspack_intern", default-features = false }
 rspack_javascript_compiler             = { version = "=0.103.0-beta.1", path = "crates/rspack_javascript_compiler", default-features = false }
+rspack_loader_less                     = { version = "=0.103.0-beta.1", path = "crates/rspack_loader_less", default-features = false }
 rspack_loader_lightningcss             = { version = "=0.103.0-beta.1", path = "crates/rspack_loader_lightningcss", default-features = false }
 rspack_loader_preact_refresh           = { version = "=0.103.0-beta.1", path = "crates/rspack_loader_preact_refresh", default-features = false }
 rspack_loader_react_refresh            = { version = "=0.103.0-beta.1", path = "crates/rspack_loader_react_refresh", default-features = false }

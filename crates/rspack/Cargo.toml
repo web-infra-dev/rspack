@@ -11,11 +11,12 @@ allocative = ["rspack_core/allocative", "rspack_loader_swc?/allocative"]
 codspeed   = ["rspack_core/codspeed", "rspack_plugin_schemes/codspeed"]
 full       = ["loaders"]
 
+loader_less           = ["rspack_loader_less"]
 loader_lightningcss   = ["rspack_loader_lightningcss"]
 loader_preact_refresh = ["rspack_loader_preact_refresh"]
 loader_react_refresh  = ["rspack_loader_react_refresh"]
 loader_swc            = ["rspack_loader_swc"]
-loaders               = ["loader_lightningcss", "loader_preact_refresh", "loader_react_refresh", "loader_swc"]
+loaders               = ["loader_less", "loader_lightningcss", "loader_preact_refresh", "loader_react_refresh", "loader_swc"]
 
 [dependencies]
 bitflags            = { workspace = true }
@@ -57,6 +58,7 @@ rspack_plugin_worker                  = { workspace = true }
 rspack_tasks                          = { workspace = true }
 rspack_util                           = { workspace = true }
 # Loaders
+rspack_loader_less           = { workspace = true, optional = true }
 rspack_loader_lightningcss   = { workspace = true, optional = true }
 rspack_loader_preact_refresh = { workspace = true, optional = true }
 rspack_loader_react_refresh  = { workspace = true, optional = true }

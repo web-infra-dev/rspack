@@ -352,6 +352,7 @@ export const sharing = {
   SharePlugin,
 };
 
+export type { LessLoaderOptions, LessOptions } from './builtin-loader/less';
 export type {
   FeatureOptions as LightningcssFeatureOptions,
   LoaderOptions as LightningcssLoaderOptions,
