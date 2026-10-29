@@ -6,15 +6,13 @@ export default function () {
 		pathToFileURL(path.join(import.meta.dirname, "folder", "file-url.txt")).href,
 		pathToFileURL(path.join(import.meta.dirname, "my folder", "encoded.txt")).href,
 		pathToFileURL(path.join(import.meta.dirname, "..", "sibling", "outside.txt")).href,
-		`webpack://${path.join(import.meta.dirname, "folder", "webpack-url.txt")}`,
-		"file://server/share/remote.txt",
-		"webpack://lib/./src/namespaced.txt"
+		"file://server/share/remote.txt"
 	];
 	this.callback(null, "module.exports = 'ok';", {
 		version: 3,
 		sources,
 		sourcesContent: sources.map(() => "Test"),
 		names: [],
-		mappings: "AAAA;AACA;AACA;AACA;AACA;AACA"
+		mappings: "AAAA;AACA;AACA;AACA"
 	});
 };

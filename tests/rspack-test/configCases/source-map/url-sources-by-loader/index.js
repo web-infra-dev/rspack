@@ -12,7 +12,5 @@ it("should make url sources from loaders context relative", function () {
 	expect(source.sources).toContain(sourceUrl("./folder/file-url.txt"));
 	expect(source.sources).toContain(sourceUrl("./my folder/encoded.txt"));
 	expect(source.sources).toContain(sourceUrl("../sibling/outside.txt"));
-	expect(source.sources).toContain(sourceUrl("./folder/webpack-url.txt"));
 	expect(source.sources).toContain(sourceUrl("file://server/share/remote.txt"));
-	expect(source.sources).toContain(sourceUrl("lib/./src/namespaced.txt"));
 });

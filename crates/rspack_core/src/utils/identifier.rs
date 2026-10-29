@@ -33,17 +33,10 @@ pub fn contextify(context: impl AsRef<Utf8Path>, request: &str) -> String {
 
 /// Converts a source path to a context-relative `webpack://` URL, preserving existing URLs.
 ///
-/// `file://` URLs, and `webpack://` URLs that hold an absolute path on the same root as
-/// `context`, are converted too, so build-local paths don't leak into module hashes.
+/// `file://` URLs are converted too, so build-local paths don't leak into module hashes.
 pub fn contextify_source_url(context: &str, source: &str) -> String {
   if let Some(path) = source.strip_prefix("file://").and_then(file_url_path) {
     return to_context_relative_url(context, &path);
-  }
-  if let Some(path) = source
-    .strip_prefix("webpack://")
-    .and_then(|path| absolute_path_on_context_root(context, path))
-  {
-    return to_context_relative_url(context, path);
   }
   if source.starts_with("webpack://")
     || source.starts_with("rspack://")
@@ -71,26 +64,6 @@ fn file_url_path(url_path: &str) -> Option<String> {
   }
   let path = urlencoding::decode(url_path).ok()?;
   Some(strip_slash_before_drive(&path).to_string())
-}
-
-/// `webpack://` URLs usually hold `[namespace]/[resource-path]`, which is already relative.
-/// Only absolute paths whose first segment matches `context`'s are rewritten, so virtual
-/// modules such as `webpack:///webpack/bootstrap` keep their URL.
-fn absolute_path_on_context_root<'a>(context: &str, path: &'a str) -> Option<&'a str> {
-  let path = strip_slash_before_drive(path);
-  if !path.starts_with('/') && !is_windows_drive_path(path) {
-    return None;
-  }
-  let context_root = root_segment(context)?;
-  (root_segment(path) == Some(context_root)).then_some(path)
-}
-
-fn root_segment(path: &str) -> Option<&str> {
-  path
-    .trim_start_matches('/')
-    .split(['/', '\\'])
-    .next()
-    .filter(|segment| !segment.is_empty())
 }
 
 /// URLs write Windows paths as `/C:/path`; drop the leading slash so they read as absolute.
