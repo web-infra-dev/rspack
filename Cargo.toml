@@ -66,6 +66,7 @@ itoa                = { version = "1.0.18", default-features = false }
 json                = { version = "0.12.4", default-features = false }
 json-escape-simd    = { version = "3.1.3", default-features = false }
 json-strip-comments = { version = "3.1.2", default-features = false }
+libc                = { version = "0.2.183", default-features = false }
 lightningcss        = { version = "1.0.0-alpha.72", default-features = false, features = ["serde"] }
 linked-hash-map     = { version = "0.5.6", default-features = false }
 md4                 = { version = "0.10.2", default-features = false }
@@ -137,9 +138,9 @@ winnow              = { version = "1.0.4", default-features = false, features = 
 xxhash-rust         = { version = "0.8.19", default-features = false }
 
 # Pinned
-napi        = { version = "3.12.1", default-features = false }
-napi-build  = { version = "2.4.1", default-features = false }
-napi-derive = { version = "3.6.3", default-features = false }
+napi        = { version = "3.10.5", default-features = false }
+napi-build  = { version = "2.3.2", default-features = false }
+napi-derive = { version = "3.5.10", default-features = false }
 
 # Serialize and Deserialize
 inventory = { version = "0.3.17", default-features = false }

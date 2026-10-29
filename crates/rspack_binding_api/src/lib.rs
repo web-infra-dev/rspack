@@ -737,10 +737,9 @@ fn node_init(mut _exports: Object, env: Env) -> Result<()> {
 fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
   // Tokio shutdown is asynchronous and Rayon workers outlive individual Node environments.
   // Keep the addon loaded so the last Worker cannot unload code those threads still execute.
-  // Rspack owns its runtime, so napi-rs's runtime initialization does not do this for us.
   // See https://github.com/napi-rs/napi-rs/pull/3423.
   #[cfg(not(target_family = "wasm"))]
-  napi::bindgen_prelude::retain_current_module_for_unload_safety();
+  rspack_napi::retain_current_module_for_unload_safety();
 
   #[cfg(target_family = "wasm")]
   {
