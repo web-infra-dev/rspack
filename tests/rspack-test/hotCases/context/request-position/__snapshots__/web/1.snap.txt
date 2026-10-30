@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: lib_a_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 87
-- Update: main.LAST_HASH.hot-update.js, size: 2237
+- Update: main.LAST_HASH.hot-update.js, size: 2245
 
 ## Manifest
 
@@ -95,7 +95,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 	Object.keys(installedBlocks).forEach((id) => {
 		if (!map[id]) delete installedBlocks[id];
 	});
-})({"block:./lib|lazy|/^\\.\\/.*\\.js$/|groupOptions: {}|namespace object|importPhase: evaluation|dep=context/Users/bytedance/.codex/worktrees/66a4/rspack/tests/rspack-test/js/temp/hot-snapshot/hotSnapshotCases-hotCases/context/request-position/lib|./a.js|modifier=./a.js":["lib_a_js"],"block:./lib|lazy|/^\\.\\/.*\\.js$/|referencedExports: a|groupOptions: {}|namespace object|importPhase: evaluation|dep=context/Users/bytedance/.codex/worktrees/66a4/rspack/tests/rspack-test/js/temp/hot-snapshot/hotSnapshotCases-hotCases/context/request-position/lib|./a.js|modifier=./a.js":null});
+})({"block:./lib|lazy|/^\\.\\/.*\\.js$/|groupOptions: {}|namespace object|importPhase: evaluation|dep=context/Users/bytedance/libs/rspack-hmr-fuzz-integration/tests/rspack-test/js/temp/hot-snapshot/hotSnapshotCases-hotCases/context/request-position/lib|./a.js|modifier=./a.js":["lib_a_js"],"block:./lib|lazy|/^\\.\\/.*\\.js$/|referencedExports: a|groupOptions: {}|namespace object|importPhase: evaluation|dep=context/Users/bytedance/libs/rspack-hmr-fuzz-integration/tests/rspack-test/js/temp/hot-snapshot/hotSnapshotCases-hotCases/context/request-position/lib|./a.js|modifier=./a.js":null});
 
 })();
 
