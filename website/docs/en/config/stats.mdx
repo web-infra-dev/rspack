@@ -554,7 +554,7 @@ When an object is provided, it customizes the ANSI escape sequences used for eac
 
 ### stats.cacheInfo
 
-<PropertyType type="boolean" />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 - **Version:** `>= 2.3.0`
 
@@ -582,7 +582,7 @@ compiler.hooks.done.tap('CacheStatistics', (stats) => {
 });
 ```
 
-For `toJson()`, this option defaults to `true`, but presets and `all` can override it. Set `cacheInfo: true` explicitly when using `all: false`.
+For `toJson()`, this option is disabled by default. Set `cacheInfo: true` or `all: true` to include cache statistics.
 
 `toString()` does not display these statistics. For field descriptions, see [cacheInfo](/api/javascript-api/stats-json#cacheinfo).
 

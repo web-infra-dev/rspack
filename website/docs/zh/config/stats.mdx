@@ -554,7 +554,7 @@ type StatsColors = boolean | StatsColorOptions;
 
 ### stats.cacheInfo
 
-<PropertyType type="boolean" />
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
 - **版本：** `>= 2.3.0`
 
@@ -582,7 +582,7 @@ compiler.hooks.done.tap('CacheStatistics', (stats) => {
 });
 ```
 
-对于 `toJson()`，此选项默认为 `true`，但预设和 `all` 可以覆盖默认值。使用 `all: false` 时，应显式设置 `cacheInfo: true`。
+对于 `toJson()`，此选项默认关闭。设置 `cacheInfo: true` 或 `all: true` 即可包含缓存统计信息。
 
 `toString()` 不会展示这些统计信息。字段说明请参阅 [cacheInfo](/api/javascript-api/stats-json#cacheinfo)。
 
