@@ -79,6 +79,8 @@ export default {
 
 定义远程应用入口的产物格式。默认的 libraryType 为 `"var"`。
 
+全局容器格式（`var`、`global`、`window` 和 `self`）会在 library 名称已被其他值占用时拒绝注册。请使用应用特有的名称，例如 `catalog_remote`，或使用模块格式。已注册且具有可调用的 `get` 和 `init` 方法的容器会被保留。此检查仅针对容器产物，不限制 host 的实例名称或模块产物。
+
 ### shareScope
 
 - 类型：`string | string[]`

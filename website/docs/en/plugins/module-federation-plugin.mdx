@@ -79,6 +79,8 @@ Define the runtime chunk for remote container entry.
 
 Define the output format of remote container entry. The default libraryType is "var".
 
+Global container formats (`var`, `global`, `window`, and `self`) reject registration when the library name is already occupied by another value. Choose an application-specific name, such as `catalog_remote`, or a module library format. A previously registered container with callable `get` and `init` methods is preserved. This check applies to container output, not to a host's instance name or to module output.
+
 ### shareScope
 
 - Type: `string | string[]`
