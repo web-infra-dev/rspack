@@ -67,20 +67,23 @@ impl BuildChunkGraphArtifact {
     }
 
     let module_graph = this_compilation.get_module_graph();
+    if !this_compilation
+      .global_entry
+      .dependencies
+      .iter()
+      .filter_map(|dependency| module_graph.module_identifier_by_dependency_id(dependency))
+      .eq(self.code_splitter.global_entry_modules.iter())
+    {
+      logger.log("global entry roots change detected, rebuilding chunk graph");
+      return false;
+    }
+
     for (name, entry) in &this_compilation.entries {
       let entrypoint = self.chunk_group_by_ukey.expect_get(&self.entrypoints[name]);
-      let entry_modules = self
-        .chunk_graph
-        .get_chunk_entry_modules_with_chunk_group_iterable(&entrypoint.get_entrypoint_chunk());
-      let modules = this_compilation
-        .global_entry
+      let modules = entry
         .dependencies
         .iter()
-        .chain(&entry.dependencies)
-        .rev()
-        .filter_map(|dependency| module_graph.module_identifier_by_dependency_id(dependency))
-        .unique()
-        .collect::<Vec<_>>();
+        .filter_map(|dependency| module_graph.module_identifier_by_dependency_id(dependency));
       let included_modules = this_compilation
         .global_entry
         .include_dependencies
@@ -95,7 +98,11 @@ impl BuildChunkGraphArtifact {
             .sorted_unstable(),
         );
       if entrypoint.kind.get_entry_options() != Some(&entry.options)
-        || !modules.into_iter().rev().eq(entry_modules.keys())
+        || !self
+          .code_splitter
+          .entry_modules
+          .get(name)
+          .is_some_and(|cached| modules.eq(cached.iter()))
         || !self
           .code_splitter
           .entry_include_modules
@@ -251,6 +258,21 @@ where
   // Incremental chunk graph reuse did not apply, so clear the recovered
   // artifact to avoid stale data.
   compilation.build_chunk_graph_artifact.reset_for_rebuild();
+
+  // The asset pass repeats this notice even when the chunk graph is reused.
+  if compilation.entries.values().any(|entry| {
+    entry
+      .options
+      .filename
+      .as_ref()
+      .is_some_and(|filename| filename.has_hash_placeholder())
+  }) && let Some(Some(diagnostic)) = compilation.incremental.disable_passes(
+    IncrementalPasses::CHUNK_ASSET,
+    "Chunk filename that dependent on full hash",
+    "chunk filename that dependent on full hash is not supported in incremental compilation",
+  ) {
+    compilation.push_diagnostic(diagnostic);
+  }
 
   let diagnostics_len = compilation.diagnostics().len();
   let compilation = task(compilation).await?;

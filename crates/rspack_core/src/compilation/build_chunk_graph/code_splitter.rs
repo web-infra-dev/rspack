@@ -375,6 +375,8 @@ pub(crate) struct CodeSplitter {
   pub(crate) named_chunk_groups: HashMap<String, CgiUkey>,
   pub(crate) named_async_entrypoints: HashMap<String, CgiUkey>,
   pub(crate) block_modules_runtime_map: BlockModulesRuntimeMap,
+  pub(crate) entry_modules: HashMap<String, Vec<ModuleIdentifier>>,
+  pub(crate) global_entry_modules: Vec<ModuleIdentifier>,
   pub(crate) entry_include_modules: HashMap<String, Vec<ModuleIdentifier>>,
   pub(crate) global_include_modules: Vec<ModuleIdentifier>,
   pub(crate) ordinal_by_module: IdentifierMap<u64>,
@@ -665,7 +667,8 @@ impl CodeSplitter {
         request
       })
       .collect::<Vec<_>>();
-    let module_identifiers = dependencies
+    let entry_modules = entry_data
+      .dependencies
       .iter()
       .filter_map(|dep| {
         compilation
@@ -674,6 +677,13 @@ impl CodeSplitter {
           .copied()
       })
       .collect::<Vec<_>>();
+    let module_identifiers = self
+      .global_entry_modules
+      .iter()
+      .chain(&entry_modules)
+      .copied()
+      .collect::<Vec<_>>();
+    self.entry_modules.insert(name.to_string(), entry_modules);
 
     let (chunk_ukey, created) = Compilation::add_named_chunk(
       name.to_string(),
@@ -689,19 +699,8 @@ impl CodeSplitter {
       .chunk_by_ukey
       .expect_get_mut(&chunk_ukey);
 
-    let mut incremental_diagnostic = None;
     if let Some(filename) = &entry_data.options.filename {
       chunk.set_filename_template(Some(filename.clone()));
-
-      if filename.has_hash_placeholder()
-        && let Some(diagnostic) = compilation.incremental.disable_passes(
-          IncrementalPasses::CHUNK_ASSET,
-          "Chunk filename that dependent on full hash",
-          "chunk filename that dependent on full hash is not supported in incremental compilation",
-        )
-      {
-        incremental_diagnostic = diagnostic;
-      }
     }
 
     compilation
@@ -819,10 +818,6 @@ impl CodeSplitter {
     }
 
     let entrypoint_ukey = entrypoint.ukey;
-
-    if let Some(diagnostic) = incremental_diagnostic {
-      compilation.push_diagnostic(diagnostic);
-    }
 
     Ok((entrypoint_ukey, modules))
   }
@@ -1023,6 +1018,17 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       FxIndexMap::with_capacity_and_hasher(compilation.entries.len(), Default::default());
 
     let entries = compilation.entries.keys().cloned().collect::<Vec<_>>();
+    self.global_entry_modules = compilation
+      .global_entry
+      .dependencies
+      .iter()
+      .filter_map(|dep| {
+        compilation
+          .get_module_graph()
+          .module_identifier_by_dependency_id(dep)
+          .copied()
+      })
+      .collect();
 
     let assign_tasks = entries
       .iter()
