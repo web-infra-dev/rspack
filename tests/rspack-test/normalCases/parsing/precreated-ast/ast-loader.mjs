@@ -3,9 +3,6 @@ import { parseSync } from "@swc-next/parser";
 /** @type {import("@rspack/core").LoaderDefinition} */
 export default function (source) {
 	const { program: ast, comments, diagnostics } = parseSync(source, {
-		sourceType: "module",
-		preserveParens: false,
-		comments: "flat",
 		semanticErrors: true
 	});
 	const errors = diagnostics.filter(diagnostic => diagnostic.severity === "error");

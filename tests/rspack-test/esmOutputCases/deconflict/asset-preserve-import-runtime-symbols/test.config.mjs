@@ -5,7 +5,6 @@ import path from "node:path";
 
 function expectUniqueImportBindings(source) {
   const { program, diagnostics } = parseSync(source, {
-    sourceType: 'module',
     semanticErrors: true,
   })
   expect(diagnostics.filter(diagnostic => diagnostic.severity === 'error')).toEqual([])
