@@ -482,11 +482,11 @@ impl CompilerBuilder {
     let compiler_context = CURRENT_COMPILER_CONTEXT.try_with(|v| v.clone()).ok();
 
     let infrastructure_log_sink = Arc::new(PrintlnInfrastructureLogSink);
-    let cache = Arc::new(create_cache(
+    let cache = create_cache(
       &compiler_options,
       input_filesystem.clone(),
       infrastructure_log_sink.clone(),
-    ));
+    );
 
     Ok(Compiler::new(
       Arc::default(),

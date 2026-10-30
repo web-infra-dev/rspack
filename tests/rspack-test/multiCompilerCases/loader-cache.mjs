@@ -23,7 +23,6 @@ export default {
 			},
 			cache: {
 				type: "persistent",
-				name,
 				readonly: true,
 				maxMemoryGenerations: Infinity,
 				storage: {

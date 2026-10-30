@@ -1,13 +1,6 @@
-use std::{
-  ops::Deref,
-  sync::{
-    Arc,
-    atomic::{AtomicBool, Ordering},
-  },
-  time::Duration,
-};
+use std::{ops::Deref, sync::Arc, time::Duration};
 
-use rspack_paths::InternedPathSet;
+use rspack_paths::{InternedPath, InternedPathSet};
 use rustc_hash::FxHashMap;
 
 use super::{
@@ -33,7 +26,6 @@ pub struct Cache {
   storage: CacheStorage,
   logger: Arc<InfrastructureLogger>,
   statistics: Arc<CacheStatistics>,
-  closing: AtomicBool,
 }
 
 impl Cache {
@@ -50,7 +42,6 @@ impl Cache {
       },
       logger,
       statistics: Default::default(),
-      closing: AtomicBool::new(false),
     }
   }
 
@@ -60,10 +51,6 @@ impl Cache {
 
   pub fn logger(&self) -> &InfrastructureLogger {
     &self.logger
-  }
-
-  pub fn is_closing(&self) -> bool {
-    self.closing.load(Ordering::Acquire)
   }
 
   pub fn get<T: CacheValueData>(&self, key: CacheKey, etag: Option<Etag>) -> Option<CacheValue<T>> {
@@ -119,6 +106,14 @@ impl Cache {
     self.storage.idle_file_cache.is_some()
   }
 
+  pub(super) fn storage_dir(&self) -> Option<InternedPath> {
+    self
+      .storage
+      .idle_file_cache
+      .as_ref()
+      .map(IdleFileCache::storage_dir)
+  }
+
   pub fn begin_idle(&self, build_time: Duration) {
     let storage = &self.storage;
     if let Some(memory_cache) = &storage.memory_cache {
@@ -136,10 +131,7 @@ impl Cache {
     }
   }
 
-  pub async fn shutdown(&self) {
-    if self.closing.swap(true, Ordering::AcqRel) {
-      return;
-    }
+  pub(super) async fn shutdown(&self) {
     let storage = &self.storage;
     if let Some(file_cache) = &storage.idle_file_cache {
       file_cache.shutdown().await;
@@ -158,6 +150,7 @@ impl Cache {
 #[derive(Debug, Clone)]
 pub struct CompilerCache {
   cache: Arc<Cache>,
+  compiler_name: Arc<str>,
   compiler_path: Arc<str>,
 }
 
@@ -170,15 +163,21 @@ impl Deref for CompilerCache {
 }
 
 impl CompilerCache {
-  pub fn new(cache: Arc<Cache>, compiler_path: Arc<str>) -> Self {
+  pub fn new(cache: Arc<Cache>, compiler_name: Arc<str>, compiler_path: Arc<str>) -> Self {
     Self {
       cache,
+      compiler_name,
       compiler_path,
     }
   }
 
   pub fn facade(&self, name: &str) -> CacheFacade {
-    let cache_name = [self.compiler_path.as_ref(), name].join("|");
+    let cache_name = [
+      self.compiler_name.as_ref(),
+      self.compiler_path.as_ref(),
+      name,
+    ]
+    .join("|");
     CacheFacade::new(Arc::clone(&self.cache), cache_name.into())
   }
 
