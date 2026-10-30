@@ -376,7 +376,6 @@ fn reset_compilation_state(compiler: &mut Compiler) {
   ));
   let cache = CompilerCache::new(
     Arc::new(Cache::new_disabled(logger)),
-    compiler.options.name.clone().unwrap_or_default().into(),
     compiler.compiler_path.clone(),
   );
   fast_set(

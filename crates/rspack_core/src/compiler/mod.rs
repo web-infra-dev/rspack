@@ -149,8 +149,7 @@ impl Compiler {
     let plugin_driver = PluginDriver::new(options.clone(), plugins, resolver_factory.clone());
     let buildtime_plugin_driver =
       PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
-    let compiler_name = options.name.clone().unwrap_or_default().into();
-    let new_cache = CompilerCache::new(cache, compiler_name, compiler_path.clone());
+    let new_cache = CompilerCache::new(cache, compiler_path.clone());
     let cache = create_legacy_cache(
       &compiler_path,
       options.clone(),
