@@ -4,6 +4,7 @@ import path from "node:path";
 
 let secondBuild;
 let runtime;
+let include;
 
 /** @type {import("@rspack/test-tools").TCompilerCaseConfig} */
 export default {
@@ -11,6 +12,7 @@ export default {
   options(testContext) {
     secondBuild = false;
     runtime = undefined;
+    include = false;
     const fixture = testContext.getDist("fixture");
     fs.mkdirSync(fixture, { recursive: true });
     fs.writeFileSync(path.join(fixture, "package.json"), '{"sideEffects":false}');
@@ -22,6 +24,7 @@ export default {
       path.join(fixture, "barrel.js"),
       'export { value } from "./leaf.js";'
     );
+    fs.writeFileSync(path.join(fixture, "included.js"), 'globalThis.included = "included";');
     fs.writeFileSync(path.join(fixture, "leaf.js"), 'export const value = "before";');
     return {
       context: fs.realpathSync(fixture),
@@ -30,11 +33,25 @@ export default {
       devtool: false,
       cache: false,
       entry: () => ({
+        keep: "./included.js",
         main: {
           import: secondBuild ? ["./entry.js", "./leaf.js"] : ["./entry.js"],
           ...(runtime ? { runtime } : {})
         }
       }),
+      plugins: [{
+        apply(compiler) {
+          compiler.hooks.finishMake.tapPromise("IncludeOnRebuild", async compilation => {
+            if (!include) return;
+            await new Promise((resolve, reject) => compilation.addInclude(
+              compiler.context,
+              compiler.rspack.EntryPlugin.createDependency("./included.js"),
+              { name: "main" },
+              error => error ? reject(error) : resolve()
+            ));
+          });
+        }
+      }],
       output: {
         path: testContext.getDist("output"),
         filename: "[name].cjs",
@@ -78,5 +95,23 @@ export default {
     await build({ modifiedFiles: new Set() });
     expect(readResult()).toEqual({ value: "after" });
     expect(fs.existsSync(path.join(compiler.outputPath, "other.cjs"))).toBe(true);
+
+    const entry = path.join(compiler.context, "entry.js");
+    fs.writeFileSync(entry, `
+      import { value } from "./barrel.js";
+      try { __webpack_require__(require.resolveWeak("./included.js")); } catch {}
+      export const result = value + ":" + (globalThis.included || "absent");
+    `);
+    secondBuild = false;
+    await build({ modifiedFiles: new Set([entry]) });
+    expect(readResult()).toEqual({ result: "after:absent" });
+
+    include = true;
+    await build({ modifiedFiles: new Set() });
+    expect(readResult()).toEqual({ result: "after:included" });
+
+    include = false;
+    await build({ modifiedFiles: new Set() });
+    expect(readResult()).toEqual({ result: "after:absent" });
   }
 };
