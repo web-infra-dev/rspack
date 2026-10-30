@@ -2356,17 +2356,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lightningcss-derive"
-version = "1.0.0-alpha.43"
-source = "git+https://github.com/rstackjs/lightningcss.git?rev=a3cf0d9b0e12d566501819c768e037585747894d#a3cf0d9b0e12d566501819c768e037585747894d"
-dependencies = [
- "convert_case 0.6.0",
- "proc-macro2",
- "quote",
- "syn 1.0.109",
-]
-
-[[package]]
 name = "link-section"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2939,23 +2928,6 @@ checksum = "3eae0176a010bb94b9a67f0eb9da0fd31410817d58850649c54f485124c9a71a"
 dependencies = [
  "either",
  "par-core",
-]
-
-[[package]]
-name = "parcel_selectors"
-version = "0.28.3"
-source = "git+https://github.com/rstackjs/lightningcss.git?rev=a3cf0d9b0e12d566501819c768e037585747894d#a3cf0d9b0e12d566501819c768e037585747894d"
-dependencies = [
- "bitflags 2.13.2",
- "cssparser",
- "log",
- "phf 0.11.2",
- "phf_codegen",
- "precomputed-hash",
- "rustc-hash",
- "serde",
- "smallvec",
- "static-self",
 ]
 
 [[package]]
@@ -3869,6 +3841,85 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack-lightningcss"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8c22e9eb41454bd92a7cbc544ba3d369d4ffdb91fa7db640ba94dd40930d433a"
+dependencies = [
+ "ahash",
+ "bitflags 2.13.2",
+ "const-str",
+ "cssparser",
+ "cssparser-color",
+ "data-encoding",
+ "getrandom 0.3.2",
+ "indexmap",
+ "itertools 0.10.5",
+ "lazy_static",
+ "pastey",
+ "pathdiff",
+ "rspack-lightningcss-derive",
+ "rspack-lightningcss-selectors",
+ "rspack-lightningcss-static-self",
+ "rustc-hash",
+ "serde",
+ "serde-content",
+ "smallvec",
+]
+
+[[package]]
+name = "rspack-lightningcss-derive"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cdc5767202d5aab30d89daac7727abfb1af52058c83bbc8cab69e86404756735"
+dependencies = [
+ "convert_case 0.6.0",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "rspack-lightningcss-selectors"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "24c0f74b440ca6d3a5b667562c7b0cbabd48d82b73a23617ff30a94369bb38a1"
+dependencies = [
+ "bitflags 2.13.2",
+ "cssparser",
+ "log",
+ "phf 0.11.2",
+ "phf_codegen",
+ "precomputed-hash",
+ "rspack-lightningcss-static-self",
+ "rustc-hash",
+ "serde",
+ "smallvec",
+]
+
+[[package]]
+name = "rspack-lightningcss-static-self"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b9db2fff83810976166879dcf39580165df96def00c84ed0e2887ede920e292"
+dependencies = [
+ "indexmap",
+ "rspack-lightningcss-static-self-derive",
+ "smallvec",
+]
+
+[[package]]
+name = "rspack-lightningcss-static-self-derive"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1abe45f6f1aad3c9848deda8685c447c270329d88b5d1be615a0ecc5080edb42"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "rspack-turbo-persistence"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4116,7 +4167,7 @@ version = "0.103.0"
 dependencies = [
  "browserslist-rs",
  "regex",
- "rspack_lightningcss",
+ "rspack-lightningcss",
 ]
 
 [[package]]
@@ -4132,11 +4183,11 @@ dependencies = [
  "json",
  "once_cell",
  "regex",
- "rkyv 0.8.18",
+ "rkyv",
  "rspack-allocative",
+ "rspack-lightningcss",
  "rspack_cacheable_macros",
  "rspack_intern",
- "rspack_lightningcss",
  "rspack_sources",
  "rustc-hash",
  "serde_json",
@@ -4164,9 +4215,9 @@ dependencies = [
  "dashmap",
  "json",
  "once_cell",
+ "rspack-lightningcss",
  "rspack_cacheable",
  "rspack_intern",
- "rspack_lightningcss",
  "rspack_sources",
  "rustc-hash",
  "serde_json",
@@ -4225,7 +4276,7 @@ dependencies = [
  "pretty_assertions",
  "rayon",
  "regex",
- "rkyv 0.8.18",
+ "rkyv",
  "rspack-allocative",
  "rspack-turbo-persistence",
  "rspack_cacheable",
@@ -4325,10 +4376,10 @@ dependencies = [
  "base64-simd",
  "itoa",
  "md4",
+ "rspack-lightningcss",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_intern",
- "rspack_lightningcss",
  "rspack_macros",
  "rspack_util",
  "serde",
@@ -4408,44 +4459,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_lightningcss"
-version = "0.1.0"
-source = "git+https://github.com/rstackjs/lightningcss.git?rev=a3cf0d9b0e12d566501819c768e037585747894d#a3cf0d9b0e12d566501819c768e037585747894d"
-dependencies = [
- "ahash",
- "bitflags 2.13.2",
- "const-str",
- "cssparser",
- "cssparser-color",
- "data-encoding",
- "getrandom 0.3.2",
- "indexmap",
- "itertools 0.10.5",
- "lazy_static",
- "lightningcss-derive",
- "parcel_selectors",
- "pastey",
- "pathdiff",
- "rustc-hash",
- "serde",
- "serde-content",
- "smallvec",
- "static-self",
-]
-
-[[package]]
 name = "rspack_loader_lightningcss"
 version = "0.103.0"
 dependencies = [
  "async-trait",
  "cow-utils",
  "derive_more",
+ "rspack-lightningcss",
  "rspack_browserslist",
  "rspack_cacheable",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
- "rspack_lightningcss",
  "rspack_loader_runner",
  "serde",
  "serde_json",
@@ -5599,7 +5624,7 @@ version = "0.103.0"
 dependencies = [
  "memchr",
  "regex",
- "rkyv 0.8.18",
+ "rkyv",
  "rspack-allocative",
  "rustc-hash",
  "serde",
@@ -6170,26 +6195,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
-]
-
-[[package]]
-name = "static-self"
-version = "0.1.2"
-source = "git+https://github.com/rstackjs/lightningcss.git?rev=a3cf0d9b0e12d566501819c768e037585747894d#a3cf0d9b0e12d566501819c768e037585747894d"
-dependencies = [
- "indexmap",
- "smallvec",
- "static-self-derive",
-]
-
-[[package]]
-name = "static-self-derive"
-version = "0.1.1"
-source = "git+https://github.com/rstackjs/lightningcss.git?rev=a3cf0d9b0e12d566501819c768e037585747894d#a3cf0d9b0e12d566501819c768e037585747894d"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 1.0.109",
 ]
 
 [[package]]
