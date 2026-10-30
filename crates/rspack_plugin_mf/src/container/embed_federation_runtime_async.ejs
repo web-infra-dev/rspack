@@ -18,7 +18,7 @@
 		hasRun = true;
 		var base = mfStartupBase && mfStartupBase();
 		var promises = base && base.then ? [base] : [];
-		var handlers = <%- REQUIRE %>.f;
+		var handlers = <%- ENSURE_CHUNK_HANDLERS %>;
 		if (handlers) {
 			var startupChunkIds = <%- _entry_chunk_ids %>;
 			for (var i = 0; i < startupChunkIds.length; i++) {
