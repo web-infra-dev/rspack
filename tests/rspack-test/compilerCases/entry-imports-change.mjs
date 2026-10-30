@@ -5,6 +5,8 @@ import path from "node:path";
 let secondBuild;
 let runtime;
 let include;
+let imports;
+let globalRoot;
 
 /** @type {import("@rspack/test-tools").TCompilerCaseConfig} */
 export default {
@@ -13,6 +15,8 @@ export default {
     secondBuild = false;
     runtime = undefined;
     include = false;
+    imports = undefined;
+    globalRoot = false;
     const fixture = testContext.getDist("fixture");
     fs.mkdirSync(fixture, { recursive: true });
     fs.writeFileSync(path.join(fixture, "package.json"), '{"sideEffects":false}');
@@ -26,21 +30,36 @@ export default {
     );
     fs.writeFileSync(path.join(fixture, "included.js"), 'globalThis.included = "included";');
     fs.writeFileSync(path.join(fixture, "leaf.js"), 'export const value = "before";');
+    fs.writeFileSync(path.join(fixture, "a.css"), ".x { color: red; }");
+    fs.writeFileSync(path.join(fixture, "b.css"), ".x { color: blue; }");
+    fs.writeFileSync(path.join(fixture, "worker-entry.js"), 'new Worker(new URL("./worker.js", import.meta.url));');
+    fs.writeFileSync(path.join(fixture, "worker.js"), 'self.workerResult = 1;');
+    fs.writeFileSync(path.join(fixture, "global.js"), 'globalThis.workerGlobal = 1;');
     return {
+      module: { rules: [{ test: /\.css$/, type: "css/auto", generator: { exportsOnly: false } }] },
       context: fs.realpathSync(fixture),
       mode: "development",
       target: "node",
       devtool: false,
       cache: false,
       entry: () => ({
-        keep: "./included.js",
+        ...(imports?.includes("./worker-entry.js") ? {} : { keep: "./included.js" }),
         main: {
-          import: secondBuild ? ["./entry.js", "./leaf.js"] : ["./entry.js"],
+          import: imports || (secondBuild ? ["./entry.js", "./leaf.js"] : ["./entry.js"]),
           ...(runtime ? { runtime } : {})
         }
       }),
       plugins: [{
         apply(compiler) {
+          compiler.hooks.make.tapPromise("GlobalRootOnRebuild", async compilation => {
+            if (!globalRoot) return;
+            await new Promise((resolve, reject) => compilation.addEntry(
+              compiler.context,
+              compiler.rspack.EntryPlugin.createDependency("./global.js"),
+              {},
+              error => error ? reject(error) : resolve()
+            ));
+          });
           compiler.hooks.finishMake.tapPromise("IncludeOnRebuild", async compilation => {
             if (!include) return;
             await new Promise((resolve, reject) => compilation.addInclude(
@@ -55,6 +74,7 @@ export default {
       output: {
         path: testContext.getDist("output"),
         filename: "[name].cjs",
+        chunkFilename: "[name].worker.cjs",
         library: { type: "commonjs2" }
       },
       optimization: { sideEffects: "flag", usedExports: false }
@@ -113,5 +133,24 @@ export default {
     include = false;
     await build({ modifiedFiles: new Set() });
     expect(readResult()).toEqual({ result: "after:absent" });
+
+    globalRoot = true;
+    imports = ["./worker-entry.js"];
+    await build({ modifiedFiles: new Set() });
+    globalRoot = false;
+    imports = ["./global.js", "./worker-entry.js"];
+    const workerStats = await build({ modifiedFiles: new Set() });
+    const worker = workerStats.compilation.getAssets()
+      .filter(asset => asset.name.endsWith(".worker.cjs"))
+      .map(asset => asset.source.source().toString()).join("\n");
+    expect(worker).not.toContain("workerGlobal");
+
+    imports = ["./entry.js", "./a.css", "./b.css", "./a.css"];
+    await build({ modifiedFiles: new Set() });
+    imports = ["./entry.js", "./b.css", "./a.css", "./a.css"];
+    await build({ modifiedFiles: new Set() });
+    const css = fs.readFileSync(path.join(compiler.outputPath, "main.css"), "utf8")
+      .replace(/\/\*[^]*?\*\//g, "").replace(/\s+/g, "").trim();
+    expect(css).toBe(".x{color:blue;}.x{color:red;}");
   }
 };
