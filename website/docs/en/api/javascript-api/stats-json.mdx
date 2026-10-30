@@ -78,7 +78,7 @@ type StatsCompilation = {
 
 - **Version:** `>= 2.3.0`
 
-When [stats.cacheInfo](/config/stats#statscacheinfo) is enabled, `cacheInfo` contains counters from the experimental [experiments.newCache](/config/experiments#experimentsnewcache) implementation. Keys are full cache names, including the compiler path, such as `web|Compilation/modules`.
+When [stats.cacheInfo](/config/stats#statscacheinfo) is enabled, `cacheInfo` reports statistics for the experimental [experiments.newCache](/config/experiments#experimentsnewcache) implementation. Each key is a full cache name that includes the compiler path, such as `web|Compilation/modules`.
 
 ```ts
 type StatsCacheInfo = {
@@ -89,16 +89,16 @@ type StatsCacheInfo = {
 };
 ```
 
-| Field    | Meaning                                                                               |
-| -------- | ------------------------------------------------------------------------------------- |
-| `hits`   | Cache lookups that returned a value. The caller may still reject it after validation. |
-| `misses` | Cache lookups that did not return a value.                                            |
-| `reused` | Cached values accepted and actually reused by the caller after validation.            |
-| `stores` | Cache write requests, not completed disk writes.                                      |
+| Field    | Meaning                                               |
+| -------- | ----------------------------------------------------- |
+| `hits`   | Cache lookups that returned a value.                  |
+| `misses` | Cache lookups that did not return a value.            |
+| `reused` | Cached values that passed validation and were reused. |
+| `stores` | Cache write requests, not completed disk writes.      |
 
-Counters reset before each build or rebuild and count operations, not unique modules. A hit does not necessarily mean reuse: for example, a cached module may fail dependency validation.
+Counters reset before each build or rebuild. They measure cache operations, so they may differ from the number of modules. A hit does not guarantee reuse: for example, a cached module may fail dependency validation.
 
-Cache names whose counters are all zero are omitted. If no counters are available, `cacheInfo` is omitted; this does not mean a zero cache hit rate. These counters do not indicate whether caching is enabled; use the compiler's `cache` configuration to determine that.
+Entries with all-zero counters are omitted. If no entries remain, `cacheInfo` is omitted. Missing statistics do not imply a zero cache hit rate. To check whether caching is enabled, read the compiler's `cache` configuration.
 
 ## Asset object
 

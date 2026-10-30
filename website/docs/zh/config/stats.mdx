@@ -558,7 +558,7 @@ type StatsColors = boolean | StatsColorOptions;
 
 - **版本：** `>= 2.3.0`
 
-在 [Stats JSON](/api/javascript-api/stats-json#cacheinfo) 中包含缓存计数。此功能需要使用默认关闭的实验性 [experiments.newCache](/config/experiments#experimentsnewcache) 实现。首先启用缓存和新的缓存实现：
+在 [Stats JSON](/api/javascript-api/stats-json#cacheinfo) 中包含缓存统计信息。使用此选项前，需要启用缓存，并开启默认关闭的实验性选项 [experiments.newCache](/config/experiments#experimentsnewcache)：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -571,7 +571,7 @@ export default {
 };
 ```
 
-在编译完成后读取计数，例如使用 [compiler.hooks.done](/api/plugin-api/compiler-hooks#done)：
+通过 [compiler.hooks.done](/api/plugin-api/compiler-hooks#done) 在编译完成后读取统计信息：
 
 ```js
 compiler.hooks.done.tap('CacheStatistics', (stats) => {
@@ -582,7 +582,9 @@ compiler.hooks.done.tap('CacheStatistics', (stats) => {
 });
 ```
 
-对于 `toJson()`，除非被预设或 `all: false` 禁用，此选项默认开启。使用 `all: false` 时，应显式设置 `cacheInfo: true`。它不会让 `toString()` 输出缓存报告；字段及其含义请参阅 [cacheInfo](/api/javascript-api/stats-json#cacheinfo)。
+对于 `toJson()`，此选项默认为 `true`，但预设和 `all` 可以覆盖默认值。使用 `all: false` 时，应显式设置 `cacheInfo: true`。
+
+`toString()` 不会展示这些统计信息。字段说明请参阅 [cacheInfo](/api/javascript-api/stats-json#cacheinfo)。
 
 ### stats.hash
 

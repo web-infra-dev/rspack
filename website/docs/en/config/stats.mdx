@@ -558,7 +558,7 @@ When an object is provided, it customizes the ANSI escape sequences used for eac
 
 - **Version:** `>= 2.3.0`
 
-Includes cache counters in [Stats JSON](/api/javascript-api/stats-json#cacheinfo). This requires the experimental [experiments.newCache](/config/experiments#experimentsnewcache) implementation, which is disabled by default. Enable caching and the new implementation first:
+Includes cache statistics in [Stats JSON](/api/javascript-api/stats-json#cacheinfo). To use this option, enable caching and the experimental [experiments.newCache](/config/experiments#experimentsnewcache) option, which is disabled by default:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -571,7 +571,7 @@ export default {
 };
 ```
 
-Read the counters after compilation, for example in [compiler.hooks.done](/api/plugin-api/compiler-hooks#done):
+Read the statistics after compilation using [compiler.hooks.done](/api/plugin-api/compiler-hooks#done):
 
 ```js
 compiler.hooks.done.tap('CacheStatistics', (stats) => {
@@ -582,7 +582,9 @@ compiler.hooks.done.tap('CacheStatistics', (stats) => {
 });
 ```
 
-For `toJson()`, this option is enabled by default unless disabled by a preset or `all: false`. Set `cacheInfo: true` explicitly when using `all: false`. It does not add a cache report to `toString()`; see [cacheInfo](/api/javascript-api/stats-json#cacheinfo) for the fields and their meanings.
+For `toJson()`, this option defaults to `true`, but presets and `all` can override it. Set `cacheInfo: true` explicitly when using `all: false`.
+
+`toString()` does not display these statistics. For field descriptions, see [cacheInfo](/api/javascript-api/stats-json#cacheinfo).
 
 ### stats.hash
 

@@ -78,7 +78,7 @@ type StatsCompilation = {
 
 - **版本：** `>= 2.3.0`
 
-启用 [stats.cacheInfo](/config/stats#statscacheinfo) 后，`cacheInfo` 包含实验性 [experiments.newCache](/config/experiments#experimentsnewcache) 实现的计数。键为包含编译器路径的完整缓存名称，例如 `web|Compilation/modules`。
+启用 [stats.cacheInfo](/config/stats#statscacheinfo) 后，`cacheInfo` 会提供实验性 [experiments.newCache](/config/experiments#experimentsnewcache) 实现的统计信息。每个键都是包含编译器路径的完整缓存名称，例如 `web|Compilation/modules`。
 
 ```ts
 type StatsCacheInfo = {
@@ -89,16 +89,16 @@ type StatsCacheInfo = {
 };
 ```
 
-| 字段     | 含义                                                         |
-| -------- | ------------------------------------------------------------ |
-| `hits`   | 查找时返回了缓存值的次数。调用方仍可能在校验后拒绝使用该值。 |
-| `misses` | 查找时未返回缓存值的次数。                                   |
-| `reused` | 缓存值通过校验并被调用方实际复用的次数。                     |
-| `stores` | 缓存写入请求的次数，不代表已完成磁盘写入。                   |
+| 字段     | 含义                                       |
+| -------- | ------------------------------------------ |
+| `hits`   | 查找时返回缓存值的次数。                   |
+| `misses` | 查找时未返回缓存值的次数。                 |
+| `reused` | 缓存值通过校验并被复用的次数。             |
+| `stores` | 缓存写入请求的次数，不代表已完成磁盘写入。 |
 
-计数在每次构建或重新构建前重置，统计的是操作次数，而非不重复的模块数量。命中不一定意味着复用，例如缓存的模块可能未通过依赖校验。
+计数在每次构建或重新构建前重置。它们统计的是缓存操作次数，因此可能与模块数量不同。命中不代表一定会复用，例如缓存的模块可能未通过依赖校验。
 
-所有计数均为零的缓存名称会被省略。如果没有可用的计数，`cacheInfo` 会被省略，不应将其视为缓存命中率为零。这些计数不表示缓存是否启用，应通过编译器的 `cache` 配置判断。
+计数均为零的条目会被省略。如果没有剩余条目，则省略 `cacheInfo`。缺少统计信息不表示缓存命中率为零。如需确认缓存是否启用，请查看编译器的 `cache` 配置。
 
 ## Asset 对象结构
 
