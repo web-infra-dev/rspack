@@ -318,6 +318,8 @@ define_runtime_globals! {
 
   /// Validate an ordinary chunk before installing it during HMR.
   const HMR_CHECK_CHUNK;
+  // Ensure chunks belonging to an async dependency block
+  const ENSURE_CHUNK_GROUP;
 }
 
 impl Default for RuntimeGlobals {
@@ -385,6 +387,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::MODULE_CACHE => "c",
     RuntimeGlobals::DEFERRED_MODULE_EXPORTS => "zD",
     RuntimeGlobals::ENSURE_CHUNK => "e",
+    RuntimeGlobals::ENSURE_CHUNK_GROUP => "eg",
     RuntimeGlobals::ENSURE_CHUNK_HANDLERS => "f",
     RuntimeGlobals::PUBLIC_PATH => "p",
     RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME => "u",

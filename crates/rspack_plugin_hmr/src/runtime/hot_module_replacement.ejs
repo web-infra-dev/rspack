@@ -33,11 +33,13 @@
 	currentParents = [];
 	options.require = require;
 	<% if (_is_rspack_runtime_mode) { %>options.context.r = require;
-	Object.defineProperty(options.context, "e", {
-		configurable: true,
-		enumerable: true,
-		writable: true,
-		value: require.e
+	["e", "eg"].forEach(function (key) {
+		if (require[key]) Object.defineProperty(options.context, key, {
+			configurable: true,
+			enumerable: true,
+			writable: true,
+			value: require[key]
+		});
 	});<% } %>
 });
 
@@ -115,19 +117,19 @@
 		};
 	};
 	for (var name in require) {
-		if (Object.prototype.hasOwnProperty.call(require, name) && name !== "e") {
+		if (Object.prototype.hasOwnProperty.call(require, name) && name !== "e" && name !== "eg") {
 			Object.defineProperty(fn, name, createPropertyDescriptor(name));
 		}
 	}
 
-	fn.e = function (chunkId, fetchPriority) {
+	var ensure = function (key, chunkId, fetchPriority) {
 		var retriedHash;
 		var load = function () {
 			var hash = <%- GET_FULL_HASH %>();
 			// Only one attempt blocks prepare; catch-up and retries must not.
 			var promise;
 			try {
-				promise = <% if (_is_rspack_runtime_mode) { %><%- REQUIRE_SCOPE %>.e<% } else { %>require.e<% } %>(chunkId, fetchPriority);
+				promise = <% if (_is_rspack_runtime_mode) { %><%- REQUIRE_SCOPE %><% } else { %>require<% } %>[key](chunkId, fetchPriority);
 			} catch (error) {
 				promise = Promise.reject(error);
 			}
@@ -148,6 +150,12 @@
 			});
 		};
 		return load();
+	};
+	fn.e = function (chunkId, fetchPriority) {
+		return ensure("e", chunkId, fetchPriority);
+	};
+	if (<%- weak(ENSURE_CHUNK_GROUP) %>) fn.eg = function (blockId, fetchPriority) {
+		return ensure("eg", blockId, fetchPriority);
 	};
 
 	return fn;

@@ -18,8 +18,8 @@
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
 - Update: main.LAST_HASH.hot-update.js, size: 181
 - Update: shared.LAST_HASH.hot-update.js, size: 906
-- Update: workerA_js.LAST_HASH.hot-update.js, size: 612
-- Update: workerB_js.LAST_HASH.hot-update.js, size: 612
+- Update: workerA_js.LAST_HASH.hot-update.js, size: 1179
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 1325
 
 ## Manifest
 
@@ -117,6 +117,7 @@ if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunkS_js").then(__
 - ./moduleA.js
 
 #### Changed Runtime Modules
+- webpack/runtime/block_chunk_map
 - webpack/runtime/get_full_hash
 
 #### Changed Content
@@ -139,6 +140,22 @@ if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunk_js").then(__w
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
 })();
+// webpack/runtime/block_chunk_map
+(() => {
+((blocks) => {
+	var map = __webpack_require__.hmrS_blockChunks;
+	
+	Object.keys(blocks).forEach((blockId) => {
+		if (blocks[blockId] === null) delete map[blockId];
+		else map[blockId] = blocks[blockId];
+	});
+	var installedBlocks = __webpack_require__.hmrS_blocks;
+	Object.keys(installedBlocks).forEach((id) => {
+		if (!map[id]) delete installedBlocks[id];
+	});
+})({"block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./moduleBs.js|dep=esm|./chunkS|loc=2:24-42":["chunkS_js"]});
+
+})();
 
 }
 );
@@ -152,6 +169,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 - ./moduleB.js
 
 #### Changed Runtime Modules
+- webpack/runtime/block_chunk_map
 - webpack/runtime/get_full_hash
 
 #### Changed Content
@@ -173,6 +191,22 @@ if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunk_js").then(__w
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/block_chunk_map
+(() => {
+((blocks) => {
+	var map = __webpack_require__.hmrS_blockChunks;
+	
+	Object.keys(blocks).forEach((blockId) => {
+		if (blocks[blockId] === null) delete map[blockId];
+		else map[blockId] = blocks[blockId];
+	});
+	var installedBlocks = __webpack_require__.hmrS_blocks;
+	Object.keys(installedBlocks).forEach((id) => {
+		if (!map[id]) delete installedBlocks[id];
+	});
+})({"block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./moduleB.js|dep=esm|./chunk|loc=2:24-41":["chunk_js"],"block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./moduleBs.js|dep=esm|./chunkS|loc=2:24-42":["chunkS_js"]});
+
 })();
 
 }

@@ -21,6 +21,10 @@ static HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntim
     requirements
       .dependencies
       .insert(RuntimeGlobals::ENSURE_CHUNK | RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+    // Keep the block map runtime when the last async block is removed.
+    requirements
+      .dependencies
+      .insert(RuntimeGlobals::ENSURE_CHUNK_GROUP);
     requirements
   });
 static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =

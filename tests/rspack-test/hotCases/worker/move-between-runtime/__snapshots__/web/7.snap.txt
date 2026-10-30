@@ -16,8 +16,8 @@
 - Manifest: main.LAST_HASH.hot-update.json, size: 54
 - Update: main.LAST_HASH.hot-update.js, size: 181
 - Update: shared.LAST_HASH.hot-update.js, size: 624
-- Update: workerA_js.LAST_HASH.hot-update.js, size: 473
-- Update: workerB_js.LAST_HASH.hot-update.js, size: 473
+- Update: workerA_js.LAST_HASH.hot-update.js, size: 1031
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 1169
 
 ## Manifest
 
@@ -113,6 +113,7 @@ __webpack_require__.d(__webpack_exports__, {
 - ./moduleA.js
 
 #### Changed Runtime Modules
+- webpack/runtime/block_chunk_map
 - webpack/runtime/get_full_hash
 
 #### Changed Content
@@ -134,6 +135,22 @@ __webpack_require__.d(__webpack_exports__, {
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
 })();
+// webpack/runtime/block_chunk_map
+(() => {
+((blocks) => {
+	var map = __webpack_require__.hmrS_blockChunks;
+	
+	Object.keys(blocks).forEach((blockId) => {
+		if (blocks[blockId] === null) delete map[blockId];
+		else map[blockId] = blocks[blockId];
+	});
+	var installedBlocks = __webpack_require__.hmrS_blocks;
+	Object.keys(installedBlocks).forEach((id) => {
+		if (!map[id]) delete installedBlocks[id];
+	});
+})({"block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./moduleBs.js|dep=esm|./chunkS|loc=2:24-42":null});
+
+})();
 
 }
 );
@@ -147,6 +164,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 - ./moduleB.js
 
 #### Changed Runtime Modules
+- webpack/runtime/block_chunk_map
 - webpack/runtime/get_full_hash
 
 #### Changed Content
@@ -167,6 +185,22 @@ __webpack_require__.d(__webpack_exports__, {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/block_chunk_map
+(() => {
+((blocks) => {
+	var map = __webpack_require__.hmrS_blockChunks;
+	
+	Object.keys(blocks).forEach((blockId) => {
+		if (blocks[blockId] === null) delete map[blockId];
+		else map[blockId] = blocks[blockId];
+	});
+	var installedBlocks = __webpack_require__.hmrS_blocks;
+	Object.keys(installedBlocks).forEach((id) => {
+		if (!map[id]) delete installedBlocks[id];
+	});
+})({"block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./moduleB.js|dep=esm|./chunk|loc=2:24-41":null,"block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./moduleBs.js|dep=esm|./chunkS|loc=2:24-42":null});
+
 })();
 
 }

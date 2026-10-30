@@ -12,7 +12,7 @@
 - Bundle: vendors-node_modules_vendor_js.js
 - Manifest: runtime~main.LAST_HASH.hot-update.json, size: 76
 - Update: main.LAST_HASH.hot-update.js, size: 660
-- Update: runtime~main.LAST_HASH.hot-update.js, size: 564
+- Update: runtime~main.LAST_HASH.hot-update.js, size: 1126
 - Update: vendors-node_modules_vendor_js.LAST_HASH.hot-update.js, size: 374
 
 ## Manifest
@@ -66,6 +66,7 @@ module.hot.accept();
 
 
 #### Changed Runtime Modules
+- webpack/runtime/block_chunk_map
 - webpack/runtime/get_full_hash
 
 #### Changed Content
@@ -85,6 +86,22 @@ __webpack_require__.u = (chunkId) => {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/block_chunk_map
+(() => {
+((blocks) => {
+	var map = __webpack_require__.hmrS_blockChunks;
+	
+	Object.keys(blocks).forEach((blockId) => {
+		if (blocks[blockId] === null) delete map[blockId];
+		else map[blockId] = blocks[blockId];
+	});
+	var installedBlocks = __webpack_require__.hmrS_blocks;
+	Object.keys(installedBlocks).forEach((id) => {
+		if (!map[id]) delete installedBlocks[id];
+	});
+})({"block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./index.js|dep=esm|./chunk|loc=3:47-64":["chunk_js"]});
+
 })();
 
 }
