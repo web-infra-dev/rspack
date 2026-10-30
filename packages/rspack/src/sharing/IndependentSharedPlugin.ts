@@ -68,7 +68,10 @@ export interface IndependentSharePluginOptions {
 }
 
 // { react: [  [ react/19.0.0/index.js , 19.0.0, react_global_name ]  ] }
-export type ShareFallback = Record<string, [string, string, string][]>;
+export type ShareFallback = Record<
+  string,
+  [string, string, string, { shareScope: ShareScope; layer?: string }?][]
+>;
 
 export type ShareFallbackVariant = {
   entry: string;
@@ -425,14 +428,16 @@ export class IndependentSharedPlugin {
                     ({ shareKey, version, layer, shareScope }) =>
                       shareKey === targetShared.name &&
                       version === targetShared.version &&
-                      (targetShared.layer === undefined ||
-                        layer === targetShared.layer) &&
-                      (targetShared.shareScope === undefined ||
-                        shareScopesEqual(shareScope, targetShared.shareScope)),
+                      layer === targetShared.layer &&
+                      shareScopesEqual(
+                        shareScope,
+                        targetShared.shareScope ?? 'default',
+                      ),
                   );
-                  if (candidates.length !== 1) return;
-                  targetShared.fallback = candidates[0].entry;
-                  targetShared.fallbackName = candidates[0].globalName;
+                  if (candidates.length === 1) {
+                    targetShared.fallback = candidates[0].entry;
+                    targetShared.fallbackName = candidates[0].globalName;
+                  }
                 });
 
                 compilation.updateAsset(
