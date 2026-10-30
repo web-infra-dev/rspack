@@ -23,7 +23,7 @@ A [chunk](/misc/glossary#chunk) groups modules during a build and produces corre
 Chunks can be classified by when they are loaded:
 
 - **[Initial chunk](/misc/glossary#initial-chunk)**: A chunk needed when an entry starts.
-- **[Async chunk](/misc/glossary#async-chunk)**: A chunk loaded on demand during execution, such as a page loaded through `import()`.
+- **[Async chunk](/misc/glossary#async-chunk)**: A chunk loaded on demand during execution, such as one generated for a module dynamically imported with `import()`.
 
 [`splitChunks.chunks`](#splitchunkschunks) selects which chunks participate in splitting. By default, only async chunks are selected.
 

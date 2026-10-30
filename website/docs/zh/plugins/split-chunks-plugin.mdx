@@ -23,7 +23,7 @@ SplitChunksPlugin 可以通过 [optimization.splitChunks](/config/optimization#o
 按照加载时机，chunk 可以分为：
 
 - **[Initial chunk](/misc/glossary#initial-chunk)**：启动入口时需要加载的 chunk。
-- **[Async chunk](/misc/glossary#async-chunk)**：运行过程中按需加载的 chunk，例如通过 `import()` 加载的页面。
+- **[Async chunk](/misc/glossary#async-chunk)**：运行过程中按需加载的 chunk，例如为通过 `import()` 动态导入的模块生成的 chunk。
 
 [`splitChunks.chunks`](#splitchunkschunks) 用于选择哪些 chunk 参与拆分，默认只处理 async chunk。
 
