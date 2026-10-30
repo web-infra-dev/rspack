@@ -960,7 +960,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
       .as_ref()?
       .contains(resource_path);
     let ast = parser.ast.ast;
-    let bare_imports: FxHashSet<DependencyRange> = ast
+    let mut bare_imports = ast
       .nodes(parser.ast.program.body(ast))
       .filter_map(|statement| match ast.stmt_data(statement) {
         StmtData::ImportDeclaration(import) if import.specifiers(ast).is_empty() => {
@@ -968,10 +968,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
         }
         _ => None,
       })
-      .collect();
-    if bare_imports.is_empty() {
-      return None;
-    }
+      .peekable();
+    bare_imports.peek()?;
     parser.build_info.value_dependencies.insert(
       format!("{PRESERVED_IMPORTER_VERSION_PREFIX}{resource_path}"),
       preserve_side_effects.to_string(),
@@ -979,6 +977,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     if !preserve_side_effects {
       return None;
     }
+    let bare_imports: FxHashSet<DependencyRange> = bare_imports.collect();
     for index in 0..parser.get_dependencies().len() {
       if let Some(dependency) = parser.get_dependency_mut(index)
         && let Some(dependency) = dependency.downcast_mut::<ESMImportSideEffectDependency>()

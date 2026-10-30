@@ -7,17 +7,20 @@ use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, CanInlineUse, Compilation,
-  CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
-  ExportsInfoArtifact, ExportsInfoData, GroupOptions, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, Plugin, ReferencedExport, ReferencedExportFlags, ReferencedExportPath,
-  RuntimeSpec, SideEffectsOptimizeArtifact, SideEffectsStateArtifact, UsageState,
-  build_module_graph::BuildModuleGraphArtifact, get_entry_runtime, incremental::IncrementalPasses,
-  is_exports_object_referenced, is_no_exports_referenced, module_declared_side_effect_free,
+  CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId,
+  DependencyType, ExportsInfo, ExportsInfoArtifact, ExportsInfoData, GroupOptions, ImportPhase,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, Plugin, ReferencedExport,
+  ReferencedExportFlags, ReferencedExportPath, RuntimeSpec, SideEffectsOptimizeArtifact,
+  SideEffectsStateArtifact, UsageState, build_module_graph::BuildModuleGraphArtifact,
+  get_entry_runtime, incremental::IncrementalPasses, is_exports_object_referenced,
+  is_no_exports_referenced, module_declared_side_effect_free,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::queue::Queue;
 use rustc_hash::FxHashMap as HashMap;
+
+use crate::dependency::ESMImportSideEffectDependency;
 
 type SharedRuntimeSpec = Option<Arc<RuntimeSpec>>;
 type ProcessBlockTask = (ModuleOrAsyncDependenciesBlock, SharedRuntimeSpec, bool);
@@ -336,9 +339,18 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     q.extend(async_blocks);
 
     for (dep_id, module_id) in dependencies {
-      if module_graph
-        .dependency_by_id(&dep_id)
-        .force_module_evaluation()
+      let dependency = module_graph.dependency_by_id(&dep_id);
+      // Only declared side-effect-free targets need their evaluation forced below.
+      if dependency.dependency_type() == &DependencyType::EsmImport
+        && dependency.get_phase() == ImportPhase::Evaluation
+        && dependency
+          .downcast_ref::<ESMImportSideEffectDependency>()
+          .is_some_and(|dependency| dependency.preserve_side_effects)
+        && module_graph
+          .module_by_identifier(&module_id)
+          .is_some_and(|module| {
+            module_declared_side_effect_free(module.as_ref()).unwrap_or_default()
+          })
       {
         preserved_imports.insert(module_id);
       }

@@ -9,13 +9,13 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  BoxPlugin, ChunkUkey, Compilation, CompilationOptimizeDependencies, CompilationParams,
+  BoxModule, BoxPlugin, ChunkUkey, Compilation, CompilationOptimizeDependencies, CompilationParams,
   CompilationProcessAssets, CompilationRuntimeModule, CompilationRuntimeRequirementInTree,
   CompilerCompilation, Dependency, DependencyRef, DependencyType, ExportsInfoArtifact, FactoryMeta,
-  ModuleFactoryCreateData, ModuleIdentifier, ModuleType, NormalModuleFactoryBeforeResolve,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PluginExt,
-  ResolveOptionsWithDependencyType, ResolveResult, RuntimeGlobals, RuntimeModule, RuntimeVariable,
-  SideEffectsOptimizeArtifact,
+  ModuleFactoryCreateData, ModuleIdentifier, ModuleType, NormalModuleFactoryAfterFactorize,
+  NormalModuleFactoryBeforeResolve, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
+  Plugin, PluginExt, ResolveOptionsWithDependencyType, ResolveResult, RuntimeGlobals,
+  RuntimeModule, RuntimeVariable, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   module_declared_side_effect_free,
   resolver::{ResolveInnerError, Resolver},
@@ -25,7 +25,8 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
-  BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
+  BoxJavascriptParserPlugin, dependency::ESMImportSideEffectDependency,
+  parser_and_generator::JavaScriptParserAndGenerator,
 };
 use rspack_util::{
   identifier::insert_zero_width_space_for_fragment, placeholder::PlaceholderFinder,
@@ -677,6 +678,20 @@ async fn nmf_parser(
   Ok(())
 }
 
+#[plugin_hook(NormalModuleFactoryAfterFactorize for RstestPlugin)]
+async fn nmf_after_factorize(
+  &self,
+  data: &mut ModuleFactoryCreateData,
+  module: &mut BoxModule,
+) -> Result<()> {
+  for dependency in &data.dependencies {
+    if let Some(dependency) = dependency.downcast_ref::<ESMImportSideEffectDependency>() {
+      dependency.update_preserved_side_effects(module.as_ref());
+    }
+  }
+  Ok(())
+}
+
 #[plugin_hook(CompilerCompilation for RstestPlugin)]
 async fn compilation(
   &self,
@@ -932,6 +947,13 @@ impl Plugin for RstestPlugin {
       .normal_module_factory_hooks
       .before_resolve
       .tap(nmf_before_resolve::new(self));
+
+    if self.options.preserve_side_effect_imports.is_some() {
+      ctx
+        .normal_module_factory_hooks
+        .after_factorize
+        .tap(nmf_after_factorize::new(self));
+    }
 
     ctx
       .compiler_hooks
