@@ -51,7 +51,7 @@ const relativePathToRequest = (relativePath: string) => {
  * @param {string} maybeAbsolutePath path to make relative
  * @returns {string} relative path in request style
  */
-const absoluteToRequest = (
+export const absoluteToRequest = (
   context: string,
   maybeAbsolutePath: string,
 ): string => {

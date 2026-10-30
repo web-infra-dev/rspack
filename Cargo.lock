@@ -5312,6 +5312,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_mf_test"
+version = "0.103.0-rc.0"
+dependencies = [
+ "rspack_collections",
+ "rspack_core",
+ "rspack_plugin_mf",
+]
+
+[[package]]
 name = "rspack_plugin_module_info_header"
 version = "0.103.0"
 dependencies = [
