@@ -132,6 +132,18 @@ impl ContextDependency for ImportMetaContextDependency {
     &self.resource_identifier
   }
 
+  fn resource_identifier_regex_ranges(&self) -> Vec<std::ops::Range<usize>> {
+    let (identifier, ranges) = super::create_resource_identifier_and_regex_ranges(
+      ContextDependency::get_context(self),
+      self.options(),
+    );
+    if ContextDependency::resource_identifier(self).starts_with(identifier.as_str()) {
+      ranges
+    } else {
+      Vec::new()
+    }
+  }
+
   fn get_optional(&self) -> bool {
     self.optional
   }

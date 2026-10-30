@@ -118,12 +118,29 @@ export class HotUpdatePlugin {
     const RuntimeGlobals = compiler.rspack.RuntimeGlobals;
     const options = compiler.options;
     options.context = this.tempDir;
+    let loader = path.resolve(import.meta.dirname, './loader.js');
+    const localLoader = path.join(this.tempDir, '.rspack-test-hot-loader.cjs');
+    if (
+      fs.existsSync(localLoader) ||
+      (typeof options.cache === 'object' &&
+        options.cache.type === 'persistent' &&
+        options.cache.portable)
+    ) {
+      // Outside-root loaders bind every module, so portable fixtures could not test cache hits.
+      loader = localLoader;
+      if (!fs.existsSync(loader)) {
+        fs.copyFileSync(
+          path.resolve(import.meta.dirname, './loader.cjs'),
+          loader,
+        );
+      }
+    }
     options.module.rules ??= [];
     options.module.rules.push({
       test: /\.(js|css|json)/,
       use: [
         {
-          loader: path.resolve(import.meta.dirname, './loader.js'),
+          loader,
         },
       ],
     });

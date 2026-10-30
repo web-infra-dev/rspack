@@ -1,6 +1,7 @@
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsPreset, AsVec},
+  utils::PortableString,
+  with::{As, AsPreset, AsVec},
 };
 use rspack_core::{
   AsContextDependency, AwaitDependenciesInitFragment, BuildMetaExportsType, Compilation,
@@ -19,7 +20,7 @@ use crate::Atom;
 #[derive(Debug)]
 pub struct ProvideDependency {
   id: DependencyId,
-  #[cacheable(with=AsPreset)]
+  #[cacheable(with=As<PortableString>)]
   request: Atom,
   identifier: String,
   #[cacheable(with=AsVec<AsPreset>)]

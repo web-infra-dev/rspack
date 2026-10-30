@@ -7,7 +7,10 @@ use rspack_fs::ReadableFileSystem;
 use rspack_paths::{AssertUtf8, InternedPath};
 
 use self::hash_helper::{ContentHash, HashHelper, TimestampHash};
-use crate::{Context, SnapshotOptions, SnapshotStrategyOptions, cache::PackageHelper};
+use crate::{
+  Context, SnapshotOptions, SnapshotStrategyOptions,
+  cache::{CacheCodec, PackageHelper},
+};
 
 /// Snapshot check strategy
 #[cacheable]
@@ -40,6 +43,11 @@ pub enum Strategy {
 
   /// Check by dir timestamp hash
   DirTimestamp { timestamp_hash: u64 },
+
+  /// Check a symbolic link by its resolved target and a shallow identity of that target
+  ///
+  /// `deep` also covers the content of a linked directory.
+  LinkHash { hash: u64, deep: bool },
 
   /// Check by dir timestamp hash and content hash
   DirTimestampAndHash { timestamp_hash: u64, hash: u64 },
@@ -90,6 +98,8 @@ pub enum ValidateResult {
   Modified,
   /// The target file has no changed
   NoChanged,
+  /// The content is unchanged but the stored file timestamp needs refreshing.
+  NoChangedRefresh(Strategy),
 }
 
 pub struct StrategyHelper {
@@ -103,13 +113,24 @@ impl StrategyHelper {
     fs: Arc<dyn ReadableFileSystem>,
     snapshot_options: Arc<SnapshotOptions>,
     context: Context,
+    codec: Arc<CacheCodec>,
   ) -> Self {
     let package_helper = Arc::new(PackageHelper::new(fs.clone(), context));
     Self {
       fs: fs.clone(),
-      hash_helper: HashHelper::new(fs, snapshot_options, package_helper.clone()),
+      hash_helper: HashHelper::new(fs, snapshot_options, package_helper.clone(), codec),
       package_helper,
     }
+  }
+
+  /// Inspect the snapshot root before any path shortcuts.
+  pub async fn is_symlink(&self, path: &InternedPath) -> Option<bool> {
+    self
+      .fs
+      .symlink_metadata(path.assert_utf8())
+      .await
+      .ok()
+      .map(|m| m.is_symlink)
   }
 
   /// get path file modified time
@@ -179,6 +200,14 @@ impl StrategyHelper {
     }
   }
 
+  /// get symbolic link strategy
+  pub async fn link_strategy(&self, path: &InternedPath, deep: bool) -> Strategy {
+    match self.hash_helper.link_hash(path, deep).await {
+      Some(hash) => Strategy::LinkHash { hash, deep },
+      None => Strategy::Failed,
+    }
+  }
+
   /// get path context strategy
   pub async fn dir_strategy(
     &self,
@@ -217,6 +246,21 @@ impl StrategyHelper {
       }
       (false, false) => Strategy::Failed,
     }
+  }
+
+  /// Whether the directory, or anything below it that its strategies cover, was modified at or
+  /// after `time`.
+  pub async fn dir_modified_since(&self, path: &InternedPath, time: u64) -> bool {
+    self
+      .hash_helper
+      .dir_timestamp_hash(path)
+      .await
+      .is_none_or(|timestamp| {
+        timestamp
+          .newest
+          .saturating_add(rspack_util::time::mtime_accuracy(timestamp.newest))
+          >= time
+      })
   }
 
   /// validate path file by target strategy
@@ -260,8 +304,24 @@ impl StrategyHelper {
         if &modified_time == mtime {
           return ValidateResult::NoChanged;
         }
-        let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.file_hash(path).await
+        let Some(ContentHash {
+          hash: cur_hash,
+          mtime: cur_mtime,
+        }) = self.hash_helper.file_hash(path).await
         else {
+          return ValidateResult::Deleted;
+        };
+        if &cur_hash == hash {
+          ValidateResult::NoChangedRefresh(Strategy::FileTimestampAndHash {
+            mtime: cur_mtime,
+            hash: cur_hash,
+          })
+        } else {
+          ValidateResult::Modified
+        }
+      }
+      Strategy::DirHash { hash } => {
+        let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.dir_hash(path).await else {
           return ValidateResult::Deleted;
         };
         if &cur_hash == hash {
@@ -270,8 +330,8 @@ impl StrategyHelper {
           ValidateResult::Modified
         }
       }
-      Strategy::DirHash { hash } => {
-        let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.dir_hash(path).await else {
+      Strategy::LinkHash { hash, deep } => {
+        let Some(cur_hash) = self.hash_helper.link_hash(path, *deep).await else {
           return ValidateResult::Deleted;
         };
         if &cur_hash == hash {

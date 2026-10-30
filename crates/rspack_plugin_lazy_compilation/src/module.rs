@@ -1,6 +1,10 @@
 use std::{borrow::Cow, sync::Arc};
 
-use rspack_cacheable::{cacheable, cacheable_dyn, with::AsVec};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  utils::PortableString,
+  with::{As, AsOption, AsVec},
+};
 use rspack_collections::Identifiable;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
@@ -51,8 +55,10 @@ pub(crate) struct LazyCompilationProxyModule {
   build_meta: FreezeLock<BuildMeta>,
   factory_meta: FactoryMetaStore,
 
+  #[cacheable(with=As<PortableString>)]
   readable_identifier: String,
   identifier: ModuleIdentifier,
+  #[cacheable(with=AsOption<As<PortableString>>)]
   lib_ident: Option<String>,
 
   dependencies_block: DependenciesBlockData,
@@ -62,6 +68,7 @@ pub(crate) struct LazyCompilationProxyModule {
   context: Box<Context>,
   layer: Option<ModuleLayer>,
   dep_options: DependencyOptions,
+  #[cacheable(with=As<PortableString>)]
   resource: String,
   active: bool,
   client: String,

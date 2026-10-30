@@ -80,6 +80,8 @@ export default {
 					entry: "./src/index.js",
 					storage: path.join(reader, ".cache")
 				});
+				// `index.js` evaluates `__dirname`, which binds it to the root; `plain.js` must be reused.
+				expect(next.built).not.toContain("plain.js");
 				const cold = await build({
 					context: reader,
 					entry: "./src/index.js",

@@ -31,11 +31,17 @@ export type TCacheCaseOptions = {
   type?: 'cache' | 'normal' | 'config';
   /** Enable persistent newCache, restart unchanged cases, and check cache hits. */
   newCache?: boolean;
+  /** Override portable mode while reusing the original cache scenario. */
+  portable?: false;
 };
 
 interface CacheState {
   compilerIndex: number;
-  nextStart: (advance?: boolean, move?: boolean) => Promise<StatsCompilation>;
+  nextStart: (
+    advance?: boolean,
+    move?: boolean,
+    cold?: boolean,
+  ) => Promise<StatsCompilation>;
   nextHmr: (module: any, options?: any) => Promise<StatsCompilation>;
 }
 
@@ -123,7 +129,7 @@ function createCacheProcessor(
       await updatePlugin?.initialize();
       const state: CacheState = {
         compilerIndex: 0,
-        nextStart: async (advance = true, move = false) => {
+        nextStart: async (advance = true, move = false, cold = false) => {
           const env = testEnv;
           if (state.compilerIndex >= 100) {
             throw new Error('NEXT_START has been called more than 100 times');
@@ -142,6 +148,19 @@ function createCacheProcessor(
             // Copy rather than move: the cache must not be invalidated by the
             // original files disappearing, only by its own root binding.
             await fs.copy(compileTemp, relocated);
+            const touch = async (directory: string): Promise<void> => {
+              for (const entry of await fs.readdir(directory, {
+                withFileTypes: true,
+              })) {
+                if (entry.name === 'node_modules' || entry.name === '.cache')
+                  continue;
+                const filename = path.join(directory, entry.name);
+                if (entry.isDirectory()) await touch(filename);
+                if (entry.isFile())
+                  await fs.utimes(filename, new Date(), new Date());
+              }
+            };
+            await touch(relocated);
             const options = manager.getOptions() as RspackOptions;
             const previousPlugin = updatePlugin;
             updatePlugin = new HotUpdatePlugin(src, relocated);
@@ -150,6 +169,7 @@ function createCacheProcessor(
               plugin === previousPlugin ? updatePlugin! : plugin,
             );
           }
+          if (cold) (manager.getOptions() as RspackOptions).cache = false;
           const advanceUpdate = !!(
             advance &&
             updatePlugin &&
@@ -198,6 +218,15 @@ function createCacheProcessor(
     config: async (context) => {
       await base.config(context);
       if (caseOptions.newCache) enableNewCache(context, temp);
+      if (caseOptions.portable === false) {
+        const options = context.getCompiler().getOptions() as RspackOptions;
+        if (
+          typeof options.cache === 'object' &&
+          options.cache.type === 'persistent'
+        ) {
+          options.cache.portable = false;
+        }
+      }
     },
     compiler: base.compiler,
     build: base.build,
@@ -275,6 +304,46 @@ function createCacheProcessor(
   }
 }
 
+// Loaders can write into the project, such as build counters. The cold build
+// must leave the project as the relocated build left it.
+async function snapshotProject(
+  directory: string,
+): Promise<() => Promise<void>> {
+  const entries = new Set<string>();
+  const files = new Map<string, { content: Buffer; stat: fs.Stats }>();
+  const walk = async (current: string): Promise<void> => {
+    for (const entry of await fs.readdir(current, { withFileTypes: true })) {
+      if (entry.name === 'node_modules') continue;
+      const filename = path.join(current, entry.name);
+      entries.add(filename);
+      if (entry.isDirectory()) await walk(filename);
+      if (entry.isFile())
+        files.set(filename, {
+          content: await fs.readFile(filename),
+          stat: await fs.stat(filename),
+        });
+    }
+  };
+  const removeCreated = async (current: string): Promise<void> => {
+    for (const entry of await fs.readdir(current, { withFileTypes: true })) {
+      if (entry.name === 'node_modules') continue;
+      const filename = path.join(current, entry.name);
+      if (!entries.has(filename)) await fs.remove(filename);
+      else if (entry.isDirectory()) await removeCreated(filename);
+    }
+  };
+  await walk(directory);
+  return async () => {
+    await removeCreated(directory);
+    for (const [filename, { content, stat }] of files) {
+      const current = await fs.readFile(filename).catch(() => undefined);
+      if (current?.equals(content)) continue;
+      await fs.outputFile(filename, content);
+      await fs.utimes(filename, stat.atime, stat.mtime);
+    }
+  };
+}
+
 // A relocated build must emit exactly what a cold build at the new location
 // emits, so a cache entry restored with stale root-derived data shows up here.
 async function checkColdBuild(
@@ -293,6 +362,7 @@ async function checkColdBuild(
   if (!cache) {
     throw new Error('Directory relocation requires a persistent cache case');
   }
+  const restoreProject = await snapshotProject(options.context!);
   const compiler = rspack({
     ...options,
     cache: {
@@ -310,6 +380,7 @@ async function checkColdBuild(
   await new Promise<void>((resolve, reject) => {
     compiler.close((error) => (error ? reject(error) : resolve()));
   });
+  await restoreProject();
   const assetNames = (stats: StatsCompilation) =>
     (stats.assets || []).map((asset) => asset.name).sort();
   const names = assetNames(relocatedStats);
@@ -546,6 +617,28 @@ function createRunner(
       scope.NEXT_HMR = state.nextHmr;
       scope.NEXT_START = (advance?: boolean) => state.nextStart(advance);
       scope.NEXT_MOVE_DIR_START = () => state.nextStart(false, true);
+      scope.NEXT_COLD_START = () => state.nextStart(false, false, true);
+      scope.READ_ASSETS = () => {
+        const current = context.getCompiler().getStats()!;
+        const children = 'stats' in current ? current.stats : [current];
+        return children.map((child) =>
+          Object.fromEntries(
+            child.compilation
+              .getAssets()
+              .map((asset) => [
+                asset.name,
+                fs
+                  .readFileSync(
+                    path.join(
+                      child.compilation.outputOptions.path!,
+                      asset.name,
+                    ),
+                  )
+                  .toString('base64'),
+              ]),
+          ),
+        );
+      };
       scope.CURRENT_CONTEXT = options?.context;
       return scope;
     },

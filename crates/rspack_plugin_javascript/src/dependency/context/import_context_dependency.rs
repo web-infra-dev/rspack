@@ -11,16 +11,23 @@ use rspack_error::Diagnostic;
 use rspack_util::json_stringify;
 
 use super::{
-  context_dependency_template_as_require_call, create_resource_identifier_for_context_dependency,
+  context_dependency_template_as_require_call, create_resource_identifier_and_regex_ranges,
 };
 
+fn create_resource_identifier_and_range(
+  options: &ContextOptions,
+) -> (Identifier, Vec<std::ops::Range<usize>>) {
+  let (resource_identifier, range) = create_resource_identifier_and_regex_ranges(None, options);
+  let Some(attributes) = &options.attributes else {
+    return (resource_identifier, range);
+  };
+  let mut resource_identifier = resource_identifier.to_string();
+  resource_identifier.push_str(&json_stringify(attributes));
+  (resource_identifier.into(), range)
+}
+
 fn create_resource_identifier(options: &ContextOptions) -> Identifier {
-  let mut resource_identifier =
-    create_resource_identifier_for_context_dependency(None, options).to_string();
-  if let Some(attributes) = &options.attributes {
-    resource_identifier.push_str(&json_stringify(attributes));
-  }
-  resource_identifier.into()
+  create_resource_identifier_and_range(options).0
 }
 
 #[cacheable]
@@ -127,6 +134,18 @@ impl ContextDependency for ImportContextDependency {
 
   fn resource_identifier(&self) -> &str {
     &self.resource_identifier
+  }
+
+  fn resource_identifier_regex_ranges(&self) -> Vec<std::ops::Range<usize>> {
+    let (identifier, ranges) = super::create_resource_identifier_and_regex_ranges(
+      ContextDependency::get_context(self),
+      self.options(),
+    );
+    if ContextDependency::resource_identifier(self).starts_with(identifier.as_str()) {
+      ranges
+    } else {
+      Vec::new()
+    }
   }
 
   fn get_optional(&self) -> bool {
