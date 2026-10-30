@@ -1,10 +1,10 @@
-import type { Configuration } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
-export default {
+export default defineConfig({
   context: import.meta.dirname,
   entry: './src/index.js',
   stats: 'none',
   mode: 'development',
   plugins: [new rspack.HtmlRspackPlugin()],
-} satisfies Configuration;
+});

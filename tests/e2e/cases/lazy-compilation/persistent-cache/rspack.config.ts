@@ -1,7 +1,8 @@
-import type { Configuration, Compiler } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
+import type { Compiler } from '@rspack/core';
 import { rspack } from '@rspack/core';
 
-export default {
+export default defineConfig({
   context: import.meta.dirname,
   entry: {
     main: ['./src/component.js', './src/index.js'],
@@ -34,4 +35,4 @@ export default {
       },
     },
   },
-} satisfies Configuration;
+});

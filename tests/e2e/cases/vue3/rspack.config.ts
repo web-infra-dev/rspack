@@ -1,8 +1,8 @@
-import type { Configuration } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
 import { DefinePlugin, HtmlRspackPlugin } from '@rspack/core';
 import { VueLoaderPlugin } from 'rspack-vue-loader';
 
-export default {
+export default defineConfig({
   context: import.meta.dirname,
   mode: 'development',
   entry: './src/main.js',
@@ -51,4 +51,4 @@ export default {
   watchOptions: {
     poll: 1000,
   },
-} satisfies Configuration;
+});

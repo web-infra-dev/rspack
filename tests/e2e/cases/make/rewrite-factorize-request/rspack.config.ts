@@ -1,11 +1,12 @@
-import type { Configuration, Compiler } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
+import type { Compiler } from '@rspack/core';
 import { rspack } from '@rspack/core';
 
 const sharedObj = {
   time: 1,
 };
 
-export default {
+export default defineConfig({
   entry: './index.js',
   context: import.meta.dirname,
   cache: true,
@@ -31,4 +32,4 @@ export default {
       },
     },
   ],
-} satisfies Configuration;
+});

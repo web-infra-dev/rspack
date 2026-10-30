@@ -1,11 +1,12 @@
-import type { Configuration, Compiler } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
+import type { Compiler } from '@rspack/core';
 import rspack from '@rspack/core';
 
 const sharedObj = {
   useFullEntry: true,
 };
 
-export default {
+export default defineConfig({
   entry: async (): Promise<Record<string, { import: string }>> => {
     if (sharedObj.useFullEntry) {
       return {
@@ -39,4 +40,4 @@ export default {
     hot: true,
   },
   lazyCompilation: false,
-} satisfies Configuration;
+});

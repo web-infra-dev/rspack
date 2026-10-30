@@ -1,7 +1,7 @@
-import type { Configuration } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
-export default {
+export default defineConfig({
   context: import.meta.dirname,
   entry: {
     main: [
@@ -30,4 +30,4 @@ export default {
   devServer: {
     hot: true,
   },
-} satisfies Configuration;
+});

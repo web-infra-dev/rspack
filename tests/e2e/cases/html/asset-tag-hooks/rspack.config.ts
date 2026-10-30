@@ -1,7 +1,8 @@
-import type { Configuration, Compiler } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
+import type { Compiler } from '@rspack/core';
 import { rspack } from '@rspack/core';
 
-export default {
+export default defineConfig({
   context: import.meta.dirname,
   mode: 'development',
   entry: './src/index.js',
@@ -31,4 +32,4 @@ export default {
   devServer: {
     port: 3000,
   },
-} satisfies Configuration;
+});

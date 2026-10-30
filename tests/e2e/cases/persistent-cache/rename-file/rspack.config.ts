@@ -1,7 +1,7 @@
-import type { Configuration } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
 import rspack from '@rspack/core';
 
-export default {
+export default defineConfig({
   entry: './index.js',
   context: import.meta.dirname,
   // use production mod to make sure
@@ -11,4 +11,4 @@ export default {
   cache: {
     type: 'persistent',
   },
-} satisfies Configuration;
+});

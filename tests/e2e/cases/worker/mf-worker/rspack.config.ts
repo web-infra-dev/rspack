@@ -1,8 +1,8 @@
-import type { Configuration } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
 import path from 'node:path';
 import rspack from '@rspack/core';
 
-export default {
+export default defineConfig({
   context: import.meta.dirname,
   entry: {
     main: './src/index.js',
@@ -30,4 +30,4 @@ export default {
   devServer: {
     hot: true,
   },
-} satisfies Configuration;
+});

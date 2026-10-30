@@ -1,7 +1,7 @@
-import type { Configuration } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
-export default {
+export default defineConfig({
   context: import.meta.dirname,
   mode: 'development',
   entry: './src/index.js',
@@ -19,4 +19,4 @@ export default {
   },
   // for concise assert for assets
   lazyCompilation: false,
-} satisfies Configuration;
+});

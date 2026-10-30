@@ -1,9 +1,9 @@
-import type { Configuration } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
 import { fileURLToPath } from 'node:url';
 import { rspack } from '@rspack/core';
 import { ReactRefreshRspackPlugin } from '@rspack/plugin-react-refresh';
 
-export default {
+export default defineConfig({
   context: import.meta.dirname,
   entry: './src/index.jsx',
   mode: 'development',
@@ -62,4 +62,4 @@ export default {
       writeToDisk: true,
     },
   },
-} satisfies Configuration;
+});

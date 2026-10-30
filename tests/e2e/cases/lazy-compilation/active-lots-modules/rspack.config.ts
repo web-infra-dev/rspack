@@ -1,4 +1,4 @@
-import type { Configuration } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
 /*
@@ -24,7 +24,7 @@ lotsLongFileNameVirtualFiles['src/virtual_index.js'] = `
   ]).then(()=> document.body.innerHTML = 'All Modules Loaded');
 `;
 
-export default {
+export default defineConfig({
   context: import.meta.dirname,
   entry: './src/virtual_index.js',
   mode: 'development',
@@ -40,4 +40,4 @@ export default {
   experiments: {
     useInputFileSystem: [/virtual/],
   },
-} satisfies Configuration;
+});

@@ -1,7 +1,7 @@
-import type { Configuration } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
-export default {
+export default defineConfig({
   context: import.meta.dirname,
   entry: './src/index.js',
   mode: 'development',
@@ -35,4 +35,4 @@ export default {
     hot: true,
     port: 5678,
   },
-} satisfies Configuration;
+});

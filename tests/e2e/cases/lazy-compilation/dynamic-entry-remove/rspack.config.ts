@@ -1,9 +1,9 @@
-import type { Configuration } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
 import path from 'node:path';
 import fs from 'node:fs';
 import rspack from '@rspack/core';
 
-export default {
+export default defineConfig({
   entry: async () => {
     const context = path.resolve(import.meta.dirname, 'src');
     const files = await fs.promises.readdir(context);
@@ -29,4 +29,4 @@ export default {
   lazyCompilation: {
     entries: true,
   },
-} satisfies Configuration;
+});

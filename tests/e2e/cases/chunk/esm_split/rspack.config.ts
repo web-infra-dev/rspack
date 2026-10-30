@@ -1,7 +1,7 @@
-import type { Configuration } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
 import rspack from '@rspack/core';
 
-export default {
+export default defineConfig({
   mode: 'development',
   output: {
     module: true,
@@ -31,4 +31,4 @@ export default {
       },
     },
   },
-} satisfies Configuration;
+});

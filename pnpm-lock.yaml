@@ -936,6 +936,9 @@ importers:
       '@module-federation/runtime-tools':
         specifier: 'catalog:'
         version: 2.9.2
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../packages/rspack-cli
       '@rspack/core':
         specifier: workspace:*
         version: link:../../packages/rspack

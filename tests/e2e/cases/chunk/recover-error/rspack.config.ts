@@ -1,8 +1,8 @@
-import type { Configuration } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 import { ReactRefreshRspackPlugin } from '@rspack/plugin-react-refresh';
 
-export default {
+export default defineConfig({
   mode: 'development',
   context: import.meta.dirname,
   entry: {
@@ -63,4 +63,4 @@ export default {
     },
   },
   lazyCompilation: true,
-} satisfies Configuration;
+});
