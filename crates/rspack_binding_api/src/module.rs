@@ -265,7 +265,7 @@ struct OriginalSourceNapiRef {
   // the old Arc allocation unavailable for pointer reuse, so identity comparisons remain reliable.
   related_source: Weak<dyn Source>,
   // Keep the converted JavaScript object alive and return that exact object on cache hits. The
-  // reference is replaced on the next call after `module.source()` points to a different Source.
+  // reference is cleared after the build, or replaced when `module.source()` changes.
   napi_ref: OneShotRef,
 }
 
@@ -559,13 +559,13 @@ impl Module {
   }
 }
 
-type ModuleInstanceNapiRef = Either5<
-  OneShotInstanceRef<NormalModule>,
-  OneShotInstanceRef<ConcatenatedModule>,
-  OneShotInstanceRef<ContextModule>,
-  OneShotInstanceRef<ExternalModule>,
-  OneShotInstanceRef<Module>,
->;
+enum ModuleInstanceNapiRef {
+  Normal(OneShotInstanceRef<NormalModule>),
+  Concatenated(OneShotInstanceRef<ConcatenatedModule>),
+  Context(OneShotInstanceRef<ContextModule>),
+  External(OneShotInstanceRef<ExternalModule>),
+  Module(OneShotInstanceRef<Module>),
+}
 
 type ModuleInstanceRef<'a> = Either5<
   &'a NormalModule,
@@ -634,6 +634,24 @@ impl ModuleObject {
     });
   }
 
+  // Called on the owning JS thread so dropping the cached Node-API references is safe.
+  pub(crate) fn clear_original_source_cache(compiler_id: &CompilerId) {
+    MODULE_INSTANCE_REFS.with_borrow_mut(|refs_by_compiler_id| {
+      if let Some(refs) = refs_by_compiler_id.get_mut(compiler_id) {
+        for reference in refs.values_mut() {
+          let module: &mut Module = match reference {
+            ModuleInstanceNapiRef::Normal(module) => &mut module.module,
+            ModuleInstanceNapiRef::Concatenated(module) => &mut module.module,
+            ModuleInstanceNapiRef::Context(module) => &mut module.module,
+            ModuleInstanceNapiRef::External(module) => &mut module.module,
+            ModuleInstanceNapiRef::Module(module) => module,
+          };
+          module.original_source_ref = None;
+        }
+      }
+    });
+  }
+
   pub fn cleanup_by_module_identifiers(
     compiler_id: &CompilerId,
     revoked_modules: &[ModuleIdentifier],
@@ -645,11 +663,15 @@ impl ModuleObject {
           && let Some(r) = refs.remove(module_identifier)
         {
           match r {
-            Either5::A(mut normal_module) => normal_module.module.ptr = None,
-            Either5::B(mut concatenated_module) => concatenated_module.module.ptr = None,
-            Either5::C(mut context_module) => context_module.module.ptr = None,
-            Either5::D(mut external_module) => external_module.module.ptr = None,
-            Either5::E(mut module) => module.ptr = None,
+            ModuleInstanceNapiRef::Normal(mut normal_module) => normal_module.module.ptr = None,
+            ModuleInstanceNapiRef::Concatenated(mut concatenated_module) => {
+              concatenated_module.module.ptr = None
+            }
+            ModuleInstanceNapiRef::Context(mut context_module) => context_module.module.ptr = None,
+            ModuleInstanceNapiRef::External(mut external_module) => {
+              external_module.module.ptr = None
+            }
+            ModuleInstanceNapiRef::Module(mut module) => module.ptr = None,
           }
         }
       }
@@ -679,19 +701,21 @@ impl ToNapiValue for ModuleObject {
           std::collections::hash_map::Entry::Occupied(mut entry) => {
             let instance_ref = entry.get_mut();
             let instance = match instance_ref {
-              Either5::A(normal_module) => &mut normal_module.module,
-              Either5::B(concatenated_module) => &mut concatenated_module.module,
-              Either5::C(context_module) => &mut context_module.module,
-              Either5::D(external_module) => &mut external_module.module,
-              Either5::E(module) => &mut **module,
+              ModuleInstanceNapiRef::Normal(normal_module) => &mut normal_module.module,
+              ModuleInstanceNapiRef::Concatenated(concatenated_module) => {
+                &mut concatenated_module.module
+              }
+              ModuleInstanceNapiRef::Context(context_module) => &mut context_module.module,
+              ModuleInstanceNapiRef::External(external_module) => &mut external_module.module,
+              ModuleInstanceNapiRef::Module(module) => &mut **module,
             };
             instance.ptr = val.ptr;
             match instance_ref {
-              Either5::A(r) => ToNapiValue::to_napi_value(env, r),
-              Either5::B(r) => ToNapiValue::to_napi_value(env, r),
-              Either5::C(r) => ToNapiValue::to_napi_value(env, r),
-              Either5::D(r) => ToNapiValue::to_napi_value(env, r),
-              Either5::E(r) => ToNapiValue::to_napi_value(env, r),
+              ModuleInstanceNapiRef::Normal(r) => ToNapiValue::to_napi_value(env, r),
+              ModuleInstanceNapiRef::Concatenated(r) => ToNapiValue::to_napi_value(env, r),
+              ModuleInstanceNapiRef::Context(r) => ToNapiValue::to_napi_value(env, r),
+              ModuleInstanceNapiRef::External(r) => ToNapiValue::to_napi_value(env, r),
+              ModuleInstanceNapiRef::Module(r) => ToNapiValue::to_napi_value(env, r),
             }
           }
           std::collections::hash_map::Entry::Vacant(entry) => {
@@ -706,39 +730,39 @@ impl ToNapiValue for ModuleObject {
 
             let instance_ref = if val.type_id == TypeId::of::<rspack_core::NormalModule>() {
               let instance = NormalModule::new(js_module).into_module_instance(&env_wrapper)?;
-              entry.insert(Either5::A(OneShotInstanceRef::from_instance(
-                env, instance,
-              )?))
+              entry.insert(ModuleInstanceNapiRef::Normal(
+                OneShotInstanceRef::from_instance(env, instance)?,
+              ))
             } else if val.type_id == TypeId::of::<rspack_core::ConcatenatedModule>() {
               let instance =
                 ConcatenatedModule { module: js_module }.into_module_instance(&env_wrapper)?;
-              entry.insert(Either5::B(OneShotInstanceRef::from_instance(
-                env, instance,
-              )?))
+              entry.insert(ModuleInstanceNapiRef::Concatenated(
+                OneShotInstanceRef::from_instance(env, instance)?,
+              ))
             } else if val.type_id == TypeId::of::<rspack_core::ContextModule>() {
               let instance =
                 ContextModule { module: js_module }.into_module_instance(&env_wrapper)?;
-              entry.insert(Either5::C(OneShotInstanceRef::from_instance(
-                env, instance,
-              )?))
+              entry.insert(ModuleInstanceNapiRef::Context(
+                OneShotInstanceRef::from_instance(env, instance)?,
+              ))
             } else if val.type_id == TypeId::of::<rspack_core::ExternalModule>() {
               let instance =
                 ExternalModule { module: js_module }.into_module_instance(&env_wrapper)?;
-              entry.insert(Either5::D(OneShotInstanceRef::from_instance(
-                env, instance,
-              )?))
+              entry.insert(ModuleInstanceNapiRef::External(
+                OneShotInstanceRef::from_instance(env, instance)?,
+              ))
             } else {
               let instance = js_module.into_module_instance(&env_wrapper)?;
-              entry.insert(Either5::E(OneShotInstanceRef::from_instance(
-                env, instance,
-              )?))
+              entry.insert(ModuleInstanceNapiRef::Module(
+                OneShotInstanceRef::from_instance(env, instance)?,
+              ))
             };
             match instance_ref {
-              Either5::A(r) => ToNapiValue::to_napi_value(env, r),
-              Either5::B(r) => ToNapiValue::to_napi_value(env, r),
-              Either5::C(r) => ToNapiValue::to_napi_value(env, r),
-              Either5::D(r) => ToNapiValue::to_napi_value(env, r),
-              Either5::E(r) => ToNapiValue::to_napi_value(env, r),
+              ModuleInstanceNapiRef::Normal(r) => ToNapiValue::to_napi_value(env, r),
+              ModuleInstanceNapiRef::Concatenated(r) => ToNapiValue::to_napi_value(env, r),
+              ModuleInstanceNapiRef::Context(r) => ToNapiValue::to_napi_value(env, r),
+              ModuleInstanceNapiRef::External(r) => ToNapiValue::to_napi_value(env, r),
+              ModuleInstanceNapiRef::Module(r) => ToNapiValue::to_napi_value(env, r),
             }
           }
         }
