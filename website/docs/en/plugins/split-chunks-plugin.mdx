@@ -129,13 +129,63 @@ export default {
 };
 ```
 
-In this example, `components` is the cache group key, [`test`](#test) selects the modules, and [`minSize`](#splitchunksminsize) sets the size threshold. The group uses the global `chunks: 'all'` setting, so it can select modules from both initial and async chunks.
+You can read this configuration as follows:
 
-A cache group can produce multiple chunks, depending on how its modules are used. Matching `test` makes a module eligible for the group; splitting still depends on size, sharing, and request limits. The group key identifies the configuration, while options such as [`name`](#splitchunksname) control the names of the resulting chunks.
+| Setting                          | Meaning                                                                    |
+| -------------------------------- | -------------------------------------------------------------------------- |
+| `components`                     | The name of this set of rules, so you can identify it in the configuration |
+| [`test`](#test)                  | Selects modules under `src/components`                                     |
+| [`minSize`](#splitchunksminsize) | Sets a minimum split size of 20,000 bytes for these modules                |
+| `chunks: 'all'`                  | Applies these rules to both initial and async chunks                       |
 
-Cache groups can inherit shared options such as `chunks`, `minSize`, and `minChunks` from `splitChunks`, or override them for the group. Options such as `test`, `priority`, and `reuseExistingChunk` are configured only within a cache group. Some global options, such as [`dedupDepth`](#splitchunksdedupdepth), cannot be configured per group.
+**Cache groups and chunks**
 
-Rspack provides two default cache groups: `default` selects modules shared by at least two chunks, and `defaultVendors` selects modules from `node_modules`. Adding a custom group keeps these default groups. A module can match more than one group; [`priority`](#priority) helps determine which group is preferred.
+One cache group can produce multiple chunks. For example, two components that match the `components` group might be used by different pages:
+
+```text
+Pages A and B → Button component
+Pages C and D → Chart component
+```
+
+If each component meets the splitting conditions, Rspack can extract `Button` and `Chart` into separate shared chunks, each loaded by the pages that use it. `components` names the set of rules; options such as [`name`](#splitchunksname) control the names of the resulting chunks.
+
+Matching `test` only selects modules. For example, the configuration above requires a minimum split size of 20,000 bytes. If the components selected for a split total only 5,000 bytes, they do not pass this group's `minSize` check. Splitting also depends on conditions such as sharing and request limits.
+
+**Inheriting and overriding global options**
+
+Shared options such as `chunks`, `minSize`, and `minChunks` can be set on `splitChunks` for cache groups to inherit. To use a different value for one group, set it within that group:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      minSize: 30 * 1000,
+      cacheGroups: {
+        components: {
+          test: /[\\/]src[\\/]components[\\/]/,
+          minSize: 20 * 1000,
+        },
+      },
+    },
+  },
+};
+```
+
+Here, the `components` group uses the global `chunks: 'all'`, but its own `minSize: 20000` overrides the global `30000`. Other groups without their own `minSize` use the global value.
+
+Options such as `test`, `priority`, and `reuseExistingChunk` belong only to cache groups and go inside a group configuration in `cacheGroups`. Global options such as [`dedupDepth`](#splitchunksdedupdepth) can only be set on `splitChunks`.
+
+**Default cache groups**
+
+Rspack provides these two groups even when you do not configure `cacheGroups`. They remain available when you add a custom group:
+
+| Cache group      | Selected modules                      | `priority` |
+| ---------------- | ------------------------------------- | ---------- |
+| `default`        | Modules shared by at least two chunks | `-20`      |
+| `defaultVendors` | Modules from `node_modules`           | `-10`      |
+
+For example, `node_modules/lodash/lodash.js` can match both groups if it is used by two chunks. When both groups can split the module, Rspack prefers `defaultVendors` because it has the higher [`priority`](#priority): `-10` is higher than `-20`.
 
 To disable a default cache group, set its entry to `false`:
 

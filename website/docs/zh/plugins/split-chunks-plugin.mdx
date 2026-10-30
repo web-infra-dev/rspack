@@ -125,13 +125,63 @@ export default {
 };
 ```
 
-在这个示例中，`components` 是缓存组的标识，[`test`](#test) 用于选择模块，[`minSize`](#splitchunksminsize) 设置体积阈值。该组使用全局的 `chunks: 'all'`，因此可以从 initial chunk 和 async chunk 中选择模块。
+可以这样理解上面的配置：
 
-一个缓存组可能产生多个 chunk，具体取决于模块的使用情况。模块匹配 `test` 后，还需要满足体积、共享次数和请求数量等条件，才会进行拆分。缓存组的标识用于区分配置，生成的 chunk 名称则由 [`name`](#splitchunksname) 等选项控制。
+| 配置                             | 含义                                              |
+| -------------------------------- | ------------------------------------------------- |
+| `components`                     | 这组规则的名称，方便你在配置中找到它              |
+| [`test`](#test)                  | 选择 `src/components` 目录下的模块                |
+| [`minSize`](#splitchunksminsize) | 为这组模块设置 20,000 字节的最小拆分体积          |
+| `chunks: 'all'`                  | 让这组规则同时应用于 initial chunk 和 async chunk |
 
-缓存组可以从 `splitChunks` 继承 `chunks`、`minSize`、`minChunks` 等公共选项，也可以在组内覆盖这些选项。`test`、`priority`、`reuseExistingChunk` 等选项只能在缓存组中配置。[`dedupDepth`](#splitchunksdedupdepth) 等全局选项不支持在缓存组中配置。
+**缓存组与 chunk 的关系**
 
-Rspack 提供两个默认缓存组：`default` 选择至少被两个 chunk 共享的模块，`defaultVendors` 选择来自 `node_modules` 的模块。添加自定义缓存组时，这两个默认组仍然保留。一个模块可以匹配多个组，[`priority`](#priority) 用于决定优先选择哪个组。
+一个缓存组可以生成多个 chunk。比如，同样匹配 `components` 组的两个组件，可能被不同页面使用：
+
+```text
+页面 A、B → Button 组件
+页面 C、D → Chart 组件
+```
+
+如果它们分别满足拆分条件，Rspack 可以把 `Button` 和 `Chart` 拆到不同的共享 chunk 中，供各自的页面加载。`components` 是这组规则的名称，生成的 chunk 可以通过 [`name`](#splitchunksname) 等选项命名。
+
+匹配 `test` 只是选中了模块。例如，上面的配置要求最小拆分体积为 20,000 字节，如果某次拆分选出的组件总共只有 5,000 字节，就不会通过该组的 `minSize` 检查。是否拆分还取决于共享次数、请求数量等条件。
+
+**继承和覆盖全局配置**
+
+`chunks`、`minSize`、`minChunks` 等公共选项可以放在 `splitChunks` 中，供缓存组继承。如果某个组需要不同的值，可以在组内单独设置：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      minSize: 30 * 1000,
+      cacheGroups: {
+        components: {
+          test: /[\\/]src[\\/]components[\\/]/,
+          minSize: 20 * 1000,
+        },
+      },
+    },
+  },
+};
+```
+
+这里，`components` 组使用全局的 `chunks: 'all'`，但使用组内的 `minSize: 20000`，覆盖全局的 `30000`。其他未单独设置 `minSize` 的组则使用全局值。
+
+`test`、`priority`、`reuseExistingChunk` 等选项只属于缓存组，应放在 `cacheGroups` 内的组配置中。[`dedupDepth`](#splitchunksdedupdepth) 等全局选项则只能放在 `splitChunks` 中。
+
+**默认缓存组**
+
+即使你没有手写 `cacheGroups`，Rspack 也提供了下面两个组。添加自定义组时，它们仍然保留：
+
+| 缓存组           | 选择的模块                  | `priority` |
+| ---------------- | --------------------------- | ---------- |
+| `default`        | 至少被两个 chunk 共享的模块 | `-20`      |
+| `defaultVendors` | 来自 `node_modules` 的模块  | `-10`      |
+
+例如，`node_modules/lodash/lodash.js` 如果被两个 chunk 使用，就可能同时匹配这两个组。当两个组都可以拆分该模块时，Rspack 会优先使用 [`priority`](#priority) 更高的 `defaultVendors`（`-10` 高于 `-20`）。
 
 要禁用某个默认缓存组，将对应的属性设为 `false`：
 
