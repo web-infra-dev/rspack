@@ -297,7 +297,10 @@ async fn runtime_requirements_in_tree(
             SourceType::Css,
             runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_CSS_FILENAME),
             |runtime_requirements| {
-              runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+              runtime_requirements.intersects(
+                RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
+                  | RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
+              )
             },
             |chunk, compilation| {
               chunk_has_css(&chunk.ukey(), compilation).then(|| {
