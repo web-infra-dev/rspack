@@ -10,13 +10,47 @@ SplitChunksPlugin is a built-in plugin that splits code into multiple [chunks](/
 
 SplitChunksPlugin can be configured through the [optimization.splitChunks](/config/optimization#optimizationsplitchunks) option, and you typically don't need to manually register this plugin.
 
+## Basic concepts
+
+Before configuring splitting, it helps to understand these three terms:
+
+| Term                                   | Meaning                                                                                               | Example                                                                        |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| [Module](/misc/glossary#module)        | A unit of code or a resource processed by Rspack                                                      | `page.js`, `Button.tsx`, or `style.css`                                        |
+| [Chunk](/misc/glossary#chunk)          | A unit that groups modules during a build and produces corresponding output assets                    | A page's code and its dependencies can belong to the same chunk                |
+| [Cache group](#splitchunkscachegroups) | A set of rules for selecting modules and deciding how to split them, configured through `cacheGroups` | Select modules from `node_modules` and set a size threshold for splitting them |
+
+For example, two pages loaded on demand both depend on `shared.js`. Before splitting, that module might appear in both chunks:
+
+```text
+Page A chunk: [page-a.js, shared.js]
+Page B chunk: [page-b.js, shared.js]
+```
+
+A cache group can select this shared module. When conditions such as size and sharing requirements are met, SplitChunksPlugin can extract it so both pages use the same shared chunk:
+
+```text
+Page A chunk: [page-a.js] ─┐
+                         ├→ Shared chunk: [shared.js]
+Page B chunk: [page-b.js] ─┘
+```
+
+Here, `shared.js` is the module, the shared chunk containing it is the splitting result, and the cache group provides the splitting rules. One cache group can produce multiple chunks, as the [`cacheGroups` examples](#splitchunkscachegroups) below explain.
+
+Chunks can also be classified by when they are loaded:
+
+- **[Initial chunk](/misc/glossary#initial-chunk)**: A chunk needed when an entry starts.
+- **[Async chunk](/misc/glossary#async-chunk)**: A chunk loaded on demand during execution, such as a page loaded through `import()`.
+
+[`splitChunks.chunks`](#splitchunkschunks) selects which chunks participate in splitting. By default, only async chunks are selected.
+
 ## Default behavior
 
 Rspack has a built-in configuration for `SplitChunksPlugin` that works well for most scenarios.
 
 By default it only affects on-demand chunks, because changing initial chunks would affect the script tags the HTML file should include to run the project.
 
-A [cache group](#splitchunkscachegroups) defines which modules to select and how to split them. Rspack ships with two default cache groups:
+Rspack ships with two default cache groups:
 
 - `default`: extract modules shared by at least 2 chunks.
 - `defaultVendors`: extract modules from `node_modules`.

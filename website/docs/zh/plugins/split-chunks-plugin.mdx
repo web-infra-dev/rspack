@@ -10,13 +10,47 @@ SplitChunksPlugin 是一个内置插件，用于将代码拆分成多个 [chunk]
 
 SplitChunksPlugin 可以通过 [optimization.splitChunks](/config/optimization#optimizationsplitchunks) 选项进行配置，通常你不需要手动注册该插件。
 
+## 基本概念 \{#basic-concepts}
+
+阅读拆分配置前，可以先了解这三个术语：
+
+| 术语                                             | 含义                                                             | 示例                                                 |
+| ------------------------------------------------ | ---------------------------------------------------------------- | ---------------------------------------------------- |
+| [模块（module）](/misc/glossary#module)          | Rspack 处理的代码或资源单元                                      | `page.js`、`Button.tsx`、`style.css`                 |
+| [chunk](/misc/glossary#chunk)                    | 构建过程中组织模块的单位，可以包含多个模块，并生成对应的资源文件 | 一个页面的代码及其依赖可以放在同一个 chunk 中        |
+| [缓存组（cache group）](#splitchunkscachegroups) | 一组选择模块并决定如何拆分的规则，通过 `cacheGroups` 配置        | 选择 `node_modules` 中的模块，为它们设置拆分体积阈值 |
+
+例如，两个按需加载的页面都依赖 `shared.js`，拆分前它可能同时存在于两个 chunk 中：
+
+```text
+页面 A chunk：[page-a.js, shared.js]
+页面 B chunk：[page-b.js, shared.js]
+```
+
+缓存组可以选中这个共享模块。在满足体积、共享次数等拆分条件时，SplitChunksPlugin 可以将它抽离，让两个页面使用同一个共享 chunk：
+
+```text
+页面 A chunk：[page-a.js] ─┐
+                         ├→ 共享 chunk：[shared.js]
+页面 B chunk：[page-b.js] ─┘
+```
+
+这里，`shared.js` 是模块，包含它的共享 chunk 是拆分结果，缓存组则提供拆分规则。一个缓存组可以生成多个 chunk，后面的 [`cacheGroups` 示例](#splitchunkscachegroups)会进一步说明。
+
+按照加载时机，chunk 又可以分为：
+
+- **[Initial chunk](/misc/glossary#initial-chunk)**：启动入口时需要加载的 chunk。
+- **[Async chunk](/misc/glossary#async-chunk)**：运行过程中按需加载的 chunk，例如通过 `import()` 加载的页面。
+
+[`splitChunks.chunks`](#splitchunkschunks) 用于选择哪些 chunk 参与拆分，默认只处理 async chunk。
+
 ## 默认行为
 
 Rspack 内置了开箱即用的 `SplitChunksPlugin` 配置，适用于大部分场景。
 
 默认情况下，它只会影响到按需加载的 chunk，因为初始 chunk 会影响到项目的 HTML 文件中的脚本标签。
 
-[缓存组（cache group）](#splitchunkscachegroups)用于定义模块的选择条件和拆分规则。Rspack 默认提供两个缓存组：
+Rspack 默认提供两个缓存组：
 
 - `default`：抽离至少被 2 个 chunk 共享的模块。
 - `defaultVendors`：抽离来自 `node_modules` 的模块。
