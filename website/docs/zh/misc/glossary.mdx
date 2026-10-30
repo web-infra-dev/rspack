@@ -36,7 +36,7 @@ Rspack 中的内置模块类型指的是那些不需要依赖 loader 和 plugin 
 - [JSON](/guide/languages/json)
 - [rules[].type](/config/module-rules#rulestype)
 
-## 缓存组 \{#cache-group}
+## cache group（缓存组） \{#cache-group}
 
 缓存组（cache group）是一组选择模块并决定如何拆分的规则，通过 [`cacheGroups`](/plugins/split-chunks-plugin#splitchunkscachegroups) 配置。例如，你可以选择 `node_modules` 中的模块，并为它们设置拆分体积阈值。
 
@@ -92,7 +92,7 @@ Loader 是用来转换模块内容的。例如，我们可以使用 loader 将 T
 
 - [Loader](/guide/features/loader)
 
-## 模块 \{#module}
+## module（模块） \{#module}
 
 模块（module）是 Rspack 处理的代码或资源单元，例如 `page.js`、`Button.tsx` 或 `style.css`。一个应用通常由多个模块组成。
 
