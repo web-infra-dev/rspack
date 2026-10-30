@@ -15,6 +15,14 @@ use crate::{
   incremental::{IncrementalPasses, Mutation},
 };
 
+fn has_include_dependencies(compilation: &Compilation) -> bool {
+  !compilation.global_entry.include_dependencies.is_empty()
+    || compilation
+      .entries
+      .values()
+      .any(|entry| !entry.include_dependencies.is_empty())
+}
+
 // `sideEffects: true` and `usedExports` let an edit elsewhere turn on an import
 // between two unchanged modules.
 fn can_reuse_unreached_modules(compilation: &Compilation) -> bool {
@@ -40,10 +48,8 @@ impl BuildChunkGraphArtifact {
     fast_set(&mut self.code_splitter, code_splitter);
   }
 
-  // we can skip rebuilding chunk graph if none of modules
-  // has changed its outgoings
-  // we don't need to check if module has changed its incomings
-  // if it changes, the incoming module changes its outgoings as well
+  // Module incoming edges are covered by the importing modules' outgoing changes.
+  // Entry roots and options need a separate comparison.
   fn can_skip_rebuilding(&self, this_compilation: &Compilation) -> bool {
     self.can_skip_rebuilding_legacy(this_compilation)
   }
@@ -59,6 +65,37 @@ impl BuildChunkGraphArtifact {
     ) {
       logger.log("entrypoints change detected, rebuilding chunk graph");
       return false;
+    }
+
+    // Include roots are ordinary chunk modules, so their old input list cannot
+    // be recovered from the cached entry-module map.
+    if has_include_dependencies(this_compilation)
+      || this_compilation.global_entry.options != Default::default()
+    {
+      logger.log("entry includes or global options detected, rebuilding chunk graph");
+      return false;
+    }
+
+    let module_graph = this_compilation.get_module_graph();
+    for (name, entry) in &this_compilation.entries {
+      let entrypoint = self.chunk_group_by_ukey.expect_get(&self.entrypoints[name]);
+      let entry_modules = self
+        .chunk_graph
+        .get_chunk_entry_modules_with_chunk_group_iterable(&entrypoint.get_entrypoint_chunk());
+      let modules = this_compilation
+        .global_entry
+        .dependencies
+        .iter()
+        .chain(&entry.dependencies)
+        .filter_map(|dependency| module_graph.module_identifier_by_dependency_id(dependency));
+      if entrypoint.kind.get_entry_options() != Some(&entry.options)
+        || !modules.eq(entry_modules.keys())
+      {
+        logger.log(format!(
+          "entry inputs change detected: {name}, rebuilding chunk graph"
+        ));
+        return false;
+      }
     }
 
     let Some(mutations) = this_compilation
@@ -79,7 +116,6 @@ impl BuildChunkGraphArtifact {
       return false;
     }
 
-    let module_graph = this_compilation.get_module_graph();
     let affected_modules = mutations.get_affected_modules_with_module_graph(module_graph);
     let previous_modules_map = &this_compilation
       .build_chunk_graph_artifact
@@ -188,6 +224,14 @@ where
   compilation.build_chunk_graph_artifact.reset_for_rebuild();
 
   let compilation = task(compilation).await?;
+  if has_include_dependencies(compilation) {
+    // Also reject reuse after an include is removed on the next compilation.
+    compilation
+      .build_chunk_graph_artifact
+      .code_splitter
+      .block_modules_runtime_map
+      .clear();
+  }
   let mg = compilation.get_module_graph();
   let mut map = IdentifierMap::default();
   for (mid, mgm) in mg.module_graph_modules() {
