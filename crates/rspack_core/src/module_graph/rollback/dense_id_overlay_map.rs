@@ -39,6 +39,36 @@ impl<K: Deref<Target = u32>, V> DenseIdOverlayMap<K, V> {
     self.overlay = None;
   }
 
+  /// Fold the overlay into the base vector and continue recording into a
+  /// fresh overlay, so a later `reset` only discards changes made after this
+  /// point.
+  ///
+  /// A no-op when no checkpoint is active: enabling recording here would
+  /// diverge from containers whose rebase is a no-op without a checkpoint,
+  /// and split subsequent writes between the overlay and the base vector.
+  ///
+  /// Used when a sanctioned post-checkpoint mutation (e.g. `rebuild_module`)
+  /// must become part of the rollback baseline instead of being undone.
+  pub fn rebase(&mut self) {
+    if let Some(overlay) = self.overlay.take() {
+      for (index, value) in overlay.into_iter().enumerate() {
+        match value {
+          Some(OverlayValue::Value(value)) => {
+            Self::ensure_len(&mut self.base, index);
+            self.base[index] = Some(value);
+          }
+          Some(OverlayValue::Tombstone) => {
+            if let Some(slot) = self.base.get_mut(index) {
+              *slot = None;
+            }
+          }
+          None => {}
+        }
+      }
+      self.overlay.get_or_insert_with(Vec::new);
+    }
+  }
+
   #[inline]
   pub fn insert(&mut self, key: K, value: V) {
     let index = *key as usize;
@@ -128,6 +158,51 @@ impl<K: Deref<Target = u32>, V> DenseIdOverlayMap<K, V> {
 #[cfg(test)]
 mod tests {
   use crate::{DependencyId, module_graph::rollback::DenseIdOverlayMap};
+
+  #[test]
+  fn rebase_without_checkpoint_is_a_noop() {
+    let mut map: DenseIdOverlayMap<crate::DependencyId, i32> = DenseIdOverlayMap::default();
+
+    map.rebase();
+
+    // Recording must not be enabled by a rebase without a checkpoint:
+    // otherwise writes would split between the base vector and an overlay
+    // that no reset will ever drop.
+    let a = DependencyId::from(0);
+    map.insert(a, 1);
+    assert_eq!(map.get(&a), Some(&1));
+    map.reset();
+    // No checkpoint was taken, so the pre-rebase insert survives.
+    assert_eq!(map.get(&a), Some(&1));
+  }
+
+  #[test]
+  fn rebase_folds_overlay_into_base_and_keeps_recording() {
+    let mut map = DenseIdOverlayMap::default();
+    let a = DependencyId::from(0);
+    let b = DependencyId::from(1);
+    let c = DependencyId::from(2);
+
+    map.insert(a, 1);
+    map.checkpoint();
+    map.insert(b, 2);
+    map.remove(&a);
+
+    map.rebase();
+
+    map.insert(c, 3);
+
+    assert_eq!(map.get(&a), None);
+    assert_eq!(map.get(&b), Some(&2));
+    assert_eq!(map.get(&c), Some(&3));
+
+    map.reset();
+
+    // Only the post-rebase change is discarded.
+    assert_eq!(map.get(&a), None);
+    assert_eq!(map.get(&b), Some(&2));
+    assert_eq!(map.get(&c), None);
+  }
 
   #[test]
   fn checkpoint_inserts_apply_only_to_overlay() {

@@ -86,6 +86,17 @@ where
     self.checkpoint = Some(0);
   }
 
+  /// Keep every change recorded so far and keep recording from the current
+  /// state, so a later `reset` only undoes changes made after this point.
+  ///
+  /// Used when a sanctioned post-checkpoint mutation (e.g. `rebuild_module`)
+  /// must become part of the rollback baseline instead of being undone.
+  pub fn rebase(&mut self) {
+    if self.checkpoint.is_some() {
+      self.undo_stack.clear();
+    }
+  }
+
   /// Undo the most recent mutating operation. Returns true if something was undone.
   fn undo(&mut self) -> bool {
     let checkpoint = match self.checkpoint {
@@ -175,6 +186,28 @@ where
 #[cfg(test)]
 mod tests {
   use super::RollbackMap;
+
+  #[test]
+  fn rebase_keeps_changes_and_continues_recording() {
+    let mut snapshot_map: RollbackMap<String, i32> = RollbackMap::default();
+
+    snapshot_map.insert("a".to_string(), 1);
+    snapshot_map.checkpoint();
+
+    snapshot_map.insert("c".to_string(), 3);
+    snapshot_map.remove(&"a".to_string());
+
+    snapshot_map.rebase();
+
+    // Changes made before the rebase survive a reset.
+    snapshot_map.insert("d".to_string(), 4);
+
+    snapshot_map.reset();
+
+    assert_eq!(snapshot_map.get(&"a".to_string()), None);
+    assert_eq!(snapshot_map.get(&"c".to_string()), Some(&3));
+    assert_eq!(snapshot_map.get(&"d".to_string()), None);
+  }
 
   #[test]
   fn test_snapshot_map() {
