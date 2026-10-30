@@ -707,7 +707,7 @@ impl Compilation {
 
     let make_artifact = self.build_module_graph_artifact.steal();
     let exports_info_artifact = self.exports_info_artifact.steal();
-    let (make_artifact, exports_info_artifact) = update_module_graph(
+    let (make_artifact, exports_info_artifact) = match update_module_graph(
       self,
       make_artifact,
       exports_info_artifact,
@@ -721,7 +721,15 @@ impl Compilation {
           .collect(),
       )],
     )
-    .await?;
+    .await
+    {
+      Ok(result) => result,
+      Err(error) => {
+        self.build_module_graph_artifact = error.artifact.into();
+        self.exports_info_artifact = error.exports_info_artifact.into();
+        return Err(error.error);
+      }
+    };
     self.build_module_graph_artifact = make_artifact.into();
     self.exports_info_artifact = exports_info_artifact.into();
 
@@ -764,7 +772,7 @@ impl Compilation {
     // This should before finish_modules hook is called, ensure providedExports effects on new added modules
     let make_artifact = self.build_module_graph_artifact.steal();
     let exports_info_artifact = self.exports_info_artifact.steal();
-    let (make_artifact, exports_info_artifact) = update_module_graph(
+    let (make_artifact, exports_info_artifact) = match update_module_graph(
       self,
       make_artifact,
       exports_info_artifact,
@@ -778,7 +786,15 @@ impl Compilation {
           .collect(),
       )],
     )
-    .await?;
+    .await
+    {
+      Ok(result) => result,
+      Err(error) => {
+        self.build_module_graph_artifact = error.artifact.into();
+        self.exports_info_artifact = error.exports_info_artifact.into();
+        return Err(error.error);
+      }
+    };
     self.build_module_graph_artifact = make_artifact.into();
     self.exports_info_artifact = exports_info_artifact.into();
 
@@ -1083,20 +1099,72 @@ impl Compilation {
     exports_info_artifact: &mut ExportsInfoArtifact,
     f: impl Fn(Vec<&crate::ModuleRef>) -> T,
   ) -> Result<T> {
+    if self.build_module_graph_artifact.is_stolen() {
+      return Err(rspack_error::error!(
+        "`rebuildModule` is unavailable while the make phase is in progress"
+      ));
+    }
+
+    // Open a module executor window, mirroring `do_build_module_graph`, so
+    // that loaders running inside this rebuild can call `importModule` (e.g.
+    // css-extract-loader). The rebuild itself owns the only module-graph
+    // update; the executor window only services importModule requests.
+    let reopen_executor_window = match &mut self.module_executor {
+      Some(module_executor) if !module_executor.is_running() => {
+        let mut module_executor = std::mem::take(module_executor);
+        let window_result = module_executor.before_rebuild_module_graph(self);
+        self.module_executor = Some(module_executor);
+        window_result?;
+        true
+      }
+      _ => false,
+    };
+
     let artifact = self.build_module_graph_artifact.steal();
 
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
     self.module_graph_cache_artifact.unfreeze();
 
-    let (artifact, updated_exports_info_artifact) = update_module_graph(
+    let result = update_module_graph(
       self,
       artifact,
       std::mem::take(exports_info_artifact),
       vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
     )
-    .await?;
+    .await;
+
+    let (artifact, updated_exports_info_artifact) = match result {
+      Ok(result) => result,
+      Err(err) => {
+        self.build_module_graph_artifact = err.artifact.into();
+        *exports_info_artifact = err.exports_info_artifact;
+        if reopen_executor_window && let Some(module_executor) = &mut self.module_executor {
+          let mut module_executor = std::mem::take(module_executor);
+          let abort_result = module_executor.abort_rebuild_module_graph().await;
+          self.module_executor = Some(module_executor);
+          if let Err(abort_error) = abort_result {
+            tracing::error!(
+              ?abort_error,
+              "failed to recover the module executor after rebuild failure"
+            );
+          }
+        }
+        return Err(err.error);
+      }
+    };
+
     *exports_info_artifact = updated_exports_info_artifact;
     self.build_module_graph_artifact = artifact.into();
+
+    // Close the executor window, mirroring `finish_build_module_graph_pass`:
+    // stop the executor loop and merge the artifacts it collected (assets,
+    // code-generated modules, ...) back into the compilation.
+    if reopen_executor_window && let Some(module_executor) = &mut self.module_executor {
+      let mut module_executor = std::mem::take(module_executor);
+      let close_result = module_executor.after_build_module_graph(self, false).await;
+      self.module_executor = Some(module_executor);
+      close_result?;
+    }
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers
