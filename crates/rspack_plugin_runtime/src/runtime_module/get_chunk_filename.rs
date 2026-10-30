@@ -163,7 +163,8 @@ impl GetChunkFilenameRuntimeModule {
       .get(&chunk_ukey)
       .map(|chunk| {
         let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey());
-        let mut chunks = if (self.all_chunks)(runtime_requirements) {
+        let all_chunks = (self.all_chunks)(runtime_requirements);
+        let mut chunks = if all_chunks {
           chunk
             .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         } else if self.include_initial_chunks_in_async_groups {
@@ -172,25 +173,24 @@ impl GetChunkFilenameRuntimeModule {
             &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
           )
         } else {
-          let mut chunks =
-            chunk.get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
-
-          if ChunkGraph::get_tree_runtime_requirements(compilation, &chunk.ukey())
-            .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
-          {
-            chunks.extend(
-              compilation
-                .build_chunk_graph_artifact
-                .chunk_graph
-                .get_runtime_chunk_dependent_chunks_iterable(
-                  &chunk.ukey(),
-                  &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-                  &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-                ),
-            );
-          }
-          chunks
+          chunk.get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         };
+
+        if !all_chunks
+          && ChunkGraph::get_tree_runtime_requirements(compilation, &chunk.ukey())
+            .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
+        {
+          chunks.extend(
+            compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .get_runtime_chunk_dependent_chunks_iterable(
+                &chunk.ukey(),
+                &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+                &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+              ),
+          );
+        }
         for entrypoint in chunk.get_all_referenced_async_entrypoints(
           &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
         ) {
