@@ -1,0 +1,1 @@
+export const value = "UNUSED_EAGER_DYNAMIC_IMPORT_MARKER";
