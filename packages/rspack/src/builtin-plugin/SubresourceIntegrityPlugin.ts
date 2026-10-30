@@ -66,6 +66,7 @@ export type SubresourceIntegrityPluginOptions = {
   ];
   htmlPlugin?: string | false;
   enabled?: 'auto' | boolean;
+  hashLoading?: 'eager' | 'lazy';
 };
 
 export type NativeSubresourceIntegrityPluginOptions = Omit<
@@ -95,6 +96,7 @@ const NativeSubresourceIntegrityPlugin = create(
     return {
       hashFuncNames: options.hashFuncNames,
       htmlPlugin,
+      hashLoading: options.hashLoading,
       integrityCallback: options.integrityCallback,
     };
   },
@@ -113,6 +115,7 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
       hashFuncNames: options.hashFuncNames ?? ['sha384'],
       htmlPlugin: options.htmlPlugin ?? NATIVE_HTML_PLUGIN,
       enabled: options.enabled ?? 'auto',
+      hashLoading: options.hashLoading ?? 'eager',
     };
     super({
       ...finalOptions,
