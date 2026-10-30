@@ -14,6 +14,11 @@ import type {
 } from '@rspack/binding';
 import { HookMap, SyncBailHook, SyncWaterfallHook } from '@rspack/lite-tapable';
 
+import {
+  contextFreeStatsItems,
+  factoriesCreatingNativeStats,
+} from './statsFactoryCache';
+
 import type { Compilation } from '../Compilation';
 import { type Comparator, concatComparators } from '../util/comparators';
 import { type GroupConfig, smartGrouping } from '../util/smartGrouping';
@@ -95,6 +100,8 @@ export class StatsFactory {
   private _inCreate: boolean;
 
   private _itemTypes: Map<string, ItemTypes>;
+
+  private _creatingNativeStats = false;
 
   constructor() {
     this.hooks = Object.freeze({
@@ -218,6 +225,58 @@ export class StatsFactory {
     return hooks;
   }
 
+  private _getContextFreeItems(type: string) {
+    if (!this._creatingNativeStats) return;
+    for (const [suffix, items] of contextFreeStatsItems.get(this) || []) {
+      if (type !== suffix && !type.endsWith(`.${suffix}`)) continue;
+      if (!items.canUse()) return;
+      const names = this._getAllLevelHooks(
+        this.hooks.getItemName,
+        this._caches.getItemName,
+        `${type}[]`,
+      );
+      if (
+        names.length !== 1 ||
+        names[0].interceptors.length ||
+        names[0].taps.length !== 1 ||
+        names[0].taps[0].fn !== items.getName
+      )
+        return;
+      const innerType = `${type}[].${items.name}`;
+      if (
+        this._getAllLevelHooks(
+          this.hooks.getItemFactory,
+          this._caches.getItemFactory,
+          innerType,
+        ).length
+      )
+        return;
+      const extracts = this._getAllLevelHooks(
+        this.hooks.extract,
+        this._caches.extract,
+        innerType,
+      );
+      if (
+        extracts.length !== 1 ||
+        extracts[0].interceptors.length ||
+        extracts[0].taps.length !== items.extractors.length
+      )
+        return;
+      for (let i = 0; i < extracts[0].taps.length; i++) {
+        if (extracts[0].taps[i].fn !== items.extractors[i]) return;
+      }
+      if (
+        this._getAllLevelHooks(
+          this.hooks.result,
+          this._caches.result,
+          innerType,
+        ).length
+      )
+        return;
+      return items;
+    }
+  }
+
   _forEachLevel(
     hookMap: HookMap<any>,
     cache: CacheHookMap,
@@ -276,11 +335,16 @@ export class StatsFactory {
     }
     try {
       this._inCreate = true;
+      this._creatingNativeStats =
+        factoriesCreatingNativeStats.has(this) &&
+        type === 'compilation' &&
+        data === baseContext.compilation;
       return this._create(type, data, baseContext);
     } finally {
       for (const key of Object.keys(this._caches) as CacheKey[])
         this._caches[key].clear();
       this._inCreate = false;
+      this._creatingNativeStats = false;
     }
   }
 
@@ -326,46 +390,54 @@ export class StatsFactory {
 
       // for each item
       const itemTypes = this._getItemTypes(type);
-      let resultItems = items2.map((item, i) => {
-        const itemContext: {
-          [key: string]: any;
-          _index: number;
-          type: string;
-        } = {
-          ...context,
-          _index: i,
-        };
+      const contextFreeItems = this._getContextFreeItems(type);
+      let resultItems = contextFreeItems
+        ? items2.map((item) => {
+            const object = {};
+            for (const extract of contextFreeItems.extractors)
+              extract(object, item);
+            return object;
+          })
+        : items2.map((item, i) => {
+            const itemContext: {
+              [key: string]: any;
+              _index: number;
+              type: string;
+            } = {
+              ...context,
+              _index: i,
+            };
 
-        // run getItemName
-        const itemName = this._forEachLevel(
-          this.hooks.getItemName,
-          this._caches.getItemName,
-          itemTypes.itemType,
-          (h) => h.call(item, itemContext),
-        );
-        let innerType = itemTypes.itemType;
-        if (itemName) {
-          itemContext[itemName] = item;
-          let namedType = itemTypes.innerTypeByItemName.get(itemName);
-          if (namedType === undefined) {
-            namedType = `${itemTypes.itemType}.${itemName}`;
-            itemTypes.innerTypeByItemName.set(itemName, namedType);
-          }
-          innerType = namedType;
-        }
+            // run getItemName
+            const itemName = this._forEachLevel(
+              this.hooks.getItemName,
+              this._caches.getItemName,
+              itemTypes.itemType,
+              (h) => h.call(item, itemContext),
+            );
+            let innerType = itemTypes.itemType;
+            if (itemName) {
+              itemContext[itemName] = item;
+              let namedType = itemTypes.innerTypeByItemName.get(itemName);
+              if (namedType === undefined) {
+                namedType = `${itemTypes.itemType}.${itemName}`;
+                itemTypes.innerTypeByItemName.set(itemName, namedType);
+              }
+              innerType = namedType;
+            }
 
-        // run getItemFactory
-        const itemFactory =
-          this._forEachLevel(
-            this.hooks.getItemFactory,
-            this._caches.getItemFactory,
-            innerType,
-            (h) => h.call(item, itemContext),
-          ) || this;
+            // run getItemFactory
+            const itemFactory =
+              this._forEachLevel(
+                this.hooks.getItemFactory,
+                this._caches.getItemFactory,
+                innerType,
+                (h) => h.call(item, itemContext),
+              ) || this;
 
-        // run item factory
-        return itemFactory.create(innerType, item, itemContext);
-      });
+            // run item factory
+            return itemFactory.create(innerType, item, itemContext);
+          });
 
       // sort result items
       const comparators2: Comparator[] = [];

@@ -11,6 +11,8 @@ import type binding from '@rspack/binding';
 
 import type { Compilation } from './Compilation';
 import type { StatsOptions, StatsValue } from './config';
+import { StatsFactory } from './stats/StatsFactory';
+import { factoriesCreatingNativeStats } from './stats/statsFactoryCache';
 import type { StatsCompilation } from './stats/statsFactoryUtils';
 
 export type {
@@ -86,45 +88,68 @@ export class Stats {
       forToString,
     });
 
+    const factoryHook = this.compilation.hooks.statsFactory;
+    const canUseDefaultStatsFactory = () =>
+      factoryHook.taps.length === 1 &&
+      factoryHook.taps[0].name === 'DefaultStatsFactoryPlugin' &&
+      factoryHook.interceptors.length === 0 &&
+      !Object.prototype.hasOwnProperty.call(
+        this.compilation,
+        'createStatsFactory',
+      );
+    const usesDefaultStatsFactory = canUseDefaultStatsFactory();
     const statsFactory = this.compilation.createStatsFactory(options);
+    const nativeStatsFactory =
+      usesDefaultStatsFactory &&
+      canUseDefaultStatsFactory() &&
+      statsFactory instanceof StatsFactory
+        ? statsFactory
+        : undefined;
 
     const statsCompilationMap = new Map<
       Compilation,
       binding.JsStatsCompilation
     >();
 
-    const stats = statsFactory.create('compilation', this.compilation, {
-      compilation: this.compilation,
-      getStatsCompilation: (
-        compilation: Compilation,
-      ): binding.JsStatsCompilation => {
-        if (statsCompilationMap.has(compilation)) {
-          return statsCompilationMap.get(compilation)!;
-        }
-        // return empty stats for stale compilation
-        // TODO: Find a better way to handle accessing stats from stale compilations
-        if (this.compilation !== this.compilation.compiler._lastCompilation) {
-          return {
-            assets: [],
-            assetsByChunkName: [],
-            chunks: [],
-            entrypoints: [],
-            errors: [],
-            hash: 'XXXX',
-            modules: [],
-            namedChunkGroups: [],
-            warnings: [],
-          };
-        }
-        const innerStats = this.#getInnerByCompilation(compilation);
-        options.warnings = false;
-        const innerStatsCompilation = innerStats.toJson(options);
-        statsCompilationMap.set(compilation, innerStatsCompilation);
-        return innerStatsCompilation;
-      },
-      getInner: this.#getInnerByCompilation.bind(this),
-    });
-    return stats as StatsCompilation;
+    if (nativeStatsFactory)
+      factoriesCreatingNativeStats.add(nativeStatsFactory);
+    try {
+      const stats = statsFactory.create('compilation', this.compilation, {
+        compilation: this.compilation,
+        getStatsCompilation: (
+          compilation: Compilation,
+        ): binding.JsStatsCompilation => {
+          if (statsCompilationMap.has(compilation)) {
+            return statsCompilationMap.get(compilation)!;
+          }
+          // return empty stats for stale compilation
+          // TODO: Find a better way to handle accessing stats from stale compilations
+          if (this.compilation !== this.compilation.compiler._lastCompilation) {
+            return {
+              assets: [],
+              assetsByChunkName: [],
+              chunks: [],
+              entrypoints: [],
+              errors: [],
+              hash: 'XXXX',
+              modules: [],
+              namedChunkGroups: [],
+              warnings: [],
+            };
+          }
+          const innerStats = this.#getInnerByCompilation(compilation);
+          options.warnings = false;
+          const innerStatsCompilation = innerStats.toJson(options);
+          statsCompilationMap.set(compilation, innerStatsCompilation);
+          return innerStatsCompilation;
+        },
+        getInner: this.#getInnerByCompilation.bind(this),
+      });
+      return stats as StatsCompilation;
+    } finally {
+      if (nativeStatsFactory)
+        factoriesCreatingNativeStats.delete(nativeStatsFactory);
+    }
   }
 
   toString(opts?: StatsValue) {
