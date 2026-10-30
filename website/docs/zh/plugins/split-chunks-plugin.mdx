@@ -12,9 +12,9 @@ SplitChunksPlugin 可以通过 [optimization.splitChunks](/config/optimization#o
 
 ## 基本概念 \{#basic-concepts}
 
-### 模块（module） \{#module}
+### 模块 \{#module}
 
-模块是 Rspack 处理的代码或资源单元，例如 `page.js`、`Button.tsx` 或 `style.css`。模块之间通过 `import` 等方式建立依赖关系。
+模块（module）是 Rspack 处理的代码或资源单元，例如 `page.js`、`Button.tsx` 或 `style.css`。模块之间通过 `import` 等方式建立依赖关系。
 
 ### Chunk
 
@@ -27,9 +27,9 @@ SplitChunksPlugin 可以通过 [optimization.splitChunks](/config/optimization#o
 
 [`splitChunks.chunks`](#splitchunkschunks) 用于选择哪些 chunk 参与拆分，默认只处理 async chunk。
 
-### 缓存组（cache group） \{#cache-group}
+### 缓存组 \{#cache-group}
 
-缓存组是一组选择模块并决定如何拆分的规则，通过 [`cacheGroups`](#splitchunkscachegroups) 配置。例如，你可以选择 `node_modules` 中的模块，并为它们设置拆分体积阈值。
+缓存组（cache group）是一组选择模块并决定如何拆分的规则，通过 [`cacheGroups`](#splitchunkscachegroups) 配置。例如，你可以选择 `node_modules` 中的模块，并为它们设置拆分体积阈值。
 
 假设两个按需加载的页面都依赖 `shared.js`。缓存组可以选中这个共享模块，满足拆分条件后，SplitChunksPlugin 可以将它抽离到共享 chunk 中：
 
