@@ -108,6 +108,43 @@ impl HashHelper {
     self.inner_file_hash(path, None).await
   }
 
+  /// Identifies a symbolic link by its resolved target plus a shallow view of that target: the
+  /// content of a file, the version of a managed package, or the entry names of a directory.
+  /// `deep` hashes an unmanaged linked directory's content instead.
+  pub async fn link_hash(&self, path: &InternedPath, deep: bool) -> Option<u64> {
+    let utf8_path = path.assert_utf8();
+    self.fs.read_link(utf8_path).await.ok()?;
+    let target = self.fs.canonicalize(utf8_path).await.ok()?;
+    let target_path = InternedPath::from(target.as_std_path());
+    let metadata = self.fs.metadata(&target).await.ok()?;
+    let mut hasher = FxHasher::default();
+    "l".hash(&mut hasher);
+    // Reuse the codec's root projection; unchanged in-root links survive relocation.
+    self.codec.encode(&target_path).ok()?.hash(&mut hasher);
+    if !metadata.is_directory {
+      self
+        .inner_file_hash(&target_path, Some(metadata))
+        .await?
+        .hash
+        .hash(&mut hasher);
+    } else if self
+      .snapshot_options
+      .is_managed_path(&target_path.to_string_lossy())
+      && let Some(version) = self.package_helper.package_version(&target_path).await
+    {
+      "p".hash(&mut hasher);
+      version.hash(&mut hasher);
+    } else if deep {
+      self.dir_hash(&target_path).await?.hash.hash(&mut hasher);
+    } else {
+      let mut children = self.fs.read_dir(&target).await.ok()?;
+      children.sort();
+      "d".hash(&mut hasher);
+      children.hash(&mut hasher);
+    }
+    Some(hasher.finish())
+  }
+
   /// Get directory content hash recursively. A failed observation invalidates the whole snapshot.
   pub async fn dir_hash(&self, path: &InternedPath) -> Option<ContentHash> {
     if let Some(hash) = self.dir_cache.get(path) {

@@ -48,7 +48,18 @@ impl Snapshot {
     portable: bool,
   ) -> Option<Strategy> {
     match helper.is_symlink(path).await {
-      Some(true) => return Some(helper.dir_hash(path).await),
+      // A context lists the linked directory, so it keeps the content hash. Other scopes only
+      // need the link target and a shallow identity of it.
+      Some(true) => {
+        return Some(match scope {
+          SnapshotScope::CONTEXT => helper.dir_hash(path).await,
+          _ => {
+            helper
+              .link_strategy(path, matches!(scope, SnapshotScope::BUILD))
+              .await
+          }
+        });
+      }
       None if !matches!(scope, SnapshotScope::MISSING) => return Some(Strategy::Failed),
       _ => {}
     }

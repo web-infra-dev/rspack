@@ -44,6 +44,11 @@ pub enum Strategy {
   /// Check by dir timestamp hash
   DirTimestamp { timestamp_hash: u64 },
 
+  /// Check a symbolic link by its resolved target and a shallow identity of that target
+  ///
+  /// `deep` also covers the content of a linked directory.
+  LinkHash { hash: u64, deep: bool },
+
   /// Check by dir timestamp hash and content hash
   DirTimestampAndHash { timestamp_hash: u64, hash: u64 },
 
@@ -195,6 +200,14 @@ impl StrategyHelper {
     }
   }
 
+  /// get symbolic link strategy
+  pub async fn link_strategy(&self, path: &InternedPath, deep: bool) -> Strategy {
+    match self.hash_helper.link_hash(path, deep).await {
+      Some(hash) => Strategy::LinkHash { hash, deep },
+      None => Strategy::Failed,
+    }
+  }
+
   /// get path context strategy
   pub async fn dir_strategy(
     &self,
@@ -309,6 +322,16 @@ impl StrategyHelper {
       }
       Strategy::DirHash { hash } => {
         let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.dir_hash(path).await else {
+          return ValidateResult::Deleted;
+        };
+        if &cur_hash == hash {
+          ValidateResult::NoChanged
+        } else {
+          ValidateResult::Modified
+        }
+      }
+      Strategy::LinkHash { hash, deep } => {
+        let Some(cur_hash) = self.hash_helper.link_hash(path, *deep).await else {
           return ValidateResult::Deleted;
         };
         if &cur_hash == hash {

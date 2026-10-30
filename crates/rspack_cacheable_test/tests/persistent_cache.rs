@@ -360,3 +360,72 @@ async fn symlink_snapshot_errors_fail_closed_including_managed_roots() {
     Strategy::Failed
   ));
 }
+
+#[tokio::test]
+async fn linked_file_dependencies_check_the_target_without_rehashing_it() {
+  use std::{fs, os::unix::fs::symlink};
+  let temp = tempfile::tempdir().unwrap();
+  let root = fs::canonicalize(temp.path()).unwrap().join("writer");
+  fs::create_dir_all(root.join("packages/a")).unwrap();
+  fs::create_dir_all(root.join("packages/b")).unwrap();
+  fs::create_dir_all(root.join("app/node_modules")).unwrap();
+  for package in ["a", "b"] {
+    fs::write(root.join("packages").join(package).join("index.js"), "same").unwrap();
+  }
+  symlink("../../packages/a", root.join("app/node_modules/dep")).unwrap();
+  let root = root.assert_utf8();
+  let snapshot = Snapshot::new(
+    options(),
+    root.as_str().into(),
+    Arc::new(NativeFileSystem::new(false)),
+    codec(root.as_str(), root.as_str()),
+  );
+  let link = InternedPath::from(root.join("app/node_modules/dep").as_std_path());
+  let mut storage = MemoryStorage::default();
+  snapshot
+    .add(
+      &mut storage,
+      SnapshotScope::FILE,
+      [link.clone()].into_iter(),
+    )
+    .await;
+  let modified = |snapshot: Snapshot, storage: MemoryStorage| async move {
+    let (_, modified, deleted, _, _, _) = snapshot
+      .calc_modified_paths(&storage, SnapshotScope::FILE)
+      .await
+      .unwrap();
+    (modified, deleted, snapshot, storage)
+  };
+
+  // Editing a file inside the linked package is left to that file's own snapshot.
+  fs::write(root.join("packages/a/index.js"), "edited").unwrap();
+  let (changed, deleted, snapshot, storage) = modified(snapshot, storage).await;
+  assert!(changed.is_empty() && deleted.is_empty());
+
+  // Adding an entry, or pointing the link at an equal package, invalidates the link.
+  fs::write(root.join("packages/a/extra.js"), "").unwrap();
+  let (changed, _, snapshot, storage) = modified(snapshot, storage).await;
+  assert!(changed.contains(&link));
+  fs::remove_file(root.join("packages/a/extra.js")).unwrap();
+  let (changed, _, snapshot, storage) = modified(snapshot, storage).await;
+  assert!(changed.is_empty());
+  fs::remove_file(root.join("app/node_modules/dep")).unwrap();
+  symlink("../../packages/b", root.join("app/node_modules/dep")).unwrap();
+  let (changed, _, snapshot, mut storage) = modified(snapshot, storage).await;
+  assert!(changed.contains(&link));
+
+  // An unchanged in-root link survives relocating the root.
+  snapshot
+    .add(&mut storage, SnapshotScope::FILE, [link].into_iter())
+    .await;
+  let moved = temp.path().join("reader").assert_utf8();
+  fs::rename(root, &moved).unwrap();
+  let reader = Snapshot::new(
+    options(),
+    moved.as_str().into(),
+    Arc::new(NativeFileSystem::new(false)),
+    codec_for_moved(moved.as_str()),
+  );
+  let (changed, deleted, _, _) = modified(reader, storage).await;
+  assert!(changed.is_empty() && deleted.is_empty());
+}
