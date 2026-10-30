@@ -176,8 +176,6 @@ export default {
 
 ### splitChunks.chunks
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.chunks
-
 - **类型：**
 
 ```ts
@@ -208,6 +206,23 @@ export default {
 };
 ```
 
+此选项也可在 `splitChunks.cacheGroups.{cacheGroup}` 中单独配置，例如：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          chunks: 'all',
+        },
+      },
+    },
+  },
+};
+```
+
 :::tip
 
 在 Rspack v1.6.2 之前，使用 [模块联邦](/guide/advanced/module-federation) 并配置 `exposes` 时无法开启 `chunks: 'all'`，否则会破坏远程模块拆分。
@@ -222,7 +237,6 @@ export default {
 export default {
   optimization: {
     splitChunks: {
-      // 等价于 `chunks: (chunk) => typeof chunk.name === "string" && /foo/.test(chunk.name)`
       chunks: /foo/,
     },
   },
@@ -248,28 +262,6 @@ export default {
 使用函数形式的 `chunks` 会显著降低构建性能，因为该函数需要对每个模块进行调用，从而产生大量的 Rust 与 JavaScript 之间的跨语言通信开销。因此我们不推荐使用函数形式。
 :::
 
-你可以为每个 cacheGroup 单独配置 `chunks`，例如：
-
-```js title="rspack.config.mjs"
-export default {
-  optimization: {
-    splitChunks: {
-      cacheGroups: {
-        groupA: {
-          chunks: 'all',
-        },
-        groupB: {
-          chunks: 'initial',
-        },
-        groupC: {
-          chunks: 'async',
-        },
-      },
-    },
-  },
-};
-```
-
 ### splitChunks.maxAsyncRequests
 
 - **类型：** `number`
@@ -285,8 +277,6 @@ export default {
 每一个入口点所允许的的最大并行请求数。
 
 ### splitChunks.enforceSizeThreshold
-
-#### splitChunks.cacheGroups.\{cacheGroup\}.enforceSizeThreshold
 
 - **类型：** `number | Record<string, number>`
 - **默认值：** 生产环境下为 `50000`，其他模式下为 `30000`
@@ -304,6 +294,17 @@ export default {
   optimization: {
     splitChunks: {
       enforceSizeThreshold: 80 * 1000,
+    },
+  },
+};
+```
+
+此选项也可在 `splitChunks.cacheGroups.{cacheGroup}` 中单独配置，例如：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
       cacheGroups: {
         vendors: {
           test: /[\\/]node_modules[\\/]/,
@@ -316,8 +317,6 @@ export default {
 ```
 
 ### splitChunks.minSize
-
-#### splitChunks.cacheGroups.\{cacheGroup\}.minSize
 
 - **类型：** `number | Record<string, number>`
 - **默认值：** 生产环境下为 `20000`, 其余为 `10000`
@@ -332,6 +331,23 @@ export default {
   optimization: {
     splitChunks: {
       minSize: 100 * 1000,
+    },
+  },
+};
+```
+
+此选项也可在 `splitChunks.cacheGroups.{cacheGroup}` 中单独配置，例如：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          minSize: 100 * 1000,
+        },
+      },
     },
   },
 };
@@ -357,8 +373,6 @@ export default {
 
 ### splitChunks.minRemainingSize
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.minRemainingSize
-
 - **类型：** `number | Record<string, number>`
 - **默认值：** 开发模式下为 `0`，其他模式下回退到 `minSize`
 
@@ -380,11 +394,26 @@ export default {
 };
 ```
 
+此选项也可在 `splitChunks.cacheGroups.{cacheGroup}` 中单独配置，例如：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          minRemainingSize: 20 * 1000,
+        },
+      },
+    },
+  },
+};
+```
+
 cache group 显式配置的 `minRemainingSize` 优先于该组自身的 `minSize`，后者又优先于全局的 `minRemainingSize`。设置 `enforce: true` 的 cache group 不继承全局值，但该组自身的 `minRemainingSize` 和 `minSize` 仍然生效。达到 [`enforceSizeThreshold`](#splitchunksenforcesizethreshold) 时会跳过剩余体积检查。
 
 ### splitChunks.minSizeReduction
-
-#### splitChunks.cacheGroups.\{cacheGroup\}.minSizeReduction
 
 - **类型：** `number | Record<string, number>`
 - **默认值：** `0`
@@ -408,14 +437,56 @@ export default {
 };
 ```
 
-### splitChunks.minChunks
+此选项也可在 `splitChunks.cacheGroups.{cacheGroup}` 中单独配置，例如：
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.minChunks
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          minSizeReduction: 100 * 1000,
+        },
+      },
+    },
+  },
+};
+```
+
+### splitChunks.minChunks
 
 - **类型：** `number`
 - **默认值：** `1`
 
 拆分前必须共享模块的最小 chunk 数。
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      minChunks: 2,
+    },
+  },
+};
+```
+
+此选项也可在 `splitChunks.cacheGroups.{cacheGroup}` 中单独配置，例如：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          minChunks: 3,
+        },
+      },
+    },
+  },
+};
+```
 
 ### splitChunks.hidePathInfo
 
@@ -502,8 +573,6 @@ export default {
 
 ### splitChunks.name
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.name
-
 - **类型：**
 
 ```ts
@@ -518,9 +587,34 @@ type SplitChunksNameFunction = (
 
 - **默认值：** `false`
 
-每个 cacheGroup 也可以使用：`splitChunks.cacheGroups.{cacheGroup}.name`。
-
 拆分 chunk 的名称。设为 `false` 将保持 chunk 的相同名称，因此不会不必要地更改名称。这是生产环境下构建的建议值。
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      name: false,
+    },
+  },
+};
+```
+
+此选项也可在 `splitChunks.cacheGroups.{cacheGroup}` 中单独配置，例如：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendors',
+        },
+      },
+    },
+  },
+};
+```
 
 当 `name` 为函数时，Rspack 会传入以下参数：
 
@@ -598,22 +692,48 @@ export default {
 
 ### splitChunks.filename
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.filename
-
 - **类型：** `string | function`
 
 仅在初始 chunk 时才允许覆盖文件名。 也可以在 output.filename 中使用所有占位符。
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     splitChunks: {
+      chunks: 'initial',
+      filename: 'split-[name].js',
+    },
+  },
+};
+```
+
+此选项也可在 `splitChunks.cacheGroups.{cacheGroup}` 中单独配置，例如：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'initial',
       cacheGroups: {
         defaultVendors: {
           filename: 'vendors-[name].js',
-          // or
-          filename: (pathData, assetInfo) => {
+        },
+      },
+    },
+  },
+};
+```
+
+`filename` 也支持函数形式，可根据 `pathData` 生成文件名：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'initial',
+      cacheGroups: {
+        defaultVendors: {
+          filename: (pathData) => {
             return `${pathData.chunk.name}-bundle.js`;
           },
         },

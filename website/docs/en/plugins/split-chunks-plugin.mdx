@@ -178,8 +178,6 @@ export default {
 
 ### splitChunks.chunks
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.chunks
-
 - **Type:**
 
 ```ts
@@ -210,6 +208,23 @@ export default {
 };
 ```
 
+You can also configure this option for an individual cache group in `splitChunks.cacheGroups.{cacheGroup}`, for example:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          chunks: 'all',
+        },
+      },
+    },
+  },
+};
+```
+
 :::tip
 
 Before Rspack v1.6.2, projects using [Module Federation](/guide/advanced/module-federation) with exposes could not enable `chunks: 'all'`, as it would break remote module splitting.
@@ -224,7 +239,6 @@ The `chunks` option can be set to a regular expression, which is a shorthand for
 export default {
   optimization: {
     splitChunks: {
-      // equivalent to `chunks: (chunk) => typeof chunk.name === "string" && /foo/.test(chunk.name)`
       chunks: /foo/,
     },
   },
@@ -250,28 +264,6 @@ export default {
 Using the function type of `chunks` will significantly reduce build performance, as the function needs to be called for each module, resulting in huge cross-language communication overhead between Rust and JavaScript. Therefore, we do not recommend using the function type.
 :::
 
-You can configure `chunks` individually for each cacheGroup, for example:
-
-```js title="rspack.config.mjs"
-export default {
-  optimization: {
-    splitChunks: {
-      cacheGroups: {
-        groupA: {
-          chunks: 'all',
-        },
-        groupB: {
-          chunks: 'initial',
-        },
-        groupC: {
-          chunks: 'async',
-        },
-      },
-    },
-  },
-};
-```
-
 ### splitChunks.maxAsyncRequests
 
 - **Type:** `number`
@@ -287,8 +279,6 @@ Maximum number of parallel requests when on-demand loading.
 Maximum number of parallel requests at an entry point.
 
 ### splitChunks.enforceSizeThreshold
-
-#### splitChunks.cacheGroups.\{cacheGroup\}.enforceSizeThreshold
 
 - **Type:** `number | Record<string, number>`
 - **Default:** `50000` in production and `30000` in others
@@ -306,6 +296,17 @@ export default {
   optimization: {
     splitChunks: {
       enforceSizeThreshold: 80 * 1000,
+    },
+  },
+};
+```
+
+You can also configure this option for an individual cache group in `splitChunks.cacheGroups.{cacheGroup}`, for example:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
       cacheGroups: {
         vendors: {
           test: /[\\/]node_modules[\\/]/,
@@ -319,12 +320,37 @@ export default {
 
 ### splitChunks.minChunks
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.minChunks
-
 - **Type:** `number`
 - **Default:** `1`
 
 The minimum times must a module be shared among chunks before splitting.
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      minChunks: 2,
+    },
+  },
+};
+```
+
+You can also configure this option for an individual cache group in `splitChunks.cacheGroups.{cacheGroup}`, for example:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          minChunks: 3,
+        },
+      },
+    },
+  },
+};
+```
 
 ### splitChunks.hidePathInfo
 
@@ -334,8 +360,6 @@ The minimum times must a module be shared among chunks before splitting.
 Prevents exposing path info when creating names for parts splitted by maxSize.
 
 ### splitChunks.minSize
-
-#### splitChunks.cacheGroups.\{cacheGroup\}.minSize
 
 - **Type:** `number | Record<string, number>`
 - **Default:** `20000` in production and `10000` in others
@@ -348,6 +372,23 @@ export default {
   optimization: {
     splitChunks: {
       minSize: 100 * 1000,
+    },
+  },
+};
+```
+
+You can also configure this option for an individual cache group in `splitChunks.cacheGroups.{cacheGroup}`, for example:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          minSize: 100 * 1000,
+        },
+      },
     },
   },
 };
@@ -373,8 +414,6 @@ For example, the above configuration means that the minimum size of javascript m
 
 ### splitChunks.minRemainingSize
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.minRemainingSize
-
 - **Type:** `number | Record<string, number>`
 - **Default:** `0` in development mode; falls back to `minSize` in other modes
 
@@ -396,11 +435,26 @@ export default {
 };
 ```
 
+You can also configure this option for an individual cache group in `splitChunks.cacheGroups.{cacheGroup}`, for example:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          minRemainingSize: 20 * 1000,
+        },
+      },
+    },
+  },
+};
+```
+
 A cache group's explicit `minRemainingSize` takes precedence over its own `minSize`, which in turn takes precedence over the global `minRemainingSize`. A cache group with `enforce: true` does not inherit the global value, but its own `minRemainingSize` and `minSize` still apply. Reaching [`enforceSizeThreshold`](#splitchunksenforcesizethreshold) bypasses the remaining-size check.
 
 ### splitChunks.minSizeReduction
-
-#### splitChunks.cacheGroups.\{cacheGroup\}.minSizeReduction
 
 - **Type:** `number | Record<string, number>`
 - **Default:** `0`
@@ -419,6 +473,23 @@ export default {
   optimization: {
     splitChunks: {
       minSizeReduction: 100 * 1000,
+    },
+  },
+};
+```
+
+You can also configure this option for an individual cache group in `splitChunks.cacheGroups.{cacheGroup}`, for example:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          minSizeReduction: 100 * 1000,
+        },
+      },
     },
   },
 };
@@ -506,8 +577,6 @@ This option lets you specify the delimiter to use for the generated names.
 
 ### splitChunks.name
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.name
-
 - **Type:**
 
 ```ts
@@ -522,9 +591,34 @@ type SplitChunksNameFunction = (
 
 - **Default:** `false`
 
-Also available for each cacheGroup: `splitChunks.cacheGroups.{cacheGroup}.name`.
-
 The name of the split chunk. Providing `false` will keep the same name of the chunks so it doesn't change names unnecessarily. It is the recommended value for production builds.
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      name: false,
+    },
+  },
+};
+```
+
+You can also configure this option for an individual cache group in `splitChunks.cacheGroups.{cacheGroup}`, for example:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendors',
+        },
+      },
+    },
+  },
+};
+```
 
 Providing a string allows you to use a custom name. Specifying a string will merge all common modules and vendors into a single chunk. This might lead to bigger initial downloads and slow down page loads.
 
@@ -604,22 +698,48 @@ If the `splitChunks.name` matches an [entry point](/config/entry) name, the entr
 
 ### splitChunks.filename
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.filename
-
 - **Type:** `string | function`
 
 Allows to override the filename when and only when it's an initial chunk. All placeholders available in output.filename are also available here.
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     splitChunks: {
+      chunks: 'initial',
+      filename: 'split-[name].js',
+    },
+  },
+};
+```
+
+You can also configure this option for an individual cache group in `splitChunks.cacheGroups.{cacheGroup}`, for example:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'initial',
       cacheGroups: {
         defaultVendors: {
           filename: 'vendors-[name].js',
-          // or
-          filename: (pathData, assetInfo) => {
+        },
+      },
+    },
+  },
+};
+```
+
+You can also set `filename` to a function that generates a filename from `pathData`:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'initial',
+      cacheGroups: {
+        defaultVendors: {
+          filename: (pathData) => {
             return `${pathData.chunk.name}-bundle.js`;
           },
         },
