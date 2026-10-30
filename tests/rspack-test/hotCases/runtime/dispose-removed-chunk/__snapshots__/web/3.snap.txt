@@ -9,7 +9,7 @@
 - Bundle: a_js.CURRENT_HASH.js
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 42
-- Update: main.LAST_HASH.hot-update.js, size: 1259
+- Update: main.LAST_HASH.hot-update.js, size: 1366
 
 ## Manifest
 
@@ -41,7 +41,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
-/* export default */ const __rspack_default_export = (__webpack_require__.e(/* import() */ "a_js").then(__webpack_require__.bind(__webpack_require__, "./a.js")));
+/* export default */ const __rspack_default_export = (__webpack_require__.eg("block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./module.js|dep=esm|./a|loc=1:16-29").then(__webpack_require__.bind(__webpack_require__, "./a.js")));
 
 
 },

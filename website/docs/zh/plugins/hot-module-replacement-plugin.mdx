@@ -76,7 +76,7 @@ compilation hash 在读取 chunk 渲染缓存后填入，不改变 chunk hash，
 
 `css` 和 `miniCss` 是可选对象，其中的 `c`、`r` 字段为空时会省略。
 
-当 entry 新增 chunk 依赖时，manifest 还可以包含 `load.entries`，将 entry chunk ID 映射到新增的依赖 chunk ID。只有当前 runtime 已加载的 entry 才会触发补载。
+当入口或动态导入新增 chunk 依赖时，清单还可能包含 `load.entries` 和 `load.blocks`。这两个对象将入口 chunk ID 或导入 block ID 映射到新增的依赖 chunk ID。只有当前 runtime 已经请求过的入口和 block 才会触发补载。
 
 补载的 JavaScript 文件在 hot-update 文件名后追加 `.full.js`（`.mjs` 文件则追加 `.full.mjs`），包含该 chunk 的完整 factory。文件在 `check` 阶段下载，在 `apply` 阶段、accept 回调执行前安装。未变化的 factory 会保留已有的模块实例。安装完成后，该 chunk 会参与后续的普通增量更新，即使原来的 importer 已经不再引用它。
 

@@ -1,0 +1,163 @@
+# Case complete-hmr-chunk: Step 4
+
+## Changed Files
+- dep.js
+- page.js
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: other.535fa26bf3f783d1.js
+- Bundle: page.5f774745e9ba2ba1.js
+- Bundle: shared.fd88ec0601abff17.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 78
+- Update: main.LAST_HASH.hot-update.js, size: 1057
+- Update: page.LAST_HASH.hot-update.js, size: 204
+- Update: shared.LAST_HASH.hot-update.js.full.js, size: 122
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main","page"],"r":[],"m":[],"load":{"blocks":{"name:page":["shared"]}}}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/block_chunk_map
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
+// webpack/runtime/get javascript chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.u = (chunkId) => {
+  // return url for filenames not based on template
+  if (chunkId === "main") return "bundle.js";
+  // return url for filenames based on template
+  return "" + chunkId + "." + {"other": "535fa26bf3f783d1","page": "5f774745e9ba2ba1","shared": "fd88ec0601abff17",}[chunkId] + ".js"
+}
+})();
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/block_chunk_map
+(() => {
+((blocks) => {
+	var map = __webpack_require__.hmrS_blockChunks;
+	
+	Object.keys(blocks).forEach((blockId) => {
+		if (blocks[blockId] === null) delete map[blockId];
+		else map[blockId] = blocks[blockId];
+	});
+	var installedBlocks = __webpack_require__.hmrS_blocks;
+	Object.keys(installedBlocks).forEach((id) => {
+		if (!map[id]) delete installedBlocks[id];
+	});
+})({"name:page":["shared","page"]});
+
+})();
+
+}
+);
+```
+
+
+
+### page.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./page.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+self["rspackHotUpdate"]("page", {
+"./page.js"(module, __unused_rspack_exports, __webpack_require__) {
+globalThis.completeHmrChunkValue = __webpack_require__("./dep.js") + 1;
+module.hot.accept();
+
+
+},
+
+});
+```
+
+
+
+### shared.LAST_HASH.hot-update.js.full.js
+
+#### Changed Modules
+- ./dep.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+self["rspackHotUpdate"]("shared", {
+"./dep.js": [(function (module) {
+module.exports = 3;
+module.hot.accept();
+
+
+})],
+
+});
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./dep.js
+
+
+Outdated Dependencies:
+```json
+{}
+```
+
+#### Updated
+
+Updated Modules:
+- ./dep.js
+
+Updated Runtime:
+- `__webpack_require__.h`
+- `__webpack_require__.u`
+
+
+#### Callback
+
+Accepted Callback:
+
+
+Disposed Callback:

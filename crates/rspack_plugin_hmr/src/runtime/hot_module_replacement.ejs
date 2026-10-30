@@ -20,6 +20,7 @@
 <%- var("queuedInvalidatedModules") %>;
 // Chunk loads waiting for the current update to settle.
 <%- var("settledWaiters") %> = [];
+<%- var("hotUpdateBlock") %>;
 
 <%- define(HMR_MODULE_DATA) %> = currentModuleData;
 <% if (_is_rspack_runtime_mode) { %><%- define(INTERCEPT_MODULE_EXECUTION) %> = [];
@@ -66,6 +67,12 @@
 			return Promise.all(chunkPromises);
 		}));
 	};
+	hotUpdateBlock = function (blockId, promises) {
+		prepareChunks(update.load.blocks && update.load.blocks[blockId], promises);
+	};
+	Object.keys(<%- REQUIRE_SCOPE %>.hmrS_blocks).forEach(function (blockId) {
+		hotUpdateBlock(blockId, promises);
+	});
 	promises.push(Promise.resolve().then(function () {
 		var entryPromises = [];
 		var entries = update.load.entries || {};
@@ -74,6 +81,10 @@
 		});
 		return Promise.all(entryPromises);
 	}));
+	applyHandlers.push(function () {
+		hotUpdateBlock = undefined;
+		return {};
+	});
 };
 
 <%- fn("rspackHmrCreateRequire") %>(require, moduleId) {
@@ -129,7 +140,13 @@
 			// Only one attempt blocks prepare; catch-up and retries must not.
 			var promise;
 			try {
+				var promises = [];
+				if (key === "eg" && hotUpdateBlock) hotUpdateBlock(chunkId, promises);
 				promise = <% if (_is_rspack_runtime_mode) { %><%- REQUIRE_SCOPE %><% } else { %>require<% } %>[key](chunkId, fetchPriority);
+				if (promises.length) {
+					promises.push(promise);
+					promise = Promise.all(promises);
+				}
 			} catch (error) {
 				promise = Promise.reject(error);
 			}
@@ -137,6 +154,7 @@
 				// Promise.all([]): every ensure handler found the chunk installed.
 				// A ready handler can await this import without waiting for apply.
 				if (!result || result.length === 0) return result;
+				if (key === "eg" && result.every(function (value) { return Array.isArray(value) && value.length === 0; })) return result;
 				if (!canHoldChunk && currentStatus !== "abort" && currentStatus !== "fail") return result;
 				return waitForUpdate().then(function () { return result; });
 			}, function (error) {

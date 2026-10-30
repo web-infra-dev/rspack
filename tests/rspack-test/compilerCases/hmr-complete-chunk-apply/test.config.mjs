@@ -80,7 +80,7 @@ export default {
 			const queued = [];
 			const requests = [];
 			req.l = (url, done) => {
-				const name = path.basename(url);
+				const name = path.basename(new URL(url, "http://localhost").pathname);
 				requests.push(name);
 				const execute = () => {
 					vm.runInContext(assets[name], sandbox);
