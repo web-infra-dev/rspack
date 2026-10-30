@@ -47,7 +47,7 @@ const test = base.extend<{
       const lazyCompilationPort = frontendPort + 100;
 
       // Load and modify config
-      const configPath = path.resolve(tempProjectDir, 'rspack.config.js');
+      const configPath = path.resolve(tempProjectDir, 'rspack.config.ts');
       const { default: config }: { default: Configuration } = await import(
         /* webpackIgnore: true */ pathToFileURL(configPath).href
       );
