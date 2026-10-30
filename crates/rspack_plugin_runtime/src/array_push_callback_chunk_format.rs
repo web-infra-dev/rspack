@@ -205,6 +205,17 @@ async fn render_chunk(
       }
       source.add(RawStringSource::from_static("\n}\n"));
     }
+    if ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey)
+      .contains(RuntimeGlobals::HMR_CHECK_CHUNK)
+    {
+      if !has_entry && !has_runtime_modules {
+        source.add(RawStringSource::from_static(",0"));
+      }
+      source.add(RawStringSource::from(format!(
+        ",{}",
+        rspack_util::json_stringify(&compilation.get_hash())
+      )));
+    }
     source.add(RawStringSource::from_static("])"));
   }
   render_source.source = source.boxed();

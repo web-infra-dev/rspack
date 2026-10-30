@@ -54,19 +54,19 @@ export default defineConfig({
           }
           if (updateIndex === 3) {
             // Third cold build with changed file content.
-            // Async chunk unchanged → hit; entry chunk changed → miss.
-            expect(hits).toBe(1);
-            expect(misses).toBe(1);
+            // Both assets carry the changed compilation hash.
+            expect(hits).toBe(0);
+            expect(misses).toBe(2);
           }
           if (updateIndex === 4) {
-            // Cold restart. Async chunk still unchanged → hit.
-            expect(hits).toBe(1);
-            expect(misses).toBe(1);
+            // The changed compilation hash also invalidates the async asset.
+            expect(hits).toBe(0);
+            expect(misses).toBe(2);
           }
           if (updateIndex === 5) {
-            // HMR keeps the async chunk cached; the entry and hot-update assets miss.
-            expect(hits).toBe(1);
-            expect(misses).toBe(2);
+            // The async asset, entry and hot-update asset all change.
+            expect(hits).toBe(0);
+            expect(misses).toBe(3);
           }
 
           updateIndex++;

@@ -428,7 +428,10 @@
 	removedModules,
 	promises,
 	applyHandlers,
-	updatedModulesList
+	updatedModulesList,
+	_css,
+	_miniCss,
+	trackUpdate
 ) {
 	applyHandlers.push(hotApplyHandler);
 	hotCurrentUpdateChunks = {};
@@ -443,15 +446,7 @@
 			<%- HAS_OWN_PROPERTY %>(<%- _installed_chunks %>, chunkId) &&
 			<%- _installed_chunks %>[chunkId] !== undefined
 		) {
-			var installedChunk = <%- _installed_chunks %>[chunkId];
-			// Install an in-flight ordinary chunk before downloading its update.
-			promises.push(Array.isArray(installedChunk)
-				? installedChunk[installedChunk.length - 1].then(function () {
-					return <%- _load_update_chunk %>(chunkId, updatedModulesList);
-				}, function () {
-					hotCurrentUpdateChunks[chunkId] = false;
-				})
-				: <%- _load_update_chunk %>(chunkId, updatedModulesList));
+			promises.push(<%- _load_update_chunk %>(chunkId, updatedModulesList));
 			hotCurrentUpdateChunks[chunkId] = true;
 		} else {
 			hotCurrentUpdateChunks[chunkId] = false;
@@ -464,7 +459,8 @@
 				<%- HAS_OWN_PROPERTY %>(hotCurrentUpdateChunks, chunkId) &&
 				!hotCurrentUpdateChunks[chunkId]
 			) {
-				promises.push(<%- _load_update_chunk %>(chunkId));
+				// A rejected ordinary load must not stop HMR awaiting this download.
+				promises.push(trackUpdate(<%- _load_update_chunk %>(chunkId)));
 				hotCurrentUpdateChunks[chunkId] = true;
 			}
 		};

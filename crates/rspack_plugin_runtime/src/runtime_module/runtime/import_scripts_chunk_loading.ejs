@@ -1,6 +1,9 @@
 // importScripts chunk loading
 <%- var("importScriptsInstallChunk") %> = <%- basicFunction("data") %> {
-    <%- destructureArray("chunkIds, moreModules, runtime", "data") %>
+    <%- destructureArray("chunkIds, moreModules, runtime", "data") %><% if (_with_hmr) { %>
+    var error = <%- weak(HMR_CHECK_CHUNK) %>(data[3]);
+    if (error) throw error;
+<% } %>
     for (var moduleId in moreModules) {
         if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
             <%- MODULE_FACTORIES %>[moduleId] = moreModules[moduleId];

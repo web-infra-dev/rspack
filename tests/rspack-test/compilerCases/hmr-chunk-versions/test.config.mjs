@@ -118,7 +118,7 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
             : vm.createContext({ console, Promise, setTimeout, clearTimeout });
           if (!native) {
             sandbox.importScripts = (url) =>
-              vm.runInContext(assets[path.basename(url)], sandbox);
+              vm.runInContext(assets[path.basename(url.split('?')[0])], sandbox);
             sandbox.fetch = async (url) => {
               if (
                 scenario === 'catch-up-check' &&
@@ -129,7 +129,7 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
                 );
                 concurrentCheck.catch(() => {});
               }
-              const content = assets[path.basename(url)];
+              const content = assets[path.basename(url.split('?')[0])];
               return {
                 status: content === undefined ? 404 : 200,
                 ok: content !== undefined,
@@ -141,10 +141,10 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
               appendChild(script) {
                 scripts.push(script);
                 script.parentNode = head;
-                if (path.basename(script.src) === 'page.js')
+                if (path.basename(script.src.split('?')[0]) === 'page.js')
                   sandbox.pagePriority =
                     script.fetchpriority || script.fetchPriority;
-                vm.runInContext(assets[path.basename(script.src)], sandbox);
+                vm.runInContext(assets[path.basename(script.src.split('?')[0])], sandbox);
                 queueMicrotask(() =>
                   script.onload?.({ type: 'load', target: script }),
                 );

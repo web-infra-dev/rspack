@@ -1,4 +1,3 @@
-mod chunk_versions;
 mod hot_module_replacement;
 
 use std::{
@@ -12,11 +11,11 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationAsset, CompilationContentHash, CompilationParams, CompilationProcessAssets,
-  CompilationRecords, CompilerCompilation, DependencyType, LoaderContext, ModuleId,
-  ModuleIdentifier, ModuleType, NormalModuleFactoryParser, NormalModuleLoader, ParserAndGenerator,
-  ParserOptions, PathData, Plugin, RunnerContext, RuntimeGlobals, RuntimeModule, RuntimeModuleExt,
-  RuntimeSpec, SourceType,
+  CompilationAsset, CompilationContentHash, CompilationDependentFullHash, CompilationParams,
+  CompilationProcessAssets, CompilationRecords, CompilerCompilation, DependencyType, LoaderContext,
+  ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser, NormalModuleLoader,
+  ParserAndGenerator, ParserOptions, PathData, Plugin, RunnerContext, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleExt, RuntimeSpec, SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdMap, ChunkIdSet},
   incremental::{IncrementalPasses, Mutation},
   rspack_sources::{RawStringSource, SourceExt},
@@ -677,19 +676,11 @@ async fn additional_tree_runtime_requirements(
   &self,
   compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
-  runtime_requirements: &mut RuntimeGlobals,
+  _runtime_requirements: &mut RuntimeGlobals,
   runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   runtime_modules
     .push(HotModuleReplacementRuntimeModule::new(&compilation.runtime_template).boxed());
-  if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK) {
-    runtime_modules.push(
-      chunk_versions::HotModuleReplacementChunkVersionsRuntimeModule::new(
-        &compilation.runtime_template,
-      )
-      .boxed(),
-    );
-  }
 
   Ok(())
 }
@@ -699,21 +690,36 @@ async fn additional_chunk_runtime_requirements(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  _runtime_requirements: &mut RuntimeGlobals,
-  runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
+  runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .expect_get(chunk_ukey);
-  if chunk_versions::is_versioned(compilation, chunk) {
-    runtime_modules.push(
-      chunk_versions::HotModuleReplacementLoadedChunkVersionRuntimeModule::new(
-        &compilation.runtime_template,
-        chunk.expect_id().as_str(),
-      )
-      .boxed(),
-    );
+  if !chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
+    runtime_requirements.insert(RuntimeGlobals::HMR_CHECK_CHUNK);
+  }
+  Ok(())
+}
+
+#[plugin_hook(CompilationDependentFullHash for HotModuleReplacementPlugin)]
+fn dependent_full_hash(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  dependent: &mut bool,
+) -> Result<()> {
+  // The ordinary chunk payload contains the compilation hash.
+  let graph = &compilation.build_chunk_graph_artifact;
+  if !graph
+    .chunk_by_ukey
+    .expect_get(chunk_ukey)
+    .has_runtime(&graph.chunk_group_by_ukey)
+    && ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey)
+      .contains(RuntimeGlobals::HMR_CHECK_CHUNK)
+  {
+    *dependent = true;
   }
   Ok(())
 }
@@ -749,6 +755,10 @@ impl Plugin for HotModuleReplacementPlugin {
       .compilation_hooks
       .additional_chunk_runtime_requirements
       .tap(additional_chunk_runtime_requirements::new(self));
+    ctx
+      .compilation_hooks
+      .dependent_full_hash
+      .tap(dependent_full_hash::new(self));
     Ok(())
   }
 }

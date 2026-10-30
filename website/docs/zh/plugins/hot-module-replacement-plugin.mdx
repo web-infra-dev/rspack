@@ -27,9 +27,11 @@ export default {
 
 详见 [模块热替换 API](/api/runtime-api/hmr)。
 
-启用 HMR 后，动态导入可能先下载到新编译的 chunk，而运行时尚未应用对应的更新。Rspack 会检查 chunk 的版本，依次应用可用的热更新，等到版本匹配后再执行导入的模块。如果更新失败或不可用，导入的 Promise 会被拒绝。这一机制不要求 chunk 文件名包含版本信息。
+启用 HMR 后，普通 JavaScript chunk 会携带 compilation hash。安装前，Rspack 会将它与当前 runtime hash 比较；不匹配的响应不会注册 module factory，也不会执行 chunk runtime。import 会等待当前更新完成，必要时依次应用后续更新，再重新请求 chunk。如果更新失败，或没有可用的更新能使版本匹配，import 的 Promise 会被拒绝。这一机制不要求 chunk 文件名包含版本信息。
 
-如果热更新开始时 chunk 仍在加载，Rspack 会等它完成安装后，再下载对应的 hot update，避免较晚返回的响应覆盖更新后的 module factory。手动调用 `check(false)` 仍然只准备更新，由调用方决定何时调用 `apply()`。
+普通 chunk 和 hot update 可以并行下载。较晚返回的旧版本响应会在安装前被拒绝，避免覆盖更新后的 factory。每次加载尝试都会先结束，再等待更新并重试，因此不会阻塞它所等待的 HMR。手动调用 `check(false)` 仍然只准备更新，由调用方决定何时调用 `apply()`。
+
+这个方案也有开销：compilation hash 改变后，即使模块未变，普通 JavaScript chunk 的文件内容也会改变，对应的产物处理缓存会失效，增量 chunk hashing 会退回全量计算。
 
 自动更新期间仍在加载的 import 也会等待这次更新完成。准备阶段会等待异步 status handler 和所有 hot-update 文件完成。如果准备或应用更新失败，等待这次更新的 import 会被拒绝，不会一直挂起。
 

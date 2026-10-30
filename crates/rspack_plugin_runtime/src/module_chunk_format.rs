@@ -147,6 +147,15 @@ async fn render_chunk(
   let chunk_id_expr = rspack_util::json_stringify(chunk.expect_id());
 
   let mut sources = ConcatSource::default();
+  if !matches!(chunk.kind(), ChunkKind::HotUpdate)
+    && ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey)
+      .contains(RuntimeGlobals::HMR_CHECK_CHUNK)
+  {
+    sources.add(RawStringSource::from(format!(
+      "export const __rspack_esm_hash = {};\n",
+      rspack_util::json_stringify(&compilation.get_hash())
+    )));
+  }
   sources.add(RawStringSource::from(format!(
     "export const __rspack_esm_ids = [{chunk_id_expr}];\n",
   )));
