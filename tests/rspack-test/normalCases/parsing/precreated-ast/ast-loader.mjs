@@ -1,17 +1,13 @@
-import * as acorn from "acorn";
-const acornParser = acorn.Parser;
+import { parseSync } from "@swc-next/parser";
 
 /** @type {import("@rspack/core").LoaderDefinition} */
 export default function (source) {
-	const comments = [];
-
-	const ast = acornParser.parse(source, {
-		ranges: true,
-		locations: true,
-		ecmaVersion: 11,
-		sourceType: "module",
-		onComment: comments
-	});
+	const { program: ast, comments, diagnostics } = parseSync(source);
+	const errors = diagnostics.filter(diagnostic => diagnostic.severity === "error");
+	if (errors.length > 0) {
+		this.callback(new Error(errors.map(error => error.message).join("\n")));
+		return;
+	}
 
 	// change something to test if it's really used
 	//@ts-ignore
