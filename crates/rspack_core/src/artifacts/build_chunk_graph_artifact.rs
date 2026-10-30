@@ -1,6 +1,7 @@
 use std::mem;
 
 use futures::Future;
+use itertools::Itertools;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::Result;
 use rspack_util::{fx_hash::FxIndexMap, tracing_preset::TRACING_BENCH_TARGET};
@@ -14,14 +15,6 @@ use crate::{
   fast_set,
   incremental::{IncrementalPasses, Mutation},
 };
-
-fn has_include_dependencies(compilation: &Compilation) -> bool {
-  !compilation.global_entry.include_dependencies.is_empty()
-    || compilation
-      .entries
-      .values()
-      .any(|entry| !entry.include_dependencies.is_empty())
-}
 
 // `sideEffects: true` and `usedExports` let an edit elsewhere turn on an import
 // between two unchanged modules.
@@ -41,6 +34,7 @@ pub struct BuildChunkGraphArtifact {
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) code_splitter: CodeSplitter,
   pub module_idx: IdentifierMap<(u32, u32)>,
+  has_diagnostics: bool,
 }
 
 impl BuildChunkGraphArtifact {
@@ -57,6 +51,11 @@ impl BuildChunkGraphArtifact {
   fn can_skip_rebuilding_legacy(&self, this_compilation: &Compilation) -> bool {
     let logger = this_compilation.get_logger("rspack.Compilation.codeSplittingCache");
 
+    if self.has_diagnostics {
+      logger.log("previous code splitting emitted diagnostics, rebuilding chunk graph");
+      return false;
+    }
+
     if !this_compilation.entries.keys().eq(
       this_compilation
         .build_chunk_graph_artifact
@@ -64,15 +63,6 @@ impl BuildChunkGraphArtifact {
         .keys(),
     ) {
       logger.log("entrypoints change detected, rebuilding chunk graph");
-      return false;
-    }
-
-    // Include roots are ordinary chunk modules, so their old input list cannot
-    // be recovered from the cached entry-module map.
-    if has_include_dependencies(this_compilation)
-      || this_compilation.global_entry.options != Default::default()
-    {
-      logger.log("entry includes or global options detected, rebuilding chunk graph");
       return false;
     }
 
@@ -87,15 +77,53 @@ impl BuildChunkGraphArtifact {
         .dependencies
         .iter()
         .chain(&entry.dependencies)
-        .filter_map(|dependency| module_graph.module_identifier_by_dependency_id(dependency));
+        .rev()
+        .filter_map(|dependency| module_graph.module_identifier_by_dependency_id(dependency))
+        .unique()
+        .collect::<Vec<_>>();
+      let included_modules = this_compilation
+        .global_entry
+        .include_dependencies
+        .iter()
+        .filter_map(|dependency| module_graph.module_identifier_by_dependency_id(dependency))
+        .sorted_unstable()
+        .chain(
+          entry
+            .include_dependencies
+            .iter()
+            .filter_map(|dependency| module_graph.module_identifier_by_dependency_id(dependency))
+            .sorted_unstable(),
+        );
       if entrypoint.kind.get_entry_options() != Some(&entry.options)
-        || !modules.eq(entry_modules.keys())
+        || !modules.into_iter().rev().eq(entry_modules.keys())
+        || !self
+          .code_splitter
+          .entry_include_modules
+          .get(name)
+          .is_some_and(|cached| included_modules.eq(cached.iter()))
       {
         logger.log(format!(
           "entry inputs change detected: {name}, rebuilding chunk graph"
         ));
         return false;
       }
+    }
+
+    if !self.async_entrypoints.is_empty()
+      && !this_compilation
+        .global_entry
+        .include_dependencies
+        .iter()
+        .filter(|dependency| {
+          !module_graph
+            .dependency_by_id(dependency)
+            .skip_async_entrypoints()
+        })
+        .filter_map(|dependency| module_graph.module_identifier_by_dependency_id(dependency))
+        .eq(self.code_splitter.global_include_modules.iter())
+    {
+      logger.log("global includes change detected, rebuilding chunk graph");
+      return false;
     }
 
     let Some(mutations) = this_compilation
@@ -176,6 +204,7 @@ impl BuildChunkGraphArtifact {
     self.named_chunks.clear();
     self.set_code_splitter(Default::default());
     self.module_idx.clear();
+    self.has_diagnostics = false;
   }
 }
 
@@ -223,15 +252,10 @@ where
   // artifact to avoid stale data.
   compilation.build_chunk_graph_artifact.reset_for_rebuild();
 
+  let diagnostics_len = compilation.diagnostics().len();
   let compilation = task(compilation).await?;
-  if has_include_dependencies(compilation) {
-    // Also reject reuse after an include is removed on the next compilation.
-    compilation
-      .build_chunk_graph_artifact
-      .code_splitter
-      .block_modules_runtime_map
-      .clear();
-  }
+  compilation.build_chunk_graph_artifact.has_diagnostics =
+    compilation.diagnostics().len() > diagnostics_len;
   let mg = compilation.get_module_graph();
   let mut map = IdentifierMap::default();
   for (mid, mgm) in mg.module_graph_modules() {
@@ -251,6 +275,7 @@ impl ArtifactExt for BuildChunkGraphArtifact {
     incremental.passes_enabled(IncrementalPasses::BUILD_CHUNK_GRAPH)
   }
   fn recover(_incremental: &crate::incremental::Incremental, new: &mut Self, old: &mut Self) {
+    new.has_diagnostics = old.has_diagnostics;
     new.code_splitter = mem::take(&mut old.code_splitter);
     rayon::scope(|s| {
       s.spawn(|_| new.chunk_by_ukey.clone_from(&old.chunk_by_ukey));

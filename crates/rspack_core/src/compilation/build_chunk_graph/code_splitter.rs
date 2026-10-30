@@ -375,6 +375,8 @@ pub(crate) struct CodeSplitter {
   pub(crate) named_chunk_groups: HashMap<String, CgiUkey>,
   pub(crate) named_async_entrypoints: HashMap<String, CgiUkey>,
   pub(crate) block_modules_runtime_map: BlockModulesRuntimeMap,
+  pub(crate) entry_include_modules: HashMap<String, Vec<ModuleIdentifier>>,
+  pub(crate) global_include_modules: Vec<ModuleIdentifier>,
   pub(crate) ordinal_by_module: IdentifierMap<u64>,
 
   stat_processed_queue_items: u32,
@@ -796,9 +798,14 @@ impl CodeSplitter {
       .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
       .copied()
       .sorted_unstable();
-    let included_modules = global_included_modules.chain(included_modules);
+    let included_modules = global_included_modules
+      .chain(included_modules)
+      .collect::<Vec<_>>();
 
-    modules.extend(included_modules);
+    modules.extend(included_modules.iter().copied());
+    self
+      .entry_include_modules
+      .insert(name.to_string(), included_modules);
 
     let cgi = chunk_group_info.ukey;
     self
@@ -1713,11 +1720,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         ));
       }
     }
+    self.global_include_modules.clear();
     for dep in &compilation.global_entry.include_dependencies {
       if module_graph.dependency_by_id(dep).skip_async_entrypoints() {
         continue;
       }
       if let Some(module) = module_graph.module_identifier_by_dependency_id(dep) {
+        self.global_include_modules.push(*module);
         self
           .queue
           .push(QueueAction::AddAndEnterModule(AddAndEnterModule {
