@@ -76,4 +76,8 @@ Each field below is an array of IDs:
 
 `css` and `miniCss` are optional objects. Their `c` and `r` fields are omitted when empty.
 
+When an entry gains chunk dependencies, the manifest can also contain `load.entries`. This object maps an entry chunk ID to the newly required chunk IDs. Only entries already loaded by the current runtime trigger supplemental downloads.
+
+Supplemental JavaScript files use the hot-update filename with a `.full.js` suffix (`.full.mjs` for `.mjs` files) and contain the complete chunk factories. They are downloaded during `check` and installed during `apply`, before accept callbacks run. Unchanged factories preserve existing module instances. Once installed, the chunk participates in ordinary incremental updates, even if its original importer stops referencing it.
+
 You can customize the manifest filename with [output.hotUpdateMainFilename](/config/output#outputhotupdatemainfilename). If you set `output.module` to `true`, Rspack generates the manifest as an ES module with the manifest data as its default export.

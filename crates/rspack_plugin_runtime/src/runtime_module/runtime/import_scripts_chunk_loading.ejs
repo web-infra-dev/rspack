@@ -1,4 +1,8 @@
 // importScripts chunk loading
+<%- fn("importScriptsFinishChunkLoading") %>(chunkIds) {
+    while (chunkIds.length) importScriptsInstalledChunks[chunkIds.pop()] = 1;
+}
+
 <%- var("importScriptsInstallChunk") %> = <%- basicFunction("data") %> {
     <%- destructureArray("chunkIds, moreModules, runtime", "data") %><% if (_with_hmr) { %>
     var error = <%- weak(HMR_CHECK_CHUNK) %>(data[3]);
@@ -10,7 +14,7 @@
         }
     }
     if (runtime) runtime(<%- REQUIRE_SCOPE %>);
-    while (chunkIds.length) importScriptsInstalledChunks[chunkIds.pop()] = 1;
+    importScriptsFinishChunkLoading(chunkIds);
     importScriptsParentChunkLoadingFunction(data);
 };
 

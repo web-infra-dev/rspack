@@ -1,15 +1,4 @@
-<%- var("readFileVmInstallChunk") %> = <%- basicFunction("chunk") %> {
-  var moreModules = chunk.modules, chunkIds = chunk.ids,
-    runtime = chunk.runtime;<% if (_with_hmr) { %>
-  var error = <%- weak(HMR_CHECK_CHUNK) %>(chunk.hash);
-  if (error) throw error;
-<% } %>
-  for (var moduleId in moreModules) {
-    if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
-      <%- MODULE_FACTORIES %>[moduleId] = moreModules[moduleId];
-    }
-  }
-  if (runtime) runtime(<%- REQUIRE_SCOPE %> );
+<%- fn("readFileVmFinishChunkLoading") %>(chunkIds) {
   for (var i = 0; i < chunkIds.length; i++) {
     if (readFileVmInstalledChunks[chunkIds[i]]) {
       readFileVmInstalledChunks[chunkIds[i]][0]();
@@ -17,4 +6,19 @@
     readFileVmInstalledChunks[chunkIds[i]] = 0;
   }
   <%- _with_on_chunk_loaded %>
+}
+
+<%- var("readFileVmInstallChunk") %> = <%- basicFunction("chunk") %> {
+<% if (_with_hmr) { %>
+  var error = <%- weak(HMR_CHECK_CHUNK) %>(chunk.hash);
+  if (error) throw error;
+<% } %>
+  var moreModules = chunk.modules, runtime = chunk.runtime;
+  for (var moduleId in moreModules) {
+    if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
+      <%- MODULE_FACTORIES %>[moduleId] = moreModules[moduleId];
+    }
+  }
+  if (runtime) runtime(<%- REQUIRE_SCOPE %> );
+  readFileVmFinishChunkLoading(chunk.ids);
 };

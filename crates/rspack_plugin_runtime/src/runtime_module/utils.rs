@@ -278,7 +278,9 @@ pub fn generate_javascript_hmr_runtime(
     Some(serde_json::json!({
       "_loading_method": method,
       "_installed_chunks": format!("{method}InstalledChunks"),
+      "_loaded_chunk_state": if matches!(method, "require" | "importScripts") { 1 } else { 0 },
       "_load_update_chunk": format!("{method}LoadUpdateChunk"),
+      "_finish_chunk_loading": format!("{method}FinishChunkLoading"),
       "_is_hot_test": is_hot_test(),
     })),
   )
