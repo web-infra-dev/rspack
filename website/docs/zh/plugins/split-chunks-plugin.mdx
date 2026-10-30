@@ -16,7 +16,7 @@ Rspack 内置了开箱即用的 `SplitChunksPlugin` 配置，适用于大部分�
 
 默认情况下，它只会影响到按需加载的 chunk，因为初始 chunk 会影响到项目的 HTML 文件中的脚本标签。
 
-Rspack 默认提供了两个 cacheGroup：
+[缓存组（cache group）](#splitchunkscachegroups)用于定义模块的选择条件和拆分规则。Rspack 默认提供两个缓存组：
 
 - `default`：抽离至少被 2 个 chunk 共享的模块。
 - `defaultVendors`：抽离来自 `node_modules` 的模块。
@@ -105,7 +105,35 @@ Rspack 不允许将 entry 名称传递给 `{cacheGroup}.test` 或者为 `{cacheG
 
 ### splitChunks.cacheGroups
 
-cacheGroup 可以继承和/或覆盖来自 `splitChunks.*` 的任何选项。但是 `test`、`priority` 和 `reuseExistingChunk` 只能在 cacheGroup 级别上进行配置。将它们设置为 `false` 以禁用任何默认的 cacheGroup。
+`cacheGroups` 用于定义一组缓存组（cache group）。每个缓存组选择一部分模块，并为这些模块设置拆分规则，让你可以对应用中的不同模块采用不同的拆分策略。
+
+例如，下面的缓存组选择 `src/components` 目录下的模块，并将生成 chunk 的最小体积设为 20,000 字节：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        components: {
+          test: /[\\/]src[\\/]components[\\/]/,
+          minSize: 20 * 1000,
+        },
+      },
+    },
+  },
+};
+```
+
+在这个示例中，`components` 是缓存组的标识，[`test`](#test) 用于选择模块，[`minSize`](#splitchunksminsize) 设置体积阈值。该组使用全局的 `chunks: 'all'`，因此可以从 initial chunk 和 async chunk 中选择模块。
+
+一个缓存组可能产生多个 chunk，具体取决于模块的使用情况。模块匹配 `test` 后，还需要满足体积、共享次数和请求数量等条件，才会进行拆分。缓存组的标识用于区分配置，生成的 chunk 名称则由 [`name`](#splitchunksname) 等选项控制。
+
+缓存组可以从 `splitChunks` 继承 `chunks`、`minSize`、`minChunks` 等公共选项，也可以在组内覆盖这些选项。`test`、`priority`、`reuseExistingChunk` 等选项只能在缓存组中配置。[`dedupDepth`](#splitchunksdedupdepth) 等全局选项不支持在缓存组中配置。
+
+Rspack 提供两个默认缓存组：`default` 选择至少被两个 chunk 共享的模块，`defaultVendors` 选择来自 `node_modules` 的模块。添加自定义缓存组时，这两个默认组仍然保留。一个模块可以匹配多个组，[`priority`](#priority) 用于决定优先选择哪个组。
+
+要禁用某个默认缓存组，将对应的属性设为 `false`：
 
 ```js title="rspack.config.mjs"
 export default {
