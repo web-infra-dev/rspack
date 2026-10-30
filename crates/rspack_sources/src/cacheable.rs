@@ -137,6 +137,8 @@ pub enum CacheableSource {
     /// Child sources.
     #[rkyv(omit_bounds)]
     children: Vec<CacheableSource>,
+    /// Keep the map-free boundary on cache restoration.
+    source_only: bool,
   },
   /// [`ReplaceSource`]
   Replace {
@@ -225,6 +227,7 @@ pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
         .iter()
         .map(|c| to_cacheable(c.as_ref()))
         .collect(),
+      source_only: s.is_source_only(),
     };
   }
 
@@ -294,9 +297,12 @@ pub fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
       })
       .boxed()
     }
-    CacheableSource::Concat { children } => {
+    CacheableSource::Concat {
+      children,
+      source_only,
+    } => {
       let children: Vec<BoxSource> = children.into_iter().map(from_cacheable).collect();
-      ConcatSource::new(children).boxed()
+      ConcatSource::from_parts(children, source_only).boxed()
     }
     CacheableSource::Replace {
       inner,

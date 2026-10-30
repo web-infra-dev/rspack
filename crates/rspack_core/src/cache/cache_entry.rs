@@ -2,7 +2,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsCacheable, AsOption, AsPreset, AsTuple2, AsVec},
 };
-use rspack_sources::{BoxSource, ConcatSource, SourceExt};
+use rspack_sources::{BoxSource, ConcatSource};
 
 use crate::{AssetInfo, CompilationAsset};
 
@@ -57,13 +57,14 @@ impl CachedSourceMapDevToolPluginEntry {
     Vec<BoxSource>,
   )> {
     let source = asset.get_source()?.clone();
+    let source = ConcatSource::new_source_only([source]);
     let source = if self.asset_append.is_empty() {
       source
     } else {
       let mut children = Vec::with_capacity(self.asset_append.len() + 1);
       children.push(source);
       children.extend(self.asset_append.iter().cloned());
-      ConcatSource::new(children).boxed()
+      ConcatSource::new_source_only(children)
     };
 
     let source_asset = CompilationAsset::new(Some(source), (*asset.info).clone());
