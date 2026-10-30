@@ -620,6 +620,9 @@ async fn nmf_parser(
               .unwrap_or_else(|| "__rstest_import_meta_resolve__".into())
           }),
         commonjs_magic_comments,
+        parse_dynamic_require: javascript_options
+          .and_then(|options| options.require_dynamic)
+          .unwrap_or(true),
       },
     )) as BoxJavascriptParserPlugin);
   }
