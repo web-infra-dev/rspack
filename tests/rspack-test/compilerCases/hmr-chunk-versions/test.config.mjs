@@ -16,6 +16,8 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
         'multiple-updates',
         'concurrent-imports',
         'full-rebuild',
+        'unchanged-chunk',
+        'unchanged-hashed-chunk',
         'manual-apply',
         'missing-update',
         'aborted-update',
@@ -45,7 +47,7 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
               module: esm,
               chunkLoading: esm ? 'import' : undefined,
               filename: esm ? '[name].mjs' : '[name].js',
-              chunkFilename: esm ? '[name].mjs' : '[name].js',
+              chunkFilename: `[name]${scenario === 'unchanged-hashed-chunk' ? '.[contenthash]' : ''}.${esm ? 'mjs' : 'js'}`,
               publicPath: esm
                 ? pathToFileURL(`${context.getDist('output')}/`).href
                 : '/',
@@ -118,7 +120,10 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
             : vm.createContext({ console, Promise, setTimeout, clearTimeout });
           if (!native) {
             sandbox.importScripts = (url) =>
-              vm.runInContext(assets[path.basename(url.split('?')[0])], sandbox);
+              vm.runInContext(
+                assets[path.basename(url.split('?')[0])],
+                sandbox,
+              );
             sandbox.fetch = async (url) => {
               if (
                 scenario === 'catch-up-check' &&
@@ -144,7 +149,10 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
                 if (path.basename(script.src.split('?')[0]) === 'page.js')
                   sandbox.pagePriority =
                     script.fetchpriority || script.fetchPriority;
-                vm.runInContext(assets[path.basename(script.src.split('?')[0])], sandbox);
+                vm.runInContext(
+                  assets[path.basename(script.src.split('?')[0])],
+                  sandbox,
+                );
                 queueMicrotask(() =>
                   script.onload?.({ type: 'load', target: script }),
                 );
@@ -166,6 +174,7 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
               getElementsByTagName: () => scripts,
             };
           }
+          let lastStats;
           const build = async (changes) => {
             for (const [name, source] of Object.entries(changes))
               write(name, source);
@@ -180,6 +189,7 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
               ),
             );
             assert.equal(stats.hasErrors(), false, stats.toString());
+            lastStats = stats;
             for (const asset of stats.compilation.getAssets())
               assets[asset.name] = asset.source.source().toString();
             return stats.hash;
@@ -188,6 +198,11 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
           let concurrentCheck;
           try {
             initialHash = await build({});
+            const initialPage = [...lastStats.compilation.chunks].find(
+              (chunk) => chunk.name === 'page',
+            );
+            const pageHash = initialPage.hash;
+            const pageFile = [...initialPage.files][0];
             if (target === 'module')
               await import(pathToFileURL(path.join(output, 'main.mjs')).href);
             else if (native)
@@ -211,6 +226,38 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
             const firstHash = await build({
               'trigger.js': 'module.exports = 1;',
             });
+            if (scenario.startsWith('unchanged-')) {
+              const page = [...lastStats.compilation.chunks].find(
+                (chunk) => chunk.name === 'page',
+              );
+              assert.equal(
+                page.hash,
+                pageHash,
+                'HMR metadata must not change the chunk hash',
+              );
+              assert.deepEqual([...page.files], [pageFile]);
+              assert.ok(
+                assets[pageFile].includes(firstHash),
+                'cached chunks must carry the current compilation hash',
+              );
+              assert.equal(
+                fs.readFileSync(path.join(output, pageFile), 'utf8'),
+                assets[pageFile],
+                'the new version must be emitted even when the filename is unchanged',
+              );
+              assert.equal(
+                lastStats.hasWarnings(),
+                false,
+                lastStats.toString(),
+              );
+              await app.hot.check(true);
+              const result = await app.pending;
+              assert.equal(result.error, undefined);
+              assert.equal(result.value.value, 1);
+              assert.equal(result.value.hash, firstHash);
+              assert.equal(app.hot.status(), 'idle');
+              return;
+            }
             if (scenario === 'multiple-updates')
               await build({ 'trigger.js': 'module.exports = 2;' });
             const changes = {

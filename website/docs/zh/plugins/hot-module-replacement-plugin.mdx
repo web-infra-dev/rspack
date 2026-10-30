@@ -31,7 +31,7 @@ export default {
 
 普通 chunk 和 hot update 可以并行下载。较晚返回的旧版本响应会在安装前被拒绝，避免覆盖更新后的 factory。每次加载尝试都会先结束，再等待更新并重试，因此不会阻塞它所等待的 HMR。手动调用 `check(false)` 仍然只准备更新，由调用方决定何时调用 `apply()`。
 
-这个方案也有开销：compilation hash 改变后，即使模块未变，普通 JavaScript chunk 的文件内容也会改变，对应的产物处理缓存会失效，增量 chunk hashing 会退回全量计算。
+compilation hash 在读取 chunk 渲染缓存后填入，不改变 chunk hash，也不会关闭增量 chunk hashing。不过，即使模块未变，版本标记仍会改变最终文件内容，因此这些产物仍需重新处理和输出。
 
 自动更新期间仍在加载的 import 也会等待这次更新完成。准备阶段会等待异步 status handler 和所有 hot-update 文件完成。如果准备或应用更新失败，等待这次更新的 import 会被拒绝，不会一直挂起。
 

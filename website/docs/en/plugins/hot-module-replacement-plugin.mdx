@@ -31,7 +31,7 @@ With HMR enabled, ordinary JavaScript chunks carry their compilation hash. Befor
 
 Ordinary chunks and hot updates can download concurrently. A late response from an older compilation is rejected before it can overwrite updated factories. Each load attempt finishes before retrying, so waiting for a newer runtime does not block that runtime's update. A manual `check(false)` still only prepares the update; the caller decides when to call `apply()`.
 
-The compilation hash changes every ordinary JavaScript chunk's contents when the build changes, including chunks whose modules are unchanged. Their asset-processing caches are invalidated, and incremental chunk hashing falls back to full hashing.
+The compilation hash is filled into ordinary JavaScript chunks after cached chunk rendering. It does not change their chunk hashes or disable incremental chunk hashing. The version metadata still changes their final contents, including chunks whose modules are unchanged, so those assets must be processed and emitted again.
 
 Imports that are still loading during an automatic update also wait for that update to finish. Preparation waits for asynchronous status handlers and all hot-update files. If preparation or application fails, imports waiting for the update reject instead of remaining pending.
 
