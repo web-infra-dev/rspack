@@ -115,51 +115,9 @@ This option lets you specify the delimiter to use for the generated names.
 
 ### splitChunks.cacheGroups
 
-`cacheGroups` defines a set of cache groups. Each group selects modules and gives them its own splitting rules, so you can apply different rules to different parts of your application.
+`cacheGroups` defines [cache groups](/misc/glossary#cache-group) with splitting rules for different modules. Groups can inherit shared options such as `chunks`, `minSize`, and `minChunks` from `splitChunks`, or override them within the group.
 
-For example, this group selects modules under `src/components` and sets their minimum split chunk size to 20,000 bytes:
-
-```js title="rspack.config.mjs"
-export default {
-  optimization: {
-    splitChunks: {
-      chunks: 'all',
-      cacheGroups: {
-        components: {
-          test: /[\\/]src[\\/]components[\\/]/,
-          minSize: 20 * 1000,
-        },
-      },
-    },
-  },
-};
-```
-
-You can read this configuration as follows:
-
-| Setting                          | Meaning                                                                    |
-| -------------------------------- | -------------------------------------------------------------------------- |
-| `components`                     | The name of this set of rules, so you can identify it in the configuration |
-| [`test`](#test)                  | Selects modules under `src/components`                                     |
-| [`minSize`](#splitchunksminsize) | Sets a minimum split size of 20,000 bytes for these modules                |
-| `chunks: 'all'`                  | Applies these rules to both initial and async chunks                       |
-
-**Cache groups and chunks**
-
-One cache group can produce multiple chunks. For example, two components that match the `components` group might be used by different pages:
-
-```text
-Pages A and B → Button component
-Pages C and D → Chart component
-```
-
-If each component meets the splitting conditions, Rspack can extract `Button` and `Chart` into separate shared chunks, each loaded by the pages that use it. `components` names the set of rules; options such as [`name`](#splitchunksname) control the names of the resulting chunks.
-
-Matching `test` only selects modules. For example, the configuration above requires a minimum split size of 20,000 bytes. If the components selected for a split total only 5,000 bytes, they do not pass this group's `minSize` check. Splitting also depends on conditions such as sharing and request limits.
-
-**Inheriting and overriding global options**
-
-Shared options such as `chunks`, `minSize`, and `minChunks` can be set on `splitChunks` for cache groups to inherit. To use a different value for one group, set it within that group:
+For example, set a lower size threshold for modules under `src/components`:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -178,26 +136,16 @@ export default {
 };
 ```
 
-Here, the `components` group uses the global `chunks: 'all'`, but its own `minSize: 20000` overrides the global `30000`. Other groups without their own `minSize` use the global value.
+- `components` names this set of rules, and [`test`](#test) selects modules under `src/components`.
+- The group inherits `chunks: 'all'`, so it applies to both initial and async chunks.
+- Its `minSize: 20000` overrides the global `30000`; other splitting conditions still apply.
 
-Options such as `test`, `priority`, and `reuseExistingChunk` belong only to cache groups and go inside a group configuration in `cacheGroups`. Global options such as [`dedupDepth`](#splitchunksdedupdepth) can only be set on `splitChunks`.
+Cache groups also support group-specific options such as [`test`](#test), [`priority`](#priority), and [`reuseExistingChunk`](#reuseexistingchunk), which are explained below.
 
-**Default cache groups**
-
-Rspack provides these two groups even when you do not configure `cacheGroups`. They remain available when you add a custom group:
-
-| Cache group      | Selected modules                      | `priority` |
-| ---------------- | ------------------------------------- | ---------- |
-| `default`        | Modules shared by at least two chunks | `-20`      |
-| `defaultVendors` | Modules from `node_modules`           | `-10`      |
-
-For example, `node_modules/lodash/lodash.js` can match both groups if it is used by two chunks. When both groups can split the module, Rspack prefers `defaultVendors` because it has the higher [`priority`](#priority): `-10` is higher than `-20`.
-
-To disable a default cache group, set its entry to `false`:
+When you add a custom cache group, Rspack keeps the two default groups, `default` and `defaultVendors`. If you do not need one of them, set its entry to `false`:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   optimization: {
     splitChunks: {
       cacheGroups: {
