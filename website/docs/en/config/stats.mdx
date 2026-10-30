@@ -552,6 +552,38 @@ When an object is provided, it customizes the ANSI escape sequences used for eac
 
 ## Compilation options
 
+### stats.cacheInfo
+
+<PropertyType type="boolean" />
+
+- **Version:** `>= 2.3.0`
+
+Includes cache counters in [Stats JSON](/api/javascript-api/stats-json#cacheinfo). This requires the experimental [experiments.newCache](/config/experiments#experimentsnewcache) implementation, which is disabled by default. Enable caching and the new implementation first:
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+  },
+  experiments: {
+    newCache: true,
+  },
+};
+```
+
+Read the counters after compilation, for example in [compiler.hooks.done](/api/plugin-api/compiler-hooks#done):
+
+```js
+compiler.hooks.done.tap('CacheStatistics', (stats) => {
+  const { cacheInfo } = stats.toJson({ all: false, cacheInfo: true });
+  if (cacheInfo) {
+    console.table(cacheInfo);
+  }
+});
+```
+
+For `toJson()`, this option is enabled by default unless disabled by a preset or `all: false`. Set `cacheInfo: true` explicitly when using `all: false`. It does not add a cache report to `toString()`; see [cacheInfo](/api/javascript-api/stats-json#cacheinfo) for the fields and their meanings.
+
 ### stats.hash
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />

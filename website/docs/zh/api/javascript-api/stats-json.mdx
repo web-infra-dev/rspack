@@ -27,6 +27,8 @@ type StatsCompilation = {
   name?: string;
   // 编译的哈希值
   hash?: string;
+  // 按完整缓存名称分组的缓存计数
+  cacheInfo?: Record<string, StatsCacheInfo>;
   // 启用 `stats.env` 时包含的环境信息
   env?: any;
   // 编译耗时（毫秒）
@@ -71,6 +73,32 @@ type StatsCompilation = {
   logging?: Record<string, StatsLogging>;
 } & Record<string, any>;
 ```
+
+## cacheInfo
+
+- **版本：** `>= 2.3.0`
+
+启用 [stats.cacheInfo](/config/stats#statscacheinfo) 后，`cacheInfo` 包含实验性 [experiments.newCache](/config/experiments#experimentsnewcache) 实现的计数。键为包含编译器路径的完整缓存名称，例如 `web|Compilation/modules`。
+
+```ts
+type StatsCacheInfo = {
+  hits: number;
+  misses: number;
+  reused: number;
+  stores: number;
+};
+```
+
+| 字段     | 含义                                                         |
+| -------- | ------------------------------------------------------------ |
+| `hits`   | 查找时返回了缓存值的次数。调用方仍可能在校验后拒绝使用该值。 |
+| `misses` | 查找时未返回缓存值的次数。                                   |
+| `reused` | 缓存值通过校验并被调用方实际复用的次数。                     |
+| `stores` | 缓存写入请求的次数，不代表已完成磁盘写入。                   |
+
+计数在每次构建或重新构建前重置，统计的是操作次数，而非不重复的模块数量。命中不一定意味着复用，例如缓存的模块可能未通过依赖校验。
+
+所有计数均为零的缓存名称会被省略。如果没有可用的计数，`cacheInfo` 会被省略，不应将其视为缓存命中率为零。这些计数不表示缓存是否启用，应通过编译器的 `cache` 配置判断。
 
 ## Asset 对象结构
 
