@@ -120,19 +120,19 @@ export default {
 };
 ```
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.enforce
+#### enforce
 
 - **类型：** `boolean`
 
 告诉 Rspack 对此 cache group 忽略全局的 `splitChunks.minSize`、`splitChunks.minRemainingSize`、`splitChunks.minChunks`、`splitChunks.maxAsyncRequests` 和 `splitChunks.maxInitialRequests` 选项。cache group 自身显式配置的值仍然生效。
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.idHint
+#### idHint
 
 - **类型：** `string`
 
 设置 chunk id 的提示。 它将被添加到 chunk 的文件名中。
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.layer
+#### layer
 
 - **类型：** `string | RegExp | ((layer?: string) => boolean)`
 
@@ -153,14 +153,14 @@ export default {
 };
 ```
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.priority
+#### priority
 
 - **类型：** `number`
 - **默认值：** `-20`
 
 一个模块可以属于多个 cacheGroup。优化会优先选择 `priority`（优先级）更高的 cacheGroup。默认组的优先级为负，以便自定义组获得更高的优先级（自定义组的默认值为 `0`）。
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.reuseExistingChunk
+#### reuseExistingChunk
 
 - **类型：** `boolean`
 - **默认值：** `false`
@@ -181,7 +181,7 @@ cacheGroup: {
 
 如果设置 reuseExistingChunk 为 `false`，那么 chunk Bar 和 chunk Foo 中的 module B 会被移到新 chunk 中，chunk Bar 由于不包含任何 module，会作为空 chunk 被删除。
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.test
+#### test
 
 - **类型：** `RegExp | string | (module: Module, { chunkGraph: ChunkGraph, moduleGraph: ModuleGraph }) => boolean`
 
@@ -191,7 +191,7 @@ cacheGroup: {
 使用函数形式的 `test` 会显著降低构建性能，因为该函数需要对每个模块进行调用，从而产生大量的 Rust 与 JavaScript 之间的跨语言通信开销。因此我们不推荐使用函数形式。
 :::
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.type
+#### type
 
 - **Types:** `string | RegExp`
 
@@ -374,7 +374,7 @@ export default {
 
 当候选 chunk 达到这个阈值后，Rspack 会忽略 [`splitChunks.minRemainingSize`](#splitchunksminremainingsize)，以及 [`splitChunks.maxAsyncRequests`](#splitchunksmaxasyncrequests) 和 [`splitChunks.maxInitialRequests`](#splitchunksmaxinitialrequests) 这类请求数量限制。
 
-相比 [`splitChunks.cacheGroups.{cacheGroup}.enforce`](#splitchunkscachegroupscachegroupenforce)，这个选项更克制一些：只有体积已经足够大的候选才会继续被强制拆分，较小的候选仍然遵循默认启发式规则。
+相比 [`splitChunks.cacheGroups.{cacheGroup}.enforce`](#enforce)，这个选项更克制一些：只有体积已经足够大的候选才会继续被强制拆分，较小的候选仍然遵循默认启发式规则。
 
 当使用 `number` 形式配置时，会对 [`splitChunks.defaultSizeTypes`](#splitchunksdefaultsizetypes) 中定义的所有 size type 使用同一个阈值；使用对象形式时，则可以按 size type 分别设置不同阈值。
 
@@ -829,7 +829,7 @@ export default {
 
 `name` 不只是文件名定制选项，它还会改变分组行为：当不同的 chunk 组合命中了同一个 cacheGroup，并且最终解析到相同的 `name` 时，Rspack 会把它们合并成同一个命名后的拆分候选。这样虽然可能提高缓存命中率，但也可能让某些页面去请求本来不需要的模块依赖链。
 
-如果你的目标只是给 chunk 一个更稳定的标识或文件名提示，优先考虑使用 [`splitChunks.cacheGroups.{cacheGroup}.idHint`](#splitchunkscachegroupscachegroupidhint)，并保持 `name` 未设置。
+如果你的目标只是给 chunk 一个更稳定的标识或文件名提示，优先考虑使用 [`splitChunks.cacheGroups.{cacheGroup}.idHint`](#idhint)，并保持 `name` 未设置。
 
 如果 `splitChunks.name` 与 entry point 名称匹配，entry point 将被删除。
 

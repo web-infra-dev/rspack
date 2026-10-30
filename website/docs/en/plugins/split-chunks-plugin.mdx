@@ -124,19 +124,19 @@ export default {
 };
 ```
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.enforce
+#### enforce
 
 - **Type:** `boolean`
 
 Tells Rspack to ignore the global `splitChunks.minSize`, `splitChunks.minRemainingSize`, `splitChunks.minChunks`, `splitChunks.maxAsyncRequests` and `splitChunks.maxInitialRequests` options for this cache group. Values explicitly configured on the cache group still apply.
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.idHint
+#### idHint
 
 - **Type:** `string`
 
 Sets the hint for chunk id. It will be added to chunk's filename.
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.layer
+#### layer
 
 - **Type:** `string | RegExp | ((layer?: string) => boolean)`
 
@@ -157,14 +157,14 @@ export default {
 };
 ```
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.priority
+#### priority
 
 - **Type:** `number`
 - **Default:** `-20`
 
 A module can belong to multiple cache groups. The optimization will prefer the cache group with a higher `priority`. The default groups have a negative priority to allow custom groups to take higher priority (default value is `0` for custom groups).
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.reuseExistingChunk
+#### reuseExistingChunk
 
 - **Type:** `boolean`
 - **Default** `false`
@@ -185,7 +185,7 @@ In chunks Foo and Bar, the module B, due to the configuration of cacheGroup, wil
 
 If the setting of reuseExistingChunk is set to `false`, then the module B in chunks Bar and Foo will be moved to a new chunk, and chunk Bar, since it no longer contains any modules, will be deleted as an empty chunk.
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.test
+#### test
 
 - **Type:** `RegExp | string | (module: Module, { chunkGraph: ChunkGraph, moduleGraph: ModuleGraph }) => boolean`
 
@@ -195,7 +195,7 @@ Controls which modules are selected by this cache group. Omitting it selects all
 Using the function type of `test` will significantly reduce build performance, as the function needs to be called for each module, resulting in huge cross-language communication overhead between Rust and JavaScript. Therefore, we do not recommend using the function type.
 :::
 
-#### splitChunks.cacheGroups.\{cacheGroup\}.type
+#### type
 
 - **Types:** `string | RegExp`
 
@@ -378,7 +378,7 @@ Set a size threshold that lets Rspack continue splitting once a candidate chunk 
 
 When a candidate reaches this threshold, Rspack ignores [`splitChunks.minRemainingSize`](#splitchunksminremainingsize) and request-limit checks such as [`splitChunks.maxAsyncRequests`](#splitchunksmaxasyncrequests) and [`splitChunks.maxInitialRequests`](#splitchunksmaxinitialrequests).
 
-Compared with [`splitChunks.cacheGroups.{cacheGroup}.enforce`](#splitchunkscachegroupscachegroupenforce), this is more targeted: only sufficiently large candidates are forced to keep splitting, while smaller ones still follow the normal heuristics.
+Compared with [`splitChunks.cacheGroups.{cacheGroup}.enforce`](#enforce), this is more targeted: only sufficiently large candidates are forced to keep splitting, while smaller ones still follow the normal heuristics.
 
 When configured with a `number`, the same threshold is applied to all size types defined in [`splitChunks.defaultSizeTypes`](#splitchunksdefaultsizetypes). The object form lets you set different thresholds per size type.
 
@@ -835,7 +835,7 @@ export default {
 
 `name` is not only a filename customization. It also changes grouping behavior: when different chunk combinations hit the same cache group and resolve to the same name, Rspack will merge them into the same named split chunk candidate. This can improve cache hit rate, but it can also force a page to fetch modules from unrelated dependency chains.
 
-If your goal is only to hint chunk identity or filenames, prefer [`splitChunks.cacheGroups.{cacheGroup}.idHint`](#splitchunkscachegroupscachegroupidhint) and leave `name` unset.
+If your goal is only to hint chunk identity or filenames, prefer [`splitChunks.cacheGroups.{cacheGroup}.idHint`](#idhint) and leave `name` unset.
 
 If the `splitChunks.name` matches an [entry point](/config/entry) name, the entry point will be removed.
 
