@@ -69,6 +69,19 @@ fn capture_in(
   (total, folded, output.warnings())
 }
 
+// Like most users of the macro, this crate has no direct `ctor` dependency.
+#[rspack_allocative::root]
+static REGISTERED_ROOT: LazyLock<String> = LazyLock::new(|| String::with_capacity(8192));
+
+#[test]
+fn root_attribute_registers_the_static_at_startup() {
+  LazyLock::force(&REGISTERED_ROOT);
+  let mut builder = FlameGraphBuilder::default();
+  builder.visit_global_roots();
+  let folded = builder.finish().flamegraph().write();
+  assert!(folded.contains("LazyLock"), "root is missing: {folded}");
+}
+
 #[test]
 fn boxed_sources_preserve_owned_buffers_and_nested_sources() {
   let source = RawStringSource::from("x".repeat(4096)).boxed();
