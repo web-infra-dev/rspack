@@ -13,7 +13,7 @@ describe('issue-13271 serve', () => {
       const child = runAndGetProcess(__dirname, [
         'serve',
         '--config',
-        './multi.config.js',
+        './multi.config.mts',
         `--port=${port}`,
       ]);
 
@@ -69,7 +69,7 @@ describe('issue-13271 serve', () => {
       const child = runAndGetProcess(__dirname, [
         'serve',
         '--config',
-        './single.config.js',
+        './single.config.mts',
         `--port=${port}`,
       ]);
 

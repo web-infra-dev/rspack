@@ -552,6 +552,38 @@ type StatsColors = boolean | StatsColorOptions;
 
 ## Compilation 选项
 
+### stats.cacheInfo
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+- **版本：** `>= 2.3.0`
+
+在 [Stats JSON](/api/javascript-api/stats-json#cacheinfo) 中包含缓存统计信息。使用此选项前，需要启用缓存，并开启默认关闭的实验性选项 [experiments.newCache](/config/experiments#experimentsnewcache)：
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+  },
+  experiments: {
+    newCache: true,
+  },
+};
+```
+
+通过 [compiler.hooks.done](/api/plugin-api/compiler-hooks#done) 在编译完成后读取统计信息：
+
+```js
+compiler.hooks.done.tap('CacheStatistics', (stats) => {
+  const { cacheInfo } = stats.toJson({ all: false, cacheInfo: true });
+  if (cacheInfo) {
+    console.table(cacheInfo);
+  }
+});
+```
+
+`stats.toString()` 不会展示这些统计信息。字段说明请参阅 [cacheInfo](/api/javascript-api/stats-json#cacheinfo)。
+
 ### stats.hash
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />

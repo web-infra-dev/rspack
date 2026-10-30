@@ -1,0 +1,38 @@
+import { defineConfig } from '@rspack/cli';
+import { rspack } from '@rspack/core';
+
+export default defineConfig({
+  context: import.meta.dirname,
+  entry: './src/index.js',
+  mode: 'development',
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        type: 'javascript/auto',
+        use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+      },
+    ],
+  },
+  plugins: [new rspack.HtmlRspackPlugin(), new rspack.CssExtractRspackPlugin()],
+  experiments: {
+    css: false,
+  },
+  lazyCompilation: true,
+  optimization: {
+    splitChunks: {
+      minSize: 0,
+      chunks: 'all',
+      cacheGroups: {
+        styles: {
+          test: /\.css$/,
+          name: 'style.css',
+        },
+      },
+    },
+  },
+  devServer: {
+    hot: true,
+    port: 5678,
+  },
+});
