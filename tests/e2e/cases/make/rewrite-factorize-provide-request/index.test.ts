@@ -10,7 +10,7 @@ async function expect_content(page: any, data: string) {
 }
 
 test('should compile', async ({ page, fileAction, rspack }) => {
-  // rspack.compiler.__sharedObj is injected by plugin in rspack.config.js
+  // rspack.compiler.__sharedObj is injected by plugin in rspack.config.ts
   await expect_content(page, '2:11');
 
   rspack.compiler.__sharedObj.time++;

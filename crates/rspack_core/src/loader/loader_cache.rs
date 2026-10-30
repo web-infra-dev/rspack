@@ -216,7 +216,8 @@ pub(crate) async fn before_normal_chain(
   ) else {
     return Ok(LoaderCacheAction::Disabled);
   };
-  let item_cache = loader_cache_item(&context.context.loader_cache, &cache_key, etag.clone());
+  let loader_cache = &context.context.loader_cache;
+  let item_cache = loader_cache_item(loader_cache, &cache_key, etag.clone());
 
   if let Some(entry) = item_cache.get::<LoaderCacheEntry>()
     && loader_cache_dependency_snapshot_is_valid(
@@ -240,6 +241,7 @@ pub(crate) async fn before_normal_chain(
       .and_then(|source_map| SourceMap::from_json(source_map).ok());
     let mut dependencies = LoaderDependencies::default();
     restore_loader_cache_dependencies(&entry.dependency_snapshot, &mut dependencies);
+    loader_cache.record_reuse();
     context.add_dependencies(&dependencies);
     context.parse_meta = entry.parse_meta.clone();
     let build_info = context.context.module.build_info_mut();

@@ -9,7 +9,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, ChunkKind, Compilation, Compiler, GroupOptions,
-  RuntimeSpec,
+  RuntimeModuleRecord, RuntimeSpec,
   chunk_graph_chunk::{ChunkId, ChunkIdMap},
   chunk_graph_module::{ModuleIdMap, ModuleIdSet},
   compilation::build_module_graph::ModuleExecutor,
@@ -152,7 +152,7 @@ pub type EntryChunks = HashMap<EntryKey, (ChunkId, Vec<ChunkId>)>;
 #[derive(Debug)]
 pub struct CompilationRecords {
   pub runtimes: RuntimeSpec,
-  pub runtime_modules: IdentifierMap<RspackHashDigest>,
+  pub runtime_modules: IdentifierMap<RuntimeModuleRecord>,
   pub chunks: ChunkIdMap<(RuntimeSpec, ModuleIdSet)>,
   pub entries: EntryChunks,
   pub modules: ModuleIdMap<ChunkIdMap<RspackHashDigest>>,
@@ -206,18 +206,23 @@ impl CompilationRecords {
       .collect()
   }
 
-  fn record_runtime_modules(compilation: &Compilation) -> IdentifierMap<RspackHashDigest> {
+  fn record_runtime_modules(compilation: &Compilation) -> IdentifierMap<RuntimeModuleRecord> {
     compilation
       .runtime_modules
-      .keys()
-      .map(|identifier| {
+      .iter()
+      .map(|(identifier, module)| {
         (
           *identifier,
-          compilation
-            .runtime_modules_hash
-            .get(identifier)
-            .expect("should have runtime module hash")
-            .clone(),
+          RuntimeModuleRecord {
+            hash: compilation
+              .runtime_modules_hash
+              .get(identifier)
+              .expect("should have runtime module hash")
+              .clone(),
+            update_data: module.get_update_data(compilation),
+            // Retain loading metadata, but custom sources still need a full update.
+            has_custom_source: module.get_custom_source().is_some(),
+          },
         )
       })
       .collect()

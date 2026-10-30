@@ -1,6 +1,5 @@
 const libraries = {
 	react: () => import("react"),
-	acorn: () => import("acorn"),
 	"core-js": () => import("core-js"),
 	lodash: () => import("lodash"),
 	xxhashjs: () => import("xxhashjs"),

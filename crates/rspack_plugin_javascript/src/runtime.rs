@@ -442,6 +442,12 @@ pub(crate) async fn render_runtime_module_sources(
   reject_custom_runtime_modules: bool,
 ) -> Result<Vec<RuntimeModuleSourceItem>> {
   let runtime_mode = compilation.options.experiments.runtime_mode;
+  let is_hot_update = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey)
+    .kind()
+    == ChunkKind::HotUpdate;
   let runtime_module_sources = rspack_parallel::scope::<_, Result<_>>(|token| {
     compilation
       .build_chunk_graph_artifact
@@ -454,13 +460,23 @@ pub(crate) async fn render_runtime_module_sources(
             .get(identifier)
             .expect("should have runtime module result"),
           runtime_module,
+          if is_hot_update {
+            compilation
+              .records
+              .as_ref()
+              .and_then(|records| records.runtime_modules.get(identifier))
+              .filter(|record| !record.has_custom_source)
+              .and_then(|record| record.update_data.as_deref())
+          } else {
+            None
+          },
         )
       })
-      .for_each(|(source, module)| {
-        let s = unsafe { token.used((compilation, source, module)) };
+      .for_each(|(source, module, previous)| {
+        let s = unsafe { token.used((compilation, source, module, previous)) };
         s.spawn(
-          move |(compilation, source, module)| async move {
-            if source.size() == 0 {
+          move |(compilation, source, module, previous)| async move {
+            if source.size() == 0 && previous.is_none() {
               return Ok((
                 ConcatSource::default().boxed(),
                 RuntimeGlobals::default(),
@@ -485,29 +501,46 @@ pub(crate) async fn render_runtime_module_sources(
               .output
               .environment
               .supports_arrow_function();
-            let source = if !(module.full_hash() || module.dependent_hash()) {
-              if let Some(custom_source) = module.get_custom_source() {
-                RawStringSource::from(custom_source).boxed()
+            let source = if let Some(custom_source) = module.get_custom_source() {
+              RawStringSource::from(custom_source).boxed()
+            } else if previous.is_some() || module.full_hash() || module.dependent_hash() {
+              let runtime_template = compilation.runtime_template.create_runtime_module_code_template();
+              let context = RuntimeModuleGenerateContext {
+                compilation,
+                runtime_template: &runtime_template,
+              };
+              let update = if let Some(previous) = previous {
+                module.generate_update(&context, previous).await?
+              } else {
+                None
+              };
+              let generated = match update {
+                Some(source) => Some(source),
+                None if module.full_hash() || module.dependent_hash() => {
+                  Some(module.generate(&context).await?)
+                }
+                None => None,
+              };
+              if let Some(generated) = generated {
+                if module.get_source_map_kind().enabled() {
+                  OriginalSource::new(generated, module.identifier().as_str()).boxed()
+                } else {
+                  RawStringSource::from(generated).boxed()
+                }
               } else {
                 source.clone()
               }
             } else {
-              if let Some(custom_source) = module.get_custom_source() {
-                RawStringSource::from(custom_source).boxed()
-              } else {
-                let runtime_template = compilation.runtime_template.create_runtime_module_code_template();
-                let context = RuntimeModuleGenerateContext {
-                  compilation,
-                  runtime_template: &runtime_template,
-                };
-                let source_str = module.generate(&context).await?;
-                if module.get_source_map_kind().enabled() {
-                  OriginalSource::new(source_str, module.identifier().as_str()).boxed()
-                } else {
-                  RawStringSource::from(source_str).boxed()
-                }
-              }
+              source.clone()
             };
+            if source.size() == 0 {
+              return Ok((
+                ConcatSource::default().boxed(),
+                RuntimeGlobals::default(),
+                RuntimeGlobals::default(),
+                false,
+              ));
+            }
             let should_isolate = module.should_isolate(runtime_mode);
             let needs_top_level = matches!(runtime_mode, RuntimeMode::Rspack)
               && module.get_constructor_name() == "ExportRequireRuntimeModule";
