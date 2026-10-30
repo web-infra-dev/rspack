@@ -55,6 +55,12 @@ const scenarios = [
     version: 1,
     order: 'update-first',
   },
+  {
+    name: 'ready-waits-import',
+    start: 'downloading',
+    version: 1,
+    order: 'update-first',
+  },
   ...['prepare-throw', 'prepare-reject'].map((name) => ({
     name,
     start: 'prepare',
@@ -408,6 +414,8 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
                 }
               });
             app.hot.addStatusHandler((status) => {
+              if (status === 'ready' && scenario === 'ready-waits-import')
+                return imports;
               if (
                 status === 'ready' &&
                 scenario === 'ready-starts-import' &&
@@ -422,7 +430,9 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
                 return Promise.reject(new Error('ready failed'));
             });
             const update = app.hot.check(
-              scenario !== 'manual-apply' && start !== 'ready',
+              scenario !== 'manual-apply' &&
+                scenario !== 'ready-waits-import' &&
+                start !== 'ready',
             );
             update.catch(() => {});
             let page;
@@ -534,7 +544,7 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
               return;
             }
             await wait(update);
-            if (start === 'ready') {
+            if (start === 'ready' || scenario === 'ready-waits-import') {
               assert.deepEqual(
                 (await wait(imports)).map((value) => value.default),
                 [1, 1],

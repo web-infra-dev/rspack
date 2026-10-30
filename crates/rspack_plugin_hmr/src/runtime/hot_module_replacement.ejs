@@ -230,7 +230,7 @@
 			var list = blockingPromisesWaiting;
 			blockingPromisesWaiting = [];
 			for (var i = 0; i < list.length; i++) list[i].reject(err);
-			throw err;
+			return setStatus("fail");
 		});
 	}
 }
@@ -241,11 +241,9 @@
 			setStatus("prepare");
 		case "prepare":
 			blockingPromises++;
-			return promise.then(function (result) {
-				return Promise.resolve(unblock()).then(function () { return result; });
-			}, function (err) {
-				return Promise.resolve(unblock()).then(function () { throw err; });
-			});
+			// A ready handler may await this load, so the load must not await it.
+			promise.then(unblock, unblock);
+			return promise;
 		default:
 			return promise;
 	}
