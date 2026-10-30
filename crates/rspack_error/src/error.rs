@@ -79,14 +79,17 @@ struct ErrorInner {
   // Diagnostic clones from unchanged modules share both the data and rendered reports.
   // Reports are transient and must not be restored from the persistent cache.
   #[cacheable(with=Skip)]
-  rendered: [OnceLock<String>; 2],
+  rendered_colored: OnceLock<Box<str>>,
+  #[cacheable(with=Skip)]
+  rendered_uncolored: OnceLock<Box<str>>,
 }
 
 impl Clone for ErrorInner {
   fn clone(&self) -> Self {
     Self {
       data: self.data.clone(),
-      rendered: Default::default(),
+      rendered_colored: Default::default(),
+      rendered_uncolored: Default::default(),
     }
   }
 }
@@ -103,7 +106,8 @@ impl std::ops::DerefMut for Error {
   fn deref_mut(&mut self) -> &mut Self::Target {
     // Any mutation, including one to a nested source error, invalidates both themes.
     let inner = Arc::make_mut(&mut self.0);
-    inner.rendered = Default::default();
+    inner.rendered_colored = Default::default();
+    inner.rendered_uncolored = Default::default();
     &mut inner.data
   }
 }
@@ -112,12 +116,17 @@ impl Error {
   fn new(data: ErrorData) -> Self {
     Self(Arc::new(ErrorInner {
       data,
-      rendered: Default::default(),
+      rendered_colored: Default::default(),
+      rendered_uncolored: Default::default(),
     }))
   }
 
-  pub(crate) fn render_cache(&self, colored: bool) -> &OnceLock<String> {
-    &self.0.rendered[usize::from(colored)]
+  pub(crate) fn render_cache(&self, colored: bool) -> &OnceLock<Box<str>> {
+    if colored {
+      &self.0.rendered_colored
+    } else {
+      &self.0.rendered_uncolored
+    }
   }
 
   #[allow(clippy::self_named_constructors)]

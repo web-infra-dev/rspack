@@ -29,13 +29,13 @@ impl Renderer {
   pub fn render(&self, error: &Error) -> Result<String> {
     let cache = error.render_cache(self.colored);
     if let Some(rendered) = cache.get() {
-      return Ok(rendered.clone());
+      return Ok(rendered.as_ref().to_owned());
     }
 
     let mut buf = String::new();
     self.handler.render_report(&mut buf, error)?;
     // Concurrent readers may populate the same cache; either report is equivalent.
-    let _ = cache.set(buf.clone());
+    let _ = cache.set(Box::from(buf.as_str()));
     Ok(buf)
   }
 }
