@@ -13,7 +13,9 @@ use rspack_core::{
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
-use rspack_util::{json_stringify, json_stringify_str, source_map::SourceMapKind};
+use rspack_util::{
+  identifier::make_paths_relative, json_stringify, json_stringify_str, source_map::SourceMapKind,
+};
 
 use super::{
   consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
@@ -155,6 +157,45 @@ impl Module for ConsumeSharedModule {
 
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<'_, str>> {
     Some(self.lib_ident.as_str().into())
+  }
+
+  fn identifier_for_id(&self, context: &str) -> Option<Cow<'_, str>> {
+    let required_version = self
+      .options
+      .required_version
+      .as_ref()
+      .map_or_else(|| "*".to_string(), |version| version.to_string());
+    let strict_version = if self.options.strict_version {
+      " (strict)"
+    } else {
+      ""
+    };
+    let singleton = if self.options.singleton {
+      " (strict)"
+    } else {
+      ""
+    };
+    let fallback = self
+      .options
+      .import_resolved
+      .as_ref()
+      .map(|path| format!(" (fallback: {})", make_paths_relative(context, path)))
+      .unwrap_or_default();
+    let eager = if self.options.eager { " (eager)" } else { "" };
+
+    Some(
+      format!(
+        "consume shared module ({}) {}@{}{}{}{}{}",
+        self.options.share_scope.key(),
+        self.options.share_key,
+        required_version,
+        strict_version,
+        singleton,
+        fallback,
+        eager,
+      )
+      .into(),
+    )
   }
 
   fn get_context(&self) -> Option<Box<Context>> {
