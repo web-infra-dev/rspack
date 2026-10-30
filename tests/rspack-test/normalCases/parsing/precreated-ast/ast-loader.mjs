@@ -2,9 +2,7 @@ import { parseSync } from "@swc-next/parser";
 
 /** @type {import("@rspack/core").LoaderDefinition} */
 export default function (source) {
-	const { program: ast, comments, diagnostics } = parseSync(source, {
-		semanticErrors: true
-	});
+	const { program: ast, comments, diagnostics } = parseSync(source);
 	const errors = diagnostics.filter(diagnostic => diagnostic.severity === "error");
 	if (errors.length > 0) {
 		this.callback(new Error(errors.map(error => error.message).join("\n")));

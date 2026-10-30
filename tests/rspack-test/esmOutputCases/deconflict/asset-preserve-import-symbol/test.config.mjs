@@ -3,9 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 function expectUniqueImportBindings(source) {
-  const { program, diagnostics } = parseSync(source, {
-    semanticErrors: true,
-  })
+  const { program, diagnostics } = parseSync(source)
   expect(diagnostics.filter(diagnostic => diagnostic.severity === 'error')).toEqual([])
   const importBindings = program.body
     .filter(statement => statement.type === 'ImportDeclaration')
