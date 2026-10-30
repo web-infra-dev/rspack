@@ -19,7 +19,7 @@ export async function calcPathInfo(
 ): Promise<PathInfo> {
   const testProjectDir = path.dirname(testFile);
   const isRspackConfigExist = await fs.exists(
-    path.join(testProjectDir, 'rspack.config.js'),
+    path.join(testProjectDir, 'rspack.config.ts'),
   );
   if (!isRspackConfigExist) {
     throw new Error(`rspack config not exist in ${testProjectDir}`);

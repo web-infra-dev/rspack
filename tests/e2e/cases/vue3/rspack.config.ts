@@ -1,0 +1,54 @@
+import type { Configuration } from '@rspack/core';
+import { DefinePlugin, HtmlRspackPlugin } from '@rspack/core';
+import { VueLoaderPlugin } from 'rspack-vue-loader';
+
+export default {
+  context: import.meta.dirname,
+  mode: 'development',
+  entry: './src/main.js',
+  devServer: {
+    hot: true,
+  },
+  plugins: [
+    new VueLoaderPlugin(),
+    new HtmlRspackPlugin({
+      template: './src/index.html',
+    }),
+    new DefinePlugin({
+      __VUE_OPTIONS_API__: JSON.stringify(true),
+      __VUE_PROD_DEVTOOLS__: JSON.stringify(false),
+    }),
+  ],
+  resolve: {
+    extensions: ['...', '.ts', '.tsx', '.jsx'],
+  },
+  module: {
+    rules: [
+      {
+        test: /\.vue$/,
+        loader: 'rspack-vue-loader',
+        options: {
+          experimentalInlineMatchResource: true,
+        },
+      },
+      {
+        test: /\.ts$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          detectSyntax: 'auto',
+        },
+      },
+      {
+        test: /\.css$/,
+        type: 'css/auto',
+      },
+    ],
+  },
+  stats: 'errors-warnings',
+  infrastructureLogging: {
+    debug: false,
+  },
+  watchOptions: {
+    poll: 1000,
+  },
+} satisfies Configuration;
