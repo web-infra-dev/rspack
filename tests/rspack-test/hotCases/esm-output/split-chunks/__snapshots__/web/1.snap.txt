@@ -9,9 +9,9 @@
 - Bundle: main.mjs
 - Bundle: vendor.chunk.mjs
 - Manifest: main.LAST_HASH.hot-update.json.mjs, size: 62
-- Update: common.LAST_HASH.hot-update.mjs, size: 482
-- Update: main.LAST_HASH.hot-update.mjs, size: 249
-- Update: vendor.LAST_HASH.hot-update.mjs, size: 503
+- Update: common.LAST_HASH.hot-update.mjs, size: 678
+- Update: main.LAST_HASH.hot-update.mjs, size: 401
+- Update: vendor.LAST_HASH.hot-update.mjs, size: 699
 
 ## Manifest
 
@@ -56,6 +56,11 @@ const commonData = {
 },
 
 };
+export const __rspack_esm_runtime = function(__webpack_require__) {
+// webpack/runtime/hot_module_replacement_loaded_chunk_version|common
+__webpack_require__.hmrL["common"] = "CHUNK_VERSION";
+}
+;
 
 ```
 
@@ -68,6 +73,7 @@ const commonData = {
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
 
 #### Changed Content
 ```js
@@ -77,6 +83,10 @@ export const __rspack_esm_runtime = function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV = {"common":"CHUNK_VERSION","vendor":"CHUNK_VERSION"};
 })();
 
 }
@@ -116,5 +126,10 @@ const vendorLib = {
 },
 
 };
+export const __rspack_esm_runtime = function(__webpack_require__) {
+// webpack/runtime/hot_module_replacement_loaded_chunk_version|vendor
+__webpack_require__.hmrL["vendor"] = "CHUNK_VERSION";
+}
+;
 
 ```

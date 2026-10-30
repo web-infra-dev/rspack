@@ -145,6 +145,7 @@ Updated Runtime:
 - `__webpack_require__.h`
 - `__webpack_require__.hmrM`
 - `__webpack_require__.hmrS_jsonp`
+- `__webpack_require__.hmrV`
 - `__webpack_require__.u`
 
 

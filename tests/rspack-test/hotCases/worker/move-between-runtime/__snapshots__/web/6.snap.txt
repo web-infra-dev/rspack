@@ -14,12 +14,13 @@
 - Bundle: workerA_js.chunk.CURRENT_HASH.js
 - Bundle: workerB_js.chunk.CURRENT_HASH.js
 - Manifest: [runtime of workerA_js].LAST_HASH.hot-update.json, size: 65
-- Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 43
+- Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 54
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: chunk_js.LAST_HASH.hot-update.js, size: 217
 - Update: main.LAST_HASH.hot-update.js, size: 181
-- Update: shared.LAST_HASH.hot-update.js, size: 765
-- Update: workerA_js.LAST_HASH.hot-update.js, size: 473
-- Update: workerB_js.LAST_HASH.hot-update.js, size: 612
+- Update: shared.LAST_HASH.hot-update.js, size: 924
+- Update: workerA_js.LAST_HASH.hot-update.js, size: 628
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 794
 
 ## Manifest
 
@@ -34,7 +35,7 @@
 ### [runtime of workerB_js].LAST_HASH.hot-update.json
 
 ```json
-{"c":["shared","workerB_js"],"r":[],"m":[]}
+{"c":["chunk_js","shared","workerB_js"],"r":[],"m":[]}
 ```
 
 
@@ -47,6 +48,26 @@
 
 
 ## Update
+
+
+### chunk_js.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("chunk_js", {},function(__webpack_require__) {
+// webpack/runtime/hot_module_replacement_loaded_chunk_version|chunk_js
+__webpack_require__.hmrL["chunk_js"] = "CHUNK_VERSION";
+}
+);
+```
+
 
 
 ### main.LAST_HASH.hot-update.js
@@ -105,7 +126,11 @@ if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunkS_js").then(__
 
 },
 
-});
+},function(__webpack_require__) {
+// webpack/runtime/hot_module_replacement_loaded_chunk_version|shared
+__webpack_require__.hmrL["shared"] = "CHUNK_VERSION";
+}
+);
 ```
 
 
@@ -117,6 +142,7 @@ if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunkS_js").then(__
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
 
 #### Changed Content
 ```js
@@ -137,6 +163,10 @@ __webpack_require__.d(__webpack_exports__, {
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
 })();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV = {"chunkS_js":"CHUNK_VERSION","shared":"CHUNK_VERSION"};
+})();
 
 }
 );
@@ -151,6 +181,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
 
 #### Changed Content
 ```js
@@ -171,6 +202,10 @@ if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunk_js").then(__w
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV = {"chunkS_js":"CHUNK_VERSION","chunk_js":"CHUNK_VERSION","shared":"CHUNK_VERSION"};
 })();
 
 }

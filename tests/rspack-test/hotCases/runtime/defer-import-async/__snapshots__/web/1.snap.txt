@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: consumer_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 27441
+- Update: main.LAST_HASH.hot-update.js, size: 27573
 
 ## Manifest
 
@@ -31,6 +31,7 @@
 - webpack/runtime/create_fake_namespace_object
 - webpack/runtime/ensure_chunk
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
 - webpack/runtime/jsonp_chunk_loading
 - webpack/runtime/make_deferred_namespace_object
 - webpack/runtime/make_optimized_deferred_namespace_object
@@ -211,6 +212,10 @@ __webpack_require__.u = (chunkId) => {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV = {"consumer_js":"CHUNK_VERSION"};
 })();
 // webpack/runtime/make_deferred_namespace_object
 (() => {

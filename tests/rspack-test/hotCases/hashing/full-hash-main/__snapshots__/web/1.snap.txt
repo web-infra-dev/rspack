@@ -7,8 +7,8 @@
 - Bundle: bundle.js
 - Bundle: thing_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 39
-- Update: main.LAST_HASH.hot-update.js, size: 181
-- Update: thing_js.LAST_HASH.hot-update.js, size: 338
+- Update: main.LAST_HASH.hot-update.js, size: 310
+- Update: thing_js.LAST_HASH.hot-update.js, size: 501
 
 ## Manifest
 
@@ -29,6 +29,7 @@
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
 
 #### Changed Content
 ```js
@@ -37,6 +38,10 @@ self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV = {"thing_js":"CHUNK_VERSION"};
 })();
 
 }
@@ -67,5 +72,9 @@ __webpack_require__.d(__webpack_exports__, {
 
 },
 
-});
+},function(__webpack_require__) {
+// webpack/runtime/hot_module_replacement_loaded_chunk_version|thing_js
+__webpack_require__.hmrL["thing_js"] = "CHUNK_VERSION";
+}
+);
 ```

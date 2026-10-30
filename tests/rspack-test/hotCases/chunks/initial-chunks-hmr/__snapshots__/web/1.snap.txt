@@ -9,8 +9,8 @@
 - Bundle: lib.CURRENT_HASH.js
 - Bundle: main.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 41
-- Update: initial_js.LAST_HASH.hot-update.js, size: 332
-- Update: main.LAST_HASH.hot-update.js, size: 20049
+- Update: initial_js.LAST_HASH.hot-update.js, size: 499
+- Update: main.LAST_HASH.hot-update.js, size: 20180
 
 ## Manifest
 
@@ -47,7 +47,11 @@ const value = "b";
 
 },
 
-});
+},function(__webpack_require__) {
+// webpack/runtime/hot_module_replacement_loaded_chunk_version|initial_js
+__webpack_require__.hmrL["initial_js"] = "CHUNK_VERSION";
+}
+);
 ```
 
 
@@ -59,6 +63,7 @@ const value = "b";
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
 - webpack/runtime/jsonp_chunk_loading
 - webpack/runtime/on_chunk_loaded
 
@@ -87,6 +92,10 @@ it("should work if there are new initial chunks", async () => {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV = {"initial_js":"CHUNK_VERSION"};
 })();
 // webpack/runtime/on_chunk_loaded
 (() => {
