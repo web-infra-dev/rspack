@@ -15,6 +15,17 @@ impl RuntimeModeRenderer for RspackContextRuntimeRenderer {
     runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
   }
 
+  fn render_module_registration_import(
+    &self,
+    runtime_template: &RuntimeCodeTemplate,
+    local: &str,
+  ) -> (String, String) {
+    (
+      runtime_template.render_runtime_variable(&RuntimeVariable::Context),
+      format!("{local}.m"),
+    )
+  }
+
   fn render_runtime_imports(&self, context: RuntimeImportRenderContext<'_>) -> ConcatSource {
     render_single_runtime_import(
       context,

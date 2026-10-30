@@ -7,7 +7,8 @@ use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkGroup, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataPreservedAssetImport, Compilation, ConcatenatedModuleInfo, InitFragment,
   ModuleIdentifier, PathData, PathInfo, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable,
-  SourceType, export_name, get_js_chunk_filename_template, get_undo_path, render_init_fragments,
+  SourceType, analyze_program_identifiers, export_name, get_js_chunk_filename_template,
+  get_undo_path, render_init_fragments,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -189,6 +190,7 @@ impl EsmLibraryPlugin {
 
     // modules that are not scope hoisted, store in runtime
     let mut decl_source = ConcatSource::default();
+    let mut import_source = ConcatSource::default();
 
     if !chunk_link.decl_modules.is_empty() {
       let hooks = JsPlugin::get_compilation_hooks(compilation.id());
@@ -254,11 +256,66 @@ impl EsmLibraryPlugin {
       if !decl_inner.source().is_empty() {
         let register_modules =
           runtime_mode_renderer.render_module_registration_ident(runtime_template);
-        decl_source.add(RawStringSource::from(format!(
-          "{register_modules}.add({{\n"
-        )));
-        decl_source.add(decl_inner);
-        decl_source.add(RawStringSource::from_static("});\n"));
+        let additional_runtimes = if chunk.runtime().len() > 1 {
+          let primary_runtime = get_chunk(compilation, runtime_chunk_ukey).expect_id();
+          let mut runtimes = chunk
+            .runtime()
+            .iter()
+            .map(|runtime| {
+              compilation
+                .build_chunk_graph_artifact
+                .chunk_graph
+                .get_runtime_id(runtime)
+                .expect("runtime ids should be assigned before rendering ESM chunks")
+            })
+            .filter(|runtime| runtime != primary_runtime.as_str())
+            .collect::<Vec<_>>();
+          runtimes.sort_unstable();
+          runtimes.dedup();
+          runtimes
+        } else {
+          Vec::new()
+        };
+        if additional_runtimes.is_empty() {
+          decl_source.add(RawStringSource::from(format!(
+            "{register_modules}.add({{\n"
+          )));
+          decl_source.add(decl_inner);
+          decl_source.add(RawStringSource::from_static("});\n"));
+        } else {
+          let mut name_allocator = chunk_link.name_allocator.clone();
+          // Wrapped modules are not scope hoisted, so their free identifiers are
+          // missing from the chunk allocator. Reserve them before introducing
+          // bindings into the factories' enclosing scope.
+          let factory_scope = analyze_program_identifiers(
+            &format!("({{\n{}\n}});", decl_inner.source().into_string_lossy()),
+            false,
+          )?;
+          name_allocator.extend(
+            factory_scope
+              .identifiers
+              .into_iter()
+              .filter(|ident| ident.scope == factory_scope.global_ctxt)
+              .map(|ident| ident.name),
+          );
+          let factories = name_allocator.find_new_name("__rspack_shared_modules__", &[]);
+          decl_source.add(RawStringSource::from(format!("var {factories} = {{\n")));
+          decl_source.add(decl_inner);
+          decl_source.add(RawStringSource::from(format!(
+            "}};\n{register_modules}.add({factories});\n"
+          )));
+          for runtime in additional_runtimes {
+            let local = name_allocator.find_new_name("__rspack_register_modules__", &[]);
+            let (imported, register) = runtime_mode_renderer
+              .render_module_registration_import(runtime_template, local.as_str());
+            import_source.add(RawStringSource::from(format!(
+              "import {{ {imported} as {local} }} from \"__RSPACK_ESM_CHUNK_{runtime}\";\n"
+            )));
+            decl_source.add(RawStringSource::from(format!(
+              "{register}.add({factories});\n"
+            )));
+          }
+        }
       }
     }
 
@@ -270,7 +327,6 @@ impl EsmLibraryPlugin {
 
     // render cross module links
     let mut runtime_source = ConcatSource::default();
-    let mut import_source = ConcatSource::default();
     let mut render_source = ConcatSource::default();
     let mut export_specifiers: FxIndexSet<Cow<str>> = Default::default();
     let mut export_default = None;

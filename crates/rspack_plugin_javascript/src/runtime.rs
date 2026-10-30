@@ -262,7 +262,13 @@ pub async fn render_module(
 
       let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
       let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));
-      let need_require = runtime_template.render_mode() != RuntimeGlobalsRenderMode::RspackExport
+      // In RspackExport mode factories usually resolve `require` through the chunk
+      // scope, which is only correct while the chunk is evaluated by a single
+      // runtime. A chunk shared by several runtimes has its factories registered
+      // into each of them, so the calling runtime's require must be passed to the
+      // factory, like the legacy and context render modes already do.
+      let need_require = (runtime_template.render_mode() != RuntimeGlobalsRenderMode::RspackExport
+        || chunk.runtime().len() > 1)
         && (render_runtime_requirements.contains(RuntimeGlobals::REQUIRE)
           || render_runtime_requirements.contains(RuntimeGlobals::REQUIRE_SCOPE)
           || !render_runtime_requirements
