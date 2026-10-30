@@ -10,6 +10,12 @@ SplitChunksPlugin is a built-in plugin that splits code into multiple [chunks](/
 
 SplitChunksPlugin can be configured through the [optimization.splitChunks](/config/optimization#optimizationsplitchunks) option, and you typically don't need to manually register this plugin.
 
+## Basic concepts
+
+- A [module](/misc/glossary#module) is a unit of code or a resource processed by Rspack.
+- A [chunk](/misc/glossary#chunk) groups modules during a build and produces corresponding output assets.
+- A [cache group](/misc/glossary#cache-group) is a set of rules for selecting modules and deciding how to split them.
+
 ## Default behavior
 
 Rspack has a built-in configuration for `SplitChunksPlugin` that works well for most scenarios.
@@ -109,11 +115,37 @@ This option lets you specify the delimiter to use for the generated names.
 
 ### splitChunks.cacheGroups
 
-Cache groups can inherit and/or override any options from `splitChunks.*`; but `test`, `priority` and `reuseExistingChunk` can only be configured on cache group level. To disable any of the default cache groups, set them to `false`.
+`cacheGroups` defines [cache groups](/misc/glossary#cache-group) with splitting rules for different modules. Groups can inherit shared options such as `chunks`, `minSize`, and `minChunks` from `splitChunks`, or override them within the group.
+
+For example, set a lower size threshold for modules under `src/components`:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      minSize: 30 * 1000,
+      cacheGroups: {
+        components: {
+          test: /[\\/]src[\\/]components[\\/]/,
+          minSize: 20 * 1000,
+        },
+      },
+    },
+  },
+};
+```
+
+- `components` names this set of rules, and [`test`](#test) selects modules under `src/components`.
+- The group inherits `chunks: 'all'`, so it applies to both initial and async chunks.
+- Its `minSize: 20000` overrides the global `30000`; other splitting conditions still apply.
+
+Cache groups also support group-specific options such as [`test`](#test), [`priority`](#priority), and [`reuseExistingChunk`](#reuseexistingchunk), which are explained below.
+
+When you add a custom cache group, Rspack keeps the two default groups, `default` and `defaultVendors`. If you do not need one of them, set its entry to `false`:
+
+```js title="rspack.config.mjs"
+export default {
   optimization: {
     splitChunks: {
       cacheGroups: {

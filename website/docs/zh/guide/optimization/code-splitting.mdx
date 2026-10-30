@@ -130,6 +130,12 @@ export default {
 
 同时保留默认的 cacheGroups 配置。这样通常可以同时对 initial chunk 和 async chunk 去重，同时 runtime 仍然只会按当前页面实际可达的依赖去加载对应 chunk。
 
+### 缓存组 \{#cache-groups}
+
+如果你希望对不同模块采用不同的拆分规则，可以使用 `optimization.splitChunks.cacheGroups`。每个缓存组通过 `test` 等选项选择模块，并可以单独配置 `minSize`、`minChunks` 等条件。例如，你可以为 `src/components` 下的模块和第三方依赖设置不同的体积阈值。
+
+一个缓存组可能产生多个 chunk，匹配的模块仍需满足拆分条件。基本示例和默认缓存组的说明见 [splitChunks.cacheGroups](/plugins/split-chunks-plugin#splitchunkscachegroups)。
+
 ### 强制拆分某些模块
 
 我们可以通过 [`optimization.splitChunks.cacheGroups.{cacheGroup}.name`](/plugins/split-chunks-plugin#splitchunksname) 强制将指定模块分到一个 Chunk 中去，例如如下配置：
