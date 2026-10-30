@@ -112,7 +112,7 @@ export default {
 
 After rebuilding, you will find that `shared.js` has been extracted separately, and there is an additional Chunk in the output that contains only `shared.js`.
 
-If `shared.js` still appears duplicated after lowering [`splitChunks.minSize`](/plugins/split-chunks-plugin#splitchunksminsize), check [`splitChunks.minSizeReduction`](/plugins/split-chunks-plugin#splitchunksminsizereduction), [`splitChunks.minChunks`](/plugins/split-chunks-plugin#splitchunksminchunks), and request limits such as [`splitChunks.maxAsyncRequests`](/plugins/split-chunks-plugin#splitchunksmaxasyncrequests) / [`splitChunks.maxInitialRequests`](/plugins/split-chunks-plugin#splitchunksmaxinitialrequests) before reaching for [`splitChunks.cacheGroups.{cacheGroup}.enforce`](/plugins/split-chunks-plugin#splitchunkscachegroupscachegroupenforce).
+If `shared.js` still appears duplicated after lowering [`splitChunks.minSize`](/plugins/split-chunks-plugin#splitchunksminsize), check [`splitChunks.minSizeReduction`](/plugins/split-chunks-plugin#splitchunksminsizereduction), [`splitChunks.minChunks`](/plugins/split-chunks-plugin#splitchunksminchunks), and request limits such as [`splitChunks.maxAsyncRequests`](/plugins/split-chunks-plugin#splitchunksmaxasyncrequests) / [`splitChunks.maxInitialRequests`](/plugins/split-chunks-plugin#splitchunksmaxinitialrequests) before reaching for [`splitChunks.cacheGroups.{cacheGroup}.enforce`](/plugins/split-chunks-plugin#enforce).
 
 If you want sufficiently large candidates to keep splitting after hitting those request limits, prefer [`splitChunks.enforceSizeThreshold`](/plugins/split-chunks-plugin#splitchunksenforcesizethreshold) before forcing an entire cache group with `enforce`.
 
@@ -132,7 +132,7 @@ while keeping the default cache groups. This usually deduplicates both initial a
 
 ### Force the splitting of certain modules
 
-We can use [`optimization.splitChunks.cacheGroups.{cacheGroup}.name`](/plugins/split-chunks-plugin#splitchunkscachegroupscachegroupname) to force specific modules to be grouped into the same chunk, for example, with the following configuration:
+We can use [`optimization.splitChunks.cacheGroups.{cacheGroup}.name`](/plugins/split-chunks-plugin#splitchunksname) to force specific modules to be grouped into the same chunk, for example, with the following configuration:
 
 ```js title="rspack.config.mjs"
 export default {

@@ -78,7 +78,7 @@ The configuration above generates `dist/index.html` with a link to `main.css`:
 
 ### Split CSS
 
-`CssExtractRspackPlugin` represents extracted styles as modules of type `css/mini-extract`. Use [`splitChunks.cacheGroups.{cacheGroup}.type`](/plugins/split-chunks-plugin#splitchunkscachegroupscachegrouptype) to select only CSS extracted by this plugin, without selecting JavaScript modules or modules handled by Rspack's built-in CSS support.
+`CssExtractRspackPlugin` represents extracted styles as modules of type `css/mini-extract`. Use [`splitChunks.cacheGroups.{cacheGroup}.type`](/plugins/split-chunks-plugin#type) to select only CSS extracted by this plugin, without selecting JavaScript modules or modules handled by Rspack's built-in CSS support.
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -109,7 +109,7 @@ export default {
 };
 ```
 
-Here, `extractedCss` selects only modules whose type is `css/mini-extract`. For details about `enforce`, see [`splitChunks.cacheGroups.{cacheGroup}.enforce`](/plugins/split-chunks-plugin#splitchunkscachegroupscachegroupenforce).
+Here, `extractedCss` selects only modules whose type is `css/mini-extract`. For details about `enforce`, see [`splitChunks.cacheGroups.{cacheGroup}.enforce`](/plugins/split-chunks-plugin#enforce).
 
 ## Options
 
@@ -449,7 +449,7 @@ const cssRule = {
 - **Type:** `string`
 - **Default:** `undefined`
 
-Assigns the processed CSS resource to the specified Rspack module layer. This is a module-graph layer, not a CSS cascade `@layer`. Use it with options such as [`splitChunks.cacheGroups.{cacheGroup}.layer`](/plugins/split-chunks-plugin#splitchunkscachegroupscachegrouplayer) to select extracted CSS by layer.
+Assigns the processed CSS resource to the specified Rspack module layer. This is a module-graph layer, not a CSS cascade `@layer`. Use it with options such as [`splitChunks.cacheGroups.{cacheGroup}.layer`](/plugins/split-chunks-plugin#layer) to select extracted CSS by layer.
 
 When omitted, this loader does not assign an explicit module layer.
 
