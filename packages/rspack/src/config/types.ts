@@ -3217,6 +3217,8 @@ export type NewCachePresets = boolean;
  * Experimental features configuration.
  */
 export type Experiments = {
+  /** Seed an independent portable cache from another worktree. */
+  portableCache?: boolean | { seedFrom?: string; seed?: boolean };
   /**
    * Enable async WebAssembly.
    * Support the new WebAssembly according to the [updated specification](https://github.com/WebAssembly/esm-integration), it makes a WebAssembly module an async module.

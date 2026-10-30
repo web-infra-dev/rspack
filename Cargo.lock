@@ -5788,6 +5788,7 @@ dependencies = [
  "rspack_parallel",
  "rspack_paths",
  "rustc-hash",
+ "tempfile",
  "tokio",
 ]
 
