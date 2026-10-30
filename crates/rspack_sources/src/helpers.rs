@@ -1294,12 +1294,18 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
           *inner_source = source_content;
         }
         source_index_mapping.borrow_mut().insert(i, -2);
+        // Without intermediate text we cannot stream the inner map. Leave its
+        // mappings empty so the outer mapping follows the existing fallback,
+        // retaining missing content or dropping it when remove_inner_source is set.
+        let Some(source_content) = source_content else {
+          return;
+        };
         stream_chunks_of_source_map(
           &MapOptions {
             columns: options.columns,
             final_source: false,
           },
-          TextSpan::new(source_content.unwrap()),
+          TextSpan::new(source_content),
           inner_source_map,
           &mut |chunk, mapping| {
             let mut inner_source_map_line_data = inner_source_map_line_data.borrow_mut();

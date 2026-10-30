@@ -94,3 +94,89 @@ fn test_source_map_contents_roundtrip() {
     }
   }
 }
+
+#[test]
+fn test_combined_source_map_missing_intermediate_contents_roundtrip() {
+  use rspack_sources::{
+    CachedSource, ConcatSource, MapOptions, SourceMap, SourceMapSource, SourceMapSourceOptions,
+  };
+
+  for intermediate_content in [None, Some(None), Some(Some(""))] {
+    for original_source in [None, Some("intermediate();\n")] {
+      for remove_original_source in [false, true] {
+        let mut outer_map = SourceMap::new(
+          "AAAA;ACAA",
+          vec!["intermediate.js".into(), "other.js".into()],
+          vec![],
+          vec![],
+        );
+        if let Some(content) = intermediate_content {
+          outer_map.set_sources_content(vec![content.map(Into::into), Some("other();\n".into())]);
+        }
+        let source = Data(
+          SourceMapSource::new(SourceMapSourceOptions {
+            value: "generated();\nother();\n",
+            name: "intermediate.js",
+            source_map: outer_map,
+            original_source: original_source.map(Into::into),
+            inner_source_map: Some(SourceMap::new(
+              "AAAA",
+              vec!["original.js".into()],
+              vec![Some("original();\n".into())],
+              vec![],
+            )),
+            remove_original_source,
+          })
+          .boxed(),
+        );
+        let restored: Data = from_bytes(&to_bytes(&source, &()).unwrap(), &()).unwrap();
+        for source in [source.0, restored.0] {
+          let streamed = ConcatSource::new([CachedSource::new(source.clone()).boxed()]).boxed();
+          for source in [source, streamed] {
+            for columns in [false, true] {
+              let map = source.map(&MapOptions::new(columns)).unwrap();
+              assert!(map.sources().iter().any(|source| source == "other.js"));
+              let first_mapping = map
+                .decoded_mappings()
+                .find(|mapping| mapping.generated_line == 1)
+                .and_then(|mapping| mapping.original);
+              if original_source.is_some() {
+                let mapping = first_mapping.unwrap();
+                assert_eq!(
+                  map.get_source(mapping.source_index as usize),
+                  Some("original.js")
+                );
+                assert_eq!(
+                  map
+                    .get_source_content(mapping.source_index as usize)
+                    .map(|content| content.as_ref()),
+                  Some("original();\n")
+                );
+              } else if remove_original_source {
+                assert!(first_mapping.is_none());
+                assert!(
+                  !map
+                    .sources()
+                    .iter()
+                    .any(|source| source == "intermediate.js")
+                );
+              } else {
+                let mapping = first_mapping.unwrap();
+                assert_eq!(
+                  map.get_source(mapping.source_index as usize),
+                  Some("intermediate.js")
+                );
+                assert_eq!(
+                  map
+                    .get_source_content(mapping.source_index as usize)
+                    .map(|content| content.as_ref()),
+                  intermediate_content.flatten()
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
