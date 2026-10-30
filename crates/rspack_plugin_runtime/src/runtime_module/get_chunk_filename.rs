@@ -3,8 +3,8 @@ use std::{borrow::Cow, cmp::Ordering, fmt};
 use itertools::Itertools;
 use rspack_cacheable::with::Unsupported;
 use rspack_core::{
-  Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, FilenameRenderValue, PathData,
-  PlaceholderKind, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeModule,
+  Chunk, ChunkGraph, ChunkGroupByUkey, ChunkUkey, Compilation, Filename, FilenameRenderValue,
+  PathData, PlaceholderKind, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeModule,
   RuntimeModuleGenerateContext, RuntimeTemplate, SourceType, StringTemplatePlaceholder,
   impl_runtime_module,
 };
@@ -16,6 +16,44 @@ use crate::{get_chunk_runtime_requirements, runtime_module::unquoted_stringify};
 
 type GetChunkFilenameAllChunks = Box<dyn Fn(&RuntimeGlobals) -> bool + Sync + Send>;
 type GetFilenameForChunk = Box<dyn Fn(&Chunk, &Compilation) -> Option<Filename> + Sync + Send>;
+
+// Collect chunks reachable through async chunk groups without excluding chunks that are also
+// present in an initial group. CSS loading can receive these shared chunk ids from import().
+fn get_chunks_in_async_groups(
+  chunk: &Chunk,
+  chunk_group_by_ukey: &ChunkGroupByUkey,
+) -> FxIndexSet<ChunkUkey> {
+  let mut initial_groups = chunk
+    .get_sorted_groups_iter(chunk_group_by_ukey)
+    .copied()
+    .collect::<FxIndexSet<_>>();
+  let mut async_groups = FxIndexSet::default();
+  let mut index = 0;
+
+  while let Some(group_ukey) = initial_groups.get_index(index).copied() {
+    index += 1;
+    let group = chunk_group_by_ukey.expect_get(&group_ukey);
+    for child_ukey in &group.children {
+      let child_group = chunk_group_by_ukey.expect_get(child_ukey);
+      if child_group.is_initial() && !initial_groups.contains(child_ukey) {
+        initial_groups.insert(*child_ukey);
+      } else {
+        async_groups.insert(*child_ukey);
+      }
+    }
+  }
+
+  let mut chunks = FxIndexSet::default();
+  index = 0;
+  while let Some(group_ukey) = async_groups.get_index(index).copied() {
+    index += 1;
+    let group = chunk_group_by_ukey.expect_get(&group_ukey);
+    chunks.extend(group.chunks.iter().copied());
+    async_groups.extend(group.children.iter().copied());
+  }
+
+  chunks
+}
 
 fn render_hash(placeholder: StringTemplatePlaceholder, hash: &str) -> String {
   placeholder
@@ -53,6 +91,7 @@ pub struct GetChunkFilenameRuntimeModule {
   all_chunks: GetChunkFilenameAllChunks,
   #[cacheable(with=Unsupported)]
   filename_for_chunk: GetFilenameForChunk,
+  include_initial_chunks_in_async_groups: bool,
   chunk_ukey: ChunkUkey,
 }
 
@@ -96,6 +135,7 @@ impl GetChunkFilenameRuntimeModule {
       false,
       Box::new(all_chunks),
       Box::new(filename_for_chunk),
+      false,
       chunk_ukey,
     )
   }
@@ -110,6 +150,11 @@ impl GetChunkFilenameRuntimeModule {
     self
   }
 
+  pub fn with_initial_chunks_in_async_groups(mut self) -> Self {
+    self.include_initial_chunks_in_async_groups = true;
+    self
+  }
+
   fn get_filename_chunks(&self, compilation: &Compilation) -> Option<FxIndexSet<ChunkUkey>> {
     let chunk_ukey = self.chunk().unwrap_or(self.chunk_ukey);
     compilation
@@ -121,6 +166,11 @@ impl GetChunkFilenameRuntimeModule {
         let mut chunks = if (self.all_chunks)(runtime_requirements) {
           chunk
             .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+        } else if self.include_initial_chunks_in_async_groups {
+          get_chunks_in_async_groups(
+            chunk,
+            &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+          )
         } else {
           let mut chunks =
             chunk.get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);

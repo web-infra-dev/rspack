@@ -21,6 +21,21 @@ export default defineConfig({
   optimization: {
     minimize: false,
     runtimeChunk: true,
-    splitChunks: { chunks: 'all', minSize: 0 },
+    splitChunks: {
+      chunks: 'all',
+      minSize: 0,
+      cacheGroups: {
+        shared: {
+          test: /shared\.css$/,
+          name: 'shared',
+          enforce: true,
+        },
+        initialOnly: {
+          test: /initial-only\.css$/,
+          name: 'initial-only',
+          enforce: true,
+        },
+      },
+    },
   },
 });

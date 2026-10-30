@@ -1,4 +1,5 @@
 import "./shared.css";
+import "./initial-only.css";
 
 it("should reuse initial CSS shared with an async chunk", async () => {
 	const initialCssUrl = getInitialCssUrl();
