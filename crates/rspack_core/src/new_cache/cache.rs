@@ -158,7 +158,6 @@ impl Cache {
 #[derive(Debug, Clone)]
 pub struct CompilerCache {
   cache: Arc<Cache>,
-  cache_name: Arc<str>,
   compiler_path: Arc<str>,
 }
 
@@ -171,16 +170,15 @@ impl Deref for CompilerCache {
 }
 
 impl CompilerCache {
-  pub fn new(cache: Arc<Cache>, cache_name: Arc<str>, compiler_path: Arc<str>) -> Self {
+  pub fn new(cache: Arc<Cache>, compiler_path: Arc<str>) -> Self {
     Self {
       cache,
-      cache_name,
       compiler_path,
     }
   }
 
   pub fn facade(&self, name: &str) -> CacheFacade {
-    let cache_name = [self.cache_name.as_ref(), self.compiler_path.as_ref(), name].join("|");
+    let cache_name = [self.compiler_path.as_ref(), name].join("|");
     CacheFacade::new(Arc::clone(&self.cache), cache_name.into())
   }
 
