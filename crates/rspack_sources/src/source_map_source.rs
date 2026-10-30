@@ -61,11 +61,16 @@ impl<V, N> From<WithoutOriginalOptions<V, N>> for SourceMapSourceOptions<V, N> {
 #[derive(Eq)]
 pub struct SourceMapSource {
   value: Box<str>,
+  map_data: Arc<SourceMapSourceMapData>,
+  original_source: Option<Arc<str>>,
+  remove_original_source: bool,
+}
+
+#[derive(PartialEq, Eq)]
+pub(crate) struct SourceMapSourceMapData {
   name: Box<str>,
   source_map: SourceMap<'static>,
-  original_source: Option<Box<str>>,
-  inner_source_map: Option<SourceMap<'static>>,
-  remove_original_source: bool,
+  inner_source_map: Option<Arc<SourceMap<'static>>>,
 }
 
 impl SourceMapSource {
@@ -79,10 +84,12 @@ impl SourceMapSource {
     let options = options.into();
     Self {
       value: Box::from(options.value.into()),
-      name: Box::from(options.name.into()),
-      source_map: options.source_map,
-      original_source: options.original_source,
-      inner_source_map: options.inner_source_map,
+      map_data: Arc::new(SourceMapSourceMapData {
+        name: Box::from(options.name.into()),
+        source_map: options.source_map,
+        inner_source_map: options.inner_source_map.map(Arc::new),
+      }),
+      original_source: options.original_source.map(Arc::from),
       remove_original_source: options.remove_original_source,
     }
   }
@@ -94,12 +101,12 @@ impl SourceMapSource {
 
   /// Get the name of the source file.
   pub fn name(&self) -> &str {
-    &self.name
+    &self.map_data.name
   }
 
   /// Get the source map.
   pub fn source_map(&self) -> &SourceMap<'static> {
-    &self.source_map
+    &self.map_data.source_map
   }
 
   /// Get the original source code.
@@ -109,12 +116,28 @@ impl SourceMapSource {
 
   /// Get the inner source map.
   pub fn inner_source_map(&self) -> Option<&SourceMap<'static>> {
-    self.inner_source_map.as_ref()
+    self.map_data.inner_source_map.as_deref()
   }
 
   /// Whether to remove the original source.
   pub fn remove_original_source(&self) -> bool {
     self.remove_original_source
+  }
+
+  pub(crate) fn retain_map_inputs(&self, map: SourceMap<'_>) -> SourceMap<'static> {
+    let original_source =
+      if self.map_data.inner_source_map.is_some() && !self.remove_original_source {
+        self.original_source.clone()
+      } else {
+        None
+      };
+    // Generated code is needed to calculate positions, but the resulting map
+    // only borrows map inputs. Removed inner source contents are not emitted.
+    if let Some(inner_map) = &self.map_data.inner_source_map {
+      map.into_static_with_inner_map(inner_map.clone(), original_source)
+    } else {
+      map.into_static_with_map_data(self.map_data.clone())
+    }
   }
 }
 
@@ -136,39 +159,15 @@ impl Source for SourceMapSource {
   }
 
   fn map<'a>(&'a self, options: &MapOptions) -> Option<SourceMap<'a>> {
-    if self.inner_source_map.is_none() {
-      return Some(self.source_map.as_borrowed());
+    if self.map_data.inner_source_map.is_none() {
+      return Some(self.map_data.source_map.as_borrowed());
     }
     let chunks = self.stream_chunks();
     get_map(chunks.as_ref(), options).map(SourceMap::from_fields)
   }
 
   fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap<'static>> {
-    match Arc::try_unwrap(self) {
-      Ok(mut source) => {
-        if source.inner_source_map.is_none() {
-          // The supplied map already owns its data.
-          return Some(source.source_map);
-        }
-
-        // A combined map needs the generated value while calculating mappings,
-        // but its resulting fields only borrow the remaining map-related data.
-        let value = std::mem::take(&mut source.value);
-        let source = Arc::new(source);
-        let owner = source.clone();
-        let chunks = SourceMapSourceChunks::new(source.as_ref(), &value);
-        get_map(&chunks, options)
-          .map(SourceMap::from_fields)
-          .map(|map| map.into_static(owner))
-      }
-      Err(source) => {
-        let owner = source.clone();
-        source
-          .as_ref()
-          .map(options)
-          .map(|map| map.into_static(owner))
-      }
-    }
+    self.map(options).map(|map| self.retain_map_inputs(map))
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -180,9 +179,9 @@ impl Hash for SourceMapSource {
   fn hash<H: Hasher>(&self, state: &mut H) {
     "SourceMapSource".hash(state);
     self.buffer().hash(state);
-    self.source_map.hash(state);
+    self.map_data.source_map.hash(state);
     self.original_source.hash(state);
-    self.inner_source_map.hash(state);
+    self.map_data.inner_source_map.hash(state);
     self.remove_original_source.hash(state);
   }
 }
@@ -190,10 +189,8 @@ impl Hash for SourceMapSource {
 impl PartialEq for SourceMapSource {
   fn eq(&self, other: &Self) -> bool {
     self.value == other.value
-      && self.name == other.name
-      && self.source_map == other.source_map
+      && self.map_data == other.map_data
       && self.original_source == other.original_source
-      && self.inner_source_map == other.inner_source_map
       && self.remove_original_source == other.remove_original_source
   }
 }
@@ -208,8 +205,12 @@ impl std::fmt::Debug for SourceMapSource {
       "{indent_str}SourceMapSource::new(SourceMapSourceOptions {{"
     )?;
     writeln!(f, "{indent_str}  value: {:?},", self.value)?;
-    writeln!(f, "{indent_str}  name: {:?},", self.name)?;
-    writeln!(f, "{indent_str}  source_map: {:?},", self.source_map)?;
+    writeln!(f, "{indent_str}  name: {:?},", self.map_data.name)?;
+    writeln!(
+      f,
+      "{indent_str}  source_map: {:?},",
+      self.map_data.source_map
+    )?;
     match &self.original_source {
       Some(original_source) => {
         writeln!(
@@ -225,7 +226,7 @@ impl std::fmt::Debug for SourceMapSource {
     writeln!(
       f,
       "{indent_str}  inner_source_map: {:?},",
-      self.inner_source_map
+      self.map_data.inner_source_map
     )?;
     writeln!(
       f,
@@ -251,10 +252,10 @@ impl<'source, 'value> SourceMapSourceChunks<'source, 'value> {
   fn new(source: &'source SourceMapSource, value: &'value str) -> Self {
     Self {
       value,
-      name: &source.name,
-      source_map: &source.source_map,
+      name: &source.map_data.name,
+      source_map: &source.map_data.source_map,
       original_source: source.original_source.as_deref(),
-      inner_source_map: source.inner_source_map.as_ref(),
+      inner_source_map: source.map_data.inner_source_map.as_deref(),
       remove_original_source: source.remove_original_source,
     }
   }

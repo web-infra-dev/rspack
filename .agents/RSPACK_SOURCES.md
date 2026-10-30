@@ -203,6 +203,11 @@ strings owned by these inputs instead of cloning them:
 
 - `from_bytes` retains the JSON buffer that parsed fields borrow from;
 - computed maps borrow strings from the source graph, and `into_static(owner)` retains that owner;
+- `SourceMapSource` maps retain shared map inputs instead of generated code. Combined maps only
+  retain the inner map and original intermediate text when it can appear in `sourcesContent`.
+  Strings borrowed from the outer map are copied, preserving references into the inner map by
+  matching both address and length, so unused outer mappings and contents can be released;
+- `CachedSource` static maps retain the shared map cache instead of the entire cached source;
 - `as_borrowed` creates a cheap borrowed view.
 
 ## 4. Source types and file map

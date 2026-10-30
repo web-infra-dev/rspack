@@ -6,12 +6,14 @@ use std::{
   sync::Arc,
 };
 
+use rustc_hash::FxHashSet;
 use serde::{Serialize, Serializer};
 use simd_json::{BorrowedValue, ErrorType, prelude::*};
 
 use crate::{
   ReplaceSource, Result,
   helpers::{Chunks, StreamChunks, decode_mappings_fields},
+  source_map_source::SourceMapSourceMapData,
 };
 
 /// An alias for `Box<dyn Source>`.
@@ -387,6 +389,12 @@ impl Hash for SourceMapFields<'_> {
 enum SourceMapOwner {
   Bytes(Vec<u8>),
   Source(BoxSource),
+  Map(Arc<SourceMap<'static>>),
+  MapData(Arc<SourceMapSourceMapData>),
+  InnerMap {
+    map: Arc<SourceMap<'static>>,
+    original_source: Option<Arc<str>>,
+  },
 }
 
 /// The source map created by [Source::map].
@@ -406,6 +414,49 @@ impl<'a> SourceMap<'a> {
   }
 
   pub(crate) fn into_static(self, owner: BoxSource) -> SourceMap<'static> {
+    self.into_static_with_owner(SourceMapOwner::Source(owner))
+  }
+
+  pub(crate) fn into_static_with_map(self, owner: Arc<SourceMap<'static>>) -> SourceMap<'static> {
+    self.into_static_with_owner(SourceMapOwner::Map(owner))
+  }
+
+  pub(crate) fn into_static_with_map_data(
+    self,
+    data: Arc<SourceMapSourceMapData>,
+  ) -> SourceMap<'static> {
+    self.into_static_with_owner(SourceMapOwner::MapData(data))
+  }
+
+  pub(crate) fn into_static_with_inner_map(
+    mut self,
+    map: Arc<SourceMap<'static>>,
+    original_source: Option<Arc<str>>,
+  ) -> SourceMap<'static> {
+    let retained_strings: FxHashSet<_> = map
+      .sources()
+      .iter()
+      .chain(map.names())
+      .chain(map.sources_content())
+      .map(|content| (content.as_ptr() as usize, content.len()))
+      .chain(
+        original_source
+          .iter()
+          .map(|content| (content.as_ptr() as usize, content.len())),
+      )
+      .collect();
+    self.own_fields_except(|value| {
+      retained_strings.contains(&(value.as_ptr() as usize, value.len()))
+    });
+    // Fields borrowed from the outer map are copied; remaining borrows point into
+    // the retained inner map or the original text, never the outer map.
+    self.into_static_with_owner(SourceMapOwner::InnerMap {
+      map,
+      original_source,
+    })
+  }
+
+  fn into_static_with_owner(self, owner: SourceMapOwner) -> SourceMap<'static> {
     #[allow(unsafe_code)]
     // SAFETY: `fields` must borrow from `owner` or contain owned data. The
     // returned SourceMap stores `owner`, keeping borrowed fields alive for the
@@ -413,7 +464,7 @@ impl<'a> SourceMap<'a> {
     let fields =
       unsafe { std::mem::transmute::<SourceMapFields<'a>, SourceMapFields<'static>>(self.fields) };
     SourceMap {
-      owner: Some(SourceMapOwner::Source(owner)),
+      owner: Some(owner),
       fields,
     }
   }
@@ -584,26 +635,38 @@ impl<'a> SourceMap<'a> {
 
     // Clearing sourcesContent alone leaves the owner alive for the remaining borrows.
     // Own every remaining field before releasing that source graph or parsed JSON buffer.
+    self.own_fields_except(|_| false);
+    self.owner = None;
+  }
+
+  fn own_fields_except(&mut self, retain: impl Fn(&str) -> bool) {
+    let own = |value: &mut Cow<'_, str>| {
+      if !retain(value.as_ref()) {
+        value.to_mut();
+      }
+    };
     if let Some(file) = &mut self.fields.file {
-      file.to_mut();
+      own(file);
     }
     for source in self.fields.sources.to_mut() {
-      source.to_mut();
+      own(source);
+    }
+    for content in self.fields.sources_content.to_mut() {
+      own(content);
     }
     for name in self.fields.names.to_mut() {
-      name.to_mut();
+      own(name);
     }
-    self.fields.mappings.to_mut();
+    own(&mut self.fields.mappings);
     if let Some(source_root) = &mut self.fields.source_root {
-      source_root.to_mut();
+      own(source_root);
     }
     if let Some(debug_id) = &mut self.fields.debug_id {
-      debug_id.to_mut();
+      own(debug_id);
     }
     if let Some(ignore_list) = &mut self.fields.ignore_list {
       ignore_list.to_mut();
     }
-    self.owner = None;
   }
 
   /// Get the source content by index from sourcesContent field in [SourceMap].
