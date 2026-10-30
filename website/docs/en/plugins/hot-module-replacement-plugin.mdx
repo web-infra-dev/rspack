@@ -27,6 +27,8 @@ When you register the `HotModuleReplacementPlugin` plugin, Rspack will inject HM
 
 See [HMR API](/api/runtime-api/hmr) for more details.
 
+With HMR enabled, a dynamic import can download a chunk from a newer build before the runtime has applied that build's updates. Rspack checks the chunk's version and delays the import until the runtime is compatible, applying available hot updates in order. If the updates fail or are unavailable, the import rejects. This does not require versioned chunk filenames.
+
 ## React Fast Refresh
 
 To enable Fast Refresh in React projects, you also need to use the [@rspack/plugin-react-refresh](https://www.npmjs.com/package/@rspack/plugin-react-refresh) plugin.

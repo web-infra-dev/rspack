@@ -137,6 +137,14 @@ function createHotStepProcessor(
             return str.split(raw).join(replacement);
           }, str)
           .replaceAll('rspack/runtime/', 'webpack/runtime/')
+          // Chunk versions include module hashes, including lazy backend ports.
+          .replaceAll(/(\.hmrL\[[^\n]*\] = )"[^"]*"/g, '$1"CHUNK_VERSION"')
+          .replaceAll(/(\.hmrV = )(\{[^\n]*\})/g, (_, prefix, versions) => {
+            const normalized = JSON.parse(versions, (_key, value) =>
+              typeof value === 'string' ? 'CHUNK_VERSION' : value,
+            );
+            return prefix + JSON.stringify(normalized);
+          })
           .replace(/\/\/ (\d+)\s+(?=var cssReload)/, '')
           .replaceAll(/var data = "(?:.*)"/g, (match) => {
             return normalizeRuntimeModulePrefix(

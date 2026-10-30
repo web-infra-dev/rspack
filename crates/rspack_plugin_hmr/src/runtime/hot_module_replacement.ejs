@@ -16,6 +16,8 @@
 // The update info
 <%- var("currentUpdateApplyHandlers") %>;
 <%- var("queuedInvalidatedModules") %>;
+// Chunk loads waiting for the current update to settle.
+<%- var("settledWaiters") %> = [];
 
 <%- define(HMR_MODULE_DATA) %> = currentModuleData;
 <% if (_is_rspack_runtime_mode) { %><%- define(INTERCEPT_MODULE_EXECUTION) %> = [];
@@ -28,11 +30,18 @@
 	module.children = [];
 	currentParents = [];
 	options.require = require;
-	<% if (_is_rspack_runtime_mode) { %>options.context.r = require;<% } %>
+	<% if (_is_rspack_runtime_mode) { %>options.context.r = require;
+	Object.defineProperty(options.context, "e", {
+		configurable: true,
+		enumerable: true,
+		writable: true,
+		value: require.e
+	});<% } %>
 });
 
 <%- define(HMR_DOWNLOAD_UPDATE_HANDLERS) %> = {};
 <%- define(HMR_INVALIDATE_MODULE_HANDLERS) %> = {};
+<%- REQUIRE_SCOPE %>.hmrL = Object.create(null);
 
 <%- fn("rspackHmrCreateRequire") %>(require, moduleId<% if (_is_rspack_runtime_mode) { %>, context<% } %>) {
 	var me = hmrInstalledModules[moduleId];
@@ -80,8 +89,11 @@
 		}
 	}
 
+	<% if (_is_rspack_runtime_mode) { %>var ensureChunk = context.e;<% } %>
 	fn.e = function (chunkId, fetchPriority) {
-		return trackBlockingPromise(<% if (_is_rspack_runtime_mode) { %>context.e<% } else { %>require.e<% } %>(chunkId, fetchPriority));
+		// Only the download blocks prepare. Waiting for a version must not block
+		// the update that makes the loaded chunk compatible.
+		return checkChunkVersion(chunkId, trackBlockingPromise(<% if (_is_rspack_runtime_mode) { %>ensureChunk<% } else { %>require.e<% } %>(chunkId, fetchPriority)));
 	};
 
 	return fn;
@@ -190,6 +202,11 @@
 	var results = [];
 	for (var i = 0; i < registeredStatusHandlers.length; i++)
 		results[i] = registeredStatusHandlers[i].call(null, newStatus);
+	if (newStatus === "idle" || newStatus === "abort" || newStatus === "fail") {
+		var waiters = settledWaiters;
+		settledWaiters = [];
+		for (var j = 0; j < waiters.length; j++) waiters[j]();
+	}
 
 	return Promise.all(results).then(function () { });
 }
@@ -227,6 +244,39 @@
 		blockingPromisesWaiting.push(function () {
 			resolve(fn());
 		});
+	});
+}
+
+// Ported from webpack's HotModuleReplacement.runtime.js (MIT licensed).
+<%- fn("isCurrentChunkVersion") %>(chunkId) {
+	var loaded = <%- REQUIRE_SCOPE %>.hmrL[chunkId];
+	return loaded === undefined || !<%- REQUIRE_SCOPE %>.hmrV || loaded === <%- REQUIRE_SCOPE %>.hmrV[chunkId];
+}
+
+<%- fn("checkChunkVersion") %>(chunkId, promise) {
+	if (!<%- REQUIRE_SCOPE %>.hmrV || <%- REQUIRE_SCOPE %>.hmrV[chunkId] === undefined ||
+		<%- REQUIRE_SCOPE %>.hmrL[chunkId] === <%- REQUIRE_SCOPE %>.hmrV[chunkId]) return promise;
+	return promise.then(function (result) {
+		if (isCurrentChunkVersion(chunkId)) return result;
+		return waitForChunkVersion(chunkId).then(function () { return result; });
+	});
+}
+
+<%- fn("waitForChunkVersion") %>(chunkId) {
+	if (isCurrentChunkVersion(chunkId)) return Promise.resolve();
+	if (currentStatus === "abort" || currentStatus === "fail") {
+		return Promise.reject(new Error("Loaded chunk " + chunkId + " is from another build, and the update failed (" + currentStatus + ")"));
+	}
+	if (currentStatus !== "idle") {
+		return new Promise(function (resolve) { settledWaiters.push(resolve); }).then(function () {
+			return waitForChunkVersion(chunkId);
+		});
+	}
+	return hotCheck(true).then(function (updatedModules) {
+		if (!updatedModules && !isCurrentChunkVersion(chunkId)) {
+			throw new Error("Loaded chunk " + chunkId + " is from another build, and no update leads to it");
+		}
+		return waitForChunkVersion(chunkId);
 	});
 }
 
