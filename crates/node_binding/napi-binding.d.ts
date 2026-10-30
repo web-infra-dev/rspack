@@ -1998,6 +1998,7 @@ export interface RawCacheOptionsMemory {
 }
 
 export interface RawCacheOptionsPersistent {
+  name?: string
   buildDependencies?: Array<string>
   version?: string
   maxAge: number

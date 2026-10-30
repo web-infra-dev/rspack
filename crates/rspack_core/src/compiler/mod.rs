@@ -149,7 +149,11 @@ impl Compiler {
     let plugin_driver = PluginDriver::new(options.clone(), plugins, resolver_factory.clone());
     let buildtime_plugin_driver =
       PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
-    let new_cache = CompilerCache::new(cache, compiler_path.clone());
+    let cache_name = match &options.cache {
+      CacheOptions::Persistent(options) => options.name.clone().into(),
+      CacheOptions::Disabled | CacheOptions::Memory { .. } => Arc::default(),
+    };
+    let new_cache = CompilerCache::new(cache, cache_name, compiler_path.clone());
     let cache = create_legacy_cache(
       &compiler_path,
       options.clone(),

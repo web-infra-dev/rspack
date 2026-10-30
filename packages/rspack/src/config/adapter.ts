@@ -174,6 +174,7 @@ function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
   };
   return {
     type: cache.type,
+    name: cache.name,
     buildDependencies: cache.buildDependencies,
     version: cache.version,
     maxAge: toRawStorageLimit('cache.maxAge', cache.maxAge!),

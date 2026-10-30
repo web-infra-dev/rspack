@@ -11,6 +11,7 @@ use rspack_core::{CacheOptions, PersistentCacheOptions};
 #[derive(Debug)]
 #[napi(object)]
 pub struct RawCacheOptionsPersistent {
+  pub name: Option<String>,
   pub build_dependencies: Option<Vec<String>>,
   pub version: Option<String>,
   pub max_age: u32,
@@ -26,6 +27,7 @@ impl TryFrom<RawCacheOptionsPersistent> for PersistentCacheOptions {
   fn try_from(value: RawCacheOptionsPersistent) -> rspack_error::Result<Self> {
     let storage = value.storage.unwrap_or_default().normalize()?;
     Ok(Self {
+      name: value.name.unwrap_or_default(),
       build_dependencies: value
         .build_dependencies
         .unwrap_or_default()

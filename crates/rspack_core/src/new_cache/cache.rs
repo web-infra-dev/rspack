@@ -1,4 +1,11 @@
-use std::{ops::Deref, sync::Arc, time::Duration};
+use std::{
+  ops::Deref,
+  sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+  },
+  time::Duration,
+};
 
 use rspack_paths::InternedPathSet;
 use rustc_hash::FxHashMap;
@@ -26,6 +33,7 @@ pub struct Cache {
   storage: CacheStorage,
   logger: Arc<InfrastructureLogger>,
   statistics: Arc<CacheStatistics>,
+  closing: AtomicBool,
 }
 
 impl Cache {
@@ -42,6 +50,7 @@ impl Cache {
       },
       logger,
       statistics: Default::default(),
+      closing: AtomicBool::new(false),
     }
   }
 
@@ -51,6 +60,10 @@ impl Cache {
 
   pub fn logger(&self) -> &InfrastructureLogger {
     &self.logger
+  }
+
+  pub fn is_closing(&self) -> bool {
+    self.closing.load(Ordering::Acquire)
   }
 
   pub fn get<T: CacheValueData>(&self, key: CacheKey, etag: Option<Etag>) -> Option<CacheValue<T>> {
@@ -124,6 +137,9 @@ impl Cache {
   }
 
   pub async fn shutdown(&self) {
+    if self.closing.swap(true, Ordering::AcqRel) {
+      return;
+    }
     let storage = &self.storage;
     if let Some(file_cache) = &storage.idle_file_cache {
       file_cache.shutdown().await;
@@ -142,6 +158,7 @@ impl Cache {
 #[derive(Debug, Clone)]
 pub struct CompilerCache {
   cache: Arc<Cache>,
+  cache_name: Arc<str>,
   compiler_path: Arc<str>,
 }
 
@@ -154,16 +171,22 @@ impl Deref for CompilerCache {
 }
 
 impl CompilerCache {
-  pub fn new(cache: Arc<Cache>, compiler_path: Arc<str>) -> Self {
+  pub fn new(cache: Arc<Cache>, cache_name: Arc<str>, compiler_path: Arc<str>) -> Self {
     Self {
       cache,
+      cache_name,
       compiler_path,
     }
   }
 
   pub fn facade(&self, name: &str) -> CacheFacade {
-    let cache_name = [self.compiler_path.as_ref(), name].join("|");
+    let cache_name = [self.cache_name.as_ref(), self.compiler_path.as_ref(), name].join("|");
     CacheFacade::new(Arc::clone(&self.cache), cache_name.into())
+  }
+
+  /// Returns a cache namespace shared by every compiler using this storage.
+  pub fn shared_facade(&self, name: &str) -> CacheFacade {
+    CacheFacade::new(Arc::clone(&self.cache), ["", name].join("|").into())
   }
 
   pub fn cache_info(&self) -> FxHashMap<String, CacheInfo> {

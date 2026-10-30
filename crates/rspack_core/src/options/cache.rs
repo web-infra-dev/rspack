@@ -33,6 +33,7 @@ pub enum StorageOptions {
 /// Options shared by the cache backends.
 #[derive(Debug, Clone)]
 pub struct PersistentCacheOptions {
+  pub name: String,
   pub build_dependencies: BuildDepsOptions,
   pub version: String,
   pub storage: StorageOptions,
