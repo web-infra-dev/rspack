@@ -17,23 +17,55 @@ pub struct MatchContext<'ctx> {
   pub attributes: Option<&'ctx ImportAttributes>,
 }
 
+/// Effects at the highest matching priority, shared across nested rules.
+struct MatchedRules<'out, 'rule> {
+  effects: &'out mut Vec<&'rule ModuleRuleEffect>,
+  start: usize,
+  priority: u32,
+}
+
+impl<'out, 'rule> MatchedRules<'out, 'rule> {
+  fn new(effects: &'out mut Vec<&'rule ModuleRuleEffect>) -> Self {
+    Self {
+      start: effects.len(),
+      effects,
+      priority: 0,
+    }
+  }
+
+  fn reset(&mut self) {
+    self.effects.truncate(self.start);
+    self.priority = 0;
+  }
+
+  fn push(&mut self, rule: &'rule ModuleRule) {
+    if rule.priority > self.priority {
+      self.effects.truncate(self.start);
+      self.priority = rule.priority;
+    }
+    if rule.priority == self.priority {
+      self.effects.push(&rule.effect);
+    }
+  }
+}
+
 pub async fn module_rules_matcher<'rule, 'ctx>(
   rules: &'rule [ModuleRule],
   ctx: &MatchContext<'ctx>,
   matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
 ) -> Result<()> {
-  let matched_rules_len = matched_rules.len();
-  if let Some(result) = module_rules_matcher_sync(rules, ctx, matched_rules) {
+  let mut matched_rules = MatchedRules::new(matched_rules);
+  if let Some(result) = module_rules_matcher_sync(rules, ctx, &mut matched_rules) {
     return result;
   }
-  matched_rules.truncate(matched_rules_len);
-  module_rules_matcher_async(rules, ctx, matched_rules).await
+  matched_rules.reset();
+  module_rules_matcher_async(rules, ctx, &mut matched_rules).await
 }
 
 fn module_rules_matcher_sync<'rule, 'ctx>(
   rules: &'rule [ModuleRule],
   ctx: &MatchContext<'ctx>,
-  matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
+  matched_rules: &mut MatchedRules<'_, 'rule>,
 ) -> Option<Result<()>> {
   for rule in rules {
     match module_rule_matcher_sync(rule, ctx, matched_rules) {
@@ -48,7 +80,7 @@ fn module_rules_matcher_sync<'rule, 'ctx>(
 async fn module_rules_matcher_async<'rule, 'ctx>(
   rules: &'rule [ModuleRule],
   ctx: &MatchContext<'ctx>,
-  matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
+  matched_rules: &mut MatchedRules<'_, 'rule>,
 ) -> Result<()> {
   for rule in rules {
     module_rule_matcher_async(rule, ctx, matched_rules).await?;
@@ -104,18 +136,18 @@ pub async fn module_rule_matcher<'rule, 'ctx>(
   ctx: &MatchContext<'ctx>,
   matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
 ) -> Result<bool> {
-  let matched_rules_len = matched_rules.len();
-  if let Some(result) = module_rule_matcher_sync(module_rule, ctx, matched_rules) {
+  let mut matched_rules = MatchedRules::new(matched_rules);
+  if let Some(result) = module_rule_matcher_sync(module_rule, ctx, &mut matched_rules) {
     return result;
   }
-  matched_rules.truncate(matched_rules_len);
-  module_rule_matcher_async(module_rule, ctx, matched_rules).await
+  matched_rules.reset();
+  module_rule_matcher_async(module_rule, ctx, &mut matched_rules).await
 }
 
 fn module_rule_matcher_sync<'rule, 'ctx>(
   module_rule: &'rule ModuleRule,
   ctx: &MatchContext<'ctx>,
-  matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
+  matched_rules: &mut MatchedRules<'_, 'rule>,
 ) -> Option<Result<bool>> {
   let resource_data = ctx.resource_data;
 
@@ -232,7 +264,7 @@ fn module_rule_matcher_sync<'rule, 'ctx>(
     }
   }
 
-  matched_rules.push(&module_rule.effect);
+  matched_rules.push(module_rule);
 
   if let Some(rules) = &module_rule.rules {
     match module_rules_matcher_sync(rules, ctx, matched_rules) {
@@ -267,7 +299,7 @@ fn module_rule_matcher_sync<'rule, 'ctx>(
 async fn module_rule_matcher_async<'rule, 'ctx>(
   module_rule: &'rule ModuleRule,
   ctx: &MatchContext<'ctx>,
-  matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
+  matched_rules: &mut MatchedRules<'_, 'rule>,
 ) -> Result<bool> {
   let resource_data = ctx.resource_data;
 
@@ -403,16 +435,16 @@ async fn module_rule_matcher_async<'rule, 'ctx>(
     }
   }
 
-  matched_rules.push(&module_rule.effect);
+  matched_rules.push(module_rule);
 
   if let Some(rules) = &module_rule.rules {
-    module_rules_matcher(rules, ctx, matched_rules).await?;
+    module_rules_matcher_async(rules, ctx, matched_rules).await?;
   }
 
   if let Some(one_of) = &module_rule.one_of {
     let mut matched_once = false;
     for rule in one_of {
-      if module_rule_matcher(rule, ctx, matched_rules).await? {
+      if module_rule_matcher_async(rule, ctx, matched_rules).await? {
         matched_once = true;
         break;
       }

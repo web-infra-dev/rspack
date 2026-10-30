@@ -637,6 +637,41 @@ export default {
 };
 ```
 
+## rules[].priority
+
+- **类型：** `number`
+- **默认值：** `0`
+
+设置规则的优先级。取值必须是 `0` 到 `4294967295` 之间的整数。
+
+对于每个模块，只有命中规则中优先级最高的规则才会提供效果，包括 loader、模块类型、parser、generator 和 resolve 选项。同优先级的命中规则会按照原有顺序合并。未设置 `priority` 的规则使用 `0`，因此所有规则都未指定优先级时保持现有行为。未命中的高优先级规则不会产生影响。
+
+例如，为 `?url` 导入设置更高的优先级，可以直接输出原始文件，跳过 SWC 处理：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[jt]s$/,
+        use: 'builtin:swc-loader',
+      },
+      {
+        resourceQuery: /url/,
+        priority: 1,
+        type: 'asset/resource',
+      },
+    ],
+  },
+};
+```
+
+`import url from './file.js?url'` 会命中这两条规则，但只有 `priority: 1` 的规则生效。导入 `./file.js` 时仍然使用 SWC。
+
+[`oneOf`](#rulesoneof) 只使用数组中第一条命中的规则，而 `priority` 会比较所有命中规则，不依赖规则的位置，并允许多条最高优先级规则共同生效。
+
+嵌套的 [`rules`](#rulesrules) 和 `oneOf` 子规则使用各自的优先级，默认为 `0`，不会继承父规则的优先级。父规则、子规则和顶层规则参与同一次优先级比较。只有父规则命中时才会检查子规则的条件，即使父规则的效果因优先级较低而被排除，也会继续检查子规则。在 `oneOf` 中，第一条命中的子规则仍会终止查找，即使它的效果被其他位置的更高优先级规则排除。
+
 ## rules[].enforce
 
 <PropertyType type="'pre' | 'post'" />
