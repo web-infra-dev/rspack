@@ -27,13 +27,12 @@ use rspack_util::{
   source_map::SourceMapKind, swc::join_atom,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_core::common::SyntaxContext;
 
 use crate::{
   BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph, ChunkInitFragments,
   CodeGenerationDataChunkInitFragments, CodeGenerationDataTopLevelDeclarations,
   CodeGenerationPublicPathAutoReplace, CodeGenerationResultBuilder,
-  CodeGenerationRuntimeRequirementsWrite, Compilation, ConcatenatedModuleIdent,
+  CodeGenerationRuntimeRequirementsWrite, Compilation, ConcatenatedModuleAnalysis,
   ConcatenationBindingPlan, ConcatenationBindingResolver, ConcatenationBindingTarget,
   ConcatenationContext, ConcatenationInterop, ConcatenationNameAllocator, ConcatenationScope,
   ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM,
@@ -204,8 +203,6 @@ pub struct ConcatenatedModuleInfo {
   pub module: ModuleIdentifier,
   pub namespace_export_symbol: Option<Atom>,
   pub chunk_init_fragments: ChunkInitFragments,
-  pub module_ctxt: SyntaxContext,
-  pub global_ctxt: SyntaxContext,
   pub runtime_requirements: RuntimeGlobals,
   pub runtime_requirements_write: RuntimeGlobals,
   pub has_ast: bool,
@@ -224,119 +221,11 @@ pub struct ConcatenatedModuleInfo {
   pub interop_namespace_object2_name: Option<Atom>,
   pub interop_default_access_used: bool,
   pub interop_default_access_name: Option<Atom>,
-  pub global_scope_ident: Vec<ConcatenatedModuleIdent>,
-  pub idents: Vec<ConcatenatedModuleIdent>,
+  pub analysis: Option<Arc<ConcatenatedModuleAnalysis>>,
   pub all_used_names: HashSet<Atom>,
-  /// Bindings of this module and the references of each binding, see
-  /// [`BindingRefs`].
-  pub binding_to_ref: BindingRefs,
 
   pub public_path_auto_replacement: Option<bool>,
   pub static_url_replacement: bool,
-}
-
-/// The bindings of one concatenated module together with their references.
-///
-/// One flat list of bindings plus one shared list of references, instead of a
-/// map of vectors: a binding stores the range of its references inside
-/// [`Self::refs`], and a reference is an index into
-/// [`ConcatenatedModuleInfo::idents`], which already holds every identifier of
-/// the module. That costs 24 bytes per binding and 4 bytes per reference
-/// instead of a map slot, a vector header and another copy of the identifier.
-#[derive(Debug, Clone, Default)]
-pub struct BindingRefs {
-  pub(crate) bindings: Vec<BindingRef>,
-  pub(crate) refs: Vec<u32>,
-}
-
-/// One binding: its name and the range of its references inside
-/// [`BindingRefs::refs`].
-#[derive(Debug, Clone, Default)]
-pub(crate) struct BindingRef {
-  pub(crate) name: Atom,
-  pub(crate) ctxt: SyntaxContext,
-  pub(crate) start: u32,
-  pub(crate) len: u32,
-}
-
-impl BindingRefs {
-  /// Number of bindings.
-  pub fn len(&self) -> usize {
-    self.bindings.len()
-  }
-
-  pub fn is_empty(&self) -> bool {
-    self.bindings.is_empty()
-  }
-
-  /// Drop every binding.
-  pub(crate) fn clear(&mut self) {
-    self.bindings.clear();
-    self.refs.clear();
-  }
-
-  /// Bindings in first-use order: the name, the syntax context and the
-  /// references of that binding, as indices into
-  /// [`ConcatenatedModuleInfo::idents`].
-  pub fn iter(&self) -> impl Iterator<Item = (&Atom, SyntaxContext, &[u32])> {
-    self.bindings.iter().map(|binding| {
-      debug_assert!(binding.start + binding.len <= self.refs.len() as u32);
-      (
-        &binding.name,
-        binding.ctxt,
-        &self.refs[binding.start as usize..(binding.start + binding.len) as usize],
-      )
-    })
-  }
-
-  /// Names and syntax contexts of the bindings, in first-use order.
-  pub fn names(&self) -> impl Iterator<Item = (&Atom, SyntaxContext)> {
-    self
-      .bindings
-      .iter()
-      .map(|binding| (&binding.name, binding.ctxt))
-  }
-
-  /// Append a binding and return its index.
-  pub(crate) fn push_binding(&mut self, name: Atom, ctxt: SyntaxContext) -> u32 {
-    let index = u32::try_from(self.bindings.len()).expect("too many bindings in one module");
-    self.bindings.push(BindingRef {
-      name,
-      ctxt,
-      start: 0,
-      len: 0,
-    });
-    index
-  }
-
-  /// Lay the `(binding, ident index)` references out per binding, keeping the
-  /// order in which they were seen in the module. Call it once per collected
-  /// batch: the per-binding lengths are reset here.
-  pub(crate) fn finish(&mut self, refs: Vec<(u32, u32)>) {
-    for binding in self.bindings.iter_mut() {
-      binding.len = 0;
-    }
-    for (binding, _) in &refs {
-      self.bindings[*binding as usize].len += 1;
-    }
-    let mut cursor = 0u32;
-    for binding in self.bindings.iter_mut() {
-      binding.start = cursor;
-      cursor += binding.len;
-    }
-    self.refs.clear();
-    self.refs.resize(cursor as usize, 0);
-    let mut write_at = self
-      .bindings
-      .iter()
-      .map(|binding| binding.start)
-      .collect::<Vec<u32>>();
-    for (binding, index) in refs {
-      let slot = &mut write_at[binding as usize];
-      self.refs[*slot as usize] = index;
-      *slot += 1;
-    }
-  }
 }
 
 impl ConcatenatedModuleInfo {
@@ -1137,29 +1026,24 @@ impl Module for ConcatenatedModule {
         ModuleInfo::Concatenated(info) => {
           name_allocator.assign_module_binding_names(info, &concatenation_context);
 
-          for (name, ctxt, refs) in info.binding_to_ref.iter() {
-            if ctxt != info.module_ctxt {
-              continue;
-            }
-            let new_name = info
-              .internal_names
-              .get(name)
-              .expect("should have internal name");
-            top_level_declarations.insert(new_name.clone());
-            if new_name == name {
-              continue;
-            }
-
-            let source = info.source.as_mut().expect("should have source");
-            for identifier in refs.iter().map(|index| &info.idents[*index as usize]) {
-              let span = identifier.span;
-              let low = span.real_lo();
-              let high = span.real_hi();
-              if identifier.shorthand {
-                source.insert(high, format!(": {new_name}"), None);
-                continue;
+          if let Some(analysis) = &info.analysis {
+            for symbol in analysis
+              .symbol_groups()
+              .filter(|&symbol| analysis.is_top_level(symbol))
+            {
+              let name = analysis.symbol_name(symbol);
+              let new_name = info
+                .internal_names
+                .get(name)
+                .expect("should have internal name");
+              top_level_declarations.insert(new_name.clone());
+              if new_name != name {
+                analysis.rename_symbol(
+                  symbol,
+                  new_name,
+                  info.source.as_mut().expect("should have source"),
+                );
               }
-              source.replace(low, high, new_name.to_string(), None);
             }
           }
 
@@ -1322,60 +1206,38 @@ impl Module for ConcatenatedModule {
           .module_by_identifier(&info.module)
           .expect("should have module");
         let build_meta = module.build_meta();
-        let mut refs = vec![];
-        for reference in info.global_scope_ident.iter() {
+        let mut changes = vec![];
+        for reference in info
+          .analysis
+          .iter()
+          .flat_map(|analysis| analysis.unresolved_references())
+        {
           let name = &reference.name;
           let match_result = ConcatenationScope::match_module_reference(name.as_str());
           if let Some(match_info) = match_result {
             let referenced_info_id = &references_info[match_info.index].0;
-            refs.push((
-              reference.clone(),
+            let final_name = self.get_final_name(
+              &binding_resolver,
               referenced_info_id,
               match_info
                 .ids
                 .into_iter()
                 .map(|item| Atom::from(item.as_str()))
                 .collect::<Vec<_>>(),
+              match_info.deferred_import,
               match_info.call,
               !match_info.direct_import,
-              match_info.deferred_import,
               build_meta.strict_esm_module(),
               match_info.asi_safe,
-            ));
+            );
+
+            let span = reference.span;
+            let low = span.real_lo();
+            let high = span.real_hi();
+            // range is extended by 2 chars to cover the appended "._"
+            // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1411-L1412
+            changes.push((final_name, (low, high + 2)));
           }
-        }
-
-        let mut changes = vec![];
-        for (
-          reference_ident,
-          referenced_info_id,
-          export_name,
-          call,
-          call_context,
-          deferred_import,
-          strict_esm_module,
-          asi_safe,
-        ) in refs
-        {
-          let final_name = self.get_final_name(
-            &binding_resolver,
-            referenced_info_id,
-            export_name,
-            deferred_import,
-            call,
-            call_context,
-            strict_esm_module,
-            asi_safe,
-          );
-
-          // We assume this should be concatenated module info because previous loop
-          let span = reference_ident.span;
-          let low = span.real_lo();
-          let high = span.real_hi();
-          // let source = info.source.as_mut().expect("should have source");
-          // range is extended by 2 chars to cover the appended "._"
-          // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1411-L1412
-          changes.push((final_name, (low, high + 2)));
         }
         Some((info.module, changes))
       })
