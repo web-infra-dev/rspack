@@ -28,6 +28,7 @@ http = ["dep:ureq"]
 base64     = { workspace = true, features = ["std"] }
 bumpalo    = { workspace = true, features = ["collections", "allocator-api2"] }
 cow-utils  = { workspace = true }
+dunce      = { workspace = true }
 hashbrown  = { workspace = true, features = ["allocator-api2", "inline-more"] }
 memchr     = { workspace = true, features = ["std"] }
 miette     = { workspace = true, optional = true, features = ["derive"] }

@@ -1,4 +1,8 @@
-use std::{io, path::Path, sync::Arc};
+use std::{
+  io,
+  path::{Path, PathBuf},
+  sync::Arc,
+};
 
 use parking_lot::Mutex;
 use rspack_fs::{FsResultToIoResultExt, ReadableFileSystem};
@@ -8,6 +12,7 @@ use sugar_path::SugarPath;
 
 pub(crate) struct FileSystem {
   pub fs: Arc<dyn ReadableFileSystem>,
+  pub runtime: tokio::runtime::Handle,
   pub context: Utf8PathBuf,
   pub dependencies: Arc<Mutex<LoaderDependencies>>,
 }
@@ -48,6 +53,18 @@ impl less_rs::FileSystem for FileSystem {
       !matches!(&result, Err(error) if error.kind() == io::ErrorKind::NotFound),
     );
     result
+  }
+
+  fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
+    let path = self.path(path);
+    // Less runs on Rayon, so the input file system can call back into Node.
+    let resolved = self
+      .runtime
+      .block_on(self.fs.canonicalize(&path))
+      .to_io_result()?;
+    self.record(&path, true);
+    self.record(&resolved, true);
+    Ok(resolved.into_std_path_buf())
   }
 
   fn exists(&self, path: &Path) -> bool {

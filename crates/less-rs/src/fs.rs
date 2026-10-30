@@ -25,6 +25,11 @@ pub trait FileSystem: Send + Sync {
   fn read(&self, path: &Path) -> io::Result<String>;
   fn read_bytes(&self, path: &Path) -> io::Result<Vec<u8>>;
   fn exists(&self, path: &Path) -> bool;
+  /// Resolves symlinks for Node-style package imports. File systems without
+  /// symlinks can keep the default identity implementation.
+  fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
+    Ok(path.to_path_buf())
+  }
   /// Fetches an `http(s)://` import. The default supports nothing.
   fn fetch_url(&self, url: &str) -> Result<String, UrlError> {
     let _ = url;
@@ -55,6 +60,9 @@ impl FileSystem for StdFs {
   }
   fn exists(&self, path: &Path) -> bool {
     path.is_file()
+  }
+  fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
+    dunce::canonicalize(path)
   }
   #[cfg(feature = "http")]
   fn fetch_url(&self, url: &str) -> Result<String, UrlError> {

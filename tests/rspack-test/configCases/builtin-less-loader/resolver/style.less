@@ -1,0 +1,13 @@
+@import "@theme/base";
+@import "exported/tokens";
+@import "exported";
+@import "~@scope/theme";
+@import "~@scope/theme/tokens";
+@import "style-package";
+@import "custom-package";
+@import "from-paths";
+@import "collision";
+@import "external.css";
+@part: "nested";
+@import "@theme/@{part}";
+.box { .paint(); width: @width; height: @height; padding: @padding; margin: @margin; top: @top; left: @left; right: @right; bottom: @bottom; z-index: @priority; }

@@ -136,6 +136,7 @@ pub mod __private {
   };
 }
 pub use fs::{FileSystem, MemFs, StdFs, UrlError};
+pub use imports::ImportResolver;
 pub use options::{DumpLineNumbers, Math, Options, RewriteUrls, SourceMapOptions};
 pub use plugin::{
   DimensionArg, FnResult, LessFunction, Plugin, PostProcessor, PreProcessor, Value, ValueArgs,
@@ -232,6 +233,7 @@ type WarningSink = Arc<dyn Fn(&Warning) + Send + Sync>;
 pub struct Compiler {
   options: Options,
   fs: Arc<dyn FileSystem>,
+  import_resolver: Option<Arc<dyn ImportResolver>>,
   registry: Arc<functions::Registry>,
   on_warning: Option<WarningSink>,
   /// Reset arenas kept for reuse (avoids re-faulting fresh memory on every
@@ -286,6 +288,7 @@ impl Compiler {
     Compiler {
       options,
       fs: Arc::new(StdFs),
+      import_resolver: None,
       registry: Arc::new(functions::Registry::with_builtins()),
       on_warning: None,
       arenas: Default::default(),
@@ -317,7 +320,7 @@ impl Compiler {
     opts.filename = Some(filename.to_string());
     let bump = bumpalo::Bump::with_capacity(input.len() * 4);
     let a = Alloc { bump: &bump };
-    let s = Session::new(
+    let mut s = Session::new(
       a,
       &opts,
       &*self.fs,
@@ -325,6 +328,7 @@ impl Compiler {
       self.on_warning.as_deref(),
       &[],
     );
+    s.import_resolver = self.import_resolver.as_deref();
     let r = run_stage(&s, input, Stage::Parse);
     let warnings = s.warnings.borrow().clone();
     match r {
@@ -346,8 +350,6 @@ impl Compiler {
     let pooled = self.arenas.lock().ok().and_then(|mut p| p.pop());
     let mut bump =
       pooled.unwrap_or_else(|| bumpalo::Bump::with_capacity((input.len() * 26).max(64 * 1024)));
-    let sink = self.on_warning.clone();
-    let sink_ref: Option<&(dyn Fn(&Warning) + Send + Sync)> = sink.as_deref();
     let threads = parse_threads();
     let mut workers: Vec<bumpalo::Bump> = Vec::new();
     if threads > 1 {
@@ -357,15 +359,7 @@ impl Compiler {
       }
       workers.resize_with(threads, bumpalo::Bump::new);
     }
-    let result = run(
-      &bump,
-      &workers,
-      &opts,
-      &*self.fs,
-      &self.registry,
-      sink_ref,
-      input,
-    );
+    let result = run(&bump, &workers, &opts, self, input);
     bump.reset();
     if let Ok(mut p) = self.arenas.lock()
       && p.len() < 2
@@ -391,6 +385,7 @@ impl Compiler {
 pub struct CompilerBuilder {
   options: Options,
   fs: Option<Arc<dyn FileSystem>>,
+  import_resolver: Option<Arc<dyn ImportResolver>>,
   registry: Option<functions::Registry>,
   on_warning: Option<WarningSink>,
 }
@@ -471,6 +466,11 @@ impl CompilerBuilder {
     self.fs = Some(Arc::new(fs));
     self
   }
+  /// Installs a host resolver for imports. File reads still use `file_system`.
+  pub fn import_resolver(mut self, resolver: impl ImportResolver + 'static) -> Self {
+    self.import_resolver = Some(Arc::new(resolver));
+    self
+  }
   pub fn pre_processor(mut self, p: impl PreProcessor + 'static) -> Self {
     self
       .registry
@@ -493,6 +493,7 @@ impl CompilerBuilder {
     Compiler {
       options: self.options,
       fs: self.fs.unwrap_or_else(|| Arc::new(StdFs)),
+      import_resolver: self.import_resolver,
       registry: Arc::new(
         self
           .registry
@@ -509,13 +510,20 @@ fn run<'a>(
   bump: &'a bumpalo::Bump,
   workers: &'a [bumpalo::Bump],
   opts: &'a Options,
-  fs: &'a dyn FileSystem,
-  registry: &'a functions::Registry,
-  sink: Option<&'a (dyn Fn(&Warning) + Send + Sync)>,
+  compiler: &'a Compiler,
   input: &'a str,
 ) -> Result<Output, Error> {
   let a = Alloc { bump };
-  let s = Session::new(a, opts, fs, registry, sink, workers);
+  let registry = &compiler.registry;
+  let mut s = Session::new(
+    a,
+    opts,
+    &*compiler.fs,
+    registry,
+    compiler.on_warning.as_deref(),
+    workers,
+  );
+  s.import_resolver = compiler.import_resolver.as_deref();
   let result = run_inner(&s, input);
   let warnings = s.warnings.borrow().clone();
   match result {

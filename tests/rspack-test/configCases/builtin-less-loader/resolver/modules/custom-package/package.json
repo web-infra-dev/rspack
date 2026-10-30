@@ -1,0 +1,1 @@
+{"name":"custom-package","exports":{"custom":"./tokens.less","default":"./wrong.less"}}

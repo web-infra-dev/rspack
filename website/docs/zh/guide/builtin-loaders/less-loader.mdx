@@ -45,11 +45,12 @@ export default {
 
 loader 接受以下选项。`@rspack/core` 导出了 `LessLoaderOptions` 和 `LessOptions` 类型。
 
-| 选项             | 说明                                                                                                                                 |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `sourceMap`      | 是否生成 source map，默认使用 Rspack 根据 `devtool` 推导的 loader source map 设置。生成的映射会与输入映射合并，并传给下一个 loader。 |
-| `additionalData` | 添加到每个资源开头的 Less 代码字符串，后面自动添加换行。                                                                             |
-| `lessOptions`    | 下文列出的 Less 编译选项。                                                                                                           |
+| 选项              | 说明                                                                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `sourceMap`       | 是否生成 source map，默认使用 Rspack 根据 `devtool` 推导的 loader source map 设置。生成的映射会与输入映射合并，并传给下一个 loader。 |
+| `additionalData`  | 添加到每个资源开头的 Less 代码字符串，后面自动添加换行。                                                                             |
+| `webpackImporter` | 先用 Less 查找，再使用 Rspack resolver（`true`，默认）；禁用集成（`false`）；或仅使用 Rspack resolver（`"only"`）。                  |
+| `lessOptions`     | 下文列出的 Less 编译选项。                                                                                                           |
 
 `lessOptions` 会传给 `less-rs` 中兼容 Less.js 的选项解析器。编译器选项包括：
 
@@ -65,8 +66,14 @@ loader 默认设置 `relativeUrls: true` 和 `filename: resourcePath`，与 Java
 
 编译器选项及未知字段由 `less-rs` 统一解释。loader 顶层的未知选项会报错。
 
-Less 导入使用 `less-rs` 的解析规则，并通过 Rspack 的输入文件系统读取。导入文件以及 `data-uri()` 等函数读取的文件都会被记录为文件依赖。缺失的导入文件（包括可选导入）也会被跟踪，用于 watch 模式。
+默认先使用 Less 自身的查找规则（包括 `lessOptions.paths`），失败后再使用 Rspack resolver，支持 `resolve.alias`、package `exports` 和传统的 `~` 包导入。新代码建议省略 `~`。Resolver 继承项目的 resolve 配置，加入 `less`、`style` 条件及 `less`、`style`、`main` 入口字段，并尝试 `.less` 和 `.css` 扩展名。可以通过 `resolve.byDependency.less` 定制 Less 的解析规则。
 
-该 loader 支持 JavaScript `less-loader` 选项的一个子集，不支持函数形式的选项、自定义 JavaScript 实现或插件、JavaScript 求值、HTTP 导入，也不支持 `webpackImporter` 与 Rspack resolver 的集成（`resolve.alias`、package exports 和 `~` 导入）。需要这些功能时，请使用相对导入、`lessOptions.paths` 或 JavaScript `less-loader`。
+设置 `webpackImporter: false` 可仅使用 Less 查找；设置 `webpackImporter: "only"` 可仅使用 Rspack resolver。默认模式下，Less 找到的文件优先于同名 alias；`~package` 请求直接交给 Rspack resolver。
+
+Node 风格的包查找会通过 Rspack 输入文件系统解析软链接，再处理嵌套导入，因此 pnpm 包可以从真实目录找到自己的依赖。
+
+解析后的文件仍由 less-rs 在同一次编译中解析和求值，保留跨 import 的变量与 mixin 语义。文件读取使用 Rspack 输入文件系统。导入文件、resolver 依赖（包括 package.json）以及 `data-uri()` 等函数读取的文件均记录为文件依赖；缺失导入（包括可选导入）也会被追踪，用于 watch 重建。保留在输出中的 CSS import 交由后续 CSS 流程处理。
+
+该 loader 支持 JavaScript `less-loader` 选项的一个子集，仍不支持函数形式的选项、自定义 JavaScript 实现或插件、JavaScript 求值及 HTTP 导入。需要这些功能时，请使用 JavaScript `less-loader`。JavaScript 表达式求值与 JavaScript 插件是独立能力；仅支持表达式求值并不意味着支持 Less 插件 API。
 
 传入 `javascriptEnabled`、`insecure` 或 `disablePluginRule` 等编译器标志，不会为 `less-rs` 或 loader 增加 JavaScript 或 HTTP 支持。

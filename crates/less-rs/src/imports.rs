@@ -266,6 +266,20 @@ pub(crate) fn path_diff(url: &str, base_url: &str) -> String {
 // file manager
 // ---------------------------------------------------------------------------
 
+/// Resolves imports using a host application's module resolver.
+///
+/// The returned filename is read through the compiler's [`crate::FileSystem`]
+/// and becomes the base for nested imports, URL rewriting and source maps.
+pub trait ImportResolver: Send + Sync {
+  fn resolve(&self, filename: &str, current_directory: &str) -> std::io::Result<String>;
+
+  /// Try Less's native file lookup first, falling back to this resolver.
+  /// Return false to resolve the request exclusively through the host.
+  fn use_less_resolver(&self, _filename: &str) -> bool {
+    true
+  }
+}
+
 pub(crate) struct Loaded<'a> {
   pub filename: String,
   pub contents: std::borrow::Cow<'a, str>,
@@ -280,7 +294,13 @@ fn require_resolve(s: &Session<'_>, name: &str) -> Option<String> {
   loop {
     let cand = dir.join("node_modules").join(name);
     if s.fs.exists(&cand) {
-      return Some(cand.to_string_lossy().to_string());
+      // Node's require.resolve returns the real filename. Keeping a pnpm
+      // symlink here loses the package's own node_modules for nested imports.
+      return s
+        .fs
+        .canonicalize(&cand)
+        .ok()
+        .map(|path| path.to_string_lossy().cow_replace('\\', "/").into_owned());
     }
     if !dir.pop() {
       return None;
@@ -375,6 +395,46 @@ pub(crate) fn load_file<'a>(
   if is_url(filename) || is_url(current_directory) {
     return load_url(s, filename, current_directory);
   }
+  let Some(resolver) = s.import_resolver else {
+    return load_native_file(s, filename, current_directory, ext);
+  };
+  let native_error = if resolver.use_less_resolver(filename) {
+    match load_native_file(s, filename, current_directory, ext) {
+      Ok(loaded) => return Ok(loaded),
+      Err(error) => Some(error),
+    }
+  } else {
+    None
+  };
+  let resolved = resolver
+    .resolve(filename, current_directory)
+    .map_err(|error| {
+      let message = match native_error {
+        Some(native) => format!("Less resolver error:\n{}\n\n{}", native.message, error),
+        None => error.to_string(),
+      };
+      LessError::new("File", message)
+    })?;
+  // Do not reinterpret the resolved filename with include paths or append an
+  // extension. Its identity must also be retained for nested imports and maps.
+  let contents = read_once(s.fs, &s.read_cache, s.a, &resolved).ok_or_else(|| {
+    LessError::new(
+      "File",
+      format!("Could not read resolved import '{}'", resolved),
+    )
+  })?;
+  Ok(Loaded {
+    filename: resolved,
+    contents: contents.into(),
+  })
+}
+
+fn load_native_file<'a>(
+  s: &Session<'a>,
+  filename: &str,
+  current_directory: &str,
+  ext: Option<&str>,
+) -> Result<Loaded<'a>, Box<LessError>> {
   let is_absolute = is_path_absolute(filename);
   let prefix = filename.as_bytes().first().copied();
   let explicit = prefix == Some(b'.') || prefix == Some(b'/');
@@ -776,7 +836,7 @@ pub(crate) fn run_imports<'a>(
         continue;
       }
       if let Some(text) =
-        first_candidate(path, dir, ".less").and_then(|f| read_once(s.fs, &s.read_cache, s.a, &f))
+        first_candidate(s, path, dir, ".less").and_then(|f| read_once(s.fs, &s.read_cache, s.a, &f))
       {
         n += import_statements(text);
       }
@@ -1048,7 +1108,18 @@ fn plain_string<'a>(n: Node<'a>, frames: &[Frame<'a>], depth: u32) -> Option<&'a
 
 /// The first path `load_file` tries for a relative or absolute import
 /// (`None` when resolution starts with node module lookup).
-fn first_candidate(filename: &str, current_directory: &str, ext: &str) -> Option<String> {
+fn first_candidate(
+  s: &Session<'_>,
+  filename: &str,
+  current_directory: &str,
+  ext: &str,
+) -> Option<String> {
+  if s
+    .import_resolver
+    .is_some_and(|resolver| !resolver.use_less_resolver(filename))
+  {
+    return None;
+  }
   let p = if is_path_absolute(filename) {
     ""
   } else {
@@ -1298,7 +1369,7 @@ impl<'a, 's> ImportVisitor<'a, 's> {
         if is_url(dir) {
           continue;
         }
-        if let Some(full) = first_candidate(path, dir, ".less") {
+        if let Some(full) = first_candidate(s, path, dir, ".less") {
           // each `multiple` import parses the file again (one job
           // per import); others parse it once
           let wanted = if imp.options.multiple == Some(true) {
@@ -1757,7 +1828,7 @@ impl<'a, 's> ImportVisitor<'a, 's> {
       if is_url(dir) {
         continue;
       }
-      if let Some(full) = first_candidate(&path, dir, ".less")
+      if let Some(full) = first_candidate(s, &path, dir, ".less")
         && (s.file_id(&full).is_none() || imp.options.multiple == Some(true))
       {
         paths.push(full);

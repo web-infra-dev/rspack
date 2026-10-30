@@ -14,6 +14,7 @@ use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_loader_runner::{Identifier, LoaderDependencies};
 
 mod file_system;
+mod importer;
 pub mod options;
 mod plugin;
 
@@ -93,14 +94,29 @@ impl LessLoader {
         .into_owned();
     }
     let dependencies = Arc::new(Mutex::new(LoaderDependencies::default()));
-    let compiler = less_rs::Compiler::builder()
-      .options(options)
-      .file_system(file_system::FileSystem {
-        fs: Arc::clone(&context.context.fs),
-        context: context.context.options.context.as_str().into(),
-        dependencies: Arc::clone(&dependencies),
-      })
-      .build();
+    let mut compiler =
+      less_rs::Compiler::builder()
+        .options(options)
+        .file_system(file_system::FileSystem {
+          fs: Arc::clone(&context.context.fs),
+          runtime: tokio::runtime::Handle::current(),
+          context: context.context.options.context.as_str().into(),
+          dependencies: Arc::clone(&dependencies),
+        });
+    if !matches!(
+      self.options.webpack_importer,
+      Some(options::WebpackImporter::Enabled(false))
+    ) {
+      compiler = compiler.import_resolver(importer::Importer::new(
+        context,
+        Arc::clone(&dependencies),
+        matches!(
+          self.options.webpack_importer,
+          Some(options::WebpackImporter::Mode(_))
+        ),
+      ));
+    }
+    let compiler = compiler.build();
     // Less is synchronous and its input filesystem may call back into Node.js.
     // Run it outside Tokio so those synchronous reads can drive their futures.
     let (sender, receiver) = tokio::sync::oneshot::channel();

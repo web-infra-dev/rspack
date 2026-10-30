@@ -19,6 +19,7 @@ pub enum DependencyCategory {
   Wasm,
   Worker,
   LoaderImport,
+  Less,
 }
 
 impl From<&str> for DependencyCategory {
@@ -33,6 +34,7 @@ impl From<&str> for DependencyCategory {
       "css-compose" => Self::CssCompose,
       "css-local-ident" => Self::CssLocalIdent,
       "loaderImport" => Self::LoaderImport,
+      "less" => Self::Less,
       "worker" => Self::Worker,
       "unknown" => Self::Unknown,
       _ => Self::Unknown,
@@ -55,6 +57,7 @@ impl DependencyCategory {
       DependencyCategory::Wasm => "wasm",
       DependencyCategory::Worker => "worker",
       DependencyCategory::LoaderImport => "loaderImport",
+      DependencyCategory::Less => "less",
     }
   }
 }

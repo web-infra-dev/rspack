@@ -4,6 +4,11 @@ import path from 'node:path';
 
 /** @type {import('@rspack/core').Configuration} */
 export default {
+  resolve: {
+    alias: {
+      'virtual-theme': path.join(import.meta.dirname, 'virtual-theme.less'),
+    },
+  },
   module: {
     rules: [
       { test: /\.less$/, type: 'asset/source', use: 'builtin:less-loader' },

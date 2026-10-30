@@ -7,9 +7,25 @@ use serde_json::{Map, Value, json};
 #[serde(default, rename_all = "camelCase", deny_unknown_fields)]
 pub struct LessLoaderOptions {
   pub source_map: Option<bool>,
+  pub webpack_importer: Option<WebpackImporter>,
   pub additional_data: Option<String>,
   #[cacheable(with=AsPreset)]
   pub less_options: Map<String, Value>,
+}
+
+#[cacheable]
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum WebpackImporter {
+  Enabled(bool),
+  Mode(ImporterMode),
+}
+
+#[cacheable]
+#[derive(Debug, Deserialize)]
+pub enum ImporterMode {
+  #[serde(rename = "only")]
+  Only,
 }
 
 impl LessLoaderOptions {

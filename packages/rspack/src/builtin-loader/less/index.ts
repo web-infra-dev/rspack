@@ -46,6 +46,8 @@ export interface LessOptions {
 }
 
 export interface LessLoaderOptions {
+  /** Resolve imports with Rspack after Less lookup (default true). "only" skips Less lookup. */
+  webpackImporter?: boolean | 'only';
   /** Defaults to the source map setting derived from `devtool`. */
   sourceMap?: boolean;
   /** Less code prepended to the resource, followed by a newline. */

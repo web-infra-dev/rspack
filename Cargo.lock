@@ -2392,11 +2392,12 @@ checksum = "09edd9e8b54e49e587e4f6295a7d29c3ea94d469cb40ab8ca70b288248a81db2"
 
 [[package]]
 name = "less-rs"
-version = "0.103.0-beta.1"
+version = "0.103.0"
 dependencies = [
  "base64",
  "bumpalo",
  "cow-utils",
+ "dunce",
  "hashbrown 0.17.1",
  "memchr",
  "miette",
@@ -4634,7 +4635,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_less"
-version = "0.103.0-beta.1"
+version = "0.103.0"
 dependencies = [
  "async-trait",
  "cow-utils",
