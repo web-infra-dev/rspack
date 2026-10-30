@@ -443,7 +443,15 @@
 			<%- HAS_OWN_PROPERTY %>(<%- _installed_chunks %>, chunkId) &&
 			<%- _installed_chunks %>[chunkId] !== undefined
 		) {
-			promises.push(<%- _load_update_chunk %>(chunkId, updatedModulesList));
+			var installedChunk = <%- _installed_chunks %>[chunkId];
+			// Install an in-flight ordinary chunk before downloading its update.
+			promises.push(Array.isArray(installedChunk)
+				? installedChunk[installedChunk.length - 1].then(function () {
+					return <%- _load_update_chunk %>(chunkId, updatedModulesList);
+				}, function () {
+					hotCurrentUpdateChunks[chunkId] = false;
+				})
+				: <%- _load_update_chunk %>(chunkId, updatedModulesList));
 			hotCurrentUpdateChunks[chunkId] = true;
 		} else {
 			hotCurrentUpdateChunks[chunkId] = false;

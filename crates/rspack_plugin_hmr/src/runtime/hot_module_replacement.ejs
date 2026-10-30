@@ -8,6 +8,7 @@
 // status
 <%- var("registeredStatusHandlers") %> = [];
 <%- var("currentStatus") %> = "idle";
+<%- var("canHoldChunk") %> = false;
 
 // while downloading
 <%- var("blockingPromises") %> = 0;
@@ -194,6 +195,8 @@
 
 <%- fn("setStatus") %>(newStatus) {
 	currentStatus = newStatus;
+	// A manual check may wait for the import before calling apply().
+	if (newStatus !== "check" && newStatus !== "prepare") canHoldChunk = false;
 	<% if (_is_hot_test) { %>
 	if (self.__HMR_UPDATED_RUNTIME__) {
 		self.__HMR_UPDATED_RUNTIME__.statusPath.push(newStatus);
@@ -257,13 +260,12 @@
 	if (!<%- REQUIRE_SCOPE %>.hmrV || <%- REQUIRE_SCOPE %>.hmrV[chunkId] === undefined ||
 		<%- REQUIRE_SCOPE %>.hmrL[chunkId] === <%- REQUIRE_SCOPE %>.hmrV[chunkId]) return promise;
 	return promise.then(function (result) {
-		if (isCurrentChunkVersion(chunkId)) return result;
 		return waitForChunkVersion(chunkId).then(function () { return result; });
 	});
 }
 
 <%- fn("waitForChunkVersion") %>(chunkId) {
-	if (isCurrentChunkVersion(chunkId)) return Promise.resolve();
+	if (!canHoldChunk && isCurrentChunkVersion(chunkId)) return Promise.resolve();
 	if (currentStatus === "abort" || currentStatus === "fail") {
 		return Promise.reject(new Error("Loaded chunk " + chunkId + " is from another build, and the update failed (" + currentStatus + ")"));
 	}
@@ -284,6 +286,7 @@
 	if (currentStatus !== "idle") {
 		throw new Error("check() is only allowed in idle status");
 	}
+	canHoldChunk = Boolean(applyOnUpdate);
 	<% if (_is_hot_test) { %>
 	self.__HMR_UPDATED_RUNTIME__ = {
 		javascript: {
@@ -342,6 +345,9 @@
 					});
 				});
 			});
+		}, function (err) {
+			// Wake imports waiting for a check whose manifest failed to load.
+			return setStatus("fail").then(function () { throw err; });
 		});
 }
 

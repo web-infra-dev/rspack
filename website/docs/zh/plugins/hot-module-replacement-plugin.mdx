@@ -29,6 +29,8 @@ export default {
 
 启用 HMR 后，动态导入可能先下载到新编译的 chunk，而运行时尚未应用对应的更新。Rspack 会检查 chunk 的版本，依次应用可用的热更新，等到版本匹配后再执行导入的模块。如果更新失败或不可用，导入的 Promise 会被拒绝。这一机制不要求 chunk 文件名包含版本信息。
 
+如果热更新开始时 chunk 仍在加载，Rspack 会等它完成安装后，再下载对应的 hot update，避免较晚返回的响应覆盖更新后的 module factory。手动调用 `check(false)` 仍然只准备更新，由调用方决定何时调用 `apply()`。
+
 ## React Fast Refresh
 
 为了在 React 项目中启用 Fast Refresh 能力，你还需要使用 [@rspack/plugin-react-refresh](https://www.npmjs.com/package/@rspack/plugin-react-refresh) 插件。
