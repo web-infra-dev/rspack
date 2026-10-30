@@ -31,6 +31,8 @@ With HMR enabled, a dynamic import can download a chunk from a newer build befor
 
 If a chunk is already loading when a hot update starts, Rspack waits for it to install before downloading its update. This prevents a late response from overwriting the updated module factories. A manual `check(false)` still only prepares the update; the caller decides when to call `apply()`.
 
+Imports that are still loading during an automatic update also wait for that update to finish. Preparation waits for asynchronous status handlers and all hot-update files. If preparation or application fails, imports waiting for the update reject instead of remaining pending.
+
 ## React Fast Refresh
 
 To enable Fast Refresh in React projects, you also need to use the [@rspack/plugin-react-refresh](https://www.npmjs.com/package/@rspack/plugin-react-refresh) plugin.

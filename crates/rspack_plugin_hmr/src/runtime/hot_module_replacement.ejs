@@ -25,7 +25,7 @@
 <% } %>
 <%- INTERCEPT_MODULE_EXECUTION %>.push(function (options) {
 	var module = options.module;
-	var require = rspackHmrCreateRequire(options.require, options.id<% if (_is_rspack_runtime_mode) { %>, options.context<% } %>);
+	var require = rspackHmrCreateRequire(options.require, options.id);
 	module.hot = createModuleHotObject(options.id, module);
 	module.parents = currentParents;
 	module.children = [];
@@ -44,7 +44,7 @@
 <%- define(HMR_INVALIDATE_MODULE_HANDLERS) %> = {};
 <%- REQUIRE_SCOPE %>.hmrL = Object.create(null);
 
-<%- fn("rspackHmrCreateRequire") %>(require, moduleId<% if (_is_rspack_runtime_mode) { %>, context<% } %>) {
+<%- fn("rspackHmrCreateRequire") %>(require, moduleId) {
 	var me = hmrInstalledModules[moduleId];
 	if (!me) return require;
 	var fn = function (request) {
@@ -90,11 +90,10 @@
 		}
 	}
 
-	<% if (_is_rspack_runtime_mode) { %>var ensureChunk = context.e;<% } %>
 	fn.e = function (chunkId, fetchPriority) {
 		// Only the download blocks prepare. Waiting for a version must not block
 		// the update that makes the loaded chunk compatible.
-		return checkChunkVersion(chunkId, trackBlockingPromise(<% if (_is_rspack_runtime_mode) { %>ensureChunk<% } else { %>require.e<% } %>(chunkId, fetchPriority)));
+		return checkChunkVersion(chunkId, trackBlockingPromise(<% if (_is_rspack_runtime_mode) { %><%- REQUIRE_SCOPE %>.e<% } else { %>require.e<% } %>(chunkId, fetchPriority)));
 	};
 
 	return fn;
@@ -195,8 +194,8 @@
 
 <%- fn("setStatus") %>(newStatus) {
 	currentStatus = newStatus;
-	// A manual check may wait for the import before calling apply().
-	if (newStatus !== "check" && newStatus !== "prepare") canHoldChunk = false;
+	// Automatic checks also pass through ready before applying their update.
+	if (newStatus !== "check" && newStatus !== "prepare" && newStatus !== "ready") canHoldChunk = false;
 	<% if (_is_hot_test) { %>
 	if (self.__HMR_UPDATED_RUNTIME__) {
 		self.__HMR_UPDATED_RUNTIME__.statusPath.push(newStatus);
@@ -215,15 +214,23 @@
 }
 
 <%- fn("unblock") %>() {
-	if (--blockingPromises === 0) {
-		setStatus("ready").then(function () {
+	if (--blockingPromises === 0 && currentStatus === "prepare") {
+		// Change status synchronously, but propagate throws as promise rejections.
+		return new Promise(function (resolve) {
+			resolve(setStatus("ready"));
+		}).then(function () {
 			if (blockingPromises === 0) {
 				var list = blockingPromisesWaiting;
 				blockingPromisesWaiting = [];
 				for (var i = 0; i < list.length; i++) {
-					list[i]();
+					list[i].resolve();
 				}
 			}
+		}, function (err) {
+			var list = blockingPromisesWaiting;
+			blockingPromisesWaiting = [];
+			for (var i = 0; i < list.length; i++) list[i].reject(err);
+			throw err;
 		});
 	}
 }
@@ -234,8 +241,11 @@
 			setStatus("prepare");
 		case "prepare":
 			blockingPromises++;
-			promise.then(unblock, unblock);
-			return promise;
+			return promise.then(function (result) {
+				return Promise.resolve(unblock()).then(function () { return result; });
+			}, function (err) {
+				return Promise.resolve(unblock()).then(function () { throw err; });
+			});
 		default:
 			return promise;
 	}
@@ -243,11 +253,9 @@
 
 <%- fn("waitForBlockingPromises") %>(fn) {
 	if (blockingPromises === 0) return fn();
-	return new Promise(function (resolve) {
-		blockingPromisesWaiting.push(function () {
-			resolve(fn());
-		});
-	});
+	return new Promise(function (resolve, reject) {
+		blockingPromisesWaiting.push({ resolve: resolve, reject: reject });
+	}).then(function () { return waitForBlockingPromises(fn); });
 }
 
 // Ported from webpack's HotModuleReplacement.runtime.js (MIT licensed).
@@ -265,10 +273,10 @@
 }
 
 <%- fn("waitForChunkVersion") %>(chunkId) {
-	if (!canHoldChunk && isCurrentChunkVersion(chunkId)) return Promise.resolve();
 	if (currentStatus === "abort" || currentStatus === "fail") {
 		return Promise.reject(new Error("Loaded chunk " + chunkId + " is from another build, and the update failed (" + currentStatus + ")"));
 	}
+	if (!canHoldChunk && isCurrentChunkVersion(chunkId)) return Promise.resolve();
 	if (currentStatus !== "idle") {
 		return new Promise(function (resolve) { settledWaiters.push(resolve); }).then(function () {
 			return waitForChunkVersion(chunkId);
@@ -305,6 +313,7 @@
 		.then(<%- HMR_DOWNLOAD_MANIFEST %>)
 		.then(function (update) {
 			if (!update) {
+				canHoldChunk = false;
 				return setStatus(applyInvalidatedModules() ? "ready" : "idle").then(
 					function () {
 						return null;
@@ -312,8 +321,12 @@
 				);
 			}
 
-			return setStatus("prepare").then(function () {
-				var updatedModules = [];
+			var updatedModules = [];
+			// Preparation includes async status handlers and all update downloads.
+			blockingPromises++;
+			return Promise.resolve().then(function () {
+				return setStatus("prepare");
+			}).then(function () {
 				currentUpdateApplyHandlers = [];
 
 				return Promise.all(
@@ -334,19 +347,24 @@
 						return promises;
 					},
 						[])
-				).then(function () {
-					return waitForBlockingPromises(function () {
-						if (applyOnUpdate) {
-							return internalApply(applyOnUpdate);
-						}
-						return setStatus("ready").then(function () {
-							return updatedModules;
-						});
+				);
+			}).then(function () {
+				blockingPromises--;
+				return waitForBlockingPromises(function () {
+					if (applyOnUpdate) {
+						return internalApply(applyOnUpdate);
+					}
+					return setStatus("ready").then(function () {
+						return updatedModules;
 					});
 				});
+			}, function (err) {
+				blockingPromises--;
+				throw err;
 			});
-		}, function (err) {
-			// Wake imports waiting for a check whose manifest failed to load.
+		}).catch(function (err) {
+			// Wake imports when either the manifest or update preparation fails.
+			if (currentStatus === "abort" || currentStatus === "fail") throw err;
 			return setStatus("fail").then(function () { throw err; });
 		});
 }

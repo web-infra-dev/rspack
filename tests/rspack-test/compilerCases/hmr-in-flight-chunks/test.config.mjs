@@ -20,18 +20,58 @@ async function wait(promise) {
   }
 }
 
+const scenarios = [
+  ...[
+    'late',
+    'hashed-late',
+    'during-prepare',
+    'manual',
+    'load-error',
+    'two-updates',
+    'removed',
+    'moved',
+    'manifest-error',
+  ].map((name) => ({ name })),
+  ...['before-check', 'check', 'prepare', 'downloading'].flatMap((start) =>
+    [1, 2].flatMap((version) =>
+      ['chunk-first', 'update-first'].map((order) => ({
+        name: `${start}-v${version}-${order}`,
+        start,
+        version,
+        order,
+      })),
+    ),
+  ),
+  ...['update-error', 'abort', 'accept-error', 'manual-apply'].map((name) => ({
+    name,
+    start: 'downloading',
+    version: 2,
+    order: 'chunk-first',
+  })),
+  { name: 'async-prepare', start: 'prepare', version: 1, order: 'chunk-first' },
+  {
+    name: 'manual-ready-import',
+    start: 'ready',
+    version: 1,
+    order: 'update-first',
+  },
+  ...['prepare-throw', 'prepare-reject'].map((name) => ({
+    name,
+    start: 'prepare',
+    version: 2,
+    order: 'chunk-first',
+  })),
+  ...['ready-throw', 'ready-reject', 'ready-starts-import'].map((name) => ({
+    name,
+    start: 'downloading',
+    version: 2,
+    order: 'update-first',
+  })),
+];
+
 export default ['web', 'async-node', 'module'].flatMap((target) =>
   ['webpack', 'rspack'].flatMap((runtimeMode) =>
-    [
-      'late',
-      'during-prepare',
-      'manual',
-      'load-error',
-      'two-updates',
-      'removed',
-      'moved',
-      'manifest-error',
-    ].map((scenario) => ({
+    scenarios.map(({ name: scenario, start, version, order }) => ({
       name: `${target}-${runtimeMode}-${scenario}`,
       description: 'applies HMR after an in-flight chunk installs',
       compiler(_context, compiler) {
@@ -52,7 +92,7 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
             chunkLoading: esm ? 'import' : undefined,
             importFunctionName: esm ? 'globalThis.hmrChunkImport' : undefined,
             filename: esm ? '[name].mjs' : '[name].js',
-            chunkFilename: esm ? '[name].mjs' : '[name].js',
+            chunkFilename: `[name]${scenario === 'hashed-late' ? '.[contenthash]' : ''}.${esm ? 'mjs' : 'js'}`,
             publicPath: esm
               ? pathToFileURL(`${context.getDist('output')}/`).href
               : '/',
@@ -81,10 +121,12 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
         write(
           'index.js',
           `
-          var app = globalThis.inFlightHmr = { hot: module.hot };
+          var app = globalThis.inFlightHmr = { hot: module.hot, hash: () => __webpack_hash__, executions: [] };
           app.load = () => import(/* webpackChunkName: "page" */ './page');
           app.other = () => import(/* webpackChunkName: "q" */ './q');
           module.hot.accept('./page');
+          require('./trigger');
+          ${scenario === 'abort' ? "module.hot.decline('./trigger');" : `module.hot.accept('./trigger', () => { ${scenario === 'accept-error' ? 'throw new Error("accept failed");' : "require('./trigger');"} });`}
         `,
         );
         write(
@@ -96,21 +138,53 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
         write('q.js', 'module.exports = "q1";');
         write('m.js', 'module.exports = "m1";');
         write('removed.js', 'globalThis.removedRan = true;');
+        write('trigger.js', 'module.exports = 0;');
+        const pageSource = (version) => `
+          globalThis.inFlightHmr.executions.push({ version: ${version}, hash: __webpack_hash__, status: module.hot.status() });
+          module.exports = ${version};
+        `;
+        if (start) write('page.js', pageSource(1));
 
         const native = target !== 'web';
         const sandbox = native
           ? globalThis
           : vm.createContext({ console, Promise, setTimeout, clearTimeout });
         const originalReadFile = fs.readFile;
+        const isPage = (name) =>
+          /^page(?:\.[a-f0-9]+)?\.(?:js|mjs)$/.test(name);
+        const holdChunk = (name) =>
+          isPage(name) ||
+          (scenario === 'ready-starts-import' && /^q\.(?:js|mjs)$/.test(name));
+        let initialPage;
         const held = [];
+        const requested = [];
+        const delivered = [];
+        const requestWaiters = [];
         let holding = false;
         let resolveHeld;
         const heldResponse = new Promise((resolve) => {
           resolveHeld = resolve;
         });
-        const hold = (deliver, fail) => {
-          held.push({ deliver, fail });
+        const hold = (deliver, fail, name = 'page') => {
+          held.push({ deliver, fail, name });
+          requested.push(name);
           resolveHeld();
+          requestWaiters.splice(0).forEach((resolve) => resolve());
+        };
+        const response = (pattern) =>
+          wait(
+            (async () => {
+              while (true) {
+                const result = held.find((item) => pattern.test(item.name));
+                if (result) return result;
+                await new Promise((resolve) => requestWaiters.push(resolve));
+              }
+            })(),
+          );
+        const deliver = async (item) => {
+          held.splice(held.indexOf(item), 1);
+          delivered.push(item.name);
+          await item.deliver();
         };
         const release = () => {
           holding = false;
@@ -124,6 +198,10 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
         if (target === 'web') {
           sandbox.fetch = async (url) => {
             if (manifestError) throw networkError();
+            if (start === 'check' && holding)
+              await new Promise((resolve, reject) =>
+                hold(resolve, reject, path.basename(url)),
+              );
             const filename = path.join(output, path.basename(url));
             return {
               status: fs.existsSync(filename) ? 200 : 404,
@@ -140,12 +218,23 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
               const name = path.basename(script.src);
               const source = fs.readFileSync(path.join(output, name), 'utf8');
               const deliver = () => {
-                vm.runInContext(source, sandbox);
+                const content =
+                  start && name === 'page.js'
+                    ? version === 1
+                      ? initialPage
+                      : fs.readFileSync(path.join(output, name), 'utf8')
+                    : source;
+                vm.runInContext(content, sandbox);
                 script.onload?.({ type: 'load', target: script });
               };
-              if (holding && name === 'page.js') {
-                hold(deliver, () =>
-                  script.onerror({ type: 'error', target: script }),
+              if (
+                holding &&
+                (holdChunk(name) || (start && name.endsWith('.hot-update.js')))
+              ) {
+                hold(
+                  deliver,
+                  () => script.onerror({ type: 'error', target: script }),
+                  name,
                 );
               } else queueMicrotask(deliver);
             },
@@ -181,10 +270,27 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
               filename,
               ...args,
               (error, content) => {
-                if (holding && filename === path.join(output, 'page.js')) {
+                const name = path.basename(filename);
+                if (
+                  holding &&
+                  args[0] === 'utf-8' &&
+                  filename.startsWith(output) &&
+                  (holdChunk(name) ||
+                    (start && name.endsWith('.hot-update.js')) ||
+                    (start === 'check' && name.endsWith('.hot-update.json')))
+                ) {
                   hold(
-                    () => callback(error, content),
+                    () =>
+                      callback(
+                        error,
+                        start && name === 'page.js'
+                          ? version === 1
+                            ? initialPage
+                            : fs.readFileSync(filename, 'utf8')
+                          : content,
+                      ),
                     () => callback(networkError()),
+                    name,
                   );
                 } else callback(error, content);
               },
@@ -195,13 +301,33 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
             url = new URL(url, pathToFileURL(`${output}/`)).href;
             if (manifestError && url.includes('hot-update.json'))
               return Promise.reject(networkError());
-            if (holding && path.basename(fileURLToPath(url)) === 'page.mjs') {
-              const copy = path.join(output, 'held-page.mjs');
-              fs.copyFileSync(fileURLToPath(url), copy);
+            const filename = fileURLToPath(url);
+            const name = path.basename(filename);
+            if (
+              holding &&
+              (holdChunk(name) ||
+                (start && name.endsWith('.hot-update.mjs')) ||
+                (start === 'check' && name.endsWith('.hot-update.json.mjs')))
+            ) {
+              const copy = path.join(output, `held-${name}`);
+              fs.copyFileSync(filename, copy);
               return new Promise((resolve, reject) => {
                 hold(
-                  () => import(pathToFileURL(copy).href).then(resolve, reject),
+                  () => {
+                    if (start && name === 'page.mjs')
+                      fs.writeFileSync(
+                        copy,
+                        version === 1
+                          ? initialPage
+                          : fs.readFileSync(filename, 'utf8'),
+                      );
+                    return import(pathToFileURL(copy).href).then(
+                      resolve,
+                      reject,
+                    );
+                  },
                   () => reject(networkError()),
+                  name,
                 );
               });
             }
@@ -221,9 +347,14 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
             ),
           );
           assert.equal(stats.hasErrors(), false, stats.toString());
+          return stats.hash;
         };
         try {
           await build();
+          initialPage = fs.readFileSync(
+            path.join(output, fs.readdirSync(output).find(isPage)),
+            'utf8',
+          );
           if (target === 'module')
             await import(pathToFileURL(path.join(output, 'main.mjs')).href);
           else if (native)
@@ -236,6 +367,219 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
           const app = sandbox.inFlightHmr;
           const statuses = [];
           app.hot.addStatusHandler((status) => statuses.push(status));
+
+          if (start) {
+            holding = true;
+            let imports;
+            let pendingImports;
+            let otherImport;
+            const load = () => {
+              pendingImports = [app.load(), app.load()];
+              imports = Promise.all(pendingImports);
+              imports.catch(() => {});
+            };
+            if (start === 'before-check') {
+              load();
+              await response(/^page\.(?:js|mjs)$/);
+            }
+            const nextHash = await build({
+              'page.js': pageSource(2),
+              'trigger.js': 'module.exports = 1;',
+            });
+            let finishPrepare;
+            const prepareGate = new Promise((resolve) => {
+              finishPrepare = resolve;
+            });
+            if (start === 'prepare')
+              app.hot.addStatusHandler((status) => {
+                if (status === 'prepare' && !imports) load();
+                if (status === 'prepare' && scenario === 'async-prepare')
+                  return prepareGate;
+                if (status === 'prepare' && scenario === 'prepare-throw')
+                  throw new Error('prepare failed');
+                if (status === 'prepare' && scenario === 'prepare-reject')
+                  return Promise.reject(new Error('prepare failed'));
+              });
+            if (start === 'ready')
+              app.hot.addStatusHandler((status) => {
+                if (status === 'ready' && !imports) {
+                  load();
+                  return imports;
+                }
+              });
+            app.hot.addStatusHandler((status) => {
+              if (
+                status === 'ready' &&
+                scenario === 'ready-starts-import' &&
+                !otherImport
+              ) {
+                otherImport = app.other();
+                otherImport.catch(() => {});
+              }
+              if (status === 'ready' && scenario === 'ready-throw')
+                throw new Error('ready failed');
+              if (status === 'ready' && scenario === 'ready-reject')
+                return Promise.reject(new Error('ready failed'));
+            });
+            const update = app.hot.check(
+              scenario !== 'manual-apply' && start !== 'ready',
+            );
+            update.catch(() => {});
+            let page;
+            if (scenario === 'prepare-throw' || scenario === 'prepare-reject') {
+              page = await response(/^page\.(?:js|mjs)$/);
+              await assert.rejects(wait(update), /prepare failed/);
+              assert.equal(app.hot.status(), 'fail');
+              await deliver(page);
+              const results = await wait(Promise.allSettled(pendingImports));
+              assert.ok(
+                results.every((result) => result.status === 'rejected'),
+              );
+              assert.equal(
+                app.hot.status(),
+                'fail',
+                'a late chunk must not revive failed HMR',
+              );
+              assert.equal(app.executions.length, 0);
+              return;
+            }
+            if (start === 'check') {
+              const manifest = await response(/\.hot-update\.json(?:\.mjs)?$/);
+              load();
+              page = await response(/^page\.(?:js|mjs)$/);
+              if (order === 'chunk-first') {
+                await deliver(page);
+                await new Promise((resolve) => setImmediate(resolve));
+                assert.equal(app.hot.status(), 'check');
+                assert.equal(app.executions.length, 0);
+              }
+              await deliver(manifest);
+            }
+            if (scenario === 'async-prepare') {
+              page = await response(/^page\.(?:js|mjs)$/);
+              await deliver(page);
+              await new Promise((resolve) => setImmediate(resolve));
+              assert.equal(
+                app.hot.status(),
+                'prepare',
+                'an async status handler must finish before ready',
+              );
+              finishPrepare();
+            }
+            const mainUpdate = await response(
+              /^main\..*\.hot-update\.(?:js|mjs)$/,
+            );
+            if (start === 'downloading') load();
+            if (start === 'ready') await deliver(mainUpdate);
+            if (scenario.startsWith('ready-')) await deliver(mainUpdate);
+            page ||= await response(/^page\.(?:js|mjs)$/);
+            let pageUpdate;
+            if (start === 'downloading' || start === 'ready') {
+              pageUpdate = await response(/^page\..*\.hot-update\.(?:js|mjs)$/);
+              if (order === 'update-first') await deliver(pageUpdate);
+              await deliver(page);
+              if (order === 'chunk-first') await deliver(pageUpdate);
+            } else {
+              if (held.includes(page))
+                assert.equal(
+                  requested.some((name) =>
+                    /^page\..*\.hot-update\./.test(name),
+                  ),
+                  false,
+                  'HMR must wait for a chunk that was already loading',
+                );
+              if (order === 'update-first') await deliver(mainUpdate);
+              if (held.includes(page)) await deliver(page);
+              pageUpdate = await response(/^page\..*\.hot-update\.(?:js|mjs)$/);
+              await deliver(pageUpdate);
+            }
+            if (scenario === 'ready-starts-import') {
+              const other = await response(/^q\.(?:js|mjs)$/);
+              assert.equal(app.hot.status(), 'prepare');
+              assert.equal(app.executions.length, 0);
+              await deliver(other);
+              assert.equal((await wait(otherImport)).default, 'q1');
+            }
+            // Drain promise callbacks while main's update still prevents apply.
+            await new Promise((resolve) => setImmediate(resolve));
+            if (held.includes(mainUpdate)) {
+              assert.deepEqual(
+                Array.from(app.executions),
+                [],
+                'the module must not execute before apply',
+              );
+              if (scenario === 'update-error') {
+                held.splice(held.indexOf(mainUpdate), 1);
+                mainUpdate.fail();
+              } else await deliver(mainUpdate);
+            }
+            const failure = {
+              'update-error': /Loading hot update chunk|Failed to fetch/,
+              abort: /declined dependency/,
+              'accept-error': /accept failed/,
+              'ready-throw': /ready failed/,
+              'ready-reject': /ready failed/,
+            }[scenario];
+            if (failure) {
+              await assert.rejects(wait(update), failure);
+              const results = await wait(Promise.allSettled(pendingImports));
+              assert.ok(
+                results.every((result) => result.status === 'rejected'),
+              );
+              assert.equal(
+                app.hot.status(),
+                scenario === 'abort' ? 'abort' : 'fail',
+              );
+              assert.equal(app.executions.length, 0);
+              return;
+            }
+            await wait(update);
+            if (start === 'ready') {
+              assert.deepEqual(
+                (await wait(imports)).map((value) => value.default),
+                [1, 1],
+              );
+              assert.equal(app.hot.status(), 'ready');
+              await wait(app.hot.apply());
+              assert.equal((await app.load()).default, 2);
+              assert.deepEqual(
+                Array.from(app.executions, (execution) => execution.version),
+                [1, 2],
+              );
+              assert.equal(app.hash(), nextHash);
+              assert.equal(app.hot.status(), 'idle');
+              return;
+            }
+            if (scenario === 'manual-apply') {
+              assert.equal(app.hot.status(), 'ready');
+              assert.equal(app.executions.length, 0);
+              await wait(app.hot.apply());
+            }
+            const values = await wait(imports);
+            assert.deepEqual(
+              values.map((value) => value.default),
+              [2, 2],
+            );
+            assert.equal(app.executions.length, 1);
+            assert.equal(app.executions[0].version, 2);
+            assert.equal(app.executions[0].hash, nextHash);
+            assert.equal(app.hash(), nextHash);
+            assert.equal(app.hot.status(), 'idle');
+            assert.equal((await app.load()).default, 2);
+            assert.equal(
+              requested.filter((name) => /^page\.(?:js|mjs)$/.test(name))
+                .length,
+              1,
+            );
+            const firstUpdate =
+              start === 'downloading' ? pageUpdate : mainUpdate;
+            assert.equal(
+              delivered.indexOf(page.name) <
+                delivered.indexOf(firstUpdate.name),
+              order === 'chunk-first',
+            );
+            return;
+          }
 
           if (manifestError) {
             await build({ 'page.js': 'module.exports = 2;' });

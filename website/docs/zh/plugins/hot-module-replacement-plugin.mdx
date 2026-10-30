@@ -31,6 +31,8 @@ export default {
 
 如果热更新开始时 chunk 仍在加载，Rspack 会等它完成安装后，再下载对应的 hot update，避免较晚返回的响应覆盖更新后的 module factory。手动调用 `check(false)` 仍然只准备更新，由调用方决定何时调用 `apply()`。
 
+自动更新期间仍在加载的 import 也会等待这次更新完成。准备阶段会等待异步 status handler 和所有 hot-update 文件完成。如果准备或应用更新失败，等待这次更新的 import 会被拒绝，不会一直挂起。
+
 ## React Fast Refresh
 
 为了在 React 项目中启用 Fast Refresh 能力，你还需要使用 [@rspack/plugin-react-refresh](https://www.npmjs.com/package/@rspack/plugin-react-refresh) 插件。

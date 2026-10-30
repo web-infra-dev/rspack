@@ -19,6 +19,7 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
         'manual-apply',
         'missing-update',
         'aborted-update',
+        ...(target === 'web' ? ['runtime-priority', 'catch-up-check'] : []),
       ].map((scenario) => ({
         name: `${target}-${runtimeMode}-${scenario}`,
         description:
@@ -86,18 +87,21 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
             `
 					var app = globalThis.chunkVersionTest = { hot: module.hot, hash: () => __webpack_hash__ };
 					app.load = () => import(/* webpackChunkName: "page" */ './page');
+					${scenario === 'runtime-priority' ? 'app.load = () => __webpack_require__.e("page", "high").then(() => ({ default: __webpack_require__("./page.js") }));' : ''}
 					require('./trigger');
 					require('./block');
 					module.hot.decline('./block');
 					module.hot.accept('./trigger', () => {
 						require('./trigger');
-						app.pending = ${scenario === 'concurrent-imports' ? 'Promise.all([app.load(), app.load()]).then(modules => modules[0])' : 'app.load()'}.then(m => ({ value: m.default }), e => ({ error: e.message }));
+						app.imports = ${['concurrent-imports', 'missing-update', 'aborted-update'].includes(scenario) ? '[app.load(), app.load()]' : '[app.load()]'};
+						app.pending = Promise.all(app.imports).then(modules => ({ value: modules[0].default }), e => ({ error: e.message }));
 					});
 				`,
           );
           write('trigger.js', 'module.exports = 0;');
           write('block.js', 'module.exports = 0;');
           write('other.js', "require('./dep');");
+          write('second.js', 'module.exports = 3;');
           const sibling = scenario.includes('sibling');
           const valueSource = (value) =>
             `module.exports = { value: ${value}, hash: __webpack_hash__ };`;
@@ -116,6 +120,15 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
             sandbox.importScripts = (url) =>
               vm.runInContext(assets[path.basename(url)], sandbox);
             sandbox.fetch = async (url) => {
+              if (
+                scenario === 'catch-up-check' &&
+                sandbox.chunkVersionTest.hash() !== initialHash
+              ) {
+                concurrentCheck = Promise.resolve().then(() =>
+                  sandbox.chunkVersionTest.hot.check(true),
+                );
+                concurrentCheck.catch(() => {});
+              }
               const content = assets[path.basename(url)];
               return {
                 status: content === undefined ? 404 : 200,
@@ -128,6 +141,9 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
               appendChild(script) {
                 scripts.push(script);
                 script.parentNode = head;
+                if (path.basename(script.src) === 'page.js')
+                  sandbox.pagePriority =
+                    script.fetchpriority || script.fetchPriority;
                 vm.runInContext(assets[path.basename(script.src)], sandbox);
                 queueMicrotask(() =>
                   script.onload?.({ type: 'load', target: script }),
@@ -168,14 +184,30 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
               assets[asset.name] = asset.source.source().toString();
             return stats.hash;
           };
+          let initialHash;
+          let concurrentCheck;
           try {
-            const initialHash = await build({});
+            initialHash = await build({});
             if (target === 'module')
               await import(pathToFileURL(path.join(output, 'main.mjs')).href);
             else if (native)
               createRequire(import.meta.url)(path.join(output, 'main.js'));
             else vm.runInContext(assets['main.js'], sandbox);
             const app = sandbox.chunkVersionTest;
+            if (scenario === 'runtime-priority') {
+              await build({
+                'trigger.js':
+                  'module.exports = () => import(/* webpackFetchPriority: "high", webpackChunkName: "second" */ "./second");',
+              });
+              await app.hot.check(true);
+              await app.pending;
+              assert.equal(
+                sandbox.pagePriority,
+                'high',
+                'an existing importer must call the updated ensureChunk',
+              );
+              return;
+            }
             const firstHash = await build({
               'trigger.js': 'module.exports = 1;',
             });
@@ -216,16 +248,35 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
               await app.hot.apply();
             } else await app.hot.check(true);
             const result = await app.pending;
+            const imports = await Promise.allSettled(app.imports);
+            assert.ok(
+              imports.every(
+                (item) =>
+                  item.status === (result.error ? 'rejected' : 'fulfilled'),
+              ),
+            );
+            if (scenario === 'catch-up-check') {
+              assert.ok(concurrentCheck);
+              await assert.rejects(
+                concurrentCheck,
+                /check\(\) is only allowed in idle status/,
+              );
+            }
             if (scenario === 'missing-update') {
               // Native import() propagates the missing manifest's module error.
-              assert.match(
-                result.error,
+              const expectedError =
                 target === 'module'
                   ? /Cannot find module .*hot-update\.json\.mjs/
-                  : /no update leads to it/,
+                  : /no update leads to it/;
+              assert.ok(
+                imports.some((item) => expectedError.test(item.reason.message)),
               );
             } else if (scenario === 'aborted-update') {
-              assert.match(result.error, /declined dependency/);
+              assert.ok(
+                imports.some((item) =>
+                  /declined dependency/.test(item.reason.message),
+                ),
+              );
               assert.equal(app.hot.status(), 'abort');
             } else {
               assert.equal(result.value.value, 2);
