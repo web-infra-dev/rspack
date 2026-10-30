@@ -8,7 +8,7 @@ use std::{
 use crate::{
   MapOptions, RawBufferSource, RawStringSource, Source, SourceMap, SourceValue,
   helpers::{Chunks, GeneratedInfo, StreamChunks, stream_chunks_of_raw_rope},
-  source::is_all_empty,
+  source::is_all_none,
 };
 
 #[cfg_attr(feature = "allocative", derive(rspack_allocative::Allocative))]
@@ -161,7 +161,7 @@ impl MappingSource {
       .fields()
       .sources_content
       .iter()
-      .map(AsRef::as_ref)
+      .filter_map(Option::as_deref)
   }
 
   fn original_map(&self) -> &SourceMap<'static> {
@@ -425,13 +425,16 @@ impl MapData {
       visit(Part::String(source));
     }
     visit(Part::Raw("]"));
-    if !is_all_empty(&fields.sources_content) {
+    if !is_all_none(&fields.sources_content) {
       visit(Part::Raw(",\"sourcesContent\":["));
       for (i, content) in fields.sources_content.iter().enumerate() {
         if i != 0 {
           visit(Part::Raw(","));
         }
-        visit(Part::String(content));
+        match content {
+          Some(content) => visit(Part::String(content)),
+          None => visit(Part::Raw("null")),
+        }
       }
       visit(Part::Raw("]"));
     }

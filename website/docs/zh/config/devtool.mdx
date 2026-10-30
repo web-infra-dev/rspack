@@ -119,6 +119,8 @@ export default {
 
 从 source map 中移除 `sourcesContent`，例如 `nosources-source-map`。map 仍然包含原始文件名、目录结构和映射信息，可以用于还原错误堆栈，但不能单独向开发工具提供原始源码内容。
 
+当 loader 提供的 source map 缺少某个源文件的内容时，Rspack 会在包含其他源码内容的 `sourcesContent` 数组中用 `null` 保留该缺失项。空字符串则表示源文件本身为空。开发工具可以据此尝试通过源文件 URL 加载缺失的内容。
+
 ### `cheap`
 
 只生成行映射，不生成列映射，以减少 source map 的计算开销，例如 `cheap-source-map`。单独使用时会忽略 loader 提供的 source map，因此映射结果指向 loader 转换后的代码，而不是原始源码。

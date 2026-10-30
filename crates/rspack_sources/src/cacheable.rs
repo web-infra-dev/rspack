@@ -13,7 +13,7 @@ pub struct CacheableSourceMap {
   version: u8,
   file: Option<String>,
   sources: Vec<String>,
-  sources_content: Vec<String>,
+  sources_content: Vec<Option<String>>,
   names: Vec<String>,
   mappings: String,
   source_root: Option<String>,
@@ -31,7 +31,7 @@ impl From<&SourceMap<'_>> for CacheableSourceMap {
       sources_content: fields
         .sources_content
         .iter()
-        .map(ToString::to_string)
+        .map(|content| content.as_deref().map(str::to_owned))
         .collect(),
       names: fields.names.iter().map(ToString::to_string).collect(),
       mappings: fields.mappings.to_string(),
@@ -56,7 +56,7 @@ impl From<CacheableSourceMap> for SourceMap<'static> {
       sources_content: map
         .sources_content
         .into_iter()
-        .map(Into::into)
+        .map(|content| content.map(Into::into))
         .collect::<Vec<_>>()
         .into(),
       names: map

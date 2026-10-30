@@ -288,11 +288,8 @@ impl MapOptions {
   }
 }
 
-pub(crate) fn is_all_empty(val: &[Cow<'_, str>]) -> bool {
-  if val.is_empty() {
-    return true;
-  }
-  val.iter().all(|s| s.is_empty())
+pub(crate) fn is_all_none(val: &[Option<Cow<'_, str>>]) -> bool {
+  val.iter().all(Option::is_none)
 }
 
 /// The source map created by [Source::map].
@@ -302,8 +299,8 @@ pub(crate) struct SourceMapFields<'a> {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub(crate) file: Option<Cow<'a, str>>,
   pub(crate) sources: Cow<'a, [Cow<'a, str>]>,
-  #[serde(rename = "sourcesContent", skip_serializing_if = "is_all_empty")]
-  pub(crate) sources_content: Cow<'a, [Cow<'a, str>]>,
+  #[serde(rename = "sourcesContent", skip_serializing_if = "is_all_none")]
+  pub(crate) sources_content: Cow<'a, [Option<Cow<'a, str>>]>,
   pub(crate) names: Cow<'a, [Cow<'a, str>]>,
   pub(crate) mappings: Cow<'a, str>,
   #[serde(rename = "sourceRoot", skip_serializing_if = "Option::is_none")]
@@ -343,7 +340,7 @@ impl<'a> SourceMapFields<'a> {
   }
 
   pub(crate) fn get_source_content(&self, index: usize) -> Option<&Cow<'a, str>> {
-    self.sources_content.get(index)
+    self.sources_content.get(index).and_then(Option::as_ref)
   }
 
   pub(crate) fn names(&self) -> &[Cow<'a, str>] {
@@ -360,7 +357,11 @@ impl<'a, 'b> PartialEq<SourceMapFields<'b>> for SourceMapFields<'a> {
     self.version == other.version
       && self.file == other.file
       && self.sources == other.sources
-      && self.sources_content == other.sources_content
+      && self
+        .sources_content
+        .iter()
+        .map(Option::as_deref)
+        .eq(other.sources_content.iter().map(Option::as_deref))
       && self.names == other.names
       && self.mappings == other.mappings
       && self.source_root == other.source_root
@@ -436,7 +437,7 @@ impl SourceMap<'static> {
   pub fn new(
     mappings: impl Into<Cow<'static, str>>,
     sources: Vec<Cow<'static, str>>,
-    sources_content: Vec<Cow<'static, str>>,
+    sources_content: Vec<Option<Cow<'static, str>>>,
     names: Vec<Cow<'static, str>>,
   ) -> Self {
     Self {
@@ -563,12 +564,13 @@ impl<'a> SourceMap<'a> {
   }
 
   /// Get the sourcesContent field in [SourceMap].
-  pub fn sources_content(&self) -> &[Cow<'_, str>] {
+  /// Missing contents are `None`; an empty source is `Some("")`.
+  pub fn sources_content(&self) -> &[Option<Cow<'_, str>>] {
     self.fields.sources_content.as_ref()
   }
 
   /// Set the sourcesContent field in [SourceMap].
-  pub fn set_sources_content(&mut self, sources_content: Vec<Cow<'a, str>>) {
+  pub fn set_sources_content(&mut self, sources_content: Vec<Option<Cow<'a, str>>>) {
     self.fields.sources_content = Cow::Owned(sources_content);
   }
 
@@ -608,7 +610,11 @@ impl<'a> SourceMap<'a> {
 
   /// Get the source content by index from sourcesContent field in [SourceMap].
   pub fn get_source_content(&self, index: usize) -> Option<&Cow<'_, str>> {
-    self.fields.sources_content.get(index)
+    self
+      .fields
+      .sources_content
+      .get(index)
+      .and_then(Option::as_ref)
   }
 
   /// Get the names field in [SourceMap].
@@ -681,10 +687,16 @@ impl<'a> SourceMap<'a> {
 
     // sourcesContent array
     if !self.fields.sources_content.is_empty() {
-      let content_len: usize = self.fields.sources_content.iter().map(|c| c.len()).sum();
+      let content_len: usize = self
+        .fields
+        .sources_content
+        .iter()
+        .flatten()
+        .map(|c| c.len())
+        .sum();
       // Source content often contains special characters that need escaping
       // Estimate 10% escaping overhead for source content
-      size += 19 + content_len + (content_len / 10) + self.fields.sources_content.len() * 3;
+      size += 19 + content_len + (content_len / 10) + self.fields.sources_content.len() * 5;
     }
 
     // names array
@@ -790,7 +802,7 @@ fn deserialize_source_map_tape_fields<'a>(
     version: 3,
     file: optional_tape_string(file)?,
     sources: Cow::Owned(optional_tape_strings(sources)?),
-    sources_content: Cow::Owned(optional_tape_strings(sources_content)?),
+    sources_content: Cow::Owned(optional_tape_source_contents(sources_content)?),
     names: Cow::Owned(optional_tape_strings(names)?),
     mappings,
     source_root: optional_tape_string(source_root)?,
@@ -834,6 +846,20 @@ fn optional_tape_strings<'a>(
     .collect()
 }
 
+fn optional_tape_source_contents<'a>(
+  value: Option<simd_json::tape::Value<'_, 'a>>,
+) -> Result<Vec<Option<Cow<'a, str>>>> {
+  let Some(value) = value.filter(|value| !value.is_null()) else {
+    return Ok(Vec::new());
+  };
+  value
+    .as_array()
+    .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedArray))?
+    .iter()
+    .map(|value| optional_tape_string(Some(value)))
+    .collect()
+}
+
 fn optional_tape_u32s<'a>(
   value: Option<simd_json::tape::Value<'_, 'a>>,
 ) -> Result<Option<Cow<'a, [u32]>>> {
@@ -863,7 +889,7 @@ fn deserialize_source_map_fields<'a>(value: &'a BorrowedValue<'a>) -> Result<Sou
     version: 3,
     file: optional_string_field(object, "file")?,
     sources: Cow::Owned(optional_string_array_field(object, "sources")?),
-    sources_content: Cow::Owned(optional_string_array_field(object, "sourcesContent")?),
+    sources_content: Cow::Owned(optional_source_contents_field(object, "sourcesContent")?),
     names: Cow::Owned(optional_string_array_field(object, "names")?),
     mappings,
     source_root: optional_string_field(object, "sourceRoot")?,
@@ -922,6 +948,30 @@ fn optional_string_array_field<'a>(
         value
           .as_str()
           .map(Cow::Borrowed)
+          .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString).into())
+      }
+    })
+    .collect()
+}
+
+fn optional_source_contents_field<'a>(
+  object: &'a simd_json::borrowed::Object<'a>,
+  key: &str,
+) -> Result<Vec<Option<Cow<'a, str>>>> {
+  let Some(value) = object.get(key).filter(|value| !value.is_null()) else {
+    return Ok(Vec::new());
+  };
+  value
+    .as_array()
+    .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedArray))?
+    .iter()
+    .map(|value| {
+      if value.is_null() {
+        Ok(None)
+      } else {
+        value
+          .as_str()
+          .map(|value| Some(Cow::Borrowed(value)))
           .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString).into())
       }
     })
@@ -1021,11 +1071,11 @@ mod tests {
   };
 
   #[test]
-  fn should_not_have_sources_content_field_when_it_is_empty() {
+  fn should_not_have_sources_content_field_when_it_is_missing() {
     let map = SourceMap::new(
       ";;",
       vec!["a.js".into()],
-      vec!["".into(), "".into(), "".into()],
+      vec![None, None, None],
       vec!["".into(), "".into()],
     )
     .to_json();

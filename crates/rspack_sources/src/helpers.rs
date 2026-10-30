@@ -19,7 +19,7 @@ use crate::{
 pub fn get_map<'a>(chunks: &dyn Chunks<'a>, options: &MapOptions) -> Option<SourceMapFields<'a>> {
   let mut mappings_encoder = create_encoder(options.columns);
   let mut sources: Vec<Cow<'a, str>> = Vec::new();
-  let mut sources_content: Vec<Cow<'a, str>> = Vec::new();
+  let mut sources_content: Vec<Option<Cow<'a, str>>> = Vec::new();
   let mut names: Vec<Cow<'a, str>> = Vec::new();
 
   chunks.stream(
@@ -40,9 +40,9 @@ pub fn get_map<'a>(chunks: &dyn Chunks<'a>, options: &MapOptions) -> Option<Sour
       sources[source_index] = source;
       if let Some(source_content) = source_content {
         if sources_content.len() <= source_index {
-          sources_content.resize(source_index + 1, Cow::Borrowed(""));
+          sources_content.resize(source_index + 1, None);
         }
-        sources_content[source_index] = Cow::Borrowed(source_content);
+        sources_content[source_index] = Some(Cow::Borrowed(source_content));
       }
     },
     // on_name
@@ -54,6 +54,9 @@ pub fn get_map<'a>(chunks: &dyn Chunks<'a>, options: &MapOptions) -> Option<Sour
       names[name_index] = name;
     },
   );
+  if !sources_content.is_empty() {
+    sources_content.resize(sources.len(), None);
+  }
   let mappings = mappings_encoder.drain();
   (!mappings.is_empty()).then_some(SourceMapFields {
     version: 3,
@@ -1390,7 +1393,7 @@ pub fn stream_and_get_source_and_map<'source, 'chunk>(
 ) -> (GeneratedInfo, Option<SourceMapFields<'source>>) {
   let mut mappings_encoder = create_encoder(options.columns);
   let mut sources: Vec<Cow<'source, str>> = Vec::new();
-  let mut sources_content: Vec<Cow<'source, str>> = Vec::new();
+  let mut sources_content: Vec<Option<Cow<'source, str>>> = Vec::new();
   let mut names: Vec<Cow<'source, str>> = Vec::new();
 
   let generated_info = chunks.stream(
@@ -1406,10 +1409,10 @@ pub fn stream_and_get_source_and_map<'source, 'chunk>(
       }
       sources[source_index2] = source.clone();
       if let Some(source_content) = source_content {
-        while sources_content.len() <= source_index2 {
-          sources_content.push(Cow::Borrowed(""));
+        if sources_content.len() <= source_index2 {
+          sources_content.resize(source_index2 + 1, None);
         }
-        sources_content[source_index2] = Cow::Borrowed(source_content);
+        sources_content[source_index2] = Some(Cow::Borrowed(source_content));
       }
       on_source(source_index, source, source_content);
     },
@@ -1423,6 +1426,9 @@ pub fn stream_and_get_source_and_map<'source, 'chunk>(
     },
   );
 
+  if !sources_content.is_empty() {
+    sources_content.resize(sources.len(), None);
+  }
   let mappings = mappings_encoder.drain();
   let map = if mappings.is_empty() {
     None
