@@ -239,6 +239,10 @@ The cache backend that [experiments.newCache](/config/experiments#experimentsnew
 
 Portable cache is built on top of persistent cache and makes the cache platform-independent by converting platform-specific data (e.g., absolute paths to relative paths) during serialization and deserialization.
 
+In the legacy cache backend, Rspack rebuilds entries that still depend on the writer's project root when the root changes. This includes `import.meta.url`, loader output containing absolute project paths, and references outside the project root. Unchanged builds at the same root can still reuse these entries.
+
+Rspack finds loader output that contains the root by searching cached data for the root's native, forward-slash, JSON-escaped and `file://` URL spellings. This search is best-effort. Loaders that derive output from a path without including one of these spellings (for example, a hash or base64 encoding of `this.resourcePath`) should call `this.cacheable(false)` or use an appropriate `cache.version`.
+
 **Example:**
 
 ```js title="rspack.config.mjs"

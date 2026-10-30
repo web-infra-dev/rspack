@@ -4305,6 +4305,7 @@ dependencies = [
  "json",
  "lightningcss",
  "once_cell",
+ "percent-encoding",
  "regex",
  "rkyv 0.8.18",
  "rspack-allocative",
@@ -4317,6 +4318,7 @@ dependencies = [
  "smol_str",
  "sugar_path",
  "swc_core",
+ "url",
  "ustr-fxhash",
  "xxhash-rust",
 ]
@@ -4343,6 +4345,7 @@ dependencies = [
  "rspack_sources",
  "rustc-hash",
  "serde_json",
+ "url",
  "ustr-fxhash",
  "xxhash-rust",
 ]

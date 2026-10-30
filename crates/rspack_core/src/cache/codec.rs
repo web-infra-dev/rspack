@@ -1,11 +1,30 @@
-use std::path::Path;
+use std::{
+  hash::{Hash, Hasher},
+  path::Path,
+  sync::Arc,
+};
 
+use memchr::memmem::Finder;
 use rspack_cacheable::{
   __private::rkyv::{Archive, Deserialize, Serialize, bytecheck::CheckBytes},
-  Deserializer, Serializer, Validator, from_bytes, to_bytes,
+  Deserializer, Serializer, Validator, from_bytes, to_bytes, to_bytes_with_binding,
+  utils::root_patterns,
 };
 use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rustc_hash::FxHasher;
+
+#[derive(Debug, Clone, Copy)]
+pub enum RootBinding {
+  Unbound,
+  Bound,
+}
+
+#[derive(Debug)]
+struct RootPatterns {
+  hash: u64,
+  finders: Vec<Finder<'static>>,
+}
 
 /// Internal cacheable context for serialization
 #[derive(Debug, Clone)]
@@ -38,11 +57,24 @@ impl rspack_cacheable::CacheableContext for Context {
 #[derive(Debug, Clone)]
 pub struct CacheCodec {
   context: Context,
+  root_patterns: Option<Arc<RootPatterns>>,
 }
 
 impl CacheCodec {
   pub fn new(portable_project_root: Option<Utf8PathBuf>) -> Self {
+    let root_patterns = portable_project_root.as_ref().map(|root| {
+      let mut hasher = FxHasher::default();
+      root.as_str().as_bytes().hash(&mut hasher);
+      Arc::new(RootPatterns {
+        hash: hasher.finish(),
+        finders: root_patterns(root.as_str())
+          .iter()
+          .map(|pattern| Finder::new(pattern).into_owned())
+          .collect(),
+      })
+    });
     Self {
+      root_patterns,
       context: Context {
         portable_project_root,
       },
@@ -53,13 +85,40 @@ impl CacheCodec {
   ///
   /// Without a portable project root, encoded data holds absolute paths under `context`,
   /// so a cache moved or shared to another root must fail validation instead of
-  /// restoring the other root's paths.
+  /// restoring the other root's paths. Portable entries use the `BoundEntry`
+  /// envelope, so the two encodings must not share a cache either.
   pub fn validation_version(&self, version: &str, context: &Utf8Path) -> String {
     if self.context.portable_project_root.is_some() {
-      version.to_string()
+      format!("{version}|portable")
     } else {
       format!("{version}|{context}")
     }
+  }
+
+  pub fn root_hash(&self) -> Option<u64> {
+    self.root_patterns.as_ref().map(|patterns| patterns.hash)
+  }
+
+  pub fn encode_with_binding<T>(&self, data: &T) -> Result<(Vec<u8>, RootBinding)>
+  where
+    T: for<'a> Serialize<Serializer<'a>>,
+  {
+    let Some(patterns) = &self.root_patterns else {
+      return self.encode(data).map(|bytes| (bytes, RootBinding::Unbound));
+    };
+    let (bytes, outside) =
+      to_bytes_with_binding(data, &self.context).map_err(rspack_error::Error::from_error)?;
+    let binding = if outside
+      || patterns
+        .finders
+        .iter()
+        .any(|finder| finder.find(&bytes).is_some())
+    {
+      RootBinding::Bound
+    } else {
+      RootBinding::Unbound
+    };
+    Ok((bytes, binding))
   }
 
   pub fn encode<T>(&self, data: &T) -> Result<Vec<u8>>

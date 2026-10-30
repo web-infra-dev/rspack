@@ -35,7 +35,7 @@ export type TCacheCaseOptions = {
 
 interface CacheState {
   compilerIndex: number;
-  nextStart: (advance?: boolean) => Promise<StatsCompilation>;
+  nextStart: (advance?: boolean, move?: boolean) => Promise<StatsCompilation>;
   nextHmr: (module: any, options?: any) => Promise<StatsCompilation>;
 }
 
@@ -48,7 +48,7 @@ function createCacheProcessor(
 ): ITestProcessor {
   const type = caseOptions.type || 'cache';
   const compileTemp = caseOptions.newCache ? path.join(temp, 'src') : temp;
-  const updatePlugin =
+  let updatePlugin =
     type === 'cache' ? new HotUpdatePlugin(src, compileTemp) : undefined;
   const base: ITestProcessor =
     type === 'normal'
@@ -88,6 +88,7 @@ function createCacheProcessor(
           };
   let buildIndex = 0;
   let testEnv: ITestEnv;
+  let movedTemp: string | undefined;
 
   const checkCache = (
     env: ITestEnv,
@@ -122,7 +123,7 @@ function createCacheProcessor(
       await updatePlugin?.initialize();
       const state: CacheState = {
         compilerIndex: 0,
-        nextStart: async (advance = true) => {
+        nextStart: async (advance = true, move = false) => {
           const env = testEnv;
           if (state.compilerIndex >= 100) {
             throw new Error('NEXT_START has been called more than 100 times');
@@ -130,6 +131,25 @@ function createCacheProcessor(
           const manager = context.getCompiler();
           // close() flushes the filesystem cache before a fresh compiler reads it.
           await manager.close();
+          if (move) {
+            if (type !== 'cache' || caseOptions.newCache || movedTemp) {
+              throw new Error(
+                'Directory relocation requires a legacy cache case',
+              );
+            }
+            movedTemp = await fs.mkdtemp(`${compileTemp}-relocated-`);
+            const relocated = path.join(movedTemp, 'nested', 'project');
+            // Copy rather than move: the cache must not be invalidated by the
+            // original files disappearing, only by its own root binding.
+            await fs.copy(compileTemp, relocated);
+            const options = manager.getOptions() as RspackOptions;
+            const previousPlugin = updatePlugin;
+            updatePlugin = new HotUpdatePlugin(src, relocated);
+            options.context = relocated;
+            options.plugins = options.plugins?.map((plugin) =>
+              plugin === previousPlugin ? updatePlugin! : plugin,
+            );
+          }
           const advanceUpdate = !!(
             advance &&
             updatePlugin &&
@@ -144,6 +164,7 @@ function createCacheProcessor(
           await manager.build();
           const jsonStats = await checkRestart(env, context, advanceUpdate);
           checkCache(env, context, !advanceUpdate);
+          if (move) await checkColdBuild(env, context, jsonStats, movedTemp!);
 
           // Every restart needs fresh runners, including every child of a MultiCompiler.
           context.setValue('modules', []);
@@ -198,7 +219,13 @@ function createCacheProcessor(
         });
       }
     },
-    after: base.after,
+    after: async (context) => {
+      await base.after?.(context);
+      if (movedTemp) {
+        await context.getCompiler().close();
+        await fs.remove(movedTemp);
+      }
+    },
     afterAll: () => {
       if (!updatePlugin) return;
       const updateIndex = updatePlugin.getUpdateIndex();
@@ -228,6 +255,8 @@ function createCacheProcessor(
       modules: true,
       entrypoints: true,
       chunkGroups: true,
+      logging: 'verbose',
+      loggingDebug: /^rspack\.persistentCache$/,
     });
     if (type === 'cache' && advance) {
       const updateIndex = updatePlugin!.getUpdateIndex();
@@ -243,6 +272,58 @@ function createCacheProcessor(
       }
     }
     return jsonStats;
+  }
+}
+
+// A relocated build must emit exactly what a cold build at the new location
+// emits, so a cache entry restored with stale root-derived data shows up here.
+async function checkColdBuild(
+  env: ITestEnv,
+  context: ITestContext,
+  relocatedStats: StatsCompilation,
+  movedTemp: string,
+) {
+  const options = context.getCompiler().getOptions() as RspackOptions;
+  const relocatedDist = options.output!.path!;
+  const coldDist = path.join(movedTemp, 'cold-dist');
+  const cache =
+    typeof options.cache === 'object' && options.cache.type === 'persistent'
+      ? options.cache
+      : undefined;
+  if (!cache) {
+    throw new Error('Directory relocation requires a persistent cache case');
+  }
+  const compiler = rspack({
+    ...options,
+    cache: {
+      ...cache,
+      storage: {
+        type: 'filesystem',
+        directory: path.join(movedTemp, 'cold-cache'),
+      },
+    },
+    output: { ...options.output, path: coldDist },
+  });
+  const coldStats = await new Promise<Stats>((resolve, reject) => {
+    compiler.run((error, stats) => (error ? reject(error) : resolve(stats!)));
+  });
+  await new Promise<void>((resolve, reject) => {
+    compiler.close((error) => (error ? reject(error) : resolve()));
+  });
+  const assetNames = (stats: StatsCompilation) =>
+    (stats.assets || []).map((asset) => asset.name).sort();
+  const names = assetNames(relocatedStats);
+  env
+    .expect(names, 'relocated build emits the assets of a cold build')
+    .toEqual(assetNames(coldStats.toJson({ all: false, assets: true })));
+  for (const name of names) {
+    const [relocated, cold] = await Promise.all([
+      fs.readFile(path.join(relocatedDist, name)),
+      fs.readFile(path.join(coldDist, name)),
+    ]);
+    env
+      .expect(relocated.toString('latin1'), `${name} equals a cold build`)
+      .toBe(cold.toString('latin1'));
   }
 }
 
@@ -463,7 +544,9 @@ function createRunner(
       const scope = testConfig.moduleScope?.(ms, stats, options) || ms;
       scope.COMPILER_INDEX = compilerIndex;
       scope.NEXT_HMR = state.nextHmr;
-      scope.NEXT_START = () => state.nextStart();
+      scope.NEXT_START = (advance?: boolean) => state.nextStart(advance);
+      scope.NEXT_MOVE_DIR_START = () => state.nextStart(false, true);
+      scope.CURRENT_CONTEXT = options?.context;
       return scope;
     },
   };

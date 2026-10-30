@@ -1,17 +1,20 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use rayon::prelude::*;
+use rayon::{iter::Either, prelude::*};
 use rspack_cacheable::{cacheable, utils::OwnedOrRef};
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;
 use rustc_hash::FxHashSet;
 
-use super::alternatives::{TempDependency, TempModule};
+use super::{
+  super::BoundEntry,
+  alternatives::{TempDependency, TempModule},
+};
 use crate::{
-  AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockRef, BoxDependency, DependenciesBlock,
-  Dependency, DependencyId, DependencyParents, DependencyRef, FactorizationArtifact, FactorizeInfo,
-  ModuleGraph, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, ModuleRef,
-  RayonConsumer,
+  AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockRef, BoxDependency, CompilationLogger,
+  DependenciesBlock, Dependency, DependencyId, DependencyParents, DependencyRef,
+  FactorizationArtifact, FactorizeInfo, Logger, ModuleGraph, ModuleGraphConnection,
+  ModuleGraphModule, ModuleIdentifier, ModuleRef, RayonConsumer,
   cache::CacheCodec,
   compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
   legacy_cache::persistent::storage::Storage,
@@ -34,6 +37,15 @@ struct Node<'a> {
   pub connections: Vec<OwnedOrRef<'a, ModuleGraphConnection>>,
   pub blocks: Vec<OwnedOrRef<'a, AsyncDependenciesBlockRef>>,
   pub lazy_info: Option<OwnedOrRef<'a, LazyDependencies>>,
+}
+
+pub struct RecoveredModuleGraph {
+  pub mg: ModuleGraph,
+  pub factorization_artifact: FactorizationArtifact,
+  pub module_to_lazy_make: ModuleToLazyMake,
+  pub entry_dependencies: FxHashSet<DependencyId>,
+  /// Storage keys of nodes bound to another root.
+  pub dropped: Vec<Vec<u8>>,
 }
 
 #[tracing::instrument("Cache::Occasion::Make::ModuleGraph::save", skip_all)]
@@ -101,12 +113,13 @@ pub fn save_module_graph(
         blocks,
         lazy_info,
       };
-      match codec.encode(&node) {
+      let root_sensitive = module.build_info().root_sensitive;
+      match BoundEntry::encode(codec, &node, root_sensitive) {
         Ok(bytes) => (identifier.as_bytes().to_vec(), bytes),
         Err(err) if err.to_string().contains("unsupported field") => {
           tracing::warn!("to bytes failed {:?}", err);
           // try use alternatives
-          node.module = TempModule::transform_from(node.module);
+          node.module = TempModule::transform_from(node.module, Vec::new());
           node.dependencies = node
             .dependencies
             .into_iter()
@@ -115,7 +128,7 @@ pub fn save_module_graph(
             })
             .collect();
           node.blocks = vec![];
-          if let Ok(bytes) = codec.encode(&node) {
+          if let Ok(bytes) = BoundEntry::encode(codec, &node, root_sensitive) {
             (identifier.as_bytes().to_vec(), bytes)
           } else {
             panic!("alternatives serialize failed")
@@ -138,73 +151,95 @@ pub fn save_module_graph(
 pub async fn recovery_module_graph(
   storage: &dyn Storage,
   codec: &CacheCodec,
-) -> Result<(
-  ModuleGraph,
-  FactorizationArtifact,
-  ModuleToLazyMake,
-  FxHashSet<DependencyId>,
-)> {
-  let mut need_check_dep = vec![];
+  logger: &CompilationLogger,
+) -> Result<RecoveredModuleGraph> {
   let mut mg = ModuleGraph::default();
   let mut factorization_artifact = FactorizationArtifact::default();
   let mut module_to_lazy_make = ModuleToLazyMake::default();
-  storage
+  let (nodes, dropped): (Vec<_>, Vec<_>) = storage
     .load(SCOPE)
     .await?
     .into_par_iter()
-    .map(|(_, v)| {
-      codec
-        .decode::<Node>(&v)
-        .expect("unexpected module graph deserialize failed")
-    })
-    .with_max_len(1)
-    .consume(|node| {
-      let mgm = node.mgm.into_owned();
-      let module = node.module.into_owned();
-      for (index_in_block, (dep, parent_block, factorize_info)) in
-        node.dependencies.into_iter().enumerate()
-      {
-        let dep = dep.into_owned();
-        mg.set_parents(
-          *dep.id(),
-          DependencyParents {
-            block: parent_block.map(|b| b.into_owned()),
-            module: module.identifier(),
-            index_in_block,
-          },
-        );
-        mg.add_dependency_ref(dep);
-        if let Some(factorize_info) = factorize_info {
-          factorization_artifact.insert(factorize_info.into_owned());
+    .filter_map(
+      |(key, value)| match BoundEntry::decode::<Node>(codec, &value) {
+        Ok(Some(node)) => Some(Either::Left(node)),
+        Ok(None) => Some(Either::Right(key)),
+        Err(err) => {
+          logger.warn(format!("make persistent cache decode failed: {err}"));
+          None
         }
+      },
+    )
+    .partition_map(|node| node);
+  let recovered = nodes
+    .iter()
+    .map(|node| node.module.as_ref().identifier())
+    .collect::<IdentifierSet>();
+  let mut connections = vec![];
+  for node in nodes {
+    let mut mgm = node.mgm.into_owned();
+    let mut module = node.module.into_owned();
+    for (index_in_block, (dep, parent_block, factorize_info)) in
+      node.dependencies.into_iter().enumerate()
+    {
+      let dep = dep.into_owned();
+      mg.set_parents(
+        *dep.id(),
+        DependencyParents {
+          block: parent_block.map(|b| b.into_owned()),
+          module: module.identifier(),
+          index_in_block,
+        },
+      );
+      mg.add_dependency_ref(dep);
+      if let Some(factorize_info) = factorize_info {
+        factorization_artifact.insert(factorize_info.into_owned());
       }
-      for con in node.connections {
-        let con = con.into_owned();
-        need_check_dep.push((con.id, *con.module_identifier()));
-        mg.cache_recovery_connection(con);
+    }
+    let mut missing_target = false;
+    for con in node.connections {
+      let con = con.into_owned();
+      if recovered.contains(con.module_identifier()) {
+        connections.push(con);
+      } else {
+        mgm.remove_outgoing_connection(&con.id);
+        missing_target = true;
       }
-      let mut blocks = node
-        .blocks
-        .into_iter()
-        .map(OwnedOrRef::into_owned)
-        .collect::<Vec<_>>();
-      while let Some(block) = blocks.pop() {
-        blocks.extend(block.get_block_refs().iter().cloned());
-        mg.add_block(block);
-      }
-      if let Some(lazy_info) = node.lazy_info {
-        module_to_lazy_make
-          .update_module_lazy_dependencies(module.identifier(), Some(lazy_info.into_owned()));
-      }
-      mg.add_module_graph_module(mgm);
-      mg.add_module(module);
-    });
-  // recovery incoming connections
-  for (connection_id, module_identifier) in need_check_dep {
-    let mgm = mg.module_graph_module_by_identifier_mut(&module_identifier);
-    mgm.add_incoming_connection(connection_id);
+    }
+    if missing_target {
+      // Rebuild the owner through the normal cutout path to refactorize its missing targets.
+      let blocks = module.get_block_refs().to_vec();
+      module = TempModule::transform_from(module.into(), blocks).into_owned();
+    }
+    if mgm
+      .issuer()
+      .identifier()
+      .is_some_and(|issuer| !recovered.contains(issuer))
+    {
+      mgm.set_issuer(crate::ModuleIssuer::Unset);
+    }
+    let mut blocks = node
+      .blocks
+      .into_iter()
+      .map(OwnedOrRef::into_owned)
+      .collect::<Vec<_>>();
+    while let Some(block) = blocks.pop() {
+      blocks.extend(block.get_block_refs().iter().cloned());
+      mg.add_block(block);
+    }
+    if let Some(lazy_info) = node.lazy_info {
+      module_to_lazy_make
+        .update_module_lazy_dependencies(module.identifier(), Some(lazy_info.into_owned()));
+    }
+    mg.add_module_graph_module(mgm);
+    mg.add_module(module);
   }
-
+  // recovery incoming connections
+  for connection in connections {
+    let mgm = mg.module_graph_module_by_identifier_mut(connection.module_identifier());
+    mgm.add_incoming_connection(connection.id);
+    mg.cache_recovery_connection(connection);
+  }
   // recovery entry
   let mut entry_module: Vec<ModuleIdentifier> = vec![];
   for (_, mgm) in mg.module_graph_modules() {
@@ -223,10 +258,11 @@ pub async fn recovery_module_graph(
   }
 
   tracing::debug!("recovery {} module", mg.modules_len());
-  Ok((
+  Ok(RecoveredModuleGraph {
     mg,
     factorization_artifact,
     module_to_lazy_make,
     entry_dependencies,
-  ))
+    dropped,
+  })
 }

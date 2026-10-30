@@ -8,9 +8,10 @@ use rspack_collections::IdentifierSet;
 use rspack_error::Result;
 use rustc_hash::FxHashSet;
 
-use super::{super::storage::Storage, Occasion};
+use super::{super::storage::Storage, Occasion, Recovered};
 use crate::{
-  cache::CacheCodec, compilation::build_module_graph::BuildModuleGraphArtifact, utils::FileCounter,
+  CompilationLogger, cache::CacheCodec, compilation::build_module_graph::BuildModuleGraphArtifact,
+  utils::FileCounter,
 };
 
 /// Make Occasion persists the build module graph as a cache item.
@@ -32,6 +33,10 @@ impl Occasion for MakeOccasion {
     "make"
   }
 
+  fn scope(&self) -> &'static str {
+    SCOPE
+  }
+
   #[tracing::instrument(name = "Cache::Occasion::Make::reset", skip_all)]
   fn reset(&self, storage: &mut dyn Storage) {
     storage.reset(module_graph::SCOPE);
@@ -50,6 +55,7 @@ impl Occasion for MakeOccasion {
       affected_dependencies,
       issuer_update_modules,
       // skip
+      check_issuer_cycles: _,
       entry_dependencies: _,
       file_dependencies: _,
       context_dependencies: _,
@@ -82,9 +88,18 @@ impl Occasion for MakeOccasion {
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Make::recovery", skip_all)]
-  async fn recovery(&self, storage: &dyn Storage) -> Result<BuildModuleGraphArtifact> {
-    let (mg, factorization_artifact, module_to_lazy_make, entry_dependencies) =
-      module_graph::recovery_module_graph(storage, &self.codec).await?;
+  async fn recovery(
+    &self,
+    storage: &dyn Storage,
+    logger: &CompilationLogger,
+  ) -> Result<Recovered<BuildModuleGraphArtifact>> {
+    let module_graph::RecoveredModuleGraph {
+      mg,
+      factorization_artifact,
+      module_to_lazy_make,
+      entry_dependencies,
+      dropped,
+    } = module_graph::recovery_module_graph(storage, &self.codec, logger).await?;
 
     // regenerate statistical data
     // recovery make_failed_module
@@ -116,12 +131,13 @@ impl Occasion for MakeOccasion {
       missing_dep.add_dependency_files(dep_id, info.missing_dependencies());
     }
 
-    Ok(BuildModuleGraphArtifact {
+    let item = BuildModuleGraphArtifact {
       // write all of field here to avoid forget to update occasion when add new fields
       // temporary data set to default
       affected_modules: Default::default(),
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
+      check_issuer_cycles: !dropped.is_empty(),
 
       side_effects_state_artifact: Default::default(),
       module_graph: mg,
@@ -135,6 +151,7 @@ impl Occasion for MakeOccasion {
       context_dependencies: context_dep,
       missing_dependencies: missing_dep,
       build_dependencies: build_dep,
-    })
+    };
+    Ok(Recovered { item, dropped })
   }
 }

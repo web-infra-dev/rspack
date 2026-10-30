@@ -111,6 +111,8 @@ pub struct FixIssuers {
   force_build_module_issuers: IdentifierMap<ModuleIssuer>,
   /// Collect the module whose issuer need to be checked for availability.
   need_check_modules: IdentifierSet,
+  /// Repair issuer cycles across the whole module graph after the update.
+  check_issuer_cycles: bool,
 }
 
 impl FixIssuers {
@@ -194,6 +196,79 @@ impl FixIssuers {
     }
   }
 
+  /// Repair issuer cycles across the whole module graph in `fix_artifact`.
+  ///
+  /// Cache recovery can drop modules whose rebuild then takes its issuer from whichever parent
+  /// factorizes it first, which may be a module below it.
+  pub fn check_issuer_cycles(&mut self) {
+    self.check_issuer_cycles = true;
+  }
+
+  /// Gives every module on an issuer cycle a parent whose issuer chain reaches an entry without
+  /// passing through the module, or no issuer when none does.
+  fn repair_issuer_cycles(artifact: &mut BuildModuleGraphArtifact) {
+    let reaches_entry =
+      |module_graph: &ModuleGraph, from: &ModuleIdentifier, base: &ModuleIdentifier| {
+        let mut seen = IdentifierSet::default();
+        let mut current = *from;
+        loop {
+          if &current == base || !seen.insert(current) {
+            return false;
+          }
+          match module_graph
+            .module_graph_module_by_identifier(&current)
+            .and_then(|mgm| mgm.issuer().identifier())
+          {
+            Some(issuer) => current = *issuer,
+            None => return true,
+          }
+        }
+      };
+    loop {
+      let module_graph = &artifact.module_graph;
+      let mut cycle = None;
+      // Modules whose issuer chain is known to end at an entry or at a cycle.
+      let mut resolved = IdentifierSet::default();
+      for (start, _) in module_graph.modules() {
+        let mut path = vec![];
+        let mut on_path = IdentifierSet::default();
+        let mut current = Some(*start);
+        while let Some(mid) = current {
+          if resolved.contains(&mid) {
+            break;
+          }
+          if !on_path.insert(mid) {
+            cycle = Some(mid);
+            break;
+          }
+          path.push(mid);
+          current = module_graph
+            .module_graph_module_by_identifier(&mid)
+            .and_then(|mgm| mgm.issuer().identifier().copied());
+        }
+        if cycle.is_some() {
+          break;
+        }
+        resolved.extend(path);
+      }
+      let Some(mid) = cycle else {
+        return;
+      };
+      let issuer = module_graph
+        .get_incoming_connections(&mid)
+        .find_map(|connection| {
+          let parent = connection.original_module_identifier?;
+          reaches_entry(module_graph, &parent, &mid).then_some(parent)
+        })
+        .map_or(ModuleIssuer::None, ModuleIssuer::Some);
+      let mgm = artifact
+        .module_graph
+        .module_graph_module_by_identifier_mut(&mid);
+      mgm.set_issuer(issuer);
+      artifact.issuer_update_modules.insert(mid);
+    }
+  }
+
   /// Add module to self.need_check_modules.
   pub fn add_need_check_module(&mut self, module_identifier: ModuleIdentifier) {
     self.need_check_modules.insert(module_identifier);
@@ -214,6 +289,7 @@ impl FixIssuers {
     let Self {
       mut force_build_module_issuers,
       need_check_modules,
+      check_issuer_cycles: _,
     } = self;
     let module_graph = &mut artifact.module_graph;
     need_check_modules
@@ -508,27 +584,28 @@ impl FixIssuers {
 
   /// fix artifact module graph issuers
   pub fn fix_artifact(self, artifact: &mut BuildModuleGraphArtifact) {
+    let check_issuer_cycles = self.check_issuer_cycles;
     let mut need_update_issuer_modules = self.apply_force_build_module_issuer(artifact);
 
     let mut helper = IssuerHelper::default();
-    loop {
-      if need_update_issuer_modules.is_empty() {
-        return;
-      }
+    while !need_update_issuer_modules.is_empty() {
       let need_check_available_modules =
         Self::try_set_first_incoming(artifact, need_update_issuer_modules);
       if need_check_available_modules.is_empty() {
-        return;
+        break;
       }
 
       let need_clean_cycle_modules =
         Self::set_available_issuer(artifact, &mut helper, need_check_available_modules);
       if need_clean_cycle_modules.is_empty() {
-        return;
+        break;
       }
 
       need_update_issuer_modules =
         Self::clean_cycle_module(artifact, &mut helper, need_clean_cycle_modules);
+    }
+    if check_issuer_cycles {
+      Self::repair_issuer_cycles(artifact);
     }
   }
 }
