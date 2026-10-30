@@ -75,13 +75,17 @@ import.meta.webpackHot.accept(
 
 当使用 ESM `import` 时，所有从 `dependencies` 中导入的符号都会自动更新。注意：依赖项字符串必须与 `import` 中的 `from` 字符串完全匹配。在某些情况下，甚至可以省略 `callback`。在 `callback` 中使用的 `require()` 在这里没有任何意义。
 
+如果 ESM 依赖使用了顶层 await，Rspack 会等它执行完成后再调用 `callback`。省略回调时，更新过程同样会等待这些依赖。
+
 在使用 CommonJS 时，你应该通过 `callback` 中的 `require()` 手动更新依赖模块。省略 `callback` 在这里没有任何意义。
+
+`callback` 可以返回 Promise。HMR 会等它完成后，再重新执行接受自身更新的模块并完成本次更新。与 webpack 一样，Promise 被拒绝时，`module.hot.check(true)` 或 `module.hot.apply()` 返回的 Promise 也会被拒绝，接受自身更新的模块不会重新执行。拒绝不会交给 `errorHandler` 或 `onErrored`，也不受 `ignoreErrored` 影响；HMR 状态保持为 `apply`。
 
 #### 为 accept 设置错误处理器
 
 `(err, {moduleId, dependencyId}) => {}`
 
-- `err`：当使用 ESM 依赖项时，回调函数在第二个参数中或在依赖项执行期间抛出的错误。
+- `err`：第二个参数指定的回调函数同步抛出的错误，也包括同步 ESM 依赖执行时抛出的错误。Promise 拒绝不会交给这个处理器。
 - `moduleId`：当前模块 id。
 - `dependencyId`：（第一个）被更改依赖项的模块 id。
 
