@@ -509,7 +509,7 @@ __webpack_require__.p = '由 document/location 计算得来';
 
 读取或修改 Rspack 在运行时使用的基准 URL，用于将相对资源路径转换为完整 URL。
 
-当你使用 `new URL('./logo.png', import.meta.url)` 引用图片时，Rspack 默认会将源码路径替换为构建后的资源 URL。如果构建后的路径是 `assets/logo.png`，就会根据 `import.meta.rspackBaseUri` 得到图片的完整地址：
+使用 `new URL('./logo.png', import.meta.url)` 引用图片时，Rspack 默认会将源码中的图片路径替换为构建后的资源 URL。如果生成的是 `assets/logo.png` 这样的相对路径，Rspack 就会以 `import.meta.rspackBaseUri` 为基准，将它解析为完整 URL：
 
 ```text
 基准 URL： https://example.com/app/
@@ -517,9 +517,9 @@ __webpack_require__.p = '由 document/location 计算得来';
 完整 URL： https://example.com/app/assets/logo.png
 ```
 
-对于使用默认 chunk 加载方式的浏览器构建，基准 URL 的初始值为 `document.baseURI || self.location.href`，由页面 URL 和 HTML `<base>` 元素决定。如果资源需要相对于另一个部署目录加载，且目录只能在运行时确定，就可以修改这个值。
+浏览器构建使用默认 chunk 加载方式时，基准 URL 的初始值为 `document.baseURI || self.location.href`，取决于页面 URL 和 HTML `<base>` 元素。如果资源部署在其他目录下，并且该目录在运行时才能确定，就可以通过这个 API 设置基准 URL。
 
-例如，先配置 Rspack 生成相对资源路径：
+例如，下面的配置会为图片生成相对资源路径：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -533,21 +533,23 @@ export default {
 };
 ```
 
-再在应用中设置基准 URL。这样，无论当前页面位于哪个路径，图片都会从指定的部署目录加载：
+然后在应用中设置基准 URL。这样，无论当前页面的路径是什么，生成的图片 URL 都会指向指定的部署目录：
 
 ```js title="src/index.js"
-// 在创建资源 URL 前设置部署目录，目录 URL 应以 / 结尾。
+// 先设置基准 URL，再创建资源 URL。目录地址应以 / 结尾。
 import.meta.rspackBaseUri = 'https://example.com/app/';
 
 const logoUrl = new URL('./logo.png', import.meta.url);
 console.log(logoUrl.href); // https://example.com/app/assets/logo.png
 ```
 
-应在相关 URL 表达式执行前完成设置；已经创建的 `URL` 对象不会随之更新。如果导入的模块在初始化时创建资源 URL，请在单独的初始化模块中设置，并先于这些模块加载。如果基准 URL 在构建时就已确定，也可以直接配置 [`entry.baseUri`](/config/entry#entrydescriptionbaseuri)。
+修改基准 URL 只会影响之后创建的资源 URL，已有的 `URL` 对象不会更新。如果导入的模块会在初始化时创建资源 URL，请将基准 URL 的设置放在单独的初始化模块中，并确保它先于这些模块执行。
 
-[`import.meta.rspackPublicPath`](#importmetarspackpublicpath) 控制资源 URL 的前缀，`import.meta.rspackBaseUri` 则将生成的相对 URL 解析为完整 URL。如果资源 URL 已经是绝对地址，修改基准 URL 不会改变它。
+如果基准 URL 在构建时就已确定，也可以直接通过 [`entry.baseUri`](/config/entry#entrydescriptionbaseuri) 配置。
 
-通过 `new Worker(new URL('./worker.js', import.meta.url))` 创建 Worker 时，默认也会使用这个基准 URL 解析构建后的 Worker 相对路径。
+[`import.meta.rspackPublicPath`](#importmetarspackpublicpath) 用于设置资源 URL 的前缀，`import.meta.rspackBaseUri` 则用于将生成的相对 URL 解析为完整 URL。如果资源 URL 已经是绝对地址，就不会受基准 URL 的影响。
+
+通过 `new Worker(new URL('./worker.js', import.meta.url))` 创建 Worker 时，如果构建后的 Worker URL 是相对路径，Rspack 默认也会以这个基准 URL 解析它。
 
 ### import.meta.rspackNonce
 

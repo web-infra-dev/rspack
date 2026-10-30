@@ -509,7 +509,7 @@ __webpack_require__.p = 'calculated from document/location';
 
 Reads or changes the base URL that Rspack uses at runtime to turn relative asset paths into absolute URLs.
 
-When you reference an image with `new URL('./logo.png', import.meta.url)`, Rspack replaces the source path with the emitted asset's URL by default. If the emitted path is `assets/logo.png`, Rspack uses `import.meta.rspackBaseUri` to resolve the image's absolute URL:
+When you reference an image with `new URL('./logo.png', import.meta.url)`, Rspack replaces the image path in your source code with the emitted asset's URL by default. If that URL is a relative path such as `assets/logo.png`, Rspack resolves it against `import.meta.rspackBaseUri` to produce an absolute URL:
 
 ```text
 Base URL:     https://example.com/app/
@@ -517,9 +517,9 @@ Asset path:   assets/logo.png
 Absolute URL: https://example.com/app/assets/logo.png
 ```
 
-For browser builds using the default chunk loading, the initial base URL is `document.baseURI || self.location.href`, determined by the page URL and any HTML `<base>` element. Change this value when assets need to load relative to a different deployment directory that is only known at runtime.
+In browser builds with the default chunk loading mechanism, the base URL initially uses `document.baseURI || self.location.href`, which depends on the page URL and any HTML `<base>` element. Use this API when your assets are hosted in a different directory whose location is only known at runtime.
 
-For example, first configure Rspack to generate relative asset paths:
+For example, this configuration generates relative paths for image assets:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -533,21 +533,23 @@ export default {
 };
 ```
 
-Then set the base URL in your application. The image will load from the specified deployment directory regardless of the current page's path:
+Then set the base URL in your application. The resulting image URL will point to the specified deployment directory, regardless of the current page's path:
 
 ```js title="src/index.js"
-// Set the deployment directory before creating asset URLs. End directory URLs with /.
+// Set the base URL before creating asset URLs. Use a trailing / for directories.
 import.meta.rspackBaseUri = 'https://example.com/app/';
 
 const logoUrl = new URL('./logo.png', import.meta.url);
 console.log(logoUrl.href); // https://example.com/app/assets/logo.png
 ```
 
-Set the base URL before the affected URL expressions run; existing `URL` objects are not updated. If imported modules create asset URLs during initialization, set it in a separate setup module and load that module first. If the base URL is known at build time, you can also configure [`entry.baseUri`](/config/entry#entrydescriptionbaseuri) directly.
+Changing the base URL only affects asset URLs created afterward; existing `URL` objects are not updated. If imported modules create asset URLs during initialization, set the base URL in a separate setup module and ensure that it runs before those modules.
 
-[`import.meta.rspackPublicPath`](#importmetarspackpublicpath) controls the asset URL prefix, while `import.meta.rspackBaseUri` resolves the resulting relative URL into an absolute URL. If the asset URL is already absolute, changing the base URL does not change it.
+If the base URL is already known at build time, you can configure it through [`entry.baseUri`](/config/entry#entrydescriptionbaseuri) instead.
 
-When you create a Worker with `new Worker(new URL('./worker.js', import.meta.url))`, the default behavior also uses this base URL to resolve the emitted Worker's relative path.
+[`import.meta.rspackPublicPath`](#importmetarspackpublicpath) sets the asset URL prefix, while `import.meta.rspackBaseUri` provides the base for resolving the resulting relative URL. Asset URLs that are already absolute are unaffected by the base URL.
+
+When you create a Worker with `new Worker(new URL('./worker.js', import.meta.url))`, Rspack also resolves the emitted Worker's URL against this base URL by default if it is a relative path.
 
 ### import.meta.rspackNonce
 
