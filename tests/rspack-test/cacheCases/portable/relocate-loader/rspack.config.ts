@@ -1,7 +1,7 @@
 import { defineConfig } from '@rspack/cli';
 
 export default defineConfig({
-  cache: { type: 'persistent', portable: true },
+  cache: { type: 'persistent', portable: { root: '.' } },
   module: {
     rules: [
       {

@@ -4147,6 +4147,7 @@ dependencies = [
  "atomic_refcell",
  "cow-utils",
  "derive_more",
+ "dunce",
  "futures",
  "heck",
  "napi",
@@ -4298,6 +4299,7 @@ version = "0.103.0-rc.0"
 dependencies = [
  "arc-swap",
  "camino",
+ "cow-utils",
  "dashmap",
  "hashlink",
  "indexmap",
@@ -4306,7 +4308,6 @@ dependencies = [
  "lightningcss",
  "once_cell",
  "percent-encoding",
- "regex",
  "rkyv 0.8.18",
  "rspack-allocative",
  "rspack_cacheable_macros",

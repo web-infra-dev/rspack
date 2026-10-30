@@ -2190,11 +2190,12 @@ export type PersistentCacheOptions = {
    */
   storage?: CacheStorageOptions;
   /**
-   * Enable portable cache mode. When enabled, the generated cache content can be shared across different platforms and paths within the same project.
-   * @description Portable cache makes the cache platform-independent by converting platform-specific data (e.g., absolute paths to relative paths) during serialization and deserialization.
+   * Rebase cached paths under a portable root. Paths outside it remain unchanged.
+   * The root defaults to the nearest ancestor of context containing .git, or context.
+   * An explicit root is resolved against context and keeps the spelling of context.
    * @default false
    */
-  portable?: boolean;
+  portable?: boolean | { root?: string };
   /**
    * Enable read-only mode. When enabled, the cache will only be read from disk and never written to.
    * @description This is useful for CI environments where you want to use a pre-warmed cache without modifying it.

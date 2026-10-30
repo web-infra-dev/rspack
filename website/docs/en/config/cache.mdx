@@ -33,7 +33,7 @@ type CacheOptions =
       maxAge?: number;
       maxMemoryGenerations?: number;
       maxVersions?: number;
-      portable?: boolean;
+      portable?: boolean | { root?: string };
       readonly?: boolean;
       snapshot?: {
         immutablePaths?: Array<string | RegExp>;
@@ -228,16 +228,18 @@ export default {
 
 ### portable
 
-- **Type:** `boolean`
+- **Type:** `boolean | { root?: string }`
 - **Default:** `false`
 
-Enable portable cache mode. When enabled, the generated cache content can be shared across different platforms and paths within the same project.
+Enable portable path encoding with `true` or `{ root }`. The default root is the nearest ancestor of `context`, or `context` itself, that contains a `.git` file or directory. Without one, the root is `context`. Using the git toplevel includes sibling packages and repository-level dependencies in monorepos. Rspack resolves an explicit `root` against `context`. The root keeps the spelling of `context`, so a project reached through a symlink stays portable. Rspack also rebases paths under the root's real path.
+
+When Rspack restores the cache elsewhere, it rebases only paths under the root. Paths outside it stay verbatim.
+
+Rspack reuses a portable cache only where the project has the same layout, meaning the same position of `context` under the root and the same relation between the root and its real path. Moving the whole root, as with another Git worktree of the same repository, keeps the layout. Moving a package to another directory of the repository, adding or removing the `.git` that sets the default root, or reaching the project through a symlink in a different place starts a new cache. Two projects with different layouts should not share a cache [name](#name) and [storage](#storage) location. Windows and other operating systems also cannot share a portable cache.
 
 When `portable` is `false`, Rspack binds the cache to the project [context](/config/context). It treats a cache copied or shared to a project at another path as invalid and rebuilds it.
 
 The cache backend that [experiments.newCache](/config/experiments#experimentsnewcache) enables does not rebase paths yet, so Rspack always binds it to the project context, even when `portable` is `true`.
-
-Portable cache is built on top of persistent cache and makes the cache platform-independent by converting platform-specific data (e.g., absolute paths to relative paths) during serialization and deserialization.
 
 In the legacy cache backend, Rspack rebuilds entries that still depend on the writer's project root when the root changes. This includes `import.meta.url`, loader output containing absolute project paths, and references outside the project root. Unchanged builds at the same root can still reuse these entries.
 
@@ -249,22 +251,10 @@ Rspack finds loader output that contains the root by searching cached data for t
 export default {
   cache: {
     type: 'persistent',
-    portable: true,
+    portable: { root: '../..' },
   },
 };
 ```
-
-:::tip Use cases
-
-A typical use case is in CI environments where Windows, Linux, and macOS can share the same cache for acceleration without generating three separate cache copies.
-
-:::
-
-:::warning Limitations
-
-Files outside the project directory (outside `config.context`) will be converted to relative paths. If these files don't exist in the new environment, it will trigger a rebuild of the related modules.
-
-:::
 
 ### readonly
 
