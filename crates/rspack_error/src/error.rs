@@ -1,7 +1,10 @@
-use std::{fmt::Display, sync::Arc};
+use std::{
+  fmt::Display,
+  sync::{Arc, OnceLock},
+};
 
 use miette::{Diagnostic as MietteDiagnostic, LabeledSpan};
-use rspack_cacheable::cacheable;
+use rspack_cacheable::{cacheable, with::Skip};
 
 /// Error severity. Defaults to [`Severity::Error`].
 #[cacheable]
@@ -67,36 +70,69 @@ pub struct ErrorData {
 /// Wrap ErrorData to avoid result_large_err.
 #[cacheable]
 #[derive(Debug, Clone, Default)]
-pub struct Error(Box<ErrorData>);
+pub struct Error(Arc<ErrorInner>);
+
+#[cacheable]
+#[derive(Debug, Default)]
+struct ErrorInner {
+  data: ErrorData,
+  // Diagnostic clones from unchanged modules share both the data and rendered reports.
+  // Reports are transient and must not be restored from the persistent cache.
+  #[cacheable(with=Skip)]
+  rendered: [OnceLock<String>; 2],
+}
+
+impl Clone for ErrorInner {
+  fn clone(&self) -> Self {
+    Self {
+      data: self.data.clone(),
+      rendered: Default::default(),
+    }
+  }
+}
 
 impl std::ops::Deref for Error {
   type Target = ErrorData;
 
   fn deref(&self) -> &Self::Target {
-    &self.0
+    &self.0.data
   }
 }
 
 impl std::ops::DerefMut for Error {
   fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.0
+    // Any mutation, including one to a nested source error, invalidates both themes.
+    let inner = Arc::make_mut(&mut self.0);
+    inner.rendered = Default::default();
+    &mut inner.data
   }
 }
 
 impl Error {
-  #[allow(clippy::self_named_constructors)]
-  pub fn error(message: String) -> Self {
-    Self(Box::new(ErrorData {
-      message,
-      ..Default::default()
+  fn new(data: ErrorData) -> Self {
+    Self(Arc::new(ErrorInner {
+      data,
+      rendered: Default::default(),
     }))
   }
+
+  pub(crate) fn render_cache(&self, colored: bool) -> &OnceLock<String> {
+    &self.0.rendered[usize::from(colored)]
+  }
+
+  #[allow(clippy::self_named_constructors)]
+  pub fn error(message: String) -> Self {
+    Self::new(ErrorData {
+      message,
+      ..Default::default()
+    })
+  }
   pub fn warning(message: String) -> Self {
-    Self(Box::new(ErrorData {
+    Self::new(ErrorData {
       severity: Severity::Warning,
       message,
       ..Default::default()
-    }))
+    })
   }
 
   pub fn from_string(
@@ -146,11 +182,11 @@ impl Error {
   where
     D: std::fmt::Display,
   {
-    Self(Box::new(ErrorData {
+    Self::new(ErrorData {
       message: msg.to_string(),
       source_error: Some(Box::new(self)),
       ..Default::default()
-    }))
+    })
   }
 }
 
@@ -251,12 +287,108 @@ mod test {
   use owo_colors::with_override;
 
   use super::{Error, ErrorData, Label};
-  use crate::{Renderer, Severity};
+  use crate::{Diagnostic, Renderer, Severity};
+
+  #[test]
+  fn should_share_rendered_reports_across_diagnostic_clones() {
+    let original = Diagnostic::from(Error::from_string(
+      Some("const value = missing;".into()),
+      14,
+      21,
+      "Unknown variable".into(),
+      "missing is not defined".into(),
+    ));
+    // Module diagnostics are cloned into the compilation before they are rendered.
+    let mut cloned = original.clone();
+    cloned.module_identifier = Some("module.js".into());
+    let plain = cloned.render_report(false).unwrap();
+    assert_eq!(original.render_cache(false).get(), Some(&plain));
+    assert!(original.render_cache(true).get().is_none());
+    assert!(std::ptr::eq(
+      original.render_cache(false),
+      cloned.render_cache(false)
+    ));
+
+    let colored = original.render_report(true).unwrap();
+    assert_ne!(plain, colored);
+    assert_eq!(cloned.render_report(true).unwrap(), colored);
+    assert_eq!(original.render_report(false).unwrap(), plain);
+  }
+
+  #[test]
+  fn should_invalidate_rendered_reports_on_mutation() {
+    let original = Diagnostic::warn("Warning".into(), "original message".into());
+    let plain = original.render_report(false).unwrap();
+    let colored = original.render_report(true).unwrap();
+    let mut updated = original.clone();
+    updated.message = "updated message".into();
+    assert!(updated.render_cache(false).get().is_none());
+    assert!(updated.render_cache(true).get().is_none());
+    assert!(
+      updated
+        .render_report(false)
+        .unwrap()
+        .contains("updated message")
+    );
+    assert!(
+      updated
+        .render_report(true)
+        .unwrap()
+        .contains("updated message")
+    );
+    assert_eq!(original.render_report(false).unwrap(), plain);
+    assert_eq!(original.render_report(true).unwrap(), colored);
+
+    // Also invalidate when the error is uniquely owned (no copy-on-write).
+    updated.message = "second update".into();
+    assert!(
+      updated
+        .render_report(false)
+        .unwrap()
+        .contains("second update")
+    );
+
+    updated.error = Error::error("replacement error".into());
+    assert!(
+      updated
+        .render_report(false)
+        .unwrap()
+        .contains("replacement error")
+    );
+  }
+
+  #[test]
+  fn should_invalidate_report_when_source_error_changes() {
+    let original = Diagnostic::from(Error::error("original cause".into()).wrap_err("outer error"));
+    let report = original.render_report(false).unwrap();
+    let mut updated = original.clone();
+    updated.source_error.as_mut().unwrap().message = "updated cause".into();
+    let updated_report = updated.render_report(false).unwrap();
+    assert!(updated_report.contains("updated cause"));
+    assert!(!updated_report.contains("original cause"));
+    assert_eq!(original.render_report(false).unwrap(), report);
+  }
+
+  #[test]
+  fn should_not_persist_rendered_reports() {
+    let original = Diagnostic::from(Error::error("cause".into()).wrap_err("outer error"));
+    let before = rspack_cacheable::to_bytes(&original, &()).unwrap();
+    let plain = original.render_report(false).unwrap();
+    let colored = original.render_report(true).unwrap();
+    let after = rspack_cacheable::to_bytes(&original, &()).unwrap();
+    assert_eq!(before, after);
+
+    let restored: Diagnostic = rspack_cacheable::from_bytes(&after, &()).unwrap();
+    assert!(restored.render_cache(false).get().is_none());
+    assert!(restored.render_cache(true).get().is_none());
+    assert_eq!(restored.render_report(false).unwrap(), plain);
+    assert_eq!(restored.render_report(true).unwrap(), colored);
+  }
 
   #[test]
   fn should_error_display() {
     let renderer = Renderer::new(false);
-    let sub_err = Error(Box::new(ErrorData {
+    let sub_err = Error::new(ErrorData {
       severity: Severity::Warning,
       message: "An unexpected keyword.".into(),
       src: Some("const a = { const };\nconst b = { var };".into()),
@@ -278,8 +410,8 @@ mod test {
       details: Some("detail info".into()),
       stack: Some("stack info".into()),
       hide_stack: None,
-    }));
-    let mid_err = Error(Box::new(ErrorData {
+    });
+    let mid_err = Error::new(ErrorData {
       severity: Severity::Error,
       message: "Can not parse current module.".into(),
       src: Some("const a = { const };".into()),
@@ -294,8 +426,8 @@ mod test {
       details: Some("detail info".into()),
       stack: Some("stack info".into()),
       hide_stack: None,
-    }));
-    let root_err = Error(Box::new(ErrorData {
+    });
+    let root_err = Error::new(ErrorData {
       severity: Severity::Error,
       message: "Build Module Failed".into(),
       src: None,
@@ -306,7 +438,7 @@ mod test {
       details: Some("detail info".into()),
       stack: Some("stack info".into()),
       hide_stack: None,
-    }));
+    });
     let expect_display = r#"
  × Build Module Failed
   ├─▶   × Can not parse current module.
