@@ -507,47 +507,21 @@ __webpack_require__.p = '由 document/location 计算得来';
 
 <ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
 
-读取或修改 Rspack 在运行时使用的基准 URL，用于将相对资源路径转换为完整 URL。
+运行时获取或修改 Base URI。
 
-当你使用 `new URL('./logo.png', import.meta.url)` 引用图片时，Rspack 默认会将源码路径替换为构建后的资源 URL。如果构建后的路径是 `assets/logo.png`，就会根据 `import.meta.rspackBaseUri` 得到图片的完整地址：
-
-```text
-基准 URL： https://example.com/app/
-资源路径： assets/logo.png
-完整 URL： https://example.com/app/assets/logo.png
+<Columns>
+```js title=源码
+import.meta.rspackBaseUri;
 ```
 
-对于使用默认 chunk 加载方式的浏览器构建，基准 URL 的初始值为 `document.baseURI || self.location.href`，由页面 URL 和 HTML `<base>` 元素决定。如果资源需要相对于另一个部署目录加载，且目录只能在运行时确定，就可以修改这个值。
+```js title=产物
+__webpack_require__.b;
 
-例如，先配置 Rspack 生成相对资源路径：
-
-```js title="rspack.config.mjs"
-export default {
-  output: {
-    publicPath: '',
-    assetModuleFilename: 'assets/[name][ext]',
-  },
-  module: {
-    rules: [{ test: /\.png$/, type: 'asset/resource' }],
-  },
-};
+// chunk loading
+__webpack_require__.b = document.baseURI || self.location.href;
 ```
 
-再在应用中设置基准 URL。这样，无论当前页面位于哪个路径，图片都会从指定的部署目录加载：
-
-```js title="src/index.js"
-// 在创建资源 URL 前设置部署目录，目录 URL 应以 / 结尾。
-import.meta.rspackBaseUri = 'https://example.com/app/';
-
-const logoUrl = new URL('./logo.png', import.meta.url);
-console.log(logoUrl.href); // https://example.com/app/assets/logo.png
-```
-
-应在相关 URL 表达式执行前完成设置；已经创建的 `URL` 对象不会随之更新。如果导入的模块在初始化时创建资源 URL，请在单独的初始化模块中设置，并先于这些模块加载。如果基准 URL 在构建时就已确定，也可以直接配置 [`entry.baseUri`](/config/entry#entrydescriptionbaseuri)。
-
-[`import.meta.rspackPublicPath`](#importmetarspackpublicpath) 控制资源 URL 的前缀，`import.meta.rspackBaseUri` 则将生成的相对 URL 解析为完整 URL。如果资源 URL 已经是绝对地址，修改基准 URL 不会改变它。
-
-通过 `new Worker(new URL('./worker.js', import.meta.url))` 创建 Worker 时，默认也会使用这个基准 URL 解析构建后的 Worker 相对路径。
+</Columns>
 
 ### import.meta.rspackNonce
 

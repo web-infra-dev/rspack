@@ -507,47 +507,21 @@ __webpack_require__.p = 'calculated from document/location';
 
 <ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
 
-Reads or changes the base URL that Rspack uses at runtime to turn relative asset paths into absolute URLs.
+Get or change base URI at runtime.
 
-When you reference an image with `new URL('./logo.png', import.meta.url)`, Rspack replaces the source path with the emitted asset's URL by default. If the emitted path is `assets/logo.png`, Rspack uses `import.meta.rspackBaseUri` to resolve the image's absolute URL:
-
-```text
-Base URL:     https://example.com/app/
-Asset path:   assets/logo.png
-Absolute URL: https://example.com/app/assets/logo.png
+<Columns>
+```js title=Source
+import.meta.rspackBaseUri;
 ```
 
-For browser builds using the default chunk loading, the initial base URL is `document.baseURI || self.location.href`, determined by the page URL and any HTML `<base>` element. Change this value when assets need to load relative to a different deployment directory that is only known at runtime.
+```js title=Compiled
+__webpack_require__.b;
 
-For example, first configure Rspack to generate relative asset paths:
-
-```js title="rspack.config.mjs"
-export default {
-  output: {
-    publicPath: '',
-    assetModuleFilename: 'assets/[name][ext]',
-  },
-  module: {
-    rules: [{ test: /\.png$/, type: 'asset/resource' }],
-  },
-};
+// chunk loading
+__webpack_require__.b = document.baseURI || self.location.href;
 ```
 
-Then set the base URL in your application. The image will load from the specified deployment directory regardless of the current page's path:
-
-```js title="src/index.js"
-// Set the deployment directory before creating asset URLs. End directory URLs with /.
-import.meta.rspackBaseUri = 'https://example.com/app/';
-
-const logoUrl = new URL('./logo.png', import.meta.url);
-console.log(logoUrl.href); // https://example.com/app/assets/logo.png
-```
-
-Set the base URL before the affected URL expressions run; existing `URL` objects are not updated. If imported modules create asset URLs during initialization, set it in a separate setup module and load that module first. If the base URL is known at build time, you can also configure [`entry.baseUri`](/config/entry#entrydescriptionbaseuri) directly.
-
-[`import.meta.rspackPublicPath`](#importmetarspackpublicpath) controls the asset URL prefix, while `import.meta.rspackBaseUri` resolves the resulting relative URL into an absolute URL. If the asset URL is already absolute, changing the base URL does not change it.
-
-When you create a Worker with `new Worker(new URL('./worker.js', import.meta.url))`, the default behavior also uses this base URL to resolve the emitted Worker's relative path.
+</Columns>
 
 ### import.meta.rspackNonce
 
