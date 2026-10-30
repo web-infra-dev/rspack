@@ -108,6 +108,73 @@ fn generations(directory: &Path, stamps: &mut BTreeMap<PathBuf, Vec<u8>>) -> Res
   Ok(())
 }
 
+/// Replicates a donor unit, cloning it in one call where the filesystem supports
+/// copy-on-write directory clones and copying file by file otherwise.
+fn replicate_directory(source: &Path, target: &Path) -> Result<()> {
+  if clone_directory(source, target) {
+    return prune_clone(target);
+  }
+  let _ = fs::remove_dir_all(target);
+  copy_directory(source, target)
+}
+
+/// APFS clones a whole directory tree with `clonefile`, sharing blocks until either side writes.
+#[cfg(target_os = "macos")]
+fn clone_directory(source: &Path, target: &Path) -> bool {
+  use std::{
+    ffi::{CString, c_char, c_int},
+    os::unix::ffi::OsStrExt,
+  };
+  unsafe extern "C" {
+    fn clonefile(src: *const c_char, dst: *const c_char, flags: u32) -> c_int;
+  }
+  const CLONE_NOFOLLOW: u32 = 0x0001;
+  const CLONE_NOOWNERCOPY: u32 = 0x0002;
+  let (Ok(source), Ok(target)) = (
+    CString::new(source.as_os_str().as_bytes()),
+    CString::new(target.as_os_str().as_bytes()),
+  ) else {
+    return false;
+  };
+  // SAFETY: both pointers are NUL-terminated paths that outlive the call.
+  unsafe {
+    clonefile(
+      source.as_ptr(),
+      target.as_ptr(),
+      CLONE_NOFOLLOW | CLONE_NOOWNERCOPY,
+    ) == 0
+  }
+}
+
+/// Elsewhere `fs::copy` already uses the platform's reflink path when it has one.
+#[cfg(not(target_os = "macos"))]
+fn clone_directory(_source: &Path, _target: &Path) -> bool {
+  false
+}
+
+/// Drops the transient entries a file-by-file copy would have skipped, and rejects what it
+/// would have refused to copy.
+fn prune_clone(dir: &Path) -> Result<()> {
+  for entry in fs::read_dir(dir)? {
+    let entry = entry?;
+    let kind = entry.file_type()?;
+    if is_transient(&entry.file_name()) {
+      if kind.is_dir() {
+        fs::remove_dir_all(entry.path())?;
+      } else {
+        fs::remove_file(entry.path())?;
+      }
+    } else if kind.is_dir() {
+      prune_clone(&entry.path())?;
+    } else if !kind.is_file() {
+      return Err(rspack_error::error!(
+        "cache donor contains a non-regular file"
+      ));
+    }
+  }
+  Ok(())
+}
+
 fn copy_directory(source: &Path, target: &Path) -> Result<()> {
   fs::create_dir(target)?;
   for entry in fs::read_dir(source)? {
@@ -217,7 +284,7 @@ pub fn stage_seed(location: &Path, donor: &Path, unit: &CacheDirectory) -> Resul
     let staging = tempfile::Builder::new()
       .prefix(&format!("{unit}{STAGING_MARKER}{}-", std::process::id()))
       .tempdir_in(location)?;
-    copy_directory(&source, &staging.path().join(unit.as_str()))?;
+    replicate_directory(&source, &staging.path().join(unit.as_str()))?;
     let mut after = BTreeMap::new();
     generations(&source, &mut after)?;
     if let Some(reason) = pending_transaction(&source)? {
