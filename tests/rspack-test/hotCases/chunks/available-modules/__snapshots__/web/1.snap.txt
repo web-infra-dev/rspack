@@ -10,18 +10,17 @@
 - Bundle: parent.chunk.CURRENT_HASH.js
 - Bundle: q.chunk.CURRENT_HASH.js
 - Bundle: r.chunk.CURRENT_HASH.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 49
-- Update: child.LAST_HASH.hot-update.js, size: 427
-- Update: main.LAST_HASH.hot-update.js, size: 372
-- Update: parent.LAST_HASH.hot-update.js, size: 441
-- Update: r.LAST_HASH.hot-update.js, size: 196
+- Manifest: main.LAST_HASH.hot-update.json, size: 45
+- Update: child.LAST_HASH.hot-update.js, size: 270
+- Update: main.LAST_HASH.hot-update.js, size: 181
+- Update: parent.LAST_HASH.hot-update.js, size: 282
 
 ## Manifest
 
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["child","main","parent","r"],"r":[],"m":[]}
+{"c":["child","main","parent"],"r":[],"m":[]}
 ```
 
 
@@ -51,11 +50,7 @@ const value = 42;
 
 },
 
-},function(__webpack_require__) {
-// webpack/runtime/hot_module_replacement_loaded_chunk_version|child
-__webpack_require__.hmrL["child"] = "CHUNK_VERSION";
-}
-);
+});
 ```
 
 
@@ -67,7 +62,6 @@ __webpack_require__.hmrL["child"] = "CHUNK_VERSION";
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
-- webpack/runtime/hot_module_replacement_chunk_versions
 
 #### Changed Content
 ```js
@@ -76,10 +70,6 @@ self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
-})();
-// webpack/runtime/hot_module_replacement_chunk_versions
-(() => {
-__webpack_require__.hmrV = {"child":"CHUNK_VERSION","parent":"CHUNK_VERSION","q":"CHUNK_VERSION","r":"CHUNK_VERSION"};
 })();
 
 }
@@ -112,29 +102,5 @@ module.hot.accept();
 
 },
 
-},function(__webpack_require__) {
-// webpack/runtime/hot_module_replacement_loaded_chunk_version|parent
-__webpack_require__.hmrL["parent"] = "CHUNK_VERSION";
-}
-);
-```
-
-
-
-### r.LAST_HASH.hot-update.js
-
-#### Changed Modules
-
-
-#### Changed Runtime Modules
-
-
-#### Changed Content
-```js
-"use strict";
-self["rspackHotUpdate"]("r", {},function(__webpack_require__) {
-// webpack/runtime/hot_module_replacement_loaded_chunk_version|r
-__webpack_require__.hmrL["r"] = "CHUNK_VERSION";
-}
-);
+});
 ```

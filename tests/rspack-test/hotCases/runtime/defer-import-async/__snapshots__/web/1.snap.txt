@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: consumer_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 27941
+- Update: main.LAST_HASH.hot-update.js, size: 28084
 
 ## Manifest
 
@@ -31,7 +31,6 @@
 - webpack/runtime/create_fake_namespace_object
 - webpack/runtime/ensure_chunk
 - webpack/runtime/get_full_hash
-- webpack/runtime/hot_module_replacement_chunk_versions
 - webpack/runtime/jsonp_chunk_loading
 - webpack/runtime/make_deferred_namespace_object
 - webpack/runtime/make_optimized_deferred_namespace_object
@@ -213,10 +212,6 @@ __webpack_require__.u = (chunkId) => {
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
 })();
-// webpack/runtime/hot_module_replacement_chunk_versions
-(() => {
-__webpack_require__.hmrV = {"consumer_js":"CHUNK_VERSION"};
-})();
 // webpack/runtime/make_deferred_namespace_object
 (() => {
 __webpack_require__.z = (moduleId, mode) => {
@@ -351,6 +346,7 @@ if (installedChunkData !== 0) {
 
 			// start chunk loading
 			var url = __webpack_require__.p + __webpack_require__.u(chunkId);
+			url += (url.indexOf('?') < 0 ? '?' : '&') + 'hmr=' + __webpack_require__.h();
 			// create error before stack unwound to get useful stacktrace later
 			var error = new Error();
 			var loadingEnded = function (event) {
@@ -358,6 +354,11 @@ if (installedChunkData !== 0) {
 					installedChunkData = jsonpInstalledChunks[chunkId];
 					if (installedChunkData !== 0) jsonpInstalledChunks[chunkId] = undefined;
 					if (installedChunkData) {
+						if (installedChunkData.error) {
+							installedChunkData[1](installedChunkData.error);
+							return;
+						}
+
 						var errorType =
 							event && (event.type === 'load' ? 'missing' : event.type);
 						var realSrc = event && event.target && event.target.src;
@@ -857,7 +858,10 @@ __webpack_require__.hmrC.jsonp = function (
 	removedModules,
 	promises,
 	applyHandlers,
-	updatedModulesList
+	updatedModulesList,
+	_css,
+	_miniCss,
+	trackUpdate
 ) {
 	applyHandlers.push(hotApplyHandler);
 	hotCurrentUpdateChunks = {};
@@ -872,15 +876,7 @@ __webpack_require__.hmrC.jsonp = function (
 			__webpack_require__.o(jsonpInstalledChunks, chunkId) &&
 			jsonpInstalledChunks[chunkId] !== undefined
 		) {
-			var installedChunk = jsonpInstalledChunks[chunkId];
-			// Install an in-flight ordinary chunk before downloading its update.
-			promises.push(Array.isArray(installedChunk)
-				? installedChunk[installedChunk.length - 1].then(function () {
-					return jsonpLoadUpdateChunk(chunkId, updatedModulesList);
-				}, function () {
-					hotCurrentUpdateChunks[chunkId] = false;
-				})
-				: jsonpLoadUpdateChunk(chunkId, updatedModulesList));
+			promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList));
 			hotCurrentUpdateChunks[chunkId] = true;
 		} else {
 			hotCurrentUpdateChunks[chunkId] = false;
@@ -893,7 +889,8 @@ __webpack_require__.hmrC.jsonp = function (
 				__webpack_require__.o(hotCurrentUpdateChunks, chunkId) &&
 				!hotCurrentUpdateChunks[chunkId]
 			) {
-				promises.push(jsonpLoadUpdateChunk(chunkId));
+				// A rejected ordinary load must not stop HMR awaiting this download.
+				promises.push(trackUpdate(jsonpLoadUpdateChunk(chunkId)));
 				hotCurrentUpdateChunks[chunkId] = true;
 			}
 		};
@@ -916,6 +913,16 @@ __webpack_require__.hmrM = () => {
 // install a JSONP callback for chunk loading
 var __rspack_jsonp = (parentChunkLoadingFunction, data) => {
 	var [chunkIds, moreModules, runtime] = data;
+	var error = __webpack_require__.hmrV(data[3]);
+	if (error) {
+		// Reject after the script's onload has cleaned up this attempt.
+		chunkIds.forEach(function (id) {
+			if (jsonpInstalledChunks[id]) jsonpInstalledChunks[id].error = error;
+		});
+		if (parentChunkLoadingFunction) parentChunkLoadingFunction(data);
+		return;
+	}
+
 	// add "moreModules" to the modules object,
 	// then flag all "chunkIds" as loaded and fire callback
 	var moduleId, chunkId, i = 0;

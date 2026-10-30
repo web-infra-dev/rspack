@@ -9,9 +9,9 @@
 - Bundle: lazy-module_js.chunk.mjs
 - Bundle: main.mjs
 - Manifest: main.LAST_HASH.hot-update.json.mjs, size: 79
-- Update: async-module_js.LAST_HASH.hot-update.mjs, size: 561
-- Update: lazy-module_js.LAST_HASH.hot-update.mjs, size: 558
-- Update: main.LAST_HASH.hot-update.mjs, size: 418
+- Update: async-module_js.LAST_HASH.hot-update.mjs, size: 347
+- Update: lazy-module_js.LAST_HASH.hot-update.mjs, size: 346
+- Update: main.LAST_HASH.hot-update.mjs, size: 249
 
 ## Manifest
 
@@ -47,11 +47,6 @@ const message = "Updated async module!";
 },
 
 };
-export const __rspack_esm_runtime = function(__webpack_require__) {
-// webpack/runtime/hot_module_replacement_loaded_chunk_version|async-module_js
-__webpack_require__.hmrL["async-module_js"] = "CHUNK_VERSION";
-}
-;
 
 ```
 
@@ -83,11 +78,6 @@ const data = {
 },
 
 };
-export const __rspack_esm_runtime = function(__webpack_require__) {
-// webpack/runtime/hot_module_replacement_loaded_chunk_version|lazy-module_js
-__webpack_require__.hmrL["lazy-module_js"] = "CHUNK_VERSION";
-}
-;
 
 ```
 
@@ -100,7 +90,6 @@ __webpack_require__.hmrL["lazy-module_js"] = "CHUNK_VERSION";
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
-- webpack/runtime/hot_module_replacement_chunk_versions
 
 #### Changed Content
 ```js
@@ -110,10 +99,6 @@ export const __rspack_esm_runtime = function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
-})();
-// webpack/runtime/hot_module_replacement_chunk_versions
-(() => {
-__webpack_require__.hmrV = {"async-module_js":"CHUNK_VERSION","lazy-module_js":"CHUNK_VERSION"};
 })();
 
 }

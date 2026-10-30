@@ -10,8 +10,8 @@
 - Bundle: modules_module_js.chunk.CURRENT_HASH.js
 - Bundle: modules_module_js_lazy-compilation-proxy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 71
-- Update: main.LAST_HASH.hot-update.js, size: 758
-- Update: modules_module_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1281
+- Update: main.LAST_HASH.hot-update.js, size: 470
+- Update: modules_module_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1054
 
 ## Manifest
 
@@ -32,7 +32,6 @@
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
-- webpack/runtime/hot_module_replacement_chunk_versions
 
 #### Changed Content
 ```js
@@ -52,10 +51,6 @@ __webpack_require__.d(__webpack_exports__, {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
-})();
-// webpack/runtime/hot_module_replacement_chunk_versions
-(() => {
-__webpack_require__.hmrV = {"modules_demo_js":"CHUNK_VERSION","modules_demo_js_lazy-compilation-proxy":"CHUNK_VERSION","modules_module_js":"CHUNK_VERSION","modules_module_js_lazy-compilation-proxy":"CHUNK_VERSION"};
 })();
 
 }
@@ -90,11 +85,7 @@ var data = "lazy-compilation-proxy|<TEST_TOOLS_ROOT>/dist/helper/hot-update/load
 
 },
 
-},function(__webpack_require__) {
-// webpack/runtime/hot_module_replacement_loaded_chunk_version|modules_module_js_lazy-compilation-proxy
-__webpack_require__.hmrL["modules_module_js_lazy-compilation-proxy"] = "CHUNK_VERSION";
-}
-);
+});
 ```
 
 
@@ -135,7 +126,6 @@ Updated Modules:
 
 Updated Runtime:
 - `__webpack_require__.h`
-- `__webpack_require__.hmrV`
 
 
 #### Callback

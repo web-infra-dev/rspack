@@ -8,10 +8,9 @@
 - Bundle: b.js
 - Bundle: shared.js
 - Manifest: a.LAST_HASH.hot-update.json, size: 46
-- Manifest: b.LAST_HASH.hot-update.json, size: 34
+- Manifest: b.LAST_HASH.hot-update.json, size: 25
 - Update: a.LAST_HASH.hot-update.js, size: 273
 - Update: b.LAST_HASH.hot-update.js, size: 178
-- Update: shared.LAST_HASH.hot-update.js, size: 211
 
 ## Manifest
 
@@ -26,7 +25,7 @@
 ### b.LAST_HASH.hot-update.json
 
 ```json
-{"c":["b","shared"],"r":[],"m":[]}
+{"c":["b"],"r":[],"m":[]}
 ```
 
 
@@ -79,26 +78,6 @@ self["rspackHotUpdate"]("b", {},function(__webpack_require__) {
 __webpack_require__.h = () => ("CURRENT_HASH")
 })();
 
-}
-);
-```
-
-
-
-### shared.LAST_HASH.hot-update.js
-
-#### Changed Modules
-
-
-#### Changed Runtime Modules
-
-
-#### Changed Content
-```js
-"use strict";
-self["rspackHotUpdate"]("shared", {},function(__webpack_require__) {
-// webpack/runtime/hot_module_replacement_loaded_chunk_version|shared
-__webpack_require__.hmrL["shared"] = "CHUNK_VERSION";
 }
 );
 ```
