@@ -96,9 +96,7 @@ type StatsCacheInfo = {
 | `reused` | Cached values that passed validation and were reused. |
 | `stores` | Cache write requests, not completed disk writes.      |
 
-Counters reset before each build or rebuild. They measure cache operations, so they may differ from the number of modules. A hit does not guarantee reuse: for example, a cached module may fail dependency validation.
-
-Entries with all-zero counters are omitted. If no entries remain, `cacheInfo` is omitted. Missing statistics do not imply a zero cache hit rate. To check whether caching is enabled, read the compiler's `cache` configuration.
+Counters measure cache operations in the current compilation. A hit does not guarantee reuse: for example, a cached module may fail dependency validation.
 
 ## Asset object
 
