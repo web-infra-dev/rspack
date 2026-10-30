@@ -21,6 +21,7 @@ use crate::{
 /// At the moment there's only one implementation, the one which generates flame graph,
 /// and this trait is crate-private. This may change in the future.
 pub(crate) trait VisitorImpl {
+  fn object_impl(&mut self, _address: usize, _type_name: &'static str) {}
   fn opaque_impl(&mut self, _name: &'static str) {}
   /// Enter simple field like `u32`.
   /// All sizes are in bytes.
@@ -63,6 +64,14 @@ impl Drop for Visitor<'_> {
 }
 
 impl<'a> Visitor<'a> {
+  /// Record identity separately from byte weights and aggregated flamegraph keys.
+  pub fn record_object<T: ?Sized>(&mut self, value: &T) {
+    self.visitor.object_impl(
+      std::ptr::from_ref(value).cast::<()>() as usize,
+      std::any::type_name::<T>(),
+    );
+  }
+
   pub fn enter<'b>(&'b mut self, name: Key, size: usize) -> Visitor<'b>
   where
     'a: 'b,

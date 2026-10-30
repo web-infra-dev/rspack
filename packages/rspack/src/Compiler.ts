@@ -69,6 +69,7 @@ import {
 import { TraceHookPlugin } from './trace/traceHookPlugin';
 import { JavaScriptTracer } from './trace';
 import { unsupported } from './util';
+import { registerAllocativeSnapshot } from './util/allocative';
 import { assertNotNill } from './util/assertNotNil';
 import { checkVersion } from './util/bindingVersionCheck';
 import type {
@@ -970,6 +971,7 @@ class Compiler {
       VirtualModulesPlugin.__internal__take_virtual_files(this);
 
     const instanceBinding: typeof binding = require('@rspack/binding');
+    registerAllocativeSnapshot(instanceBinding);
 
     this.#registers = this.#createHooksRegisters();
 
