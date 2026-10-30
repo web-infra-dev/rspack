@@ -316,7 +316,23 @@ impl<'context> CssModuleParser<'context> {
   pub async fn parse(mut self) -> Result<TWithDiagnosticArray<ParseResult>> {
     let mode = self.mode();
     let deps_source_code = self.source_code.clone();
-    let (deps, warnings) = css_module_lexer::collect_dependencies(&deps_source_code, mode);
+    let (deps, mut warnings) = css_module_lexer::collect_dependencies(&deps_source_code, mode);
+    // A view-transition name makes its selector local only when scoping is enabled.
+    // The lexer does not know the customIdents parser option.
+    if self.custom_idents() {
+      warnings.retain(|warning| {
+        !matches!(
+          warning.kind(),
+          css_module_lexer::WarningKind::NotPure { .. }
+        ) || !deps.iter().any(|dependency| {
+          matches!(
+            dependency,
+            css_module_lexer::Dependency::LocalViewTransition { range, .. }
+              if range.start >= warning.range().start && range.end <= warning.range().end
+          )
+        })
+      });
+    }
     let local_css_ident_declarations =
       self.collect_local_css_ident_declarations(deps.dependencies());
 
@@ -630,7 +646,8 @@ impl<'context> CssModuleParser<'context> {
           *range,
         ),
       css_module_lexer::Dependency::LocalCounterStyleDecl { name, range, .. }
-      | css_module_lexer::Dependency::LocalFontPaletteDecl { name, range, .. } => {
+      | css_module_lexer::Dependency::LocalFontPaletteDecl { name, range, .. }
+      | css_module_lexer::Dependency::LocalViewTransition { name, range, .. } => {
         self.handle_optional_local_ident_declaration(self.custom_idents(), name, *range)
       }
       css_module_lexer::Dependency::LocalContainer { name, range, .. } => self

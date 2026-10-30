@@ -263,6 +263,10 @@ pub enum Dependency<'s> {
     name: &'s str,
     range: Range,
   },
+  LocalViewTransition {
+    name: &'s str,
+    range: Range,
+  },
   LocalFunction {
     name: &'s str,
     range: Range,

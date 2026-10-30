@@ -90,6 +90,9 @@ pub(crate) enum PropertyKind {
   FontPalette,
   Container,
   Grid,
+  ViewTransitionName,
+  ViewTransitionGroup,
+  ViewTransitionClass,
   Composes,
   CustomProperty,
 }
@@ -410,6 +413,7 @@ enum BalancedItemKind {
   Layer,
   Supports,
   PaletteMix,
+  ViewTransition,
   LocalFn,
   GlobalFn,
   LocalClass,
@@ -1334,10 +1338,38 @@ pub(crate) fn special_value_is_candidate(
     PropertyKind::FontPalette => ident.starts_with("--"),
     PropertyKind::Container => ContainerReserved.check(ident, TokenFlags::ascii()),
     PropertyKind::Grid => !is_reserved_grid_ident(ident, TokenFlags::ascii()),
+    PropertyKind::ViewTransitionName
+    | PropertyKind::ViewTransitionGroup
+    | PropertyKind::ViewTransitionClass => {
+      !is_reserved_view_transition_ident(property, ident, TokenFlags::ascii())
+    }
     PropertyKind::Animation
     | PropertyKind::Generic
     | PropertyKind::Composes
     | PropertyKind::CustomProperty => false,
+  }
+}
+
+fn is_reserved_view_transition_ident(
+  property: PropertyKind,
+  ident: &str,
+  flags: TokenFlags,
+) -> bool {
+  let mut normalized = [0; MAX_CSS_KEYWORD_LEN];
+  let ident = if flags.has_escape() {
+    decode_css_keyword(ident, &mut normalized)
+  } else {
+    lowercase_ascii_keyword(ident, &mut normalized)
+  };
+  match ident {
+    Some("initial" | "inherit" | "unset" | "revert" | "revert-layer") => true,
+    Some("none") => matches!(
+      property,
+      PropertyKind::ViewTransitionName | PropertyKind::ViewTransitionClass
+    ),
+    Some("auto" | "match-element") => property == PropertyKind::ViewTransitionName,
+    Some("normal" | "contain" | "nearest") => property == PropertyKind::ViewTransitionGroup,
+    _ => false,
   }
 }
 
@@ -1748,6 +1780,28 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
           result = self.handle_id(stream.lexer_mut(), token.range.start, id_end, token.flags);
         }
         TokenKind::Delim
+          if matches!(
+            self.scan_context,
+            ScanContext::SpecialValue(
+              PropertyKind::ViewTransitionName
+                | PropertyKind::ViewTransitionGroup
+                | PropertyKind::ViewTransitionClass
+            )
+          ) && self.balanced.is_empty()
+            && stream.byte_at(token.range.start) == Some(b'!') =>
+        {
+          let next = stream.peek_parser_token().token;
+          let mut normalized = [0; MAX_CSS_KEYWORD_LEN];
+          if next.kind == TokenKind::Ident
+            && decode_css_keyword(
+              stream.slice_trusted(next.range.start, next.range.end),
+              &mut normalized,
+            ) == Some("important")
+          {
+            stream.next_parser_token();
+          }
+        }
+        TokenKind::Delim
           if self.in_animation_property.is_some()
             && self.balanced.is_empty()
             && stream.byte_at(token.range.start) == Some(b'!') =>
@@ -1782,12 +1836,16 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
             class_flags = next.token.flags;
             consumes_name = true;
           }
-          result = self.handle_class(
-            stream.lexer_mut(),
-            token.range.start,
-            class_end,
-            class_flags,
-          );
+          result = if consumes_name && self.in_view_transition_selector() {
+            self.handle_view_transition_ident(stream.lexer(), token.range.end, class_end)
+          } else {
+            self.handle_class(
+              stream.lexer_mut(),
+              token.range.start,
+              class_end,
+              class_flags,
+            )
+          };
           if consumes_name {
             stream.next(keep_comments);
           }
@@ -2003,6 +2061,11 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     keep_comments: bool,
     has_mode: bool,
   ) {
+    // Every identifier in a view-transition pseudo-element is a local name,
+    // including names that are not otherwise selector candidates.
+    if self.in_view_transition_selector() {
+      return;
+    }
     let mut square_depth = self.selector_square_depth;
     let invalidates_composes = stream.fast_forward_selector_if_buffer_empty(
       &mut square_depth,
@@ -2072,7 +2135,14 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
   ) {
     // An animation name may be any top-level identifier, so the raw
     // scanner usually stops immediately. Continue tokenizing directly.
-    if property == PropertyKind::Animation {
+    // View-transition names also need to preserve the `!important` delimiter.
+    if matches!(
+      property,
+      PropertyKind::Animation
+        | PropertyKind::ViewTransitionName
+        | PropertyKind::ViewTransitionGroup
+        | PropertyKind::ViewTransitionClass
+    ) {
       return;
     }
     let preserve_strings = property == PropertyKind::Grid
@@ -2152,7 +2222,11 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
             });
         }
       }
-      PropertyKind::Generic | PropertyKind::Composes => {}
+      PropertyKind::Generic
+      | PropertyKind::Composes
+      | PropertyKind::ViewTransitionName
+      | PropertyKind::ViewTransitionGroup
+      | PropertyKind::ViewTransitionClass => {}
     }
     self.pending_custom_property = None;
     self.pending_grid_property = None;
@@ -2202,6 +2276,12 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     }
     if matches!(name, "container" | "container-name") {
       return (PropertyKind::Container, None);
+    }
+    match name {
+      "view-transition-name" => return (PropertyKind::ViewTransitionName, None),
+      "view-transition-group" => return (PropertyKind::ViewTransitionGroup, None),
+      "view-transition-class" => return (PropertyKind::ViewTransitionClass, None),
+      _ => {}
     }
     if let Some(grid) = grid_property_kind(name) {
       return (PropertyKind::Grid, Some(grid));
@@ -4144,6 +4224,9 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       }
       return Some(());
     }
+    if self.in_view_transition_selector() {
+      return self.handle_view_transition_ident(stream.lexer(), start, end);
+    }
     match self.scope {
       Scope::InBlock => {
         let is_declaration_name = self.scan_context == ScanContext::DeclarationName;
@@ -4175,6 +4258,19 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         if mode_data.is_property_local_mode()
           && matches!(self.scan_context, ScanContext::SpecialValue(_))
         {
+          if matches!(
+            self.property_kind,
+            PropertyKind::ViewTransitionName
+              | PropertyKind::ViewTransitionGroup
+              | PropertyKind::ViewTransitionClass
+          ) {
+            if self.balanced.is_empty()
+              && !is_reserved_view_transition_ident(self.property_kind, ident, flags)
+            {
+              self.handle_view_transition_ident(stream.lexer(), start, end)?;
+            }
+            return Some(());
+          }
           if let Some(animation) = &mut self.in_animation_property {
             // Not inside functions
             if self.balanced.is_empty() {
@@ -4289,6 +4385,51 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         mode_data.composes_local_classes.invalidate();
       }
       _ => {}
+    }
+    Some(())
+  }
+
+  fn in_view_transition_selector(&self) -> bool {
+    self.scan_context == ScanContext::Selector
+      && self
+        .balanced
+        .last()
+        .is_some_and(|last| matches!(last.kind, BalancedItemKind::ViewTransition))
+  }
+
+  fn handle_view_transition_ident(
+    &mut self,
+    lexer: &DependencyLexer<'s>,
+    start: Pos,
+    end: Pos,
+  ) -> Option<()> {
+    let name = lexer.slice(start, end)?;
+    if let Some(mode_data) = &self.mode_data
+      && if self.scan_context == ScanContext::Selector {
+        mode_data.is_current_local_mode()
+      } else {
+        mode_data.is_property_local_mode()
+      }
+    {
+      let range = Range::new(start, end);
+      // Dashed names use the existing custom-property path and its dashedIdents option.
+      if let Some(name) = dashed_ident_name(name) {
+        let dependency = if self.scan_context == ScanContext::Selector {
+          Dependency::LocalVar {
+            name,
+            range,
+            from: None,
+            from_is_global: false,
+          }
+        } else {
+          Dependency::LocalVarDecl { name, range }
+        };
+        self.dependency_context.push_dependency(dependency);
+        return Some(());
+      }
+      self
+        .dependency_context
+        .push_dependency(Dependency::LocalViewTransition { name, range });
     }
     Some(())
   }
@@ -4554,10 +4695,23 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         mode_data.composes_local_classes.invalidate();
       }
     }
-    self.balanced.push(
-      BalancedItem::new_pseudo_function(function, start, end),
-      self.mode_data.as_mut(),
-    );
+    let mut item = BalancedItem::new_pseudo_function(function, start, end);
+    let mut normalized = [0; MAX_CSS_KEYWORD_LEN];
+    if start > 0
+      && stream.byte_at(start - 1) == Some(b':')
+      && matches!(
+        decode_css_keyword(stream.slice_trusted(start + 1, end - 1), &mut normalized),
+        Some(
+          "view-transition-group"
+            | "view-transition-image-pair"
+            | "view-transition-old"
+            | "view-transition-new"
+        )
+      )
+    {
+      item.kind = BalancedItemKind::ViewTransition;
+    }
+    self.balanced.push(item, self.mode_data.as_mut());
     Some(())
   }
 
