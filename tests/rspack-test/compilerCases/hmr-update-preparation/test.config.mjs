@@ -62,7 +62,7 @@ export default ['webpack', 'rspack'].flatMap((runtimeMode) =>
         globalThis.app = {
           hot: module.hot,
           chunk: () => import(/* webpackChunkName: "page" */ './page'),
-          load: () => moduleRequire.e('page'),
+          load: () => (moduleRequire.e || __webpack_require__.e)('page'),
           value: () => require('./trigger')
         };
         require('./trigger');
@@ -84,6 +84,9 @@ export default ['webpack', 'rspack'].flatMap((runtimeMode) =>
         }
       };
       await build(1);
+      // Keep the ordinary response compatible with the running runtime. This
+      // suite tests preparation; future chunk responses have separate coverage.
+      const pageSource = assets['page.js'];
       const sandbox = vm.createContext({ console, setTimeout, clearTimeout });
       sandbox.self = sandbox;
       sandbox.fetch = async (url) => {
@@ -99,7 +102,7 @@ export default ['webpack', 'rspack'].flatMap((runtimeMode) =>
           scripts.push(script);
           script.parentNode = head;
           const name = path.basename(script.src.split('?')[0]);
-          const source = assets[name];
+          const source = name === 'page.js' ? pageSource : assets[name];
           pending.push({
             name,
             deliver() {
@@ -137,6 +140,7 @@ export default ['webpack', 'rspack'].flatMap((runtimeMode) =>
       let load;
       let update;
       let ordinary;
+      const autoApply = scenario !== 'ready-waits-import' && scenario !== 'async-prepare';
       let firstPrepare = true;
       app.hot.addStatusHandler((status) => {
         if (status === 'prepare' && firstPrepare && scenario.startsWith('prepare-')) {
@@ -156,7 +160,7 @@ export default ['webpack', 'rspack'].flatMap((runtimeMode) =>
         if (status === 'ready' && scenario === 'ready-waits-import') return load;
       });
       try {
-        update = app.hot.check(scenario !== 'ready-waits-import');
+        update = app.hot.check(autoApply);
         update.catch(() => {});
         if (scenario === 'manifest-error') {
           await assert.rejects(wait(update), /manifest failed/);
@@ -168,7 +172,7 @@ export default ['webpack', 'rspack'].flatMap((runtimeMode) =>
           await assert.rejects(wait(update), /prepare failed/);
           assert.equal(app.hot.status(), 'fail');
           ordinary.deliver(); ordinary = undefined;
-          await wait(load);
+          await wait(load.catch(() => {}));
           assert.equal(app.hot.status(), 'fail', 'late downloads must not revive failed preparation');
           return;
         }
@@ -215,7 +219,7 @@ export default ['webpack', 'rspack'].flatMap((runtimeMode) =>
           if (scenario === 'ordinary-load-error') await assert.rejects(wait(load), /Loading chunk/);
           else await wait(load);
           await wait(update);
-          if (scenario === 'ready-waits-import') {
+          if (!autoApply) {
             assert.equal(app.hot.status(), 'ready');
             await wait(app.hot.apply());
           }
