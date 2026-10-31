@@ -1090,6 +1090,14 @@ export type CssParserOptions = {
    * @default "link"
    */
   exportType?: CssParserExportType;
+  /**
+   * Resolve asset URLs in injected styles against the runtime public path
+   * (`import.meta.rspackPublicPath`) instead of the build-time `output.publicPath`.
+   * Only applies when `exportType` is "style". Assets with their own
+   * `generator.publicPath` keep that value.
+   * @default false
+   */
+  runtimePublicPath?: boolean;
 
   /**
    * Use ES modules named export for CSS exports.
@@ -1126,6 +1134,14 @@ export type CssModuleParserOptions = {
    * @default "link"
    */
   exportType?: CssParserExportType;
+  /**
+   * Resolve asset URLs in injected styles against the runtime public path
+   * (`import.meta.rspackPublicPath`) instead of the build-time `output.publicPath`.
+   * Only applies when `exportType` is "style". Assets with their own
+   * `generator.publicPath` keep that value.
+   * @default false
+   */
+  runtimePublicPath?: boolean;
 
   /**
    * Use ES modules named export for CSS exports.

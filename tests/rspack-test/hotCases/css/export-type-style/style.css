@@ -1,12 +1,14 @@
 @import "./del.css";
 
 .style-class {
+	background-image: url("./image.svg");
 	color: red;
 	background-color: blue;
 	padding: 10px;
 }
 ---
 .style-class {
+	background-image: url("./image.svg");
 	color: green;
 	background-color: yellow;
 	padding: 20px;
