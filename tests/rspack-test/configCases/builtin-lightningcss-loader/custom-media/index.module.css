@@ -1,0 +1,36 @@
+@custom-media --wide (min-width: 800px);
+@custom-media --unused (min-width: 1200px);
+@custom-media --wide-landscape (--wide) and (orientation: landscape);
+@custom-media --compact (max-width: 400px);
+@custom-media --compact (max-width: 500px);
+@custom-media --escaped (min-width: 900px);
+
+.root {
+  color: black;
+
+  @media (--wide) {
+    color: red;
+
+    @media (--wide-landscape) {
+      color: green;
+    }
+  }
+}
+
+@media (--wide) {
+  .wide {
+    color: red;
+  }
+}
+
+@media (--compact) {
+  .compact {
+    color: blue;
+  }
+}
+
+@media (--\65 scaped) {
+  .escaped {
+    color: purple;
+  }
+}

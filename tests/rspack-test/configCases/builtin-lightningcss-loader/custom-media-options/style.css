@@ -1,0 +1,7 @@
+@custom-media --wide (min-width: 800px);
+
+@media (--wide) {
+  .wide {
+    color: red;
+  }
+}
