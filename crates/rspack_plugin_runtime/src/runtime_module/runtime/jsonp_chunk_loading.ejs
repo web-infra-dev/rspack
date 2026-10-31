@@ -16,13 +16,19 @@ if (installedChunkData !== 0) {
 
 			// start chunk loading
 			var url = <%- PUBLIC_PATH %> + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId);
+			<% if (_with_hmr) { %>url += (url.indexOf('?') < 0 ? '?' : '&') + 'hmr=' + <%- weak(GET_FULL_HASH) %>();<% } %>
 			// create error before stack unwound to get useful stacktrace later
 			var error = new Error();
 			var loadingEnded = function (event) {
 				if (<%- HAS_OWN_PROPERTY %>(jsonpInstalledChunks, chunkId)) {
 					installedChunkData = jsonpInstalledChunks[chunkId];
 					if (installedChunkData !== 0) jsonpInstalledChunks[chunkId] = undefined;
-					if (installedChunkData) {
+					if (installedChunkData) {<% if (_with_hmr) { %>
+						if (installedChunkData.error) {
+							installedChunkData[1](installedChunkData.error);
+							return;
+						}
+<% } %>
 						var errorType =
 							event && (event.type === 'load' ? 'missing' : event.type);
 						var realSrc = event && event.target && event.target.src;

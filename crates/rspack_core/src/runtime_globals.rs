@@ -315,6 +315,12 @@ define_runtime_globals! {
 
   // Exports objects shared by deferred namespaces and the module bootstrap.
   const DEFERRED_MODULE_EXPORTS;
+
+  /// Expected JavaScript versions of asynchronously loadable chunks.
+  const HMR_CHUNK_VERSIONS;
+
+  /// Track and retry a chunk download during HMR.
+  const HMR_ENSURE_CHUNK;
 }
 
 impl Default for RuntimeGlobals {
@@ -395,6 +401,8 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::INTERCEPT_MODULE_EXECUTION => "i",
     RuntimeGlobals::HMR_DOWNLOAD_MANIFEST => "hmrM",
     RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS => "hmrC",
+    RuntimeGlobals::HMR_CHUNK_VERSIONS => "hmrV",
+    RuntimeGlobals::HMR_ENSURE_CHUNK => "hmrE",
     RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS => "hmrI",
     RuntimeGlobals::HMR_MODULE_DATA => "hmrD",
     RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX => "hmrS",

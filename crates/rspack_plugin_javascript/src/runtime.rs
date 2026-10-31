@@ -1,11 +1,12 @@
-use std::sync::LazyLock;
+use std::{hash::Hash, sync::LazyLock};
 
 use rayon::prelude::*;
 use rspack_core::{
-  ChunkGraph, ChunkInitFragments, ChunkKind, ChunkUkey, CodeGenerationDataChunkInitFragments,
-  CodeGenerationDataPreservedAssetImport, CodeGenerationPublicPathAutoReplace, Compilation,
-  ExternalModuleInitFragment, InitFragmentExt, InitFragmentStage, Module, RuntimeCodeTemplate,
-  RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeModuleGenerateContext, SourceType,
+  Chunk, ChunkGraph, ChunkInitFragments, ChunkKind, ChunkUkey,
+  CodeGenerationDataChunkInitFragments, CodeGenerationDataPreservedAssetImport,
+  CodeGenerationPublicPathAutoReplace, Compilation, ExternalModuleInitFragment, InitFragmentExt,
+  InitFragmentStage, Module, RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode,
+  RuntimeModuleGenerateContext, SourceType,
   chunk_graph_chunk::ChunkIdSet,
   get_undo_path, render_runtime_module_source,
   rspack_sources::{
@@ -14,6 +15,7 @@ use rspack_core::{
   runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rspack_hash::RspackHasher;
 use rspack_util::{identifier::make_paths_relative, placeholder::PlaceholderFinder};
 
 pub use crate::runtime_context::{
@@ -28,6 +30,30 @@ use crate::{JavascriptModulesPluginHooks, RenderSource};
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__";
 pub static AUTO_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
   LazyLock::new(|| PlaceholderFinder::new(AUTO_PUBLIC_PATH_PLACEHOLDER));
+
+// Match webpack's chunk version: module IDs and module hashes, independent of
+// the compilation hash and the runtime modules that publish this version.
+pub fn get_hmr_chunk_version(compilation: &Compilation, chunk: &Chunk) -> String {
+  let mut modules = compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .get_chunk_modules_identifier_by_source_type(
+      &chunk.ukey(),
+      SourceType::JavaScript,
+      compilation.get_module_graph(),
+    );
+  modules.sort_unstable();
+  let output = &compilation.options.output;
+  let mut hasher = RspackHasher::from(output);
+  for module in modules {
+    ChunkGraph::get_module_id(&compilation.module_ids_artifact, module).hash(&mut hasher);
+    ChunkGraph::get_module_hash(compilation, module, chunk.runtime()).hash(&mut hasher);
+  }
+  hasher
+    .digest(&output.hash_digest)
+    .rendered(output.hash_digest_length)
+    .to_string()
+}
 
 pub async fn render_chunk_modules(
   compilation: &Compilation,
