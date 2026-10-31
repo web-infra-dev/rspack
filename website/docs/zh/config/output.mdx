@@ -1965,6 +1965,8 @@ export default {
 
 为 Worker 设置一个公共路径，默认为 [output.publicPath](#outputpublicpath) 的值。只有在 Worker 脚本位于与其他脚本不同的路径时才使用此选项。
 
+使用默认的 Worker URL 处理方式时，Worker 的相对 URL 会基于运行时的 [Base URI](/guide/features/asset-base-path#base-uri) 解析。
+
 ```js title="rspack.config.mjs"
 export default {
   output: {
