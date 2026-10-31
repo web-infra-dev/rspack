@@ -177,8 +177,7 @@ async fn runtime_requirements_in_tree(
     runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
   }
 
-  if runtime_requirements
-    .intersects(RuntimeGlobals::ENSURE_CHUNK | RuntimeGlobals::ENSURE_CHUNK_GROUP)
+  if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK)
     || (!compilation.options.output.module
       && runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS))
   {
@@ -195,7 +194,7 @@ async fn runtime_requirements_in_tree(
     if compilation.hot {
       runtime_modules_to_add.push((
         *chunk_ukey,
-        crate::runtime_module::BlockChunkMapRuntimeModule::new(&compilation.runtime_template)
+        crate::runtime_module::ChunkGroupMapRuntimeModule::new(&compilation.runtime_template)
           .boxed(),
       ));
     }

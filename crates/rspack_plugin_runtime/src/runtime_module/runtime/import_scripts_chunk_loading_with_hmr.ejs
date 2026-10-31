@@ -3,8 +3,8 @@
   <%- _global_object %>[<%- _hot_update_global %>] = <%- basicFunction("_, moreModules, runtime") %> {
       for (var moduleId in moreModules) {
           if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
-              // Install-only factories must not replace ordinary updates.
-              if (!Array.isArray(moreModules[moduleId]) || !<%- HAS_OWN_PROPERTY %>(hotCurrentUpdate, moduleId) || Array.isArray(hotCurrentUpdate[moduleId])) {
+              // A remaining chunk can restore a removed factory, but ordinary updates take priority.
+              if (!Array.isArray(moreModules[moduleId]) || !<%- HAS_OWN_PROPERTY %>(hotCurrentUpdate, moduleId) || hotCurrentUpdate[moduleId] === false || Array.isArray(hotCurrentUpdate[moduleId])) {
                   hotCurrentUpdate[moduleId] = moreModules[moduleId];
               }
               if (updatedModulesList) updatedModulesList.push(moduleId);

@@ -343,6 +343,48 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .collect::<HashSet<_>>()
     });
 
+  // A removed chunk invalidates its modules. Let their remaining chunks supply
+  // them again, so only browsers with no loaded replacement discard the cache.
+  let mut retained_modules: HashMap<ChunkUkey, IdentifierSet> = Default::default();
+  let graph = &compilation.build_chunk_graph_artifact;
+  for (chunk_id, (old_runtime, modules)) in old_chunks {
+    let current_chunk = current_chunk_ukeys
+      .get(chunk_id)
+      .map(|key| graph.chunk_by_ukey.expect_get(key));
+    let removed = current_chunk.map_or_else(
+      || old_runtime.clone(),
+      |chunk| old_runtime.subtract(chunk.runtime()),
+    );
+    if removed.is_empty() {
+      continue;
+    }
+    for module_id in modules {
+      let Some(&module) = all_module_ids.get(module_id) else {
+        continue;
+      };
+      let chunks = graph.chunk_graph.get_module_chunks(module);
+      // Deleted chunks already forward modules that remain in the same runtime.
+      if current_chunk.is_none()
+        && chunks
+          .iter()
+          .any(|key| graph.chunk_by_ukey.expect_get(key).runtime() == old_runtime)
+      {
+        continue;
+      }
+      for key in chunks {
+        if graph
+          .chunk_by_ukey
+          .expect_get(key)
+          .runtime()
+          .iter()
+          .any(|runtime| removed.contains(runtime))
+        {
+          retained_modules.entry(*key).or_default().insert(module);
+        }
+      }
+    }
+  }
+
   // Loading changes are independent of factory changes. An unchanged chunk can
   // become a new dependency of an already loaded entry.
   let mut full_update_chunks = ChunkIdSet::default();
@@ -397,6 +439,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     });
 
     if let Some(current_chunk) = current_chunk {
+      let retained = retained_modules.get(&current_chunk.ukey());
       new_runtime = current_chunk
         .runtime()
         .intersection(all_old_runtime)
@@ -409,6 +452,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       if old_runtime == &new_runtime
         && !full_update_chunks.contains(&chunk_id)
+        && retained.is_none()
         && changed_chunks
           .as_ref()
           .is_some_and(|chunks| !chunks.contains(&current_chunk.ukey()))
@@ -422,6 +466,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .get_chunk_modules_identifier(&current_chunk.ukey())
         .iter()
         .filter_map(|&module| {
+          if retained.is_some_and(|modules| modules.contains(&module)) {
+            return Some(module);
+          }
           let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module)?;
           let Some(old_module_hashes) = old_all_modules.get(module_id) else {
             return Some(module);
@@ -530,9 +577,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
       } else {
         for removed in removed_from_runtime.iter() {
-          if runtimes.values().any(|runtime| runtime.contains(removed)) {
-            continue;
-          }
           if let Some(content) = hot_update_main_content_by_runtime.get_mut(removed) {
             content.removed_modules.insert(old_module_id.clone());
           }

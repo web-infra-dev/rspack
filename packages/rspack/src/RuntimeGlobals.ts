@@ -123,11 +123,6 @@ enum RuntimeGlobals {
   ensureChunk,
 
   /**
-   * ensure the current chunks of an async dependency block
-   */
-  ensureChunkGroup,
-
-  /**
    * an object with handlers to ensure a chunk
    */
   ensureChunkHandlers,
@@ -577,8 +572,6 @@ function renderRuntimeGlobals(
       return `${scope_name}.m (add only)`;
     case RuntimeGlobals.ensureChunk:
       return `${scope_name}.e`;
-    case RuntimeGlobals.ensureChunkGroup:
-      return `${scope_name}.eg`;
     case RuntimeGlobals.ensureChunkHandlers:
       return `${scope_name}.f`;
     case RuntimeGlobals.ensureChunkIncludeEntries:

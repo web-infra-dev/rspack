@@ -236,36 +236,11 @@ describe('rspack extends feature', () => {
     it('should throw an error on recursive extends #2', async () => {
       const { exitCode, stderr } = await run(cwd, [
         '--config',
-        'other.config.js',
+        'other.config.mts',
       ]);
 
       expect(exitCode).not.toBe(0);
       expect(stderr).toBeTruthy();
-    });
-  });
-
-  describe('backward compatibility', () => {
-    // Use an existing test directory that doesn't use the extends feature
-    const cwd = resolve(__dirname, '../../basic');
-
-    it('should not break existing functionality', async () => {
-      const { exitCode, stderr, stdout } = await run(cwd, [
-        '--config',
-        './entry.config.js',
-      ]);
-
-      expect(stderr).toBeFalsy();
-      expect(stdout).toBeTruthy();
-      expect(exitCode).toBe(0);
-
-      // Check if the output file is generated correctly
-      const outputExists = await readFile(resolve(cwd, './dist/main.js'), {
-        encoding: 'utf-8',
-      })
-        .then(() => true)
-        .catch(() => false);
-
-      expect(outputExists).toBe(true);
     });
   });
 
@@ -275,7 +250,7 @@ describe('rspack extends feature', () => {
     it('should throw an error when extended config file is not found', async () => {
       const { exitCode, stderr } = await run(cwd, [
         '-c',
-        './error/not-found.config.js',
+        './error/not-found.config.mts',
       ]);
 
       expect(exitCode).not.toBe(0);

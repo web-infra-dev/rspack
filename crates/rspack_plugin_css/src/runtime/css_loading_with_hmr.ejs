@@ -16,7 +16,7 @@
 		}
 	};
 };
-<%- var("cssInitialChunkIds") %> = <%- _initial_chunk_ids %>;
+<%- var("cssOnlyInitialChunkIds") %> = <%- _css_only_initial_chunk_ids %>;
 // A chunk is present on this page only when the active JavaScript
 // chunk-loading runtime records it as fully loaded.
 <%- var("cssChunkIsLoaded") %> = <%- basicFunction("chunkId") %> {
@@ -48,11 +48,11 @@
 		}
 		seen[url] = true;
 		var oldTag = cssLoadStylesheet(chunkId, url);
-		// The manifest is computed from the compilation and also lists chunks this
-		// page never loaded. A missing tag is legitimate only for a chunk that is
-		// actually on the page: an initial chunk gaining its first stylesheet, or
-		// a loaded async chunk whose stylesheet was removed by an earlier update.
-		if (!oldTag && !cssInitialChunkIds[chunkId] && !cssChunkIsLoaded(chunkId)) return;
+		// The manifest lists every chunk of this runtime, including other entries'
+		// chunks this page never loaded. Without a tag, only a chunk whose JS ran
+		// here (an initial chunk gaining its first stylesheet, or a loaded async
+		// chunk whose stylesheet an earlier update removed) gets a new stylesheet.
+		if (!oldTag && (cssOnlyInitialChunkIds[chunkId] || !cssChunkIsLoaded(chunkId))) return;
 		promises.push(
 			new Promise(<%- basicFunction("resolve, reject") %> {
 				var link = cssLoadStylesheet(

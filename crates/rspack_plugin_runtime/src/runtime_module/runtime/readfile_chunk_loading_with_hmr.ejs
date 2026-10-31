@@ -10,8 +10,8 @@
 			var runtime = update.runtime;
 			for(var moduleId in updatedModules) {
 				if(<%- HAS_OWN_PROPERTY %>(updatedModules, moduleId)) {
-					// Install-only factories must not replace ordinary updates.
-					if (!Array.isArray(updatedModules[moduleId]) || !<%- HAS_OWN_PROPERTY %>(hotCurrentUpdate, moduleId) || Array.isArray(hotCurrentUpdate[moduleId])) {
+					// A remaining chunk can restore a removed factory, but ordinary updates take priority.
+					if (!Array.isArray(updatedModules[moduleId]) || !<%- HAS_OWN_PROPERTY %>(hotCurrentUpdate, moduleId) || hotCurrentUpdate[moduleId] === false || Array.isArray(hotCurrentUpdate[moduleId])) {
 						hotCurrentUpdate[moduleId] = updatedModules[moduleId];
 					}
 					if(updatedModulesList) updatedModulesList.push(moduleId);

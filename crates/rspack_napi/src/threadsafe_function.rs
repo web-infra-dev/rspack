@@ -1,8 +1,4 @@
-use std::{
-  fmt::Debug,
-  marker::PhantomData,
-  sync::{Arc, OnceLock},
-};
+use std::{cell::OnceCell, fmt::Debug, marker::PhantomData, sync::Arc};
 
 use napi::{
   Env, JsValue, Status, Unknown, ValueType,
@@ -19,16 +15,22 @@ use crate::{JsCallback, NapiErrorToRspackErrorExt};
 
 type ErrorResolver = dyn FnOnce(Env);
 
-static ERROR_RESOLVER: OnceLock<JsCallback<Box<ErrorResolver>>> = OnceLock::new();
+thread_local! {
+  // Each Node worker has its own JS thread and env. Capture its resolver when
+  // constructing a TSFN; error resolution itself can run on a Rust worker.
+  static ERROR_RESOLVER: OnceCell<JsCallback<Box<ErrorResolver>>> = const { OnceCell::new() };
+}
 
 pub struct ThreadsafeFunction<T: 'static + JsValuesTupleIntoVec, R> {
   inner: Arc<RawThreadsafeFunction<T, Unknown<'static>, T, Status, false, true>>,
+  error_resolver: JsCallback<Box<ErrorResolver>>,
   env: napi_env,
   _data: PhantomData<R>,
 }
 
 pub struct DynThreadsafeFunction {
   inner: Arc<RawThreadsafeFunction<DynJsArgs, Unknown<'static>, DynJsArgs, Status, false, true>>,
+  error_resolver: JsCallback<Box<ErrorResolver>>,
   env: napi_env,
 }
 
@@ -60,6 +62,7 @@ impl<T: 'static + JsValuesTupleIntoVec, R> Clone for ThreadsafeFunction<T, R> {
   fn clone(&self) -> Self {
     Self {
       inner: self.inner.clone(),
+      error_resolver: self.error_resolver.clone(),
       env: self.env,
       _data: self._data,
     }
@@ -77,6 +80,7 @@ impl Clone for DynThreadsafeFunction {
   fn clone(&self) -> Self {
     Self {
       inner: self.inner.clone(),
+      error_resolver: self.error_resolver.clone(),
       env: self.env,
     }
   }
@@ -118,10 +122,14 @@ impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
         let _keep_finalize = &finalize;
         Ok(ctx.value)
       })?;
-    let _ = ERROR_RESOLVER
-      .get_or_init(|| unsafe { JsCallback::new(env).expect("should initialize error resolver") });
+    let error_resolver = ERROR_RESOLVER.with(|resolver| {
+      resolver
+        .get_or_init(|| unsafe { JsCallback::new(env).expect("should initialize error resolver") })
+        .clone()
+    });
     Ok(Self {
       inner: Arc::new(inner),
+      error_resolver,
       env,
       _data: PhantomData,
     })
@@ -135,10 +143,14 @@ impl FromNapiValue for DynThreadsafeFunction {
         env, napi_val,
       )
     }?;
-    let _ = ERROR_RESOLVER
-      .get_or_init(|| unsafe { JsCallback::new(env).expect("should initialize error resolver") });
+    let error_resolver = ERROR_RESOLVER.with(|resolver| {
+      resolver
+        .get_or_init(|| unsafe { JsCallback::new(env).expect("should initialize error resolver") })
+        .clone()
+    });
     Ok(Self {
       inner: Arc::new(inner),
+      error_resolver,
       env,
     })
   }
@@ -147,14 +159,10 @@ impl FromNapiValue for DynThreadsafeFunction {
 impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
   async fn resolve_error(&self, err: napi::Error) -> Error {
     let (tx, rx) = tokio::sync::oneshot::channel::<rspack_error::Error>();
-    ERROR_RESOLVER
-      .get()
-      // SAFETY: Every TSFN constructor initializes the error resolver.
-      .expect("should have error resolver initialized")
-      .call(Box::new(move |env| {
-        let err = err.to_rspack_error(&env);
-        tx.send(err).expect("failed to resolve js error");
-      }));
+    self.error_resolver.call(Box::new(move |env| {
+      let err = err.to_rspack_error(&env);
+      tx.send(err).expect("failed to resolve js error");
+    }));
     rx.await.expect("failed to resolve js error")
   }
 
@@ -190,14 +198,10 @@ impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
 impl DynThreadsafeFunction {
   async fn resolve_error(&self, err: napi::Error) -> Error {
     let (tx, rx) = tokio::sync::oneshot::channel::<rspack_error::Error>();
-    ERROR_RESOLVER
-      .get()
-      // SAFETY: The error resolver is initialized in `FromNapiValue::from_napi_value` and it's the only way to create a tsfn.
-      .expect("should have error resolver initialized")
-      .call(Box::new(move |env| {
-        let err = err.to_rspack_error(&env);
-        tx.send(err).expect("failed to resolve js error");
-      }));
+    self.error_resolver.call(Box::new(move |env| {
+      let err = err.to_rspack_error(&env);
+      tx.send(err).expect("failed to resolve js error");
+    }));
     rx.await.expect("failed to resolve js error")
   }
 

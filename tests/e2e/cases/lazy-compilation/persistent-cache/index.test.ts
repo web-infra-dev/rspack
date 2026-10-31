@@ -10,7 +10,7 @@ function has_dyn_module(modules: string[]) {
 }
 
 test('should load success', async ({ page, rspack }) => {
-  // rspack.compiler.__modules is injected by plugin in rspack.config.js
+  // rspack.compiler.__modules is injected by plugin in rspack.config.ts
   await expect(page.locator('#Component')).toHaveCount(1);
   await expect(page.locator('#dyn')).toHaveCount(0);
   expect(has_dyn_module(rspack.compiler.__modules)).toBe(false);

@@ -70,6 +70,61 @@ macro_rules! watch {
 }
 
 #[test]
+fn should_aggregate_a_burst_after_the_last_change() {
+  use std::time::{Duration, Instant};
+
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(600),
+    ..Default::default()
+  });
+  let names = ["a", "b", "c", "d", "e", "f", "g"];
+  let rx = helper.watch(e!(), e!(), f!("a", "b", "c", "d", "e", "f", "g"));
+
+  let (batches, last_write) = std::thread::scope(|scope| {
+    let writer = scope.spawn(|| {
+      let mut last_write = Instant::now();
+      for (index, name) in names.iter().enumerate() {
+        if index > 0 {
+          // The burst spans 900 ms, but leaves 450 ms of scheduling margin
+          // between each write and the 600 ms aggregate timeout.
+          std::thread::sleep(Duration::from_millis(150));
+        }
+        last_write = Instant::now();
+        helper.file(name);
+      }
+      last_write
+    });
+    let mut batches = Vec::new();
+    let deadline = Instant::now() + Duration::from_secs(6);
+    while let Some(remaining) = deadline.checked_duration_since(Instant::now()) {
+      match rx.recv_timeout(remaining.min(Duration::from_millis(1800))) {
+        Ok(helpers::Event::Aggregated(batch)) => batches.push((Instant::now(), batch)),
+        Ok(helpers::Event::Changed(_)) => {}
+        Err(_) => break,
+      }
+    }
+    (batches, writer.join().expect("burst writer panicked"))
+  });
+
+  eprintln!("burst aggregated batches: {}", batches.len());
+  assert_eq!(
+    batches.len(),
+    1,
+    "the burst must produce a single batch: {batches:?}"
+  );
+  let (delivered_at, batch) = &batches[0];
+  assert!(
+    *delivered_at >= last_write + Duration::from_millis(600),
+    "the aggregate timeout must run from the last write"
+  );
+  assert_eq!(batch.changed_files.len(), names.len());
+  assert!(batch.deleted_files.is_empty());
+  for name in names {
+    batch.assert_changed(helper.join(name));
+  }
+}
+
+#[test]
 fn should_watch_a_single_file() {
   let mut helper = h!(FsWatcherOptions {
     aggregate_timeout: Some(1000),
