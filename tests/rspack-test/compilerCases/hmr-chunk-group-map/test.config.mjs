@@ -74,7 +74,7 @@ export default ["webpack", "rspack"].map(runtimeMode => ({
 			createElement: () => ({ setAttribute() {} }),
 			head: {
 				appendChild(script) {
-					vm.runInContext(assets[path.basename(script.src)], sandbox);
+					vm.runInContext(assets[path.basename(script.src.split("?")[0])], sandbox);
 					queueMicrotask(() => script.onload({ type: "load", target: script }));
 				}
 			}

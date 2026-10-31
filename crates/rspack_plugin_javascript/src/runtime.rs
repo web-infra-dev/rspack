@@ -26,6 +26,8 @@ pub use crate::runtime_context::{
 use crate::{JavascriptModulesPluginHooks, RenderSource};
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__";
+// Replaced by the HMR plugin after cached chunk rendering.
+pub const HMR_CHUNK_HASH_PLACEHOLDER: &str = "/*__rspack_hmr_hash__*/\"\"";
 pub static AUTO_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
   LazyLock::new(|| PlaceholderFinder::new(AUTO_PUBLIC_PATH_PLACEHOLDER));
 

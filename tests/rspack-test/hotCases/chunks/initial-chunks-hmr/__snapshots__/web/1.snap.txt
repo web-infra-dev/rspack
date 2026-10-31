@@ -7,11 +7,11 @@
 ## Asset Files
 - Bundle: async/initial_js.js
 - Bundle: lib.CURRENT_HASH.js
-- Bundle: lib.LAST_HASH.hot-update.js.full.js
 - Bundle: main.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 77
 - Update: initial_js.LAST_HASH.hot-update.js, size: 332
-- Update: main.LAST_HASH.hot-update.js, size: 22353
+- Update: lib.LAST_HASH.hot-update.js.full.js, size: 1615
+- Update: main.LAST_HASH.hot-update.js, size: 22988
 
 ## Manifest
 
@@ -44,6 +44,43 @@ __webpack_require__.d(__webpack_exports__, {
 });
 __webpack_require__("./node_modules/lib-js/b.js");
 const value = "b";
+
+
+},
+
+});
+```
+
+
+
+### lib.LAST_HASH.hot-update.js.full.js
+
+#### Changed Modules
+- ./node_modules/lib-js/a.js
+- ./node_modules/lib-js/b.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("lib", {
+"./node_modules/lib-js/a.js": [(function (__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  a: () => (a)
+});
+const a = "a";
+
+
+})],
+"./node_modules/lib-js/b.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  b: () => (b)
+});
+const b = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
 
 },
@@ -168,6 +205,7 @@ if (installedChunkData !== 0) {
 
 			// start chunk loading
 			var url = __webpack_require__.p + __webpack_require__.u(chunkId);
+			url += (url.indexOf('?') < 0 ? '?' : '&') + 'hmr=' + __webpack_require__.h();
 			// create error before stack unwound to get useful stacktrace later
 			var error = new Error();
 			var loadingEnded = function (event) {
@@ -175,6 +213,11 @@ if (installedChunkData !== 0) {
 					installedChunkData = jsonpInstalledChunks[chunkId];
 					if (installedChunkData !== 0) jsonpInstalledChunks[chunkId] = undefined;
 					if (installedChunkData) {
+						if (installedChunkData.error) {
+							installedChunkData[1](installedChunkData.error);
+							return;
+						}
+
 						var errorType =
 							event && (event.type === 'load' ? 'missing' : event.type);
 						var realSrc = event && event.target && event.target.src;
@@ -699,7 +742,8 @@ __webpack_require__.hmrC.jsonp = function (
 	updatedModulesList,
 	_css,
 	_miniCss,
-	update
+	update,
+	trackUpdate
 ) {
 	applyHandlers.push(hotApplyHandler);
 	hotCurrentUpdateChunks = {};
@@ -726,7 +770,7 @@ __webpack_require__.hmrC.jsonp = function (
 			return __webpack_require__.o(jsonpInstalledChunks, entryId) && jsonpInstalledChunks[entryId] === 0;
 		};
 		update.chunkHandlers.push(function (chunkId, promises) {
-			if (jsonpInstalledChunks[chunkId] === 0 || hotCurrentUpdateChunks[chunkId] === true) return;
+			if (jsonpInstalledChunks[chunkId] === 0 || hotCurrentUpdateFullChunks.indexOf(chunkId) !== -1) return;
 			hotCurrentUpdateChunks[chunkId] = true;
 			hotCurrentUpdateFullChunks.push(chunkId);
 			promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList, true));
@@ -739,7 +783,8 @@ __webpack_require__.hmrC.jsonp = function (
 				__webpack_require__.o(hotCurrentUpdateChunks, chunkId) &&
 				!hotCurrentUpdateChunks[chunkId]
 			) {
-				promises.push(jsonpLoadUpdateChunk(chunkId));
+				// A rejected ordinary load must not stop HMR awaiting this download.
+				promises.push(trackUpdate(jsonpLoadUpdateChunk(chunkId)));
 				hotCurrentUpdateChunks[chunkId] = true;
 			}
 		};
@@ -776,6 +821,16 @@ function jsonpFinishChunkLoading(chunkIds, result) {
 // install a JSONP callback for chunk loading
 var __rspack_jsonp = (parentChunkLoadingFunction, data) => {
 	var [chunkIds, moreModules, runtime] = data;
+	var error = __webpack_require__.hmrV(data[3]);
+	if (error) {
+		// Reject after the script's onload has cleaned up this attempt.
+		chunkIds.forEach(function (id) {
+			if (jsonpInstalledChunks[id]) jsonpInstalledChunks[id].error = error;
+		});
+		if (parentChunkLoadingFunction) parentChunkLoadingFunction(data);
+		return;
+	}
+
 	// add "moreModules" to the modules object,
 	// then flag all "chunkIds" as loaded and fire callback
 	var moduleId;

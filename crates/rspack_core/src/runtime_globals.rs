@@ -315,6 +315,9 @@ define_runtime_globals! {
 
   // Exports objects shared by deferred namespaces and the module bootstrap.
   const DEFERRED_MODULE_EXPORTS;
+
+  /// Validate an ordinary chunk before installing it during HMR.
+  const HMR_CHECK_CHUNK;
 }
 
 impl Default for RuntimeGlobals {
@@ -395,6 +398,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::INTERCEPT_MODULE_EXECUTION => "i",
     RuntimeGlobals::HMR_DOWNLOAD_MANIFEST => "hmrM",
     RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS => "hmrC",
+    RuntimeGlobals::HMR_CHECK_CHUNK => "hmrV",
     RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS => "hmrI",
     RuntimeGlobals::HMR_MODULE_DATA => "hmrD",
     RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX => "hmrS",

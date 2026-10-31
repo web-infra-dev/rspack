@@ -9,8 +9,9 @@ use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JavascriptModulesRenderStartup,
-  JsPlugin, RenderSource, impl_plugin_for_js_plugin::chunk_has_js,
-  runtime::render_chunk_runtime_modules,
+  JsPlugin, RenderSource,
+  impl_plugin_for_js_plugin::chunk_has_js,
+  runtime::{HMR_CHUNK_HASH_PLACEHOLDER, render_chunk_runtime_modules},
 };
 use rspack_util::itoa;
 use rustc_hash::FxHashSet as HashSet;
@@ -147,6 +148,14 @@ async fn render_chunk(
   let chunk_id_expr = rspack_util::json_stringify(chunk.expect_id());
 
   let mut sources = ConcatSource::default();
+  if !matches!(chunk.kind(), ChunkKind::HotUpdate)
+    && ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey)
+      .contains(RuntimeGlobals::HMR_CHECK_CHUNK)
+  {
+    sources.add(RawStringSource::from(format!(
+      "export const __rspack_esm_hash = {HMR_CHUNK_HASH_PLACEHOLDER};\n"
+    )));
+  }
   sources.add(RawStringSource::from(format!(
     "export const __rspack_esm_ids = [{chunk_id_expr}];\n",
   )));

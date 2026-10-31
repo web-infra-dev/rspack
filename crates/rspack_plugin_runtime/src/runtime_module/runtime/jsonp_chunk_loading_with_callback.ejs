@@ -13,7 +13,17 @@
 
 // install a JSONP callback for chunk loading
 <%- var("__rspack_jsonp") %> = <%- basicFunction("parentChunkLoadingFunction, data") %> {
-	<%- destructureArray("chunkIds, moreModules, runtime", "data") %>
+	<%- destructureArray("chunkIds, moreModules, runtime", "data") %><% if (_with_hmr) { %>
+	var error = <%- weak(HMR_CHECK_CHUNK) %>(data[3]);
+	if (error) {
+		// Reject after the script's onload has cleaned up this attempt.
+		chunkIds.forEach(function (id) {
+			if (jsonpInstalledChunks[id]) jsonpInstalledChunks[id].error = error;
+		});
+		if (parentChunkLoadingFunction) parentChunkLoadingFunction(data);
+		return;
+	}
+<% } %>
 	// add "moreModules" to the modules object,
 	// then flag all "chunkIds" as loaded and fire callback
 	var moduleId;

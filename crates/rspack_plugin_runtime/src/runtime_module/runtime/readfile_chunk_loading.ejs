@@ -9,7 +9,10 @@
 }
 
 <%- var("readFileVmInstallChunk") %> = <%- basicFunction("chunk") %> {
-  var moreModules = chunk.modules, runtime = chunk.runtime;
+  var moreModules = chunk.modules, runtime = chunk.runtime;<% if (_with_hmr) { %>
+  var error = <%- weak(HMR_CHECK_CHUNK) %>(chunk.hash);
+  if (error) throw error;
+<% } %>
   for (var moduleId in moreModules) {
     if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
       <%- MODULE_FACTORIES %>[moduleId] = moreModules[moduleId];

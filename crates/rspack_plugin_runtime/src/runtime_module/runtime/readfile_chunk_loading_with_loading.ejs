@@ -18,7 +18,14 @@ if (installedChunkData !== 0) {  // 0 means "already installed".
             content + '\n})',
             filename)(
               chunk, require, require('path').dirname(filename), filename);
-          readFileVmInstallChunk(chunk);
+          <% if (_with_hmr) { %>
+          try {
+            readFileVmInstallChunk(chunk);
+          } catch (error) {
+            if (readFileVmInstalledChunks[chunkId] === installedChunkData) readFileVmInstalledChunks[chunkId] = undefined;
+            reject(error);
+          }
+          <% } else { %>readFileVmInstallChunk(chunk);<% } %>
         });
       });
       promises.push(installedChunkData[2] = promise);

@@ -27,6 +27,14 @@ export default {
 
 详见 [模块热替换 API](/api/runtime-api/hmr)。
 
+启用 HMR 后，普通 JavaScript chunk 会携带 compilation hash。安装前，Rspack 会将它与当前 runtime hash 比较；不匹配的响应不会注册 module factory，也不会执行 chunk runtime。import 会等待当前更新完成，必要时依次应用后续更新，再重新请求 chunk。如果更新失败，或没有可用的更新能使版本匹配，import 的 Promise 会被拒绝。这一机制不要求 chunk 文件名包含版本信息。
+
+普通 chunk 和 hot update 可以并行下载。较晚返回的旧版本响应会在安装前被拒绝，避免覆盖更新后的 factory。每次加载尝试都会先结束，再等待更新并重试，因此不会阻塞它所等待的 HMR。手动调用 `check(false)` 仍然只准备更新，由调用方决定何时调用 `apply()`。
+
+compilation hash 在读取 chunk 渲染缓存后填入，不改变 chunk hash，也不会关闭增量 chunk hashing。不过，即使模块未变，版本标记仍会改变最终文件内容，因此这些产物仍需重新处理和输出。
+
+自动更新期间仍在加载的 import 也会等待这次更新完成。准备阶段会等待异步 status handler 和所有 hot-update 文件完成。如果准备或应用更新失败，等待这次更新的 import 会被拒绝，不会一直挂起。
+
 ## React Fast Refresh
 
 为了在 React 项目中启用 Fast Refresh 能力，你还需要使用 [@rspack/plugin-react-refresh](https://www.npmjs.com/package/@rspack/plugin-react-refresh) 插件。
