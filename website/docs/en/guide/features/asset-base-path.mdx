@@ -47,8 +47,7 @@ With this configuration, all assets will be loaded from the `/assets/` path, for
 :::tip
 
 - The value of `output.publicPath` usually ends with `/`.
-- Do not set `output.publicPath` to a relative path, such as `./assets/`. Using a relative path may cause assets to load incorrectly when they are located at different path depths.
-- If setting `output.publicPath` to an empty string, the asset URL path will be relative to the HTML page (same directory).
+- With a relative `output.publicPath`, such as `./assets/` or an empty string, asset URLs depend on the base used to resolve them. In browsers, this is often the page URL, so nested page paths or an HTML `<base>` element can affect where assets load from. See [Base URI](#base-uri) for how Rspack resolves asset URLs.
 
 :::
 
@@ -109,3 +108,72 @@ export default {
 ```
 
 If your application reports `Automatic publicPath is not supported in this browser`, see [Automatic publicPath cannot be determined](/guide/diagnostics/runtime-issues#automatic-publicpath-cannot-be-determined).
+
+## Base URI
+
+`publicPath` sets the prefix of an asset URL. If the resulting URL is relative, a **base URI** is needed to determine its absolute address. For example, using `https://example.com/app/index.html` as the base URI:
+
+| Generated asset URL                | Resolved URL                                   |
+| ---------------------------------- | ---------------------------------------------- |
+| `assets/logo.png`                  | `https://example.com/app/assets/logo.png`      |
+| `/assets/logo.png`                 | `https://example.com/assets/logo.png`          |
+| `https://cdn.example.com/logo.png` | `https://cdn.example.com/logo.png` (unchanged) |
+
+A relative path without a leading `/` resolves against the base URI's directory. A path starting with `/` resolves from the root of that site. Absolute URLs are unaffected by the base URI.
+
+When you reference an asset with `new URL('./logo.png', import.meta.url)`, Rspack resolves the emitted asset's URL against this base URI by default. The same applies to Workers created with `new Worker(new URL('./worker.js', import.meta.url))`.
+
+URLs in HTML `<script>` and `<link>` elements are resolved by the browser, independently of Rspack's base URI setting.
+
+### Default base URI
+
+You usually do not need to set the base URI yourself. In typical configurations:
+
+- **Browsers** use the page URL, or the address specified by an HTML `<base>` element if one is present.
+- **Node.js** uses a `file:` URL based on the output location.
+
+Browser builds default to `publicPath: 'auto'`, which typically produces absolute asset URLs based on the bundle's location. These URLs do not need a base URI. Node.js builds default to `publicPath: ''`, so the resulting relative asset paths resolve against the `file:` URL described above.
+
+To read the current value, use [`import.meta.rspackBaseUri`](/api/runtime-api/module-variables#importmetarspackbaseuri):
+
+```js
+const baseUri = import.meta.rspackBaseUri;
+console.log(baseUri);
+```
+
+To resolve relative paths supplied at runtime, you can pass this value as the second argument to `new URL()`. This resolves the URL without telling Rspack to bundle the referenced file. To bundle an asset, use `new URL('./logo.png', import.meta.url)`.
+
+### Overriding the base URI
+
+Configuring `publicPath` is usually enough to change where assets are hosted. If you need a different base for resolving relative asset URLs, you can set it in either of these ways:
+
+- If the address is known at build time, set [`entry.baseUri`](/config/entry#entrydescriptionbaseuri) to configure the entry's initial base URI.
+- If the address is only known at runtime, assign to [`import.meta.rspackBaseUri`](/api/runtime-api/module-variables#importmetarspackbaseuri) before creating asset URLs.
+
+For example, this configuration uses `publicPath: ''` to generate relative image URLs, leaving the base URI to determine their absolute addresses:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    publicPath: '',
+    assetModuleFilename: 'assets/[name][ext]',
+  },
+  module: {
+    rules: [{ test: /\.png$/, type: 'asset/resource' }],
+  },
+};
+```
+
+Then set the base URI to the deployment directory before creating the image URL:
+
+```js title="src/index.js"
+// Use a trailing / for directories.
+import.meta.rspackBaseUri = 'https://example.com/app/';
+
+const logoUrl = new URL('./logo.png', import.meta.url);
+console.log(logoUrl.href); // https://example.com/app/assets/logo.png
+```
+
+Changing the base URI only affects URLs created afterward that use it; existing `URL` objects are not updated.
+
+If imported modules create asset URLs during initialization, set the base URI in a separate setup module and ensure that this module runs first.

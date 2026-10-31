@@ -47,8 +47,7 @@ export default {
 :::tip
 
 - `output.publicPath` 的值通常以 `/` 结尾。
-- 不建议将 `output.publicPath` 设置为相对路径，比如 `./assets/`。因为当资源位于不同的路径深度时，使用相对路径可能会导致资源无法正确加载。
-- 将 `output.publicPath` 设置为空字符串时，资源 URL 路径会相对于 HTML 页面（同个目录）。
+- 当 `output.publicPath` 为 `./assets/` 或空字符串这样的相对路径时，资源 URL 取决于解析时使用的基准地址。在浏览器中，这个地址通常来自页面 URL，因此嵌套的页面路径或 HTML `<base>` 元素都可能影响资源的加载位置。关于 Rspack 如何解析资源 URL，参阅 [Base URI](#base-uri)。
 
 :::
 
@@ -109,3 +108,72 @@ export default {
 ```
 
 如果应用运行时报出 `Automatic publicPath is not supported in this browser` 错误，请参阅[无法自动确定 publicPath](/guide/diagnostics/runtime-issues#automatic-publicpath-cannot-be-determined)。
+
+## Base URI
+
+`publicPath` 用于设置资源 URL 的前缀。如果生成的是相对 URL，就需要一个**基准 URI（Base URI）**来确定资源的完整地址。例如，以 `https://example.com/app/index.html` 为基准时：
+
+| 生成的资源 URL                     | 解析后的 URL                               |
+| ---------------------------------- | ------------------------------------------ |
+| `assets/logo.png`                  | `https://example.com/app/assets/logo.png`  |
+| `/assets/logo.png`                 | `https://example.com/assets/logo.png`      |
+| `https://cdn.example.com/logo.png` | `https://cdn.example.com/logo.png`（不变） |
+
+不以 `/` 开头的相对路径会相对于基准 URI 所在的目录解析；以 `/` 开头的路径则会相对于该地址的站点根目录解析。绝对 URL 不受基准 URI 的影响。
+
+使用 `new URL('./logo.png', import.meta.url)` 引用资源时，Rspack 默认会以这个基准 URI 解析构建后的资源 URL。通过 `new Worker(new URL('./worker.js', import.meta.url))` 创建 Worker 时也是如此。
+
+HTML 中 `<script>` 和 `<link>` 元素的 URL 则由浏览器解析，不受 Rspack 的基准 URI 设置影响。
+
+### 默认基准 URI \{#default-base-uri}
+
+通常无需手动设置基准 URI。在常见配置下：
+
+- **浏览器**：以页面 URL 为基准；如果设置了 HTML `<base>` 元素，则使用它指定的地址。
+- **Node.js**：使用根据产物位置生成的 `file:` URL。
+
+浏览器构建默认使用 `publicPath: 'auto'`，通常会根据 bundle 的地址生成绝对资源 URL，因此无需依赖基准 URI。Node.js 构建默认使用 `publicPath: ''`，生成的相对资源路径会基于上述 `file:` URL 解析。
+
+你可以通过 [`import.meta.rspackBaseUri`](/api/runtime-api/module-variables#importmetarspackbaseuri) 读取当前值：
+
+```js
+const baseUri = import.meta.rspackBaseUri;
+console.log(baseUri);
+```
+
+如果需要解析运行时提供的相对路径，也可以将这个值传给 `new URL()` 的第二个参数。这种用法只负责解析 URL，不会让 Rspack 打包对应的文件。要让 Rspack 打包资源，请使用 `new URL('./logo.png', import.meta.url)`。
+
+### 修改基准 URI \{#overriding-the-base-uri}
+
+调整资源的部署地址时，通常配置 `publicPath` 就足够了。如果需要改变相对资源 URL 的解析基准，可以通过以下方式设置：
+
+- 如果地址在构建时就已确定，通过 [`entry.baseUri`](/config/entry#entrydescriptionbaseuri) 设置入口的初始基准 URI。
+- 如果地址在运行时才能确定，在创建资源 URL 前为 [`import.meta.rspackBaseUri`](/api/runtime-api/module-variables#importmetarspackbaseuri) 赋值。
+
+例如，下面通过 `publicPath: ''` 为图片生成相对资源 URL，再由基准 URI 确定图片的完整地址：
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    publicPath: '',
+    assetModuleFilename: 'assets/[name][ext]',
+  },
+  module: {
+    rules: [{ test: /\.png$/, type: 'asset/resource' }],
+  },
+};
+```
+
+接着，在应用中将基准 URI 设置为部署目录，再创建图片 URL：
+
+```js title="src/index.js"
+// 目录地址应以 / 结尾。
+import.meta.rspackBaseUri = 'https://example.com/app/';
+
+const logoUrl = new URL('./logo.png', import.meta.url);
+console.log(logoUrl.href); // https://example.com/app/assets/logo.png
+```
+
+修改基准 URI 只对之后创建的相关 URL 生效，已有的 `URL` 对象不会更新。
+
+如果导入的模块在初始化时就会创建资源 URL，请在单独的初始化模块中设置基准 URI，并确保该模块先执行。

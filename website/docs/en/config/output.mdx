@@ -1974,6 +1974,8 @@ export default {
 
 Set a public path for Worker, defaults to value of [output.publicPath](#outputpublicpath). Only use this option if your worker scripts are located in a different path from your other scripts.
 
+With the default Worker URL handling, relative Worker URLs resolve against the runtime [Base URI](/guide/features/asset-base-path#base-uri).
+
 ```js title="rspack.config.mjs"
 export default {
   output: {

@@ -507,21 +507,17 @@ __webpack_require__.p = 'calculated from document/location';
 
 <ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
 
-Get or change base URI at runtime.
+Reads or changes the base URI that Rspack uses to resolve relative asset and Worker URLs at runtime. You can usually use the default value without changing it.
 
-<Columns>
-```js title=Source
-import.meta.rspackBaseUri;
+```js
+// Read the current base URI.
+const baseUri = import.meta.rspackBaseUri;
+
+// Override it before creating asset URLs, if needed.
+import.meta.rspackBaseUri = 'https://example.com/app/';
 ```
 
-```js title=Compiled
-__webpack_require__.b;
-
-// chunk loading
-__webpack_require__.b = document.baseURI || self.location.href;
-```
-
-</Columns>
+See [Base URI](/guide/features/asset-base-path#base-uri) for default values, its relationship to `publicPath`, and usage examples.
 
 ### import.meta.rspackNonce
 
