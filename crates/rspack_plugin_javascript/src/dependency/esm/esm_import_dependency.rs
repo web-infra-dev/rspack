@@ -13,10 +13,10 @@ use rspack_core::{
   DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportProvided, ExportsInfoArtifact,
   ExportsType, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  InitFragmentStage, LazyUntil, Module, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleIdentifier, ProvidedExports, ReferencedExport, ResourceIdentifier, RuntimeCondition,
   RuntimeSpec, SideEffectsStateArtifact, SourceType, TemplateContext, TemplateReplaceSource,
-  TypeReexportPresenceMode, filter_runtime,
+  TypeReexportPresenceMode, filter_runtime, module_declared_side_effect_free,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 
@@ -77,6 +77,11 @@ pub struct ESMImportSideEffectDependency {
   #[cacheable(with=AtomicLoad<Relaxed>)]
   lazy_make: AtomicBool,
   star_export: bool,
+  pub preserve_side_effects: bool,
+  // Refresh after factorization, including for dependencies restored from cache:
+  // importer eligibility alone must not disable analyzed side-effect pruning.
+  #[cacheable(with=AtomicLoad<Relaxed>)]
+  preserve_side_effects_active: AtomicBool,
 }
 
 impl ESMImportSideEffectDependency {
@@ -104,11 +109,31 @@ impl ESMImportSideEffectDependency {
       loc,
       lazy_make: AtomicBool::new(false),
       star_export,
+      preserve_side_effects: false,
+      preserve_side_effects_active: AtomicBool::new(false),
     }
   }
 
   fn missing_module_active(&self) -> bool {
     !self.lazy_make.load(Ordering::Relaxed)
+  }
+
+  pub fn update_preserved_side_effects(&self, target: &dyn Module) {
+    if self.preserve_side_effects {
+      self.preserve_side_effects_active.store(
+        module_declared_side_effect_free(target) == Some(true),
+        Ordering::Relaxed,
+      );
+    }
+  }
+
+  fn preserves_side_effects(&self, module_graph: &ModuleGraph) -> bool {
+    self.preserve_side_effects
+      && (self.preserve_side_effects_active.load(Ordering::Relaxed)
+        // Factorization can reuse an existing module with different factory metadata.
+        || module_graph
+          .get_module_by_dependency_id(&self.id)
+          .is_some_and(|module| module_declared_side_effect_free(module.as_ref()) == Some(true)))
   }
 }
 
@@ -575,6 +600,9 @@ impl Dependency for ESMImportSideEffectDependency {
     module_chain: &mut IdentifierSet,
     connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
+    if self.preserves_side_effects(module_graph) {
+      return ConnectionState::Active(true);
+    }
     if let Some(module) = module_graph.get_module_by_dependency_id(&self.id) {
       module.get_side_effects_connection_state(
         module_graph,
@@ -640,6 +668,9 @@ impl ModuleDependency for ESMImportSideEffectDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
+    if self.preserve_side_effects && self.preserve_side_effects_active.load(Ordering::Relaxed) {
+      return None;
+    }
     Some(DependencyCondition::new(
       ESMImportSideEffectDependencyCondition,
     ))
@@ -661,24 +692,31 @@ impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
     let id = *conn.module_identifier();
-    if let Some(state) = side_effects_state_artifact.module_evaluation_side_effects_state(&id) {
+    let cached_state = side_effects_state_artifact.module_evaluation_side_effects_state(&id);
+    // A preserved import can only make evaluation active, so an active module state is final.
+    if let Some(state) = cached_state
+      && state.is_true()
+    {
       return state;
     }
-    if let Some(module) = module_graph.module_by_identifier(&id) {
-      module.get_side_effects_connection_state(
-        module_graph,
-        module_graph_cache,
-        side_effects_state_artifact,
-        &mut IdentifierSet::default(),
-        &mut IdentifierMap::default(),
-      )
-    } else {
-      let dependency = module_graph.dependency_by_id(&conn.dependency_id);
-      let dependency = dependency
-        .downcast_ref::<ESMImportSideEffectDependency>()
-        .expect("should be ESMImportSideEffectDependency");
-      ConnectionState::Active(dependency.missing_module_active())
+    let dependency = module_graph
+      .dependency_by_id(&conn.dependency_id)
+      .downcast_ref::<ESMImportSideEffectDependency>()
+      .expect("should be ESMImportSideEffectDependency");
+    if let Some(state) = cached_state {
+      return if dependency.preserves_side_effects(module_graph) {
+        ConnectionState::Active(true)
+      } else {
+        state
+      };
     }
+    dependency.get_module_evaluation_side_effects_state(
+      module_graph,
+      module_graph_cache,
+      side_effects_state_artifact,
+      &mut IdentifierSet::default(),
+      &mut IdentifierMap::default(),
+    )
   }
 }
 

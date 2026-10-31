@@ -3095,6 +3095,11 @@ export interface RawRstestImportMetaResolveOriginOptions {
 }
 
 export interface RawRstestPluginOptions {
+  /**
+   * Called once before each compilation to obtain absolute test/setup importer paths.
+   * Only their direct bare imports are preserved; target side-effect metadata is unchanged.
+   */
+  preserveSideEffectImports?: () => Promise<string[]>
   injectModulePathName: boolean
   importMetaPathName: boolean
   hoistMockModule: boolean

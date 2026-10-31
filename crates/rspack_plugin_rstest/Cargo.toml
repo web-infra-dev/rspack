@@ -10,6 +10,8 @@ version.workspace = true
 [dependencies]
 camino                   = { workspace = true }
 cow-utils                = { workspace = true }
+derive_more              = { workspace = true, features = ["debug"] }
+futures                  = { workspace = true }
 rspack_cacheable         = { workspace = true }
 rspack_collections       = { workspace = true }
 rspack_core              = { workspace = true }
