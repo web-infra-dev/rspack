@@ -38,6 +38,7 @@ import type {
   StatsFactory,
   StatsFactoryContext,
 } from './StatsFactory';
+import { contextFreeStatsItems } from './statsFactoryCache';
 import type {
   KnownStatsAsset,
   KnownStatsLoggingEntry,
@@ -1518,12 +1519,34 @@ export class DefaultStatsFactoryPlugin {
         compilation.hooks.statsFactory.tap(
           'DefaultStatsFactoryPlugin',
           (stats: StatsFactory, options: StatsOptions) => {
-            iterateConfig(SIMPLE_EXTRACTORS, options, (hookFor, fn) => {
+            const canOptimizeDefaultStats = () => {
+              const hook = compilation.hooks.statsFactory;
+              return (
+                hook.taps.length === 1 &&
+                hook.taps[0].name === 'DefaultStatsFactoryPlugin' &&
+                hook.interceptors.length === 0 &&
+                !Object.prototype.hasOwnProperty.call(
+                  compilation,
+                  'createStatsFactory',
+                )
+              );
+            };
+            const contextFreeItems = new Map();
+            contextFreeStatsItems.set(stats, contextFreeItems);
+            const contextFreeExtractors = new Map<
+              string,
+              ((...args: any[]) => any)[]
+            >([
+              ['moduleReason', []],
+              ['moduleIssuer', []],
+            ]);
+            iterateConfig(SIMPLE_EXTRACTORS, options, (hookFor, extractor) => {
+              const fn = (obj: any, data: any, ctx: StatsFactoryContext) =>
+                extractor(obj, data, ctx, options, stats);
               stats.hooks.extract
                 .for(hookFor)
-                .tap('DefaultStatsFactoryPlugin', (obj, data, ctx) =>
-                  fn(obj, data, ctx, options, stats),
-                );
+                .tap('DefaultStatsFactoryPlugin', fn);
+              contextFreeExtractors.get(hookFor)?.push(fn);
             });
             iterateConfig(FILTER, options, (hookFor, fn) => {
               stats.hooks.filter
@@ -1555,9 +1578,19 @@ export class DefaultStatsFactoryPlugin {
             });
             for (const key of Object.keys(ITEM_NAMES)) {
               const itemName = ITEM_NAMES[key];
+              const getItemName = () => itemName;
               stats.hooks.getItemName
                 .for(key)
-                .tap('DefaultStatsFactoryPlugin', () => itemName);
+                .tap('DefaultStatsFactoryPlugin', getItemName);
+              const extractors = contextFreeExtractors.get(itemName);
+              if (extractors) {
+                contextFreeItems.set(key.slice(0, -2), {
+                  name: itemName,
+                  getName: getItemName,
+                  extractors,
+                  canUse: canOptimizeDefaultStats,
+                });
+              }
             }
             for (const key of Object.keys(MERGER)) {
               const merger = MERGER[key];
