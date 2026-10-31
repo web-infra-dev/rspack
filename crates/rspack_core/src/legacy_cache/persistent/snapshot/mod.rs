@@ -124,7 +124,10 @@ impl Snapshot {
     paths: impl Iterator<Item = InternedPath>,
   ) {
     for item in paths {
-      storage.remove(scope.name(), item.as_os_str().as_encoded_bytes())
+      storage.remove(
+        scope.name(),
+        &self.codec.encode(&item).expect("should encode success"),
+      )
     }
   }
 
