@@ -363,14 +363,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         continue;
       };
       let chunks = graph.chunk_graph.get_module_chunks(module);
-      // Deleted chunks already forward modules that remain in the same runtime.
-      if current_chunk.is_none()
-        && chunks
-          .iter()
-          .any(|key| graph.chunk_by_ukey.expect_get(key).runtime() == old_runtime)
-      {
-        continue;
-      }
       for key in chunks {
         if graph
           .chunk_by_ukey
@@ -575,11 +567,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         if new_hash != old_hash {
           new_modules.push(*module_identifier);
         }
-      } else {
-        for removed in removed_from_runtime.iter() {
-          if let Some(content) = hot_update_main_content_by_runtime.get_mut(removed) {
-            content.removed_modules.insert(old_module_id.clone());
-          }
+      }
+      for removed in removed_from_runtime.iter() {
+        if let Some(content) = hot_update_main_content_by_runtime.get_mut(removed) {
+          content.removed_modules.insert(old_module_id.clone());
         }
       }
     }
