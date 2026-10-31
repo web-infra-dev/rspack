@@ -225,3 +225,36 @@ export default {
   },
 };
 ```
+
+### drafts
+
+- **类型：** `{ customMedia?: boolean }`
+- **默认值：** `undefined`
+
+启用草案 CSS 语法的解析。
+
+将 `drafts.customMedia` 设为 `true` 可以解析 `@custom-media` 规则。当设置了 `include.customMediaQueries` 或配置了浏览器 targets 时，loader 会展开自定义媒体查询的引用，并移除对应的定义。由于 Lightning CSS 认为所有浏览器都不支持自定义媒体查询，任何浏览器 targets 都会启用该转换，包括从 Rspack 的 [`target`](/config/target) 推导出的 targets。设置 `exclude.customMediaQueries` 可以保持自定义媒体查询不变。
+
+例如，在设置 `drafts: { customMedia: true }` 和 `include: { customMediaQueries: true }` 后，以下 CSS：
+
+```css
+@custom-media --wide (min-width: 800px);
+
+@media (--wide) {
+  .example {
+    color: red;
+  }
+}
+```
+
+会被转换为：
+
+```css
+@media (width >= 800px) {
+  .example {
+    color: red;
+  }
+}
+```
+
+自定义媒体查询只在各自的 CSS 文件内解析，因此如果某个名称只在其他文件中定义，或者定义之间存在循环引用，构建会报错。Lightning CSS 不会展开 `@import` 条件中的自定义媒体查询，因此如果某个文件在 `@import` 条件中使用了自定义媒体查询，loader 会保留该文件中的所有自定义媒体查询。

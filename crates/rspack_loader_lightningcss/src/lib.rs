@@ -8,7 +8,9 @@ use cow_utils::CowUtils;
 use derive_more::Debug;
 pub use lightningcss;
 use lightningcss::{
+  media_query::{MediaCondition, MediaFeatureName, QueryFeature},
   printer::{PrinterOptions, PseudoClasses},
+  rules::CssRule,
   stylesheet::{MinifyOptions, ParserFlags, ParserOptions, StyleSheet},
   targets::{Features, Targets},
   traits::IntoOwned,
@@ -125,6 +127,12 @@ impl LightningCssLoader {
     //   }
     // }
 
+    let mut flags = option.flags;
+    // Custom media in `@import` conditions isn't expanded, so its definitions must be kept.
+    if has_custom_media_import(&stylesheet) {
+      flags.remove(ParserFlags::CUSTOM_MEDIA);
+    }
+
     let mut stylesheet = to_static(
       stylesheet,
       ParserOptions {
@@ -133,7 +141,7 @@ impl LightningCssLoader {
         source_index: 0,
         error_recovery: true,
         warnings: None,
-        flags: ParserFlags::empty(),
+        flags,
       },
     );
 
@@ -307,4 +315,27 @@ pub fn to_static(stylesheet: StyleSheet, options: ParserOptions<'static>) -> Sty
   let mut stylesheet = StyleSheet::new(sources, rules, options);
   stylesheet.license_comments = license_comments;
   stylesheet
+}
+
+fn has_custom_media_import(stylesheet: &StyleSheet) -> bool {
+  stylesheet.rules.0.iter().any(|rule| {
+    matches!(rule, CssRule::Import(import) if import
+      .media
+      .media_queries
+      .iter()
+      .any(|query| query.condition.as_ref().is_some_and(has_custom_media_reference)))
+  })
+}
+
+fn has_custom_media_reference(condition: &MediaCondition) -> bool {
+  match condition {
+    MediaCondition::Feature(QueryFeature::Boolean {
+      name: MediaFeatureName::Custom(_),
+    }) => true,
+    MediaCondition::Not(condition) => has_custom_media_reference(condition),
+    MediaCondition::Operation { conditions, .. } => {
+      conditions.iter().any(has_custom_media_reference)
+    }
+    MediaCondition::Feature(_) | MediaCondition::Unknown(_) => false,
+  }
 }

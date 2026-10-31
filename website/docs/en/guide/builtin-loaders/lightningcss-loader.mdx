@@ -225,3 +225,36 @@ export default {
   },
 };
 ```
+
+### drafts
+
+- **Type:** `{ customMedia?: boolean }`
+- **Default:** `undefined`
+
+Enable parsing of draft CSS syntax.
+
+Set `drafts.customMedia` to `true` to parse `@custom-media` rules. The loader expands custom media references and removes their definitions when `include.customMediaQueries` is set or when browser targets are configured. Lightning CSS treats custom media as unsupported in every browser, so any browser targets enable this transform, including targets derived from Rspack's [`target`](/config/target). Set `exclude.customMediaQueries` to keep custom media unchanged.
+
+For example, with `drafts: { customMedia: true }` and `include: { customMediaQueries: true }`, the following CSS:
+
+```css
+@custom-media --wide (min-width: 800px);
+
+@media (--wide) {
+  .example {
+    color: red;
+  }
+}
+```
+
+is transformed into:
+
+```css
+@media (width >= 800px) {
+  .example {
+    color: red;
+  }
+}
+```
+
+Custom media is resolved within each CSS file, so a name that is only defined in another file, or a circular definition, causes a build error. Lightning CSS does not expand custom media in `@import` conditions, so in a file that uses custom media there, the loader leaves all custom media unchanged.
