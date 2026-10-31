@@ -1,10 +1,10 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use rustc_hash::FxHashMap as HashMap;
 
 use super::{TaskContext, factorize::FactorizeTask};
 use crate::{
-  ContextDependency, DependencyId, Module, ModuleIdentifier,
+  ContextDependency, DependencyId, DependencyRef, DependencyType, Module, ModuleIdentifier,
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -75,6 +75,7 @@ impl Task<TaskContext> for ProcessDependenciesTask {
       .module_by_identifier(&original_module_identifier)
       .expect("Module expected");
 
+    let mut issuer_dependencies: Option<Arc<[DependencyRef]>> = None;
     let mut res: Vec<Box<dyn Task<TaskContext>>> = vec![];
     for dependencies in sorted_dependencies.into_values() {
       let original_module_source = module_graph
@@ -95,6 +96,25 @@ impl Task<TaskContext> for ProcessDependenciesTask {
           )
         })
         .clone();
+      let hmr_issuer_dependencies = if matches!(
+        dependency_type,
+        DependencyType::ModuleHotAccept
+          | DependencyType::ModuleHotDecline
+          | DependencyType::ImportMetaHotAccept
+          | DependencyType::ImportMetaHotDecline
+      ) {
+        Some(Arc::clone(issuer_dependencies.get_or_insert_with(|| {
+          module_graph
+            .module_graph_module_by_identifier(&original_module_identifier)
+            .expect("Module graph module expected")
+            .all_dependencies()
+            .iter()
+            .map(|id| module_graph.dependency_ref_by_id(id).clone())
+            .collect()
+        })))
+      } else {
+        None
+      };
       res.push(Box::new(FactorizeTask {
         build_context: context.build_context.clone(),
         module_factory,
@@ -105,6 +125,7 @@ impl Task<TaskContext> for ProcessDependenciesTask {
           .as_normal_module()
           .and_then(|module| module.name_for_condition()),
         issuer_layer: module.get_layer().cloned(),
+        issuer_dependencies: hmr_issuer_dependencies,
         dependencies,
         resolve_options: module.get_resolve_options(),
         from_unlazy,
