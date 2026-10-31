@@ -311,6 +311,7 @@ async fn runtime_requirements_in_tree(
             },
             *chunk_ukey,
           )
+          .with_initial_chunks_in_async_groups()
           .with_full_hash(
             compilation
               .options
