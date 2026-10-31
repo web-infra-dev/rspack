@@ -476,7 +476,7 @@
 			return <%- HAS_OWN_PROPERTY %>(<%- _installed_chunks %>, entryId) && <%- _installed_chunks %>[entryId] === <%- _loaded_chunk_state %>;
 		};
 		update.chunkHandlers.push(function (chunkId, promises) {
-			if (<%- _installed_chunks %>[chunkId] === <%- _loaded_chunk_state %> || hotCurrentUpdateChunks[chunkId] === true) return;
+			if (<%- _installed_chunks %>[chunkId] === <%- _loaded_chunk_state %> || hotCurrentUpdateFullChunks.indexOf(chunkId) !== -1) return;
 			hotCurrentUpdateChunks[chunkId] = true;
 			hotCurrentUpdateFullChunks.push(chunkId);
 			promises.push(<%- _load_update_chunk %>(chunkId, updatedModulesList, true));
