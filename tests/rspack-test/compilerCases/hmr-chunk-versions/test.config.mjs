@@ -88,6 +88,8 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
             'index.js',
             `
 					var app = globalThis.chunkVersionTest = { hot: module.hot, hash: () => __webpack_hash__ };
+					app.ensure = () => __webpack_require__.e;
+					app.otherEnsure = require('./ensure');
 					app.load = () => import(/* webpackChunkName: "page" */ './page');
 					${scenario === 'runtime-priority' ? 'app.load = () => __webpack_require__.e("page", "high").then(() => ({ default: __webpack_require__("./page.js") }));' : ''}
 					require('./trigger');
@@ -101,6 +103,7 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
 				`,
           );
           write('trigger.js', 'module.exports = 0;');
+          write('ensure.js', 'module.exports = () => __webpack_require__.e;');
           write('block.js', 'module.exports = 0;');
           write('other.js', "require('./dep');");
           write('second.js', 'module.exports = 3;');
@@ -210,6 +213,9 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
               createRequire(import.meta.url)(path.join(output, 'main.js'));
             else vm.runInContext(assets['main.js'], sandbox);
             const app = sandbox.chunkVersionTest;
+            assert.equal(
+              app.ensure(), app.otherEnsure(), 'modules must share ensureChunk',
+            );
             if (scenario === 'runtime-priority') {
               await build({
                 'trigger.js':
@@ -217,6 +223,10 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
               });
               await app.hot.check(true);
               await app.pending;
+              assert.equal(
+                app.ensure(), app.otherEnsure(),
+                'runtime updates must preserve the shared entry',
+              );
               assert.equal(
                 sandbox.pagePriority,
                 'high',

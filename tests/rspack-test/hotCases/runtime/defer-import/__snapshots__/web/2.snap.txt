@@ -8,7 +8,7 @@
 - Bundle: async_js.chunk.CURRENT_HASH.js
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 28498
+- Update: main.LAST_HASH.hot-update.js, size: 28583
 
 ## Manifest
 
@@ -188,13 +188,15 @@ __webpack_require__.a = (module, body, hasAwait, useModuleExports) => {
 __webpack_require__.f = {};
 // This file contains only the entry chunk.
 // The chunk loading function for additional chunks
-__webpack_require__.e = (chunkId) => {
+__webpack_require__.e = (chunkId, fetchPriority) => {
+	return __webpack_require__.hmrE(chunkId, () => {
 	return Promise.all(
 		Object.keys(__webpack_require__.f).reduce((promises, key) => {
-			__webpack_require__.f[key](chunkId, promises);
+			__webpack_require__.f[key](chunkId, promises, fetchPriority);
 			return promises;
 		}, [])
 	);
+	});
 };
 })();
 // webpack/runtime/get javascript chunk filename
