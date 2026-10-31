@@ -4,6 +4,7 @@ import { type Compiler, MultiCompiler } from '../..';
 import type { LazyCompilationOptions } from '../../config';
 import type { ExternalItem, Externals } from '../../config';
 import type { DevServerMiddlewareHandler } from '../../config/devServer';
+import { resolveLayerExternals } from '../../util/resolveLayerExternals';
 import { BuiltinLazyCompilationPlugin } from './lazyCompilation';
 
 const require = createRequire(import.meta.url);
@@ -122,6 +123,7 @@ function applyPlugin(
   options: LazyCompilationOptions,
   newlyActiveModules: Set<string>,
 ) {
+  const externals = compiler.options.externals;
   const plugin = new BuiltinLazyCompilationPlugin(
     // Hand over the modules reported since the last compilation; the native
     // plugin keeps every activated module and skips the ones already active.
@@ -133,7 +135,7 @@ function applyPlugin(
     options.entries ?? true,
     options.imports ?? true,
     `${options.client || getDefaultClient(compiler)}?${encodeURIComponent(getFullServerUrl(options))}`,
-    collectReservedExternals(compiler.options.externals),
+    (layer) => collectReservedExternals(externals, layer ?? null),
     options.test,
   );
   plugin.apply(compiler);
@@ -141,7 +143,10 @@ function applyPlugin(
 
 // Statically-declared external requests to reserve in the closure-library wrapper
 // (externals live on the JS options, not Rust's `CompilerOptions`).
-function collectReservedExternals(externals: Externals | undefined): string[] {
+function collectReservedExternals(
+  externals: Externals | undefined,
+  layer: string | null,
+): string[] {
   const requests = new Set<string>();
   const visit = (item: ExternalItem) => {
     if (typeof item === 'string') {
@@ -151,7 +156,8 @@ function collectReservedExternals(externals: Externals | undefined): string[] {
     if (!item || typeof item !== 'object' || item instanceof RegExp) {
       return;
     }
-    for (const [request, value] of Object.entries(item)) {
+    const resolved = resolveLayerExternals(item, layer);
+    for (const [request, value] of Object.entries(resolved)) {
       // `false` opts out of externalization; every other key mirrors `ExternalsPlugin`.
       if (value === false) {
         continue;

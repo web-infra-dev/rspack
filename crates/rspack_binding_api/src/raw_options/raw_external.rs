@@ -32,9 +32,7 @@ pub struct RawHttpExternalsRspackPluginOptions {
 pub struct RawExternalsPluginOptions {
   pub r#type: String,
   pub fallback_type: Option<String>,
-  #[napi(
-    ts_type = "(string | RegExp | Record<string, string | boolean | string[] | Record<string, string[]>> | ((...args: any[]) => any))[]"
-  )]
+  #[napi(ts_type = "(string | RegExp | RawExternalItemObject | ((...args: any[]) => any))[]")]
   pub externals: Vec<RawExternalItem>,
   pub place_in_initial: bool,
 }
@@ -42,12 +40,31 @@ pub struct RawExternalsPluginOptions {
 type RawExternalItem = Either4<
   String,
   RspackRegex,
-  HashMap<String, RawExternalItemValue>,
+  RawExternalItemObject,
   ThreadsafeFunction<RawExternalItemFnCtx, Promise<RawExternalItemFnResult>>,
 >;
 type RawExternalItemValue = Either4<String, bool, Vec<String>, HashMap<String, Vec<String>>>;
 pub(crate) struct RawExternalItemWrapper(pub(crate) RawExternalItem);
 struct RawExternalItemValueWrapper(RawExternalItemValue);
+
+#[napi(object, object_to_js = false)]
+pub struct RawExternalItemObject {
+  #[napi(ts_type = "Record<string, string | boolean | string[] | Record<string, string[]>>")]
+  pub values: HashMap<String, RawExternalItemValue>,
+  #[napi(
+    ts_type = "Record<string, Record<string, string | boolean | string[] | Record<string, string[]>>>"
+  )]
+  pub by_layer: Option<HashMap<String, HashMap<String, RawExternalItemValue>>>,
+}
+
+fn into_external_object(
+  values: HashMap<String, RawExternalItemValue>,
+) -> rspack_core::ExternalItemObject {
+  values
+    .into_iter()
+    .map(|(key, value)| (key, RawExternalItemValueWrapper(value).into()))
+    .collect()
+}
 
 impl From<RawExternalItemValueWrapper> for ExternalItemValue {
   fn from(value: RawExternalItemValueWrapper) -> Self {
@@ -223,11 +240,19 @@ impl TryFrom<RawExternalItemWrapper> for ExternalItem {
     match value.0 {
       Either4::A(v) => Ok(Self::String(v)),
       Either4::B(v) => Ok(Self::RegExp(v)),
-      Either4::C(v) => Ok(Self::Object(
-        v.into_iter()
-          .map(|(k, v)| (k, RawExternalItemValueWrapper(v).into()))
-          .collect(),
-      )),
+      Either4::C(v) => {
+        let values = into_external_object(v.values);
+        Ok(if let Some(by_layer) = v.by_layer {
+          let mut layers: HashMap<_, _> = by_layer
+            .into_iter()
+            .map(|(layer, values)| (layer, into_external_object(values)))
+            .collect();
+          layers.insert("default".to_string(), values);
+          Self::ByLayer(layers)
+        } else {
+          Self::Object(values)
+        })
+      }
       Either4::D(v) => Ok(Self::Fn(Box::new(move |ctx: ExternalItemFnCtx| {
         let v = v.clone();
         Box::pin(async move { v.call_with_promise(ctx.into()).await.map(|r| r.into()) })

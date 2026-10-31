@@ -2,13 +2,21 @@ import {
   type BuiltinPlugin,
   BuiltinPluginName,
   type RawExternalItemFnCtx,
+  type RawExternalItemObject,
   type RawExternalsPluginOptions,
 } from '@rspack/binding';
 
-import type { ExternalItem, ExternalItemValue, Externals } from '..';
+import type {
+  ExternalItem,
+  ExternalItemObjectKnown,
+  ExternalItemObjectUnknown,
+  ExternalItemValue,
+  Externals,
+} from '..';
 import { getRawResolve } from '../config/adapter';
 import type { ResolveCallback } from '../config/adapterRuleUse';
 import type { ResolveRequest } from '../Resolver';
+import { resolveLayerExternals } from '../util/resolveLayerExternals';
 import { createBuiltinPlugin, RspackBuiltinPlugin } from './base';
 
 export class ExternalsPlugin extends RspackBuiltinPlugin {
@@ -161,18 +169,54 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
       };
     }
     if (typeof item === 'object') {
-      return Object.fromEntries(
-        Object.entries(item).map(([k, v]) => [k, getRawExternalItemValue(v)]),
-      );
+      const { byLayer } = item as ExternalItemObjectKnown;
+      if (typeof byLayer === 'function') {
+        const cache = new Map<string | null, ExternalItemObjectUnknown>();
+        return this.#getRawExternalItem(({ request, contextInfo }) => {
+          const layer = contextInfo?.issuerLayer ?? null;
+          let resolved = cache.get(layer);
+          if (resolved === undefined) {
+            resolved = resolveLayerExternals(
+              item,
+              layer,
+            ) as ExternalItemObjectUnknown;
+            cache.set(layer, resolved);
+          }
+          return Object.hasOwn(resolved, request!)
+            ? resolved[request!]
+            : undefined;
+        });
+      }
+      return {
+        values: getRawExternalObject(resolveLayerExternals(item, 'default')),
+        byLayer:
+          byLayer &&
+          Object.fromEntries(
+            Object.keys(byLayer).map((layer) => [
+              layer,
+              getRawExternalObject(resolveLayerExternals(item, layer)),
+            ]),
+          ),
+      };
     }
     throw new TypeError(`Unexpected type of external item: ${typeof item}`);
   };
 }
 
 type ArrayType<T> = T extends (infer R)[] ? R : never;
-type RecordValue<T> = T extends Record<any, infer R> ? R : never;
 type RawExternalItem = ArrayType<RawExternalsPluginOptions['externals']>;
-type RawExternalItemValue = RecordValue<RawExternalItem>;
+type RawExternalItemValue = RawExternalItemObject['values'][string];
+
+function getRawExternalObject(
+  item: ExternalItem,
+): RawExternalItemObject['values'] {
+  return Object.fromEntries(
+    Object.entries(item).map(([key, value]) => [
+      key,
+      getRawExternalItemValue(value),
+    ]),
+  );
+}
 
 function getRawExternalItemValueFormFnResult(result?: ExternalItemValue) {
   return result === undefined ? result : getRawExternalItemValue(result);

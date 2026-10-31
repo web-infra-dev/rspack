@@ -30,6 +30,7 @@ impl ModuleFactory for LazyCompilationDependencyFactory {
     let options = dep.options();
 
     data.issuer = options.issuer.clone();
+    data.issuer_layer = options.issuer_layer.clone();
     data.resolve_options = options.resolve_options.clone();
     data
       .file_dependencies

@@ -1,4 +1,4 @@
-use std::ptr::NonNull;
+use std::{ptr::NonNull, sync::Arc};
 
 use napi::{
   Either,
@@ -9,7 +9,7 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{CompilationId, CompilerId, Module, ModuleIdentifier};
 use rspack_plugin_lazy_compilation::{Backend, LazyCompilationTest, LazyCompilationTestCheck};
 use rspack_regex::RspackRegex;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction, module::ModuleObject,
@@ -92,11 +92,14 @@ pub struct RawLazyCompilationOption {
   pub entries: bool,
   pub imports: bool,
   pub client: String,
-  pub reserved_externals: Vec<String>,
+  #[napi(ts_type = "(layer?: string | null) => string[]")]
+  pub collect_reserved_externals: ThreadsafeFunction<Option<String>, Vec<String>>,
 }
 
 pub(crate) struct JsBackend {
   take_newly_active_modules: ThreadsafeFunction<(), HashSet<String>>,
+  collect_reserved_externals: ThreadsafeFunction<Option<String>, Vec<String>>,
+  reserved_externals_by_layer: HashMap<Option<String>, Arc<[String]>>,
 }
 
 impl std::fmt::Debug for JsBackend {
@@ -109,11 +112,31 @@ impl From<&RawLazyCompilationOption> for JsBackend {
   fn from(value: &RawLazyCompilationOption) -> Self {
     Self {
       take_newly_active_modules: value.take_newly_active_modules.clone(),
+      collect_reserved_externals: value.collect_reserved_externals.clone(),
+      reserved_externals_by_layer: Default::default(),
     }
   }
 }
 
 impl Backend for JsBackend {
+  async fn collect_reserved_externals(
+    &mut self,
+    layer: Option<String>,
+  ) -> rspack_error::Result<Arc<[String]>> {
+    if let Some(requests) = self.reserved_externals_by_layer.get(&layer) {
+      return Ok(requests.clone());
+    }
+    let requests: Arc<[String]> = self
+      .collect_reserved_externals
+      .call_with_sync(layer.clone())
+      .await?
+      .into();
+    self
+      .reserved_externals_by_layer
+      .insert(layer, requests.clone());
+    Ok(requests)
+  }
+
   async fn take_newly_active_modules(&mut self) -> rspack_error::Result<IdentifierSet> {
     let active_modules = self
       .take_newly_active_modules

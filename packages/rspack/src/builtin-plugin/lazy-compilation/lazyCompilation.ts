@@ -10,7 +10,7 @@ export const BuiltinLazyCompilationPlugin = create(
     entries: boolean,
     imports: boolean,
     client: string,
-    reservedExternals: string[],
+    collectReservedExternals: (layer?: string | null) => string[],
     test?: RegExp | ((module: Module) => boolean),
   ) => ({
     imports,
@@ -18,7 +18,7 @@ export const BuiltinLazyCompilationPlugin = create(
     test,
     client,
     takeNewlyActiveModules,
-    reservedExternals,
+    collectReservedExternals,
   }),
   'thisCompilation',
 );
