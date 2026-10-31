@@ -18,7 +18,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::RwLock;
 
 use crate::{
-  IntegrityCallbackData, SubresourceIntegrityPlugin, SubresourceIntegrityPluginInner,
+  IntegrityCallbackData, IntegrityHashLoading, SubresourceIntegrityPlugin,
+  SubresourceIntegrityPluginInner,
   config::IntegrityHtmlPlugin,
   integrity::{SubresourceIntegrityHashFunction, compute_integrity, compute_source_integrity},
   util::{PLACEHOLDER_PREFIX, make_placeholder, placeholder_len, use_any_hash},
@@ -38,11 +39,11 @@ struct ProcessChunkResult {
 
 fn process_chunks(
   hash_funcs: &Vec<SubresourceIntegrityHashFunction>,
+  batches: Vec<Vec<ChunkUkey>>,
   compilation: &mut Compilation,
 ) -> HashMap<String, String> {
   let mut hash_by_placeholders = HashMap::default();
   let mut integrities = HashMap::default();
-  let batches = digest_chunks(compilation);
 
   if matches!(
     compilation.options.output.cross_origin_loading,
@@ -276,7 +277,15 @@ async fn add_minssing_integrities(
 
 #[plugin_hook(CompilationProcessAssets for SubresourceIntegrityPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE - 1)]
 pub async fn handle_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  let integrities = process_chunks(&self.options.hash_func_names, compilation);
+  // Lazy loading puts placeholders in every chunk with async children, so each chunk
+  // must be digested after all the chunks it holds hashes for.
+  let batches = match self.options.hash_loading {
+    IntegrityHashLoading::Eager => digest_chunks(compilation),
+    IntegrityHashLoading::Lazy => SubresourceIntegrityPlugin::get_compilation_manifest(compilation)
+      .digest_batches
+      .clone(),
+  };
+  let integrities = process_chunks(&self.options.hash_func_names, batches, compilation);
   let compilation_integrities =
     SubresourceIntegrityPlugin::get_compilation_integrities_mut(compilation.id());
   compilation_integrities.write().await.extend(integrities);

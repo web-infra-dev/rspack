@@ -181,6 +181,18 @@ used for calculating integrity hash values. Only supports `sha256`, `sha384`, an
 
 The path to the HTML plugin, defaults to `"HtmlRspackPlugin"` which means the native HTML plugin of Rspack. If you are using the `html-webpack-plugin`, you can set this option to the path of it. It is recommended to set the absolute path to make sure the plugin can be found.
 
+### hashLoading
+
+- **Type:** `"eager" | "lazy"`
+- **Default:** `"eager"`
+
+Where the integrity hashes of async chunks are emitted.
+
+- `eager` puts the hash of every async chunk in the runtime chunk, so the runtime chunk grows with the number of async chunks.
+- `lazy` puts the hashes of a chunk's direct async children in that chunk, and adds them to the runtime when the chunk loads. A hash that every parent of a chunk already provides is left out. This keeps the runtime chunk small in applications with many async chunks.
+
+Only JavaScript hashes are loaded lazily; CSS chunk hashes stay in the runtime chunk. This option matches the `hashLoading` option of [webpack-subresource-integrity](https://github.com/waysact/webpack-subresource-integrity/tree/main/webpack-subresource-integrity#hashloading).
+
 ## More information
 
 You can find more information about Subresource Integrity in the following resources:

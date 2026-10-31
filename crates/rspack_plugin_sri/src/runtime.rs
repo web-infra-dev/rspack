@@ -1,7 +1,8 @@
 use rspack_core::{
-  ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements, CrossOriginLoading,
-  ManifestAssetType, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeModuleGenerateContext,
-  RuntimeTemplate, SourceType, chunk_graph_chunk::ChunkId, impl_runtime_module,
+  ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationAdditionalTreeRuntimeRequirements, CrossOriginLoading, ManifestAssetType,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeModuleGenerateContext, RuntimeTemplate,
+  SourceType, chunk_graph_chunk::ChunkId, impl_runtime_module,
 };
 use rspack_error::{Result, error};
 use rspack_hook::plugin_hook;
@@ -12,7 +13,8 @@ use rspack_plugin_runtime::{
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  SubresourceIntegrityHashFunction, SubresourceIntegrityPlugin, SubresourceIntegrityPluginInner,
+  IntegrityHashLoading, SubresourceIntegrityHashFunction, SubresourceIntegrityPlugin,
+  SubresourceIntegrityPluginInner,
   util::{find_chunks, get_hash_variable, make_placeholder},
 };
 
@@ -33,15 +35,43 @@ fn add_attribute(
 #[derive(Debug)]
 struct SRIHashVariableRuntimeModule {
   hash_funcs: Vec<SubresourceIntegrityHashFunction>,
+  /// Set for `hashLoading: "lazy"`: the runtime chunk then carries only the JS
+  /// hashes in its own manifest, and other chunks add theirs as they load.
+  lazy_manifest: Option<Vec<ChunkUkey>>,
 }
 
 impl SRIHashVariableRuntimeModule {
   pub fn new(
     runtime_template: &RuntimeTemplate,
     hash_funcs: Vec<SubresourceIntegrityHashFunction>,
+    lazy_manifest: Option<Vec<ChunkUkey>>,
   ) -> Self {
-    Self::with_default(runtime_template, hash_funcs)
+    Self::with_default(runtime_template, hash_funcs, lazy_manifest)
   }
+}
+
+/// Whether a chunk renders anything that integrity needs to cover.
+fn chunk_has_code(chunk: &ChunkUkey, compilation: &Compilation) -> bool {
+  let module_graph = compilation.get_module_graph();
+  let extract_css_source_type = SourceType::Custom("css/mini-extract".into());
+  compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .get_chunk_modules(chunk, module_graph)
+    .iter()
+    .any(|m| {
+      // `css/mini-extract` modules deliberately generate no code: their content is
+      // emitted as a standalone css asset. A chunk holding them is not empty, so it
+      // must not be judged by its code generation result.
+      if m
+        .source_types(module_graph)
+        .contains(&extract_css_source_type)
+      {
+        return true;
+      }
+      let result = compilation.code_generation_results.get_one(&m.identifier());
+      result.sources().values().any(|v| v.size() != 0)
+    })
 }
 
 #[async_trait::async_trait]
@@ -99,34 +129,16 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
       ),
     ];
 
-    let all_chunks = find_chunks(&self.chunk().expect("should attached chunk"), compilation)
+    let runtime_chunk = self.chunk().expect("should attached chunk");
+    let all_chunks = find_chunks(&runtime_chunk, compilation)
       .into_iter()
-      .filter(|c| {
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_chunk_modules(c, module_graph)
-          .iter()
-          .any(|m| {
-            // `css/mini-extract` modules deliberately generate no code: their content is
-            // emitted as a standalone css asset. A chunk holding them is not empty, so it
-            // must not be judged by its code generation result.
-            if m
-              .source_types(module_graph)
-              .contains(&extract_css_source_type)
-            {
-              return true;
-            }
-            let result = compilation.code_generation_results.get_one(&m.identifier());
-            result.sources().values().any(|v| v.size() != 0)
-          })
-      })
+      .filter(|c| chunk_has_code(c, compilation))
       .collect::<Vec<_>>();
 
     let mut code = vec![];
 
     for (source_type, variable_ref) in source_types {
-      let chunk_with_source_type = all_chunks
+      let mut chunk_with_source_type = all_chunks
         .iter()
         .filter(|c| {
           compilation
@@ -135,16 +147,30 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
             .has_chunk_module_by_source_type(c, source_type, module_graph)
         })
         .map(|c| {
-          compilation
-            .build_chunk_graph_artifact
-            .chunk_by_ukey
-            .expect_get(c)
-            .expect_id()
+          (
+            *c,
+            compilation
+              .build_chunk_graph_artifact
+              .chunk_by_ukey
+              .expect_get(c)
+              .expect_id(),
+          )
         })
-        .filter(|c| include_chunks.contains_key(c))
+        .filter(|(_, id)| include_chunks.contains_key(id))
         .collect::<Vec<_>>();
 
+      // Lazy loading leaves the variable in place, even when empty, so the chunks
+      // loaded later can add their children's hashes to it.
       if !chunk_with_source_type.is_empty() {
+        if let Some(lazy_manifest) = &self.lazy_manifest
+          && matches!(source_type, SourceType::JavaScript)
+        {
+          chunk_with_source_type.retain(|(c, _)| lazy_manifest.contains(c));
+        }
+        let chunk_with_source_type = chunk_with_source_type
+          .into_iter()
+          .map(|(_, id)| id)
+          .collect::<Vec<_>>();
         code.push(format!(
           r#"
           {} = {};
@@ -285,14 +311,145 @@ pub async fn link_preload<'a>(
 pub async fn handle_runtime(
   &self,
   compilation: &Compilation,
-  _chunk_ukey: &ChunkUkey,
+  chunk_ukey: &ChunkUkey,
   _runtime_requirements: &mut RuntimeGlobals,
   runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
+  let lazy_manifest = matches!(self.options.hash_loading, IntegrityHashLoading::Lazy).then(|| {
+    SubresourceIntegrityPlugin::get_compilation_manifest(compilation)
+      .manifest
+      .get(chunk_ukey)
+      .map(|children| children.iter().copied().collect())
+      .unwrap_or_default()
+  });
   runtime_modules.push(
     SRIHashVariableRuntimeModule::new(
       &compilation.runtime_template,
       self.options.hash_func_names.clone(),
+      lazy_manifest,
+    )
+    .boxed(),
+  );
+  Ok(())
+}
+
+/// Adds the hashes of a chunk's direct async children when the chunk loads, for
+/// `hashLoading: "lazy"`.
+#[impl_runtime_module]
+#[derive(Debug)]
+struct SRILazyHashesRuntimeModule {
+  hash_funcs: Vec<SubresourceIntegrityHashFunction>,
+  child_chunks: Vec<ChunkUkey>,
+}
+
+impl SRILazyHashesRuntimeModule {
+  pub fn new(
+    runtime_template: &RuntimeTemplate,
+    chunk_id: &ChunkId,
+    hash_funcs: Vec<SubresourceIntegrityHashFunction>,
+    child_chunks: Vec<ChunkUkey>,
+  ) -> Self {
+    // Runtime modules are keyed by runtime and name, and chunks sharing a runtime
+    // each carry their own hashes, so the name includes the chunk.
+    Self::with_name(
+      runtime_template,
+      &format!("sri_lazy_hashes_{chunk_id}"),
+      hash_funcs,
+      child_chunks,
+    )
+  }
+}
+
+#[async_trait::async_trait]
+impl RuntimeModule for SRILazyHashesRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
+  async fn generate(&self, context: &RuntimeModuleGenerateContext<'_>) -> Result<String> {
+    let compilation = context.compilation;
+    let module_graph = compilation.get_module_graph();
+    let mut chunk_ids = self
+      .child_chunks
+      .iter()
+      .filter(|c| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .has_chunk_module_by_source_type(c, SourceType::JavaScript, module_graph)
+          && chunk_has_code(c, compilation)
+      })
+      .filter_map(|c| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get(c)
+          .id()
+      })
+      .collect::<Vec<_>>();
+    if chunk_ids.is_empty() {
+      return Ok(String::new());
+    }
+    chunk_ids.sort();
+
+    Ok(format!(
+      "Object.assign({}, {});",
+      get_hash_variable(
+        // The module renders inside a chunk, where require is reached through the
+        // chunk's runtime argument rather than the runtime chunk's own binding.
+        &compilation
+          .runtime_template
+          .create_chunk_code_template()
+          .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+        SourceType::JavaScript
+      ),
+      generate_sri_hash_placeholders(ManifestAssetType::JavaScript, chunk_ids, &self.hash_funcs),
+    ))
+  }
+
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: { RuntimeGlobals::REQUIRE_SCOPE },
+      ..Default::default()
+    }
+  }
+}
+
+#[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for SubresourceIntegrityPlugin)]
+pub async fn handle_chunk_runtime(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  _runtime_requirements: &mut RuntimeGlobals,
+  runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
+) -> Result<()> {
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
+  // A runtime chunk carries its manifest in the hash variable itself.
+  if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
+    return Ok(());
+  }
+  let Some(chunk_id) = chunk.id() else {
+    return Ok(());
+  };
+  let manifest = SubresourceIntegrityPlugin::get_compilation_manifest(compilation);
+  let Some(child_chunks) = manifest.manifest.get(chunk_ukey) else {
+    return Ok(());
+  };
+  if child_chunks.is_empty() {
+    return Ok(());
+  }
+  runtime_modules.push(
+    SRILazyHashesRuntimeModule::new(
+      &compilation.runtime_template,
+      chunk_id,
+      self.options.hash_func_names.clone(),
+      child_chunks.iter().copied().collect(),
     )
     .boxed(),
   );

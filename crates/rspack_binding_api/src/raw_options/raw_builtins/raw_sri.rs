@@ -21,6 +21,8 @@ pub struct RawSubresourceIntegrityPluginOptions {
   pub hash_func_names: Vec<String>,
   #[napi(ts_type = "\"JavaScript\" | \"Native\" | \"Disabled\"")]
   pub html_plugin: String,
+  #[napi(ts_type = "\"eager\" | \"lazy\"")]
+  pub hash_loading: String,
 }
 
 impl TryFrom<RawSubresourceIntegrityPluginOptions> for SubresourceIntegrityPluginOptions {
@@ -28,6 +30,7 @@ impl TryFrom<RawSubresourceIntegrityPluginOptions> for SubresourceIntegrityPlugi
 
   fn try_from(options: RawSubresourceIntegrityPluginOptions) -> Result<Self, rspack_error::Error> {
     let html_plugin = options.html_plugin.try_into()?;
+    let hash_loading = options.hash_loading.try_into()?;
     if options.hash_func_names.is_empty() {
       return Err(rspack_error::Error::error(
         "Expect at least one SRI hash function name.".to_string(),
@@ -49,6 +52,7 @@ impl TryFrom<RawSubresourceIntegrityPluginOptions> for SubresourceIntegrityPlugi
       },
       hash_func_names,
       html_plugin,
+      hash_loading,
     })
   }
 }

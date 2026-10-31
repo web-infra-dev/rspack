@@ -177,6 +177,18 @@ compiler.hooks.done.tap('MyPlugin', (stats) => {
 
 HTML 插件的路径，默认为 `"HtmlRspackPlugin"`，表示 Rspack 的原生 HTML 插件。如果你使用的是 [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin)，你可以将此选项设置为它的路径。建议设置绝对路径以确保能找到正确的插件实例。
 
+### hashLoading
+
+- **类型：** `"eager" | "lazy"`
+- **默认值：** `"eager"`
+
+控制异步 chunk 的完整性哈希值输出到哪里。
+
+- `eager` 会将所有异步 chunk 的哈希值都放在 runtime chunk 中，因此 runtime chunk 的体积会随异步 chunk 的数量增长。
+- `lazy` 会将一个 chunk 的直接异步子 chunk 的哈希值放在该 chunk 中，并在该 chunk 加载时将其添加到运行时。所有父 chunk 都已提供的哈希值会被省略。在异步 chunk 较多的应用中，这可以让 runtime chunk 保持较小的体积。
+
+只有 JavaScript chunk 的哈希值会按需加载，CSS chunk 的哈希值仍保留在 runtime chunk 中。此选项与 [webpack-subresource-integrity](https://github.com/waysact/webpack-subresource-integrity/tree/main/webpack-subresource-integrity#hashloading) 的 `hashLoading` 选项一致。
+
 ## 更多信息
 
 更多关于子资源完整性的信息可参考：
