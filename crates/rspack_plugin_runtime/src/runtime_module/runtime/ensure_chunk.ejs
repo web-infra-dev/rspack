@@ -12,7 +12,7 @@
 <%- var("blockChunks") %> = <%- REQUIRE_SCOPE %>.hmrS_blockChunks = <%- REQUIRE_SCOPE %>.hmrS_blockChunks || Object.create(null);
 // undefined = not loaded, Promise = loading, 0 = loaded.
 <%- var("installedBlocks") %> = <%- REQUIRE_SCOPE %>.hmrS_blocks = <%- REQUIRE_SCOPE %>.hmrS_blocks || Object.create(null);
-<%- define(ENSURE_CHUNK_GROUP) %> = <%- basicFunction("blockId, fetchPriority") %> {
+<%- define(ENSURE_CHUNK_GROUP) %> = function (blockId, fetchPriority) {
 	var ensureChunk = this && this.e || <%- ENSURE_CHUNK %>;
 	var chunks = blockChunks[blockId] || [];
 	var promise = chunks.length === 1
