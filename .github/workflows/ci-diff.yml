@@ -99,7 +99,7 @@ jobs:
         run: RSDOCTOR=true CI=true pnpm run build:cases
 
       - name: Report Compressed Size
-        uses: web-infra-dev/rsdoctor-action@2fbd50933702502f12d2bbef5273afbfd829a289 # v1.1.4
+        uses: web-infra-dev/rsdoctor-action@21f1a9449eedfb4a7ce0f39a0004b950e616d489 # v1.2.0
         env:
           AI_TOKEN: ${{ secrets.AI_TOKEN }}
         with:

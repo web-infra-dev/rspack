@@ -47,7 +47,7 @@ jobs:
 
       - name: Install cargo-binstall
         if: ${{ github.ref == 'refs/heads/main' }}
-        uses: cargo-bins/cargo-binstall@422f3094be6a0843857aa008b499caaf6bce0da8 # v1.24.0
+        uses: cargo-bins/cargo-binstall@81df5c23b0dc775b009efdfc9895c5965b7a4e40 # v1.26.1
 
       - name: Install cargo-workspaces
         if: ${{ github.ref == 'refs/heads/main' }}
@@ -87,7 +87,7 @@ jobs:
           cargo deny --all-features check license bans
           cargo xtask deny-ext
 
-      - uses: cargo-bins/cargo-binstall@422f3094be6a0843857aa008b499caaf6bce0da8 # v1.24.0
+      - uses: cargo-bins/cargo-binstall@81df5c23b0dc775b009efdfc9895c5965b7a4e40 # v1.26.1
       - run: cargo binstall --no-confirm cargo-shear@1.11.2 --force
       - run: cargo shear
 
