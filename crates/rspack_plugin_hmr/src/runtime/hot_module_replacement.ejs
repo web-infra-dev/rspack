@@ -8,32 +8,51 @@
 // status
 <%- var("registeredStatusHandlers") %> = [];
 <%- var("currentStatus") %> = "idle";
+<%- var("canHoldChunk") %> = false;
 
 // while downloading
 <%- var("blockingPromises") %> = 0;
 <%- var("blockingPromisesWaiting") %> = [];
+<%- var("blockingError") %>;
 
 // The update info
 <%- var("currentUpdateApplyHandlers") %>;
 <%- var("queuedInvalidatedModules") %>;
 <%- var("hotUpdateGroup") %>;
+// Chunk loads waiting for the current update to settle.
+<%- var("settledWaiters") %> = [];
+// Share the active attempt and complete retry across concurrent ensure calls.
+<%- var("chunkLoadingPromises") %> = Object.create(null);
 
 <%- define(HMR_MODULE_DATA) %> = currentModuleData;
 <% if (_is_rspack_runtime_mode) { %><%- define(INTERCEPT_MODULE_EXECUTION) %> = [];
 <% } %>
 <%- INTERCEPT_MODULE_EXECUTION %>.push(function (options) {
 	var module = options.module;
-	var require = rspackHmrCreateRequire(options.require, options.id<% if (_is_rspack_runtime_mode) { %>, options.context<% } %>);
+	var require = rspackHmrCreateRequire(options.require, options.id);
 	module.hot = createModuleHotObject(options.id, module);
 	module.parents = currentParents;
 	module.children = [];
 	currentParents = [];
 	options.require = require;
-	<% if (_is_rspack_runtime_mode) { %>options.context.r = require;<% } %>
+	<% if (_is_rspack_runtime_mode) { %>options.context.r = require;
+	Object.defineProperty(options.context, "e", {
+		configurable: true,
+		enumerable: true,
+		writable: true,
+		value: require.e
+	});<% } %>
 });
 
 <%- define(HMR_DOWNLOAD_UPDATE_HANDLERS) %> = {};
 <%- define(HMR_INVALIDATE_MODULE_HANDLERS) %> = {};
+<%- define(HMR_CHECK_CHUNK) %> = function (hash) {
+	if (hash !== undefined && hash !== <%- GET_FULL_HASH %>()) {
+		var error = new Error("Chunk is from another build (" + hash + ")");
+		error.name = "ChunkVersionError";
+		return error;
+	}
+};
 
 <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.load = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, _css, _miniCss, update) {
 	if (!update || !update.load) return;
@@ -58,7 +77,8 @@
 			if (update.chunkIsRequested && update.chunkIsRequested(entryId)) prepareChunks(entries[entryId], entryPromises);
 		});
 		Object.keys(update.load.groups || {}).forEach(function (chunkId) {
-			if (update.chunkIsRequested && update.chunkIsRequested(chunkId)) hotUpdateGroup(chunkId, entryPromises);
+			// A rejected version clears loader state while its import still waits to retry.
+			if (chunkLoadingPromises[chunkId] || update.chunkIsRequested && update.chunkIsRequested(chunkId)) hotUpdateGroup(chunkId, entryPromises);
 		});
 		return Promise.all(entryPromises);
 	}));
@@ -68,7 +88,7 @@
 	});
 };
 
-<%- fn("rspackHmrCreateRequire") %>(require, moduleId<% if (_is_rspack_runtime_mode) { %>, context<% } %>) {
+<%- fn("rspackHmrCreateRequire") %>(require, moduleId) {
 	var me = hmrInstalledModules[moduleId];
 	if (!me) return require;
 	var fn = function (request) {
@@ -114,15 +134,59 @@
 		}
 	}
 
+	var ensureChunk = function (chunkId, fetchPriority) {
+		var loading = chunkLoadingPromises[chunkId];
+		if (loading) {
+			if (loading[0]) trackBlockingPromise(loading[0]);
+			return loading[1];
+		}
+		// [current download, complete retry]
+		loading = chunkLoadingPromises[chunkId] = [];
+		var retriedHash;
+		var load = function () {
+			// Only one attempt blocks prepare; catch-up and retries must not.
+			var hash = <%- GET_FULL_HASH %>();
+			try {
+				loading[0] = <% if (_is_rspack_runtime_mode) { %><%- REQUIRE_SCOPE %><% } else { %>require<% } %>.e(chunkId, fetchPriority, true);
+			} catch (error) {
+				loading[0] = Promise.reject(error);
+			}
+			return trackBlockingPromise(loading[0]).then(function (result) {
+				// Promise.all([]): every ensure handler found the chunk installed.
+				// A ready handler can await this import without waiting for apply.
+				if (!result || result.length === 0) return result;
+				if (!canHoldChunk && currentStatus !== "abort" && currentStatus !== "fail") return result;
+				return waitForUpdate().then(function () { return result; });
+			}, function (error) {
+				if (error.name !== "ChunkVersionError") throw error;
+				return waitForUpdate(hash).then(function () {
+					if (!loading[0]) return;
+					var nextHash = <%- GET_FULL_HASH %>();
+					if (retriedHash === nextHash) throw error;
+					retriedHash = nextHash;
+					return load();
+				});
+			});
+		};
+		var promise = loading[1] = load();
+		var clear = function () { delete chunkLoadingPromises[chunkId]; };
+		promise.then(clear, clear);
+		return promise;
+	};
 	fn.e = function (chunkId, fetchPriority) {
 		var promises = [];
 		if (hotUpdateGroup) hotUpdateGroup(chunkId, promises);
-		var promise = <% if (_is_rspack_runtime_mode) { %>context.e<% } else { %>require.e<% } %>(chunkId, fetchPriority);
-		if (promises.length) {
-			promises.push(promise);
-			promise = Promise.all(promises);
-		}
-		return trackBlockingPromise(promise);
+		var groups = <%- REQUIRE_SCOPE %>.hmrS_chunkGroups;
+		var siblings = groups && groups[chunkId];
+		// Retry each physical chunk independently; do not expand its group again.
+		var promise = siblings ? Promise.all(siblings.concat([chunkId]).map(function (id) {
+			return ensureChunk(id, fetchPriority);
+		})) : ensureChunk(chunkId, fetchPriority);
+		if (!promises.length) return promise;
+		return Promise.all([
+			promise,
+			trackBlockingPromise(Promise.all(promises), true).then(function () { return waitForUpdate(); })
+		]);
 	};
 
 	return fn;
@@ -223,6 +287,8 @@
 
 <%- fn("setStatus") %>(newStatus) {
 	currentStatus = newStatus;
+	// Automatic checks also pass through ready before applying their update.
+	if (newStatus !== "check" && newStatus !== "prepare" && newStatus !== "ready") canHoldChunk = false;
 	<% if (_is_hot_test) { %>
 	if (self.__HMR_UPDATED_RUNTIME__) {
 		self.__HMR_UPDATED_RUNTIME__.statusPath.push(newStatus);
@@ -231,31 +297,49 @@
 	var results = [];
 	for (var i = 0; i < registeredStatusHandlers.length; i++)
 		results[i] = registeredStatusHandlers[i].call(null, newStatus);
+	if (newStatus === "idle" || newStatus === "abort" || newStatus === "fail") {
+		var waiters = settledWaiters;
+		settledWaiters = [];
+		for (var j = 0; j < waiters.length; j++) waiters[j]();
+	}
 
 	return Promise.all(results).then(function () { });
 }
 
 <%- fn("unblock") %>() {
-	if (--blockingPromises === 0) {
-		setStatus("ready").then(function () {
+	if (--blockingPromises === 0 && currentStatus === "prepare") {
+		// Change status synchronously, but propagate throws as promise rejections.
+		return new Promise(function (resolve) {
+			if (blockingError) throw blockingError;
+			resolve(setStatus("ready"));
+		}).then(function () {
 			if (blockingPromises === 0) {
 				var list = blockingPromisesWaiting;
 				blockingPromisesWaiting = [];
 				for (var i = 0; i < list.length; i++) {
-					list[i]();
+					list[i].resolve();
 				}
 			}
+		}, function (err) {
+			var list = blockingPromisesWaiting;
+			blockingPromisesWaiting = [];
+			for (var i = 0; i < list.length; i++) list[i].reject(err);
+			return setStatus("fail");
 		});
 	}
 }
 
-<%- fn("trackBlockingPromise") %>(promise) {
+<%- fn("trackBlockingPromise") %>(promise, update) {
 	switch (currentStatus) {
 		case "ready":
 			setStatus("prepare");
 		case "prepare":
 			blockingPromises++;
-			promise.then(unblock, unblock);
+			// A ready handler may await this load, so the load must not await it.
+			promise.then(unblock, function (error) {
+				if (update) blockingError = error;
+				return unblock();
+			});
 			return promise;
 		default:
 			return promise;
@@ -263,11 +347,28 @@
 }
 
 <%- fn("waitForBlockingPromises") %>(fn) {
+	if (blockingError) throw blockingError;
 	if (blockingPromises === 0) return fn();
-	return new Promise(function (resolve) {
-		blockingPromisesWaiting.push(function () {
-			resolve(fn());
+	return new Promise(function (resolve, reject) {
+		blockingPromisesWaiting.push({ resolve: resolve, reject: reject });
+	}).then(function () { return waitForBlockingPromises(fn); });
+}
+
+<%- fn("waitForUpdate") %>(hash) {
+	if (currentStatus === "abort" || currentStatus === "fail") {
+		return Promise.reject(new Error("Chunk loading failed because the update failed (" + currentStatus + ")"));
+	}
+	if (hash === undefined && !canHoldChunk) return Promise.resolve();
+	if (currentStatus !== "idle") {
+		return new Promise(function (resolve) { settledWaiters.push(resolve); }).then(function () {
+			return waitForUpdate(hash);
 		});
+	}
+	if (hash === undefined || hash !== <%- GET_FULL_HASH %>()) return Promise.resolve();
+	return hotCheck(true).then(function (updatedModules) {
+		if (!updatedModules) {
+			throw new Error("Chunk is from another build, and no update leads to it");
+		}
 	});
 }
 
@@ -275,6 +376,8 @@
 	if (currentStatus !== "idle") {
 		throw new Error("check() is only allowed in idle status");
 	}
+	canHoldChunk = Boolean(applyOnUpdate);
+	blockingError = undefined;
 	<% if (_is_hot_test) { %>
 	self.__HMR_UPDATED_RUNTIME__ = {
 		javascript: {
@@ -293,6 +396,7 @@
 		.then(<%- HMR_DOWNLOAD_MANIFEST %>)
 		.then(function (update) {
 			if (!update) {
+				canHoldChunk = false;
 				return setStatus(applyInvalidatedModules() ? "ready" : "idle").then(
 					function () {
 						return null;
@@ -300,9 +404,25 @@
 				);
 			}
 
-			return setStatus("prepare").then(function () {
-				var updatedModules = [];
+			var updatedModules = [];
+			// Preparation includes async status handlers and all update downloads.
+			blockingPromises++;
+			return Promise.resolve().then(function () {
+				return setStatus("prepare");
+			}).then(function () {
 				currentUpdateApplyHandlers = [];
+				if (update.r.length) currentUpdateApplyHandlers.push(function () {
+					return {
+						apply: function () {
+							update.r.forEach(function (chunkId) {
+								var loading = chunkLoadingPromises[chunkId];
+								if (loading) {
+									loading[0] = undefined;
+								}
+							});
+						}
+					};
+				});
 				var updateOptions = {
 					load: update.load,
 					chunkHandlers: []
@@ -322,22 +442,31 @@
 							updatedModules,
 							update.css,
 							update.miniCss,
-							updateOptions
+							updateOptions,
+							function (promise) { return trackBlockingPromise(promise, true); }
 						);
 						return promises;
 					},
 						[])
-				).then(function () {
-					return waitForBlockingPromises(function () {
-						if (applyOnUpdate) {
-							return internalApply(applyOnUpdate);
-						}
-						return setStatus("ready").then(function () {
-							return updatedModules;
-						});
+				);
+			}).then(function () {
+				blockingPromises--;
+				return waitForBlockingPromises(function () {
+					if (applyOnUpdate) {
+						return internalApply(applyOnUpdate);
+					}
+					return setStatus("ready").then(function () {
+						return updatedModules;
 					});
 				});
+			}, function (err) {
+				blockingPromises--;
+				throw err;
 			});
+		}).catch(function (err) {
+			// Wake imports when either the manifest or update preparation fails.
+			if (currentStatus === "abort" || currentStatus === "fail") throw err;
+			return setStatus("fail").then(function () { throw err; });
 		});
 }
 

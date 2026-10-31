@@ -8,11 +8,11 @@
 - Bundle: bundle.js
 - Bundle: other.chunk.CURRENT_HASH.js
 - Bundle: page.chunk.CURRENT_HASH.js
-- Bundle: shared.LAST_HASH.hot-update.js.full.js
 - Bundle: shared.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 73
 - Update: main.LAST_HASH.hot-update.js, size: 527
 - Update: page.LAST_HASH.hot-update.js, size: 211
+- Update: shared.LAST_HASH.hot-update.js.full.js, size: 122
 
 ## Manifest
 
@@ -80,6 +80,29 @@ module.hot.accept();
 
 
 },
+
+});
+```
+
+
+
+### shared.LAST_HASH.hot-update.js.full.js
+
+#### Changed Modules
+- ./dep.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+self["rspackHotUpdate"]("shared", {
+"./dep.js": [(function (module) {
+module.exports = 3;
+module.hot.accept();
+
+
+})],
 
 });
 ```

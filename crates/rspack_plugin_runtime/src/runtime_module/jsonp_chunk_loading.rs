@@ -199,6 +199,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       dependencies.insert(Self::get_runtime_requirements_with_on_chunk_load());
     }
     if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
+      force_context.insert(RuntimeGlobals::HMR_CHECK_CHUNK);
       dependencies.insert(
         Self::get_runtime_requirements_with_hmr()
           | RuntimeGlobals::MODULE_CACHE
@@ -354,6 +355,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
           &self.template_id(TemplateId::Raw),
           Some(serde_json::json!({
             "_js_matcher": &js_matcher,
+            "_with_hmr": with_hmr,
             "_fetch_priority": if with_fetch_priority {
                ", fetchPriority"
             } else {
@@ -490,6 +492,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         Some(serde_json::json!({
           "_chunk_loading_global_init_expr": &chunk_loading_global_init_expr,
           "_with_on_chunk_load": with_on_chunk_load,
+          "_with_hmr": with_hmr,
         })),
       )?;
 

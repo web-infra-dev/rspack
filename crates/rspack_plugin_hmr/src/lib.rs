@@ -10,12 +10,12 @@ use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkInitFragments, ChunkKind, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationContentHash,
-  CompilationParams, CompilationProcessAssets, CompilationRecords, CompilerCompilation,
-  DependencyType, LoaderContext, Module, ModuleId, ModuleIdentifier, ModuleType,
-  NormalModuleFactoryParser, NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData,
-  Plugin, RunnerContext, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeModuleExt,
-  RuntimeSpec, SourceType,
+  CompilationAdditionalChunkRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationAsset, CompilationContentHash, CompilationParams, CompilationProcessAssets,
+  CompilationRecords, CompilerCompilation, DependencyType, LoaderContext, ManifestAssetType,
+  Module, ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser, NormalModuleLoader,
+  ParserAndGenerator, ParserOptions, PathData, Plugin, RunnerContext, RuntimeCodeTemplate,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec, SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdMap, ChunkIdSet},
   chunk_graph_module::ModuleIdSet,
   incremental::{IncrementalPasses, Mutation},
@@ -31,6 +31,7 @@ use rspack_plugin_javascript::{
     ImportMetaHotReplacementParserPlugin, ModuleHotReplacementParserPlugin,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
+  runtime::HMR_CHUNK_HASH_PLACEHOLDER,
 };
 use rspack_plugin_runtime::ChunkGroupMapData;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -244,6 +245,48 @@ async fn content_hash(
 
 #[plugin_hook(CompilationProcessAssets for HotModuleReplacementPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  // Fill the version after chunk rendering so unchanged chunks can reuse their
+  // hashes and cached sources. Asset processing still sees the final contents.
+  let hash = compilation
+    .get_hash()
+    .expect("should have compilation hash")
+    .to_owned();
+  let hash_source = rspack_util::json_stringify_str(&hash);
+  let files: HashSet<_> = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .values()
+    .filter(|chunk| {
+      ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk.ukey())
+        .contains(RuntimeGlobals::HMR_CHECK_CHUNK)
+    })
+    .flat_map(|chunk| chunk.files().iter().cloned())
+    .collect();
+  for file in files {
+    compilation.update_asset(&file, |source, mut info| {
+      if info.asset_type != ManifestAssetType::JavaScript {
+        return Ok((source, info));
+      }
+      let content = source.source();
+      let content = content.into_string_lossy();
+      let mut updated = ReplaceSource::new(source.clone());
+      for (offset, _) in content.match_indices(HMR_CHUNK_HASH_PLACEHOLDER) {
+        updated.replace(
+          offset as u32,
+          (offset + HMR_CHUNK_HASH_PLACEHOLDER.len()) as u32,
+          hash_source.clone(),
+          None,
+        );
+      }
+      if updated.replacements().is_empty() {
+        return Ok((source, info));
+      }
+      info.version = hash.clone();
+      info.immutable = Some(false);
+      Ok((updated.boxed(), info))
+    })?;
+  }
+
   // Advance the css baseline on every sealed build, mirroring the lifecycle
   // of `CompilationRecords`: merge this build's collected digests over the
   // previous snapshot (only re-hashed chunks arrive) and prune chunks gone
@@ -967,6 +1010,24 @@ async fn additional_tree_runtime_requirements(
   Ok(())
 }
 
+#[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for HotModuleReplacementPlugin)]
+async fn additional_chunk_runtime_requirements(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
+) -> Result<()> {
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
+  if !chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
+    runtime_requirements.insert(RuntimeGlobals::HMR_CHECK_CHUNK);
+  }
+  Ok(())
+}
+
 impl Plugin for HotModuleReplacementPlugin {
   fn name(&self) -> &'static str {
     "rspack.HotModuleReplacementPlugin"
@@ -994,6 +1055,10 @@ impl Plugin for HotModuleReplacementPlugin {
       .compilation_hooks
       .additional_tree_runtime_requirements
       .tap(additional_tree_runtime_requirements::new(self));
+    ctx
+      .compilation_hooks
+      .additional_chunk_runtime_requirements
+      .tap(additional_chunk_runtime_requirements::new(self));
     Ok(())
   }
 }

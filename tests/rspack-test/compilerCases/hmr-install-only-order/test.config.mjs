@@ -116,7 +116,7 @@ export default {
         allRequested = resolve;
       });
       req.l = (url, done) => {
-        const name = path.basename(url);
+        const name = path.basename(url.split("?")[0]);
         if (name.includes('.hot-update.')) {
           queued.set(name.split('.')[0], { name, done });
           if (queued.size === order.length) allRequested();

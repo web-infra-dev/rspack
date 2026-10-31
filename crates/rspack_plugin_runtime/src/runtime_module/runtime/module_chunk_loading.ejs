@@ -9,7 +9,10 @@
     <% if (_with_on_chunk_load) { %><%- weak(ON_CHUNKS_LOADED) %>();<% } %>
 }
 
-<%- var("moduleInstallChunk") %> = <%- basicFunction("data") %> {
+<%- var("moduleInstallChunk") %> = <%- basicFunction("data") %> {<% if (_with_hmr) { %>
+    var error = <%- weak(HMR_CHECK_CHUNK) %>(data.__rspack_esm_hash);
+    if (error) throw error;
+<% } %>
     var moreModules = data.<%- _modules %>;
     var __rspack_esm_runtime = data.__rspack_esm_runtime;
     var moduleId;

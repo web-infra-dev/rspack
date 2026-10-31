@@ -5,11 +5,13 @@
     // "1" is the signal for "already loaded
     if (!importScriptsInstalledChunks[chunkId]) {
         if (<%- _js_matcher %>) {
+            <% if (_with_hmr) { %>try {<% } %>
             <% if (_with_create_script_url) { %>
             importScripts(<%- weak(CREATE_SCRIPT_URL) %>(<%- PUBLIC_PATH %> + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId)));
             <% } else { %>
             importScripts(<%- PUBLIC_PATH %> + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId));
             <% } %>
+            <% if (_with_hmr) { %>} catch (error) { promises.push(Promise.reject(error)); }<% } %>
         }
     }
     <% } %>

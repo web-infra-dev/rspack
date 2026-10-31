@@ -198,6 +198,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       define.insert(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
     }
     if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
+      force_context.insert(RuntimeGlobals::HMR_CHECK_CHUNK);
       dependencies.insert(Self::get_runtime_requirements_with_hmr() | RuntimeGlobals::MODULE_CACHE);
       weak.insert(JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS.weak);
     }
@@ -352,6 +353,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         Some(serde_json::json!({
           "_modules": runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
           "_with_on_chunk_load": with_on_chunk_load,
+          "_with_hmr": with_hmr,
         })),
       )?;
 
@@ -368,6 +370,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           &self.template(TemplateId::WithLoading),
           Some(serde_json::json!({
             "_js_matcher": &has_js_matcher.render("chunkId"),
+            "_with_hmr": with_hmr,
             "_import_function_name":&compilation.options.output.import_function_name,
             "_output_dir": &root_output_dir,
             "_match_fallback":    if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {

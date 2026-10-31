@@ -1,5 +1,6 @@
 ```mjs title=main.mjs
 var __rspack_hmr_s_module;
+Object.defineProperty(context, "hmrS_module", { configurable: true, get: function() { return __rspack_hmr_s_module; }, set: function(value) { __rspack_hmr_s_module = value; } });
 	return typeof __rspack_hmr_s_module !== "undefined" && __rspack_hmr_s_module && __rspack_hmr_s_module[chunkId] === 0;
       var moduleInstalledChunks = __rspack_hmr_s_module = __rspack_hmr_s_module || {"main": 0,};
 const index_rspack_hmr_s_module = "application";

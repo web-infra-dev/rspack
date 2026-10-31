@@ -81,7 +81,7 @@ export default {
 				const { req, hot } = sandbox;
 				const requests = [];
 				req.l = (url, done) => {
-					const name = path.basename(url);
+					const name = path.basename(url.split("?")[0]);
 					requests.push(name);
 					vm.runInContext(assets[name], sandbox);
 					done({ type: "load" });

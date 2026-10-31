@@ -204,6 +204,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
       dependencies.insert(Self::get_runtime_requirements_with_on_chunk_load());
     }
     if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
+      force_context.insert(RuntimeGlobals::HMR_CHECK_CHUNK);
       dependencies.insert(Self::get_runtime_requirements_with_hmr());
       weak.insert(JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS.weak);
     }
@@ -325,6 +326,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
                 .render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)),
             false => String::new(),
           },
+          "_with_hmr": with_hmr,
         })),
       )?;
 
@@ -342,6 +344,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
           &self.template_id(TemplateId::WithLoadingMatcher),
           Some(serde_json::json!({
             "_js_matcher": &has_js_matcher.render("chunkId"),
+            "_with_hmr": with_hmr,
             "_output_dir": &root_output_dir,
           })),
         )?;

@@ -1,10 +1,11 @@
 <%- define(ENSURE_CHUNK_HANDLERS) %> = <% if (_hmr) { %><%- REQUIRE_SCOPE %>.f || <% } %>{};
 // This file contains only the entry chunk.
 // The chunk loading function for additional chunks
-<%- define(ENSURE_CHUNK) %> = <%- basicFunction("chunkId" + _fetch_priority) %> {
+<%- define(ENSURE_CHUNK) %> = <% if (_hmr) { %><%- basicFunction("chunkId, fetchPriority, skipGroup") %><% } else { %><%- basicFunction("chunkId" + _fetch_priority) %><% } %> {
 	return Promise.all(
 		Object.keys(<%- ENSURE_CHUNK_HANDLERS %>).reduce(<%- basicFunction("promises, key") %> {
-			<%- ENSURE_CHUNK_HANDLERS %>[key](chunkId, promises<%- _fetch_priority %>);
+			<% if (_hmr) { %>if (skipGroup && key === "group") return promises;
+			<% } %><%- ENSURE_CHUNK_HANDLERS %>[key](chunkId, promises<%- _fetch_priority %>);
 			return promises;
 		}, [])
 	);
