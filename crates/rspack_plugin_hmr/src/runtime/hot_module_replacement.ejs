@@ -21,7 +21,7 @@
 // Chunk loads waiting for the current update to settle.
 <%- var("settledWaiters") %> = [];
 <%- var("hotUpdateBlock") %>;
-// Share the download and its starting hash across concurrent ensure calls.
+// Share each chunk's current attempt and complete retry across ensure calls.
 <%- var("chunkLoadingPromises") %> = Object.create(null);
 
 <%- define(HMR_MODULE_DATA) %> = currentModuleData;
@@ -57,6 +57,19 @@
 };
 
 <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.load = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, _css, _miniCss, update) {
+	if (removedChunks.length) applyHandlers.push(function () {
+		return {
+			apply: function () {
+				removedChunks.forEach(function (chunkId) {
+					var loading = chunkLoadingPromises[chunkId];
+					if (loading) {
+						loading[0] = undefined;
+						loading[2]();
+					}
+				});
+			}
+		};
+	});
 	if (!update || !update.load) return;
 	var prepareChunks = function (chunks, promises) {
 		if (!chunks) return;
@@ -136,23 +149,27 @@
 	}
 
 	fn.e = function (chunkId, fetchPriority) {
+		var loading = chunkLoadingPromises[chunkId];
+		if (loading) {
+			if (loading[0]) trackBlockingPromise(loading[0]);
+			return loading[1];
+		}
+		var resolve, reject;
+		var promise = new Promise(function (res, rej) { resolve = res; reject = rej; });
+		// [current download, complete retry, finish a removed chunk]
+		loading = chunkLoadingPromises[chunkId] = [undefined, promise, resolve];
+		var clear = function () { delete chunkLoadingPromises[chunkId]; };
+		promise.then(clear, clear);
 		var retriedHash;
 		var load = function () {
 			// Only one attempt blocks prepare; catch-up and retries must not.
-			var loading = chunkLoadingPromises[chunkId];
-			if (!loading) {
-				var hash = <%- GET_FULL_HASH %>();
-				var promise;
-				try {
-					promise = <% if (_is_rspack_runtime_mode) { %><%- REQUIRE_SCOPE %><% } else { %>require<% } %>.e(chunkId, fetchPriority);
-				} catch (error) {
-					promise = Promise.reject(error);
-				}
-				loading = chunkLoadingPromises[chunkId] = [hash, promise];
-				var clear = function () { delete chunkLoadingPromises[chunkId]; };
-				promise.then(clear, clear);
+			var hash = <%- GET_FULL_HASH %>();
+			try {
+				loading[0] = <% if (_is_rspack_runtime_mode) { %><%- REQUIRE_SCOPE %><% } else { %>require<% } %>.e(chunkId, fetchPriority);
+			} catch (error) {
+				loading[0] = Promise.reject(error);
 			}
-			return trackBlockingPromise(loading[1]).then(function (result) {
+			return trackBlockingPromise(loading[0]).then(function (result) {
 				// Promise.all([]): every ensure handler found the chunk installed.
 				// A ready handler can await this import without waiting for apply.
 				if (!result || result.length === 0) return result;
@@ -160,7 +177,8 @@
 				return waitForUpdate().then(function () { return result; });
 			}, function (error) {
 				if (error.name !== "ChunkVersionError") throw error;
-				return waitForUpdate(loading[0]).then(function () {
+				return waitForUpdate(hash).then(function () {
+					if (!loading[0]) return;
 					var nextHash = <%- GET_FULL_HASH %>();
 					if (retriedHash === nextHash) throw error;
 					retriedHash = nextHash;
@@ -168,7 +186,8 @@
 				});
 			});
 		};
-		return load();
+		load().then(resolve, reject);
+		return promise;
 	};
 	if (<%- weak(ENSURE_CHUNK_GROUP) %>) fn.eg = function (blockId, fetchPriority) {
 		var promises = [];
