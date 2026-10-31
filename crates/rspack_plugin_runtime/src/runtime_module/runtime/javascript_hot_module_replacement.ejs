@@ -219,9 +219,12 @@
 	<% } %>
 
 	var moduleOutdatedDependencies;
+	var removedChunkResolves = [];
 	return {
 		dispose: function () {
 			hotCurrentUpdateRemovedChunks.forEach(function (chunkId) {
+				var installed = <%- _installed_chunks %>[chunkId];
+				if (Array.isArray(installed)) removedChunkResolves.push(installed[0]);
 				delete <%- _installed_chunks %>[chunkId];
 			});
 			hotCurrentUpdateRemovedChunks = undefined;
@@ -310,6 +313,7 @@
 			// Only complete payloads establish the ordinary loader's installed state.
 			// All factories and runtime updates are ready before waiting imports resume.
 			if (fullChunks.length) <%- _finish_chunk_loading %>(fullChunks);
+			removedChunkResolves.forEach(function (resolve) { resolve(); });
 
 			// call accept handlers
 			for (var outdatedModuleId in outdatedDependencies) {
@@ -473,8 +477,8 @@
 		}
 	});
 	if (update) {
-		update.entryIsLoaded = function (entryId) {
-			return <%- HAS_OWN_PROPERTY %>(<%- _installed_chunks %>, entryId) && <%- _installed_chunks %>[entryId] === <%- _loaded_chunk_state %>;
+		update.chunkIsRequested = function (chunkId) {
+			return <%- HAS_OWN_PROPERTY %>(<%- _installed_chunks %>, chunkId) && <%- _installed_chunks %>[chunkId] != null;
 		};
 		update.chunkHandlers.push(function (chunkId, promises) {
 			if (<%- _installed_chunks %>[chunkId] === <%- _loaded_chunk_state %> || hotCurrentUpdateFullChunks.indexOf(chunkId) !== -1) return;

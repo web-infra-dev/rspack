@@ -8,7 +8,7 @@
 - Bundle: chunk1_js.chunk.CURRENT_HASH.js
 - Manifest: [runtime of chunk2_js].LAST_HASH.hot-update.json, size: 60
 - Manifest: main.LAST_HASH.hot-update.json, size: 41
-- Update: main.LAST_HASH.hot-update.js, size: 21113
+- Update: main.LAST_HASH.hot-update.js, size: 21344
 
 ## Manifest
 
@@ -394,9 +394,12 @@ function hotApplyHandler(options) {
 	
 
 	var moduleOutdatedDependencies;
+	var removedChunkResolves = [];
 	return {
 		dispose: function () {
 			hotCurrentUpdateRemovedChunks.forEach(function (chunkId) {
+				var installed = jsonpInstalledChunks[chunkId];
+				if (Array.isArray(installed)) removedChunkResolves.push(installed[0]);
 				delete jsonpInstalledChunks[chunkId];
 			});
 			hotCurrentUpdateRemovedChunks = undefined;
@@ -483,6 +486,7 @@ function hotApplyHandler(options) {
 			// Only complete payloads establish the ordinary loader's installed state.
 			// All factories and runtime updates are ready before waiting imports resume.
 			if (fullChunks.length) jsonpFinishChunkLoading(fullChunks);
+			removedChunkResolves.forEach(function (resolve) { resolve(); });
 
 			// call accept handlers
 			for (var outdatedModuleId in outdatedDependencies) {
@@ -646,8 +650,8 @@ __webpack_require__.hmrC.jsonp = function (
 		}
 	});
 	if (update) {
-		update.entryIsLoaded = function (entryId) {
-			return __webpack_require__.o(jsonpInstalledChunks, entryId) && jsonpInstalledChunks[entryId] === 0;
+		update.chunkIsRequested = function (chunkId) {
+			return __webpack_require__.o(jsonpInstalledChunks, chunkId) && jsonpInstalledChunks[chunkId] != null;
 		};
 		update.chunkHandlers.push(function (chunkId, promises) {
 			if (jsonpInstalledChunks[chunkId] === 0 || hotCurrentUpdateFullChunks.indexOf(chunkId) !== -1) return;

@@ -32,6 +32,7 @@ const scenarios = [
     'moved',
     'manifest-error',
     'ready-cached-import',
+    'concurrent-after-update',
   ].map((name) => ({ name })),
   ...['before-check', 'check', 'prepare', 'downloading'].flatMap((start) =>
     [1, 2].flatMap((version) =>
@@ -422,6 +423,29 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
           const app = sandbox.inFlightHmr;
           const statuses = [];
           app.hot.addStatusHandler((status) => statuses.push(status));
+
+          if (scenario === 'concurrent-after-update') {
+            holding = true;
+            const first = app.load();
+            first.catch(() => {});
+            await wait(heldResponse);
+            const nextHash = await build({ 'page.js': 'module.exports = 2;' });
+            await wait(app.hot.check(true));
+            const second = app.load();
+            second.catch(() => {});
+            release();
+            const values = await wait(Promise.all([first, second]));
+            assert.deepEqual(values.map((value) => value.default), [2, 2]);
+            assert.equal(app.hash(), nextHash);
+            assert.equal(app.hot.status(), 'idle');
+            assert.equal(statuses.filter((status) => status === 'check').length, 1);
+            assert.equal(
+              attempts.get(target === 'module' ? 'page.mjs' : 'page.js'),
+              2,
+              'concurrent callers must share the old request hash and its retry',
+            );
+            return;
+          }
 
           if (scenario === 'ready-cached-import') {
             assert.equal((await app.load()).default, 1);

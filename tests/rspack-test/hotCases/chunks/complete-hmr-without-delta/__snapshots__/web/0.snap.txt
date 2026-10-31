@@ -1,0 +1,15 @@
+# Case complete-hmr-without-delta: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: other.chunk.CURRENT_HASH.js
+- Bundle: page.chunk.CURRENT_HASH.js
+- Bundle: shared.chunk.CURRENT_HASH.js
+
+## Manifest
+
+
+## Update
