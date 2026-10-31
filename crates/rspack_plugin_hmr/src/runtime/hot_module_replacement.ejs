@@ -21,6 +21,8 @@
 // Chunk loads waiting for the current update to settle.
 <%- var("settledWaiters") %> = [];
 <%- var("hotUpdateBlock") %>;
+// Share the download and its starting hash across concurrent ensure calls.
+<%- var("chunkLoadingPromises") %> = Object.create(null);
 
 <%- define(HMR_MODULE_DATA) %> = currentModuleData;
 <% if (_is_rspack_runtime_mode) { %><%- define(INTERCEPT_MODULE_EXECUTION) %> = [];
@@ -133,33 +135,32 @@
 		}
 	}
 
-	var ensure = function (key, chunkId, fetchPriority) {
+	fn.e = function (chunkId, fetchPriority) {
 		var retriedHash;
 		var load = function () {
-			var hash = <%- GET_FULL_HASH %>();
 			// Only one attempt blocks prepare; catch-up and retries must not.
-			var promise;
-			try {
-				var promises = [];
-				if (key === "eg" && hotUpdateBlock) hotUpdateBlock(chunkId, promises);
-				promise = <% if (_is_rspack_runtime_mode) { %><%- REQUIRE_SCOPE %><% } else { %>require<% } %>[key](chunkId, fetchPriority);
-				if (promises.length) {
-					promises.push(promise);
-					promise = Promise.all(promises);
+			var loading = chunkLoadingPromises[chunkId];
+			if (!loading) {
+				var hash = <%- GET_FULL_HASH %>();
+				var promise;
+				try {
+					promise = <% if (_is_rspack_runtime_mode) { %><%- REQUIRE_SCOPE %><% } else { %>require<% } %>.e(chunkId, fetchPriority);
+				} catch (error) {
+					promise = Promise.reject(error);
 				}
-			} catch (error) {
-				promise = Promise.reject(error);
+				loading = chunkLoadingPromises[chunkId] = [hash, promise];
+				var clear = function () { delete chunkLoadingPromises[chunkId]; };
+				promise.then(clear, clear);
 			}
-			return trackBlockingPromise(promise).then(function (result) {
+			return trackBlockingPromise(loading[1]).then(function (result) {
 				// Promise.all([]): every ensure handler found the chunk installed.
 				// A ready handler can await this import without waiting for apply.
 				if (!result || result.length === 0) return result;
-				if (key === "eg" && result.every(function (value) { return Array.isArray(value) && value.length === 0; })) return result;
 				if (!canHoldChunk && currentStatus !== "abort" && currentStatus !== "fail") return result;
 				return waitForUpdate().then(function () { return result; });
 			}, function (error) {
 				if (error.name !== "ChunkVersionError") throw error;
-				return waitForUpdate(hash).then(function () {
+				return waitForUpdate(loading[0]).then(function () {
 					var nextHash = <%- GET_FULL_HASH %>();
 					if (retriedHash === nextHash) throw error;
 					retriedHash = nextHash;
@@ -169,11 +170,15 @@
 		};
 		return load();
 	};
-	fn.e = function (chunkId, fetchPriority) {
-		return ensure("e", chunkId, fetchPriority);
-	};
 	if (<%- weak(ENSURE_CHUNK_GROUP) %>) fn.eg = function (blockId, fetchPriority) {
-		return ensure("eg", blockId, fetchPriority);
+		var promises = [];
+		if (hotUpdateBlock) hotUpdateBlock(blockId, promises);
+		var promise = <% if (_is_rspack_runtime_mode) { %><%- REQUIRE_SCOPE %><% } else { %>require<% } %>.eg.call(fn, blockId, fetchPriority);
+		if (!promises.length) return promise;
+		return Promise.all([
+			promise,
+			trackBlockingPromise(Promise.all(promises), true).then(function () { return waitForUpdate(); })
+		]);
 	};
 
 	return fn;

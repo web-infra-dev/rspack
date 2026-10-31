@@ -13,11 +13,12 @@
 // undefined = not loaded, Promise = loading, 0 = loaded.
 <%- var("installedBlocks") %> = <%- REQUIRE_SCOPE %>.hmrS_blocks = <%- REQUIRE_SCOPE %>.hmrS_blocks || Object.create(null);
 <%- define(ENSURE_CHUNK_GROUP) %> = <%- basicFunction("blockId, fetchPriority") %> {
+	var ensureChunk = this && this.e || <%- ENSURE_CHUNK %>;
 	var chunks = blockChunks[blockId] || [];
 	var promise = chunks.length === 1
-		? <%- ENSURE_CHUNK %>(chunks[0], fetchPriority)
+		? ensureChunk(chunks[0], fetchPriority)
 		: Promise.all(chunks.map(<%- basicFunction("chunkId") %> {
-			return <%- ENSURE_CHUNK %>(chunkId, fetchPriority);
+			return ensureChunk(chunkId, fetchPriority);
 		}));
 	if (installedBlocks[blockId] !== 0) {
 		installedBlocks[blockId] = promise;
