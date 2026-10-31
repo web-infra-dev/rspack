@@ -225,3 +225,79 @@ export default {
   },
 };
 ```
+
+### drafts
+
+- **Type:** `{ customMedia?: boolean }`
+- **Default:** `undefined`
+
+Enable parsing of draft CSS syntax.
+
+Set `drafts.customMedia` to `true` to parse `@custom-media` rules. The loader expands custom media references and removes their definitions when `include.customMediaQueries` is set or when browser targets are configured. Lightning CSS treats custom media as unsupported in every browser, so any browser targets enable this transform, including targets derived from Rspack's [`target`](/config/target). Set `exclude.customMediaQueries` to keep custom media unchanged.
+
+For example, with `drafts: { customMedia: true }` and `include: { customMediaQueries: true }`, the following CSS:
+
+```css
+@custom-media --wide (min-width: 800px);
+
+@media (--wide) {
+  .example {
+    color: red;
+  }
+}
+```
+
+is transformed into:
+
+```css
+@media (width >= 800px) {
+  .example {
+    color: red;
+  }
+}
+```
+
+Custom media is resolved within each CSS file. If a file uses a name that it doesn't define, the loader emits a warning and leaves all custom media in that file unchanged. A circular definition causes a build error. Lightning CSS does not expand custom media in `@import` conditions, so in a file that uses custom media there, the loader also leaves all custom media unchanged.
+
+#### Sharing custom media between files
+
+To use the same definitions in several files, add them to each file before this loader runs. For example, with a small loader that appends a shared file:
+
+```js title="custom-media-loader.mjs"
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
+const definitions = path.resolve(import.meta.dirname, 'src/breakpoints.css');
+
+export default async function loader(source) {
+  this.addDependency(definitions);
+  return `${source}\n${await fs.readFile(definitions, 'utf-8')}`;
+}
+```
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        type: 'css',
+        use: [
+          {
+            loader: 'builtin:lightningcss-loader',
+            options: {
+              drafts: { customMedia: true },
+              include: { customMediaQueries: true },
+            },
+          },
+          './custom-media-loader.mjs',
+        ],
+      },
+    ],
+  },
+};
+```
+
+`this.addDependency()` rebuilds each file when the shared definitions change. Definitions can come after the queries that use them, so appending keeps `@import` rules first and source map positions unchanged. Appended definitions override definitions with the same name in the file.
+
+Alternatively, leave custom media to [`LightningCssMinimizerRspackPlugin`](/plugins/lightning-css-minimizer-rspack-plugin), which resolves it across each output CSS file. Enable `minimizerOptions.drafts.customMedia` in the plugin, and leave `drafts.customMedia` disabled in this loader or set `exclude.customMediaQueries`, so that the loader keeps the definitions. Custom media is then only expanded in minimized output, and each name must be defined in the same output file as the queries that use it.

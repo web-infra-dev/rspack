@@ -1,0 +1,13 @@
+@custom-media --narrow (max-width: 500px);
+
+@media (--narrow) {
+  .narrow {
+    color: blue;
+  }
+}
+
+@media (--wide) {
+  .wide {
+    color: red;
+  }
+}

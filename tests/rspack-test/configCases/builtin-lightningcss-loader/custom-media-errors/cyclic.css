@@ -1,0 +1,8 @@
+@custom-media --a (--b);
+@custom-media --b (--a);
+
+@media (--a) {
+  .cyclic {
+    color: red;
+  }
+}

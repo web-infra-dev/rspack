@@ -225,3 +225,79 @@ export default {
   },
 };
 ```
+
+### drafts
+
+- **类型：** `{ customMedia?: boolean }`
+- **默认值：** `undefined`
+
+启用草案 CSS 语法的解析。
+
+将 `drafts.customMedia` 设为 `true` 可以解析 `@custom-media` 规则。当设置了 `include.customMediaQueries` 或配置了浏览器 targets 时，loader 会展开自定义媒体查询的引用，并移除对应的定义。由于 Lightning CSS 认为所有浏览器都不支持自定义媒体查询，任何浏览器 targets 都会启用该转换，包括从 Rspack 的 [`target`](/config/target) 推导出的 targets。设置 `exclude.customMediaQueries` 可以保持自定义媒体查询不变。
+
+例如，在设置 `drafts: { customMedia: true }` 和 `include: { customMediaQueries: true }` 后，以下 CSS：
+
+```css
+@custom-media --wide (min-width: 800px);
+
+@media (--wide) {
+  .example {
+    color: red;
+  }
+}
+```
+
+会被转换为：
+
+```css
+@media (width >= 800px) {
+  .example {
+    color: red;
+  }
+}
+```
+
+自定义媒体查询在每个 CSS 文件内单独解析。如果某个文件使用了自身没有定义的名称，loader 会发出警告，并保留该文件中的所有自定义媒体查询不变。定义之间存在循环引用时，构建会报错。Lightning CSS 不会展开 `@import` 条件中的自定义媒体查询，因此如果某个文件在 `@import` 条件中使用了自定义媒体查询，loader 同样会保留该文件中的所有自定义媒体查询。
+
+#### 在文件之间共享自定义媒体查询 \{#sharing-custom-media-between-files}
+
+如果需要在多个文件中使用相同的定义，可以在该 loader 运行之前把它们添加到每个文件中。例如，使用一个追加共享文件的简单 loader：
+
+```js title="custom-media-loader.mjs"
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
+const definitions = path.resolve(import.meta.dirname, 'src/breakpoints.css');
+
+export default async function loader(source) {
+  this.addDependency(definitions);
+  return `${source}\n${await fs.readFile(definitions, 'utf-8')}`;
+}
+```
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        type: 'css',
+        use: [
+          {
+            loader: 'builtin:lightningcss-loader',
+            options: {
+              drafts: { customMedia: true },
+              include: { customMediaQueries: true },
+            },
+          },
+          './custom-media-loader.mjs',
+        ],
+      },
+    ],
+  },
+};
+```
+
+`this.addDependency()` 会在共享定义变化时重新构建每个文件。定义可以出现在使用它们的查询之后，因此追加到末尾可以让 `@import` 规则保持在最前面，也不会改变 source map 中的位置。追加的定义会覆盖文件中的同名定义。
+
+另一种方式是交给 [`LightningCssMinimizerRspackPlugin`](/plugins/lightning-css-minimizer-rspack-plugin) 处理，它会在每个输出的 CSS 文件范围内解析自定义媒体查询。在插件中启用 `minimizerOptions.drafts.customMedia`，并在该 loader 中保持 `drafts.customMedia` 关闭或设置 `exclude.customMediaQueries`，使 loader 保留这些定义。这样自定义媒体查询只会在压缩后的产物中展开，并且每个名称都必须与使用它的查询位于同一个输出文件中。
