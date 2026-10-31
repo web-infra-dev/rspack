@@ -1,12 +1,10 @@
-import { parse } from "acorn";
+import { parseSync } from "@swc-next/parser";
 import fs from "node:fs";
 import path from "node:path";
 
 function expectUniqueImportBindings(source) {
-  const program = parse(source, {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-  })
+  const { program, diagnostics } = parseSync(source)
+  expect(diagnostics.filter(diagnostic => diagnostic.severity === 'error')).toEqual([])
   const importBindings = program.body
     .filter(statement => statement.type === 'ImportDeclaration')
     .flatMap(statement => statement.specifiers.map(specifier => specifier.local.name))

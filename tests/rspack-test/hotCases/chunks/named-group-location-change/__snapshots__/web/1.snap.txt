@@ -7,18 +7,18 @@
 ## Asset Files
 - Bundle: bundle.js
 - Bundle: page.chunk.CURRENT_HASH.js
+- Bundle: shared.LAST_HASH.hot-update.js.full.js
 - Bundle: shared.chunk.CURRENT_HASH.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 78
-- Update: main.LAST_HASH.hot-update.js, size: 1187
+- Manifest: main.LAST_HASH.hot-update.json, size: 73
+- Update: main.LAST_HASH.hot-update.js, size: 1117
 - Update: page.LAST_HASH.hot-update.js, size: 336
-- Update: shared.LAST_HASH.hot-update.js.full.js, size: 86
 
 ## Manifest
 
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["main","page"],"r":[],"m":[],"load":{"blocks":{"name:page":["shared"]}}}
+{"c":["main","page"],"r":[],"m":[],"load":{"groups":{"page":["shared"]}}}
 ```
 
 
@@ -31,7 +31,7 @@
 - ./loader.js
 
 #### Changed Runtime Modules
-- webpack/runtime/block_chunk_map
+- webpack/runtime/chunk_group_map
 - webpack/runtime/get_full_hash
 
 #### Changed Content
@@ -45,8 +45,8 @@ __webpack_require__.d(__webpack_exports__, {
   loadAgain: () => (loadAgain)
 });
 // Moving the imports must not change the identity of the named group.
-const load = () => __webpack_require__.eg("name:page").then(__webpack_require__.bind(__webpack_require__, "./page.js"));
-const loadAgain = () => __webpack_require__.eg("name:page").then(__webpack_require__.bind(__webpack_require__, "./page.js"));
+const load = () => __webpack_require__.e(/* import() | page */ "page").then(__webpack_require__.bind(__webpack_require__, "./page.js"));
+const loadAgain = () => __webpack_require__.e(/* import() | page */ "page").then(__webpack_require__.bind(__webpack_require__, "./page.js"));
 module.hot.accept();
 
 
@@ -57,20 +57,17 @@ module.hot.accept();
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
 })();
-// webpack/runtime/block_chunk_map
+// webpack/runtime/chunk_group_map
 (() => {
-((blocks) => {
-	var map = __webpack_require__.hmrS_blockChunks;
+((groups) => {
+	var map = __webpack_require__.hmrS_chunkGroups = __webpack_require__.hmrS_chunkGroups || Object.create(null);
 	
-	Object.keys(blocks).forEach((blockId) => {
-		if (blocks[blockId] === null) delete map[blockId];
-		else map[blockId] = blocks[blockId];
+	Object.keys(groups).forEach((chunkId) => {
+		if (groups[chunkId] === null) delete map[chunkId];
+		else map[chunkId] = groups[chunkId];
 	});
-	var installedBlocks = __webpack_require__.hmrS_blocks;
-	Object.keys(installedBlocks).forEach((id) => {
-		if (!map[id]) delete installedBlocks[id];
-	});
-})({"name:page":["shared","page"]});
+})({"page":["shared"]});
+
 
 })();
 
@@ -99,28 +96,6 @@ __webpack_require__.d(__webpack_exports__, {
 });
 const value = (globalThis.namedGroupValue = __webpack_require__("./dep.js"));
 module.hot.accept();
-
-
-},
-
-});
-```
-
-
-
-### shared.LAST_HASH.hot-update.js.full.js
-
-#### Changed Modules
-- ./dep.js
-
-#### Changed Runtime Modules
-
-
-#### Changed Content
-```js
-self["rspackHotUpdate"]("shared", {
-"./dep.js"(module) {
-module.exports = 2;
 
 
 },

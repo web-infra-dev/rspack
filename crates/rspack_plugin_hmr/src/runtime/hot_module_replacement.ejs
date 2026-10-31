@@ -16,7 +16,7 @@
 // The update info
 <%- var("currentUpdateApplyHandlers") %>;
 <%- var("queuedInvalidatedModules") %>;
-<%- var("hotUpdateBlock") %>;
+<%- var("hotUpdateGroup") %>;
 
 <%- define(HMR_MODULE_DATA) %> = currentModuleData;
 <% if (_is_rspack_runtime_mode) { %><%- define(INTERCEPT_MODULE_EXECUTION) %> = [];
@@ -29,13 +29,7 @@
 	module.children = [];
 	currentParents = [];
 	options.require = require;
-	<% if (_is_rspack_runtime_mode) { %>options.context.r = require;
-	if (require.eg) Object.defineProperty(options.context, "eg", {
-		configurable: true,
-		enumerable: true,
-		writable: true,
-		value: require.eg
-	});<% } %>
+	<% if (_is_rspack_runtime_mode) { %>options.context.r = require;<% } %>
 });
 
 <%- define(HMR_DOWNLOAD_UPDATE_HANDLERS) %> = {};
@@ -54,22 +48,22 @@
 			return Promise.all(chunkPromises);
 		}));
 	};
-	hotUpdateBlock = function (blockId, promises) {
-		prepareChunks(update.load.blocks && update.load.blocks[blockId], promises);
+	hotUpdateGroup = function (chunkId, promises) {
+		prepareChunks(update.load.groups && update.load.groups[chunkId], promises);
 	};
-	Object.keys(<%- REQUIRE_SCOPE %>.hmrS_blocks).forEach(function (blockId) {
-		hotUpdateBlock(blockId, promises);
-	});
 	promises.push(Promise.resolve().then(function () {
 		var entryPromises = [];
 		var entries = update.load.entries || {};
 		Object.keys(entries).forEach(function (entryId) {
-			if (update.entryIsLoaded && update.entryIsLoaded(entryId)) prepareChunks(entries[entryId], entryPromises);
+			if (update.chunkIsRequested && update.chunkIsRequested(entryId)) prepareChunks(entries[entryId], entryPromises);
+		});
+		Object.keys(update.load.groups || {}).forEach(function (chunkId) {
+			if (update.chunkIsRequested && update.chunkIsRequested(chunkId)) hotUpdateGroup(chunkId, entryPromises);
 		});
 		return Promise.all(entryPromises);
 	}));
 	applyHandlers.push(function () {
-		hotUpdateBlock = undefined;
+		hotUpdateGroup = undefined;
 		return {};
 	});
 };
@@ -115,18 +109,15 @@
 		};
 	};
 	for (var name in require) {
-		if (Object.prototype.hasOwnProperty.call(require, name) && name !== "e" && name !== "eg") {
+		if (Object.prototype.hasOwnProperty.call(require, name) && name !== "e") {
 			Object.defineProperty(fn, name, createPropertyDescriptor(name));
 		}
 	}
 
 	fn.e = function (chunkId, fetchPriority) {
-		return trackBlockingPromise(<% if (_is_rspack_runtime_mode) { %>context.e<% } else { %>require.e<% } %>(chunkId, fetchPriority));
-	};
-	if (<%- weak(ENSURE_CHUNK_GROUP) %>) fn.eg = function (blockId, fetchPriority) {
 		var promises = [];
-		if (hotUpdateBlock) hotUpdateBlock(blockId, promises);
-		var promise = <%- weak(ENSURE_CHUNK_GROUP) %>(blockId, fetchPriority);
+		if (hotUpdateGroup) hotUpdateGroup(chunkId, promises);
+		var promise = <% if (_is_rspack_runtime_mode) { %>context.e<% } else { %>require.e<% } %>(chunkId, fetchPriority);
 		if (promises.length) {
 			promises.push(promise);
 			promise = Promise.all(promises);

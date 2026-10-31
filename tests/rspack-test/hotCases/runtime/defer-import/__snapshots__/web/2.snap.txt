@@ -8,7 +8,7 @@
 - Bundle: async_js.chunk.CURRENT_HASH.js
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 9532
+- Update: main.LAST_HASH.hot-update.js, size: 8858
 
 ## Manifest
 
@@ -30,7 +30,6 @@
 
 #### Changed Runtime Modules
 - webpack/runtime/async_module
-- webpack/runtime/block_chunk_map
 - webpack/runtime/get_full_hash
 - webpack/runtime/make_deferred_namespace_object
 - webpack/runtime/make_optimized_deferred_namespace_object
@@ -54,7 +53,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 const getNamespaces = () => [/*#__PURE__*/ (_deferred__rspack_DEFERRED_import_0_deferred_namespace_cache || (_deferred__rspack_DEFERRED_import_0_deferred_namespace_cache = __webpack_require__.z("./deferred.js", 8))), /*#__PURE__*/ (_pending__rspack_DEFERRED_import_1_deferred_namespace_cache || (_pending__rspack_DEFERRED_import_1_deferred_namespace_cache = __webpack_require__.z("./pending.js", 8)))];
 // Adding async support changes the deferred namespace runtime module as well.
-const loadAsync = () => __webpack_require__.eg("block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./consumer.js|dep=esm|./async|loc=6:32-49").then(__webpack_require__.bind(__webpack_require__, "./async.js"));
+const loadAsync = () => __webpack_require__.e(/* import() */ "async_js").then(__webpack_require__.bind(__webpack_require__, "./async.js"));
 
 
 },
@@ -300,22 +299,6 @@ __webpack_require__.zO = function(moduleId, mode, asyncDeps) {
 	
 	return obj;
 };
-
-})();
-// webpack/runtime/block_chunk_map
-(() => {
-((blocks) => {
-	var map = __webpack_require__.hmrS_blockChunks;
-	
-	Object.keys(blocks).forEach((blockId) => {
-		if (blocks[blockId] === null) delete map[blockId];
-		else map[blockId] = blocks[blockId];
-	});
-	var installedBlocks = __webpack_require__.hmrS_blocks;
-	Object.keys(installedBlocks).forEach((id) => {
-		if (!map[id]) delete installedBlocks[id];
-	});
-})({"block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./consumer.js|dep=esm|./async|loc=6:32-49":["async_js"]});
 
 })();
 

@@ -78,7 +78,7 @@ export default {
 
 ### 拆分 CSS
 
-`CssExtractRspackPlugin` 会将提取出的样式表示为类型为 `css/mini-extract` 的模块。通过 [`splitChunks.cacheGroups.{cacheGroup}.type`](/plugins/split-chunks-plugin#splitchunkscachegroupscachegrouptype) 可以只选择该插件提取的 CSS，而不会选择 JavaScript 模块或由 Rspack 内置 CSS 支持处理的模块。
+`CssExtractRspackPlugin` 会将提取出的样式表示为类型为 `css/mini-extract` 的模块。通过 [`splitChunks.cacheGroups.{cacheGroup}.type`](/plugins/split-chunks-plugin#type) 可以只选择该插件提取的 CSS，而不会选择 JavaScript 模块或由 Rspack 内置 CSS 支持处理的模块。
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
@@ -109,7 +109,7 @@ export default {
 };
 ```
 
-这里的 `extractedCss` 只选择类型为 `css/mini-extract` 的模块。有关 `enforce` 的行为，请参考 [`splitChunks.cacheGroups.{cacheGroup}.enforce`](/plugins/split-chunks-plugin#splitchunkscachegroupscachegroupenforce)。
+这里的 `extractedCss` 只选择类型为 `css/mini-extract` 的模块。有关 `enforce` 的行为，请参考 [`splitChunks.cacheGroups.{cacheGroup}.enforce`](/plugins/split-chunks-plugin#enforce)。
 
 ## 选项
 
@@ -449,7 +449,7 @@ const cssRule = {
 - **类型：** `string`
 - **默认值：** `undefined`
 
-将该 loader 处理的 CSS 资源分配到指定的 Rspack 模块 layer。这里指模块图中的 layer，并非 CSS 层叠规则 `@layer`。可以结合 [`splitChunks.cacheGroups.{cacheGroup}.layer`](/plugins/split-chunks-plugin#splitchunkscachegroupscachegrouplayer) 等选项，按 layer 选择提取出的 CSS。
+将该 loader 处理的 CSS 资源分配到指定的 Rspack 模块 layer。这里指模块图中的 layer，并非 CSS 层叠规则 `@layer`。可以结合 [`splitChunks.cacheGroups.{cacheGroup}.layer`](/plugins/split-chunks-plugin#layer) 等选项，按 layer 选择提取出的 CSS。
 
 省略时，该 loader 不会显式分配模块 layer。
 

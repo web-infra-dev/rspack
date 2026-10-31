@@ -7,18 +7,18 @@
 ## Asset Files
 - Bundle: async/initial_js.js
 - Bundle: lib.CURRENT_HASH.js
+- Bundle: lib.LAST_HASH.hot-update.js.full.js
 - Bundle: main.CURRENT_HASH.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 77
+- Manifest: main.LAST_HASH.hot-update.json, size: 109
 - Update: initial_js.LAST_HASH.hot-update.js, size: 332
-- Update: lib.LAST_HASH.hot-update.js.full.js, size: 1615
-- Update: main.LAST_HASH.hot-update.js, size: 28478
+- Update: main.LAST_HASH.hot-update.js, size: 22313
 
 ## Manifest
 
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["initial_js","main"],"r":[],"m":[],"load":{"entries":{"main":["lib"]}}}
+{"c":["initial_js","main"],"r":[],"m":[],"load":{"entries":{"main":["lib"]},"groups":{"initial_js":["lib"]}}}
 ```
 
 
@@ -53,51 +53,13 @@ const value = "b";
 
 
 
-### lib.LAST_HASH.hot-update.js.full.js
-
-#### Changed Modules
-- ./node_modules/lib-js/a.js
-- ./node_modules/lib-js/b.js
-
-#### Changed Runtime Modules
-
-
-#### Changed Content
-```js
-"use strict";
-self["rspackHotUpdate"]("lib", {
-"./node_modules/lib-js/a.js": [(function (__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  a: () => (a)
-});
-const a = "a";
-
-
-})],
-"./node_modules/lib-js/b.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  b: () => (b)
-});
-const b = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
-
-
-},
-
-});
-```
-
-
-
 ### main.LAST_HASH.hot-update.js
 
 #### Changed Modules
 - ./index.js
 
 #### Changed Runtime Modules
-- webpack/runtime/block_chunk_map
-- webpack/runtime/css_loading
+- webpack/runtime/chunk_group_map
 - webpack/runtime/get_full_hash
 - webpack/runtime/jsonp_chunk_loading
 - webpack/runtime/on_chunk_loaded
@@ -112,7 +74,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 it("should work if there are new initial chunks", async () => {
-	await __webpack_require__.eg("block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./index.js|dep=esm|./initial|loc=4:8-27").then(__webpack_require__.bind(__webpack_require__, "./initial.js"));
+	await __webpack_require__.e(/* import() */ "initial_js").then(__webpack_require__.bind(__webpack_require__, "./initial.js"));
 	const installedChunks = __webpack_require__.hmrS_jsonp;
 	expect(
 		(installedChunks && installedChunks.lib === 0) ||
@@ -166,191 +128,17 @@ __webpack_require__.O = (result, chunkIds, fn, priority) => {
 };
 
 })();
-// webpack/runtime/block_chunk_map
+// webpack/runtime/chunk_group_map
 (() => {
-((blocks) => {
-	var map = __webpack_require__.hmrS_blockChunks;
+((groups) => {
+	var map = __webpack_require__.hmrS_chunkGroups = __webpack_require__.hmrS_chunkGroups || Object.create(null);
 	
-	Object.keys(blocks).forEach((blockId) => {
-		if (blocks[blockId] === null) delete map[blockId];
-		else map[blockId] = blocks[blockId];
+	Object.keys(groups).forEach((chunkId) => {
+		if (groups[chunkId] === null) delete map[chunkId];
+		else map[chunkId] = groups[chunkId];
 	});
-	var installedBlocks = __webpack_require__.hmrS_blocks;
-	Object.keys(installedBlocks).forEach((id) => {
-		if (!map[id]) delete installedBlocks[id];
-	});
-})({"block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./index.js|dep=esm|./initial|loc=4:8-27":["lib","initial_js"],"block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./index.js|dep=esm|./initial|loc=5:16-35":null});
+})({"initial_js":["lib"]});
 
-})();
-// webpack/runtime/css_loading
-(() => {
-var cssInstalledChunks = {};
-var cssLoadingUniqueName = "";
-var loadingAttribute = "data-rspack-loading";
-var cssLoadStylesheet = (chunkId, url, done, hmr, fetchPriority) => {
-	var link,
-		needAttach,
-		key = "chunk-" + chunkId;
-	if (!hmr) {
-		var links = document.getElementsByTagName("link");
-		for (var i = 0; i < links.length; i++) {
-			var l = links[i];
-			var href = l.getAttribute("href") || l.href;
-			if (href && !href.startsWith(__webpack_require__.p)) {
-				href =
-					__webpack_require__.p + (href.startsWith("/") ? href.slice(1) : href);
-			}
-			if (
-				l.rel == "stylesheet" &&
-				((href && href.startsWith(url)) ||
-					l.getAttribute("data-rspack") == cssLoadingUniqueName + ":" + key)
-			) {
-				link = l;
-				break;
-			}
-		}
-		if (!done) return link;
-	}
-	if (!link) {
-		needAttach = true;
-		link = document.createElement("link");
-
-// Browsers may hide the nonce attribute while retaining its property.
-var nonce = __webpack_require__.nc || (hmr && hmr.nonce);
-if (nonce) link.setAttribute("nonce", nonce);
-
-
-
-link.setAttribute(loadingAttribute, 1);
-link.rel = "stylesheet";
-link.href = url;
-
-
-if (hmr) {
-	var attributes = hmr.attributes;
-	for (var i = 0, length = attributes.length; i < length; i++) {
-		var attribute = attributes[i];
-		switch (attribute.name) {
-			case "href": case "integrity": case "disabled": case "nonce":
-			case "onload": case "onerror": case "data-rspack": case "data-rspack-loading":
-				break;
-			default:
-				link.setAttribute(attribute.name, attribute.value);
-		}
-	}
-}
-
-
-	}
-	var onLinkComplete = (prev, event) => {
-		link.onerror = link.onload = null;
-		link.removeAttribute(loadingAttribute);
-		clearTimeout(timeout);
-		if (event && event.type != "load" && link.parentNode) link.parentNode.removeChild(link);
-		done(event);
-		if (prev) return prev(event);
-	};
-	if (link.getAttribute(loadingAttribute)) {
-		var timeout = setTimeout(
-			onLinkComplete.bind(null, undefined, { type: "timeout", target: link }),
-			120000 
-		);
-		link.onerror = onLinkComplete.bind(null, link.onerror);
-		link.onload = onLinkComplete.bind(null, link.onload);
-	} else onLinkComplete(undefined, { type: "load", target: link });
-	hmr ? document.head.insertBefore(link, hmr) : needAttach && document.head.appendChild(link);
-	return link;
-};
-var cssOldTags = [];
-var cssNewTags = [];
-var cssApplyHandler = (options) => {
-	return {
-		apply: () => {
-			while (cssNewTags.length) {
-				var entry = cssNewTags.pop(), link = entry.link, oldTag = entry.oldTag;
-				// Read the latest state before removing the old link. Keep downloads enabled until apply.
-				if (oldTag && oldTag.hasAttribute("disabled")) link.setAttribute("disabled", "");
-				else link.sheet.disabled = !!(oldTag && oldTag.sheet && oldTag.sheet.disabled);
-			}
-			while (cssOldTags.length) {
-				var oldTag = cssOldTags.pop();
-				if (oldTag.parentNode) oldTag.parentNode.removeChild(oldTag);
-			}
-		}
-	};
-};
-var cssInitialChunkIds = {"lib": 1,"main": 1,};
-// A chunk is present on this page only when the active JavaScript
-// chunk-loading runtime records it as fully loaded.
-var cssChunkIsLoaded = (chunkId) => {
-	return typeof __webpack_require__.hmrS_jsonp !== "undefined" && __webpack_require__.hmrS_jsonp && __webpack_require__.hmrS_jsonp[chunkId] === 0;
-};
-__webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css) => {
-	if (typeof document === 'undefined') return;
-	applyHandlers.push(cssApplyHandler);
-	// `css` is the hot-update manifest's css namespace (aligned with webpack):
-	// `css.c` lists the chunks whose CSS content actually changed and `css.r`
-	// the chunks whose CSS disappeared. Its absence means this update carries
-	// no CSS work at all — notably the runtime chunk is in `chunkIds` on every
-	// update (its full hash always changes) while its stylesheet rarely does.
-	var cssRemovedChunkIds = (css && css.r) || [];
-	var cssChunkIds = (css && css.c) || [];
-	var seen = {};
-	cssRemovedChunkIds.forEach((chunkId) => {
-		var filename = __webpack_require__.k(chunkId);
-		if (!filename) return;
-		var oldTag = cssLoadStylesheet(chunkId, __webpack_require__.p + filename);
-		if (oldTag) cssOldTags.push(oldTag);
-	});
-	cssChunkIds.forEach((chunkId) => {
-		var filename = __webpack_require__.k(chunkId);
-		if (!filename) return;
-		var url = __webpack_require__.p + filename;
-		if (seen[url]) {
-			return;
-		}
-		seen[url] = true;
-		var oldTag = cssLoadStylesheet(chunkId, url);
-		// The manifest is computed from the compilation and also lists chunks this
-		// page never loaded. A missing tag is legitimate only for a chunk that is
-		// actually on the page: an initial chunk gaining its first stylesheet, or
-		// a loaded async chunk whose stylesheet was removed by an earlier update.
-		if (!oldTag && !cssInitialChunkIds[chunkId] && !cssChunkIsLoaded(chunkId)) return;
-		promises.push(
-			new Promise((resolve, reject) => {
-				var link = cssLoadStylesheet(
-					chunkId,
-					url + (url.indexOf("?") < 0 ? "?" : "&") + "hmr=" + Date.now(),
-					(event) => {
-						if (event.type !== "load") {
-							var error = new Error();
-							var errorType = event && event.type;
-							var realSrc = event && event.target && event.target.src;
-							error.message =
-								"Loading css hot update chunk " +
-								chunkId +
-								" failed.\n(" +
-								errorType +
-								": " +
-								realSrc +
-								")";
-							error.name = "ChunkLoadError";
-							error.type = errorType;
-							error.request = realSrc;
-							reject(error);
-						} else {
-							link.sheet.disabled = true;
-							if (oldTag) cssOldTags.push(oldTag);
-							cssNewTags.push({ link: link, oldTag: oldTag });
-							resolve();
-						}
-					},
-					oldTag
-				);
-			})
-		);
-	});
-};
 
 })();
 // webpack/runtime/jsonp_chunk_loading
@@ -449,8 +237,8 @@ function jsonpLoadUpdateChunk(chunkId, updatedModulesList, full) {
 self["rspackHotUpdate"] = (chunkId, moreModules, runtime) => {
 	for (var moduleId in moreModules) {
 		if (__webpack_require__.o(moreModules, moduleId)) {
-			// Install-only factories must not replace ordinary updates.
-			if (!Array.isArray(moreModules[moduleId]) || !__webpack_require__.o(hotCurrentUpdate, moduleId) || Array.isArray(hotCurrentUpdate[moduleId])) {
+			// A remaining chunk can restore a removed factory, but ordinary updates take priority.
+			if (!Array.isArray(moreModules[moduleId]) || !__webpack_require__.o(hotCurrentUpdate, moduleId) || hotCurrentUpdate[moduleId] === false || Array.isArray(hotCurrentUpdate[moduleId])) {
 				hotCurrentUpdate[moduleId] = moreModules[moduleId];
 			}
 			if (hotCurrentUpdatedModulesList) hotCurrentUpdatedModulesList.push(moduleId);
@@ -934,8 +722,8 @@ __webpack_require__.hmrC.jsonp = function (
 		}
 	});
 	if (update) {
-		update.entryIsLoaded = function (entryId) {
-			return __webpack_require__.o(jsonpInstalledChunks, entryId) && jsonpInstalledChunks[entryId] === 0;
+		update.chunkIsRequested = function (chunkId) {
+			return __webpack_require__.o(jsonpInstalledChunks, chunkId) && jsonpInstalledChunks[chunkId] != null;
 		};
 		update.chunkHandlers.push(function (chunkId, promises) {
 			if (jsonpInstalledChunks[chunkId] === 0 || hotCurrentUpdateChunks[chunkId] === true) return;

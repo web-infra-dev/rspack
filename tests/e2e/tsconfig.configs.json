@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "allowJs": false,
+    "erasableSyntaxOnly": true
+  },
+  "include": ["cases/**/rspack.config.ts"],
+  "exclude": ["node_modules", "temp", "test-results"]
+}

@@ -8,24 +8,4 @@
 			return promises;
 		}, [])
 	);
-};<% if (_hmr) { %>
-<%- var("blockChunks") %> = <%- REQUIRE_SCOPE %>.hmrS_blockChunks = <%- REQUIRE_SCOPE %>.hmrS_blockChunks || Object.create(null);
-// undefined = not loaded, Promise = loading, 0 = loaded.
-<%- var("installedBlocks") %> = <%- REQUIRE_SCOPE %>.hmrS_blocks = <%- REQUIRE_SCOPE %>.hmrS_blocks || Object.create(null);
-<%- define(ENSURE_CHUNK_GROUP) %> = <%- basicFunction("blockId, fetchPriority") %> {
-	var chunks = blockChunks[blockId] || [];
-	var promise = chunks.length === 1
-		? <%- ENSURE_CHUNK %>(chunks[0], fetchPriority)
-		: Promise.all(chunks.map(<%- basicFunction("chunkId") %> {
-			return <%- ENSURE_CHUNK %>(chunkId, fetchPriority);
-		}));
-	if (installedBlocks[blockId] !== 0) {
-		installedBlocks[blockId] = promise;
-		promise.then(<%- basicFunction("") %> {
-			if (installedBlocks[blockId] === promise) installedBlocks[blockId] = 0;
-		}, <%- basicFunction("") %> {
-			if (installedBlocks[blockId] === promise) delete installedBlocks[blockId];
-		});
-	}
-	return promise;
-};<% } %>
+};

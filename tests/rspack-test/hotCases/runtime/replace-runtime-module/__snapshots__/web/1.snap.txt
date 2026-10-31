@@ -7,7 +7,7 @@
 - Bundle: b.chunk.CURRENT_HASH.js
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 39
-- Update: main.LAST_HASH.hot-update.js, size: 1006
+- Update: main.LAST_HASH.hot-update.js, size: 572
 
 ## Manifest
 
@@ -27,7 +27,6 @@
 - ./module.js
 
 #### Changed Runtime Modules
-- webpack/runtime/block_chunk_map
 - webpack/runtime/get_full_hash
 
 #### Changed Content
@@ -39,7 +38,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
-/* export default */ const __rspack_default_export = (__webpack_require__.eg("name:b").then(__webpack_require__.bind(__webpack_require__, "./b.js")));
+/* export default */ const __rspack_default_export = (__webpack_require__.e(/* import() | b */ "b").then(__webpack_require__.bind(__webpack_require__, "./b.js")));
 
 
 },
@@ -48,22 +47,6 @@ __webpack_require__.d(__webpack_exports__, {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
-})();
-// webpack/runtime/block_chunk_map
-(() => {
-((blocks) => {
-	var map = __webpack_require__.hmrS_blockChunks;
-	
-	Object.keys(blocks).forEach((blockId) => {
-		if (blocks[blockId] === null) delete map[blockId];
-		else map[blockId] = blocks[blockId];
-	});
-	var installedBlocks = __webpack_require__.hmrS_blocks;
-	Object.keys(installedBlocks).forEach((id) => {
-		if (!map[id]) delete installedBlocks[id];
-	});
-})({"name:a":null,"name:b":["b"]});
-
 })();
 
 }

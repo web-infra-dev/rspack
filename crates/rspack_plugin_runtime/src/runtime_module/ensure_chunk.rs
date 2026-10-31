@@ -34,7 +34,7 @@ impl EnsureChunkRuntimeModule {
 #[async_trait::async_trait]
 impl RuntimeModule for EnsureChunkRuntimeModule {
   fn runtime_module_variables() -> &'static [&'static str] {
-    &["blockChunks", "installedBlocks"]
+    &[]
   }
 
   fn template(&self) -> Vec<(String, String)> {
@@ -86,8 +86,7 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     let mut force_context = RuntimeGlobals::default();
     if compilation.hot {
       dependencies.insert(RuntimeGlobals::REQUIRE_SCOPE);
-      define.insert(RuntimeGlobals::ENSURE_CHUNK_GROUP);
-      force_context = RuntimeGlobals::ENSURE_CHUNK | RuntimeGlobals::ENSURE_CHUNK_GROUP;
+      force_context = RuntimeGlobals::ENSURE_CHUNK;
     }
     if let Some(chunk_ukey) = self.chunk() {
       if compilation.hot

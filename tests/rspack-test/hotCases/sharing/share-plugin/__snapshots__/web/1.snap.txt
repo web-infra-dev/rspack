@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: common_js_2.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 43549
+- Update: main.LAST_HASH.hot-update.js, size: 42830
 
 ## Manifest
 
@@ -27,7 +27,6 @@
 - ./module.js
 
 #### Changed Runtime Modules
-- webpack/runtime/block_chunk_map
 - webpack/runtime/consumes_loading
 - webpack/runtime/get_full_hash
 - webpack/runtime/jsonp_chunk_loading
@@ -45,7 +44,7 @@ __webpack_require__.d(__webpack_exports__, {
 /* import */ var common__rspack_import_0 = __webpack_require__("webpack/sharing/consume/default/common/./common?1");
 
 
-const getValue = () => __webpack_require__.eg("block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./module.js|dep=esm|common2|loc=3:31-48").then(__webpack_require__.bind(__webpack_require__, "webpack/sharing/consume/default/common2/./common?2"));
+const getValue = () => __webpack_require__.e(/* import() */ "webpack_sharing_consume_default_common2_common_2").then(__webpack_require__.bind(__webpack_require__, "webpack/sharing/consume/default/common2/./common?2"));
 
 
 },
@@ -55,26 +54,10 @@ const getValue = () => __webpack_require__.eg("block:../../../../../../../../pac
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
 })();
-// webpack/runtime/block_chunk_map
-(() => {
-((blocks) => {
-	var map = __webpack_require__.hmrS_blockChunks;
-	
-	Object.keys(blocks).forEach((blockId) => {
-		if (blocks[blockId] === null) delete map[blockId];
-		else map[blockId] = blocks[blockId];
-	});
-	var installedBlocks = __webpack_require__.hmrS_blocks;
-	Object.keys(installedBlocks).forEach((id) => {
-		if (!map[id]) delete installedBlocks[id];
-	});
-})({"block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./module.js|dep=esm|common2|loc=3:31-48":["webpack_sharing_consume_default_common2_common_2"],"block:webpack/sharing/consume/default/common2/./common?2":["common_js_2"]});
-
-})();
 // webpack/runtime/consumes_loading
 (() => {
 
-__webpack_require__.consumesLoadingData = { chunkMapping: {"main":["webpack/sharing/consume/default/common/./common?1"],"webpack_sharing_consume_default_common2_common_2":["webpack/sharing/consume/default/common2/./common?2"]}, moduleIdToConsumeDataMapping: {"webpack/sharing/consume/default/common/./common?1": { shareScope: "default", shareKey: "common", import: "./common?1", requiredVersion: "1.1.1", strictVersion: true, singleton: false, eager: true, fallback: () => (() => (__webpack_require__("./common.js?1"))), treeShakingMode: null }, "webpack/sharing/consume/default/common2/./common?2": { shareScope: "default", shareKey: "common2", import: "./common?2", requiredVersion: "1.1.1", strictVersion: true, singleton: false, eager: false, fallback: () => (__webpack_require__.eg("block:webpack/sharing/consume/default/common2/./common?2").then(() => (() => (__webpack_require__("./common.js?2"))))), treeShakingMode: null }}, initialConsumes: ["webpack/sharing/consume/default/common/./common?1"] };
+__webpack_require__.consumesLoadingData = { chunkMapping: {"main":["webpack/sharing/consume/default/common/./common?1"],"webpack_sharing_consume_default_common2_common_2":["webpack/sharing/consume/default/common2/./common?2"]}, moduleIdToConsumeDataMapping: {"webpack/sharing/consume/default/common/./common?1": { shareScope: "default", shareKey: "common", import: "./common?1", requiredVersion: "1.1.1", strictVersion: true, singleton: false, eager: true, fallback: () => (() => (__webpack_require__("./common.js?1"))), treeShakingMode: null }, "webpack/sharing/consume/default/common2/./common?2": { shareScope: "default", shareKey: "common2", import: "./common?2", requiredVersion: "1.1.1", strictVersion: true, singleton: false, eager: false, fallback: () => (__webpack_require__.e("common_js_2").then(() => (() => (__webpack_require__("./common.js?2"))))), treeShakingMode: null }}, initialConsumes: ["webpack/sharing/consume/default/common/./common?1"] };
 var splitAndConvert = function(str) {
   return str.split(".").map(function(item) {
     return +item == item ? +item : item;
@@ -737,8 +720,8 @@ function jsonpLoadUpdateChunk(chunkId, updatedModulesList, full) {
 self["rspackHotUpdate"] = (chunkId, moreModules, runtime) => {
 	for (var moduleId in moreModules) {
 		if (__webpack_require__.o(moreModules, moduleId)) {
-			// Install-only factories must not replace ordinary updates.
-			if (!Array.isArray(moreModules[moduleId]) || !__webpack_require__.o(hotCurrentUpdate, moduleId) || Array.isArray(hotCurrentUpdate[moduleId])) {
+			// A remaining chunk can restore a removed factory, but ordinary updates take priority.
+			if (!Array.isArray(moreModules[moduleId]) || !__webpack_require__.o(hotCurrentUpdate, moduleId) || hotCurrentUpdate[moduleId] === false || Array.isArray(hotCurrentUpdate[moduleId])) {
 				hotCurrentUpdate[moduleId] = moreModules[moduleId];
 			}
 			if (hotCurrentUpdatedModulesList) hotCurrentUpdatedModulesList.push(moduleId);
@@ -1222,8 +1205,8 @@ __webpack_require__.hmrC.jsonp = function (
 		}
 	});
 	if (update) {
-		update.entryIsLoaded = function (entryId) {
-			return __webpack_require__.o(jsonpInstalledChunks, entryId) && jsonpInstalledChunks[entryId] === 0;
+		update.chunkIsRequested = function (chunkId) {
+			return __webpack_require__.o(jsonpInstalledChunks, chunkId) && jsonpInstalledChunks[chunkId] != null;
 		};
 		update.chunkHandlers.push(function (chunkId, promises) {
 			if (jsonpInstalledChunks[chunkId] === 0 || hotCurrentUpdateChunks[chunkId] === true) return;

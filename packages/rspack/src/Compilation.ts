@@ -241,6 +241,7 @@ export interface KnownNormalizedStatsOptions {
   optimizationBailout: boolean;
   depth: boolean;
   assets: boolean;
+  cacheInfo: boolean;
   chunks: boolean;
   errors: boolean;
   errorsCount: boolean;

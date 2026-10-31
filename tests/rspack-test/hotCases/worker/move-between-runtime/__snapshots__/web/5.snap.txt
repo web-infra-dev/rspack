@@ -17,9 +17,9 @@
 - Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 43
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
 - Update: main.LAST_HASH.hot-update.js, size: 181
-- Update: shared.LAST_HASH.hot-update.js, size: 1124
-- Update: workerA_js.LAST_HASH.hot-update.js, size: 1287
-- Update: workerB_js.LAST_HASH.hot-update.js, size: 1433
+- Update: shared.LAST_HASH.hot-update.js, size: 906
+- Update: workerA_js.LAST_HASH.hot-update.js, size: 612
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 612
 
 ## Manifest
 
@@ -91,7 +91,7 @@ __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* export default */ const __rspack_default_export = (5);
-if (Math.random() < 0) __webpack_require__.eg("block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./moduleAs.js|dep=esm|./chunkS|loc=2:24-42").then(__webpack_require__.bind(__webpack_require__, "./chunkS.js"));
+if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunkS_js").then(__webpack_require__.bind(__webpack_require__, "./chunkS.js"));
 
 
 },
@@ -101,7 +101,7 @@ __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* export default */ const __rspack_default_export = (5);
-if (Math.random() < 0) __webpack_require__.eg("block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./moduleBs.js|dep=esm|./chunkS|loc=2:24-42").then(__webpack_require__.bind(__webpack_require__, "./chunkS.js"));
+if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunkS_js").then(__webpack_require__.bind(__webpack_require__, "./chunkS.js"));
 
 
 },
@@ -117,7 +117,6 @@ if (Math.random() < 0) __webpack_require__.eg("block:../../../../../../../../pac
 - ./moduleA.js
 
 #### Changed Runtime Modules
-- webpack/runtime/block_chunk_map
 - webpack/runtime/get_full_hash
 
 #### Changed Content
@@ -130,7 +129,7 @@ __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* export default */ const __rspack_default_export = (5);
-if (Math.random() < 0) __webpack_require__.eg("block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./moduleA.js|dep=esm|./chunk|loc=2:24-41").then(__webpack_require__.bind(__webpack_require__, "./chunk.js"));
+if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js"));
 
 
 },
@@ -139,22 +138,6 @@ if (Math.random() < 0) __webpack_require__.eg("block:../../../../../../../../pac
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
-})();
-// webpack/runtime/block_chunk_map
-(() => {
-((blocks) => {
-	var map = __webpack_require__.hmrS_blockChunks;
-	
-	Object.keys(blocks).forEach((blockId) => {
-		if (blocks[blockId] === null) delete map[blockId];
-		else map[blockId] = blocks[blockId];
-	});
-	var installedBlocks = __webpack_require__.hmrS_blocks;
-	Object.keys(installedBlocks).forEach((id) => {
-		if (!map[id]) delete installedBlocks[id];
-	});
-})({"block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./moduleBs.js|dep=esm|./chunkS|loc=2:24-42":["chunkS_js"]});
-
 })();
 
 }
@@ -169,7 +152,6 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 - ./moduleB.js
 
 #### Changed Runtime Modules
-- webpack/runtime/block_chunk_map
 - webpack/runtime/get_full_hash
 
 #### Changed Content
@@ -182,7 +164,7 @@ __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* export default */ const __rspack_default_export = (5);
-if (Math.random() < 0) __webpack_require__.eg("block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./moduleB.js|dep=esm|./chunk|loc=2:24-41").then(__webpack_require__.bind(__webpack_require__, "./chunk.js"));
+if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js"));
 
 
 },
@@ -191,22 +173,6 @@ if (Math.random() < 0) __webpack_require__.eg("block:../../../../../../../../pac
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
-})();
-// webpack/runtime/block_chunk_map
-(() => {
-((blocks) => {
-	var map = __webpack_require__.hmrS_blockChunks;
-	
-	Object.keys(blocks).forEach((blockId) => {
-		if (blocks[blockId] === null) delete map[blockId];
-		else map[blockId] = blocks[blockId];
-	});
-	var installedBlocks = __webpack_require__.hmrS_blocks;
-	Object.keys(installedBlocks).forEach((id) => {
-		if (!map[id]) delete installedBlocks[id];
-	});
-})({"block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./moduleB.js|dep=esm|./chunk|loc=2:24-41":["chunk_js"],"block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./moduleBs.js|dep=esm|./chunkS|loc=2:24-42":["chunkS_js"]});
-
 })();
 
 }

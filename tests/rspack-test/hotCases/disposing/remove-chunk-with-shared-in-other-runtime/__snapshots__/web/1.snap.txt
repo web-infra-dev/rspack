@@ -8,7 +8,7 @@
 - Bundle: chunk1_js.chunk.CURRENT_HASH.js
 - Manifest: [runtime of chunk2_js].LAST_HASH.hot-update.json, size: 60
 - Manifest: main.LAST_HASH.hot-update.json, size: 41
-- Update: main.LAST_HASH.hot-update.js, size: 20411
+- Update: main.LAST_HASH.hot-update.js, size: 20483
 
 ## Manifest
 
@@ -154,8 +154,8 @@ function jsonpLoadUpdateChunk(chunkId, updatedModulesList, full) {
 self["rspackHotUpdate"] = (chunkId, moreModules, runtime) => {
 	for (var moduleId in moreModules) {
 		if (__webpack_require__.o(moreModules, moduleId)) {
-			// Install-only factories must not replace ordinary updates.
-			if (!Array.isArray(moreModules[moduleId]) || !__webpack_require__.o(hotCurrentUpdate, moduleId) || Array.isArray(hotCurrentUpdate[moduleId])) {
+			// A remaining chunk can restore a removed factory, but ordinary updates take priority.
+			if (!Array.isArray(moreModules[moduleId]) || !__webpack_require__.o(hotCurrentUpdate, moduleId) || hotCurrentUpdate[moduleId] === false || Array.isArray(hotCurrentUpdate[moduleId])) {
 				hotCurrentUpdate[moduleId] = moreModules[moduleId];
 			}
 			if (hotCurrentUpdatedModulesList) hotCurrentUpdatedModulesList.push(moduleId);
@@ -639,8 +639,8 @@ __webpack_require__.hmrC.jsonp = function (
 		}
 	});
 	if (update) {
-		update.entryIsLoaded = function (entryId) {
-			return __webpack_require__.o(jsonpInstalledChunks, entryId) && jsonpInstalledChunks[entryId] === 0;
+		update.chunkIsRequested = function (chunkId) {
+			return __webpack_require__.o(jsonpInstalledChunks, chunkId) && jsonpInstalledChunks[chunkId] != null;
 		};
 		update.chunkHandlers.push(function (chunkId, promises) {
 			if (jsonpInstalledChunks[chunkId] === 0 || hotCurrentUpdateChunks[chunkId] === true) return;

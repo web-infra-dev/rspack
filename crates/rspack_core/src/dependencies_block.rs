@@ -5,8 +5,8 @@ use rspack_collections::{Identifier, IdentifierHasher};
 use rspack_hash::{RspackHash, RspackHasher};
 
 use crate::{
-  BoxDependency, ChunkGraph, Compilation, Dependency, DependencyId, DependencyLocation,
-  DependencyRef, GroupOptions, ModuleIdentifier, RuntimeSpec,
+  BoxDependency, Compilation, Dependency, DependencyId, DependencyLocation, DependencyRef,
+  GroupOptions, ModuleIdentifier, RuntimeSpec,
 };
 
 pub trait DependenciesBlock {
@@ -168,31 +168,6 @@ pub struct AsyncDependenciesBlock {
 }
 
 impl AsyncDependenciesBlock {
-  /// Named groups keep their loading key when an import moves in the source.
-  pub fn runtime_id(&self, compilation: &Compilation) -> String {
-    let graph = &compilation.build_chunk_graph_artifact;
-    if let Some(name) = graph
-      .chunk_graph
-      .get_block_chunk_group(&self.id, &graph.chunk_group_by_ukey)
-      .and_then(|group| group.kind.get_normal_options())
-      .and_then(|options| options.name.as_deref())
-    {
-      return format!("name:{name}");
-    }
-    // Generated modules such as lazy compilation proxies have one anonymous block.
-    // Its parent module ID already distinguishes loaders, types and layers.
-    if self.id.0.as_str().get(self.parent.len()..) == Some("|dep=")
-      && let Some(id) = ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.parent)
-    {
-      return format!("block:{id}");
-    }
-    let id = rspack_util::identifier::make_paths_relative(
-      compilation.options.context.as_str(),
-      self.id.0.as_str(),
-    );
-    format!("block:{id}")
-  }
-
   /// modifier should be Dependency.span in most of time
   pub fn new(
     parent: ModuleIdentifier,
@@ -315,20 +290,21 @@ impl AsyncDependenciesBlock {
     runtime: Option<&RuntimeSpec>,
   ) {
     self.group_options.hash(hasher);
-    if compilation.hot {
-      "hmr chunk groups".hash(hasher);
-      self.runtime_id(compilation).hash(hasher);
-    }
-    if (!compilation.hot || matches!(self.group_options, Some(GroupOptions::Entrypoint(_))))
-      && let Some(chunk_group) = compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_block_chunk_group(
-          &self.id,
-          &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-        )
+    if let Some(chunk_group) = compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_block_chunk_group(
+        &self.id,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+      )
     {
-      chunk_group.id(compilation).hash(hasher);
+      if compilation.hot
+        && let Some(chunk) = chunk_group.get_hmr_loading_chunk(compilation)
+      {
+        chunk.expect_id().hash(hasher);
+      } else {
+        chunk_group.id(compilation).hash(hasher);
+      }
     }
     dependencies_block_update_hash(
       self.get_dependencies(),

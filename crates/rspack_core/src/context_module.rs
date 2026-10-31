@@ -819,29 +819,20 @@ impl ContextModule {
 
     let mut items = block_and_first_dependency_list
       .filter_map(|(b, dependency)| {
-        let chunks: Vec<_> = if compilation.hot {
-          vec![serde_json::json!(b.runtime_id(compilation))]
+        let graph = &compilation.build_chunk_graph_artifact;
+        let group = graph
+          .chunk_graph
+          .get_block_chunk_group(&b.identifier(), &graph.chunk_group_by_ukey)
+          .expect("should have block chunk group");
+        let chunks: Vec<_> = if compilation.hot
+          && let Some(chunk) = group.get_hmr_loading_chunk(compilation)
+        {
+          vec![chunk.expect_id()]
         } else {
-          compilation
-            .build_chunk_graph_artifact
-            .chunk_graph
-            .get_block_chunk_group(
-              &b.identifier(),
-              &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-            )
-            .expect("should have block chunk group")
+          group
             .chunks
             .iter()
-            .map(|c| {
-              serde_json::json!(
-                compilation
-                  .build_chunk_graph_artifact
-                  .chunk_by_ukey
-                  .expect_get(c)
-                  .id()
-                  .expect("should have chunk id in code generation")
-              )
-            })
+            .map(|c| graph.chunk_by_ukey.expect_get(c).expect_id())
             .collect()
         };
         if !chunks.is_empty() {
@@ -914,12 +905,7 @@ impl ContextModule {
         .insert(RuntimeGlobals::HAS_FETCH_PRIORITY);
     }
 
-    let request_prefix = if compilation.hot {
-      format!(
-        "{}(ids[{chunks_position}][0]{fetch_priority_arg})",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_GROUP),
-      )
-    } else if has_no_chunk {
+    let request_prefix = if has_no_chunk {
       "Promise.resolve()".to_string()
     } else if has_multiple_or_no_chunks {
       let ensure_chunk = runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK);
