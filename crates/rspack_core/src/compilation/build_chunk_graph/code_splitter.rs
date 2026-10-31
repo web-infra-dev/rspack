@@ -375,6 +375,10 @@ pub(crate) struct CodeSplitter {
   pub(crate) named_chunk_groups: HashMap<String, CgiUkey>,
   pub(crate) named_async_entrypoints: HashMap<String, CgiUkey>,
   pub(crate) block_modules_runtime_map: BlockModulesRuntimeMap,
+  pub(crate) entry_modules: HashMap<String, Vec<ModuleIdentifier>>,
+  pub(crate) global_entry_modules: Vec<ModuleIdentifier>,
+  pub(crate) entry_include_modules: HashMap<String, Vec<ModuleIdentifier>>,
+  pub(crate) global_include_modules: Vec<ModuleIdentifier>,
   pub(crate) ordinal_by_module: IdentifierMap<u64>,
 
   stat_processed_queue_items: u32,
@@ -479,6 +483,7 @@ impl CodeSplitter {
     &self,
     module: ModuleIdentifier,
     compilation: &Compilation,
+    accept_if_unreached: bool,
   ) -> bool {
     let module_block = DependenciesBlockIdentifier::Module(module);
     let current_blocks = compilation
@@ -593,7 +598,19 @@ impl CodeSplitter {
       }
     }
 
-    found_cached_root
+    if !found_cached_root {
+      return accept_if_unreached
+        && compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_number_of_module_chunks(module)
+          == 0
+        && module_graph
+          .get_incoming_connections(&module)
+          .all(|connection| connection.original_module_identifier.is_some());
+    }
+
+    true
   }
 
   pub(crate) fn chunk_group_info(&self, ukey: &CgiUkey) -> &ChunkGroupInfo {
@@ -650,7 +667,8 @@ impl CodeSplitter {
         request
       })
       .collect::<Vec<_>>();
-    let module_identifiers = dependencies
+    let entry_modules = entry_data
+      .dependencies
       .iter()
       .filter_map(|dep| {
         compilation
@@ -659,6 +677,13 @@ impl CodeSplitter {
           .copied()
       })
       .collect::<Vec<_>>();
+    let module_identifiers = self
+      .global_entry_modules
+      .iter()
+      .chain(&entry_modules)
+      .copied()
+      .collect::<Vec<_>>();
+    self.entry_modules.insert(name.to_string(), entry_modules);
 
     let (chunk_ukey, created) = Compilation::add_named_chunk(
       name.to_string(),
@@ -674,19 +699,8 @@ impl CodeSplitter {
       .chunk_by_ukey
       .expect_get_mut(&chunk_ukey);
 
-    let mut incremental_diagnostic = None;
     if let Some(filename) = &entry_data.options.filename {
       chunk.set_filename_template(Some(filename.clone()));
-
-      if filename.has_hash_placeholder()
-        && let Some(diagnostic) = compilation.incremental.disable_passes(
-          IncrementalPasses::CHUNK_ASSET,
-          "Chunk filename that dependent on full hash",
-          "chunk filename that dependent on full hash is not supported in incremental compilation",
-        )
-      {
-        incremental_diagnostic = diagnostic;
-      }
     }
 
     compilation
@@ -783,9 +797,14 @@ impl CodeSplitter {
       .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
       .copied()
       .sorted_unstable();
-    let included_modules = global_included_modules.chain(included_modules);
+    let included_modules = global_included_modules
+      .chain(included_modules)
+      .collect::<Vec<_>>();
 
-    modules.extend(included_modules);
+    modules.extend(included_modules.iter().copied());
+    self
+      .entry_include_modules
+      .insert(name.to_string(), included_modules);
 
     let cgi = chunk_group_info.ukey;
     self
@@ -799,10 +818,6 @@ impl CodeSplitter {
     }
 
     let entrypoint_ukey = entrypoint.ukey;
-
-    if let Some(diagnostic) = incremental_diagnostic {
-      compilation.push_diagnostic(diagnostic);
-    }
 
     Ok((entrypoint_ukey, modules))
   }
@@ -1003,6 +1018,17 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       FxIndexMap::with_capacity_and_hasher(compilation.entries.len(), Default::default());
 
     let entries = compilation.entries.keys().cloned().collect::<Vec<_>>();
+    self.global_entry_modules = compilation
+      .global_entry
+      .dependencies
+      .iter()
+      .filter_map(|dep| {
+        compilation
+          .get_module_graph()
+          .module_identifier_by_dependency_id(dep)
+          .copied()
+      })
+      .collect();
 
     let assign_tasks = entries
       .iter()
@@ -1700,11 +1726,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         ));
       }
     }
+    self.global_include_modules.clear();
     for dep in &compilation.global_entry.include_dependencies {
       if module_graph.dependency_by_id(dep).skip_async_entrypoints() {
         continue;
       }
       if let Some(module) = module_graph.module_identifier_by_dependency_id(dep) {
+        self.global_include_modules.push(*module);
         self
           .queue
           .push(QueueAction::AddAndEnterModule(AddAndEnterModule {
