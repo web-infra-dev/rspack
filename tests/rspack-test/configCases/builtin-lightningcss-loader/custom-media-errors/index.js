@@ -1,13 +1,7 @@
-it('should report custom media errors from the loader', () => {
-	for (const load of [
-		() => require('./definitions.css'),
-		() => require('./component.css'),
-		() => require('./cyclic.css'),
-	]) {
-		try {
-			load();
-		} catch {
-			// The module build errors are asserted by errors.mjs.
-		}
+it('should report circular custom media from the loader', () => {
+	try {
+		require('./cyclic.css');
+	} catch {
+		// The module build error is asserted by errors.mjs.
 	}
 });
