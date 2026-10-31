@@ -1,0 +1,4 @@
+@import "./base.css";
+
+@custom-media --wide (min-width: 800px);
+@custom-media --compact (--small);

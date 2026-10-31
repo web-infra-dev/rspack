@@ -1,0 +1,7 @@
+@import "./definitions.css" screen;
+
+@media (--wide) {
+  .conditional {
+    color: red;
+  }
+}

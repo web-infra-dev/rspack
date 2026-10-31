@@ -1,0 +1,7 @@
+@import "./breakpoints.css";
+
+@media (--wide) {
+  .component {
+    color: red;
+  }
+}

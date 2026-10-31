@@ -1,0 +1,9 @@
+@import "./breakpoints.css";
+
+@custom-media --wide (min-width: 1000px);
+
+@media (--wide) {
+  .override {
+    color: green;
+  }
+}

@@ -1,0 +1,13 @@
+@import "./breakpoints.css";
+
+@media (--wide) {
+  .component {
+    color: red;
+  }
+}
+
+@media (--compact) {
+  .compact {
+    color: blue;
+  }
+}
