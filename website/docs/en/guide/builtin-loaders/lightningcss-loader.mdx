@@ -257,4 +257,4 @@ is transformed into:
 }
 ```
 
-Custom media is resolved within each CSS file, so a name that is only defined in another file, or a circular definition, causes a build error. Lightning CSS does not expand custom media in `@import` conditions, so in a file that uses custom media there, the loader leaves all custom media unchanged.
+A file can use custom media defined in itself or in the CSS files it imports, directly or transitively, with unconditional `@import` rules. Its own definitions take precedence. Imported files are read as plain CSS, without running their loaders. A name that isn't defined in any of these files, or a circular definition, causes a build error. Lightning CSS does not expand custom media in `@import` conditions, so in a file that uses custom media there, the loader leaves all custom media unchanged.

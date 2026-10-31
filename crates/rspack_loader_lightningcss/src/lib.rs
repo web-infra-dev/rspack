@@ -8,6 +8,7 @@ use cow_utils::CowUtils;
 use derive_more::Debug;
 pub use lightningcss;
 use lightningcss::{
+  error::MinifyErrorKind,
   media_query::{MediaCondition, MediaFeatureName, QueryFeature},
   printer::{PrinterOptions, PseudoClasses},
   rules::CssRule,
@@ -17,7 +18,8 @@ use lightningcss::{
 };
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  Loader, LoaderContext, RunnerContext,
+  DependencyCategory, Loader, LoaderContext, Module, ResolveOptionsWithDependencyType,
+  ResolveResult, RunnerContext,
   rspack_sources::{
     MapOptions, Mapping, OriginalLocation, SourceExt, SourceMap, SourceMapSource,
     SourceMapSourceOptions, encode_mappings,
@@ -57,6 +59,41 @@ impl LightningCssLoader {
       visitors: visitors.map(|v| Mutex::new(v)),
       config,
     }
+  }
+
+  async fn parse<'i>(
+    &self,
+    content: &'i str,
+    options: ParserOptions<'i>,
+  ) -> Result<StyleSheet<'static>> {
+    let stylesheet = StyleSheet::parse(content, options.clone()).to_rspack_result()?;
+
+    let mut flags = options.flags;
+    // Custom media in `@import` conditions isn't expanded, so its definitions must be kept.
+    if has_custom_media_import(&stylesheet) {
+      flags.remove(ParserFlags::CUSTOM_MEDIA);
+    }
+
+    let mut stylesheet = to_static(
+      stylesheet,
+      ParserOptions {
+        filename: options.filename,
+        css_modules: None,
+        source_index: 0,
+        error_recovery: true,
+        warnings: None,
+        flags,
+      },
+    );
+
+    if let Some(visitors) = &self.visitors {
+      let visitors = visitors.lock().await;
+      for v in visitors.iter() {
+        v(&mut stylesheet);
+      }
+    }
+
+    Ok(stylesheet)
   }
 
   async fn loader_impl(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
@@ -100,7 +137,7 @@ impl LightningCssLoader {
       warnings: warnings.clone(),
       flags: parser_flags,
     };
-    let stylesheet = StyleSheet::parse(&content_str, option.clone()).to_rspack_result()?;
+    let mut stylesheet = self.parse(&content_str, option.clone()).await?;
     // FIXME: Disable the warnings for now, cause it cause too much positive-negative warnings,
     // enable when we have a better way to handle it.
 
@@ -127,31 +164,6 @@ impl LightningCssLoader {
     //   }
     // }
 
-    let mut flags = option.flags;
-    // Custom media in `@import` conditions isn't expanded, so its definitions must be kept.
-    if has_custom_media_import(&stylesheet) {
-      flags.remove(ParserFlags::CUSTOM_MEDIA);
-    }
-
-    let mut stylesheet = to_static(
-      stylesheet,
-      ParserOptions {
-        filename: filename.clone(),
-        css_modules: None,
-        source_index: 0,
-        error_recovery: true,
-        warnings: None,
-        flags,
-      },
-    );
-
-    if let Some(visitors) = &self.visitors {
-      let visitors = visitors.lock().await;
-      for v in visitors.iter() {
-        v(&mut stylesheet);
-      }
-    }
-
     let targets = Targets {
       browsers: self.config.targets,
       include: self
@@ -170,19 +182,27 @@ impl LightningCssLoader {
         }),
     };
 
-    let unused_symbols = self
-      .config
-      .unused_symbols
-      .clone()
-      .map(|unused_symbols| unused_symbols.into_iter().collect())
-      .unwrap_or_default();
+    let minify_options = || MinifyOptions {
+      targets,
+      unused_symbols: self
+        .config
+        .unused_symbols
+        .iter()
+        .flatten()
+        .cloned()
+        .collect(),
+    };
 
-    stylesheet
-      .minify(MinifyOptions {
-        targets,
-        unused_symbols,
-      })
-      .to_rspack_result()?;
+    match stylesheet.minify(minify_options()) {
+      // The custom media may be defined in a CSS file that this one imports.
+      Err(error) if matches!(error.kind, MinifyErrorKind::CustomMediaNotDefined { .. }) => {
+        stylesheet = self.parse(&content_str, option).await?;
+        let definitions = imported_custom_media(loader_context, &stylesheet).await;
+        stylesheet.rules.0.splice(0..0, definitions);
+        stylesheet.minify(minify_options()).to_rspack_result()?;
+      }
+      result => result.to_rspack_result()?,
+    }
 
     let mut parcel_source_map = if loader_context.context.source_map_kind.enabled() {
       let mut sm = parcel_sourcemap::SourceMap::new(&loader_context.context.options.context);
@@ -315,6 +335,110 @@ pub fn to_static(stylesheet: StyleSheet, options: ParserOptions<'static>) -> Sty
   let mut stylesheet = StyleSheet::new(sources, rules, options);
   stylesheet.license_comments = license_comments;
   stylesheet
+}
+
+/// Collects `@custom-media` rules from the CSS files that a stylesheet imports without conditions,
+/// in the order they would be defined if the imports were inlined.
+async fn imported_custom_media(
+  loader_context: &mut LoaderContext<RunnerContext>,
+  stylesheet: &StyleSheet<'_>,
+) -> Vec<CssRule<'static>> {
+  let Some(resource_path) = loader_context.resource_path().map(ToOwned::to_owned) else {
+    return Vec::new();
+  };
+  let context = &loader_context.context;
+  let resolver = context
+    .resolver_factory
+    .get(ResolveOptionsWithDependencyType {
+      resolve_options: context
+        .module
+        .get_resolve_options()
+        .map(|options| Box::new(Arc::unwrap_or_clone(options))),
+      resolve_to_context: false,
+      dependency_category: DependencyCategory::CssImport,
+    });
+
+  let mut files = Vec::new();
+  let mut definitions = Vec::new();
+  // Each entry is a file with its pending import requests and its own definitions.
+  let mut stack = vec![(
+    resource_path.clone(),
+    import_requests(stylesheet),
+    Vec::new(),
+  )];
+  while let Some((importer, requests, own_definitions)) = stack.last_mut() {
+    let Some(request) = requests.pop() else {
+      definitions.append(own_definitions);
+      stack.pop();
+      continue;
+    };
+    let Some(dir) = importer.parent() else {
+      continue;
+    };
+    let Ok(ResolveResult::Resource(resource)) = resolver.resolve(dir.as_std_path(), &request).await
+    else {
+      continue;
+    };
+    if resource.path == resource_path || files.contains(&resource.path) {
+      continue;
+    }
+    files.push(resource.path.clone());
+    let Ok(content) = context.fs.read(&resource.path).await else {
+      continue;
+    };
+    let content = String::from_utf8_lossy(&content);
+    let Ok(imported) = StyleSheet::parse(
+      &content,
+      ParserOptions {
+        filename: resource.path.to_string(),
+        error_recovery: true,
+        flags: ParserFlags::CUSTOM_MEDIA,
+        ..ParserOptions::default()
+      },
+    ) else {
+      continue;
+    };
+    let requests = import_requests(&imported);
+    let own_definitions = imported
+      .rules
+      .0
+      .into_iter()
+      .filter(|rule| matches!(rule, CssRule::CustomMedia(_)))
+      .map(IntoOwned::into_owned)
+      .collect();
+    stack.push((resource.path, requests, own_definitions));
+  }
+
+  for file in files {
+    loader_context.add_file_dependency(file);
+  }
+  definitions
+}
+
+/// Returns the requests of unconditional `@import` rules, last first.
+fn import_requests(stylesheet: &StyleSheet) -> Vec<String> {
+  stylesheet
+    .rules
+    .0
+    .iter()
+    .rev()
+    .filter_map(|rule| match rule {
+      CssRule::Import(import)
+        if import.layer.is_none()
+          && import.supports.is_none()
+          && import.media.media_queries.is_empty() =>
+      {
+        Some(
+          import
+            .url
+            .strip_prefix('~')
+            .unwrap_or(&import.url)
+            .to_string(),
+        )
+      }
+      _ => None,
+    })
+    .collect()
 }
 
 fn has_custom_media_import(stylesheet: &StyleSheet) -> bool {
