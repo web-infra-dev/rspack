@@ -233,6 +233,10 @@ export default {
 
 Enable portable cache mode. When enabled, the generated cache content can be shared across different platforms and paths within the same project.
 
+When `portable` is `false`, Rspack binds the cache to the project [context](/config/context). It treats a cache copied or shared to a project at another path as invalid and rebuilds it.
+
+The cache backend that [experiments.newCache](/config/experiments#experimentsnewcache) enables does not rebase paths yet, so Rspack always binds it to the project context, even when `portable` is `true`.
+
 Portable cache is built on top of persistent cache and makes the cache platform-independent by converting platform-specific data (e.g., absolute paths to relative paths) during serialization and deserialization.
 
 **Example:**
