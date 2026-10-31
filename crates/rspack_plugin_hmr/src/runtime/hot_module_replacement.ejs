@@ -18,8 +18,6 @@
 // The update info
 <%- var("currentUpdateApplyHandlers") %>;
 <%- var("queuedInvalidatedModules") %>;
-// Chunk loads waiting for the current update to settle.
-<%- var("settledWaiters") %> = [];
 // Concurrent ensures share the actual attempt and its starting runtime hash.
 <%- var("chunkLoadingPromises") %> = Object.create(null);
 
@@ -45,16 +43,6 @@
 
 <%- define(HMR_DOWNLOAD_UPDATE_HANDLERS) %> = {};
 <%- define(HMR_INVALIDATE_MODULE_HANDLERS) %> = {};
-<%- define(HMR_CHECK_CHUNK) %> = function (chunkIds, version) {
-	if (version === undefined) return;
-	for (var i = 0; i < chunkIds.length; i++) {
-		if (version !== <%- HMR_CHUNK_VERSIONS %>[chunkIds[i]]) {
-			var error = new Error("Chunk is from another build (" + version + ")");
-			error.name = "ChunkVersionError";
-			return error;
-		}
-	}
-};
 
 <%- fn("rspackHmrCreateRequire") %>(require, moduleId) {
 	var me = hmrInstalledModules[moduleId];
@@ -105,7 +93,7 @@
 	fn.e = function (chunkId, fetchPriority) {
 		var loading = chunkLoadingPromises[chunkId];
 		if (loading) {
-			if (loading[0]) trackBlockingPromise(loading[0]);
+			trackBlockingPromise(loading[0]);
 			return loading[1];
 		}
 		// [current download, complete retry]
@@ -252,11 +240,6 @@
 	var results = [];
 	for (var i = 0; i < registeredStatusHandlers.length; i++)
 		results[i] = registeredStatusHandlers[i].call(null, newStatus);
-	if (newStatus === "idle" || newStatus === "abort" || newStatus === "fail") {
-		var waiters = settledWaiters;
-		settledWaiters = [];
-		for (var j = 0; j < waiters.length; j++) waiters[j]();
-	}
 
 	return Promise.all(results).then(function () { });
 }
@@ -315,7 +298,14 @@
 	}
 	if (hash === undefined && !canHoldChunk) return Promise.resolve();
 	if (currentStatus !== "idle") {
-		return new Promise(function (resolve) { settledWaiters.push(resolve); }).then(function () {
+		var onStatus;
+		return new Promise(function (resolve) {
+			onStatus = function (status) {
+				if (status === "idle" || status === "abort" || status === "fail") resolve();
+			};
+			registeredStatusHandlers.push(onStatus);
+		}).then(function () {
+			registeredStatusHandlers.splice(registeredStatusHandlers.indexOf(onStatus), 1);
 			return waitForUpdate(hash);
 		});
 	}

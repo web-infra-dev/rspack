@@ -1,7 +1,7 @@
 <%- var("readFileVmInstallChunk") %> = <%- basicFunction("chunk") %> {
   var moreModules = chunk.modules, chunkIds = chunk.ids,
     runtime = chunk.runtime;<% if (_with_hmr) { %>
-  var error = <%- weak(HMR_CHECK_CHUNK) %>(chunk.ids, chunk.__rspack_cjs_hash);
+  var error = hotCheckChunk(chunk.ids, chunk.__rspack_cjs_hash);
   if (error) throw error;
 <% } %>
   for (var moduleId in moreModules) {

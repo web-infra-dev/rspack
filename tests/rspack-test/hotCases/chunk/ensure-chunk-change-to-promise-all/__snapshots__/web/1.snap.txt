@@ -9,7 +9,7 @@
 - Bundle: vendors-node_modules_vue_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 94
 - Update: file_js.LAST_HASH.hot-update.js, size: 380
-- Update: main.LAST_HASH.hot-update.js, size: 988
+- Update: main.LAST_HASH.hot-update.js, size: 920
 
 ## Manifest
 
@@ -83,7 +83,10 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 })();
 // webpack/runtime/hot_module_replacement_chunk_versions
 (() => {
-[["file_js","CHUNK_VERSION"],["vendors-node_modules_vue_js","CHUNK_VERSION"],["vendors-node_modules_react_js",null]].forEach(function(entry) { if (entry[1] === null) delete __webpack_require__.hmrV[entry[0]]; else __webpack_require__.hmrV[entry[0]] = entry[1]; });
+__webpack_require__.hmrV["file_js"] = "CHUNK_VERSION";
+__webpack_require__.hmrV["vendors-node_modules_vue_js"] = "CHUNK_VERSION";
+delete __webpack_require__.hmrV["vendors-node_modules_react_js"];
+
 })();
 
 }

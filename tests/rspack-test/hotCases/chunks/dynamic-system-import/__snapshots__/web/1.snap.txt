@@ -10,7 +10,7 @@
 - Manifest: main.LAST_HASH.hot-update.json, size: 52
 - Update: chunk1_js.LAST_HASH.hot-update.js, size: 273
 - Update: chunk2_js.LAST_HASH.hot-update.js, size: 273
-- Update: main.LAST_HASH.hot-update.js, size: 463
+- Update: main.LAST_HASH.hot-update.js, size: 368
 
 ## Manifest
 
@@ -97,7 +97,9 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 })();
 // webpack/runtime/hot_module_replacement_chunk_versions
 (() => {
-[["chunk1_js","CHUNK_VERSION"],["chunk2_js","CHUNK_VERSION"]].forEach(function(entry) { if (entry[1] === null) delete __webpack_require__.hmrV[entry[0]]; else __webpack_require__.hmrV[entry[0]] = entry[1]; });
+__webpack_require__.hmrV["chunk1_js"] = "CHUNK_VERSION";
+__webpack_require__.hmrV["chunk2_js"] = "CHUNK_VERSION";
+
 })();
 
 }

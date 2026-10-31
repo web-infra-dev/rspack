@@ -11,7 +11,7 @@
 - Manifest: main.LAST_HASH.hot-update.json.mjs, size: 79
 - Update: async-module_js.LAST_HASH.hot-update.mjs, size: 347
 - Update: lazy-module_js.LAST_HASH.hot-update.mjs, size: 346
-- Update: main.LAST_HASH.hot-update.mjs, size: 542
+- Update: main.LAST_HASH.hot-update.mjs, size: 447
 
 ## Manifest
 
@@ -103,7 +103,9 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 })();
 // webpack/runtime/hot_module_replacement_chunk_versions
 (() => {
-[["async-module_js","CHUNK_VERSION"],["lazy-module_js","CHUNK_VERSION"]].forEach(function(entry) { if (entry[1] === null) delete __webpack_require__.hmrV[entry[0]]; else __webpack_require__.hmrV[entry[0]] = entry[1]; });
+__webpack_require__.hmrV["async-module_js"] = "CHUNK_VERSION";
+__webpack_require__.hmrV["lazy-module_js"] = "CHUNK_VERSION";
+
 })();
 
 }

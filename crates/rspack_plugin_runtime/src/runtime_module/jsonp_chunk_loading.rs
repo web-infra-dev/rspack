@@ -199,7 +199,6 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       dependencies.insert(Self::get_runtime_requirements_with_on_chunk_load());
     }
     if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
-      force_context.insert(RuntimeGlobals::HMR_CHECK_CHUNK);
       dependencies.insert(
         Self::get_runtime_requirements_with_hmr()
           | RuntimeGlobals::MODULE_CACHE

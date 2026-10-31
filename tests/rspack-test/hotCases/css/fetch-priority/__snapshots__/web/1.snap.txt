@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: style_module_css.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 80
-- Update: main.LAST_HASH.hot-update.js, size: 440
+- Update: main.LAST_HASH.hot-update.js, size: 318
 - Update: style_module_css.LAST_HASH.hot-update.js, size: 589
 
 ## Manifest
@@ -41,7 +41,8 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 })();
 // webpack/runtime/hot_module_replacement_chunk_versions
 (() => {
-[["style_module_css","CHUNK_VERSION"]].forEach(function(entry) { if (entry[1] === null) delete __webpack_require__.hmrV[entry[0]]; else __webpack_require__.hmrV[entry[0]] = entry[1]; });
+__webpack_require__.hmrV["style_module_css"] = "CHUNK_VERSION";
+
 })();
 
 }

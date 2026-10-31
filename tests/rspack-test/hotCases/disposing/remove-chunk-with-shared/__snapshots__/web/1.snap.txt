@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: chunk1_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 52
-- Update: main.LAST_HASH.hot-update.js, size: 708
+- Update: main.LAST_HASH.hot-update.js, size: 586
 
 ## Manifest
 
@@ -51,7 +51,8 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 })();
 // webpack/runtime/hot_module_replacement_chunk_versions
 (() => {
-[["chunk2_js",null]].forEach(function(entry) { if (entry[1] === null) delete __webpack_require__.hmrV[entry[0]]; else __webpack_require__.hmrV[entry[0]] = entry[1]; });
+delete __webpack_require__.hmrV["chunk2_js"];
+
 })();
 
 }

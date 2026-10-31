@@ -138,17 +138,8 @@ function createHotStepProcessor(
           }, str)
           .replaceAll('rspack/runtime/', 'webpack/runtime/')
           .replace(
-            /(\[\[.*\]\])(?=\.forEach\(function\(entry\) \{[^\n]*hmrV)/g,
-            (entries) => {
-              return JSON.stringify(
-                JSON.parse(entries).map(
-                  ([id, version]: [string, string | null]) => [
-                    id,
-                    version === null ? null : 'CHUNK_VERSION',
-                  ],
-                ),
-              );
-            },
+            /((?:\.hmrV|hmrChunkVersions)\[[^\n]*\] = )"[^"\n]*";/g,
+            '$1"CHUNK_VERSION";',
           )
           .replace(/\/\/ (\d+)\s+(?=var cssReload)/, '')
           .replaceAll(/var data = "(?:.*)"/g, (match) => {

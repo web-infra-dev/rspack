@@ -95,27 +95,25 @@ impl RuntimeModule for HotModuleReplacementChunkVersionsRuntimeModule {
       return Ok(None);
     };
     let versions = self.versions(context.compilation);
-    let changes = versions
-      .iter()
-      .filter(|(id, version)| previous.0.get(*id) != Some(*version))
-      .map(|(id, version)| (id, Some(version)))
-      .chain(
-        previous
-          .0
-          .keys()
-          .filter(|id| !versions.contains_key(*id))
-          .map(|id| (id, None)),
-      )
-      .collect::<Vec<_>>();
-    if changes.is_empty() {
-      return Ok(Some(String::new()));
-    }
     let map = context
       .runtime_template
       .render_runtime_globals(&RuntimeGlobals::HMR_CHUNK_VERSIONS);
-    Ok(Some(format!(
-      "{}.forEach(function(entry) {{ if (entry[1] === null) delete {map}[entry[0]]; else {map}[entry[0]] = entry[1]; }});",
-      rspack_util::json_stringify(&changes)
-    )))
+    let mut source = String::new();
+    for (id, version) in &versions {
+      if previous.0.get(id) != Some(version) {
+        source.push_str(&format!(
+          "{map}[{}] = {};\n",
+          rspack_util::json_stringify(id),
+          rspack_util::json_stringify_str(version),
+        ));
+      }
+    }
+    for id in previous.0.keys().filter(|id| !versions.contains_key(*id)) {
+      source.push_str(&format!(
+        "delete {map}[{}];\n",
+        rspack_util::json_stringify(id)
+      ));
+    }
+    Ok(Some(source))
   }
 }

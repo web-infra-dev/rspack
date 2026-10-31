@@ -134,7 +134,7 @@ async fn render_chunk(
   let mut sources = ConcatSource::default();
   if !matches!(chunk.kind(), ChunkKind::HotUpdate)
     && ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey)
-      .contains(RuntimeGlobals::HMR_CHECK_CHUNK)
+      .contains(RuntimeGlobals::HMR_CHUNK_VERSIONS)
   {
     sources.add(RawStringSource::from(format!(
       "exports.__rspack_cjs_hash = {};\n",

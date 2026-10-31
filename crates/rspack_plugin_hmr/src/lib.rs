@@ -703,7 +703,7 @@ async fn additional_chunk_runtime_requirements(
     .chunk_by_ukey
     .expect_get(chunk_ukey);
   if is_versioned(compilation, chunk) {
-    runtime_requirements.insert(RuntimeGlobals::HMR_CHECK_CHUNK);
+    runtime_requirements.insert(RuntimeGlobals::HMR_CHUNK_VERSIONS);
   }
   Ok(())
 }

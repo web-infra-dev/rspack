@@ -197,7 +197,6 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
       dependencies.insert(Self::get_runtime_requirements_with_on_chunk_load());
     }
     if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
-      force_context.insert(RuntimeGlobals::HMR_CHECK_CHUNK);
       dependencies.insert(Self::get_runtime_requirements_with_hmr());
       weak.insert(JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS.weak);
     }

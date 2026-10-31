@@ -10,7 +10,7 @@
 - Bundle: vendor.chunk.mjs
 - Manifest: main.LAST_HASH.hot-update.json.mjs, size: 62
 - Update: common.LAST_HASH.hot-update.mjs, size: 482
-- Update: main.LAST_HASH.hot-update.mjs, size: 525
+- Update: main.LAST_HASH.hot-update.mjs, size: 430
 - Update: vendor.LAST_HASH.hot-update.mjs, size: 503
 
 ## Manifest
@@ -81,7 +81,9 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 })();
 // webpack/runtime/hot_module_replacement_chunk_versions
 (() => {
-[["common","CHUNK_VERSION"],["vendor","CHUNK_VERSION"]].forEach(function(entry) { if (entry[1] === null) delete __webpack_require__.hmrV[entry[0]]; else __webpack_require__.hmrV[entry[0]] = entry[1]; });
+__webpack_require__.hmrV["common"] = "CHUNK_VERSION";
+__webpack_require__.hmrV["vendor"] = "CHUNK_VERSION";
+
 })();
 
 }
