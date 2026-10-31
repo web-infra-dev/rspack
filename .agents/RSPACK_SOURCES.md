@@ -204,6 +204,10 @@ strings owned by these inputs instead of cloning them:
 - `from_bytes` retains the JSON buffer that parsed fields borrow from;
 - computed maps borrow strings from the source graph, and `into_static(owner)` retains that owner;
 - `as_borrowed` creates a cheap borrowed view.
+- `sources_content` entries use `Option<Cow<str>>`: `None` is missing content (JSON `null`),
+  while `Some("")` is an explicitly empty source. Preserve this distinction through parsing,
+  streaming, serialization, and persistent cache. Omit `sourcesContent` only when all entries
+  are missing; map builders keep present arrays aligned with `sources`.
 
 ## 4. Source types and file map
 

@@ -19,7 +19,7 @@ use crate::{
 pub fn get_map<'a>(chunks: &dyn Chunks<'a>, options: &MapOptions) -> Option<SourceMapFields<'a>> {
   let mut mappings_encoder = create_encoder(options.columns);
   let mut sources: Vec<Cow<'a, str>> = Vec::new();
-  let mut sources_content: Vec<Cow<'a, str>> = Vec::new();
+  let mut sources_content: Vec<Option<Cow<'a, str>>> = Vec::new();
   let mut names: Vec<Cow<'a, str>> = Vec::new();
 
   chunks.stream(
@@ -40,9 +40,9 @@ pub fn get_map<'a>(chunks: &dyn Chunks<'a>, options: &MapOptions) -> Option<Sour
       sources[source_index] = source;
       if let Some(source_content) = source_content {
         if sources_content.len() <= source_index {
-          sources_content.resize(source_index + 1, Cow::Borrowed(""));
+          sources_content.resize(source_index + 1, None);
         }
-        sources_content[source_index] = Cow::Borrowed(source_content);
+        sources_content[source_index] = Some(Cow::Borrowed(source_content));
       }
     },
     // on_name
@@ -54,6 +54,9 @@ pub fn get_map<'a>(chunks: &dyn Chunks<'a>, options: &MapOptions) -> Option<Sour
       names[name_index] = name;
     },
   );
+  if !sources_content.is_empty() {
+    sources_content.resize(sources.len(), None);
+  }
   let mappings = mappings_encoder.drain();
   (!mappings.is_empty()).then_some(SourceMapFields {
     version: 3,
@@ -1291,12 +1294,18 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
           *inner_source = source_content;
         }
         source_index_mapping.borrow_mut().insert(i, -2);
+        // Without intermediate text we cannot stream the inner map. Leave its
+        // mappings empty so the outer mapping follows the existing fallback,
+        // retaining missing content or dropping it when remove_inner_source is set.
+        let Some(source_content) = source_content else {
+          return;
+        };
         stream_chunks_of_source_map(
           &MapOptions {
             columns: options.columns,
             final_source: false,
           },
-          TextSpan::new(source_content.unwrap()),
+          TextSpan::new(source_content),
           inner_source_map,
           &mut |chunk, mapping| {
             let mut inner_source_map_line_data = inner_source_map_line_data.borrow_mut();
@@ -1390,7 +1399,7 @@ pub fn stream_and_get_source_and_map<'source, 'chunk>(
 ) -> (GeneratedInfo, Option<SourceMapFields<'source>>) {
   let mut mappings_encoder = create_encoder(options.columns);
   let mut sources: Vec<Cow<'source, str>> = Vec::new();
-  let mut sources_content: Vec<Cow<'source, str>> = Vec::new();
+  let mut sources_content: Vec<Option<Cow<'source, str>>> = Vec::new();
   let mut names: Vec<Cow<'source, str>> = Vec::new();
 
   let generated_info = chunks.stream(
@@ -1406,10 +1415,10 @@ pub fn stream_and_get_source_and_map<'source, 'chunk>(
       }
       sources[source_index2] = source.clone();
       if let Some(source_content) = source_content {
-        while sources_content.len() <= source_index2 {
-          sources_content.push(Cow::Borrowed(""));
+        if sources_content.len() <= source_index2 {
+          sources_content.resize(source_index2 + 1, None);
         }
-        sources_content[source_index2] = Cow::Borrowed(source_content);
+        sources_content[source_index2] = Some(Cow::Borrowed(source_content));
       }
       on_source(source_index, source, source_content);
     },
@@ -1423,6 +1432,9 @@ pub fn stream_and_get_source_and_map<'source, 'chunk>(
     },
   );
 
+  if !sources_content.is_empty() {
+    sources_content.resize(sources.len(), None);
+  }
   let mappings = mappings_encoder.drain();
   let map = if mappings.is_empty() {
     None

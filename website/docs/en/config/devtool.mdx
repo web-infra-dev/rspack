@@ -119,6 +119,8 @@ Emits a separate `.map` file without adding a `//# sourceMappingURL` comment to 
 
 Removes `sourcesContent` from the source map, as in `nosources-source-map`. The map still contains original filenames, directory structure, and mapping information, so it can reconstruct stack traces, but it cannot provide the original source content to development tools on its own.
 
+When a loader provides a source map without content for a source, Rspack preserves that missing content as `null` in a mixed `sourcesContent` array. An empty string means the source file is empty. This distinction lets developer tools try to load missing content from the source URL.
+
 ### `cheap`
 
 Generates line mappings only, omitting column mappings to reduce source map computation, as in `cheap-source-map`. On its own, it ignores source maps provided by loaders, so mappings point to loader-transformed code rather than the original source.
