@@ -325,6 +325,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
                 .render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)),
             false => String::new(),
           },
+          "_with_hmr": with_hmr,
         })),
       )?;
 
@@ -342,6 +343,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
           &self.template_id(TemplateId::WithLoadingMatcher),
           Some(serde_json::json!({
             "_js_matcher": &has_js_matcher.render("chunkId"),
+            "_with_hmr": with_hmr,
             "_output_dir": &root_output_dir,
           })),
         )?;

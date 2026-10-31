@@ -8,7 +8,7 @@
 - Bundle: main.mjs
 - Bundle: style2_module_css.chunk.mjs
 - Manifest: main.LAST_HASH.hot-update.json.mjs, size: 105
-- Update: main.LAST_HASH.hot-update.mjs, size: 776
+- Update: main.LAST_HASH.hot-update.mjs, size: 914
 - Update: style2_module_css.LAST_HASH.hot-update.mjs, size: 607
 
 ## Manifest
@@ -30,6 +30,7 @@
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
 
 #### Changed Content
 ```js
@@ -57,6 +58,11 @@ export const __rspack_esm_runtime = function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV["style2_module_css"] = "CHUNK_VERSION";
+
 })();
 
 }

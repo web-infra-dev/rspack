@@ -11,7 +11,7 @@
 - Manifest: main.LAST_HASH.hot-update.json.mjs, size: 79
 - Update: async-module_js.LAST_HASH.hot-update.mjs, size: 347
 - Update: lazy-module_js.LAST_HASH.hot-update.mjs, size: 346
-- Update: main.LAST_HASH.hot-update.mjs, size: 249
+- Update: main.LAST_HASH.hot-update.mjs, size: 447
 
 ## Manifest
 
@@ -90,6 +90,7 @@ const data = {
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
 
 #### Changed Content
 ```js
@@ -99,6 +100,12 @@ export const __rspack_esm_runtime = function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV["async-module_js"] = "CHUNK_VERSION";
+__webpack_require__.hmrV["lazy-module_js"] = "CHUNK_VERSION";
+
 })();
 
 }

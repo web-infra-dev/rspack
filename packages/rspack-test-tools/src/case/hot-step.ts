@@ -137,6 +137,10 @@ function createHotStepProcessor(
             return str.split(raw).join(replacement);
           }, str)
           .replaceAll('rspack/runtime/', 'webpack/runtime/')
+          .replace(
+            /((?:\.hmrV|hmrChunkVersions)\[[^\n]*\] = )"[^"\n]*";/g,
+            '$1"CHUNK_VERSION";',
+          )
           .replace(/\/\/ (\d+)\s+(?=var cssReload)/, '')
           .replaceAll(/var data = "(?:.*)"/g, (match) => {
             return normalizeRuntimeModulePrefix(
