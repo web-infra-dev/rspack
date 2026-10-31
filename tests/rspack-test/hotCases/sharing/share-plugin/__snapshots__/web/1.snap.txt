@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: common_js_2.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 41657
+- Update: main.LAST_HASH.hot-update.js, size: 40979
 
 ## Manifest
 
@@ -27,7 +27,6 @@
 - ./module.js
 
 #### Changed Runtime Modules
-- webpack/runtime/block_chunk_map
 - webpack/runtime/consumes_loading
 - webpack/runtime/get_full_hash
 - webpack/runtime/jsonp_chunk_loading
@@ -54,22 +53,6 @@ const getValue = () => __webpack_require__.e(/* import() */ "webpack_sharing_con
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
-})();
-// webpack/runtime/block_chunk_map
-(() => {
-((blocks) => {
-	var map = __webpack_require__.hmrS_blockChunks;
-	
-	Object.keys(blocks).forEach((blockId) => {
-		if (blocks[blockId] === null) delete map[blockId];
-		else map[blockId] = blocks[blockId];
-	});
-	var installedBlocks = __webpack_require__.hmrS_blocks;
-	Object.keys(installedBlocks).forEach((id) => {
-		if (!map[id]) delete installedBlocks[id];
-	});
-})({"block:../../../../../../../../packages/rspack-test-tools/dist/helper/hot-update/loader.js!./module.js|dep=esm|common2|loc=3:31-48":["webpack_sharing_consume_default_common2_common_2"],"block:webpack/sharing/consume/default/common2/./common?2":["common_js_2"]});
-
 })();
 // webpack/runtime/consumes_loading
 (() => {

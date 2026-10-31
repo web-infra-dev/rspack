@@ -8,41 +8,60 @@ use rspack_core::{
   RuntimeModuleRuntimeRequirements, RuntimeModuleStage, RuntimeModuleUpdateData, RuntimeTemplate,
   chunk_graph_chunk::ChunkId, impl_runtime_module,
 };
+use rustc_hash::FxHashSet;
 
 #[derive(Debug)]
-pub struct BlockChunkMapData(pub BTreeMap<String, Vec<ChunkId>>);
+pub struct ChunkGroupMapData(pub BTreeMap<ChunkId, Vec<ChunkId>>);
 
-impl RuntimeModuleUpdateData for BlockChunkMapData {}
+impl RuntimeModuleUpdateData for ChunkGroupMapData {}
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct BlockChunkMapRuntimeModule {
+pub struct ChunkGroupMapRuntimeModule {
   #[cacheable(with=rspack_cacheable::with::Skip)]
-  data: OnceLock<Arc<BlockChunkMapData>>,
+  data: OnceLock<Arc<ChunkGroupMapData>>,
 }
 
-impl BlockChunkMapRuntimeModule {
+impl ChunkGroupMapRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
     Self::with_default(runtime_template, Default::default())
   }
 
-  fn data(&self, compilation: &Compilation) -> &Arc<BlockChunkMapData> {
+  fn data(&self, compilation: &Compilation) -> &Arc<ChunkGroupMapData> {
     self.data.get_or_init(|| {
       let graph = &compilation.build_chunk_graph_artifact;
       let chunk = graph
         .chunk_by_ukey
         .expect_get(&self.chunk().expect("should have chunk"));
-      Arc::new(BlockChunkMapData(
-        graph
-          .chunk_graph
-          .get_block_chunks(compilation, chunk.runtime()),
-      ))
+      let mut groups = BTreeMap::new();
+      let mut queue = chunk.groups().iter().copied().collect::<Vec<_>>();
+      let mut visited = FxHashSet::default();
+      while let Some(key) = queue.pop() {
+        if !visited.insert(key) {
+          continue;
+        }
+        let group = graph.chunk_group_by_ukey.expect_get(&key);
+        // Follow this runtime's groups, not every group of a shared chunk.
+        queue.extend(group.children.iter().copied());
+        let Some(last) = group.get_hmr_loading_chunk(compilation) else {
+          continue;
+        };
+        let siblings = group
+          .get_loading_chunks(compilation)
+          .filter(|chunk| chunk.ukey() != last.ukey())
+          .map(|chunk| chunk.expect_id().clone())
+          .collect::<Vec<_>>();
+        if !siblings.is_empty() {
+          groups.insert(last.expect_id().clone(), siblings);
+        }
+      }
+      Arc::new(ChunkGroupMapData(groups))
     })
   }
 }
 
 #[async_trait::async_trait]
-impl RuntimeModule for BlockChunkMapRuntimeModule {
+impl RuntimeModule for ChunkGroupMapRuntimeModule {
   fn runtime_module_variables() -> &'static [&'static str] {
     &[]
   }
@@ -54,7 +73,7 @@ impl RuntimeModule for BlockChunkMapRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id().to_string(),
-      include_str!("runtime/block_chunk_map.ejs").to_string(),
+      include_str!("runtime/chunk_group_map.ejs").to_string(),
     )]
   }
 
@@ -62,12 +81,12 @@ impl RuntimeModule for BlockChunkMapRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let blocks = &self.data(context.compilation).0;
+    let groups = &self.data(context.compilation).0;
     context.runtime_template.render(
       self.id(),
       Some(serde_json::json!({
         "_full": true,
-        "_blocks": rspack_util::json_stringify(blocks),
+        "_groups": rspack_util::json_stringify(groups),
       })),
     )
   }
@@ -82,20 +101,20 @@ impl RuntimeModule for BlockChunkMapRuntimeModule {
     context: &RuntimeModuleGenerateContext<'_>,
     previous: &dyn RuntimeModuleUpdateData,
   ) -> rspack_error::Result<Option<String>> {
-    let Some(previous) = previous.as_any().downcast_ref::<BlockChunkMapData>() else {
+    let Some(previous) = previous.as_any().downcast_ref::<ChunkGroupMapData>() else {
       return Ok(None);
     };
-    let blocks = &self.data(context.compilation).0;
-    let changes = blocks
+    let groups = &self.data(context.compilation).0;
+    let changes = groups
       .iter()
       .filter(|(id, chunks)| previous.0.get(*id) != Some(*chunks))
-      .map(|(id, chunks)| (id.as_str(), Some(chunks)))
+      .map(|(id, chunks)| (id, Some(chunks)))
       .chain(
         previous
           .0
           .keys()
-          .filter(|id| !blocks.contains_key(*id))
-          .map(|id| (id.as_str(), None)),
+          .filter(|id| !groups.contains_key(*id))
+          .map(|id| (id, None)),
       )
       .collect::<BTreeMap<_, _>>();
     if changes.is_empty() {
@@ -107,7 +126,7 @@ impl RuntimeModule for BlockChunkMapRuntimeModule {
         self.id(),
         Some(serde_json::json!({
           "_full": false,
-          "_blocks": rspack_util::json_stringify(&changes),
+          "_groups": rspack_util::json_stringify(&changes),
         })),
       )
       .map(Some)
@@ -115,7 +134,7 @@ impl RuntimeModule for BlockChunkMapRuntimeModule {
 
   fn runtime_requirements(&self, _compilation: &Compilation) -> RuntimeModuleRuntimeRequirements {
     RuntimeModuleRuntimeRequirements {
-      dependencies: RuntimeGlobals::REQUIRE_SCOPE,
+      dependencies: RuntimeGlobals::REQUIRE_SCOPE | RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
       ..Default::default()
     }
   }

@@ -11,7 +11,7 @@
 - Bundle: data_b_json_lazy-compilation-proxy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 65
 - Update: data_b_json_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1039
-- Update: main.LAST_HASH.hot-update.js, size: 949
+- Update: main.LAST_HASH.hot-update.js, size: 470
 
 ## Manifest
 
@@ -62,7 +62,6 @@ var data = "lazy-compilation-proxy|json|<TEST_TOOLS_ROOT>/dist/helper/hot-update
 - ./generation.js
 
 #### Changed Runtime Modules
-- webpack/runtime/block_chunk_map
 - webpack/runtime/get_full_hash
 
 #### Changed Content
@@ -83,22 +82,6 @@ __webpack_require__.d(__webpack_exports__, {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
-})();
-// webpack/runtime/block_chunk_map
-(() => {
-((blocks) => {
-	var map = __webpack_require__.hmrS_blockChunks;
-	
-	Object.keys(blocks).forEach((blockId) => {
-		if (blocks[blockId] === null) delete map[blockId];
-		else map[blockId] = blocks[blockId];
-	});
-	var installedBlocks = __webpack_require__.hmrS_blocks;
-	Object.keys(installedBlocks).forEach((id) => {
-		if (!map[id]) delete installedBlocks[id];
-	});
-})({"block:./data/b.json!lazy-compilation-proxy":["data_b_json"]});
-
 })();
 
 }
