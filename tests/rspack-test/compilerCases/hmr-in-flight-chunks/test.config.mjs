@@ -36,6 +36,16 @@ const cases = [
   { name: 'retry-stale', version: 2 },
   { name: 'manual-compatible', version: 1, manual: true },
   { name: 'manual-retry', version: 2, manual: true },
+  { name: 'ready-compatible', version: 1, updateFirst: true },
+  { name: 'ready-future', version: 2, updateFirst: true },
+  {
+    name: 'ready-future-manual',
+    version: 2,
+    updateFirst: true,
+    manual: true,
+  },
+  { name: 'ready-catch', version: 2, updateFirst: true },
+  { name: 'ready-async', version: 2, updateFirst: true },
 ];
 
 export default ['web', 'async-node', 'module'].flatMap((target) =>
@@ -67,6 +77,7 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
               ? pathToFileURL(`${context.getDist('output')}/`).href
               : '/',
             globalObject: 'globalThis',
+            chunkLoadTimeout: name.startsWith('ready-') ? 500 : 120000,
           },
           optimization: {
             moduleIds: 'named',
@@ -275,6 +286,13 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
           };
           if (phase === 'before' || phase === 'late') load();
           assets = await build(2);
+          if (name.startsWith('ready-'))
+            app.hot.addStatusHandler((status) => {
+              if (status !== 'ready') return;
+              if (name === 'ready-async')
+                return new Promise((resolve) => setTimeout(resolve, 20));
+              return name === 'ready-catch' ? imports.catch(() => {}) : imports;
+            });
           update = app.hot.check(!manual);
           update.catch(() => {});
           if (phase === 'check') {
@@ -358,6 +376,18 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
             assert.equal(app.executions.length, 0);
             return;
           }
+          if (name.startsWith('ready-future')) {
+            await assert.rejects(wait(imports), {
+              name: 'ChunkLoadError',
+              type: 'timeout',
+              message: /timed out waiting for HMR/,
+            });
+            await assert.rejects(wait(update), /timed out waiting for HMR/);
+            assert.equal(app.factory(), undefined);
+            assert.equal(app.executions.length, 0);
+            assert.equal(attempts, 1);
+            return;
+          }
           await wait(update);
           if (manual) {
             assert.equal(app.hot.status(), 'ready');
@@ -369,7 +399,12 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
             else assert.equal(app.executions.length, 0);
             await app.hot.apply();
           }
-          if (name === 'retry-error' || name === 'retry-stale') {
+          if (name === 'ready-catch') {
+            await assert.rejects(wait(imports), /timed out waiting for HMR/);
+            assert.equal(app.executions.length, 0);
+            assert.equal((await wait(app.load())).default, 2);
+            assert.equal(app.hot.status(), 'idle');
+          } else if (name === 'retry-error' || name === 'retry-stale') {
             await assert.rejects(
               wait(imports),
               /Loading chunk|Download failed|no update leads/,
@@ -380,14 +415,14 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
             const modules = await wait(imports);
             assert.ok(
               modules.every(
-                (m) => m.default === (manual && version === 1 ? 1 : 2),
+                (m) => m.default === 2 || (version === 1 && m.default === 1),
               ),
             );
             assert.equal((await app.load()).default, 2);
-            assert.deepEqual(
-              Array.from(app.executions),
-              manual && version === 1 ? [1, 2] : [2],
-            );
+            const executions = Array.from(app.executions);
+            // A compatible V1 response may execute before apply, then normal
+            // HMR must dispose its cache before V2 executes.
+            assert.deepEqual(executions, executions[0] === 1 ? [1, 2] : [2]);
             assert.equal(attempts, phase === 'late' || version === 2 ? 2 : 1);
             assert.equal(app.hot.status(), 'idle');
           }

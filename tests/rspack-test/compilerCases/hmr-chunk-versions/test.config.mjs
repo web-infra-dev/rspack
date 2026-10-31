@@ -105,7 +105,9 @@ export default ['node', 'webworker'].flatMap((target) =>
         };
         await build({});
         const sandbox =
-          target === 'node' ? globalThis : vm.createContext({ console });
+          target === 'node'
+            ? globalThis
+            : vm.createContext({ console, setTimeout, clearTimeout });
         if (target === 'node')
           createRequire(import.meta.url)(path.join(output, 'main.js'));
         else {

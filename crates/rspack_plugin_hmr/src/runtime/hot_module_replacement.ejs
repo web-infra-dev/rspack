@@ -8,11 +8,11 @@
 // status
 <%- var("registeredStatusHandlers") %> = [];
 <%- var("currentStatus") %> = "idle";
-<%- var("canHoldChunk") %> = false;
 
 // while downloading
 <%- var("blockingPromises") %> = 0;
 <%- var("blockingPromisesWaiting") %> = [];
+<%- var("blockingStatusPromises") %> = [];
 <%- var("currentCheckPromise") %>;
 
 // The update info
@@ -119,15 +119,11 @@
 		} catch (error) {
 			loading[0] = Promise.reject(error);
 		}
-		return trackBlockingPromise(loading[0]).then(function (result) {
-			// Promise.all([]): every ensure handler found the chunk installed.
-			// A ready handler can await this import without waiting for apply.
-			if (!result || result.length === 0) return result;
-			if (!canHoldChunk && currentStatus !== "abort" && currentStatus !== "fail") return result;
-			return waitForUpdate().then(function () { return result; });
-		}, function (error) {
+		// A compatible chunk can run in the current build. Waiting for apply here
+		// would also block status handlers which await this import.
+		return trackBlockingPromise(loading[0]).catch(function (error) {
 			if (error.name !== "ChunkVersionError") throw error;
-			return waitForUpdate(hash).then(function () {
+			return waitForUpdate(hash, chunkId).then(function () {
 				var nextHash = <%- GET_FULL_HASH %>();
 				if (retriedHash === nextHash) throw error;
 				retriedHash = nextHash;
@@ -236,8 +232,7 @@
 
 <%- fn("setStatus") %>(newStatus) {
 	currentStatus = newStatus;
-	// Automatic checks also pass through ready before applying their update.
-	if (newStatus !== "check" && newStatus !== "prepare" && newStatus !== "ready") canHoldChunk = false;
+	if (newStatus === "idle") blockingStatusPromises = [];
 	<% if (_is_hot_test) { %>
 	if (self.__HMR_UPDATED_RUNTIME__) {
 		self.__HMR_UPDATED_RUNTIME__.statusPath.push(newStatus);
@@ -252,7 +247,9 @@
 
 <%- fn("unblock") %>() {
 	if (--blockingPromises === 0) {
-		setStatus("ready").then(function () {
+		var ready = setStatus("ready");
+		blockingStatusPromises.push(ready);
+		var release = function () {
 			if (blockingPromises === 0) {
 				var list = blockingPromisesWaiting;
 				blockingPromisesWaiting = [];
@@ -260,7 +257,9 @@
 					list[i]();
 				}
 			}
-		});
+		};
+		// Rejections must also reach the check waiting for this transition.
+		ready.then(release, release);
 	}
 }
 
@@ -278,41 +277,63 @@
 }
 
 <%- fn("waitForBlockingPromises") %>(fn) {
-	if (blockingPromises === 0) return fn();
+	if (blockingPromises === 0) {
+		var count = blockingStatusPromises.length;
+		if (!count) return fn();
+		return Promise.all(blockingStatusPromises).then(function () {
+			if (blockingPromises || blockingStatusPromises.length !== count) return waitForBlockingPromises(fn);
+			return fn();
+		});
+	}
 	return new Promise(function (resolve) {
 		blockingPromisesWaiting.push(function () {
-			resolve(fn());
+			resolve(waitForBlockingPromises(fn));
 		});
 	});
 }
 
-<%- fn("waitForUpdate") %>(hash) {
+<%- fn("waitForUpdate") %>(hash, chunkId) {
 	if (currentStatus === "abort" || currentStatus === "fail") {
 		return Promise.reject(new Error("Chunk loading failed because the update failed (" + currentStatus + ")"));
 	}
-	if (hash === undefined && !canHoldChunk) return Promise.resolve();
-	if (currentStatus !== "idle") {
-		var onStatus;
-		return new Promise(function (resolve, reject) {
+	var waiting = currentStatus !== "idle";
+	if (!waiting && hash !== <%- GET_FULL_HASH %>()) return Promise.resolve();
+	var onStatus, timeout, promise;
+	if (waiting) {
+		promise = new Promise(function (resolve, reject) {
 			onStatus = function (status) {
 				if (status === "idle" || status === "abort" || status === "fail") resolve();
 			};
 			registeredStatusHandlers.push(onStatus);
 			// Download failures can reject check() without changing its status.
 			if (currentCheckPromise) currentCheckPromise.then(undefined, reject);
-		}).then(function () {
-			registeredStatusHandlers.splice(registeredStatusHandlers.indexOf(onStatus), 1);
-			return waitForUpdate(hash);
-		}, function (error) {
-			registeredStatusHandlers.splice(registeredStatusHandlers.indexOf(onStatus), 1);
-			throw error;
+		});
+	} else {
+		promise = hotCheck(true).then(function (updatedModules) {
+			if (!updatedModules) {
+				throw new Error("Chunk is from another build, and no update leads to it");
+			}
 		});
 	}
-	if (hash === undefined || hash !== <%- GET_FULL_HASH %>()) return Promise.resolve();
-	return hotCheck(true).then(function (updatedModules) {
-		if (!updatedModules) {
-			throw new Error("Chunk is from another build, and no update leads to it");
-		}
+	var cleanup = function () {
+		clearTimeout(timeout);
+		if (onStatus) registeredStatusHandlers.splice(registeredStatusHandlers.indexOf(onStatus), 1);
+	};
+	// A status handler may itself await this import. Bound the wait without
+	// mistaking an unrelated asynchronous handler for a circular dependency.
+	return Promise.race([promise, new Promise(function (_, reject) {
+		timeout = setTimeout(function () {
+			var error = new Error("Loading chunk " + chunkId + " timed out waiting for HMR (status: " + currentStatus + ")");
+			error.name = "ChunkLoadError";
+			error.type = "timeout";
+			reject(error);
+		}, <%- _chunk_load_timeout %>);
+	})]).then(function () {
+		cleanup();
+		if (waiting) return waitForUpdate(hash, chunkId);
+	}, function (error) {
+		cleanup();
+		throw error;
 	});
 }
 
@@ -334,12 +355,10 @@
 		statusPath: []
 	};
 	<% } %>
-	canHoldChunk = Boolean(applyOnUpdate);
 	return currentCheckPromise = setStatus("check")
 		.then(<%- HMR_DOWNLOAD_MANIFEST %>)
 		.then(function (update) {
 			if (!update) {
-				canHoldChunk = false;
 				return setStatus(applyInvalidatedModules() ? "ready" : "idle").then(
 					function () {
 						return null;
