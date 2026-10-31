@@ -2,15 +2,13 @@ use std::{cell::RefCell, sync::LazyLock};
 
 use napi::{
   Env, JsString, JsValue, Property, PropertyAttributes, Unknown,
-  bindgen_prelude::{
-    Array, FromNapiMutRef, FromNapiValue, JsObjectValue, Object, ToNapiValue, WeakReference,
-  },
+  bindgen_prelude::{Array, FromNapiMutRef, FromNapiValue, JsObjectValue, Object, ToNapiValue},
 };
 use rspack_core::WeakBindingCell;
 use rspack_napi::unknown_to_json_value;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::{module::Module, shared_properties::define_shared_properties, symbols};
+use crate::{module::ModuleWeakReference, shared_properties::define_shared_properties, symbols};
 
 // Record<string, Source>
 #[napi]
@@ -61,11 +59,11 @@ static KNOWN_BUILD_INFO_FIELD_NAMES: LazyLock<FxHashSet<&'static str>> = LazyLoc
 
 #[napi]
 pub struct KnownBuildInfo {
-  module_reference: WeakReference<Module>,
+  module_reference: ModuleWeakReference,
 }
 
 impl KnownBuildInfo {
-  pub fn new(module_reference: WeakReference<Module>) -> Self {
+  pub(crate) fn new(module_reference: ModuleWeakReference) -> Self {
     Self { module_reference }
   }
 
@@ -107,11 +105,11 @@ impl KnownBuildInfo {
 
 // KnownBuildInfo & Record<string, any>
 pub struct BuildInfo {
-  module_reference: WeakReference<Module>,
+  module_reference: ModuleWeakReference,
 }
 
 impl BuildInfo {
-  pub fn new(module_reference: WeakReference<Module>) -> Self {
+  pub(crate) fn new(module_reference: ModuleWeakReference) -> Self {
     Self { module_reference }
   }
 
@@ -140,6 +138,8 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
     Property::new()
       .with_name(env, env.symbol_for(symbols::BUILD_INFO_ASSETS_SYMBOL)?)?
       .with_getter_closure(|env, this| {
+        // Native references do not escape this synchronous getter.
+        let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
         let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
         wrapped_value.with_ref(|module| Ok(module.build_info().assets.reflector()))
       })
@@ -153,6 +153,8 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
         env.symbol_for(symbols::BUILD_INFO_FILE_DEPENDENCIES_SYMBOL)?,
       )?
       .with_getter_closure(|env, this| {
+        // Native references do not escape this synchronous getter.
+        let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
         let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
         let env_ref = &env;
         let result = wrapped_value.with_ref(|module| {
@@ -176,6 +178,8 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
         env.symbol_for(symbols::BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL)?,
       )?
       .with_getter_closure(|env, this| {
+        // Native references do not escape this synchronous getter.
+        let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
         let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
         let env_ref = &env;
         let result = wrapped_value.with_ref(|module| {
@@ -199,6 +203,8 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
         env.symbol_for(symbols::BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL)?,
       )?
       .with_getter_closure(|env, this| {
+        // Native references do not escape this synchronous getter.
+        let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
         let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
         let env_ref = &env;
         let result = wrapped_value.with_ref(|module| {
@@ -222,6 +228,8 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
         env.symbol_for(symbols::BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL)?,
       )?
       .with_getter_closure(|env, this| {
+        // Native references do not escape this synchronous getter.
+        let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
         let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
         let env_ref = &env;
         let result = wrapped_value.with_ref(|module| {
@@ -266,6 +274,7 @@ impl ToNapiValue for BuildInfo {
 
           let commit_custom_fields_fn: napi::bindgen_prelude::Function<'_, (), ()> = env_wrapper
             .create_function_from_closure("commitCustomFieldsToRust", |ctx| {
+              let _borrow_scope = napi::bindgen_prelude::NativeBorrowScope::new();
               let object = ctx.this::<Object>()?;
               let env = ctx.env;
               let this: &mut KnownBuildInfo =

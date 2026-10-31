@@ -9,6 +9,12 @@ class Plugin {
       const contextModule = Array.from(compilation.modules).find(
         (module) => module instanceof ContextModule,
       )!;
+      expect(contextModule.buildInfo).toBe(contextModule.buildInfo);
+      expect(contextModule.buildInfo.fileDependencies).toBeInstanceOf(Set);
+      expect(contextModule.buildInfo.contextDependencies).toBeInstanceOf(Set);
+      expect(contextModule.factoryMeta).toBeTypeOf('object');
+      expect(contextModule.layer).toBeUndefined();
+
       expect(contextModule.constructor.name).toBe('ContextModule');
       expect(contextModule.type).toBe('javascript/auto');
       expect(contextModule.useSourceMap).toBe(false);

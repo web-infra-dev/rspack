@@ -14,6 +14,12 @@ class Plugin {
 
       const module = externalModules[0];
 
+      expect(module.buildInfo).toBe(module.buildInfo);
+      expect(module.buildInfo.fileDependencies).toBeInstanceOf(Set);
+      expect(module.buildInfo.contextDependencies).toBeInstanceOf(Set);
+      expect(module.factoryMeta).toBeTypeOf('object');
+      expect(module.layer).toBeUndefined();
+
       expect(module.constructor.name).toBe('ExternalModule');
       expect(module.type).toBe('javascript/dynamic');
       expect(module.userRequest).toBe('external');

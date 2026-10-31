@@ -3,5 +3,5 @@
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["napi-binding.d.ts", "binding.d.ts"]
+  "include": ["napi-binding.d.ts", "rspack.wasi.d.cts", "binding.d.ts"]
 }

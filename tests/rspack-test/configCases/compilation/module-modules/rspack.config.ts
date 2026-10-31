@@ -16,6 +16,16 @@ class Plugin {
         const entrypointModule = compilation.chunkGraph.getChunkModules(
           entrypointChunk,
         )[0] as ConcatenatedModule;
+        expect(entrypointModule.buildInfo).toBe(entrypointModule.buildInfo);
+        expect(entrypointModule.buildInfo.fileDependencies).toBeInstanceOf(Set);
+        expect(entrypointModule.buildInfo.contextDependencies).toBeInstanceOf(
+          Set,
+        );
+        expect(entrypointModule.factoryMeta).toBeTypeOf('object');
+        expect(entrypointModule.layer).toBeUndefined();
+        expect(entrypointModule.useSourceMap).toBe(false);
+        expect(entrypointModule.useSimpleSourceMap).toBe(false);
+
         expect((entrypointModule.modules[0] as NormalModule).rawRequest).toBe(
           './foo',
         );
