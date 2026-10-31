@@ -191,6 +191,13 @@ async fn runtime_requirements_in_tree(
       *chunk_ukey,
       EnsureChunkRuntimeModule::new(&compilation.runtime_template, has_async_chunks).boxed(),
     ));
+    if compilation.hot {
+      runtime_modules_to_add.push((
+        *chunk_ukey,
+        crate::runtime_module::ChunkGroupMapRuntimeModule::new(&compilation.runtime_template)
+          .boxed(),
+      ));
+    }
   }
 
   let library_type = {

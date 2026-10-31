@@ -9,7 +9,7 @@
 - Bundle: vendors-node_modules_vue_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 94
 - Update: file_js.LAST_HASH.hot-update.js, size: 380
-- Update: main.LAST_HASH.hot-update.js, size: 651
+- Update: main.LAST_HASH.hot-update.js, size: 1021
 
 ## Manifest
 
@@ -57,6 +57,7 @@ __webpack_require__.d(__webpack_exports__, {
 - ./chunk.js
 
 #### Changed Runtime Modules
+- webpack/runtime/chunk_group_map
 - webpack/runtime/get_full_hash
 
 #### Changed Content
@@ -79,6 +80,19 @@ function test(count) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/chunk_group_map
+(() => {
+((groups) => {
+	var map = __webpack_require__.hmrS_chunkGroups = __webpack_require__.hmrS_chunkGroups || Object.create(null);
+	
+	Object.keys(groups).forEach((chunkId) => {
+		if (groups[chunkId] === null) delete map[chunkId];
+		else map[chunkId] = groups[chunkId];
+	});
+})({"file_js":["vendors-node_modules_vue_js"]});
+
+
 })();
 
 }

@@ -64,11 +64,11 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
       } else {
         ""
       };
-
       runtime_template.render(
         &self.template_id(TemplateId::Raw),
         Some(serde_json::json!({
           "_fetch_priority": fetch_priority,
+          "_hmr": compilation.hot,
         })),
       )?
     } else {
@@ -83,21 +83,28 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     let mut dependencies = RuntimeGlobals::default();
     let mut define = RuntimeGlobals::ENSURE_CHUNK;
+    let mut force_context = RuntimeGlobals::default();
+    if compilation.hot {
+      dependencies.insert(RuntimeGlobals::REQUIRE_SCOPE);
+      force_context = RuntimeGlobals::ENSURE_CHUNK;
+    }
     if let Some(chunk_ukey) = self.chunk() {
-      if self.has_async_chunks
+      if compilation.hot
+        || self.has_async_chunks
         || get_chunk_runtime_requirements(compilation, &chunk_ukey)
           .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
       {
         dependencies.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
         define.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
       }
-    } else if self.has_async_chunks {
+    } else if compilation.hot || self.has_async_chunks {
       dependencies.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
       define.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
     }
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies,
       define,
+      force_context,
       ..Default::default()
     }
   }

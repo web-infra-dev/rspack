@@ -17,6 +17,10 @@ static HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntim
     requirements
       .define
       .insert(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
+    // Keep the group map runtime when the last async import is removed.
+    requirements
+      .dependencies
+      .insert(RuntimeGlobals::ENSURE_CHUNK);
     requirements
   });
 static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =
