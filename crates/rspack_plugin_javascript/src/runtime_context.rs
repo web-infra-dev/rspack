@@ -309,11 +309,6 @@ fn render_runtime_chunk_runtime_modules_sync(
       for key in &hmr_state_keys {
         let state_expression = runtime_template.render_hmr_runtime_state_expression(key);
         sources.add(RawStringSource::from(format!("var {state_expression};\n")));
-        if is_hmr_runtime {
-          sources.add(RawStringSource::from(format!(
-            "Object.defineProperty({runtime_context}, \"hmrS_{key}\", {{ configurable: true, get: function() {{ return {state_expression}; }}, set: function(value) {{ {state_expression} = value; }} }});\n"
-          )));
-        }
       }
     }
 
@@ -362,11 +357,6 @@ fn render_runtime_chunk_runtime_modules_sync(
   {
     for key in &hmr_state_keys {
       wrapped_sources.add(RawStringSource::from(format!("var hmrS_{key};\n")));
-      if is_hmr_runtime {
-        wrapped_sources.add(RawStringSource::from(format!(
-          "Object.defineProperty({runtime_context}, \"hmrS_{key}\", {{ configurable: true, get: function() {{ return hmrS_{key}; }}, set: function(value) {{ hmrS_{key} = value; }} }});\n"
-        )));
-      }
     }
   }
   for (runtime_module_source, generated_requirements, context_requirements, needs_top_level) in
@@ -579,11 +569,7 @@ pub async fn render_hot_update_chunk_runtime_modules(
         } else {
           format!("hmrS_{key}")
         };
-      // Preserve installed chunks when replacing a loader. Replaying an old
-      // JSONP payload would otherwise restore its old factories and version.
-      sources.add(RawStringSource::from(format!(
-        "var {state_expression} = {runtime_context}.hmrS_{key};\n"
-      )));
+      sources.add(RawStringSource::from(format!("var {state_expression};\n")));
     }
   }
 
@@ -623,18 +609,6 @@ Object.defineProperty({runtime_context}, {json_key}, {{ configurable: true, get:
 {runtime_context}{context_property} = {lexical_name};
 }})();
 "#
-      )));
-    }
-  }
-
-  if metadata
-    .lexical_fields()
-    .intersects(*HMR_RUNTIME_STATE_GLOBALS)
-  {
-    for key in &hmr_state_keys {
-      let state_expression = runtime_template.render_hmr_runtime_state_expression(key);
-      sources.add(RawStringSource::from(format!(
-        "{runtime_context}.hmrS_{key} = {state_expression};\n"
       )));
     }
   }
