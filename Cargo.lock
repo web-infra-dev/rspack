@@ -5508,6 +5508,7 @@ dependencies = [
  "rspack_resolver",
  "rspack_util",
  "rustc-hash",
+ "serde_json",
  "swc_next_ecma_ast",
  "tracing",
 ]

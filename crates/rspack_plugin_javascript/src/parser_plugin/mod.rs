@@ -41,10 +41,10 @@ pub(crate) use self::{
   api_plugin::APIPlugin,
   common_js_exports_parse_plugin::CommonJsExportsParserPlugin,
   common_js_imports_parse_plugin::{
-    CREATE_REQUIRE_EVALUATED_TAG, CREATE_REQUIRE_SPECIFIER_TAG, CREATED_REQUIRE_IDENTIFIER_TAG,
-    CommonJsImportsParserPlugin, CreatedRequireReferencesState, CreatedRequireTagData,
-    RequireReferencesState, evaluate_create_require_new_expression,
-    is_create_require_namespace_member, is_create_require_specifier,
+    CREATE_REQUIRE_EVALUATED_TAG, CREATE_REQUIRE_SPECIFIER_TAG, CommonJsImportsParserPlugin,
+    CreatedRequireReferencesState, CreatedRequireTagData, RequireReferencesState,
+    evaluate_create_require_new_expression, is_create_require_namespace_member,
+    is_create_require_specifier,
   },
   common_js_plugin::CommonJsPlugin,
   compatibility_plugin::{CompatibilityPlugin, NESTED_IDENTIFIER_TAG, NestedRequireData},
@@ -71,6 +71,7 @@ pub(crate) use self::{
   worker_plugin::WorkerPlugin,
 };
 pub use self::{
+  common_js_imports_parse_plugin::CREATED_REQUIRE_IDENTIFIER_TAG,
   inner_graph::{deferred_pure_check_is_impure, has_impure_deferred_pure_checks},
   r#trait::{
     BoxJavascriptParserPlugin, JavascriptParserPlugin, JavascriptParserPluginHook,

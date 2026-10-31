@@ -7,6 +7,7 @@ mod module_path_name_dependency;
 mod parser_plugin;
 mod plugin;
 mod require_resolve_origin_dependency;
+mod runtime_dependency_metadata;
 mod url_dependency;
 
 pub use plugin::*;
