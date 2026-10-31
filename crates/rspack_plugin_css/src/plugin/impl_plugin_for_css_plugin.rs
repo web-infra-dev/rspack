@@ -5,8 +5,8 @@ use std::sync::{Arc, LazyLock};
 use atomic_refcell::AtomicRefCell;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey,
-  Compilation, CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
+  AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
+  CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CssBuildInfo, CssModuleRenderCondition,
   DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData, ModuleGraph, ModuleRule,
   ModuleType, NormalModuleCreateData, NormalModuleFactoryAfterResolve, NormalModuleFactoryModule,
@@ -18,7 +18,6 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::plugin_hook;
-use rspack_plugin_runtime::is_enabled_for_chunk;
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use smol_str::SmolStr;
@@ -409,15 +408,7 @@ async fn runtime_requirements_in_tree(
   runtime_requirements_mut: &mut RuntimeGlobals,
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
-  let is_enabled_for_chunk = is_enabled_for_chunk(
-    chunk_ukey,
-    &ChunkLoading::Enable(ChunkLoadingType::Jsonp),
-    compilation,
-  ) || is_enabled_for_chunk(
-    chunk_ukey,
-    &ChunkLoading::Enable(ChunkLoadingType::Import),
-    compilation,
-  );
+  let link_runtime_enabled = CssLoadingRuntimeModule::link_runtime_enabled(compilation, chunk_ukey);
   // A compilation configured for native css (via a `type: "css*"` module rule) but
   // without any css module yet still needs the css hmr runtime baked into the initial
   // chunk, so a stylesheet added by a later hot update can be requested. Once a css
@@ -436,7 +427,7 @@ async fn runtime_requirements_in_tree(
     .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
     && has_css_rule);
 
-  if !is_enabled_for_chunk
+  if !link_runtime_enabled
     && !runtime_requirements
       .intersects(RuntimeGlobals::CSS_INJECT_STYLE | RuntimeGlobals::CSS_STYLE_SHEET)
   {
@@ -450,13 +441,39 @@ async fn runtime_requirements_in_tree(
     ));
   }
 
-  if (all_runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
-    && all_runtime_requirements.intersects(
-      RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS | RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
-    ))
-    || hmr_needs_css_runtime
-  {
-    runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements_basic());
+  // The link runtime is only used by the jsonp and import chunk loading
+  // runtimes; other runtimes only get the style-sheet/inject runtimes below.
+  if link_runtime_enabled {
+    if all_runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
+      && all_runtime_requirements.intersects(
+        RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS | RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
+      )
+      || hmr_needs_css_runtime
+    {
+      runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements_basic());
+    }
+
+    if all_runtime_requirements
+      .contains(RuntimeGlobals::HAS_CSS_MODULES | RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+    {
+      runtime_requirements_mut
+        .extend(CssLoadingRuntimeModule::get_runtime_requirements_with_loading());
+      if all_runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS) {
+        runtime_requirements_mut
+          .extend(CssLoadingRuntimeModule::get_runtime_requirements_with_prefetch());
+      }
+      if all_runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS) {
+        runtime_requirements_mut
+          .extend(CssLoadingRuntimeModule::get_runtime_requirements_with_preload());
+      }
+    }
+
+    if all_runtime_requirements
+      .contains(RuntimeGlobals::HAS_CSS_MODULES | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+      || hmr_needs_css_runtime
+    {
+      runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements_with_hmr());
+    }
   }
 
   if all_runtime_requirements.contains(RuntimeGlobals::CSS_INJECT_STYLE) {
@@ -466,28 +483,6 @@ async fn runtime_requirements_in_tree(
   if all_runtime_requirements.contains(RuntimeGlobals::CSS_STYLE_SHEET) {
     let requirements = CssLoadingRuntimeModule::get_runtime_requirements_with_style_sheet();
     runtime_requirements_mut.extend(requirements.dependencies | requirements.define);
-  }
-
-  if all_runtime_requirements
-    .contains(RuntimeGlobals::HAS_CSS_MODULES | RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
-  {
-    runtime_requirements_mut
-      .extend(CssLoadingRuntimeModule::get_runtime_requirements_with_loading());
-    if all_runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS) {
-      runtime_requirements_mut
-        .extend(CssLoadingRuntimeModule::get_runtime_requirements_with_prefetch());
-    }
-    if all_runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS) {
-      runtime_requirements_mut
-        .extend(CssLoadingRuntimeModule::get_runtime_requirements_with_preload());
-    }
-  }
-
-  if all_runtime_requirements
-    .contains(RuntimeGlobals::HAS_CSS_MODULES | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
-    || hmr_needs_css_runtime
-  {
-    runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements_with_hmr());
   }
 
   Ok(None)
