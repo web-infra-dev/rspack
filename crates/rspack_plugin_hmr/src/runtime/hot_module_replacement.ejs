@@ -12,6 +12,7 @@
 // while downloading
 <%- var("blockingPromises") %> = 0;
 <%- var("blockingPromisesWaiting") %> = [];
+<%- var("blockingError") %>;
 
 // The update info
 <%- var("currentUpdateApplyHandlers") %>;
@@ -195,26 +196,39 @@
 }
 
 <%- fn("unblock") %>() {
-	if (--blockingPromises === 0) {
-		setStatus("ready").then(function () {
+	if (--blockingPromises === 0 && currentStatus === "prepare") {
+		// Change status synchronously, but propagate throws as promise rejections.
+		return new Promise(function (resolve) {
+			if (blockingError) throw blockingError;
+			resolve(setStatus("ready"));
+		}).then(function () {
 			if (blockingPromises === 0) {
 				var list = blockingPromisesWaiting;
 				blockingPromisesWaiting = [];
 				for (var i = 0; i < list.length; i++) {
-					list[i]();
+					list[i].resolve();
 				}
 			}
+		}, function (err) {
+			var list = blockingPromisesWaiting;
+			blockingPromisesWaiting = [];
+			for (var i = 0; i < list.length; i++) list[i].reject(err);
+			return setStatus("fail");
 		});
 	}
 }
 
-<%- fn("trackBlockingPromise") %>(promise) {
+<%- fn("trackBlockingPromise") %>(promise, update) {
 	switch (currentStatus) {
 		case "ready":
 			setStatus("prepare");
 		case "prepare":
 			blockingPromises++;
-			promise.then(unblock, unblock);
+			// A ready handler may await this load, so the load must not await it.
+			promise.then(unblock, function (error) {
+				if (update) blockingError = error;
+				return unblock();
+			});
 			return promise;
 		default:
 			return promise;
@@ -222,18 +236,18 @@
 }
 
 <%- fn("waitForBlockingPromises") %>(fn) {
+	if (blockingError) throw blockingError;
 	if (blockingPromises === 0) return fn();
-	return new Promise(function (resolve) {
-		blockingPromisesWaiting.push(function () {
-			resolve(fn());
-		});
-	});
+	return new Promise(function (resolve, reject) {
+		blockingPromisesWaiting.push({ resolve: resolve, reject: reject });
+	}).then(function () { return waitForBlockingPromises(fn); });
 }
 
 <%- fn("hotCheck") %>(applyOnUpdate) {
 	if (currentStatus !== "idle") {
 		throw new Error("check() is only allowed in idle status");
 	}
+	blockingError = undefined;
 	<% if (_is_hot_test) { %>
 	self.__HMR_UPDATED_RUNTIME__ = {
 		javascript: {
@@ -259,8 +273,12 @@
 				);
 			}
 
-			return setStatus("prepare").then(function () {
-				var updatedModules = [];
+			var updatedModules = [];
+			// Preparation includes async status handlers and all update downloads.
+			blockingPromises++;
+			return Promise.resolve().then(function () {
+				return setStatus("prepare");
+			}).then(function () {
 				currentUpdateApplyHandlers = [];
 
 				return Promise.all(
@@ -276,22 +294,30 @@
 							currentUpdateApplyHandlers,
 							updatedModules,
 							update.css,
-							update.miniCss
+							update.miniCss,
+							function (promise) { return trackBlockingPromise(promise, true); }
 						);
 						return promises;
 					},
 						[])
-				).then(function () {
-					return waitForBlockingPromises(function () {
-						if (applyOnUpdate) {
-							return internalApply(applyOnUpdate);
-						}
-						return setStatus("ready").then(function () {
-							return updatedModules;
-						});
+				);
+			}).then(function () {
+				blockingPromises--;
+				return waitForBlockingPromises(function () {
+					if (applyOnUpdate) {
+						return internalApply(applyOnUpdate);
+					}
+					return setStatus("ready").then(function () {
+						return updatedModules;
 					});
 				});
+			}, function (err) {
+				blockingPromises--;
+				throw err;
 			});
+		}).catch(function (err) {
+			if (currentStatus === "abort" || currentStatus === "fail") throw err;
+			return setStatus("fail").then(function () { throw err; });
 		});
 }
 
