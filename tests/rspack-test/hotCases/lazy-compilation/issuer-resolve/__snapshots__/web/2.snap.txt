@@ -11,7 +11,7 @@
 - Bundle: data_resolve_txt_lazy-compilation-proxy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 70
 - Update: data_resolve_txt_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1023
-- Update: main.LAST_HASH.hot-update.js, size: 470
+- Update: main.LAST_HASH.hot-update.js, size: 789
 
 ## Manifest
 
@@ -63,6 +63,7 @@ var data = "lazy-compilation-proxy|asset/source|<TEST_ROOT>/js/temp/hot-snapshot
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
 
 #### Changed Content
 ```js
@@ -82,6 +83,10 @@ __webpack_require__.d(__webpack_exports__, {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+[["data_resolve_txt","CHUNK_VERSION"],["data_resolve_txt_lazy-compilation-proxy","CHUNK_VERSION"]].forEach(function(entry) { if (entry[1] === null) delete __webpack_require__.hmrV[entry[0]]; else __webpack_require__.hmrV[entry[0]] = entry[1]; });
 })();
 
 }

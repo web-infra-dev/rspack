@@ -11,7 +11,7 @@
 - Manifest: main.LAST_HASH.hot-update.json, size: 51
 - Update: chunk2_js.LAST_HASH.hot-update.js, size: 490
 - Update: chunk_js.LAST_HASH.hot-update.js, size: 489
-- Update: main.LAST_HASH.hot-update.js, size: 181
+- Update: main.LAST_HASH.hot-update.js, size: 462
 
 ## Manifest
 
@@ -106,6 +106,7 @@ var value = 4;
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
 
 #### Changed Content
 ```js
@@ -114,6 +115,10 @@ self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+[["chunk2_js","CHUNK_VERSION"],["chunk_js","CHUNK_VERSION"]].forEach(function(entry) { if (entry[1] === null) delete __webpack_require__.hmrV[entry[0]]; else __webpack_require__.hmrV[entry[0]] = entry[1]; });
 })();
 
 }

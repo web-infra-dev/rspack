@@ -34,9 +34,8 @@ export default defineConfig({
             expect(misses).toBe(0);
           }
           if (updateIndex === 2) {
-            // The compilation hash changes even in the unchanged async chunk.
-            expect(hits).toBe(0);
-            expect(misses).toBe(2);
+            expect(hits).toBe(1);
+            expect(misses).toBe(1);
           }
 
           updateIndex++;

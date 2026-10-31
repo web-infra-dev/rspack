@@ -11,7 +11,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JavascriptModulesRenderStartup,
   JsPlugin, RenderSource,
   impl_plugin_for_js_plugin::chunk_has_js,
-  runtime::{HMR_CHUNK_HASH_PLACEHOLDER, render_chunk_runtime_modules},
+  runtime::{get_hmr_chunk_version, render_chunk_runtime_modules},
 };
 use rspack_util::itoa;
 use rustc_hash::FxHashSet as HashSet;
@@ -153,7 +153,8 @@ async fn render_chunk(
       .contains(RuntimeGlobals::HMR_CHECK_CHUNK)
   {
     sources.add(RawStringSource::from(format!(
-      "export const __rspack_esm_hash = {HMR_CHUNK_HASH_PLACEHOLDER};\n"
+      "export const __rspack_esm_hash = {};\n",
+      rspack_util::json_stringify_str(&get_hmr_chunk_version(compilation, chunk))
     )));
   }
   sources.add(RawStringSource::from(format!(

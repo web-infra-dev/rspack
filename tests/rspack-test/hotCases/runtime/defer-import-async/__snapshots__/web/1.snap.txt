@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: consumer_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 28084
+- Update: main.LAST_HASH.hot-update.js, size: 28352
 
 ## Manifest
 
@@ -31,6 +31,7 @@
 - webpack/runtime/create_fake_namespace_object
 - webpack/runtime/ensure_chunk
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
 - webpack/runtime/jsonp_chunk_loading
 - webpack/runtime/make_deferred_namespace_object
 - webpack/runtime/make_optimized_deferred_namespace_object
@@ -211,6 +212,10 @@ __webpack_require__.u = (chunkId) => {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+[["consumer_js","CHUNK_VERSION"]].forEach(function(entry) { if (entry[1] === null) delete __webpack_require__.hmrV[entry[0]]; else __webpack_require__.hmrV[entry[0]] = entry[1]; });
 })();
 // webpack/runtime/make_deferred_namespace_object
 (() => {
@@ -913,7 +918,7 @@ __webpack_require__.hmrM = () => {
 // install a JSONP callback for chunk loading
 var __rspack_jsonp = (parentChunkLoadingFunction, data) => {
 	var [chunkIds, moreModules, runtime] = data;
-	var error = __webpack_require__.hmrV(data[3]);
+	var error = __webpack_require__.hmrCheck(chunkIds, data[3]);
 	if (error) {
 		// Reject after the script's onload has cleaned up this attempt.
 		chunkIds.forEach(function (id) {

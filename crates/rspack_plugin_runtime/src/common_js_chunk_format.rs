@@ -9,7 +9,7 @@ use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JsPlugin, RenderSource,
-  runtime::{HMR_CHUNK_HASH_PLACEHOLDER, render_chunk_runtime_modules},
+  runtime::{get_hmr_chunk_version, render_chunk_runtime_modules},
 };
 use rspack_util::json_stringify_str;
 
@@ -137,7 +137,8 @@ async fn render_chunk(
       .contains(RuntimeGlobals::HMR_CHECK_CHUNK)
   {
     sources.add(RawStringSource::from(format!(
-      "exports.hash = {HMR_CHUNK_HASH_PLACEHOLDER};\n"
+      "exports.__rspack_cjs_hash = {};\n",
+      json_stringify_str(&get_hmr_chunk_version(compilation, chunk))
     )));
   }
   sources.add(RawStringSource::from(format!(

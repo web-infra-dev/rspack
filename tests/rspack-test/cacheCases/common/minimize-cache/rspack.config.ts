@@ -76,14 +76,14 @@ export default defineConfig({
           }
           if (updateIndex === 3) {
             // Third cold build with changed file content.
-            // Both assets carry the changed compilation hash.
-            expect(hits).toBe(0);
-            expect(misses).toBe(2);
+            // Async chunk unchanged → hit; entry chunk changed → miss.
+            expect(hits).toBe(1);
+            expect(misses).toBe(1);
           }
           if (updateIndex === 4) {
-            // The changed compilation hash also invalidates the async asset.
-            expect(hits).toBe(0);
-            expect(misses).toBe(2);
+            // Cold restart. Async chunk still unchanged → hit.
+            expect(hits).toBe(1);
+            expect(misses).toBe(1);
           }
 
           updateIndex++;

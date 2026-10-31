@@ -16,8 +16,8 @@
 - Manifest: main.LAST_HASH.hot-update.json, size: 54
 - Update: main.LAST_HASH.hot-update.js, size: 181
 - Update: shared.LAST_HASH.hot-update.js, size: 624
-- Update: workerA_js.LAST_HASH.hot-update.js, size: 473
-- Update: workerB_js.LAST_HASH.hot-update.js, size: 473
+- Update: workerA_js.LAST_HASH.hot-update.js, size: 741
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 759
 
 ## Manifest
 
@@ -114,6 +114,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
 
 #### Changed Content
 ```js
@@ -134,6 +135,10 @@ __webpack_require__.d(__webpack_exports__, {
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
 })();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+[["shared","CHUNK_VERSION"],["chunkS_js",null]].forEach(function(entry) { if (entry[1] === null) delete __webpack_require__.hmrV[entry[0]]; else __webpack_require__.hmrV[entry[0]] = entry[1]; });
+})();
 
 }
 );
@@ -148,6 +153,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
 
 #### Changed Content
 ```js
@@ -167,6 +173,10 @@ __webpack_require__.d(__webpack_exports__, {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+[["shared","CHUNK_VERSION"],["chunkS_js",null],["chunk_js",null]].forEach(function(entry) { if (entry[1] === null) delete __webpack_require__.hmrV[entry[0]]; else __webpack_require__.hmrV[entry[0]] = entry[1]; });
 })();
 
 }

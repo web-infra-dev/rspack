@@ -8,7 +8,7 @@
 - Bundle: lazy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 56
 - Update: lazy.LAST_HASH.hot-update.js, size: 334
-- Update: main.LAST_HASH.hot-update.js, size: 7863
+- Update: main.LAST_HASH.hot-update.js, size: 8110
 
 ## Manifest
 
@@ -58,6 +58,7 @@ __webpack_require__.d(__webpack_exports__, {
 #### Changed Runtime Modules
 - webpack/runtime/css_loading
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
 
 #### Changed Content
 ```js
@@ -66,6 +67,10 @@ self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+[["lazy","CHUNK_VERSION"]].forEach(function(entry) { if (entry[1] === null) delete __webpack_require__.hmrV[entry[0]]; else __webpack_require__.hmrV[entry[0]] = entry[1]; });
 })();
 // webpack/runtime/css_loading
 (() => {

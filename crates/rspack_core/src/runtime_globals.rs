@@ -318,6 +318,8 @@ define_runtime_globals! {
 
   /// Validate an ordinary chunk before installing it during HMR.
   const HMR_CHECK_CHUNK;
+  /// Expected JavaScript versions of asynchronously loadable chunks.
+  const HMR_CHUNK_VERSIONS;
 }
 
 impl Default for RuntimeGlobals {
@@ -398,7 +400,8 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::INTERCEPT_MODULE_EXECUTION => "i",
     RuntimeGlobals::HMR_DOWNLOAD_MANIFEST => "hmrM",
     RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS => "hmrC",
-    RuntimeGlobals::HMR_CHECK_CHUNK => "hmrV",
+    RuntimeGlobals::HMR_CHECK_CHUNK => "hmrCheck",
+    RuntimeGlobals::HMR_CHUNK_VERSIONS => "hmrV",
     RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS => "hmrI",
     RuntimeGlobals::HMR_MODULE_DATA => "hmrD",
     RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX => "hmrS",

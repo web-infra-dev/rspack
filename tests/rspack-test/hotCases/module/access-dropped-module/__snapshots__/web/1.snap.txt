@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 42
-- Update: main.LAST_HASH.hot-update.js, size: 15664
+- Update: main.LAST_HASH.hot-update.js, size: 15900
 
 ## Manifest
 
@@ -27,6 +27,7 @@
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
 - webpack/runtime/jsonp_chunk_loading
 
 #### Changed Content
@@ -42,6 +43,10 @@ console.log("a");
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+[["b_js",null]].forEach(function(entry) { if (entry[1] === null) delete __webpack_require__.hmrV[entry[0]]; else __webpack_require__.hmrV[entry[0]] = entry[1]; });
 })();
 // webpack/runtime/jsonp_chunk_loading
 (() => {

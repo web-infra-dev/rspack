@@ -20,6 +20,8 @@
 <%- var("queuedInvalidatedModules") %>;
 // Chunk loads waiting for the current update to settle.
 <%- var("settledWaiters") %> = [];
+// Concurrent ensures share the actual attempt and its starting runtime hash.
+<%- var("chunkLoadingPromises") %> = Object.create(null);
 
 <%- define(HMR_MODULE_DATA) %> = currentModuleData;
 <% if (_is_rspack_runtime_mode) { %><%- define(INTERCEPT_MODULE_EXECUTION) %> = [];
@@ -43,11 +45,14 @@
 
 <%- define(HMR_DOWNLOAD_UPDATE_HANDLERS) %> = {};
 <%- define(HMR_INVALIDATE_MODULE_HANDLERS) %> = {};
-<%- define(HMR_CHECK_CHUNK) %> = function (hash) {
-	if (hash !== undefined && hash !== <%- GET_FULL_HASH %>()) {
-		var error = new Error("Chunk is from another build (" + hash + ")");
-		error.name = "ChunkVersionError";
-		return error;
+<%- define(HMR_CHECK_CHUNK) %> = function (chunkIds, version) {
+	if (version === undefined) return;
+	for (var i = 0; i < chunkIds.length; i++) {
+		if (version !== <%- HMR_CHUNK_VERSIONS %>[chunkIds[i]]) {
+			var error = new Error("Chunk is from another build (" + version + ")");
+			error.name = "ChunkVersionError";
+			return error;
+		}
 	}
 };
 
@@ -98,17 +103,26 @@
 	}
 
 	fn.e = function (chunkId, fetchPriority) {
+		var loading = chunkLoadingPromises[chunkId];
+		if (loading) {
+			if (loading[0]) trackBlockingPromise(loading[0]);
+			return loading[1];
+		}
+		// [current download, complete retry]
+		loading = [];
+		var clear = function () {
+			if (chunkLoadingPromises[chunkId] === loading) delete chunkLoadingPromises[chunkId];
+		};
 		var retriedHash;
 		var load = function () {
-			var hash = <%- GET_FULL_HASH %>();
 			// Only one attempt blocks prepare; catch-up and retries must not.
-			var promise;
+			var hash = <%- GET_FULL_HASH %>();
 			try {
-				promise = <% if (_is_rspack_runtime_mode) { %><%- REQUIRE_SCOPE %>.e<% } else { %>require.e<% } %>(chunkId, fetchPriority);
+				loading[0] = <% if (_is_rspack_runtime_mode) { %><%- REQUIRE_SCOPE %>.e<% } else { %>require.e<% } %>(chunkId, fetchPriority);
 			} catch (error) {
-				promise = Promise.reject(error);
+				loading[0] = Promise.reject(error);
 			}
-			return trackBlockingPromise(promise).then(function (result) {
+			return trackBlockingPromise(loading[0]).then(function (result) {
 				// Promise.all([]): every ensure handler found the chunk installed.
 				// A ready handler can await this import without waiting for apply.
 				if (!result || result.length === 0) return result;
@@ -124,7 +138,10 @@
 				});
 			});
 		};
-		return load();
+		loading[1] = load();
+		chunkLoadingPromises[chunkId] = loading;
+		loading[1].then(clear, clear);
+		return loading[1];
 	};
 
 	return fn;

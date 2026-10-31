@@ -203,6 +203,7 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
             );
             const pageHash = initialPage.hash;
             const pageFile = [...initialPage.files][0];
+            const pageSource = assets[pageFile];
             if (target === 'module')
               await import(pathToFileURL(path.join(output, 'main.mjs')).href);
             else if (native)
@@ -236,14 +237,15 @@ export default ['web', 'webworker', 'node', 'async-node', 'module'].flatMap(
                 'HMR metadata must not change the chunk hash',
               );
               assert.deepEqual([...page.files], [pageFile]);
-              assert.ok(
-                assets[pageFile].includes(firstHash),
-                'cached chunks must carry the current compilation hash',
+              assert.equal(
+                assets[pageFile],
+                pageSource,
+                'an unrelated update must not change the chunk or its version',
               );
               assert.equal(
                 fs.readFileSync(path.join(output, pageFile), 'utf8'),
                 assets[pageFile],
-                'the new version must be emitted even when the filename is unchanged',
+                'the unchanged chunk must retain its emitted contents',
               );
               assert.equal(
                 lastStats.hasWarnings(),
