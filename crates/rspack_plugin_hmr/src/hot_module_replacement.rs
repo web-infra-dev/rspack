@@ -17,6 +17,10 @@ static HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntim
     requirements
       .define
       .insert(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
+    // Supplemental chunks use the ordinary loaders to complete installation.
+    requirements
+      .dependencies
+      .insert(RuntimeGlobals::ENSURE_CHUNK | RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
     requirements
   });
 static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =

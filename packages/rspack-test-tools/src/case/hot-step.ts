@@ -165,7 +165,9 @@ function createHotStepProcessor(
         );
         if (
           fileName.endsWith('hot-update.js') ||
-          fileName.endsWith('hot-update.mjs')
+          fileName.endsWith('hot-update.mjs') ||
+          fileName.endsWith('hot-update.js.full.js') ||
+          fileName.endsWith('hot-update.mjs.full.mjs')
         ) {
           const modules = fileName.endsWith('.mjs')
             ? Object.keys(
