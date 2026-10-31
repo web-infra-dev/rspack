@@ -61,8 +61,10 @@ pub struct ExportSpec {
   pub terminal_binding: Option<bool>,
   pub priority: Option<u8>,
   pub hidden: Option<bool>,
-  pub from: Option<ModuleGraphConnection>,
-  pub from_export: Option<ModuleGraphConnection>,
+  /// Re-export source. Star re-exports build one spec per export name, and the
+  /// only field consumers read is the dependency id, so this stays a copyable id
+  /// instead of a cloned [`ModuleGraphConnection`].
+  pub from: Option<DependencyId>,
   pub inlinable: Option<EvaluatedInlinableValue>,
 }
 
@@ -101,7 +103,9 @@ pub struct ExportsSpec {
   pub priority: Option<u8>,
   pub can_mangle: Option<bool>,
   pub terminal_binding: Option<bool>,
-  pub from: Option<ModuleGraphConnection>,
+  /// Re-export source for unknown exports. Presence selects the current
+  /// dependency as the target; the id itself is what named exports record.
+  pub from: Option<DependencyId>,
   pub dependencies: Option<Vec<ModuleIdentifier>>,
   pub hide_export: Option<FxHashSet<Atom>>,
   pub exclude_exports: Option<FxHashSet<Atom>>,

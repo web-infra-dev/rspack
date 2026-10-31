@@ -4,8 +4,8 @@ use rspack_core::{
   AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules, DependencyId,
   EvaluatedInlinableValue, ExportInfo, ExportInfoData, ExportNameOrSpec, ExportProvided,
   ExportsInfo, ExportsInfoArtifact, ExportsInfoData, ExportsOfExportsSpec, ExportsSpec,
-  GetTargetResult, Logger, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleIdentifier, Nullable, Plugin, SideEffectsStateArtifact, get_target,
+  GetTargetResult, Logger, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, Nullable,
+  Plugin, SideEffectsStateArtifact, get_target,
   incremental::{self, IncrementalPasses},
 };
 use rspack_error::Result;
@@ -70,7 +70,13 @@ impl<'a> FlagDependencyExportsState<'a> {
     while !batch.is_empty() {
       let modules = std::mem::take(&mut batch);
 
-      // collect the exports specs from modules by calling `dependency.get_exports`
+      // Collect export specs before merging them. `export *` asks every star
+      // dependency to scan the same parent assignment list; cache that scan for
+      // this read-only batch, then drop it. The next fixed-point batch sees
+      // updated provide info, and the other module-graph caches stay cold.
+      let mg_cache = self.mg_cache.clone();
+      mg_cache.begin_determine_export_assignments_cache();
+      let _assignment_cache = DetermineExportAssignmentsCacheGuard(mg_cache);
       let module_exports_specs = modules
         .into_par_iter()
         .map(|module_id| {
@@ -84,6 +90,7 @@ impl<'a> FlagDependencyExportsState<'a> {
           (module_id, exports_specs)
         })
         .collect::<Vec<_>>();
+      drop(_assignment_cache);
 
       let mut changed_modules =
         IdentifierSet::with_capacity_and_hasher(module_exports_specs.len(), Default::default());
@@ -179,12 +186,22 @@ impl<'a> FlagDependencyExportsState<'a> {
   }
 }
 
+/// Drops the star-export assignment cache when the collect batch ends,
+/// including when collect panics.
+struct DetermineExportAssignmentsCacheGuard(ModuleGraphCacheArtifact);
+
+impl Drop for DetermineExportAssignmentsCacheGuard {
+  fn drop(&mut self) {
+    self.0.end_determine_export_assignments_cache();
+  }
+}
+
 /// Used for reducing nums of params
 #[derive(Debug, Clone)]
-pub struct DefaultExportInfo<'a> {
+pub struct DefaultExportInfo {
   can_mangle: Option<bool>,
   terminal_binding: bool,
-  from: Option<&'a ModuleGraphConnection>,
+  from: Option<DependencyId>,
   priority: Option<u8>,
 }
 
@@ -254,9 +271,9 @@ fn collect_module_exports_specs(
   let mgm = mg.module_graph_module_by_identifier(module_id)?;
   let all_dependencies = mgm.all_dependencies();
 
-  // There is no need to use the cache here
-  // because the `get_exports` of each dependency will only be called once
-  // mg_cache.freeze();
+  // The star-export assignment cache is enabled by the caller for this batch.
+  // `get_exports` runs once per dependency, but each `export *` repeats the
+  // parent module's assignment scan, and that scan is what the cache dedups.
   let mut has_nested_exports = false;
   let mut res = Vec::with_capacity(all_dependencies.len());
   for id in all_dependencies.iter().copied() {
@@ -269,7 +286,6 @@ fn collect_module_exports_specs(
     has_nested_exports |= exports_spec.has_nested_exports();
     res.push((id, exports_spec));
   }
-  // mg_cache.unfreeze();
   Some((res, has_nested_exports))
 }
 
@@ -287,7 +303,7 @@ pub fn process_exports_spec(
   let mut dependencies = vec![];
   let exports = &export_desc.exports;
   let global_can_mangle = &export_desc.can_mangle;
-  let global_from = export_desc.from.as_ref();
+  let global_from = export_desc.from;
   let global_priority = &export_desc.priority;
   let global_terminal_binding = export_desc.terminal_binding.unwrap_or(false);
   let export_dependencies = &export_desc.dependencies;
@@ -363,7 +379,7 @@ fn process_exports_spec_without_nested(
 
   let exports = &export_desc.exports;
   let global_can_mangle = &export_desc.can_mangle;
-  let global_from = export_desc.from.as_ref();
+  let global_from = export_desc.from;
   let global_priority = &export_desc.priority;
   let global_terminal_binding = export_desc.terminal_binding.unwrap_or(false);
   let export_dependencies = &export_desc.dependencies;
@@ -419,7 +435,7 @@ struct ParsedExportSpec<'a> {
   can_mangle: Option<bool>,
   terminal_binding: bool,
   exports: Option<&'a Vec<ExportNameOrSpec>>,
-  from: Option<&'a ModuleGraphConnection>,
+  from: Option<DependencyId>,
   from_export: Option<&'a Nullable<Vec<Atom>>>,
   priority: Option<u8>,
   hidden: bool,
@@ -450,7 +466,7 @@ impl<'a> ParsedExportSpec<'a> {
           .terminal_binding
           .unwrap_or(global_export_info.terminal_binding),
         exports: spec.exports.as_ref(),
-        from: spec.from.as_ref().or(global_export_info.from),
+        from: spec.from.or(global_export_info.from),
         from_export: spec.export.as_ref(),
         priority: spec.priority.or(global_export_info.priority),
         hidden: spec.hidden.unwrap_or(false),
@@ -672,7 +688,7 @@ fn merge_nested_exports(
     module_id,
     nested_exports_info,
     exports,
-    global_export_info.clone(),
+    global_export_info,
     dep_id,
   );
   changed |= merge_changed;
@@ -683,7 +699,7 @@ fn merge_nested_exports(
 
 fn set_export_target(
   export_info: &mut ExportInfoData,
-  from: Option<&ModuleGraphConnection>,
+  from: Option<DependencyId>,
   from_export: Option<&Nullable<Vec<Atom>>>,
   priority: Option<u8>,
   hidden: bool,
@@ -703,12 +719,7 @@ fn set_export_target(
       } else {
         Some(&fallback)
       };
-      export_info.set_target(
-        Some(dep_id),
-        Some(from.dependency_id),
-        export_name,
-        priority,
-      )
+      export_info.set_target(Some(dep_id), Some(from), export_name, priority)
     }
   }
   changed
