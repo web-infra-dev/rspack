@@ -469,6 +469,10 @@ impl Compilation {
     self.cache.facade(name)
   }
 
+  pub fn get_shared_cache(&self, name: &str) -> CacheFacade {
+    self.cache.shared_facade(name)
+  }
+
   pub fn id(&self) -> CompilationId {
     self.id
   }

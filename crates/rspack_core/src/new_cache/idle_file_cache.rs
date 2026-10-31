@@ -7,7 +7,7 @@ use std::{
   time::Duration,
 };
 
-use rspack_paths::{InternedPathSet, Utf8PathBuf};
+use rspack_paths::{InternedPath, InternedPathSet, Utf8PathBuf};
 use tokio::{
   sync::mpsc,
   time::{Instant, sleep_until},
@@ -148,6 +148,7 @@ impl BackgroundJob {
 /// Runs filesystem cache operations in one persistent background job.
 #[derive(Debug)]
 pub struct IdleFileCache {
+  storage_dir: InternedPath,
   strategy: Arc<FileCacheStrategy>,
   logger: Arc<InfrastructureLogger>,
   command_sender: mpsc::UnboundedSender<Command>,
@@ -163,6 +164,7 @@ impl IdleFileCache {
     idle_timeout_for_initial_store: Option<Duration>,
     idle_timeout_after_large_changes: Option<Duration>,
   ) -> Self {
+    let storage_dir = InternedPath::from(database_paths.1.as_path());
     let idle_timeout = idle_timeout.unwrap_or(DEFAULT_IDLE_TIMEOUT);
     let idle_timeout_for_initial_store =
       idle_timeout_for_initial_store.unwrap_or(DEFAULT_IDLE_TIMEOUT_FOR_INITIAL_STORE);
@@ -195,11 +197,16 @@ impl IdleFileCache {
       .expect("failed to spawn idle file cache background thread");
 
     Self {
+      storage_dir,
       strategy,
       logger,
       command_sender,
       idle_epoch,
     }
+  }
+
+  pub(super) fn storage_dir(&self) -> InternedPath {
+    self.storage_dir.clone()
   }
 
   fn send(&self, command: Command) {
@@ -245,7 +252,7 @@ impl IdleFileCache {
     self.send(Command::EndIdle);
   }
 
-  pub async fn shutdown(&self) {
+  pub(super) async fn shutdown(&self) {
     self.idle_epoch.fetch_add(1, Ordering::Release);
     self.send(Command::Shutdown);
     self.command_sender.closed().await;

@@ -5,7 +5,7 @@ use std::{
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use rspack_core::{Cache, CompilerOptions, InfrastructureLogSink, create_cache};
+use rspack_core::{Cache, CompilerOptions, InfrastructureLogSink, create_cache, shutdown_cache};
 use rspack_fs::{NativeFileSystem, ReadableFileSystem};
 
 /// One shared cache, initialized from the first compiler that uses it.
@@ -22,13 +22,11 @@ impl JsCache {
     input_filesystem: Arc<dyn ReadableFileSystem>,
     infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
   ) -> Arc<Cache> {
-    Arc::clone(self.cache.get_or_init(|| {
-      Arc::new(create_cache(
-        options,
-        input_filesystem,
-        infrastructure_log_sink,
-      ))
-    }))
+    Arc::clone(
+      self
+        .cache
+        .get_or_init(|| create_cache(options, input_filesystem, infrastructure_log_sink)),
+    )
   }
 }
 
@@ -64,7 +62,7 @@ impl JsCache {
     let cache = self.cache.get().cloned();
     rspack_napi::runtime::promise_from_future(env, async move {
       if let Some(cache) = cache {
-        cache.shutdown().await;
+        shutdown_cache(cache).await;
       }
       Ok(())
     })
