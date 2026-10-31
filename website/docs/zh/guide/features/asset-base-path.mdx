@@ -127,10 +127,10 @@ HTML 中 `<script>` 和 `<link>` 元素的 URL 则由浏览器解析，不受 Rs
 
 ### 默认基准 URI \{#default-base-uri}
 
-通常可以直接使用默认的基准 URI。具体值取决于运行环境和 chunk 加载方式：
+通常无需手动设置基准 URI。在常见配置下：
 
-- 浏览器构建使用默认 chunk 加载方式时，基准 URI 为 `document.baseURI || self.location.href`，由页面 URL 和 HTML `<base>` 元素决定。
-- Node.js 构建使用常规 CommonJS 输出时，基准 URI 是根据产物位置生成的 `file:` URL。
+- **浏览器**：以页面 URL 为基准；如果设置了 HTML `<base>` 元素，则使用它指定的地址。
+- **Node.js**：使用根据产物位置生成的 `file:` URL。
 
 浏览器构建默认使用 `publicPath: 'auto'`，通常会根据 bundle 的地址生成绝对资源 URL，因此无需依赖基准 URI。Node.js 构建默认使用 `publicPath: ''`，生成的相对资源路径会基于上述 `file:` URL 解析。
 
@@ -174,6 +174,6 @@ const logoUrl = new URL('./logo.png', import.meta.url);
 console.log(logoUrl.href); // https://example.com/app/assets/logo.png
 ```
 
-修改基准 URI 只会影响 Rspack 运行时之后创建的相关 URL，不会改变 HTML 的 `<base>` 元素、HTML 中的资源地址或已有的 `URL` 对象。
+修改基准 URI 只对之后创建的相关 URL 生效，已有的 `URL` 对象不会更新。
 
 如果导入的模块在初始化时就会创建资源 URL，请在单独的初始化模块中设置基准 URI，并确保该模块先执行。
