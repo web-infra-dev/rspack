@@ -47,9 +47,10 @@ export default {
 		fs.mkdirSync(input, { recursive: true });
 		const write = (name, source) => fs.writeFileSync(path.join(input, name), source);
 		// Cover immediate/later edits and both ordinary and supplemental replacements.
-		for (const mode of ["async", "supplement", "initial"]) {
+		for (const mode of ["async", "supplement", "initial", "deleted"]) {
 			const initial = mode === "initial";
 			const supplement = mode === "supplement";
+			const deleted = mode === "deleted";
 			const builds = [];
 			for (let step = 0; step < 3; step++) {
 				write("a.js", `
@@ -61,7 +62,7 @@ export default {
 					globalThis.loadOther = () => import(/* webpackChunkName: 'other' */ './other');
 					module.hot.accept();
 				`);
-				write("b.js", `${supplement ? "globalThis.loadOld = () => import(/* webpackChunkName: 'old' */ './old');" : "require('./dep');"} module.hot.accept();`);
+				write("b.js", `${deleted ? "" : supplement ? "globalThis.loadOld = () => import(/* webpackChunkName: 'old' */ './old');" : "require('./dep');"} module.hot.accept();`);
 				write("page.js", `globalThis.pageValue = ${supplement ? step ? "require('./dep')" : "0" : step ? "9" : "require('./dep')"}; module.hot.accept();`);
 				write("dep.js", `module.exports = ${step && (initial || step === 2) ? 3 : 2}; module.hot.accept();`);
 				write("other.js", "module.exports = require('./dep');");
@@ -73,7 +74,11 @@ export default {
 				assert.equal(stats.hasErrors(), false, stats.toString());
 				builds.push(Object.fromEntries(stats.compilation.getAssets().map(asset => [asset.name, asset.source.source().toString()])));
 			}
-			for (const otherLoaded of mode === "async" ? [false, true] : [false]) {
+			if (deleted) {
+				assert(Object.hasOwn(builds[0], "shared.js"));
+				assert(!Object.hasOwn(builds[1], "shared.js"));
+			}
+			for (const otherLoaded of mode === "async" || deleted ? [false, true] : [false]) {
 				let assets = builds[0];
 				const sandbox = vm.createContext({ self: {}, console, Promise, setTimeout, clearTimeout });
 				if (initial) vm.runInContext(assets["shared.js"], sandbox);
