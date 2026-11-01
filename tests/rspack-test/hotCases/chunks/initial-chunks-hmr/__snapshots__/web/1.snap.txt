@@ -10,7 +10,7 @@
 - Bundle: main.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 41
 - Update: initial_js.LAST_HASH.hot-update.js, size: 332
-- Update: main.LAST_HASH.hot-update.js, size: 20049
+- Update: main.LAST_HASH.hot-update.js, size: 20398
 
 ## Manifest
 
@@ -58,6 +58,7 @@ const value = "b";
 - ./index.js
 
 #### Changed Runtime Modules
+- webpack/runtime/chunk_group_map
 - webpack/runtime/get_full_hash
 - webpack/runtime/jsonp_chunk_loading
 - webpack/runtime/on_chunk_loaded
@@ -122,6 +123,19 @@ __webpack_require__.O = (result, chunkIds, fn, priority) => {
 	}
 	return result;
 };
+
+})();
+// webpack/runtime/chunk_group_map
+(() => {
+((groups) => {
+	var map = __webpack_require__.hmrS_chunkGroups = __webpack_require__.hmrS_chunkGroups || Object.create(null);
+	
+	Object.keys(groups).forEach((chunkId) => {
+		if (groups[chunkId] === null) delete map[chunkId];
+		else map[chunkId] = groups[chunkId];
+	});
+})({"initial_js":["lib"]});
+
 
 })();
 // webpack/runtime/jsonp_chunk_loading
