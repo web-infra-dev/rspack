@@ -68,7 +68,8 @@
 		}));
 	};
 	hotUpdateGroup = function (chunkId, promises) {
-		prepareChunks(update.load.groups && update.load.groups[chunkId], promises);
+		var groups = update.load.groups;
+		if (groups && <%- HAS_OWN_PROPERTY %>(groups, chunkId)) prepareChunks(groups[chunkId], promises);
 	};
 	promises.push(Promise.resolve().then(function () {
 		var entryPromises = [];
@@ -142,6 +143,9 @@
 		}
 		// [current download, complete retry]
 		loading = chunkLoadingPromises[chunkId] = [];
+		var clear = function () {
+			if (chunkLoadingPromises[chunkId] === loading) delete chunkLoadingPromises[chunkId];
+		};
 		var retriedHash;
 		var load = function () {
 			// Only one attempt blocks prepare; catch-up and retries must not.
@@ -151,6 +155,9 @@
 			} catch (error) {
 				loading[0] = Promise.reject(error);
 			}
+			// Once installed, another ensure must reach the loader's fast path,
+			// even while this caller waits for apply. Clear before unblock runs.
+			loading[0].then(clear, function () {});
 			return trackBlockingPromise(loading[0]).then(function (result) {
 				// Promise.all([]): every ensure handler found the chunk installed.
 				// A ready handler can await this import without waiting for apply.
@@ -169,7 +176,6 @@
 			});
 		};
 		var promise = loading[1] = load();
-		var clear = function () { delete chunkLoadingPromises[chunkId]; };
 		promise.then(clear, clear);
 		return promise;
 	};

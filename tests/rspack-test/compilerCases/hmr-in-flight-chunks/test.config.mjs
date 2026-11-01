@@ -59,6 +59,7 @@ const scenarios = [
     order: 'chunk-first',
   })),
   { name: 'async-prepare', start: 'prepare', version: 1, order: 'chunk-first' },
+  { name: 'ready-pending-import', start: 'prepare', version: 1, order: 'update-first' },
   {
     name: 'manual-ready-import',
     start: 'ready',
@@ -447,15 +448,21 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
             return;
           }
 
-          if (scenario === 'ready-cached-import') {
-            assert.equal((await app.load()).default, 1);
+          if (scenario === 'ready-cached-import' || scenario === 'ready-pending-import') {
+            const pending = scenario === 'ready-pending-import';
+            if (!pending) assert.equal((await app.load()).default, 1);
             await build({ 'page.js': 'module.exports = 2;' });
             holding = true;
             let other;
             let ready = false;
             let cached;
+            let first;
             app.hot.addStatusHandler((status) => {
-              if (status === 'prepare' && !other) {
+              if (status === 'prepare' && !first && pending) {
+                first = app.load();
+                first.catch(() => {});
+              }
+              if (status === 'prepare' && !other && !pending) {
                 other = app.other();
                 other.catch(() => {});
               }
@@ -469,7 +476,7 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
             });
             const update = app.hot.check(true);
             update.catch(() => {});
-            const chunk = await response(/^q\.(?:js|mjs)$/);
+            const chunk = await response(pending ? /^page\.(?:js|mjs)$/ : /^q\.(?:js|mjs)$/);
             await deliver(await response(/^main\..*\.hot-update\.(?:js|mjs)$/));
             await deliver(await response(/^page\..*\.hot-update\.(?:js|mjs)$/));
             await new Promise((resolve) => setImmediate(resolve));
@@ -477,6 +484,7 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
             await wait(update);
             assert.equal(ready, true);
             await other;
+            if (pending) assert.equal((await first).default, 2);
             assert.equal((await app.load()).default, 2);
             assert.equal(app.hot.status(), 'idle');
             return;
