@@ -27,12 +27,14 @@ Rspack 默认提供两个缓存组：
 - `default`：抽离至少被 2 个 chunk 共享的模块。
 - `defaultVendors`：抽离来自 `node_modules` 的模块。
 
-Rspack 将根据以下条件自动拆分 chunk：
+在生产模式下，Rspack 默认按以下条件拆分 chunk：
 
-- 新的 chunk 可以被共享，或者模块来自于 `node_modules` 文件夹
-- 新的 chunk 体积大于 20kb（在进行 min+gz 之前的体积）
-- 当按需加载 chunks 时，并行请求的最大数量小于或等于 30
-- 当加载初始化页面时，并发请求的最大数量小于或等于 30
+- 拆分出的 chunk 可供多个 chunk 共享，或者包含来自 `node_modules` 的模块。
+- 拆分出的 chunk 体积至少为 20,000 字节，按代码压缩和 gzip 压缩前的模块体积计算。
+- 按需加载时，并行请求数不超过 30。
+- 初始加载时，并行请求数不超过 30。
+
+在其他模式下，[`minSize`](#splitchunksminsize) 默认为 `10000` 字节，[`maxAsyncRequests`](#splitchunksmaxasyncrequests) 和 [`maxInitialRequests`](#splitchunksmaxinitialrequests) 均默认为 `Infinity`（不限制请求数量）。
 
 ## 示例
 
@@ -93,12 +95,6 @@ export default {
 :::warning
 
 当 Rspack 处理文件路径时，它们始终包含 UNIX 系统中的 `/` 和 Windows 系统中的 `\`。这就是为什么在 `{cacheGroup}.test` 字段中使用 `[\\/]` 来表示路径分隔符的原因。`{cacheGroup}.test` 中的 `/` 或 `\` 会在跨平台使用时产生问题。
-
-:::
-
-:::warning
-
-Rspack 不允许将 entry 名称传递给 `{cacheGroup}.test` 或者为 `{cacheGroup}.name` 使用现有的 chunk 的名称。
 
 :::
 
@@ -188,9 +184,11 @@ export default {
 #### priority
 
 - **类型：** `number`
-- **默认值：** `-20`
+- **默认值：** `0`
 
-一个模块可以属于多个 cacheGroup。优化会优先选择 `priority`（优先级）更高的 cacheGroup。默认组的优先级为负，以便自定义组获得更高的优先级（自定义组的默认值为 `0`）。
+当一个模块同时匹配多个缓存组时，Rspack 会优先选择 `priority` 更高的组，数值越大，优先级越高。
+
+自定义组的优先级默认为 `0`，内置组 `default` 和 `defaultVendors` 的优先级分别为 `-20` 和 `-10`。因此，在未修改优先级的情况下，自定义组会优先于这两个内置组。
 
 #### reuseExistingChunk
 
@@ -217,7 +215,37 @@ cacheGroup: {
 
 - **类型：** `RegExp | string | (module: Module, { chunkGraph: ChunkGraph, moduleGraph: ModuleGraph }) => boolean`
 
-控制此 cacheGroup 选择的模块。省略它会选择所有模块。它可以匹配绝对模块资源路径或 chunk 名称。匹配 chunk 名称时，将选择该 chunk 中的所有模块。
+`test` 用于选择缓存组要抽离的模块。它与 [`chunks`](#splitchunkschunks) 配合使用：
+
+- `chunks` 决定从哪些 chunk 中抽离模块，例如只处理按需加载的 chunk。
+- `test` 决定抽离这些 chunk 中的哪些模块，例如只选择来自 `node_modules` 的模块。
+
+例如，下面的缓存组只会从按需加载的 chunk 中选择第三方依赖：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        defaultVendors: {
+          chunks: 'async',
+          test: /[\\/]node_modules[\\/]/,
+        },
+      },
+    },
+  },
+};
+```
+
+匹配 `test` 的模块还需要满足体积、共享次数等拆分条件，才会被抽离。未配置 `test` 时，缓存组会考虑所选 chunk 中的所有模块，但其他条件仍然生效。
+
+`test` 支持以下形式：
+
+- **字符串**：匹配模块绝对资源路径的前缀。
+- **正则表达式**：匹配模块的绝对资源路径。
+- **函数**：根据传入的模块及依赖图信息，自定义匹配逻辑。
+
+要按 chunk 名称筛选，请使用 `chunks`。
 
 :::warning
 使用函数形式的 `test` 会显著降低构建性能，因为该函数需要对每个模块进行调用，从而产生大量的 Rust 与 JavaScript 之间的跨语言通信开销。因此我们不推荐使用函数形式。
@@ -452,13 +480,20 @@ type FallbackCacheGroup = {
 };
 ```
 
-用于配置未被任何 cache group 选中的模块。fallback cache group 的体积相关行为与对应的全局 `splitChunks` 选项一致，但只作用于 cache group 匹配完成后剩余的模块。
+Rspack 按 `cacheGroups` 的规则抽离模块后，还可以根据 [`maxSize`](#splitchunksmaxsize)、[`maxAsyncSize`](#splitchunksmaxasyncsize) 和 [`maxInitialSize`](#splitchunksmaxinitialsize)，将过大的 chunk 进一步拆成更小的部分。
+
+在这一步中，如果 chunk 已有来自缓存组的大小限制，就使用该限制；其余 chunk 则使用 `fallbackCacheGroup` 中的配置。例如，没有被缓存组抽离的原始 chunk，也可以通过这组配置限制大小。
+
+`fallbackCacheGroup.chunks` 决定哪些 chunk 可以使用这组配置，未设置的选项会沿用对应的全局 `splitChunks` 配置。它处理的是已有 chunk 的大小，不支持通过 `test` 选择模块。
+
+例如，下面的配置会检查没有缓存组大小限制的初始和异步 chunk，尝试将超过 50,000 字节的 chunk 拆小，并要求拆分出的部分至少为 10,000 字节：
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
     splitChunks: {
       fallbackCacheGroup: {
+        chunks: 'all',
         minSize: 10_000,
         maxSize: 50_000,
       },
@@ -466,6 +501,8 @@ export default {
   },
 };
 ```
+
+与 `maxSize` 一样，这里的大小上限并非硬性限制：如果单个模块过大，或拆分后无法满足 `minSize`，生成的 chunk 仍可能超过上限。
 
 ### splitChunks.filename
 
@@ -530,7 +567,7 @@ export default {
 ### splitChunks.maxAsyncRequests
 
 - **类型：** `number`
-- **默认值：** `30`
+- **默认值：** 生产模式下为 `30`，其他模式下为 `Infinity`
 
 按需加载时的最大并行请求数。
 
@@ -545,9 +582,9 @@ export default {
 ### splitChunks.maxInitialRequests
 
 - **类型：** `number`
-- **默认值：** `30`
+- **默认值：** 生产模式下为 `30`，其他模式下为 `Infinity`
 
-每一个入口点所允许的的最大并行请求数。
+加载每个入口时允许的最大并行请求数。
 
 ### splitChunks.maxInitialSize
 
@@ -863,13 +900,9 @@ export default {
 
 如果你的目标只是给 chunk 一个更稳定的标识或文件名提示，优先考虑使用 [`splitChunks.cacheGroups.{cacheGroup}.idHint`](#idhint)，并保持 `name` 未设置。
 
-如果 `splitChunks.name` 与 entry point 名称匹配，entry point 将被删除。
+如果 `name` 与已有 chunk 同名，Rspack 会在满足拆分条件时，将模块移入该 chunk。例如，设置 `name: 'main'` 可以将匹配的模块移入名为 `main` 的父级入口 chunk，入口本身仍然保留。
 
-:::info
-
-`splitChunks.cacheGroups.{cacheGroup}.name` 可以用来将模块移到其所属 Chunk 的的父 Chunk 中。例如，使用 `name: "entry-name "` 来将模块移到 `entry-name` chunk 中。你也可以使用按需命名的 chunk，但你必须注意所选的模块只在这个 chunk 下使用。
-
-:::
+如果模块原本位于异步 chunk 中，移入初始 chunk 后可能会提前加载。复用已有 chunk 时，需要考虑这种变化对初始加载的影响。
 
 ### splitChunks.usedExports
 
