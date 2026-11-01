@@ -60,13 +60,11 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
     let source = if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
       let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
-      // A retry may use handlers updated to support fetchPriority in a later build.
-      let fetch_priority =
-        if with_hmr || runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY) {
-          ", fetchPriority"
-        } else {
-          ""
-        };
+      let fetch_priority = if runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY) {
+        ", fetchPriority"
+      } else {
+        ""
+      };
 
       runtime_template.render(
         &self.template_id(TemplateId::Raw),

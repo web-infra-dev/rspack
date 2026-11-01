@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: consumer_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 28867
+- Update: main.LAST_HASH.hot-update.js, size: 28837
 
 ## Manifest
 
@@ -190,10 +190,10 @@ __webpack_require__.t = function(value, mode) {
 __webpack_require__.f = {};
 // This file contains only the entry chunk.
 // The chunk loading function for additional chunks
-__webpack_require__.e = (chunkId, fetchPriority) => {
+__webpack_require__.e = (chunkId) => {
 	var promises =
 		Object.keys(__webpack_require__.f).reduce((promises, key) => {
-			__webpack_require__.f[key](chunkId, promises, fetchPriority);
+			__webpack_require__.f[key](chunkId, promises);
 			return promises;
 		}, []);
 	var versionError;
