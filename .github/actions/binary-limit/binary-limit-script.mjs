@@ -186,7 +186,10 @@ async function resolveBaseSha(github, owner, repo, context) {
   // For a standalone PR the base branch is the trunk, so the merged first parent
   // is the baseline outright.
   const stack = await resolveStack(github, owner, repo, pr);
-  if (!stack) {
+  // Manually stacked PRs have no stack metadata, but their base branch also
+  // has no published trunk size. Use the same merge-base lookup for them.
+  const trunk = stack?.base.ref ?? pr.base.repo.default_branch;
+  if (!stack && pr.base.ref === trunk) {
     return base.sha;
   }
 
@@ -198,12 +201,12 @@ async function resolveBaseSha(github, owner, repo, context) {
   // can end up behind the trunk commit the binding contains and silently drag the
   // baseline backwards. The branch tip is always at or ahead of that commit, and
   // the merge base is the same however far ahead it is.
-  console.log(`Stack trunk: ${stack.base.ref}`);
+  console.log(`Stack trunk: ${trunk}`);
   const { data: comparison } =
     await github.rest.repos.compareCommitsWithBasehead({
       owner,
       repo,
-      basehead: `${stack.base.ref}...${context.sha}`,
+      basehead: `${trunk}...${context.sha}`,
     });
   return comparison.merge_base_commit.sha;
 }
