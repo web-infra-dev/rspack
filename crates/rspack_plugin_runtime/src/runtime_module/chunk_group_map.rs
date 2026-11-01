@@ -105,18 +105,17 @@ impl RuntimeModule for ChunkGroupMapRuntimeModule {
       return Ok(None);
     };
     let groups = &self.data(context.compilation).0;
-    let changes = groups
-      .iter()
-      .filter(|(id, chunks)| previous.0.get(*id) != Some(*chunks))
-      .map(|(id, chunks)| (id, Some(chunks)))
-      .chain(
-        previous
-          .0
-          .keys()
-          .filter(|id| !groups.contains_key(*id))
-          .map(|id| (id, None)),
-      )
-      .collect::<BTreeMap<_, _>>();
+    let mut changes = serde_json::Map::new();
+    for (id, chunks) in groups {
+      if previous.0.get(id) != Some(chunks) {
+        changes.insert(id.to_string(), serde_json::json!(chunks));
+      }
+    }
+    for id in previous.0.keys() {
+      if !groups.contains_key(id) {
+        changes.insert(id.to_string(), serde_json::Value::Null);
+      }
+    }
     if changes.is_empty() {
       return Ok(Some(String::new()));
     }
