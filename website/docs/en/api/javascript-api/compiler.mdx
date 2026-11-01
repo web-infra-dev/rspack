@@ -472,6 +472,33 @@ new MultiCompiler({
 
 `MultiCompiler` also provides some methods and attributes of the `Compiler`.
 
+### MultiCompiler plugins
+
+Set `plugins` on the configuration array, or pass it to `new MultiCompiler`, to apply a plugin once to the `MultiCompiler` instead of to each child compiler. Falsy values are ignored.
+
+```js
+import { rspack } from '@rspack/core';
+
+const configs = [
+  { entry: './index1.js', output: { filename: 'bundle1.js' } },
+  { entry: './index2.js', output: { filename: 'bundle2.js' } },
+];
+
+configs.plugins = [
+  {
+    apply(multiCompiler) {
+      multiCompiler.hooks.done.tap('MyPlugin', (multiStats) => {
+        console.log(`${multiStats.stats.length} compilers finished`);
+      });
+    },
+  },
+];
+
+const compiler = rspack(configs);
+```
+
+These plugins receive the `MultiCompiler`, which only has the hooks `done`, `invalid`, `run`, `watchRun`, `watchClose`, `beforeCompile`, `shutdown` and `infrastructureLog`. Plugins written for a `Compiler`, including built-in plugins such as `ProgressPlugin`, can't be used here. Add them to the `plugins` of each configuration instead.
+
 ### MultiCompiler methods
 
 #### setDependencies

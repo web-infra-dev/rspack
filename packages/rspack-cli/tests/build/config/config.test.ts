@@ -50,6 +50,38 @@ describe('rspack cli', () => {
       ).resolves.toMatch(/Main cjs file/);
     });
   });
+  describe('should keep the options of a multi-configuration array', () => {
+    const cwd = resolve(__dirname, './multi-compiler-plugins');
+
+    it('should apply array-level plugins to the MultiCompiler', async () => {
+      const { exitCode, stdout } = await run(cwd, ['-c', 'rspack.config.cjs']);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain('multi plugin: 2 compilers, parallelism 1');
+    });
+
+    it('should keep them when selecting configurations by name', async () => {
+      const { exitCode, stdout } = await run(cwd, [
+        '-c',
+        'rspack.config.cjs',
+        '--config-name',
+        'a',
+      ]);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain('multi plugin: 1 compilers, parallelism 1');
+    });
+
+    it('should not treat the plugins of a single configuration as array-level plugins', async () => {
+      const { exitCode, stdout } = await run(cwd, [
+        '-c',
+        'rspack.single.config.cjs',
+        '--config-name',
+        'single',
+      ]);
+      expect(exitCode).toBe(0);
+      expect(stdout).toContain('child plugin: compilers undefined');
+      expect(stdout).not.toContain('child plugin: compilers 1');
+    });
+  });
   describe('should load cjs config', () => {
     const cwd = resolve(__dirname, './cjs');
 

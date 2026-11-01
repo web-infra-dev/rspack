@@ -16,7 +16,7 @@ import type {
   RspackOptions,
   Stats,
 } from '.';
-import type { WatchOptions } from './config';
+import type { Falsy, WatchOptions } from './config';
 import ConcurrentCompilationError from './error/ConcurrentCompilationError';
 import MultiStats from './MultiStats';
 import MultiWatching from './MultiWatching';
@@ -44,11 +44,30 @@ interface Node<T> {
     | 'done';
 }
 
+/**
+ * A plugin applied to the MultiCompiler itself rather than to each child compiler.
+ */
+export interface MultiCompilerPluginInstance {
+  apply: (compiler: MultiCompiler) => void;
+  [k: string]: any;
+}
+
+export type MultiCompilerPluginFunction = (
+  this: MultiCompiler,
+  compiler: MultiCompiler,
+) => void;
+
 export interface MultiCompilerOptions {
   /**
    * how many Compilers are allows to run at the same time in parallel
    */
   parallelism?: number;
+  /**
+   * plugins applied once to the MultiCompiler when it is created
+   */
+  plugins?: (
+    MultiCompilerPluginInstance | MultiCompilerPluginFunction | Falsy
+  )[];
 }
 
 export type MultiRspackOptions = readonly RspackOptions[] &
@@ -122,6 +141,7 @@ export class MultiCompiler {
     this.compilers = normalizedCompilers;
     this._options = {
       parallelism: options?.parallelism || Number.POSITIVE_INFINITY,
+      plugins: options?.plugins,
     };
     this.dependencies = new WeakMap();
     this.running = false;
@@ -157,6 +177,16 @@ export class MultiCompiler {
         { name: 'MultiCompiler', stage: -Infinity },
         resetDoneState,
       );
+    }
+
+    if (Array.isArray(this._options.plugins)) {
+      for (const plugin of this._options.plugins) {
+        if (typeof plugin === 'function') {
+          (plugin as MultiCompilerPluginFunction).call(this, this);
+        } else if (plugin) {
+          plugin.apply(this);
+        }
+      }
     }
   }
 
