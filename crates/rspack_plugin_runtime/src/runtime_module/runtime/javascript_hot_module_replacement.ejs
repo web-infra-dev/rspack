@@ -428,7 +428,10 @@
 	removedModules,
 	promises,
 	applyHandlers,
-	updatedModulesList
+	updatedModulesList,
+	_css,
+	_miniCss,
+	trackUpdate
 ) {
 	applyHandlers.push(hotApplyHandler);
 	hotCurrentUpdateChunks = {};
@@ -456,7 +459,8 @@
 				<%- HAS_OWN_PROPERTY %>(hotCurrentUpdateChunks, chunkId) &&
 				!hotCurrentUpdateChunks[chunkId]
 			) {
-				promises.push(<%- _load_update_chunk %>(chunkId));
+				// A rejected ordinary load must not stop HMR awaiting this download.
+				promises.push(trackUpdate(<%- _load_update_chunk %>(chunkId)));
 				hotCurrentUpdateChunks[chunkId] = true;
 			}
 		};

@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: common_js_2.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 40979
+- Update: main.LAST_HASH.hot-update.js, size: 41098
 
 ## Manifest
 
@@ -1157,7 +1157,10 @@ __webpack_require__.hmrC.jsonp = function (
 	removedModules,
 	promises,
 	applyHandlers,
-	updatedModulesList
+	updatedModulesList,
+	_css,
+	_miniCss,
+	trackUpdate
 ) {
 	applyHandlers.push(hotApplyHandler);
 	hotCurrentUpdateChunks = {};
@@ -1185,7 +1188,8 @@ __webpack_require__.hmrC.jsonp = function (
 				__webpack_require__.o(hotCurrentUpdateChunks, chunkId) &&
 				!hotCurrentUpdateChunks[chunkId]
 			) {
-				promises.push(jsonpLoadUpdateChunk(chunkId));
+				// A rejected ordinary load must not stop HMR awaiting this download.
+				promises.push(trackUpdate(jsonpLoadUpdateChunk(chunkId)));
 				hotCurrentUpdateChunks[chunkId] = true;
 			}
 		};
