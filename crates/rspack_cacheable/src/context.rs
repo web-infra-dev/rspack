@@ -1,14 +1,53 @@
-use std::{any::Any, ops::Deref, path::Path};
+use std::{
+  any::{Any, TypeId},
+  hash::BuildHasherDefault,
+  ops::Deref,
+  path::Path,
+  sync::Arc,
+};
 
+use dashmap::DashMap;
 use rkyv::{
   de::{ErasedPtr, Pooling, PoolingState},
   ser::{Sharing, sharing::SharingState},
 };
+use rustc_hash::FxHasher;
 
 use crate::error::{Error, Result};
 
 const CONTEXT_ADDR: usize = 0;
 unsafe fn default_drop(_: ErasedPtr) {}
+
+type FxDashMap<K, V> = DashMap<K, V, BuildHasherDefault<FxHasher>>;
+
+/// Shares equal deserialized values across `from_bytes` calls.
+///
+/// Entries live as long as the interner, so tie it to the owner of the decoded data rather than to
+/// a process-wide static. Values are grouped by type so that lookups can borrow the key: the keys
+/// may be whole `package.json` files, and a hit must not copy them.
+#[derive(Debug, Default)]
+pub struct Interner {
+  types: FxDashMap<TypeId, FxDashMap<Box<str>, Arc<dyn Any + Send + Sync>>>,
+}
+
+impl Interner {
+  /// Returns the value interned under `key`.
+  pub fn get<T: Send + Sync + 'static>(&self, key: &str) -> Option<Arc<T>> {
+    let values = self.types.get(&TypeId::of::<T>())?;
+    let value = Arc::clone(values.get(key)?.value());
+    value.downcast().ok()
+  }
+
+  /// Interns `value` under `key` and returns the shared value, which is an earlier one when
+  /// another decode got there first.
+  pub fn insert<T: Send + Sync + 'static>(&self, key: &str, value: Arc<T>) -> Arc<T> {
+    let values = self.types.entry(TypeId::of::<T>()).or_default();
+    let shared = Arc::clone(values.entry(key.into()).or_insert(value).value());
+    shared
+      .downcast()
+      .expect("interned values are grouped by their type")
+  }
+}
 
 pub trait CacheableContext: Any {
   /// Returns the project root used for portable path conversion.
@@ -16,6 +55,13 @@ pub trait CacheableContext: Any {
   /// `Some` enables portable conversion relative to this root, while `None` keeps paths in their
   /// native representation.
   fn project_root(&self) -> Option<&Path>;
+
+  /// Returns the interner backing [`AsInterned`](crate::with::AsInterned) fields.
+  ///
+  /// `None` restores those fields without sharing.
+  fn interner(&self) -> Option<&Interner> {
+    None
+  }
 }
 
 // Implement for unit type for convenience in tests and simple cases
