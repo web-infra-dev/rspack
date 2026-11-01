@@ -1,7 +1,7 @@
 mod hot_module_replacement;
 
 use std::{
-  collections::{BTreeMap, hash_map},
+  collections::hash_map,
   sync::{Arc, LazyLock, Mutex},
 };
 
@@ -443,7 +443,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
         info
           .load_entries
-          .insert(old_entry_id.clone(), needed.clone());
+          .insert(old_entry_id.to_string(), serde_json::json!(needed));
         full_update_chunks.extend(needed.iter().cloned());
       }
     }
@@ -485,7 +485,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
       for runtime in runtime.iter() {
         if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
-          info.load_groups.insert(chunk_id.clone(), needed.clone());
+          info
+            .load_groups
+            .insert(chunk_id.to_string(), serde_json::json!(needed));
           full_update_chunks.extend(needed.iter().cloned());
         }
       }
@@ -909,16 +911,10 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
     if !content.load_entries.is_empty() || !content.load_groups.is_empty() {
       let mut load = serde_json::Map::new();
       if !content.load_entries.is_empty() {
-        load.insert(
-          "entries".into(),
-          serde_json::to_value(content.load_entries).expect("serializable chunk IDs"),
-        );
+        load.insert("entries".into(), content.load_entries.into());
       }
       if !content.load_groups.is_empty() {
-        load.insert(
-          "groups".into(),
-          serde_json::to_value(content.load_groups).expect("serializable chunk IDs"),
-        );
+        load.insert("groups".into(), content.load_groups.into());
       }
       manifest_json["load"] = load.into();
     }
@@ -1059,8 +1055,8 @@ struct HotUpdateContent {
   updated_chunk_ids: ChunkIdSet,
   removed_chunk_ids: ChunkIdSet,
   removed_modules: HashSet<ModuleId>,
-  load_entries: BTreeMap<ChunkId, Vec<ChunkId>>,
-  load_groups: BTreeMap<ChunkId, Vec<ChunkId>>,
+  load_entries: serde_json::Map<String, serde_json::Value>,
+  load_groups: serde_json::Map<String, serde_json::Value>,
   css_updated_chunk_ids: ChunkIdSet,
   css_removed_chunk_ids: ChunkIdSet,
   mini_css_updated_chunk_ids: ChunkIdSet,
