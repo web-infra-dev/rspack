@@ -635,6 +635,7 @@ pub struct Environment {
   pub template_literal: bool,
   pub dynamic_import_in_worker: bool,
   pub import_meta_dirname_and_filename: bool,
+  pub top_level_await: bool,
 }
 
 impl Environment {
@@ -676,5 +677,9 @@ impl Environment {
 
   pub fn supports_logical_assignment(&self) -> bool {
     self.logical_assignment
+  }
+
+  pub fn supports_top_level_await(&self) -> bool {
+    self.top_level_await
   }
 }

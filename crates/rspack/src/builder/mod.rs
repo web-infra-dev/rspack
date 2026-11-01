@@ -3172,6 +3172,9 @@ impl OutputOptionsBuilder {
     environment.async_function = tp
       .map(|t| optimistic!(t.async_function))
       .unwrap_or_default();
+    environment.top_level_await = tp
+      .map(|t| optimistic!(t.top_level_await))
+      .unwrap_or_default();
     environment.for_of = tp.map(|t| optimistic!(t.for_of)).unwrap_or_default();
     environment.destructuring = tp.map(|t| optimistic!(t.destructuring)).unwrap_or_default();
     environment.optional_chaining = tp

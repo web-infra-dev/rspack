@@ -114,6 +114,7 @@ CompilerOptions {
             template_literal: false,
             dynamic_import_in_worker: false,
             import_meta_dirname_and_filename: false,
+            top_level_await: false,
         },
         compare_before_emit: true,
     },

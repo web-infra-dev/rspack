@@ -2356,6 +2356,7 @@ export interface RawEnvironment {
   templateLiteral: boolean
   dynamicImportInWorker: boolean
   importMetaDirnameAndFilename: boolean
+  topLevelAwait: boolean
 }
 
 export interface RawEsmLibraryPlugin {

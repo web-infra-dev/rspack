@@ -61,6 +61,7 @@ pub struct RawEnvironment {
   pub template_literal: bool,
   pub dynamic_import_in_worker: bool,
   pub import_meta_dirname_and_filename: bool,
+  pub top_level_await: bool,
 }
 
 impl From<RawEnvironment> for Environment {
@@ -84,6 +85,7 @@ impl From<RawEnvironment> for Environment {
       template_literal: value.template_literal,
       dynamic_import_in_worker: value.dynamic_import_in_worker,
       import_meta_dirname_and_filename: value.import_meta_dirname_and_filename,
+      top_level_await: value.top_level_await,
     }
   }
 }

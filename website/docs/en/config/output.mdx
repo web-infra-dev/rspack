@@ -542,12 +542,18 @@ type Environment = {
   logicalAssignment?: boolean;
   /** The environment supports template literals. */
   templateLiteral?: boolean;
+  /** The environment supports top-level await ('await x' at the top level of a module). */
+  topLevelAwait?: boolean;
 };
 ```
 
 `output.environment` specifies which ECMAScript language features and host environment capabilities Rspack is allowed to use when generating its runtime code.
 
 This setting affects only code emitted by Rspack itself, such as runtime helpers. It does not downgrade your application source code.
+
+`topLevelAwait` controls whether ESM startup code can wait for async entries using top-level `await`. A runtime wrapped by `output.iife: true` cannot use top-level `await` in its startup.
+
+For compatibility, `library.type: 'module'` still emits top-level `await` for an async library entry, even when `topLevelAwait` is `false`. This is required to initialize its exports before importers use them. Such libraries require an environment that supports top-level `await`.
 
 ### Default behavior
 

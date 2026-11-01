@@ -538,12 +538,18 @@ type Environment = {
   logicalAssignment?: boolean;
   /** The environment supports template literals. */
   templateLiteral?: boolean;
+  /** The environment supports top-level await ('await x' at the top level of a module). */
+  topLevelAwait?: boolean;
 };
 ```
 
 `output.environment` 定义 Rspack 在生成运行时代码时可以使用的 ECMAScript 语言特性和宿主环境特性。
 
 该选项仅影响 Rspack 生成的 runtime 代码和辅助函数，不会影响源代码的语法降级。
+
+`topLevelAwait` 控制 ESM 启动代码是否可以使用顶层 `await` 等待异步入口。由 `output.iife: true` 包装的 runtime 无法在启动代码中使用顶层 `await`。
+
+为保持兼容性，`library.type: 'module'` 的异步 library 入口仍会生成顶层 `await`，即使 `topLevelAwait` 为 `false`。这确保了导出值在被导入方使用前完成初始化，因此这类 library 仍需要支持顶层 `await` 的运行环境。
 
 ### 默认值
 

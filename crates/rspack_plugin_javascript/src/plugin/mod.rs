@@ -30,9 +30,9 @@ use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, Ide
 use rspack_core::{
   ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleAnalysis,
-  ConcatenationNameAllocator, ExportsArgument, Module, RuntimeCodeTemplate, RuntimeGlobals,
-  RuntimeVariable, SourceType, analyze_program_identifiers, analyze_program_unresolved_names,
-  render_init_fragments,
+  ConcatenationNameAllocator, ExportsArgument, Module, ModuleGraph, RuntimeCodeTemplate,
+  RuntimeGlobals, RuntimeVariable, SourceType, analyze_program_identifiers,
+  analyze_program_unresolved_names, render_init_fragments,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
   split_readable_identifier,
@@ -48,7 +48,10 @@ use tokio::sync::RwLock;
 use crate::{
   Atom,
   plugin::impl_plugin_for_js_plugin::module_has_js,
-  runtime::{render_chunk_modules, render_module, render_runtime_modules, stringify_array},
+  runtime::{
+    bootstrap_awaits_entries, render_awaited_entries, render_chunk_modules, render_module,
+    render_runtime_modules, stringify_array,
+  },
 };
 
 #[cfg_attr(allocative, rspack_allocative::root)]
@@ -415,6 +418,9 @@ var {} = {{}};
         buf2.push("// Load entry module and return exports".into());
         let entries = get_js_entry_modules_with_chunk_group(chunk_ukey, compilation);
         let module_graph = compilation.get_module_graph();
+        let exports = runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS);
+        let can_await_entry = bootstrap_awaits_entries(compilation, chunk_ukey);
+        let mut awaited_entries: Vec<String> = Vec::new();
         for (i, (module, entry)) in entries.iter().enumerate() {
           let chunk_group = compilation
             .build_chunk_graph_artifact
@@ -518,26 +524,42 @@ var {} = {{}};
             );
           }
 
+          let is_last_entry = i + 1 == entries.len();
+          // An async entry nobody awaits settles after the bundle did, which orphans
+          // its rejection.
+          let await_entry =
+            can_await_entry && ModuleGraph::is_async(&compilation.async_modules_artifact, module);
+          let target = if is_last_entry {
+            exports.clone()
+          } else {
+            format!("{exports}_{}", entries.len() - i - 1)
+          };
+
           if !chunk_ids.is_empty() {
-            let on_chunks_loaded_callback = if supports_arrow_function {
-              format!(
-                "() => {}({module_id_expr})",
-                runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-              )
+            let entry_call = format!(
+              "{}({module_id_expr})",
+              runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+            );
+            // The wrapper hands back nothing until the flush below runs the entry, so
+            // an awaited one is caught by the entry call itself.
+            let entry_call = if await_entry {
+              if !is_last_entry {
+                buf2.push(format!("var {target};").into());
+              }
+              format!("({target} = {entry_call})")
             } else {
-              format!(
-                "function() {{ return {}({module_id_expr}) }}",
-                runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-              )
+              entry_call
+            };
+            let on_chunks_loaded_callback = if supports_arrow_function {
+              format!("() => {entry_call}")
+            } else {
+              format!("function() {{ return {entry_call} }}")
             };
             buf2.push(
               format!(
                 "{}{}(undefined, {}, {});",
-                if i + 1 == entries.len() {
-                  format!(
-                    "var {} = ",
-                    runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
-                  )
+                if is_last_entry {
+                  format!("var {exports} = ")
                 } else {
                   String::new()
                 },
@@ -547,22 +569,25 @@ var {} = {{}};
               )
               .into(),
             );
+            if await_entry {
+              awaited_entries.push(target);
+            }
           } else if use_require {
             buf2.push(
               format!(
                 "{}{}({module_id_expr});",
-                if i + 1 == entries.len() {
-                  format!(
-                    "var {} = ",
-                    runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
-                  )
+                if is_last_entry || await_entry {
+                  format!("var {target} = ")
                 } else {
                   String::new()
                 },
                 runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
               )
               .into(),
-            )
+            );
+            if await_entry {
+              awaited_entries.push(target);
+            }
           } else {
             let should_exec = i + 1 == entries.len();
             if should_exec {
@@ -625,8 +650,8 @@ var {} = {{}};
             .into(),
           );
         }
+        buf2.extend(render_awaited_entries(&awaited_entries).map(Cow::from));
         if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
-          let exports = runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS);
           allow_inline_startup = false;
           header.push(
             format!(
