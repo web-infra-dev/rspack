@@ -224,6 +224,8 @@ export default {
 
 可移植缓存构建在持久化缓存之上，通过在序列化和反序列化过程中转换平台特定的数据（例如，将绝对路径转换为相对路径），使缓存具有平台无关性。
 
+[`cache.buildDependencies`](#builddependencies) 跟踪的路径也会相对于 `context` 迁移。将内容不变的项目移动到其他目录后，可写模式和 [`readonly`](#readonly) 模式都可以复用这些依赖。依赖内容发生变化时，缓存仍然会失效。
+
 **示例：**
 
 ```js title="rspack.config.mjs"
