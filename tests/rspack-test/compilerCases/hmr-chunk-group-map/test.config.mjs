@@ -88,6 +88,15 @@ export default ["webpack", "rspack"].map(runtimeMode => ({
 			assets = builds[step];
 			await sandbox.hot.check(false);
 			assert.deepEqual(readMap(), before);
+			// An unrelated load.groups entry must not turn inherited object keys
+			// into supplemental chunk lists. Isolate this lookup from loader state.
+			const handlers = { ...sandbox.runtime.f };
+			try {
+				for (const key of Object.keys(handlers)) delete sandbox.runtime.f[key];
+				for (const id of ["constructor", "toString", "__proto__"]) await sandbox.runtime.e(id);
+			} finally {
+				Object.assign(sandbox.runtime.f, handlers);
+			}
 			const update = Object.entries(assets).filter(([name]) => name.endsWith(".hot-update.js")).map(([, source]) => source).join("\n");
 			assert(!update.includes('"other":["stable"]'), "unchanged groups must not be sent again");
 			await sandbox.hot.apply();

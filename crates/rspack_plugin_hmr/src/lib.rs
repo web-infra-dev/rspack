@@ -33,6 +33,7 @@ use rspack_plugin_javascript::{
   parser_and_generator::JavaScriptParserAndGenerator,
   runtime::HMR_CHUNK_HASH_PLACEHOLDER,
 };
+use rspack_plugin_runtime::ChunkGroupMapData;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 /// Safety with [atomic_refcell::AtomicRefCell]:
@@ -421,7 +422,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   // Loading changes are independent of factory changes. An unchanged chunk can
-  // become a new dependency of an already loaded entry.
+  // become a new dependency of an already loaded entry or async group.
   let mut full_update_chunks = ChunkIdSet::default();
   for (key, (entry_id, chunks)) in CompilationRecords::record_entries(compilation) {
     let Some((old_entry_id, previous)) = old_entries.get(&key) else {
@@ -447,6 +448,52 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
   }
+  for (identifier, record) in old_runtime_modules {
+    let Some(previous) = record
+      .update_data
+      .as_deref()
+      .and_then(|data| data.as_any().downcast_ref::<ChunkGroupMapData>())
+    else {
+      continue;
+    };
+    let Some(module) = compilation.runtime_modules.get(identifier) else {
+      continue;
+    };
+    let Some(data) = module.get_update_data(compilation) else {
+      continue;
+    };
+    let Some(current) = data.as_ref().as_any().downcast_ref::<ChunkGroupMapData>() else {
+      continue;
+    };
+    let graph = &compilation.build_chunk_graph_artifact;
+    let runtime = graph
+      .chunk_graph
+      .get_runtime_module_chunks(*identifier)
+      .iter()
+      .flat_map(|key| graph.chunk_by_ukey.expect_get(key).runtime().iter())
+      .copied()
+      .collect::<RuntimeSpec>();
+    for (chunk_id, chunks) in &current.0 {
+      let previous = previous.0.get(chunk_id);
+      let needed = chunks
+        .iter()
+        .filter(|id| previous.is_none_or(|chunks| !chunks.contains(id)))
+        .cloned()
+        .collect::<Vec<_>>();
+      if needed.is_empty() {
+        continue;
+      }
+      for runtime in runtime.iter() {
+        if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
+          info
+            .load_groups
+            .insert(chunk_id.to_string(), serde_json::json!(needed));
+          full_update_chunks.extend(needed.iter().cloned());
+        }
+      }
+    }
+  }
+
   let empty_runtime = RuntimeSpec::default();
   let empty_modules = ModuleIdSet::default();
   for chunk_id in old_chunks.keys().chain(
@@ -822,6 +869,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .extend(content.removed_chunk_ids);
         old_content.removed_modules.extend(content.removed_modules);
         old_content.load_entries.extend(content.load_entries);
+        old_content.load_groups.extend(content.load_groups);
         old_content
           .css_updated_chunk_ids
           .extend(content.css_updated_chunk_ids);
@@ -860,9 +908,14 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
       "r": r,
       "m": m,
     });
-    if !content.load_entries.is_empty() {
+    if !content.load_entries.is_empty() || !content.load_groups.is_empty() {
       let mut load = serde_json::Map::new();
-      load.insert("entries".into(), content.load_entries.into());
+      if !content.load_entries.is_empty() {
+        load.insert("entries".into(), content.load_entries.into());
+      }
+      if !content.load_groups.is_empty() {
+        load.insert("groups".into(), content.load_groups.into());
+      }
       manifest_json["load"] = load.into();
     }
     if let Some(css) =
@@ -1003,6 +1056,7 @@ struct HotUpdateContent {
   removed_chunk_ids: ChunkIdSet,
   removed_modules: HashSet<ModuleId>,
   load_entries: serde_json::Map<String, serde_json::Value>,
+  load_groups: serde_json::Map<String, serde_json::Value>,
   css_updated_chunk_ids: ChunkIdSet,
   css_removed_chunk_ids: ChunkIdSet,
   mini_css_updated_chunk_ids: ChunkIdSet,

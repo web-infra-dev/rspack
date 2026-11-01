@@ -15,7 +15,13 @@ test('asset emitted hook should only emit modified assets', async ({
     return content.replace('__ROOT_TEXT__', '__OTHER_TEXT__');
   });
   await expect(page.locator('#root')).toHaveText('__OTHER_TEXT____FOO_VALUE__');
-  expect(assets.sort()).toEqual(['main.js', 'main.js.map']);
+  // Async chunks also change because their HMR build version is embedded.
+  expect(assets.sort()).toEqual([
+    'main.js',
+    'main.js.map',
+    'src_foo_js.js',
+    'src_foo_js.js.map',
+  ]);
 
   // reset assets
   assets.length = 0;

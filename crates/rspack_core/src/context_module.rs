@@ -819,25 +819,22 @@ impl ContextModule {
 
     let mut items = block_and_first_dependency_list
       .filter_map(|(b, dependency)| {
-        let chunks: Vec<_> = compilation
-          .build_chunk_graph_artifact
+        let graph = &compilation.build_chunk_graph_artifact;
+        let group = graph
           .chunk_graph
-          .get_block_chunk_group(
-            &b.identifier(),
-            &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-          )
-          .expect("should have block chunk group")
-          .chunks
-          .iter()
-          .map(|c| {
-            compilation
-              .build_chunk_graph_artifact
-              .chunk_by_ukey
-              .expect_get(c)
-              .id()
-              .expect("should have chunk id in code generation")
-          })
-          .collect();
+          .get_block_chunk_group(&b.identifier(), &graph.chunk_group_by_ukey)
+          .expect("should have block chunk group");
+        let chunks: Vec<_> = if compilation.hot
+          && let Some(chunk) = group.get_hmr_loading_chunk(compilation)
+        {
+          vec![chunk.expect_id()]
+        } else {
+          group
+            .chunks
+            .iter()
+            .map(|c| graph.chunk_by_ukey.expect_get(c).expect_id())
+            .collect()
+        };
         if !chunks.is_empty() {
           has_no_chunk = false;
         }

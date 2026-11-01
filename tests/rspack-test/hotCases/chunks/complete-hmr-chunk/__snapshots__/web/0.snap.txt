@@ -1,0 +1,15 @@
+# Case complete-hmr-chunk: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: other.535fa26bf3f783d1.js
+- Bundle: page.fcc8283baaf32c20.js
+- Bundle: shared.a4d4a4571aaf4b02.js
+
+## Manifest
+
+
+## Update

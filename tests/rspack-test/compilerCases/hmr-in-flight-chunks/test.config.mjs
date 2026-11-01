@@ -32,6 +32,8 @@ const scenarios = [
     'moved',
     'manifest-error',
     'ready-cached-import',
+    'ready-cached-group',
+    'concurrent-after-update',
   ].map((name) => ({ name })),
   ...['before-check', 'check', 'prepare', 'downloading'].flatMap((start) =>
     [1, 2].flatMap((version) =>
@@ -58,6 +60,7 @@ const scenarios = [
     order: 'chunk-first',
   })),
   { name: 'async-prepare', start: 'prepare', version: 1, order: 'chunk-first' },
+  { name: 'ready-pending-import', start: 'prepare', version: 1, order: 'update-first' },
   {
     name: 'manual-ready-import',
     start: 'ready',
@@ -119,7 +122,15 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
             chunkIds: 'named',
             usedExports: false,
             concatenateModules: false,
-            splitChunks: false,
+            splitChunks: scenario === 'ready-cached-group'
+              ? {
+                  cacheGroups: {
+                    default: false,
+                    defaultVendors: false,
+                    shared: { test: /[\\/]m\.js$/, name: 'shared', enforce: true },
+                  },
+                }
+              : false,
           },
           plugins: [new rspack.HotModuleReplacementPlugin()],
         };
@@ -140,6 +151,7 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
           var app = globalThis.inFlightHmr = { hot: module.hot, hash: () => __webpack_hash__, executions: [] };
           app.load = () => import(/* webpackChunkName: "page" */ './page');
           app.other = () => import(/* webpackChunkName: "q" */ './q');
+          ${scenario === 'ready-cached-group' ? 'app.shared = () => import(/* webpackChunkName: "shared" */ "./m");' : ''}
           app.pageFactory = () => __webpack_require__.m['./page.js'];
           module.hot.accept('./page');
           require('./trigger');
@@ -171,9 +183,11 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
           /^page(?:\.[a-f0-9]+)?\.(?:js|mjs)$/.test(name);
         const holdChunk = (name) =>
           isPage(name) ||
-          (['ready-starts-import', 'ready-cached-import'].includes(scenario) &&
+          (['ready-starts-import', 'ready-cached-import', 'ready-cached-group']
+            .includes(scenario) &&
             /^q\.(?:js|mjs)$/.test(name));
-        const holdUpdates = start || scenario === 'ready-cached-import';
+        const holdUpdates = start ||
+          ['ready-cached-import', 'ready-cached-group'].includes(scenario);
         let initialPage;
         const held = [];
         const attempts = new Map();
@@ -423,15 +437,56 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
           const statuses = [];
           app.hot.addStatusHandler((status) => statuses.push(status));
 
-          if (scenario === 'ready-cached-import') {
-            assert.equal((await app.load()).default, 1);
-            await build({ 'page.js': 'module.exports = 2;' });
+          if (scenario === 'concurrent-after-update') {
+            holding = true;
+            const first = app.load();
+            first.catch(() => {});
+            await wait(heldResponse);
+            const nextHash = await build({ 'page.js': 'module.exports = 2;' });
+            await wait(app.hot.check(true));
+            const second = app.load();
+            second.catch(() => {});
+            release();
+            const values = await wait(Promise.all([first, second]));
+            assert.deepEqual(values.map((value) => value.default), [2, 2]);
+            assert.equal(app.hash(), nextHash);
+            assert.equal(app.hot.status(), 'idle');
+            assert.equal(statuses.filter((status) => status === 'check').length, 1);
+            assert.equal(
+              attempts.get(target === 'module' ? 'page.mjs' : 'page.js'),
+              2,
+              'concurrent callers must share the old request hash and its retry',
+            );
+            return;
+          }
+
+          if (['ready-cached-import', 'ready-pending-import', 'ready-cached-group']
+            .includes(scenario)) {
+            const pending = scenario === 'ready-pending-import';
+            const group = scenario === 'ready-cached-group';
+            if (!pending) assert.equal((await app.load()).default, 1);
+            if (group) assert.equal((await app.shared()).default, 'm1');
+            await build({
+              'page.js': `${group ? 'require("./m");' : ''} module.exports = 2;`,
+            });
+            if (group) {
+              const manifestPath = path.join(output, `main.${initialHash}.hot-update.json`);
+              const manifest = target === 'module'
+                ? (await import(pathToFileURL(`${manifestPath}.mjs`).href)).default
+                : JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+              assert(manifest.load.groups.page.includes('shared'));
+            }
             holding = true;
             let other;
             let ready = false;
             let cached;
+            let first;
             app.hot.addStatusHandler((status) => {
-              if (status === 'prepare' && !other) {
+              if (status === 'prepare' && !first && pending) {
+                first = app.load();
+                first.catch(() => {});
+              }
+              if (status === 'prepare' && !other && !pending) {
                 other = app.other();
                 other.catch(() => {});
               }
@@ -445,7 +500,7 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
             });
             const update = app.hot.check(true);
             update.catch(() => {});
-            const chunk = await response(/^q\.(?:js|mjs)$/);
+            const chunk = await response(pending ? /^page\.(?:js|mjs)$/ : /^q\.(?:js|mjs)$/);
             await deliver(await response(/^main\..*\.hot-update\.(?:js|mjs)$/));
             await deliver(await response(/^page\..*\.hot-update\.(?:js|mjs)$/));
             await new Promise((resolve) => setImmediate(resolve));
@@ -453,6 +508,7 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
             await wait(update);
             assert.equal(ready, true);
             await other;
+            if (pending) assert.equal((await first).default, 2);
             assert.equal((await app.load()).default, 2);
             assert.equal(app.hot.status(), 'idle');
             return;

@@ -76,7 +76,9 @@ compilation hash 在读取 chunk 渲染缓存后填入，不改变 chunk hash，
 
 `css` 和 `miniCss` 是可选对象，其中的 `c`、`r` 字段为空时会省略。
 
-当 entry 新增 chunk 依赖时，manifest 还可以包含 `load.entries`，将 entry chunk ID 映射到新增的依赖 chunk ID。只有当前 runtime 已加载的 entry 才会触发补载。
+启用 HMR 后，动态导入会用所属 group 中最后一个可加载的 chunk ID 调用 `__webpack_require__.e`，其余 chunk 由 runtime 映射提供。依赖变化通过 runtime module 的增量更新在 apply 阶段生效，刷新页面时仍会得到完整映射。如果多个 group 的最后一个 chunk 相同，但加载的依赖不同，则保留显式的 chunk 列表。
+
+当入口或动态导入新增 chunk 依赖时，清单还可能包含 `load.entries` 和 `load.groups`。这两个对象将入口 chunk ID 或 group 的最后一个 chunk ID 映射到新增的依赖 chunk ID。只有当前 runtime 已加载或正在加载的 chunk 才会触发补载。版本不匹配后等待重试的 import 仍视为正在加载，每个 physical chunk 独立重试。
 
 补载的 JavaScript 文件在 hot-update 文件名后追加 `.full.js`（`.mjs` 文件则追加 `.full.mjs`），包含该 chunk 的完整 factory。文件在 `check` 阶段下载，在 `apply` 阶段、accept 回调执行前安装。未变化的 factory 会保留已有的模块实例。安装完成后，该 chunk 会参与后续的普通增量更新，即使原来的 importer 已经不再引用它。
 
