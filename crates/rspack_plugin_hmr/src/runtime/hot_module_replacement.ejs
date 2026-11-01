@@ -61,10 +61,13 @@
 		// Download handlers register their preparers before this microtask runs.
 		promises.push(Promise.resolve().then(function () {
 			var chunkPromises = [];
+			var needsApply = false;
 			chunks.forEach(function (chunkId) {
-				update.chunkHandlers.forEach(function (handler) { handler(chunkId, chunkPromises); });
+				update.chunkHandlers.forEach(function (handler) {
+					if (handler(chunkId, chunkPromises)) needsApply = true;
+				});
 			});
-			return Promise.all(chunkPromises);
+			return Promise.all(chunkPromises).then(function () { return needsApply; });
 		}));
 	};
 	hotUpdateGroup = function (chunkId, promises) {
@@ -191,7 +194,9 @@
 		if (!promises.length) return promise;
 		return Promise.all([
 			promise,
-			trackBlockingPromise(Promise.all(promises), true).then(function () { return waitForUpdate(); })
+			trackBlockingPromise(Promise.all(promises), true).then(function (needsApply) {
+				if (needsApply.some(Boolean)) return waitForUpdate();
+			})
 		]);
 	};
 

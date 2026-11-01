@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: common_js_2.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 43691
+- Update: main.LAST_HASH.hot-update.js, size: 43801
 
 ## Manifest
 
@@ -1220,10 +1220,14 @@ __webpack_require__.hmrC.jsonp = function (
 			return __webpack_require__.o(jsonpInstalledChunks, chunkId) && jsonpInstalledChunks[chunkId] != null;
 		};
 		update.chunkHandlers.push(function (chunkId, promises) {
-			if (jsonpInstalledChunks[chunkId] === 0 || hotCurrentUpdateFullChunks.indexOf(chunkId) !== -1) return;
-			hotCurrentUpdateChunks[chunkId] = true;
-			hotCurrentUpdateFullChunks.push(chunkId);
-			promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList, true));
+			if (jsonpInstalledChunks[chunkId] === 0) return false;
+			if (hotCurrentUpdateFullChunks.indexOf(chunkId) === -1) {
+				hotCurrentUpdateChunks[chunkId] = true;
+				hotCurrentUpdateFullChunks.push(chunkId);
+				promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList, true));
+			}
+			// Downloaded complete payloads still need installation during apply.
+			return true;
 		});
 	}
 	if (__webpack_require__.f) {

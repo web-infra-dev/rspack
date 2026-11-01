@@ -32,6 +32,7 @@ const scenarios = [
     'moved',
     'manifest-error',
     'ready-cached-import',
+    'ready-cached-group',
     'concurrent-after-update',
   ].map((name) => ({ name })),
   ...['before-check', 'check', 'prepare', 'downloading'].flatMap((start) =>
@@ -121,7 +122,15 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
             chunkIds: 'named',
             usedExports: false,
             concatenateModules: false,
-            splitChunks: false,
+            splitChunks: scenario === 'ready-cached-group'
+              ? {
+                  cacheGroups: {
+                    default: false,
+                    defaultVendors: false,
+                    shared: { test: /[\\/]m\.js$/, name: 'shared', enforce: true },
+                  },
+                }
+              : false,
           },
           plugins: [new rspack.HotModuleReplacementPlugin()],
         };
@@ -142,6 +151,7 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
           var app = globalThis.inFlightHmr = { hot: module.hot, hash: () => __webpack_hash__, executions: [] };
           app.load = () => import(/* webpackChunkName: "page" */ './page');
           app.other = () => import(/* webpackChunkName: "q" */ './q');
+          ${scenario === 'ready-cached-group' ? 'app.shared = () => import(/* webpackChunkName: "shared" */ "./m");' : ''}
           app.pageFactory = () => __webpack_require__.m['./page.js'];
           module.hot.accept('./page');
           require('./trigger');
@@ -173,9 +183,11 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
           /^page(?:\.[a-f0-9]+)?\.(?:js|mjs)$/.test(name);
         const holdChunk = (name) =>
           isPage(name) ||
-          (['ready-starts-import', 'ready-cached-import'].includes(scenario) &&
+          (['ready-starts-import', 'ready-cached-import', 'ready-cached-group']
+            .includes(scenario) &&
             /^q\.(?:js|mjs)$/.test(name));
-        const holdUpdates = start || scenario === 'ready-cached-import';
+        const holdUpdates = start ||
+          ['ready-cached-import', 'ready-cached-group'].includes(scenario);
         let initialPage;
         const held = [];
         const attempts = new Map();
@@ -448,10 +460,22 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
             return;
           }
 
-          if (scenario === 'ready-cached-import' || scenario === 'ready-pending-import') {
+          if (['ready-cached-import', 'ready-pending-import', 'ready-cached-group']
+            .includes(scenario)) {
             const pending = scenario === 'ready-pending-import';
+            const group = scenario === 'ready-cached-group';
             if (!pending) assert.equal((await app.load()).default, 1);
-            await build({ 'page.js': 'module.exports = 2;' });
+            if (group) assert.equal((await app.shared()).default, 'm1');
+            await build({
+              'page.js': `${group ? 'require("./m");' : ''} module.exports = 2;`,
+            });
+            if (group) {
+              const manifestPath = path.join(output, `main.${initialHash}.hot-update.json`);
+              const manifest = target === 'module'
+                ? (await import(pathToFileURL(`${manifestPath}.mjs`).href)).default
+                : JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+              assert(manifest.load.groups.page.includes('shared'));
+            }
             holding = true;
             let other;
             let ready = false;
