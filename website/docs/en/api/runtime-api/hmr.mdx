@@ -75,7 +75,7 @@ import.meta.webpackHot.accept(
 
 When using ESM `import`, all imported symbols from `dependencies` are automatically updated. Note: The dependency string must exactly match the `from` string in the `import`. In some cases, `callback` can be omitted. Using `require()` in the `callback` isn't useful here.
 
-If an ESM dependency uses top-level await, Rspack waits for it to finish during the update, even when `callback` is omitted. When provided, the callback runs after the dependencies finish executing.
+If an ESM dependency uses top-level await, Rspack waits for it to finish during the update, even when `callback` is omitted. Imported values retain their previous versions until the updated dependencies finish executing. When provided, the callback runs after the dependencies finish executing.
 
 When using CommonJS, update dependencies manually using `require()` in the `callback`. Omitting the `callback` isn't useful here.
 

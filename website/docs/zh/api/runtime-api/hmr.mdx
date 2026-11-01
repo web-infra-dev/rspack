@@ -75,7 +75,7 @@ import.meta.webpackHot.accept(
 
 当使用 ESM `import` 时，所有从 `dependencies` 中导入的符号都会自动更新。注意：依赖项字符串必须与 `import` 中的 `from` 字符串完全匹配。在某些情况下，甚至可以省略 `callback`。在 `callback` 中使用的 `require()` 在这里没有任何意义。
 
-如果 ESM 依赖使用了顶层 await，Rspack 会等它执行完成后再调用 `callback`。省略回调时，更新过程同样会等待这些依赖。
+如果 ESM 依赖使用了顶层 await，Rspack 会等它执行完成后再调用 `callback`。等待期间，导入值仍保留旧版本。省略回调时，更新过程同样会等待这些依赖。
 
 在使用 CommonJS 时，你应该通过 `callback` 中的 `require()` 手动更新依赖模块。省略 `callback` 在这里没有任何意义。
 

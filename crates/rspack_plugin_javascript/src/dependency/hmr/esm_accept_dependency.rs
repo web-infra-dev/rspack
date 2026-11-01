@@ -71,6 +71,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
 
     let mut content = String::default();
     let mut async_imports = vec![];
+    let mut async_import_values = vec![];
     let mut async_compat = String::new();
     let module_graph = compilation.get_module_graph();
     let module_identifier = module.identifier();
@@ -122,17 +123,23 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
           &target_module.identifier(),
         )
       });
-      let import_content = if is_async {
+      if is_async {
+        let import_value =
+          runtime_template.module_raw(compilation, id, module_dependency.request(), false);
+        async_import_values.push(if condition == "true" {
+          import_value
+        } else {
+          format!("{condition} ? {import_value} : {import_var}")
+        });
         async_imports.push(import_var);
         if condition == "true" {
           async_compat.push_str(&stmts.1);
         } else if !stmts.1.is_empty() {
           async_compat.push_str(&format!("if ({condition}) {{\n{}\n}}\n", stmts.1));
         }
-        stmts.0
-      } else {
-        format!("{}{}", stmts.0, stmts.1)
-      };
+        return;
+      }
+      let import_content = format!("{}{}", stmts.0, stmts.1);
       if condition == "true" {
         content.push_str(&import_content);
       } else {
@@ -146,8 +153,9 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
       ""
     } else {
       let imports = async_imports.join(", ");
+      let values = async_import_values.join(", ");
       content.push_str(&format!(
-        "var __rspack_async_deps = __rspack_load_async_deps([{imports}]);\n([{imports}] = __rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps);\n{async_compat}"
+        "var __rspack_async_deps = __rspack_load_async_deps([{values}]);\n([{imports}] = __rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps);\n{async_compat}"
       ));
       "async "
     };
