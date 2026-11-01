@@ -245,11 +245,11 @@ Modules that match `test` must still meet other splitting conditions, such as si
 
 `test` supports these forms:
 
-- **String**: matches the beginning of a module's path.
-- **Regular expression**: matches a module's path.
+- **String**: matches the beginning of a module's absolute resource path.
+- **Regular expression**: matches a module's absolute resource path.
 - **Function**: uses the provided module and graph information for custom matching.
 
-Strings and regular expressions match the value returned by `module.nameForCondition()`, which is usually the module's absolute resource path. To filter by chunk name, use `chunks`.
+To filter by chunk name, use `chunks`.
 
 :::warning
 Using the function type of `test` will significantly reduce build performance, as the function needs to be called for each module, resulting in huge cross-language communication overhead between Rust and JavaScript. Therefore, we do not recommend using the function type.
