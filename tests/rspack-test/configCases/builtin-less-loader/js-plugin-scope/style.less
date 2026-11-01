@@ -1,0 +1,12 @@
+@plugin "./plugin.js";
+@root-value: 42px;
+.root { value: scope-read('@root-value'); }
+.save(@scope-value) { saved: scope-save(); }
+.first { .save(11px); }
+.second { .save(22px); }
+.saved { first: scope-saved(0); second: scope-saved(1); }
+.inspect {
+  @scope-first: 1;
+  @scope-second: 2;
+  result: scope-inspect();
+}

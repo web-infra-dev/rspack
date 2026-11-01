@@ -2378,7 +2378,7 @@ checksum = "09edd9e8b54e49e587e4f6295a7d29c3ea94d469cb40ab8ca70b288248a81db2"
 [[package]]
 name = "less-rs"
 version = "0.1.0"
-source = "git+https://github.com/hai-x/less-rs?rev=bcd463cc1ae30a6a267dda7397e2727f872b2e30#bcd463cc1ae30a6a267dda7397e2727f872b2e30"
+source = "git+https://github.com/hai-x/less-rs?rev=07cca762879bbe56767a5586a8ae381ca87cd957#07cca762879bbe56767a5586a8ae381ca87cd957"
 dependencies = [
  "base64",
  "bumpalo",
