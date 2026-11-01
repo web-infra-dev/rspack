@@ -1,7 +1,7 @@
 mod hot_module_replacement;
 
 use std::{
-  collections::{BTreeMap, hash_map},
+  collections::hash_map,
   sync::{Arc, LazyLock, Mutex},
 };
 
@@ -442,7 +442,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
         info
           .load_entries
-          .insert(old_entry_id.clone(), needed.clone());
+          .insert(old_entry_id.to_string(), serde_json::json!(needed));
         full_update_chunks.extend(needed.iter().cloned());
       }
     }
@@ -862,10 +862,7 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
     });
     if !content.load_entries.is_empty() {
       let mut load = serde_json::Map::new();
-      load.insert(
-        "entries".into(),
-        serde_json::to_value(content.load_entries).expect("serializable chunk IDs"),
-      );
+      load.insert("entries".into(), content.load_entries.into());
       manifest_json["load"] = load.into();
     }
     if let Some(css) =
@@ -1005,7 +1002,7 @@ struct HotUpdateContent {
   updated_chunk_ids: ChunkIdSet,
   removed_chunk_ids: ChunkIdSet,
   removed_modules: HashSet<ModuleId>,
-  load_entries: BTreeMap<ChunkId, Vec<ChunkId>>,
+  load_entries: serde_json::Map<String, serde_json::Value>,
   css_updated_chunk_ids: ChunkIdSet,
   css_removed_chunk_ids: ChunkIdSet,
   mini_css_updated_chunk_ids: ChunkIdSet,
