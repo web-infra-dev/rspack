@@ -105,9 +105,23 @@ When files paths are processed by Rspack, they always contain `/` on UNIX system
 - **Type:** `string`
 - **Default:** `-`
 
-By default Rspack will generate names using origin and name of the chunk (e.g. vendors-main.js).
+Sets the separator used when [`maxSize`](#splitchunksmaxsize) splits a named chunk into smaller parts. For example, use `~` between the original chunk name and each part's suffix:
 
-This option lets you specify the delimiter to use for the generated names.
+```js title="rspack.config.mjs"
+export default {
+  mode: 'production',
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      minSize: 20 * 1000,
+      maxSize: 100 * 1000,
+      automaticNameDelimiter: '~',
+    },
+  },
+};
+```
+
+When a chunk named `main` is split, the generated names use the form `main~<suffix>`. The suffix depends on the modules in each part and [`hidePathInfo`](#splitchunkshidepathinfo).
 
 ### splitChunks.cacheGroups
 
@@ -158,11 +172,54 @@ export default {
 
 Tells Rspack to ignore the global `splitChunks.minSize`, `splitChunks.minRemainingSize`, `splitChunks.minChunks`, `splitChunks.maxAsyncRequests` and `splitChunks.maxInitialRequests` options for this cache group. Values explicitly configured on the cache group still apply.
 
+For example, extract modules from `src/components` even when their combined size is below the global 20,000-byte threshold:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      minSize: 20 * 1000,
+      cacheGroups: {
+        components: {
+          test: /[\\/]src[\\/]components[\\/]/,
+          chunks: 'all',
+          enforce: true,
+        },
+      },
+    },
+  },
+};
+```
+
+The group still selects modules using `test` and `chunks`. Any size or request limits explicitly set in the group still apply. To bypass limits only for large candidates, use [`enforceSizeThreshold`](#splitchunksenforcesizethreshold).
+
 #### idHint
 
 - **Type:** `string`
 
-Sets the hint for chunk id. It will be added to chunk's filename.
+Adds a hint when generating chunk IDs. With [`optimization.chunkIds: 'named'`](/config/optimization#optimizationchunkids), this makes the generated IDs easier to recognize:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    filename: '[id].js',
+    chunkFilename: '[id].js',
+  },
+  optimization: {
+    chunkIds: 'named',
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        defaultVendors: {
+          idHint: 'third-party',
+        },
+      },
+    },
+  },
+};
+```
+
+IDs generated for unnamed chunks extracted by `defaultVendors` include the `third-party` hint. The `[id]` placeholder also includes it in filenames. Unlike a fixed [`name`](#splitchunksname), `idHint` does not merge different split candidates into one named chunk. Other chunk ID strategies, such as `deterministic`, do not guarantee that the hint appears in filenames.
 
 #### layer
 
@@ -194,26 +251,63 @@ When a module matches multiple cache groups, Rspack prefers the group with the h
 
 Custom groups default to `0`. The built-in `default` and `defaultVendors` groups use `-20` and `-10`, respectively, so custom groups take priority over both unless you change these values.
 
+For example, give Lodash its own group with a higher priority than the group matching all third-party dependencies:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          priority: 10,
+        },
+        lodash: {
+          test: /[\\/]node_modules[\\/]lodash[\\/]/,
+          priority: 20,
+        },
+      },
+    },
+  },
+};
+```
+
+A module under `node_modules/lodash` matches both groups. When the splitting conditions are met, Rspack prefers `lodash` because `20` is greater than `10`. Other third-party modules can still be handled by `vendors`.
+
 #### reuseExistingChunk
 
 - **Type:** `boolean`
-- **Default** `false`
+- **Default:** `false` (the built-in `default` and `defaultVendors` groups set it to `true`)
 
-Whether to reuse existing chunks when possible. If so, after splitting, the newly created chunk contains modules that are exactly the same as those in the original chunk, the original chunk will be reused, and no new chunk will be generated, which may affect the final filename of the chunk. For example:
+Reuses an existing chunk containing exactly the modules being extracted when possible, instead of creating another chunk. For example:
 
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        shared: {
+          test: /[\\/]shared\.js$/,
+          minSize: 0,
+          minChunks: 2,
+          reuseExistingChunk: true,
+        },
+      },
+    },
+  },
+};
 ```
-chunk Foo: [ module A, module B ]
-chunk Bar: [ module B ]
 
-cacheGroup: {
-  test: /B/,
-  chunks: 'all'
-}
+Suppose the chunks contain these modules:
+
+```text
+chunk Foo:       [page.js, shared.js]
+async chunk Bar: [shared.js]
 ```
 
-In chunks Foo and Bar, the module B, due to the configuration of cacheGroup, will be split into a new chunk that only contains module B. This new chunk is identical in terms of the modules it contains with chunk Bar, so chunk Bar can be directly reused.
-
-If the setting of reuseExistingChunk is set to `false`, then the module B in chunks Bar and Foo will be moved to a new chunk, and chunk Bar, since it no longer contains any modules, will be deleted as an empty chunk.
+If `Bar` is eligible for reuse, Rspack removes `shared.js` from `Foo` and makes `Foo` load it from `Bar`. With `reuseExistingChunk: false`, Rspack extracts `shared.js` into a new chunk instead. An emptied `Bar` can then be removed, so this option can affect output filenames.
 
 #### test
 
@@ -257,9 +351,30 @@ Using the function type of `test` will significantly reduce build performance, a
 
 #### type
 
-- **Types:** `string | RegExp`
+- **Type:** `string | RegExp`
 
-Allows to assign modules to a cache group by module type.
+Selects modules by their [module type](/config/module-rules#rulestype). For example, extract plain CSS modules handled by [built-in CSS support](/guide/languages/css#built-in-css-support):
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [{ test: /\.css$/i, type: 'css' }],
+  },
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        styles: {
+          type: 'css',
+          enforce: true,
+        },
+      },
+    },
+  },
+};
+```
+
+The rule assigns the `css` type to `.css` files, and the cache group selects that type. `enforce: true` allows small stylesheets to be extracted too. The cache group's `type` matches the module type, not the filename extension; `css/module` and `css/auto` are different types.
 
 ### splitChunks.chunks
 
@@ -564,9 +679,24 @@ export default {
 ### splitChunks.hidePathInfo
 
 - **Type:** `boolean`
-- **Default:** defaults to `true` if `options.mode` is `'production'`, otherwise defaults to `false`
+- **Default:** `true` in production mode; `false` in other modes
 
-Prevents exposing path info when creating names for parts splitted by maxSize.
+Controls whether names generated when [`maxSize`](#splitchunksmaxsize) splits a named chunk contain module path information:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      minSize: 20 * 1000,
+      maxSize: 100 * 1000,
+      hidePathInfo: true,
+    },
+  },
+};
+```
+
+With `true`, Rspack hashes the module-based suffix, producing names such as `main-<hash>`. With `false`, the suffix can contain readable module path information. This option only affects these generated names; it does not remove paths from source maps or other output.
 
 ### splitChunks.maxAsyncRequests
 
@@ -574,6 +704,21 @@ Prevents exposing path info when creating names for parts splitted by maxSize.
 - **Default:** `30` in production mode; `Infinity` in other modes
 
 Maximum number of parallel requests when on-demand loading.
+
+For example, limit regular splitting to two parallel chunk requests for an on-demand load:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'async',
+      maxAsyncRequests: 2,
+    },
+  },
+};
+```
+
+Loading an async chunk and one extracted shared chunk already requires two chunk requests. Further extraction that adds another request can be skipped. This is a build-time splitting constraint, not a browser network concurrency setting. [`maxSize`](#splitchunksmaxsize) and forced splitting can take precedence over it.
 
 ### splitChunks.maxAsyncSize
 
@@ -583,12 +728,42 @@ Like `maxSize`, `maxAsyncSize` can be applied globally (`splitChunks.maxAsyncSiz
 
 The difference between `maxAsyncSize` and `maxSize` is that `maxAsyncSize` will only affect on-demand loading chunks.
 
+For example, try to split large async chunks into parts of at most 100,000 bytes:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      maxAsyncSize: 100 * 1000,
+    },
+  },
+};
+```
+
+This example leaves `maxInitialSize` unset. An initial-only chunk is not split because of `maxAsyncSize`. The same soft-limit rules as [`maxSize`](#splitchunksmaxsize) apply.
+
 ### splitChunks.maxInitialRequests
 
 - **Type:** `number`
 - **Default:** `30` in production mode; `Infinity` in other modes
 
 Maximum number of parallel requests at an entry point.
+
+For example, limit regular splitting to three parallel chunk requests when loading an entry:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      maxInitialRequests: 3,
+    },
+  },
+};
+```
+
+The entry chunk and its required shared chunks count toward this limit. For example, one entry chunk and two shared chunks already reach three requests. [`maxSize`](#splitchunksmaxsize) and forced splitting can take precedence, so this is not a hard limit on browser HTTP requests.
 
 ### splitChunks.maxInitialSize
 
@@ -598,9 +773,44 @@ Like `maxSize`, `maxInitialSize` can be applied globally (`splitChunks.maxInitia
 
 The difference between `maxInitialSize` and `maxSize` is that `maxInitialSize` will only affect initial load chunks.
 
+For example, include initial chunks in splitting and try to keep their parts within 150,000 bytes:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      maxInitialSize: 150 * 1000,
+    },
+  },
+};
+```
+
+This example leaves `maxAsyncSize` unset. An async-only chunk is not split because of `maxInitialSize`. The same soft-limit rules as [`maxSize`](#splitchunksmaxsize) apply.
+
 ### splitChunks.maxSize
 
-`number | Record<string, number> = 0`
+- **Type:** `number | Record<string, number>`
+
+Tries to split chunks larger than the specified number of bytes into smaller parts. For example:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      minSize: 20 * 1000,
+      maxSize: 100 * 1000,
+    },
+  },
+};
+```
+
+This configuration handles both initial and async chunks. It tries to split chunks larger than 100,000 bytes while keeping each part at least 20,000 bytes. `maxSize` is a hint, not a hard limit: a single module cannot be split, and `minSize` takes precedence.
+
+The splitting algorithm is deterministic, so module changes tend to affect only some parts, which helps long-term caching.
+
+You can set `maxSize` globally in `splitChunks`, for an individual [cache group](#splitchunkscachegroups), or in [`fallbackCacheGroup`](#splitchunksfallbackcachegroup).
 
 Using `maxSize` (either globally `optimization.splitChunks.maxSize` per cache group `optimization.splitChunks.cacheGroups[x].maxSize` or for the fallback cache group `optimization.splitChunks.fallbackCacheGroup.maxSize`) tells Rspack to try to split chunks bigger than `maxSize` bytes into smaller parts. Parts will be at least `minSize` (next to `maxSize`) in size.
 The algorithm is deterministic and changes to the modules will only have local effects. So that it is usable when using long term caching and doesn't require records. `maxSize` is only a hint and could be violated when modules are bigger than `maxSize` or splitting would violate `minSize`.
@@ -613,7 +823,7 @@ When the chunk has a name already, each part will get a new name derived from th
 
 :::tip
 
-`maxSize` takes higher priority than `maxInitialRequest/maxAsyncRequests`. Actual priority is `maxInitialRequest/maxAsyncRequests < maxSize < minSize`.
+`maxSize` takes higher priority than `maxInitialRequests/maxAsyncRequests`. Actual priority is `maxInitialRequests/maxAsyncRequests < maxSize < minSize`.
 
 :::
 
@@ -913,52 +1123,60 @@ Modules moved from an async chunk into an initial chunk may load earlier. Consid
 ### splitChunks.usedExports
 
 - **Type:** `boolean`
-- **Default:** Value of [optimization.usedExports](/config/optimization#optimizationusedexports)
+- **Default:** `true` when [optimization.usedExports](/config/optimization#optimizationusedexports) is `true`; otherwise `false`
 
-Enabling this configuration, the splitting of chunks will be grouped based on the usage of modules exports in different runtimes, ensuring the optimal loading size in each runtime.
+Groups modules according to which exports each runtime uses. This can keep entries that use different exports from sharing the same extracted copy of a module.
 
-For example, if there are three entry points named `foo`, `bar`, and `baz`, they all depend on the same module called `shared`. However, `foo` and `bar` depend on the export `value1` from `shared`, while `baz` depends on the export `value2` from `shared`.
+For example, these three entries import `src/shared.js`. `foo` and `bar` use `value1`, while `baz` uses `value2`:
 
-```js title=foo.js
-import { value1 } from 'shared';
-value1;
+```js title="src/foo.js"
+import { value1 } from './shared.js';
+console.log(value1);
 ```
 
-```js title=bar.js
-import { value1 } from 'shared';
-value1;
+```js title="src/bar.js"
+import { value1 } from './shared.js';
+console.log(value1);
 ```
 
-```js title=baz.js
-import { value2 } from 'shared';
-value2;
+```js title="src/baz.js"
+import { value2 } from './shared.js';
+console.log(value2);
 ```
 
-In the default strategy, the `shared` module appears in 3 chunks. If it meets the [minSize for splitting](/plugins/split-chunks-plugin#splitchunksminsize), then the `shared` module should be extracted into a separate chunk.
-
-```
-chunk foo, chunk bar
-      \
-      chunk shared (exports value1 and value2)
-      /
-chunk baz
+```js title="src/shared.js"
+export const value1 = 'one';
+export const value2 = 'two';
 ```
 
-However, this would result in none of the three entry points having the optimal loaded size. Loading the `shared` module from the `foo` and `bar` entries would unnecessarily load the export `value2`, while loading from the `baz` entry would unnecessarily load the export `value1`.
+Enable export usage analysis and include initial chunks in splitting. The custom group uses `minSize: 0` so this small example can be split:
 
-When the `splitChunks.usedExports` optimization is enabled, it analyzes which exports of the `shared` module are used in different entries. It finds that the exports used in `foo` and `bar` are different from those in `baz`, resulting in the creation of two distinct chunks, one corresponding to the entries `foo` and `bar`, and the other corresponding to the entry `baz`.
-
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    foo: './src/foo.js',
+    bar: './src/bar.js',
+    baz: './src/baz.js',
+  },
+  optimization: {
+    usedExports: true,
+    splitChunks: {
+      chunks: 'all',
+      usedExports: true,
+      cacheGroups: {
+        shared: {
+          test: /[\\/]shared\.js$/,
+          minSize: 0,
+        },
+      },
+    },
+  },
+};
 ```
-chunk foo, chunk bar
-        \
-      chunk shared-1 (exports only value1)
 
-chunk baz
-        \
-      chunk shared-2 (exports only value2)
-```
+With `splitChunks.usedExports: true`, `foo` and `bar` can share an extracted copy of `shared.js`, while `baz` uses a separate copy because it uses different exports. With `false`, all three can share the same extracted copy.
 
-This option only changes how splitChunks groups modules across runtimes. It does not replace tree shaking and does not decide whether unused exports are removed.
+This option controls grouping, not whether unused exports are removed. Removing unused code still depends on tree shaking and minification.
 
 ## FAQ
 
