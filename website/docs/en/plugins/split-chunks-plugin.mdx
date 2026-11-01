@@ -27,12 +27,12 @@ Rspack ships with two default cache groups:
 - `default`: extract modules shared by at least 2 chunks.
 - `defaultVendors`: extract modules from `node_modules`.
 
-In production mode, Rspack automatically splits chunks based on these conditions:
+In production mode, the default splitting conditions are:
 
-- New chunk can be shared OR modules are from the node_modules folder
-- New chunk would be at least 20,000 bytes, based on module sizes before minification and gzip compression
-- Maximum number of parallel requests when loading chunks on demand would be lower or equal to 30
-- Maximum number of parallel requests at initial page load would be lower or equal to 30
+- The new chunk can be shared by multiple chunks, or it contains modules from `node_modules`.
+- The new chunk is at least 20,000 bytes, based on module sizes before minification and gzip compression.
+- On-demand loading requires no more than 30 parallel requests.
+- Initial loading requires no more than 30 parallel requests.
 
 When trying to fulfill the last two conditions, bigger chunks are preferred.
 
@@ -190,7 +190,9 @@ export default {
 - **Type:** `number`
 - **Default:** `0`
 
-A module can match multiple cache groups. Rspack prefers the cache group with a higher `priority`. Custom groups default to `0`, while the built-in `default` and `defaultVendors` groups use `-20` and `-10`, respectively, so custom groups take priority over the built-in groups.
+When a module matches multiple cache groups, Rspack prefers the group with the higher `priority`. A larger number means a higher priority.
+
+Custom groups default to `0`. The built-in `default` and `defaultVendors` groups use `-20` and `-10`, respectively, so custom groups take priority over both unless you change these values.
 
 #### reuseExistingChunk
 
@@ -217,9 +219,37 @@ If the setting of reuseExistingChunk is set to `false`, then the module B in chu
 
 - **Type:** `RegExp | string | (module: Module, { chunkGraph: ChunkGraph, moduleGraph: ModuleGraph }) => boolean`
 
-Selects modules from the chunks matched by [`chunks`](#splitchunkschunks). Omitting `test` does not filter modules; other cache group conditions still apply.
+Selects the modules a cache group should extract. It works together with [`chunks`](#splitchunkschunks):
 
-A string matches the beginning of a module's absolute resource path, and a regular expression tests that path. More precisely, both use the value returned by `module.nameForCondition()`. A function receives the module and graph information for custom matching. To select chunks by name, use `chunks` instead.
+- `chunks` determines which chunks to extract modules from, such as only on-demand chunks.
+- `test` determines which modules to extract from those chunks, such as only modules from `node_modules`.
+
+For example, this cache group selects third-party dependencies from on-demand chunks only:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        defaultVendors: {
+          chunks: 'async',
+          test: /[\\/]node_modules[\\/]/,
+        },
+      },
+    },
+  },
+};
+```
+
+Modules that match `test` must still meet other splitting conditions, such as size and the number of chunks sharing them, before they are extracted. Omitting `test` makes the cache group consider all modules in the selected chunks, while other conditions still apply.
+
+`test` supports these forms:
+
+- **String**: matches the beginning of a module's path.
+- **Regular expression**: matches a module's path.
+- **Function**: uses the provided module and graph information for custom matching.
+
+Strings and regular expressions match the value returned by `module.nameForCondition()`, which is usually the module's absolute resource path. To filter by chunk name, use `chunks`.
 
 :::warning
 Using the function type of `test` will significantly reduce build performance, as the function needs to be called for each module, resulting in huge cross-language communication overhead between Rust and JavaScript. Therefore, we do not recommend using the function type.
@@ -454,15 +484,20 @@ type FallbackCacheGroup = {
 };
 ```
 
-Provides fallback settings when Rspack splits large chunks according to [`maxSize`](#splitchunksmaxsize), [`maxAsyncSize`](#splitchunksmaxasyncsize), or [`maxInitialSize`](#splitchunksmaxinitialsize). Chunks without size settings from a cache group use these settings if they match `fallbackCacheGroup.chunks`.
+After extracting modules according to `cacheGroups`, Rspack can further split large chunks into smaller parts using [`maxSize`](#splitchunksmaxsize), [`maxAsyncSize`](#splitchunksmaxasyncsize), and [`maxInitialSize`](#splitchunksmaxinitialsize).
 
-Unset options fall back to the corresponding global `splitChunks` settings. Unlike a regular cache group, `fallbackCacheGroup` does not select modules with `test`; it configures how existing chunks are split into smaller parts.
+At this stage, chunks with size limits from a cache group use those limits. Other chunks use `fallbackCacheGroup`. For example, these settings can also limit the size of an original chunk that was not extracted by a cache group.
+
+`fallbackCacheGroup.chunks` determines which chunks can use these settings. Unset options inherit the corresponding global `splitChunks` settings. This configuration controls the size of existing chunks and does not support selecting modules with `test`.
+
+For example, the following configuration checks initial and async chunks that have no size limits from a cache group. It attempts to split chunks larger than 50,000 bytes into parts of at least 10,000 bytes:
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
     splitChunks: {
       fallbackCacheGroup: {
+        chunks: 'all',
         minSize: 10_000,
         maxSize: 50_000,
       },
@@ -470,6 +505,8 @@ export default {
   },
 };
 ```
+
+As with `maxSize`, this is not a hard upper limit: a chunk may still exceed it if a single module is too large or splitting would violate `minSize`.
 
 ### splitChunks.filename
 
@@ -869,7 +906,9 @@ export default {
 
 If your goal is only to hint chunk identity or filenames, prefer [`splitChunks.cacheGroups.{cacheGroup}.idHint`](#idhint) and leave `name` unset.
 
-If `name` matches an existing chunk's name, Rspack reuses that chunk as the destination when the splitting conditions are met. For example, `name: 'main'` can move matching modules into an existing parent entry chunk named `main`. Using an entry chunk as the destination does not delete the entry point. Moving modules from an async chunk into an initial chunk can make them load earlier, so consider the effect on initial loading when reusing an existing chunk.
+If `name` matches an existing chunk's name, Rspack moves modules into that chunk when the splitting conditions are met. For example, `name: 'main'` can move matching modules into an existing parent entry chunk named `main`, while preserving the entry point.
+
+Modules moved from an async chunk into an initial chunk may load earlier. Consider the effect on initial loading when reusing an existing chunk.
 
 ### splitChunks.usedExports
 
