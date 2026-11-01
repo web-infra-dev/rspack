@@ -189,7 +189,12 @@ async function resolveBaseSha(github, owner, repo, context) {
   // Manually stacked PRs have no stack metadata, but their base branch also
   // has no published trunk size. Use the same merge-base lookup for them.
   const trunk = stack?.base.ref ?? pr.base.repo.default_branch;
-  if (!stack && pr.base.ref === trunk) {
+  if (
+    !stack &&
+    (pr.base.ref === trunk ||
+      pr.base.ref === 'v1.x' ||
+      pr.base.ref.startsWith('release/'))
+  ) {
     return base.sha;
   }
 
