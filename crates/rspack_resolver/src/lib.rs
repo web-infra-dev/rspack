@@ -314,13 +314,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       return Err(ResolveError::NotFound(specifier.to_string()));
     }
 
+    // Like enhanced-resolve, retain the package metadata found before resolving
+    // symlinks, even when the real target lies outside that package.
     let package_json = cached_path
       .find_package_json(&self.cache.fs, &self.options, ctx)
       .await?;
-    if let Some(package_json) = &package_json {
-      // path must be inside the package.
-      debug_assert!(path.starts_with(package_json.directory()));
-    }
     Ok(Resolution {
       path,
       query: ctx.query.take(),

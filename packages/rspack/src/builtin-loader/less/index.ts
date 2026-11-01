@@ -18,7 +18,7 @@ export interface LessOptions {
   globalVars?: Record<string, string | number>;
   modifyVars?: Record<string, string | number>;
   strictImports?: boolean;
-  /** JavaScript evaluation is not supported by less-rs. */
+  /** Inline JavaScript expressions are not supported by less-rs. */
   javascriptEnabled?: boolean;
   dumpLineNumbers?: 'comments' | 'mediaquery' | 'all';
   banner?: string;

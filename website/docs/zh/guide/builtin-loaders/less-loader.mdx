@@ -74,6 +74,6 @@ Node 风格的包查找会通过 Rspack 输入文件系统解析软链接，再�
 
 解析后的文件仍由 less-rs 在同一次编译中解析和求值，保留跨 import 的变量与 mixin 语义。文件读取使用 Rspack 输入文件系统。导入文件、resolver 依赖（包括 package.json）以及 `data-uri()` 等函数读取的文件均记录为文件依赖；缺失导入（包括可选导入）也会被追踪，用于 watch 重建。保留在输出中的 CSS import 交由后续 CSS 流程处理。
 
-该 loader 支持 JavaScript `less-loader` 选项的一个子集，仍不支持函数形式的选项、自定义 JavaScript 实现或插件、JavaScript 求值及 HTTP 导入。需要这些功能时，请使用 JavaScript `less-loader`。JavaScript 表达式求值与 JavaScript 插件是独立能力；仅支持表达式求值并不意味着支持 Less 插件 API。
+原生 Rspack 构建通过 `less-rs` 内置的 QuickJS 引擎支持 `@plugin` 加载的 JavaScript 插件。每次 Less 编译使用独立的插件状态。设置 `lessOptions.disablePluginRule: true` 可禁止 `@plugin` 指令。WebAssembly 构建暂不支持 JavaScript 插件。
 
-传入 `javascriptEnabled`、`insecure` 或 `disablePluginRule` 等编译器标志，不会为 `less-rs` 或 loader 增加 JavaScript 或 HTTP 支持。
+该 loader 支持 JavaScript `less-loader` 选项的一个子集，仍不支持函数形式的选项、自定义 JavaScript 实现、`lessOptions.plugins` 中的插件对象、内联 JavaScript 表达式及 HTTP 导入。需要这些功能时，请使用 JavaScript `less-loader`。传入 `javascriptEnabled` 或 `insecure` 不会启用内联 JavaScript 表达式或 HTTP 导入。
