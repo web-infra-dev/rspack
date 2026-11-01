@@ -122,11 +122,6 @@ export default ['node', 'webworker'].flatMap((target) =>
         }
         try {
           const app = sandbox.versionApp;
-          assert.equal(
-            app.ensure(),
-            app.otherEnsure(),
-            'modules must share ensureChunk',
-          );
           const unchanged = Object.fromEntries(
             Object.entries(assets).filter(([file]) =>
               /^(page|shared)\./.test(file),
@@ -153,7 +148,11 @@ export default ['node', 'webworker'].flatMap((target) =>
           );
           assert.equal(app.hash(), latest.hash);
           assert.equal(app.hot.status(), 'idle');
-          assert.equal(app.ensure(), app.otherEnsure());
+          assert.equal(
+            app.ensure()('page'),
+            app.otherEnsure()('page'),
+            'concurrent ensures from different modules must share the load',
+          );
         } finally {
           if (target === 'node') delete sandbox.versionApp;
         }

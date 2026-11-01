@@ -88,11 +88,6 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     let mut dependencies = RuntimeGlobals::default();
     let mut define = RuntimeGlobals::ENSURE_CHUNK;
     if let Some(chunk_ukey) = self.chunk() {
-      if get_chunk_runtime_requirements(compilation, &chunk_ukey)
-        .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
-      {
-        dependencies.insert(RuntimeGlobals::HMR_ENSURE_CHUNK);
-      }
       if self.has_async_chunks
         || get_chunk_runtime_requirements(compilation, &chunk_ukey)
           .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
