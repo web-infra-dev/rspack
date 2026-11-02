@@ -20,16 +20,30 @@ export default defineConfig({
   target: 'web',
   node: false,
   module: {
+    // Keep the builtin CSS parser out of this case so the assertions observe
+    // only the loader's custom-media behavior.
+    parser: {
+      css: {
+        customMedia: false,
+      },
+      'css/auto': {
+        customMedia: false,
+      },
+      'css/global': {
+        customMedia: false,
+      },
+      'css/module': {
+        customMedia: false,
+      },
+    },
     rules: [
       {
         test: /\.css$/,
         type: 'css/auto',
-        parser: {
-          customMedia: false,
-        },
         oneOf: [
           {
             test: /deep\.css$/,
+            type: 'css',
             use: lightningcss({
               drafts: { customMedia: true },
               nonStandard: { deepSelectorCombinator: true },
@@ -37,7 +51,32 @@ export default defineConfig({
             }),
           },
           {
-            resourceQuery: /^\?targets$/,
+            resourceQuery: /^\?targets-css$/,
+            type: 'css',
+            use: lightningcss({
+              drafts: { customMedia: true },
+              targets: 'chrome >= 100',
+            }),
+          },
+          {
+            resourceQuery: /^\?targets-auto$/,
+            type: 'css/auto',
+            use: lightningcss({
+              drafts: { customMedia: true },
+              targets: 'chrome >= 100',
+            }),
+          },
+          {
+            resourceQuery: /^\?targets-global$/,
+            type: 'css/global',
+            use: lightningcss({
+              drafts: { customMedia: true },
+              targets: 'chrome >= 100',
+            }),
+          },
+          {
+            resourceQuery: /^\?targets-module$/,
+            type: 'css/module',
             use: lightningcss({
               drafts: { customMedia: true },
               targets: 'chrome >= 100',
@@ -45,6 +84,7 @@ export default defineConfig({
           },
           {
             resourceQuery: /^\?no-draft$/,
+            type: 'css',
             use: lightningcss({
               drafts: { customMedia: false },
               include: { customMediaQueries: true },
@@ -52,6 +92,7 @@ export default defineConfig({
           },
           {
             resourceQuery: /^\?exclude$/,
+            type: 'css',
             use: lightningcss({
               drafts: { customMedia: true },
               targets: 'chrome >= 100',
@@ -60,6 +101,7 @@ export default defineConfig({
           },
           {
             resourceQuery: /^\?no-targets$/,
+            type: 'css',
             use: lightningcss({
               drafts: { customMedia: true },
             }),

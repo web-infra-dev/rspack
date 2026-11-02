@@ -235,7 +235,7 @@ Enable parsing of draft CSS syntax.
 
 Set `drafts.customMedia` to `true` to parse `@custom-media` rules. The loader expands custom media references and removes their definitions when `include.customMediaQueries` is set or when browser targets are configured. Lightning CSS treats custom media as unsupported in every browser, so any browser targets enable this transform, including targets derived from Rspack's [`target`](/config/target). Set `exclude.customMediaQueries` to keep custom media unchanged. Because `include` takes precedence over `exclude` and `include.mediaQueries` already contains `include.customMediaQueries`, this only works when both `include.customMediaQueries` and `include.mediaQueries` are disabled.
 
-For the exact module type `type: 'css'`, browser targets do not enable the loader transform by default. Rspack's native CSS parser handles custom media instead; configure it with [`module.parser.css.customMedia`](/config/module-parser#csscustommedia). To explicitly use the loader transform, set both `drafts.customMedia` and `include.customMediaQueries` to `true`.
+For builtin CSS module types (`css`, `css/auto`, `css/global`, and `css/module`), browser targets do not enable the loader transform by default. The builtin CSS parser handles custom media instead; configure it with the corresponding [`module.parser` option](/config/module-parser). To explicitly use the loader transform, set both `drafts.customMedia` and `include.customMediaQueries` to `true`.
 
 For example, with `drafts: { customMedia: true }` and `include: { customMediaQueries: true }`, the following CSS:
 

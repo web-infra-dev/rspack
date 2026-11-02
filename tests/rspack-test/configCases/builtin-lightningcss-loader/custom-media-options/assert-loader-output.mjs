@@ -17,7 +17,10 @@ export default function (code) {
     expect(code).toContain(".parent >>> .child");
   } else {
     switch (this.resourceQuery) {
-      case "?targets":
+      case "?targets-css":
+      case "?targets-auto":
+      case "?targets-global":
+      case "?targets-module":
       case "?no-draft":
       case "?exclude":
       case "?no-targets":

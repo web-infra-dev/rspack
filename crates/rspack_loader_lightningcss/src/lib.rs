@@ -181,11 +181,13 @@ impl LightningCssLoader {
       });
 
     // Browser targets would otherwise always transform custom media because
-    // Lightning CSS considers it unsupported everywhere. For builtin CSS,
-    // leave the transform to Rspack's CSS parser unless the user explicitly
-    // opts the loader in through `include.customMediaQueries`.
-    if matches!(loader_context.context.module.module_type(), ModuleType::Css)
-      && !include.contains(Features::CustomMediaQueries)
+    // Lightning CSS considers it unsupported everywhere. For builtin CSS
+    // module types, leave the transform to the builtin CSS parser unless the
+    // user explicitly opts the loader in through `include.customMediaQueries`.
+    if matches!(
+      loader_context.context.module.module_type(),
+      ModuleType::Css | ModuleType::CssAuto | ModuleType::CssGlobal | ModuleType::CssModule
+    ) && !include.contains(Features::CustomMediaQueries)
     {
       exclude.insert(Features::CustomMediaQueries);
     }
