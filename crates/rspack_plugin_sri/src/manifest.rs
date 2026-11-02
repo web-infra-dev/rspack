@@ -13,6 +13,12 @@
 //! by its last chunk with JavaScript, which runs the update when it loads; splitting
 //! can leave a group's last chunk with CSS alone.
 //!
+//! A chunk group can list a chunk that every path to it has already loaded, such as
+//! an entry chunk that splitChunks also moved shared modules into. Loading the group
+//! never requests that chunk, so it gets no hash and no edge from the group's
+//! parents; otherwise it could join a component with the group's own chunks, and no
+//! parent would provide their hashes.
+//!
 //! Chunks and edges are visited in chunk id order, so the components, and the
 //! manifests that depend on the order within a component, are the same every build.
 
@@ -20,6 +26,56 @@ use rspack_core::{
   ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, SourceType,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+
+/// The chunks every path to each chunk group loads before the group's own chunks:
+/// the intersection, over the group's parents, of the chunks loaded before and by
+/// each parent. Groups without parents, such as entries, start with none.
+fn available_chunks(
+  chunk_group_by_ukey: &ChunkGroupByUkey,
+) -> HashMap<ChunkGroupUkey, HashSet<ChunkUkey>> {
+  let mut available: HashMap<ChunkGroupUkey, HashSet<ChunkUkey>> = chunk_group_by_ukey
+    .iter()
+    .filter(|(_, group)| group.parents.is_empty())
+    .map(|(ukey, _)| (*ukey, HashSet::default()))
+    .collect();
+  // Parents without a value yet are skipped, so a value only shrinks once set, and
+  // the loop reaches the fixed point even when groups import each other.
+  loop {
+    let mut changed = false;
+    for (ukey, group) in chunk_group_by_ukey.iter() {
+      let mut intersection: Option<HashSet<ChunkUkey>> = None;
+      for parent in &group.parents {
+        let Some(before_parent) = available.get(parent) else {
+          continue;
+        };
+        let mut loaded = before_parent.clone();
+        loaded.extend(
+          chunk_group_by_ukey
+            .expect_get(parent)
+            .chunks
+            .iter()
+            .copied(),
+        );
+        intersection = Some(match intersection {
+          None => loaded,
+          Some(mut so_far) => {
+            so_far.retain(|chunk| loaded.contains(chunk));
+            so_far
+          }
+        });
+      }
+      if let Some(intersection) = intersection
+        && available.get(ukey) != Some(&intersection)
+      {
+        available.insert(*ukey, intersection);
+        changed = true;
+      }
+    }
+    if !changed {
+      return available;
+    }
+  }
+}
 
 /// The child groups of a group that its chunks load asynchronously.
 fn async_children<'a>(
@@ -62,6 +118,19 @@ impl ChunkManifest {
       id(a).cmp(&id(b)).then(a.cmp(b))
     };
 
+    let available = available_chunks(chunk_group_by_ukey);
+    let empty = HashSet::default();
+    // The chunks of a group that loading it requests.
+    let loaded_by = |group: &ChunkGroup| {
+      let already = available.get(&group.ukey).unwrap_or(&empty);
+      group
+        .chunks
+        .iter()
+        .copied()
+        .filter(|chunk| !already.contains(chunk))
+        .collect::<Vec<_>>()
+    };
+
     let mut chunks = chunk_by_ukey.keys().copied().collect::<Vec<_>>();
     chunks.sort_by(by_id);
     let mut edges: HashMap<ChunkUkey, Vec<ChunkUkey>> = HashMap::default();
@@ -69,13 +138,7 @@ impl ChunkManifest {
       let mut children = vec![];
       for group in chunk_by_ukey.expect_get(chunk_ukey).groups() {
         for child_group in &chunk_group_by_ukey.expect_get(group).children {
-          children.extend(
-            chunk_group_by_ukey
-              .expect_get(child_group)
-              .chunks
-              .iter()
-              .copied(),
-          );
+          children.extend(loaded_by(chunk_group_by_ukey.expect_get(child_group)));
         }
       }
       children.sort_by(by_id);
@@ -142,8 +205,8 @@ impl ChunkManifest {
             continue;
           }
           for child_group in async_children(group, chunk_group_by_ukey) {
-            for child_chunk in &child_group.chunks {
-              let child_scc = scc_of[child_chunk];
+            for child_chunk in loaded_by(child_group) {
+              let child_scc = scc_of[&child_chunk];
               // A parent of this component provides the hashes of its members.
               if child_scc != index {
                 child_chunks.extend(sccs[child_scc].iter().copied());
