@@ -516,17 +516,6 @@ impl FlameGraphBuilder {
 }
 
 impl VisitorImpl for FlameGraphBuilder {
-  fn object_impl(&mut self, address: usize, type_name: &'static str) {
-    self.objects.entry((address, type_name)).or_insert_with(|| {
-      self
-        .shared
-        .iter()
-        .chain(std::iter::once(&self.current))
-        .flat_map(|stack| stack.stack.iter().map(|(_, key)| key.clone()))
-        .chain(std::iter::once(Key::new(type_name)))
-        .collect()
-    });
-  }
   fn opaque_impl(&mut self, name: &'static str) {
     // Include the owning edges even when the legacy shared-allocation mode
     // relocates the payload to a separate flamegraph root.
