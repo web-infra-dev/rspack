@@ -184,10 +184,8 @@ impl LightningCssLoader {
     // Lightning CSS considers it unsupported everywhere. For builtin CSS
     // module types, leave the transform to the builtin CSS parser unless the
     // user explicitly opts the loader in through `include.customMediaQueries`.
-    if matches!(
-      loader_context.context.module.module_type(),
-      ModuleType::Css | ModuleType::CssAuto | ModuleType::CssGlobal | ModuleType::CssModule
-    ) && !include.contains(Features::CustomMediaQueries)
+    if is_builtin_css(loader_context.context.module.as_ref())
+      && !include.contains(Features::CustomMediaQueries)
     {
       exclude.insert(Features::CustomMediaQueries);
     }
@@ -387,6 +385,13 @@ pub fn to_static(stylesheet: StyleSheet, options: ParserOptions<'static>) -> Sty
   let mut stylesheet = StyleSheet::new(sources, rules, options);
   stylesheet.license_comments = license_comments;
   stylesheet
+}
+
+fn is_builtin_css(module: &dyn Module) -> bool {
+  matches!(
+    module.module_type(),
+    ModuleType::Css | ModuleType::CssAuto | ModuleType::CssGlobal | ModuleType::CssModule
+  )
 }
 
 fn has_custom_media_import(stylesheet: &StyleSheet) -> bool {
