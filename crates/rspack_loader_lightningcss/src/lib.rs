@@ -19,7 +19,7 @@ use lightningcss::{
 };
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  Loader, LoaderContext, RunnerContext,
+  Loader, LoaderContext, Module, ModuleType, RunnerContext,
   rspack_sources::{
     MapOptions, Mapping, OriginalLocation, SourceExt, SourceMap, SourceMapSource,
     SourceMapSourceOptions, encode_mappings,
@@ -165,22 +165,35 @@ impl LightningCssLoader {
     //   }
     // }
 
+    let include = self
+      .config
+      .include
+      .as_ref()
+      .map_or(Features::empty(), |include| {
+        Features::from_bits_truncate(*include)
+      });
+    let mut exclude = self
+      .config
+      .exclude
+      .as_ref()
+      .map_or(Features::empty(), |exclude| {
+        Features::from_bits_truncate(*exclude)
+      });
+
+    // Browser targets would otherwise always transform custom media because
+    // Lightning CSS considers it unsupported everywhere. For builtin CSS,
+    // leave the transform to Rspack's CSS parser unless the user explicitly
+    // opts the loader in through `include.customMediaQueries`.
+    if matches!(loader_context.context.module.module_type(), ModuleType::Css)
+      && !include.contains(Features::CustomMediaQueries)
+    {
+      exclude.insert(Features::CustomMediaQueries);
+    }
+
     let targets = Targets {
       browsers: self.config.targets,
-      include: self
-        .config
-        .include
-        .as_ref()
-        .map_or(Features::empty(), |include| {
-          Features::from_bits_truncate(*include)
-        }),
-      exclude: self
-        .config
-        .exclude
-        .as_ref()
-        .map_or(Features::empty(), |exclude| {
-          Features::from_bits_truncate(*exclude)
-        }),
+      include,
+      exclude,
     };
 
     let minify_options = || MinifyOptions {

@@ -7,10 +7,11 @@ import './deep.css';
 const fs = require('fs');
 const path = require('path');
 
-it('should only expand custom media when the draft and transform are enabled', () => {
+it('should only expand custom media when manually enabled for builtin CSS', () => {
 	const css = fs.readFileSync(path.resolve(__dirname, 'bundle0.css'), 'utf-8');
 
-	// Preserved by `?no-draft`, `?exclude`, and `?no-targets`.
-	expect(css.match(/@custom-media --wide/g)).toHaveLength(3);
+	// Target-based transforms are disabled by default for builtin CSS. The
+	// explicit `include.customMediaQueries` on deep.css still enables it.
+	expect(css.match(/@custom-media --wide/g)).toHaveLength(4);
 	expect(css).toContain('.parent >>> .child');
 });

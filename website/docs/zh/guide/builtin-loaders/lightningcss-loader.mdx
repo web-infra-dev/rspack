@@ -235,6 +235,8 @@ export default {
 
 将 `drafts.customMedia` 设为 `true` 可以解析 `@custom-media` 规则。当设置了 `include.customMediaQueries` 或配置了浏览器 targets 时，loader 会展开自定义媒体查询的引用，并移除对应的定义。由于 Lightning CSS 认为所有浏览器都不支持自定义媒体查询，任何浏览器 targets 都会启用该转换，包括从 Rspack 的 [`target`](/config/target) 推导出的 targets。设置 `exclude.customMediaQueries` 可以保持自定义媒体查询不变。由于 `include` 的优先级高于 `exclude`，且 `include.mediaQueries` 已包含 `include.customMediaQueries`，因此只有在 `include.customMediaQueries` 和 `include.mediaQueries` 都未启用时，该设置才会生效。
 
+对于精确的模块类型 `type: 'css'`，浏览器 targets 默认不会启用 loader 转换，而是由 Rspack 原生 CSS parser 处理 custom media；可通过 [`module.parser.css.customMedia`](/config/module-parser#csscustommedia) 配置。若要显式使用 loader 转换，请同时将 `drafts.customMedia` 和 `include.customMediaQueries` 设为 `true`。
+
 例如，在设置 `drafts: { customMedia: true }` 和 `include: { customMediaQueries: true }` 后，以下 CSS：
 
 ```css

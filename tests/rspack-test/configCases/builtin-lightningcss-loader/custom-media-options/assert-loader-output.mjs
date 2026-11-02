@@ -18,8 +18,6 @@ export default function (code) {
   } else {
     switch (this.resourceQuery) {
       case "?targets":
-        expectExpanded(code);
-        break;
       case "?no-draft":
       case "?exclude":
       case "?no-targets":
