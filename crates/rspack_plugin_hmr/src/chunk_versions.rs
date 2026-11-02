@@ -36,20 +36,22 @@ impl HotModuleReplacementChunkVersionsRuntimeModule {
     let root = graph
       .chunk_by_ukey
       .expect_get(&self.chunk().expect("should have runtime chunk"));
-    let mut versions = root
+    let mut chunks = root
       .get_all_referenced_chunks(&graph.chunk_group_by_ukey)
       .iter()
       .map(|key| graph.chunk_by_ukey.expect_get(key))
       .filter(|chunk| is_versioned(compilation, chunk))
+      .collect::<Vec<_>>();
+    chunks.sort_unstable_by(|a, b| a.expect_id().cmp(b.expect_id()));
+    chunks
+      .into_iter()
       .map(|chunk| {
         (
           chunk.expect_id().clone(),
           get_hmr_chunk_version(compilation, chunk),
         )
       })
-      .collect::<Vec<_>>();
-    versions.sort_unstable_by(|a, b| a.0.cmp(&b.0));
-    versions
+      .collect()
   }
 }
 
