@@ -134,10 +134,11 @@ async fn handle_compilation(
 ) -> Result<()> {
   // A rebuild only reruns the chunk runtime hook for affected chunks, but a lazy
   // manifest depends on the whole chunk graph, and the lazy hash runtime modules of
-  // unaffected chunks would be lost.
+  // unaffected chunks would be lost. Those modules are recreated for every chunk, so
+  // every chunk's hashes must be recomputed too, or the new modules have none.
   if matches!(self.options.hash_loading, IntegrityHashLoading::Lazy)
     && let Some(Some(diagnostic)) = compilation.incremental.disable_passes(
-      IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS,
+      IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS | IncrementalPasses::CHUNKS_HASHES,
       "SubresourceIntegrityPlugin (hashLoading = \"lazy\")",
       "each chunk's integrity hashes depend on the whole chunk graph",
     )
