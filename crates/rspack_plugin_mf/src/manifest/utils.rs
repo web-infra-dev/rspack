@@ -228,7 +228,8 @@ pub fn parse_provide_shared_identifier(identifier: &str) -> Option<(String, Stri
 
 pub fn parse_consume_shared_identifier(identifier: &str) -> Option<(String, Option<String>)> {
   let (_, rest) = identifier.split_once(") ")?;
-  let token = rest.split_whitespace().next()?;
+  // The range can contain spaces (`^1.0.0 || ^2.0.0`); the flags after it start with ` (`.
+  let token = rest.split(" (").next()?.trim();
   // For scoped packages like @scope/pkg@1.0.0, split at the LAST '@'
   let (name, version) = token.rsplit_once('@')?;
   let version = version.trim();
