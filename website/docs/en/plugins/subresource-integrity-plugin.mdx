@@ -186,7 +186,7 @@ The path to the HTML plugin, defaults to `"HtmlRspackPlugin"` which means the na
 - **Type:** `"eager" | "lazy"`
 - **Default:** `"eager"`
 
-Where the integrity hashes of async chunks are emitted.
+Determines whether SRI hashes for async chunks are stored together in the runtime chunk or distributed across parent chunks.
 
 - `eager` puts the hash of every async chunk in the runtime chunk, so the runtime chunk grows with the number of async chunks.
 - `lazy` puts the hashes of a chunk's direct async children in that chunk, and adds them to the runtime when the chunk loads. A hash that every parent of a chunk already provides is left out. This keeps the runtime chunk small in applications with many async chunks.
