@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: common_js_2.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 41824
+- Update: main.LAST_HASH.hot-update.js, size: 42048
 
 ## Manifest
 
@@ -645,13 +645,14 @@ if (installedChunkData !== 0) {
 		promises.push(installedChunkData[2]);
 	} else {
 		if ("webpack_sharing_consume_default_common2_common_2" != chunkId) {
+			var retry = installedChunkData === false;
 			// setup Promise in chunk cache
 			var promise = new Promise((resolve, reject) => (installedChunkData = jsonpInstalledChunks[chunkId] = [resolve, reject]));
 			promises.push((installedChunkData[2] = promise));
 
 			// start chunk loading
 			var url = __webpack_require__.p + __webpack_require__.u(chunkId);
-			url += (url.indexOf('?') < 0 ? '?' : '&') + 'hmr=' + __webpack_require__.h();
+			if (retry) url += (url.indexOf('?') < 0 ? '?' : '&') + 'hmr=' + __webpack_require__.h();
 			// create error before stack unwound to get useful stacktrace later
 			var error = new Error();
 			var loadingEnded = function (event) {
@@ -660,6 +661,8 @@ if (installedChunkData !== 0) {
 					if (installedChunkData !== 0) jsonpInstalledChunks[chunkId] = undefined;
 					if (installedChunkData) {
 						if (installedChunkData.error) {
+							// Keep rejected chunks unloaded, but bypass the URL cache on retry.
+							jsonpInstalledChunks[chunkId] = false;
 							installedChunkData[1](installedChunkData.error);
 							return;
 						}
@@ -1186,7 +1189,8 @@ __webpack_require__.hmrC.jsonp = function (
 	chunkIds.forEach(function (chunkId) {
 		if (
 			__webpack_require__.o(jsonpInstalledChunks, chunkId) &&
-			jsonpInstalledChunks[chunkId] !== undefined
+			jsonpInstalledChunks[chunkId] !== undefined &&
+			jsonpInstalledChunks[chunkId] !== false
 		) {
 			promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList));
 			hotCurrentUpdateChunks[chunkId] = true;

@@ -30,6 +30,7 @@ const cases = [
   { name: 'prepare-v2-update-first', version: 2, updateFirst: true },
   { name: 'during-check', phase: 'check', version: 2 },
   { name: 'concurrent-after-apply', phase: 'late', version: 1 },
+  { name: 'idle-cached', phase: 'idle', version: 1 },
   { name: 'manifest-error', phase: 'check', version: 2 },
   { name: 'update-error', version: 2 },
   { name: 'retry-error', version: 2 },
@@ -152,8 +153,15 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
           sequence = 0;
         const failure = () => new Error('Download failed');
         // Each transport captures an ordinary response independently of HMR.
-        const request = (file, deliver, reject) => {
+        const request = (file, deliver, reject, url) => {
           const first = file === pageFile && ++attempts === 1;
+          if (file === pageFile && url) {
+            assert.equal(
+              new URL(url, 'file:///').search,
+              first ? '' : `?hmr=${sandbox.raceApp.hash()}`,
+              'only a rejected chunk should bypass the URL cache',
+            );
+          }
           let settled = false;
           const response = {
             file,
@@ -225,6 +233,7 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
                   script.onload?.({ type: 'load', target: script });
                 },
                 () => script.onerror?.({ type: 'error', target: script }),
+                script.src,
               );
             },
             removeChild(script) {
@@ -255,22 +264,29 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
             );
           };
         } else {
-          sandbox.raceImport = (url) =>
-            new Promise((resolve, reject) => {
+          const moduleCache = new Map();
+          sandbox.raceImport = (url) => {
+            const key = new URL(url, pathToFileURL(`${output}/`)).href;
+            if (moduleCache.has(key)) return moduleCache.get(key);
+            const promise = new Promise((resolve, reject) => {
               const file = path.basename(
                 fileURLToPath(new URL(url, pathToFileURL(`${output}/`))),
               );
               request(
                 file,
                 (source) => {
-                  // Unique response files avoid Node's import cache hiding a retry.
+                  // Cache namespaces by request URL, as native import() does.
                   const response = path.join(output, `${sequence++}-${file}`);
                   fs.writeFileSync(response, source);
                   import(pathToFileURL(response).href).then(resolve, reject);
                 },
                 reject,
+                url,
               );
             });
+            moduleCache.set(key, promise);
+            return promise;
+          };
         }
         let imports, update;
         const held = [];
@@ -323,10 +339,15 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
           );
           held.push(mainUpdate);
           if (phase === 'prepare') load();
+          if (phase === 'idle') {
+            await mainUpdate.deliver();
+            await wait(update);
+            load();
+          }
           // A future response rejected during check is no longer installed when
           // the manifest is handled, so its hot-update is not downloaded.
           const pageUpdate =
-            phase === 'check'
+            phase === 'check' || phase === 'idle'
               ? undefined
               : await take(
                   (file) =>
@@ -423,7 +444,10 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
             // A compatible V1 response may execute before apply, then normal
             // HMR must dispose its cache before V2 executes.
             assert.deepEqual(executions, executions[0] === 1 ? [1, 2] : [2]);
-            assert.equal(attempts, phase === 'late' || version === 2 ? 2 : 1);
+            assert.equal(
+              attempts,
+              phase === 'late' || phase === 'idle' || version === 2 ? 2 : 1,
+            );
             assert.equal(app.hot.status(), 'idle');
           }
         } finally {

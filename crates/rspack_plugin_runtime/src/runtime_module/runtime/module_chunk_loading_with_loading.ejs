@@ -8,10 +8,10 @@ if (installedChunkData !== 0) { // 0 means "already installed".'
         if (<%- _js_matcher %>) {
             // setup Promise in chunk cache<% if (_with_hmr) { %>
             var url = "<%- _output_dir %>" + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId);
-            url += (url.indexOf('?') < 0 ? '?' : '&') + 'hmr=' + <%- weak(GET_FULL_HASH) %>();
+            if (installedChunkData === false) url += (url.indexOf('?') < 0 ? '?' : '&') + 'hmr=' + <%- weak(GET_FULL_HASH) %>();
             <% } %>
             var promise = <%- _import_function_name %>(<% if (_with_hmr) { %>url<% } else { %>"<%- _output_dir %>" + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId)<% } %>).then(moduleInstallChunk<% if (_with_hmr) { %>).catch(<% } else { %>, <% } %><%- basicFunction("e") %> {
-                if (moduleInstalledChunks[chunkId] !== 0) moduleInstalledChunks[chunkId] = undefined;
+                if (moduleInstalledChunks[chunkId] !== 0) moduleInstalledChunks[chunkId] = <% if (_with_hmr) { %>e.name === "ChunkVersionError" ? false : <% } %>undefined;
                 throw e;
             });
             var promise = Promise.race([promise, new Promise(<%- basicFunction("resolve") %> {
