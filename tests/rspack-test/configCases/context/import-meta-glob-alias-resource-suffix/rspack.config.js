@@ -8,13 +8,20 @@ module.exports = {
       'fragment-assets': path.join(__dirname, 'dir') + '#fragment',
       assets: path.join(__dirname, 'dir') + '?raw#fragment',
       'same-assets': path.join(__dirname, 'dir') + '?raw#fragment',
+      'raw-assets': path.join(__dirname, 'raw') + '?raw',
+      'url-assets': path.join(__dirname, 'url') + '?url#asset',
     },
   },
   module: {
     rules: [
       {
         test: /\.js$/,
-        include: [path.join(__dirname, 'dir'), path.join(__dirname, 'local')],
+        include: [
+          path.join(__dirname, 'dir'),
+          path.join(__dirname, 'local'),
+          path.join(__dirname, 'raw'),
+          path.join(__dirname, 'url'),
+        ],
         use: path.join(__dirname, 'loader.cjs'),
       },
     ],

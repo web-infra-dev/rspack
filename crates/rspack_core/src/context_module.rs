@@ -123,6 +123,17 @@ pub enum ContextModulePattern {
   Glob(Vec<String>),
 }
 
+/// Resource suffix resolved from an alias for one rewritten glob pattern.
+///
+/// The strings are cloned with [`ContextModuleOptions`] because those options
+/// are copied when context module factory hooks rebuild a context module.
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct ContextModuleResourceSuffix {
+  pub query: String,
+  pub fragment: String,
+}
+
 impl ContextModulePattern {
   pub fn reg_exp(&self) -> Option<&RspackRegex> {
     match self {
@@ -244,6 +255,7 @@ pub struct ContextModuleOptions {
   pub resource: Utf8PathBuf,
   pub resource_query: String,
   pub resource_fragment: String,
+  pub glob_pattern_resource_suffixes: Vec<Option<ContextModuleResourceSuffix>>,
   pub context_options: ContextOptions,
   pub layer: Option<ModuleLayer>,
   pub resolve_options: Option<Arc<Resolve>>,
@@ -1640,6 +1652,17 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
   if !options.resource_fragment.is_empty() {
     id += "|";
     id += &options.resource_fragment;
+  }
+  for (index, suffix) in options
+    .glob_pattern_resource_suffixes
+    .iter()
+    .enumerate()
+    .filter_map(|(index, suffix)| suffix.as_ref().map(|suffix| (index, suffix)))
+  {
+    write!(id, "|glob resource suffix {index}:").expect("infallible write to String");
+    id += &suffix.query;
+    id += "|";
+    id += &suffix.fragment;
   }
   id += "|";
   id += options.context_options.mode.as_str();

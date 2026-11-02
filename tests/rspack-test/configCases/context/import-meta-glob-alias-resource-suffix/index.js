@@ -24,6 +24,10 @@ const mixedModules = import.meta.glob(["assets/*.js", "./local/*.js"], {
   import: "default",
   query: "?explicit",
 });
+const differentSuffixModules = import.meta.glob(
+  ["raw-assets/*.js", "url-assets/*.js"],
+  { eager: true, import: "default" },
+);
 
 it("preserves alias query and fragment on glob elements", () => {
   expect(queryModules["/dir/value.js"]).toEqual({ query: "?raw", fragment: "" });
@@ -36,4 +40,8 @@ it("preserves alias query and fragment on glob elements", () => {
   });
   expect(fragmentExplicitModules["/dir/value.js"]).toEqual({ query: "?explicit", fragment: "#fragment" });
   expect(mixedModules["./local/value.js"]).toEqual({ query: "?explicit", fragment: "" });
+  expect(differentSuffixModules).toEqual({
+    "/raw/value.js": { query: "?raw", fragment: "" },
+    "/url/value.js": { query: "?url", fragment: "#asset" },
+  });
 });

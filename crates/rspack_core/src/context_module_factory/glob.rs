@@ -4,10 +4,11 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::{identifier::relative_path_to_request, node_path::NodePath};
 use sugar_path::SugarPath;
 
+use super::ContextModuleMatch;
 use crate::{
-  ContextModuleOptions, GlobMatchOptions, ResolveInnerOptions, escape_glob_pattern,
-  extract_glob_base_dir, glob_match_normalized_with_explicit_dot, normalize_path_separators,
-  normalize_path_separators_for_path, unescape_glob_path,
+  ContextModuleOptions, ContextModuleResourceSuffix, GlobMatchOptions, ResolveInnerOptions,
+  escape_glob_pattern, extract_glob_base_dir, glob_match_normalized_with_explicit_dot,
+  normalize_path_separators, normalize_path_separators_for_path, unescape_glob_path,
 };
 
 #[derive(Debug)]
@@ -278,6 +279,7 @@ fn parse_context_module_glob_pattern(pattern: &str) -> ContextModuleGlobPattern 
 
 pub(super) struct ContextModuleGlobMatcher<'a> {
   patterns: Vec<ContextModuleGlobPattern>,
+  resource_suffixes: &'a [Option<ContextModuleResourceSuffix>],
   positive_pattern_bases: Vec<String>,
   context: &'a str,
   compiler_context: &'a str,
@@ -311,6 +313,7 @@ impl<'a> ContextModuleGlobMatcher<'a> {
     };
     Some(Self {
       patterns,
+      resource_suffixes: &options.glob_pattern_resource_suffixes,
       positive_pattern_bases,
       context: &context_options.context,
       compiler_context: &context_options.compiler_context,
@@ -323,12 +326,13 @@ impl<'a> ContextModuleGlobMatcher<'a> {
     self.patterns.is_empty()
   }
 
-  pub(super) fn match_request(&self, path: &str) -> Option<String> {
-    let user_request = self
+  pub(super) fn match_request(&self, path: &str) -> Option<ContextModuleMatch<'_>> {
+    let (user_request, pattern_index) = self
       .patterns
       .iter()
-      .filter(|pattern| !pattern.negative)
-      .find_map(|pattern| {
+      .enumerate()
+      .filter(|(_, pattern)| !pattern.negative)
+      .find_map(|(index, pattern)| {
         let request = context_relative_glob_request(
           path,
           if pattern.root_relative {
@@ -339,7 +343,7 @@ impl<'a> ContextModuleGlobMatcher<'a> {
           pattern.root_relative,
         );
         glob_pattern_matches(pattern, &request, self.exhaustive, self.case_sensitive)
-          .then_some(request)
+          .then_some((request, index))
       })?;
 
     if self
@@ -362,7 +366,14 @@ impl<'a> ContextModuleGlobMatcher<'a> {
       return None;
     }
 
-    Some(user_request)
+    let resource_suffix = self
+      .resource_suffixes
+      .get(pattern_index)
+      .and_then(Option::as_ref);
+    Some(ContextModuleMatch {
+      user_request,
+      resource_suffix,
+    })
   }
 
   pub(super) fn should_visit_dir(&self, path: &str) -> bool {

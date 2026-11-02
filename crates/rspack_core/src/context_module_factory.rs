@@ -17,11 +17,11 @@ use self::glob::{
 };
 use crate::{
   CompilationId, ContextElementDependency, ContextMode, ContextModule, ContextModuleOptions,
-  ContextModulePattern, DependencyCategory, DependencyId, DependencyRef, DependencyType, ModuleExt,
-  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, OverrideStrict, ResolveArgs,
-  ResolveContextModuleDependencies, ResolveInnerOptions, ResolveOptionsWithDependencyType,
-  ResolveResult, Resolver, ResolverFactory, Resource, SharedPluginDriver, resolve_with_resolver,
-  walk_dir,
+  ContextModulePattern, ContextModuleResourceSuffix, DependencyCategory, DependencyId,
+  DependencyRef, DependencyType, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
+  ModuleFactoryResult, OverrideStrict, ResolveArgs, ResolveContextModuleDependencies,
+  ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
+  Resource, SharedPluginDriver, resolve_with_resolver, walk_dir,
 };
 
 mod glob;
@@ -107,8 +107,7 @@ struct ContextModuleAfterResolveInput {
 
 struct ResolvedContextModuleGlobAliases {
   patterns: Vec<String>,
-  resource_query: String,
-  resource_fragment: String,
+  resource_suffixes: Vec<Option<ContextModuleResourceSuffix>>,
 }
 
 #[async_trait::async_trait]
@@ -318,8 +317,7 @@ impl ContextModuleFactory {
       });
     let mut specifier = specifier;
     let mut glob_aliases_changed = false;
-    let mut glob_alias_query = String::new();
-    let mut glob_alias_fragment = String::new();
+    let mut glob_pattern_resource_suffixes = Default::default();
     if let ContextModulePattern::Glob(patterns) = &pattern
       && let Some(aliases) = self
         .resolve_glob_aliases(data, patterns, &context, &resolver)
@@ -339,8 +337,7 @@ impl ContextModuleFactory {
       specifier = compiled.request;
       recursive = compiled.recursive;
       pattern = ContextModulePattern::Glob(aliases.patterns);
-      glob_alias_query = aliases.resource_query;
-      glob_alias_fragment = aliases.resource_fragment;
+      glob_pattern_resource_suffixes = aliases.resource_suffixes;
       glob_aliases_changed = true;
     }
     let dependency = data.dependencies[0]
@@ -384,17 +381,9 @@ impl ContextModuleFactory {
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
           resource: resource.path,
-          // Alias suffixes override request suffixes, as in normal resolution.
-          resource_query: if glob_alias_query.is_empty() {
-            resource.query
-          } else {
-            glob_alias_query
-          },
-          resource_fragment: if glob_alias_fragment.is_empty() {
-            resource.fragment
-          } else {
-            glob_alias_fragment
-          },
+          resource_query: resource.query,
+          resource_fragment: resource.fragment,
+          glob_pattern_resource_suffixes,
           layer: data.issuer_layer.clone(),
           resolve_options: data.resolve_options.clone(),
           context_options: dependency_options,
@@ -423,6 +412,7 @@ impl ContextModuleFactory {
           resource: Default::default(),
           resource_query: Default::default(),
           resource_fragment: Default::default(),
+          glob_pattern_resource_suffixes: Default::default(),
           layer: data.issuer_layer.clone(),
           resolve_options: data.resolve_options.clone(),
           context_options: dependency_options,
@@ -509,6 +499,16 @@ impl ContextModuleFactory {
         if !matches!(&after_resolve_data.pattern, ContextModulePattern::Glob(_)) {
           context_module_options.context_options.context = after_resolve_data.context;
         }
+        if context_module_options
+          .context_options
+          .pattern
+          .glob_patterns()
+          != after_resolve_data.pattern.glob_patterns()
+        {
+          context_module_options
+            .glob_pattern_resource_suffixes
+            .clear();
+        }
         context_module_options.context_options.pattern = after_resolve_data.pattern.clone();
         context_module_options.context_options.recursive = after_resolve_data.recursive;
 
@@ -531,21 +531,18 @@ impl ContextModuleFactory {
     resolve_context: &str,
     resolver: &Resolver,
   ) -> Result<Option<ResolvedContextModuleGlobAliases>> {
-    let mut rewritten: Option<Vec<String>> = None;
+    let mut rewritten = Vec::with_capacity(patterns.len());
+    let mut resource_suffixes = Vec::with_capacity(patterns.len());
     let mut resolved_aliases = FxHashMap::<String, Option<Resource>>::default();
-    let mut common_suffix: Option<(String, String)> = None;
-    for (index, pattern) in patterns.iter().enumerate() {
+    let mut changed = false;
+    for pattern in patterns {
+      let positive = !pattern.starts_with('!');
       let Some(alias) = context_module_glob_alias_request(pattern, &resolver.options()) else {
-        if !pattern.starts_with('!') {
-          // A local pattern has no alias suffix to apply to the shared context.
-          common_suffix = Some(Default::default());
-        }
-        if let Some(rewritten) = &mut rewritten {
-          rewritten.push(pattern.clone());
-        }
+        rewritten.push(pattern.clone());
+        resource_suffixes.push(None);
         continue;
       };
-      let rewritten = rewritten.get_or_insert_with(|| patterns[..index].to_vec());
+      changed = true;
       let resource = if let Some(resource) = resolved_aliases.get(&alias.request) {
         resource
       } else {
@@ -581,39 +578,28 @@ impl ContextModuleFactory {
           .or_insert(resource)
       };
       if let Some(resource) = resource {
-        if !pattern.starts_with('!') {
-          // Each context has one suffix shared by all its positive patterns.
-          // Only suffixes common to the selected files can be propagated.
-          if let Some((query, fragment)) = &mut common_suffix {
-            if *query != resource.query {
-              query.clear();
-            }
-            if *fragment != resource.fragment {
-              fragment.clear();
-            }
-          } else {
-            common_suffix = Some((resource.query.clone(), resource.fragment.clone()));
-          }
-        }
         let options = data.dependencies[0]
           .as_context_dependency()
           .expect("should be context dependency")
           .options();
-        rewritten.push(resolve_context_module_glob_alias(
+        let rewritten_pattern = resolve_context_module_glob_alias(
           &alias,
           resource.path.as_str(),
           &options.context,
           &options.compiler_context,
-        ));
+        );
+        let has_resource_suffix =
+          positive && (!resource.query.is_empty() || !resource.fragment.is_empty());
+        resource_suffixes.push(has_resource_suffix.then(|| ContextModuleResourceSuffix {
+          query: resource.query.clone(),
+          fragment: resource.fragment.clone(),
+        }));
+        rewritten.push(rewritten_pattern);
       }
     }
-    Ok(rewritten.map(|patterns| {
-      let (resource_query, resource_fragment) = common_suffix.unwrap_or_default();
-      ResolvedContextModuleGlobAliases {
-        patterns,
-        resource_query,
-        resource_fragment,
-      }
+    Ok(changed.then_some(ResolvedContextModuleGlobAliases {
+      patterns: rewritten,
+      resource_suffixes,
     }))
   }
 
@@ -699,10 +685,12 @@ async fn visit_dirs(
         // Keep import.meta.glob Vite-compatible: expose only filesystem-matched
         // paths, not resolver alternative requests like extensionless aliases.
         // Revisit this branch if import.meta.glob compatibility changes.
-        if let Some(user_request) = matcher.match_request(&relative_path, path_str)
-          && !dependencies.iter().any(|d| d.user_request == user_request)
+        if let Some(matched) = matcher.match_request(&relative_path, path_str)
+          && !dependencies
+            .iter()
+            .any(|d| d.user_request == matched.user_request)
         {
-          push_context_element_dependency(dependencies, options, &relative_path, &user_request);
+          push_context_element_dependency(dependencies, options, &relative_path, matched);
         }
       } else {
         let requests = alternative_requests(
@@ -710,8 +698,8 @@ async fn visit_dirs(
           vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
         );
         for r in &requests {
-          if let Some(user_request) = matcher.match_request(&r.request, path_str) {
-            push_context_element_dependency(dependencies, options, &r.request, &user_request);
+          if let Some(matched) = matcher.match_request(&r.request, path_str) {
+            push_context_element_dependency(dependencies, options, &r.request, matched);
           }
         }
       }
@@ -724,11 +712,21 @@ fn push_context_element_dependency(
   dependencies: &mut Vec<ContextElementDependency>,
   options: &ContextModuleOptions,
   user_request: &str,
-  exposed_user_request: &str,
+  matched: ContextModuleMatch<'_>,
 ) {
+  let resource_query = non_empty_or(
+    matched.resource_suffix.map(|suffix| suffix.query.as_str()),
+    &options.resource_query,
+  );
+  let resource_fragment = non_empty_or(
+    matched
+      .resource_suffix
+      .map(|suffix| suffix.fragment.as_str()),
+    &options.resource_fragment,
+  );
   let request = format!(
     "{}{}{}{}",
-    options.addon, user_request, options.resource_query, options.resource_fragment,
+    options.addon, user_request, resource_query, resource_fragment,
   );
   let resource_identifier = ContextElementDependency::create_resource_identifier(
     options.resource.as_str(),
@@ -743,7 +741,7 @@ fn push_context_element_dependency(
       ContextMode::AsyncWeak | ContextMode::Weak
     ),
     request,
-    user_request: exposed_user_request.to_string(),
+    user_request: matched.user_request,
     category: options.context_options.category,
     context: options.resource.clone().into(),
     layer: options.layer.clone(),
@@ -754,6 +752,10 @@ fn push_context_element_dependency(
   });
 }
 
+fn non_empty_or<'a>(value: Option<&'a str>, fallback: &'a str) -> &'a str {
+  value.filter(|value| !value.is_empty()).unwrap_or(fallback)
+}
+
 fn is_non_exhaustive_import_meta_glob_skipped_dir(dirname: &str) -> bool {
   dirname == "node_modules" || dirname.starts_with('.')
 }
@@ -761,6 +763,11 @@ fn is_non_exhaustive_import_meta_glob_skipped_dir(dirname: &str) -> bool {
 struct ContextModuleMatcher<'a> {
   pattern: &'a ContextModulePattern,
   glob: Option<ContextModuleGlobMatcher<'a>>,
+}
+
+struct ContextModuleMatch<'a> {
+  user_request: String,
+  resource_suffix: Option<&'a ContextModuleResourceSuffix>,
 }
 
 impl<'a> ContextModuleMatcher<'a> {
@@ -786,13 +793,16 @@ impl<'a> ContextModuleMatcher<'a> {
     self.glob.is_some()
   }
 
-  fn match_request(&self, request: &str, resource_path: &str) -> Option<String> {
+  fn match_request(&self, request: &str, resource_path: &str) -> Option<ContextModuleMatch<'_>> {
     if let Some(glob) = &self.glob {
       return glob.match_request(resource_path);
     }
 
     if let Some(reg_exp) = self.pattern.reg_exp() {
-      reg_exp.test(request).then(|| request.to_string())
+      reg_exp.test(request).then(|| ContextModuleMatch {
+        user_request: request.to_string(),
+        resource_suffix: None,
+      })
     } else {
       None
     }
