@@ -233,7 +233,7 @@ export default {
 
 Enable parsing of draft CSS syntax.
 
-Set `drafts.customMedia` to `true` to parse `@custom-media` rules. The loader expands custom media references and removes their definitions when `include.customMediaQueries` is set or when browser targets are configured. Lightning CSS treats custom media as unsupported in every browser, so any browser targets enable this transform, including targets derived from Rspack's [`target`](/config/target). Set `exclude.customMediaQueries` to keep custom media unchanged.
+Set `drafts.customMedia` to `true` to parse `@custom-media` rules. The loader expands custom media references and removes their definitions when `include.customMediaQueries` is set or when browser targets are configured. Lightning CSS treats custom media as unsupported in every browser, so any browser targets enable this transform, including targets derived from Rspack's [`target`](/config/target). Set `exclude.customMediaQueries` to keep custom media unchanged. Because `include` takes precedence over `exclude` and `include.mediaQueries` already contains `include.customMediaQueries`, this only works when both `include.customMediaQueries` and `include.mediaQueries` are disabled.
 
 For example, with `drafts: { customMedia: true }` and `include: { customMediaQueries: true }`, the following CSS:
 
@@ -300,4 +300,4 @@ export default {
 
 `this.addDependency()` rebuilds each file when the shared definitions change. Definitions can come after the queries that use them, so appending keeps `@import` rules first and source map positions unchanged. Appended definitions override definitions with the same name in the file.
 
-Alternatively, leave custom media to [`LightningCssMinimizerRspackPlugin`](/plugins/lightning-css-minimizer-rspack-plugin), which resolves it across each output CSS file. Enable `minimizerOptions.drafts.customMedia` in the plugin, and leave `drafts.customMedia` disabled in this loader or set `exclude.customMediaQueries`, so that the loader keeps the definitions. Custom media is then only expanded in minimized output, and each name must be defined in the same output file as the queries that use it.
+Alternatively, leave custom media to [`LightningCssMinimizerRspackPlugin`](/plugins/lightning-css-minimizer-rspack-plugin), which resolves it across each output CSS file. Enable `minimizerOptions.drafts.customMedia` in the plugin, and leave `drafts.customMedia` disabled in this loader, or set `exclude.customMediaQueries` with both `include.customMediaQueries` and `include.mediaQueries` disabled, so that the loader keeps the definitions. Custom media is then only expanded in minimized output, and each name must be defined in the same output file as the queries that use it.

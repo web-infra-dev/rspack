@@ -1,7 +1,13 @@
 it('should report circular custom media from the loader', () => {
-	try {
-		require('./cyclic.css');
-	} catch {
-		// The module build error is asserted by errors.mjs.
+	for (const load of [
+		() => require('./cyclic.css'),
+		() => require('./missing-before-cyclic.css'),
+		() => require('./cyclic-before-missing.css'),
+	]) {
+		try {
+			load();
+		} catch {
+			// The module build errors are asserted by errors.mjs.
+		}
 	}
 });

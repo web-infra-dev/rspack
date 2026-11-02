@@ -9,12 +9,13 @@ use derive_more::Debug;
 pub use lightningcss;
 use lightningcss::{
   error::MinifyErrorKind,
-  media_query::{MediaCondition, MediaFeatureName, QueryFeature},
+  media_query::{MediaCondition, MediaFeatureName, MediaList, QueryFeature},
   printer::{PrinterOptions, PseudoClasses},
-  rules::CssRule,
+  rules::{CssRule, Location, custom_media::CustomMediaRule},
   stylesheet::{MinifyOptions, ParserFlags, ParserOptions, StyleSheet},
   targets::{Features, Targets},
   traits::IntoOwned,
+  values::ident::DashedIdent,
 };
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
@@ -196,13 +197,44 @@ impl LightningCssLoader {
     match stylesheet.minify(minify_options()) {
       // The name may be defined in another file, so leave custom media as written, like webpack.
       Err(error) if matches!(error.kind, MinifyErrorKind::CustomMediaNotDefined { .. }) => {
-        loader_context.emit_diagnostic(Diagnostic::warn(
-          LIGHTNINGCSS_LOADER_IDENTIFIER.to_string(),
-          format!(
-            "{}, so custom media in this file is left unchanged",
-            error.kind
-          ),
-        ));
+        // Minify stops at the first error, so define each undefined name to still reach
+        // circular references later in the file.
+        let mut undefined_names = Vec::new();
+        let mut undefined = Some(error);
+        while let Some(error) = undefined.take() {
+          loader_context.emit_diagnostic(Diagnostic::warn(
+            LIGHTNINGCSS_LOADER_IDENTIFIER.to_string(),
+            format!(
+              "{}, so custom media in this file is left unchanged",
+              error.kind
+            ),
+          ));
+          if let MinifyErrorKind::CustomMediaNotDefined { name } = error.kind {
+            undefined_names.push(name);
+          }
+
+          let mut probe = StyleSheet::parse(&content_str, option.clone()).to_rspack_result()?;
+          probe.rules.0.splice(
+            0..0,
+            undefined_names.iter().map(|name| {
+              CssRule::CustomMedia(CustomMediaRule {
+                name: DashedIdent(name.clone().into()),
+                query: MediaList::new(),
+                loc: Location {
+                  source_index: 0,
+                  line: 0,
+                  column: 0,
+                },
+              })
+            }),
+          );
+          match probe.minify(minify_options()) {
+            Err(error) if matches!(error.kind, MinifyErrorKind::CustomMediaNotDefined { .. }) => {
+              undefined = Some(error);
+            }
+            result => result.to_rspack_result()?,
+          }
+        }
         stylesheet = self.parse(&content_str, option, true).await?;
         stylesheet.minify(minify_options()).to_rspack_result()?;
       }
