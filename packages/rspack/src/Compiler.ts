@@ -341,6 +341,7 @@ class Compiler {
         'Cannot execute user defined code in browser without `BrowserRequirePlugin`',
       );
     };
+    registerAllocativeSnapshot(require('@rspack/binding'));
     // this is a bit tricky since applyDefaultOptions is executed later, so we don't get the `resolve.pnp` default value
     // we need to call pnp defaultValue early here
     this.resolverFactory = new ResolverFactory(
@@ -968,7 +969,6 @@ class Compiler {
       VirtualModulesPlugin.__internal__take_virtual_files(this);
 
     const instanceBinding: typeof binding = require('@rspack/binding');
-    registerAllocativeSnapshot(instanceBinding);
 
     this.#registers = this.#createHooksRegisters();
 
