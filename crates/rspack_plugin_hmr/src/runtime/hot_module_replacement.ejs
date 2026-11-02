@@ -114,12 +114,6 @@
 			// would also block status handlers which await this import.
 			return trackBlockingPromise(loading[0]).catch(function (error) {
 				if (error.name !== "ChunkVersionError") throw error;
-				// An idle runtime may already be current while the URL cache is stale.
-				var nextHash = <%- GET_FULL_HASH %>();
-				if (currentStatus === "idle" && retriedHash !== nextHash) {
-					retriedHash = nextHash;
-					return load();
-				}
 				return waitForUpdate(hash, chunkId).then(function () {
 					var nextHash = <%- GET_FULL_HASH %>();
 					if (retriedHash === nextHash) throw error;

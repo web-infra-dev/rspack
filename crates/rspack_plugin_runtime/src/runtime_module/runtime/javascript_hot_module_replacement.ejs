@@ -451,8 +451,7 @@
 	chunkIds.forEach(function (chunkId) {
 		if (
 			<%- HAS_OWN_PROPERTY %>(<%- _installed_chunks %>, chunkId) &&
-			<%- _installed_chunks %>[chunkId] !== undefined &&
-			<%- _installed_chunks %>[chunkId] !== false
+			<%- _installed_chunks %>[chunkId] !== undefined
 		) {
 			promises.push(<%- _load_update_chunk %>(chunkId, updatedModulesList));
 			hotCurrentUpdateChunks[chunkId] = true;

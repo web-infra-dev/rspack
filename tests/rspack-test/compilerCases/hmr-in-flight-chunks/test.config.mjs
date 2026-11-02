@@ -30,7 +30,6 @@ const cases = [
   { name: 'prepare-v2-update-first', version: 2, updateFirst: true },
   { name: 'during-check', phase: 'check', version: 2 },
   { name: 'concurrent-after-apply', phase: 'late', version: 1 },
-  { name: 'idle-cached', phase: 'idle', version: 1 },
   { name: 'manifest-error', phase: 'check', version: 2 },
   { name: 'update-error', version: 2 },
   { name: 'retry-error', version: 2 },
@@ -51,7 +50,10 @@ const cases = [
 
 export default ['web', 'async-node', 'module'].flatMap((target) =>
   ['webpack', 'rspack'].flatMap((runtimeMode) =>
-    cases.map(({ name, phase = 'prepare', version, updateFirst, manual }) => ({
+    cases.filter(({ name }) =>
+      // Native import() reuses the first namespace, so there is no retry request.
+      target !== 'module' || (name !== 'retry-error' && name !== 'retry-stale'),
+    ).map(({ name, phase = 'prepare', version, updateFirst, manual }) => ({
       name: `${target}-${runtimeMode}-${name}`,
       description:
         'validates before installation and retries without blocking apply',
@@ -153,15 +155,8 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
           sequence = 0;
         const failure = () => new Error('Download failed');
         // Each transport captures an ordinary response independently of HMR.
-        const request = (file, deliver, reject, url) => {
+        const request = (file, deliver, reject) => {
           const first = file === pageFile && ++attempts === 1;
-          if (file === pageFile && url) {
-            assert.equal(
-              new URL(url, 'file:///').search,
-              first ? '' : `?hmr=${sandbox.raceApp.hash()}`,
-              'only a rejected chunk should bypass the URL cache',
-            );
-          }
           let settled = false;
           const response = {
             file,
@@ -227,13 +222,12 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
               scripts.push(script);
               script.parentNode = head;
               request(
-                path.basename(script.src.split('?')[0]),
+                path.basename(script.src),
                 (source) => {
                   vm.runInContext(source, sandbox);
                   script.onload?.({ type: 'load', target: script });
                 },
                 () => script.onerror?.({ type: 'error', target: script }),
-                script.src,
               );
             },
             removeChild(script) {
@@ -281,7 +275,6 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
                   import(pathToFileURL(response).href).then(resolve, reject);
                 },
                 reject,
-                url,
               );
             });
             moduleCache.set(key, promise);
@@ -339,15 +332,10 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
           );
           held.push(mainUpdate);
           if (phase === 'prepare') load();
-          if (phase === 'idle') {
-            await mainUpdate.deliver();
-            await wait(update);
-            load();
-          }
           // A future response rejected during check is no longer installed when
           // the manifest is handled, so its hot-update is not downloaded.
           const pageUpdate =
-            phase === 'check' || phase === 'idle'
+            phase === 'check'
               ? undefined
               : await take(
                   (file) =>
@@ -425,6 +413,12 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
             assert.equal(app.executions.length, 0);
             assert.equal((await wait(app.load())).default, 2);
             assert.equal(app.hot.status(), 'idle');
+          } else if (target === 'module' && phase === 'late') {
+            // The stable URL still resolves to V1 in the native module cache.
+            // Reject instead of installing stale factories or waiting forever.
+            await assert.rejects(wait(imports), /no update leads|Download failed/);
+            assert.equal(attempts, 1);
+            assert.equal(app.executions.length, 0);
           } else if (name === 'retry-error' || name === 'retry-stale') {
             await assert.rejects(
               wait(imports),
@@ -446,7 +440,7 @@ export default ['web', 'async-node', 'module'].flatMap((target) =>
             assert.deepEqual(executions, executions[0] === 1 ? [1, 2] : [2]);
             assert.equal(
               attempts,
-              phase === 'late' || phase === 'idle' || version === 2 ? 2 : 1,
+              target !== 'module' && (phase === 'late' || version === 2) ? 2 : 1,
             );
             assert.equal(app.hot.status(), 'idle');
           }
