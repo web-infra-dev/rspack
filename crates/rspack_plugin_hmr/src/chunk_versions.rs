@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::BTreeMap, sync::Arc};
 
 use rspack_core::{
   Chunk, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
@@ -18,7 +18,7 @@ pub(crate) fn is_versioned(compilation: &Compilation, chunk: &Chunk) -> bool {
 }
 
 #[derive(Debug)]
-struct ChunkVersions(Vec<(ChunkId, String)>);
+struct ChunkVersions(BTreeMap<ChunkId, String>);
 
 impl RuntimeModuleUpdateData for ChunkVersions {}
 
@@ -31,27 +31,22 @@ impl HotModuleReplacementChunkVersionsRuntimeModule {
     Self::with_default(template)
   }
 
-  fn versions(&self, compilation: &Compilation) -> Vec<(ChunkId, String)> {
+  fn versions(&self, compilation: &Compilation) -> BTreeMap<ChunkId, String> {
     let graph = &compilation.build_chunk_graph_artifact;
     let root = graph
       .chunk_by_ukey
       .expect_get(&self.chunk().expect("should have runtime chunk"));
-    let mut chunks = root
-      .get_all_referenced_chunks(&graph.chunk_group_by_ukey)
-      .iter()
-      .map(|key| graph.chunk_by_ukey.expect_get(key))
-      .filter(|chunk| is_versioned(compilation, chunk))
-      .collect::<Vec<_>>();
-    chunks.sort_unstable_by(|a, b| a.expect_id().cmp(b.expect_id()));
-    chunks
-      .into_iter()
-      .map(|chunk| {
-        (
+    let mut versions = BTreeMap::new();
+    for key in root.get_all_referenced_chunks(&graph.chunk_group_by_ukey) {
+      let chunk = graph.chunk_by_ukey.expect_get(&key);
+      if is_versioned(compilation, chunk) {
+        versions.insert(
           chunk.expect_id().clone(),
           get_hmr_chunk_version(compilation, chunk),
-        )
-      })
-      .collect()
+        );
+      }
+    }
+    versions
   }
 }
 
@@ -76,7 +71,10 @@ impl RuntimeModule for HotModuleReplacementChunkVersionsRuntimeModule {
     let map = context
       .runtime_template
       .render_runtime_globals(&RuntimeGlobals::HMR_CHUNK_VERSIONS);
-    let entries = self.versions(context.compilation);
+    let entries = self
+      .versions(context.compilation)
+      .into_iter()
+      .collect::<Vec<_>>();
     Ok(format!(
       "{map} = Object.create(null);\n{}.forEach(function(entry) {{ {map}[entry[0]] = entry[1]; }});",
       rspack_util::json_stringify(&entries)
@@ -101,12 +99,7 @@ impl RuntimeModule for HotModuleReplacementChunkVersionsRuntimeModule {
       .render_runtime_globals(&RuntimeGlobals::HMR_CHUNK_VERSIONS);
     let mut source = String::new();
     for (id, version) in &versions {
-      let old_version = previous
-        .0
-        .binary_search_by(|(old_id, _)| old_id.cmp(id))
-        .ok()
-        .map(|index| &previous.0[index].1);
-      if old_version != Some(version) {
+      if previous.0.get(id) != Some(version) {
         source.push_str(&format!(
           "{map}[{}] = {};\n",
           rspack_util::json_stringify(id),
@@ -114,16 +107,11 @@ impl RuntimeModule for HotModuleReplacementChunkVersionsRuntimeModule {
         ));
       }
     }
-    for (id, _) in &previous.0 {
-      if versions
-        .binary_search_by(|(current_id, _)| current_id.cmp(id))
-        .is_err()
-      {
-        source.push_str(&format!(
-          "delete {map}[{}];\n",
-          rspack_util::json_stringify(id)
-        ));
-      }
+    for id in previous.0.keys().filter(|id| !versions.contains_key(*id)) {
+      source.push_str(&format!(
+        "delete {map}[{}];\n",
+        rspack_util::json_stringify(id)
+      ));
     }
     Ok(Some(source))
   }
