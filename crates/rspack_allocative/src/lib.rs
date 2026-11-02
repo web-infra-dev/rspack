@@ -51,6 +51,7 @@ mod global_root;
 mod impls;
 mod key;
 mod reflection;
+pub mod snapshot;
 mod visitor;
 
 pub use rspack_allocative_derive::{Allocative, root};

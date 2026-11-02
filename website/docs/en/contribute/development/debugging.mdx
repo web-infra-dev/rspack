@@ -96,3 +96,31 @@ Process 23110 stopped
    247
 Target 0: (node) stopped.
 ```
+
+## Allocative memory snapshots
+
+Build the local binding and JavaScript packages with allocative instrumentation:
+
+```bash
+ALLOCATIVE=1 pnpm run build:binding:dev
+pnpm run build:js
+```
+
+Run the workload with a fresh output directory and expose Node.js GC:
+
+```bash
+RSPACK_ALLOCATIVE_DIR=/tmp/rspack-memory \
+  node --expose-gc packages/rspack-cli/bin/rspack.js build
+```
+
+After build or rebuild cache finalization, Rust waits for a global JavaScript callback. The callback runs `gc()` and writes a V8 heap snapshot before Rust traverses the compiler. Each capture produces matching `.heapsnapshot`, `.allocative`, and `.objects.json` files. Standalone Rust workloads without a registered callback continue to produce Rust profiles only. Only one V8 environment can register the callback in a process.
+
+In an allocative build, native class instances have non-enumerable, read-only string properties `__rspackRustPtr` and `__rspackRustType`. The pointer identifies the Rust binding wrapper at its final N-API address. It is distinct from the address of a module or resolver referenced by that wrapper. Weak registration records live wrappers without keeping them alive or traversing their potentially active native targets. The compiler traversal measures native memory separately; binding identity records add no byte weights.
+
+Convert a matching capture pair into folded stacks accepted by the existing allocative flamegraph renderer:
+
+```bash
+node scripts/v8-to-allocative.mjs /tmp/rspack-memory/0-build.heapsnapshot
+```
+
+The script writes `.js.allocative`, `.combined.allocative`, and `.links.json` files. The links report matches V8 node IDs to Rust wrapper addresses, types, and paths. JavaScript byte weights use each V8 node's shallow `self_size` once, attributed to the first strong owner found by breadth-first traversal. Shared references and cycles are deduplicated; weak edges do not establish ownership. This attribution is not a dominator tree or retained size. Paths are limited to 32 frames by default; use `--max-depth` to change the limit. Objects without a strong path from the root are grouped separately. These profiles do not measure RSS or peak memory, and addresses are meaningful only within the same process capture.

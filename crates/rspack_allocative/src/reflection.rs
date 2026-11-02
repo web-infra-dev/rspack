@@ -180,6 +180,7 @@ fn visit_fields<T>(value: &T, fields: &[FieldVisitor], visitor: &mut Visitor<'_>
 
 impl<T: 'static> Visit for T {
   default fn visit_memory<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+    visitor.record_object(self);
     // Borrow promoted metadata rather than copying a descriptor onto the stack
     // for every live object. Only immediate fields are stored, not the graph.
     let plan = const { &Plan::new::<T>() };
@@ -206,6 +207,7 @@ impl<T: 'static> Visit for T {
 // This also covers temporary borrows and keeps typed container adapters composable.
 impl<T: Allocative> Visit for T {
   fn visit_memory<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+    visitor.record_object(self);
     self.visit(visitor);
   }
 }

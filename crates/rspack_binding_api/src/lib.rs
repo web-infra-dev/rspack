@@ -49,6 +49,7 @@
 extern crate napi_derive;
 extern crate rspack_allocator;
 
+mod allocative;
 mod allocator;
 mod asset;
 mod asset_condition;

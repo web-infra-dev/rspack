@@ -100,3 +100,31 @@ Process 23110 stopped
    247
 Target 0: (node) stopped.
 ```
+
+## Allocative 内存快照 \{#allocative-memory-snapshots}
+
+启用 allocative 插桩，构建本地 binding 和 JavaScript 包：
+
+```bash
+ALLOCATIVE=1 pnpm run build:binding:dev
+pnpm run build:js
+```
+
+为每次运行指定新的输出目录，并暴露 Node.js GC：
+
+```bash
+RSPACK_ALLOCATIVE_DIR=/tmp/rspack-memory \
+  node --expose-gc packages/rspack-cli/bin/rspack.js build
+```
+
+在 build 或 rebuild 的缓存收尾完成后，Rust 会等待一个全局 JavaScript 回调。回调先执行 `gc()`，再写入 V8 堆快照，随后 Rust 才遍历 compiler。每次采集会生成配套的 `.heapsnapshot`、`.allocative` 和 `.objects.json` 文件。未注册回调的独立 Rust 程序仍只生成 Rust profile。一个进程只允许一个 V8 环境注册回调。
+
+启用 allocative 时，native class 实例包含不可枚举、只读的字符串属性 `__rspackRustPtr` 和 `__rspackRustType`。指针标识 Rust binding wrapper 在 N-API 中的最终地址，与 wrapper 引用的 module 或 resolver 地址不同。弱引用注册表记录存活的 wrapper，不阻止回收，也不遍历可能正在工作的 native target。compiler 遍历独立测量 native 内存；binding 身份记录不增加字节权重。
+
+将配套快照转换为现有 allocative 火焰图工具支持的 folded stacks：
+
+```bash
+node scripts/v8-to-allocative.mjs /tmp/rspack-memory/0-build.heapsnapshot
+```
+
+脚本生成 `.js.allocative`、`.combined.allocative` 和 `.links.json` 文件。关联报告将 V8 节点 ID 匹配到 Rust wrapper 的地址、类型和路径。JavaScript 字节权重对每个 V8 节点的浅层 `self_size` 只计数一次，通过广度优先遍历归属到首个强引用 owner。共享引用和循环不会重复计数，弱引用不构成所有权。这种归属方式不是支配树，也不代表 retained size。路径默认最多 32 层，可通过 `--max-depth` 调整；无法从根节点经强引用到达的对象单独分组。结果不代表 RSS 或峰值内存，地址仅在同一进程的采集中有意义。

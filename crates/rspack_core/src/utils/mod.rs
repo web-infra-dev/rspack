@@ -264,7 +264,10 @@ pub fn compare_chunks_with_graph(
 }
 
 #[cfg(allocative)]
-pub fn snapshot_allocative(name: &str, compiler: &crate::Compiler) -> rspack_error::Result<()> {
+pub async fn snapshot_allocative(
+  name: &str,
+  compiler: &crate::Compiler,
+) -> rspack_error::Result<()> {
   use std::{
     collections::BTreeMap,
     path::PathBuf,
@@ -281,7 +284,13 @@ pub fn snapshot_allocative(name: &str, compiler: &crate::Compiler) -> rspack_err
   let dir = PathBuf::from(dir);
   std::fs::create_dir_all(&dir).to_rspack_result()?;
   let snapshot = format!("{}-{name}", COUNT.fetch_add(1, Ordering::Relaxed));
-  let mut builder = rspack_allocative::FlameGraphBuilder::with_shared_ownership();
+  // GC can release native wrappers, so collect JS before traversing Rust.
+  let mut builder =
+    rspack_allocative::snapshot::capture(dir.join(format!("{snapshot}.heapsnapshot")))
+      .await
+      .map_err(|message| {
+        rspack_error::error!("JavaScript allocative snapshot failed: {message}")
+      })?;
   builder.visit_root(compiler);
   builder.visit_global_roots();
   // Ustr handles borrow process-global interned strings. Charge the pool once
@@ -304,6 +313,14 @@ pub fn snapshot_allocative(name: &str, compiler: &crate::Compiler) -> rspack_err
   }
   builder.visit_root(&UstrStringArena);
   let output = builder.finish();
+  std::fs::write(
+    dir.join(format!("{snapshot}.objects.json")),
+    serde_json::to_vec_pretty(
+      &serde_json::json!({"snapshot": snapshot, "objects": output.objects()}),
+    )
+    .to_rspack_result()?,
+  )
+  .to_rspack_result()?;
   std::fs::write(
     dir.join(format!("{snapshot}.allocative")),
     output.flamegraph().write(),

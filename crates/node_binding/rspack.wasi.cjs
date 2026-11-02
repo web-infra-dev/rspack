@@ -166,6 +166,7 @@ module.exports.minify = __napiModule.exports.minify
 module.exports.minifySync = __napiModule.exports.minifySync
 module.exports.RawJavascriptParserCommonjsExports = __napiModule.exports.RawJavascriptParserCommonjsExports
 module.exports.RawRuleSetConditionType = __napiModule.exports.RawRuleSetConditionType
+module.exports.registerAllocativeSnapshotCallback = __napiModule.exports.registerAllocativeSnapshotCallback
 module.exports.registerGlobalTrace = __napiModule.exports.registerGlobalTrace
 module.exports.RegisterJsTapKind = __napiModule.exports.RegisterJsTapKind
 module.exports.sync = __napiModule.exports.sync
