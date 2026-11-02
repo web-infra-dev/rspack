@@ -2,7 +2,7 @@ use std::fmt::Write as _;
 
 use rspack_core::{
   Chunk, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, PathData, RuntimeCodeTemplate,
-  SourceType,
+  RuntimeVariable, SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdSet},
   get_js_chunk_filename_template, get_undo_path,
 };
@@ -280,7 +280,12 @@ pub fn generate_javascript_hmr_runtime(
       "_installed_chunks": format!("{method}InstalledChunks"),
       "_loaded_chunk_state": if matches!(method, "require" | "importScripts") { 1 } else { 0 },
       "_load_update_chunk": format!("{method}LoadUpdateChunk"),
-      "_finish_chunk_loading": format!("{method}FinishChunkLoading"),
+      "_install_full_chunks": match method {
+        "jsonp" => "__rspack_jsonp(0, [fullChunks, {}])".to_string(),
+        "importScripts" => "importScriptsInstallChunk([fullChunks, {}])".to_string(),
+        "module" => format!("moduleInstallChunk({{ __rspack_esm_ids: fullChunks, {}: {{}} }})", runtime_template.render_runtime_variable(&RuntimeVariable::Modules)),
+        _ => format!("{method}InstallChunk({{ ids: fullChunks, modules: {{}} }})"),
+      },
       "_is_hot_test": is_hot_test(),
     })),
   )

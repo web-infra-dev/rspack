@@ -507,21 +507,17 @@ __webpack_require__.p = '由 document/location 计算得来';
 
 <ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
 
-运行时获取或修改 Base URI。
+读取或修改 Rspack 在运行时用于解析资源和 Worker 相对 URL 的基准 URI。通常可以直接使用默认值，无需修改。
 
-<Columns>
-```js title=源码
-import.meta.rspackBaseUri;
+```js
+// 读取当前基准 URI。
+const baseUri = import.meta.rspackBaseUri;
+
+// 如果需要修改，在创建资源 URL 前设置。
+import.meta.rspackBaseUri = 'https://example.com/app/';
 ```
 
-```js title=产物
-__webpack_require__.b;
-
-// chunk loading
-__webpack_require__.b = document.baseURI || self.location.href;
-```
-
-</Columns>
+关于默认值、与 `publicPath` 的关系及使用示例，参阅 [Base URI](/guide/features/asset-base-path#base-uri)。
 
 ### import.meta.rspackNonce
 

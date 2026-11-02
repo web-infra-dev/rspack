@@ -17,10 +17,6 @@ static HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntim
     requirements
       .define
       .insert(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
-    // Supplemental chunks use the ordinary loaders to complete installation.
-    requirements
-      .dependencies
-      .insert(RuntimeGlobals::ENSURE_CHUNK | RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
     requirements
   });
 static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =
@@ -58,6 +54,7 @@ impl RuntimeModule for HotModuleReplacementRuntimeModule {
       Some(serde_json::json!({
         "_is_hot_test": is_hot_test(),
         "_is_rspack_runtime_mode": context.compilation.options.experiments.runtime_mode == RuntimeMode::Rspack,
+        "_chunk_load_timeout": context.compilation.options.output.chunk_load_timeout,
       })),
     )?;
 

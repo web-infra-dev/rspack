@@ -5,8 +5,8 @@ import { pathToFileURL } from 'node:url';
 import { rspack } from '@rspack/core';
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
-export default {
-  description: 'installs complete ESM entry dependencies and keeps receiving their updates',
+export default ['module', 'node', 'async-node'].flatMap(target => ['webpack', 'rspack'].map(runtimeMode => ({
+  description: `installs complete entry dependencies and receives later updates (${target}, ${runtimeMode})`,
   compiler(_context, compiler) {
     compiler.outputFileSystem = fs;
   },
@@ -15,18 +15,19 @@ export default {
       context: context.getDist('input'),
       entry: './index.mjs',
       mode: 'development',
-      target: 'node',
+      target: target === 'module' ? 'node' : target,
+      experiments: { runtimeMode },
       devtool: false,
       output: {
-        path: context.getDist('output'),
-        module: true,
-        library: { type: 'module' },
-        chunkLoading: 'import',
-        filename: '[name].mjs',
-        chunkFilename: '[name].[contenthash].mjs',
-        hotUpdateChunkFilename: '[id].[fullhash].hot-update.mjs',
-        hotUpdateMainFilename: '[runtime].[fullhash].hot-update.json.mjs',
-        publicPath: pathToFileURL(`${context.getDist('output')}/`).href,
+        path: context.getDist(`output-${target}-${runtimeMode}`),
+        module: target === 'module',
+        library: { type: target === 'module' ? 'module' : 'commonjs2' },
+        chunkLoading: target === 'module' ? 'import' : undefined,
+        filename: target === 'module' ? '[name].mjs' : '[name].js',
+        chunkFilename: `[name].[contenthash].${target === 'module' ? 'mjs' : 'js'}`,
+        hotUpdateChunkFilename: `[id].[fullhash].hot-update.${target === 'module' ? 'mjs' : 'js'}`,
+        hotUpdateMainFilename: `[runtime].[fullhash].hot-update.json${target === 'module' ? '.mjs' : ''}`,
+        publicPath: pathToFileURL(`${context.getDist(`output-${target}-${runtimeMode}`)}/`).href,
       },
       optimization: {
         runtimeChunk: 'single',
@@ -70,14 +71,16 @@ export default {
         ));
         assert.equal(stats.hasErrors(), false, stats.toString());
         if (!step) {
-          entry = await import(pathToFileURL(context.getDist('output/main.mjs')).href);
+          const loaded = await import(pathToFileURL(context.getDist(`output-${target}-${runtimeMode}/main.${target === 'module' ? 'mjs' : 'js'}`)).href);
+          entry = target === 'module' ? loaded : await loaded.default;
         } else {
           if (step === 1) {
             const assets = stats.compilation.getAssets();
-            const manifest = assets.find(asset => asset.name.endsWith('.hot-update.json.mjs'));
+            const manifest = assets.find(asset => asset.name.includes('.hot-update.json'));
             assert.match(manifest.source.source().toString(), /"entries":\{"main":\["constructor"\]\}/);
-            assert(assets.some(asset => asset.name.startsWith('constructor.') && asset.name.endsWith('.full.mjs')));
-            assert(!assets.some(asset => asset.name.startsWith('constructor.') && asset.name.endsWith('.hot-update.mjs')));
+            const extension = target === 'module' ? 'mjs' : 'js';
+            assert(assets.some(asset => asset.name.startsWith('constructor.') && asset.name.endsWith(`.full.${extension}`)));
+            assert(!assets.some(asset => asset.name.startsWith('constructor.') && asset.name.endsWith(`.hot-update.${extension}`)));
           }
           await entry.hot.check(true);
         }
@@ -88,4 +91,4 @@ export default {
       delete globalThis.completeHmrModuleValue;
     }
   },
-};
+})));

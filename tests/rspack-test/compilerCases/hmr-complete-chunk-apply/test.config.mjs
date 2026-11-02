@@ -1,141 +1,124 @@
-import assert from "node:assert/strict";
-import fs from "node:fs";
-import path from "node:path";
-import vm from "node:vm";
-import { rspack } from "@rspack/core";
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import { rspack } from '@rspack/core';
 
-/** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
-export default {
-	description: "stages complete entry dependencies until apply and resolves concurrent imports",
-	options(context) {
-		return {
-			context: context.getDist("input"),
-			entry: "./index.js",
-			mode: "development",
-			devtool: false,
-			target: "web",
-			output: {
-				path: context.getDist("output"),
-				filename: "[name].js",
-				chunkFilename: "[name].js",
-				publicPath: "/"
-			},
-			optimization: {
-				moduleIds: "named",
-				chunkIds: "named",
-				usedExports: false,
-				concatenateModules: false,
-				removeAvailableModules: false,
-				splitChunks: {
-					cacheGroups: {
-						default: false,
-						defaultVendors: false,
-						shared: {
-							test: /[\\/]z\.js$/,
-							name: "toString",
-							chunks: "initial",
-							enforce: true
-						}
-					}
-				}
-			},
-			plugins: [new rspack.HotModuleReplacementPlugin()]
-		};
-	},
-	async build(context, compiler) {
-		const input = context.getDist("input");
-		fs.mkdirSync(input, { recursive: true });
-		const write = (file, source) => fs.writeFileSync(path.join(input, file), source);
-		write("index.js", `
-			globalThis.req = __webpack_require__;
-			globalThis.hot = module.hot;
-			globalThis.readDep = () => require('./dep');
-			require('./page');
-			globalThis.loadOther = () => import(/* webpackChunkName: 'other' */ './other');
-			module.hot.accept();
-		`);
-		write("page.js", "module.exports = 0; module.hot.accept();");
-		write("dep.js", "module.exports = 2; module.hot.accept();");
-		write("z.js", "module.exports = 99;");
-		write("other.js", "module.exports = [require('./dep'), require('./z')];");
-		const builds = [];
-		for (let step = 0; step < 2; step++) {
-			if (step) {
-				write("page.js", "module.exports = require('./z'); module.hot.accept();");
-				write("dep.js", "module.exports = 3; module.hot.accept();");
-			}
-			const stats = await new Promise((resolve, reject) => compiler.run(
-				(error, stats) => error ? reject(error) : resolve(stats),
-				{ modifiedFiles: new Set(step ? ["page.js", "dep.js"].map(file => path.join(input, file)) : []) }
-			));
-			assert.equal(stats.hasErrors(), false, stats.toString());
-			builds.push(Object.fromEntries(stats.compilation.getAssets().map(asset => [asset.name, asset.source.source().toString()])));
-		}
-		for (const abort of [false, true]) {
-			let assets = builds[0];
-			const sandbox = vm.createContext({ self: {}, console, Promise, setTimeout, clearTimeout });
-			vm.runInContext(assets["main.js"], sandbox);
-			const { req, hot } = sandbox;
-			let hold = false;
-			const queued = [];
-			const requests = [];
-			req.l = (url, done) => {
-				const name = path.basename(url);
-				requests.push(name);
-				const execute = () => {
-					vm.runInContext(assets[name], sandbox);
-					done({ type: "load" });
-				};
-				if (hold && !name.includes(".hot-update.")) queued.push(execute);
-				else execute();
-			};
-			const oldFactory = req.m["./dep.js"];
-			// Prefetching records null without installing factories. It still needs
-			// a complete payload when the entry gains this dependency.
-			if (abort) req.hmrS_jsonp.toString = null;
-			assets = builds[1];
-			req.hmrM = async () => JSON.parse(assets[`main.${req.h()}.hot-update.json`]);
-			const manifest = await req.hmrM();
-			assert.deepEqual(manifest.load.entries.main, ["toString"]);
-			assert(!manifest.c.includes("toString"));
-			await hot.check(false);
-			assert.equal(hot.status(), "ready");
-			assert.equal(sandbox.readDep(), 2);
-			assert.equal(req.m["./dep.js"], oldFactory);
-			assert.equal(req.m["./z.js"], undefined);
-			assert(requests.some(name => name.endsWith(".full.js")));
-			if (abort) {
-				req.c["./page.js"].hot.decline();
-				req.c["./page.js"].hot.invalidate();
-				await assert.rejects(hot.apply(), /self decline/);
-				assert.equal(sandbox.readDep(), 2);
-				assert.equal(req.m["./z.js"], undefined);
-				assert.equal(req.hmrS_jsonp.toString, null);
-				continue;
-			}
-			let pending;
-			hot.addStatusHandler(status => {
-				if (status !== "dispose") return;
-				hold = true;
-				pending = Promise.all([req.e("toString"), sandbox.loadOther()]);
-			});
-			await hot.apply();
-			assert.equal(sandbox.readDep(), 3);
-			assert.equal(req.hmrS_jsonp.toString, 0);
-			assert.equal(queued.length, 2);
-			queued.forEach(execute => execute());
-			let timer;
-			try {
-				const [, other] = await Promise.race([
-					pending,
-					new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("import did not resolve")), 1000); })
-				]);
-				assert.equal(other.default[0], 3);
-				assert.equal(other.default[1], 99);
-			} finally {
-				clearTimeout(timer);
-			}
-			assert.equal(hot.status(), "idle");
-		}
-	}
-};
+export default [false, true].map(withDelta => ({
+  description: `stages complete entry dependencies (existing delta: ${withDelta})`,
+  options(context) {
+    return {
+      context: context.getDist('input'),
+      entry: './index.js', mode: 'development', target: 'web', devtool: false,
+      output: { path: context.getDist('output'), filename: '[name].js', chunkFilename: '[name].js', publicPath: '/' },
+      optimization: {
+        moduleIds: 'named', chunkIds: 'named', usedExports: false, concatenateModules: false,
+        splitChunks: { cacheGroups: {
+          default: false, defaultVendors: false,
+          shared: { test: /[\\/](dep|extra)\.js$/, name: 'shared', chunks: withDelta ? 'all' : 'initial', enforce: true }
+        } }
+      },
+      plugins: [new rspack.HotModuleReplacementPlugin()]
+    };
+  },
+  async build(context, compiler) {
+    const input = context.getDist('input');
+    fs.mkdirSync(input, { recursive: true });
+    const write = (name, source) => fs.writeFileSync(path.join(input, name), source);
+    write('index.js', `
+      globalThis.req = __webpack_require__;
+      globalThis.hot = module.hot;
+      globalThis.readStable = () => require('./stable');
+      require('./page');
+      ${withDelta ? "globalThis.loadOther = () => import(/* webpackChunkName: 'other' */ './other');" : ''}
+      module.hot.accept();
+    `);
+    write('dep.js', 'module.exports = 2;');
+    write('extra.js', 'module.exports = 3;');
+    write('other.js', "module.exports = require('./dep');");
+    const builds = [];
+    for (let step = 0; step < 2; step++) {
+      write('stable.js', `module.exports = ${step + 2}; module.hot.accept();`);
+      write('page.js', `globalThis.pageValue = ${step ? "require('./dep') + require('./extra')" : '0'}; module.hot.accept();`);
+      const stats = await new Promise((resolve, reject) => compiler.run(
+        (error, stats) => error ? reject(error) : resolve(stats),
+        { modifiedFiles: new Set(['page.js', 'stable.js'].map(name => path.join(input, name))) }
+      ));
+      assert.equal(stats.hasErrors(), false, stats.toString());
+      builds.push(Object.fromEntries(stats.compilation.getAssets().map(asset => [asset.name, asset.source.source().toString()])));
+    }
+    const modes = ['none', 'prefetched', 'abort', ...(withDelta ? ['loaded', 'pending', 'apply-pending'] : [])];
+    for (const mode of modes) for (const reverse of [false, true]) {
+      const sandbox = vm.createContext({ self: {}, console, Promise, setTimeout, clearTimeout });
+      vm.runInContext(builds[0]['main.js'], sandbox);
+      const { req, hot } = sandbox;
+      const updates = [];
+      let release;
+      let applied = false;
+      req.l = (url, done) => {
+        const name = path.basename(url.split('?')[0]);
+        const update = name.includes('.hot-update.');
+        const source = builds[update || applied ? 1 : 0][name];
+        const execute = () => {
+          vm.runInContext(source, sandbox);
+          done({ type: 'load' });
+        };
+        if (update) updates.push({ name, execute });
+        else if (name === 'shared.js') release = execute;
+        else execute();
+      };
+      if (mode === 'prefetched') req.hmrS_jsonp.shared = null;
+      let pending = ['pending', 'loaded'].includes(mode) ? sandbox.loadOther() : undefined;
+      if (mode === 'loaded') {
+        release();
+        await pending;
+        release = undefined;
+      }
+      const oldFactory = req.m['./stable.js'];
+      assert.equal(sandbox.readStable(), 2);
+      req.hmrM = async () => JSON.parse(builds[1][`main.${req.h()}.hot-update.json`]);
+      const manifest = await req.hmrM();
+      assert.equal(manifest.c.includes('shared'), withDelta);
+      assert.deepEqual(manifest.load.entries.main, ['shared']);
+      const check = hot.check(false);
+      await new Promise(setImmediate);
+      const shared = updates.filter(({ name }) => name.startsWith('shared.'));
+      assert.equal(shared.length, 1, 'full and delta must not download concurrently');
+      assert.equal(shared[0].name.endsWith('.full.js'), mode !== 'loaded');
+      if (reverse) updates.reverse();
+      updates.forEach(({ execute }) => execute());
+      await check;
+      assert.equal(hot.status(), 'ready');
+      assert.equal(sandbox.readStable(), 2);
+      assert.equal(req.m['./stable.js'], oldFactory);
+      assert.equal(req.m['./extra.js'], undefined);
+      if (mode === 'abort') {
+        req.c['./page.js'].hot.decline();
+        req.c['./page.js'].hot.invalidate();
+        await assert.rejects(hot.apply(), /self decline/);
+        assert.equal(sandbox.readStable(), 2);
+        assert.equal(req.m['./extra.js'], undefined);
+        continue;
+      }
+      applied = true;
+      if (mode === 'apply-pending') hot.addStatusHandler(status => {
+        if (status === 'dispose') pending = req.e('shared');
+      });
+      await hot.apply();
+      assert.equal(sandbox.pageValue, 5);
+      assert.equal(sandbox.readStable(), 3);
+      assert.equal(req.hmrS_jsonp.shared, 0);
+      let timer;
+      try {
+        await Promise.race([
+          pending,
+          new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('import did not resolve')), 1000); })
+        ]);
+      } finally {
+        clearTimeout(timer);
+        release?.();
+      }
+      assert.equal(hot.status(), 'idle');
+    }
+  }
+}));

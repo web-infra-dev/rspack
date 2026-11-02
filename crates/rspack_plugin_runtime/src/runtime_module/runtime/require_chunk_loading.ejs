@@ -1,17 +1,16 @@
 // object to store loaded chunks
 // "1" means "loaded", otherwise not loaded yet
-<%- fn("requireFinishChunkLoading") %>(chunkIds) {
-	for (var i = 0; i < chunkIds.length; i++) requireInstalledChunks[chunkIds[i]] = 1;
-	<%- _with_on_chunk_loaded %>
-}
-
 <%- var("requireInstallChunk") %> = <%- basicFunction("chunk") %> {
-	var moreModules = chunk.modules, chunkIds = chunk.ids, runtime = chunk.runtime;
+	var moreModules = chunk.modules, chunkIds = chunk.ids, runtime = chunk.runtime;<% if (_with_hmr) { %>
+	var error = hotCheckChunk(chunk.ids, chunk.__rspack_cjs_hash);
+	if (error) throw error;
+<% } %>
 	for (var moduleId in moreModules) {
 		if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
 		 <%- MODULE_FACTORIES %>[moduleId] = moreModules[moduleId];
 		}
 	}
 	if (runtime) runtime(<%- REQUIRE_SCOPE %>);
-	requireFinishChunkLoading(chunkIds);
+	for (var i = 0; i < chunkIds.length; i++) requireInstalledChunks[chunkIds[i]] = 1;
+	<%- _with_on_chunk_loaded %>
 };

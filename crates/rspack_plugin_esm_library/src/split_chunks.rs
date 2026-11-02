@@ -162,7 +162,9 @@ async fn matches_module_to_cache_group(
   }
 
   // match layer
-  if !(cache_group.layer)(module.get_layer().map(ToString::to_string))
+  if !cache_group
+    .layer
+    .call(module.get_layer().map(ToString::to_string))
     .await
     .to_rspack_result()
     .unwrap_or(false)

@@ -346,12 +346,13 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       &stringify_chunks(&initial_chunks, 0)
     ));
 
-    if with_loading || with_external_install_chunk {
+    if with_loading || with_external_install_chunk || with_hmr {
       let raw_source = runtime_template.render(
         &self.template(TemplateId::Raw),
         Some(serde_json::json!({
           "_modules": runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
           "_with_on_chunk_load": with_on_chunk_load,
+          "_with_hmr": with_hmr,
         })),
       )?;
 
@@ -368,6 +369,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           &self.template(TemplateId::WithLoading),
           Some(serde_json::json!({
             "_js_matcher": &has_js_matcher.render("chunkId"),
+            "_with_hmr": with_hmr,
             "_import_function_name":&compilation.options.output.import_function_name,
             "_output_dir": &root_output_dir,
             "_match_fallback":    if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {

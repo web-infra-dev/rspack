@@ -3,6 +3,16 @@
 <%- var("hotCurrentUpdateRemovedChunks") %>;
 <%- var("hotCurrentUpdateRuntime") %>;
 <%- var("hotCurrentUpdateFullChunks") %>;
+<%- fn("hotCheckChunk") %>(chunkIds, version) {
+	if (version === undefined) return;
+	for (var i = 0; i < chunkIds.length; i++) {
+		if (version !== <%- HMR_CHUNK_VERSIONS %>[chunkIds[i]]) {
+			var error = new Error("Chunk is from another build (" + version + ")");
+			error.name = "ChunkVersionError";
+			return error;
+		}
+	}
+}
 <%- fn("hotApplyHandler") %>(options) {
 	if (<%- weak(ENSURE_CHUNK_HANDLERS) %>) delete <%- weak(ENSURE_CHUNK_HANDLERS) %>.<%- _loading_method %>Hmr;
 	hotCurrentUpdateChunks = undefined;
@@ -307,9 +317,9 @@
 				<% } %>
 			}
 
-			// Only complete payloads establish the ordinary loader's installed state.
-			// All factories and runtime updates are ready before waiting imports resume.
-			if (fullChunks.length) <%- _finish_chunk_loading %>(fullChunks);
+			// Factories and runtime are installed. Complete ordinary chunk loading
+			// with an empty factory payload to resolve imports and deferred startup.
+			if (fullChunks.length) <%- _install_full_chunks %>;
 
 			// call accept handlers
 			for (var outdatedModuleId in outdatedDependencies) {
@@ -449,7 +459,7 @@
 	updatedModulesList,
 	_css,
 	_miniCss,
-	update
+	load
 ) {
 	applyHandlers.push(hotApplyHandler);
 	hotCurrentUpdateChunks = {};
@@ -460,7 +470,20 @@
 	}, {});
 	hotCurrentUpdateRuntime = [];
 	hotCurrentUpdateFullChunks = [];
+	// Complete payloads contain the delta too. Select them before requesting
+	// ordinary updates, so each chunk has only one pending update download.
+	var entries = load && load.entries;
+	Object.keys(entries || {}).forEach(function (entryId) {
+		if (!<%- HAS_OWN_PROPERTY %>(<%- _installed_chunks %>, entryId) || <%- _installed_chunks %>[entryId] !== <%- _loaded_chunk_state %>) return;
+		entries[entryId].forEach(function (chunkId) {
+			if (<%- _installed_chunks %>[chunkId] === <%- _loaded_chunk_state %> || hotCurrentUpdateChunks[chunkId] === true) return;
+			hotCurrentUpdateChunks[chunkId] = true;
+			hotCurrentUpdateFullChunks.push(chunkId);
+			promises.push(<%- _load_update_chunk %>(chunkId, updatedModulesList, true));
+		});
+	});
 	chunkIds.forEach(function (chunkId) {
+		if (hotCurrentUpdateChunks[chunkId] === true) return;
 		if (
 			<%- HAS_OWN_PROPERTY %>(<%- _installed_chunks %>, chunkId) &&
 			<%- _installed_chunks %>[chunkId] != null
@@ -471,17 +494,6 @@
 			hotCurrentUpdateChunks[chunkId] = false;
 		}
 	});
-	if (update) {
-		update.entryIsLoaded = function (entryId) {
-			return <%- HAS_OWN_PROPERTY %>(<%- _installed_chunks %>, entryId) && <%- _installed_chunks %>[entryId] === <%- _loaded_chunk_state %>;
-		};
-		update.chunkHandlers.push(function (chunkId, promises) {
-			if (<%- _installed_chunks %>[chunkId] === <%- _loaded_chunk_state %> || hotCurrentUpdateFullChunks.indexOf(chunkId) !== -1) return;
-			hotCurrentUpdateChunks[chunkId] = true;
-			hotCurrentUpdateFullChunks.push(chunkId);
-			promises.push(<%- _load_update_chunk %>(chunkId, updatedModulesList, true));
-		});
-	}
 	if (<%- weak(ENSURE_CHUNK_HANDLERS) %>) {
 		<%- weak(ENSURE_CHUNK_HANDLERS) %>.<%- _loading_method %>Hmr = function (chunkId, promises) {
 			if (
