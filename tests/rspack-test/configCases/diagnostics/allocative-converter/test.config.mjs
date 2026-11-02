@@ -34,6 +34,26 @@ export default {
       assert.ifError(child.error);
       assert.equal(child.status, 0, child.stderr);
       const captured = JSON.parse(child.stdout.trim().split('\n').at(-1));
+      const disabledEnv = {
+        ...process.env,
+        ALLOCATIVE_TEST_CONTEXT: temporary,
+      };
+      delete disabledEnv.RSPACK_ALLOCATIVE_DIR;
+      const disabled = spawnSync(
+        process.execPath,
+        ['--expose-gc', fixture],
+        {
+          env: disabledEnv,
+          encoding: 'utf8',
+          timeout: 60000,
+        },
+      );
+      assert.ifError(disabled.error);
+      assert.equal(disabled.status, 0, disabled.stderr);
+      assert.equal(
+        JSON.parse(disabled.stdout.trim().split('\n').at(-1)).enabled,
+        false,
+      );
       if (captured.enabled) {
         const prefix = path.join(directory, '0-build');
         const result = convert(

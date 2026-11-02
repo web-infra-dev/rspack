@@ -1,6 +1,11 @@
 //! Allocative-only class identity and weak roots. All N-API operations happen
 //! on the owning JavaScript thread; registration never dereferences a target.
-use std::{any::type_name, cell::RefCell, ffi::c_void, ptr};
+use std::{
+  any::type_name,
+  cell::{Cell, RefCell},
+  ffi::c_void,
+  ptr,
+};
 
 use napi::{
   Env, Property, PropertyAttributes,
@@ -17,12 +22,44 @@ struct Root {
 }
 thread_local! {
   static ROOTS: RefCell<Vec<Root>> = const { RefCell::new(Vec::new()) };
-  static CLEANUP: RefCell<Option<napi::CleanupEnvHook<()>>> = const { RefCell::new(None) };
+  static ENABLED_ENV: Cell<sys::napi_env> = const { Cell::new(ptr::null_mut()) };
+}
+
+pub fn enable(env: sys::napi_env) {
+  ENABLED_ENV.with(|enabled| {
+    debug_assert!(enabled.get().is_null() || enabled.get() == env);
+    enabled.set(env);
+  });
+}
+
+pub fn disable(env: sys::napi_env) {
+  ENABLED_ENV.with(|enabled| {
+    if enabled.get() == env {
+      enabled.set(ptr::null_mut());
+    }
+  });
+  ROOTS.with_borrow_mut(|roots| {
+    roots.retain(|root| {
+      if root.env == env {
+        unsafe { sys::napi_delete_reference(env, root.reference) };
+        false
+      } else {
+        true
+      }
+    });
+  });
+}
+
+fn is_enabled(env: sys::napi_env) -> bool {
+  ENABLED_ENV.with(|enabled| enabled.get() == env)
 }
 
 /// # Safety
 /// `value` must be a live class instance wrapping a `T` in `env`.
 pub unsafe fn attach<T: 'static>(env: sys::napi_env, value: sys::napi_value) -> napi::Result<()> {
+  if !is_enabled(env) {
+    return Ok(());
+  }
   let mut pointer: *mut c_void = ptr::null_mut();
   napi::check_status!(unsafe { sys::napi_unwrap(env, value, &mut pointer) })?;
   let env_wrapper = Env::from_raw(env);
@@ -47,23 +84,7 @@ pub unsafe fn attach<T: 'static>(env: sys::napi_env, value: sys::napi_value) -> 
       type_name: type_name::<T>(),
     })
   });
-  CLEANUP.with(|cleanup| -> napi::Result<()> {
-    if cleanup.borrow().is_none() {
-      *cleanup.borrow_mut() = Some(env_wrapper.add_env_cleanup_hook((), move |_| {
-        ROOTS.with_borrow_mut(|roots| {
-          roots.retain(|root| {
-            if root.env == env {
-              unsafe { sys::napi_delete_reference(env, root.reference) };
-              false
-            } else {
-              true
-            }
-          });
-        });
-      })?);
-    }
-    Ok(())
-  })
+  Ok(())
 }
 
 /// Called while converting the completed JS snapshot callback's return value,

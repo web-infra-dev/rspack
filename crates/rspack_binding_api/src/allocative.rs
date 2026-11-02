@@ -37,7 +37,11 @@ pub fn register_allocative_snapshot_callback(
     thread_local! {
       static CLEANUP: std::cell::RefCell<Option<napi::CleanupEnvHook<()>>> = const { std::cell::RefCell::new(None) };
     }
-    let hook = match env.add_env_cleanup_hook((), |_| snapshot::unregister()) {
+    let raw_env = env.raw();
+    let hook = match env.add_env_cleanup_hook((), move |_| {
+      rspack_napi::allocative::disable(raw_env);
+      snapshot::unregister();
+    }) {
       Ok(hook) => hook,
       Err(error) => {
         snapshot::unregister();
@@ -45,6 +49,7 @@ pub fn register_allocative_snapshot_callback(
       }
     };
     CLEANUP.with_borrow_mut(|cleanup| *cleanup = Some(hook));
+    rspack_napi::allocative::enable(raw_env);
     Ok(true)
   }
   #[cfg(not(allocative))]
