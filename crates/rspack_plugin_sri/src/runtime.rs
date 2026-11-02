@@ -392,17 +392,19 @@ impl RuntimeModule for SRILazyHashesRuntimeModule {
     }
     chunk_ids.sort();
 
+    let hashes = get_hash_variable(
+      // The module renders inside a chunk, where require is reached through the
+      // chunk's runtime argument rather than the runtime chunk's own binding.
+      &compilation
+        .runtime_template
+        .create_chunk_code_template()
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+      SourceType::JavaScript,
+    );
+    // ES5, without Object.assign, and creating the hash table if this chunk's
+    // runtime has not.
     Ok(format!(
-      "Object.assign({}, {});",
-      get_hash_variable(
-        // The module renders inside a chunk, where require is reached through the
-        // chunk's runtime argument rather than the runtime chunk's own binding.
-        &compilation
-          .runtime_template
-          .create_chunk_code_template()
-          .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        SourceType::JavaScript
-      ),
+      "var childHashes = {};\n{hashes} = {hashes} || {{}};\nfor (var chunkId in childHashes) {hashes}[chunkId] = childHashes[chunkId];",
       generate_sri_hash_placeholders(ManifestAssetType::JavaScript, chunk_ids, &self.hash_funcs),
     ))
   }

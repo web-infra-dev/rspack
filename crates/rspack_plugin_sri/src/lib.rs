@@ -20,6 +20,7 @@ use manifest::ChunkManifest;
 use rspack_core::{
   ChunkLoading, ChunkLoadingType, Compilation, CompilationId, CompilationParams,
   CompilerThisCompilation, CrossOriginLoading, Plugin, RuntimeGlobals,
+  incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -131,6 +132,19 @@ async fn handle_compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
+  // A rebuild only reruns the chunk runtime hook for affected chunks, but a lazy
+  // manifest depends on the whole chunk graph, and the lazy hash runtime modules of
+  // unaffected chunks would be lost.
+  if matches!(self.options.hash_loading, IntegrityHashLoading::Lazy)
+    && let Some(Some(diagnostic)) = compilation.incremental.disable_passes(
+      IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS,
+      "SubresourceIntegrityPlugin (hashLoading = \"lazy\")",
+      "each chunk's integrity hashes depend on the whole chunk graph",
+    )
+  {
+    compilation.push_diagnostic(diagnostic);
+  }
+
   let runtime_require_name = {
     let runtime_template = compilation
       .runtime_template

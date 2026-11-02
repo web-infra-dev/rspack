@@ -5,9 +5,33 @@
 //! every path through its parents has already provided. Chunks that import each other
 //! form a strongly connected component (SCC), whose members are provided together by
 //! the chunk that first reaches the component.
+//!
+//! Only async child groups get lazy hashes: an initial group that is a child, such as
+//! an entry with `dependOn`, is not loaded by its parent. The digest order still
+//! follows every child group, because the runtime chunk's CSS hashes stay eager and
+//! cover chunks reached through initial children too. A group's hashes are carried
+//! by its last chunk with JavaScript, which runs the update when it loads; splitting
+//! can leave a group's last chunk with CSS alone.
+//!
+//! Chunks and edges are visited in chunk id order, so the components, and the
+//! manifests that depend on the order within a component, are the same every build.
 
-use rspack_core::{ChunkGroupUkey, ChunkUkey, Compilation};
+use rspack_core::{
+  ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, SourceType,
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+
+/// The child groups of a group that its chunks load asynchronously.
+fn async_children<'a>(
+  group: &'a ChunkGroup,
+  chunk_group_by_ukey: &'a ChunkGroupByUkey,
+) -> impl Iterator<Item = &'a ChunkGroup> {
+  group
+    .children
+    .iter()
+    .map(|child| chunk_group_by_ukey.expect_get(child))
+    .filter(|child| !child.is_initial())
+}
 
 #[derive(Debug, Default)]
 pub struct ChunkManifest {
@@ -24,10 +48,25 @@ impl ChunkManifest {
     let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
     let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
 
-    let chunks = chunk_by_ukey.keys().copied().collect::<Vec<_>>();
+    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+    let module_graph = compilation.get_module_graph();
+    // The chunk that carries a group's hashes, if any of its chunks run JavaScript.
+    let carrier = |group: &ChunkGroup| {
+      group.chunks.iter().rev().copied().find(|chunk| {
+        chunk_graph.has_chunk_module_by_source_type(chunk, SourceType::JavaScript, module_graph)
+      })
+    };
+
+    let by_id = |a: &ChunkUkey, b: &ChunkUkey| {
+      let id = |chunk| chunk_by_ukey.expect_get(chunk).id();
+      id(a).cmp(&id(b)).then(a.cmp(b))
+    };
+
+    let mut chunks = chunk_by_ukey.keys().copied().collect::<Vec<_>>();
+    chunks.sort_by(by_id);
     let mut edges: HashMap<ChunkUkey, Vec<ChunkUkey>> = HashMap::default();
     for chunk_ukey in &chunks {
-      let children = edges.entry(*chunk_ukey).or_default();
+      let mut children = vec![];
       for group in chunk_by_ukey.expect_get(chunk_ukey).groups() {
         for child_group in &chunk_group_by_ukey.expect_get(group).children {
           children.extend(
@@ -39,6 +78,9 @@ impl ChunkManifest {
           );
         }
       }
+      children.sort_by(by_id);
+      children.dedup();
+      edges.insert(*chunk_ukey, children);
     }
 
     let sccs = strongly_connected_components(&chunks, &edges);
@@ -96,12 +138,11 @@ impl ChunkManifest {
         let mut child_chunks = HashSet::default();
         for group_ukey in chunk.groups() {
           let group = chunk_group_by_ukey.expect_get(group_ukey);
-          // Only the last chunk of a group, its primary chunk, provides hashes.
-          if group.chunks.last() != Some(chunk_ukey) {
+          if carrier(group) != Some(*chunk_ukey) {
             continue;
           }
-          for child_group in &group.children {
-            for child_chunk in &chunk_group_by_ukey.expect_get(child_group).chunks {
+          for child_group in async_children(group, chunk_group_by_ukey) {
+            for child_chunk in &child_group.chunks {
               let child_scc = scc_of[child_chunk];
               // A parent of this component provides the hashes of its members.
               if child_scc != index {
