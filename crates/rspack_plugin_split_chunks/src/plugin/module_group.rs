@@ -872,6 +872,13 @@ impl Combinator {
   }
 }
 
+fn is_native_cache_group(group: &crate::CacheGroup) -> bool {
+  group.layer.native().is_some()
+    && !matches!(group.test, CacheGroupTest::Fn(_))
+    && !group.chunk_filter.is_func()
+    && !matches!(group.name, ChunkNameGetter::Fn(_))
+}
+
 impl SplitChunksPlugin {
   // #[tracing::instrument(skip_all)]
   pub(crate) fn find_best_module_group(
@@ -908,12 +915,7 @@ impl SplitChunksPlugin {
           .get(indexed.cache_group_index as usize)
           .is_some_and(Option::is_some)
       });
-      !has_name_batch_getter
-        && is_default_module_type_filter(&group.r#type)
-        && is_default_module_layer_filter(&group.layer)
-        && !matches!(group.test, CacheGroupTest::Fn(_))
-        && !group.chunk_filter.is_func()
-        && !matches!(group.name, ChunkNameGetter::Fn(_))
+      !has_name_batch_getter && is_native_cache_group(group)
     })
   }
 
@@ -950,8 +952,8 @@ impl SplitChunksPlugin {
       return allocate_matches(all_modules.len());
     }
 
-    // Module conditions do not change between priorities. Chunk membership does,
-    // so only the conditions are saved here.
+    // Module conditions do not change between priorities. Each bitmap stores
+    // the full type, layer and test match. Chunk membership is checked later.
     let module_graph = compilation.get_module_graph();
     let modules_per_job = all_modules
       .len()
@@ -969,10 +971,25 @@ impl SplitChunksPlugin {
           for (groups, matched) in stages.iter().zip(&mut matches) {
             if let Some(matched) = matched {
               for (indexed, modules) in groups.iter().zip(matched) {
+                let cache_group = indexed.cache_group;
+                if !is_default_module_type_filter(&cache_group.r#type)
+                  && !(cache_group.r#type)(module.as_ref())
+                {
+                  continue;
+                }
+                if !is_default_module_layer_filter(&cache_group.layer) {
+                  let filter = cache_group
+                    .layer
+                    .native()
+                    .expect("eligible groups should have native layer filters");
+                  if !filter(module.get_layer().map(|layer| layer.as_str())) {
+                    continue;
+                  }
+                }
                 let name = name_for_condition
                   .get_or_insert_with(|| module.name_for_condition())
                   .as_deref();
-                let is_match = match &indexed.cache_group.test {
+                let is_match = match &cache_group.test {
                   CacheGroupTest::String(test) => name.is_some_and(|name| name.starts_with(test)),
                   CacheGroupTest::RegExp(test) => name.is_some_and(|name| test.test(name)),
                   _ => unreachable!("only native module conditions should be precomputed"),
@@ -1099,16 +1116,25 @@ impl SplitChunksPlugin {
         });
         let include_intersections = self.dedup_depth > 0
           && cache_group_uses_intersections(cache_group, has_name_batch_getter);
-        if !use_native_preparation
-          && (!(cache_group.r#type)(module)
-            || !(cache_group.layer)(module.get_layer().map(ToString::to_string)).await?)
-        {
-          continue;
-        }
-
         let is_match = if let Some(matches) = &native_matches {
           matches[cache_group_position].contains(module_index)
         } else {
+          if !is_default_module_type_filter(&cache_group.r#type) && !(cache_group.r#type)(module) {
+            continue;
+          }
+          if !is_default_module_layer_filter(&cache_group.layer) {
+            let matched = if let Some(filter) = cache_group.layer.native() {
+              filter(module.get_layer().map(|layer| layer.as_str()))
+            } else {
+              cache_group
+                .layer
+                .call(module.get_layer().map(ToString::to_string))
+                .await?
+            };
+            if !matched {
+              continue;
+            }
+          }
           match &cache_group.test {
             CacheGroupTest::String(test) => module
               .name_for_condition()
