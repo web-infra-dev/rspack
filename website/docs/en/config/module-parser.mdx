@@ -1279,6 +1279,27 @@ export default {
 };
 ```
 
+### ["css/auto"].customMedia
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Resolve file-local custom media queries declared with `@custom-media`. Definitions are removed from the generated CSS after their references are expanded. Definitions may appear after their references.
+
+Set this option to `false` to preserve both `@custom-media` definitions and their references.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        customMedia: false,
+      },
+    },
+  },
+};
+```
+
 ### ["css/auto"].animation
 
 - **Type:** `boolean`
@@ -1512,6 +1533,22 @@ export default {
 };
 ```
 
+### css.customMedia
+
+Same as [`module.parser["css/auto"].customMedia`](#cssautocustommedia).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        customMedia: true,
+      },
+    },
+  },
+};
+```
+
 ### ["css/global"]
 
 Parser options for `css/global` modules.
@@ -1604,6 +1641,22 @@ export default {
     parser: {
       'css/global': {
         import: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].customMedia
+
+Same as [`module.parser["css/auto"].customMedia`](#cssautocustommedia).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        customMedia: true,
       },
     },
   },
@@ -1798,6 +1851,22 @@ export default {
     parser: {
       'css/module': {
         import: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].customMedia
+
+Same as [`module.parser["css/auto"].customMedia`](#cssautocustommedia).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        customMedia: true,
       },
     },
   },

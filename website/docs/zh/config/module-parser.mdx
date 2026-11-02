@@ -1278,6 +1278,27 @@ export default {
 };
 ```
 
+### ["css/auto"].customMedia
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+解析当前样式表中使用 `@custom-media` 声明的自定义媒体查询。引用被展开后，定义会从生成的 CSS 中移除。定义可以写在引用之后。
+
+将此选项设为 `false`，可以同时保留 `@custom-media` 定义及其引用。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        customMedia: false,
+      },
+    },
+  },
+};
+```
+
 ### ["css/auto"].animation
 
 - **类型：** `boolean`
@@ -1511,6 +1532,22 @@ export default {
 };
 ```
 
+### css.customMedia
+
+和 [`module.parser["css/auto"].customMedia`](#cssautocustommedia) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        customMedia: true,
+      },
+    },
+  },
+};
+```
+
 ### ["css/global"]
 
 `css/global` 模块的解析器选项。
@@ -1603,6 +1640,22 @@ export default {
     parser: {
       'css/global': {
         import: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].customMedia
+
+和 [`module.parser["css/auto"].customMedia`](#cssautocustommedia) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        customMedia: true,
       },
     },
   },
@@ -1797,6 +1850,22 @@ export default {
     parser: {
       'css/module': {
         import: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].customMedia
+
+和 [`module.parser["css/auto"].customMedia`](#cssautocustommedia) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        customMedia: true,
       },
     },
   },

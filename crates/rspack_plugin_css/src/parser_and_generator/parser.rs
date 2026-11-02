@@ -19,6 +19,7 @@ use smol_str::SmolStr;
 use super::is_css_module;
 use crate::{
   css_syntax::{normalize_url, unescape_identifier},
+  custom_media::transform_custom_media,
   dependency::{
     CssIcssExportDependency, CssIcssImportDependency, CssIcssReference, CssIcssSymbolDependency,
     CssIcssSymbolKind, CssImportDependency, CssUrlDependency,
@@ -326,6 +327,8 @@ impl<'context> CssModuleParser<'context> {
         .await?;
     }
 
+    self.apply_custom_media();
+
     self.resolve_pending_local_composes();
     self.apply_composes_source_order();
     self.add_warnings(warnings);
@@ -380,6 +383,33 @@ impl<'context> CssModuleParser<'context> {
         }
       }
       _ => css_module_lexer::Mode::Css,
+    }
+  }
+
+  fn apply_custom_media(&mut self) {
+    if !self.custom_media() {
+      return;
+    }
+    let transform = transform_custom_media(&self.source_code);
+    for replacement in transform.replacements {
+      self
+        .presentational_dependencies
+        .push(Arc::new(ConstDependency::new(
+          (replacement.range.start, replacement.range.end).into(),
+          replacement.content.into(),
+        )));
+    }
+    for warning in transform.warnings {
+      self.diagnostics.push(
+        css_parsing_traceable_error(
+          &self.source_code,
+          warning.range.start,
+          warning.range.end,
+          warning.message,
+          Severity::Warning,
+        )
+        .into(),
+      );
     }
   }
 
@@ -861,6 +891,10 @@ impl<'context> CssModuleParser<'context> {
 
   fn import(&self) -> bool {
     self.parser_options.r#import.unwrap_or(true)
+  }
+
+  fn custom_media(&self) -> bool {
+    self.parser_options.custom_media.unwrap_or(true)
   }
 
   fn animation(&self) -> bool {

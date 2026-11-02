@@ -640,6 +640,7 @@ pub struct CssParserOptions {
   pub url: Option<bool>,
   pub r#import: Option<bool>,
   pub resolve_import: Option<CssParserImport>,
+  pub custom_media: Option<bool>,
 }
 
 impl Default for CssParserOptions {
@@ -650,6 +651,7 @@ impl Default for CssParserOptions {
       url: Some(true),
       r#import: Some(true),
       resolve_import: Some(CssParserImport::Bool(true)),
+      custom_media: Some(true),
     }
   }
 }
@@ -662,6 +664,7 @@ pub struct CssModuleParserOptions {
   pub url: Option<bool>,
   pub r#import: Option<bool>,
   pub resolve_import: Option<CssParserImport>,
+  pub custom_media: Option<bool>,
   pub animation: Option<bool>,
   pub container: Option<bool>,
   pub custom_idents: Option<bool>,
@@ -678,6 +681,7 @@ impl Default for CssModuleParserOptions {
       url: Some(true),
       r#import: Some(true),
       resolve_import: Some(CssParserImport::Bool(true)),
+      custom_media: Some(true),
       animation: Some(true),
       container: Some(true),
       custom_idents: Some(true),
@@ -696,6 +700,7 @@ pub struct CssAutoOrModuleParserOptions {
   pub url: Option<bool>,
   pub r#import: Option<bool>,
   pub resolve_import: Option<CssParserImport>,
+  pub custom_media: Option<bool>,
   pub animation: Option<bool>,
   pub container: Option<bool>,
   pub custom_idents: Option<bool>,
@@ -713,6 +718,7 @@ impl From<&CssParserOptions> for CssModuleParserOptions {
       url: value.url,
       r#import: value.r#import,
       resolve_import: value.resolve_import.clone(),
+      custom_media: value.custom_media,
       ..Default::default()
     }
   }
@@ -735,6 +741,7 @@ impl From<CssModuleParserOptions> for CssAutoOrModuleParserOptions {
       url: value.url,
       r#import: value.r#import,
       resolve_import: value.resolve_import,
+      custom_media: value.custom_media,
       animation: value.animation,
       container: value.container,
       custom_idents: value.custom_idents,
@@ -754,6 +761,7 @@ impl From<&CssParserOptions> for CssAutoOrModuleParserOptions {
       url: value.url,
       r#import: value.r#import,
       resolve_import: value.resolve_import.clone(),
+      custom_media: value.custom_media,
       ..Default::default()
     }
   }

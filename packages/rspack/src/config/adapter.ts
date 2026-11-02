@@ -752,6 +752,7 @@ function getRawCssModuleParserOptions(
     url: parser.url,
     import: parser.import,
     resolveImport: parser.resolveImport as any,
+    customMedia: parser.customMedia,
     animation: parser.animation,
     container: parser.container,
     customIdents: parser.customIdents,
@@ -779,6 +780,7 @@ function getRawCssParserOptionsForCss(
     url: parser.url,
     import: parser.import,
     resolveImport: parser.resolveImport as any,
+    customMedia: parser.customMedia,
   };
 }
 

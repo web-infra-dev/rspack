@@ -1114,6 +1114,12 @@ export type CssParserOptions = {
    * @default true
    * */
   resolveImport?: CssParserResolveImport;
+
+  /**
+   * Resolve `@custom-media` definitions and references in the current stylesheet.
+   * @default true
+   */
+  customMedia?: boolean;
 };
 
 /** Options object for `css/global` modules. */
@@ -1150,6 +1156,12 @@ export type CssModuleParserOptions = {
    * @default true
    * */
   resolveImport?: CssParserResolveImport;
+
+  /**
+   * Resolve `@custom-media` definitions and references in the current stylesheet.
+   * @default true
+   */
+  customMedia?: boolean;
 
   /**
    * Enable/disable renaming of `@keyframes`.

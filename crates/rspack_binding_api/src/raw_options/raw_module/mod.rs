@@ -595,6 +595,7 @@ pub struct RawCssParserOptions {
     ts_type = "boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)"
   )]
   pub resolve_import: Option<Either<bool, RawCssImportFn>>,
+  pub custom_media: Option<bool>,
 }
 
 impl From<RawCssParserOptions> for CssParserOptions {
@@ -605,6 +606,7 @@ impl From<RawCssParserOptions> for CssParserOptions {
       url: value.url,
       r#import: value.r#import,
       resolve_import: convert_import_option(value.resolve_import),
+      custom_media: value.custom_media,
     }
   }
 }
@@ -622,6 +624,7 @@ pub struct RawCssModuleParserOptions {
     ts_type = "boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)"
   )]
   pub resolve_import: Option<Either<bool, RawCssImportFn>>,
+  pub custom_media: Option<bool>,
   pub animation: Option<bool>,
   pub container: Option<bool>,
   pub custom_idents: Option<bool>,
@@ -639,6 +642,7 @@ impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
       url: value.url,
       r#import: value.r#import,
       resolve_import: convert_import_option(value.resolve_import),
+      custom_media: value.custom_media,
       animation: value.animation,
       container: value.container,
       custom_idents: value.custom_idents,
@@ -662,6 +666,7 @@ pub struct RawCssAutoOrModuleParserOptions {
     ts_type = "boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)"
   )]
   pub resolve_import: Option<Either<bool, RawCssImportFn>>,
+  pub custom_media: Option<bool>,
   pub animation: Option<bool>,
   pub container: Option<bool>,
   pub custom_idents: Option<bool>,
@@ -680,6 +685,7 @@ impl From<RawCssAutoOrModuleParserOptions> for CssAutoOrModuleParserOptions {
       url: value.url,
       r#import: value.r#import,
       resolve_import: convert_import_option(value.resolve_import),
+      custom_media: value.custom_media,
       animation: value.animation,
       container: value.container,
       custom_idents: value.custom_idents,

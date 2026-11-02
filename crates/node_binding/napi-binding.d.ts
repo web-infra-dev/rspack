@@ -2204,6 +2204,7 @@ export interface RawCssAutoOrModuleParserOptions {
   url?: boolean
   import?: boolean
   resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
+  customMedia?: boolean
   animation?: boolean
   container?: boolean
   customIdents?: boolean
@@ -2262,6 +2263,7 @@ export interface RawCssModuleParserOptions {
   url?: boolean
   import?: boolean
   resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
+  customMedia?: boolean
   animation?: boolean
   container?: boolean
   customIdents?: boolean
@@ -2276,6 +2278,7 @@ export interface RawCssParserOptions {
   url?: boolean
   import?: boolean
   resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
+  customMedia?: boolean
 }
 
 export interface RawDeterministicModuleIdsPluginOptions {

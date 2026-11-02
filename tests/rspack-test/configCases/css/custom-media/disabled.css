@@ -1,0 +1,7 @@
+@custom-media --disabled (max-width: 10em);
+
+@media (--disabled) {
+  .disabled {
+    color: red;
+  }
+}

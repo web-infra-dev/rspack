@@ -407,6 +407,7 @@ const applyCssParserOptionsDefaults = (parserOptions: CssParserOptions) => {
   D(parserOptions, 'namedExports', true);
   D(parserOptions, 'url', true);
   D(parserOptions, 'import', true);
+  D(parserOptions, 'customMedia', true);
 };
 
 const applyCssModuleGeneratorOptionsDefaults = (

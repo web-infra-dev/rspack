@@ -1,0 +1,208 @@
+@custom-media --narrow (max-width: 30em);
+@custom-media --modern (color), (hover);
+@custom-media --no-hover not (hover: hover);
+@custom-media --tv screen;
+@custom-media --legacy not all;
+
+@media (--narrow) {
+  .narrow {
+    color: red;
+  }
+}
+
+@media (--modern) and (min-width: 100px) {
+  .modern {
+    color: green;
+  }
+}
+
+@media (--no-hover) {
+  .no-hover {
+    color: orange;
+  }
+}
+
+@media (--wide) {
+  .wide {
+    color: blue;
+  }
+}
+
+@media (--tv) {
+  .tv {
+    color: teal;
+  }
+}
+
+@media (--tv) and (min-width: 100px) {
+  .tv-wide {
+    color: navy;
+  }
+}
+
+@media (--legacy) {
+  .legacy {
+    color: gray;
+  }
+}
+
+@media (--narrow), (--wide) {
+  .list {
+    color: pink;
+  }
+}
+
+/* A function inside a media feature is walked while scanning for refs. */
+@media (min-width: calc(1px + 1px)) {
+  .fn {
+    color: red;
+  }
+}
+
+/* Definitions may follow their uses. */
+@custom-media --wide (min-width: 60em);
+
+@custom-media --always true;
+@custom-media --never false;
+
+@media (--always) {
+  .always {
+    color: red;
+  }
+}
+
+@media (--never) {
+  .never {
+    color: red;
+  }
+}
+
+/* Constants fold into the query around them. */
+@media (--always) and (min-width: 100px) {
+  .and-true {
+    color: red;
+  }
+}
+
+@media (--never) and (min-width: 100px) {
+  .and-false {
+    color: red;
+  }
+}
+
+@media (--never), (min-width: 100px) {
+  .or-false {
+    color: red;
+  }
+}
+
+@media screen and (--never) {
+  .type-and-false {
+    color: red;
+  }
+}
+
+@media not (--never) {
+  .not-false {
+    color: red;
+  }
+}
+
+@custom-media --nested (--narrow);
+@custom-media --nested-boolean (--always);
+
+@media (--nested) {
+  .nested {
+    color: red;
+  }
+}
+
+@media (--nested-boolean) and (min-width: 100px) {
+  .nested-boolean {
+    color: red;
+  }
+}
+
+/* A comma list may name other custom media; a false segment drops out. */
+@custom-media --list (--narrow), (--never), (min-width: 80em);
+
+@media (--list) {
+  .list-through-names {
+    color: red;
+  }
+}
+
+@media (--chain) {
+  .chain {
+    color: red;
+  }
+}
+
+@custom-media --chain (--chain-base) and (hover);
+@custom-media --chain-base (min-width: 1px);
+
+/* Multi-term values are grouped only where the surrounding operator needs it. */
+@custom-media --pair (min-width: 1px) and (max-width: 2px);
+
+@media not (--pair) {
+  .not-pair {
+    color: red;
+  }
+}
+
+@media (--pair) or (hover) {
+  .or-pair {
+    color: red;
+  }
+}
+
+@custom-media --either (min-width: 1px) or (hover);
+
+@media (--either) and (color) {
+  .and-either {
+    color: red;
+  }
+}
+
+@custom-media --list-ref (color), not (--pair);
+
+@media (--list-ref) {
+  .list-ref {
+    color: red;
+  }
+}
+
+@media (--pair) and (hover) {
+  .and-pair {
+    color: red;
+  }
+}
+
+@custom-media --always-or (--always) or (hover);
+@custom-media --typed-chain (--tv) and (hover);
+
+@media (--always-or) {
+  .always-or {
+    color: red;
+  }
+}
+
+@media (--typed-chain) {
+  .typed-chain {
+    color: red;
+  }
+}
+
+@media print, (--narrow) {
+  .print-or-narrow {
+    color: red;
+  }
+}
+
+@custom-media --never-and (--never) and (hover);
+
+@media (--never-and) {
+  .never-and {
+    color: red;
+  }
+}
