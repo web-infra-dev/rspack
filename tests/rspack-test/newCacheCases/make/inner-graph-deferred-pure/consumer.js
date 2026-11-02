@@ -1,3 +1,4 @@
 import { pureFn } from "./dep";
 
-export const used = pureFn();
+export const used = "ok";
+export const unused = pureFn();

@@ -68,7 +68,7 @@ export default defineConfig({
             reused.filter((id) => id.startsWith('external ')),
           ).toHaveLength(0);
           expect(built.filter((id) => /[\\/]index\.js$/.test(id))).toHaveLength(
-            buildIndex === 0 ? 1 : 0,
+            buildIndex === 1 ? 0 : 1,
           );
 
           const dllModule = [...stats.compilation.modules].find(
@@ -106,7 +106,7 @@ export default defineConfig({
             (output.exports as (id: string | number) => string)(
               manifest.content['./index.js'].id,
             ),
-          ).toBe('external-initial');
+          ).toBe(buildIndex === 2 ? 'external-updated' : 'external-initial');
 
           built = [];
           reused = [];

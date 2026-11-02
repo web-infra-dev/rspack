@@ -74,6 +74,12 @@ export default defineConfig({
         compiler.hooks.compilation.tap(
           'ModuleOwnedDependenciesTest',
           (compilation) => {
+            compilation.hooks.finishModules.tap(
+              'ModuleOwnedDependenciesTest',
+              () => {
+                assertGraph(compilation, selectedByBuild[buildIndex]);
+              },
+            );
             compilation.hooks.buildModule.tap(
               'ModuleOwnedDependenciesTest',
               (module) => {
@@ -95,7 +101,11 @@ export default defineConfig({
             expect(stats.toJson({ all: false, errors: true }).errors).toEqual(
               [],
             );
-            assertGraph(stats.compilation, selectedByBuild[buildIndex]);
+            expect(
+              String(stats.compilation.getAsset('main.js')!.source.source()),
+            ).toContain(
+              `CONCATENATED MODULE: ./${selectedByBuild[buildIndex]}.js`,
+            );
             expect(built).toBe(expectedBuiltByBuild[buildIndex]);
             built = 0;
             buildIndex++;

@@ -1,16 +1,16 @@
 [
   {
     "|Compilation/codeGeneration": {
-      "hits": 2,
-      "misses": 2,
-      "reused": 2,
-      "stores": 2
+      "hits": 4,
+      "misses": 0,
+      "reused": 4,
+      "stores": 0
     },
     "|Compilation/modules": {
-      "hits": 3,
-      "misses": 1,
-      "reused": 2,
-      "stores": 2
+      "hits": 4,
+      "misses": 0,
+      "reused": 4,
+      "stores": 0
     },
     "|meta": {
       "hits": 1,
@@ -25,10 +25,10 @@
       "stores": 0
     },
     "|ResolverCache|normal": {
-      "hits": 3,
-      "misses": 1,
-      "reused": 2,
-      "stores": 2
+      "hits": 4,
+      "misses": 0,
+      "reused": 4,
+      "stores": 0
     }
   }
 ]

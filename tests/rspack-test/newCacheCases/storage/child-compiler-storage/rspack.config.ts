@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { defineConfig, definePlugin } from '@rspack/cli';
+import type { PersistentCacheOptions } from '@rspack/core';
 
 const storageDirectory = path.join(import.meta.dirname, 'cache');
 let buildIndex = 0;
@@ -10,7 +11,7 @@ export default defineConfig({
   entry: './a.js',
   cache: {
     type: 'persistent',
-    version: 'child-compiler-storage',
+    version: 'v1',
     storage: {
       type: 'filesystem',
       directory: storageDirectory,
@@ -20,6 +21,11 @@ export default defineConfig({
     definePlugin({
       apply(compiler) {
         if (compiler.isChild()) return;
+        compiler.hooks.beforeCompile.tap('ChildCompilerStorage', () => {
+          // Switching cache versions must not create another storage directory.
+          const cache = compiler.options.cache as PersistentCacheOptions;
+          cache.version = `v${buildIndex + 1}`;
+        });
         compiler.hooks.make.tapAsync(
           'ChildCompilersPlugin',
           (compilation, callback) => {

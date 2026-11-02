@@ -1,9 +1,9 @@
 [
   {
     "|Compilation/codeGeneration": {
-      "hits": 2,
+      "hits": 1,
       "misses": 1,
-      "reused": 2,
+      "reused": 1,
       "stores": 1
     },
     "|Compilation/modules": {

@@ -39,7 +39,7 @@ export default defineConfig({
           );
           expect(
             [...stats.compilation.modules].some((module) =>
-              module.identifier().endsWith('/extra.js'),
+              /[\\/]extra\.js$/.test(module.identifier()),
             ),
           ).toBe(false);
           events.built = 0;

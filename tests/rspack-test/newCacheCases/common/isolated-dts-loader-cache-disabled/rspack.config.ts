@@ -65,6 +65,8 @@ export default defineConfig({
           if (buildIndex === 0) {
             expect(runs).toBe(1);
             firstOutput = fs.readFileSync(dtsPath, 'utf-8');
+            expect(firstOutput).toContain('export interface Foo');
+            expect(firstOutput).toContain('export declare const foo: Foo;');
             // Remove the declaration so the next compiler must emit it again,
             // even when SWC does not run.
             fs.rmSync(dtsPath);

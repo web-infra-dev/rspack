@@ -118,7 +118,6 @@ export function defaultOptions(
     mode: 'production',
     target: 'async-node',
     devtool: false,
-    cache: false,
     output: {
       path: context.getCompileDist(),
       bundlerInfo: {
@@ -164,7 +163,6 @@ export function overrideOptions(
     options.optimization.runtimeChunk ??= { name: `runtime~${index}` };
   }
 
-  if (options.cache === undefined) options.cache = false;
   if (!global.printLogger) {
     options.infrastructureLogging = {
       level: 'error',

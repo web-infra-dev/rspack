@@ -2,15 +2,15 @@
   {
     "|Compilation/codeGeneration": {
       "hits": 0,
-      "misses": 4,
+      "misses": 5,
       "reused": 0,
-      "stores": 4
+      "stores": 5
     },
     "|Compilation/modules": {
       "hits": 0,
-      "misses": 4,
+      "misses": 5,
       "reused": 0,
-      "stores": 4
+      "stores": 5
     },
     "|meta": {
       "hits": 0,
@@ -19,16 +19,16 @@
       "stores": 1
     },
     "|ResolverCache|loader": {
-      "hits": 3,
+      "hits": 5,
       "misses": 1,
-      "reused": 3,
+      "reused": 5,
       "stores": 1
     },
     "|ResolverCache|normal": {
-      "hits": 0,
-      "misses": 4,
-      "reused": 0,
-      "stores": 4
+      "hits": 1,
+      "misses": 5,
+      "reused": 1,
+      "stores": 5
     }
   }
 ]

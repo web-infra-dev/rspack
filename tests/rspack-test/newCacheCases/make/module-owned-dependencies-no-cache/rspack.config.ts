@@ -1,8 +1,9 @@
 import type { Compilation, Stats } from '@rspack/core';
 import { defineConfig, definePlugin } from '@rspack/cli';
 
-const selectedByBuild = ['a', 'a', 'b', 'b', 'a'];
-const expectedBuiltByBuild = [1, 1, 1, 1, 1];
+// Five runs on one compiler, followed by the harness's automatic restart.
+const selectedByBuild = ['a', 'a', 'b', 'b', 'a', 'a'];
+const expectedBuiltByBuild = [1, 1, 1, 1, 1, 1];
 
 let buildIndex = 0;
 let built = 0;
@@ -69,10 +70,18 @@ export default defineConfig({
   },
   plugins: [
     definePlugin({
+      name: 'ModuleOwnedDependenciesTest',
       apply(compiler) {
+        this.compiler = compiler;
         compiler.hooks.compilation.tap(
           'ModuleOwnedDependenciesTest',
           (compilation) => {
+            compilation.hooks.finishModules.tap(
+              'ModuleOwnedDependenciesTest',
+              () => {
+                assertGraph(compilation, selectedByBuild[buildIndex]);
+              },
+            );
             compilation.hooks.buildModule.tap(
               'ModuleOwnedDependenciesTest',
               (module) => {
@@ -94,7 +103,11 @@ export default defineConfig({
             expect(stats.toJson({ all: false, errors: true }).errors).toEqual(
               [],
             );
-            assertGraph(stats.compilation, selectedByBuild[buildIndex]);
+            expect(
+              String(stats.compilation.getAsset('main.js')!.source.source()),
+            ).toContain(
+              `CONCATENATED MODULE: ./${selectedByBuild[buildIndex]}.js`,
+            );
             expect(built).toBe(expectedBuiltByBuild[buildIndex]);
             built = 0;
             buildIndex++;

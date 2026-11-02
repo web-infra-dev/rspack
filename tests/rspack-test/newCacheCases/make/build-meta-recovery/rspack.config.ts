@@ -16,6 +16,8 @@ function expectAsync(compilation: Compilation, expected: boolean) {
 }
 
 export default defineConfig({
+  mode: 'development',
+  incremental: true,
   cache: { type: 'persistent' },
   experiments: {
     newCache: { module: true, loader: false, codeGeneration: false },
@@ -25,8 +27,11 @@ export default defineConfig({
     definePlugin({
       apply(compiler) {
         compiler.hooks.done.tap('BuildMetaRecoveryTest', (stats) => {
-          expect(stats.toJson({ all: false, errors: true }).errors).toEqual([]);
-          expectAsync(stats.compilation, buildIndex < 2);
+          const failed = buildIndex === 2 || buildIndex === 3;
+          expect(
+            stats.toJson({ all: false, errors: true }).errors,
+          ).toHaveLength(failed ? 1 : 0);
+          expectAsync(stats.compilation, buildIndex < 4);
           buildIndex++;
         });
       },
