@@ -143,6 +143,14 @@ export default {
         .unmatched_bindings,
       1,
     );
+    const unrelatedStrings = [...strings];
+    unrelatedStrings[2] = 'not-a-pointer';
+    const unrelated = convert(
+      { ...snapshot, strings: unrelatedStrings },
+      identities,
+    );
+    assert.equal(unrelated.report.links.length, 0);
+    assert.equal(unrelated.report.represented_bytes, 128);
     assert.equal(
       convert(snapshot, identities, 1).report.represented_bytes,
       128,

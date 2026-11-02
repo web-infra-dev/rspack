@@ -74,9 +74,7 @@ export function convert(snapshot, identities, maxDepth = 32) {
       if (name === '__rspackRustPtr') pointer = nodeName(value);
       else type = nodeName(value);
     }
-    if (!pointer) continue;
-    if (!/^0x[0-9a-f]+$/i.test(pointer))
-      throw new Error(`Invalid Rust pointer: ${pointer}`);
+    if (!pointer || !type || !/^0x[0-9a-f]+$/i.test(pointer)) continue;
     const matches = native.get(`${pointer.toLowerCase()}:${type}`) ?? [];
     const link = {
       js_node_id: nodes[i * nodeWidth + ni],
