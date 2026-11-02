@@ -1,6 +1,7 @@
 import path from 'node:path';
 import type { RspackOptions } from '@rspack/core';
 import fs from 'fs-extra';
+import { checkPersistentCache } from '../helper/cache';
 import { RSPACK_CONFIG_FILES } from '../helper/read-config-file';
 import { parseResource } from '../helper/legacy/parseResource';
 import {
@@ -33,6 +34,7 @@ type TConfigCaseOptions = Partial<IBasicCaseCreatorOptions> & {
 export function createConfigProcessor(
   name: string,
   rspackOptions?: RspackOptions,
+  newCache = false,
 ): ITestProcessor {
   return {
     config: (context: ITestContext) => {
@@ -69,6 +71,7 @@ export function createConfigProcessor(
     },
     after: async (context: ITestContext) => {
       await afterExecute(context, name);
+      if (newCache) await checkPersistentCache(context);
     },
   };
 }

@@ -5,6 +5,7 @@ import {
   HotModuleReplacementPlugin,
   type RspackOptions,
 } from '@rspack/core';
+import { checkPersistentCache } from '../helper/cache';
 import { RSPACK_CONFIG_FILES } from '../helper/read-config-file';
 import { findTestFile, readTestFile } from '../helper/read-test-file';
 import {
@@ -37,6 +38,7 @@ export function createNormalProcessor(
   name: string,
   hot = false,
   mode?: 'development' | 'production',
+  newCache = false,
 ): ITestProcessor {
   return {
     config: async (context: ITestContext) => {
@@ -66,6 +68,7 @@ export function createNormalProcessor(
     },
     after: async (context: ITestContext) => {
       await afterExecute(context, name);
+      if (newCache) await checkPersistentCache(context);
     },
   };
 }
