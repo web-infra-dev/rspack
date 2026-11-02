@@ -379,7 +379,7 @@ mod tests {
 
     let mut hasher = twox_hash::XxHash64::default();
     sms1.hash(&mut hasher);
-    assert_eq!(format!("{:x}", hasher.finish()), "736934c6e249aa6e");
+    assert_eq!(format!("{:x}", hasher.finish()), "a37920f47a1e8a44");
   }
 
   #[test]
@@ -387,7 +387,7 @@ mod tests {
     let a = SourceMapSource::new(WithoutOriginalOptions {
       value: "hello world\n",
       name: "hello.txt",
-      source_map: SourceMap::new("AAAA".to_string(), vec!["".into()], vec!["".into()], vec![]),
+      source_map: SourceMap::new("AAAA".to_string(), vec!["".into()], vec![None], vec![]),
     });
     let b = SourceMapSource::new(WithoutOriginalOptions {
       value: "hello world\n",
@@ -400,7 +400,7 @@ mod tests {
       source_map: SourceMap::new(
         "AAAA".to_string(),
         vec!["hello-source.txt".into()],
-        vec!["hello world\n".into()],
+        vec![Some("hello world\n".into())],
         vec![],
       ),
     });
