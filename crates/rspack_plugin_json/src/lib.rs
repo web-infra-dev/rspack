@@ -285,6 +285,23 @@ pub fn create_object_for_exports_info(
     return data;
   }
 
+  // Prototype methods can observe the whole value, including otherwise unused properties.
+  if exports_info.exports().iter().any(|(name, info)| {
+    info.get_used(runtime) != UsageState::Unused
+      && match &data {
+        JsonValue::Array(arr) => {
+          name != "length"
+            && !name
+              .parse::<usize>()
+              .is_ok_and(|index| index < arr.len() && index.to_string() == name.as_str())
+        }
+        JsonValue::Object(obj) => obj.get(name.as_str()).is_none(),
+        _ => false,
+      }
+  }) {
+    return data;
+  }
+
   match data {
     JsonValue::Null
     | JsonValue::Short(_)
