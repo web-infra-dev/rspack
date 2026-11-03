@@ -753,40 +753,7 @@ impl NormalModuleFactory {
       let mut request_without_match_resource = data.request.as_str();
       request_without_match_resource = {
         if let Ok((resource, full_matched)) = match_resource(request_without_match_resource) {
-          let match_resource = {
-            let mut chars = resource.chars();
-            let first_char = chars.next();
-            let second_char = chars.next();
-
-            if matches!(first_char, Some(DOT))
-              && (matches!(second_char, Some(SLASH))
-                || (matches!(second_char, Some(DOT)) && matches!(chars.next(), Some(SLASH))))
-            {
-              // if matchResources startsWith ../ or ./
-              data
-                .context
-                .as_path()
-                .join(resource)
-                .as_std_path()
-                .absolutize()
-                .to_string_lossy()
-                .into_owned()
-            } else {
-              resource.to_owned()
-            }
-          };
-
-          let ResourceParsedData {
-            path,
-            query,
-            fragment,
-          } = parse_resource(&match_resource).expect("Should parse resource");
-          match_resource_data = Some(ResourceData::new_with_path(
-            match_resource,
-            path,
-            query,
-            fragment,
-          ));
+          match_resource_data = Some(create_match_resource_data(&data.context, resource));
 
           // e.g. ./index.js!=!
           let whole_matched = full_matched;
@@ -1481,6 +1448,36 @@ fn split_element(mut input: &str) -> Vec<&str> {
   separated::<_, _, _, _, ContextError, _, _>(.., take_till(.., '!'), take_while(1.., '!'))
     .parse_next(&mut input)
     .expect("split should never fail")
+}
+
+fn create_match_resource_data(context: &Context, resource: &str) -> ResourceData {
+  let match_resource = {
+    let mut chars = resource.chars();
+    let first_char = chars.next();
+    let second_char = chars.next();
+
+    if matches!(first_char, Some(DOT))
+      && (matches!(second_char, Some(SLASH))
+        || (matches!(second_char, Some(DOT)) && matches!(chars.next(), Some(SLASH))))
+    {
+      context
+        .as_path()
+        .join(resource)
+        .as_std_path()
+        .absolutize()
+        .to_string_lossy()
+        .into_owned()
+    } else {
+      resource.to_owned()
+    }
+  };
+
+  let ResourceParsedData {
+    path,
+    query,
+    fragment,
+  } = parse_resource(&match_resource).expect("Should parse resource");
+  ResourceData::new_with_path(match_resource, path, query, fragment)
 }
 
 fn match_resource(mut input: &str) -> winnow::ModalResult<(&str, &str)> {
