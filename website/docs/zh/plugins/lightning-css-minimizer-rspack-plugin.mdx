@@ -16,11 +16,17 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 import { rspack } from '@rspack/core';
 
 export default {
+  mode: 'production',
   optimization: {
-    minimizer: [new rspack.LightningCssMinimizerRspackPlugin()],
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin(),
+      new rspack.LightningCssMinimizerRspackPlugin(),
+    ],
   },
 };
 ```
+
+设置 `optimization.minimizer` 会替换默认的压缩器。配置 CSS 压缩器时，同时添加 `SwcJsMinimizerRspackPlugin` 可以保留 JavaScript 压缩。
 
 ## 选项
 
@@ -37,6 +43,16 @@ export default {
 - **Default:** `undefined`
 
 使用此选项来指定应该排除在压缩之外的文件，匹配产物文件的路径。
+
+例如，跳过名为 `vendor.css` 的产物，同时继续压缩其他 CSS 产物：
+
+```js
+new rspack.LightningCssMinimizerRspackPlugin({
+  exclude: /vendor\.css$/,
+});
+```
+
+这里匹配的是产物文件名，不是 `src/vendor.css` 这样的源文件路径。它与控制 CSS 语法转换的 `minimizerOptions.exclude` 不同。
 
 ### test
 
@@ -91,10 +107,64 @@ document.body.className = styles.a;
 
    为了减小体积，Lightning CSS 在压缩时可能会改用更短的新语法。这个默认值限定了可以使用的语法范围，让压缩后的代码也能兼容上述浏览器。
 
-2. `exclude` 选项默认配置了所有的 features。我们通常会在 [builtin:lightningcss-loader](/guide/builtin-loaders/lightningcss-loader) 或其他 loaders 中进行语法降级，所以此插件默认 exclude 所有的 features，避免在 minimize 过程中进行语法降级。
+2. `minimizerOptions.include` 和 `minimizerOptions.exclude` 默认不强制或排除任何特性。Lightning CSS 根据 `targets` 决定需要执行哪些语法转换。可以使用 `include: { nesting: true }` 这样的特性对象强制转换，也可以使用 `exclude: { nesting: true }` 阻止转换。
 
 我们建议并鼓励用户配置自己所需的 `targets`，以获得最好的压缩效果。
 :::
+
+例如，将目标设为 Chrome 100 及更高版本。以下配置使用[内置 CSS 支持](/guide/languages/css#built-in-css-support)，并同时保留 JavaScript 和 CSS 压缩：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  mode: 'production',
+  devtool: false,
+  entry: './src/index.js',
+  output: {
+    cssFilename: '[name].css',
+  },
+  module: {
+    rules: [{ test: /\.css$/i, type: 'css' }],
+  },
+  optimization: {
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin(),
+      new rspack.LightningCssMinimizerRspackPlugin({
+        minimizerOptions: {
+          targets: ['chrome >= 100'],
+        },
+      }),
+    ],
+  },
+};
+```
+
+```js title="src/index.js"
+import './style.css';
+console.log('Hello');
+```
+
+```css title="src/style.css"
+.card {
+  color: red;
+
+  &:hover {
+    color: blue;
+  }
+}
+```
+
+由于 Chrome 100 不支持 CSS 嵌套语法，压缩器会展开嵌套规则，生成：
+
+{/* prettier-ignore */}
+```css title="dist/main.css"
+.card{color:red}.card:hover{color:#00f}
+```
+
+如果将 `minimizerOptions.exclude` 设置为 `{ nesting: true }`，即使使用上述目标，也会保留嵌套规则，因此产物需要在支持嵌套语法的浏览器中运行。相反，`include: { nesting: true }` 会强制转换嵌套语法，即使所有目标浏览器都支持它。
+
+与插件顶层的 `include` 和 `exclude` 不同，这些特性选项不会筛选文件，而是控制对选中的 CSS 产物执行哪些语法转换。
 
 ```ts
 type Targets = {

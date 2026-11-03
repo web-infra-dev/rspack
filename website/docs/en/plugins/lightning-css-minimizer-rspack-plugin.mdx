@@ -16,11 +16,17 @@ This plugin uses [lightningcss](https://lightningcss.dev/) to minify CSS assets.
 import { rspack } from '@rspack/core';
 
 export default {
+  mode: 'production',
   optimization: {
-    minimizer: [new rspack.LightningCssMinimizerRspackPlugin()],
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin(),
+      new rspack.LightningCssMinimizerRspackPlugin(),
+    ],
   },
 };
 ```
+
+Specifying `optimization.minimizer` replaces the default minimizers. Include `SwcJsMinimizerRspackPlugin` to keep JavaScript minification enabled when configuring the CSS minimizer.
 
 ## Options
 
@@ -37,6 +43,16 @@ Use this to specify which files should be minified, it matches the path of the o
 - **Default:** `undefined`
 
 Use this to specify which files should be excluded from minification, it matches the path of the output files.
+
+For example, skip an emitted file named `vendor.css` while still minifying other CSS assets:
+
+```js
+new rspack.LightningCssMinimizerRspackPlugin({
+  exclude: /vendor\.css$/,
+});
+```
+
+This matches output filenames, not source paths such as `src/vendor.css`. It is separate from `minimizerOptions.exclude`, which controls CSS syntax transformations.
 
 ### test
 
@@ -91,10 +107,64 @@ Below are the configurations supported, `targets` configuration is plain browser
 
    During minification, Lightning CSS may use shorter, newer syntax to reduce file size. This default limits the syntax it can use to keep the result compatible with those browsers.
 
-2. The `exclude` option is configured with all features by default. We usually do syntax degradation in [builtin:lightningcss-loader](/guide/builtin-loaders/lightningcss-loader) or other loaders, so this plugin excludes all features by default to avoid syntax downgrading during the minimize process.
+2. `minimizerOptions.include` and `minimizerOptions.exclude` default to no forced or excluded features. Lightning CSS uses `targets` to decide which syntax transformations are needed. Use feature objects such as `include: { nesting: true }` to force a transformation, or `exclude: { nesting: true }` to prevent it.
 
 We recommend and encourage users to configure their own `targets` to achieve the best minification results.
 :::
+
+For example, target Chrome 100 and later. This configuration uses [built-in CSS support](/guide/languages/css#built-in-css-support) and keeps both JavaScript and CSS minification enabled:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  mode: 'production',
+  devtool: false,
+  entry: './src/index.js',
+  output: {
+    cssFilename: '[name].css',
+  },
+  module: {
+    rules: [{ test: /\.css$/i, type: 'css' }],
+  },
+  optimization: {
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin(),
+      new rspack.LightningCssMinimizerRspackPlugin({
+        minimizerOptions: {
+          targets: ['chrome >= 100'],
+        },
+      }),
+    ],
+  },
+};
+```
+
+```js title="src/index.js"
+import './style.css';
+console.log('Hello');
+```
+
+```css title="src/style.css"
+.card {
+  color: red;
+
+  &:hover {
+    color: blue;
+  }
+}
+```
+
+Since Chrome 100 does not support CSS nesting, the minimizer flattens the nested rule and emits:
+
+{/* prettier-ignore */}
+```css title="dist/main.css"
+.card{color:red}.card:hover{color:#00f}
+```
+
+Setting `minimizerOptions.exclude` to `{ nesting: true }` would preserve the nested rule even with these targets, so the result would require browsers that support nesting. Conversely, `include: { nesting: true }` forces nesting to be transformed even when all target browsers support it.
+
+Unlike the plugin's top-level `include` and `exclude`, these feature options do not select files. They control transformations within the CSS assets selected for minification.
 
 ```ts
 type Targets = {
