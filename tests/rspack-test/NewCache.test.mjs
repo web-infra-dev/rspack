@@ -117,6 +117,12 @@ const excludes = {
 		// Child compiler metadata is not fully restored.
 		/^plugins\/rspack-issue-4982$/,
 
+		// The child compilation is not awaited, so its cache may not be stored.
+		/^chunk-loading\/issue-4754$/,
+
+		// Stats assertions require build-time modules that cache restoration skips.
+		/^stats\/issuer-information-cache$/,
+
 		// Loader-emitted errors or warnings are not fully restored.
 		/^compilation\/stats-artifact-fallback-warning$/,
 		/^loader\/emit-error$/,
@@ -126,6 +132,9 @@ const excludes = {
 		/^ecmaVersion\/browserslist-config-env-extends$/,
 		/^ecmaVersion\/browserslist-config-extends$/,
 		/^ecmaVersion\/browserslist-extends$/,
+
+		// Reads a hard-coded output path from the regular Config suite.
+		/^library\/esm-external$/,
 
 		// Existing bundle/compiler assertions fail in the compatibility suite.
 		/^builtin-lightningcss-loader\/custom-media$/,
@@ -154,6 +163,16 @@ const excludes = {
 		/^split-chunks\/callback-order$/
 	]
 };
+
+if (process.platform === "win32") {
+	// Resolver cache misses after restarting the compiler on Windows.
+	excludes.normal.push(/^parsing\/evaluate$/);
+	// Cache builds query filesystem metadata with resource queries in the path.
+	excludes.config.push(
+		/^context-modules\/replacement-d$/,
+		/^context-replacement\/d$/
+	);
+}
 
 for (const [source, type] of suites) {
 	describeByWalk(
