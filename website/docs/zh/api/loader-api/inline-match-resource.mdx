@@ -4,17 +4,98 @@ description: 'Inline matchResource 允许你在加载资源时动态改变匹配
 
 import Attribution from '@components/Attribution';
 
-# 内联 matchResource
+# 内联 matchResource \{#inline-matchresource}
 
-Inline matchResource 允许你在加载资源时动态改变匹配规则。你可以通过在模块标识符前添加 `<match-resource>!=!` 前缀来为该模块标识符设置 `matchResource`。
-
-当 `matchResource` 被设置时，它将被用来与 `module.rules` 而不是原始资源进行匹配。当如果有更多的 loader 应该应用到资源上，或者需要改变模块的类型，这可能很有用。
+内联 `matchResource` 将用于匹配 [`module.rules`](/config/module-rules) 的资源与 Rspack 实际解析和加载的资源分开。当 loader 从一种文件中提取另一种内容，或者提取结果需要使用不同的模块类型时，这一语法很有用。
 
 :::tip
-不建议在源代码中使用这种语法。内联请求语法应该仅用于 loader 生成的代码。如果不遵循此建议，你的代码将与 Rspack 耦合，且不符合标准规范。
+不建议在应用源代码中使用这种语法。内联请求语法主要用于 loader 生成的代码。直接使用会让源代码依赖 Rspack，且不符合标准规范。
 :::
 
-## 示例
+## 语法 \{#syntax}
+
+```text
+<match-resource>!=![<inline-prefix>][<loader>!]...<resource>
+```
+
+该语法由以下部分组成：
+
+| 部分               | 说明                                                     |
+| ------------------ | -------------------------------------------------------- |
+| `<match-resource>` | 用于规则匹配的非空虚拟资源，不能包含 `!`。               |
+| `!=!`              | 分隔 match resource 和内联请求。                         |
+| `<inline-prefix>`  | 可选的 `!`、`-!` 或 `!!` 前缀，用于控制配置中的 loader。 |
+| `<loader>!`        | 零个或多个内联 loader，使用 `!` 分隔。                   |
+| `<resource>`       | Rspack 实际解析、读取并传给 loader 的资源。              |
+
+`!=!` 分隔符属于 matchResource 语法。它右侧的所有内容都遵循常规的[内联 loader 语法](/api/loader-api/inline)。
+
+### Match resource \{#match-resource}
+
+match resource 不会被解析或从文件系统中读取。Rspack 在判断与资源有关的 `module.rules` 条件时，会使用它代替实际资源：
+
+- `test`、`resource`、`include` 和 `exclude` 匹配它的路径。
+- `resourceQuery` 匹配它的 query，包括开头的 `?`。
+- `resourceFragment` 匹配它的 fragment，包括开头的 `#`。
+
+例如，下面的请求会命中 CSS 资源且 query 为 `?modules` 的规则，但 Rspack 实际读取的仍然是 `./source.js`：
+
+```js
+import value from 'virtual.css?modules!=!extract-style-loader!./source.js';
+```
+
+以 `./` 或 `../` 开头的 match resource 会基于当前请求的解析上下文转换为绝对路径。`virtual.css` 等其他值会保留为虚拟名称。
+
+当 `rules[].use` 是函数时，其 `resource`、`resourceQuery` 和 `resourceFragment` 描述 match resource，`realResource` 描述实际资源。在 loader 中，`this.resource` 等 loader context 属性仍然描述实际资源。
+
+### 内联请求 \{#inline-request}
+
+`!=!` 右侧可以包含内联 loader，也可以使用与普通内联请求相同的前缀：
+
+| `!=!` 后的前缀 | 完整示例                             | 效果                                       |
+| -------------- | ------------------------------------ | ------------------------------------------ |
+| 无             | `virtual.css!=!loader!./source.js`   | 使用配置中的所有 loader 和内联 loader。    |
+| `!`            | `virtual.css!=!!loader!./source.js`  | 禁用配置中的 normal loader。               |
+| `-!`           | `virtual.css!=!-!loader!./source.js` | 禁用配置中的 pre loader 和 normal loader。 |
+| `!!`           | `virtual.css!=!!!loader!./source.js` | 禁用配置中的所有 loader。                  |
+
+连续的感叹号是 `!=!` 分隔符与内联前缀组合后的结果。例如，`virtual.css!=!!!./source.js` 会被解析为：
+
+```text
+virtual.css  !=!  !!  ./source.js
+matchResource     前缀
+```
+
+存在 match resource 时，在 loader 的 normal 阶段，内联 loader 会先于匹配规则选出的 normal loader 执行。pre loader 和 post loader 仍保持常规顺序。
+
+`!!` 前缀不会跳过规则匹配。它会禁用配置中的 loader 并忽略 `rules[].type`，但命中规则的其他效果仍可能生效。match resource 中显式指定的模块类型会被保留。
+
+### 显式模块类型 \{#explicit-module-type}
+
+match resource 可以通过以下后缀直接指定模块类型：
+
+```text
+<name>.rspack[<module-type>]
+<name>.webpack[<module-type>]
+```
+
+Rspack 同时支持 `.webpack[...]` 写法，以兼容 webpack。`<module-type>` 接受与 [`rules[].type`](/config/module-rules#rulestype) 相同的值，例如 `json`、`javascript/auto` 或 `asset/source`。
+
+显式指定模块类型后，Rspack 会使用该类型，并跳过该请求的 `module.rules` 匹配。该后缀必须位于 match resource 的末尾。
+
+```js
+import data from 'virtual.rspack[json]!=!./data.custom';
+```
+
+在这个例子中，Rspack 会读取 `./data.custom`，将其内容作为 JSON 解析，并且不会应用 `module.rules`。
+
+### 规则匹配 \{#rule-matching}
+
+使用普通 match resource 时，命中的规则可以提供 loader、模块类型、parser 和 generator 选项、resolve 选项、layer 以及其他规则效果。`issuer`、`dependency` 和 import attributes 等描述依赖关系而不是资源的条件，仍然使用原始依赖上下文。
+
+实际资源仍然负责模块解析和文件读取。修改 match resource 不会改变 Rspack 实际读取的文件。
+
+## 示例 \{#example}
 
 ```js title="file.js"
 /*STYLE: body { background: red; } */
@@ -29,7 +110,7 @@ console.log('yep');
 ```
 
 这会将 `extract-style-loader/getStyles!./file.js` 作为一个依赖添加到编译流程中，并将结果作为 `file.js.css`。
-当 `module.rules` 有一个匹配 `/\.css$/` 的规则时，将会被这个资源命中。
+因此，匹配 `/\.css$/` 的 `module.rules` 规则会应用到这个依赖上，但实际资源仍然是 `./file.js`。
 
 Loader 可以是这样的：
 

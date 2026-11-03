@@ -6,13 +6,94 @@ import Attribution from '@components/Attribution';
 
 # Inline matchResource
 
-Inline matchResource allows you to dynamically change the matching rules when loading resources. You can set the `matchResource` for a module specifier by prefixing `<match-resource>!=!` to the module specifier.
-
-When a `matchResource` is set, it will be used to match with the `module.rules` instead of the original resource. This can be useful if further loaders should be applied to the resource, or if the module type needs to be changed.
+Inline `matchResource` separates the resource used to match [`module.rules`](/config/module-rules) from the resource that Rspack resolves and loads. This is useful when a loader extracts one kind of content from another file, or when the extracted content needs a different module type.
 
 :::tip
-It is not recommended to use this syntax in source code. Inline request syntax is intended to only be used by loader generated code. Not following this recommendation will make your code Rspack-specific and non-standard.
+It is not recommended to use this syntax in application source code. Inline request syntax is intended for loader-generated code. Using it directly makes your source Rspack-specific and non-standard.
 :::
+
+## Syntax
+
+```text
+<match-resource>!=![<inline-prefix>][<loader>!]...<resource>
+```
+
+The syntax consists of the following parts:
+
+| Part               | Description                                                                 |
+| ------------------ | --------------------------------------------------------------------------- |
+| `<match-resource>` | A non-empty virtual resource used for rule matching. It cannot contain `!`. |
+| `!=!`              | Separates the match resource from the inline request.                       |
+| `<inline-prefix>`  | Optional `!`, `-!`, or `!!` prefix that controls configured loaders.        |
+| `<loader>!`        | Zero or more inline loaders, separated by `!`.                              |
+| `<resource>`       | The actual resource that Rspack resolves, reads, and passes to loaders.     |
+
+The `!=!` separator belongs to the matchResource syntax. Everything after it follows the regular [inline loader syntax](/api/loader-api/inline).
+
+### Match resource
+
+The match resource is not resolved or read from the file system. It replaces the actual resource when Rspack evaluates resource-related `module.rules` conditions:
+
+- `test`, `resource`, `include`, and `exclude` match its path.
+- `resourceQuery` matches its query, including the leading `?`.
+- `resourceFragment` matches its fragment, including the leading `#`.
+
+For example, this request matches rules for a CSS resource with the `?modules` query, while Rspack still reads `./source.js`:
+
+```js
+import value from 'virtual.css?modules!=!extract-style-loader!./source.js';
+```
+
+A match resource starting with `./` or `../` is converted to an absolute path relative to the request's resolution context. Other values, such as `virtual.css`, remain virtual names.
+
+When `rules[].use` is a function, its `resource`, `resourceQuery`, and `resourceFragment` values describe the match resource, while `realResource` describes the actual resource. Inside a loader, `this.resource` and related loader context properties continue to describe the actual resource.
+
+### Inline request
+
+The part after `!=!` can contain inline loaders and the same prefixes as a regular inline request:
+
+| Prefix after `!=!` | Complete example                     | Effect                                      |
+| ------------------ | ------------------------------------ | ------------------------------------------- |
+| None               | `virtual.css!=!loader!./source.js`   | Uses all configured and inline loaders.     |
+| `!`                | `virtual.css!=!!loader!./source.js`  | Disables configured normal loaders.         |
+| `-!`               | `virtual.css!=!-!loader!./source.js` | Disables configured pre and normal loaders. |
+| `!!`               | `virtual.css!=!!!loader!./source.js` | Disables all configured loaders.            |
+
+The repeated exclamation marks are the combination of the `!=!` separator and the inline prefix. For example, `virtual.css!=!!!./source.js` is parsed as:
+
+```text
+virtual.css  !=!  !!  ./source.js
+matchResource     prefix
+```
+
+When a match resource is present, inline loaders run before normal loaders selected by the matching rules during the normal loader phase. Pre and post loaders retain their regular ordering.
+
+The `!!` prefix does not skip rule matching. It disables configured loaders and ignores `rules[].type`, but other effects of a matching rule can still apply. An explicit module type in the match resource is preserved.
+
+### Explicit module type
+
+A match resource can specify the module type directly by ending with one of these suffixes:
+
+```text
+<name>.rspack[<module-type>]
+<name>.webpack[<module-type>]
+```
+
+The `.webpack[...]` form is supported for webpack compatibility. `<module-type>` accepts the same values as [`rules[].type`](/config/module-rules#rulestype), such as `json`, `javascript/auto`, or `asset/source`.
+
+When an explicit module type is present, Rspack uses that type and skips `module.rules` matching for the request. The suffix must be at the end of the match resource.
+
+```js
+import data from 'virtual.rspack[json]!=!./data.custom';
+```
+
+In this example, Rspack reads `./data.custom` and parses its contents as JSON without applying `module.rules`.
+
+### Rule matching
+
+For a regular match resource, matching rules can contribute loaders, module type, parser and generator options, resolve options, layer, and other rule effects. Conditions that describe the dependency rather than the resource, such as `issuer`, `dependency`, and import attributes, continue to use the original dependency context.
+
+The actual resource remains responsible for resolution and file loading. Changing the match resource does not redirect the file that Rspack reads.
 
 ## Example
 
@@ -29,7 +110,7 @@ console.log('yep');
 ```
 
 This will add a dependency to `extract-style-loader/getStyles!./file.js` and treat the result as `file.js.css`.
-Because `module.rules` has a rule matching `/\.css$/` and it will apply to this dependency.
+A `module.rules` rule matching `/\.css$/` will therefore apply to this dependency, even though the actual resource is still `./file.js`.
 
 The loader could look like this:
 
