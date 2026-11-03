@@ -1005,7 +1005,11 @@ export type RuleSetRule = RuleSetRuleUseAndLoader & {
   /** Used to mark the type of the matching module, which affects how the module is handled by Rspack's built-in processing. */
   type?: string;
 
-  /** Reinterprets the matched module using the match-resource portion of the inline matchResource syntax. */
+  /**
+   * Reinterprets the matched module using the match-resource portion of the inline matchResource syntax.
+   * This is an experimental API and may change or be removed in the future.
+   * @experimental
+   */
   as?: string;
 
   /** Used to mark the layer of the matching module. */

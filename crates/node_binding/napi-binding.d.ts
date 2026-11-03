@@ -2793,6 +2793,10 @@ export interface RawModuleRule {
   sideEffects?: boolean
   use?: RawModuleRuleUse[] | ((arg: RawFuncUseCtx) => RawModuleRuleUse[])
   type?: string
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
   as?: string
   layer?: string
   parser?: RawParserOptions

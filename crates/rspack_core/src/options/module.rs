@@ -1731,6 +1731,8 @@ pub struct ModuleRuleEffect {
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
   /// Reinterprets the matched module using an inline match resource.
+  ///
+  /// This option is experimental and may change or be removed in the future.
   pub r#as: Option<String>,
   pub layer: Option<String>,
   pub r#use: ModuleRuleUse,

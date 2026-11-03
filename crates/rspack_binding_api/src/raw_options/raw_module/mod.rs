@@ -184,6 +184,8 @@ pub struct RawModuleRule {
   #[napi(ts_type = "RawModuleRuleUse[] | ((arg: RawFuncUseCtx) => RawModuleRuleUse[])")]
   pub r#use: Option<Either<Vec<RawModuleRuleUse>, ThreadsafeUse>>,
   pub r#type: Option<String>,
+  /// This option is experimental in Rspack only and subject to change or be removed anytime.
+  /// @experimental
   pub r#as: Option<String>,
   pub layer: Option<String>,
   pub parser: Option<RawParserOptions>,
