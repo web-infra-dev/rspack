@@ -216,6 +216,48 @@ export default {
 
 设置当前入口所依赖的入口。使用 `dependOn` 选项你可以与另一个入口 chunk 共享模块。
 
+例如，将共享模块放到独立入口中，并让 `app` 依赖它：
+
+```js title="rspack.config.mjs"
+export default {
+  mode: 'development',
+  entry: {
+    shared: './src/shared.js',
+    app: {
+      import: './src/app.js',
+      dependOn: 'shared',
+    },
+  },
+  output: {
+    filename: '[name].js',
+  },
+  optimization: {
+    splitChunks: false,
+  },
+};
+```
+
+```js title="src/shared.js"
+export const message = 'Hello from shared';
+```
+
+```js title="src/app.js"
+import { message } from './shared.js';
+
+console.log(message);
+```
+
+构建后会生成 `shared.js` 和 `app.js`。共享模块包含在 `shared.js` 中，不会重复包含在 `app.js` 中。`app` 入口会复用 `shared` 的 runtime，因此需要在页面中加载这两个文件：
+
+```html
+<script defer src="/dist/shared.js"></script>
+<script defer src="/dist/app.js"></script>
+```
+
+页面会输出 `Hello from shared`。这里的 `/dist/` 假设产物目录通过该 URL 提供访问。
+
+`dependOn` 引用的是**入口名称**，不是文件路径，也不能替代源码中的导入语句。[SplitChunksPlugin](/plugins/split-chunks-plugin) 会自动选择共享模块，而此示例显式定义共享入口，并关闭自动拆包，以便观察结果。
+
 #### EntryDescription.wasmLoading
 
 <PropertyType
