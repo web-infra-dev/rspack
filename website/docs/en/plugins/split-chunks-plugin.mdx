@@ -1135,11 +1135,11 @@ Modules moved from an async chunk into an initial chunk may load earlier. Consid
 
 Splits shared modules according to which exports each [runtime](/misc/glossary#runtime) uses. Entries that use different exports can load separate copies, allowing unused code to be removed from each copy later.
 
-For example, `src/shared.js` exports two values:
+For example, `src/shared.js` exports two objects:
 
 ```js title="src/shared.js"
-export const value1 = 'one';
-export const value2 = 'two';
+export const value1 = { name: 'one' };
+export const value2 = { name: 'two' };
 ```
 
 Three entries import this module: `foo` and `bar` use `value1`, while `baz` uses `value2`:

@@ -1133,11 +1133,11 @@ export default {
 
 根据各个 [runtime](/misc/glossary#runtime) 实际使用的导出来拆分共享模块。使用不同导出的入口可以加载不同的模块副本，便于后续移除各自不需要的代码。
 
-例如，`src/shared.js` 导出了两个值：
+例如，`src/shared.js` 导出了两个对象：
 
 ```js title="src/shared.js"
-export const value1 = 'one';
-export const value2 = 'two';
+export const value1 = { name: 'one' };
+export const value2 = { name: 'two' };
 ```
 
 三个入口都导入这个模块，其中 `foo` 和 `bar` 使用 `value1`，`baz` 使用 `value2`：
