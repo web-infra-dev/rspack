@@ -1877,6 +1877,7 @@ export interface NativeWatcherOptions {
 export interface NativeWatchUndelayedEvent {
   kind: string
   path: string
+  mtime?: null
 }
 
 export interface NodeFsStats {
