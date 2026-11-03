@@ -51,9 +51,9 @@ function mergeExternalObjects(
       Object.entries(overrides).map(([request, value]) => [
         request,
         cachedCleverMerge(
-          Object.hasOwn(base, request) ? base[request] : undefined,
-          value,
-        ),
+          { value: Object.hasOwn(base, request) ? base[request] : undefined },
+          { value },
+        ).value,
       ]),
     ),
   };
