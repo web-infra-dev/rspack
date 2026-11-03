@@ -666,7 +666,7 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(raw_http_uri::get_http_uri_plugin(plugin_options));
       }
       BuiltinPluginName::RuntimePlugin => plugins.push(RuntimePlugin::default().boxed()),
-      BuiltinPluginName::JsonModulesPlugin => plugins.push(JsonPlugin.boxed()),
+      BuiltinPluginName::JsonModulesPlugin => plugins.push(JsonPlugin::default().boxed()),
       BuiltinPluginName::InferAsyncModulesPlugin => {
         plugins.push(InferAsyncModulesPlugin::default().boxed())
       }

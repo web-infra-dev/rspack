@@ -11,14 +11,17 @@ use json::{
 };
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  BoxDependency, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoArtifact,
-  ExportsInfoData, GenerateContext, GeneratorOptions, Module, ModuleArgument, ModuleGraph,
-  NAMESPACE_OBJECT_EXPORT, ParseOption, ParserAndGenerator, ParserOptions, Plugin, RuntimeSpec,
-  SourceType, UsageState, UsedNameItem,
+  BoxDependency, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation,
+  CompilationOptimizeCodeGeneration, ExportsInfo, ExportsInfoArtifact, ExportsInfoData,
+  GenerateContext, GeneratorOptions, Module, ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT,
+  ParseOption, ParserAndGenerator, ParserOptions, Plugin, RuntimeSpec, SourceType, UsageState,
+  UsedNameItem,
+  build_module_graph::BuildModuleGraphArtifact,
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, error};
+use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{itoa, location::byte_line_column_to_offset};
 
 use crate::json_exports_dependency::JsonExportsDependency;
@@ -244,7 +247,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
   }
 }
 
-#[derive(Debug)]
+#[plugin]
+#[derive(Debug, Default)]
 pub struct JsonPlugin;
 
 impl Plugin for JsonPlugin {
@@ -271,7 +275,65 @@ impl Plugin for JsonPlugin {
       }),
     );
 
+    ctx
+      .compilation_hooks
+      .optimize_code_generation
+      .tap(optimize_code_generation::new(self));
+
     Ok(())
+  }
+}
+
+// Run after usage analysis and before MangleExportsPlugin assigns names at stage 0.
+#[plugin_hook(CompilationOptimizeCodeGeneration for JsonPlugin, stage = -10)]
+async fn optimize_code_generation(
+  &self,
+  _compilation: &Compilation,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  exports_info_artifact: &mut ExportsInfoArtifact,
+  _diagnostics: &mut Vec<rspack_error::Diagnostic>,
+) -> Result<()> {
+  for (identifier, module) in build_module_graph_artifact.get_module_graph().modules() {
+    if let Some(data) = module.build_info().json_data.as_ref() {
+      preserve_json_exports(
+        data,
+        exports_info_artifact.get_exports_info(identifier),
+        exports_info_artifact,
+      );
+    }
+  }
+  Ok(())
+}
+
+fn preserve_json_exports(
+  data: &JsonValue,
+  exports_info: ExportsInfo,
+  exports_info_artifact: &mut ExportsInfoArtifact,
+) {
+  let info = exports_info.as_data(exports_info_artifact);
+  if has_used_non_provided_export(data, info, None) {
+    // The generator keeps this value whole, so consumers must use its original keys.
+    exports_info
+      .as_data_mut(exports_info_artifact)
+      .set_used_in_unknown_way(None);
+    return;
+  }
+
+  let nested = info
+    .exports()
+    .iter()
+    .filter(|(_, export)| export.get_used(None) == UsageState::OnlyPropertiesUsed)
+    .filter_map(|(name, export)| {
+      let value = match data {
+        JsonValue::Object(obj) => obj.get(name.as_str()),
+        JsonValue::Array(arr) => name.parse::<usize>().ok().and_then(|index| arr.get(index)),
+        _ => None,
+      }?;
+      Some((value, export.exports_info()?))
+    })
+    .collect::<Vec<_>>();
+  for (value, nested_info) in nested {
+    preserve_json_exports(value, nested_info, exports_info_artifact);
   }
 }
 
@@ -285,20 +347,7 @@ pub fn create_object_for_exports_info(
     return data;
   }
 
-  // Prototype methods can observe the whole value, including otherwise unused properties.
-  if exports_info.exports().iter().any(|(name, info)| {
-    info.get_used(runtime) != UsageState::Unused
-      && match &data {
-        JsonValue::Array(arr) => {
-          name != "length"
-            && !name
-              .parse::<usize>()
-              .is_ok_and(|index| index < arr.len() && index.to_string() == name.as_str())
-        }
-        JsonValue::Object(obj) => obj.get(name.as_str()).is_none(),
-        _ => false,
-      }
-  }) {
+  if has_used_non_provided_export(&data, exports_info, runtime) {
     return data;
   }
 
@@ -390,4 +439,24 @@ pub fn create_object_for_exports_info(
       JsonValue::Array(normalized_ret)
     }
   }
+}
+
+fn has_used_non_provided_export(
+  data: &JsonValue,
+  exports_info: &ExportsInfoData,
+  runtime: Option<&RuntimeSpec>,
+) -> bool {
+  exports_info.exports().iter().any(|(name, info)| {
+    info.get_used(runtime) != UsageState::Unused
+      && match data {
+        JsonValue::Array(arr) => {
+          name != "length"
+            && !name
+              .parse::<usize>()
+              .is_ok_and(|index| index < arr.len() && index.to_string() == name.as_str())
+        }
+        JsonValue::Object(obj) => obj.get(name.as_str()).is_none(),
+        _ => false,
+      }
+  })
 }

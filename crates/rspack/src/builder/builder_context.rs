@@ -214,7 +214,7 @@ impl BuilderContext {
         plugins.push(rspack_plugin_javascript::JsPlugin::default().boxed());
       }
       BuiltinPluginOptions::JsonModulesPlugin => {
-        plugins.push(rspack_plugin_json::JsonPlugin.boxed());
+        plugins.push(rspack_plugin_json::JsonPlugin::default().boxed());
       }
       BuiltinPluginOptions::AssetModulesPlugin => {
         plugins.push(rspack_plugin_asset::AssetPlugin::default().boxed());
