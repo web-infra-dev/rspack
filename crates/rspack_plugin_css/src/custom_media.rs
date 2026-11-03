@@ -1,6 +1,6 @@
 use css_module_lexer::{
-  CustomMediaDefinitionValue, CustomMediaPart, CustomMediaUse, Dependency, DependencyContext,
-  MediaNode, MediaSlot, Range,
+  CustomMediaDefinitionValue, CustomMediaPart, CustomMediaText, CustomMediaUse, Dependency,
+  DependencyContext, MediaQuery, MediaQueryInstruction, MediaSlot, Range,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -32,16 +32,19 @@ enum CustomMediaValue {
   Type(String),
 }
 
-struct CustomMediaResolver<'definitions, 'context> {
-  definitions: &'definitions FxHashMap<String, &'context CustomMediaDefinitionValue>,
+struct CustomMediaResolver<'definitions, 'source> {
+  source: &'source str,
+  definitions: &'definitions FxHashMap<String, &'definitions CustomMediaDefinitionValue<'source>>,
   values: FxHashMap<String, CustomMediaValue>,
 }
 
-impl<'definitions, 'context> CustomMediaResolver<'definitions, 'context> {
+impl<'definitions, 'source> CustomMediaResolver<'definitions, 'source> {
   fn new(
-    definitions: &'definitions FxHashMap<String, &'context CustomMediaDefinitionValue>,
+    source: &'source str,
+    definitions: &'definitions FxHashMap<String, &'definitions CustomMediaDefinitionValue<'source>>,
   ) -> Self {
     Self {
+      source,
       definitions,
       values: FxHashMap::default(),
     }
@@ -75,8 +78,12 @@ impl<'definitions, 'context> CustomMediaResolver<'definitions, 'context> {
     let value = match definition {
       CustomMediaDefinitionValue::Unsupported => CustomMediaValue::Unsupported,
       CustomMediaDefinitionValue::Boolean(value) => CustomMediaValue::Boolean(*value),
-      CustomMediaDefinitionValue::Condition(text) => CustomMediaValue::Condition(text.clone()),
-      CustomMediaDefinitionValue::Type(text) => CustomMediaValue::Type(text.clone()),
+      CustomMediaDefinitionValue::Condition(text) => {
+        CustomMediaValue::Condition(self.custom_media_text(*text))
+      }
+      CustomMediaDefinitionValue::Type(range) => {
+        CustomMediaValue::Type(self.source_text(*range).to_string())
+      }
       CustomMediaDefinitionValue::Alias(alias) => match self.resolve_value(alias, resolving) {
         CustomMediaValue::Type(_) => CustomMediaValue::Unsupported,
         value => value,
@@ -92,7 +99,7 @@ impl<'definitions, 'context> CustomMediaResolver<'definitions, 'context> {
 
   fn resolve_or(
     &mut self,
-    parts: &[CustomMediaPart],
+    parts: &[CustomMediaPart<'source>],
     resolving: &mut FxHashSet<String>,
   ) -> CustomMediaValue {
     let mut texts = Vec::new();
@@ -100,7 +107,7 @@ impl<'definitions, 'context> CustomMediaResolver<'definitions, 'context> {
     for part in parts {
       let value = match part {
         CustomMediaPart::Text(text) => {
-          texts.push(text.clone());
+          texts.push(self.custom_media_text(*text));
           continue;
         }
         CustomMediaPart::Alias(alias) => self.resolve_value(alias, resolving),
@@ -130,13 +137,11 @@ impl<'definitions, 'context> CustomMediaResolver<'definitions, 'context> {
 
   fn resolve_query(
     &mut self,
-    node: &MediaNode,
+    query: &MediaQuery<'source>,
     resolving: &mut FxHashSet<String>,
   ) -> CustomMediaValue {
-    let mut uses = Vec::new();
-    collect_uses(node, &mut uses);
-    for usage in uses {
-      match self.resolve_value(&usage.name, resolving) {
+    for usage in media_query_uses(query) {
+      match self.resolve_value(usage.name, resolving) {
         CustomMediaValue::Unsupported => return CustomMediaValue::Unsupported,
         CustomMediaValue::Type(_) if !usage.leading => {
           return CustomMediaValue::Unsupported;
@@ -145,68 +150,79 @@ impl<'definitions, 'context> CustomMediaResolver<'definitions, 'context> {
       }
     }
 
-    match self.fold_node(node, resolving) {
+    match self.fold_query(query, resolving) {
       FoldedMedia::Boolean(value) => CustomMediaValue::Boolean(value),
       FoldedMedia::Text(text) if is_condition_text(&text) => CustomMediaValue::Condition(text),
       FoldedMedia::Text(text) => CustomMediaValue::Type(text),
     }
   }
 
-  fn fold_node(&mut self, node: &MediaNode, resolving: &mut FxHashSet<String>) -> FoldedMedia {
-    match node {
-      MediaNode::Text(text) => FoldedMedia::Text(text.clone()),
-      MediaNode::Ref { text, usage } => {
-        if usage.invalid {
-          return FoldedMedia::Text(text.clone());
+  fn fold_query(
+    &mut self,
+    query: &MediaQuery<'source>,
+    resolving: &mut FxHashSet<String>,
+  ) -> FoldedMedia {
+    let mut stack = Vec::new();
+    for instruction in &query.instructions {
+      match instruction {
+        MediaQueryInstruction::Opaque(range) => {
+          stack.push(FoldedMedia::Text(self.source_text(*range).to_string()));
         }
-        match self.resolve_value(&usage.name, resolving) {
-          CustomMediaValue::Boolean(value) => FoldedMedia::Boolean(value),
-          CustomMediaValue::Condition(text) => {
-            FoldedMedia::Text(media_condition_for(&text, usage.slot))
-          }
-          CustomMediaValue::Type(text) if usage.leading => FoldedMedia::Text(text),
-          CustomMediaValue::Unsupported | CustomMediaValue::Type(_) => {
-            FoldedMedia::Text(text.clone())
-          }
-        }
-      }
-      MediaNode::Group(operand) => match self.fold_node(operand, resolving) {
-        FoldedMedia::Boolean(value) => FoldedMedia::Boolean(value),
-        FoldedMedia::Text(text) => FoldedMedia::Text(format!("({text})")),
-      },
-      MediaNode::Not(operand) => match self.fold_node(operand, resolving) {
-        FoldedMedia::Boolean(value) => FoldedMedia::Boolean(!value),
-        FoldedMedia::Text(text) => FoldedMedia::Text(format!("not {text}")),
-      },
-      MediaNode::Chain { is_or, terms } => {
-        let mut kept = Vec::new();
-        for term in terms {
-          match self.fold_node(term, resolving) {
-            FoldedMedia::Boolean(value) if value == *is_or => {
-              return FoldedMedia::Boolean(*is_or);
+        MediaQueryInstruction::Reference(usage) => {
+          let folded = if usage.invalid {
+            FoldedMedia::Text(self.source_text(usage.range).to_string())
+          } else {
+            match self.resolve_value(usage.name, resolving) {
+              CustomMediaValue::Boolean(value) => FoldedMedia::Boolean(value),
+              CustomMediaValue::Condition(text) => {
+                FoldedMedia::Text(media_condition_for(&text, usage.slot))
+              }
+              CustomMediaValue::Type(text) if usage.leading => FoldedMedia::Text(text),
+              CustomMediaValue::Unsupported | CustomMediaValue::Type(_) => {
+                FoldedMedia::Text(self.source_text(usage.range).to_string())
+              }
             }
-            FoldedMedia::Boolean(_) => {}
-            FoldedMedia::Text(text) => kept.push(text),
-          }
+          };
+          stack.push(folded);
         }
-        if kept.is_empty() {
-          FoldedMedia::Boolean(!*is_or)
-        } else if kept.len() == 1 {
-          FoldedMedia::Text(kept.pop().expect("one media term"))
-        } else {
-          FoldedMedia::Text(kept.join(if *is_or { " or " } else { " and " }))
+        MediaQueryInstruction::Group => {
+          let operand = stack.pop().expect("group has one media operand");
+          stack.push(match operand {
+            FoldedMedia::Boolean(value) => FoldedMedia::Boolean(value),
+            FoldedMedia::Text(text) => FoldedMedia::Text(format!("({text})")),
+          });
+        }
+        MediaQueryInstruction::Not => {
+          let operand = stack.pop().expect("not has one media operand");
+          stack.push(match operand {
+            FoldedMedia::Boolean(value) => FoldedMedia::Boolean(!value),
+            FoldedMedia::Text(text) => FoldedMedia::Text(format!("not {text}")),
+          });
+        }
+        MediaQueryInstruction::And(count) => {
+          fold_media_terms(&mut stack, *count as usize, false);
+        }
+        MediaQueryInstruction::Or(count) => {
+          fold_media_terms(&mut stack, *count as usize, true);
         }
       }
-      MediaNode::Typed { text, rest } => {
-        let Some(rest) = rest else {
-          return FoldedMedia::Text(text.clone());
-        };
-        match self.fold_node(rest, resolving) {
-          FoldedMedia::Boolean(false) => FoldedMedia::Boolean(false),
-          FoldedMedia::Boolean(true) => FoldedMedia::Text(text.clone()),
-          FoldedMedia::Text(rest) => FoldedMedia::Text(format!("{text} and {rest}")),
-        }
-      }
+    }
+    debug_assert_eq!(stack.len(), 1);
+    stack
+      .pop()
+      .unwrap_or_else(|| FoldedMedia::Text(String::new()))
+  }
+
+  fn source_text(&self, range: Range) -> &'source str {
+    &self.source[range.start as usize..range.end as usize]
+  }
+
+  fn custom_media_text(&self, text: CustomMediaText) -> String {
+    let source = self.source_text(text.range);
+    if text.wrap {
+      format!("({source})")
+    } else {
+      source.to_string()
     }
   }
 }
@@ -216,7 +232,36 @@ enum FoldedMedia {
   Text(String),
 }
 
-pub(super) fn transform_custom_media(dependencies: &DependencyContext<'_>) -> CustomMediaTransform {
+fn fold_media_terms(stack: &mut Vec<FoldedMedia>, count: usize, is_or: bool) {
+  let start = stack
+    .len()
+    .checked_sub(count)
+    .expect("media chain has enough operands");
+  let terms = stack.split_off(start);
+  let mut kept = Vec::new();
+  for term in terms {
+    match term {
+      FoldedMedia::Boolean(value) if value == is_or => {
+        stack.push(FoldedMedia::Boolean(is_or));
+        return;
+      }
+      FoldedMedia::Boolean(_) => {}
+      FoldedMedia::Text(text) => kept.push(text),
+    }
+  }
+  stack.push(if kept.is_empty() {
+    FoldedMedia::Boolean(!is_or)
+  } else if kept.len() == 1 {
+    FoldedMedia::Text(kept.pop().expect("one media term"))
+  } else {
+    FoldedMedia::Text(kept.join(if is_or { " or " } else { " and " }))
+  });
+}
+
+pub(super) fn transform_custom_media<'s>(
+  source: &'s str,
+  dependencies: &DependencyContext<'s>,
+) -> CustomMediaTransform {
   let mut definitions = FxHashMap::default();
   let mut media = Vec::new();
   for dependency in dependencies {
@@ -227,7 +272,7 @@ pub(super) fn transform_custom_media(dependencies: &DependencyContext<'_>) -> Cu
       } => {
         let definition = dependencies.custom_media_definition(*definition);
         definitions.insert(
-          unescape_identifier(&definition.name).into_owned(),
+          unescape_identifier(definition.name).into_owned(),
           &definition.value,
         );
       }
@@ -238,16 +283,11 @@ pub(super) fn transform_custom_media(dependencies: &DependencyContext<'_>) -> Cu
 
   let mut replacements = Vec::new();
   let mut warnings = Vec::new();
-  let mut resolver = CustomMediaResolver::new(&definitions);
+  let mut resolver = CustomMediaResolver::new(source, &definitions);
   for prelude in media {
-    let mut uses = Vec::new();
-    for query in &prelude.queries {
-      collect_uses(query, &mut uses);
-    }
-
     let mut has_boolean = false;
-    for usage in &uses {
-      let name = unescape_identifier(&usage.name);
+    for usage in prelude.queries.iter().flat_map(media_query_uses) {
+      let name = unescape_identifier(usage.name);
       if usage.invalid {
         warnings.push(CustomMediaWarning {
           range: usage.range,
@@ -255,10 +295,10 @@ pub(super) fn transform_custom_media(dependencies: &DependencyContext<'_>) -> Cu
         });
         continue;
       }
-      match resolver.resolve_value(&usage.name, &mut FxHashSet::default()) {
+      match resolver.resolve_value(usage.name, &mut FxHashSet::default()) {
         CustomMediaValue::Unsupported => warnings.push(CustomMediaWarning {
           range: usage.range,
-          message: if resolver.has_definition(&usage.name) {
+          message: if resolver.has_definition(usage.name) {
             format!(
               "Custom media query '{name}' has a value that cannot be resolved and was left as written"
             )
@@ -285,11 +325,11 @@ pub(super) fn transform_custom_media(dependencies: &DependencyContext<'_>) -> Cu
       continue;
     }
 
-    for usage in uses {
+    for usage in prelude.queries.iter().flat_map(media_query_uses) {
       if usage.invalid {
         continue;
       }
-      let content = match resolver.resolve_value(&usage.name, &mut FxHashSet::default()) {
+      let content = match resolver.resolve_value(usage.name, &mut FxHashSet::default()) {
         CustomMediaValue::Condition(text) => media_condition_for(&text, usage.slot),
         CustomMediaValue::Type(text) if usage.leading => text,
         CustomMediaValue::Unsupported
@@ -309,10 +349,13 @@ pub(super) fn transform_custom_media(dependencies: &DependencyContext<'_>) -> Cu
   }
 }
 
-fn fold_media_prelude(resolver: &mut CustomMediaResolver<'_, '_>, queries: &[MediaNode]) -> String {
+fn fold_media_prelude<'source>(
+  resolver: &mut CustomMediaResolver<'_, 'source>,
+  queries: &[MediaQuery<'source>],
+) -> String {
   let mut kept = Vec::new();
   for query in queries {
-    match resolver.fold_node(query, &mut FxHashSet::default()) {
+    match resolver.fold_query(query, &mut FxHashSet::default()) {
       FoldedMedia::Boolean(true) => return "all".to_string(),
       FoldedMedia::Boolean(false) => {}
       FoldedMedia::Text(text) if !text.is_empty() => kept.push(text),
@@ -326,20 +369,16 @@ fn fold_media_prelude(resolver: &mut CustomMediaResolver<'_, '_>, queries: &[Med
   }
 }
 
-fn collect_uses<'a>(node: &'a MediaNode, uses: &mut Vec<&'a CustomMediaUse>) {
-  match node {
-    MediaNode::Ref { usage, .. } => uses.push(usage),
-    MediaNode::Group(operand) | MediaNode::Not(operand) => collect_uses(operand, uses),
-    MediaNode::Chain { terms, .. } => {
-      for term in terms {
-        collect_uses(term, uses);
-      }
-    }
-    MediaNode::Typed {
-      rest: Some(rest), ..
-    } => collect_uses(rest, uses),
-    MediaNode::Text(_) | MediaNode::Typed { rest: None, .. } => {}
-  }
+fn media_query_uses<'query, 'source>(
+  query: &'query MediaQuery<'source>,
+) -> impl Iterator<Item = &'query CustomMediaUse<'source>> {
+  query
+    .instructions
+    .iter()
+    .filter_map(|instruction| match instruction {
+      MediaQueryInstruction::Reference(usage) => Some(usage),
+      _ => None,
+    })
 }
 
 fn media_condition_for(text: &str, slot: MediaSlot) -> String {

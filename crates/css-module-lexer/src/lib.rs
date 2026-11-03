@@ -7,10 +7,10 @@ mod parser;
 
 pub use dependencies::{DashedIdentCollector, LexDependencies, ModeData};
 pub use dependency_types::{
-  CustomMediaDefinition, CustomMediaDefinitionValue, CustomMediaPart, CustomMediaUse, Dependency,
-  DependencyContext, DependencyIndex, DependencyListRange, ImportAttributes, MediaNode,
-  MediaQueryList, MediaSlot, Mode, Range, UrlRangeKind, ValueAtRuleImportItem, Warning,
-  WarningKind,
+  CustomMediaDefinition, CustomMediaDefinitionValue, CustomMediaPart, CustomMediaText,
+  CustomMediaUse, Dependency, DependencyContext, DependencyIndex, DependencyListRange,
+  ImportAttributes, MediaQuery, MediaQueryInstruction, MediaQueryList, MediaSlot, Mode, Range,
+  UrlRangeKind, ValueAtRuleImportItem, Warning, WarningKind,
 };
 pub use lexer::{Lexer, LexerVisitor, Pos, Token, TokenFlags, TokenKind, TokenWithTrivia, Trivia};
 

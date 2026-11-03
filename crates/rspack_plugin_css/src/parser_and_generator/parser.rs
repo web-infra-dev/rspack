@@ -393,7 +393,7 @@ impl<'context> CssModuleParser<'context> {
   }
 
   fn apply_custom_media(&mut self, dependencies: &css_module_lexer::DependencyContext<'_>) {
-    let transform = transform_custom_media(dependencies);
+    let transform = transform_custom_media(&self.source_code, dependencies);
     for replacement in transform.replacements {
       self
         .presentational_dependencies

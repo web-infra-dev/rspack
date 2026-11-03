@@ -2,349 +2,337 @@ use crate::{
   TokenKind, TokenWithTrivia,
   css_syntax::{MAX_CSS_KEYWORD_LEN, dashed_ident_name, decode_css_keyword},
   dependency_types::{
-    CustomMediaDefinition, CustomMediaDefinitionValue, CustomMediaPart, CustomMediaUse, MediaNode,
-    MediaQueryList, MediaSlot, Range,
+    CustomMediaDefinition, CustomMediaDefinitionValue, CustomMediaPart, CustomMediaText,
+    CustomMediaUse, MediaQuery, MediaQueryInstruction, MediaQueryList, MediaSlot, Range,
   },
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum BlockKind {
-  Parenthesis,
-  Square,
-  Curly,
+#[derive(Debug, Clone, Copy)]
+struct ComponentSpan {
+  start: usize,
+  end: usize,
 }
 
-// Transient component structure for one at-rule prelude. Only the semantic
-// `MediaNode` dependency payload survives the dependency scan.
-#[derive(Debug)]
-struct Component {
-  range: Range,
-  kind: ComponentKind,
+/// Walk balanced top-level spans directly over the lexer buffer. Nested CSS
+/// remains opaque unless a parenthesized span contains a custom-media name.
+struct BalancedSpans<'tokens> {
+  tokens: &'tokens [TokenWithTrivia],
+  index: usize,
+  end: usize,
 }
 
-#[derive(Debug)]
-enum ComponentKind {
-  Whitespace,
-  Ident(String),
-  SimpleBlock(BlockKind, Vec<Component>),
-  Function(Vec<Component>),
-  Comma,
-  Other,
+impl<'tokens> BalancedSpans<'tokens> {
+  fn new(tokens: &'tokens [TokenWithTrivia], start: usize, end: usize) -> Self {
+    Self {
+      tokens,
+      index: start,
+      end,
+    }
+  }
 }
 
-pub(crate) fn parse_custom_media_definition(
-  input: &str,
+impl Iterator for BalancedSpans<'_> {
+  type Item = ComponentSpan;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    if self.index >= self.end {
+      return None;
+    }
+    let start = self.index;
+    let end = component_end(self.tokens, start, self.end);
+    self.index = end;
+    Some(ComponentSpan { start, end })
+  }
+}
+
+struct MediaProgramBuilder<'s> {
+  instructions: Vec<MediaQueryInstruction<'s>>,
+  references: usize,
+}
+
+impl<'s> MediaProgramBuilder<'s> {
+  fn new() -> Self {
+    Self {
+      instructions: Vec::new(),
+      references: 0,
+    }
+  }
+
+  fn opaque(&mut self, range: Range) {
+    self.instructions.push(MediaQueryInstruction::Opaque(range));
+  }
+
+  fn reference(&mut self, usage: CustomMediaUse<'s>) {
+    self.references += 1;
+    self
+      .instructions
+      .push(MediaQueryInstruction::Reference(usage));
+  }
+
+  fn checkpoint(&self) -> (usize, usize) {
+    (self.instructions.len(), self.references)
+  }
+
+  fn rollback(&mut self, checkpoint: (usize, usize)) {
+    self.instructions.truncate(checkpoint.0);
+    self.references = checkpoint.1;
+  }
+
+  fn finish(self) -> MediaQuery<'s> {
+    MediaQuery {
+      instructions: self.instructions,
+    }
+  }
+}
+
+pub(crate) fn parse_custom_media_definition<'s>(
+  input: &'s str,
   tokens: &[TokenWithTrivia],
-) -> Option<CustomMediaDefinition> {
-  let components = parse_component_list(input, tokens);
-  let (start, end) = trimmed_bounds(&components, 0, components.len());
-  let ComponentKind::Ident(name) = &components.get(start)?.kind else {
+) -> Option<CustomMediaDefinition<'s>> {
+  let first = BalancedSpans::new(tokens, 0, tokens.len()).next()?;
+  let token = tokens[first.start].token;
+  if token.kind != TokenKind::Ident {
     return None;
-  };
+  }
+  let name = token_value(input, token.value_range);
   if !is_dashed_ident(name) {
     return None;
   }
-  let (value_start, value_end) = trimmed_bounds(&components, start + 1, end);
   Some(CustomMediaDefinition {
-    name: name.clone(),
-    value: classify_value(input, &components, value_start, value_end),
+    name,
+    value: classify_value(input, tokens, first.end, tokens.len()),
   })
 }
 
-pub(crate) fn parse_media_query(input: &str, tokens: &[TokenWithTrivia]) -> Option<MediaQueryList> {
-  let components = parse_component_list(input, tokens);
-  let (start, end) = trimmed_bounds(&components, 0, components.len());
-  if start >= end || !has_custom_media_ref(&components[start..end]) {
+pub(crate) fn parse_media_query<'s>(
+  input: &'s str,
+  tokens: &[TokenWithTrivia],
+) -> Option<MediaQueryList<'s>> {
+  if tokens.is_empty() {
     return None;
   }
+
   let mut queries = Vec::new();
-  let mut query_start = start;
-  for index in start..=end {
-    if index != end && !matches!(components[index].kind, ComponentKind::Comma) {
+  let mut references = 0;
+  let mut query_start = 0;
+  for component in BalancedSpans::new(tokens, 0, tokens.len()) {
+    if tokens[component.start].token.kind != TokenKind::Comma {
       continue;
     }
-    queries.push(capture_media_query(input, &components, query_start, index));
-    query_start = index + 1;
+    let query = parse_query(input, tokens, query_start, component.start);
+    references += query.references;
+    queries.push(query.finish());
+    query_start = component.end;
   }
-  if !queries.iter().any(node_has_use) {
+  let query = parse_query(input, tokens, query_start, tokens.len());
+  references += query.references;
+  queries.push(query.finish());
+  if references == 0 {
     return None;
   }
+
   Some(MediaQueryList {
     queries,
-    range: Range::new(components[start].range.start, components[end - 1].range.end),
+    range: source_range(tokens, 0, tokens.len()),
   })
 }
 
-fn parse_component_list(input: &str, tokens: &[TokenWithTrivia]) -> Vec<Component> {
-  let mut index = 0;
-  parse_components(input, tokens, &mut index, None)
-}
-
-fn parse_components(
-  input: &str,
+fn classify_value<'s>(
+  input: &'s str,
   tokens: &[TokenWithTrivia],
-  index: &mut usize,
-  closing: Option<TokenKind>,
-) -> Vec<Component> {
-  let mut components = Vec::new();
-  while *index < tokens.len() {
-    let item = tokens[*index];
-    if item.leading.range.start < item.leading.range.end {
-      components.push(Component {
-        range: item.leading.range,
-        kind: ComponentKind::Whitespace,
-      });
-    }
-    let token = item.token;
-    if closing == Some(token.kind) {
-      break;
-    }
-    *index += 1;
-
-    let kind = match token.kind {
-      TokenKind::Ident => ComponentKind::Ident(token_value(input, token.value_range).to_string()),
-      TokenKind::Comma => ComponentKind::Comma,
-      TokenKind::Function => {
-        let children = parse_components(input, tokens, index, Some(TokenKind::RightParenthesis));
-        let end = consume_closing(tokens, index, TokenKind::RightParenthesis, token.range.end);
-        components.push(Component {
-          range: Range::new(token.range.start, end),
-          kind: ComponentKind::Function(children),
-        });
-        continue;
-      }
-      TokenKind::LeftParenthesis | TokenKind::LeftSquareBracket | TokenKind::LeftCurlyBracket => {
-        let (block_kind, close) = match token.kind {
-          TokenKind::LeftParenthesis => (BlockKind::Parenthesis, TokenKind::RightParenthesis),
-          TokenKind::LeftSquareBracket => (BlockKind::Square, TokenKind::RightSquareBracket),
-          TokenKind::LeftCurlyBracket => (BlockKind::Curly, TokenKind::RightCurlyBracket),
-          _ => unreachable!(),
-        };
-        let children = parse_components(input, tokens, index, Some(close));
-        let end = consume_closing(tokens, index, close, token.range.end);
-        components.push(Component {
-          range: Range::new(token.range.start, end),
-          kind: ComponentKind::SimpleBlock(block_kind, children),
-        });
-        continue;
-      }
-      _ => ComponentKind::Other,
-    };
-    components.push(Component {
-      range: token.range,
-      kind,
-    });
-  }
-  components
-}
-
-fn consume_closing(
-  tokens: &[TokenWithTrivia],
-  index: &mut usize,
-  closing: TokenKind,
-  fallback: u32,
-) -> u32 {
-  if tokens
-    .get(*index)
-    .is_some_and(|item| item.token.kind == closing)
-  {
-    let end = tokens[*index].token.range.end;
-    *index += 1;
-    end
-  } else {
-    fallback
-  }
-}
-
-fn classify_value(
-  input: &str,
-  components: &[Component],
   start: usize,
   end: usize,
-) -> CustomMediaDefinitionValue {
+) -> CustomMediaDefinitionValue<'s> {
   if start >= end {
     return CustomMediaDefinitionValue::Unsupported;
   }
-  if components[start..end]
-    .iter()
-    .any(|component| matches!(component.kind, ComponentKind::Comma))
+  if BalancedSpans::new(tokens, start, end)
+    .any(|component| tokens[component.start].token.kind == TokenKind::Comma)
   {
-    return classify_or_value(input, components, start, end);
+    return classify_or_value(input, tokens, start, end);
   }
 
-  let first = &components[start];
-  let text = component_text(input, components, start, end).to_string();
-  if end - start == 1
-    && let Some((name, has_extra)) = lone_dashed_ident(first)
-    && !has_extra
+  let first = BalancedSpans::new(tokens, start, end)
+    .next()
+    .expect("non-empty custom media value");
+  let single = first.end == end;
+  if single
+    && let Some((name, invalid)) = lone_dashed_ident(input, tokens, first)
+    && !invalid
   {
     return CustomMediaDefinitionValue::Alias(name);
   }
-  if has_custom_media_ref(&components[start..end]) {
-    let node = capture_media_query(input, components, start, end);
-    if node_has_invalid_use(&node) {
+
+  let query = parse_query(input, tokens, start, end);
+  if query.references != 0 {
+    if query.instructions.iter().any(|instruction| {
+      matches!(
+        instruction,
+        MediaQueryInstruction::Reference(CustomMediaUse { invalid: true, .. })
+      )
+    }) {
       return CustomMediaDefinitionValue::Unsupported;
     }
-    return CustomMediaDefinitionValue::Query(node);
+    return CustomMediaDefinitionValue::Query(query.finish());
   }
-  if matches!(
-    first.kind,
-    ComponentKind::SimpleBlock(BlockKind::Parenthesis, _)
-  ) {
-    return CustomMediaDefinitionValue::Condition(text);
+
+  let range = source_range(tokens, start, end);
+  if tokens[first.start].token.kind == TokenKind::LeftParenthesis {
+    return CustomMediaDefinitionValue::Condition(CustomMediaText { range, wrap: false });
   }
-  let ComponentKind::Ident(_) = &first.kind else {
+  if tokens[first.start].token.kind != TokenKind::Ident {
     return CustomMediaDefinitionValue::Unsupported;
-  };
-  if end - start == 1 && is_keyword(first, "true") {
+  }
+  if single && is_keyword(input, tokens, first.start, "true") {
     return CustomMediaDefinitionValue::Boolean(true);
   }
-  if end - start == 1 && is_keyword(first, "false") {
+  if single && is_keyword(input, tokens, first.start, "false") {
     return CustomMediaDefinitionValue::Boolean(false);
   }
-  if is_keyword(first, "not") {
-    let (next, _) = trimmed_bounds(components, start + 1, end);
-    if next < end
-      && matches!(
-        components[next].kind,
-        ComponentKind::SimpleBlock(BlockKind::Parenthesis, _)
-      )
-    {
-      return CustomMediaDefinitionValue::Condition(format!("({text})"));
+  if is_keyword(input, tokens, first.start, "not") {
+    let next = BalancedSpans::new(tokens, first.end, end).next();
+    if next.is_some_and(|next| tokens[next.start].token.kind == TokenKind::LeftParenthesis) {
+      return CustomMediaDefinitionValue::Condition(CustomMediaText { range, wrap: true });
     }
   }
-  CustomMediaDefinitionValue::Type(text)
+  CustomMediaDefinitionValue::Type(range)
 }
 
-fn classify_or_value(
-  input: &str,
-  components: &[Component],
+fn classify_or_value<'s>(
+  input: &'s str,
+  tokens: &[TokenWithTrivia],
   start: usize,
   end: usize,
-) -> CustomMediaDefinitionValue {
+) -> CustomMediaDefinitionValue<'s> {
   let mut parts = Vec::new();
   let mut segment_start = start;
-  for index in start..=end {
-    if index != end && !matches!(components[index].kind, ComponentKind::Comma) {
+  for component in BalancedSpans::new(tokens, start, end) {
+    if tokens[component.start].token.kind != TokenKind::Comma {
       continue;
     }
-    let (part_start, part_end) = trimmed_bounds(components, segment_start, index);
-    if part_start >= part_end {
+    let Some(part) = classify_or_part(input, tokens, segment_start, component.start) else {
       return CustomMediaDefinitionValue::Unsupported;
-    }
-    let first = &components[part_start];
-    let text = component_text(input, components, part_start, part_end).to_string();
-    if part_end - part_start == 1
-      && matches!(
-        first.kind,
-        ComponentKind::SimpleBlock(BlockKind::Parenthesis, _)
-      )
-    {
-      if let Some((name, has_extra)) = lone_dashed_ident(first) {
-        if has_extra {
-          return CustomMediaDefinitionValue::Unsupported;
-        }
-        parts.push(CustomMediaPart::Alias(name));
-      } else {
-        parts.push(CustomMediaPart::Text(text));
-      }
-      segment_start = index + 1;
-      continue;
-    }
-    let is_condition = matches!(
-      first.kind,
-      ComponentKind::SimpleBlock(BlockKind::Parenthesis, _)
-    ) || is_keyword(first, "not");
-    if !is_condition {
-      return CustomMediaDefinitionValue::Unsupported;
-    }
-    if !has_custom_media_ref(&components[part_start..part_end]) {
-      parts.push(CustomMediaPart::Text(format!("({text})")));
-    } else {
-      let node = capture_media_condition(input, components, part_start, part_end, true);
-      if node_has_invalid_use(&node) {
-        return CustomMediaDefinitionValue::Unsupported;
-      }
-      parts.push(CustomMediaPart::Query(node));
-    }
-    segment_start = index + 1;
+    };
+    parts.push(part);
+    segment_start = component.end;
   }
+  let Some(part) = classify_or_part(input, tokens, segment_start, end) else {
+    return CustomMediaDefinitionValue::Unsupported;
+  };
+  parts.push(part);
   CustomMediaDefinitionValue::Or(parts)
 }
 
-fn capture_media_query(
-  input: &str,
-  components: &[Component],
+fn classify_or_part<'s>(
+  input: &'s str,
+  tokens: &[TokenWithTrivia],
   start: usize,
   end: usize,
-) -> MediaNode {
-  let (start, end) = trimmed_bounds(components, start, end);
-  if start >= end {
-    return MediaNode::Text(String::new());
-  }
-  let (rest, _) = trimmed_bounds(components, start + 1, end);
-  let starts_with_type = matches!(components[start].kind, ComponentKind::Ident(_))
-    && (!is_keyword(&components[start], "not")
-      || rest >= end
-      || !matches!(
-        components[rest].kind,
-        ComponentKind::SimpleBlock(BlockKind::Parenthesis, _)
-      ));
-  if !starts_with_type {
-    return capture_media_condition(input, components, start, end, true);
+) -> Option<CustomMediaPart<'s>> {
+  let first = BalancedSpans::new(tokens, start, end).next()?;
+  let range = source_range(tokens, start, end);
+  if first.end == end && tokens[first.start].token.kind == TokenKind::LeftParenthesis {
+    if let Some((name, invalid)) = lone_dashed_ident(input, tokens, first) {
+      return (!invalid).then_some(CustomMediaPart::Alias(name));
+    }
+    return Some(CustomMediaPart::Text(CustomMediaText {
+      range,
+      wrap: false,
+    }));
   }
 
-  let split = (start..end)
-    .find(|index| is_keyword(&components[*index], "and"))
-    .unwrap_or(end);
-  let (_, type_end) = trimmed_bounds(components, start, split);
-  MediaNode::Typed {
-    text: component_text(input, components, start, type_end).to_string(),
-    rest: (split != end).then(|| {
-      Box::new(capture_media_condition(
-        input,
-        components,
-        split + 1,
-        end,
-        false,
-      ))
-    }),
+  if tokens[first.start].token.kind != TokenKind::LeftParenthesis
+    && !is_keyword(input, tokens, first.start, "not")
+  {
+    return None;
   }
+
+  let mut query = MediaProgramBuilder::new();
+  parse_condition(input, tokens, start, end, true, &mut query);
+  if query.references == 0 {
+    return Some(CustomMediaPart::Text(CustomMediaText { range, wrap: true }));
+  }
+  if query.instructions.iter().any(|instruction| {
+    matches!(
+      instruction,
+      MediaQueryInstruction::Reference(CustomMediaUse { invalid: true, .. })
+    )
+  }) {
+    return None;
+  }
+  Some(CustomMediaPart::Query(query.finish()))
 }
 
-fn capture_media_condition(
-  input: &str,
-  components: &[Component],
+fn parse_query<'s>(
+  input: &'s str,
+  tokens: &[TokenWithTrivia],
+  start: usize,
+  end: usize,
+) -> MediaProgramBuilder<'s> {
+  let mut query = MediaProgramBuilder::new();
+  if start >= end {
+    query.opaque(source_range(tokens, start, end));
+    return query;
+  }
+
+  let first = BalancedSpans::new(tokens, start, end)
+    .next()
+    .expect("non-empty media query");
+  let rest = first.end;
+  let starts_with_type = tokens[first.start].token.kind == TokenKind::Ident
+    && (!is_keyword(input, tokens, first.start, "not")
+      || rest >= end
+      || tokens[rest].token.kind != TokenKind::LeftParenthesis);
+  if !starts_with_type {
+    parse_condition(input, tokens, start, end, true, &mut query);
+    return query;
+  }
+
+  let split = BalancedSpans::new(tokens, start, end)
+    .find(|component| is_keyword(input, tokens, component.start, "and"));
+  let Some(split) = split else {
+    query.opaque(source_range(tokens, start, end));
+    return query;
+  };
+  query.opaque(source_range(tokens, start, split.start));
+  parse_condition(input, tokens, split.end, end, false, &mut query);
+  query.instructions.push(MediaQueryInstruction::And(2));
+  query
+}
+
+fn parse_condition<'s>(
+  input: &'s str,
+  tokens: &[TokenWithTrivia],
   start: usize,
   end: usize,
   alone: bool,
-) -> MediaNode {
-  let (start, end) = trimmed_bounds(components, start, end);
+  query: &mut MediaProgramBuilder<'s>,
+) {
   if start >= end {
-    return MediaNode::Text(String::new());
+    query.opaque(source_range(tokens, start, end));
+    return;
   }
-  if is_keyword(&components[start], "not") {
-    return MediaNode::Not(Box::new(capture_media_in_parens(
-      input,
-      components,
-      start + 1,
-      end,
-      false,
-      MediaSlot::Or,
-    )));
+
+  let first = BalancedSpans::new(tokens, start, end)
+    .next()
+    .expect("non-empty media condition");
+  if is_keyword(input, tokens, first.start, "not") {
+    parse_media_in_parens(input, tokens, first.end, end, false, MediaSlot::Or, query);
+    query.instructions.push(MediaQueryInstruction::Not);
+    return;
   }
 
   let mut is_or = false;
-  let mut single = true;
-  for component in &components[start..end] {
-    if is_keyword(component, "or") {
+  let mut term_count = 1usize;
+  for component in BalancedSpans::new(tokens, start, end) {
+    if is_keyword(input, tokens, component.start, "or") {
       is_or = true;
-      single = false;
-    } else if is_keyword(component, "and") {
-      single = false;
+      term_count += 1;
+    } else if is_keyword(input, tokens, component.start, "and") {
+      term_count += 1;
     }
   }
-  let slot = if single && alone {
+  let slot = if term_count == 1 && alone {
     MediaSlot::Alone
   } else if is_or {
     MediaSlot::Or
@@ -352,161 +340,154 @@ fn capture_media_condition(
     MediaSlot::And
   };
 
-  let mut terms = Vec::new();
   let mut term_start = start;
-  for index in start..=end {
-    if index != end
-      && !is_keyword(&components[index], "and")
-      && !is_keyword(&components[index], "or")
+  let mut leading = true;
+  for component in BalancedSpans::new(tokens, start, end) {
+    if !is_keyword(input, tokens, component.start, "and")
+      && !is_keyword(input, tokens, component.start, "or")
     {
       continue;
     }
-    terms.push(capture_media_in_parens(
+    parse_media_in_parens(
       input,
-      components,
+      tokens,
       term_start,
-      index,
-      term_start == start,
+      component.start,
+      leading,
       slot,
-    ));
-    term_start = index + 1;
+      query,
+    );
+    leading = false;
+    term_start = component.end;
   }
-  if terms.len() == 1 {
-    terms.pop().expect("one media term")
-  } else {
-    MediaNode::Chain { is_or, terms }
+  parse_media_in_parens(input, tokens, term_start, end, leading, slot, query);
+  if term_count > 1 {
+    let term_count = u32::try_from(term_count).expect("media condition has too many terms");
+    query.instructions.push(if is_or {
+      MediaQueryInstruction::Or(term_count)
+    } else {
+      MediaQueryInstruction::And(term_count)
+    });
   }
 }
 
-fn capture_media_in_parens(
-  input: &str,
-  components: &[Component],
+fn parse_media_in_parens<'s>(
+  input: &'s str,
+  tokens: &[TokenWithTrivia],
   start: usize,
   end: usize,
   leading: bool,
   slot: MediaSlot,
-) -> MediaNode {
-  let (start, end) = trimmed_bounds(components, start, end);
-  if start >= end {
-    return MediaNode::Text(String::new());
-  }
-  let text = component_text(input, components, start, end).to_string();
-  if end - start != 1 {
-    return MediaNode::Text(text);
-  }
-  let component = &components[start];
-  let ComponentKind::SimpleBlock(BlockKind::Parenthesis, children) = &component.kind else {
-    return MediaNode::Text(text);
+  query: &mut MediaProgramBuilder<'s>,
+) {
+  let Some(component) = BalancedSpans::new(tokens, start, end).next() else {
+    query.opaque(source_range(tokens, start, end));
+    return;
   };
-  if let Some((name, invalid)) = lone_dashed_ident(component) {
-    return MediaNode::Ref {
-      text,
-      usage: CustomMediaUse {
-        name,
-        range: component.range,
-        invalid,
-        leading,
-        slot,
-      },
-    };
+  if component.end != end || tokens[component.start].token.kind != TokenKind::LeftParenthesis {
+    query.opaque(source_range(tokens, start, end));
+    return;
   }
-  let inner = capture_media_condition(input, children, 0, children.len(), true);
-  if matches!(inner, MediaNode::Text(_)) {
-    MediaNode::Text(text)
+  if let Some((name, invalid)) = lone_dashed_ident(input, tokens, component) {
+    query.reference(CustomMediaUse {
+      name,
+      range: source_range(tokens, component.start, component.end),
+      invalid,
+      leading,
+      slot,
+    });
+    return;
+  }
+
+  let range = source_range(tokens, start, end);
+  let Some((child_start, child_end)) = parenthesized_children(tokens, component) else {
+    query.opaque(range);
+    return;
+  };
+  let checkpoint = query.checkpoint();
+  parse_condition(input, tokens, child_start, child_end, true, query);
+  if query.references == checkpoint.1 {
+    query.rollback(checkpoint);
+    query.opaque(range);
   } else {
-    MediaNode::Group(Box::new(inner))
+    query.instructions.push(MediaQueryInstruction::Group);
   }
 }
 
-fn node_has_use(node: &MediaNode) -> bool {
-  match node {
-    MediaNode::Ref { .. } => true,
-    MediaNode::Group(operand) | MediaNode::Not(operand) => node_has_use(operand),
-    MediaNode::Chain { terms, .. } => terms.iter().any(node_has_use),
-    MediaNode::Typed {
-      rest: Some(rest), ..
-    } => node_has_use(rest),
-    MediaNode::Text(_) | MediaNode::Typed { rest: None, .. } => false,
-  }
-}
-
-fn node_has_invalid_use(node: &MediaNode) -> bool {
-  match node {
-    MediaNode::Ref { usage, .. } => usage.invalid,
-    MediaNode::Group(operand) | MediaNode::Not(operand) => node_has_invalid_use(operand),
-    MediaNode::Chain { terms, .. } => terms.iter().any(node_has_invalid_use),
-    MediaNode::Typed {
-      rest: Some(rest), ..
-    } => node_has_invalid_use(rest),
-    MediaNode::Text(_) | MediaNode::Typed { rest: None, .. } => false,
-  }
-}
-
-fn has_custom_media_ref(components: &[Component]) -> bool {
-  components.iter().any(has_custom_media_ref_in)
-}
-
-fn has_custom_media_ref_in(component: &Component) -> bool {
-  match &component.kind {
-    ComponentKind::SimpleBlock(BlockKind::Parenthesis, children) => {
-      lone_dashed_ident(component).is_some() || children.iter().any(has_custom_media_ref_in)
-    }
-    ComponentKind::SimpleBlock(_, children) | ComponentKind::Function(children) => {
-      children.iter().any(has_custom_media_ref_in)
-    }
-    _ => false,
-  }
-}
-
-fn lone_dashed_ident(component: &Component) -> Option<(String, bool)> {
-  let ComponentKind::SimpleBlock(BlockKind::Parenthesis, children) = &component.kind else {
+fn lone_dashed_ident<'s>(
+  input: &'s str,
+  tokens: &[TokenWithTrivia],
+  component: ComponentSpan,
+) -> Option<(&'s str, bool)> {
+  let (start, end) = parenthesized_children(tokens, component)?;
+  let first = BalancedSpans::new(tokens, start, end).next()?;
+  let token = tokens[first.start].token;
+  if token.kind != TokenKind::Ident {
     return None;
+  }
+  let name = token_value(input, token.value_range);
+  if !is_dashed_ident(name) {
+    return None;
+  }
+  Some((name, first.end != end))
+}
+
+fn parenthesized_children(
+  tokens: &[TokenWithTrivia],
+  component: ComponentSpan,
+) -> Option<(usize, usize)> {
+  if tokens[component.start].token.kind != TokenKind::LeftParenthesis {
+    return None;
+  }
+  let start = component.start + 1;
+  let end = if component.end > start
+    && tokens[component.end - 1].token.kind == TokenKind::RightParenthesis
+  {
+    component.end - 1
+  } else {
+    component.end
   };
-  let mut name = None;
-  for child in children {
-    if matches!(child.kind, ComponentKind::Whitespace) {
-      continue;
-    }
-    if name.is_some() {
-      return name.map(|name| (name, true));
-    }
-    let ComponentKind::Ident(value) = &child.kind else {
-      return None;
-    };
-    if !is_dashed_ident(value) {
-      return None;
-    }
-    name = Some(value.clone());
-  }
-  name.map(|name| (name, false))
+  Some((start, end))
 }
 
-fn trimmed_bounds(components: &[Component], mut start: usize, mut end: usize) -> (usize, usize) {
-  while start < end && matches!(components[start].kind, ComponentKind::Whitespace) {
-    start += 1;
+fn component_end(tokens: &[TokenWithTrivia], start: usize, end: usize) -> usize {
+  let closing = match tokens[start].token.kind {
+    TokenKind::Function | TokenKind::LeftParenthesis => TokenKind::RightParenthesis,
+    TokenKind::LeftSquareBracket => TokenKind::RightSquareBracket,
+    TokenKind::LeftCurlyBracket => TokenKind::RightCurlyBracket,
+    _ => return start + 1,
+  };
+  let mut index = start + 1;
+  while index < end {
+    if tokens[index].token.kind == closing {
+      return index + 1;
+    }
+    index = component_end(tokens, index, end);
   }
-  while end > start && matches!(components[end - 1].kind, ComponentKind::Whitespace) {
-    end -= 1;
-  }
-  (start, end)
+  end
 }
 
-fn component_text<'a>(
-  input: &'a str,
-  components: &[Component],
-  start: usize,
-  end: usize,
-) -> &'a str {
-  if start >= end {
-    return "";
+fn source_range(tokens: &[TokenWithTrivia], start: usize, end: usize) -> Range {
+  if start < end {
+    return Range::new(
+      tokens[start].token.range.start,
+      tokens[end - 1].token.range.end,
+    );
   }
-  &input[components[start].range.start as usize..components[end - 1].range.end as usize]
+  let position = tokens
+    .get(start)
+    .map(|item| item.token.range.start)
+    .or_else(|| tokens.last().map(|item| item.token.range.end))
+    .unwrap_or(0);
+  Range::new(position, position)
 }
 
-fn is_keyword(component: &Component, keyword: &str) -> bool {
-  let ComponentKind::Ident(value) = &component.kind else {
+fn is_keyword(input: &str, tokens: &[TokenWithTrivia], index: usize, keyword: &str) -> bool {
+  let token = tokens[index].token;
+  if token.kind != TokenKind::Ident {
     return false;
-  };
+  }
+  let value = token_value(input, token.value_range);
   if value.eq_ignore_ascii_case(keyword) {
     return true;
   }

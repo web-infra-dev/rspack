@@ -161,62 +161,68 @@ pub enum MediaSlot {
   Or,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct CustomMediaUse {
-  pub name: String,
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub struct CustomMediaUse<'s> {
+  pub name: &'s str,
   pub range: Range,
   pub invalid: bool,
   pub leading: bool,
   pub slot: MediaSlot,
 }
 
-/// A media expression local to one custom-media dependency.
+/// One instruction in the minimal fold program attached to a media dependency.
+///
+/// CSS syntax unrelated to custom media stays opaque behind a source range.
+/// The remaining postfix instructions only retain the boolean context needed
+/// when a referenced custom media resolves to `true` or `false`.
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub enum MediaNode {
-  Text(String),
-  Ref {
-    text: String,
-    usage: CustomMediaUse,
-  },
-  Group(Box<MediaNode>),
-  Not(Box<MediaNode>),
-  Chain {
-    is_or: bool,
-    terms: Vec<MediaNode>,
-  },
-  Typed {
-    text: String,
-    rest: Option<Box<MediaNode>>,
-  },
+pub enum MediaQueryInstruction<'s> {
+  Opaque(Range),
+  Reference(CustomMediaUse<'s>),
+  Group,
+  Not,
+  And(u32),
+  Or(u32),
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub enum CustomMediaPart {
-  Text(String),
-  Alias(String),
-  Query(MediaNode),
+pub struct MediaQuery<'s> {
+  pub instructions: Vec<MediaQueryInstruction<'s>>,
+}
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub struct CustomMediaText {
+  pub range: Range,
+  pub wrap: bool,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub enum CustomMediaDefinitionValue {
+pub enum CustomMediaPart<'s> {
+  Text(CustomMediaText),
+  Alias(&'s str),
+  Query(MediaQuery<'s>),
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub enum CustomMediaDefinitionValue<'s> {
   Unsupported,
   Boolean(bool),
-  Condition(String),
-  Type(String),
-  Alias(String),
-  Or(Vec<CustomMediaPart>),
-  Query(MediaNode),
+  Condition(CustomMediaText),
+  Type(Range),
+  Alias(&'s str),
+  Or(Vec<CustomMediaPart<'s>>),
+  Query(MediaQuery<'s>),
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct CustomMediaDefinition {
-  pub name: String,
-  pub value: CustomMediaDefinitionValue,
+pub struct CustomMediaDefinition<'s> {
+  pub name: &'s str,
+  pub value: CustomMediaDefinitionValue<'s>,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct MediaQueryList {
-  pub queries: Vec<MediaNode>,
+pub struct MediaQueryList<'s> {
+  pub queries: Vec<MediaQuery<'s>>,
   pub range: Range,
 }
 
@@ -274,11 +280,11 @@ pub enum Dependency<'s> {
     range: Range,
   },
   CustomMedia {
-    definition: Option<DependencyIndex<CustomMediaDefinition>>,
+    definition: Option<DependencyIndex<CustomMediaDefinition<'s>>>,
     range: Range,
   },
   Media {
-    query: DependencyIndex<MediaQueryList>,
+    query: DependencyIndex<MediaQueryList<'s>>,
   },
   LocalClass {
     name: &'s str,
@@ -393,8 +399,8 @@ pub struct DependencyContext<'s> {
   dependencies: Vec<Dependency<'s>>,
   dashed_ident_occurrences: Vec<Range>,
   import_attributes: Vec<ImportAttributes<'s>>,
-  custom_media_definitions: Vec<CustomMediaDefinition>,
-  media_queries: Vec<MediaQueryList>,
+  custom_media_definitions: Vec<CustomMediaDefinition<'s>>,
+  media_queries: Vec<MediaQueryList<'s>>,
   composes_local_classes: Vec<&'s str>,
   composes_names: Vec<&'s str>,
   value_at_rule_import_items: Vec<ValueAtRuleImportItem<'s>>,
@@ -487,12 +493,12 @@ impl<'s> DependencyContext<'s> {
 
   pub fn custom_media_definition(
     &self,
-    index: DependencyIndex<CustomMediaDefinition>,
-  ) -> &CustomMediaDefinition {
+    index: DependencyIndex<CustomMediaDefinition<'s>>,
+  ) -> &CustomMediaDefinition<'s> {
     &self.custom_media_definitions[index.as_usize()]
   }
 
-  pub fn media_query(&self, index: DependencyIndex<MediaQueryList>) -> &MediaQueryList {
+  pub fn media_query(&self, index: DependencyIndex<MediaQueryList<'s>>) -> &MediaQueryList<'s> {
     &self.media_queries[index.as_usize()]
   }
 
@@ -552,7 +558,7 @@ impl<'s> DependencyContext<'s> {
 
   pub(crate) fn push_custom_media(
     &mut self,
-    definition: Option<CustomMediaDefinition>,
+    definition: Option<CustomMediaDefinition<'s>>,
     range: Range,
   ) {
     let definition = definition.map(|definition| {
@@ -565,7 +571,7 @@ impl<'s> DependencyContext<'s> {
       .push(Dependency::CustomMedia { definition, range });
   }
 
-  pub(crate) fn push_media_query(&mut self, query: MediaQueryList) {
+  pub(crate) fn push_media_query(&mut self, query: MediaQueryList<'s>) {
     let index = DependencyIndex::from_index(self.media_queries.len());
     self.media_queries.push(query);
     self.dependencies.push(Dependency::Media { query: index });

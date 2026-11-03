@@ -1,10 +1,10 @@
 use css_module_lexer::{
-  CustomMediaDefinitionValue, Dependency, DependencyOptions, MediaNode, Mode,
+  CustomMediaDefinitionValue, Dependency, DependencyOptions, MediaQueryInstruction, Mode,
   collect_dependencies_with_options,
 };
 
 #[test]
-fn emits_custom_media_dependencies_with_local_syntax_trees() {
+fn emits_custom_media_dependencies_with_minimal_fold_programs() {
   let input = r#"
     @media (--wide) and (hover) { .wide {} }
     @custom-media --wide (width > 40rem);
@@ -22,10 +22,14 @@ fn emits_custom_media_dependencies_with_local_syntax_trees() {
     })
     .expect("the @media prelude should produce a dependency");
   assert_eq!(media.queries.len(), 1);
-  let MediaNode::Chain { terms, .. } = &media.queries[0] else {
-    panic!("the @media dependency should retain its local condition tree");
-  };
-  assert!(matches!(terms.first(), Some(MediaNode::Ref { .. })));
+  assert!(matches!(
+    media.queries[0].instructions.as_slice(),
+    [
+      MediaQueryInstruction::Reference(_),
+      MediaQueryInstruction::Opaque(_),
+      MediaQueryInstruction::And(2),
+    ]
+  ));
 
   let definition = dependencies
     .iter()
