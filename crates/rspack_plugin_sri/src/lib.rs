@@ -2,6 +2,7 @@ mod asset;
 mod config;
 mod html;
 mod integrity;
+mod manifest;
 mod runtime;
 mod util;
 
@@ -10,14 +11,16 @@ use std::sync::{Arc, LazyLock};
 use asset::{detect_unresolved_integrity, handle_assets, update_hash};
 use config::SRICompilationContext;
 pub use config::{
-  IntegrityCallbackData, IntegrityCallbackFn, IntegrityHtmlPlugin,
+  IntegrityCallbackData, IntegrityCallbackFn, IntegrityHashLoading, IntegrityHtmlPlugin,
   SubresourceIntegrityPluginOptions,
 };
 use html::{alter_asset_tag_groups, before_asset_tag_generation};
 pub use integrity::SubresourceIntegrityHashFunction;
+use manifest::ChunkManifest;
 use rspack_core::{
   ChunkLoading, ChunkLoadingType, Compilation, CompilationId, CompilationParams,
   CompilerThisCompilation, CrossOriginLoading, Plugin, RuntimeGlobals,
+  incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -27,7 +30,7 @@ use rspack_plugin_runtime::RuntimePlugin;
 use rspack_util::fx_hash::FxDashMap;
 #[cfg(allocative)]
 use rspack_util::rspack_allocative;
-use runtime::{create_link, create_script, handle_runtime, link_preload};
+use runtime::{create_link, create_script, handle_chunk_runtime, handle_runtime, link_preload};
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::RwLock;
 
@@ -38,6 +41,8 @@ type CompilationIntegrityMap =
 static COMPILATION_INTEGRITY_MAP: CompilationIntegrityMap = LazyLock::new(Default::default);
 #[cfg_attr(allocative, rspack_allocative::root)]
 static COMPILATION_CONTEXT_MAP: LazyLock<FxDashMap<CompilationId, Arc<SRICompilationContext>>> =
+  LazyLock::new(Default::default);
+static COMPILATION_MANIFEST_MAP: LazyLock<FxDashMap<CompilationId, Arc<ChunkManifest>>> =
   LazyLock::new(Default::default);
 
 #[plugin]
@@ -53,6 +58,14 @@ impl SubresourceIntegrityPlugin {
     validate_error: Option<rspack_error::Error>,
   ) -> Self {
     Self::new_inner(options, validate_error)
+  }
+
+  /// The lazy hash manifest, computed on first use once the chunk graph is final.
+  fn get_compilation_manifest(compilation: &Compilation) -> Arc<ChunkManifest> {
+    COMPILATION_MANIFEST_MAP
+      .entry(compilation.id())
+      .or_insert_with(|| Arc::new(ChunkManifest::new(compilation)))
+      .clone()
   }
 
   pub fn get_compilation_sri_context(id: CompilationId) -> Arc<SRICompilationContext> {
@@ -119,6 +132,20 @@ async fn handle_compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
+  // A rebuild only reruns the chunk runtime hook for affected chunks, but a lazy
+  // manifest depends on the whole chunk graph, and the lazy hash runtime modules of
+  // unaffected chunks would be lost. Those modules are recreated for every chunk, so
+  // every chunk's hashes must be recomputed too, or the new modules have none.
+  if matches!(self.options.hash_loading, IntegrityHashLoading::Lazy)
+    && let Some(Some(diagnostic)) = compilation.incremental.disable_passes(
+      IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS | IncrementalPasses::CHUNKS_HASHES,
+      "SubresourceIntegrityPlugin (hashLoading = \"lazy\")",
+      "each chunk's integrity hashes depend on the whole chunk graph",
+    )
+  {
+    compilation.push_diagnostic(diagnostic);
+  }
+
   let runtime_require_name = {
     let runtime_template = compilation
       .runtime_template
@@ -225,11 +252,19 @@ impl Plugin for SubresourceIntegrityPlugin {
       .compilation_hooks
       .additional_tree_runtime_requirements
       .tap(handle_runtime::new(self));
+
+    if matches!(self.options.hash_loading, IntegrityHashLoading::Lazy) {
+      ctx
+        .compilation_hooks
+        .additional_chunk_runtime_requirements
+        .tap(handle_chunk_runtime::new(self));
+    }
     Ok(())
   }
 
   fn clear_cache(&self, id: CompilationId) {
     COMPILATION_INTEGRITY_MAP.remove(&id);
     COMPILATION_CONTEXT_MAP.remove(&id);
+    COMPILATION_MANIFEST_MAP.remove(&id);
   }
 }

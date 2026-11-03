@@ -3242,6 +3242,7 @@ export interface RawSubresourceIntegrityPluginOptions {
   integrityCallback?: (data: RawIntegrityData) => void
   hashFuncNames: Array<string>
   htmlPlugin: "JavaScript" | "Native" | "Disabled"
+  hashLoading: "eager" | "lazy"
 }
 
 export interface RawSwcEmitDtsOptions {
