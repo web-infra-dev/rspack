@@ -1,5 +1,10 @@
 import path from "node:path";
-import { describeByWalk, createCacheCase } from "@rspack/test-tools";
+import {
+	describeByWalk,
+	createCacheCase,
+	createConfigCase,
+	createNormalCase
+} from "@rspack/test-tools";
 
 const suites = [
 	["newCacheCases", "cache"],
@@ -178,21 +183,24 @@ for (const [source, type] of suites) {
 	describeByWalk(
 		import.meta.filename,
 		(name, src, dist) => {
-			createCacheCase(
-				name,
-				src,
-				dist,
-				"async-node",
-				path.join(
-					import.meta.dirname,
-					"js",
-					"temp",
-					"new-cache",
-					source,
-					path.relative(path.join(import.meta.dirname, source), src)
-				),
-				{ type, newCache: true }
+			const temp = path.join(
+				import.meta.dirname,
+				"js",
+				"temp",
+				"new-cache",
+				source,
+				path.relative(path.join(import.meta.dirname, source), src)
 			);
+			const cache = { directory: path.join(temp, ".cache") };
+			if (type === "config") {
+				createConfigCase(name, src, dist, undefined, cache);
+			} else if (type === "normal") {
+				createNormalCase(name, src, dist, cache);
+			} else {
+				createCacheCase(name, src, dist, "async-node", temp, {
+					newCache: true
+				});
+			}
 		},
 		{
 			source: path.join(import.meta.dirname, source),

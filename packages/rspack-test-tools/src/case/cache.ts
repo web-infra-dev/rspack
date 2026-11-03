@@ -16,19 +16,13 @@ import { NodeRunner } from '../runner';
 import { BasicCaseCreator } from '../test/creator';
 import type { ITestContext, ITestEnv, ITestProcessor } from '../type';
 import { afterExecute, build, check, compiler, config, run } from './common';
-import { createConfigCase } from './config';
-import { createNormalCase } from './normal';
 import { cachedStats } from './runner';
 
 type TTarget = RspackOptions['target'];
 
 export type TCacheCaseOptions = {
-  /** Reuse the configuration and runner of the original case suite. */
-  type?: 'cache' | 'normal' | 'config';
   /** Enable persistent newCache, restart unchanged cases, and check cache hits. */
   newCache?: boolean;
-  /** Suite-level configuration overrides, as in createConfigCase. */
-  rspackOptions?: RspackOptions;
 };
 
 interface CacheState {
@@ -240,17 +234,6 @@ export function createCacheCase(
   temp: string,
   options: TCacheCaseOptions = {},
 ) {
-  // Compatibility suites use the ordinary entry points, including their
-  // creator, filters, test environment and runner. Only cache verification is added.
-  if (options.type === 'config' || options.type === 'normal') {
-    const cache = options.newCache
-      ? { directory: path.join(temp, '.cache') }
-      : undefined;
-    return options.type === 'config'
-      ? createConfigCase(name, src, dist, options.rspackOptions, cache)
-      : createNormalCase(name, src, dist, cache);
-  }
-
   const key = JSON.stringify([target, options]);
   let creator = creators.get(key);
   if (!creator) {
