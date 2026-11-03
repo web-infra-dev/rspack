@@ -47,9 +47,9 @@ use serde::Serialize;
 pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
 
 use crate::{
-  ConnectionState, EvaluatedInlinableValue, ExportsInfoArtifact, ExportsType, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ReferencedExport, RuntimeSpec,
-  SideEffectsStateArtifact, create_exports_object_referenced,
+  ConnectionState, EvaluatedInlinableValue, ExportProvided, ExportsInfoArtifact, ExportsInfoData,
+  ExportsType, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier,
+  ReferencedExport, RuntimeSpec, SideEffectsStateArtifact, create_exports_object_referenced,
 };
 
 #[derive(Debug, Default)]
@@ -295,10 +295,23 @@ impl ReferencedSpecifier {
   }
 }
 
+pub fn is_possibly_unprovided_member(
+  names: &[Atom],
+  exports_type: ExportsType,
+  exports_info_artifact: &ExportsInfoArtifact,
+  exports_info: &ExportsInfoData,
+) -> bool {
+  (names.len() > 1 || !matches!(exports_type, ExportsType::Namespace))
+    && !matches!(
+      exports_info.is_export_provided(exports_info_artifact, names),
+      Some(ExportProvided::Provided)
+    )
+}
+
 pub fn create_referenced_exports_by_referenced_specifiers(
   referenced_specifiers: &[ReferencedSpecifier],
   exports_type: ExportsType,
-  is_json: bool,
+  should_reference_receiver: impl Fn(&[Atom]) -> bool,
 ) -> Vec<ReferencedExport> {
   let mut refs = vec![];
   for ReferencedSpecifier {
@@ -308,17 +321,6 @@ pub fn create_referenced_exports_by_referenced_specifiers(
   } in referenced_specifiers
   {
     let mut names = names.as_slice();
-    let mut namespace_object_as_context = *namespace_object_as_context;
-
-    // Force enable namespace object as context for json module, it's a common case:
-    // import json from "./array.json"; json.map(d => d * 2);
-    if matches!(
-      exports_type,
-      ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
-    ) && is_json
-    {
-      namespace_object_as_context = true;
-    }
 
     if let Some(id) = names.first()
       && id == "default"
@@ -337,12 +339,11 @@ pub fn create_referenced_exports_by_referenced_specifiers(
       }
     }
 
-    if namespace_object_as_context && *is_call {
-      if names.len() == 1 {
+    if *is_call && (*namespace_object_as_context || should_reference_receiver(names)) {
+      names = &names[..names.len().saturating_sub(1)];
+      if names.is_empty() {
         return create_exports_object_referenced();
       }
-      // remove last one
-      names = &names[..names.len().saturating_sub(1)];
     }
     refs.push(
       ReferencedExport::from(names)

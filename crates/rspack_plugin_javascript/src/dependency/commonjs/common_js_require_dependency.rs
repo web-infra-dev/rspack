@@ -8,7 +8,7 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ReferencedExport, ReferencedSpecifier, ResourceIdentifier, RuntimeSpec,
   TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
-  create_referenced_exports_by_referenced_specifiers,
+  create_referenced_exports_by_referenced_specifiers, is_possibly_unprovided_member,
 };
 
 use super::create_resource_identifier_for_contextual_commonjs_dependency;
@@ -149,7 +149,14 @@ impl Dependency for CommonJsRequireDependency {
       create_referenced_exports_by_referenced_specifiers(
         referenced_specifiers,
         exports_type,
-        module.build_info().json_data.is_some(),
+        |names| {
+          is_possibly_unprovided_member(
+            names,
+            exports_type,
+            exports_info_artifact,
+            exports_info_artifact.get_exports_info_data(&module.identifier()),
+          )
+        },
       )
     } else {
       create_exports_object_referenced()
