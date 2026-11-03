@@ -234,22 +234,33 @@ Unlike a fixed [`name`](#splitchunksname), `idHint` does not merge chunks. With 
 
 - **Type:** `string | RegExp | ((layer?: string) => boolean)`
 
-Assigns modules to a cache group by module layer. This is useful when [entry](/config/entry#entrydescriptionlayer) or [rule](/config/module-rules#ruleslayer) layers are used to separate modern, legacy, server, or client code paths.
+Selects modules by their layer. For example, use [`module.rules[].layer`](/config/module-rules#ruleslayer) to assign modules under `src/modern` to the `modern` layer, then select them with a cache group:
 
 ```js title="rspack.config.mjs"
 export default {
+  module: {
+    rules: [
+      {
+        test: /[\\/]src[\\/]modern[\\/]/,
+        layer: 'modern',
+      },
+    ],
+  },
   optimization: {
     splitChunks: {
       cacheGroups: {
         modern: {
           layer: 'modern',
           chunks: 'all',
+          minSize: 0,
         },
       },
     },
   },
 };
 ```
+
+Here, `minSize: 0` allows even small modules in this layer to be extracted.
 
 #### priority
 
@@ -545,9 +556,11 @@ This option is configured on `splitChunks` and cannot be overridden by individua
 - **Type:** `string[]`
 - **Default:** `["javascript", "css", "unknown"]`
 
-When calculating the size of chunks, only the sizes of javascript modules and built-in css modules are taken into account by default. For example, when configuring `minSize: 300`, both javascript modules and css modules need to meet the requirement in order to be split.
+Specifies which source types a numeric size threshold, such as [`minSize`](#splitchunksminsize), applies to. The defaults are `javascript`, `css`, and `unknown`. A source type describes the code a module generates, unlike the module type matched by a cache group’s [`type`](#type), such as `javascript/auto`.
 
-You can configure additional module types, for example, if you want WebAssembly modules to be split as well:
+Sizes are checked separately for each source type present in the candidate modules. JavaScript and CSS sizes are not added together, and a JavaScript-only chunk does not need to meet a CSS size threshold.
+
+For example, add `wasm` to apply numeric size thresholds to WebAssembly as well. Use `'...'` to keep the default source types:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -655,7 +668,7 @@ export default {
 };
 ```
 
-You can also configure this option for an individual cache group in [`splitChunks.cacheGroups.{cacheGroup}`](#splitchunkscachegroups), for example:
+You can also configure this option for an individual cache group in [`splitChunks.cacheGroups.{cacheGroup}`](#splitchunkscachegroups). Configuring `defaultVendors` replaces the default group, so this example keeps its module filter and other defaults:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -664,6 +677,10 @@ export default {
       chunks: 'initial',
       cacheGroups: {
         defaultVendors: {
+          test: /[\\/]node_modules[\\/]/,
+          priority: -10,
+          reuseExistingChunk: true,
+          idHint: 'vendors',
           filename: 'vendors-[name].js',
         },
       },
@@ -672,7 +689,7 @@ export default {
 };
 ```
 
-You can also set `filename` to a function that generates a filename from `pathData`:
+You can also set `filename` to a function. This example uses the chunk ID from `pathData`, which is available even for unnamed chunks:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -681,8 +698,12 @@ export default {
       chunks: 'initial',
       cacheGroups: {
         defaultVendors: {
+          test: /[\\/]node_modules[\\/]/,
+          priority: -10,
+          reuseExistingChunk: true,
+          idHint: 'vendors',
           filename: (pathData) => {
-            return `${pathData.chunk.name}-bundle.js`;
+            return `${pathData.chunk.id}-bundle.js`;
           },
         },
       },
@@ -922,7 +943,7 @@ A cache group's explicit `minRemainingSize` takes precedence over its own `minSi
 - **Type:** `number | Record<string, number>`
 - **Default:** `20000` in production and `10000` in others
 
-When using the `number` type of configuration, the same `minSize` will be configured for all module types defined in [`splitChunks.defaultSizeTypes`](/plugins/split-chunks-plugin#splitchunksdefaultsizetypes).
+Sets the minimum size of the modules to extract, in bytes. A numeric value applies the same threshold to each source type in [`defaultSizeTypes`](#splitchunksdefaultsizetypes). For example, set the threshold to 100KB:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -934,6 +955,8 @@ export default {
   },
 };
 ```
+
+For this check, 80KB of JavaScript and 30KB of CSS do not count as 110KB: each is below the 100KB threshold.
 
 You can also configure this option for an individual cache group in [`splitChunks.cacheGroups.{cacheGroup}`](#splitchunkscachegroups), for example:
 
@@ -952,7 +975,7 @@ export default {
 };
 ```
 
-When configured with the object form, different `minSize` can be set for different types of module types defined in `splitChunks.defaultSizeTypes`.
+Use an object to set a different threshold for each source type:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -968,20 +991,16 @@ export default {
 };
 ```
 
-For example, the above configuration means that the minimum size of javascript modules in the split chunks needs to be at least 100KB, and the minimum size of css modules needs to be at least 300KB.
+This sets a 100KB threshold for JavaScript and a 300KB threshold for CSS. If the modules to extract generate only JavaScript, only the JavaScript threshold applies.
 
 ### splitChunks.minSizeReduction
 
 - **Type:** `number | Record<string, number>`
 - **Default:** `0`
 
-If there are several small modules in the build output, developers may not want to generate separate chunks for them even if their total size exceeds the `minSize` threshold. In this case, you can use the `minSizeReduction` parameter to set the minimum size reduction threshold required for module splitting.
+Sets the minimum total size reduction across the source chunks, in bytes. While [`minSize`](#splitchunksminsize) checks the size of the modules to extract, `minSizeReduction` checks how much their removal reduces the source chunks.
 
-The calculation rule for this parameter is: splitting will only occur when the total size reduction across all parent chunks after splitting the module is not less than the specified value.
-
-Assuming the following scenario, suppose there is a 40KB module that is referenced by 2 chunks, and we set `minSizeReduction: 100`. If we were to split this module, each parent chunk would be reduced by 40KB, resulting in a total reduction of `40KB × 2 = 80KB`. As this is less than 100KB, the split will not be triggered.
-
-If a module still appears duplicated after lowering `minSize`, check `minSizeReduction` before assuming splitChunks is not working.
+For example, set the threshold to 100KB:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -993,6 +1012,10 @@ export default {
   },
 };
 ```
+
+If a 40KB module is shared by two source chunks, extracting it into a new chunk would remove `40KB × 2 = 80KB` from those chunks. This is below `minSizeReduction: 100 * 1000`, so the module is not extracted.
+
+This calculation does not subtract the size of the new shared chunk. In this example, the net reduction across all chunks would be only 40KB, ignoring runtime and other generated code.
 
 You can also configure this option for an individual cache group in [`splitChunks.cacheGroups.{cacheGroup}`](#splitchunkscachegroups), for example:
 
