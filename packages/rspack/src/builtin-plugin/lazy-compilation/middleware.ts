@@ -157,6 +157,17 @@ function collectReservedExternals(
       return;
     }
     const resolved = resolveLayerExternals(item, layer);
+    if (typeof resolved === 'string') {
+      requests.add(resolved);
+      return;
+    }
+    if (
+      !resolved ||
+      typeof resolved !== 'object' ||
+      resolved instanceof RegExp
+    ) {
+      return;
+    }
     for (const [request, value] of Object.entries(resolved)) {
       // `false` opts out of externalization; every other key mirrors `ExternalsPlugin`.
       if (value === false) {

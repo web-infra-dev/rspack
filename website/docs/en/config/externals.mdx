@@ -332,7 +332,9 @@ export default {
 
 Here, imports from the `server` layer treat `fs` and `path` as externals. Other layers, including modules without a layer, treat `fs` and `crypto` as externals. Set a branch's value to `false` to cancel a base external for that layer.
 
-`byLayer` can also be a synchronous function. It receives the issuer layer (`string` or `null` for modules without a layer) and returns an externals object to merge over the base, or `undefined` to keep only the base:
+Rspack also accepts a string, `RegExp`, or externals function as a branch. These forms replace the base map and match requests using the same rules as top-level `externals`.
+
+`byLayer` can also be a synchronous function. It receives the issuer layer (`string` or `null` for modules without a layer) and returns an externals object to merge over the base, another external item to replace the base, or `undefined` to keep only the base. Setting `byLayer` itself to `undefined` also keeps only the base:
 
 ```js
 externals: {
@@ -341,6 +343,12 @@ externals: {
     layer === 'server' ? { path: 'commonjs path' } : undefined,
 },
 ```
+
+:::warning Lazy compilation with library wrappers
+With lazy compilation and `umd`, `umd2`, `amd`, `amd-require`, or `system` library output, Rspack reserves statically enumerable externals in the initial library wrapper. This includes the lazy module's layer and all layers declared by module rules, so synchronous descendants can use externals after switching layers.
+
+These externals can load before the lazy module activates, including externals from rules that never match a reachable module. They must therefore be available when the library loads. External matcher functions and `RegExp` branches cannot be enumerated for reservation; a function-form `byLayer` selector returning an object or string can be enumerated.
+:::
 
 ## externalsType
 

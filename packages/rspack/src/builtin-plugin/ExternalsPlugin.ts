@@ -2,6 +2,7 @@ import {
   type BuiltinPlugin,
   BuiltinPluginName,
   type RawExternalItemFnCtx,
+  type RawExternalItemFnResult,
   type RawExternalItemObject,
   type RawExternalsPluginOptions,
 } from '@rspack/binding';
@@ -9,7 +10,6 @@ import {
 import type {
   ExternalItem,
   ExternalItemObjectKnown,
-  ExternalItemObjectUnknown,
   ExternalItemValue,
   Externals,
 } from '..';
@@ -170,22 +170,39 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
     }
     if (typeof item === 'object') {
       const { byLayer } = item as ExternalItemObjectKnown;
-      if (typeof byLayer === 'function') {
-        const cache = new Map<string | null, ExternalItemObjectUnknown>();
-        return this.#getRawExternalItem(({ request, contextInfo }) => {
-          const layer = contextInfo?.issuerLayer ?? null;
-          let resolved = cache.get(layer);
-          if (resolved === undefined) {
-            resolved = resolveLayerExternals(
-              item,
-              layer,
-            ) as ExternalItemObjectUnknown;
-            cache.set(layer, resolved);
+      if (
+        typeof byLayer === 'function' ||
+        (byLayer &&
+          typeof byLayer === 'object' &&
+          Object.values(byLayer).some(
+            (branch) => typeof branch !== 'object' || branch instanceof RegExp,
+          ))
+      ) {
+        const cache = new Map<string | null, RawExternalItem>();
+        return async (
+          ctx: RawExternalItemFnCtx,
+        ): Promise<RawExternalItemFnResult> => {
+          const { request, contextInfo } = ctx.data();
+          const layer = contextInfo.issuerLayer ?? null;
+          let raw = cache.get(layer);
+          if (raw === undefined) {
+            raw = this.#getRawExternalItem(resolveLayerExternals(item, layer));
+            cache.set(layer, raw);
           }
-          return Object.hasOwn(resolved, request!)
-            ? resolved[request!]
-            : undefined;
-        });
+          if (typeof raw === 'function') return await raw(ctx);
+          let result: RawExternalItemFnResult['result'];
+          if (typeof raw === 'string') {
+            if (raw === request) result = request;
+          } else if (raw instanceof RegExp) {
+            raw.lastIndex = 0;
+            if (raw.test(request)) result = request;
+            raw.lastIndex = 0;
+          } else {
+            const values = raw.byLayer?.[layer ?? 'null'] ?? raw.values;
+            if (Object.hasOwn(values, request)) result = values[request];
+          }
+          return { result, externalType: undefined };
+        };
       }
       return {
         values: getRawExternalObject(resolveLayerExternals(item, 'default')),

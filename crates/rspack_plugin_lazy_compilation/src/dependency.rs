@@ -56,18 +56,22 @@ impl AsContextDependency for LazyCompilationDependency {}
 
 #[cacheable]
 #[derive(Debug)]
-pub(crate) struct LayerExternalDependency {
+pub(crate) struct ReservedExternalDependency {
   id: DependencyId,
   request: String,
-  layer: ModuleLayer,
+  layer: Option<ModuleLayer>,
   resource_identifier: String,
 }
 
-impl LayerExternalDependency {
-  pub fn new(request: String, layer: ModuleLayer) -> Self {
+impl ReservedExternalDependency {
+  pub fn new(request: String, layer: Option<ModuleLayer>) -> Self {
+    let resource_identifier = match &layer {
+      Some(layer) => format!("lazy external|{}:{layer}{request}", layer.len()),
+      None => format!("lazy external|null|{request}"),
+    };
     Self {
       id: DependencyId::new(),
-      resource_identifier: format!("lazy external|{}:{layer}{request}", layer.len()),
+      resource_identifier,
       request,
       layer,
     }
@@ -75,7 +79,7 @@ impl LayerExternalDependency {
 }
 
 #[cacheable_dyn]
-impl Dependency for LayerExternalDependency {
+impl Dependency for ReservedExternalDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -89,7 +93,7 @@ impl Dependency for LayerExternalDependency {
   }
 
   fn get_layer(&self) -> Option<&ModuleLayer> {
-    Some(&self.layer)
+    self.layer.as_ref()
   }
 
   fn resource_identifier(&self) -> Option<&str> {
@@ -102,14 +106,14 @@ impl Dependency for LayerExternalDependency {
 }
 
 #[cacheable_dyn]
-impl ModuleDependency for LayerExternalDependency {
+impl ModuleDependency for ReservedExternalDependency {
   fn request(&self) -> &str {
     &self.request
   }
 }
 
-impl AsDependencyCodeGeneration for LayerExternalDependency {}
-impl AsContextDependency for LayerExternalDependency {}
+impl AsDependencyCodeGeneration for ReservedExternalDependency {}
+impl AsContextDependency for ReservedExternalDependency {}
 
 #[cacheable_dyn]
 impl Dependency for LazyCompilationDependency {

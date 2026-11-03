@@ -20,7 +20,7 @@ use rspack_util::{
 };
 
 use crate::{
-  dependency::{DependencyOptions, LayerExternalDependency, LazyCompilationDependency},
+  dependency::{DependencyOptions, LazyCompilationDependency, ReservedExternalDependency},
   utils::calc_value_dependency_key,
 };
 
@@ -246,12 +246,9 @@ impl Module for LazyCompilationProxyModule {
       // identifiers. Once the proxy activates and the lazily-built module
       // references those externals, the identifiers resolve instead of throwing.
       for request in self.reserved_externals.iter() {
-        dependencies.push(BoxDependency::new(CommonJsRequireDependency::new(
+        dependencies.push(BoxDependency::new(ReservedExternalDependency::new(
           request.clone(),
-          DependencyRange::new(0, 0),
-          None,
-          false,
-          None,
+          self.layer.clone(),
         )));
       }
       for externals in self.reserved_layer_externals.iter() {
@@ -259,9 +256,9 @@ impl Module for LazyCompilationProxyModule {
           continue;
         }
         for request in externals.requests.iter() {
-          dependencies.push(BoxDependency::new(LayerExternalDependency::new(
+          dependencies.push(BoxDependency::new(ReservedExternalDependency::new(
             request.clone(),
-            externals.layer.clone(),
+            Some(externals.layer.clone()),
           )));
         }
       }

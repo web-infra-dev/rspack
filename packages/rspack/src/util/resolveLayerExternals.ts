@@ -19,6 +19,7 @@ export const resolveLayerExternals = <T>(item: T, layer: string | null): T => {
     return item;
   }
   const { byLayer, ...remaining } = item as ExternalItemObjectKnown;
+  if (byLayer === undefined) return remaining as T;
   if (typeof byLayer === 'object') {
     const key = String(layer);
     if (key in byLayer) {
@@ -42,7 +43,11 @@ function mergeExternalObjects(
   base: ExternalItemObjectUnknown,
   overrides: ExternalItem | undefined,
 ): ExternalItem | undefined {
-  if (typeof overrides !== 'object' || overrides === null) {
+  if (
+    typeof overrides !== 'object' ||
+    overrides === null ||
+    overrides instanceof RegExp
+  ) {
     return overrides === undefined ? base : overrides;
   }
   return {

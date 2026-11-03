@@ -5,7 +5,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 
-use crate::dependency::{LayerExternalDependency, LazyCompilationDependency};
+use crate::dependency::{LazyCompilationDependency, ReservedExternalDependency};
 
 #[derive(Debug)]
 pub(crate) struct LazyCompilationDependencyFactory {
@@ -25,7 +25,7 @@ impl ModuleFactory for LazyCompilationDependencyFactory {
   async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
     if data.dependencies[0]
       .as_any()
-      .is::<LayerExternalDependency>()
+      .is::<ReservedExternalDependency>()
     {
       let plugin_driver = data.build_context.plugin_driver.clone();
       if let Some(false) = plugin_driver
