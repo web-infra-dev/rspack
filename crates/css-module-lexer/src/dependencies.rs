@@ -1382,7 +1382,7 @@ fn parse_grid_template_area_ranges(input: &str, offset: Pos) -> impl Iterator<It
 
 #[derive(Debug)]
 struct BlockItemCheckpoint<'s> {
-  dependencies: [usize; 5],
+  dependencies: [usize; 7],
   dashed: usize,
   balanced: usize,
   mode: Option<ModeCheckpoint<'s>>,
