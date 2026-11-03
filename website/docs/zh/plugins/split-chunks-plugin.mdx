@@ -103,7 +103,9 @@ export default {
 - **类型：** `string`
 - **默认值：** `-`
 
-设置 chunk 拆分后的名称分隔符。当 [`maxSize`](#splitchunksmaxsize) 拆分一个有名称的 chunk 时，会在原名称后添加后缀，用这个分隔符连接。例如，将分隔符改为 `~`：
+当 [`maxSize`](#splitchunksmaxsize) 将一个有名称的 chunk 拆成多个部分时，各部分会在原名称后添加后缀。`automaticNameDelimiter` 控制原名称与后缀之间的分隔符，默认为 `-`。
+
+例如，下面的配置尝试拆分超过 100,000 字节的 chunk，并将名称分隔符改为 `~`：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -119,7 +121,7 @@ export default {
 };
 ```
 
-当名为 `main` 的 chunk 被拆分时，生成的名称形如 `main~<后缀>`。后缀取决于各部分的模块及 [`hidePathInfo`](#splitchunkshidepathinfo) 配置。
+在这个示例中，如果名为 `main` 的 chunk 被拆分，各部分的名称会形如 `main~<哈希>`。这是因为示例使用了生产模式，[`hidePathInfo`](#splitchunkshidepathinfo) 默认为 `true`，名称后缀会使用哈希。
 
 ### splitChunks.cacheGroups
 
@@ -170,7 +172,7 @@ export default {
 
 告诉 Rspack 对此 cache group 忽略全局的 `splitChunks.minSize`、`splitChunks.minRemainingSize`、`splitChunks.minChunks`、`splitChunks.maxAsyncRequests` 和 `splitChunks.maxInitialRequests` 选项。cache group 自身显式配置的值仍然生效。
 
-例如，即使 `src/components` 下的模块总体积小于全局设置的 20,000 字节，也允许将它们抽离：
+例如，全局 `minSize` 要求待抽离的模块至少达到 20,000 字节。如果希望 `src/components` 下的模块不受这个限制，可以为对应的缓存组设置 `enforce: true`：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -189,13 +191,15 @@ export default {
 };
 ```
 
-这里的 `enforce: true` 跳过了全局 `minSize` 限制，`test` 和 `chunks` 仍然决定要抽离哪些模块。如果只希望在待抽离的模块达到一定体积时跳过限制，可以使用 [`enforceSizeThreshold`](#splitchunksenforcesizethreshold)。
+这样，匹配 `test` 和 `chunks` 的组件模块即使不足 20,000 字节，也可以被抽离。如果只希望在模块达到一定体积时跳过限制，可以改用 [`enforceSizeThreshold`](#splitchunksenforcesizethreshold)。
 
 #### idHint
 
 - **类型：** `string`
 
-为自动生成的 chunk ID 添加便于识别的文字。例如，配合 [`optimization.chunkIds: 'named'`](/config/optimization#optimizationchunkids)，为第三方依赖添加 `third-party` 标识：
+为自动生成的 chunk ID 添加便于识别的文字。使用 [`optimization.chunkIds: 'named'`](/config/optimization#optimizationchunkids) 时，这段文字会成为 ID 的一部分。
+
+例如，为 `defaultVendors` 抽离出的第三方依赖添加 `third-party` 标识，并通过 `[id]` 将它体现在文件名中：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -217,7 +221,7 @@ export default {
 };
 ```
 
-在这个示例中，`defaultVendors` 抽离出的未命名 chunk，其 ID 会包含 `third-party`；由于文件名使用了 `[id]`，也会带上这段文字。
+满足拆分条件后，`defaultVendors` 生成的未命名 chunk 会获得包含 `third-party` 的 ID，对应的文件名也会包含这段文字。
 
 `idHint` 只影响自动生成的 ID，不会像固定的 [`name`](#splitchunksname) 那样把多个 chunk 合并到一起。它的显示效果取决于 chunk ID 策略；使用 `deterministic` 等策略时，文件名中不一定包含这段文字。
 
@@ -280,7 +284,16 @@ export default {
 - **类型：** `boolean`
 - **默认值：** `false`（内置的 `default` 和 `defaultVendors` 组将其设为 `true`）
 
-控制是否复用已有的 chunk。如果某个 chunk 恰好包含全部待抽离模块，且没有其他模块，Rspack 可以直接复用它。例如：
+控制是否复用已有的 chunk。如果某个 chunk 恰好包含全部待抽离模块，且没有其他模块，Rspack 可以直接复用它。
+
+例如，`Foo` 和 `Bar` 都包含 `shared.js`，而 `Bar` 没有其他模块：
+
+```text
+chunk Foo:       [page.js, shared.js]
+async chunk Bar: [shared.js]
+```
+
+可以为 `shared.js` 设置下面的缓存组，允许复用 `Bar`。其中，`minChunks: 2` 要求模块至少被两个 chunk 共享，`minSize: 0` 让较小的模块也能参与拆分：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -298,13 +311,6 @@ export default {
     },
   },
 };
-```
-
-上面的 `minChunks: 2` 要求 `shared.js` 至少被两个 chunk 共享，`minSize: 0` 则允许较小的模块也被抽离。假设当前模块分布如下：
-
-```text
-chunk Foo:       [page.js, shared.js]
-async chunk Bar: [shared.js]
 ```
 
 `Bar` 已经只包含 `shared.js`，满足复用条件时，Rspack 会从 `Foo` 中移除这个模块，让 `Foo` 加载 `Bar` 来获取它。
@@ -685,7 +691,9 @@ export default {
 - **类型：** `boolean`
 - **默认值：** 生产模式下为 `true`，其他模式下为 `false`
 
-控制 [`maxSize`](#splitchunksmaxsize) 拆分有名称的 chunk 时，生成的名称是否包含模块路径信息：
+当 [`maxSize`](#splitchunksmaxsize) 拆分一个有名称的 chunk 时，会为各部分的名称添加后缀。`hidePathInfo` 决定后缀是否保留可读的模块路径。
+
+例如，设为 `true`，让后缀使用哈希：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -700,7 +708,7 @@ export default {
 };
 ```
 
-设为 `true` 时，拆分后的名称使用哈希后缀，例如 `main-<哈希>`；设为 `false` 时，后缀可以包含可读的模块路径。此选项只影响拆分后的名称，source map 等产物仍可能包含路径。
+这样，名为 `main` 的 chunk 被拆分后，各部分的名称会形如 `main-<哈希>`。如果改为 `false`，后缀则可以包含可读的模块路径。这个选项只影响名称，source map 等产物中的路径不受影响。
 
 ### splitChunks.maxAsyncRequests
 
@@ -730,9 +738,7 @@ export default {
 
 - **类型：** `number | Record<string, number>`
 
-像 `maxSize` 一样，`maxAsyncSize` 可以全局应用（`splitChunks.maxAsyncSize`），也可以应用到 cacheGroup（`splitChunks.cacheGroups.{cacheGroup}.maxAsyncSize`）或 fallback cacheGroup（`splitChunks.fallbackCacheGroup.maxAsyncSize`）。
-
-`maxAsyncSize` 和 `maxSize` 的区别在于 `maxAsyncSize` 仅会影响按需加载 chunk。
+与 [`maxSize`](#splitchunksmaxsize) 一样，用于将过大的 chunk 拆成更小的部分，但只针对异步 chunk。
 
 例如，尝试将较大的异步 chunk 拆成不超过 100,000 字节的部分：
 
@@ -748,6 +754,8 @@ export default {
 ```
 
 此配置为异步 chunk 设置大小上限，不限制仅用于初始加载的 chunk。单个模块过大或需要满足 `minSize` 时，结果仍可能超过上限，详见 [`maxSize`](#splitchunksmaxsize)。
+
+可以在全局 `splitChunks`、单个[缓存组](#splitchunkscachegroups)或 [`fallbackCacheGroup`](#splitchunksfallbackcachegroup) 中配置此选项。
 
 ### splitChunks.maxInitialRequests
 
@@ -777,11 +785,9 @@ export default {
 
 - **类型：** `number | Record<string, number>`
 
-像 `maxSize` 一样，`maxInitialSize` 可以全局应用（`splitChunks.maxInitialSize`），也可以应用到 cacheGroup（`splitChunks.cacheGroups.{cacheGroup}.maxInitialSize`）或 fallback cacheGroup（`splitChunks.fallbackCacheGroup.maxInitialSize`）。
+与 [`maxSize`](#splitchunksmaxsize) 一样，用于将过大的 chunk 拆成更小的部分，但只针对初始 chunk。
 
-`maxInitialSize` 和 `maxSize` 的区别在于 `maxInitialSize` 仅会影响初始加载 chunks。
-
-例如，让初始 chunk 参与拆分，并尝试将各部分控制在 150,000 字节以内：
+例如，尝试将较大的初始 chunk 拆成不超过 150,000 字节的部分：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -795,6 +801,8 @@ export default {
 ```
 
 此配置为初始 chunk 设置大小上限，不限制仅用于按需加载的 chunk。单个模块过大或需要满足 `minSize` 时，结果仍可能超过上限，详见 [`maxSize`](#splitchunksmaxsize)。
+
+可以在全局 `splitChunks`、单个[缓存组](#splitchunkscachegroups)或 [`fallbackCacheGroup`](#splitchunksfallbackcachegroup) 中配置此选项。
 
 ### splitChunks.maxSize
 
@@ -1120,9 +1128,16 @@ export default {
 - **类型：** `boolean`
 - **默认值：** [optimization.usedExports](/config/optimization#optimizationusedexports) 为 `true` 时为 `true`，否则为 `false`
 
-拆分共享模块时，考虑各个 [runtime](/misc/glossary#runtime) 实际使用了哪些导出。例如，两个入口使用同一个模块中的不同导出时，可以分别加载该模块的不同副本，便于后续移除各自不需要的代码。
+根据各个 [runtime](/misc/glossary#runtime) 实际使用的导出来拆分共享模块。使用不同导出的入口可以加载不同的模块副本，便于后续移除各自不需要的代码。
 
-例如，下面三个入口都导入 `src/shared.js`，其中 `foo` 和 `bar` 使用 `value1`，`baz` 使用 `value2`：
+例如，`src/shared.js` 导出了两个值：
+
+```js title="src/shared.js"
+export const value1 = 'one';
+export const value2 = 'two';
+```
+
+三个入口都导入这个模块，其中 `foo` 和 `bar` 使用 `value1`，`baz` 使用 `value2`：
 
 ```js title="src/foo.js"
 import { value1 } from './shared.js';
@@ -1137,11 +1152,6 @@ console.log(value1);
 ```js title="src/baz.js"
 import { value2 } from './shared.js';
 console.log(value2);
-```
-
-```js title="src/shared.js"
-export const value1 = 'one';
-export const value2 = 'two';
 ```
 
 下面的配置中，`optimization.usedExports: true` 负责分析导出的使用情况，`splitChunks.usedExports: true` 让拆分过程使用这些信息。`chunks: 'all'` 让入口 chunk 参与拆分，`minSize: 0` 则允许示例中的小模块被抽离：
