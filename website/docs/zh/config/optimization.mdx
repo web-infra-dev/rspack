@@ -542,17 +542,12 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  mode: 'development',
   entry: {
     pageA: './src/page-a.js',
     pageB: './src/page-b.js',
   },
-  output: {
-    filename: '[name].js',
-  },
   optimization: {
     runtimeChunk: 'single',
-    splitChunks: false,
   },
 };
 ```
@@ -591,7 +586,7 @@ console.log('page B');
 
 使用 `'multiple'` 时，在各入口文件之前加载对应的 `runtime~<entry>.js`。使用 `false` 时，每个入口文件都包含自己的 runtime。
 
-此示例关闭了 `splitChunks`，以便单独观察 runtime 的行为。共享 runtime 本身不会将共享模块代码抽取到独立文件中；可以使用 [SplitChunksPlugin](/plugins/split-chunks-plugin) 控制这种拆分。
+共享 runtime 本身不会将共享模块代码抽取到独立文件中；可以使用 [SplitChunksPlugin](/plugins/split-chunks-plugin) 控制这种拆分。
 
 ## optimization.sideEffects
 

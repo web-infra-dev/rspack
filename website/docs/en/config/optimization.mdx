@@ -542,17 +542,12 @@ For example, load two entries that import the same module on one page:
 
 ```js title="rspack.config.mjs"
 export default {
-  mode: 'development',
   entry: {
     pageA: './src/page-a.js',
     pageB: './src/page-b.js',
   },
-  output: {
-    filename: '[name].js',
-  },
   optimization: {
     runtimeChunk: 'single',
-    splitChunks: false,
   },
 };
 ```
@@ -591,7 +586,7 @@ Changing only `runtimeChunk` produces the following results when both entries an
 
 For `'multiple'`, load each `runtime~<entry>.js` before its entry file. With `false`, each entry file includes its own runtime.
 
-This example disables `splitChunks` to isolate runtime behavior. Sharing a runtime does not itself extract shared module code into a separate file; use [SplitChunksPlugin](/plugins/split-chunks-plugin) to control that splitting.
+Sharing a runtime does not itself extract shared module code into a separate file; use [SplitChunksPlugin](/plugins/split-chunks-plugin) to control that splitting.
 
 ## optimization.sideEffects
 
