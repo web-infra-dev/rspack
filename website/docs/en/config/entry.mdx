@@ -220,19 +220,12 @@ For example, put a shared module in its own entry and let `app` depend on it:
 
 ```js title="rspack.config.mjs"
 export default {
-  mode: 'development',
   entry: {
     shared: './src/shared.js',
     app: {
       import: './src/app.js',
       dependOn: 'shared',
     },
-  },
-  output: {
-    filename: '[name].js',
-  },
-  optimization: {
-    splitChunks: false,
   },
 };
 ```
@@ -256,7 +249,7 @@ This produces `shared.js` and `app.js`. The shared module is included in `shared
 
 The page logs `Hello from shared`. Here, `/dist/` assumes the output directory is served at that URL.
 
-`dependOn` refers to an **entry name**, not a file path, and does not replace imports in your source code. Unlike [SplitChunksPlugin](/plugins/split-chunks-plugin), which selects shared modules automatically, this example explicitly defines the shared entry and disables automatic splitting to make the result easier to see.
+`dependOn` refers to an **entry name**, not a file path, and does not replace imports in your source code. Unlike [SplitChunksPlugin](/plugins/split-chunks-plugin), which selects shared modules automatically, this example explicitly defines the shared entry.
 
 #### EntryDescription.wasmLoading
 
