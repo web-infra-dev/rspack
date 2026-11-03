@@ -23,7 +23,10 @@ export default defineConfig({
     rules: [
       {
         test: /\.css$/,
-        type: 'css',
+        type: 'css/auto',
+        parser: {
+          customMedia: false,
+        },
         oneOf: [
           {
             test: /deep\.css$/,

@@ -596,6 +596,7 @@ mod tests {
           url: None,
           r#import: None,
           resolve_import: None,
+          custom_media: None,
         })),
         Some(&GeneratorOptions::Css(CssGeneratorOptions {
           exports_only: Some(false),

@@ -12,7 +12,10 @@ export default defineConfig({
     rules: [
       {
         test: /\.css$/,
-        type: 'css',
+        type: 'css/auto',
+        parser: {
+          customMedia: false,
+        },
         use: [
           './assert-loader-output.mjs',
           {
