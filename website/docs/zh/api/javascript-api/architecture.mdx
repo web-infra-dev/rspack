@@ -76,8 +76,6 @@ watch 模式下，应使用当前构建 hook 提供的 `Compilation` 和 native-
 
 `Dependency` 是一个例外：它的 JavaScript wrapper 会保持 Rust 依赖对象存活。因此，即使 hook 或 compilation 已结束，仍可读取依赖自身的 `type`、`request`、`loc`、`critical` 等属性。但更长的读取生命周期不意味着可以随时修改：只能在 Rspack 调用且允许修改的 hook 执行期间设置 `critical`。不要在脱离 hook 的回调中或 hook 完成后修改它；较晚的写入可能与诊断信息收集竞争，导致 warning 结果取决于执行时机。保留 `Dependency` 不会保留原 `Compilation`，也不会让它成为后续构建的一部分。`ids` 和 `_parentModule` 等由图计算的属性仍依赖原 compilation，在原 compilation 不可用后可能报错；依赖进入图之前，这些属性也不可用。
 
-`Module.buildInfo` 同时包含 JavaScript 自定义字段和访问当前原生模块的 getter。这些 getter 通过 compiler 和 module identifier 定位模块，不保留其 JavaScript wrapper。模块已移除或 compiler 已被垃圾回收时，访问会失败；同一 compiler 再次暴露相同 identifier 的模块后，保留的 `buildInfo` 可以读取替代模块，因此它不是原构建的快照。自定义字段仍保存在各自的 JavaScript 对象上，将它们写回 Rust 仍须处于支持修改的 loader 执行窗口。
-
 建议遵守以下规则：
 
 - 只在当前构建的 hook 和回调中使用对应的 `Compilation`、`Module`、`Chunk`、graph 和 block。
