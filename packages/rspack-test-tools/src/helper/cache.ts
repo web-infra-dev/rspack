@@ -98,10 +98,12 @@ export async function checkPersistentCache(
         throw new Error(`Compiler ${index} did not report cacheInfo`);
       }
       for (const [namespace, counters] of Object.entries(info)) {
-        if (counters.misses !== 0) {
-          const hitRate = counters.hits / (counters.hits + counters.misses);
+        const lookups = counters.hits + counters.misses;
+        if (lookups === 0) continue;
+        if (counters.reused !== lookups) {
+          const reuseRate = counters.reused / lookups;
           throw new Error(
-            `Compiler ${index}: ${namespace} cache hit rate is ${(hitRate * 100).toFixed(2)}%, expected 100%:\n${JSON.stringify(
+            `Compiler ${index}: ${namespace} cache reuse rate is ${(reuseRate * 100).toFixed(2)}%, expected 100%:\n${JSON.stringify(
               {
                 cold: coldCacheStats[index]?.[namespace],
                 restored: counters,
