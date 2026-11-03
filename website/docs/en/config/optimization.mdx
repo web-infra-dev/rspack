@@ -538,6 +538,61 @@ export default {
 Imported modules are initialized for each runtime chunk separately, so if you include multiple entry chunks on a page, beware of this behavior. You will need to set `optimization.runtimeChunk` to `'single'` or use another configuration that ensures the page only contains one runtime instance.
 :::
 
+For example, load two entries that import the same module on one page:
+
+```js title="rspack.config.mjs"
+export default {
+  mode: 'development',
+  entry: {
+    pageA: './src/page-a.js',
+    pageB: './src/page-b.js',
+  },
+  output: {
+    filename: '[name].js',
+  },
+  optimization: {
+    runtimeChunk: 'single',
+    splitChunks: false,
+  },
+};
+```
+
+```js title="src/shared.js"
+console.log('shared initialized');
+```
+
+```js title="src/page-a.js"
+import './shared.js';
+console.log('page A');
+```
+
+```js title="src/page-b.js"
+import './shared.js';
+console.log('page B');
+```
+
+With `runtimeChunk: 'single'`, load the shared runtime before the entry files. Here, `/dist/` assumes the output directory is served at that URL:
+
+```html
+<script defer src="/dist/runtime.js"></script>
+<script defer src="/dist/pageA.js"></script>
+<script defer src="/dist/pageB.js"></script>
+```
+
+The page logs `shared initialized`, `page A`, and `page B`. The shared module is initialized only once because both entries use the same runtime's module cache.
+
+Changing only `runtimeChunk` produces the following results when both entries and their runtimes are loaded on the same page:
+
+| `runtimeChunk` | Generated JavaScript files                                     | `shared initialized` logs |
+| -------------- | -------------------------------------------------------------- | ------------------------- |
+| `false`        | `pageA.js`, `pageB.js`                                         | Twice                     |
+| `'multiple'`   | `runtime~pageA.js`, `runtime~pageB.js`, `pageA.js`, `pageB.js` | Twice                     |
+| `'single'`     | `runtime.js`, `pageA.js`, `pageB.js`                           | Once                      |
+
+For `'multiple'`, load each `runtime~<entry>.js` before its entry file. With `false`, each entry file includes its own runtime.
+
+This example disables `splitChunks` to isolate runtime behavior. Sharing a runtime does not itself extract shared module code into a separate file; use [SplitChunksPlugin](/plugins/split-chunks-plugin) to control that splitting.
+
 ## optimization.sideEffects
 
 <PropertyType
