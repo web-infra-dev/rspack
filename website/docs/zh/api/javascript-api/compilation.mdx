@@ -824,6 +824,48 @@ compiler.hooks.compilation.tap('InspectModules', (compilation) => {
 
 获取此 Compilation 对资源文件的依赖信息，其结构如下：
 
+插件读取模块图之外的文件时，需要登记这些文件，让它们的变化能够在 watch 模式下触发重新构建。请使用绝对路径，并在每次新的 compilation 中登记依赖。
+
+例如，在项目根目录创建 `site.json` 文件。以下插件将其内容复制到产物目录，并将其登记为文件依赖：
+
+```js title="rspack.config.mjs"
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+
+export default {
+  plugins: [
+    {
+      apply(compiler) {
+        const configPath = path.resolve(compiler.context, 'site.json');
+        const { Compilation, sources } = compiler.rspack;
+
+        compiler.hooks.thisCompilation.tap(
+          'SiteConfigPlugin',
+          (compilation) => {
+            compilation.fileDependencies.add(configPath);
+            compilation.hooks.processAssets.tapPromise(
+              {
+                name: 'SiteConfigPlugin',
+                stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+              },
+              async () => {
+                const content = await readFile(configPath, 'utf8');
+                compilation.emitAsset(
+                  'site.json',
+                  new sources.RawSource(content),
+                );
+              },
+            );
+          },
+        );
+      },
+    },
+  ],
+};
+```
+
+以 watch 模式运行 Rspack，并修改源文件 `site.json`。Rspack 会重新构建，产物中的 `site.json` 也会更新。仅通过 Node.js 读取文件不会自动将其登记为依赖。
+
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
@@ -839,6 +881,17 @@ compiler.hooks.compilation.tap('InspectModules', (compilation) => {
 **类型：** `FileSystemDependencies`
 
 获取此 Compilation 对目录的依赖信息。
+
+如果插件会扫描目录，可以登记该目录，让新增或删除文件触发重新构建。例如，将以下代码放在插件的 `apply(compiler)` 方法中，并使用 [fileDependencies 示例](#filedependencies)中的 `path` 导入：
+
+```js
+compiler.hooks.thisCompilation.tap('TemplatesPlugin', (compilation) => {
+  const templatesPath = path.resolve(compiler.context, 'templates');
+  compilation.contextDependencies.add(templatesPath);
+});
+```
+
+启动 watch 模式之前，先创建 `templates` 目录。新增或删除模板会触发重新构建，插件可以再次扫描目录。如果插件还会读取文件内容，也应将相应文件登记到 `fileDependencies` 中。
 
 <Collapse>
   <CollapsePanel
@@ -856,6 +909,40 @@ compiler.hooks.compilation.tap('InspectModules', (compilation) => {
 
 获取此 Compilation 对缺失文件的依赖信息。
 
+登记尚不存在的可选文件，让创建该文件的操作能够触发重新构建。文件存在后，应将其登记到 `fileDependencies` 中。
+
+例如，将以下代码放在插件的 `apply(compiler)` 方法中，并使用 [fileDependencies 示例](#filedependencies)中的 `path` 和 `readFile` 导入：
+
+```js
+compiler.hooks.thisCompilation.tap('LocalConfigPlugin', (compilation) => {
+  const configPath = path.resolve(compiler.context, 'site.local.json');
+  const { Compilation, sources } = compiler.rspack;
+
+  compilation.hooks.processAssets.tapPromise(
+    {
+      name: 'LocalConfigPlugin',
+      stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+    },
+    async () => {
+      let content;
+      try {
+        content = await readFile(configPath, 'utf8');
+        compilation.fileDependencies.add(configPath);
+      } catch (error) {
+        if (error.code !== 'ENOENT') {
+          throw error;
+        }
+        compilation.missingDependencies.add(configPath);
+        content = '{}';
+      }
+      compilation.emitAsset('site.local.json', new sources.RawSource(content));
+    },
+  );
+});
+```
+
+最初没有源文件 `site.local.json` 时，产物内容为 `{}`。在项目根目录创建该文件会触发重新构建并复制其内容；后续修改则作为文件变化进行监听。其他读取错误仍会使构建失败。
+
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
@@ -871,6 +958,10 @@ compiler.hooks.compilation.tap('InspectModules', (compilation) => {
 **类型：** `FileSystemDependencies`
 
 获取此 Compilation 对构建文件的依赖信息。
+
+构建依赖描述构建工具的输入，例如配置文件和 loader，与插件为了监听内容变化而登记的文件或目录不同。
+
+要配置持久化缓存失效条件，请参阅 [cache.buildDependencies](/config/cache#builddependencies)。要在插件输入变化时触发 watch 重新构建，请使用上文介绍的 [fileDependencies](#filedependencies)、[contextDependencies](#contextdependencies) 或 [missingDependencies](#missingdependencies)。
 
 <Collapse>
   <CollapsePanel
