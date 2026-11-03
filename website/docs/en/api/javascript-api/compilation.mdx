@@ -743,12 +743,6 @@ class EntryManifestPlugin {
 }
 
 export default {
-  mode: 'production',
-  entry: { main: './src/index.js' },
-  output: {
-    filename: '[name].js',
-    cssFilename: '[name].css',
-  },
   module: {
     rules: [{ test: /\.css$/i, type: 'css' }],
   },
