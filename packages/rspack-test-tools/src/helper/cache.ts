@@ -71,6 +71,7 @@ export async function checkPersistentCache(
     const diagnostics = stats.toJson({
       all: false,
       errors: true,
+      errorsCount: true,
       warnings: true,
       errorDetails: true,
       moduleTrace: true,
@@ -90,10 +91,11 @@ export async function checkPersistentCache(
       continue;
     }
 
+    // Like webpack's ConfigTestCases, only check cache reuse when the whole
+    // build, including all MultiCompiler children, has no errors.
+    if (diagnostics.errorsCount !== 0) continue;
+
     for (const [index, info] of cacheStats.entries()) {
-      const compilerStats = 'stats' in stats ? stats.stats[index] : stats;
-      // As in webpack's ConfigTestCases, error cases need not be cacheable.
-      if (compilerStats.hasErrors()) continue;
       if (!info || Object.keys(info).length === 0) {
         throw new Error(`Compiler ${index} did not report cacheInfo`);
       }
