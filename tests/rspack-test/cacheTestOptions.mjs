@@ -45,6 +45,9 @@ const excludes = {
 		/^compilation\/modules$/,
 		// This case expects its stateful loader to build again on every compiler.
 		/^compilation\/rebuild-module(?:-getters)?$/,
+		// The loader emits content1 only once. Repeated builds emit content2, which
+		// may equal the asset stored by the first completed compiler.
+		/^concatenate-modules\/chunk-hash$/,
 
 		// Module cache misses after restarting the compiler.
 		/^asset-modules\/custom-encoder$/,
