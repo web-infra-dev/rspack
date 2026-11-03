@@ -708,6 +708,76 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
 
 入口名称到入口点对象的映射。入口点是一种特殊的 chunk group，关联着该入口使用的 Rspack 运行时 chunk。
 
+使用 `entrypoint.getFiles()` 可以获取入口对应的产物文件名，包括 runtime 和抽取的 CSS。例如，生成一份清单，让服务端据此渲染脚本和样式标签：
+
+```js title="rspack.config.mjs"
+class EntryManifestPlugin {
+  apply(compiler) {
+    const { Compilation, sources } = compiler.rspack;
+
+    compiler.hooks.thisCompilation.tap('EntryManifestPlugin', (compilation) => {
+      compilation.hooks.processAssets.tap(
+        {
+          name: 'EntryManifestPlugin',
+          stage: Compilation.PROCESS_ASSETS_STAGE_REPORT,
+        },
+        () => {
+          const manifest = Object.fromEntries(
+            Array.from(compilation.entrypoints, ([name, entrypoint]) => [
+              name,
+              entrypoint.getFiles(),
+            ]),
+          );
+          compilation.emitAsset(
+            'entrypoints.json',
+            new sources.RawSource(JSON.stringify(manifest, null, 2)),
+          );
+        },
+      );
+    });
+  }
+}
+
+export default {
+  mode: 'production',
+  entry: { main: './src/index.js' },
+  output: {
+    filename: '[name].js',
+    cssFilename: '[name].css',
+  },
+  module: {
+    rules: [{ test: /\.css$/i, type: 'css' }],
+  },
+  optimization: {
+    runtimeChunk: 'single',
+  },
+  plugins: [new EntryManifestPlugin()],
+};
+```
+
+```js title="src/index.js"
+import './style.css';
+console.log('Hello');
+```
+
+```css title="src/style.css"
+body {
+  color: red;
+}
+```
+
+该插件在 `PROCESS_ASSETS_STAGE_REPORT` 阶段执行，此时常规的产物优化和哈希处理阶段已经结束。对于以上源文件，它会生成：
+
+```json title="dist/entrypoints.json"
+{
+  "main": ["runtime.js", "main.js", "main.css"]
+}
+```
+
+文件名相对于产物目录，不包含 `publicPath` 前缀。生成 HTML 时，需要加上资源部署的 URL 前缀，为 CSS 使用 `<link rel="stylesheet">`，并保留 JavaScript 文件的顺序，让 runtime 先于入口加载。
+
+`getFiles()` 列出此入口 chunk group 中的文件，不包含 `import()` 创建的独立异步 chunk group 中的文件，也不包含插件额外生成的任意产物，例如此清单本身。
+
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"

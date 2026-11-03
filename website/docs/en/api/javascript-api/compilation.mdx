@@ -712,6 +712,76 @@ The list of chunk group objects, with the structure as follows:
 
 A mapping from entry names to entrypoint objects. An entrypoint is a special chunk group associated with the Rspack runtime chunk used by that entry.
 
+Use `entrypoint.getFiles()` to collect the emitted filenames for an entry, including its runtime and extracted CSS. For example, generate a manifest that a server can use to render script and stylesheet tags:
+
+```js title="rspack.config.mjs"
+class EntryManifestPlugin {
+  apply(compiler) {
+    const { Compilation, sources } = compiler.rspack;
+
+    compiler.hooks.thisCompilation.tap('EntryManifestPlugin', (compilation) => {
+      compilation.hooks.processAssets.tap(
+        {
+          name: 'EntryManifestPlugin',
+          stage: Compilation.PROCESS_ASSETS_STAGE_REPORT,
+        },
+        () => {
+          const manifest = Object.fromEntries(
+            Array.from(compilation.entrypoints, ([name, entrypoint]) => [
+              name,
+              entrypoint.getFiles(),
+            ]),
+          );
+          compilation.emitAsset(
+            'entrypoints.json',
+            new sources.RawSource(JSON.stringify(manifest, null, 2)),
+          );
+        },
+      );
+    });
+  }
+}
+
+export default {
+  mode: 'production',
+  entry: { main: './src/index.js' },
+  output: {
+    filename: '[name].js',
+    cssFilename: '[name].css',
+  },
+  module: {
+    rules: [{ test: /\.css$/i, type: 'css' }],
+  },
+  optimization: {
+    runtimeChunk: 'single',
+  },
+  plugins: [new EntryManifestPlugin()],
+};
+```
+
+```js title="src/index.js"
+import './style.css';
+console.log('Hello');
+```
+
+```css title="src/style.css"
+body {
+  color: red;
+}
+```
+
+The plugin runs at `PROCESS_ASSETS_STAGE_REPORT`, after the usual asset optimization and hash processing stages. For these source files, it emits:
+
+```json title="dist/entrypoints.json"
+{
+  "main": ["runtime.js", "main.js", "main.css"]
+}
+```
+
+The filenames are relative to the output directory, without a `publicPath` prefix. When generating HTML, prepend the URL at which you serve the assets, use `<link rel="stylesheet">` for CSS, and preserve the order of JavaScript files so the runtime loads before the entry.
+
+`getFiles()` lists files in this entrypoint's chunk group. It does not include files from separate async chunk groups created by `import()`, or arbitrary assets emitted by plugins, such as this manifest itself.
+
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
