@@ -1028,8 +1028,9 @@ var {} = {{}};
       let info = &concate_modules_map[m];
       info
         .as_concatenated()
-        .global_scope_ident
+        .analysis
         .iter()
+        .flat_map(|analysis| analysis.unresolved_references())
         .map(|ident| ident.name.clone())
     }));
 

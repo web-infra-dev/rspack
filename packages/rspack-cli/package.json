@@ -31,7 +31,8 @@
     "build": "rs lib",
     "dev": "rs lib -w",
     "prepare": "prebundle",
-    "test": "rs test"
+    "test": "rs test",
+    "test:configs": "tsc -p tests/tsconfig.configs.json"
   },
   "devDependencies": {
     "@discoveryjs/json-ext": "catalog:",

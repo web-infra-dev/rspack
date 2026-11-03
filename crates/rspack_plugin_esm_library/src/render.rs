@@ -781,43 +781,30 @@ var {} = {{}};
       )));
     };
 
-    for (atom, ctxt, refs) in info.binding_to_ref.iter() {
-      if ctxt == info.global_ctxt
-        && let Some(binding_ref) = chunk_link.refs.get(atom.as_str())
-      {
-        let final_name = match binding_ref {
-          Ref::Symbol(symbol_ref) => Cow::Owned(symbol_ref.render()),
-          Ref::Inline(inline) => Cow::Borrowed(inline),
-        };
-
-        for ident in refs.iter().map(|index| &info.idents[*index as usize]) {
-          let name = if ident.shorthand {
-            Cow::Owned(format!("{}: {}", &ident.name, &final_name))
-          } else {
-            final_name.clone()
+    if let Some(analysis) = &info.analysis {
+      for ident in analysis.unresolved_references() {
+        if let Some(binding_ref) = chunk_link.refs.get(ident.name.as_str()) {
+          let final_name = match binding_ref {
+            Ref::Symbol(symbol_ref) => Cow::Owned(symbol_ref.render()),
+            Ref::Inline(inline) => Cow::Borrowed(inline),
           };
-          source.replace(
-            ident.span.real_lo(),
-            ident.span.real_hi() + 2,
-            name.into_owned(),
-            None,
-          );
+          let name = if ident.shorthand {
+            format!("{}: {}", ident.name, final_name)
+          } else {
+            final_name.into_owned()
+          };
+          source.replace(ident.span.real_lo(), ident.span.real_hi() + 2, name, None);
         }
       }
-    }
-
-    for ident in &info.idents {
-      if ident.scope != info.module_ctxt {
-        continue;
-      }
-
-      if let Some(internal_name) = info.get_internal_name(&ident.name) {
-        let name = if ident.shorthand {
-          format!("{}: {}", &ident.name, &internal_name)
-        } else {
-          internal_name.to_string()
-        };
-        source.replace(ident.span.real_lo(), ident.span.real_hi(), name, None);
+      for symbol in analysis
+        .symbol_groups()
+        .filter(|&symbol| analysis.is_top_level(symbol))
+      {
+        if let Some(internal_name) = info.get_internal_name(analysis.symbol_name(symbol))
+          && internal_name != analysis.symbol_name(symbol)
+        {
+          analysis.rename_symbol(symbol, internal_name, &mut source);
+        }
       }
     }
 

@@ -1,7 +1,5 @@
 use std::{
   borrow::Cow,
-  collections::hash_map::Entry,
-  ops::Deref,
   sync::{Arc, LazyLock, RwLock as SyncRwLock},
 };
 
@@ -31,9 +29,10 @@ pub use module_concatenation_plugin::*;
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, IdentifierMap};
 use rspack_core::{
   ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
-  CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
+  CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleAnalysis,
   ConcatenationNameAllocator, ExportsArgument, Module, RuntimeCodeTemplate, RuntimeGlobals,
-  RuntimeVariable, SourceType, analyze_program_identifiers, render_init_fragments,
+  RuntimeVariable, SourceType, analyze_program_identifiers, analyze_program_unresolved_names,
+  render_init_fragments,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
   split_readable_identifier,
@@ -41,7 +40,6 @@ use rspack_core::{
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::plugin;
-use rspack_util::SpanExt;
 #[cfg(allocative)]
 use rspack_util::rspack_allocative;
 pub use side_effects_flag_plugin::*;
@@ -58,7 +56,7 @@ static COMPILATION_HOOKS_MAP: LazyLock<
   SyncRwLock<FxHashMap<CompilationId, Arc<RwLock<JavascriptModulesPluginHooks>>>>,
 > = LazyLock::new(Default::default);
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct WithHash<T> {
   hash: Option<RspackHashDigest>,
   value: T,
@@ -67,8 +65,7 @@ struct WithHash<T> {
 #[derive(Debug, Default)]
 struct RenameModuleCache {
   inlined_modules_to_info: IdentifierDashMap<Arc<WithHash<InlinedModuleInfo>>>,
-  non_inlined_modules_through_idents:
-    IdentifierDashMap<Arc<WithHash<Vec<ConcatenatedModuleIdent>>>>,
+  non_inlined_modules_used_names: IdentifierDashMap<Arc<WithHash<HashSet<Atom>>>>,
 }
 
 impl RenameModuleCache {
@@ -79,12 +76,9 @@ impl RenameModuleCache {
       .map(|info| info.clone())
   }
 
-  pub fn get_non_inlined_idents(
-    &self,
-    ident: &Identifier,
-  ) -> Option<Arc<WithHash<Vec<ConcatenatedModuleIdent>>>> {
+  pub fn get_non_inlined_names(&self, ident: &Identifier) -> Option<Arc<WithHash<HashSet<Atom>>>> {
     self
-      .non_inlined_modules_through_idents
+      .non_inlined_modules_used_names
       .get(ident)
       .map(|idents| idents.clone())
   }
@@ -93,14 +87,13 @@ impl RenameModuleCache {
 #[derive(Debug, Clone)]
 struct InlinedModuleInfo {
   source: Arc<dyn Source>,
-  module_scope_idents: Vec<Arc<ConcatenatedModuleIdent>>,
-  used_in_non_inlined: Vec<Arc<ConcatenatedModuleIdent>>,
+  analysis: Arc<ConcatenatedModuleAnalysis>,
 }
 
 #[derive(Debug)]
 struct RenameInfoPatch {
   inlined_modules_to_info: IdentifierMap<InlinedModuleInfo>,
-  non_inlined_module_through_idents: Vec<ConcatenatedModuleIdent>,
+  non_inlined_module_used_names: HashSet<Atom>,
   all_used_names: HashSet<Atom>,
 }
 
@@ -1070,11 +1063,6 @@ var {} = {{}};
       return Ok(None);
     }
 
-    let mut inlined_modules_to_info: IdentifierMap<InlinedModuleInfo> = IdentifierMap::default();
-    let mut non_inlined_module_through_idents: Vec<ConcatenatedModuleIdent> = Vec::new();
-    let mut all_used_names: HashSet<Atom> = RESERVED_NAMES_ATOM_SET.clone();
-    let mut renamed_inline_modules: IdentifierMap<Arc<dyn Source>> = IdentifierMap::default();
-
     let render_module_results = rspack_parallel::scope::<_, _>(|token| {
       all_modules.iter().for_each(|module| {
         let s = unsafe {
@@ -1129,14 +1117,14 @@ var {} = {{}};
     }
 
     // make patch in parallel iteration
-    let rename_info_patch = render_module_sources
+    let rename_info_patch: Result<RenameInfoPatch> = render_module_sources
       .par_iter()
       .fold(
         || {
           Ok(RenameInfoPatch {
             inlined_modules_to_info: IdentifierMap::default(),
-            non_inlined_module_through_idents: Vec::new(),
-            all_used_names: RESERVED_NAMES_ATOM_SET.clone(),
+            non_inlined_module_used_names: HashSet::default(),
+            all_used_names: HashSet::default(),
           })
         },
         |mut acc, (rendered_module, m)| {
@@ -1155,64 +1143,41 @@ var {} = {{}};
                 )
                 && *hash_current == *hash_cache
               {
-                let WithHash { value, .. } = (*ident_info_with_hash).clone();
+                let value = ident_info_with_hash.value.clone();
+                acc
+                  .all_used_names
+                  .extend(value.analysis.used_names().cloned());
                 acc.inlined_modules_to_info.insert(m.identifier(), value);
                 use_cache = true;
               }
             } else if let Some(idents_with_hash) = self
               .rename_module_cache
-              .get_non_inlined_idents(&m.identifier())
+              .get_non_inlined_names(&m.identifier())
               && let (Some(hash_current), Some(hash_cache)) =
                 (m.build_info().hash.as_ref(), idents_with_hash.hash.as_ref())
               && *hash_current == *hash_cache
             {
               acc
-                .all_used_names
-                .extend(idents_with_hash.value.iter().map(|v| v.name.clone()));
-              acc
-                .non_inlined_module_through_idents
-                .extend(idents_with_hash.value.clone());
+                .non_inlined_module_used_names
+                .extend(idents_with_hash.value.iter().cloned());
               use_cache = true;
             }
 
             if !use_cache {
               let code_string = code.source().into_string_lossy();
-              if let Ok(analysis) = analyze_program_identifiers(code_string.as_ref(), false) {
-                let global_scope_id = analysis.global_ctxt;
-                let module_scope_id = analysis.module_ctxt;
-                let collector_ids = analysis.identifiers;
-
-                if is_inlined_module {
-                  let mut module_scope_idents = Vec::new();
-
-                  for ident in collector_ids {
-                    let scope_id = ident.scope;
-                    if scope_id == global_scope_id
-                      || scope_id != module_scope_id
-                      || ident.is_class_expr_with_ident
-                    {
-                      acc.all_used_names.insert(ident.name.clone());
-                    }
-
-                    if scope_id == module_scope_id {
-                      acc.all_used_names.insert(ident.name.clone());
-                      module_scope_idents.push(Arc::new(ident));
-                    }
-                  }
-
+              if is_inlined_module {
+                if let Ok(analysis) = analyze_program_identifiers(code_string.as_ref(), false) {
+                  acc.all_used_names.extend(analysis.used_names().cloned());
                   let ident = m.identifier();
-
                   let info = InlinedModuleInfo {
                     source: code.clone(),
-                    module_scope_idents,
-                    used_in_non_inlined: Vec::new(),
+                    analysis,
                   };
                   let runtime = compilation
                     .build_chunk_graph_artifact
                     .chunk_by_ukey
                     .expect_get(chunk_ukey)
                     .runtime();
-
                   self.rename_module_cache.inlined_modules_to_info.insert(
                     ident,
                     Arc::new(WithHash {
@@ -1220,37 +1185,31 @@ var {} = {{}};
                       value: info.clone(),
                     }),
                   );
-
                   acc.inlined_modules_to_info.insert(ident, info);
-                } else {
-                  let mut idents_vec = vec![];
-                  let module_ident = m.identifier();
-                  let runtime = compilation
-                    .build_chunk_graph_artifact
-                    .chunk_by_ukey
-                    .expect_get(chunk_ukey)
-                    .runtime();
-
-                  for ident in collector_ids {
-                    if ident.scope == global_scope_id {
-                      acc.all_used_names.insert(ident.name.clone());
-                      idents_vec.push(ident.clone());
-                      acc.non_inlined_module_through_idents.push(ident);
-                    }
-                  }
-
-                  self
-                    .rename_module_cache
-                    .non_inlined_modules_through_idents
-                    .insert(
-                      module_ident,
-                      Arc::new(WithHash {
-                        hash: ChunkGraph::get_module_hash(compilation, module_ident, runtime)
-                          .cloned(),
-                        value: idents_vec.clone(),
-                      }),
-                    );
                 }
+              } else if let Ok(names) =
+                analyze_program_unresolved_names(code_string.as_ref(), false)
+              {
+                acc
+                  .non_inlined_module_used_names
+                  .extend(names.iter().cloned());
+                let module_ident = m.identifier();
+                let runtime = compilation
+                  .build_chunk_graph_artifact
+                  .chunk_by_ukey
+                  .expect_get(chunk_ukey)
+                  .runtime();
+                self
+                  .rename_module_cache
+                  .non_inlined_modules_used_names
+                  .insert(
+                    module_ident,
+                    Arc::new(WithHash {
+                      hash: ChunkGraph::get_module_hash(compilation, module_ident, runtime)
+                        .cloned(),
+                      value: names,
+                    }),
+                  );
               }
             }
           }
@@ -1262,8 +1221,8 @@ var {} = {{}};
         || {
           Ok(RenameInfoPatch {
             inlined_modules_to_info: IdentifierMap::default(),
-            non_inlined_module_through_idents: Vec::new(),
-            all_used_names: RESERVED_NAMES_ATOM_SET.clone(),
+            non_inlined_module_used_names: HashSet::default(),
+            all_used_names: HashSet::default(),
           })
         },
         |acc, chunk| match acc {
@@ -1273,8 +1232,8 @@ var {} = {{}};
                 .inlined_modules_to_info
                 .extend(chunk.inlined_modules_to_info);
               acc
-                .non_inlined_module_through_idents
-                .extend(chunk.non_inlined_module_through_idents);
+                .non_inlined_module_used_names
+                .extend(chunk.non_inlined_module_used_names);
               acc.all_used_names.extend(chunk.all_used_names);
               Ok(acc)
             }
@@ -1284,94 +1243,48 @@ var {} = {{}};
         },
       );
 
-    match rename_info_patch {
-      Ok(rename_info_patch) => {
-        // update patches
-        inlined_modules_to_info.extend(rename_info_patch.inlined_modules_to_info);
-        non_inlined_module_through_idents
-          .extend(rename_info_patch.non_inlined_module_through_idents);
-        all_used_names.extend(rename_info_patch.all_used_names);
-      }
-      Err(e) => return Err(e),
-    }
+    let RenameInfoPatch {
+      inlined_modules_to_info,
+      non_inlined_module_used_names,
+      mut all_used_names,
+    } = rename_info_patch?;
+    all_used_names.extend(RESERVED_NAMES_ATOM_SET.iter().cloned());
+    all_used_names.extend(non_inlined_module_used_names.iter().cloned());
     let mut name_allocator = ConcatenationNameAllocator::new(all_used_names);
+    let mut renamed_inline_modules: IdentifierMap<Arc<dyn Source>> =
+      IdentifierMap::with_capacity_and_hasher(inlined_modules_to_info.len(), Default::default());
 
-    for (_ident, info) in inlined_modules_to_info.iter_mut() {
-      for module_scope_ident in info.module_scope_idents.iter() {
-        for non_inlined_module_through_ident in non_inlined_module_through_idents.iter() {
-          if module_scope_ident.name == non_inlined_module_through_ident.name {
-            info
-              .used_in_non_inlined
-              .push(Arc::clone(module_scope_ident));
-          }
-        }
-      }
-    }
-
-    for (module_id, inlined_module_info) in inlined_modules_to_info.iter() {
-      let InlinedModuleInfo {
-        source: _source,
-        module_scope_idents,
-        used_in_non_inlined,
-      } = inlined_module_info;
-
+    for (module_id, info) in &inlined_modules_to_info {
       let module = all_modules
         .iter()
         .find(|m| m.identifier() == *module_id)
         .unwrap_or_else(|| panic!("should find inlined module id \"{module_id}\" in all_modules"));
-
-      let source: Arc<dyn Source> = _source.clone();
-      let mut replace_source = ReplaceSource::new(_source.clone());
-
-      if used_in_non_inlined.is_empty() {
-        renamed_inline_modules.insert(*module_id, source);
-        continue;
-      }
-
-      let mut binding_to_ref = FxHashMap::<_, Vec<ConcatenatedModuleIdent>>::default();
-
-      for module_scope_ident in module_scope_idents.iter() {
-        match binding_to_ref.entry((module_scope_ident.name.clone(), module_scope_ident.scope)) {
-          Entry::Occupied(mut occ) => {
-            occ.get_mut().push(module_scope_ident.deref().clone());
-          }
-          Entry::Vacant(vac) => {
-            vac.insert(vec![module_scope_ident.deref().clone()]);
-          }
-        };
-      }
-
-      for (id, refs) in binding_to_ref.iter() {
-        let name = &id.0;
-        let ident_used = !used_in_non_inlined
-          .iter()
-          .filter(|v| v.name == *name)
-          .collect::<Vec<_>>()
-          .is_empty();
-
-        if ident_used {
-          let context = compilation.options.context.clone();
-          let readable_identifier = module.readable_identifier(&context).to_string();
-          let splitted_readable_identifier = split_readable_identifier(&readable_identifier);
-          let new_name = name_allocator.find_new_name(name, &splitted_readable_identifier);
-
-          for identifier in refs.iter() {
-            let span = identifier.span;
-            let low = span.real_lo();
-            let high = span.real_hi();
-
-            if identifier.shorthand {
-              replace_source.insert(high, format!(": {new_name}"), None);
-              continue;
-            }
-
-            replace_source.replace(low, high, new_name.to_string(), None);
-          }
+      let mut source = None;
+      let mut identifier = None;
+      let analysis = &info.analysis;
+      for symbol in analysis
+        .symbol_groups()
+        .filter(|&symbol| analysis.is_top_level(symbol))
+      {
+        let name = analysis.symbol_name(symbol);
+        if !non_inlined_module_used_names.contains(name) {
+          continue;
         }
+        let identifier = identifier.get_or_insert_with(|| {
+          split_readable_identifier(&module.readable_identifier(&compilation.options.context))
+        });
+        let new_name = name_allocator.find_new_name(name, identifier);
+        let source = source.get_or_insert_with(|| ReplaceSource::new(info.source.clone()));
+        analysis.rename_symbol(symbol, new_name.as_str(), source);
       }
-
-      let source: Arc<dyn Source> = Arc::new(replace_source);
-      renamed_inline_modules.insert(*module_id, Arc::clone(&source));
+      renamed_inline_modules.insert(
+        *module_id,
+        if let Some(source) = source {
+          Arc::new(source)
+        } else {
+          info.source.clone()
+        },
+      );
     }
 
     Ok(Some(renamed_inline_modules))

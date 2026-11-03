@@ -1,145 +1,163 @@
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
 use std::{
+  cell::OnceCell,
   ffi::c_void,
   ptr,
-  sync::atomic::{AtomicPtr, Ordering},
+  sync::{Arc, Weak},
   thread::{self, ThreadId},
 };
 
 use napi::{
-  Env, Result,
+  Result,
   bindgen_prelude::{FromNapiValue, ToNapiValue, check_status},
-  sys::{self, napi_call_threadsafe_function, napi_env, napi_ref, napi_threadsafe_function__},
+  sys::{self, napi_env},
+  threadsafe_function::ThreadsafeFunctionHandle,
 };
 
-use crate::{CLEANUP_ENV_HOOK, GLOBAL_CLEANUP_FLAG};
+thread_local! {
+  // Each Node worker has one JS thread and env. Capture its owner once;
+  // off-thread Drop must never read TLS.
+  static DELETE_REF_TS_FN: OnceCell<Arc<ReferenceOwner>> = const { OnceCell::new() };
+}
 
-// This process-global dropper assumes all references belong to one Node environment.
-// Parallel loader workers send loader state and results back to the compiler's JS
-// thread before they become references here; they do not transfer these references
-// directly to Rust. This does not cover compilers created in separate worker_threads
-// isolates: that requires a TSFN per napi_env, removed during environment cleanup,
-// so napi_delete_reference always receives the environment that owns the reference.
-static DELETE_REF_TS_FN: AtomicPtr<napi_threadsafe_function__> = AtomicPtr::new(ptr::null_mut());
+struct ReferenceOwner {
+  env: napi_env,
+  thread_id: ThreadId,
+  handle: Arc<ThreadsafeFunctionHandle>,
+}
 
-extern "C" fn napi_js_callback(
-  env: sys::napi_env,
+// SAFETY: env is only used on its originating JS thread. Other threads use the
+// TSFN under the handle's lock, which also synchronizes with finalization.
+unsafe impl Send for ReferenceOwner {}
+unsafe impl Sync for ReferenceOwner {}
+
+extern "C" fn finalize_delete_ref(_env: napi_env, data: *mut c_void, _hint: *mut c_void) {
+  let handle = unsafe { Weak::<ThreadsafeFunctionHandle>::from_raw(data.cast()) };
+  if let Some(handle) = handle.upgrade() {
+    handle.with_write_aborted(|mut aborted| *aborted = true);
+  }
+}
+
+extern "C" fn delete_reference(
+  env: napi_env,
   _js_callback: sys::napi_value,
   _context: *mut c_void,
   data: *mut c_void,
 ) {
-  // env can be null when shutting down
-  if env.is_null() {
-    return;
+  // Node owns reference cleanup once the environment has shut down.
+  if !env.is_null() {
+    unsafe { sys::napi_delete_reference(env, data.cast()) };
   }
-  unsafe { sys::napi_delete_reference(env, data as napi_ref) };
+}
+
+impl ReferenceOwner {
+  fn new(env: napi_env) -> Result<Self> {
+    let mut name = ptr::null_mut();
+    check_status!(unsafe {
+      sys::napi_create_string_utf8(env, c"delete_reference_ts_fn".as_ptr(), 21, &mut name)
+    })?;
+    let handle = ThreadsafeFunctionHandle::null();
+    let finalize_data = scopeguard::guard(Arc::downgrade(&handle).into_raw(), |data| unsafe {
+      drop(Weak::from_raw(data));
+    });
+    let mut raw = ptr::null_mut();
+    check_status!(unsafe {
+      sys::napi_create_threadsafe_function(
+        env,
+        ptr::null_mut(),
+        ptr::null_mut(),
+        name,
+        0,
+        1,
+        (*finalize_data).cast_mut().cast(),
+        Some(finalize_delete_ref),
+        ptr::null_mut(),
+        Some(delete_reference),
+        &mut raw,
+      )
+    })?;
+    scopeguard::ScopeGuard::into_inner(finalize_data);
+    // The handle releases the TSFN, including on initialization failure.
+    handle.set_raw(raw);
+    check_status!(unsafe { sys::napi_unref_threadsafe_function(env, raw) })?;
+    Ok(Self {
+      env,
+      thread_id: thread::current().id(),
+      handle,
+    })
+  }
+
+  fn delete(&self, reference: sys::napi_ref) {
+    if self.thread_id == thread::current().id() {
+      self.handle.with_read_aborted(|aborted| {
+        if !aborted {
+          unsafe { sys::napi_delete_reference(self.env, reference) };
+        }
+      });
+    } else {
+      // Keep the guard through the native call. A Closing result must prevent
+      // further calls even before Node runs the finalizer.
+      self.handle.with_write_aborted(|mut aborted| {
+        if *aborted {
+          return;
+        }
+        let status = unsafe {
+          sys::napi_call_threadsafe_function(
+            self.handle.get_raw(),
+            reference.cast(),
+            sys::ThreadsafeFunctionCallMode::nonblocking,
+          )
+        };
+        if status == sys::Status::napi_closing {
+          *aborted = true;
+        }
+        debug_assert!(status == sys::Status::napi_ok || status == sys::Status::napi_closing);
+      });
+    }
+  }
 }
 
 pub struct ThreadsafeOneShotRef {
-  env: napi_env,
   napi_ref: sys::napi_ref,
-  thread_id: ThreadId,
+  owner: Arc<ReferenceOwner>,
 }
 
-// SAFETY: Moving the wrapper only transfers opaque Node-API handles. Off-thread
-// Drop queues their deletion through the TSFN instead of accessing JS directly.
-// This requires the shared TSFN to belong to the originating environment and
-// remain valid until the deletion is queued.
+// SAFETY: The reference is an opaque handle. Its owner routes deletion to the
+// originating JS thread and prevents calls after TSFN finalization.
 unsafe impl Send for ThreadsafeOneShotRef {}
-
-// SAFETY: Shared references do not mutate the stored handles. JS value lookup
-// through ToNapiValue must still run on the originating JS thread with its env;
-// sharing this wrapper does not make the underlying JS value thread-safe.
+// SAFETY: Shared access does not touch JS. ToNapiValue still requires the
+// originating JS thread and environment, as with other Node-API values.
 unsafe impl Sync for ThreadsafeOneShotRef {}
 
 impl ThreadsafeOneShotRef {
   pub fn new<T: ToNapiValue>(env: napi_env, val: T) -> Result<Self> {
     let napi_value = unsafe { ToNapiValue::to_napi_value(env, val)? };
-
-    let mut napi_ref = ptr::null_mut();
-    check_status!(unsafe { sys::napi_create_reference(env, napi_value, 1, &mut napi_ref) })?;
-
-    Self::from_napi_ref(env, napi_ref)
+    unsafe { Self::from_napi_value(env, napi_value) }
   }
 
   pub fn from_napi_ref(env: napi_env, r: sys::napi_ref) -> Result<Self> {
-    let env_wrapper = Env::from(env);
-
-    CLEANUP_ENV_HOOK.with(|ref_cell| {
-      if ref_cell.borrow().is_none() {
-        let result = env_wrapper.add_env_cleanup_hook((), move |_| {
-          CLEANUP_ENV_HOOK.with_borrow_mut(|cleanup_env_hook| *cleanup_env_hook = None);
-          GLOBAL_CLEANUP_FLAG.set(true);
-        });
-        if let Ok(cleanup_env_hook) = result {
-          *ref_cell.borrow_mut() = Some(cleanup_env_hook);
-        }
-      }
+    let reference_on_error = scopeguard::guard(r, |r| unsafe {
+      sys::napi_delete_reference(env, r);
     });
-
-    if DELETE_REF_TS_FN.load(Ordering::Relaxed).is_null() {
-      let mut async_resource_name = ptr::null_mut();
-      check_status!(
-        unsafe {
-          sys::napi_create_string_utf8(
-            env,
-            c"delete_reference_ts_fn".as_ptr(),
-            16,
-            &mut async_resource_name,
-          )
-        },
-        "Failed to create async resource name"
-      )?;
-
-      let mut ts_fn = ptr::null_mut();
-      check_status!(
-        unsafe {
-          sys::napi_create_threadsafe_function(
-            env,
-            ptr::null_mut(),
-            ptr::null_mut(),
-            async_resource_name,
-            0,
-            1,
-            ptr::null_mut(),
-            None,
-            ptr::null_mut(),
-            Some(napi_js_callback),
-            &mut ts_fn,
-          )
-        },
-        "Failed to create threadsafe function"
-      )?;
-      check_status!(unsafe { sys::napi_unref_threadsafe_function(env, ts_fn) })?;
-      DELETE_REF_TS_FN.store(ts_fn, Ordering::Relaxed);
-    }
-
+    let owner = DELETE_REF_TS_FN.with(|cell| -> Result<_> {
+      if let Some(owner) = cell.get() {
+        return Ok(Arc::clone(owner));
+      }
+      // Leave the cell empty if initialization fails so a later call can retry.
+      let owner = Arc::new(ReferenceOwner::new(env)?);
+      Ok(Arc::clone(cell.get_or_init(|| owner)))
+    })?;
     Ok(Self {
-      thread_id: thread::current().id(),
-      env,
-      napi_ref: r,
+      napi_ref: scopeguard::ScopeGuard::into_inner(reference_on_error),
+      owner,
     })
   }
 }
 
 impl Drop for ThreadsafeOneShotRef {
   fn drop(&mut self) {
-    if GLOBAL_CLEANUP_FLAG.get() {
-      return;
-    }
-    if self.thread_id == thread::current().id() {
-      unsafe { sys::napi_delete_reference(self.env, self.napi_ref) };
-    } else {
-      let ts_fn = DELETE_REF_TS_FN.load(Ordering::Relaxed);
-      unsafe {
-        let _ = napi_call_threadsafe_function(
-          ts_fn,
-          self.napi_ref.cast(),
-          sys::ThreadsafeFunctionCallMode::nonblocking,
-        );
-      }
-    }
+    self.owner.delete(self.napi_ref);
   }
 }
 
