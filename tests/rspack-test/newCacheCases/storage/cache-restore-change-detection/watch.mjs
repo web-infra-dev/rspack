@@ -16,6 +16,12 @@ if (phase === "warm") {
 	fs.writeFileSync(path.join(sourceDirectory, "index.js"),
 		'import value from "./value.js";\nconsole.log(value);\n');
 	fs.writeFileSync(valueFile, `export default ${JSON.stringify(initialValue)};\n`);
+	// Keep the warm snapshot outside the filesystem timestamp safety window.
+	// This case requires a disk cache hit before testing watch invalidation.
+	const initialTime = new Date("2000-01-01T00:00:00Z");
+	for (const file of [path.join(sourceDirectory, "index.js"), valueFile]) {
+		fs.utimesSync(file, initialTime, initialTime);
+	}
 }
 
 const compiler = rspack({
