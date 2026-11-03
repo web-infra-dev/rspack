@@ -199,7 +199,7 @@ export default {
 
 为自动生成的 chunk ID 添加便于识别的文字。使用 [`optimization.chunkIds: 'named'`](/config/optimization#optimizationchunkids) 时，这段文字会成为 ID 的一部分。
 
-例如，为 `defaultVendors` 抽离出的第三方依赖添加 `third-party` 标识，并通过 `[id]` 将它体现在文件名中：
+例如，将 `defaultVendors` 的 `idHint` 改为 `third-party`。自定义配置会替换整个默认组，因此这里也保留其余默认选项：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -214,6 +214,9 @@ export default {
       cacheGroups: {
         defaultVendors: {
           idHint: 'third-party',
+          test: /[\\/]node_modules[\\/]/,
+          priority: -10,
+          reuseExistingChunk: true,
         },
       },
     },
@@ -221,9 +224,9 @@ export default {
 };
 ```
 
-满足拆分条件后，`defaultVendors` 生成的未命名 chunk 会获得包含 `third-party` 的 ID，对应的文件名也会包含这段文字。
+抽离出的未命名 chunk，其 ID 会包含 `third-party`，使用 `[id]` 的文件名也会包含它。
 
-`idHint` 只影响自动生成的 ID，不会像固定的 [`name`](#splitchunksname) 那样把多个 chunk 合并到一起。它的显示效果取决于 chunk ID 策略；使用 `deterministic` 等策略时，文件名中不一定包含这段文字。
+与固定的 [`name`](#splitchunksname) 不同，`idHint` 不会合并 chunk。使用 `deterministic` 等其他 chunk ID 策略时，文件名中不一定包含这段文字。
 
 #### layer
 
