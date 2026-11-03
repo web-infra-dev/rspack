@@ -98,6 +98,7 @@ var resolveQueue = (queue) => {
 		queue.d = 1;
 	queue.forEach((fn) => (fn.r--));
 		queue.forEach((fn) => (fn.r-- ? fn.r++ : fn()));
+		queue.length = 0;
 	}
 }
 var wrapDeps = (deps) => {
@@ -161,6 +162,9 @@ __webpack_require__.a = (module, body, hasAwait, useModuleExports) => {
 		var currentDepQueues = new Set();
 		var fn;
 		var getResult = () => {
+			currentDepQueues.forEach((depQueue) => {
+				if (depQueue.d === 1) depQueues.delete(depQueue);
+			});
 			return currentDeps.map((d) => {
 				if(d[rspackDefer]) return d;
 				if (d[rspackError]) throw d[rspackError];

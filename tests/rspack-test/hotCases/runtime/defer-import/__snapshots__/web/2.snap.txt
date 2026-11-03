@@ -8,7 +8,7 @@
 - Bundle: async_js.chunk.CURRENT_HASH.js
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 29036
+- Update: main.LAST_HASH.hot-update.js, size: 29161
 
 ## Manifest
 
@@ -100,6 +100,7 @@ var resolveQueue = (queue) => {
 		queue.d = 1;
     	queue.forEach((fn) => (fn.r--));
 		queue.forEach((fn) => (fn.r-- ? fn.r++ : fn()));
+		queue.length = 0;
 	}
 }
 var wrapDeps = (deps) => {
@@ -163,6 +164,9 @@ __webpack_require__.a = (module, body, hasAwait, useModuleExports) => {
 		var currentDepQueues = new Set();
 		var fn;
 		var getResult = () => {
+			currentDepQueues.forEach((depQueue) => {
+				if (depQueue.d === 1) depQueues.delete(depQueue);
+			});
 			return currentDeps.map((d) => {
 				if(d[rspackDefer]) return d;
 				if (d[rspackError]) throw d[rspackError];

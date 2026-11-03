@@ -20,6 +20,7 @@
 		queue.d = 1;
     	queue.forEach(<%- expressionFunction("fn.r--", "fn") %>);
 		queue.forEach(<%- expressionFunction("fn.r-- ? fn.r++ : fn()", "fn") %>);
+		queue.length = 0;
 	}
 }
 <%- var("wrapDeps") %> = <%- basicFunction("deps") %> {
@@ -83,6 +84,9 @@
 		var currentDepQueues = new Set();
 		var fn;
 		var getResult = <%- basicFunction("") %> {
+			currentDepQueues.forEach(<%- basicFunction("depQueue") %> {
+				if (depQueue.d === 1) depQueues.delete(depQueue);
+			});
 			return currentDeps.map(<%- basicFunction("d") %> {
 				if(d[rspackDefer]) return d;
 				if (d[rspackError]) throw d[rspackError];
