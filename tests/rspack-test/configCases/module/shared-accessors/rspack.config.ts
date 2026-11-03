@@ -66,6 +66,16 @@ export default defineConfig({
             expect(commit.enumerable).toBe(false);
             expect(commit.configurable).toBe(true);
             expect(commit.writable).toBe(false);
+            let invalidReceiverReads = 0;
+            expect(() =>
+              commit.value.call({
+                get custom() {
+                  invalidReceiverReads++;
+                  return 'invalid';
+                },
+              }),
+            ).toThrow();
+            expect(invalidReceiverReads).toBe(0);
             expect(commit.value).toBe(
               Object.getOwnPropertyDescriptor(first.buildInfo, commitKey)!
                 .value,
@@ -132,11 +142,12 @@ export default defineConfig({
               module.factoryMeta = {};
             }).toThrow(/only modify the module in the loader/);
           }
-          const getInfo = Object.getOwnPropertyDescriptor(
-            first,
-            'buildInfo',
-          )!.get!;
-          expect(getInfo.call(second)).toBe(second.buildInfo);
+          const { get: getInfo, set: setInfo } =
+            Object.getOwnPropertyDescriptor(first, 'buildInfo')!;
+          expect(getInfo!.call(second)).toBe(second.buildInfo);
+          // A different napi class can be unwrapped, but is not a Module.
+          expect(() => getInfo!.call(first.buildInfo)).toThrow();
+          expect(() => setInfo!.call(first.buildInfo, {})).toThrow();
           // A shared getter must resolve its receiver rather than the first instance.
           const getFiles = Object.getOwnPropertyDescriptor(
             first.buildInfo,

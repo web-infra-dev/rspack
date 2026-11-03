@@ -146,38 +146,42 @@ fn module_factory_meta_setter(ctx: CallContext) -> napi::Result<()> {
 
 #[js_function]
 fn module_build_info_getter(ctx: CallContext) -> napi::Result<Object> {
-  // All native references stay inside this synchronous callback.
-  let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
   let mut this = ctx.this_unchecked::<JsObject>();
   let env = ctx.env;
   let raw_env = env.raw();
-  let module_reference = unsafe { ModuleWeakReference::from_napi_value(raw_env, this.raw())? };
-  let reference = unsafe { module_from_napi_mut_ref(raw_env, this.raw())? };
-  if let Some(r) = &reference.build_info_ref {
-    return r.as_object(env);
-  }
-  let mut build_info = BuildInfo::new(module_reference).get_jsobject(env)?;
+  let (compiler_id, module_identifier) = {
+    let _borrow_scope = unsafe { NativeBorrowScope::new() };
+    let reference = unsafe { module_from_napi_mut_ref(raw_env, this.raw())? };
+    if let Some(r) = &reference.build_info_ref {
+      return r.as_object(env);
+    }
+    (reference.compiler_id, reference.identifier)
+  };
+  let mut build_info = BuildInfo::new(compiler_id, module_identifier).get_jsobject(env)?;
   this.set_property(
     env.symbol_for(symbols::MODULE_BUILD_INFO_SYMBOL)?,
     build_info,
   )?;
   let r = WeakRef::new(raw_env, &mut build_info)?;
   let result = r.as_object(env);
+  let _borrow_scope = unsafe { NativeBorrowScope::new() };
+  let reference = unsafe { module_from_napi_mut_ref(raw_env, this.raw())? };
   reference.build_info_ref = Some(r);
   result
 }
 
 #[js_function(1)]
 fn module_build_info_setter(ctx: CallContext) -> napi::Result<()> {
-  // All native references stay inside this synchronous callback.
-  let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
   let mut this = ctx.this_unchecked::<JsObject>();
   let input_object = ctx.get::<Object>(0)?;
   let env = ctx.env;
   let raw_env = env.raw();
-  let module_reference = unsafe { ModuleWeakReference::from_napi_value(raw_env, this.raw())? };
-  let reference = unsafe { module_from_napi_mut_ref(raw_env, this.raw())? };
-  let new_build_info = BuildInfo::new(module_reference);
+  let (compiler_id, module_identifier) = {
+    let _borrow_scope = unsafe { NativeBorrowScope::new() };
+    let reference = unsafe { module_from_napi_mut_ref(raw_env, this.raw())? };
+    (reference.compiler_id, reference.identifier)
+  };
+  let new_build_info = BuildInfo::new(compiler_id, module_identifier);
   let mut new_instance = new_build_info.get_jsobject(env)?;
 
   let names = input_object.get_all_property_names(
@@ -202,6 +206,8 @@ fn module_build_info_setter(ctx: CallContext) -> napi::Result<()> {
     env.symbol_for(symbols::MODULE_BUILD_INFO_SYMBOL)?,
     new_instance,
   )?;
+  let _borrow_scope = unsafe { NativeBorrowScope::new() };
+  let reference = unsafe { module_from_napi_mut_ref(raw_env, this.raw())? };
   reference.build_info_ref = Some(WeakRef::new(raw_env, &mut new_instance)?);
   Ok(())
 }
@@ -615,65 +621,40 @@ unsafe fn module_from_napi_mut_ref<'a>(
   })
 }
 
-// Cloning this reference only clones the weak finalizer handle. It neither
-// copies the module nor keeps its JavaScript wrapper alive.
-#[derive(Clone)]
-pub(crate) struct ModuleWeakReference(
-  Either5<
-    WeakReference<NormalModule>,
-    WeakReference<ConcatenatedModule>,
-    WeakReference<ContextModule>,
-    WeakReference<ExternalModule>,
-    WeakReference<Module>,
-  >,
-);
-
-impl ModuleWeakReference {
-  unsafe fn from_napi_value(env: sys::napi_env, value: sys::napi_value) -> napi::Result<Self> {
-    // Validation must not create an &Module borrow: napi keeps conversion
-    // borrows alive for the callback, which would conflict with its mutable access.
-    unsafe {
-      if <&NormalModule>::validate(env, value).is_ok() {
-        Ok(Self(Either5::A(
-          Reference::<NormalModule>::from_napi_value(env, value)?.downgrade(),
-        )))
-      } else if <&ConcatenatedModule>::validate(env, value).is_ok() {
-        Ok(Self(Either5::B(
-          Reference::<ConcatenatedModule>::from_napi_value(env, value)?.downgrade(),
-        )))
-      } else if <&ContextModule>::validate(env, value).is_ok() {
-        Ok(Self(Either5::C(
-          Reference::<ContextModule>::from_napi_value(env, value)?.downgrade(),
-        )))
-      } else if <&ExternalModule>::validate(env, value).is_ok() {
-        Ok(Self(Either5::D(
-          Reference::<ExternalModule>::from_napi_value(env, value)?.downgrade(),
-        )))
-      } else {
-        Ok(Self(Either5::E(
-          Reference::<Module>::from_napi_value(env, value)?.downgrade(),
-        )))
-      }
-    }
-  }
-
-  pub(crate) fn get_mut(&mut self) -> Option<&mut Module> {
-    match &mut self.0 {
-      Either5::A(reference) => reference.get_mut().map(|module| &mut module.module),
-      Either5::B(reference) => reference.get_mut().map(|module| &mut module.module),
-      Either5::C(reference) => reference.get_mut().map(|module| &mut module.module),
-      Either5::D(reference) => reference.get_mut().map(|module| &mut module.module),
-      Either5::E(reference) => reference.get_mut(),
-    }
-  }
-}
-
 type ModuleInstanceNapiRefs = IdentifierMap<ModuleInstanceNapiRef>;
 
 type ModuleInstanceNapiRefsByCompilerId = RefCell<FxHashMap<CompilerId, ModuleInstanceNapiRefs>>;
 
 thread_local! {
   static MODULE_INSTANCE_REFS: ModuleInstanceNapiRefsByCompilerId = Default::default();
+}
+
+// Resolve the current wrapper, including its loader-scoped pointer. The callback
+// must not invoke user JavaScript while the instance cache is borrowed.
+pub(crate) fn with_module_instance<R>(
+  compiler_id: CompilerId,
+  module_identifier: ModuleIdentifier,
+  f: impl FnOnce(&mut Module) -> napi::Result<R>,
+) -> napi::Result<R> {
+  MODULE_INSTANCE_REFS.with(|refs| {
+    let mut refs = refs.borrow_mut();
+    let instance = refs
+      .get_mut(&compiler_id)
+      .and_then(|modules| modules.get_mut(&module_identifier))
+      .ok_or_else(|| {
+        napi::Error::from_reason(format!(
+          "Unable to access module with id = {module_identifier} now. The module has been removed on the Rust side or the Compiler has been garbage collected by JavaScript."
+        ))
+      })?;
+    let module = match instance {
+      Either5::A(module) => &mut module.module,
+      Either5::B(module) => &mut module.module,
+      Either5::C(module) => &mut module.module,
+      Either5::D(module) => &mut module.module,
+      Either5::E(module) => &mut **module,
+    };
+    f(module)
+  })
 }
 
 // The difference between ModuleObject and Module is:

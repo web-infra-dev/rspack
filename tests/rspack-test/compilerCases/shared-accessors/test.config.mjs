@@ -24,6 +24,13 @@ export default [
       await runNodeCase(new URL('./workers.mjs', import.meta.url));
     },
   },
+  {
+    description:
+      'isolates BuildInfo for identical module identifiers in different compilers',
+    async run() {
+      await runNodeCase(new URL('./build-info-compilers.mjs', import.meta.url));
+    },
+  },
   ...['natural', 'exit', 'worker'].flatMap((mode) =>
     [0, 1].map((code) => ({
       name: `shutdown-${mode}-${code}`,

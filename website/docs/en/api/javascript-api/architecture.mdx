@@ -76,6 +76,8 @@ Every build, including each watch rebuild, creates a new `Compilation`. Objects 
 
 A `Dependency` is an exception for properties stored on the dependency itself. Its JavaScript wrapper keeps the Rust dependency alive, so properties such as `type`, `request`, `loc`, and `critical` remain readable after the hook or compilation ends. This longer read lifetime does not extend the mutation window: set `critical` only while a Rspack-invoked hook that permits the change is active. Do not change it from detached callbacks or after the hook completes; a late write can race with diagnostic collection and change which warnings appear. Retaining a `Dependency` does not retain its `Compilation` or make it part of a later build: graph-derived properties such as `ids` and `_parentModule` still require the original compilation and may throw after it becomes unavailable. Before a dependency enters the graph, these graph-derived properties are unavailable.
 
+`Module.buildInfo` combines JavaScript-owned custom fields with getters backed by the current native module. Those getters resolve the module by its compiler and module identifier, without retaining its JavaScript wrapper. If the module is removed or its compiler is garbage collected, access fails. If the same identifier is exposed again by that compiler, a retained `buildInfo` can read the replacement module; it is not a snapshot of the original build. Custom fields remain on their JavaScript object, and writing them back to Rust still requires the supported loader access window.
+
 Follow these rules:
 
 - Use a `Compilation` and its `Module`, `Chunk`, graph, and block objects only in hooks and callbacks for the current build.
