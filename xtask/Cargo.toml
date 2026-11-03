@@ -9,7 +9,7 @@ license.workspace       = true
 name                    = "xtask"
 publish                 = false
 repository.workspace    = true
-version                 = "0.103.0-rc.0"
+version                 = "0.103.0"
 
 [dependencies]
 anyhow     = { workspace = true }

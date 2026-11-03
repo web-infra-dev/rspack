@@ -1,5 +1,6 @@
-use std::{collections::hash_map::Entry, sync::Arc};
+use std::sync::Arc;
 
+use fixedbitset::FixedBitSet;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierIndexMap, IdentifierMap};
 use rspack_error::{Error, Result};
@@ -9,21 +10,20 @@ use rspack_util::{
   fx_hash::{FxHashMap, FxHashSet},
   itoa,
 };
-use swc_core::common::SyntaxContext;
+use smallvec::SmallVec;
 use swc_next_allocator::Allocator;
 use swc_next_ecma_ast::{
-  Ast, BindingIdentifier, Class, ClassType, DeclData, ExportDefaultDeclarationKindData,
-  ExportSpecifier, GetSpan, IdentifierName, IdentifierReference, JsxElementName,
-  JsxElementNameData, JsxMemberExpression, JsxMemberExpressionObjectData, LabelIdentifier, Lang,
-  ModuleExportNameData, ObjectProperty, SourceType as SwcSourceType, Stmt, StmtData, Visit,
-  VisitWith,
+  Ast, BindingIdentifier, DeclData, ExportDefaultDeclarationKindData, GetSpan, IdentifierName,
+  IdentifierReference, LabelIdentifier, Lang, NodeId, NodeKindData, ScopeId,
+  SourceType as SwcSourceType, Stmt, StmtData, Visit, VisitWith,
 };
 use swc_next_ecma_parser::{CommentMode, NoTokenParserConfig, Options as SwcParserOptions, Parser};
-use swc_next_ecma_semantic::name_resolver::{JsNameResolver, SymbolNode, resolver};
+use swc_next_ecma_semantic::{AnalyzeOptions, Semantic, analyze};
 
 use crate::{
-  BuildMetaDefaultObject, BuildMetaExportsType, Compilation, ConcatenatedModuleIdent,
-  ConcatenatedModuleInfo, Context, ExportInfo, ExportProvided, ExportsInfoArtifact, ExportsType,
+  BuildMetaDefaultObject, BuildMetaExportsType, Compilation, ConcatenatedModuleAnalysis,
+  ConcatenatedModuleIdent, ConcatenatedModuleInfo, ConcatenatedModuleReference,
+  ConcatenatedModuleSymbol, Context, ExportInfo, ExportProvided, ExportsInfoArtifact, ExportsType,
   FindTargetResult, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo,
   ModuleStaticCache, RuntimeSpec, UsedName, escape_name_atom_ref, find_target,
   get_cached_readable_identifier, split_readable_identifier, to_identifier_with_escaped,
@@ -452,11 +452,15 @@ impl ConcatenationNameAllocator {
     context: &ConcatenationContext,
   ) {
     let escaped_identifier = context.module_identifier(&module_info.module);
-    for (name, ctxt) in module_info.binding_to_ref.names() {
-      if ctxt != module_info.module_ctxt {
+    let Some(analysis) = &module_info.analysis else {
+      return;
+    };
+    for symbol in analysis.symbol_groups() {
+      if !analysis.is_top_level(symbol) {
         continue;
       }
 
+      let name = &analysis.binding_to_ref[&symbol].name;
       let internal_name = if self.contains(name) {
         self.find_new_name(
           context
@@ -555,29 +559,24 @@ impl ConcatenationNameAllocator {
   }
 }
 
-#[derive(Debug)]
-pub struct ConcatenatedModuleIdentifierAnalysis {
-  pub module_ctxt: SyntaxContext,
-  pub global_ctxt: SyntaxContext,
-  pub identifiers: Vec<ConcatenatedModuleIdent>,
-}
-
-/// Analyze a generated JavaScript program without requiring it to parse as an ES module.
-///
-/// This is used by the JavaScript rendering path, where a generated source may be either a
-/// script or a module. Concatenation consumers should use [`analyze_module_scope`] instead.
+/// Analyze generated JavaScript, which may be a script or a module.
 pub fn analyze_program_identifiers(
   source: &str,
   jsx: bool,
-) -> Result<ConcatenatedModuleIdentifierAnalysis> {
+) -> Result<Arc<ConcatenatedModuleAnalysis>> {
   analyze_identifiers(source, jsx, SwcSourceType::Unambiguous, |ast, semantic| {
-    let mut identifiers = Vec::new();
-    collect_ident(ast, semantic, |identifier| identifiers.push(identifier));
-    ConcatenatedModuleIdentifierAnalysis {
-      module_ctxt: SyntaxContext::from_u32(semantic.top_level_scope_id().raw()),
-      global_ctxt: SyntaxContext::from_u32(semantic.unresolved_scope_id().raw()),
-      identifiers,
-    }
+    Arc::new(collect_ident(ast, semantic))
+  })
+}
+
+/// Collect only unresolved names when no binding renaming or source positions are needed.
+pub fn analyze_program_unresolved_names(source: &str, jsx: bool) -> Result<FxHashSet<Atom>> {
+  analyze_identifiers(source, jsx, SwcSourceType::Unambiguous, |ast, semantic| {
+    semantic
+      .iter_references()
+      .filter(|entry| entry.reference.symbol.is_none())
+      .map(|entry| Atom::from(ast.get_utf8(entry.reference.name)))
+      .collect()
   })
 }
 
@@ -585,7 +584,7 @@ fn analyze_identifiers<T>(
   source: &str,
   jsx: bool,
   source_type: SwcSourceType,
-  analyze: impl FnOnce(&Ast<'_>, &JsNameResolver<'_>) -> T,
+  analyze_program: impl FnOnce(&Ast<'_>, &Semantic<'_>) -> T,
 ) -> Result<T> {
   let allocator = Allocator::new();
   let parse_return = Parser::init(
@@ -611,237 +610,106 @@ fn analyze_identifiers<T>(
   }
 
   let ast = parse_return.ast;
-  let semantic = resolver(&ast);
-  Ok(analyze(&ast, &semantic))
+  let semantic = analyze(&ast, AnalyzeOptions::default()).semantic;
+  Ok(analyze_program(&ast, &semantic))
 }
 
-/// Collects the identifier occurrences needed by concatenated-module renaming.
-/// `JsNameResolver` resolves any supplied symbol but does not expose an iterator
-/// over those symbols. This visitor only enumerates the legacy collector's
-/// occurrences and records shorthand/class-expression metadata; all scope
-/// resolution still comes directly from `JsNameResolver`.
-/// Emit occurrences directly to the consumer so module analysis does not need
-/// an intermediate array of owned identifiers.
-fn collect_ident(
-  ast: &Ast<'_>,
-  semantic: &JsNameResolver<'_>,
-  on_ident: impl FnMut(ConcatenatedModuleIdent),
-) {
-  struct IdentCollector<'a, 'semantic, F> {
-    ast: &'a Ast<'a>,
-    semantic: &'semantic JsNameResolver<'a>,
-    on_ident: F,
-    shorthand_binding: Option<BindingIdentifier>,
-    shorthand_reference: Option<IdentifierReference>,
-    skipped_class_expression_binding: Option<BindingIdentifier>,
+/// Copy only the facts needed after the arena-backed AST and semantic are dropped.
+/// Binding identity, linked names, declarations and uses all come from semantic;
+/// the node scan only records syntax needed to preserve shorthand property keys.
+fn collect_ident(ast: &Ast<'_>, semantic: &Semantic<'_>) -> ConcatenatedModuleAnalysis {
+  let mut shorthand = FxHashSet::default();
+  for index in 0..ast.node_count() {
+    let node = NodeId::from_raw_unchecked(index as u32);
+    match ast.kind_data(node) {
+      NodeKindData::BindingProperty(property) if property.shorthand(ast) => {
+        let value = property.value(ast);
+        let value = value
+          .as_assignment_pattern(ast)
+          .map_or(value, |assignment| assignment.left(ast));
+        shorthand.insert(value.node_id());
+      }
+      NodeKindData::ObjectProperty(property) if property.shorthand(ast) => {
+        shorthand.insert(property.value(ast).node_id());
+      }
+      _ => {}
+    }
   }
-
-  impl<F: FnMut(ConcatenatedModuleIdent)> IdentCollector<'_, '_, F> {
-    fn push(
-      &mut self,
-      name: &str,
-      span: swc_next_ecma_ast::Span,
-      scope: swc_next_ecma_ast::ScopeId,
-      shorthand: bool,
-      is_class_expr_with_ident: bool,
-    ) {
-      let scope = SyntaxContext::from_u32(scope.raw());
-      (self.on_ident)(ConcatenatedModuleIdent {
-        name: Atom::from(name),
-        span,
-        scope,
-        shorthand,
-        is_class_expr_with_ident,
+  let mut analysis = ConcatenatedModuleAnalysis::default();
+  let mut collected = FixedBitSet::with_capacity(semantic.iter_symbols().count());
+  // Reuse storage across rename groups, including declarations shared by linked symbols.
+  let mut nodes = Vec::new();
+  let top_level_scope = ScopeId::program(ast.source_type());
+  for entry in semantic.iter_symbols() {
+    if collected.contains(entry.id.index()) {
+      continue;
+    }
+    let symbols = semantic
+      .linked_symbols(entry.id)
+      .collect::<SmallVec<[_; 1]>>();
+    let name = Atom::from(
+      ast
+        .get_wtf8(entry.symbol.name)
+        .as_str()
+        .expect("JavaScript identifier is UTF-8"),
+    );
+    nodes.clear();
+    let mut top_level = false;
+    for &symbol in &symbols {
+      collected.insert(symbol.index());
+      top_level |= semantic.scope_of_symbol(symbol) == top_level_scope;
+      nodes.extend(
+        semantic
+          .declarations(symbol)
+          .map(|declaration| declaration.node),
+      );
+      nodes.extend(
+        semantic
+          .uses(symbol)
+          .iter()
+          .map(|&reference| semantic.reference(reference).node),
+      );
+    }
+    nodes.sort_unstable_by_key(|&node| (ast.span(node).start, node));
+    nodes.dedup();
+    let start = analysis.references.len();
+    analysis
+      .references
+      .extend(nodes.iter().map(|&node| ConcatenatedModuleReference {
+        span: ast.span(node),
+        shorthand: shorthand.contains(&node),
+      }));
+    let references = start..analysis.references.len();
+    analysis.binding_to_ref.insert(
+      entry.id,
+      ConcatenatedModuleSymbol {
+        name,
+        symbols,
+        top_level,
+        references,
+      },
+    );
+  }
+  // SymbolId breaks ties in original insertion order without allocating cached sort keys.
+  let references = &analysis.references;
+  analysis.binding_to_ref.sort_unstable_by_key(|&id, symbol| {
+    (
+      references[symbol.references.clone()]
+        .first()
+        .map(|ident| ident.span.start),
+      id,
+    )
+  });
+  for entry in semantic.iter_references() {
+    if entry.reference.symbol.is_none() {
+      analysis.global_scope_ident.push(ConcatenatedModuleIdent {
+        name: Atom::from(ast.get_utf8(entry.reference.name)),
+        span: ast.span(entry.reference.node),
+        shorthand: shorthand.contains(&entry.reference.node),
       });
     }
-
-    fn push_binding(
-      &mut self,
-      node: BindingIdentifier,
-      shorthand: bool,
-      is_class_expr_with_ident: bool,
-    ) {
-      self.push(
-        self.ast.get_utf8(node.name(self.ast)),
-        node.span(self.ast),
-        self
-          .semantic
-          .symbol_scope(SymbolNode::BindingIdentifier(node)),
-        shorthand,
-        is_class_expr_with_ident,
-      );
-    }
-
-    fn push_reference(&mut self, node: IdentifierReference, shorthand: bool) {
-      self.push(
-        self.ast.get_utf8(node.name(self.ast)),
-        node.span(self.ast),
-        self
-          .semantic
-          .symbol_scope(SymbolNode::IdentifierReference(node)),
-        shorthand,
-        false,
-      );
-    }
-
-    fn push_label(&mut self, node: LabelIdentifier) {
-      self.push(
-        self.ast.get_utf8(node.name(self.ast)),
-        node.span(self.ast),
-        self
-          .semantic
-          .symbol_scope(SymbolNode::LabelIdentifier(node)),
-        false,
-        false,
-      );
-    }
-
-    fn push_module_export_name(&mut self, node: IdentifierName) {
-      self.push(
-        self.ast.get_utf8(node.name(self.ast)),
-        node.span(self.ast),
-        self
-          .semantic
-          .symbol_scope(SymbolNode::ModuleExportName(node)),
-        false,
-        false,
-      );
-    }
-
-    fn push_jsx_identifier(&mut self, node: swc_next_ecma_ast::JsxIdentifier) {
-      self.push(
-        self.ast.get_utf8(node.name(self.ast)),
-        node.span(self.ast),
-        self.semantic.symbol_scope(SymbolNode::JsxIdentifier(node)),
-        false,
-        false,
-      );
-    }
-
-    fn visit_jsx_member_root(&mut self, member: JsxMemberExpression) {
-      match self
-        .ast
-        .jsx_member_expression_object_data(member.object(self.ast))
-      {
-        JsxMemberExpressionObjectData::JsxIdentifier(identifier) => {
-          self.push_jsx_identifier(identifier);
-        }
-        JsxMemberExpressionObjectData::JsxMemberExpression(member) => {
-          self.visit_jsx_member_root(member);
-        }
-      }
-    }
   }
-
-  impl<'a, F: FnMut(ConcatenatedModuleIdent)> Visit<'a> for IdentCollector<'a, '_, F> {
-    fn ast(&self) -> &Ast<'a> {
-      self.ast
-    }
-
-    fn visit_identifier_reference(&mut self, node: IdentifierReference) {
-      self.push_reference(node, self.shorthand_reference == Some(node));
-    }
-
-    fn visit_binding_identifier(&mut self, node: BindingIdentifier) {
-      if self.skipped_class_expression_binding == Some(node) {
-        return;
-      }
-      self.push_binding(node, self.shorthand_binding == Some(node), false);
-      node.visit_children_with(self);
-    }
-
-    fn visit_label_identifier(&mut self, node: LabelIdentifier) {
-      self.push_label(node);
-    }
-
-    fn visit_binding_property(&mut self, node: swc_next_ecma_ast::BindingProperty) {
-      let previous_binding = self.shorthand_binding;
-      let previous_reference = self.shorthand_reference;
-      if node.shorthand(self.ast) {
-        let value = node.value(self.ast);
-        self.shorthand_binding = value.as_binding_identifier(self.ast).or_else(|| {
-          value
-            .as_assignment_pattern(self.ast)
-            .and_then(|assignment| assignment.left(self.ast).as_binding_identifier(self.ast))
-        });
-        // Assignment-target patterns use an IdentifierReference rather than a BindingIdentifier.
-        self.shorthand_reference = value
-          .as_simple_assignment_target(self.ast)
-          .and_then(|target| target.as_identifier_reference(self.ast))
-          .or_else(|| {
-            value
-              .as_assignment_pattern(self.ast)
-              .and_then(|assignment| {
-                assignment
-                  .left(self.ast)
-                  .as_simple_assignment_target(self.ast)
-                  .and_then(|target| target.as_identifier_reference(self.ast))
-              })
-          });
-      }
-      node.visit_children_with(self);
-      self.shorthand_binding = previous_binding;
-      self.shorthand_reference = previous_reference;
-    }
-
-    fn visit_object_property(&mut self, node: ObjectProperty) {
-      if node.shorthand(self.ast)
-        && let Some(identifier) = node.value(self.ast).as_identifier_reference(self.ast)
-      {
-        self.push_reference(identifier, true);
-        return;
-      }
-      node.visit_children_with(self);
-    }
-
-    fn visit_class(&mut self, node: Class) {
-      let previous = self.skipped_class_expression_binding;
-      if node.class_type(self.ast) == ClassType::ClassExpression {
-        self.skipped_class_expression_binding = node.id(self.ast);
-        // Reserve every class expression's inner name, even without a superclass,
-        // so renaming an outer binding cannot make it captured by the class scope.
-        if let Some(identifier) = node.id(self.ast) {
-          self.push_binding(identifier, false, true);
-        }
-      }
-      node.visit_children_with(self);
-      self.skipped_class_expression_binding = previous;
-    }
-
-    fn visit_export_specifier(&mut self, node: ExportSpecifier) {
-      let local = node.local(self.ast);
-      if let ModuleExportNameData::IdentifierName(identifier) =
-        self.ast.module_export_name_data(local)
-      {
-        self.push_module_export_name(identifier);
-      }
-      let exported = node.exported(self.ast);
-      if exported.span(self.ast) != local.span(self.ast)
-        && let ModuleExportNameData::IdentifierName(identifier) =
-          self.ast.module_export_name_data(exported)
-      {
-        self.push_module_export_name(identifier);
-      }
-    }
-
-    fn visit_jsx_element_name(&mut self, node: JsxElementName) {
-      match self.ast.jsx_element_name_data(node) {
-        JsxElementNameData::JsxIdentifier(identifier) => self.push_jsx_identifier(identifier),
-        JsxElementNameData::JsxMemberExpression(member) => self.visit_jsx_member_root(member),
-        JsxElementNameData::JsxNamespacedName(_) => {}
-      }
-    }
-  }
-
-  let mut collector = IdentCollector {
-    ast,
-    semantic,
-    on_ident,
-    shorthand_binding: None,
-    shorthand_reference: None,
-    skipped_class_expression_binding: None,
-  };
-  ast.root_program().visit_with(&mut collector);
+  analysis
 }
 
 fn statement_needs_semicolon(ast: &Ast<'_>, stmt: Stmt) -> bool {
@@ -898,42 +766,19 @@ pub fn analyze_module_scope(
   module_info: &mut ConcatenatedModuleInfo,
 ) -> Result<()> {
   analyze_identifiers(source, jsx, SwcSourceType::Module, |ast, semantic| {
-    module_info.module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
-    module_info.global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
     module_info.trailing_semicolon_position = trailing_semicolon_position(ast, source);
-    module_info.all_used_names.clear();
-    module_info.binding_to_ref.clear();
-
-    let mut binding_groups: FxHashMap<(Atom, SyntaxContext), u32> = FxHashMap::default();
-    let mut binding_refs: Vec<(u32, u32)> = Vec::new();
-
-    collect_ident(ast, semantic, |identifier| {
-      let scope = identifier.scope;
-      let name = identifier.name.clone();
-      if scope == module_info.global_ctxt {
-        module_info.global_scope_ident.push(identifier.clone());
-      }
-      if scope != module_info.module_ctxt || identifier.is_class_expr_with_ident {
-        module_info.all_used_names.insert(name.clone());
-      }
-      if identifier.is_class_expr_with_ident {
-        return;
-      }
-
-      module_info.idents.push(identifier);
-      let index =
-        u32::try_from(module_info.idents.len() - 1).expect("too many identifiers in one module");
-      let group = match binding_groups.entry((name.clone(), scope)) {
-        Entry::Occupied(occupied) => *occupied.get(),
-        Entry::Vacant(vacant) => {
-          *vacant.insert(module_info.binding_to_ref.push_binding(name, scope))
-        }
-      };
-      binding_refs.push((group, index));
-    });
-
-    module_info.binding_to_ref.finish(binding_refs);
-
+    let analysis = collect_ident(ast, semantic);
+    module_info.all_used_names = analysis
+      .symbol_groups()
+      .filter(|&symbol| !analysis.is_top_level(symbol))
+      .map(|symbol| analysis.symbol_name(symbol).clone())
+      .chain(
+        analysis
+          .unresolved_references()
+          .map(|reference| reference.name.clone()),
+      )
+      .collect();
+    module_info.analysis = Some(Arc::new(analysis));
     module_info.has_ast = true;
   })
 }
@@ -1018,7 +863,11 @@ impl<'a> ConcatenationContext<'a> {
                 .sum::<usize>()
             });
             (
-              info.binding_to_ref.len() + imported_names,
+              info
+                .analysis
+                .as_ref()
+                .map_or(0, |analysis| analysis.binding_to_ref.len())
+                + imported_names,
               1 + import_sources,
             )
           }
@@ -1037,10 +886,12 @@ impl<'a> ConcatenationContext<'a> {
         escaped_identifiers.push((Some(info.id()), readable_identifier, module_identifier));
 
         if let ModuleInfo::Concatenated(info) = info {
-          for (name, _) in info.binding_to_ref.names() {
-            escaped_names
-              .entry(name.clone())
-              .or_insert_with(|| escape_name_atom_ref(name));
+          if let Some(analysis) = &info.analysis {
+            for symbol in analysis.binding_to_ref.values() {
+              escaped_names
+                .entry(symbol.name.clone())
+                .or_insert_with(|| escape_name_atom_ref(&symbol.name));
+            }
           }
 
           if let Some(import_map) = &info.import_map {

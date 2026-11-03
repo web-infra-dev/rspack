@@ -911,6 +911,7 @@ impl<'a> From<rspack_core::StatsAssetsByChunkName<'a>> for JsStatsAssetsByChunkN
 #[napi(object, object_to_js = false)]
 pub struct JsStatsOptions {
   pub assets: bool,
+  pub cache_info: bool,
   pub cached_modules: bool,
   pub chunks: bool,
   pub chunk_group_auxiliary: bool,
@@ -943,6 +944,7 @@ impl From<JsStatsOptions> for ExtendedStatsOptions {
 
     Self {
       assets: value.assets,
+      cache_info: value.cache_info,
       cached_modules: value.cached_modules,
       chunks: value.chunks,
       chunk_group_auxiliary: value.chunk_group_auxiliary,
@@ -975,9 +977,29 @@ pub struct JsStatsGetAssets<'a> {
 }
 
 #[napi(object, object_from_js = false)]
+pub struct JsStatsCacheInfo {
+  pub hits: f64,
+  pub misses: f64,
+  pub reused: f64,
+  pub stores: f64,
+}
+
+impl From<rspack_core::CacheInfo> for JsStatsCacheInfo {
+  fn from(info: rspack_core::CacheInfo) -> Self {
+    Self {
+      hits: info.hits as f64,
+      misses: info.misses as f64,
+      reused: info.reused as f64,
+      stores: info.stores as f64,
+    }
+  }
+}
+
+#[napi(object, object_from_js = false)]
 pub struct JsStatsCompilation<'a> {
   pub assets: Option<Vec<JsStatsAsset<'a>>>,
   pub assets_by_chunk_name: Option<Vec<JsStatsAssetsByChunkName<'a>>>,
+  pub cache_info: Option<HashMap<String, JsStatsCacheInfo>>,
   #[napi(ts_type = "Array<JsStatsChunk>")]
   pub chunks: Option<napi_value>,
   pub entrypoints: Option<Vec<JsStatsChunkGroup<'a>>>,
@@ -1025,6 +1047,17 @@ impl JsStats {
     let options = ExtendedStatsOptions::from(js_options);
 
     let hash = options.hash.then(|| self.hash()).flatten();
+    let cache_info = options
+      .cache_info
+      .then(|| {
+        self
+          .inner
+          .get_cache_info()
+          .into_iter()
+          .map(|(name, info)| (name, info.into()))
+          .collect::<HashMap<_, _>>()
+      })
+      .filter(|info| !info.is_empty());
 
     let (assets, assets_by_chunk_name) = if options.assets {
       let asts = self.assets();
@@ -1070,6 +1103,7 @@ impl JsStats {
     Ok(JsStatsCompilationWrapper(JsStatsCompilation {
       assets,
       assets_by_chunk_name,
+      cache_info,
       chunks,
       entrypoints,
       errors,

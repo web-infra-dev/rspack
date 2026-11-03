@@ -1,0 +1,9 @@
+@import url("./imported.css") (--wide);
+
+@custom-media --wide (min-width: 800px);
+
+@media (--wide) {
+  .local {
+    color: red;
+  }
+}

@@ -1,20 +1,23 @@
+mod chunk_versions;
 mod hot_module_replacement;
 
 use std::{
   collections::hash_map,
-  sync::{LazyLock, Mutex},
+  sync::{Arc, LazyLock, Mutex},
 };
 
 use atomic_refcell::AtomicRefCell;
+use chunk_versions::{HotModuleReplacementChunkVersionsRuntimeModule, is_versioned};
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationContentHash,
-  CompilationParams, CompilationProcessAssets, CompilationRecords, CompilerCompilation,
-  DependencyType, LoaderContext, ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
-  NormalModuleLoader, ParserAndGenerator, ParserOptions, PathData, Plugin, RunnerContext,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec, SourceType,
+  CompilationAdditionalChunkRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationAsset, CompilationContentHash, CompilationParams, CompilationProcessAssets,
+  CompilationRecords, CompilerCompilation, DependencyType, LoaderContext, ModuleId,
+  ModuleIdentifier, ModuleType, NormalModuleFactoryParser, NormalModuleLoader, ParserAndGenerator,
+  ParserOptions, PathData, Plugin, RunnerContext, RuntimeGlobals, RuntimeModule, RuntimeModuleExt,
+  RuntimeSpec, SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdMap, ChunkIdSet},
   incremental::{IncrementalPasses, Mutation},
   rspack_sources::{RawStringSource, SourceExt},
@@ -177,7 +180,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     current_css_hashes.clone(),
   );
 
-  let Some(records) = compilation.records.take() else {
+  let Some(records) = compilation.records.as_ref().map(Arc::clone) else {
     return Ok(());
   };
   let CompilationRecords {
@@ -209,7 +212,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   for (identifier, old_runtime_module_hash) in old_runtime_modules {
     if let Some(new_runtime_module_hash) = compilation.runtime_modules_hash.get(identifier) {
       // updated
-      if new_runtime_module_hash != old_runtime_module_hash {
+      if new_runtime_module_hash != &old_runtime_module_hash.hash {
         updated_runtime_modules.insert(*identifier);
       }
     }
@@ -680,7 +683,28 @@ async fn additional_tree_runtime_requirements(
 ) -> Result<()> {
   runtime_modules
     .push(HotModuleReplacementRuntimeModule::new(&compilation.runtime_template).boxed());
+  runtime_modules.push(
+    HotModuleReplacementChunkVersionsRuntimeModule::new(&compilation.runtime_template).boxed(),
+  );
 
+  Ok(())
+}
+
+#[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for HotModuleReplacementPlugin)]
+async fn additional_chunk_runtime_requirements(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_requirements: &mut RuntimeGlobals,
+  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
+) -> Result<()> {
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
+  if is_versioned(compilation, chunk) {
+    runtime_requirements.insert(RuntimeGlobals::HMR_CHUNK_VERSIONS);
+  }
   Ok(())
 }
 
@@ -711,6 +735,10 @@ impl Plugin for HotModuleReplacementPlugin {
       .compilation_hooks
       .additional_tree_runtime_requirements
       .tap(additional_tree_runtime_requirements::new(self));
+    ctx
+      .compilation_hooks
+      .additional_chunk_runtime_requirements
+      .tap(additional_chunk_runtime_requirements::new(self));
     Ok(())
   }
 }

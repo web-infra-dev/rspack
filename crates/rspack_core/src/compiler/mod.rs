@@ -272,14 +272,16 @@ impl Compiler {
 
   #[instrument("Compiler:build",target=TRACING_BENCH_TARGET, skip_all)]
   async fn build_inner(&mut self) -> Result<()> {
-    if self.new_cache.has_file_cache()
-      && let Some(restored) = self.get_cache("meta").get::<Meta>("state", None)
-    {
-      let current = self.compiler_context.dependency_id();
-      if current < restored.max_dependency_id {
-        self
-          .compiler_context
-          .set_dependency_id(restored.max_dependency_id);
+    if self.new_cache.has_file_cache() {
+      let meta_cache = self.get_cache("meta");
+      if let Some(restored) = meta_cache.get::<Meta>("state", None) {
+        let current = self.compiler_context.dependency_id();
+        if current < restored.max_dependency_id {
+          self
+            .compiler_context
+            .set_dependency_id(restored.max_dependency_id);
+          meta_cache.record_reuse();
+        }
       }
     }
     // TODO: clear the outdated cache entries in resolver,
@@ -372,10 +374,6 @@ impl Compiler {
       )
       .await?;
     logger.time_end(start);
-
-    if let Some(cache) = &self.compilation.resolver_cache {
-      cache.log(&self.compilation.get_logger("rspack.ResolverCache"));
-    }
 
     // Consume plugin driver diagnostic
     let plugin_driver_diagnostics = self.plugin_driver.take_diagnostic();

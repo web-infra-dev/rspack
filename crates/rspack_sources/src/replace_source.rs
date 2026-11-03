@@ -698,6 +698,7 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
           }
           // Partially skip over chunk
           chunk_pos = replacement_end - pos;
+          let chunk_utf16_pos = chunk.slice_to(chunk_pos as usize).utf16_len();
           if let Some(original) = mapping.original.as_mut() {
             if self.is_original_source
               || check_original_content(
@@ -707,11 +708,10 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
                 chunk.slice_to(chunk_pos as usize).as_str(),
               )
             {
-              original.original_column += chunk_pos;
+              original.original_column += chunk_utf16_pos as u32;
             }
           }
           pos += chunk_pos;
-          let chunk_utf16_pos = chunk.slice_to(chunk_pos as usize).utf16_len();
           let line = mapping.generated_line as i64 + generated_line_offset;
           if generated_column_offset_line == line {
             generated_column_offset -= chunk_utf16_pos as i64;
@@ -884,24 +884,21 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
 
             // Partially skip over chunk
             let line = mapping.generated_line as i64 + generated_line_offset;
+            let skipped = chunk.slice(chunk_pos as usize, (chunk_pos + offset as u32) as usize);
+            let utf16_offset = skipped.utf16_len() as i64;
             if let Some(original) = mapping.original.as_mut() {
               if self.is_original_source
                 || check_original_content(
                   original.source_index,
                   original.original_line,
                   original.original_column,
-                  chunk
-                    .slice(chunk_pos as usize, (chunk_pos + offset as u32) as usize)
-                    .as_str(),
+                  skipped.as_str(),
                 )
               {
-                original.original_column += offset as u32;
+                original.original_column += utf16_offset as u32;
               }
             }
 
-            let utf16_offset = chunk
-              .slice(chunk_pos as usize, (chunk_pos + offset as u32) as usize)
-              .utf16_len() as i64;
             chunk_pos += offset as u32;
             pos += offset as u32;
 
@@ -1722,7 +1719,7 @@ return <div>{data.foo}</div>
             original: Some(OriginalLocation {
               source_index: 0,
               original_line: 1,
-              original_column: 19,
+              original_column: 7,
               name_index: None
             })
           }

@@ -780,9 +780,7 @@ type RuleSetLoaderWithOptions = {
   options?: string | Record<string, any>;
   parallel?: boolean | { maxWorkers?: number };
   cache?: boolean;
-  filter?: {
-    code: RuleSetLoaderCodeFilter;
-  };
+  codeFilter?: RuleSetLoaderCodeFilter;
 };
 ```
 

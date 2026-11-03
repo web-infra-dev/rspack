@@ -27,6 +27,8 @@ type StatsCompilation = {
   name?: string;
   // Compilation specific hash
   hash?: string;
+  // Cache statistics
+  cacheInfo?: Record<string, StatsCacheInfo>;
   // Environment information included when `stats.env` is enabled
   env?: any;
   // Compilation time in milliseconds
@@ -71,6 +73,30 @@ type StatsCompilation = {
   logging?: Record<string, StatsLogging>;
 } & Record<string, any>;
 ```
+
+## cacheInfo
+
+- **Version:** `>= 2.3.0`
+
+When [stats.cacheInfo](/config/stats#statscacheinfo) is enabled, `cacheInfo` reports statistics for the experimental [experiments.newCache](/config/experiments#experimentsnewcache) implementation. Each key is a full cache name that includes the compiler path, such as `web|Compilation/modules`.
+
+```ts
+type StatsCacheInfo = {
+  hits: number;
+  misses: number;
+  reused: number;
+  stores: number;
+};
+```
+
+| Field    | Meaning                                               |
+| -------- | ----------------------------------------------------- |
+| `hits`   | Cache lookups that returned a value.                  |
+| `misses` | Cache lookups that did not return a value.            |
+| `reused` | Cached values that passed validation and were reused. |
+| `stores` | Cache write requests, not completed disk writes.      |
+
+Counters measure cache operations in the current compilation. A hit does not guarantee reuse: for example, a cached module may fail dependency validation.
 
 ## Asset object
 

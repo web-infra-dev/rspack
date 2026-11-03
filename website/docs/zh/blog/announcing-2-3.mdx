@@ -1,0 +1,444 @@
+---
+description: 'Rspack 2.3 发布：集成 SWC Next，提升构建速度，降低内存占用和产物体积，并带来实验性的新版缓存、loader 缓存和内置 CSS 改进。'
+date: 2026-10-29 14:00:00
+sidebar: false
+authors:
+  - name: Zhixin Jin
+    avatar: 'https://github.com/intellild.png'
+    github: 'intellild'
+  - name: Chenwei Dai
+    avatar: 'https://github.com/Timeless0911.png'
+    github: 'Timeless0911'
+  - name: Jiahan Chen
+    avatar: 'https://github.com/chenjiahan.png'
+    github: 'chenjiahan'
+  - name: 9aoy
+    avatar: 'https://github.com/9aoy.png'
+    github: '9aoy'
+  - name: Sooniter
+    avatar: 'https://github.com/sooniter.png'
+    github: 'sooniter'
+  - name: LingyuCoder
+    avatar: 'https://github.com/LingyuCoder.png'
+    github: 'LingyuCoder'
+  - name: Yu Feng
+    avatar: 'https://github.com/JSerFeng.png'
+    github: 'JSerFeng'
+  - name: Congcong Pan
+    avatar: 'https://github.com/SyMind.png'
+    github: 'SyMind'
+  - name: Zhiyong Chen
+    avatar: 'https://github.com/CPunisher.png'
+    github: 'CPunisher'
+  - name: yifancong
+    avatar: 'https://github.com/yifancong.png'
+    github: 'yifancong'
+  - name: Gengkun He
+    avatar: 'https://github.com/ahabhgk.png'
+    github: 'ahabhgk'
+---
+
+import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
+
+import { PackageManagerTabs } from '@theme';
+
+# Rspack 2.3 发布公告
+
+_2026 年 10 月 29 日_
+
+<BlogAuthors />
+
+![](https://assets.rspack.rs/rspack/rspack-banner-v2.3.png)
+
+Rspack 2.3 现已发布！本次更新集成了 SWC Next 解析器，提升构建速度，降低内存占用和产物体积。同时推出实验性的新版缓存，支持为 loader 单独缓存转换结果，并带来内置 CSS 改进。
+
+---
+
+值得关注的变更如下：
+
+- [SWC Next 集成](#swc-next)
+- [性能](#performance)
+  - [性能优化](#performance-improvements)
+  - [SplitChunks 优化](#split-chunks)
+- [新版缓存实现](#cache-improvements)
+- [新特性](#features)
+  - [按代码内容过滤 loader](#loader-code-filter)
+  - [内置 CSS](#built-in-css)
+  - [其他改进](#other-improvements)
+- [生态](#ecosystem)
+  - [Rsbuild](#rsbuild)
+  - [Rslib](#rslib)
+  - [Rsdoctor](#rsdoctor)
+  - [Rstest](#rstest)
+  - [Rspress](#rspress)
+
+## SWC Next 集成 \{#swc-next}
+
+[SWC Next](https://github.com/swc-project/swc-next) 是由 SWC 团队和 Rstack 团队共同开发的新一代 JavaScript 编译器，将成为 SWC 的下一个大版本。它采用受 [Yuku](https://github.com/yuku-toolchain/yuku) 启发的新解析器架构，以扁平的 ESTree AST 为核心，兼顾执行速度、内存效率和 JavaScript 扩展能力。
+
+在基准测试中，SWC Next 的[原生解析速度](https://github.com/SoonIter/ecmascript-parser-benchmark-native)最高可达 SWC 的 **3 倍**，通过 [JavaScript API 解析](https://github.com/SoonIter/ecmascript-parser-benchmark-js)时最高可达 SWC 的 **10 倍**：
+
+![](https://assets.rspack.rs/rspack/assets/rspack-v2-3-parser-performance.png)
+
+目前，我们正在逐步将 SWC 的各个模块迁移到这一架构，并在 Rspack 中替换原有实现。Rspack 2.3 已将 JavaScript 解析器迁移至 SWC Next，并借助其更紧凑的 AST 和内存布局，优化了自身的解析和遍历流程。
+
+以下是在 Rspack 中集成 SWC Next 前后，解析阶段耗时和指令数的对比：
+
+| 项目      | 解析阶段耗时               | 指令数                      |
+| --------- | -------------------------- | --------------------------- |
+| three.js  | 23 ms → 20 ms（**−14%**）  | 205 M → 155 M（**−24%**）   |
+| React 10k | 207 ms → 193 ms（**−6%**） | 1597 M → 1421 M（**−11%**） |
+
+SWC Next 的下一目标是让开发者能够用 JavaScript 编写高性能的转换插件。目前，自定义代码转换通常依赖 Babel 插件或 SWC Wasm 插件，我们希望让开发者在享受 Rust 性能的同时，也能保留用 JavaScript 编写插件的灵活性。
+
+SWC Next 的扁平 AST 支持 Rust 与 JavaScript 之间高效的数据交换，使这一设想成为可能。我们预计在 Rspack 2.4 或 2.5 中引入基于 SWC Next 的 loader，并支持 JavaScript 转换插件。
+
+## 性能 \{#performance}
+
+### 性能优化 \{#performance-improvements}
+
+在多 agent 并行开发的场景下，多个构建进程和开发服务器可能同时运行，内存占用成为一个显著的瓶颈。因此，我们在 Rspack 2.3.0 中针对内存进行了优化，降低构建和开发过程中的内存占用。以下是一个真实项目的 RSS 对比：
+
+| 场景  | 指标         | 2.2.0    | 2.3.0    | 降低      |
+| ----- | ------------ | -------- | -------- | --------- |
+| Build | 峰值 RSS     | 28.3 GiB | 20.5 GiB | **27.4%** |
+| Build | 构建结束 RSS | 25.3 GiB | 16.1 GiB | **36.5%** |
+| Dev   | 启动峰值 RSS | 28.6 GiB | 19.0 GiB | **33.8%** |
+| Dev   | 稳态 RSS     | 28.9 GiB | 18.8 GiB | **34.8%** |
+
+此外，Rspack 2.3 新增了基于 [allocative](https://github.com/facebook/buck2/tree/main/allocative) 的内存快照能力，帮助开发者定位构建过程中的内存热点。如果你的项目内存占用较高，可以按照[内存诊断指南](../guide/diagnostics/memory)采集并提交快照，我们会协助分析和优化。
+
+得益于 SWC Next、内存优化和其他微优化，Rspack 2.3.0 的整体构建性能也得到提升。在基准测试中，构建性能相较 2.2.0 提升约 **5%**；在一些大型项目中，我们观察到了最高 **20%** 的性能提升。
+
+### SplitChunks 优化 \{#split-chunks}
+
+大型项目通常包含多个页面或入口，它们可能共同依赖大量模块。如果这些模块被重复打包到不同的输出文件中，就会增加产物体积，也可能让用户重复下载相同的代码。
+
+针对这一问题，Rspack 2.3 引入了多项优化，减少重复模块，生成更精简的输出代码：
+
+- 新增 [`splitChunks.dedupDepth`](/zh/plugins/split-chunks-plugin#splitchunksdedupdepth)，识别不同页面和入口之间更多可提取的共享模块组合，减少重复打包。该优化在生产模式下默认启用（`dedupDepth: 1`）。
+- 支持 [`splitChunks.minRemainingSize`](/zh/plugins/split-chunks-plugin#splitchunksminremainingsize)，拆分代码时尽量避免留下过小的输出文件，有助于减少不必要的文件请求，同时让产物行为与 webpack 保持一致。
+- 优化[代码拆分时的模块去重](/zh/guide/optimization/code-splitting#复用父级已经提供的模块)，更充分地复用已有模块，减少输出文件中的重复代码。
+
+以下是两个大型真实项目在启用 `dedupDepth: 1` 前后的构建产物 Brotli 压缩体积对比：
+
+| 项目   | 优化前  | 优化后  | 节省   | 降幅     |
+| ------ | ------- | ------- | ------ | -------- |
+| 项目 A | 23.2 MB | 22.7 MB | 550 KB | **2.4%** |
+| 项目 B | 40.0 MB | 36.0 MB | 4.0 MB | **9.9%** |
+
+## 新版缓存实现 \{#cache-improvements}
+
+Rspack 2.3 推出了实验性的新版缓存，重点减少缓存文件的磁盘占用和写入开销，并改善缓存恢复的可靠性。这次改进主要针对旧缓存的三个问题：
+
+- **缓存文件较大，恢复过程复杂**：旧缓存会保存整个构建阶段的中间状态，包括模块之间的依赖关系。这些数据体积较大，恢复复杂状态时也容易出错。新版缓存改为保存模块等独立构建任务的结果，减少需要存储的数据，也降低了缓存恢复出错的风险。
+- **缓存写入阻塞构建**：旧缓存需要在编译过程中将数据转换为可写入磁盘的格式，增加了等待时间。新版缓存将这些工作安排在空闲或构建结束时执行，减少对编译过程的阻塞。
+- **开发和生产场景难以统一复用**：旧缓存与开发模式下的增量构建联系较紧密，部分机制难以用于生产构建。新版缓存将两者分开，并统一内存缓存与磁盘缓存的管理方式，便于在不同构建场景中复用结果、清理不再需要的缓存。
+
+在基准测试中，新版缓存的磁盘占用减少了约 **79%**，冷构建的峰值内存降低了约 **16%**，但热构建耗时略有增加：
+
+![](https://assets.rspack.rs/rspack/assets/rspack-v2-3-cache-performance.png)
+
+新版缓存目前默认关闭，可以通过 [`experiments.newCache`](/zh/config/experiments#experimentsnewcache) 开启：
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+  },
+  experiments: {
+    newCache: true,
+  },
+};
+```
+
+我们会在后续版本中继续优化性能，并计划在未来的 minor 版本中默认启用新版缓存。
+
+### loader 缓存 \{#loader-cache}
+
+新版缓存支持为特定 loader 单独开启缓存，复用该 loader 的转换结果。
+
+相比整体的持久化缓存，loader 缓存的粒度更细，可以为每个 loader 设置独立的缓存失效条件。因此，即使修改 Rspack 配置导致整体缓存失效，只要某个 loader 的输入、配置和相关依赖没有变化，它的缓存仍有机会复用。在 dev 和 build 模式之间切换时，也有机会复用这些缓存。
+
+这对 babel-loader、less-loader 等性能开销较大的 loader 尤其有帮助，可以避免重复转换未变化的代码，缩短构建时间。
+
+下面的配置启用新版持久化缓存，并为 babel-loader 单独开启缓存：
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+  },
+  experiments: {
+    newCache: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?[jt]sx?$/,
+        use: [
+          {
+            loader: 'babel-loader',
+            cache: true,
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+在使用 babel-loader 处理约 10000 个模拟模块的测试中，开启 loader 缓存后，构建耗时降至约 11–12 秒：
+
+| 并行 loader | 缓存关闭 | 缓存开启 | 加速比     |
+| ----------- | -------- | -------- | ---------- |
+| 关闭        | 63.8 s   | 11.2 s   | **5.7 倍** |
+| 开启        | 28.5 s   | 11.9 s   | **2.4 倍** |
+
+## 新特性 \{#features}
+
+### 按代码内容过滤 loader \{#loader-code-filter}
+
+新增的 [`module.rules[].use.codeFilter`](/zh/config/module-rules#rulesusecodefilter) 可以根据代码内容跳过不必要的 loader 转换。例如，只对包含 `customMacro()` 调用的文件执行转换：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?[jt]sx?$/,
+        use: [
+          {
+            loader: './custom-macro-loader.js',
+            codeFilter: /\bcustomMacro\s*\(/,
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+Rspack 核心由 Rust 编写，调用 JavaScript loader 时会产生跨语言通信开销，即使代码不需要转换，也要付出这部分成本。`codeFilter` 在 Rust 侧提前检查代码，只在需要转换时调用 loader，从而减少跨语言通信开销。
+
+在包含 1 万个模块、仅 10% 的模块需要转换的测试中，`codeFilter` 避免了 90% 没有必要的 loader 调用，完整构建耗时从 622 ms 降至 481 ms，缩短约 23%。
+
+### 内置 CSS \{#built-in-css}
+
+本次更新改进了对更多 CSS 场景的支持，涵盖 CSS Modules 作用域、组合声明、值引用和嵌套选择器。
+
+#### 独立构建样式入口 \{#css-entry}
+
+独立发布主题或样式库时，通常只需要生成 CSS 文件。Rspack 现在支持将[纯 CSS 入口](/zh/guide/languages/css#css-entry)打包输出为独立的 CSS 文件，不会生成额外的 JavaScript 文件。例如：
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    styles: './src/styles.css',
+  },
+  module: {
+    rules: [{ test: /\.css$/i, type: 'css/auto' }],
+  },
+  output: {
+    cssFilename: '[name].css',
+  },
+};
+```
+
+该配置只会输出一个文件：`styles.css`。
+
+#### 支持外部资源 \{#css-externals}
+
+当 CSS 或图片由 CDN 等外部服务提供时，通常希望浏览器直接加载这些资源，而不是将它们打包进构建产物。
+
+Rspack 新增 `css-import` 和 `asset-url` 两种 [external](/zh/config/externals) 类型，可以将 CSS 中的指定引用保留为[外部资源](/zh/guide/languages/css#external-resources)。例如，将样式表和图片配置为 external：
+
+```js title="rspack.config.mjs"
+export default {
+  externals: {
+    'normalize.css': 'css-import normalize.css',
+    'https://example.com/a.css': 'css-import https://example.com/a.css',
+    'https://example.com/a.png': 'asset-url https://example.com/a.png',
+  },
+};
+```
+
+在 CSS 中引用这些外部资源：
+
+```css title="styles.css"
+@import 'normalize.css';
+@import url('https://example.com/a.css');
+
+.logo {
+  background-image: url('https://example.com/a.png');
+}
+```
+
+上述 `@import` 和 `url()` 会原样输出，不会参与打包。
+
+CSS 中的 `@import`、`url()` 和 `image-set()` 也支持 [`rspackIgnore` 注释](/zh/guide/languages/css#magic-comments)，可以按需跳过资源打包：
+
+```css title="styles.css"
+@import /* rspackIgnore: true */ url('./runtime-theme.css');
+```
+
+### 其他改进 \{#other-improvements}
+
+- **按需编译**：减少启用[按需编译](/zh/guide/advanced/lazy-compilation)时保存代码触发的重复构建，缩短等待更新的时间。
+- **原生 watcher**：提供更完整的文件时间信息，改善与 `ts-loader`、`vue-loader` 等库的兼容性。
+- **原生 watcher**：支持使用函数配置 [`watchOptions.ignored`](/zh/config/watch#watchoptionsignored)，并改进对新增目录、文件删除和重新创建的检测。
+- **插件兼容性与类型**：改善插件 hook 与 webpack 的兼容性，并完善 loader、externals 和 stats 的 TypeScript 类型。
+- **WebAssembly**：新增 [`output.wasmStreamingFallback`](/zh/config/output#outputwasmstreamingfallback)，支持关闭非流式加载回退。
+
+## 生态 \{#ecosystem}
+
+随着 Rspack 2.3 发布，Rstack 生态中的 Rsbuild、Rslib、Rsdoctor、Rstest 和 Rspress 也带来了近期更新。
+
+### Rsbuild \{#rsbuild}
+
+#### TanStack CLI 支持 Rsbuild \{#rsbuild-tanstack-cli}
+
+[TanStack CLI](https://tanstack.com/cli/latest/docs/cli-reference) 现已正式支持使用 Rsbuild 创建 TanStack Start 项目。创建项目时，添加 `--build-tool rsbuild` 即可选择 Rsbuild。例如，创建 React 项目：
+
+```bash
+npx @tanstack/cli@latest create my-app --framework React --build-tool rsbuild
+```
+
+`create-rsbuild` 也新增了 TanStack Start 选项，会自动调用 TanStack CLI 创建项目。你也可以通过以下命令直接选择该模板：
+
+```bash
+npx -y create-rsbuild@latest my-app -t tanstack-start-react
+```
+
+#### Lynx Rsbuild 插件 \{#rsbuild-lynx}
+
+Lynx 推出了 [`@lynx-js/rsbuild-plugin`](https://lynxjs.org/next/zh/api/packages/rsbuild-plugin/index.html)，将原先封装在 Rspeedy 中的 Lynx 专属配置、默认值和构建适配整合到 `pluginLynx` 插件中。现在，Lynx 应用可以直接使用 Rsbuild 和该插件构建，无需依赖 Rspeedy 的封装。
+
+你现在可以使用熟悉的 `rsbuild.config.ts` 和 Rsbuild CLI，按照 Rsbuild 文档配置项目，并继续使用现有的 Rsbuild 和 Lynx 构建插件。
+
+`create-rsbuild` 也新增了 Lynx 选项，会自动调用 `@lynx-js/create-lynx` 创建项目。例如，创建使用 TypeScript 的 ReactLynx 项目：
+
+```bash
+npx -y create-rsbuild@latest my-app -t lynx-ts
+```
+
+#### 文件体积报告改进 \{#rsbuild-stats}
+
+Rsbuild 的文件体积报告新增了 Brotli 压缩体积统计，并支持配置 gzip 和 Brotli 的压缩等级，便于按部署环境的压缩设置估算传输体积。统计 Brotli 压缩体积只需添加以下配置：
+
+```ts title="rsbuild.config.ts"
+export default {
+  performance: {
+    printFileSize: {
+      compressed: { type: 'brotli' },
+    },
+  },
+};
+```
+
+#### 其他改进 \{#rsbuild-other}
+
+- **默认启用 compact-hashed ID**：生产构建默认使用 [`compact-hashed` ID](/zh/blog/announcing-2-2#compact-hashed-ids)，通过更短且稳定的模块和 chunk ID 减小产物体积。
+- **开发体验**：开发同时包含客户端和服务端的应用时，前端代码变更可以[更快地在浏览器中生效](https://github.com/web-infra-dev/rsbuild/pull/8729)。
+- **公共资源目录**：支持[按环境配置 `server.publicDir`](https://github.com/web-infra-dev/rsbuild/pull/8711)，为不同环境指定公共资源目录。
+- **Web Worker**：当 `output.target` 为 `'web-worker'` 时，可以通过 [`output.module: true`](https://rsbuild.rs/zh/config/output/module#web-workers) 生成 ES 模块格式的产物。
+- **Host 校验**：[`server.allowedHosts`](https://rsbuild.rs/zh/config/server/allowed-hosts) 可限制用于访问 dev server 和预览服务器的主机名。
+- **预览服务器**：新增 [`onClosePreviewServer`](https://rsbuild.rs/zh/plugins/dev/hooks#onclosepreviewserver) hook，插件可在预览服务器关闭时清理资源。
+- **插件转换**：[`api.transform`](https://github.com/web-infra-dev/rsbuild/pull/8722) 支持通过 `codeFilter` 根据代码内容跳过不必要的转换。
+
+### Rslib \{#rslib}
+
+#### Rslib 1.0 正式发布 \{#rslib-v1}
+
+Rslib 1.0 已正式发布，详情请查看 [Rslib 1.0 发布博客](https://rslib.rs/zh/blog/v1-0)。
+
+#### 内联 Wasm 模块 \{#rslib-inline-wasm}
+
+Rslib 现在支持通过 `?inline` 将 Wasm 二进制内联到 JavaScript 产物中，无需额外分发和加载 `.wasm` 文件：
+
+```js
+import { add } from './add.wasm?inline';
+
+console.log(add(1, 2));
+```
+
+> 更多用法请参考 [Wasm 指南](https://rslib.rs/zh/guide/advanced/wasm)。
+
+#### 支持 TypeScript 7.1 \{#typescript-7-1}
+
+Rslib 1.0.4 支持使用 TypeScript 7.1 Beta 生成类型声明，并支持通过其新增的 [Content Mappers](https://devblogs.microsoft.com/typescript/announcing-typescript-7-1-beta/#content-mappers) 扩展类型生成能力。
+
+使用时，只需安装对应的 mapper，并在 `tsconfig.json` 中注册它处理的文件扩展名。例如，假设已安装一个用于处理 CSS Modules 的 `example-css-modules-mapper`（示例包名），可以这样配置：
+
+```json title="tsconfig.json"
+{
+  "contentMappers": [
+    {
+      "package": "example-css-modules-mapper",
+      "extensions": [".module.css"]
+    }
+  ]
+}
+```
+
+Rslib 在进行类型生成时会自动加载该 mapper，根据 CSS Modules 中的类名生成类型声明。
+
+你可以安装 TypeScript 7.1 Beta 来体验：
+
+<PackageManagerTabs command="add typescript@7.1.0-beta -D" />
+
+### Rsdoctor \{#rsdoctor}
+
+[Rsdoctor 2.0](https://rsdoctor.rs/zh/blog/release/release-note-2_0) 正式发布！新版本推荐使用 Agent CLI 进行 AI 辅助分析，可直接读取构建数据并输出结构化结果。
+同时增强了 Rspack 分析能力，支持多 Compiler 报告，安装体积减少 56%、分析耗时降低 57%，开发模式下的 HMR 耗时降低约 47%。
+
+### Rstest \{#rstest}
+
+#### 浏览器模式 API 增强 \{#rstest-browser-api}
+
+浏览器模式近期新增了键盘交互和 React hydration 相关 API，方便在真实浏览器中测试这些行为：
+
+- [`locator.pressSequentially()`](https://rstest.rs/zh/api/runtime-api/browser-mode/locator#presssequentially) 逐字符输入文本，并为每个字符触发键盘事件，适合测试自动补全输入框等需要响应单次按键的控件。
+- [`@rstest/browser-react` 的 `render()`](https://rstest.rs/zh/guide/browser-testing/framework-guides) 新增 `hydrate` 和 `createRootOptions` 选项。你可以对指定容器中已有的服务端渲染内容执行 hydration，并传入 React root 选项来测试 hydration 行为。
+
+```ts
+await page.getByLabel('Search').pressSequentially('rspack', { delay: 50 });
+await expect.element(page.getByRole('listbox')).toBeVisible();
+```
+
+#### 截图测试 \{#rstest-screenshot-testing}
+
+[Rstest 0.12.4](https://github.com/web-infra-dev/rstest/releases/tag/v0.12.4) 在使用 Playwright provider 的浏览器模式中新增了视觉回归测试。通过 [`toMatchScreenshot()`](https://rstest.rs/zh/api/runtime-api/browser-mode/assertion#toMatchScreenshot)，你可以将元素或页面的截图与保存的基准图进行比较，发现仅靠 DOM 断言可能遗漏的视觉变化。
+
+```ts title="button.test.ts"
+import { page } from '@rstest/browser';
+import { expect, test } from '@rstest/core';
+
+test('button appearance', async () => {
+  document.body.innerHTML = '<button>Submit</button>';
+
+  await expect(
+    page.getByRole('button', { name: 'Submit' }),
+  ).toMatchScreenshot();
+  await expect(page).toMatchScreenshot('full-page', { fullPage: true });
+});
+```
+
+比较失败时，Rstest 会保存实际截图和差异图，方便排查问题。你还可以遮罩动态内容、配置像素差异容差，并通过 `--update` 更新基准图。
+
+### Rspress \{#rspress}
+
+Rspress 2.1.0 默认支持 [WebMCP](https://developer.chrome.com/docs/ai/webmcp)，内置站点信息查询、文档搜索和页面导航等工具，让浏览器中的 Agent 可以直接与文档站点交互。
+
+想尝试该功能？在支持 WebMCP 的浏览器中，运行以下代码：
+
+```js
+const tools = await document.modelContext.getTools();
+const tool = tools.find(({ name }) => name === 'rspress_get_current_page');
+const page = JSON.parse(await document.modelContext.executeTool(tool, {}));
+console.log(page.markdown);
+```
+
+你也可以通过 `useWebMcp` Hook 注册自定义工具，扩展站点与 Agent 的交互能力。
+
+更多用法请参阅 [WebMCP 文档](https://rspress.rs/zh/guide/basic/webmcp)。

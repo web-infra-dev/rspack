@@ -72,6 +72,10 @@ impl ModuleId {
   pub fn as_str(&self) -> &str {
     self.0.as_str()
   }
+
+  pub fn precomputed_hash(&self) -> u64 {
+    self.0.precomputed_hash()
+  }
 }
 
 impl rspack_hash::RspackHash for ModuleId {

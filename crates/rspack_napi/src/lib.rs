@@ -10,6 +10,11 @@ pub use errors::NapiErrorToRspackErrorExt;
 mod callback;
 pub use callback::JsCallback;
 
+#[cfg(not(target_family = "wasm"))]
+mod module_retention;
+#[cfg(not(target_family = "wasm"))]
+pub use module_retention::retain_current_module_for_unload_safety;
+
 pub mod runtime;
 pub mod threadsafe_function;
 

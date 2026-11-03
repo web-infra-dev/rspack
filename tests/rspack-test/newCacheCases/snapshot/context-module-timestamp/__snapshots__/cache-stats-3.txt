@@ -1,20 +1,40 @@
 [
   {
-    "minimize persistent cache": {
-      "hits": 1,
-      "total": 1
-    },
-    "module build cache": {
-      "hits": 2,
-      "total": 2
-    },
-    "module code generation cache": {
+    "|Compilation/codeGeneration": {
       "hits": 3,
-      "total": 3
+      "misses": 0,
+      "reused": 3,
+      "stores": 0
     },
-    "resolver cache": {
-      "hits": 5,
-      "total": 5
+    "|Compilation/modules": {
+      "hits": 3,
+      "misses": 0,
+      "reused": 3,
+      "stores": 0
+    },
+    "|meta": {
+      "hits": 1,
+      "misses": 0,
+      "reused": 1,
+      "stores": 1
+    },
+    "|ResolverCache|loader": {
+      "hits": 2,
+      "misses": 0,
+      "reused": 2,
+      "stores": 0
+    },
+    "|ResolverCache|normal": {
+      "hits": 3,
+      "misses": 0,
+      "reused": 3,
+      "stores": 0
+    },
+    "|rspack.SwcJsMinimizerRspackPlugin": {
+      "hits": 1,
+      "misses": 0,
+      "reused": 1,
+      "stores": 0
     }
   }
 ]
