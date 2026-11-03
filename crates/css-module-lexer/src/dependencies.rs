@@ -10,6 +10,7 @@ use crate::{
     is_css_modules_magic_comment, is_css_modules_pure_magic_comment, is_css_space_byte,
     is_css_white_space_char, lowercase_ascii_keyword, strip_vendor_prefix,
   },
+  custom_media::{parse_custom_media_definition, parse_media_query},
   dependency_types::{
     Dependency, DependencyContext, DependencyListRange, Mode, Range, UrlRangeKind,
     ValueAtRuleImportItem, Warning, WarningKind,
@@ -99,6 +100,8 @@ enum AtRuleKind {
   Namespace,
   Import,
   Charset,
+  CustomMedia,
+  Media,
   Value,
   Keyframes,
   Container,
@@ -1429,6 +1432,7 @@ impl<'s, W: HandleWarning<'s>> WarningHandler<'s, W> {
 #[derive(Debug)]
 pub struct LexDependencies<'s, W> {
   dependency_context: DependencyContext<'s>,
+  custom_media: bool,
   mode_data: Option<ModeData<'s>>,
   scope: Scope<'s>,
   block_nesting_level: u32,
@@ -1466,6 +1470,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
   ) -> Self {
     Self {
       dependency_context,
+      custom_media: false,
       mode_data: if mode == Mode::Css {
         None
       } else {
@@ -1502,6 +1507,11 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
 
   pub fn dependency_context(&self) -> &DependencyContext<'s> {
     &self.dependency_context
+  }
+
+  pub(crate) fn with_custom_media(mut self, enabled: bool) -> Self {
+    self.custom_media = enabled;
+    self
   }
 
   pub fn into_dependency_context(self) -> DependencyContext<'s> {
@@ -2227,6 +2237,8 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       "@scope" => AtRuleKind::Scope,
       "@import" => AtRuleKind::Import,
       "@charset" => AtRuleKind::Charset,
+      "@custom-media" => AtRuleKind::CustomMedia,
+      "@media" => AtRuleKind::Media,
       "@function" => AtRuleKind::Function,
       "@property" => AtRuleKind::Property,
       "@namespace" => AtRuleKind::Namespace,
@@ -2238,6 +2250,39 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         AtRuleKind::Keyframes
       }
       _ => AtRuleKind::Other,
+    }
+  }
+
+  fn collect_custom_media_at_rule(
+    &mut self,
+    stream: &mut DependencyTokenStream<'_, 's>,
+    kind: AtRuleKind,
+    start: Pos,
+  ) {
+    let (prelude, boundary) = stream.peek_at_rule_prelude();
+    let input = stream.slice_trusted(0, stream.source_end());
+    match kind {
+      AtRuleKind::CustomMedia => {
+        // A block-bearing rule is not a valid `@custom-media` definition.
+        if boundary.token.kind == TokenKind::LeftCurlyBracket {
+          return;
+        }
+        let end = if boundary.token.kind == TokenKind::Semicolon {
+          boundary.token.range.end
+        } else {
+          boundary.token.range.start
+        };
+        let definition = parse_custom_media_definition(input, &prelude);
+        self
+          .dependency_context
+          .push_custom_media(definition, Range::new(start, end));
+      }
+      AtRuleKind::Media => {
+        if let Some(query) = parse_media_query(input, &prelude) {
+          self.dependency_context.push_media_query(query);
+        }
+      }
+      _ => unreachable!("only custom-media at-rules are collected here"),
     }
   }
 
@@ -3618,6 +3663,9 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     let name = stream.slice_trusted(start, end);
     let kind = Self::classify_at_rule(name, flags);
     self.set_scan_context(stream, ScanContext::AtRule);
+    if self.custom_media && matches!(kind, AtRuleKind::CustomMedia | AtRuleKind::Media) {
+      self.collect_custom_media_at_rule(stream, kind, start);
+    }
     if kind == AtRuleKind::Namespace {
       self.scope = Scope::AtNamespaceInvalid;
       self.handle_warning.handle_warning(Warning {

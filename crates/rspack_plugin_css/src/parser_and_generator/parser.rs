@@ -317,7 +317,13 @@ impl<'context> CssModuleParser<'context> {
   pub async fn parse(mut self) -> Result<TWithDiagnosticArray<ParseResult>> {
     let mode = self.mode();
     let deps_source_code = self.source_code.clone();
-    let (deps, warnings) = css_module_lexer::collect_dependencies(&deps_source_code, mode);
+    let (deps, warnings) = css_module_lexer::collect_dependencies_with_options(
+      &deps_source_code,
+      mode,
+      css_module_lexer::DependencyOptions {
+        custom_media: self.custom_media(),
+      },
+    );
     let local_css_ident_declarations =
       self.collect_local_css_ident_declarations(deps.dependencies());
 
@@ -327,7 +333,7 @@ impl<'context> CssModuleParser<'context> {
         .await?;
     }
 
-    self.apply_custom_media();
+    self.apply_custom_media(&deps);
 
     self.resolve_pending_local_composes();
     self.apply_composes_source_order();
@@ -386,11 +392,8 @@ impl<'context> CssModuleParser<'context> {
     }
   }
 
-  fn apply_custom_media(&mut self) {
-    if !self.custom_media() {
-      return;
-    }
-    let transform = transform_custom_media(&self.source_code);
+  fn apply_custom_media(&mut self, dependencies: &css_module_lexer::DependencyContext<'_>) {
+    let transform = transform_custom_media(dependencies);
     for replacement in transform.replacements {
       self
         .presentational_dependencies
@@ -584,6 +587,16 @@ impl<'context> CssModuleParser<'context> {
         self.handle_charset(*range);
         Ok(())
       }
+      css_module_lexer::Dependency::CustomMedia { range, .. } => {
+        self
+          .presentational_dependencies
+          .push(Arc::new(ConstDependency::new(
+            (range.start, range.end).into(),
+            "".into(),
+          )));
+        Ok(())
+      }
+      css_module_lexer::Dependency::Media { .. } => Ok(()),
       css_module_lexer::Dependency::LocalClass { name, range, .. }
       | css_module_lexer::Dependency::LocalId { name, range, .. } => {
         self.reset_current_composes_rule();

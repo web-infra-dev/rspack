@@ -2323,22 +2323,24 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
   /// unchanged: `next` later returns the same tokens in the same order.
   #[inline]
   pub(crate) fn peek_parser_token(&mut self) -> TokenWithTrivia {
-    self.peek(true);
+    self.peek_parser_token_from(&mut 0)
+  }
+
+  fn peek_parser_token_from(&mut self, index: &mut usize) -> TokenWithTrivia {
     let mut leading_start = None;
     let mut first_comment_start = None;
     let mut has_white_space = false;
-    let mut index = 0usize;
     loop {
-      if index == self.buffered.len() {
+      if *index == self.buffered.len() {
         let item = self.read_significant(true);
         self.buffered.push_back(item);
       }
-      let item = self.buffered[index].into_item();
+      let item = self.buffered[*index].into_item();
+      *index += 1;
       leading_start.get_or_insert(item.leading.range.start);
       has_white_space |= item.leading.has_whitespace();
       if matches!(item.token.kind, TokenKind::Comment | TokenKind::BadComment) {
         first_comment_start.get_or_insert(item.token.range.start);
-        index += 1;
         continue;
       }
 
@@ -2351,6 +2353,43 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
         has_white_space,
       };
       return result;
+    }
+  }
+
+  /// Parse-look ahead through one at-rule prelude while retaining every token
+  /// in the main stream. The returned boundary is the first top-level `;`,
+  /// `{`, `}`, or EOF token and is not part of the prelude.
+  pub(crate) fn peek_at_rule_prelude(&mut self) -> (Vec<TokenWithTrivia>, TokenWithTrivia) {
+    let mut index = 0;
+    let mut closing = SmallVec::<[TokenKind; 4]>::new();
+    let mut prelude = Vec::new();
+    loop {
+      let item = self.peek_parser_token_from(&mut index);
+      let kind = item.token.kind;
+      if closing.is_empty()
+        && matches!(
+          kind,
+          TokenKind::Semicolon
+            | TokenKind::LeftCurlyBracket
+            | TokenKind::RightCurlyBracket
+            | TokenKind::Eof
+        )
+      {
+        return (prelude, item);
+      }
+
+      match kind {
+        TokenKind::Function | TokenKind::LeftParenthesis => {
+          closing.push(TokenKind::RightParenthesis);
+        }
+        TokenKind::LeftSquareBracket => closing.push(TokenKind::RightSquareBracket),
+        TokenKind::LeftCurlyBracket => closing.push(TokenKind::RightCurlyBracket),
+        _ if closing.last() == Some(&kind) => {
+          closing.pop();
+        }
+        _ => {}
+      }
+      prelude.push(item);
     }
   }
 

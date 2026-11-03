@@ -1,4 +1,5 @@
 mod css_syntax;
+mod custom_media;
 mod dependencies;
 mod dependency_types;
 mod lexer;
@@ -6,13 +7,20 @@ mod parser;
 
 pub use dependencies::{DashedIdentCollector, LexDependencies, ModeData};
 pub use dependency_types::{
-  Dependency, DependencyContext, DependencyIndex, DependencyListRange, ImportAttributes, Mode,
-  Range, UrlRangeKind, ValueAtRuleImportItem, Warning, WarningKind,
+  CustomMediaDefinition, CustomMediaDefinitionValue, CustomMediaPart, CustomMediaUse, Dependency,
+  DependencyContext, DependencyIndex, DependencyListRange, ImportAttributes, MediaNode,
+  MediaQueryList, MediaSlot, Mode, Range, UrlRangeKind, ValueAtRuleImportItem, Warning,
+  WarningKind,
 };
 pub use lexer::{Lexer, LexerVisitor, Pos, Token, TokenFlags, TokenKind, TokenWithTrivia, Trivia};
 
 pub trait HandleWarning<'s> {
   fn handle_warning(&mut self, warning: Warning<'s>);
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct DependencyOptions {
+  pub custom_media: bool,
 }
 
 impl<'s, F: FnMut(Warning<'s>)> HandleWarning<'s> for F {
@@ -38,9 +46,18 @@ pub fn lex_dependencies<'s>(
 }
 
 pub fn collect_dependencies(input: &str, mode: Mode) -> (DependencyContext<'_>, Vec<Warning<'_>>) {
+  collect_dependencies_with_options(input, mode, DependencyOptions::default())
+}
+
+pub fn collect_dependencies_with_options(
+  input: &str,
+  mode: Mode,
+  options: DependencyOptions,
+) -> (DependencyContext<'_>, Vec<Warning<'_>>) {
   let mut warnings = Vec::with_capacity(estimate_warning_capacity(input.len(), mode));
   let mut lexer = Lexer::new(input, DashedIdentCollector::default());
-  let mut visitor = LexDependencies::new(|v| warnings.push(v), mode);
+  let mut visitor = LexDependencies::new(|v| warnings.push(v), mode)
+    .with_custom_media(options.custom_media && input.contains("@custom-media"));
   visitor.lex_streaming(&mut lexer);
   (visitor.into_dependency_context(), warnings)
 }

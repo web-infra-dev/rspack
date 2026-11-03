@@ -1,6 +1,7 @@
 mod support;
 
 mod composes;
+mod custom_media;
 mod exports;
 mod extract_imports;
 mod local_by_default;

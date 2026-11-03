@@ -75,9 +75,9 @@ impl<T> DependencyListRange<T> {
   }
 }
 
-/// A typed index into one of [`DependencyContext`]'s side tables.
+/// A typed index into [`DependencyContext`]'s side-table payload storage.
 ///
-/// `T` identifies the target table without adding runtime storage. Keeping
+/// `T` identifies the target payload without adding runtime storage. Keeping
 /// rare payloads behind an index prevents them from determining the size of
 /// every [`Dependency`] value.
 #[derive(Debug, Hash, PartialEq, Eq)]
@@ -153,6 +153,72 @@ pub struct ImportAttributes<'s> {
   media: Option<&'s str>,
 }
 
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub enum MediaSlot {
+  Alone,
+  And,
+  Or,
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct CustomMediaUse {
+  pub name: String,
+  pub range: Range,
+  pub invalid: bool,
+  pub leading: bool,
+  pub slot: MediaSlot,
+}
+
+/// A media expression local to one custom-media dependency.
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub enum MediaNode {
+  Text(String),
+  Ref {
+    text: String,
+    usage: CustomMediaUse,
+  },
+  Group(Box<MediaNode>),
+  Not(Box<MediaNode>),
+  Chain {
+    is_or: bool,
+    terms: Vec<MediaNode>,
+  },
+  Typed {
+    text: String,
+    rest: Option<Box<MediaNode>>,
+  },
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub enum CustomMediaPart {
+  Text(String),
+  Alias(String),
+  Query(MediaNode),
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub enum CustomMediaDefinitionValue {
+  Unsupported,
+  Boolean(bool),
+  Condition(String),
+  Type(String),
+  Alias(String),
+  Or(Vec<CustomMediaPart>),
+  Query(MediaNode),
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct CustomMediaDefinition {
+  pub name: String,
+  pub value: CustomMediaDefinitionValue,
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct MediaQueryList {
+  pub queries: Vec<MediaNode>,
+  pub range: Range,
+}
+
 impl<'s> ImportAttributes<'s> {
   pub(crate) fn new(
     layer: Option<&'s str>,
@@ -205,6 +271,13 @@ pub enum Dependency<'s> {
   Charset {
     value: &'s str,
     range: Range,
+  },
+  CustomMedia {
+    definition: Option<DependencyIndex<CustomMediaDefinition>>,
+    range: Range,
+  },
+  Media {
+    query: DependencyIndex<MediaQueryList>,
   },
   LocalClass {
     name: &'s str,
@@ -308,6 +381,13 @@ pub enum Dependency<'s> {
   },
 }
 
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+enum DependencyPayload<'s> {
+  ImportAttributes(ImportAttributes<'s>),
+  CustomMediaDefinition(CustomMediaDefinition),
+  MediaQuery(MediaQueryList),
+}
+
 /// Owns dependencies and the side-table payloads referenced by them.
 ///
 /// `Dependency` values are intentionally cheap to move. Rare or variable-length
@@ -318,7 +398,7 @@ pub enum Dependency<'s> {
 pub struct DependencyContext<'s> {
   dependencies: Vec<Dependency<'s>>,
   dashed_ident_occurrences: Vec<Range>,
-  import_attributes: Vec<ImportAttributes<'s>>,
+  payloads: Vec<DependencyPayload<'s>>,
   composes_local_classes: Vec<&'s str>,
   composes_names: Vec<&'s str>,
   value_at_rule_import_items: Vec<ValueAtRuleImportItem<'s>>,
@@ -333,10 +413,7 @@ impl<'s> DependencyContext<'s> {
   pub(crate) fn reserve_estimated_capacity(&mut self, input_len: usize, mode: Mode) {
     let estimate = DependencyContextCapacity::estimate(input_len, mode);
     reserve_estimated_capacity(&mut self.dependencies, estimate.dependencies);
-    reserve_estimated_capacity(
-      &mut self.import_attributes,
-      estimate.import_attributes as usize,
-    );
+    reserve_estimated_capacity(&mut self.payloads, estimate.payloads as usize);
     reserve_estimated_capacity(
       &mut self.composes_local_classes,
       estimate.composes_local_classes as usize,
@@ -351,7 +428,7 @@ impl<'s> DependencyContext<'s> {
   pub(crate) fn checkpoint(&self) -> [usize; 5] {
     [
       self.dependencies.len(),
-      self.import_attributes.len(),
+      self.payloads.len(),
       self.composes_local_classes.len(),
       self.composes_names.len(),
       self.value_at_rule_import_items.len(),
@@ -360,7 +437,7 @@ impl<'s> DependencyContext<'s> {
 
   pub(crate) fn rollback(&mut self, checkpoint: [usize; 5]) {
     self.dependencies.truncate(checkpoint[0]);
-    self.import_attributes.truncate(checkpoint[1]);
+    self.payloads.truncate(checkpoint[1]);
     self.composes_local_classes.truncate(checkpoint[2]);
     self.composes_names.truncate(checkpoint[3]);
     self.value_at_rule_import_items.truncate(checkpoint[4]);
@@ -402,7 +479,28 @@ impl<'s> DependencyContext<'s> {
     &self,
     index: DependencyIndex<ImportAttributes<'s>>,
   ) -> &ImportAttributes<'s> {
-    &self.import_attributes[index.as_usize()]
+    let DependencyPayload::ImportAttributes(attributes) = &self.payloads[index.as_usize()] else {
+      unreachable!("import dependency points to a different payload type")
+    };
+    attributes
+  }
+
+  pub fn custom_media_definition(
+    &self,
+    index: DependencyIndex<CustomMediaDefinition>,
+  ) -> &CustomMediaDefinition {
+    let DependencyPayload::CustomMediaDefinition(definition) = &self.payloads[index.as_usize()]
+    else {
+      unreachable!("custom-media dependency points to a different payload type")
+    };
+    definition
+  }
+
+  pub fn media_query(&self, index: DependencyIndex<MediaQueryList>) -> &MediaQueryList {
+    let DependencyPayload::MediaQuery(query) = &self.payloads[index.as_usize()] else {
+      unreachable!("media dependency points to a different payload type")
+    };
+    query
   }
 
   pub fn composes_local_classes(&self, range: DependencyListRange<&'s str>) -> &[&'s str] {
@@ -459,6 +557,29 @@ impl<'s> DependencyContext<'s> {
     self.dependencies.push(dependency);
   }
 
+  pub(crate) fn push_custom_media(
+    &mut self,
+    definition: Option<CustomMediaDefinition>,
+    range: Range,
+  ) {
+    let definition = definition.map(|definition| {
+      let index = DependencyIndex::from_index(self.payloads.len());
+      self
+        .payloads
+        .push(DependencyPayload::CustomMediaDefinition(definition));
+      index
+    });
+    self
+      .dependencies
+      .push(Dependency::CustomMedia { definition, range });
+  }
+
+  pub(crate) fn push_media_query(&mut self, query: MediaQueryList) {
+    let index = DependencyIndex::from_index(self.payloads.len());
+    self.payloads.push(DependencyPayload::MediaQuery(query));
+    self.dependencies.push(Dependency::Media { query: index });
+  }
+
   pub(crate) fn push_import(
     &mut self,
     request: &'s str,
@@ -468,10 +589,12 @@ impl<'s> DependencyContext<'s> {
     media: Option<&'s str>,
     magic_comments: Option<&'s str>,
   ) {
-    let attributes = DependencyIndex::from_index(self.import_attributes.len());
+    let attributes = DependencyIndex::from_index(self.payloads.len());
     self
-      .import_attributes
-      .push(ImportAttributes::new(layer, supports, media));
+      .payloads
+      .push(DependencyPayload::ImportAttributes(ImportAttributes::new(
+        layer, supports, media,
+      )));
     self.dependencies.push(Dependency::Import {
       request,
       range,
@@ -537,7 +660,7 @@ impl PartialEq for DependencyContext<'_> {
   fn eq(&self, other: &Self) -> bool {
     self.dependencies == other.dependencies
       && self.dashed_ident_occurrences == other.dashed_ident_occurrences
-      && self.import_attributes == other.import_attributes
+      && self.payloads == other.payloads
       && self.composes_local_classes == other.composes_local_classes
       && self.composes_names == other.composes_names
       && self.value_at_rule_import_items == other.value_at_rule_import_items
@@ -550,7 +673,7 @@ impl Hash for DependencyContext<'_> {
   fn hash<H: Hasher>(&self, state: &mut H) {
     self.dependencies.hash(state);
     self.dashed_ident_occurrences.hash(state);
-    self.import_attributes.hash(state);
+    self.payloads.hash(state);
     self.composes_local_classes.hash(state);
     self.composes_names.hash(state);
     self.value_at_rule_import_items.hash(state);
@@ -561,7 +684,7 @@ impl Hash for DependencyContext<'_> {
 struct DependencyContextCapacity {
   dependencies: usize,
   dashed_ident_occurrences: usize,
-  import_attributes: u16,
+  payloads: u16,
   composes_local_classes: u16,
   composes_names: u16,
   value_at_rule_import_items: u16,
@@ -580,7 +703,7 @@ impl DependencyContextCapacity {
     } else {
       0
     };
-    let import_attributes = estimate_capacity(input_len, 8192, 2, 1024);
+    let payloads = estimate_capacity(input_len, 8192, 2, 1024);
     let (composes_local_classes, composes_names, value_at_rule_import_items) = match mode {
       Mode::Local | Mode::Pure => (
         estimate_capacity(input_len, 640, 2, 4096),
@@ -597,7 +720,7 @@ impl DependencyContextCapacity {
     Self {
       dependencies,
       dashed_ident_occurrences,
-      import_attributes: import_attributes as u16,
+      payloads: payloads as u16,
       composes_local_classes: composes_local_classes as u16,
       composes_names: composes_names as u16,
       value_at_rule_import_items: value_at_rule_import_items as u16,

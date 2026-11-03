@@ -206,3 +206,17 @@
     color: red;
   }
 }
+
+/* A definition may omit its semicolon before the end of an enclosing rule. */
+@media (--layered) {
+  .layered {
+    color: red;
+  }
+}
+
+@layer custom-media-definitions {
+  @custom-media --layered (min-width: 70em)
+}
+
+/* A block-bearing at-rule is not a custom-media definition. */
+@custom-media --block-rule (min-width: 1px) {}

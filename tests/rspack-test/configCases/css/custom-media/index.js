@@ -53,9 +53,12 @@ it('should resolve custom media like webpack', () => {
   expect(css).toContain('@media screen and (hover)');
   expect(css).toContain('@media print, (max-width: 30em)');
   expect(css).toMatch(/@media not all\s*\{\s*\.never-and/);
+  expect(css).toContain('@media (min-width: 70em)');
+  expect(css).toContain('@custom-media --block-rule (min-width: 1px)');
 
   expect(css).not.toContain('@custom-media --narrow');
   expect(css).not.toContain('@custom-media --wide');
+  expect(css).not.toContain('@custom-media --layered');
 });
 
 it('should honor module.parser.css.customMedia = false', () => {
