@@ -233,12 +233,6 @@ If you encounter performance issues with the default watcher, you can try enabli
 
 After enabling `nativeWatcher`, Rspack will use the Rust Native file system to monitor file changes, enabling incremental file change detection, which provides better performance and stability.
 
-For watched contexts, undelayed `change` and `remove` events report the concrete file path. Compilation aggregates (`modifiedFiles` and `removedFiles`) continue to report registered dependencies and affected contexts.
-
-When a directory is moved into place, registered files discovered inside it also produce undelayed `change` events before their compilation aggregate is delivered.
-
-When an entry is removed from a watched context, its `change` event reports the concrete path with a `null` time. If the entry is also a registered file or missing dependency, it additionally produces a `remove` event. The compilation aggregate still reports the context as changed and the registered dependency as removed.
-
 ```js title="rspack.config.mjs"
 export default {
   watchOptions: {

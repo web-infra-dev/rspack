@@ -233,12 +233,6 @@ export default {
 
 启用 `nativeWatcher` 后，Rspack 将使用 Rust Native 文件系统监听文件变化，实现增量监听文件变更能力，这提供更好的性能和稳定性。
 
-监听目录时，即时触发的 `change` 和 `remove` 事件会包含发生变化的具体文件路径。构建汇总的 `modifiedFiles` 和 `removedFiles` 仍只包含已注册的依赖及受影响的目录。
-
-目录整体移入时，补扫发现的已注册文件也会触发各自的 `change` 事件，并在对应的构建汇总之前送达。
-
-监听目录中的条目被删除时，`change` 事件会包含该条目的具体路径，时间值为 `null`。如果该条目本身也是已注册的文件依赖或 missing 依赖，还会触发 `remove` 事件。构建汇总仍将目录记为发生变化，将已注册条目记为已删除。
-
 ```js title="rspack.config.mjs"
 export default {
   watchOptions: {
