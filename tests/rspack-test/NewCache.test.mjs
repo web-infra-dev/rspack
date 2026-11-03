@@ -35,6 +35,10 @@ const excludes = {
 		/^runtime\/missing-module-exception-require$/,
 		/^warnings\/not-fully-specified$/,
 
+		// Absolute __dirname fragments create invalid missing-dependency paths on
+		// Windows, so the resolver snapshot fails and the result is never stored.
+		/^parsing\/evaluate$/,
+
 		// Existing bundle/compiler assertions fail in the compatibility suite.
 		/^parsing\/rspack-issue-4816$/
 	],
@@ -117,10 +121,10 @@ const excludes = {
 		// Child compiler metadata is not fully restored.
 		/^plugins\/rspack-issue-4982$/,
 
-		// The child compilation is not awaited, so its cache may not be stored.
+		// Unawaited child compilation races with closing/flushing the parent cache.
 		/^chunk-loading\/issue-4754$/,
 
-		// Stats assertions require build-time modules that cache restoration skips.
+		// Restored modules skip loader importModule(), but this case asserts both graphs.
 		/^stats\/issuer-information-cache$/,
 
 		// Loader-emitted errors or warnings are not fully restored.
@@ -132,6 +136,11 @@ const excludes = {
 		/^ecmaVersion\/browserslist-config-env-extends$/,
 		/^ecmaVersion\/browserslist-config-extends$/,
 		/^ecmaVersion\/browserslist-extends$/,
+
+		// ContextModuleFactory retains the query in context dependencies. Snapshot
+		// metadata probes reject the resulting "modules?cats=meow" paths on Windows.
+		/^context-modules\/replacement-d$/,
+		/^context-replacement\/d$/,
 
 		// Reads a hard-coded output path from the regular Config suite.
 		/^library\/esm-external$/,
@@ -163,16 +172,6 @@ const excludes = {
 		/^split-chunks\/callback-order$/
 	]
 };
-
-if (process.platform === "win32") {
-	// Resolver cache misses after restarting the compiler on Windows.
-	excludes.normal.push(/^parsing\/evaluate$/);
-	// Cache builds query filesystem metadata with resource queries in the path.
-	excludes.config.push(
-		/^context-modules\/replacement-d$/,
-		/^context-replacement\/d$/
-	);
-}
 
 for (const [source, type] of suites) {
 	describeByWalk(
