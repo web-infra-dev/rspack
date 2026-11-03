@@ -19,6 +19,9 @@ rspack_hook      = { workspace = true }
 rspack_util      = { workspace = true }
 tracing          = { workspace = true }
 
+[package.metadata.cargo-shear]
+ignored = ["tracing"]
+
 [lints]
 workspace = true
 
