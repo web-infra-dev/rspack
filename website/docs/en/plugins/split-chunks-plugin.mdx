@@ -232,7 +232,7 @@ Unlike a fixed [`name`](#splitchunksname), `idHint` does not merge chunks. With 
 
 - **Type:** `string | RegExp | ((layer?: string) => boolean)`
 
-Selects modules by their layer. For example, use [`module.rules[].layer`](/config/module-rules#ruleslayer) to assign modules under `src/modern` to the `modern` layer, then select them with a cache group:
+Selects modules by their layer. For example, first use [`module.rules[].layer`](/config/module-rules#ruleslayer) to assign modules under `src/modern` to the `modern` layer, then configure a cache group to match that layer:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -258,7 +258,7 @@ export default {
 };
 ```
 
-Here, `minSize: 0` allows even small modules in this layer to be extracted.
+The example sets `minSize: 0` so that even small modules in this layer can be extracted.
 
 #### priority
 
@@ -419,7 +419,7 @@ This option controls which chunks should be selected for code splitting. When a 
 
 Generally, setting it to `all` can help reduce duplicate modules being bundled, as it means chunks can be shared between initial chunks and async chunks.
 
-For most production applications, `chunks: 'all'` is the recommended starting point. What often hurts the result is not `chunks: 'all'` itself, but broad manual cache groups combined with a fixed [`name`](#splitchunksname).
+For most production applications, `chunks: 'all'` is a useful starting point. A custom cache group with a broad match and a fixed [`name`](#splitchunksname) may bundle modules that some pages do not need.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -493,7 +493,7 @@ Using the function type of `chunks` will significantly reduce build performance,
 - **Type:** `number`
 - **Default:** `1` in `production` mode; `0` in `development` or `none` mode.
 
-This option controls how Rspack finds modules shared by different chunks.
+Controls how deeply Rspack searches for modules that chunks can share.
 
 For example, suppose each page initially produces one chunk. `{ A, B }` means that pages `A` and `B` both use this code. Extracting the modules they share into a shared bundle can reduce duplication.
 
@@ -554,11 +554,11 @@ This option is configured on `splitChunks` and cannot be overridden by individua
 - **Type:** `string[]`
 - **Default:** `["javascript", "css", "unknown"]`
 
-Specifies which source types a numeric size threshold, such as [`minSize`](#splitchunksminsize), applies to. The defaults are `javascript`, `css`, and `unknown`. A source type describes the code a module generates, unlike the module type matched by a cache group’s [`type`](#type), such as `javascript/auto`.
+Specifies which source types to check when options such as [`minSize`](#splitchunksminsize) use a numeric threshold. The defaults are `javascript`, `css`, and `unknown`.
 
-Sizes are checked separately for each source type present in the candidate modules. JavaScript and CSS sizes are not added together, and a JavaScript-only chunk does not need to meet a CSS size threshold.
+A source type describes the content a module generates. It differs from the module type matched by a cache group’s [`type`](#type), such as `javascript/auto`. Sizes are checked separately for each source type present in the modules to extract. JavaScript and CSS sizes are not added together, and a JavaScript-only chunk does not need to meet a CSS threshold.
 
-For example, add `wasm` to apply numeric size thresholds to WebAssembly as well. Use `'...'` to keep the default source types:
+For example, add `wasm` to include WebAssembly in size checks, and use `'...'` to keep the default source types:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -579,9 +579,9 @@ Set a size threshold that lets Rspack continue splitting once a candidate chunk 
 
 When a candidate reaches this threshold, Rspack ignores [`splitChunks.minRemainingSize`](#splitchunksminremainingsize) and request-limit checks such as [`splitChunks.maxAsyncRequests`](#splitchunksmaxasyncrequests) and [`splitChunks.maxInitialRequests`](#splitchunksmaxinitialrequests).
 
-Compared with [`splitChunks.cacheGroups.{cacheGroup}.enforce`](#enforce), this is more targeted: only sufficiently large candidates are forced to keep splitting, while smaller ones still follow the normal heuristics.
+Unlike [`splitChunks.cacheGroups.{cacheGroup}.enforce`](#enforce), this option skips those checks only when the size threshold is met. Smaller candidate chunks remain subject to them.
 
-When configured with a `number`, the same threshold is applied to all size types defined in [`splitChunks.defaultSizeTypes`](#splitchunksdefaultsizetypes). The object form lets you set different thresholds per size type.
+When configured with a `number`, the same threshold is applied to all source types defined in [`splitChunks.defaultSizeTypes`](#splitchunksdefaultsizetypes). The object form lets you set different thresholds per source type.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -653,7 +653,7 @@ As with `maxSize`, this is not a hard upper limit: a chunk may still exceed it i
 
 - **Type:** `string | function`
 
-Allows to override the filename when and only when it's an initial chunk. All placeholders available in output.filename are also available here.
+Customizes filenames for initial chunks. All placeholders available in `output.filename` are supported.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -666,7 +666,7 @@ export default {
 };
 ```
 
-You can also configure this option for an individual cache group in [`splitChunks.cacheGroups.{cacheGroup}`](#splitchunkscachegroups). For example, add a `vendors` group to customize the filenames of chunks containing third-party dependencies:
+You can also configure this option for an individual cache group in [`splitChunks.cacheGroups.{cacheGroup}`](#splitchunkscachegroups). For example, add a `vendors` group to customize the filenames of the extracted third-party chunks:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -684,7 +684,7 @@ export default {
 };
 ```
 
-You can also set `filename` to a function. This example uses the chunk ID from `pathData`, which is available even for unnamed chunks:
+You can also set `filename` to a function. The following example generates filenames from the chunk ID in `pathData`, so it also works for unnamed chunks:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -711,7 +711,7 @@ export default {
 
 When [`maxSize`](#splitchunksmaxsize) splits a named chunk, it adds a suffix to each part's name. `hidePathInfo` determines whether that suffix contains readable module paths.
 
-For example, set it to `true` to use hashes in the suffixes:
+For example, set it to `true` to hide module paths in the suffixes:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -726,7 +726,7 @@ export default {
 };
 ```
 
-Splitting a chunk named `main` then produces names such as `main-<hash>`. Changing this option to `false` allows readable module paths in the suffixes. It only affects names; paths in source maps and other output are unchanged.
+Splitting a chunk named `main` can produce names such as `main-<hash>` or use numeric suffixes. Changing this option to `false` allows readable module paths in the suffixes. It only affects names; paths in source maps and other output are unchanged.
 
 ### splitChunks.maxAsyncRequests
 
@@ -859,7 +859,9 @@ If `maxAsyncSize` or `maxInitialSize` is not set separately, it falls back to `m
 - **Type:** `number`
 - **Default:** `1`
 
-The minimum times must a module be shared among chunks before splitting.
+Sets the minimum number of chunks that must contain a module before it can be extracted. Only chunks selected by [`chunks`](#splitchunkschunks) count; multiple `import` statements referencing the module within the same chunk still count as one chunk.
+
+For example, require a module to be shared by at least two chunks:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -870,6 +872,8 @@ export default {
   },
 };
 ```
+
+This configuration keeps the default `chunks: 'async'`, so a module must appear in at least two async chunks and meet the other splitting conditions before it can be extracted.
 
 You can also configure this option for an individual cache group in [`splitChunks.cacheGroups.{cacheGroup}`](#splitchunkscachegroups), for example:
 
@@ -948,7 +952,7 @@ export default {
 };
 ```
 
-For this check, 80KB of JavaScript and 30KB of CSS do not count as 110KB: each is below the 100KB threshold.
+With this configuration, 80KB of JavaScript and 30KB of CSS each fall below the 100KB threshold. Their sizes cannot be added together to satisfy it.
 
 You can also configure this option for an individual cache group in [`splitChunks.cacheGroups.{cacheGroup}`](#splitchunkscachegroups), for example:
 
@@ -983,14 +987,14 @@ export default {
 };
 ```
 
-This sets a 100KB threshold for JavaScript and a 300KB threshold for CSS. If the modules to extract generate only JavaScript, only the JavaScript threshold applies.
+This sets the thresholds to 100KB for JavaScript and 300KB for CSS. If the modules to extract generate only JavaScript, only the 100KB threshold applies.
 
 ### splitChunks.minSizeReduction
 
 - **Type:** `number | Record<string, number>`
 - **Default:** `0`
 
-Sets the minimum total size reduction across the source chunks, in bytes. While [`minSize`](#splitchunksminsize) checks the size of the modules to extract, `minSizeReduction` checks how much their removal reduces the source chunks.
+Sets the minimum total size reduction across the source chunks, in bytes. [`minSize`](#splitchunksminsize) checks the size of the modules to extract, while `minSizeReduction` checks the total size removed from the source chunks.
 
 For example, set the threshold to 100KB:
 
@@ -1005,9 +1009,9 @@ export default {
 };
 ```
 
-If a 40KB module is shared by two source chunks, extracting it into a new chunk would remove `40KB × 2 = 80KB` from those chunks. This is below `minSizeReduction: 100 * 1000`, so the module is not extracted.
+Suppose two source chunks each contain the same 40KB module. Extracting it into a new shared chunk would remove 40KB from each source chunk, for a total of `40KB × 2 = 80KB`. Since this is below the 100KB threshold configured above, the split does not occur.
 
-This calculation does not subtract the size of the new shared chunk. In this example, the net reduction across all chunks would be only 40KB, ignoring runtime and other generated code.
+The threshold counts only the reduction in the source chunks. Including the new 40KB shared chunk, the net reduction across all chunks would be only 40KB, ignoring runtime and other generated code.
 
 You can also configure this option for an individual cache group in [`splitChunks.cacheGroups.{cacheGroup}`](#splitchunkscachegroups), for example:
 
@@ -1071,8 +1075,6 @@ export default {
 };
 ```
 
-Providing a string allows you to use a custom name. Specifying a string will merge all common modules and vendors into a single chunk. This might lead to bigger initial downloads and slow down page loads.
-
 When `name` is a function, Rspack calls it with these parameters:
 
 - `module`: the module that is being considered for the split chunk. You can use methods such as `module.identifier()` to derive a stable name from its request or resource path.
@@ -1135,7 +1137,7 @@ export default {
 };
 ```
 
-`name` is not only a filename customization. It also changes grouping behavior: when different chunk combinations hit the same cache group and resolve to the same name, Rspack will merge them into the same named split chunk candidate. This can improve cache hit rate, but it can also force a page to fetch modules from unrelated dependency chains.
+`name` also affects grouping: when different chunk combinations match the same cache group and resolve to the same name, Rspack tries to extract them into the same named chunk. This can improve cache reuse, but may also make pages load modules they do not need.
 
 If your goal is only to hint chunk identity or filenames, prefer [`splitChunks.cacheGroups.{cacheGroup}.idHint`](#idhint) and leave `name` unset.
 
@@ -1207,13 +1209,14 @@ This option controls grouping, not whether unused exports are removed. Removing 
 
 ### Why are modules still duplicated?
 
-Common reasons include:
+Check the following in order:
 
-- the shared candidate is too small to satisfy [`splitChunks.minSize`](#splitchunksminsize)
-- the split does not satisfy [`splitChunks.minSizeReduction`](#splitchunksminsizereduction)
-- the candidate does not satisfy [`splitChunks.minChunks`](#splitchunksminchunks)
-- [`splitChunks.maxAsyncRequests`](#splitchunksmaxasyncrequests) or [`splitChunks.maxInitialRequests`](#splitchunksmaxinitialrequests) rejects the split
-- `chunks`, `test`, or custom cache groups do not actually select the same chunk combination
+1. **Selection**: Does [`chunks`](#splitchunkschunks) include these chunks? Do the cache group's [`test`](#test), [`type`](#type), or [`layer`](#layer) match the modules? The default `chunks: 'async'` does not extract modules from entry chunks.
+2. **Size requirements**: Do the modules meet [`minSize`](#splitchunksminsize), and does the reduction in the source chunks meet [`minSizeReduction`](#splitchunksminsizereduction)? [`minRemainingSize`](#splitchunksminremainingsize) can also limit how small the source chunks become.
+3. **Sharing**: Does the number of chunks participating in the split meet [`minChunks`](#splitchunksminchunks)?
+4. **Request limits**: Would the split exceed [`maxAsyncRequests`](#splitchunksmaxasyncrequests) or [`maxInitialRequests`](#splitchunksmaxinitialrequests)?
+
+Also, with [`usedExports`](#splitchunksusedexports) enabled, entries that use different exports may keep separate copies of a module so that each copy can drop code it does not need.
 
 Very small duplicates are often intentional. Extracting them into an extra chunk can be worse than keeping them duplicated.
 
@@ -1223,7 +1226,7 @@ No. `splitChunks` changes chunk topology, but JavaScript loading and execution o
 
 ### Does splitChunks affect tree shaking?
 
-No. Tree shaking decides what code is kept. `splitChunks` only decides how kept modules are partitioned into chunks.
+The two work together. `splitChunks` extracts and shares modules. With [`usedExports`](#splitchunksusedexports) enabled, it also groups modules by the exports used in each runtime, allowing separate copies to drop code they do not need. Whether unused code is ultimately removed still depends on tree shaking and minification.
 
 ### Can splitChunks affect CSS order?
 
