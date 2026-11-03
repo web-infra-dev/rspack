@@ -50,7 +50,10 @@ export default ["files", "missing"].map((dependency) => ({
 			...(dependency === "files" ? [...children, ignored] : []),
 		];
 		const missing = dependency === "missing" ? [...children, ignored] : [];
-		const options = { aggregateTimeout: 50, ignored };
+		const options = {
+			aggregateTimeout: 50,
+			ignored: ignored.replaceAll("\\", "/"),
+		};
 		const native = new NativeWatcher(options);
 		const watchpack = new Watchpack(options);
 		const nativeEvents = [];

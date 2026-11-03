@@ -56,8 +56,11 @@ export default scenarios.map((scenario) => ({
 		];
 		const directories = [source];
 		const missing = scenario.dependency === "missing" ? [child] : [];
-		const options = { aggregateTimeout: 50, ignored };
-		if (scenario.directory) await sleep(2100);
+		const options = {
+			aggregateTimeout: 50,
+			ignored: ignored.replaceAll("\\", "/"),
+		};
+		await sleep(2100);
 		const compiler = rspack({
 			context: source,
 			mode: "development",

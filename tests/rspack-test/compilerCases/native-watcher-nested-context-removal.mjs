@@ -23,6 +23,9 @@ async function waitFor(predicate) {
 
 const scenarios = [
 	{ name: "context-only" },
+	{ name: "populated-context", populated: true },
+	{ name: "populated-file", populated: true, insideDependency: "file" },
+	{ name: "populated-missing", populated: true, insideDependency: "missing" },
 	{ name: "also-file", dependency: "file" },
 	{ name: "also-missing", dependency: "missing" },
 ];
@@ -37,22 +40,34 @@ export default scenarios.map((scenario) => ({
 		);
 		const source = path.join(root, "src");
 		const child = path.join(source, "child");
+		const inside = path.join(child, "inside.js");
 		const ready = path.join(source, "ready.js");
 		const ignored = path.join(source, "ignored.js");
 		fs.mkdirSync(source);
 		fs.mkdirSync(child);
+		if (scenario.populated) fs.writeFileSync(inside, "0");
 		fs.writeFileSync(ready, "0");
 		fs.writeFileSync(ignored, "0");
 		const past = new Date(Date.now() - 10_000);
-		for (const file of [ready, child, ignored, source])
+		for (const file of [
+			ready,
+			child,
+			ignored,
+			source,
+			...(scenario.populated ? [inside] : []),
+		])
 			fs.utimesSync(file, past, past);
 		const files = [
 			ready,
 			ignored,
 			...(scenario.dependency === "file" ? [child] : []),
+			...(scenario.insideDependency === "file" ? [inside] : []),
 		];
 		const directories = [source, child];
-		const missing = scenario.dependency === "missing" ? [child] : [];
+		const missing = [
+			...(scenario.dependency === "missing" ? [child] : []),
+			...(scenario.insideDependency === "missing" ? [inside] : []),
+		];
 		const options = {
 			aggregateTimeout: 50,
 			ignored: ignored.replaceAll("\\", "/"),
@@ -113,7 +128,8 @@ export default scenarios.map((scenario) => ({
 			await sleep(100);
 			nativeEvents.length = shimEvents.length = watchpackEvents.length = 0;
 			nativeBatches.length = watchpackBatches.length = 0;
-			fs.rmdirSync(child);
+			if (scenario.populated) fs.rmSync(child, { recursive: true });
+			else fs.rmdirSync(child);
 			fs.unlinkSync(ignored);
 			await waitFor(
 				() =>
@@ -122,7 +138,13 @@ export default scenarios.map((scenario) => ({
 			);
 			const expectedEvents = [
 				...(scenario.dependency ? [{ kind: "remove", file: child }] : []),
+				...(scenario.insideDependency
+					? [{ kind: "remove", file: inside }]
+					: []),
 				{ kind: "change", file: child, mtime: null },
+				...(scenario.populated
+					? [{ kind: "change", file: inside, mtime: null }]
+					: []),
 			];
 			const normalize = (events) =>
 				[...new Set(events.map((event) => JSON.stringify(event)))].sort();
@@ -130,12 +152,15 @@ export default scenarios.map((scenario) => ({
 				expect(normalize(events)).toEqual(normalize(expectedEvents));
 			}
 			for (const batches of [watchpackBatches, nativeBatches]) {
-				expect([...new Set(batches.flatMap((batch) => batch.changes))]).toEqual(
-					[source],
-				);
+				expect(
+					[...new Set(batches.flatMap((batch) => batch.changes))].sort(),
+				).toEqual([source, ...(scenario.populated ? [child] : [])].sort());
 				expect([
 					...new Set(batches.flatMap((batch) => batch.removals)),
-				]).toEqual(scenario.dependency ? [child] : []);
+				]).toEqual([
+					...(scenario.dependency ? [child] : []),
+					...(scenario.insideDependency ? [inside] : []),
+				]);
 				for (const batch of batches) {
 					if (batch.changes.includes(source))
 						expect(normalize(batch.raw)).toEqual(normalize(expectedEvents));

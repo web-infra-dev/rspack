@@ -320,8 +320,16 @@ impl EventProcessor {
         .any(|(associated, kind)| associated != path && *kind == FsEventKind::Change))
     .then(|| path.clone());
     let context_only_removal = context_removal.is_some() && !finder.contains_file(path);
-    if context_only_removal {
-      associated_event.retain(|(associated, _)| associated != path);
+    if context_removal.is_some() {
+      associated_event.retain_mut(|(associated, associated_kind)| {
+        if *associated_kind == FsEventKind::Remove && !finder.contains_file(associated) {
+          if associated == path {
+            return false;
+          }
+          *associated_kind = FsEventKind::Change;
+        }
+        true
+      });
     }
     let raw = (!associated_event.is_empty() && !context_only_removal).then(|| FsEvent {
       path: path.clone(),
