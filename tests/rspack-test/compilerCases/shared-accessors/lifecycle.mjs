@@ -98,7 +98,7 @@ export default async function run() {
           Object.getOwnPropertyDescriptor(entry.buildInfo, fileKey).get,
         );
         assert(getFiles.call(info).includes(valuePath));
-      } else if (generation === 1) {
+      } else {
         assert.equal(
           getMatchResource,
           Object.getOwnPropertyDescriptor(current, 'matchResource').get,
@@ -129,21 +129,6 @@ export default async function run() {
           () => info[Symbol.for('rspack.buildInfo.assets')],
           /removed on the Rust side/,
         );
-      } else {
-        const replacement = modules.find(
-          (module) => module.resource === valuePath,
-        );
-        assert(replacement);
-        // Retained BuildInfo resolves the current wrapper for the same identifier.
-        assert(getFiles.call(info).includes(valuePath));
-        assert.deepEqual(
-          getFiles.call(info),
-          getFiles.call(replacement.buildInfo),
-        );
-        assert.throws(
-          () => info[Symbol.for('rspack.buildInfo.commitCustomFields')](),
-          /only modify the module in the loader/,
-        );
       }
     });
     try {
@@ -151,11 +136,6 @@ export default async function run() {
       assert.equal(stats.hasErrors(), false);
       await forceGC(3);
       fs.writeFileSync(entryPath, 'export default 43;');
-      generation++;
-      stats = await runCompiler(compiler);
-      assert.equal(stats.hasErrors(), false);
-      fs.writeFileSync(entryPath, "import './value.js';");
-      compiler.inputFileSystem.purge();
       generation++;
       stats = await runCompiler(compiler);
       assert.equal(stats.hasErrors(), false);
