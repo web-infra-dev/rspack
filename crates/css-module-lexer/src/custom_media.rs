@@ -1,5 +1,5 @@
 use crate::{
-  TokenKind, TokenWithTrivia,
+  Token, TokenKind, TokenWithTrivia,
   css_syntax::{MAX_CSS_KEYWORD_LEN, dashed_ident_name, decode_css_keyword},
   dependency_types::{
     CustomMediaDefinition, CustomMediaDefinitionValue, CustomMediaPart, CustomMediaText,
@@ -7,41 +7,29 @@ use crate::{
   },
 };
 
-#[derive(Debug, Clone, Copy)]
-struct ComponentSpan {
-  start: usize,
-  end: usize,
-}
-
-/// Walk balanced top-level spans directly over the lexer buffer. Nested CSS
-/// remains opaque unless a parenthesized span contains a custom-media name.
+/// Walk balanced top-level token slices directly over the lexer buffer. Nested
+/// CSS remains opaque unless a parenthesized slice contains a custom-media name.
 struct BalancedSpans<'tokens> {
-  tokens: &'tokens [TokenWithTrivia],
-  index: usize,
-  end: usize,
+  remaining: &'tokens [TokenWithTrivia],
 }
 
 impl<'tokens> BalancedSpans<'tokens> {
-  fn new(tokens: &'tokens [TokenWithTrivia], start: usize, end: usize) -> Self {
-    Self {
-      tokens,
-      index: start,
-      end,
-    }
+  fn new(tokens: &'tokens [TokenWithTrivia]) -> Self {
+    Self { remaining: tokens }
   }
 }
 
-impl Iterator for BalancedSpans<'_> {
-  type Item = ComponentSpan;
+impl<'tokens> Iterator for BalancedSpans<'tokens> {
+  type Item = &'tokens [TokenWithTrivia];
 
   fn next(&mut self) -> Option<Self::Item> {
-    if self.index >= self.end {
+    if self.remaining.is_empty() {
       return None;
     }
-    let start = self.index;
-    let end = component_end(self.tokens, start, self.end);
-    self.index = end;
-    Some(ComponentSpan { start, end })
+    let len = component_len(self.remaining);
+    let (span, remaining) = self.remaining.split_at(len);
+    self.remaining = remaining;
+    Some(span)
   }
 }
 
@@ -89,8 +77,8 @@ pub(crate) fn parse_custom_media_definition<'s>(
   input: &'s str,
   tokens: &[TokenWithTrivia],
 ) -> Option<CustomMediaDefinition<'s>> {
-  let first = BalancedSpans::new(tokens, 0, tokens.len()).next()?;
-  let token = tokens[first.start].token;
+  let first = BalancedSpans::new(tokens).next()?;
+  let token = first[0].token;
   if token.kind != TokenKind::Ident {
     return None;
   }
@@ -100,7 +88,7 @@ pub(crate) fn parse_custom_media_definition<'s>(
   }
   Some(CustomMediaDefinition {
     name,
-    value: classify_value(input, tokens, first.end, tokens.len()),
+    value: classify_value(input, &tokens[first.len()..]),
   })
 }
 
@@ -115,16 +103,17 @@ pub(crate) fn parse_media_query<'s>(
   let mut queries = Vec::new();
   let mut references = 0;
   let mut query_start = 0;
-  for component in BalancedSpans::new(tokens, 0, tokens.len()) {
-    if tokens[component.start].token.kind != TokenKind::Comma {
-      continue;
+  let mut offset = 0;
+  for span in BalancedSpans::new(tokens) {
+    if span[0].token.kind == TokenKind::Comma {
+      let query = parse_query(input, &tokens[query_start..offset]);
+      references += query.references;
+      queries.push(query.finish());
+      query_start = offset + span.len();
     }
-    let query = parse_query(input, tokens, query_start, component.start);
-    references += query.references;
-    queries.push(query.finish());
-    query_start = component.end;
+    offset += span.len();
   }
-  let query = parse_query(input, tokens, query_start, tokens.len());
+  let query = parse_query(input, &tokens[query_start..]);
   references += query.references;
   queries.push(query.finish());
   if references == 0 {
@@ -133,37 +122,33 @@ pub(crate) fn parse_media_query<'s>(
 
   Some(MediaQueryList {
     queries,
-    range: source_range(tokens, 0, tokens.len()),
+    range: source_range(tokens),
   })
 }
 
 fn classify_value<'s>(
   input: &'s str,
   tokens: &[TokenWithTrivia],
-  start: usize,
-  end: usize,
 ) -> CustomMediaDefinitionValue<'s> {
-  if start >= end {
+  if tokens.is_empty() {
     return CustomMediaDefinitionValue::Unsupported;
   }
-  if BalancedSpans::new(tokens, start, end)
-    .any(|component| tokens[component.start].token.kind == TokenKind::Comma)
-  {
-    return classify_or_value(input, tokens, start, end);
+  if BalancedSpans::new(tokens).any(|span| span[0].token.kind == TokenKind::Comma) {
+    return classify_or_value(input, tokens);
   }
 
-  let first = BalancedSpans::new(tokens, start, end)
+  let first = BalancedSpans::new(tokens)
     .next()
     .expect("non-empty custom media value");
-  let single = first.end == end;
+  let single = first.len() == tokens.len();
   if single
-    && let Some((name, invalid)) = lone_dashed_ident(input, tokens, first)
+    && let Some((name, invalid)) = lone_dashed_ident(input, first)
     && !invalid
   {
     return CustomMediaDefinitionValue::Alias(name);
   }
 
-  let query = parse_query(input, tokens, start, end);
+  let query = parse_query(input, tokens);
   if query.references != 0 {
     if query.instructions.iter().any(|instruction| {
       matches!(
@@ -176,24 +161,25 @@ fn classify_value<'s>(
     return CustomMediaDefinitionValue::Query(query.finish());
   }
 
-  let range = source_range(tokens, start, end);
-  if tokens[first.start].token.kind == TokenKind::LeftParenthesis {
+  let range = source_range(tokens);
+  if first[0].token.kind == TokenKind::LeftParenthesis {
     return CustomMediaDefinitionValue::Condition(CustomMediaText { range, wrap: false });
   }
-  if tokens[first.start].token.kind != TokenKind::Ident {
+  if first[0].token.kind != TokenKind::Ident {
     return CustomMediaDefinitionValue::Unsupported;
   }
-  if single && is_keyword(input, tokens, first.start, "true") {
+  if single && is_keyword(input, first[0].token, "true") {
     return CustomMediaDefinitionValue::Boolean(true);
   }
-  if single && is_keyword(input, tokens, first.start, "false") {
+  if single && is_keyword(input, first[0].token, "false") {
     return CustomMediaDefinitionValue::Boolean(false);
   }
-  if is_keyword(input, tokens, first.start, "not") {
-    let next = BalancedSpans::new(tokens, first.end, end).next();
-    if next.is_some_and(|next| tokens[next.start].token.kind == TokenKind::LeftParenthesis) {
-      return CustomMediaDefinitionValue::Condition(CustomMediaText { range, wrap: true });
-    }
+  if is_keyword(input, first[0].token, "not")
+    && BalancedSpans::new(&tokens[first.len()..])
+      .next()
+      .is_some_and(|next| next[0].token.kind == TokenKind::LeftParenthesis)
+  {
+    return CustomMediaDefinitionValue::Condition(CustomMediaText { range, wrap: true });
   }
   CustomMediaDefinitionValue::Type(range)
 }
@@ -201,38 +187,32 @@ fn classify_value<'s>(
 fn classify_or_value<'s>(
   input: &'s str,
   tokens: &[TokenWithTrivia],
-  start: usize,
-  end: usize,
 ) -> CustomMediaDefinitionValue<'s> {
   let mut parts = Vec::new();
-  let mut segment_start = start;
-  for component in BalancedSpans::new(tokens, start, end) {
-    if tokens[component.start].token.kind != TokenKind::Comma {
-      continue;
+  let mut segment_start = 0;
+  let mut offset = 0;
+  for span in BalancedSpans::new(tokens) {
+    if span[0].token.kind == TokenKind::Comma {
+      let Some(part) = classify_or_part(input, &tokens[segment_start..offset]) else {
+        return CustomMediaDefinitionValue::Unsupported;
+      };
+      parts.push(part);
+      segment_start = offset + span.len();
     }
-    let Some(part) = classify_or_part(input, tokens, segment_start, component.start) else {
-      return CustomMediaDefinitionValue::Unsupported;
-    };
-    parts.push(part);
-    segment_start = component.end;
+    offset += span.len();
   }
-  let Some(part) = classify_or_part(input, tokens, segment_start, end) else {
+  let Some(part) = classify_or_part(input, &tokens[segment_start..]) else {
     return CustomMediaDefinitionValue::Unsupported;
   };
   parts.push(part);
   CustomMediaDefinitionValue::Or(parts)
 }
 
-fn classify_or_part<'s>(
-  input: &'s str,
-  tokens: &[TokenWithTrivia],
-  start: usize,
-  end: usize,
-) -> Option<CustomMediaPart<'s>> {
-  let first = BalancedSpans::new(tokens, start, end).next()?;
-  let range = source_range(tokens, start, end);
-  if first.end == end && tokens[first.start].token.kind == TokenKind::LeftParenthesis {
-    if let Some((name, invalid)) = lone_dashed_ident(input, tokens, first) {
+fn classify_or_part<'s>(input: &'s str, tokens: &[TokenWithTrivia]) -> Option<CustomMediaPart<'s>> {
+  let first = BalancedSpans::new(tokens).next()?;
+  let range = source_range(tokens);
+  if first.len() == tokens.len() && first[0].token.kind == TokenKind::LeftParenthesis {
+    if let Some((name, invalid)) = lone_dashed_ident(input, first) {
       return (!invalid).then_some(CustomMediaPart::Alias(name));
     }
     return Some(CustomMediaPart::Text(CustomMediaText {
@@ -241,14 +221,13 @@ fn classify_or_part<'s>(
     }));
   }
 
-  if tokens[first.start].token.kind != TokenKind::LeftParenthesis
-    && !is_keyword(input, tokens, first.start, "not")
+  if first[0].token.kind != TokenKind::LeftParenthesis && !is_keyword(input, first[0].token, "not")
   {
     return None;
   }
 
   let mut query = MediaProgramBuilder::new();
-  parse_condition(input, tokens, start, end, true, &mut query);
+  parse_condition(input, tokens, true, &mut query);
   if query.references == 0 {
     return Some(CustomMediaPart::Text(CustomMediaText { range, wrap: true }));
   }
@@ -263,39 +242,41 @@ fn classify_or_part<'s>(
   Some(CustomMediaPart::Query(query.finish()))
 }
 
-fn parse_query<'s>(
-  input: &'s str,
-  tokens: &[TokenWithTrivia],
-  start: usize,
-  end: usize,
-) -> MediaProgramBuilder<'s> {
+fn parse_query<'s>(input: &'s str, tokens: &[TokenWithTrivia]) -> MediaProgramBuilder<'s> {
   let mut query = MediaProgramBuilder::new();
-  if start >= end {
-    query.opaque(source_range(tokens, start, end));
+  if tokens.is_empty() {
+    query.opaque(source_range(tokens));
     return query;
   }
 
-  let first = BalancedSpans::new(tokens, start, end)
+  let first = BalancedSpans::new(tokens)
     .next()
     .expect("non-empty media query");
-  let rest = first.end;
-  let starts_with_type = tokens[first.start].token.kind == TokenKind::Ident
-    && (!is_keyword(input, tokens, first.start, "not")
-      || rest >= end
-      || tokens[rest].token.kind != TokenKind::LeftParenthesis);
+  let rest = &tokens[first.len()..];
+  let starts_with_type = first[0].token.kind == TokenKind::Ident
+    && (!is_keyword(input, first[0].token, "not")
+      || rest.is_empty()
+      || rest[0].token.kind != TokenKind::LeftParenthesis);
   if !starts_with_type {
-    parse_condition(input, tokens, start, end, true, &mut query);
+    parse_condition(input, tokens, true, &mut query);
     return query;
   }
 
-  let split = BalancedSpans::new(tokens, start, end)
-    .find(|component| is_keyword(input, tokens, component.start, "and"));
-  let Some(split) = split else {
-    query.opaque(source_range(tokens, start, end));
+  let mut offset = 0;
+  let mut split = None;
+  for span in BalancedSpans::new(tokens) {
+    if is_keyword(input, span[0].token, "and") {
+      split = Some((offset, span.len()));
+      break;
+    }
+    offset += span.len();
+  }
+  let Some((split, separator_len)) = split else {
+    query.opaque(source_range(tokens));
     return query;
   };
-  query.opaque(source_range(tokens, start, split.start));
-  parse_condition(input, tokens, split.end, end, false, &mut query);
+  query.opaque(source_range(&tokens[..split]));
+  parse_condition(input, &tokens[split + separator_len..], false, &mut query);
   query.instructions.push(MediaQueryInstruction::And(2));
   query
 }
@@ -303,32 +284,30 @@ fn parse_query<'s>(
 fn parse_condition<'s>(
   input: &'s str,
   tokens: &[TokenWithTrivia],
-  start: usize,
-  end: usize,
   alone: bool,
   query: &mut MediaProgramBuilder<'s>,
 ) {
-  if start >= end {
-    query.opaque(source_range(tokens, start, end));
+  if tokens.is_empty() {
+    query.opaque(source_range(tokens));
     return;
   }
 
-  let first = BalancedSpans::new(tokens, start, end)
+  let first = BalancedSpans::new(tokens)
     .next()
     .expect("non-empty media condition");
-  if is_keyword(input, tokens, first.start, "not") {
-    parse_media_in_parens(input, tokens, first.end, end, false, MediaSlot::Or, query);
+  if is_keyword(input, first[0].token, "not") {
+    parse_media_in_parens(input, &tokens[first.len()..], false, MediaSlot::Or, query);
     query.instructions.push(MediaQueryInstruction::Not);
     return;
   }
 
   let mut is_or = false;
   let mut term_count = 1usize;
-  for component in BalancedSpans::new(tokens, start, end) {
-    if is_keyword(input, tokens, component.start, "or") {
+  for span in BalancedSpans::new(tokens) {
+    if is_keyword(input, span[0].token, "or") {
       is_or = true;
       term_count += 1;
-    } else if is_keyword(input, tokens, component.start, "and") {
+    } else if is_keyword(input, span[0].token, "and") {
       term_count += 1;
     }
   }
@@ -340,27 +319,18 @@ fn parse_condition<'s>(
     MediaSlot::And
   };
 
-  let mut term_start = start;
+  let mut term_start = 0;
+  let mut offset = 0;
   let mut leading = true;
-  for component in BalancedSpans::new(tokens, start, end) {
-    if !is_keyword(input, tokens, component.start, "and")
-      && !is_keyword(input, tokens, component.start, "or")
-    {
-      continue;
+  for span in BalancedSpans::new(tokens) {
+    if is_keyword(input, span[0].token, "and") || is_keyword(input, span[0].token, "or") {
+      parse_media_in_parens(input, &tokens[term_start..offset], leading, slot, query);
+      leading = false;
+      term_start = offset + span.len();
     }
-    parse_media_in_parens(
-      input,
-      tokens,
-      term_start,
-      component.start,
-      leading,
-      slot,
-      query,
-    );
-    leading = false;
-    term_start = component.end;
+    offset += span.len();
   }
-  parse_media_in_parens(input, tokens, term_start, end, leading, slot, query);
+  parse_media_in_parens(input, &tokens[term_start..], leading, slot, query);
   if term_count > 1 {
     let term_count = u32::try_from(term_count).expect("media condition has too many terms");
     query.instructions.push(if is_or {
@@ -374,24 +344,22 @@ fn parse_condition<'s>(
 fn parse_media_in_parens<'s>(
   input: &'s str,
   tokens: &[TokenWithTrivia],
-  start: usize,
-  end: usize,
   leading: bool,
   slot: MediaSlot,
   query: &mut MediaProgramBuilder<'s>,
 ) {
-  let Some(component) = BalancedSpans::new(tokens, start, end).next() else {
-    query.opaque(source_range(tokens, start, end));
+  let Some(span) = BalancedSpans::new(tokens).next() else {
+    query.opaque(source_range(tokens));
     return;
   };
-  if component.end != end || tokens[component.start].token.kind != TokenKind::LeftParenthesis {
-    query.opaque(source_range(tokens, start, end));
+  if span.len() != tokens.len() || span[0].token.kind != TokenKind::LeftParenthesis {
+    query.opaque(source_range(tokens));
     return;
   }
-  if let Some((name, invalid)) = lone_dashed_ident(input, tokens, component) {
+  if let Some((name, invalid)) = lone_dashed_ident(input, span) {
     query.reference(CustomMediaUse {
       name,
-      range: source_range(tokens, component.start, component.end),
+      range: source_range(span),
       invalid,
       leading,
       slot,
@@ -399,13 +367,13 @@ fn parse_media_in_parens<'s>(
     return;
   }
 
-  let range = source_range(tokens, start, end);
-  let Some((child_start, child_end)) = parenthesized_children(tokens, component) else {
+  let range = source_range(tokens);
+  let Some(children) = parenthesized_children(span) else {
     query.opaque(range);
     return;
   };
   let checkpoint = query.checkpoint();
-  parse_condition(input, tokens, child_start, child_end, true, query);
+  parse_condition(input, children, true, query);
   if query.references == checkpoint.1 {
     query.rollback(checkpoint);
     query.opaque(range);
@@ -414,14 +382,10 @@ fn parse_media_in_parens<'s>(
   }
 }
 
-fn lone_dashed_ident<'s>(
-  input: &'s str,
-  tokens: &[TokenWithTrivia],
-  component: ComponentSpan,
-) -> Option<(&'s str, bool)> {
-  let (start, end) = parenthesized_children(tokens, component)?;
-  let first = BalancedSpans::new(tokens, start, end).next()?;
-  let token = tokens[first.start].token;
+fn lone_dashed_ident<'s>(input: &'s str, span: &[TokenWithTrivia]) -> Option<(&'s str, bool)> {
+  let children = parenthesized_children(span)?;
+  let first = BalancedSpans::new(children).next()?;
+  let token = first[0].token;
   if token.kind != TokenKind::Ident {
     return None;
   }
@@ -429,61 +393,46 @@ fn lone_dashed_ident<'s>(
   if !is_dashed_ident(name) {
     return None;
   }
-  Some((name, first.end != end))
+  Some((name, first.len() != children.len()))
 }
 
-fn parenthesized_children(
-  tokens: &[TokenWithTrivia],
-  component: ComponentSpan,
-) -> Option<(usize, usize)> {
-  if tokens[component.start].token.kind != TokenKind::LeftParenthesis {
+fn parenthesized_children(span: &[TokenWithTrivia]) -> Option<&[TokenWithTrivia]> {
+  if span[0].token.kind != TokenKind::LeftParenthesis {
     return None;
   }
-  let start = component.start + 1;
-  let end = if component.end > start
-    && tokens[component.end - 1].token.kind == TokenKind::RightParenthesis
-  {
-    component.end - 1
+  let end = if span.len() > 1 && span.last()?.token.kind == TokenKind::RightParenthesis {
+    span.len() - 1
   } else {
-    component.end
+    span.len()
   };
-  Some((start, end))
+  Some(&span[1..end])
 }
 
-fn component_end(tokens: &[TokenWithTrivia], start: usize, end: usize) -> usize {
-  let closing = match tokens[start].token.kind {
+fn component_len(tokens: &[TokenWithTrivia]) -> usize {
+  let closing = match tokens[0].token.kind {
     TokenKind::Function | TokenKind::LeftParenthesis => TokenKind::RightParenthesis,
     TokenKind::LeftSquareBracket => TokenKind::RightSquareBracket,
     TokenKind::LeftCurlyBracket => TokenKind::RightCurlyBracket,
-    _ => return start + 1,
+    _ => return 1,
   };
-  let mut index = start + 1;
-  while index < end {
-    if tokens[index].token.kind == closing {
-      return index + 1;
+  let mut len = 1;
+  while len < tokens.len() {
+    if tokens[len].token.kind == closing {
+      return len + 1;
     }
-    index = component_end(tokens, index, end);
+    len += component_len(&tokens[len..]);
   }
-  end
+  len
 }
 
-fn source_range(tokens: &[TokenWithTrivia], start: usize, end: usize) -> Range {
-  if start < end {
-    return Range::new(
-      tokens[start].token.range.start,
-      tokens[end - 1].token.range.end,
-    );
+fn source_range(tokens: &[TokenWithTrivia]) -> Range {
+  match (tokens.first(), tokens.last()) {
+    (Some(first), Some(last)) => Range::new(first.token.range.start, last.token.range.end),
+    _ => Range::new(0, 0),
   }
-  let position = tokens
-    .get(start)
-    .map(|item| item.token.range.start)
-    .or_else(|| tokens.last().map(|item| item.token.range.end))
-    .unwrap_or(0);
-  Range::new(position, position)
 }
 
-fn is_keyword(input: &str, tokens: &[TokenWithTrivia], index: usize, keyword: &str) -> bool {
-  let token = tokens[index].token;
+fn is_keyword(input: &str, token: Token, keyword: &str) -> bool {
   if token.kind != TokenKind::Ident {
     return false;
   }
