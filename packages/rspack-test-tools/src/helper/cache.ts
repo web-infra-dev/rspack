@@ -4,6 +4,10 @@ import fs from 'fs-extra';
 import type { ITestContext } from '../type';
 import { checkArrayExpectation } from './legacy/checkArrayExpectation';
 
+export type TCacheTestOptions = {
+  directory: string;
+};
+
 export function getCacheStats(stats: Stats | MultiStats) {
   return ('stats' in stats ? stats.stats : [stats]).map(
     (stats) => stats.toJson({ all: false, cacheInfo: true }).cacheInfo,
@@ -12,13 +16,16 @@ export function getCacheStats(stats: Stats | MultiStats) {
 
 // Like webpack's cache suites, use fresh compilers with suite-level cache
 // options overriding the case's options. Run this after the normal bundle tests.
-export async function checkPersistentCache(context: ITestContext) {
+export async function checkPersistentCache(
+  context: ITestContext,
+  cache: TCacheTestOptions,
+) {
   const manager = context.getCompiler();
   if (!manager.getStats()) return;
 
   await manager.close();
   const options = manager.getOptions();
-  const cacheDirectory = context.getTemp('.cache')!;
+  const cacheDirectory = cache.directory;
   fs.removeSync(cacheDirectory);
   const withCache = (options: RspackOptions, index: number): RspackOptions => ({
     ...options,
@@ -57,7 +64,7 @@ export async function checkPersistentCache(context: ITestContext) {
     const stats = manager.getStats()!;
     const cacheStats = getCacheStats(stats);
     fs.outputJsonSync(
-      context.getTemp(`cache-stats/${buildIndex}.json`)!,
+      path.join(cacheDirectory, 'stats', `${buildIndex}.json`),
       cacheStats,
       { spaces: 2 },
     );

@@ -58,6 +58,7 @@ const excludes = {
 		/^chunk-ids\/stable-chunk-ids-with-duplicate-chunks$/,
 		/^concatenate-modules\/consume-shared$/,
 		/^container-1-0\/consume-module-mjs-default-export$/,
+		/^container-1-5\/async-startup-static-import$/,
 		/^container-1-5\/consume-shared-output-module-without-chunk-loading$/,
 		/^container-1-5\/container-entry-overridables$/,
 		/^container-1-5\/exposed-overridables$/,

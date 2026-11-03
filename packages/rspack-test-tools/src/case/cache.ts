@@ -16,14 +16,9 @@ import { NodeRunner } from '../runner';
 import { BasicCaseCreator } from '../test/creator';
 import type { ITestContext, ITestEnv, ITestProcessor } from '../type';
 import { afterExecute, build, check, compiler, config, run } from './common';
-import { createConfigProcessor } from './config';
-import { createNormalProcessor } from './normal';
-import {
-  cachedStats,
-  createMultiCompilerRunner,
-  createRunner as createCaseRunner,
-  getMultiCompilerRunnerKey,
-} from './runner';
+import { createConfigCase } from './config';
+import { createNormalCase } from './normal';
+import { cachedStats } from './runner';
 
 type TTarget = RspackOptions['target'];
 
@@ -32,6 +27,8 @@ export type TCacheCaseOptions = {
   type?: 'cache' | 'normal' | 'config';
   /** Enable persistent newCache, restart unchanged cases, and check cache hits. */
   newCache?: boolean;
+  /** Suite-level configuration overrides, as in createConfigCase. */
+  rspackOptions?: RspackOptions;
 };
 
 interface CacheState {
@@ -243,6 +240,17 @@ export function createCacheCase(
   temp: string,
   options: TCacheCaseOptions = {},
 ) {
+  // Compatibility suites use the ordinary entry points, including their
+  // creator, filters, test environment and runner. Only cache verification is added.
+  if (options.type === 'config' || options.type === 'normal') {
+    const cache = options.newCache
+      ? { directory: path.join(temp, '.cache') }
+      : undefined;
+    return options.type === 'config'
+      ? createConfigCase(name, src, dist, options.rspackOptions, cache)
+      : createNormalCase(name, src, dist, cache);
+  }
+
   const key = JSON.stringify([target, options]);
   let creator = creators.get(key);
   if (!creator) {
@@ -252,32 +260,17 @@ export function createCacheCase(
       target,
       newCache: options.newCache,
       steps: ({ name, src, temp }) => [
-        options.type === 'config'
-          ? createConfigProcessor(name, undefined, options.newCache)
-          : options.type === 'normal'
-            ? createNormalProcessor(name, false, undefined, options.newCache)
-            : createCacheProcessor(name, src, temp!, target, options),
+        createCacheProcessor(name, src, temp!, target, options),
       ],
-      runner:
-        options.type === 'config'
-          ? {
-              key: getMultiCompilerRunnerKey,
-              runner: createMultiCompilerRunner,
-            }
-          : options.type === 'normal'
-            ? {
-                key: (_context, name) => name,
-                runner: createCaseRunner,
-              }
-            : {
-                key: (context, name, file) => {
-                  const index =
-                    context.getValue<CacheState>('cacheState')!.compilerIndex;
-                  return `${name}:${index}`;
-                },
-                runner: (context, name, file, env) =>
-                  createRunner(context, name, file, env),
-              },
+      runner: {
+        key: (context, name, file) => {
+          const index =
+            context.getValue<CacheState>('cacheState')!.compilerIndex;
+          return `${name}:${index}`;
+        },
+        runner: (context, name, file, env) =>
+          createRunner(context, name, file, env),
+      },
       concurrent: true,
     });
     creators.set(key, creator);
