@@ -201,7 +201,7 @@ Component modules selected by `test` and `chunks` can then be extracted even if 
 
 Adds recognizable text to automatically generated chunk IDs. With [`optimization.chunkIds: 'named'`](/config/optimization#optimizationchunkids), this text becomes part of the ID.
 
-For example, change the `idHint` of `defaultVendors` to `third-party`. Defining this group replaces its defaults, so the example also keeps the other default options:
+For example, add a `vendors` cache group for third-party dependencies and set its `idHint` to `third-party`:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -214,11 +214,9 @@ export default {
     splitChunks: {
       chunks: 'all',
       cacheGroups: {
-        defaultVendors: {
+        vendors: {
           idHint: 'third-party',
           test: /[\\/]node_modules[\\/]/,
-          priority: -10,
-          reuseExistingChunk: true,
         },
       },
     },
@@ -668,7 +666,7 @@ export default {
 };
 ```
 
-You can also configure this option for an individual cache group in [`splitChunks.cacheGroups.{cacheGroup}`](#splitchunkscachegroups). Configuring `defaultVendors` replaces the default group, so this example keeps its module filter and other defaults:
+You can also configure this option for an individual cache group in [`splitChunks.cacheGroups.{cacheGroup}`](#splitchunkscachegroups). For example, add a `vendors` group to customize the filenames of chunks containing third-party dependencies:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -676,11 +674,8 @@ export default {
     splitChunks: {
       chunks: 'initial',
       cacheGroups: {
-        defaultVendors: {
+        vendors: {
           test: /[\\/]node_modules[\\/]/,
-          priority: -10,
-          reuseExistingChunk: true,
-          idHint: 'vendors',
           filename: 'vendors-[name].js',
         },
       },
@@ -697,11 +692,8 @@ export default {
     splitChunks: {
       chunks: 'initial',
       cacheGroups: {
-        defaultVendors: {
+        vendors: {
           test: /[\\/]node_modules[\\/]/,
-          priority: -10,
-          reuseExistingChunk: true,
-          idHint: 'vendors',
           filename: (pathData) => {
             return `${pathData.chunk.id}-bundle.js`;
           },

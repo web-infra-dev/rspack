@@ -199,7 +199,7 @@ export default {
 
 为自动生成的 chunk ID 添加便于识别的文字。使用 [`optimization.chunkIds: 'named'`](/config/optimization#optimizationchunkids) 时，这段文字会成为 ID 的一部分。
 
-例如，将 `defaultVendors` 的 `idHint` 改为 `third-party`。自定义配置会替换整个默认组，因此这里也保留其余默认选项：
+例如，新增一个匹配第三方依赖的 `vendors` 缓存组，并将它的 `idHint` 设为 `third-party`：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -212,11 +212,9 @@ export default {
     splitChunks: {
       chunks: 'all',
       cacheGroups: {
-        defaultVendors: {
+        vendors: {
           idHint: 'third-party',
           test: /[\\/]node_modules[\\/]/,
-          priority: -10,
-          reuseExistingChunk: true,
         },
       },
     },
@@ -666,7 +664,7 @@ export default {
 };
 ```
 
-此选项也可在 [`splitChunks.cacheGroups.{cacheGroup}`](#splitchunkscachegroups) 中单独配置。配置 `defaultVendors` 会替换整个默认组，因此示例保留了它的模块匹配规则和其他默认选项：
+此选项也可在 [`splitChunks.cacheGroups.{cacheGroup}`](#splitchunkscachegroups) 中单独配置。例如，新增 `vendors` 缓存组，自定义第三方依赖拆分后的文件名：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -674,11 +672,8 @@ export default {
     splitChunks: {
       chunks: 'initial',
       cacheGroups: {
-        defaultVendors: {
+        vendors: {
           test: /[\\/]node_modules[\\/]/,
-          priority: -10,
-          reuseExistingChunk: true,
-          idHint: 'vendors',
           filename: 'vendors-[name].js',
         },
       },
@@ -695,11 +690,8 @@ export default {
     splitChunks: {
       chunks: 'initial',
       cacheGroups: {
-        defaultVendors: {
+        vendors: {
           test: /[\\/]node_modules[\\/]/,
-          priority: -10,
-          reuseExistingChunk: true,
-          idHint: 'vendors',
           filename: (pathData) => {
             return `${pathData.chunk.id}-bundle.js`;
           },
