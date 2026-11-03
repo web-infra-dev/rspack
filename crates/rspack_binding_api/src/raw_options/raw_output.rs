@@ -125,6 +125,8 @@ pub struct RawOutputOptions {
   pub iife: bool,
   pub module: bool,
   #[napi(ts_type = "string | false")]
+  pub chunk_format: WithFalse<String>,
+  #[napi(ts_type = "string | false")]
   pub chunk_loading: RawChunkLoading,
   pub chunk_load_timeout: u32,
   pub enabled_chunk_loading_types: Option<Vec<String>>,
@@ -191,6 +193,10 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
       wasm_streaming_fallback: value.wasm_streaming_fallback,
       webassembly_module_filename: value.webassembly_module_filename.into(),
       unique_name: value.unique_name,
+      chunk_format: match value.chunk_format {
+        WithFalse::False => "false".to_string(),
+        WithFalse::True(format) => format,
+      },
       chunk_loading: value.chunk_loading.into(),
       chunk_loading_global: value.chunk_loading_global.as_str().into(),
       filename: value.filename.into(),

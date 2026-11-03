@@ -12,7 +12,10 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JavascriptModulesRenderStartup,
   JsPlugin, RenderSource,
   impl_plugin_for_js_plugin::chunk_has_js,
-  runtime::{get_hmr_chunk_version, render_awaited_entries, render_chunk_runtime_modules},
+  runtime::{
+    get_hmr_chunk_version, render_awaited_entries, render_chunk_runtime_modules,
+    startup_awaits_entries,
+  },
 };
 use rspack_util::itoa;
 use rustc_hash::FxHashSet as HashSet;
@@ -218,11 +221,7 @@ async fn render_chunk(
 
     let module_graph = compilation.get_module_graph();
     let exports = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
-    let can_await_entry = compilation
-      .options
-      .output
-      .environment
-      .supports_top_level_await();
+    let can_await_entry = startup_awaits_entries(compilation, chunk_ukey);
     let mut awaited_entries: Vec<String> = Vec::new();
     let mut loaded_chunks = HashSet::default();
     for (i, (module, entry)) in entries.iter().enumerate() {

@@ -27,16 +27,22 @@ pub use crate::runtime_context::{
 };
 use crate::{JavascriptModulesPluginHooks, RenderSource};
 
-pub fn bootstrap_awaits_entries(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
+pub fn startup_awaits_entries(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
   let output = &compilation.options.output;
-  if !output.module || output.iife || !output.environment.supports_top_level_await() {
+  if !output.module || !output.environment.supports_top_level_await() {
     return false;
   }
   let chunk = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .expect_get(chunk_ukey);
+  if !chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph) {
+    return false;
+  }
   if !chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
+    return output.chunk_format == "module";
+  }
+  if output.iife {
     return false;
   }
   let runtime_requirements = compilation

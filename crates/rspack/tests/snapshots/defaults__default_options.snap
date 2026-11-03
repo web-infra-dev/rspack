@@ -29,6 +29,7 @@ CompilerOptions {
             ),
         ),
         unique_name: "",
+        chunk_format: "array-push",
         chunk_loading: Enable(
             Jsonp,
         ),

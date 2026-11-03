@@ -2924,6 +2924,7 @@ export interface RawOutputOptions {
   importMetaName: string
   iife: boolean
   module: boolean
+  chunkFormat: string | false
   chunkLoading: string | false
   chunkLoadTimeout: number
   enabledChunkLoadingTypes?: Array<string>

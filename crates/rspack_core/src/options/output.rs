@@ -36,6 +36,7 @@ pub struct OutputOptions {
   pub wasm_streaming_fallback: bool,
   pub webassembly_module_filename: Filename,
   pub unique_name: String,
+  pub chunk_format: String,
   pub chunk_loading: ChunkLoading,
   pub chunk_loading_global: String,
   pub chunk_load_timeout: u32,

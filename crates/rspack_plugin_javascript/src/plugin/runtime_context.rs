@@ -13,9 +13,9 @@ use super::{JsPlugin, RenderBootstrapResult, get_js_entry_modules_with_chunk_gro
 use crate::{
   RenderSource,
   runtime::{
-    bootstrap_awaits_entries, render_awaited_entries, render_chunk_modules, render_module,
+    render_awaited_entries, render_chunk_modules, render_module,
     render_runtime_context_declaration, render_runtime_context_require_assignment,
-    render_runtime_modules, stringify_array,
+    render_runtime_modules, startup_awaits_entries, stringify_array,
   },
 };
 
@@ -340,7 +340,7 @@ function {}(moduleId) {{
         let entries = get_js_entry_modules_with_chunk_group(chunk_ukey, compilation);
         let module_graph = compilation.get_module_graph();
         let exports = runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS);
-        let can_await_entry = bootstrap_awaits_entries(compilation, chunk_ukey);
+        let can_await_entry = startup_awaits_entries(compilation, chunk_ukey);
         let mut awaited_entries: Vec<String> = Vec::new();
         for (i, (module, entry)) in entries.iter().enumerate() {
           let chunk_group = compilation
