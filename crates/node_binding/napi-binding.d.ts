@@ -2793,6 +2793,7 @@ export interface RawModuleRule {
   sideEffects?: boolean
   use?: RawModuleRuleUse[] | ((arg: RawFuncUseCtx) => RawModuleRuleUse[])
   type?: string
+  as?: string
   layer?: string
   parser?: RawParserOptions
   generator?: RawGeneratorOptions

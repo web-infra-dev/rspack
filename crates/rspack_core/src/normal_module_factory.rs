@@ -934,6 +934,23 @@ module.exports = "data:,";
       }
     };
 
+    let mut matched_module_rules = None;
+    if match_resource_data.is_none() {
+      let rules = self
+        .calculate_module_rules(
+          &resource_data,
+          data.dependencies[0].as_ref(),
+          data.issuer.as_deref(),
+          data.issuer_layer.as_deref(),
+        )
+        .await?;
+      if let Some(rule_as) = rules.iter().rev().find_map(|rule| rule.r#as.as_deref()) {
+        match_resource_data = Some(create_match_resource_data(&data.context, rule_as));
+      } else {
+        matched_module_rules = Some(rules);
+      }
+    }
+
     let matched_module_rules = if let Some(match_resource_data) = &mut match_resource_data
       && let Ok((module, module_type)) = match_ext(match_resource_data.resource())
     {
@@ -941,6 +958,8 @@ module.exports = "data:,";
       match_resource_data.set_resource(module.into());
 
       vec![]
+    } else if let Some(matched_module_rules) = matched_module_rules {
+      matched_module_rules
     } else {
       //TODO: with contextScheme
       self

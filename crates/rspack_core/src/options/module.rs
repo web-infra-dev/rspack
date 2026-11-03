@@ -1730,6 +1730,8 @@ pub struct ModuleRuleEffect {
   pub side_effects: Option<bool>,
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
+  /// Reinterprets the matched module using an inline match resource.
+  pub r#as: Option<String>,
   pub layer: Option<String>,
   pub r#use: ModuleRuleUse,
   pub parser: Option<ParserOptions>,
@@ -1745,6 +1747,7 @@ impl Default for ModuleRuleEffect {
       id: MODULE_RULE_ID_UNASSIGNED,
       side_effects: None,
       r#type: None,
+      r#as: None,
       layer: None,
       r#use: ModuleRuleUse::default(),
       parser: None,

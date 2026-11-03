@@ -421,6 +421,7 @@ const getRawModuleRule = (
         ? funcUse
         : createRawModuleRuleUses(normalizedUse ?? [], `${path}.use`, options),
     type: rule.type,
+    as: rule.as,
     layer: rule.layer,
     parser: rule.parser
       ? getRawParserOptions(rule.parser, rule.type ?? upperType)

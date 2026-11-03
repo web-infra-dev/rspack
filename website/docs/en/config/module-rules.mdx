@@ -51,6 +51,7 @@ Rule defines the conditions for matching a module and the behavior of handling t
 Defines the processing behavior of the corresponding matching module, e.g. :
 
 - Apply the list of Loader to these modules (`rules[].use`)
+- Reinterpret these modules with a match resource (`rules[].as`)
 - Apply the module's type (`rules[].type`)
 - Apply the module's resolve configuration (`rules[].resolve`)
 
@@ -681,6 +682,48 @@ There are two phases that all loaders enter one after the other:
 
 - **Pitching phase:** the `pitch` method on loaders is called in the order `post, inline, normal, pre`. See [Pitching Loader](/api/loader-api/writing-loaders#pitching-loader) for details.
 - **Normal phase:** the default method on loaders is executed in the order `pre, normal, inline, post`. Transformation on the source code of a module happens in this phase.
+
+## rules[].as
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+Reinterprets a matched module using the [inline matchResource syntax](/api/loader-api/inline-match-resource). The rule is first matched against the actual resource. After the rule matches, its `as` value becomes the match resource, while Rspack continues to resolve and read the original resource.
+
+For example, the following configuration:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /file\.js$/,
+        as: 'file.rspack[asset]',
+      },
+    ],
+  },
+};
+```
+
+Makes this import:
+
+```js
+import value from './file.js';
+```
+
+Equivalent to:
+
+```js
+import value from 'file.rspack[asset]!=!./file.js';
+```
+
+The `as` value supports the match-resource portion of the inline syntax:
+
+- A regular resource such as `virtual.css` causes `module.rules` to be evaluated again using the virtual resource's path, query, and fragment.
+- A resource ending in `.rspack[type]` or `.webpack[type]` selects an explicit module type and skips further `module.rules` matching.
+- A relative value starting with `./` or `../` is resolved against the request's resolution context.
+
+An inline matchResource written directly in the request has higher priority. When one is present, `rules[].as` is not applied.
 
 ## rules[].type
 

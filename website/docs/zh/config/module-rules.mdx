@@ -51,6 +51,7 @@ Rule 定义了一个模块的匹配条件以及处理这些模块的行为。
 定义了对应匹配的模块的处理行为，例如:
 
 - 将 Loader 的列表应用到这些模块上（`rules[].use`）
+- 使用 match resource 重新解释这些模块（`rules[].as`）
 - 定义模块的类型（`rules[].type`）
 - 定义模块的 resolve 配置（`rules[].resolve`）
 
@@ -679,6 +680,48 @@ export default {
 
 - **Pitching 阶段:** loader 导出的 `pitch` 方法在 `post, inline, normal, pre` 顺序下被调用。详见 [Pitching Loader](/api/loader-api/writing-loaders#pitching-loader)。
 - **Normal 阶段:** loader 导出的默认方法在 `pre, normal, inline, post` 顺序下被执行。模块的源码转换发生在该阶段。
+
+## rules[].as
+
+- **类型：** `string`
+- **默认值：** `undefined`
+
+使用[内联 matchResource 语法](/api/loader-api/inline-match-resource)重新解释命中的模块。该规则首先与实际资源匹配。规则命中后，其 `as` 值会成为 match resource，而 Rspack 仍然解析和读取原始资源。
+
+例如，以下配置：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /file\.js$/,
+        as: 'file.rspack[asset]',
+      },
+    ],
+  },
+};
+```
+
+会使以下导入：
+
+```js
+import value from './file.js';
+```
+
+等价于：
+
+```js
+import value from 'file.rspack[asset]!=!./file.js';
+```
+
+`as` 值支持内联语法中的 match-resource 部分：
+
+- `virtual.css` 等普通资源会让 Rspack 使用虚拟资源的路径、query 和 fragment 重新匹配 `module.rules`。
+- 以 `.rspack[type]` 或 `.webpack[type]` 结尾的资源会显式指定模块类型，并跳过后续的 `module.rules` 匹配。
+- 以 `./` 或 `../` 开头的相对值会基于当前请求的解析上下文进行解析。
+
+直接写在请求中的内联 matchResource 具有更高优先级。存在内联 matchResource 时，不会应用 `rules[].as`。
 
 ## rules[].type
 

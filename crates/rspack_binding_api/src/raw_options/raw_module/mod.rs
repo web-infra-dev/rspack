@@ -184,6 +184,7 @@ pub struct RawModuleRule {
   #[napi(ts_type = "RawModuleRuleUse[] | ((arg: RawFuncUseCtx) => RawModuleRuleUse[])")]
   pub r#use: Option<Either<Vec<RawModuleRuleUse>, ThreadsafeUse>>,
   pub r#type: Option<String>,
+  pub r#as: Option<String>,
   pub layer: Option<String>,
   pub parser: Option<RawParserOptions>,
   pub generator: Option<RawGeneratorOptions>,
@@ -1144,6 +1145,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       effect: ModuleRuleEffect {
         r#use: uses.transpose()?.unwrap_or_default(),
         r#type: module_type,
+        r#as: value.r#as,
         layer: value.layer,
         parser: value.parser.map(|raw| raw.into()),
         generator: value.generator.map(|raw| raw.into()),
