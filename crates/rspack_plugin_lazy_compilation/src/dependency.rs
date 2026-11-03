@@ -54,6 +54,63 @@ impl ModuleDependency for LazyCompilationDependency {
 impl AsDependencyCodeGeneration for LazyCompilationDependency {}
 impl AsContextDependency for LazyCompilationDependency {}
 
+#[cacheable]
+#[derive(Debug)]
+pub(crate) struct LayerExternalDependency {
+  id: DependencyId,
+  request: String,
+  layer: ModuleLayer,
+  resource_identifier: String,
+}
+
+impl LayerExternalDependency {
+  pub fn new(request: String, layer: ModuleLayer) -> Self {
+    Self {
+      id: DependencyId::new(),
+      resource_identifier: format!("lazy external|{}:{layer}{request}", layer.len()),
+      request,
+      layer,
+    }
+  }
+}
+
+#[cacheable_dyn]
+impl Dependency for LayerExternalDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
+  fn category(&self) -> &DependencyCategory {
+    &DependencyCategory::CommonJS
+  }
+
+  fn dependency_type(&self) -> &DependencyType {
+    &DependencyType::LazyImport
+  }
+
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    Some(&self.layer)
+  }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(&self.resource_identifier)
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
+  }
+}
+
+#[cacheable_dyn]
+impl ModuleDependency for LayerExternalDependency {
+  fn request(&self) -> &str {
+    &self.request
+  }
+}
+
+impl AsDependencyCodeGeneration for LayerExternalDependency {}
+impl AsContextDependency for LayerExternalDependency {}
+
 #[cacheable_dyn]
 impl Dependency for LazyCompilationDependency {
   fn id(&self) -> &rspack_core::DependencyId {

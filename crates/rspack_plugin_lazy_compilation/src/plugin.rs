@@ -8,19 +8,19 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation, CompilerId,
   CompilerMake, DependencyId, DependencyType, EntryDependency, LibIdentOptions, Module, ModuleExt,
-  ModuleFactory, ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData,
-  NormalModuleFactoryModule, Plugin,
+  ModuleFactory, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleRule,
+  NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_regex::RspackRegex;
 use rspack_util::fx_hash::FxHashSet;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::{Mutex, OnceCell, RwLock};
 
 use crate::{
   backend::Backend,
   factory::LazyCompilationDependencyFactory,
-  module::{LazyCompilationProxyModule, has_closure_library},
+  module::{LazyCompilationProxyModule, ReservedLayerExternals, has_closure_library},
   utils::calc_value_dependency_key,
 };
 
@@ -71,6 +71,7 @@ pub struct LazyCompilationPlugin<T: Backend, F: LazyCompilationTestCheck> {
   test: Option<LazyCompilationTest<F>>,
   client: String,
   active_modules: RwLock<IdentifierSet>,
+  reserved_layer_externals: OnceCell<Arc<[ReservedLayerExternals]>>,
 }
 
 impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
@@ -87,6 +88,7 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
       imports,
       test,
       client,
+      Default::default(),
       Default::default(),
     )
   }
@@ -219,13 +221,44 @@ async fn normal_module_factory_module(
       .as_str(),
   });
   let layer = module.get_layer().cloned();
-  let reserved_externals = if !active
+  let needs_reservation = !active
     && has_closure_library(
       &module_factory_create_data
         .build_context
         .compiler_options
         .output,
-    ) {
+    );
+  let reserved_layer_externals = if needs_reservation {
+    self
+      .reserved_layer_externals
+      .get_or_try_init(|| async {
+        let mut layers = FxHashSet::default();
+        collect_rule_layers(
+          &module_factory_create_data
+            .build_context
+            .compiler_options
+            .module
+            .rules,
+          &mut layers,
+        );
+        let mut backend = self.backend.lock().await;
+        let mut reserved = Vec::new();
+        for layer in layers {
+          let requests = backend
+            .collect_reserved_externals(Some(layer.clone()))
+            .await?;
+          if !requests.is_empty() {
+            reserved.push(ReservedLayerExternals { layer, requests });
+          }
+        }
+        Result::<Arc<[ReservedLayerExternals]>>::Ok(reserved.into())
+      })
+      .await?
+      .clone()
+  } else {
+    Arc::default()
+  };
+  let reserved_externals = if needs_reservation {
     self
       .backend
       .lock()
@@ -233,7 +266,7 @@ async fn normal_module_factory_module(
       .collect_reserved_externals(layer.clone())
       .await?
   } else {
-    Arc::from([])
+    Arc::default()
   };
 
   *module = LazyCompilationProxyModule::new(
@@ -246,10 +279,22 @@ async fn normal_module_factory_module(
     self.client.clone(),
     layer,
     reserved_externals,
+    reserved_layer_externals,
   )
   .boxed();
 
   Ok(())
+}
+
+fn collect_rule_layers(rules: &[ModuleRule], layers: &mut FxHashSet<ModuleLayer>) {
+  for rule in rules {
+    if let Some(layer) = &rule.effect.layer {
+      layers.insert(layer.clone());
+    }
+    for nested in rule.rules.iter().chain(rule.one_of.iter()) {
+      collect_rule_layers(nested, layers);
+    }
+  }
 }
 
 #[plugin_hook(CompilerMake for LazyCompilationPlugin<T: Backend, F: LazyCompilationTestCheck>)]

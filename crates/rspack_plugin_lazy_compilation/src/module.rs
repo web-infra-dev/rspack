@@ -20,12 +20,20 @@ use rspack_util::{
 };
 
 use crate::{
-  dependency::{DependencyOptions, LazyCompilationDependency},
+  dependency::{DependencyOptions, LayerExternalDependency, LazyCompilationDependency},
   utils::calc_value_dependency_key,
 };
 
 static MODULE_TYPE: ModuleType = ModuleType::JsAuto;
 static SOURCE_TYPE: [SourceType; 1] = [SourceType::JavaScript];
+
+#[cacheable]
+#[derive(Debug)]
+pub(crate) struct ReservedLayerExternals {
+  pub layer: ModuleLayer,
+  #[cacheable(with=AsVec)]
+  pub requests: Arc<[String]>,
+}
 
 // Library types whose wrappers pass externals as closure arguments baked into the entry chunk.
 const CLOSURE_LIBRARY_TYPES: [&str; 5] = ["umd", "umd2", "amd", "amd-require", "system"];
@@ -69,6 +77,8 @@ pub(crate) struct LazyCompilationProxyModule {
   // slice so each clones the `Arc`, not the whole list.
   #[cacheable(with=AsVec)]
   reserved_externals: Arc<[String]>,
+  #[cacheable(with=AsVec)]
+  reserved_layer_externals: Arc<[ReservedLayerExternals]>,
   #[cacheable(with=rspack_cacheable::rkyv::with::AtomicLoad<rspack_cacheable::rkyv::with::Relaxed>)]
   need_build: std::sync::atomic::AtomicBool,
 }
@@ -95,6 +105,7 @@ impl LazyCompilationProxyModule {
     client: String,
     layer: Option<ModuleLayer>,
     reserved_externals: Arc<[String]>,
+    reserved_layer_externals: Arc<[ReservedLayerExternals]>,
   ) -> Self {
     let lib_ident = lib_ident.map(|s| format!("{s}!lazy-compilation-proxy"));
 
@@ -128,6 +139,7 @@ impl LazyCompilationProxyModule {
       active,
       client,
       reserved_externals,
+      reserved_layer_externals,
       need_build: false.into(),
     }
   }
@@ -241,6 +253,17 @@ impl Module for LazyCompilationProxyModule {
           false,
           None,
         )));
+      }
+      for externals in self.reserved_layer_externals.iter() {
+        if self.layer.as_ref() == Some(&externals.layer) {
+          continue;
+        }
+        for request in externals.requests.iter() {
+          dependencies.push(BoxDependency::new(LayerExternalDependency::new(
+            request.clone(),
+            externals.layer.clone(),
+          )));
+        }
       }
     }
 
