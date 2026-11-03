@@ -708,7 +708,7 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
 
 入口名称到入口点对象的映射。入口点是一种特殊的 chunk group，关联着该入口使用的 Rspack 运行时 chunk。
 
-使用 `entrypoint.getFiles()` 可以获取入口对应的产物文件名，包括 runtime 和抽取的 CSS。例如，生成一份清单，让服务端据此渲染脚本和样式标签：
+通过 `entrypoint.getFiles()` 可以获取入口对应的产物文件名，包括 runtime 和抽取的 CSS。以下插件会将这些文件名写入清单，供服务端生成脚本和样式标签：
 
 ```js title="rspack.config.mjs"
 class EntryManifestPlugin {
@@ -760,7 +760,7 @@ body {
 }
 ```
 
-该插件在 `PROCESS_ASSETS_STAGE_REPORT` 阶段执行，此时常规的产物优化和哈希处理阶段已经结束。对于以上源文件，它会生成：
+插件在 `PROCESS_ASSETS_STAGE_REPORT` 阶段执行，此时常规的产物优化和哈希处理已完成。上述源码对应的清单如下：
 
 ```json title="dist/entrypoints.json"
 {
@@ -768,9 +768,9 @@ body {
 }
 ```
 
-文件名相对于产物目录，不包含 `publicPath` 前缀。生成 HTML 时，需要加上资源部署的 URL 前缀，为 CSS 使用 `<link rel="stylesheet">`，并保留 JavaScript 文件的顺序，让 runtime 先于入口加载。
+文件名相对于产物目录，不包含 `publicPath`。生成 HTML 时，需要添加资源的 URL 前缀，并使用 `<link rel="stylesheet">` 加载 CSS。JavaScript 文件应按清单中的顺序加载，确保先加载 runtime，再加载入口。
 
-`getFiles()` 列出此入口 chunk group 中的文件，不包含 `import()` 创建的独立异步 chunk group 中的文件，也不包含插件额外生成的任意产物，例如此清单本身。
+`getFiles()` 只列出入口 chunk group 中的文件，不包含 `import()` 创建的异步 chunk group 中的文件，也不包含该 chunk group 之外的插件产物，例如清单本身。
 
 <Collapse>
   <CollapsePanel

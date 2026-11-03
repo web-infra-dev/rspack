@@ -712,7 +712,7 @@ The list of chunk group objects, with the structure as follows:
 
 A mapping from entry names to entrypoint objects. An entrypoint is a special chunk group associated with the Rspack runtime chunk used by that entry.
 
-Use `entrypoint.getFiles()` to collect the emitted filenames for an entry, including its runtime and extracted CSS. For example, generate a manifest that a server can use to render script and stylesheet tags:
+Use `entrypoint.getFiles()` to get the output filenames for an entry, including its runtime and extracted CSS. The following plugin writes these filenames to a manifest that a server can use to generate script and stylesheet tags:
 
 ```js title="rspack.config.mjs"
 class EntryManifestPlugin {
@@ -764,7 +764,7 @@ body {
 }
 ```
 
-The plugin runs at `PROCESS_ASSETS_STAGE_REPORT`, after the usual asset optimization and hash processing stages. For these source files, it emits:
+The plugin runs at `PROCESS_ASSETS_STAGE_REPORT`, after the standard asset optimization and hash processing stages. With the source files above, it generates this manifest:
 
 ```json title="dist/entrypoints.json"
 {
@@ -772,9 +772,9 @@ The plugin runs at `PROCESS_ASSETS_STAGE_REPORT`, after the usual asset optimiza
 }
 ```
 
-The filenames are relative to the output directory, without a `publicPath` prefix. When generating HTML, prepend the URL at which you serve the assets, use `<link rel="stylesheet">` for CSS, and preserve the order of JavaScript files so the runtime loads before the entry.
+The filenames are relative to the output directory and do not include `publicPath`. When generating HTML, add your asset URL prefix and use `<link rel="stylesheet">` to load CSS. Keep the JavaScript files in the listed order so the runtime loads before the entry.
 
-`getFiles()` lists files in this entrypoint's chunk group. It does not include files from separate async chunk groups created by `import()`, or arbitrary assets emitted by plugins, such as this manifest itself.
+`getFiles()` only lists files in the entrypoint's chunk group. Files in async chunk groups created by `import()` and plugin assets outside this chunk group, such as the manifest itself, are not included.
 
 <Collapse>
   <CollapsePanel
