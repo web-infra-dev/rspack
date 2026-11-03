@@ -16,7 +16,6 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 import { rspack } from '@rspack/core';
 
 export default {
-  mode: 'production',
   optimization: {
     minimizer: [
       new rspack.SwcJsMinimizerRspackPlugin(),
@@ -26,7 +25,7 @@ export default {
 };
 ```
 
-设置 `optimization.minimizer` 会替换默认的压缩器。配置 CSS 压缩器时，同时添加 `SwcJsMinimizerRspackPlugin` 可以保留 JavaScript 压缩。
+压缩器在 [optimization.minimize](/config/optimization#optimizationminimize) 开启时执行，生产构建默认开启此选项。设置 `optimization.minimizer` 会替换默认的压缩器。配置 CSS 压缩器时，同时添加 `SwcJsMinimizerRspackPlugin` 可以保留 JavaScript 压缩。
 
 ## 选项
 
@@ -118,12 +117,6 @@ document.body.className = styles.a;
 import { rspack } from '@rspack/core';
 
 export default {
-  mode: 'production',
-  devtool: false,
-  entry: './src/index.js',
-  output: {
-    cssFilename: '[name].css',
-  },
   module: {
     rules: [{ test: /\.css$/i, type: 'css' }],
   },
@@ -155,7 +148,7 @@ console.log('Hello');
 }
 ```
 
-由于 Chrome 100 不支持 CSS 嵌套语法，压缩器会展开嵌套规则，生成：
+在生产构建中，由于 Chrome 100 不支持 CSS 嵌套语法，压缩器会展开嵌套规则，生成以下 CSS 规则：
 
 {/* prettier-ignore */}
 ```css title="dist/main.css"

@@ -16,7 +16,6 @@ This plugin uses [lightningcss](https://lightningcss.dev/) to minify CSS assets.
 import { rspack } from '@rspack/core';
 
 export default {
-  mode: 'production',
   optimization: {
     minimizer: [
       new rspack.SwcJsMinimizerRspackPlugin(),
@@ -26,7 +25,7 @@ export default {
 };
 ```
 
-Specifying `optimization.minimizer` replaces the default minimizers. Include `SwcJsMinimizerRspackPlugin` to keep JavaScript minification enabled when configuring the CSS minimizer.
+Minimizers run when [optimization.minimize](/config/optimization#optimizationminimize) is enabled, as it is by default in production builds. Specifying `optimization.minimizer` replaces the default minimizers. Include `SwcJsMinimizerRspackPlugin` to keep JavaScript minification enabled when configuring the CSS minimizer.
 
 ## Options
 
@@ -118,12 +117,6 @@ For example, target Chrome 100 and later. This configuration uses [built-in CSS 
 import { rspack } from '@rspack/core';
 
 export default {
-  mode: 'production',
-  devtool: false,
-  entry: './src/index.js',
-  output: {
-    cssFilename: '[name].css',
-  },
   module: {
     rules: [{ test: /\.css$/i, type: 'css' }],
   },
@@ -155,7 +148,7 @@ console.log('Hello');
 }
 ```
 
-Since Chrome 100 does not support CSS nesting, the minimizer flattens the nested rule and emits:
+In a production build, the minimizer flattens the nested rule because Chrome 100 does not support CSS nesting, producing these CSS rules:
 
 {/* prettier-ignore */}
 ```css title="dist/main.css"
