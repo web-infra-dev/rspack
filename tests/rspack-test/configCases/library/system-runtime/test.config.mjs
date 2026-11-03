@@ -1,6 +1,4 @@
-import { createSystem } from "@rspack/test-tools/helper/legacy/fakeSystem";
-
-const System = createSystem();
+import { System } from "@rspack/test-tools/helper/legacy/fakeSystem";
 
 /** @type {import("../../../..").TConfigCaseConfig} */
 export default {

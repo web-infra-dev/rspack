@@ -1,6 +1,4 @@
-import { createSystem } from "@rspack/test-tools/helper/legacy/fakeSystem";
-
-const System = createSystem();
+import { System } from "@rspack/test-tools/helper/legacy/fakeSystem";
 export default {
 	beforeExecute: () => {
 		System.init();
