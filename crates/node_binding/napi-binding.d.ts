@@ -2201,7 +2201,6 @@ export interface RawCopyRspackPluginOptions {
 
 export interface RawCssAutoOrModuleParserOptions {
   exportType?: "link" | "text" | "css-style-sheet" | "style"
-  runtimePublicPath?: boolean
   namedExports?: boolean
   url?: boolean
   import?: boolean
@@ -2236,6 +2235,7 @@ export interface RawCssExtractPluginOption {
 
 export interface RawCssGeneratorOptions {
   exportsOnly?: boolean
+  runtimePublicPath?: boolean
   esModule?: boolean
 }
 
@@ -2250,6 +2250,7 @@ export interface RawCssImportContext {
 export interface RawCssModuleGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
+  runtimePublicPath?: boolean
   localIdentHashDigest?: string
   localIdentHashDigestLength?: number
   localIdentHashFunction?: string
@@ -2260,7 +2261,6 @@ export interface RawCssModuleGeneratorOptions {
 
 export interface RawCssModuleParserOptions {
   exportType?: "link" | "text" | "css-style-sheet" | "style"
-  runtimePublicPath?: boolean
   namedExports?: boolean
   url?: boolean
   import?: boolean
@@ -2275,7 +2275,6 @@ export interface RawCssModuleParserOptions {
 
 export interface RawCssParserOptions {
   exportType?: "link" | "text" | "css-style-sheet" | "style"
-  runtimePublicPath?: boolean
   namedExports?: boolean
   url?: boolean
   import?: boolean

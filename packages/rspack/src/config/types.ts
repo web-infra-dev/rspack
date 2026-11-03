@@ -1090,14 +1090,6 @@ export type CssParserOptions = {
    * @default "link"
    */
   exportType?: CssParserExportType;
-  /**
-   * Resolve asset URLs in injected styles against the runtime public path
-   * (`import.meta.rspackPublicPath`) instead of the build-time `output.publicPath`.
-   * Only applies when `exportType` is "style". Assets with their own
-   * `generator.publicPath` keep that value.
-   * @default false
-   */
-  runtimePublicPath?: boolean;
 
   /**
    * Use ES modules named export for CSS exports.
@@ -1134,14 +1126,6 @@ export type CssModuleParserOptions = {
    * @default "link"
    */
   exportType?: CssParserExportType;
-  /**
-   * Resolve asset URLs in injected styles against the runtime public path
-   * (`import.meta.rspackPublicPath`) instead of the build-time `output.publicPath`.
-   * Only applies when `exportType` is "style". Assets with their own
-   * `generator.publicPath` keep that value.
-   * @default false
-   */
-  runtimePublicPath?: boolean;
 
   /**
    * Use ES modules named export for CSS exports.
@@ -1648,6 +1632,15 @@ export type CssGeneratorOptions = {
    */
   exportsOnly?: CssGeneratorExportsOnly;
 
+  /**
+   * Resolve asset URLs in injected styles against the runtime public path
+   * (`import.meta.rspackPublicPath`) instead of the build-time `output.publicPath`.
+   * Only applies when `parser.exportType` is "style". Assets with their own
+   * `generator.publicPath` keep that value.
+   * @default false
+   */
+  runtimePublicPath?: boolean;
+
   /** This configuration is available for improved ESM-CJS interoperability purposes. */
   esModule?: CssGeneratorEsModule;
 };
@@ -1665,6 +1658,15 @@ export type CssModuleGeneratorOptions = {
    * If false, generate stylesheets and embed them in the template.
    */
   exportsOnly?: CssGeneratorExportsOnly;
+
+  /**
+   * Resolve asset URLs in injected styles against the runtime public path
+   * (`import.meta.rspackPublicPath`) instead of the build-time `output.publicPath`.
+   * Only applies when `parser.exportType` is "style". Assets with their own
+   * `generator.publicPath` keep that value.
+   * @default false
+   */
+  runtimePublicPath?: boolean;
 
   /**
    * Digest types used for the hash.

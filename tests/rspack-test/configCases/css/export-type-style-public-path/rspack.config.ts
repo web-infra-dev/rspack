@@ -18,7 +18,10 @@ export default defineConfig(
             optimization: { concatenateModules },
             module: {
               parser: {
-                [moduleType]: { exportType: 'style', runtimePublicPath },
+                [moduleType]: { exportType: 'style' },
+              },
+              generator: {
+                [moduleType]: { runtimePublicPath },
               },
               rules: [
                 {
@@ -42,7 +45,8 @@ export default defineConfig(
                 ...(['text', 'css-style-sheet'] as const).map((exportType) => ({
                   resourceQuery: (query: string) => query === '?' + exportType,
                   type: 'css',
-                  parser: { exportType, runtimePublicPath: true },
+                  parser: { exportType },
+                  generator: { runtimePublicPath: true },
                 })),
               ],
             },

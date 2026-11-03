@@ -748,7 +748,6 @@ function getRawCssModuleParserOptions(
 ): RawCssModuleParserOptions {
   return {
     exportType: parser.exportType,
-    runtimePublicPath: parser.runtimePublicPath,
     namedExports: parser.namedExports,
     url: parser.url,
     import: parser.import,
@@ -776,7 +775,6 @@ function getRawCssParserOptionsForCss(
 ): RawCssParserOptions {
   return {
     exportType: parser.exportType,
-    runtimePublicPath: parser.runtimePublicPath,
     namedExports: parser.namedExports,
     url: parser.url,
     import: parser.import,
@@ -925,6 +923,7 @@ function getRawCssGeneratorOptions(
 ): RawCssGeneratorOptions {
   return {
     exportsOnly: options.exportsOnly,
+    runtimePublicPath: options.runtimePublicPath,
     esModule: options.esModule,
   };
 }
@@ -940,6 +939,7 @@ function getRawCssAutoOrModuleGeneratorOptions(
     localIdentHashSalt: options.localIdentHashSalt,
     exportsConvention: options.exportsConvention,
     exportsOnly: options.exportsOnly,
+    runtimePublicPath: options.runtimePublicPath,
     esModule: options.esModule,
   };
 }

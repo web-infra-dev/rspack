@@ -27,7 +27,7 @@ use crate::{
     CodeGenerationDataUnusedLocalIdent, CssExportsRef, CssSourceBuilder, get_used_exports,
   },
   utils::{
-    RUNTIME_PUBLIC_PATH_PLACEHOLDER, css_generator_options, css_module_export_type,
+    RUNTIME_PUBLIC_PATH_MATCHER, css_generator_options, css_module_export_type,
     replace_css_module_id_placeholder,
   },
 };
@@ -523,20 +523,15 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       render_conditions,
       self.css_build_info.has_charset,
     );
-    let css_text = builder.into_css_text();
-    if !css_text.contains(RUNTIME_PUBLIC_PATH_PLACEHOLDER) {
-      return json_stringify_str(&css_text);
-    }
-
+    let css_text = json_stringify_str(&builder.into_css_text());
     let public_path = self
       .generate_context
       .runtime_template
       .render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH);
-    css_text
-      .split(RUNTIME_PUBLIC_PATH_PLACEHOLDER)
-      .map(json_stringify_str)
-      .collect::<Vec<_>>()
-      .join(&format!(" + {public_path} + "))
+    let runtime_public_path_expression = format!("\" + {public_path} + \"");
+    RUNTIME_PUBLIC_PATH_MATCHER
+      .replace(&css_text, &runtime_public_path_expression)
+      .into_owned()
   }
 
   fn css_source_builder(&self, with_charset: bool) -> CssSourceBuilder {

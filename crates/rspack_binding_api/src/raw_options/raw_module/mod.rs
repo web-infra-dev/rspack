@@ -587,7 +587,6 @@ fn convert_import_option(import: Option<Either<bool, RawCssImportFn>>) -> Option
 pub struct RawCssParserOptions {
   #[napi(ts_type = r#""link" | "text" | "css-style-sheet" | "style""#)]
   pub export_type: Option<String>,
-  pub runtime_public_path: Option<bool>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   #[napi(js_name = "import")]
@@ -602,7 +601,6 @@ impl From<RawCssParserOptions> for CssParserOptions {
   fn from(value: RawCssParserOptions) -> Self {
     Self {
       export_type: value.export_type.map(Into::into),
-      runtime_public_path: value.runtime_public_path,
       named_exports: value.named_exports,
       url: value.url,
       r#import: value.r#import,
@@ -616,7 +614,6 @@ impl From<RawCssParserOptions> for CssParserOptions {
 pub struct RawCssModuleParserOptions {
   #[napi(ts_type = r#""link" | "text" | "css-style-sheet" | "style""#)]
   pub export_type: Option<String>,
-  pub runtime_public_path: Option<bool>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   #[napi(js_name = "import")]
@@ -638,7 +635,6 @@ impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
   fn from(value: RawCssModuleParserOptions) -> Self {
     Self {
       export_type: value.export_type.map(Into::into),
-      runtime_public_path: value.runtime_public_path,
       named_exports: value.named_exports,
       url: value.url,
       r#import: value.r#import,
@@ -658,7 +654,6 @@ impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
 pub struct RawCssAutoOrModuleParserOptions {
   #[napi(ts_type = r#""link" | "text" | "css-style-sheet" | "style""#)]
   pub export_type: Option<String>,
-  pub runtime_public_path: Option<bool>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   #[napi(js_name = "import")]
@@ -681,7 +676,6 @@ impl From<RawCssAutoOrModuleParserOptions> for CssAutoOrModuleParserOptions {
   fn from(value: RawCssAutoOrModuleParserOptions) -> Self {
     Self {
       export_type: value.export_type.map(Into::into),
-      runtime_public_path: value.runtime_public_path,
       named_exports: value.named_exports,
       url: value.url,
       r#import: value.r#import,
@@ -952,6 +946,7 @@ impl From<RawAssetGeneratorDataUrlOptions> for AssetGeneratorDataUrlOptions {
 #[napi(object)]
 pub struct RawCssGeneratorOptions {
   pub exports_only: Option<bool>,
+  pub runtime_public_path: Option<bool>,
   pub es_module: Option<bool>,
 }
 
@@ -959,6 +954,7 @@ impl From<RawCssGeneratorOptions> for CssGeneratorOptions {
   fn from(value: RawCssGeneratorOptions) -> Self {
     Self {
       exports_only: value.exports_only,
+      runtime_public_path: value.runtime_public_path,
       es_module: value.es_module,
     }
   }
@@ -970,6 +966,7 @@ pub struct RawCssModuleGeneratorOptions {
   #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
   pub exports_convention: Option<String>,
   pub exports_only: Option<bool>,
+  pub runtime_public_path: Option<bool>,
   pub local_ident_hash_digest: Option<String>,
   pub local_ident_hash_digest_length: Option<u32>,
   pub local_ident_hash_function: Option<String>,
@@ -983,6 +980,7 @@ impl From<RawCssModuleGeneratorOptions> for CssModuleGeneratorOptions {
     Self {
       exports_convention: value.exports_convention.map(|s| s.into()),
       exports_only: value.exports_only,
+      runtime_public_path: value.runtime_public_path,
       local_ident_hash_digest: value.local_ident_hash_digest.map(|s| s.as_str().into()),
       local_ident_hash_digest_length: value.local_ident_hash_digest_length,
       local_ident_hash_function: value.local_ident_hash_function.map(|s| s.as_str().into()),

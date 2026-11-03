@@ -636,7 +636,6 @@ impl MergeFrom for CssParserImport {
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssParserOptions {
   pub export_type: Option<CssExportType>,
-  pub runtime_public_path: Option<bool>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   pub r#import: Option<bool>,
@@ -647,7 +646,6 @@ impl Default for CssParserOptions {
   fn default() -> Self {
     Self {
       export_type: None,
-      runtime_public_path: Some(false),
       named_exports: Some(true),
       url: Some(true),
       r#import: Some(true),
@@ -660,7 +658,6 @@ impl Default for CssParserOptions {
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssModuleParserOptions {
   pub export_type: Option<CssExportType>,
-  pub runtime_public_path: Option<bool>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   pub r#import: Option<bool>,
@@ -677,7 +674,6 @@ impl Default for CssModuleParserOptions {
   fn default() -> Self {
     Self {
       export_type: None,
-      runtime_public_path: Some(false),
       named_exports: Some(true),
       url: Some(true),
       r#import: Some(true),
@@ -696,7 +692,6 @@ impl Default for CssModuleParserOptions {
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssAutoOrModuleParserOptions {
   pub export_type: Option<CssExportType>,
-  pub runtime_public_path: Option<bool>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   pub r#import: Option<bool>,
@@ -714,7 +709,6 @@ impl From<&CssParserOptions> for CssModuleParserOptions {
   fn from(value: &CssParserOptions) -> Self {
     Self {
       export_type: value.export_type,
-      runtime_public_path: value.runtime_public_path,
       named_exports: value.named_exports,
       url: value.url,
       r#import: value.r#import,
@@ -737,7 +731,6 @@ impl From<CssModuleParserOptions> for CssAutoOrModuleParserOptions {
   fn from(value: CssModuleParserOptions) -> Self {
     Self {
       export_type: value.export_type,
-      runtime_public_path: value.runtime_public_path,
       named_exports: value.named_exports,
       url: value.url,
       r#import: value.r#import,
@@ -757,7 +750,6 @@ impl From<&CssParserOptions> for CssAutoOrModuleParserOptions {
   fn from(value: &CssParserOptions) -> Self {
     Self {
       export_type: value.export_type,
-      runtime_public_path: value.runtime_public_path,
       named_exports: value.named_exports,
       url: value.url,
       r#import: value.r#import,
@@ -1134,6 +1126,7 @@ impl From<String> for DataUrlEncoding {
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssGeneratorOptions {
   pub exports_only: Option<bool>,
+  pub runtime_public_path: Option<bool>,
   pub es_module: Option<bool>,
 }
 
@@ -1142,6 +1135,7 @@ pub struct CssGeneratorOptions {
 pub struct CssModuleGeneratorOptions {
   pub exports_convention: Option<CssExportsConvention>,
   pub exports_only: Option<bool>,
+  pub runtime_public_path: Option<bool>,
   pub local_ident_hash_digest: Option<HashDigest>,
   pub local_ident_hash_digest_length: Option<u32>,
   pub local_ident_hash_function: Option<HashFunction>,
@@ -1158,6 +1152,7 @@ impl CssModuleGeneratorOptions {
       local_ident_hash_digest_length: Some(6),
       local_ident_hash_function: Some(HashFunction::Xxhash64),
       local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
+      runtime_public_path: Some(false),
       es_module: Some(true),
       ..Default::default()
     }
@@ -1168,6 +1163,7 @@ impl From<&CssGeneratorOptions> for CssModuleGeneratorOptions {
   fn from(value: &CssGeneratorOptions) -> Self {
     Self {
       exports_only: value.exports_only,
+      runtime_public_path: value.runtime_public_path,
       es_module: value.es_module,
       ..Default::default()
     }

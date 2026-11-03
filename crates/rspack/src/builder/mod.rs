@@ -1857,6 +1857,7 @@ impl ModuleOptionsBuilder {
         "css".to_string(),
         GeneratorOptions::Css(CssGeneratorOptions {
           exports_only: Some(exports_only),
+          runtime_public_path: Some(false),
           es_module: Some(true),
         }),
       );

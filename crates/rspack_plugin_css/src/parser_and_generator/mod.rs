@@ -66,10 +66,8 @@ impl CssParserAndGenerator {
       .parser_options()
       .and_then(|options| options.get_css_module());
     let export_type = parser_options.and_then(|options| options.export_type);
-    let runtime_public_path = parser_options
-      .and_then(|options| options.runtime_public_path)
-      .unwrap_or(false);
     let generator_options = css_generator_options(module_options.generator_options());
+    let runtime_public_path = generator_options.runtime_public_path.unwrap_or(false);
     let exports_only = generator_options
       .exports_only
       .expect("should have exports_only");

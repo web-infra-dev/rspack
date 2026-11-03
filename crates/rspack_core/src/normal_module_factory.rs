@@ -599,6 +599,7 @@ mod tests {
         })),
         Some(&GeneratorOptions::Css(CssGeneratorOptions {
           exports_only: Some(false),
+          runtime_public_path: Some(false),
           es_module: Some(true),
         })),
       );
@@ -614,6 +615,7 @@ mod tests {
 
       assert_eq!(parser_options.named_exports, Some(true));
       assert_eq!(generator_options.exports_only, Some(false));
+      assert_eq!(generator_options.runtime_public_path, Some(false));
       assert_eq!(generator_options.es_module, Some(true));
     }
   }

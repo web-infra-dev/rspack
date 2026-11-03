@@ -185,7 +185,7 @@ impl DependencyTemplate for CssUrlDependencyTemplate {
             .parser_and_generator()
             .downcast_ref::<CssParserAndGenerator>()
         })
-        .is_some_and(|parser| parser.runtime_public_path);
+        .is_some_and(|parser_and_generator| parser_and_generator.runtime_public_path);
 
     let TemplateContext { compilation, .. } = code_generatable_context;
     if let Some(mgm) = compilation

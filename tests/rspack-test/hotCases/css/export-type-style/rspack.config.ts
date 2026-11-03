@@ -14,8 +14,8 @@ export default defineConfig({
         type: 'css/module',
         parser: {
           exportType: 'style',
-          runtimePublicPath: true,
         },
+        generator: { runtimePublicPath: true },
       },
     ],
   },
