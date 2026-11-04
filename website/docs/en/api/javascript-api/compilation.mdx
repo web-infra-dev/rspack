@@ -753,8 +753,6 @@ The filenames returned by `getFiles()` are relative to the output directory and 
 
 `getFiles()` only returns files in the entrypoint's chunk group. Async chunks loaded on demand through `import()` and plugin assets outside that chunk group, such as `entrypoints.json` itself, are not included in the manifest.
 
-When an entry uses `entry.dependOn`, `getFiles()` does not include the files of the entries it depends on. Consumers of the manifest must also load those entries' files in dependency order before loading the current entry.
-
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"

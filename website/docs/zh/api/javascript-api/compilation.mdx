@@ -749,8 +749,6 @@ compiler.hooks.thisCompilation.tap('EntryManifestPlugin', (compilation) => {
 
 `getFiles()` 只返回入口 chunk group 中的文件。通过 `import()` 按需加载的异步 chunk，以及未关联到该 chunk group 的插件产物（如 `entrypoints.json` 自身），都不会列入清单。
 
-入口配置了 `entry.dependOn` 时，`getFiles()` 不会包含被依赖入口的文件。使用清单加载该入口时，还需要先按依赖顺序加载这些依赖入口的文件。
-
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
