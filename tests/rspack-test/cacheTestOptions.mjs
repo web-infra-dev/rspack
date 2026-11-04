@@ -270,6 +270,8 @@ const excludes = {
 		/^chunk-loading\/depend-on-with-chunk-load$/,
 		/^chunk-loading\/worker-loader$/,
 		/^cjs-tree-shaking\/export-require-unused$/,
+		/^cjs-tree-shaking\/json-reexport-property-access$/,
+		/^cjs-tree-shaking\/json-reexport-prototype-methods$/,
 		/^code-generation\/import-export-format$/,
 		/^code-generation\/import-export-format-2$/,
 		/^code-generation\/re-export-namespace$/,

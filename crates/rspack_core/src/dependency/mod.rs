@@ -321,7 +321,7 @@ pub fn is_possibly_unprovided_member(
 pub fn create_referenced_exports_by_referenced_specifiers(
   referenced_specifiers: &[ReferencedSpecifier],
   exports_type: ExportsType,
-  should_reference_receiver: impl Fn(&[Atom]) -> bool,
+  needs_receiver_reference: impl Fn(&[Atom]) -> bool,
 ) -> Vec<ReferencedExport> {
   let mut refs = vec![];
   for ReferencedSpecifier {
@@ -349,7 +349,7 @@ pub fn create_referenced_exports_by_referenced_specifiers(
       }
     }
 
-    if *is_call && (*namespace_object_as_context || should_reference_receiver(names)) {
+    if *is_call && (*namespace_object_as_context || needs_receiver_reference(names)) {
       names = &names[..names.len().saturating_sub(1)];
       if names.is_empty() {
         return create_exports_object_referenced();
