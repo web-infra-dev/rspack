@@ -891,7 +891,7 @@ class WatchTemplatesPlugin {
 
 记录本次编译需要监听、但尚不存在的文件。在 watch 模式下，这些文件被创建后，Rspack 会重新构建。
 
-例如，插件支持可选配置文件 `site.local.json`，但用户可能还没有创建它。每次编译时检查文件是否存在：不存在时添加到 `missingDependencies`，存在时添加到 `fileDependencies`。这样，创建文件和后续修改文件都能触发重新构建。
+例如，插件支持可选配置文件 `site.local.json`，但用户可能还没有创建它。插件应在每次编译时检查文件是否存在：如果不存在，将文件路径添加到 `missingDependencies`；如果已存在，则添加到 `fileDependencies`。这样，无论是创建文件还是后续修改文件，都会触发重新构建。
 
 ```js
 import { existsSync } from 'node:fs';

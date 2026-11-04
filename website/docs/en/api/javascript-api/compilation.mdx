@@ -895,7 +895,7 @@ If the plugin also reads template contents, add those files to `fileDependencies
 
 Files that this compilation needs to watch but that do not yet exist. In watch mode, Rspack rebuilds when these files are created.
 
-For example, a plugin may support an optional `site.local.json` configuration file that the user has not created yet. Check for the file on each compilation: add it to `missingDependencies` if it is absent, or to `fileDependencies` if it exists. This triggers rebuilds both when the file is created and when it is edited later.
+For example, a plugin may support an optional `site.local.json` configuration file that the user has not created yet. The plugin should check whether the file exists on each compilation: if it is absent, add its path to `missingDependencies`; if it exists, add its path to `fileDependencies`. This triggers rebuilds both when the file is created and when it is edited later.
 
 ```js
 import { existsSync } from 'node:fs';
