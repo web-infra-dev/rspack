@@ -710,7 +710,7 @@ The list of chunk group objects, with the structure as follows:
 
 **Type**: `ReadonlyMap<string, Entrypoint>`
 
-A mapping from entry names to entrypoint objects. An entrypoint is a special chunk group associated with the Rspack runtime chunk used by that entry.
+A map with entry names as keys and `Entrypoint` objects as values. Each `Entrypoint` represents the chunk group for an entry and provides access to its chunks and output files.
 
 Use `entrypoint.getFiles()` to list the output files for an entry, including its Rspack runtime and extracted CSS. For example, place this code in a plugin's `apply(compiler)` method to generate a manifest after asset optimization and hash processing:
 

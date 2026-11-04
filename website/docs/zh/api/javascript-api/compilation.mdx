@@ -706,7 +706,7 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
 
 **类型：** `ReadonlyMap<string, Entrypoint>`
 
-入口名称到入口点对象的映射。入口点是一种特殊的 chunk group，关联着该入口使用的 Rspack 运行时 chunk。
+以入口名称为键、`Entrypoint` 对象为值的映射。每个 `Entrypoint` 表示一个入口对应的 chunk group，可用于获取该入口的 chunk 及其产物文件。
 
 通过 `entrypoint.getFiles()` 可以获取入口对应的产物文件名，包括 Rspack 运行时和抽取的 CSS。例如，将以下代码放在插件的 `apply(compiler)` 方法中，即可在产物优化和哈希处理完成后生成清单：
 
