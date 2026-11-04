@@ -1,6 +1,6 @@
 use std::{borrow::Cow, ops::Deref, sync::Arc};
 
-use memchr::{memchr, memchr_iter, memmem};
+use memchr::{memchr, memchr_iter, memmem, memrchr};
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{Loader, LoaderFilter, LoaderRunnerOptions, Scheme, get_scheme};
@@ -1496,15 +1496,18 @@ fn match_resource(input: &str) -> Option<(&str, &str)> {
 fn match_ext(input: &str) -> Option<(&str, &str)> {
   let input = input.strip_suffix(']')?;
   let bytes = input.as_bytes();
-  // The first .rspack takes precedence even when its suffix is malformed.
-  let (start, extension) = memmem::find(bytes, b".rspack")
-    .map(|start| (start, ".rspack"))
-    .or_else(|| memmem::find(bytes, b".webpack").map(|start| (start, ".webpack")))?;
-  let module_type = input[start + extension.len()..].strip_prefix('[')?;
-  if module_type.is_empty() || module_type.contains(']') {
-    return None;
+  // A suffix can only start after the previous closing bracket.
+  let suffix_start = memrchr(b']', bytes).map_or(0, |index| index + 1);
+  for marker in [".rspack[", ".webpack["] {
+    if let Some(start) = memmem::find(&bytes[suffix_start..], marker.as_bytes()) {
+      let start = suffix_start + start;
+      let module_type = &input[start + marker.len()..];
+      if !module_type.is_empty() {
+        return Some((&input[..start], module_type));
+      }
+    }
   }
-  Some((&input[..start], module_type))
+  None
 }
 
 #[test]
