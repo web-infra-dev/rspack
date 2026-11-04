@@ -1,5 +1,6 @@
 use std::{borrow::Cow, ops::Deref, sync::Arc};
 
+use memchr::{memchr, memchr_iter, memmem};
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{Loader, LoaderFilter, LoaderRunnerOptions, Scheme, get_scheme};
@@ -8,7 +9,6 @@ use rspack_util::{
   fx_hash::{FxDashMap, FxHashMap as HashMap},
 };
 use sugar_path::SugarPath;
-use winnow::prelude::*;
 
 use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
@@ -752,7 +752,7 @@ impl NormalModuleFactory {
     if scheme.is_none() {
       let mut request_without_match_resource = data.request.as_str();
       request_without_match_resource = {
-        if let Ok((resource, full_matched)) = match_resource(request_without_match_resource) {
+        if let Some((resource, full_matched)) = match_resource(request_without_match_resource) {
           let match_resource = {
             let mut chars = resource.chars();
             let first_char = chars.next();
@@ -968,7 +968,7 @@ module.exports = "data:,";
     };
 
     let matched_module_rules = if let Some(match_resource_data) = &mut match_resource_data
-      && let Ok((module, module_type)) = match_ext(match_resource_data.resource())
+      && let Some((module, module_type)) = match_ext(match_resource_data.resource())
     {
       match_module_type = Some(module_type.into());
       match_resource_data.set_resource(module.into());
@@ -1471,43 +1471,40 @@ pub struct NormalModuleCreateData {
   pub context: Option<String>,
 }
 
-fn split_element(mut input: &str) -> Vec<&str> {
-  use winnow::{
-    combinator::separated,
-    error::ContextError,
-    token::{take_till, take_while},
-  };
-
-  separated::<_, _, _, _, ContextError, _, _>(.., take_till(.., '!'), take_while(1.., '!'))
-    .parse_next(&mut input)
-    .expect("split should never fail")
+fn split_element(input: &str) -> Vec<&str> {
+  let mut elements = Vec::new();
+  let mut start = 0;
+  for end in memchr_iter(b'!', input.as_bytes()) {
+    if start == 0 || start < end {
+      elements.push(&input[start..end]);
+    }
+    start = end + 1;
+  }
+  elements.push(&input[start..]);
+  elements
 }
 
-fn match_resource(mut input: &str) -> winnow::ModalResult<(&str, &str)> {
-  use winnow::{combinator::terminated, token::take_until};
-
-  let backup = input;
-
-  let res = terminated(take_until(1.., '!'), "!=!").parse_next(&mut input)?;
-  let whole_matched = &backup[..backup.len() - input.len()];
-  Ok((res, whole_matched))
+fn match_resource(input: &str) -> Option<(&str, &str)> {
+  let end = memchr(b'!', input.as_bytes())?;
+  if end == 0 {
+    return None;
+  }
+  let rest = input[end..].strip_prefix("!=!")?;
+  Some((&input[..end], &input[..input.len() - rest.len()]))
 }
 
-fn match_ext(mut input: &str) -> winnow::ModalResult<(&str, &str)> {
-  use winnow::{
-    combinator::{alt, delimited, eof, preceded, terminated},
-    token::take_until,
-  };
-
-  let parser = (
-    alt((take_until(0.., ".rspack"), take_until(0.., ".webpack"))),
-    preceded(
-      alt((".rspack", ".webpack")),
-      delimited('[', take_until(1.., ']'), ']'),
-    ),
-  );
-
-  terminated(parser, eof).parse_next(&mut input)
+fn match_ext(input: &str) -> Option<(&str, &str)> {
+  let input = input.strip_suffix(']')?;
+  let bytes = input.as_bytes();
+  // The first .rspack takes precedence even when its suffix is malformed.
+  let (start, extension) = memmem::find(bytes, b".rspack")
+    .map(|start| (start, ".rspack"))
+    .or_else(|| memmem::find(bytes, b".webpack").map(|start| (start, ".webpack")))?;
+  let module_type = input[start + extension.len()..].strip_prefix('[')?;
+  if module_type.is_empty() || module_type.contains(']') {
+    return None;
+  }
+  Some((&input[..start], module_type))
 }
 
 #[test]
@@ -1519,24 +1516,24 @@ fn test_split_element() {
 
 #[test]
 fn test_match_ext() {
-  assert!(match_ext("foo.webpack[type/javascript]").is_ok());
+  assert!(match_ext("foo.webpack[type/javascript]").is_some());
   let cap = match_ext("foo.webpack[type/javascript]").unwrap();
 
   assert_eq!(cap, ("foo", "type/javascript"));
 
   assert_eq!(
     match_ext("foo.css.webpack[javascript/auto]"),
-    Ok(("foo.css", "javascript/auto"))
+    Some(("foo.css", "javascript/auto"))
   );
 
   // Test .rspack support
-  assert!(match_ext("foo.rspack[type/javascript]").is_ok());
+  assert!(match_ext("foo.rspack[type/javascript]").is_some());
   let cap = match_ext("foo.rspack[type/javascript]").unwrap();
 
   assert_eq!(cap, ("foo", "type/javascript"));
 
   assert_eq!(
     match_ext("foo.css.rspack[javascript/auto]"),
-    Ok(("foo.css", "javascript/auto"))
+    Some(("foo.css", "javascript/auto"))
   );
 }

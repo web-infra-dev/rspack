@@ -9,6 +9,7 @@ use std::{
 
 use async_trait::async_trait;
 use derive_more::Debug;
+use memchr::{memchr2, memchr3};
 use rspack_cacheable::cacheable_dyn;
 use rspack_collections::Identifier;
 use rspack_error::Result;
@@ -391,7 +392,7 @@ pub struct ResourceParsedData {
 }
 
 pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
-  let (path, query, fragment) = path_query_fragment(resource).ok()?;
+  let (path, query, fragment) = path_query_fragment(resource);
 
   Some(ResourceParsedData {
     path: strip_zero_width_space_for_fragment(path)
@@ -402,42 +403,50 @@ pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
   })
 }
 
-#[cfg(not(windows))]
-fn path_query_fragment(input: &str) -> winnow::ModalResult<(&str, Option<&str>, Option<&str>)> {
-  path_query_fragment_impl(input)
-}
-
-#[cfg(windows)]
-fn path_query_fragment(input: &str) -> winnow::ModalResult<(&str, Option<&str>, Option<&str>)> {
+fn path_query_fragment(input: &str) -> (&str, Option<&str>, Option<&str>) {
+  #[cfg(windows)]
   let prefix_len = rspack_paths::dos_device_path_prefix_len(input);
-  let (path, query, fragment) = path_query_fragment_impl(&input[prefix_len..])?;
-  let path = &input[..prefix_len + path.len()];
-  Ok((path, query, fragment))
+  #[cfg(not(windows))]
+  let prefix_len = 0;
+
+  let path_end = prefix_len + find_resource_delimiter(&input[prefix_len..], true);
+  let (path, rest) = input.split_at(path_end);
+  let (query, rest) = if let Some(query_body) = rest.strip_prefix('?') {
+    let (query, rest) = rest.split_at(1 + find_resource_delimiter(query_body, false));
+    (Some(query), rest)
+  } else {
+    (None, rest)
+  };
+  (path, query, rest.starts_with('#').then_some(rest))
 }
 
-fn path_query_fragment_impl(
-  mut input: &str,
-) -> winnow::ModalResult<(&str, Option<&str>, Option<&str>)> {
-  use winnow::{
-    combinator::{alt, opt, repeat},
-    prelude::*,
-    token::{any, none_of, rest},
-  };
+fn find_resource_delimiter(input: &str, allow_query: bool) -> usize {
+  const ESCAPE_START: u8 = 0xe2; // The first UTF-8 byte of U+200B.
 
-  let path = alt((
-    ('\u{200b}', any).take(),
-    none_of(('?', '#', '\u{200b}')).take(),
-  ));
-  let query = alt((('\u{200b}', any).take(), none_of(('#', '\u{200b}')).take()));
-  let fragment = rest;
+  let mut offset = 0;
+  loop {
+    let tail = &input[offset..];
+    let bytes = tail.as_bytes();
+    let next = if allow_query {
+      memchr3(b'?', b'#', ESCAPE_START, bytes)
+    } else {
+      memchr2(b'#', ESCAPE_START, bytes)
+    };
+    let Some(next) = next else {
+      return input.len();
+    };
+    if bytes[next] != ESCAPE_START {
+      return offset + next;
+    }
 
-  let mut parser = (
-    repeat::<_, _, (), _, _>(.., path).take(),
-    opt(('?', repeat::<_, _, (), _, _>(.., query)).take()),
-    opt(('#', fragment).take()),
-  );
-
-  parser.parse_next(&mut input)
+    // The UTF-8 leading byte can also match other characters.
+    let mut chars = tail[next..].chars();
+    if chars.next() == Some('\u{200b}') && chars.next().is_none() {
+      // A trailing escape ends the path or query without becoming part of it.
+      return offset + next;
+    }
+    offset = input.len() - chars.as_str().len();
+  }
 }
 
 #[cfg(test)]
