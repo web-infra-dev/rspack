@@ -538,6 +538,32 @@ export default {
 Each Rspack runtime initializes imported modules separately. If multiple entries on the same page need to share module instances, set `optimization.runtimeChunk` to `'single'` or use another configuration that lets them share one runtime instance.
 :::
 
+The following configuration defines two entries, `pageA` and `pageB`. Suppose both entry files import the same `shared.js` module, and their generated bundles are loaded on the same HTML page:
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    pageA: './src/page-a.js',
+    pageB: './src/page-b.js',
+  },
+  optimization: {
+    runtimeChunk: 'single',
+  },
+};
+```
+
+Changing `runtimeChunk` affects the output files and how often `shared.js` is initialized:
+
+| `runtimeChunk` | Generated JavaScript files                                     | `shared.js` initializations |
+| -------------- | -------------------------------------------------------------- | --------------------------- |
+| `false`        | `pageA.js`, `pageB.js`                                         | Twice                       |
+| `'multiple'`   | `runtime~pageA.js`, `runtime~pageB.js`, `pageA.js`, `pageB.js` | Twice                       |
+| `'single'`     | `runtime.js`, `pageA.js`, `pageB.js`                           | Once                        |
+
+When writing HTML manually, place the runtime file's `<script>` tag before the entry bundles' tags. `HtmlRspackPlugin` handles this order automatically. With `'single'`, both entries share one Rspack runtime and its module cache, so `shared.js` is initialized only once.
+
+Sharing a Rspack runtime does not extract shared modules into a separate file. Use [SplitChunksPlugin](/plugins/split-chunks-plugin) to configure module splitting.
+
 ## optimization.sideEffects
 
 <PropertyType
