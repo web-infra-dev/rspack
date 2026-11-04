@@ -266,6 +266,8 @@ const excludes = {
 		/^builtins\/provide-issue-8553$/,
 		/^chunk-graph\/depend-on-multiple-entry$/,
 		/^chunk-graph\/merge-chunks$/,
+		// Like the other CSS extraction cases, module cache entries are not fully reused.
+		/^chunk-ids\/numeric-like-chunk-id-with-css-only-chunk$/,
 		/^chunk-index\/available-modules-order-index$/,
 		/^chunk-loading\/depend-on-with-chunk-load$/,
 		/^chunk-loading\/worker-loader$/,
