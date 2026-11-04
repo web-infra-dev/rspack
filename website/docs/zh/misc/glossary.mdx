@@ -140,9 +140,13 @@ Rspack 运行时（Rspack runtime）是 Rspack 添加到构建产物中的代码
 
 ## Rspack 运行时模块 \{#rspack-runtime-module}
 
-Rspack 运行时模块（`RuntimeModule`）是构建过程中用于生成一部分 [Rspack 运行时代码](#rspack-runtime)的单元，例如设置 `publicPath`、加载 chunk 或支持 HMR。它生成的代码会被加入相应的 chunk。这里的「模块」并不是应用源码中通过 `import` 引用的业务模块。
+Rspack 运行时模块（`RuntimeModule`）是构建过程中用于生成一部分 [Rspack 运行时代码](#rspack-runtime)的单元，例如设置 [`publicPath`](/config/output#outputpublicpath)、加载 [chunk](#chunk) 或支持 [HMR](/api/runtime-api/hmr)。它生成的代码会被加入相应的 chunk。这里的「模块」并不是应用源码中通过 `import` 引用的业务模块。
 
 插件可以继承 `RuntimeModule`，通过 `generate()` 返回 JavaScript 代码，再调用 [`compilation.addRuntimeModule`](/api/javascript-api/compilation#addruntimemodule) 将其实例添加到指定的 chunk。
+
+- [`runtimeRequirementInTree`](/api/plugin-api/compilation-hooks#runtimerequirementintree)：添加运行时依赖或自定义运行时模块。
+- [`runtimeModule`](/api/plugin-api/compilation-hooks#runtimemodule)：查看或修改运行时模块生成的代码。
+- [`stats.runtimeModules`](/config/stats#statsruntimemodules)：在构建统计中展示运行时模块。
 
 ## scope hoisting （作用域合并） \{#scope-hoisting}
 
