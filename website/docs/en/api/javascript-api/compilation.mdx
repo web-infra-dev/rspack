@@ -826,9 +826,11 @@ The mapping from names to chunks.
 
 **Type:** `FileSystemDependencies`
 
-Files that the compilation depends on. When a plugin reads a file outside the module graph, add its absolute path on each compilation so changes trigger a rebuild in watch mode. Reading a file with Node.js does not register this dependency automatically.
+Files that this compilation depends on. In watch mode, Rspack rebuilds when these files change.
 
-For example, track a `site.json` file in the project root. Place this code in the plugin's `apply(compiler)` method, with `path` imported from `node:path`:
+For example, a plugin may read `site.json` from the project root. Reading the file with Node.js alone does not make Rspack watch it. Add its absolute path to `fileDependencies` in the `thisCompilation` hook so the dependency is recorded on every compilation.
+
+Import `path` from `node:path` in the plugin file, then place this code in the plugin's `apply(compiler)` method:
 
 ```js
 compiler.hooks.thisCompilation.tap('WatchConfigPlugin', (compilation) => {
@@ -851,9 +853,9 @@ compiler.hooks.thisCompilation.tap('WatchConfigPlugin', (compilation) => {
 
 **Type:** `FileSystemDependencies`
 
-Directories that the compilation depends on. When a plugin scans a directory, register it so adding or removing files triggers a rebuild in watch mode.
+Directories that this compilation depends on. In watch mode, Rspack rebuilds when files are added to or removed from these directories.
 
-For example, track an existing `templates` directory. Place this code in `apply(compiler)`, with `path` imported from `node:path`:
+For example, if a plugin scans `templates` to get a list of templates, add the directory's absolute path. Place this code in the plugin's `apply(compiler)` method, assuming the directory exists and `path` is imported from `node:path`:
 
 ```js
 compiler.hooks.thisCompilation.tap('WatchTemplatesPlugin', (compilation) => {
@@ -862,7 +864,7 @@ compiler.hooks.thisCompilation.tap('WatchTemplatesPlugin', (compilation) => {
 });
 ```
 
-If the plugin reads individual files, also add them to `fileDependencies`.
+If the plugin also reads template contents, add those files to `fileDependencies` to watch for changes to their contents.
 
 <Collapse>
   <CollapsePanel
@@ -878,9 +880,11 @@ If the plugin reads individual files, also add them to `fileDependencies`.
 
 **Type:** `FileSystemDependencies`
 
-Files that do not yet exist but are needed by the compilation. Register a missing file so creating it triggers a rebuild in watch mode; once it exists, register it in `fileDependencies` instead.
+Files that this compilation needs to watch but that do not yet exist. In watch mode, Rspack rebuilds when these files are created.
 
-For example, track an optional `site.local.json` file. Place this code in `apply(compiler)`, with `path` imported from `node:path` and `existsSync` from `node:fs`:
+For example, a plugin may support an optional `site.local.json` configuration file that the user has not created yet. Check for the file on each compilation: add it to `missingDependencies` if it is absent, or to `fileDependencies` if it exists. This triggers rebuilds both when the file is created and when it is edited later.
+
+Place this code in the plugin's `apply(compiler)` method, with `path` imported from `node:path` and `existsSync` from `node:fs` in the plugin file:
 
 ```js
 compiler.hooks.thisCompilation.tap('WatchLocalConfigPlugin', (compilation) => {
@@ -907,9 +911,9 @@ compiler.hooks.thisCompilation.tap('WatchLocalConfigPlugin', (compilation) => {
 
 **Type:** `FileSystemDependencies`
 
-Inputs used by the build tooling, such as configuration files and loaders. See [cache.buildDependencies](/config/cache#builddependencies) for persistent cache invalidation.
+Files that the build tooling itself depends on, such as configuration files and loaders. Rspack uses these dependencies to determine whether the persistent cache is still valid. See [cache.buildDependencies](/config/cache#builddependencies) for configuration details.
 
-To watch plugin inputs for changes, use `fileDependencies`, `contextDependencies`, or `missingDependencies`.
+To rebuild when files or directories read by a plugin change in watch mode, use `fileDependencies`, `contextDependencies`, or `missingDependencies`.
 
 <Collapse>
   <CollapsePanel
