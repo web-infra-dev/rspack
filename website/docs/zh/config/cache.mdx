@@ -247,7 +247,7 @@ export default {
 };
 ```
 
-这也适用于 Rspack 移除的分支中的请求，例如未启用 HMR 时的 `if (module.hot)`。读取请求的插件看到的是相对路径。模块也会变小，因此 [`optimization.splitChunks`](/plugins/split-chunks-plugin) 的分包结果可能与未启用此选项时不同。修改此选项会启用新的缓存。
+这也适用于 Rspack 移除的分支中的请求，例如未启用 HMR 时的 `if (module.hot)`。读取请求的插件看到的是相对路径。模块也会变小，因此 [`optimization.splitChunks`](/plugins/split-chunks-plugin) 的分包结果可能与未启用此选项时不同。修改此选项会启用新的缓存。启用 [`experiments.portableCache`](/config/experiments#experimentsportablecache) 且未启用此选项时，如果构建中发现此选项可以改写的请求，Rspack 会通过 `rspack.persistentCache` 输出一条警告。
 
 启用此选项后，Rspack 假定这类路径是针对当前检出目录计算的。如果资源文件或 loader 添加为依赖的文件中包含根目录，或者设置了 [`externals`](/config/externals)、[`resolve.roots`](/config/resolve#resolveroots)，或 [`resolve.alias`](/config/resolve#resolvealias)、[`resolve.fallback`](/config/resolve#resolvefallback) 中的绝对路径键，由于它们读取绝对路径写法，路径会保持原样。如果 loader 通过其他方式获取路径（例如来自指向某个检出目录的环境变量），迁移后该路径会指向新的检出目录。这类 loader 应调用 `this.cacheable(false)`，或不启用此选项。
 

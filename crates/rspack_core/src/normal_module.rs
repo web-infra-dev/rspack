@@ -36,7 +36,7 @@ use crate::{
   FreezeLock, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
   ModuleBuildDiagnostics, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleIdentifier, ModuleLayer, ModuleType, NeedBuildContext, OptimizationBailoutItem,
-  OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, PortableRoot,
+  OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, PortableRequests,
   Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals,
   RuntimeSpec, SideEffectsStateArtifact, SnapshotValidationResult, SourceType, contextify,
   contextify_source_map, contextify_source_url,
@@ -665,7 +665,9 @@ impl Module for NormalModule {
       return Ok(BoxModule::new(self));
     }
 
-    let portable_requests = self.loader_generated_root(&source, &build_context).await;
+    let portable_requests = self
+      .loader_generated_requests(&source, &build_context)
+      .await;
     let factory_meta = self.factory_meta.get();
     let (
       ParseResult {
@@ -1023,11 +1025,11 @@ impl NormalModule {
   /// nor a file the loaders read holds was computed for this checkout, so it moves with the
   /// checkout. An authored absolute path stays fixed: a cold build elsewhere reads the same place.
   /// Options that match the absolute spelling of a request keep it, so they behave as usual.
-  async fn loader_generated_root<'a>(
+  async fn loader_generated_requests<'a>(
     &self,
     source: &BoxSource,
     build_context: &'a BuildContext,
-  ) -> Option<&'a PortableRoot> {
+  ) -> Option<PortableRequests<'a>> {
     fn reads_absolute_requests(resolve: &Resolve) -> bool {
       let has_absolute_key = |alias: &Option<Alias>| {
         matches!(alias, Some(Alias::MergeAlias(entries))
@@ -1050,7 +1052,7 @@ impl NormalModule {
     };
     let root = cache.portable_root.as_ref()?;
     if self.loaders.is_empty()
-      || !cache.rebase_loader_requests
+      || !(cache.rebase_loader_requests || cache.warn_loader_requests)
       || reads_absolute_requests(&options.resolve)
       || self
         .resolve_options
@@ -1080,7 +1082,10 @@ impl NormalModule {
         return None;
       }
     }
-    Some(root)
+    Some(PortableRequests {
+      root,
+      rebase: cache.rebase_loader_requests,
+    })
   }
 
   fn create_source(

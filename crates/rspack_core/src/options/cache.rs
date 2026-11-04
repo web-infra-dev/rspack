@@ -53,6 +53,8 @@ pub struct PersistentCacheOptions {
   pub portable_root: Option<PortableRoot>,
   /// Whether absolute requests that loaders generate are spelled relative to their module.
   pub rebase_loader_requests: bool,
+  /// Whether to warn about modules that `rebase_loader_requests` would rewrite.
+  pub warn_loader_requests: bool,
   pub readonly: bool,
   /// Filesystem cache max age in seconds.
   pub max_age: u64,

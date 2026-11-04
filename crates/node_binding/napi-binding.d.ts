@@ -2010,6 +2010,7 @@ export interface RawCacheOptionsPersistent {
   seedDonors?: Array<string>
   portableRoot?: string
   rebaseLoaderRequests?: boolean
+  warnLoaderRequests?: boolean
   readonly?: boolean
 }
 

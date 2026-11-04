@@ -538,7 +538,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     // A request a loader generated for this checkout is spelled relative to the module, so the
     // dependency, source, map and hashes hold no root. Only the scan can prove what is a request.
     // createRequire resolves against its own base, so a relative spelling could change the target.
-    if let Some(root) = portable_requests.filter(|_| !create_require) {
+    if let Some(requests) = portable_requests.filter(|_| !create_require) {
       let saved_build_info = build_info.clone();
       let saved_build_meta = build_meta.clone();
       let scanned = self.parse_text(
@@ -558,13 +558,17 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             &source,
             &scanned.result,
             module_context.as_path(),
-            root,
+            requests.root,
             source_type,
             lang,
           )
         })
       {
-        source = relative;
+        if requests.rebase {
+          source = relative;
+        } else {
+          build_info.absolute_loader_requests = true;
+        }
       }
     }
 

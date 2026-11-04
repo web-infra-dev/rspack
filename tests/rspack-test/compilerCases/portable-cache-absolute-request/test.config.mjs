@@ -122,6 +122,11 @@ async function build(root, configuration = {}, portable = true) {
 		);
 		return {
 			values: runtime.exports,
+			warnings: (
+				stats.toJson({ all: false, logging: "warn" }).logging?.["rspack.persistentCache"]?.entries ?? []
+			)
+				.map(entry => entry.message)
+				.filter(message => message.includes("rebaseLoaderRequests")),
 			assets: fs
 				.readdirSync(dist)
 				.sort()
@@ -198,9 +203,17 @@ export default {
 
 			// Without the option a loader's path stays as written, so its modules are rebuilt.
 			const notEnabled = relocated(temp, "not-enabled", writeProject);
-			await build(notEnabled.writer);
+			const expectWarning = ({ warnings }) => {
+				expect(warnings).toHaveLength(1);
+				expect(warnings[0]).toContain("5 in this build, such as");
+				expect(warnings[0]).toContain("data.gen");
+				expect(warnings[0]).toContain("cache.portable.rebaseLoaderRequests");
+			};
+			expectWarning(await build(notEnabled.writer));
+			expect((await build(notEnabled.writer)).warnings).toEqual([]);
 			move(notEnabled.writer, notEnabled.reader);
 			const rebuilt = await build(notEnabled.reader);
+			expectWarning(rebuilt);
 			expect(rebuilt.runs).toEqual(
 				[...GENERATED.map(name => `${name}.gen`), "authored.js"]
 					.sort()
@@ -210,9 +223,18 @@ export default {
 			expect(rebuilt.assets).toEqual(rebuiltCold.assets);
 			// A cached module holds one spelling, so switching the option starts a new cache.
 			const switched = await build(notEnabled.reader, {}, REBASE);
+			expect(switched.warnings).toEqual([]);
 			const switchedCold = await coldBuild(notEnabled.reader, {}, REBASE);
 			expect(switched.runs).toEqual(switchedCold.runs);
 			expect(switched.assets).toEqual(switchedCold.assets);
+			// The warning belongs to the experiment, and to projects where the option would apply.
+			const noExperiment = await coldBuild(notEnabled.reader, { experiments: {} });
+			expect(noExperiment.warnings).toEqual([]);
+			const withExternals = await coldBuild(notEnabled.reader, {
+				externals: /node_modules[\\/]api/,
+				externalsType: "commonjs"
+			});
+			expect(withExternals.warnings).toEqual([]);
 
 			// Options that read the absolute spelling keep it, so they behave as in any other build.
 			const fixedSpelling = async (name, configure, expected) => {

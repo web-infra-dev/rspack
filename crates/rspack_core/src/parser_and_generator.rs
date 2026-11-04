@@ -68,6 +68,15 @@ impl SourceView {
   }
 }
 
+/// Absolute module requests that loaders generated below the portable root, which move with the
+/// checkout.
+#[derive(Debug, Clone, Copy)]
+pub struct PortableRequests<'a> {
+  pub root: &'a PortableRoot,
+  /// Whether parsers rewrite the requests or only record them in `BuildInfo`.
+  pub rebase: bool,
+}
+
 #[derive(Debug)]
 pub struct ParseContext<'a> {
   pub source: BoxSource,
@@ -91,9 +100,8 @@ pub struct ParseContext<'a> {
   /// project paths, or `None` when the certification chain is broken. Only parsers that can
   /// relocate whole literals read it; the loader output itself still holds the real paths.
   pub portable_output: Option<&'a [Utf8PathBuf]>,
-  /// The portable root, when the loader chain generated the root paths in `source`. Parsers may
-  /// rewrite absolute module requests below it, which move with the checkout.
-  pub portable_requests: Option<&'a PortableRoot>,
+  /// Set when the loader chain generated the root paths in `source`.
+  pub portable_requests: Option<PortableRequests<'a>>,
   pub build_info: &'a mut BuildInfo,
   pub build_meta: &'a mut BuildMeta,
   pub runtime_template: &'a ModuleCodeTemplate,

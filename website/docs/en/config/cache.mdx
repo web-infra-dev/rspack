@@ -258,7 +258,7 @@ export default {
 };
 ```
 
-This also applies to requests in branches Rspack removes, such as `if (module.hot)` without HMR. Plugins that read the request see the relative spelling. The module also gets smaller, so [`optimization.splitChunks`](/plugins/split-chunks-plugin) may split chunks differently than it does without this option. Changing this option starts a new cache.
+This also applies to requests in branches Rspack removes, such as `if (module.hot)` without HMR. Plugins that read the request see the relative spelling. The module also gets smaller, so [`optimization.splitChunks`](/plugins/split-chunks-plugin) may split chunks differently than it does without this option. Changing this option starts a new cache. While [`experiments.portableCache`](/config/experiments#experimentsportablecache) is enabled and this option is off, Rspack logs a warning from `rspack.persistentCache` when a build finds requests this option would rewrite.
 
 With this option, Rspack assumes such a path was computed for the current checkout. It leaves the path as written when the resource or a file the loader added as a dependency contains the root, and when [`externals`](/config/externals), [`resolve.roots`](/config/resolve#resolveroots), or absolute keys in [`resolve.alias`](/config/resolve#resolvealias) or [`resolve.fallback`](/config/resolve#resolvefallback) are set, because they read the absolute spelling. A loader that gets the path another way, such as from an environment variable that names one checkout, would point at the new checkout after a move. Such a loader should call `this.cacheable(false)`, or leave this option off.
 

@@ -315,6 +315,8 @@ pub struct BuildInfo {
   pub cacheable: bool,
   /// Whether parsing derived a value from the module's absolute resource path.
   pub root_sensitive: bool,
+  /// Whether a loader wrote an absolute request that `rebaseLoaderRequests` would rewrite.
+  pub absolute_loader_requests: bool,
   pub hash: Option<RspackHashDigest>,
   pub strict: bool,
   pub module_argument: ModuleArgument,
@@ -371,6 +373,7 @@ impl Default for BuildInfo {
     Self {
       cacheable: true,
       root_sensitive: false,
+      absolute_loader_requests: false,
       hash: None,
       strict: false,
       module_argument: Default::default(),

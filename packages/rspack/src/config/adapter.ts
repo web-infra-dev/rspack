@@ -176,6 +176,9 @@ function getRawCache(
     }
     return value;
   };
+  const rebaseLoaderRequests =
+    typeof cache.portable === 'object' &&
+    cache.portable.rebaseLoaderRequests === true;
   return {
     type: cache.type,
     buildDependencies: cache.buildDependencies,
@@ -189,10 +192,11 @@ function getRawCache(
     },
     portableRoot:
       typeof cache.portable === 'object' ? cache.portable.root : undefined,
-    rebaseLoaderRequests:
-      typeof cache.portable === 'object' &&
-      cache.portable.rebaseLoaderRequests === true &&
-      !compiler.options.externals,
+    rebaseLoaderRequests: !compiler.options.externals && rebaseLoaderRequests,
+    warnLoaderRequests:
+      !compiler.options.externals &&
+      !rebaseLoaderRequests &&
+      Boolean(compiler.options.experiments.portableCache),
     seedDonors: findSeedDonors(cache, compiler),
     readonly: cache.readonly,
   };
