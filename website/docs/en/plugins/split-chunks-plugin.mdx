@@ -52,7 +52,7 @@ export default {
 };
 ```
 
-while keeping the default cache groups. This usually deduplicates both initial and async chunks without changing JavaScript execution semantics. Rspack's runtime still loads only the chunks reachable from the current entry or runtime.
+while keeping the default cache groups. This usually deduplicates both initial and async chunks without changing JavaScript execution semantics. The Rspack runtime still loads only the chunks reachable from the current entry or runtime instance.
 
 ## Options
 
@@ -1011,7 +1011,7 @@ export default {
 
 Suppose two source chunks each contain the same 40KB module. Extracting it into a new shared chunk would remove 40KB from each source chunk, for a total of `40KB × 2 = 80KB`. Since this is below the 100KB threshold configured above, the split does not occur.
 
-The threshold counts only the reduction in the source chunks. Including the new 40KB shared chunk, the net reduction across all chunks would be only 40KB, ignoring runtime and other generated code.
+The threshold counts only the reduction in the source chunks. Including the new 40KB shared chunk, the net reduction across all chunks would be only 40KB, ignoring Rspack runtime and other generated code.
 
 You can also configure this option for an individual cache group in [`splitChunks.cacheGroups.{cacheGroup}`](#splitchunkscachegroups), for example:
 
@@ -1150,7 +1150,7 @@ Modules moved from an async chunk into an initial chunk may load earlier. Consid
 - **Type:** `boolean`
 - **Default:** `true` when [optimization.usedExports](/config/optimization#optimizationusedexports) is `true`; otherwise `false`
 
-Splits shared modules according to which exports each [runtime](/misc/glossary#runtime) uses. Entries that use different exports can load separate copies, allowing unused code to be removed from each copy later.
+Splits shared modules according to which exports each [Rspack runtime](/misc/glossary#rspack-runtime) uses. Entries that use different exports can load separate copies, allowing unused code to be removed from each copy later.
 
 For example, `src/shared.js` exports two objects:
 
@@ -1222,11 +1222,11 @@ Very small duplicates are often intentional. Extracting them into an extra chunk
 
 ### Does splitChunks affect JavaScript execution order?
 
-No. `splitChunks` changes chunk topology, but JavaScript loading and execution order are still guaranteed by the runtime dependency graph.
+No. `splitChunks` changes chunk topology, but the Rspack runtime still loads and executes JavaScript according to the dependency graph.
 
 ### Does splitChunks affect tree shaking?
 
-The two work together. `splitChunks` extracts and shares modules. With [`usedExports`](#splitchunksusedexports) enabled, it also groups modules by the exports used in each runtime, allowing separate copies to drop code they do not need. Whether unused code is ultimately removed still depends on tree shaking and minification.
+The two work together. `splitChunks` extracts and shares modules. With [`usedExports`](#splitchunksusedexports) enabled, it also groups modules by the exports used in each Rspack runtime, allowing separate copies to drop code they do not need. Whether unused code is ultimately removed still depends on tree shaking and minification.
 
 ### Can splitChunks affect CSS order?
 

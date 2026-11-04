@@ -273,3 +273,39 @@ export default isDev ? merge(base, dev) : base;
 ```
 
 > See [rspack-merge documentation](https://github.com/rstackjs/rspack-merge) for more details.
+
+## rspack-chain
+
+[rspack-chain](https://github.com/rstackjs/rspack-chain) is a library for creating and modifying Rspack configurations through a chainable API. You can assign names to rules, loaders, and plugins, then use those names to access and modify them without searching through configuration arrays.
+
+When a build tool such as Rsbuild generates a configuration, or multiple projects share one, these names provide a consistent convention for extending it. For example, if a build tool names its HTML plugin `html`, users can modify the plugin's options through that name without knowing its position in the `plugins` array.
+
+First install `rspack-chain`:
+
+<PackageManagerTabs command="add rspack-chain -D" />
+
+The following example adds an HTML plugin, then updates its options using the name `html`:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+import { RspackChain } from 'rspack-chain';
+
+const config = new RspackChain();
+
+config.entry('main').add('./src/index.js');
+
+// Add a named plugin to the shared configuration
+config.plugin('html').use(rspack.HtmlRspackPlugin, [{ title: 'My app' }]);
+
+// Customize the existing plugin's options for this project
+config.plugin('html').tap((args) => {
+  args[0].title = 'My project';
+  return args;
+});
+
+export default config.toConfig();
+```
+
+Call `toConfig()` after making all changes to generate the configuration object that Rspack consumes. The names such as `html` are used by `rspack-chain` to locate configuration entries.
+
+> See [rspack-chain documentation](https://github.com/rstackjs/rspack-chain) for more details.

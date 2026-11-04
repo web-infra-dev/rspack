@@ -105,6 +105,8 @@ impl NormalModule {
   fn define_shared_properties(env: &napi::Env, object: Object<'_>) -> napi::Result<()> {
     #[js_function]
     pub fn match_resource_getter(ctx: CallContext<'_>) -> napi::Result<Either<JsString<'_>, ()>> {
+      // All native references stay inside this synchronous callback.
+      let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
       let this = ctx.this_unchecked::<JsObject>();
       let env = ctx.env.raw();
       let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
@@ -119,6 +121,8 @@ impl NormalModule {
 
     #[js_function(1)]
     pub fn match_resource_setter(ctx: CallContext) -> napi::Result<()> {
+      // All native references stay inside this synchronous callback.
+      let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
       let this = ctx.this_unchecked::<JsObject>();
       let env = ctx.env.raw();
       let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
@@ -143,6 +147,8 @@ impl NormalModule {
 
     #[js_function]
     fn error_getter(ctx: CallContext<'_>) -> napi::Result<Either<RspackError, ()>> {
+      // All native references stay inside this synchronous callback.
+      let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
       let this = ctx.this_unchecked::<JsObject>();
       let env = ctx.env.raw();
       let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
