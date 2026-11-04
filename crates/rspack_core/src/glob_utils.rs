@@ -169,7 +169,7 @@ pub fn normalize_path_separators(s: &str) -> String {
 
 /// Normalize backslashes to forward slashes in a literal filesystem path.
 pub fn normalize_path_separators_for_path(s: &str) -> String {
-  s.cow_replace('\\', "/").into_owned()
+  rspack_paths::normalize_path_separators(s).into_owned()
 }
 
 pub fn unescape_glob_path(s: &str) -> String {
