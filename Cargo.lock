@@ -4746,7 +4746,6 @@ dependencies = [
 name = "rspack_napi"
 version = "0.103.1"
 dependencies = [
- "libc",
  "napi",
  "oneshot",
  "rspack-allocative",
