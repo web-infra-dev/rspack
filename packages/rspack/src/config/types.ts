@@ -449,6 +449,8 @@ export type Environment = {
 
   /** The environment supports template literals. */
   templateLiteral?: boolean;
+  /** The environment supports top-level await ('await x' at the top level of a module). */
+  topLevelAwait?: boolean;
 };
 
 export type Output = {

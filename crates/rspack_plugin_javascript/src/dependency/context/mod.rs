@@ -1,6 +1,7 @@
 use rspack_core::{
   ContextDependency, ContextMode, ContextModulePattern, ContextOptions, DependencyRange,
-  GroupOptions, ResourceIdentifier, TemplateContext, TemplateReplaceSource, context_identifier,
+  GroupOptions, ReferencedSpecifier, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
+  context_identifier,
 };
 
 mod amd_require_context_dependency;
@@ -63,14 +64,7 @@ fn create_resource_identifier_for_context_dependency(
     .map(|specifiers| {
       specifiers
         .iter()
-        .map(|specifier| {
-          let s = specifier.names.iter().join(".");
-          if specifier.namespace_object_as_context && specifier.is_call {
-            format!("*.{s}()")
-          } else {
-            s
-          }
-        })
+        .map(ReferencedSpecifier::to_identifier_string)
         .join(", ")
     })
     .unwrap_or_default();

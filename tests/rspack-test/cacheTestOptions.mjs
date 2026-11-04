@@ -266,6 +266,8 @@ const excludes = {
 		/^builtins\/provide-issue-8553$/,
 		/^chunk-graph\/depend-on-multiple-entry$/,
 		/^chunk-graph\/merge-chunks$/,
+		// Like the other CSS extraction cases, module cache entries are not fully reused.
+		/^chunk-ids\/numeric-like-chunk-id-with-css-only-chunk$/,
 		/^chunk-index\/available-modules-order-index$/,
 		/^chunk-loading\/depend-on-with-chunk-load$/,
 		/^chunk-loading\/worker-loader$/,
@@ -478,6 +480,8 @@ const excludes = {
 		/^inline-const\/dev$/,
 		/^inline-const\/module-declarations$/,
 		/^inline-const\/provide-plugin$/,
+		// The fs and external-value externals use the default need_build() and
+		// rebuild even when their cache entries exist.
 		/^inline-const\/reexport-star-suffix-properties$/,
 		/^inline-const\/suffix-properties$/,
 		/^inline-const\/with-node-stuff$/,
@@ -510,6 +514,8 @@ const excludes = {
 		/^library\/modern-module-reexport-star$/,
 		/^library\/module-array-external-request$/,
 		/^library\/module-array-external-request-concat$/,
+		/^library\/module-async-entry-multiple$/,
+		/^library\/module-async-entry-then$/,
 		/^library\/module-external-array-request$/,
 		/^library\/module-json-entry$/,
 		/^library\/module-named-import-externals$/,
@@ -529,6 +535,8 @@ const excludes = {
 		/^loader\/pitching$/,
 		/^mangle\/mangle-with-destructuring-assignment$/,
 		/^module-graph\/get-incoming-connections-active$/,
+		/^module\/async-entry-await-startup-entrypoint$/,
+		/^module\/async-entry-no-await$/,
 		/^module\/change-parser-in-child-compiler$/,
 		/^module\/circular-externals$/,
 		/^module\/consume-webpack-runtime$/,
@@ -729,6 +737,7 @@ const excludes = {
 		/^sharing\/reshake-share$/,
 		/^side-effects\/define-plugin$/,
 		/^source-map\/basic$/,
+		/^source-map\/bootstrap$/,
 		/^source-map\/cheap$/,
 		/^source-map\/cheap-module$/,
 		/^source-map\/conflict$/,
