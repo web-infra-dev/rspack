@@ -2,7 +2,7 @@ import binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import type { Chunk } from './Chunk';
 import { type Compilation, getOrCreateCompilationHooks } from './Compilation';
-import { Module } from './Module';
+import { Module, MODULE_PROPERTIES } from './Module';
 import { COMPILATION_HOOKS_MAP_SYMBOL } from './util/symbols';
 
 export type ExternalModuleCompilationHooks = {
@@ -20,7 +20,7 @@ export class ExternalModule extends Module {
       writable: true,
       value: undefined,
     },
-    ...Module._properties,
+    ...MODULE_PROPERTIES,
   };
 
   declare readonly userRequest: string;

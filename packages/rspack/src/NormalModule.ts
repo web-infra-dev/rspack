@@ -2,7 +2,7 @@ import binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import { type Compilation, getOrCreateCompilationHooks } from './Compilation';
 import type { LoaderContext } from './config';
-import { Module } from './Module';
+import { Module, MODULE_PROPERTIES } from './Module';
 import { COMPILATION_HOOKS_MAP_SYMBOL } from './util/symbols';
 
 export interface NormalModuleCompilationHooks {
@@ -31,7 +31,7 @@ export class NormalModule extends Module {
         return binding.normalModuleGetError(this);
       },
     },
-    ...Module._properties,
+    ...MODULE_PROPERTIES,
   };
 
   declare readonly resource: string;

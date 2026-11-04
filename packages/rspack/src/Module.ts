@@ -169,65 +169,65 @@ export class ContextModuleFactoryAfterResolveData {
 export type ContextModuleFactoryAfterResolveResult =
   false | ContextModuleFactoryAfterResolveData;
 
-export class Module {
-  // Shared functions use the call receiver; no descriptor captures a Module instance.
-  protected static readonly _properties: PropertyDescriptorMap = {
-    type: {
-      enumerable: true,
-      configurable: true,
-      writable: true,
-      value: undefined,
+// Shared functions use the call receiver; no descriptor captures a Module instance.
+export const MODULE_PROPERTIES: PropertyDescriptorMap = {
+  type: {
+    enumerable: true,
+    configurable: true,
+    writable: true,
+    value: undefined,
+  },
+  context: {
+    enumerable: true,
+    configurable: true,
+    get(this: Module): string | undefined {
+      return binding.moduleGetContext(this);
     },
-    context: {
-      enumerable: true,
-      configurable: true,
-      get(this: Module): string | undefined {
-        return binding.moduleGetContext(this);
-      },
+  },
+  layer: {
+    enumerable: true,
+    configurable: true,
+    get(this: Module): string | undefined {
+      return binding.moduleGetLayer(this);
     },
-    layer: {
-      enumerable: true,
-      configurable: true,
-      get(this: Module): string | undefined {
-        return binding.moduleGetLayer(this);
-      },
+  },
+  useSourceMap: {
+    enumerable: true,
+    configurable: true,
+    get(this: Module): boolean {
+      return binding.moduleGetUseSourceMap(this);
     },
-    useSourceMap: {
-      enumerable: true,
-      configurable: true,
-      get(this: Module): boolean {
-        return binding.moduleGetUseSourceMap(this);
-      },
+  },
+  useSimpleSourceMap: {
+    enumerable: true,
+    configurable: true,
+    get(this: Module): boolean {
+      return binding.moduleGetUseSimpleSourceMap(this);
     },
-    useSimpleSourceMap: {
-      enumerable: true,
-      configurable: true,
-      get(this: Module): boolean {
-        return binding.moduleGetUseSimpleSourceMap(this);
-      },
+  },
+  factoryMeta: {
+    enumerable: true,
+    configurable: true,
+    get(this: Module): binding.JsFactoryMeta {
+      return binding.moduleGetFactoryMeta(this);
     },
-    factoryMeta: {
-      enumerable: true,
-      configurable: true,
-      get(this: Module): binding.JsFactoryMeta {
-        return binding.moduleGetFactoryMeta(this);
-      },
-      set(this: Module, value: binding.JsFactoryMeta) {
-        binding.moduleSetFactoryMeta(this, value);
-      },
+    set(this: Module, value: binding.JsFactoryMeta) {
+      binding.moduleSetFactoryMeta(this, value);
     },
-    buildInfo: {
-      enumerable: true,
-      configurable: true,
-      get(this: Module): binding.BuildInfo {
-        return binding.moduleGetBuildInfo(this);
-      },
-      set(this: Module, value: binding.BuildInfo) {
-        binding.moduleSetBuildInfo(this, value);
-      },
+  },
+  buildInfo: {
+    enumerable: true,
+    configurable: true,
+    get(this: Module): binding.BuildInfo {
+      return binding.moduleGetBuildInfo(this);
     },
-  };
+    set(this: Module, value: binding.BuildInfo) {
+      binding.moduleSetBuildInfo(this, value);
+    },
+  },
+};
 
+export class Module {
   declare readonly context: string | undefined;
   declare readonly layer: string | undefined;
   declare readonly useSourceMap: boolean;
@@ -240,7 +240,7 @@ export class Module {
 
   constructor(
     data?: binding.JsModuleData,
-    properties = Module._properties,
+    properties = MODULE_PROPERTIES,
     snapshot?: object,
   ) {
     // Snapshot fields precede the shared descriptors in property enumeration.
