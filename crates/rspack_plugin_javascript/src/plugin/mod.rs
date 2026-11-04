@@ -34,7 +34,9 @@ use rspack_core::{
   RuntimeVariable, SourceType, analyze_program_identifiers, analyze_program_unresolved_names,
   render_init_fragments,
   reserved_names::RESERVED_NAMES_ATOM_SET,
-  rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
+  rspack_sources::{
+    BoxSource, ConcatSource, OriginalSource, RawStringSource, ReplaceSource, Source, SourceExt,
+  },
   split_readable_identifier,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -737,6 +739,11 @@ var {} = {{}};
     let mut chunk_init_fragments = ChunkInitFragments::default();
     let iife = compilation.options.output.iife;
     let mut all_strict = compilation.options.output.module;
+    let use_source_map = hooks
+      .use_source_map
+      .call(compilation, chunk_ukey)
+      .await?
+      .unwrap_or_default();
     let RenderBootstrapResult {
       header,
       startup,
@@ -821,7 +828,11 @@ var {} = {{}};
     if !header.is_empty() {
       let mut header = header.join("\n");
       header.push('\n');
-      sources.add(RawStringSource::from(header));
+      sources.add(if use_source_map {
+        OriginalSource::new(header, "webpack/bootstrap").boxed()
+      } else {
+        RawStringSource::from(header).boxed()
+      });
     }
     if compilation
       .build_chunk_graph_artifact
@@ -985,7 +996,11 @@ var {} = {{}};
         .next_back()
     }) {
       let mut render_source = RenderSource {
-        source: RawStringSource::from(startup.join("\n") + "\n").boxed(),
+        source: if use_source_map {
+          OriginalSource::new(startup.join("\n") + "\n", "webpack/startup").boxed()
+        } else {
+          RawStringSource::from(startup.join("\n") + "\n").boxed()
+        },
       };
       hooks
         .render_startup

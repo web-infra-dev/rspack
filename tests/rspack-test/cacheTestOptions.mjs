@@ -721,6 +721,7 @@ const excludes = {
 		/^sharing\/reshake-share$/,
 		/^side-effects\/define-plugin$/,
 		/^source-map\/basic$/,
+		/^source-map\/bootstrap$/,
 		/^source-map\/cheap$/,
 		/^source-map\/cheap-module$/,
 		/^source-map\/conflict$/,
