@@ -712,7 +712,9 @@ The list of chunk group objects, with the structure as follows:
 
 A map with entry names as keys and `Entrypoint` objects as values. Each `Entrypoint` represents the chunk group for an entry and provides access to its chunks and output files.
 
-Use `entrypoint.getFiles()` to list the output files for an entry, including its Rspack runtime and extracted CSS. For example, place this code in a plugin's `apply(compiler)` method to generate a manifest after asset optimization and hash processing:
+When generating HTML on the server, you need to know which JavaScript and CSS files to include for each entry. Iterate over `compilation.entrypoints`, call `entrypoint.getFiles()` to get those filenames, and save them in a manifest.
+
+Place the following code in a plugin's `apply(compiler)` method to generate `entrypoints.json` after the standard asset optimization and hash processing stages:
 
 ```js
 const { Compilation, sources } = compiler.rspack;
@@ -739,7 +741,7 @@ compiler.hooks.thisCompilation.tap('EntryManifestPlugin', (compilation) => {
 });
 ```
 
-If the `main` entry has a separate Rspack runtime and CSS file, the manifest might look like this:
+The manifest maps each entry name to an array of filenames. For example, if the `main` entry produces an entry script, a separate Rspack runtime, and a CSS file, the manifest might look like this:
 
 ```json title="entrypoints.json"
 {
@@ -747,9 +749,13 @@ If the `main` entry has a separate Rspack runtime and CSS file, the manifest mig
 }
 ```
 
-A server can use this manifest to generate HTML: prepend the asset URL prefix (the filenames do not include `publicPath`), use `<link rel="stylesheet">` for CSS, and keep the JavaScript `<script>` tags in the listed order so the Rspack runtime runs before the entry bundle.
+When generating HTML from the manifest:
 
-`getFiles()` only lists files in the entrypoint's chunk group. It excludes async chunks created by `import()` and unrelated plugin assets, such as the manifest itself.
+- Filenames are relative to the output directory and do not include `publicPath`, so construct the full URLs based on where the assets are served.
+- Use `<link rel="stylesheet">` tags for CSS files.
+- Add `<script defer>` tags for JavaScript files in the array order so the scripts execute in that order. In this example, `runtime.js` should execute before `main.js`.
+
+`getFiles()` only returns files in the entrypoint's chunk group. Async chunks loaded on demand through `import()` and plugin assets outside that chunk group, such as `entrypoints.json` itself, are not included in the manifest.
 
 <Collapse>
   <CollapsePanel
