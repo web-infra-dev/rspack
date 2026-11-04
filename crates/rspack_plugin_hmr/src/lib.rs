@@ -3,6 +3,8 @@ mod hot_module_replacement;
 
 use std::{
   collections::hash_map,
+  future::Future,
+  pin::Pin,
   sync::{Arc, LazyLock, Mutex},
 };
 
@@ -250,17 +252,34 @@ async fn content_hash(
 
 #[plugin_hook(CompilationProcessAssets for HotModuleReplacementPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  hot_update_future(self, compilation).await
+}
+
+#[inline(never)]
+fn hot_update_future<'a>(
+  plugin: &'a HotModuleReplacementPlugin,
+  compilation: &'a mut Compilation,
+) -> Pin<Box<dyn Future<Output = Result<()>> + Send + 'a>> {
+  // Share the large future between tracing's enabled and disabled paths instead
+  // of emitting a separate copy of its state machine for each path.
+  Box::pin(generate_hot_update(plugin, compilation))
+}
+
+async fn generate_hot_update(
+  plugin: &HotModuleReplacementPlugin,
+  compilation: &mut Compilation,
+) -> Result<()> {
   // Advance the css baseline on every sealed build, mirroring the lifecycle
   // of `CompilationRecords`: merge this build's collected digests over the
   // previous snapshot (only re-hashed chunks arrive) and prune chunks gone
   // from this compilation.
   let collected = std::mem::take(
-    &mut *self
+    &mut *plugin
       .collected_css_hashes
       .lock()
       .expect("should lock collected css hashes"),
   );
-  let mut current_css_hashes = self.previous_css_hashes.borrow().clone();
+  let mut current_css_hashes = plugin.previous_css_hashes.borrow().clone();
   current_css_hashes.extend(collected);
   let live_chunk_ids: ChunkIdSet = compilation
     .build_chunk_graph_artifact
@@ -272,7 +291,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   current_css_hashes
     .retain(|chunk_id, css_hashes| !css_hashes.is_empty() && live_chunk_ids.contains(chunk_id));
   let old_chunk_css_hashes = std::mem::replace(
-    &mut *self.previous_css_hashes.borrow_mut(),
+    &mut *plugin.previous_css_hashes.borrow_mut(),
     current_css_hashes.clone(),
   );
 
