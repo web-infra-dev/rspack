@@ -305,7 +305,23 @@ impl ReferencedSpecifier {
   }
 }
 
-pub fn is_possibly_unprovided_member(
+/// Whether a member call `receiver.method()` should reference `receiver` as a whole
+/// rather than only `receiver.method`.
+///
+/// If the module is not known to provide the last name, the method probably comes from
+/// the receiver's prototype, so the receiver value itself must be kept:
+///
+/// ```js
+/// import arr from "./array.json";
+/// arr.map(fn);          // `map` is not provided -> reference the whole JSON
+///
+/// import obj from "./object.json";
+/// obj.list.includes(x); // `includes` is not provided -> reference `list`
+///
+/// import lib from "./lib.cjs";
+/// lib.used();           // `used` is provided -> reference only `used`
+/// ```
+pub fn should_reference_call_receiver(
   names: &[Atom],
   exports_type: ExportsType,
   exports_info_artifact: &ExportsInfoArtifact,
@@ -321,7 +337,8 @@ pub fn is_possibly_unprovided_member(
 pub fn create_referenced_exports_by_referenced_specifiers(
   referenced_specifiers: &[ReferencedSpecifier],
   exports_type: ExportsType,
-  needs_receiver_reference: impl Fn(&[Atom]) -> bool,
+  exports_info_artifact: &ExportsInfoArtifact,
+  exports_info: &ExportsInfoData,
 ) -> Vec<ReferencedExport> {
   let mut refs = vec![];
   for ReferencedSpecifier {
@@ -349,7 +366,10 @@ pub fn create_referenced_exports_by_referenced_specifiers(
       }
     }
 
-    if *is_call && (*namespace_object_as_context || needs_receiver_reference(names)) {
+    if *is_call
+      && (*namespace_object_as_context
+        || should_reference_call_receiver(names, exports_type, exports_info_artifact, exports_info))
+    {
       names = &names[..names.len().saturating_sub(1)];
       if names.is_empty() {
         return create_exports_object_referenced();

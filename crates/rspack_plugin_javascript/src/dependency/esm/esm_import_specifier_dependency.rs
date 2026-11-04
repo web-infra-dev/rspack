@@ -14,7 +14,7 @@ use rspack_core::{
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport,
   ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
   TemplateReplaceSource, UsedByExports, UsedName, create_exports_object_referenced,
-  is_possibly_unprovided_member, property_access, to_normal_comment,
+  property_access, should_reference_call_receiver, to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHasher};
@@ -326,7 +326,7 @@ impl Dependency for ESMImportSpecifierDependency {
     if self.call
       && !self.direct_import
       && (self.namespace_object_as_context
-        || is_possibly_unprovided_member(
+        || should_reference_call_receiver(
           ids,
           exports_type,
           exports_info_artifact,

@@ -6,8 +6,8 @@ use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportsInfoArtifact, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport,
-  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName,
-  is_possibly_unprovided_member, property_access, to_normal_comment,
+  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, property_access,
+  should_reference_call_receiver, to_normal_comment,
 };
 
 use crate::Atom;
@@ -107,7 +107,7 @@ impl Dependency for CommonJsFullRequireDependency {
         false,
       );
       if self.namespace_object_as_context
-        || is_possibly_unprovided_member(
+        || should_reference_call_receiver(
           names,
           exports_type,
           exports_info_artifact,
