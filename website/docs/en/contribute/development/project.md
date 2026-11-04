@@ -69,7 +69,7 @@ hook bridge, and lifecycle relationships between these crates and `@rspack/core`
 #### Core plugins
 
 - **`rspack_plugin_javascript`**: JavaScript plugin for parsing, transforming, and code generation of JS/TS modules
-- **`rspack_plugin_runtime`**: Runtime plugin generating webpack-compatible runtime code
+- **`rspack_plugin_runtime`**: Plugin generating webpack-compatible Rspack runtime code
 - **`rspack_plugin_entry`**: Entry plugin for handling entry point configuration
 - **`rspack_plugin_dynamic_entry`**: Dynamic entry plugin supporting dynamic entry points
 
@@ -119,7 +119,7 @@ hook bridge, and lifecycle relationships between these crates and `@rspack/core`
 - **`rspack_plugin_dll`**: DLL plugin implementing dynamic link library functionality
 - **`rspack_plugin_worker`**: Web Worker plugin for processing Worker files
 - **`rspack_plugin_schemes`**: Custom scheme plugin supporting custom resource protocols
-- **`rspack_plugin_runtime_chunk`**: Runtime chunk plugin for separating runtime code
+- **`rspack_plugin_runtime_chunk`**: Plugin for extracting Rspack runtime code into separate chunks
 
 #### Utility plugins
 
