@@ -462,7 +462,19 @@
 	load,
 	changed
 ) {
-	applyHandlers.push(hotApplyHandler);
+	applyHandlers.push(function (options) {
+		// Finish selection after downloads, including chunks ensured during check.
+		// An update forwarded through an old owner must not revive a stale module.
+		Object.keys(changed || {}).forEach(function (moduleId) {
+			if (hotCurrentUpdate[moduleId] === false) return;
+			if (!<%- HAS_OWN_PROPERTY %>(<%- MODULE_FACTORIES %>, moduleId) && !<%- MODULE_CACHE %>[moduleId]) return;
+			if (changed[moduleId].some(function (chunkId) {
+				return preparedChunks[chunkId] !== false && (<%- _installed_chunks %>[chunkId] === <%- _loaded_chunk_state %> || hotCurrentUpdateChunks[chunkId] === true);
+			})) return;
+			hotCurrentUpdate[moduleId] = false;
+		});
+		return hotApplyHandler(options);
+	});
 	hotCurrentUpdateChunks = {};
 	hotCurrentUpdateRemovedChunks = removedChunks;
 	hotCurrentUpdate = removedModules.reduce(function (obj, key) {
@@ -473,10 +485,11 @@
 	hotCurrentUpdateFullChunks = [];
 	var dependencies = load && load.dependencies;
 	var preparedChunks = Object.create(null);
-	function prepareFullChunk(chunkId) {
-		if (preparedChunks[chunkId]) return;
+	removedChunks.forEach(function (chunkId) { preparedChunks[chunkId] = false; });
+	function prepareFullChunk(chunkId, promises) {
+		if (<%- HAS_OWN_PROPERTY %>(preparedChunks, chunkId)) return;
 		preparedChunks[chunkId] = true;
-		if (dependencies && <%- HAS_OWN_PROPERTY %>(dependencies, chunkId)) dependencies[chunkId].forEach(prepareFullChunk);
+		if (dependencies && <%- HAS_OWN_PROPERTY %>(dependencies, chunkId)) dependencies[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
 		if (<%- _installed_chunks %>[chunkId] === <%- _loaded_chunk_state %> || hotCurrentUpdateChunks[chunkId] === true) return;
 		hotCurrentUpdateChunks[chunkId] = true;
 		hotCurrentUpdateFullChunks.push(chunkId);
@@ -484,32 +497,13 @@
 	}
 	// Complete payloads contain the delta too. Select them before requesting
 	// ordinary updates, so each chunk has only one pending update download.
+	Object.keys(dependencies || {}).forEach(function (chunkId) {
+		if (<%- _installed_chunks %>[chunkId] === <%- _loaded_chunk_state %>) prepareFullChunk(chunkId, promises);
+	});
 	var entries = load && load.entries;
 	Object.keys(entries || {}).forEach(function (entryId) {
-		if (!<%- HAS_OWN_PROPERTY %>(<%- _installed_chunks %>, entryId) || <%- _installed_chunks %>[entryId] !== <%- _loaded_chunk_state %>) return;
-		entries[entryId].forEach(prepareFullChunk);
-	});
-	Object.keys(changed || {}).forEach(function (moduleId) {
-		// Explicit removals already have their own replacement/disposal path.
-		if (hotCurrentUpdate[moduleId] === false) return;
-		if (!<%- HAS_OWN_PROPERTY %>(<%- MODULE_FACTORIES %>, moduleId) && !<%- MODULE_CACHE %>[moduleId]) return;
-		var chunks = changed[moduleId];
-		if (chunks.some(function (chunkId) {
-			if (<%- _installed_chunks %>[chunkId] === <%- _loaded_chunk_state %> || hotCurrentUpdateChunks[chunkId] === true) {
-				prepareFullChunk(chunkId);
-				return true;
-			}
-			return false;
-		})) return;
-		var module = <%- MODULE_CACHE %>[moduleId];
-		if (module && (module.hot._main || module.hot._selfAccepted || module.hot._selfDeclined || module.hot._selfInvalidated || module.parents.some(function (id) { return !!<%- MODULE_CACHE %>[id]; }))) {
-			// Keep normal accept/decline propagation for modules still in use.
-			prepareFullChunk(chunks[0]);
-		} else {
-			// Stage removal only. A factory downloaded later in this check wins,
-			// and an aborted update leaves the running instance untouched.
-			hotCurrentUpdate[moduleId] = false;
-		}
+		if (preparedChunks[entryId] === false || !<%- HAS_OWN_PROPERTY %>(<%- _installed_chunks %>, entryId) || <%- _installed_chunks %>[entryId] !== <%- _loaded_chunk_state %>) return;
+		entries[entryId].forEach(function (id) { prepareFullChunk(id, promises); });
 	});
 	chunkIds.forEach(function (chunkId) {
 		if (hotCurrentUpdateChunks[chunkId] === true) return;
@@ -525,6 +519,9 @@
 	});
 	if (<%- weak(ENSURE_CHUNK_HANDLERS) %>) {
 		<%- weak(ENSURE_CHUNK_HANDLERS) %>.<%- _loading_method %>Hmr = function (chunkId, promises) {
+			if (hotCurrentUpdateChunks && dependencies && <%- HAS_OWN_PROPERTY %>(dependencies, chunkId)) {
+				dependencies[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
+			}
 			if (
 				hotCurrentUpdateChunks &&
 				<%- HAS_OWN_PROPERTY %>(hotCurrentUpdateChunks, chunkId) &&

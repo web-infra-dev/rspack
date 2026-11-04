@@ -384,13 +384,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
   }
 
-  // Loading changes are independent of factory changes. An unchanged chunk can
-  // become a new dependency of an already loaded entry.
-  let mut full_update_chunks = ChunkIdSet::default();
   // Notify every client about changed factories, including those now held only
   // by unloaded chunks. Chunk membership alone must not count as a code change.
   // Reuse chunk invalidation, also covering new chunks and runtime changes.
-  let candidate_modules = graph
+  let candidate_chunks = graph
     .chunk_by_ukey
     .iter()
     .filter(|(key, chunk)| {
@@ -401,10 +398,37 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .get(chunk.expect_id())
           .is_none_or(|(runtime, _)| runtime != chunk.runtime())
     })
-    .flat_map(|(key, _)| graph.chunk_graph.get_chunk_modules_identifier(key))
+    .map(|(key, _)| *key)
+    .collect::<HashSet<_>>();
+  let mut candidate_modules = candidate_chunks
+    .iter()
+    .flat_map(|key| graph.chunk_graph.get_chunk_modules_identifier(key))
     .copied()
     .collect::<IdentifierSet>();
+  for (id, (_, modules)) in old_chunks {
+    if current_chunk_ukeys
+      .get(id)
+      .is_none_or(|key| candidate_chunks.contains(key))
+    {
+      candidate_modules.extend(
+        modules
+          .iter()
+          .filter_map(|id| all_module_ids.get(id))
+          .copied(),
+      );
+    }
+  }
+  let module_graph = compilation.get_module_graph();
+  let mut dependency_chunks = candidate_chunks;
   for module in candidate_modules {
+    // An unchanged importer can still need a dependency's new owning chunk.
+    for connection in module_graph.get_incoming_connections(&module) {
+      if let Some(parent) = connection.original_module_identifier
+        && graph.chunk_graph.get_number_of_module_chunks(parent) != 0
+      {
+        dependency_chunks.extend(graph.chunk_graph.get_module_chunks(parent));
+      }
+    }
     let Some(module_id) = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module)
     else {
       continue;
@@ -444,20 +468,49 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .iter()
         .map(|chunk| chunk.expect_id().clone())
         .collect::<Vec<_>>();
-      full_update_chunks.extend(ids.iter().cloned());
       content.changed_modules.insert(module_id.clone(), ids);
     }
   }
-  // A still-live cached module may need a full payload from an unloaded owner.
-  // Record only synchronous cross-chunk dependencies, once per runtime/chunk.
-  let module_graph = compilation.get_module_graph();
+  // Loading changes are independent of factory changes. An unchanged chunk can
+  // become a new dependency of an already loaded entry.
+  let mut full_update_chunks = ChunkIdSet::default();
+  for (entry_id, chunks) in CompilationRecords::record_entries(compilation) {
+    let Some(previous) = old_entries.get(&entry_id) else {
+      continue;
+    };
+    let needed = chunks
+      .into_iter()
+      .filter(|id| !previous.contains(id))
+      .collect::<Vec<_>>();
+    if needed.is_empty() {
+      continue;
+    }
+    let entry = graph
+      .chunk_by_ukey
+      .expect_get(&current_chunk_ukeys[&entry_id]);
+    for runtime in entry.runtime().iter() {
+      if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
+        info
+          .load_entries
+          .insert(entry_id.to_string(), serde_json::json!(needed));
+        full_update_chunks.extend(needed.iter().cloned());
+      }
+    }
+  }
+  // Plan synchronous dependencies independently of cached module instances.
+  // Chunk membership can change even when all its factories stay unchanged.
   for (runtime, content) in &mut hot_update_main_content_by_runtime {
     let spec = [*runtime].into_iter().collect::<RuntimeSpec>();
-    let mut queue = content
-      .changed_modules
-      .values()
-      .flatten()
-      .cloned()
+    let mut queue = dependency_chunks
+      .iter()
+      .map(|key| graph.chunk_by_ukey.expect_get(key))
+      .chain(
+        full_update_chunks
+          .iter()
+          .map(|id| graph.chunk_by_ukey.expect_get(&current_chunk_ukeys[id])),
+      )
+      .filter(|chunk| chunk.runtime().contains(runtime))
+      .map(|chunk| chunk.expect_id().clone())
       .collect::<Vec<_>>();
     let mut visited = ChunkIdSet::default();
     while let Some(id) = queue.pop() {
@@ -509,30 +562,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         full_update_chunks.extend(dependencies.iter().cloned());
         queue.extend(dependencies.iter().cloned());
         content.load_dependencies.insert(id, dependencies);
-      }
-    }
-  }
-  for (entry_id, chunks) in CompilationRecords::record_entries(compilation) {
-    let Some(previous) = old_entries.get(&entry_id) else {
-      continue;
-    };
-    let needed = chunks
-      .into_iter()
-      .filter(|id| !previous.contains(id))
-      .collect::<Vec<_>>();
-    if needed.is_empty() {
-      continue;
-    }
-    let entry = compilation
-      .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .expect_get(&current_chunk_ukeys[&entry_id]);
-    for runtime in entry.runtime().iter() {
-      if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
-        info
-          .load_entries
-          .insert(entry_id.to_string(), serde_json::json!(needed));
-        full_update_chunks.extend(needed.iter().cloned());
       }
     }
   }

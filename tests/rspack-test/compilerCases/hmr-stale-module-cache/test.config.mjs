@@ -103,8 +103,11 @@ export default [false, true].flatMap((retained) =>
           "legacy",
           "idle",
           "loaded",
+          "late-loaded",
           "abort",
-          ...(retained ? ["declined"] : []),
+          "self-accepted",
+          "declined",
+          "loaded-declined",
         ]) {
           let assets = builds[0];
           const sandbox = vm.createContext({
@@ -132,7 +135,7 @@ export default [false, true].flatMap((retained) =>
                 requests.push(name);
                 assert(assets[name], `missing asset ${name}`);
                 queueMicrotask(() => {
-                  vm.runInContext(assets[name], sandbox);
+                  vm.runInContext(mode === "late-loaded" && name === "other.js" ? builds[1][name] : assets[name], sandbox);
                   script.onload({ type: "load", target: script });
                 });
               },
@@ -152,9 +155,10 @@ export default [false, true].flatMap((retained) =>
           assert.equal(oldModule.exports, 2);
           let disposed = 0;
           oldModule.hot.dispose(() => disposed++);
-          if (mode === "loaded") await sandbox.loadOther();
+          if (mode.startsWith("loaded")) await sandbox.loadOther();
           const oldFactory = factories["./dep.js"];
-          if (mode === "declined") oldModule.hot.decline();
+          if (mode === "self-accepted") oldModule.hot.accept();
+          if (mode.endsWith("declined")) oldModule.hot.decline();
           requests.length = 0;
           await check(2);
           if (mode !== "legacy")
@@ -165,11 +169,12 @@ export default [false, true].flatMap((retained) =>
             "check must not dispose the running module",
           );
           assert.equal(factories["./dep.js"], oldFactory);
+          if (mode === "late-loaded") await sandbox.loadOther();
           if (mode === "abort") {
             hot.decline();
             hot.invalidate();
           }
-          if (mode === "abort" || mode === "declined") {
+          if (mode === "abort" || mode === "loaded-declined") {
             await assert.rejects(hot.apply(), /declin/);
             assert.equal(cache["./dep.js"], oldModule);
             assert.equal(factories["./dep.js"], oldFactory);
@@ -187,7 +192,7 @@ export default [false, true].flatMap((retained) =>
             continue;
           }
           assert.equal(disposed, 1);
-          if (!retained && mode === "idle") {
+          if (mode !== "loaded" && mode !== "late-loaded") {
             assert.equal(cache["./dep.js"], undefined);
             assert.notEqual(
               factories["./dep.js"],
@@ -200,6 +205,7 @@ export default [false, true].flatMap((retained) =>
                   name.startsWith("other.") || name.startsWith("extra."),
               ),
             );
+            assert.equal(sandbox.value, retained ? 2 : 9);
           } else {
             assert.equal(sandbox.req("./dep.js"), 3);
             if (retained) assert.equal(sandbox.value, 3);
