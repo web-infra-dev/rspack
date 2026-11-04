@@ -384,7 +384,26 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let mut full_update_chunks = ChunkIdSet::default();
   // Notify every client about changed factories, including those now held only
   // by unloaded chunks. Chunk membership alone must not count as a code change.
-  for (module_id, &module) in &all_module_ids {
+  // Reuse chunk invalidation, also covering new chunks and runtime changes.
+  let candidate_modules = graph
+    .chunk_by_ukey
+    .iter()
+    .filter(|(key, chunk)| {
+      changed_chunks
+        .as_ref()
+        .is_none_or(|chunks| chunks.contains(key))
+        || old_chunks
+          .get(chunk.expect_id())
+          .is_none_or(|(runtime, _)| runtime != chunk.runtime())
+    })
+    .flat_map(|(key, _)| graph.chunk_graph.get_chunk_modules_identifier(key))
+    .copied()
+    .collect::<IdentifierSet>();
+  for module in candidate_modules {
+    let Some(module_id) = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module)
+    else {
+      continue;
+    };
     if !old_all_modules.contains_key(module_id) {
       continue;
     }
