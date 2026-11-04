@@ -11,7 +11,7 @@ import {
 } from "@rspack/test-tools/helper/lifecycle";
 
 export default async function run(runtimeMode) {
-	const context = await fs.mkdtemp(path.join(os.tmpdir(), "rspack-async-hmr-gc-"));
+	const context = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "rspack-async-hmr-gc-")));
 	const dependency = path.join(context, "dependency.js");
 	const tracker = createGCTracker();
 	const compiler = rspack({
