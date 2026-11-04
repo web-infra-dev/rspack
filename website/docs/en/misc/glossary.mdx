@@ -144,7 +144,7 @@ The Rspack runtime is the code Rspack includes in build output to load and execu
 
 ## Rspack runtime module
 
-A Rspack runtime module (`RuntimeModule`) is a build-time unit that generates code for a specific part of the [Rspack runtime](#rspack-runtime), such as setting [`publicPath`](/config/output#outputpublicpath), loading [chunks](#chunk), or supporting [HMR](/api/runtime-api/hmr). Its generated code is included in the appropriate chunk. It is not an application module imported by your source code.
+A Rspack runtime module (`RuntimeModule`) is a build-time unit that generates code for a specific part of the [Rspack runtime](#rspack-runtime), such as setting [`publicPath`](/config/output#outputpublicpath), loading chunks, or supporting HMR. Its generated code is included in the appropriate chunk. It is not an application module imported by your source code.
 
 Plugins can extend `RuntimeModule`, implement `generate()` to return JavaScript code, and add an instance to a chunk with [`compilation.addRuntimeModule`](/api/javascript-api/compilation#addruntimemodule).
 
