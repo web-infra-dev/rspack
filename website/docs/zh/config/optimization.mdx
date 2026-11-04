@@ -560,7 +560,7 @@ export default {
 | `'multiple'`   | `runtime~pageA.js`、`runtime~pageB.js`、`pageA.js`、`pageB.js` | 两次                   |
 | `'single'`     | `runtime.js`、`pageA.js`、`pageB.js`                           | 一次                   |
 
-抽取出的 Rspack 运行时需要在对应的入口文件之前加载。使用 `'single'` 时，两个入口共享同一个 Rspack 运行时及其模块缓存，因此 `shared.js` 只会初始化一次。
+手动编写 HTML 时，应将运行时文件的 `<script>` 标签放在入口产物之前；使用 `HtmlRspackPlugin` 时，插件会自动安排顺序。使用 `'single'` 时，两个入口共享同一个 Rspack 运行时及其模块缓存，因此 `shared.js` 只会初始化一次。
 
 共享 Rspack 运行时不会将共享模块抽取到独立文件中。要配置模块拆分，可以使用 [SplitChunksPlugin](/plugins/split-chunks-plugin)。
 

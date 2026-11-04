@@ -560,7 +560,7 @@ Changing `runtimeChunk` affects the output files and how often `shared.js` is in
 | `'multiple'`   | `runtime~pageA.js`, `runtime~pageB.js`, `pageA.js`, `pageB.js` | Twice                       |
 | `'single'`     | `runtime.js`, `pageA.js`, `pageB.js`                           | Once                        |
 
-Load each extracted Rspack runtime before its entry files. With `'single'`, both entries share one Rspack runtime and its module cache, so `shared.js` is initialized only once.
+When writing HTML manually, place the runtime file's `<script>` tag before the entry bundles' tags. `HtmlRspackPlugin` handles this order automatically. With `'single'`, both entries share one Rspack runtime and its module cache, so `shared.js` is initialized only once.
 
 Sharing a Rspack runtime does not extract shared modules into a separate file. Use [SplitChunksPlugin](/plugins/split-chunks-plugin) to configure module splitting.
 
