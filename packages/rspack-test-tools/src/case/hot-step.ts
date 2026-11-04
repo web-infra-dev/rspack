@@ -131,6 +131,13 @@ function createHotStepProcessor(
       if (replaceContentConfig) {
         str = replaceContentConfig(str);
       }
+      // Complete worker updates also contain the manifest filename getter.
+      for (const [runtime, replacement] of Object.entries(runtimes)) {
+        str = str.replaceAll(
+          JSON.stringify(`${runtime}.`),
+          JSON.stringify(`${replacement}.`),
+        );
+      }
       return normalizePlaceholder(
         Object.entries(resultHashes)
           .reduce((str, [raw, replacement]) => {

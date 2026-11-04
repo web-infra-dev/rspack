@@ -11,7 +11,7 @@
 - Manifest: [runtime of dep1_js-dep2_js-worker_js].LAST_HASH.hot-update.json, size: 153
 - Manifest: main.LAST_HASH.hot-update.json, size: 182
 - Update: dep1_js-dep2_js-worker_js.LAST_HASH.hot-update.js, size: 486
-- Update: dep1_js-dep2_js-worker_js.LAST_HASH.hot-update.js.full.js, size: 37444
+- Update: dep1_js-dep2_js-worker_js.LAST_HASH.hot-update.js.full.js, size: 37466
 - Update: dep1_js-module_js.LAST_HASH.hot-update.js, size: 347
 - Update: dep1_js-module_js.LAST_HASH.hot-update.js.full.js, size: 794
 - Update: main.LAST_HASH.hot-update.js, size: 319
@@ -186,7 +186,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 // webpack/runtime/get_main_filename/update manifest
 (() => {
 __webpack_require__.hmrF = function () {
-            return "6abf243df645ed30." + __webpack_require__.h() + ".hot-update.json";
+            return "[runtime of dep1_js-dep2_js-worker_js]." + __webpack_require__.h() + ".hot-update.json";
          };
         
 })();
