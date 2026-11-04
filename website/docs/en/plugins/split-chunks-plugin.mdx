@@ -52,7 +52,7 @@ export default {
 };
 ```
 
-while keeping the default cache groups. This usually deduplicates both initial and async chunks without changing JavaScript execution semantics. The Rspack runtime still loads only the chunks reachable from the current entry or Rspack runtime.
+while keeping the default cache groups. This usually deduplicates both initial and async chunks without changing JavaScript execution semantics. The Rspack runtime still loads only the chunks reachable from the current entry or runtime instance.
 
 ## Options
 
@@ -1222,7 +1222,7 @@ Very small duplicates are often intentional. Extracting them into an extra chunk
 
 ### Does splitChunks affect JavaScript execution order?
 
-No. `splitChunks` changes chunk topology, but JavaScript loading and execution order are still guaranteed by the Rspack runtime dependency graph.
+No. `splitChunks` changes chunk topology, but the Rspack runtime still loads and executes JavaScript according to the dependency graph.
 
 ### Does splitChunks affect tree shaking?
 

@@ -275,9 +275,9 @@ export default {
   );
   ```
 
-## Rspack runtime publicPath \{#rspack-runtime-public-path}
+## Rspack 运行时的 publicPath \{#rspack-runtime-public-path}
 
-Worker 有独立的 Rspack runtime。在主线程中修改 publicPath，不会改变 Worker 内部动态导入的加载路径。
+Worker 有独立的 Rspack 运行时。在主线程中修改 publicPath，不会改变 Worker 内部动态导入的加载路径。
 
 使用 [`output.publicPath: 'auto'`](/config/output#outputpublicpath) 时，Worker 会根据自身脚本的 URL 确定 publicPath。[`output.workerPublicPath`](/config/output#outputworkerpublicpath) 则控制加载 Worker 脚本时使用的 URL。
 

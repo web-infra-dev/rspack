@@ -446,7 +446,7 @@ addRuntimeModule(
 ): void;
 ```
 
-The following code adds a Rspack runtime module that defines `__webpack_require__.mock` to the `"main"` chunk:
+The following code adds a Rspack runtime module to the `"main"` chunk to define `__webpack_require__.mock`:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -486,7 +486,7 @@ export default {
 };
 ```
 
-When implementing a custom Rspack runtime module class, the following methods/properties can be overridden to control the behavior of the Rspack runtime module:
+When implementing a custom Rspack runtime module, you can override the following methods and properties to control its behavior:
 
 - Pass the `name` and `stage` parameters in the constructor to specify the module name and the insertion stage.
 - Override the `generate()` method to control the generated code of the module.
@@ -710,7 +710,7 @@ The list of chunk group objects, with the structure as follows:
 
 **Type**: `ReadonlyMap<string, Entrypoint>`
 
-The mapping from name to entrypoint, which is a special chunk group that includes a Rspack runtime chunk.
+A mapping from entry names to entrypoint objects. An entrypoint is a special chunk group associated with the Rspack runtime chunk used by that entry.
 
 <Collapse>
   <CollapsePanel

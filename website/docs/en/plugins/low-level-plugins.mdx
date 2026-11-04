@@ -152,7 +152,7 @@ compiler.rspack.EntryOptionPlugin.applyEntryOption(
 
 ## output
 
-Plugins affecting generated modules, chunks, and Rspack runtime loading.
+Plugins controlling the generation of modules, chunks, and loading code in the Rspack runtime.
 
 ### EnableChunkLoadingPlugin \{#enable-chunk-loading-plugin}
 
@@ -312,7 +312,7 @@ export default {
 };
 ```
 
-For a regular web build, prefer `output.wasmLoading: 'fetch'`, which enables the same Rspack runtime automatically.
+For a regular web build, prefer `output.wasmLoading: 'fetch'`, which automatically enables the same WebAssembly loading code in the Rspack runtime.
 
 ### JsonpTemplatePlugin \{#jsonp-template-plugin}
 
@@ -626,7 +626,7 @@ export default {
 new rspack.container.ContainerReferencePlugin(options);
 ```
 
-`ContainerReferencePlugin` registers remote containers as externals and adds the Rspack runtime needed to load modules from them. It is the low-level implementation of the `remotes` option.
+`ContainerReferencePlugin` registers remote containers as externals and adds the code needed to load modules from them to the Rspack runtime. It is the low-level implementation of the `remotes` option.
 
 With the following configuration, an import such as `import('catalog/Button')` loads `./Button` from the remote container:
 

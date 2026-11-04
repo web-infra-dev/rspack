@@ -493,7 +493,7 @@ export default {
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-Used to control how the [Rspack runtime](/misc/glossary#rspack-runtime) chunk is generated.
+Controls whether the [Rspack runtime](/misc/glossary#rspack-runtime) is extracted into separate chunks.
 
 Defaults to `false`, which means the Rspack runtime code is inlined into the entry chunks.
 
@@ -521,7 +521,7 @@ export default {
 };
 ```
 
-By setting `optimization.runtimeChunk` to an object it can provide an optional `name` property which stands for the name for the Rspack runtime chunks.
+When `optimization.runtimeChunk` is an object, its optional `name` property controls the names of the Rspack runtime chunks.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -535,7 +535,7 @@ export default {
 ```
 
 :::tip
-Imported modules are initialized for each Rspack runtime chunk separately, so if you include multiple entry chunks on a page, beware of this behavior. You will need to set `optimization.runtimeChunk` to `'single'` or use another configuration that ensures the page only contains one Rspack runtime instance.
+Each Rspack runtime initializes imported modules separately. If multiple entries on the same page need to share module instances, set `optimization.runtimeChunk` to `'single'` or use another configuration that lets them share one runtime instance.
 :::
 
 ## optimization.sideEffects
@@ -610,7 +610,7 @@ export default {
 };
 ```
 
-To opt-out from used exports analysis per Rspack runtime:
+To analyze used exports globally instead of separately for each Rspack runtime:
 
 ```js title="rspack.config.mjs"
 export default {

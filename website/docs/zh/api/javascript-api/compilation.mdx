@@ -1,5 +1,5 @@
 ---
-description: '查阅 Compilation API，管理资源、模块、依赖、错误警告、Rspack runtime 模块和子编译器。'
+description: '查阅 Compilation API，管理资源、模块、依赖、错误警告、Rspack 运行时模块和子编译器。'
 ---
 
 import Attribution from '@components/Attribution';
@@ -437,16 +437,16 @@ compiler.hooks.make.tap('MyPlugin', (compilation) => {
 
 ### addRuntimeModule
 
-添加一个自定义的 Rspack runtime 模块。
+添加一个自定义的 Rspack 运行时模块。
 
 ```ts
 addRuntimeModule(
-  c: Chunk, // Rspack runtime 模块所在的 Chunk
-  m: RuntimeModule, // Rspack runtime 模块的实例
+  c: Chunk, // Rspack 运行时模块所在的 Chunk
+  m: RuntimeModule, // Rspack 运行时模块的实例
 ): void;
 ```
 
-以下代码添加一个 Rspack runtime 模块，该模块定义 `__webpack_require__.mock`，并添加到 `"main"` Chunk 中：
+以下代码向 `"main"` chunk 添加一个 Rspack 运行时模块，用于定义 `__webpack_require__.mock`：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -486,7 +486,7 @@ export default {
 };
 ```
 
-实现自定义的 Rspack runtime 模块 Class 时，可覆盖如下方法/属性来控制其行为：
+自定义 Rspack 运行时模块类时，可以覆盖以下方法和属性来控制其行为：
 
 - 在构造器中传入 `name` 和 `stage` 参数来指定模块名称和插入的阶段
 - 覆盖 `generate()` 方法以控制模块生成的代码
@@ -597,7 +597,7 @@ getCache(name: string): CacheFacade;
 
 **类型：** `RuntimeTemplate`
 
-用于生成 Rspack runtime 代码的辅助方法，会根据 [`output.environment`](/config/output#outputenvironment)
+用于生成 Rspack 运行时代码的辅助方法，会根据 [`output.environment`](/config/output#outputenvironment)
 声明的目标环境能力来选择语法。相比手写代码片段，使用这些方法可以保证生成的代码在旧目标环境下依然合法。
 
 ```js
@@ -706,7 +706,7 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
 
 **类型：** `ReadonlyMap<string, Entrypoint>`
 
-获取 Entry 对象映射表，其为作为入口的特殊的 Chunk Group，会额外包含一个 Rspack runtime Chunk。
+入口名称到入口点对象的映射。入口点是一种特殊的 chunk group，关联着该入口使用的 Rspack 运行时 chunk。
 
 <Collapse>
   <CollapsePanel

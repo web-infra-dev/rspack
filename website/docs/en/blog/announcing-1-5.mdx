@@ -277,7 +277,7 @@ export default {
 ### Module Federation runtime hoisting
 
 Previously, the Module Federation runtime was bootstrapped by patching the entry module.
-In the new version, the Module Federation plugin integrates its runtime code directly with the Rspack runtime and elevates it into the Rspack runtime chunk.
+In the new version, the Module Federation plugin integrates its code into the Rspack runtime and places it in the corresponding chunk.
 This ensures that the Module Federation runtime is prepared before the application starts.
 
 This change brings the following benefits:

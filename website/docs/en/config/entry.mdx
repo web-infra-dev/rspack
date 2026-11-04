@@ -143,9 +143,9 @@ export default {
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-The name of the Rspack runtime chunk. When `runtime` is set, a new Rspack runtime chunk will be created. You can also set it to `false` to avoid a new Rspack runtime chunk.
+Sets the name of the Rspack runtime chunk. Setting `runtime` creates a separate chunk for this code. Set it to `false` to keep the code in the entry chunk.
 
-The `runtime` property is used to set the name of the Rspack runtime chunk, for example to set the name of the `main` entry chunk to `'foo'`:
+For example, name the Rspack runtime chunk used by the `main` entry `'foo'`:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -219,7 +219,7 @@ Declares the entries that the current entry depends on. Accepts an **entry name*
 Use `dependOn` when multiple entries on the same page have an explicit dependency relationship, such as an editor and a preview that depend on a common application shell. Rspack will:
 
 - Reuse modules from the dependency entries instead of including them again in the current entry chunk.
-- Use the [Rspack runtime](/misc/glossary#rspack-runtime) from the dependency entries. Entries using the same Rspack runtime share a module cache, so shared modules are initialized only once.
+- Use the [Rspack runtime](/misc/glossary#rspack-runtime) from the dependency entries. These entries share a module cache, so shared modules are initialized only once.
 - Wait until the required chunks are available before starting the current entry.
 
 For example, make the `editor` and `preview` entries depend on `shell`:

@@ -95,7 +95,7 @@ Used to inject the currently used Rspack information into the generated asset:
 
 - `version`: Used to specify the Rspack version, defaults to the `version` field in `@rspack/core/package.json`.
 - `bundler`: Used to specify the name of the packaging tool, defaults to `rspack`.
-- `force`: Whether to force the injection of Rspack information, which will be added to chunk as a Rspack runtime module, and defaults to `false`. An array can be used to select the items to be forced injected.
+- `force`: Whether to always inject Rspack information as Rspack runtime modules. Defaults to `false`. An array can be used to select which items to inject.
 
 By default, injection occurs when either `import.meta.rspackVersion` or `import.meta.rspackUniqueId` is detected in the code, and only the corresponding Rspack runtime module is injected. Set `force` to `true` to always inject both:
 
@@ -562,7 +562,7 @@ In general, you do not need to configure this option manually. You would overrid
 
 ### Example
 
-Suppose `target` is set to `['web', 'es2018']`. In this case, Rspack will infer that `const` is supported and enable it by default. You can disable it by setting `output.environment.const: false`. Rspack will then emit Rspack runtime code that uses `var` declarations instead.
+Suppose `target` is set to `['web', 'es2018']`. In this case, Rspack will infer that `const` is supported and enable it by default. You can disable it by setting `output.environment.const: false`. The generated Rspack runtime will then use `var` declarations instead.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1145,7 +1145,7 @@ export default {
 
 Output ES modules.
 
-This is the more compatibility-oriented ESM library path: Rspack still uses the regular chunk / Rspack runtime rendering pipeline and then converts the entry exports into `export` statements. It fits simpler ESM library output, or cases where you mainly want webpack-style `module` semantics.
+This is the more compatibility-oriented ESM library path: Rspack still uses the regular rendering pipeline for chunks and the Rspack runtime and then converts the entry exports into `export` statements. It fits simpler ESM library output, or cases where you mainly want webpack-style `module` semantics.
 
 ##### type: 'modern-module'
 
@@ -1164,7 +1164,7 @@ This configuration enables Rspack's dedicated rendering pipeline for ESM librari
 
 :::tip `module` vs `modern-module`
 
-- `module` stays on the regular chunk / Rspack runtime rendering pipeline and is closer to webpack-compatible ESM semantics.
+- `module` stays on the regular rendering pipeline for chunks and the Rspack runtime and is closer to webpack-compatible ESM semantics.
 - `modern-module` is handled by a dedicated ESM library plugin that owns chunk rendering, linking, scope hoisting, and splitChunks behavior, making it a better fit for publishable tree-shakable, code-split ESM libraries.
 - `modern-module` currently exists as a separate type to fill the ESM library capability gap; once it is mature enough, the long-term direction is to converge it with `module` into a single `library.type`.
 - `preserveModules` is only available with `modern-module`.
@@ -1974,7 +1974,7 @@ export default {
 
 Set a public path for Worker, defaults to value of [output.publicPath](#outputpublicpath). Only use this option if your worker scripts are located in a different path from your other scripts.
 
-With the default Worker URL handling, relative Worker URLs resolve against the Rspack runtime [Base URI](/guide/features/asset-base-path#base-uri).
+With the default Worker URL handling, relative Worker URLs resolve against the [Base URI](/guide/features/asset-base-path#base-uri) used by the Rspack runtime.
 
 ```js title="rspack.config.mjs"
 export default {

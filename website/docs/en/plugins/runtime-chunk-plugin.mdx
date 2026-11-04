@@ -29,13 +29,13 @@ export default {
 };
 ```
 
-Rspack emits `app.js`, `admin.js`, and the shared `runtime.js`. Keeping the Rspack runtime separate allows entry bundles to be cached independently from Rspack runtime changes.
+Rspack emits `app.js`, `admin.js`, and the shared `runtime.js`. Separating the Rspack runtime from entry bundles allows them to be cached independently.
 
 ## Options
 
 ### name
 
-Used to configure the name of the Rspack runtime chunk; it can be a string or a function that returns a string, where the function parameter is the name of the entry.
+Sets the name of the Rspack runtime chunk. Accepts a string or a function that receives an entrypoint object with a `name` property and returns a string.
 
 - **Type:** `string | ((entrypoint: { name: string }) => string)`
 
