@@ -14,42 +14,6 @@ export interface NormalModuleCompilationHooks {
 
 export class NormalModule extends Module {
   static readonly #properties: PropertyDescriptorMap = {
-    resource: {
-      enumerable: true,
-      configurable: true,
-      writable: true,
-      value: undefined,
-    },
-    request: {
-      enumerable: true,
-      configurable: true,
-      writable: true,
-      value: undefined,
-    },
-    userRequest: {
-      enumerable: true,
-      configurable: true,
-      writable: true,
-      value: undefined,
-    },
-    rawRequest: {
-      enumerable: true,
-      configurable: true,
-      writable: true,
-      value: undefined,
-    },
-    resourceResolveData: {
-      enumerable: true,
-      configurable: true,
-      writable: true,
-      value: undefined,
-    },
-    loaders: {
-      enumerable: true,
-      configurable: true,
-      writable: true,
-      value: undefined,
-    },
     matchResource: {
       enumerable: true,
       configurable: true,
@@ -81,15 +45,7 @@ export class NormalModule extends Module {
   declare readonly error: binding.RspackError | undefined;
 
   constructor(data?: binding.JsModuleData) {
-    super(data, NormalModule.#properties);
-    if (data?.normal) {
-      this.resource = data.normal.resource;
-      this.request = data.normal.request;
-      this.userRequest = data.normal.userRequest;
-      this.rawRequest = data.normal.rawRequest;
-      this.resourceResolveData = data.normal.resourceResolveData;
-      this.loaders = data.normal.loaders;
-    }
+    super(data, NormalModule.#properties, data?.normal);
   }
 
   static getCompilationHooks(

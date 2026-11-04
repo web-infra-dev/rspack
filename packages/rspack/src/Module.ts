@@ -238,7 +238,13 @@ export class Module {
   declare readonly type: string;
   declare buildMeta: Record<string, any>;
 
-  constructor(data?: binding.JsModuleData, properties = Module._properties) {
+  constructor(
+    data?: binding.JsModuleData,
+    properties = Module._properties,
+    snapshot?: object,
+  ) {
+    // Snapshot fields precede the shared descriptors in property enumeration.
+    if (snapshot) Object.assign(this, snapshot);
     Object.defineProperties(this, properties);
     this.buildMeta = {};
     if (data) {
