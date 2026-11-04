@@ -219,7 +219,7 @@ export default {
 当同一页面中的多个入口具有明确的依赖关系时，可以使用 `dependOn`，例如多个业务入口依赖同一个应用基础入口。Rspack 会：
 
 - 复用依赖入口中的模块，避免将它们重复打包到当前入口 chunk 中。
-- 使用依赖入口的 runtime。使用同一个 runtime 的入口共享模块缓存，因此共享模块只会初始化一次。
+- 使用依赖入口的 [runtime（运行时）](/misc/glossary#runtime)。使用同一个 runtime 的入口共享模块缓存，因此共享模块只会初始化一次。
 - 等待所需的 chunks 就绪后，再启动当前入口。
 
 例如，让 `editor` 和 `preview` 两个入口都依赖 `shell`：

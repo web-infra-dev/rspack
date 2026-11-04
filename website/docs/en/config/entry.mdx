@@ -219,7 +219,7 @@ Declares the entries that the current entry depends on. Accepts an **entry name*
 Use `dependOn` when multiple entries on the same page have an explicit dependency relationship, such as an editor and a preview that depend on a common application shell. Rspack will:
 
 - Reuse modules from the dependency entries instead of including them again in the current entry chunk.
-- Use the runtime from the dependency entries. Entries using the same runtime share a module cache, so shared modules are initialized only once.
+- Use the [runtime](/misc/glossary#runtime) from the dependency entries. Entries using the same runtime share a module cache, so shared modules are initialized only once.
 - Wait until the required chunks are available before starting the current entry.
 
 For example, make the `editor` and `preview` entries depend on `shell`:
