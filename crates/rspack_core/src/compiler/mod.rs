@@ -14,7 +14,7 @@ use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::Semaphore;
 use tracing::instrument;
 
-pub use self::rebuild::{CompilationRecords, EntryChunks, EntryKey};
+pub use self::rebuild::CompilationRecords;
 use crate::{
   BoxPlugin, CacheOptions, CleanOptions, Compilation, CompilationAsset, CompilationLogging,
   CompilerOptions, CompilerPlatform, ContextModuleFactory, Filename, InfrastructureLogSink,

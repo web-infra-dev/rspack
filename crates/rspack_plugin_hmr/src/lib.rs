@@ -488,8 +488,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
   }
-  for (key, (entry_id, chunks)) in CompilationRecords::record_entries(compilation) {
-    let Some((old_entry_id, previous)) = old_entries.get(&key) else {
+  for (entry_id, chunks) in CompilationRecords::record_entries(compilation) {
+    let Some(previous) = old_entries.get(&entry_id) else {
       continue;
     };
     let needed = chunks
@@ -507,7 +507,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
         info
           .load_entries
-          .insert(old_entry_id.to_string(), serde_json::json!(needed));
+          .insert(entry_id.to_string(), serde_json::json!(needed));
         full_update_chunks.extend(needed.iter().cloned());
       }
     }
