@@ -42,6 +42,8 @@ export default async function run() {
     let generation = 0;
     const fileKey = Symbol.for('rspack.buildInfo.fileDependencies');
     let getContext, getFiles, getMap, getMatchResource, setMatchResource, getError;
+    const snapshotKeys = ['type', 'request', 'userRequest', 'rawRequest', 'resourceResolveData', 'loaders'];
+    let snapshots;
     compiler.hooks.done.tap('SharedAccessorsLifecycle', ({ compilation }) => {
       const modules = [...compilation.modules];
       const current = modules.find((module) => module.resource === entryPath);
@@ -50,6 +52,17 @@ export default async function run() {
         entry = current;
         removed = modules.find((module) => module.resource === valuePath);
         assert(removed);
+        // These were eager data properties before the JS class migration. Do
+        // not invoke their getters before revocation: an unread field must
+        // still be an owned snapshot after the native module disappears.
+        snapshots = snapshotKeys.map(key => {
+          const descriptor = Object.getOwnPropertyDescriptor(removed, key);
+          assert.equal(descriptor.get, undefined);
+          assert.equal(descriptor.writable, true);
+          assert.equal(descriptor.enumerable, true);
+          assert.equal(descriptor.configurable, true);
+          return descriptor.value;
+        });
         originalSource = removed.originalSource();
         getMap = Object.getOwnPropertyDescriptor(
           originalSource,
@@ -167,6 +180,10 @@ export default async function run() {
       () => setMatchResource.call(entry, 'closed.js'),
       /only modify the module in the loader/,
     );
+    for (const [index, key] of snapshotKeys.entries()) {
+      assert.equal(removed[key], snapshots[index]);
+    }
+    snapshots = null;
     entry = null;
     removed = null;
     await tracker.waitForCollection('module');

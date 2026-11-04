@@ -1,4 +1,4 @@
-import binding, { type AssetInfo } from '@rspack/binding';
+import binding from '@rspack/binding';
 import type { Source } from 'webpack-sources';
 import type { ResourceData } from './Resolver';
 import { SourceAdapter } from './util/source';
@@ -169,44 +169,154 @@ export class ContextModuleFactoryAfterResolveData {
 export type ContextModuleFactoryAfterResolveResult =
   false | ContextModuleFactoryAfterResolveData;
 
-Object.defineProperty(binding.Module.prototype, 'identifier', {
-  enumerable: true,
-  configurable: true,
-  value(this: binding.Module): string {
-    // @ts-expect-error
-    return this[MODULE_IDENTIFIER_SYMBOL];
-  },
-});
-Object.defineProperty(binding.Module.prototype, 'originalSource', {
-  enumerable: true,
-  configurable: true,
-  value(this: binding.Module) {
-    const originalSource = this._originalSource();
-    if (originalSource) {
-      return SourceAdapter.fromBinding(originalSource);
+export class Module {
+  // Shared functions use the call receiver; no descriptor captures a Module instance.
+  protected static readonly _properties: PropertyDescriptorMap = {
+    type: {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: undefined,
+    },
+    context: {
+      enumerable: true,
+      configurable: true,
+      get(this: Module): string | undefined {
+        return binding.moduleGetContext(this);
+      },
+    },
+    layer: {
+      enumerable: true,
+      configurable: true,
+      get(this: Module): string | undefined {
+        return binding.moduleGetLayer(this);
+      },
+    },
+    useSourceMap: {
+      enumerable: true,
+      configurable: true,
+      get(this: Module): boolean {
+        return binding.moduleGetUseSourceMap(this);
+      },
+    },
+    useSimpleSourceMap: {
+      enumerable: true,
+      configurable: true,
+      get(this: Module): boolean {
+        return binding.moduleGetUseSimpleSourceMap(this);
+      },
+    },
+    factoryMeta: {
+      enumerable: true,
+      configurable: true,
+      get(this: Module): binding.JsFactoryMeta {
+        return binding.moduleGetFactoryMeta(this);
+      },
+      set(this: Module, value: binding.JsFactoryMeta) {
+        binding.moduleSetFactoryMeta(this, value);
+      },
+    },
+    buildInfo: {
+      enumerable: true,
+      configurable: true,
+      get(this: Module): binding.BuildInfo {
+        return binding.moduleGetBuildInfo(this);
+      },
+      set(this: Module, value: binding.BuildInfo) {
+        binding.moduleSetBuildInfo(this, value);
+      },
+    },
+  };
+
+  declare readonly context: string | undefined;
+  declare readonly layer: string | undefined;
+  declare readonly useSourceMap: boolean;
+  declare readonly useSimpleSourceMap: boolean;
+  declare factoryMeta: binding.JsFactoryMeta;
+  declare buildInfo: binding.BuildInfo;
+
+  declare readonly type: string;
+  declare buildMeta: Record<string, any>;
+
+  constructor(data?: binding.JsModuleData, properties = Module._properties) {
+    Object.defineProperties(this, properties);
+    this.buildMeta = {};
+    if (data) {
+      Object.defineProperty(this, 'type', { value: data.moduleType });
+      Object.defineProperty(this, MODULE_IDENTIFIER_SYMBOL, {
+        value: data.identifier,
+        configurable: true,
+      });
     }
-    return null;
-  },
-});
-Object.defineProperty(binding.Module.prototype, 'emitFile', {
-  enumerable: true,
-  configurable: true,
-  value(
-    this: binding.Module,
+  }
+
+  identifier(): string {
+    return (this as unknown as Record<symbol, string>)[
+      MODULE_IDENTIFIER_SYMBOL
+    ];
+  }
+
+  get blocks(): binding.AsyncDependenciesBlock[] {
+    return binding.moduleGetBlocks(this);
+  }
+
+  get dependencies(): binding.Dependency[] {
+    return binding.moduleGetDependencies(this);
+  }
+
+  readableIdentifier(): string {
+    return binding.moduleGetReadableIdentifier(this);
+  }
+
+  originalSource(): Source | null {
+    const source = this._originalSource();
+    return source ? SourceAdapter.fromBinding(source) : null;
+  }
+
+  _originalSource(): binding.JsSourceWithLazyMap | undefined {
+    return binding.moduleGetOriginalSource(this);
+  }
+
+  nameForCondition(): string | undefined {
+    return binding.moduleGetNameForCondition(this);
+  }
+
+  size(ty?: string | null): number {
+    return binding.moduleSize(this, ty);
+  }
+
+  libIdent(options: binding.JsLibIdentOptions): string | null {
+    return binding.moduleLibIdent(this, options);
+  }
+
+  emitFile(
     filename: string,
     source: Source,
     assetInfo?: binding.AssetInfo,
-  ) {
-    return this._emitFile(filename, SourceAdapter.toBinding(source), assetInfo);
-  },
-});
+  ): void {
+    this._emitFile(filename, SourceAdapter.toBinding(source), assetInfo);
+  }
 
-declare module '@rspack/binding' {
-  interface Module {
-    identifier(): string;
-    originalSource(): Source | null;
-    emitFile(filename: string, source: Source, assetInfo?: AssetInfo): void;
+  _emitFile(
+    filename: string,
+    source: binding.JsSourceFromJs,
+    assetInfo?: binding.AssetInfo,
+  ): void {
+    binding.moduleEmitFile(this, filename, source, assetInfo);
   }
 }
 
-export { Module } from '@rspack/binding';
+// Preserve the native prototypes' enumerable public methods and dependency
+// accessor. These descriptors are installed once, and shared through inheritance.
+for (const name of [
+  'identifier',
+  'originalSource',
+  'emitFile',
+  'readableIdentifier',
+  'nameForCondition',
+  'size',
+  'libIdent',
+  'dependencies',
+]) {
+  Object.defineProperty(Module.prototype, name, { enumerable: true });
+}

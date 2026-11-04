@@ -1,46 +1,9 @@
 import binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
-import type { Source } from 'webpack-sources';
 import { type Compilation, getOrCreateCompilationHooks } from './Compilation';
 import type { LoaderContext } from './config';
-import type { Module } from './Module';
-import { SourceAdapter } from './util/source';
-import {
-  COMPILATION_HOOKS_MAP_SYMBOL,
-  MODULE_IDENTIFIER_SYMBOL,
-} from './util/symbols';
-
-Object.defineProperty(binding.NormalModule.prototype, 'identifier', {
-  enumerable: true,
-  configurable: true,
-  value(this: binding.NormalModule): string {
-    // @ts-expect-error
-    return this[MODULE_IDENTIFIER_SYMBOL];
-  },
-});
-Object.defineProperty(binding.NormalModule.prototype, 'originalSource', {
-  enumerable: true,
-  configurable: true,
-  value(this: binding.NormalModule) {
-    const originalSource = this._originalSource();
-    if (originalSource) {
-      return SourceAdapter.fromBinding(originalSource);
-    }
-    return null;
-  },
-});
-Object.defineProperty(binding.NormalModule.prototype, 'emitFile', {
-  enumerable: true,
-  configurable: true,
-  value(
-    this: binding.NormalModule,
-    filename: string,
-    source: Source,
-    assetInfo?: binding.AssetInfo,
-  ) {
-    return this._emitFile(filename, SourceAdapter.toBinding(source), assetInfo);
-  },
-});
+import { Module } from './Module';
+import { COMPILATION_HOOKS_MAP_SYMBOL } from './util/symbols';
 
 export interface NormalModuleCompilationHooks {
   loader: liteTapable.SyncHook<[LoaderContext, Module]>;
@@ -49,10 +12,89 @@ export interface NormalModuleCompilationHooks {
   >;
 }
 
-Object.defineProperty(binding.NormalModule, 'getCompilationHooks', {
-  enumerable: true,
-  configurable: true,
-  value(compilation: Compilation): NormalModuleCompilationHooks {
+export class NormalModule extends Module {
+  static readonly #properties: PropertyDescriptorMap = {
+    resource: {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: undefined,
+    },
+    request: {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: undefined,
+    },
+    userRequest: {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: undefined,
+    },
+    rawRequest: {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: undefined,
+    },
+    resourceResolveData: {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: undefined,
+    },
+    loaders: {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: undefined,
+    },
+    matchResource: {
+      enumerable: true,
+      configurable: true,
+      get(this: NormalModule): string | undefined {
+        return binding.normalModuleGetMatchResource(this);
+      },
+      set(this: NormalModule, value: string | undefined) {
+        binding.normalModuleSetMatchResource(this, value);
+      },
+    },
+    error: {
+      enumerable: true,
+      configurable: true,
+      get(this: NormalModule): binding.RspackError | undefined {
+        return binding.normalModuleGetError(this);
+      },
+    },
+    ...Module._properties,
+  };
+
+  declare readonly resource: string;
+  declare readonly request: string;
+  declare readonly userRequest: string;
+  declare readonly rawRequest: string;
+  declare readonly resourceResolveData:
+    Readonly<binding.JsResourceData> | undefined;
+  declare readonly loaders: binding.JsLoaderItem[];
+  declare matchResource: string | undefined;
+  declare readonly error: binding.RspackError | undefined;
+
+  constructor(data?: binding.JsModuleData) {
+    super(data, NormalModule.#properties);
+    if (data?.normal) {
+      this.resource = data.normal.resource;
+      this.request = data.normal.request;
+      this.userRequest = data.normal.userRequest;
+      this.rawRequest = data.normal.rawRequest;
+      this.resourceResolveData = data.normal.resourceResolveData;
+      this.loaders = data.normal.loaders;
+    }
+  }
+
+  static getCompilationHooks(
+    compilation: Compilation,
+  ): NormalModuleCompilationHooks {
     if (!(COMPILATION_HOOKS_MAP_SYMBOL in compilation)) {
       throw new TypeError(
         "The 'compilation' argument must be an instance of Compilation",
@@ -65,13 +107,5 @@ Object.defineProperty(binding.NormalModule, 'getCompilationHooks', {
         () => new liteTapable.AsyncSeriesBailHook(['loaderContext']),
       ),
     }));
-  },
-});
-
-declare module '@rspack/binding' {
-  interface NormalModuleConstructor {
-    getCompilationHooks(compilation: Compilation): NormalModuleCompilationHooks;
   }
 }
-
-export { NormalModule } from '@rspack/binding';

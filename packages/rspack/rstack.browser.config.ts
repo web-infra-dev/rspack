@@ -229,6 +229,22 @@ function replaceDtsPlugin(): RsbuildPlugin {
           const filePath = path.join(distDir, file);
 
           const dts = (await fs.readFile(filePath)).toString();
+          // Refer to the browser Module class in the copied binding declarations.
+          if (file === 'napi-binding.d.ts') {
+            await fs.writeFile(
+              filePath,
+              dts
+                .replaceAll(
+                  'import("@rspack/core").Module',
+                  'import("./Module.js").Module',
+                )
+                .replaceAll(
+                  'import("./index.js").Module',
+                  'import("./Module.js").Module',
+                ),
+            );
+            continue;
+          }
           let relativeBindingDts = path.relative(
             path.dirname(filePath),
             path.join(distDir, 'binding.js'),

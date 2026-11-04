@@ -309,9 +309,14 @@ Descriptor location is independent of how the value is produced:
   construction. It is suitable for immutable, frequently accessed state that should remain owned
   and readable on the JavaScript side without another native call.
 
-Rspack uses instance-level `define_properties` for N-API classes whose public state should be
-visible during ordinary object inspection; `Module` and its derived classes are one application of
-this general strategy. Use `#[napi(getter)]` or `#[napi(setter)]` when prototype semantics are
+Rspack uses instance-level descriptors for objects whose public state should be visible during
+ordinary inspection. `Module` and its derived classes define their shared descriptors in JavaScript;
+Rust creates them through `jsHelpers.createModule` and attaches one `ModuleHandle` with `napi_wrap`.
+The `module_*` and specialized module functions unwrap a shared, call-scoped handle, checking its
+native type tag before dereferencing it. Preserve the JS-owned eager snapshots, descriptor flags
+and ordering, and the compiler/module identity cache when changing this bridge. Cache and JS
+finalization have independent ownership of the handle, including during Worker teardown.
+Use `#[napi(getter)]` or `#[napi(setter)]` for native classes when prototype semantics are
 intended. Do not move a property between the prototype and the instance as a mechanical refactor:
 it can change `console.log`, `Object.hasOwn`, `Object.keys`, inheritance, and
 `Object.getOwnPropertyDescriptor` results.

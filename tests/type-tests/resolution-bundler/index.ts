@@ -75,3 +75,29 @@ const multiGlobModules = import.meta.glob<GlobModule>(
 multiGlobModules['./dir/foo.js'].default.toUpperCase();
 
 export const cliConfig: Configuration = defineConfig(config);
+
+import {
+  Module,
+  NormalModule,
+  ConcatenatedModule,
+  ContextModule,
+  ExternalModule,
+} from '@rspack/core';
+
+export function moduleInheritance(
+  normal: NormalModule,
+  concatenated: ConcatenatedModule,
+  context: ContextModule,
+  external: ExternalModule,
+): Module[] {
+  class CustomModule extends NormalModule {
+    override size(type?: string | null): number {
+      return super.size(type);
+    }
+  }
+  const constructor: typeof Module = CustomModule;
+  const hooks = NormalModule.getCompilationHooks;
+  void constructor;
+  void hooks;
+  return [normal, concatenated, context, external];
+}

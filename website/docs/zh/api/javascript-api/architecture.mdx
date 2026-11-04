@@ -2,6 +2,10 @@
 
 Rspack 通过 `@rspack/core` 提供兼容 webpack 的 JavaScript API，而大部分编译工作运行在 Rust 中，两层之间通过 Node-API binding 通信。
 
+`Module`、`NormalModule`、`ConcatenatedModule`、`ContextModule` 和 `ExternalModule` 是由 `@rspack/core` 导出的 JavaScript 类。后四个类继承 `Module`，因此它们的实例也满足 `instanceof Module`，并共享基类方法。Rspack 在编译期间创建这些对象，通过 Node-API 绑定原生 handle。自行构造类实例不会绑定原生模块；需要编译数据的方法必须使用 Rspack 提供的实例。
+
+模块的 `type`、`resource`、`request`、`loaders` 等字段是对象创建时生成的 JavaScript 自有快照。`context`、`matchResource`、`buildInfo` 等实时访问器和 `size()` 等方法则通过绑定的 handle 调用 Rust。JavaScript 继承不会延长原生模块的生命周期，也不会放宽允许修改的阶段。
+
 ## 什么是 native-backed 对象
 
 普通 JavaScript 对象的数据直接保存在 JavaScript 引擎中。例如读取 `{ name: 'main' }` 的 `name` 属性时，JavaScript 可以直接得到结果，不需要调用 Rust。

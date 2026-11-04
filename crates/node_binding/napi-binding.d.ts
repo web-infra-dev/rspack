@@ -16,46 +16,8 @@ export type ConnectionState = boolean | symbol;
 
 export type BuildInfo = KnownBuildInfo & Record<string, any>;
 
-export interface Module {
-	readonly type: string;
-	get context(): string | undefined;
-	get layer(): string | undefined;
-	get factoryMeta(): JsFactoryMeta
-	set factoryMeta(factoryMeta: JsFactoryMeta);
-	get useSourceMap(): boolean;
-	get useSimpleSourceMap(): boolean;
-	buildInfo: BuildInfo;
-	buildMeta: Record<string, any>;
-}
-
-interface NormalModuleConstructor {
-	new(): NormalModule;
-	readonly prototype: NormalModule;
-}
-
-export var NormalModule: NormalModuleConstructor;
-
-export interface NormalModule extends Module {
-	readonly resource: string;
-	readonly request: string;
-	readonly userRequest: string;
-	readonly rawRequest: string;
-	readonly resourceResolveData: Readonly<JsResourceData> | undefined;
-	readonly loaders: JsLoaderItem[];
-	get matchResource(): string | undefined;
-	set matchResource(val: string | undefined);
-	get error(): RspackError | undefined;
-}
-
-export interface ConcatenatedModule extends Module {
-}
-
-export interface ContextModule extends Module {
-}
-
-export interface ExternalModule extends Module {
-	readonly userRequest: string;
-}
+// Module objects use the JavaScript classes implemented by @rspack/core.
+export type Module = import("@rspack/core").Module;
 
 export interface RspackError extends Error {
 	name: string;
@@ -170,30 +132,6 @@ export declare class CodeGenerationResults {
   get(module: Module, runtime: string | string[] | undefined): CodeGenerationResult
 }
 
-export declare class ConcatenatedModule {
-  get rootModule(): Module
-  get modules(): Module[]
-  readableIdentifier(): string
-  _originalSource(): JsSourceWithLazyMap | undefined
-  nameForCondition(): string | undefined
-  get blocks(): AsyncDependenciesBlock[]
-  get dependencies(): Dependency[]
-  size(ty?: string | undefined | null): number
-  libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null): void
-}
-
-export declare class ContextModule {
-  readableIdentifier(): string
-  _originalSource(): JsSourceWithLazyMap | undefined
-  nameForCondition(): string | undefined
-  get blocks(): AsyncDependenciesBlock[]
-  get dependencies(): Dependency[]
-  size(ty?: string | undefined | null): number
-  libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null): void
-}
-
 export declare class Dependency {
   get _parentModule(): Module | undefined
   get type(): string
@@ -247,17 +185,6 @@ export declare class EntryOptionsDto {
   set layer(layer: string | undefined)
 }
 export type EntryOptionsDTO = EntryOptionsDto
-
-export declare class ExternalModule {
-  readableIdentifier(): string
-  _originalSource(): JsSourceWithLazyMap | undefined
-  nameForCondition(): string | undefined
-  get blocks(): AsyncDependenciesBlock[]
-  get dependencies(): Dependency[]
-  size(ty?: string | undefined | null): number
-  libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null): void
-}
 
 /** Native operations on the owning compiler's current dependency collection. */
 export declare class FileSystemDependencies {
@@ -442,17 +369,6 @@ export declare class JsStats {
 
 export declare class KnownBuildInfo {}
 
-export declare class Module {
-  readableIdentifier(): string
-  _originalSource(): JsSourceWithLazyMap | undefined
-  nameForCondition(): string | undefined
-  get blocks(): AsyncDependenciesBlock[]
-  get dependencies(): Dependency[]
-  size(ty?: string | undefined | null): number
-  libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null): void
-}
-
 export declare class ModuleGraphConnection {
   get dependency(): Dependency
   get module(): Module | null
@@ -499,7 +415,6 @@ export declare class NativeWatchResult {
   changedFiles: Array<string>
   removedFiles: Array<string>
 }
-
 
 export declare class RawExternalItemFnCtx {
   data(): RawExternalItemFnCtxData
@@ -653,6 +568,10 @@ export declare enum BuiltinPluginName {
 }
 
 export declare function cleanupGlobalTrace(): void
+
+export declare function concatenatedModuleGetModules(module: Module): Module[]
+
+export declare function concatenatedModuleGetRootModule(module: Module): Module
 
 export interface ContextInfo {
   issuer: string
@@ -907,6 +826,7 @@ export interface JsFactoryMeta {
 }
 
 export interface JsHelpers {
+  createModule: (kind: number, data: JsModuleData) => Module
   applyIndexedArrayUpdates: <T>(source: ReadonlyArray<T>, target: T[], commands: Uint32Array) => void
   swapRemoveArrayElements: <T>(array: T[], removedIndices: Uint32Array) => void
 }
@@ -1035,6 +955,13 @@ export interface JsLog {
   trace?: Array<string>
 }
 
+export interface JsModuleData {
+  identifier: string
+  moduleType: string
+  normal?: JsNormalModuleData
+  userRequest?: string
+}
+
 export interface JsModuleDescriptor {
   identifier: string
   name: string
@@ -1043,6 +970,15 @@ export interface JsModuleDescriptor {
 
 export interface JsModuleForIds {
   identifier: string
+}
+
+export interface JsNormalModuleData {
+  resource: string
+  request: string
+  userRequest: string
+  rawRequest: string
+  resourceResolveData: Readonly<JsResourceData>
+  loaders: Array<JsLoaderItem>
 }
 
 export interface JsNormalModuleFactoryCreateModuleArgs {
@@ -1666,6 +1602,38 @@ export declare function minify(source: string, options: string): Promise<Transfo
 
 export declare function minifySync(source: string, options: string): TransformOutput
 
+export declare function moduleEmitFile(module: Module, filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | null): void
+
+export declare function moduleGetBlocks(module: Module): AsyncDependenciesBlock[]
+
+export declare function moduleGetBuildInfo(module: Module): BuildInfo
+
+export declare function moduleGetContext(module: Module): string | undefined
+
+export declare function moduleGetDependencies(module: Module): Dependency[]
+
+export declare function moduleGetFactoryMeta(module: Module): JsFactoryMeta
+
+export declare function moduleGetLayer(module: Module): string | undefined
+
+export declare function moduleGetNameForCondition(module: Module): string | undefined
+
+export declare function moduleGetOriginalSource(module: Module): JsSourceWithLazyMap | undefined
+
+export declare function moduleGetReadableIdentifier(module: Module): string
+
+export declare function moduleGetUseSimpleSourceMap(module: Module): boolean
+
+export declare function moduleGetUseSourceMap(module: Module): boolean
+
+export declare function moduleLibIdent(module: Module, options: JsLibIdentOptions): string | null
+
+export declare function moduleSetBuildInfo(module: Module, value: BuildInfo): void
+
+export declare function moduleSetFactoryMeta(module: Module, factoryMeta: JsFactoryMeta): void
+
+export declare function moduleSize(module: Module, ty?: string | null): number
+
 /**
  * Module Resolution Options
  *
@@ -1889,6 +1857,12 @@ export interface NodeFsStats {
   size: number
   mode: number
 }
+
+export declare function normalModuleGetError(module: Module): RspackError | undefined
+
+export declare function normalModuleGetMatchResource(module: Module): string | undefined
+
+export declare function normalModuleSetMatchResource(module: Module, value: string | undefined): void
 
 export interface PathWithInfo {
   path: string
