@@ -830,9 +830,10 @@ Files that this compilation depends on. In watch mode, Rspack rebuilds when thes
 
 For example, a plugin may read `site.json` from the project root. Reading the file with Node.js alone does not make Rspack watch it. Add its absolute path to `fileDependencies` in the `thisCompilation` hook so the dependency is recorded on every compilation.
 
-Import `path` from `node:path` in the plugin file, then place this code in the plugin's `apply(compiler)` method:
-
 ```js
+import path from 'node:path';
+
+// Inside apply(compiler)
 compiler.hooks.thisCompilation.tap('WatchConfigPlugin', (compilation) => {
   const configPath = path.resolve(compiler.context, 'site.json');
   compilation.fileDependencies.add(configPath);
@@ -855,9 +856,12 @@ compiler.hooks.thisCompilation.tap('WatchConfigPlugin', (compilation) => {
 
 Directories that this compilation depends on. In watch mode, Rspack rebuilds when files are added to or removed from these directories.
 
-For example, if a plugin scans `templates` to get a list of templates, add the directory's absolute path. Place this code in the plugin's `apply(compiler)` method, assuming the directory exists and `path` is imported from `node:path`:
+For example, if a plugin scans an existing `templates` directory to get a list of templates, add the directory's absolute path:
 
 ```js
+import path from 'node:path';
+
+// Inside apply(compiler)
 compiler.hooks.thisCompilation.tap('WatchTemplatesPlugin', (compilation) => {
   const templatesPath = path.resolve(compiler.context, 'templates');
   compilation.contextDependencies.add(templatesPath);
@@ -884,9 +888,11 @@ Files that this compilation needs to watch but that do not yet exist. In watch m
 
 For example, a plugin may support an optional `site.local.json` configuration file that the user has not created yet. Check for the file on each compilation: add it to `missingDependencies` if it is absent, or to `fileDependencies` if it exists. This triggers rebuilds both when the file is created and when it is edited later.
 
-Place this code in the plugin's `apply(compiler)` method, with `path` imported from `node:path` and `existsSync` from `node:fs` in the plugin file:
-
 ```js
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+
+// Inside apply(compiler)
 compiler.hooks.thisCompilation.tap('WatchLocalConfigPlugin', (compilation) => {
   const configPath = path.resolve(compiler.context, 'site.local.json');
   if (existsSync(configPath)) {
