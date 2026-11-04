@@ -4761,6 +4761,7 @@ name = "rspack_paths"
 version = "0.103.2"
 dependencies = [
  "camino",
+ "cow-utils",
  "dashmap",
  "indexmap",
  "rspack_cacheable",
@@ -5863,7 +5864,6 @@ dependencies = [
 name = "rspack_watcher"
 version = "0.103.2"
 dependencies = [
- "cow-utils",
  "dashmap",
  "futures",
  "notify",

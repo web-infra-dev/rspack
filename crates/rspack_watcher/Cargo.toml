@@ -10,7 +10,6 @@ version.workspace = true
 testing = []
 
 [dependencies]
-cow-utils    = { workspace = true }
 dashmap      = { workspace = true }
 futures      = { workspace = true }
 notify       = { workspace = true, features = ["macos_fsevent"] }
