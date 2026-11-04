@@ -84,7 +84,7 @@ A context module represents a set of modules that can be loaded through a dynami
 
 ## dependency
 
-Dependency is parsed from the transformed code of a module. It is used to store the import relationships of modules for recursively generating the module graph. When code generation, it can inject code of module imports and exports. It can also be used for code replacement and injecting runtime requirements.
+Dependency is parsed from the transformed code of a module. It is used to store the import relationships of modules for recursively generating the module graph. When code generation, it can inject code of module imports and exports. It can also be used for code replacement and injecting Rspack runtime requirements.
 
 ## initial chunk
 
@@ -136,9 +136,9 @@ A plugin is a program module that can be used to extend the functionality of Rsp
 
 - [Plugin](/guide/features/plugin)
 
-## runtime
+## Rspack runtime
 
-The runtime is all the code Rspack needs to connect your modularized application while it's running in the browser or other environments. It contains the loading and resolving logic needed to connect your modules as they interact.
+The Rspack runtime is the code Rspack includes in build output to load and execute modules, cache their exports, and load additional chunks. Depending on the configuration, it can also support features such as HMR. It runs within a JavaScript environment, such as a browser or Node.js; it is not the JavaScript engine or host environment itself.
 
 - [optimization.runtimeChunk](/config/optimization#optimizationruntimechunk)
 

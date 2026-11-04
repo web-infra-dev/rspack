@@ -361,7 +361,7 @@ require.resolve(dependency: string);
 
 ### require.cache
 
-多处引用同一模块，最终只会产生一次模块执行和一次导出。所以，会在运行时（runtime）中会保存一份缓存。删除此缓存，则会产生新的模块执行和新的导出。
+多处引用同一模块，最终只会产生一次模块执行和一次导出。因此，Rspack runtime 会保存一份模块缓存。删除此缓存，则会产生新的模块执行和新的导出。
 
 ```js
 var d1 = require('dependency');

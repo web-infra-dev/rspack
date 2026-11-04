@@ -80,7 +80,7 @@ Code splitting 是一种技术，它允许你将你的代码分割成多个块�
 
 ## dependency
 
-Dependency 是从模块编译后的代码解析出来的，它用于存储模块的导入关系，以便递归生成模块图。在生成产物代码时，它可以注入模块的导入和导出相关代码，也可以用于代码替换和注入运行时依赖。
+Dependency 是从模块编译后的代码解析出来的，它用于存储模块的导入关系，以便递归生成模块图。在生成产物代码时，它可以注入模块的导入和导出相关代码，也可以用于代码替换和注入 Rspack runtime 依赖。
 
 ## initial chunk
 
@@ -132,9 +132,9 @@ import { foo } from './modules/foo.js';
 
 - [插件](/guide/features/plugin)
 
-## runtime
+## Rspack runtime
 
-runtime（运行时）是指在浏览器或其他环境中运行过程中，Rspack 用来连接模块化应用所需的所有代码。它包含了连接模块所需的加载和解析逻辑。
+Rspack runtime 是 Rspack 添加到构建产物中的代码，负责加载和执行模块、缓存模块导出，以及加载额外的 chunk。根据配置，它还可以支持 HMR 等功能。Rspack runtime 运行在浏览器或 Node.js 等 JavaScript 环境中，并不指 JavaScript 引擎或宿主环境本身。
 
 - [optimization.runtimeChunk](/config/optimization#optimizationruntimechunk)
 

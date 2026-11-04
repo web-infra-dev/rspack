@@ -15,7 +15,7 @@ type Entrypoint = {
   isInitial(): boolean; // whether this chunk group will be loaded on initial page load
   getFiles(): string[]; // the files contained this chunk group
   getParents(): ChunkGroup[]; // returns the parent chunk groups
-  getRuntimeChunk(): Chunk; // get the runtime chunk of this entrypoint (runtime chunk refers to a chunk that contains runtime code. Generally, the runtime chunk and the entrypoint chunk are the same chunk. Only when the runtime is split into a separate chunk via `dependOn` or `optimization.runtimeChunk` do they refer to different chunks)
+  getRuntimeChunk(): Chunk; // get the Rspack runtime chunk of this entrypoint (Rspack runtime chunk refers to a chunk that contains Rspack runtime code. Generally, the Rspack runtime chunk and the entrypoint chunk are the same chunk. Only when the Rspack runtime is split into a separate chunk via `dependOn` or `optimization.runtimeChunk` do they refer to different chunks)
   getEntrypointChunk(): Chunk; // get the entrypoint chunk of this entrypoint (entrypoint chunk refers to a chunk that contains entry modules)
   getModulePreOrderIndex(module: Module): number | null;
   getModulePostOrderIndex(module: Module): number | null;

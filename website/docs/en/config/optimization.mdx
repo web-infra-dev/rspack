@@ -1,5 +1,5 @@
 ---
-description: 'Configure tree shaking, minification, module and chunk IDs, runtime extraction, and code splitting in Rspack.'
+description: 'Configure tree shaking, minification, module and chunk IDs, Rspack runtime extraction, and code splitting in Rspack.'
 ---
 
 import { ApiMeta } from '@components/ApiMeta';
@@ -493,11 +493,11 @@ export default {
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-Used to control how the Rspack's [runtime](/misc/glossary#runtime) chunk is generated.
+Used to control how the [Rspack runtime](/misc/glossary#rspack-runtime) chunk is generated.
 
-Defaults to `false`, which means the runtime code is inlined into the entry chunks.
+Defaults to `false`, which means the Rspack runtime code is inlined into the entry chunks.
 
-Setting it to `true` or `'multiple'` will add an additional chunk containing only the runtime for each entry point. This setting is an alias for:
+Setting it to `true` or `'multiple'` will add an additional chunk containing only the Rspack runtime for each entry point. This setting is an alias for:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -509,7 +509,7 @@ export default {
 };
 ```
 
-Setting it to `'single'` will extract the runtime code of all entry points into a single separate chunk named `runtime`. This setting is an alias for:
+Setting it to `'single'` will extract the Rspack runtime code of all entry points into a single separate chunk named `runtime`. This setting is an alias for:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -521,7 +521,7 @@ export default {
 };
 ```
 
-By setting `optimization.runtimeChunk` to an object it can provide an optional `name` property which stands for the name for the runtime chunks.
+By setting `optimization.runtimeChunk` to an object it can provide an optional `name` property which stands for the name for the Rspack runtime chunks.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -535,7 +535,7 @@ export default {
 ```
 
 :::tip
-Imported modules are initialized for each runtime chunk separately, so if you include multiple entry chunks on a page, beware of this behavior. You will need to set `optimization.runtimeChunk` to `'single'` or use another configuration that ensures the page only contains one runtime instance.
+Imported modules are initialized for each Rspack runtime chunk separately, so if you include multiple entry chunks on a page, beware of this behavior. You will need to set `optimization.runtimeChunk` to `'single'` or use another configuration that ensures the page only contains one Rspack runtime instance.
 :::
 
 ## optimization.sideEffects
@@ -610,7 +610,7 @@ export default {
 };
 ```
 
-To opt-out from used exports analysis per runtime:
+To opt-out from used exports analysis per Rspack runtime:
 
 ```js title="rspack.config.mjs"
 export default {

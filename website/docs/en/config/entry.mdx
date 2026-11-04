@@ -143,9 +143,9 @@ export default {
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-The name of the runtime chunk. When `runtime` is set, a new runtime chunk will be created. You can also set it to `false` to avoid a new runtime chunk.
+The name of the Rspack runtime chunk. When `runtime` is set, a new Rspack runtime chunk will be created. You can also set it to `false` to avoid a new Rspack runtime chunk.
 
-The `runtime` property is used to set the name of the runtime chunk, for example to set the name of the `main` entry chunk to `'foo'`:
+The `runtime` property is used to set the name of the Rspack runtime chunk, for example to set the name of the `main` entry chunk to `'foo'`:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -219,7 +219,7 @@ Declares the entries that the current entry depends on. Accepts an **entry name*
 Use `dependOn` when multiple entries on the same page have an explicit dependency relationship, such as an editor and a preview that depend on a common application shell. Rspack will:
 
 - Reuse modules from the dependency entries instead of including them again in the current entry chunk.
-- Use the [runtime](/misc/glossary#runtime) from the dependency entries. Entries using the same runtime share a module cache, so shared modules are initialized only once.
+- Use the [Rspack runtime](/misc/glossary#rspack-runtime) from the dependency entries. Entries using the same Rspack runtime share a module cache, so shared modules are initialized only once.
 - Wait until the required chunks are available before starting the current entry.
 
 For example, make the `editor` and `preview` entries depend on `shell`:
@@ -258,7 +258,7 @@ import { documentState } from './shell.js';
 console.log(documentState.title);
 ```
 
-The build produces `shell.js`, `editor.js`, and `preview.js`. The shell module is bundled only in `shell.js`, and all three entries use the same runtime and module cache. Assuming the output directory is served at `/dist/`, load the files in this order:
+The build produces `shell.js`, `editor.js`, and `preview.js`. The shell module is bundled only in `shell.js`, and all three entries use the same Rspack runtime and module cache. Assuming the output directory is served at `/dist/`, load the files in this order:
 
 ```html
 <script defer src="/dist/shell.js"></script>
@@ -270,7 +270,7 @@ The page logs `Shell initialized` once, followed by `Draft`: the preview reads t
 
 `dependOn` controls chunk dependencies, but does not wait for asynchronous application initialization, such as a request started by `shell`. Coordinate that work explicitly in your application code. Entry dependencies must not form a cycle, and an entry with `dependOn` must not also specify `runtime`.
 
-If you only need to extract shared modules automatically, prefer [SplitChunksPlugin](/plugins/split-chunks-plugin). It splits modules according to configurable rules without declaring dependencies between entries or unifying their runtimes. If multiple entries on the same page also need to share module instances, combine it with [`optimization.runtimeChunk: 'single'`](/config/optimization#optimizationruntimechunk). Use `dependOn` when you need explicit entry dependencies; it can also be combined with `splitChunks`.
+If you only need to extract shared modules automatically, prefer [SplitChunksPlugin](/plugins/split-chunks-plugin). It splits modules according to configurable rules without declaring dependencies between entries or unifying their Rspack runtime instances. If multiple entries on the same page also need to share module instances, combine it with [`optimization.runtimeChunk: 'single'`](/config/optimization#optimizationruntimechunk). Use `dependOn` when you need explicit entry dependencies; it can also be combined with `splitChunks`.
 
 #### EntryDescription.wasmLoading
 

@@ -50,7 +50,7 @@ export default {
 };
 ```
 
-同时保留默认的缓存组配置。这样通常可以同时对 initial chunk 和 async chunk 去重，并且不会改变 JavaScript 的执行语义。Rspack runtime 仍然只会加载当前入口或 runtime 实际可达的 chunk。
+同时保留默认的缓存组配置。这样通常可以同时对 initial chunk 和 async chunk 去重，并且不会改变 JavaScript 的执行语义。Rspack runtime 仍然只会加载当前入口或 Rspack runtime 实际可达的 chunk。
 
 ## 选项
 
@@ -1009,7 +1009,7 @@ export default {
 
 假设两个来源 chunk 都包含同一个 40KB 的模块。将它抽离到新的共享 chunk 后，两个来源 chunk 各减少 40KB，总计 `40KB × 2 = 80KB`。由于未达到上面设置的 100KB 阈值，这次拆分不会发生。
 
-该阈值只统计来源 chunk 减少的体积。若计入新生成的 40KB 共享 chunk，忽略运行时代码等额外开销，这次拆分实际只能让所有 chunk 的总体积减少 40KB。
+该阈值只统计来源 chunk 减少的体积。若计入新生成的 40KB 共享 chunk，忽略 Rspack runtime 代码等额外开销，这次拆分实际只能让所有 chunk 的总体积减少 40KB。
 
 此选项也可在 [`splitChunks.cacheGroups.{cacheGroup}`](#splitchunkscachegroups) 中单独配置，例如：
 
@@ -1148,7 +1148,7 @@ export default {
 - **类型：** `boolean`
 - **默认值：** [optimization.usedExports](/config/optimization#optimizationusedexports) 为 `true` 时为 `true`，否则为 `false`
 
-根据各个 [runtime](/misc/glossary#runtime) 实际使用的导出来拆分共享模块。使用不同导出的入口可以加载不同的模块副本，便于后续移除各自不需要的代码。
+根据各个 [Rspack runtime](/misc/glossary#rspack-runtime) 实际使用的导出来拆分共享模块。使用不同导出的入口可以加载不同的模块副本，便于后续移除各自不需要的代码。
 
 例如，`src/shared.js` 导出了两个对象：
 
@@ -1220,11 +1220,11 @@ export default {
 
 ### splitChunks 会影响 JavaScript 执行顺序吗？
 
-不会。`splitChunks` 只会改变 chunk 的拓扑结构，JavaScript 的加载和执行顺序仍然由 runtime 依赖图保证。
+不会。`splitChunks` 只会改变 chunk 的拓扑结构，JavaScript 的加载和执行顺序仍然由 Rspack runtime 依赖图保证。
 
 ### splitChunks 会影响 tree shaking 吗？
 
-两者会配合工作。`splitChunks` 负责拆分和共享模块；启用 [`usedExports`](#splitchunksusedexports) 后，它还会根据各个 runtime 使用的导出对模块分组，让不同副本可以移除各自不需要的代码。未使用的代码是否最终被删除，仍取决于 tree shaking 和代码压缩。
+两者会配合工作。`splitChunks` 负责拆分和共享模块；启用 [`usedExports`](#splitchunksusedexports) 后，它还会根据各个 Rspack runtime 使用的导出对模块分组，让不同副本可以移除各自不需要的代码。未使用的代码是否最终被删除，仍取决于 tree shaking 和代码压缩。
 
 ### splitChunks 会影响 CSS 顺序吗？
 

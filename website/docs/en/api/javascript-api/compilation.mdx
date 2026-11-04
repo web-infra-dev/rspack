@@ -1,5 +1,5 @@
 ---
-description: 'Compilation API for managing assets, modules, dependencies, diagnostics, runtime modules, and child compilers.'
+description: 'Compilation API for managing assets, modules, dependencies, diagnostics, Rspack runtime modules, and child compilers.'
 ---
 
 import Attribution from '@components/Attribution';
@@ -437,16 +437,16 @@ compiler.hooks.make.tap('MyPlugin', (compilation) => {
 
 ### addRuntimeModule
 
-Add a custom runtime module to the compilation.
+Add a custom Rspack runtime module to the compilation.
 
 ```ts
 addRuntimeModule(
-  c: Chunk, // the runtime chunk which to add the runtime module
-  m: RuntimeModule, // the runtime module instance to add
+  c: Chunk, // the chunk to add the Rspack runtime module to
+  m: RuntimeModule, // the Rspack runtime module instance to add
 ): void;
 ```
 
-The following code will add a runtime module which define `__webpack_require__.mock` to the `"main"` chunk:
+The following code adds a Rspack runtime module that defines `__webpack_require__.mock` to the `"main"` chunk:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -486,7 +486,7 @@ export default {
 };
 ```
 
-When implementing a custom runtime module class, the following methods/properties can be overridden to control the behavior of the runtime module:
+When implementing a custom Rspack runtime module class, the following methods/properties can be overridden to control the behavior of the Rspack runtime module:
 
 - Pass the `name` and `stage` parameters in the constructor to specify the module name and the insertion stage.
 - Override the `generate()` method to control the generated code of the module.
@@ -600,7 +600,7 @@ The normalized options used by this Compilation, see [Configure Rspack](/config/
 
 **Type**: `RuntimeTemplate`
 
-Helpers that generate runtime code matching the capabilities of the targeted environment, as
+Helpers that generate Rspack runtime code matching the capabilities of the targeted environment, as
 declared by [`output.environment`](/config/output#outputenvironment). Use them instead of
 hand-written snippets so that generated code stays valid for older targets.
 
@@ -710,7 +710,7 @@ The list of chunk group objects, with the structure as follows:
 
 **Type**: `ReadonlyMap<string, Entrypoint>`
 
-The mapping from name to entrypoint, which is a special chunk group and include a runtime chunk.
+The mapping from name to entrypoint, which is a special chunk group that includes a Rspack runtime chunk.
 
 <Collapse>
   <CollapsePanel
