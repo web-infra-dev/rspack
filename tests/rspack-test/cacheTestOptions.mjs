@@ -98,6 +98,8 @@ const excludes = {
 		/^sharing\/share-plugin-secondary-entry-point$/,
 		/^sri\/mf$/,
 		/^tree-shaking\/side-effects-consume-shared$/,
+		// The node:worker_threads external still uses Module's conservative need_build.
+		/^library\/modern-module-shared-worker-runtime$/,
 
 		// Code generation cache misses after restarting the compiler.
 		/^entry\/public-path$/,

@@ -86,17 +86,34 @@ use crate::EsmLibraryPlugin;
 
 impl EsmLibraryPlugin {
   fn get_entrypoint(chunk_ukey: ChunkUkey, compilation: &Compilation) -> Option<&ChunkGroup> {
-    let chunk = compilation
-      .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .expect_get(&chunk_ukey);
+    let chunk = get_chunk(compilation, chunk_ukey);
+    let chunk_groups = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
     let group = chunk.groups().iter().next()?;
-    let group = compilation
-      .build_chunk_graph_artifact
-      .chunk_group_by_ukey
-      .expect_get(group);
-    let mut stack = vec![group];
+    let group = chunk_groups.expect_get(group);
+    if chunk.groups().len() == 1 && group.kind.is_entrypoint() {
+      return Some(group);
+    }
+
+    let mut stack = chunk
+      .groups()
+      .iter()
+      .map(|group| chunk_groups.expect_get(group))
+      .collect::<Vec<_>>();
     let mut visited = FxHashSet::default();
+    let mut entrypoint: Option<&ChunkGroup> = None;
+    // Linking and rendering run after chunk IDs are assigned. Use those stable
+    // IDs instead of group iteration order so cache restoration cannot change
+    // which runtime a shared chunk imports as its primary runtime.
+    let entrypoint_key = |group: &ChunkGroup| {
+      (
+        get_chunk(compilation, group.get_runtime_chunk(chunk_groups))
+          .expect_id()
+          .as_str(),
+        get_chunk(compilation, group.get_entrypoint_chunk())
+          .expect_id()
+          .as_str(),
+      )
+    };
 
     while let Some(group) = stack.pop() {
       if !visited.insert(group.ukey) {
@@ -104,18 +121,20 @@ impl EsmLibraryPlugin {
       }
 
       if group.kind.is_entrypoint() {
-        return Some(group);
+        if entrypoint.is_none_or(|current| entrypoint_key(group) < entrypoint_key(current)) {
+          entrypoint = Some(group);
+        }
+        continue;
       }
 
-      stack.extend(group.parents_iterable().map(|group| {
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_group_by_ukey
-          .expect_get(group)
-      }));
+      stack.extend(
+        group
+          .parents_iterable()
+          .map(|group| chunk_groups.expect_get(group)),
+      );
     }
 
-    None
+    entrypoint
   }
 
   pub(crate) fn get_runtime_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
