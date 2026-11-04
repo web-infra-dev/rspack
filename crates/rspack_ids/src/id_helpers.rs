@@ -179,7 +179,10 @@ pub fn get_long_module_name(short_name: &str, module: &ModuleRef, context: &str)
 }
 
 pub fn get_full_module_name(module: &ModuleRef, context: &str) -> String {
-  make_paths_relative(context, &module.identifier())
+  module.identifier_for_id(context).map_or_else(
+    || make_paths_relative(context, &module.identifier()),
+    Cow::into_owned,
+  )
 }
 
 pub fn get_hash(s: impl Hash, length: usize) -> String {
