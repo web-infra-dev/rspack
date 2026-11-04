@@ -31,6 +31,7 @@ pub use dependency_template::*;
 pub use dependency_trait::*;
 pub use dependency_type::DependencyType;
 pub use entry::*;
+use itertools::Itertools;
 pub use loader_import::*;
 pub use module_dependency::*;
 use rspack_cacheable::{
@@ -291,6 +292,15 @@ impl ReferencedSpecifier {
       names,
       is_call: true,
       namespace_object_as_context,
+    }
+  }
+
+  pub fn to_identifier_string(&self) -> String {
+    let names = self.names.iter().join(".");
+    match (self.is_call, self.namespace_object_as_context) {
+      (true, true) => format!("*.{names}()"),
+      (true, false) => format!("{names}()"),
+      (false, _) => names,
     }
   }
 }

@@ -1,4 +1,10 @@
 import imported from "./imported";
+import optionalImported from "./optional-imported";
+import { list as esmNamed } from "./esm-named";
+import * as esmNamespace from "./esm-namespace";
+import { upperCase } from "./strict.mjs";
+
+const contextName = ["array"][0];
 
 // Keep each JSON module separate: observing a whole value in another test would
 // preserve its data and hide incorrect reference tracking.
@@ -41,6 +47,30 @@ it("should distinguish locally added exports from runtime properties", () => {
 	expect(augmented.local).toBe(7);
 	expect(augmented.localFunction()).toBe(42);
 	expect(augmented.list.includes("markdown")).toBe(true);
+});
+
+it("should preserve receivers of optional calls", () => {
+	expect(require("./optional-required").map?.(value => value.toUpperCase())).toEqual(["MD", "MARKDOWN"]);
+	expect(optionalImported.map?.(value => value.toUpperCase())).toEqual(["MD", "MARKDOWN"]);
+	expect(require("./optional-nested").list.includes?.("markdown")).toBe(true);
+});
+
+it("should preserve a JSON receiver reexported through ESM", () => {
+	expect(esmNamed.map(value => value.toUpperCase())).toEqual(["MD", "MARKDOWN"]);
+	expect(esmNamespace.list.join(",")).toBe("md,markdown");
+});
+
+it("should preserve a CommonJS reexport's array receiver imported by strict ESM", () => {
+	expect(upperCase()).toEqual(["MD", "MARKDOWN"]);
+});
+
+it("should preserve a context imported CommonJS reexport's array receiver", async () => {
+	const module = await import(`./context-import/${contextName}`);
+	expect(module.default.map(value => value.toUpperCase())).toEqual(["MD", "MARKDOWN"]);
+});
+
+it("should preserve a context required CommonJS reexport's array receiver", () => {
+	expect(require(`./context-require/${contextName}`).join(",")).toBe("md,markdown");
 });
 
 it("should only retain the receivers' subtrees", () => {
