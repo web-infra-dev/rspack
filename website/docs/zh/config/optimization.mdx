@@ -538,7 +538,7 @@ export default {
 被导入的模块在每个 runtime chunk 中是单独初始化的，因此，如果你在单个页面中包含多个入口 chunks，请留意这种行为。你需要将 `optimization.runtimeChunk` 设置为 `'single'` 或使用其他配置，以保证页面仅包含一个 runtime 实例。
 :::
 
-例如，以下两个入口导入了同一个模块，并在同一页面中加载：
+例如，`pageA` 和 `pageB` 都导入了 `shared.js`，并在同一页面中加载：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -552,41 +552,17 @@ export default {
 };
 ```
 
-```js title="src/shared.js"
-console.log('shared initialized');
-```
+修改 `runtimeChunk` 后，产物文件和 `shared.js` 的初始化次数如下：
 
-```js title="src/page-a.js"
-import './shared.js';
-console.log('page A');
-```
+| `runtimeChunk` | 生成的 JavaScript 文件                                         | `shared.js` 初始化次数 |
+| -------------- | -------------------------------------------------------------- | ---------------------- |
+| `false`        | `pageA.js`、`pageB.js`                                         | 两次                   |
+| `'multiple'`   | `runtime~pageA.js`、`runtime~pageB.js`、`pageA.js`、`pageB.js` | 两次                   |
+| `'single'`     | `runtime.js`、`pageA.js`、`pageB.js`                           | 一次                   |
 
-```js title="src/page-b.js"
-import './shared.js';
-console.log('page B');
-```
+抽取出的 Rspack 运行时需要在对应的入口文件之前加载。使用 `'single'` 时，两个入口共享同一个 Rspack 运行时及其模块缓存，因此 `shared.js` 只会初始化一次。
 
-使用 `runtimeChunk: 'single'` 时，需要先加载共享 runtime，再加载入口文件。假设产物目录通过 `/dist/` 提供访问，可以这样加载：
-
-```html
-<script defer src="/dist/runtime.js"></script>
-<script defer src="/dist/pageA.js"></script>
-<script defer src="/dist/pageB.js"></script>
-```
-
-页面会依次输出 `shared initialized`、`page A` 和 `page B`。两个入口共享同一个 runtime 及其模块缓存，因此共享模块只会初始化一次。
-
-如果只修改 `runtimeChunk`，并在同一页面中加载两个入口及其 runtime，结果如下：
-
-| `runtimeChunk` | 生成的 JavaScript 文件                                         | `shared initialized` 输出次数 |
-| -------------- | -------------------------------------------------------------- | ----------------------------- |
-| `false`        | `pageA.js`、`pageB.js`                                         | 两次                          |
-| `'multiple'`   | `runtime~pageA.js`、`runtime~pageB.js`、`pageA.js`、`pageB.js` | 两次                          |
-| `'single'`     | `runtime.js`、`pageA.js`、`pageB.js`                           | 一次                          |
-
-使用 `'multiple'` 时，在各入口文件之前加载对应的 `runtime~<entry>.js`。使用 `false` 时，每个入口文件都包含自己的 runtime。
-
-共享 runtime 不会将共享模块抽取到独立文件中。要配置模块拆分，可以使用 [SplitChunksPlugin](/plugins/split-chunks-plugin)。
+共享 Rspack 运行时不会将共享模块抽取到独立文件中。要配置模块拆分，可以使用 [SplitChunksPlugin](/plugins/split-chunks-plugin)。
 
 ## optimization.sideEffects
 

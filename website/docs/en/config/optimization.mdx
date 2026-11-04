@@ -538,7 +538,7 @@ export default {
 Imported modules are initialized for each runtime chunk separately, so if you include multiple entry chunks on a page, beware of this behavior. You will need to set `optimization.runtimeChunk` to `'single'` or use another configuration that ensures the page only contains one runtime instance.
 :::
 
-For example, the following two entries import the same module and are loaded on the same page:
+For example, suppose `pageA` and `pageB` both import `shared.js` and are loaded on the same page:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -552,41 +552,17 @@ export default {
 };
 ```
 
-```js title="src/shared.js"
-console.log('shared initialized');
-```
+Changing `runtimeChunk` affects the output files and how often `shared.js` is initialized:
 
-```js title="src/page-a.js"
-import './shared.js';
-console.log('page A');
-```
+| `runtimeChunk` | Generated JavaScript files                                     | `shared.js` initializations |
+| -------------- | -------------------------------------------------------------- | --------------------------- |
+| `false`        | `pageA.js`, `pageB.js`                                         | Twice                       |
+| `'multiple'`   | `runtime~pageA.js`, `runtime~pageB.js`, `pageA.js`, `pageB.js` | Twice                       |
+| `'single'`     | `runtime.js`, `pageA.js`, `pageB.js`                           | Once                        |
 
-```js title="src/page-b.js"
-import './shared.js';
-console.log('page B');
-```
+Load each extracted Rspack runtime before its entry files. With `'single'`, both entries share one Rspack runtime and its module cache, so `shared.js` is initialized only once.
 
-With `runtimeChunk: 'single'`, load the shared runtime before the entry files. Assuming the output directory is served at `/dist/`, use:
-
-```html
-<script defer src="/dist/runtime.js"></script>
-<script defer src="/dist/pageA.js"></script>
-<script defer src="/dist/pageB.js"></script>
-```
-
-The page logs `shared initialized`, `page A`, and `page B` in that order. Both entries share a runtime and its module cache, so the shared module is initialized only once.
-
-If you change only `runtimeChunk` and load both entries and their runtimes on the same page, the results are:
-
-| `runtimeChunk` | Generated JavaScript files                                     | `shared initialized` logs |
-| -------------- | -------------------------------------------------------------- | ------------------------- |
-| `false`        | `pageA.js`, `pageB.js`                                         | Twice                     |
-| `'multiple'`   | `runtime~pageA.js`, `runtime~pageB.js`, `pageA.js`, `pageB.js` | Twice                     |
-| `'single'`     | `runtime.js`, `pageA.js`, `pageB.js`                           | Once                      |
-
-For `'multiple'`, load each `runtime~<entry>.js` before its entry file. With `false`, each entry file includes its own runtime.
-
-Sharing a runtime does not extract shared modules into a separate file. Use [SplitChunksPlugin](/plugins/split-chunks-plugin) to configure module splitting.
+Sharing a Rspack runtime does not extract shared modules into a separate file. Use [SplitChunksPlugin](/plugins/split-chunks-plugin) to configure module splitting.
 
 ## optimization.sideEffects
 
