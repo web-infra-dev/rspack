@@ -278,7 +278,7 @@ export default isDev ? merge(base, dev) : base;
 
 [rspack-chain](https://github.com/rstackjs/rspack-chain) is a library for creating and modifying Rspack configurations through a chainable API. You can assign names to rules, loaders, and plugins, then use those names to access and modify them without searching through configuration arrays.
 
-When a build tool generates a configuration, or multiple projects share one, these names provide a consistent convention for extending it. For example, if a build tool names its HTML plugin `html`, users can modify the plugin's options through that name without knowing its position in the `plugins` array.
+When a build tool such as Rsbuild generates a configuration, or multiple projects share one, these names provide a consistent convention for extending it. For example, if a build tool names its HTML plugin `html`, users can modify the plugin's options through that name without knowing its position in the `plugins` array.
 
 First install `rspack-chain`:
 

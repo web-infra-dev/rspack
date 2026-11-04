@@ -278,7 +278,7 @@ export default isDev ? merge(base, dev) : base;
 
 [rspack-chain](https://github.com/rstackjs/rspack-chain) 是一个通过链式 API 创建和修改 Rspack 配置的库。你可以为规则、loader 和插件指定名称，后续通过名称访问和修改它们，无需遍历配置数组来查找对应的配置项。
 
-当配置由构建工具生成，或在多个项目间共享时，这种基于名称的访问方式可以为配置扩展提供统一的约定。例如，构建工具将 HTML 插件命名为 `html`，使用方就可以通过这个名称修改插件选项，而不必了解它在 `plugins` 数组中的位置。
+当配置由 Rsbuild 这类构建工具生成，或在多个项目间共享时，这种基于名称的访问方式可以为配置扩展提供统一的约定。例如，构建工具将 HTML 插件命名为 `html`，使用方就可以通过这个名称修改插件选项，而不必了解它在 `plugins` 数组中的位置。
 
 首先安装 `rspack-chain`：
 
