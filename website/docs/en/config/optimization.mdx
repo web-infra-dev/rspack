@@ -538,7 +538,7 @@ export default {
 Imported modules are initialized for each runtime chunk separately, so if you include multiple entry chunks on a page, beware of this behavior. You will need to set `optimization.runtimeChunk` to `'single'` or use another configuration that ensures the page only contains one runtime instance.
 :::
 
-For example, suppose `pageA` and `pageB` both import `shared.js` and are loaded on the same page:
+The following configuration defines two entries, `pageA` and `pageB`. Suppose both entry files import the same `shared.js` module, and their generated bundles are loaded on the same HTML page:
 
 ```js title="rspack.config.mjs"
 export default {

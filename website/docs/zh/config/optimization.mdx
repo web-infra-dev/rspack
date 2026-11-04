@@ -538,7 +538,7 @@ export default {
 被导入的模块在每个 runtime chunk 中是单独初始化的，因此，如果你在单个页面中包含多个入口 chunks，请留意这种行为。你需要将 `optimization.runtimeChunk` 设置为 `'single'` 或使用其他配置，以保证页面仅包含一个 runtime 实例。
 :::
 
-例如，`pageA` 和 `pageB` 都导入了 `shared.js`，并在同一页面中加载：
+以下配置定义了 `pageA` 和 `pageB` 两个入口。假设两个入口文件都导入了同一个 `shared.js` 模块，且它们的构建产物在同一个 HTML 页面中加载：
 
 ```js title="rspack.config.mjs"
 export default {
