@@ -1061,24 +1061,23 @@ impl NormalModule {
     {
       return None;
     }
-    let text = source.source().into_string_lossy();
-    if ![&root.root, &root.canonical_root]
-      .into_iter()
-      .any(|root| memchr::memmem::find(text.as_bytes(), root.as_str().as_bytes()).is_some())
-    {
-      return None;
-    }
+    // Loaders write JSON-escaped paths, which on Windows differ from the root's own spelling.
     let patterns: Vec<_> = [&root.root, &root.canonical_root]
       .into_iter()
       .flat_map(|root| root_patterns(root.as_str()))
       .collect();
+    let holds_root = |bytes: &[u8]| {
+      patterns
+        .iter()
+        .any(|pattern| memchr::memmem::find(bytes, pattern).is_some())
+    };
+    if !holds_root(source.source().into_string_lossy().as_bytes()) {
+      return None;
+    }
     let resource = InternedPath::from(self.resource_data.path()?.as_std_path());
     for input in std::iter::once(&resource).chain(&self.build_info().dependencies.file) {
       let bytes = build_context.fs.read(input.assert_utf8()).await.ok()?;
-      if patterns
-        .iter()
-        .any(|pattern| memchr::memmem::find(&bytes, pattern).is_some())
-      {
+      if holds_root(&bytes) {
         return None;
       }
     }
