@@ -1,6 +1,5 @@
 use css_module_lexer::{
-  CustomMediaDefinitionValue, Dependency, DependencyOptions, MediaQueryInstruction, Mode,
-  collect_dependencies_with_options,
+  CustomMediaDefinitionValue, Dependency, MediaQueryInstruction, Mode, collect_dependencies,
 };
 
 #[test]
@@ -9,8 +8,7 @@ fn emits_custom_media_dependencies_with_minimal_fold_programs() {
     @media (--wide) and (hover) { .wide {} }
     @custom-media --wide (width > 40rem);
   "#;
-  let (dependencies, warnings) =
-    collect_dependencies_with_options(input, Mode::Css, DependencyOptions { custom_media: true });
+  let (dependencies, warnings) = collect_dependencies(input, Mode::Css);
 
   assert!(warnings.is_empty());
 
@@ -49,21 +47,21 @@ fn emits_custom_media_dependencies_with_minimal_fold_programs() {
 }
 
 #[test]
-fn leaves_custom_media_syntax_uncollected_when_disabled() {
+fn collects_custom_media_dependencies_without_parser_policy() {
   let input = "@custom-media --wide (width > 40rem); @media (--wide) {}";
-  let (dependencies, warnings) = collect_dependencies_with_options(
-    input,
-    Mode::Css,
-    DependencyOptions {
-      custom_media: false,
-    },
-  );
+  let (dependencies, warnings) = collect_dependencies(input, Mode::Css);
 
   assert!(warnings.is_empty());
-  assert!(dependencies.iter().all(|dependency| !matches!(
-    dependency,
-    Dependency::CustomMedia { .. } | Dependency::Media { .. } | Dependency::Replace { .. }
-  )));
+  assert!(
+    dependencies
+      .iter()
+      .any(|dependency| matches!(dependency, Dependency::CustomMedia { .. }))
+  );
+  assert!(
+    dependencies
+      .iter()
+      .any(|dependency| matches!(dependency, Dependency::Media { .. }))
+  );
 }
 
 #[test]
@@ -72,8 +70,7 @@ fn keeps_the_main_dependency_scan_intact() {
     @custom-media --wide (width > 40rem);
     @media (--wide) { .wide {} }
   "#;
-  let (dependencies, warnings) =
-    collect_dependencies_with_options(input, Mode::Local, DependencyOptions { custom_media: true });
+  let (dependencies, warnings) = collect_dependencies(input, Mode::Local);
 
   assert!(warnings.is_empty());
   assert!(
@@ -86,8 +83,7 @@ fn keeps_the_main_dependency_scan_intact() {
 #[test]
 fn leaves_block_bearing_custom_media_as_written() {
   let input = "@custom-media --invalid (width > 1px) {}";
-  let (dependencies, warnings) =
-    collect_dependencies_with_options(input, Mode::Css, DependencyOptions { custom_media: true });
+  let (dependencies, warnings) = collect_dependencies(input, Mode::Css);
 
   assert!(warnings.is_empty());
   assert!(dependencies.iter().all(|dependency| !matches!(
@@ -99,8 +95,7 @@ fn leaves_block_bearing_custom_media_as_written() {
 #[test]
 fn emits_one_removal_dependency_for_an_invalid_definition() {
   let input = "@custom-media (width > 1px);";
-  let (dependencies, warnings) =
-    collect_dependencies_with_options(input, Mode::Css, DependencyOptions { custom_media: true });
+  let (dependencies, warnings) = collect_dependencies(input, Mode::Css);
 
   assert!(warnings.is_empty());
   assert!(matches!(

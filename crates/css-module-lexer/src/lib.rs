@@ -18,11 +18,6 @@ pub trait HandleWarning<'s> {
   fn handle_warning(&mut self, warning: Warning<'s>);
 }
 
-#[derive(Debug, Clone, Copy, Default)]
-pub struct DependencyOptions {
-  pub custom_media: bool,
-}
-
 impl<'s, F: FnMut(Warning<'s>)> HandleWarning<'s> for F {
   fn handle_warning(&mut self, warning: Warning<'s>) {
     self(warning);
@@ -46,18 +41,9 @@ pub fn lex_dependencies<'s>(
 }
 
 pub fn collect_dependencies(input: &str, mode: Mode) -> (DependencyContext<'_>, Vec<Warning<'_>>) {
-  collect_dependencies_with_options(input, mode, DependencyOptions::default())
-}
-
-pub fn collect_dependencies_with_options(
-  input: &str,
-  mode: Mode,
-  options: DependencyOptions,
-) -> (DependencyContext<'_>, Vec<Warning<'_>>) {
   let mut warnings = Vec::with_capacity(estimate_warning_capacity(input.len(), mode));
   let mut lexer = Lexer::new(input, DashedIdentCollector::default());
-  let mut visitor = LexDependencies::new(|v| warnings.push(v), mode)
-    .with_custom_media(options.custom_media && input.contains("@custom-media"));
+  let mut visitor = LexDependencies::new(|v| warnings.push(v), mode);
   visitor.lex_streaming(&mut lexer);
   (visitor.into_dependency_context(), warnings)
 }

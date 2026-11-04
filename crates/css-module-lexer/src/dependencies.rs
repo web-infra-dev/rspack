@@ -1432,7 +1432,6 @@ impl<'s, W: HandleWarning<'s>> WarningHandler<'s, W> {
 #[derive(Debug)]
 pub struct LexDependencies<'s, W> {
   dependency_context: DependencyContext<'s>,
-  custom_media: bool,
   mode_data: Option<ModeData<'s>>,
   scope: Scope<'s>,
   block_nesting_level: u32,
@@ -1470,7 +1469,6 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
   ) -> Self {
     Self {
       dependency_context,
-      custom_media: false,
       mode_data: if mode == Mode::Css {
         None
       } else {
@@ -1507,11 +1505,6 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
 
   pub fn dependency_context(&self) -> &DependencyContext<'s> {
     &self.dependency_context
-  }
-
-  pub(crate) fn with_custom_media(mut self, enabled: bool) -> Self {
-    self.custom_media = enabled;
-    self
   }
 
   pub fn into_dependency_context(self) -> DependencyContext<'s> {
@@ -3663,7 +3656,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     let name = stream.slice_trusted(start, end);
     let kind = Self::classify_at_rule(name, flags);
     self.set_scan_context(stream, ScanContext::AtRule);
-    if self.custom_media && matches!(kind, AtRuleKind::CustomMedia | AtRuleKind::Media) {
+    if matches!(kind, AtRuleKind::CustomMedia | AtRuleKind::Media) {
       self.collect_custom_media_at_rule(stream, kind, start);
     }
     if kind == AtRuleKind::Namespace {
