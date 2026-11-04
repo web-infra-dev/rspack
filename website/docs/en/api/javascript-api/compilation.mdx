@@ -826,49 +826,16 @@ The mapping from names to chunks.
 
 **Type:** `FileSystemDependencies`
 
-List of files this compilation depends on.
+Files that the compilation depends on. When a plugin reads a file outside the module graph, add its absolute path on each compilation so changes trigger a rebuild in watch mode. Reading a file with Node.js does not register this dependency automatically.
 
-When a plugin reads files outside the module graph, add them to `fileDependencies` so changes trigger a rebuild in watch mode. Use absolute paths and add the dependencies on each compilation.
+For example, track a `site.json` file in the project root. Place this code in the plugin's `apply(compiler)` method, with `path` imported from `node:path`:
 
-For example, create `site.json` in the project root. The following plugin copies it to the output directory and adds it to `fileDependencies`:
-
-```js title="rspack.config.mjs"
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
-
-export default {
-  plugins: [
-    {
-      apply(compiler) {
-        const configPath = path.resolve(compiler.context, 'site.json');
-        const { Compilation, sources } = compiler.rspack;
-
-        compiler.hooks.thisCompilation.tap(
-          'SiteConfigPlugin',
-          (compilation) => {
-            compilation.fileDependencies.add(configPath);
-            compilation.hooks.processAssets.tapPromise(
-              {
-                name: 'SiteConfigPlugin',
-                stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
-              },
-              async () => {
-                const content = await readFile(configPath, 'utf8');
-                compilation.emitAsset(
-                  'site.json',
-                  new sources.RawSource(content),
-                );
-              },
-            );
-          },
-        );
-      },
-    },
-  ],
-};
+```js
+compiler.hooks.thisCompilation.tap('WatchConfigPlugin', (compilation) => {
+  const configPath = path.resolve(compiler.context, 'site.json');
+  compilation.fileDependencies.add(configPath);
+});
 ```
-
-Run Rspack in watch mode, then edit `site.json` in the project root. Rspack rebuilds and updates the output file. Reading a file with Node.js does not automatically add it to the compilation dependencies.
 
 <Collapse>
   <CollapsePanel
@@ -884,18 +851,18 @@ Run Rspack in watch mode, then edit `site.json` in the project root. Rspack rebu
 
 **Type:** `FileSystemDependencies`
 
-List of directories this compilation depends on.
+Directories that the compilation depends on. When a plugin scans a directory, register it so adding or removing files triggers a rebuild in watch mode.
 
-When a plugin scans a directory, add that directory to `contextDependencies` so adding or removing files triggers a rebuild. Place the following code in the plugin's `apply(compiler)` method, using the same `path` import as in the [fileDependencies example](#filedependencies):
+For example, track an existing `templates` directory. Place this code in `apply(compiler)`, with `path` imported from `node:path`:
 
 ```js
-compiler.hooks.thisCompilation.tap('TemplatesPlugin', (compilation) => {
+compiler.hooks.thisCompilation.tap('WatchTemplatesPlugin', (compilation) => {
   const templatesPath = path.resolve(compiler.context, 'templates');
   compilation.contextDependencies.add(templatesPath);
 });
 ```
 
-Create the `templates` directory before starting watch mode. Adding or removing a template then triggers a rebuild, during which the plugin can scan the directory again. If the plugin reads individual files, also add those files to `fileDependencies`.
+If the plugin reads individual files, also add them to `fileDependencies`.
 
 <Collapse>
   <CollapsePanel
@@ -911,41 +878,20 @@ Create the `templates` directory before starting watch mode. Adding or removing 
 
 **Type:** `FileSystemDependencies`
 
-List of not existing files this compilation depends on.
+Files that do not yet exist but are needed by the compilation. Register a missing file so creating it triggers a rebuild in watch mode; once it exists, register it in `fileDependencies` instead.
 
-Add an optional file that does not yet exist to `missingDependencies` so creating it triggers a rebuild. Once the file exists, add it to `fileDependencies` instead.
-
-Place the following code in the plugin's `apply(compiler)` method, using the same `path` and `readFile` imports as in the [fileDependencies example](#filedependencies):
+For example, track an optional `site.local.json` file. Place this code in `apply(compiler)`, with `path` imported from `node:path` and `existsSync` from `node:fs`:
 
 ```js
-compiler.hooks.thisCompilation.tap('LocalConfigPlugin', (compilation) => {
+compiler.hooks.thisCompilation.tap('WatchLocalConfigPlugin', (compilation) => {
   const configPath = path.resolve(compiler.context, 'site.local.json');
-  const { Compilation, sources } = compiler.rspack;
-
-  compilation.hooks.processAssets.tapPromise(
-    {
-      name: 'LocalConfigPlugin',
-      stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
-    },
-    async () => {
-      let content;
-      try {
-        content = await readFile(configPath, 'utf8');
-        compilation.fileDependencies.add(configPath);
-      } catch (error) {
-        if (error.code !== 'ENOENT') {
-          throw error;
-        }
-        compilation.missingDependencies.add(configPath);
-        content = '{}';
-      }
-      compilation.emitAsset('site.local.json', new sources.RawSource(content));
-    },
-  );
+  if (existsSync(configPath)) {
+    compilation.fileDependencies.add(configPath);
+  } else {
+    compilation.missingDependencies.add(configPath);
+  }
 });
 ```
-
-When `site.local.json` does not exist in the project root, the plugin emits `{}`. Creating the file triggers a rebuild that copies its contents to the output directory. Subsequent edits also trigger rebuilds. Read errors other than a missing file still fail the build.
 
 <Collapse>
   <CollapsePanel
@@ -961,11 +907,9 @@ When `site.local.json` does not exist in the project root, the plugin emits `{}`
 
 **Type:** `FileSystemDependencies`
 
-List of build dependencies this compilation depends on.
+Inputs used by the build tooling, such as configuration files and loaders. See [cache.buildDependencies](/config/cache#builddependencies) for persistent cache invalidation.
 
-Build dependencies are inputs used by the build tooling, such as configuration files and loaders.
-
-See [cache.buildDependencies](/config/cache#builddependencies) for persistent cache invalidation. To track changes to plugin inputs in watch mode, use [fileDependencies](#filedependencies), [contextDependencies](#contextdependencies), or [missingDependencies](#missingdependencies).
+To watch plugin inputs for changes, use `fileDependencies`, `contextDependencies`, or `missingDependencies`.
 
 <Collapse>
   <CollapsePanel

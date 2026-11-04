@@ -822,49 +822,16 @@ compiler.hooks.compilation.tap('InspectModules', (compilation) => {
 
 **类型：** `FileSystemDependencies`
 
-获取此 Compilation 对资源文件的依赖信息，其结构如下：
+此 Compilation 依赖的文件。插件读取模块图之外的文件时，应在每次编译中添加文件的绝对路径，使文件变化能在 watch 模式下触发重新构建。通过 Node.js 读取文件不会自动注册这一依赖。
 
-插件读取模块图之外的文件时，需要将这些文件添加到 `fileDependencies`，这样文件变化就能在 watch 模式下触发重新构建。请使用绝对路径，并在每次编译时添加依赖。
+例如，监听项目根目录中的 `site.json` 文件。将以下代码放在插件的 `apply(compiler)` 方法中，并从 `node:path` 导入 `path`：
 
-例如，在项目根目录创建 `site.json`。以下插件会将它复制到产物目录，并添加到 `fileDependencies`：
-
-```js title="rspack.config.mjs"
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
-
-export default {
-  plugins: [
-    {
-      apply(compiler) {
-        const configPath = path.resolve(compiler.context, 'site.json');
-        const { Compilation, sources } = compiler.rspack;
-
-        compiler.hooks.thisCompilation.tap(
-          'SiteConfigPlugin',
-          (compilation) => {
-            compilation.fileDependencies.add(configPath);
-            compilation.hooks.processAssets.tapPromise(
-              {
-                name: 'SiteConfigPlugin',
-                stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
-              },
-              async () => {
-                const content = await readFile(configPath, 'utf8');
-                compilation.emitAsset(
-                  'site.json',
-                  new sources.RawSource(content),
-                );
-              },
-            );
-          },
-        );
-      },
-    },
-  ],
-};
+```js
+compiler.hooks.thisCompilation.tap('WatchConfigPlugin', (compilation) => {
+  const configPath = path.resolve(compiler.context, 'site.json');
+  compilation.fileDependencies.add(configPath);
+});
 ```
-
-以 watch 模式运行 Rspack，然后修改项目根目录中的 `site.json`。Rspack 会重新构建并更新产物文件。通过 Node.js 读取文件不会自动将其添加到编译依赖中。
 
 <Collapse>
   <CollapsePanel
@@ -880,18 +847,18 @@ export default {
 
 **类型：** `FileSystemDependencies`
 
-获取此 Compilation 对目录的依赖信息。
+此 Compilation 依赖的目录。插件扫描目录时，应注册该目录，使新增或删除文件能在 watch 模式下触发重新构建。
 
-如果插件会扫描目录，可以将该目录添加到 `contextDependencies`，这样新增或删除文件就能触发重新构建。将以下代码放在插件的 `apply(compiler)` 方法中，`path` 的导入方式与 [fileDependencies 示例](#filedependencies)相同：
+例如，监听已存在的 `templates` 目录。将以下代码放在 `apply(compiler)` 中，并从 `node:path` 导入 `path`：
 
 ```js
-compiler.hooks.thisCompilation.tap('TemplatesPlugin', (compilation) => {
+compiler.hooks.thisCompilation.tap('WatchTemplatesPlugin', (compilation) => {
   const templatesPath = path.resolve(compiler.context, 'templates');
   compilation.contextDependencies.add(templatesPath);
 });
 ```
 
-启动 watch 模式前，先创建 `templates` 目录。新增或删除模板会触发重新构建，插件可以在构建过程中再次扫描目录。如果插件还会读取文件内容，也应将这些文件添加到 `fileDependencies`。
+如果插件还会读取文件内容，也应将这些文件添加到 `fileDependencies`。
 
 <Collapse>
   <CollapsePanel
@@ -907,41 +874,20 @@ compiler.hooks.thisCompilation.tap('TemplatesPlugin', (compilation) => {
 
 **类型：** `FileSystemDependencies`
 
-获取此 Compilation 对缺失文件的依赖信息。
+此 Compilation 依赖但尚不存在的文件。注册缺失的文件后，创建该文件就能在 watch 模式下触发重新构建；文件存在后，应改为添加到 `fileDependencies`。
 
-对于尚不存在的可选文件，可以将其添加到 `missingDependencies`，这样创建该文件就能触发重新构建。文件存在后，改为将其添加到 `fileDependencies`。
-
-将以下代码放在插件的 `apply(compiler)` 方法中，`path` 和 `readFile` 的导入方式与 [fileDependencies 示例](#filedependencies)相同：
+例如，监听可选的 `site.local.json` 文件。将以下代码放在 `apply(compiler)` 中，从 `node:path` 导入 `path`，并从 `node:fs` 导入 `existsSync`：
 
 ```js
-compiler.hooks.thisCompilation.tap('LocalConfigPlugin', (compilation) => {
+compiler.hooks.thisCompilation.tap('WatchLocalConfigPlugin', (compilation) => {
   const configPath = path.resolve(compiler.context, 'site.local.json');
-  const { Compilation, sources } = compiler.rspack;
-
-  compilation.hooks.processAssets.tapPromise(
-    {
-      name: 'LocalConfigPlugin',
-      stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
-    },
-    async () => {
-      let content;
-      try {
-        content = await readFile(configPath, 'utf8');
-        compilation.fileDependencies.add(configPath);
-      } catch (error) {
-        if (error.code !== 'ENOENT') {
-          throw error;
-        }
-        compilation.missingDependencies.add(configPath);
-        content = '{}';
-      }
-      compilation.emitAsset('site.local.json', new sources.RawSource(content));
-    },
-  );
+  if (existsSync(configPath)) {
+    compilation.fileDependencies.add(configPath);
+  } else {
+    compilation.missingDependencies.add(configPath);
+  }
 });
 ```
-
-项目根目录中不存在 `site.local.json` 时，插件生成的文件内容为 `{}`。创建该文件后，Rspack 会重新构建并将其内容复制到产物目录，后续修改也会触发重新构建。除文件不存在之外的读取错误仍会导致构建失败。
 
 <Collapse>
   <CollapsePanel
@@ -957,11 +903,9 @@ compiler.hooks.thisCompilation.tap('LocalConfigPlugin', (compilation) => {
 
 **类型：** `FileSystemDependencies`
 
-获取此 Compilation 对构建文件的依赖信息。
+构建工具使用的输入，例如配置文件和 loader。持久化缓存的失效条件可通过 [cache.buildDependencies](/config/cache#builddependencies) 配置。
 
-构建依赖是构建工具使用的输入，例如配置文件和 loader。
-
-持久化缓存的失效条件可通过 [cache.buildDependencies](/config/cache#builddependencies) 配置。要在 watch 模式下监听插件输入的变化，请使用 [fileDependencies](#filedependencies)、[contextDependencies](#contextdependencies) 或 [missingDependencies](#missingdependencies)。
+要在 watch 模式下监听插件输入的变化，请使用 `fileDependencies`、`contextDependencies` 或 `missingDependencies`。
 
 <Collapse>
   <CollapsePanel
