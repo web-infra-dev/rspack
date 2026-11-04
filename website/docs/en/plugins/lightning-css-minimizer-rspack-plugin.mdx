@@ -103,11 +103,7 @@ Options passed to Lightning CSS to control browser compatibility, syntax transfo
 - An array of query strings, such as `['chrome >= 100', 'safari >= 15']`.
 - An object with minimum browser versions, such as `{ chrome: '100', safari: '15' }`. Supported keys are `android`, `chrome`, `edge`, `firefox`, `ie`, `ios_saf`, `opera`, `safari`, and `samsung`.
 
-The plugin determines the targets in this order:
-
-1. Use `minimizerOptions.targets` if explicitly configured.
-2. Otherwise, inherit the target data from Rspack's [`target`](/config/target#default-behavior), keeping only supported browsers. If it contains no supported browsers, as with `browserslist:node 18`, use an empty target object.
-3. If Rspack provides no target data, as with `web`, use `'fully supports es6'`.
+When `minimizerOptions.targets` is omitted, the plugin attempts to inherit browser targets from Rspack's `target`. See [`target` default behavior](/config/target#default-behavior) for how Rspack selects its target environment.
 
 Lightning CSS uses these targets both to transform unsupported syntax and to choose shorter syntax during minification. Configure targets that match your application's browser requirements, either through Rspack's `target` or through `minimizerOptions.targets`.
 
