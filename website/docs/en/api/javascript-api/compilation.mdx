@@ -710,7 +710,52 @@ The list of chunk group objects, with the structure as follows:
 
 **Type**: `ReadonlyMap<string, Entrypoint>`
 
-A mapping from entry names to entrypoint objects. An entrypoint is a special chunk group associated with the Rspack runtime chunk used by that entry.
+A map with entry names as keys and `Entrypoint` objects as values. Each `Entrypoint` represents the chunk group for an entry and provides access to its chunks and output files.
+
+For example, when generating HTML on the server, you need to know which JavaScript and CSS files to include for each entry. Iterate over `compilation.entrypoints`, call `entrypoint.getFiles()` to get those filenames, and save them in a manifest.
+
+The following plugin generates `entrypoints.json` after the standard asset optimization and hash processing stages:
+
+```js
+class EntryManifestPlugin {
+  apply(compiler) {
+    const { Compilation, sources } = compiler.rspack;
+
+    compiler.hooks.thisCompilation.tap('EntryManifestPlugin', (compilation) => {
+      compilation.hooks.processAssets.tap(
+        {
+          name: 'EntryManifestPlugin',
+          stage: Compilation.PROCESS_ASSETS_STAGE_REPORT,
+        },
+        () => {
+          const manifest = Object.fromEntries(
+            Array.from(compilation.entrypoints, ([name, entrypoint]) => [
+              name,
+              entrypoint.getFiles(),
+            ]),
+          );
+          compilation.emitAsset(
+            'entrypoints.json',
+            new sources.RawSource(JSON.stringify(manifest, null, 2)),
+          );
+        },
+      );
+    });
+  }
+}
+```
+
+The manifest maps each entry name to an array of filenames. For example, if the `main` entry produces an entry script, a separate Rspack runtime, and a CSS file, the manifest might look like this:
+
+```json title="entrypoints.json"
+{
+  "main": ["runtime.js", "main.js", "main.css"]
+}
+```
+
+The filenames returned by `getFiles()` are relative to the output directory and do not include `publicPath`.
+
+`getFiles()` only returns files in the entrypoint's chunk group. Async chunks loaded on demand through `import()` and plugin assets outside that chunk group, such as `entrypoints.json` itself, are not included in the manifest.
 
 <Collapse>
   <CollapsePanel
