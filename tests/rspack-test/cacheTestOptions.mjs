@@ -4,9 +4,6 @@ const excludes = {
 	normal: [
 		// Module restoration does not retain loader-emitted diagnostics yet.
 		/^errors\/loader-error-warning$/,
-		// These modules do not yet produce reusable persistent cache entries.
-		/^loaders\/coffee-loader$/,
-		/^parsing\/extract-amd$/,
 
 		// Module cache misses after restarting the compiler.
 		/^errors\/import-module-cycle$/,
@@ -17,6 +14,7 @@ const excludes = {
 
 		// Resolver cache misses, including unresolved requests.
 		/^cjs-tree-shaking\/full-require$/,
+		/^parsing\/extract-amd$/,
 		/^parsing\/extract-amd\.nominimize$/,
 		/^parsing\/webpack-is-included$/,
 		/^runtime\/missing-module-exception$/,
@@ -26,16 +24,11 @@ const excludes = {
 
 		// Absolute __dirname fragments create invalid missing-dependency paths on
 		// Windows, so the resolver snapshot fails and the result is never stored.
-		/^parsing\/evaluate$/,
-
-		// Existing bundle/compiler assertions fail in the compatibility suite.
-		/^parsing\/rspack-issue-4816$/
+		/^parsing\/evaluate$/
 	],
 	config: [
-		// Restored async blocks are not yet available through the binding API.
-		/^compilation\/modules$/,
 		// This case expects its stateful loader to build again on every compiler.
-		/^compilation\/rebuild-module(?:-getters)?$/,
+		/^compilation\/rebuild-module$/,
 
 		// Module cache misses after restarting the compiler.
 		/^asset-modules\/custom-encoder$/,
@@ -92,6 +85,7 @@ const excludes = {
 		/^sharing\/tree-shaking-shared$/,
 
 		// Resolver cache misses, including unresolved requests.
+		/^css\/url$/,
 		/^rstest\/mock$/,
 		/^rstest\/mock-dynamic-import-external$/,
 
@@ -108,11 +102,9 @@ const excludes = {
 		/^source-map\/empty-mapping$/,
 		/^source-map\/exclude-chunks-source-map$/,
 
-		// Child compiler metadata is not fully restored.
-		/^plugins\/rspack-issue-4982$/,
-
 		// Unawaited child compilation races with closing/flushing the parent cache.
 		/^chunk-loading\/issue-4754$/,
+		/^plugins\/rspack-issue-4982$/,
 
 		// Restored modules skip loader importModule(), but this case asserts both graphs.
 		/^stats\/issuer-information-cache$/,
@@ -176,76 +168,20 @@ const excludes = {
 		/^container\/container-reference$/,
 		/^container\/container-reference-override$/,
 		/^container\/error-handling$/,
-		/^crossorigin\/set-crossorigin$/,
 		/^css-extract\/chunk-filename-function$/,
 		/^css-extract\/module-layer$/,
 		/^css-extract\/public-path-function$/,
 		/^css-extract\/public-path-import-chunk-loading$/,
 		/^css-extract\/with-contenthash$/,
-		/^css-loader\/css-modules-classname$/,
-		/^css\/at-import$/,
-		/^css\/at-import-in-the-top$/,
-		/^css\/basic-dynamic-only$/,
-		/^css\/charset$/,
-		/^css\/concatenation-no-runtime$/,
-		/^css\/conflicting-order$/,
 		/^css\/css-extract-with-bom$/,
 		/^css\/css-extract-with-bom-at-import$/,
 		/^css\/css-extract-with-bom-source-map$/,
-		/^css\/css-loader$/,
-		/^css\/css-modules$/,
-		/^css\/css-modules-animation$/,
-		/^css\/css-modules-composes-order$/,
-		/^css\/css-modules-composes-order-cycle$/,
 		/^css\/css-order$/,
 		/^css\/css-order-concatenate-modules$/,
 		/^css\/css-order-reexport$/,
 		/^css\/css-order2$/,
 		/^css\/css-order3$/,
-		/^css\/css-with-bom$/,
-		/^css\/escape-ident$/,
-		/^css\/escape-unescape$/,
-		/^css\/export-selector$/,
-		/^css\/export-type$/,
-		/^css\/exports-only-generator-options$/,
-		/^css\/external$/,
-		/^css\/external-in-node$/,
-		/^css\/external-in-web$/,
-		/^css\/icss-generator-regressions$/,
-		/^css\/icss-value-references$/,
-		/^css\/import-false$/,
-		/^css\/issue-14495$/,
-		/^css\/issue-16202$/,
-		/^css\/issue-16349-async-startup$/,
-		/^css\/local-ident-name$/,
-		/^css\/minify-lightning-css-remove-unused-local-idents$/,
-		/^css\/module-parser-options$/,
-		/^css\/multiple-entries$/,
-		/^css\/no-extra-runtime-in-js$/,
-		/^css\/parser-options$/,
-		/^css\/parsing$/,
-		/^css\/pseudo-export$/,
-		/^css\/pseudo-import$/,
-		/^css\/pure-css$/,
-		/^css\/reexport$/,
-		/^css\/rewrite-url$/,
-		/^css\/rewrite-url-auto-public-path$/,
-		/^css\/rewrite-url-css-variables$/,
-		/^css\/rewrite-url-multi-runtime$/,
-		/^css\/rewrite-url-rule-public-path$/,
-		/^css\/rewrite-url-with-css-filename$/,
-		/^css\/rewrite-url-with-data-url$/,
-		/^css\/rspack-issue-4258$/,
-		/^css\/rspack-issue-4844$/,
 		/^css\/rspack-issue-8431$/,
-		/^css\/rspack-issue-9432$/,
-		/^css\/url$/,
-		/^css\/url-and-asset-module-filename$/,
-		/^css\/url-unterminated-eof$/,
-		/^css\/urls$/,
-		/^css\/webpack-ignore$/,
-		/^dll\/no-warning-for-cjs$/,
-		/^dll\/numeric-module-id$/,
 		/^entry\/depend-on-non-js$/,
 		/^hooks\/modify-extract-css-loading-runtime$/,
 		/^layer\/context$/,
