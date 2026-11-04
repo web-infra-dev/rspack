@@ -2,7 +2,7 @@ mod chunk_versions;
 mod hot_module_replacement;
 
 use std::{
-  collections::{BTreeMap, hash_map},
+  collections::hash_map,
   sync::{Arc, LazyLock, Mutex},
 };
 
@@ -19,7 +19,7 @@ use rspack_core::{
   ParserOptions, PathData, Plugin, RunnerContext, RuntimeCodeTemplate, RuntimeGlobals,
   RuntimeModule, RuntimeModuleExt, RuntimeSpec, SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdMap, ChunkIdSet},
-  chunk_graph_module::ModuleIdSet,
+  chunk_graph_module::{ModuleIdMap, ModuleIdSet},
   incremental::{IncrementalPasses, Mutation},
   rspack_sources::{RawStringSource, ReplaceSource, SourceExt},
 };
@@ -448,7 +448,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       let Some(content) = hot_update_main_content_by_runtime.get_mut(runtime) else {
         continue;
       };
-      let mut chunks = owners
+      let chunks = owners
         .iter()
         .map(|key| graph.chunk_by_ukey.expect_get(key))
         .filter(|chunk| chunk.runtime().contains(runtime))
@@ -463,11 +463,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }) {
         continue;
       }
-      chunks.sort_unstable_by_key(|chunk| chunk.expect_id());
-      let ids = chunks
+      let mut ids = chunks
         .iter()
         .map(|chunk| chunk.expect_id().clone())
         .collect::<Vec<_>>();
+      ids.sort_unstable();
       content.changed_modules.insert(module_id.clone(), ids);
     }
   }
@@ -991,8 +991,12 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
       "m": m,
     });
     if !content.changed_modules.is_empty() {
-      manifest_json["changed"] =
-        serde_json::to_value(content.changed_modules).expect("serializable module ids");
+      let mut changed = serde_json::Map::new();
+      for (module, chunks) in content.changed_modules {
+        changed.insert(module.to_string(), serde_json::json!(chunks));
+      }
+      changed.sort_keys();
+      manifest_json["changed"] = changed.into();
     }
     if !content.load_entries.is_empty() || !content.load_dependencies.is_empty() {
       let mut load = serde_json::Map::new();
@@ -1000,10 +1004,12 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
         load.insert("entries".into(), content.load_entries.into());
       }
       if !content.load_dependencies.is_empty() {
-        load.insert(
-          "dependencies".into(),
-          serde_json::to_value(content.load_dependencies).expect("serializable chunk ids"),
-        );
+        let mut dependencies = serde_json::Map::new();
+        for (chunk, chunks) in content.load_dependencies {
+          dependencies.insert(chunk.to_string(), serde_json::json!(chunks));
+        }
+        dependencies.sort_keys();
+        load.insert("dependencies".into(), dependencies.into());
       }
       manifest_json["load"] = load.into();
     }
@@ -1148,8 +1154,8 @@ struct HotUpdateContent {
   removed_chunk_ids: ChunkIdSet,
   removed_modules: HashSet<ModuleId>,
   load_entries: serde_json::Map<String, serde_json::Value>,
-  changed_modules: BTreeMap<ModuleId, Vec<ChunkId>>,
-  load_dependencies: BTreeMap<ChunkId, Vec<ChunkId>>,
+  changed_modules: ModuleIdMap<Vec<ChunkId>>,
+  load_dependencies: ChunkIdMap<Vec<ChunkId>>,
   css_updated_chunk_ids: ChunkIdSet,
   css_removed_chunk_ids: ChunkIdSet,
   mini_css_updated_chunk_ids: ChunkIdSet,
