@@ -56,6 +56,7 @@ impl Occasion for MakeOccasion {
       issuer_update_modules,
       // skip
       check_issuer_cycles: _,
+      refactorize_dependencies: _,
       entry_dependencies: _,
       file_dependencies: _,
       context_dependencies: _,
@@ -98,6 +99,8 @@ impl Occasion for MakeOccasion {
       factorization_artifact,
       module_to_lazy_make,
       entry_dependencies,
+      refactorize_dependencies,
+      check_issuer_cycles,
       dropped,
     } = module_graph::recovery_module_graph(storage, &self.codec, logger).await?;
 
@@ -115,7 +118,11 @@ impl Occasion for MakeOccasion {
       context_dep.add_module_files(*mid, &build_info.dependencies.context);
       missing_dep.add_module_files(*mid, &build_info.dependencies.missing);
       build_dep.add_module_files(*mid, &build_info.dependencies.build);
-      if !module.diagnostics().is_empty() {
+      if !module.diagnostics().is_empty()
+        || module
+          .module_build_diagnostics()
+          .is_some_and(|diagnostics| !diagnostics.diagnostics.is_empty())
+      {
         make_failed_module.insert(*mid);
       }
     }
@@ -137,7 +144,8 @@ impl Occasion for MakeOccasion {
       affected_modules: Default::default(),
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
-      check_issuer_cycles: !dropped.is_empty(),
+      check_issuer_cycles,
+      refactorize_dependencies,
 
       side_effects_state_artifact: Default::default(),
       module_graph: mg,

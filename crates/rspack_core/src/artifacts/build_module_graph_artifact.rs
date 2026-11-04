@@ -30,6 +30,12 @@ pub struct BuildModuleGraphArtifact {
   /// Set when cache recovery dropped modules. Their rebuild can take an issuer from a module
   /// below them, so the next update repairs issuer cycles.
   pub check_issuer_cycles: bool,
+  /// Dependencies whose cached target was dropped by cache recovery.
+  ///
+  /// Their parent module keeps its cached build. The next module graph update refactorizes only
+  /// these dependencies, then clears this set. `reset_temporary_data` keeps it, because recovery
+  /// runs before the reset of the first build.
+  pub(crate) refactorize_dependencies: FxHashSet<DependencyId>,
 
   // data
   /// Module graph data
@@ -64,6 +70,7 @@ impl BuildModuleGraphArtifact {
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
       check_issuer_cycles: false,
+      refactorize_dependencies: Default::default(),
       module_graph: Default::default(),
       factorization_artifact: Default::default(),
       side_effects_state_artifact: Default::default(),
@@ -219,7 +226,7 @@ impl BuildModuleGraphArtifact {
       .collect()
   }
 
-  pub fn diagnostics(&self) -> Vec<Diagnostic> {
+  pub fn diagnostics(&self, compilation_id: crate::CompilationId) -> Vec<Diagnostic> {
     let mg = self.get_module_graph();
     let module_diagnostics = self
       .make_failed_module
@@ -251,7 +258,32 @@ impl BuildModuleGraphArtifact {
         })
         .collect::<Vec<_>>()
     });
-    module_diagnostics.chain(dep_diagnostics).collect()
+    module_diagnostics
+      .chain(dep_diagnostics)
+      .chain(self.module_build_diagnostics(compilation_id))
+      .collect()
+  }
+
+  pub(crate) fn module_build_diagnostics(
+    &self,
+    compilation_id: crate::CompilationId,
+  ) -> Vec<Diagnostic> {
+    self
+      .make_failed_module
+      .iter()
+      .flat_map(|identifier| {
+        self
+          .module_graph
+          .module_by_identifier(identifier)
+          .expect("should have module")
+          .module_build_diagnostics()
+          .map_or(&[][..], |diagnostics| {
+            diagnostics.for_compilation(compilation_id)
+          })
+          .iter()
+          .cloned()
+      })
+      .collect()
   }
 
   pub fn reset_temporary_data(&mut self) {

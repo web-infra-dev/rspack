@@ -9,11 +9,11 @@ use memchr::memmem::Finder;
 use rspack_cacheable::{
   __private::rkyv::{Archive, Deserialize, Serialize, bytecheck::CheckBytes},
   ContextIdentifierLayout, Deserializer, Serializer, Validator, from_bytes, to_bytes,
-  to_bytes_with_binding,
+  to_bytes_above_root, to_bytes_with_binding,
   utils::root_patterns,
 };
 use rspack_error::Result;
-use rspack_paths::{Utf8Component, Utf8Path};
+use rspack_paths::{InternedPath, Utf8Component, Utf8Path};
 use rustc_hash::{FxHashMap, FxHasher};
 
 use crate::PortableRoot;
@@ -202,6 +202,13 @@ impl CacheCodec {
     T: for<'a> Serialize<Serializer<'a>>,
   {
     to_bytes(data, &self.context).map_err(rspack_error::Error::from_error)
+  }
+
+  /// Encodes a snapshot key. A key names the path a snapshot validates at the restored
+  /// location. Issuer lookups above the root follow its layout; fixed resolver observations
+  /// retain their original bytes, including when their target was inside the writer root.
+  pub fn encode_path_key(&self, path: &InternedPath) -> Result<Vec<u8>> {
+    to_bytes_above_root(path, &self.context).map_err(rspack_error::Error::from_error)
   }
 
   pub fn decode<T>(&self, bytes: &[u8]) -> Result<T>

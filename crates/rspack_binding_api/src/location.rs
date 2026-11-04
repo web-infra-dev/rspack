@@ -149,6 +149,9 @@ impl From<&rspack_core::DependencyLocation> for DependencyLocation {
       rspack_core::DependencyLocation::Real(real_dependency_location) => {
         DependencyLocation::Real(real_dependency_location.into())
       }
+      rspack_core::DependencyLocation::Portable(portable) => {
+        DependencyLocation::Real(portable.resolve().into())
+      }
       rspack_core::DependencyLocation::Synthetic(synthetic_dependency_location) => {
         DependencyLocation::Synthetic(synthetic_dependency_location.into())
       }
@@ -161,6 +164,9 @@ impl From<rspack_core::DependencyLocation> for DependencyLocation {
     match value {
       rspack_core::DependencyLocation::Real(real_dependency_location) => {
         DependencyLocation::Real(real_dependency_location.into())
+      }
+      rspack_core::DependencyLocation::Portable(portable) => {
+        DependencyLocation::Real(portable.resolve().into())
       }
       rspack_core::DependencyLocation::Synthetic(synthetic_dependency_location) => {
         DependencyLocation::Synthetic(synthetic_dependency_location.into())

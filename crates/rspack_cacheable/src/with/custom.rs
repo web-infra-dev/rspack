@@ -107,3 +107,55 @@ where
     T::deserialize(value.0, guard)
   }
 }
+
+/// Like [`Custom`], and lets paths below a nearby ancestor of the project root be stored
+/// relative to it while the converter's target serializes. Use it only for paths the resolver
+/// derived from a file inside the root; see [`ContextGuard::allows_above_root`].
+pub struct CustomAboveRoot;
+
+impl<T> ArchiveWith<T> for CustomAboveRoot
+where
+  T: CustomConverter,
+  T::Target: Archive,
+{
+  type Archived = ArchivedDataBox<T::Target>;
+  type Resolver = CustomResolver<T::Target>;
+
+  #[inline]
+  fn resolve_with(field: &T, resolver: Self::Resolver, out: Place<Self::Archived>) {
+    <Custom as ArchiveWith<T>>::resolve_with(field, resolver, out)
+  }
+}
+
+impl<T, S> SerializeWith<T, S> for CustomAboveRoot
+where
+  T: CustomConverter,
+  T::Target: Archive + Serialize<S>,
+  S: Fallible<Error = Error> + Sharing + ?Sized,
+{
+  #[inline]
+  fn serialize_with(field: &T, serializer: &mut S) -> Result<Self::Resolver> {
+    let guard = ContextGuard::sharing_guard(serializer)?;
+    let value = DataBox(T::serialize(field, guard)?);
+    let previous = guard.set_allow_above_root(true);
+    let resolver = value.serialize(serializer);
+    ContextGuard::sharing_guard(serializer)?.set_allow_above_root(previous);
+    Ok(CustomResolver {
+      resolver: resolver?,
+      value,
+    })
+  }
+}
+
+impl<T, D> DeserializeWith<ArchivedDataBox<T::Target>, T, D> for CustomAboveRoot
+where
+  T: CustomConverter,
+  T::Target: Archive,
+  ArchivedDataBox<T::Target>: Deserialize<DataBox<T::Target>, D>,
+  D: Fallible<Error = Error> + Pooling + ?Sized,
+{
+  #[inline]
+  fn deserialize_with(field: &ArchivedDataBox<T::Target>, de: &mut D) -> Result<T> {
+    <Custom as DeserializeWith<ArchivedDataBox<T::Target>, T, D>>::deserialize_with(field, de)
+  }
+}

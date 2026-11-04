@@ -918,12 +918,26 @@ impl NormalModuleFactory {
         };
 
         let (resource_data, resolve_dependencies) = resolve(resolve_args, plugin_driver).await;
-        data
-          .file_dependencies
-          .extend(resolve_dependencies.file_dependencies);
-        data
-          .missing_dependencies
-          .extend(resolve_dependencies.missing_dependencies);
+        for (target, observations) in [
+          (
+            &mut data.file_dependencies,
+            resolve_dependencies.file_dependencies,
+          ),
+          (
+            &mut data.missing_dependencies,
+            resolve_dependencies.missing_dependencies,
+          ),
+        ] {
+          for observation in observations {
+            // A plugin may have reported this same path before resolution. Keep the resolver's
+            // fixed observation rather than letting HashSet's first insertion erase its origin.
+            if observation.is_fixed() {
+              target.replace(observation);
+            } else {
+              target.insert(observation);
+            }
+          }
+        }
 
         match resource_data {
           Ok(ResolveResult::Resource(resource)) => resource.into(),

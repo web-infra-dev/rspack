@@ -5,7 +5,7 @@
  * Author Donny/강동윤
  * Copyright (c)
  */
-use std::{cell::RefCell, path::PathBuf, rc::Rc, sync::Arc};
+use std::{cell::RefCell, io, path::PathBuf, rc::Rc, sync::Arc};
 
 use anyhow::{Context, bail};
 use indoc::formatdoc;
@@ -60,6 +60,137 @@ use crate::error::swc_diagnostics_to_rspack_error;
 
 const SWC_SYNTAX_ERROR_CODE: &str = "Syntax Error";
 
+pub type InputSourceMapResult = anyhow::Result<Option<RspackSourceMap<'static>>>;
+
+/// The next actual I/O operation required by the shared map-selection policy.
+pub enum InputSourceMapRequest {
+  Metadata(PathBuf),
+  Read(PathBuf),
+}
+
+/// Resolves a map once, independently of whether its filesystem is synchronous or async.
+/// No SWC transformer, comments or thread-local compiler state is held while awaiting I/O.
+pub struct InputSourceMapResolver {
+  request: Option<InputSourceMapRequest>,
+  fallback: Option<PathBuf>,
+  result: InputSourceMapResult,
+  automatic_lookup: Option<bool>,
+}
+
+impl InputSourceMapResolver {
+  pub fn new(source: &str, name: &FileName, input_src_map: &InputSourceMap) -> Self {
+    let mut resolver = Self {
+      request: None,
+      fallback: None,
+      result: Ok(None),
+      automatic_lookup: None,
+    };
+    match input_src_map {
+      InputSourceMap::Bool(false) => return resolver,
+      InputSourceMap::Str(s) if s != "inline" => {
+        resolver.result = RspackSourceMap::from_json(s.clone())
+          .context("failed to read input source map from user-provided sourcemap")
+          .map(Some);
+        return resolver;
+      }
+      _ => {}
+    }
+
+    let marker = "sourceMappingURL=";
+    let idx = source.rfind(marker);
+    resolver.automatic_lookup = Some(idx.is_some());
+    let data_url = idx.map(|idx| {
+      let start = idx + marker.len();
+      match source[start..].find('\n') {
+        Some(end) => &source[start..start + end + 1],
+        None => &source[start..],
+      }
+    });
+    if let Ok(map) = read_inline_sourcemap(data_url) {
+      resolver.result = Ok(Some(map));
+      return resolver;
+    }
+
+    if let FileName::Real(filename) = name
+      && let Some(dir) = filename.parent()
+    {
+      let adjacent = PathBuf::from(format!("{}.map", filename.display()));
+      let path = if let Some(data_url) = data_url {
+        resolver.fallback = Some(adjacent);
+        dir.join(data_url)
+      } else {
+        adjacent
+      };
+      resolver.request = Some(InputSourceMapRequest::Metadata(path));
+    }
+    resolver
+  }
+
+  pub fn automatic_lookup(&self) -> Option<bool> {
+    self.automatic_lookup
+  }
+
+  pub fn next_request(&mut self) -> Option<InputSourceMapRequest> {
+    self.request.take()
+  }
+
+  pub fn metadata_result(&mut self, path: PathBuf, found: bool) {
+    self.request = if found {
+      Some(InputSourceMapRequest::Read(path))
+    } else {
+      self.fallback.take().map(InputSourceMapRequest::Metadata)
+    };
+  }
+
+  pub fn read_result(&mut self, content: io::Result<Vec<u8>>) {
+    // Automatic lookup historically ignores file read/parse errors and does not try another
+    // candidate after a successful metadata probe. Explicit JSON errors still propagate.
+    self.result = Ok(
+      content
+        .ok()
+        .and_then(|bytes| RspackSourceMap::from_bytes(bytes).ok()),
+    );
+  }
+
+  pub fn finish(self) -> InputSourceMapResult {
+    self.result
+  }
+}
+
+fn read_inline_sourcemap(data_url: Option<&str>) -> anyhow::Result<RspackSourceMap<'static>> {
+  let Some(data_url) = data_url else {
+    bail!("failed to parse inline source map: `sourceMappingURL` not found")
+  };
+  let url = Url::parse(data_url)
+    .with_context(|| format!("failed to parse inline source map url\n{data_url}"))?;
+  let Some(idx) = url.path().find("base64,") else {
+    bail!("failed to parse inline source map: not base64: {url:?}")
+  };
+  let content = url.path()[idx + "base64,".len()..].trim();
+  let bytes = base64::decode_to_vec(content.as_bytes())
+    .context("failed to decode base64-encoded source map")?;
+  RspackSourceMap::from_bytes(bytes)
+    .context("failed to read input source map from inlined base64 encoded string")
+}
+
+fn native_input_source_map(
+  source: &str,
+  name: &FileName,
+  option: &InputSourceMap,
+) -> InputSourceMapResult {
+  let mut resolver = InputSourceMapResolver::new(source, name, option);
+  while let Some(request) = resolver.next_request() {
+    match request {
+      InputSourceMapRequest::Metadata(path) => {
+        let found = std::fs::metadata(&path).is_ok();
+        resolver.metadata_result(path, found);
+      }
+      InputSourceMapRequest::Read(path) => resolver.read_result(std::fs::read(path)),
+    }
+  }
+  resolver.finish()
+}
+
 fn emit_syntax_error(error: swc_core::ecma::parser::error::Error, handler: &Handler) {
   error
     .into_diagnostic(handler)
@@ -69,6 +200,8 @@ fn emit_syntax_error(error: swc_core::ecma::parser::error::Error, handler: &Hand
 
 impl JavaScriptCompiler {
   /// Transforms the given JavaScript source code according to the provided options and source map kind.
+  /// A supplied input-map result completes acquisition, including an absent map or an error.
+  /// Only `None` requests native filesystem acquisition after parsing.
   #[allow(clippy::too_many_arguments)]
   pub fn transform<'a, S, P>(
     &self,
@@ -77,6 +210,7 @@ impl JavaScriptCompiler {
     comments: std::rc::Rc<SingleThreadedComments>,
     options: SwcOptions,
     module_source_map_kind: Option<SourceMapKind>,
+    input_source_map: Option<InputSourceMapResult>,
     inspect_parsed_ast: impl FnOnce(&Program, Mark),
     before_pass: impl FnOnce(&Program) -> P + 'a,
   ) -> Result<TransformOutput>
@@ -91,7 +225,12 @@ impl JavaScriptCompiler {
     let javascript_transformer =
       JavaScriptTransformer::new(self.cm.clone(), fm, comments, self, options)?;
 
-    javascript_transformer.transform(inspect_parsed_ast, before_pass, module_source_map_kind)
+    javascript_transformer.transform(
+      inspect_parsed_ast,
+      before_pass,
+      module_source_map_kind,
+      input_source_map,
+    )
   }
 
   pub fn emit_isolated_dts(
@@ -320,6 +459,7 @@ impl<'a> JavaScriptTransformer<'a> {
     inspect_parsed_ast: impl FnOnce(&Program, Mark),
     before_pass: impl FnOnce(&Program) -> P + 'a,
     module_source_map_kind: Option<SourceMapKind>,
+    input_source_map: Option<InputSourceMapResult>,
   ) -> Result<TransformOutput>
   where
     P: Pass + 'a,
@@ -337,7 +477,9 @@ impl<'a> JavaScriptTransformer<'a> {
       names: Default::default(),
     };
 
-    let input_source_map = self.input_source_map(&built_input.input_source_map)?;
+    let input_source_map = input_source_map.unwrap_or_else(|| {
+      native_input_source_map(&self.fm.src, &self.fm.name, &built_input.input_source_map)
+    })?;
 
     let diagnostics = self.transform_with_built_input(&mut built_input, inspect_parsed_ast)?;
     let ascii_only = built_input
@@ -524,151 +666,6 @@ impl<'a> JavaScriptTransformer<'a> {
     }
 
     result.map(|_| diagnostics)
-  }
-
-  pub fn input_source_map(
-    &self,
-    input_src_map: &InputSourceMap,
-  ) -> Result<Option<RspackSourceMap<'static>>, anyhow::Error> {
-    let fm = &self.fm;
-    let name = &self.fm.name;
-    let read_inline_sourcemap =
-      |data_url: Option<&str>| -> Result<Option<RspackSourceMap<'static>>, anyhow::Error> {
-        match data_url {
-          Some(data_url) => {
-            let url = Url::parse(data_url)
-              .with_context(|| format!("failed to parse inline source map url\n{data_url}"))?;
-
-            let idx = match url.path().find("base64,") {
-              Some(v) => v,
-              None => {
-                bail!("failed to parse inline source map: not base64: {url:?}")
-              }
-            };
-
-            let content = url.path()[idx + "base64,".len()..].trim();
-
-            let res = base64::decode_to_vec(content.as_bytes())
-              .context("failed to decode base64-encoded source map")?;
-
-            Ok(Some(RspackSourceMap::from_bytes(res).context(
-              "failed to read input source map from inlined base64 encoded \
-                                string",
-            )?))
-          }
-          None => {
-            bail!("failed to parse inline source map: `sourceMappingURL` not found")
-          }
-        }
-      };
-
-    let read_file_sourcemap =
-      |data_url: Option<&str>| -> Result<Option<RspackSourceMap<'static>>, anyhow::Error> {
-        match name.as_ref() {
-          FileName::Real(filename) => {
-            let dir = match filename.parent() {
-              Some(v) => v,
-              None => {
-                bail!("unexpected: root directory is given as a input file")
-              }
-            };
-
-            let map_path = match data_url {
-              Some(data_url) => {
-                let mut map_path = dir.join(data_url);
-                if !map_path.exists() {
-                  // Old behavior. This check would prevent
-                  // regressions.
-                  // Perhaps it shouldn't be supported. Sometimes
-                  // developers don't want to expose their source
-                  // code.
-                  // Map files are for internal troubleshooting
-                  // convenience.
-                  map_path = PathBuf::from(format!("{}.map", filename.display()));
-                  if !map_path.exists() {
-                    bail!(
-                      "failed to find input source map file {:?} in \
-                                                  {:?} file",
-                      map_path.display(),
-                      filename.display()
-                    )
-                  }
-                }
-
-                Some(map_path)
-              }
-              None => {
-                // Old behavior.
-                let map_path = PathBuf::from(format!("{}.map", filename.display()));
-                if map_path.exists() {
-                  Some(map_path)
-                } else {
-                  None
-                }
-              }
-            };
-
-            match map_path {
-              Some(map_path) => {
-                let path = map_path.display().to_string();
-                let content = std::fs::read(&path);
-
-                // Old behavior.
-                let content = content?;
-
-                Ok(Some(RspackSourceMap::from_bytes(content).with_context(
-                  || {
-                    format!(
-                      "failed to read input source map
-                                  from file at {path}"
-                    )
-                  },
-                )?))
-              }
-              None => Ok(None),
-            }
-          }
-          _ => Ok(None),
-        }
-      };
-
-    let read_sourcemap = || -> Option<RspackSourceMap<'static>> {
-      let s = "sourceMappingURL=";
-      let idx = fm.src.rfind(s);
-
-      let data_url = idx.map(|idx| {
-        let data_idx = idx + s.len();
-        if let Some(end) = fm.src[data_idx..].find('\n').map(|i| i + data_idx + 1) {
-          &fm.src[data_idx..end]
-        } else {
-          &fm.src[data_idx..]
-        }
-      });
-
-      match read_inline_sourcemap(data_url) {
-        Ok(r) => r,
-        Err(_err) => {
-          // Load original source map if possible
-          read_file_sourcemap(data_url).unwrap_or(None)
-        }
-      }
-    };
-
-    // Load original source map
-    match input_src_map {
-      InputSourceMap::Bool(false) => Ok(None),
-      InputSourceMap::Bool(true) => Ok(read_sourcemap()),
-      InputSourceMap::Str(s) => {
-        if s == "inline" {
-          Ok(read_sourcemap())
-        } else {
-          // Load source map passed by user
-          Ok(Some(RspackSourceMap::from_json(s.clone()).context(
-            "failed to read input source map from user-provided sourcemap",
-          )?))
-        }
-      }
-    }
   }
 }
 

@@ -1058,7 +1058,8 @@ impl ESMExportImportedSpecifierDependency {
         .expect("should have parent module for dependency");
       let mut error = if let Some(span) = self.range()
         && let Some(parent_module) = module_graph.module_by_identifier(parent_module_identifier)
-        && let Some(source) = diagnostics_context.module_source(parent_module.as_ref())
+        && let Some((source, span)) =
+          diagnostics_context.module_source_range(parent_module.as_ref(), span)
       {
         Error::from_shared_source(
           Some(source),

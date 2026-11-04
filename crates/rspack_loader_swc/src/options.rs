@@ -38,6 +38,8 @@ impl Default for RawReactServerComponents {
 #[derive(Default, Deserialize, Debug)]
 #[serde(rename_all = "camelCase", default)]
 pub struct RawRspackExperiments {
+  /// Opt in only when every option belongs to the audited portable-output subset.
+  pub portable_output: bool,
   pub import: Option<Vec<RawImportOptions>>,
   #[serde(default)]
   pub react_server_components: RawReactServerComponents,
@@ -389,6 +391,7 @@ pub(crate) struct SwcCompilerOptionsWithAdditional {
   pub(crate) resource_specific_jsc: Option<ResourceSpecificJscResolver>,
   pub(crate) transform_import: Option<Vec<ImportOptions>>,
   pub(crate) rspack_experiments: RspackExperiments,
+  pub(crate) portable_output: bool,
   pub(crate) collect_typescript_info: Option<CollectTypeScriptInfoOptions>,
 }
 
@@ -425,6 +428,13 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
   type Error = serde_json::Error;
   fn try_from(value: &str) -> Result<Self, Self::Error> {
     let option: SwcLoaderJsOptions = serde_json::from_str(value)?;
+    let portable_output = option
+      .rspack_experiments
+      .as_ref()
+      .is_some_and(|experiments| experiments.portable_output)
+      && serde_json::from_str::<Value>(value)?
+        .as_object()
+        .is_some_and(crate::portable_output::supports_portable_output);
     let SwcLoaderJsOptions {
       source_maps,
       source_map,
@@ -465,6 +475,7 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
     }
     Ok(SwcCompilerOptionsWithAdditional {
       raw_options: value.into(),
+      portable_output,
       swc_options: Options {
         config: Config {
           env,

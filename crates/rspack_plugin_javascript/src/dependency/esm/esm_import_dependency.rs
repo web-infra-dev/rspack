@@ -317,7 +317,8 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       (Severity::Warning, "ESModulesLinkingWarning")
     };
     let mut error = if let Some(span) = module_dependency.range()
-      && let Some(source) = diagnostics_context.module_source(parent_module.as_ref())
+      && let Some((source, span)) =
+        diagnostics_context.module_source_range(parent_module.as_ref(), span)
     {
       Error::from_shared_source(
         Some(source),

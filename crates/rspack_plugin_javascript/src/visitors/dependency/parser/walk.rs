@@ -1863,6 +1863,11 @@ impl JavascriptParser<'_> {
   }
 
   fn get_rename_identifier(&mut self, expr: Expr) -> Option<Atom> {
+    // A bare string cannot name an alias. Compound expressions must still be evaluated:
+    // their path-dependent conditions can choose which identifier is renamed.
+    if matches!(self.ast.ast.expr_data(expr), ExprData::StringLiteral(_)) {
+      return None;
+    }
     let result = self.evaluate_expression(expr);
     result.is_identifier().then(|| result.identifier().clone())
   }

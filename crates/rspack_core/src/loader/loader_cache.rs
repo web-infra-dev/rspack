@@ -6,7 +6,7 @@ use rspack_collections::Identifiable;
 use rspack_error::Result;
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_loader_runner::{
-  Content, LoaderContext, LoaderDependencies, LoaderRunnerOptions, ParseMeta,
+  Content, LoaderContext, LoaderDependencies, LoaderRunnerOptions, ParseMeta, PortableOutputMark,
 };
 use rspack_paths::{InternedPath, InternedPathSet};
 use rspack_sources::SourceMap;
@@ -151,6 +151,8 @@ fn loader_cache_item(storage: &CacheFacade, key: &str, etag: Etag) -> ItemCacheF
 
 #[cacheable]
 struct LoaderCacheEntry {
+  // Plain strings deliberately retain same-context authority; never intern or rebase them.
+  portable_output: Option<Vec<String>>,
   content: Option<Vec<u8>>,
   content_is_string: bool,
   source_map: Option<String>,
@@ -165,6 +167,8 @@ pub(crate) struct LoaderCacheMissState {
   cache_key: String,
   etag: Etag,
   diagnostics_len: usize,
+  module_build_diagnostics_len: usize,
+  portable_output_mark: PortableOutputMark,
 }
 
 pub(crate) enum LoaderCacheAction {
@@ -243,6 +247,12 @@ pub(crate) async fn before_normal_chain(
     restore_loader_cache_dependencies(&entry.dependency_snapshot, &mut dependencies);
     loader_cache.record_reuse();
     context.add_dependencies(&dependencies);
+    context.merge_portable_output(
+      entry
+        .portable_output
+        .as_ref()
+        .map(|paths| paths.iter().map(|path| path.as_str().into()).collect()),
+    )?;
     context.parse_meta = entry.parse_meta.clone();
     let build_info = context.context.module.build_info_mut();
     build_info.isolated_dts = entry.isolated_dts.clone();
@@ -255,6 +265,12 @@ pub(crate) async fn before_normal_chain(
     cache_key,
     etag,
     diagnostics_len: context.diagnostics.len(),
+    module_build_diagnostics_len: context
+      .context
+      .module
+      .module_build_diagnostics()
+      .map_or(0, |d| d.diagnostics.len()),
+    portable_output_mark: context.portable_output_mark(),
   })))
 }
 
@@ -264,6 +280,12 @@ pub(crate) async fn after_normal_chain(
 ) {
   if !context.cacheable
     || context.diagnostics.len() != state.diagnostics_len
+    || context
+      .context
+      .module
+      .module_build_diagnostics()
+      .map_or(0, |d| d.diagnostics.len())
+      != state.module_build_diagnostics_len
     || !context.context.module.build_info().assets.is_empty()
     || !context.context.module.build_info().extras.is_empty()
     || context.additional_data().is_some()
@@ -289,6 +311,9 @@ pub(crate) async fn after_normal_chain(
     None => (None, false),
   };
   let entry = LoaderCacheEntry {
+    portable_output: context
+      .portable_output_since(state.portable_output_mark)
+      .map(|paths| paths.into_iter().map(|path| path.into_string()).collect()),
     content,
     content_is_string,
     source_map: context.source_map().map(SourceMap::to_json),

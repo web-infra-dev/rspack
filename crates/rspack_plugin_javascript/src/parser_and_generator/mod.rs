@@ -9,12 +9,14 @@ use rspack_cacheable::{
   with::{AsInner, Skip},
 };
 use rspack_core::{
-  ArcComputed, AsyncDependenciesBlockIdentifier, BuildMetaExportsType,
+  ArcComputed, AsyncDependenciesBlockIdentifier, BuildInfo, BuildMeta, BuildMetaExportsType,
   COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, ChunkGraph, CollectedTypeScriptInfo, Compilation,
-  DependenciesBlock, Dependency, GenerateContext, ImportMeta, Module, ModuleArgument,
-  ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
-  ResolvedModuleOptions, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable,
-  SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
+  CompilerOptions, DependenciesBlock, Dependency, DependencyCodeGenerationRef, FactoryMeta,
+  GenerateContext, ImportMeta, Module, ModuleArgument, ModuleCodeTemplate, ModuleGraph,
+  ModuleIdentifier, ModuleLayer, ModuleType, ParseContext, ParseMeta, ParseResult,
+  ParserAndGenerator, ParserOptions, ResolvedModuleOptions, ResourceData, RuntimeGlobals,
+  RuntimeGlobalsRenderMode, RuntimeVariable, SideEffectsBailoutItem, SourceType, TemplateContext,
+  TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
@@ -38,6 +40,7 @@ use swc_next_ecma_semantic::{AnalyzeOptions, SemanticReturn, SyntaxChecks, analy
 use crate::{
   BoxJavascriptParserPlugin,
   dependency::ESMCompatibilityDependency,
+  portable_paths::{self, Canonical, Prepared},
   visitors::{ParsedJavaScriptAst, ScanDependenciesResult, scan_dependencies},
 };
 
@@ -125,6 +128,28 @@ impl ParserRuntimeRequirementsData {
   }
 }
 
+/// Module inputs shared by every parse of one build.
+struct ParseInput<'a> {
+  module_type: &'a ModuleType,
+  module_layer: Option<&'a ModuleLayer>,
+  resource_data: &'a ResourceData,
+  compiler_options: &'a CompilerOptions,
+  runtime_template: &'a ModuleCodeTemplate,
+  factory_meta: Option<&'a FactoryMeta>,
+  module_identifier: ModuleIdentifier,
+  module_parser_options: Option<&'a ParserOptions>,
+  source_type: SwcSourceType,
+  lang: Lang,
+}
+
+/// One parsed and scanned text, before diagnostics are attributed to loaders.
+struct ParsedText {
+  result: ParseResult,
+  diagnostics: Vec<Diagnostic>,
+  portable_site_evaluated: bool,
+  portable_site_cut: bool,
+}
+
 #[cacheable]
 pub struct JavaScriptParserAndGenerator {
   #[cacheable(with=AsInner)]
@@ -186,6 +211,189 @@ impl JavaScriptParserAndGenerator {
     self.parser_plugins.push(parser_plugin);
   }
 
+  /// Parses and scans one text. With `canonical`, `source` is the canonical text and its site
+  /// literals get their real values before any analysis. Returns `None` when the canonical
+  /// text does not hold one string literal at each site.
+  #[allow(clippy::too_many_arguments)]
+  fn parse_text(
+    &mut self,
+    input: &ParseInput<'_>,
+    source: BoxSource,
+    canonical: Option<&Canonical>,
+    build_info: &mut BuildInfo,
+    build_meta: &mut BuildMeta,
+    parse_meta: ParseMeta,
+  ) -> Option<ParsedText> {
+    let mut diagnostics: Vec<Diagnostic> = vec![];
+    let unparsed = |source: BoxSource, diagnostics: Vec<Diagnostic>| {
+      Some(ParsedText {
+        result: ParseResult {
+          source,
+          dependencies: vec![],
+          blocks: vec![],
+          presentational_dependencies: vec![],
+          code_generation_dependencies: vec![],
+          side_effects_bailout: None,
+        },
+        diagnostics,
+        portable_site_evaluated: false,
+        portable_site_cut: false,
+      })
+    };
+
+    let source_string = source.source().into_string_lossy();
+    let allocator = Allocator::new();
+    let ParseReturn {
+      mut ast,
+      tokens,
+      diagnostics: parse_diagnostics,
+    } = Parser::init(
+      &allocator,
+      source_string.as_ref(),
+      Options {
+        source_type: input.source_type,
+        lang: input.lang,
+        preserve_parens: false,
+        comments: CommentMode::Flat,
+      },
+      TokenParserConfig,
+    )
+    .parse();
+
+    if !parse_diagnostics.is_empty() {
+      append_swc_next_diagnostics(&mut diagnostics, &source_string, parse_diagnostics);
+      return unparsed(source, diagnostics);
+    }
+
+    let portable_sites = match canonical {
+      Some(canonical) => {
+        if !canonical.restore_real_literals(&mut ast) {
+          return None;
+        }
+        Some(canonical.site_ranges())
+      }
+      None => None,
+    };
+
+    let mut semicolons = Default::default();
+    let scan_diagnostics = AstScanner::new(&mut semicolons, &tokens).scan(&ast);
+    if !scan_diagnostics.is_empty() {
+      append_swc_next_diagnostics(&mut diagnostics, &source_string, scan_diagnostics);
+      return unparsed(source, diagnostics);
+    }
+
+    // Keep the legacy SWC parser's permissive behavior for these semantic checks.
+    let check_syntax = SyntaxChecks::all()
+      - SyntaxChecks::REDECLARATIONS
+      - SyntaxChecks::TS_IMPORT_ALIAS_CONFLICTS
+      - SyntaxChecks::REGEXP_LITERALS
+      - SyntaxChecks::PRIVATE_NAME_REFERENCES
+      - SyntaxChecks::DUPLICATE_PRIVATE_NAMES
+      - SyntaxChecks::DELETE_PRIVATE_FIELDS
+      - SyntaxChecks::SUPER_CALLS
+      - SyntaxChecks::FUNCTION_DECLARATIONS
+      - SyntaxChecks::CLASS_MEMBER_NAMES
+      - SyntaxChecks::STRICT_BINDING_NAMES
+      - SyntaxChecks::STRICT_ASSIGNMENT_TARGETS
+      - SyntaxChecks::DUPLICATE_EXPORTS
+      - SyntaxChecks::UNRESOLVED_EXPORTS
+      - SyntaxChecks::CONTINUE_STATEMENTS
+      - SyntaxChecks::BREAK_STATEMENTS
+      - SyntaxChecks::AWAIT_EXPRESSIONS
+      - SyntaxChecks::YIELD_EXPRESSIONS;
+    let SemanticReturn {
+      semantic,
+      diagnostics: semantic_diagnostics,
+    } = analyze(
+      &ast,
+      AnalyzeOptions {
+        check_syntax,
+        build_module_record: false,
+      },
+    );
+    if !semantic_diagnostics.is_empty() {
+      append_swc_next_diagnostics(&mut diagnostics, &source_string, semantic_diagnostics);
+      return unparsed(source, diagnostics);
+    }
+
+    let program = ast.root_program();
+    let comments = RspackComments::from_ast(&ast);
+    let parsed_ast = ParsedJavaScriptAst {
+      ast: &ast,
+      comments: &comments,
+      semantic: &semantic,
+      program,
+    };
+    let parser_runtime_requirements = ParserRuntimeRequirementsData::new(input.runtime_template);
+    let portable_location_shifts =
+      canonical.map(|canonical| canonical.location_shifts(&source_string));
+
+    let ScanDependenciesResult {
+      dependencies,
+      blocks,
+      presentational_dependencies,
+      mut warning_diagnostics,
+      mut side_effects_item,
+      portable_site_evaluated,
+      portable_site_cut,
+    } = match scan_dependencies(
+      &source_string,
+      &parsed_ast,
+      input.resource_data,
+      input.compiler_options,
+      input.module_type,
+      input.module_layer,
+      input.factory_meta,
+      build_meta,
+      build_info,
+      input.module_identifier,
+      input.module_parser_options,
+      ArcComputed::clone(&self.import_meta),
+      &mut semicolons,
+      &mut self.parser_plugins,
+      parse_meta,
+      &parser_runtime_requirements,
+      portable_sites.as_deref(),
+      portable_location_shifts.as_deref(),
+    ) {
+      Ok(result) => result,
+      Err(mut e) => {
+        diagnostics.append(&mut e);
+        return unparsed(source, diagnostics);
+      }
+    };
+    diagnostics.append(&mut warning_diagnostics);
+    let mut side_effects_bailout = None;
+
+    if input.compiler_options.optimization.side_effects.is_true() {
+      let has_side_effects = side_effects_item.is_some();
+      build_meta.set_side_effect_free(!has_side_effects);
+      if has_side_effects {
+        build_info.deferred_pure_checks.clear();
+      }
+      side_effects_bailout = side_effects_item.take().and_then(|item| -> Option<_> {
+        Some(SideEffectsBailoutItem {
+          loc: item.loc?,
+          ty: item.ty,
+        })
+      });
+    }
+
+    Some(ParsedText {
+      result: ParseResult {
+        source,
+        dependencies,
+        blocks,
+        presentational_dependencies,
+        code_generation_dependencies: vec![],
+        side_effects_bailout,
+      },
+      diagnostics,
+      portable_site_evaluated,
+      portable_site_cut,
+    })
+  }
+
   fn source_block(
     &self,
     compilation: &Compilation,
@@ -240,7 +448,20 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   }
 
   fn size(&self, module: &dyn Module, _source_type: Option<&SourceType>) -> f64 {
-    module.source().map_or(0, |source| source.size()) as f64
+    // The stored source, so a restored module and a cold build in another root agree.
+    let source = match module.as_normal_module() {
+      Some(module) => module.normalized_source(),
+      None => module.source(),
+    };
+    source.map_or(0, |source| source.size()) as f64
+  }
+
+  fn source_view(
+    &self,
+    source: &BoxSource,
+    presentational_dependencies: &[DependencyCodeGenerationRef],
+  ) -> Option<rspack_core::SourceView> {
+    portable_paths::render_view(source, presentational_dependencies)
   }
 
   #[tracing::instrument("JavaScriptParser:parse", skip_all,fields(
@@ -264,9 +485,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       loaders,
       module_parser_options,
       mut parse_meta,
+      portable_output,
       ..
     } = parse_context;
-    let mut diagnostics: Vec<Diagnostic> = vec![];
 
     if let Some(collected_ts_info) = parse_meta.remove(COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY)
       && let Ok(collected_ts_info) = collected_ts_info
@@ -276,165 +497,112 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       build_info.collected_typescript_info = Some(*collected_ts_info);
     }
 
-    let default_with_diagnostics = |source: Arc<dyn Source>, diagnostics: Vec<Diagnostic>| {
-      Ok(
-        ParseResult {
-          source,
-          dependencies: vec![],
-          blocks: vec![],
-          presentational_dependencies: vec![],
-          code_generation_dependencies: vec![],
-          side_effects_bailout: None,
-        }
-        .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
-          diagnostics,
-          loaders,
-        )),
-      )
-    };
-
     let source = remove_bom(source);
-    let source_string = source.source().into_string_lossy();
 
     let jsx = module_parser_options
       .and_then(|options| options.get_javascript())
       .and_then(|options| options.jsx)
       .unwrap_or(false);
-
-    let allocator = Allocator::new();
     let source_type = match module_type {
       ModuleType::JsEsm => SwcSourceType::Module,
       ModuleType::JsDynamic => SwcSourceType::CommonJs,
       _ => SwcSourceType::Unambiguous,
     };
-    let ParseReturn {
-      ast,
-      tokens,
-      diagnostics: parse_diagnostics,
-    } = Parser::init(
-      &allocator,
-      source_string.as_ref(),
-      Options {
-        source_type,
-        lang: if jsx { Lang::Jsx } else { Lang::Js },
-        preserve_parens: false,
-        comments: CommentMode::Flat,
-      },
-      TokenParserConfig,
-    )
-    .parse();
-
-    if !parse_diagnostics.is_empty() {
-      append_swc_next_diagnostics(&mut diagnostics, &source_string, parse_diagnostics);
-      return default_with_diagnostics(source, diagnostics);
-    }
-
-    let mut semicolons = Default::default();
-    let scan_diagnostics = AstScanner::new(&mut semicolons, &tokens).scan(&ast);
-    if !scan_diagnostics.is_empty() {
-      append_swc_next_diagnostics(&mut diagnostics, &source_string, scan_diagnostics);
-      return default_with_diagnostics(source, diagnostics);
-    }
-
-    // Keep the legacy SWC parser's permissive behavior for these semantic checks.
-    let check_syntax = SyntaxChecks::all()
-      - SyntaxChecks::REDECLARATIONS
-      - SyntaxChecks::TS_IMPORT_ALIAS_CONFLICTS
-      - SyntaxChecks::REGEXP_LITERALS
-      - SyntaxChecks::PRIVATE_NAME_REFERENCES
-      - SyntaxChecks::DUPLICATE_PRIVATE_NAMES
-      - SyntaxChecks::DELETE_PRIVATE_FIELDS
-      - SyntaxChecks::SUPER_CALLS
-      - SyntaxChecks::FUNCTION_DECLARATIONS
-      - SyntaxChecks::CLASS_MEMBER_NAMES
-      - SyntaxChecks::STRICT_BINDING_NAMES
-      - SyntaxChecks::STRICT_ASSIGNMENT_TARGETS
-      - SyntaxChecks::DUPLICATE_EXPORTS
-      - SyntaxChecks::UNRESOLVED_EXPORTS
-      - SyntaxChecks::CONTINUE_STATEMENTS
-      - SyntaxChecks::BREAK_STATEMENTS
-      - SyntaxChecks::AWAIT_EXPRESSIONS
-      - SyntaxChecks::YIELD_EXPRESSIONS;
-    let SemanticReturn {
-      semantic,
-      diagnostics: semantic_diagnostics,
-    } = analyze(
-      &ast,
-      AnalyzeOptions {
-        check_syntax,
-        build_module_record: false,
-      },
-    );
-    if !semantic_diagnostics.is_empty() {
-      append_swc_next_diagnostics(&mut diagnostics, &source_string, semantic_diagnostics);
-      return default_with_diagnostics(source, diagnostics);
-    }
-
-    let program = ast.root_program();
-    let comments = RspackComments::from_ast(&ast);
-    let parsed_ast = ParsedJavaScriptAst {
-      ast: &ast,
-      comments: &comments,
-      semantic: &semantic,
-      program,
-    };
-    let parser_runtime_requirements = ParserRuntimeRequirementsData::new(runtime_template);
-
-    let ScanDependenciesResult {
-      dependencies,
-      blocks,
-      presentational_dependencies,
-      mut warning_diagnostics,
-      mut side_effects_item,
-    } = match scan_dependencies(
-      &source_string,
-      &parsed_ast,
-      resource_data,
-      compiler_options,
+    let lang = if jsx { Lang::Jsx } else { Lang::Js };
+    let input = ParseInput {
       module_type,
       module_layer,
+      resource_data,
+      compiler_options,
+      runtime_template,
       factory_meta,
-      build_meta,
-      build_info,
       module_identifier,
       module_parser_options,
-      ArcComputed::clone(&self.import_meta),
-      &mut semicolons,
-      &mut self.parser_plugins,
-      parse_meta,
-      &parser_runtime_requirements,
-    ) {
-      Ok(result) => result,
-      Err(mut e) => {
-        diagnostics.append(&mut e);
-        return default_with_diagnostics(source, diagnostics);
-      }
+      source_type,
+      lang,
     };
-    diagnostics.append(&mut warning_diagnostics);
-    let mut side_effects_bailout = None;
 
-    if compiler_options.optimization.side_effects.is_true() {
-      let has_side_effects = side_effects_item.is_some();
-      build_meta.set_side_effect_free(!has_side_effects);
-      if has_side_effects {
-        build_info.deferred_pure_checks.clear();
+    // Certified literals are normalized with or without a persistent cache, so cache:false and
+    // cached builds emit the same code, maps and hashes.
+    let mut root_sensitive = false;
+    if let Some(paths) = portable_output.filter(|paths| !paths.is_empty()) {
+      let text = source.source().into_string_lossy();
+      let prepared = if module_parser_options
+        .and_then(|options| options.get_javascript())
+        .is_some_and(|options| options.is_create_require_enabled())
+      {
+        // createRequire replacements copy source spans, including enclosing expressions.
+        // Those spans must contain real paths rather than canonical placeholders.
+        Prepared::Unsupported
+      } else {
+        portable_paths::prepare(
+          &source,
+          &text,
+          paths,
+          compiler_options.context.as_path(),
+          source_type,
+          lang,
+        )
+      };
+      match prepared {
+        Prepared::Unchanged => {}
+        Prepared::Unsupported => root_sensitive = true,
+        Prepared::Canonical(canonical) => {
+          let saved_build_info = build_info.clone();
+          let saved_build_meta = build_meta.clone();
+          let saved_parse_meta: ParseMeta = parse_meta
+            .iter()
+            .map(|(key, value)| (key.clone(), value.clone_parse_meta()))
+            .collect();
+          let parsed = self.parse_text(
+            &input,
+            canonical.source.clone(),
+            Some(&canonical),
+            build_info,
+            build_meta,
+            parse_meta,
+          );
+          match parsed {
+            // Diagnostics excerpt the source text, and a range that cuts into a literal was
+            // computed from canonical bytes, so either keeps the real text.
+            Some(ParsedText {
+              mut result,
+              diagnostics,
+              portable_site_evaluated,
+              portable_site_cut: false,
+            }) if diagnostics.is_empty() => {
+              // Match the ordinary scan, which consumes the module's parser plugins.
+              self.parser_plugins.clear();
+              build_info.root_sensitive |= portable_site_evaluated;
+              result
+                .presentational_dependencies
+                .extend(canonical.into_dependencies());
+              return Ok(result.with_empty_diagnostic());
+            }
+            _ => {
+              *build_info = saved_build_info;
+              *build_meta = saved_build_meta;
+              parse_meta = saved_parse_meta;
+              root_sensitive = true;
+            }
+          }
+        }
       }
-      side_effects_bailout = side_effects_item.take().and_then(|item| -> Option<_> {
-        let msg = item.loc?.to_string();
-        Some(SideEffectsBailoutItem { msg, ty: item.ty })
-      });
     }
 
+    let ParsedText {
+      result,
+      diagnostics,
+      ..
+    } = self
+      .parse_text(&input, source, None, build_info, build_meta, parse_meta)
+      .expect("the real text has no canonical literals to restore");
+    if root_sensitive {
+      // The module holds a certified path that is not relocated, possibly without root bytes.
+      build_info.root_sensitive = true;
+    }
     Ok(
-      ParseResult {
-        source,
-        dependencies,
-        blocks,
-        presentational_dependencies,
-        code_generation_dependencies: vec![],
-        side_effects_bailout,
-      }
-      .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
+      result.with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
         diagnostics,
         loaders,
       )),
@@ -468,8 +636,13 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         self.source_dependency(compilation, dependency.as_ref(), &mut source, &mut context)
       });
 
+      let mut portable_sites = vec![];
       if let Some(dependencies) = module.get_presentational_dependencies() {
         dependencies.iter().for_each(|dependency| {
+          if let Some(site) = portable_paths::as_site(dependency) {
+            portable_sites.push(site);
+            return;
+          }
           if let Some(template) = dependency
             .dependency_template()
             .and_then(|template_type| compilation.get_dependency_template(template_type))
@@ -488,6 +661,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .get_blocks()
         .iter()
         .for_each(|block_id| self.source_block(compilation, block_id, &mut source, &mut context));
+      // Certified literals render last, so they see every replacement that removed them.
+      for site in portable_sites {
+        site.render(&mut source);
+      }
       generate_context.concatenation_scope = context.concatenation_scope.take();
       render_init_fragments(source.boxed(), init_fragments, generate_context)
     } else {

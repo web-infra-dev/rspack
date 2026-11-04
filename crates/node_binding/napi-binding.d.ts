@@ -307,7 +307,7 @@ export declare class JsCompilation {
   get contextDependencies(): FileSystemDependencies
   get missingDependencies(): FileSystemDependencies
   get buildDependencies(): FileSystemDependencies
-  pushDiagnostic(diagnostic: JsRspackDiagnostic): void
+  pushDiagnostic(diagnostic: JsRspackDiagnostic, captureForModule?: boolean | undefined | null): ExternalObject<'Diagnostic'> | null
   pushNativeDiagnostic(diagnostic: ExternalObject<'Diagnostic'>): void
   pushNativeDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>): void
   get errors(): Diagnostics
@@ -994,6 +994,10 @@ export interface JsLoaderContext {
   __internal__parseMeta: Record<string, string>
   sourceMap?: Buffer
   cacheable: boolean
+  /** Owned emissions from this JS span, including emissions before a loader error. */
+  moduleBuildDiagnostics: ExternalObject<'Diagnostic'>[]
+  /** Contribution of this JS execution span only; absence means uncertified. */
+  portableOutput?: Array<string>
   dependencies: JsLoaderDependencies
   addedDependencies: JsLoaderDependencies
   removedDependencies: JsLoaderDependencies
