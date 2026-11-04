@@ -1,9 +1,10 @@
 {
   "name": "@rspack/binding-wasm32-wasi",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "rspack.wasi.cjs",
+  "types": "rspack.wasi.d.cts",
   "browser": "rspack.wasi-browser.js",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -21,6 +22,7 @@
   "files": [
     "rspack.wasm32-wasi.wasm",
     "rspack.wasi.cjs",
+    "rspack.wasi.d.cts",
     "rspack.wasi-browser.js",
     "wasi-worker.mjs",
     "wasi-worker-browser.mjs"

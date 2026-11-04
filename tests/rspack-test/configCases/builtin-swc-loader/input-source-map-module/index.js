@@ -10,15 +10,18 @@ const output = fs.readFileSync(__filename, "utf-8");
 const input = fs.readFileSync(path.resolve(CONTEXT, "a.jsx"), "utf-8");
 let sourceUrl = source => `webpack:///${source}`;
 let runtimeSource = name => sourceUrl(`webpack/runtime/${name}`);
+let bootstrapSource = sourceUrl("webpack/bootstrap");
 if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
 	sourceUrl = source => `rspack:///${source}`;
 	runtimeSource = name => sourceUrl(`rspack/runtime/${name}`);
+	bootstrapSource = sourceUrl("rspack/bootstrap");
 }
 
 it("should keep the original content with `devtool: \"source-map\"` enabled", () => {
 	expect(map.sources.sort()).toEqual([
 		sourceUrl("./a.jsx"),
 		sourceUrl("./index.js"),
+		bootstrapSource,
 		runtimeSource("define_property_getters"),
 		runtimeSource("has_own_property"),
 		runtimeSource("make_namespace_object"),

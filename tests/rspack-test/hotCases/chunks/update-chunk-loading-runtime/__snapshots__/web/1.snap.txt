@@ -12,7 +12,7 @@
 - Bundle: vendors-node_modules_vendor_js.js
 - Manifest: runtime~main.LAST_HASH.hot-update.json, size: 76
 - Update: main.LAST_HASH.hot-update.js, size: 660
-- Update: runtime~main.LAST_HASH.hot-update.js, size: 19298
+- Update: runtime~main.LAST_HASH.hot-update.js, size: 20610
 - Update: vendors-node_modules_vendor_js.LAST_HASH.hot-update.js, size: 374
 
 ## Manifest
@@ -68,6 +68,7 @@ module.hot.accept();
 #### Changed Runtime Modules
 - webpack/runtime/ensure_chunk
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
 - webpack/runtime/jsonp_chunk_loading
 
 #### Changed Content
@@ -80,12 +81,23 @@ __webpack_require__.f = {};
 // This file contains only the entry chunk.
 // The chunk loading function for additional chunks
 __webpack_require__.e = (chunkId) => {
-	return Promise.all(
+	var promises =
 		Object.keys(__webpack_require__.f).reduce((promises, key) => {
 			__webpack_require__.f[key](chunkId, promises);
 			return promises;
-		}, [])
-	);
+		}, []);
+	var versionError;
+	var promise = Promise.all(promises.map((promise) => {
+		return Promise.resolve(promise).catch((error) => {
+			if (error.name !== "ChunkVersionError") throw error;
+			versionError = error;
+		});
+	}));
+	return promises.length ? promise.then((result) => {
+		// Keep pending hot-update downloads blocking prepare after a version mismatch.
+		if (versionError) throw versionError;
+		return result;
+	}) : promise;
 };
 })();
 // webpack/runtime/get javascript chunk filename
@@ -101,6 +113,11 @@ __webpack_require__.u = (chunkId) => {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV["chunk_js"] = "CHUNK_VERSION";
+
 })();
 // webpack/runtime/jsonp_chunk_loading
 (() => {
@@ -136,6 +153,11 @@ if (installedChunkData !== 0) {
 					installedChunkData = jsonpInstalledChunks[chunkId];
 					if (installedChunkData !== 0) jsonpInstalledChunks[chunkId] = undefined;
 					if (installedChunkData) {
+						if (installedChunkData.error) {
+							installedChunkData[1](installedChunkData.error);
+							return;
+						}
+
 						var errorType =
 							event && (event.type === 'load' ? 'missing' : event.type);
 						var realSrc = event && event.target && event.target.src;
@@ -211,6 +233,16 @@ var hotCurrentUpdateChunks;
 var hotCurrentUpdate;
 var hotCurrentUpdateRemovedChunks;
 var hotCurrentUpdateRuntime;
+function hotCheckChunk(chunkIds, version) {
+	if (version === undefined) return;
+	for (var i = 0; i < chunkIds.length; i++) {
+		if (version !== __webpack_require__.hmrV[chunkIds[i]]) {
+			var error = new Error("Chunk is from another build (" + version + ")");
+			error.name = "ChunkVersionError";
+			return error;
+		}
+	}
+}
 function hotApplyHandler(options) {
 	if (__webpack_require__.f) delete __webpack_require__.f.jsonpHmr;
 	hotCurrentUpdateChunks = undefined;
@@ -687,6 +719,16 @@ __webpack_require__.O.j = (chunkId) => (jsonpInstalledChunks[chunkId] === 0);
 // install a JSONP callback for chunk loading
 var __rspack_jsonp = (parentChunkLoadingFunction, data) => {
 	var [chunkIds, moreModules, runtime] = data;
+	var error = hotCheckChunk(chunkIds, data[3]);
+	if (error) {
+		// Reject after the script's onload has cleaned up this attempt.
+		chunkIds.forEach(function (id) {
+			if (jsonpInstalledChunks[id]) jsonpInstalledChunks[id].error = error;
+		});
+		if (parentChunkLoadingFunction) parentChunkLoadingFunction(data);
+		return;
+	}
+
 	// add "moreModules" to the modules object,
 	// then flag all "chunkIds" as loaded and fire callback
 	var moduleId, chunkId, i = 0;

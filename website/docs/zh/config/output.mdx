@@ -95,7 +95,7 @@ export default {
 
 - `version`：用于指定 Rspack 版本，默认读取 `@rspack/core/package.json` 中的 `version` 字段。
 - `bundler`：用于指定打包工具名称，默认为 `rspack`
-- `force`：是否强制注入 Rspack 信息，会以运行时模块的形式加入到产物中，默认为 `false`，可通过数组选择强制注入的项目。
+- `force`：是否强制注入 Rspack 信息，会以 [Rspack 运行时模块](/misc/glossary#rspack-runtime-module)的形式加入到产物中，默认为 `false`，可通过数组选择强制注入的项目。
 
 默认情况下，在检测到代码中使用了 `import.meta.rspackVersion` 或 `import.meta.rspackUniqueId` 时，会按需注入对应信息。可将 `force` 设定为 `true` 始终注入：
 
@@ -117,7 +117,7 @@ export default {
 
 这个选项决定了非初始块文件的名称。有关可能值的详细信息，请参见 [`output.filename`](/config/output#outputfilename) 选项。
 
-注意，这些文件名需要在运行时生成，以便发送 chunk 的请求。因此，像 `[name]` 和 `[chunkhash]` 这样的占位符需要在 Rspack 运行时将 chunk id 映射到占位符值添加到输出 bundle 中。这会增加大小，并且可能会在任何 chunk 的占位符值更改时使 bundle 的缓存失效。
+这些文件名需要在运行时生成，以便请求对应的 chunk。因此，使用 `[name]` 和 `[chunkhash]` 等占位符时，需要在构建产物中加入 chunk ID 到占位符值的映射，供 Rspack 运行时使用。这会增加产物体积，且任一 chunk 的占位符值变化都可能使包含该映射的 bundle 缓存失效。
 
 未配置此选项时，Rspack 根据 [`output.filename`](#outputfilename) 推断默认值：
 
@@ -483,7 +483,7 @@ export default {
 - **类型：** `('...' | 'fetch' | 'async-node' | 'universal')[]`
 - **默认值：** 根据 [`output.wasmLoading`](#outputwasmloading) 及 [`output.workerWasmLoading`](#outputworkerwasmloading) 的配置推断
 
-开启可用的 Wasm 加载类型的运行时模块打包。
+为启用的 Wasm 加载类型包含相应的 Rspack 运行时模块。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -538,12 +538,14 @@ type Environment = {
   logicalAssignment?: boolean;
   /** The environment supports template literals. */
   templateLiteral?: boolean;
+  /** The environment supports top-level await ('await x' at the top level of a module). */
+  topLevelAwait?: boolean;
 };
 ```
 
-`output.environment` 定义 Rspack 在生成运行时代码时可以使用的 ECMAScript 语言特性和宿主环境特性。
+`output.environment` 定义生成的 Rspack 运行时代码可以使用的 ECMAScript 语言特性和宿主环境特性。
 
-该选项仅影响 Rspack 生成的 runtime 代码和辅助函数，不会影响源代码的语法降级。
+该选项仅影响生成的 Rspack 运行时代码和辅助函数，不会影响源代码的语法降级。
 
 ### 默认值
 
@@ -551,14 +553,14 @@ type Environment = {
 
 Rspack 会基于 `target` 识别目标环境支持的语言能力，例如：
 
-- 若目标浏览器已支持箭头函数，Rspack 会默认使用箭头函数以缩短 runtime 代码
+- 若目标浏览器已支持箭头函数，Rspack 会默认使用箭头函数以缩短 Rspack 运行时代码
 - 若 `target` 指向特定 Node 版本，Rspack 会根据该版本的语法能力推断对应字段
 
-通常你无需手动设置此选项，除非你希望强制启用或禁用某些语法。当你手动配置此选项时，可以覆盖 Rspack 自动推断的结果，显式声明目标环境是否支持某些语法特性，从而影响 runtime 代码的输出形式。
+通常你无需手动设置此选项，除非你希望强制启用或禁用某些语法。当你手动配置此选项时，可以覆盖 Rspack 自动推断的结果，显式声明目标环境是否支持某些语法特性，从而影响 Rspack 运行时代码的输出形式。
 
 ### 示例
 
-例如，当 `target` 为 `['web', 'es2018']` 时，Rspack 会默认启用 `const` 语法，你可以通过手动配置 `output.environment.const: false` 来禁用它。此时 Rspack 会生成使用 `var` 声明变量的 runtime 代码。
+例如，当 `target` 为 `['web', 'es2018']` 时，Rspack 会默认启用 `const` 语法，你可以通过手动配置 `output.environment.const: false` 来禁用它。此时 Rspack 会生成使用 `var` 声明变量的 Rspack 运行时代码。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1136,7 +1138,7 @@ export default {
 
 输出 ESM 模块。
 
-这是一条更偏向兼容性的 ESM library 路径：Rspack 仍沿用常规的 chunk / runtime 渲染流程，再把入口导出转换成 `export` 语句。它更适合较简单的 ESM 库输出，或者你只需要 webpack 风格 `module` 语义的场景。
+这是一条更偏向兼容性的 ESM library 路径：Rspack 仍沿用常规的 chunk 和 Rspack 运行时的渲染流程，再把入口导出转换成 `export` 语句。它更适合较简单的 ESM 库输出，或者你只需要 webpack 风格 `module` 语义的场景。
 
 ##### type: 'modern-module'
 
@@ -1155,7 +1157,7 @@ export default {
 
 :::tip `module` 和 `modern-module` 的区别
 
-- `module` 仍走常规的 chunk / runtime 渲染流程，属于更接近 webpack 兼容语义的 ESM 输出。
+- `module` 仍走常规的 chunk 和 Rspack 运行时的渲染流程，属于更接近 webpack 兼容语义的 ESM 输出。
 - `modern-module` 会由专用的 ESM library 插件接管 chunk 渲染、链接、scope hoisting 和 splitChunks，更适合发布可 tree-shake、可 code-split 的 ESM 库。
 - `modern-module` 当前是为补齐库场景 ESM 能力而单独引入的类型；等能力进一步稳定后，计划与 `module` 收敛为同一个 `library.type`。
 - `preserveModules` 仅在 `modern-module` 下可用。
@@ -1692,7 +1694,7 @@ module.exports = {
 
 - `true`: 启用基础的注释输出，包括模块路径信息。
 - `false`: 不输出任何注释，这是默认行为。
-- `'verbose'`：输出更详细的信息，例如模块导出、运行时信息、tree shaking 信息和 `bailout` 原因。适合排查构建问题或深入分析构建结果。
+- `'verbose'`：输出更详细的信息，例如模块导出、Rspack 运行时信息、tree shaking 信息和 `bailout` 原因。适合排查构建问题或深入分析构建结果。
 
 例如将 `pathinfo` 设置为 `true`：
 
@@ -1846,7 +1848,7 @@ export default {
   2. `context` 目录下 `package.json` 的 `name`
   3. `''`（空字符串）
 
-该选项用于标识当前构建的唯一名称，主要用于避免多个 Rspack 应用在同一全局环境中运行时，其运行时代码发生冲突。
+该选项用于标识当前构建的唯一名称，主要用于避免多个 Rspack 应用在同一全局环境中运行时，其 Rspack 运行时代码发生冲突。
 
 `output.uniqueName` 会影响以下配置项的默认值：
 
@@ -1899,9 +1901,9 @@ export default {
 - **类型：** `boolean`
 - **默认值：** `true`
 
-控制生成的 WebAssembly 加载运行时代码是否在 `WebAssembly.compileStreaming` 或 `WebAssembly.instantiateStreaming` 因响应未使用 `application/wasm` MIME 类型而失败时，回退到非流式 API。
+控制 Rspack 运行时中的 WebAssembly 加载代码是否在 `WebAssembly.compileStreaming` 或 `WebAssembly.instantiateStreaming` 因响应未使用 `application/wasm` MIME 类型而失败时，回退到非流式 API。
 
-如果服务器始终以正确的 MIME 类型提供 WebAssembly 文件，可以将此选项设置为 `false`，从而省略相关的回退运行时代码。
+如果服务器始终以正确的 MIME 类型提供 WebAssembly 文件，可以将此选项设置为 `false`，从而省略 Rspack 运行时中相关的回退代码。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1964,6 +1966,8 @@ export default {
 - **默认值：** `""`
 
 为 Worker 设置一个公共路径，默认为 [output.publicPath](#outputpublicpath) 的值。只有在 Worker 脚本位于与其他脚本不同的路径时才使用此选项。
+
+使用默认的 Worker URL 处理方式时，Worker 的相对 URL 会基于 Rspack 运行时的 [Base URI](/guide/features/asset-base-path#base-uri) 解析。
 
 ```js title="rspack.config.mjs"
 export default {

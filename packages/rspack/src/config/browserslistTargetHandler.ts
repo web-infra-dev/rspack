@@ -335,6 +335,25 @@ export const resolve = (
       kaios: 3,
       node: [7, 6],
     }),
+    topLevelAwait: rawChecker({
+      chrome: 89,
+      and_chr: 89,
+      edge: 89,
+      firefox: 89,
+      and_ff: 89,
+      // ie: Not supported,
+      opera: 75,
+      op_mob: 63,
+      safari: 15,
+      ios_saf: 15,
+      samsung: 15,
+      android: 89,
+      // and_qq: Not supported
+      // baidu: Not supported
+      // and_uc: Not supported
+      // kaios: Not supported
+      node: [14, 8],
+    }),
     browser: browserProperty,
     electron: false,
     node: nodeProperty,

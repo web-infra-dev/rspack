@@ -55,7 +55,7 @@ To generate a separate HTML file for each entry point, register multiple `rspack
 - Use `filename` to name each HTML file.
 - Use `chunks` to select the entry-point assets included in each HTML file.
 
-The following configuration emits `foo.html` and `bar.html`. Each file contains the assets required by its matching entry point, including runtime and shared assets.
+The following configuration emits `foo.html` and `bar.html`. Each file contains the assets required by its matching entry point, including Rspack runtime and shared assets.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -658,7 +658,7 @@ Sets the attributes on generated `<script>` tags and determines their default in
 
 Selects entry points whose JavaScript and CSS files are included in the HTML. Each value is compared with an entry point name using exact string equality; it does not match an arbitrary chunk ID, asset filename, or module path. Unknown names are ignored.
 
-When omitted, every entry point is selected before [`excludeChunks`](#excludechunks) is applied. Selecting an entry point also includes the runtime and shared files required by that entry.
+When omitted, every entry point is selected before [`excludeChunks`](#excludechunks) is applied. Selecting an entry point also includes the Rspack runtime and shared files required by that entry.
 
 With the default [`chunksSortMode: 'auto'`](#chunkssortmode), `chunks` first limits the entry points and `excludeChunks` then removes matches. With `'manual'`, a provided `chunks` array instead becomes the final ordered entry list. If `chunks` is omitted, `excludeChunks` still filters the compilation's entry point order.
 

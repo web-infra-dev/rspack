@@ -98,7 +98,7 @@ impl Compiler {
         true,
         self.compiler_context.clone(),
       );
-      next_compilation.hot_index = self.compilation.hot_index + 1;
+      next_compilation.hot_index = self.compilation.hot_index;
 
       if next_compilation
         .incremental

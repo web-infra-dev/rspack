@@ -1,5 +1,5 @@
 ---
-description: '配置 Rspack 的 tree shaking、代码压缩、模块与 chunk ID、运行时代码提取和代码分割。'
+description: '配置 Rspack 的 tree shaking、代码压缩、模块与 chunk ID、Rspack 运行时代码提取和代码分割。'
 ---
 
 import { ApiMeta } from '@components/ApiMeta';
@@ -493,11 +493,11 @@ export default {
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-用来控制 Rspack 的 [runtime](/misc/glossary#runtime) chunk 如何生成。
+控制是否将 [Rspack 运行时](/misc/glossary#rspack-runtime) 提取到独立的 chunk 中。
 
-默认为 `false`，这意味着运行时代码会被内联到入口的 chunks 中。
+默认为 `false`，这意味着 Rspack 运行时代码会被内联到入口的 chunks 中。
 
-设置为 `true` 或 `'multiple'` 会为每个入口添加一个仅包含运行时的额外 chunk。该设置等同于：
+设置为 `true` 或 `'multiple'` 会为每个入口添加一个仅包含 Rspack 运行时的额外 chunk。该设置等同于：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -509,7 +509,7 @@ export default {
 };
 ```
 
-设置为 `'single'` 会将所有入口的运行时代码抽离到一个名为 `runtime` 的单独 chunk。该设置等同于：
+设置为 `'single'` 会将所有入口的 Rspack 运行时代码抽离到一个名为 `runtime` 的单独 chunk。该设置等同于：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -521,7 +521,7 @@ export default {
 };
 ```
 
-设置为对象时，可以提供可选的 `name` 属性，该属性代表 runtime chunk 的名称。
+设置为对象时，可以提供可选的 `name` 属性，该属性代表 Rspack 运行时 chunk 的名称。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -535,8 +535,34 @@ export default {
 ```
 
 :::tip
-被导入的模块在每个 runtime chunk 中是单独初始化的，因此，如果你在单个页面中包含多个入口 chunks，请留意这种行为。你需要将 `optimization.runtimeChunk` 设置为 `'single'` 或使用其他配置，以保证页面仅包含一个 runtime 实例。
+每个 Rspack 运行时都会单独初始化导入的模块。如果同一页面中的多个入口需要共享模块实例，可以将 `optimization.runtimeChunk` 设置为 `'single'`，或通过其他配置让它们共用一个运行时实例。
 :::
+
+以下配置定义了 `pageA` 和 `pageB` 两个入口。假设两个入口文件都导入了同一个 `shared.js` 模块，且它们的构建产物在同一个 HTML 页面中加载：
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    pageA: './src/page-a.js',
+    pageB: './src/page-b.js',
+  },
+  optimization: {
+    runtimeChunk: 'single',
+  },
+};
+```
+
+修改 `runtimeChunk` 后，产物文件和 `shared.js` 的初始化次数如下：
+
+| `runtimeChunk` | 生成的 JavaScript 文件                                         | `shared.js` 初始化次数 |
+| -------------- | -------------------------------------------------------------- | ---------------------- |
+| `false`        | `pageA.js`、`pageB.js`                                         | 两次                   |
+| `'multiple'`   | `runtime~pageA.js`、`runtime~pageB.js`、`pageA.js`、`pageB.js` | 两次                   |
+| `'single'`     | `runtime.js`、`pageA.js`、`pageB.js`                           | 一次                   |
+
+手动编写 HTML 时，应将运行时文件的 `<script>` 标签放在入口产物之前；使用 `HtmlRspackPlugin` 时，插件会自动安排顺序。使用 `'single'` 时，两个入口共享同一个 Rspack 运行时及其模块缓存，因此 `shared.js` 只会初始化一次。
+
+共享 Rspack 运行时不会将共享模块抽取到独立文件中。要配置模块拆分，可以使用 [SplitChunksPlugin](/plugins/split-chunks-plugin)。
 
 ## optimization.sideEffects
 
@@ -605,7 +631,7 @@ export default {
 };
 ```
 
-如果需要在运行时取消使用的导出分析：
+如果希望全局分析已使用的导出，而不是按各个 Rspack 运行时分别分析：
 
 ```js title="rspack.config.mjs"
 export default {
