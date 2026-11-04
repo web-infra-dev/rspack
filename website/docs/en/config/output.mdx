@@ -95,7 +95,7 @@ Used to inject the currently used Rspack information into the generated asset:
 
 - `version`: Used to specify the Rspack version, defaults to the `version` field in `@rspack/core/package.json`.
 - `bundler`: Used to specify the name of the packaging tool, defaults to `rspack`.
-- `force`: Whether to always inject Rspack information as Rspack runtime modules. Defaults to `false`. An array can be used to select which items to inject.
+- `force`: Whether to always inject Rspack information as [Rspack runtime modules](/misc/glossary#rspack-runtime-module). Defaults to `false`. An array can be used to select which items to inject.
 
 By default, injection occurs when either `import.meta.rspackVersion` or `import.meta.rspackUniqueId` is detected in the code, and only the corresponding Rspack runtime module is injected. Set `force` to `true` to always inject both:
 

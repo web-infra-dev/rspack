@@ -160,7 +160,7 @@ compiler.rspack.EntryOptionPlugin.applyEntryOption(
 new rspack.javascript.EnableChunkLoadingPlugin(type);
 ```
 
-`EnableChunkLoadingPlugin` 会启用指定 chunk loading 类型所需的 Rspack 运行时模块。Rspack 通常会根据 [`output.enabledChunkLoadingTypes`](/config/output#outputenabledchunkloadingtypes) 收集到的类型应用该插件。
+`EnableChunkLoadingPlugin` 会启用指定 chunk loading 类型所需的 [Rspack 运行时模块](/misc/glossary#rspack-runtime-module)。Rspack 通常会根据 [`output.enabledChunkLoadingTypes`](/config/output#outputenabledchunkloadingtypes) 收集到的类型应用该插件。
 
 支持的内置类型包括 `'jsonp'`、`'import-scripts'`、`'require'`、`'async-node'` 和 `'import'`。
 

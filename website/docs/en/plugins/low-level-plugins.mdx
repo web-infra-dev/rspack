@@ -160,7 +160,7 @@ Plugins controlling the generation of modules, chunks, and loading code in the R
 new rspack.javascript.EnableChunkLoadingPlugin(type);
 ```
 
-`EnableChunkLoadingPlugin` enables the Rspack runtime modules required by a chunk-loading type. Rspack normally applies it for the types collected in [`output.enabledChunkLoadingTypes`](/config/output#outputenabledchunkloadingtypes).
+`EnableChunkLoadingPlugin` enables the [Rspack runtime modules](/misc/glossary#rspack-runtime-module) required by a chunk-loading type. Rspack normally applies it for the types collected in [`output.enabledChunkLoadingTypes`](/config/output#outputenabledchunkloadingtypes).
 
 The supported built-in types are `'jsonp'`, `'import-scripts'`, `'require'`, `'async-node'`, and `'import'`.
 
