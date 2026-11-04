@@ -5,7 +5,7 @@ use std::{
   hash::{BuildHasherDefault, Hash, Hasher},
   io,
   ops::Deref,
-  path::{Path, PathBuf},
+  path::PathBuf,
   sync::Arc,
 };
 
@@ -253,17 +253,26 @@ impl CachedPathImpl {
     )
   }
 
-  /// The filesystem abstraction exposes canonicalization, not link text. A link below the
-  /// issuer's ancestry may be absolute, so its target cannot be granted relocation authority.
-  /// Ancestor links (including the checkout's own spelling) do not change this derivation.
-  pub async fn has_symlink_below<Fs: FileSystem + Send + Sync>(
+  /// A followed link decides where a relocated path leads, so it is validated like any other
+  /// file the resolver read. Its snapshot holds the target relative to the portable root: a
+  /// relative link still matches after a move, and one into another checkout does not.
+  /// Links outside the root, including the checkout's own spelling, do not change this derivation.
+  pub async fn track_symlinks<Fs: FileSystem + Send + Sync>(
     &self,
     fs: &Fs,
-    issuer: &Path,
-  ) -> bool {
+    options: &ResolveOptions,
+    ctx: &mut Ctx,
+  ) {
+    if options.relocatable_roots.is_empty() || ctx.file_dependencies.is_none() {
+      return;
+    }
     let mut current = Some(self);
     while let Some(path) = current {
-      if issuer.starts_with(path.path().as_std_path()) {
+      let below_root = options
+        .relocatable_roots
+        .iter()
+        .any(|root| path.path() != root && path.path().starts_with(root));
+      if !below_root {
         break;
       }
       if *path
@@ -278,11 +287,10 @@ impl CachedPathImpl {
         })
         .await
       {
-        return true;
+        ctx.add_file_dependency(path.path().as_std_path());
       }
       current = path.parent().map(|parent| parent.as_ref());
     }
-    false
   }
 
   pub async fn realpath<Fs: FileSystem + Send + Sync>(&self, fs: &Fs) -> io::Result<Utf8PathBuf> {
@@ -410,10 +418,7 @@ impl CachedPathImpl {
     options: &ResolveOptions,
     ctx: &mut Ctx,
   ) -> Result<Option<Arc<PackageJson>>, ResolveError> {
-    if options.symlinks && ctx.file_dependencies.is_some() {
-      let fixed = self.has_symlink_below(fs, &ctx.issuer).await;
-      ctx.fixed_dependencies |= fixed;
-    }
+    self.track_symlinks(fs, options, ctx).await;
     if let Some(pkg) = self.package_json.get() {
       // Preserve ctx dependency tracking on cache hit.
       match pkg {

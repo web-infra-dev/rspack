@@ -116,12 +116,13 @@ export default [
 	{
 		name: "excluded-options",
 		description:
-			"keeps default, excluded SWC configurations and uncertified loader chains bound while compiling them successfully",
+			"reuses default and explicit-target SWC configurations and keeps excluded ones and uncertified loader chains bound while compiling them successfully",
 		async run() {
 			await withProjects(async (writer, reader) => {
 				writeProject(writer, {
 					"chain.jsx": jsxSource(),
 					"default.jsx": jsxSource(),
+					"env-query.jsx": jsxSource(),
 					"unknown.jsx": jsxSource(),
 					"plugin.jsx": jsxSource(
 						'console.log("removed by the WASM plugin");'
@@ -172,6 +173,11 @@ export default [
 						jsc: { transform: swcOptions.jsc.transform },
 						env: { targets: { chrome: "60" } }
 					}),
+					swcRule(/env-query\.jsx$/, {
+						...swcOptions,
+						jsc: { transform: swcOptions.jsc.transform },
+						env: { targets: "chrome 60" }
+					}),
 					swcRule(
 						/refresh\.jsx$/,
 						{
@@ -204,8 +210,8 @@ export default [
 				copyProject(writer, reader);
 				const moved = await build(reader, rules);
 				expect(moved.built).toEqual([
-					"chain.jsx", "default.jsx", "env.jsx", "input-map.jsx", "plugin.jsx",
-					"refresh.jsx", "unknown.jsx"
+					"chain.jsx", "env-query.jsx", "input-map.jsx", "plugin.jsx",
+					"unknown.jsx"
 				]);
 				expectRealPaths(moved, reader);
 				await expectColdEquality(moved, reader, rules);

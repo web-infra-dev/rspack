@@ -19,7 +19,8 @@ use crate::{
   CodeGenerationData, Compilation, CompilerOptions, ConcatenationScope, Context,
   DependencyCodeGenerationRef, DependencyId, DependencyLocation, DependencyRange,
   EvaluatedInlinableValue, FactoryMeta, GeneratorOptions, Module, ModuleCodeTemplate, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeSpec, SourceType,
+  ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, PortableRoot,
+  RuntimeSpec, SourceType,
 };
 
 /// A public source and the byte replacements that relate it to the stored parser source.
@@ -90,6 +91,9 @@ pub struct ParseContext<'a> {
   /// project paths, or `None` when the certification chain is broken. Only parsers that can
   /// relocate whole literals read it; the loader output itself still holds the real paths.
   pub portable_output: Option<&'a [Utf8PathBuf]>,
+  /// The portable root, when the loader chain generated the root paths in `source`. Parsers may
+  /// rewrite absolute module requests below it, which move with the checkout.
+  pub portable_requests: Option<&'a PortableRoot>,
   pub build_info: &'a mut BuildInfo,
   pub build_meta: &'a mut BuildMeta,
   pub runtime_template: &'a ModuleCodeTemplate,

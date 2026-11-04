@@ -4,7 +4,7 @@ use std::{
   sync::Arc,
 };
 
-use camino::Utf8Path;
+use camino::{Utf8Path, Utf8PathBuf};
 
 use crate::path::PathUtil;
 
@@ -174,6 +174,18 @@ pub struct ResolveOptions {
   ///
   /// Default `false`
   pub node_path: bool,
+
+  /// Directories that configured absolute paths move with. A path below one is computed for this
+  /// checkout, so what is resolved through it is not fixed.
+  ///
+  /// Default `[]`
+  pub relocatable_roots: Vec<Utf8PathBuf>,
+
+  /// Whether absolute specifiers below [ResolveOptions::relocatable_roots] are configured paths too,
+  /// as loader paths in module rules are.
+  ///
+  /// Default `false`
+  pub relocatable_specifiers: bool,
 }
 
 impl ResolveOptions {
@@ -523,6 +535,8 @@ impl Default for ResolveOptions {
       symlinks: true,
       builtin_modules: false,
       node_path: false,
+      relocatable_roots: vec![],
+      relocatable_specifiers: false,
     }
   }
 }
@@ -677,6 +691,8 @@ mod test {
       symlinks: false,
       tsconfig: None,
       node_path: false,
+      relocatable_roots: vec![],
+      relocatable_specifiers: false,
     };
 
     assert_eq!(format!("{options}"), "");

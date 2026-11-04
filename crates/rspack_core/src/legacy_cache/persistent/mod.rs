@@ -7,12 +7,16 @@ pub mod storage;
 pub mod validation;
 
 use std::{
+  borrow::Cow,
+  fmt::Write,
   hash::{DefaultHasher, Hash, Hasher},
   sync::Arc,
 };
 
+use cow_utils::CowUtils;
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 use rspack_workspace::rspack_pkg_version;
+use rustc_hash::FxHasher;
 
 use self::{
   build_dependencies::BuildDeps,
@@ -25,11 +29,41 @@ use self::{
 };
 use super::Cache;
 use crate::{
-  Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger,
-  PersistentCacheOptions, cache::CacheCodec,
+  Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger, ModuleRule,
+  PersistentCacheOptions, PortableRoot, cache::CacheCodec,
 };
 
 const LOGGER_NAME: &str = "rspack.persistentCache";
+
+/// The resolver configuration and loader paths, with paths below the root spelled relative to it.
+///
+/// Configured paths below the root are computed for this checkout and move with it, so checkouts
+/// share their resolutions. A configuration that names a path in another checkout renders
+/// differently, which expires the resolutions and re-resolves them.
+fn resolve_layout(options: &CompilerOptions, root: &PortableRoot) -> u64 {
+  fn render_rules(rules: &[ModuleRule], rendered: &mut String) {
+    for rule in rules {
+      let _ = write!(rendered, "{:?}{:?}", rule.effect.resolve, rule.effect.r#use);
+      render_rules(rule.rules.as_deref().unwrap_or_default(), rendered);
+      render_rules(rule.one_of.as_deref().unwrap_or_default(), rendered);
+    }
+  }
+  let mut rendered = format!("{:?}{:?}", options.resolve, options.resolve_loader);
+  render_rules(&options.module.rules, &mut rendered);
+  let mut rendered = Cow::Borrowed(rendered.as_str());
+  for root in [&root.root, &root.canonical_root] {
+    // Loader paths render raw, and other paths escaped as `Debug` does.
+    let escaped = format!("{root:?}");
+    for spelled in [root.as_str(), escaped.trim_matches('"')] {
+      if let Cow::Owned(replaced) = rendered.cow_replace(spelled, "") {
+        rendered = Cow::Owned(replaced);
+      }
+    }
+  }
+  let mut hasher = FxHasher::default();
+  rendered.hash(&mut hasher);
+  hasher.finish()
+}
 
 /// Persistent cache implementation
 #[derive(Debug)]
@@ -55,7 +89,11 @@ impl PersistentCache {
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
     compilation_logging: CompilationLogging,
   ) -> Self {
-    let codec = Arc::new(CacheCodec::new(option.portable_root.clone()));
+    let mut codec = CacheCodec::new(option.portable_root.clone());
+    if let Some(root) = &option.portable_root {
+      codec = codec.with_resolve_layout(resolve_layout(&compiler_options, root));
+    }
+    let codec = Arc::new(codec);
     // Each compiler path owns exactly one storage directory.
     let cache_directory = {
       let mut hasher = DefaultHasher::new();
@@ -87,8 +125,9 @@ impl PersistentCache {
       validation: CacheValidation::new(
         codec.clone(),
         format!(
-          "{}|{}",
+          "{}|{}|{}",
           rspack_pkg_version!(),
+          option.rebase_loader_requests,
           codec.validation_version(&option.version, compiler_options.context.as_path())
         ),
         BuildDeps::new(

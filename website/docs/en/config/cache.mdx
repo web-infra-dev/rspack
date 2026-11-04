@@ -33,7 +33,7 @@ type CacheOptions =
       maxAge?: number;
       maxMemoryGenerations?: number;
       maxVersions?: number;
-      portable?: boolean | { root?: string };
+      portable?: boolean | { root?: string; rebaseLoaderRequests?: boolean };
       readonly?: boolean;
       snapshot?: {
         immutablePaths?: Array<string | RegExp>;
@@ -230,7 +230,7 @@ export default {
 
 See [`experiments.portableCache`](/config/experiments#experimentsportablecache) to seed an independent cache from another worktree.
 
-- **Type:** `boolean | { root?: string }`
+- **Type:** `boolean | { root?: string; rebaseLoaderRequests?: boolean }`
 - **Default:** `false`
 
 Enable portable path encoding with `true` or `{ root }`. The default root is the nearest ancestor of `context`, or `context` itself, that contains a `.git` file or directory. Without one, the root is `context`. Using the git toplevel includes sibling packages and repository-level dependencies in monorepos. Rspack resolves an explicit `root` against `context`. The root keeps the spelling of `context`, so a project reached through a symlink stays portable. Rspack also rebases paths under the root's real path.
@@ -246,6 +246,23 @@ The cache backend that [experiments.newCache](/config/experiments#experimentsnew
 In the legacy cache backend, Rspack rebuilds entries that still depend on the writer's project root when the root changes. This includes `import.meta.url`, loader output containing absolute project paths, and references to paths that stay verbatim. Unchanged builds at the same root can still reuse these entries.
 
 The legacy backend rebases entry contexts and module identities under the root, so a relocated project reuses unchanged modules even when their file timestamps are new. Rspack validates a portable context dependency by the names, types and contents of its entries, where the type is file, directory or symbolic link. When a content-hash fallback validates a file, Rspack refreshes its timestamp snapshot for later builds.
+
+A loader that writes an absolute path below the root into a module request, for example from `require.resolve()`, makes that module depend on the root, so Rspack rebuilds it after a move. Set `rebaseLoaderRequests: true` to spell such requests relative to the module instead, so the loader needs no changes and the module is reused:
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    portable: { rebaseLoaderRequests: true },
+  },
+};
+```
+
+This also applies to requests in branches Rspack removes, such as `if (module.hot)` without HMR. Plugins that read the request see the relative spelling. The module also gets smaller, so [`optimization.splitChunks`](/plugins/split-chunks-plugin) may split chunks differently than it does without this option. Changing this option starts a new cache.
+
+With this option, Rspack assumes such a path was computed for the current checkout. It leaves the path as written when the resource or a file the loader added as a dependency contains the root, and when [`externals`](/config/externals), [`resolve.roots`](/config/resolve#resolveroots), or absolute keys in [`resolve.alias`](/config/resolve#resolvealias) or [`resolve.fallback`](/config/resolve#resolvefallback) are set, because they read the absolute spelling. A loader that gets the path another way, such as from an environment variable that names one checkout, would point at the new checkout after a move. Such a loader should call `this.cacheable(false)`, or leave this option off.
+
+Rspack also treats absolute paths in the `resolve` options that are below the root, such as [`resolve.alias`](/config/resolve#resolvealias) and [`resolve.modules`](/config/resolve#resolvemodules), as paths that move with the checkout. If a checkout's `resolve` options point to a path in another checkout, Rspack resolves its requests again and keeps the module builds. Symbolic links are validated by their target relative to the root, so a relative link stays valid after a move, and a link into another checkout does not. This includes a link that exists only after the move, such as a worktree whose `node_modules` links to the main checkout.
 
 Rspack finds loader output that contains the root by searching cached data for the root's native, forward-slash, JSON-escaped and `file://` URL spellings. This search is best-effort. Loaders that derive output from a path without including one of these spellings (for example, a hash or base64 encoding of `this.resourcePath`) should call `this.cacheable(false)` or use an appropriate `cache.version`.
 

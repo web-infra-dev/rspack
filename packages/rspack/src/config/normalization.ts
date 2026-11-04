@@ -682,7 +682,7 @@ export type CacheNormalized =
         directory?: string;
         location?: string;
       };
-      portable?: boolean | { root?: string };
+      portable?: boolean | { root?: string; rebaseLoaderRequests?: boolean };
       readonly?: boolean;
     };
 

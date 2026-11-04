@@ -9,7 +9,7 @@ use std::{
 use derive_more::Debug;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  utils::PortableString,
+  utils::{PortableString, root_patterns},
   with::{As, AsInner, AsOption, AsPreset},
 };
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
@@ -20,6 +20,7 @@ use rspack_hook::define_hook;
 use rspack_loader_runner::{
   Content, LoaderContext, LoaderFilters, LoaderRunnerOptions, ResourceData, run_loaders,
 };
+use rspack_paths::{AssertUtf8, InternedPath, Utf8Path};
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
@@ -29,15 +30,15 @@ use serde_json::json;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
+  Alias, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, CacheOptions, ChunkGraph,
   CodeGenerationResultBuilder, Compilation, ConnectionState, Context, DependenciesBlock,
   DependenciesBlockData, DependencyCodeGenerationRef, DependencyId, FactoryMeta, FactoryMetaStore,
   FreezeLock, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
   ModuleBuildDiagnostics, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleIdentifier, ModuleLayer, ModuleType, NeedBuildContext, OptimizationBailoutItem,
-  OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
-  ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec,
-  SideEffectsStateArtifact, SnapshotValidationResult, SourceType, contextify,
+  OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, PortableRoot,
+  Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals,
+  RuntimeSpec, SideEffectsStateArtifact, SnapshotValidationResult, SourceType, contextify,
   contextify_source_map, contextify_source_url,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
@@ -664,6 +665,7 @@ impl Module for NormalModule {
       return Ok(BoxModule::new(self));
     }
 
+    let portable_requests = self.loader_generated_root(&source, &build_context).await;
     let factory_meta = self.factory_meta.get();
     let (
       ParseResult {
@@ -700,6 +702,7 @@ impl Module for NormalModule {
         build_meta: self.build_meta.get_mut(),
         parse_meta: loader_result.parse_meta,
         portable_output: loader_result.portable_output.as_deref(),
+        portable_requests,
         runtime_template: &build_context.runtime_template,
       })
       .await?
@@ -1016,6 +1019,70 @@ impl Diagnosable for NormalModule {
 }
 
 impl NormalModule {
+  /// The portable root when loaders put it into `source`. A root path that neither the resource
+  /// nor a file the loaders read holds was computed for this checkout, so it moves with the
+  /// checkout. An authored absolute path stays fixed: a cold build elsewhere reads the same place.
+  /// Options that match the absolute spelling of a request keep it, so they behave as usual.
+  async fn loader_generated_root<'a>(
+    &self,
+    source: &BoxSource,
+    build_context: &'a BuildContext,
+  ) -> Option<&'a PortableRoot> {
+    fn reads_absolute_requests(resolve: &Resolve) -> bool {
+      let has_absolute_key = |alias: &Option<Alias>| {
+        matches!(alias, Some(Alias::MergeAlias(entries))
+          if entries.iter().any(|(key, _)| Utf8Path::new(key).is_absolute()))
+      };
+      resolve
+        .roots
+        .as_ref()
+        .is_some_and(|roots| !roots.is_empty())
+        || has_absolute_key(&resolve.alias)
+        || has_absolute_key(&resolve.fallback)
+        || resolve
+          .by_dependency
+          .as_ref()
+          .is_some_and(|by_dependency| by_dependency.values().any(reads_absolute_requests))
+    }
+    let options = &build_context.compiler_options;
+    let CacheOptions::Persistent(cache) = &options.cache else {
+      return None;
+    };
+    let root = cache.portable_root.as_ref()?;
+    if self.loaders.is_empty()
+      || !cache.rebase_loader_requests
+      || reads_absolute_requests(&options.resolve)
+      || self
+        .resolve_options
+        .as_deref()
+        .is_some_and(reads_absolute_requests)
+    {
+      return None;
+    }
+    let text = source.source().into_string_lossy();
+    if ![&root.root, &root.canonical_root]
+      .into_iter()
+      .any(|root| memchr::memmem::find(text.as_bytes(), root.as_str().as_bytes()).is_some())
+    {
+      return None;
+    }
+    let patterns: Vec<_> = [&root.root, &root.canonical_root]
+      .into_iter()
+      .flat_map(|root| root_patterns(root.as_str()))
+      .collect();
+    let resource = InternedPath::from(self.resource_data.path()?.as_std_path());
+    for input in std::iter::once(&resource).chain(&self.build_info().dependencies.file) {
+      let bytes = build_context.fs.read(input.assert_utf8()).await.ok()?;
+      if patterns
+        .iter()
+        .any(|pattern| memchr::memmem::find(&bytes, pattern).is_some())
+      {
+        return None;
+      }
+    }
+    Some(root)
+  }
+
   fn create_source(
     &self,
     context: &str,

@@ -51,6 +51,8 @@ pub struct PersistentCacheOptions {
   pub storage: StorageOptions,
   pub seed_donors: Vec<Utf8PathBuf>,
   pub portable_root: Option<PortableRoot>,
+  /// Whether absolute requests that loaders generate are spelled relative to their module.
+  pub rebase_loader_requests: bool,
   pub readonly: bool,
   /// Filesystem cache max age in seconds.
   pub max_age: u64,

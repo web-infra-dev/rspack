@@ -50,6 +50,8 @@ struct Resolution<'a> {
 #[cacheable]
 struct ResolutionSegment {
   dependencies: Vec<DependencyId>,
+  /// The resolver configuration the resolution holds for. See [CacheCodec::with_resolve_layout].
+  resolve_layout: u64,
   bytes: Vec<u8>,
 }
 
@@ -255,6 +257,7 @@ pub fn save_module_graph(
           };
           BoundEntry::encode(node_codec, &resolution, false).map(|bytes| ResolutionSegment {
             dependencies: ids,
+            resolve_layout: node_codec.resolve_layout(),
             bytes,
           })
         })
@@ -346,11 +349,24 @@ pub async fn recovery_module_graph(
       {
         return Ok((key, None));
       }
+      // A rule's resolve options are stored with the build, and repairing a resolution reads them.
+      if node.module.as_ref().get_resolve_options().is_some()
+        && !frame
+          .resolutions
+          .iter()
+          .all(|segment| codec.accepts_resolve_layout(segment.resolve_layout))
+      {
+        return Ok((key, None));
+      }
       let resolutions = frame
         .resolutions
         .into_iter()
         .map(|segment| {
-          let resolution = BoundEntry::decode::<Resolution>(codec, &segment.bytes)?;
+          // Inputs that were never resolved, such as export specifiers, have nothing to repair.
+          let resolution =
+            BoundEntry::decode::<Resolution>(codec, &segment.bytes)?.filter(|resolution| {
+              codec.accepts_resolve_layout(segment.resolve_layout) || resolution.infos.is_empty()
+            });
           Ok((segment.dependencies, resolution))
         })
         .collect::<Result<Vec<_>>>()?;

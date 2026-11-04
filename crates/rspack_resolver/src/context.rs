@@ -17,6 +17,8 @@ pub struct ResolveContextImpl {
   /// Sticky across failed alternatives: their misses also constrain the result. Until branches
   /// carry individual origins, one fixed derivation conservatively fixes this whole resolution.
   pub fixed_dependencies: bool,
+  /// The next specifier is a configured path that moves with the checkout.
+  pub relocatable_specifier: bool,
   pub issuer: PathBuf,
 
   pub query: Option<String>,

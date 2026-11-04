@@ -189,6 +189,10 @@ function getRawCache(
     },
     portableRoot:
       typeof cache.portable === 'object' ? cache.portable.root : undefined,
+    rebaseLoaderRequests:
+      typeof cache.portable === 'object' &&
+      cache.portable.rebaseLoaderRequests === true &&
+      !compiler.options.externals,
     seedDonors: findSeedDonors(cache, compiler),
     readonly: cache.readonly,
   };

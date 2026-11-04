@@ -1,7 +1,11 @@
-use std::{hash::BuildHasherDefault, sync::Arc};
+use std::{
+  hash::BuildHasherDefault,
+  sync::{Arc, OnceLock},
+};
 
 use dashmap::DashMap;
 use rspack_fs::ReadableFileSystem;
+use rspack_paths::Utf8PathBuf;
 use rustc_hash::FxHasher;
 
 use super::resolver_impl::Resolver;
@@ -22,6 +26,8 @@ pub struct ResolverFactory {
   /// Different resolvers are used for different resolution strategies such as ESM and CJS.
   /// All resolvers share the same underlying cache.
   resolvers: DashMap<ResolveOptionsWithDependencyType, Arc<Resolver>, BuildHasherDefault<FxHasher>>,
+  /// Set once by the compiler when its cache is portable.
+  relocatable_roots: OnceLock<(Vec<Utf8PathBuf>, bool)>,
 }
 
 impl ResolverFactory {
@@ -38,7 +44,14 @@ impl ResolverFactory {
       base_options: options.clone(),
       resolver: Resolver::new(options, fs),
       resolvers: Default::default(),
+      relocatable_roots: OnceLock::new(),
     }
+  }
+
+  pub fn set_relocatable_roots(&self, roots: Vec<Utf8PathBuf>, specifiers: bool) {
+    let _ = self.relocatable_roots.set((roots, specifiers));
+    // A plugin can request a resolver before the compiler is created.
+    self.resolvers.clear();
   }
 
   pub fn get(&self, options: ResolveOptionsWithDependencyType) -> Arc<Resolver> {
@@ -50,7 +63,13 @@ impl ResolverFactory {
         Some(o) => base_options.merge(*o.clone()),
         None => base_options,
       };
-      let resolver = Arc::new(self.resolver.clone_with_options(merged_options, &options));
+      let (roots, specifiers) = self.relocatable_roots.get().cloned().unwrap_or_default();
+      let resolver = Arc::new(self.resolver.clone_with_options(
+        merged_options,
+        &options,
+        roots,
+        specifiers,
+      ));
       self.resolvers.insert(options, resolver.clone());
       resolver
     }

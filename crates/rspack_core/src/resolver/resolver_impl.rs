@@ -11,7 +11,7 @@ use rspack_cacheable::cacheable;
 use rspack_error::{Error, Severity, cyan, yellow};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
-use rspack_paths::{AssertUtf8, InternedPathSet};
+use rspack_paths::{AssertUtf8, InternedPathSet, Utf8PathBuf};
 use rspack_util::location::byte_line_column_to_offset;
 use rustc_hash::FxHasher;
 
@@ -151,6 +151,8 @@ impl Resolver {
     &self,
     options: Resolve,
     options_with_dependency_type: &ResolveOptionsWithDependencyType,
+    relocatable_roots: Vec<Utf8PathBuf>,
+    relocatable_specifiers: bool,
   ) -> Self {
     let mut hasher = FxHasher::default();
     options.hash(&mut hasher);
@@ -162,11 +164,13 @@ impl Resolver {
       .hash(&mut hasher);
     let options_key = hasher.finish();
     let resolver = &self.resolver;
-    let options = to_rspack_resolver_options(
+    let mut options = to_rspack_resolver_options(
       options,
       options_with_dependency_type.resolve_to_context,
       options_with_dependency_type.dependency_category,
     );
+    options.relocatable_roots = relocatable_roots;
+    options.relocatable_specifiers = relocatable_specifiers;
 
     let resolver = resolver.clone_with_options(options);
     Self {
@@ -401,6 +405,8 @@ fn to_rspack_resolver_options(
     imports_fields,
     enable_pnp: options.pnp.unwrap_or(false),
     node_path: false,
+    relocatable_roots: vec![],
+    relocatable_specifiers: false,
   }
 }
 

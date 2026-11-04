@@ -24,12 +24,13 @@ use std::hash::Hash;
 
 use rspack_cacheable::{cacheable, cacheable_dyn, utils::PortablePath, with::As};
 use rspack_core::{
-  Compilation, DependencyCodeGeneration, DependencyCodeGenerationRef, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, PortableLocationShift, RuntimeSpec, SourcePosition,
-  SourceView, TemplateContext, TemplateReplaceSource,
+  Compilation, ConstDependency, DependenciesBlock, Dependency, DependencyCodeGeneration,
+  DependencyCodeGenerationRef, DependencyRange, DependencyTemplate, DependencyTemplateType,
+  ParseResult, PortableLocationShift, PortableRoot, RuntimeSpec, SourcePosition, SourceView,
+  TemplateContext, TemplateReplaceSource,
   rspack_sources::{
-    BoxSource, MapOptions, RawStringSource, ReplaceSource, Source, SourceExt, SourceMap,
-    SourceMapSource, WithoutOriginalOptions,
+    BoxSource, MapOptions, OriginalSource, RawStringSource, ReplaceSource, Source, SourceExt,
+    SourceMap, SourceMapSource, WithoutOriginalOptions,
   },
 };
 use rspack_hash::RspackHasher;
@@ -38,7 +39,9 @@ use rspack_paths::{Utf8Component, Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashMap, FxHashSet};
 use simd_utf16_len::utf16_len;
 use swc_next_allocator::{Allocator, wtf8::Wtf8};
-use swc_next_ecma_ast::{Ast, GetSpan, Lang, NodeId, NodeKindData, SourceType as SwcSourceType};
+use swc_next_ecma_ast::{
+  Ast, GetSpan, Lang, NodeId, NodeKindData, SourceType as SwcSourceType, Span,
+};
 use swc_next_ecma_parser::{CommentMode, NoTokenParserConfig, Options, Parser};
 
 /// Root spelling of canonical literals. Canonical literals are only parsed, stored and hashed.
@@ -206,23 +209,8 @@ pub(crate) fn prepare(
       raw: raw.to_owned(),
     });
   }
-  let code = replaced.source().into_string_lossy().into_owned();
-  // Flatten into owned leaves so no root-bearing source stays behind the canonical one.
-  let canonical = if let Some(original) = original_map_source {
-    match replaced.map(&MapOptions::default()) {
-      Some(map) => match SourceMap::from_json(map.to_json()) {
-        Ok(source_map) => SourceMapSource::new(WithoutOriginalOptions {
-          value: code,
-          name: original.name().to_owned(),
-          source_map,
-        })
-        .boxed(),
-        Err(_) => return Prepared::Unsupported,
-      },
-      None => RawStringSource::from(code).boxed(),
-    }
-  } else {
-    RawStringSource::from(code).boxed()
+  let Some(canonical) = flatten(source, &replaced) else {
+    return Prepared::Unsupported;
   };
   Prepared::Canonical(Canonical {
     source: canonical,
@@ -230,7 +218,174 @@ pub(crate) fn prepare(
   })
 }
 
+/// Flattens into owned leaves so no root-bearing source stays behind the rewritten one.
+fn flatten(original: &BoxSource, replaced: &ReplaceSource) -> Option<BoxSource> {
+  let code = replaced.source().into_string_lossy().into_owned();
+  let leaf = original.as_ref().as_any();
+  if let Some(original) = leaf.downcast_ref::<OriginalSource>() {
+    return Some(OriginalSource::new(code, original.name()).boxed());
+  }
+  let Some(original) = leaf.downcast_ref::<SourceMapSource>() else {
+    return Some(RawStringSource::from(code).boxed());
+  };
+  Some(match replaced.map(&MapOptions::default()) {
+    Some(map) => SourceMapSource::new(WithoutOriginalOptions {
+      value: code,
+      name: original.name().to_owned(),
+      source_map: SourceMap::from_json(map.to_json()).ok()?,
+    })
+    .boxed(),
+    None => RawStringSource::from(code).boxed(),
+  })
+}
+
+/// The absolute requests of the scanned dependencies, with the range each one was read from.
+/// Nested blocks are left out: their requests keep the module bound to its root.
+fn absolute_requests(result: &ParseResult) -> Vec<(&str, DependencyRange)> {
+  fn request(dependency: &dyn Dependency) -> Option<(&str, DependencyRange)> {
+    let request = dependency.as_module_dependency()?.request();
+    (Utf8Path::new(request).is_absolute() && dependency.get_context().is_none())
+      .then(|| Some((request, dependency.range()?)))?
+  }
+  result
+    .dependencies
+    .iter()
+    .filter_map(|dependency| request(dependency.as_ref()))
+    .chain(result.blocks.iter().flat_map(|block| {
+      block
+        .get_dependencies()
+        .iter()
+        .filter_map(|dependency| request(&**dependency))
+    }))
+    .collect()
+}
+
+/// The branches `ConstPlugin` removed, such as `if (module.hot)` without HMR. Nothing in them is
+/// scanned or emitted, and unlike a folded condition their replacement derives from no value.
+fn removed_branches(result: &ParseResult) -> Vec<DependencyRange> {
+  result
+    .presentational_dependencies
+    .iter()
+    .filter_map(|dependency| dependency.as_any().downcast_ref::<ConstDependency>())
+    .filter(|dependency| &*dependency.content == "{}" || dependency.content.starts_with("{ var "))
+    .map(|dependency| dependency.range)
+    .collect()
+}
+
+/// Spells a request below the root relative to the module. `None` when it is not a plain path
+/// below the root, or the module is outside the root and has no stable position relative to it.
+fn relative_request(request: &str, context: &Utf8Path, root: &PortableRoot) -> Option<String> {
+  if request.contains('!') || request.ends_with('/') {
+    return None;
+  }
+  let below_root = |path: &'_ Utf8Path| -> Option<Vec<String>> {
+    path
+      .strip_prefix(&root.root)
+      .or_else(|_| path.strip_prefix(&root.canonical_root))
+      .ok()?
+      .components()
+      .map(|component| match component {
+        Utf8Component::Normal(name) => Some(name.to_owned()),
+        _ => None,
+      })
+      .collect()
+  };
+  let to = below_root(Utf8Path::new(request))?;
+  let from = below_root(context)?;
+  let common = to.iter().zip(&from).take_while(|(a, b)| a == b).count();
+  if common == to.len() {
+    return None;
+  }
+  let up = from.len() - common;
+  let prefix = if up == 0 {
+    "./".to_owned()
+  } else {
+    "../".repeat(up)
+  };
+  Some(prefix + &to[common..].join("/"))
+}
+
+/// Rewrites each whole string literal below the root that the scan proved is a module request or
+/// removed code. Equal strings elsewhere are left alone, so they keep the module bound to its root.
+pub(crate) fn relativize_requests(
+  source: &BoxSource,
+  scanned: &ParseResult,
+  context: &Utf8Path,
+  root: &PortableRoot,
+  source_type: SwcSourceType,
+  lang: Lang,
+) -> Option<BoxSource> {
+  let requests = absolute_requests(scanned);
+  let removed = removed_branches(scanned);
+  if requests.is_empty() && removed.is_empty() {
+    return None;
+  }
+  let text = source.source().into_string_lossy();
+  let allocator = Allocator::new();
+  let parsed = Parser::init(
+    &allocator,
+    text.as_ref(),
+    parser_options(source_type, lang),
+    NoTokenParserConfig,
+  )
+  .parse();
+  if !parsed.diagnostics.is_empty() {
+    return None;
+  }
+  let ast = &parsed.ast;
+  let literals: Vec<_> = (0..ast.node_count())
+    .filter_map(|index| {
+      let NodeKindData::StringLiteral(literal) =
+        ast.kind_data(NodeId::from_raw_unchecked(index as u32))
+      else {
+        return None;
+      };
+      Some((
+        ast.get_wtf8(literal.value(ast)).as_str()?,
+        literal.span(ast),
+      ))
+    })
+    .collect();
+  let mut sites = Vec::new();
+  for (value, span) in &literals {
+    let encloses =
+      |range: &DependencyRange, span: &Span| range.start <= span.start && span.end <= range.end;
+    // A range can also enclose a computed key or an option, so its request must be unambiguous.
+    let is_request = requests.iter().any(|(request, range)| {
+      request == value
+        && encloses(range, span)
+        && literals
+          .iter()
+          .filter(|(other, span)| other == value && encloses(range, span))
+          .count()
+          == 1
+    });
+    if (is_request || removed.iter().any(|range| encloses(range, span)))
+      && let Some(relative) = relative_request(value, context, root)
+    {
+      sites.push((*span, relative));
+    }
+  }
+  if sites.is_empty() {
+    return None;
+  }
+  sites.sort_unstable_by_key(|(span, _)| span.start);
+  let mut replaced = ReplaceSource::new(source.clone());
+  for (span, relative) in sites {
+    replaced.replace(span.start, span.end, quote_ascii(&relative), None);
+  }
+  flatten(source, &replaced)
+}
+
 impl Canonical {
+  /// Scans `source` as is, without sites, in a way the caller can repeat.
+  pub(crate) fn unchanged(source: BoxSource) -> Self {
+    Self {
+      source,
+      sites: Vec::new(),
+    }
+  }
+
   /// Gives each site literal in the canonical AST the real value and raw text, so every AST
   /// reader, raw or through the evaluator, sees what the loader produced. Returns `false` when
   /// the canonical text did not parse with exactly one string literal at each site.
