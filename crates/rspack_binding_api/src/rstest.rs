@@ -1,9 +1,11 @@
 use derive_more::Debug;
-use napi::Either;
+use napi::{Either, bindgen_prelude::Promise};
 use rspack_plugin_rstest::{
-  RstestDynamicImportOriginOptions, RstestImportMetaResolveOriginOptions, RstestPluginOptions,
-  RstestRequireResolveOriginOptions,
+  PreserveSideEffectImportsFn, RstestDynamicImportOriginOptions,
+  RstestImportMetaResolveOriginOptions, RstestPluginOptions, RstestRequireResolveOriginOptions,
 };
+
+use crate::compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction;
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
@@ -30,6 +32,11 @@ pub struct RawRstestImportMetaResolveOriginOptions {
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawRstestPluginOptions {
+  /// Called once before each compilation to obtain absolute test/setup importer paths.
+  /// Only their direct bare imports are preserved; target side-effect metadata is unchanged.
+  #[debug(skip)]
+  #[napi(ts_type = "() => Promise<string[]>")]
+  pub preserve_side_effect_imports: Option<ThreadsafeFunction<(), Promise<Vec<String>>>>,
   // Inject __dirname and __filename to each module.
   pub inject_module_path_name: bool,
   // Replace import.meta.dirname and import.meta.filename of each module.
@@ -112,6 +119,13 @@ impl From<RawRstestPluginOptions> for RstestPluginOptions {
       }),
     };
     Self {
+      preserve_side_effect_imports: value.preserve_side_effect_imports.map(|get_importers| {
+        let callback: PreserveSideEffectImportsFn = Box::new(move || {
+          let get_importers = get_importers.clone();
+          Box::pin(async move { get_importers.call_with_promise(()).await })
+        });
+        callback
+      }),
       module_path_name: value.inject_module_path_name,
       hoist_mock_module: value.hoist_mock_module,
       import_meta_path_name: value.import_meta_path_name,

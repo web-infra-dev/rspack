@@ -1,32 +1,37 @@
 use std::{
-  sync::{Arc, LazyLock, OnceLock},
+  sync::{Arc, LazyLock, OnceLock, RwLock},
   time::{Duration, Instant},
 };
 
 use camino::{Utf8Path, Utf8PathBuf};
 use cow_utils::CowUtils;
+use derive_more::Debug;
+use futures::future::BoxFuture;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  BoxPlugin, ChunkUkey, Compilation, CompilationOptimizeDependencies, CompilationParams,
+  BoxModule, BoxPlugin, ChunkUkey, Compilation, CompilationOptimizeDependencies, CompilationParams,
   CompilationProcessAssets, CompilationRuntimeModule, CompilationRuntimeRequirementInTree,
   CompilerCompilation, Dependency, DependencyRef, DependencyType, ExportsInfoArtifact, FactoryMeta,
-  ModuleFactoryCreateData, ModuleIdentifier, ModuleType, NormalModuleFactoryBeforeResolve,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PluginExt,
-  ResolveOptionsWithDependencyType, ResolveResult, RuntimeGlobals, RuntimeModule, RuntimeVariable,
-  SideEffectsOptimizeArtifact,
+  ModuleFactoryCreateData, ModuleIdentifier, ModuleType, NormalModuleFactoryAfterFactorize,
+  NormalModuleFactoryBeforeResolve, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
+  Plugin, PluginExt, ResolveOptionsWithDependencyType, ResolveResult, RuntimeGlobals,
+  RuntimeModule, RuntimeVariable, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   module_declared_side_effect_free,
-  resolver::ResolveInnerError,
+  resolver::{ResolveInnerError, Resolver},
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
   runtime_variable_name,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
-  BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
+  BoxJavascriptParserPlugin, dependency::ESMImportSideEffectDependency,
+  parser_and_generator::JavaScriptParserAndGenerator,
 };
-use rspack_util::placeholder::PlaceholderFinder;
-use rustc_hash::FxHashMap as HashMap;
+use rspack_util::{
+  identifier::insert_zero_width_space_for_fragment, placeholder::PlaceholderFinder,
+};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 static RSTEST_FLAG_PLACEHOLDER: LazyLock<PlaceholderFinder> =
   LazyLock::new(|| PlaceholderFinder::new("/* RSTEST:"));
@@ -70,8 +75,47 @@ use crate::{
   url_dependency::RstestUrlDependencyTemplate,
 };
 
+pub type PreserveSideEffectImportsFn =
+  Box<dyn Fn() -> BoxFuture<'static, Result<Vec<String>>> + Send + Sync>;
+pub(crate) type PreservedSideEffectImporters = Arc<RwLock<Option<HashSet<Utf8PathBuf>>>>;
+pub(crate) const PRESERVED_IMPORTER_VERSION_PREFIX: &str = "rspack/RstestPlugin/importer/";
+
+fn resolve_preserved_importers(
+  compilation: &Compilation,
+  importers: Vec<String>,
+) -> BoxFuture<'_, HashSet<Utf8PathBuf>> {
+  // Keep the resolver state machine behind one boxed boundary instead of
+  // duplicating it in the compilation hook's future wrappers.
+  Box::pin(async move {
+    let mut paths = HashSet::default();
+    // Resolve with the compiler's filesystem to follow parent symlinks on WASI
+    // as well as native targets, without applying user aliases to known paths.
+    let resolver = Resolver::new(
+      Default::default(),
+      Arc::clone(&compilation.input_filesystem),
+    );
+    for importer in importers {
+      let path = Utf8PathBuf::from(importer);
+      if let Ok(ResolveResult::Resource(resource)) = resolver
+        .resolve(
+          compilation.options.context.as_ref(),
+          &insert_zero_width_space_for_fragment(path.as_str()),
+        )
+        .await
+      {
+        paths.insert(resource.path);
+      }
+      // Keep the original for resolve.symlinks=false and unresolved virtual files.
+      paths.insert(path);
+    }
+    paths
+  })
+}
+
 #[derive(Debug)]
 pub struct RstestPluginOptions {
+  #[debug(skip)]
+  pub preserve_side_effect_imports: Option<PreserveSideEffectImportsFn>,
   pub module_path_name: bool,
   pub hoist_mock_module: bool,
   pub import_meta_path_name: bool,
@@ -212,6 +256,7 @@ pub struct ProgressPluginStateInfo {
 #[derive(Debug)]
 pub struct RstestPlugin {
   options: RstestPluginOptions,
+  preserved_side_effect_importers: PreservedSideEffectImporters,
   /// Resolved at `apply` time. `Some(callee)` enables the rewrite; `None`
   /// covers both "feature disabled" and "callee resolved to default `import`"
   /// (incompatible with native syntax — rewriting would yield a SyntaxError).
@@ -221,7 +266,12 @@ pub struct RstestPlugin {
 
 impl RstestPlugin {
   pub fn new(options: RstestPluginOptions) -> Self {
-    Self::new_inner(options, OnceLock::new(), OnceLock::new())
+    Self::new_inner(
+      options,
+      Default::default(),
+      OnceLock::new(),
+      OnceLock::new(),
+    )
   }
 
   fn calc_default_mocked_target(&self, value: &str) -> Utf8PathBuf {
@@ -598,6 +648,7 @@ async fn nmf_parser(
 
     parser.add_parser_plugin(Box::new(RstestParserPlugin::new(
       crate::parser_plugin::RstestParserPluginOptions {
+        preserved_side_effect_importers: Arc::clone(&self.preserved_side_effect_importers),
         module_path_name: self.options.module_path_name,
         hoist_mock_module: self.options.hoist_mock_module,
         import_meta_path_name: self.options.import_meta_path_name,
@@ -627,12 +678,43 @@ async fn nmf_parser(
   Ok(())
 }
 
+#[plugin_hook(NormalModuleFactoryAfterFactorize for RstestPlugin)]
+async fn nmf_after_factorize(
+  &self,
+  data: &mut ModuleFactoryCreateData,
+  module: &mut BoxModule,
+) -> Result<()> {
+  for dependency in &data.dependencies {
+    if let Some(dependency) = dependency.downcast_ref::<ESMImportSideEffectDependency>() {
+      dependency.update_preserved_side_effects(module.as_ref());
+    }
+  }
+  Ok(())
+}
+
 #[plugin_hook(CompilerCompilation for RstestPlugin)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
+  if let Some(get_importers) = &self.options.preserve_side_effect_imports {
+    let importers = get_importers().await?;
+    let paths = resolve_preserved_importers(compilation, importers).await;
+    compilation
+      .value_cache_versions
+      .insert_default_for_prefix(PRESERVED_IMPORTER_VERSION_PREFIX.into(), false.to_string());
+    for path in &paths {
+      compilation.value_cache_versions.insert(
+        format!("{PRESERVED_IMPORTER_VERSION_PREFIX}{path}"),
+        true.to_string(),
+      );
+    }
+    *self
+      .preserved_side_effect_importers
+      .write()
+      .expect("importer set lock poisoned") = Some(paths);
+  }
   compilation.set_dependency_template(
     ModulePathNameDependencyTemplate::template_type(),
     Arc::new(ModulePathNameDependencyTemplate::default()),
@@ -866,6 +948,13 @@ impl Plugin for RstestPlugin {
       .before_resolve
       .tap(nmf_before_resolve::new(self));
 
+    if self.options.preserve_side_effect_imports.is_some() {
+      ctx
+        .normal_module_factory_hooks
+        .after_factorize
+        .tap(nmf_after_factorize::new(self));
+    }
+
     ctx
       .compiler_hooks
       .compilation
@@ -876,6 +965,7 @@ impl Plugin for RstestPlugin {
       || self.options.inject_dynamic_import_origin.is_some()
       || self.options.inject_require_resolve_origin.is_some()
       || self.options.inject_import_meta_resolve_origin.is_some()
+      || self.options.preserve_side_effect_imports.is_some()
     {
       ctx
         .normal_module_factory_hooks

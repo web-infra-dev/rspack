@@ -4,23 +4,27 @@ use std::{
 };
 
 use rayon::prelude::*;
-use rspack_collections::IdentifierMap;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, CanInlineUse, Compilation,
-  CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
-  ExportsInfoArtifact, ExportsInfoData, GroupOptions, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, Plugin, ReferencedExport, ReferencedExportFlags, ReferencedExportPath,
-  RuntimeSpec, SideEffectsOptimizeArtifact, SideEffectsStateArtifact, UsageState,
-  build_module_graph::BuildModuleGraphArtifact, get_entry_runtime, incremental::IncrementalPasses,
-  is_exports_object_referenced, is_no_exports_referenced, module_declared_side_effect_free,
+  CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId,
+  DependencyType, ExportsInfo, ExportsInfoArtifact, ExportsInfoData, GroupOptions, ImportPhase,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, Plugin, ReferencedExport,
+  ReferencedExportFlags, ReferencedExportPath, RuntimeSpec, SideEffectsOptimizeArtifact,
+  SideEffectsStateArtifact, UsageState, build_module_graph::BuildModuleGraphArtifact,
+  get_entry_runtime, incremental::IncrementalPasses, is_exports_object_referenced,
+  is_no_exports_referenced, module_declared_side_effect_free,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::queue::Queue;
 use rustc_hash::FxHashMap as HashMap;
 
+use crate::dependency::ESMImportSideEffectDependency;
+
 type SharedRuntimeSpec = Option<Arc<RuntimeSpec>>;
 type ProcessBlockTask = (ModuleOrAsyncDependenciesBlock, SharedRuntimeSpec, bool);
+type ProcessModuleTask = (ModuleIdentifier, Vec<ReferencedExport>, bool);
 type NonNestedTask = (SharedRuntimeSpec, bool, Vec<ReferencedExport>);
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
@@ -183,7 +187,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             |(runtime, force_side_effects, referenced_exports, module_tasks)| {
               let mut nested_tasks = Vec::with_capacity(referenced_exports.len());
               let mut non_nested_tasks = Vec::with_capacity(referenced_exports.len());
-              for (module_id, exports) in referenced_exports {
+              for (module_id, exports, preserve_side_effects) in referenced_exports {
+                let force_side_effects = force_side_effects || preserve_side_effects;
                 let exports_info = self.exports_info_artifact.get_exports_info_data(&module_id);
                 let has_nested = exports.iter().any(|export| export.name.len() > 1);
                 if has_nested {
@@ -315,10 +320,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     runtime: &SharedRuntimeSpec,
     force_side_effects: bool,
     global: bool,
-  ) -> (
-    Vec<(ModuleIdentifier, Vec<ReferencedExport>)>,
-    Vec<ProcessBlockTask>,
-  ) {
+  ) -> (Vec<ProcessModuleTask>, Vec<ProcessBlockTask>) {
     let compilation = self.compilation;
     let mut q = vec![];
 
@@ -332,10 +334,26 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       global,
     );
     let mut map = IdentifierMap::with_capacity_and_hasher(dependencies.len(), Default::default());
+    let mut preserved_imports = IdentifierSet::default();
     q.reserve(async_blocks.len());
     q.extend(async_blocks);
 
     for (dep_id, module_id) in dependencies {
+      let dependency = module_graph.dependency_by_id(&dep_id);
+      // Only declared side-effect-free targets need their evaluation forced below.
+      if dependency.dependency_type() == &DependencyType::EsmImport
+        && dependency.get_phase() == ImportPhase::Evaluation
+        && dependency
+          .downcast_ref::<ESMImportSideEffectDependency>()
+          .is_some_and(|dependency| dependency.preserve_side_effects)
+        && module_graph
+          .module_by_identifier(&module_id)
+          .is_some_and(|module| {
+            module_declared_side_effect_free(module.as_ref()).unwrap_or_default()
+          })
+      {
+        preserved_imports.insert(module_id);
+      }
       let referenced_exports_result = get_dependency_referenced_exports(
         dep_id,
         module_graph,
@@ -395,6 +413,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
                 .collect::<Vec<_>>(),
               ProcessModuleReferencedExports::ExtendRef(extend_ref) => extend_ref,
             },
+            preserved_imports.contains(&module_id),
           )
         })
         .collect::<Vec<_>>(),

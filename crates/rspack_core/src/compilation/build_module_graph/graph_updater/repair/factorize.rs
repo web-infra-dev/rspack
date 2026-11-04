@@ -187,5 +187,9 @@ fn skip_side_effect_free_esm_import_side_effect_dependencies(
     && dependencies.iter().all(|dep| {
       dep.dependency_type() == &DependencyType::EsmImport
         && dep.get_phase() == ImportPhase::Evaluation
+        // Unconditional imports must be built even when the target declares no side effects.
+        && dep
+          .as_module_dependency()
+          .is_some_and(|dep| dep.get_condition().is_some())
     })
 }
