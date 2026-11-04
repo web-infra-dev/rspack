@@ -2355,6 +2355,7 @@ export interface RawEnvironment {
   templateLiteral: boolean
   dynamicImportInWorker: boolean
   importMetaDirnameAndFilename: boolean
+  topLevelAwait: boolean
 }
 
 export interface RawEsmLibraryPlugin {
@@ -2922,6 +2923,7 @@ export interface RawOutputOptions {
   importMetaName: string
   iife: boolean
   module: boolean
+  chunkFormat: string | false
   chunkLoading: string | false
   chunkLoadTimeout: number
   enabledChunkLoadingTypes?: Array<string>
