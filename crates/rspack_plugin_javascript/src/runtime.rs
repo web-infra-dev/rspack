@@ -29,7 +29,7 @@ use crate::{JavascriptModulesPluginHooks, RenderSource};
 
 pub fn startup_awaits_entries(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
   let output = &compilation.options.output;
-  if !output.module || !output.environment.supports_top_level_await() {
+  if !output.module || output.iife || !output.environment.supports_top_level_await() {
     return false;
   }
   let chunk = compilation
@@ -41,9 +41,6 @@ pub fn startup_awaits_entries(compilation: &Compilation, chunk_ukey: &ChunkUkey)
   }
   if !chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
     return output.chunk_format == "module";
-  }
-  if output.iife {
-    return false;
   }
   let runtime_requirements = compilation
     .cgc_runtime_requirements_artifact
