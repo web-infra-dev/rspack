@@ -24,7 +24,8 @@ const excludes = {
 
 		// Absolute __dirname fragments create invalid missing-dependency paths on
 		// Windows, so the resolver snapshot fails and the result is never stored.
-		/^parsing\/evaluate$/
+		/^parsing\/evaluate$/,
+		/^parsing\/rspack-issue-4816$/
 	],
 	config: [
 		// This case expects its stateful loader to build again on every compiler.
