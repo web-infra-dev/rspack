@@ -362,7 +362,7 @@ Module ID's type can be a number or a string depending on the `optimization.modu
 
 ### require.cache
 
-Multiple requires of the same module result in only one module execution and only one export. Therefore a cache in the runtime exists. Removing values from this cache causes new module execution and a new export.
+The Rspack runtime maintains a module cache. Repeated `require` calls for the same module reuse its cached exports without executing the module again. Deleting a cache entry causes the next request for that module to execute it again and produce new exports.
 
 ```js
 var d1 = require('dependency');

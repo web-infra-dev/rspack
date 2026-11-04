@@ -84,7 +84,7 @@ A context module represents a set of modules that can be loaded through a dynami
 
 ## dependency
 
-Dependency is parsed from the transformed code of a module. It is used to store the import relationships of modules for recursively generating the module graph. When code generation, it can inject code of module imports and exports. It can also be used for code replacement and injecting runtime requirements.
+A dependency records an import relationship discovered while parsing a module’s transformed source. Rspack uses these relationships to build the module graph. During code generation, dependencies can generate import and export code, replace source code, and specify Rspack runtime requirements.
 
 ## initial chunk
 
@@ -136,11 +136,21 @@ A plugin is a program module that can be used to extend the functionality of Rsp
 
 - [Plugin](/guide/features/plugin)
 
-## runtime
+## Rspack runtime
 
-The runtime is all the code Rspack needs to connect your modularized application while it's running in the browser or other environments. It contains the loading and resolving logic needed to connect your modules as they interact.
+The Rspack runtime is the code Rspack includes in build output to load and execute modules, cache their exports, and load additional chunks. Depending on the configuration, it can also support features such as HMR. It runs within a JavaScript environment, such as a browser or Node.js; it is not the JavaScript engine or host environment itself.
 
 - [optimization.runtimeChunk](/config/optimization#optimizationruntimechunk)
+
+## Rspack runtime module
+
+A Rspack runtime module (`RuntimeModule`) is a build-time unit that generates code for a specific part of the [Rspack runtime](#rspack-runtime), such as setting [`publicPath`](/config/output#outputpublicpath), loading chunks, or supporting HMR. Its generated code is included in the appropriate chunk. It is not an application module imported by your source code.
+
+Plugins can extend `RuntimeModule`, implement `generate()` to return JavaScript code, and add an instance to a chunk with [`compilation.addRuntimeModule`](/api/javascript-api/compilation#addruntimemodule).
+
+- [`runtimeRequirementInTree`](/api/plugin-api/compilation-hooks#runtimerequirementintree): Add runtime requirements or custom runtime modules.
+- [`runtimeModule`](/api/plugin-api/compilation-hooks#runtimemodule): Inspect or modify a runtime module's generated code.
+- [`stats.runtimeModules`](/config/stats#statsruntimemodules): Display runtime modules in build statistics.
 
 ## scope hoisting
 

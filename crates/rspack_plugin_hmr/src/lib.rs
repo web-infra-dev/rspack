@@ -120,6 +120,11 @@ async fn compilation(
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.hot = true;
+  // HMR needs a unique hash when a previous module state is restored.
+  if compilation.is_rebuild {
+    compilation.hot_index += 1;
+  }
+
   compilation.set_dependency_factory(
     DependencyType::ImportMetaHotAccept,
     params.normal_module_factory.clone(),

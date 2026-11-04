@@ -216,6 +216,7 @@ function getRawOutputEnvironment(
     optionalChaining: Boolean(environment.optionalChaining),
     logicalAssignment: Boolean(environment.logicalAssignment),
     templateLiteral: Boolean(environment.templateLiteral),
+    topLevelAwait: Boolean(environment.topLevelAwait),
     importMetaDirnameAndFilename: Boolean(
       environment.importMetaDirnameAndFilename,
     ),
