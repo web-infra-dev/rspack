@@ -1,3 +1,5 @@
+//! Shared glob matching and filesystem traversal.
+
 use core::fmt;
 use std::sync::Arc;
 

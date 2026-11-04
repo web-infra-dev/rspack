@@ -4406,7 +4406,6 @@ dependencies = [
  "rspack_dojang",
  "rspack_error",
  "rspack_fs",
- "rspack_glob",
  "rspack_hash",
  "rspack_hook",
  "rspack_intern",
@@ -4485,22 +4484,10 @@ dependencies = [
  "pnp",
  "rspack_error",
  "rspack_paths",
- "rspack_util",
+ "rustc-hash",
  "tempfile",
  "tokio",
  "tracing",
-]
-
-[[package]]
-name = "rspack_glob"
-version = "0.103.1"
-dependencies = [
- "async-recursion",
- "cow-utils",
- "fast-glob",
- "rspack_error",
- "rspack_fs",
- "rspack_paths",
 ]
 
 [[package]]
@@ -5861,11 +5848,13 @@ version = "0.103.1"
 dependencies = [
  "aho-corasick",
  "anyhow",
+ "async-recursion",
  "base64-simd 0.8.0",
  "bitflags 2.13.2",
  "concat-string",
  "cow-utils",
  "dashmap",
+ "fast-glob",
  "hashlink",
  "indexmap",
  "itoa",
@@ -5875,6 +5864,8 @@ dependencies = [
  "regex",
  "rspack-allocative",
  "rspack_cacheable",
+ "rspack_error",
+ "rspack_fs",
  "rspack_intern",
  "rspack_paths",
  "rspack_regex",

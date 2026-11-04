@@ -4,15 +4,15 @@ use std::sync::Arc;
 #[cfg(test)]
 use rspack_fs::ReadableFileSystem;
 #[cfg(test)]
-use rspack_glob::pattern_has_explicit_dot_for;
-pub use rspack_glob::{
+use rspack_paths::{Utf8Path, Utf8PathBuf};
+#[cfg(test)]
+use rspack_util::glob::pattern_has_explicit_dot_for;
+pub use rspack_util::glob::{
   GlobMatchOptions, escape_glob_pattern, extract_glob_base_dir, find_files_by_glob,
   glob_base_dir_end, glob_match_with_explicit_dot, glob_match_with_options, is_glob_metacharacter,
   normalize_path_separators, normalize_path_separators_for_path, unescape_glob_path,
 };
-pub(crate) use rspack_glob::{glob_match_normalized_with_explicit_dot, walk_dir};
-#[cfg(test)]
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+pub(crate) use rspack_util::glob::{glob_match_normalized_with_explicit_dot, walk_dir};
 
 #[cfg(test)]
 mod tests {

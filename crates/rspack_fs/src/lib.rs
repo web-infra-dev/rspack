@@ -9,7 +9,7 @@ pub use intermediate::{
 };
 
 mod file_metadata;
-pub use file_metadata::{FileMetadata, FilePermissions};
+pub use file_metadata::{FileMetadata, FilePermissions, current_time, system_time_to_millis};
 
 mod macros;
 
