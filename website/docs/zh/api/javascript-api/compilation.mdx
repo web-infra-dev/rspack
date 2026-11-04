@@ -710,31 +710,35 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
 
 例如，服务端生成 HTML 时，需要知道每个入口应引入哪些 JavaScript 和 CSS 文件。可以遍历 `compilation.entrypoints`，通过 `entrypoint.getFiles()` 获取这些文件名，并保存为一份清单。
 
-以下代码放在插件的 `apply(compiler)` 方法中，在常规的产物优化和哈希处理完成后生成 `entrypoints.json`：
+以下插件在常规的产物优化和哈希处理完成后生成 `entrypoints.json`：
 
 ```js
-const { Compilation, sources } = compiler.rspack;
+class EntryManifestPlugin {
+  apply(compiler) {
+    const { Compilation, sources } = compiler.rspack;
 
-compiler.hooks.thisCompilation.tap('EntryManifestPlugin', (compilation) => {
-  compilation.hooks.processAssets.tap(
-    {
-      name: 'EntryManifestPlugin',
-      stage: Compilation.PROCESS_ASSETS_STAGE_REPORT,
-    },
-    () => {
-      const manifest = Object.fromEntries(
-        Array.from(compilation.entrypoints, ([name, entrypoint]) => [
-          name,
-          entrypoint.getFiles(),
-        ]),
+    compiler.hooks.thisCompilation.tap('EntryManifestPlugin', (compilation) => {
+      compilation.hooks.processAssets.tap(
+        {
+          name: 'EntryManifestPlugin',
+          stage: Compilation.PROCESS_ASSETS_STAGE_REPORT,
+        },
+        () => {
+          const manifest = Object.fromEntries(
+            Array.from(compilation.entrypoints, ([name, entrypoint]) => [
+              name,
+              entrypoint.getFiles(),
+            ]),
+          );
+          compilation.emitAsset(
+            'entrypoints.json',
+            new sources.RawSource(JSON.stringify(manifest, null, 2)),
+          );
+        },
       );
-      compilation.emitAsset(
-        'entrypoints.json',
-        new sources.RawSource(JSON.stringify(manifest, null, 2)),
-      );
-    },
-  );
-});
+    });
+  }
+}
 ```
 
 清单以入口名称为键、文件名数组为值。例如，`main` 入口生成了入口脚本、独立的 Rspack 运行时和 CSS 文件时，清单可能如下：
