@@ -173,11 +173,11 @@ export default async function run() {
     await tracker.waitForCollection('removed module');
     assert.match(
       getFiles.call(info).message,
-      /Module has been garbage collected/,
+      /Compiler has been garbage collected/,
     );
     assert.throws(
       () => info[Symbol.for('rspack.buildInfo.assets')],
-      /Module has been garbage collected/,
+      /Compiler has been garbage collected/,
     );
     info = null;
     await tracker.waitForCollection('build info');
