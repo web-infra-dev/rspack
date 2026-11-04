@@ -708,69 +708,44 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
 
 入口名称到入口点对象的映射。入口点是一种特殊的 chunk group，关联着该入口使用的 Rspack 运行时 chunk。
 
-通过 `entrypoint.getFiles()` 可以获取入口对应的产物文件名，包括 runtime 和抽取的 CSS。以下插件会将这些文件名写入清单，供服务端生成脚本和样式标签：
+通过 `entrypoint.getFiles()` 可以获取入口对应的产物文件名，包括 Rspack 运行时和抽取的 CSS。例如，将以下代码放在插件的 `apply(compiler)` 方法中，即可在产物优化和哈希处理完成后生成清单：
 
-```js title="rspack.config.mjs"
-class EntryManifestPlugin {
-  apply(compiler) {
-    const { Compilation, sources } = compiler.rspack;
+```js
+const { Compilation, sources } = compiler.rspack;
 
-    compiler.hooks.thisCompilation.tap('EntryManifestPlugin', (compilation) => {
-      compilation.hooks.processAssets.tap(
-        {
-          name: 'EntryManifestPlugin',
-          stage: Compilation.PROCESS_ASSETS_STAGE_REPORT,
-        },
-        () => {
-          const manifest = Object.fromEntries(
-            Array.from(compilation.entrypoints, ([name, entrypoint]) => [
-              name,
-              entrypoint.getFiles(),
-            ]),
-          );
-          compilation.emitAsset(
-            'entrypoints.json',
-            new sources.RawSource(JSON.stringify(manifest, null, 2)),
-          );
-        },
+compiler.hooks.thisCompilation.tap('EntryManifestPlugin', (compilation) => {
+  compilation.hooks.processAssets.tap(
+    {
+      name: 'EntryManifestPlugin',
+      stage: Compilation.PROCESS_ASSETS_STAGE_REPORT,
+    },
+    () => {
+      const manifest = Object.fromEntries(
+        Array.from(compilation.entrypoints, ([name, entrypoint]) => [
+          name,
+          entrypoint.getFiles(),
+        ]),
       );
-    });
-  }
-}
-
-export default {
-  module: {
-    rules: [{ test: /\.css$/i, type: 'css' }],
-  },
-  optimization: {
-    runtimeChunk: 'single',
-  },
-  plugins: [new EntryManifestPlugin()],
-};
+      compilation.emitAsset(
+        'entrypoints.json',
+        new sources.RawSource(JSON.stringify(manifest, null, 2)),
+      );
+    },
+  );
+});
 ```
 
-```js title="src/index.js"
-import './style.css';
-console.log('Hello');
-```
+如果 `main` 入口包含独立的 Rspack 运行时和 CSS 文件，清单可能如下：
 
-```css title="src/style.css"
-body {
-  color: red;
-}
-```
-
-插件在 `PROCESS_ASSETS_STAGE_REPORT` 阶段执行，此时常规的产物优化和哈希处理已完成。上述源码对应的清单如下：
-
-```json title="dist/entrypoints.json"
+```json title="entrypoints.json"
 {
   "main": ["runtime.js", "main.js", "main.css"]
 }
 ```
 
-文件名相对于产物目录，不包含 `publicPath`。生成 HTML 时，需要添加资源的 URL 前缀，并使用 `<link rel="stylesheet">` 加载 CSS。JavaScript 文件应按清单中的顺序加载，确保先加载 runtime，再加载入口。
+服务端可以根据清单生成 HTML：为文件名添加资源 URL 前缀（文件名不包含 `publicPath`），使用 `<link rel="stylesheet">` 引入 CSS，并按清单顺序添加 JavaScript 的 `<script>` 标签，使 Rspack 运行时先于入口产物执行。
 
-`getFiles()` 只列出入口 chunk group 中的文件，不包含 `import()` 创建的异步 chunk group 中的文件，也不包含该 chunk group 之外的插件产物，例如清单本身。
+`getFiles()` 只列出入口 chunk group 中的文件，不包含 `import()` 创建的异步 chunk，也不包含清单自身等无关的插件产物。
 
 <Collapse>
   <CollapsePanel

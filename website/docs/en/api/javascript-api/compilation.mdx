@@ -712,69 +712,44 @@ The list of chunk group objects, with the structure as follows:
 
 A mapping from entry names to entrypoint objects. An entrypoint is a special chunk group associated with the Rspack runtime chunk used by that entry.
 
-Use `entrypoint.getFiles()` to get the output filenames for an entry, including its runtime and extracted CSS. The following plugin writes these filenames to a manifest that a server can use to generate script and stylesheet tags:
+Use `entrypoint.getFiles()` to list the output files for an entry, including its Rspack runtime and extracted CSS. For example, place this code in a plugin's `apply(compiler)` method to generate a manifest after asset optimization and hash processing:
 
-```js title="rspack.config.mjs"
-class EntryManifestPlugin {
-  apply(compiler) {
-    const { Compilation, sources } = compiler.rspack;
+```js
+const { Compilation, sources } = compiler.rspack;
 
-    compiler.hooks.thisCompilation.tap('EntryManifestPlugin', (compilation) => {
-      compilation.hooks.processAssets.tap(
-        {
-          name: 'EntryManifestPlugin',
-          stage: Compilation.PROCESS_ASSETS_STAGE_REPORT,
-        },
-        () => {
-          const manifest = Object.fromEntries(
-            Array.from(compilation.entrypoints, ([name, entrypoint]) => [
-              name,
-              entrypoint.getFiles(),
-            ]),
-          );
-          compilation.emitAsset(
-            'entrypoints.json',
-            new sources.RawSource(JSON.stringify(manifest, null, 2)),
-          );
-        },
+compiler.hooks.thisCompilation.tap('EntryManifestPlugin', (compilation) => {
+  compilation.hooks.processAssets.tap(
+    {
+      name: 'EntryManifestPlugin',
+      stage: Compilation.PROCESS_ASSETS_STAGE_REPORT,
+    },
+    () => {
+      const manifest = Object.fromEntries(
+        Array.from(compilation.entrypoints, ([name, entrypoint]) => [
+          name,
+          entrypoint.getFiles(),
+        ]),
       );
-    });
-  }
-}
-
-export default {
-  module: {
-    rules: [{ test: /\.css$/i, type: 'css' }],
-  },
-  optimization: {
-    runtimeChunk: 'single',
-  },
-  plugins: [new EntryManifestPlugin()],
-};
+      compilation.emitAsset(
+        'entrypoints.json',
+        new sources.RawSource(JSON.stringify(manifest, null, 2)),
+      );
+    },
+  );
+});
 ```
 
-```js title="src/index.js"
-import './style.css';
-console.log('Hello');
-```
+If the `main` entry has a separate Rspack runtime and CSS file, the manifest might look like this:
 
-```css title="src/style.css"
-body {
-  color: red;
-}
-```
-
-The plugin runs at `PROCESS_ASSETS_STAGE_REPORT`, after the standard asset optimization and hash processing stages. With the source files above, it generates this manifest:
-
-```json title="dist/entrypoints.json"
+```json title="entrypoints.json"
 {
   "main": ["runtime.js", "main.js", "main.css"]
 }
 ```
 
-The filenames are relative to the output directory and do not include `publicPath`. When generating HTML, add your asset URL prefix and use `<link rel="stylesheet">` to load CSS. Keep the JavaScript files in the listed order so the runtime loads before the entry.
+A server can use this manifest to generate HTML: prepend the asset URL prefix (the filenames do not include `publicPath`), use `<link rel="stylesheet">` for CSS, and keep the JavaScript `<script>` tags in the listed order so the Rspack runtime runs before the entry bundle.
 
-`getFiles()` only lists files in the entrypoint's chunk group. Files in async chunk groups created by `import()` and plugin assets outside this chunk group, such as the manifest itself, are not included.
+`getFiles()` only lists files in the entrypoint's chunk group. It excludes async chunks created by `import()` and unrelated plugin assets, such as the manifest itself.
 
 <Collapse>
   <CollapsePanel
