@@ -1,4 +1,8 @@
-use std::{borrow::Cow, ops::Deref, sync::Arc};
+use std::{
+  borrow::Cow,
+  ops::Deref,
+  sync::{Arc, LazyLock},
+};
 
 use memchr::{memchr, memmem, memrchr};
 use rspack_error::{Result, error};
@@ -1498,14 +1502,21 @@ fn match_resource(input: &str) -> Option<(&str, &str)> {
 }
 
 fn match_ext(input: &str) -> Option<(&str, &str)> {
+  static MARKERS: LazyLock<[memmem::Finder<'static>; 2]> = LazyLock::new(|| {
+    [
+      memmem::Finder::new(b".rspack["),
+      memmem::Finder::new(b".webpack["),
+    ]
+  });
+
   let input = input.strip_suffix(']')?;
   let bytes = input.as_bytes();
   // A suffix can only start after the previous closing bracket.
   let suffix_start = memrchr(b']', bytes).map_or(0, |index| index + 1);
-  for marker in [".rspack[", ".webpack["] {
-    if let Some(start) = memmem::find(&bytes[suffix_start..], marker.as_bytes()) {
+  for marker in MARKERS.iter() {
+    if let Some(start) = marker.find(&bytes[suffix_start..]) {
       let start = suffix_start + start;
-      let module_type = &input[start + marker.len()..];
+      let module_type = &input[start + marker.needle().len()..];
       if !module_type.is_empty() {
         return Some((&input[..start], module_type));
       }
