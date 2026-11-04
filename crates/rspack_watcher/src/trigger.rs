@@ -246,6 +246,7 @@ impl EventProcessor {
     // re-created) ends as the path's final state, like watchpack's lstat on
     // each event. Its records still go, so it is taken as new.
     let removed = kind == FsEventKind::Remove;
+    let initial_missing = removed && matches!(origin, Origin::Scan);
     let exists = std::fs::symlink_metadata(path).is_ok();
     let kind = match kind {
       FsEventKind::Change | FsEventKind::Create if !exists => FsEventKind::Remove,
@@ -315,6 +316,7 @@ impl EventProcessor {
     }
 
     let context_removal = (kind == FsEventKind::Remove
+      && !initial_missing
       && associated_event
         .iter()
         .any(|(associated, kind)| associated != path && *kind == FsEventKind::Change))
