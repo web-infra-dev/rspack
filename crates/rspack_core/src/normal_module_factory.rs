@@ -933,19 +933,19 @@ impl NormalModuleFactory {
           Ok(ResolveResult::Resource(resource)) => resource.into(),
           Ok(ResolveResult::Ignored) => {
             let ident = format!("{}/{}", &data.context, resource);
-            let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
             let raw_module = if matches!(
               dependency_type,
               DependencyType::CssUrl | DependencyType::NewUrl
             ) {
               // use RawModule instead of RawDataUrlModule
+              // Keep ignored assets separate from ignored JS modules in the graph and cache.
               RawModule::new(
                 r#"/* (ignored-asset) */
 module.exports = "data:,";
 "#
                 .to_owned(),
-                module_identifier,
+                ModuleIdentifier::from(format!("ignored-asset|{ident}")),
                 format!("{} (ignored-asset)", data.request),
                 RuntimeGlobals::MODULE,
               )
@@ -953,7 +953,7 @@ module.exports = "data:,";
             } else {
               RawModule::new(
                 "/* (ignored) */".to_owned(),
-                module_identifier,
+                ModuleIdentifier::from(format!("ignored|{ident}")),
                 format!("{} (ignored)", data.request),
                 Default::default(),
               )

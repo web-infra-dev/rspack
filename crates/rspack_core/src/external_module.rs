@@ -18,8 +18,8 @@ use crate::{
   ExportProvided, ExternalType, FactoryMetaStore, FreezeLock, ImportAttributes, ImportPhase,
   InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
-  NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
+  NAMESPACE_OBJECT_EXPORT, NeedBuildContext, NormalInitFragment, RuntimeGlobals, RuntimeSpec,
+  SourceType, StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
   css_module_render_conditions_identifier, extract_url_and_global, impl_module_meta_info,
   module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
@@ -1200,6 +1200,10 @@ impl Module for ExternalModule {
     // copied from webpack `ExternalModule`
     // roughly for url
     42.0
+  }
+
+  async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+    Ok(self.build_meta.frozen().is_none())
   }
 
   async fn build(
