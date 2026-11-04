@@ -6,15 +6,16 @@
 ## Asset Files
 - Bundle: bundle.js
 - Bundle: consumer_js.chunk.CURRENT_HASH.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 30728
+- Manifest: main.LAST_HASH.hot-update.json, size: 77
+- Update: main.LAST_HASH.hot-update.js, size: 32260
+- Update: main.LAST_HASH.hot-update.js.full.js, size: 55863
 
 ## Manifest
 
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["main"],"r":[],"m":[]}
+{"c":["main"],"r":[],"m":[],"load":{"dependencies":{"consumer_js":["main"]}}}
 ```
 
 
@@ -909,9 +910,22 @@ __webpack_require__.hmrC.jsonp = function (
 	updatedModulesList,
 	_css,
 	_miniCss,
-	load
+	load,
+	changed
 ) {
-	applyHandlers.push(hotApplyHandler);
+	applyHandlers.push(function (options) {
+		// Finish selection after downloads, including chunks ensured during check.
+		// An update forwarded through an old owner must not revive a stale module.
+		Object.keys(changed || {}).forEach(function (moduleId) {
+			if (hotCurrentUpdate[moduleId] === false) return;
+			if (!__webpack_require__.o(__webpack_require__.m, moduleId) && !__webpack_require__.c[moduleId]) return;
+			if (changed[moduleId].some(function (chunkId) {
+				return preparedChunks[chunkId] !== false && (jsonpInstalledChunks[chunkId] === 0 || hotCurrentUpdateChunks[chunkId] === true);
+			})) return;
+			hotCurrentUpdate[moduleId] = false;
+		});
+		return hotApplyHandler(options);
+	});
 	hotCurrentUpdateChunks = {};
 	hotCurrentUpdateRemovedChunks = removedChunks;
 	hotCurrentUpdate = removedModules.reduce(function (obj, key) {
@@ -920,17 +934,27 @@ __webpack_require__.hmrC.jsonp = function (
 	}, {});
 	hotCurrentUpdateRuntime = [];
 	hotCurrentUpdateFullChunks = [];
+	var dependencies = load && load.dependencies;
+	var preparedChunks = Object.create(null);
+	removedChunks.forEach(function (chunkId) { preparedChunks[chunkId] = false; });
+	function prepareFullChunk(chunkId, promises) {
+		if (__webpack_require__.o(preparedChunks, chunkId)) return;
+		preparedChunks[chunkId] = true;
+		if (dependencies && __webpack_require__.o(dependencies, chunkId)) dependencies[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
+		if (jsonpInstalledChunks[chunkId] === 0 || hotCurrentUpdateChunks[chunkId] === true) return;
+		hotCurrentUpdateChunks[chunkId] = true;
+		hotCurrentUpdateFullChunks.push(chunkId);
+		promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList, true));
+	}
 	// Complete payloads contain the delta too. Select them before requesting
 	// ordinary updates, so each chunk has only one pending update download.
+	Object.keys(dependencies || {}).forEach(function (chunkId) {
+		if (jsonpInstalledChunks[chunkId] === 0) prepareFullChunk(chunkId, promises);
+	});
 	var entries = load && load.entries;
 	Object.keys(entries || {}).forEach(function (entryId) {
-		if (!__webpack_require__.o(jsonpInstalledChunks, entryId) || jsonpInstalledChunks[entryId] !== 0) return;
-		entries[entryId].forEach(function (chunkId) {
-			if (jsonpInstalledChunks[chunkId] === 0 || hotCurrentUpdateChunks[chunkId] === true) return;
-			hotCurrentUpdateChunks[chunkId] = true;
-			hotCurrentUpdateFullChunks.push(chunkId);
-			promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList, true));
-		});
+		if (preparedChunks[entryId] === false || !__webpack_require__.o(jsonpInstalledChunks, entryId) || jsonpInstalledChunks[entryId] !== 0) return;
+		entries[entryId].forEach(function (id) { prepareFullChunk(id, promises); });
 	});
 	chunkIds.forEach(function (chunkId) {
 		if (hotCurrentUpdateChunks[chunkId] === true) return;
@@ -946,6 +970,1871 @@ __webpack_require__.hmrC.jsonp = function (
 	});
 	if (__webpack_require__.f) {
 		__webpack_require__.f.jsonpHmr = function (chunkId, promises) {
+			if (hotCurrentUpdateChunks && dependencies && __webpack_require__.o(dependencies, chunkId)) {
+				dependencies[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
+			}
+			if (
+				hotCurrentUpdateChunks &&
+				__webpack_require__.o(hotCurrentUpdateChunks, chunkId) &&
+				!hotCurrentUpdateChunks[chunkId]
+			) {
+				promises.push(jsonpLoadUpdateChunk(chunkId));
+				hotCurrentUpdateChunks[chunkId] = true;
+			}
+		};
+	}
+};
+__webpack_require__.hmrM = () => {
+	if (typeof fetch === "undefined")
+		throw new Error("No browser support: need fetch API");
+	return fetch(__webpack_require__.p + __webpack_require__.hmrF()).then(
+		(response) => {
+			if (response.status === 404) return; // no update available
+			if (!response.ok)
+				throw new Error(
+					"Failed to fetch update manifest " + response.statusText
+				);
+			return response.json();
+		}
+	);
+};
+// install a JSONP callback for chunk loading
+var __rspack_jsonp = (parentChunkLoadingFunction, data) => {
+	var [chunkIds, moreModules, runtime] = data;
+	var error = hotCheckChunk(chunkIds, data[3]);
+	if (error) {
+		// Reject after the script's onload has cleaned up this attempt.
+		chunkIds.forEach(function (id) {
+			if (jsonpInstalledChunks[id]) jsonpInstalledChunks[id].error = error;
+		});
+		if (parentChunkLoadingFunction) parentChunkLoadingFunction(data);
+		return;
+	}
+
+	// add "moreModules" to the modules object,
+	// then flag all "chunkIds" as loaded and fire callback
+	var moduleId, chunkId, i = 0;
+	if (chunkIds.some((id) => (jsonpInstalledChunks[id] !== 0))) {
+		for (moduleId in moreModules) {
+			if (__webpack_require__.o(moreModules, moduleId)) {
+				__webpack_require__.m[moduleId] = moreModules[moduleId];
+			}
+		}
+		if (runtime) var result = runtime(__webpack_require__);
+	}
+	if (parentChunkLoadingFunction) parentChunkLoadingFunction(data);
+	for (; i < chunkIds.length; i++) {
+		chunkId = chunkIds[i];
+		if (
+			__webpack_require__.o(jsonpInstalledChunks, chunkId) &&
+			jsonpInstalledChunks[chunkId]
+		) {
+			jsonpInstalledChunks[chunkId][0]();
+		}
+		jsonpInstalledChunks[chunkId] = 0;
+	}
+	
+};
+
+var jsonpChunkLoadingGlobal = self["rspackChunk"] = self["rspackChunk"] || [];
+jsonpChunkLoadingGlobal.forEach(__rspack_jsonp.bind(null, 0));
+jsonpChunkLoadingGlobal.push = __rspack_jsonp.bind(null, jsonpChunkLoadingGlobal.push.bind(jsonpChunkLoadingGlobal));
+
+})();
+
+}
+);
+```
+
+
+
+### main.LAST_HASH.hot-update.js.full.js
+
+#### Changed Modules
+- ./index.js
+- ./loader.js
+- ./state.js
+
+#### Changed Runtime Modules
+- webpack/runtime/async_module
+- webpack/runtime/create_fake_namespace_object
+- webpack/runtime/css_loading
+- webpack/runtime/define_property_getters
+- webpack/runtime/ensure_chunk
+- webpack/runtime/esm_module_decorator
+- webpack/runtime/get_chunk_update_filename
+- webpack/runtime/get_full_hash
+- webpack/runtime/has_own_property
+- webpack/runtime/hot_module_replacement
+- webpack/runtime/hot_module_replacement_chunk_versions
+- webpack/runtime/jsonp_chunk_loading
+- webpack/runtime/load_script
+- webpack/runtime/make_deferred_namespace_object
+- webpack/runtime/make_namespace_object
+- webpack/runtime/make_optimized_deferred_namespace_object
+- webpack/runtime/public_path
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {
+"./index.js": [(function (module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+/* import */ var _loader__rspack_import_0 = __webpack_require__("./loader.js");
+/* import */ var _state__rspack_import_1 = __webpack_require__("./state.js");
+/* module decorator */ module = __webpack_require__.hmd(module);
+
+
+
+it("should introduce deferred async dependencies through HMR", async () => {
+	expect(await (0,_loader__rspack_import_0["default"])()).toBe("initial");
+	await NEXT_HMR.bind(null, module)();
+	const namespace = await (0,_loader__rspack_import_0["default"])();
+	expect(_state__rspack_import_1.evaluations).toEqual(["async dependency"]);
+	expect(namespace.value).toBe(42);
+	expect(namespace.value).toBe(42);
+	namespace.increment();
+	expect(namespace.value).toBe(43);
+	expect(_state__rspack_import_1.evaluations).toEqual(["async dependency", "deferred"]);
+});
+
+module.hot.accept("./loader.js", function(){
+/* import */ _loader__rspack_import_0 = __webpack_require__("./loader.js");
+
+});
+
+
+})],
+"./loader.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = (() => __webpack_require__.e(/* import() */ "consumer_js").then(__webpack_require__.bind(__webpack_require__, "./consumer.js")).then(({ namespace }) => namespace));
+
+
+},
+"./state.js": [(function (__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  evaluations: () => (evaluations)
+});
+const evaluations = [];
+
+
+})],
+
+},function(__webpack_require__) {
+// webpack/runtime/async_module
+(() => {
+var hasSymbol = typeof Symbol === "function";
+var rspackQueues = hasSymbol ? Symbol("rspack queues") : "__rspack_queues";
+var rspackExports = __webpack_require__.aE = hasSymbol ? Symbol("rspack exports") : "__webpack_exports__";
+var rspackError = hasSymbol ? Symbol("rspack error") : "__rspack_error";
+var rspackDone = hasSymbol ? Symbol("rspack done") : "__rspack_done";
+var rspackDefer = __webpack_require__.zS = hasSymbol ? Symbol("rspack defer") : "__rspack_defer";
+__webpack_require__.zT = (asyncDeps) => {
+	var hasUnresolvedAsyncSubgraph = asyncDeps.some((id) => {
+		var cache = __webpack_require__.c[id];
+		return !cache || cache[rspackDone] === false;
+	});
+	if (hasUnresolvedAsyncSubgraph) {
+		return ({ then(onFulfilled, onRejected) { return Promise.all(asyncDeps.map(__webpack_require__)).then(onFulfilled, onRejected) } });
+	}
+}
+var resolveQueue = (queue) => {
+	if (queue && queue.d < 1) {
+		queue.d = 1;
+    	queue.forEach((fn) => (fn.r--));
+		queue.forEach((fn) => (fn.r-- ? fn.r++ : fn()));
+	}
+}
+var wrapDeps = (deps) => {
+	return deps.map((dep) => {
+		if (dep !== null && typeof dep === "object") {
+			if(!dep[rspackQueues] && dep[rspackDefer]) {
+				var asyncDeps = __webpack_require__.zT(dep[rspackDefer]);
+				if (asyncDeps) {
+					var d = dep;
+					dep = {
+						then(onFulfilled, onRejected) {
+							asyncDeps.then(() => (onFulfilled(d)), onRejected);
+						}
+					};
+				} else return dep;
+			}
+			if (dep[rspackQueues]) return dep;
+			if (dep.then) {
+				var queue = [];
+				queue.d = 0;
+				dep.then((r) => {
+					obj[rspackExports] = r;
+					resolveQueue(queue);
+				},(e) => {
+					obj[rspackError] = e;
+					resolveQueue(queue);
+				});
+				var obj = {};
+				obj[rspackDefer] = false;
+				obj[rspackQueues] = (fn) => (fn(queue));
+				return obj;
+			}
+		}
+		var ret = {};
+		ret[rspackQueues] = () => {};
+		ret[rspackExports] = dep;
+		return ret;
+	});
+};
+__webpack_require__.a = (module, body, hasAwait, useModuleExports) => {
+	var queue;
+	hasAwait && ((queue = []).d = -1);
+	var depQueues = new Set();
+	var exports = module.exports;
+	var currentDeps;
+	var outerResolve;
+	var reject;
+	var promise = new Promise((resolve, rej) => {
+		reject = rej;
+		outerResolve = resolve;
+	});
+	promise[rspackExports] = exports;
+	promise[rspackQueues] = (fn) => { queue && fn(queue), depQueues.forEach(fn), promise["catch"](() => {}); };
+	module.exports = promise;
+	var asyncModule = module;
+	if (useModuleExports) {
+		asyncModule = Object.create(module);
+		asyncModule.exports = exports;
+	}
+	var handle = (deps) => {
+		currentDeps = wrapDeps(deps);
+		var fn;
+		var getResult = () => {
+			return currentDeps.map((d) => {
+				if(d[rspackDefer]) return d;
+				if (d[rspackError]) throw d[rspackError];
+				return d[rspackExports];
+			});
+		}
+		var promise = new Promise((resolve) => {
+			fn = () => (resolve(getResult));
+			fn.r = 0;
+			var fnQueue = (q) => (q !== queue && !depQueues.has(q) && (depQueues.add(q), q && !q.d && (fn.r++, q.push(fn))));
+			currentDeps.map((dep) => (dep[rspackDefer] || dep[rspackQueues](fnQueue)));
+		});
+		return fn.r ? promise : getResult();
+	};
+	var done = (err) => ((err ? reject(promise[rspackError] = err) : (useModuleExports && (exports = promise[rspackExports] = asyncModule.exports), outerResolve(exports))), resolveQueue(queue), promise[rspackDone] = true);
+	body(handle, done, asyncModule);
+	queue && queue.d < 0 && (queue.d = 0);
+};
+
+})();
+// webpack/runtime/create_fake_namespace_object
+(() => {
+var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
+var leafPrototypes;
+// create a fake namespace object
+// mode & 1: value is a module id, require it
+// mode & 2: merge all properties of value into the ns
+// mode & 4: return value when already ns object
+// mode & 16: return value when it's Promise-like
+// mode & 8|1: behave like require
+__webpack_require__.t = function(value, mode) {
+	if(mode & 1) value = this(value);
+	if(mode & 8) return value;
+	if(typeof value === 'object' && value) {
+		if((mode & 4) && value.__esModule) return value;
+		if((mode & 16) && typeof value.then === 'function') return value;
+	}
+	var ns = Object.create(null);
+  __webpack_require__.r(ns);
+	var def = {};
+	leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];
+	for(var current = mode & 2 && value; (typeof current == 'object' || typeof current == 'function') && !~leafPrototypes.indexOf(current); current = getProto(current)) {
+		Object.getOwnPropertyNames(current).forEach((key) => { def[key] = () => (value[key]) });
+	}
+	def['default'] = () => (value);
+	__webpack_require__.d(ns, def);
+	return ns;
+};
+})();
+// webpack/runtime/define_property_getters
+(() => {
+
+__webpack_require__.d = function (exports, getters, values) {
+  var define = function (defs, kind) {
+    for(var key in defs) {
+      if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+        Object.defineProperty(exports, key, { configurable: true, enumerable: true, [kind]: defs[key] });
+      }
+    }
+  }
+  define(getters, "get");
+  define(values, "value");
+};
+
+})();
+// webpack/runtime/ensure_chunk
+(() => {
+__webpack_require__.f = {};
+// This file contains only the entry chunk.
+// The chunk loading function for additional chunks
+__webpack_require__.e = (chunkId) => {
+	var promises =
+		Object.keys(__webpack_require__.f).reduce((promises, key) => {
+			__webpack_require__.f[key](chunkId, promises);
+			return promises;
+		}, []);
+	var versionError;
+	var promise = Promise.all(promises.map((promise) => {
+		return Promise.resolve(promise).catch((error) => {
+			if (error.name !== "ChunkVersionError") throw error;
+			versionError = error;
+		});
+	}));
+	return promises.length ? promise.then((result) => {
+		// Keep pending hot-update downloads blocking prepare after a version mismatch.
+		if (versionError) throw versionError;
+		return result;
+	}) : promise;
+};
+})();
+// webpack/runtime/esm_module_decorator
+(() => {
+__webpack_require__.hmd = (module) => {
+  module = Object.create(module);
+  if (!module.children) module.children = [];
+  Object.defineProperty(module, 'exports', {
+      enumerable: true,
+      set: () => {
+          throw new Error('ES Modules may not assign module.exports or exports.*, Use ESM export syntax, instead: ' + module.id);
+      }
+  });
+  return module;
+};
+})();
+// webpack/runtime/get css chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.k = (chunkId) => {
+  // return url for filenames not based on template
+  
+  // return url for filenames based on template
+  return "" + chunkId + ".css"
+}
+})();
+// webpack/runtime/get javascript chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.u = (chunkId) => {
+  // return url for filenames not based on template
+  if (chunkId === "main") return "bundle.js";
+  // return url for filenames based on template
+  return "" + chunkId + ".chunk." + __webpack_require__.h() + ".js"
+}
+})();
+// webpack/runtime/get_chunk_update_filename
+(() => {
+__webpack_require__.hu = (chunkId) => ('' + chunkId + '.' + __webpack_require__.h() + '.hot-update.js')
+})();
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/get_main_filename/update manifest
+(() => {
+__webpack_require__.hmrF = function () {
+            return "main." + __webpack_require__.h() + ".hot-update.json";
+         };
+        
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/hot_module_replacement
+(() => {
+var currentModuleData = {};
+var hmrInstalledModules = __webpack_require__.c;
+
+// module and require creation
+var currentChildModule;
+var currentParents = [];
+
+// status
+var registeredStatusHandlers = [];
+var currentStatus = "idle";
+
+// while downloading
+var blockingPromises = 0;
+var blockingPromisesWaiting = [];
+var blockingStatusPromises = [];
+var currentCheckPromise;
+
+// The update info
+var currentUpdateApplyHandlers;
+var queuedInvalidatedModules;
+// Concurrent ensures share the actual attempt and its starting runtime hash.
+var chunkLoadingPromises = Object.create(null);
+
+__webpack_require__.hmrD = currentModuleData;
+
+__webpack_require__.i.push(function (options) {
+	var module = options.module;
+	var require = rspackHmrCreateRequire(options.require, options.id);
+	module.hot = createModuleHotObject(options.id, module);
+	module.parents = currentParents;
+	module.children = [];
+	currentParents = [];
+	options.require = require;
+	
+});
+
+__webpack_require__.hmrC = {};
+__webpack_require__.hmrI = {};
+
+function rspackHmrCreateRequire(require, moduleId) {
+	var me = hmrInstalledModules[moduleId];
+	if (!me) return require;
+	var fn = function (request) {
+		if (me.hot.active) {
+			if (hmrInstalledModules[request]) {
+				var parents = hmrInstalledModules[request].parents;
+				if (parents.indexOf(moduleId) === -1) {
+					parents.push(moduleId);
+				}
+			} else {
+				currentParents = [moduleId];
+				currentChildModule = request;
+			}
+			if (me.children.indexOf(request) === -1) {
+				me.children.push(request);
+			}
+		} else {
+			console.warn(
+				"[HMR] unexpected require(" +
+				request +
+				") from disposed module " +
+				moduleId
+			);
+			currentParents = [];
+		}
+		return require(request);
+	};
+	var createPropertyDescriptor = function (name) {
+		return {
+			configurable: true,
+			enumerable: true,
+			get: function () {
+				return require[name];
+			},
+			set: function (value) {
+				require[name] = value;
+			}
+		};
+	};
+	for (var name in require) {
+		if (Object.prototype.hasOwnProperty.call(require, name) && name !== "e") {
+			Object.defineProperty(fn, name, createPropertyDescriptor(name));
+		}
+	}
+
+	if (require.e) fn.e = function (chunkId, fetchPriority) {
+		var loading = chunkLoadingPromises[chunkId];
+		if (loading) {
+			trackBlockingPromise(loading[0]);
+			return loading[1];
+		}
+		// [current download, complete retry]
+		loading = [];
+		var clear = function () {
+			if (chunkLoadingPromises[chunkId] === loading) delete chunkLoadingPromises[chunkId];
+		};
+		var retriedHash;
+		var load = function () {
+			// Only one attempt blocks prepare; catch-up and retries must not.
+			var hash = __webpack_require__.h();
+			try {
+				loading[0] = require.e(chunkId, fetchPriority);
+			} catch (error) {
+				loading[0] = Promise.reject(error);
+			}
+			// A compatible chunk can run in the current build. Waiting for apply here
+			// would also block status handlers which await this import.
+			return trackBlockingPromise(loading[0]).catch(function (error) {
+				if (error.name !== "ChunkVersionError") throw error;
+				return waitForUpdate(hash, chunkId).then(function () {
+					var nextHash = __webpack_require__.h();
+					if (retriedHash === nextHash) throw error;
+					retriedHash = nextHash;
+					return load();
+				});
+			});
+		};
+		loading[1] = load();
+		chunkLoadingPromises[chunkId] = loading;
+		loading[1].then(clear, clear);
+		return loading[1];
+	};
+	return fn;
+}
+
+function createModuleHotObject(moduleId, me) {
+	var _main = currentChildModule !== moduleId;
+	var hot = {
+		_acceptedDependencies: {},
+		_acceptedErrorHandlers: {},
+		_declinedDependencies: {},
+		_selfAccepted: false,
+		_selfDeclined: false,
+		_selfInvalidated: false,
+		_disposeHandlers: [],
+		_main: _main,
+		_requireSelf: function () {
+			currentParents = me.parents.slice();
+			currentChildModule = _main ? undefined : moduleId;
+			__webpack_require__(moduleId);
+		},
+		active: true,
+		accept: function (dep, callback, errorHandler) {
+			if (dep === undefined) hot._selfAccepted = true;
+			else if (typeof dep === "function") hot._selfAccepted = dep;
+			else if (typeof dep === "object" && dep !== null) {
+				for (var i = 0; i < dep.length; i++) {
+					hot._acceptedDependencies[dep[i]] = callback || function () { };
+					hot._acceptedErrorHandlers[dep[i]] = errorHandler;
+				}
+			} else {
+				hot._acceptedDependencies[dep] = callback || function () { };
+				hot._acceptedErrorHandlers[dep] = errorHandler;
+			}
+		},
+		decline: function (dep) {
+			if (dep === undefined) hot._selfDeclined = true;
+			else if (typeof dep === "object" && dep !== null)
+				for (var i = 0; i < dep.length; i++)
+					hot._declinedDependencies[dep[i]] = true;
+			else hot._declinedDependencies[dep] = true;
+		},
+		dispose: function (callback) {
+			hot._disposeHandlers.push(callback);
+		},
+		addDisposeHandler: function (callback) {
+			hot._disposeHandlers.push(callback);
+		},
+		removeDisposeHandler: function (callback) {
+			var idx = hot._disposeHandlers.indexOf(callback);
+			if (idx >= 0) hot._disposeHandlers.splice(idx, 1);
+		},
+		invalidate: function () {
+			this._selfInvalidated = true;
+			switch (currentStatus) {
+				case "idle":
+					currentUpdateApplyHandlers = [];
+					Object.keys(__webpack_require__.hmrI).forEach(function (key) {
+						__webpack_require__.hmrI[key](moduleId, currentUpdateApplyHandlers);
+					});
+					setStatus("ready");
+					break;
+				case "ready":
+					Object.keys(__webpack_require__.hmrI).forEach(function (key) {
+						__webpack_require__.hmrI[key](moduleId, currentUpdateApplyHandlers);
+					});
+					break;
+				case "prepare":
+				case "check":
+				case "dispose":
+				case "apply":
+					(queuedInvalidatedModules = queuedInvalidatedModules || []).push(
+						moduleId
+					);
+					break;
+				default:
+					break;
+			}
+		},
+		check: hotCheck,
+		apply: hotApply,
+		status: function (l) {
+			if (!l) return currentStatus;
+			registeredStatusHandlers.push(l);
+		},
+		addStatusHandler: function (l) {
+			registeredStatusHandlers.push(l);
+		},
+		removeStatusHandler: function (l) {
+			var idx = registeredStatusHandlers.indexOf(l);
+			if (idx >= 0) registeredStatusHandlers.splice(idx, 1);
+		},
+		data: currentModuleData[moduleId]
+	};
+	currentChildModule = undefined;
+	return hot;
+}
+
+function setStatus(newStatus) {
+	currentStatus = newStatus;
+	if (newStatus === "idle") blockingStatusPromises = [];
+	
+	if (self.__HMR_UPDATED_RUNTIME__) {
+		self.__HMR_UPDATED_RUNTIME__.statusPath.push(newStatus);
+	}
+	
+	var results = [];
+	for (var i = 0; i < registeredStatusHandlers.length; i++)
+		results[i] = registeredStatusHandlers[i].call(null, newStatus);
+
+	return Promise.all(results).then(function () { });
+}
+
+function unblock() {
+	if (--blockingPromises === 0) {
+		var ready = setStatus("ready");
+		blockingStatusPromises.push(ready);
+		var release = function () {
+			if (blockingPromises === 0) {
+				var list = blockingPromisesWaiting;
+				blockingPromisesWaiting = [];
+				for (var i = 0; i < list.length; i++) {
+					list[i]();
+				}
+			}
+		};
+		// Rejections must also reach the check waiting for this transition.
+		ready.then(release, release);
+	}
+}
+
+function trackBlockingPromise(promise) {
+	switch (currentStatus) {
+		case "ready":
+			setStatus("prepare");
+		case "prepare":
+			blockingPromises++;
+			promise.then(unblock, unblock);
+			return promise;
+		default:
+			return promise;
+	}
+}
+
+function waitForBlockingPromises(fn) {
+	if (blockingPromises === 0) {
+		var count = blockingStatusPromises.length;
+		if (!count) return fn();
+		return Promise.all(blockingStatusPromises).then(function () {
+			if (blockingPromises || blockingStatusPromises.length !== count) return waitForBlockingPromises(fn);
+			return fn();
+		});
+	}
+	return new Promise(function (resolve) {
+		blockingPromisesWaiting.push(function () {
+			resolve(waitForBlockingPromises(fn));
+		});
+	});
+}
+
+function waitForUpdate(hash, chunkId) {
+	if (currentStatus === "abort" || currentStatus === "fail") {
+		return Promise.reject(new Error("Chunk loading failed because the update failed (" + currentStatus + ")"));
+	}
+	var waiting = currentStatus !== "idle";
+	if (!waiting && hash !== __webpack_require__.h()) return Promise.resolve();
+	var onStatus, timeout, promise;
+	if (waiting) {
+		promise = new Promise(function (resolve, reject) {
+			onStatus = function (status) {
+				if (status === "idle" || status === "abort" || status === "fail") resolve();
+			};
+			registeredStatusHandlers.push(onStatus);
+			// Download failures can reject check() without changing its status.
+			if (currentCheckPromise) currentCheckPromise.then(undefined, reject);
+		});
+	} else {
+		promise = hotCheck(true).then(function (updatedModules) {
+			if (!updatedModules) {
+				throw new Error("Chunk is from another build, and no update leads to it");
+			}
+		});
+	}
+	var cleanup = function () {
+		clearTimeout(timeout);
+		if (onStatus) registeredStatusHandlers.splice(registeredStatusHandlers.indexOf(onStatus), 1);
+	};
+	// A status handler may itself await this import. Bound the wait without
+	// mistaking an unrelated asynchronous handler for a circular dependency.
+	return Promise.race([promise, new Promise(function (_, reject) {
+		timeout = setTimeout(function () {
+			var error = new Error("Loading chunk " + chunkId + " timed out waiting for HMR (status: " + currentStatus + ")");
+			error.name = "ChunkLoadError";
+			error.type = "timeout";
+			reject(error);
+		}, 120000);
+	})]).then(function () {
+		cleanup();
+		if (waiting) return waitForUpdate(hash, chunkId);
+	}, function (error) {
+		cleanup();
+		throw error;
+	});
+}
+
+function hotCheck(applyOnUpdate) {
+	if (currentStatus !== "idle") {
+		throw new Error("check() is only allowed in idle status");
+	}
+	
+	self.__HMR_UPDATED_RUNTIME__ = {
+		javascript: {
+			outdatedModules: [],
+			outdatedDependencies: [],
+
+			acceptedModules: [],
+			updatedModules: [],
+			updatedRuntime: [],
+			disposedModules: [],
+		},
+		statusPath: []
+	};
+	
+	return currentCheckPromise = setStatus("check")
+		.then(__webpack_require__.hmrM)
+		.then(function (update) {
+			if (!update) {
+				return setStatus(applyInvalidatedModules() ? "ready" : "idle").then(
+					function () {
+						return null;
+					}
+				);
+			}
+
+			return setStatus("prepare").then(function () {
+				var updatedModules = [];
+				currentUpdateApplyHandlers = [];
+
+				return Promise.all(
+					Object.keys(__webpack_require__.hmrC).reduce(function (
+						promises,
+						key
+					) {
+						__webpack_require__.hmrC[key](
+							update.c,
+							update.r,
+							update.m,
+							promises,
+							currentUpdateApplyHandlers,
+							updatedModules,
+							update.css,
+							update.miniCss,
+							update.load,
+							update.changed
+						);
+						return promises;
+					},
+						[])
+				).then(function () {
+					return waitForBlockingPromises(function () {
+						if (applyOnUpdate) {
+							return internalApply(applyOnUpdate);
+						}
+						return setStatus("ready").then(function () {
+							return updatedModules;
+						});
+					});
+				});
+			});
+		});
+}
+
+function hotApply(options) {
+	if (currentStatus !== "ready") {
+		return Promise.resolve().then(function () {
+			throw new Error(
+				"apply() is only allowed in ready status (state: " + currentStatus + ")"
+			);
+		});
+	}
+	return internalApply(options);
+}
+
+function internalApply(options) {
+	options = options || {};
+	applyInvalidatedModules();
+	var results = currentUpdateApplyHandlers.map(function (handler) {
+		return handler(options);
+	});
+	currentUpdateApplyHandlers = undefined;
+	var errors = results
+		.map(function (r) {
+			return r.error;
+		})
+		.filter(Boolean);
+
+	if (errors.length > 0) {
+		return setStatus("abort").then(function () {
+			throw errors[0];
+		});
+	}
+
+	var disposePromise = setStatus("dispose");
+
+	results.forEach(function (result) {
+		if (result.dispose) result.dispose();
+	});
+
+	var applyPromise = setStatus("apply");
+
+	var error;
+	var reportError = function (err) {
+		if (!error) error = err;
+	};
+
+	var outdatedModules = [];
+	results.forEach(function (result) {
+		if (result.apply) {
+			var modules = result.apply(reportError);
+			if (modules) {
+				for (var i = 0; i < modules.length; i++) {
+					outdatedModules.push(modules[i]);
+				}
+			}
+		}
+	});
+
+	return Promise.all([disposePromise, applyPromise]).then(function () {
+		if (error) {
+			return setStatus("fail").then(function () {
+				throw error;
+			});
+		}
+
+		if (queuedInvalidatedModules) {
+			return internalApply(options).then(function (list) {
+				outdatedModules.forEach(function (moduleId) {
+					if (list.indexOf(moduleId) < 0) list.push(moduleId);
+				});
+				return list;
+			});
+		}
+
+		return setStatus("idle").then(function () {
+			return outdatedModules;
+		});
+	});
+}
+
+function applyInvalidatedModules() {
+	if (queuedInvalidatedModules) {
+		if (!currentUpdateApplyHandlers) currentUpdateApplyHandlers = [];
+		Object.keys(__webpack_require__.hmrI).forEach(function (key) {
+			queuedInvalidatedModules.forEach(function (moduleId) {
+				__webpack_require__.hmrI[key](moduleId, currentUpdateApplyHandlers);
+			});
+		});
+		queuedInvalidatedModules = undefined;
+		return true;
+	}
+}
+
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV["consumer_js"] = "CHUNK_VERSION";
+
+})();
+// webpack/runtime/load_script
+(() => {
+var inProgress = {};
+
+
+// loadScript function to load a script via script tag
+__webpack_require__.l = function (url, done, key, chunkId) {
+	if (inProgress[url]) {
+		inProgress[url].push(done);
+		return;
+	}
+	var script, needAttach;
+	if (key !== undefined) {
+		var scripts = document.getElementsByTagName("script");
+		for (var i = 0; i < scripts.length; i++) {
+			var s = scripts[i];
+			if (s.getAttribute("src") == url) {
+				script = s;
+				break;
+			}
+		}
+	}
+	if (!script) {
+		needAttach = true;
+		script = document.createElement('script');
+
+script.timeout = 120;
+if (__webpack_require__.nc) {
+  script.setAttribute("nonce", __webpack_require__.nc);
+}
+
+
+
+script.src = url;
+
+
+
+	}
+	inProgress[url] = [done];
+	var onScriptComplete = function (prev, event) {
+		script.onerror = script.onload = null;
+		clearTimeout(timeout);
+		var doneFns = inProgress[url];
+		delete inProgress[url];
+		script.parentNode && script.parentNode.removeChild(script);
+		doneFns &&
+			doneFns.forEach(function (fn) {
+				return fn(event);
+			});
+		if (prev) return prev(event);
+	};
+	var timeout = setTimeout(
+		onScriptComplete.bind(null, undefined, {
+			type: 'timeout',
+			target: script
+		}),
+		120000
+	);
+	script.onerror = onScriptComplete.bind(null, script.onerror);
+	script.onload = onScriptComplete.bind(null, script.onload);
+	needAttach && document.head.appendChild(script);
+};
+
+})();
+// webpack/runtime/make_deferred_namespace_object
+(() => {
+__webpack_require__.z = (moduleId, mode) => {
+  var cachedModule = __webpack_require__.c[moduleId];
+  if (cachedModule && cachedModule.error === undefined) {
+    var exports = cachedModule.exports;
+    
+    if (__webpack_require__.aE in exports) exports = exports[__webpack_require__.aE];
+    
+    if (mode & 8) return exports;
+    return __webpack_require__.t(exports, mode);
+  }
+  var init = () => {
+    ns = __webpack_require__(moduleId);
+    
+    if (__webpack_require__.aE in ns) ns = ns[__webpack_require__.aE];
+    
+    init = null;
+    if (mode & 8 || mode & 4 && ns.__esModule && typeof ns === 'object') {
+      delete handler.defineProperty;
+      delete handler.deleteProperty;
+      delete handler.set;
+      delete handler.get;
+      delete handler.has;
+      delete handler.ownKeys;
+      delete handler.getOwnPropertyDescriptor;
+    } else {
+      ns = __webpack_require__.t(ns, mode);
+    }
+  };
+  var ns = __webpack_require__.zD[moduleId] || (__webpack_require__.zD[moduleId] = { __proto__: null });
+  var handler = {
+    __proto__: null,
+    get: (_, name) => {
+      switch (name) {
+        case "__esModule": return true;
+        case Symbol.toStringTag: return "Deferred Module";
+        case "then": return undefined;
+      }
+      if (init) init();
+      return ns[name];
+    },
+    has: (_, name) => {
+    	switch (name) {
+    		case "__esModule":
+    		case Symbol.toStringTag: return true;
+    		case "then": return false;
+    	}
+    	if (init) init();
+    	return name in ns;
+    },
+    ownKeys: (_) => {
+    	if (init) init();
+    	var keys = Reflect.ownKeys(ns).filter((x) => (x !== "then" && x !== Symbol.toStringTag)).concat([Symbol.toStringTag]);
+    	return keys;
+    },
+    getOwnPropertyDescriptor: (_, name) => {
+    	switch (name) {
+    		case "__esModule": return { value: true, configurable: !(mode & 8) };
+    		case Symbol.toStringTag: return { value: "Deferred Module", configurable: !(mode & 8) };
+    		case "then": return undefined;
+    	}
+    	if (init) init();
+    	var desc = Reflect.getOwnPropertyDescriptor(ns, name);
+    	if (mode & 2 && name == "default" && !desc) {
+    		desc = { value: ns, configurable: true };
+    	}
+    	return desc;
+    },
+    defineProperty: (_, name) => {
+    	if (init) init();
+    	return false;
+    },
+    deleteProperty: () => (false),
+    set: () => (false),
+  };
+  return new Proxy(ns, handler);
+}
+
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+// webpack/runtime/make_optimized_deferred_namespace_object
+(() => {
+__webpack_require__.zO = function(moduleId, mode, asyncDeps) {
+	var r = __webpack_require__;
+	
+	var isAsync = asyncDeps && asyncDeps.length;
+	
+	var obj = {
+		get a() {
+			var exports = r(moduleId);
+			
+			if (isAsync) exports = exports[__webpack_require__.aE];
+			
+			// if exportsType is "namespace" we can generate the most optimized code,
+			// on the second access, we can avoid trigger the getter.
+			// we can also do this if exportsType is "dynamic" and there is a "__esModule" property on it.
+			if (mode & 8 || (mode & 4 && exports.__esModule)) Object.defineProperty(this, "a", { value: exports });
+			return exports;
+		}
+	};
+	
+	if(isAsync) obj[__webpack_require__.zS] = asyncDeps;
+	
+	return obj;
+};
+
+})();
+// webpack/runtime/public_path
+(() => {
+__webpack_require__.p = "https://test.cases/path/";
+})();
+// webpack/runtime/css_loading
+(() => {
+var cssInstalledChunks = {};
+var cssLoadingUniqueName = "";
+var loadingAttribute = "data-rspack-loading";
+var cssLoadStylesheet = (chunkId, url, done, hmr, fetchPriority) => {
+	var link,
+		needAttach,
+		key = "chunk-" + chunkId;
+	if (!hmr) {
+		var links = document.getElementsByTagName("link");
+		for (var i = 0; i < links.length; i++) {
+			var l = links[i];
+			var href = l.getAttribute("href") || l.href;
+			if (href && !href.startsWith(__webpack_require__.p)) {
+				href =
+					__webpack_require__.p + (href.startsWith("/") ? href.slice(1) : href);
+			}
+			if (
+				l.rel == "stylesheet" &&
+				((href && href.startsWith(url)) ||
+					l.getAttribute("data-rspack") == cssLoadingUniqueName + ":" + key)
+			) {
+				link = l;
+				break;
+			}
+		}
+		if (!done) return link;
+	}
+	if (!link) {
+		needAttach = true;
+		link = document.createElement("link");
+
+// Browsers may hide the nonce attribute while retaining its property.
+var nonce = __webpack_require__.nc || (hmr && hmr.nonce);
+if (nonce) link.setAttribute("nonce", nonce);
+
+
+
+link.setAttribute(loadingAttribute, 1);
+link.rel = "stylesheet";
+link.href = url;
+
+
+if (hmr) {
+	var attributes = hmr.attributes;
+	for (var i = 0, length = attributes.length; i < length; i++) {
+		var attribute = attributes[i];
+		switch (attribute.name) {
+			case "href": case "integrity": case "disabled": case "nonce":
+			case "onload": case "onerror": case "data-rspack": case "data-rspack-loading":
+				break;
+			default:
+				link.setAttribute(attribute.name, attribute.value);
+		}
+	}
+}
+
+
+	}
+	var onLinkComplete = (prev, event) => {
+		link.onerror = link.onload = null;
+		link.removeAttribute(loadingAttribute);
+		clearTimeout(timeout);
+		if (event && event.type != "load" && link.parentNode) link.parentNode.removeChild(link);
+		done(event);
+		if (prev) return prev(event);
+	};
+	if (link.getAttribute(loadingAttribute)) {
+		var timeout = setTimeout(
+			onLinkComplete.bind(null, undefined, { type: "timeout", target: link }),
+			120000 
+		);
+		link.onerror = onLinkComplete.bind(null, link.onerror);
+		link.onload = onLinkComplete.bind(null, link.onload);
+	} else onLinkComplete(undefined, { type: "load", target: link });
+	hmr ? document.head.insertBefore(link, hmr) : needAttach && document.head.appendChild(link);
+	return link;
+};
+var cssOldTags = [];
+var cssNewTags = [];
+var cssApplyHandler = (options) => {
+	return {
+		apply: () => {
+			while (cssNewTags.length) {
+				var entry = cssNewTags.pop(), link = entry.link, oldTag = entry.oldTag;
+				// Read the latest state before removing the old link. Keep downloads enabled until apply.
+				if (oldTag && oldTag.hasAttribute("disabled")) link.setAttribute("disabled", "");
+				else link.sheet.disabled = !!(oldTag && oldTag.sheet && oldTag.sheet.disabled);
+			}
+			while (cssOldTags.length) {
+				var oldTag = cssOldTags.pop();
+				if (oldTag.parentNode) oldTag.parentNode.removeChild(oldTag);
+			}
+		}
+	};
+};
+var cssOnlyInitialChunkIds = {};
+// A chunk is present on this page only when the active JavaScript
+// chunk-loading runtime records it as fully loaded.
+var cssChunkIsLoaded = (chunkId) => {
+	return typeof __webpack_require__.hmrS_jsonp !== "undefined" && __webpack_require__.hmrS_jsonp && __webpack_require__.hmrS_jsonp[chunkId] === 0;
+};
+__webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css) => {
+	if (typeof document === 'undefined') return;
+	applyHandlers.push(cssApplyHandler);
+	// `css` is the hot-update manifest's css namespace (aligned with webpack):
+	// `css.c` lists the chunks whose CSS content actually changed and `css.r`
+	// the chunks whose CSS disappeared. Its absence means this update carries
+	// no CSS work at all — notably the runtime chunk is in `chunkIds` on every
+	// update (its full hash always changes) while its stylesheet rarely does.
+	var cssRemovedChunkIds = (css && css.r) || [];
+	var cssChunkIds = (css && css.c) || [];
+	var seen = {};
+	cssRemovedChunkIds.forEach((chunkId) => {
+		var filename = __webpack_require__.k(chunkId);
+		if (!filename) return;
+		var oldTag = cssLoadStylesheet(chunkId, __webpack_require__.p + filename);
+		if (oldTag) cssOldTags.push(oldTag);
+	});
+	cssChunkIds.forEach((chunkId) => {
+		var filename = __webpack_require__.k(chunkId);
+		if (!filename) return;
+		var url = __webpack_require__.p + filename;
+		if (seen[url]) {
+			return;
+		}
+		seen[url] = true;
+		var oldTag = cssLoadStylesheet(chunkId, url);
+		// The manifest lists every chunk of this runtime, including other entries'
+		// chunks this page never loaded. Without a tag, only a chunk whose JS ran
+		// here (an initial chunk gaining its first stylesheet, or a loaded async
+		// chunk whose stylesheet an earlier update removed) gets a new stylesheet.
+		if (!oldTag && (cssOnlyInitialChunkIds[chunkId] === 1 || !cssChunkIsLoaded(chunkId))) return;
+		promises.push(
+			new Promise((resolve, reject) => {
+				var link = cssLoadStylesheet(
+					chunkId,
+					url + (url.indexOf("?") < 0 ? "?" : "&") + "hmr=" + Date.now(),
+					(event) => {
+						if (event.type !== "load") {
+							var error = new Error();
+							var errorType = event && event.type;
+							var realSrc = event && event.target && event.target.src;
+							error.message =
+								"Loading css hot update chunk " +
+								chunkId +
+								" failed.\n(" +
+								errorType +
+								": " +
+								realSrc +
+								")";
+							error.name = "ChunkLoadError";
+							error.type = errorType;
+							error.request = realSrc;
+							reject(error);
+						} else {
+							link.sheet.disabled = true;
+							if (oldTag) cssOldTags.push(oldTag);
+							cssNewTags.push({ link: link, oldTag: oldTag });
+							resolve();
+						}
+					},
+					oldTag
+				);
+			})
+		);
+	});
+};
+
+})();
+// webpack/runtime/jsonp_chunk_loading
+(() => {
+
+      // object to store loaded and loading chunks
+      // undefined = chunk not loaded, null = chunk preloaded/prefetched
+      // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
+      var jsonpInstalledChunks = __webpack_require__.hmrS_jsonp = __webpack_require__.hmrS_jsonp || {"main": 0,};
+      
+        __webpack_require__.f.j = function (chunkId, promises) {
+          // JSONP chunk loading for javascript
+var installedChunkData = __webpack_require__.o(jsonpInstalledChunks, chunkId)
+	? jsonpInstalledChunks[chunkId]
+	: undefined;
+if (installedChunkData !== 0) {
+	// 0 means "already installed".
+
+	// a Promise means "currently loading".
+	if (installedChunkData) {
+		promises.push(installedChunkData[2]);
+	} else {
+		if (true) {
+			// setup Promise in chunk cache
+			var promise = new Promise((resolve, reject) => (installedChunkData = jsonpInstalledChunks[chunkId] = [resolve, reject]));
+			promises.push((installedChunkData[2] = promise));
+
+			// start chunk loading
+			var url = __webpack_require__.p + __webpack_require__.u(chunkId);
+			// create error before stack unwound to get useful stacktrace later
+			var error = new Error();
+			var loadingEnded = function (event) {
+				if (__webpack_require__.o(jsonpInstalledChunks, chunkId)) {
+					installedChunkData = jsonpInstalledChunks[chunkId];
+					if (installedChunkData !== 0) jsonpInstalledChunks[chunkId] = undefined;
+					if (installedChunkData) {
+						if (installedChunkData.error) {
+							installedChunkData[1](installedChunkData.error);
+							return;
+						}
+
+						var errorType =
+							event && (event.type === 'load' ? 'missing' : event.type);
+						var realSrc = event && event.target && event.target.src;
+						error.message =
+							'Loading chunk ' +
+							chunkId +
+							' failed.\n(' +
+							errorType +
+							': ' +
+							realSrc +
+							')';
+						error.name = 'ChunkLoadError';
+						error.type = errorType;
+						error.request = realSrc;
+						installedChunkData[1](error);
+					}
+				}
+			};
+			__webpack_require__.l(url, loadingEnded, "chunk-" + chunkId, chunkId);
+		} 
+	}
+}
+
+        }
+        var hotCurrentUpdatedModulesList;
+var hotWaitingUpdateResolves = {};
+function jsonpLoadUpdateChunk(chunkId, updatedModulesList, full) {
+	hotCurrentUpdatedModulesList = updatedModulesList;
+	return new Promise((resolve, reject) => {
+		hotWaitingUpdateResolves[chunkId] = resolve;
+		// start update chunk loading
+		var filename = __webpack_require__.hu(chunkId);
+		var url = __webpack_require__.p + filename + (full ? (/\.mjs$/.test(filename) ? ".full.mjs" : ".full.js") : "");
+		// create error before stack unwound to get useful stacktrace later
+		var error = new Error();
+		var loadingEnded = (event) => {
+			if (hotWaitingUpdateResolves[chunkId]) {
+				hotWaitingUpdateResolves[chunkId] = undefined;
+				var errorType =
+					event && (event.type === 'load' ? 'missing' : event.type);
+				var realSrc = event && event.target && event.target.src;
+				error.message =
+					'Loading hot update chunk ' +
+					chunkId +
+					' failed.\n(' +
+					errorType +
+					': ' +
+					realSrc +
+					')';
+				error.name = 'ChunkLoadError';
+				error.type = errorType;
+				error.request = realSrc;
+				reject(error);
+			}
+		};
+		__webpack_require__.l(url, loadingEnded);
+	});
+}
+
+self["rspackHotUpdate"] = (chunkId, moreModules, runtime) => {
+	for (var moduleId in moreModules) {
+		if (__webpack_require__.o(moreModules, moduleId)) {
+			// A remaining chunk can restore a removed factory, but ordinary updates take priority.
+			if (!Array.isArray(moreModules[moduleId]) || !__webpack_require__.o(hotCurrentUpdate, moduleId) || hotCurrentUpdate[moduleId] === false || Array.isArray(hotCurrentUpdate[moduleId])) {
+				hotCurrentUpdate[moduleId] = moreModules[moduleId];
+			}
+			if (hotCurrentUpdatedModulesList) hotCurrentUpdatedModulesList.push(moduleId);
+		}
+	}
+	if (runtime) hotCurrentUpdateRuntime.push(runtime);
+	if (hotWaitingUpdateResolves[chunkId]) {
+		hotWaitingUpdateResolves[chunkId]();
+		hotWaitingUpdateResolves[chunkId] = undefined;
+	}
+};
+var hotCurrentUpdateChunks;
+var hotCurrentUpdate;
+var hotCurrentUpdateRemovedChunks;
+var hotCurrentUpdateRuntime;
+var hotCurrentUpdateFullChunks;
+function hotCheckChunk(chunkIds, version) {
+	if (version === undefined) return;
+	for (var i = 0; i < chunkIds.length; i++) {
+		if (version !== __webpack_require__.hmrV[chunkIds[i]]) {
+			var error = new Error("Chunk is from another build (" + version + ")");
+			error.name = "ChunkVersionError";
+			return error;
+		}
+	}
+}
+function hotApplyHandler(options) {
+	if (__webpack_require__.f) delete __webpack_require__.f.jsonpHmr;
+	hotCurrentUpdateChunks = undefined;
+	var fullChunks = hotCurrentUpdateFullChunks;
+	hotCurrentUpdateFullChunks = undefined;
+	function getAffectedModuleEffects(updateModuleId) {
+		var outdatedModules = [updateModuleId];
+		var outdatedDependencies = {};
+		var queue = outdatedModules.map(function (id) {
+			return {
+				chain: [id],
+				id: id
+			};
+		});
+		while (queue.length > 0) {
+			var queueItem = queue.pop();
+			var moduleId = queueItem.id;
+			var chain = queueItem.chain;
+			var module = __webpack_require__.c[moduleId];
+			if (
+				!module ||
+				(module.hot._selfAccepted && !module.hot._selfInvalidated)
+			) {
+				continue;
+			}
+
+			if (module.hot._selfDeclined) {
+				return {
+					type: "self-declined",
+					chain: chain,
+					moduleId: moduleId
+				};
+			}
+
+			if (module.hot._main) {
+				return {
+					type: "unaccepted",
+					chain: chain,
+					moduleId: moduleId
+				};
+			}
+
+			for (var i = 0; i < module.parents.length; i++) {
+				var parentId = module.parents[i];
+				var parent = __webpack_require__.c[parentId];
+				if (!parent) {
+					continue;
+				}
+				if (parent.hot._declinedDependencies[moduleId]) {
+					return {
+						type: "declined",
+						chain: chain.concat([parentId]),
+						moduleId: moduleId,
+						parentId: parentId
+					};
+				}
+				if (outdatedModules.indexOf(parentId) !== -1) {
+					continue;
+				}
+				if (parent.hot._acceptedDependencies[moduleId]) {
+					if (!outdatedDependencies[parentId]) {
+						outdatedDependencies[parentId] = [];
+					}
+					addAllToSet(outdatedDependencies[parentId], [moduleId]);
+					continue;
+				}
+				delete outdatedDependencies[parentId];
+				outdatedModules.push(parentId);
+				queue.push({
+					chain: chain.concat([parentId]),
+					id: parentId
+				});
+			}
+		}
+
+		return {
+			type: "accepted",
+			moduleId: updateModuleId,
+			outdatedModules: outdatedModules,
+			outdatedDependencies: outdatedDependencies
+		};
+	}
+
+	function addAllToSet(a, b) {
+		for (var i = 0; i < b.length; i++) {
+			var item = b[i];
+			if (a.indexOf(item) === -1) a.push(item);
+		}
+	}
+
+	var outdatedDependencies = {};
+	var outdatedModules = [];
+	var appliedUpdate = {};
+
+	var warnUnexpectedRequire = function warnUnexpectedRequire(module) {
+		console.warn(
+			"[HMR] unexpected require(" + module.id + ") to disposed module"
+		);
+		throw Error("RuntimeError: factory is undefined(" + module.id + ")");
+	};
+
+	for (var moduleId in hotCurrentUpdate) {
+		if (__webpack_require__.o(hotCurrentUpdate, moduleId)) {
+			var newModuleFactory = hotCurrentUpdate[moduleId];
+			// Complete chunk payloads also contain unchanged factories. Install them
+			// during apply, preserving existing instances unless explicitly invalidated.
+			if (Array.isArray(newModuleFactory)) {
+				var cachedModule = __webpack_require__.c[moduleId];
+				newModuleFactory = newModuleFactory[0];
+				if (!cachedModule || !cachedModule.hot._selfInvalidated) {
+					appliedUpdate[moduleId] = newModuleFactory;
+					continue;
+				}
+			}
+			var result = newModuleFactory ? getAffectedModuleEffects(moduleId) : {
+				type: "disposed",
+				moduleId: moduleId
+			};
+			var abortError = false;
+			var doApply = false;
+			var doDispose = false;
+			var chainInfo = "";
+			if (result.chain) {
+				chainInfo = "\nUpdate propagation: " + result.chain.join(" -> ");
+			}
+			switch (result.type) {
+				case "self-declined":
+					if (options.onDeclined) options.onDeclined(result);
+					if (!options.ignoreDeclined)
+						abortError = new Error(
+							"Aborted because of self decline: " + result.moduleId + chainInfo
+						);
+					break;
+				case "declined":
+					if (options.onDeclined) options.onDeclined(result);
+					if (!options.ignoreDeclined)
+						abortError = new Error(
+							"Aborted because of declined dependency: " +
+							result.moduleId +
+							" in " +
+							result.parentId +
+							chainInfo
+						);
+					break;
+				case "unaccepted":
+					if (options.onUnaccepted) options.onUnaccepted(result);
+					if (!options.ignoreUnaccepted)
+						abortError = new Error(
+							"Aborted because " + moduleId + " is not accepted" + chainInfo
+						);
+					break;
+				case "accepted":
+					if (options.onAccepted) options.onAccepted(result);
+					doApply = true;
+					break;
+				case "disposed":
+					if (options.onDisposed) options.onDisposed(result);
+					doDispose = true;
+					break;
+				default:
+					throw new Error("Unexception type " + result.type);
+			}
+			if (abortError) {
+				return {
+					error: abortError
+				};
+			}
+			if (doApply) {
+				appliedUpdate[moduleId] = newModuleFactory;
+				addAllToSet(outdatedModules, result.outdatedModules);
+				for (moduleId in result.outdatedDependencies) {
+					if (__webpack_require__.o(result.outdatedDependencies, moduleId)) {
+						if (!outdatedDependencies[moduleId])
+							outdatedDependencies[moduleId] = [];
+						addAllToSet(
+							outdatedDependencies[moduleId],
+							result.outdatedDependencies[moduleId]
+						);
+					}
+				}
+			}
+			if (doDispose) {
+				addAllToSet(outdatedModules, [result.moduleId]);
+				appliedUpdate[moduleId] = warnUnexpectedRequire;
+			}
+		}
+	}
+	hotCurrentUpdate = undefined;
+
+	var outdatedSelfAcceptedModules = [];
+	for (var j = 0; j < outdatedModules.length; j++) {
+		var outdatedModuleId = outdatedModules[j];
+		var module = __webpack_require__.c[outdatedModuleId];
+		if (
+			module &&
+			(module.hot._selfAccepted || module.hot._main) &&
+			// removed self-accepted modules should not be required
+			appliedUpdate[outdatedModuleId] !== warnUnexpectedRequire &&
+			// when called invalidate self-accepting is not possible
+			!module.hot._selfInvalidated
+		) {
+			outdatedSelfAcceptedModules.push({
+				module: outdatedModuleId,
+				require: module.hot._requireSelf,
+				errorHandler: module.hot._selfAccepted
+			});
+		}
+	}
+	
+	if (self.__HMR_UPDATED_RUNTIME__) {
+		self.__HMR_UPDATED_RUNTIME__.javascript.outdatedModules = outdatedModules;
+		self.__HMR_UPDATED_RUNTIME__.javascript.outdatedDependencies = outdatedDependencies;
+	}
+	
+
+	var moduleOutdatedDependencies;
+	return {
+		dispose: function () {
+			hotCurrentUpdateRemovedChunks.forEach(function (chunkId) {
+				delete jsonpInstalledChunks[chunkId];
+			});
+			hotCurrentUpdateRemovedChunks = undefined;
+
+			var idx;
+			var queue = outdatedModules.slice();
+			while (queue.length > 0) {
+				var moduleId = queue.pop();
+				var module = __webpack_require__.c[moduleId];
+				if (!module) continue;
+
+				var data = {};
+
+				// Call dispose handlers
+				var disposeHandlers = module.hot._disposeHandlers;
+				
+ 				if (disposeHandlers.length > 0 && self.__HMR_UPDATED_RUNTIME__) {
+        	self.__HMR_UPDATED_RUNTIME__.javascript.disposedModules.push(moduleId);
+      	}
+				
+				for (j = 0; j < disposeHandlers.length; j++) {
+					disposeHandlers[j].call(null, data);
+				}
+				__webpack_require__.hmrD[moduleId] = data;
+
+				module.hot.active = false;
+
+				delete __webpack_require__.c[moduleId];
+
+				delete outdatedDependencies[moduleId];
+
+				for (j = 0; j < module.children.length; j++) {
+					var child = __webpack_require__.c[module.children[j]];
+					if (!child) continue;
+					idx = child.parents.indexOf(moduleId);
+					if (idx >= 0) {
+						child.parents.splice(idx, 1);
+					}
+				}
+			}
+
+			var dependency;
+			for (var outdatedModuleId in outdatedDependencies) {
+				if (__webpack_require__.o(outdatedDependencies, outdatedModuleId)) {
+					module = __webpack_require__.c[outdatedModuleId];
+					if (module) {
+						moduleOutdatedDependencies = outdatedDependencies[outdatedModuleId];
+						for (j = 0; j < moduleOutdatedDependencies.length; j++) {
+							dependency = moduleOutdatedDependencies[j];
+							idx = module.children.indexOf(dependency);
+							if (idx >= 0) module.children.splice(idx, 1);
+						}
+					}
+				}
+			}
+		},
+		apply: function (reportError) {
+			// insert new code
+			for (var updateModuleId in appliedUpdate) {
+				if (__webpack_require__.o(appliedUpdate, updateModuleId)) {
+					__webpack_require__.m[updateModuleId] = appliedUpdate[updateModuleId];
+					
+					if (self.__HMR_UPDATED_RUNTIME__) {
+						self.__HMR_UPDATED_RUNTIME__.javascript.updatedModules.push(updateModuleId);
+					}
+					
+				}
+			}
+
+			// run new runtime modules
+			for (var i = 0; i < hotCurrentUpdateRuntime.length; i++) {
+				
+				hotCurrentUpdateRuntime[i](new Proxy(__webpack_require__, {
+					set(target, prop, value, receiver) {
+						if (self.__HMR_UPDATED_RUNTIME__) {
+							self.__HMR_UPDATED_RUNTIME__.javascript.updatedRuntime.push(`__webpack_require__.${prop}`);
+						}
+						return Reflect.set(target, prop, value, receiver);
+					}
+				}));
+				
+			}
+
+			// Factories and runtime are installed. Complete ordinary chunk loading
+			// with an empty factory payload to resolve imports and deferred startup.
+			if (fullChunks.length) __rspack_jsonp(0, [fullChunks, {}]);
+
+			// call accept handlers
+			for (var outdatedModuleId in outdatedDependencies) {
+				if (__webpack_require__.o(outdatedDependencies, outdatedModuleId)) {
+					var module = __webpack_require__.c[outdatedModuleId];
+					if (module) {
+						moduleOutdatedDependencies = outdatedDependencies[outdatedModuleId];
+						var callbacks = [];
+						var errorHandlers = [];
+						var dependenciesForCallbacks = [];
+						for (var j = 0; j < moduleOutdatedDependencies.length; j++) {
+							var dependency = moduleOutdatedDependencies[j];
+							var acceptCallback = module.hot._acceptedDependencies[dependency];
+							var errorHandler = module.hot._acceptedErrorHandlers[dependency];
+							if (acceptCallback) {
+								if (callbacks.indexOf(acceptCallback) !== -1) continue;
+								callbacks.push(acceptCallback);
+								errorHandlers.push(errorHandler);
+								
+								if (self.__HMR_UPDATED_RUNTIME__) {
+									self.__HMR_UPDATED_RUNTIME__.javascript.acceptedModules.push(dependency);
+								}
+								
+								dependenciesForCallbacks.push(dependency);
+							}
+						}
+						for (var k = 0; k < callbacks.length; k++) {
+							try {
+								callbacks[k].call(null, moduleOutdatedDependencies);
+							} catch (err) {
+								if (typeof errorHandlers[k] === "function") {
+									try {
+										errorHandlers[k](err, {
+											moduleId: outdatedModuleId,
+											dependencyId: dependenciesForCallbacks[k]
+										});
+									} catch (err2) {
+										if (options.onErrored) {
+											options.onErrored({
+												type: "accept-error-handler-errored",
+												moduleId: outdatedModuleId,
+												dependencyId: dependenciesForCallbacks[k],
+												error: err2,
+												originalError: err
+											});
+										}
+										if (!options.ignoreErrored) {
+											reportError(err2);
+											reportError(err);
+										}
+									}
+								} else {
+									if (options.onErrored) {
+										options.onErrored({
+											type: "accept-errored",
+											moduleId: outdatedModuleId,
+											dependencyId: dependenciesForCallbacks[k],
+											error: err
+										});
+									}
+									if (!options.ignoreErrored) {
+										reportError(err);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+
+			// Load self accepted modules
+			for (var o = 0; o < outdatedSelfAcceptedModules.length; o++) {
+				var item = outdatedSelfAcceptedModules[o];
+				var moduleId = item.module;
+				try {
+					item.require(moduleId);
+				} catch (err) {
+					if (typeof item.errorHandler === "function") {
+						try {
+							item.errorHandler(err, {
+								moduleId: moduleId,
+								module: __webpack_require__.c[moduleId]
+							});
+						} catch (err1) {
+							if (options.onErrored) {
+								options.onErrored({
+									type: "self-accept-error-handler-errored",
+									moduleId: moduleId,
+									error: err1,
+									originalError: err
+								});
+							}
+							if (!options.ignoreErrored) {
+								reportError(err1);
+								reportError(err);
+							}
+						}
+					} else {
+						if (options.onErrored) {
+							options.onErrored({
+								type: "self-accept-errored",
+								moduleId: moduleId,
+								error: err
+							});
+						}
+						if (!options.ignoreErrored) {
+							reportError(err);
+						}
+					}
+				}
+			}
+
+			return outdatedModules;
+		}
+	};
+}
+
+__webpack_require__.hmrI.jsonp = function (moduleId, applyHandlers) {
+	if (!hotCurrentUpdate) {
+		hotCurrentUpdate = {};
+		hotCurrentUpdateRuntime = [];
+		hotCurrentUpdateFullChunks = [];
+		hotCurrentUpdateRemovedChunks = [];
+		applyHandlers.push(hotApplyHandler);
+	}
+	if (!__webpack_require__.o(hotCurrentUpdate, moduleId)) {
+		hotCurrentUpdate[moduleId] = __webpack_require__.m[moduleId];
+	}
+};
+
+__webpack_require__.hmrC.jsonp = function (
+	chunkIds,
+	removedChunks,
+	removedModules,
+	promises,
+	applyHandlers,
+	updatedModulesList,
+	_css,
+	_miniCss,
+	load,
+	changed
+) {
+	applyHandlers.push(function (options) {
+		// Finish selection after downloads, including chunks ensured during check.
+		// An update forwarded through an old owner must not revive a stale module.
+		Object.keys(changed || {}).forEach(function (moduleId) {
+			if (hotCurrentUpdate[moduleId] === false) return;
+			if (!__webpack_require__.o(__webpack_require__.m, moduleId) && !__webpack_require__.c[moduleId]) return;
+			if (changed[moduleId].some(function (chunkId) {
+				return preparedChunks[chunkId] !== false && (jsonpInstalledChunks[chunkId] === 0 || hotCurrentUpdateChunks[chunkId] === true);
+			})) return;
+			hotCurrentUpdate[moduleId] = false;
+		});
+		return hotApplyHandler(options);
+	});
+	hotCurrentUpdateChunks = {};
+	hotCurrentUpdateRemovedChunks = removedChunks;
+	hotCurrentUpdate = removedModules.reduce(function (obj, key) {
+		obj[key] = false;
+		return obj;
+	}, {});
+	hotCurrentUpdateRuntime = [];
+	hotCurrentUpdateFullChunks = [];
+	var dependencies = load && load.dependencies;
+	var preparedChunks = Object.create(null);
+	removedChunks.forEach(function (chunkId) { preparedChunks[chunkId] = false; });
+	function prepareFullChunk(chunkId, promises) {
+		if (__webpack_require__.o(preparedChunks, chunkId)) return;
+		preparedChunks[chunkId] = true;
+		if (dependencies && __webpack_require__.o(dependencies, chunkId)) dependencies[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
+		if (jsonpInstalledChunks[chunkId] === 0 || hotCurrentUpdateChunks[chunkId] === true) return;
+		hotCurrentUpdateChunks[chunkId] = true;
+		hotCurrentUpdateFullChunks.push(chunkId);
+		promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList, true));
+	}
+	// Complete payloads contain the delta too. Select them before requesting
+	// ordinary updates, so each chunk has only one pending update download.
+	Object.keys(dependencies || {}).forEach(function (chunkId) {
+		if (jsonpInstalledChunks[chunkId] === 0) prepareFullChunk(chunkId, promises);
+	});
+	var entries = load && load.entries;
+	Object.keys(entries || {}).forEach(function (entryId) {
+		if (preparedChunks[entryId] === false || !__webpack_require__.o(jsonpInstalledChunks, entryId) || jsonpInstalledChunks[entryId] !== 0) return;
+		entries[entryId].forEach(function (id) { prepareFullChunk(id, promises); });
+	});
+	chunkIds.forEach(function (chunkId) {
+		if (hotCurrentUpdateChunks[chunkId] === true) return;
+		if (
+			__webpack_require__.o(jsonpInstalledChunks, chunkId) &&
+			jsonpInstalledChunks[chunkId] != null
+		) {
+			promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList));
+			hotCurrentUpdateChunks[chunkId] = true;
+		} else {
+			hotCurrentUpdateChunks[chunkId] = false;
+		}
+	});
+	if (__webpack_require__.f) {
+		__webpack_require__.f.jsonpHmr = function (chunkId, promises) {
+			if (hotCurrentUpdateChunks && dependencies && __webpack_require__.o(dependencies, chunkId)) {
+				dependencies[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
+			}
 			if (
 				hotCurrentUpdateChunks &&
 				__webpack_require__.o(hotCurrentUpdateChunks, chunkId) &&
