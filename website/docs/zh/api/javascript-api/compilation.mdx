@@ -822,9 +822,11 @@ compiler.hooks.compilation.tap('InspectModules', (compilation) => {
 
 **类型：** `FileSystemDependencies`
 
-此 Compilation 依赖的文件。插件读取模块图之外的文件时，应在每次编译中添加文件的绝对路径，使文件变化能在 watch 模式下触发重新构建。通过 Node.js 读取文件不会自动注册这一依赖。
+记录本次编译依赖的文件。在 watch 模式下，这些文件发生变化时，Rspack 会重新构建。
 
-例如，监听项目根目录中的 `site.json` 文件。将以下代码放在插件的 `apply(compiler)` 方法中，并从 `node:path` 导入 `path`：
+例如，插件可能需要读取项目根目录中的 `site.json`。仅通过 Node.js 读取文件不会让 Rspack 自动监听它，因此需要在 `thisCompilation` 钩子中将其绝对路径添加到 `fileDependencies`，确保每次编译都记录这项依赖。
+
+在插件文件中从 `node:path` 导入 `path`，并将以下代码放在插件的 `apply(compiler)` 方法中：
 
 ```js
 compiler.hooks.thisCompilation.tap('WatchConfigPlugin', (compilation) => {
@@ -847,9 +849,9 @@ compiler.hooks.thisCompilation.tap('WatchConfigPlugin', (compilation) => {
 
 **类型：** `FileSystemDependencies`
 
-此 Compilation 依赖的目录。插件扫描目录时，应注册该目录，使新增或删除文件能在 watch 模式下触发重新构建。
+记录本次编译依赖的目录。在 watch 模式下，目录中新增或删除文件时，Rspack 会重新构建。
 
-例如，监听已存在的 `templates` 目录。将以下代码放在 `apply(compiler)` 中，并从 `node:path` 导入 `path`：
+例如，插件扫描 `templates` 目录来获取模板列表时，可以添加该目录的绝对路径。以下代码放在插件的 `apply(compiler)` 方法中，假设目录已存在，且已从 `node:path` 导入 `path`：
 
 ```js
 compiler.hooks.thisCompilation.tap('WatchTemplatesPlugin', (compilation) => {
@@ -858,7 +860,7 @@ compiler.hooks.thisCompilation.tap('WatchTemplatesPlugin', (compilation) => {
 });
 ```
 
-如果插件还会读取文件内容，也应将这些文件添加到 `fileDependencies`。
+如果插件还会读取模板内容，也应将读取的文件添加到 `fileDependencies`，以监听文件内容的变化。
 
 <Collapse>
   <CollapsePanel
@@ -874,9 +876,11 @@ compiler.hooks.thisCompilation.tap('WatchTemplatesPlugin', (compilation) => {
 
 **类型：** `FileSystemDependencies`
 
-此 Compilation 依赖但尚不存在的文件。注册缺失的文件后，创建该文件就能在 watch 模式下触发重新构建；文件存在后，应改为添加到 `fileDependencies`。
+记录本次编译需要监听、但尚不存在的文件。在 watch 模式下，这些文件被创建后，Rspack 会重新构建。
 
-例如，监听可选的 `site.local.json` 文件。将以下代码放在 `apply(compiler)` 中，从 `node:path` 导入 `path`，并从 `node:fs` 导入 `existsSync`：
+例如，插件支持可选配置文件 `site.local.json`，但用户可能还没有创建它。每次编译时检查文件是否存在：不存在时添加到 `missingDependencies`，存在时添加到 `fileDependencies`。这样，创建文件和后续修改文件都能触发重新构建。
+
+以下代码放在插件的 `apply(compiler)` 方法中，需先在插件文件中从 `node:path` 导入 `path`，并从 `node:fs` 导入 `existsSync`：
 
 ```js
 compiler.hooks.thisCompilation.tap('WatchLocalConfigPlugin', (compilation) => {
@@ -903,9 +907,9 @@ compiler.hooks.thisCompilation.tap('WatchLocalConfigPlugin', (compilation) => {
 
 **类型：** `FileSystemDependencies`
 
-构建工具使用的输入，例如配置文件和 loader。持久化缓存的失效条件可通过 [cache.buildDependencies](/config/cache#builddependencies) 配置。
+记录构建工具本身依赖的文件，例如配置文件和 loader。Rspack 根据这些依赖判断持久化缓存是否仍然有效，配置方式见 [cache.buildDependencies](/config/cache#builddependencies)。
 
-要在 watch 模式下监听插件输入的变化，请使用 `fileDependencies`、`contextDependencies` 或 `missingDependencies`。
+如果需要在 watch 模式下监听插件读取的文件或目录，并在变化时重新构建，请使用 `fileDependencies`、`contextDependencies` 或 `missingDependencies`。
 
 <Collapse>
   <CollapsePanel
