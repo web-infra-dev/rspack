@@ -5,7 +5,7 @@ use rspack_core::{
   CodeGenerationDataTopLevelDeclarations, Compilation, ExportsArgument, Module,
   RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable, SourceType,
   property_access, render_init_fragments,
-  rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
+  rspack_sources::{BoxSource, ConcatSource, OriginalSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
 
@@ -646,6 +646,11 @@ impl JsPlugin {
     let mut chunk_init_fragments = ChunkInitFragments::default();
     let iife = compilation.options.output.iife;
     let mut all_strict = compilation.options.output.module;
+    let use_source_map = hooks
+      .use_source_map
+      .call(compilation, chunk_ukey)
+      .await?
+      .unwrap_or_default();
     let RenderBootstrapResult {
       header,
       startup,
@@ -730,7 +735,11 @@ impl JsPlugin {
     if !header.is_empty() {
       let mut header = header.join("\n");
       header.push('\n');
-      sources.add(RawStringSource::from(header));
+      sources.add(if use_source_map {
+        OriginalSource::new(header, "rspack/bootstrap").boxed()
+      } else {
+        RawStringSource::from(header).boxed()
+      });
     }
     let should_render_runtime_context =
       !runtime_template.render_mode().is_legacy() && !has_bootstrap_runtime_context;
@@ -900,7 +909,11 @@ impl JsPlugin {
         .next_back()
     }) {
       let mut render_source = RenderSource {
-        source: RawStringSource::from(startup.join("\n") + "\n").boxed(),
+        source: if use_source_map {
+          OriginalSource::new(startup.join("\n") + "\n", "rspack/startup").boxed()
+        } else {
+          RawStringSource::from(startup.join("\n") + "\n").boxed()
+        },
       };
       hooks
         .render_startup
