@@ -72,7 +72,7 @@ impl From<RawExternalItemValueWrapper> for ExternalItemValue {
       Either4::A(v) => Self::String(v),
       Either4::B(v) => Self::Bool(v),
       Either4::C(v) => Self::Array(v),
-      Either4::D(v) => Self::Object(v.into_iter().collect()),
+      Either4::D(v) => Self::Object(v),
     }
   }
 }

@@ -5043,7 +5043,6 @@ dependencies = [
 name = "rspack_plugin_externals"
 version = "0.103.1"
 dependencies = [
- "regex",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
