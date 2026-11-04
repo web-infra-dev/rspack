@@ -391,6 +391,7 @@ const excludes = {
 		/^externals\/async-externals$/,
 		/^externals\/byLayer-default-externals$/,
 		/^externals\/byLayer-externals$/,
+		/^externals\/byLayer-inherited-branches$/,
 		/^externals\/byLayer-item-branches$/,
 		/^externals\/byLayer-request-names$/,
 		/^externals\/byLayer-undefined$/,

@@ -22,10 +22,10 @@ export const resolveLayerExternals = <T>(item: T, layer: string | null): T => {
   if (byLayer === undefined) return remaining as T;
   if (typeof byLayer === 'object') {
     const key = String(layer);
-    if (key in byLayer) {
+    if (Object.hasOwn(byLayer, key)) {
       return mergeExternalObjects(remaining, byLayer[key]) as T;
     }
-    if ('default' in byLayer) {
+    if (Object.hasOwn(byLayer, 'default')) {
       return mergeExternalObjects(remaining, byLayer.default) as T;
     }
     return remaining as T;
