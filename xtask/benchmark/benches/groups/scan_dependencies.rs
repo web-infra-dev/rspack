@@ -279,6 +279,8 @@ impl PreparedScanDependenciesBenchmarkCase {
       &mut iteration_state.parser_plugins,
       std::mem::take(&mut iteration_state.parse_meta),
       &self.parser_runtime_requirements,
+      None,
+      None,
     )
     .unwrap_or_else(|diagnostics| {
       panic!(

@@ -63,7 +63,7 @@ fn proxy_asset(proxy: BoxSource, wrapper: &'static str) -> BoxSource {
 }
 
 fn raw_map(source: &BoxSource, options: &MapOptions) -> String {
-  source.map(options).unwrap().to_json()
+  source.map(options).expect("should have a map").to_json()
 }
 
 #[test]
