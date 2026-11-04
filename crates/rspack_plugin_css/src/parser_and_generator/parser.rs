@@ -19,7 +19,7 @@ use smol_str::SmolStr;
 use super::is_css_module;
 use crate::{
   css_syntax::{normalize_url, unescape_identifier},
-  custom_media::transform_custom_media,
+  custom_media::CustomMediaResolver,
   dependency::{
     CssIcssExportDependency, CssIcssImportDependency, CssIcssReference, CssIcssSymbolDependency,
     CssIcssSymbolKind, CssImportDependency, CssUrlDependency,
@@ -320,15 +320,22 @@ impl<'context> CssModuleParser<'context> {
     let (deps, warnings) = css_module_lexer::collect_dependencies(&deps_source_code, mode);
     let local_css_ident_declarations =
       self.collect_local_css_ident_declarations(deps.dependencies());
+    // Unlike @value, custom-media names are global within this stylesheet:
+    // definitions may follow uses. Index their dependency IDs before the
+    // normal pass, then resolve each Media dependency when that pass reaches it.
+    let mut custom_media = self
+      .custom_media()
+      .then(|| CustomMediaResolver::new(&deps_source_code, &deps));
 
     for dependency in &deps {
       self
-        .handle_dependency(dependency, &deps, &local_css_ident_declarations)
+        .handle_dependency(
+          dependency,
+          &deps,
+          &local_css_ident_declarations,
+          custom_media.as_mut(),
+        )
         .await?;
-    }
-
-    if self.custom_media() {
-      self.apply_custom_media(&deps);
     }
 
     self.resolve_pending_local_composes();
@@ -388,9 +395,13 @@ impl<'context> CssModuleParser<'context> {
     }
   }
 
-  fn apply_custom_media(&mut self, dependencies: &css_module_lexer::DependencyContext<'_>) {
-    let transform = transform_custom_media(&self.source_code, dependencies);
-    for replacement in transform.replacements {
+  fn handle_custom_media_query<'source>(
+    &mut self,
+    resolver: &mut CustomMediaResolver<'_, 'source>,
+    query: &css_module_lexer::MediaQueryList<'source>,
+  ) {
+    let resolution = resolver.resolve_media_query_list(query);
+    for replacement in resolution.replacements {
       self
         .presentational_dependencies
         .push(Arc::new(ConstDependency::new(
@@ -398,7 +409,7 @@ impl<'context> CssModuleParser<'context> {
           replacement.content.into(),
         )));
     }
-    for warning in transform.warnings {
+    for warning in resolution.warnings {
       self.diagnostics.push(
         css_parsing_traceable_error(
           &self.source_code,
@@ -539,6 +550,7 @@ impl<'context> CssModuleParser<'context> {
     dependency: &css_module_lexer::Dependency<'source>,
     dependency_context: &css_module_lexer::DependencyContext<'source>,
     local_css_ident_declarations: &LocalCssIdentDeclarations,
+    custom_media: Option<&mut CustomMediaResolver<'_, 'source>>,
   ) -> Result<()> {
     match dependency {
       css_module_lexer::Dependency::Url {
@@ -594,7 +606,12 @@ impl<'context> CssModuleParser<'context> {
         }
         Ok(())
       }
-      css_module_lexer::Dependency::Media { .. } => Ok(()),
+      css_module_lexer::Dependency::Media { query } => {
+        if let Some(custom_media) = custom_media {
+          self.handle_custom_media_query(custom_media, dependency_context.media_query(*query));
+        }
+        Ok(())
+      }
       css_module_lexer::Dependency::LocalClass { name, range, .. }
       | css_module_lexer::Dependency::LocalId { name, range, .. } => {
         self.reset_current_composes_rule();
