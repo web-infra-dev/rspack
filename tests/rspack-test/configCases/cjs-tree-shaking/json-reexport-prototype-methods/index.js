@@ -3,6 +3,7 @@ import optionalImported from "./optional-imported";
 import { list as esmNamed } from "./esm-named";
 import * as esmNamespace from "./esm-namespace";
 import { upperCase } from "./strict.mjs";
+import "./weak";
 
 const contextName = ["array"][0];
 
@@ -64,6 +65,12 @@ it("should preserve a CommonJS reexport's array receiver imported by strict ESM"
 	expect(upperCase()).toEqual(["MD", "MARKDOWN"]);
 });
 
+it("should preserve a weakly imported CommonJS reexport's array receiver", async () => {
+	await import(/* webpackMode: "weak" */ "./weak").then(module => {
+		expect(module.default.map(value => value.toUpperCase())).toEqual(["MD", "MARKDOWN"]);
+	});
+});
+
 it("should preserve a context imported CommonJS reexport's array receiver", async () => {
 	const module = await import(`./context-import/${contextName}`);
 	expect(module.default.map(value => value.toUpperCase())).toEqual(["MD", "MARKDOWN"]);
@@ -74,6 +81,7 @@ it("should preserve a context required CommonJS reexport's array receiver", () =
 });
 
 it("should only retain the receivers' subtrees", () => {
-	const source = require("fs").readFileSync(__filename, "utf-8");
-	expect(source).not.toContain(["UNUSED", "JSON", "REEXPORT"].join("_"));
+	expect(globalThis.__prototypeMethodsUsedExports.nested).toEqual(["list", "object"]);
+	expect(globalThis.__prototypeMethodsUsedExports.augmented).toEqual(["list", "local", "localFunction"]);
+	expect(globalThis.__prototypeMethodsUsedExports.optionalNested).toEqual(["list"]);
 });

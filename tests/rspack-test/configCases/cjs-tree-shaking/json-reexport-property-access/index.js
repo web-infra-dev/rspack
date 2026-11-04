@@ -45,7 +45,6 @@ it("should still tree shake known CommonJS function exports", () => {
 });
 
 it("should remove data unused by property reads, writes and calls", () => {
-	const source = require("fs").readFileSync(__filename, "utf-8");
-	expect(source).not.toContain(["UNUSED", "JSON", "PROPERTY", "ACCESS"].join("_"));
-	expect(source).not.toContain(["UNUSED", "JSON", "INDEX"].join("_"));
+	expect(globalThis.__propertyAccessUsedExports.bridge).toEqual(["added", "hasOwnProperty", "kept", "missing"]);
+	expect(globalThis.__propertyAccessUsedExports.indexed).toEqual(["0", "length"]);
 });
