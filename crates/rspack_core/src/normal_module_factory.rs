@@ -1,6 +1,6 @@
 use std::{borrow::Cow, ops::Deref, sync::Arc};
 
-use memchr::{memchr, memchr_iter, memmem, memrchr};
+use memchr::{memchr, memmem, memrchr};
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{Loader, LoaderFilter, LoaderRunnerOptions, Scheme, get_scheme};
@@ -1471,16 +1471,20 @@ pub struct NormalModuleCreateData {
   pub context: Option<String>,
 }
 
-fn split_element(input: &str) -> Vec<&str> {
+fn split_element(mut input: &str) -> Vec<&str> {
   let mut elements = Vec::new();
-  let mut start = 0;
-  for end in memchr_iter(b'!', input.as_bytes()) {
-    if start == 0 || start < end {
-      elements.push(&input[start..end]);
-    }
-    start = end + 1;
+  while let Some(end) = memchr(b'!', input.as_bytes()) {
+    elements.push(&input[..end]);
+    // Consecutive separators form one split point.
+    let rest = &input[end + 1..];
+    let skip = rest
+      .as_bytes()
+      .iter()
+      .take_while(|&&byte| byte == b'!')
+      .count();
+    input = &rest[skip..];
   }
-  elements.push(&input[start..]);
+  elements.push(input);
   elements
 }
 
