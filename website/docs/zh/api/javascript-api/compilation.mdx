@@ -708,7 +708,9 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
 
 以入口名称为键、`Entrypoint` 对象为值的映射。每个 `Entrypoint` 表示一个入口对应的 chunk group，可用于获取该入口的 chunk 及其产物文件。
 
-通过 `entrypoint.getFiles()` 可以获取入口对应的产物文件名，包括 Rspack 运行时和抽取的 CSS。例如，将以下代码放在插件的 `apply(compiler)` 方法中，即可在产物优化和哈希处理完成后生成清单：
+服务端生成 HTML 时，需要知道每个入口应引入哪些 JavaScript 和 CSS 文件。可以遍历 `compilation.entrypoints`，通过 `entrypoint.getFiles()` 获取这些文件名，并保存为一份清单。
+
+以下代码放在插件的 `apply(compiler)` 方法中，在常规的产物优化和哈希处理完成后生成 `entrypoints.json`：
 
 ```js
 const { Compilation, sources } = compiler.rspack;
@@ -735,7 +737,7 @@ compiler.hooks.thisCompilation.tap('EntryManifestPlugin', (compilation) => {
 });
 ```
 
-如果 `main` 入口包含独立的 Rspack 运行时和 CSS 文件，清单可能如下：
+清单以入口名称为键、文件名数组为值。例如，`main` 入口生成了入口脚本、独立的 Rspack 运行时和 CSS 文件时，清单可能如下：
 
 ```json title="entrypoints.json"
 {
@@ -743,9 +745,13 @@ compiler.hooks.thisCompilation.tap('EntryManifestPlugin', (compilation) => {
 }
 ```
 
-服务端可以根据清单生成 HTML：为文件名添加资源 URL 前缀（文件名不包含 `publicPath`），使用 `<link rel="stylesheet">` 引入 CSS，并按清单顺序添加 JavaScript 的 `<script>` 标签，使 Rspack 运行时先于入口产物执行。
+服务端根据清单生成 HTML 时：
 
-`getFiles()` 只列出入口 chunk group 中的文件，不包含 `import()` 创建的异步 chunk，也不包含清单自身等无关的插件产物。
+- 文件名相对于产物目录，不包含 `publicPath`，因此需要根据资源的部署位置拼接完整 URL。
+- 使用 `<link rel="stylesheet">` 标签引入 CSS 文件。
+- 按数组中的顺序添加 JavaScript 文件的 `<script defer>` 标签，使脚本按此顺序执行。上例中，`runtime.js` 应先于 `main.js` 执行。
+
+`getFiles()` 只返回入口 chunk group 中的文件。通过 `import()` 按需加载的异步 chunk，以及未关联到该 chunk group 的插件产物（如 `entrypoints.json` 自身），都不会列入清单。
 
 <Collapse>
   <CollapsePanel
