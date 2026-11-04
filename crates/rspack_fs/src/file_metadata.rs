@@ -1,8 +1,21 @@
-use std::fs::{Metadata, Permissions};
+use std::{
+  fs::{Metadata, Permissions},
+  time::{SystemTime, UNIX_EPOCH},
+};
 
 use cfg_if::cfg_if;
 
 use crate::{Error, IoResultToFsResultExt, Result};
+
+pub fn current_time() -> u64 {
+  system_time_to_millis(SystemTime::now())
+}
+
+pub fn system_time_to_millis(time: SystemTime) -> u64 {
+  time
+    .duration_since(UNIX_EPOCH)
+    .map_or(0, |duration| duration.as_millis() as u64)
+}
 
 #[derive(Debug, Clone)]
 pub struct FileMetadata {

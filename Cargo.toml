@@ -261,7 +261,6 @@ rspack_tracing_perfetto                = { version = "=0.103.2", path = "crates/
 rspack_util                            = { version = "=0.103.2", path = "crates/rspack_util", default-features = false }
 rspack_watcher                         = { version = "=0.103.2", path = "crates/rspack_watcher", default-features = false }
 rspack_workspace                       = { version = "=0.103.2", path = "crates/rspack_workspace", default-features = false }
-rspack_glob                            = { version = "=0.103.2", path = "crates/rspack_glob", default-features = false }
 
 
 [workspace.metadata.release]
