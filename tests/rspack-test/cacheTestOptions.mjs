@@ -471,6 +471,9 @@ const excludes = {
 		/^inline-const\/dev$/,
 		/^inline-const\/module-declarations$/,
 		/^inline-const\/provide-plugin$/,
+		// The fs and external-value externals use the default need_build() and
+		// rebuild even when their cache entries exist.
+		/^inline-const\/reexport-star-suffix-properties$/,
 		/^inline-const\/suffix-properties$/,
 		/^inline-const\/with-node-stuff$/,
 		/^inline-enum\/basic$/,
