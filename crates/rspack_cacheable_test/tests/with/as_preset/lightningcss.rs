@@ -1,5 +1,5 @@
-use lightningcss::targets::Browsers;
 use rspack_cacheable::{enable_cacheable as cacheable, from_bytes, to_bytes, with::AsPreset};
+use rspack_lightningcss::targets::Browsers;
 
 #[cacheable]
 struct Config {

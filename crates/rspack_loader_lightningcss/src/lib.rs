@@ -6,33 +6,32 @@ use std::{
 use config::Config;
 use cow_utils::CowUtils;
 use derive_more::Debug;
-pub use lightningcss;
-use lightningcss::{
+use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
+use rspack_core::{
+  Loader, LoaderContext, RunnerContext,
+  rspack_sources::{MapOptions, SourceExt, SourceMapSource, SourceMapSourceOptions},
+};
+use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
+pub use rspack_lightningcss;
+use rspack_lightningcss::{
   error::MinifyErrorKind,
   media_query::{MediaCondition, MediaFeatureName, MediaList, QueryFeature},
-  printer::{PrinterOptions, PseudoClasses},
+  printer::{PrinterOptions, PseudoClasses, SourceMap as LightningSourceMap},
   rules::{CssRule, Location, custom_media::CustomMediaRule},
   stylesheet::{MinifyOptions, ParserFlags, ParserOptions, StyleSheet},
   targets::{Features, Targets},
   traits::IntoOwned,
   values::ident::DashedIdent,
 };
-use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
-use rspack_core::{
-  Loader, LoaderContext, RunnerContext,
-  rspack_sources::{
-    MapOptions, Mapping, OriginalLocation, SourceExt, SourceMap, SourceMapSource,
-    SourceMapSourceOptions, encode_mappings,
-  },
-};
-use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_loader_runner::Identifier;
 use tokio::sync::Mutex;
 
 pub mod config;
 mod plugin;
+pub mod source_map;
 
 pub use plugin::LightningcssLoaderPlugin;
+pub use source_map::RspackSourceMap;
 
 pub const LIGHTNINGCSS_LOADER_IDENTIFIER: &str = "builtin:lightningcss-loader";
 
@@ -148,10 +147,10 @@ impl LightningCssLoader {
     //   for warning in warnings.iter() {
     //     if matches!(
     //       warning.kind,
-    //       lightningcss::error::ParserError::SelectorError(
-    //         lightningcss::error::SelectorError::UnsupportedPseudoClass(_)
-    //       ) | lightningcss::error::ParserError::SelectorError(
-    //         lightningcss::error::SelectorError::UnsupportedPseudoElement(_)
+    //       rspack_lightningcss::error::ParserError::SelectorError(
+    //         rspack_lightningcss::error::SelectorError::UnsupportedPseudoClass(_)
+    //       ) | rspack_lightningcss::error::ParserError::SelectorError(
+    //         rspack_lightningcss::error::SelectorError::UnsupportedPseudoElement(_)
     //       )
     //     ) {
     //       // ignore parsing errors on pseudo class from lightningcss-loader
@@ -241,90 +240,39 @@ impl LightningCssLoader {
       result => result.to_rspack_result()?,
     }
 
-    let mut parcel_source_map = if loader_context.context.source_map_kind.enabled() {
-      let mut sm = parcel_sourcemap::SourceMap::new(&loader_context.context.options.context);
-      sm.add_source(&filename);
-      sm.set_source_content(0, &content_str).to_rspack_result()?;
+    let mut source_map = if loader_context.context.source_map_kind.enabled() {
+      let mut sm = RspackSourceMap::default();
+      let source_index = sm.add_source(&filename.cow_replace("\\", "/"));
+      sm.set_source_content(source_index, &content_str);
       Some(sm)
     } else {
       None
     };
 
-    let content = stylesheet
-      .to_css(PrinterOptions {
-        minify: self.config.minify.unwrap_or(false),
-        source_map: parcel_source_map.as_mut(),
-        project_root: None,
-        targets,
-        analyze_dependencies: None,
-        pseudo_classes: self
-          .config
-          .pseudo_classes
-          .as_ref()
-          .map(|pseudo_classes| PseudoClasses {
-            hover: pseudo_classes.hover.as_deref(),
-            active: pseudo_classes.active.as_deref(),
-            focus: pseudo_classes.focus.as_deref(),
-            focus_visible: pseudo_classes.focus_visible.as_deref(),
-            focus_within: pseudo_classes.focus_within.as_deref(),
-          }),
-      })
-      .to_rspack_result_with_message(|e| format!("failed to generate css: {e}"))?;
+    let content =
+      stylesheet
+        .to_css(
+          PrinterOptions {
+            minify: self.config.minify.unwrap_or(false),
+            project_root: None,
+            targets,
+            analyze_dependencies: None,
+            pseudo_classes: self.config.pseudo_classes.as_ref().map(|pseudo_classes| {
+              PseudoClasses {
+                hover: pseudo_classes.hover.as_deref(),
+                active: pseudo_classes.active.as_deref(),
+                focus: pseudo_classes.focus.as_deref(),
+                focus_visible: pseudo_classes.focus_visible.as_deref(),
+                focus_within: pseudo_classes.focus_within.as_deref(),
+              }
+            }),
+          },
+          source_map.as_mut(),
+        )
+        .to_rspack_result_with_message(|e| format!("failed to generate css: {e}"))?;
 
-    if let Some(parcel_source_map) = parcel_source_map {
-      let mappings = encode_mappings(parcel_source_map.get_mappings().iter().map(|mapping| {
-        // Parcel source map uses 0-based line numbers, while Rspack source map uses 1-based
-        Mapping {
-          generated_line: mapping.generated_line + 1,
-          generated_column: mapping.generated_column,
-          original: mapping.original.map(|original| OriginalLocation {
-            source_index: original.source,
-            original_line: original.original_line + 1,
-            original_column: original.original_column,
-            name_index: original.name,
-          }),
-        }
-      }));
-
-      let mut posix_context = loader_context
-        .context
-        .options
-        .context
-        .cow_replace("\\", "/");
-      if !posix_context.ends_with('/') {
-        posix_context.to_mut().push('/');
-      }
-      let posix_context = posix_context.into_owned();
-
-      let rspack_source_map = SourceMap::new(
-        mappings,
-        // Parcel stores sources relative to project_root, while Rspack source maps
-        // use absolute module paths for downstream loader/plugin handling.
-        parcel_source_map
-          .get_sources()
-          .iter()
-          .map(|source| {
-            Cow::Owned(if source.starts_with('/') || source.contains(':') {
-              source.clone()
-            } else {
-              let mut absolute_source = String::with_capacity(posix_context.len() + source.len());
-              absolute_source.push_str(&posix_context);
-              absolute_source.push_str(source);
-              absolute_source
-            })
-          })
-          .collect::<Vec<_>>(),
-        parcel_source_map
-          .get_sources_content()
-          .iter()
-          .map(|source_content| Some(Cow::Owned(source_content.clone())))
-          .collect::<Vec<_>>(),
-        parcel_source_map
-          .get_names()
-          .iter()
-          .map(|name| Cow::Owned(name.clone()))
-          .collect::<Vec<_>>(),
-      );
+    if let Some(source_map) = source_map {
+      let rspack_source_map = source_map.finish();
 
       let posix_name = filename.cow_replace("\\", "/");
       let source_map_source = SourceMapSource::new(SourceMapSourceOptions {
