@@ -524,14 +524,17 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       self.css_build_info.has_charset,
     );
     let css_text = json_stringify_str(&builder.into_css_text());
-    let public_path = self
-      .generate_context
-      .runtime_template
-      .render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH);
-    let runtime_public_path_expression = format!("\" + {public_path} + \"");
-    RUNTIME_PUBLIC_PATH_MATCHER
-      .replace(&css_text, &runtime_public_path_expression)
-      .into_owned()
+    let css_expression = RUNTIME_PUBLIC_PATH_MATCHER.replace_with(&css_text, || {
+      let public_path = self
+        .generate_context
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH);
+      Cow::Owned(format!("\" + {public_path} + \""))
+    });
+    match css_expression {
+      Cow::Borrowed(_) => css_text,
+      Cow::Owned(expression) => expression,
+    }
   }
 
   fn css_source_builder(&self, with_charset: bool) -> CssSourceBuilder {
