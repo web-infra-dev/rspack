@@ -1123,7 +1123,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       .unwrap_or_default();
 
     Ok(ModuleRule {
-      r#as: value.r#as,
+      r#as: value.r#as.map(Into::into),
       rspack_resource: value
         .rspack_resource
         .map(|raw| raw.try_into())

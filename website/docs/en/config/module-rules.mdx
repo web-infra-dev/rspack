@@ -687,16 +687,29 @@ There are two phases that all loaders enter one after the other:
 - **Type:** `string`
 - **Stability:** Experimental
 
-Changes the filename used to match subsequent rules. `*` is replaced with the current filename without its extension. The source file is still read from its original path; `as` only changes rule matching, including nested rules. Query and fragment remain unchanged.
+Creates a separate resource for rule matching using a path template. The only supported placeholder is `[resource-path]`, which expands to the current matching path, including its extension but excluding query and fragment. All other text, including `*`, is used literally.
 
-For example, `example.source.js` will match the later `.txt` rule as `example.source.txt`:
+Rules are evaluated in order. When a matching rule has `as`, its template sets the new matching path, and the full matching resource is rebuilt with the original query and fragment. Matching then continues with nested and subsequent rules; earlier rules are not evaluated again. A later `as` expands `[resource-path]` using the path produced by the previous `as`.
+
+The original resource is preserved for file reading and loaders. If the request contains an [inline match resource](/api/loader-api/inline-match-resource), `as` uses that matching path as its starting point.
+
+For example, `example.source.js` matches the later `.txt` rule as `example.source.js.txt`, then the `.processed` rule as `example.source.js.txt.processed`:
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     rules: [
-      { test: /\.source\.js$/, type: 'asset/source', as: '*.txt' },
-      { test: /\.txt$/, use: './text-loader.js' },
+      {
+        test: /\.source\.js$/,
+        type: 'asset/source',
+        as: '[resource-path].txt',
+      },
+      {
+        test: /\.txt$/,
+        use: './text-loader.js',
+        as: '[resource-path].processed',
+      },
+      { test: /\.processed$/, use: './processed-loader.js' },
     ],
   },
 };

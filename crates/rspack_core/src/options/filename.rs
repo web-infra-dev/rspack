@@ -39,6 +39,8 @@ pub enum PlaceholderKind {
   Base,
   Name,
   Path,
+  #[string_enum(rename = "resource-path")]
+  ResourcePath,
   Ext,
   Query,
   Fragment,
@@ -765,7 +767,10 @@ fn render_placeholder(
     ),
     PlaceholderKind::Runtime => try_render_value(Some(options.runtime.unwrap_or("_")), output),
     PlaceholderKind::Url => try_render_value(options.url, output),
-    PlaceholderKind::UniqueName | PlaceholderKind::Local | PlaceholderKind::Folder => false,
+    PlaceholderKind::ResourcePath
+    | PlaceholderKind::UniqueName
+    | PlaceholderKind::Local
+    | PlaceholderKind::Folder => false,
     PlaceholderKind::Hash => try_render_hash(
       options.hash,
       kind,
