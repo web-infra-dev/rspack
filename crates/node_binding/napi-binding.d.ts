@@ -2234,6 +2234,7 @@ export interface RawCssExtractPluginOption {
 
 export interface RawCssGeneratorOptions {
   exportsOnly?: boolean
+  runtimePublicPath?: boolean
   esModule?: boolean
 }
 
@@ -2248,6 +2249,7 @@ export interface RawCssImportContext {
 export interface RawCssModuleGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
+  runtimePublicPath?: boolean
   localIdentHashDigest?: string
   localIdentHashDigestLength?: number
   localIdentHashFunction?: string
