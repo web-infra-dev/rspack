@@ -48,6 +48,9 @@
 #[macro_use]
 extern crate napi_derive;
 extern crate rspack_allocator;
+// napi-derive emits `napi::` paths that resolve to this alias in every module.
+#[cfg(allocative)]
+extern crate rspack_napi_shim as napi;
 
 mod allocator;
 mod asset;

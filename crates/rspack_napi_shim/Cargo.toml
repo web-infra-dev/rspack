@@ -1,0 +1,17 @@
+[package]
+description          = "Allocative instrumentation for Rspack's N-API classes"
+edition.workspace    = true
+license.workspace    = true
+name                 = "rspack_napi_shim"
+repository.workspace = true
+version.workspace    = true
+
+[features]
+allocative = ["rspack_napi/allocative"]
+
+[dependencies]
+napi        = { workspace = true }
+rspack_napi = { workspace = true }
+
+[lints]
+workspace = true

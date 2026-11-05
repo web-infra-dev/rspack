@@ -15,11 +15,12 @@ const { rspack } = require('@rspack/core');
 const seen = [];
 let enabled;
 const retained = [];
-const check = (object) => {
+const check = (object, source) => {
   assert(object);
+  const label = source ?? object.constructor.name;
   const pointer = Object.getOwnPropertyDescriptor(object, '__rspackRustPtr');
   if (enabled === undefined) enabled = Boolean(pointer);
-  else assert.equal(Boolean(pointer), enabled, object.constructor.name);
+  else assert.equal(Boolean(pointer), enabled, label);
   if (!pointer) {
     assert.equal(Object.hasOwn(object, '__rspackRustType'), false);
     return;
@@ -28,7 +29,7 @@ const check = (object) => {
   assert.equal(pointer.writable, false);
   assert.match(pointer.value, /^0x[0-9a-f]+$/);
   assert.equal(typeof object.__rspackRustType, 'string');
-  seen.push({ type: object.constructor.name, pointer: pointer.value });
+  seen.push({ label, pointer: pointer.value });
   retained.push(object);
 };
 const compiler = rspack({
@@ -67,8 +68,24 @@ const compiler = rspack({
             const factory = compiler.resolverFactory.constructor.__to_binding(
               compiler.resolverFactory,
             );
-            check(factory);
-            check(factory.get('normal', {}));
+            check(factory, 'resolver factory created before the compiler');
+
+            const constructed = new binding.JsResolverFactory(false, {}, {});
+            assert(constructed instanceof binding.JsResolverFactory);
+            check(constructed, 'JavaScript constructor');
+
+            const returned = constructed.get('normal', {});
+            assert(returned instanceof binding.JsResolver);
+            check(returned, 'Rust return value');
+
+            const fromFactory = binding.JsResolverFactory.__testCreate(
+              false,
+              {},
+              {},
+            );
+            assert(fromFactory instanceof binding.JsResolverFactory);
+            check(fromFactory, 'N-API factory');
+
             for (const chunk of compilation.chunks) check(chunk);
           });
         });

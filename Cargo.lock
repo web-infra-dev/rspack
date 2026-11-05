@@ -2759,6 +2759,8 @@ checksum = "c9c366d2c8c60b86fa632df75f745509b52f9128f91a6bad4c796e44abb505e1"
 [[package]]
 name = "napi-derive"
 version = "3.5.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0fe526e81c105d3640516fcde83909dd1afe757c0d7a15af58830b5bc0fb9a1"
 dependencies = [
  "convert_case 0.11.0",
  "ctor 1.0.7",
@@ -4164,6 +4166,7 @@ dependencies = [
  "rspack_loader_testing",
  "rspack_napi",
  "rspack_napi_macros",
+ "rspack_napi_shim",
  "rspack_paths",
  "rspack_plugin_asset",
  "rspack_plugin_banner",
@@ -4748,6 +4751,14 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
+]
+
+[[package]]
+name = "rspack_napi_shim"
+version = "0.103.0-beta.1"
+dependencies = [
+ "napi",
+ "rspack_napi",
 ]
 
 [[package]]

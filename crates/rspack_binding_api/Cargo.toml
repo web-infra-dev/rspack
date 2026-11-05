@@ -11,7 +11,7 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
-allocative       = ["rspack_napi/allocative", "rspack_loader_swc/allocative", "rspack_core/allocative", "rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_tracing_perfetto?/allocative"]
+allocative       = ["rspack_napi_shim/allocative", "rspack_loader_swc/allocative", "rspack_core/allocative", "rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_tracing_perfetto?/allocative"]
 browser          = []
 debug_tool       = ["rspack_core/debug_tool"]
 perfetto         = ["dep:rspack_tracing_perfetto", "rspack_tracing/perfetto"]
@@ -34,6 +34,7 @@ rspack_hash               = { workspace = true }
 rspack_hook               = { workspace = true }
 rspack_intern             = { workspace = true, features = ["atom"] }
 rspack_napi               = { workspace = true }
+rspack_napi_shim          = { workspace = true, optional = true }
 rspack_paths              = { workspace = true }
 rspack_plugin_esm_library = { workspace = true }
 rspack_plugin_html        = { workspace = true }

@@ -67,11 +67,12 @@ export default {
         );
         assert.equal(result.report.unmatched_bindings, 0);
         for (const object of captured.seen) {
-          assert(
-            result.report.links.some(
+          assert.equal(
+            result.report.links.filter(
               (link) => link.rust_address === object.pointer,
-            ),
-            object.type,
+            ).length,
+            1,
+            object.label,
           );
         }
         const missingGc = spawnSync(process.execPath, [fixture], {

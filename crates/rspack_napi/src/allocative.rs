@@ -10,7 +10,7 @@ use std::{
 
 use napi::{
   Env, JsValue, Property, PropertyAttributes,
-  bindgen_prelude::{CallbackInfo, FromNapiValue, Function, JsObjectValue, Object, ObjectFinalize},
+  bindgen_prelude::{FromNapiValue, Function, JsObjectValue, Object},
   sys,
 };
 use rspack_allocative::{FlameGraphBuilder, snapshot};
@@ -164,42 +164,4 @@ fn capture(env: sys::napi_env) -> napi::Result<FlameGraphBuilder> {
     Ok(())
   })?;
   Ok(builder)
-}
-
-/// # Safety
-/// Same requirements as napi-rs `new_instance`.
-pub unsafe fn new_instance<T: ObjectFinalize + 'static>(
-  env: sys::napi_env,
-  pointer: *mut c_void,
-  ctor: sys::napi_ref,
-) -> napi::Result<sys::napi_value> {
-  let value = unsafe { napi::bindgen_prelude::new_instance::<T>(env, pointer, ctor)? };
-  unsafe { attach::<T>(env, value)? };
-  Ok(value)
-}
-
-/// # Safety
-/// `cb` and `env` must belong to the current N-API callback.
-pub unsafe fn construct<const EMPTY: bool, T: ObjectFinalize + 'static, const N: usize>(
-  cb: &CallbackInfo<N>,
-  env: sys::napi_env,
-  name: &str,
-  value: T,
-) -> napi::Result<sys::napi_value> {
-  let instance = cb.construct::<EMPTY, T>(name, value)?;
-  unsafe { attach::<T>(env, instance)? };
-  Ok(instance)
-}
-
-/// # Safety
-/// `cb` and `env` must belong to the current N-API callback.
-pub unsafe fn factory<T: ObjectFinalize + 'static, const N: usize>(
-  cb: &CallbackInfo<N>,
-  env: sys::napi_env,
-  name: &str,
-  value: T,
-) -> napi::Result<sys::napi_value> {
-  let instance = cb.factory(name, value)?;
-  unsafe { attach::<T>(env, instance)? };
-  Ok(instance)
 }
