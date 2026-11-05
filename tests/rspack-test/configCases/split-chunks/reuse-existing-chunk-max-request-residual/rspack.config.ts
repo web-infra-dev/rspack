@@ -3,13 +3,13 @@ import { defineConfig, definePlugin } from '@rspack/cli';
 /**
  * @param name
  * @param minSizeReduction
- * @param expectSamePriority
+ * @param expectSingleCopy
  * @returns {import("@rspack/core").Configuration}
  */
 function createConfig(
   name: string,
   minSizeReduction: number,
-  expectSamePriority: boolean,
+  expectSingleCopy: boolean,
 ) {
   return defineConfig({
     name,
@@ -42,8 +42,8 @@ function createConfig(
             reuseExistingChunk: true,
           },
           // With no size-reduction requirement, the reused destination is claimed by highPriority
-          // and this candidate must not move util back out at the same priority. With a positive
-          // requirement, highPriority reduces no source chunk and this candidate must remain valid.
+          // and this candidate can only extract Foo's remaining copy. With a positive requirement,
+          // highPriority reduces no source chunk, so this candidate can still merge both copies.
           samePriority: {
             test: /[\\/]util\.js$/,
             chunks: 'all',
@@ -82,17 +82,20 @@ function createConfig(
             );
 
             expect(reusableChunk).toBeDefined();
-            if (expectSamePriority) {
-              expect(samePriorityChunk).toBeDefined();
-              expect(lowerPriorityChunk).toBeNull();
+            expect(samePriorityChunk).toBeDefined();
+            expect(lowerPriorityChunk).toBeNull();
+            expect(utilChunks).toContain(samePriorityChunk);
+            expect(
+              Array.from(
+                samePriorityChunk!.groupsIterable,
+                (group) => group.name,
+              ).sort(),
+            ).toEqual(expectSingleCopy ? ['Foo', 'ReusableUtil'] : ['Foo']);
+            if (expectSingleCopy) {
               expect(utilChunks).toHaveLength(1);
-              expect(utilChunks).toContain(samePriorityChunk);
             } else {
-              expect(samePriorityChunk).toBeNull();
-              expect(lowerPriorityChunk).toBeDefined();
               expect(utilChunks).toHaveLength(2);
               expect(utilChunks).toContain(reusableChunk);
-              expect(utilChunks).toContain(lowerPriorityChunk);
             }
           });
         });

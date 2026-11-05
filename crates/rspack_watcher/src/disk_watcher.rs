@@ -73,11 +73,18 @@ impl DiskWatcher {
       .collect();
 
     for path in &stale_paths {
+      // A failed unwatch must not stop the new patterns from being watched. For example, on
+      // Linux `notify` can return `EINVAL` for a subdirectory that was deleted while its parent
+      // was watched recursively (https://github.com/notify-rs/notify/issues/709).
       if let Some(watcher) = &mut self.inner
         && let Err(e) = watcher.unwatch(path)
         && !matches!(e.kind, notify::ErrorKind::WatchNotFound)
       {
-        return Err(rspack_error::error!(e.to_string()));
+        tracing::warn!(
+          target: "rspack_watcher::disk_watcher",
+          path = ?path,
+          "failed to unwatch stale path: {e:?}",
+        );
       }
     }
 
@@ -223,5 +230,54 @@ mod tests {
     assert!(paths.contains(&InternedPath::from(dir_b)));
     assert!(paths.contains(&InternedPath::from(dir_c)));
     assert!(!paths.contains(&InternedPath::from(dir_a)));
+  }
+
+  #[cfg(target_os = "linux")]
+  #[test]
+  fn test_watch_continues_after_unwatch_of_deleted_subdirectory() {
+    let temp_dir = tempfile::TempDir::new().unwrap();
+    let base = temp_dir.path().canonicalize().unwrap();
+
+    let dir = base.join("dir");
+    let other = base.join("other");
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::create_dir_all(&other).unwrap();
+
+    let mut watcher = create_disk_watcher();
+    watcher
+      .watch(
+        vec![WatchPattern {
+          path: InternedPath::from(dir.clone()),
+          mode: notify::RecursiveMode::Recursive,
+        }]
+        .into_iter(),
+      )
+      .unwrap();
+
+    // Let the inotify backend add and then drop a watch for the subdirectory.
+    let sub = dir.join("sub");
+    std::fs::create_dir(&sub).unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(200));
+    std::fs::remove_dir(&sub).unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(200));
+
+    // Unwatching `dir` can fail for the deleted subdirectory; `other` must still be watched.
+    watcher
+      .watch(
+        vec![WatchPattern {
+          path: InternedPath::from(other.clone()),
+          mode: notify::RecursiveMode::NonRecursive,
+        }]
+        .into_iter(),
+      )
+      .unwrap();
+
+    let paths: HashSet<_> = watcher
+      .watch_patterns
+      .iter()
+      .map(|p| p.path.clone())
+      .collect();
+    assert_eq!(paths.len(), 1);
+    assert!(paths.contains(&InternedPath::from(other)));
   }
 }

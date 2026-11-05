@@ -8,7 +8,7 @@ use std::{
 };
 
 use dashmap::DashMap;
-use memchr::memchr2_iter;
+use memchr::{memchr2, memchr2_iter};
 use rspack_cacheable::{
   cacheable,
   with::{AsPreset, Unsupported},
@@ -535,24 +535,6 @@ impl Filename {
     let compiled = self.compiled(options, asset_info.as_deref()).await?;
     Ok(compiled.render_with_path_data(options, asset_info, renderer))
   }
-
-  /// Same as [`Self::render_with`], but reuses `file_replacements` that the caller computed
-  /// from `options.filename` once.
-  pub async fn render_with_replacements<'value>(
-    &self,
-    options: PathData<'_>,
-    file_replacements: &FileReplacements,
-    asset_info: Option<&mut AssetInfo>,
-    renderer: impl FnMut(StringTemplatePlaceholder) -> Option<FilenameRenderValue<'value>>,
-  ) -> rspack_error::Result<String> {
-    let compiled = self.compiled(options, asset_info.as_deref()).await?;
-    Ok(compiled.render_with_path_data_and_replacements(
-      options,
-      file_replacements,
-      asset_info,
-      renderer,
-    ))
-  }
 }
 
 impl rspack_hash::RspackHash for Filename {
@@ -672,7 +654,7 @@ impl FileReplacements {
       return Self::default();
     };
 
-    if let Ok(caps) = data_uri(filename) {
+    if let Some(caps) = data_uri(filename) {
       let replacer = options
         .content_hash
         // "XXXX" is used for updateHash and must not become a filename here.
@@ -859,15 +841,15 @@ fn try_render_hash(
   true
 }
 
-fn data_uri(mut input: &str) -> winnow::ModalResult<&str> {
-  use winnow::{combinator::preceded, prelude::*, token::take_till};
-
-  preceded("data:", take_till(1.., (';', ','))).parse_next(&mut input)
+fn data_uri(input: &str) -> Option<&str> {
+  let mime = input.strip_prefix("data:")?;
+  let end = memchr2(b';', b',', mime.as_bytes()).unwrap_or(mime.len());
+  (end > 0).then(|| &mime[..end])
 }
 
 #[test]
 fn test_data_uri() {
-  assert_eq!(data_uri("data:good").ok(), Some("good"));
-  assert_eq!(data_uri("data:g;ood").ok(), Some("g"));
-  assert_eq!(data_uri("data:;ood").ok(), None);
+  assert_eq!(data_uri("data:good"), Some("good"));
+  assert_eq!(data_uri("data:g;ood"), Some("g"));
+  assert_eq!(data_uri("data:;ood"), None);
 }

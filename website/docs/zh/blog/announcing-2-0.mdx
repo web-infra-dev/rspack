@@ -363,11 +363,11 @@ export default {
 
 ### 简化 swc-loader 配置 \{#detect-syntax}
 
-在以往的配置中，如果希望 [builtin:swc-loader](/guide/features/builtin-swc-loader) 同时处理 `.js`、`.jsx`、`.ts`、`.tsx` 等文件，需要根据文件类型显式指定 `jsc.parser` 中的 `syntax`、`jsx`、`tsx` 等选项，以确保 SWC 能以正确的语义解析代码，例如判断 `<` 应被解析为 JSX 语法还是 TypeScript 泛型。
+在以往的配置中，如果希望 [builtin:swc-loader](/guide/builtin-loaders/swc-loader) 同时处理 `.js`、`.jsx`、`.ts`、`.tsx` 等文件，需要根据文件类型显式指定 `jsc.parser` 中的 `syntax`、`jsx`、`tsx` 等选项，以确保 SWC 能以正确的语义解析代码，例如判断 `<` 应被解析为 JSX 语法还是 TypeScript 泛型。
 
 这带来了一定的配置复杂度。为了让 SWC 正确解析不同后缀的文件，通常需要定义多条 `rules`，导致配置变得冗长，不利于维护。
 
-为了解决这一问题，Rspack 2.0 在内置的 `swc-loader` 中引入了 [detectSyntax](/guide/features/builtin-swc-loader#detectsyntax) 选项。启用 `detectSyntax: 'auto'` 后，loader 会根据文件扩展名自动推断 `syntax`、`jsx`、`tsx` 等 `parser` 选项。通过一条规则即可覆盖不同的文件类型，使配置更清晰。
+为了解决这一问题，Rspack 2.0 在内置的 `swc-loader` 中引入了 [detectSyntax](/guide/builtin-loaders/swc-loader#detectsyntax) 选项。启用 `detectSyntax: 'auto'` 后，loader 会根据文件扩展名自动推断 `syntax`、`jsx`、`tsx` 等 `parser` 选项。通过一条规则即可覆盖不同的文件类型，使配置更清晰。
 
 ```js title="rspack.config.mjs"
 export default {

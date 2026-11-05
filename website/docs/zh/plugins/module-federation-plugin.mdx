@@ -71,7 +71,7 @@ export default {
 
 - 类型：`string | false`
 
-定义远程应用入口的 runtime chunk。
+定义远程应用入口的 Rspack 运行时 chunk。
 
 ### library
 
@@ -84,6 +84,8 @@ export default {
 - 类型：`string | string[]`
 
 定义当前应用共享依赖的命名空间。通过在不同的应用之间配置命名空间，可以控制模块的共享行为，包括确定哪些模块在不同的应用之间是共享的。默认的命名空间为 `"default"`。
+
+暴露模块或使用远程模块时，`shareScope` 数组必须包含至少一个元素。这也适用于 `remotes[name].shareScope`。
 
 ### shareStrategy
 
@@ -216,13 +218,13 @@ export default {
 
 <ApiMeta addedVersion="2.0.0" />
 
-是否将 shared 使用的 exports 注入到 bundler runtime 中。
+是否将共享模块中已使用的导出信息注入到 Rspack 运行时。
 
 - 类型：`boolean`
 - 是否必填：否
 - 默认值：`true`
 
-此选项用于控制是否将共享模块中实际使用的导出信息注入到打包器的运行时中，以便进行更精确的依赖管理和优化。
+开启此选项后，Rspack 运行时可以获取共享模块中已使用的导出信息，以便进行依赖管理和优化。
 
 如果你使用的是 mode 为 'server-calc'，那么推荐将此选项设置为 `false`。
 
@@ -283,7 +285,7 @@ export default {
 
 - 构建产物中存在未降级语法？
 
-  如果你需要兼容低版本浏览器，请添加 [builtin:swc-loader](/guide/features/builtin-swc-loader) 进行语法降级，需要匹配 `@module-federation` scope 下的 npm 包。示例如下：
+  如果你需要兼容低版本浏览器，请添加 [builtin:swc-loader](/guide/builtin-loaders/swc-loader) 进行语法降级，需要匹配 `@module-federation` scope 下的 npm 包。示例如下：
 
   ```js title="rspack.config.mjs"
   export default {

@@ -1,5 +1,5 @@
 ---
-description: '创建 Rspack 或 Rsbuild 项目，检查环境要求，或手动安装 Rspack 并运行首次构建。'
+description: '使用 Rsbuild 构建 Web 应用、Rslib 构建 JavaScript 库，或使用 Rspack CLI 搭建自定义构建流程，了解环境要求和手动安装步骤。'
 ---
 
 import { PackageManagerTabs } from '@theme';
@@ -8,7 +8,7 @@ import { PackageManagerTabs } from '@theme';
 
 通过本章节来了解如何快速上手并使用 Rspack。
 
-- [创建新项目](#创建新项目)：使用 CLI 创建一个全新的 Rspack 或 Rsbuild 项目。
+- [创建新项目](#创建新项目)：选择合适的工具，创建基于 Rspack 的新项目。
 - [从现有项目迁移](#从现有项目迁移)：从一个基于 webpack 的项目迁移到 Rspack。
 
 ## 生态
@@ -58,42 +58,57 @@ Rspack 支持使用 [Node.js](https://nodejs.org/)、[Deno](https://deno.com/) �
 
 ## 创建新项目
 
-### 使用 Rsbuild
+### Web 应用
 
-我们推荐使用 [Rsbuild](https://rsbuild.rs/) 创建新项目。Rsbuild 是基于 Rspack 的构建工具，内置构建配置和开发服务器，并提供 React、Vue 等框架的集成，帮助你快速上手。
+如果你要构建 Web 应用，我们推荐使用 [Rsbuild](https://rsbuild.rs/zh/)。它基于 Rspack，内置常用构建配置和开发服务器，并提供 React、Vue 等框架集成，帮助你快速开始开发。需要定制构建行为时，也可以通过配置和插件扩展，或调整底层 Rspack 配置。
 
 执行如下命令并按照提示操作：
 
 <PackageManagerTabs command="create rsbuild@latest" />
 
+:::tip 非交互模式
+
+指定目录和模板即可跳过交互提示，例如：`npx -y create-rsbuild --dir my-app --template react`。
+
+:::
+
 > 查看 [Rsbuild - 快速上手](https://rsbuild.rs/zh/guide/start/quick-start) 了解更多。
 
-### 使用 Rspack CLI
+### JavaScript 库
 
-Rspack CLI 提供直接使用 Rspack 的命令行入口，你需要自行配置 loader、插件等构建能力，适合希望从底层配置入手、搭建自定义构建流程的项目。
+如果你要开发工具库、组件库等供其他项目使用的 JavaScript 库，我们推荐使用 [Rslib](https://rslib.rs/zh/)。它基于 Rsbuild，提供面向库开发的默认配置，支持生成 ESM、CommonJS 产物和 TypeScript 类型声明，方便发布到 npm 或在多个项目间复用。
 
 执行如下命令并按照提示操作：
 
+<PackageManagerTabs command="create rslib@latest" />
+
+:::tip 非交互模式
+
+指定目录和模板即可跳过交互提示，例如：`npx -y create-rslib --dir my-lib --template node-js`。
+
+:::
+
+> 查看 [Rslib - 快速上手](https://rslib.rs/zh/guide/start/quick-start) 了解更多。
+
+### 直接使用 Rspack CLI
+
+如果你希望自行组织构建流程、直接维护 Rspack 配置，可以使用 Rspack CLI。它提供开发、构建和预览命令，你需要自行选择和配置 loader、插件等构建能力。
+
+#### 使用脚手架
+
+执行如下命令，按照提示从模板创建项目：
+
 <PackageManagerTabs command="create rspack@latest" />
 
-### 非交互模式
+:::tip 非交互模式
 
-[create-rspack](https://www.npmjs.com/package/create-rspack) 和 [create-rsbuild](https://www.npmjs.com/package/create-rsbuild) 支持通过命令行选项进入非交互模式。使用该模式可以跳过所有提示，直接创建项目，适合脚本、CI 以及 coding agents 等自动化场景。
+指定目录和模板即可跳过交互提示，例如：`npx -y create-rspack --dir my-app --template react`。
 
-例如，以下命令将在 `my-app` 目录中创建一个 React 应用：
+:::
 
-```bash
-# Rspack CLI
-npx -y create-rspack --dir my-app --template react
-# Rsbuild
-npx -y create-rsbuild --dir my-app --template react
-# 使用缩写
-npx -y create-rsbuild -d my-app -t react
-```
+#### 手动安装
 
-## 手动安装
-
-首先创建一个项目目录，并生成一个 npm `package.json` 文件：
+你也可以手动安装 Rspack CLI 并创建配置文件。首先创建一个项目目录，并生成一个 npm `package.json` 文件：
 
 ```bash
 mkdir rspack-demo
@@ -101,7 +116,7 @@ cd rspack-demo
 npm init -y
 ```
 
-然后安装 [@rspack/core](https://www.npmjs.com/package/@rspack/core) 和 [@rspack/cli](https://www.npmjs.com/package/@rspack/cli) 为 dev 依赖：
+然后将 [@rspack/core](https://www.npmjs.com/package/@rspack/core) 和 [@rspack/cli](https://www.npmjs.com/package/@rspack/cli) 安装为开发依赖：
 
 <PackageManagerTabs command="add @rspack/core @rspack/cli -D" />
 

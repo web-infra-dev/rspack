@@ -164,7 +164,7 @@ impl Module for LazyCompilationProxyModule {
     self.layer.as_ref()
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>) -> f64 {
     200f64
   }
 

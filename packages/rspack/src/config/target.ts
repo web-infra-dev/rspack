@@ -105,6 +105,8 @@ export type EcmaTargetProperties = {
   templateLiteral: boolean | null;
   /**  async functions and await are available */
   asyncFunction: boolean | null;
+  /**  top-level await is available */
+  topLevelAwait: boolean | null;
 };
 
 export type ExtractedTargetProperties = {
@@ -304,6 +306,8 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         methodShorthand: v(4),
         arrowFunction: v(6),
         asyncFunction: v(7, 6),
+        // v14.8.0
+        topLevelAwait: v(14, 8),
         forOf: v(5),
         destructuring: v(6),
         bigIntLiteral: v(10, 4),
@@ -379,6 +383,8 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         methodShorthand: v(1, 1),
         arrowFunction: v(1, 1),
         asyncFunction: v(1, 7),
+        // 12.0.0 - Chromium 89
+        topLevelAwait: v(12),
         forOf: v(0, 36),
         destructuring: v(1, 1),
         bigIntLiteral: v(4),
@@ -443,6 +449,8 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         methodShorthand: v(0, 15),
         arrowFunction: v(0, 15),
         asyncFunction: v(0, 21),
+        // 0.52.0 - Chromium 89
+        topLevelAwait: v(0, 52),
         forOf: v(0, 13),
         destructuring: v(0, 15),
         bigIntLiteral: v(0, 32),
@@ -460,8 +468,8 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
       let v = +version;
       if (5 < v && v < 1000) v = v + 2009;
       return {
-        // SWC minifier only supports up to 2022
-        esVersion: v > 2022 ? 2022 : v,
+        // SWC supports explicit ECMAScript targets up to ES2024.
+        esVersion: v > 2024 ? 2024 : v,
         const: v >= 2015,
         computedProperty: v >= 2015,
         templateLiteral: v >= 2015,
@@ -473,6 +481,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         destructuring: v >= 2015,
         module: v >= 2015,
         asyncFunction: v >= 2017,
+        topLevelAwait: v >= 2022,
         globalThis: v >= 2020,
         bigIntLiteral: v >= 2020,
         dynamicImport: v >= 2020,

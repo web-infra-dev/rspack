@@ -72,6 +72,10 @@ impl ModuleId {
   pub fn as_str(&self) -> &str {
     self.0.as_str()
   }
+
+  pub fn precomputed_hash(&self) -> u64 {
+    self.0.precomputed_hash()
+  }
 }
 
 impl rspack_hash::RspackHash for ModuleId {
@@ -147,16 +151,6 @@ impl ChunkGraph {
   ) -> bool {
     let chunk_graph_chunk = self.expect_chunk_graph_chunk(&chunk_ukey);
     chunk_graph_chunk.modules.contains(module_identifier)
-  }
-
-  pub fn is_any_module_in_chunk<'a>(
-    &self,
-    mut module_identifiers: impl Iterator<Item = &'a ModuleIdentifier>,
-    chunk_ukey: ChunkUkey,
-  ) -> bool {
-    let chunk_graph_chunk = self.expect_chunk_graph_chunk(&chunk_ukey);
-    module_identifiers
-      .any(|module_identifier| chunk_graph_chunk.modules.contains(module_identifier))
   }
 
   pub(crate) fn expect_chunk_graph_module_mut(

@@ -82,9 +82,9 @@ git push origin release/vx.y.z
 
 4. Create a PR with the title `chore: release v1.0.0`.
 5. Run the [Ecosystem CI workflow](https://github.com/web-infra-dev/rspack/actions/workflows/ecosystem-ci.yml) to ensure all ecosystem projects are working properly.
-6. Run the full release workflow on the release branch:
-   - [Release Full](https://github.com/web-infra-dev/rspack/actions/workflows/release.yml): Publish npm packages to registry
-   - [Release Crates](https://github.com/web-infra-dev/rspack/actions/workflows/release-crates.yml): Publish Rust crates to crates.io
+6. Run the [Release Full workflow](https://github.com/web-infra-dev/rspack/actions/workflows/release.yml) on the release branch. These options control what it publishes, and both are enabled by default:
+   - `release_npm`: Publish npm packages to registry
+   - `release_crates`: Publish Rust crates to crates.io
 7. After the release, merge the PR to the `main` branch.
 8. Use the `create-draft-release-notes` skill to create a draft [GitHub release note](https://github.com/web-infra-dev/rspack/releases).
 9. Review the draft release note, optionally add release highlights, and publish it.

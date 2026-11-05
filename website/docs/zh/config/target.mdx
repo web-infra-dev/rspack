@@ -6,7 +6,7 @@ import Attribution from '@components/Attribution';
 
 # Target
 
-`target` 用于描述输出代码的运行环境。Rspack 会据此确定目标环境支持的平台 API 和 ECMAScript 语法，并自动设置与该环境兼容的模块解析条件、externals 预设和 chunk 加载方式。Rspack 生成的 runtime 代码也会使用目标环境支持的语法。
+`target` 用于描述输出代码的运行环境。Rspack 会据此确定目标环境支持的平台 API 和 ECMAScript 语法，并自动设置与该环境兼容的模块解析条件、externals 预设和 chunk 加载方式。生成的 Rspack 运行时代码也会使用目标环境支持的语法。
 
 当 Rspack 内置的 loader 和压缩插件未显式配置目标时，它们也可以从 `target` 继承默认值。但 `target` 不会为缺失的 API 注入 polyfill。
 
@@ -51,7 +51,7 @@ export default {
 
 #### 固定语法版本
 
-如果不使用 Browserslist，并且希望浏览器产物的 runtime 最多使用 ES2020 语法，可以组合平台和语法 target（详见 [Target 数组](#target-arrays)）：
+如果不使用 Browserslist，并且希望浏览器产物的 Rspack 运行时最多使用 ES2020 语法，可以组合平台和语法 target（详见 [Target 数组](#target-arrays)）：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -59,7 +59,7 @@ export default {
 };
 ```
 
-`web` 用于选择平台。`es2020` 会限制 Rspack runtime 使用的语法；支持继承 `target` 的内置转换工具也会将它作为默认输出目标。
+`web` 用于选择平台。`es2020` 会限制 Rspack 运行时使用的语法；支持继承 `target` 的内置转换工具也会将它作为默认输出目标。
 
 ### Node.js
 
@@ -89,22 +89,22 @@ export default {
 
 下表中的 `X` 和 `Y` 表示版本号，方括号表示可选部分。例如，`node22`、`node22.12` 和 `electron34-renderer` 都是有效值，不需要输入方括号。
 
-| 值                         | 用途                                                            |
-| -------------------------- | --------------------------------------------------------------- |
-| `async-node[X[.Y]]`        | Node.js 环境，通过 `fs` 和 `vm` 异步加载 chunk                  |
-| `browserslist[:...]`       | 从 Browserslist 配置、环境或内联查询中推断平台和支持的特性      |
-| `electron[X[.Y]]-main`     | Electron 主进程                                                 |
-| `electron[X[.Y]]-preload`  | Electron preload 脚本                                           |
-| `electron[X[.Y]]-renderer` | Electron renderer 进程                                          |
-| `esX`                      | 限制 runtime 使用的 ECMAScript 特性，通常与平台 target 组合使用 |
-| `false`                    | 禁用 target 推断以及由 target 派生的默认值                      |
-| `node[X[.Y]]`              | Node.js 环境，通过 `require()` 加载 chunk                       |
-| `node-webkit[X[.Y]]`       | 对应 NW.js target 的别名                                        |
-| `nwjs[X[.Y]]`              | NW.js 环境                                                      |
-| `web`                      | 类浏览器环境                                                    |
-| `webworker`                | Web Worker、Shared Worker 或 Service Worker 环境                |
+| 值                         | 用途                                                                 |
+| -------------------------- | -------------------------------------------------------------------- |
+| `async-node[X[.Y]]`        | Node.js 环境，通过 `fs` 和 `vm` 异步加载 chunk                       |
+| `browserslist[:...]`       | 从 Browserslist 配置、环境或内联查询中推断平台和支持的特性           |
+| `electron[X[.Y]]-main`     | Electron 主进程                                                      |
+| `electron[X[.Y]]-preload`  | Electron preload 脚本                                                |
+| `electron[X[.Y]]-renderer` | Electron renderer 进程                                               |
+| `esX`                      | 限制 Rspack 运行时使用的 ECMAScript 特性，通常与平台 target 组合使用 |
+| `false`                    | 禁用 target 推断以及由 target 派生的默认值                           |
+| `node[X[.Y]]`              | Node.js 环境，通过 `require()` 加载 chunk                            |
+| `node-webkit[X[.Y]]`       | 对应 NW.js target 的别名                                             |
+| `nwjs[X[.Y]]`              | NW.js 环境                                                           |
+| `web`                      | 类浏览器环境                                                         |
+| `webworker`                | Web Worker、Shared Worker 或 Service Worker 环境                     |
 
-- 支持的 ECMAScript target 包括 `es3`、`es5`，以及 `es2015` 至 `es2025`。
+- 支持的 ECMAScript target 包括 `es3`、`es5`，以及 `es2015` 至 `es2026`。
 - `esX` target 只描述语法能力，不描述运行平台。通常它应该与 `web`、`node` 等平台 target 组合使用。
 - Node.js、Electron 和 NW.js target 都可以指定版本。
 
@@ -123,12 +123,12 @@ Rspack 会从 target 派生多项默认配置，包括：
 
 ### 源码转换 \{#目标环境继承}
 
-`target` 会直接控制 Rspack 生成的 runtime 可以使用哪些语法，但它本身不会自动降级每一个应用模块的语法。
+`target` 会直接控制生成的 Rspack 运行时可以使用哪些语法，但它本身不会自动降级每一个应用模块的语法。
 
 使用以下内置工具且没有显式配置转换目标时，它们会从 `target` 继承兼容的默认值：
 
-- [`builtin:swc-loader`](/guide/features/builtin-swc-loader) 会派生 `env.targets` 或 `jsc.target`
-- [`builtin:lightningcss-loader`](/guide/features/builtin-lightningcss-loader) 会在存在浏览器目标时派生对应的 target
+- [`builtin:swc-loader`](/guide/builtin-loaders/swc-loader) 会派生 `env.targets` 或 `jsc.target`
+- [`builtin:lightningcss-loader`](/guide/builtin-loaders/lightningcss-loader) 会在存在浏览器目标时派生对应的 target
 - [`SwcJsMinimizerRspackPlugin`](/plugins/swc-js-minimizer-rspack-plugin) 会派生 ECMAScript target
 - [`LightningCssMinimizerRspackPlugin`](/plugins/lightning-css-minimizer-rspack-plugin) 会在存在浏览器目标时派生对应的 target
 
@@ -225,7 +225,7 @@ export default {
 
 ## 相关配置
 
-- [`output.environment`](/config/output#outputenvironment)：覆盖从 target 派生的 runtime 语法能力。
+- [`output.environment`](/config/output#outputenvironment)：覆盖从 target 派生的 Rspack 运行时语法能力。
 - [`output.chunkFormat`](/config/output#outputchunkformat) 和 [`output.chunkLoading`](/config/output#outputchunkloading)：覆盖 chunk 的输出与加载方式。
 - [`externalsPresets`](/config/externals#externalspresets)：控制哪些平台内置模块被视为 external。
 - [`resolve.conditionNames`](/config/resolve#resolveconditionnames)：控制解析 `package.json` 中的 `exports` 字段时使用的条件。

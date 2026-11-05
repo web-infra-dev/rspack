@@ -26,7 +26,7 @@ To learn how to use plugins, see the [plugin guide](/guide/features/plugin).
 - [DllReferencePlugin](/plugins/dll-reference-plugin): References a DLL manifest to reuse prebuilt dependencies.
 - [LightningCssMinimizerRspackPlugin](/plugins/lightning-css-minimizer-rspack-plugin): Minifies CSS assets with Lightning CSS.
 - [LimitChunkCountPlugin](/plugins/limit-chunk-count-plugin): Merges chunks to keep their total count below a configured limit.
-- [RuntimeChunkPlugin](/plugins/runtime-chunk-plugin): Controls how Rspack creates runtime chunks.
+- [RuntimeChunkPlugin](/plugins/runtime-chunk-plugin): Controls how Rspack runtime chunks are created.
 - [SplitChunksPlugin](/plugins/split-chunks-plugin): Splits shared or asynchronous code into chunks for better loading and caching.
 - [SwcJsMinimizerRspackPlugin](/plugins/swc-js-minimizer-rspack-plugin): Minifies JavaScript assets with SWC.
 
@@ -57,7 +57,7 @@ To learn how to use plugins, see the [plugin guide](/guide/features/plugin).
 
 ## Reference
 
-- [Low-level plugins](/plugins/low-level-plugins): Catalogs publicly exposed building blocks for target presets, runtime templates, child compilers, and higher-level plugins.
+- [Low-level plugins](/plugins/low-level-plugins): Catalogs publicly exposed building blocks for target presets, Rspack runtime templates, child compilers, and higher-level plugins.
 - [Community plugin compatibility](/plugins/community-plugin-compatibility): Lists compatibility results for common webpack community plugins.
 - [webpack plugin compatibility](/plugins/webpack-built-in-plugin-support): Summarizes Rspack's compatibility with webpack built-in plugins and selected internal plugins.
 
@@ -67,9 +67,7 @@ Rspack strives to maintain compatibility with the webpack plugin ecosystem to le
 
 Please refer to [Community plugin compatibility](/plugins/community-plugin-compatibility) to access a list of webpack plugins that have passed our compatibility tests.
 
-You can also check out the community Rspack plugins at [awesome-rstack](https://github.com/rstackjs/awesome-rstack).
-
-Welcome to add the plugins you developed to this repository.
+See [Community plugins](/guide/start/ecosystem#community-plugins) for more plugins and to add your own.
 
 ## Deprecated
 

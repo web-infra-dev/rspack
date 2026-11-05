@@ -134,8 +134,7 @@ pub fn impl_runtime_module(
 
       fn size(
         &self,
-        _source_type: Option<&::rspack_core::SourceType>,
-        _compilation: Option<&::rspack_core::Compilation>,
+        _source_type: Option<&::rspack_core::SourceType>
       ) -> f64 {
         self.common.size()
       }
@@ -191,9 +190,9 @@ pub fn impl_runtime_module(
       async fn get_runtime_hash(
         &self,
         compilation: &::rspack_core::Compilation,
-        runtime: Option<&::rspack_core::RuntimeSpec>,
+        _runtime: Option<&::rspack_core::RuntimeSpec>,
       ) -> rspack_error::Result<::rspack_hash::RspackHashDigest> {
-        ::rspack_core::runtime_module_get_runtime_hash(self, &self.common, compilation, runtime).await
+        ::rspack_core::runtime_module_get_runtime_hash(self, &self.common, compilation).await
       }
 
       async fn build(

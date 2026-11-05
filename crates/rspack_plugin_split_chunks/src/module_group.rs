@@ -4,10 +4,11 @@ use derive_more::Debug;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{ChunkUkey, ModuleIdentifier, SourceType};
 use rustc_hash::FxHashSet;
+use smallvec::SmallVec;
 
 use crate::{
   CacheGroup,
-  common::{ModuleSizes, SplitChunkSizes, chunk_mask},
+  common::{ModuleChunkMap, ModuleSizes, SplitChunkSizes, chunk_mask},
 };
 
 pub(crate) struct IndexedCacheGroup<'a> {
@@ -123,9 +124,19 @@ enum ModuleGroupChunks {
   ByModule(IdentifierMap<FxHashSet<ChunkUkey>>),
 }
 
+pub(crate) enum CandidateUpdate {
+  Unchanged,
+  Updated,
+  Discard,
+}
+
 #[derive(Debug)]
 pub(crate) struct ModuleGroup {
   pub modules: IdentifierSet,
+  /// Packed `selectable` / `placement_changed` / stale size reduction flags. A
+  /// single byte keeps `ModuleGroup` within the padding next to the other small
+  /// fields, so the struct (moved by sorts and `swap_remove`) does not grow.
+  candidate_flags: u8,
   /// The chunks selected for each module. Anonymous groups structurally share their exact chunk
   /// combination instead of allocating one set per module.
   #[debug(skip)]
@@ -149,7 +160,7 @@ pub(crate) struct ModuleGroup {
   has_modules_without_source_types: bool,
   removed: Vec<ModuleIdentifier>,
   sizes: SplitChunkSizes,
-  total_size: f64,
+  size_reduction: f64,
 }
 
 // Most consecutive module sizes have the same source type. Keep that running
@@ -184,6 +195,41 @@ impl SizeAccumulator<'_> {
 }
 
 impl ModuleGroup {
+  const SELECTABLE: u8 = 1 << 0;
+  const PLACEMENT_CHANGED: u8 = 1 << 1;
+  const SIZE_REDUCTION_STALE: u8 = 1 << 2;
+
+  /// Only threshold-invalid candidates are skipped by selection. Cleanup can
+  /// make them selectable again within this priority's existing queue.
+  #[inline]
+  pub fn selectable(&self) -> bool {
+    self.candidate_flags & Self::SELECTABLE != 0
+  }
+
+  #[inline]
+  pub fn set_selectable(&mut self, selectable: bool) {
+    if selectable {
+      self.candidate_flags |= Self::SELECTABLE;
+    } else {
+      self.candidate_flags &= !Self::SELECTABLE;
+    }
+  }
+
+  #[inline]
+  pub fn placement_changed(&self) -> bool {
+    self.candidate_flags & Self::PLACEMENT_CHANGED != 0
+  }
+
+  #[inline]
+  pub fn mark_placement_changed(&mut self) {
+    self.candidate_flags |= Self::PLACEMENT_CHANGED;
+  }
+
+  #[inline]
+  fn mark_size_reduction_stale(&mut self) {
+    self.candidate_flags |= Self::SIZE_REDUCTION_STALE;
+  }
+
   pub fn new(chunk_name: Option<String>, cache_group_index: u32, cache_group: &CacheGroup) -> Self {
     let module_chunks = if chunk_name.is_some() {
       ModuleGroupChunks::ByModule(Default::default())
@@ -192,6 +238,7 @@ impl ModuleGroup {
     };
     Self {
       modules: Default::default(),
+      candidate_flags: Self::SELECTABLE,
       module_chunks,
       cache_group_index,
       cache_group_reuse_existing_chunk: cache_group.reuse_existing_chunk,
@@ -203,7 +250,7 @@ impl ModuleGroup {
       pending_initial_sizes: false,
       has_modules_without_source_types: false,
       removed: Default::default(),
-      total_size: 0.0,
+      size_reduction: 0.0,
     }
   }
 
@@ -250,6 +297,7 @@ impl ModuleGroup {
       module_chunks.insert(chunk);
       self.chunks.insert(chunk);
     }
+    self.mark_size_reduction_stale();
   }
 
   pub fn add_module_with_shared_chunks(
@@ -317,6 +365,7 @@ impl ModuleGroup {
           if self.modules.remove(&module) {
             module_chunks.remove(&module);
             self.removed.push(module);
+            self.candidate_flags |= Self::SIZE_REDUCTION_STALE;
           }
         }
       }
@@ -330,15 +379,224 @@ impl ModuleGroup {
       // walking the same set to avoid probing the group twice per match.
       self.remove_modules(modules.iter().copied());
     } else {
-      // Preserve the group's intersection order when it is the smaller set.
-      // Append straight to the size-update queue, avoiding a second buffer.
-      let start = self.removed.len();
-      self
-        .removed
-        .extend(self.modules.intersection(modules).copied());
-      for module in &self.removed[start..] {
-        self.modules.remove(module);
+      // Preserve the smaller group's iteration order, erasing known buckets
+      // directly instead of hashing each matching module a second time.
+      self.modules.retain(|module| {
+        if modules.contains(module) {
+          self.removed.push(*module);
+          false
+        } else {
+          true
+        }
+      });
+    }
+  }
+
+  /// Shrinking can only reduce a source type's size/reduction. Keep mixed-type
+  /// candidates only if removing another type could leave an eligible one.
+  pub fn can_recover(&mut self, cache: &CacheGroup, sizes: &ModuleSizes, chunks: usize) -> bool {
+    chunks >= (cache.min_chunks as usize).max(1)
+      && Self::has_recoverable_size(self.get_sizes(sizes), cache, chunks)
+  }
+
+  fn has_recoverable_size(sizes: &SplitChunkSizes, cache: &CacheGroup, chunks: usize) -> bool {
+    sizes.iter().any(|(ty, size)| {
+      *size > 0.0
+        && *size >= cache.min_size.get(ty).copied().unwrap_or_default()
+        && *size * chunks as f64
+          >= cache
+            .min_size_reduction
+            .get(ty)
+            .copied()
+            .unwrap_or_default()
+    })
+  }
+
+  /// Choose which dimension to delete without materializing either alternative.
+  /// The caller has found an overlap; preserve each source type's subtraction order.
+  fn prefer_module_removal(
+    &self,
+    affected: impl Iterator<Item = ModuleIdentifier>,
+    remaining_chunks: usize,
+    cache: &CacheGroup,
+    module_sizes: &ModuleSizes,
+  ) -> bool {
+    let mut remaining_sizes: SmallVec<[(SourceType, f64); 2]> =
+      self.sizes.iter().map(|(ty, size)| (*ty, *size)).collect();
+    for module in affected {
+      let sizes = &module_sizes[&module];
+      for (ty, remaining) in &mut remaining_sizes {
+        *remaining = (*remaining - sizes.get(ty).copied().unwrap_or_default()).max(0.0);
       }
+    }
+    let reduction = |ty, size: f64, chunks: usize| {
+      if size >= cache.min_size.get(ty).copied().unwrap_or_default()
+        && size * chunks as f64
+          >= cache
+            .min_size_reduction
+            .get(ty)
+            .copied()
+            .unwrap_or_default()
+      {
+        size * chunks.saturating_sub(1) as f64
+      } else {
+        0.0
+      }
+    };
+    let mut keep_chunks = 0.0;
+    let mut keep_modules = 0.0;
+    for ((ty, size), (_, remaining)) in self.sizes.iter().zip(remaining_sizes) {
+      keep_chunks += reduction(ty, remaining, self.chunks.len());
+      keep_modules += reduction(ty, *size, remaining_chunks);
+    }
+    keep_chunks > keep_modules
+  }
+
+  /// Subtract committed placements from this candidate in the existing cleanup
+  /// traversal. Keep one remaining rectangle; never fork or rebuild a candidate.
+  pub fn update_candidate(
+    &mut self,
+    placed: &ModuleChunkMap,
+    cache: &CacheGroup,
+    module_sizes: &ModuleSizes,
+    scratch: &mut Vec<ModuleIdentifier>,
+  ) -> CandidateUpdate {
+    let minimum = (cache.min_chunks as usize).max(1);
+    if let ModuleGroupChunks::ByModule(sources) = &mut self.module_chunks {
+      let mut changed = false;
+      sources.retain(|module, chunks| {
+        let Some(removed) = placed.get(module) else {
+          return true;
+        };
+        let before = chunks.len();
+        chunks.retain(|chunk| !removed.contains(chunk));
+        changed |= chunks.len() != before;
+        if chunks.len() < minimum {
+          self.modules.remove(module);
+          self.removed.push(*module);
+          self.candidate_flags |= Self::SIZE_REDUCTION_STALE;
+          false
+        } else {
+          true
+        }
+      });
+      if !changed {
+        return CandidateUpdate::Unchanged;
+      }
+      if self.modules.is_empty() {
+        return CandidateUpdate::Discard;
+      }
+      // A changed named group must not introduce consumers of a module that
+      // was already extracted elsewhere. Narrow its existing support in place.
+      let before = self.chunks.len();
+      self
+        .chunks
+        .retain(|chunk| sources.values().all(|chunks| chunks.contains(chunk)));
+      for chunks in sources.values_mut() {
+        chunks.retain(|chunk| self.chunks.contains(chunk));
+      }
+      self.mark_size_reduction_stale();
+      self.mark_placement_changed();
+      if self.chunks.len() != before {
+        self.chunk_mask = chunk_mask(self.chunks.iter());
+      }
+      return CandidateUpdate::Updated;
+    }
+    let mut changed = false;
+    let mut chunks_changed = false;
+    match placed {
+      ModuleChunkMap::Shared { modules, chunks } => {
+        let shrink_chunks = if self.chunks.len() <= minimum {
+          // Any overlap invalidates the chunk remainder. Keep the original
+          // first-hit check and module-deletion path without counting chunks.
+          if self.chunks.is_disjoint(chunks) {
+            return CandidateUpdate::Unchanged;
+          }
+          if self.modules.is_subset(modules) {
+            return CandidateUpdate::Discard;
+          }
+          false
+        } else {
+          // Finish deferred size bookkeeping before borrowing both iterators.
+          self.get_sizes(module_sizes);
+          let mut overlap = self.chunks.intersection(chunks);
+          if overlap.next().is_none() {
+            return CandidateUpdate::Unchanged;
+          }
+          let mut affected = self.modules.intersection(modules).copied();
+          let Some(first) = affected.next() else {
+            return CandidateUpdate::Unchanged;
+          };
+          // Count only candidates that share a module. Both first-hit checks
+          // continue their existing iterators instead of starting another scan.
+          let remaining = self.chunks.len() - 1 - overlap.count();
+          if remaining >= minimum && Self::has_recoverable_size(&self.sizes, cache, remaining) {
+            !self.prefer_module_removal(
+              std::iter::once(first).chain(affected),
+              remaining,
+              cache,
+              module_sizes,
+            )
+          } else {
+            if self.modules.is_subset(modules) {
+              return CandidateUpdate::Discard;
+            }
+            false
+          }
+        };
+        if shrink_chunks {
+          self.chunks.retain(|chunk| !chunks.contains(chunk));
+          self.mark_placement_changed();
+          changed = true;
+          chunks_changed = true;
+        } else {
+          // The original module deletion is the viable or more beneficial update.
+          let before = self.modules.len();
+          self.remove_shared_modules(modules);
+          changed = self.modules.len() != before;
+        }
+      }
+      ModuleChunkMap::ByModule(placed) => {
+        scratch.extend(
+          placed
+            .keys()
+            .filter(|module| self.modules.contains(module))
+            .copied(),
+        );
+        scratch.sort_unstable_by_key(|module| (module.precomputed_hash(), *module));
+        for module in scratch.iter().copied() {
+          let removed = &placed[&module];
+          let overlap = self.chunks.intersection(removed).count();
+          if overlap == 0 {
+            continue;
+          }
+          changed = true;
+          let remaining = self.chunks.len() - overlap;
+          if self.can_recover(cache, module_sizes, remaining)
+            && !self.prefer_module_removal(std::iter::once(module), remaining, cache, module_sizes)
+          {
+            self.chunks.retain(|chunk| !removed.contains(chunk));
+            self.mark_placement_changed();
+            chunks_changed = true;
+          } else {
+            self.remove_module(module);
+          }
+        }
+      }
+    }
+    if changed {
+      if self.modules.is_empty() {
+        return CandidateUpdate::Discard;
+      }
+      // Pending candidates have not selected a reused destination, so their
+      // shared per-module support is exactly the updated candidate support.
+      self.module_chunks = ModuleGroupChunks::Shared(None);
+      if chunks_changed {
+        self.chunk_mask = chunk_mask(self.chunks.iter());
+      }
+      CandidateUpdate::Updated
+    } else {
+      CandidateUpdate::Unchanged
     }
   }
 
@@ -371,11 +629,26 @@ impl ModuleGroup {
     &cache_groups[self.cache_group_index as usize]
   }
 
-  pub fn get_total_size(&self) -> f64 {
-    if self.pending_initial_sizes || !self.removed.is_empty() {
-      unreachable!("should update sizes before get total size");
+  pub fn get_size_reduction(&mut self, module_sizes: &ModuleSizes) -> f64 {
+    let ModuleGroupChunks::ByModule(module_chunks) = &self.module_chunks else {
+      if self.pending_initial_sizes || !self.removed.is_empty() {
+        unreachable!("should update sizes before get size reduction");
+      }
+      return self.size_reduction * self.chunks.len().saturating_sub(1) as f64;
+    };
+    if self.candidate_flags & Self::SIZE_REDUCTION_STALE != 0 {
+      self.size_reduction =
+        get_named_group_size_reduction(&self.modules, module_chunks, module_sizes);
+      self.candidate_flags &= !Self::SIZE_REDUCTION_STALE;
+    } else {
+      // Every mutation of a named group's modules or selected chunks must mark the cache stale.
+      debug_assert_eq!(
+        self.size_reduction,
+        get_named_group_size_reduction(&self.modules, module_chunks, module_sizes),
+        "named size reduction cache is stale; a mutation path forgot to invalidate it",
+      );
     }
-    self.total_size
+    self.size_reduction
   }
 
   pub fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> &SplitChunkSizes {
@@ -386,6 +659,7 @@ impl ModuleGroup {
       sizes: &mut self.sizes,
       cached: None,
     };
+    let mut total_size = self.size_reduction;
     if self.pending_initial_sizes {
       // The comparison snapshot is captured before any module is removed and
       // before the first size comparison. It also supplies the initial size
@@ -396,32 +670,58 @@ impl ModuleGroup {
         for (ty, s) in module_sizes.iter() {
           let size = sizes.get(*ty);
           *size += s;
-          self.total_size += s;
+          total_size += s;
         }
       }
       self.pending_initial_sizes = false;
     }
     if !self.removed.is_empty() {
-      let removed = std::mem::take(&mut self.removed);
-      for module in removed {
+      for module in self.removed.drain(..) {
         let module_sizes = module_sizes.get(&module).expect("should have module size");
         for (ty, s) in module_sizes.iter() {
           let size = sizes.get(*ty);
           *size -= s;
           *size = size.max(0.0);
-          self.total_size -= s;
+          total_size -= s;
         }
       }
     }
 
     sizes.finish();
+    // A named group keeps its own size reduction in the slot instead.
+    if self.uses_shared_module_chunks() {
+      self.size_reduction = total_size;
+    }
     &self.sizes
   }
+}
+
+/// Each module of a named group saves its size once for every selected chunk beyond the first.
+fn get_named_group_size_reduction(
+  modules: &IdentifierSet,
+  module_chunks: &IdentifierMap<FxHashSet<ChunkUkey>>,
+  module_sizes: &ModuleSizes,
+) -> f64 {
+  modules
+    .iter()
+    .map(|module| {
+      let chunks = module_chunks
+        .get(module)
+        .expect("should have selected module chunks");
+      let size: f64 = module_sizes
+        .get(module)
+        .expect("should have module size")
+        .values()
+        .sum();
+      size * chunks.len().saturating_sub(1) as f64
+    })
+    .sum()
 }
 
 pub(crate) fn compare_entries(
   (a_key, a): (&ModuleGroupKey, &mut ModuleGroup),
   (b_key, b): (&ModuleGroupKey, &mut ModuleGroup),
+  module_sizes: &ModuleSizes,
 ) -> f64 {
   // 1. by priority
   // no need to compare priority anymore because we already pick all cache groups with same priority
@@ -438,8 +738,8 @@ pub(crate) fn compare_entries(
   }
 
   // 3. by size reduction
-  let a_size_reduce = a.get_total_size() * (a_chunks_len - 1) as f64;
-  let b_size_reduce = b.get_total_size() * (b_chunks_len - 1) as f64;
+  let a_size_reduce = a.get_size_reduction(module_sizes);
+  let b_size_reduce = b.get_size_reduction(module_sizes);
   let diff_size_reduce = a_size_reduce - b_size_reduce;
   if diff_size_reduce != 0f64 {
     return diff_size_reduce;

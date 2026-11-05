@@ -1016,6 +1016,7 @@ struct InProperty<T: ReservedValues> {
   reserved: T,
   rename: Option<Range>,
   balanced_len: usize,
+  important_pending: bool,
 }
 
 impl<T: ReservedValues> InProperty<T> {
@@ -1024,6 +1025,7 @@ impl<T: ReservedValues> InProperty<T> {
       reserved,
       rename: None,
       balanced_len,
+      important_pending: false,
     }
   }
 
@@ -1641,6 +1643,20 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         continue;
       }
       let is_trivia = matches!(token.kind, TokenKind::Comment | TokenKind::BadComment);
+      // The `!important` suffix isn't an animation-name candidate.
+      let is_animation_important = if token.kind.is_trivia() {
+        false
+      } else if let Some(animation) = &mut self.in_animation_property {
+        std::mem::take(&mut animation.important_pending) && token.kind == TokenKind::Ident && {
+          let mut normalized = [0; MAX_CSS_KEYWORD_LEN];
+          decode_css_keyword(
+            stream.slice_trusted(token.range.start, token.range.end),
+            &mut normalized,
+          ) == Some("important")
+        }
+      } else {
+        false
+      };
 
       if self.scan_context == ScanContext::TopLevel
         && self.is_next_rule_prelude
@@ -1705,7 +1721,13 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
           if self.scan_context == ScanContext::DeclarationName
             && self.property_kind != PropertyKind::Composes => {}
         TokenKind::Ident => {
-          result = self.handle_ident(stream, token.range.start, token.range.end, token.flags);
+          result = self.handle_ident(
+            stream,
+            token.range.start,
+            token.range.end,
+            token.flags,
+            is_animation_important,
+          );
         }
         TokenKind::AtKeyword
           if matches!(
@@ -1724,6 +1746,15 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
             token.range.end
           };
           result = self.handle_id(stream.lexer_mut(), token.range.start, id_end, token.flags);
+        }
+        TokenKind::Delim
+          if self.in_animation_property.is_some()
+            && self.balanced.is_empty()
+            && stream.byte_at(token.range.start) == Some(b'!') =>
+        {
+          if let Some(animation) = &mut self.in_animation_property {
+            animation.important_pending = true;
+          }
         }
         TokenKind::Delim
           if (!has_mode || self.scan_context != ScanContext::Selector)
@@ -4081,8 +4112,12 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     start: Pos,
     end: Pos,
     flags: TokenFlags,
+    is_animation_important: bool,
   ) -> Option<()> {
     let ident = stream.slice_trusted(start, end);
+    if is_animation_important {
+      return Some(());
+    }
     // ICSS references can also occur in selectors and at-rule preludes,
     // where the scope is not necessarily a declaration block.
     if matches!(self.scope, Scope::TopLevel | Scope::InBlock)

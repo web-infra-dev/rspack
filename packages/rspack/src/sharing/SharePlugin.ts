@@ -11,7 +11,13 @@ export function validateShareScope(
   enhanced: boolean,
   pluginName: string,
 ): void {
-  if (Array.isArray(shareScope) && shareScope.length > 1 && !enhanced) {
+  if (!Array.isArray(shareScope)) return;
+  if (shareScope.length === 0) {
+    throw new Error(
+      `[${pluginName}] shareScope array must contain at least one entry`,
+    );
+  }
+  if (shareScope.length > 1 && !enhanced) {
     throw new Error(
       `[${pluginName}] shareScope as an array with multiple entries requires enhanced=true, got: ${JSON.stringify(shareScope)}`,
     );

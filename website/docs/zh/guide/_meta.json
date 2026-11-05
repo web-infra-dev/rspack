@@ -16,6 +16,11 @@
   },
   {
     "type": "dir-section-header",
+    "name": "builtin-loaders",
+    "label": "内置 Loader"
+  },
+  {
+    "type": "dir-section-header",
     "name": "languages",
     "label": "语言"
   },

@@ -416,7 +416,7 @@ For optimal performance and consistency, we recommend the following migrations w
 
 ### babel-loader
 
-Migrate [babel-loader](https://github.com/babel/babel-loader) to [builtin:swc-loader](/guide/features/builtin-swc-loader) to use Rspack's built-in SWC transform for better performance.
+Migrate [babel-loader](https://github.com/babel/babel-loader) to [builtin:swc-loader](/guide/builtin-loaders/swc-loader) to use Rspack's built-in SWC transform for better performance.
 
 If you need custom transformation logic using Babel plugins, you can retain `babel-loader`, but it is recommended to limit its use to fewer files to prevent significant performance degradation.
 
@@ -483,7 +483,7 @@ module.exports = {
 
 ### swc-loader
 
-When migrating external [swc-loader](https://swc.rs/docs/usage/swc-loader) to [builtin:swc-loader](/guide/features/builtin-swc-loader), only the loader name changes to `builtin:swc-loader`; all the options remain exactly the same as your original `swc-loader` config.
+When migrating external [swc-loader](https://swc.rs/docs/usage/swc-loader) to [builtin:swc-loader](/guide/builtin-loaders/swc-loader), only the loader name changes to `builtin:swc-loader`; all the options remain exactly the same as your original `swc-loader` config.
 
 ```js title="rspack.config.js"
 module.exports = {

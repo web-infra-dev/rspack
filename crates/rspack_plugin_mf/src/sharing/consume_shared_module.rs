@@ -7,9 +7,9 @@ use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
   ExportsType, FactoryMetaStore, FreezeLock, LibIdentOptions, Module, ModuleCodeGenerationContext,
-  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
-  runtime_mode::RuntimeMode,
+  ModuleGraph, ModuleIdentifier, ModuleType, NeedBuildContext, RuntimeGlobals, RuntimeSpec,
+  SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  rspack_sources::BoxSource, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
@@ -133,7 +133,7 @@ impl DependenciesBlock for ConsumeSharedModule {
 impl Module for ConsumeSharedModule {
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>) -> f64 {
     42.0
   }
 
@@ -193,6 +193,10 @@ impl Module for ConsumeSharedModule {
       exports_info_artifact,
       strict,
     )
+  }
+
+  async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+    Ok(self.build_info.frozen().is_none())
   }
 
   async fn build(

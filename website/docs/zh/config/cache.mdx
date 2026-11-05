@@ -13,6 +13,10 @@ import PropertyType from '@components/PropertyType';
 
 Rspack 支持两种启用状态的 Cache 存储模式：进程内的 Memory Cache，以及基于文件系统的 Persistent Cache。两者都用于存储细粒度计算结果，并且与 [`incremental`](/config/incremental) 相互独立。
 
+:::tip
+我们正在开发一套更快更稳定的缓存实现，未来将替换现有实现。如需提前尝试，可以启用 [`experiments.newCache`](/config/experiments#experimentsnewcache)。
+:::
+
 - **类型：**
 
 ```ts

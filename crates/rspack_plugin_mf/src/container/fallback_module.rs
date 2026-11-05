@@ -7,8 +7,9 @@ use rspack_core::{
   BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph, ChunkUkey,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
   FactoryMetaStore, FreezeLock, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
-  RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, NeedBuildContext,
+  RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config,
+  module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
 };
@@ -85,7 +86,7 @@ impl DependenciesBlock for FallbackModule {
 impl Module for FallbackModule {
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>) -> f64 {
     self.requests.len() as f64 * 5.0 + 42.0
   }
 
@@ -117,6 +118,10 @@ impl Module for FallbackModule {
         .get_number_of_entry_modules(chunk)
         > 0,
     )
+  }
+
+  async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+    Ok(self.build_info.frozen().is_none())
   }
 
   async fn build(

@@ -2,7 +2,7 @@
 description: '安装仓库依赖，从源码构建 Rspack 的 Rust crate、Node.js 包和 WebAssembly 产物。'
 ---
 
-# Building
+# 构建指南 \{#building}
 
 请查看 [准备工作](./prerequisites) 安装 Rust 和 Node.js 环境。
 

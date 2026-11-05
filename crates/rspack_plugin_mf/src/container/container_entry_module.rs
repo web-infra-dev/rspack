@@ -9,7 +9,7 @@ use rspack_core::{
   CodeGenerationRuntimeRequirementsWrite, Compilation, Context, DependenciesBlock,
   DependenciesBlockData, Dependency, DependencyType, ExportsArgument, FactoryMetaStore, FreezeLock,
   GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleCodeTemplate,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, NeedBuildContext, RuntimeGlobals,
   RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
   impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
@@ -148,7 +148,7 @@ impl DependenciesBlock for ContainerEntryModule {
 impl Module for ContainerEntryModule {
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>) -> f64 {
     42.0
   }
 
@@ -178,6 +178,10 @@ impl Module for ContainerEntryModule {
 
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<'_, str>> {
     Some(self.lib_ident.as_str().into())
+  }
+
+  async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+    Ok(self.build_meta.frozen().is_none())
   }
 
   async fn build(

@@ -14,7 +14,7 @@ use rspack_core::{
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport,
   ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
   TemplateReplaceSource, UsedByExports, UsedName, create_exports_object_referenced,
-  property_access, to_normal_comment,
+  property_access, should_reference_call_receiver, to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHasher};
@@ -289,8 +289,6 @@ impl Dependency for ESMImportSpecifierDependency {
       return self.get_referenced_exports_in_destructuring(None);
     }
 
-    let mut namespace_object_as_context = self.namespace_object_as_context;
-
     let module = module_graph
       .get_module_by_dependency_id(&self.id)
       .expect("should have module");
@@ -307,16 +305,6 @@ impl Dependency for ESMImportSpecifierDependency {
       exports_info_artifact,
       strict,
     );
-
-    // Force enable namespace object as context for json module, it's a common case:
-    // import json from "./array.json"; json.map(d => d * 2);
-    if matches!(
-      exports_type,
-      ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
-    ) && module.build_info().json_data.is_some()
-    {
-      namespace_object_as_context = true;
-    }
 
     if let Some(id) = ids.first()
       && id == "default"
@@ -335,12 +323,21 @@ impl Dependency for ESMImportSpecifierDependency {
       }
     }
 
-    if namespace_object_as_context && self.call {
-      if ids.len() == 1 {
-        return create_exports_object_referenced();
-      }
+    if self.call
+      && !self.direct_import
+      && (self.namespace_object_as_context
+        || should_reference_call_receiver(
+          ids,
+          exports_type,
+          exports_info_artifact,
+          exports_info_artifact.get_exports_info_data(&module.identifier()),
+        ))
+    {
       // remove last one
       ids = &ids[..ids.len().saturating_sub(1)];
+      if ids.is_empty() {
+        return create_exports_object_referenced();
+      }
     }
     self.get_referenced_exports_in_destructuring(Some(ids))
   }
@@ -512,7 +509,7 @@ impl ESMImportSpecifierDependencyTemplate {
       runtime_template.export_from_import(
         compilation,
         init_fragments,
-        module.identifier(),
+        *module,
         *runtime,
         true,
         &dep.request,
@@ -691,7 +688,6 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
       source.replace(dep.range.start, dep.range.end, export_expr, None);
     }
 
-    let module_graph = code_generatable_context.compilation.get_module_graph();
     if let Some(referenced_properties) = &dep.referenced_properties_in_destructuring {
       let mut prefixed_ids = ids.to_vec();
 
@@ -700,17 +696,14 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
       };
 
       if ids.first().is_some_and(|id| id == "default") {
-        let self_module = module_graph
-          .get_parent_module(&dep.id)
-          .and_then(|id| module_graph.module_by_identifier(id))
-          .expect("should have parent module");
         let exports_type = module.get_exports_type(
           module_graph,
-          &code_generatable_context
-            .compilation
-            .module_graph_cache_artifact,
-          &code_generatable_context.compilation.exports_info_artifact,
-          self_module.build_meta().strict_esm_module(),
+          &compilation.module_graph_cache_artifact,
+          &compilation.exports_info_artifact,
+          code_generatable_context
+            .module
+            .build_meta()
+            .strict_esm_module(),
         );
         if matches!(
           exports_type,
@@ -721,19 +714,15 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         }
       }
 
+      let exports_info = compilation
+        .exports_info_artifact
+        .get_exports_info_data(&module.identifier());
       referenced_properties.traverse_on_enter(&mut |stack| {
         let prop = stack.last().expect("should have last");
         let mut concated_ids = prefixed_ids.clone();
         concated_ids.extend(stack.iter().map(|p| p.id.clone()));
-        let Some(new_name) = code_generatable_context
-          .compilation
-          .exports_info_artifact
-          .get_exports_info_data(&module.identifier())
-          .get_used_name(
-            &code_generatable_context.compilation.exports_info_artifact,
-            code_generatable_context.runtime,
-            &concated_ids,
-          )
+        let Some(new_name) = exports_info
+          .get_used_name(&compilation.exports_info_artifact, runtime, &concated_ids)
           .and_then(|used| match used {
             UsedName::Normal(names) => names.last().cloned(),
             UsedName::Inlined(inlined) => {

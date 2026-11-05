@@ -35,10 +35,7 @@ pub fn cutout_star_re_export_externals(
 
     for dep in module.get_dependencies() {
       let dep_id = dep.id();
-      let Some(module) = mg
-        .module_identifier_by_dependency_id(dep_id)
-        .and_then(|module_id| mg.module_by_identifier(module_id))
-      else {
+      let Some(module) = mg.get_module_by_dependency_id(dep_id) else {
         continue;
       };
 
@@ -257,9 +254,7 @@ impl DependencyTemplate for ImportDependencyTemplate {
       .downcast_ref::<ImportDependency>()
       .expect("should be import dependency");
     let mg = code_generatable_context.compilation.get_module_graph();
-    let ref_module = mg
-      .module_identifier_by_dependency_id(&dep.id)
-      .and_then(|module_id| mg.module_by_identifier(module_id));
+    let ref_module = mg.get_module_by_dependency_id(&dep.id);
     if let Some(external) = ref_module.and_then(|m| m.as_external_module()) {
       render_dyn_import_external_module(dep, external, source);
       return;

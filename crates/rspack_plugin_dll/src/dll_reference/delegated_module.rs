@@ -86,7 +86,7 @@ impl Module for DelegatedModule {
     .into()
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>) -> f64 {
     42.0
   }
 
@@ -188,7 +188,7 @@ impl Module for DelegatedModule {
   }
 
   async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
-    Ok(false)
+    Ok(self.build_meta.frozen().is_none())
   }
 
   async fn get_runtime_hash(

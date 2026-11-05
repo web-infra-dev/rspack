@@ -12,17 +12,13 @@ impl PassExt for CreateModuleAssetsPass {
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
-    let plugin_driver = compilation.plugin_driver.clone();
-    create_module_assets(compilation, plugin_driver).await;
+    create_module_assets(compilation).await;
     Ok(())
   }
 }
 
 #[instrument("Compilation:create_module_assets",target=TRACING_BENCH_TARGET, skip_all)]
-pub async fn create_module_assets(
-  compilation: &mut Compilation,
-  _plugin_driver: SharedPluginDriver,
-) {
+pub async fn create_module_assets(compilation: &mut Compilation) {
   let mut chunk_asset_map = vec![];
   let mut module_assets = vec![];
   let mg = compilation.get_module_graph();

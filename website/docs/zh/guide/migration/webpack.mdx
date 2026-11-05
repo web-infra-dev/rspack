@@ -412,7 +412,7 @@ Rspack 与绝大多数 webpack loader 保持兼容，因此通常可以直接复
 
 ### babel-loader
 
-将 [babel-loader](https://github.com/babel/babel-loader) 迁移为 [builtin:swc-loader](/guide/features/builtin-swc-loader)，以使用 Rspack 内置的 SWC 转换能力并获得更高性能。
+将 [babel-loader](https://github.com/babel/babel-loader) 迁移为 [builtin:swc-loader](/guide/builtin-loaders/swc-loader)，以使用 Rspack 内置的 SWC 转换能力并获得更高性能。
 
 如果你需要通过 babel 插件进行自定义转换逻辑，可以保留 `babel-loader`，但不建议对大量文件使用 `babel-loader`，因为这会导致显著的性能下降。
 
@@ -479,7 +479,7 @@ module.exports = {
 
 ### swc-loader
 
-将外置 [swc-loader](https://swc.rs/docs/usage/swc-loader) 迁移为 [builtin:swc-loader](/guide/features/builtin-swc-loader) 时，除了 loader 名称改为 `builtin:swc-loader` 外，其余选项与原 `swc-loader` 完全一致。
+将外置 [swc-loader](https://swc.rs/docs/usage/swc-loader) 迁移为 [builtin:swc-loader](/guide/builtin-loaders/swc-loader) 时，除了 loader 名称改为 `builtin:swc-loader` 外，其余选项与原 `swc-loader` 完全一致。
 
 ```js title="rspack.config.js"
 module.exports = {

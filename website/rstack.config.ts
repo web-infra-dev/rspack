@@ -51,6 +51,10 @@ define.doc({
     pluginClientRedirects({
       redirects: [
         {
+          from: '^(/zh)?/guide/features/builtin-(swc|lightningcss)-loader/?$',
+          to: '$1/guide/builtin-loaders/$2-loader',
+        },
+        {
           from: '^(/zh)?/guide/features/rstest/?$',
           to: '$1/guide/integrations/rstest',
         },

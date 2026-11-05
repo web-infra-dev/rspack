@@ -287,9 +287,10 @@ pub(crate) struct PathManager {
   file_times: InternedPathDashMap<FileTime>,
   /// The mtime the build already knows for each registered file or missing
   /// path — through a delivered event, or because it was on disk when it was
-  /// registered. Only this deduplicates a later event carrying the same mtime;
+  /// registered. `None` records a reported removal, distinct from a path not
+  /// observed yet. Only this deduplicates a later event carrying the same mtime;
   /// `file_times` is time info only and anything may write it.
-  baselines: InternedPathDashMap<SystemTime>,
+  baselines: InternedPathDashMap<Option<SystemTime>>,
   /// watchpack's per-`DirectoryWatcher` `lastWatchEvent`: when an event last
   /// reached each registered or discovered context (its own or a
   /// descendant's), in epoch millis. Like watchpack it starts at 0 (absent)
@@ -371,8 +372,9 @@ impl PathManager {
     self.missing.reset();
   }
 
-  /// Record an initial baseline mtime for `path`, but only if no baseline
-  /// already exists. This is the "incremental" form used by
+  /// Record an initial baseline mtime for `path`, but only if no present
+  /// baseline already exists. A reported absence (`None`) counts as no
+  /// baseline because the file is back. This is the "incremental" form used by
   /// `FsWatcher::wait_for_event`: on the first `watch()` call we record
   /// mtimes for all newly-registered files; on subsequent `watch()` calls
   /// we MUST skip files that already have a baseline, otherwise we risk
@@ -382,7 +384,11 @@ impl PathManager {
   /// baseline) to advance the recorded mtime in response to real events.
   pub fn set_file_time_if_absent(&self, path: InternedPath, mtime: SystemTime) {
     self.record(&path, || {
-      self.baselines.entry(path.clone()).or_insert(mtime);
+      self
+        .baselines
+        .entry(path.clone())
+        .or_default()
+        .get_or_insert(mtime);
       self
         .file_times
         .entry(path.clone())
@@ -393,15 +399,32 @@ impl PathManager {
   /// The scanner reported `path` as changed: the build will know this mtime,
   /// so it becomes the deduplication baseline as well as the time info.
   pub fn set_reported_file_time(&self, path: &InternedPath, mtime: SystemTime) {
-    self.baselines.insert(path.clone(), mtime);
+    self.baselines.insert(path.clone(), Some(mtime));
     self.set_file_time(path, mtime, true, true);
   }
 
-  /// Drop the record for a path that is no longer being watched (or no longer
-  /// on disk), so the map does not grow unboundedly across watch cycles.
+  /// Whether a removal was already reported for this path. The scanner must
+  /// still report an absence with no prior record.
+  pub fn is_known_absent(&self, path: &InternedPath) -> bool {
+    self.baselines.get(path).is_some_and(|time| time.is_none())
+  }
+
+  /// Record a removal the caller is about to deliver. The scanner relies on
+  /// this marker to mean the build was told about the absence.
+  pub fn set_reported_file_removal(&self, path: &InternedPath) {
+    self.baselines.insert(path.clone(), None);
+    if (!self.files.all.contains(path) && !self.missing.all.contains(path))
+      || std::fs::symlink_metadata(path).is_ok()
+    {
+      self.baselines.remove_if(path, |_, time| time.is_none());
+    }
+  }
+
+  /// Drop a removed path's time info and present baseline. A reported absence
+  /// survives later removals until the path reappears or is unregistered.
   pub fn remove_file_time(&self, path: &InternedPath) {
     self.file_times.remove(path);
-    self.baselines.remove(path);
+    self.baselines.remove_if(path, |_, time| time.is_some());
     self.context_files.remove(path);
     if self.context_directories.remove(path).is_some() {
       self.last_watch_events.remove(path);
@@ -419,7 +442,7 @@ impl PathManager {
         pending.extend(children);
       }
       self.file_times.remove(&path);
-      self.baselines.remove(&path);
+      self.baselines.remove_if(&path, |_, time| time.is_some());
       self.context_files.remove(&path);
       self.context_directories.remove(&path);
       if !self.directories.all.contains(&path) {
@@ -785,6 +808,9 @@ impl PathManager {
     initial: bool,
     ignore_when_equal: bool,
   ) -> bool {
+    // Seeing the file again clears a reported absence. A time-info-only write
+    // must not seed a present baseline and suppress the file's own event.
+    self.baselines.remove_if(path, |_, time| time.is_none());
     if ignore_when_equal
       && self
         .file_times
@@ -830,7 +856,7 @@ impl PathManager {
     let Some(current_mtime) = disk_mtime(path) else {
       return true;
     };
-    if self.baselines.insert(path.clone(), current_mtime) == Some(current_mtime) {
+    if self.baselines.insert(path.clone(), Some(current_mtime)) == Some(Some(current_mtime)) {
       return false;
     }
     self.set_file_time(path, current_mtime, false, false);

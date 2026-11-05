@@ -54,34 +54,43 @@ pub struct ComponentInfo {
   pub action_imports: Vec<(String, Vec<ActionIdNamePair>)>,
 }
 
-pub fn collect_component_info_from_entry_dependency(
+/// Collects component info from every dependency of an entry.
+///
+/// An entry can have more than one module, e.g. `entry: { main: ['./polyfill.js', './entry.js'] }`
+/// or modules added by Rsbuild's `source.preEntry`. Client components, server actions and CSS
+/// reachable from any of them belong to the entry, so all of them are traversed with shared
+/// visited sets.
+pub fn collect_component_info_from_entry_dependencies<'a>(
   compilation: &Compilation,
   runtime: &RuntimeSpec,
-  dependency_id: &DependencyId,
+  dependency_ids: impl IntoIterator<Item = &'a DependencyId>,
 ) -> ComponentInfo {
   let module_graph = compilation.get_module_graph();
-  let Some(resolved_module) = module_graph
-    .get_resolved_module(dependency_id)
-    .and_then(|identifier| compilation.module_by_identifier(identifier))
-  else {
-    return ComponentInfo::default();
-  };
 
   let mut component_info = ComponentInfo::default();
   let mut visited_client_modules = IdentifierSet::default();
   let mut visited_server_components = VisitedServerComponents::default();
 
-  traverse_module(
-    compilation,
-    runtime,
-    resolved_module.as_ref(),
-    &[],
-    None,
-    false,
-    &mut visited_client_modules,
-    &mut visited_server_components,
-    &mut component_info,
-  );
+  for dependency_id in dependency_ids {
+    let Some(resolved_module) = module_graph
+      .get_resolved_module(dependency_id)
+      .and_then(|identifier| compilation.module_by_identifier(identifier))
+    else {
+      continue;
+    };
+
+    traverse_module(
+      compilation,
+      runtime,
+      resolved_module.as_ref(),
+      &[],
+      None,
+      false,
+      &mut visited_client_modules,
+      &mut visited_server_components,
+      &mut component_info,
+    );
+  }
 
   component_info
 }

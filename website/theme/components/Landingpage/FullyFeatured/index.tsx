@@ -98,7 +98,7 @@ const FullyFeatured = memo(() => {
       icon: swc,
       title: 'SWC',
       description: t('featureSwc'),
-      link: tUrl('/guide/features/builtin-swc-loader'),
+      link: tUrl('/guide/builtin-loaders/swc-loader'),
     },
     {
       icon: lightningcss,

@@ -95,7 +95,7 @@ export default {
   - 如需关闭该行为，可通过 [optimization.inlineExports](/config/optimization#optimizationinlineexports) 来控制
 - **TypeScript enum 内联优化**：该优化已正式稳定。
   - 原有的 [experiments.inlineEnum](/config/optimization#optimizationinlineexports) 选项已废弃
-  - 使用 [collectTypeScriptInfo.exportedEnum](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) 控制是否收集导出的 `enum` 信息
+  - 使用 [collectTypeScriptInfo.exportedEnum](/guide/builtin-loaders/swc-loader#collecttypescriptinfoexportedenum) 控制是否收集导出的 `enum` 信息
   - 使用 [optimization.inlineExports](/config/optimization#optimizationinlineexports) 来控制是否内联 `enum`
 - **类型重导出检查**：该优化已正式稳定。
   - 原有的 [experiments.typeReexportsPresence](/config/module-parser#javascripttypereexportspresence) 选项已废弃
@@ -305,7 +305,7 @@ export default {
 };
 ```
 
-- 调整 `builtin:swc-loader` 中的 [collectTypeScriptInfo](/guide/features/builtin-swc-loader#collecttypescriptinfo) 选项位置，移除 `rspackExperiments` 层级：
+- 调整 `builtin:swc-loader` 中的 [collectTypeScriptInfo](/guide/builtin-loaders/swc-loader#collecttypescriptinfo) 选项位置，移除 `rspackExperiments` 层级：
 
 ```js title="rspack.config.mjs"
 export default {

@@ -330,7 +330,7 @@ mod tests {
         source_map: SourceMap::new(
           ";AACA",
           vec!["index.js".into()],
-          vec!["// DELETE IT\nconsole.log(1)".into()],
+          vec![Some("// DELETE IT\nconsole.log(1)".into())],
           vec![],
         ),
       })

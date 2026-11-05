@@ -621,6 +621,10 @@ export default {
 };
 ```
 
+使用 SSR 时，服务端和浏览器构建应使用相同的 `localIdentName`，以生成一致的类名。可以使用上方示例中的 `[local]-[hash:base64:6]`。应避免使用 `[id]`，因为两次构建的模块 ID 可能不同。
+
+生成的哈希还取决于 CSS 文件相对于 [`context`](/config/context) 的路径、[`output.uniqueName`](/config/output#outputuniquename) 和下方的 `localIdentHash*` 选项。两端构建也需要保持这些值一致。
+
 ### ["css/auto"].localIdentHashDigest
 
 - **类型：** `string`

@@ -10,6 +10,7 @@ version.workspace = true
 
 [dependencies]
 derive_more        = { workspace = true, features = ["debug"] }
+fixedbitset        = { workspace = true }
 futures            = { workspace = true }
 hashbrown          = { workspace = true }
 itertools          = { workspace = true }

@@ -166,9 +166,6 @@ impl<'a> RawSplitChunksOptions<'a> {
 
     let overall_max_initial_size = create_sizes(raw_opts.max_initial_size).merge(&overall_max_size);
 
-    let overall_max_async_requests = raw_opts.max_async_requests.unwrap_or(f64::INFINITY);
-    let overall_max_initial_requests = raw_opts.max_initial_requests.unwrap_or(f64::INFINITY);
-
     let overall_automatic_name_delimiter = raw_opts
       .automatic_name_delimiter
       .unwrap_or(DEFAULT_DELIMITER.to_string());
@@ -277,16 +274,8 @@ impl<'a> RawSplitChunksOptions<'a> {
               .map(Filename::from)
               .or_else(|| overall_filename.clone()),
             reuse_existing_chunk: v.reuse_existing_chunk.unwrap_or(false),
-            max_async_requests: v.max_async_requests.unwrap_or(if enforce {
-              f64::INFINITY
-            } else {
-              overall_max_async_requests
-            }),
-            max_initial_requests: v.max_initial_requests.unwrap_or(if enforce {
-              f64::INFINITY
-            } else {
-              overall_max_initial_requests
-            }),
+            max_async_requests: v.max_async_requests.unwrap_or(f64::INFINITY),
+            max_initial_requests: v.max_initial_requests.unwrap_or(f64::INFINITY),
             max_async_size,
             max_initial_size,
             r#type,
@@ -376,26 +365,22 @@ fn create_module_layer_filter(
   raw: Either3<RspackRegex, JsString, ThreadsafeFunction<Option<String>, bool>>,
 ) -> rspack_plugin_split_chunks::ModuleLayerFilter {
   match raw {
-    Either3::A(regex) => Arc::new(move |layer| {
-      let regex = regex.clone();
-      Box::pin(async move { Ok(layer.map(|layer| regex.test(&layer)).unwrap_or_default()) })
-    }),
-    Either3::B(js_str) => {
-      let test = js_str.into_string();
-      Arc::new(move |layer| {
-        let test = test.clone();
-        Box::pin(async move {
-          Ok(if let Some(layer) = layer {
-            layer.starts_with(&test)
-          } else {
-            test.is_empty()
-          })
-        })
+    Either3::A(regex) => {
+      rspack_plugin_split_chunks::create_native_module_layer_filter(move |layer| {
+        layer.is_some_and(|layer| regex.test(layer))
       })
     }
-    Either3::C(f) => Arc::new(move |layer| {
-      let f = f.clone();
-      Box::pin(async move { f.call_with_sync(layer).await })
-    }),
+    Either3::B(js_str) => {
+      let test = js_str.into_string();
+      rspack_plugin_split_chunks::create_native_module_layer_filter(move |layer| {
+        layer.map_or_else(|| test.is_empty(), |layer| layer.starts_with(&test))
+      })
+    }
+    Either3::C(f) => Arc::new(
+      move |layer| -> futures::future::BoxFuture<'static, rspack_error::Result<bool>> {
+        let f = f.clone();
+        Box::pin(async move { f.call_with_sync(layer).await })
+      },
+    ),
   }
 }

@@ -87,7 +87,7 @@ export default {
 
 在 0.x 版本中，Rspack core 内置了部分 SWC 插件，用于支持 Emotion、Styled Components 和 Relay，这是因为 Rspack 早期尚未支持使用 SWC Wasm 插件，只能在 core 中集成它们。
 
-目前 Rspack 已支持通过 `builtin:swc-loader` 的 [experimental.plugins](/guide/features/builtin-swc-loader#jscexperimentalplugins) 来使用 SWC 插件，因此我们移除了 Rspack core 内置的插件，包括：
+目前 Rspack 已支持通过 `builtin:swc-loader` 的 [experimental.plugins](/guide/builtin-loaders/swc-loader#jscexperimentalplugins) 来使用 SWC 插件，因此我们移除了 Rspack core 内置的插件，包括：
 
 - [@swc/plugin-emotion](https://www.npmjs.com/package/@swc/plugin-emotion)
 - [@swc/plugin-relay](https://www.npmjs.com/package/@swc/plugin-relay)

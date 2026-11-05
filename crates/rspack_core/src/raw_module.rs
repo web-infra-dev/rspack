@@ -15,7 +15,7 @@ use crate::{
   BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder, Compilation,
   ConnectionState, Context, DependenciesBlock, DependenciesBlockData, FactoryMetaStore, FreezeLock,
   Module, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleType, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
+  ModuleType, NeedBuildContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
   impl_module_meta_info, module_declared_side_effect_free, module_update_hash,
 };
 
@@ -101,7 +101,7 @@ impl Module for RawModule {
     Cow::Borrowed(&self.readable_identifier)
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>) -> f64 {
     f64::max(1.0, self.source_str.len() as f64)
   }
 
@@ -152,6 +152,10 @@ impl Module for RawModule {
       return ConnectionState::Active(!side_effect_free);
     }
     ConnectionState::Active(true)
+  }
+
+  async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+    Ok(self.build_meta.frozen().is_none())
   }
 
   async fn build(

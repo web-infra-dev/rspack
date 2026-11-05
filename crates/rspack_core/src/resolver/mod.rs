@@ -84,7 +84,15 @@ impl Eq for Resource {}
 impl Resource {
   /// Get the full path with query and fragment attached.
   pub fn full_path(&self) -> String {
-    let mut buf = insert_zero_width_space_for_fragment(self.path.as_str()).into_owned();
+    let mut buf = String::with_capacity(
+      self
+        .path
+        .as_str()
+        .len()
+        .saturating_add(self.query.len())
+        .saturating_add(self.fragment.len()),
+    );
+    buf.push_str(&insert_zero_width_space_for_fragment(self.path.as_str()));
     buf.push_str(&insert_zero_width_space_for_fragment(&self.query));
     buf.push_str(&self.fragment);
     buf

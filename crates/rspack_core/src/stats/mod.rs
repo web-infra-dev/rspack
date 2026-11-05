@@ -14,7 +14,7 @@ use rayon::iter::{
   IntoParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelBridge,
   ParallelIterator,
 };
-use rspack_collections::{IdentifierMap, IdentifierSet};
+use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnostic, Display, Result, StringDisplayer};
 use rspack_hash::RspackHashDigest;
 use rustc_hash::{FxHashMap as HashMap, FxHasher};
@@ -28,11 +28,15 @@ use crate::{
   BoxRuntimeModule, BuildChunkGraphArtifact, BuildModuleGraphArtifact, Chunk, ChunkGraph,
   ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact, ChunkUkey, Compilation,
   CompilationAssets, CompilationLogging, CompilerOptions, ExportsInfoArtifact, LogType,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleRef,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, ModuleIdsArtifact, ModuleRef,
   OptimizationBailoutItem, ProvidedExports, RuntimeSpec, SourceType, StealCell, UsedExports,
   compilation::build_module_graph::{ExecutedRuntimeModule, ModuleExecutor},
+  new_cache::{CacheInfo, CompilerCache},
   rspack_sources::BoxSource,
 };
+
+type StatsIssuerPath<'a> = Arc<[(ModuleIdentifier, Cow<'a, str>, Option<ModuleId>)]>;
+type StatsIssuerCache<'a> = IdentifierDashMap<StatsIssuerPath<'a>>;
 
 const STATS_ARTIFACT_FALLBACK_EXPORTS_INFO: u8 = 1 << 0;
 const STATS_ARTIFACT_FALLBACK_MODULE_GRAPH_CACHE: u8 = 1 << 1;
@@ -70,6 +74,10 @@ impl<'compilation> StatsContext<'compilation> {
 
   fn hash(&self) -> Option<&'compilation RspackHashDigest> {
     self.0.hash.as_ref()
+  }
+
+  fn cache(&self) -> &'compilation CompilerCache {
+    &self.0.cache
   }
 
   fn exports_info_artifact(&self) -> &'compilation StealCell<ExportsInfoArtifact> {
@@ -192,6 +200,10 @@ impl<'compilation> Stats<'compilation> {
 
   pub fn hash(&self) -> Option<&'compilation RspackHashDigest> {
     self.context.hash()
+  }
+
+  pub fn cache(&self) -> &'compilation CompilerCache {
+    self.context.cache()
   }
 
   pub fn code_generated_modules(&self) -> &'compilation IdentifierSet {
@@ -492,6 +504,7 @@ impl Stats<'_> {
       concatenated_modules.extend(m.get_modules().iter().map(|inner_module| inner_module.id));
     }
 
+    let issuer_cache = StatsIssuerCache::default();
     let mut modules: Vec<StatsModule> = module_graph
       .modules()
       .map(|(_, module)| module)
@@ -503,6 +516,7 @@ impl Stats<'_> {
           exports_info_artifact,
           build_module_graph_artifact,
           module_ids_artifact,
+          &issuer_cache,
           module,
           false,
           concatenated_modules.contains(&module.identifier()),
@@ -527,6 +541,7 @@ impl Stats<'_> {
       else {
         return Ok(f(vec![]));
       };
+      let issuer_cache = StatsIssuerCache::default();
       let executed_modules: Vec<StatsModule> = executor_module_graph
         .modules()
         .map(|(_, module)| module)
@@ -538,6 +553,7 @@ impl Stats<'_> {
             executor_exports_info_artifact,
             build_module_graph_artifact,
             module_ids_artifact,
+            &issuer_cache,
             module,
             true,
             false,
@@ -601,6 +617,7 @@ impl Stats<'_> {
 
     let orders = [ChunkGroupOrderKey::Prefetch, ChunkGroupOrderKey::Preload];
 
+    let issuer_cache = StatsIssuerCache::default();
     let mut chunks: Vec<StatsChunk> = self
       .build_chunk_graph_artifact()
       .chunk_by_ukey
@@ -644,6 +661,7 @@ impl Stats<'_> {
                 exports_info_artifact,
                 build_module_graph_artifact_for_module_graph,
                 module_ids_artifact,
+                &issuer_cache,
                 m,
                 false,
                 false,
@@ -1132,6 +1150,10 @@ impl Stats<'_> {
       .map(|hash| hash.rendered(self.options().output.hash_digest_length))
   }
 
+  pub fn get_cache_info(&self) -> HashMap<String, CacheInfo> {
+    self.cache().cache_info()
+  }
+
   #[allow(clippy::too_many_arguments)]
   fn get_module<'a>(
     &'a self,
@@ -1140,6 +1162,7 @@ impl Stats<'_> {
     exports_info_artifact: &'a ExportsInfoArtifact,
     build_module_graph_artifact: &'a BuildModuleGraphArtifact,
     module_ids_artifact: &'a ModuleIdsArtifact,
+    issuer_cache: &StatsIssuerCache<'a>,
     module: &'a ModuleRef,
     executed: bool,
     concatenated: bool,
@@ -1167,18 +1190,60 @@ impl Stats<'_> {
       .iter()
       .map(|t| StatsSourceTypeSize {
         source_type: *t,
-        size: module.size(Some(t), None),
+        size: module.size(Some(t)),
       })
       .collect_vec();
 
     let issuer = module_graph.get_issuer(&module.identifier());
-    let (issuer_name, issuer_id) = issuer
-      .map(|i| {
-        if executed {
-          (i.readable_identifier(&self.options().context), None)
-        } else {
-          get_stats_module_name_and_id(i, module_ids_artifact, &self.options().context)
+    let issuer_path = if built || code_generated || options.cached_modules {
+      issuer.map(|issuer| {
+        if let Some(path) = issuer_cache.get(&issuer.identifier()) {
+          return Arc::clone(path.value());
         }
+        let mut prefix = None;
+        let mut suffix = Vec::new();
+        let mut current_issuer = Some(issuer);
+        while let Some(current) = current_issuer {
+          if let Some(path) = issuer_cache.get(&current.identifier()) {
+            prefix = Some(Arc::clone(path.value()));
+            break;
+          }
+          let (name, id) = if executed {
+            (current.readable_identifier(&self.options().context), None)
+          } else {
+            get_stats_module_name_and_id(current, module_ids_artifact, &self.options().context)
+          };
+          suffix.push((current.identifier(), name, id));
+          current_issuer = module_graph.get_issuer(&current.identifier());
+        }
+        let path: StatsIssuerPath<'a> = prefix
+          .iter()
+          .flat_map(|path: &StatsIssuerPath<'a>| path.iter().cloned())
+          .chain(suffix.into_iter().rev())
+          .collect::<Vec<_>>()
+          .into();
+        Arc::clone(
+          issuer_cache
+            .entry(issuer.identifier())
+            .or_insert(path)
+            .value(),
+        )
+      })
+    } else {
+      None
+    };
+    let (issuer_name, issuer_id) = issuer_path
+      .as_ref()
+      .and_then(|path| path.last())
+      .map(|(_, name, id)| (name.clone(), id.clone()))
+      .or_else(|| {
+        issuer.map(|issuer| {
+          if executed {
+            (issuer.readable_identifier(&self.options().context), None)
+          } else {
+            get_stats_module_name_and_id(issuer, module_ids_artifact, &self.options().context)
+          }
+        })
       })
       .unzip();
 
@@ -1186,7 +1251,7 @@ impl Stats<'_> {
       r#type: "module",
       module_type: *module.module_type(),
       layer: module.get_layer().map(|layer| layer.into()),
-      size: module.size(None, None),
+      size: module.size(None),
       sizes,
       built,
       code_generated,
@@ -1240,23 +1305,6 @@ impl Stats<'_> {
         None
       };
 
-      let mut issuer_path = Vec::new();
-      let mut current_issuer = issuer;
-      while let Some(i) = current_issuer {
-        let (name, id) = if executed {
-          (i.readable_identifier(&self.options().context), None)
-        } else {
-          get_stats_module_name_and_id(i, module_ids_artifact, &self.options().context)
-        };
-        issuer_path.push(StatsModuleIssuer {
-          identifier: i.identifier(),
-          name,
-          id,
-        });
-        current_issuer = module_graph.get_issuer(&i.identifier());
-      }
-      issuer_path.reverse();
-
       let errors = self
         .diagnostics()
         .iter()
@@ -1288,7 +1336,17 @@ impl Stats<'_> {
       stats.dependent = dependent;
       stats.issuer = issuer.map(|i| i.identifier());
       stats.issuer_name = issuer_name;
-      stats.issuer_path = Some(issuer_path);
+      stats.issuer_path = Some(
+        issuer_path
+          .iter()
+          .flat_map(|path| path.iter())
+          .map(|(identifier, name, id)| StatsModuleIssuer {
+            identifier: *identifier,
+            name: name.clone(),
+            id: id.clone(),
+          })
+          .collect(),
+      );
       stats.failed = Some(errors > 0);
       stats.errors = Some(errors);
       stats.warnings = Some(warnings);
@@ -1485,6 +1543,7 @@ impl Stats<'_> {
             exports_info_artifact,
             build_module_graph_artifact,
             module_ids_artifact,
+            issuer_cache,
             module,
             executed,
             true,

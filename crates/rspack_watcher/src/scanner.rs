@@ -51,9 +51,10 @@ impl Scanner {
       let files_path_manager = Arc::clone(&self.path_manager);
       tokio::spawn(async move {
         // A file is there as `lstat` sees it, so a dangling link counts.
-        let removed = absent_paths(&files, &missing, |path| {
+        let mut removed = absent_paths(&files, &missing, |path| {
           std::fs::symlink_metadata(path).is_ok()
         });
+        removed.retain(|path| !files_path_manager.is_known_absent(path));
         let changed = files
           .iter()
           .filter(|p| changed_since(p, start_time))

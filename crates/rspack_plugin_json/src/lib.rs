@@ -176,12 +176,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       concatenation_scope,
       ..
     } = generate_context;
-    let module_graph = compilation.get_module_graph();
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
-        let module = module_graph
-          .module_by_identifier(&module.identifier())
-          .expect("should have module identifier");
         let build_info = module.build_info();
         let json_data = build_info
           .json_data

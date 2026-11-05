@@ -76,6 +76,12 @@ export interface JsSource {
 	map?: string
 }
 
+export type JsSourceFromJs =
+	| { kind: "raw"; content: string | Buffer; map?: string }
+	| { kind: "native"; handle: JsNativeSource }
+	| { kind: "concat"; children: JsSourceFromJs[] }
+	| { kind: "replace"; original: JsSourceFromJs; replacements: JsReplaceSourceEdit[]; fallback: () => JsSourceFromJs }
+
 export type CompilerId = void;
 /* -- banner.d.ts end -- */
 
@@ -87,6 +93,7 @@ export declare class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+
 export declare class Assets {
   keys(): Array<string>
 }
@@ -173,7 +180,7 @@ export declare class ConcatenatedModule {
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
+  _emitFile(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class ContextModule {
@@ -184,7 +191,7 @@ export declare class ContextModule {
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
+  _emitFile(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class Dependency {
@@ -249,7 +256,7 @@ export declare class ExternalModule {
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
+  _emitFile(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null): void
 }
 
 /** Native operations on the owning compiler's current dependency collection. */
@@ -274,10 +281,11 @@ export declare class JsCache {
 }
 
 export declare class JsCompilation {
-  updateAsset(filename: string, newSourceOrFunction: JsSource | ((source: JsSource) => JsSource), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)): void
+  updateAsset(filename: string, newSourceOrFunction: JsSourceFromJs | ((source: JsSource) => JsSourceFromJs), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)): void
   getAssets(): Readonly<JsAsset>[]
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsSource | null
+  getAssetNativeSource(name: string): JsNativeSource | null
   get modules(): Modules
   get builtModules(): Array<Module>
   getOptimizationBailout(): Array<JsStatsOptimizationBailout>
@@ -286,11 +294,11 @@ export declare class JsCompilation {
   getNamedChunk(name: string): Chunk
   getNamedChunkGroupKeys(): Array<string>
   getNamedChunkGroup(name: string): ChunkGroup
-  setAssetSource(name: string, source: JsSource): void
+  setAssetSource(name: string, source: JsSourceFromJs): void
   deleteAssetSource(name: string): void
   getAssetFilenames(): Array<string>
   hasAsset(name: string): boolean
-  emitAsset(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
+  emitAsset(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null): void
   deleteAsset(filename: string): void
   renameAsset(filename: string, newName: string): void
   get entrypoints(): ChunkGroup[]
@@ -408,6 +416,15 @@ export declare class JsModuleGraph {
   isAsync(module: Module): boolean
 }
 
+/**
+ * An owned source reference transferred from the compiler to JavaScript.
+ *
+ * JavaScript uses this as an opaque handle when updating an existing asset.
+ */
+export declare class JsNativeSource {
+  static fromSource(source: JsSourceFromJs): JsNativeSource
+}
+
 export declare class JsResolver {
   resolveSync(path: string, request: string): string | undefined
   resolve(path: string, request: string, callback: (err: null | Error, req?: string) => void): void
@@ -423,9 +440,7 @@ export declare class JsStats {
   getLogging(acceptedTypes: number): Array<JsLog>
 }
 
-export declare class KnownBuildInfo {
-
-}
+export declare class KnownBuildInfo {}
 
 export declare class Module {
   readableIdentifier(): string
@@ -435,7 +450,7 @@ export declare class Module {
   get dependencies(): Dependency[]
   size(ty?: string | undefined | null): number
   libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
+  _emitFile(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null): void
 }
 
 export declare class ModuleGraphConnection {
@@ -634,7 +649,7 @@ export declare enum BuiltinPluginName {
   HttpUriPlugin = 'HttpUriPlugin',
   CssChunkingPlugin = 'CssChunkingPlugin',
   RscServerPlugin = 'RscServerPlugin',
-  RscClientPlugin = 'RscClientPlugin'
+  RscClientPlugin = 'RscClientPlugin',
 }
 
 export declare function cleanupGlobalTrace(): void
@@ -647,14 +662,14 @@ export interface ContextInfo {
 export declare enum EnforceExtension {
   Auto = 0,
   Enabled = 1,
-  Disabled = 2
+  Disabled = 2,
 }
 
 /**
  * Expected version of @rspack/core to the current binding version
  * @internal
  */
-export const EXPECTED_RSPACK_CORE_VERSION: string
+export declare const EXPECTED_RSPACK_CORE_VERSION: string
 
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
 
@@ -1010,7 +1025,7 @@ export interface JsLoaderItem {
 
 export declare enum JsLoaderState {
   Pitching = 'Pitching',
-  Normal = 'Normal'
+  Normal = 'Normal',
 }
 
 export interface JsLog {
@@ -1063,6 +1078,13 @@ export interface JsPathDataChunkLike {
 export interface JsRealContentHashPluginUpdateHashData {
   assets: Array<Buffer>
   oldHash: string
+}
+
+export interface JsReplaceSourceEdit {
+  start: number
+  end: number
+  content: string
+  name?: string
 }
 
 export interface JsResolveData {
@@ -1313,7 +1335,7 @@ export interface JsRspackDiagnostic {
 
 export declare enum JsRspackSeverity {
   Error = 'Error',
-  Warn = 'Warn'
+  Warn = 'Warn',
 }
 
 export interface JsRuntimeGlobals {
@@ -1342,18 +1364,6 @@ export interface JsRuntimeRequirementInTreeArg {
 
 export interface JsRuntimeRequirementInTreeResult {
   allRuntimeRequirements: JsRuntimeGlobals
-}
-
-/**
- * Zero copy `JsSourceFromJs` slice shared between Rust and Node.js if buffer is used.
- *
- * It can only be used in non-async context and the lifetime is bound to the fn closure.
- *
- * If you want to use Node.js Buffer in async context or want to extend the lifetime, use `JsSourceToJs` instead.
- */
-export interface JsSourceFromJs {
-  source: string | Buffer
-  map?: string
 }
 
 export interface JsSourceToJs {
@@ -1403,6 +1413,13 @@ export interface JsStatsAssetInfoRelated {
 export interface JsStatsAssetsByChunkName {
   name: string
   files: Array<string>
+}
+
+export interface JsStatsCacheInfo {
+  hits: number
+  misses: number
+  reused: number
+  stores: number
 }
 
 export interface JsStatsChildGroupChildAssets {
@@ -1458,6 +1475,7 @@ export interface JsStatsChunkGroupChildren {
 export interface JsStatsCompilation {
   assets?: Array<JsStatsAsset>
   assetsByChunkName?: Array<JsStatsAssetsByChunkName>
+  cacheInfo?: Record<string, JsStatsCacheInfo>
   chunks?: Array<JsStatsChunk>
   entrypoints?: Array<JsStatsChunkGroup>
   errors: Array<JsStatsError>
@@ -1566,6 +1584,7 @@ export interface JsStatsOptimizationBailout {
 
 export interface JsStatsOptions {
   assets: boolean
+  cacheInfo: boolean
   cachedModules: boolean
   chunks: boolean
   chunkGroupAuxiliary: boolean
@@ -1843,10 +1862,10 @@ export interface NativeWatcherOptions {
   aggregateTimeout?: number
   /**
    * The ignored paths for the watcher.
-   * It can be a single path, an array of paths, a regular expression, or a
-   * predicate returning `true` for entries to ignore.
+   * It can be a single path, a regular expression, an array mixing paths and
+   * regular expressions, or a predicate returning `true` for entries to ignore.
    */
-  ignored?: string | string[] | RegExp | ((entry: string) => boolean)
+  ignored?: string | RegExp | (string | RegExp)[] | ((entry: string) => boolean)
 }
 
 /**
@@ -2336,6 +2355,7 @@ export interface RawEnvironment {
   templateLiteral: boolean
   dynamicImportInWorker: boolean
   importMetaDirnameAndFilename: boolean
+  topLevelAwait: boolean
 }
 
 export interface RawEsmLibraryPlugin {
@@ -2534,7 +2554,7 @@ export interface RawIntegrityItem {
 }
 
 export declare enum RawJavascriptParserCommonjsExports {
-  SkipInEsm = 'skipInEsm'
+  SkipInEsm = 'skipInEsm',
 }
 
 export interface RawJavascriptParserCommonjsOptions {
@@ -2561,55 +2581,55 @@ export interface RawJavascriptParserOptions {
   importMeta?: string | Record<string, boolean>
   commonjsMagicComments?: boolean
   createRequire?: boolean | string
-commonjs?: boolean | { exports?: boolean | 'skipInEsm' }
-deferImport?: boolean
-sourceImport?: boolean
-/**
- * This option is experimental in Rspack only and subject to change or be removed anytime.
- * @experimental
- */
-requireAlias?: boolean
-/**
- * This option is experimental in Rspack only and subject to change or be removed anytime.
- * @experimental
- */
-requireAsExpression?: boolean
-/**
- * This option is experimental in Rspack only and subject to change or be removed anytime.
- * @experimental
- */
-requireDynamic?: boolean
-/**
- * This option is experimental in Rspack only and subject to change or be removed anytime.
- * @experimental
- */
-requireResolve?: boolean
-/**
- * This option is experimental in Rspack only and subject to change or be removed anytime.
- * @experimental
- */
-importDynamic?: boolean
-/**
- * This option is experimental in Rspack only and subject to change or be removed anytime.
- * @experimental
- */
-typeReexportsPresence?: string
-/**
- * This option is experimental in Rspack only and subject to change or be removed anytime.
- * @experimental
- */
-jsx?: boolean
-/**
- * This option is experimental in Rspack only and subject to change or be removed anytime.
- * @experimental
- */
-importMetaResolve?: boolean
-/**
- * Flag top-level exported functions as side-effect-free for pure-function-based tree shaking.
- * This option is experimental in Rspack only and subject to change or be removed anytime.
- * @experimental
- */
-pureFunctions?: Array<string>
+  commonjs?: boolean | { exports?: boolean | 'skipInEsm' }
+  deferImport?: boolean
+  sourceImport?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  requireAlias?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  requireAsExpression?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  requireDynamic?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  requireResolve?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  importDynamic?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  typeReexportsPresence?: string
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  jsx?: boolean
+  /**
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  importMetaResolve?: boolean
+  /**
+   * Flag top-level exported functions as side-effect-free for pure-function-based tree shaking.
+   * This option is experimental in Rspack only and subject to change or be removed anytime.
+   * @experimental
+   */
+  pureFunctions?: Array<string>
 }
 
 export interface RawJavascriptParserWorkerOptions {
@@ -2627,7 +2647,7 @@ export interface RawJsonParserOptions {
 }
 
 export interface RawLazyCompilationOption {
-  takeNewlyActiveModules: ((err: Error | null, ) => Set<string>)
+  takeNewlyActiveModules: ((err: Error | null) => Set<string>)
   test?: RawLazyCompilationTest
   entries: boolean
   imports: boolean
@@ -2867,12 +2887,12 @@ export interface RawOptions {
   cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent)
   snapshot: RawSnapshotOptions
   experiments: RawExperiments
-incremental?: false | { [key: string]: boolean }
-node?: RawNodeOption
-amd?: string
-bail: boolean
-__references: Record<string, any>
-__virtual_files?: Array<JsVirtualFile>
+  incremental?: false | { [key: string]: boolean }
+  node?: RawNodeOption
+  amd?: string
+  bail: boolean
+  __references: Record<string, any>
+  __virtual_files?: Array<JsVirtualFile>
 }
 
 export interface RawOutputOptions {
@@ -2903,6 +2923,7 @@ export interface RawOutputOptions {
   importMetaName: string
   iife: boolean
   module: boolean
+  chunkFormat: string | false
   chunkLoading: string | false
   chunkLoadTimeout: number
   enabledChunkLoadingTypes?: Array<string>
@@ -3070,6 +3091,10 @@ export interface RawRstestDynamicImportOriginOptions {
   functionName?: string
 }
 
+export interface RawRstestImportMetaResolveOriginOptions {
+  functionName?: string
+}
+
 export interface RawRstestPluginOptions {
   injectModulePathName: boolean
   importMetaPathName: boolean
@@ -3082,10 +3107,18 @@ export interface RawRstestPluginOptions {
    * `globalThis['@rstest/core/import-meta']?.(<absolute source path>)`.
    */
   injectImportMetaRstestOrigin?: boolean
-injectDynamicImportOrigin?: boolean | { functionName?: string }
-updateImportMockAPI?: boolean
-updateRequireMockAPI?: boolean
-injectRequireResolveOrigin?: boolean | { functionName?: string }
+  injectDynamicImportOrigin?: boolean | { functionName?: string }
+  updateImportMockAPI?: boolean
+  updateRequireMockAPI?: boolean
+  injectRequireResolveOrigin?: boolean | { functionName?: string }
+  /**
+   * Replace `import.meta.resolve` with a call to a runtime factory receiving
+   * the absolute source path. The factory must return a stable resolver for
+   * that source module. Defaults to `__rstest_import_meta_resolve__`.
+   * Modules with `parser.importMetaResolve: true` use Rspack's built-in
+   * resolution instead.
+   */
+  injectImportMetaResolveOrigin?: boolean | { functionName?: string }
 }
 
 export interface RawRstestRequireResolveOriginOptions {
@@ -3106,7 +3139,7 @@ export declare enum RawRuleSetConditionType {
   regexp = 'regexp',
   logical = 'logical',
   array = 'array',
-  func = 'func'
+  func = 'func',
 }
 
 export interface RawRuleSetLogicalConditions {
@@ -3211,6 +3244,7 @@ export interface RawSubresourceIntegrityPluginOptions {
   integrityCallback?: (data: RawIntegrityData) => void
   hashFuncNames: Array<string>
   htmlPlugin: "JavaScript" | "Native" | "Disabled"
+  hashLoading: "eager" | "lazy"
 }
 
 export interface RawSwcEmitDtsOptions {
@@ -3239,7 +3273,7 @@ export declare enum RawSyncModuleIdsPluginMode {
   Read = 'read',
   Create = 'create',
   Merge = 'merge',
-  Update = 'update'
+  Update = 'update',
 }
 
 export interface RawSyncModuleIdsPluginOptions {
@@ -3339,7 +3373,7 @@ export declare enum RegisterJsTapKind {
   RsdoctorPluginChunkGraph = 50,
   RsdoctorPluginModuleIds = 51,
   RsdoctorPluginModuleSources = 52,
-  RsdoctorPluginAssets = 53
+  RsdoctorPluginAssets = 53,
 }
 
 export interface RegisterJsTaps {

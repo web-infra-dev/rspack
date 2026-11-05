@@ -98,8 +98,7 @@ impl DependencyTemplate for ExternalWorkerDependencyTemplate {
     let compilation = code_generatable_context.compilation;
     let module_graph = compilation.get_module_graph();
     let external_module = module_graph
-      .module_identifier_by_dependency_id(worker_dependency.id())
-      .and_then(|module_id| module_graph.module_by_identifier(module_id))
+      .get_module_by_dependency_id(worker_dependency.id())
       .and_then(|module| module.as_external_module());
 
     if let Some(external_module) = external_module

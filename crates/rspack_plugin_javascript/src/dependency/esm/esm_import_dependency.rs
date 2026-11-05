@@ -164,8 +164,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
 
   let runtime_condition = if module_dependency.weak() {
     RuntimeCondition::Boolean(false)
-  } else if let Some(connection) = module_graph.connection_by_dependency_id(module_dependency.id())
-  {
+  } else if let Some(connection) = connection {
     filter_runtime(*runtime, |r| {
       connection.is_target_active(
         module_graph,
@@ -576,10 +575,7 @@ impl Dependency for ESMImportSideEffectDependency {
     module_chain: &mut IdentifierSet,
     connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
-    if let Some(module) = module_graph
-      .module_identifier_by_dependency_id(&self.id)
-      .and_then(|module_identifier| module_graph.module_by_identifier(module_identifier))
-    {
+    if let Some(module) = module_graph.get_module_by_dependency_id(&self.id) {
       module.get_side_effects_connection_state(
         module_graph,
         module_graph_cache,

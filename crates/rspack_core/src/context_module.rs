@@ -368,7 +368,7 @@ impl ContextModule {
       .sorted_unstable_by_key(|(module_id, _)| module_id.clone());
     for (module_id, dep) in sorted_modules {
       let exports_type = get_exports_type_with_strict(
-        compilation.get_module_graph(),
+        module_graph,
         &compilation.module_graph_cache_artifact,
         &compilation.exports_info_artifact,
         dep,
@@ -1362,11 +1362,7 @@ impl Module for ContextModule {
       .into()
   }
 
-  fn size(
-    &self,
-    _source_type: Option<&crate::SourceType>,
-    _compilation: Option<&Compilation>,
-  ) -> f64 {
+  fn size(&self, _source_type: Option<&crate::SourceType>) -> f64 {
     160.0
   }
 
@@ -1410,14 +1406,7 @@ impl Module for ContextModule {
       id += " referencedExports: ";
       id += &specifiers
         .iter()
-        .map(|specifier| {
-          let s = specifier.names.iter().join(".");
-          if specifier.namespace_object_as_context && specifier.is_call {
-            format!("*.{s}()")
-          } else {
-            s
-          }
-        })
+        .map(ReferencedSpecifier::to_identifier_string)
         .join(", ");
     }
     if let Some(import) = &self.options.context_options.glob_import {
@@ -1666,13 +1655,7 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
     id += "|referencedExports: ";
     id += &specifiers
       .iter()
-      .map(|specifier| {
-        if specifier.namespace_object_as_context && specifier.is_call {
-          format!("*.{}()", specifier.names.iter().join("."))
-        } else {
-          specifier.names.iter().join(".")
-        }
-      })
+      .map(ReferencedSpecifier::to_identifier_string)
       .join(", ");
   }
   if let Some(import) = &options.context_options.glob_import {

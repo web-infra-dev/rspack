@@ -269,7 +269,7 @@ new URL('./icon.svg', import.meta.url);
 new URL('./icon[hash].svg', import.meta.url);
 ```
 
-When using `'relative'`, Rspack generates runtime code to calculate relative URLs for `new URL()` syntax, i.e., there's no base URL included in the result URL:
+When using `'relative'`, the Rspack runtime calculates relative URLs for `new URL()`, without including a base URL:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -526,7 +526,7 @@ When using Rspack to bundle TypeScript, we strongly recommend enabling [isolated
 :::
 
 - `'no-tolerant'`: Default behavior, shows errors for type re-exports.
-- `'tolerant'`: Tolerates type re-exports while verifying the existence of corresponding type exports in child modules. Requires coordination with [`collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#collecttypescriptinfotypeexports) from builtin:swc-loader to collect type export information.
+- `'tolerant'`: Tolerates type re-exports while verifying the existence of corresponding type exports in child modules. Requires coordination with [`collectTypeScriptInfo.typeExports`](/guide/builtin-loaders/swc-loader#collecttypescriptinfotypeexports) from builtin:swc-loader to collect type export information.
 - `'tolerant-no-check'`: Tolerates type re-exports without checking child modules (may incorrectly tolerate some invalid cases, though IDEs usually provide warnings). Better performance as it skeps child module checks.
 
 ```js title="rspack.config.mjs"
@@ -1134,7 +1134,7 @@ export default {
 
 Configure how CSS content is exported to JavaScript.
 
-By default, `exportType` is `'link'`, which emits CSS as stylesheet output and loads it with the built-in CSS loading runtime.
+By default, `exportType` is `'link'`, which emits CSS as stylesheet output and loads it with the built-in CSS loading code in the Rspack runtime.
 
 - `'link'`: emit the CSS as stylesheet output and keep CSS module exports available.
 - `'text'`: export the generated CSS text as the default export.

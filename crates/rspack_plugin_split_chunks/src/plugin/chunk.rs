@@ -303,7 +303,6 @@ impl SplitChunksPlugin {
   // #[tracing::instrument(skip_all)]
   pub(crate) fn split_from_original_chunks(
     &self,
-    _item: &ModuleGroup,
     original_chunks: &FxHashSet<ChunkUkey>,
     new_chunk: ChunkUkey,
     compilation: &mut Compilation,

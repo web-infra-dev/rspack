@@ -240,24 +240,33 @@ impl SplitChunksPlugin {
           return None;
         }
 
+        // A source type below minSize cannot become eligible by deleting
+        // modules or chunks. Apply native pruning before retaining a candidate;
+        // preserving its pre-pruning module set only duplicates invalid work.
         if remove_min_size_violating_modules(
           module_group_key,
           module_group,
           cache_group,
           module_sizes,
         ) {
-          Some(module_group_key.clone())
+          return Some(module_group_key.clone());
+        }
+        let chunks_len = module_group.chunks.len();
+        if Self::check_min_size_reduction(
+          module_group.get_sizes(module_sizes),
+          &cache_group.min_size_reduction,
+          chunks_len,
+        ) {
+          return None;
+        }
+        // A mixed-type candidate can recover when a later placement removes
+        // the source type that fails minSizeReduction. Keep the candidate itself.
+        if module_group.can_recover(cache_group, module_sizes, chunks_len) {
+          module_group.set_selectable(false);
+          module_group.mark_placement_changed();
+          None
         } else {
-          let chunks_len = module_group.chunks.len();
-          if !Self::check_min_size_reduction(
-            module_group.get_sizes(module_sizes),
-            &cache_group.min_size_reduction,
-            chunks_len,
-          ) {
-            Some(module_group_key.clone())
-          } else {
-            None
-          }
+          Some(module_group_key.clone())
         }
       })
       .collect::<Vec<_>>();

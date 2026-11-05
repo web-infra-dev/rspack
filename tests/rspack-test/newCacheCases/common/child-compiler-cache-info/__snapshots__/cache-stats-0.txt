@@ -1,0 +1,58 @@
+[
+  {
+    "root|child|0|Compilation/codeGeneration": {
+      "hits": 0,
+      "misses": 1,
+      "reused": 0,
+      "stores": 1
+    },
+    "root|child|0|Compilation/modules": {
+      "hits": 0,
+      "misses": 1,
+      "reused": 0,
+      "stores": 1
+    },
+    "root|child|0|meta": {
+      "hits": 0,
+      "misses": 1,
+      "reused": 0,
+      "stores": 1
+    },
+    "root|child|1|Compilation/codeGeneration": {
+      "hits": 0,
+      "misses": 1,
+      "reused": 0,
+      "stores": 1
+    },
+    "root|child|1|Compilation/modules": {
+      "hits": 0,
+      "misses": 1,
+      "reused": 0,
+      "stores": 1
+    },
+    "root|child|1|meta": {
+      "hits": 0,
+      "misses": 1,
+      "reused": 0,
+      "stores": 1
+    },
+    "root|Compilation/codeGeneration": {
+      "hits": 0,
+      "misses": 2,
+      "reused": 0,
+      "stores": 2
+    },
+    "root|Compilation/modules": {
+      "hits": 0,
+      "misses": 2,
+      "reused": 0,
+      "stores": 2
+    },
+    "root|meta": {
+      "hits": 0,
+      "misses": 1,
+      "reused": 0,
+      "stores": 1
+    }
+  }
+]

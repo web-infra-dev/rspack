@@ -622,6 +622,10 @@ export default {
 };
 ```
 
+For SSR, use the same `localIdentName` in the server and browser builds so they can generate matching class names. The example above uses `[local]-[hash:base64:6]`. Avoid `[id]`, because module IDs can differ between builds.
+
+The generated hash also depends on the CSS file path relative to [`context`](/config/context), [`output.uniqueName`](/config/output#outputuniquename), and the `localIdentHash*` options below. Keep these values consistent between both builds.
+
 ### ["css/auto"].localIdentHashDigest
 
 - **Type:** `string`

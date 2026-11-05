@@ -17,18 +17,45 @@ The top-level output key contains a set of options instructing Rspack on how and
 - **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** `'[hash][ext][query]'`
 
-The same as [`output.filename`](#outputfilename) but for [Asset Modules](/guide/features/asset-module).
+Specifies the filename for [Asset Modules](/guide/features/asset-module) emitted as separate files, using the same placeholders as [`output.filename`](#outputfilename).
 
-`[name]`, `[file]`, `[query]`, `[fragment]`, `[base]`, and `[path]` are set to an empty string for the assets built from data URI replacements.
+This option applies to:
 
-The name of the file to be output by the Asset module. This value can be overridden by [rules[].generator.filename](/config/module-rules#rulesgenerator).
+- Modules of type `'asset/resource'`.
+- Modules of type `'asset'` that do not satisfy [rules[].parser.dataUrlCondition](/config/module-parser#assetdataurlcondition). Assets that satisfy the condition are inlined instead.
 
-:::info Asset module output as a separate file
+For example, emit resource files into the `assets` directory and keep their original filenames: `logo.png` becomes `assets/logo.png`.
 
-- Module type is `'asset'` and asset is set to satisfy [rules[].parser.dataUrlCondition](/config/module-parser#assetdataurlcondition)
-- Module type is `'asset/resource'`
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    assetModuleFilename: 'assets/[name][ext]',
+  },
+};
+```
 
-:::
+For assets imported from data URIs, `[name]` and `[base]` are replaced with the content hash. `[file]`, `[query]`, `[fragment]`, and `[path]` are empty strings.
+
+Use [rules[].generator.filename](/config/module-rules#rulesgenerator) to override the filename for a specific rule. Here, PNG files use `images/[name][ext]` instead of the global setting, so `logo.png` becomes `images/logo.png`:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    assetModuleFilename: 'assets/[name][ext]',
+  },
+  module: {
+    rules: [
+      {
+        test: /\.png$/i,
+        type: 'asset/resource',
+        generator: {
+          filename: 'images/[name][ext]',
+        },
+      },
+    ],
+  },
+};
+```
 
 ## output.asyncChunks
 
@@ -68,9 +95,9 @@ Used to inject the currently used Rspack information into the generated asset:
 
 - `version`: Used to specify the Rspack version, defaults to the `version` field in `@rspack/core/package.json`.
 - `bundler`: Used to specify the name of the packaging tool, defaults to `rspack`.
-- `force`: Whether to force the injection of Rspack information, which will be added to chunk as a runtime module, and defaults to `false`. An array can be used to select the items to be forced injected.
+- `force`: Whether to always inject Rspack information as [Rspack runtime modules](/misc/glossary#rspack-runtime-module). Defaults to `false`. An array can be used to select which items to inject.
 
-By default, injection occurs when either `import.meta.rspackVersion` or `import.meta.rspackUniqueId` is detected in the code, and only the corresponding runtime module is injected. Set `force` to `true` to always inject both:
+By default, injection occurs when either `import.meta.rspackVersion` or `import.meta.rspackUniqueId` is detected in the code, and only the corresponding Rspack runtime module is injected. Set `force` to `true` to always inject both:
 
 - [`import.meta.rspackVersion`](/api/runtime-api/module-variables#importmetarspackversion): Inject version information.
 - [`import.meta.rspackUniqueId`](/api/runtime-api/module-variables#importmetarspackuniqueid): Inject the unique ID of the bundler.
@@ -515,12 +542,14 @@ type Environment = {
   logicalAssignment?: boolean;
   /** The environment supports template literals. */
   templateLiteral?: boolean;
+  /** The environment supports top-level await ('await x' at the top level of a module). */
+  topLevelAwait?: boolean;
 };
 ```
 
-`output.environment` specifies which ECMAScript language features and host environment capabilities Rspack is allowed to use when generating its runtime code.
+`output.environment` specifies which ECMAScript language features and host environment capabilities can be used in generated Rspack runtime code.
 
-This setting affects only code emitted by Rspack itself, such as runtime helpers. It does not downgrade your application source code.
+This setting affects only code emitted by Rspack itself, such as Rspack runtime helpers. It does not downgrade your application source code.
 
 ### Default behavior
 
@@ -528,14 +557,14 @@ By default, `output.environment` is automatically inferred from your [target](/c
 
 Rspack evaluates `target` to determine which features your target environment supports. For example:
 
-- If the target browsers support arrow functions, Rspack will use arrow functions in the runtime to produce more compact output.
+- If the target browsers support arrow functions, Rspack will use arrow functions in the Rspack runtime to produce more compact output.
 - If `target` specifies a particular Node.js version, Rspack will infer the supported syntax from that version’s capabilities.
 
-In general, you do not need to configure this option manually. You would override it only when you want to explicitly enforce or restrict specific features. Manual configuration replaces the inferred values and gives you direct control over the syntax used in the generated runtime.
+In general, you do not need to configure this option manually. You would override it only when you want to explicitly enforce or restrict specific features. Manual configuration replaces the inferred values and gives you direct control over the syntax used in the generated Rspack runtime.
 
 ### Example
 
-Suppose `target` is set to `['web', 'es2018']`. In this case, Rspack will infer that `const` is supported and enable it by default. You can disable it by setting `output.environment.const: false`. Rspack will then emit runtime code that uses `var` declarations instead.
+Suppose `target` is set to `['web', 'es2018']`. In this case, Rspack will infer that `const` is supported and enable it by default. You can disable it by setting `output.environment.const: false`. The generated Rspack runtime will then use `var` declarations instead.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1118,7 +1147,7 @@ export default {
 
 Output ES modules.
 
-This is the more compatibility-oriented ESM library path: Rspack still uses the regular chunk / runtime rendering pipeline and then converts the entry exports into `export` statements. It fits simpler ESM library output, or cases where you mainly want webpack-style `module` semantics.
+This is the more compatibility-oriented ESM library path: Rspack still uses the regular rendering pipeline for chunks and the Rspack runtime and then converts the entry exports into `export` statements. It fits simpler ESM library output, or cases where you mainly want webpack-style `module` semantics.
 
 ##### type: 'modern-module'
 
@@ -1137,7 +1166,7 @@ This configuration enables Rspack's dedicated rendering pipeline for ESM librari
 
 :::tip `module` vs `modern-module`
 
-- `module` stays on the regular chunk / runtime rendering pipeline and is closer to webpack-compatible ESM semantics.
+- `module` stays on the regular rendering pipeline for chunks and the Rspack runtime and is closer to webpack-compatible ESM semantics.
 - `modern-module` is handled by a dedicated ESM library plugin that owns chunk rendering, linking, scope hoisting, and splitChunks behavior, making it a better fit for publishable tree-shakable, code-split ESM libraries.
 - `modern-module` currently exists as a separate type to fill the ESM library capability gap; once it is mature enough, the long-term direction is to converge it with `module` into a single `library.type`.
 - `preserveModules` is only available with `modern-module`.
@@ -1674,7 +1703,7 @@ Controls whether Rspack adds module-related comments to the generated bundle. Th
 
 - `true`: Enables basic comments, including module path information.
 - `false`: Disables all comments, which is the default behavior.
-- `'verbose'`: Outputs detailed comments, such as module exports, runtime details, tree-shaking information, and bailout reasons. This mode is helpful when diagnosing build issues or performing in-depth bundle analysis.
+- `'verbose'`: Outputs detailed comments, such as module exports, Rspack runtime details, tree-shaking information, and bailout reasons. This mode is helpful when diagnosing build issues or performing in-depth bundle analysis.
 
 For example, enabling `pathinfo`:
 
@@ -1828,7 +1857,7 @@ export default {
   2. The `name` field in `package.json` under the `context` directory
   3. `''` (empty string)
 
-This option is used to identify a unique name for the current build. It mainly helps prevent runtime code conflicts when multiple Rspack applications run in the same global environment.
+This option is used to identify a unique name for the current build. It mainly helps prevent Rspack runtime code conflicts when multiple Rspack applications run in the same global environment.
 
 `output.uniqueName` affects the default values of the following options:
 
@@ -1881,9 +1910,9 @@ export default {
 - **Type:** `boolean`
 - **Default:** `true`
 
-Controls whether the generated WebAssembly loading runtime falls back to a non-streaming API when `WebAssembly.compileStreaming` or `WebAssembly.instantiateStreaming` rejects because the response does not use the `application/wasm` MIME type.
+Controls whether the WebAssembly loading code in the Rspack runtime falls back to a non-streaming API when `WebAssembly.compileStreaming` or `WebAssembly.instantiateStreaming` rejects because the response does not use the `application/wasm` MIME type.
 
-Set this option to `false` to omit the fallback runtime code when your server always serves WebAssembly files with the correct MIME type.
+Set this option to `false` to omit the fallback code from the Rspack runtime when your server always serves WebAssembly files with the correct MIME type.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1946,6 +1975,8 @@ export default {
 - **Default:** `""`
 
 Set a public path for Worker, defaults to value of [output.publicPath](#outputpublicpath). Only use this option if your worker scripts are located in a different path from your other scripts.
+
+With the default Worker URL handling, relative Worker URLs resolve against the [Base URI](/guide/features/asset-base-path#base-uri) used by the Rspack runtime.
 
 ```js title="rspack.config.mjs"
 export default {

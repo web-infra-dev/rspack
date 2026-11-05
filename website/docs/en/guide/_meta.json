@@ -16,6 +16,11 @@
   },
   {
     "type": "dir-section-header",
+    "name": "builtin-loaders",
+    "label": "Built-in Loaders"
+  },
+  {
+    "type": "dir-section-header",
     "name": "languages",
     "label": "Languages"
   },

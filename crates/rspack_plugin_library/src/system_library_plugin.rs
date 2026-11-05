@@ -20,10 +20,6 @@ struct SystemLibraryPluginParsed<'a> {
   name: Option<&'a str>,
 }
 
-#[derive(Debug, Default)]
-#[allow(dead_code)]
-struct SystemLibraryJavascriptModulesPluginPlugin;
-
 #[plugin]
 #[derive(Debug, Default)]
 pub struct SystemLibraryPlugin;

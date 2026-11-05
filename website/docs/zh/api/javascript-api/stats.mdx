@@ -88,7 +88,7 @@ if (stats.hasWarnings()) {
 
 ### toJson
 
-以 [Stats JSON](/api/javascript-api/stats-json) 对象形式返回编译信息。[Stats 配置](/config/stats) 可以是一个字符串（预设值）或是颗粒化控制的对象：
+以 [Stats JSON](/api/javascript-api/stats-json) 对象形式返回编译信息。可以传入[预设名称或配置对象](/config/stats)，选择要包含的信息。
 
 **类型：**
 
@@ -123,7 +123,7 @@ console.log(statsJson.hash);
 toString(opts?: StatsValue): string;
 ```
 
-配置对象与 `stats.toJson(options)` 一致，除了额外增加的一个选项：
+可以通过 [Stats 配置](/config/stats) 控制输出内容，也可以通过 `colors` 控制文字颜色：
 
 ```js
 stats.toString({
