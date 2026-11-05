@@ -189,6 +189,8 @@ The SharedConfig can include the following sub-options:
     - `server-calc`: Decide whether to load shared dependencies based on the snapshot sent by the server.
   - filename: Customize the filename of the generated shared fallback entry.
 
+Shared dependency builds inherit the project's cache settings. With persistent cache enabled, each shared dependency build uses a separate cache location derived from the configured cache path.
+
 ### manifest
 
 <ApiMeta addedVersion="1.6.1" />

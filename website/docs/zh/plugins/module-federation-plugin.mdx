@@ -189,6 +189,8 @@ export default {
     - `server-calc`: 根据服务端下发的 snapshot 来决定是否加载共享依赖。
   - filename：自定义生成的 shared fallback 入口文件名。
 
+共享依赖构建会继承项目的缓存配置。启用持久化缓存时，每个共享依赖构建会基于配置的缓存路径使用独立的缓存位置。
+
 ### manifest
 
 <ApiMeta addedVersion="1.6.1" />

@@ -7,6 +7,7 @@ import {
   type ModuleFederationManifestPluginOptions,
 } from '../container/ModuleFederationManifestPlugin';
 import { parseOptions } from '../container/options';
+import { createHash } from '../util/createHash';
 import {
   CollectSharedEntryPlugin,
   type ShareRequestsMap,
@@ -321,30 +322,29 @@ export class IndependentSharedPlugin {
     const { sharedOptions } = this;
     console.log('Start building shared fallback resources ...');
 
-    await Promise.all(
-      sharedOptions.map(async ([shareName, shareConfig]) => {
+    const results = await Promise.allSettled(
+      sharedOptions.flatMap(([shareName, shareConfig]) => {
         if (!shareConfig.treeShaking || shareConfig.import === false) {
-          return;
+          return [];
         }
         const shareRequests = getShareRequests(shareRequestsMap, shareName);
-        await Promise.all(
-          shareRequests.map(async ([request, version]) => {
-            const sharedConfig = sharedOptions.find(
-              ([name]) => name === shareName,
-            )?.[1];
-            await this.createIndependentCompiler(parentCompiler, {
-              shareRequestsMap,
-              currentShare: {
-                shareName,
-                version,
-                request,
-                independentShareFileName: sharedConfig?.treeShaking?.filename,
-              },
-            });
+        return shareRequests.map(([request, version]) =>
+          this.createIndependentCompiler(parentCompiler, {
+            shareRequestsMap,
+            currentShare: {
+              shareName,
+              version,
+              request,
+              independentShareFileName: shareConfig.treeShaking?.filename,
+            },
           }),
         );
       }),
     );
+    // Do not let a failed build leave sibling compilers running after the parent exits.
+    for (const result of results) {
+      if (result.status === 'rejected') throw result.reason;
+    }
 
     console.log('All shared fallback have been compiled successfully!');
   }
@@ -429,8 +429,34 @@ export class IndependentSharedPlugin {
       parentCompiler.outputPath,
       outputDirWithShareName,
     );
+    let cache = parentConfig.cache;
+    if (cache && cache.type === 'persistent') {
+      const hash = createHash('xxhash64');
+      hash.update(
+        Buffer.from(
+          JSON.stringify([
+            mfName,
+            Boolean(treeShaking),
+            extraOptions.currentShare.shareName,
+            extraOptions.currentShare.version,
+            extraOptions.currentShare.request,
+            fullOutputDir,
+          ]),
+        ),
+      );
+      // The parent options already contain a normalized location. Independent
+      // compilers need separate databases, including when location is explicit.
+      cache = {
+        ...cache,
+        storage: {
+          ...cache.storage,
+          location: `${cache.storage.location}-mf-${hash.digest('hex')}`,
+        },
+      };
+    }
     const compilerConfig: RspackOptions = {
       ...parentConfig,
+      cache,
       name: parentConfig.name || 'mf-shared-compiler',
       module: {
         ...parentConfig.module,
@@ -472,23 +498,33 @@ export class IndependentSharedPlugin {
 
     const { currentShare } = extraOptions;
 
-    return new Promise<any>((resolve, reject) => {
-      compiler.run((err: any, stats: any) => {
-        if (err || stats?.hasErrors()) {
+    return new Promise<[string, string, string]>((resolve, reject) => {
+      compiler.run((err, stats) => {
+        const buildError =
+          err ||
+          (stats?.hasErrors()
+            ? new Error(`${currentShare.shareName} Compile failed`)
+            : undefined);
+        if (buildError) {
           console.error(
             `${currentShare.shareName} Compile failed:`,
             err ||
-              stats
+              stats!
                 .toJson()
-                .errors.map((e: Error) => e.message)
+                .errors?.map((e) => e.message)
                 .join('\n'),
           );
-          reject(err || new Error(`${currentShare.shareName} Compile failed`));
-          return;
         }
-
-        console.log(`${currentShare.shareName} Compile success`);
-        resolve(extraPlugin.getData());
+        // Closing flushes the cache and releases compiler-owned callbacks before
+        // the next parent build can open these databases again.
+        compiler.close((closeError) => {
+          if (buildError || closeError) {
+            reject(buildError || closeError);
+            return;
+          }
+          console.log(`${currentShare.shareName} Compile success`);
+          resolve(extraPlugin.getData());
+        });
       });
     });
   }
