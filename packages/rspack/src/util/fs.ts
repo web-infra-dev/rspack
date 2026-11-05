@@ -750,7 +750,7 @@ export interface WatchFileSystem {
   // to avoid a breaking change for external `WatchFileSystem` implementations.
   on?(
     event: 'change',
-    listener: (filename: string, mtime: number) => void,
+    listener: (filename: string, mtime: number | null) => void,
   ): this;
   on?(event: 'remove', listener: (filename: string) => void): this;
   on?(
@@ -759,7 +759,7 @@ export interface WatchFileSystem {
   ): this;
   once?(
     event: 'change',
-    listener: (filename: string, mtime: number) => void,
+    listener: (filename: string, mtime: number | null) => void,
   ): this;
   once?(event: 'remove', listener: (filename: string) => void): this;
   once?(
