@@ -9,12 +9,14 @@
 - Bundle: b.js
 - Bundle: runtime.js
 - Bundle: shared.js
+- Complete update: shared.LAST_HASH.hot-update.js.full.js, size: 549
+  - ./shared/anchor.js
+  - ./shared/moving.js
 - Manifest: runtime.LAST_HASH.hot-update.json, size: 158
 - Update: a.LAST_HASH.hot-update.js, size: 292
 - Update: b.LAST_HASH.hot-update.js, size: 349
 - Update: runtime.LAST_HASH.hot-update.js, size: 184
 - Update: shared.LAST_HASH.hot-update.js, size: 297
-- Update: shared.LAST_HASH.hot-update.js.full.js, size: 549
 
 ## Manifest
 
@@ -117,43 +119,6 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 ```js
 "use strict";
 self["rspackHotUpdate"]("shared", {
-"./shared/moving.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  moving: () => (moving)
-});
-const moving = "moving-after";
-
-
-},
-
-});
-```
-
-
-
-### shared.LAST_HASH.hot-update.js.full.js
-
-#### Changed Modules
-- ./shared/anchor.js
-- ./shared/moving.js
-
-#### Changed Runtime Modules
-
-
-#### Changed Content
-```js
-"use strict";
-self["rspackHotUpdate"]("shared", {
-"./shared/anchor.js": [(function (__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  anchor: () => (anchor)
-});
-const anchor = "anchor";
-
-
-})],
 "./shared/moving.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
