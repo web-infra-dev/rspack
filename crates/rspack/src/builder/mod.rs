@@ -482,10 +482,10 @@ impl CompilerBuilder {
     let compiler_context = CURRENT_COMPILER_CONTEXT.try_with(|v| v.clone()).ok();
 
     let infrastructure_log_sink = Arc::new(PrintlnInfrastructureLogSink);
-    let cache = create_cache(
+    let cache_owner = create_cache(
       &compiler_options,
       input_filesystem.clone(),
-      infrastructure_log_sink.clone(),
+      infrastructure_log_sink,
     );
 
     Ok(Compiler::new(
@@ -500,8 +500,8 @@ impl CompilerBuilder {
       loader_resolver_factory,
       compiler_context,
       Arc::new(platform),
-      cache,
-      infrastructure_log_sink,
+      cache_owner.cache().clone(),
+      Some(cache_owner),
     ))
   }
 }

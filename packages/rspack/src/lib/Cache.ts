@@ -55,6 +55,7 @@ export class Cache {
   static STAGE_NETWORK = 20;
 
   #binding: binding.JsCache;
+  #shutdown?: Promise<void>;
 
   hooks: {
     get: AsyncSeriesBailHook<[string, Etag | null, GotHandler[]], any>;
@@ -173,7 +174,7 @@ export class Cache {
    * @returns
    */
   shutdown(callback: CallbackCache<void>) {
-    this.#binding.shutdown().then(() => {
+    (this.#shutdown ??= this.#binding.shutdown()).then(() => {
       this.hooks.shutdown.callAsync(
         makeWebpackErrorCallback(callback, 'Cache.hooks.shutdown'),
       );

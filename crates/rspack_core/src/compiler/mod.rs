@@ -2,6 +2,7 @@ mod rebuild;
 use std::sync::{Arc, atomic::AtomicU32};
 
 use futures::future::join_all;
+use parking_lot::Mutex;
 use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -17,15 +18,15 @@ use tracing::instrument;
 pub use self::rebuild::CompilationRecords;
 use crate::{
   BoxPlugin, CacheOptions, CleanOptions, Compilation, CompilationAsset, CompilationLogging,
-  CompilerOptions, CompilerPlatform, ContextModuleFactory, Filename, InfrastructureLogSink,
-  KeepPattern, NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
+  CompilerOptions, CompilerPlatform, ContextModuleFactory, Filename, KeepPattern,
+  NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
   artifacts::IncrementalArtifacts,
   compilation::build_module_graph::ModuleExecutor,
   fast_set,
   incremental::{Incremental, IncrementalPasses},
   legacy_cache::{Cache as LegacyCache, create_cache as create_legacy_cache},
   logger::Logger,
-  new_cache::{Cache, CacheFacade, CacheValue, CompilerCache},
+  new_cache::{Cache, CacheFacade, CacheOwner, CacheValue, CompilerCache},
   trim_dir,
 };
 
@@ -112,6 +113,7 @@ pub struct Compiler {
   pub cache: Box<dyn LegacyCache>,
   incremental_artifacts: IncrementalArtifacts,
   new_cache: CompilerCache,
+  cache_owner: Mutex<Option<Arc<CacheOwner>>>,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
   pub emitted_asset_versions: HashMap<String, String>,
@@ -135,7 +137,7 @@ impl Compiler {
     compiler_context: Option<Arc<CompilerContext>>,
     platform: Arc<CompilerPlatform>,
     cache: Arc<Cache>,
-    _infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
+    cache_owner: Option<Arc<CacheOwner>>,
   ) -> Self {
     #[cfg(debug_assertions)]
     {
@@ -196,6 +198,7 @@ impl Compiler {
       cache,
       incremental_artifacts: IncrementalArtifacts::default(),
       new_cache,
+      cache_owner: Mutex::new(cache_owner),
       emitted_asset_versions: Default::default(),
       input_filesystem,
       platform,
@@ -661,6 +664,10 @@ impl Compiler {
       .await?;
 
     self.cache.close().await;
+    let cache_owner = self.cache_owner.lock().take();
+    if let Some(owner) = cache_owner {
+      owner.shutdown().await;
+    }
     Ok(())
   }
 }

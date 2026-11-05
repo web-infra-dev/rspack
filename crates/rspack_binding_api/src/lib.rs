@@ -429,7 +429,7 @@ impl JsCompiler {
         Some(compiler_context.clone()),
         platform,
         cache,
-        infrastructure_log_sink,
+        None,
       );
 
       Ok(Self {

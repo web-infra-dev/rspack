@@ -1,6 +1,6 @@
 use std::{ops::Deref, sync::Arc, time::Duration};
 
-use rspack_paths::{InternedPath, InternedPathSet};
+use rspack_paths::InternedPathSet;
 use rustc_hash::FxHashMap;
 
 use super::{
@@ -106,12 +106,8 @@ impl Cache {
     self.storage.idle_file_cache.is_some()
   }
 
-  pub(super) fn storage_dir(&self) -> Option<InternedPath> {
-    self
-      .storage
-      .idle_file_cache
-      .as_ref()
-      .map(IdleFileCache::storage_dir)
+  pub(super) fn file_cache(&self) -> Option<&IdleFileCache> {
+    self.storage.idle_file_cache.as_ref()
   }
 
   pub fn begin_idle(&self, build_time: Duration) {
@@ -131,10 +127,10 @@ impl Cache {
     }
   }
 
-  pub(super) async fn shutdown(&self) {
+  pub(super) fn start_shutdown(&self) {
     let storage = &self.storage;
     if let Some(file_cache) = &storage.idle_file_cache {
-      file_cache.shutdown().await;
+      file_cache.start_shutdown();
     }
     if let Some(memory_cache) = &storage.memory_cache {
       memory_cache.clear();
