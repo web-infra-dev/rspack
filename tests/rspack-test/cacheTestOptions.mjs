@@ -59,7 +59,6 @@ const excludes = {
 		/^container-1-5\/tree-shaking-shared-infer-mode$/,
 		/^container-1-5\/tree-shaking-shared-pnpm-versions$/,
 		/^container-1-5\/tree-shaking-shared-server-mode$/,
-		/^container-1-5\/tree-shaking-shared-provide-only$/,
 		/^container\/container-entry-overridables$/,
 		/^container\/exposed-overridables$/,
 		/^contenthash\/assets$/,
@@ -103,6 +102,10 @@ const excludes = {
 		/^source-map\/devtool-skip-non-js-css-assets$/,
 		/^source-map\/empty-mapping$/,
 		/^source-map\/exclude-chunks-source-map$/,
+
+		// Independent shared fallback compilers write to the same cache database as their parent.
+		/^container-1-5\/tree-shaking-shared-provide-only$/,
+		/^sharing\/reshake-share$/,
 
 		// Unawaited child compilation races with closing/flushing the parent cache.
 		/^chunk-loading\/issue-4754$/,
