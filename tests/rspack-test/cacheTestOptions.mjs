@@ -50,6 +50,7 @@ const excludes = {
 		/^container-1-5\/manifest-disable-assets-analyze$/,
 		/^container-1-5\/manifest-entry-filter$/,
 		/^container-1-5\/manifest-file-name$/,
+		/^container-1-5\/manifest-layers$/,
 		/^container-1-5\/manifest-prefix-singleton$/,
 		/^container-1-5\/provide-sharing-extra-data$/,
 		/^container-1-5\/relative-layered-consume-issuer-context$/,
@@ -80,6 +81,7 @@ const excludes = {
 		/^sharing\/share-plugin-dual-mode$/,
 		/^sharing\/share-plugin-monorepo$/,
 		/^sharing\/share-plugin-secondary-entry-point$/,
+		/^sharing\/tree-shaking-shared-identities$/,
 		/^sri\/mf$/,
 		/^tree-shaking\/side-effects-consume-shared$/,
 
