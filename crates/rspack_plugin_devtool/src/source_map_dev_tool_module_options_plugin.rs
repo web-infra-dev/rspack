@@ -1,10 +1,12 @@
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  BoxModule, ChunkUkey, Compilation, CompilationBuildModule, CompilationId,
-  CompilationRuntimeModule, CompilerId, ModuleIdentifier, Plugin, RuntimeModule,
+  BoxModule, ChunkUkey, Compilation, CompilationBuildModule, CompilationId, CompilationParams,
+  CompilationRuntimeModule, CompilerCompilation, CompilerId, ModuleIdentifier, Plugin,
+  RuntimeModule,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_javascript::{JavascriptModulesUseSourceMap, JsPlugin};
 use rspack_util::source_map::SourceMapKind;
 
 pub struct SourceMapDevToolModuleOptionsPluginOptions {
@@ -21,6 +23,29 @@ impl SourceMapDevToolModuleOptionsPlugin {
   pub fn new(options: SourceMapDevToolModuleOptionsPluginOptions) -> Self {
     Self::new_inner(options.source_map_kind)
   }
+}
+
+#[plugin_hook(CompilerCompilation for SourceMapDevToolModuleOptionsPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  JsPlugin::get_compilation_hooks_mut(compilation.id())
+    .write()
+    .await
+    .use_source_map
+    .tap(use_source_map::new(self));
+  Ok(())
+}
+
+#[plugin_hook(JavascriptModulesUseSourceMap for SourceMapDevToolModuleOptionsPlugin)]
+async fn use_source_map(
+  &self,
+  _compilation: &Compilation,
+  _chunk_ukey: &ChunkUkey,
+) -> Result<Option<bool>> {
+  Ok(Some(true))
 }
 
 #[plugin_hook(CompilationBuildModule for SourceMapDevToolModuleOptionsPlugin)]
@@ -55,6 +80,7 @@ impl Plugin for SourceMapDevToolModuleOptionsPlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
       .compilation_hooks
       .build_module

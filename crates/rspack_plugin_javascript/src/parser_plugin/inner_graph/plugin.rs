@@ -11,7 +11,7 @@ use swc_next_ecma_ast::{
   AssignmentExpression, AssignmentOperator, BindingIdentifier, Class, ClassElement,
   ClassElementData, ExportDefaultDeclarationKindData, Expr, ExprData, GetSpan, NodeId,
   NodeKindData, Program, Span, Stmt, StmtData, ThisExpression, VariableDeclaration,
-  VariableDeclarator,
+  VariableDeclarator, VariableKind,
 };
 
 use super::state::{
@@ -576,13 +576,20 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
     &self,
     parser: &mut crate::visitors::JavascriptParser,
     decl: VariableDeclarator,
-    _stmt: VariableDeclaration,
+    stmt: VariableDeclaration,
   ) -> Option<bool> {
     if !parser.inner_graph.is_enabled() || !parser.is_top_level_scope() {
       return None;
     }
 
     let ast = parser.ast.ast;
+    if matches!(
+      stmt.kind(ast),
+      VariableKind::Using | VariableKind::AwaitUsing
+    ) {
+      return None;
+    }
+
     if let Some(identifier) = decl.id(ast).as_binding_identifier(ast)
       && let Some(init) = decl.init(ast)
     {
