@@ -1,201 +1,123 @@
-use napi::{
-  CallContext, Either, JsObject, JsString, NapiRaw,
-  bindgen_prelude::{FromNapiMutRef, Object, ToNapiValue},
-};
+use napi::{Env, JsString, Result, bindgen_prelude::*};
 use rspack_core::{ResourceData, ResourceParsedData, parse_resource};
 use rspack_error::Diagnosable;
 
 use crate::{
-  diagnostic,
-  error::RspackError,
-  impl_module_methods,
-  module::{MODULE_PROPERTIES_BUFFER, Module},
-  plugins::JsLoaderItem,
+  error::RspackError, module::ModuleHandle, plugins::JsLoaderItem,
   resource_data::ReadonlyResourceDataWrapper,
-  shared_properties::define_shared_properties,
 };
 
-#[napi]
-#[repr(C)]
-pub struct NormalModule {
-  pub(crate) module: Module,
-}
-
-impl NormalModule {
-  pub fn new(module: Module) -> Self {
-    Self { module }
-  }
-
-  pub(crate) fn into_module_instance(
-    mut self,
-    env: &napi::Env,
-  ) -> napi::Result<napi::bindgen_prelude::ClassInstance<'_, Self>> {
-    let (resource, request, user_request, raw_request, resource_resolve_data, loaders) = self
-      .with_ref(|_, module| {
-        let resource_resolved_data = module.resource_resolved_data();
-        let resource = env.create_string(resource_resolved_data.resource())?;
-        let request = env.create_string(module.request())?;
-        let user_request = env.create_string(module.user_request())?;
-        let raw_request = env.create_string(module.raw_request())?;
-        let resource_resolve_data = Object::from_raw(env.raw(), unsafe {
-          ToNapiValue::to_napi_value(
-            env.raw(),
-            ReadonlyResourceDataWrapper::from(resource_resolved_data.clone()),
-          )?
-        });
-        let loaders = Object::from_raw(env.raw(), unsafe {
-          ToNapiValue::to_napi_value(
-            env.raw(),
-            module
-              .loaders()
-              .iter()
-              .map(JsLoaderItem::from)
-              .collect::<Vec<_>>(),
-          )?
-        });
-
-        Ok((
-          resource,
-          request,
-          user_request,
-          raw_request,
-          resource_resolve_data,
-          loaders,
-        ))
-      })?;
-
-    MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
-      let mut properties = ref_cell.borrow_mut();
-      properties.clear();
-
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("resource")?
-          .with_value(&resource),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("request")?
-          .with_value(&request),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("userRequest")?
-          .with_value(&user_request),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("rawRequest")?
-          .with_value(&raw_request),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("resourceResolveData")?
-          .with_value(&resource_resolve_data),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("loaders")?
-          .with_value(&loaders),
-      );
-      Self::new_inherited(self, env, &mut properties)
+impl ModuleHandle {
+  fn with_normal<R>(
+    &self,
+    f: impl FnOnce(&rspack_core::Compilation, &rspack_core::NormalModule) -> Result<R>,
+  ) -> Result<R> {
+    self.with_ref(|compilation, module| match module.as_normal_module() {
+      Some(module) => f(compilation, module),
+      None => Err(Error::from_reason("Module is not a NormalModule")),
     })
-  }
-
-  fn define_shared_properties(env: &napi::Env, object: Object<'_>) -> napi::Result<()> {
-    #[js_function]
-    pub fn match_resource_getter(ctx: CallContext<'_>) -> napi::Result<Either<JsString<'_>, ()>> {
-      let this = ctx.this_unchecked::<JsObject>();
-      let env = ctx.env.raw();
-      let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
-
-      wrapped_value.with_ref(|_, module| {
-        Ok(match module.match_resource() {
-          Some(match_resource) => Either::A(ctx.env.create_string(match_resource.resource())?),
-          None => Either::B(()),
-        })
-      })
-    }
-
-    #[js_function(1)]
-    pub fn match_resource_setter(ctx: CallContext) -> napi::Result<()> {
-      let this = ctx.this_unchecked::<JsObject>();
-      let env = ctx.env.raw();
-      let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
-
-      let val = ctx.get::<Either<String, ()>>(0)?;
-      match val {
-        Either::A(val) => {
-          let module = wrapped_value.as_mut()?;
-          let ResourceParsedData {
-            path,
-            query,
-            fragment,
-          } = parse_resource(&val).expect("Should parse resource");
-          *module.match_resource_mut() = Some(Box::new(ResourceData::new_with_path(
-            val, path, query, fragment,
-          )));
-        }
-        Either::B(_) => {}
-      }
-      Ok(())
-    }
-
-    #[js_function]
-    fn error_getter(ctx: CallContext<'_>) -> napi::Result<Either<RspackError, ()>> {
-      let this = ctx.this_unchecked::<JsObject>();
-      let env = ctx.env.raw();
-      let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
-
-      wrapped_value.with_ref(|compilation, module| {
-        Ok(match module.first_error() {
-          Some(diagnostic) => Either::A(RspackError::try_from_diagnostic(
-            compilation,
-            diagnostic.as_ref(),
-          )?),
-          None => Either::B(()),
-        })
-      })
-    }
-
-    define_shared_properties::<Self>(env, object, || {
-      Ok(vec![
-        napi::Property::new()
-          .with_utf8_name("matchResource")?
-          .with_getter(match_resource_getter)
-          .with_setter(match_resource_setter),
-        napi::Property::new()
-          .with_utf8_name("error")?
-          .with_getter(error_getter),
-      ])
-    })
-  }
-
-  fn with_ref<R>(
-    &mut self,
-    f: impl FnOnce(&rspack_core::Compilation, &rspack_core::NormalModule) -> napi::Result<R>,
-  ) -> napi::Result<R> {
-    self
-      .module
-      .with_ref(|compilation, module| match module.as_normal_module() {
-        Some(normal_module) => f(compilation, normal_module),
-        None => Err(napi::Error::new(
-          napi::Status::GenericFailure,
-          "Module is not a NormalModule",
-        )),
-      })
-  }
-
-  fn as_mut(&mut self) -> napi::Result<&mut rspack_core::NormalModule> {
-    let module = self.module.as_mut()?;
-    match module.as_normal_module_mut() {
-      Some(normal_module) => Ok(normal_module),
-      None => Err(napi::Error::new(
-        napi::Status::GenericFailure,
-        "Module is not a NormalModule",
-      )),
-    }
   }
 }
 
-impl_module_methods!(NormalModule, NormalModule::define_shared_properties);
+#[napi(ts_args_type = "module: Module")]
+pub fn normal_module_get_resource<'env>(
+  env: &'env Env,
+  module: Object<'env>,
+) -> Result<JsString<'env>> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
+  module.with_normal(|_, module| env.create_string(module.resource_resolved_data().resource()))
+}
+
+#[napi(ts_args_type = "module: Module")]
+pub fn normal_module_get_request<'env>(
+  env: &'env Env,
+  module: Object<'env>,
+) -> Result<JsString<'env>> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
+  module.with_normal(|_, module| env.create_string(module.request()))
+}
+
+#[napi(ts_args_type = "module: Module")]
+pub fn normal_module_get_user_request<'env>(
+  env: &'env Env,
+  module: Object<'env>,
+) -> Result<JsString<'env>> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
+  module.with_normal(|_, module| env.create_string(module.user_request()))
+}
+
+#[napi(ts_args_type = "module: Module")]
+pub fn normal_module_get_raw_request<'env>(
+  env: &'env Env,
+  module: Object<'env>,
+) -> Result<JsString<'env>> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
+  module.with_normal(|_, module| env.create_string(module.raw_request()))
+}
+
+#[napi(
+  ts_args_type = "module: Module",
+  ts_return_type = "Readonly<JsResourceData>"
+)]
+pub fn normal_module_get_resource_resolve_data(
+  module: Object<'_>,
+) -> Result<ReadonlyResourceDataWrapper> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
+  module.with_normal(|_, module| Ok(module.resource_resolved_data().clone().into()))
+}
+
+#[napi(ts_args_type = "module: Module")]
+pub fn normal_module_get_loaders(module: Object<'_>) -> Result<Vec<JsLoaderItem>> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
+  module.with_normal(|_, module| Ok(module.loaders().iter().map(JsLoaderItem::from).collect()))
+}
+
+#[napi(ts_args_type = "module: Module")]
+pub fn normal_module_get_match_resource(module: Object<'_>) -> Result<Either<String, ()>> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
+  module.with_normal(|_, module| {
+    Ok(match module.match_resource() {
+      Some(resource) => Either::A(resource.resource().to_owned()),
+      None => Either::B(()),
+    })
+  })
+}
+#[napi(ts_args_type = "module: Module, value: string | undefined")]
+pub fn normal_module_set_match_resource(
+  module: Object<'_>,
+  value: Either<String, ()>,
+) -> Result<()> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
+  if module.type_id != std::any::TypeId::of::<rspack_core::NormalModule>() {
+    return Err(Error::from_reason("Module is not a NormalModule"));
+  }
+  let handle = module;
+  if let Either::A(value) = value {
+    let ResourceParsedData {
+      path,
+      query,
+      fragment,
+    } = parse_resource(&value).expect("Should parse resource");
+    let module = handle
+      .as_mut()?
+      .as_normal_module_mut()
+      .ok_or_else(|| Error::from_reason("Module is not a NormalModule"))?;
+    *module.match_resource_mut() = Some(Box::new(ResourceData::new_with_path(
+      value, path, query, fragment,
+    )));
+  }
+  Ok(())
+}
+#[napi(ts_args_type = "module: Module")]
+pub fn normal_module_get_error(module: Object<'_>) -> Result<Either<RspackError, ()>> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
+  module.with_normal(|compilation, module| {
+    Ok(match module.first_error() {
+      Some(diagnostic) => Either::A(RspackError::try_from_diagnostic(
+        compilation,
+        diagnostic.as_ref(),
+      )?),
+      None => Either::B(()),
+    })
+  })
+}

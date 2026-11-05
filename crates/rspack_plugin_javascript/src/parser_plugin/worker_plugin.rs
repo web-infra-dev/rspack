@@ -404,7 +404,7 @@ impl WorkerPluginInner {
       }
     } else if let Some(syntax) = syntax.strip_suffix("()") {
       self.call_syntax.insert(syntax.to_string());
-    } else if let Ok(((ids, is_call), source)) = worker_from(syntax) {
+    } else if let Some(((ids, is_call), source)) = worker_from(syntax) {
       if is_call {
         self
           .from_call_syntax
@@ -666,38 +666,38 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
   }
 }
 
-fn worker_from(mut input: &str) -> winnow::ModalResult<((&str, bool), &str)> {
-  use winnow::{ascii, combinator::separated_pair, prelude::*, stream::AsChar, token};
-
-  let ident_and_call = token::take_while(1.., |c: char| !c.is_space()).map(|ident: &str| {
-    ident
-      .strip_suffix("()")
-      .map_or((ident, false), |ident| (ident, true))
-  });
-
-  let mut parser = separated_pair(
-    ident_and_call,
-    (ascii::multispace1, "from", ascii::multispace1),
-    token::take_while(1.., |_| true),
-  );
-
-  parser.parse_next(&mut input)
+fn worker_from(input: &str) -> Option<((&str, bool), &str)> {
+  let end = memchr::memchr2(b' ', b'\t', input.as_bytes())?;
+  if end == 0 {
+    return None;
+  }
+  let (ident, rest) = input.split_at(end);
+  let separator = [' ', '\t', '\r', '\n'];
+  let rest = rest.trim_start_matches(separator).strip_prefix("from")?;
+  let source = rest.trim_start_matches(separator);
+  if source.is_empty() || source.len() == rest.len() {
+    return None;
+  }
+  let ident = ident
+    .strip_suffix("()")
+    .map_or((ident, false), |ident| (ident, true));
+  Some((ident, source))
 }
 
 #[test]
 fn test_worker_from() {
   assert_eq!(
-    worker_from("Worker from worker_threads").ok(),
+    worker_from("Worker from worker_threads"),
     Some((("Worker", false), "worker_threads"))
   );
 
   assert_eq!(
-    worker_from("worker() from worker_threads").ok(),
+    worker_from("worker() from worker_threads"),
     Some((("worker", true), "worker_threads"))
   );
 
   assert_eq!(
-    worker_from("()() from worker_threads").ok(),
+    worker_from("()() from worker_threads"),
     Some((("()", true), "worker_threads"))
   );
 }

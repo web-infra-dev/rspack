@@ -17,14 +17,6 @@ impl BooleanMatcher {
   }
 }
 
-fn to_simple_string(input: &str) -> String {
-  if input.parse::<f64>().is_ok_and(|n| input == n.to_string()) {
-    input.to_string()
-  } else {
-    rspack_util::json_stringify_str(input)
-  }
-}
-
 pub fn compile_boolean_matcher_from_lists(
   positive_items: Vec<String>,
   negative_items: Vec<String>,
@@ -34,10 +26,13 @@ pub fn compile_boolean_matcher_from_lists(
   } else if negative_items.is_empty() {
     BooleanMatcher::Matcher(Box::new(|_| "true".to_string()))
   } else if positive_items.len() == 1 {
-    let item = to_simple_string(&positive_items[0]);
+    // Always compare against a string literal. A numeric literal would match any value that
+    // coerces to the same number under loose equality, e.g. `0 == "00"`.
+    // Keep loose equality to also accept chunk IDs serialized as numbers.
+    let item = rspack_util::json_stringify_str(&positive_items[0]);
     BooleanMatcher::Matcher(Box::new(move |value| format!("{item} == {value}")))
   } else if negative_items.len() == 1 {
-    let item = to_simple_string(&negative_items[0]);
+    let item = rspack_util::json_stringify_str(&negative_items[0]);
     BooleanMatcher::Matcher(Box::new(move |value| format!("{item} != {value}")))
   } else {
     let positive_regexp = items_to_regexp(positive_items);

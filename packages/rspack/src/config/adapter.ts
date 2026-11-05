@@ -216,6 +216,7 @@ function getRawOutputEnvironment(
     optionalChaining: Boolean(environment.optionalChaining),
     logicalAssignment: Boolean(environment.logicalAssignment),
     templateLiteral: Boolean(environment.templateLiteral),
+    topLevelAwait: Boolean(environment.topLevelAwait),
     importMetaDirnameAndFilename: Boolean(
       environment.importMetaDirnameAndFilename,
     ),
@@ -923,6 +924,7 @@ function getRawCssGeneratorOptions(
 ): RawCssGeneratorOptions {
   return {
     exportsOnly: options.exportsOnly,
+    runtimePublicPath: options.runtimePublicPath,
     esModule: options.esModule,
   };
 }
@@ -938,6 +940,7 @@ function getRawCssAutoOrModuleGeneratorOptions(
     localIdentHashSalt: options.localIdentHashSalt,
     exportsConvention: options.exportsConvention,
     exportsOnly: options.exportsOnly,
+    runtimePublicPath: options.runtimePublicPath,
     esModule: options.esModule,
   };
 }

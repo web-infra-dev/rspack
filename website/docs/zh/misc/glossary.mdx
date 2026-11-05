@@ -3,15 +3,15 @@ description: '收录 Rspack 的常用术语及定义。'
 sidebar: false
 ---
 
-# 术语表
+# 术语表 \{#glossary}
 
 该索引列出了整个 Rspack 生态系统中的常用术语。
 
-## asset（静态资源）
+## asset（静态资源） \{#asset}
 
 静态资源是对图像、字体、视频等静态文件的统称。这些文件通常会最终输出为单独的文件，而不是打包到代码块中，但是通过其也可以转换成 base64 内联到代码块中
 
-## asset module（资源模块）
+## asset module（资源模块） \{#asset-module}
 
 Asset 模块是一种特殊的模块类型，用来处理静态资源，例如图片、字体、视频等。
 
@@ -27,7 +27,7 @@ Bundle splitting 是一种允许你将代码分割或合并到多个 bundle 的�
 
 - [代码分割](/guide/optimization/code-splitting)
 
-## built-in module type（内置模块类型）
+## built-in module type（内置模块类型） \{#built-in-module-type}
 
 Rspack 中的内置模块类型指的是那些不需要依赖 loader 和 plugin 即可支持的模块类型，例如 JavaScript、CSS、JSON、静态资源等，而像 TypeScript、HTML、Markdown、YAML 等需要依赖 loader 和 plugin 才能支持的模块类型则不是内置模块类型。
 
@@ -36,11 +36,35 @@ Rspack 中的内置模块类型指的是那些不需要依赖 loader 和 plugin 
 - [JSON](/guide/languages/json)
 - [rules[].type](/config/module-rules#rulestype)
 
+## cache group（缓存组） \{#cache-group}
+
+缓存组（cache group）是一组选择模块并决定如何拆分的规则，通过 [`cacheGroups`](/plugins/split-chunks-plugin#splitchunkscachegroups) 配置。例如，你可以选择 `node_modules` 中的模块，并为它们设置拆分体积阈值。
+
+假设两个按需加载的页面都依赖 `shared.js`。缓存组可以选中这个共享模块，满足拆分条件后，SplitChunksPlugin 可以将它抽离到共享 chunk 中：
+
+```text
+拆分前：
+页面 A chunk：[page-a.js, shared.js]
+页面 B chunk：[page-b.js, shared.js]
+
+拆分后：
+页面 A chunk：[page-a.js] ─┐
+　　        　             ├→ 共享 chunk：[shared.js]
+页面 B chunk：[page-b.js] ─┘
+```
+
+这里，`shared.js` 是[模块](#module)，包含它的共享 [chunk](#chunk) 是拆分结果，缓存组则提供拆分规则。一个缓存组可以生成多个 chunk，详见 [`cacheGroups` 示例](/plugins/split-chunks-plugin#splitchunkscachegroups)。
+
 ## chunk
 
-Chunk 是一组绑定在一起的模块。Rspack 会将相互关联的模块打包成一个 chunk，然后生成对应的文件。
+Chunk 是构建过程中组织[模块](#module)的单位，可以包含多个模块，并生成对应的资源文件。例如，一个页面的代码和它使用的组件可以放在同一个 chunk 中。
 
-## chunk graph（chunk 图）
+按照加载时机，chunk 可以分为：
+
+- **[Initial chunk](#initial-chunk)**：启动入口时需要加载的 chunk。
+- **[Async chunk](#async-chunk)**：运行过程中按需加载的 chunk，例如为通过 `import()` 动态导入的模块生成的 chunk。
+
+## chunk graph（chunk 图） \{#chunk-graph}
 
 Chunk 图是一种表示块之间关系的数据结构。它是一个有向图，图中的每个节点代表一个块，每条边代表块之间的依赖关系。
 
@@ -56,7 +80,7 @@ Code splitting 是一种技术，它允许你将你的代码分割成多个块�
 
 ## dependency
 
-Dependency 是从模块编译后的代码解析出来的，它用于存储模块的导入关系，以便递归生成模块图。在生成产物代码时，它可以注入模块的导入和导出相关代码，也可以用于代码替换和注入运行时依赖。
+Dependency（依赖）记录了解析模块转换后的源码时发现的导入关系。Rspack 根据这些关系构建模块图。在代码生成阶段，依赖还可以生成导入和导出代码、替换源码，并声明所需的 Rspack 运行时功能。
 
 ## initial chunk
 
@@ -68,17 +92,17 @@ Loader 是用来转换模块内容的。例如，我们可以使用 loader 将 T
 
 - [Loader](/guide/features/loader)
 
-## module（模块）
+## module（模块） \{#module}
 
-模块允许你将应用拆分为多个文件，并且在这些文件可以通过导入和导出进行模块内容的共享和复用，这可以帮助你将代码组织成独立的部分，并使用良好的接口在彼此间进行通信。
+模块（module）是 Rspack 处理的代码或资源单元，例如 `page.js`、`Button.tsx` 或 `style.css`。一个应用通常由多个模块组成。
 
-## module type（模块类型）
+## module type（模块类型） \{#module-type}
 
 模块类型是模块的一种属性，它们可以通过不同的方式进行解析和处理。我们可以通过指明模块的模块类型来告诉 Rspack 如何处理它们。例如，我们可以通过指定模块类型为 JavaScript 来告诉 Rspack 该模块是一个 JavaScript 模块，然后 Rspack 就会使用 JavaScript 解析器来解析该模块，如果指定的模块类型为 CSS，那么 Rspack 就会使用 CSS 解析器来解析该模块。
 
 - [rules[].type](/config/module-rules#rulestype)
 
-## module specifier（模块标识符）
+## module specifier（模块标识符） \{#module-specifier}
 
 模块标识符是一个可以解析为模块文件路径的字符串。例如，在下面的代码中，`./modules/foo.js` 就是模块标识符。
 
@@ -86,13 +110,13 @@ Loader 是用来转换模块内容的。例如，我们可以使用 loader 将 T
 import { foo } from './modules/foo.js';
 ```
 
-## module resolution（模块解析）
+## module resolution（模块解析） \{#module-resolution}
 
 模块解析是指 Rspack 如何找到模块的过程。Rspack 会根据模块的路径来解析模块，例如，当我们在代码中使用 `import 'foo'` 时，Rspack 就会根据模块的路径来解析模块。
 
 - [模块解析](/guide/features/module-resolution)
 
-## module graph（模块图）
+## module graph（模块图） \{#module-graph}
 
 > module graph 也被称为 dependency graph（依赖图）。
 
@@ -102,25 +126,35 @@ import { foo } from './modules/foo.js';
 
 [NAPI-RS](https://napi.rs/) 是一个在 Rust 中构建预编译的 Node.js 插件的框架。它通过提供 Node-API 的高级抽象，简化了创建和发布本地 Node.js 附加组件的过程。
 
-## plugin（插件）
+## plugin（插件） \{#plugin}
 
 插件可以用来扩展 Rspack 的功能。它可以用来定制构建过程，或与其他工具集成。Rspack 提供了很多钩子，你可以用它们来定制构建过程。
 
 - [插件](/guide/features/plugin)
 
-## runtime
+## Rspack 运行时 \{#rspack-runtime}
 
-runtime（运行时）是指在浏览器或其他环境中运行过程中，Rspack 用来连接模块化应用所需的所有代码。它包含了连接模块所需的加载和解析逻辑。
+Rspack 运行时（Rspack runtime）是 Rspack 添加到构建产物中的代码，负责加载和执行模块、缓存模块导出，以及加载额外的 chunk。根据配置，它还可以支持 HMR 等功能。这些代码在浏览器或 Node.js 等 JavaScript 环境中执行；这里的「运行时」并不指 JavaScript 引擎或宿主环境。
 
 - [optimization.runtimeChunk](/config/optimization#optimizationruntimechunk)
 
-## scope hoisting （作用域合并）
+## Rspack 运行时模块 \{#rspack-runtime-module}
+
+Rspack 运行时模块（`RuntimeModule`）是构建过程中用于生成一部分 [Rspack 运行时代码](#rspack-runtime)的单元，例如设置 [`publicPath`](/config/output#outputpublicpath)、加载 chunk 或支持 HMR。它生成的代码会被加入相应的 chunk。这里的「模块」并不是应用源码中通过 `import` 引用的业务模块。
+
+插件可以继承 `RuntimeModule`，通过 `generate()` 返回 JavaScript 代码，再调用 [`compilation.addRuntimeModule`](/api/javascript-api/compilation#addruntimemodule) 将其实例添加到指定的 chunk。
+
+- [`runtimeRequirementInTree`](/api/plugin-api/compilation-hooks#runtimerequirementintree)：添加运行时依赖或自定义运行时模块。
+- [`runtimeModule`](/api/plugin-api/compilation-hooks#runtimemodule)：查看或修改运行时模块生成的代码。
+- [`stats.runtimeModules`](/config/stats#statsruntimemodules)：在构建统计中展示运行时模块。
+
+## scope hoisting （作用域合并） \{#scope-hoisting}
 
 作用域提升是一种将多个模块作用域进行合并的技术，它在可能的情况下将多个模块合并到一个单一的作用域中，而不是将每个模块包装在单独的函数中。这样对代码压缩更友好，并可以通过减少模块查找成本来提高运行时性能。
 
 - [optimization.concatenateModules](/config/optimization#optimizationconcatenatemodules)
 
-## tree shaking （摇树优化）
+## tree shaking （摇树优化） \{#tree-shaking}
 
 Tree shaking 是一种允许你从包中删除未使用代码的技术。它是一种特殊的死代码优化方式。像 Rspack 这样的编译器将通过分析代码的静态语法，然后删除未使用的代码来完成此操作。
 
