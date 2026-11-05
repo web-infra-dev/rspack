@@ -69,6 +69,80 @@ export default [
     }
   },
   {
+    description: "should compare the final content after emit hooks",
+    options(context) {
+      return options(context, ["a", "b"]);
+    },
+    build(context, compiler) {
+      // Replace the second asset with the first compiler's emitted bytes. This
+      // uses assetEmitted to verify MultiCompiler observes emit-hook changes.
+      let firstContent;
+      compiler.compilers[0].hooks.assetEmitted.tap(
+        "capture-first-content",
+        (_filename, info) => {
+          firstContent = info.source;
+        }
+      );
+      compiler.compilers[1].hooks.emit.tap("reuse-first-content", compilation => {
+        compilation.updateAsset("bundle.js", firstContent);
+      });
+      return run(compiler, stats => {
+        expect(stats.hasWarnings()).toBe(false);
+      });
+    }
+  },
+  {
+    description: "should not inspect assets when shouldEmit prevents output",
+    options(context) {
+      return options(context, ["a", "b"]);
+    },
+    compiler(context, compiler) {
+      compiler.compilers[1].hooks.shouldEmit.tap("skip-output", () => false);
+    },
+    build(context, compiler) {
+      return run(compiler, stats => {
+        expect(stats.hasWarnings()).toBe(false);
+      });
+    }
+  },
+  {
+    description: "should detect query variants that write the same physical file",
+    options(context) {
+      const configs = options(context, ["a", "b"]);
+      configs[0].output.filename = "bundle.js?first";
+      configs[1].output.filename = "bundle.js?second";
+      return configs;
+    },
+    build(context, compiler) {
+      return run(compiler, stats => {
+        const warnings = getWarnings(stats);
+        expect(warnings).toHaveLength(1);
+        expect(warnings[0]).toContain("same filename bundle.js");
+      });
+    }
+  },
+  {
+    description: "should report conflicts in compiler configuration order",
+    options(context) {
+      const configs = options(context, ["a", "b"]);
+      configs.parallelism = Number.POSITIVE_INFINITY;
+      return configs;
+    },
+    compiler(context, compiler) {
+      compiler.compilers[0].hooks.emit.tapPromise(
+        "delay-first-compiler",
+        () => new Promise(resolve => setTimeout(resolve, 50))
+      );
+    },
+    build(context, compiler) {
+      return run(compiler, stats => {
+        const warnings = getWarnings(stats);
+        expect(warnings).toHaveLength(1);
+        expect(warnings[0]).toContain('Compilers "a" and "b"');
+      });
+    }
+  },
+  {
     description: "should not warn for the same filename in different output paths",
     options(context) {
       return options(context, ["a", "b"], [

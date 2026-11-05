@@ -8,9 +8,9 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import * as liteTapable from '@rspack/lite-tapable';
-import type { Source } from 'webpack-sources';
 import type {
   CompilationParams,
   Compiler,
@@ -18,7 +18,7 @@ import type {
   RspackOptions,
   Stats,
 } from '.';
-import type { Assets, Compilation } from './Compilation';
+import type { Compilation } from './Compilation';
 import type { WatchOptions } from './config';
 import ConcurrentCompilationError from './error/ConcurrentCompilationError';
 import MultiStats from './MultiStats';
@@ -86,9 +86,10 @@ export class MultiCompiler {
     Compiler,
     {
       outputFileSystem: NonNullable<Compiler['outputFileSystem']>;
-      assets: Map<string, Source>;
+      assets: Map<string, { targetPath: string; size: number; digest: string }>;
     }
   >();
+  #assetConflictWarnings = new WeakMap<Compilation, Error[]>();
 
   constructor(
     compilers: Compiler[] | Record<string, Compiler>,
@@ -142,10 +143,8 @@ export class MultiCompiler {
       const compiler = this.compilers[index];
       const compilerIndex = index;
       let compilerDone = false;
-      compiler.hooks.thisCompilation.tap('MultiCompiler', (compilation) => {
-        compilation.hooks.afterProcessAssets.tap('MultiCompiler', (assets) =>
-          this.#recordEmittedAssets(compiler, compilation, assets),
-        );
+      compiler.hooks.assetEmitted.tap('MultiCompiler', (_filename, info) => {
+        this.#recordEmittedAsset(compiler, info.targetPath, info.content);
       });
       compiler.hooks.done.tap('MultiCompiler', (stats) => {
         if (!compilerDone) {
@@ -154,6 +153,7 @@ export class MultiCompiler {
         }
         compilerStats[compilerIndex] = stats;
         if (doneCompilers === this.compilers.length) {
+          this.#reportAssetConflicts(compilerStats as Stats[]);
           this.hooks.done.call(new MultiStats(compilerStats as Stats[]));
         }
       });
@@ -176,50 +176,93 @@ export class MultiCompiler {
     }
   }
 
-  #recordEmittedAssets(
-    compiler: Compiler,
-    compilation: Compilation,
-    emittedAssets: Assets,
-  ) {
+  #recordEmittedAsset(compiler: Compiler, targetPath: string, content: Buffer) {
     const outputFileSystem = compiler.outputFileSystem;
     if (!outputFileSystem) return;
 
-    const assets = new Map<string, Source>();
-    const conflicts = new Set<string>();
-    for (const [name, source] of Object.entries(emittedAssets)) {
-      const filename = path.resolve(compiler.outputPath, name);
-      assets.set(filename, source);
+    let record = this.#compilerAssets.get(compiler);
+    if (!record || record.outputFileSystem !== outputFileSystem) {
+      record = { outputFileSystem, assets: new Map() };
+      this.#compilerAssets.set(compiler, record);
+    }
 
-      for (const otherCompiler of this.compilers) {
-        if (otherCompiler === compiler) continue;
-        const previous = this.#compilerAssets.get(otherCompiler);
-        if (
-          previous?.outputFileSystem === outputFileSystem &&
-          previous.assets.has(filename)
-        ) {
-          const previousSource = previous.assets.get(filename)!;
+    record.assets.set(this.#canonicalTargetPath(targetPath), {
+      targetPath,
+      size: content.length,
+      digest: createHash('sha256').update(content).digest('hex'),
+    });
+  }
+
+  #canonicalTargetPath(targetPath: string) {
+    const normalized = path.normalize(targetPath);
+    // Windows and the default macOS file systems compare paths without case.
+    return process.platform === 'win32' || process.platform === 'darwin'
+      ? normalized.toLowerCase()
+      : normalized;
+  }
+
+  #reportAssetConflicts(stats: Stats[]) {
+    for (const childStats of stats) {
+      const compilation = childStats.compilation;
+      const previousWarnings = this.#assetConflictWarnings.get(compilation);
+      if (previousWarnings) {
+        compilation.warnings = compilation.warnings.filter(
+          (warning) => !previousWarnings.includes(warning),
+        );
+      }
+      this.#assetConflictWarnings.delete(compilation);
+    }
+
+    const conflicts = new Set<string>();
+    for (let firstIndex = 0; firstIndex < this.compilers.length; firstIndex++) {
+      const firstCompiler = this.compilers[firstIndex];
+      const first = this.#compilerAssets.get(firstCompiler);
+      if (!first) continue;
+
+      for (
+        let secondIndex = firstIndex + 1;
+        secondIndex < this.compilers.length;
+        secondIndex++
+      ) {
+        const secondCompiler = this.compilers[secondIndex];
+        const second = this.#compilerAssets.get(secondCompiler);
+        if (!second || first.outputFileSystem !== second.outputFileSystem) {
+          continue;
+        }
+
+        for (const filename of [...first.assets.keys()].sort()) {
+          const firstAsset = first.assets.get(filename)!;
+          const secondAsset = second.assets.get(filename);
           if (
-            previousSource.size() === source.size() &&
-            previousSource.buffer().equals(source.buffer())
+            !secondAsset ||
+            (firstAsset.size === secondAsset.size &&
+              firstAsset.digest === secondAsset.digest)
           ) {
             continue;
           }
-          const displayName = path.relative(this.outputPath, filename);
-          const describeCompiler = (childCompiler: Compiler) =>
+
+          const describeCompiler = (childCompiler: Compiler, index: number) =>
             childCompiler.name
               ? `"${childCompiler.name}"`
-              : `at index ${this.compilers.indexOf(childCompiler)}`;
+              : `at index ${index}`;
+          const displayName = path.relative(
+            this.outputPath,
+            firstAsset.targetPath,
+          );
           conflicts.add(
-            `Conflict: Compilers ${describeCompiler(otherCompiler)} and ${describeCompiler(compiler)} emit different content to the same filename ${displayName}`,
+            `Conflict: Compilers ${describeCompiler(firstCompiler, firstIndex)} and ${describeCompiler(secondCompiler, secondIndex)} emit different content to the same filename ${displayName}`,
           );
         }
       }
     }
 
-    this.#compilerAssets.set(compiler, { outputFileSystem, assets });
-
-    for (const conflict of conflicts) {
-      compilation.warnings.push(new Error(conflict));
+    const compilation = stats.at(-1)?.compilation;
+    if (compilation && conflicts.size > 0) {
+      const warnings = [...conflicts]
+        .sort()
+        .map((conflict) => new Error(conflict));
+      compilation.warnings.push(...warnings);
+      this.#assetConflictWarnings.set(compilation, warnings);
     }
   }
 
