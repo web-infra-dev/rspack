@@ -19,28 +19,65 @@ pub use cache_key::CacheKey;
 pub use cache_value::CacheValue;
 pub use etag::Etag;
 pub use file_cache_strategy::FileCacheStrategy;
+use idle_file_cache::FileCacheWorker;
 pub use idle_file_cache::IdleFileCache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
+use parking_lot::Mutex;
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{InternedPath, InternedPathMap};
 pub use snapshot::{FileSystemInfo, Snapshot, SnapshotValidationResult};
 pub use statistics::{CacheInfo, CacheRecord};
-use tokio::sync::Mutex;
 
 use crate::{
   CompilerOptions, InfrastructureLogSink, InfrastructureLogger, MaxMemoryGenerations,
   cache::CacheCodec,
 };
 
-static SHARED_PERSISTENT_CACHES: LazyLock<Mutex<InternedPathMap<Weak<Cache>>>> =
+struct SharedCache {
+  owner: Weak<CacheOwner>,
+  worker: FileCacheWorker,
+}
+
+static SHARED_PERSISTENT_CACHES: LazyLock<Mutex<InternedPathMap<SharedCache>>> =
   LazyLock::new(|| Mutex::new(InternedPathMap::default()));
+
+/// Shared by compiler roots. Compilation and cache facade references only retain the storage.
+#[derive(Debug)]
+pub struct CacheOwner {
+  cache: Arc<Cache>,
+}
+
+impl CacheOwner {
+  pub fn cache(&self) -> &Arc<Cache> {
+    &self.cache
+  }
+
+  pub async fn shutdown(self: Arc<Self>) {
+    if let Some(owner) = Arc::into_inner(self) {
+      let worker = owner.cache.file_cache().map(IdleFileCache::worker);
+      drop(owner);
+      if let Some(worker) = worker {
+        worker.closed().await;
+      }
+    }
+  }
+}
+
+impl Drop for CacheOwner {
+  fn drop(&mut self) {
+    self.cache.start_shutdown();
+    if let Some(file_cache) = self.cache.file_cache() {
+      remove_closed_cache(file_cache.storage_dir());
+    }
+  }
+}
 
 /// Creates cache storage independently of a compiler's namespace.
 pub fn create_cache(
   compiler_options: &CompilerOptions,
   input_filesystem: Arc<dyn ReadableFileSystem>,
   infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
-) -> Arc<Cache> {
+) -> Arc<CacheOwner> {
   let storage_dir = match (
     compiler_options.experiments.new_cache.is_enabled(),
     &compiler_options.cache,
@@ -54,30 +91,63 @@ pub fn create_cache(
   };
 
   let Some(storage_dir) = storage_dir else {
-    return Arc::new(create_cache_storage(
+    return create_cache_owner(
       compiler_options,
       input_filesystem,
       infrastructure_log_sink,
-    ));
+      None,
+    );
   };
 
-  let mut caches = SHARED_PERSISTENT_CACHES.blocking_lock();
-  if let Some(cache) = caches.get(&storage_dir).and_then(Weak::upgrade) {
-    return cache;
+  let mut caches = SHARED_PERSISTENT_CACHES.lock();
+  let previous = caches.get(&storage_dir);
+  if let Some(owner) = previous.and_then(|entry| entry.owner.upgrade()) {
+    return owner;
   }
-  let cache = Arc::new(create_cache_storage(
+  // The constructor can run inside Tokio. A replacement worker waits for the
+  // previous database to close on its own thread, outside the registry lock.
+  let owner = create_cache_owner(
     compiler_options,
     input_filesystem,
     infrastructure_log_sink,
-  ));
-  caches.insert(storage_dir, Arc::downgrade(&cache));
-  cache
+    previous.map(|entry| entry.worker.clone()),
+  );
+  let worker = owner
+    .cache
+    .file_cache()
+    .expect("persistent cache should have a file cache")
+    .worker();
+  caches.insert(
+    storage_dir,
+    SharedCache {
+      owner: Arc::downgrade(&owner),
+      worker,
+    },
+  );
+  owner
+}
+
+fn create_cache_owner(
+  compiler_options: &CompilerOptions,
+  input_filesystem: Arc<dyn ReadableFileSystem>,
+  infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
+  previous_worker: Option<FileCacheWorker>,
+) -> Arc<CacheOwner> {
+  Arc::new(CacheOwner {
+    cache: Arc::new(create_cache_storage(
+      compiler_options,
+      input_filesystem,
+      infrastructure_log_sink,
+      previous_worker,
+    )),
+  })
 }
 
 fn create_cache_storage(
   compiler_options: &CompilerOptions,
   input_filesystem: Arc<dyn ReadableFileSystem>,
   infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
+  previous_worker: Option<FileCacheWorker>,
 ) -> Cache {
   let logger = Arc::new(InfrastructureLogger::new(
     "rspack.cache",
@@ -129,6 +199,7 @@ fn create_cache_storage(
     None,
     None,
     None,
+    previous_worker,
   );
   let memory_cache = match options.max_memory_generations {
     MaxMemoryGenerations::Disabled => None,
@@ -139,19 +210,12 @@ fn create_cache_storage(
   Cache::new(memory_cache, Some(idle_file_cache), logger)
 }
 
-pub async fn shutdown_cache(cache: Arc<Cache>) {
-  let Some(storage_dir) = cache.storage_dir() else {
-    cache.shutdown().await;
-    return;
-  };
-
-  let mut caches = SHARED_PERSISTENT_CACHES.lock().await;
-  let is_current = caches
-    .get(&storage_dir)
-    .and_then(Weak::upgrade)
-    .is_some_and(|current| Arc::ptr_eq(&current, &cache));
-  cache.shutdown().await;
-  if is_current {
-    caches.remove(&storage_dir);
+fn remove_closed_cache(storage_dir: &InternedPath) {
+  let mut caches = SHARED_PERSISTENT_CACHES.lock();
+  if caches
+    .get(storage_dir)
+    .is_some_and(|entry| entry.owner.strong_count() == 0 && entry.worker.is_closed())
+  {
+    caches.remove(storage_dir);
   }
 }
