@@ -19,7 +19,13 @@ fn position(source: &str, offset: usize) -> SourcePosition {
   let prefix = &source[..offset];
   SourcePosition {
     line: prefix.bytes().filter(|byte| *byte == b'\n').count() as u32 + 1,
-    column: prefix.rsplit('\n').next().unwrap().encode_utf16().count() as u32 + 1,
+    column: prefix
+      .rsplit('\n')
+      .next()
+      .expect("should have a last line")
+      .encode_utf16()
+      .count() as u32
+      + 1,
   }
 }
 
@@ -33,7 +39,8 @@ fn location(source: &str, start: usize, end: usize) -> RealDependencyLocation {
 fn fixture(context: &Context) -> (Vec<DependencyLocation>, Vec<DependencyLocation>) {
   let names = ["src/读者-😀.js", "second.js", "third.js"];
   let canonical_literals = names.map(|name| quote_ascii(&format!("[portable-root]/{name}")));
-  let paths = names.map(|name| Utf8PathBuf::from_path_buf(context.0.join(name)).unwrap());
+  let paths = names
+    .map(|name| Utf8PathBuf::from_path_buf(context.0.join(name)).expect("should be a UTF-8 path"));
   let literals = paths.each_ref().map(|path| quote_ascii(path.as_str()));
   let source = |literals: &[String; 3]| {
     format!(
@@ -45,10 +52,10 @@ fn fixture(context: &Context) -> (Vec<DependencyLocation>, Vec<DependencyLocatio
   let rendered = source(&literals);
   let canonical_starts = canonical_literals
     .each_ref()
-    .map(|literal| canonical.find(literal).unwrap());
+    .map(|literal| canonical.find(literal).expect("should contain the literal"));
   let rendered_starts = literals
     .each_ref()
-    .map(|literal| rendered.find(literal).unwrap());
+    .map(|literal| rendered.find(literal).expect("should contain the literal"));
   let shifts = (0..3)
     .map(|index| PortableLocationShift {
       start: position(&canonical, canonical_starts[index]),
@@ -67,14 +74,22 @@ fn fixture(context: &Context) -> (Vec<DependencyLocation>, Vec<DependencyLocatio
       (first_end, starts[1]),  // Gap whose endpoints depend on the first width only.
       (starts[1], second_end), // Both preceding and enclosed path widths.
       (
-        text.find("import 'dep'").unwrap(),
-        text.find(";\n").unwrap() + 1,
+        text
+          .find("import 'dep'")
+          .expect("should contain the import"),
+        text.find(";\n").expect("should contain the statement end") + 1,
       ),
       (
         starts[0],
-        text.find("import 'other'").unwrap() + "import 'other'".len(),
+        text
+          .find("import 'other'")
+          .expect("should contain the import")
+          + "import 'other'".len(),
       ),
-      (text.find("last").unwrap(), text.len()), // Earlier lines never affect columns.
+      (
+        text.find("last").expect("should contain the last line"),
+        text.len(),
+      ), // Earlier lines never affect columns.
     ]
   };
   let actual = ranges(&canonical, &canonical_starts, &canonical_literals)
@@ -121,7 +136,7 @@ fn test_portable_location_rebases_columns_and_serializes_canonically() {
     .collect::<Vec<_>>();
   let bailout_bytes = rspack_cacheable::to_bytes(&bailouts, &writer).unwrap();
   for root in [
-    writer.0.clone(),
+    writer.0,
     temp.join("r"),
     temp.join("longer-根-😀-\"-root").join("project"),
   ] {

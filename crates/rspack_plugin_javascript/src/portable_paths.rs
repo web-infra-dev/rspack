@@ -12,7 +12,8 @@
 //!   canonical AST is patched before any analysis runs. Direct readers may copy a site's whole
 //!   value or compare it with a root-independent constant; derivations must use the evaluator
 //!   so they bind the module. Source-copying createRequire handling is excluded. Diagnostics
-//!   collected during the scan, including context-dependency criticals, force a real-text parse.
+//!   collected during the scan, including critical context-dependency warnings, force a real-text
+//!   parse.
 //! - Code generation and the public source view render every site as the current root's path.
 //!   Canonical text is never emitted: a site under a replacement that already removed its range
 //!   renders nothing, and any other site range is fully rewritten.
@@ -150,15 +151,14 @@ pub(crate) fn prepare(
         }
       }
       // A template quasi has no literal of its own to replace.
-      NodeKindData::TemplateElement(element) => {
+      NodeKindData::TemplateElement(element)
         if !element.is_cooked_undefined(ast)
           && ast
             .get_wtf8(element.cooked(ast))
             .as_str()
-            .is_some_and(|value| declared.contains_key(value))
-        {
-          unsupported = true;
-        }
+            .is_some_and(|value| declared.contains_key(value)) =>
+      {
+        unsupported = true;
       }
       // JSX attribute strings have no escapes, so the JSON spelling would change their value.
       NodeKindData::JsxAttribute(attribute) => {
