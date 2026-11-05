@@ -93,7 +93,10 @@ impl Ord for SortKey {
     }
     // Layer 2: ordered by smallest combined size. A NaN size, which only non-finite
     // options produce, is merged last.
-    match (self.integrated_size.is_nan(), other.integrated_size.is_nan()) {
+    match (
+      self.integrated_size.is_nan(),
+      other.integrated_size.is_nan(),
+    ) {
       (false, false) => {
         if self.integrated_size < other.integrated_size {
           return Ordering::Greater;
