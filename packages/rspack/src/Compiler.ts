@@ -70,7 +70,7 @@ import {
 import { TraceHookPlugin } from './trace/traceHookPlugin';
 import { JavaScriptTracer } from './trace';
 import { unsupported } from './util';
-import { registerAllocativeSnapshot } from './util/allocative';
+import { installAllocativeSnapshotHook } from './util/allocative';
 import { assertNotNill } from './util/assertNotNil';
 import { checkVersion } from './util/bindingVersionCheck';
 import type {
@@ -341,7 +341,7 @@ class Compiler {
         'Cannot execute user defined code in browser without `BrowserRequirePlugin`',
       );
     };
-    registerAllocativeSnapshot(require('@rspack/binding'));
+    installAllocativeSnapshotHook();
     // this is a bit tricky since applyDefaultOptions is executed later, so we don't get the `resolve.pnp` default value
     // we need to call pnp defaultValue early here
     this.resolverFactory = new ResolverFactory(

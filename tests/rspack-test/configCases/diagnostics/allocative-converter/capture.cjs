@@ -1,5 +1,16 @@
 const assert = require('node:assert/strict');
+const { createRequire } = require('node:module');
 const path = require('node:path');
+const binding = createRequire(require.resolve('@rspack/core/package.json'))(
+  '@rspack/binding',
+);
+assert.equal(
+  Object.hasOwn(binding, 'registerAllocativeSnapshotCallback'),
+  false,
+  'the native binding must not export a snapshot registration function',
+);
+const hookName = '__rspack_internal_runJsSnapshot';
+let snapshotCalls = 0;
 const { rspack } = require('@rspack/core');
 const seen = [];
 let enabled;
@@ -30,6 +41,15 @@ const compiler = rspack({
       apply(compiler) {
         compiler.hooks.thisCompilation.tap('SnapshotFixture', (compilation) => {
           check(compilation.__internal_getInner());
+          if (enabled) {
+            const runSnapshot = globalThis[hookName];
+            Object.defineProperty(globalThis, hookName, {
+              value(snapshotPath) {
+                snapshotCalls++;
+                runSnapshot(snapshotPath);
+              },
+            });
+          }
 
           compilation.hooks.finishModules.tap('SnapshotFixture', (modules) => {
             for (const module of modules) {
@@ -56,6 +76,15 @@ const compiler = rspack({
     },
   ],
 });
+const hook = Object.getOwnPropertyDescriptor(globalThis, hookName);
+if (process.env.RSPACK_ALLOCATIVE_DIR === undefined) {
+  assert.equal(hook, undefined);
+} else {
+  assert.equal(typeof hook?.value, 'function');
+  assert.equal(hook.enumerable, false);
+  assert.equal(hook.writable, false);
+}
+
 compiler.run((error, stats) => {
   if (error) {
     console.error(error);
@@ -65,6 +94,7 @@ compiler.run((error, stats) => {
     return;
   }
   assert.equal(stats.hasErrors(), false, stats.toString());
+  assert.equal(snapshotCalls, enabled ? 1 : 0);
   console.log(JSON.stringify({ enabled, seen }));
   compiler.close((error) => {
     if (error) throw error;

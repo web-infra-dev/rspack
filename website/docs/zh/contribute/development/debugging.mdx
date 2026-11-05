@@ -117,7 +117,7 @@ RSPACK_ALLOCATIVE_DIR=/tmp/rspack-memory \
   node --expose-gc packages/rspack-cli/bin/rspack.js build
 ```
 
-在 build 或 rebuild 的缓存收尾完成后，Rust 会等待一个全局 JavaScript 回调。回调先执行 `gc()`，再写入 V8 堆快照，随后 Rust 才遍历 compiler。每次采集会生成配套的 `.heapsnapshot`、`.allocative` 和 `.objects.json` 文件。未注册回调的独立 Rust 程序仍只生成 Rust profile。一个进程只允许一个 V8 环境注册回调。
+设置 `RSPACK_ALLOCATIVE_DIR` 时，Rspack 会在 `globalThis` 上安装内部钩子。build 或 rebuild 的缓存收尾完成后，allocative binding 会在所属的 JavaScript 线程上调用该钩子，等待它执行 `gc()` 并写入 V8 堆快照，再遍历 Rust compiler。每次采集会生成配套的 `.heapsnapshot`、`.allocative` 和 `.objects.json` 文件。未注册回调的独立 Rust 程序仍只生成 Rust profile。一个进程只允许一个 V8 环境注册回调。
 
 启用 allocative 时，native class 实例包含不可枚举、只读的字符串属性 `__rspackRustPtr` 和 `__rspackRustType`。指针标识 Rust binding wrapper 在 N-API 中的最终地址，与 wrapper 引用的 module 或 resolver 地址不同。弱引用注册表记录存活的 wrapper，不阻止回收，也不遍历可能正在工作的 native target。compiler 遍历独立测量 native 内存；binding 身份记录不增加字节权重。
 

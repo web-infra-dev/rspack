@@ -113,7 +113,7 @@ RSPACK_ALLOCATIVE_DIR=/tmp/rspack-memory \
   node --expose-gc packages/rspack-cli/bin/rspack.js build
 ```
 
-After build or rebuild cache finalization, Rust waits for a global JavaScript callback. The callback runs `gc()` and writes a V8 heap snapshot before Rust traverses the compiler. Each capture produces matching `.heapsnapshot`, `.allocative`, and `.objects.json` files. Standalone Rust workloads without a registered callback continue to produce Rust profiles only. Only one V8 environment can register the callback in a process.
+When `RSPACK_ALLOCATIVE_DIR` is set, Rspack installs an internal hook on `globalThis`. After build or rebuild cache finalization, the allocative binding calls that hook on the owning JavaScript thread and waits for it to run `gc()` and write the V8 heap snapshot before traversing the Rust compiler. Each capture produces matching `.heapsnapshot`, `.allocative`, and `.objects.json` files. Standalone Rust workloads without a registered callback continue to produce Rust profiles only. Only one V8 environment can register the callback in a process.
 
 In an allocative build, native class instances have non-enumerable, read-only string properties `__rspackRustPtr` and `__rspackRustType`. The pointer identifies the Rust binding wrapper at its final N-API address. It is distinct from the address of a module or resolver referenced by that wrapper. Weak registration records live wrappers without keeping them alive or traversing their potentially active native targets. The compiler traversal measures native memory separately; binding identity records add no byte weights.
 

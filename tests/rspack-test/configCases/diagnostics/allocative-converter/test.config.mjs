@@ -34,6 +34,11 @@ export default {
       assert.ifError(child.error);
       assert.equal(child.status, 0, child.stderr);
       const captured = JSON.parse(child.stdout.trim().split('\n').at(-1));
+      assert.equal(
+        captured.enabled,
+        fs.existsSync(path.join(directory, '0-build.allocative')),
+        'a Rust snapshot must include live binding identities',
+      );
       const disabledEnv = {
         ...process.env,
         ALLOCATIVE_TEST_CONTEXT: temporary,
