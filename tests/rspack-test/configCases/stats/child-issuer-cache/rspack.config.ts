@@ -20,13 +20,14 @@ export default {
                 factory.hooks.extract
                   .for('module$visible')
                   .tap('ChildIssuerContract', (_object, module, context) => {
-                    if (!Array.isArray(module.issuerPath)) return;
+                    const issuerPath = module.issuerPath;
+                    if (!Array.isArray(issuerPath)) return;
                     assert(
-                      !seen.has(module.issuerPath),
+                      !seen.has(issuerPath),
                       'custom hooks must receive independent raw issuer paths',
                     );
-                    seen.add(module.issuerPath);
-                    for (const issuer of module.issuerPath) {
+                    seen.add(issuerPath);
+                    for (const issuer of issuerPath) {
                       assert(
                         !records.has(issuer),
                         'custom hooks must receive independent raw issuer records',
@@ -35,14 +36,14 @@ export default {
                     }
                     if (
                       !context.compilation.compiler.isChild() ||
-                      module.issuerPath.length === 0
+                      issuerPath.length === 0
                     ) {
                       return;
                     }
                     const name = module.commonAttributes.moduleDescriptor?.name;
                     assert(name === './first.js' || name === './second.js');
                     assert.deepEqual(
-                      module.issuerPath.map(({ moduleDescriptor }) => ({
+                      issuerPath.map(({ moduleDescriptor }) => ({
                         identifier: path.relative(
                           compiler.context,
                           moduleDescriptor.identifier,
