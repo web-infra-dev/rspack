@@ -276,7 +276,7 @@ direction LR
 
     ModuleGeneration --> CollectRuntimeRequirements
 
-    subgraph CollectRuntimeRequirements["收集运行时模块依赖"]
+    subgraph CollectRuntimeRequirements["收集 Rspack 运行时模块依赖"]
     HookBeforeRuntime(hooks.beforeRuntimeRequirements) --> HookModuleRuntime(hooks.runtimeRequirementInModule)
     HookModuleRuntime --> HookAdditionalChunkRuntime(hooks.additionalChunkRuntimeRequirements)
     HookAdditionalChunkRuntime --> HookChunkRuntime(hooks.runtimeRequirementInChunk)
@@ -567,14 +567,14 @@ type ExecuteModuleContext = {
 
 ## `additionalTreeRuntimeRequirements`
 
-在树运行时依赖计算完成后调用。
+在 chunk 树的 Rspack 运行时依赖收集完成后调用。
 
 - **类型：** `SyncHook<[Chunk, Set<RuntimeGlobals>]>`
 - **参数：**
   - `Chunk`：Chunk 实例
-  - `Set<RuntimeGlobals>`：运行时依赖集合
+  - `Set<RuntimeGlobals>`：Rspack 运行时依赖集合
 
-可通过修改运行时依赖集合以添加额外的内置运行时模块：
+可在此修改 Rspack 运行时依赖集合，以添加所需的内置 [Rspack 运行时模块](/misc/glossary#rspack-runtime-module)：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -587,7 +587,7 @@ export default {
           compilation.hooks.additionalTreeRuntimeRequirements.tap(
             'CustomPlugin',
             (_, set) => {
-              // 添加访问 compilation 哈希值的运行时模块
+              // 添加访问 compilation 哈希值的 Rspack 运行时模块
               set.add(RuntimeGlobals.getFullHash);
             },
           );
@@ -605,14 +605,14 @@ console.log(__webpack_require__.h());
 
 ## `runtimeRequirementInTree`
 
-在根据运行时依赖以添加运行时模块时调用。
+在根据 Rspack 运行时依赖添加相应模块时调用。
 
 - **类型：** `HookMap<SyncBailHook<[Chunk, Set<RuntimeGlobals>]>>`
 - **参数：**
   - `Chunk`：Chunk 实例
-  - `Set<RuntimeGlobals>`：运行时依赖集合
+  - `Set<RuntimeGlobals>`：Rspack 运行时依赖集合
 
-可通过修改运行时依赖集合以添加额外的内置运行时模块，也可通过 [`compilation.addRuntimeModule`](/api/javascript-api/compilation#addruntimemodule) 添加自定义运行时模块：
+可在此修改 Rspack 运行时依赖集合，以添加所需的内置模块，也可通过 [`compilation.addRuntimeModule`](/api/javascript-api/compilation#addruntimemodule) 添加自定义模块：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -640,9 +640,9 @@ export default {
           compilation.hooks.runtimeRequirementInTree
             .for(RuntimeGlobals.ensureChunkHandlers)
             .tap('CustomPlugin', (chunk, set) => {
-              // 添加访问 publicPath 的运行时模块
+              // 添加访问 publicPath 的 Rspack 运行时模块
               set.add(RuntimeGlobals.publicPath);
-              // 添加自定义运行时模块
+              // 添加自定义 Rspack 运行时模块
               compilation.addRuntimeModule(chunk, new CustomRuntimeModule());
             });
         });
@@ -659,14 +659,14 @@ console.log(__webpack_require__.mock('index.js'));
 
 ## `runtimeModule`
 
-在运行时模块被添加后调用。
+在 Rspack 运行时模块被添加后调用。
 
 - **类型：** `SyncHook<[RuntimeModule, Chunk]>`
 - **参数：**
-  - `RuntimeModule`：运行时模块
+  - `RuntimeModule`：Rspack 运行时模块
   - `Chunk`：Chunk 实例
 
-可通过 `source` 字段修改该运行时模块生成的代码。
+可通过 `source` 字段修改该 Rspack 运行时模块生成的代码。
 
 ```js title="rspack.config.mjs"
 export default {

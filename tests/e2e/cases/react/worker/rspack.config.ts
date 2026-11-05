@@ -1,0 +1,52 @@
+import { defineConfig } from '@rspack/cli';
+import { rspack } from '@rspack/core';
+import { ReactRefreshRspackPlugin } from '@rspack/plugin-react-refresh';
+
+export default defineConfig({
+  context: import.meta.dirname,
+  mode: 'development',
+  entry: './src/index.jsx',
+  resolve: {
+    extensions: ['...', '.ts', '.tsx', '.jsx'],
+  },
+  module: {
+    rules: [
+      {
+        test: /\.css/,
+        type: 'css/auto',
+      },
+      {
+        test: /\.jsx$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            detectSyntax: 'auto',
+            jsc: {
+              transform: {
+                react: {
+                  runtime: 'automatic',
+                  development: true,
+                  refresh: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+  plugins: [
+    new rspack.HtmlRspackPlugin({ template: './src/index.html' }),
+    new ReactRefreshRspackPlugin(),
+  ],
+  devServer: {
+    hot: true,
+  },
+  stats: 'none',
+  infrastructureLogging: {
+    debug: false,
+  },
+  watchOptions: {
+    poll: 1000,
+  },
+});

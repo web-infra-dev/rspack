@@ -279,7 +279,7 @@ export default {
 
 ### Changed default value of output.bundlerInfo.force
 
-The default value of [output.bundlerInfo.force](/config/output#outputbundlerinfo) changed from `true` to `false`. In Rspack 2.0, `__rspack_version__` and `__rspack_unique_id__` are injected on demand by default instead of always being added as runtime modules. If your application depends on the previous always-injected behavior, configure it explicitly:
+The default value of [output.bundlerInfo.force](/config/output#outputbundlerinfo) changed from `true` to `false`. In Rspack 2.0, `__rspack_version__` and `__rspack_unique_id__` are injected on demand by default instead of always being added as [Rspack runtime modules](/misc/glossary#rspack-runtime-module). If your application depends on the previous always-injected behavior, configure it explicitly:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -459,9 +459,9 @@ export default {
 };
 ```
 
-### Removed runtime module deprecated properties
+### Removed deprecated properties of Rspack runtime modules
 
-The following deprecated properties of Runtime module have been removed:
+The following deprecated properties have been removed from Rspack runtime modules:
 
 - `constructorName` - Constructor name property
 - `moduleIdentifier` - Module identifier property

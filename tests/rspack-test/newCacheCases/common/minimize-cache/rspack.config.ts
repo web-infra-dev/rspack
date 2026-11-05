@@ -25,7 +25,7 @@ export default defineConfig({
           const s = stats.toJson({
             all: false,
             assets: true,
-            logging: 'verbose',
+            cacheInfo: true,
           });
 
           const jsAssets = s.assets!.filter((a) => a.name?.endsWith('.js'));
@@ -33,24 +33,9 @@ export default defineConfig({
             expect(asset.info.minimized).toBe(true);
           }
 
-          const logEntries = s.logging?.[PLUGIN_NAME]?.entries ?? [];
-          const cacheLogEntry = logEntries.find(
-            (e) =>
-              e.type === 'cache' &&
-              e.message &&
-              e.message.startsWith('minimize persistent cache:'),
-          );
-
-          expect(cacheLogEntry).toBeTruthy();
-
-          const match = cacheLogEntry?.message.match(
-            /minimize persistent cache: [\d.]+% \((\d+)\/(\d+)\)/,
-          );
-          expect(match).toBeTruthy();
-
-          const hits = parseInt(match![1], 10);
-          const total = parseInt(match![2], 10);
-          const misses = total - hits;
+          const cacheStats = s.cacheInfo!;
+          const { hits, misses } =
+            cacheStats[`${compiler.compilerPath}|${PLUGIN_NAME}`];
 
           if (updateIndex === 0) {
             // Cold build, cache is empty → all misses

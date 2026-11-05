@@ -124,6 +124,9 @@ define.lib({
       WEBPACK_VERSION: JSON.stringify(packageJson.webpackVersion),
       RSPACK_VERSION: JSON.stringify(packageJson.version),
       IS_BROWSER: JSON.stringify(true),
+      // emnapi probes this escape hatch for Node's native require.
+      // Browser workers must not inject a node:module import into their IIFE.
+      __non_webpack_require__: 'undefined',
       // In `@rspack/browser`, runtime code like loaders and hmr should be written into something like memfs ahead of time.
       // Requiring these files should resolve to `@rspack/browser/xx`
       'import.meta.dirname': JSON.stringify('@rspack/browser'),

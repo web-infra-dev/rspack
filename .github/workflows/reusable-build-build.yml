@@ -236,6 +236,10 @@ jobs:
           wasm-opt -Oz crates/node_binding/rspack.browser.wasm -o crates/node_binding/rspack.browser.optimized.wasm
           mv crates/node_binding/rspack.browser.optimized.wasm crates/node_binding/rspack.browser.wasm
 
+      - name: Check WASI types
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
+        run: pnpm --filter @rspack/binding test:wasi
+
       - name: Diff artifact
         run: |
           export EXCLUDE=":(exclude).cargo/config.toml"
@@ -248,6 +252,7 @@ jobs:
           path: |
             crates/node_binding/*.node
             crates/node_binding/*.d.ts
+            ${{ inputs.target == 'wasm32-wasip1-threads' && 'crates/node_binding/rspack.wasi.d.cts' || '' }}
             crates/node_binding/rspack.wasm32-wasi.wasm
             crates/node_binding/rspack.wasm32-wasi.debug.wasm
             crates/node_binding/rspack.browser.wasm

@@ -42,6 +42,9 @@ export default async function run() {
     let generation = 0;
     const fileKey = Symbol.for('rspack.buildInfo.fileDependencies');
     let getContext, getFiles, getMap, getMatchResource, setMatchResource, getError;
+    const snapshotKeys = ['type', 'request', 'userRequest', 'resourceResolveData', 'loaders'];
+    let snapshots;
+    let removedIdentifier;
     compiler.hooks.done.tap('SharedAccessorsLifecycle', ({ compilation }) => {
       const modules = [...compilation.modules];
       const current = modules.find((module) => module.resource === entryPath);
@@ -50,6 +53,10 @@ export default async function run() {
         entry = current;
         removed = modules.find((module) => module.resource === valuePath);
         assert(removed);
+        removedIdentifier = removed.identifier();
+        // Successful lazy reads become owned values that survive revocation.
+        // Leave rawRequest unread to check the native lifetime on a cache miss.
+        snapshots = snapshotKeys.map(key => removed[key]);
         originalSource = removed.originalSource();
         getMap = Object.getOwnPropertyDescriptor(
           originalSource,
@@ -124,6 +131,12 @@ export default async function run() {
         assert.equal(entry.context, context);
         assert.equal(getContext.call(current), context);
         assert.throws(() => removed.context, /removed on the Rust side/);
+        assert.throws(() => removed.rawRequest, /removed on the Rust side/);
+        assert.throws(() => removed.rawRequest, /removed on the Rust side/);
+        // Assignment before a successful read does not enter Rust, and undefined
+        // is a cached value rather than an empty-cache sentinel.
+        assert.equal(Reflect.set(removed, 'rawRequest', undefined), true);
+        assert.equal(removed.rawRequest, undefined);
         assert.match(getFiles.call(info).message, /removed on the Rust side/);
         assert.throws(
           () => info[Symbol.for('rspack.buildInfo.assets')],
@@ -167,17 +180,22 @@ export default async function run() {
       () => setMatchResource.call(entry, 'closed.js'),
       /only modify the module in the loader/,
     );
+    assert.equal(removed.identifier(), removedIdentifier);
+    for (const [index, key] of snapshotKeys.entries()) {
+      assert.equal(removed[key], snapshots[index]);
+    }
+    snapshots = null;
     entry = null;
     removed = null;
     await tracker.waitForCollection('module');
     await tracker.waitForCollection('removed module');
     assert.match(
       getFiles.call(info).message,
-      /Module has been garbage collected/,
+      /Compiler has been garbage collected/,
     );
     assert.throws(
       () => info[Symbol.for('rspack.buildInfo.assets')],
-      /Module has been garbage collected/,
+      /Compiler has been garbage collected/,
     );
     info = null;
     await tracker.waitForCollection('build info');

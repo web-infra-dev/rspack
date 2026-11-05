@@ -1,5 +1,9 @@
 import { defineConfig } from '@rspack/cli';
-import type { MultiRspackOptions, RspackOptions } from '@rspack/core';
+import type {
+  CssParserOptions,
+  MultiRspackOptions,
+  RspackOptions,
+} from '@rspack/core';
 
 defineConfig({
   mode: 'development',
@@ -84,3 +88,27 @@ declare const dynamicConfig: RspackOptions | MultiRspackOptions;
 defineConfig(dynamicConfig);
 
 export { single, multi, syncResult, asyncResult };
+
+const cssRuntimePublicPath: RspackOptions = {
+  module: {
+    parser: {
+      css: { exportType: 'style' },
+      'css/auto': { exportType: 'style' },
+      'css/global': { exportType: 'style' },
+      'css/module': { exportType: 'style' },
+    },
+    generator: {
+      css: { runtimePublicPath: true },
+      'css/auto': { runtimePublicPath: true },
+      'css/global': { runtimePublicPath: false },
+      'css/module': { runtimePublicPath: true },
+    },
+  },
+};
+defineConfig(cssRuntimePublicPath);
+
+const cssParserOptions: CssParserOptions = {
+  // @ts-expect-error runtimePublicPath is a generator option
+  runtimePublicPath: true,
+};
+defineConfig({ module: { parser: { css: cssParserOptions } } });

@@ -38,7 +38,7 @@ jobs:
       DYLINT_RUSTFLAGS: '-D warnings'
       # SWC Next 0.1.3 uses `std::hint::cold_path`, which requires a newer nightly.
       DYLINT_TOOLCHAIN: nightly-2026-05-28
-      DYLINT_VERSION: 6.0.4
+      DYLINT_VERSION: 6.3.0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -69,7 +69,7 @@ jobs:
       - name: Install Dylint components
         run: rustup component add --toolchain "$DYLINT_TOOLCHAIN" rustc-dev llvm-tools-preview rust-src
 
-      - uses: cargo-bins/cargo-binstall@422f3094be6a0843857aa008b499caaf6bce0da8 # v1.24.0
+      - uses: cargo-bins/cargo-binstall@81df5c23b0dc775b009efdfc9895c5965b7a4e40 # v1.26.1
 
       - name: Install cargo-dylint
         run: |

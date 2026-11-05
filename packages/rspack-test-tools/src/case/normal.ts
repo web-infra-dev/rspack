@@ -5,6 +5,7 @@ import {
   HotModuleReplacementPlugin,
   type RspackOptions,
 } from '@rspack/core';
+import { checkPersistentCache, type TCacheTestOptions } from '../helper/cache';
 import { RSPACK_CONFIG_FILES } from '../helper/read-config-file';
 import { findTestFile, readTestFile } from '../helper/read-test-file';
 import {
@@ -24,7 +25,14 @@ const createCaseOptions = (
   return {
     clean: true,
     describe: false,
-    steps: ({ name }) => [createNormalProcessor(name, hot, mode)],
+    steps: ({ name, cache }) => [
+      createNormalProcessor(
+        name,
+        hot,
+        mode,
+        cache as TCacheTestOptions | undefined,
+      ),
+    ],
     runner: {
       key: (context: ITestContext, name: string, file: string) => name,
       runner: createRunner,
@@ -37,6 +45,7 @@ export function createNormalProcessor(
   name: string,
   hot = false,
   mode?: 'development' | 'production',
+  cache?: TCacheTestOptions,
 ): ITestProcessor {
   return {
     config: async (context: ITestContext) => {
@@ -66,13 +75,19 @@ export function createNormalProcessor(
     },
     after: async (context: ITestContext) => {
       await afterExecute(context, name);
+      if (cache) await checkPersistentCache(context, cache);
     },
   };
 }
 
 const creator = new BasicCaseCreator(createCaseOptions(false));
-export function createNormalCase(name: string, src: string, dist: string) {
-  creator.create(name, src, dist);
+export function createNormalCase(
+  name: string,
+  src: string,
+  dist: string,
+  cache?: TCacheTestOptions,
+) {
+  creator.create(name, src, dist, undefined, { cache });
 }
 
 const hotCreator = new BasicCaseCreator(createCaseOptions(true));

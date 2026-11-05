@@ -1,6 +1,7 @@
 import path from 'node:path';
 import type { RspackOptions } from '@rspack/core';
 import fs from 'fs-extra';
+import { checkPersistentCache, type TCacheTestOptions } from '../helper/cache';
 import { RSPACK_CONFIG_FILES } from '../helper/read-config-file';
 import { parseResource } from '../helper/legacy/parseResource';
 import {
@@ -28,11 +29,13 @@ import { createMultiCompilerRunner, getMultiCompilerRunnerKey } from './runner';
 export type TConfigCaseConfig = TTestConfig;
 type TConfigCaseOptions = Partial<IBasicCaseCreatorOptions> & {
   rspackOptions?: RspackOptions;
+  cache?: TCacheTestOptions;
 };
 
 export function createConfigProcessor(
   name: string,
   rspackOptions?: RspackOptions,
+  cache?: TCacheTestOptions,
 ): ITestProcessor {
   return {
     config: (context: ITestContext) => {
@@ -69,6 +72,7 @@ export function createConfigProcessor(
     },
     after: async (context: ITestContext) => {
       await afterExecute(context, name);
+      if (cache) await checkPersistentCache(context, cache);
     },
   };
 }
@@ -87,7 +91,13 @@ const creator = new BasicCaseCreator({
       return res;
     };
   },
-  steps: ({ name }) => [createConfigProcessor(name)],
+  steps: ({ name, rspackOptions, cache }) => [
+    createConfigProcessor(
+      name,
+      rspackOptions as RspackOptions | undefined,
+      cache as TCacheTestOptions | undefined,
+    ),
+  ],
   runner: {
     key: getMultiCompilerRunnerKey,
     runner: createMultiCompilerRunner,
@@ -100,12 +110,11 @@ export function createConfigCase(
   src: string,
   dist: string,
   rspackOptions?: RspackOptions,
+  cache?: TCacheTestOptions,
 ) {
   creator.create(name, src, dist, undefined, {
     rspackOptions,
-    steps: ({ name, rspackOptions }) => [
-      createConfigProcessor(name, rspackOptions as RspackOptions | undefined),
-    ],
+    cache,
   } satisfies TConfigCaseOptions);
 }
 
@@ -118,7 +127,6 @@ export function defaultOptions(
     mode: 'production',
     target: 'async-node',
     devtool: false,
-    cache: false,
     output: {
       path: context.getCompileDist(),
       bundlerInfo: {
@@ -164,7 +172,6 @@ export function overrideOptions(
     options.optimization.runtimeChunk ??= { name: `runtime~${index}` };
   }
 
-  if (options.cache === undefined) options.cache = false;
   if (!global.printLogger) {
     options.infrastructureLogging = {
       level: 'error',

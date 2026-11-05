@@ -89,6 +89,7 @@ export class MultiCompiler {
       normalizedCompilers = Object.entries(compilers).map(
         ([name, compiler]) => {
           compiler.name = name;
+          compiler.compilerPath = name;
           return compiler;
         },
       );

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rspack_core::{
-  AssetInfo, CachedConstDependencyTemplate, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
+  AssetInfo, CachedConstDependencyTemplate, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash, CompilationContentHash,
   CompilationId, CompilationParams, CompilationRenderManifest, CompilerCompilation,
   ConstDependencyTemplate, DependencyType, IgnoreErrorModuleFactory, ManifestAssetType,
@@ -585,9 +585,9 @@ async fn render_manifest(
   let is_runtime_chunk =
     chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
 
-  if !is_hot_update && !is_js_entry_chunk(chunk_ukey, compilation) {
+  if !is_hot_update && !is_js_entry_chunk(chunk, compilation) {
     let has_js = chunk_has_js(chunk_ukey, compilation)
-      || (is_runtime_chunk && chunk_has_required_runtime(chunk_ukey, compilation));
+      || (is_runtime_chunk && chunk_has_required_runtime(chunk, compilation));
     if !has_js {
       return Ok(());
     }
@@ -726,11 +726,7 @@ pub(super) fn module_has_js(
     })
 }
 
-fn is_js_entry_chunk(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
-  let chunk = compilation
-    .build_chunk_graph_artifact
-    .chunk_by_ukey
-    .expect_get(chunk_ukey);
+fn is_js_entry_chunk(chunk: &Chunk, compilation: &Compilation) -> bool {
   let module_graph = compilation.get_module_graph();
   // ESM optimizations can move both the entry module and its chunk graph entry
   // connection. The original entrypoint still needs to emit its re-exports.
@@ -740,7 +736,7 @@ fn is_js_entry_chunk(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool 
       .chunk_group_by_ukey
       .expect_get(group_ukey);
     group.is_initial()
-      && group.get_entrypoint_chunk() == *chunk_ukey
+      && group.get_entrypoint_chunk() == chunk.ukey()
       && group
         .name()
         .and_then(|name| compilation.entries.get(name))
@@ -770,27 +766,24 @@ pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
   chunk_graph.has_chunk_module_by_source_type(chunk_ukey, SourceType::JavaScript, module_graph)
 }
 
-fn chunk_has_required_runtime(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
+fn chunk_has_required_runtime(chunk: &Chunk, compilation: &Compilation) -> bool {
+  let chunk_ukey = chunk.ukey();
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   if chunk_graph
-    .get_chunk_runtime_modules_iterable(chunk_ukey)
+    .get_chunk_runtime_modules_iterable(&chunk_ukey)
     .next()
     .is_none()
   {
     return false;
   }
 
-  let chunk = compilation
-    .build_chunk_graph_artifact
-    .chunk_by_ukey
-    .expect_get(chunk_ukey);
   for group_ukey in chunk.groups() {
     let chunk_group = compilation
       .build_chunk_graph_artifact
       .chunk_group_by_ukey
       .expect_get(group_ukey);
     for other_chunk_ukey in &chunk_group.chunks {
-      if other_chunk_ukey != chunk_ukey && chunk_has_js(other_chunk_ukey, compilation) {
+      if *other_chunk_ukey != chunk_ukey && chunk_has_js(other_chunk_ukey, compilation) {
         return true;
       }
     }

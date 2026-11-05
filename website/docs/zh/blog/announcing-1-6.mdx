@@ -115,7 +115,7 @@ export default {
 
 为了彻底解决这些问题，我们引入了实验性的 [EsmLibraryPlugin](https://v1.rspack.rs/plugins/rspack/esm-library-plugin) 插件，它专为构建 ESM 库设计，让生成的代码更加简洁和高效：
 
-- **完全接管打包过程**：在编译阶段完成模块连接，不再依赖 Rspack 的运行时代码
+- **完全接管打包过程**：在编译阶段完成模块连接，不再依赖 Rspack 运行时代码
 - **支持代码分割**：分割后的代码可被静态分析和 tree shaking 友好
 
 下图展示了使用该插件前后的代码分割产物对比：左侧为之前的产物，右侧为使用 EsmLibraryPlugin 后的输出：
@@ -132,7 +132,7 @@ import { rspack } from '@rspack/core';
 export default {
   plugins: [new rspack.experiments.EsmLibraryPlugin()],
   optimization: {
-    // Recommended to enable; otherwise, consumers must import runtime code from the entry.
+    // Recommended to enable; otherwise, consumers must import Rspack runtime code from the entry.
     runtimeChunk: true,
   },
 };

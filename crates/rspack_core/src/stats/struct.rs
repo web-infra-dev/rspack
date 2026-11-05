@@ -14,6 +14,7 @@ pub enum EntrypointsStatsOption {
 
 pub struct ExtendedStatsOptions {
   pub assets: bool,
+  pub cache_info: bool,
   pub cached_modules: bool,
   pub chunks: bool,
   pub chunk_group_auxiliary: bool,
@@ -48,6 +49,7 @@ impl Default for ExtendedStatsOptions {
       hash: true,
 
       cached_modules: false,
+      cache_info: false,
       chunk_group_auxiliary: false,
       chunk_group_children: false,
       chunk_groups: false,
