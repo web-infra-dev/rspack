@@ -14,7 +14,7 @@ mod value_cache_versions;
 pub use artifacts::*;
 pub use binding::*;
 pub use compilation::{
-  build_module_graph::{ExecuteModuleId, ForwardId, LazyUntil},
+  build_module_graph::{ExecuteModuleId, ForwardId, LazyRole},
   *,
 };
 pub use exports::*;

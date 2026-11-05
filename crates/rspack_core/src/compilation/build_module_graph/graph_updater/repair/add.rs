@@ -87,7 +87,7 @@ impl Task<TaskContext> for AddTask {
       return Ok(
         request_lazy_dependencies(
           &mut context.artifact.module_to_lazy_make,
-          &context.artifact.module_graph,
+          &mut context.artifact.module_graph,
           module_identifier,
           forwarded_ids,
         )

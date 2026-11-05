@@ -43,7 +43,7 @@ pub fn collect_forwarded_ids(
 
 pub fn request_lazy_dependencies(
   module_to_lazy_make: &mut ModuleToLazyMake,
-  module_graph: &ModuleGraph,
+  module_graph: &mut ModuleGraph,
   module_identifier: ModuleIdentifier,
   forwarded_ids: ForwardedIdSet,
 ) -> Vec<ProcessDependenciesTask> {
@@ -88,7 +88,7 @@ pub fn request_lazy_dependencies(
     module_to_lazy_make.mark_updated(module_identifier);
     let dependencies: Vec<DependencyId> = dependencies
       .into_iter()
-      .filter(|dep| module_graph.dependency_by_id(dep).unset_lazy())
+      .filter(|dep| module_graph.activate_dependency(dep))
       .collect();
     if !dependencies.is_empty() {
       tasks.push(ProcessDependenciesTask {

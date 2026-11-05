@@ -1,10 +1,4 @@
-use std::sync::atomic::{AtomicBool, Ordering};
-
-use rspack_cacheable::{
-  cacheable, cacheable_dyn,
-  rkyv::with::{AtomicLoad, Relaxed},
-  with::AsPreset,
-};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AwaitDependenciesInitFragment, BuildMetaDefaultObject, ChunkGraph,
@@ -13,7 +7,7 @@ use rspack_core::{
   DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportProvided, ExportsInfoArtifact,
   ExportsType, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  InitFragmentStage, LazyRole, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleIdentifier, ProvidedExports, ReferencedExport, ResourceIdentifier, RuntimeCondition,
   RuntimeSpec, SideEffectsStateArtifact, SourceType, TemplateContext, TemplateReplaceSource,
   TypeReexportPresenceMode, filter_runtime,
@@ -74,8 +68,6 @@ pub struct ESMImportSideEffectDependency {
   attributes: Option<ImportAttributes>,
   resource_identifier: ResourceIdentifier,
   loc: Option<DependencyLocation>,
-  #[cacheable(with=AtomicLoad<Relaxed>)]
-  lazy_make: AtomicBool,
   star_export: bool,
 }
 
@@ -102,13 +94,12 @@ impl ESMImportSideEffectDependency {
       attributes,
       resource_identifier,
       loc,
-      lazy_make: AtomicBool::new(false),
       star_export,
     }
   }
 
-  fn missing_module_active(&self) -> bool {
-    !self.lazy_make.load(Ordering::Relaxed)
+  fn missing_module_active(&self, module_graph: &ModuleGraph) -> bool {
+    !module_graph.is_dependency_deferred(&self.id)
   }
 }
 
@@ -148,8 +139,10 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   }
 
   let target_module = module_graph.get_module_by_dependency_id(module_dependency.id());
+  if target_module.is_none() && module_graph.is_dependency_deferred(module_dependency.id()) {
+    return;
+  }
   if module_dependency.weak() {
-    // lazy
     if target_module.is_none() {
       return;
     }
@@ -584,7 +577,7 @@ impl Dependency for ESMImportSideEffectDependency {
         connection_state_cache,
       )
     } else {
-      ConnectionState::Active(self.missing_module_active())
+      ConnectionState::Active(self.missing_module_active(module_graph))
     }
   }
 
@@ -610,26 +603,13 @@ impl Dependency for ESMImportSideEffectDependency {
     ForwardId::Empty
   }
 
-  fn is_lazy_import_declaration(&self) -> bool {
-    self.dependency_type == DependencyType::EsmImport
-  }
-
-  fn lazy(&self) -> Option<LazyUntil> {
-    self.lazy_make.load(Ordering::Relaxed).then(|| {
-      if self.star_export {
-        LazyUntil::Fallback
-      } else {
-        LazyUntil::NoUntil
-      }
-    })
-  }
-
-  fn set_lazy(&self) {
-    self.lazy_make.store(true, Ordering::Relaxed);
-  }
-
-  fn unset_lazy(&self) -> bool {
-    self.lazy_make.swap(false, Ordering::Relaxed)
+  fn lazy_role(&self) -> Option<LazyRole> {
+    match self.dependency_type {
+      DependencyType::EsmImport => Some(LazyRole::ImportDeclaration),
+      DependencyType::EsmExportImport if self.star_export => Some(LazyRole::StarReexportSideEffect),
+      DependencyType::EsmExportImport => Some(LazyRole::ReexportSideEffect),
+      _ => None,
+    }
   }
 }
 
@@ -681,7 +661,7 @@ impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
       let dependency = dependency
         .downcast_ref::<ESMImportSideEffectDependency>()
         .expect("should be ESMImportSideEffectDependency");
-      ConnectionState::Active(dependency.missing_module_active())
+      ConnectionState::Active(dependency.missing_module_active(module_graph))
     }
   }
 }
@@ -723,7 +703,7 @@ impl DependencyTemplate for ESMImportSideEffectDependencyTemplate {
 
     let module = module_graph.get_module_by_dependency_id(&dep.id);
 
-    if module.is_none() && !dep.missing_module_active() {
+    if module.is_none() && !dep.missing_module_active(module_graph) {
       return;
     }
 

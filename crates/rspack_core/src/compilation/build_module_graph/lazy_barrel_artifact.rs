@@ -49,12 +49,16 @@ impl ForwardedIdSet {
   }
 }
 
-pub enum LazyUntil {
-  Fallback,
-  NoUntil,
-  Id(Atom),
-  Local(Atom),
-  Import,
+/// How a dependency of a side-effect-free module takes part in lazy barrel. Fixed at parse time;
+/// whether it is currently deferred lives in the module graph.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LazyRole {
+  LocalExport(Atom),
+  NamedReexport(Atom),
+  StarReexport,
+  ReexportSideEffect,
+  StarReexportSideEffect,
+  ImportDeclaration,
 }
 
 #[cacheable]
@@ -82,21 +86,23 @@ impl LazyDependencies {
     self.request_to_dependencies.is_empty() && self.fallback_dependencies.is_empty()
   }
 
-  pub fn insert(&mut self, dependency: &DependencyRef, until: LazyUntil) {
-    match until {
-      LazyUntil::Fallback => {
+  pub fn insert(&mut self, dependency: &DependencyRef, role: LazyRole) -> bool {
+    match role {
+      LazyRole::StarReexport | LazyRole::StarReexportSideEffect => {
         self.fallback_dependencies.insert(*dependency.id());
+        true
       }
-      LazyUntil::Local(forward_id) => {
+      LazyRole::LocalExport(forward_id) => {
         self.terminal_forward_ids.insert(forward_id);
+        false
       }
-      until => {
+      role => {
         let Some(dep) = dependency.as_module_dependency() else {
-          return;
+          return false;
         };
         let request = Atom::from(dep.request());
-        match until {
-          LazyUntil::Id(forward_id) => {
+        match role {
+          LazyRole::NamedReexport(forward_id) => {
             // SideEffectsFlagPlugin keeps a re-export of an `import defer` namespace on the barrel.
             if dependency.get_phase().is_defer() {
               self.deferred_reexport_ids.insert(forward_id.clone());
@@ -105,7 +111,7 @@ impl LazyDependencies {
               .forward_id_to_request
               .insert(forward_id, request.clone());
           }
-          LazyUntil::Import => {
+          LazyRole::ImportDeclaration => {
             self.import_requests.insert(request.clone());
           }
           _ => {}
@@ -115,6 +121,7 @@ impl LazyDependencies {
           .entry(request)
           .or_default()
           .insert(*dependency.id());
+        true
       }
     }
   }
@@ -133,7 +140,7 @@ impl LazyDependencies {
     }
   }
 
-  pub fn all_lazy_dependencies(&self) -> impl Iterator<Item = DependencyId> + use<'_> {
+  fn all_lazy_dependencies(&self) -> impl Iterator<Item = DependencyId> + use<'_> {
     self
       .request_to_dependencies
       .values()
@@ -191,6 +198,15 @@ impl LazyDependencies {
         .cloned()
         .collect(),
     )
+  }
+
+  fn defers_imports(&self) -> bool {
+    !self.import_requests.is_empty()
+      && !self.requested_all
+      && !self
+        .requested_ids
+        .iter()
+        .any(|id| self.terminal_forward_ids.contains(id) || self.deferred_reexport_ids.contains(id))
   }
 
   pub fn fallback_targets(&self) -> &IdentifierSet {
@@ -272,6 +288,20 @@ impl ModuleToLazyMake {
       .and_then(|info| match info {
         HasLazyDependencies::Pending(_) => None,
         HasLazyDependencies::Has(lazy_dependencies) => Some(&**lazy_dependencies),
+      })
+  }
+
+  /// Barrels whose import declarations are still deferred. Such a barrel must never run, since
+  /// side effects optimization moves every re-exported name past it.
+  pub fn modules_deferring_imports(&self) -> impl Iterator<Item = &ModuleIdentifier> {
+    self
+      .module_to_lazy_dependencies
+      .iter()
+      .filter_map(|(module, info)| match info {
+        HasLazyDependencies::Has(lazy_dependencies) if lazy_dependencies.defers_imports() => {
+          Some(module)
+        }
+        _ => None,
       })
   }
 

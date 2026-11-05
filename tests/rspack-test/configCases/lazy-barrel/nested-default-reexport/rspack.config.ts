@@ -18,9 +18,10 @@ const config = (concatenateModules: boolean): Configuration => ({
         for (const module of stats.compilation.modules) {
           const resource = (module as { resource?: string }).resource;
           if (resource) resources.add(resource);
-          for (const inner of module.modules ?? []) {
-            const innerResource = (inner as { resource?: string }).resource;
-            if (innerResource) resources.add(innerResource);
+          const innerModules =
+            (module as { modules?: { resource?: string }[] }).modules ?? [];
+          for (const inner of innerModules) {
+            if (inner.resource) resources.add(inner.resource);
           }
         }
         expect(

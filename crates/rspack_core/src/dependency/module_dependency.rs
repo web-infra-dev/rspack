@@ -12,7 +12,7 @@ pub trait ModuleDependency: Dependency {
   }
 
   fn weak(&self) -> bool {
-    self.lazy().is_some()
+    false
   }
 
   fn get_optional(&self) -> bool {

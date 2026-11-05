@@ -10,7 +10,7 @@ use crate::{
   AsyncDependenciesBlockRef, BoxModule, BuildContext, DependenciesBlock, DependencyParents,
   DependencyRef, ModuleRef, SharedPluginDriver, ValueCacheVersions,
   compilation::build_module_graph::{
-    ForwardedIdSet, LazyDependencies, LazyUntil, module_build_cache::ModuleBuildCache,
+    ForwardedIdSet, LazyDependencies, LazyRole, module_build_cache::ModuleBuildCache,
   },
   utils::task_loop::{Task, TaskResult, TaskType},
 };
@@ -107,7 +107,6 @@ impl Task<TaskContext> for BuildResultTask {
       plugin_driver,
       mut forwarded_ids,
     } = *self;
-    let restored = matches!(build_result, ModuleBuildResult::Cached(_));
     let module = match build_result {
       ModuleBuildResult::Built(mut module) => {
         plugin_driver
@@ -175,25 +174,18 @@ impl Task<TaskContext> for BuildResultTask {
     let module_graph = &mut context.artifact.module_graph;
     let mut lazy_dependencies = LazyDependencies::default();
     let mut import_declarations = vec![];
+    let mut deferred_dependencies = vec![];
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
     let mut handle_block =
       |dependencies: &[DependencyRef], current_block: Option<&AsyncDependenciesBlockRef>| {
         for (index_in_block, dependency) in dependencies.iter().enumerate() {
           let dependency_id = *dependency.id();
-          if dependency.is_lazy_import_declaration() {
-            import_declarations.push(dependency.clone());
-          } else {
-            // A restored module keeps the lazy flags its dependencies ended the last build with.
-            if restored {
-              if side_effect_free {
-                dependency.set_lazy();
-              } else {
-                dependency.unset_lazy();
-              }
-            }
-            if let Some(until) = dependency.lazy() {
-              lazy_dependencies.insert(dependency, until);
+          if side_effect_free && let Some(role) = dependency.lazy_role() {
+            if role == LazyRole::ImportDeclaration {
+              import_declarations.push(dependency.clone());
+            } else if lazy_dependencies.insert(dependency, role) {
+              deferred_dependencies.push(dependency_id);
             }
           }
           all_dependencies.push(dependency_id);
@@ -243,22 +235,21 @@ impl Task<TaskContext> for BuildResultTask {
         .optimization
         .provided_exports
       && lazy_dependencies.can_lazy_imports(&forwarded_ids);
-    for dependency in import_declarations {
-      if lazy_imports {
-        dependency.set_lazy();
-        lazy_dependencies.insert(&dependency, LazyUntil::Import);
-      } else {
-        dependency.unset_lazy();
+    if lazy_imports {
+      for dependency in &import_declarations {
+        lazy_dependencies.insert(dependency, LazyRole::ImportDeclaration);
+        deferred_dependencies.push(*dependency.id());
       }
     }
 
     let mut tasks: Vec<Box<dyn Task<TaskContext>>> = vec![];
 
     let dependencies_to_process = if !lazy_dependencies.is_empty() {
-      let lazy_dependency_ids = lazy_dependencies
-        .all_lazy_dependencies()
-        .collect::<FxHashSet<_>>();
-      all_dependencies.retain(|dep| !lazy_dependency_ids.contains(dep));
+      for dependency_id in &deferred_dependencies {
+        module_graph.defer_dependency(*dependency_id);
+      }
+      let deferred_dependencies = deferred_dependencies.into_iter().collect::<FxHashSet<_>>();
+      all_dependencies.retain(|dep| !deferred_dependencies.contains(dep));
 
       context
         .artifact
