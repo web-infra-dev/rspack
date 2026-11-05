@@ -2,7 +2,7 @@ mod cutout;
 pub mod repair;
 
 use rspack_collections::IdentifierSet;
-use rspack_error::Result;
+use rspack_error::Error;
 use rspack_paths::InternedPathSet;
 use rustc_hash::FxHashSet;
 
@@ -29,32 +29,65 @@ pub enum UpdateParam {
   ForceBuildModules(IdentifierSet),
 }
 
+/// An update failure together with the artifacts that were being updated.
+///
+/// Graph updates consume their artifacts so they can move them into the repair
+/// task context. Keeping the artifacts on an error lets callers restore their
+/// phase state instead of leaving a `StealCell` empty.
+#[derive(Debug)]
+pub struct UpdateModuleGraphError {
+  pub error: Error,
+  pub artifact: BuildModuleGraphArtifact,
+  pub exports_info_artifact: ExportsInfoArtifact,
+}
+
+impl From<UpdateModuleGraphError> for Error {
+  fn from(error: UpdateModuleGraphError) -> Self {
+    error.error
+  }
+}
+
 /// Update module graph through `UpdateParam`
 pub async fn update_module_graph(
   compilation: &Compilation,
   mut artifact: BuildModuleGraphArtifact,
   mut exports_info_artifact: ExportsInfoArtifact,
   params: Vec<UpdateParam>,
-) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+) -> std::result::Result<(BuildModuleGraphArtifact, ExportsInfoArtifact), UpdateModuleGraphError> {
   let mut cutout = Cutout::default();
 
   let build_dependencies = cutout.cutout_artifact(compilation, &mut artifact, params);
 
   let revoked_modules = artifact.revoked_modules().copied().collect();
-  compilation
+  if let Err(error) = compilation
     .plugin_driver
     .compilation_hooks
     .revoked_modules
     .call(compilation, &revoked_modules)
-    .await?;
+    .await
+  {
+    cutout.fix_artifact(&mut artifact);
+    return Err(UpdateModuleGraphError {
+      error,
+      artifact,
+      exports_info_artifact,
+    });
+  }
 
-  (artifact, exports_info_artifact) = repair(
+  (artifact, exports_info_artifact) = match repair(
     compilation,
     artifact,
     exports_info_artifact,
     build_dependencies,
   )
-  .await?;
+  .await
+  {
+    Ok(result) => result,
+    Err(mut error) => {
+      cutout.fix_artifact(&mut error.artifact);
+      return Err(error);
+    }
+  };
   cutout.fix_artifact(&mut artifact);
   let module_graph = artifact.get_module_graph();
   for id in artifact.affected_modules.active() {

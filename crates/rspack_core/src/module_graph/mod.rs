@@ -156,6 +156,14 @@ impl ModuleGraphData {
     // reset data to save memory
     self.dep_meta_map.clear();
   }
+  // keep the changes recorded so far and continue recording from the current
+  // state, so a later reset only undoes changes made after this point
+  fn rebase(&mut self) {
+    self.modules.rebase();
+    self.module_graph_modules.rebase();
+    self.connections.rebase();
+    self.dependency_id_to_connection_id.rebase();
+  }
 }
 
 #[derive(Debug, Default)]
@@ -171,6 +179,20 @@ impl ModuleGraph {
   // reset to last checkpoint
   pub fn reset(&mut self) {
     self.inner.recover()
+  }
+  /// Make the current state the new rollback baseline while keeping
+  /// recording, so a later [`ModuleGraph::reset`] only undoes changes made
+  /// after this point.
+  ///
+  /// The module graph is checkpointed at the end of the build-module-graph
+  /// pass, and the next incremental compilation resets it to that checkpoint
+  /// to drop seal-phase modifications. Mutations performed after the
+  /// checkpoint through sanctioned escape hatches such as
+  /// `Compilation::rebuild_module` must be folded into the baseline,
+  /// otherwise the reset would partially revert them (the dependency table
+  /// is not rollback-capable) and leave the graph inconsistent.
+  pub fn rebase(&mut self) {
+    self.inner.rebase()
   }
 }
 

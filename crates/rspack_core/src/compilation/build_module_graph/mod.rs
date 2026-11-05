@@ -30,16 +30,22 @@ pub async fn do_build_module_graph(compilation: &mut Compilation) -> Result<()> 
   // run module_executor
   if let Some(module_executor) = &mut compilation.module_executor {
     let mut module_executor = std::mem::take(module_executor);
-    module_executor
-      .before_build_module_graph(compilation)
-      .await?;
+    let window_result = module_executor.before_build_module_graph(compilation).await;
     compilation.module_executor = Some(module_executor);
+    window_result?;
   }
 
   let artifact = compilation.build_module_graph_artifact.steal();
   let exports_info_artifact = compilation.exports_info_artifact.steal();
   let (artifact, exports_info_artifact) =
-    build_module_graph(compilation, artifact, exports_info_artifact).await?;
+    match build_module_graph(compilation, artifact, exports_info_artifact).await {
+      Ok(result) => result,
+      Err(error) => {
+        compilation.build_module_graph_artifact = error.artifact.into();
+        compilation.exports_info_artifact = error.exports_info_artifact.into();
+        return Err(error.error);
+      }
+    };
   compilation.build_module_graph_artifact = artifact.into();
   compilation.exports_info_artifact = exports_info_artifact.into();
 
@@ -56,7 +62,10 @@ pub async fn build_module_graph(
   compilation: &Compilation,
   mut artifact: BuildModuleGraphArtifact,
   exports_info_artifact: ExportsInfoArtifact,
-) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+) -> std::result::Result<
+  (BuildModuleGraphArtifact, ExportsInfoArtifact),
+  graph_updater::UpdateModuleGraphError,
+> {
   let mut params = Vec::with_capacity(6);
 
   if !compilation.entries.is_empty() {
@@ -97,7 +106,10 @@ pub async fn finish_build_module_graph(
   compilation: &Compilation,
   artifact: BuildModuleGraphArtifact,
   exports_info_artifact: ExportsInfoArtifact,
-) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+) -> std::result::Result<
+  (BuildModuleGraphArtifact, ExportsInfoArtifact),
+  graph_updater::UpdateModuleGraphError,
+> {
   update_module_graph(
     compilation,
     artifact,
