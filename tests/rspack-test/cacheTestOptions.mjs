@@ -171,6 +171,7 @@ const excludes = {
 		/^container-1-5\/container-reference-override$/,
 		/^container-1-5\/error-handling$/,
 		/^container-1-5\/module-federation$/,
+		/^container-1-5\/remote-fallback-share-scope$/,
 		/^container\/circular$/,
 		/^container\/container-reference$/,
 		/^container\/container-reference-override$/,
