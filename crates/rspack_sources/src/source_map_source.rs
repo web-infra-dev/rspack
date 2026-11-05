@@ -379,7 +379,7 @@ mod tests {
 
     let mut hasher = twox_hash::XxHash64::default();
     sms1.hash(&mut hasher);
-    assert_eq!(format!("{:x}", hasher.finish()), "736934c6e249aa6e");
+    assert_eq!(format!("{:x}", hasher.finish()), "a37920f47a1e8a44");
   }
 
   #[test]
@@ -387,7 +387,7 @@ mod tests {
     let a = SourceMapSource::new(WithoutOriginalOptions {
       value: "hello world\n",
       name: "hello.txt",
-      source_map: SourceMap::new("AAAA".to_string(), vec!["".into()], vec!["".into()], vec![]),
+      source_map: SourceMap::new("AAAA".to_string(), vec!["".into()], vec![None], vec![]),
     });
     let b = SourceMapSource::new(WithoutOriginalOptions {
       value: "hello world\n",
@@ -400,7 +400,7 @@ mod tests {
       source_map: SourceMap::new(
         "AAAA".to_string(),
         vec!["hello-source.txt".into()],
-        vec!["hello world\n".into()],
+        vec![Some("hello world\n".into())],
         vec![],
       ),
     });
@@ -865,6 +865,54 @@ mod tests {
           "mappings": "AAAA,MAAE",
           "sources": ["hello world.txt"],
           "sourcesContent": ["你好✋世界"]
+        }"#
+          .to_string()
+      )
+      .unwrap()
+    );
+  }
+
+  #[test]
+  fn should_not_shadow_mapped_segment_with_unmapped_one_at_same_column() {
+    // The outer map (e.g. from a minifier) has two segments at generated column 2:
+    // the first maps into a mapped region of the inner map, the second maps to an
+    // inner position without any inner mapping. Combining must not end with a
+    // source-less segment at column 2 that hides the mapped one.
+    let source = SourceMapSource::new(SourceMapSourceOptions {
+      value: "a;b;",
+      name: "inner.js",
+      source_map: SourceMap::from_json(
+        r#"{
+          "version": 3,
+          "sources": ["inner.js"],
+          "mappings": "AAAA,EAAC,AACD"
+        }"#
+          .to_string(),
+      )
+      .unwrap(),
+      original_source: Some("a;\n  b;".into()),
+      inner_source_map: Some(
+        SourceMap::from_json(
+          r#"{
+          "version": 3,
+          "sources": ["original.js"],
+          "mappings": "AAAA;EACA",
+          "sourcesContent": ["a;\nb;"]
+        }"#
+            .to_string(),
+        )
+        .unwrap(),
+      ),
+      remove_original_source: true,
+    });
+    assert_eq!(
+      source.map(&MapOptions::default()).unwrap(),
+      SourceMap::from_json(
+        r#"{
+          "version": 3,
+          "mappings": "AAAA,EAAC",
+          "sources": ["original.js"],
+          "sourcesContent": ["a;\nb;"]
         }"#
           .to_string()
       )

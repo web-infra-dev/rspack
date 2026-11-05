@@ -69,7 +69,7 @@ description: '了解 Rspack monorepo 的目录结构，查找 Rust crate、JavaS
 #### 核心插件
 
 - **`rspack_plugin_javascript`**: JavaScript 插件，用于解析、转换和生成 JS/TS 模块代码
-- **`rspack_plugin_runtime`**: Runtime 插件，生成 webpack 兼容的运行时代码
+- **`rspack_plugin_runtime`**: 生成兼容 webpack 的 Rspack 运行时代码的插件
 - **`rspack_plugin_entry`**: Entry 插件，用于处理入口点配置
 - **`rspack_plugin_dynamic_entry`**: 动态入口插件，支持动态入口点
 
@@ -119,7 +119,7 @@ description: '了解 Rspack monorepo 的目录结构，查找 Rust crate、JavaS
 - **`rspack_plugin_dll`**: DLL 插件，实现动态链接库功能
 - **`rspack_plugin_worker`**: Web Worker 插件，用于处理 Worker 文件
 - **`rspack_plugin_schemes`**: 自定义 scheme 插件，支持自定义资源协议
-- **`rspack_plugin_runtime_chunk`**: Runtime chunk 插件，用于分离运行时代码
+- **`rspack_plugin_runtime_chunk`**: 将 Rspack 运行时代码提取为独立 chunk 的插件
 
 #### 工具插件
 

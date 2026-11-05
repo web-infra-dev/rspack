@@ -94,6 +94,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -187,6 +190,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -280,6 +286,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -373,6 +382,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -466,6 +478,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -559,6 +574,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -652,6 +670,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -745,6 +766,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -838,6 +862,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -931,6 +958,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -1024,6 +1054,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -1117,6 +1150,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -1210,6 +1246,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -1303,6 +1342,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -1396,6 +1438,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                true,
+            ),
         },
     ),
     (
@@ -1489,6 +1534,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -1582,6 +1630,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -1675,6 +1726,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -1768,6 +1822,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -1861,6 +1918,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -1954,6 +2014,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2047,6 +2110,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2140,6 +2206,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2233,6 +2302,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2326,6 +2398,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2419,6 +2494,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2512,6 +2590,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2605,6 +2686,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2698,6 +2782,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2791,6 +2878,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2884,6 +2974,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2977,6 +3070,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -3070,6 +3166,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -3163,6 +3262,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -3257,6 +3359,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -3335,6 +3440,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -3428,6 +3536,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
 ]
