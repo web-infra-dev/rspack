@@ -2,6 +2,7 @@
 description: '通过 module.generator 配置资源文件名和 URL、CSS Modules 导出以及 JSON 产物生成。'
 ---
 
+import { ApiMeta, Stability } from '@components/ApiMeta';
 import Attribution from '@components/Attribution';
 
 # Module generator
@@ -601,6 +602,8 @@ export default {
 ```
 
 ### ["css/auto"].runtimePublicPath
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.3.2" />
 
 - **类型：** `boolean`
 - **默认值：** `false`

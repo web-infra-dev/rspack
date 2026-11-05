@@ -2,6 +2,7 @@
 description: 'Configure module.generator to control asset filenames and URLs, CSS Modules exports, and JSON output generation.'
 ---
 
+import { ApiMeta, Stability } from '@components/ApiMeta';
 import Attribution from '@components/Attribution';
 
 # Module generator
@@ -602,6 +603,8 @@ export default {
 ```
 
 ### ["css/auto"].runtimePublicPath
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.3.2" />
 
 - **Type:** `boolean`
 - **Default:** `false`
