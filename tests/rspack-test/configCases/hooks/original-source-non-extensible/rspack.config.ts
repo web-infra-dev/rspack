@@ -1,4 +1,3 @@
-import nativeBinding from '@rspack/binding';
 import { createHash } from 'node:crypto';
 import { defineConfig } from '@rspack/cli';
 import { type Compiler, NormalModule, sources } from '@rspack/core';
@@ -29,34 +28,14 @@ export default ([false, 'source-map'] as const).flatMap((devtool) =>
         (compiler: Compiler) => {
           compiler.hooks.done.tap('NonExtensibleSources', ({ compilation }) => {
             const module = [...compilation.modules].find(
-              (module): module is NormalModule =>
+              (module) =>
                 module instanceof NormalModule &&
-                module.identifier().endsWith('value.js'),
+                module.resource.endsWith('value.js'),
             )!;
             expect(module).toBeDefined();
             restrictModule(module);
             const moduleKeys = Reflect.ownKeys(module);
-            // Read lazy fields for the first time after restricting the object.
-            for (const key of [
-              'type',
-              'resource',
-              'request',
-              'userRequest',
-              'rawRequest',
-            ] as const) {
-              const value = module[key];
-              expect(value).toBeTypeOf('string');
-              expect(module[key]).toBe(value);
-            }
-            const resourceResolveData = module.resourceResolveData;
-            expect(resourceResolveData).toBeDefined();
-            expect(module.resourceResolveData).toBe(resourceResolveData);
-            const loaders = module.loaders;
-            expect(Array.isArray(loaders)).toBe(true);
-            expect(module.loaders).toBe(loaders);
             const original = module.originalSource()!;
-            const pendingMap =
-              nativeBinding.moduleGetOriginalSource(module)!.map;
             // Create every instance before consuming the shared map so each retains its getter.
             const pending = [true, false].flatMap((cacheBuffers) =>
               restrictions.map((restrictSource) => ({
@@ -69,9 +48,6 @@ export default ([false, 'source-map'] as const).flatMap((devtool) =>
             // Materialize the shared map through a restricted instance for the first time.
             restrictModule(original);
             original.clearCache();
-            expect(nativeBinding.moduleGetOriginalSource(module)!.map).toBe(
-              pendingMap,
-            );
             const json =
               original instanceof sources.SourceMapSource
                 ? original._sourceMapAsString

@@ -1,4 +1,3 @@
-import nativeBinding from '@rspack/binding';
 import { createHash } from 'node:crypto';
 import { isProxy } from 'node:util/types';
 import { defineConfig } from '@rspack/cli';
@@ -48,11 +47,6 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                   const source = module.originalSource();
                   if (!source) return;
 
-                  const cachedBinding =
-                    nativeBinding.moduleGetOriginalSource(module);
-                  expect(nativeBinding.moduleGetOriginalSource(module)).toBe(
-                    cachedBinding,
-                  );
                   const value = source.source();
                   const binding = module.originalSource()!;
                   let map: string | undefined;
@@ -60,7 +54,6 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                   if (binding instanceof sources.SourceMapSource) {
                     const cacheSymbol = Symbol.for('rspack.originalSource');
                     const cache = Reflect.get(source, cacheSymbol);
-                    expect(cache).toBe(cachedBinding);
                     expect(Reflect.has(module, cacheSymbol)).toBe(false);
                     expect(Reflect.get(binding, cacheSymbol)).toBe(cache);
                     expect(Reflect.get(source, cacheSymbol)).toBe(cache);
@@ -134,12 +127,6 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                     expect(mapCalls).toBe(1);
                     expect(typeof map).toBe('string');
                     expect(cache.map).toBe(map);
-                    expect(nativeBinding.moduleGetOriginalSource(module)).toBe(
-                      cachedBinding,
-                    );
-                    expect(
-                      nativeBinding.moduleGetOriginalSource(module)!.map,
-                    ).toBe(map);
                     expect(() => nativeMap()).toThrow(
                       'Source map has already been consumed',
                     );

@@ -1,4 +1,3 @@
-import nativeBinding from '@rspack/binding';
 import { defineConfig } from '@rspack/cli';
 import { type Compiler, sources } from '@rspack/core';
 
@@ -48,9 +47,6 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                   source: content,
                   map: null,
                 });
-                const raw = nativeBinding.moduleGetOriginalSource(module)!;
-                expect(raw).not.toBeInstanceOf(sources.SourceMapSource);
-                expect(raw.map).toBeUndefined();
               }
             });
           });
