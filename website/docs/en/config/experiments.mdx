@@ -349,7 +349,7 @@ This option depends on `optimization.sideEffects`. If you disable [`optimization
 - **Type:** `'webpack' | 'rspack'`
 - **Default:** `'webpack'`
 
-Setting `experiments.runtimeMode` to `'rspack'` enables Rspack's experimental runtime output. This output mode is still under development, so use it with caution. It currently generates cleaner output when [`output.module`](/config/output#outputmodule) is `true` and [`output.library.type`](/config/output#outputlibrarytype) is `'modern-module'`. In this case, instead of exporting one `__webpack_require__` function with runtime helpers attached as properties, the runtime exports the loader, module factories, and helpers as named ESM bindings. Each output chunk can import only the bindings it needs.
+Setting `experiments.runtimeMode` to `'rspack'` enables an experimental output format for the Rspack runtime. This output mode is still under development, so use it with caution. It currently generates cleaner output when [`output.module`](/config/output#outputmodule) is `true` and [`output.library.type`](/config/output#outputlibrarytype) is `'modern-module'`. In this case, instead of exporting one `__webpack_require__` function with helper functions attached as properties, the Rspack runtime exports the loader, module factories, and helpers as named ESM bindings. Each output chunk can import only the bindings it needs.
 
 ### Example
 
@@ -370,7 +370,7 @@ export default {
 };
 ```
 
-The generated runtime and a chunk that consumes it are organized like this (simplified):
+The generated Rspack runtime and a chunk that consumes it are organized like this (simplified):
 
 <Tabs>
   <Tab label="runtimeMode: 'webpack'">

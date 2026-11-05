@@ -50,7 +50,6 @@ swc_next_ecma_semantic = { workspace = true }
 tokio                  = { workspace = true, features = ["sync"] }
 tracing                = { workspace = true }
 url                    = { workspace = true }
-winnow                 = { workspace = true }
 
 [lints]
 workspace = true

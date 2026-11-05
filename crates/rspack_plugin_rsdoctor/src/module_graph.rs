@@ -208,7 +208,7 @@ pub fn collect_module_original_sources(
         .and_then(|s| s.map(&MapOptions::default()))
         .and_then(|s| {
           let idx = s.sources().iter().position(|s| s.eq(&resource))?;
-          let source = s.sources_content().get(idx)?;
+          let source = s.get_source_content(idx)?;
           Some(RsdoctorModuleOriginalSource {
             module: *module_ukey,
             source: source.to_string(),

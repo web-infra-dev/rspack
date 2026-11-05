@@ -36,7 +36,24 @@ pub fn sort_modules(modules: &mut [StatsModule]) {
     {
       a_name.len().cmp(&b_name.len())
     } else {
-      a.name.cmp(&b.name)
+      a.name.cmp(&b.name).then_with(|| {
+        let a_runtime = matches!(a.module_type, crate::ModuleType::Runtime);
+        let b_runtime = matches!(b.module_type, crate::ModuleType::Runtime);
+        a_runtime.cmp(&b_runtime).then_with(|| {
+          // Keep runtime instances ordered even when chunk IDs are unavailable.
+          if a_runtime {
+            a.identifier
+              .as_ref()
+              .map(|id| id.as_str())
+              .cmp(&b.identifier.as_ref().map(|id| id.as_str()))
+              .then_with(|| a.chunks.cmp(&b.chunks))
+              .then_with(|| a.build_time_executed.cmp(&b.build_time_executed))
+              .then_with(|| a.size.total_cmp(&b.size))
+          } else {
+            Ordering::Equal
+          }
+        })
+      })
     }
   });
 }

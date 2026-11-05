@@ -31,7 +31,7 @@ export default {
     const mainHashAfter = mainAfter.slice('main.'.length, -'.js'.length);
     expect(runtimeSourceBefore).toContain(`.${mainHashBefore}.js`);
     expect(runtimeSourceAfter).toContain(`.${mainHashAfter}.js`);
-    expect(runtimeSourceBefore).not.toContain('webpack/runtime/get_full_hash');
-    expect(runtimeSourceAfter).not.toContain('webpack/runtime/get_full_hash');
+    expect(runtimeSourceBefore).toContain('webpack/runtime/get_full_hash');
+    expect(runtimeSourceAfter).toContain('webpack/runtime/get_full_hash');
   },
 };
