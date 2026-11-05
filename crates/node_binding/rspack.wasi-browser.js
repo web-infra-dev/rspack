@@ -1530,6 +1530,7 @@ export const moduleGetReadableIdentifier = __napiModule.exports.moduleGetReadabl
 export const moduleGetType = __napiModule.exports.moduleGetType
 export const moduleGetUseSimpleSourceMap = __napiModule.exports.moduleGetUseSimpleSourceMap
 export const moduleGetUseSourceMap = __napiModule.exports.moduleGetUseSourceMap
+export const ModuleKind = __napiModule.exports.ModuleKind
 export const moduleLibIdent = __napiModule.exports.moduleLibIdent
 export const moduleSetBuildInfo = __napiModule.exports.moduleSetBuildInfo
 export const moduleSetFactoryMeta = __napiModule.exports.moduleSetFactoryMeta

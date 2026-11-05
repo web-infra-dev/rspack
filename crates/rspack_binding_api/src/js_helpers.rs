@@ -1,11 +1,11 @@
 use napi::{Env, JsValue, bindgen_prelude::*};
 use rspack_napi::WeakRef;
 
-use crate::symbols;
+use crate::{module_bridge::ModuleKind, symbols};
 
 #[napi(object)]
 pub struct JsHelpers<'env> {
-  #[napi(ts_type = "(kind: number) => Module")]
+  #[napi(ts_type = "(kind: ModuleKind) => Module")]
   pub create_module: Function<'env>,
   #[napi(ts_type = "<T>(source: ReadonlyArray<T>, target: T[], commands: Uint32Array) => void")]
   pub apply_indexed_array_updates: Function<'env>,
@@ -48,11 +48,11 @@ impl JsHelperRefs {
   pub(crate) fn create_module<'env>(
     &self,
     env: &'env Env,
-    kind: u32,
+    kind: ModuleKind,
   ) -> napi::Result<Object<'env>> {
     // The caller pins the Compiler, which owns this JS helper, until the call returns.
     let function = unsafe {
-      Function::<FnArgs<(u32,)>, Object<'env>>::from_napi_value(
+      Function::<FnArgs<(ModuleKind,)>, Object<'env>>::from_napi_value(
         env.raw(),
         ToNapiValue::to_napi_value(env.raw(), &self.create_module)?,
       )?

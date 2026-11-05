@@ -607,7 +607,7 @@ impl ModuleObject {
 impl ToNapiValue for ModuleObject {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     let env = unsafe { Env::from_raw(env) };
-    module_bridge::to_js(&env, val)
+    module_bridge::to_jsobject(&env, val)
   }
 }
 

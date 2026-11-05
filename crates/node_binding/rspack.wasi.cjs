@@ -2366,6 +2366,7 @@ module.exports.moduleGetReadableIdentifier = __napiModule.exports.moduleGetReada
 module.exports.moduleGetType = __napiModule.exports.moduleGetType
 module.exports.moduleGetUseSimpleSourceMap = __napiModule.exports.moduleGetUseSimpleSourceMap
 module.exports.moduleGetUseSourceMap = __napiModule.exports.moduleGetUseSourceMap
+module.exports.ModuleKind = __napiModule.exports.ModuleKind
 module.exports.moduleLibIdent = __napiModule.exports.moduleLibIdent
 module.exports.moduleSetBuildInfo = __napiModule.exports.moduleSetBuildInfo
 module.exports.moduleSetFactoryMeta = __napiModule.exports.moduleSetFactoryMeta

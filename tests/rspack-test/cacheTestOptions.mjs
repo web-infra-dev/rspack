@@ -86,9 +86,6 @@ const excludes = {
 		/^loader-import-module\/execute-failed$/,
 		/^loader-parallel-import-module\/execute-failed$/,
 		/^module\/rspack-issue-8785$/,
-		// The mixed-module inheritance fixture only reuses four of six module
-		// entries after restart, also on the main-branch binding.
-		/^module\/js-classes$/,
 		/^resolve\/mf-by-dependency-esm$/,
 		/^sharing\/consume-module-namespace$/,
 		/^sharing\/consume-multiple-versions$/,

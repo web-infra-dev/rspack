@@ -843,7 +843,7 @@ export interface JsFactoryMeta {
 }
 
 export interface JsHelpers {
-  createModule: (kind: number) => Module
+  createModule: (kind: ModuleKind) => Module
   applyIndexedArrayUpdates: <T>(source: ReadonlyArray<T>, target: T[], commands: Uint32Array) => void
   swapRemoveArrayElements: <T>(array: T[], removedIndices: Uint32Array) => void
 }
@@ -1630,6 +1630,15 @@ export declare function moduleGetType(module: Module): string
 export declare function moduleGetUseSimpleSourceMap(module: Module): boolean
 
 export declare function moduleGetUseSourceMap(module: Module): boolean
+
+/** JavaScript class selected when wrapping a native module. */
+export declare enum ModuleKind {
+  Module = 0,
+  Normal = 1,
+  Concatenated = 2,
+  Context = 3,
+  External = 4,
+}
 
 export declare function moduleLibIdent(module: Module, options: JsLibIdentOptions): string | null
 

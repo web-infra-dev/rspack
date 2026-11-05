@@ -9,6 +9,33 @@ use rustc_hash::FxHashMap;
 
 use crate::module::{ModuleHandle, ModuleObject};
 
+/// JavaScript class selected when wrapping a native module.
+#[doc(hidden)]
+#[napi]
+pub enum ModuleKind {
+  Module = 0,
+  Normal = 1,
+  Concatenated = 2,
+  Context = 3,
+  External = 4,
+}
+
+impl From<TypeId> for ModuleKind {
+  fn from(type_id: TypeId) -> Self {
+    if type_id == TypeId::of::<rspack_core::NormalModule>() {
+      Self::Normal
+    } else if type_id == TypeId::of::<rspack_core::ConcatenatedModule>() {
+      Self::Concatenated
+    } else if type_id == TypeId::of::<rspack_core::ContextModule>() {
+      Self::Context
+    } else if type_id == TypeId::of::<rspack_core::ExternalModule>() {
+      Self::External
+    } else {
+      Self::Module
+    }
+  }
+}
+
 static MODULE_TAG_ANCHOR: u8 = 0;
 
 fn module_tag() -> sys::napi_type_tag {
@@ -73,7 +100,7 @@ pub(crate) fn with_module_instance<R>(
   })
 }
 
-pub(crate) fn to_js(env: &Env, value: ModuleObject) -> Result<sys::napi_value> {
+pub(crate) fn to_jsobject(env: &Env, value: ModuleObject) -> Result<sys::napi_value> {
   let cached = MODULE_INSTANCE_REFS.with_borrow(|instances| {
     instances
       .get(&value.compiler_id)
@@ -87,17 +114,7 @@ pub(crate) fn to_js(env: &Env, value: ModuleObject) -> Result<sys::napi_value> {
   if let Some(object) = cached {
     return Ok(object);
   }
-  let kind = if value.type_id == TypeId::of::<rspack_core::NormalModule>() {
-    1
-  } else if value.type_id == TypeId::of::<rspack_core::ConcatenatedModule>() {
-    2
-  } else if value.type_id == TypeId::of::<rspack_core::ContextModule>() {
-    3
-  } else if value.type_id == TypeId::of::<rspack_core::ExternalModule>() {
-    4
-  } else {
-    0
-  };
+  let kind = ModuleKind::from(value.type_id);
   let handle = Rc::new(ModuleHandle::new(&value));
   // Root the JS Compiler while calling its helper, and release every cache/core
   // borrow before entering JS. The helper captures no Compiler or Compilation.
