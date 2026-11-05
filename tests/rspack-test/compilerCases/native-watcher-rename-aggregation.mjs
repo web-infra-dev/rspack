@@ -109,7 +109,12 @@ async function run(operation) {
 			operation === "rename"
 				? [{ changed: ["index.js.map"], removed: ["index.js"] }]
 				: operation === "directory"
-					? [{ changed: ["modules/nested/child.js"], removed: [] }]
+					? [
+							{
+								changed: [path.join("modules", "nested", "child.js")],
+								removed: []
+							}
+						]
 					: operation === "replace-same-immediate" ||
 						  operation === "roundtrip-immediate"
 						? []
