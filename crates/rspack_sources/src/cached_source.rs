@@ -8,7 +8,7 @@ use std::{
 use rustc_hash::FxHasher;
 
 use crate::{
-  BoxSource, MapOptions, RawBufferSource, Source, SourceExt, SourceMap,
+  BoxSource, MapOptions, RawBufferSource, Source, SourceExt, SourceMap, SourceMapSource,
   helpers::{
     Chunks, GeneratedInfo, StreamChunks, TextSpan, stream_and_get_source_and_map,
     stream_chunks_of_raw_rope, stream_chunks_of_source_map,
@@ -22,8 +22,8 @@ struct CachedData {
   size: OnceLock<usize>,
   is_ascii: OnceLock<bool>,
   chunks: OnceLock<Box<[&'static str]>>,
-  columns_map: OnceLock<Option<SourceMap<'static>>>,
-  line_only_map: OnceLock<Option<SourceMap<'static>>>,
+  columns_map: OnceLock<Option<Arc<SourceMap<'static>>>>,
+  line_only_map: OnceLock<Option<Arc<SourceMap<'static>>>>,
 }
 
 /// It tries to reused cached results from other methods to avoid calculations,
@@ -112,7 +112,7 @@ impl CachedSource {
     })
   }
 
-  fn map_cache(&self, options: &MapOptions) -> &OnceLock<Option<SourceMap<'static>>> {
+  fn map_cache(&self, options: &MapOptions) -> &OnceLock<Option<Arc<SourceMap<'static>>>> {
     if options.columns {
       &self.cache.columns_map
     } else {
@@ -120,10 +120,10 @@ impl CachedSource {
     }
   }
 
-  fn get_or_init_map(&self, options: &MapOptions) -> &Option<SourceMap<'static>> {
+  fn get_or_init_map(&self, options: &MapOptions) -> &Option<Arc<SourceMap<'static>>> {
     self
       .map_cache(options)
-      .get_or_init(|| self.inner.clone().map_static(options))
+      .get_or_init(|| self.inner.clone().map_static(options).map(Arc::new))
   }
 }
 
@@ -180,14 +180,14 @@ impl Source for CachedSource {
     self
       .get_or_init_map(options)
       .as_ref()
-      .map(SourceMap::as_borrowed)
+      .map(|map| map.as_borrowed())
   }
 
   fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap<'static>> {
     self
       .get_or_init_map(options)
       .as_ref()
-      .map(|map| map.as_borrowed().into_static(self.clone()))
+      .map(|map| map.as_borrowed().into_static_with_map(map.clone()))
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -254,7 +254,16 @@ impl<'source> Chunks<'source> for CachedSourceChunks<'source> {
           on_name,
         );
         cell.get_or_init(|| {
-          map.map(|map| SourceMap::from_fields(map).into_static(self.cache_source.inner.clone()))
+          map.map(|map| {
+            let map = SourceMap::from_fields(map);
+            let inner = &self.cache_source.inner;
+            let map = if let Some(source) = inner.as_any().downcast_ref::<SourceMapSource>() {
+              source.retain_map_inputs(map)
+            } else {
+              map.into_static(inner.clone())
+            };
+            Arc::new(map)
+          })
         });
         generated_info
       }
