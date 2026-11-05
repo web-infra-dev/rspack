@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Bundle: consumer_js.chunk.CURRENT_HASH.js
-- Complete update: main.LAST_HASH.hot-update.js.full.js, size: 55863
+- Complete update: main.LAST_HASH.hot-update.js.full.js, size: 56228
   - ./index.js
   - ./loader.js
   - ./state.js
@@ -28,7 +28,7 @@
   - webpack/runtime/make_optimized_deferred_namespace_object
   - webpack/runtime/public_path
 - Manifest: main.LAST_HASH.hot-update.json, size: 77
-- Update: main.LAST_HASH.hot-update.js, size: 32260
+- Update: main.LAST_HASH.hot-update.js, size: 32596
 
 ## Manifest
 
@@ -931,7 +931,8 @@ __webpack_require__.hmrC.jsonp = function (
 	_css,
 	_miniCss,
 	load,
-	changed
+	changed,
+	pendingChunkLoads
 ) {
 	applyHandlers.push(function (options) {
 		// Finish selection after downloads, including chunks ensured during check.
@@ -969,7 +970,12 @@ __webpack_require__.hmrC.jsonp = function (
 	// Complete payloads contain the delta too. Select them before requesting
 	// ordinary updates, so each chunk has only one pending update download.
 	Object.keys(dependencies || {}).forEach(function (chunkId) {
-		if (jsonpInstalledChunks[chunkId] === 0) prepareFullChunk(chunkId, promises);
+		if (preparedChunks[chunkId] === false) return;
+		var installed = __webpack_require__.o(jsonpInstalledChunks, chunkId) && jsonpInstalledChunks[chunkId] != null;
+		// The loader clears its state between version retries while the original import still waits.
+		if (installed || pendingChunkLoads[chunkId]) {
+			dependencies[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
+		}
 	});
 	var entries = load && load.entries;
 	Object.keys(entries || {}).forEach(function (entryId) {

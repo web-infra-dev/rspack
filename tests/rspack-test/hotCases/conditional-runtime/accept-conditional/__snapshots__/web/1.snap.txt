@@ -8,7 +8,7 @@
 - Bundle: dep1_js-dep2_js-worker_js.chunk.CURRENT_HASH.js
 - Bundle: dep1_js-module_js.chunk.CURRENT_HASH.js
 - Bundle: shared.chunk.CURRENT_HASH.js
-- Complete update: dep1_js-dep2_js-worker_js.LAST_HASH.hot-update.js.full.js, size: 37444
+- Complete update: dep1_js-dep2_js-worker_js.LAST_HASH.hot-update.js.full.js, size: 37817
   - ./dep1.js
   - ./dep2.js
   - ./worker.js

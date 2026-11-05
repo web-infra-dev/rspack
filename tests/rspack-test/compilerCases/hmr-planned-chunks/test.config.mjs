@@ -49,25 +49,30 @@ export default [false, true].flatMap(incremental =>
           builds.push(Object.fromEntries(stats.compilation.getAssets().map(asset => [asset.name, asset.source.source().toString()])));
         }
         let assets = builds[0];
-        const sandbox = vm.createContext({ self: {}, console, Promise, setTimeout, clearTimeout });
-        vm.runInContext(assets['main.js'], sandbox);
-        const { hot, cache } = sandbox;
         const requests = [];
-        sandbox.document = {
-          getElementsByTagName: () => [],
-          createElement: () => ({ setAttribute() {} }),
-          head: {
-            appendChild(script) {
-              const name = path.basename(script.src);
-              requests.push(name);
-              assert(assets[name], `missing asset ${name}`);
-              queueMicrotask(() => {
-                vm.runInContext(assets[name], sandbox);
-                script.onload({ type: 'load', target: script });
-              });
+        function startApp(readScript) {
+          const sandbox = vm.createContext({ self: {}, console, Promise, setTimeout, clearTimeout });
+          vm.runInContext(builds[0]['main.js'], sandbox);
+          sandbox.document = {
+            getElementsByTagName: () => [],
+            createElement: () => ({ setAttribute() {} }),
+            head: {
+              appendChild(script) {
+                const name = path.basename(script.src);
+                requests.push(name);
+                const scriptSource = readScript(name);
+                assert(scriptSource, `missing asset ${name}`);
+                queueMicrotask(() => {
+                  vm.runInContext(scriptSource, sandbox);
+                  script.onload({ type: 'load', target: script });
+                });
+              }
             }
-          }
-        };
+          };
+          return sandbox;
+        }
+        const sandbox = startApp(name => assets[name]);
+        const { hot, cache } = sandbox;
         sandbox.fetch = async url => ({ ok: true, json: async () => JSON.parse(assets[path.basename(url)]) });
         await sandbox.loadPage();
         assert.equal(sandbox.readPage(), 2);
@@ -104,6 +109,22 @@ export default [false, true].flatMap(incremental =>
         assert(!requests.some(name => name.startsWith('other.')));
         assert.equal((await sandbox.loadOther()).default, 4);
         assert.equal(hot.status(), 'idle');
+
+        // The same import retries across two updates. Its chunk loader is idle at each check.
+        let round = 0;
+        const pageResponses = [builds[1], builds[0], builds[2]];
+        requests.length = 0;
+        const retrying = startApp(name => name === 'page.js'
+          ? pageResponses.shift()[name] : builds[round][name]);
+        retrying.fetch = async url => {
+          const manifest = JSON.parse(builds[++round][path.basename(url)]);
+          return { ok: true, json: async () => manifest };
+        };
+        await retrying.loadPage();
+        assert.equal(retrying.readPage(), 3);
+        assert.equal(round, 2);
+        assert.deepEqual(requests.filter(name => name.endsWith('.full.js')).map(name => name.split('.')[0]), ['shared', 'moved']);
+        assert(!requests.some(name => name.startsWith('other.')));
       }
     };
   })

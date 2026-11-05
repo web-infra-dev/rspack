@@ -104,6 +104,7 @@ export default [false, true].flatMap((retained) =>
           "idle",
           "loaded",
           "late-loaded",
+          "pending",
           "abort",
           "self-accepted",
           "declined",
@@ -121,6 +122,7 @@ export default [false, true].flatMap((retained) =>
           const { hot, cache, factories } = sandbox;
           const requests = [];
           let manifest;
+          let deliverOther;
           sandbox.fetch = async (url) => {
             manifest = JSON.parse(assets[path.basename(url)]);
             if (mode === "legacy") delete manifest.changed;
@@ -134,10 +136,12 @@ export default [false, true].flatMap((retained) =>
                 const name = path.basename(script.src);
                 requests.push(name);
                 assert(assets[name], `missing asset ${name}`);
-                queueMicrotask(() => {
+                const deliver = () => {
                   vm.runInContext(mode === "late-loaded" && name === "other.js" ? builds[1][name] : assets[name], sandbox);
                   script.onload({ type: "load", target: script });
-                });
+                };
+                if (mode === "pending" && name === "other.js") deliverOther = deliver;
+                else queueMicrotask(deliver);
               },
             },
           };
@@ -156,6 +160,8 @@ export default [false, true].flatMap((retained) =>
           let disposed = 0;
           oldModule.hot.dispose(() => disposed++);
           if (mode.startsWith("loaded")) await sandbox.loadOther();
+          // Start with the old import's chunk list, then deliver other.js after apply.
+          const pending = mode === "pending" && sandbox.loadOther();
           const oldFactory = factories["./dep.js"];
           if (mode === "self-accepted") oldModule.hot.accept();
           if (mode.endsWith("declined")) oldModule.hot.decline();
@@ -182,6 +188,11 @@ export default [false, true].flatMap((retained) =>
             continue;
           }
           await hot.apply();
+          if (pending) {
+            deliverOther();
+            assert.equal((await pending).default, 3);
+            continue;
+          }
           if (mode === "legacy") {
             assert.equal(disposed, 0);
             assert.equal(

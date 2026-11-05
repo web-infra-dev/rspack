@@ -460,7 +460,8 @@
 	_css,
 	_miniCss,
 	load,
-	changed
+	changed,
+	pendingChunkLoads
 ) {
 	applyHandlers.push(function (options) {
 		// Finish selection after downloads, including chunks ensured during check.
@@ -498,7 +499,12 @@
 	// Complete payloads contain the delta too. Select them before requesting
 	// ordinary updates, so each chunk has only one pending update download.
 	Object.keys(dependencies || {}).forEach(function (chunkId) {
-		if (<%- _installed_chunks %>[chunkId] === <%- _loaded_chunk_state %>) prepareFullChunk(chunkId, promises);
+		if (preparedChunks[chunkId] === false) return;
+		var installed = <%- HAS_OWN_PROPERTY %>(<%- _installed_chunks %>, chunkId) && <%- _installed_chunks %>[chunkId] != null;
+		// The loader clears its state between version retries while the original import still waits.
+		if (installed || pendingChunkLoads[chunkId]) {
+			dependencies[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
+		}
 	});
 	var entries = load && load.entries;
 	Object.keys(entries || {}).forEach(function (entryId) {

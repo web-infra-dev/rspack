@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Bundle: lazy.chunk.CURRENT_HASH.js
-- Complete update: main.LAST_HASH.hot-update.js.full.js, size: 59250
+- Complete update: main.LAST_HASH.hot-update.js.full.js, size: 59615
   - ../../../../../../../../packages/rspack/dist/cssExtractHmr.js
   - ./base.css
   - ./index.js
