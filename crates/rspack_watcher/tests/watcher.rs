@@ -1558,9 +1558,9 @@ fn an_unregistered_inner_context_removed_before_is_new_again_to_its_outer_one() 
   while rx.try_recv().is_ok() {}
 
   helper.tick(|| std::fs::remove_dir(helper.join("ctx/sub")).unwrap());
-  let sub = helper.join("ctx/sub");
+  let context = helper.join("ctx");
   wait_for_aggregated(&helper, rx, |batch| {
-    batch.deleted_files.contains(sub.as_str())
+    batch.changed_files.contains(context.as_str())
   });
   let _rx = helper.watch(
     e!(),
