@@ -1,8 +1,11 @@
-use std::{fs, time::Duration};
+use std::{
+  fs,
+  time::{Duration, SystemTime},
+};
 
 use notify::{
   Event, EventKind,
-  event::{ModifyKind, RenameMode},
+  event::{CreateKind, ModifyKind, RemoveKind, RenameMode},
 };
 use rspack_paths::InternedPath;
 use rspack_watcher::{FsEventKind, testing::DirectoryAnalyzer};
@@ -94,6 +97,12 @@ async fn test_delayed_rename_round_trip_with_unchanged_mtime_is_ignored() {
   let file = InternedPath::from(base.join("index.js"));
   let backup = InternedPath::from(base.join("backup.js"));
   fs::write(&file, "source").expect("write source");
+  fs::File::options()
+    .write(true)
+    .open(&file)
+    .expect("open source")
+    .set_modified(SystemTime::now() - Duration::from_secs(60))
+    .expect("set old mtime");
   let mut analyzer = DirectoryAnalyzer::default();
   analyzer
     .update(
@@ -133,6 +142,57 @@ async fn test_delayed_rename_round_trip_with_unchanged_mtime_is_ignored() {
       .is_err(),
     "a restored path with unchanged mtime should be ignored like watchpack"
   );
+}
+
+#[tokio::test]
+async fn test_unchanged_mtime_inside_the_accuracy_window_still_reports_changes() {
+  for (kind, expected) in [
+    (EventKind::Remove(RemoveKind::File), FsEventKind::Change),
+    (
+      EventKind::Modify(ModifyKind::Name(RenameMode::From)),
+      FsEventKind::Change,
+    ),
+    (
+      EventKind::Modify(ModifyKind::Name(RenameMode::To)),
+      FsEventKind::Create,
+    ),
+    (EventKind::Create(CreateKind::File), FsEventKind::Create),
+  ] {
+    let temp = TempDir::new().expect("create fixture");
+    let file = InternedPath::from(
+      temp
+        .path()
+        .canonicalize()
+        .expect("resolve fixture")
+        .join("index.js"),
+    );
+    fs::write(&file, "source").expect("write source");
+    // A future mtime keeps the accuracy window open regardless of scheduling.
+    fs::File::options()
+      .write(true)
+      .open(&file)
+      .expect("open source")
+      .set_modified(SystemTime::now() + Duration::from_secs(60))
+      .expect("set future mtime");
+    let mut analyzer = DirectoryAnalyzer::default();
+    analyzer
+      .update(
+        (vec![file.clone()], vec![]),
+        (vec![], vec![]),
+        (vec![], vec![]),
+      )
+      .await
+      .expect("register file");
+    analyzer.on_native_event(
+      Event::new(EventKind::Modify(ModifyKind::Any)).add_path(file.as_ref().to_path_buf()),
+    );
+    assert_eq!(
+      next_events(&mut analyzer).await,
+      vec![(file.clone(), FsEventKind::Change)]
+    );
+    analyzer.on_native_event(Event::new(kind).add_path(file.as_ref().to_path_buf()));
+    assert_eq!(next_events(&mut analyzer).await, vec![(file, expected)]);
+  }
 }
 
 #[tokio::test]

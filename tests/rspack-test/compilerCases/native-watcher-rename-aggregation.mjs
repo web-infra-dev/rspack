@@ -26,9 +26,11 @@ async function run(operation) {
 	const replacement = path.join(dir, "replacement.js");
 	fs.writeFileSync(file, "old");
 	fs.writeFileSync(replacement, "new");
-	const past = new Date(Date.now() - 60000);
-	fs.utimesSync(file, past, past);
-	if (operation.includes("same")) fs.utimesSync(replacement, past, past);
+	const mtime = new Date(
+		Date.now() + (operation.endsWith("future") ? 60000 : -60000)
+	);
+	fs.utimesSync(file, mtime, mtime);
+	if (operation.includes("same")) fs.utimesSync(replacement, mtime, mtime);
 	const files = [file];
 	const missing = [];
 	if (operation === "rename") missing.push(backup);
@@ -37,8 +39,10 @@ async function run(operation) {
 		fs.writeFileSync(path.join(dir, "staged/nested/child.js"), "child");
 		missing.push(path.join(dir, "modules/nested/child.js"));
 	}
-	const wp = new Watchpack({ aggregateTimeout: 500 });
-	const native = new NativeWatcher({ aggregateTimeout: 500 });
+	// Both backends must check the path after the synchronous rename sequence.
+	const ignored = () => false;
+	const wp = new Watchpack({ aggregateTimeout: 500, ignored });
+	const native = new NativeWatcher({ aggregateTimeout: 500, ignored });
 	const data = {
 		watchpack: { raw: [], batches: [] },
 		native: { raw: [], batches: [] }
@@ -88,14 +92,16 @@ async function run(operation) {
 		if (operation === "directory") {
 			fs.renameSync(path.join(dir, "staged"), path.join(dir, "modules"));
 		} else {
-			fs.renameSync(file, backup);
+			if (operation.startsWith("recreate")) fs.unlinkSync(file);
+			else fs.renameSync(file, backup);
 			if (operation.includes("observed"))
 				await until(
 					() =>
 						data.watchpack.raw.some(e => e[0] === "remove") &&
 						data.native.raw.some(e => e[0] === "remove")
 				);
-			if (operation.startsWith("replace")) fs.renameSync(replacement, file);
+			if (operation.startsWith("replace") || operation.startsWith("recreate"))
+				fs.renameSync(replacement, file);
 			if (operation.startsWith("roundtrip")) fs.renameSync(backup, file);
 		}
 		await sleep(1500);
@@ -126,6 +132,9 @@ export default [
 	"replace-same-observed",
 	"roundtrip-immediate",
 	"roundtrip-observed",
+	"replace-same-immediate-future",
+	"roundtrip-immediate-future",
+	"recreate-same-immediate-future",
 	"directory"
 ].map(operation => ({
 	name: operation,

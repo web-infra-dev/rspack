@@ -51,7 +51,8 @@ export default [false, true].flatMap(nativeWatcher =>
 				let value;
 				const bundle = path.join(compiler.options.output.path, "bundle.cjs");
 				const watching = compiler.watch(
-					{ aggregateTimeout: 300 },
+					// Run native's ignored check on JS before it stats either rename event.
+					{ aggregateTimeout: 300, ignored: () => false },
 					(error, stats) => {
 						if (error || stats.hasErrors()) {
 							failure = error || new Error(stats.toString());
