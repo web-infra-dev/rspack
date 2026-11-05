@@ -59,6 +59,7 @@ const excludes = {
 		/^container-1-5\/tree-shaking-shared-infer-mode$/,
 		/^container-1-5\/tree-shaking-shared-pnpm-versions$/,
 		/^container-1-5\/tree-shaking-shared-server-mode$/,
+		/^container-1-5\/tree-shaking-shared-provide-only$/,
 		/^container\/container-entry-overridables$/,
 		/^container\/exposed-overridables$/,
 		/^contenthash\/assets$/,
