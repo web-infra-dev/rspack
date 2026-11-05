@@ -169,9 +169,20 @@ export async function withProjects(run) {
 	}
 }
 
+// fs.cpSync loses non-ASCII destinations on Windows in Node 22.
+function copyTree(from, to) {
+	fs.mkdirSync(to, { recursive: true });
+	for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
+		const source = path.join(from, entry.name);
+		const target = path.join(to, entry.name);
+		if (entry.isDirectory()) copyTree(source, target);
+		else if (entry.isSymbolicLink()) fs.symlinkSync(fs.readlinkSync(source), target);
+		else fs.copyFileSync(source, target);
+	}
+}
+
 export function copyProject(writer, reader) {
-	fs.mkdirSync(path.dirname(reader), { recursive: true });
-	fs.cpSync(writer, reader, { recursive: true, verbatimSymlinks: true });
+	copyTree(writer, reader);
 }
 
 export function expectEqualOutput(actual, expected) {

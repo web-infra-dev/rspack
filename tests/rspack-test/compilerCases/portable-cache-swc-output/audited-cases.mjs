@@ -380,7 +380,7 @@ export const value = <><section title="automatic"><span>nested</span></section><
         fs.symlinkSync("absent.map", path.join(writer, "src", "dangling.jsx.map"));
         const rules = [
           swcRule(/^(?!.*(?:json|inline-option)\.jsx$).*\.jsx$/, autoMapOptions),
-          swcRule(/\/json\.jsx$/, { ...autoMapOptions, inputSourceMap: JSON.stringify(map(fixed)) }),
+          swcRule(/[\\/]json\.jsx$/, { ...autoMapOptions, inputSourceMap: JSON.stringify(map(fixed)) }),
           swcRule(/inline-option\.jsx$/, { ...autoMapOptions, inputSourceMap: "inline" })
         ];
         const first = await build(writer, rules);
@@ -421,14 +421,14 @@ export const value = <><section title="automatic"><span>nested</span></section><
             const original = compiler.inputFileSystem;
             const replacement = Object.create(original);
             replacement.stat = (file, ...args) => {
-              if (file.endsWith("/blocked.map")) return args.at(-1)(denied());
-              if (file.endsWith("/virtual.jsx.map")) return original.stat(path.join(compiler.context, "src", "blocked.jsx.map"), ...args);
+              if (path.basename(file) === "blocked.map") return args.at(-1)(denied());
+              if (path.basename(file) === "virtual.jsx.map") return original.stat(path.join(compiler.context, "src", "blocked.jsx.map"), ...args);
               return original.stat(file, ...args);
             };
             replacement.readFile = (file, ...args) => {
               reads.push(file);
-              if (file.endsWith("/unreadable.jsx.map")) return args.at(-1)(denied());
-              if (file.endsWith("/virtual.jsx.map")) return args.at(-1)(null, Buffer.from(JSON.stringify(map("virtual-filesystem.tsx"))));
+              if (path.basename(file) === "unreadable.jsx.map") return args.at(-1)(denied());
+              if (path.basename(file) === "virtual.jsx.map") return args.at(-1)(null, Buffer.from(JSON.stringify(map("virtual-filesystem.tsx"))));
               return original.readFile(file, ...args);
             };
             compiler.inputFileSystem = replacement;

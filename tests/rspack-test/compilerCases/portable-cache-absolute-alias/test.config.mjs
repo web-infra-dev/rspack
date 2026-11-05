@@ -89,7 +89,7 @@ async function build(
       values,
       diagnostics,
       loaderRuns: globalThis[LOADER_RUNS].map((resource) =>
-        path.relative(context, resource),
+        path.relative(context, resource).split(path.sep).join('/'),
       ),
       assets: fs
         .readdirSync(path.join(context, 'dist'))
@@ -100,7 +100,7 @@ async function build(
           fs.readFileSync(path.join(context, 'dist', file), 'utf-8'),
         ]),
       built: [...stats.compilation.builtModules].map((module) =>
-        path.relative(context, module.identifier()),
+        path.relative(context, module.identifier()).split(path.sep).join('/'),
       ),
       dropped: logs.filter((line) =>
         /dropped \d+ entries bound to another root/.test(line),

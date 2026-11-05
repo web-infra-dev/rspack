@@ -37,10 +37,10 @@ async function build(context, cache = { type: 'persistent', portable: true }) {
     const dist = path.join(context, 'dist');
     return {
       built: [...stats.compilation.builtModules]
-        .map((module) => path.relative(context, module.resource))
+        .map((module) => path.relative(context, module.resource).split(path.sep).join('/'))
         .sort(),
       loaderRuns: globalThis[LOADER_RUNS]
-        .map((resource) => path.relative(context, resource))
+        .map((resource) => path.relative(context, resource).split(path.sep).join('/'))
         .sort(),
       dropped: logs.filter((line) =>
         /^make persistent cache dropped \d+ entries bound to another root/.test(

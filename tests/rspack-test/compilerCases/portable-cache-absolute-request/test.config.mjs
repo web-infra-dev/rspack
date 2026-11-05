@@ -257,16 +257,19 @@ export default {
 			expect(external.assets.find(([name]) => name === "main.js")[1]).toContain(
 				JSON.stringify(path.join(temp, "externals/reader-with-longer-root/proj/node_modules/api/index.js"))
 			);
-			await fixedSpelling(
-				"roots",
-				root => {
-					const overlay = path.join(temp, "overlay", root);
-					fs.mkdirSync(path.join(overlay, "node_modules/api"), { recursive: true });
-					fs.writeFileSync(path.join(overlay, "node_modules/api/index.js"), "module.exports = 9;");
-					return { resolve: { roots: [path.join(temp, "overlay")] } };
-				},
-				9
-			);
+			// resolve.roots reads requests that start with "/", which an absolute Windows path does not.
+			if (process.platform !== "win32") {
+				await fixedSpelling(
+					"roots",
+					root => {
+						const overlay = path.join(temp, "overlay", root);
+						fs.mkdirSync(path.join(overlay, "node_modules/api"), { recursive: true });
+						fs.writeFileSync(path.join(overlay, "node_modules/api/index.js"), "module.exports = 9;");
+						return { resolve: { roots: [path.join(temp, "overlay")] } };
+					},
+					9
+				);
+			}
 
 			await fixedSpelling(
 				"alias-key",
