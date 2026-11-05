@@ -17,6 +17,7 @@ import type {
   Stats,
 } from '.';
 import type { WatchOptions } from './config';
+import { getDefaultCacheName } from './config/defaults';
 import ConcurrentCompilationError from './error/ConcurrentCompilationError';
 import MultiStats from './MultiStats';
 import MultiWatching from './MultiWatching';
@@ -130,6 +131,13 @@ export class MultiCompiler {
     let doneCompilers = 0;
     for (let index = 0; index < this.compilers.length; index++) {
       const compiler = this.compilers[index];
+      if (compiler.options.experiments.newCache) {
+        compiler.compilerPath = getDefaultCacheName(
+          compiler.name,
+          compiler.options.mode,
+          index,
+        );
+      }
       const compilerIndex = index;
       let compilerDone = false;
       compiler.hooks.done.tap('MultiCompiler', (stats) => {

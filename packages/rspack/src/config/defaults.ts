@@ -61,7 +61,17 @@ import type {
 
 const ERROR_PREFIX = 'Invalid Rspack configuration:';
 const DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
-const DEFAULT_CACHE_NAME = '';
+
+export function getDefaultCacheName(
+  name: Name | undefined,
+  mode: Mode = 'production',
+  compilerIndex?: number,
+): string {
+  const cacheName = name ? `${name}-${mode}` : mode;
+  return compilerIndex !== undefined && compilerIndex > 0
+    ? `${cacheName}-${compilerIndex}`
+    : cacheName;
+}
 
 export const applyRspackOptionsDefaults = (
   options: RspackOptionsNormalized,
@@ -106,9 +116,11 @@ export const applyRspackOptionsDefaults = (
   );
   applyCacheDefaults(options.cache!, {
     context: options.context!,
-    name: options.name || DEFAULT_CACHE_NAME,
+    name: options.name,
     mode: options.mode || 'production',
     compilerIndex,
+    newCacheMultiCompiler:
+      compilerIndex !== undefined && Boolean(options.experiments.newCache),
   });
 
   applyIncrementalDefaults(options);
@@ -222,41 +234,41 @@ const applyCacheDefaults = (
     name,
     mode,
     compilerIndex,
+    newCacheMultiCompiler,
   }: {
     context: string;
-    name: Name;
+    name: Name | undefined;
     mode: Mode;
     compilerIndex?: number;
+    newCacheMultiCompiler: boolean;
   },
 ) => {
-  if (cache === false) return;
-  if (cache.type === 'persistent') {
-    F(cache, 'name', () => {
-      const cacheName = name ? `${name}-${mode}` : mode;
-      return compilerIndex !== undefined && compilerIndex > 0
-        ? `${cacheName}-${compilerIndex}`
-        : cacheName;
-    });
-    D(cache, 'version', '');
-    D(cache, 'maxMemoryGenerations', mode === 'development' ? 5 : Infinity);
-    D(cache, 'readonly', false);
-  }
-  switch (cache.type) {
-    case 'memory':
-      break;
-    case 'persistent':
-      D(cache.storage, 'type', 'filesystem');
-      F(cache.storage, 'directory', () =>
-        path.resolve(context, 'node_modules/.cache/rspack'),
-      );
-      F(cache.storage, 'location', () =>
-        path.resolve(cache.storage.directory!, cache.name!),
-      );
-      D(cache, 'maxAge', DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS);
-      F(cache, 'buildDependencies', () => []);
-      D(cache, 'portable', false);
-      break;
-  }
+  if (cache === false || cache.type === 'memory') return;
+  const useNewCacheLocation =
+    newCacheMultiCompiler &&
+    cache.name === undefined &&
+    !cache.version &&
+    !cache.readonly &&
+    cache.maxMemoryGenerations === undefined;
+
+  F(cache, 'name', () => getDefaultCacheName(name, mode, compilerIndex));
+  D(cache, 'version', '');
+  D(cache, 'maxMemoryGenerations', mode === 'development' ? 5 : Infinity);
+  D(cache, 'readonly', false);
+  D(cache.storage, 'type', 'filesystem');
+  F(cache.storage, 'directory', () =>
+    path.resolve(context, 'node_modules/.cache/rspack'),
+  );
+  F(cache.storage, 'location', () =>
+    path.resolve(
+      cache.storage.directory!,
+      useNewCacheLocation ? 'new-cache' : '',
+      cache.name!,
+    ),
+  );
+  D(cache, 'maxAge', DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS);
+  F(cache, 'buildDependencies', () => []);
+  D(cache, 'portable', false);
 };
 
 const applySnapshotDefaults = (
