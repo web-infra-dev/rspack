@@ -1,11 +1,12 @@
-use std::sync::LazyLock;
+use std::{hash::Hash, sync::LazyLock};
 
 use rayon::prelude::*;
 use rspack_core::{
-  ChunkGraph, ChunkInitFragments, ChunkKind, ChunkUkey, CodeGenerationDataChunkInitFragments,
-  CodeGenerationDataPreservedAssetImport, CodeGenerationPublicPathAutoReplace, Compilation,
-  ExternalModuleInitFragment, InitFragmentExt, InitFragmentStage, Module, RuntimeCodeTemplate,
-  RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeModuleGenerateContext, SourceType,
+  Chunk, ChunkGraph, ChunkInitFragments, ChunkKind, ChunkUkey,
+  CodeGenerationDataChunkInitFragments, CodeGenerationDataPreservedAssetImport,
+  CodeGenerationPublicPathAutoReplace, Compilation, ExternalModuleInitFragment, InitFragmentExt,
+  InitFragmentStage, Module, RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode,
+  RuntimeModuleGenerateContext, SourceType,
   chunk_graph_chunk::ChunkIdSet,
   get_undo_path, render_runtime_module_source,
   rspack_sources::{
@@ -14,6 +15,7 @@ use rspack_core::{
   runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rspack_hash::RspackHasher;
 use rspack_util::{identifier::make_paths_relative, placeholder::PlaceholderFinder};
 
 pub use crate::runtime_context::{
@@ -25,9 +27,67 @@ pub use crate::runtime_context::{
 };
 use crate::{JavascriptModulesPluginHooks, RenderSource};
 
+pub fn startup_awaits_entries(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
+  let output = &compilation.options.output;
+  if !output.module || output.iife || !output.environment.supports_top_level_await() {
+    return false;
+  }
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
+  if !chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph) {
+    return false;
+  }
+  if !chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
+    return output.chunk_format == "module";
+  }
+  let runtime_requirements = compilation
+    .cgc_runtime_requirements_artifact
+    .get(chunk_ukey)
+    .copied()
+    .unwrap_or_default();
+  !runtime_requirements.intersects(RuntimeGlobals::STARTUP | RuntimeGlobals::STARTUP_NO_DEFAULT)
+}
+
+pub fn render_awaited_entries(targets: &[String]) -> Option<String> {
+  match targets {
+    [] => None,
+    [target] => Some(format!("{target} = await {target};")),
+    targets => {
+      let list = targets.join(", ");
+      Some(format!("[{list}] = await Promise.all([{list}]);"))
+    }
+  }
+}
+
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__";
 pub static AUTO_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
   LazyLock::new(|| PlaceholderFinder::new(AUTO_PUBLIC_PATH_PLACEHOLDER));
+
+// Match webpack's chunk version: module IDs and module hashes, independent of
+// the compilation hash and the runtime modules that publish this version.
+pub fn get_hmr_chunk_version(compilation: &Compilation, chunk: &Chunk) -> String {
+  let mut modules = compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .get_chunk_modules_identifier_by_source_type(
+      &chunk.ukey(),
+      SourceType::JavaScript,
+      compilation.get_module_graph(),
+    );
+  modules.sort_unstable();
+  let output = &compilation.options.output;
+  let mut hasher = RspackHasher::from(output);
+  for module in modules {
+    ChunkGraph::get_module_id(&compilation.module_ids_artifact, module).hash(&mut hasher);
+    ChunkGraph::get_module_hash(compilation, module, chunk.runtime()).hash(&mut hasher);
+  }
+  hasher
+    .digest(&output.hash_digest)
+    .rendered(output.hash_digest_length)
+    .to_string()
+}
 
 pub async fn render_chunk_modules(
   compilation: &Compilation,
@@ -442,6 +502,12 @@ pub(crate) async fn render_runtime_module_sources(
   reject_custom_runtime_modules: bool,
 ) -> Result<Vec<RuntimeModuleSourceItem>> {
   let runtime_mode = compilation.options.experiments.runtime_mode;
+  let is_hot_update = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey)
+    .kind()
+    == ChunkKind::HotUpdate;
   let runtime_module_sources = rspack_parallel::scope::<_, Result<_>>(|token| {
     compilation
       .build_chunk_graph_artifact
@@ -454,13 +520,23 @@ pub(crate) async fn render_runtime_module_sources(
             .get(identifier)
             .expect("should have runtime module result"),
           runtime_module,
+          if is_hot_update {
+            compilation
+              .records
+              .as_ref()
+              .and_then(|records| records.runtime_modules.get(identifier))
+              .filter(|record| !record.has_custom_source)
+              .and_then(|record| record.update_data.as_deref())
+          } else {
+            None
+          },
         )
       })
-      .for_each(|(source, module)| {
-        let s = unsafe { token.used((compilation, source, module)) };
+      .for_each(|(source, module, previous)| {
+        let s = unsafe { token.used((compilation, source, module, previous)) };
         s.spawn(
-          move |(compilation, source, module)| async move {
-            if source.size() == 0 {
+          move |(compilation, source, module, previous)| async move {
+            if source.size() == 0 && previous.is_none() {
               return Ok((
                 ConcatSource::default().boxed(),
                 RuntimeGlobals::default(),
@@ -485,29 +561,46 @@ pub(crate) async fn render_runtime_module_sources(
               .output
               .environment
               .supports_arrow_function();
-            let source = if !(module.full_hash() || module.dependent_hash()) {
-              if let Some(custom_source) = module.get_custom_source() {
-                RawStringSource::from(custom_source).boxed()
+            let source = if let Some(custom_source) = module.get_custom_source() {
+              RawStringSource::from(custom_source).boxed()
+            } else if previous.is_some() || module.full_hash() || module.dependent_hash() {
+              let runtime_template = compilation.runtime_template.create_runtime_module_code_template();
+              let context = RuntimeModuleGenerateContext {
+                compilation,
+                runtime_template: &runtime_template,
+              };
+              let update = if let Some(previous) = previous {
+                module.generate_update(&context, previous).await?
+              } else {
+                None
+              };
+              let generated = match update {
+                Some(source) => Some(source),
+                None if module.full_hash() || module.dependent_hash() => {
+                  Some(module.generate(&context).await?)
+                }
+                None => None,
+              };
+              if let Some(generated) = generated {
+                if module.get_source_map_kind().enabled() {
+                  OriginalSource::new(generated, module.identifier().as_str()).boxed()
+                } else {
+                  RawStringSource::from(generated).boxed()
+                }
               } else {
                 source.clone()
               }
             } else {
-              if let Some(custom_source) = module.get_custom_source() {
-                RawStringSource::from(custom_source).boxed()
-              } else {
-                let runtime_template = compilation.runtime_template.create_runtime_module_code_template();
-                let context = RuntimeModuleGenerateContext {
-                  compilation,
-                  runtime_template: &runtime_template,
-                };
-                let source_str = module.generate(&context).await?;
-                if module.get_source_map_kind().enabled() {
-                  OriginalSource::new(source_str, module.identifier().as_str()).boxed()
-                } else {
-                  RawStringSource::from(source_str).boxed()
-                }
-              }
+              source.clone()
             };
+            if source.size() == 0 {
+              return Ok((
+                ConcatSource::default().boxed(),
+                RuntimeGlobals::default(),
+                RuntimeGlobals::default(),
+                false,
+              ));
+            }
             let should_isolate = module.should_isolate(runtime_mode);
             let needs_top_level = matches!(runtime_mode, RuntimeMode::Rspack)
               && module.get_constructor_name() == "ExportRequireRuntimeModule";

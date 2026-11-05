@@ -1,7 +1,8 @@
 use rspack_core::{
   ChunkGraph, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationDependentFullHash, CompilationParams, CompilerCompilation, ModuleIdentifier, Plugin,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeVariable, SourceType,
+  CompilationDependentFullHash, CompilationParams, CompilerCompilation, ModuleGraph,
+  ModuleIdentifier, Plugin, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeVariable,
+  SourceType,
   rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -9,8 +10,12 @@ use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JavascriptModulesRenderStartup,
-  JsPlugin, RenderSource, impl_plugin_for_js_plugin::chunk_has_js,
-  runtime::render_chunk_runtime_modules,
+  JsPlugin, RenderSource,
+  impl_plugin_for_js_plugin::chunk_has_js,
+  runtime::{
+    get_hmr_chunk_version, render_awaited_entries, render_chunk_runtime_modules,
+    startup_awaits_entries,
+  },
 };
 use rspack_util::itoa;
 use rustc_hash::FxHashSet as HashSet;
@@ -147,6 +152,15 @@ async fn render_chunk(
   let chunk_id_expr = rspack_util::json_stringify(chunk.expect_id());
 
   let mut sources = ConcatSource::default();
+  if !matches!(chunk.kind(), ChunkKind::HotUpdate)
+    && ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey)
+      .contains(RuntimeGlobals::HMR_CHUNK_VERSIONS)
+  {
+    sources.add(RawStringSource::from(format!(
+      "export const __rspack_esm_hash = {};\n",
+      rspack_util::json_stringify_str(&get_hmr_chunk_version(compilation, chunk))
+    )));
+  }
   sources.add(RawStringSource::from(format!(
     "export const __rspack_esm_ids = [{chunk_id_expr}];\n",
   )));
@@ -195,7 +209,8 @@ async fn render_chunk(
     let mut startup_source = vec![];
     let runtime_requirements = ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
     let use_startup_entrypoint = runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT);
-    let mut entry_module_ids = Vec::new();
+    let mut startup_entries = Vec::new();
+    let mut await_startup = false;
 
     startup_source.push(format!(
       "var {} = function(moduleId) {{ return {}({} = moduleId); }}",
@@ -205,6 +220,9 @@ async fn render_chunk(
     ));
 
     let module_graph = compilation.get_module_graph();
+    let exports = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
+    let can_await_entry = startup_awaits_entries(compilation, chunk_ukey);
+    let mut awaited_entries: Vec<String> = Vec::new();
     let mut loaded_chunks = HashSet::default();
     for (i, (module, entry)) in entries.iter().enumerate() {
       if !module_graph
@@ -263,38 +281,64 @@ async fn render_chunk(
       }
 
       let module_id_expr = rspack_util::json_stringify(module_id);
+      let await_entry =
+        can_await_entry && ModuleGraph::is_async(&compilation.async_modules_artifact, module);
 
       if use_startup_entrypoint {
-        entry_module_ids.push(module_id_expr);
+        startup_entries.push((module_id_expr, await_entry));
+        await_startup |= await_entry;
       } else {
+        let is_last_entry = i + 1 == entries.len();
+        let target = if is_last_entry {
+          exports.clone()
+        } else {
+          format!("{exports}_{i}")
+        };
         startup_source.push(format!(
           "{}{}({module_id_expr});",
-          if i + 1 == entries.len() {
-            format!(
-              "var {} = ",
-              runtime_template.render_runtime_variable(&RuntimeVariable::Exports)
-            )
+          if is_last_entry || await_entry {
+            format!("var {target} = ")
           } else {
             String::new()
           },
           chunk_runtime_template.render_runtime_variable(&RuntimeVariable::StartupExec),
         ));
+        if await_entry {
+          awaited_entries.push(target);
+        }
       }
     }
 
-    if use_startup_entrypoint && !entry_module_ids.is_empty() {
+    startup_source.extend(render_awaited_entries(&awaited_entries));
+
+    if use_startup_entrypoint && !startup_entries.is_empty() {
       let startup_exec =
         chunk_runtime_template.render_runtime_variable(&RuntimeVariable::StartupExec);
-      let module_ids_code = entry_module_ids
+      let module_ids_code = startup_entries
         .iter()
-        .map(|module_id_expr| format!("{startup_exec}({module_id_expr})"))
+        .enumerate()
+        .map(|(i, (module_id_expr, await_entry))| {
+          let call = format!("{startup_exec}({module_id_expr})");
+          if await_startup && !await_entry && i + 1 != startup_entries.len() {
+            format!("void {call}")
+          } else {
+            call
+          }
+        })
         .collect::<Vec<_>>()
         .join(", ");
-      startup_source.push(format!(
-        "var {} = {}(0, [], function() {{\n        return {};\n      }});",
-        runtime_template.render_runtime_variable(&RuntimeVariable::Exports),
-        chunk_runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT),
+      let return_value = if await_startup {
+        format!(
+          "Promise.all([{module_ids_code}]).then(function(exports) {{ return exports[{}]; }})",
+          startup_entries.len() - 1
+        )
+      } else {
         module_ids_code
+      };
+      startup_source.push(format!(
+        "var {exports} = {}{}(0, [], function() {{\n        return {return_value};\n      }});",
+        if await_startup { "await " } else { "" },
+        chunk_runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT),
       ));
     }
 

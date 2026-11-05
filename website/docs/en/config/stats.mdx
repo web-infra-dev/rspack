@@ -316,9 +316,9 @@ Whether to display the orphan modules.
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
-Whether to display information about runtime modules.
+Whether to display information about [Rspack runtime modules](/misc/glossary#rspack-runtime-module).
 
-> The runtime modules are built-in modules of Rspack, used to provide various runtime capabilities.
+> Rspack runtime modules provide the code for features such as module and chunk loading.
 
 :::tip
 `stats.runtime` is a compatibility alias for `stats.runtimeModules`. It only takes effect when `stats.runtimeModules` is not specified; if both are set, `stats.runtimeModules` takes precedence.
@@ -551,6 +551,38 @@ Whether to output in the different colors.
 When an object is provided, it customizes the ANSI escape sequences used for each supported color. By default, Rspack enables colors when the current environment supports color output.
 
 ## Compilation options
+
+### stats.cacheInfo
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+- **Version:** `>= 2.3.0`
+
+Includes cache statistics in [Stats JSON](/api/javascript-api/stats-json#cacheinfo). To use this option, enable caching and the experimental [experiments.newCache](/config/experiments#experimentsnewcache) option, which is disabled by default:
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+  },
+  experiments: {
+    newCache: true,
+  },
+};
+```
+
+Read the statistics after compilation using [compiler.hooks.done](/api/plugin-api/compiler-hooks#done):
+
+```js
+compiler.hooks.done.tap('CacheStatistics', (stats) => {
+  const { cacheInfo } = stats.toJson({ all: false, cacheInfo: true });
+  if (cacheInfo) {
+    console.table(cacheInfo);
+  }
+});
+```
+
+`stats.toString()` does not display these statistics. For field descriptions, see [cacheInfo](/api/javascript-api/stats-json#cacheinfo).
 
 ### stats.hash
 

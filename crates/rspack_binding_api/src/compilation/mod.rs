@@ -5,7 +5,7 @@ mod diagnostics;
 pub mod entries;
 mod modules;
 
-use std::{cell::RefCell, ptr::NonNull};
+use std::{cell::RefCell, ptr::NonNull, sync::Arc};
 
 use chunks::Chunks;
 pub use code_generation_results::*;
@@ -120,7 +120,7 @@ fn with_module_graph<R>(
 #[napi]
 impl JsCompilation {
   #[napi(
-    ts_args_type = r#"filename: string, newSourceOrFunction: JsSource | ((source: JsSource) => JsSource), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)"#
+    ts_args_type = r#"filename: string, newSourceOrFunction: JsSourceFromJs | ((source: JsSource) => JsSourceFromJs), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined)"#
   )]
   pub fn update_asset(
     &mut self,
@@ -229,6 +229,23 @@ impl JsCompilation {
       .transpose()
   }
 
+  #[napi]
+  pub fn get_asset_native_source(
+    &self,
+    name: String,
+  ) -> Result<Option<crate::source::JsNativeSource>> {
+    Ok(
+      self
+        .as_ref()?
+        .assets()
+        .get(&name)
+        .and_then(|asset| asset.source.as_ref())
+        .map(|source| crate::source::JsNativeSource {
+          inner: Arc::clone(source),
+        }),
+    )
+  }
+
   #[napi(getter)]
   pub fn modules(&self) -> Modules {
     Modules::new(self.id)
@@ -335,7 +352,7 @@ impl JsCompilation {
     )
   }
 
-  #[napi(ts_args_type = "name: string, source: JsSource")]
+  #[napi(ts_args_type = "name: string, source: JsSourceFromJs")]
   pub fn set_asset_source(&mut self, name: String, source: JsSourceFromJs) -> Result<()> {
     let compilation = self.as_mut()?;
 
@@ -383,7 +400,7 @@ impl JsCompilation {
   }
 
   #[napi(
-    ts_args_type = "filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null"
+    ts_args_type = "filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null"
   )]
   pub fn emit_asset(
     &mut self,

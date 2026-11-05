@@ -8,6 +8,7 @@ mod file_cache_strategy;
 mod idle_file_cache;
 mod memory_cache;
 pub(crate) mod snapshot;
+mod statistics;
 mod validator;
 
 use std::sync::Arc;
@@ -22,6 +23,7 @@ pub use idle_file_cache::IdleFileCache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
 use rspack_fs::ReadableFileSystem;
 pub use snapshot::{FileSystemInfo, Snapshot, SnapshotValidationResult};
+pub use statistics::{CacheInfo, CacheRecord};
 
 use crate::{
   CompilerOptions, InfrastructureLogSink, InfrastructureLogger, MaxMemoryGenerations,
@@ -34,28 +36,28 @@ pub fn create_cache(
   input_filesystem: Arc<dyn ReadableFileSystem>,
   infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
 ) -> Cache {
+  let logger = Arc::new(InfrastructureLogger::new(
+    "rspack.cache",
+    infrastructure_log_sink,
+  ));
   if !compiler_options.experiments.new_cache.is_enabled() {
-    return Cache::new_disabled();
+    return Cache::new_disabled(logger);
   }
 
   let options = match &compiler_options.cache {
     crate::CacheOptions::Disabled => {
-      return Cache::new_disabled();
+      return Cache::new_disabled(logger);
     }
     crate::CacheOptions::Memory {
       max_generations: _, /* TODO: old cache default to 1, change to 5 and pass to MemoryCache */
       ..
     } => {
-      return Cache::new(Some(MemoryCache::new(5)), None);
+      return Cache::new(Some(MemoryCache::new(5)), None, logger);
     }
     crate::CacheOptions::Persistent(options) => options,
   };
 
   let codec = Arc::new(CacheCodec::new(None));
-  let logger = Arc::new(InfrastructureLogger::new(
-    "rspack.cache.IdleFileCache",
-    infrastructure_log_sink,
-  ));
   let file_system_info = FileSystemInfo::new(
     input_filesystem,
     logger.get_child("rspack.FileSystemInfo"),
@@ -80,7 +82,7 @@ pub fn create_cache(
   let idle_file_cache = IdleFileCache::new(
     (base_path, database_path),
     strategy,
-    logger,
+    logger.clone(),
     None,
     None,
     None,
@@ -91,5 +93,5 @@ pub fn create_cache(
     MaxMemoryGenerations::Finite(max_generations) => Some(MemoryCache::new(max_generations)),
   };
 
-  Cache::new(memory_cache, Some(idle_file_cache))
+  Cache::new(memory_cache, Some(idle_file_cache), logger)
 }

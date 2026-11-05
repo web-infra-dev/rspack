@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.type-test.json",
+  "files": ["rspack.wasi.d.cts"]
+}
