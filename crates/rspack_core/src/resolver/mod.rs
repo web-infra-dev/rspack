@@ -8,6 +8,7 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
+use futures::future::BoxFuture;
 use regex::Regex;
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_error::Error;
@@ -45,6 +46,34 @@ pub struct ResolveArgs<'a> {
   pub resolve_options: Option<Arc<Resolve>>,
   pub resolve_to_context: bool,
   pub optional: bool,
+}
+
+/// Enrich a resolver error on the cold path without duplicating its async state
+/// machine in every codegen unit that resolves modules.
+#[cold]
+#[inline(never)]
+pub(crate) fn resolve_error<'a>(
+  args: ResolveArgs<'a>,
+  plugin_driver: &'a SharedPluginDriver,
+  fs: Arc<dyn ReadableFileSystem>,
+  error: ResolveInnerError,
+) -> BoxFuture<'a, Error> {
+  Box::pin(async move {
+    let mut error = error.into_resolve_error(&args);
+    tracing::error!(
+      specifier = args.specifier,
+      importer = ?args.importer,
+      context = %args.context,
+      dependency_type = %args.dependency_type,
+      dependency_category = %args.dependency_category,
+      "Resolve error: {}",
+      error.to_string()
+    );
+    if let Some(hint) = resolve_for_error_hints(args, plugin_driver, fs).await {
+      error.help = Some(hint);
+    }
+    error
+  })
 }
 
 /// A successful path resolution or an ignored path.
@@ -335,27 +364,9 @@ pub async fn resolve(
   let (result, dependencies) = resolver
     .resolve_with_context(args.context.as_ref(), args.specifier)
     .await;
-  let mut result = result.map_err(|error| error.into_resolve_error(&args));
-
-  if let Err(ref err) = result {
-    tracing::error!(
-      specifier = args.specifier,
-      importer = ?args.importer,
-      context = %args.context,
-      dependency_type = %args.dependency_type,
-      dependency_category = %args.dependency_category,
-      "Resolve error: {}",
-      err.to_string()
-    );
-  }
-
-  if result.is_err()
-    && let Some(hint) = resolve_for_error_hints(args, plugin_driver, resolver.inner_fs()).await
-  {
-    result = result.map_err(|mut err| {
-      err.help = Some(hint);
-      err
-    })
+  let result = match result {
+    Ok(result) => Ok(result),
+    Err(error) => Err(resolve_error(args, plugin_driver, resolver.inner_fs(), error).await),
   };
 
   (result, dependencies)

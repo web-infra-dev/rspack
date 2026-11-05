@@ -1,324 +1,268 @@
-//! Shared glob matching and filesystem traversal.
+//! Glob matching with resumable literal prefix matching.
+//!
+//! Byte-oriented syntax, escaping, brace limits and platform path separators
+//! follow fast-glob. Patterns compile into a shared instruction graph so
+//! consuming a prefix retains every possible continuation.
+//!
+//! ```rust
+//! use rspack_util::glob::{GlobMatch, GlobPattern};
+//!
+//! let pattern = GlobPattern::new(b"@/components/**/*.js")?;
+//! let GlobMatch::MatchPartial(remaining) = pattern.match_path("@/components/") else {
+//!   panic!("matching directory prefix");
+//! };
+//! assert!(matches!(
+//!   remaining.match_path("button/index.js"),
+//!   GlobMatch::MatchExact
+//! ));
+//! # Ok::<(), rspack_util::glob::Error>(())
+//! ```
 
-use core::fmt;
-use std::sync::Arc;
+mod path;
+mod program;
+mod syntax;
+
+use std::{
+  borrow::Cow,
+  sync::{Arc, OnceLock},
+};
 
 use cow_utils::CowUtils;
-use fast_glob::glob_match;
-use rspack_error::Result;
-use rspack_fs::{ReadableFileSystem, WalkMatcher};
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use program::{Instructions, Program, States};
+pub use syntax::{Error, ErrorKind, validate};
 
-#[derive(Debug)]
-pub struct GlobMatchOptions {
+/// Options applied while compiling and consuming a glob.
+#[derive(Debug, Clone, Copy)]
+pub struct GlobOptions {
+  /// Match the spelling exactly; otherwise fold Unicode case before matching.
   pub case_sensitive: bool,
+  /// Require an explicit leading `.` in each hidden path component.
   pub require_literal_leading_dot: bool,
+  /// Accept Windows-form patterns: outside character classes, a backslash is a
+  /// separator unless it escapes `*`, `?`, `[`, `]`, `{` or `}`. Standard glob
+  /// escaping remains the default, including `\n`, `\,` and `\\`.
+  pub windows_paths: bool,
+  /// Interpret backslashes as glob escapes. Disable for native Windows paths,
+  /// where every backslash outside a character class separates components.
+  pub backslash_escape: bool,
 }
 
-impl Default for GlobMatchOptions {
+impl Default for GlobOptions {
   fn default() -> Self {
     Self {
       case_sensitive: true,
-      require_literal_leading_dot: true,
+      require_literal_leading_dot: false,
+      windows_paths: false,
+      backslash_escape: true,
     }
   }
 }
 
-impl fmt::Display for GlobMatchOptions {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(
-      f,
-      "GlobMatchOptions {{ case_sensitive: {}, require_literal_leading_dot: {} }}",
-      self.case_sensitive, self.require_literal_leading_dot
-    )
+/// A compiled glob and the matching states remaining after a literal prefix.
+///
+/// Cloning shares the compiled graph, source and cached prefix, and copies the
+/// active states so callers can independently traverse sibling directories.
+/// The source borrows the input unless separator parsing or case folding changes it.
+/// Matching operates on bytes:
+/// `?` consumes one non-separator byte, including within UTF-8 strings.
+#[derive(Debug, Clone)]
+pub struct GlobPattern<'a> {
+  program: Arc<Instructions>,
+  source: Arc<Cow<'a, [u8]>>,
+  literal_prefix: OnceLock<Arc<Cow<'a, [u8]>>>,
+  states: States,
+  negated: bool,
+  options: GlobOptions,
+  component_start: bool,
+}
+
+impl<'a> GlobPattern<'a> {
+  /// Compiles a pattern, rejecting invalid syntax with its original byte offset.
+  pub fn new(pattern: &'a [u8]) -> Result<Self, Error> {
+    Self::new_with_options(pattern, GlobOptions::default())
   }
-}
 
-/// Escape special glob characters in a literal path string.
-/// Replaces `glob::Pattern::escape`.
-pub fn escape_glob_pattern(s: &str) -> String {
-  let mut result = String::with_capacity(s.len());
-  for c in s.chars() {
-    match c {
-      '*' | '?' | '[' | ']' | '{' | '}' => {
-        result.push('\\');
-        result.push(c);
-      }
-      _ => result.push(c),
-    }
-  }
-  result
-}
-
-/// Match a path against a glob pattern with options.
-pub fn glob_match_with_options(pattern: &str, path: &str, options: &GlobMatchOptions) -> bool {
-  if options.case_sensitive {
-    glob_match(pattern.as_bytes(), path.as_bytes())
-  } else {
-    let pattern = pattern.cow_to_lowercase();
-    let path = path.cow_to_lowercase();
-    glob_match(pattern.as_bytes(), path.as_bytes())
-  }
-}
-
-/// Match a path against a glob pattern while respecting the `require_literal_leading_dot` option.
-pub fn glob_match_with_explicit_dot(
-  pattern: &str,
-  path: &str,
-  base_dir: &str,
-  options: &GlobMatchOptions,
-) -> bool {
-  let normalized_pattern = normalize_path_separators(pattern);
-  let normalized_path = normalize_path_separators_for_path(path);
-  let normalized_base_dir = normalize_path_separators_for_path(base_dir);
-
-  glob_match_normalized_with_explicit_dot(
-    &normalized_pattern,
-    &normalized_path,
-    &normalized_base_dir,
-    options,
-  )
-}
-
-/// Match normalized path strings against a normalized glob pattern.
-#[doc(hidden)]
-pub fn glob_match_normalized_with_explicit_dot(
-  normalized_pattern: &str,
-  normalized_path: &str,
-  normalized_base_dir: &str,
-  options: &GlobMatchOptions,
-) -> bool {
-  if options.require_literal_leading_dot
-    && path_has_dot_component(normalized_path, normalized_base_dir)
-    && !pattern_has_explicit_dot_for(
-      normalized_pattern,
-      normalized_base_dir,
-      normalized_path,
+  /// Compiles a pattern with case and hidden-component matching options.
+  pub fn new_with_options(pattern: &'a [u8], options: GlobOptions) -> Result<Self, Error> {
+    let source = syntax::parse(pattern, options.windows_paths, options.backslash_escape)?;
+    let source = Arc::new(match source {
+      Cow::Borrowed(bytes) => fold_case(bytes, options.case_sensitive),
+      Cow::Owned(bytes) => Cow::Owned(match fold_case(&bytes, options.case_sensitive) {
+        Cow::Borrowed(_) => bytes,
+        Cow::Owned(folded) => folded,
+      }),
+    });
+    let (instructions, start, negated) = Program::compile(&source);
+    let program = Program {
+      instructions: &instructions,
+      negated,
       options,
-    )
-  {
-    return false;
-  }
-
-  glob_match_with_options(normalized_pattern, normalized_path, options)
-}
-
-/// Return whether a character has special meaning in glob patterns.
-pub fn is_glob_metacharacter(c: char) -> bool {
-  matches!(c, '*' | '?' | '[' | '{')
-}
-
-/// Return the byte index of the first unescaped glob metacharacter in a pattern.
-fn first_glob_metacharacter_index(pattern: &str) -> Option<usize> {
-  let mut escaped = false;
-  for (byte_idx, c) in pattern.char_indices() {
-    if escaped {
-      escaped = false;
-      continue;
-    }
-
-    if c == '\\' {
-      escaped = true;
-      continue;
-    }
-
-    if is_glob_metacharacter(c) {
-      return Some(byte_idx);
-    }
-  }
-
-  None
-}
-
-/// Return the byte index after the base directory prefix of a glob pattern.
-pub fn glob_base_dir_end(pattern: &str) -> usize {
-  let idx = first_glob_metacharacter_index(pattern).unwrap_or(pattern.len());
-
-  pattern[..idx]
-    .rfind('/')
-    .map_or(0, |slash_idx| slash_idx + 1)
-}
-
-/// Extract the base directory from a glob pattern.
-/// Returns everything before the first glob metacharacter, up to and including the last `/`.
-pub fn extract_glob_base_dir(pattern: &str) -> &str {
-  match glob_base_dir_end(pattern) {
-    0 => "./",
-    end => &pattern[..end],
-  }
-}
-
-/// Normalize backslashes to forward slashes in a path string.
-pub fn normalize_path_separators(s: &str) -> String {
-  let mut result = String::with_capacity(s.len());
-  let mut chars = s.chars().peekable();
-  while let Some(c) = chars.next() {
-    if c == '\\' {
-      if chars
-        .peek()
-        .is_some_and(|next| matches!(next, '*' | '?' | '[' | ']' | '{' | '}'))
-      {
-        result.push(c);
-      } else {
-        result.push('/');
-      }
-    } else {
-      result.push(c);
-    }
-  }
-  result
-}
-
-/// Normalize backslashes to forward slashes in a literal filesystem path.
-pub fn normalize_path_separators_for_path(s: &str) -> String {
-  rspack_paths::normalize_path_separators(s).into_owned()
-}
-
-pub fn unescape_glob_path(s: &str) -> String {
-  let mut result = String::with_capacity(s.len());
-  let mut chars = s.chars().peekable();
-  while let Some(c) = chars.next() {
-    if c == '\\'
-      && chars
-        .peek()
-        .is_some_and(|next| matches!(next, '*' | '?' | '[' | ']' | '{' | '}'))
-    {
-      if let Some(next) = chars.next() {
-        result.push(next);
-      }
-    } else {
-      result.push(c);
-    }
-  }
-  result
-}
-
-#[derive(Clone, Copy)]
-struct LegacyGlobMatcher<'a> {
-  pattern: &'a str,
-  base_dir: &'a str,
-  options: &'a GlobMatchOptions,
-}
-
-impl WalkMatcher for LegacyGlobMatcher<'_> {
-  const VISIT_ON_METADATA_ERROR: bool = true;
-
-  fn match_entry(self, dir: &Utf8Path, name: &str, is_directory: bool) -> Option<Self> {
-    (is_directory
-      || glob_match_with_explicit_dot(
-        self.pattern,
-        dir.join(name).as_str(),
-        self.base_dir,
-        self.options,
-      ))
-    .then_some(self)
-  }
-}
-
-/// Find files matching a glob pattern by traversing the filesystem.
-/// Replaces `glob::glob_with`.
-pub async fn find_files_by_glob(
-  pattern: &str,
-  options: &GlobMatchOptions,
-  fs: Arc<dyn ReadableFileSystem>,
-) -> Result<Vec<Utf8PathBuf>> {
-  let normalized_pattern = normalize_path_separators(pattern);
-  let base_dir = extract_glob_base_dir(&normalized_pattern);
-  let unescaped_base_dir = unescape_glob_path(base_dir);
-  let base_dir_path = Utf8Path::new(&unescaped_base_dir);
-
-  // A pattern without metacharacters can only match itself, so walking its base directory is wasted
-  // work. Case-insensitive matching still needs the walk to find the real spelling on disk.
-  if options.case_sensitive && first_glob_metacharacter_index(&normalized_pattern).is_none() {
-    let path = Utf8PathBuf::from(unescape_glob_path(&normalized_pattern));
-    let matched = fs
-      .metadata(&path)
-      .await
-      .is_ok_and(|meta| !meta.is_directory)
-      && glob_match_normalized_with_explicit_dot(
-        &normalized_pattern,
-        path.as_str(),
-        base_dir_path.as_str(),
-        options,
-      );
-
-    return Ok(if matched { vec![path] } else { Vec::new() });
-  }
-
-  let matcher = LegacyGlobMatcher {
-    pattern: &normalized_pattern,
-    base_dir: base_dir_path.as_str(),
-    options,
-  };
-  let mut results = Vec::new();
-  matcher
-    .walk(base_dir_path, fs.as_ref(), false, &mut |path, _| {
-      results.push(path)
+    };
+    let states = program.start(start);
+    Ok(Self {
+      program: Arc::new(instructions),
+      source,
+      literal_prefix: OnceLock::new(),
+      states,
+      negated,
+      options,
+      component_start: true,
     })
-    .await?;
-  Ok(results)
-}
-
-fn path_has_dot_component(path: &str, base_dir: &str) -> bool {
-  let relative = path.strip_prefix(base_dir).unwrap_or(path);
-  for component in relative.split('/').filter(|segment| !segment.is_empty()) {
-    if component.starts_with('.') {
-      return true;
-    }
   }
-  false
-}
 
-/// Check whether the glob pattern has an explicit `.` for a given dot-file path.
-#[doc(hidden)]
-pub fn pattern_has_explicit_dot_for(
-  pattern: &str,
-  base_dir: &str,
-  path: &str,
-  options: &GlobMatchOptions,
-) -> bool {
-  let escaped_base_dir = escape_glob_pattern(base_dir);
-  let pattern_suffix = pattern
-    .strip_prefix(base_dir)
-    .or_else(|| pattern.strip_prefix(&escaped_base_dir))
-    .unwrap_or(pattern);
-
-  let relative = path.strip_prefix(base_dir).unwrap_or(path);
-  let pattern_segments = pattern_suffix
-    .split('/')
-    .filter(|segment| !segment.is_empty())
-    .collect::<Vec<_>>();
-  let path_segments = relative
-    .split('/')
-    .filter(|segment| !segment.is_empty())
-    .collect::<Vec<_>>();
-
-  fn matches_explicit_dot_segments(
-    patterns: &[&str],
-    paths: &[&str],
-    options: &GlobMatchOptions,
-  ) -> bool {
-    match (patterns.split_first(), paths.split_first()) {
-      (None, None) => true,
-      (None, Some(_)) => false,
-      (Some((&"**", pattern_rest)), _) => {
-        matches_explicit_dot_segments(pattern_rest, paths, options)
-          || matches!(
-            paths.split_first(),
-            Some((&path_head, path_rest))
-              if !path_head.starts_with('.') && matches_explicit_dot_segments(patterns, path_rest, options)
-          )
-      }
-      (Some((&pattern_head, pattern_rest)), Some((&path_head, path_rest))) => {
-        if path_head.starts_with('.') && !pattern_head.starts_with('.') {
-          return false;
-        }
-        glob_match_with_options(pattern_head, path_head, options)
-          && matches_explicit_dot_segments(pattern_rest, path_rest, options)
-      }
-      (Some(_), None) => false,
+  fn view(&self) -> Program<'_> {
+    Program {
+      instructions: &self.program,
+      negated: self.negated,
+      options: self.options,
     }
   }
 
-  matches_explicit_dot_segments(&pattern_segments, &path_segments, options)
+  /// The full parsed source, with path separators and case normalized according
+  /// to the options. Glob escapes remain intact. Prefix consumption does not
+  /// change this source; use [`Self::literal_prefix`] for the remaining literals.
+  pub fn source(&self) -> &[u8] {
+    &self.source
+  }
+
+  /// Owns the source while retaining the compiled program and current states.
+  pub fn into_owned(self) -> GlobPattern<'static> {
+    GlobPattern {
+      program: self.program,
+      source: Arc::new(Cow::Owned(Arc::unwrap_or_clone(self.source).into_owned())),
+      literal_prefix: OnceLock::new(),
+      states: self.states,
+      negated: self.negated,
+      options: self.options,
+      component_start: self.component_start,
+    }
+  }
+
+  /// The unescaped literal prefix shared by every remaining matching branch.
+  /// Returns no prefix for a complemented pattern. Matching still operates on
+  /// bytes, so the prefix may end inside a UTF-8 character.
+  /// Contiguous literals borrow the source; decoded or joined literals are
+  /// cached once and shared by clones. Repeated queries allocate no prefix bytes.
+  pub fn literal_prefix(&self) -> &[u8] {
+    self
+      .literal_prefix
+      .get_or_init(|| Arc::new(self.view().literal_prefix(&self.states, &self.source)))
+  }
+
+  /// The common literal prefix ending at a directory boundary, already unescaped.
+  /// Returns an empty slice when no complete directory component is shared.
+  /// Case-insensitive patterns return folded bytes; filesystem scans only use
+  /// structural components for direct lookup to preserve the actual spelling.
+  pub fn directory_prefix(&self) -> &[u8] {
+    let prefix = self.literal_prefix();
+    let end = prefix
+      .iter()
+      .rposition(|&byte| byte == b'/')
+      .map_or(0, |index| index + 1);
+    &prefix[..end]
+  }
+
+  /// Whether the remaining pattern can match a path containing a separator.
+  /// Complemented patterns conservatively return true.
+  pub fn is_recursive(&self) -> bool {
+    self.view().is_recursive(&self.states)
+  }
+
+  /// Matches a path, applying any leading `!` negation.
+  ///
+  /// A full match takes precedence over a partial match, even when more input
+  /// could also match (for example `**`). Use [`Self::match_prefix`] to retain
+  /// continuations in that case. An empty path tests the already consumed prefix.
+  pub fn match_path(&self, path: impl AsRef<[u8]>) -> GlobMatch<'a> {
+    self.match_bytes(path.as_ref())
+  }
+
+  // Share matching code across the public API's different AsRef input types.
+  #[inline(never)]
+  fn match_bytes(&self, path: &[u8]) -> GlobMatch<'a> {
+    let path = fold_case(path, self.options.case_sensitive);
+    let program = self.view();
+    let (states, component_start) = program.consume(&self.states, &path, self.component_start);
+    if program.is_match(&states) {
+      GlobMatch::MatchExact
+    } else if program.can_match(&states) {
+      GlobMatch::MatchPartial(Self {
+        program: Arc::clone(&self.program),
+        source: self.source.clone(),
+        literal_prefix: OnceLock::new(),
+        states,
+        negated: self.negated,
+        options: self.options,
+        component_start,
+      })
+    } else {
+      GlobMatch::NotMatch
+    }
+  }
+
+  /// Consumes a literal prefix and returns a matcher for the remaining suffix.
+  ///
+  /// No separator is inserted and glob metacharacters in the prefix are literal.
+  /// For directory traversal, include the trailing separator explicitly.
+  /// The returned pattern satisfies `remaining.match_path(suffix).is_exact() ==
+  /// self.match_path(prefix + suffix).is_exact()` and can itself consume more prefixes.
+  ///
+  /// `None` means no continuation is possible. Leading `!` patterns conservatively
+  /// retain a matcher even if the complemented language is empty; use `match_path`
+  /// to test completed paths. A negated pattern whose positive states die still
+  /// matches every suffix, so it must remain usable during traversal.
+  pub fn match_prefix(&self, prefix: impl AsRef<[u8]>) -> Option<Self> {
+    self.consume_prefix(prefix.as_ref())
+  }
+
+  #[inline(never)]
+  fn consume_prefix(&self, prefix: &[u8]) -> Option<Self> {
+    let prefix = fold_case(prefix, self.options.case_sensitive);
+    let program = self.view();
+    let (states, component_start) = program.consume(&self.states, &prefix, self.component_start);
+    if !program.can_match(&states) {
+      return None;
+    }
+    Some(Self {
+      program: Arc::clone(&self.program),
+      source: self.source.clone(),
+      literal_prefix: OnceLock::new(),
+      states,
+      negated: self.negated,
+      options: self.options,
+      component_start,
+    })
+  }
+}
+
+fn fold_case(bytes: &[u8], case_sensitive: bool) -> Cow<'_, [u8]> {
+  if case_sensitive {
+    return Cow::Borrowed(bytes);
+  }
+  if let Ok(value) = std::str::from_utf8(bytes) {
+    match value.cow_to_lowercase() {
+      Cow::Borrowed(value) => Cow::Borrowed(value.as_bytes()),
+      Cow::Owned(value) => Cow::Owned(value.into_bytes()),
+    }
+  } else {
+    Cow::Owned(bytes.to_ascii_lowercase())
+  }
+}
+
+/// The result of consuming a path with a compiled glob.
+#[derive(Debug)]
+pub enum GlobMatch<'a> {
+  /// The entire path matches; longer paths may also match.
+  MatchExact,
+  /// The path is a matching prefix; the payload matches its remaining suffix.
+  MatchPartial(GlobPattern<'a>),
+  /// No matching continuation is possible.
+  NotMatch,
+}
+
+impl GlobMatch<'_> {
+  /// Whether the entire path matched.
+  pub fn is_exact(&self) -> bool {
+    matches!(self, Self::MatchExact)
+  }
 }
