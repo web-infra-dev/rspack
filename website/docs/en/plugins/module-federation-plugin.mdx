@@ -71,7 +71,7 @@ Specify the filename of the remote container entry file. Other containers will l
 
 - Type: `string | false`
 
-Define the runtime chunk for remote container entry.
+Defines the Rspack runtime chunk for the remote container entry.
 
 ### library
 
@@ -220,13 +220,13 @@ When enabled, the plugin emits both `mf-manifest.json` and `mf-stats.json` (you 
 
 <ApiMeta addedVersion="2.0.0" />
 
-Whether to inject the exports used by shared into the bundler runtime.
+Whether to inject information about the used exports of shared modules into the Rspack runtime.
 
 - Type: `boolean`
 - Required: No
 - Default: `true`
 
-This option is used to control whether to inject the actual used export information of shared modules into the bundler runtime for more precise dependency management and optimization.
+Enable this option to make the used export information of shared modules available to the Rspack runtime for dependency management and optimization.
 
 If you are using mode as 'server-calc', it is recommended to set this option to `false`.
 

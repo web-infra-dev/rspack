@@ -1,0 +1,36 @@
+import { defineConfig } from '@rspack/cli';
+import { SubresourceIntegrityPlugin } from '@rspack/core';
+
+export default defineConfig({
+  mode: 'production',
+  target: 'web',
+  entry: {
+    shared: './shared.js',
+    main: { import: './index.js', dependOn: 'shared' },
+  },
+  externals: {
+    crypto: "require('crypto')",
+    fs: "require('fs')",
+    path: "require('path')",
+  },
+  node: {
+    __dirname: false,
+  },
+  output: {
+    filename: '[name].js',
+    chunkFilename: '[name].js',
+    crossOriginLoading: 'anonymous',
+  },
+  module: {
+    rules: [{ test: /\.css$/, type: 'css/auto' }],
+  },
+  optimization: {
+    minimize: false,
+  },
+  plugins: [
+    new SubresourceIntegrityPlugin({
+      hashFuncNames: ['sha256'],
+      hashLoading: 'lazy',
+    }),
+  ],
+});

@@ -77,7 +77,6 @@ triomphe                   = { workspace = true }
 unsize                     = { workspace = true }
 urlencoding                = { workspace = true }
 ustr                       = { workspace = true }
-winnow                     = { workspace = true }
 
 swc_next_allocator     = { workspace = true }
 swc_next_ecma_ast      = { workspace = true }
