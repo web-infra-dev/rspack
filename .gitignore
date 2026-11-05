@@ -133,6 +133,9 @@ webpack-dist
 # Do not ignore this for binding test
 # crates/node_binding/binding.d.ts
 
+# WASI types are generated and published from the WASM build artifact.
+/crates/node_binding/rspack.wasi.d.cts
+
 .pnpm-store/
 
 !tests/rspack-test/configCases/target

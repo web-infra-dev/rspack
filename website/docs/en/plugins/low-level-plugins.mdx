@@ -1,5 +1,5 @@
 ---
-description: 'Publicly exposed low-level Rspack plugins for target presets, runtime templates, child compilers, and higher-level plugins.'
+description: 'Publicly exposed low-level Rspack plugins for target presets, Rspack runtime templates, child compilers, and higher-level plugins.'
 ---
 
 import Attribution from '@components/Attribution';
@@ -7,7 +7,7 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 # Low-level plugins
 
-These plugins are publicly exposed low-level building blocks that Rspack primarily uses to implement target presets, runtime templates, child compilers, and higher-level plugins.
+These plugins are publicly exposed low-level building blocks that Rspack primarily uses to implement target presets, Rspack runtime templates, child compilers, and higher-level plugins.
 
 :::tip Usage guidance
 For most application builds, prefer the corresponding high-level configuration. Direct use is mainly intended for custom compilers, child compilers, and advanced integrations.
@@ -152,7 +152,7 @@ compiler.rspack.EntryOptionPlugin.applyEntryOption(
 
 ## output
 
-Plugins affecting generated modules, chunks, and runtime loading.
+Plugins controlling the generation of modules, chunks, and loading code in the Rspack runtime.
 
 ### EnableChunkLoadingPlugin \{#enable-chunk-loading-plugin}
 
@@ -160,7 +160,7 @@ Plugins affecting generated modules, chunks, and runtime loading.
 new rspack.javascript.EnableChunkLoadingPlugin(type);
 ```
 
-`EnableChunkLoadingPlugin` enables the runtime modules required by a chunk-loading type. Rspack normally applies it for the types collected in [`output.enabledChunkLoadingTypes`](/config/output#outputenabledchunkloadingtypes).
+`EnableChunkLoadingPlugin` enables the [Rspack runtime modules](/misc/glossary#rspack-runtime-module) required by a chunk-loading type. Rspack normally applies it for the types collected in [`output.enabledChunkLoadingTypes`](/config/output#outputenabledchunkloadingtypes).
 
 The supported built-in types are `'jsonp'`, `'import-scripts'`, `'require'`, `'async-node'`, and `'import'`.
 
@@ -183,7 +183,7 @@ export default {
 };
 ```
 
-For a custom chunk-loading implementation, call `EnableChunkLoadingPlugin.setEnabled(compiler, type)` after installing its runtime hooks. This method only registers the type; it does not implement chunk loading.
+For a custom chunk-loading implementation, call `EnableChunkLoadingPlugin.setEnabled(compiler, type)` after installing its Rspack runtime hooks. This method only registers the type; it does not implement chunk loading.
 
 ### EnableLibraryPlugin \{#enable-library-plugin}
 
@@ -224,11 +224,11 @@ For a regular library build, prefer [`output.library`](/config/output#outputlibr
 new rspack.wasm.EnableWasmLoadingPlugin(type);
 ```
 
-`EnableWasmLoadingPlugin` enables the runtime modules required by a WebAssembly loading type. Rspack normally applies it for the types collected in [`output.enabledWasmLoadingTypes`](/config/output#outputenabledwasmloadingtypes).
+`EnableWasmLoadingPlugin` enables the Rspack runtime modules required by a WebAssembly loading type. Rspack normally applies it for the types collected in [`output.enabledWasmLoadingTypes`](/config/output#outputenabledwasmloadingtypes).
 
 The supported types are `'fetch'`, `'async-node'`, and `'universal'`.
 
-The following example sets `output.wasmLoading` to `false` to disable automatic setup, then directly applies `EnableWasmLoadingPlugin` to install the `'fetch'` loading runtime:
+The following example sets `output.wasmLoading` to `false` to disable automatic setup, then directly applies `EnableWasmLoadingPlugin` to install the Rspack runtime code for `'fetch'` loading:
 
 ```js title="src/index.js"
 import { add } from './add.wasm';
@@ -286,7 +286,7 @@ The `moduleFilenameTemplate` and `sourceUrlComment` options can customize the ge
 new rspack.web.FetchCompileAsyncWasmPlugin();
 ```
 
-`FetchCompileAsyncWasmPlugin` adds the browser runtime that fetches and compiles asynchronous WebAssembly modules. `EnableWasmLoadingPlugin('fetch')` applies this implementation internally.
+`FetchCompileAsyncWasmPlugin` adds Rspack runtime code that fetches and compiles asynchronous WebAssembly modules in the browser. `EnableWasmLoadingPlugin('fetch')` applies this implementation internally.
 
 This example disables automatic WebAssembly loading setup and installs the fetch implementation directly:
 
@@ -312,7 +312,7 @@ export default {
 };
 ```
 
-For a regular web build, prefer `output.wasmLoading: 'fetch'`, which enables the same runtime automatically.
+For a regular web build, prefer `output.wasmLoading: 'fetch'`, which automatically enables the same WebAssembly loading code in the Rspack runtime.
 
 ### JsonpTemplatePlugin \{#jsonp-template-plugin}
 
@@ -320,7 +320,7 @@ For a regular web build, prefer `output.wasmLoading: 'fetch'`, which enables the
 new rspack.web.JsonpTemplatePlugin();
 ```
 
-`JsonpTemplatePlugin` configures browser output for child compilers. It sets [`output.chunkLoading`](/config/output#outputchunkloading) to `'jsonp'`, applies the [`'array-push'` chunk format](/config/output#outputchunkformat), and enables the required JSONP chunk-loading runtime.
+`JsonpTemplatePlugin` configures browser output for child compilers. It sets [`output.chunkLoading`](/config/output#outputchunkloading) to `'jsonp'`, applies the [`'array-push'` chunk format](/config/output#outputchunkformat), and enables the Rspack runtime code required for JSONP chunk loading.
 
 The following browser entry creates an asynchronous chunk:
 
@@ -380,7 +380,7 @@ For a regular web build, prefer `target: 'web'`. It selects the `'array-push'` c
 new rspack.node.NodeTemplatePlugin(options);
 ```
 
-`NodeTemplatePlugin` configures Node.js output for child compilers. It applies the [`'commonjs'` chunk format](/config/output#outputchunkformat), sets [`output.chunkLoading`](/config/output#outputchunkloading) to `'require'` by default, and enables the required chunk-loading runtime.
+`NodeTemplatePlugin` configures Node.js output for child compilers. It applies the [`'commonjs'` chunk format](/config/output#outputchunkformat), sets [`output.chunkLoading`](/config/output#outputchunkloading) to `'require'` by default, and enables the Rspack runtime code required for chunk loading.
 
 #### asyncChunkLoading
 
@@ -451,7 +451,7 @@ For a regular Node.js build, prefer `target: 'node'`. It selects the `'commonjs'
 new rspack.webworker.WebWorkerTemplatePlugin();
 ```
 
-`WebWorkerTemplatePlugin` configures Web Worker output for child compilers. It sets [`output.chunkLoading`](/config/output#outputchunkloading) to `'import-scripts'`, applies the [`'array-push'` chunk format](/config/output#outputchunkformat), and enables the required `importScripts` chunk-loading runtime.
+`WebWorkerTemplatePlugin` configures Web Worker output for child compilers. It sets [`output.chunkLoading`](/config/output#outputchunkloading) to `'import-scripts'`, applies the [`'array-push'` chunk format](/config/output#outputchunkformat), and enables the Rspack runtime code required for `importScripts` chunk loading.
 
 The following worker creates an asynchronous chunk:
 
@@ -626,7 +626,7 @@ export default {
 new rspack.container.ContainerReferencePlugin(options);
 ```
 
-`ContainerReferencePlugin` registers remote containers as externals and adds the runtime needed to load modules from them. It is the low-level implementation of the `remotes` option.
+`ContainerReferencePlugin` registers remote containers as externals and adds the code needed to load modules from them to the Rspack runtime. It is the low-level implementation of the `remotes` option.
 
 With the following configuration, an import such as `import('catalog/Button')` loads `./Button` from the remote container:
 

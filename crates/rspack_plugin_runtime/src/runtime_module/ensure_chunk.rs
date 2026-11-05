@@ -59,6 +59,7 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     let chunk_ukey = self.chunk().expect("should have chunk");
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
     let source = if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
+      let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
       let fetch_priority = if runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY) {
         ", fetchPriority"
       } else {
@@ -69,6 +70,7 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
         &self.template_id(TemplateId::Raw),
         Some(serde_json::json!({
           "_fetch_priority": fetch_priority,
+          "_with_hmr": with_hmr,
         })),
       )?
     } else {
