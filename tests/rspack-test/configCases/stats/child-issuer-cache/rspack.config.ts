@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import { type Compiler, EntryPlugin, type RspackOptions } from '@rspack/core';
 
 export default {
   context: import.meta.dirname,
+  optimization: { concatenateModules: false, moduleIds: 'named' },
   plugins: [
     {
       apply(compiler: Compiler) {
-        let childCalls = 0;
+        const childCalls = new Map<string, number>();
         compiler.hooks.thisCompilation.tap(
           'ChildIssuerContract',
           (compilation) => {
@@ -14,6 +16,7 @@ export default {
               'ChildIssuerContract',
               (factory) => {
                 const seen = new WeakSet<object>();
+                const records = new WeakSet<object>();
                 factory.hooks.extract
                   .for('module$visible')
                   .tap('ChildIssuerContract', (_object, module, context) => {
@@ -23,7 +26,39 @@ export default {
                       'custom hooks must receive independent raw issuer paths',
                     );
                     seen.add(module.issuerPath);
-                    if (context.compilation.compiler.isChild()) childCalls++;
+                    for (const issuer of module.issuerPath) {
+                      assert(
+                        !records.has(issuer),
+                        'custom hooks must receive independent raw issuer records',
+                      );
+                      records.add(issuer);
+                    }
+                    if (
+                      !context.compilation.compiler.isChild() ||
+                      module.issuerPath.length === 0
+                    ) {
+                      return;
+                    }
+                    const name = module.commonAttributes.moduleDescriptor?.name;
+                    assert(name === './first.js' || name === './second.js');
+                    assert.deepEqual(
+                      module.issuerPath.map(({ moduleDescriptor }) => ({
+                        identifier: path.relative(
+                          compiler.context,
+                          moduleDescriptor.identifier,
+                        ),
+                        name: moduleDescriptor.name,
+                        id: moduleDescriptor.id,
+                      })),
+                      [
+                        {
+                          identifier: 'child-entry.js',
+                          name: './child-entry.js',
+                          id: './child-entry.js',
+                        },
+                      ],
+                    );
+                    childCalls.set(name, (childCalls.get(name) ?? 0) + 1);
                   });
               },
             );
@@ -36,7 +71,7 @@ export default {
               'stats-child',
               { filename: 'child.js' },
               [
-                new EntryPlugin(compiler.context, './index.js', {
+                new EntryPlugin(compiler.context, './child-entry.js', {
                   name: 'child',
                 }),
               ],
@@ -59,7 +94,12 @@ export default {
             dependentModules: true,
             ids: true,
           });
-          assert(childCalls >= 2);
+          for (const name of ['./first.js', './second.js']) {
+            assert(
+              (childCalls.get(name) ?? 0) >= 2,
+              `expected non-empty child issuer paths in module and chunk stats for ${name}`,
+            );
+          }
         });
       },
     },
