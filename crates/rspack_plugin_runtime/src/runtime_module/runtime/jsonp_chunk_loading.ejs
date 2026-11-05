@@ -22,7 +22,12 @@ if (installedChunkData !== 0) {
 				if (<%- HAS_OWN_PROPERTY %>(jsonpInstalledChunks, chunkId)) {
 					installedChunkData = jsonpInstalledChunks[chunkId];
 					if (installedChunkData !== 0) jsonpInstalledChunks[chunkId] = undefined;
-					if (installedChunkData) {
+					if (installedChunkData) {<% if (_with_hmr) { %>
+						if (installedChunkData.error) {
+							installedChunkData[1](installedChunkData.error);
+							return;
+						}
+<% } %>
 						var errorType =
 							event && (event.type === 'load' ? 'missing' : event.type);
 						var realSrc = event && event.target && event.target.src;

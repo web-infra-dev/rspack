@@ -1,7 +1,7 @@
 import { expect, test } from '@/fixtures';
 
 test('should compile', async ({ page, fileAction, rspack }) => {
-  // rspack.compiler.__sharedObj is injected by plugin in rspack.config.js
+  // rspack.compiler.__sharedObj is injected by plugin in rspack.config.ts
   await expect(page.locator('#index1')).toHaveText('index1');
   await expect(page.locator('#index2')).toHaveText('index2');
 

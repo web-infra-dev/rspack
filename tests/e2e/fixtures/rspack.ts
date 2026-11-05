@@ -103,7 +103,7 @@ export const rspackFixtures: Fixtures<
     async ({ page, pathInfo }, use) => {
       const { tempProjectDir } = pathInfo;
       const port = 8000 + Number(process.env.RSTEST_WORKER_ID);
-      const configPath = path.join(tempProjectDir, 'rspack.config.js');
+      const configPath = path.join(tempProjectDir, 'rspack.config.ts');
       const { default: config }: { default: Configuration } = await import(
         /* webpackIgnore: true */ pathToFileURL(configPath).href
       );

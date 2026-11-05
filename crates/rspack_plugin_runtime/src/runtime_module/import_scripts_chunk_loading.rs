@@ -279,6 +279,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
         &self.template_id(TemplateId::Raw),
         Some(serde_json::json!({
           "_chunk_loading_global_init_expr": chunk_loading_global_init_expr,
+          "_with_hmr": with_hmr,
         })),
       )?;
 
@@ -291,6 +292,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
         &self.template_id(TemplateId::WithLoading),
         Some(serde_json::json!({
           "_js_matcher": has_js_matcher.render("chunkId"),
+          "_with_hmr": with_hmr,
           "_with_create_script_url": self.with_create_script_url,
         })),
       )?;

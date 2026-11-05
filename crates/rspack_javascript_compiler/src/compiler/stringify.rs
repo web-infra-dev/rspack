@@ -279,7 +279,7 @@ fn build_rspack_source_map(
 #[derive(Default)]
 struct RspackSourceMapBuilder<'a> {
   mappings: Vec<Mapping>,
-  sources_content: Vec<Cow<'a, str>>,
+  sources_content: Vec<Option<Cow<'a, str>>>,
   source_indices: FxHashMap<Cow<'a, str>, u32>,
   name_indices: FxHashMap<Cow<'a, str>, u32>,
   ignore_list: FxHashSet<u32>,
@@ -292,9 +292,7 @@ impl<'a> RspackSourceMapBuilder<'a> {
     }
 
     let index = self.source_indices.len() as u32;
-    self
-      .sources_content
-      .push(source_content.unwrap_or(Cow::Borrowed("")));
+    self.sources_content.push(source_content);
     self.source_indices.insert(source, index);
     index
   }
@@ -324,7 +322,7 @@ impl<'a> RspackSourceMapBuilder<'a> {
       self
         .sources_content
         .into_iter()
-        .map(|source_content| Cow::Owned(source_content.into_owned()))
+        .map(|source_content| source_content.map(|content| Cow::Owned(content.into_owned())))
         .collect(),
       ordered_cows(self.name_indices),
     );
@@ -579,7 +577,7 @@ mod tests {
         .into_iter(),
       ),
       vec!["original.js".into()],
-      vec![source.into()],
+      vec![Some(source.into())],
       vec![],
     );
 
@@ -641,7 +639,7 @@ mod tests {
         .into_iter(),
       ),
       vec!["original.js".into()],
-      vec![source.into()],
+      vec![Some(source.into())],
       vec![],
     );
 
@@ -710,8 +708,8 @@ mod tests {
       ),
       vec!["/src/app.js".into(), "https://example.com/vendor.js".into()],
       vec![
-        "const first = second;\n".into(),
-        "export const second = 1;\n".into(),
+        Some("const first = second;\n".into()),
+        Some("export const second = 1;\n".into()),
       ],
       vec![],
     );

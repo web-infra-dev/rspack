@@ -2,6 +2,16 @@
 
 Rspack exposes a webpack-compatible JavaScript API through `@rspack/core`, while most compilation work runs in Rust. The two layers communicate through a Node-API binding.
 
+`Module`, `NormalModule`, `ConcatenatedModule`, `ContextModule`, and `ExternalModule` are JavaScript classes exported by `@rspack/core`. The four specialized classes extend `Module`, so their instances also satisfy `instanceof Module` and inherit its methods. Prototype methods and getters are non-enumerable, following standard JavaScript class behavior. Rspack creates these objects during compilation and attaches a native handle with Node-API. Constructing a class yourself does not attach a native module; methods that need compilation data require an instance supplied by Rspack.
+
+Each constructor initializes its own properties. Common own properties are installed before properties specific to a derived class.
+
+`identifier()` caches its result in a private field rather than an own symbol property. Accessors and methods that use private fields require an instance from the same core copy.
+
+`originalSource()` and `emitFile()` convert JavaScript Source objects and call native binding functions directly.
+
+Module fields such as `type`, `resource`, `request`, and `loaders` call Rust on their first successful read and cache the result in private fields. Their own accessors remain unchanged, so sealing or freezing a Module does not prevent its lazy fields from being read. Cached values remain readable after the native module is removed; reading an uncached field still requires a valid native module. Live accessors such as `context`, `matchResource`, and `buildInfo`, and methods such as `size()`, call Rust through the attached handle. The binding package declares its own structural `Module` interface without depending on `@rspack/core`; core adds the JavaScript-only source method types. JavaScript inheritance does not extend the lifetime or writable phases of the native module.
+
 ## What is a native-backed object?
 
 An ordinary JavaScript object stores its data directly in the JavaScript engine. For example, reading the `name` property of `{ name: 'main' }` does not require a call into Rust.

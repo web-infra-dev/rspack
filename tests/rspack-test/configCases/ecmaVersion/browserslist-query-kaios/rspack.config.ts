@@ -25,6 +25,7 @@ export default defineConfig({
             nodePrefixForCoreModules: false,
             optionalChaining: true,
             templateLiteral: true,
+            topLevelAwait: false,
           }
         `);
         expect(compilation.options.externalsPresets).toMatchInlineSnapshot(`

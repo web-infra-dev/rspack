@@ -314,6 +314,7 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
             true => format!("{}();", runtime_template.render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)),
             false => String::new(),
           },
+          "_with_hmr": with_hmr,
         })),
       )?;
 
@@ -328,6 +329,7 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
           &self.template_id(TemplateId::WithLoading),
           Some(serde_json::json!({
             "_js_matcher": &has_js_matcher.render("chunkId"),
+            "_with_hmr": with_hmr,
             "_output_dir": &root_output_dir,
             "_match_fallback": if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
               ""
