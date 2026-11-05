@@ -7,9 +7,9 @@ use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
   FactoryMetaStore, FreezeLock, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
-  runtime_mode::RuntimeMode,
+  ModuleIdentifier, ModuleLayer, ModuleType, NeedBuildContext, RuntimeGlobals, RuntimeSpec,
+  SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  rspack_sources::BoxSource, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
@@ -226,6 +226,10 @@ impl Module for ProvideSharedModule {
 
   fn get_layer(&self) -> Option<&ModuleLayer> {
     self.layer.as_ref()
+  }
+
+  async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+    Ok(self.build_info.frozen().is_none())
   }
 
   async fn build(

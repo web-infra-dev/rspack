@@ -5,7 +5,7 @@ use rspack_collections::IdentifierMap;
 use rspack_core::{
   Dependency, DependencyId, DependencyTemplate, ExportsType, ExternalModule,
   FakeNamespaceObjectMode, ModuleGraph, ModuleReferenceOptions, RuntimeGlobals, TemplateContext,
-  get_exports_type, property_access,
+  get_exports_type_with_strict, property_access,
 };
 use rspack_intern::Atom;
 use rspack_plugin_javascript::dependency::ImportDependency;
@@ -24,20 +24,16 @@ fn then_expr(
     runtime_template,
     ..
   } = code_generatable_context;
-  if compilation
-    .get_module_graph()
-    .module_identifier_by_dependency_id(dep_id)
-    .is_none()
-  {
+  let module_graph = compilation.get_module_graph();
+  let Some(target_module) = module_graph.get_module_by_dependency_id(dep_id) else {
     return runtime_template.missing_module_promise(request);
   };
 
-  let exports_type = get_exports_type(
-    compilation.get_module_graph(),
+  let exports_type = target_module.get_exports_type(
+    module_graph,
     &compilation.module_graph_cache_artifact,
     &compilation.exports_info_artifact,
-    dep_id,
-    &module.identifier(),
+    module.get_strict_esm_module(),
   );
   let module_id_expr = runtime_template.module_id(compilation, dep_id, request, false);
 
@@ -64,10 +60,7 @@ fn then_expr(
       }
       if ModuleGraph::is_async(
         &compilation.async_modules_artifact,
-        compilation
-          .get_module_graph()
-          .module_identifier_by_dependency_id(dep_id)
-          .expect("should have module"),
+        &target_module.identifier(),
       ) {
         appending = format!(
           ".then({}.bind({}, {module_id_expr}))",
@@ -100,14 +93,14 @@ fn get_fake_namespace_object_mode(
   code_generatable_context: &TemplateContext,
   dep_id: &DependencyId,
 ) -> FakeNamespaceObjectMode {
-  let exports_type = get_exports_type(
+  let exports_type = get_exports_type_with_strict(
     code_generatable_context.compilation.get_module_graph(),
     &code_generatable_context
       .compilation
       .module_graph_cache_artifact,
     &code_generatable_context.compilation.exports_info_artifact,
     dep_id,
-    &code_generatable_context.module.identifier(),
+    code_generatable_context.module.get_strict_esm_module(),
   );
   let mut fake_type = FakeNamespaceObjectMode::PROMISE_LIKE;
   if matches!(exports_type, ExportsType::Dynamic) {

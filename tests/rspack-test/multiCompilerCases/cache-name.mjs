@@ -24,6 +24,7 @@ export default {
 
 		expect(compiler.compilers).toHaveLength(cacheNames.length);
 		compiler.compilers.forEach((childCompiler, index) => {
+			expect(childCompiler.compilerPath).toBe("");
 			const cache = childCompiler.options.cache;
 			expect(cache.name).toBe(cacheNames[index]);
 			expect(cache.storage.directory).toBe(cacheDirectory);

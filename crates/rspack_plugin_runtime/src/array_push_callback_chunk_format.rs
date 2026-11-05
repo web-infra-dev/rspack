@@ -9,7 +9,7 @@ use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JsPlugin, RenderSource,
-  runtime::{render_chunk_runtime_modules, render_runtime_modules},
+  runtime::{get_hmr_chunk_version, render_chunk_runtime_modules, render_runtime_modules},
 };
 
 use super::{generate_entry_startup, update_hash_for_entry_startup};
@@ -204,6 +204,17 @@ async fn render_chunk(
         }
       }
       source.add(RawStringSource::from_static("\n}\n"));
+    }
+    if ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey)
+      .contains(RuntimeGlobals::HMR_CHUNK_VERSIONS)
+    {
+      if !has_entry && !has_runtime_modules {
+        source.add(RawStringSource::from_static(",0"));
+      }
+      source.add(RawStringSource::from(format!(
+        ",{}",
+        rspack_util::json_stringify_str(&get_hmr_chunk_version(compilation, chunk))
+      )));
     }
     source.add(RawStringSource::from_static("])"));
   }

@@ -265,10 +265,9 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
       },
       (event) => {
         if (event.kind === 'change') {
-          // The native watcher reports paths without an mtime, so events are
-          // stamped with their arrival time.
-          const mtime = Date.now();
-          callbackUndelayed(event.path, mtime);
+          const changeTime = Date.now();
+          const mtime = event.mtime === null ? null : changeTime;
+          callbackUndelayed(event.path, changeTime);
           this.#events.emit('change', event.path, mtime);
           watcher.emit('change', event.path, mtime);
         } else {
@@ -443,7 +442,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 
   on(
     event: 'change',
-    listener: (filename: string, mtime: number) => void,
+    listener: (filename: string, mtime: number | null) => void,
   ): this;
   on(event: 'remove', listener: (filename: string) => void): this;
   on(
@@ -453,7 +452,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
   on(
     event: 'change' | 'remove' | 'aggregated',
     listener:
-      | ((filename: string, mtime: number) => void)
+      | ((filename: string, mtime: number | null) => void)
       | ((filename: string) => void)
       | ((changes: Set<string>, removals: Set<string>) => void),
   ): this {
@@ -463,7 +462,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 
   once(
     event: 'change',
-    listener: (filename: string, mtime: number) => void,
+    listener: (filename: string, mtime: number | null) => void,
   ): this;
   once(event: 'remove', listener: (filename: string) => void): this;
   once(
@@ -473,7 +472,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
   once(
     event: 'change' | 'remove' | 'aggregated',
     listener:
-      | ((filename: string, mtime: number) => void)
+      | ((filename: string, mtime: number | null) => void)
       | ((filename: string) => void)
       | ((changes: Set<string>, removals: Set<string>) => void),
   ): this {

@@ -45,6 +45,14 @@ impl RemoveEmptyChunksPlugin {
       }
     }
 
+    // A merged chunk can hold several names, keep only the names reassigned to another chunk.
+    if !empty_chunks.is_empty() {
+      compilation
+        .build_chunk_graph_artifact
+        .named_chunks
+        .retain(|_, chunk_ukey| !empty_chunks.contains(chunk_ukey));
+    }
+
     logger.time_end(start);
   }
 }

@@ -1,4 +1,7 @@
-<%- var("moduleInstallChunk") %> = <%- basicFunction("data") %> {
+<%- var("moduleInstallChunk") %> = <%- basicFunction("data") %> {<% if (_with_hmr) { %>
+    var error = hotCheckChunk(data.__rspack_esm_ids, data.__rspack_esm_hash);
+    if (error) throw error;
+<% } %>
     var __rspack_esm_ids = data.__rspack_esm_ids;
     var moreModules = data.<%- _modules %>;
     var __rspack_esm_runtime = data.__rspack_esm_runtime;

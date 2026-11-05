@@ -8,10 +8,14 @@ use cow_utils::CowUtils;
 use derive_more::Debug;
 pub use lightningcss;
 use lightningcss::{
+  error::MinifyErrorKind,
+  media_query::{MediaCondition, MediaFeatureName, MediaList, QueryFeature},
   printer::{PrinterOptions, PseudoClasses},
+  rules::{CssRule, Location, custom_media::CustomMediaRule},
   stylesheet::{MinifyOptions, ParserFlags, ParserOptions, StyleSheet},
   targets::{Features, Targets},
   traits::IntoOwned,
+  values::ident::DashedIdent,
 };
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
@@ -21,7 +25,7 @@ use rspack_core::{
     SourceMapSourceOptions, encode_mappings,
   },
 };
-use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_loader_runner::Identifier;
 use tokio::sync::Mutex;
 
@@ -55,6 +59,42 @@ impl LightningCssLoader {
       visitors: visitors.map(|v| Mutex::new(v)),
       config,
     }
+  }
+
+  async fn parse<'i>(
+    &self,
+    content: &'i str,
+    options: ParserOptions<'i>,
+    keep_custom_media: bool,
+  ) -> Result<StyleSheet<'static>> {
+    let stylesheet = StyleSheet::parse(content, options.clone()).to_rspack_result()?;
+
+    let mut flags = options.flags;
+    // Custom media in `@import` conditions isn't expanded, so its definitions must be kept.
+    if keep_custom_media || has_custom_media_import(&stylesheet) {
+      flags.remove(ParserFlags::CUSTOM_MEDIA);
+    }
+
+    let mut stylesheet = to_static(
+      stylesheet,
+      ParserOptions {
+        filename: options.filename,
+        css_modules: None,
+        source_index: 0,
+        error_recovery: true,
+        warnings: None,
+        flags,
+      },
+    );
+
+    if let Some(visitors) = &self.visitors {
+      let visitors = visitors.lock().await;
+      for v in visitors.iter() {
+        v(&mut stylesheet);
+      }
+    }
+
+    Ok(stylesheet)
   }
 
   async fn loader_impl(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
@@ -98,7 +138,7 @@ impl LightningCssLoader {
       warnings: warnings.clone(),
       flags: parser_flags,
     };
-    let stylesheet = StyleSheet::parse(&content_str, option.clone()).to_rspack_result()?;
+    let mut stylesheet = self.parse(&content_str, option.clone(), false).await?;
     // FIXME: Disable the warnings for now, cause it cause too much positive-negative warnings,
     // enable when we have a better way to handle it.
 
@@ -125,25 +165,6 @@ impl LightningCssLoader {
     //   }
     // }
 
-    let mut stylesheet = to_static(
-      stylesheet,
-      ParserOptions {
-        filename: filename.clone(),
-        css_modules: None,
-        source_index: 0,
-        error_recovery: true,
-        warnings: None,
-        flags: ParserFlags::empty(),
-      },
-    );
-
-    if let Some(visitors) = &self.visitors {
-      let visitors = visitors.lock().await;
-      for v in visitors.iter() {
-        v(&mut stylesheet);
-      }
-    }
-
     let targets = Targets {
       browsers: self.config.targets,
       include: self
@@ -162,19 +183,63 @@ impl LightningCssLoader {
         }),
     };
 
-    let unused_symbols = self
-      .config
-      .unused_symbols
-      .clone()
-      .map(|unused_symbols| unused_symbols.into_iter().collect())
-      .unwrap_or_default();
+    let minify_options = || MinifyOptions {
+      targets,
+      unused_symbols: self
+        .config
+        .unused_symbols
+        .iter()
+        .flatten()
+        .cloned()
+        .collect(),
+    };
 
-    stylesheet
-      .minify(MinifyOptions {
-        targets,
-        unused_symbols,
-      })
-      .to_rspack_result()?;
+    match stylesheet.minify(minify_options()) {
+      // The name may be defined in another file, so leave custom media as written, like webpack.
+      Err(error) if matches!(error.kind, MinifyErrorKind::CustomMediaNotDefined { .. }) => {
+        // Minify stops at the first error, so define each undefined name to still reach
+        // circular references later in the file.
+        let mut undefined_names = Vec::new();
+        let mut undefined = Some(error);
+        while let Some(error) = undefined.take() {
+          loader_context.emit_diagnostic(Diagnostic::warn(
+            LIGHTNINGCSS_LOADER_IDENTIFIER.to_string(),
+            format!(
+              "{}, so custom media in this file is left unchanged",
+              error.kind
+            ),
+          ));
+          if let MinifyErrorKind::CustomMediaNotDefined { name } = error.kind {
+            undefined_names.push(name);
+          }
+
+          let mut probe = StyleSheet::parse(&content_str, option.clone()).to_rspack_result()?;
+          probe.rules.0.splice(
+            0..0,
+            undefined_names.iter().map(|name| {
+              CssRule::CustomMedia(CustomMediaRule {
+                name: DashedIdent(name.clone().into()),
+                query: MediaList::new(),
+                loc: Location {
+                  source_index: 0,
+                  line: 0,
+                  column: 0,
+                },
+              })
+            }),
+          );
+          match probe.minify(minify_options()) {
+            Err(error) if matches!(error.kind, MinifyErrorKind::CustomMediaNotDefined { .. }) => {
+              undefined = Some(error);
+            }
+            result => result.to_rspack_result()?,
+          }
+        }
+        stylesheet = self.parse(&content_str, option, true).await?;
+        stylesheet.minify(minify_options()).to_rspack_result()?;
+      }
+      result => result.to_rspack_result()?,
+    }
 
     let mut parcel_source_map = if loader_context.context.source_map_kind.enabled() {
       let mut sm = parcel_sourcemap::SourceMap::new(&loader_context.context.options.context);
@@ -252,7 +317,7 @@ impl LightningCssLoader {
         parcel_source_map
           .get_sources_content()
           .iter()
-          .map(|source_content| Cow::Owned(source_content.clone()))
+          .map(|source_content| Some(Cow::Owned(source_content.clone())))
           .collect::<Vec<_>>(),
         parcel_source_map
           .get_names()
@@ -307,4 +372,27 @@ pub fn to_static(stylesheet: StyleSheet, options: ParserOptions<'static>) -> Sty
   let mut stylesheet = StyleSheet::new(sources, rules, options);
   stylesheet.license_comments = license_comments;
   stylesheet
+}
+
+fn has_custom_media_import(stylesheet: &StyleSheet) -> bool {
+  stylesheet.rules.0.iter().any(|rule| {
+    matches!(rule, CssRule::Import(import) if import
+      .media
+      .media_queries
+      .iter()
+      .any(|query| query.condition.as_ref().is_some_and(has_custom_media_reference)))
+  })
+}
+
+fn has_custom_media_reference(condition: &MediaCondition) -> bool {
+  match condition {
+    MediaCondition::Feature(QueryFeature::Boolean {
+      name: MediaFeatureName::Custom(_),
+    }) => true,
+    MediaCondition::Not(condition) => has_custom_media_reference(condition),
+    MediaCondition::Operation { conditions, .. } => {
+      conditions.iter().any(has_custom_media_reference)
+    }
+    MediaCondition::Feature(_) | MediaCondition::Unknown(_) => false,
+  }
 }

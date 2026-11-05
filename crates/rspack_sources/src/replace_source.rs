@@ -55,12 +55,17 @@ pub enum ReplacementEnforce {
 }
 
 /// A single text replacement in a [ReplaceSource].
+///
+/// Module sources keep every replacement they recorded alive until the
+/// compilation is finished, so the size of this type is part of the peak memory
+/// of a build. The name is boxed because few replacements carry one: a thin
+/// pointer keeps `Replacement` at 48 bytes instead of 64.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Replacement {
   start: u32,
   end: u32,
   content: Cow<'static, str>,
-  name: Option<Cow<'static, str>>,
+  name: Option<Box<Cow<'static, str>>>,
   enforce: ReplacementEnforce,
   insertion_order: u32,
 }
@@ -83,7 +88,7 @@ impl Replacement {
 
   /// Get the replacement name.
   pub fn name(&self) -> Option<&str> {
-    self.name.as_deref()
+    self.name.as_deref().map(|name| &**name)
   }
 
   /// Get the replacement enforce order.
@@ -247,7 +252,7 @@ impl ReplaceSource {
       start,
       end,
       content: content.into(),
-      name: name.map(Into::into),
+      name: name.map(|name| Box::new(Cow::Owned(name))),
       enforce,
       insertion_order: self.replacements.len() as u32,
     });
@@ -284,7 +289,7 @@ impl ReplaceSource {
       start,
       end,
       content: Cow::Borrowed(content),
-      name: name.map(Cow::Borrowed),
+      name: name.map(|name| Box::new(Cow::Borrowed(name))),
       enforce,
       insertion_order: self.replacements.len() as u32,
     });
@@ -416,8 +421,7 @@ impl Source for ReplaceSource {
     // Handle remaining replacements one by one
     while replacement_idx < self.replacements.len() {
       let replacement = unsafe { self.replacements.get_unchecked(replacement_idx) };
-      let content = &replacement.content;
-      on_chunk(content);
+      on_chunk(&replacement.content);
       replacement_idx += 1;
     }
   }
@@ -698,6 +702,7 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
           }
           // Partially skip over chunk
           chunk_pos = replacement_end - pos;
+          let chunk_utf16_pos = chunk.slice_to(chunk_pos as usize).utf16_len();
           if let Some(original) = mapping.original.as_mut() {
             if self.is_original_source
               || check_original_content(
@@ -707,11 +712,10 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
                 chunk.slice_to(chunk_pos as usize).as_str(),
               )
             {
-              original.original_column += chunk_pos;
+              original.original_column += chunk_utf16_pos as u32;
             }
           }
           pos += chunk_pos;
-          let chunk_utf16_pos = chunk.slice_to(chunk_pos as usize).utf16_len();
           let line = mapping.generated_line as i64 + generated_line_offset;
           if generated_column_offset_line == line {
             generated_column_offset -= chunk_utf16_pos as i64;
@@ -782,9 +786,9 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
             .as_ref()
             .and_then(|original| original.name_index);
           if mapping.original.is_some() {
-            if let Some(name) = repl.name.as_ref() {
+            if let Some(name) = repl.name() {
               let mut name_mapping = name_mapping.borrow_mut();
-              let mut global_index = name_mapping.get(name.as_ref()).copied();
+              let mut global_index = name_mapping.get(name).copied();
               if global_index.is_none() {
                 let len = name_mapping.len() as u32;
                 name_mapping.insert(Cow::Borrowed(name), len);
@@ -884,24 +888,21 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
 
             // Partially skip over chunk
             let line = mapping.generated_line as i64 + generated_line_offset;
+            let skipped = chunk.slice(chunk_pos as usize, (chunk_pos + offset as u32) as usize);
+            let utf16_offset = skipped.utf16_len() as i64;
             if let Some(original) = mapping.original.as_mut() {
               if self.is_original_source
                 || check_original_content(
                   original.source_index,
                   original.original_line,
                   original.original_column,
-                  chunk
-                    .slice(chunk_pos as usize, (chunk_pos + offset as u32) as usize)
-                    .as_str(),
+                  skipped.as_str(),
                 )
               {
-                original.original_column += offset as u32;
+                original.original_column += utf16_offset as u32;
               }
             }
 
-            let utf16_offset = chunk
-              .slice(chunk_pos as usize, (chunk_pos + offset as u32) as usize)
-              .utf16_len() as i64;
             chunk_pos += offset as u32;
             pos += offset as u32;
 
@@ -1722,7 +1723,7 @@ return <div>{data.foo}</div>
             original: Some(OriginalLocation {
               source_index: 0,
               original_line: 1,
-              original_column: 19,
+              original_column: 7,
               name_index: None
             })
           }

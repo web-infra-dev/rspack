@@ -143,9 +143,6 @@ impl Task<TaskContext> for FactorizeResultTask {
     {
       let dep = &dependencies[0];
       tracing::trace!("Module make-skipped as side-effect-only import: {dep:?}");
-      for dep in &dependencies {
-        dep.set_lazy();
-      }
       for dep in dependencies {
         module_graph.add_dependency_ref(dep)
       }
@@ -161,6 +158,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       }
       return Ok(vec![]);
     };
+
     let module_identifier = module.identifier();
     let mut mgm = ModuleGraphModule::new(module.identifier());
     mgm.set_issuer_if_unset(original_module_identifier);
@@ -182,10 +180,20 @@ fn skip_side_effect_free_esm_import_side_effect_dependencies(
   module: &crate::BoxModule,
   dependencies: &[DependencyRef],
 ) -> bool {
-  module.as_normal_module().is_some()
+  let should_skip = module.as_normal_module().is_some()
     && module.factory_meta().and_then(|meta| meta.side_effect_free) == Some(true)
     && dependencies.iter().all(|dep| {
       dep.dependency_type() == &DependencyType::EsmImport
         && dep.get_phase() == ImportPhase::Evaluation
-    })
+    });
+
+  for dep in dependencies {
+    if should_skip {
+      dep.set_lazy();
+    } else {
+      dep.unset_lazy();
+    }
+  }
+
+  should_skip
 }

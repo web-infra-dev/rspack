@@ -4,6 +4,6 @@
     "node": ">=10.13.0"
   },
   "dependencies": {
-    "tiny-emitter": "=2.0.0"
+    "tiny-emitter": "=2.1.0"
   }
 }

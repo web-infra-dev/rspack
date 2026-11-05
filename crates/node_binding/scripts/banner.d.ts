@@ -18,43 +18,20 @@ export type BuildInfo = KnownBuildInfo & Record<string, any>;
 
 export interface Module {
 	readonly type: string;
-	get context(): string | undefined;
-	get layer(): string | undefined;
-	get factoryMeta(): JsFactoryMeta
-	set factoryMeta(factoryMeta: JsFactoryMeta);
-	get useSourceMap(): boolean;
-	get useSimpleSourceMap(): boolean;
+	readonly context: string | undefined;
+	readonly layer: string | undefined;
+	readonly useSourceMap: boolean;
+	readonly useSimpleSourceMap: boolean;
+	factoryMeta: JsFactoryMeta;
 	buildInfo: BuildInfo;
 	buildMeta: Record<string, any>;
-}
-
-interface NormalModuleConstructor {
-	new(): NormalModule;
-	readonly prototype: NormalModule;
-}
-
-export var NormalModule: NormalModuleConstructor;
-
-export interface NormalModule extends Module {
-	readonly resource: string;
-	readonly request: string;
-	readonly userRequest: string;
-	readonly rawRequest: string;
-	readonly resourceResolveData: Readonly<JsResourceData> | undefined;
-	readonly loaders: JsLoaderItem[];
-	get matchResource(): string | undefined;
-	set matchResource(val: string | undefined);
-	get error(): RspackError | undefined;
-}
-
-export interface ConcatenatedModule extends Module {
-}
-
-export interface ContextModule extends Module {
-}
-
-export interface ExternalModule extends Module {
-	readonly userRequest: string;
+	readonly blocks: AsyncDependenciesBlock[];
+	readonly dependencies: Dependency[];
+	identifier(): string;
+	readableIdentifier(): string;
+	nameForCondition(): string | undefined;
+	size(type?: string | null): number;
+	libIdent(options: JsLibIdentOptions): string | null;
 }
 
 export interface RspackError extends Error {
@@ -75,6 +52,12 @@ export interface JsSource {
 	source: string | Buffer
 	map?: string
 }
+
+export type JsSourceFromJs =
+	| { kind: "raw"; content: string | Buffer; map?: string }
+	| { kind: "native"; handle: JsNativeSource }
+	| { kind: "concat"; children: JsSourceFromJs[] }
+	| { kind: "replace"; original: JsSourceFromJs; replacements: JsReplaceSourceEdit[]; fallback: () => JsSourceFromJs }
 
 export type CompilerId = void;
 /* -- banner.d.ts end -- */

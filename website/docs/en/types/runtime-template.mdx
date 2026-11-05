@@ -23,6 +23,7 @@ declare class RuntimeTemplate {
   supportsDynamicImport(): boolean;
   supportsEcmaScriptModuleSyntax(): boolean;
   supportTemplateLiteral(): boolean;
+  supportsTopLevelAwait(): boolean;
   supportNodePrefixForCoreModules(): boolean;
 
   renderNodePrefixForCoreModule(mod: string): string;
