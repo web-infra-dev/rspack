@@ -94,7 +94,7 @@ __dirname
 
 ## import.meta（ESM） \{#import-meta}
 
-`import.meta` 将特定上下文的元数据暴露给 JavaScript 模块，例如模块的 URL。它仅在支持 ESM（[模块类型](/misc/glossary#module-type模块类型)为 `javascript/auto` 或 `javascript/esm`）的模块中可用。
+`import.meta` 将特定上下文的元数据暴露给 JavaScript 模块，例如模块的 URL。它仅在支持 ESM（[模块类型](/misc/glossary#module-type)为 `javascript/auto` 或 `javascript/esm`）的模块中可用。
 
 通常情况下，未知的 `import.meta` 元数据默认会被替换为 `undefined`。当使用 [ESM 格式](/guide/features/esm)输出时，[`module.parser.javascript.importMeta`](/config/module-parser#javascriptimportmeta) 的默认值为 `'preserve-unknown'`，因此未知的元数据会被保留并在运行时被计算。你也可以使用 `module.parser.javascript.importMeta` 的对象形式，分别控制已知的 `import.meta` 字段。
 
@@ -507,21 +507,17 @@ __webpack_require__.p = '由 document/location 计算得来';
 
 <ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
 
-运行时获取或修改 Base URI。
+读取或修改 Rspack 在运行时用于解析资源和 Worker 相对 URL 的基准 URI。通常可以直接使用默认值，无需修改。
 
-<Columns>
-```js title=源码
-import.meta.rspackBaseUri;
+```js
+// 读取当前基准 URI。
+const baseUri = import.meta.rspackBaseUri;
+
+// 如果需要修改，在创建资源 URL 前设置。
+import.meta.rspackBaseUri = 'https://example.com/app/';
 ```
 
-```js title=产物
-__webpack_require__.b;
-
-// chunk loading
-__webpack_require__.b = document.baseURI || self.location.href;
-```
-
-</Columns>
+关于默认值、与 `publicPath` 的关系及使用示例，参阅 [Base URI](/guide/features/asset-base-path#base-uri)。
 
 ### import.meta.rspackNonce
 
@@ -623,7 +619,7 @@ __webpack_require__.ruid = 'bundler=rspack@2.1.2';
 
 </Columns>
 
-## Runtime
+## Rspack 运行时 \{#rspack-runtime}
 
 ### \_\_webpack_hash\_\_
 
@@ -635,7 +631,7 @@ __webpack_require__.ruid = 'bundler=rspack@2.1.2';
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-访问当前入口的 runtime chunk 的 id。
+读取当前入口的 Rspack 运行时 ID。
 
 <Columns>
 ```js title=源码
@@ -956,7 +952,7 @@ __webpack_require__.u = function (chunkId) {
 
 </Columns>
 
-可以通过赋值来在运行时修改它的行为。比如以下示例，在最终加载 chunk 的路径后增加特定后缀。
+可以重新赋值此函数，修改 Rspack 运行时加载 chunk 时使用的脚本文件名。例如，在文件名后添加特定后缀：
 
 ```js
 const oldFn = __webpack_get_script_filename__;

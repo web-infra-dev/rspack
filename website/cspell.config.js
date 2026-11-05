@@ -20,7 +20,6 @@ export default {
     '/project-words.txt',
     'package.json',
     'pnpm-lock.yaml',
-    'rspack.mp3',
     'doc_build',
   ],
   ignoreRegExpList: [

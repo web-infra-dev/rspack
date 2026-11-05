@@ -11,7 +11,7 @@ use rspack_collections::Identifier;
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_sources::{BoxSource, OriginalSource, RawStringSource, Source, SourceExt};
-use rspack_util::source_map::SourceMapKind;
+use rspack_util::{ext::AsAny, source_map::SourceMapKind};
 use tokio::sync::OnceCell;
 
 use crate::{
@@ -22,6 +22,17 @@ use crate::{
 pub struct RuntimeModuleGenerateContext<'a> {
   pub compilation: &'a Compilation,
   pub runtime_template: &'a RuntimeCodeTemplate,
+}
+
+/// Immutable data retained by HMR records for the next runtime update.
+/// The producing runtime module defines the representation of this data.
+pub trait RuntimeModuleUpdateData: Debug + AsAny + Send + Sync {}
+
+#[derive(Debug)]
+pub struct RuntimeModuleRecord {
+  pub hash: RspackHashDigest,
+  pub update_data: Option<Arc<dyn RuntimeModuleUpdateData>>,
+  pub has_custom_source: bool,
 }
 
 pub fn runtime_module_owned_define_fields(
@@ -256,6 +267,27 @@ pub trait RuntimeModule:
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String>;
+
+  /// Records built-in state independently of codegen caches and custom source overrides.
+  fn get_update_data(
+    &self,
+    _compilation: &Compilation,
+  ) -> Option<Arc<dyn RuntimeModuleUpdateData>> {
+    None
+  }
+
+  /// Generates code to migrate the previous runtime state during HMR apply.
+  /// `None` uses the ordinary full source; `Some("")` explicitly emits no update code.
+  /// This source uses the same scope and runtime requirements as `generate`, but
+  /// must never replace the full source in codegen caches or runtime hashes.
+  async fn generate_update(
+    &self,
+    _context: &RuntimeModuleGenerateContext<'_>,
+    _previous: &dyn RuntimeModuleUpdateData,
+  ) -> rspack_error::Result<Option<String>> {
+    Ok(None)
+  }
+
   async fn generate_with_custom(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,

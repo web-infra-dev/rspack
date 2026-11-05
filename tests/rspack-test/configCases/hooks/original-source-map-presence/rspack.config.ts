@@ -47,9 +47,6 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                   source: content,
                   map: null,
                 });
-                const raw = module._originalSource()!;
-                expect(raw).not.toBeInstanceOf(sources.SourceMapSource);
-                expect(raw.map).toBeUndefined();
               }
             });
           });

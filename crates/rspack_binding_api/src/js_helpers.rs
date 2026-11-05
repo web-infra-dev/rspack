@@ -1,10 +1,12 @@
 use napi::{Env, JsValue, bindgen_prelude::*};
 use rspack_napi::WeakRef;
 
-use crate::symbols;
+use crate::{module_bridge::ModuleKind, symbols};
 
 #[napi(object)]
 pub struct JsHelpers<'env> {
+  #[napi(ts_type = "(kind: ModuleKind) => Module")]
+  pub create_module: Function<'env>,
   #[napi(ts_type = "<T>(source: ReadonlyArray<T>, target: T[], commands: Uint32Array) => void")]
   pub apply_indexed_array_updates: Function<'env>,
   #[napi(ts_type = "<T>(array: T[], removedIndices: Uint32Array) => void")]
@@ -14,6 +16,7 @@ pub struct JsHelpers<'env> {
 /// Weak handles to JS-owned helper functions. Callers must pin the JS owner
 /// and release native borrows before invoking these synchronous helpers.
 pub(crate) struct JsHelperRefs {
+  create_module: WeakRef,
   apply_indexed_array_updates: WeakRef,
   swap_remove_array_elements: WeakRef,
 }
@@ -25,6 +28,7 @@ impl JsHelperRefs {
     helpers: JsHelpers<'_>,
   ) -> napi::Result<Self> {
     let references = Self {
+      create_module: WeakRef::new(env.raw(), &mut helpers.create_module.coerce_to_object()?)?,
       apply_indexed_array_updates: WeakRef::new(
         env.raw(),
         &mut helpers.apply_indexed_array_updates.coerce_to_object()?,
@@ -39,6 +43,21 @@ impl JsHelperRefs {
       .with_napi_value(env, helpers)?
       .with_property_attributes(PropertyAttributes::Default)])?;
     Ok(references)
+  }
+
+  pub(crate) fn create_module<'env>(
+    &self,
+    env: &'env Env,
+    kind: ModuleKind,
+  ) -> napi::Result<Object<'env>> {
+    // The caller pins the Compiler, which owns this JS helper, until the call returns.
+    let function = unsafe {
+      Function::<FnArgs<(ModuleKind,)>, Object<'env>>::from_napi_value(
+        env.raw(),
+        ToNapiValue::to_napi_value(env.raw(), &self.create_module)?,
+      )?
+    };
+    function.call((kind,).into())
   }
 
   pub(crate) fn swap_remove_array_elements(

@@ -41,6 +41,7 @@ pub struct TargetProperties {
   pub template_literal: Option<bool>,
   pub async_function: Option<bool>,
   pub import_meta_dirname_and_filename: Option<bool>,
+  pub top_level_await: Option<bool>,
 }
 
 #[allow(unused)]
@@ -134,6 +135,9 @@ impl TargetProperties {
   }
   pub fn async_function(&self) -> bool {
     self.async_function.unwrap_or(false)
+  }
+  pub fn top_level_await(&self) -> bool {
+    self.top_level_await.unwrap_or(false)
   }
 }
 
@@ -238,6 +242,7 @@ fn merge_target_properties(target_properties: &[TargetProperties]) -> TargetProp
   merge_field!(optional_chaining);
   merge_field!(template_literal);
   merge_field!(async_function);
+  merge_field!(top_level_await);
 
   result
 }
@@ -284,6 +289,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       optional_chaining: Some(version_dependent(14, None, major, minor)),
       arrow_function: Some(version_dependent(6, None, major, minor)),
       async_function: Some(version_dependent(7, Some(6), major, minor)),
+      top_level_await: Some(version_dependent(14, Some(8), major, minor)),
       for_of: Some(version_dependent(5, None, major, minor)),
       destructuring: Some(version_dependent(6, None, major, minor)),
       big_int_literal: Some(version_dependent(10, Some(4), major, minor)),
@@ -389,6 +395,8 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       optional_chaining: Some(version_dependent(8, None, major, minor)),
       arrow_function: Some(version_dependent(1, Some(1), major, minor)),
       async_function: Some(version_dependent(1, Some(7), major, minor)),
+      // 12.0.0 - Chromium 89
+      top_level_await: Some(version_dependent(12, None, major, minor)),
       for_of: Some(version_dependent(0, Some(36), major, minor)),
       destructuring: Some(version_dependent(1, Some(1), major, minor)),
       big_int_literal: Some(version_dependent(4, None, major, minor)),
@@ -434,6 +442,8 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       optional_chaining: Some(version_dependent(0, Some(44), major, minor)),
       arrow_function: Some(version_dependent(0, Some(15), major, minor)),
       async_function: Some(version_dependent(0, Some(21), major, minor)),
+      // 0.52.0 - Chromium 89
+      top_level_await: Some(version_dependent(0, Some(52), major, minor)),
       for_of: Some(version_dependent(0, Some(13), major, minor)),
       destructuring: Some(version_dependent(0, Some(15), major, minor)),
       big_int_literal: Some(version_dependent(0, Some(32), major, minor)),
@@ -467,6 +477,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       destructuring: Some(version >= 2015),
       module: Some(version >= 2015),
       async_function: Some(version >= 2017),
+      top_level_await: Some(version >= 2022),
       global_this: Some(version >= 2020),
       big_int_literal: Some(version >= 2020),
       dynamic_import: Some(version >= 2020),
