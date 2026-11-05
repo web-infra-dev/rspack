@@ -28,9 +28,12 @@ use crate::{
 };
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
+pub const RUNTIME_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_RUNTIME_PUBLIC_PATH__";
 pub const CSS_MODULE_ID_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_MODULE_ID__";
 pub(crate) static AUTO_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
   LazyLock::new(|| PlaceholderFinder::new(AUTO_PUBLIC_PATH_PLACEHOLDER));
+pub(crate) static RUNTIME_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new(RUNTIME_PUBLIC_PATH_PLACEHOLDER));
 static CSS_MODULE_ID_MATCHER: LazyLock<PlaceholderFinder> =
   LazyLock::new(|| PlaceholderFinder::new(CSS_MODULE_ID_PLACEHOLDER));
 pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =

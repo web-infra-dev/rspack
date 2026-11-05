@@ -11,7 +11,8 @@ use ustr::Ustr;
 
 use crate::{
   ChunkGraph, ChunkGroupByUkey, ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact, ChunkUkey,
-  Compilation, EntryOptions, Filename, RenderManifestEntry, RuntimeSpec, SourceType,
+  Compilation, EntryOptions, Filename, ModuleIdsArtifact, RenderManifestEntry, RuntimeSpec,
+  SourceType,
   chunk_graph_chunk::{ChunkId, IndexChunkIdMap},
   compare_chunk_group, sort_group_by_index,
 };
@@ -745,11 +746,14 @@ impl Chunk {
       .copied()
       .collect::<IdentifierSet>();
 
-    for module_identifier in compilation
+    let module_ids: &ModuleIdsArtifact = &compilation.module_ids_artifact;
+    let modules = compilation
       .build_chunk_graph_artifact
       .chunk_graph
-      .get_ordered_chunk_modules_identifier(&self.ukey)
-    {
+      .get_ordered_chunk_modules_identifier(&self.ukey);
+    // 16-byte default codegen digest + 8-byte module_id precomputed hash.
+    let mut hashes = Vec::with_capacity(modules.len() * 24);
+    for module_identifier in modules {
       if runtime_modules.contains(&module_identifier) {
         continue;
       }
@@ -757,9 +761,19 @@ impl Chunk {
         .code_generation_results
         .get_hash(&module_identifier, Some(&self.runtime))
       {
-        hash.hash(hasher);
+        let digest = hash.encoded().as_bytes();
+        if digest.len() == 16 {
+          // Fast path for default xxhash64 + hex digests
+          hashes.extend_from_slice(digest);
+        } else {
+          hashes.extend_from_slice(digest);
+        }
+        if let Some(module_id) = ChunkGraph::get_module_id(module_ids, module_identifier) {
+          hashes.extend_from_slice(&module_id.precomputed_hash().to_le_bytes());
+        }
       }
     }
+    hasher.write(&hashes);
 
     for (runtime_module_identifier, _) in compilation
       .build_chunk_graph_artifact

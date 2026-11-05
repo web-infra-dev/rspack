@@ -820,6 +820,7 @@ const applyOutputDefaults = (
     () => tp && (tp.importMetaDirnameAndFilename as boolean | undefined),
   );
   F(environment, 'templateLiteral', () => tp && optimistic(tp.templateLiteral));
+  F(environment, 'topLevelAwait', () => tp && optimistic(tp.topLevelAwait));
   F(
     environment,
     'dynamicImport',

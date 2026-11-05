@@ -55,7 +55,7 @@ export default {
 - 使用 `filename` 指定每个 HTML 文件的名称。
 - 使用 `chunks` 选择每个 HTML 文件要包含的入口产物。
 
-以下配置会生成 `foo.html` 和 `bar.html`。每个文件只包含对应入口所需的产物，包括运行时代码和共享产物。
+以下配置会生成 `foo.html` 和 `bar.html`。每个文件只包含对应入口所需的产物，包括 Rspack 运行时代码和共享产物。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -658,7 +658,7 @@ new rspack.HtmlRspackPlugin({
 
 筛选要注入 HTML 的入口产物。数组中的每一项都会与入口名称进行精确匹配，不会匹配任意 chunk ID、产物文件名或模块路径。不存在的入口名称会被忽略。
 
-未设置时，插件会先选择所有入口，再应用 [`excludeChunks`](#excludechunks)。选中一个入口后，该入口所需的运行时代码和共享产物也会包含在 HTML 中。
+未设置时，插件会先选择所有入口，再应用 [`excludeChunks`](#excludechunks)。选中一个入口后，该入口所需的 Rspack 运行时代码和共享产物也会包含在 HTML 中。
 
 使用默认的 [`chunksSortMode: 'auto'`](#chunkssortmode) 时，插件会先用 `chunks` 筛选入口，再用 `excludeChunks` 移除匹配项。使用 `'manual'` 时，如果提供了 `chunks`，该数组就是最终的有序入口列表；如果未提供，`excludeChunks` 仍会从编译过程记录的入口顺序中排除匹配项。
 

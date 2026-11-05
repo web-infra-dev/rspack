@@ -5,12 +5,14 @@
   "type": "module",
   "scripts": {
     "test": "rs test",
-    "test:CI": "CI=1 pnpm run test"
+    "test:CI": "CI=1 pnpm run test",
+    "test:configs": "tsc -p tsconfig.configs.json"
   },
   "devDependencies": {
     "@babel/core": "catalog:",
     "@babel/preset-react": "catalog:",
     "@module-federation/runtime-tools": "catalog:",
+    "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "catalog:",
     "@rspack/plugin-react-refresh": "catalog:",

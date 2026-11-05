@@ -143,9 +143,9 @@ export default {
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-运行时 chunk 的名称。设置 `runtime` 后，会创建一个新的运行时 chunk。你也可以将它设置为 `false` 来避免一个新的运行时 chunk。
+设置 Rspack 运行时 chunk 的名称。指定 `runtime` 后，会创建一个独立的 chunk 来存放运行时代码；设为 `false` 则不创建独立的 chunk。
 
-`runtime` 属性用于设置运行时 `chunk` 的名称，比如将 `main` 入口的 chunk 名称设置为 `'foo'`：
+例如，将 `main` 入口使用的 Rspack 运行时 chunk 命名为 `'foo'`：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -189,7 +189,7 @@ export default {
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-修改当前入口引用的资源的 baseURI。
+设置当前入口用于解析资源和 Worker 相对 URL 的初始基准 URI。未配置时，使用 Rspack 的默认基准 URI。关于默认值和使用示例，参阅 [Base URI](/guide/features/asset-base-path#base-uri)。
 
 #### EntryDescription.filename
 
@@ -214,7 +214,63 @@ export default {
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-设置当前入口所依赖的入口。使用 `dependOn` 选项你可以与另一个入口 chunk 共享模块。
+声明当前入口所依赖的入口。可以设置为一个**入口名称**或入口名称数组。
+
+当同一页面中的多个入口具有明确的依赖关系时，可以使用 `dependOn`，例如多个业务入口依赖同一个应用基础入口。Rspack 会：
+
+- 复用依赖入口中的模块，避免将它们重复打包到当前入口 chunk 中。
+- 使用依赖入口的 [Rspack 运行时](/misc/glossary#rspack-runtime)。这些入口共享同一份模块缓存，因此共享模块只会初始化一次。
+- 等待所需的 chunks 就绪后，再启动当前入口。
+
+例如，让 `editor` 和 `preview` 两个入口都依赖 `shell`：
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    shell: './src/shell.js',
+    editor: {
+      import: './src/editor.js',
+      dependOn: 'shell',
+    },
+    preview: {
+      import: './src/preview.js',
+      dependOn: 'shell',
+    },
+  },
+};
+```
+
+```js title="src/shell.js"
+export const documentState = { title: 'Untitled' };
+
+console.log('Shell initialized');
+```
+
+```js title="src/editor.js"
+import { documentState } from './shell.js';
+
+documentState.title = 'Draft';
+```
+
+```js title="src/preview.js"
+import { documentState } from './shell.js';
+
+console.log(documentState.title);
+```
+
+构建会生成 `shell.js`、`editor.js` 和 `preview.js`。shell 模块只打包到 `shell.js` 中，三个入口使用同一个 Rspack 运行时和模块缓存。假设产物目录通过 `/dist/` 提供访问，在页面中按以下顺序加载这些文件：
+
+```html
+<script defer src="/dist/shell.js"></script>
+<script defer src="/dist/editor.js"></script>
+<script defer src="/dist/preview.js"></script>
+```
+
+页面会输出一次 `Shell initialized`，随后输出 `Draft`：preview 读取的对象正是 editor 修改的对象。源码中仍需导入要使用的模块，`dependOn` 不会将模块的导出暴露为全局变量。
+
+`dependOn` 控制的是 chunk 之间的依赖关系，不会等待异步业务初始化完成，例如 `shell` 发起的网络请求。这类操作需要在业务代码中显式协调。入口之间不能形成循环依赖，配置了 `dependOn` 的入口也不能同时配置 `runtime`。
+
+如果只是希望自动抽取共享模块，通常优先使用 [SplitChunksPlugin](/plugins/split-chunks-plugin)。它按照可配置的规则拆分模块，不会声明入口之间的依赖关系，也不会统一各入口的 Rspack 运行时。如果同一页面中的多个入口还需要共享模块实例，可以配合 [`optimization.runtimeChunk: 'single'`](/config/optimization#optimizationruntimechunk) 使用。需要明确声明入口依赖关系时，再使用 `dependOn`；它也可以与 `splitChunks` 配合使用。
 
 #### EntryDescription.wasmLoading
 

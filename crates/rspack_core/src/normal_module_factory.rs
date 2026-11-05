@@ -1,5 +1,10 @@
-use std::{borrow::Cow, ops::Deref, sync::Arc};
+use std::{
+  borrow::Cow,
+  ops::Deref,
+  sync::{Arc, LazyLock},
+};
 
+use memchr::{memchr, memmem, memrchr};
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{Loader, LoaderFilter, LoaderRunnerOptions, Scheme, get_scheme};
@@ -8,7 +13,6 @@ use rspack_util::{
   fx_hash::{FxDashMap, FxHashMap as HashMap},
 };
 use sugar_path::SugarPath;
-use winnow::prelude::*;
 
 use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
@@ -599,6 +603,7 @@ mod tests {
         })),
         Some(&GeneratorOptions::Css(CssGeneratorOptions {
           exports_only: Some(false),
+          runtime_public_path: Some(false),
           es_module: Some(true),
         })),
       );
@@ -614,6 +619,7 @@ mod tests {
 
       assert_eq!(parser_options.named_exports, Some(true));
       assert_eq!(generator_options.exports_only, Some(false));
+      assert_eq!(generator_options.runtime_public_path, Some(false));
       assert_eq!(generator_options.es_module, Some(true));
     }
   }
@@ -752,7 +758,7 @@ impl NormalModuleFactory {
     if scheme.is_none() {
       let mut request_without_match_resource = data.request.as_str();
       request_without_match_resource = {
-        if let Ok((resource, full_matched)) = match_resource(request_without_match_resource) {
+        if let Some((resource, full_matched)) = match_resource(request_without_match_resource) {
           let match_resource = {
             let mut chars = resource.chars();
             let first_char = chars.next();
@@ -929,19 +935,19 @@ impl NormalModuleFactory {
           Ok(ResolveResult::Resource(resource)) => resource.into(),
           Ok(ResolveResult::Ignored) => {
             let ident = format!("{}/{}", &data.context, resource);
-            let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
             let raw_module = if matches!(
               dependency_type,
               DependencyType::CssUrl | DependencyType::NewUrl
             ) {
               // use RawModule instead of RawDataUrlModule
+              // Keep ignored assets separate from ignored JS modules in the graph and cache.
               RawModule::new(
                 r#"/* (ignored-asset) */
 module.exports = "data:,";
 "#
                 .to_owned(),
-                module_identifier,
+                ModuleIdentifier::from(format!("ignored-asset|{ident}")),
                 format!("{} (ignored-asset)", data.request),
                 RuntimeGlobals::MODULE,
               )
@@ -949,7 +955,7 @@ module.exports = "data:,";
             } else {
               RawModule::new(
                 "/* (ignored) */".to_owned(),
-                module_identifier,
+                ModuleIdentifier::from(format!("ignored|{ident}")),
                 format!("{} (ignored)", data.request),
                 Default::default(),
               )
@@ -968,7 +974,7 @@ module.exports = "data:,";
     };
 
     let matched_module_rules = if let Some(match_resource_data) = &mut match_resource_data
-      && let Ok((module, module_type)) = match_ext(match_resource_data.resource())
+      && let Some((module, module_type)) = match_ext(match_resource_data.resource())
     {
       match_module_type = Some(module_type.into());
       match_resource_data.set_resource(module.into());
@@ -1472,42 +1478,53 @@ pub struct NormalModuleCreateData {
 }
 
 fn split_element(mut input: &str) -> Vec<&str> {
-  use winnow::{
-    combinator::separated,
-    error::ContextError,
-    token::{take_till, take_while},
-  };
-
-  separated::<_, _, _, _, ContextError, _, _>(.., take_till(.., '!'), take_while(1.., '!'))
-    .parse_next(&mut input)
-    .expect("split should never fail")
+  let mut elements = Vec::new();
+  while let Some(end) = memchr(b'!', input.as_bytes()) {
+    elements.push(&input[..end]);
+    // Consecutive separators form one split point.
+    let rest = &input[end + 1..];
+    let skip = rest
+      .as_bytes()
+      .iter()
+      .take_while(|&&byte| byte == b'!')
+      .count();
+    input = &rest[skip..];
+  }
+  elements.push(input);
+  elements
 }
 
-fn match_resource(mut input: &str) -> winnow::ModalResult<(&str, &str)> {
-  use winnow::{combinator::terminated, token::take_until};
-
-  let backup = input;
-
-  let res = terminated(take_until(1.., '!'), "!=!").parse_next(&mut input)?;
-  let whole_matched = &backup[..backup.len() - input.len()];
-  Ok((res, whole_matched))
+fn match_resource(input: &str) -> Option<(&str, &str)> {
+  let end = memchr(b'!', input.as_bytes())?;
+  if end == 0 {
+    return None;
+  }
+  let rest = input[end..].strip_prefix("!=!")?;
+  Some((&input[..end], &input[..input.len() - rest.len()]))
 }
 
-fn match_ext(mut input: &str) -> winnow::ModalResult<(&str, &str)> {
-  use winnow::{
-    combinator::{alt, delimited, eof, preceded, terminated},
-    token::take_until,
-  };
+fn match_ext(input: &str) -> Option<(&str, &str)> {
+  static MARKERS: LazyLock<[memmem::Finder<'static>; 2]> = LazyLock::new(|| {
+    [
+      memmem::Finder::new(b".rspack["),
+      memmem::Finder::new(b".webpack["),
+    ]
+  });
 
-  let parser = (
-    alt((take_until(0.., ".rspack"), take_until(0.., ".webpack"))),
-    preceded(
-      alt((".rspack", ".webpack")),
-      delimited('[', take_until(1.., ']'), ']'),
-    ),
-  );
-
-  terminated(parser, eof).parse_next(&mut input)
+  let input = input.strip_suffix(']')?;
+  let bytes = input.as_bytes();
+  // A suffix can only start after the previous closing bracket.
+  let suffix_start = memrchr(b']', bytes).map_or(0, |index| index + 1);
+  for marker in MARKERS.iter() {
+    if let Some(start) = marker.find(&bytes[suffix_start..]) {
+      let start = suffix_start + start;
+      let module_type = &input[start + marker.needle().len()..];
+      if !module_type.is_empty() {
+        return Some((&input[..start], module_type));
+      }
+    }
+  }
+  None
 }
 
 #[test]
@@ -1519,24 +1536,24 @@ fn test_split_element() {
 
 #[test]
 fn test_match_ext() {
-  assert!(match_ext("foo.webpack[type/javascript]").is_ok());
+  assert!(match_ext("foo.webpack[type/javascript]").is_some());
   let cap = match_ext("foo.webpack[type/javascript]").unwrap();
 
   assert_eq!(cap, ("foo", "type/javascript"));
 
   assert_eq!(
     match_ext("foo.css.webpack[javascript/auto]"),
-    Ok(("foo.css", "javascript/auto"))
+    Some(("foo.css", "javascript/auto"))
   );
 
   // Test .rspack support
-  assert!(match_ext("foo.rspack[type/javascript]").is_ok());
+  assert!(match_ext("foo.rspack[type/javascript]").is_some());
   let cap = match_ext("foo.rspack[type/javascript]").unwrap();
 
   assert_eq!(cap, ("foo", "type/javascript"));
 
   assert_eq!(
     match_ext("foo.css.rspack[javascript/auto]"),
-    Ok(("foo.css", "javascript/auto"))
+    Some(("foo.css", "javascript/auto"))
   );
 }

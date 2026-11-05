@@ -1406,14 +1406,7 @@ impl Module for ContextModule {
       id += " referencedExports: ";
       id += &specifiers
         .iter()
-        .map(|specifier| {
-          let s = specifier.names.iter().join(".");
-          if specifier.namespace_object_as_context && specifier.is_call {
-            format!("*.{s}()")
-          } else {
-            s
-          }
-        })
+        .map(ReferencedSpecifier::to_identifier_string)
         .join(", ");
     }
     if let Some(import) = &self.options.context_options.glob_import {
@@ -1662,13 +1655,7 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
     id += "|referencedExports: ";
     id += &specifiers
       .iter()
-      .map(|specifier| {
-        if specifier.namespace_object_as_context && specifier.is_call {
-          format!("*.{}()", specifier.names.iter().join("."))
-        } else {
-          specifier.names.iter().join(".")
-        }
-      })
+      .map(ReferencedSpecifier::to_identifier_string)
       .join(", ");
   }
   if let Some(import) = &options.context_options.glob_import {

@@ -40,9 +40,33 @@ In Rspack, built-in module types refer to module types that can be supported wit
 - [JSON](/guide/languages/json)
 - [rules[].type](/config/module-rules#rulestype)
 
+## cache group
+
+A cache group is a set of rules for selecting modules and deciding how to split them, configured through [`cacheGroups`](/plugins/split-chunks-plugin#splitchunkscachegroups). For example, you can select modules from `node_modules` and set a size threshold for splitting them.
+
+Suppose two pages loaded on demand both depend on `shared.js`. A cache group can select this shared module. When the splitting conditions are met, SplitChunksPlugin can extract it into a shared chunk:
+
+```text
+Before splitting:
+Page A chunk: [page-a.js, shared.js]
+Page B chunk: [page-b.js, shared.js]
+
+After splitting:
+Page A chunk: [page-a.js] ─┐
+                         ├→ Shared chunk: [shared.js]
+Page B chunk: [page-b.js] ─┘
+```
+
+Here, `shared.js` is the [module](#module), the shared [chunk](#chunk) containing it is the splitting result, and the cache group provides the splitting rules. One cache group can produce multiple chunks; see the [`cacheGroups` examples](/plugins/split-chunks-plugin#splitchunkscachegroups).
+
 ## chunk
 
-In bundling terminology, a chunk is a group of modules that get combined into a single data file. Rspack will bundle the modules that are related to each other into a chunk, and then generate a corresponding file.
+A chunk groups [modules](#module) during a build and produces corresponding output assets. For example, a page's code and the components it uses can belong to the same chunk.
+
+Chunks can be classified by when they are loaded:
+
+- **[Initial chunk](#initial-chunk)**: A chunk needed when an entry starts.
+- **[Async chunk](#async-chunk)**: A chunk loaded on demand during execution, such as one generated for a module dynamically imported with `import()`.
 
 ## chunk graph
 
@@ -60,7 +84,7 @@ A context module represents a set of modules that can be loaded through a dynami
 
 ## dependency
 
-Dependency is parsed from the transformed code of a module. It is used to store the import relationships of modules for recursively generating the module graph. When code generation, it can inject code of module imports and exports. It can also be used for code replacement and injecting runtime requirements.
+A dependency records an import relationship discovered while parsing a module’s transformed source. Rspack uses these relationships to build the module graph. During code generation, dependencies can generate import and export code, replace source code, and specify Rspack runtime requirements.
 
 ## initial chunk
 
@@ -74,7 +98,7 @@ In bundling terminology, a loader is like a plugin but specifically tasked with 
 
 ## module
 
-An application can be split into multiple files called modules, which may be JavaScript source files or other assets such as images or CSS. These files can share and reuse module content by importing and exporting, which helps organize your code into independent parts and define formalized interfaces for communication between them.
+A module is a unit of code or a resource processed by Rspack, such as `page.js`, `Button.tsx`, or `style.css`. An application typically consists of multiple modules.
 
 ## module type
 
@@ -112,11 +136,21 @@ A plugin is a program module that can be used to extend the functionality of Rsp
 
 - [Plugin](/guide/features/plugin)
 
-## runtime
+## Rspack runtime
 
-The runtime is all the code Rspack needs to connect your modularized application while it's running in the browser or other environments. It contains the loading and resolving logic needed to connect your modules as they interact.
+The Rspack runtime is the code Rspack includes in build output to load and execute modules, cache their exports, and load additional chunks. Depending on the configuration, it can also support features such as HMR. It runs within a JavaScript environment, such as a browser or Node.js; it is not the JavaScript engine or host environment itself.
 
 - [optimization.runtimeChunk](/config/optimization#optimizationruntimechunk)
+
+## Rspack runtime module
+
+A Rspack runtime module (`RuntimeModule`) is a build-time unit that generates code for a specific part of the [Rspack runtime](#rspack-runtime), such as setting [`publicPath`](/config/output#outputpublicpath), loading chunks, or supporting HMR. Its generated code is included in the appropriate chunk. It is not an application module imported by your source code.
+
+Plugins can extend `RuntimeModule`, implement `generate()` to return JavaScript code, and add an instance to a chunk with [`compilation.addRuntimeModule`](/api/javascript-api/compilation#addruntimemodule).
+
+- [`runtimeRequirementInTree`](/api/plugin-api/compilation-hooks#runtimerequirementintree): Add runtime requirements or custom runtime modules.
+- [`runtimeModule`](/api/plugin-api/compilation-hooks#runtimemodule): Inspect or modify a runtime module's generated code.
+- [`stats.runtimeModules`](/config/stats#statsruntimemodules): Display runtime modules in build statistics.
 
 ## scope hoisting
 
