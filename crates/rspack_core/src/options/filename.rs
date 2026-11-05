@@ -58,9 +58,15 @@ pub enum PlaceholderKind {
   ChunkHash,
   #[string_enum(rename = "contenthash")]
   ContentHash,
+  // Keep this last so the assertion below covers every placeholder kind.
   #[string_enum(fallback)]
   Unknown,
 }
+
+const _: () = assert!(
+  (PlaceholderKind::Unknown as u32) < u32::BITS,
+  "placeholder kinds must fit in a u32 bitset"
+);
 
 #[derive(Debug, Clone, Copy)]
 enum PlaceholderParameters {
