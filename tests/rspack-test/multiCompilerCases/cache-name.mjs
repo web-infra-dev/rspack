@@ -9,7 +9,7 @@ const cases = [
 	},
 	{
 		newCache: true,
-		description: "should use compiler namespaces for new cache paths"
+		description: "should share the default new cache location across compiler namespaces"
 	},
 	{
 		newCache: true,
@@ -62,8 +62,7 @@ export default cases.map(({ newCache, readonly, description }) => ({
 			expect(cache.storage.location).toBe(
 				path.resolve(
 					cacheDirectory,
-					newCache ? "new-cache" : "",
-					cacheNames[index]
+					newCache ? "new-cache" : cacheNames[index]
 				)
 			);
 		});

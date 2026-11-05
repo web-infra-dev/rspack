@@ -6,9 +6,9 @@ import { promisify } from "node:util";
 export default {
 	description: "should reuse the loader cache across compilers",
 	options(context) {
-		const cacheLocation = context.getDist("cache");
+		const cacheDirectory = context.getDist("cache");
 		const counterFile = context.getDist("loader-runs.txt");
-		fs.rmSync(cacheLocation, { recursive: true, force: true });
+		fs.rmSync(cacheDirectory, { recursive: true, force: true });
 		fs.rmSync(counterFile, { force: true });
 
 		const createOptions = (name, dependencies) => ({
@@ -23,11 +23,9 @@ export default {
 			},
 			cache: {
 				type: "persistent",
-				readonly: true,
-				maxMemoryGenerations: Infinity,
 				storage: {
 					type: "filesystem",
-					location: cacheLocation
+					directory: cacheDirectory
 				}
 			},
 			experiments: {

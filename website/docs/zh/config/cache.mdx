@@ -392,7 +392,7 @@ export default {
 
 `cache.storage.location` 是 Rspack 实际读写缓存数据的完整路径，语义与 webpack 的 `cache.cacheLocation` 一致。未设置时，Rspack 会根据 `cache.storage.directory` 和 `cache.name` 推导该路径。相对路径会基于 [`config.context`](/config/context) 解析。
 
-在启用 `experiments.newCache` 的 multi compiler 构建中，使用默认缓存配置的 compiler 会将缓存存到 `<storage.directory>/new-cache/<cache.name>`。每个 compiler 的缓存 namespace 按与默认缓存名称相同的名称、模式和索引规则生成。
+在启用 `experiments.newCache` 的 multi compiler 构建中，使用默认缓存配置的 compiler 会共用 `<storage.directory>/new-cache`。每个 compiler 的缓存 namespace 按与默认缓存名称相同的名称、模式和索引规则生成。显式设置 `cache.name`、非空的 `cache.version`、`cache.readonly: true` 或 `cache.maxMemoryGenerations` 时，默认位置仍为 `<storage.directory>/<cache.name>`。
 
 ```js title="rspack.config.mjs"
 export default {
