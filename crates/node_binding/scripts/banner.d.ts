@@ -29,11 +29,9 @@ export interface Module {
 	readonly dependencies: Dependency[];
 	identifier(): string;
 	readableIdentifier(): string;
-	_originalSource(): JsSourceWithLazyMap | undefined;
 	nameForCondition(): string | undefined;
 	size(type?: string | null): number;
 	libIdent(options: JsLibIdentOptions): string | null;
-	_emitFile(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo): void;
 }
 
 export interface RspackError extends Error {

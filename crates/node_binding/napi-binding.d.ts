@@ -29,11 +29,9 @@ export interface Module {
 	readonly dependencies: Dependency[];
 	identifier(): string;
 	readableIdentifier(): string;
-	_originalSource(): JsSourceWithLazyMap | undefined;
 	nameForCondition(): string | undefined;
 	size(type?: string | null): number;
 	libIdent(options: JsLibIdentOptions): string | null;
-	_emitFile(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo): void;
 }
 
 export interface RspackError extends Error {
@@ -607,6 +605,8 @@ export declare enum EnforceExtension {
  */
 export declare const EXPECTED_RSPACK_CORE_VERSION: string
 
+export declare function externalModuleGetUserRequest(module: Module): string
+
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
 
 export interface JsAddingRuntimeModule {
@@ -843,7 +843,7 @@ export interface JsFactoryMeta {
 }
 
 export interface JsHelpers {
-  createModule: (kind: number, data: JsModuleData) => Module
+  createModule: (kind: number) => Module
   applyIndexedArrayUpdates: <T>(source: ReadonlyArray<T>, target: T[], commands: Uint32Array) => void
   swapRemoveArrayElements: <T>(array: T[], removedIndices: Uint32Array) => void
 }
@@ -972,13 +972,6 @@ export interface JsLog {
   trace?: Array<string>
 }
 
-export interface JsModuleData {
-  identifier: string
-  moduleType: string
-  normal?: JsNormalModuleData
-  userRequest?: string
-}
-
 export interface JsModuleDescriptor {
   identifier: string
   name: string
@@ -987,15 +980,6 @@ export interface JsModuleDescriptor {
 
 export interface JsModuleForIds {
   identifier: string
-}
-
-export interface JsNormalModuleData {
-  resource: string
-  request: string
-  userRequest: string
-  rawRequest: string
-  resourceResolveData: Readonly<JsResourceData>
-  loaders: Array<JsLoaderItem>
 }
 
 export interface JsNormalModuleFactoryCreateModuleArgs {
@@ -1631,6 +1615,8 @@ export declare function moduleGetDependencies(module: Module): Dependency[]
 
 export declare function moduleGetFactoryMeta(module: Module): JsFactoryMeta
 
+export declare function moduleGetIdentifier(module: Module): string
+
 export declare function moduleGetLayer(module: Module): string | undefined
 
 export declare function moduleGetNameForCondition(module: Module): string | undefined
@@ -1638,6 +1624,8 @@ export declare function moduleGetNameForCondition(module: Module): string | unde
 export declare function moduleGetOriginalSource(module: Module): JsSourceWithLazyMap | undefined
 
 export declare function moduleGetReadableIdentifier(module: Module): string
+
+export declare function moduleGetType(module: Module): string
 
 export declare function moduleGetUseSimpleSourceMap(module: Module): boolean
 
@@ -1877,7 +1865,19 @@ export interface NodeFsStats {
 
 export declare function normalModuleGetError(module: Module): RspackError | undefined
 
+export declare function normalModuleGetLoaders(module: Module): Array<JsLoaderItem>
+
 export declare function normalModuleGetMatchResource(module: Module): string | undefined
+
+export declare function normalModuleGetRawRequest(module: Module): string
+
+export declare function normalModuleGetRequest(module: Module): string
+
+export declare function normalModuleGetResource(module: Module): string
+
+export declare function normalModuleGetResourceResolveData(module: Module): Readonly<JsResourceData>
+
+export declare function normalModuleGetUserRequest(module: Module): string
 
 export declare function normalModuleSetMatchResource(module: Module, value: string | undefined): void
 

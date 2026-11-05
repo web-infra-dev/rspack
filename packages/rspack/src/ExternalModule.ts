@@ -2,7 +2,7 @@ import binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import type { Chunk } from './Chunk';
 import { type Compilation, getOrCreateCompilationHooks } from './Compilation';
-import { Module, MODULE_PROPERTIES } from './Module';
+import { Module } from './Module';
 import { COMPILATION_HOOKS_MAP_SYMBOL } from './util/symbols';
 
 export type ExternalModuleCompilationHooks = {
@@ -13,21 +13,29 @@ export type ExternalModuleCompilationHooks = {
 };
 
 export class ExternalModule extends Module {
+  #userRequest: string | null = null;
+
   static readonly #properties: PropertyDescriptorMap = {
     userRequest: {
       enumerable: true,
       configurable: true,
-      writable: true,
-      value: undefined,
+      get(this: ExternalModule): string {
+        if (this.#userRequest === null) {
+          this.#userRequest = binding.externalModuleGetUserRequest(this);
+        }
+        return this.#userRequest;
+      },
+      set(this: ExternalModule, value: string) {
+        this.#userRequest = value;
+      },
     },
-    ...MODULE_PROPERTIES,
   };
 
   declare readonly userRequest: string;
 
-  constructor(data?: binding.JsModuleData) {
-    super(data, ExternalModule.#properties);
-    if (data?.userRequest !== undefined) this.userRequest = data.userRequest;
+  constructor() {
+    super();
+    Object.defineProperties(this, ExternalModule.#properties);
   }
 
   static getCompilationHooks(

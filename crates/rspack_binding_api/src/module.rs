@@ -26,7 +26,7 @@ use crate::{
   codegen_result::JsCodegenerationResults,
   compiler_scoped_tsfn::CompilerScopedTsFnHandle,
   dependency::DependencyWrapper,
-  module_bridge::{self, ModuleRef},
+  module_bridge,
   source::{JsSourceFromJs, JsSourceToJs, JsSourceWithLazyMap},
   symbols,
 };
@@ -51,7 +51,20 @@ impl From<JsFactoryMeta> for FactoryMeta {
 }
 
 #[napi(ts_args_type = "module: Module")]
-pub fn module_get_context(module: ModuleRef<'_>) -> napi::Result<Either<String, ()>> {
+pub fn module_get_identifier<'env>(env: &'env Env, module: Object<'env>) -> Result<JsString<'env>> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
+  env.create_string(module.identifier.as_str())
+}
+
+#[napi(ts_args_type = "module: Module")]
+pub fn module_get_type<'env>(env: &'env Env, module: Object<'env>) -> Result<JsString<'env>> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
+  module.with_ref(|_, module| env.create_string(module.module_type().as_str()))
+}
+
+#[napi(ts_args_type = "module: Module")]
+pub fn module_get_context(module: Object<'_>) -> napi::Result<Either<String, ()>> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
   module.with_ref(|_, module| {
     Ok(match module.get_context() {
       Some(ctx) => Either::A(ctx.to_string()),
@@ -61,7 +74,8 @@ pub fn module_get_context(module: ModuleRef<'_>) -> napi::Result<Either<String, 
 }
 
 #[napi(ts_args_type = "module: Module")]
-pub fn module_get_layer(module: ModuleRef<'_>) -> napi::Result<Either<String, ()>> {
+pub fn module_get_layer(module: Object<'_>) -> napi::Result<Either<String, ()>> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
   module.with_ref(|_, module| {
     Ok(match module.get_layer() {
       Some(layer) => Either::A(layer.to_owned()),
@@ -71,17 +85,20 @@ pub fn module_get_layer(module: ModuleRef<'_>) -> napi::Result<Either<String, ()
 }
 
 #[napi(ts_args_type = "module: Module")]
-pub fn module_get_use_source_map(module: ModuleRef<'_>) -> napi::Result<bool> {
+pub fn module_get_use_source_map(module: Object<'_>) -> napi::Result<bool> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
   module.with_ref(|_, module| Ok(module.get_source_map_kind().source_map()))
 }
 
 #[napi(ts_args_type = "module: Module")]
-pub fn module_get_use_simple_source_map(module: ModuleRef<'_>) -> napi::Result<bool> {
+pub fn module_get_use_simple_source_map(module: Object<'_>) -> napi::Result<bool> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
   module.with_ref(|_, module| Ok(module.get_source_map_kind().simple_source_map()))
 }
 
 #[napi(ts_args_type = "module: Module")]
-pub fn module_get_factory_meta(module: ModuleRef<'_>) -> napi::Result<JsFactoryMeta> {
+pub fn module_get_factory_meta(module: Object<'_>) -> napi::Result<JsFactoryMeta> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
   module.with_ref(|_, module| {
     Ok(match module.as_normal_module() {
       Some(normal_module) => match normal_module.factory_meta() {
@@ -101,9 +118,10 @@ pub fn module_get_factory_meta(module: ModuleRef<'_>) -> napi::Result<JsFactoryM
 
 #[napi(ts_args_type = "module: Module, factoryMeta: JsFactoryMeta")]
 pub fn module_set_factory_meta(
-  module: ModuleRef<'_>,
+  module: Object<'_>,
   factory_meta: JsFactoryMeta,
 ) -> napi::Result<()> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
   // napi-rs converts all arguments before we acquire mutable core access.
   module.as_mut()?.set_factory_meta(factory_meta.into());
   Ok(())
@@ -112,11 +130,11 @@ pub fn module_set_factory_meta(
 #[napi(ts_args_type = "module: Module", ts_return_type = "BuildInfo")]
 pub fn module_get_build_info<'env>(
   env: &'env Env,
-  module: ModuleRef<'env>,
+  module: Object<'env>,
 ) -> napi::Result<Object<'env>> {
-  let mut this = module.object;
+  let mut this = module;
   let raw_env = env.raw();
-  let reference = &module;
+  let reference = unsafe { ModuleHandle::from_napi_ref(raw_env, this.raw())? };
   if let Some(r) = &*reference.build_info_ref.borrow() {
     return r.as_object(env);
   }
@@ -135,12 +153,12 @@ pub fn module_get_build_info<'env>(
 #[napi(ts_args_type = "module: Module, value: BuildInfo")]
 pub fn module_set_build_info(
   env: &Env,
-  module: ModuleRef<'_>,
+  module: Object<'_>,
   input_object: Object<'_>,
 ) -> napi::Result<()> {
-  let mut this = module.object;
+  let mut this = module;
   let raw_env = env.raw();
-  let reference = &module;
+  let reference = unsafe { ModuleHandle::from_napi_ref(raw_env, this.raw())? };
   let new_build_info = BuildInfo::new(reference.compiler_id, reference.identifier);
   let mut new_instance = new_build_info.get_jsobject(env)?;
 
@@ -171,7 +189,8 @@ pub fn module_set_build_info(
 }
 
 #[napi(ts_args_type = "module: Module")]
-pub fn module_get_readable_identifier(module: ModuleRef<'_>) -> Result<String> {
+pub fn module_get_readable_identifier(module: Object<'_>) -> Result<String> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
   module.readable_identifier()
 }
 
@@ -181,13 +200,15 @@ pub fn module_get_readable_identifier(module: ModuleRef<'_>) -> Result<String> {
 )]
 pub fn module_get_original_source<'env>(
   env: &'env Env,
-  module: ModuleRef<'_>,
+  module: Object<'env>,
 ) -> Result<Either<Unknown<'env>, ()>> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
   module.original_source(env)
 }
 
 #[napi(ts_args_type = "module: Module")]
-pub fn module_get_name_for_condition(module: ModuleRef<'_>) -> Result<Either<String, ()>> {
+pub fn module_get_name_for_condition(module: Object<'_>) -> Result<Either<String, ()>> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
   module.name_for_condition()
 }
 
@@ -195,26 +216,30 @@ pub fn module_get_name_for_condition(module: ModuleRef<'_>) -> Result<Either<Str
   ts_args_type = "module: Module",
   ts_return_type = "AsyncDependenciesBlock[]"
 )]
-pub fn module_get_blocks(module: ModuleRef<'_>) -> Result<Vec<AsyncDependenciesBlockWrapper>> {
+pub fn module_get_blocks(module: Object<'_>) -> Result<Vec<AsyncDependenciesBlockWrapper>> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
   module.blocks()
 }
 
 #[napi(ts_args_type = "module: Module", ts_return_type = "Dependency[]")]
-pub fn module_get_dependencies(module: ModuleRef<'_>) -> Result<Vec<DependencyWrapper>> {
+pub fn module_get_dependencies(module: Object<'_>) -> Result<Vec<DependencyWrapper>> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
   module.dependencies()
 }
 
 #[napi(ts_args_type = "module: Module, ty?: string | null")]
-pub fn module_size(module: ModuleRef<'_>, ty: Option<String>) -> Result<f64> {
+pub fn module_size(module: Object<'_>, ty: Option<String>) -> Result<f64> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
   module.size(ty)
 }
 
 #[napi(ts_args_type = "module: Module, options: JsLibIdentOptions")]
 pub fn module_lib_ident<'env>(
   env: &'env Env,
-  module: ModuleRef<'_>,
+  module: Object<'env>,
   options: JsLibIdentOptions,
 ) -> Result<Option<JsString<'env>>> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
   module.lib_ident(env, options)
 }
 
@@ -223,11 +248,12 @@ pub fn module_lib_ident<'env>(
 )]
 pub fn module_emit_file(
   env: &Env,
-  module: ModuleRef<'_>,
+  module: Object<'_>,
   filename: String,
   source: JsSourceFromJs,
   info: Option<Object<'_>>,
 ) -> Result<()> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
   module.emit_file(env, filename, source, info)
 }
 

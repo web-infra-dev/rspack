@@ -42,8 +42,9 @@ export default async function run() {
     let generation = 0;
     const fileKey = Symbol.for('rspack.buildInfo.fileDependencies');
     let getContext, getFiles, getMap, getMatchResource, setMatchResource, getError;
-    const snapshotKeys = ['type', 'request', 'userRequest', 'rawRequest', 'resourceResolveData', 'loaders'];
+    const snapshotKeys = ['type', 'request', 'userRequest', 'resourceResolveData', 'loaders'];
     let snapshots;
+    let removedIdentifier;
     compiler.hooks.done.tap('SharedAccessorsLifecycle', ({ compilation }) => {
       const modules = [...compilation.modules];
       const current = modules.find((module) => module.resource === entryPath);
@@ -52,16 +53,20 @@ export default async function run() {
         entry = current;
         removed = modules.find((module) => module.resource === valuePath);
         assert(removed);
-        // These were eager data properties before the JS class migration. Do
-        // not invoke their getters before revocation: an unread field must
-        // still be an owned snapshot after the native module disappears.
+        removedIdentifier = removed.identifier();
+        // Successful lazy reads become owned values that survive revocation.
+        // Leave rawRequest unread to check the native lifetime on a cache miss.
         snapshots = snapshotKeys.map(key => {
+          const initial = Object.getOwnPropertyDescriptor(removed, key);
+          assert.equal(typeof initial.get, 'function');
+          const value = removed[key];
           const descriptor = Object.getOwnPropertyDescriptor(removed, key);
-          assert.equal(descriptor.get, undefined);
-          assert.equal(descriptor.writable, true);
+          assert.equal(descriptor.get, initial.get);
+          assert.equal(descriptor.set, initial.set);
           assert.equal(descriptor.enumerable, true);
           assert.equal(descriptor.configurable, true);
-          return descriptor.value;
+          assert.equal(removed[key], value);
+          return value;
         });
         originalSource = removed.originalSource();
         getMap = Object.getOwnPropertyDescriptor(
@@ -137,6 +142,16 @@ export default async function run() {
         assert.equal(entry.context, context);
         assert.equal(getContext.call(current), context);
         assert.throws(() => removed.context, /removed on the Rust side/);
+        const pending = Object.getOwnPropertyDescriptor(removed, 'rawRequest').get;
+        assert.equal(typeof pending, 'function');
+        assert.throws(() => removed.rawRequest, /removed on the Rust side/);
+        assert.equal(Object.getOwnPropertyDescriptor(removed, 'rawRequest').get, pending);
+        assert.throws(() => removed.rawRequest, /removed on the Rust side/);
+        // Assignment before a successful read does not enter Rust, and undefined
+        // is a cached value rather than an empty-cache sentinel.
+        assert.equal(Reflect.set(removed, 'rawRequest', undefined), true);
+        assert.equal(removed.rawRequest, undefined);
+        assert.equal(Object.getOwnPropertyDescriptor(removed, 'rawRequest').get, pending);
         assert.match(getFiles.call(info).message, /removed on the Rust side/);
         assert.throws(
           () => info[Symbol.for('rspack.buildInfo.assets')],
@@ -180,6 +195,7 @@ export default async function run() {
       () => setMatchResource.call(entry, 'closed.js'),
       /only modify the module in the loader/,
     );
+    assert.equal(removed.identifier(), removedIdentifier);
     for (const [index, key] of snapshotKeys.entries()) {
       assert.equal(removed[key], snapshots[index]);
     }

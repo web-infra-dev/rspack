@@ -2,7 +2,7 @@ import binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import { type Compilation, getOrCreateCompilationHooks } from './Compilation';
 import type { LoaderContext } from './config';
-import { Module, MODULE_PROPERTIES } from './Module';
+import { Module } from './Module';
 import { COMPILATION_HOOKS_MAP_SYMBOL } from './util/symbols';
 
 export interface NormalModuleCompilationHooks {
@@ -13,7 +13,97 @@ export interface NormalModuleCompilationHooks {
 }
 
 export class NormalModule extends Module {
+  #resource: string | null = null;
+  #request: string | null = null;
+  #userRequest: string | null = null;
+  #rawRequest: string | null = null;
+  #resourceResolveData: Readonly<binding.JsResourceData> | undefined | null =
+    null;
+  #loaders: binding.JsLoaderItem[] | null = null;
+
   static readonly #properties: PropertyDescriptorMap = {
+    resource: {
+      enumerable: true,
+      configurable: true,
+      get(this: NormalModule): string {
+        if (this.#resource === null) {
+          this.#resource = binding.normalModuleGetResource(this);
+        }
+        return this.#resource;
+      },
+      set(this: NormalModule, value: string) {
+        this.#resource = value;
+      },
+    },
+    request: {
+      enumerable: true,
+      configurable: true,
+      get(this: NormalModule): string {
+        if (this.#request === null) {
+          this.#request = binding.normalModuleGetRequest(this);
+        }
+        return this.#request;
+      },
+      set(this: NormalModule, value: string) {
+        this.#request = value;
+      },
+    },
+    userRequest: {
+      enumerable: true,
+      configurable: true,
+      get(this: NormalModule): string {
+        if (this.#userRequest === null) {
+          this.#userRequest = binding.normalModuleGetUserRequest(this);
+        }
+        return this.#userRequest;
+      },
+      set(this: NormalModule, value: string) {
+        this.#userRequest = value;
+      },
+    },
+    rawRequest: {
+      enumerable: true,
+      configurable: true,
+      get(this: NormalModule): string {
+        if (this.#rawRequest === null) {
+          this.#rawRequest = binding.normalModuleGetRawRequest(this);
+        }
+        return this.#rawRequest;
+      },
+      set(this: NormalModule, value: string) {
+        this.#rawRequest = value;
+      },
+    },
+    resourceResolveData: {
+      enumerable: true,
+      configurable: true,
+      get(this: NormalModule): Readonly<binding.JsResourceData> | undefined {
+        if (this.#resourceResolveData === null) {
+          this.#resourceResolveData =
+            binding.normalModuleGetResourceResolveData(this);
+        }
+        return this.#resourceResolveData;
+      },
+      set(
+        this: NormalModule,
+        value: Readonly<binding.JsResourceData> | undefined,
+      ) {
+        this.#resourceResolveData = value;
+      },
+    },
+    loaders: {
+      enumerable: true,
+      configurable: true,
+      get(this: NormalModule): binding.JsLoaderItem[] {
+        if (this.#loaders === null) {
+          this.#loaders = binding.normalModuleGetLoaders(this);
+        }
+        return this.#loaders;
+      },
+      set(this: NormalModule, value: binding.JsLoaderItem[]) {
+        this.#loaders = value;
+      },
+    },
     matchResource: {
       enumerable: true,
       configurable: true,
@@ -31,7 +121,6 @@ export class NormalModule extends Module {
         return binding.normalModuleGetError(this);
       },
     },
-    ...MODULE_PROPERTIES,
   };
 
   declare readonly resource: string;
@@ -44,8 +133,9 @@ export class NormalModule extends Module {
   declare matchResource: string | undefined;
   declare readonly error: binding.RspackError | undefined;
 
-  constructor(data?: binding.JsModuleData) {
-    super(data, NormalModule.#properties, data?.normal);
+  constructor() {
+    super();
+    Object.defineProperties(this, NormalModule.#properties);
   }
 
   static getCompilationHooks(

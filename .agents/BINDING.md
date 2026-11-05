@@ -313,12 +313,22 @@ Descriptor location is independent of how the value is produced:
 
 Rspack uses instance-level descriptors for objects whose public state should be visible during
 ordinary inspection. `Module` and its derived classes define their shared descriptors in JavaScript;
+each constructor installs its own descriptors, with base properties before derived properties.
+Each class keeps its shared descriptor table in a private static field. `identifier()` caches its
+result in a private instance field; the public Module type remains structural for binding returns.
+The public `originalSource()` and `emitFile()` methods call binding functions directly without
+underscore-prefixed forwarding methods on Module.
 Rust creates them through `jsHelpers.createModule` and attaches one `ModuleHandle` with `napi_wrap`.
 The `module_*` and specialized module functions unwrap a shared, call-scoped handle, checking its
 native type tag before dereferencing it. Prototype methods and getters use the standard,
-non-enumerable JavaScript class descriptors. Preserve the JS-owned eager snapshots, instance
-descriptor flags and ordering, and the compiler/module identity cache when changing this bridge.
-Cache and JS finalization have independent ownership of the handle, including during Worker teardown.
+non-enumerable JavaScript class descriptors. Immutable fields use shared own accessors that call
+Rust on the first successful read and cache the result in private instance fields. The own accessors
+remain unchanged, so sealing or freezing the object does not prevent lazy reads. Failed reads remain
+retryable, and assignment caches a value, including undefined, without entering Rust. An unread field
+still requires a valid native target; a cached value remains readable after revocation. Preserve instance
+descriptor flags, base-before-derived property order, and the compiler/module identity cache when
+changing this bridge. Cache and JS finalization have independent ownership of the handle, including
+during Worker teardown.
 Use `#[napi(getter)]` or `#[napi(setter)]` for native classes when prototype semantics are
 intended. Do not move a property between the prototype and the instance as a mechanical refactor:
 it can change `console.log`, `Object.hasOwn`, `Object.keys`, inheritance, and

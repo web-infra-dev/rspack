@@ -4,7 +4,6 @@ import type { ResourceData } from './Resolver';
 import { SourceAdapter } from './util/source';
 // patch buildInfo
 import './BuildInfo';
-import { MODULE_IDENTIFIER_SYMBOL } from './util/symbols';
 
 export type ResourceDataWithData = ResourceData & {
   data?: Record<string, any>;
@@ -180,65 +179,81 @@ export class ContextModuleFactoryAfterResolveData {
 export type ContextModuleFactoryAfterResolveResult =
   false | ContextModuleFactoryAfterResolveData;
 
-// Shared functions use the call receiver; no descriptor captures a Module instance.
-export const MODULE_PROPERTIES: PropertyDescriptorMap = {
-  type: {
-    enumerable: true,
-    configurable: true,
-    writable: true,
-    value: undefined,
-  },
-  context: {
-    enumerable: true,
-    configurable: true,
-    get(this: Module): string | undefined {
-      return binding.moduleGetContext(this);
-    },
-  },
-  layer: {
-    enumerable: true,
-    configurable: true,
-    get(this: Module): string | undefined {
-      return binding.moduleGetLayer(this);
-    },
-  },
-  useSourceMap: {
-    enumerable: true,
-    configurable: true,
-    get(this: Module): boolean {
-      return binding.moduleGetUseSourceMap(this);
-    },
-  },
-  useSimpleSourceMap: {
-    enumerable: true,
-    configurable: true,
-    get(this: Module): boolean {
-      return binding.moduleGetUseSimpleSourceMap(this);
-    },
-  },
-  factoryMeta: {
-    enumerable: true,
-    configurable: true,
-    get(this: Module): binding.JsFactoryMeta {
-      return binding.moduleGetFactoryMeta(this);
-    },
-    set(this: Module, value: binding.JsFactoryMeta) {
-      binding.moduleSetFactoryMeta(this, value);
-    },
-  },
-  buildInfo: {
-    enumerable: true,
-    configurable: true,
-    get(this: Module): binding.BuildInfo {
-      return binding.moduleGetBuildInfo(this);
-    },
-    set(this: Module, value: binding.BuildInfo) {
-      binding.moduleSetBuildInfo(this, value);
-    },
-  },
-};
+// Keep the public type structural so native returns need no wrapper or casts.
+export interface Module extends binding.Module {}
 
-export class Module implements binding.Module {
+export const Module: {
+  new (): Module;
+  readonly prototype: Module;
+} = class Module implements binding.Module {
+  // Shared functions use the call receiver; no descriptor captures a Module instance.
+  static readonly #properties: PropertyDescriptorMap = {
+    type: {
+      enumerable: true,
+      configurable: true,
+      get(this: Module): string {
+        if (this.#type === null) {
+          this.#type = binding.moduleGetType(this);
+        }
+        return this.#type;
+      },
+      set(this: Module, value: string) {
+        this.#type = value;
+      },
+    },
+    context: {
+      enumerable: true,
+      configurable: true,
+      get(this: Module): string | undefined {
+        return binding.moduleGetContext(this);
+      },
+    },
+    layer: {
+      enumerable: true,
+      configurable: true,
+      get(this: Module): string | undefined {
+        return binding.moduleGetLayer(this);
+      },
+    },
+    useSourceMap: {
+      enumerable: true,
+      configurable: true,
+      get(this: Module): boolean {
+        return binding.moduleGetUseSourceMap(this);
+      },
+    },
+    useSimpleSourceMap: {
+      enumerable: true,
+      configurable: true,
+      get(this: Module): boolean {
+        return binding.moduleGetUseSimpleSourceMap(this);
+      },
+    },
+    factoryMeta: {
+      enumerable: true,
+      configurable: true,
+      get(this: Module): binding.JsFactoryMeta {
+        return binding.moduleGetFactoryMeta(this);
+      },
+      set(this: Module, value: binding.JsFactoryMeta) {
+        binding.moduleSetFactoryMeta(this, value);
+      },
+    },
+    buildInfo: {
+      enumerable: true,
+      configurable: true,
+      get(this: Module): binding.BuildInfo {
+        return binding.moduleGetBuildInfo(this);
+      },
+      set(this: Module, value: binding.BuildInfo) {
+        binding.moduleSetBuildInfo(this, value);
+      },
+    },
+  };
+
+  #identifier: string | undefined;
+  #type: string | null = null;
+
   declare readonly context: string | undefined;
   declare readonly layer: string | undefined;
   declare readonly useSourceMap: boolean;
@@ -249,28 +264,13 @@ export class Module implements binding.Module {
   declare readonly type: string;
   declare buildMeta: Record<string, any>;
 
-  constructor(
-    data?: binding.JsModuleData,
-    properties = MODULE_PROPERTIES,
-    snapshot?: object,
-  ) {
-    // Snapshot fields precede the shared descriptors in property enumeration.
-    if (snapshot) Object.assign(this, snapshot);
-    Object.defineProperties(this, properties);
+  constructor() {
+    Object.defineProperties(this, Module.#properties);
     this.buildMeta = {};
-    if (data) {
-      Object.defineProperty(this, 'type', { value: data.moduleType });
-      Object.defineProperty(this, MODULE_IDENTIFIER_SYMBOL, {
-        value: data.identifier,
-        configurable: true,
-      });
-    }
   }
 
   identifier(): string {
-    return (this as unknown as Record<symbol, string>)[
-      MODULE_IDENTIFIER_SYMBOL
-    ];
+    return (this.#identifier ??= binding.moduleGetIdentifier(this));
   }
 
   get blocks(): binding.AsyncDependenciesBlock[] {
@@ -286,12 +286,8 @@ export class Module implements binding.Module {
   }
 
   originalSource(): Source | null {
-    const source = this._originalSource();
+    const source = binding.moduleGetOriginalSource(this);
     return source ? SourceAdapter.fromBinding(source) : null;
-  }
-
-  _originalSource(): binding.JsSourceWithLazyMap | undefined {
-    return binding.moduleGetOriginalSource(this);
   }
 
   nameForCondition(): string | undefined {
@@ -311,14 +307,11 @@ export class Module implements binding.Module {
     source: Source,
     assetInfo?: binding.AssetInfo,
   ): void {
-    this._emitFile(filename, SourceAdapter.toBinding(source), assetInfo);
+    binding.moduleEmitFile(
+      this,
+      filename,
+      SourceAdapter.toBinding(source),
+      assetInfo,
+    );
   }
-
-  _emitFile(
-    filename: string,
-    source: binding.JsSourceFromJs,
-    assetInfo?: binding.AssetInfo,
-  ): void {
-    binding.moduleEmitFile(this, filename, source, assetInfo);
-  }
-}
+};

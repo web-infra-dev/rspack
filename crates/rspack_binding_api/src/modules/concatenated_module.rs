@@ -1,9 +1,6 @@
 use napi::{Result, bindgen_prelude::*};
 
-use crate::{
-  module::{ModuleHandle, ModuleObject},
-  module_bridge::ModuleRef,
-};
+use crate::module::{ModuleHandle, ModuleObject};
 
 impl ModuleHandle {
   fn with_concatenated<R>(
@@ -20,7 +17,8 @@ impl ModuleHandle {
 }
 
 #[napi(ts_args_type = "module: Module", ts_return_type = "Module")]
-pub fn concatenated_module_get_root_module(module: ModuleRef<'_>) -> Result<ModuleObject> {
+pub fn concatenated_module_get_root_module(module: Object<'_>) -> Result<ModuleObject> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
   module.with_concatenated(|compilation, module| {
     let root = compilation
       .module_by_identifier(&module.get_root())
@@ -32,7 +30,8 @@ pub fn concatenated_module_get_root_module(module: ModuleRef<'_>) -> Result<Modu
   })
 }
 #[napi(ts_args_type = "module: Module", ts_return_type = "Module[]")]
-pub fn concatenated_module_get_modules(module: ModuleRef<'_>) -> Result<Vec<ModuleObject>> {
+pub fn concatenated_module_get_modules(module: Object<'_>) -> Result<Vec<ModuleObject>> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
   module.with_concatenated(|compilation, module| {
     Ok(
       module
