@@ -311,18 +311,3 @@ export class Module {
     binding.moduleEmitFile(this, filename, source, assetInfo);
   }
 }
-
-// Preserve the native prototypes' enumerable public methods and dependency
-// accessor. These descriptors are installed once, and shared through inheritance.
-for (const name of [
-  'identifier',
-  'originalSource',
-  'emitFile',
-  'readableIdentifier',
-  'nameForCondition',
-  'size',
-  'libIdent',
-  'dependencies',
-]) {
-  Object.defineProperty(Module.prototype, name, { enumerable: true });
-}

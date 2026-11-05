@@ -2,7 +2,7 @@
 
 Rspack exposes a webpack-compatible JavaScript API through `@rspack/core`, while most compilation work runs in Rust. The two layers communicate through a Node-API binding.
 
-`Module`, `NormalModule`, `ConcatenatedModule`, `ContextModule`, and `ExternalModule` are JavaScript classes exported by `@rspack/core`. The four specialized classes extend `Module`, so their instances also satisfy `instanceof Module` and inherit its methods. Rspack creates these objects during compilation and attaches a native handle with Node-API. Constructing a class yourself does not attach a native module; methods that need compilation data require an instance supplied by Rspack.
+`Module`, `NormalModule`, `ConcatenatedModule`, `ContextModule`, and `ExternalModule` are JavaScript classes exported by `@rspack/core`. The four specialized classes extend `Module`, so their instances also satisfy `instanceof Module` and inherit its methods. Prototype methods and getters are non-enumerable, following standard JavaScript class behavior. Rspack creates these objects during compilation and attaches a native handle with Node-API. Constructing a class yourself does not attach a native module; methods that need compilation data require an instance supplied by Rspack.
 
 Module fields such as `type`, `resource`, `request`, and `loaders` are JavaScript-owned snapshots created with the object. Live accessors such as `context`, `matchResource`, and `buildInfo`, and methods such as `size()`, call Rust through the attached handle. JavaScript inheritance does not extend the lifetime or writable phases of the native module.
 

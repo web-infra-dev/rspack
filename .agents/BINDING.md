@@ -313,9 +313,10 @@ Rspack uses instance-level descriptors for objects whose public state should be 
 ordinary inspection. `Module` and its derived classes define their shared descriptors in JavaScript;
 Rust creates them through `jsHelpers.createModule` and attaches one `ModuleHandle` with `napi_wrap`.
 The `module_*` and specialized module functions unwrap a shared, call-scoped handle, checking its
-native type tag before dereferencing it. Preserve the JS-owned eager snapshots, descriptor flags
-and ordering, and the compiler/module identity cache when changing this bridge. Cache and JS
-finalization have independent ownership of the handle, including during Worker teardown.
+native type tag before dereferencing it. Prototype methods and getters use the standard,
+non-enumerable JavaScript class descriptors. Preserve the JS-owned eager snapshots, instance
+descriptor flags and ordering, and the compiler/module identity cache when changing this bridge.
+Cache and JS finalization have independent ownership of the handle, including during Worker teardown.
 Use `#[napi(getter)]` or `#[napi(setter)]` for native classes when prototype semantics are
 intended. Do not move a property between the prototype and the instance as a mechanical refactor:
 it can change `console.log`, `Object.hasOwn`, `Object.keys`, inheritance, and
