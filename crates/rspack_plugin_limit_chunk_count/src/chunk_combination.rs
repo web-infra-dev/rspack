@@ -58,12 +58,26 @@ struct SortKey {
 impl SortKey {
   fn new(combination: &ChunkCombination) -> Self {
     Self {
-      size_diff: combination.size_diff,
+      size_diff: ordered_size_diff(combination.size_diff, combination.integrated_size),
       integrated_size: combination.integrated_size,
       a_idx: combination.a_idx,
       b_idx: combination.b_idx,
       ukey: combination.ukey,
     }
+  }
+}
+
+/// `<` and `>` treat a NaN `size_diff` as equal to everything, so the order then falls
+/// through to `integrated_size`. With finite options, `size_diff` is NaN only when
+/// `integrated_size` is infinite. Ranking it at the matching end gives the same order
+/// and keeps the order total for any option.
+fn ordered_size_diff(size_diff: f64, integrated_size: f64) -> f64 {
+  if !size_diff.is_nan() {
+    size_diff
+  } else if integrated_size == f64::NEG_INFINITY {
+    f64::INFINITY
+  } else {
+    f64::NEG_INFINITY
   }
 }
 
@@ -77,12 +91,20 @@ impl Ord for SortKey {
     if self.size_diff > other.size_diff {
       return Ordering::Greater;
     }
-    // Layer 2: ordered by smallest combined size
-    if self.integrated_size < other.integrated_size {
-      return Ordering::Greater;
-    }
-    if self.integrated_size > other.integrated_size {
-      return Ordering::Less;
+    // Layer 2: ordered by smallest combined size. A NaN size, which only non-finite
+    // options produce, is merged last.
+    match (self.integrated_size.is_nan(), other.integrated_size.is_nan()) {
+      (false, false) => {
+        if self.integrated_size < other.integrated_size {
+          return Ordering::Greater;
+        }
+        if self.integrated_size > other.integrated_size {
+          return Ordering::Less;
+        }
+      }
+      (true, false) => return Ordering::Less,
+      (false, true) => return Ordering::Greater,
+      (true, true) => {}
     }
     // Layer 3: ordered by position difference in orderedChunk (-> to be deterministic)
     (other.b_idx - other.a_idx)
