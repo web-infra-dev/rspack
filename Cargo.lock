@@ -5904,7 +5904,9 @@ name = "rspack_watcher_testing"
 version = "0.103.1"
 dependencies = [
  "notify",
+ "rspack_error",
  "rspack_paths",
+ "rspack_util",
  "rspack_watcher",
  "tempfile",
  "tokio",

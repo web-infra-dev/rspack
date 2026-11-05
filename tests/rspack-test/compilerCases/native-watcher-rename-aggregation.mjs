@@ -1,0 +1,134 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const coreDir = path.dirname(require.resolve("@rspack/core/package.json"));
+const Watchpack = require(path.join(coreDir, "compiled/watchpack"));
+const { NativeWatcher } = require(
+	require.resolve("@rspack/binding", { paths: [coreDir] })
+);
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+async function until(predicate) {
+	const end = Date.now() + 5000;
+	while (!predicate()) {
+		if (Date.now() > end) throw new Error("condition timed out");
+		await sleep(10);
+	}
+}
+async function run(operation) {
+	const dir = fs.mkdtempSync(
+		path.join(fs.realpathSync(os.tmpdir()), "rename-parity-")
+	);
+	const file = path.join(dir, "index.js");
+	const backup = path.join(dir, "index.js.map");
+	const replacement = path.join(dir, "replacement.js");
+	fs.writeFileSync(file, "old");
+	fs.writeFileSync(replacement, "new");
+	const past = new Date(Date.now() - 60000);
+	fs.utimesSync(file, past, past);
+	if (operation.includes("same")) fs.utimesSync(replacement, past, past);
+	const files = [file];
+	const missing = [];
+	if (operation === "rename") missing.push(backup);
+	if (operation === "directory") {
+		fs.mkdirSync(path.join(dir, "staged/nested"), { recursive: true });
+		fs.writeFileSync(path.join(dir, "staged/nested/child.js"), "child");
+		missing.push(path.join(dir, "modules/nested/child.js"));
+	}
+	const wp = new Watchpack({ aggregateTimeout: 500 });
+	const native = new NativeWatcher({ aggregateTimeout: 500 });
+	const data = {
+		watchpack: { raw: [], batches: [] },
+		native: { raw: [], batches: [] }
+	};
+	const normalize = values =>
+		[...values].map(p => path.relative(dir, p)).sort();
+	wp.on("change", p =>
+		data.watchpack.raw.push(["change", path.relative(dir, p)])
+	);
+	wp.on("remove", p =>
+		data.watchpack.raw.push(["remove", path.relative(dir, p)])
+	);
+	wp.on("aggregated", (changed, removed) =>
+		data.watchpack.batches.push({
+			changed: normalize(changed),
+			removed: normalize(removed)
+		})
+	);
+	native.watch(
+		[files, []],
+		[[], []],
+		[missing, []],
+		BigInt(Date.now()),
+		(err, batch) => {
+			if (err) throw err;
+			data.native.batches.push({
+				changed: normalize(batch.changedFiles),
+				removed: normalize(batch.removedFiles)
+			});
+		},
+		event => data.native.raw.push([event.kind, path.relative(dir, event.path)])
+	);
+	wp.watch({ files, missing, startTime: Date.now() });
+	try {
+		await until(
+			() =>
+				wp.getTimeInfoEntries().get(file)?.timestamp &&
+				native
+					.collectTimeInfoEntries()
+					.fileTimestamps.entries.some(e => e.path === file)
+		);
+		await sleep(600);
+		for (const value of Object.values(data)) {
+			value.raw.length = 0;
+			value.batches.length = 0;
+		}
+		if (operation === "directory") {
+			fs.renameSync(path.join(dir, "staged"), path.join(dir, "modules"));
+		} else {
+			fs.renameSync(file, backup);
+			if (operation.includes("observed"))
+				await until(
+					() =>
+						data.watchpack.raw.some(e => e[0] === "remove") &&
+						data.native.raw.some(e => e[0] === "remove")
+				);
+			if (operation.startsWith("replace")) fs.renameSync(replacement, file);
+			if (operation.startsWith("roundtrip")) fs.renameSync(backup, file);
+		}
+		await sleep(1500);
+		const expected =
+			operation === "rename"
+				? [{ changed: ["index.js.map"], removed: ["index.js"] }]
+				: operation === "directory"
+					? [{ changed: ["modules/nested/child.js"], removed: [] }]
+					: operation === "replace-same-immediate" ||
+						  operation === "roundtrip-immediate"
+						? []
+						: [{ changed: ["index.js"], removed: [] }];
+		expect(data.watchpack.batches).toEqual(expected);
+		expect(data.native.batches).toEqual(expected);
+	} finally {
+		wp.close();
+		await native.close();
+		fs.rmSync(dir, { recursive: true, force: true });
+	}
+}
+
+/** @type {import("@rspack/test-tools").TCompilerCaseConfig[]} */
+export default [
+	"rename",
+	"replace-new-immediate",
+	"replace-same-immediate",
+	"replace-new-observed",
+	"replace-same-observed",
+	"roundtrip-immediate",
+	"roundtrip-observed",
+	"directory"
+].map(operation => ({
+	name: operation,
+	description: `should aggregate ${operation} like watchpack`,
+	run: () => run(operation)
+}));
