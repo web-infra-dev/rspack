@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { rspack } from '@rspack/core';
 import {
   closeCompiler,
@@ -37,10 +38,10 @@ async function build(context, cache = { type: 'persistent', portable: true }) {
     const dist = path.join(context, 'dist');
     return {
       built: [...stats.compilation.builtModules]
-        .map((module) => path.relative(context, module.resource))
+        .map((module) => path.relative(context, module.resource).split(path.sep).join('/'))
         .sort(),
       loaderRuns: globalThis[LOADER_RUNS]
-        .map((resource) => path.relative(context, resource))
+        .map((resource) => path.relative(context, resource).split(path.sep).join('/'))
         .sort(),
       dropped: logs.filter((line) =>
         /^make persistent cache dropped \d+ entries bound to another root/.test(
@@ -137,7 +138,7 @@ export default [import.meta.url, stable];
       ]);
       expect(moved.output).toBe(cold.output);
       expect(moved.output).toContain(
-        `file://${path.join(reader, 'src', 'child.js')}`,
+        pathToFileURL(path.join(reader, 'src', 'child.js')).href,
       );
 
       // The cache written after the move recovers completely.

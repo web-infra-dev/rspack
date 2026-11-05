@@ -4,10 +4,11 @@ import path from "node:path";
 import { rspack } from "@rspack/core";
 import { closeCompiler, runCompiler } from "@rspack/test-tools/helper/lifecycle";
 
-const loader = `module.exports = function () {
+const loader = `const path = require("node:path");
+module.exports = function () {
   this.experiments.portableOutput({ paths: [this.resourcePath] });
   return 'const U = ' + JSON.stringify(this.resourcePath) +
-    '.indexOf("/a/proj/") !== -1 ? URL : null;' +
+    '.indexOf(' + JSON.stringify(path.join("/a/proj/")) + ') !== -1 ? URL : null;' +
     'export function load() { return new U("./icon.png", import.meta.url); }';
 };`;
 
