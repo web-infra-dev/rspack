@@ -16,6 +16,17 @@ export type ResolveData = binding.JsResolveData & {
   missingDependencies: string[];
 };
 
+declare module '@rspack/binding' {
+  interface Module {
+    originalSource(): Source | null;
+    emitFile(
+      filename: string,
+      source: Source,
+      assetInfo?: binding.AssetInfo,
+    ): void;
+  }
+}
+
 export class ContextModuleFactoryBeforeResolveData {
   #inner: binding.JsContextModuleFactoryBeforeResolveData;
 
@@ -227,7 +238,7 @@ export const MODULE_PROPERTIES: PropertyDescriptorMap = {
   },
 };
 
-export class Module {
+export class Module implements binding.Module {
   declare readonly context: string | undefined;
   declare readonly layer: string | undefined;
   declare readonly useSourceMap: boolean;

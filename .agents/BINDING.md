@@ -259,6 +259,8 @@ available on the Rust side.
 - Change Rust `#[napi]` annotations or `crates/node_binding/scripts/banner.d.ts`.
 - `crates/node_binding/binding.d.ts` is the handwritten CJS/ESM interop wrapper.
 - Generated native and WASI exports must stay aligned.
+- The binding's `Module` interface must not depend on `@rspack/core`. Core augments it with
+  JavaScript-only source methods that use `webpack-sources` types.
 
 ## Layer and file map
 

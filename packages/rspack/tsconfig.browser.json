@@ -9,10 +9,7 @@
     "resolveJsonModule": true,
     "emitDeclarationOnly": true,
     "sourceMap": false,
-    "declarationMap": false,
-    "paths": {
-      "@rspack/core": ["./src/index.ts"]
-    }
+    "declarationMap": false
   },
   "include": ["src", "src/**/*.json"],
   "exclude": ["src/container/default.runtime.js"]

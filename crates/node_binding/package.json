@@ -40,8 +40,7 @@
     "@napi-rs/wasm-runtime": "catalog:",
     "@types/node": "catalog:",
     "emnapi": "catalog:",
-    "typescript": "catalog:",
-    "@rspack/core": "workspace:*"
+    "typescript": "catalog:"
   },
   "napi": {
     "binaryName": "rspack",
@@ -90,13 +89,5 @@
     "@rspack/binding-win32-arm64-msvc": "workspace:*",
     "@rspack/binding-win32-ia32-msvc": "workspace:*",
     "@rspack/binding-win32-x64-msvc": "workspace:*"
-  },
-  "peerDependencies": {
-    "@rspack/core": "workspace:*"
-  },
-  "peerDependenciesMeta": {
-    "@rspack/core": {
-      "optional": true
-    }
   }
 }

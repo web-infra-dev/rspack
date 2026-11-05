@@ -8,7 +8,6 @@
     "lib": ["es2022", "dom"],
     "emitDeclarationOnly": true,
     "paths": {
-      "@rspack/core": ["./src/index.ts"],
       "watchpack": ["./compiled/watchpack"],
       "@swc/types": ["./compiled/@swc/types"],
       "webpack-sources": ["./compiled/webpack-sources"],

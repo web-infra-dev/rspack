@@ -16,8 +16,25 @@ export type ConnectionState = boolean | symbol;
 
 export type BuildInfo = KnownBuildInfo & Record<string, any>;
 
-// Module objects use the JavaScript classes implemented by @rspack/core.
-export type Module = import("@rspack/core").Module;
+export interface Module {
+	readonly type: string;
+	readonly context: string | undefined;
+	readonly layer: string | undefined;
+	readonly useSourceMap: boolean;
+	readonly useSimpleSourceMap: boolean;
+	factoryMeta: JsFactoryMeta;
+	buildInfo: BuildInfo;
+	buildMeta: Record<string, any>;
+	readonly blocks: AsyncDependenciesBlock[];
+	readonly dependencies: Dependency[];
+	identifier(): string;
+	readableIdentifier(): string;
+	_originalSource(): JsSourceWithLazyMap | undefined;
+	nameForCondition(): string | undefined;
+	size(type?: string | null): number;
+	libIdent(options: JsLibIdentOptions): string | null;
+	_emitFile(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo): void;
+}
 
 export interface RspackError extends Error {
 	name: string;

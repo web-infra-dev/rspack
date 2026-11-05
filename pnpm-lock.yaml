@@ -518,9 +518,6 @@ importers:
       '@napi-rs/wasm-runtime':
         specifier: 'catalog:'
         version: 1.2.6(@emnapi/core@2.0.0-beta.2)(@emnapi/runtime@2.0.0-beta.2)
-      '@rspack/core':
-        specifier: workspace:*
-        version: link:../../packages/rspack
       '@types/node':
         specifier: 'catalog:'
         version: 20.19.43
