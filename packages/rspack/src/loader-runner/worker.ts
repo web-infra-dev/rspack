@@ -3,7 +3,8 @@ import querystring from 'node:querystring';
 import { promisify } from 'node:util';
 import { type MessagePort, receiveMessageOnPort } from 'node:worker_threads';
 
-import { JsLoaderState, type NormalModule } from '@rspack/binding';
+import { JsLoaderState } from '@rspack/binding';
+import type { NormalModule } from '../NormalModule';
 import type { LoaderContext } from '../config';
 import type { ResolveCallback } from '../config/adapterRuleUse';
 import type { ResolveRequest } from '../Resolver';

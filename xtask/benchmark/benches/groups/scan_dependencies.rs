@@ -214,7 +214,6 @@ fn parse_benchmark_program(
     ast,
     AnalyzeOptions {
       check_syntax: SyntaxChecks::all(),
-      build_module_record: false,
     },
   );
   assert!(

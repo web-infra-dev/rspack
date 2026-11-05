@@ -1,10 +1,9 @@
-import binding, { type AssetInfo } from '@rspack/binding';
+import binding from '@rspack/binding';
 import type { Source } from 'webpack-sources';
 import type { ResourceData } from './Resolver';
 import { SourceAdapter } from './util/source';
 // patch buildInfo
 import './BuildInfo';
-import { MODULE_IDENTIFIER_SYMBOL } from './util/symbols';
 
 export type ResourceDataWithData = ResourceData & {
   data?: Record<string, any>;
@@ -15,6 +14,17 @@ export type ResolveData = binding.JsResolveData & {
   contextDependencies: string[];
   missingDependencies: string[];
 };
+
+declare module '@rspack/binding' {
+  interface Module {
+    originalSource(): Source | null;
+    emitFile(
+      filename: string,
+      source: Source,
+      assetInfo?: binding.AssetInfo,
+    ): void;
+  }
+}
 
 export class ContextModuleFactoryBeforeResolveData {
   #inner: binding.JsContextModuleFactoryBeforeResolveData;
@@ -169,44 +179,139 @@ export class ContextModuleFactoryAfterResolveData {
 export type ContextModuleFactoryAfterResolveResult =
   false | ContextModuleFactoryAfterResolveData;
 
-Object.defineProperty(binding.Module.prototype, 'identifier', {
-  enumerable: true,
-  configurable: true,
-  value(this: binding.Module): string {
-    // @ts-expect-error
-    return this[MODULE_IDENTIFIER_SYMBOL];
-  },
-});
-Object.defineProperty(binding.Module.prototype, 'originalSource', {
-  enumerable: true,
-  configurable: true,
-  value(this: binding.Module) {
-    const originalSource = this._originalSource();
-    if (originalSource) {
-      return SourceAdapter.fromBinding(originalSource);
-    }
-    return null;
-  },
-});
-Object.defineProperty(binding.Module.prototype, 'emitFile', {
-  enumerable: true,
-  configurable: true,
-  value(
-    this: binding.Module,
+// Keep the public type structural so native returns need no wrapper or casts.
+export interface Module extends binding.Module {}
+
+export const Module: {
+  new (): Module;
+  readonly prototype: Module;
+} = class Module implements binding.Module {
+  // Shared functions use the call receiver; no descriptor captures a Module instance.
+  static readonly #properties: PropertyDescriptorMap = {
+    type: {
+      enumerable: true,
+      configurable: true,
+      get(this: Module): string {
+        if (this.#type === null) {
+          this.#type = binding.moduleGetType(this);
+        }
+        return this.#type;
+      },
+      set(this: Module, value: string) {
+        this.#type = value;
+      },
+    },
+    context: {
+      enumerable: true,
+      configurable: true,
+      get(this: Module): string | undefined {
+        return binding.moduleGetContext(this);
+      },
+    },
+    layer: {
+      enumerable: true,
+      configurable: true,
+      get(this: Module): string | undefined {
+        return binding.moduleGetLayer(this);
+      },
+    },
+    useSourceMap: {
+      enumerable: true,
+      configurable: true,
+      get(this: Module): boolean {
+        return binding.moduleGetUseSourceMap(this);
+      },
+    },
+    useSimpleSourceMap: {
+      enumerable: true,
+      configurable: true,
+      get(this: Module): boolean {
+        return binding.moduleGetUseSimpleSourceMap(this);
+      },
+    },
+    factoryMeta: {
+      enumerable: true,
+      configurable: true,
+      get(this: Module): binding.JsFactoryMeta {
+        return binding.moduleGetFactoryMeta(this);
+      },
+      set(this: Module, value: binding.JsFactoryMeta) {
+        binding.moduleSetFactoryMeta(this, value);
+      },
+    },
+    buildInfo: {
+      enumerable: true,
+      configurable: true,
+      get(this: Module): binding.BuildInfo {
+        return binding.moduleGetBuildInfo(this);
+      },
+      set(this: Module, value: binding.BuildInfo) {
+        binding.moduleSetBuildInfo(this, value);
+      },
+    },
+  };
+
+  #identifier: string | undefined;
+  #type: string | null = null;
+
+  declare readonly context: string | undefined;
+  declare readonly layer: string | undefined;
+  declare readonly useSourceMap: boolean;
+  declare readonly useSimpleSourceMap: boolean;
+  declare factoryMeta: binding.JsFactoryMeta;
+  declare buildInfo: binding.BuildInfo;
+
+  declare readonly type: string;
+  declare buildMeta: Record<string, any>;
+
+  constructor() {
+    Object.defineProperties(this, Module.#properties);
+    this.buildMeta = {};
+  }
+
+  identifier(): string {
+    return (this.#identifier ??= binding.moduleGetIdentifier(this));
+  }
+
+  get blocks(): binding.AsyncDependenciesBlock[] {
+    return binding.moduleGetBlocks(this);
+  }
+
+  get dependencies(): binding.Dependency[] {
+    return binding.moduleGetDependencies(this);
+  }
+
+  readableIdentifier(): string {
+    return binding.moduleGetReadableIdentifier(this);
+  }
+
+  originalSource(): Source | null {
+    const source = binding.moduleGetOriginalSource(this);
+    return source ? SourceAdapter.fromBinding(source) : null;
+  }
+
+  nameForCondition(): string | undefined {
+    return binding.moduleGetNameForCondition(this);
+  }
+
+  size(ty?: string | null): number {
+    return binding.moduleSize(this, ty);
+  }
+
+  libIdent(options: binding.JsLibIdentOptions): string | null {
+    return binding.moduleLibIdent(this, options);
+  }
+
+  emitFile(
     filename: string,
     source: Source,
     assetInfo?: binding.AssetInfo,
-  ) {
-    return this._emitFile(filename, SourceAdapter.toBinding(source), assetInfo);
-  },
-});
-
-declare module '@rspack/binding' {
-  interface Module {
-    identifier(): string;
-    originalSource(): Source | null;
-    emitFile(filename: string, source: Source, assetInfo?: AssetInfo): void;
+  ): void {
+    binding.moduleEmitFile(
+      this,
+      filename,
+      SourceAdapter.toBinding(source),
+      assetInfo,
+    );
   }
-}
-
-export { Module } from '@rspack/binding';
+};

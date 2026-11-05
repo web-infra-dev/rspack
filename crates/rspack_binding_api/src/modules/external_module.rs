@@ -1,48 +1,17 @@
-use crate::{
-  impl_module_methods,
-  module::{MODULE_PROPERTIES_BUFFER, Module},
-};
+use napi::{Env, JsString, Result, bindgen_prelude::*};
 
-#[napi]
-#[repr(C)]
-pub struct ExternalModule {
-  pub(crate) module: Module,
+use crate::module::ModuleHandle;
+
+#[napi(ts_args_type = "module: Module")]
+pub fn external_module_get_user_request<'env>(
+  env: &'env Env,
+  module: Object<'env>,
+) -> Result<JsString<'env>> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
+  module.with_ref(|_, module| {
+    let module = module
+      .as_external_module()
+      .ok_or_else(|| Error::from_reason("Module is not an ExternalModule"))?;
+    env.create_string(module.user_request())
+  })
 }
-
-impl ExternalModule {
-  pub(crate) fn into_module_instance(
-    mut self,
-    env: &napi::Env,
-  ) -> napi::Result<napi::bindgen_prelude::ClassInstance<'_, Self>> {
-    let user_request = self.with_ref(|_, module| env.create_string(module.user_request()))?;
-
-    MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
-      let mut properties = ref_cell.borrow_mut();
-      properties.clear();
-
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("userRequest")?
-          .with_value(&user_request),
-      );
-      Self::new_inherited(self, env, &mut properties)
-    })
-  }
-
-  fn with_ref<R>(
-    &mut self,
-    f: impl FnOnce(&rspack_core::Compilation, &rspack_core::ExternalModule) -> napi::Result<R>,
-  ) -> napi::Result<R> {
-    self
-      .module
-      .with_ref(|compilation, module| match module.as_external_module() {
-        Some(external_module) => f(compilation, external_module),
-        None => Err(napi::Error::new(
-          napi::Status::GenericFailure,
-          "Module is not a ExternalModule",
-        )),
-      })
-  }
-}
-
-impl_module_methods!(ExternalModule);

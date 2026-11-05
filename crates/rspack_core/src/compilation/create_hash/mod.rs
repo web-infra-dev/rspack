@@ -385,8 +385,8 @@ pub async fn create_hash(
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .values()
-    // Chunk allocation order can change when restoring the persistent module graph.
-    .sorted_unstable_by(|a, b| a.id().cmp(&b.id()))
+    // Chunk ids are stable across compilations; ukeys depend on creation history.
+    .sorted_unstable_by(|a, b| a.id().cmp(&b.id()).then_with(|| a.ukey().cmp(&b.ukey())))
     .for_each(|chunk| {
       if let Some(hash) = chunk.hash(&compilation.chunk_hashes_artifact) {
         compilation_hasher.update(hash);

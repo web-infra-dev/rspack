@@ -1,73 +1,48 @@
-use crate::{
-  impl_module_methods,
-  module::{MODULE_PROPERTIES_BUFFER, Module, ModuleObject},
-};
+use napi::{Result, bindgen_prelude::*};
 
-#[napi]
-#[repr(C)]
-pub struct ConcatenatedModule {
-  pub(crate) module: Module,
-}
+use crate::module::{ModuleHandle, ModuleObject};
 
-impl ConcatenatedModule {
-  pub(crate) fn into_module_instance(
-    self,
-    env: &napi::Env,
-  ) -> napi::Result<napi::bindgen_prelude::ClassInstance<'_, Self>> {
-    MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
-      let mut properties = ref_cell.borrow_mut();
-      properties.clear();
-
-      Self::new_inherited(self, env, &mut properties)
-    })
-  }
-
-  fn with_ref<R>(
-    &mut self,
-    f: impl FnOnce(&rspack_core::Compilation, &rspack_core::ConcatenatedModule) -> napi::Result<R>,
-  ) -> napi::Result<R> {
-    self.module.with_ref(
+impl ModuleHandle {
+  fn with_concatenated<R>(
+    &self,
+    f: impl FnOnce(&rspack_core::Compilation, &rspack_core::ConcatenatedModule) -> Result<R>,
+  ) -> Result<R> {
+    self.with_ref(
       |compilation, module| match module.as_concatenated_module() {
-        Some(concatenated_module) => f(compilation, concatenated_module),
-        None => Err(napi::Error::new(
-          napi::Status::GenericFailure,
-          "Module is not a ConcatenatedModule",
-        )),
+        Some(module) => f(compilation, module),
+        None => Err(Error::from_reason("Module is not a ConcatenatedModule")),
       },
     )
   }
 }
 
-#[napi]
-impl ConcatenatedModule {
-  #[napi(getter, ts_return_type = "Module")]
-  pub fn root_module(&mut self) -> napi::Result<ModuleObject> {
-    self.with_ref(|compilation, module| {
-      let root_module = compilation
-        .module_by_identifier(&module.get_root())
-        .expect("Root module should exist");
-      Ok(ModuleObject::with_ref(
-        root_module.as_ref(),
-        compilation.compiler_id(),
-      ))
-    })
-  }
-
-  #[napi(getter, ts_return_type = "Module[]")]
-  pub fn modules(&mut self) -> napi::Result<Vec<ModuleObject>> {
-    self.with_ref(|compilation, module| {
-      let inner_modules = module
+#[napi(ts_args_type = "module: Module", ts_return_type = "Module")]
+pub fn concatenated_module_get_root_module(module: Object<'_>) -> Result<ModuleObject> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
+  module.with_concatenated(|compilation, module| {
+    let root = compilation
+      .module_by_identifier(&module.get_root())
+      .expect("Root module should exist");
+    Ok(ModuleObject::with_ref(
+      root.as_ref(),
+      compilation.compiler_id(),
+    ))
+  })
+}
+#[napi(ts_args_type = "module: Module", ts_return_type = "Module[]")]
+pub fn concatenated_module_get_modules(module: Object<'_>) -> Result<Vec<ModuleObject>> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
+  module.with_concatenated(|compilation, module| {
+    Ok(
+      module
         .get_modules()
         .iter()
-        .filter_map(|inner_module_info| {
+        .filter_map(|inner| {
           compilation
-            .module_by_identifier(&inner_module_info.id)
+            .module_by_identifier(&inner.id)
             .map(|module| ModuleObject::with_ref(module.as_ref(), compilation.compiler_id()))
         })
-        .collect::<Vec<_>>();
-      Ok(inner_modules)
-    })
-  }
+        .collect(),
+    )
+  })
 }
-
-impl_module_methods!(ConcatenatedModule);

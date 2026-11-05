@@ -35,7 +35,7 @@ fn erased_proxy(replacement: &str) -> BoxSource {
     source_map: SourceMap::new(
       "AAAA",
       vec![PROXY_NAME.into()],
-      vec![PROXY_TEXT.into()],
+      vec![Some(PROXY_TEXT.into())],
       vec![],
     ),
   });
@@ -143,7 +143,7 @@ fn test_cached_source_prewarmed_none_and_serialization_preserve_parent_raw_map()
       SourceMap::new(
         "AAAA",
         vec![PROXY_NAME.into()],
-        vec![PROXY_TEXT.into()],
+        vec![Some(PROXY_TEXT.into())],
         vec![]
       )
       .to_json()

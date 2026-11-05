@@ -57,8 +57,12 @@ fn resolve_relative_resource_path(
 ) -> Option<String> {
   if absolute_resource_path.starts_with("webpack/runtime")
     || absolute_resource_path.starts_with("rspack/runtime")
+    || matches!(
+      absolute_resource_path,
+      "webpack/bootstrap" | "webpack/startup" | "rspack/bootstrap" | "rspack/startup"
+    )
   {
-    // Runtime modules are virtual
+    // Runtime modules, bootstrap, and startup are virtual.
     let scheme = match runtime_mode {
       RuntimeMode::Webpack => "webpack",
       RuntimeMode::Rspack => "rspack",
