@@ -1,0 +1,7 @@
+.shared {
+	color: red;
+}
+---
+.shared {
+	color: blue;
+}

@@ -1,7 +1,6 @@
 //! Symbol registry keys. Constant string references have a static lifetime.
 //! Keep shared keys in sync with packages/rspack/src/util/symbols.ts.
 
-pub(crate) const MODULE_IDENTIFIER_SYMBOL: &str = "rspack.module.identifier";
 pub(crate) const MODULE_BUILD_INFO_SYMBOL: &str = "rspack.module.buildInfo";
 pub(crate) const BUILD_INFO_ASSETS_SYMBOL: &str = "rspack.buildInfo.assets";
 pub(crate) const BUILD_INFO_FILE_DEPENDENCIES_SYMBOL: &str = "rspack.buildInfo.fileDependencies";

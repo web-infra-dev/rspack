@@ -1,9 +1,5 @@
-use std::{
-  fmt::Debug,
-  sync::{Arc, LazyLock},
-};
+use std::{fmt::Debug, sync::Arc};
 
-use regex::Regex;
 use rspack_core::{
   BoxModule, ContextInfo, DependencyMeta, DependencyType, ExternalItem, ExternalItemFnCtx,
   ExternalItemValue, ExternalModule, ExternalRequest, ExternalRequestValue, ExternalType,
@@ -14,9 +10,6 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_css::dependency::CssImportDependency;
 use rspack_plugin_javascript::dependency::{ESMImportSideEffectDependency, ImportDependency};
-
-static UNSPECIFIED_EXTERNAL_TYPE_REGEXP: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^[a-z0-9-]+ ").expect("Invalid regex"));
 
 #[plugin]
 #[derive(Debug)]
@@ -108,10 +101,12 @@ impl ExternalsPlugin {
     };
 
     fn parse_external_type_from_str(v: &str) -> Option<(ExternalType, String)> {
-      if UNSPECIFIED_EXTERNAL_TYPE_REGEXP.is_match(v)
-        && let Some((t, c)) = v.split_once(' ')
-      {
-        return Some((t.to_owned(), c.to_owned()));
+      let type_end = v
+        .bytes()
+        .take_while(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || *byte == b'-')
+        .count();
+      if type_end > 0 && v.as_bytes().get(type_end) == Some(&b' ') {
+        return Some((v[..type_end].to_owned(), v[type_end + 1..].to_owned()));
       }
       None
     }
@@ -198,6 +193,18 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
         if let Some(value) = eh.get(request) {
           let maybe_module = self.handle_external(value, None, dependency);
           return Ok(maybe_module.map(|i| i.boxed()));
+        }
+      }
+      ExternalItem::ByLayer(layers) => {
+        let externals = layers
+          .get(data.issuer_layer.as_deref().unwrap_or("null"))
+          .or_else(|| layers.get("default"));
+        if let Some(value) = externals.and_then(|externals| externals.get(dependency.request())) {
+          return Ok(
+            self
+              .handle_external(value, None, dependency)
+              .map(|i| i.boxed()),
+          );
         }
       }
       ExternalItem::RegExp(r) => {

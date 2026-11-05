@@ -113,6 +113,11 @@ impl FullMappingsEncoder {
         // avoid repeating the same original mapping
         return;
       }
+      if mapping.original.is_none() && mapping.generated_column == self.current_column {
+        // avoid shadowing the active mapping with a generated-only mapping
+        // at the same position, consumers would resolve it to nothing
+        return;
+      }
     } else {
       // No mapping is active
       if mapping.original.is_none() {

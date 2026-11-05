@@ -2,29 +2,31 @@ import NodeFS from "node:fs";
 import NodePath from "node:path";
 const [_1, _2, file] = process.argv;
 
-if (file && NodePath.basename(file) === "napi-binding.d.ts") {
-	const raw = getContent(NodeFS.readFileSync(file));
+if (file && ["napi-binding.d.ts", "rspack.wasi.d.cts"].includes(NodePath.basename(file))) {
+	const raw = getContent(NodeFS.readFileSync(file, "utf8"));
 	const banner = getContent(
-		NodeFS.readFileSync(NodePath.resolve(import.meta.dirname, "banner.d.ts"))
+		NodeFS.readFileSync(NodePath.resolve(import.meta.dirname, "banner.d.ts"), "utf8")
 	);
 	const hasBOM = raw.hasBOM || banner.hasBOM;
-	const content = Buffer.concat([
-		hasBOM ? Buffer.from([0xfeff]) : Buffer.from([]),
-		banner.buf.subarray(banner.offset),
-		raw.buf.subarray(raw.offset)
-	]);
+	// Native builds preserve the WASI declaration. Replace its old banner even
+	// when the handwritten types have changed since the last WASM build.
+	const marker = "/* -- napi-rs generated below -- */";
+	const markerIndex = raw.content.lastIndexOf(marker);
+	const generated = markerIndex === -1
+		? raw.content
+		: raw.content.slice(markerIndex + marker.length).replace(/^\r?\n/, "");
+	const content = (hasBOM ? "\uFEFF" : "") + banner.content + generated;
 	NodeFS.writeFileSync(file, content);
 }
 
 /**
  *
- * @param {Buffer} buf
+ * @param {string} content
  */
-function getContent(buf) {
-	const hasBOM = buf[0] === 0xfeff;
+function getContent(content) {
+	const hasBOM = content.startsWith("\uFEFF");
 	return {
 		hasBOM,
-		offset: hasBOM ? 1 : 0,
-		buf
+		content: hasBOM ? content.slice(1) : content
 	};
 }

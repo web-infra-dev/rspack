@@ -74,6 +74,13 @@ pub type TimeInfoEntries = Vec<(String, TimeInfoEntry)>;
 
 pub(crate) type EventBatch = Vec<FsEvent>;
 
+pub(crate) struct ResolvedEvents {
+  pub dependencies: EventBatch,
+  pub raw: Option<FsEvent>,
+  pub recovered: EventBatch,
+  pub context_removal: Option<InternedPath>,
+}
+
 /// `EventAggregateHandler` is a trait for handling aggregated file system events.
 /// It provides methods to handle changes and deletions of files, as well as errors.
 /// Implementors of this trait can define custom behavior for these events.
@@ -101,6 +108,11 @@ pub trait EventHandler {
   /// Handle a deletion of a file.
   fn on_delete(&self, _deleted_file: String) -> rspack_error::Result<()> {
     Ok(())
+  }
+
+  /// A removed context entry changes its parent directory's contents.
+  fn on_context_remove(&self, removed_file: String) -> rspack_error::Result<()> {
+    self.on_change(removed_file)
   }
 }
 
