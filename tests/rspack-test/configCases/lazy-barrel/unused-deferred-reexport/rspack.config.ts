@@ -1,0 +1,13 @@
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  mode: 'development',
+  devtool: false,
+  experiments: {
+    deferImport: true,
+  },
+  optimization: {
+    sideEffects: true,
+    concatenateModules: false,
+  },
+});

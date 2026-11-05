@@ -4,13 +4,13 @@ use rspack_util::time::current_time;
 use rustc_hash::FxHashSet;
 
 use super::{
-  TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
+  TaskContext, lazy::request_lazy_dependencies, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
   AsyncDependenciesBlockRef, BoxModule, BuildContext, DependenciesBlock, DependencyParents,
   DependencyRef, ModuleRef, SharedPluginDriver, ValueCacheVersions,
   compilation::build_module_graph::{
-    ForwardedIdSet, HasLazyDependencies, LazyDependencies, module_build_cache::ModuleBuildCache,
+    ForwardedIdSet, LazyDependencies, LazyUntil, module_build_cache::ModuleBuildCache,
   },
   utils::task_loop::{Task, TaskResult, TaskType},
 };
@@ -107,6 +107,7 @@ impl Task<TaskContext> for BuildResultTask {
       plugin_driver,
       mut forwarded_ids,
     } = *self;
+    let restored = matches!(build_result, ModuleBuildResult::Cached(_));
     let module = match build_result {
       ModuleBuildResult::Built(mut module) => {
         plugin_driver
@@ -167,16 +168,33 @@ impl Task<TaskContext> for BuildResultTask {
       .add_module_files(module.identifier(), &build_info.dependencies.build);
     drop(build_info);
 
+    let side_effect_free = module
+      .factory_meta()
+      .and_then(|meta| meta.side_effect_free)
+      .unwrap_or_default();
     let module_graph = &mut context.artifact.module_graph;
     let mut lazy_dependencies = LazyDependencies::default();
+    let mut import_declarations = vec![];
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
     let mut handle_block =
       |dependencies: &[DependencyRef], current_block: Option<&AsyncDependenciesBlockRef>| {
         for (index_in_block, dependency) in dependencies.iter().enumerate() {
           let dependency_id = *dependency.id();
-          if let Some(until) = dependency.lazy() {
-            lazy_dependencies.insert(dependency, until);
+          if dependency.is_lazy_import_declaration() {
+            import_declarations.push(dependency.clone());
+          } else {
+            // A restored module keeps the lazy flags its dependencies ended the last build with.
+            if restored {
+              if side_effect_free {
+                dependency.set_lazy();
+              } else {
+                dependency.unset_lazy();
+              }
+            }
+            if let Some(until) = dependency.lazy() {
+              lazy_dependencies.insert(dependency, until);
+            }
           }
           all_dependencies.push(dependency_id);
           module_graph.set_parents(
@@ -210,6 +228,30 @@ impl Task<TaskContext> for BuildResultTask {
 
     module_graph.add_module(module);
 
+    if let Some(pending_forwarded_ids) = context
+      .artifact
+      .module_to_lazy_make
+      .take_pending_forwarded_ids(&module_identifier)
+    {
+      forwarded_ids.append(pending_forwarded_ids);
+    }
+
+    let lazy_imports = side_effect_free
+      && context
+        .build_context
+        .compiler_options
+        .optimization
+        .provided_exports
+      && lazy_dependencies.can_lazy_imports(&forwarded_ids);
+    for dependency in import_declarations {
+      if lazy_imports {
+        dependency.set_lazy();
+        lazy_dependencies.insert(&dependency, LazyUntil::Import);
+      } else {
+        dependency.unset_lazy();
+      }
+    }
+
     let mut tasks: Vec<Box<dyn Task<TaskContext>>> = vec![];
 
     let dependencies_to_process = if !lazy_dependencies.is_empty() {
@@ -218,21 +260,20 @@ impl Task<TaskContext> for BuildResultTask {
         .collect::<FxHashSet<_>>();
       all_dependencies.retain(|dep| !lazy_dependency_ids.contains(dep));
 
-      if let Some(HasLazyDependencies::Pending(pending_forwarded_ids)) = context
+      context
         .artifact
         .module_to_lazy_make
-        .update_module_lazy_dependencies(module_identifier, Some(lazy_dependencies))
-      {
-        forwarded_ids.append(pending_forwarded_ids);
-      }
-      if let Some(task) = process_unlazy_dependencies(
-        &context.artifact.module_to_lazy_make,
-        module_graph,
-        forwarded_ids,
-        module_identifier,
-      ) {
-        tasks.push(Box::new(task));
-      }
+        .update_module_lazy_dependencies(module_identifier, Some(lazy_dependencies));
+      tasks.extend(
+        request_lazy_dependencies(
+          &mut context.artifact.module_to_lazy_make,
+          module_graph,
+          module_identifier,
+          forwarded_ids,
+        )
+        .into_iter()
+        .map(|task| Box::new(task) as Box<dyn Task<TaskContext>>),
+      );
 
       all_dependencies
     } else {

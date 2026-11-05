@@ -1564,7 +1564,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   fn forward_id(&self) -> ForwardId {
     let is_star_export = self.name.is_none();
     if is_star_export {
-      ForwardId::All
+      ForwardId::StarReexport
     } else if let Some(id) = self.ids.first() {
       ForwardId::Id(id.clone())
     } else {

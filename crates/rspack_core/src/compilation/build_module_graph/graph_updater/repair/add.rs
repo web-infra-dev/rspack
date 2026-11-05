@@ -2,10 +2,13 @@ use std::sync::Arc;
 
 use rspack_error::Result;
 
-use super::{TaskContext, build::BuildTask, lazy::process_unlazy_dependencies};
+use super::{
+  TaskContext,
+  build::BuildTask,
+  lazy::{collect_forwarded_ids, request_lazy_dependencies},
+};
 use crate::{
   BoxModule, BuildContext, DependencyRef, ModuleIdentifier,
-  compilation::build_module_graph::ForwardedIdSet,
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
 };
@@ -53,7 +56,12 @@ impl Task<TaskContext> for AddTask {
       return Ok(vec![]);
     }
 
-    let forwarded_ids = ForwardedIdSet::from_dependencies(&dependencies);
+    let forwarded_ids = collect_forwarded_ids(
+      &mut context.artifact.module_to_lazy_make,
+      &context.artifact.module_graph,
+      module_identifier,
+      &dependencies,
+    );
 
     // reuse module if module is already added by other dependency
     if context
@@ -76,37 +84,17 @@ impl Task<TaskContext> for AddTask {
           .mark_as_add(&module_identifier);
       }
 
-      if context
-        .artifact
-        .module_graph
-        .module_by_identifier(&module_identifier)
-        .is_some()
-      {
-        if context
-          .artifact
-          .module_to_lazy_make
-          .has_lazy_dependencies(&module_identifier)
-          && !forwarded_ids.is_empty()
-        {
-          if let Some(task) = process_unlazy_dependencies(
-            &context.artifact.module_to_lazy_make,
-            &mut context.artifact.module_graph,
-            forwarded_ids,
-            module_identifier,
-          ) {
-            return Ok(vec![Box::new(task)]);
-          }
-          return Ok(vec![]);
-        }
-      } else {
-        let pending_forwarded_ids = context
-          .artifact
-          .module_to_lazy_make
-          .pending_forwarded_ids(module_identifier);
-        pending_forwarded_ids.append(forwarded_ids);
-      }
-
-      return Ok(vec![]);
+      return Ok(
+        request_lazy_dependencies(
+          &mut context.artifact.module_to_lazy_make,
+          &context.artifact.module_graph,
+          module_identifier,
+          forwarded_ids,
+        )
+        .into_iter()
+        .map(|task| Box::new(task) as Box<dyn Task<TaskContext>>)
+        .collect(),
+      );
     }
 
     context

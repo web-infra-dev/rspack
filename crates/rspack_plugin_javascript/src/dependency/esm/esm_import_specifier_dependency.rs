@@ -1,7 +1,11 @@
-use std::sync::Arc;
+use std::sync::{
+  Arc,
+  atomic::{AtomicBool, Ordering},
+};
 
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
+  rkyv::with::{AtomicLoad, Relaxed},
   with::{AsCacheable, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
@@ -10,7 +14,7 @@ use rspack_core::{
   DependencyCondition, DependencyConditionFn, DependencyDiagnosticsContext, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportPresenceMode, ExportProvided, ExportsInfoArtifact, ExportsType, ForwardId,
-  ImportAttributes, ImportPhase, JavascriptParserOptions, ModuleDependency, ModuleGraph,
+  ImportAttributes, ImportPhase, JavascriptParserOptions, LazyUntil, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport,
   ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
   TemplateReplaceSource, UsedByExports, UsedName, create_exports_object_referenced,
@@ -61,6 +65,8 @@ pub struct ESMImportSpecifierDependency {
   loc: Option<DependencyLocation>,
   pub namespace_object_as_context: bool,
   ns_access: bool,
+  #[cacheable(with=AtomicLoad<Relaxed>)]
+  lazy_make: AtomicBool,
 }
 
 impl ESMImportSpecifierDependency {
@@ -105,6 +111,7 @@ impl ESMImportSpecifierDependency {
       attributes,
       resource_identifier,
       loc,
+      lazy_make: AtomicBool::new(false),
     }
   }
 
@@ -352,6 +359,25 @@ impl Dependency for ESMImportSpecifierDependency {
     } else {
       ForwardId::All
     }
+  }
+
+  fn is_lazy_import_declaration(&self) -> bool {
+    true
+  }
+
+  fn lazy(&self) -> Option<LazyUntil> {
+    self
+      .lazy_make
+      .load(Ordering::Relaxed)
+      .then_some(LazyUntil::Import)
+  }
+
+  fn set_lazy(&self) {
+    self.lazy_make.store(true, Ordering::Relaxed);
+  }
+
+  fn unset_lazy(&self) -> bool {
+    self.lazy_make.swap(false, Ordering::Relaxed)
   }
 }
 

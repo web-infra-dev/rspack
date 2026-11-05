@@ -182,6 +182,10 @@ pub trait Dependency:
     None
   }
 
+  fn is_lazy_import_declaration(&self) -> bool {
+    false
+  }
+
   fn set_lazy(&self) {}
 
   fn unset_lazy(&self) -> bool {

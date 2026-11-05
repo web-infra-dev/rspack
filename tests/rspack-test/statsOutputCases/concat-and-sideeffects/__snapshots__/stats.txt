@@ -15,7 +15,3 @@
   ModuleConcatenation bailout: Module is not in any chunk
 ./node_modules/pmodule/c.js xx bytes [orphan] [built]
   ModuleConcatenation bailout: Module is not in any chunk
-./node_modules/pmodule/bb.js xx bytes [orphan] [built]
-  ModuleConcatenation bailout: Module is not in any chunk
-./node_modules/pmodule/cc.js xx bytes [orphan] [built]
-  ModuleConcatenation bailout: Module is not in any chunk

@@ -610,6 +610,10 @@ impl Dependency for ESMImportSideEffectDependency {
     ForwardId::Empty
   }
 
+  fn is_lazy_import_declaration(&self) -> bool {
+    self.dependency_type == DependencyType::EsmImport
+  }
+
   fn lazy(&self) -> Option<LazyUntil> {
     self.lazy_make.load(Ordering::Relaxed).then(|| {
       if self.star_export {
