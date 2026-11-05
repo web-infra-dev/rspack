@@ -439,6 +439,7 @@ async fn generate_hot_update(
   }
   let module_graph = compilation.get_module_graph();
   let mut dependency_chunks = candidate_chunks;
+  let mut moved_imports: HashMap<ChunkUkey, HashSet<ChunkUkey>> = Default::default();
   for module in candidate_modules {
     // An unchanged importer can still need a dependency's new owning chunk.
     for connection in module_graph.get_incoming_connections(&module) {
@@ -452,15 +453,40 @@ async fn generate_hot_update(
     else {
       continue;
     };
-    if !old_all_modules.contains_key(module_id) {
+    let Some(old_owners) = old_all_modules.get(module_id) else {
       continue;
-    }
+    };
     let owners = graph.chunk_graph.get_module_chunks(module);
     let mut changed_runtimes = RuntimeSpec::default();
+    let mut moved = owners.len() != old_owners.len();
     for key in owners {
       let chunk = graph.chunk_by_ukey.expect_get(key);
+      moved = moved
+        || !old_chunks
+          .get(chunk.expect_id())
+          .is_some_and(|(runtime, modules)| {
+            runtime == chunk.runtime() && modules.contains(module_id)
+          });
       if !is_module_unchanged(compilation, chunk, module) {
         changed_runtimes.extend(chunk.runtime());
+      }
+    }
+    // An in-flight import will still require its target after the group finishes loading.
+    // If the target moved to a sibling, the group's last chunk must pull it in.
+    if moved {
+      for connection in module_graph.get_incoming_connections(&module) {
+        if let Some(block) = module_graph.get_parent_block(&connection.dependency_id)
+          && let Some(group) = graph
+            .chunk_graph
+            .get_block_chunk_group(block, &graph.chunk_group_by_ukey)
+          && group.kind.get_normal_options().is_some()
+          && let Some((anchor, siblings)) = group.chunks.split_last()
+          && !owners.contains(anchor)
+          && let Some(owner) = siblings.iter().find(|key| owners.contains(*key))
+        {
+          moved_imports.entry(*anchor).or_default().insert(*owner);
+          dependency_chunks.insert(*anchor);
+        }
       }
     }
     for runtime in changed_runtimes.iter() {
@@ -537,7 +563,14 @@ async fn generate_hot_update(
         continue;
       }
       let key = current_chunk_ukeys[&id];
-      let mut dependencies = ChunkIdSet::default();
+      let mut dependencies: ChunkIdSet = moved_imports
+        .get(&key)
+        .into_iter()
+        .flatten()
+        .map(|owner| graph.chunk_by_ukey.expect_get(owner))
+        .filter(|owner| owner.runtime().contains(runtime))
+        .map(|owner| owner.expect_id().clone())
+        .collect();
       for module in graph.chunk_graph.get_chunk_modules_identifier(&key) {
         for connection in module_graph.get_outgoing_connections(module) {
           if module_graph

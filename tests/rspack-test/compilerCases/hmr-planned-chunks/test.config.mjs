@@ -19,7 +19,8 @@ export default [false, true].flatMap(incremental =>
             moduleIds: 'named', chunkIds: 'named', usedExports: false, concatenateModules: false,
             splitChunks: { cacheGroups: {
               default: false, defaultVendors: false,
-              shared: { test: /[\\/]dep\.js$/, name: () => step < 2 ? 'shared' : 'moved', chunks: 'all', minChunks: 2, enforce: true }
+              shared: { test: /[\\/]dep\.js$/, name: () => step < 2 ? 'shared' : 'moved', chunks: 'all', minChunks: 2, enforce: true },
+              target: { test: /[\\/]target\.js$/, name: () => step < 2 ? 'shared-target' : 'moved-target', chunks: 'all', minChunks: 2, enforce: true }
             } }
           },
           plugins: [new rspack.HotModuleReplacementPlugin()]
@@ -34,12 +35,16 @@ export default [false, true].flatMap(incremental =>
           globalThis.cache = require.cache; globalThis.getHash = () => __webpack_hash__;
           globalThis.loadPage = () => import(/* webpackChunkName: 'page' */ './page');
           globalThis.loadOther = () => import(/* webpackChunkName: 'other' */ './other');
+          globalThis.loadTarget = () => import(/* webpackChunkName: 'target-page' */ './target');
+          globalThis.loadKeep = () => import(/* webpackChunkName: 'target-page' */ './keep');
           module.hot.accept();
         `);
+        write('keep.js', 'module.exports = 1;');
+        write('target.js', 'module.exports = 42;');
         const builds = [];
         for (step = 0; step < 4; step++) {
           write('page.js', `globalThis.readPage = () => ${step === 3 ? '9' : "require('./dep')"}; module.hot.accept();`);
-          write('other.js', `module.exports = ${step ? "require('./dep')" : '0'};`);
+          write('other.js', `${step ? "require('./target');" : ''} module.exports = ${step ? "require('./dep')" : '0'};`);
           write('dep.js', `module.exports = ${step < 2 ? 2 : step + 1};`);
           const stats = await new Promise((resolve, reject) => compiler.run(
             (error, stats) => error ? reject(error) : resolve(stats),
@@ -110,21 +115,24 @@ export default [false, true].flatMap(incremental =>
         assert.equal((await sandbox.loadOther()).default, 4);
         assert.equal(hot.status(), 'idle');
 
-        // The same import retries across two updates. Its chunk loader is idle at each check.
-        let round = 0;
-        const pageResponses = [builds[1], builds[0], builds[2]];
-        requests.length = 0;
-        const retrying = startApp(name => name === 'page.js'
-          ? pageResponses.shift()[name] : builds[round][name]);
-        retrying.fetch = async url => {
-          const manifest = JSON.parse(builds[++round][path.basename(url)]);
-          return { ok: true, json: async () => manifest };
-        };
-        await retrying.loadPage();
-        assert.equal(retrying.readPage(), 3);
-        assert.equal(round, 2);
-        assert.deepEqual(requests.filter(name => name.endsWith('.full.js')).map(name => name.split('.')[0]), ['shared', 'moved']);
-        assert(!requests.some(name => name.startsWith('other.')));
+        // An old import retries across two updates. Either its dependency or the import target itself moves.
+        for (const [chunk, expected, runImport] of [
+          ['page', ['shared', 'moved'], async app => { await app.loadPage(); assert.equal(app.readPage(), 3); }],
+          ['target-page', ['shared-target', 'moved-target'], async app => assert.equal((await app.loadTarget()).default, 42)]
+        ]) {
+          let round = 0;
+          const responses = [builds[1], builds[0], builds[2]];
+          requests.length = 0;
+          const retrying = startApp(name => name === `${chunk}.js` ? responses.shift()[name] : builds[round][name]);
+          retrying.fetch = async url => {
+            const manifest = JSON.parse(builds[++round][path.basename(url)]);
+            return { ok: true, json: async () => manifest };
+          };
+          await runImport(retrying);
+          assert.equal(round, 2);
+          assert.deepEqual(requests.filter(name => name.endsWith('.full.js')).map(name => name.split('.')[0]), expected);
+          assert(!requests.some(name => name.startsWith('other.')));
+        }
       }
     };
   })
