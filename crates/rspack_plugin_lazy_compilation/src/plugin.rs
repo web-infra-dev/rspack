@@ -8,17 +8,19 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation, CompilerId,
   CompilerMake, DependencyId, DependencyType, EntryDependency, LibIdentOptions, Module, ModuleExt,
-  ModuleFactory, ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData,
-  NormalModuleFactoryModule, Plugin,
+  ModuleFactory, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleRule,
+  NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_regex::RspackRegex;
 use rspack_util::fx_hash::FxHashSet;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::{Mutex, OnceCell, RwLock};
 
 use crate::{
-  backend::Backend, factory::LazyCompilationDependencyFactory, module::LazyCompilationProxyModule,
+  backend::Backend,
+  factory::LazyCompilationDependencyFactory,
+  module::{LazyCompilationProxyModule, ReservedLayerExternals, has_closure_library},
   utils::calc_value_dependency_key,
 };
 
@@ -68,8 +70,8 @@ pub struct LazyCompilationPlugin<T: Backend, F: LazyCompilationTestCheck> {
   imports: bool, // enable for imports
   test: Option<LazyCompilationTest<F>>,
   client: String,
-  reserved_externals: Arc<[String]>,
   active_modules: RwLock<IdentifierSet>,
+  reserved_layer_externals: OnceCell<Arc<[ReservedLayerExternals]>>,
 }
 
 impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
@@ -79,7 +81,6 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
     entries: bool,
     imports: bool,
     client: String,
-    reserved_externals: Vec<String>,
   ) -> Self {
     Self::new_inner(
       Mutex::new(backend),
@@ -87,7 +88,7 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
       imports,
       test,
       client,
-      Arc::from(reserved_externals),
+      Default::default(),
       Default::default(),
     )
   }
@@ -187,52 +188,133 @@ async fn normal_module_factory_module(
     return Ok(());
   }
 
-  if DEV_SERVER_CLIENT_RE.test(create_data.resource_resolve_data.resource())
-    || !self
-      .check_test(
-        module_factory_create_data.build_context.compiler_id,
-        module_factory_create_data.build_context.compilation_id,
-        module,
-      )
-      .await
-  {
-    return Ok(());
-  }
-
-  let module_identifier: ModuleIdentifier =
-    format!("lazy-compilation-proxy|{}", module.identifier()).into();
-  let readable_identifier = format!(
-    "lazy-compilation-proxy|{}",
-    module_factory_create_data
-      .context
-      .shorten(&module.identifier())
-  );
-  let active = self
-    .active_modules
-    .read()
+  self
+    .create_proxy_module(module_factory_create_data, create_data, module)
     .await
-    .contains(&module_identifier);
-  let lib_ident = module.lib_ident(LibIdentOptions {
-    context: module_factory_create_data
-      .build_context
-      .compiler_options
-      .context
-      .as_str(),
-  });
+}
 
-  *module = LazyCompilationProxyModule::new(
-    module_identifier,
-    readable_identifier,
-    lib_ident.map(|ident| ident.into_owned()),
-    module_factory_create_data,
-    create_data.resource_resolve_data.resource().to_owned(),
-    active,
-    self.client.clone(),
-    self.reserved_externals.clone(),
-  )
-  .boxed();
+impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
+  #[allow(
+    clippy::manual_async_fn,
+    reason = "inline must apply to the async block"
+  )]
+  fn create_proxy_module(
+    &self,
+    module_factory_create_data: &mut ModuleFactoryCreateData,
+    create_data: &NormalModuleCreateData,
+    module: &mut BoxModule,
+  ) -> impl Future<Output = Result<()>> + Send {
+    #[inline(never)]
+    async move {
+      if DEV_SERVER_CLIENT_RE.test(create_data.resource_resolve_data.resource())
+        || !self
+          .check_test(
+            module_factory_create_data.build_context.compiler_id,
+            module_factory_create_data.build_context.compilation_id,
+            module,
+          )
+          .await
+      {
+        return Ok(());
+      }
 
-  Ok(())
+      let module_identifier: ModuleIdentifier =
+        format!("lazy-compilation-proxy|{}", module.identifier()).into();
+      let readable_identifier = format!(
+        "lazy-compilation-proxy|{}",
+        module_factory_create_data
+          .context
+          .shorten(&module.identifier())
+      );
+      let active = self
+        .active_modules
+        .read()
+        .await
+        .contains(&module_identifier);
+      let lib_ident = module.lib_ident(LibIdentOptions {
+        context: module_factory_create_data
+          .build_context
+          .compiler_options
+          .context
+          .as_str(),
+      });
+      let layer = module.get_layer().cloned();
+      let needs_reservation = !active
+        && has_closure_library(
+          &module_factory_create_data
+            .build_context
+            .compiler_options
+            .output,
+        );
+      let reserved_layer_externals = if needs_reservation {
+        self
+          .reserved_layer_externals
+          .get_or_try_init(|| async {
+            let mut layers = FxHashSet::default();
+            collect_rule_layers(
+              &module_factory_create_data
+                .build_context
+                .compiler_options
+                .module
+                .rules,
+              &mut layers,
+            );
+            let mut backend = self.backend.lock().await;
+            let mut reserved = Vec::new();
+            for layer in layers {
+              let requests = backend
+                .collect_reserved_externals(Some(layer.clone()))
+                .await?;
+              if !requests.is_empty() {
+                reserved.push(ReservedLayerExternals { layer, requests });
+              }
+            }
+            Result::<Arc<[ReservedLayerExternals]>>::Ok(reserved.into())
+          })
+          .await?
+          .clone()
+      } else {
+        Arc::default()
+      };
+      let reserved_externals = if needs_reservation {
+        self
+          .backend
+          .lock()
+          .await
+          .collect_reserved_externals(layer.clone())
+          .await?
+      } else {
+        Arc::default()
+      };
+
+      *module = LazyCompilationProxyModule::new(
+        module_identifier,
+        readable_identifier,
+        lib_ident.map(|ident| ident.into_owned()),
+        module_factory_create_data,
+        create_data.resource_resolve_data.resource().to_owned(),
+        active,
+        self.client.clone(),
+        layer,
+        reserved_externals,
+        reserved_layer_externals,
+      )
+      .boxed();
+
+      Ok(())
+    }
+  }
+}
+
+fn collect_rule_layers(rules: &[ModuleRule], layers: &mut FxHashSet<ModuleLayer>) {
+  for rule in rules {
+    if let Some(layer) = &rule.effect.layer {
+      layers.insert(layer.clone());
+    }
+    for nested in rule.rules.iter().chain(rule.one_of.iter()) {
+      collect_rule_layers(nested, layers);
+    }
+  }
 }
 
 #[plugin_hook(CompilerMake for LazyCompilationPlugin<T: Backend, F: LazyCompilationTestCheck>)]
@@ -244,94 +326,110 @@ async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
     .module_to_lazy_make
     .eager_on_local_reference = true;
 
-  let newly_active_modules = self
-    .backend
-    .lock()
-    .await
-    .take_newly_active_modules()
-    .await?;
+  self.activate_modules(compilation).await
+}
 
-  // An activated module never goes back to inactive, so the set must outlive
-  // the module graph: without incremental make every proxy is re-created each
-  // compilation and reads its `active` flag from here.
-  self
-    .active_modules
-    .write()
-    .await
-    .extend(newly_active_modules.iter().copied());
+impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
+  #[allow(
+    clippy::manual_async_fn,
+    reason = "inline must apply to the async block"
+  )]
+  fn activate_modules(
+    &self,
+    compilation: &mut Compilation,
+  ) -> impl Future<Output = Result<()>> + Send {
+    #[inline(never)]
+    async move {
+      let newly_active_modules = self
+        .backend
+        .lock()
+        .await
+        .take_newly_active_modules()
+        .await?;
 
-  // Dep ids of every entry dependency the current compilation knows about.
-  // Used below to detect an entry proxy whose only remaining edge points to
-  // an entry dep that has just been dropped.
-  let current_entry_dep_ids: FxHashSet<DependencyId> = compilation
-    .entries
-    .values()
-    .flat_map(|e| e.all_dependencies())
-    .copied()
-    .collect();
+      // An activated module never goes back to inactive, so the set must outlive
+      // the module graph: without incremental make every proxy is re-created each
+      // compilation and reads its `active` flag from here.
+      self
+        .active_modules
+        .write()
+        .await
+        .extend(newly_active_modules.iter().copied());
 
-  let mut to_invalidate: IdentifierSet = IdentifierSet::default();
-  {
-    let module_graph = compilation.build_module_graph_artifact.get_module_graph();
-    let entry_target = |dep_id: &DependencyId| {
-      let dep = module_graph.dependency_by_id(dep_id);
-      dep
-        .as_module_dependency()
-        .map(|module_dep| (dep.get_context(), module_dep.request()))
-    };
-    // A dynamic entry whose options changed gets a new dep id for the same
-    // context and request, so the proxy is not stale and must still be
-    // activated.
-    let current_entry_targets: FxHashSet<_> = current_entry_dep_ids
-      .iter()
-      .filter_map(entry_target)
-      .collect();
-    for module_id in &newly_active_modules {
-      let Some(active_module) = module_graph.module_by_identifier(module_id) else {
-        continue;
-      };
-      let Some(proxy) = active_module.downcast_ref::<LazyCompilationProxyModule>() else {
-        continue;
-      };
+      // Dep ids of every entry dependency the current compilation knows about.
+      // Used below to detect an entry proxy whose only remaining edge points to
+      // an entry dep that has just been dropped.
+      let current_entry_dep_ids: FxHashSet<DependencyId> = compilation
+        .entries
+        .values()
+        .flat_map(|e| e.all_dependencies())
+        .copied()
+        .collect();
 
-      // Skip the rebuild when the proxy's sole incoming edge is an entry dep
-      // that no longer belongs to any current entry: rebuilding it would
-      // resolve a removed entry source.
-      let mut incoming = module_graph.get_incoming_connections(module_id);
-      let only = incoming.next();
-      let is_stale = incoming.next().is_none()
-        && only.is_some_and(|con| {
-          matches!(
-            module_graph
-              .dependency_by_id(&con.dependency_id)
-              .dependency_type(),
-            DependencyType::Entry
-          ) && !current_entry_dep_ids.contains(&con.dependency_id)
-            && entry_target(&con.dependency_id)
-              .is_none_or(|target| !current_entry_targets.contains(&target))
-        });
+      let mut to_invalidate: IdentifierSet = IdentifierSet::default();
+      {
+        let module_graph = compilation.build_module_graph_artifact.get_module_graph();
+        let entry_target = |dep_id: &DependencyId| {
+          let dep = module_graph.dependency_by_id(dep_id);
+          dep
+            .as_module_dependency()
+            .map(|module_dep| (dep.get_context(), module_dep.request()))
+        };
+        // A dynamic entry whose options changed gets a new dep id for the same
+        // context and request, so the proxy is not stale and must still be
+        // activated.
+        let current_entry_targets: FxHashSet<_> = current_entry_dep_ids
+          .iter()
+          .filter_map(entry_target)
+          .collect();
+        for module_id in &newly_active_modules {
+          let Some(active_module) = module_graph.module_by_identifier(module_id) else {
+            continue;
+          };
+          let Some(proxy) = active_module.downcast_ref::<LazyCompilationProxyModule>() else {
+            continue;
+          };
 
-      // A proxy created after the activation request already carries its lazy
-      // block. Rebuilding it would emit a hot update, which makes the client
-      // re-activate and request another rebuild.
-      if !is_stale && !proxy.is_active() {
-        to_invalidate.insert(*module_id);
+          // Skip the rebuild when the proxy's sole incoming edge is an entry dep
+          // that no longer belongs to any current entry: rebuilding it would
+          // resolve a removed entry source.
+          let mut incoming = module_graph.get_incoming_connections(module_id);
+          let only = incoming.next();
+          let is_stale = incoming.next().is_none()
+            && only.is_some_and(|con| {
+              matches!(
+                module_graph
+                  .dependency_by_id(&con.dependency_id)
+                  .dependency_type(),
+                DependencyType::Entry
+              ) && !current_entry_dep_ids.contains(&con.dependency_id)
+                && entry_target(&con.dependency_id)
+                  .is_none_or(|target| !current_entry_targets.contains(&target))
+            });
+
+          // A proxy created after the activation request already carries its lazy
+          // block. Rebuilding it would emit a hot update, which makes the client
+          // re-activate and request another rebuild.
+          if !is_stale && !proxy.is_active() {
+            to_invalidate.insert(*module_id);
+          }
+        }
       }
+
+      let module_graph = compilation
+        .build_module_graph_artifact
+        .get_module_graph_mut();
+      for module_id in &to_invalidate {
+        if let Some(active_module) = module_graph.module_by_identifier(module_id)
+          && let Some(active_module) = active_module.downcast_ref::<LazyCompilationProxyModule>()
+        {
+          active_module.invalid();
+        }
+      }
+
+      Ok(())
     }
   }
-
-  let module_graph = compilation
-    .build_module_graph_artifact
-    .get_module_graph_mut();
-  for module_id in &to_invalidate {
-    if let Some(active_module) = module_graph.module_by_identifier(module_id)
-      && let Some(active_module) = active_module.downcast_ref::<LazyCompilationProxyModule>()
-    {
-      active_module.invalid();
-    }
-  }
-
-  Ok(())
 }
 
 #[async_trait::async_trait]

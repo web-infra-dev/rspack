@@ -41,6 +41,7 @@ type ExternalItemFn =
 
 pub enum ExternalItem {
   Object(ExternalItemObject),
+  ByLayer(HashMap<String, ExternalItemObject>),
   String(String),
   RegExp(RspackRegex),
   /// Synchronous request matcher for built-in external presets.
@@ -52,6 +53,7 @@ impl std::fmt::Debug for ExternalItem {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       Self::Object(v) => f.debug_tuple("Object").field(v).finish(),
+      Self::ByLayer(v) => f.debug_tuple("ByLayer").field(v).finish(),
       Self::String(v) => f.debug_tuple("String").field(v).finish(),
       Self::RegExp(v) => f.debug_tuple("RegExp").field(v).finish(),
       Self::RequestPredicate(_) => f.debug_tuple("RequestPredicate").field(&"...").finish(),

@@ -2234,6 +2234,7 @@ export interface RawCssExtractPluginOption {
 
 export interface RawCssGeneratorOptions {
   exportsOnly?: boolean
+  runtimePublicPath?: boolean
   esModule?: boolean
 }
 
@@ -2248,6 +2249,7 @@ export interface RawCssImportContext {
 export interface RawCssModuleGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
+  runtimePublicPath?: boolean
   localIdentHashDigest?: string
   localIdentHashDigestLength?: number
   localIdentHashFunction?: string
@@ -2397,10 +2399,15 @@ export interface RawExternalItemFnResult {
   result?: string | boolean | string[] | Record<string, string[]>
 }
 
+export interface RawExternalItemObject {
+  values: Record<string, string | boolean | string[] | Record<string, string[]>>
+  byLayer?: Record<string, Record<string, string | boolean | string[] | Record<string, string[]>>>
+}
+
 export interface RawExternalsPluginOptions {
   type: string
   fallbackType?: string
-  externals: (string | RegExp | Record<string, string | boolean | string[] | Record<string, string[]>> | ((...args: any[]) => any))[]
+  externals: (string | RegExp | RawExternalItemObject | ((...args: any[]) => any))[]
   placeInInitial: boolean
 }
 
@@ -2652,7 +2659,7 @@ export interface RawLazyCompilationOption {
   entries: boolean
   imports: boolean
   client: string
-  reservedExternals: Array<string>
+  collectReservedExternals: (layer?: string | null) => string[]
 }
 
 export interface RawLibManifestPluginOptions {

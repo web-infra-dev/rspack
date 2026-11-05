@@ -924,6 +924,7 @@ function getRawCssGeneratorOptions(
 ): RawCssGeneratorOptions {
   return {
     exportsOnly: options.exportsOnly,
+    runtimePublicPath: options.runtimePublicPath,
     esModule: options.esModule,
   };
 }
@@ -939,6 +940,7 @@ function getRawCssAutoOrModuleGeneratorOptions(
     localIdentHashSalt: options.localIdentHashSalt,
     exportsConvention: options.exportsConvention,
     exportsOnly: options.exportsOnly,
+    runtimePublicPath: options.runtimePublicPath,
     esModule: options.esModule,
   };
 }
