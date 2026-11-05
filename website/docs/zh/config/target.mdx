@@ -187,6 +187,8 @@ Rspack 支持以下格式：
 
 最近的配置可以来自 `browserslist` 或 `.browserslistrc` 文件，也可以来自 `package.json` 中的 `browserslist` 字段。显式选择 `browserslist` target 时，还可以使用 `BROWSERSLIST` 环境变量。Rspack 支持浏览器和 Node.js 查询，但不支持 Electron 查询。
 
+依赖当前日期的查询（例如 `baseline widely available` 和 `maintained node versions`）使用 UTC 日期。
+
 ### Baseline \{#baseline-queries}
 
 Rspack 2.1.9 及更高版本支持 [Baseline](https://web.dev/baseline) 查询。例如，以下 target 包含支持 Baseline Widely Available 中所有特性的浏览器：
