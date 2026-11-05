@@ -682,8 +682,9 @@ export default {
 
 ## rules[].as
 
+<ApiMeta stability={Stability.Experimental} addedVersion="2.3.2" />
+
 - **类型：** `string`
-- **稳定性：** 实验性功能
 
 使用路径模板创建独立的规则匹配资源。目前只支持 `[resource-path]` 占位符，它会展开为当前匹配路径，包含扩展名，但不包含查询参数和片段。其他内容（包括 `*`）均作为字面量使用。
 

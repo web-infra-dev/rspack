@@ -684,8 +684,9 @@ There are two phases that all loaders enter one after the other:
 
 ## rules[].as
 
+<ApiMeta stability={Stability.Experimental} addedVersion="2.3.2" />
+
 - **Type:** `string`
-- **Stability:** Experimental
 
 Creates a separate resource for rule matching using a path template. The only supported placeholder is `[resource-path]`, which expands to the current matching path, including its extension but excluding query and fragment. All other text, including `*`, is used literally.
 
