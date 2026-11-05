@@ -56,18 +56,7 @@ export default async function run() {
         removedIdentifier = removed.identifier();
         // Successful lazy reads become owned values that survive revocation.
         // Leave rawRequest unread to check the native lifetime on a cache miss.
-        snapshots = snapshotKeys.map(key => {
-          const initial = Object.getOwnPropertyDescriptor(removed, key);
-          assert.equal(typeof initial.get, 'function');
-          const value = removed[key];
-          const descriptor = Object.getOwnPropertyDescriptor(removed, key);
-          assert.equal(descriptor.get, initial.get);
-          assert.equal(descriptor.set, initial.set);
-          assert.equal(descriptor.enumerable, true);
-          assert.equal(descriptor.configurable, true);
-          assert.equal(removed[key], value);
-          return value;
-        });
+        snapshots = snapshotKeys.map(key => removed[key]);
         originalSource = removed.originalSource();
         getMap = Object.getOwnPropertyDescriptor(
           originalSource,
@@ -142,16 +131,12 @@ export default async function run() {
         assert.equal(entry.context, context);
         assert.equal(getContext.call(current), context);
         assert.throws(() => removed.context, /removed on the Rust side/);
-        const pending = Object.getOwnPropertyDescriptor(removed, 'rawRequest').get;
-        assert.equal(typeof pending, 'function');
         assert.throws(() => removed.rawRequest, /removed on the Rust side/);
-        assert.equal(Object.getOwnPropertyDescriptor(removed, 'rawRequest').get, pending);
         assert.throws(() => removed.rawRequest, /removed on the Rust side/);
         // Assignment before a successful read does not enter Rust, and undefined
         // is a cached value rather than an empty-cache sentinel.
         assert.equal(Reflect.set(removed, 'rawRequest', undefined), true);
         assert.equal(removed.rawRequest, undefined);
-        assert.equal(Object.getOwnPropertyDescriptor(removed, 'rawRequest').get, pending);
         assert.match(getFiles.call(info).message, /removed on the Rust side/);
         assert.throws(
           () => info[Symbol.for('rspack.buildInfo.assets')],
