@@ -11,14 +11,13 @@ export default {
 		fs.rmSync(cacheLocation, { recursive: true, force: true });
 		fs.rmSync(counterFile, { force: true });
 
-		const createOptions = (name, dependencies) => ({
-			name,
-			dependencies,
+		const createOptions = outputName => ({
 			context: import.meta.dirname,
 			mode: "development",
+			incremental: false,
 			entry: "./module-cache/index.js",
 			output: {
-				path: context.getDist(name),
+				path: context.getDist(outputName),
 				filename: "bundle.js"
 			},
 			cache: {
@@ -57,7 +56,9 @@ export default {
 			}
 		});
 
-		return [createOptions("a"), createOptions("b", ["a"])];
+		return Object.assign([createOptions("a"), createOptions("b")], {
+			parallelism: 1
+		});
 	},
 	async build(context, compiler) {
 		try {
