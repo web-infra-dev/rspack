@@ -14,16 +14,20 @@ use futures::{StreamExt, future::BoxFuture, stream::FuturesOrdered};
 use regex::Regex;
 use rspack_core::{
   AssetInfo, AssetInfoRelated, CacheOptions, Compilation, CompilationAsset, CompilationLogger,
-  CompilationProcessAssets, Filename, GlobMatchOptions, Logger, PathData, Plugin,
-  escape_glob_pattern, extract_glob_base_dir, find_files_by_glob,
+  CompilationProcessAssets, Filename, Logger, PathData, Plugin,
   rspack_sources::{BoxSource, RawBufferSource, SourceExt},
-  unescape_glob_path,
 };
 use rspack_error::{Diagnostic, Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{Utf8Path, Utf8PathBuf, normalize_native_path_separators};
-use rspack_util::fx_hash::FxDashSet;
+use rspack_util::{
+  fx_hash::FxDashSet,
+  glob::{
+    GlobMatchOptions, escape_glob_pattern, extract_glob_base_dir, find_files_by_glob,
+    unescape_glob_path,
+  },
+};
 use sugar_path::SugarPath;
 
 mod pattern_cache;

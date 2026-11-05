@@ -10,7 +10,6 @@ version.workspace = true
 
 [dependencies]
 aho-corasick      = { workspace = true }
-async-recursion   = { workspace = true }
 base64-simd       = { workspace = true }
 bitflags          = { workspace = true }
 concat-string     = { workspace = true }
@@ -50,6 +49,10 @@ wasmtime          = { workspace = true, optional = true, features = ["runtime", 
 
 rspack_regex = { workspace = true }
 signal-hook  = { workspace = true, optional = true }
+
+[dev-dependencies]
+async-trait = { workspace = true }
+tokio       = { workspace = true, features = ["macros"] }
 
 [features]
 allocative = ["dep:rspack-allocative", "rspack-allocative/smallvec", "rspack-allocative/triomphe", "rspack-allocative/either", "rspack-allocative/parking_lot", "rspack_intern/allocative"]
