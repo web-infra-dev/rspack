@@ -275,7 +275,6 @@ impl Snapshot {
   /// did not follow them. The same path can reach other files through such a link, so a matching
   /// hash proves nothing: `node_modules` linked to another checkout resolves into that checkout.
   async fn unrecorded_links(
-    storage: &dyn Storage,
     helper: &Arc<StrategyHelper>,
     codec: &Arc<CacheCodec>,
     data: &[(Vec<u8>, Vec<u8>)],
@@ -284,9 +283,6 @@ impl Snapshot {
     let Some(root) = codec.portable_root() else {
       return Ok(links);
     };
-    if !is_relocated(storage, codec).await? {
-      return Ok(links);
-    }
     let recorded = data
       .iter()
       .map(|(key, _)| codec.decode::<InternedPath>(key))
@@ -348,8 +344,10 @@ impl Snapshot {
 
     let data = storage.load(scope.name()).await?;
     let is_hot_start = !data.is_empty();
-    let unrecorded_links = Arc::new(if matches!(scope, SnapshotScope::FILE) {
-      Self::unrecorded_links(storage, &helper, &codec, &data).await?
+    // Written under another root: every record's timestamps describe other files.
+    let relocated = codec.is_portable() && is_relocated(storage, &codec).await?;
+    let unrecorded_links = Arc::new(if relocated && matches!(scope, SnapshotScope::FILE) {
+      Self::unrecorded_links(&helper, &codec, &data).await?
     } else {
       Default::default()
     });
@@ -381,19 +379,7 @@ impl Snapshot {
                 // Fixed build inputs still bind the build segment; fixed factory groups still
                 // expire and refactorize. Global build dependencies have no such owner gate.
                 if !path.is_fixed() && !matches!(scope, SnapshotScope::BUILD) {
-                  // Timestamps at different roots do not establish content identity. Use
-                  // the stored hash even when times match, or decline timestamp-only reuse.
-                  let relocated = match &strategy {
-                    Strategy::FileTimestampAndHash { hash, .. } => {
-                      Strategy::FileHash { hash: *hash }
-                    }
-                    Strategy::DirTimestampAndHash { hash, .. } => Strategy::DirHash { hash: *hash },
-                    Strategy::FileTimestamp { .. } | Strategy::DirTimestamp { .. } => {
-                      Strategy::Failed
-                    }
-                    _ => strategy.clone(),
-                  };
-                  let validate = match helper.validate(&path, &relocated).await {
+                  let validate = match helper.validate_relocated(&path, &strategy).await {
                     ValidateResult::NoChanged => ValidateResult::NoChangedRefresh(strategy),
                     validate => validate,
                   };
@@ -401,7 +387,14 @@ impl Snapshot {
                 }
                 return Ok((path, ValidateResult::Modified, None, Some(key)));
               }
-              helper.validate(&path, &strategy).await
+              if relocated {
+                // Ordinary records carry no root binding, yet their timestamps were observed
+                // on the writer's files. Equal times on a copy prove nothing about content or
+                // about what the path now resolves to: validate the content instead.
+                helper.validate_relocated(&path, &strategy).await
+              } else {
+                helper.validate(&path, &strategy).await
+              }
             }
             Err(_) => ValidateResult::Modified,
           };

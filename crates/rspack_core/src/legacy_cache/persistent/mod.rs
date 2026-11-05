@@ -8,7 +8,6 @@ pub mod validation;
 
 use std::{
   borrow::Cow,
-  fmt::Write,
   hash::{DefaultHasher, Hash, Hasher},
   sync::Arc,
 };
@@ -35,21 +34,23 @@ use crate::{
 
 const LOGGER_NAME: &str = "rspack.persistentCache";
 
-/// The resolver configuration and loader paths, with paths below the root spelled relative to it.
+/// The resolver configuration and module rules, with paths below the root spelled relative to it.
 ///
-/// Configured paths below the root are computed for this checkout and move with it, so checkouts
-/// share their resolutions. A configuration that names a path in another checkout renders
-/// differently, which expires the resolutions and re-resolves them.
+/// A resolution is reused only under an equal layout. Configured paths below the root are
+/// computed for this checkout and move with it, so checkouts share their resolutions. A
+/// configuration that names a path in another checkout renders differently, which expires the
+/// resolutions and re-resolves them.
+///
+/// Rules render whole, in order, with their conditions and nesting: which rule matches a resource
+/// decides its loaders and module type, and a fixed `include` or `exclude` stops matching when the
+/// checkout moves although the configuration is unchanged. A rule with a JavaScript predicate
+/// cannot be compared, so its layout also carries the root: the same checkout reuses, a moved
+/// checkout re-resolves.
 fn resolve_layout(options: &CompilerOptions, root: &PortableRoot) -> u64 {
-  fn render_rules(rules: &[ModuleRule], rendered: &mut String) {
-    for rule in rules {
-      let _ = write!(rendered, "{:?}{:?}", rule.effect.resolve, rule.effect.r#use);
-      render_rules(rule.rules.as_deref().unwrap_or_default(), rendered);
-      render_rules(rule.one_of.as_deref().unwrap_or_default(), rendered);
-    }
-  }
-  let mut rendered = format!("{:?}{:?}", options.resolve, options.resolve_loader);
-  render_rules(&options.module.rules, &mut rendered);
+  let rendered = format!(
+    "{:?}{:?}{:?}",
+    options.resolve, options.resolve_loader, options.module.rules
+  );
   let mut rendered = Cow::Borrowed(rendered.as_str());
   for root in [&root.root, &root.canonical_root] {
     // Loader paths render raw, and other paths escaped as `Debug` does.
@@ -62,6 +63,15 @@ fn resolve_layout(options: &CompilerOptions, root: &PortableRoot) -> u64 {
   }
   let mut hasher = FxHasher::default();
   rendered.hash(&mut hasher);
+  if options
+    .module
+    .rules
+    .iter()
+    .any(ModuleRule::has_opaque_condition)
+  {
+    // Spelled after root stripping, so the root itself stays in the layout.
+    root.canonical_root.hash(&mut hasher);
+  }
   hasher.finish()
 }
 

@@ -21,7 +21,7 @@ use swc_core::{
   base::config::InputSourceMap,
   common::FileName,
   ecma::{
-    ast::{JSXText, Program, Str, TplElement},
+    ast::{Expr, JSXText, Lit, Program, Str, TplElement, TsEnumDecl},
     visit::{Visit, VisitWith},
   },
 };
@@ -137,6 +137,11 @@ impl InputSourceMapAcquisition {
 
 /// Only SWC-generated filename literals belong to this invocation's declaration. An authored
 /// value equal to the resource must stay fixed when a checkout moves, including escaped input.
+///
+/// The transform can also synthesize such a value from fragments: TypeScript folds enum member
+/// initializers, so `"/checkout/src/" + "a.ts"` becomes the resource path without any input
+/// literal equal to it. Output whose value matches cannot show where it came from, so a program
+/// that can synthesize a string declines certification.
 pub(crate) fn input_has_resource_path(program: &Program, resource: &str) -> bool {
   let mut visitor = InputResourcePath {
     resource,
@@ -169,6 +174,30 @@ impl Visit for InputResourcePath<'_> {
   fn visit_jsx_text(&mut self, text: &JSXText) {
     // JSX text additionally normalizes whitespace. Conservatively decline path-shaped text.
     self.found |= text.value.to_string_lossy().contains(['/', '\\']);
+  }
+
+  fn visit_ts_enum_decl(&mut self, declaration: &TsEnumDecl) {
+    // Member initializers are folded. Number arithmetic cannot produce a path; anything that
+    // can produce a string from more than one literal can.
+    self.found |= declaration
+      .members
+      .iter()
+      .filter_map(|member| member.init.as_deref())
+      .any(|init| {
+        !matches!(init, Expr::Lit(_) | Expr::Ident(_) | Expr::Member(_)) && !is_numeric(init)
+      });
+    declaration.visit_children_with(self);
+  }
+}
+
+/// An expression tree of numeric literals and arithmetic alone.
+fn is_numeric(expr: &Expr) -> bool {
+  match expr {
+    Expr::Lit(Lit::Num(_)) => true,
+    Expr::Paren(paren) => is_numeric(&paren.expr),
+    Expr::Unary(unary) => is_numeric(&unary.arg),
+    Expr::Bin(binary) => is_numeric(&binary.left) && is_numeric(&binary.right),
+    _ => false,
   }
 }
 

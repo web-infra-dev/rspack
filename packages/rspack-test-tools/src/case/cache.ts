@@ -374,13 +374,24 @@ async function checkColdBuild(
     },
     output: { ...options.output, path: coldDist },
   });
-  const coldStats = await new Promise<Stats>((resolve, reject) => {
-    compiler.run((error, stats) => (error ? reject(error) : resolve(stats!)));
-  });
-  await new Promise<void>((resolve, reject) => {
-    compiler.close((error) => (error ? reject(error) : resolve()));
-  });
-  await restoreProject();
+  let coldStats: Stats;
+  try {
+    try {
+      coldStats = await new Promise<Stats>((resolve, reject) => {
+        compiler.run((error, stats) =>
+          error ? reject(error) : resolve(stats!),
+        );
+      });
+    } finally {
+      // A failed run still leaves a compiler to close, and a failed close still
+      // leaves a project to restore.
+      await new Promise<void>((resolve, reject) => {
+        compiler.close((error) => (error ? reject(error) : resolve()));
+      });
+    }
+  } finally {
+    await restoreProject();
+  }
   const assetNames = (stats: StatsCompilation) =>
     (stats.assets || []).map((asset) => asset.name).sort();
   const names = assetNames(relocatedStats);
