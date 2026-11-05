@@ -9,7 +9,7 @@ use rustc_hash::FxHashSet;
 
 use crate::{
   ChunkGraph, ChunkKind, Compilation, Compiler, RuntimeModuleRecord, RuntimeSpec,
-  chunk_graph_chunk::{ChunkId, ChunkIdMap},
+  chunk_graph_chunk::ChunkIdMap,
   chunk_graph_module::{ModuleIdMap, ModuleIdSet},
   compilation::build_module_graph::ModuleExecutor,
   incremental::{Incremental, IncrementalPasses},
@@ -145,7 +145,6 @@ pub struct CompilationRecords {
   pub runtimes: RuntimeSpec,
   pub runtime_modules: IdentifierMap<RuntimeModuleRecord>,
   pub chunks: ChunkIdMap<(RuntimeSpec, ModuleIdSet)>,
-  pub entries: ChunkIdMap<Vec<ChunkId>>,
   pub modules: ModuleIdMap<ChunkIdMap<RspackHashDigest>>,
   pub hash: Option<RspackHashDigest>,
 }
@@ -156,7 +155,6 @@ impl CompilationRecords {
       runtimes: Self::record_runtimes(compilation),
       runtime_modules: Self::record_runtime_modules(compilation),
       chunks: Self::record_chunks(compilation),
-      entries: Self::record_entries(compilation),
       modules: Self::record_modules(compilation),
       hash: Self::record_hash(compilation),
     }
@@ -250,51 +248,6 @@ impl CompilationRecords {
           .cloned()
           .collect();
         (chunk_id, (chunk_runtime, chunk_modules))
-      })
-      .collect()
-  }
-
-  /// Record startup dependencies for ordinary and async entries, including dependOn parents.
-  pub fn record_entries(compilation: &Compilation) -> ChunkIdMap<Vec<ChunkId>> {
-    if !compilation.hot {
-      return Default::default();
-    }
-    let graph = &compilation.build_chunk_graph_artifact;
-    compilation
-      .entrypoints()
-      .values()
-      .chain(graph.async_entrypoints.iter())
-      .copied()
-      .map(|entry_group_ukey| {
-        let entry = graph.chunk_group_by_ukey.expect_get(&entry_group_ukey);
-        let entry_chunk = graph
-          .chunk_by_ukey
-          .expect_get(&entry.get_entrypoint_chunk());
-        let mut groups = vec![entry_group_ukey];
-        let mut visited_groups = FxHashSet::default();
-        let mut chunks = Vec::new();
-        while let Some(group_ukey) = groups.pop() {
-          let group = graph.chunk_group_by_ukey.expect_get(&group_ukey);
-          if (group_ukey != entry_group_ukey && !group.is_initial())
-            || !visited_groups.insert(group_ukey)
-          {
-            continue;
-          }
-          if group.is_initial() {
-            groups.extend(group.parents.iter().copied());
-          }
-          chunks.extend(group.chunks.iter().map(|chunk_ukey| {
-            graph
-              .chunk_by_ukey
-              .expect_get(chunk_ukey)
-              .expect_id()
-              .clone()
-          }));
-        }
-        // This records membership only. Keep manifest serialization deterministic.
-        chunks.sort_unstable();
-        chunks.dedup();
-        (entry_chunk.expect_id().clone(), chunks)
       })
       .collect()
   }

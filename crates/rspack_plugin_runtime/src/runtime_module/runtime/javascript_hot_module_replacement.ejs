@@ -484,32 +484,26 @@
 	}, {});
 	hotCurrentUpdateRuntime = [];
 	hotCurrentUpdateFullChunks = [];
-	var dependencies = load && load.dependencies;
 	var preparedChunks = Object.create(null);
 	removedChunks.forEach(function (chunkId) { preparedChunks[chunkId] = false; });
 	function prepareFullChunk(chunkId, promises) {
 		if (<%- HAS_OWN_PROPERTY %>(preparedChunks, chunkId)) return;
 		preparedChunks[chunkId] = true;
-		if (dependencies && <%- HAS_OWN_PROPERTY %>(dependencies, chunkId)) dependencies[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
 		if (<%- _installed_chunks %>[chunkId] === <%- _loaded_chunk_state %> || hotCurrentUpdateChunks[chunkId] === true) return;
 		hotCurrentUpdateChunks[chunkId] = true;
 		hotCurrentUpdateFullChunks.push(chunkId);
 		promises.push(<%- _load_update_chunk %>(chunkId, updatedModulesList, true));
 	}
+	function prepareLoad(chunkId, promises) {
+		if (load && <%- HAS_OWN_PROPERTY %>(load, chunkId)) load[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
+	}
 	// Complete payloads contain the delta too. Select them before requesting
 	// ordinary updates, so each chunk has only one pending update download.
-	Object.keys(dependencies || {}).forEach(function (chunkId) {
+	Object.keys(load || {}).forEach(function (chunkId) {
 		if (preparedChunks[chunkId] === false) return;
 		var installed = <%- HAS_OWN_PROPERTY %>(<%- _installed_chunks %>, chunkId) && <%- _installed_chunks %>[chunkId] != null;
 		// The loader clears its state between version retries while the original import still waits.
-		if (installed || pendingChunkLoads[chunkId]) {
-			dependencies[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
-		}
-	});
-	var entries = load && load.entries;
-	Object.keys(entries || {}).forEach(function (entryId) {
-		if (preparedChunks[entryId] === false || !<%- HAS_OWN_PROPERTY %>(<%- _installed_chunks %>, entryId) || <%- _installed_chunks %>[entryId] !== <%- _loaded_chunk_state %>) return;
-		entries[entryId].forEach(function (id) { prepareFullChunk(id, promises); });
+		if (installed || pendingChunkLoads[chunkId]) prepareLoad(chunkId, promises);
 	});
 	chunkIds.forEach(function (chunkId) {
 		if (hotCurrentUpdateChunks[chunkId] === true) return;
@@ -525,9 +519,7 @@
 	});
 	if (<%- weak(ENSURE_CHUNK_HANDLERS) %>) {
 		<%- weak(ENSURE_CHUNK_HANDLERS) %>.<%- _loading_method %>Hmr = function (chunkId, promises) {
-			if (hotCurrentUpdateChunks && dependencies && <%- HAS_OWN_PROPERTY %>(dependencies, chunkId)) {
-				dependencies[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
-			}
+			if (hotCurrentUpdateChunks) prepareLoad(chunkId, promises);
 			if (
 				hotCurrentUpdateChunks &&
 				<%- HAS_OWN_PROPERTY %>(hotCurrentUpdateChunks, chunkId) &&

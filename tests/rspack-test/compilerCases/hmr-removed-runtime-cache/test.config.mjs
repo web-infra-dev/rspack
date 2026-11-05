@@ -105,7 +105,7 @@ export default {
 						assert(manifest.r.includes(supplement ? "old" : "shared"));
 						assert(manifest.m.includes("./dep.js"));
 						assert(manifest.c.includes(supplement ? "shared" : "other"), mode);
-						if (supplement) assert.deepEqual(manifest.load.entries.a, ["shared"]);
+						if (supplement) assert.deepEqual(manifest.load.a, ["shared"]);
 					}
 					await hot.check(true);
 					assert.equal(hot.status(), "idle");

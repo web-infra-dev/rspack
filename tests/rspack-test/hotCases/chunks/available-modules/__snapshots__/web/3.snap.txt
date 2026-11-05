@@ -10,11 +10,7 @@
 - Bundle: parent.chunk.CURRENT_HASH.js
 - Bundle: q.chunk.CURRENT_HASH.js
 - Bundle: r.chunk.CURRENT_HASH.js
-- Complete update: parent.LAST_HASH.hot-update.js.full.js, size: 954
-  - ./m.js
-  - ./parent-a.js
-  - ./parent-b.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 141
+- Manifest: main.LAST_HASH.hot-update.json, size: 96
 - Update: main.LAST_HASH.hot-update.js, size: 308
 - Update: parent.LAST_HASH.hot-update.js, size: 591
 
@@ -23,7 +19,7 @@
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["main","parent"],"r":[],"m":[],"changed":{"./m.js":["parent"],"./parent-b.js":["parent"]},"load":{"dependencies":{"child":["parent"]}}}
+{"c":["main","parent"],"r":[],"m":[],"changed":{"./m.js":["parent"],"./parent-b.js":["parent"]}}
 ```
 
 

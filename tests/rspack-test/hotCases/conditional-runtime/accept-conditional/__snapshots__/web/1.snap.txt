@@ -8,29 +8,8 @@
 - Bundle: dep1_js-dep2_js-worker_js.chunk.CURRENT_HASH.js
 - Bundle: dep1_js-module_js.chunk.CURRENT_HASH.js
 - Bundle: shared.chunk.CURRENT_HASH.js
-- Complete update: dep1_js-dep2_js-worker_js.LAST_HASH.hot-update.js.full.js, size: 37817
-  - ./dep1.js
-  - ./dep2.js
-  - ./worker.js
-  - webpack/runtime/define_property_getters
-  - webpack/runtime/ensure_chunk
-  - webpack/runtime/get_chunk_update_filename
-  - webpack/runtime/get_full_hash
-  - webpack/runtime/has_own_property
-  - webpack/runtime/hot_module_replacement
-  - webpack/runtime/import_scripts_chunk_loading
-  - webpack/runtime/make_namespace_object
-  - webpack/runtime/on_chunk_loaded
-  - webpack/runtime/public_path
-  - webpack/runtime/runtime_id
-  - webpack/runtime/startup_chunk_dependencies
-- Complete update: dep1_js-module_js.LAST_HASH.hot-update.js.full.js, size: 794
-  - ./dep1.js
-  - ./module.js
-- Complete update: shared.LAST_HASH.hot-update.js.full.js, size: 831
-  - ./shared.js
-- Manifest: [runtime of dep1_js-dep2_js-worker_js].LAST_HASH.hot-update.json, size: 153
-- Manifest: main.LAST_HASH.hot-update.json, size: 182
+- Manifest: [runtime of dep1_js-dep2_js-worker_js].LAST_HASH.hot-update.json, size: 49
+- Manifest: main.LAST_HASH.hot-update.json, size: 94
 - Update: dep1_js-dep2_js-worker_js.LAST_HASH.hot-update.js, size: 486
 - Update: dep1_js-module_js.LAST_HASH.hot-update.js, size: 347
 - Update: main.LAST_HASH.hot-update.js, size: 319
@@ -40,7 +19,7 @@
 ### [runtime of dep1_js-dep2_js-worker_js].LAST_HASH.hot-update.json
 
 ```json
-{"c":["dep1_js-dep2_js-worker_js"],"r":[],"m":[],"load":{"dependencies":{"dep1_js-dep2_js-worker_js":["shared"],"shared":["dep1_js-dep2_js-worker_js"]}}}
+{"c":["dep1_js-dep2_js-worker_js"],"r":[],"m":[]}
 ```
 
 
@@ -48,7 +27,7 @@
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["dep1_js-module_js","main"],"r":[],"m":[],"changed":{"./dep1.js":["dep1_js-module_js"]},"load":{"dependencies":{"dep1_js-module_js":["shared"],"shared":["dep1_js-module_js"]}}}
+{"c":["dep1_js-module_js","main"],"r":[],"m":[],"changed":{"./dep1.js":["dep1_js-module_js"]}}
 ```
 
 

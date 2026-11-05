@@ -77,7 +77,7 @@ export default ['module', 'node', 'async-node'].flatMap(target => ['webpack', 'r
           if (step === 1) {
             const assets = stats.compilation.getAssets();
             const manifest = assets.find(asset => asset.name.includes('.hot-update.json'));
-            assert.match(manifest.source.source().toString(), /"entries":\{"main":\["constructor"\]\}/);
+            assert.match(manifest.source.source().toString(), /"load":\{[^}]*"main":\["constructor"\]/);
             const extension = target === 'module' ? 'mjs' : 'js';
             assert(assets.some(asset => asset.name.startsWith('constructor.') && asset.name.endsWith(`.full.${extension}`)));
             assert(!assets.some(asset => asset.name.startsWith('constructor.') && asset.name.endsWith(`.hot-update.${extension}`)));

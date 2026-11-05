@@ -6,36 +6,15 @@
 ## Asset Files
 - Bundle: bundle.js
 - Bundle: consumer_js.chunk.CURRENT_HASH.js
-- Complete update: main.LAST_HASH.hot-update.js.full.js, size: 56228
-  - ./index.js
-  - ./loader.js
-  - ./state.js
-  - webpack/runtime/async_module
-  - webpack/runtime/create_fake_namespace_object
-  - webpack/runtime/css_loading
-  - webpack/runtime/define_property_getters
-  - webpack/runtime/ensure_chunk
-  - webpack/runtime/esm_module_decorator
-  - webpack/runtime/get_chunk_update_filename
-  - webpack/runtime/get_full_hash
-  - webpack/runtime/has_own_property
-  - webpack/runtime/hot_module_replacement
-  - webpack/runtime/hot_module_replacement_chunk_versions
-  - webpack/runtime/jsonp_chunk_loading
-  - webpack/runtime/load_script
-  - webpack/runtime/make_deferred_namespace_object
-  - webpack/runtime/make_namespace_object
-  - webpack/runtime/make_optimized_deferred_namespace_object
-  - webpack/runtime/public_path
-- Manifest: main.LAST_HASH.hot-update.json, size: 77
-- Update: main.LAST_HASH.hot-update.js, size: 32596
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: main.LAST_HASH.hot-update.js, size: 31774
 
 ## Manifest
 
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["main"],"r":[],"m":[],"load":{"dependencies":{"consumer_js":["main"]}}}
+{"c":["main"],"r":[],"m":[]}
 ```
 
 
@@ -931,8 +910,7 @@ __webpack_require__.hmrC.jsonp = function (
 	_css,
 	_miniCss,
 	load,
-	changed,
-	pendingChunkLoads
+	changed
 ) {
 	applyHandlers.push(function (options) {
 		// Finish selection after downloads, including chunks ensured during check.
@@ -955,32 +933,23 @@ __webpack_require__.hmrC.jsonp = function (
 	}, {});
 	hotCurrentUpdateRuntime = [];
 	hotCurrentUpdateFullChunks = [];
-	var dependencies = load && load.dependencies;
 	var preparedChunks = Object.create(null);
 	removedChunks.forEach(function (chunkId) { preparedChunks[chunkId] = false; });
 	function prepareFullChunk(chunkId, promises) {
 		if (__webpack_require__.o(preparedChunks, chunkId)) return;
 		preparedChunks[chunkId] = true;
-		if (dependencies && __webpack_require__.o(dependencies, chunkId)) dependencies[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
 		if (jsonpInstalledChunks[chunkId] === 0 || hotCurrentUpdateChunks[chunkId] === true) return;
 		hotCurrentUpdateChunks[chunkId] = true;
 		hotCurrentUpdateFullChunks.push(chunkId);
 		promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList, true));
 	}
+	function prepareLoad(chunkId, promises) {
+		if (load && __webpack_require__.o(load, chunkId)) load[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
+	}
 	// Complete payloads contain the delta too. Select them before requesting
 	// ordinary updates, so each chunk has only one pending update download.
-	Object.keys(dependencies || {}).forEach(function (chunkId) {
-		if (preparedChunks[chunkId] === false) return;
-		var installed = __webpack_require__.o(jsonpInstalledChunks, chunkId) && jsonpInstalledChunks[chunkId] != null;
-		// The loader clears its state between version retries while the original import still waits.
-		if (installed || pendingChunkLoads[chunkId]) {
-			dependencies[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
-		}
-	});
-	var entries = load && load.entries;
-	Object.keys(entries || {}).forEach(function (entryId) {
-		if (preparedChunks[entryId] === false || !__webpack_require__.o(jsonpInstalledChunks, entryId) || jsonpInstalledChunks[entryId] !== 0) return;
-		entries[entryId].forEach(function (id) { prepareFullChunk(id, promises); });
+	Object.keys(load || {}).forEach(function (chunkId) {
+		if (jsonpInstalledChunks[chunkId] === 0) prepareLoad(chunkId, promises);
 	});
 	chunkIds.forEach(function (chunkId) {
 		if (hotCurrentUpdateChunks[chunkId] === true) return;
@@ -996,9 +965,7 @@ __webpack_require__.hmrC.jsonp = function (
 	});
 	if (__webpack_require__.f) {
 		__webpack_require__.f.jsonpHmr = function (chunkId, promises) {
-			if (hotCurrentUpdateChunks && dependencies && __webpack_require__.o(dependencies, chunkId)) {
-				dependencies[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
-			}
+			if (hotCurrentUpdateChunks) prepareLoad(chunkId, promises);
 			if (
 				hotCurrentUpdateChunks &&
 				__webpack_require__.o(hotCurrentUpdateChunks, chunkId) &&

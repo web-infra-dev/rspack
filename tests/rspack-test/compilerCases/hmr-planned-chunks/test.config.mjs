@@ -87,7 +87,7 @@ export default [false, true].flatMap(incremental =>
         assets = builds[1];
         const manifest = JSON.parse(assets[`main.${sandbox.getHash()}.hot-update.json`]);
         assert(!manifest.changed?.['./dep.js'], 'membership alone must not update the module');
-        assert.deepEqual(manifest.load.dependencies.page, ['shared']);
+        assert.deepEqual(manifest.load.page, ['shared']);
         requests.length = 0;
         await hot.check(true);
         assert.equal(cache['./dep.js'], oldModule);

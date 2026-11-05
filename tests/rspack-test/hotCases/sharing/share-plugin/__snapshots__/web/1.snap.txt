@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: common_js_2.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 45583
+- Update: main.LAST_HASH.hot-update.js, size: 44761
 
 ## Manifest
 
@@ -1198,8 +1198,7 @@ __webpack_require__.hmrC.jsonp = function (
 	_css,
 	_miniCss,
 	load,
-	changed,
-	pendingChunkLoads
+	changed
 ) {
 	applyHandlers.push(function (options) {
 		// Finish selection after downloads, including chunks ensured during check.
@@ -1222,32 +1221,23 @@ __webpack_require__.hmrC.jsonp = function (
 	}, {});
 	hotCurrentUpdateRuntime = [];
 	hotCurrentUpdateFullChunks = [];
-	var dependencies = load && load.dependencies;
 	var preparedChunks = Object.create(null);
 	removedChunks.forEach(function (chunkId) { preparedChunks[chunkId] = false; });
 	function prepareFullChunk(chunkId, promises) {
 		if (__webpack_require__.o(preparedChunks, chunkId)) return;
 		preparedChunks[chunkId] = true;
-		if (dependencies && __webpack_require__.o(dependencies, chunkId)) dependencies[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
 		if (jsonpInstalledChunks[chunkId] === 0 || hotCurrentUpdateChunks[chunkId] === true) return;
 		hotCurrentUpdateChunks[chunkId] = true;
 		hotCurrentUpdateFullChunks.push(chunkId);
 		promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList, true));
 	}
+	function prepareLoad(chunkId, promises) {
+		if (load && __webpack_require__.o(load, chunkId)) load[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
+	}
 	// Complete payloads contain the delta too. Select them before requesting
 	// ordinary updates, so each chunk has only one pending update download.
-	Object.keys(dependencies || {}).forEach(function (chunkId) {
-		if (preparedChunks[chunkId] === false) return;
-		var installed = __webpack_require__.o(jsonpInstalledChunks, chunkId) && jsonpInstalledChunks[chunkId] != null;
-		// The loader clears its state between version retries while the original import still waits.
-		if (installed || pendingChunkLoads[chunkId]) {
-			dependencies[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
-		}
-	});
-	var entries = load && load.entries;
-	Object.keys(entries || {}).forEach(function (entryId) {
-		if (preparedChunks[entryId] === false || !__webpack_require__.o(jsonpInstalledChunks, entryId) || jsonpInstalledChunks[entryId] !== 0) return;
-		entries[entryId].forEach(function (id) { prepareFullChunk(id, promises); });
+	Object.keys(load || {}).forEach(function (chunkId) {
+		if (jsonpInstalledChunks[chunkId] === 0) prepareLoad(chunkId, promises);
 	});
 	chunkIds.forEach(function (chunkId) {
 		if (hotCurrentUpdateChunks[chunkId] === true) return;
@@ -1263,9 +1253,7 @@ __webpack_require__.hmrC.jsonp = function (
 	});
 	if (__webpack_require__.f) {
 		__webpack_require__.f.jsonpHmr = function (chunkId, promises) {
-			if (hotCurrentUpdateChunks && dependencies && __webpack_require__.o(dependencies, chunkId)) {
-				dependencies[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
-			}
+			if (hotCurrentUpdateChunks) prepareLoad(chunkId, promises);
 			if (
 				hotCurrentUpdateChunks &&
 				__webpack_require__.o(hotCurrentUpdateChunks, chunkId) &&

@@ -79,7 +79,7 @@ export default [false, true].map(withDelta => ({
       req.hmrM = async () => JSON.parse(builds[1][`main.${req.h()}.hot-update.json`]);
       const manifest = await req.hmrM();
       assert.equal(manifest.c.includes('shared'), withDelta);
-      assert.deepEqual(manifest.load.entries.main, ['shared']);
+      assert.deepEqual(manifest.load.main, ['shared']);
       const check = hot.check(false);
       await new Promise(setImmediate);
       const shared = updates.filter(({ name }) => name.startsWith('shared.'));
