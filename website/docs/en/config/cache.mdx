@@ -266,6 +266,8 @@ Rspack also treats absolute paths in the `resolve` options that are below the ro
 
 Rspack finds loader output that contains the root by searching cached data for the root's native, forward-slash, JSON-escaped, JavaScript ASCII-escaped, base64 and `file://` URL spellings. This search is best-effort. Loaders that derive output from a path without including one of these spellings (for example, a hash of `this.resourcePath`) should call `this.cacheable(false)` or use an appropriate `cache.version`. A module whose loader calls `this.importModule` rebuilds after a move. Options returned by a function `use` are compared as plain data (objects, arrays, strings, finite numbers, booleans, `null` and `undefined`). Any other value, such as a `Set`, `Date`, `RegExp`, function, `NaN` or class instance, makes the module rebuild after a move, and its loader result is not cached. Such a value in the options of an array `use` also keeps the loader result out of the cache.
 
+Base64 detection includes short project roots. If a root is too short to detect at every base64 alignment (for example, `/`), Rspack conservatively binds all encoded entries to that root, so they rebuild when the root changes.
+
 **Example:**
 
 ```js title="rspack.config.mjs"
