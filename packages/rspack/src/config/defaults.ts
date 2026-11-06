@@ -248,7 +248,6 @@ const applyCacheDefaults = (
     newCacheMultiCompiler &&
     cache.name === undefined &&
     !cache.version &&
-    !cache.readonly &&
     cache.maxMemoryGenerations === undefined;
 
   F(cache, 'name', () => getDefaultCacheName(name, mode, compilerIndex));
