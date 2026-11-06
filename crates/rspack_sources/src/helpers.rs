@@ -2,7 +2,6 @@ use core::str;
 use std::{
   borrow::BorrowMut,
   cell::{OnceCell, RefCell},
-  sync::Arc,
 };
 
 use bytes_str::BytesStr;
@@ -14,7 +13,7 @@ use crate::{
   encoder::create_encoder,
   line_index::LineIndex,
   linear_map::LinearMap,
-  source::{Mapping, OriginalLocation},
+  source::{Mapping, OriginalLocation, shared_slice},
   source_content_lines::SourceContentLines,
 };
 
@@ -64,9 +63,9 @@ pub fn get_map<'a>(chunks: &dyn Chunks<'a>, options: &MapOptions) -> Option<Sour
     version: 3,
     file: None,
     mappings: mappings.into(),
-    sources: Arc::new(sources),
-    sources_content: Arc::new(sources_content),
-    names: Arc::new(names),
+    sources: shared_slice(sources),
+    sources_content: shared_slice(sources_content),
+    names: shared_slice(names),
     source_root: None,
     debug_id: None,
     ignore_list: None,
@@ -1413,9 +1412,9 @@ pub fn stream_and_get_source_and_map<'source, 'chunk>(
       version: 3,
       file: None,
       mappings: mappings.into(),
-      sources: Arc::new(sources),
-      sources_content: Arc::new(sources_content),
-      names: Arc::new(names),
+      sources: shared_slice(sources),
+      sources_content: shared_slice(sources_content),
+      names: shared_slice(names),
       source_root: None,
       debug_id: None,
       ignore_list: None,

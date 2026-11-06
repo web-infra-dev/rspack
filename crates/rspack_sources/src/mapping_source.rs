@@ -158,7 +158,7 @@ impl MappingSource {
   pub fn sources_content(&self) -> impl Iterator<Item = &str> {
     self
       .original_map()
-      .sources_content
+      .sources_content()
       .iter()
       .filter_map(Option::as_deref)
   }
@@ -416,7 +416,7 @@ impl MapData {
       visit(Part::String(file));
     }
     visit(Part::Raw(",\"sources\":["));
-    for (i, source) in map.sources.iter().enumerate() {
+    for (i, source) in map.sources().iter().enumerate() {
       if i != 0 {
         visit(Part::Raw(","));
       }
@@ -425,7 +425,7 @@ impl MapData {
     visit(Part::Raw("]"));
     if !is_all_none(&map.sources_content) {
       visit(Part::Raw(",\"sourcesContent\":["));
-      for (i, content) in map.sources_content.iter().enumerate() {
+      for (i, content) in map.sources_content().iter().enumerate() {
         if i != 0 {
           visit(Part::Raw(","));
         }
@@ -437,7 +437,7 @@ impl MapData {
       visit(Part::Raw("]"));
     }
     visit(Part::Raw(",\"names\":["));
-    for (i, name) in map.names.iter().enumerate() {
+    for (i, name) in map.names().iter().enumerate() {
       if i != 0 {
         visit(Part::Raw(","));
       }

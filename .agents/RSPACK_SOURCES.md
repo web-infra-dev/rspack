@@ -213,6 +213,9 @@ Source maps mainly come from parsed JSON or a `Source` graph. `SourceMap` owns U
   Source graph merely to keep strings alive.
 - all fields live directly in `SourceMap`, which derives `Serialize`. Clones and `as_borrowed`
   clone text/array handles; setters replace individual fields without copying unchanged text.
+  Immutable arrays use `ThinArc<(), T>`, with elements and metadata in one allocation. Builders
+  freeze their Vecs by moving handles; text bytes remain shared. Serialize and hash the slices,
+  preserving the array representation and excluding ThinArc's internal length/header from hashes.
 - `remove_sources_content` detaches remaining metadata, because a small shared JSON slice would
   otherwise keep the removed contents' allocation alive.
 

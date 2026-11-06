@@ -5755,6 +5755,7 @@ dependencies = [
  "simd-json",
  "simd-utf16-len",
  "static_assertions",
+ "triomphe",
  "twox-hash",
 ]
 

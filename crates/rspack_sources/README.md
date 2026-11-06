@@ -17,6 +17,8 @@ Convert an owned `String` with `.into()`
 to transfer its allocation, and use `BytesStr::from_str_slice` when an arbitrary borrowed string
 must be copied. Fields live directly in `SourceMap`; cloning shares text and array storage,
 and modifying a clone leaves other maps unchanged.
+Immutable field arrays use `ThinArc<(), T>` to keep their elements, length, and reference count
+in one allocation. Freezing a builder's `Vec` moves element handles without copying UTF-8 text.
 
 Maps no longer have a lifetime parameter or retain their generating Source graph. `OnSource`
 and `OnName` callbacks receive shared `BytesStr` values. A custom Source should keep its original
@@ -31,6 +33,8 @@ can keep that entire allocation alive.
 区分缺失内容与显式空字符串。对拥有的 `String` 使用 `.into()` 接管 allocation；
 需要复制任意借用字符串时使用 `BytesStr::from_str_slice`。字段直接保存在 `SourceMap` 中；
 克隆 map 共享文本和数组存储，修改克隆不会改变原 map。
+不可变字段数组使用 `ThinArc<(), T>`，把元素、长度和引用计数放在一次分配中。
+冻结构建过程的 `Vec` 时会搬移元素句柄，不复制 UTF-8 文本。
 
 map 不再带生命周期参数，也不通过 Source 图保活文本。`OnSource` 和 `OnName` 回调接收
 `BytesStr`；自定义 Source 应保存共享文本并在回调中克隆句柄。JSON 构造会共享输入中解码后的字段，

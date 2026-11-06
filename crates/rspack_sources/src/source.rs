@@ -8,8 +8,9 @@ use std::{
 
 use bytes::Bytes;
 use bytes_str::BytesStr;
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 use simd_json::{BorrowedValue, ErrorType, prelude::*};
+use triomphe::ThinArc;
 
 use crate::{
   ReplaceSource, Result,
@@ -290,8 +291,27 @@ impl MapOptions {
   }
 }
 
-pub(crate) fn is_all_none(val: &[Option<BytesStr>]) -> bool {
-  val.iter().all(Option::is_none)
+pub(crate) fn is_all_none(val: &ThinArc<(), Option<BytesStr>>) -> bool {
+  val.slice.iter().all(Option::is_none)
+}
+
+pub(crate) fn shared_slice<T>(items: Vec<T>) -> ThinArc<(), T> {
+  // Freeze the element handles together with the reference count and length.
+  ThinArc::from_header_and_iter((), items.into_iter())
+}
+
+fn serialize_shared_slice<T: Serialize, S: Serializer>(
+  value: &ThinArc<(), T>,
+  serializer: S,
+) -> std::result::Result<S::Ok, S::Error> {
+  value.slice.serialize(serializer)
+}
+
+fn serialize_ignore_list<S: Serializer>(
+  value: &Option<ThinArc<(), u32>>,
+  serializer: S,
+) -> std::result::Result<S::Ok, S::Error> {
+  value.as_ref().map(|list| &list.slice).serialize(serializer)
 }
 
 /// A source map owning shared UTF-8 text independently of its generating Source.
@@ -301,17 +321,27 @@ pub struct SourceMap {
   pub(crate) version: u8,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub(crate) file: Option<BytesStr>,
-  pub(crate) sources: Arc<Vec<BytesStr>>,
-  #[serde(rename = "sourcesContent", skip_serializing_if = "is_all_none")]
-  pub(crate) sources_content: Arc<Vec<Option<BytesStr>>>,
-  pub(crate) names: Arc<Vec<BytesStr>>,
+  #[serde(serialize_with = "serialize_shared_slice")]
+  pub(crate) sources: ThinArc<(), BytesStr>,
+  #[serde(
+    rename = "sourcesContent",
+    skip_serializing_if = "is_all_none",
+    serialize_with = "serialize_shared_slice"
+  )]
+  pub(crate) sources_content: ThinArc<(), Option<BytesStr>>,
+  #[serde(serialize_with = "serialize_shared_slice")]
+  pub(crate) names: ThinArc<(), BytesStr>,
   pub(crate) mappings: BytesStr,
   #[serde(rename = "sourceRoot", skip_serializing_if = "Option::is_none")]
   pub(crate) source_root: Option<BytesStr>,
   #[serde(rename = "debugId", skip_serializing_if = "Option::is_none")]
   pub(crate) debug_id: Option<BytesStr>,
-  #[serde(rename = "ignoreList", skip_serializing_if = "Option::is_none")]
-  pub(crate) ignore_list: Option<Arc<Vec<u32>>>,
+  #[serde(
+    rename = "ignoreList",
+    skip_serializing_if = "Option::is_none",
+    serialize_with = "serialize_ignore_list"
+  )]
+  pub(crate) ignore_list: Option<ThinArc<(), u32>>,
 }
 
 impl SourceMap {
@@ -331,9 +361,9 @@ impl SourceMap {
       version: 3,
       file: None,
       mappings,
-      sources: Arc::new(sources),
-      sources_content: Arc::new(sources_content),
-      names: Arc::new(names),
+      sources: shared_slice(sources),
+      sources_content: shared_slice(sources_content),
+      names: shared_slice(names),
       source_root: None,
       debug_id: None,
       ignore_list: None,
@@ -398,11 +428,11 @@ impl SourceMap {
   }
   /// Get the ignoreList field.
   pub fn ignore_list(&self) -> Option<&[u32]> {
-    self.ignore_list.as_ref().map(|list| list.as_slice())
+    self.ignore_list.as_ref().map(|list| &list.slice)
   }
   /// Set the ignoreList field.
   pub fn set_ignore_list(&mut self, ignore_list: Option<Cow<'_, [u32]>>) {
-    self.ignore_list = ignore_list.map(|list| Arc::new(list.into_owned()));
+    self.ignore_list = ignore_list.map(|list| shared_slice(list.into_owned()));
   }
   /// Get the decoded mappings.
   pub fn decoded_mappings(&self) -> impl Iterator<Item = Mapping> + '_ {
@@ -414,51 +444,51 @@ impl SourceMap {
   }
   /// Get the shared source names.
   pub fn sources(&self) -> &[BytesStr] {
-    &self.sources
+    &self.sources.slice
   }
   /// Set the shared source names.
   pub fn set_sources<T: Into<BytesStr>>(&mut self, sources: impl IntoIterator<Item = T>) {
-    self.sources = Arc::new(sources.into_iter().map(Into::into).collect());
+    self.sources = shared_slice(sources.into_iter().map(Into::into).collect());
   }
   /// Get a source name by index.
   pub fn get_source(&self, index: usize) -> Option<&str> {
-    self.sources.get(index).map(BytesStr::as_str)
+    self.sources().get(index).map(BytesStr::as_str)
   }
   /// Get the shared source contents. Missing content is None; empty text is Some("").
   pub fn sources_content(&self) -> &[Option<BytesStr>] {
-    &self.sources_content
+    &self.sources_content.slice
   }
   /// Set the shared source contents.
   pub fn set_sources_content(&mut self, sources_content: Vec<Option<BytesStr>>) {
-    self.sources_content = Arc::new(sources_content);
+    self.sources_content = shared_slice(sources_content);
   }
   /// Remove source contents and detach metadata from their backing allocations.
   #[doc(hidden)]
   pub fn remove_sources_content(&mut self) {
-    self.sources_content = Arc::new(Vec::new());
+    self.sources_content = shared_slice(Vec::new());
     let detach = |text: &BytesStr| BytesStr::from_string(text.to_string());
     self.file = self.file.as_ref().map(detach);
-    self.sources = Arc::new(self.sources.iter().map(detach).collect());
-    self.names = Arc::new(self.names.iter().map(detach).collect());
+    self.sources = shared_slice(self.sources().iter().map(detach).collect());
+    self.names = shared_slice(self.names().iter().map(detach).collect());
     self.mappings = detach(&self.mappings);
     self.source_root = self.source_root.as_ref().map(detach);
     self.debug_id = self.debug_id.as_ref().map(detach);
   }
   /// Get shared source content by index.
   pub fn get_source_content(&self, index: usize) -> Option<&BytesStr> {
-    self.sources_content.get(index).and_then(Option::as_ref)
+    self.sources_content().get(index).and_then(Option::as_ref)
   }
   /// Get the shared names.
   pub fn names(&self) -> &[BytesStr] {
-    &self.names
+    &self.names.slice
   }
   /// Get a name by index.
   pub fn get_name(&self, index: usize) -> Option<&str> {
-    self.names.get(index).map(BytesStr::as_str)
+    self.names().get(index).map(BytesStr::as_str)
   }
   /// Set the shared names.
   pub fn set_names<T: Into<BytesStr>>(&mut self, names: impl IntoIterator<Item = T>) {
-    self.names = Arc::new(names.into_iter().map(Into::into).collect());
+    self.names = shared_slice(names.into_iter().map(Into::into).collect());
   }
   /// Get the source root.
   pub fn source_root(&self) -> Option<&str> {
@@ -498,20 +528,25 @@ impl SourceMap {
 
     // sources array: each element needs quotes + comma + potential escaping
     // ["src/a.js","src/b.js"] = 2 + (len + 3) * count - 1
-    let sources_len: usize = self.sources.iter().map(|s| s.len()).sum();
-    size += 2 + sources_len + self.sources.len() * 3;
+    let sources_len: usize = self.sources().iter().map(|s| s.len()).sum();
+    size += 2 + sources_len + self.sources().len() * 3;
 
     // sourcesContent array
-    if !self.sources_content.is_empty() {
-      let content_len: usize = self.sources_content.iter().flatten().map(|c| c.len()).sum();
+    if !self.sources_content().is_empty() {
+      let content_len: usize = self
+        .sources_content()
+        .iter()
+        .flatten()
+        .map(|c| c.len())
+        .sum();
       // Source content often contains special characters that need escaping
       // Estimate 10% escaping overhead for source content
-      size += 19 + content_len + (content_len / 10) + self.sources_content.len() * 5;
+      size += 19 + content_len + (content_len / 10) + self.sources_content().len() * 5;
     }
 
     // names array
-    let names_len: usize = self.names.iter().map(|n| n.len()).sum();
-    size += 2 + names_len + self.names.len() * 3;
+    let names_len: usize = self.names().iter().map(|n| n.len()).sum();
+    size += 2 + names_len + self.names().len() * 3;
 
     // mappings string (usually the largest part)
     // VLQ mappings rarely need escaping, add small overhead
@@ -528,7 +563,7 @@ impl SourceMap {
     }
 
     // ignoreList field: [0,1,2] - numbers as strings
-    if let Some(ignore_list) = &self.ignore_list {
+    if let Some(ignore_list) = self.ignore_list() {
       // "ignoreList":[]
       size += 14;
       // Each number: up to 10 digits + comma
@@ -572,11 +607,11 @@ impl Hash for SourceMap {
   fn hash<H: Hasher>(&self, state: &mut H) {
     self.file.hash(state);
     self.mappings.hash(state);
-    self.sources.hash(state);
-    self.sources_content.hash(state);
-    self.names.hash(state);
+    self.sources().hash(state);
+    self.sources_content().hash(state);
+    self.names().hash(state);
     self.source_root.hash(state);
-    self.ignore_list.hash(state);
+    self.ignore_list().hash(state);
   }
 }
 
@@ -601,13 +636,13 @@ fn deserialize_source_map_tape(
   Ok(SourceMap {
     version: 3,
     file: optional_tape_string(file, storage)?,
-    sources: Arc::new(optional_tape_strings(sources, storage)?),
-    sources_content: Arc::new(optional_tape_source_contents(sources_content, storage)?),
-    names: Arc::new(optional_tape_strings(names, storage)?),
+    sources: shared_slice(optional_tape_strings(sources, storage)?),
+    sources_content: shared_slice(optional_tape_source_contents(sources_content, storage)?),
+    names: shared_slice(optional_tape_strings(names, storage)?),
     mappings,
     source_root: optional_tape_string(source_root, storage)?,
     debug_id: optional_tape_string(debug_id, storage)?,
-    ignore_list: optional_tape_u32s(ignore_list)?.map(Arc::new),
+    ignore_list: optional_tape_u32s(ignore_list)?.map(shared_slice),
   })
 }
 
@@ -689,17 +724,17 @@ fn deserialize_source_map(value: &BorrowedValue<'_>, storage: &Bytes) -> Result<
   Ok(SourceMap {
     version: 3,
     file: optional_string_field(object, "file")?.map(text),
-    sources: Arc::new(optional_string_array_field(object, "sources", storage)?),
-    sources_content: Arc::new(optional_source_contents_field(
+    sources: shared_slice(optional_string_array_field(object, "sources", storage)?),
+    sources_content: shared_slice(optional_source_contents_field(
       object,
       "sourcesContent",
       storage,
     )?),
-    names: Arc::new(optional_string_array_field(object, "names", storage)?),
+    names: shared_slice(optional_string_array_field(object, "names", storage)?),
     mappings: text(mappings),
     source_root: optional_string_field(object, "sourceRoot")?.map(text),
     debug_id: optional_string_field(object, "debugId")?.map(text),
-    ignore_list: optional_u32_array_field(object, "ignoreList")?.map(Arc::new),
+    ignore_list: optional_u32_array_field(object, "ignoreList")?.map(shared_slice),
   })
 }
 

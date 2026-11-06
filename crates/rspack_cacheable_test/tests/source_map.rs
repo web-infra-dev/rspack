@@ -124,11 +124,20 @@ fn shared_fields_preserve_text_hashing() {
   let borrowed = shared.as_borrowed();
   assert_eq!(shared, borrowed);
   assert_eq!(hash(&shared), hash(&borrowed));
+  assert_eq!(shared.sources().as_ptr(), borrowed.sources().as_ptr());
+  assert_eq!(
+    shared.sources_content().as_ptr(),
+    borrowed.sources_content().as_ptr()
+  );
+  assert_eq!(shared.names().as_ptr(), borrowed.names().as_ptr());
+  assert_eq!(
+    shared.ignore_list().unwrap().as_ptr(),
+    borrowed.ignore_list().unwrap().as_ptr()
+  );
   assert_eq!(
     hash(&shared.sources()[0]),
     hash(&Cow::Borrowed("src/你好.js"))
   );
-  drop(borrowed);
   shared.set_sources(vec!["new.js"]);
   shared.set_sources_content(vec![Some("new contents".into())]);
   shared.set_names(vec!["new_name"]);
@@ -140,6 +149,9 @@ fn shared_fields_preserve_text_hashing() {
   );
   assert_eq!(shared.get_name(0), Some("new_name"));
   assert_eq!(shared.file(), Some("new.map"));
+  assert_eq!(borrowed.get_source(0), Some("src/你好.js"));
+  assert_eq!(borrowed.get_name(0), Some("alpha"));
+  assert_eq!(borrowed.file(), Some("out.js"));
 }
 
 #[test]

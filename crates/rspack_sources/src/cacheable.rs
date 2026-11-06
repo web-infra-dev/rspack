@@ -4,7 +4,7 @@
 use crate::{
   BoxSource, CachedSource, ConcatSource, MappingSource, OriginalSource, RawBufferSource,
   RawStringSource, ReplaceSource, ReplacementEnforce, Source, SourceExt, SourceMap,
-  SourceMapSource, SourceMapSourceOptions, mapping_source::Data,
+  SourceMapSource, SourceMapSourceOptions, mapping_source::Data, source::shared_slice,
 };
 
 /// Source map fields stored without an intermediate JSON representation.
@@ -26,17 +26,17 @@ impl From<&SourceMap> for CacheableSourceMap {
     Self {
       version: map.version,
       file: map.file.as_deref().map(str::to_owned),
-      sources: map.sources.iter().map(ToString::to_string).collect(),
+      sources: map.sources().iter().map(ToString::to_string).collect(),
       sources_content: map
-        .sources_content
+        .sources_content()
         .iter()
         .map(|content| content.as_deref().map(str::to_owned))
         .collect(),
-      names: map.names.iter().map(ToString::to_string).collect(),
+      names: map.names().iter().map(ToString::to_string).collect(),
       mappings: map.mappings.to_string(),
       source_root: map.source_root.as_deref().map(str::to_owned),
       debug_id: map.debug_id.as_deref().map(str::to_owned),
-      ignore_list: map.ignore_list.as_ref().map(|list| list.as_ref().clone()),
+      ignore_list: map.ignore_list().map(<[u32]>::to_vec),
     }
   }
 }
@@ -46,28 +46,19 @@ impl From<CacheableSourceMap> for SourceMap {
     SourceMap {
       version: map.version,
       file: map.file.map(Into::into),
-      sources: map
-        .sources
-        .into_iter()
-        .map(Into::into)
-        .collect::<Vec<_>>()
-        .into(),
-      sources_content: map
-        .sources_content
-        .into_iter()
-        .map(|content| content.map(Into::into))
-        .collect::<Vec<_>>()
-        .into(),
-      names: map
-        .names
-        .into_iter()
-        .map(Into::into)
-        .collect::<Vec<_>>()
-        .into(),
+      sources: shared_slice(map.sources.into_iter().map(Into::into).collect()),
+      sources_content: shared_slice(
+        map
+          .sources_content
+          .into_iter()
+          .map(|content| content.map(Into::into))
+          .collect(),
+      ),
+      names: shared_slice(map.names.into_iter().map(Into::into).collect()),
       mappings: map.mappings.into(),
       source_root: map.source_root.map(Into::into),
       debug_id: map.debug_id.map(Into::into),
-      ignore_list: map.ignore_list.map(Into::into),
+      ignore_list: map.ignore_list.map(shared_slice),
     }
   }
 }
