@@ -2,7 +2,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsCacheable, AsOption, AsPreset, AsTuple2, AsVec},
 };
-use rspack_sources::{BoxSource, RawStringSource, SourceExt, SourceMapCodeSource};
+use rspack_sources::{BoxSource, DevToolCodeSource, RawStringSource, SourceExt};
 
 use crate::{AssetInfo, CompilationAsset};
 
@@ -68,7 +68,7 @@ impl CachedSourceMapDevToolPluginEntry {
         RawStringSource::from(suffix).boxed()
       }
     };
-    let source = SourceMapCodeSource::new(source, suffix).boxed();
+    let source = DevToolCodeSource::new(source, suffix).boxed();
 
     let source_asset = CompilationAsset::new(Some(source), (*asset.info).clone());
     let source_map = self.source_map.as_ref().map(|(filename, source)| {

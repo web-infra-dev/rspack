@@ -19,6 +19,8 @@ mod cached_source;
 mod concat_source;
 mod content;
 mod decoder;
+mod dev_tool_code_source;
+mod dev_tool_map_source;
 mod encoder;
 mod error;
 mod helpers;
@@ -29,8 +31,6 @@ mod raw_source;
 mod replace_source;
 mod source;
 mod source_content_lines;
-mod source_map_code_source;
-mod source_map_mapping_source;
 mod source_map_source;
 
 /// Feature for rspack persistent cache serialization/deserialization.
@@ -40,6 +40,8 @@ pub mod cacheable;
 pub use cached_source::CachedSource;
 pub use concat_source::ConcatSource;
 pub use content::{is_source_map_text, source_content_eq, update_text_content_hash};
+pub use dev_tool_code_source::DevToolCodeSource;
+pub use dev_tool_map_source::DevToolMapSource;
 pub use error::{Error, Result};
 pub use original_source::OriginalSource;
 pub use raw_source::{RawBufferSource, RawStringSource};
@@ -48,8 +50,6 @@ pub(crate) use source::SourceMapFields;
 pub use source::{
   BoxSource, MapOptions, Mapping, OriginalLocation, Source, SourceExt, SourceMap, SourceValue,
 };
-pub use source_map_code_source::SourceMapCodeSource;
-pub use source_map_mapping_source::SourceMapMappingSource;
 pub use source_map_source::{SourceMapSource, SourceMapSourceOptions, WithoutOriginalOptions};
 
 /// Reexport `StreamChunks` related types.

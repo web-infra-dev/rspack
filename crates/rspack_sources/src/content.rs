@@ -4,18 +4,18 @@ use std::{
 };
 
 use crate::{
-  CachedSource, ConcatSource, ReplaceSource, Replacement, Source, SourceMapCodeSource,
-  SourceMapMappingSource, source_map_code_source::has_utf8_text,
+  CachedSource, ConcatSource, DevToolCodeSource, DevToolMapSource, ReplaceSource, Replacement,
+  Source, dev_tool_code_source::has_utf8_text,
 };
 
 /// Whether this is a text devtool asset, possibly behind edit/cache wrappers.
 /// Other source graphs retain their existing content and equality semantics.
 pub fn is_source_map_text(source: &dyn Source) -> bool {
   let any = source.as_any();
-  if any.is::<SourceMapMappingSource>() {
+  if any.is::<DevToolMapSource>() {
     return true;
   }
-  if let Some(code) = any.downcast_ref::<SourceMapCodeSource>() {
+  if let Some(code) = any.downcast_ref::<DevToolCodeSource>() {
     return code.is_text();
   }
   if let Some(source) = any.downcast_ref::<ReplaceSource>() {
@@ -70,10 +70,10 @@ type TextChunks<'a> = Box<dyn Iterator<Item = &'a str> + 'a>;
 
 fn text_chunks(source: &dyn Source) -> TextChunks<'_> {
   let any = source.as_any();
-  if let Some(map) = any.downcast_ref::<SourceMapMappingSource>() {
+  if let Some(map) = any.downcast_ref::<DevToolMapSource>() {
     return Box::new(map.json_chunks_iter());
   }
-  if let Some(code) = any.downcast_ref::<SourceMapCodeSource>() {
+  if let Some(code) = any.downcast_ref::<DevToolCodeSource>() {
     return Box::new(text_chunks(code.inner().as_ref()).chain(text_chunks(code.suffix().as_ref())));
   }
   if let Some(source) = any.downcast_ref::<CachedSource>() {

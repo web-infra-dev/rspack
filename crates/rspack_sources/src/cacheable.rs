@@ -2,9 +2,9 @@
 #![allow(missing_docs)]
 
 use crate::{
-  BoxSource, CachedSource, ConcatSource, OriginalSource, RawBufferSource, RawStringSource,
-  ReplaceSource, ReplacementEnforce, Source, SourceExt, SourceMap, SourceMapCodeSource,
-  SourceMapFields, SourceMapMappingSource, SourceMapSource, SourceMapSourceOptions,
+  BoxSource, CachedSource, ConcatSource, DevToolCodeSource, DevToolMapSource, OriginalSource,
+  RawBufferSource, RawStringSource, ReplaceSource, ReplacementEnforce, Source, SourceExt,
+  SourceMap, SourceMapFields, SourceMapSource, SourceMapSourceOptions,
 };
 
 /// Source map fields stored without an intermediate JSON representation.
@@ -152,13 +152,13 @@ pub enum CacheableSource {
     #[rkyv(omit_bounds)]
     inner: Box<CacheableSource>,
   },
-  /// [`SourceMapMappingSource`], preserving every field, including omitted empty arrays.
-  Mapping {
+  /// [`DevToolMapSource`], preserving every field, including omitted empty arrays.
+  DevToolMap {
     /// Keep map metadata from enlarging every cached source node.
     map: Box<CacheableSourceMap>,
   },
-  /// Code whose source map is emitted separately.
-  SourceMapCode {
+  /// [`DevToolCodeSource`], preserving the shared code and appended comment.
+  DevToolCode {
     #[rkyv(omit_bounds)]
     inner: Box<CacheableSource>,
     suffix: String,
@@ -167,13 +167,13 @@ pub enum CacheableSource {
 
 /// Convert a [`Source`] trait object into a serializable [`CacheableSource`].
 pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
-  if let Some(s) = source.as_any().downcast_ref::<SourceMapMappingSource>() {
-    return CacheableSource::Mapping {
+  if let Some(s) = source.as_any().downcast_ref::<DevToolMapSource>() {
+    return CacheableSource::DevToolMap {
       map: Box::new(s.original_map().into()),
     };
   }
-  if let Some(s) = source.as_any().downcast_ref::<SourceMapCodeSource>() {
-    return CacheableSource::SourceMapCode {
+  if let Some(s) = source.as_any().downcast_ref::<DevToolCodeSource>() {
+    return CacheableSource::DevToolCode {
       inner: Box::new(to_cacheable(s.inner().as_ref())),
       suffix: s.suffix().source().into_string_lossy().into_owned(),
     };
@@ -254,8 +254,8 @@ pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
 /// Convert a [`CacheableSource`] back into a [`BoxSource`].
 pub fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
   match cacheable {
-    CacheableSource::Mapping { map } => SourceMapMappingSource::new((*map).into()).boxed(),
-    CacheableSource::SourceMapCode { inner, suffix } => SourceMapCodeSource::new(
+    CacheableSource::DevToolMap { map } => DevToolMapSource::new((*map).into()).boxed(),
+    CacheableSource::DevToolCode { inner, suffix } => DevToolCodeSource::new(
       from_cacheable(*inner),
       RawStringSource::from(suffix).boxed(),
     )

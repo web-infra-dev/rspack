@@ -6,23 +6,23 @@ use std::{
 };
 
 use crate::{
-  BoxSource, CachedSource, ConcatSource, MapOptions, OriginalSource, RawBufferSource,
-  RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapMappingSource,
-  SourceMapSource, SourceValue,
+  BoxSource, CachedSource, ConcatSource, DevToolMapSource, MapOptions, OriginalSource,
+  RawBufferSource, RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
+  SourceValue,
   helpers::{Chunks, GeneratedInfo, StreamChunks, stream_chunks_of_raw_rope},
 };
 
-/// Generated code whose map has been emitted separately, with an optional
+/// Generated code emitted by DevTool, with an optional
 /// rendered sourceMappingURL/debugId suffix. Clones share both code and suffix.
 /// No complete rendered string is retained by this wrapper.
 #[derive(Clone)]
 #[cfg_attr(feature = "allocative", derive(rspack_allocative::Allocative))]
-pub struct SourceMapCodeSource {
+pub struct DevToolCodeSource {
   inner: BoxSource,
   suffix: BoxSource,
 }
 
-impl SourceMapCodeSource {
+impl DevToolCodeSource {
   /// Keep ordinary UTF-8 graphs shared. Devtool previously normalized through
   /// source(), so unknown and mixed binary/text graphs retain that boundary.
   pub fn new(inner: BoxSource, suffix: BoxSource) -> Self {
@@ -67,7 +67,7 @@ impl SourceMapCodeSource {
   }
 }
 
-impl Source for SourceMapCodeSource {
+impl Source for DevToolCodeSource {
   fn source(&self) -> SourceValue<'_> {
     if self.suffix.size() == 0 {
       return self.inner.source();
@@ -113,31 +113,31 @@ impl Source for SourceMapCodeSource {
   }
 }
 
-impl Hash for SourceMapCodeSource {
+impl Hash for DevToolCodeSource {
   fn hash<H: Hasher>(&self, state: &mut H) {
-    "SourceMapCodeSource".hash(state);
+    "DevToolCodeSource".hash(state);
     self.inner.as_ref().hash(state);
     self.suffix.as_ref().hash(state);
   }
 }
 
-impl PartialEq for SourceMapCodeSource {
+impl PartialEq for DevToolCodeSource {
   fn eq(&self, other: &Self) -> bool {
     self.inner.as_ref() == other.inner.as_ref() && self.suffix.as_ref() == other.suffix.as_ref()
   }
 }
-impl Eq for SourceMapCodeSource {}
+impl Eq for DevToolCodeSource {}
 
-impl std::fmt::Debug for SourceMapCodeSource {
+impl std::fmt::Debug for DevToolCodeSource {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("SourceMapCodeSource")
+    f.debug_struct("DevToolCodeSource")
       .field("inner", &self.inner)
       .field("suffix", &self.suffix)
       .finish()
   }
 }
 
-struct CodeChunks<'a>(&'a SourceMapCodeSource);
+struct CodeChunks<'a>(&'a DevToolCodeSource);
 impl<'source> Chunks<'source> for CodeChunks<'source> {
   fn stream<'chunk>(
     &'chunk self,
@@ -149,7 +149,7 @@ impl<'source> Chunks<'source> for CodeChunks<'source> {
     stream_chunks_of_raw_rope(self.0, options, on_chunk)
   }
 }
-impl StreamChunks for SourceMapCodeSource {
+impl StreamChunks for DevToolCodeSource {
   fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a> {
     Box::new(CodeChunks(self))
   }
@@ -160,14 +160,14 @@ pub(crate) fn has_utf8_text(source: &dyn Source) -> bool {
   if any.is::<RawStringSource>()
     || any.is::<OriginalSource>()
     || any.is::<SourceMapSource>()
-    || any.is::<SourceMapMappingSource>()
+    || any.is::<DevToolMapSource>()
   {
     return true;
   }
   if let Some(source) = any.downcast_ref::<RawBufferSource>() {
     return std::str::from_utf8(&source.buffer()).is_ok();
   }
-  if let Some(source) = any.downcast_ref::<SourceMapCodeSource>() {
+  if let Some(source) = any.downcast_ref::<DevToolCodeSource>() {
     return source.is_text();
   }
   if let Some(source) = any.downcast_ref::<CachedSource>() {
