@@ -31,6 +31,7 @@ pub enum RootBinding {
 struct RootPatterns {
   hash: u64,
   finders: Vec<Finder<'static>>,
+  bind_all: bool,
 }
 
 /// Internal cacheable context for serialization
@@ -80,9 +81,14 @@ impl CacheCodec {
       let mut hasher = FxHasher::default();
       portable_root.canonical_root.as_str().hash(&mut hasher);
       portable_root.root.as_str().hash(&mut hasher);
+      let mut bind_all = false;
       let mut patterns: Vec<Vec<u8>> = [&portable_root.root, &portable_root.canonical_root]
         .into_iter()
-        .flat_map(|root| root_patterns(root.as_str()))
+        .flat_map(|root| {
+          let patterns = root_patterns(root.as_str());
+          bind_all |= patterns.bind_all;
+          patterns.patterns
+        })
         .collect();
       patterns.sort_unstable();
       patterns.dedup();
@@ -92,6 +98,7 @@ impl CacheCodec {
           .iter()
           .map(|pattern| Finder::new(pattern).into_owned())
           .collect(),
+        bind_all,
       })
     });
     Self {
@@ -167,6 +174,7 @@ impl CacheCodec {
     let (bytes, outside) =
       to_bytes_with_binding(data, &self.context).map_err(rspack_error::Error::from_error)?;
     let binding = if outside
+      || patterns.bind_all
       || patterns
         .finders
         .iter()
