@@ -42,26 +42,35 @@ export default defineConfig({
   },
   plugins: [
     definePlugin(function () {
-      this.hooks.compilation.tap('NamedResidualDisjointChunks', (compilation) => {
-        compilation.hooks.afterSeal.tap('NamedResidualDisjointChunks', () => {
-          const files = (chunk: Chunk) =>
-            Array.from(compilation.chunkGraph.getChunkModulesIterable(chunk))
-              .map((module) =>
-                module.nameForCondition()?.replaceAll('\\', '/').split('/').pop(),
-              )
-              .sort();
-          const chunksWith = (file: string) =>
-            Array.from(compilation.chunks)
-              .map(files)
-              .filter((chunkFiles) => chunkFiles.includes(file));
-          const routes = Array.from(compilation.chunks).find((chunk) => chunk.name === 'routes');
-          expect(routes).toBeDefined();
-          expect(files(routes!)).toEqual(['y.js', 'z.js']);
-          expect(chunksWith('y.js')).toEqual([['y.js', 'z.js']]);
-          expect(chunksWith('z.js')).toEqual([['y.js', 'z.js']]);
-          expect(chunksWith('x.js')).toEqual([['x.js']]);
-        });
-      });
+      this.hooks.compilation.tap(
+        'NamedResidualDisjointChunks',
+        (compilation) => {
+          compilation.hooks.afterSeal.tap('NamedResidualDisjointChunks', () => {
+            const files = (chunk: Chunk) =>
+              Array.from(compilation.chunkGraph.getChunkModulesIterable(chunk))
+                .map((module) =>
+                  module
+                    .nameForCondition()
+                    ?.replaceAll('\\', '/')
+                    .split('/')
+                    .pop(),
+                )
+                .sort();
+            const chunksWith = (file: string) =>
+              Array.from(compilation.chunks)
+                .map(files)
+                .filter((chunkFiles) => chunkFiles.includes(file));
+            const routes = Array.from(compilation.chunks).find(
+              (chunk) => chunk.name === 'routes',
+            );
+            expect(routes).toBeDefined();
+            expect(files(routes!)).toEqual(['y.js', 'z.js']);
+            expect(chunksWith('y.js')).toEqual([['y.js', 'z.js']]);
+            expect(chunksWith('z.js')).toEqual([['y.js', 'z.js']]);
+            expect(chunksWith('x.js')).toEqual([['x.js']]);
+          });
+        },
+      );
     }),
   ],
 });

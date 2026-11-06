@@ -83,12 +83,19 @@ function createConfig(
             );
 
             expect(reusableChunk).toBeDefined();
-            const utilChunk = expectSingleCopy ? samePriorityChunk : lowerPriorityChunk;
+            const utilChunk = expectSingleCopy
+              ? samePriorityChunk
+              : lowerPriorityChunk;
             expect(utilChunk).toBeDefined();
-            expect(expectSingleCopy ? lowerPriorityChunk : samePriorityChunk).toBeNull();
+            expect(
+              expectSingleCopy ? lowerPriorityChunk : samePriorityChunk,
+            ).toBeNull();
             expect(utilChunks).toContain(utilChunk);
             expect(
-              Array.from(utilChunk!.groupsIterable, (group) => group.name).sort(),
+              Array.from(
+                utilChunk!.groupsIterable,
+                (group) => group.name,
+              ).sort(),
             ).toEqual(expectSingleCopy ? ['Foo', 'ReusableUtil'] : ['Foo']);
             if (expectSingleCopy) {
               expect(utilChunks).toHaveLength(1);
