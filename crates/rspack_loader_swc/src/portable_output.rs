@@ -14,12 +14,14 @@ use rspack_javascript_compiler::transform::{
 };
 use rspack_loader_runner::LoaderContext;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rustc_hash::FxHashSet;
 use serde_json::{Map, Value};
 use swc_core::{
   base::config::InputSourceMap,
   common::FileName,
   ecma::{
-    ast::{JSXText, Program, Str, TplElement},
+    ast::{BigInt, Bool, JSXText, Null, Number, Program, Regex, Str, TplElement, TsEnumMember},
+    utils::number::ToJsString,
     visit::{Visit, VisitWith},
   },
 };
@@ -133,40 +135,122 @@ impl InputSourceMapAcquisition {
   }
 }
 
+const NUMBER_TEXT: [&str; 16] = [
+  "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "-", "+", "e", "Infinity", "NaN",
+];
+
 /// Only SWC-generated filename literals belong to this invocation's declaration. An authored
-/// value equal to the resource must stay fixed when a checkout moves, including escaped input.
-pub(crate) fn input_has_resource_path(program: &Program, resource: &str) -> bool {
-  let mut visitor = InputResourcePath {
+/// value equal to the resource must stay fixed when a checkout moves, and transforms can build
+/// that value from several literals. So the question covers every concatenation of literal text
+/// rather than each transform that concatenates.
+pub(crate) fn input_can_spell_resource_path(program: &Program, resource: &str) -> bool {
+  let mut visitor = ResourceFragments {
     resource,
-    found: false,
+    fragments: FxHashSet::default(),
+    declined: false,
   };
   program.visit_with(&mut visitor);
-  visitor.found
+  visitor.declined || visitor.spell_resource()
 }
 
-struct InputResourcePath<'a> {
+struct ResourceFragments<'a> {
   resource: &'a str,
-  found: bool,
+  /// Literal text occurring in the resource, as slices of it because a visitor can't keep AST
+  /// borrows.
+  fragments: FxHashSet<&'a str>,
+  declined: bool,
 }
 
-impl Visit for InputResourcePath<'_> {
+impl ResourceFragments<'_> {
+  fn add(&mut self, text: &str) {
+    if !text.is_empty()
+      && let Some(start) = self.resource.find(text)
+    {
+      self
+        .fragments
+        .insert(&self.resource[start..start + text.len()]);
+    }
+  }
+
+  fn add_cooked(&mut self, text: Option<&str>) {
+    match text {
+      Some(text) => self.add(text),
+      // Two lone surrogates join into one astral character, which no byte offset can split.
+      None => self.declined = true,
+    }
+  }
+
+  fn spell_resource(&self) -> bool {
+    let mut reachable = vec![false; self.resource.len() + 1];
+    reachable[0] = true;
+    for start in 0..self.resource.len() {
+      if reachable[start] {
+        for fragment in &self.fragments {
+          if self.resource[start..].starts_with(fragment) {
+            reachable[start + fragment.len()] = true;
+          }
+        }
+      }
+    }
+    reachable[self.resource.len()]
+  }
+}
+
+impl Visit for ResourceFragments<'_> {
   fn visit_str(&mut self, literal: &Str) {
     // This includes JSX attributes, whose entities have already been decoded by the parser.
-    self.found |= literal.value.as_str() == Some(self.resource);
+    self.add_cooked(literal.value.as_str());
   }
 
   fn visit_tpl_element(&mut self, element: &TplElement) {
     // Downlevel tagged templates also emit an array of raw strings.
-    self.found |= element.raw.as_str() == self.resource
-      || element
-        .cooked
-        .as_ref()
-        .is_some_and(|value| value.as_str() == Some(self.resource));
+    self.add(element.raw.as_str());
+    if let Some(cooked) = &element.cooked {
+      self.add_cooked(cooked.as_str());
+    }
+  }
+
+  fn visit_number(&mut self, literal: &Number) {
+    if let Some(raw) = &literal.raw {
+      self.add(raw.as_str());
+    }
+    self.add(&literal.value.to_js_string());
+  }
+
+  fn visit_big_int(&mut self, literal: &BigInt) {
+    if let Some(raw) = &literal.raw {
+      self.add(raw.as_str());
+    }
+    self.add(&literal.value.to_string());
+  }
+
+  fn visit_bool(&mut self, literal: &Bool) {
+    self.add(if literal.value { "true" } else { "false" });
+  }
+
+  fn visit_null(&mut self, _literal: &Null) {
+    self.add("null");
+  }
+
+  fn visit_regex(&mut self, literal: &Regex) {
+    // A sticky regex lowers to `new RegExp("pattern")`. A Windows path can be a valid pattern.
+    self.add(literal.exp.as_str());
+  }
+
+  fn visit_ts_enum_member(&mut self, member: &TsEnumMember) {
+    // The enum evaluator prints computed numbers into strings, including arithmetic results and
+    // auto-incremented members that appear in no literal.
+    if member.init.as_deref().is_some_and(|init| !init.is_lit()) {
+      for text in NUMBER_TEXT {
+        self.add(text);
+      }
+    }
+    member.visit_children_with(self);
   }
 
   fn visit_jsx_text(&mut self, text: &JSXText) {
     // JSX text additionally normalizes whitespace. Conservatively decline path-shaped text.
-    self.found |= text.value.to_string_lossy().contains(['/', '\\']);
+    self.declined |= text.value.to_string_lossy().contains(['/', '\\']);
   }
 }
 
