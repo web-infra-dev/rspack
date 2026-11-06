@@ -205,6 +205,7 @@ impl Task<TaskContext> for FactorizeResultTask {
     let module_identifier = module.identifier();
     let mut mgm = ModuleGraphModule::new(module.identifier());
     mgm.set_issuer_if_unset(original_module_identifier);
+    mgm.set_producer(original_module_identifier);
 
     tracing::trace!("Module created: {}", &module_identifier);
 

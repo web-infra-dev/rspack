@@ -58,6 +58,7 @@ impl Occasion for MakeOccasion {
       check_issuer_cycles: _,
       refactorize_dependencies: _,
       verify_factory_decisions: _,
+      factory_choices: _,
       entry_dependencies: _,
       file_dependencies: _,
       context_dependencies: _,
@@ -150,6 +151,7 @@ impl Occasion for MakeOccasion {
       verify_factory_decisions: (self.codec.is_portable()
         && is_relocated(storage, &self.codec).await?)
         .then(FxHashSet::default),
+      factory_choices: Default::default(),
 
       side_effects_state_artifact: Default::default(),
       module_graph: mg,

@@ -46,6 +46,11 @@ pub struct ModuleGraphModule {
   incoming_connections: FxHashSet<ModuleGraphConnectionId>,
 
   issuer: ModuleIssuer,
+  // The parent of the factory group that produced this build, `None` for an entry. `fix_issuers`
+  // rewrites the issuer after a forced rebuild, so only this field tells which group decided the
+  // build. Persistent cache stores it beside the issuer, outside the module build.
+  #[cacheable(with=Skip)]
+  producer: Option<ModuleIdentifier>,
 
   // pub exec_order: usize,
   pub module_identifier: ModuleIdentifier,
@@ -64,6 +69,7 @@ impl ModuleGraphModule {
       outgoing_connections: Default::default(),
       incoming_connections: Default::default(),
       issuer: ModuleIssuer::Unset,
+      producer: None,
       // exec_order: usize::MAX,
       module_identifier,
       all_dependencies: Default::default(),
@@ -118,6 +124,14 @@ impl ModuleGraphModule {
 
   pub fn issuer(&self) -> &ModuleIssuer {
     &self.issuer
+  }
+
+  pub(crate) fn set_producer(&mut self, producer: Option<ModuleIdentifier>) {
+    self.producer = producer;
+  }
+
+  pub(crate) fn producer(&self) -> Option<ModuleIdentifier> {
+    self.producer
   }
 
   pub(crate) fn optimization_bailout_mut(&mut self) -> &mut Vec<OptimizationBailoutItem> {
