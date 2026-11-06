@@ -1,5 +1,5 @@
 use napi::{Env, JsString, Result, bindgen_prelude::*};
-use rspack_core::{ResourceData, ResourceParsedData, parse_resource};
+use rspack_core::ResourceData;
 use rspack_error::Diagnosable;
 
 use crate::{
@@ -93,18 +93,11 @@ pub fn normal_module_set_match_resource(
   }
   let handle = module;
   if let Either::A(value) = value {
-    let ResourceParsedData {
-      path,
-      query,
-      fragment,
-    } = parse_resource(&value).expect("Should parse resource");
     let module = handle
       .as_mut()?
       .as_normal_module_mut()
       .ok_or_else(|| Error::from_reason("Module is not a NormalModule"))?;
-    *module.match_resource_mut() = Some(Box::new(ResourceData::new_with_path(
-      value, path, query, fragment,
-    )));
+    *module.match_resource_mut() = Some(Box::new(ResourceData::new_with_resource(value)));
   }
   Ok(())
 }

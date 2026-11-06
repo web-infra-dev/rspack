@@ -73,18 +73,7 @@ fn create_rule_as_resource(
       PlaceholderKind::ResourcePath => Some(FilenameRenderValue::Value(resource_path.into())),
       _ => None,
     });
-  let mut resource = path.clone();
-  if let Some(query) = resource_data.query() {
-    resource.push_str(query);
-  }
-  if let Some(fragment) = resource_data.fragment() {
-    resource.push_str(fragment);
-  }
-  // Preserve metadata in the matching resource without changing the resource used for loading.
-  let mut match_resource_data = resource_data.clone();
-  match_resource_data.set_path(path);
-  match_resource_data.set_resource(resource);
-  Some(match_resource_data)
+  Some(resource_data.with_matching_path(path))
 }
 
 macro_rules! ensure_sync_matched {
@@ -308,10 +297,15 @@ async fn module_rule_matcher_async<'rule, 'ctx>(
   resource_data: &mut Cow<'ctx, ResourceData>,
   matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
 ) -> Result<bool> {
-  if let Some(test_rule) = &module_rule.rspack_resource
-    && !test_rule.try_match(resource_data.resource().into()).await?
-  {
-    return Ok(false);
+  if let Some(test_rule) = &module_rule.rspack_resource {
+    let input = match &*resource_data {
+      Cow::Borrowed(resource_data) => resource_data.resource().into(),
+      // A virtual path can contain delimiters. Pass its known parts directly.
+      Cow::Owned(resource_data) => DataRef::Resource(resource_data),
+    };
+    if !test_rule.try_match(input).await? {
+      return Ok(false);
+    }
   }
 
   // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.

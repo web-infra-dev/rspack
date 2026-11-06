@@ -1,6 +1,8 @@
 use std::{
   any::Any,
+  borrow::Cow,
   fmt::Debug,
+  ops::Range,
   path::{Path, PathBuf},
   sync::Arc,
 };
@@ -11,14 +13,15 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   rkyv::string::ArchivedString,
   utils::PortablePath,
-  with::{As, AsInner, AsOption, AsPreset},
+  with::{As, AsInner, AsPreset, Skip},
 };
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_util::identifier::strip_zero_width_space_for_fragment;
 use rustc_hash::FxHashMap;
 
-use crate::{Scheme, get_scheme, parse_resource};
+use crate::{Scheme, get_scheme, loader::path_query_fragment};
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum Content {
@@ -126,18 +129,23 @@ impl Debug for Content {
   }
 }
 
+fn resource_offset(offset: usize) -> u32 {
+  u32::try_from(offset).expect("resource data exceeds u32::MAX bytes")
+}
+
 #[cacheable]
 #[derive(Debug, Clone, Default)]
 pub struct ResourceData {
-  /// Resource with absolute path, query and fragment
+  // The complete resource occupies the prefix. Independently supplied or decoded
+  // components may use the rest of the same buffer.
   resource: String,
-  /// Absolute resource path only
-  #[cacheable(with=AsOption<AsPreset>)]
-  resource_path: Option<Utf8PathBuf>,
-  /// Resource query with `?` prefix
-  resource_query: Option<String>,
-  /// Resource fragment with `#` prefix
-  resource_fragment: Option<String>,
+  resource_end: u32,
+  resource_path: Option<Range<u32>>,
+  resource_query: Option<Range<u32>>,
+  resource_fragment: Option<Range<u32>>,
+  path_escaped: bool,
+  #[cacheable(with=Skip)]
+  decoded_path: OnceCell<Utf8PathBuf>,
   resource_description: Option<DescriptionData>,
   mimetype: Option<String>,
   parameters: Option<String>,
@@ -150,22 +158,30 @@ pub struct ResourceData {
 
 impl ResourceData {
   pub fn new_with_resource(resource: String) -> Self {
-    if let Some(parsed) = parse_resource(&resource) {
-      return Self::new_with_path(resource, parsed.path, parsed.query, parsed.fragment);
+    let resource_end = resource_offset(resource.len());
+    let (path, query, fragment) = path_query_fragment(&resource);
+    let path_end = resource_offset(path.len());
+    let path_escaped = path.contains("\u{200b}#");
+    let resource_query = query.map(|query| path_end..resource_offset(path.len() + query.len()));
+    let decoded_query = match query.map(strip_zero_width_space_for_fragment) {
+      Some(Cow::Owned(query)) => Some(query),
+      _ => None,
     };
-    Self {
+    let resource_fragment =
+      fragment.map(|fragment| resource_end - resource_offset(fragment.len())..resource_end);
+    let mut data = Self {
       resource,
-      resource_path: None,
-      resource_query: None,
-      resource_fragment: None,
-      resource_description: None,
-      mimetype: None,
-      parameters: None,
-      encoding: None,
-      encoded_content: None,
-      scheme: OnceCell::new(),
-      context: None,
+      resource_end,
+      resource_path: Some(0..path_end),
+      resource_query,
+      resource_fragment,
+      path_escaped,
+      ..Default::default()
+    };
+    if let Some(query) = decoded_query {
+      data.resource_query = Some(data.store_component(resource_end as usize, &query));
     }
+    data
   }
 
   pub fn new_with_path(
@@ -174,18 +190,90 @@ impl ResourceData {
     query: Option<String>,
     fragment: Option<String>,
   ) -> Self {
-    Self {
+    Self::from_parts(
       resource,
-      resource_path: Some(path),
-      resource_query: query,
-      resource_fragment: fragment,
-      resource_description: None,
-      mimetype: None,
-      parameters: None,
-      encoding: None,
-      encoded_content: None,
-      scheme: OnceCell::new(),
-      context: None,
+      Some(path.as_str()),
+      false,
+      query.as_deref(),
+      fragment.as_deref(),
+    )
+  }
+
+  fn from_parts(
+    resource: String,
+    path: Option<&str>,
+    path_escaped: bool,
+    query: Option<&str>,
+    fragment: Option<&str>,
+  ) -> Self {
+    let resource_end = resource_offset(resource.len());
+    let fragment_start = resource.len().saturating_sub(fragment.map_or(0, str::len));
+    let query_start = fragment_start.saturating_sub(query.map_or(0, str::len));
+    let mut data = Self {
+      resource,
+      resource_end,
+      path_escaped,
+      ..Default::default()
+    };
+    data.resource_path = path.map(|path| data.store_component(0, path));
+    data.resource_query = query.map(|query| data.store_component(query_start, query));
+    data.resource_fragment =
+      fragment.map(|fragment| data.store_component(fragment_start, fragment));
+    data
+  }
+
+  fn component(&self, range: Option<&Range<u32>>) -> Option<&str> {
+    range.map(|range| &self.resource[range.start as usize..range.end as usize])
+  }
+
+  fn store_component(&mut self, offset: usize, value: &str) -> Range<u32> {
+    let end = offset.saturating_add(value.len());
+    if self.resource().get(offset..end) == Some(value) {
+      resource_offset(offset)..resource_offset(end)
+    } else {
+      let start = resource_offset(self.resource.len());
+      let end = resource_offset(self.resource.len().saturating_add(value.len()));
+      self.resource.push_str(value);
+      start..end
+    }
+  }
+
+  fn replace_components(&mut self, data: Self) {
+    self.resource = data.resource;
+    self.resource_end = data.resource_end;
+    self.resource_path = data.resource_path;
+    self.resource_query = data.resource_query;
+    self.resource_fragment = data.resource_fragment;
+    self.path_escaped = data.path_escaped;
+    self.decoded_path = data.decoded_path;
+  }
+
+  /// Build a virtual resource from known components without parsing its delimiters.
+  pub fn with_matching_path(&self, mut path: String) -> Self {
+    let path_end = resource_offset(path.len());
+    let resource_query = self.query().map(|query| {
+      path.push_str(query);
+      path_end..resource_offset(path.len())
+    });
+    let resource_fragment = self.fragment().map(|fragment| {
+      let start = resource_offset(path.len());
+      path.push_str(fragment);
+      start..resource_offset(path.len())
+    });
+    let resource_end = resource_offset(path.len());
+    Self {
+      resource: path,
+      resource_end,
+      resource_path: Some(0..path_end),
+      resource_query,
+      resource_fragment,
+      resource_description: self.resource_description.clone(),
+      mimetype: self.mimetype.clone(),
+      parameters: self.parameters.clone(),
+      encoding: self.encoding.clone(),
+      encoded_content: self.encoded_content.clone(),
+      context: self.context.clone(),
+      ..Default::default()
     }
   }
 
@@ -208,15 +296,30 @@ impl ResourceData {
   }
 
   pub fn resource(&self) -> &str {
-    &self.resource
+    &self.resource[..self.resource_end as usize]
   }
 
   pub fn set_resource(&mut self, v: String) {
-    self.resource = v;
+    self.replace_components(Self::from_parts(
+      v,
+      self.component(self.resource_path.as_ref()),
+      self.path_escaped,
+      self.query(),
+      self.fragment(),
+    ));
   }
 
   pub fn path(&self) -> Option<&Utf8Path> {
-    self.resource_path.as_deref()
+    let path = self.component(self.resource_path.as_ref())?;
+    if self.path_escaped {
+      Some(self.decoded_path.get_or_init(|| {
+        strip_zero_width_space_for_fragment(path)
+          .into_owned()
+          .into()
+      }))
+    } else {
+      Some(Utf8Path::new(path))
+    }
   }
 
   pub fn set_path<P: Into<Utf8PathBuf>>(&mut self, v: P) {
@@ -225,7 +328,13 @@ impl ResourceData {
       && path != new_path
     {
       self.scheme.take();
-      self.resource_path = Some(new_path);
+      self.replace_components(Self::from_parts(
+        self.resource().to_owned(),
+        Some(new_path.as_str()),
+        false,
+        self.query(),
+        self.fragment(),
+      ));
     }
   }
 
@@ -236,27 +345,39 @@ impl ResourceData {
   }
 
   pub fn query(&self) -> Option<&str> {
-    self.resource_query.as_deref()
+    self.component(self.resource_query.as_ref())
   }
 
   pub fn set_query(&mut self, v: String) {
-    self.resource_query = Some(v);
+    self.set_query_optional(Some(v));
   }
 
   pub fn set_query_optional(&mut self, v: Option<String>) {
-    self.resource_query = v;
+    self.replace_components(Self::from_parts(
+      self.resource().to_owned(),
+      self.component(self.resource_path.as_ref()),
+      self.path_escaped,
+      v.as_deref(),
+      self.fragment(),
+    ));
   }
 
   pub fn fragment(&self) -> Option<&str> {
-    self.resource_fragment.as_deref()
+    self.component(self.resource_fragment.as_ref())
   }
 
   pub fn set_fragment(&mut self, v: String) {
-    self.resource_fragment = Some(v);
+    self.set_fragment_optional(Some(v));
   }
 
   pub fn set_fragment_optional(&mut self, v: Option<String>) {
-    self.resource_fragment = v;
+    self.replace_components(Self::from_parts(
+      self.resource().to_owned(),
+      self.component(self.resource_path.as_ref()),
+      self.path_escaped,
+      self.query(),
+      v.as_deref(),
+    ));
   }
 
   pub fn description(&self) -> Option<&DescriptionData> {
@@ -300,14 +421,23 @@ impl ResourceData {
   }
 
   pub fn update_resource_data(&mut self, new_resource: String) {
-    if self.resource_path.is_some()
-      && let Some(parsed) = parse_resource(&new_resource)
-    {
-      self.set_path(parsed.path);
-      self.set_query_optional(parsed.query);
-      self.set_fragment_optional(parsed.fragment);
+    if let Some(old_path) = self.path() {
+      let mut data = Self::new_with_resource(new_resource);
+      if data.path() != Some(old_path) {
+        self.scheme.take();
+      } else if data.path().map(Utf8Path::as_str) != Some(old_path.as_str()) {
+        data = Self::from_parts(
+          data.resource().to_owned(),
+          Some(old_path.as_str()),
+          false,
+          data.query(),
+          data.fragment(),
+        );
+      }
+      self.replace_components(data);
+    } else {
+      self.set_resource(new_resource);
     }
-    self.set_resource(new_resource);
   }
 }
 

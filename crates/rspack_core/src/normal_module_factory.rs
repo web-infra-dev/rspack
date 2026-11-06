@@ -23,9 +23,8 @@ use crate::{
   ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
   ParserOptionsMap, RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
   ResolveResult, ResolvedModuleOptions, ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory,
-  ResourceData, ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
-  diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
-  stringify_loaders_and_resource,
+  ResourceData, RunnerContext, RuntimeGlobals, SharedPluginDriver, diagnostics::EmptyDependency,
+  module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> bool,tracing=false);
@@ -782,17 +781,7 @@ impl NormalModuleFactory {
             }
           };
 
-          let ResourceParsedData {
-            path,
-            query,
-            fragment,
-          } = parse_resource(&match_resource).expect("Should parse resource");
-          match_resource_data = Some(ResourceData::new_with_path(
-            match_resource,
-            path,
-            query,
-            fragment,
-          ));
+          match_resource_data = Some(ResourceData::new_with_resource(match_resource));
 
           // e.g. ./index.js!=!
           let whole_matched = full_matched;
