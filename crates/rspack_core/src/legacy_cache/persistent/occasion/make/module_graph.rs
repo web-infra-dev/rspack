@@ -63,6 +63,7 @@ struct SegmentedNode {
   build: Vec<u8>,
   resolutions: Vec<ResolutionSegment>,
   issuer: Vec<u8>,
+  producer: Vec<u8>,
 }
 
 pub struct RecoveredModuleGraph {
@@ -281,10 +282,12 @@ pub fn save_module_graph(
       let bytes = build.and_then(|build| {
         let resolutions = resolutions?;
         let issuer = BoundEntry::encode(node_codec, mgm.issuer(), false)?;
+        let producer = BoundEntry::encode(node_codec, &mgm.producer(), false)?;
         codec.encode(&SegmentedNode {
           build,
           resolutions,
           issuer,
+          producer,
         })
       });
       (key, bytes)
@@ -347,7 +350,8 @@ pub async fn recovery_module_graph(
         })
         .collect::<Result<Vec<_>>>()?;
       let issuer = BoundEntry::decode::<ModuleIssuer>(codec, &frame.issuer)?;
-      Ok((key, Some((node, resolutions, issuer))))
+      let producer = BoundEntry::decode::<Option<ModuleIdentifier>>(codec, &frame.producer)?;
+      Ok((key, Some((node, resolutions, issuer, producer.flatten()))))
     })
     .collect::<Result<Vec<_>>>()?;
   let mut dropped = vec![];
@@ -361,14 +365,14 @@ pub async fn recovery_module_graph(
   }
   let recovered = nodes
     .iter()
-    .map(|(node, _, _)| node.module.as_ref().identifier())
+    .map(|(node, _, _, _)| node.module.as_ref().identifier())
     .collect::<IdentifierSet>();
   let mut connections = vec![];
   let mut refactorize_dependencies = FxHashSet::default();
   let mut check_issuer_cycles = !dropped.is_empty();
   let mut dependency_ids = FxHashSet::default();
   let mut block_ids = FxHashSet::default();
-  for (node, resolutions, issuer) in nodes {
+  for (node, resolutions, issuer, producer) in nodes {
     let mut mgm = node.mgm.into_owned();
     let mut module = node.module.into_owned();
     let mid = module.identifier();
@@ -452,6 +456,7 @@ pub async fn recovery_module_graph(
     }
     let mut expired = issuer.is_none();
     mgm.set_issuer(issuer.unwrap_or(ModuleIssuer::Unset));
+    mgm.set_producer(producer);
     let mut refresh = FxHashSet::default();
     let mut resolved_dependencies = FxHashMap::default();
     let mut infos = vec![];

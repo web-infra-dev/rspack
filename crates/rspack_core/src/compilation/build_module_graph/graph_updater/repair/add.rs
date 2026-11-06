@@ -29,8 +29,8 @@ impl Task<TaskContext> for AddTask {
     let Self {
       build_context,
       original_module_identifier,
-      module,
-      module_graph_module,
+      mut module,
+      mut module_graph_module,
       dependencies,
       from_unlazy,
     } = *self;
@@ -107,6 +107,11 @@ impl Task<TaskContext> for AddTask {
       }
 
       return Ok(vec![]);
+    }
+
+    if let Some(choice) = context.artifact.factory_choices.remove(&module_identifier) {
+      module = choice.module;
+      module_graph_module.set_producer(choice.producer);
     }
 
     context

@@ -129,6 +129,57 @@ function beforeResolve(callback) {
 	};
 }
 
+async function expectWarmEquality(reader, configuration, moved) {
+	const warm = await build(reader, configuration);
+	expect(warm.built).toEqual([]);
+	expect(warm.assets).toEqual(moved.assets);
+}
+
+function execute({ assets }) {
+	const module = { exports: {} };
+	new Function("module", "exports", assets["main.js"])(module, module.exports);
+	return module.exports;
+}
+
+const sharedImporters = {
+	"src/index.js": 'module.exports = [require("./a.js"), require("./c1.js")];',
+	"src/a.js": 'module.exports = require("./dep.js");',
+	"src/c1.js": 'module.exports = require("./b.js");',
+	"src/b.js": 'module.exports = require("./dep.js");',
+	"src/dep.js": "module.exports = (function () { return this === undefined; })();"
+};
+const DEP_OF_A = "a.js > ./dep.js";
+const DEP_OF_B = "b.js > ./dep.js";
+// Holds b.js back, so the group of a.js produces dep.js in a cold build.
+const A_PRODUCES = { "index.js > ./c1.js": 200 };
+
+// Counts the factory calls of each dependency group, and holds chosen groups back.
+function factoryGroups(delays) {
+	const groups = {
+		delays,
+		calls: {},
+		apply(compiler) {
+			compiler.hooks.normalModuleFactory.tap("FactoryGroups", (factory) => {
+				factory.hooks.beforeResolve.tapPromise("FactoryGroups", async ({ request, contextInfo }) => {
+					const group = `${path.basename(contextInfo.issuer)} > ${request}`;
+					groups.calls[group] = (groups.calls[group] ?? 0) + 1;
+					if (groups.delays[group]) {
+						await new Promise((resolve) => setTimeout(resolve, groups.delays[group]));
+					}
+				});
+			});
+		}
+	};
+	return groups;
+}
+
+function strictWhenImportedBy(issuer, plugins = []) {
+	return {
+		plugins,
+		module: { rules: [{ test: /dep\.js$/, issuer, parser: { overrideStrict: "strict" } }] }
+	};
+}
+
 const replacements = { "src/dep2.js": 'module.exports = "replacement";' };
 const scenarios = [
 	{
@@ -521,27 +572,220 @@ export default [
 			});
 		}
 	},
+	...[
+		{
+			name: "changed-decision-of-producing-importer",
+			description: "rebuilds a shared module with the changed decision of the importer that produced it",
+			issuer: /reader.*a\.js$/,
+			// The group of b.js reaches `AddTask` first among the groups the rebuild refactorizes.
+			repairDelays: { [DEP_OF_A]: 50 },
+			rebuilt: true,
+			exports: [true, true]
+		},
+		{
+			name: "changed-decision-of-other-importer",
+			description: "keeps a shared module when only an importer that did not produce it changes its decision",
+			issuer: /reader.*b\.js$/,
+			rebuilt: false,
+			exports: [false, false]
+		},
+		{
+			name: "same-difference-with-producing-importer",
+			description: "keeps a shared module whose importers differ at both roots, when the producer's rule matches",
+			issuer: /a\.js$/,
+			rebuilt: false,
+			exports: [true, true]
+		},
+		{
+			name: "same-difference-with-other-importer",
+			description: "keeps a shared module whose importers differ at both roots, when the other importer's rule matches",
+			issuer: /b\.js$/,
+			rebuilt: false,
+			exports: [false, false]
+		},
+		{
+			name: "safe-shared-module",
+			description: "keeps a shared module whose importers all agree",
+			issuer: /never/,
+			rebuilt: false,
+			exports: [false, false]
+		}
+	].map(({ name, description, issuer, repairDelays = {}, rebuilt, exports }) => ({
+		name,
+		description,
+		async run() {
+			await withProjects(sharedImporters, async (writer, reader) => {
+				const groups = factoryGroups(A_PRODUCES);
+				const configuration = strictWhenImportedBy(issuer, [groups]);
+				await build(writer, configuration);
+				copyTree(writer, reader);
+				groups.calls = {};
+				groups.delays = { ...A_PRODUCES, ...repairDelays };
+				const moved = await build(reader, configuration);
+				expect(moved.built).toEqual(rebuilt ? [path.join(reader, "src", "dep.js")] : []);
+				expect(execute(moved)).toEqual(exports);
+				// Verification calls every factory once, and only a rebuild refactorizes the groups of dep.js.
+				// The entry dependency is new to the recovered graph, so make factorizes it before verification.
+				expect(groups.calls).toEqual({
+					" > ./src/index.js": 2,
+					"index.js > ./a.js": 1,
+					"index.js > ./c1.js": 1,
+					"c1.js > ./b.js": 1,
+					[DEP_OF_A]: rebuilt ? 2 : 1,
+					[DEP_OF_B]: rebuilt ? 2 : 1
+				});
+				await expectWarmEquality(reader, configuration, moved);
+				await expectColdEquality(reader, configuration, moved);
+			});
+		}
+	})),
 	{
-		name: "changed-decision-of-one-importer",
-		description: "rebuilds a shared module when one importer's rule decision changes, even if another importer's does not",
+		name: "producing-importer-removed",
+		description: "rebuilds a shared module for the remaining importer when the importer that produced it is gone",
+		async run() {
+			await withProjects(sharedImporters, async (writer, reader) => {
+				const configuration = strictWhenImportedBy(/reader.*b\.js$/, [factoryGroups(A_PRODUCES)]);
+				await build(writer, configuration);
+				copyTree(writer, reader);
+				fs.writeFileSync(path.join(reader, "src/index.js"), 'module.exports = [require("./c1.js")];');
+				const moved = await build(reader, configuration);
+				expect(moved.built).toContain(path.join(reader, "src", "dep.js"));
+				expect(execute(moved)).toEqual([true]);
+				await expectWarmEquality(reader, configuration, moved);
+				await expectColdEquality(reader, configuration, moved);
+			});
+		}
+	},
+	{
+		name: "producing-importer-re-resolved",
+		description: "rebuilds a shared module for the remaining importer when the producer's group resolves elsewhere",
+		async run() {
+			await withProjects({ ...sharedImporters, ...replacements }, async (writer, reader) => {
+				const configuration = strictWhenImportedBy(/reader.*b\.js$/, [
+					factoryGroups(A_PRODUCES),
+					beforeResolve((data) => {
+						if (data.request === "./dep.js" && /reader.*a\.js$/.test(data.contextInfo.issuer)) data.request = "./dep2.js";
+					})
+				]);
+				await build(writer, configuration);
+				copyTree(writer, reader);
+				const moved = await build(reader, configuration);
+				expect(moved.built).toContain(path.join(reader, "src", "dep.js"));
+				expect(execute(moved)).toEqual(["replacement", true]);
+				await expectWarmEquality(reader, configuration, moved);
+				await expectColdEquality(reader, configuration, moved);
+			});
+		}
+	},
+	{
+		name: "producing-importer-rebuilt-without-import",
+		description: "keeps the other importer's disagreement until the rebuild of the producer leaves the module to it",
 		async run() {
 			await withProjects({
-				"src/index.js": 'module.exports = [require("./a.js"), require("./c1.js")];',
-				"src/a.js": 'module.exports = require("./dep.js");',
-				"src/c1.js": 'module.exports = require("./b.js");',
-				"src/b.js": 'module.exports = require("./dep.js");',
-				"src/dep.js": "module.exports = (function () { return this === undefined; })();"
+				...sharedImporters,
+				"src/a.js": 'module.exports = "a"; globalThis.never && require("./dep.js");'
+			}, async (writer, reader) => {
+				const configuration = strictWhenImportedBy(/reader.*b\.js$/, [factoryGroups(A_PRODUCES)]);
+				configuration.module.noParse = /reader.*a\.js$/;
+				await build(writer, configuration);
+				copyTree(writer, reader);
+				const moved = await build(reader, configuration);
+				expect(moved.built.sort()).toEqual([path.join(reader, "src", "a.js"), path.join(reader, "src", "dep.js")]);
+				expect(execute(moved)).toEqual(["a", true]);
+				await expectWarmEquality(reader, configuration, moved);
+				await expectColdEquality(reader, configuration, moved);
+			});
+		}
+	},
+	{
+		name: "producing-entry-removed",
+		description: "rebuilds a shared module for the remaining importer when it was produced as an entry that is gone",
+		async run() {
+			await withProjects({
+				...sharedImporters,
+				"src/index.js": 'module.exports = [require("./c1.js")];'
+			}, async (writer, reader) => {
+				const configuration = strictWhenImportedBy(/reader.*b\.js$/);
+				await build(writer, { ...configuration, entry: ["./src/dep.js", "./src/index.js"] });
+				copyTree(writer, reader);
+				const moved = await build(reader, configuration);
+				expect(moved.built).toEqual([path.join(reader, "src", "dep.js")]);
+				expect(execute(moved)).toEqual([true]);
+				await expectWarmEquality(reader, configuration, moved);
+				await expectColdEquality(reader, configuration, moved);
+			});
+		}
+	},
+	{
+		name: "two-groups-of-producing-importer",
+		description: "keeps a shared module when one of the producer's two groups still agrees with its build",
+		async run() {
+			await withProjects({
+				...sharedImporters,
+				"src/a.js": 'module.exports = require("./dep.js"); import("./dep.js");'
 			}, async (writer, reader) => {
 				const configuration = {
-					module: { rules: [{ test: /dep\.js$/, issuer: /reader.*a\.js$/, parser: { overrideStrict: "strict" } }] }
+					plugins: [factoryGroups(A_PRODUCES)],
+					module: { rules: [{ test: /dep\.js$/, dependency: "esm", issuer: /reader/, parser: { overrideStrict: "strict" } }] }
 				};
 				await build(writer, configuration);
 				copyTree(writer, reader);
 				const moved = await build(reader, configuration);
-				expect(moved.built).toEqual([path.join(reader, "src", "dep.js")]);
+				expect(moved.built).toEqual([]);
 			});
 		}
 	},
+	...[
+		{
+			name: "writer-rebuild-keeps-for-issuer",
+			description: "keeps a shared module when only its issuer disagrees, after a writer rebuild another importer produced",
+			issuer: /reader.*a\.js$/,
+			rebuilt: false,
+			exports: [false, false]
+		},
+		{
+			name: "writer-rebuild-decides-by-producer",
+			description: "rebuilds a shared module with the decision of the importer that produced the writer's rebuild",
+			issuer: /reader.*b\.js$/,
+			// The group of a.js reaches `AddTask` first among the groups the rebuild refactorizes.
+			repairDelays: { [DEP_OF_B]: 50 },
+			rebuilt: true,
+			exports: [true, true]
+		}
+	].map(({ name, description, issuer, repairDelays = {}, rebuilt, exports }) => ({
+		name,
+		description,
+		async run() {
+			await withProjects(sharedImporters, async (writer, reader) => {
+				const groups = factoryGroups(A_PRODUCES);
+				let issuerOfDep;
+				const configuration = strictWhenImportedBy(issuer, [groups, {
+					apply(compiler) {
+						compiler.hooks.done.tap("IssuerOfDep", ({ compilation }) => {
+							const dep = [...compilation.modules].find((module) => module.identifier().endsWith("dep.js"));
+							issuerOfDep = compilation.moduleGraph.getIssuer(dep).identifier();
+						});
+					}
+				}]);
+				await build(writer, configuration);
+				expect(issuerOfDep).toBe(path.join(writer, "src", "a.js"));
+				// The group of b.js produces this rebuild, and fixing issuers keeps a.js as the issuer.
+				fs.appendFileSync(path.join(writer, "src/dep.js"), "\n// changed");
+				groups.delays = { [DEP_OF_A]: 200 };
+				expect((await build(writer, configuration)).built).toEqual([path.join(writer, "src", "dep.js")]);
+				expect(issuerOfDep).toBe(path.join(writer, "src", "a.js"));
+				copyTree(writer, reader);
+				groups.delays = repairDelays;
+				const moved = await build(reader, configuration);
+				expect(moved.built).toEqual(rebuilt ? [path.join(reader, "src", "dep.js")] : []);
+				expect(execute(moved)).toEqual(exports);
+				await expectWarmEquality(reader, configuration, moved);
+				// A cold build in which the group of b.js produces dep.js, as at the writer.
+				groups.delays = { "index.js > ./a.js": 200 };
+				await expectColdEquality(reader, configuration, moved);
+			});
+		}
+	})),
 	{
 		name: "short-root-base64",
 		description: "rebuilds loader output that holds a short root in base64, as an inline source map or a bare digest",

@@ -58,6 +58,7 @@ impl Occasion for MakeOccasion {
       check_issuer_cycles: _,
       refactorize_dependencies: _,
       verify_factory_decisions: _,
+      factory_choices: _,
       entry_dependencies: _,
       file_dependencies: _,
       context_dependencies: _,
@@ -147,9 +148,12 @@ impl Occasion for MakeOccasion {
       issuer_update_modules: Default::default(),
       check_issuer_cycles,
       refactorize_dependencies,
+      // A graph that recovered nothing is built fresh, and a fresh build has nothing to verify.
       verify_factory_decisions: (self.codec.is_portable()
+        && mg.modules_len() > 0
         && is_relocated(storage, &self.codec).await?)
         .then(FxHashSet::default),
+      factory_choices: Default::default(),
 
       side_effects_state_artifact: Default::default(),
       module_graph: mg,
