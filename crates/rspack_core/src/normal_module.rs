@@ -1108,9 +1108,14 @@ impl NormalModule {
       return None;
     }
     // Loaders write JSON-escaped paths, which on Windows differ from the root's own spelling.
-    let patterns: Vec<_> = [&root.root, &root.canonical_root]
+    let patterns = [&root.root, &root.canonical_root].map(|root| root_patterns(root.as_str()));
+    // A root too short to find at every base64 alignment can't be told apart from input data.
+    if patterns.iter().any(|patterns| patterns.bind_all) {
+      return None;
+    }
+    let patterns: Vec<_> = patterns
       .into_iter()
-      .flat_map(|root| root_patterns(root.as_str()))
+      .flat_map(|patterns| patterns.patterns)
       .collect();
     let holds_root = |bytes: &[u8]| {
       patterns
