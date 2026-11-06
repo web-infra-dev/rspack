@@ -7,7 +7,7 @@ use camino::{Utf8Component, Utf8Path, Utf8PathBuf};
 
 pub const SLASH_START: &[char; 2] = &['/', '\\'];
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) enum PathType {
   Empty,
   Normal,
@@ -88,17 +88,15 @@ fn normalize_posix(path: &str) -> Utf8PathBuf {
 }
 
 fn is_windows_reserved_device(name: &str) -> bool {
-  let name = name.to_ascii_uppercase();
-  ["CON", "PRN", "AUX", "NUL"].contains(&name.as_str())
-    || name
-      .strip_prefix("COM")
-      .or_else(|| name.strip_prefix("LPT"))
-      .is_some_and(|suffix| {
-        matches!(
-          suffix,
-          "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "¹" | "²" | "³"
-        )
-      })
+  ["CON", "PRN", "AUX", "NUL"]
+    .iter()
+    .any(|reserved| name.eq_ignore_ascii_case(reserved))
+    || (name.get(..3).is_some_and(|prefix| {
+      prefix.eq_ignore_ascii_case("COM") || prefix.eq_ignore_ascii_case("LPT")
+    }) && matches!(
+      name.get(3..),
+      Some("1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "¹" | "²" | "³")
+    ))
 }
 
 fn normalize_windows(path: &str) -> Utf8PathBuf {
