@@ -680,6 +680,40 @@ export default {
 - **Pitching 阶段:** loader 导出的 `pitch` 方法在 `post, inline, normal, pre` 顺序下被调用。详见 [Pitching Loader](/api/loader-api/writing-loaders#pitching-loader)。
 - **Normal 阶段:** loader 导出的默认方法在 `pre, normal, inline, post` 顺序下被执行。模块的源码转换发生在该阶段。
 
+## rules[].as
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.3.2" />
+
+- **类型：** `string`
+
+使用路径模板创建独立的规则匹配资源。目前只支持 `[resource-path]` 占位符，它会展开为当前匹配路径，包含扩展名，但不包含查询参数和片段。其他内容（包括 `*`）均作为字面量使用。
+
+规则按顺序执行。命中的规则包含 `as` 时，会用模板生成新的匹配路径，并加上原有查询参数和片段组成完整的匹配资源，然后继续匹配嵌套规则和后续规则，不会重新匹配之前的规则。后续 `as` 中的 `[resource-path]` 会使用前一次 `as` 生成的路径。
+
+文件读取和 loader 仍使用原始资源。如果请求包含 [inline match resource](/api/loader-api/inline-match-resource)，`as` 会以该匹配路径为起点。
+
+例如，`example.source.js` 会以 `example.source.js.txt` 匹配后续的 `.txt` 规则，再以 `example.source.js.txt.processed` 匹配 `.processed` 规则：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.source\.js$/,
+        type: 'asset/source',
+        as: '[resource-path].txt',
+      },
+      {
+        test: /\.txt$/,
+        use: './text-loader.js',
+        as: '[resource-path].processed',
+      },
+      { test: /\.processed$/, use: './processed-loader.js' },
+    ],
+  },
+};
+```
+
 ## rules[].type
 
 - **类型：** `string`

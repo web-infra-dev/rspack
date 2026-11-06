@@ -1696,6 +1696,7 @@ pub type FnUse =
 
 #[derive(Debug, Default)]
 pub struct ModuleRule {
+  pub r#as: Option<Filename>,
   /// A conditional match matching an absolute path + query + fragment.
   /// Note:
   ///   This is a custom matching rule not initially designed by webpack.
