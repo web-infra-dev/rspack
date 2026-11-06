@@ -20,7 +20,10 @@ pub use ustr::IdentityHasher;
 
 #[cfg(feature = "cacheable")]
 mod cacheable;
+mod normalize;
 mod path_list;
+
+pub use normalize::{normalize_native_path_separators, normalize_path_separators};
 pub use path_list::InternedPathList;
 
 /// Returns the byte index immediately after a DOS device path prefix
