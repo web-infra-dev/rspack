@@ -868,6 +868,7 @@ impl NormalModuleFactory {
             }),
             cache: false,
             options_cache_key: String::new(),
+            comparable_options: None,
             filter: None,
           }
         }));
@@ -1030,7 +1031,8 @@ module.exports = "data:,";
     };
 
     let mut function_use = None;
-    let portable = matches!(&self.options.cache, crate::CacheOptions::Persistent(options) if options.portable_root.is_some());
+    let mut function_use_comparable = true;
+    let portable = is_portable(&self.options);
     let resolved_loaders: Vec<ResolvedLoader> = {
       let mut pre_loaders: Vec<ModuleRuleUseLoader> = vec![];
       let mut post_loaders: Vec<ModuleRuleUseLoader> = vec![];
@@ -1055,7 +1057,8 @@ module.exports = "data:,";
               let digest = function_use.get_or_insert_with(rustc_hash::FxHasher::default);
               for loader in &loaders {
                 loader.options.hash(digest);
-                loader.options_cache_key.hash(digest);
+                loader.comparable_options.hash(digest);
+                function_use_comparable &= loader.comparable_options.is_some();
               }
             }
             Cow::Owned(loaders)
@@ -1264,7 +1267,8 @@ module.exports = "data:,";
     };
 
     if let Some(normal) = module.as_normal_module_mut() {
-      normal.function_use_digest = function_use.map_or(0, |digest| digest.finish());
+      normal.function_use_digest =
+        function_use_comparable.then(|| function_use.map_or(0, |digest| digest.finish()));
     }
     self
       .plugin_driver
@@ -1410,6 +1414,10 @@ module.exports = "data:,";
   }
 }
 
+fn is_portable(options: &CompilerOptions) -> bool {
+  matches!(&options.cache, crate::CacheOptions::Persistent(options) if options.portable_root.is_some())
+}
+
 async fn resolve_each(
   plugin_driver: &SharedPluginDriver,
   context: &Context,
@@ -1488,6 +1496,7 @@ async fn resolve_each_with_options(
       loader_name,
       options_cache_key: loader.options_cache_key.clone(),
       loader_version,
+      incomparable_options: is_portable(options) && loader.comparable_options.is_none(),
     },
     filter: loader.filter.clone(),
   })

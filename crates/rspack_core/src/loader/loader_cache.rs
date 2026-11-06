@@ -27,7 +27,7 @@ fn loader_cache_key<'a>(
     "module" => module_identifier,
   });
   for options in loader_options {
-    let options = options?;
+    let options = options.filter(|options| !options.incomparable_options)?;
     rspack_hash::rspack_hash_object!(&mut hasher, {
       "loader" => &options.loader_name,
       "options" => &options.options_cache_key,

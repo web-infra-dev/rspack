@@ -126,7 +126,8 @@ pub struct NormalModule {
   loaders: Vec<BoxLoader>,
   loader_options: Option<Vec<LoaderRunnerOptions>>,
   loader_filters: Option<LoaderFilters>,
-  pub(crate) function_use_digest: u64,
+  /// `Some(0)` without a function `use`, `None` when its options can't be compared.
+  pub(crate) function_use_digest: Option<u64>,
 
   /// Resolve options derived from [Rule.resolve]
   resolve_options: Option<Arc<Resolve>>,
@@ -173,9 +174,24 @@ pub(crate) struct NormalFactoryDecision {
   resolve_options: Option<Arc<Resolve>>,
   rule_ids: crate::ResolvedModuleOptionsCacheKey,
   loader_filters: Option<LoaderFilters>,
-  function_use: u64,
+  function_use: Option<u64>,
   side_effect_free: Option<bool>,
   no_parse: bool,
+}
+
+impl NormalFactoryDecision {
+  /// A decision with options that can't be compared agrees with nothing, not even itself.
+  pub(crate) fn agrees_with(&self, fresh: &Self) -> bool {
+    self.function_use.is_some() && self == fresh
+  }
+
+  /// Modules outside the normal factory have no decision, and those agree.
+  pub(crate) fn agree(recorded: &Option<Self>, fresh: &Option<Self>) -> bool {
+    match (recorded, fresh) {
+      (Some(recorded), Some(fresh)) => recorded.agrees_with(fresh),
+      (recorded, fresh) => recorded.is_none() && fresh.is_none(),
+    }
+  }
 }
 
 impl NormalModule {
@@ -279,7 +295,7 @@ impl NormalModule {
       loaders,
       loader_options,
       loader_filters,
-      function_use_digest: 0,
+      function_use_digest: Some(0),
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
       extract_source_map,
 

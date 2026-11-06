@@ -2842,6 +2842,8 @@ export interface RawModuleRuleUse {
   options?: string
   cache: boolean
   optionsCacheKey: string
+  /** Typed serialization of the options, set on portable builds. Absent when they can't be compared. */
+  comparableOptions?: string
   codeFilter?: string | RegExp
 }
 

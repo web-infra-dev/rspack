@@ -122,7 +122,7 @@ impl Task<VerifyContext> for CompareTask {
   async fn main_run(self: Box<Self>, context: &mut VerifyContext) -> TaskResult<VerifyContext> {
     match (&self.recorded.outcome, &self.fresh) {
       (GroupOutcome::Module(recorded), GroupOutcome::Module(fresh)) if recorded == fresh => {
-        if self.recorded.decision != self.fresh_decision {
+        if !NormalFactoryDecision::agree(&self.recorded.decision, &self.fresh_decision) {
           context.rebuild.insert(*recorded);
         }
       }

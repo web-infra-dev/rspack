@@ -576,9 +576,10 @@ function createRawModuleRuleUsesImpl(
       cache: use.cache ?? false,
       optionsCacheKey: use.cache
         ? (JSON.stringify(fingerprintOptions) ?? '')
-        : fingerprint
-          ? comparableOptionsKey(fingerprintOptions)
-          : '',
+        : '',
+      comparableOptions: fingerprint
+        ? encodeComparableOptions(fingerprintOptions)
+        : undefined,
       codeFilter: createRawLoaderCodeFilter(
         use.codeFilter,
         `${path}[${index}].codeFilter`,
@@ -587,33 +588,73 @@ function createRawModuleRuleUsesImpl(
   });
 }
 
-let incomparableOptions = 0;
+function incomparable(): never {
+  throw new Error('Incomparable loader options');
+}
 
-// Options JSON can't represent never compare equal, so a relocated build rebuilds their module.
-function comparableOptionsKey(options: unknown): string {
+function encodeProperty(
+  owner: object,
+  key: PropertyKey,
+  seen: Set<object>,
+): string {
+  // A descriptor reads the value without running a getter.
+  const descriptor = Reflect.getOwnPropertyDescriptor(owner, key);
+  if (!descriptor?.enumerable || !('value' in descriptor)) incomparable();
+  return encodeComparable(descriptor.value, seen);
+}
+
+// Every value has its own tag, so a string that reads like another value stays a string.
+// Objects never reach JSON.stringify, so `toJSON` doesn't run.
+function encodeComparable(value: unknown, seen: Set<object>): string {
+  switch (typeof value) {
+    case 'undefined':
+      return 'u';
+    case 'boolean':
+      return value ? 't' : 'f';
+    case 'string':
+      return `s${JSON.stringify(value)}`;
+    case 'number':
+      if (!Number.isFinite(value)) incomparable();
+      return Object.is(value, -0) ? 'n-0' : `n${value}`;
+    case 'object':
+      break;
+    default:
+      incomparable();
+  }
+  if (value === null) return 'l';
+  // Object identity is observable to a loader and has no place in the encoding.
+  if (seen.has(value)) incomparable();
+  seen.add(value);
+  const prototype = Object.getPrototypeOf(value);
+  const keys = Reflect.ownKeys(value);
+  if (Array.isArray(value)) {
+    // Own keys are the indices and `length`, so any other key leaves a hole that fails below.
+    if (prototype !== Array.prototype || keys.length !== value.length + 1) {
+      incomparable();
+    }
+    const items: string[] = [];
+    for (let index = 0; index < value.length; index++) {
+      items.push(encodeProperty(value, index, seen));
+    }
+    return `[${items.join()}]`;
+  }
+  if (prototype !== Object.prototype && prototype !== null) incomparable();
+  const entries = keys.map((key) => {
+    if (typeof key !== 'string' || key === 'toJSON') incomparable();
+    return `${JSON.stringify(key)}:${encodeProperty(value, key, seen)}`;
+  });
+  return `${prototype === null ? 'N' : ''}{${entries.join()}}`;
+}
+
+/**
+ * Encodes loader options as typed data that a build in another process can compare.
+ * Returns `undefined` for options holding anything but plain data, which can't be compared.
+ */
+function encodeComparableOptions(options: unknown): string | undefined {
   try {
-    return JSON.stringify(options, (_key, value) => {
-      if (value === undefined) return '[undefined]';
-      if (typeof value === 'number' && !Number.isFinite(value)) {
-        return String(value);
-      }
-      if (typeof value === 'function' || typeof value === 'symbol') {
-        throw new Error('Incomparable loader options');
-      }
-      if (typeof value === 'object' && value !== null) {
-        const prototype = Object.getPrototypeOf(value);
-        if (
-          prototype !== Object.prototype &&
-          prototype !== Array.prototype &&
-          prototype !== null
-        ) {
-          throw new Error('Incomparable loader options');
-        }
-      }
-      return value;
-    });
+    return encodeComparable(options, new Set());
   } catch {
-    return `incomparable:${++incomparableOptions}`;
+    return undefined;
   }
 }
 

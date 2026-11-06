@@ -51,6 +51,8 @@ pub struct RawModuleRuleUse {
   pub options: Option<String>,
   pub cache: bool,
   pub options_cache_key: String,
+  /// Typed serialization of the options, set on portable builds. Absent when they can't be compared.
+  pub comparable_options: Option<String>,
   #[napi(ts_type = "string | RegExp")]
   pub code_filter: Option<Either<String, RspackRegex>>,
 }
@@ -1041,6 +1043,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
             options: rule_use.options,
             cache: rule_use.cache,
             options_cache_key: rule_use.options_cache_key,
+            comparable_options: rule_use.comparable_options,
             filter: rule_use.code_filter.map(into_loader_filter),
           })
           .collect::<Vec<_>>();
@@ -1058,6 +1061,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
                   options: rule_use.options,
                   cache: rule_use.cache,
                   options_cache_key: rule_use.options_cache_key,
+                  comparable_options: rule_use.comparable_options,
                   filter: rule_use.code_filter.map(into_loader_filter),
                 })
                 .collect::<Vec<_>>()

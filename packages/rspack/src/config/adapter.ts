@@ -379,6 +379,10 @@ const getRawModuleRule = (
         },
       ]
     : rule.use;
+  const cache = options.compiler.options.cache;
+  const fingerprint = Boolean(
+    cache && cache.type === 'persistent' && cache.portable,
+  );
   let funcUse: undefined | ((rawContext: RawFuncUseCtx) => RawModuleRuleUse[]);
   if (typeof normalizedUse === 'function') {
     const use = normalizedUse;
@@ -389,12 +393,11 @@ const getRawModuleRule = (
       };
       const uses = use(context);
 
-      const cache = options.compiler.options.cache;
       return createRawModuleRuleUses(
         uses ?? [],
         `${path}.use`,
         options,
-        Boolean(cache && cache.type === 'persistent' && cache.portable),
+        fingerprint,
       );
     };
   }
@@ -440,7 +443,12 @@ const getRawModuleRule = (
     use:
       typeof normalizedUse === 'function'
         ? funcUse
-        : createRawModuleRuleUses(normalizedUse ?? [], `${path}.use`, options),
+        : createRawModuleRuleUses(
+            normalizedUse ?? [],
+            `${path}.use`,
+            options,
+            fingerprint,
+          ),
     type: rule.type,
     layer: rule.layer,
     parser: rule.parser
