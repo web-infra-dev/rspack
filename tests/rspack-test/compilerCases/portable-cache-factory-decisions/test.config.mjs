@@ -1,6 +1,8 @@
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { rspack } from "@rspack/core";
 import {
 	closeCompiler,
@@ -239,7 +241,191 @@ scenarios.push(
 	}
 );
 
+// Reports what the loader saw through `this.getOptions()`: the option's type and its value.
+const observeLoader = {
+	"observe.cjs": `module.exports = function () {
+		const { value, log } = this.getOptions();
+		if (log) require("node:fs").appendFileSync(log, "run\\n");
+		const type = Object.prototype.toString.call(value);
+		const shown = type === "[object Set]" ? [...value].join()
+			: type === "[object Function]" ? value()
+			: type === "[object Date]" ? value.toISOString()
+			: JSON.stringify(value) ?? "undefined";
+		return "module.exports = " + JSON.stringify(type + " " + shown);
+	};`
+};
+
+function execute({ assets }) {
+	const module = { exports: {} };
+	new Function("module", "exports", assets["main.js"])(module, module.exports);
+	return module.exports;
+}
+
+function useObserved(writer, writerValue, readerValue, cache) {
+	return {
+		module: {
+			rules: [{
+				test: /dep\.js$/,
+				use: (info) => [{
+					loader: "./observe.cjs",
+					cache,
+					options: { value: info.resource.startsWith(writer + path.sep) ? writerValue : readerValue }
+				}]
+			}]
+		}
+	};
+}
+
+function runChild(options) {
+	const result = spawnSync(
+		process.execPath,
+		[fileURLToPath(new URL("./child.mjs", import.meta.url)), JSON.stringify(options)],
+		{ encoding: "utf8", timeout: 60_000 }
+	);
+	expect(result.error).toBeUndefined();
+	expect({ status: result.status, stderr: result.stderr }).toEqual({ status: 0, stderr: "" });
+	return JSON.parse(result.stdout);
+}
+
+async function buildAcrossProcesses(kind, loaderCache, check) {
+	await withProjects(observeLoader, async (writer, reader) => {
+		const options = { writer, kind, loaderCache };
+		const written = runChild({ ...options, context: writer, cached: true });
+		copyTree(writer, reader);
+		const moved = runChild({ ...options, context: reader, cached: true });
+		fs.rmSync(path.join(reader, "node_modules", ".cache"), { recursive: true, force: true });
+		const cold = runChild({ ...options, context: reader, cached: true });
+		const uncached = runChild({ ...options, context: reader, cached: false });
+		expect(moved.executed).toEqual(cold.executed);
+		expect(moved.executed).toEqual(uncached.executed);
+		expect(moved.assets).toEqual(cold.assets);
+		expect(moved.assets).toEqual(uncached.assets);
+		check({ written, moved });
+	});
+}
+
+const collisions = [
+	{ name: "undefined", value: undefined, text: "[undefined]" },
+	{ name: "nan", value: NaN, text: "NaN" },
+	{ name: "date", value: new Date("2020-01-01T00:00:00.000Z"), text: "2020-01-01T00:00:00.000Z" }
+];
+const loaderCaches = [{ suffix: "uncached-loader", cache: false }, { suffix: "cached-loader", cache: true }];
+
+// The loader result cache is bound to the absolute context, so two builds share it only at one root.
+function useLoaderResultCache(kind, options) {
+	const item = { loader: "./observe.cjs", cache: true, options };
+	return {
+		experiments: { newCache: { module: false, codeGeneration: false, devtool: false, loader: true, minimize: false } },
+		module: { rules: [{ test: /dep\.js$/, use: kind === "function" ? () => [item] : [item] }] }
+	};
+}
+
 export default [
+	...[
+		{ kind: "set", type: "[object Set]" },
+		{ kind: "function", type: "[object Function]" }
+	].flatMap(({ kind, type }) => loaderCaches.map(({ suffix, cache }) => ({
+		name: `process-${kind}-option-${suffix}`,
+		description: `rebuilds a function use returning a ${kind} option when writer and reader are separate processes`,
+		async run() {
+			await buildAcrossProcesses(kind, cache, ({ written, moved }) => {
+				expect(written.executed).toBe(`${type} writer`);
+				expect(moved.executed).toBe(`${type} reader`);
+			});
+		}
+	}))),
+	...loaderCaches.map(({ suffix, cache }) => ({
+		name: `process-plain-option-${suffix}`,
+		description: "reuses a function use returning identical plain data when writer and reader are separate processes",
+		async run() {
+			await buildAcrossProcesses("plain", cache, ({ moved }) => {
+				expect(moved.built).toEqual([]);
+			});
+		}
+	})),
+	...collisions.flatMap(({ name, value, text }) => [
+		{ direction: "value-to-text", writerValue: value, readerValue: text },
+		{ direction: "text-to-value", writerValue: text, readerValue: value }
+	].flatMap(({ direction, writerValue, readerValue }) => loaderCaches.map(({ suffix, cache }) => ({
+		name: `collision-${name}-${direction}-${suffix}`,
+		description: `tells a ${name} option from its text across a move, ${direction}`,
+		async run() {
+			await withProjects(observeLoader, async (writer, reader) => {
+				const configuration = useObserved(writer, writerValue, readerValue, cache);
+				const written = await build(writer, configuration);
+				copyTree(writer, reader);
+				const moved = await build(reader, configuration);
+				expect(execute(moved)).not.toEqual(execute(written));
+				fs.rmSync(path.join(reader, "node_modules", ".cache"), { recursive: true, force: true });
+				const cold = await build(reader, configuration);
+				const uncached = await build(reader, configuration, false);
+				expect(execute(moved)).toEqual(execute(cold));
+				expect(execute(moved)).toEqual(execute(uncached));
+				expect(moved.assets).toEqual(cold.assets);
+				expect(moved.assets).toEqual(uncached.assets);
+			});
+		}
+	})))),
+	...loaderCaches.flatMap(({ suffix, cache }) => [
+		{
+			name: `plain-options-unchanged-${suffix}`,
+			description: "reuses modules whose function use returns identical plain data",
+			async run() {
+				await withProjects(observeLoader, async (writer, reader) => {
+					const options = () => ({ list: [1, "x", null, undefined, true], nested: { ratio: 1.5 } });
+					const configuration = useObserved(writer, options(), options(), cache);
+					await build(writer, configuration);
+					copyTree(writer, reader);
+					const moved = await build(reader, configuration);
+					expect(moved.built).toEqual([]);
+					await expectColdEquality(reader, configuration, moved);
+				});
+			}
+		},
+		{
+			name: `plain-options-changed-${suffix}`,
+			description: "rebuilds modules whose function use returns changed plain data",
+			async run() {
+				await withProjects(observeLoader, async (writer, reader) => {
+					const configuration = useObserved(writer, { size: 1 }, { size: 2 }, cache);
+					const written = await build(writer, configuration);
+					copyTree(writer, reader);
+					const moved = await build(reader, configuration);
+					expect(moved.built).toHaveLength(1);
+					expect(execute(moved)).not.toEqual(execute(written));
+					await expectColdEquality(reader, configuration, moved);
+				});
+			}
+		}
+	]),
+	...["function", "array"].flatMap((kind) => [
+		{
+			name: `loader-result-cache-skips-set-option-${kind}-use`,
+			description: `does not serve a loader result by a set option from a ${kind} use on a portable build`,
+			async run() {
+				await withProjects(observeLoader, async (writer) => {
+					const first = await build(writer, useLoaderResultCache(kind, { value: new Set(["first"]) }));
+					expect(execute(first)).toBe("[object Set] first");
+					const second = await build(writer, useLoaderResultCache(kind, { value: new Set(["second"]) }));
+					expect(execute(second)).toBe("[object Set] second");
+				});
+			}
+		},
+		{
+			name: `loader-result-cache-keeps-plain-option-${kind}-use`,
+			description: `serves a loader result by plain options from a ${kind} use on a portable build`,
+			async run() {
+				await withProjects(observeLoader, async (writer) => {
+					const log = path.join(writer, "runs.log");
+					const configuration = useLoaderResultCache(kind, { value: "plain", log });
+					await build(writer, configuration);
+					const second = await build(writer, configuration);
+					expect(execute(second)).toBe('[object String] "plain"');
+					expect(fs.readFileSync(log, "utf8")).toBe("run\n");
+				});
+			}
+		}
+	]),
 	...scenarios.map(({ name, files = {}, rules, plugins, noParse }) => ({
 		name,
 		description: `decides ${name} at the reader of a relocated cache`,
