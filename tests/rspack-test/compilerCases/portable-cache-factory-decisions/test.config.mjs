@@ -322,6 +322,21 @@ export default [
 		}
 	},
 	{
+		name: "inline-source-map",
+		description: "rebuilds loader output that holds the root in a base64 inline source map",
+		async run() {
+			await withProjects({
+				"map.cjs": 'module.exports = function () { const map = JSON.stringify({ version: 3, file: this.resourcePath }); return "module.exports = " + JSON.stringify("data:application/json;base64," + Buffer.from(map).toString("base64")); };'
+			}, async (writer, reader) => {
+				const configuration = { module: { rules: [{ test: /dep\.js$/, use: ["./map.cjs"] }] } };
+				await build(writer, configuration);
+				copyTree(writer, reader);
+				const moved = await build(reader, configuration);
+				await expectColdEquality(reader, configuration, moved);
+			});
+		}
+	},
+	{
 		name: "unsettled-function-use",
 		description: "finishes when a function use returns different options on every call, across an import cycle",
 		async run() {
