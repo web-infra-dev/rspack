@@ -133,3 +133,126 @@ fn base64_of_another_path_is_unbound() {
     "eyJmaWxlIjoiL3dvcmsvb3RoZXIvc3JjL2EuanMifQ=="
   ));
 }
+
+fn assert_base64_bound_at_every_alignment(root: &str, values: [&str; 3]) {
+  // Base64 of `{"file":"<root>/index.js"}`, prefixed with "", "x" and "xx".
+  let missed: Vec<_> = values
+    .into_iter()
+    .enumerate()
+    .filter(|(_, value)| !is_bound(root, value))
+    .collect();
+  assert!(missed.is_empty(), "{root}: missed alignments {missed:?}");
+}
+
+#[test]
+fn base64_of_a_four_byte_root_is_bound_at_every_alignment() {
+  assert_base64_bound_at_every_alignment(
+    "/app",
+    [
+      "eyJmaWxlIjoiL2FwcC9pbmRleC5qcyJ9",
+      "eHsiZmlsZSI6Ii9hcHAvaW5kZXguanMifQ==",
+      "eHh7ImZpbGUiOiIvYXBwL2luZGV4LmpzIn0=",
+    ],
+  );
+}
+
+#[test]
+fn base64_of_a_five_byte_root_is_bound_at_every_alignment() {
+  assert_base64_bound_at_every_alignment(
+    "/work",
+    [
+      "eyJmaWxlIjoiL3dvcmsvaW5kZXguanMifQ==",
+      "eHsiZmlsZSI6Ii93b3JrL2luZGV4LmpzIn0=",
+      "eHh7ImZpbGUiOiIvd29yay9pbmRleC5qcyJ9",
+    ],
+  );
+}
+
+#[test]
+fn base64_of_an_eight_byte_root_is_bound_at_every_alignment() {
+  assert_base64_bound_at_every_alignment(
+    "/tmp/258",
+    [
+      "eyJmaWxlIjoiL3RtcC8yNTgvaW5kZXguanMifQ==",
+      "eHsiZmlsZSI6Ii90bXAvMjU4L2luZGV4LmpzIn0=",
+      "eHh7ImZpbGUiOiIvdG1wLzI1OC9pbmRleC5qcyJ9",
+    ],
+  );
+}
+
+#[test]
+fn base64_of_a_nine_byte_root_is_bound_at_every_alignment() {
+  assert_base64_bound_at_every_alignment(
+    "/tmp/2589",
+    [
+      "eyJmaWxlIjoiL3RtcC8yNTg5L2luZGV4LmpzIn0=",
+      "eHsiZmlsZSI6Ii90bXAvMjU4OS9pbmRleC5qcyJ9",
+      "eHh7ImZpbGUiOiIvdG1wLzI1ODkvaW5kZXguanMifQ==",
+    ],
+  );
+}
+
+#[test]
+fn base64_of_a_ten_byte_root_is_bound_at_every_alignment() {
+  assert_base64_bound_at_every_alignment(
+    "/tmp/25890",
+    [
+      "eyJmaWxlIjoiL3RtcC8yNTg5MC9pbmRleC5qcyJ9",
+      "eHsiZmlsZSI6Ii90bXAvMjU4OTAvaW5kZXguanMifQ==",
+      "eHh7ImZpbGUiOiIvdG1wLzI1ODkwL2luZGV4LmpzIn0=",
+    ],
+  );
+}
+
+#[test]
+fn base64_of_a_short_windows_root_is_bound_at_every_alignment() {
+  // The backslash spelling is JSON-escaped inside the encoded payload.
+  assert_base64_bound_at_every_alignment(
+    r"C:\app",
+    [
+      "eyJmaWxlIjoiQzpcXGFwcFxcaW5kZXguanMifQ==",
+      "eHsiZmlsZSI6IkM6XFxhcHBcXGluZGV4LmpzIn0=",
+      "eHh7ImZpbGUiOiJDOlxcYXBwXFxpbmRleC5qcyJ9",
+    ],
+  );
+}
+
+#[test]
+fn base64_of_a_short_windows_root_with_slashes_is_bound_at_every_alignment() {
+  assert_base64_bound_at_every_alignment(
+    r"C:\app",
+    [
+      "eyJmaWxlIjoiQzovYXBwL2luZGV4LmpzIn0=",
+      "eHsiZmlsZSI6IkM6L2FwcC9pbmRleC5qcyJ9",
+      "eHh7ImZpbGUiOiJDOi9hcHAvaW5kZXguanMifQ==",
+    ],
+  );
+}
+
+#[test]
+fn base64_of_a_windows_drive_root_is_bound_at_every_alignment() {
+  assert_base64_bound_at_every_alignment(
+    r"C:\",
+    [
+      "eyJmaWxlIjoiQzpcXGluZGV4LmpzIn0=",
+      "eHsiZmlsZSI6IkM6XFxpbmRleC5qcyJ9",
+      "eHh7ImZpbGUiOiJDOlxcaW5kZXguanMifQ==",
+    ],
+  );
+  assert_base64_bound_at_every_alignment(
+    r"C:\",
+    [
+      "eyJmaWxlIjoiQzovaW5kZXguanMifQ==",
+      "eHsiZmlsZSI6IkM6L2luZGV4LmpzIn0=",
+      "eHh7ImZpbGUiOiJDOi9pbmRleC5qcyJ9",
+    ],
+  );
+}
+
+#[test]
+fn one_byte_root_binds_every_value_without_panicking() {
+  // One base64 alignment has no character determined solely by a one-byte root.
+  for value in ["", "unrelated", "eyJmaWxlIjoiL290aGVyL2luZGV4LmpzIn0="] {
+    assert!(is_bound("/", value), "{value}");
+  }
+}

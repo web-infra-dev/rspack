@@ -103,24 +103,46 @@ fn trailing_separators_are_ignored() {
   assert_eq!(patterns(r"C:\work\project\"), patterns(r"C:\work\project"));
   assert_eq!(patterns("C:/work/project/"), patterns("C:/work/project"));
   assert_eq!(patterns("/work/project/"), patterns("/work/project"));
-  assert_eq!(patterns("/"), vec!["/"]);
+  // Even a one-byte root retains its nonempty stable base64 fragments.
+  let mut found = patterns("/");
+  found.sort();
+  assert_eq!(found, vec!["/", "L", "v"]);
 }
 
 #[test]
 fn unix_root_patterns() {
   let mut found = patterns("/work/project");
   found.sort();
+  // Keep every character whose six bits come solely from the root, including
+  // characters in the final incomplete three-byte group.
   assert_eq!(
     found,
     vec![
       "/work/project",
-      "93b3JrL3Byb2pl",
-      "L3dvcmsvcHJvamVj",
+      "93b3JrL3Byb2plY3",
+      "L3dvcmsvcHJvamVjd",
       r"\/work\/project",
       r"\\/work\\/project",
       "vd29yay9wcm9qZWN0",
     ]
   );
+}
+
+#[test]
+fn short_root_patterns_keep_all_stable_base64_characters() {
+  let mut found = patterns("/app");
+  found.sort();
+  // Escaping the sole leading slash still contains the literal `/app`, so the
+  // escaped-solidus candidates are redundant.
+  assert_eq!(found, vec!["/app", "9hcH", "L2Fwc", "vYXBw"]);
+}
+
+#[test]
+fn one_byte_root_requires_binding_without_empty_patterns() {
+  assert!(patterns("/").iter().all(|pattern| !pattern.is_empty()));
+  for value in ["", "unrelated", "eyJmaWxlIjoiL290aGVyL2luZGV4LmpzIn0="] {
+    assert!(matches("/", value), "{value}");
+  }
 }
 
 #[test]
