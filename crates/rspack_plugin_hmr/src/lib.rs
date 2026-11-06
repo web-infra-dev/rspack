@@ -121,21 +121,22 @@ fn is_module_unchanged(compilation: &Compilation, chunk: &Chunk, module: ModuleI
 
 fn chunk_siblings(compilation: &Compilation) -> ChunkIdMap<ChunkIdSet> {
   let graph = &compilation.build_chunk_graph_artifact;
-  graph
-    .chunk_by_ukey
-    .values()
-    .filter(|chunk| chunk.kind() != ChunkKind::HotUpdate)
-    .map(|chunk| {
-      let siblings = chunk
-        .groups()
-        .iter()
-        .flat_map(|group| &graph.chunk_group_by_ukey.expect_get(group).chunks)
-        .filter(|key| **key != chunk.ukey())
-        .map(|key| graph.chunk_by_ukey.expect_get(key).expect_id().clone())
-        .collect();
-      (chunk.expect_id().clone(), siblings)
-    })
-    .collect()
+  let mut result = ChunkIdMap::default();
+  for chunk in graph.chunk_by_ukey.values() {
+    if chunk.kind() == ChunkKind::HotUpdate {
+      continue;
+    }
+    let mut siblings = ChunkIdSet::default();
+    for group in chunk.groups() {
+      for key in &graph.chunk_group_by_ukey.expect_get(group).chunks {
+        if *key != chunk.ukey() {
+          siblings.insert(graph.chunk_by_ukey.expect_get(key).expect_id().clone());
+        }
+      }
+    }
+    result.insert(chunk.expect_id().clone(), siblings);
+  }
+  result
 }
 
 #[plugin_hook(CompilerCompilation for HotModuleReplacementPlugin)]
@@ -449,24 +450,20 @@ async fn generate_hot_update(
   // Notify every client about changed factories, including those now held only
   // by unloaded chunks. Chunk membership alone must not count as a code change.
   // Reuse chunk invalidation, also covering new chunks and runtime changes.
-  let candidate_chunks = graph
-    .chunk_by_ukey
-    .iter()
-    .filter(|(key, chunk)| {
-      changed_chunks
-        .as_ref()
-        .is_none_or(|chunks| chunks.contains(key))
-        || old_chunks
-          .get(chunk.expect_id())
-          .is_none_or(|(runtime, _)| runtime != chunk.runtime())
-    })
-    .map(|(key, _)| *key)
-    .collect::<HashSet<_>>();
-  let mut candidate_modules = candidate_chunks
-    .iter()
-    .flat_map(|key| graph.chunk_graph.get_chunk_modules_identifier(key))
-    .copied()
-    .collect::<IdentifierSet>();
+  let mut candidate_chunks = HashSet::default();
+  let mut candidate_modules = IdentifierSet::default();
+  for (key, chunk) in graph.chunk_by_ukey.iter() {
+    if changed_chunks
+      .as_ref()
+      .is_none_or(|chunks| chunks.contains(key))
+      || old_chunks
+        .get(chunk.expect_id())
+        .is_none_or(|(runtime, _)| runtime != chunk.runtime())
+    {
+      candidate_chunks.insert(*key);
+      candidate_modules.extend(graph.chunk_graph.get_chunk_modules_identifier(key));
+    }
+  }
   for (id, (_, modules)) in old_chunks {
     if current_chunk_ukeys
       .get(id)
