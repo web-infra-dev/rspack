@@ -95,7 +95,9 @@ fn dev_tool_code_preserves_binary_normalization() {
 
 #[test]
 fn source_map_sources_compare_rendered_bytes() {
-  use rspack_sources::{DevToolCodeSource, DevToolMapSource, OriginalSource, Source, SourceMap};
+  use rspack_sources::{
+    DevToolCodeSource, DevToolMapSource, OriginalSource, Source, SourceMap, source_content_eq,
+  };
 
   let map = SourceMap::from_json(r#"{"version":3,"sources":["a\"b.js"],"sourcesContent":["\u0000\n你好\\world"],"names":[],"mappings":"AAAA"}"#.to_owned()).unwrap();
   let source = DevToolMapSource::new(map);
@@ -106,10 +108,13 @@ fn source_map_sources_compare_rendered_bytes() {
     RawStringSource::from(text[split..].to_owned()).boxed(),
   );
   let raw = RawStringSource::from(text.clone());
-  assert!(source.content_eq(&code));
-  assert!(code.content_eq(&source));
-  assert!(code.content_eq(&raw));
-  assert!(!code.content_eq(&RawStringSource::from(format!("{text}x"))));
+  assert!(source_content_eq(&source, &code));
+  assert!(source_content_eq(&code, &source));
+  assert!(source_content_eq(&code, &raw));
+  assert!(!source_content_eq(
+    &code,
+    &RawStringSource::from(format!("{text}x"))
+  ));
   let mut rope = String::new();
   source.rope(&mut |chunk| rope.push_str(chunk));
   assert_eq!(rope, text);

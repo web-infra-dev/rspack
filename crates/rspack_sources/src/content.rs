@@ -54,6 +54,13 @@ pub fn source_content_eq(a: &dyn Source, b: &dyn Source) -> bool {
   if std::ptr::eq(a, b) {
     return true;
   }
+  if let (Some(a), Some(b)) = (
+    a.as_any().downcast_ref::<DevToolMapSource>(),
+    b.as_any().downcast_ref::<DevToolMapSource>(),
+  ) && a == b
+  {
+    return true;
+  }
   if !has_utf8_text(a) || !has_utf8_text(b) {
     return a.buffer() == b.buffer();
   }

@@ -322,9 +322,11 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
 }
 
 fn equal_for_hash(a: &(dyn Source + 'static), b: &(dyn Source + 'static)) -> bool {
-  let by_content =
-    |source: &dyn Source| is_source_map_text(source) || source.as_any().is::<RawStringSource>();
-  if by_content(a) && by_content(b) {
+  let a_is_devtool = is_source_map_text(a);
+  let b_is_devtool = is_source_map_text(b);
+  if (a_is_devtool && (b_is_devtool || b.as_any().is::<RawStringSource>()))
+    || (b_is_devtool && a.as_any().is::<RawStringSource>())
+  {
     return source_content_eq(a, b);
   }
   a == b
@@ -420,28 +422,25 @@ impl<'a> AssetData<'a> {
     })
     .get_or_init(|| {
       if let Some(matches) = &self.streaming_matches {
-        let replacements = matches
-          .iter()
-          .filter_map(|found| {
-            let hash = hash_patterns[found.pattern().as_usize()];
-            let replacement = if without_own && self.own_hashes.contains(hash) {
-              ""
-            } else {
-              hash_to_new_hash
-                .get(hash)
-                .expect("RealContentHashPlugin: should have new hash")
-            };
-            (replacement != hash).then_some((found.start(), found.end(), replacement))
-          })
-          .collect::<Vec<_>>();
-        if replacements.is_empty() {
+        let replacements = matches.iter().filter_map(|found| {
+          let hash = hash_patterns[found.pattern().as_usize()];
+          let replacement = if without_own && self.own_hashes.contains(hash) {
+            ""
+          } else {
+            hash_to_new_hash
+              .get(hash)
+              .expect("RealContentHashPlugin: should have new hash")
+          };
+          (replacement != hash).then_some((found.start(), found.end(), replacement))
+        });
+        if replacements.clone().next().is_none() {
           return Arc::clone(self.old_source);
         }
         // ReplaceSource uses u32 offsets. Keep the previous flat fallback for
         // an asset whose edits cannot be represented without truncation.
         if replacements
-          .iter()
-          .all(|(_, end, _)| u32::try_from(*end).is_ok())
+          .clone()
+          .all(|(_, end, _)| u32::try_from(end).is_ok())
         {
           let mut edited = ReplaceSource::new(Arc::clone(self.old_source));
           for (start, end, replacement) in replacements {

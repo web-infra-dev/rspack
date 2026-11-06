@@ -59,11 +59,6 @@ impl DevToolCodeSource {
     }
     has_utf8_text(self.inner.as_ref())
   }
-
-  /// Compare rendered bytes independently of graph and chunk boundaries.
-  pub fn content_eq(&self, other: &dyn Source) -> bool {
-    crate::source_content_eq(self, other)
-  }
 }
 
 impl Source for DevToolCodeSource {
