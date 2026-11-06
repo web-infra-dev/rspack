@@ -126,6 +126,7 @@ pub struct NormalModule {
   loaders: Vec<BoxLoader>,
   loader_options: Option<Vec<LoaderRunnerOptions>>,
   loader_filters: Option<LoaderFilters>,
+  pub(crate) function_use_digest: u64,
 
   /// Resolve options derived from [Rule.resolve]
   resolve_options: Option<Arc<Resolve>>,
@@ -166,7 +167,28 @@ pub struct NormalModule {
 
 static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct NormalFactoryDecision {
+  resource: String,
+  resolve_options: Option<Arc<Resolve>>,
+  rule_ids: crate::ResolvedModuleOptionsCacheKey,
+  loader_filters: Option<LoaderFilters>,
+  function_use: u64,
+  side_effect_free: Option<bool>,
+}
+
 impl NormalModule {
+  pub(crate) fn factory_decision(&self) -> NormalFactoryDecision {
+    NormalFactoryDecision {
+      resource: self.resource_data.resource().to_owned(),
+      resolve_options: self.resolve_options.clone(),
+      rule_ids: self.parser_and_generator_options.cache_key().clone(),
+      loader_filters: self.loader_filters.clone(),
+      function_use: self.function_use_digest,
+      side_effect_free: self.factory_meta().and_then(|meta| meta.side_effect_free),
+    }
+  }
+
   /// Accept only emissions returned by the current loader execution span. The JS
   /// bridge publishes them immediately and transfers owned copies here, even on failure.
   pub fn add_module_build_diagnostics(
@@ -251,6 +273,7 @@ impl NormalModule {
       loaders,
       loader_options,
       loader_filters,
+      function_use_digest: 0,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
       extract_source_map,
 

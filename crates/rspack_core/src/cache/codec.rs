@@ -78,7 +78,6 @@ impl rspack_cacheable::CacheableContext for Context {
 pub struct CacheCodec {
   context: Context,
   root_patterns: Option<Arc<RootPatterns>>,
-  resolve_layout: Option<u64>,
 }
 
 impl CacheCodec {
@@ -103,29 +102,11 @@ impl CacheCodec {
     });
     Self {
       root_patterns,
-      resolve_layout: None,
       context: Context {
         portable_root,
         context_identifier_layouts: None,
       },
     }
-  }
-
-  /// Records the resolver configuration that resolutions encoded with this codec hold for.
-  pub fn with_resolve_layout(mut self, resolve_layout: u64) -> Self {
-    self.resolve_layout = Some(resolve_layout);
-    self
-  }
-
-  pub(crate) fn resolve_layout(&self) -> u64 {
-    self.resolve_layout.unwrap_or_default()
-  }
-
-  /// Without a recorded layout, as in the compare tool, resolutions are read as they are.
-  pub(crate) fn accepts_resolve_layout(&self, resolve_layout: u64) -> bool {
-    self
-      .resolve_layout
-      .is_none_or(|current| current == resolve_layout)
   }
 
   /// The cache version to store and compare on restore. It is the only place that decides which

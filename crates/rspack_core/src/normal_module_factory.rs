@@ -1,5 +1,6 @@
 use std::{
   borrow::Cow,
+  hash::{Hash, Hasher},
   ops::Deref,
   sync::{Arc, LazyLock},
 };
@@ -1028,6 +1029,8 @@ module.exports = "data:,";
       }
     };
 
+    let mut function_use = None;
+    let portable = matches!(&self.options.cache, crate::CacheOptions::Persistent(options) if options.portable_root.is_some());
     let resolved_loaders: Vec<ResolvedLoader> = {
       let mut pre_loaders: Vec<ModuleRuleUseLoader> = vec![];
       let mut post_loaders: Vec<ModuleRuleUseLoader> = vec![];
@@ -1047,7 +1050,16 @@ module.exports = "data:,";
               issuer: data.issuer.clone(),
               issuer_layer: data.issuer_layer.clone(),
             };
-            Cow::Owned(func_use(context).await?)
+            let loaders = func_use(context).await?;
+            if portable {
+              let digest = function_use.get_or_insert_with(rustc_hash::FxHasher::default);
+              for loader in &loaders {
+                loader.loader.hash(digest);
+                loader.options.hash(digest);
+                loader.options_cache_key.hash(digest);
+              }
+            }
+            Cow::Owned(loaders)
           }
         };
 
@@ -1252,6 +1264,9 @@ module.exports = "data:,";
       .boxed()
     };
 
+    if let Some(normal) = module.as_normal_module_mut() {
+      normal.function_use_digest = function_use.map_or(0, |digest| digest.finish());
+    }
     self
       .plugin_driver
       .normal_module_factory_hooks

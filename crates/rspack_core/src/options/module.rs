@@ -1269,23 +1269,6 @@ pub enum RuleSetCondition {
   Func(RuleSetConditionFnMatcher),
 }
 
-impl RuleSetCondition {
-  /// Whether matching runs a JavaScript predicate whose decision cannot be compared across
-  /// compilations.
-  pub fn is_opaque(&self) -> bool {
-    match self {
-      Self::String(_) | Self::Regexp(_) => false,
-      Self::Logical(logical) => {
-        logical.and.iter().flatten().any(Self::is_opaque)
-          || logical.or.iter().flatten().any(Self::is_opaque)
-          || logical.not.as_ref().is_some_and(Self::is_opaque)
-      }
-      Self::Array { items, .. } => items.iter().any(Self::is_opaque),
-      Self::Func(_) => true,
-    }
-  }
-}
-
 impl fmt::Debug for RuleSetCondition {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
@@ -1743,49 +1726,6 @@ pub struct ModuleRule {
   pub rules: Option<Vec<ModuleRule>>,
   pub effect: ModuleRuleEffect,
   pub extract_source_map: Option<bool>,
-}
-
-impl ModuleRule {
-  /// Whether any condition of this rule or a nested rule runs a JavaScript predicate.
-  pub fn has_opaque_condition(&self) -> bool {
-    let conditions = [
-      &self.rspack_resource,
-      &self.test,
-      &self.include,
-      &self.exclude,
-      &self.resource,
-      &self.dependency,
-      &self.phase,
-    ];
-    let with_empty = [
-      &self.resource_query,
-      &self.resource_fragment,
-      &self.issuer,
-      &self.issuer_layer,
-      &self.scheme,
-      &self.mimetype,
-    ];
-    conditions
-      .into_iter()
-      .flatten()
-      .any(RuleSetCondition::is_opaque)
-      || with_empty
-        .into_iter()
-        .flatten()
-        .any(|condition| condition.condition().is_opaque())
-      || self
-        .description_data
-        .iter()
-        .chain(self.with.iter())
-        .flat_map(HashMap::values)
-        .any(|condition| condition.condition().is_opaque())
-      || self
-        .one_of
-        .iter()
-        .chain(self.rules.iter())
-        .flatten()
-        .any(ModuleRule::has_opaque_condition)
-  }
 }
 
 pub type ModuleRuleId = u16;

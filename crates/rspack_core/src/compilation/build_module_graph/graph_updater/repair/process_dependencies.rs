@@ -2,9 +2,12 @@ use std::borrow::Cow;
 
 use rustc_hash::FxHashMap as HashMap;
 
-use super::{TaskContext, factorize::FactorizeTask};
+use super::{
+  TaskContext,
+  factorize::{FactorizeInput, FactorizeTask},
+};
 use crate::{
-  ContextDependency, DependencyId, Module, ModuleIdentifier,
+  ContextDependency, DependencyId, ModuleIdentifier,
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -96,17 +99,13 @@ impl Task<TaskContext> for ProcessDependenciesTask {
         })
         .clone();
       res.push(Box::new(FactorizeTask {
-        build_context: context.build_context.clone(),
-        module_factory,
-        original_module_identifier: Some(module.identifier()),
-        original_module_context: module.get_context(),
+        input: FactorizeInput::new(
+          context.build_context.clone(),
+          module_factory,
+          Some(module.as_ref()),
+          dependencies,
+        ),
         original_module_source,
-        issuer: module
-          .as_normal_module()
-          .and_then(|module| module.name_for_condition()),
-        issuer_layer: module.get_layer().cloned(),
-        dependencies,
-        resolve_options: module.get_resolve_options(),
         from_unlazy,
       }));
     }

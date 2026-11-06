@@ -389,7 +389,13 @@ const getRawModuleRule = (
       };
       const uses = use(context);
 
-      return createRawModuleRuleUses(uses ?? [], `${path}.use`, options);
+      const cache = options.compiler.options.cache;
+      return createRawModuleRuleUses(
+        uses ?? [],
+        `${path}.use`,
+        options,
+        Boolean(cache && cache.type === 'persistent' && cache.portable),
+      );
     };
   }
 

@@ -1212,3 +1212,35 @@ impl ModuleGraph {
     }
   }
 }
+
+pub(crate) fn build_input_dependencies(
+  module: &dyn crate::Module,
+) -> HashMap<DependencyId, &DependencyRef> {
+  let mut inputs = HashMap::default();
+  for dep in module.get_dependencies() {
+    inputs.insert(*dep.id(), dep);
+  }
+  let mut blocks = module.get_block_refs().iter().collect::<Vec<_>>();
+  while let Some(block) = blocks.pop() {
+    for dep in block.get_dependencies() {
+      inputs.insert(*dep.id(), dep);
+    }
+    blocks.extend(block.get_block_refs());
+  }
+  inputs
+}
+
+pub(crate) fn can_refactorize_group<'a>(
+  parent: &dyn crate::Module,
+  lazy: Option<&crate::compilation::build_module_graph::LazyDependencies>,
+  mut group: impl Iterator<Item = (DependencyId, &'a DependencyRef, bool)>,
+) -> bool {
+  parent.as_normal_module().is_some()
+    && group.all(|(id, dep, is_build_input)| {
+      is_build_input
+        && lazy.is_none_or(|lazy| !lazy.all_lazy_dependencies().any(|lazy_id| lazy_id == id))
+        && dep.lazy().is_none()
+        && dep.as_module_dependency().is_some()
+        && dep.as_context_dependency().is_none()
+    })
+}

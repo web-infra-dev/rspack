@@ -18,6 +18,7 @@ use crate::{
   cache::CacheCodec,
   compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
   legacy_cache::persistent::storage::Storage,
+  module_graph::{build_input_dependencies, can_refactorize_group},
 };
 
 pub const SCOPE: &str = "occasion_make_module_graph";
@@ -50,8 +51,6 @@ struct Resolution<'a> {
 #[cacheable]
 struct ResolutionSegment {
   dependencies: Vec<DependencyId>,
-  /// The resolver configuration the resolution holds for. See [CacheCodec::with_resolve_layout].
-  resolve_layout: u64,
   bytes: Vec<u8>,
 }
 
@@ -178,17 +177,7 @@ pub fn save_module_graph(
         .collect::<Vec<_>>();
       // Factories may replace graph dependencies (for example a resolved mock request). The
       // module and its blocks retain build inputs, which must be used when resolving again.
-      let mut build_dependencies = FxHashMap::default();
-      for dep in module.get_dependencies() {
-        build_dependencies.insert(*dep.id(), dep);
-      }
-      let mut queue = module.get_block_refs().iter().collect::<Vec<_>>();
-      while let Some(block) = queue.pop() {
-        for dep in block.get_dependencies() {
-          build_dependencies.insert(*dep.id(), dep);
-        }
-        queue.extend(block.get_block_refs());
-      }
+      let build_dependencies = build_input_dependencies(module.as_ref());
       let dependencies = mgm
         .all_dependencies()
         .par_iter()
@@ -257,7 +246,6 @@ pub fn save_module_graph(
           };
           BoundEntry::encode(node_codec, &resolution, false).map(|bytes| ResolutionSegment {
             dependencies: ids,
-            resolve_layout: node_codec.resolve_layout(),
             bytes,
           })
         })
@@ -349,24 +337,12 @@ pub async fn recovery_module_graph(
       {
         return Ok((key, None));
       }
-      // A rule's resolve options are stored with the build, and repairing a resolution reads them.
-      if node.module.as_ref().get_resolve_options().is_some()
-        && !frame
-          .resolutions
-          .iter()
-          .all(|segment| codec.accepts_resolve_layout(segment.resolve_layout))
-      {
-        return Ok((key, None));
-      }
       let resolutions = frame
         .resolutions
         .into_iter()
         .map(|segment| {
           // Inputs that were never resolved, such as export specifiers, have nothing to repair.
-          let resolution =
-            BoundEntry::decode::<Resolution>(codec, &segment.bytes)?.filter(|resolution| {
-              codec.accepts_resolve_layout(segment.resolve_layout) || resolution.infos.is_empty()
-            });
+          let resolution = BoundEntry::decode::<Resolution>(codec, &segment.bytes)?;
           Ok((segment.dependencies, resolution))
         })
         .collect::<Result<Vec<_>>>()?;
@@ -550,23 +526,15 @@ pub async fn recovery_module_graph(
     if segmented.len() != input_dependencies.len() {
       return Err(error!("missing make cache resolution segment"));
     }
-    let can_refactorize = module.as_normal_module().is_some()
-      && node.lazy_info.as_ref().is_none_or(|lazy| {
-        !lazy
-          .as_ref()
-          .all_lazy_dependencies()
-          .any(|id| refresh.contains(&id))
-      })
-      && refresh.iter().all(|id| {
-        input_dependencies.get(id).is_some_and(|dep| {
-          // Context replacement mutates critical diagnostics in the dependency itself. Rebuild
-          // those owners, and lazy/placeholder/injected inputs, rather than reuse resolved state.
-          build_inputs.contains_key(id)
-            && dep.lazy().is_none()
-            && dep.as_module_dependency().is_some()
-            && dep.as_context_dependency().is_none()
-        })
-      });
+    let can_refactorize = can_refactorize_group(
+      module.as_ref(),
+      node.lazy_info.as_ref().map(OwnedOrRef::as_ref),
+      refresh.iter().filter_map(|id| {
+        input_dependencies
+          .get(id)
+          .map(|dep| (*id, *dep, build_inputs.contains_key(id)))
+      }),
+    );
     let rebuild = (expired || !refresh.is_empty()) && !can_refactorize;
     check_issuer_cycles |= expired || !refresh.is_empty();
     for (dep, parent_block, index_in_block) in node.dependencies {

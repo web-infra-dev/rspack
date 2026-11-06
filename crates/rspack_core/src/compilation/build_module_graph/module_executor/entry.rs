@@ -1,7 +1,10 @@
 use std::collections::hash_map::Entry;
 
 use super::{
-  super::graph_updater::repair::{context::TaskContext, factorize::FactorizeTask},
+  super::graph_updater::repair::{
+    context::TaskContext,
+    factorize::{FactorizeInput, FactorizeTask},
+  },
   context::{ExecutorTaskContext, ImportModuleMeta},
   execute::ExecuteTask,
   overwrite::overwrite_tasks,
@@ -53,9 +56,9 @@ impl Task<ExecutorTaskContext> for EntryTask {
         let mg = TaskContext::get_module_graph_mut(&mut origin_context.artifact);
         mg.add_dependency_ref(dep.clone());
 
-        res.extend(overwrite_tasks(vec![Box::new(FactorizeTask {
-          build_context: origin_context.build_context.clone(),
-          module_factory: origin_context
+        let mut input = FactorizeInput::new(
+          origin_context.build_context.clone(),
+          origin_context
             .dependency_factories
             .get(dep.dependency_type())
             .unwrap_or_else(|| {
@@ -65,13 +68,13 @@ impl Task<ExecutorTaskContext> for EntryTask {
               )
             })
             .clone(),
-          original_module_identifier: None,
+          None,
+          vec![dep],
+        );
+        input.issuer_layer = meta.layer.clone();
+        res.extend(overwrite_tasks(vec![Box::new(FactorizeTask {
+          input,
           original_module_source: None,
-          issuer: None,
-          issuer_layer: meta.layer.clone(),
-          original_module_context: None,
-          dependencies: vec![dep],
-          resolve_options: None,
           from_unlazy: false,
         })]));
         (*v.insert(dep_id), true)

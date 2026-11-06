@@ -125,6 +125,13 @@ const scenarios = [
 		}] }]
 	},
 	{
+		name: "function-use-loader-filter",
+		rules: (writer) => [{ test: /dep\.js$/, use: (info) => [{
+			loader: transform,
+			codeFilter: info.resource.startsWith(writer + path.sep) ? "original" : "never"
+		}] }]
+	},
+	{
 		name: "parser-override-strict",
 		files: { "src/dep.js": "module.exports = (function () { return this === undefined; })();" },
 		rules: (writer) => [{ test: /dep\.js$/, include: writer, parser: { overrideStrict: "strict" } }]
@@ -164,6 +171,15 @@ const scenarios = [
 			"src/optional.js": 'module.exports = "optional";'
 		},
 		plugins: (writer) => [new rspack.IgnorePlugin({ checkResource: (request, context) => context.startsWith(writer + path.sep) && request === "./optional.js" })]
+	},
+	{
+		name: "shared-factory-hook",
+		files: {
+			"src/dep.js": 'module.exports = require("shared-target");',
+			"node_modules/shared-target/package.json": '{"name":"shared-target","version":"1.0.0","main":"index.js"}',
+			"node_modules/shared-target/index.js": 'module.exports = "shared";'
+		},
+		plugins: () => [new rspack.sharing.ProvideSharedPlugin({ provides: ["shared-target"] })]
 	},
 	{
 		name: "before-resolve",
@@ -252,6 +268,25 @@ export default [
 				requests.length = 0;
 				const moved = await build(reader, configuration);
 				expect(requests).not.toContain("./orphan-leaf.js");
+				await expectColdEquality(reader, configuration, moved);
+			});
+		}
+	},
+	{
+		name: "unreachable-shared",
+		description: "does not provide shared modules kept only by recovery anchors",
+		async run() {
+			await withProjects({
+				"src/index.js": 'module.exports = require("shared-target");',
+				"node_modules/shared-target/package.json": '{"name":"shared-target","version":"1.0.0","main":"index.js"}',
+				"node_modules/shared-target/index.js": 'module.exports = require("./leaf.js");',
+				"node_modules/shared-target/leaf.js": 'module.exports = "shared";'
+			}, async (writer, reader) => {
+				const configuration = { plugins: [new rspack.sharing.ProvideSharedPlugin({ provides: ["shared-target"] })] };
+				await build(writer, configuration);
+				copyTree(writer, reader);
+				fs.writeFileSync(path.join(reader, "src/index.js"), 'module.exports = "reader";');
+				const moved = await build(reader, configuration);
 				await expectColdEquality(reader, configuration, moved);
 			});
 		}

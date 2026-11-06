@@ -7,15 +7,12 @@ pub mod storage;
 pub mod validation;
 
 use std::{
-  borrow::Cow,
   hash::{DefaultHasher, Hash, Hasher},
   sync::Arc,
 };
 
-use cow_utils::CowUtils;
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 use rspack_workspace::rspack_pkg_version;
-use rustc_hash::FxHasher;
 
 use self::{
   build_dependencies::BuildDeps,
@@ -28,52 +25,11 @@ use self::{
 };
 use super::Cache;
 use crate::{
-  Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger, ModuleRule,
-  PersistentCacheOptions, PortableRoot, cache::CacheCodec,
+  Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger,
+  PersistentCacheOptions, cache::CacheCodec,
 };
 
 const LOGGER_NAME: &str = "rspack.persistentCache";
-
-/// The resolver configuration and module rules, with paths below the root spelled relative to it.
-///
-/// A resolution is reused only under an equal layout. Configured paths below the root are
-/// computed for this checkout and move with it, so checkouts share their resolutions. A
-/// configuration that names a path in another checkout renders differently, which expires the
-/// resolutions and re-resolves them.
-///
-/// Rules render whole, in order, with their conditions and nesting: which rule matches a resource
-/// decides its loaders and module type, and a fixed `include` or `exclude` stops matching when the
-/// checkout moves although the configuration is unchanged. A rule with a JavaScript predicate
-/// cannot be compared, so its layout also carries the root: the same checkout reuses, a moved
-/// checkout re-resolves.
-fn resolve_layout(options: &CompilerOptions, root: &PortableRoot) -> u64 {
-  let rendered = format!(
-    "{:?}{:?}{:?}",
-    options.resolve, options.resolve_loader, options.module.rules
-  );
-  let mut rendered = Cow::Borrowed(rendered.as_str());
-  for root in [&root.root, &root.canonical_root] {
-    // Loader paths render raw, and other paths escaped as `Debug` does.
-    let escaped = format!("{root:?}");
-    for spelled in [root.as_str(), escaped.trim_matches('"')] {
-      if let Cow::Owned(replaced) = rendered.cow_replace(spelled, "") {
-        rendered = Cow::Owned(replaced);
-      }
-    }
-  }
-  let mut hasher = FxHasher::default();
-  rendered.hash(&mut hasher);
-  if options
-    .module
-    .rules
-    .iter()
-    .any(ModuleRule::has_opaque_condition)
-  {
-    // Spelled after root stripping, so the root itself stays in the layout.
-    root.canonical_root.hash(&mut hasher);
-  }
-  hasher.finish()
-}
 
 /// Persistent cache implementation
 #[derive(Debug)]
@@ -100,11 +56,7 @@ impl PersistentCache {
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
     compilation_logging: CompilationLogging,
   ) -> Self {
-    let mut codec = CacheCodec::new(option.portable_root.clone());
-    if let Some(root) = &option.portable_root {
-      codec = codec.with_resolve_layout(resolve_layout(&compiler_options, root));
-    }
-    let codec = Arc::new(codec);
+    let codec = Arc::new(CacheCodec::new(option.portable_root.clone()));
     // Each compiler path owns exactly one storage directory.
     let cache_directory = {
       let mut hasher = DefaultHasher::new();

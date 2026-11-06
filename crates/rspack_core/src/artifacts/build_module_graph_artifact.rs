@@ -37,6 +37,8 @@ pub struct BuildModuleGraphArtifact {
   /// runs before the reset of the first build.
   pub(crate) refactorize_dependencies: FxHashSet<DependencyId>,
 
+  pub(crate) verify_factory_decisions: Option<FxHashSet<DependencyId>>,
+
   // data
   /// Module graph data
   pub module_graph: ModuleGraph,
@@ -70,6 +72,7 @@ impl BuildModuleGraphArtifact {
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
       check_issuer_cycles: false,
+      verify_factory_decisions: None,
       refactorize_dependencies: Default::default(),
       module_graph: Default::default(),
       factorization_artifact: Default::default(),

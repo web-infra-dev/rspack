@@ -502,6 +502,7 @@ export function createRawModuleRuleUses(
   uses: RuleSetUseItem | RuleSetUseItem[],
   path: string,
   options: ComposeJsUseOptions,
+  fingerprint = false,
 ): RawModuleRuleUse[] {
   const normalizeRuleSetUseItem = (
     item: RuleSetUseItem,
@@ -510,7 +511,7 @@ export function createRawModuleRuleUses(
   const allUses = Array.isArray(uses)
     ? [...uses].map(normalizeRuleSetUseItem)
     : [normalizeRuleSetUseItem(uses)];
-  return createRawModuleRuleUsesImpl(allUses, path, options);
+  return createRawModuleRuleUsesImpl(allUses, path, options, fingerprint);
 }
 
 export type GetLoaderOptions = (
@@ -538,6 +539,7 @@ function createRawModuleRuleUsesImpl(
   uses: (RuleSetLoaderWithOptions | Falsy)[],
   path: string,
   options: ComposeJsUseOptions,
+  fingerprint = false,
 ): RawModuleRuleUse[] {
   if (!uses.length) {
     return [];
@@ -572,15 +574,28 @@ function createRawModuleRuleUsesImpl(
       ),
       options: o,
       cache: use.cache ?? false,
-      optionsCacheKey: use.cache
-        ? (JSON.stringify(fingerprintOptions) ?? '')
-        : '',
+      optionsCacheKey:
+        use.cache || fingerprint ? stableOptionsKey(fingerprintOptions) : '',
       codeFilter: createRawLoaderCodeFilter(
         use.codeFilter,
         `${path}[${index}].codeFilter`,
       ),
     };
   });
+}
+
+function stableOptionsKey(options: unknown): string {
+  try {
+    return (
+      JSON.stringify(options, (_key, value) => {
+        if (typeof value === 'function' || typeof value === 'symbol')
+          throw new Error('Unserializable loader options');
+        return value;
+      }) ?? ''
+    );
+  } catch {
+    return '';
+  }
 }
 
 function createRawLoaderCodeFilter(

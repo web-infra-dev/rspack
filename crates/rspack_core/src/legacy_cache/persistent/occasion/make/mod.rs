@@ -11,7 +11,7 @@ use rustc_hash::FxHashSet;
 use super::{super::storage::Storage, Occasion, Recovered};
 use crate::{
   CompilationLogger, cache::CacheCodec, compilation::build_module_graph::BuildModuleGraphArtifact,
-  utils::FileCounter,
+  legacy_cache::persistent::validation::is_relocated, utils::FileCounter,
 };
 
 /// Make Occasion persists the build module graph as a cache item.
@@ -57,6 +57,7 @@ impl Occasion for MakeOccasion {
       // skip
       check_issuer_cycles: _,
       refactorize_dependencies: _,
+      verify_factory_decisions: _,
       entry_dependencies: _,
       file_dependencies: _,
       context_dependencies: _,
@@ -146,6 +147,9 @@ impl Occasion for MakeOccasion {
       issuer_update_modules: Default::default(),
       check_issuer_cycles,
       refactorize_dependencies,
+      verify_factory_decisions: (self.codec.is_portable()
+        && is_relocated(storage, &self.codec).await?)
+        .then(FxHashSet::default),
 
       side_effects_state_artifact: Default::default(),
       module_graph: mg,
