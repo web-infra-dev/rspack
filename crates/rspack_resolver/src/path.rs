@@ -1,8 +1,8 @@
 //! Path Utilities
 //!
-//! Code adapted from the following libraries
-//! * [path-absolutize](https://docs.rs/path-absolutize)
-//! * [normalize_path](https://docs.rs/normalize-path)
+//! Windows path classification and normalization follow enhanced-resolve and Node.js
+//! independently of the host platform. POSIX paths retain the resolver's existing
+//! traversal and separator conventions.
 use camino::{Utf8Component, Utf8Path, Utf8PathBuf};
 
 pub const SLASH_START: &[char; 2] = &['/', '\\'];
@@ -87,6 +87,20 @@ fn normalize_posix(path: &str) -> Utf8PathBuf {
   normalize_segments(result, path, false, rooted)
 }
 
+fn is_windows_reserved_device(name: &str) -> bool {
+  let name = name.to_ascii_uppercase();
+  ["CON", "PRN", "AUX", "NUL"].contains(&name.as_str())
+    || name
+      .strip_prefix("COM")
+      .or_else(|| name.strip_prefix("LPT"))
+      .is_some_and(|suffix| {
+        matches!(
+          suffix,
+          "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "¹" | "²" | "³"
+        )
+      })
+}
+
 fn normalize_windows(path: &str) -> Utf8PathBuf {
   let bytes = path.as_bytes();
   let is_separator = |byte: u8| matches!(byte, b'/' | b'\\');
@@ -126,6 +140,17 @@ fn normalize_windows(path: &str) -> Utf8PathBuf {
           result.push('\\');
           if matches!(server, "." | "?") {
             root_end = share_start;
+            if let Some(colon) = path[share_start..]
+              .find(':')
+              .map(|i| i + share_start)
+              .filter(|&colon| is_windows_reserved_device(&path[share_start..colon]))
+            {
+              result.clear();
+              result.push_str(r"\\?\");
+              result.push_str(&path[share_start..=colon]);
+              result.push('\\');
+              root_end = colon + 1;
+            }
           } else {
             result.push_str(&path[share_start..share_end]);
             result.push('\\');
@@ -161,8 +186,7 @@ pub trait PathUtil {
 
 impl PathUtil for Utf8Path {
   fn normalize(&self) -> Utf8PathBuf {
-    let path_type = PathType::of(self.as_str());
-    match path_type {
+    match PathType::of(self.as_str()) {
       PathType::Empty => Utf8PathBuf::new(),
       PathType::AbsoluteWindows => normalize_windows(self.as_str()),
       _ => normalize_posix(self.as_str()),

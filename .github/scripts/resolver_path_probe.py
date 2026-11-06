@@ -48,7 +48,9 @@ const paths = ["", ".", "..", "./a", "./a/../b", "a/../../b/", "/", "/a/../b/",
   "C:/a/../b", "C:\\a\\..\\b", "c:\\a/b//c/../", "C:relative",
   "\\\\server\\share", "\\\\server\\share\\a\\..\\b", "\\\\?\\C:\\a\\..\\b",
   "\\\\.\\C:\\a\\..\\b", "\\\\?\\UNC\\server\\share\\a\\..\\b",
-  "#internal", "C:/中文/../文件.js", "C:/a/../../../b", "C:/a/././", "\\\\server"];
+  "#internal", "C:/中文/../文件.js", "C:/a/../../../b", "C:/a/././", "\\\\server",
+  "\\\\?\\C:", "\\\\?\\C:\\a\\..\\..", "\\\\.\\PHYSICALDRIVE0", "\\\\?\\COM1:",
+  "\\\\?\\COM1:\\a\\..", "\\\\.\\LPT9:", "\\\\?\\COM¹:\\a\\..", "\\\\?\\NUL:child"];
 const roots = ["C:/project", "C:\\project", "c:\\project/sub", "C:",
   "\\\\server\\share\\project", "\\\\?\\C:\\project", "/project", "./project", "project", "", "#internal"];
 const requests = ["", ".", "..", "./foo.js", "../foo.js", "a\\b/../c/", "C:/a/../b",
@@ -145,11 +147,13 @@ fn main() {
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--path-source", type=Path)
+    parser.add_argument("--cases", type=Path)
     parser.add_argument("--resolver", action="store_true")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     source = (args.path_source or root / "crates/rspack_resolver/src/path.rs").resolve()
-    cases = json.loads(subprocess.check_output(["node", "-e", ORACLE], encoding="utf-8"))
+    cases = json.loads(args.cases.read_text(encoding="utf-8") if args.cases else
+                       subprocess.check_output(["node", "-e", ORACLE], encoding="utf-8"))
     with tempfile.TemporaryDirectory(prefix="resolver-path-probe-") as directory:
         project = Path(directory)
         (project / "src").mkdir()
