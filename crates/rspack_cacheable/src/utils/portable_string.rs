@@ -108,6 +108,53 @@ pub struct PortableString {
 }
 
 impl PortableString {
+  /// Converts a typed context identifier by its [`crate::ContextIdentifierLayout`]: regex tokens are
+  /// kept verbatim and each context path is converted on its own. Other identifiers convert as
+  /// [`Self::new`].
+  pub fn from_identifier(content: &str, guard: &ContextGuard) -> Self {
+    let Some(layout) = guard
+      .project_root()
+      .and_then(|_| guard.context_identifier_layout(content))
+    else {
+      return Self::new(content, guard);
+    };
+    let mut cuts = layout
+      .paths
+      .iter()
+      .copied()
+      .chain(
+        layout
+          .regexes
+          .iter()
+          .flat_map(|range| [range.start, range.end]),
+      )
+      .collect::<Vec<_>>();
+    if layout.regexes.iter().any(|range| range.is_empty())
+      || cuts.iter().any(|cut| !content.is_char_boundary(*cut))
+    {
+      return Self::new(content, guard);
+    }
+    cuts.push(content.len());
+    cuts.sort_unstable();
+    cuts.dedup();
+    let mut converted = String::with_capacity(content.len());
+    let mut start = 0;
+    for end in cuts {
+      let segment = &content[start..end];
+      if layout
+        .regexes
+        .iter()
+        .any(|range| range.start <= start && end <= range.end)
+      {
+        converted.push_str(&segment.cow_replace('\0', ESCAPE));
+      } else {
+        converted.push_str(&Self::new(segment, guard).content);
+      }
+      start = end;
+    }
+    Self { content: converted }
+  }
+
   pub fn new(content: &str, guard: &ContextGuard) -> Self {
     let roots = guard
       .root_spellings()

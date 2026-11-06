@@ -1,4 +1,8 @@
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  utils::{PortablePath, PortableString},
+  with::As,
+};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AffectType, AsContextDependency, AsDependencyCodeGeneration, ConnectionState, Dependency,
@@ -11,9 +15,11 @@ use rspack_core::{
 #[derive(Debug)]
 pub struct CssDependency {
   pub(crate) id: DependencyId,
+  #[cacheable(with=As<PortableString>)]
   pub(crate) identifier: String,
   pub(crate) module_layer: Option<ModuleLayer>,
   pub(crate) content: String,
+  #[cacheable(with=As<PortablePath>)]
   pub(crate) context: String,
   pub(crate) media: Option<String>,
   pub(crate) supports: Option<String>,

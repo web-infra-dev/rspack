@@ -1,4 +1,4 @@
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{cacheable, cacheable_dyn, utils::PortableString, with::As};
 use rspack_core::{
   AsContextDependency, Context, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
@@ -12,6 +12,7 @@ use super::create_resource_identifier_for_contextual_commonjs_dependency;
 #[derive(Debug)]
 pub struct RequireResolveDependency {
   pub id: DependencyId,
+  #[cacheable(with=As<PortableString>)]
   pub request: String,
   pub weak: bool,
   range: DependencyRange,

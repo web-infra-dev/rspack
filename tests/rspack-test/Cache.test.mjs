@@ -7,6 +7,14 @@ describeByWalk(
 	import.meta.filename,
 	(name, src, dist) => {
 		createCacheCase(name, src, dist, "async-node", path.join(tempDir, name));
+		if (new Set([
+			"snapshot-refresh-after-compile",
+			"snapshot-refresh-plugin-overlap",
+			"context-snapshot-after-compile"
+		]).has(path.basename(src)) && path.basename(path.dirname(src)) === "portable") {
+			const variant = `${name}-non-portable`;
+			createCacheCase(variant, src, `${dist}-non-portable`, "async-node", path.join(tempDir, variant), { portable: false });
+		}
 	},
 	{
 		source: path.resolve(import.meta.dirname, "./cacheCases"),

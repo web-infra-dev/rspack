@@ -10,7 +10,7 @@ use once_cell::sync::OnceCell;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   rkyv::string::ArchivedString,
-  utils::PortablePath,
+  utils::{PortablePath, PortableString},
   with::{As, AsInner, AsOption, AsPreset},
 };
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
@@ -130,6 +130,7 @@ impl Debug for Content {
 #[derive(Debug, Clone, Default)]
 pub struct ResourceData {
   /// Resource with absolute path, query and fragment
+  #[cacheable(with=As<PortableString>)]
   resource: String,
   /// Absolute resource path only
   #[cacheable(with=AsOption<AsPreset>)]
@@ -143,6 +144,7 @@ pub struct ResourceData {
   parameters: Option<String>,
   encoding: Option<String>,
   encoded_content: Option<String>,
+  #[cacheable(with=AsOption<As<PortablePath>>)]
   context: Option<String>,
   #[cacheable(with=AsInner)]
   scheme: OnceCell<Scheme>,
