@@ -14,7 +14,7 @@ use super::{
 };
 use crate::{
   BuildContext, BuildModuleGraphArtifact, Compilation, DependencyId, ExportsInfoArtifact, Logger,
-  ModuleIdentifier,
+  ModuleFactoryCreateData, ModuleIdentifier, NormalModule,
   module_graph::{build_input_dependencies, can_refactorize_group},
   normal_module::NormalFactoryDecision,
   utils::task_loop::{Task, TaskResult, TaskType, run_task_loop},
@@ -32,8 +32,6 @@ enum GroupOutcome {
 struct VerifyContext {
   verified: FxHashSet<DependencyId>,
   repaired: FxHashSet<DependencyId>,
-  agreed: IdentifierSet,
-  disagreed: IdentifierSet,
   refactorize: FxHashSet<DependencyId>,
   rebuild: IdentifierSet,
   rebuilt: IdentifierSet,
@@ -78,12 +76,16 @@ impl Task<VerifyContext> for VerifyTask {
           } else {
             module.identifier()
           };
-          (
-            GroupOutcome::Module(identifier),
-            module
-              .as_normal_module()
-              .map(|module| module.factory_decision()),
-          )
+          match module.as_normal_module() {
+            Some(normal) => match matches_no_parse(&data, normal).await {
+              Ok(no_parse) => (
+                GroupOutcome::Module(identifier),
+                Some(normal.factory_decision(no_parse)),
+              ),
+              Err(_) => (GroupOutcome::Failed, None),
+            },
+            None => (GroupOutcome::Module(identifier), None),
+          }
         }
         None => (GroupOutcome::Ignored, None),
       },
@@ -94,6 +96,13 @@ impl Task<VerifyContext> for VerifyTask {
       fresh,
       fresh_decision,
     })])
+  }
+}
+
+async fn matches_no_parse(data: &ModuleFactoryCreateData, module: &NormalModule) -> Result<bool> {
+  match &data.options.module.no_parse {
+    Some(no_parse) => no_parse.try_match(module.request()).await,
+    None => Ok(false),
   }
 }
 
@@ -114,9 +123,7 @@ impl Task<VerifyContext> for CompareTask {
     match (&self.recorded.outcome, &self.fresh) {
       (GroupOutcome::Module(recorded), GroupOutcome::Module(fresh)) if recorded == fresh => {
         if self.recorded.decision != self.fresh_decision {
-          context.disagreed.insert(*recorded);
-        } else if self.fresh_decision.is_some() {
-          context.agreed.insert(*recorded);
+          context.rebuild.insert(*recorded);
         }
       }
       (GroupOutcome::Ignored, GroupOutcome::Ignored)
@@ -216,7 +223,7 @@ fn unverified_groups(
           outcome: recorded,
           decision: target
             .and_then(|module| module.as_normal_module())
-            .map(|module| module.factory_decision()),
+            .map(|module| module.factory_decision(!module.parsed())),
         },
       }));
     }
@@ -244,9 +251,6 @@ pub(in super::super) async fn settle_factory_decisions(
   loop {
     let tasks = unverified_groups(compilation, &artifact, &build_context, &mut context);
     run_task_loop(&mut context, tasks).await?;
-    context
-      .rebuild
-      .extend(context.disagreed.difference(&context.agreed).copied());
     // A decision that differs on every factory call can never settle, as with a function `use`
     // that returns a timestamp in its options.
     let VerifyContext {
@@ -284,7 +288,5 @@ pub(in super::super) async fn settle_factory_decisions(
       ],
     )
     .await?;
-    context.agreed.clear();
-    context.disagreed.clear();
   }
 }

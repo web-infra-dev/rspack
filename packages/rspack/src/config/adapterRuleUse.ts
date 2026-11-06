@@ -574,8 +574,11 @@ function createRawModuleRuleUsesImpl(
       ),
       options: o,
       cache: use.cache ?? false,
-      optionsCacheKey:
-        use.cache || fingerprint ? stableOptionsKey(fingerprintOptions) : '',
+      optionsCacheKey: use.cache
+        ? (JSON.stringify(fingerprintOptions) ?? '')
+        : fingerprint
+          ? comparableOptionsKey(fingerprintOptions)
+          : '',
       codeFilter: createRawLoaderCodeFilter(
         use.codeFilter,
         `${path}[${index}].codeFilter`,
@@ -584,17 +587,33 @@ function createRawModuleRuleUsesImpl(
   });
 }
 
-function stableOptionsKey(options: unknown): string {
+let incomparableOptions = 0;
+
+// Options JSON can't represent never compare equal, so a relocated build rebuilds their module.
+function comparableOptionsKey(options: unknown): string {
   try {
-    return (
-      JSON.stringify(options, (_key, value) => {
-        if (typeof value === 'function' || typeof value === 'symbol')
-          throw new Error('Unserializable loader options');
-        return value;
-      }) ?? ''
-    );
+    return JSON.stringify(options, (_key, value) => {
+      if (value === undefined) return '[undefined]';
+      if (typeof value === 'number' && !Number.isFinite(value)) {
+        return String(value);
+      }
+      if (typeof value === 'function' || typeof value === 'symbol') {
+        throw new Error('Incomparable loader options');
+      }
+      if (typeof value === 'object' && value !== null) {
+        const prototype = Object.getPrototypeOf(value);
+        if (
+          prototype !== Object.prototype &&
+          prototype !== Array.prototype &&
+          prototype !== null
+        ) {
+          throw new Error('Incomparable loader options');
+        }
+      }
+      return value;
+    });
   } catch {
-    return '';
+    return `incomparable:${++incomparableOptions}`;
   }
 }
 

@@ -175,10 +175,15 @@ pub(crate) struct NormalFactoryDecision {
   loader_filters: Option<LoaderFilters>,
   function_use: u64,
   side_effect_free: Option<bool>,
+  no_parse: bool,
 }
 
 impl NormalModule {
-  pub(crate) fn factory_decision(&self) -> NormalFactoryDecision {
+  pub(crate) fn parsed(&self) -> bool {
+    self.parsed
+  }
+
+  pub(crate) fn factory_decision(&self, no_parse: bool) -> NormalFactoryDecision {
     NormalFactoryDecision {
       resource: self.resource_data.resource().to_owned(),
       resolve_options: self.resolve_options.clone(),
@@ -186,6 +191,7 @@ impl NormalModule {
       loader_filters: self.loader_filters.clone(),
       function_use: self.function_use_digest,
       side_effect_free: self.factory_meta().and_then(|meta| meta.side_effect_free),
+      no_parse,
     }
   }
 
@@ -661,6 +667,7 @@ impl Module for NormalModule {
 
     self.build_info.get_mut().cacheable = loader_result.cacheable;
     self.build_info.get_mut().dependencies = loader_result.dependencies;
+    self.build_info.get_mut().root_sensitive |= loader_result.root_sensitive;
 
     // Without the JavaScript parser, declared paths can remain escaped in the source and
     // evade the serialized-byte root scan. Keep their producer authority root-bound.

@@ -1054,7 +1054,6 @@ module.exports = "data:,";
             if portable {
               let digest = function_use.get_or_insert_with(rustc_hash::FxHasher::default);
               for loader in &loaders {
-                loader.loader.hash(digest);
                 loader.options.hash(digest);
                 loader.options_cache_key.hash(digest);
               }

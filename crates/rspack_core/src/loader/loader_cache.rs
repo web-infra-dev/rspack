@@ -305,6 +305,10 @@ pub(crate) async fn after_normal_chain(
     return;
   };
 
+  if context.root_sensitive {
+    return;
+  }
+
   let (content, content_is_string) = match context.content() {
     Some(Content::String(content)) => (Some(content.as_bytes().to_vec()), true),
     Some(Content::Buffer(content)) => (Some(content.clone()), false),
