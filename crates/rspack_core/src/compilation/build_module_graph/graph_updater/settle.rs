@@ -36,6 +36,7 @@ struct VerifyContext {
   disagreed: IdentifierSet,
   refactorize: FxHashSet<DependencyId>,
   rebuild: IdentifierSet,
+  rebuilt: IdentifierSet,
 }
 
 #[derive(Debug)]
@@ -246,6 +247,12 @@ pub(in super::super) async fn settle_factory_decisions(
     context
       .rebuild
       .extend(context.disagreed.difference(&context.agreed).copied());
+    // A decision that differs on every factory call can never settle, as with a function `use`
+    // that returns a timestamp in its options.
+    let VerifyContext {
+      rebuild, rebuilt, ..
+    } = &mut context;
+    rebuild.retain(|id| rebuilt.insert(*id));
     if context.refactorize.is_empty() && context.rebuild.is_empty() {
       if !complete {
         compilation.get_logger("rspack.persistentCache").debug(format!(

@@ -230,6 +230,30 @@ export default [
 		}
 	},
 	{
+		name: "unsettled-function-use",
+		description: "finishes when a function use returns different options on every call, across an import cycle",
+		async run() {
+			await withProjects({
+				"src/index.js": 'module.exports = require("./m.js");',
+				"src/m.js": 'exports.value = "m"; require("./n.js");',
+				"src/n.js": 'exports.value = "n"; require("./m.js");',
+				"loader.cjs": "module.exports = (source) => source;"
+			}, async (writer, reader) => {
+				let calls = 0;
+				const configuration = {
+					module: {
+						rules: [{ test: /[mn]\.js$/, use: () => [{ loader: "./loader.cjs", options: { call: ++calls } }] }]
+					}
+				};
+				await build(writer, configuration);
+				copyTree(writer, reader);
+				const moved = await build(reader, configuration);
+				expect(moved.built).toHaveLength(2);
+				expect(calls).toBeLessThan(20);
+			});
+		}
+	},
+	{
 		name: "factory-hook-lifecycle",
 		description: "calls dependency factory hooks on relocation and skips them on a same-root warm build",
 		async run() {
