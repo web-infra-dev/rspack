@@ -98,8 +98,6 @@ type StatsCacheInfo = {
 
 计数表示当前编译中的缓存操作次数。命中不代表一定会复用，例如缓存的模块可能未通过依赖校验。
 
-<span id="asset-对象结构" />
-
 ## Asset 对象结构 \{#asset-object}
 
 启用 [stats.assets](/config/stats#statsassets) 时，`assets` 包含编译产物的信息。以下类型描述单个产物；产物分组选项也可能生成包含 `children` 或 `filteredChildren` 的分组，替代单个产物条目。可选字段取决于 stats 选项和可用的产物元数据。
