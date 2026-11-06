@@ -12,6 +12,7 @@ noop       = []
 
 [dependencies]
 arc-swap                = { workspace = true }
+base64-simd             = { workspace = true }
 camino                  = { workspace = true }
 dashmap                 = { workspace = true }
 hashlink                = { workspace = true }
