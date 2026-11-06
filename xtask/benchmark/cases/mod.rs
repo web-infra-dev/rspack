@@ -27,4 +27,5 @@ pub mod javascript_compiler_source_map;
 pub mod module_graph_api;
 pub mod persistent_cache_restore;
 pub mod persistent_cache_restore_after_single_file_change;
+pub mod rebuild_after_single_file_change;
 pub mod scan_dependencies;
