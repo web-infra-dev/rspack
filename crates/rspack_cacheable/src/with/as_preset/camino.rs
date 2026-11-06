@@ -33,7 +33,7 @@ where
   #[inline]
   fn serialize_with(field: &Utf8PathBuf, serializer: &mut S) -> Result<Self::Resolver, S::Error> {
     let guard = ContextGuard::sharing_guard(serializer)?;
-    let portable_path = PortablePath::new(field.as_ref(), guard.project_root());
+    let portable_path = PortablePath::new(field.as_ref(), guard);
     Ok(PathResolver {
       inner: Serialize::serialize(&portable_path, serializer)?,
       path: portable_path,

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 pub use rspack_core::legacy_cache::persistent::occasion::make::SCOPE;
 use rspack_core::{
-  BuildInfo, DependencyId,
+  BuildInfo, CompilationLogger, DependencyId,
   build_module_graph::BuildModuleGraphArtifact,
   cache::CacheCodec,
   legacy_cache::persistent::{
@@ -39,8 +39,9 @@ pub async fn compare(
   let occasion1 = MakeOccasion::new(codec.clone());
   let occasion2 = MakeOccasion::new(codec.clone());
 
-  let artifact1 = occasion1.recovery(storage1).await?;
-  let artifact2 = occasion2.recovery(storage2).await?;
+  let logger = CompilationLogger::new("rspack_tools.compare.make", Default::default());
+  let artifact1 = occasion1.recovery(storage1, &logger).await?.item;
+  let artifact2 = occasion2.recovery(storage2, &logger).await?.item;
 
   let comparator = ArtifactComparator::new(&artifact1, &artifact2);
   comparator.compare(&debug_info)?;

@@ -337,7 +337,8 @@ impl ImportMetaPlugin {
     self.known_property_enabled(api.property)
   }
 
-  fn import_meta_url(&self, parser: &JavascriptParser) -> String {
+  fn import_meta_url(&self, parser: &mut JavascriptParser) -> String {
+    parser.build_info.root_sensitive = true;
     Url::from_file_path(parser.resource_data.resource())
       .expect("should be a path")
       .to_string()

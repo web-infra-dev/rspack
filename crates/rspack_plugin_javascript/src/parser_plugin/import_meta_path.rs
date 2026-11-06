@@ -270,7 +270,7 @@ fn add_import_meta_cached_dependency(
 }
 
 pub(crate) fn get_import_meta_eval_value(
-  parser: &JavascriptParser,
+  parser: &mut JavascriptParser,
   property: ImportMetaKnownProperties,
 ) -> Option<String> {
   let node_option = parser.compiler_options.node.as_ref()?;
@@ -288,10 +288,12 @@ pub(crate) fn get_import_meta_eval_value(
   }
 
   if is_eval_only(property, node_option) {
+    parser.build_info.root_sensitive = true;
     return get_eval_only_path(parser, property);
   }
 
   if is_node_module(property, node_option) {
+    parser.build_info.root_sensitive = true;
     return get_absolute_path(parser, property);
   }
 

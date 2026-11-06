@@ -24,6 +24,29 @@ struct Data {
 }
 
 #[test]
+fn test_string_root_binding() {
+  let root = std::env::temp_dir().join("rspack-binding-project");
+  let context = TestContext(Some(root.clone()));
+  let inside = Data {
+    paths: vec![root.join("src/main.js").to_string_lossy().into_owned()],
+  };
+  let outside = Data {
+    paths: vec![
+      root
+        .parent()
+        .unwrap()
+        .join("outside/main.js")
+        .to_string_lossy()
+        .into_owned(),
+    ],
+  };
+  let (_, bound) = rspack_cacheable::to_bytes_with_binding(&outside, &context).unwrap();
+  assert!(bound);
+  let (_, bound) = rspack_cacheable::to_bytes_with_binding(&inside, &context).unwrap();
+  assert!(!bound);
+}
+
+#[test]
 #[cfg(not(windows))]
 fn test_basic_feature() {
   let context = TestContext(Some(PathBuf::from("/home/user/project")));

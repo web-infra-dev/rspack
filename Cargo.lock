@@ -4299,6 +4299,7 @@ name = "rspack_cacheable"
 version = "0.103.1"
 dependencies = [
  "arc-swap",
+ "base64-simd 0.8.0",
  "camino",
  "dashmap",
  "hashlink",
@@ -4307,6 +4308,7 @@ dependencies = [
  "json",
  "lightningcss",
  "once_cell",
+ "percent-encoding",
  "regex",
  "rkyv 0.8.18",
  "rspack-allocative",
@@ -4319,6 +4321,7 @@ dependencies = [
  "smol_str",
  "sugar_path",
  "swc_core",
+ "url",
  "ustr-fxhash",
  "xxhash-rust",
 ]
@@ -4341,10 +4344,12 @@ dependencies = [
  "lightningcss",
  "once_cell",
  "rspack_cacheable",
+ "rspack_core",
  "rspack_intern",
  "rspack_sources",
  "rustc-hash",
  "serde_json",
+ "url",
  "ustr-fxhash",
  "xxhash-rust",
 ]

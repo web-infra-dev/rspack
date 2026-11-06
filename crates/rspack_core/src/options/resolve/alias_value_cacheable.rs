@@ -55,7 +55,7 @@ where
     } else {
       ""
     };
-    let portable_path = PortablePath::new(path_str.as_ref(), guard.project_root());
+    let portable_path = PortablePath::new(path_str.as_ref(), guard);
     Ok(AliasValueResolver {
       inner: Serialize::serialize(&portable_path, serializer)?,
       path: portable_path,

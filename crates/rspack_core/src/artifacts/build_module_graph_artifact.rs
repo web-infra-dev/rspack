@@ -27,6 +27,9 @@ pub struct BuildModuleGraphArtifact {
   ///
   /// This field is empty on the initial compilation.
   pub issuer_update_modules: IdentifierSet,
+  /// Set when cache recovery dropped modules. Their rebuild can take an issuer from a module
+  /// below them, so the next update repairs issuer cycles.
+  pub check_issuer_cycles: bool,
 
   // data
   /// Module graph data
@@ -60,6 +63,7 @@ impl BuildModuleGraphArtifact {
       affected_modules: Default::default(),
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
+      check_issuer_cycles: false,
       module_graph: Default::default(),
       factorization_artifact: Default::default(),
       side_effects_state_artifact: Default::default(),
