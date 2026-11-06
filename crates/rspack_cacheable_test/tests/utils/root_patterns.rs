@@ -112,7 +112,14 @@ fn unix_root_patterns() {
   found.sort();
   assert_eq!(
     found,
-    vec!["/work/project", r"\/work\/project", r"\\/work\\/project"]
+    vec![
+      "/work/project",
+      "93b3JrL3Byb2pl",
+      "L3dvcmsvcHJvamVj",
+      r"\/work\/project",
+      r"\\/work\\/project",
+      "vd29yay9wcm9qZWN0",
+    ]
   );
 }
 
