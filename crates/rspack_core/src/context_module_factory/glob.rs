@@ -3,13 +3,14 @@ use rspack_loader_runner::parse_resource;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::{
   glob::{
-    GlobMatchOptions, escape_glob_pattern, extract_glob_base_dir,
-    glob_match_normalized_with_explicit_dot, normalize_path_separators,
-    normalize_path_separators_for_path, unescape_glob_path,
+    GlobDfa, GlobDfaState, GlobExpression, GlobMatchOptions, escape_glob_pattern,
+    extract_glob_base_dir, glob_allows_dot_components, glob_match_normalized_with_explicit_dot,
+    normalize_path_separators, normalize_path_separators_for_path, unescape_glob_path,
   },
   identifier::relative_path_to_request,
   node_path::NodePath,
 };
+use smallvec::SmallVec;
 use sugar_path::SugarPath;
 
 use crate::{ContextModuleOptions, ResolveInnerOptions};
@@ -20,6 +21,7 @@ struct ContextModuleGlobPattern {
   pattern_base: String,
   negative: bool,
   root_relative: bool,
+  dfa_index: Option<usize>,
 }
 
 #[derive(Debug)]
@@ -269,11 +271,14 @@ fn parse_context_module_glob_pattern(pattern: &str) -> ContextModuleGlobPattern 
     pattern_base,
     negative,
     root_relative,
+    dfa_index: None,
   }
 }
 
 pub(super) struct ContextModuleGlobMatcher<'a> {
   patterns: Vec<ContextModuleGlobPattern>,
+  dfa: Option<GlobDfa>,
+  fallback_include: bool,
   positive_pattern_bases: Vec<String>,
   context: &'a str,
   compiler_context: &'a str,
@@ -284,7 +289,7 @@ pub(super) struct ContextModuleGlobMatcher<'a> {
 impl<'a> ContextModuleGlobMatcher<'a> {
   pub(super) fn new(options: &'a ContextModuleOptions) -> Option<Self> {
     let context_options = &options.context_options;
-    let patterns = context_options
+    let mut patterns = context_options
       .pattern
       .glob_patterns()?
       .iter()
@@ -305,8 +310,24 @@ impl<'a> ContextModuleGlobMatcher<'a> {
         })
         .collect()
     };
+    let dfa = context_options
+      .glob_case_sensitive
+      .then(|| {
+        compile_context_glob_dfa(
+          &mut patterns,
+          &context_options.context,
+          &context_options.compiler_context,
+          &options.resource,
+        )
+      })
+      .flatten();
+    let fallback_include = patterns
+      .iter()
+      .any(|pattern| !pattern.negative && pattern.dfa_index.is_none());
     Some(Self {
       patterns,
+      dfa,
+      fallback_include,
       positive_pattern_bases,
       context: &context_options.context,
       compiler_context: &context_options.compiler_context,
@@ -319,45 +340,72 @@ impl<'a> ContextModuleGlobMatcher<'a> {
     self.patterns.is_empty()
   }
 
-  pub(super) fn match_request(&self, path: &str) -> Option<String> {
+  pub(super) fn scan_state(&self, root: &Utf8Path) -> Option<GlobDfaState<'_>> {
+    let root = normalize_path_separators_for_path(root.node_normalize().as_str());
+    let state = self.dfa.as_ref()?.start().advance(&root);
+    Some(if root.ends_with('/') {
+      state
+    } else {
+      state.advance("/")
+    })
+  }
+
+  pub(super) fn can_visit(&self, state: GlobDfaState<'_>) -> bool {
+    self.fallback_include || state.can_include()
+  }
+
+  pub(super) fn match_request(
+    &self,
+    path: &str,
+    state: Option<GlobDfaState<'_>>,
+  ) -> Option<String> {
+    let mut accepted = SmallVec::<[usize; 4]>::new();
+    if let Some(state) = state {
+      accepted.extend(state.matches());
+    }
+    let match_pattern = |pattern: &ContextModuleGlobPattern| {
+      if let Some(index) = pattern.dfa_index
+        && !accepted.contains(&index)
+      {
+        return None;
+      }
+      let request = context_relative_glob_request(
+        path,
+        if pattern.root_relative {
+          self.compiler_context
+        } else {
+          self.context
+        },
+        pattern.root_relative,
+      );
+      let matched = if pattern.dfa_index.is_some() {
+        glob_allows_dot_components(
+          &pattern.pattern,
+          &request,
+          &pattern.pattern_base,
+          &GlobMatchOptions {
+            case_sensitive: true,
+            require_literal_leading_dot: !self.exhaustive,
+          },
+        )
+      } else {
+        glob_pattern_matches(pattern, &request, self.exhaustive, self.case_sensitive)
+      };
+      matched.then_some(request)
+    };
     let user_request = self
       .patterns
       .iter()
       .filter(|pattern| !pattern.negative)
-      .find_map(|pattern| {
-        let request = context_relative_glob_request(
-          path,
-          if pattern.root_relative {
-            self.compiler_context
-          } else {
-            self.context
-          },
-          pattern.root_relative,
-        );
-        glob_pattern_matches(pattern, &request, self.exhaustive, self.case_sensitive)
-          .then_some(request)
-      })?;
-
+      .find_map(match_pattern)?;
     if self
       .patterns
       .iter()
       .filter(|pattern| pattern.negative)
-      .any(|pattern| {
-        let request = context_relative_glob_request(
-          path,
-          if pattern.root_relative {
-            self.compiler_context
-          } else {
-            self.context
-          },
-          pattern.root_relative,
-        );
-        glob_pattern_matches(pattern, &request, self.exhaustive, self.case_sensitive)
-      })
+      .any(|pattern| match_pattern(pattern).is_some())
     {
       return None;
     }
-
     Some(user_request)
   }
 
@@ -383,6 +431,63 @@ impl<'a> ContextModuleGlobMatcher<'a> {
       .iter()
       .any(|pattern_base| is_same_or_descendant(pattern_base, &path))
   }
+}
+
+fn compile_context_glob_dfa(
+  patterns: &mut [ContextModuleGlobPattern],
+  context: &str,
+  compiler_context: &str,
+  scan_root: &Utf8Path,
+) -> Option<GlobDfa> {
+  let literal_directory = |path: &str| {
+    let mut path =
+      normalize_path_separators_for_path(Utf8Path::new(path).node_normalize().as_str());
+    if !path.ends_with('/') {
+      path.push('/');
+    }
+    path
+  };
+  let importer = literal_directory(context);
+  let project = literal_directory(compiler_context);
+  let scan_is_inside_project = scan_root
+    .node_normalize()
+    .starts_with(Utf8Path::new(compiler_context).node_normalize());
+  let mut expressions = Vec::new();
+  let mut indices = Vec::new();
+  let mut include_count = 0;
+  for negative in [false, true] {
+    for (index, pattern) in patterns
+      .iter()
+      .enumerate()
+      .filter(|(_, pattern)| pattern.negative == negative)
+    {
+      let (directory, suffix) = if pattern.root_relative {
+        // When the scan reaches outside the project, a root-relative request
+        // can start with /../ and cannot be represented by the project prefix.
+        if !scan_is_inside_project {
+          continue;
+        }
+        (&project, pattern.pattern.strip_prefix('/'))
+      } else {
+        // A canonical importer-relative path beginning with ../ changes
+        // coordinates when the walk enters the importer's own subtree.
+        (&importer, pattern.pattern.strip_prefix("./"))
+      };
+      if let Some(expression) = suffix.and_then(|suffix| GlobExpression::new(directory, suffix)) {
+        indices.push(index);
+        expressions.push(expression);
+        include_count += usize::from(!negative);
+      }
+    }
+  }
+  if expressions.is_empty() {
+    return None;
+  }
+  let dfa = GlobDfa::new(&expressions, include_count)?;
+  for (dfa_index, pattern_index) in indices.into_iter().enumerate() {
+    patterns[pattern_index].dfa_index = Some(dfa_index);
+  }
+  Some(dfa)
 }
 
 fn absolute_context_module_glob_pattern_base(
