@@ -190,13 +190,78 @@ const scenarios = [
 	}
 ];
 
+const parsed = {
+	files: {
+		"src/dep.js": 'module.exports = typeof require("./leaf.js");',
+		"src/leaf.js": 'module.exports = "leaf";'
+	}
+};
+const emitOption = {
+	"options.cjs": "module.exports = function () { const value = this.getOptions().value; return 'module.exports = ' + JSON.stringify(String(value instanceof Set ? [...value] : value)); };"
+};
+scenarios.push(
+	{
+		name: "no-parse-regex",
+		...parsed,
+		noParse: () => /writer-only.*dep\.js$/
+	},
+	{
+		name: "no-parse-function",
+		...parsed,
+		noParse: (writer) => (resource) => resource.startsWith(writer) && /dep\.js$/.test(resource)
+	},
+	{
+		name: "function-use-regexp-option",
+		files: emitOption,
+		rules: (writer) => [{ test: /dep\.js$/, use: (info) => [{
+			loader: "./options.cjs",
+			options: { value: new RegExp(info.resource.startsWith(writer + path.sep) ? "writer" : "reader") }
+		}] }]
+	},
+	{
+		name: "function-use-set-option",
+		files: emitOption,
+		rules: (writer) => [{ test: /dep\.js$/, use: (info) => [{
+			loader: "./options.cjs",
+			options: { value: new Set([info.resource.startsWith(writer + path.sep) ? "writer" : "reader"]) }
+		}] }]
+	},
+	{
+		name: "import-module-rule",
+		files: {
+			"import.cjs": "module.exports = async function () { const value = await this.importModule('./leaf.js'); return 'module.exports = ' + JSON.stringify(value); };",
+			"src/leaf.js": 'module.exports = "original";'
+		},
+		rules: (writer) => [
+			{ test: /dep\.js$/, use: ["./import.cjs"] },
+			{ test: /leaf\.js$/, include: writer, use: [transform] }
+		]
+	},
+	{
+		name: "deeper-importer-agrees",
+		files: {
+			"src/index.js": 'module.exports = [require("./a.js"), require("./c1.js")];',
+			"src/a.js": 'module.exports = require("./dep.js");',
+			"src/c1.js": 'module.exports = require("./c2.js");',
+			"src/c2.js": 'module.exports = require("./c3.js");',
+			"src/c3.js": 'module.exports = require("./b.js");',
+			"src/b.js": 'module.exports = require("./dep.js");',
+			"src/dep.js": "module.exports = (function () { return this === undefined; })();"
+		},
+		rules: () => [{ test: /dep\.js$/, issuer: /reader.*a\.js$/, parser: { overrideStrict: "strict" } }]
+	}
+);
+
 export default [
-	...scenarios.map(({ name, files = {}, rules, plugins }) => ({
+	...scenarios.map(({ name, files = {}, rules, plugins, noParse }) => ({
 		name,
 		description: `decides ${name} at the reader of a relocated cache`,
 		async run() {
 			await withProjects(files, async (writer, reader) => {
-				const configuration = { module: { rules: rules?.(writer) ?? [] }, plugins: plugins?.(writer) ?? [] };
+				const configuration = {
+					module: { rules: rules?.(writer) ?? [], ...(noParse ? { noParse: noParse(writer) } : {}) },
+					plugins: plugins?.(writer) ?? []
+				};
 				await build(writer, configuration);
 				copyTree(writer, reader);
 				const moved = await build(reader, configuration);
@@ -226,6 +291,25 @@ export default [
 				const moved = await build(reader, configuration);
 				expect(moved.built).toEqual([]);
 				await expectColdEquality(reader, configuration, moved);
+			});
+		}
+	},
+	{
+		name: "function-use-absolute-loader",
+		description: "keeps builds when a function use returns an absolute loader path that moves with the checkout",
+		async run() {
+			await withProjects({
+				"src/index.js": 'module.exports = require("./dep.js") + require("./other.js");',
+				"src/other.js": 'module.exports = "other";'
+			}, async (writer, reader) => {
+				const configuration = (root) => ({
+					module: { rules: [{ test: /(dep|other)\.js$/, use: () => [path.join(root, "transform.cjs")] }] }
+				});
+				await build(writer, configuration(writer));
+				copyTree(writer, reader);
+				const moved = await build(reader, configuration(reader));
+				expect(moved.built).toEqual([]);
+				await expectColdEquality(reader, configuration(reader), moved);
 			});
 		}
 	},
