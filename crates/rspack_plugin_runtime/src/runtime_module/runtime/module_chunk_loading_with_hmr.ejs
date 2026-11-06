@@ -4,18 +4,7 @@
       var filename = <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId);
       var url = <%- PUBLIC_PATH %> + filename + (full ? (/\.mjs$/.test(filename) ? ".full.mjs" : ".full.js") : "");
       var onResolve = <%- basicFunction("obj") %> {
-        var updatedModules = obj.<%- _modules %>;
-        var updatedRuntime = obj.__rspack_esm_runtime;
-        if (updatedRuntime) hotCurrentUpdateRuntime.push(updatedRuntime);
-        for (var moduleId in updatedModules) {
-          if ((<%- HAS_OWN_PROPERTY %>)(updatedModules, moduleId)) {
-            // A remaining chunk can restore a removed factory, but ordinary updates take priority.
-            if (!Array.isArray(updatedModules[moduleId]) || !<%- HAS_OWN_PROPERTY %>(hotCurrentUpdate, moduleId) || hotCurrentUpdate[moduleId] === false || Array.isArray(hotCurrentUpdate[moduleId])) {
-              hotCurrentUpdate[moduleId] = updatedModules[moduleId];
-            }
-            if (updatedModulesList) updatedModulesList.push(moduleId);
-          }
-        }
+        hotAddUpdateChunk(chunkId, obj.<%- _modules %>, obj.__rspack_esm_runtime, updatedModulesList, full);
         resolve(obj);
       };
       var onReject = <%- basicFunction("error") %> {

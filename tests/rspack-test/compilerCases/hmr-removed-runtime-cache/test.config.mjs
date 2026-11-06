@@ -103,8 +103,8 @@ export default {
 					if (step === 1) {
 						const manifest = await req.hmrM();
 						assert(manifest.r.includes(supplement ? "old" : "shared"));
-						assert(manifest.m.includes("./dep.js"));
-						assert(manifest.c.includes(supplement ? "shared" : "other"), mode);
+						assert(!manifest.m.includes("./dep.js"));
+						assert(manifest.changed["./dep.js"].includes(supplement ? "shared" : "other"), mode);
 						if (supplement) assert.deepEqual(manifest.load.a, ["shared"]);
 					}
 					await hot.check(true);

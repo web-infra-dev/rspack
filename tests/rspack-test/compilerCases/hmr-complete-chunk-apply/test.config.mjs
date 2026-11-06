@@ -74,19 +74,32 @@ export default [false, true].map(withDelta => ({
         await pending;
         release = undefined;
       }
+      const oldDep = req.c['./dep.js'];
+      let depDisposals = 0;
+      oldDep?.hot.dispose(() => depDisposals++);
       const oldFactory = req.m['./stable.js'];
       assert.equal(sandbox.readStable(), 2);
       req.hmrM = async () => JSON.parse(builds[1][`main.${req.h()}.hot-update.json`]);
       const manifest = await req.hmrM();
-      assert.equal(manifest.c.includes('shared'), withDelta);
+      assert(manifest.c.includes('shared'));
       assert.deepEqual(manifest.load.main, ['shared']);
       const check = hot.check(false);
       await new Promise(setImmediate);
       const shared = updates.filter(({ name }) => name.startsWith('shared.'));
-      assert.equal(shared.length, 1, 'full and delta must not download concurrently');
+      assert.equal(shared.length, 1, 'full and delta use the same JSONP callback and must download sequentially');
       assert.equal(shared[0].name.endsWith('.full.js'), mode !== 'loaded');
-      if (reverse) updates.reverse();
-      updates.forEach(({ execute }) => execute());
+      const processed = new Set();
+      for (;;) {
+        const batch = updates.filter(update => !processed.has(update));
+        if (!batch.length) break;
+        if (reverse) batch.reverse();
+        for (const update of batch) {
+          processed.add(update);
+          update.execute();
+        }
+        await new Promise(setImmediate);
+      }
+      assert.equal(updates.filter(({ name }) => name.startsWith('shared.')).length, mode === 'loaded' ? 1 : 2);
       await check;
       assert.equal(hot.status(), 'ready');
       assert.equal(sandbox.readStable(), 2);
@@ -104,9 +117,12 @@ export default [false, true].map(withDelta => ({
       if (mode === 'apply-pending') hot.addStatusHandler(status => {
         if (status === 'dispose') pending = req.e('shared');
       });
-      await hot.apply();
+      const updated = await hot.apply();
       assert.equal(sandbox.pageValue, 5);
       assert.equal(sandbox.readStable(), 3);
+      if (withDelta) assert(!updated.includes('./dep.js'), 'unchanged dependencies must not propagate HMR');
+      if (oldDep) assert.equal(req.c['./dep.js'], oldDep);
+      assert.equal(depDisposals, 0);
       assert.equal(req.hmrS_jsonp.shared, 0);
       let timer;
       try {

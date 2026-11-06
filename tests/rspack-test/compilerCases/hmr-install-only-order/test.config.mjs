@@ -7,7 +7,7 @@ import { rspack } from '@rspack/core';
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 export default {
   description:
-    'keeps an ordinary hot update when an install-only factory arrives later',
+    'keeps an ordinary hot update when a full payload arrives later',
   options(context) {
     return {
       context: context.getDist('input'),
