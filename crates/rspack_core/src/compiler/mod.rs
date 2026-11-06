@@ -98,6 +98,9 @@ const EMIT_ASSETS_CONCURRENCY_LIMIT: usize = 15;
 
 #[derive(Debug)]
 pub struct Compiler {
+  /// The binding captures its full owner on the JS thread after the build future ends.
+  #[cfg(allocative)]
+  pub allocative_snapshot_deferred: bool,
   id: CompilerId,
   pub compiler_path: Arc<str>,
   pub options: Arc<CompilerOptions>,
@@ -163,6 +166,8 @@ impl Compiler {
     let id = CompilerId::new();
     let compiler_context = compiler_context.unwrap_or_else(|| Arc::new(CompilerContext::new()));
     Self {
+      #[cfg(allocative)]
+      allocative_snapshot_deferred: false,
       id,
       options: options.clone(),
       compilation: Compilation::new(
@@ -333,7 +338,7 @@ impl Compiler {
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
     #[cfg(allocative)]
-    crate::utils::snapshot_allocative("build", self).await?;
+    crate::utils::snapshot_allocative("build", self)?;
 
     Ok(())
   }

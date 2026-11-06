@@ -117,9 +117,11 @@ RSPACK_ALLOCATIVE_DIR=/tmp/rspack-memory \
   node --expose-gc packages/rspack-cli/bin/rspack.js build
 ```
 
-设置 `RSPACK_ALLOCATIVE_DIR` 时，Rspack 会在 `globalThis` 上安装内部钩子。构建或重建完成缓存收尾后，allocative binding 会等待钩子执行 `gc()` 并写入 V8 堆快照，再遍历 Rust compiler。`.heapsnapshot` 写入采集目录下的 `v8/`，配套的 Rust `.allocative` 和 `.objects.json` 文件写入采集目录本身。未注册回调的独立 Rust 程序只生成 Rust profile。每个进程允许一个 V8 环境注册回调。
+设置 `RSPACK_ALLOCATIVE_DIR` 时，Rspack 会在 `globalThis` 上安装内部钩子。完成缓存收尾、build/rebuild future 释放对 core compiler 的可变借用后，JS 线程上的完成回调执行 `gc()`、同步写入 V8 快照，再遍历存活的 Rust `JsCompiler`。采集期间仍持有运行 guard 和 N-API 强引用，结束后才调用 JS 完成回调。`.heapsnapshot` 写入采集目录下的 `v8/`，配套的 Rust `.allocative` 和 `.objects.json` 文件写入采集目录本身。独立 Rust 程序从 core `Compiler` 开始遍历，只生成 Rust profile。每个进程允许一个 V8 环境注册采集。
 
-启用 allocative 时，native class 实例包含不可枚举、只读的字符串属性 `__rspackRustPtr` 和 `__rspackRustType`。指针标识 Rust binding wrapper 在 N-API 中的最终地址，与 wrapper 引用的 module 或 resolver 地址不同。弱引用注册表记录存活的 wrapper，不阻止回收，也不遍历可能正在工作的 native target。compiler 遍历独立测量 native 内存；binding 身份记录不增加字节权重。
+启用 allocative 时，native class 实例包含不可枚举、只读的字符串属性 `__rspackRustPtr` 和 `__rspackRustType`。指针标识 Rust binding wrapper 在 N-API 中的最终地址，与 wrapper 引用的 module 或 resolver 地址不同。弱引用注册表记录存活的 wrapper，不阻止回收，也不遍历可能正在工作的 native target。owner 遍历测量 wrapper 自身和所有字段，包括已初始化的 `ManuallyDrop<Compiler>`；binding 身份记录不增加字节权重。不透明的外部句柄仍会作为覆盖限制报告。
+
+JavaScript 的 `Compiler`、`Compilation` 和 `Cache` 对象还会通过不可枚举的内部引用标记各自的 binding，供分析器使用。Rust 遍历将登记的 target 地址和类型匹配到实际访问的路径。合并报告将测量到的 Rust owner 挂在公开 JS Compiler 下：`JavaScript;Rspack;Compiler;rspack_binding_api::JsCompiler;compiler;…;rspack_core::compiler::Compiler`。wrapper 的其他字段与 `compiler` 并列展示。core Compiler 不再作为独立根重复遍历；wrapper 与 core 字段共享的分配只计一次。受 compiler 管理的 target 只匹配本次采集的 compiler，避免将其他存活的 compiler 按类型名误关联。rebuild 后保留的 Compilation 对象按其当前 native compilation 槽位关联。
 
 V8 快照默认在内存中清洗后再写入文件。快照保留节点类型、ID、引用关系和浅层大小，并移除对象名称、字符串值、属性名和源码位置。Rspack 在内存中匹配指针，在 Rust 身份文件中记录 V8 节点 ID。要保存包含原始内容的 V8 快照，请在运行项目时设置 `RSPACK_ALLOCATIVE_INCLUDE_CONTENT=1`。
 
@@ -131,10 +133,12 @@ node scripts/v8-to-allocative.mjs /tmp/rspack-memory/v8/0-build.heapsnapshot
 
 脚本将 `.js.allocative`、`.combined.allocative` 和 `.links.json` 写入采集目录下的 `reports/`。可用 `--out-dir` 指定其他已有目录。即使输入快照包含原始内容，报告默认也只使用 V8 节点的类型和大小。要在报告中包含 V8 对象名称和字符串值，转换保留了原始内容的快照时传入 `--include-content`。
 
+检查 `.links.json` 中的 `root_links`，确认各 JS 对象的 `binding_node_id` 和 `rust_target` 路径。`matched_bindings` 统计 wrapper 匹配数，`matched_roots` 统计关联到已访问 Rust target 的 JS 对象数。进程级 V8 快照可能包含当前 compiler 的 Rust 遍历范围之外的对象，这些根保持未匹配。旧快照若缺少 JS 到 binding 的引用标记或 native target 元数据，需要重新采集。关联只改变归属路径，不增加字节权重：合并总量等于 Rust 总量加上 V8 浅层字节总量。
+
 关联报告通过 V8 节点 ID 关联 Rust wrapper 的类型和路径。`category_bytes` 对每个 V8 节点的浅层 `self_size` 只计数一次，并分为三类。
 
 - **V8 源码与编译元数据**包括字节码和编译元数据等 `code` 节点，以及清洗前识别出的脚本源码字符串和底层存储。
 - **Rspack** 包括匹配到的 binding wrapper、标记过的 JavaScript `Compiler`、`Compilation` 和 `Cache` 实例，以及从堆根节点出发、所有强引用路径都经过这些实例的对象。
 - **共享或归属不明**包括其余对象，例如绕开 Rspack 根后仍能到达的对象。
 
-JS 火焰图按类别分组，`.js.<category>.allocative` 包含单个类别的 folded stacks。合并火焰图还会将适用的 JS 帧挂在匹配的 Rust wrapper 路径下。归属计算会忽略弱引用。路径默认最多 32 层，可通过 `--max-depth` 调整。若旧的脱敏快照缺少源码和 Rspack 根标记，请重新采集以获得完整的分类覆盖。
+JS 火焰图按类别分组，`.js.<category>.allocative` 包含单个类别的 folded stacks。合并火焰图将每条 native 样本移动一次，挂到测量到的 JS owner 下。其他适用的 JS 帧使用这棵树中匹配的 target 路径；缺少 target 元数据时回退到 wrapper 身份路径。Compilation 视图和共享 Cache 的关联不会复制 native 子树。归属计算会忽略弱引用。路径默认最多 32 层，可通过 `--max-depth` 调整。若旧的脱敏快照缺少源码和 Rspack 根标记，请重新采集以获得完整的分类覆盖。

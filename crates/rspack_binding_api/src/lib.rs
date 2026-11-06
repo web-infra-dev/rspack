@@ -461,7 +461,7 @@ impl JsCompiler {
             tracing::debug!("build ok");
             Ok(())
           },
-          Some(move |env: &Env, result: &mut _| guard.finish(env, result)),
+          Some(move |env: &Env, result: &mut _| guard.finish(env, result, "build")),
         )
       })
     }
@@ -497,7 +497,7 @@ impl JsCompiler {
             tracing::debug!("rebuild ok");
             Ok(())
           },
-          Some(move |env: &Env, result: &mut _| guard.finish(env, result)),
+          Some(move |env: &Env, result: &mut _| guard.finish(env, result, "rebuild")),
         )
       })
     }
@@ -568,12 +568,19 @@ struct RunGuard {
 }
 
 impl RunGuard {
-  fn finish(self, env: &Env, result: &mut Result<(), ErrorCode>) {
+  fn finish(self, env: &Env, result: &mut Result<(), ErrorCode>, phase: &str) {
     if result.is_ok() {
       *result = self
         ._reference
         .prune_file_system_dependency_strings(env)
         .map_err(|error| napi::Error::new(ErrorCode::Napi(error.status), error.reason));
+    }
+    #[cfg(allocative)]
+    if result.is_ok() {
+      // callbackify has dropped the build/rebuild future before scheduling this
+      // JS-thread finalizer. Keep both the running guard and strong reference
+      // until capture finishes: close/rebuild and GC cannot invalidate the owner.
+      *result = self._reference.snapshot_allocative(env, phase);
     }
     if result.is_err() {
       // Preserve the original error even if clearing the string pool fails.
@@ -599,6 +606,16 @@ impl JsCompiler {
   ) -> Result<R, ErrorCode> {
     if self.state.running() {
       return Err(concurrent_compiler_error());
+    }
+
+    #[cfg(allocative)]
+    {
+      self.compiler.allocative_snapshot_deferred = true;
+      rspack_napi::allocative::link_target(
+        self,
+        &**self.compiler as *const rspack_core::Compiler,
+        Some(self.compiler.id().as_u32()),
+      );
     }
 
     let compiler_state_guard = self.state.enter();
@@ -638,6 +655,59 @@ impl JsCompiler {
     DependencyWrapper::cleanup_last_compilation(compilation_id);
     AsyncDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
     ModuleGraphConnectionWrapper::cleanup_last_compilation(compilation_id);
+  }
+}
+
+#[cfg(allocative)]
+impl JsCompiler {
+  fn snapshot_allocative(&self, env: &Env, phase: &str) -> Result<(), ErrorCode> {
+    let Some(snapshot) = rspack_core::AllocativeSnapshot::new(phase).to_napi_result()? else {
+      return Ok(());
+    };
+    let mut builder =
+      rspack_napi::allocative::capture(env, &snapshot.heap_path(), self.compiler.id().as_u32())
+        .map_err(|error| napi::Error::new(ErrorCode::Napi(error.status), error.reason))?;
+    builder.visit_root(self);
+    snapshot.write(&self.compiler, builder).to_napi_result()
+  }
+}
+
+#[cfg(allocative)]
+impl rspack_util::rspack_allocative::Allocative for JsCompiler {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut rspack_util::rspack_allocative::Visitor<'b>) {
+    use rspack_util::rspack_allocative::ident_key;
+    let mut visitor = visitor.enter_self(self);
+    // ManuallyDrop is opaque by default. Here the core is initialized until
+    // finalization; RunGuard holds the live wrapper throughout this traversal.
+    // Visit the core first so shared payloads retain their compiler ownership.
+    visitor.visit_field(ident_key!(compiler), &*self.compiler);
+    visitor.visit_field(ident_key!(unsafe_fast_drop), &self.unsafe_fast_drop);
+    visitor.visit_field(
+      ident_key!(file_system_dependency_string_pool),
+      &self.file_system_dependency_string_pool,
+    );
+    visitor.visit_field(ident_key!(js_helpers), &self.js_helpers);
+    visitor.visit_field(
+      ident_key!(infrastructure_log_dispatcher),
+      &self.infrastructure_log_dispatcher,
+    );
+    visitor.visit_field(
+      ident_key!(compiler_scoped_tsfn_manager),
+      &self.compiler_scoped_tsfn_manager,
+    );
+    visitor.visit_field(ident_key!(js_hooks_plugin), &self.js_hooks_plugin);
+    visitor.visit_field(ident_key!(state), &self.state);
+    visitor.visit_field(
+      ident_key!(include_dependencies_map),
+      &self.include_dependencies_map,
+    );
+    visitor.visit_field(
+      ident_key!(entry_dependencies_map),
+      &self.entry_dependencies_map,
+    );
+    visitor.visit_field(ident_key!(compiler_context), &self.compiler_context);
+    visitor.visit_field(ident_key!(virtual_file_store), &self.virtual_file_store);
+    visitor.exit();
   }
 }
 

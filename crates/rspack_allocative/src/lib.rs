@@ -51,14 +51,13 @@ mod global_root;
 mod impls;
 mod key;
 mod reflection;
-pub mod snapshot;
 mod visitor;
 
 pub use rspack_allocative_derive::{Allocative, root};
 
 pub use crate::{
   allocative_trait::Allocative,
-  flamegraph::{FlameGraph, FlameGraphBuilder},
+  flamegraph::{FlameGraph, FlameGraphBuilder, TargetIdentity},
   global_root::register_root,
   key::Key,
   reflection::Visit,

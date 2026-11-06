@@ -264,139 +264,170 @@ pub fn compare_chunks_with_graph(
 }
 
 #[cfg(allocative)]
-pub async fn snapshot_allocative(
-  name: &str,
-  compiler: &crate::Compiler,
-) -> rspack_error::Result<()> {
-  use std::{
-    collections::BTreeMap,
-    path::PathBuf,
-    sync::atomic::{AtomicUsize, Ordering},
-  };
-
-  use rspack_error::ToStringResultToRspackResultExt;
-  use rspack_util::rspack_allocative;
-
-  static COUNT: AtomicUsize = AtomicUsize::new(0);
-  let Some(dir) = std::env::var_os("RSPACK_ALLOCATIVE_DIR") else {
+pub fn snapshot_allocative(name: &str, compiler: &crate::Compiler) -> rspack_error::Result<()> {
+  if compiler.allocative_snapshot_deferred {
     return Ok(());
-  };
-  let dir = PathBuf::from(dir);
-  std::fs::create_dir_all(&dir).to_rspack_result()?;
-  let snapshot = format!("{}-{name}", COUNT.fetch_add(1, Ordering::Relaxed));
-  // GC can release native wrappers, so collect JS before traversing Rust.
-  let mut builder =
-    rspack_allocative::snapshot::capture(dir.join("v8").join(format!("{snapshot}.heapsnapshot")))
-      .await
-      .map_err(|message| {
-        rspack_error::error!("JavaScript allocative snapshot failed: {message}")
-      })?;
-  builder.visit_root(compiler);
-  builder.visit_global_roots();
-  // Ustr handles borrow process-global interned strings. Charge the pool once
-  // under its real owner, rather than once for each module/dependency handle.
-  struct UstrStringArena;
-  impl rspack_allocative::Allocative for UstrStringArena {
-    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut rspack_allocative::Visitor<'b>) {
-      let used = ustr::total_allocated();
-      let capacity = ustr::total_capacity();
-      let mut root = visitor.enter(rspack_allocative::Key::new("GlobalUstrStringArena"), 0);
-      let mut arena = root.enter_unique(rspack_allocative::Key::new("arena"), 0);
-      arena.visit_simple(rspack_allocative::Key::new("used"), used);
-      arena.visit_simple(
-        rspack_allocative::Key::new("unused_capacity"),
-        capacity.saturating_sub(used),
-      );
-      arena.exit();
-      root.exit();
-    }
   }
-  builder.visit_root(&UstrStringArena);
-  let output = builder.finish();
-  std::fs::write(
-    dir.join(format!("{snapshot}.objects.json")),
-    serde_json::to_vec_pretty(
-      &serde_json::json!({"snapshot": snapshot, "objects": output.objects()}),
-    )
-    .to_rspack_result()?,
-  )
-  .to_rspack_result()?;
-  std::fs::write(
-    dir.join(format!("{snapshot}.allocative")),
-    output.flamegraph().write(),
-  )
-  .to_rspack_result()?;
-  std::fs::write(
-    dir.join(format!("{snapshot}.warnings.txt")),
-    output.warnings(),
-  )
-  .to_rspack_result()?;
+  if let Some(snapshot) = AllocativeSnapshot::new(name)? {
+    let mut builder = rspack_util::rspack_allocative::FlameGraphBuilder::with_shared_ownership();
+    builder.visit_root(compiler);
+    snapshot.write(compiler, builder)?;
+  }
+  Ok(())
+}
 
-  // Cardinalities are measured independently from byte weights. Do not count hooks,
-  // references, or flamegraph frames as module/dependency objects.
-  let metadata = serde_json::json!({
-    "snapshot": snapshot,
-    "represented_bytes": output.flamegraph().total_size(),
-    "shared_ownership": "first encountered owner; later references and cycles are deduplicated",
-    "ustr_global_entries": ustr::num_entries(),
-    "ustr_arena_used_bytes": ustr::total_allocated(),
-    "ustr_arena_capacity_bytes": ustr::total_capacity(),
-    "limits": ["Not RSS or peak heap usage", "Container allocator metadata and private hash-table overhead are not fully represented", "Ustr pool hash-index overhead and unreachable global interner entries outside the Ustr arena are not represented", "See warnings for inaccessible external state"]
-  });
-  std::fs::write(
-    dir.join(format!("{snapshot}.metadata.json")),
-    serde_json::to_vec_pretty(&metadata).to_rspack_result()?,
-  )
-  .to_rspack_result()?;
-  let graph = compiler.compilation.get_module_graph();
-  let mut populations: BTreeMap<Vec<String>, usize> = BTreeMap::new();
-  for (_, module) in graph.modules() {
-    *populations
-      .entry(vec![
-        "Compiler".into(),
-        "Compilation".into(),
-        "modules".into(),
-        match module.module_type() {
-          crate::ModuleType::Custom(name) => {
-            allocative_count_labels::custom_module_type_label(name.as_str())
-          }
-          module_type => module_type.to_string(),
-        },
-      ])
-      .or_default() += 1;
+/// A snapshot reservation shared by standalone core and binding-owned captures.
+#[cfg(allocative)]
+pub struct AllocativeSnapshot {
+  dir: std::path::PathBuf,
+  name: String,
+}
+
+#[cfg(allocative)]
+impl AllocativeSnapshot {
+  pub fn new(name: &str) -> rspack_error::Result<Option<Self>> {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    use rspack_error::ToStringResultToRspackResultExt;
+    static COUNT: AtomicUsize = AtomicUsize::new(0);
+    let Some(dir) = std::env::var_os("RSPACK_ALLOCATIVE_DIR") else {
+      return Ok(None);
+    };
+    let dir = std::path::PathBuf::from(dir);
+    std::fs::create_dir_all(&dir).to_rspack_result()?;
+    Ok(Some(Self {
+      dir,
+      name: format!("{}-{name}", COUNT.fetch_add(1, Ordering::Relaxed)),
+    }))
   }
-  for (_, dependency) in graph.dependencies() {
-    *populations
-      .entry(vec![
-        "Compiler".into(),
-        "Compilation".into(),
-        "dependencies".into(),
-        format!("{:?}", dependency.dependency_type()),
-      ])
-      .or_default() += 1;
+
+  pub fn heap_path(&self) -> std::path::PathBuf {
+    self
+      .dir
+      .join("v8")
+      .join(format!("{}.heapsnapshot", self.name))
   }
-  // An empty graph is a measured zero, not an unavailable population report.
-  if populations.is_empty() {
-    for population in ["modules", "dependencies"] {
-      populations.insert(
-        vec!["Compiler".into(), "Compilation".into(), population.into()],
-        0,
-      );
+
+  /// Finish the one owner traversal, without visiting the compiler a second time.
+  pub fn write(
+    self,
+    compiler: &crate::Compiler,
+    mut builder: rspack_util::rspack_allocative::FlameGraphBuilder,
+  ) -> rspack_error::Result<()> {
+    use std::collections::BTreeMap;
+
+    use rspack_error::ToStringResultToRspackResultExt;
+    use rspack_util::rspack_allocative;
+    let Self {
+      dir,
+      name: snapshot,
+    } = self;
+    builder.visit_global_roots();
+    // Ustr handles borrow process-global interned strings. Charge the pool once
+    // under its real owner, rather than once for each module/dependency handle.
+    struct UstrStringArena;
+    impl rspack_allocative::Allocative for UstrStringArena {
+      fn visit<'a, 'b: 'a>(&self, visitor: &'a mut rspack_allocative::Visitor<'b>) {
+        let used = ustr::total_allocated();
+        let capacity = ustr::total_capacity();
+        let mut root = visitor.enter(rspack_allocative::Key::new("GlobalUstrStringArena"), 0);
+        let mut arena = root.enter_unique(rspack_allocative::Key::new("arena"), 0);
+        arena.visit_simple(rspack_allocative::Key::new("used"), used);
+        arena.visit_simple(
+          rspack_allocative::Key::new("unused_capacity"),
+          capacity.saturating_sub(used),
+        );
+        arena.exit();
+        root.exit();
+      }
     }
-  }
-  let counts: Vec<_> = populations.into_iter().map(|(path, count)| serde_json::json!({
+    builder.visit_root(&UstrStringArena);
+    let output = builder.finish();
+    std::fs::write(
+      dir.join(format!("{snapshot}.objects.json")),
+      serde_json::to_vec_pretty(
+        &serde_json::json!({"snapshot": snapshot, "objects": output.objects()}),
+      )
+      .to_rspack_result()?,
+    )
+    .to_rspack_result()?;
+    std::fs::write(
+      dir.join(format!("{snapshot}.allocative")),
+      output.flamegraph().write(),
+    )
+    .to_rspack_result()?;
+    std::fs::write(
+      dir.join(format!("{snapshot}.warnings.txt")),
+      output.warnings(),
+    )
+    .to_rspack_result()?;
+
+    // Cardinalities are measured independently from byte weights. Do not count hooks,
+    // references, or flamegraph frames as module/dependency objects.
+    let metadata = serde_json::json!({
+      "snapshot": snapshot,
+      "represented_bytes": output.flamegraph().total_size(),
+      "shared_ownership": "first encountered owner; later references and cycles are deduplicated",
+      "ustr_global_entries": ustr::num_entries(),
+      "ustr_arena_used_bytes": ustr::total_allocated(),
+      "ustr_arena_capacity_bytes": ustr::total_capacity(),
+      "limits": ["Not RSS or peak heap usage", "Container allocator metadata and private hash-table overhead are not fully represented", "Ustr pool hash-index overhead and unreachable global interner entries outside the Ustr arena are not represented", "See warnings for inaccessible external state"]
+    });
+    std::fs::write(
+      dir.join(format!("{snapshot}.metadata.json")),
+      serde_json::to_vec_pretty(&metadata).to_rspack_result()?,
+    )
+    .to_rspack_result()?;
+    let graph = compiler.compilation.get_module_graph();
+    let mut populations: BTreeMap<Vec<String>, usize> = BTreeMap::new();
+    for (_, module) in graph.modules() {
+      *populations
+        .entry(vec![
+          "Compiler".into(),
+          "Compilation".into(),
+          "modules".into(),
+          match module.module_type() {
+            crate::ModuleType::Custom(name) => {
+              allocative_count_labels::custom_module_type_label(name.as_str())
+            }
+            module_type => module_type.to_string(),
+          },
+        ])
+        .or_default() += 1;
+    }
+    for (_, dependency) in graph.dependencies() {
+      *populations
+        .entry(vec![
+          "Compiler".into(),
+          "Compilation".into(),
+          "dependencies".into(),
+          format!("{:?}", dependency.dependency_type()),
+        ])
+        .or_default() += 1;
+    }
+    // An empty graph is a measured zero, not an unavailable population report.
+    if populations.is_empty() {
+      for population in ["modules", "dependencies"] {
+        populations.insert(
+          vec!["Compiler".into(), "Compilation".into(), population.into()],
+          0,
+        );
+      }
+    }
+    let counts: Vec<_> = populations.into_iter().map(|(path, count)| serde_json::json!({
     "path": path, "count": count, "basis": "live entries in the current compilation module graph"
   })).collect();
-  let report = serde_json::json!({
-    "snapshot": snapshot,
-    "unit": "entries",
-    "scope": "Current compilation after cache finalization and before compiler drop; module and dependency graph entries grouped by type",
-    "counts": counts
-  });
-  std::fs::write(
-    dir.join(format!("{snapshot}.counts.json")),
-    serde_json::to_vec_pretty(&report).to_rspack_result()?,
-  )
-  .to_rspack_result()?;
-  Ok(())
+    let report = serde_json::json!({
+      "snapshot": snapshot,
+      "unit": "entries",
+      "scope": "Current compilation after cache finalization and before compiler drop; module and dependency graph entries grouped by type",
+      "counts": counts
+    });
+    std::fs::write(
+      dir.join(format!("{snapshot}.counts.json")),
+      serde_json::to_vec_pretty(&report).to_rspack_result()?,
+    )
+    .to_rspack_result()?;
+    Ok(())
+  }
 }

@@ -1,4 +1,5 @@
 import {
+  allocativeBindingMarker,
   allocativeRootMarker,
   redactHeapSnapshot,
   type RspackRootKind,
@@ -12,6 +13,13 @@ export function markAllocativeRoot(value: object, kind: RspackRootKind): void {
   }
 }
 
+/** The public object already owns this binding; expose that edge to the profiler. */
+export function linkAllocativeBinding(value: object, binding: object): void {
+  if (process.env.RSPACK_ALLOCATIVE_DIR !== undefined) {
+    Object.defineProperty(value, allocativeBindingMarker, { value: binding });
+  }
+}
+
 /** Install before creating the first native wrapper for this compiler. */
 export function installAllocativeSnapshotHook(): void {
   if (
@@ -22,7 +30,7 @@ export function installAllocativeSnapshotHook(): void {
   }
   Object.defineProperty(globalThis, snapshotHook, {
     configurable: true,
-    async value(path: string) {
+    value(path: string) {
       if (typeof globalThis.gc !== 'function') {
         throw new Error(
           'Allocative heap snapshots require Node.js --expose-gc. Run the profiling process with node --expose-gc.',
@@ -43,7 +51,11 @@ export function installAllocativeSnapshotHook(): void {
 
       globalThis.gc();
       const chunks: string[] = [];
-      for await (const chunk of getHeapSnapshot().setEncoding('utf8')) {
+      // V8 serializes the captured graph synchronously when this stream is read.
+      // Keep capture, redaction and native traversal in one JS-thread callback.
+      const stream = getHeapSnapshot().setEncoding('utf8');
+      let chunk: string | null;
+      while ((chunk = stream.read() as string | null) !== null) {
         chunks.push(chunk);
       }
       const heap = JSON.parse(chunks.join('')) as Parameters<

@@ -3,7 +3,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { redactHeapSnapshot } from '../../../../../packages/rspack/src/util/heapSnapshot.mjs';
+import {
+  readHeapGraph,
+  redactHeapSnapshot,
+} from '../../../../../packages/rspack/src/util/heapSnapshot.mjs';
 import { convert, main } from '../../../../../scripts/v8-to-allocative.mjs';
 
 const foldedBytes = (folded) =>
@@ -11,6 +14,100 @@ const foldedBytes = (folded) =>
     .trim()
     .split('\n')
     .reduce((sum, row) => sum + Number(row.split(' ').at(-1)), 0);
+
+const assertRootTargets = (directory, name = '0-build') => {
+  const prefix = path.join(directory, 'reports', name);
+  const report = JSON.parse(fs.readFileSync(`${prefix}.links.json`, 'utf8'));
+  const combined = fs.readFileSync(`${prefix}.combined.allocative`, 'utf8');
+  const rust = fs.readFileSync(
+    path.join(directory, `${name}.allocative`),
+    'utf8',
+  );
+  const wrapperType = 'rspack_binding_api::JsCompiler';
+  const coreType = 'rspack_core::compiler::Compiler';
+  const compiler = report.root_links.find(
+    (root) => root.kind === 'Compiler' && root.rust_target,
+  );
+  assert(compiler, 'the active public Compiler must identify its native owner');
+  assert.equal(compiler.rust_target.type_name, coreType);
+  assert.equal(
+    compiler.rust_target.path[0],
+    wrapperType,
+    'capture must start at the real Rust JsCompiler, including its fields',
+  );
+  const binding = report.links.find(
+    (link) => link.js_node_id === compiler.binding_node_id,
+  ).rust_objects[0];
+  assert.equal(binding.measured, true);
+  assert.deepEqual(binding.path, [wrapperType]);
+  const owner = ['JavaScript', 'Rspack', 'Compiler', wrapperType].join(';');
+  assert(combined.includes(`${owner};compiler;`));
+  assert(combined.includes(`${compiler.rust_target.path.slice(1).join(';')};`));
+  // All wrapper fields must be represented, even opaque handles and empty maps.
+  for (const field of [
+    'unsafe_fast_drop',
+    'file_system_dependency_string_pool',
+    'js_helpers',
+    'infrastructure_log_dispatcher',
+    'compiler_scoped_tsfn_manager',
+    'js_hooks_plugin',
+    'compiler',
+    'state',
+    'include_dependencies_map',
+    'entry_dependencies_map',
+    'compiler_context',
+    'virtual_file_store',
+  ]) {
+    assert(
+      rust.includes(`${wrapperType};${field}`),
+      `missing wrapper field: ${field}`,
+    );
+    assert(
+      combined.includes(`${owner};${field}`),
+      `missing owned wrapper field: ${field}`,
+    );
+  }
+  assert(
+    !rust.split('\n').some((line) => line.startsWith(`${coreType};`)),
+    'core Compiler must not also be traversed as a separate root',
+  );
+  for (const line of rust
+    .split('\n')
+    .filter(
+      (line) =>
+        line.startsWith(`${wrapperType};`) ||
+        line.startsWith(`${wrapperType} `),
+    )) {
+    assert.equal(
+      combined
+        .split('\n')
+        .filter((row) => row === `JavaScript;Rspack;Compiler;${line}`).length,
+      1,
+      'each native sample must move to the JS owner exactly once',
+    );
+  }
+  assert(
+    !combined.split('\n').some((line) => line.startsWith(`${wrapperType};`)),
+    'the native owner must not be duplicated outside its JS Compiler',
+  );
+  const warnings = fs.readFileSync(
+    path.join(directory, `${name}.warnings.txt`),
+    'utf8',
+  );
+  assert(!warnings.includes('Incorrect size declaration'), warnings);
+  for (const root of report.root_links.filter((root) => root.rust_target)) {
+    const binding = report.links.find(
+      (link) => link.js_node_id === root.binding_node_id,
+    );
+    assert.deepEqual(root.rust_target, binding.rust_objects[0].target);
+    assert.equal(root.rust_target.path[0], wrapperType);
+    assert(root.rust_target.type_name.endsWith(`::${root.kind}`));
+  }
+  assert.equal(
+    foldedBytes(combined),
+    foldedBytes(rust) + report.represented_bytes,
+  );
+};
 
 export default {
   afterExecute() {
@@ -66,6 +163,27 @@ export default {
         false,
       );
       if (captured.enabled) {
+        const rustOnlyDirectory = path.join(temporary, 'rust-only');
+        const rustOnly = spawnSync(process.execPath, ['--expose-gc', fixture], {
+          env: {
+            ...env,
+            RSPACK_ALLOCATIVE_DIR: rustOnlyDirectory,
+            ALLOCATIVE_TEST_RUST_ONLY: '1',
+          },
+          encoding: 'utf8',
+          timeout: 60000,
+        });
+        assert.ifError(rustOnly.error);
+        assert.equal(rustOnly.status, 0, rustOnly.stderr);
+        assert(
+          fs
+            .readFileSync(
+              path.join(rustOnlyDirectory, '0-build.allocative'),
+              'utf8',
+            )
+            .includes('rspack_binding_api::JsCompiler;compiler;'),
+        );
+        assert.equal(fs.existsSync(path.join(rustOnlyDirectory, 'v8')), false);
         const prefix = path.join(directory, '0-build');
         const heapPath = path.join(directory, 'v8', '0-build.heapsnapshot');
         const heap = fs.readFileSync(heapPath, 'utf8');
@@ -90,6 +208,7 @@ export default {
         const links = JSON.parse(
           fs.readFileSync(`${reports}.links.json`, 'utf8'),
         );
+        assertRootTargets(directory);
         assert.equal(links.unmatched_bindings, 0);
         let categorizedBytes = 0;
         for (const category of ['v8_code', 'rspack', 'shared_or_unknown']) {
@@ -138,6 +257,7 @@ export default {
         const fullHeap = path.join(fullDirectory, 'v8', '0-build.heapsnapshot');
         assert(fs.readFileSync(fullHeap, 'utf8').includes(secret));
         main([fullHeap]);
+        assertRootTargets(fullDirectory);
         assert(
           !fs
             .readFileSync(
@@ -178,6 +298,91 @@ export default {
         assert.ifError(missingGc.error);
         assert.notEqual(missingGc.status, 0);
         assert.match(missingGc.stderr, /--expose-gc/);
+
+        const multipleDirectory = path.join(temporary, 'multiple');
+        const multiple = spawnSync(
+          process.execPath,
+          ['--expose-gc', path.join(import.meta.dirname, 'targets.cjs')],
+          {
+            env: {
+              ...env,
+              RSPACK_ALLOCATIVE_DIR: multipleDirectory,
+              RSPACK_ALLOCATIVE_INCLUDE_CONTENT: '1',
+            },
+            encoding: 'utf8',
+            timeout: 60000,
+          },
+        );
+        assert.ifError(multiple.error);
+        assert.equal(multiple.status, 0, multiple.stderr);
+        for (const [name, active] of [
+          ['0-build', 'first'],
+          ['1-build', 'second'],
+          ['2-rebuild', 'first'],
+        ]) {
+          const heap = JSON.parse(
+            fs.readFileSync(
+              path.join(multipleDirectory, 'v8', `${name}.heapsnapshot`),
+              'utf8',
+            ),
+          );
+          const identities = JSON.parse(
+            fs.readFileSync(
+              path.join(multipleDirectory, `${name}.objects.json`),
+              'utf8',
+            ),
+          );
+          const graph = readHeapGraph(heap);
+          const compilerNames = new Map();
+          for (let i = 0; i < graph.count; i++) {
+            for (
+              let e = graph.offsets[i];
+              e < graph.offsets[i + 1];
+              e += graph.edgeWidth
+            ) {
+              if (
+                graph.edgeType(e) === 'property' &&
+                graph.edgeName(e) === 'name'
+              ) {
+                compilerNames.set(
+                  graph.nodeId(i),
+                  graph.nodeName(graph.target(e)),
+                );
+              }
+            }
+          }
+          main([path.join(multipleDirectory, 'v8', `${name}.heapsnapshot`)]);
+          assertRootTargets(multipleDirectory, name);
+          const raw = convert(heap, identities);
+          const compilerLinks = raw.report.root_links.filter(
+            (link) => link.kind === 'Compiler',
+          );
+          assert.equal(compilerLinks.length, 2);
+          for (const link of compilerLinks) {
+            assert.equal(
+              Boolean(link.rust_target),
+              compilerNames.get(link.js_node_id) === active,
+              `${name}: only the active compiler may match its Rust target`,
+            );
+          }
+          assert.equal(raw.report.matched_roots, name === '2-rebuild' ? 4 : 3);
+          const { redacted, markers } = redactHeapSnapshot(heap);
+          const nodes = new Map(
+            markers.map(([id, address, type]) => [`${address}:${type}`, id]),
+          );
+          const sanitized = convert(redacted, {
+            ...identities,
+            objects: identities.objects.map(({ address, ...object }) => ({
+              ...object,
+              js_node_id: nodes.get(`${address}:${object.type_name}`),
+            })),
+          });
+          assert.deepEqual(sanitized.report.root_links, raw.report.root_links);
+          assert.equal(
+            foldedBytes(sanitized.combinedFolded),
+            raw.report.represented_bytes,
+          );
+        }
       } else {
         assert.equal(fs.existsSync(path.join(directory, 'v8')), false);
       }

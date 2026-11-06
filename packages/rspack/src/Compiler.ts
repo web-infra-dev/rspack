@@ -72,6 +72,7 @@ import { JavaScriptTracer } from './trace';
 import { unsupported } from './util';
 import {
   installAllocativeSnapshotHook,
+  linkAllocativeBinding,
   markAllocativeRoot,
 } from './util/allocative';
 import { assertNotNill } from './util/assertNotNil';
@@ -1008,6 +1009,7 @@ class Compiler {
         Cache.__to_binding(this.cache),
         bindingHelpers,
       );
+      linkAllocativeBinding(this, this.#instance);
 
       callback(null, this.#instance);
     } catch (err) {

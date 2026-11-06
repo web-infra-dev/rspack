@@ -1151,6 +1151,8 @@ thread_local! {
 pub struct JsCompilationWrapper {
   id: CompilationId,
   inner: NonNull<Compilation>,
+  #[cfg(allocative)]
+  compiler_id: u32,
 }
 
 unsafe impl Send for JsCompilationWrapper {}
@@ -1161,6 +1163,8 @@ impl JsCompilationWrapper {
     Self {
       id: compilation.id(),
       inner: NonNull::new(compilation as *const Compilation as *mut Compilation).unwrap(),
+      #[cfg(allocative)]
+      compiler_id: compilation.compiler_id().as_u32(),
     }
   }
 
@@ -1187,6 +1191,12 @@ impl ToNapiValue for JsCompilationWrapper {
             let js_compilation = JsCompilation::new(val.id, val.inner);
             let napi_value = ToNapiValue::to_napi_value(env, js_compilation)?;
             let reference: Reference<JsCompilation> = Reference::from_napi_value(env, napi_value)?;
+            #[cfg(allocative)]
+            rspack_napi::allocative::link_target(
+              &*reference,
+              val.inner.as_ptr(),
+              Some(val.compiler_id),
+            );
             let weak_reference = entry.insert(reference.downgrade());
             ToNapiValue::to_napi_value(env, weak_reference.clone())
           }

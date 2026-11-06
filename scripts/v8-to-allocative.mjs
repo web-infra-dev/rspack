@@ -72,10 +72,11 @@ export function convert(
   }
   const graph = readHeapGraph(snapshot);
   const { count, nodeType, nodeName, nodeSize, nodeId } = graph;
-  const { sourceNodeIds, rspackRoots } = redacted
+  const { sourceNodeIds, rspackRoots, rspackBindings } = redacted
     ? {
         sourceNodeIds: snapshot.rspack_v8_source_nodes ?? [],
         rspackRoots: snapshot.rspack_js_roots ?? [],
+        rspackBindings: snapshot.rspack_js_bindings ?? [],
       }
     : readHeapCategories(graph);
   const v8Sources = new Set(sourceNodeIds);
@@ -109,7 +110,12 @@ export function convert(
       self_size: nodeSize(i),
       rust_objects: includeContent
         ? matches
-        : matches.map(({ type_name, path }) => ({ type_name, path })),
+        : matches.map(({ type_name, path, measured, target }) => ({
+            type_name,
+            path,
+            measured,
+            ...(target ? { target } : {}),
+          })),
     };
     if (includeContent) {
       link.js_name = nodeName(i);
@@ -122,6 +128,52 @@ export function convert(
       rspackAnchors.add(i);
     }
   }
+
+  const linksByNode = new Map(links.map((link) => [link.js_node_id, link]));
+  const publicBindings = new Map(rspackBindings);
+  const rootLinks = [...jsRoots].map(([js_node_id, kind]) => {
+    const binding_node_id = publicBindings.get(js_node_id);
+    const binding = linksByNode.get(binding_node_id);
+    const rust_target = binding?.rust_objects[0]?.target;
+    return {
+      js_node_id,
+      kind,
+      binding_node_id,
+      ...(rust_target ? { rust_target } : {}),
+    };
+  });
+  const rootTargets = new Map(
+    rootLinks
+      .filter((link) => link.rust_target)
+      .map((link) => [link.js_node_id, link.rust_target]),
+  );
+
+  // Only a measured owning wrapper can parent native bytes. Compilation views
+  // and shared cache links remain metadata; they must not copy native subtrees.
+  const nativeOwners = rootLinks.flatMap((root) => {
+    const wrapper = linksByNode.get(root.binding_node_id)?.rust_objects[0];
+    if (
+      root.kind !== 'Compiler' ||
+      !wrapper?.measured ||
+      wrapper.path.length !== 1
+    )
+      return [];
+    return [
+      {
+        js_node_id: root.js_node_id,
+        binding_node_id: root.binding_node_id,
+        rust_path: wrapper.path,
+        js_path: ['JavaScript', 'Rspack', 'Compiler'],
+      },
+    ];
+  });
+  const owningRoots = new Set(nativeOwners.map((owner) => owner.js_node_id));
+  const ownedPath = (path) => {
+    const owner = nativeOwners.find((owner) =>
+      owner.rust_path.every((frame, i) => path[i] === frame),
+    );
+    return owner ? [...owner.js_path, ...path] : path;
+  };
 
   // The first pass supplies representative paths. A node is exclusive to
   // Rspack when removing all Rspack anchors cuts every strong path to it.
@@ -167,10 +219,17 @@ export function convert(
       if (category === 'rspack') {
         const binding = bindings.get(cursor);
         if (binding) {
-          nativePath = binding.rust_objects[0].path;
+          const wrapper = binding.rust_objects[0];
+          nativePath = wrapper.measured
+            ? wrapper.path
+            : (wrapper.target?.path ?? wrapper.path);
           break;
         }
-        if (jsRoot) break;
+        if (jsRoot) {
+          if (!owningRoots.has(nodeId(cursor)))
+            nativePath = rootTargets.get(nodeId(cursor))?.path;
+          break;
+        }
       }
       if (parents[cursor] === -1) {
         prefix.push('[unreachable by strong edges]');
@@ -188,7 +247,7 @@ export function convert(
     categorySamples.set(stack, (categorySamples.get(stack) ?? 0) + size);
     if (category === 'rspack') {
       const combinedStack = nativePath
-        ? `${nativePath.map(escapeFrame).join(';')};${stack}`
+        ? `${ownedPath(nativePath).map(escapeFrame).join(';')};${stack}`
         : stack;
       combinedRspack.set(
         combinedStack,
@@ -223,9 +282,33 @@ export function convert(
       matched_bindings: links.filter((link) => link.rust_objects.length).length,
       unmatched_bindings: links.filter((link) => !link.rust_objects.length)
         .length,
+      matched_roots: rootTargets.size,
+      unmatched_roots: rootLinks.length - rootTargets.size,
+      root_links: rootLinks,
+      native_owners: nativeOwners,
       links,
     },
   };
+}
+
+// Move each native sample once; never copy a target for every referring JS view.
+export function combineRust(rust, result) {
+  const owners = result.report.native_owners.map((owner) => ({
+    native: owner.rust_path.map(escapeFrame).join(';'),
+    prefix: owner.js_path.map(escapeFrame).join(';'),
+  }));
+  const moved = rust
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => {
+      const owner = owners.find(
+        ({ native }) =>
+          line.startsWith(`${native};`) || line.startsWith(`${native} `),
+      );
+      return owner ? `${owner.prefix};${line}` : line;
+    })
+    .join('\n');
+  return `${moved}\n${result.combinedFolded}`;
 }
 
 export function main(args = process.argv.slice(2)) {
@@ -273,10 +356,7 @@ export function main(args = process.argv.slice(2)) {
   // Refuse to overwrite captures or previous conversion results.
   const files = [
     ['.js.allocative', result.folded],
-    [
-      '.combined.allocative',
-      rust + (rust.endsWith('\n') ? '' : '\n') + result.combinedFolded,
-    ],
+    ['.combined.allocative', combineRust(rust, result)],
     ['.links.json', `${JSON.stringify(result.report, null, 2)}\n`],
     ...Object.entries(result.categoryFolded).map(([category, folded]) => [
       `.js.${category}.allocative`,
@@ -300,7 +380,7 @@ export function main(args = process.argv.slice(2)) {
     throw error;
   }
   process.stdout.write(
-    `${JSON.stringify({ snapshot: result.report.snapshot, represented_js_bytes: result.report.represented_bytes, category_bytes: result.report.category_bytes, matched_bindings: result.report.matched_bindings, unmatched_bindings: result.report.unmatched_bindings })}\n`,
+    `${JSON.stringify({ snapshot: result.report.snapshot, represented_js_bytes: result.report.represented_bytes, category_bytes: result.report.category_bytes, matched_bindings: result.report.matched_bindings, unmatched_bindings: result.report.unmatched_bindings, matched_roots: result.report.matched_roots, unmatched_roots: result.report.unmatched_roots })}\n`,
   );
 }
 

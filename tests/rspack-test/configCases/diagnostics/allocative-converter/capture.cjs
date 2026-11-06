@@ -11,6 +11,8 @@ assert.equal(
 );
 const hookName = '__rspack_internal_runJsSnapshot';
 let snapshotCalls = 0;
+let afterCompile = false;
+let done = false;
 const { rspack } = require('@rspack/core');
 if (process.env.ALLOCATIVE_TEST_CONTENT) {
   const content = process.env.ALLOCATIVE_TEST_CONTENT;
@@ -37,6 +39,10 @@ const check = (object, source) => {
   seen.push({ label, pointer: pointer.value });
   retained.push(object);
 };
+// A binding can be used without installing the optional JS snapshot hook.
+const profileDirectory = process.env.RSPACK_ALLOCATIVE_DIR;
+if (process.env.ALLOCATIVE_TEST_RUST_ONLY)
+  delete process.env.RSPACK_ALLOCATIVE_DIR;
 const compiler = rspack({
   mode: 'development',
   context: process.env.ALLOCATIVE_TEST_CONTEXT,
@@ -45,6 +51,12 @@ const compiler = rspack({
   plugins: [
     {
       apply(compiler) {
+        compiler.hooks.afterCompile.tap('SnapshotPhase', () => {
+          afterCompile = true;
+        });
+        compiler.hooks.done.tap('SnapshotPhase', () => {
+          done = true;
+        });
         compiler.hooks.thisCompilation.tap('SnapshotFixture', (compilation) => {
           check(compilation.__internal_getInner());
           if (enabled) {
@@ -52,7 +64,17 @@ const compiler = rspack({
             Object.defineProperty(globalThis, hookName, {
               value(snapshotPath) {
                 snapshotCalls++;
+                assert(afterCompile, 'capture must follow core compilation');
+                assert(
+                  !done,
+                  'capture must finish before the JS done callback',
+                );
                 const pending = runSnapshot(snapshotPath);
+                assert.equal(
+                  pending?.then,
+                  undefined,
+                  'capture must stay in one JS-thread callback',
+                );
                 if (releasedAfterSnapshot) {
                   queueMicrotask(() => {
                     releasedAfterSnapshot = undefined;
@@ -90,7 +112,7 @@ const compiler = rspack({
               enabled &&
               process.env.RSPACK_ALLOCATIVE_INCLUDE_CONTENT !== '1'
             ) {
-              // This wrapper is live in the heap graph but can die while V8 serializes it.
+              // This wrapper is live in the heap graph but can die in a microtask after capture returns.
               releasedAfterSnapshot = new binding.JsResolverFactory(
                 false,
                 {},
@@ -117,8 +139,13 @@ const compiler = rspack({
     },
   ],
 });
+if (process.env.ALLOCATIVE_TEST_RUST_ONLY)
+  process.env.RSPACK_ALLOCATIVE_DIR = profileDirectory;
 const hook = Object.getOwnPropertyDescriptor(globalThis, hookName);
-if (process.env.RSPACK_ALLOCATIVE_DIR === undefined) {
+if (
+  process.env.RSPACK_ALLOCATIVE_DIR === undefined ||
+  process.env.ALLOCATIVE_TEST_RUST_ONLY
+) {
   assert.equal(hook, undefined);
 } else {
   assert.equal(typeof hook?.value, 'function');

@@ -58,7 +58,7 @@ import {
 } from './Stats';
 import { StatsFactory } from './stats/StatsFactory';
 import { StatsPrinter } from './stats/StatsPrinter';
-import { markAllocativeRoot } from './util/allocative';
+import { linkAllocativeBinding, markAllocativeRoot } from './util/allocative';
 import { AsyncTask } from './util/AsyncTask';
 import { createReadonlyMap } from './util/createReadonlyMap';
 import { createModules } from './Modules';
@@ -373,6 +373,7 @@ export class Compilation {
 
   constructor(compiler: Compiler, inner: JsCompilation) {
     markAllocativeRoot(this, 'Compilation');
+    linkAllocativeBinding(this, inner);
     this.#inner = inner;
     // Share the binding's string cache between collection reads and watch deltas.
     const fileSystemDependencies = (this.#fileSystemDependencies = {

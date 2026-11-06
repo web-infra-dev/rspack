@@ -6,7 +6,8 @@
  * @typedef {{
  *   snapshot: { meta: HeapMeta }, nodes: number[], edges: number[],
  *   strings: string[], rspack_binding_nodes?: number[],
- *   rspack_v8_source_nodes?: number[], rspack_js_roots?: RspackRoot[]
+ *   rspack_v8_source_nodes?: number[], rspack_js_roots?: RspackRoot[],
+ *   rspack_js_bindings?: [number, number][]
  * }} HeapSnapshot
  * @typedef {[nodeId: number, address: string, type: string]} BindingMarker
  * @typedef {'Compiler' | 'Compilation' | 'Cache'} RspackRootKind
@@ -14,6 +15,7 @@
  */
 
 export const allocativeRootMarker = '__rspack_internal_allocativeRoot';
+export const allocativeBindingMarker = '__rspack_internal_allocativeBinding';
 
 /** @param {string} kind @returns {kind is RspackRootKind} */
 export function isRspackRootKind(kind) {
@@ -113,6 +115,8 @@ export function readHeapCategories(graph) {
   const sourceNodes = new Set();
   /** @type {RspackRoot[]} */
   const rspackRoots = [];
+  /** @type {[number, number][]} */
+  const rspackBindings = [];
   for (let i = 0; i < graph.count; i++) {
     const type = graph.nodeType(i);
     if (type !== 'code' && type !== 'object') continue;
@@ -137,6 +141,18 @@ export function readHeapCategories(graph) {
         const kind = graph.nodeName(target);
         if (isRspackRootKind(kind)) {
           rspackRoots.push([graph.nodeId(i), kind]);
+        }
+      } else if (
+        type === 'object' &&
+        edgeType === 'property' &&
+        name === allocativeBindingMarker
+      ) {
+        const target = graph.target(edge);
+        if (
+          graph.nodeType(target) === 'object' &&
+          readBindingMarker(graph, target)
+        ) {
+          rspackBindings.push([graph.nodeId(i), graph.nodeId(target)]);
         }
       }
     }
@@ -167,7 +183,11 @@ export function readHeapCategories(graph) {
       }
     }
   }
-  return { sourceNodeIds: Array.from(sourceNodes, graph.nodeId), rspackRoots };
+  return {
+    sourceNodeIds: Array.from(sourceNodes, graph.nodeId),
+    rspackRoots,
+    rspackBindings,
+  };
 }
 
 /** @param {number[]} values @param {number} width @param {number[]} columns */
@@ -181,7 +201,8 @@ function redactColumns(values, width, columns) {
 /** @param {HeapSnapshot} heap */
 export function redactHeapSnapshot(heap) {
   const graph = readHeapGraph(heap);
-  const { sourceNodeIds, rspackRoots } = readHeapCategories(graph);
+  const { sourceNodeIds, rspackRoots, rspackBindings } =
+    readHeapCategories(graph);
   const markers = [];
   for (let i = 0; i < graph.count; i++) {
     const marker = readBindingMarker(graph, i);
@@ -209,6 +230,7 @@ export function redactHeapSnapshot(heap) {
     rspack_binding_nodes: markers.map(([id]) => id),
     rspack_v8_source_nodes: sourceNodeIds,
     rspack_js_roots: rspackRoots,
+    rspack_js_bindings: rspackBindings,
   };
   return { redacted, markers };
 }

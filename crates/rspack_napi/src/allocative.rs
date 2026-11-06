@@ -6,25 +6,32 @@ use std::{
   collections::HashMap,
   ffi::c_void,
   ptr,
-  sync::Arc,
+  sync::atomic::{AtomicBool, Ordering},
 };
 
 use napi::{
-  Env, JsValue, Property, PropertyAttributes,
-  bindgen_prelude::{FromNapiValue, Function, JsObjectValue, Object, Promise, Unknown},
+  Env, Property, PropertyAttributes,
+  bindgen_prelude::{FromNapiValue, Function, JsObjectValue, Object},
   sys,
 };
-use rspack_allocative::{FlameGraphBuilder, snapshot};
+use rspack_allocative::{FlameGraphBuilder, TargetIdentity};
 
-use crate::threadsafe_function::ThreadsafeFunction;
+static REGISTERED: AtomicBool = AtomicBool::new(false);
 
 const SNAPSHOT_HOOK: &str = "__rspack_internal_runJsSnapshot";
 
 struct Root {
   env: sys::napi_env,
   reference: sys::napi_ref,
+  binding: Binding,
+}
+
+/// Snapshot a few identity values, without retaining the wrapper or target.
+#[derive(Clone, Copy)]
+struct Binding {
   address: usize,
   type_name: &'static str,
+  target: Option<(TargetIdentity, Option<u32>)>,
 }
 thread_local! {
   static ROOTS: RefCell<Vec<Root>> = const { RefCell::new(Vec::new()) };
@@ -32,21 +39,6 @@ thread_local! {
 }
 
 type BindingMarkers = Option<Vec<(u32, String, String)>>;
-
-struct PendingSnapshot {
-  markers: Promise<BindingMarkers>,
-  bindings: Vec<(usize, &'static str)>,
-}
-
-impl FromNapiValue for PendingSnapshot {
-  unsafe fn from_napi_value(env: sys::napi_env, value: sys::napi_value) -> napi::Result<Self> {
-    // The hook has captured the V8 graph synchronously. Copy the live identities
-    // before the JS thread can release wrappers while serializing that graph.
-    let bindings = live_bindings(env)?;
-    let markers = unsafe { Promise::from_napi_value(env, value)? };
-    Ok(Self { markers, bindings })
-  }
-}
 
 /// Initialize on the first class attachment so wrappers created before
 /// JsCompiler (including the resolver factory) are included in the snapshot.
@@ -61,62 +53,74 @@ fn enable_if_requested(env: &Env) -> napi::Result<bool> {
     return Ok(false);
   }
 
-  // The TSFN retains this native dispatcher, not a JS function from globalThis.
-  // Resolve the actual hook on the owning JS thread at each snapshot.
-  let dispatcher = env.create_function_from_closure::<String, Unknown, _>(
-    "dispatchAllocativeSnapshot",
-    |ctx| {
-      let hook: Function<String, Unknown> =
-        ctx.env.get_global()?.get_named_property(SNAPSHOT_HOOK)?;
-      hook.call(ctx.first_arg()?)
-    },
-  )?;
-  // SAFETY: Both handles belong to the current N-API callback's environment.
-  let dispatcher: ThreadsafeFunction<String, PendingSnapshot> =
-    unsafe { FromNapiValue::from_napi_value(raw_env, dispatcher.raw())? };
-  snapshot::register(Arc::new(move |path| {
-    let dispatcher = dispatcher.clone();
-    Box::pin(async move {
-      let pending = dispatcher
-        .call_with_sync(path.to_string_lossy().into_owned())
-        .await
-        .map_err(|error| error.to_string())?;
-      let markers = match pending.markers.await {
-        Ok(markers) => markers,
-        Err(error) => return Err(dispatcher.resolve_error(error).await.to_string()),
-      };
-      let mut builder = FlameGraphBuilder::with_shared_ownership();
-      if let Some(markers) = markers {
-        let bindings: HashMap<_, _> = pending.bindings.into_iter().collect();
-        for (node_id, address, type_name) in markers {
-          if let Some(address) = address
-            .strip_prefix("0x")
-            .and_then(|hex| usize::from_str_radix(hex, 16).ok())
-            && let Some(&rust_type) = bindings.get(&address)
-            && rust_type == type_name
-          {
-            builder.record_js_binding(node_id, rust_type);
-          }
-        }
-      } else {
-        for (address, type_name) in pending.bindings {
-          builder.record_binding(address, type_name);
-        }
-      }
-      Ok(builder)
-    })
-  }))
-  .map_err(napi::Error::from_reason)?;
-
+  REGISTERED
+    .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+    .map_err(|_| {
+      napi::Error::from_reason(
+        "An allocative snapshot environment is already registered in this process",
+      )
+    })?;
   if let Err(error) = env.add_env_cleanup_hook((), move |_| {
     disable(raw_env);
-    snapshot::unregister();
+    REGISTERED.store(false, Ordering::Release);
   }) {
-    snapshot::unregister();
+    REGISTERED.store(false, Ordering::Release);
     return Err(error);
   }
   ENABLED_ENV.with(|enabled| enabled.set(raw_env));
   Ok(true)
+}
+
+/// Capture synchronously on the owning JS thread, after the build future has
+/// dropped its mutable compiler borrow and while the caller pins the owner.
+/// GC runs before collecting identities or visiting any native allocation.
+pub fn capture(
+  env: &Env,
+  path: &std::path::Path,
+  compiler_id: u32,
+) -> napi::Result<FlameGraphBuilder> {
+  // Direct binding users may never install the optional JS hook. Preserve a
+  // native-only capture in that case, still starting at the full Rust owner.
+  if !ENABLED_ENV.with(|enabled| enabled.get() == env.raw()) {
+    return Ok(FlameGraphBuilder::with_shared_ownership());
+  }
+  let hook: Function<String, BindingMarkers> =
+    env.get_global()?.get_named_property(SNAPSHOT_HOOK)?;
+  let markers = hook.call(path.to_string_lossy().into_owned())?;
+  let bindings = live_bindings(env.raw())?;
+  let mut builder = FlameGraphBuilder::with_shared_ownership();
+  let target_for = |binding: &Binding| {
+    binding
+      .target
+      .and_then(|(target, owner)| (owner.is_none() || owner == Some(compiler_id)).then_some(target))
+  };
+  if let Some(markers) = markers {
+    let bindings: HashMap<_, _> = bindings
+      .into_iter()
+      .map(|binding| (binding.address, binding))
+      .collect();
+    for (node_id, address, type_name) in markers {
+      if let Some(address) = address
+        .strip_prefix("0x")
+        .and_then(|hex| usize::from_str_radix(hex, 16).ok())
+        && let Some(binding) = bindings.get(&address)
+        && binding.type_name == type_name
+      {
+        builder.record_js_binding_at(node_id, binding.type_name, binding.address);
+        if let Some(target) = target_for(binding) {
+          builder.record_js_binding_target(node_id, binding.type_name, target);
+        }
+      }
+    }
+  } else {
+    for binding in bindings {
+      builder.record_binding(binding.address, binding.type_name);
+      if let Some(target) = target_for(&binding) {
+        builder.record_binding_target(binding.address, binding.type_name, target);
+      }
+    }
+  }
+  Ok(builder)
 }
 
 fn disable(env: sys::napi_env) {
@@ -151,7 +155,7 @@ pub unsafe fn attach<T: 'static>(env: sys::napi_env, value: sys::napi_value) -> 
     Property::new()
       .with_utf8_name("__rspackRustPtr")?
       .with_property_attributes(PropertyAttributes::Default)
-      .with_value(&env_wrapper.create_string(&format!("{pointer:p}"))?),
+      .with_value(&env_wrapper.create_string(format!("{pointer:p}"))?),
     Property::new()
       .with_utf8_name("__rspackRustType")?
       .with_property_attributes(PropertyAttributes::Default)
@@ -163,15 +167,34 @@ pub unsafe fn attach<T: 'static>(env: sys::napi_env, value: sys::napi_value) -> 
     roots.push(Root {
       env,
       reference,
-      address: pointer as usize,
-      type_name: type_name::<T>(),
+      binding: Binding {
+        address: pointer as usize,
+        type_name: type_name::<T>(),
+        target: None,
+      },
     })
   });
   Ok(())
 }
 
+/// Associate a final N-API wrapper with its target while the owner is accessible.
+/// Only copies identity metadata; capture never dereferences this pointer.
+/// Compiler-scoped targets must supply their owner ID to reject stale wrappers
+/// whose address could be reused by a later compiler. Independently owned targets
+/// (such as an Arc held by JsCache) need no compiler scope.
+pub fn link_target<W: 'static, T: ?Sized>(wrapper: &W, target: *const T, compiler_id: Option<u32>) {
+  ROOTS.with_borrow_mut(|roots| {
+    if let Some(root) = roots.iter_mut().rev().find(|root| {
+      root.binding.address == std::ptr::from_ref(wrapper) as usize
+        && root.binding.type_name == type_name::<W>()
+    }) {
+      root.binding.target = Some((TargetIdentity::new(target), compiler_id));
+    }
+  });
+}
+
 /// Copy wrapper identities on the owning JS thread and prune dead weak refs.
-fn live_bindings(env: sys::napi_env) -> napi::Result<Vec<(usize, &'static str)>> {
+fn live_bindings(env: sys::napi_env) -> napi::Result<Vec<Binding>> {
   ROOTS.with_borrow_mut(|roots| {
     let mut bindings = Vec::new();
     let mut index = 0;
@@ -189,7 +212,7 @@ fn live_bindings(env: sys::napi_env) -> napi::Result<Vec<(usize, &'static str)>>
         napi::check_status!(unsafe { sys::napi_delete_reference(env, root.reference) })?;
         roots.swap_remove(index);
       } else {
-        bindings.push((root.address, root.type_name));
+        bindings.push(root.binding);
         index += 1;
       }
     }
