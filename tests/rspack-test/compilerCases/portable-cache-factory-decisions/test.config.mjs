@@ -236,19 +236,6 @@ scenarios.push(
 			{ test: /dep\.js$/, use: ["./import.cjs"] },
 			{ test: /leaf\.js$/, include: writer, use: [transform] }
 		]
-	},
-	{
-		name: "deeper-importer-agrees",
-		files: {
-			"src/index.js": 'module.exports = [require("./a.js"), require("./c1.js")];',
-			"src/a.js": 'module.exports = require("./dep.js");',
-			"src/c1.js": 'module.exports = require("./c2.js");',
-			"src/c2.js": 'module.exports = require("./c3.js");',
-			"src/c3.js": 'module.exports = require("./b.js");',
-			"src/b.js": 'module.exports = require("./dep.js");',
-			"src/dep.js": "module.exports = (function () { return this === undefined; })();"
-		},
-		rules: () => [{ test: /dep\.js$/, issuer: /reader.*a\.js$/, parser: { overrideStrict: "strict" } }]
 	}
 );
 
@@ -310,6 +297,27 @@ export default [
 				const moved = await build(reader, configuration(reader));
 				expect(moved.built).toEqual([]);
 				await expectColdEquality(reader, configuration(reader), moved);
+			});
+		}
+	},
+	{
+		name: "changed-decision-of-one-importer",
+		description: "rebuilds a shared module when one importer's rule decision changes, even if another importer's does not",
+		async run() {
+			await withProjects({
+				"src/index.js": 'module.exports = [require("./a.js"), require("./c1.js")];',
+				"src/a.js": 'module.exports = require("./dep.js");',
+				"src/c1.js": 'module.exports = require("./b.js");',
+				"src/b.js": 'module.exports = require("./dep.js");',
+				"src/dep.js": "module.exports = (function () { return this === undefined; })();"
+			}, async (writer, reader) => {
+				const configuration = {
+					module: { rules: [{ test: /dep\.js$/, issuer: /reader.*a\.js$/, parser: { overrideStrict: "strict" } }] }
+				};
+				await build(writer, configuration);
+				copyTree(writer, reader);
+				const moved = await build(reader, configuration);
+				expect(moved.built).toEqual([path.join(reader, "src", "dep.js")]);
 			});
 		}
 	},
