@@ -4,7 +4,7 @@
 use crate::{
   BoxSource, CachedSource, ConcatSource, MappingSource, OriginalSource, RawBufferSource,
   RawStringSource, ReplaceSource, ReplacementEnforce, Source, SourceExt, SourceMap,
-  SourceMapFields, SourceMapSource, SourceMapSourceOptions, mapping_source::Data,
+  SourceMapSource, SourceMapSourceOptions, mapping_source::Data,
 };
 
 /// Source map fields stored without an intermediate JSON representation.
@@ -21,30 +21,29 @@ pub struct CacheableSourceMap {
   ignore_list: Option<Vec<u32>>,
 }
 
-impl From<&SourceMap<'_>> for CacheableSourceMap {
-  fn from(map: &SourceMap<'_>) -> Self {
-    let fields = map.fields();
+impl From<&SourceMap> for CacheableSourceMap {
+  fn from(map: &SourceMap) -> Self {
     Self {
-      version: fields.version,
-      file: fields.file.as_deref().map(str::to_owned),
-      sources: fields.sources.iter().map(ToString::to_string).collect(),
-      sources_content: fields
+      version: map.version,
+      file: map.file.as_deref().map(str::to_owned),
+      sources: map.sources.iter().map(ToString::to_string).collect(),
+      sources_content: map
         .sources_content
         .iter()
         .map(|content| content.as_deref().map(str::to_owned))
         .collect(),
-      names: fields.names.iter().map(ToString::to_string).collect(),
-      mappings: fields.mappings.to_string(),
-      source_root: fields.source_root.as_deref().map(str::to_owned),
-      debug_id: fields.debug_id.as_deref().map(str::to_owned),
-      ignore_list: fields.ignore_list.as_deref().map(<[u32]>::to_vec),
+      names: map.names.iter().map(ToString::to_string).collect(),
+      mappings: map.mappings.to_string(),
+      source_root: map.source_root.as_deref().map(str::to_owned),
+      debug_id: map.debug_id.as_deref().map(str::to_owned),
+      ignore_list: map.ignore_list.as_ref().map(|list| list.as_ref().clone()),
     }
   }
 }
 
-impl From<CacheableSourceMap> for SourceMap<'static> {
+impl From<CacheableSourceMap> for SourceMap {
   fn from(map: CacheableSourceMap) -> Self {
-    SourceMap::from_fields(SourceMapFields {
+    SourceMap {
       version: map.version,
       file: map.file.map(Into::into),
       sources: map
@@ -69,7 +68,7 @@ impl From<CacheableSourceMap> for SourceMap<'static> {
       source_root: map.source_root.map(Into::into),
       debug_id: map.debug_id.map(Into::into),
       ignore_list: map.ignore_list.map(Into::into),
-    })
+    }
   }
 }
 

@@ -4565,6 +4565,7 @@ name = "rspack_javascript_compiler"
 version = "0.103.1"
 dependencies = [
  "anyhow",
+ "bytes-str",
  "indoc",
  "rspack_error",
  "rspack_sources",
@@ -5743,6 +5744,8 @@ dependencies = [
 name = "rspack_sources"
 version = "0.103.1"
 dependencies = [
+ "bytes",
+ "bytes-str",
  "memchr",
  "regex",
  "rkyv 0.8.18",

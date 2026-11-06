@@ -261,7 +261,7 @@ fn has_map_without_generation(source: &dyn Source) -> Option<bool> {
 /// Sources whose map presence cannot be determined cheaply initialize the map eagerly.
 enum LazySourceMap {
   Source(BoxSource),
-  Map(Box<SourceMap<'static>>),
+  Map(Box<SourceMap>),
 }
 
 impl LazySourceMap {

@@ -79,8 +79,8 @@ Preserve these contracts:
    line and omit names. Do not build a full map and discard columns afterward.
 7. **Generated-only content is valid.** The common map builder returns `None` when encoded mappings
    are empty; this says nothing about whether content exists.
-8. **Borrowed `'static` views must retain their owner.** The lifetime extensions in `SourceMap`,
-   `CachedSource`, and `SourceContentLines` depend on explicit owner relationships.
+8. **Borrowed `'static` views must retain their owner.** The lifetime extensions in
+   `CachedSource` and `SourceContentLines` depend on explicit owner relationships.
 9. **`Source` remains `Send + Sync`.** Temporary UTF-16 indices are local to each mapping stream.
 10. **Hashing and equality describe the canonical source graph, not rendered output.**
     Persistent-cache restoration must reconstruct the same graph, including intentional
@@ -105,8 +105,8 @@ pub type BoxSource = Arc<dyn Source>;
 | `rope(on_chunk)`      | incremental text spans                    | preserve borrowing; text-oriented           |
 | `buffer()`            | exact bytes                               | preferred for binary data                   |
 | `size()`              | output byte length                        | must match buffer/writer length             |
-| `map(options)`        | map borrowing from `self`                 | direct borrow or one streamed rebuild       |
-| `map_static(options)` | map that outlives the local source borrow | retains an `Arc` owner                      |
+| `map(options)`        | independently owned map                   | share an existing map or one streamed rebuild |
+| `map_static(options)` | independently owned map                   | shares immutable text and field arrays       |
 | `update_hash()`       | structural hash                           | cached by `CachedSource`                    |
 | `to_writer()`         | incremental byte output                   | preferred for emission                      |
 
@@ -142,7 +142,7 @@ only mapping metadata is needed, and a mapping can have no original location.
 mutability. `get_map` sets it to `true`. `ReplaceSource` requests `false` because it must split
 actual spans.
 
-A bare `SourceMapSource` without an inner map directly borrows its supplied map and therefore does
+A bare `SourceMapSource` without an inner map shares its supplied map and therefore does
 not normalize it for `columns: false`. Wrapping or combining it forces the specialized streaming
 paths.
 
@@ -198,16 +198,30 @@ to the scalar's starting byte.
 
 ### `SourceMap`
 
-Source maps mainly come from parsed JSON or a `Source` graph. `SourceMap` uses `Cow` fields to reuse
-strings owned by these inputs instead of cloning them:
+Source maps mainly come from parsed JSON or a `Source` graph. `SourceMap` owns UTF-8
+`bytes_str::BytesStr` fields independently of those inputs:
 
-- `from_bytes` retains the JSON buffer that parsed fields borrow from;
-- computed maps borrow strings from the source graph, and `into_static(owner)` retains that owner;
-- `as_borrowed` creates a cheap borrowed view.
-- `sources_content` entries use `Option<Cow<str>>`: `None` is missing content (JSON `null`),
-  while `Some("")` is an explicitly empty source. Preserve this distinction through parsing,
-  streaming, serialization, and persistent cache. Omit `sourcesContent` only when all entries
-  are missing; map builders keep present arrays aligned with `sources`.
+- `from_bytes` parses the input Vec mutably, then transfers it to `Bytes::from_owner` while
+  retaining the borrowed tape. It directly constructs owning `BytesStr` slices with `slice_ref`,
+  without intermediate range arrays. A local raw slice separates the parser borrow from the
+  Vec header; the tape is dropped before its owner on return and unwind. Do not replace
+  `from_owner` with `Bytes::from(Vec)`: a Box conversion can invalidate the tape's references.
+  Duplicate known fields use the DOM fallback to preserve simd-json's duplicate-key behavior.
+  Escaped strings share the input allocation too.
+- `OnSource` and `OnName` transfer `BytesStr` handles. `OriginalSource`, map inputs and replacement
+  names provide shared storage, so the map collector does not copy source contents or retain a
+  Source graph merely to keep strings alive.
+- all fields live directly in `SourceMap`, which derives `Serialize`. Clones and `as_borrowed`
+  clone text/array handles; setters replace individual fields without copying unchanged text.
+- `remove_sources_content` detaches remaining metadata, because a small shared JSON slice would
+  otherwise keep the removed contents' allocation alive.
+
+There is no SourceMap lifetime extension or Source owner. `map()` and `map_static()` both return
+an owned map; generated text can be released when its Source is otherwise no longer referenced.
+`sources_content` entries use `Option<BytesStr>`: `None` is missing content (JSON `null`),
+while `Some("")` is an explicitly empty source. Preserve this distinction through parsing,
+streaming, serialization, and persistent cache. Omit `sourcesContent` only when all entries
+are missing; map builders keep present arrays aligned with `sources`.
 
 ## 4. Source types and file map
 
@@ -223,7 +237,7 @@ representation optimizations.
 | `RawStringSource` | text leaf            | no mappings; use `from_static` for literals                         |
 | `RawBufferSource` | binary leaf          | exact bytes; lazy lossy rope view                                   |
 | `OriginalSource`  | mapped text leaf     | lazily creates token-like or line mappings                          |
-| `SourceMapSource` | existing/nested map  | directly borrows one map or composes outer and inner maps           |
+| `SourceMapSource` | existing/nested map  | shares one map or composes outer and inner maps           |
 | `MappingSource`   | external map JSON    | retains the original map and serializes JSON on demand              |
 | `ConcatSource`    | ordered composition  | flattens nested concats, merges adjacent raw strings, remaps tables |
 | `ReplaceSource`   | byte-range transform | maintains sorted edits and repairs mappings                         |
@@ -233,9 +247,9 @@ Important implementation details:
 
 - `OriginalSource` splits potential JavaScript tokens with `memchr`; it is not an AST tokenizer.
 - `SourceMapSource` composition indexes inner mappings by line and binary-searches the closest
-  preceding segment. Avoid cloning maps or eagerly splitting all `sourcesContent`.
+  preceding segment. Avoid rebuilding shared maps or eagerly splitting all `sourcesContent`.
 - `MappingSource` is the JSON asset itself, so `map()` returns `None`. It retains the original
-  `SourceMap` and its owner without interning, deduplicating, or rewriting `sourcesContent`.
+  `SourceMap` without interning, deduplicating, or rewriting `sourcesContent`.
   Unedited `source()` and `buffer()` use the existing `SourceMap::to_json()` serializer on demand
   and cache only its byte length. Construction must not scan the map to compute its exact JSON
   size; `size()` computes it lazily if needed, and this cache must not affect equality or hashing.
@@ -329,9 +343,9 @@ cache.
 
 The same owner-retention pattern appears in other narrowly scoped `unsafe` paths:
 
-- `SourceMap::from_bytes` keeps the parsed byte buffer alive;
-- `SourceMap::into_static` keeps the owning `BoxSource` alive;
-- `SourceContentLines` stores line views while retaining the backing `Cow<str>`;
+- `SourceMap::from_bytes` keeps the parsed tape and its Vec owner together until all strings
+  have become independently owning `BytesStr` slices;
+- `SourceContentLines` stores line views while retaining the backing `BytesStr`;
 - hot unchecked string slicing relies on validated UTF-8 byte boundaries.
 
 Any change to these paths must explain:
