@@ -962,6 +962,14 @@ export type RuleSetRuleUseAndLoader =
 
 /** Rule defines the conditions for matching a module and the behavior of handling those modules. */
 export type RuleSetRule = RuleSetRuleUseAndLoader & {
+  /**
+   * Create a resource for matching subsequent rules from a path template.
+   * `[resource-path]` expands to the current matching path, including its extension.
+   * Query and fragment are preserved. The original resource is used by loaders.
+   * @experimental
+   */
+  as?: string;
+
   /** Matches all modules that match this resource, and will match against Resource. */
   test?: RuleSetCondition;
 

@@ -652,6 +652,7 @@ CompilerOptions {
     module: ModuleOptions {
         rules: [
             ModuleRule {
+                as: None,
                 rspack_resource: None,
                 test: None,
                 include: None,
@@ -671,6 +672,7 @@ CompilerOptions {
                 rules: Some(
                     [
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: None,
                             include: None,
@@ -712,6 +714,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: Some(
                                 RspackRegex {
@@ -751,6 +754,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: None,
                             include: None,
@@ -792,6 +796,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: Some(
                                 RspackRegex {
@@ -889,6 +894,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: Some(
                                 RspackRegex {
@@ -995,6 +1001,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: Some(
                                 RspackRegex {
@@ -1034,6 +1041,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: Some(
                                 RspackRegex {
@@ -1082,6 +1090,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: None,
                             include: None,
@@ -1190,6 +1199,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: Some(
                                 RspackRegex {
@@ -1214,6 +1224,7 @@ CompilerOptions {
                             rules: Some(
                                 [
                                     ModuleRule {
+                                        as: None,
                                         rspack_resource: None,
                                         test: None,
                                         include: None,
@@ -1301,6 +1312,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: None,
                             include: None,
@@ -1327,6 +1339,7 @@ CompilerOptions {
                             rules: Some(
                                 [
                                     ModuleRule {
+                                        as: None,
                                         rspack_resource: None,
                                         test: None,
                                         include: None,
@@ -1414,6 +1427,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: None,
                             include: None,
@@ -1434,6 +1448,7 @@ CompilerOptions {
                             one_of: Some(
                                 [
                                     ModuleRule {
+                                        as: None,
                                         rspack_resource: None,
                                         test: None,
                                         include: None,
@@ -1475,6 +1490,7 @@ CompilerOptions {
                                         extract_source_map: None,
                                     },
                                     ModuleRule {
+                                        as: None,
                                         rspack_resource: None,
                                         test: None,
                                         include: None,
@@ -1526,6 +1542,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: None,
                             include: None,
@@ -1585,6 +1602,7 @@ CompilerOptions {
                 extract_source_map: None,
             },
             ModuleRule {
+                as: None,
                 rspack_resource: None,
                 test: None,
                 include: None,
