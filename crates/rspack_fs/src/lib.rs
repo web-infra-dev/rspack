@@ -11,6 +11,9 @@ pub use intermediate::{
 mod file_metadata;
 pub use file_metadata::{FileMetadata, FilePermissions, current_time, system_time_to_millis};
 
+mod walk;
+pub use walk::WalkMatcher;
+
 mod macros;
 
 mod native_fs;
