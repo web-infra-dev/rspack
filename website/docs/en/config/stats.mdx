@@ -316,9 +316,9 @@ Whether to display the orphan modules.
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
-Whether to display information about runtime modules.
+Whether to display information about [Rspack runtime modules](/misc/glossary#rspack-runtime-module).
 
-> The runtime modules are built-in modules of Rspack, used to provide various runtime capabilities.
+> Rspack runtime modules provide the code for features such as module and chunk loading.
 
 :::tip
 `stats.runtime` is a compatibility alias for `stats.runtimeModules`. It only takes effect when `stats.runtimeModules` is not specified; if both are set, `stats.runtimeModules` takes precedence.

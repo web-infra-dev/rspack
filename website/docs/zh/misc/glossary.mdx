@@ -80,7 +80,7 @@ Code splitting 是一种技术，它允许你将你的代码分割成多个块�
 
 ## dependency
 
-Dependency 是从模块编译后的代码解析出来的，它用于存储模块的导入关系，以便递归生成模块图。在生成产物代码时，它可以注入模块的导入和导出相关代码，也可以用于代码替换和注入运行时依赖。
+Dependency（依赖）记录了解析模块转换后的源码时发现的导入关系。Rspack 根据这些关系构建模块图。在代码生成阶段，依赖还可以生成导入和导出代码、替换源码，并声明所需的 Rspack 运行时功能。
 
 ## initial chunk
 
@@ -132,11 +132,21 @@ import { foo } from './modules/foo.js';
 
 - [插件](/guide/features/plugin)
 
-## runtime
+## Rspack 运行时 \{#rspack-runtime}
 
-runtime（运行时）是指在浏览器或其他环境中运行过程中，Rspack 用来连接模块化应用所需的所有代码。它包含了连接模块所需的加载和解析逻辑。
+Rspack 运行时（Rspack runtime）是 Rspack 添加到构建产物中的代码，负责加载和执行模块、缓存模块导出，以及加载额外的 chunk。根据配置，它还可以支持 HMR 等功能。这些代码在浏览器或 Node.js 等 JavaScript 环境中执行；这里的「运行时」并不指 JavaScript 引擎或宿主环境。
 
 - [optimization.runtimeChunk](/config/optimization#optimizationruntimechunk)
+
+## Rspack 运行时模块 \{#rspack-runtime-module}
+
+Rspack 运行时模块（`RuntimeModule`）是构建过程中用于生成一部分 [Rspack 运行时代码](#rspack-runtime)的单元，例如设置 [`publicPath`](/config/output#outputpublicpath)、加载 chunk 或支持 HMR。它生成的代码会被加入相应的 chunk。这里的「模块」并不是应用源码中通过 `import` 引用的业务模块。
+
+插件可以继承 `RuntimeModule`，通过 `generate()` 返回 JavaScript 代码，再调用 [`compilation.addRuntimeModule`](/api/javascript-api/compilation#addruntimemodule) 将其实例添加到指定的 chunk。
+
+- [`runtimeRequirementInTree`](/api/plugin-api/compilation-hooks#runtimerequirementintree)：添加运行时依赖或自定义运行时模块。
+- [`runtimeModule`](/api/plugin-api/compilation-hooks#runtimemodule)：查看或修改运行时模块生成的代码。
+- [`stats.runtimeModules`](/config/stats#statsruntimemodules)：在构建统计中展示运行时模块。
 
 ## scope hoisting （作用域合并） \{#scope-hoisting}
 

@@ -198,6 +198,10 @@ export class RuntimeTemplate {
     return Boolean(this.#environment.templateLiteral);
   }
 
+  supportsTopLevelAwait(): boolean {
+    return Boolean(this.#environment.topLevelAwait);
+  }
+
   supportNodePrefixForCoreModules(): boolean {
     return Boolean(this.#environment.nodePrefixForCoreModules);
   }

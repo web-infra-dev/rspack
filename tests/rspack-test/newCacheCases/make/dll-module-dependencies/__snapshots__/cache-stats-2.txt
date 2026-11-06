@@ -3,8 +3,8 @@
     "|Compilation/modules": {
       "hits": 3,
       "misses": 0,
-      "reused": 1,
-      "stores": 2
+      "reused": 2,
+      "stores": 1
     },
     "|meta": {
       "hits": 1,

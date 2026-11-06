@@ -7,15 +7,15 @@ use rspack_paths::InternedPath;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 
 use crate::{
-  EventBatch, FsEventKind, analyzer::Analyzer, disk_watcher::handle_event, paths::PathManager,
-  scanner::Scanner, trigger::Trigger,
+  EventBatch, FsEventKind, ResolvedEvents, analyzer::Analyzer, disk_watcher::handle_event,
+  paths::PathManager, scanner::Scanner, trigger::Trigger,
 };
 
 pub struct DirectoryAnalyzer {
   paths: Arc<PathManager>,
   trigger: Arc<Trigger>,
   scan_tx: UnboundedSender<EventBatch>,
-  events: UnboundedReceiver<EventBatch>,
+  events: UnboundedReceiver<ResolvedEvents>,
 }
 
 impl Default for DirectoryAnalyzer {
@@ -83,6 +83,7 @@ impl DirectoryAnalyzer {
       .recv()
       .await
       .expect("event processor should remain active")
+      .dependencies
       .into_iter()
       .map(|event| (event.path, event.kind))
       .collect()

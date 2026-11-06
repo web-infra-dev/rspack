@@ -27,6 +27,40 @@ pub use crate::runtime_context::{
 };
 use crate::{JavascriptModulesPluginHooks, RenderSource};
 
+pub fn startup_awaits_entries(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
+  let output = &compilation.options.output;
+  if !output.module || output.iife || !output.environment.supports_top_level_await() {
+    return false;
+  }
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
+  if !chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph) {
+    return false;
+  }
+  if !chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
+    return output.chunk_format == "module";
+  }
+  let runtime_requirements = compilation
+    .cgc_runtime_requirements_artifact
+    .get(chunk_ukey)
+    .copied()
+    .unwrap_or_default();
+  !runtime_requirements.intersects(RuntimeGlobals::STARTUP | RuntimeGlobals::STARTUP_NO_DEFAULT)
+}
+
+pub fn render_awaited_entries(targets: &[String]) -> Option<String> {
+  match targets {
+    [] => None,
+    [target] => Some(format!("{target} = await {target};")),
+    targets => {
+      let list = targets.join(", ");
+      Some(format!("[{list}] = await Promise.all([{list}]);"))
+    }
+  }
+}
+
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__";
 pub static AUTO_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
   LazyLock::new(|| PlaceholderFinder::new(AUTO_PUBLIC_PATH_PLACEHOLDER));

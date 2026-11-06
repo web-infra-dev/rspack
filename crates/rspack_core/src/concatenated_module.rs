@@ -52,8 +52,6 @@ use crate::{
   utils::{SourceSizeCache, SourceSizeCacheSerde},
 };
 
-type ExportsDefinitionArgs = Vec<(String, String)>;
-
 /// Queries share a fixed module graph and concatenation membership during code generation.
 /// Cache only completed queries; cycle detection remains local to each traversal.
 #[derive(Default)]
@@ -64,12 +62,10 @@ struct MissingStarExportCache {
   visited: HashSet<ExportInfo>,
 }
 
-define_hook!(ConcatenatedModuleExportsDefinitions: SeriesBail(exports_definitions: &mut ExportsDefinitionArgs, is_entry_module: bool) -> bool);
 define_hook!(ConcatenatedModuleConcatenatedInfo: Series(compilation: &Compilation, module: ModuleIdentifier, runtime: Option<&RuntimeSpec>, info: &mut ConcatenatedModuleInfo, all_used_names: &mut HashSet<Atom>));
 
 #[derive(Debug, Default)]
 pub struct ConcatenatedModuleHooks {
-  pub exports_definitions: ConcatenatedModuleExportsDefinitionsHook,
   pub concatenated_info: ConcatenatedModuleConcatenatedInfoHook,
 }
 
@@ -1276,8 +1272,6 @@ impl Module for ConcatenatedModule {
     let exports_info = compilation
       .exports_info_artifact
       .get_exports_info_data(&root_module_id);
-    let mut exports_final_names: Vec<(String, String)> = vec![];
-
     for export_info in exports_info.exports().values() {
       let name = export_info.name().cloned().unwrap_or_else(|| "".into());
       if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
@@ -1317,7 +1311,6 @@ impl Module for ConcatenatedModule {
           &mut needed_namespace_objects,
           &mut needed_namespace_objects_queue,
         );
-        exports_final_names.push((used_name.to_string(), final_name.name.clone()));
         format!(
           "/* {} */ {}",
           if export_info.is_reexport() {
@@ -1377,35 +1370,20 @@ impl Module for ConcatenatedModule {
 
       let exports_argument = self.get_exports_argument();
 
-      let should_skip_render_definitions = compilation
-        .plugin_driver
-        .concatenated_module_hooks
-        .exports_definitions
-        .call(
-          &mut exports_final_names,
-          compilation
-            .build_chunk_graph_artifact
-            .chunk_graph
-            .is_entry_module(&self.id),
-        )
-        .await?;
-
-      if !matches!(should_skip_render_definitions, Some(true)) {
-        if should_add_esm_flag {
-          result.add(RawStringSource::from_static("// ESM COMPAT FLAG\n"));
-          result.add(RawStringSource::from(
-            runtime_template.define_es_module_flag_statement(self.get_exports_argument()),
-          ));
-        }
-
-        result.add(RawStringSource::from_static("\n// EXPORTS\n"));
-        result.add(RawStringSource::from(format!(
-          "{}({}, {{{}\n}});\n",
-          runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-          runtime_template.render_exports_argument(exports_argument),
-          definitions.join(",")
-        )));
+      if should_add_esm_flag {
+        result.add(RawStringSource::from_static("// ESM COMPAT FLAG\n"));
+        result.add(RawStringSource::from(
+          runtime_template.define_es_module_flag_statement(exports_argument),
+        ));
       }
+
+      result.add(RawStringSource::from_static("\n// EXPORTS\n"));
+      result.add(RawStringSource::from(format!(
+        "{}({}, {{{}\n}});\n",
+        runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+        runtime_template.render_exports_argument(exports_argument),
+        definitions.join(",")
+      )));
     }
 
     // List unused exports

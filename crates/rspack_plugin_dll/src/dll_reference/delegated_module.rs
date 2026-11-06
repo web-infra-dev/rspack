@@ -188,7 +188,7 @@ impl Module for DelegatedModule {
   }
 
   async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
-    Ok(false)
+    Ok(self.build_meta.frozen().is_none())
   }
 
   async fn get_runtime_hash(

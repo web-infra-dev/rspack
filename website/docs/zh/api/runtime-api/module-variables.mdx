@@ -619,7 +619,7 @@ __webpack_require__.ruid = 'bundler=rspack@2.1.2';
 
 </Columns>
 
-## Runtime
+## Rspack 运行时 \{#rspack-runtime}
 
 ### \_\_webpack_hash\_\_
 
@@ -631,7 +631,7 @@ __webpack_require__.ruid = 'bundler=rspack@2.1.2';
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-访问当前入口的 runtime chunk 的 id。
+读取当前入口的 Rspack 运行时 ID。
 
 <Columns>
 ```js title=源码
@@ -952,7 +952,7 @@ __webpack_require__.u = function (chunkId) {
 
 </Columns>
 
-可以通过赋值来在运行时修改它的行为。比如以下示例，在最终加载 chunk 的路径后增加特定后缀。
+可以重新赋值此函数，修改 Rspack 运行时加载 chunk 时使用的脚本文件名。例如，在文件名后添加特定后缀：
 
 ```js
 const oldFn = __webpack_get_script_filename__;

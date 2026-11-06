@@ -24,6 +24,7 @@ it("verify es6 (esmodule) bundle source map", async () => {
 			sourceUrl("./b-dir/b.js"),
 			sourceUrl("./a.js"),
 			sourceUrl(`../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.cjs`),
+			sourceUrl("rspack/bootstrap"),
 			sourceUrl("./index.js"),
 		]);
 	} else {
@@ -32,6 +33,7 @@ it("verify es6 (esmodule) bundle source map", async () => {
 			sourceUrl("./b-dir/b.js"),
 			sourceUrl("./a.js"),
 			sourceUrl(`../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.cjs`),
+			sourceUrl("webpack/bootstrap"),
 			sourceUrl("./index.js"),
 		]);
 	}

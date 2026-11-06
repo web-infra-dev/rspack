@@ -1,5 +1,5 @@
 ---
-description: 'Configure tree shaking, minification, module and chunk IDs, runtime extraction, and code splitting in Rspack.'
+description: 'Configure tree shaking, minification, module and chunk IDs, Rspack runtime extraction, and code splitting in Rspack.'
 ---
 
 import { ApiMeta } from '@components/ApiMeta';
@@ -493,11 +493,11 @@ export default {
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-Used to control how the Rspack's [runtime](/misc/glossary#runtime) chunk is generated.
+Controls whether the [Rspack runtime](/misc/glossary#rspack-runtime) is extracted into separate chunks.
 
-Defaults to `false`, which means the runtime code is inlined into the entry chunks.
+Defaults to `false`, which means the Rspack runtime code is inlined into the entry chunks.
 
-Setting it to `true` or `'multiple'` will add an additional chunk containing only the runtime for each entry point. This setting is an alias for:
+Setting it to `true` or `'multiple'` will add an additional chunk containing only the Rspack runtime for each entry point. This setting is an alias for:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -509,7 +509,7 @@ export default {
 };
 ```
 
-Setting it to `'single'` will extract the runtime code of all entry points into a single separate chunk named `runtime`. This setting is an alias for:
+Setting it to `'single'` will extract the Rspack runtime code of all entry points into a single separate chunk named `runtime`. This setting is an alias for:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -521,7 +521,7 @@ export default {
 };
 ```
 
-By setting `optimization.runtimeChunk` to an object it can provide an optional `name` property which stands for the name for the runtime chunks.
+When `optimization.runtimeChunk` is an object, its optional `name` property controls the names of the Rspack runtime chunks.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -535,8 +535,34 @@ export default {
 ```
 
 :::tip
-Imported modules are initialized for each runtime chunk separately, so if you include multiple entry chunks on a page, beware of this behavior. You will need to set `optimization.runtimeChunk` to `'single'` or use another configuration that ensures the page only contains one runtime instance.
+Each Rspack runtime initializes imported modules separately. If multiple entries on the same page need to share module instances, set `optimization.runtimeChunk` to `'single'` or use another configuration that lets them share one runtime instance.
 :::
+
+The following configuration defines two entries, `pageA` and `pageB`. Suppose both entry files import the same `shared.js` module, and their generated bundles are loaded on the same HTML page:
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    pageA: './src/page-a.js',
+    pageB: './src/page-b.js',
+  },
+  optimization: {
+    runtimeChunk: 'single',
+  },
+};
+```
+
+Changing `runtimeChunk` affects the output files and how often `shared.js` is initialized:
+
+| `runtimeChunk` | Generated JavaScript files                                     | `shared.js` initializations |
+| -------------- | -------------------------------------------------------------- | --------------------------- |
+| `false`        | `pageA.js`, `pageB.js`                                         | Twice                       |
+| `'multiple'`   | `runtime~pageA.js`, `runtime~pageB.js`, `pageA.js`, `pageB.js` | Twice                       |
+| `'single'`     | `runtime.js`, `pageA.js`, `pageB.js`                           | Once                        |
+
+When writing HTML manually, place the runtime file's `<script>` tag before the entry bundles' tags. `HtmlRspackPlugin` handles this order automatically. With `'single'`, both entries share one Rspack runtime and its module cache, so `shared.js` is initialized only once.
+
+Sharing a Rspack runtime does not extract shared modules into a separate file. Use [SplitChunksPlugin](/plugins/split-chunks-plugin) to configure module splitting.
 
 ## optimization.sideEffects
 
@@ -610,7 +636,7 @@ export default {
 };
 ```
 
-To opt-out from used exports analysis per runtime:
+To analyze used exports globally instead of separately for each Rspack runtime:
 
 ```js title="rspack.config.mjs"
 export default {

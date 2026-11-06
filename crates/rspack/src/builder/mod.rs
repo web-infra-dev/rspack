@@ -1857,6 +1857,7 @@ impl ModuleOptionsBuilder {
         "css".to_string(),
         GeneratorOptions::Css(CssGeneratorOptions {
           exports_only: Some(exports_only),
+          runtime_public_path: Some(false),
           es_module: Some(true),
         }),
       );
@@ -2283,7 +2284,7 @@ impl From<OutputOptions> for OutputOptionsBuilder {
       chunk_loading: Some(value.chunk_loading),
       chunk_loading_global: Some(value.chunk_loading_global),
       chunk_load_timeout: Some(value.chunk_load_timeout),
-      chunk_format: None,
+      chunk_format: Some(value.chunk_format),
       filename: Some(value.filename),
       chunk_filename: Some(value.chunk_filename),
       cross_origin_loading: Some(value.cross_origin_loading),
@@ -3172,6 +3173,9 @@ impl OutputOptionsBuilder {
     environment.async_function = tp
       .map(|t| optimistic!(t.async_function))
       .unwrap_or_default();
+    environment.top_level_await = tp
+      .map(|t| optimistic!(t.top_level_await))
+      .unwrap_or_default();
     environment.for_of = tp.map(|t| optimistic!(t.for_of)).unwrap_or_default();
     environment.destructuring = tp.map(|t| optimistic!(t.destructuring)).unwrap_or_default();
     environment.optional_chaining = tp
@@ -3207,6 +3211,7 @@ impl OutputOptionsBuilder {
       wasm_streaming_fallback: self.wasm_streaming_fallback.take().unwrap_or(true),
       webassembly_module_filename,
       unique_name,
+      chunk_format,
       chunk_loading,
       chunk_loading_global,
       chunk_load_timeout,

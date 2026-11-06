@@ -53,8 +53,7 @@ export default defineConfig({
         );
         compiler.hooks.done.tap('PolymorphicModuleCache', (stats) => {
           expect(stats.toJson({ all: false, errors: true }).errors).toEqual([]);
-          // DllModule overrides need_build to reuse its build; ExternalModule keeps
-          // the conservative default and must rebuild even when an entry exists.
+          // Both the DLL and external module reuse their completed builds.
           expect(built.filter((id) => id === 'dll main')).toHaveLength(
             buildIndex === 0 ? 1 : 0,
           );
@@ -62,11 +61,11 @@ export default defineConfig({
             buildIndex === 0 ? 0 : 1,
           );
           expect(built.filter((id) => id.startsWith('external '))).toHaveLength(
-            1,
+            buildIndex === 0 ? 1 : 0,
           );
           expect(
             reused.filter((id) => id.startsWith('external ')),
-          ).toHaveLength(0);
+          ).toHaveLength(buildIndex === 0 ? 0 : 1);
           expect(built.filter((id) => /[\\/]index\.js$/.test(id))).toHaveLength(
             buildIndex === 1 ? 0 : 1,
           );
