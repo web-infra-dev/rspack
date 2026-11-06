@@ -934,6 +934,8 @@ export interface JsLoaderContext {
   moduleBuildDiagnostics: ExternalObject<'Diagnostic'>[]
   /** Contribution of this JS execution span only; absence means uncertified. */
   portableOutput?: Array<string>
+  /** This JS span called `importModule`, whose decisions a relocated build can't verify. */
+  rootSensitive: boolean
   dependencies: JsLoaderDependencies
   addedDependencies: JsLoaderDependencies
   removedDependencies: JsLoaderDependencies
