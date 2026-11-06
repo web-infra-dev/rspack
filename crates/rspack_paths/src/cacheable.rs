@@ -1,23 +1,35 @@
 use std::ptr;
 
 use rspack_cacheable::{
-  Error, Result,
+  ContextGuard, Error, Result,
   rkyv::{
-    Place, SerializeUnsized,
+    Archive, Deserialize, Place, Serialize, SerializeUnsized,
+    de::Pooling,
     rancor::Fallible,
     rc::{ArchivedRc, Flavor, RcResolver},
     ser::{Allocator, Sharing, Writer, sharing::SharingState},
-    vec::ArchivedVec,
-    with::{ArchiveWith, AsVec, DeserializeWith, SerializeWith, With},
+    with::{ArchiveWith, AsVec, DeserializeWith, SerializeWith},
   },
+  utils::PortablePath,
 };
 
 use crate::InternedPath;
 
-/// Shares native path bytes within an archive.
+#[derive(Archive, Serialize)]
+#[rkyv(crate = rspack_cacheable::rkyv, derive(Hash, PartialEq, Eq))]
+#[rkyv(archive_bounds(
+  <AsVec as ArchiveWith<&'a [u8]>>::Archived: std::hash::Hash + Eq
+))]
+pub enum InternedPathData<'a> {
+  Native(#[rkyv(with = AsVec)] &'a [u8]),
+  Portable(PortablePath),
+}
+
+/// Shares path data within an archive, relative to the project root in portable mode.
 pub struct AsInternedPath;
 
-type ArchivedInternedPath = ArchivedRc<ArchivedVec<u8>, AsInternedPath>;
+// AsVec stores the bytes in the archive without retaining the source borrow.
+type ArchivedInternedPath = ArchivedRc<ArchivedInternedPathData<'static>, AsInternedPath>;
 
 impl Flavor for AsInternedPath {
   const ALLOW_CYCLES: bool = false;
@@ -30,7 +42,7 @@ impl ArchiveWith<InternedPath> for AsInternedPath {
   #[inline]
   fn resolve_with(_field: &InternedPath, resolver: Self::Resolver, out: Place<Self::Archived>) {
     // The payload is sized, so only the resolver's position is needed.
-    ArchivedRc::resolve_from_ref(With::<&[u8], AsVec>::cast(&&[][..]), resolver, out);
+    ArchivedRc::resolve_from_ref(&InternedPathData::Native(&[]), resolver, out);
   }
 }
 
@@ -44,8 +56,14 @@ where
     let address = ptr::from_ref(field.0.header()).addr();
     let pos = match serializer.start_sharing(address) {
       SharingState::Started => {
-        // InternedPath stores the complete slice from OsStr::as_encoded_bytes().
-        let pos = With::<_, AsVec>::cast(&field.0.items()).serialize_unsized(serializer)?;
+        let guard = ContextGuard::sharing_guard(serializer)?;
+        let data = if let Some(root) = guard.project_root() {
+          InternedPathData::Portable(PortablePath::new(field.as_path(), Some(root)))
+        } else {
+          // Preserve native bytes, including non-UTF-8 paths, outside portable mode.
+          InternedPathData::Native(field.0.items())
+        };
+        let pos = data.serialize_unsized(serializer)?;
         serializer.finish_sharing(address, pos)?;
         pos
       }
@@ -60,10 +78,19 @@ where
 
 impl<D> DeserializeWith<ArchivedInternedPath, InternedPath, D> for AsInternedPath
 where
-  D: Fallible<Error = Error> + ?Sized,
+  D: Fallible<Error = Error> + Pooling<Error> + ?Sized,
 {
   #[inline]
-  fn deserialize_with(field: &ArchivedInternedPath, _deserializer: &mut D) -> Result<InternedPath> {
-    Ok(InternedPath::from_bytes(field.as_slice()))
+  fn deserialize_with(field: &ArchivedInternedPath, deserializer: &mut D) -> Result<InternedPath> {
+    match field.get() {
+      ArchivedInternedPathData::Native(bytes) => Ok(InternedPath::from_bytes(bytes.as_slice())),
+      ArchivedInternedPathData::Portable(path) => {
+        let path: PortablePath = path.deserialize(deserializer)?;
+        let guard = ContextGuard::pooling_guard(deserializer)?;
+        Ok(InternedPath::from(
+          path.into_path_string(guard.project_root()).as_str(),
+        ))
+      }
+    }
   }
 }
