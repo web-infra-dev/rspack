@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { defineConfig } from '@rspack/cli';
-import { rspack } from '@rspack/core';
+import { type Compiler, rspack } from '@rspack/core';
 
 const oldHash = 'deadbeef';
 const payload = Buffer.from([0xff, 0, 0x78]);
@@ -18,7 +18,7 @@ export default defineConfig({
   optimization: { minimize: false, realContentHash: true },
   plugins: [
     {
-      apply(compiler) {
+      apply(compiler: Compiler) {
         compiler.hooks.thisCompilation.tap('Test', (compilation) => {
           compilation.hooks.processAssets.tap(
             {
