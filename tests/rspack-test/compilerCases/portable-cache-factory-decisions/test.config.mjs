@@ -341,12 +341,6 @@ const observeLoader = {
 	};`
 };
 
-function execute({ assets }) {
-	const module = { exports: {} };
-	new Function("module", "exports", assets["main.js"])(module, module.exports);
-	return module.exports;
-}
-
 function useObserved(writer, writerValue, readerValue, cache) {
 	return {
 		module: {
