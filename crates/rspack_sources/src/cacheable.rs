@@ -4,9 +4,9 @@
 use triomphe::ThinArc;
 
 use crate::{
-  BoxSource, CachedSource, ConcatSource, MappingSource, OriginalSource, RawBufferSource,
-  RawStringSource, ReplaceSource, ReplacementEnforce, Source, SourceExt, SourceMap,
-  SourceMapSource, SourceMapSourceOptions, mapping_source::Data, source::shared_slice,
+  BoxSource, CachedSource, ConcatSource, OriginalSource, RawBufferSource, RawStringSource,
+  ReplaceSource, ReplacementEnforce, Source, SourceExt, SourceMap, SourceMapCodeSource,
+  SourceMapMappingSource, SourceMapSource, SourceMapSourceOptions, source::shared_slice,
 };
 
 /// Source map fields stored without an intermediate JSON representation.
@@ -145,34 +145,30 @@ pub enum CacheableSource {
     #[rkyv(omit_bounds)]
     inner: Box<CacheableSource>,
   },
-  /// [`MappingSource`], preserving every field, including omitted empty arrays.
+  /// [`SourceMapMappingSource`], preserving every field, including omitted empty arrays.
   Mapping {
     /// Keep map metadata from enlarging every cached source node.
     map: Box<CacheableSourceMap>,
   },
-  /// An edited [`MappingSource`] remains a structural view of its input.
-  EditedMapping {
+  /// Code whose source map is emitted separately.
+  SourceMapCode {
     #[rkyv(omit_bounds)]
     inner: Box<CacheableSource>,
-    replacements: Vec<(usize, usize, String)>,
+    suffix: String,
   },
 }
 
 /// Convert a [`Source`] trait object into a serializable [`CacheableSource`].
 pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
-  if let Some(s) = source.as_any().downcast_ref::<MappingSource>() {
-    return match s.data() {
-      Data::Map(data) => CacheableSource::Mapping {
-        map: Box::new((&data.map).into()),
-      },
-      Data::Edited {
-        inner,
-        replacements,
-        ..
-      } => CacheableSource::EditedMapping {
-        inner: Box::new(to_cacheable(inner)),
-        replacements: replacements.clone(),
-      },
+  if let Some(s) = source.as_any().downcast_ref::<SourceMapMappingSource>() {
+    return CacheableSource::Mapping {
+      map: Box::new(s.original_map().into()),
+    };
+  }
+  if let Some(s) = source.as_any().downcast_ref::<SourceMapCodeSource>() {
+    return CacheableSource::SourceMapCode {
+      inner: Box::new(to_cacheable(s.inner().as_ref())),
+      suffix: s.suffix().source().into_string_lossy().into_owned(),
     };
   }
   if let Some(s) = source.as_any().downcast_ref::<CachedSource>() {
@@ -251,19 +247,12 @@ pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
 /// Convert a [`CacheableSource`] back into a [`BoxSource`].
 pub fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
   match cacheable {
-    CacheableSource::Mapping { map } => MappingSource::new((*map).into()).boxed(),
-    CacheableSource::EditedMapping {
-      inner,
-      replacements,
-    } => {
-      let inner = from_cacheable(*inner);
-      inner
-        .as_any()
-        .downcast_ref::<MappingSource>()
-        .expect("edited mapping source must retain a mapping source")
-        .with_replacements(replacements, inner.size())
-        .boxed()
-    }
+    CacheableSource::Mapping { map } => SourceMapMappingSource::new((*map).into()).boxed(),
+    CacheableSource::SourceMapCode { inner, suffix } => SourceMapCodeSource::new(
+      from_cacheable(*inner),
+      RawStringSource::from(suffix).boxed(),
+    )
+    .boxed(),
     CacheableSource::RawBuffer { buffer } => RawBufferSource::from(buffer).boxed(),
     CacheableSource::RawString { value } => RawStringSource::from(value).boxed(),
     CacheableSource::Original { value, name } => OriginalSource::new(value, name).boxed(),

@@ -1,7 +1,7 @@
 use std::io::{self, Write};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use rspack_core::rspack_sources::{MappingSource, Source};
+use rspack_core::rspack_sources::{Source, is_source_map_text};
 use rspack_util::base64;
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
@@ -10,7 +10,7 @@ pub fn compute_source_integrity(
   hash_func_names: &Vec<SubresourceIntegrityHashFunction>,
   source: &dyn Source,
 ) -> String {
-  if !source.as_any().is::<MappingSource>() {
+  if !is_source_map_text(source) {
     return compute_integrity(hash_func_names, &source.source().into_string_lossy());
   }
   if hash_func_names.is_empty() {
