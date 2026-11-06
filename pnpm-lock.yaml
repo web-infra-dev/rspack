@@ -76,9 +76,6 @@ catalogs:
     '@rspress/plugin-algolia':
       specifier: 2.1.0-beta.2
       version: 2.1.0-beta.2
-    '@rspress/plugin-client-redirects':
-      specifier: 2.1.0-beta.2
-      version: 2.1.0-beta.2
     '@rspress/plugin-rss':
       specifier: 2.1.0-beta.2
       version: 2.1.0-beta.2
@@ -1303,9 +1300,6 @@ importers:
       '@rspress/plugin-algolia':
         specifier: 'catalog:'
         version: 2.1.0-beta.2(@rspress/core@2.1.0-beta.2)(@types/react@19.3.0)(react-dom@19.3.1)(react@19.3.1)
-      '@rspress/plugin-client-redirects':
-        specifier: 'catalog:'
-        version: 2.1.0-beta.2(@rspress/core@2.1.0-beta.2)
       '@rspress/plugin-rss':
         specifier: 'catalog:'
         version: 2.1.0-beta.2(@rspress/core@2.1.0-beta.2)
@@ -3416,12 +3410,6 @@ packages:
       '@rspress/core': ^2.1.0-beta.2
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
-
-  '@rspress/plugin-client-redirects@2.1.0-beta.2':
-    resolution: {integrity: sha512-FnbC5ey1p73CD9bcOzHhw4pGuwHHjhSnNlwgVBgXm5g0MGD/xpQxz8z4Cx03gknja6IyIYxiavj8PbUQuurfIw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    peerDependencies:
-      '@rspress/core': ^2.1.0-beta.2
 
   '@rspress/plugin-rss@2.1.0-beta.2':
     resolution: {integrity: sha512-zUnjXCUyibFGxwst+9E7Q749VbByDXbN8n+Erkc1z1qmhWh1v1E8ByVF3IQIJk3WXfGnyf2XSM44F90UHeBgBw==}
@@ -9915,10 +9903,6 @@ snapshots:
       - '@types/react'
       - algoliasearch
       - search-insights
-
-  '@rspress/plugin-client-redirects@2.1.0-beta.2(@rspress/core@2.1.0-beta.2)':
-    dependencies:
-      '@rspress/core': 2.1.0-beta.2(@module-federation/runtime-tools@2.9.2)(@rspack/core@2.2.9)(core-js@3.51.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
 
   '@rspress/plugin-rss@2.1.0-beta.2(@rspress/core@2.1.0-beta.2)':
     dependencies:

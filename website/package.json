@@ -25,7 +25,6 @@
     "@rsbuild/plugin-tailwindcss": "catalog:",
     "@rspress/core": "catalog:",
     "@rspress/plugin-algolia": "catalog:",
-    "@rspress/plugin-client-redirects": "catalog:",
     "@rspress/plugin-rss": "catalog:",
     "@shikijs/transformers": "catalog:",
     "@types/node": "catalog:",

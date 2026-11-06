@@ -43,7 +43,6 @@ catalog:
   '@rspack/plugin-react-refresh': '^2.0.2'
   '@rspress/core': '2.1.0-beta.2'
   '@rspress/plugin-algolia': '2.1.0-beta.2'
-  '@rspress/plugin-client-redirects': '2.1.0-beta.2'
   '@rspress/plugin-rss': '2.1.0-beta.2'
   '@rstackjs/doc-ui': '1.14.11'
   '@rstackjs/create-toolkit': '2.2.11'
