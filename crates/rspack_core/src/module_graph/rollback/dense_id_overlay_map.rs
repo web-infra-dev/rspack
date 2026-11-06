@@ -2,20 +2,12 @@ use std::{marker::PhantomData, ops::Deref};
 
 use super::{DenseStorageStats, OverlayValue, PagedSlots};
 
-/// Dense id-indexed map with a checkpoint overlay, backed by [`PagedSlots`].
-///
-/// Writes go to `base` until [`DenseIdOverlayMap::checkpoint`]. After that
-/// they go to `overlay`, which [`DenseIdOverlayMap::reset`] discards. Neither
-/// layer grows with the number of ids ever allocated.
-///
-/// The overlay is only allocated on the first write after a checkpoint. A map
-/// that is never written during seal therefore pays only one `Option` check per
-/// lookup for the overlay.
 #[derive(Debug)]
 pub struct DenseIdOverlayMap<K, V> {
   base: PagedSlots<V>,
+  /// Allocated on the first write after a checkpoint, so maps that seal never
+  /// writes skip the overlay lookup.
   overlay: Option<PagedSlots<OverlayValue<V>>>,
-  /// Whether writes go to the overlay.
   checkpointed: bool,
   key: PhantomData<K>,
 }
@@ -33,9 +25,6 @@ impl<K, V> Default for DenseIdOverlayMap<K, V> {
 
 impl<K: Deref<Target = u32>, V> DenseIdOverlayMap<K, V> {
   /// The first index beyond all allocated slots in the current graph snapshot.
-  ///
-  /// Removing entries does not lower it, so ids taken from it are never reused
-  /// while the map is alive.
   #[inline]
   pub fn next_index(&self) -> usize {
     self
@@ -112,7 +101,7 @@ impl<K: Deref<Target = u32>, V> DenseIdOverlayMap<K, V> {
     }
   }
 
-  /// Stats for the base storage and the checkpoint overlay, in that order.
+  /// Returns base and overlay stats.
   pub fn stats(&self) -> (DenseStorageStats, DenseStorageStats) {
     (
       self.base.stats(),

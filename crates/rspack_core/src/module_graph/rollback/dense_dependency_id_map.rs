@@ -1,11 +1,6 @@
 use super::{DenseStorageStats, PagedSlots};
 use crate::DependencyId;
 
-/// `DependencyId`-indexed map backed by [`PagedSlots`].
-///
-/// `DependencyId`s are allocated by a counter that never goes back, so storage
-/// must release the slots of removed dependencies instead of keeping one slot
-/// per id ever allocated.
 #[derive(Debug)]
 pub struct DenseDependencyIdMap<V> {
   values: PagedSlots<V>,

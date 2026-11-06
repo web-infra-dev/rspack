@@ -1,17 +1,23 @@
 use std::fmt;
 
-use super::DenseStorageStats;
-
 const PAGE_BITS: usize = 10;
-/// Number of slots per page.
-pub const PAGE_SIZE: usize = 1 << PAGE_BITS;
+const PAGE_SIZE: usize = 1 << PAGE_BITS;
 const PAGE_MASK: usize = PAGE_SIZE - 1;
-/// Empty slots the flat prefix may hold beyond what its density rule allows,
-/// so that slightly out-of-order inserts during a build stay in the prefix.
+// Lets slightly out-of-order inserts during a build stay in the flat prefix.
 const FLAT_SLACK: usize = 16 * PAGE_SIZE;
 
+#[derive(Debug, Clone, Copy, Default)]
+pub struct DenseStorageStats {
+  pub id_space: usize,
+  pub live: usize,
+  /// Live entries stored in pages instead of the flat prefix.
+  pub paged: usize,
+  pub slots: usize,
+  /// Bytes held by the table itself, not by heap data the values own.
+  pub bytes: usize,
+}
+
 struct Page<V> {
-  /// Number of occupied slots, so an empty page can be released without a scan.
   live: usize,
   slots: Box<[Option<V>; PAGE_SIZE]>,
 }
@@ -28,37 +34,19 @@ impl<V> Page<V> {
   }
 }
 
-/// Slot storage indexed by a `u32` id that is allocated monotonically and never reused.
+/// Storage indexed by ids that are never reused, so that its size follows the
+/// number of live entries instead of the number of ids ever allocated.
 ///
-/// `DependencyId` and `ModuleGraphConnectionId` only grow, and every rebuilt
-/// module gets new ids for all of its dependencies. A flat `Vec<Option<V>>`
-/// indexed by id therefore grows with the number of ids ever allocated, not
-/// with the number of live entries, and keeps growing in watch mode even when
-/// the module graph does not.
-///
-/// The storage has two parts:
-/// - A flat prefix `[0, flat.len())`. Lookups there cost the same as a plain
-///   vector. The prefix grows only while entries are dense and nothing has
-///   been removed yet, which covers the initial build and persistent cache
-///   restores. The first removal freezes it. If it later drops below one third
-///   live, its entries move into pages.
-/// - Fixed-size pages for everything above the prefix. A page is allocated on
-///   first insert and freed when its last entry is removed, so ids that churn
-///   across rebuilds only hold memory while they are alive. A lookup costs one
-///   extra page-table load.
-///
-/// Ids are never handed out by this type: [`PagedSlots::end`] only grows until
-/// [`PagedSlots::clear`].
+/// Ids inserted densely before the first removal live in a flat prefix, which
+/// covers the initial build. Later ids go into pages that are freed once empty.
 pub struct PagedSlots<V> {
-  /// Slots for `[0, flat.len())`. Its length is always a multiple of `PAGE_SIZE`.
+  /// Its length is a multiple of `PAGE_SIZE`.
   flat: Vec<Option<V>>,
   flat_live: usize,
-  /// Set by the first removal. The flat prefix no longer grows after that.
   flat_frozen: bool,
-  /// Pages for ids at or above `flat.len()`. Entries below it are always `None`.
+  /// Only holds ids at or above `flat.len()`.
   pages: Vec<Option<Page<V>>>,
   paged_live: usize,
-  /// One past the largest index inserted since the last clear.
   end: usize,
 }
 
@@ -82,9 +70,7 @@ impl<V: fmt::Debug> fmt::Debug for PagedSlots<V> {
 }
 
 impl<V> PagedSlots<V> {
-  /// One past the largest index inserted since the last [`PagedSlots::clear`].
-  ///
-  /// Removing entries never lowers it, so callers can use it to allocate ids.
+  /// One past the largest inserted index. Removals do not lower it.
   #[inline]
   pub fn end(&self) -> usize {
     self.end
@@ -144,13 +130,12 @@ impl<V> PagedSlots<V> {
     Some(value)
   }
 
-  /// Drop every entry and release all memory.
   #[inline]
   pub fn clear(&mut self) {
     *self = Self::default();
   }
 
-  /// Iterate over occupied slots in ascending index order.
+  /// Yields entries in ascending index order.
   pub fn iter(&self) -> impl Iterator<Item = (usize, &V)> {
     let flat = self
       .flat
@@ -185,9 +170,6 @@ impl<V> PagedSlots<V> {
     }
   }
 
-  /// Extend the flat prefix to cover `index` if it stays dense enough.
-  ///
-  /// Pages that the extension covers are moved into the prefix.
   #[cold]
   fn try_grow_flat(&mut self, index: usize) -> bool {
     if self.flat_frozen {
@@ -247,8 +229,7 @@ impl<V> PagedSlots<V> {
   #[inline]
   fn on_flat_remove(&mut self) {
     if !self.flat_frozen {
-      // Ids removed from here are never inserted again, so the prefix is as
-      // dense as it will get. Trim the spare capacity left by `resize_with`.
+      // Removed ids never come back, so the prefix will not get denser.
       self.flat_frozen = true;
       self.flat.shrink_to_fit();
     }
@@ -257,7 +238,6 @@ impl<V> PagedSlots<V> {
     }
   }
 
-  /// Move every flat entry into pages and release the flat prefix.
   #[cold]
   fn demote_flat(&mut self) {
     let flat = std::mem::take(&mut self.flat);

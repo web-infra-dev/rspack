@@ -16,12 +16,9 @@ const INVALIDATION_TARGET: &str = "src/d0/f0.jsx";
 const ORIGINAL_TEXT: &str = "Hello";
 const UPDATED_TEXT: &str = "Hello from rebuild";
 
-// This group measures an in-memory watch-mode rebuild after a single file
-// change, which is the path a dev server takes on every save. The compiler is
-// built once outside the measured region and reused by every sample, so the
-// module graph keeps accumulating rebuild history like a long-running dev
-// server does. Setup toggles the target file between two versions; the timed
-// closure only runs `Compiler::rebuild`.
+// Measures `Compiler::rebuild` after one file changes, as a dev server does on
+// save. All samples reuse one compiler; setup toggles the file between two
+// versions outside the timed closure.
 pub fn rebuild_after_single_file_change_benchmark(c: &mut Criterion) {
   let mut group = c.benchmark_group("rebuild");
   let rt = rspack_benchmark::build_tokio_rt();
@@ -67,8 +64,6 @@ pub fn rebuild_after_single_file_change_benchmark(c: &mut Criterion) {
   let _ = fs::remove_dir_all(&workspace_dir);
 }
 
-// The edit is a tiny deterministic text change, like the persistent cache
-// invalidation benchmark uses.
 #[allow(clippy::disallowed_methods)]
 fn read_source_versions(path: &Path) -> (String, String) {
   let original = fs::read_to_string(path).unwrap();

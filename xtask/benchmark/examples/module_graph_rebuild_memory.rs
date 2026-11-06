@@ -1,16 +1,9 @@
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::disallowed_methods)]
 
-//! Reproduction for module graph storage growth across watch-mode rebuilds.
-//!
-//! The example generates a synthetic ESM project with barrel re-exports and
-//! `"sideEffects": false`, builds it once, then toggles a fixed set of source
-//! files between two versions and rebuilds `ITERATIONS` times, like switching
-//! between two git commits under a dev server. After every build it prints the
-//! length, live entry count, and byte size of each dense module graph table.
-//!
-//! The number of modules and dependencies is constant across rebuilds, so the
-//! storage size should be bounded too.
+//! Rebuilds a generated project repeatedly and prints the size of every dense
+//! module graph table. Each rebuild toggles the same files between two
+//! versions, so the module and dependency counts stay constant.
 //!
 //! ```bash
 //! cargo run --profile release-debug -p rspack_benchmark --example module_graph_rebuild_memory
@@ -22,22 +15,20 @@
 //! - `CHANGED` (default 40): number of leaf modules toggled per rebuild.
 //! - `ROTATE=1`: edit a different set of files on every rebuild.
 //! - `VERBOSE=1`: print every table on every rebuild.
-//! - `LOOKUP_LOOP` (default 0): after the initial build, time this many
-//!   iterations of the `rust@module_graph_api` lookup mix.
+//! - `LOOKUP_LOOP` (default 0): time this many iterations of the
+//!   `rust@module_graph_api` lookups after the first and the last build.
 
 use std::{
   fmt::Write as _,
   fs,
+  hint::black_box,
   path::{Path, PathBuf},
   sync::Arc,
   time::Instant,
 };
 
 use rspack::builder::{Builder, CompilerBuilder};
-use rspack_core::{
-  CacheOptions, Compiler, DependencyId, Mode, ModuleGraph, ModuleIdentifier,
-  rollback::DenseStorageStats,
-};
+use rspack_core::{CacheOptions, Compiler, DependencyId, Mode, ModuleGraph, ModuleIdentifier};
 use rspack_fs::{MemoryFileSystem, NativeFileSystem};
 use rspack_tasks::{CompilerContext, within_compiler_context_sync};
 use rustc_hash::FxHashSet;
@@ -74,7 +65,6 @@ fn leaf_source(index: usize, modules: usize, variant: bool) -> String {
     used.push(format!("i{offset}"));
   }
   if variant {
-    // The second "commit" adds a dependency and changes the body.
     let target = (index + 1) % modules;
     let barrel = (target / MODULES_PER_BARREL) % barrels;
     writeln!(
@@ -163,23 +153,19 @@ fn mib(bytes: usize) -> f64 {
 fn report(compiler: &Compiler, round: usize, elapsed_ms: f64, verbose: bool) {
   let compilation = &compiler.compilation;
   let module_graph = compilation.get_module_graph();
-  let stats = module_graph.dense_storage_stats();
-  let tables = stats.tables();
-  let total = tables
-    .iter()
-    .fold(DenseStorageStats::default(), |acc, (_, stats)| acc + *stats);
-  let errors = compilation.get_errors().count();
-  assert_eq!(errors, 0, "compilation should not have errors");
+  let tables = module_graph.dense_storage_stats();
+  let table = |name: &str| tables.iter().find(|(n, _)| *n == name).unwrap().1;
+  assert_eq!(compilation.get_errors().count(), 0);
   println!(
     "{round:>5} {elapsed_ms:>9.1} {:>8} {:>9} {:>12} {:>10} {:>10} {:>10} {:>10} {:>10.2}",
     module_graph.modules_len(),
-    stats.dependencies.live,
+    table("dependencies").live,
     compilation.exports_info_artifact.len(),
-    stats.dependencies.id_space,
-    stats.connections.id_space,
-    total.slots,
-    total.live,
-    mib(total.bytes),
+    table("dependencies").id_space,
+    table("connections").id_space,
+    tables.iter().map(|(_, stats)| stats.slots).sum::<usize>(),
+    tables.iter().map(|(_, stats)| stats.live).sum::<usize>(),
+    mib(tables.iter().map(|(_, stats)| stats.bytes).sum()),
   );
   if verbose {
     for (name, stats) in tables {
@@ -191,36 +177,30 @@ fn report(compiler: &Compiler, round: usize, elapsed_ms: f64, verbose: bool) {
   }
 }
 
-/// The lookup mix of the `rust@module_graph_api` benchmark, kept out of line so
-/// profilers such as callgrind can measure it on its own.
+// Same lookups as the `rust@module_graph_api` benchmark. Not inlined so that
+// callgrind can measure it with `--toggle-collect`.
 #[inline(never)]
 fn module_graph_lookup_loop(
   module_graph: &ModuleGraph,
   dependency_ids: &[DependencyId],
   module_ids: &[ModuleIdentifier],
-) -> usize {
-  let mut found = 0;
+) {
   for dependency_id in dependency_ids {
-    found += usize::from(
-      module_graph
-        .connection_by_dependency_id(dependency_id)
-        .is_some(),
-    );
-    found += usize::from(
-      module_graph
-        .get_module_by_dependency_id(dependency_id)
-        .is_some(),
-    );
-    found += usize::from(module_graph.get_resolved_module(dependency_id).is_some());
+    black_box(module_graph.connection_by_dependency_id(dependency_id));
+    black_box(module_graph.get_module_by_dependency_id(dependency_id));
+    black_box(module_graph.get_resolved_module(dependency_id));
   }
   for module_id in module_ids {
-    found += module_graph.get_outgoing_connections(module_id).count();
-    found += module_graph
-      .get_ordered_outgoing_connections(module_id)
-      .count();
-    found += module_graph.get_incoming_connections(module_id).count();
+    for connection in module_graph.get_outgoing_connections(module_id) {
+      black_box(connection);
+    }
+    for connection in module_graph.get_ordered_outgoing_connections(module_id) {
+      black_box(connection);
+    }
+    for connection in module_graph.get_incoming_connections(module_id) {
+      black_box(connection);
+    }
   }
-  found
 }
 
 fn run_lookup_loop(compiler: &Compiler, iterations: usize) {
@@ -231,17 +211,12 @@ fn run_lookup_loop(compiler: &Compiler, iterations: usize) {
     .collect::<Vec<_>>();
   let module_ids = module_graph.modules_keys().copied().collect::<Vec<_>>();
   let start = Instant::now();
-  let mut found = 0;
   for _ in 0..iterations {
-    found += std::hint::black_box(module_graph_lookup_loop(
-      module_graph,
-      &dependency_ids,
-      &module_ids,
-    ));
+    module_graph_lookup_loop(module_graph, &dependency_ids, &module_ids);
   }
   println!(
-    "lookup loop: {iterations} iterations, {:.3} ms/iteration, {found} hits",
-    start.elapsed().as_secs_f64() * 1000.0 / iterations.max(1) as f64
+    "lookup loop: {:.3} ms/iteration",
+    start.elapsed().as_secs_f64() * 1000.0 / iterations as f64
   );
 }
 
@@ -281,8 +256,6 @@ fn main() {
     verbose,
   );
 
-  // Spread the toggled files over the whole project. With `ROTATE=1`, every
-  // rebuild edits a different set of files instead of the same one.
   let step = (modules / changed.max(1)).max(1);
   let mut variants = vec![false; modules];
 
@@ -307,7 +280,6 @@ fn main() {
   }
 
   if lookup_iterations > 0 && iterations > 0 {
-    // Measure again once dependency ids have churned through the rebuilds.
     run_lookup_loop(&compiler, lookup_iterations);
   }
 
