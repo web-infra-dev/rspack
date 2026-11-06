@@ -17,7 +17,7 @@ use rspack_cacheable::{
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
-use rspack_resolver::PackageJson;
+use rspack_resolver::{PackageJson, PackageJsonData};
 use rustc_hash::FxHashMap;
 
 use crate::{Scheme, get_scheme, parse_resource};
@@ -327,11 +327,11 @@ pub struct DescriptionData {
   json: DescriptionJson,
 }
 
-/// Resolver metadata stays borrowed until a consumer needs the entire JSON object.
+/// Compact metadata outlives the resolver without retaining its original input.
 /// Cache serialization materializes that object; cache reads use the owned variant.
 #[derive(Debug, Clone)]
 enum DescriptionJson {
-  Package(Arc<PackageJson>),
+  Package(Arc<PackageJsonData>),
   Owned(Arc<serde_json::Value>),
 }
 
@@ -340,7 +340,7 @@ impl AsInnerConverter for DescriptionJson {
 
   fn to_inner(&self) -> &Self::Inner {
     match self {
-      Self::Package(package) => package.raw_json(),
+      Self::Package(package) => package.json(),
       Self::Owned(json) => json,
     }
   }
@@ -358,10 +358,10 @@ impl DescriptionData {
     }
   }
 
-  pub fn from_package_json(package: Arc<PackageJson>) -> Self {
+  pub fn from_package_json(package: &PackageJson) -> Self {
     Self {
       path: package.directory().to_path_buf(),
-      json: DescriptionJson::Package(package),
+      json: DescriptionJson::Package(Arc::clone(package.description_data())),
     }
   }
 
@@ -379,7 +379,7 @@ impl DescriptionData {
     path: impl IntoIterator<Item = &'a str>,
   ) -> Option<Cow<'_, serde_json::Value>> {
     match &self.json {
-      DescriptionJson::Package(package) => package.raw_json_at(path),
+      DescriptionJson::Package(package) => package.get(path).map(Cow::Borrowed),
       DescriptionJson::Owned(json) => path
         .into_iter()
         .try_fold(json.as_ref(), |value, key| value.get(key))
@@ -389,7 +389,7 @@ impl DescriptionData {
 
   pub fn into_parts(self) -> (PathBuf, Arc<serde_json::Value>) {
     let json = match self.json {
-      DescriptionJson::Package(package) => Arc::clone(package.raw_json()),
+      DescriptionJson::Package(package) => Arc::clone(package.json()),
       DescriptionJson::Owned(json) => json,
     };
     (self.path, json)
