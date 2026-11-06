@@ -1,5 +1,7 @@
 use std::fmt::Write;
 
+use CharEscape::{Brace, Raw, U, X};
+use Hex::{Lower, Upper};
 use percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
 use url::Host;
 
@@ -20,6 +22,47 @@ const PATH_SEGMENT: &AsciiSet = &CONTROLS
 /// The set `url::Url::from_file_path` applies to Unix components, where `\` is not a separator.
 const SPECIAL_PATH_SEGMENT: &AsciiSet = &PATH_SEGMENT.add(b'\\');
 
+#[derive(Clone, Copy)]
+enum Hex {
+  Lower,
+  Upper,
+}
+
+/// How a string literal spells one non-ASCII character.
+#[derive(Clone, Copy)]
+enum CharEscape {
+  Raw,
+  /// `\xHH`
+  X(Hex),
+  /// `\uHHHH`, as a surrogate pair above the BMP.
+  U(Hex),
+  /// `\u{H...}`
+  Brace(Hex),
+}
+
+/// The spellings of a Latin-1, a BMP and an astral character that tools combine in one string.
+/// Case belongs to each character class because SWC mixes it within a literal.
+const ASCII_ESCAPES: [[CharEscape; 3]; 11] = [
+  // SWC at ES5 or below with its default charset.
+  [X(Lower), Raw, U(Upper)],
+  // SWC with an ASCII charset, below and from ES2015.
+  [X(Lower), U(Upper), U(Upper)],
+  [X(Lower), U(Upper), Brace(Upper)],
+  // Terser `ascii_only` and SWC regex sources, below and from ES2015.
+  [X(Lower), U(Lower), U(Lower)],
+  [X(Lower), U(Lower), Brace(Lower)],
+  // esbuild and Babel, below and from ES2015.
+  [X(Upper), U(Upper), U(Upper)],
+  [X(Upper), U(Upper), Brace(Upper)],
+  // Python `json.dumps`.
+  [U(Lower), U(Lower), U(Lower)],
+  // The TypeScript printer.
+  [U(Upper), U(Upper), U(Upper)],
+  // No surveyed tool emits these. A miss reuses a stale path and a false match only rebuilds.
+  [U(Lower), U(Lower), Brace(Lower)],
+  [U(Upper), U(Upper), Brace(Upper)],
+];
+
 /// Byte patterns under which `root` can appear in serialized cache data.
 ///
 /// Detection is best-effort. It covers the spellings that path-producing code commonly emits, and
@@ -31,7 +74,9 @@ const SPECIAL_PATH_SEGMENT: &AsciiSet = &PATH_SEGMENT.add(b'\\');
 ///   solidus or a regex source;
 /// - its `JSON.stringify` string content, once and nested twice;
 /// - the path part of its `file://` URL, with a UNC host normalized the way
-///   `url::Url::from_file_path` normalizes it.
+///   `url::Url::from_file_path` normalizes it;
+/// - for a non-ASCII root, its `JSON.stringify` string content in each [`ASCII_ESCAPES`] spelling,
+///   as is, with every `/` escaped as `\/`, and nested in JSON.
 ///
 /// On every host platform, a root that starts with a drive letter or `\\` is a Windows path.
 /// Trailing separators do not matter. A pattern that contains another pattern is dropped, because
@@ -54,6 +99,14 @@ pub fn root_patterns(root: &str) -> Vec<Vec<u8>> {
   let mut candidates = Vec::new();
   for spelling in &spellings {
     let json = json_escape(spelling);
+    if !json.is_ascii() {
+      for escapes in ASCII_ESCAPES {
+        let escaped = ascii_escape(&json, escapes);
+        candidates.push(json_escape(&escaped));
+        candidates.push(replace_char(&escaped, '/', "\\/"));
+        candidates.push(escaped);
+      }
+    }
     candidates.push(json_escape(&json));
     candidates.push(json);
     if spelling.contains('/') {
@@ -129,6 +182,35 @@ fn json_escape(value: &str) -> String {
     }
   }
   escaped
+}
+
+fn ascii_escape(value: &str, [latin1, bmp, astral]: [CharEscape; 3]) -> String {
+  let mut escaped = String::with_capacity(value.len());
+  for c in value.chars() {
+    let char_escape = match c as u32 {
+      0..=0x7f => Raw,
+      0x80..=0xff => latin1,
+      0x100..=0xffff => bmp,
+      _ => astral,
+    };
+    let _ = match char_escape {
+      Raw => write!(escaped, "{c}"),
+      X(case) => write!(escaped, "\\x{}", hex(c as u32, 2, case)),
+      U(case) => c
+        .encode_utf16(&mut [0; 2])
+        .iter()
+        .try_for_each(|unit| write!(escaped, "\\u{}", hex(u32::from(*unit), 4, case))),
+      Brace(case) => write!(escaped, "\\u{{{}}}", hex(c as u32, 0, case)),
+    };
+  }
+  escaped
+}
+
+fn hex(value: u32, width: usize, case: Hex) -> String {
+  match case {
+    Lower => format!("{value:0width$x}"),
+    Upper => format!("{value:0width$X}"),
+  }
 }
 
 fn file_url_path(slash: &str, windows: bool) -> String {
