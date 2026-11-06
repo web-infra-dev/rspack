@@ -3,7 +3,6 @@ use std::path::{Path, PathBuf};
 use camino::Utf8PathBuf;
 use rspack_cacheable::{CacheableContext, cacheable, utils::PortablePath, with::As};
 
-/// Test context with project_root
 struct TestContext(Option<PathBuf>);
 
 impl CacheableContext for TestContext {
@@ -12,7 +11,6 @@ impl CacheableContext for TestContext {
   }
 }
 
-/// Test struct with multiple paths
 #[cacheable]
 #[derive(Debug, PartialEq, Eq)]
 struct PathData {
@@ -28,7 +26,6 @@ fn test_with_context() {
   let context = TestContext(Some(PathBuf::from("/home/user/project")));
   let new_context = TestContext(Some(PathBuf::from("/new/location")));
 
-  // Test path inside project_root
   let inside_path = PathData {
     path1: PathBuf::from("/home/user/project/src/main.rs"),
     path2: Utf8PathBuf::from("/home/user/project/src/lib.rs"),
@@ -39,45 +36,37 @@ fn test_with_context() {
   assert_eq!(new_data.path1, PathBuf::from("/new/location/src/main.rs"));
   assert_eq!(new_data.path2, PathBuf::from("/new/location/src/lib.rs"));
 
-  // Test path outside project_root (now uses relative paths with ..)
   let outside_path = PathData {
     path1: PathBuf::from("/usr/lib/a.so"),
     path2: Utf8PathBuf::from("/usr/lib/src/b.txt"),
   };
   let bytes = rspack_cacheable::to_bytes(&outside_path, &context).unwrap();
   let new_data: PathData = rspack_cacheable::from_bytes(&bytes, &new_context).unwrap();
-  // The paths are now relative to project_root, so they get translated
-  // /usr/lib/a.so relative to /home/user/project is ../../../usr/lib/a.so
-  // When deserialized with /new/location as project_root:
-  // /new/location/../../../usr/lib/a.so => /usr/lib/a.so (after normalization)
   assert_eq!(new_data, outside_path);
 }
 
 #[test]
 #[cfg(not(windows))]
-fn test_relative_path_outside_project() {
-  // Test that paths outside project_root are converted to relative paths with ".."
+fn test_path_outside_project_is_unchanged() {
   let context = TestContext(Some(PathBuf::from("/home/user/project")));
 
   let data = PathData {
-    // /home/other/file.txt relative to /home/user/project => ../../other/file.txt
     path1: PathBuf::from("/home/other/file.txt"),
-    // /etc/config.ini relative to /home/user/project => ../../../etc/config.ini
-    path2: Utf8PathBuf::from("/etc/config.ini"),
+    path2: Utf8PathBuf::from("/home/user/project-other/config.ini"),
   };
 
   let bytes = rspack_cacheable::to_bytes(&data, &context).unwrap();
 
-  // Deserialize with different project_root
-  let new_context = TestContext(Some(PathBuf::from("/workspace/app")));
+  let new_context = TestContext(Some(PathBuf::from("/workspace/deeper/new/app")));
+  let original: PathData = rspack_cacheable::from_bytes(&bytes, &context).unwrap();
+  assert_eq!(original, data);
   let new_data: PathData = rspack_cacheable::from_bytes(&bytes, &new_context).unwrap();
 
-  // Paths maintain their relative structure from project_root:
-  // ../../other/file.txt from /workspace/app => /workspace/other/file.txt
-  // But due to normalization: /workspace/app/../../other/file.txt => /other/file.txt
-  assert_eq!(new_data.path1, PathBuf::from("/other/file.txt"));
-  // ../../../etc/config.ini from /workspace/app => /etc/config.ini
-  assert_eq!(new_data.path2, PathBuf::from("/etc/config.ini"));
+  assert_eq!(new_data.path1, PathBuf::from("/home/other/file.txt"));
+  assert_eq!(
+    new_data.path2,
+    PathBuf::from("/home/user/project-other/config.ini")
+  );
 }
 
 #[test]
@@ -113,13 +102,25 @@ fn test_windows_path() {
 
   let bytes = rspack_cacheable::to_bytes(&data, &context).unwrap();
 
-  // Deserialize on different Windows path
   let new_context = TestContext(Some(PathBuf::from("D:\\workspace")));
   let new_data: PathData = rspack_cacheable::from_bytes(&bytes, &new_context).unwrap();
 
-  // Path separators should be normalized
   assert_eq!(new_data.path1, PathBuf::from("D:\\workspace\\src\\main.rs"));
   assert_eq!(new_data.path2, PathBuf::from("D:\\workspace\\src\\lib.rs"));
+
+  let outside = PathData {
+    path1: PathBuf::from(r"C:\Users\external\main.rs"),
+    path2: Utf8PathBuf::from(r"C:\Users\test\project-other\lib.rs"),
+  };
+  let bytes = rspack_cacheable::to_bytes(&outside, &context).unwrap();
+  for root in [&context, &new_context] {
+    let restored: PathData = rspack_cacheable::from_bytes(&bytes, root).unwrap();
+    assert_eq!(
+      restored.path1.to_string_lossy(),
+      outside.path1.to_string_lossy()
+    );
+    assert_eq!(restored.path2.as_str(), outside.path2.as_str());
+  }
 }
 
 #[test]
@@ -158,4 +159,50 @@ fn test_windows_relative_paths_preserve_their_representation() {
 
   assert_eq!(new_data.path1.to_string_lossy(), "./build.txt");
   assert_eq!(new_data.path2.as_str(), "node_modules/");
+}
+
+struct AliasedContext {
+  root: PathBuf,
+  canonical_root: PathBuf,
+}
+
+impl CacheableContext for AliasedContext {
+  fn project_root(&self) -> Option<&Path> {
+    Some(&self.root)
+  }
+
+  fn canonical_project_root(&self) -> Option<&Path> {
+    Some(&self.canonical_root)
+  }
+}
+
+#[test]
+fn test_aliased_root_restores_each_spelling() {
+  let temp = std::env::temp_dir();
+  let writer = AliasedContext {
+    root: temp.join("link-a").join("project"),
+    canonical_root: temp.join("real-a").join("project"),
+  };
+  let reader = AliasedContext {
+    root: temp.join("link-b").join("deeper").join("project"),
+    canonical_root: temp.join("real-b").join("project"),
+  };
+  let paths = |context: &AliasedContext| PathData {
+    path1: context.canonical_root.join("src").join("main.rs"),
+    path2: Utf8PathBuf::from_path_buf(context.root.clone()).unwrap(),
+  };
+
+  let (bytes, bound) = rspack_cacheable::to_bytes_with_binding(&paths(&writer), &writer).unwrap();
+  assert!(!bound);
+  let decoded: PathData = rspack_cacheable::from_bytes(&bytes, &reader).unwrap();
+  assert_eq!(decoded, paths(&reader));
+
+  let outside = PathData {
+    path1: temp.join("real-a").join("other.rs"),
+    path2: Utf8PathBuf::from_path_buf(writer.root.join("lib.rs")).unwrap(),
+  };
+  let (bytes, bound) = rspack_cacheable::to_bytes_with_binding(&outside, &writer).unwrap();
+  assert!(bound);
+  let decoded: PathData = rspack_cacheable::from_bytes(&bytes, &reader).unwrap();
+  assert_eq!(decoded.path1, outside.path1);
 }

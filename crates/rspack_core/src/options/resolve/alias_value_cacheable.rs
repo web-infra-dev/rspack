@@ -112,7 +112,7 @@ where
     } else {
       let portable_path: PortablePath = Deserialize::deserialize(&field.path, deserializer)?;
       let guard = ContextGuard::pooling_guard(deserializer)?;
-      AliasValue::Path(portable_path.into_path_string(guard.project_root()))
+      AliasValue::Path(portable_path.into_path_string(guard))
     })
   }
 }

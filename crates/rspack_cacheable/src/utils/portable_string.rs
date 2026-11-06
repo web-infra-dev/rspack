@@ -1,161 +1,183 @@
-use std::{path::Path, sync::LazyLock};
+use std::{borrow::Cow, path::Path};
 
-use regex::Regex;
-use sugar_path::SugarPath;
+use cow_utils::CowUtils;
 
-use crate::{ContextGuard, Result, cacheable, with::AsConverter};
+use crate::{ContextGuard, Result, RootSpelling, cacheable, with::AsConverter};
 
-static PATH_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-  #[cfg(windows)]
-  {
-    Regex::new(r"(^|[^a-zA-Z0-9./\\])([a-zA-Z]:\\([^/\\ \t\n\r?=,;:#&|!]+\\)*)")
-      .expect("Invalid regex pattern")
+// Escape literal NULs before inserting root markers, including when portability is disabled.
+// The escape has no trailing NUL, so escaped data cannot form a root marker.
+const ESCAPE: &str = "\0escape";
+
+/// Characters that end a path inside an identifier. A root only matches right after one of them
+/// or at the start, so a root that occurs inside a longer path is never rewritten.
+const DELIMITERS: [char; 8] = ['|', '!', '?', '=', ' ', '\t', '\n', '\r'];
+
+#[cfg(not(windows))]
+const ROOT_SEPARATORS: [char; 1] = ['/'];
+#[cfg(windows)]
+const ROOT_SEPARATORS: [char; 2] = ['/', '\\'];
+
+/// A separator form an identifier can spell the root with, and the markers that stand for the
+/// root in that form. Distinct markers preserve Windows separator forms.
+struct RootForm {
+  separator: &'static str,
+  context: &'static str,
+  realpath: &'static str,
+}
+
+impl RootForm {
+  fn marker(&self, spelling: RootSpelling) -> &'static str {
+    match spelling {
+      RootSpelling::Context => self.context,
+      RootSpelling::Realpath => self.realpath,
+    }
   }
-  #[cfg(not(windows))]
-  {
-    Regex::new(r"(^|[^a-zA-Z0-9./\\])(/([^/\\ \t\n\r?=,;:#&|!]+/)*)")
-      .expect("Invalid regex pattern")
+}
+
+#[cfg(not(windows))]
+const ROOT_FORMS: [RootForm; 1] = [RootForm {
+  separator: "/",
+  context: "\0root/\0",
+  realpath: "\0realpath/\0",
+}];
+#[cfg(windows)]
+const ROOT_FORMS: [RootForm; 3] = [
+  RootForm {
+    separator: "\\\\",
+    context: "\0root\\\\\0",
+    realpath: "\0realpath\\\\\0",
+  },
+  RootForm {
+    separator: "\\",
+    context: "\0root\\\0",
+    realpath: "\0realpath\\\0",
+  },
+  RootForm {
+    separator: "/",
+    context: "\0root/\0",
+    realpath: "\0realpath/\0",
+  },
+];
+
+/// Returns the rest of `text` after `root` spelled with `separator`, including the separator that
+/// follows the root.
+fn strip_root<'a>(text: &'a str, root: &str, separator: &str) -> Option<&'a str> {
+  let mut rest = text;
+  for (index, component) in root.split(ROOT_SEPARATORS).enumerate() {
+    if index > 0 {
+      rest = rest.strip_prefix(separator)?;
+    }
+    rest = rest.strip_prefix(component)?;
   }
-});
+  rest.strip_prefix(separator)
+}
 
-const PROJECT_ROOT_PLACEHOLDER: &str = "<project_root>";
+/// Returns the marker for the first root form `text` starts with, and the rest of `text`.
+fn strip_any_root<'a>(
+  text: &'a str,
+  roots: &[(RootSpelling, Cow<'_, str>)],
+) -> Option<(&'static str, &'a str)> {
+  ROOT_FORMS.iter().find_map(|form| {
+    roots.iter().find_map(|(spelling, root)| {
+      strip_root(text, root, form.separator).map(|rest| (form.marker(*spelling), rest))
+    })
+  })
+}
 
-static PROJECT_ROOT_PATH_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-  let pattern = format!(
-    r"{}/(([^/\\ \t\n\r?=,;:#&|!]+/)*)",
-    regex::escape(PROJECT_ROOT_PLACEHOLDER)
-  );
-  Regex::new(&pattern).expect("Invalid regex pattern")
-});
+fn push_root(out: &mut String, root: &str, separator: &str) {
+  for (index, component) in root.split(ROOT_SEPARATORS).enumerate() {
+    if index > 0 {
+      out.push_str(separator);
+    }
+    out.push_str(component);
+  }
+  out.push_str(separator);
+}
 
-/// A portable string representation that can detect and convert absolute paths within
-/// the string to portable format using `<project_root>` placeholder for cross-platform serialization.
-///
-/// # Serialization Strategy
-///
-/// Absolute paths are replaced with `<project_root>` prefix:
-/// - `/home/user/project/src/` → `<project_root>/src/`
-/// - `C:\Users\project\src\` → `<project_root>/src/`
-///
-/// Paths outside project_root use relative paths with `..`:
-/// - `/home/user/other/lib/` → `<project_root>/../other/lib/`
-///
-/// # Deserialization Strategy
-///
-/// Replace `<project_root>` with actual project_root and normalize:
-/// - `<project_root>/src/` + `/home/user/project` → `/home/user/project/src/`
-/// - `<project_root>/../other/lib/` + `/home/user/project` → `/home/user/other/lib/`
-///
-/// # Use Cases
-///
-/// - Module identifiers containing paths: `"ignored|/home/user/project/src/"`
-/// - Cache keys with paths: `"/absolute/path/to/module/|hash_value"`
-/// - Composite identifiers: `"module_type|/path/file/|layer"`
-/// - Multiple paths: `"ignored|/home/aaa/?name=/home/bbb/"`
-///
-/// # Example
-///
-/// ```rust,ignore
-/// // Serialize on Linux (project_root = /home/user/project)
-/// let identifier = "ignored|/home/user/project/src/";
-/// // Stored as: "ignored|<project_root>/src/"
-///
-/// // Deserialize on Windows (project_root = C:\workspace)
-/// // Results in: "ignored|C:\workspace\src\"
-/// ```
+fn trimmed_root(root: &Path) -> Cow<'_, str> {
+  match root.to_string_lossy() {
+    Cow::Borrowed(root) => Cow::Borrowed(root.trim_end_matches(ROOT_SEPARATORS)),
+    Cow::Owned(root) => Cow::Owned(root.trim_end_matches(ROOT_SEPARATORS).to_owned()),
+  }
+}
+
+/// Replaces whole root prefixes in identifiers while preserving paths outside the root.
 #[cacheable(crate=crate, hashable)]
 pub struct PortableString {
-  /// The string with paths converted to portable format using <project_root> placeholder
   content: String,
 }
 
 impl PortableString {
-  /// Create a portable string, converting absolute paths to use <project_root> placeholder
   pub fn new(content: &str, guard: &ContextGuard) -> Self {
-    let project_root = guard.project_root();
-    let Some(project_root) = project_root else {
+    let roots = guard
+      .root_spellings()
+      .map(|(spelling, root)| (spelling, trimmed_root(root)))
+      .collect::<Vec<_>>();
+    if roots.is_empty() {
       return Self {
-        content: content.to_string(),
+        content: content.cow_replace('\0', ESCAPE).into_owned(),
       };
-    };
-
-    let mut result = String::with_capacity(content.len());
-    let mut last_end = 0;
-
-    for cap in PATH_REGEX.captures_iter(content) {
-      let path_match = cap.get(2).expect("PATH_REGEX should have capture group 2");
-      if !Path::new(path_match.as_str()).starts_with(project_root) {
-        guard.mark_outside_root();
-      }
-
-      result.push_str(&content[last_end..path_match.start()]);
-
-      // Convert to portable format with <project_root> placeholder
-      // sugar_path 2.x relative() fast path may preserve trailing slash (e.g. "src/"),
-      // so trim it before appending "/" to avoid double slashes like "<project_root>/src//"
-      let relative_path = path_match
-        .as_str()
-        .relative(project_root)
-        .to_slash_lossy()
-        .trim_end_matches('/')
-        .to_string();
-
-      let portable_path = if relative_path.is_empty() || relative_path == "." {
-        format!("{PROJECT_ROOT_PLACEHOLDER}/")
-      } else {
-        format!("{PROJECT_ROOT_PLACEHOLDER}/{relative_path}/")
-      };
-      result.push_str(&portable_path);
-
-      last_end = path_match.end();
     }
-
-    // Add remaining content
-    result.push_str(&content[last_end..]);
-
-    Self { content: result }
+    let mut converted = String::with_capacity(content.len());
+    let mut rest = content;
+    loop {
+      let path = match strip_any_root(rest, &roots) {
+        Some((marker, suffix)) => {
+          converted.push_str(marker);
+          suffix
+        }
+        None => {
+          let token = rest.split(DELIMITERS).next().unwrap_or_default();
+          if Path::new(token).is_absolute() {
+            guard.mark_outside_root();
+          }
+          rest
+        }
+      };
+      let end = path.find(DELIMITERS).unwrap_or(path.len());
+      converted.push_str(&path[..end].cow_replace('\0', ESCAPE));
+      let Some(delimiter) = path[end..].chars().next() else {
+        break;
+      };
+      converted.push(delimiter);
+      rest = &path[end + delimiter.len_utf8()..];
+    }
+    Self { content: converted }
   }
 
-  /// Convert back to string, replacing <project_root> with actual project_root
-  pub fn into_path_string(self, project_root: Option<&Path>) -> String {
-    let Some(project_root) = project_root else {
-      return self.content;
-    };
-
-    if !self.content.contains(PROJECT_ROOT_PLACEHOLDER) {
+  pub fn into_path_string(self, guard: &ContextGuard) -> String {
+    if !self.content.contains('\0') {
       return self.content;
     }
-
-    let content = &self.content;
-    let project_root_str = project_root.to_slash_lossy();
-    let mut result = String::with_capacity(content.len());
-    let mut last_end = 0;
-
-    for cap in PROJECT_ROOT_PATH_REGEX.captures_iter(content) {
-      let full_match = cap
-        .get(0)
-        .expect("PROJECT_ROOT_PATH_REGEX should have capture group 0");
-      let relative_match = cap
-        .get(1)
-        .expect("PROJECT_ROOT_PATH_REGEX should have capture group 1");
-
-      // Add content before this match including the prefix
-      result.push_str(&content[last_end..full_match.start()]);
-
-      // Convert to absolute path
-      let abs_path_str = format!("{}/{}", &project_root_str, relative_match.as_str());
-      let abs_path = abs_path_str.normalize();
-
-      result.push_str(&abs_path.to_string_lossy());
-      if !abs_path.ends_with(std::path::MAIN_SEPARATOR_STR) {
-        result.push(std::path::MAIN_SEPARATOR);
+    let mut restored = String::with_capacity(self.content.len());
+    let mut rest = self.content.as_str();
+    while let Some(index) = rest.find('\0') {
+      restored.push_str(&rest[..index]);
+      rest = &rest[index..];
+      if let Some(after) = rest.strip_prefix(ESCAPE) {
+        restored.push('\0');
+        rest = after;
+        continue;
       }
-      last_end = full_match.end();
+      let marker = ROOT_FORMS.iter().find_map(|form| {
+        [RootSpelling::Context, RootSpelling::Realpath]
+          .into_iter()
+          .map(|spelling| (form, spelling, form.marker(spelling)))
+          .find(|(_, _, marker)| rest.starts_with(marker))
+      });
+      let Some((form, spelling, marker)) = marker else {
+        restored.push('\0');
+        rest = &rest[1..];
+        continue;
+      };
+      match guard.root(spelling) {
+        Some(root) => push_root(&mut restored, &trimmed_root(root), form.separator),
+        None => restored.push_str(marker),
+      }
+      rest = &rest[marker.len()..];
     }
-
-    result.push_str(&content[last_end..]);
-
-    result
+    restored.push_str(rest);
+    restored
   }
 }
 
@@ -171,6 +193,6 @@ where
   }
 
   fn deserialize(self, guard: &ContextGuard) -> Result<T> {
-    Ok(T::from(self.into_path_string(guard.project_root())))
+    Ok(T::from(self.into_path_string(guard)))
   }
 }

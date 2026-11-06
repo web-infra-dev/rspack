@@ -5,17 +5,36 @@ use rkyv::{
   ser::{Sharing, sharing::SharingState},
 };
 
-use crate::error::{Error, Result};
+use crate::{
+  cacheable,
+  error::{Error, Result},
+};
 
 const CONTEXT_ADDR: usize = 0;
 unsafe fn default_drop(_: ErasedPtr) {}
 
 pub trait CacheableContext: Any {
-  /// Returns the project root used for portable path conversion.
+  /// Returns the project root used for portable path conversion, spelled as `context` spells it.
   ///
   /// `Some` enables portable conversion relative to this root, while `None` keeps paths in their
   /// native representation.
   fn project_root(&self) -> Option<&Path>;
+
+  /// Returns the realpath of [`Self::project_root`]. The resolver realpaths resources, so paths
+  /// under this spelling are rebased as well and restore in this spelling.
+  fn canonical_project_root(&self) -> Option<&Path> {
+    self.project_root()
+  }
+}
+
+/// A spelling of the project root that a portable path is stored relative to.
+#[cacheable(crate=crate, hashable)]
+#[derive(Debug, Clone, Copy)]
+pub enum RootSpelling {
+  /// The project root as `context` spells it.
+  Context,
+  /// The realpath of the project root.
+  Realpath,
 }
 
 // Implement for unit type for convenience in tests and simple cases
@@ -52,6 +71,33 @@ impl<'a> ContextGuard<'a> {
 
   pub fn saw_outside_root(&self) -> bool {
     self.saw_outside_root.get()
+  }
+
+  /// Spellings of the project root to rebase against, longest first so that a spelling nested
+  /// in the other wins. Equal spellings are reported once, as [`RootSpelling::Realpath`], because
+  /// resolving a resource again produces the realpath.
+  pub fn root_spellings(&self) -> impl Iterator<Item = (RootSpelling, &Path)> {
+    let realpath = self.canonical_project_root();
+    let context = self.project_root().filter(|root| Some(*root) != realpath);
+    let context_first = context
+      .zip(realpath)
+      .is_some_and(|(context, realpath)| context.as_os_str().len() > realpath.as_os_str().len());
+    let realpath = realpath.map(|root| (RootSpelling::Realpath, root));
+    let context = context.map(|root| (RootSpelling::Context, root));
+    let (first, second) = if context_first {
+      (context, realpath)
+    } else {
+      (realpath, context)
+    };
+    first.into_iter().chain(second)
+  }
+
+  /// Returns the project root in `spelling`, or `None` when portable conversion is disabled.
+  pub fn root(&self, spelling: RootSpelling) -> Option<&Path> {
+    match spelling {
+      RootSpelling::Context => self.project_root(),
+      RootSpelling::Realpath => self.canonical_project_root(),
+    }
   }
 
   pub fn add_to_sharing<S: Sharing<Error> + ?Sized>(&self, sharing: &mut S) -> Result<()> {
