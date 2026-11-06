@@ -59,39 +59,14 @@ impl DevToolMapSource {
     Self(Arc::new(data))
   }
 
-  /// Visit borrowed JSON fragments. Boundaries may occur within encoded values.
-  pub fn json_chunks(&self, on_chunk: &mut dyn FnMut(&str)) {
-    self.rope(&mut |chunk| on_chunk(chunk));
-  }
-
   /// Hash the rendered bytes, coalescing small escaped fragments. Unlike the
   /// structural Source hash, this matches hashing the complete output buffer.
   pub fn update_content_hash(&self, hasher: &mut dyn Hasher) {
     crate::update_text_content_hash(self, hasher);
   }
 
-  /// Compare output bytes without collecting every JSON escape into a vector.
-  pub fn content_eq(&self, other: &dyn Source) -> bool {
-    if let Some(other) = other.as_any().downcast_ref::<Self>()
-      && self == other
-    {
-      return true;
-    }
-    crate::source_content_eq(self, other)
-  }
-
   pub(crate) fn json_chunks_iter(&self) -> impl Iterator<Item = &str> {
     JsonChunks::new(&self.0)
-  }
-
-  /// Visit the original, unescaped source contents without copying them.
-  pub fn sources_content(&self) -> impl Iterator<Item = &str> {
-    self
-      .original_map()
-      .fields()
-      .sources_content
-      .iter()
-      .filter_map(Option::as_deref)
   }
 
   pub(crate) fn original_map(&self) -> &SourceMap<'static> {
