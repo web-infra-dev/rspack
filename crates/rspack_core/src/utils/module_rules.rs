@@ -1,11 +1,13 @@
+use std::borrow::Cow;
+
 use async_recursion::async_recursion;
 use rspack_error::Result;
 use rspack_loader_runner::ResourceData;
 use rspack_paths::Utf8Path;
 
 use crate::{
-  DataRef, DependencyCategory, ImportAttributes, ImportPhase, ModuleRule, ModuleRuleEffect,
-  RuleSetConditionWithEmpty,
+  DataRef, DependencyCategory, Filename, FilenameRenderValue, ImportAttributes, ImportPhase,
+  ModuleRule, ModuleRuleEffect, PlaceholderKind, RuleSetConditionWithEmpty,
 };
 
 pub struct MatchContext<'ctx> {
@@ -23,20 +25,23 @@ pub async fn module_rules_matcher<'rule, 'ctx>(
   matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
 ) -> Result<()> {
   let matched_rules_len = matched_rules.len();
-  if let Some(result) = module_rules_matcher_sync(rules, ctx, matched_rules) {
+  let mut resource_data = Cow::Borrowed(ctx.resource_data);
+  if let Some(result) = module_rules_matcher_sync(rules, ctx, &mut resource_data, matched_rules) {
     return result;
   }
   matched_rules.truncate(matched_rules_len);
-  module_rules_matcher_async(rules, ctx, matched_rules).await
+  resource_data = Cow::Borrowed(ctx.resource_data);
+  module_rules_matcher_async(rules, ctx, &mut resource_data, matched_rules).await
 }
 
 fn module_rules_matcher_sync<'rule, 'ctx>(
   rules: &'rule [ModuleRule],
   ctx: &MatchContext<'ctx>,
+  resource_data: &mut Cow<'ctx, ResourceData>,
   matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
 ) -> Option<Result<()>> {
   for rule in rules {
-    match module_rule_matcher_sync(rule, ctx, matched_rules) {
+    match module_rule_matcher_sync(rule, ctx, resource_data, matched_rules) {
       Some(Ok(_)) => {}
       Some(Err(err)) => return Some(Err(err)),
       None => return None,
@@ -48,12 +53,38 @@ fn module_rules_matcher_sync<'rule, 'ctx>(
 async fn module_rules_matcher_async<'rule, 'ctx>(
   rules: &'rule [ModuleRule],
   ctx: &MatchContext<'ctx>,
+  resource_data: &mut Cow<'ctx, ResourceData>,
   matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
 ) -> Result<()> {
   for rule in rules {
-    module_rule_matcher_async(rule, ctx, matched_rules).await?;
+    module_rule_matcher_async(rule, ctx, resource_data, matched_rules).await?;
   }
   Ok(())
+}
+
+fn create_rule_as_resource(
+  template: &Filename,
+  resource_data: &ResourceData,
+) -> Option<ResourceData> {
+  let resource_path = resource_data.path()?.as_str();
+  let path = template
+    .compiled_template()?
+    .render_with(|placeholder| match placeholder.kind() {
+      PlaceholderKind::ResourcePath => Some(FilenameRenderValue::Value(resource_path.into())),
+      _ => None,
+    });
+  let mut resource = path.clone();
+  if let Some(query) = resource_data.query() {
+    resource.push_str(query);
+  }
+  if let Some(fragment) = resource_data.fragment() {
+    resource.push_str(fragment);
+  }
+  // Preserve metadata in the matching resource without changing the resource used for loading.
+  let mut match_resource_data = resource_data.clone();
+  match_resource_data.set_path(path);
+  match_resource_data.set_resource(resource);
+  Some(match_resource_data)
 }
 
 macro_rules! ensure_sync_matched {
@@ -102,23 +133,25 @@ async fn check_optional_async(
 pub async fn module_rule_matcher<'rule, 'ctx>(
   module_rule: &'rule ModuleRule,
   ctx: &MatchContext<'ctx>,
+  resource_data: &mut Cow<'ctx, ResourceData>,
   matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
 ) -> Result<bool> {
   let matched_rules_len = matched_rules.len();
-  if let Some(result) = module_rule_matcher_sync(module_rule, ctx, matched_rules) {
+  let original_resource_data = resource_data.clone();
+  if let Some(result) = module_rule_matcher_sync(module_rule, ctx, resource_data, matched_rules) {
     return result;
   }
   matched_rules.truncate(matched_rules_len);
-  module_rule_matcher_async(module_rule, ctx, matched_rules).await
+  *resource_data = original_resource_data;
+  module_rule_matcher_async(module_rule, ctx, resource_data, matched_rules).await
 }
 
 fn module_rule_matcher_sync<'rule, 'ctx>(
   module_rule: &'rule ModuleRule,
   ctx: &MatchContext<'ctx>,
+  resource_data: &mut Cow<'ctx, ResourceData>,
   matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
 ) -> Option<Result<bool>> {
-  let resource_data = ctx.resource_data;
-
   if let Some(test_rule) = &module_rule.rspack_resource {
     ensure_sync_matched!(test_rule.try_match_sync(resource_data.resource().into()));
   }
@@ -233,9 +266,14 @@ fn module_rule_matcher_sync<'rule, 'ctx>(
   }
 
   matched_rules.push(&module_rule.effect);
+  if let Some(template) = &module_rule.r#as
+    && let Some(match_resource_data) = create_rule_as_resource(template, resource_data)
+  {
+    *resource_data = Cow::Owned(match_resource_data);
+  }
 
   if let Some(rules) = &module_rule.rules {
-    match module_rules_matcher_sync(rules, ctx, matched_rules) {
+    match module_rules_matcher_sync(rules, ctx, resource_data, matched_rules) {
       Some(Ok(())) => {}
       Some(Err(err)) => return Some(Err(err)),
       None => return None,
@@ -245,7 +283,7 @@ fn module_rule_matcher_sync<'rule, 'ctx>(
   if let Some(one_of) = &module_rule.one_of {
     let mut matched_once = false;
     for rule in one_of {
-      match module_rule_matcher_sync(rule, ctx, matched_rules) {
+      match module_rule_matcher_sync(rule, ctx, resource_data, matched_rules) {
         Some(Ok(true)) => {
           matched_once = true;
           break;
@@ -267,10 +305,9 @@ fn module_rule_matcher_sync<'rule, 'ctx>(
 async fn module_rule_matcher_async<'rule, 'ctx>(
   module_rule: &'rule ModuleRule,
   ctx: &MatchContext<'ctx>,
+  resource_data: &mut Cow<'ctx, ResourceData>,
   matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
 ) -> Result<bool> {
-  let resource_data = ctx.resource_data;
-
   if let Some(test_rule) = &module_rule.rspack_resource
     && !test_rule.try_match(resource_data.resource().into()).await?
   {
@@ -404,15 +441,20 @@ async fn module_rule_matcher_async<'rule, 'ctx>(
   }
 
   matched_rules.push(&module_rule.effect);
+  if let Some(template) = &module_rule.r#as
+    && let Some(match_resource_data) = create_rule_as_resource(template, resource_data)
+  {
+    *resource_data = Cow::Owned(match_resource_data);
+  }
 
   if let Some(rules) = &module_rule.rules {
-    module_rules_matcher(rules, ctx, matched_rules).await?;
+    module_rules_matcher_async(rules, ctx, resource_data, matched_rules).await?;
   }
 
   if let Some(one_of) = &module_rule.one_of {
     let mut matched_once = false;
     for rule in one_of {
-      if module_rule_matcher(rule, ctx, matched_rules).await? {
+      if module_rule_matcher(rule, ctx, resource_data, matched_rules).await? {
         matched_once = true;
         break;
       }

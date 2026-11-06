@@ -39,6 +39,8 @@ pub enum PlaceholderKind {
   Base,
   Name,
   Path,
+  #[string_enum(rename = "resource-path")]
+  ResourcePath,
   Ext,
   Query,
   Fragment,
@@ -56,9 +58,15 @@ pub enum PlaceholderKind {
   ChunkHash,
   #[string_enum(rename = "contenthash")]
   ContentHash,
+  // Keep this last so the assertion below covers every placeholder kind.
   #[string_enum(fallback)]
   Unknown,
 }
+
+const _: () = assert!(
+  (PlaceholderKind::Unknown as u32) < u32::BITS,
+  "placeholder kinds must fit in a u32 bitset"
+);
 
 #[derive(Debug, Clone, Copy)]
 enum PlaceholderParameters {
@@ -765,7 +773,10 @@ fn render_placeholder(
     ),
     PlaceholderKind::Runtime => try_render_value(Some(options.runtime.unwrap_or("_")), output),
     PlaceholderKind::Url => try_render_value(options.url, output),
-    PlaceholderKind::UniqueName | PlaceholderKind::Local | PlaceholderKind::Folder => false,
+    PlaceholderKind::ResourcePath
+    | PlaceholderKind::UniqueName
+    | PlaceholderKind::Local
+    | PlaceholderKind::Folder => false,
     PlaceholderKind::Hash => try_render_hash(
       options.hash,
       kind,
