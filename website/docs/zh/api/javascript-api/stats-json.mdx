@@ -102,7 +102,7 @@ type StatsCacheInfo = {
 
 启用 [stats.assets](/config/stats#statsassets) 后，`assets` 会包含编译产物的信息。以下类型描述单个产物，其中的可选字段取决于 stats 配置和该产物的元数据。
 
-启用产物分组后，`assets` 中也可能包含分组对象，通过 `children` 或 `filteredChildren` 字段描述分组内容。
+启用产物分组后，`assets` 中也可能包含分组对象。其中，`children` 列出分组内的子项，`filteredChildren` 表示未展示的子项数量。
 
 Stats 中的产物对象提供文件大小、输出状态和关联的 chunk 信息。如需读取文件内容，可以调用 [compilation.getAsset()](/api/javascript-api/compilation#getasset)，通过返回对象的 `source` 属性访问。
 
@@ -162,7 +162,7 @@ type StatsAssetInfo = {
   contenthash: string[];
   // 从源文件创建产物时的原始文件名
   sourceFilename?: string;
-  // 产物是否从其他文件复制而来
+  // 产物是否由文件复制生成，例如通过 CopyRspackPlugin
   copied?: boolean;
   // 产物体积是否超过 `performance.maxAssetSize`
   isOverSizeLimit?: boolean;
@@ -177,7 +177,9 @@ type StatsAssetInfo = {
 } & Record<string, any>;
 ```
 
-`javascriptModule` 为 `true` 时，表示该 JavaScript 产物采用 ES module 格式。Rspack 生成 JavaScript chunk 时，会根据 [output.module](/config/output#outputmodule) 设置此标记。复制文件时不会根据文件内容或扩展名判断模块格式，因此新复制的文件通常没有此标记。字段缺失时，不能据此判断文件是否为 ES module。
+`javascriptModule` 为 `true` 时，表示该 JavaScript 产物采用 ES module 格式。Rspack 生成 JavaScript chunk 时，会根据 [output.module](/config/output#outputmodule) 设置此标记。
+
+并非每个 JavaScript 产物都包含此字段。例如，[CopyRspackPlugin](/plugins/copy-rspack-plugin) 可以将已有的 `public/vendor.js` 文件复制到 `dist/vendor.js`。该插件不会根据文件内容或扩展名判断模块格式，因此不会为这个新增的产物设置 `javascriptModule`。即使没有此字段，文件仍可能是 ES module。
 
 `info.related` 按关联类型列出文件名。例如，`{ sourceMap: ['main.js.map'] }` 表示该产物的 source map 文件为 `main.js.map`。启用 [stats.relatedAssets](/config/stats#statsrelatedassets) 后，产物顶层的 `related` 字段还可以包含关联产物的统计对象。
 
