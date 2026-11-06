@@ -100,9 +100,11 @@ Counters measure cache operations in the current compilation. A hit does not gua
 
 ## Asset object
 
-When [stats.assets](/config/stats#statsassets) is enabled, `assets` contains information about the compilation's output files. The following type describes an individual asset; asset grouping options can also produce groups with `children` or `filteredChildren` instead of individual entries. Optional fields depend on the stats options and available asset metadata.
+When [stats.assets](/config/stats#statsassets) is enabled, `assets` contains information about the compilation's output files. The type below describes a single asset. Optional fields depend on the stats options and the metadata available for that asset.
 
-Unlike the assets returned by [compilation.getAssets()](/api/javascript-api/compilation#getassets), stats assets do not contain a `source` object. They report the file size, emission status, and associated chunks instead.
+When asset grouping is enabled, entries can also represent groups with `children` or `filteredChildren` fields.
+
+Stats assets report the file size, emission status, and associated chunks. To access the file contents, use [compilation.getAsset()](/api/javascript-api/compilation#getasset), which returns an asset with a `source` object.
 
 ```ts
 type StatsAsset = {
@@ -126,7 +128,7 @@ type StatsAsset = {
   chunkNames?: string[];
   // Chunk ID hints related to this asset
   chunkIdHints?: string[];
-  // Chunk IDs for which this is an auxiliary asset (`stats.ids`)
+  // IDs of chunks that reference this auxiliary asset (`stats.ids`)
   auxiliaryChunks?: Array<string | number | null | undefined>;
   // Chunk names related to this auxiliary asset
   auxiliaryChunkNames?: string[];
@@ -134,14 +136,17 @@ type StatsAsset = {
   auxiliaryChunkIdHints?: string[];
   // Number of related assets omitted from the output
   filteredRelated?: number;
-  // Whether the asset exceeds `performance.maxAssetSize` (`stats.performance`)
+  // Whether the asset exceeds `performance.maxAssetSize`
+  // Included when `stats.performance` is enabled
   isOverSizeLimit?: boolean;
 } & Record<string, any>;
 ```
 
 ### Asset info
 
-The `info` object contains metadata set by Rspack or plugins. Optional fields are omitted when they have not been set. The fields below are also available on the `AssetInfo` used by [compilation asset APIs](/api/javascript-api/compilation#getasset), with the same meanings. Stats JSON normalizes hash values and related filenames to arrays.
+The `info` object contains asset metadata set by Rspack or plugins. Optional fields are omitted when they have not been set.
+
+You can also read these fields from the `info` property of the asset returned by [compilation.getAsset()](/api/javascript-api/compilation#getasset). In Stats JSON, hash values and related filenames are always represented as arrays.
 
 ```ts
 type StatsAssetInfo = {
@@ -172,9 +177,9 @@ type StatsAssetInfo = {
 } & Record<string, any>;
 ```
 
-`javascriptModule: true` identifies JavaScript emitted as an ES module. Rspack sets this flag when generating JavaScript chunks based on [output.module](/config/output#outputmodule). Newly copied files normally leave it unset: copying a file does not inspect its syntax or infer module mode from its extension. An unset flag does not establish whether the file is a module.
+A `javascriptModule` value of `true` means the JavaScript asset uses the ES module format. Rspack sets this flag based on [output.module](/config/output#outputmodule) when generating JavaScript chunks. Newly copied files usually leave it unset because copying does not check the file's contents or extension to determine its module format. If the field is absent, you cannot use it to determine whether the file is an ES module.
 
-`info.related` maps relationship types to filenames, for example `{ sourceMap: ['main.js.map'] }`. This differs from the asset's top-level `related` field, which contains nested stats asset objects when [stats.relatedAssets](/config/stats#statsrelatedassets) is enabled.
+`info.related` lists filenames by relationship type. For example, `{ sourceMap: ['main.js.map'] }` identifies the asset's source map. When [stats.relatedAssets](/config/stats#statsrelatedassets) is enabled, the asset's top-level `related` field can also include stats objects for related assets.
 
 ## Chunk object
 
