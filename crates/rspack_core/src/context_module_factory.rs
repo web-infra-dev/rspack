@@ -7,6 +7,7 @@ use rspack_fs::{ReadableFileSystem, WalkMatcher};
 use rspack_hook::define_hook;
 use rspack_loader_runner::parse_resource;
 use rspack_paths::{Utf8Path, Utf8PathBuf, normalize_path_separators};
+use rspack_util::glob::GlobDfaState;
 use smallvec::SmallVec;
 use swc_core::common::util::take::Take;
 use tracing::instrument;
@@ -584,6 +585,7 @@ struct ContextModuleMatcher<'a, 'resolver> {
   options: &'a ContextModuleOptions,
   resolve_options: &'a ResolveInnerOptions<'resolver>,
   glob: Option<&'a ContextModuleGlobMatcher<'a>>,
+  glob_state: Option<GlobDfaState<'a>>,
   matches: SmallVec<[ContextModuleMatchedRequest; 1]>,
 }
 
@@ -597,6 +599,7 @@ impl<'a, 'resolver> ContextModuleMatcher<'a, 'resolver> {
       options,
       resolve_options,
       glob,
+      glob_state: glob.and_then(|matcher| matcher.scan_state(&options.resource)),
       matches: SmallVec::new(),
     }
   }
@@ -611,6 +614,18 @@ impl<'a, 'resolver> ContextModuleMatcher<'a, 'resolver> {
 
 impl WalkMatcher for ContextModuleMatcher<'_, '_> {
   const VISIT_ON_METADATA_ERROR: bool = true;
+
+  fn prepare_child(&self, _dir: &Utf8Path, name: &str) -> Option<Self> {
+    let mut child = self.clone();
+    if let (Some(glob), Some(state)) = (self.glob, self.glob_state) {
+      let state = state.advance(&normalize_path_separators(name));
+      if !glob.can_visit(state) {
+        return None;
+      }
+      child.glob_state = Some(state);
+    }
+    Some(child)
+  }
 
   fn match_entry(mut self, dir: &Utf8Path, name: &str, is_directory: bool) -> Option<Self> {
     let context_options = &self.options.context_options;
@@ -636,6 +651,13 @@ impl WalkMatcher for ContextModuleMatcher<'_, '_> {
       return None;
     }
     if is_directory {
+      if let (Some(glob), Some(state)) = (self.glob, self.glob_state) {
+        let state = state.advance("/");
+        if !glob.can_visit(state) {
+          return None;
+        }
+        self.glob_state = Some(state);
+      }
       return Some(self);
     }
     if context_options
@@ -657,7 +679,7 @@ impl WalkMatcher for ContextModuleMatcher<'_, '_> {
     if let Some(glob) = self.glob {
       // Glob maps expose filesystem paths without the resolver's alternative requests.
       self.matches.push(ContextModuleMatchedRequest {
-        request: glob.match_request(path)?,
+        request: glob.match_request(path, self.glob_state)?,
         resource_request: Some(relative_request),
       });
     } else {

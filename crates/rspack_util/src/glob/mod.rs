@@ -1,9 +1,12 @@
 //! Shared glob matching and filesystem traversal.
 
+mod dfa;
+
 use core::fmt;
 use std::sync::Arc;
 
 use cow_utils::CowUtils;
+pub use dfa::{GlobDfa, GlobDfaState, GlobExpression};
 use fast_glob::glob_match;
 use rspack_error::Result;
 use rspack_fs::{ReadableFileSystem, WalkMatcher};
@@ -88,19 +91,30 @@ pub fn glob_match_normalized_with_explicit_dot(
   normalized_base_dir: &str,
   options: &GlobMatchOptions,
 ) -> bool {
-  if options.require_literal_leading_dot
-    && path_has_dot_component(normalized_path, normalized_base_dir)
-    && !pattern_has_explicit_dot_for(
+  glob_allows_dot_components(
+    normalized_pattern,
+    normalized_path,
+    normalized_base_dir,
+    options,
+  ) && glob_match_with_options(normalized_pattern, normalized_path, options)
+}
+
+/// Check the dot-component policy after the compiled matcher accepts a path.
+#[doc(hidden)]
+pub fn glob_allows_dot_components(
+  normalized_pattern: &str,
+  normalized_path: &str,
+  normalized_base_dir: &str,
+  options: &GlobMatchOptions,
+) -> bool {
+  !options.require_literal_leading_dot
+    || !path_has_dot_component(normalized_path, normalized_base_dir)
+    || pattern_has_explicit_dot_for(
       normalized_pattern,
       normalized_base_dir,
       normalized_path,
       options,
     )
-  {
-    return false;
-  }
-
-  glob_match_with_options(normalized_pattern, normalized_path, options)
 }
 
 /// Return whether a character has special meaning in glob patterns.
@@ -194,24 +208,53 @@ pub fn unescape_glob_path(s: &str) -> String {
 }
 
 #[derive(Clone, Copy)]
-struct LegacyGlobMatcher<'a> {
+struct GlobWalkMatcher<'a> {
   pattern: &'a str,
   base_dir: &'a str,
   options: &'a GlobMatchOptions,
+  cursor: Option<GlobDfaState<'a>>,
 }
 
-impl WalkMatcher for LegacyGlobMatcher<'_> {
+impl WalkMatcher for GlobWalkMatcher<'_> {
   const VISIT_ON_METADATA_ERROR: bool = true;
 
-  fn match_entry(self, dir: &Utf8Path, name: &str, is_directory: bool) -> Option<Self> {
-    (is_directory
-      || glob_match_with_explicit_dot(
-        self.pattern,
-        dir.join(name).as_str(),
-        self.base_dir,
-        self.options,
-      ))
-    .then_some(self)
+  fn prepare_child(&self, _dir: &Utf8Path, name: &str) -> Option<Self> {
+    let mut child = *self;
+    if let Some(cursor) = child.cursor {
+      let name = rspack_paths::normalize_path_separators(name);
+      let next = if child.options.case_sensitive {
+        cursor.advance(&name)
+      } else {
+        cursor.advance(&name.cow_to_lowercase())
+      };
+      if !next.can_include() {
+        return None;
+      }
+      child.cursor = Some(next);
+    }
+    Some(child)
+  }
+
+  fn match_entry(mut self, dir: &Utf8Path, name: &str, is_directory: bool) -> Option<Self> {
+    if is_directory {
+      if let Some(cursor) = self.cursor {
+        let next = cursor.advance("/");
+        if !next.can_include() {
+          return None;
+        }
+        self.cursor = Some(next);
+      }
+      return Some(self);
+    }
+    let path = dir.join(name);
+    let path = rspack_paths::normalize_path_separators(path.as_str());
+    let matched = if let Some(cursor) = self.cursor {
+      cursor.matches().next().is_some()
+        && glob_allows_dot_components(self.pattern, &path, self.base_dir, self.options)
+    } else {
+      glob_match_normalized_with_explicit_dot(self.pattern, &path, self.base_dir, self.options)
+    };
+    matched.then_some(self)
   }
 }
 
@@ -245,10 +288,32 @@ pub async fn find_files_by_glob(
     return Ok(if matched { vec![path] } else { Vec::new() });
   }
 
-  let matcher = LegacyGlobMatcher {
+  let program = {
+    let pattern = if options.case_sensitive {
+      std::borrow::Cow::Borrowed(normalized_pattern.as_str())
+    } else {
+      normalized_pattern.cow_to_lowercase()
+    };
+    GlobExpression::new("", &pattern).and_then(|pattern| GlobDfa::new(&[pattern], 1))
+  };
+  let cursor = program.as_ref().map(|program| {
+    let directory = if options.case_sensitive {
+      std::borrow::Cow::Borrowed(base_dir_path.as_str())
+    } else {
+      base_dir_path.as_str().cow_to_lowercase()
+    };
+    let state = program.start().advance(&directory);
+    if directory.ends_with('/') {
+      state
+    } else {
+      state.advance("/")
+    }
+  });
+  let matcher = GlobWalkMatcher {
     pattern: &normalized_pattern,
     base_dir: base_dir_path.as_str(),
     options,
+    cursor,
   };
   let mut results = Vec::new();
   matcher

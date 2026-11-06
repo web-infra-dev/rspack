@@ -92,6 +92,7 @@ quote               = { version = "1.0.47", default-features = false }
 rayon               = { version = "1.12.0", default-features = false }
 ref-cast            = { version = "1.0.27", default-features = false }
 regex               = { version = "1.13.1", default-features = false, features = ["perf"] }
+regex-automata      = { version = "0.4.18", default-features = false, features = ["std", "syntax", "dfa-build"] }
 regex-syntax        = { version = "0.8.11", default-features = false, features = ["std"] }
 regress             = { version = "0.11.1", default-features = false, features = ["pattern"] }
 rustc-hash          = { version = "2.1.3", default-features = false }
