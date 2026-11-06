@@ -143,7 +143,7 @@ type StatsAsset = {
 
 ### 产物信息 \{#asset-info}
 
-`info` 对象包含 Rspack 或插件设置的元数据，尚未设置的可选字段会被省略。其中的共有字段与 [Compilation 产物 API](/api/javascript-api/compilation#getasset) 使用的 `AssetInfo` 含义相同，但 Stats JSON 会将哈希值和关联文件名规范化为数组。
+`info` 对象包含 Rspack 或插件设置的元数据，尚未设置的可选字段会被省略。以下字段也可通过 [Compilation 产物 API](/api/javascript-api/compilation#getasset) 的 `AssetInfo` 访问，字段含义相同。Stats JSON 会将哈希值和关联文件名规范化为数组。
 
 ```ts
 type StatsAssetInfo = {

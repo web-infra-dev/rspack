@@ -141,7 +141,7 @@ type StatsAsset = {
 
 ### Asset info
 
-The `info` object contains metadata set by Rspack or plugins. Optional fields are omitted when they have not been set. The shared fields have the same meanings as in the `AssetInfo` used by [compilation asset APIs](/api/javascript-api/compilation#getasset), but Stats JSON normalizes hash values and related filenames to arrays.
+The `info` object contains metadata set by Rspack or plugins. Optional fields are omitted when they have not been set. The fields below are also available on the `AssetInfo` used by [compilation asset APIs](/api/javascript-api/compilation#getasset), with the same meanings. Stats JSON normalizes hash values and related filenames to arrays.
 
 ```ts
 type StatsAssetInfo = {

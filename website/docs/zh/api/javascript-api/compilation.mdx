@@ -188,7 +188,7 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
 
 ### getAssets
 
-获取产物对象列表。共有 `info` 字段的含义见[产物信息](/api/javascript-api/stats-json#asset-info)。
+获取产物对象列表。`info` 中常见字段的含义见[产物信息](/api/javascript-api/stats-json#asset-info)。
 
 ```ts
 getAssets(): ReadonlyArray<{
@@ -232,7 +232,7 @@ compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
 
 ### getAsset
 
-获取指定名称的产物对象。共有 `info` 字段的含义见[产物信息](/api/javascript-api/stats-json#asset-info)。
+获取指定名称的产物对象。`info` 中常见字段的含义见[产物信息](/api/javascript-api/stats-json#asset-info)。
 
 ```ts
 getAsset(
