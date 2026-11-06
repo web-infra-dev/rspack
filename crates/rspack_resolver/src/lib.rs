@@ -1421,16 +1421,51 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
           Cow::Borrowed(alias_value)
         } else {
           let normalized = alias_path.normalize_with(tail);
-          Cow::Owned(normalized.into_string())
+          // A context alias can target a directory with a resource suffix.
+          // Append the subdirectory to the path before carrying over the suffix.
+          let resource = if self.options.resolve_to_context && tail != "." {
+            Specifier::parse(alias_value)
+              .ok()
+              .filter(|resource| resource.query.is_some() || resource.fragment.is_some())
+          } else {
+            None
+          };
+          match resource {
+            Some(resource)
+              if resource.query.is_some()
+                || !self
+                  .cache
+                  .value(&normalized)
+                  .is_dir(&self.cache.fs, ctx)
+                  .await =>
+            {
+              let path = Utf8Path::new(resource.path()).normalize_with(tail);
+              let path = path.as_str().cow_replace('#', "\0#");
+              Cow::Owned(format!(
+                "{path}{}{}",
+                resource.query.unwrap_or_default(),
+                resource.fragment.unwrap_or_default(),
+              ))
+            }
+            _ => Cow::Owned(normalized.into_string()),
+          }
         }
       };
 
       *should_stop = true;
-      ctx.with_fully_specified(false);
-      return match self.require(cached_path, new_specifier.as_ref(), ctx).await {
-        Err(ResolveError::NotFound(_) | ResolveError::MatchedAliasNotFound(_, _)) => Ok(None),
-        Ok(path) => return Ok(Some(path)),
-        Err(err) => return Err(err),
+      let resolve = async |ctx: &mut Ctx| {
+        ctx.with_fully_specified(false);
+        match self.require(cached_path, new_specifier.as_ref(), ctx).await {
+          Err(ResolveError::NotFound(_) | ResolveError::MatchedAliasNotFound(_, _)) => Ok(None),
+          Ok(path) => Ok(Some(path)),
+          Err(err) => Err(err),
+        }
+      };
+      return if self.options.resolve_to_context {
+        // Failed targets may set a query or fragment. Keep their watched paths.
+        ctx.trace_dependencies_only(resolve).await
+      } else {
+        resolve(ctx).await
       };
     }
     Ok(None)

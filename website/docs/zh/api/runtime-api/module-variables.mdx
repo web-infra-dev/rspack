@@ -260,10 +260,10 @@ function glob(
 ```
 
 - **参数：**
-  - `pattern`：匹配文件的 glob 模式字符串，或 glob 模式字符串数组（例如 `'./dir/*.js'`）。支持 `*`、`?`、`[abc]`、`{a,b}` 以及 `**`（递归匹配）。不以相对路径符号开头的模式可以使用 `resolve.alias`（例如 `'@/pages/*.js'`）；当文件位于项目根目录内时，返回对象的 key 使用相对于项目根目录的解析后路径。数组模式也可以包含负向模式，例如 `'!**/bar.js'`。
+  - `pattern`：匹配文件的 glob 模式字符串，或 glob 模式字符串数组（例如 `'./dir/*.js'`）。支持 `*`、`?`、`[abc]`、`{a,b}` 以及 `**`（递归匹配）。不以相对路径符号开头的模式可以使用 `resolve.alias`（例如 `'@/pages/*.js'`）；当文件位于项目根目录内时，返回对象的 key 使用相对于项目根目录的解析后路径。数组模式也可以包含负向模式，例如 `'!**/bar.js'`。正向和负向模式中的 alias 会分别解析，因此 `'!@/**/bar.js'` 可以排除 `'@/pages/*.js'` 匹配到的文件。未匹配 alias 的模式仍相对于导入文件解析，`'./@/pages/*.js'` 始终表示相对目录。
   - `options.eager`：设置为 `true` 时，模块直接包含在 bundle 中并同步加载。默认为 `false`，模块会延迟加载，每个值是一个返回 `Promise` 的 thunk 函数。
   - `options.import`：只导入每个匹配模块的指定导出。例如使用 `'default'` 获取默认导出，或使用 `'setup'` 这样的具名导出。
-  - `options.query`：为每个匹配模块请求追加 query。可以是 `'?raw'` 这样的 query 字符串，也可以是会序列化为 URL query 字符串的对象。`import.meta.glob()` 返回对象中的 key 不包含 query。
+  - `options.query`：为每个匹配模块请求追加 query。可以是 `'?raw'` 这样的 query 字符串，也可以是会序列化为 URL query 字符串的对象。`import.meta.glob()` 返回对象中的 key 不包含 query。alias 中的 query 和 fragment 分别应用于该 alias 匹配到的文件，多个模式使用不同 alias 时也会各自保留。alias 的 query 会覆盖 `options.query`；如果 alias 只提供 fragment，则保留 `options.query`。
   - `options.exhaustive`：搜索 `node_modules` 和隐藏路径中的文件。默认关闭，因为可能增加构建时间。
   - `options.base`：用于解析相对 glob 模式和返回 key 的 base 路径。绝对 glob 模式仍从项目根目录解析，但返回 key 会相对于 `base`。
   - `options.caseSensitive`：是否区分文件路径大小写。设置为 `false` 时忽略大小写匹配，返回对象的 key 保留文件系统原始大小写。默认为 `true`。
