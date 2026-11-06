@@ -177,9 +177,13 @@ type StatsAssetInfo = {
 } & Record<string, any>;
 ```
 
+#### javascriptModule
+
 `javascriptModule` 为 `true` 时，表示该 JavaScript 产物采用 ES module 格式。Rspack 生成 JavaScript chunk 时，会根据 [output.module](/config/output#outputmodule) 设置此标记。
 
 并非每个 JavaScript 产物都包含此字段。例如，[CopyRspackPlugin](/plugins/copy-rspack-plugin) 可以将已有的 `public/vendor.js` 文件复制到 `dist/vendor.js`。该插件不会根据文件内容或扩展名判断模块格式，因此不会为这个新增的产物设置 `javascriptModule`。即使没有此字段，文件仍可能是 ES module。
+
+#### related
 
 `info.related` 按关联类型列出文件名。例如，`{ sourceMap: ['main.js.map'] }` 表示该产物的 source map 文件为 `main.js.map`。启用 [stats.relatedAssets](/config/stats#statsrelatedassets) 后，产物顶层的 `related` 字段还可以包含关联产物的统计对象。
 
