@@ -46,7 +46,133 @@ async function expectWarmAndUncached(first, root, rules, configuration, expected
   expectEqualOutput(await build(root, rules, false, configuration), first);
 }
 
+// A source map would embed the authored text and could hide what the literal became.
+const withoutMaps = { devtool: false };
+const targeting = target => ({ ...swcOptions, jsc: { ...swcOptions.jsc, target } });
+const inTemplate = text => JSON.stringify(text).slice(1, -1);
+const authoredSpellings = [
+  {
+    name: "es5-template",
+    file: "spelled.jsx",
+    target: "es5",
+    source: (dir, file) => `export const fixed = \`${dir}\${"${file}"}\`;`
+  },
+  {
+    name: "es2020-template",
+    file: "spelled.jsx",
+    target: "es2020",
+    source: (dir, file) => `export const fixed = \`${dir}\${"${file}"}\`;`
+  },
+  {
+    name: "es5-tagged-template",
+    file: "spelled.jsx",
+    target: "es5",
+    source: (dir, file) => `const first = strings => strings[0];
+export const fixed = first\`${dir}${file}\`;`
+  },
+  {
+    name: "es5-template-numeric-literal",
+    file: "v1.jsx",
+    target: "es5",
+    source: dir => `export const fixed = \`${dir}v\${1}.jsx\`;`
+  },
+  {
+    name: "enum-string-initializer",
+    file: "spelled.tsx",
+    target: "es2020",
+    source: (dir, file) => `enum Paths { File = "${dir}" + "${file}" }
+export const fixed = Paths.File;`
+  },
+  {
+    name: "enum-exponent-format",
+    file: "v1000.tsx",
+    target: "es2020",
+    source: dir => `enum Paths { File = "${dir}v" + 1e3 + ".tsx" }
+export const fixed = Paths.File;`
+  },
+  {
+    name: "enum-hex-format",
+    file: "v16.tsx",
+    target: "es2020",
+    source: dir => `enum Paths { File = "${dir}v" + 0x10 + ".tsx" }
+export const fixed = Paths.File;`
+  },
+  {
+    name: "enum-arithmetic",
+    file: "v3.tsx",
+    target: "es2020",
+    source: dir => `enum Paths { File = "${dir}v" + (1 + 2) + ".tsx" }
+export const fixed = Paths.File;`
+  },
+  {
+    name: "enum-auto-increment",
+    file: "v1.tsx",
+    target: "es2020",
+    source: dir => `enum Paths { First, Second, File = \`${dir}v\${Second}.tsx\` }
+export const fixed = Paths.File;`
+  },
+  {
+    name: "enum-large-number",
+    file: "v1e+21.tsx",
+    target: "es2020",
+    source: dir => `enum Paths { File = "${dir}v" + 1e21 + ".tsx" }
+export const fixed = Paths.File;`
+  },
+  {
+    name: "enum-not-a-number",
+    file: "vNaN.tsx",
+    target: "es2020",
+    source: dir => `enum Paths { File = "${dir}v" + NaN + ".tsx" }
+export const fixed = Paths.File;`
+  },
+  {
+    name: "enum-joined-surrogates",
+    file: "😀.tsx",
+    target: "es2020",
+    source: dir => `enum Paths { File = "${dir}\\ud83d" + "\\ude00.tsx" }
+export const fixed = Paths.File;`
+  }
+];
+
 export default [
+  ...authoredSpellings.map(({ name, file, target, source }) => ({
+    name: `authored-spelling-${name}`,
+    description: "keeps a path spelled by authored literals fixed when a relocated build could otherwise rewrite it",
+    async run() {
+      await withProjects(async (writer, reader) => {
+        const dir = inTemplate(path.join(writer, "src") + path.sep);
+        writeProject(writer, { [file]: source(dir, file) });
+        const rules = [swcRule(/\.(jsx|tsx)$/, targeting(target))];
+        const fixed = path.join(writer, "src", file);
+        const first = await build(writer, rules, undefined, withoutMaps);
+        expect(first.values[0].fixed).toBe(fixed);
+        copyProject(writer, reader);
+        const moved = await build(reader, rules, undefined, withoutMaps);
+        expect(moved.values[0].fixed).toBe(fixed);
+        await expectColdEquality(moved, reader, rules, withoutMaps);
+      });
+    }
+  })),
+  {
+    name: "short-fragments-keep-certification",
+    description: "keeps reusing a module whose literals and numeric enum cover only part of the path while relocating its JSX filename",
+    async run() {
+      await withProjects(async (writer, reader) => {
+        writeProject(writer, {
+          "component.tsx": jsxSource(`enum Flags { A = 1 << 0, B = 1 << 1 }
+export const parts = ["/", "src", ".tsx", \`/\${"src"}/\`, Flags.B, true, null, 1];`)
+        });
+        const rules = [swcRule(/\.tsx$/, targeting("es5"))];
+        const first = await build(writer, rules, undefined, withoutMaps);
+        expect(first.built).toEqual(["component.tsx"]);
+        copyProject(writer, reader);
+        const moved = await build(reader, rules, undefined, withoutMaps);
+        expect(moved.built).toEqual([]);
+        expect(moved.values[0].value.fileName).toBe(path.join(reader, "src", "component.tsx"));
+        await expectColdEquality(moved, reader, rules, withoutMaps);
+      });
+    }
+  },
   ...[false, true].map(portableOutput => ({
     name: `async-map-filesystem-${portableOutput ? "portable" : "default"}`,
     description: "acquires absent and virtual-only adjacent input maps through async filesystem callbacks on native and WASI bindings",
