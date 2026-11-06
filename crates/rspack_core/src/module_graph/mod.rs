@@ -163,6 +163,40 @@ pub struct ModuleGraph {
   pub(super) inner: ModuleGraphData,
 }
 
+/// Per-table memory accounting for the dense, id-indexed module graph storage.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ModuleGraphDenseStorageStats {
+  pub dependencies: rollback::DenseStorageStats,
+  pub dependency_id_to_parents: rollback::DenseStorageStats,
+  pub connection_to_condition: rollback::DenseStorageStats,
+  pub dep_meta_map: rollback::DenseStorageStats,
+  pub dependency_id_to_connection_id: rollback::DenseStorageStats,
+  pub dependency_id_to_connection_id_overlay: rollback::DenseStorageStats,
+  pub connections: rollback::DenseStorageStats,
+  pub connections_overlay: rollback::DenseStorageStats,
+}
+
+impl ModuleGraphDenseStorageStats {
+  pub fn tables(&self) -> [(&'static str, rollback::DenseStorageStats); 8] {
+    [
+      ("dependencies", self.dependencies),
+      ("dependency_id_to_parents", self.dependency_id_to_parents),
+      ("connection_to_condition", self.connection_to_condition),
+      ("dep_meta_map", self.dep_meta_map),
+      (
+        "dependency_id_to_connection_id",
+        self.dependency_id_to_connection_id,
+      ),
+      (
+        "dependency_id_to_connection_id(overlay)",
+        self.dependency_id_to_connection_id_overlay,
+      ),
+      ("connections", self.connections),
+      ("connections(overlay)", self.connections_overlay),
+    ]
+  }
+}
+
 impl ModuleGraph {
   // checkpoint
   pub fn checkpoint(&mut self) {
@@ -171,6 +205,23 @@ impl ModuleGraph {
   // reset to last checkpoint
   pub fn reset(&mut self) {
     self.inner.recover()
+  }
+
+  /// Walks every dense storage table; intended for diagnostics and benchmarks only.
+  pub fn dense_storage_stats(&self) -> ModuleGraphDenseStorageStats {
+    let (dependency_id_to_connection_id, dependency_id_to_connection_id_overlay) =
+      self.inner.dependency_id_to_connection_id.stats();
+    let (connections, connections_overlay) = self.inner.connections.stats();
+    ModuleGraphDenseStorageStats {
+      dependencies: self.inner.dependencies.stats(),
+      dependency_id_to_parents: self.inner.dependency_id_to_parents.stats(),
+      connection_to_condition: self.inner.connection_to_condition.stats(),
+      dep_meta_map: self.inner.dep_meta_map.stats(),
+      dependency_id_to_connection_id,
+      dependency_id_to_connection_id_overlay,
+      connections,
+      connections_overlay,
+    }
   }
 }
 

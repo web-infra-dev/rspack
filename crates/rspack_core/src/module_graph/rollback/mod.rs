@@ -8,3 +8,7 @@ pub mod map;
 pub use map::*;
 pub mod overlay_map;
 pub use overlay_map::*;
+pub mod paged_slots;
+pub use paged_slots::*;
+pub mod stats;
+pub use stats::*;

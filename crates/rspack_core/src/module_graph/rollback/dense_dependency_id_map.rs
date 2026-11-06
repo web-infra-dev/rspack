@@ -1,48 +1,43 @@
+use super::{DenseStorageStats, PagedSlots};
 use crate::DependencyId;
 
+/// `DependencyId`-indexed map backed by [`PagedSlots`].
+///
+/// `DependencyId`s are allocated by a counter that never goes back, so storage
+/// must release the slots of removed dependencies instead of keeping one slot
+/// per id ever allocated.
 #[derive(Debug)]
 pub struct DenseDependencyIdMap<V> {
-  values: Vec<Option<V>>,
+  values: PagedSlots<V>,
 }
 
 impl<V> Default for DenseDependencyIdMap<V> {
   fn default() -> Self {
-    Self { values: Vec::new() }
+    Self {
+      values: PagedSlots::default(),
+    }
   }
 }
 
 impl<V> DenseDependencyIdMap<V> {
   #[inline]
   pub fn insert(&mut self, key: DependencyId, value: V) -> Option<V> {
-    let index = key.as_u32() as usize;
-    if self.values.len() <= index {
-      self.values.resize_with(index + 1, || None);
-    }
-    self.values[index].replace(value)
+    self.values.insert(key.as_u32() as usize, value)
   }
 
   #[inline]
   pub fn remove(&mut self, key: &DependencyId) -> Option<V> {
-    self
-      .values
-      .get_mut(key.as_u32() as usize)
-      .and_then(Option::take)
+    self.values.remove(key.as_u32() as usize)
   }
 
   #[inline]
   pub fn get(&self, key: &DependencyId) -> Option<&V> {
-    self
-      .values
-      .get(key.as_u32() as usize)
-      .and_then(Option::as_ref)
+    self.values.get(key.as_u32() as usize)
   }
 
   #[inline]
   pub fn get_mut(&mut self, key: &DependencyId) -> Option<&mut V> {
-    self
-      .values
-      .get_mut(key.as_u32() as usize)
-      .and_then(Option::as_mut)
+    self.values.get_mut(key.as_u32() as usize)
   }
 
   #[inline]
@@ -52,11 +47,14 @@ impl<V> DenseDependencyIdMap<V> {
 
   #[inline]
   pub fn iter(&self) -> impl Iterator<Item = (DependencyId, &V)> {
-    self.values.iter().enumerate().filter_map(|(index, value)| {
-      value
-        .as_ref()
-        .map(|value| (DependencyId::from(index as u32), value))
-    })
+    self
+      .values
+      .iter()
+      .map(|(index, value)| (DependencyId::from(index as u32), value))
+  }
+
+  pub fn stats(&self) -> DenseStorageStats {
+    self.values.stats()
   }
 }
 
