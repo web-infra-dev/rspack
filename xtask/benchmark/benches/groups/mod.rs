@@ -5,4 +5,5 @@ pub mod diagnostics;
 pub mod javascript_compiler_source_map;
 pub mod module_graph_api;
 pub mod persistent_cache;
+pub mod rebuild;
 pub mod scan_dependencies;

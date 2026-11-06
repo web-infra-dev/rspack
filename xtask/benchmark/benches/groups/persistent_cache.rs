@@ -214,7 +214,7 @@ fn benchcase_dir() -> PathBuf {
   benchcases_root_dir().join(BENCHCASE_NAME)
 }
 
-fn benchcases_root_dir() -> PathBuf {
+pub(crate) fn benchcases_root_dir() -> PathBuf {
   let benchcases_dir = std::env::var("RSPACK_BENCHCASES_DIR")
     .expect("RSPACK_BENCHCASES_DIR must be set to an absolute path");
   PathBuf::from(benchcases_dir).canonicalize().unwrap()
@@ -244,7 +244,7 @@ fn fresh_workspace_dir() -> PathBuf {
 // Recursive copy that preserves symlinks. The bench fixture uses symlinked
 // `node_modules` entries, so following links here would silently change the
 // layout being benchmarked.
-fn copy_dir_all(from: &Path, to: &Path) -> std::io::Result<()> {
+pub(crate) fn copy_dir_all(from: &Path, to: &Path) -> std::io::Result<()> {
   fs::create_dir_all(to)?;
 
   for entry in fs::read_dir(from)? {
