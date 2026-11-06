@@ -1,0 +1,7 @@
+.card {
+  view-transition-name: hero;
+}
+
+::view-transition-old(hero) {
+  animation-duration: 300ms;
+}
