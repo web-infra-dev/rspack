@@ -2,18 +2,21 @@ use rspack_cacheable::utils::root_patterns;
 
 fn patterns(root: &str) -> Vec<String> {
   root_patterns(root)
+    .patterns
     .into_iter()
     .map(|pattern| String::from_utf8(pattern).expect("root patterns are UTF-8"))
     .collect()
 }
 
 fn matches(root: &str, haystack: &str) -> bool {
-  root_patterns(root).iter().any(|pattern| {
-    haystack
-      .as_bytes()
-      .windows(pattern.len())
-      .any(|w| w == pattern)
-  })
+  let patterns = root_patterns(root);
+  patterns.bind_all
+    || patterns.patterns.iter().any(|pattern| {
+      haystack
+        .as_bytes()
+        .windows(pattern.len())
+        .any(|w| w == pattern)
+    })
 }
 
 #[test]
@@ -139,6 +142,8 @@ fn short_root_patterns_keep_all_stable_base64_characters() {
 
 #[test]
 fn one_byte_root_requires_binding_without_empty_patterns() {
+  assert!(root_patterns("/").bind_all);
+  assert!(!root_patterns("/app").bind_all);
   assert!(patterns("/").iter().all(|pattern| !pattern.is_empty()));
   for value in ["", "unrelated", "eyJmaWxlIjoiL290aGVyL2luZGV4LmpzIn0="] {
     assert!(matches("/", value), "{value}");
