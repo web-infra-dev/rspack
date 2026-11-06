@@ -113,14 +113,24 @@ RSPACK_ALLOCATIVE_DIR=/tmp/rspack-memory \
   node --expose-gc packages/rspack-cli/bin/rspack.js build
 ```
 
-When `RSPACK_ALLOCATIVE_DIR` is set, Rspack installs an internal hook on `globalThis`. After build or rebuild cache finalization, the allocative binding calls that hook on the owning JavaScript thread and waits for it to run `gc()` and write the V8 heap snapshot before traversing the Rust compiler. Each capture produces matching `.heapsnapshot`, `.allocative`, and `.objects.json` files. Standalone Rust workloads without a registered callback continue to produce Rust profiles only. Only one V8 environment can register the callback in a process.
+When `RSPACK_ALLOCATIVE_DIR` is set, Rspack installs an internal hook on `globalThis`. After build or rebuild cache finalization, the allocative binding waits for the hook to run `gc()` and write the V8 heap snapshot before traversing the Rust compiler. The `.heapsnapshot` file goes in `v8/` under the profile directory. The matching Rust `.allocative` and `.objects.json` files go in the profile directory itself. Standalone Rust workloads without a registered callback produce Rust profiles only. One V8 environment per process can register the callback.
 
 In an allocative build, native class instances have non-enumerable, read-only string properties `__rspackRustPtr` and `__rspackRustType`. The pointer identifies the Rust binding wrapper at its final N-API address. It is distinct from the address of a module or resolver referenced by that wrapper. Weak registration records live wrappers without keeping them alive or traversing their potentially active native targets. The compiler traversal measures native memory separately; binding identity records add no byte weights.
+
+By default, the V8 snapshot is redacted in memory before it is written. It keeps node types, IDs, references, and shallow sizes. V8 object names, string values, property names, and source locations are removed. Rspack matches pointers in memory and records the V8 node ID in the Rust identity file. To save a V8 snapshot with its original content, set `RSPACK_ALLOCATIVE_INCLUDE_CONTENT=1` when running the workload.
 
 Convert a matching capture pair into folded stacks accepted by the existing allocative flamegraph renderer:
 
 ```bash
-node scripts/v8-to-allocative.mjs /tmp/rspack-memory/0-build.heapsnapshot
+node scripts/v8-to-allocative.mjs /tmp/rspack-memory/v8/0-build.heapsnapshot
 ```
 
-The script writes `.js.allocative`, `.combined.allocative`, and `.links.json` files. The links report matches V8 node IDs to Rust wrapper addresses, types, and paths. JavaScript byte weights use each V8 node's shallow `self_size` once, attributed to the first strong owner found by breadth-first traversal. Shared references and cycles are deduplicated; weak edges do not establish ownership. This attribution is not a dominator tree or retained size. Paths are limited to 32 frames by default; use `--max-depth` to change the limit. Objects without a strong path from the root are grouped separately. These profiles do not measure RSS or peak memory, and addresses are meaningful only within the same process capture.
+The script writes `.js.allocative`, `.combined.allocative`, and `.links.json` under `reports/` in the profile directory. Use `--out-dir` to select another existing directory. Reports use V8 node types and sizes by default, even when the input contains the original data. To include V8 object names and string values in the reports, pass `--include-content` with a snapshot captured with the original content.
+
+The links report associates V8 node IDs with Rust wrapper types and paths. Its `category_bytes` field counts each V8 node's shallow `self_size` once across three categories.
+
+- **V8 source and code** includes code nodes such as bytecode and compilation metadata, plus script source strings and their backing storage found before redaction.
+- **Rspack** includes matched binding wrappers, marked JavaScript `Compiler`, `Compilation`, and `Cache` instances, and objects whose strong paths from the heap root all pass through these instances.
+- **Shared or unknown** includes the remaining objects, including ones that are still reachable when those Rspack roots are excluded.
+
+The JS flamegraph groups frames by category, and `.js.<category>.allocative` contains the folded stacks for one category. The combined flamegraph also groups eligible JS frames under their matched Rust wrapper paths. Weak edges are ignored for attribution. Paths are limited to 32 frames by default. Use `--max-depth` to change the limit. Capture a fresh snapshot for full category coverage if an older redacted snapshot lacks source and Rspack root tags.

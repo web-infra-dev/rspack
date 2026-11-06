@@ -12,8 +12,13 @@ assert.equal(
 const hookName = '__rspack_internal_runJsSnapshot';
 let snapshotCalls = 0;
 const { rspack } = require('@rspack/core');
+if (process.env.ALLOCATIVE_TEST_CONTENT) {
+  const content = process.env.ALLOCATIVE_TEST_CONTENT;
+  globalThis[content] = { [content]: content };
+}
 const seen = [];
 let enabled;
+let releasedAfterSnapshot;
 const retained = [];
 const check = (object, source) => {
   assert(object);
@@ -47,7 +52,14 @@ const compiler = rspack({
             Object.defineProperty(globalThis, hookName, {
               value(snapshotPath) {
                 snapshotCalls++;
-                runSnapshot(snapshotPath);
+                const pending = runSnapshot(snapshotPath);
+                if (releasedAfterSnapshot) {
+                  queueMicrotask(() => {
+                    releasedAfterSnapshot = undefined;
+                    globalThis.gc?.();
+                  });
+                }
+                return pending;
               },
             });
           }
@@ -73,6 +85,18 @@ const compiler = rspack({
             const constructed = new binding.JsResolverFactory(false, {}, {});
             assert(constructed instanceof binding.JsResolverFactory);
             check(constructed, 'JavaScript constructor');
+
+            if (
+              enabled &&
+              process.env.RSPACK_ALLOCATIVE_INCLUDE_CONTENT !== '1'
+            ) {
+              // This wrapper is live in the heap graph but can die while V8 serializes it.
+              releasedAfterSnapshot = new binding.JsResolverFactory(
+                false,
+                {},
+                {},
+              );
+            }
 
             const returned = constructed.get('normal', {});
             assert(returned instanceof binding.JsResolver);

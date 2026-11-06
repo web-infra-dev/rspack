@@ -70,7 +70,10 @@ import {
 import { TraceHookPlugin } from './trace/traceHookPlugin';
 import { JavaScriptTracer } from './trace';
 import { unsupported } from './util';
-import { installAllocativeSnapshotHook } from './util/allocative';
+import {
+  installAllocativeSnapshotHook,
+  markAllocativeRoot,
+} from './util/allocative';
 import { assertNotNill } from './util/assertNotNil';
 import { checkVersion } from './util/bindingVersionCheck';
 import type {
@@ -317,6 +320,8 @@ class Compiler {
 
     this.options = options;
     this.context = context;
+    installAllocativeSnapshotHook();
+    markAllocativeRoot(this, 'Compiler');
     this.cache = new Cache();
 
     this.compilerPath = '';
@@ -341,7 +346,6 @@ class Compiler {
         'Cannot execute user defined code in browser without `BrowserRequirePlugin`',
       );
     };
-    installAllocativeSnapshotHook();
     // this is a bit tricky since applyDefaultOptions is executed later, so we don't get the `resolve.pnp` default value
     // we need to call pnp defaultValue early here
     this.resolverFactory = new ResolverFactory(

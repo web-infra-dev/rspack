@@ -286,7 +286,7 @@ pub async fn snapshot_allocative(
   let snapshot = format!("{}-{name}", COUNT.fetch_add(1, Ordering::Relaxed));
   // GC can release native wrappers, so collect JS before traversing Rust.
   let mut builder =
-    rspack_allocative::snapshot::capture(dir.join(format!("{snapshot}.heapsnapshot")))
+    rspack_allocative::snapshot::capture(dir.join("v8").join(format!("{snapshot}.heapsnapshot")))
       .await
       .map_err(|message| {
         rspack_error::error!("JavaScript allocative snapshot failed: {message}")

@@ -1,7 +1,21 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import {
+  closeSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
+import {
+  isRspackRootKind,
+  readBindingMarker,
+  readHeapCategories,
+  readHeapGraph,
+} from '../packages/rspack/src/util/heapSnapshot.mjs';
 
 // Match allocative's folded-stack escaping. Weights are shallow bytes, never
 // retained sizes: shared objects and cycles must contribute only once.
@@ -12,120 +26,152 @@ export function escapeFrame(value) {
   );
 }
 
-export function convert(snapshot, identities, maxDepth = 32) {
-  const { meta } = snapshot.snapshot;
-  const nodeFields = meta.node_fields;
-  const edgeFields = meta.edge_fields;
-  const nodeWidth = nodeFields.length;
-  const edgeWidth = edgeFields.length;
-  const { nodes, edges, strings } = snapshot;
-  const field = (fields, name) => {
-    const index = fields.indexOf(name);
-    if (index < 0) throw new Error(`Missing V8 snapshot field: ${name}`);
-    return index;
-  };
-  const nt = field(nodeFields, 'type');
-  const nn = field(nodeFields, 'name');
-  const ni = field(nodeFields, 'id');
-  const ns = field(nodeFields, 'self_size');
-  const nc = field(nodeFields, 'edge_count');
-  const et = field(edgeFields, 'type');
-  const en = field(edgeFields, 'name_or_index');
-  const to = field(edgeFields, 'to_node');
-  const nodeTypes = meta.node_types[nt];
-  const edgeTypes = meta.edge_types[et];
-  const count = nodes.length / nodeWidth;
-  if (!Number.isInteger(count) || edges.length % edgeWidth !== 0 || !count) {
-    throw new Error('Invalid V8 snapshot array lengths');
-  }
-  const offsets = new Float64Array(count + 1);
-  for (let i = 0; i < count; i++) {
-    offsets[i + 1] = offsets[i] + nodes[i * nodeWidth + nc] * edgeWidth;
-  }
-  if (offsets[count] !== edges.length)
-    throw new Error('Invalid V8 edge counts');
-  const target = (edge) => {
-    const offset = edges[edge + to];
-    if (offset % nodeWidth || offset < 0 || offset >= nodes.length) {
-      throw new Error(`Invalid V8 edge target: ${offset}`);
+const categoryLabels = {
+  v8_code: 'V8 source and code',
+  rspack: 'Rspack',
+  shared_or_unknown: 'Shared or unknown',
+};
+
+function strongPaths(graph, blocked = new Set()) {
+  const { count, offsets, edgeWidth, target, edgeType } = graph;
+  const parents = new Int32Array(count).fill(-1);
+  const queue = new Uint32Array(count);
+  parents[0] = 0;
+  queue[0] = 0;
+  let reachable = 1;
+  for (let start = 0; start < reachable; start++) {
+    const i = queue[start];
+    for (let edge = offsets[i]; edge < offsets[i + 1]; edge += edgeWidth) {
+      if (edgeType(edge) === 'weak') continue;
+      const child = target(edge);
+      if (parents[child] !== -1 || blocked.has(child)) continue;
+      parents[child] = i;
+      queue[reachable++] = child;
     }
-    return offset / nodeWidth;
-  };
-  const nodeName = (i) => strings[nodes[i * nodeWidth + nn]];
-  const nodeType = (i) => nodeTypes[nodes[i * nodeWidth + nt]];
+  }
+  return { parents, reachable };
+}
+
+function fold(samples) {
+  return [...samples]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([stack, size]) => `${stack} ${size}\n`)
+    .join('');
+}
+
+export function convert(
+  snapshot,
+  identities,
+  { maxDepth = 32, includeContent = false } = {},
+) {
+  const redacted = Array.isArray(snapshot.rspack_binding_nodes);
+  if (redacted && includeContent) {
+    throw new Error(
+      'This V8 snapshot is redacted. Capture with RSPACK_ALLOCATIVE_INCLUDE_CONTENT=1 to include content in reports.',
+    );
+  }
+  const graph = readHeapGraph(snapshot);
+  const { count, nodeType, nodeName, nodeSize, nodeId } = graph;
+  const { sourceNodeIds, rspackRoots } = redacted
+    ? {
+        sourceNodeIds: snapshot.rspack_v8_source_nodes ?? [],
+        rspackRoots: snapshot.rspack_js_roots ?? [],
+      }
+    : readHeapCategories(graph);
+  const v8Sources = new Set(sourceNodeIds);
+  const jsRoots = new Map(
+    rspackRoots.filter(([, kind]) => isRspackRootKind(kind)),
+  );
+  const bindingNodes = new Set(snapshot.rspack_binding_nodes);
   const native = new Map();
   for (const object of identities.objects) {
-    const key = `${object.address.toLowerCase()}:${object.type_name}`;
+    const key = redacted
+      ? object.js_node_id
+      : object.address && `${object.address.toLowerCase()}:${object.type_name}`;
+    if (key === undefined) continue;
     const matches = native.get(key) ?? [];
     matches.push(object);
     native.set(key, matches);
   }
   const bindings = new Map();
+  const rspackAnchors = new Set();
   const links = [];
   for (let i = 0; i < count; i++) {
-    let pointer;
-    let type;
-    for (let e = offsets[i]; e < offsets[i + 1]; e += edgeWidth) {
-      if (edgeTypes[edges[e + et]] !== 'property') continue;
-      const name = strings[edges[e + en]];
-      if (name !== '__rspackRustPtr' && name !== '__rspackRustType') continue;
-      const value = target(e);
-      if (nodeType(value) !== 'string') continue;
-      if (name === '__rspackRustPtr') pointer = nodeName(value);
-      else type = nodeName(value);
-    }
-    if (!pointer || !type || !/^0x[0-9a-f]+$/i.test(pointer)) continue;
-    const matches = native.get(`${pointer.toLowerCase()}:${type}`) ?? [];
+    const id = nodeId(i);
+    if (jsRoots.has(id)) rspackAnchors.add(i);
+    const marker = redacted ? undefined : readBindingMarker(graph, i);
+    if (!bindingNodes.has(id) && !marker) continue;
+    const key = marker ? `${marker[1]}:${marker[2]}` : id;
+    const matches = native.get(key) ?? [];
     const link = {
-      js_node_id: nodes[i * nodeWidth + ni],
-      js_name: nodeName(i),
-      rust_address: pointer,
-      rust_type: type,
-      rust_objects: matches,
+      js_node_id: id,
+      node_type: nodeType(i),
+      self_size: nodeSize(i),
+      rust_objects: includeContent
+        ? matches
+        : matches.map(({ type_name, path }) => ({ type_name, path })),
     };
+    if (includeContent) {
+      link.js_name = nodeName(i);
+      link.rust_address = marker[1];
+      link.rust_type = marker[2];
+    }
     links.push(link);
-    if (matches.length) bindings.set(i, link);
+    if (matches.length) {
+      bindings.set(i, link);
+      rspackAnchors.add(i);
+    }
   }
 
-  // A first-strong-owner BFS spanning forest. This is an attribution policy,
-  // not V8's dominator tree. Weak edges never establish ownership.
-  const parents = new Int32Array(count).fill(-1);
-  const queue = new Uint32Array(count);
-  parents[0] = 0;
-  queue[0] = 0;
-  let end = 1;
-  for (let start = 0; start < end; start++) {
-    const i = queue[start];
-    for (let e = offsets[i]; e < offsets[i + 1]; e += edgeWidth) {
-      if (edgeTypes[edges[e + et]] === 'weak') continue;
-      const child = target(e);
-      if (parents[child] !== -1) continue;
-      parents[child] = i;
-      queue[end++] = child;
-    }
-  }
-  const samples = new Map();
+  // The first pass supplies representative paths. A node is exclusive to
+  // Rspack when removing all Rspack anchors cuts every strong path to it.
+  const { parents, reachable } = strongPaths(graph);
+  const outside = rspackAnchors.size
+    ? strongPaths(graph, rspackAnchors).parents
+    : parents;
+  const samples = {
+    v8_code: new Map(),
+    rspack: new Map(),
+    shared_or_unknown: new Map(),
+  };
+  const categoryBytes = { v8_code: 0, rspack: 0, shared_or_unknown: 0 };
+  const combinedRspack = new Map();
   let totalBytes = 0;
   let unreachableBytes = 0;
   for (let i = 0; i < count; i++) {
-    const size = nodes[i * nodeWidth + ns];
+    const size = nodeSize(i);
     if (!Number.isSafeInteger(size) || size < 0)
       throw new Error('Invalid V8 self_size');
     totalBytes += size;
     if (!size) continue;
     if (parents[i] === -1) unreachableBytes += size;
+    const category =
+      nodeType(i) === 'code' || v8Sources.has(nodeId(i))
+        ? 'v8_code'
+        : rspackAnchors.has(i) || (parents[i] !== -1 && outside[i] === -1)
+          ? 'rspack'
+          : 'shared_or_unknown';
+    categoryBytes[category] += size;
     const frames = [];
     let cursor = i;
-    let prefix = ['JavaScript'];
+    const prefix = ['JavaScript', categoryLabels[category]];
+    let nativePath;
     let remaining = maxDepth;
     while (true) {
-      const binding = bindings.get(cursor);
-      if (binding) {
-        prefix = [...binding.rust_objects[0].path, 'JavaScript'];
-        frames.push(`${nodeType(cursor)}: ${nodeName(cursor)}`);
-        break;
+      const type = nodeType(cursor);
+      const jsRoot =
+        category === 'rspack' ? jsRoots.get(nodeId(cursor)) : undefined;
+      frames.push(
+        includeContent ? `${type}: ${nodeName(cursor)}` : (jsRoot ?? type),
+      );
+      if (category === 'rspack') {
+        const binding = bindings.get(cursor);
+        if (binding) {
+          nativePath = binding.rust_objects[0].path;
+          break;
+        }
+        if (jsRoot) break;
       }
-      frames.push(`${nodeType(cursor)}: ${nodeName(cursor)}`);
       if (parents[cursor] === -1) {
         prefix.push('[unreachable by strong edges]');
         break;
@@ -138,23 +184,42 @@ export function convert(snapshot, identities, maxDepth = 32) {
       }
     }
     const stack = [...prefix, ...frames.reverse()].map(escapeFrame).join(';');
-    samples.set(stack, (samples.get(stack) ?? 0) + size);
+    const categorySamples = samples[category];
+    categorySamples.set(stack, (categorySamples.get(stack) ?? 0) + size);
+    if (category === 'rspack') {
+      const combinedStack = nativePath
+        ? `${nativePath.map(escapeFrame).join(';')};${stack}`
+        : stack;
+      combinedRspack.set(
+        combinedStack,
+        (combinedRspack.get(combinedStack) ?? 0) + size,
+      );
+    }
   }
+  const categoryFolded = {
+    v8_code: fold(samples.v8_code),
+    rspack: fold(samples.rspack),
+    shared_or_unknown: fold(samples.shared_or_unknown),
+  };
   return {
-    folded: [...samples]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([stack, size]) => `${stack} ${size}\n`)
-      .join(''),
+    folded: Object.values(categoryFolded).join(''),
+    combinedFolded:
+      categoryFolded.v8_code +
+      fold(combinedRspack) +
+      categoryFolded.shared_or_unknown,
+    categoryFolded,
     report: {
       snapshot: identities.snapshot,
       unit: 'bytes',
+      includes_content: includeContent,
       attribution:
-        'first strong owner by BFS; shallow self_size, not retained size; paths bounded by maxDepth',
+        'code and script source first; marked Rspack roots and nodes reachable only through them; all other nodes shared or unknown; shallow self_size once per node',
       max_depth: maxDepth,
       represented_bytes: totalBytes,
       node_count: count,
-      strong_reachable_nodes: end,
+      strong_reachable_nodes: reachable,
       unreachable_bytes: unreachableBytes,
+      category_bytes: categoryBytes,
       matched_bindings: links.filter((link) => link.rust_objects.length).length,
       unmatched_bindings: links.filter((link) => !link.rust_objects.length)
         .length,
@@ -170,11 +235,12 @@ export function main(args = process.argv.slice(2)) {
     options: {
       'out-dir': { type: 'string' },
       'max-depth': { type: 'string', default: '32' },
+      'include-content': { type: 'boolean', default: false },
     },
   });
   if (positionals.length !== 1) {
     throw new Error(
-      'Usage: node scripts/v8-to-allocative.mjs <prefix.heapsnapshot> [--out-dir <existing-dir>] [--max-depth 32]',
+      'Usage: node scripts/v8-to-allocative.mjs <prefix.heapsnapshot> [--out-dir <existing-dir>] [--max-depth 32] [--include-content]',
     );
   }
   const source = path.resolve(positionals[0]);
@@ -183,33 +249,58 @@ export function main(args = process.argv.slice(2)) {
   const maxDepth = Number(values['max-depth']);
   if (!Number.isSafeInteger(maxDepth) || maxDepth < 1)
     throw new Error('--max-depth must be a positive integer');
-  const identities = JSON.parse(readFileSync(`${prefix}.objects.json`, 'utf8'));
-  if (identities.snapshot !== path.basename(prefix))
+  const name = path.basename(prefix);
+  const sourceDir = path.dirname(prefix);
+  // Older captures stored both inputs in one directory.
+  const profileDir =
+    path.basename(sourceDir) === 'v8' && !existsSync(`${prefix}.objects.json`)
+      ? path.dirname(sourceDir)
+      : sourceDir;
+  const rustPrefix = path.join(profileDir, name);
+  const identities = JSON.parse(
+    readFileSync(`${rustPrefix}.objects.json`, 'utf8'),
+  );
+  if (identities.snapshot !== name)
     throw new Error('Rust snapshot identity does not match the V8 filename');
-  const result = convert(
-    JSON.parse(readFileSync(source, 'utf8')),
-    identities,
+  const result = convert(JSON.parse(readFileSync(source, 'utf8')), identities, {
     maxDepth,
-  );
-  const output = path.join(
-    values['out-dir'] ?? path.dirname(prefix),
-    path.basename(prefix),
-  );
-  const rust = readFileSync(`${prefix}.allocative`, 'utf8');
+    includeContent: values['include-content'],
+  });
+  const rust = readFileSync(`${rustPrefix}.allocative`, 'utf8');
+  const outDir = values['out-dir'] ?? path.join(profileDir, 'reports');
+  if (!values['out-dir']) mkdirSync(outDir, { recursive: true });
+  const output = path.join(outDir, name);
   // Refuse to overwrite captures or previous conversion results.
-  writeFileSync(`${output}.js.allocative`, result.folded, { flag: 'wx' });
-  writeFileSync(
-    `${output}.combined.allocative`,
-    rust + (rust.endsWith('\n') ? '' : '\n') + result.folded,
-    { flag: 'wx' },
-  );
-  writeFileSync(
-    `${output}.links.json`,
-    `${JSON.stringify(result.report, null, 2)}\n`,
-    { flag: 'wx' },
-  );
+  const files = [
+    ['.js.allocative', result.folded],
+    [
+      '.combined.allocative',
+      rust + (rust.endsWith('\n') ? '' : '\n') + result.combinedFolded,
+    ],
+    ['.links.json', `${JSON.stringify(result.report, null, 2)}\n`],
+    ...Object.entries(result.categoryFolded).map(([category, folded]) => [
+      `.js.${category}.allocative`,
+      folded,
+    ]),
+  ];
+  const created = [];
+  try {
+    for (const [suffix, data] of files) {
+      const filename = `${output}${suffix}`;
+      const fd = openSync(filename, 'wx');
+      created.push(filename);
+      try {
+        writeFileSync(fd, data);
+      } finally {
+        closeSync(fd);
+      }
+    }
+  } catch (error) {
+    for (const filename of created) rmSync(filename, { force: true });
+    throw error;
+  }
   process.stdout.write(
-    `${JSON.stringify({ snapshot: result.report.snapshot, represented_js_bytes: result.report.represented_bytes, matched_bindings: result.report.matched_bindings, unmatched_bindings: result.report.unmatched_bindings })}\n`,
+    `${JSON.stringify({ snapshot: result.report.snapshot, represented_js_bytes: result.report.represented_bytes, category_bytes: result.report.category_bytes, matched_bindings: result.report.matched_bindings, unmatched_bindings: result.report.unmatched_bindings })}\n`,
   );
 }
 

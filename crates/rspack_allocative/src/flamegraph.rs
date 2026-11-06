@@ -127,9 +127,18 @@ pub struct FlameGraphOutput {
 
 #[derive(Debug, serde::Serialize)]
 pub struct ObjectIdentity {
-  pub address: String,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub address: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub js_node_id: Option<u32>,
   pub type_name: &'static str,
   pub path: Vec<String>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+enum BindingIdentity {
+  Address(usize),
+  JsNode(u32),
 }
 
 impl FlameGraphOutput {
@@ -342,7 +351,7 @@ unsafe impl Send for VisitedSharedPointer {}
 /// [inferno]: https://github.com/jonhoo/inferno
 #[derive(Debug)]
 pub struct FlameGraphBuilder {
-  objects: std::collections::BTreeMap<(usize, &'static str), Vec<Key>>,
+  objects: std::collections::BTreeSet<(BindingIdentity, &'static str)>,
   shared_under_first_owner: bool,
   opaque: std::collections::BTreeSet<(&'static str, Vec<Key>)>,
   /// Visited shared pointers.
@@ -400,8 +409,14 @@ impl FlameGraphBuilder {
   pub fn record_binding(&mut self, address: usize, type_name: &'static str) {
     self
       .objects
-      .entry((address, type_name))
-      .or_insert_with(|| vec![Key::new("Bindings"), Key::new(type_name)]);
+      .insert((BindingIdentity::Address(address), type_name));
+  }
+
+  /// Record a binding under its V8 node ID in a redacted heap snapshot.
+  pub fn record_js_binding(&mut self, node_id: u32, type_name: &'static str) {
+    self
+      .objects
+      .insert((BindingIdentity::JsNode(node_id), type_name));
   }
 
   pub fn root_visitor(&mut self) -> Visitor<'_> {
@@ -443,10 +458,17 @@ impl FlameGraphBuilder {
   pub fn finish(mut self) -> FlameGraphOutput {
     let objects = std::mem::take(&mut self.objects)
       .into_iter()
-      .map(|((address, type_name), path)| ObjectIdentity {
-        address: format!("0x{address:x}"),
-        type_name,
-        path: path.iter().map(|key| key.to_string()).collect(),
+      .map(|(identity, type_name)| {
+        let (address, js_node_id) = match identity {
+          BindingIdentity::Address(address) => (Some(format!("0x{address:x}")), None),
+          BindingIdentity::JsNode(node_id) => (None, Some(node_id)),
+        };
+        ObjectIdentity {
+          address,
+          js_node_id,
+          type_name,
+          path: vec!["Bindings".into(), type_name.into()],
+        }
       })
       .collect();
     let opaque = self

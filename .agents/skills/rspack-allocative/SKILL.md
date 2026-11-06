@@ -63,11 +63,15 @@ For project workloads, run from `PROJECT_DIR` with its real configuration. For t
 ```sh
 cd "$PROJECT_DIR"
 RSPACK_ALLOCATIVE_DIR="$PROFILE_DIR" \
-  node "$RSPACK_ROOT/packages/rspack-cli/bin/rspack.js" \
+  node --expose-gc "$RSPACK_ROOT/packages/rspack-cli/bin/rspack.js" \
   build --config "$CONFIG_PATH"
 ```
 
 Verify the workload loads the newly built local binding, including config/plugin imports that resolve their own `@rspack/core`. For external projects, a debug or profiling binding built with this integration can capture snapshots without recompilation; `@rspack-debug/core` overrides are documented in the repository's debugging guide. Verify the selected package version includes this support. A published binding without allocative cannot be enabled by a runtime variable.
+
+When the selected checkout supports paired Rust and V8 captures, start the profiling Node process with `--expose-gc`. The snapshot hook runs GC before capturing the V8 heap. The V8 snapshot goes in `v8/` and keeps node types, IDs, references, and byte sizes by default. Rust identity records use those node IDs to link the pair.
+
+Convert the pair with `node "$RSPACK_ROOT/scripts/v8-to-allocative.mjs" "$PROFILE_DIR/v8/0-build.heapsnapshot"`. The converter writes `.js.allocative`, `.combined.allocative`, and `.links.json` under `reports/`. Read `category_bytes` in the links report and open `.js.allocative` for the grouped flamegraph or `.js.<category>.allocative` for an individual category. Rspack bytes include marked objects and their exclusive strong-reference descendants. Keep the default redaction for shared reports. To retain original V8 content when requested, set `RSPACK_ALLOCATIVE_INCLUDE_CONTENT=1` during capture. Pass `--include-content` to the converter only when the report should also include original content.
 
 Snapshots typically start at `0-build.allocative` and increment within a process. Separate processes can overwrite those names if they share a directory. Check exit status, nonempty outputs, and capture phase. For watch/rebuild workloads, inspect the rebuild path instead of assuming every rebuild emits a snapshot.
 
@@ -107,7 +111,7 @@ RSPACK_ALLOCATIVE_DIR="$PROFILE_DIR" \
   -t "$CASE_FILTER" --maxWorkers 1
 ```
 
-The literal double quotes in the positional argument select exactly one runner; an ordinary fuzzy filter can also select another runner and overwrite captures. Pass `-t` through the CLI: the harness derives its case filter from the command arguments. Use the selected revision's actual runner and project, rather than assuming this example applies to every test family. Snapshot collection needs only `RSPACK_ALLOCATIVE_DIR` at runtime; the test framework needs no capture-specific changes.
+The literal double quotes in the positional argument select exactly one runner; an ordinary fuzzy filter can also select another runner and overwrite captures. Pass `-t` through the CLI: the harness derives its case filter from the command arguments. Use the selected revision's actual runner and project, rather than assuming this example applies to every test family. For paired captures, expose GC in the Node process running the test. If that Node version accepts `--expose-gc` in `NODE_OPTIONS`, use it so the flag reaches the test process.
 
 Keep the fixture's mode, sourcemap settings, assertions, and update sequence. Verify that the selected case executed, rather than accepting a successful run containing only skipped or filtered tests. For HMR, retain the initial `build` snapshot and every `rebuild` snapshot with matching sidecars; prepare each snapshot in a separate report directory. Confirm the loaded binding belongs to the selected checkout. Report the case directory and runner alongside the capture artifacts.
 

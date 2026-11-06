@@ -16,6 +16,7 @@ import {
   SyncHook,
 } from '@rspack/lite-tapable';
 
+import { markAllocativeRoot } from '../util/allocative';
 import { makeWebpackError, makeWebpackErrorCallback } from './HookWebpackError';
 import type { WebpackError } from './WebpackError';
 
@@ -66,6 +67,7 @@ export class Cache {
   };
 
   constructor() {
+    markAllocativeRoot(this, 'Cache');
     this.hooks = {
       get: new AsyncSeriesBailHook(['identifier', 'etag', 'gotHandlers']),
       store: new AsyncParallelHook(['identifier', 'etag', 'data']),
