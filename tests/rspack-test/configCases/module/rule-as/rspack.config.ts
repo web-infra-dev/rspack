@@ -58,7 +58,7 @@ export default ['sync', 'async', 'mixed'].map((mode) => {
         {
           test: condition(/literal\.source\.js$/),
           type: 'asset/source',
-          as: 'virtual/[resourcePath]-[name]*#part?name\u200b.txt',
+          as: 'virtual/[resourcePath]-[name]*#part?name\u200b#literal.txt',
           oneOf: [
             {
               test: condition(/\.txt$/),
@@ -75,7 +75,7 @@ export default ['sync', 'async', 'mixed'].map((mode) => {
         },
         {
           test: condition(
-            /^virtual\/\[resourcePath\]-\[name\]\*#part\?name\u200b\.txt\.candidate\.chosen$/,
+            /^virtual\/\[resourcePath\]-\[name\]\*#part\?name\u200b#literal\.txt\.candidate\.chosen$/,
           ),
           resourceQuery: condition(/^\?literal#value$/),
           resourceFragment: condition(/^#fragment$/),

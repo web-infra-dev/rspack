@@ -246,6 +246,11 @@ pub fn strip_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {
   s.cow_replace("\u{200b}#", "#")
 }
 
+/// Preserve a literal escape sequence in a component whose boundaries are already known.
+pub fn escape_literal_fragment_marker(s: &str) -> Cow<'_, str> {
+  s.cow_replace("\u{200b}#", "\u{200b}\u{200b}#")
+}
+
 pub fn insert_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {
   // Most paths and queries have no `#`; skip the substring searcher for them.
   if memchr(b'#', s.as_bytes()).is_none() {

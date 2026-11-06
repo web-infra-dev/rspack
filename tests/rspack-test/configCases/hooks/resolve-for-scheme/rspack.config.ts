@@ -2,13 +2,14 @@ import { defineConfig, definePlugin } from '@rspack/cli';
 import path from 'node:path';
 
 const schemePath = path.join(import.meta.dirname, 'scheme.js');
+const schemeQuery = '?match\u200b#literal';
 
 export default defineConfig({
   module: {
     rules: [
       {
         test: (resourcePath) => resourcePath === schemePath,
-        resourceQuery: '?match',
+        resourceQuery: schemeQuery,
         resourceFragment: '#match',
         type: 'asset/source',
       },
@@ -34,7 +35,7 @@ export default defineConfig({
             .tap('testPlugin', (resourceData) => {
               resourceData.resource = 'probe:display?raw#label';
               resourceData.path = schemePath;
-              resourceData.query = '?match';
+              resourceData.query = schemeQuery;
               resourceData.fragment = '#match';
               return true;
             });
