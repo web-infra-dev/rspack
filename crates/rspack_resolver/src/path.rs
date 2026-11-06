@@ -60,7 +60,7 @@ fn normalize_segments(mut result: String, tail: &str, windows: bool, rooted: boo
           .map_or(root_len, |i| root_len + i);
         result.truncate(end);
       }
-      ".." if rooted => {}
+      ".." if rooted || !windows => {}
       _ => {
         if result.len() > root_len {
           result.push(separator);
@@ -69,10 +69,10 @@ fn normalize_segments(mut result: String, tail: &str, windows: bool, rooted: boo
       }
     }
   }
-  if result.len() == root_len && !rooted {
+  if result.len() == root_len && !rooted && windows {
     result.push('.');
   }
-  if result.len() > root_len && tail.ends_with(|c| c == '/' || (windows && c == '\\')) {
+  if windows && result.len() > root_len && tail.ends_with(['/', '\\']) {
     result.push(separator);
   }
   result.into()
@@ -121,11 +121,16 @@ fn normalize_windows(path: &str) -> Utf8PathBuf {
             .position(|&b| is_separator(b))
             .map_or(bytes.len(), |i| i + share_start);
           result.push('\\');
-          result.push_str(&path[2..server_end]);
+          let server = &path[2..server_end];
+          result.push_str(server);
           result.push('\\');
-          result.push_str(&path[share_start..share_end]);
-          result.push('\\');
-          root_end = share_end;
+          if matches!(server, "." | "?") {
+            root_end = share_start;
+          } else {
+            result.push_str(&path[share_start..share_end]);
+            result.push('\\');
+            root_end = share_end;
+          }
         }
       }
     }
@@ -160,14 +165,7 @@ impl PathUtil for Utf8Path {
     match path_type {
       PathType::Empty => Utf8PathBuf::new(),
       PathType::AbsoluteWindows => normalize_windows(self.as_str()),
-      _ => {
-        let result = normalize_posix(self.as_str());
-        if path_type == PathType::Relative && PathType::of(result.as_str()) != PathType::Relative {
-          Utf8PathBuf::from(format!("./{result}"))
-        } else {
-          result
-        }
-      }
+      _ => normalize_posix(self.as_str()),
     }
   }
 
@@ -182,18 +180,8 @@ impl PathUtil for Utf8Path {
     }
     match PathType::of(self.as_str()) {
       PathType::AbsoluteWindows => normalize_windows(&format!(r"{self}\{subpath}")),
-      PathType::Normal | PathType::Relative | PathType::AbsolutePosix => {
-        normalize_posix(&format!("{self}/{subpath}"))
-      }
-      _ => {
-        let result = normalize_posix(self.as_str());
-        if subpath_type == PathType::Relative && PathType::of(result.as_str()) != PathType::Relative
-        {
-          Utf8PathBuf::from(format!("./{result}"))
-        } else {
-          result
-        }
-      }
+      PathType::Empty => subpath.normalize(),
+      _ => normalize_posix(&format!("{self}/{subpath}")),
     }
   }
 

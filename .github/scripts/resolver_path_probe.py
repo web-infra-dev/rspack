@@ -24,15 +24,24 @@ const normalize = p => {
   const result = posix.normalize(p);
   return t === "relative" && type(result) !== "relative" ? `./${result}` : result;
 };
+// Keep the resolver's existing POSIX contract: no trailing separator or
+// leading './', and parent traversal stops at the start of the path.
+const resolverPosix = p => {
+  const segments = [];
+  for (const part of p.split("/")) {
+    if (part === "..") segments.pop();
+    else if (part && part !== ".") segments.push(part);
+  }
+  return (p.startsWith("/") ? "/" : "") + segments.join("/");
+};
+const resolverNormalize = p => type(p) === "windows" ? normalize(p) : resolverPosix(p);
 const join = (root, request) => {
-  if (!request) return normalize(root);
+  if (!request) return resolverNormalize(root);
   const t = type(request);
-  if (t === "windows" || t === "posix") return normalize(request);
+  if (t === "windows" || t === "posix") return resolverNormalize(request);
   const r = type(root);
   if (r === "windows") return win32.normalize(`${root}\\${request}`);
-  if (["normal", "relative", "posix"].includes(r)) return posix.normalize(`${root}/${request}`);
-  const result = posix.normalize(root);
-  return t === "relative" && type(result) !== "relative" ? `./${result}` : result;
+  return root ? resolverPosix(`${root}/${request}`) : resolverNormalize(request);
 };
 const paths = ["", ".", "..", "./a", "./a/../b", "a/../../b/", "/", "/a/../b/",
   "/a\\b/../c", "//server/share/a", "\\a\\b", "a\\b", "C:", "C://",
@@ -51,7 +60,7 @@ for (let i = 0; i < 1000; i++) {
   for (let j = random(8); j >= 0; j--) p += ["/", "\\"][random(2)] + ["a", "..", ".", "", "文件", "b.js"][random(6)];
   paths.push(p);
 }
-const cases = paths.map(p => ({args: [p], expected: normalize(p)}));
+const cases = paths.map(p => ({args: [p], expected: resolverNormalize(p)}));
 for (const root of roots) for (const request of requests) cases.push({args: [root, request], expected: join(root, request)});
 process.stdout.write(JSON.stringify(cases));
 '''
@@ -140,7 +149,7 @@ def main():
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     source = (args.path_source or root / "crates/rspack_resolver/src/path.rs").resolve()
-    cases = json.loads(subprocess.check_output(["node", "-e", ORACLE], text=True))
+    cases = json.loads(subprocess.check_output(["node", "-e", ORACLE], encoding="utf-8"))
     with tempfile.TemporaryDirectory(prefix="resolver-path-probe-") as directory:
         project = Path(directory)
         (project / "src").mkdir()
@@ -160,13 +169,13 @@ def main():
             "resolver_path_probe.exe" if os.name == "nt" else "resolver_path_probe"
         )
         results = json.loads(subprocess.check_output(
-            [str(binary)], input=json.dumps(cases), text=True
+            [str(binary)], input=json.dumps(cases), encoding="utf-8"
         ))
         failures = [dict(case, actual=actual) for case, actual in zip(cases, results, strict=True)
                     if actual != case["expected"]]
         for failure in failures[:12]:
-            print(json.dumps(failure, ensure_ascii=False))
-        print(f"{len(cases) - len(failures)}/{len(cases)} cases match enhanced-resolve path rules")
+            print(json.dumps(failure))
+        print(f"{len(cases) - len(failures)}/{len(cases)} cases match Windows normalization and POSIX compatibility rules")
         if not failures and args.resolver:
             with (project / "Cargo.toml").open("a") as manifest:
                 manifest.write(
