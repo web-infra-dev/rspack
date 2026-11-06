@@ -1,5 +1,5 @@
 import { defineConfig } from '@rspack/cli';
-import { SubresourceIntegrityPlugin } from '@rspack/core';
+import { type Compiler, SubresourceIntegrityPlugin } from '@rspack/core';
 
 export default defineConfig({
   mode: 'production',
@@ -20,7 +20,7 @@ export default defineConfig({
   plugins: [
     new SubresourceIntegrityPlugin({ hashFuncNames: ['sha256', 'sha384'] }),
     {
-      apply(compiler) {
+      apply(compiler: Compiler) {
         compiler.hooks.thisCompilation.tap('CheckMapAssets', (compilation) => {
           compilation.hooks.processAssets.tap(
             {
