@@ -799,7 +799,11 @@ export default [
 				expect(JSON.stringify(written.assets)).toContain(Buffer.from(path.join(writer, "src", "digest.js")).toString("base64"));
 				copyTree(writer, reader);
 				const moved = await build(reader, configuration);
-				expect(moved.built).toEqual([path.join(reader, "src", "dep.js"), path.join(reader, "src", "digest.js")]);
+				// Module identifiers carry the loader request.
+				expect([...moved.built].sort()).toEqual([
+					`${path.join(reader, "digest.cjs")}!${path.join(reader, "src", "digest.js")}`,
+					`${path.join(reader, "map.cjs")}!${path.join(reader, "src", "dep.js")}`
+				].sort());
 				await expectColdEquality(reader, configuration, moved);
 			});
 		}
