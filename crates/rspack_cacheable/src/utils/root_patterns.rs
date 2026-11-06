@@ -76,7 +76,8 @@ const ASCII_ESCAPES: [[CharEscape; 3]; 11] = [
 /// - the path part of its `file://` URL, with a UNC host normalized the way
 ///   `url::Url::from_file_path` normalizes it;
 /// - for a non-ASCII root, its `JSON.stringify` string content in each [`ASCII_ESCAPES`] spelling,
-///   as is, with every `/` escaped as `\/`, and nested in JSON.
+///   as is, with every `/` escaped as `\/`, and nested in JSON;
+/// - the spelling and its JSON string content in base64, as in an inline source map.
 ///
 /// On every host platform, a root that starts with a drive letter or `\\` is a Windows path.
 /// Trailing separators do not matter. A pattern that contains another pattern is dropped, because
@@ -109,6 +110,8 @@ pub fn root_patterns(root: &str) -> Vec<Vec<u8>> {
         candidates.push(escaped);
       }
     }
+    candidates.extend(base64_spellings(&json));
+    candidates.extend(base64_spellings(spelling));
     candidates.push(json_escape(&json));
     candidates.push(json);
     if spelling.contains('/') {
@@ -131,6 +134,24 @@ pub fn root_patterns(root: &str) -> Vec<Vec<u8>> {
     }
   }
   patterns
+}
+
+/// Base64 of `value` at each of the three byte alignments it can have inside a longer payload,
+/// such as the JSON of an inline source map. Characters that also depend on neighbouring bytes
+/// are left out, and a short root is skipped because its pattern would match unrelated data.
+fn base64_spellings(value: &str) -> Vec<String> {
+  const MIN_LENGTH: usize = 12;
+  (0..3)
+    .filter_map(|padding| {
+      let mut bytes = vec![0; padding];
+      bytes.extend_from_slice(value.as_bytes());
+      let encoded = base64_simd::STANDARD.encode_to_string(&bytes);
+      let leading = [0, 2, 3][padding];
+      let complete = bytes.len() / 3 * 4;
+      let stable = encoded.get(leading..complete)?;
+      (stable.len() >= MIN_LENGTH).then(|| stable.to_string())
+    })
+    .collect()
 }
 
 fn replace_char(value: &str, from: char, to: &str) -> String {
