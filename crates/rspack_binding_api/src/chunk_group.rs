@@ -86,6 +86,9 @@ impl ChunkGroup {
         let loc = if let Some(loc) = &origin.loc {
           Some(match loc {
             rspack_core::DependencyLocation::Real(real) => Either::B(real.into()),
+            rspack_core::DependencyLocation::Portable(portable) => {
+              Either::B(portable.resolve().into())
+            }
             rspack_core::DependencyLocation::Synthetic(synthetic) => {
               Either::A(env.create_string(&synthetic.name)?)
             }

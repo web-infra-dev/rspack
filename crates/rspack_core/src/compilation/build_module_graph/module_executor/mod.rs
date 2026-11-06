@@ -151,7 +151,7 @@ impl ModuleExecutor {
       module.freeze_build_info();
     }
 
-    let diagnostics = make_artifact.diagnostics();
+    let diagnostics = make_artifact.diagnostics(compilation.id());
     compilation.extend_diagnostics(diagnostics);
 
     let code_generated_modules = std::mem::take(&mut self.code_generated_modules);

@@ -12,7 +12,7 @@ use dashmap::{DashMap, mapref::entry::Entry};
 #[cfg(feature = "cacheable")]
 use rspack_cacheable::{
   ContextGuard, Result as CacheableResult, cacheable,
-  with::{Custom, CustomConverter},
+  with::{CustomAboveRoot, CustomConverter},
 };
 use rustc_hash::{FxBuildHasher, FxHasher};
 
@@ -20,7 +20,7 @@ use crate::InternedPath;
 
 /// A content-interned, immutable list of [`InternedPath`]s.
 ///
-/// Lists with equal elements share one allocation process-wide, so a repeated
+/// Lists with equal paths and observation policies share one allocation process-wide, so a repeated
 /// resolution result costs a handle instead of another element buffer.
 /// Interning keys on the elements' precomputed path hashes, so a lookup hashes
 /// list elements rather than path bytes; comparing a key hit compares elements
@@ -31,7 +31,7 @@ use crate::InternedPath;
 /// it and no sweeping is needed to reclaim a buffer whose list is gone.
 /// Sparse shards shrink during removal, including releasing their bucket
 /// allocation when empty, so the table does not retain its peak capacity.
-#[cfg_attr(feature = "cacheable", cacheable(with = Custom))]
+#[cfg_attr(feature = "cacheable", cacheable(with = CustomAboveRoot))]
 pub struct InternedPathList(Arc<ListStorage>);
 
 /// The shared part of an interned list: its elements, the key that identifies
@@ -151,7 +151,8 @@ impl PartialEq for InternedPathList {
   fn eq(&self, other: &Self) -> bool {
     // Reject different lists before scanning a potentially long common prefix.
     // Equal hashes still need a content comparison to handle collisions.
-    Arc::ptr_eq(&self.0, &other.0) || (self.0.hash == other.0.hash && self.0.ids == other.0.ids)
+    Arc::ptr_eq(&self.0, &other.0)
+      || (self.0.hash == other.0.hash && same_observations(&self.0.ids, &other.0.ids))
   }
 }
 
@@ -189,8 +190,17 @@ fn list_key(items: &[InternedPath]) -> ListKey {
   let mut hasher = FxHasher::default();
   for item in items {
     hasher.write_u64(item.precomputed_hash());
+    hasher.write_u8(u8::from(item.is_fixed()));
   }
   (hasher.finish(), items.len())
+}
+
+fn same_observations(a: &[InternedPath], b: &[InternedPath]) -> bool {
+  a.len() == b.len()
+    && a
+      .iter()
+      .zip(b)
+      .all(|(a, b)| a == b && a.is_fixed() == b.is_fixed())
 }
 
 fn lookup(
@@ -200,7 +210,7 @@ fn lookup(
 ) -> Option<InternedPathList> {
   let entry = table.get(&key)?;
   let existing = entry.value().upgrade()?;
-  if existing.ids.len() == items.len() && existing.ids.iter().eq(items.iter()) {
+  if existing.ids.len() == items.len() && same_observations(&existing.ids, items) {
     Some(InternedPathList::from_storage(existing))
   } else {
     None
@@ -219,7 +229,8 @@ fn intern(
       let existing = entry.get().upgrade();
       match existing {
         Some(existing)
-          if existing.ids.len() == list.ids.len() && existing.ids.iter().eq(list.ids.iter()) =>
+          if existing.ids.len() == list.ids.len()
+            && same_observations(&existing.ids, &list.ids) =>
         {
           InternedPathList::from_storage(existing)
         }
@@ -270,6 +281,9 @@ fn remove_slot(storage: &Arc<ListStorage>) {
 
 /// Persist the paths themselves; loading re-interns the list, so restored
 /// builds share lists with any equal list already alive.
+///
+/// Issuer-derived dependencies may follow ancestors above the root; see `CustomAboveRoot`.
+/// A fixed observation on an individual handle overrides that permission and binds its owner.
 #[cfg(feature = "cacheable")]
 impl CustomConverter for InternedPathList {
   type Target = Vec<InternedPath>;

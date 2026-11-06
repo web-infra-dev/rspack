@@ -22,6 +22,7 @@ rspack_collections       = { workspace = true }
 rspack_core              = { workspace = true }
 rspack_fs                = { workspace = true }
 rspack_intern            = { workspace = true, features = ["atom"] }
+rspack_location          = { workspace = true }
 rspack_paths             = { workspace = true, features = ["cacheable"] }
 rspack_plugin_javascript = { workspace = true }
 rspack_regex             = { workspace = true }

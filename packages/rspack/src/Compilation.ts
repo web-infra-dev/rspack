@@ -807,6 +807,13 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     this.#inner.pushDiagnostic(diagnostic);
   }
 
+  /** @internal Return an owned copy to the loader invocation that emitted it. */
+  __internal__pushModuleBuildDiagnostic(
+    diagnostic: binding.JsRspackDiagnostic,
+  ) {
+    return this.#inner.pushDiagnostic(diagnostic, true)!;
+  }
+
   /**
    * Note: This is not a webpack public API, maybe removed in future.
    *

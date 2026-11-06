@@ -9,6 +9,7 @@ use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
 use rspack_intern::Atom;
 use rspack_loader_runner::{AdditionalData, ParseMeta, ParseMetaValue, ResourceData};
+use rspack_paths::Utf8PathBuf;
 use rspack_sources::BoxSource;
 use rspack_util::{ext::AsAny, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -20,6 +21,51 @@ use crate::{
   EvaluatedInlinableValue, FactoryMeta, GeneratorOptions, Module, ModuleCodeTemplate, ModuleGraph,
   ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeSpec, SourceType,
 };
+
+/// A public source and the byte replacements that relate it to the stored parser source.
+/// Kept outside the persistent cache: the public spelling can depend on the current build.
+#[derive(Debug)]
+pub struct SourceView {
+  pub source: BoxSource,
+  /// Sorted, disjoint stored ranges paired with their rendered byte lengths.
+  replacements: Vec<(DependencyRange, u32)>,
+}
+
+impl SourceView {
+  pub fn new(source: BoxSource, replacements: Vec<(DependencyRange, u32)>) -> Self {
+    Self {
+      source,
+      replacements,
+    }
+  }
+
+  fn offset(&self, offset: usize, end: bool) -> usize {
+    let mut delta = 0i64;
+    for (range, length) in &self.replacements {
+      if offset <= range.start as usize {
+        break;
+      }
+      if offset < range.end as usize {
+        // A replaced interior has no exact counterpart. Snap outward to a replacement boundary,
+        // keeping ranges valid even when the replacement has different UTF-8 characters.
+        return (i64::from(range.start) + delta + if end { i64::from(*length) } else { 0 })
+          as usize;
+      }
+      delta += i64::from(*length) - i64::from(range.end - range.start);
+    }
+    (offset as i64 + delta) as usize
+  }
+
+  /// Map a half-open byte range. Empty ranges stay empty, including inside a replacement.
+  pub fn range(&self, start: usize, end: usize) -> (usize, usize) {
+    (self.offset(start, false), self.offset(end, start != end))
+  }
+
+  pub fn dependency_range(&self, range: DependencyRange) -> DependencyRange {
+    let (start, end) = self.range(range.start as usize, range.end as usize);
+    DependencyRange::new(start as u32, end as u32)
+  }
+}
 
 #[derive(Debug)]
 pub struct ParseContext<'a> {
@@ -40,6 +86,10 @@ pub struct ParseContext<'a> {
   pub additional_data: Option<AdditionalData>,
   pub factory_meta: Option<&'a FactoryMeta>,
   pub parse_meta: ParseMeta,
+  /// Absolute path values that every content-producing loader invocation certified as visible
+  /// project paths, or `None` when the certification chain is broken. Only parsers that can
+  /// relocate whole literals read it; the loader output itself still holds the real paths.
+  pub portable_output: Option<&'a [Utf8PathBuf]>,
   pub build_info: &'a mut BuildInfo,
   pub build_meta: &'a mut BuildMeta,
   pub runtime_template: &'a ModuleCodeTemplate,
@@ -89,7 +139,7 @@ impl Deref for TSEnumValue {
 
 #[derive(Debug)]
 pub struct SideEffectsBailoutItem {
-  pub msg: String,
+  pub loc: DependencyLocation,
   /// The type of AstNode
   pub ty: String,
 }
@@ -173,6 +223,17 @@ pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
 
   fn has_runtime_hash(&self) -> bool {
     false
+  }
+
+  /// Renders the public view of a stored source that this parser normalized for code generation
+  /// and the build hash, such as root-free canonical literals. `None` means the stored source is
+  /// already the public view.
+  fn source_view(
+    &self,
+    _source: &BoxSource,
+    _presentational_dependencies: &[DependencyCodeGenerationRef],
+  ) -> Option<SourceView> {
+    None
   }
 }
 

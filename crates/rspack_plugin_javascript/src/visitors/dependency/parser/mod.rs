@@ -25,8 +25,9 @@ use rspack_core::{
   DependenciesBlock, Dependency, DependencyCodeGeneration, DependencyCodeGenerationRef,
   DependencyId, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
   ImportMetaKnownProperties, JavascriptParserCommonjsExportsOption, JavascriptParserOptions,
-  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData,
-  ResourceIdentifier, SideEffectsBailoutItemWithSpan,
+  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, PortableDependencyLocation,
+  PortableLocationShift, ResolvedModuleOptions, ResourceData, ResourceIdentifier,
+  SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::fx_hash::FxIndexSet;
@@ -537,6 +538,12 @@ pub struct JavascriptParser<'parser> {
   pub(crate) collecting_dependencies_for_block: Option<usize>,
   pub(crate) dependencies_in_branch_guard: Option<FxHashMap<DependencyRange, DependencyId>>,
   pub(crate) current_branch_guard: Option<DependencyBranchGuard>,
+  /// Sorted canonical ranges of certified path literals in the module AST.
+  pub(crate) portable_sites: &'parser [DependencyRange],
+  /// Canonical path anchors, borrowed for the scan and copied only into affected locations.
+  pub(crate) portable_location_shifts: &'parser [PortableLocationShift],
+  /// Whether the evaluator read a certified path literal for its value.
+  pub(crate) portable_site_evaluated: bool,
 }
 
 impl<'parser> JavascriptParser<'parser> {
@@ -752,11 +759,34 @@ impl<'parser> JavascriptParser<'parser> {
       block_parents: Vec::new(),
       dependencies_in_branch_guard: None,
       current_branch_guard: None,
+      portable_sites: &[],
+      portable_location_shifts: &[],
+      portable_site_evaluated: false,
     }
   }
 
   pub fn into_results(mut self) -> Result<ScanDependenciesResult, Vec<Diagnostic>> {
     if self.errors.is_empty() {
+      let portable_site_cut = !self.portable_sites.is_empty() && {
+        let sites = self.portable_sites;
+        let cuts = |dependency: &dyn rspack_core::Dependency| {
+          dependency
+            .range()
+            .is_some_and(|range| crate::portable_paths::cuts_site(sites, range))
+            || dependency
+              .as_context_dependency()
+              .is_some_and(|dependency| dependency.critical().is_some())
+        };
+        self
+          .dependencies
+          .iter()
+          .any(|dependency| cuts(dependency.as_ref()))
+          || self.blocks.iter_mut().flatten().any(|block| {
+            block
+              .dependencies_mut()
+              .any(|dependency| cuts(&*dependency))
+          })
+      };
       InnerGraphParserPlugin::finalize_dependency_usage(
         &mut self.inner_graph,
         &mut self.dependencies,
@@ -789,6 +819,8 @@ impl<'parser> JavascriptParser<'parser> {
         presentational_dependencies: self.presentational_dependencies,
         warning_diagnostics: self.warning_diagnostics,
         side_effects_item: self.side_effects_item,
+        portable_site_evaluated: self.portable_site_evaluated,
+        portable_site_cut,
       })
     } else {
       Err(self.errors)
@@ -1796,8 +1828,21 @@ impl<'parser> JavascriptParser<'parser> {
       ExprData::TaggedTemplateExpression(tagged_tpl) => {
         eval::eval_tagged_tpl_expression(self, tagged_tpl)
       }
-      ExprData::StringLiteral(_)
-      | ExprData::NumericLiteral(_)
+      ExprData::StringLiteral(literal) => {
+        // A folded result can be derived from the path without holding root bytes, so any
+        // evaluation of a certified literal binds the module to its root.
+        if self.active_synthetic_ast.is_none()
+          && !self.portable_sites.is_empty()
+          && self
+            .portable_sites
+            .binary_search_by_key(&literal.span(ast).start, |site| site.start)
+            .is_ok()
+        {
+          self.portable_site_evaluated = true;
+        }
+        eval::eval_lit_expr(ast, expr)
+      }
+      ExprData::NumericLiteral(_)
       | ExprData::BigIntLiteral(_)
       | ExprData::BooleanLiteral(_)
       | ExprData::NullLiteral(_)
@@ -1906,8 +1951,18 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn to_dependency_location(&mut self, range: DependencyRange) -> Option<DependencyLocation> {
-    self
+    let location = self
       .location_advancer
-      .compute_dependency_location(self.source, range)
+      .compute_dependency_location(self.source, range)?;
+    if self.portable_location_shifts.is_empty() {
+      return Some(location);
+    }
+    match location {
+      DependencyLocation::Real(real) => Some(PortableDependencyLocation::from_canonical(
+        real,
+        self.portable_location_shifts,
+      )),
+      location => Some(location),
+    }
   }
 }

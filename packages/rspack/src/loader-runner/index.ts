@@ -63,6 +63,7 @@ import {
   matchesCodeFilter,
 } from './codeFilter';
 import { LoaderDependenciesState } from './dependencies';
+import { PortableOutputState } from './portableOutput';
 import * as pool from './service';
 import { type HandleIncomingRequest, RequestType } from './service';
 import {
@@ -598,10 +599,12 @@ export async function runLoaders(
       ),
     });
     error.module = loaderContext._module;
-    compiler._lastCompilation!.__internal__pushRspackDiagnostic({
-      error,
-      severity: JsRspackSeverity.Error,
-    });
+    context.moduleBuildDiagnostics.push(
+      compiler._lastCompilation!.__internal__pushModuleBuildDiagnostic({
+        error,
+        severity: JsRspackSeverity.Error,
+      }),
+    );
   };
   loaderContext.emitWarning = function emitWarning(e) {
     if (!(e instanceof Error)) {
@@ -613,10 +616,12 @@ export async function runLoaders(
       ),
     });
     warning.module = loaderContext._module;
-    compiler._lastCompilation!.__internal__pushRspackDiagnostic({
-      error: warning,
-      severity: JsRspackSeverity.Warn,
-    });
+    context.moduleBuildDiagnostics.push(
+      compiler._lastCompilation!.__internal__pushModuleBuildDiagnostic({
+        error: warning,
+        severity: JsRspackSeverity.Warn,
+      }),
+    );
   };
   loaderContext.emitFile = function emitFile(
     name,
@@ -651,7 +656,9 @@ export async function runLoaders(
     loaderContext._module.emitFile(name, source!, assetInfo);
   };
   loaderContext.fs = compiler.inputFileSystem!;
+  const portableOutput = new PortableOutputState();
   loaderContext.experiments = {
+    portableOutput: portableOutput.declare,
     emitDiagnostic: (diagnostic: Diagnostic) => {
       const d = Object.assign({}, diagnostic, {
         message:
@@ -660,9 +667,9 @@ export async function runLoaders(
             : `ModuleError: ${diagnostic.message}`,
         moduleIdentifier: context._module.identifier(),
       });
-      compiler._lastCompilation!.__internal__pushDiagnostic(
-        formatDiagnostic(d),
-      );
+      const formatted = formatDiagnostic(d);
+      compiler._lastCompilation!.__internal__pushDiagnostic(formatted);
+      context.moduleBuildDiagnostics.push(formatted);
     },
   };
 
@@ -959,6 +966,10 @@ export async function runLoaders(
             loaderContext.experiments.emitDiagnostic(diagnostic);
             break;
           }
+          case RequestType.PortableOutput: {
+            portableOutput.merge(args[0]);
+            break;
+          }
           case RequestType.SetCacheable: {
             const cacheable = args[0];
             loaderContext.cacheable(cacheable);
@@ -1088,7 +1099,12 @@ export async function runLoaders(
     } else {
       if (loaderState === JsLoaderState.Normal)
         convertArgs(args, !!currentLoaderObject?.raw);
-      result = (await runSyncOrAsync(fn, loaderContext, args)) || [];
+      const endInvocation = portableOutput.begin();
+      try {
+        result = (await runSyncOrAsync(fn, loaderContext, args)) || [];
+      } finally {
+        endInvocation();
+      }
     }
 
     if (traceData) {
@@ -1257,6 +1273,7 @@ export async function runLoaders(
     commitCustomFieldsToRust(context._module.buildInfo);
   }
 
+  context.portableOutput = portableOutput.result();
   context.addedDependencies = dependencies.added;
   context.removedDependencies = dependencies.removed;
   return context;

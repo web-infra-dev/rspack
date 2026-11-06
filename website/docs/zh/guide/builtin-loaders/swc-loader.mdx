@@ -527,6 +527,17 @@ Rspack 内置的实验性功能。
 `rspackExperiments.import` 已迁移至顶层 [`transformImport`](#transformimport) 选项。`rspackExperiments.import` 选项已废弃，将在未来版本中移除。
 :::
 
+#### rspackExperiments.portableOutput
+
+<ApiMeta addedVersion="2.4.0" stability={Stability.Experimental} />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+为受支持的 SWC 转换启用[可移植输出约定](/api/loader-api/context#thisexperimentsportableoutput)。Rspack 会一致地规范化已声明的文件名字面量，包括 `cache: false` 的构建。此选项不会启用持久化缓存。
+
+支持的选项子集和限制见 loader 上下文文档。未知选项、WASM 插件、压缩以及依赖路径的转换不会获得可移植性声明，但编译仍会正常进行。布尔值 `inputSourceMap` 和默认自动查找仅在没有 source-map 标记或传入 map、相邻 map 确定缺失并注册缺失依赖时获得声明。找到或不确定的自动 map 不进行声明。传入 map 和附加数据需要生产者调用独立声明；资源 hook 的 map 不会继承 SWC 的声明。支持显式 TypeScript 旧版装饰器，但装饰器 metadata/version 和 SWC refresh 签名仍不在白名单内。完整边界请参阅 loader context 文档。
+
 #### rspackExperiments.reactServerComponents
 
 <ApiMeta stability={Stability.Experimental} />

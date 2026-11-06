@@ -796,7 +796,7 @@ pub fn collect_module_side_effects_locations(
         .filter_map(|item| match item {
           OptimizationBailoutItem::SideEffects { node_type, loc, .. } => {
             Some(RsdoctorSideEffectLocation {
-              location: loc.clone(),
+              location: loc.to_string(),
               node_type: node_type.clone(),
               module: *module_ukey,
               request: request.clone(),

@@ -12,7 +12,7 @@ use rspack_cacheable::{
   with::{As, AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
-use rspack_error::{Diagnosable, Result};
+use rspack_error::{Diagnosable, Diagnostic, Result};
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher, write_u64_hex};
 use rspack_intern::{Atom, AtomSet, IndexAtomMap};
@@ -48,6 +48,46 @@ pub struct BuildContext {
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
+}
+
+/// Loader emissions already published directly to a compilation. These belong to the
+/// exact module build that returned them, independently of diagnostic module attribution.
+/// They do not turn `emitError` into a native module build failure.
+#[cacheable]
+#[derive(Debug, Default)]
+pub struct ModuleBuildDiagnostics {
+  pub diagnostics: Vec<Diagnostic>,
+  /// Publication is process-local; a restored build must publish into its reader.
+  #[cacheable(with=rspack_cacheable::with::Skip)]
+  emitted_in: std::sync::atomic::AtomicU64,
+}
+
+impl ModuleBuildDiagnostics {
+  pub(crate) fn extend(
+    &mut self,
+    diagnostics: impl IntoIterator<Item = Diagnostic>,
+    compilation_id: CompilationId,
+  ) {
+    self.diagnostics.extend(diagnostics);
+    self.emitted_in.store(
+      u64::from(compilation_id.0) + 1,
+      std::sync::atomic::Ordering::Relaxed,
+    );
+  }
+
+  /// Publish each retained build once per compilation, regardless of graph activity.
+  pub(crate) fn for_compilation(&self, compilation_id: CompilationId) -> &[Diagnostic] {
+    let current = u64::from(compilation_id.0) + 1;
+    if self
+      .emitted_in
+      .swap(current, std::sync::atomic::Ordering::Relaxed)
+      == current
+    {
+      &[]
+    } else {
+      &self.diagnostics
+    }
+  }
 }
 
 /// Context used to decide whether a previously built module is still valid.
@@ -722,6 +762,11 @@ pub trait Module:
   + Diagnosable
   + ModuleSourceMapConfig
 {
+  /// Direct compilation emissions retained by this module's build, if any.
+  fn module_build_diagnostics(&self) -> Option<&ModuleBuildDiagnostics> {
+    None
+  }
+
   /// Defines what kind of module this is.
   fn module_type(&self) -> &ModuleType;
 

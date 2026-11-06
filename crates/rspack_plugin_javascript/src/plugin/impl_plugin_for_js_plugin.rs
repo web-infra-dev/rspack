@@ -431,6 +431,10 @@ async fn compilation(
     Arc::new(ConstDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
+    crate::portable_paths::PortablePathDependencyTemplate::template_type(),
+    Arc::new(crate::portable_paths::PortablePathDependencyTemplate),
+  );
+  compilation.set_dependency_template(
     RuntimeRequirementsDependencyTemplate::template_type(),
     Arc::new(RuntimeRequirementsDependencyTemplate::default()),
   );

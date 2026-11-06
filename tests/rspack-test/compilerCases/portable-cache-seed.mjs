@@ -154,7 +154,9 @@ async function build(
 		cache,
 		module: {
 			rules: [
-				{ test: /\.js$/, use: path.join(root, "count.cjs") },
+				// Keep the instrumentation loader relative: an absolute config request fixes its
+				// resolver observations to the donor, binding entries that contain them.
+				{ test: /\.js$/, use: "./count.cjs" },
 				{ test: /\.txt$/, type: "asset/resource" }
 			]
 		},

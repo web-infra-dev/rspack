@@ -5,7 +5,7 @@ use std::{
   hash::{BuildHasherDefault, Hash, Hasher},
   io,
   ops::Deref,
-  path::PathBuf,
+  path::{Path, PathBuf},
   sync::Arc,
 };
 
@@ -167,6 +167,7 @@ pub struct CachedPathImpl {
   parent: Option<CachedPath>,
   meta: OnceLock<Option<FileMetadata>>,
   canonicalized: OnceLock<Option<Utf8PathBuf>>,
+  is_symlink: OnceLock<bool>,
   node_modules: OnceLock<Option<CachedPath>>,
   package_json: OnceLock<Option<Arc<PackageJson>>>,
   /// Memoized `<self.path>/package.json` `InternedPath` for the
@@ -192,6 +193,7 @@ impl CachedPathImpl {
       parent,
       meta: OnceLock::new(),
       canonicalized: OnceLock::new(),
+      is_symlink: OnceLock::new(),
       node_modules: OnceLock::new(),
       package_json: OnceLock::new(),
       package_json_dep_path: std::sync::OnceLock::new(),
@@ -249,6 +251,38 @@ impl CachedPathImpl {
       },
       |meta| meta.is_dir,
     )
+  }
+
+  /// The filesystem abstraction exposes canonicalization, not link text. A link below the
+  /// issuer's ancestry may be absolute, so its target cannot be granted relocation authority.
+  /// Ancestor links (including the checkout's own spelling) do not change this derivation.
+  pub async fn has_symlink_below<Fs: FileSystem + Send + Sync>(
+    &self,
+    fs: &Fs,
+    issuer: &Path,
+  ) -> bool {
+    let mut current = Some(self);
+    while let Some(path) = current {
+      if issuer.starts_with(path.path().as_std_path()) {
+        break;
+      }
+      if *path
+        .is_symlink
+        .get_or_init(|| async {
+          fs.symlink_metadata(path.path().as_std_path())
+            .await
+            .map_or_else(
+              |error| error.kind() != io::ErrorKind::NotFound,
+              |m| m.is_symlink,
+            )
+        })
+        .await
+      {
+        return true;
+      }
+      current = path.parent().map(|parent| parent.as_ref());
+    }
+    false
   }
 
   pub async fn realpath<Fs: FileSystem + Send + Sync>(&self, fs: &Fs) -> io::Result<Utf8PathBuf> {
@@ -376,6 +410,10 @@ impl CachedPathImpl {
     options: &ResolveOptions,
     ctx: &mut Ctx,
   ) -> Result<Option<Arc<PackageJson>>, ResolveError> {
+    if options.symlinks && ctx.file_dependencies.is_some() {
+      let fixed = self.has_symlink_below(fs, &ctx.issuer).await;
+      ctx.fixed_dependencies |= fixed;
+    }
     if let Some(pkg) = self.package_json.get() {
       // Preserve ctx dependency tracking on cache hit.
       match pkg {

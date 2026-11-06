@@ -295,13 +295,14 @@ where
   async fn run(&self, loader_context: &mut LoaderContext<Context>) -> Result<()> {
     // If loader does not implement normal stage,
     // it should inherit the result from the previous loader.
+    loader_context.portable_output([])?;
     loader_context.current_loader().set_finish_called();
     Ok(())
   }
 
-  async fn pitch(&self, _loader_context: &mut LoaderContext<Context>) -> Result<()> {
-    // noop
-    Ok(())
+  async fn pitch(&self, loader_context: &mut LoaderContext<Context>) -> Result<()> {
+    // The default pitch is a known no-op.
+    loader_context.portable_output([])
   }
 
   /// Returns the loader type based on the module's package.json type field or file extension.

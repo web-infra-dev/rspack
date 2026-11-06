@@ -33,11 +33,12 @@ use crate::{
   CodeGenerationResultBuilder, Compilation, ConnectionState, Context, DependenciesBlock,
   DependenciesBlockData, DependencyCodeGenerationRef, DependencyId, FactoryMeta, FactoryMetaStore,
   FreezeLock, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleLayer, ModuleType, NeedBuildContext, OptimizationBailoutItem, OutputOptions, ParseContext,
-  ParseResult, ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions,
-  RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  SnapshotValidationResult, SourceType, contextify, contextify_source_map, contextify_source_url,
+  ModuleBuildDiagnostics, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, ModuleLayer, ModuleType, NeedBuildContext, OptimizationBailoutItem,
+  OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, Resolve,
+  ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec,
+  SideEffectsStateArtifact, SnapshotValidationResult, SourceType, contextify,
+  contextify_source_map, contextify_source_url,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -140,9 +141,16 @@ pub struct NormalModule {
 
   dependencies_block: DependenciesBlockData,
   factory_meta: FactoryMetaStore,
+  /// Stored source used for code generation and the build hash. A parser may normalize it, for
+  /// example to root-free canonical literals; [`Module::source`] returns the public view.
   #[cacheable(with=AsOption<AsPreset>)]
   source: Option<BoxSource>,
+  /// Public view of `source`, rendered for the current build on first read.
+  #[cacheable(with=rspack_cacheable::with::Skip)]
+  #[debug(skip)]
+  source_view: std::sync::OnceLock<Arc<crate::SourceView>>,
   diagnostics: Vec<Diagnostic>,
+  module_build_diagnostics: ModuleBuildDiagnostics,
   code_generation_dependencies: Option<Vec<DependencyId>>,
   presentational_dependencies: Option<Vec<DependencyCodeGenerationRef>>,
   build_info: FreezeLock<BuildInfo>,
@@ -158,6 +166,18 @@ pub struct NormalModule {
 static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
+  /// Accept only emissions returned by the current loader execution span. The JS
+  /// bridge publishes them immediately and transfers owned copies here, even on failure.
+  pub fn add_module_build_diagnostics(
+    &mut self,
+    diagnostics: impl IntoIterator<Item = Diagnostic>,
+    compilation_id: crate::CompilationId,
+  ) {
+    self
+      .module_build_diagnostics
+      .extend(diagnostics, compilation_id);
+  }
+
   pub(crate) fn restore_build_meta(&self, build_meta: crate::SharedBuildMeta) {
     self.build_meta.freeze_with(build_meta);
   }
@@ -238,7 +258,9 @@ impl NormalModule {
       factory_meta: Default::default(),
       asset_filename_override: Default::default(),
       source: None,
+      source_view: Default::default(),
       diagnostics: Default::default(),
+      module_build_diagnostics: Default::default(),
       code_generation_dependencies: None,
       presentational_dependencies: None,
       build_info: build_info.into(),
@@ -280,6 +302,31 @@ impl NormalModule {
 
   pub fn raw_request(&self) -> &str {
     &self.raw_request
+  }
+
+  /// The stored source that code generation, dependency ranges and the build hash use. It can
+  /// differ from the public [`Module::source`] view when the parser normalized it.
+  pub fn normalized_source(&self) -> Option<&BoxSource> {
+    self.source.as_ref()
+  }
+
+  /// The public source paired with its stored-to-public byte range mapping.
+  pub fn source_view(&self) -> Option<&Arc<crate::SourceView>> {
+    let source = self.source.as_ref()?;
+    Some(self.source_view.get_or_init(|| {
+      Arc::new(
+        self
+          .parser_and_generator
+          .source_view(
+            source,
+            self
+              .presentational_dependencies
+              .as_deref()
+              .unwrap_or_default(),
+          )
+          .unwrap_or_else(|| crate::SourceView::new(source.clone(), vec![])),
+      )
+    }))
   }
 
   pub fn loaders(&self) -> &[BoxLoader] {
@@ -384,6 +431,10 @@ impl DependenciesBlock for NormalModule {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for NormalModule {
+  fn module_build_diagnostics(&self) -> Option<&ModuleBuildDiagnostics> {
+    Some(&self.module_build_diagnostics)
+  }
+
   fn module_type(&self) -> &ModuleType {
     &self.module_type
   }
@@ -393,7 +444,7 @@ impl Module for NormalModule {
   }
 
   fn source(&self) -> Option<&BoxSource> {
-    self.source.as_ref()
+    self.source_view().map(|view| &view.source)
   }
 
   fn readable_identifier(&self, context: &Context) -> Cow<'_, str> {
@@ -480,7 +531,9 @@ impl Module for NormalModule {
     build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
+    self.module_build_diagnostics = Default::default();
     self.dependencies_block = Default::default();
+    self.source_view = Default::default();
     self.force_build = false;
     self.build_info.get_mut().snapshot = None;
     self.build_info.get_mut().optimization_bailouts.clear();
@@ -585,6 +638,18 @@ impl Module for NormalModule {
     self.build_info.get_mut().cacheable = loader_result.cacheable;
     self.build_info.get_mut().dependencies = loader_result.dependencies;
 
+    // Without the JavaScript parser, declared paths can remain escaped in the source and
+    // evade the serialized-byte root scan. Keep their producer authority root-bound.
+    if (no_parse || !self.module_type.is_js_like())
+      && loader_result.portable_output.as_ref().is_some_and(|paths| {
+        paths
+          .iter()
+          .any(|path| path.starts_with(build_context.compiler_options.context.as_path()))
+      })
+    {
+      self.build_info.get_mut().root_sensitive = true;
+    }
+
     if no_parse {
       self.parsed = false;
       self.source = Some(source);
@@ -634,6 +699,7 @@ impl Module for NormalModule {
         build_info: self.build_info.get_mut(),
         build_meta: self.build_meta.get_mut(),
         parse_meta: loader_result.parse_meta,
+        portable_output: loader_result.portable_output.as_deref(),
         runtime_template: &build_context.runtime_template,
       })
       .await?
@@ -654,7 +720,7 @@ impl Module for NormalModule {
         .optimization_bailouts
         .push(OptimizationBailoutItem::SideEffects {
           node_type: side_effects_bailout.ty,
-          loc: side_effects_bailout.msg,
+          loc: side_effects_bailout.loc,
           short_id,
         });
     }

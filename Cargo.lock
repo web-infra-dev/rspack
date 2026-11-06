@@ -4350,6 +4350,7 @@ dependencies = [
  "rspack_core",
  "rspack_fs",
  "rspack_intern",
+ "rspack_location",
  "rspack_paths",
  "rspack_plugin_javascript",
  "rspack_regex",
@@ -4682,6 +4683,7 @@ dependencies = [
  "rspack_cacheable",
  "rspack_core",
  "rspack_error",
+ "rspack_fs",
  "rspack_hook",
  "rspack_intern",
  "rspack_javascript_compiler",
@@ -4721,6 +4723,7 @@ dependencies = [
 name = "rspack_location"
 version = "0.103.1"
 dependencies = [
+ "camino",
  "itoa",
  "memchr",
  "rspack-allocative",
@@ -5186,6 +5189,7 @@ dependencies = [
  "rspack_hook",
  "rspack_ids",
  "rspack_intern",
+ "rspack_location",
  "rspack_macros",
  "rspack_parallel",
  "rspack_paths",

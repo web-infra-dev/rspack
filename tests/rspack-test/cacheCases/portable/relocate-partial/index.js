@@ -5,7 +5,7 @@
 import kept from 'data:text/javascript,export { default } from "data:text/javascript,export default 1"';
 import load from 'data:text/javascript,export { default } from "data:text/javascript,export default () => import(`data:text/javascript,export default WRITER_ROOT`)"';
 
-it("should keep unbound modules and rebuild owners of dropped targets after relocation", async () => {
+it("should keep unbound modules and refactorize dropped targets without rebuilding their owner after relocation", async () => {
 	expect(kept).toBe(1);
 	expect(typeof (await load()).default).toBe("string");
 	if (COMPILER_INDEX === 0) {
@@ -17,7 +17,7 @@ it("should keep unbound modules and rebuild owners of dropped targets after relo
 		const built = name => stats.modules.find(module => module.name.endsWith(name)).built;
 		expect(built(",export default 1")).toBe(false);
 		expect(built(",export default WRITER_ROOT")).toBe(true);
-		expect(built("export default WRITER_ROOT`)")).toBe(true);
+		expect(built("export default WRITER_ROOT`)")).toBe(false);
 		expect(built("/index.js")).toBe(true);
 	}
 });
