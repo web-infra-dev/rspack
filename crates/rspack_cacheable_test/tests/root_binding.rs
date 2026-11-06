@@ -114,3 +114,22 @@ fn escaped_value_is_unbound_under_an_ascii_root() {
     r"/work/l\xf6nger/proj/src/a.jsx"
   ));
 }
+
+#[test]
+fn base64_of_the_root_is_bound_at_every_alignment() {
+  for value in [
+    "eyJmaWxlIjoiL3dvcmsvcHJvamVjdC9zcmMvYS5qcyJ9",
+    "eHsiZmlsZSI6Ii93b3JrL3Byb2plY3Qvc3JjL2EuanMifQ==",
+    "eHh7ImZpbGUiOiIvd29yay9wcm9qZWN0L3NyYy9hLmpzIn0=",
+  ] {
+    assert!(is_bound("/work/project", value), "{value}");
+  }
+}
+
+#[test]
+fn base64_of_another_path_is_unbound() {
+  assert!(!is_bound(
+    "/work/project",
+    "eyJmaWxlIjoiL3dvcmsvb3RoZXIvc3JjL2EuanMifQ=="
+  ));
+}
