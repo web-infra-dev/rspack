@@ -5,6 +5,15 @@ use Hex::{Lower, Upper};
 use percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
 use url::Host;
 
+/// Root detection patterns and the conservative fallback for roots too short to detect.
+#[derive(Debug)]
+pub struct RootPatterns {
+  /// Nonempty byte patterns to search for in serialized cache data.
+  pub patterns: Vec<Vec<u8>>,
+  /// Bind every entry when an alignment has no stable base64 character.
+  pub bind_all: bool,
+}
+
 /// The WHATWG path segment set that `url::Url::from_file_path` applies to Windows components.
 const PATH_SEGMENT: &AsciiSet = &CONTROLS
   .add(b' ')
@@ -66,7 +75,7 @@ const ASCII_ESCAPES: [[CharEscape; 3]; 11] = [
 /// Byte patterns under which `root` can appear in serialized cache data.
 ///
 /// Detection is best-effort. It covers the spellings that path-producing code commonly emits, and
-/// it does not find base64, other escapes, hashes, or other values computed from the root. For each
+/// it does not find arbitrary escapes, hashes, or other values computed from the root. For each
 /// native spelling of the root, and for a Windows root also its forward-slash spelling and both
 /// drive-letter cases, the patterns cover:
 ///
@@ -81,8 +90,9 @@ const ASCII_ESCAPES: [[CharEscape; 3]; 11] = [
 ///
 /// On every host platform, a root that starts with a drive letter or `\\` is a Windows path.
 /// Trailing separators do not matter. A pattern that contains another pattern is dropped, because
-/// any match of it also matches the shorter one.
-pub fn root_patterns(root: &str) -> Vec<Vec<u8>> {
+/// any match of it also matches the shorter one. Callers must bind every entry when `bind_all` is
+/// set: a root such as `/` has no stable base64 character at one of the three byte alignments.
+pub fn root_patterns(root: &str) -> RootPatterns {
   let windows = is_windows_root(root);
   let trimmed = root.trim_end_matches(|c| c == '/' || (windows && c == '\\'));
   let root = if trimmed.is_empty() { root } else { trimmed };
@@ -98,6 +108,7 @@ pub fn root_patterns(root: &str) -> Vec<Vec<u8>> {
   }
 
   let mut candidates = Vec::new();
+  let mut bind_all = false;
   for spelling in &spellings {
     let json = json_escape(spelling);
     if !json.is_ascii() {
@@ -110,8 +121,11 @@ pub fn root_patterns(root: &str) -> Vec<Vec<u8>> {
         candidates.push(escaped);
       }
     }
-    candidates.extend(base64_spellings(&json));
-    candidates.extend(base64_spellings(spelling));
+    for value in [&json, spelling] {
+      let (patterns, missing_alignment) = base64_spellings(value);
+      candidates.extend(patterns);
+      bind_all |= missing_alignment;
+    }
     candidates.push(json_escape(&json));
     candidates.push(json);
     if spelling.contains('/') {
@@ -129,29 +143,35 @@ pub fn root_patterns(root: &str) -> Vec<Vec<u8>> {
   let mut patterns: Vec<Vec<u8>> = Vec::with_capacity(candidates.len());
   for candidate in candidates {
     let candidate = candidate.into_bytes();
-    if !patterns.iter().any(|kept| contains(&candidate, kept)) {
+    if !candidate.is_empty() && !patterns.iter().any(|kept| contains(&candidate, kept)) {
       patterns.push(candidate);
     }
   }
-  patterns
+  RootPatterns { patterns, bind_all }
 }
 
 /// Base64 of `value` at each of the three byte alignments it can have inside a longer payload,
 /// such as the JSON of an inline source map. Characters that also depend on neighbouring bytes
-/// are left out, and a short root is skipped because its pattern would match unrelated data.
-fn base64_spellings(value: &str) -> Vec<String> {
-  const MIN_LENGTH: usize = 12;
-  (0..3)
-    .filter_map(|padding| {
-      let mut bytes = vec![0; padding];
-      bytes.extend_from_slice(value.as_bytes());
-      let encoded = base64_simd::STANDARD.encode_to_string(&bytes);
-      let leading = [0, 2, 3][padding];
-      let complete = bytes.len() / 3 * 4;
-      let stable = encoded.get(leading..complete)?;
-      (stable.len() >= MIN_LENGTH).then(|| stable.to_string())
-    })
-    .collect()
+/// are left out. Keep even short fragments: a false match only rebuilds, but a miss reuses stale
+/// output. Report any empty alignment so callers can bind every entry without an empty pattern.
+fn base64_spellings(value: &str) -> (Vec<String>, bool) {
+  let mut patterns = Vec::with_capacity(3);
+  let mut bind_all = false;
+  for padding in 0..3 {
+    let mut bytes = vec![0; padding];
+    bytes.extend_from_slice(value.as_bytes());
+    bytes.extend_from_slice(&[0; 2]);
+    let encoded = base64_simd::STANDARD.encode_to_string(&bytes);
+    // Character i is stable iff 6*i >= 8*padding and 6*i + 6 <= 8*(padding + len).
+    let start = [0, 2, 3][padding];
+    let end = 8 * (padding + value.len()) / 6;
+    if start >= end {
+      bind_all = true;
+    } else {
+      patterns.push(encoded[start..end].to_string());
+    }
+  }
+  (patterns, bind_all)
 }
 
 fn replace_char(value: &str, from: char, to: &str) -> String {
