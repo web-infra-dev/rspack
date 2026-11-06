@@ -41,9 +41,10 @@ function createConfig(
             priority: 100,
             reuseExistingChunk: true,
           },
-          // With no size-reduction requirement, the reused destination is claimed by highPriority
-          // and this candidate can only extract Foo's remaining copy. With a positive requirement,
-          // highPriority reduces no source chunk, so this candidate can still merge both copies.
+          // With no size-reduction requirement, highPriority claims the reused destination. That
+          // takes util out of this named group, as in 2.2.9, so lowerPriority extracts Foo's
+          // remaining copy. With a positive requirement, highPriority reduces no source chunk, so
+          // this candidate can still merge both copies.
           samePriority: {
             test: /[\\/]util\.js$/,
             chunks: 'all',
@@ -82,14 +83,12 @@ function createConfig(
             );
 
             expect(reusableChunk).toBeDefined();
-            expect(samePriorityChunk).toBeDefined();
-            expect(lowerPriorityChunk).toBeNull();
-            expect(utilChunks).toContain(samePriorityChunk);
+            const utilChunk = expectSingleCopy ? samePriorityChunk : lowerPriorityChunk;
+            expect(utilChunk).toBeDefined();
+            expect(expectSingleCopy ? lowerPriorityChunk : samePriorityChunk).toBeNull();
+            expect(utilChunks).toContain(utilChunk);
             expect(
-              Array.from(
-                samePriorityChunk!.groupsIterable,
-                (group) => group.name,
-              ).sort(),
+              Array.from(utilChunk!.groupsIterable, (group) => group.name).sort(),
             ).toEqual(expectSingleCopy ? ['Foo', 'ReusableUtil'] : ['Foo']);
             if (expectSingleCopy) {
               expect(utilChunks).toHaveLength(1);

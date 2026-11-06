@@ -453,7 +453,7 @@ impl ModuleGroup {
   }
 
   /// Subtract committed placements from this candidate in the existing cleanup
-  /// traversal. Keep one remaining rectangle; never fork or rebuild a candidate.
+  /// traversal. Never fork a candidate.
   pub fn update_candidate(
     &mut self,
     placed: &ModuleChunkMap,
@@ -462,43 +462,27 @@ impl ModuleGroup {
     scratch: &mut Vec<ModuleIdentifier>,
   ) -> CandidateUpdate {
     let minimum = (cache.min_chunks as usize).max(1);
-    if let ModuleGroupChunks::ByModule(sources) = &mut self.module_chunks {
-      let mut changed = false;
-      sources.retain(|module, chunks| {
-        let Some(removed) = placed.get(module) else {
-          return true;
-        };
-        let before = chunks.len();
-        chunks.retain(|chunk| !removed.contains(chunk));
-        changed |= chunks.len() != before;
-        if chunks.len() < minimum {
-          self.modules.remove(module);
-          self.removed.push(*module);
-          self.candidate_flags |= Self::SIZE_REDUCTION_STALE;
-          false
-        } else {
-          true
-        }
-      });
-      if !changed {
+    if let ModuleGroupChunks::ByModule(sources) = &self.module_chunks {
+      // Like webpack, a named group drops every module that lost a selected copy and keeps the
+      // other modules with their own chunks. The caller rebuilds the group's chunks from them.
+      scratch.extend(
+        self
+          .modules
+          .iter()
+          .filter(|module| {
+            placed
+              .get(module)
+              .zip(sources.get(*module))
+              .is_some_and(|(removed, chunks)| !chunks.is_disjoint(removed))
+          })
+          .copied(),
+      );
+      if scratch.is_empty() {
         return CandidateUpdate::Unchanged;
       }
+      self.remove_modules(scratch.drain(..));
       if self.modules.is_empty() {
         return CandidateUpdate::Discard;
-      }
-      // A changed named group must not introduce consumers of a module that
-      // was already extracted elsewhere. Narrow its existing support in place.
-      let before = self.chunks.len();
-      self
-        .chunks
-        .retain(|chunk| sources.values().all(|chunks| chunks.contains(chunk)));
-      for chunks in sources.values_mut() {
-        chunks.retain(|chunk| self.chunks.contains(chunk));
-      }
-      self.mark_size_reduction_stale();
-      self.mark_placement_changed();
-      if self.chunks.len() != before {
-        self.chunk_mask = chunk_mask(self.chunks.iter());
       }
       return CandidateUpdate::Updated;
     }
