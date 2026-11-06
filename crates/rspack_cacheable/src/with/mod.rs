@@ -1,6 +1,7 @@
 mod r#as;
 mod as_cacheable;
 mod as_inner;
+mod as_interned;
 mod as_map;
 mod as_owned;
 mod as_preset;
@@ -16,6 +17,7 @@ mod unsupported;
 pub use r#as::{As, AsConverter};
 pub use as_cacheable::AsCacheable;
 pub use as_inner::{AsInner, AsInnerConverter};
+pub use as_interned::AsInterned;
 pub use as_map::{AsMap, AsMapConverter};
 pub use as_owned::AsOwned;
 pub use as_preset::AsPreset;
