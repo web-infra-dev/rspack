@@ -5,7 +5,7 @@ const cacheContext = path.join(import.meta.dirname, "../fixtures");
 /** @type {import('@rspack/test-tools').TMultiCompilerCaseConfig[]} */
 export default [false, true].map(newCache => ({
 	description: newCache
-		? "should use compiler namespaces for new cache paths"
+		? "should share the default new cache location across compiler namespaces"
 		: "should preserve the existing multi-compiler cache paths",
 	options() {
 		const names = newCache
@@ -47,8 +47,7 @@ export default [false, true].map(newCache => ({
 			expect(cache.storage.location).toBe(
 				path.resolve(
 					cacheDirectory,
-					newCache ? "new-cache" : "",
-					cacheNames[index]
+					newCache ? "new-cache" : cacheNames[index]
 				)
 			);
 		});

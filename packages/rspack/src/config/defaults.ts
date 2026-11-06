@@ -244,7 +244,8 @@ const applyCacheDefaults = (
   },
 ) => {
   if (cache === false || cache.type === 'memory') return;
-  const useNewCacheLocation =
+  // The first compiler initializes storage-wide settings for the shared cache.
+  const useSharedLocation =
     newCacheMultiCompiler &&
     cache.name === undefined &&
     !cache.version &&
@@ -262,8 +263,7 @@ const applyCacheDefaults = (
   F(cache.storage, 'location', () =>
     path.resolve(
       cache.storage.directory!,
-      useNewCacheLocation ? 'new-cache' : '',
-      cache.name!,
+      useSharedLocation ? 'new-cache' : cache.name!,
     ),
   );
   D(cache, 'maxAge', DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS);

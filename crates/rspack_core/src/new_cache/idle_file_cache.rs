@@ -7,7 +7,7 @@ use std::{
   time::Duration,
 };
 
-use rspack_paths::{InternedPathSet, Utf8PathBuf};
+use rspack_paths::{InternedPath, InternedPathSet, Utf8PathBuf};
 use tokio::{
   sync::mpsc,
   time::{Instant, sleep_until},
@@ -16,6 +16,7 @@ use tokio::{
 use super::{
   CacheKey, CacheValue, Etag, FileCacheStrategy,
   cache_value::{CacheValueData, ErasedCacheValue},
+  remove_closed_cache,
 };
 use crate::{InfrastructureLogger, Logger};
 
@@ -29,6 +30,20 @@ enum Command {
   BeginIdle { epoch: u64, build_time: Duration },
   EndIdle,
   Shutdown,
+}
+
+/// A handle for waiting for the worker to release the database.
+#[derive(Debug, Clone)]
+pub(super) struct FileCacheWorker(mpsc::UnboundedSender<Command>);
+
+impl FileCacheWorker {
+  pub(super) fn is_closed(&self) -> bool {
+    self.0.is_closed()
+  }
+
+  pub(super) async fn closed(&self) {
+    self.0.closed().await;
+  }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -148,6 +163,7 @@ impl BackgroundJob {
 /// Runs filesystem cache operations in one persistent background job.
 #[derive(Debug)]
 pub struct IdleFileCache {
+  storage_dir: InternedPath,
   strategy: Arc<FileCacheStrategy>,
   logger: Arc<InfrastructureLogger>,
   command_sender: mpsc::UnboundedSender<Command>,
@@ -155,14 +171,16 @@ pub struct IdleFileCache {
 }
 
 impl IdleFileCache {
-  pub fn new(
+  pub(super) fn new(
     database_paths: (Utf8PathBuf, Utf8PathBuf),
     strategy: FileCacheStrategy,
     logger: Arc<InfrastructureLogger>,
     idle_timeout: Option<Duration>,
     idle_timeout_for_initial_store: Option<Duration>,
     idle_timeout_after_large_changes: Option<Duration>,
+    previous_worker: Option<FileCacheWorker>,
   ) -> Self {
+    let storage_dir = InternedPath::from(database_paths.1.as_path());
     let idle_timeout = idle_timeout.unwrap_or(DEFAULT_IDLE_TIMEOUT);
     let idle_timeout_for_initial_store =
       idle_timeout_for_initial_store.unwrap_or(DEFAULT_IDLE_TIMEOUT_FOR_INITIAL_STORE);
@@ -183,6 +201,7 @@ impl IdleFileCache {
       time_spent_in_build: Duration::ZERO,
       avg_time_spent_in_store: None,
     };
+    let worker_storage_dir = storage_dir.clone();
     let _ = thread::Builder::new()
       .name("rspack-idle-file-cache".to_string())
       .spawn(move || {
@@ -190,16 +209,31 @@ impl IdleFileCache {
           .enable_time()
           .build()
           .expect("failed to create idle file cache runtime");
-        runtime.block_on(background_job.run(database_paths));
+        runtime.block_on(async move {
+          if let Some(previous_worker) = previous_worker {
+            previous_worker.closed().await;
+          }
+          background_job.run(database_paths).await;
+        });
+        remove_closed_cache(&worker_storage_dir);
       })
       .expect("failed to spawn idle file cache background thread");
 
     Self {
+      storage_dir,
       strategy,
       logger,
       command_sender,
       idle_epoch,
     }
+  }
+
+  pub(super) fn storage_dir(&self) -> &InternedPath {
+    &self.storage_dir
+  }
+
+  pub(super) fn worker(&self) -> FileCacheWorker {
+    FileCacheWorker(self.command_sender.clone())
   }
 
   fn send(&self, command: Command) {
@@ -245,9 +279,8 @@ impl IdleFileCache {
     self.send(Command::EndIdle);
   }
 
-  pub async fn shutdown(&self) {
+  pub(super) fn start_shutdown(&self) {
     self.idle_epoch.fetch_add(1, Ordering::Release);
-    self.send(Command::Shutdown);
-    self.command_sender.closed().await;
+    let _ = self.command_sender.send(Command::Shutdown);
   }
 }

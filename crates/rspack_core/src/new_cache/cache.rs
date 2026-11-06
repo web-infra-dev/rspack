@@ -106,6 +106,10 @@ impl Cache {
     self.storage.idle_file_cache.is_some()
   }
 
+  pub(super) fn file_cache(&self) -> Option<&IdleFileCache> {
+    self.storage.idle_file_cache.as_ref()
+  }
+
   pub fn begin_idle(&self, build_time: Duration) {
     let storage = &self.storage;
     if let Some(memory_cache) = &storage.memory_cache {
@@ -123,10 +127,10 @@ impl Cache {
     }
   }
 
-  pub async fn shutdown(&self) {
+  pub(super) fn start_shutdown(&self) {
     let storage = &self.storage;
     if let Some(file_cache) = &storage.idle_file_cache {
-      file_cache.shutdown().await;
+      file_cache.start_shutdown();
     }
     if let Some(memory_cache) = &storage.memory_cache {
       memory_cache.clear();
@@ -164,6 +168,11 @@ impl CompilerCache {
   pub fn facade(&self, name: &str) -> CacheFacade {
     let cache_name = [self.compiler_path.as_ref(), name].join("|");
     CacheFacade::new(Arc::clone(&self.cache), cache_name.into())
+  }
+
+  /// Returns a cache namespace shared by every compiler using this storage.
+  pub fn shared_facade(&self, name: &str) -> CacheFacade {
+    CacheFacade::new(Arc::clone(&self.cache), ["", name].join("|").into())
   }
 
   pub fn cache_info(&self) -> FxHashMap<String, CacheInfo> {
