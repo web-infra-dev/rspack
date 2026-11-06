@@ -249,6 +249,8 @@ The legacy backend rebases entry contexts and module identities under the root, 
 
 Rspack finds loader output that contains the root by searching cached data for the root's native, forward-slash, JSON-escaped, JavaScript ASCII-escaped, base64 and `file://` URL spellings. This search is best-effort. Loaders that derive output from a path without including one of these spellings (for example, a hash of `this.resourcePath`) should call `this.cacheable(false)` or use an appropriate `cache.version`.
 
+Base64 detection includes short project roots. If a root is too short to detect at every base64 alignment (for example, `/`), Rspack conservatively binds all encoded entries to that root, so they rebuild when the root changes.
+
 **Example:**
 
 ```js title="rspack.config.mjs"
