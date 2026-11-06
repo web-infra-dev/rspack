@@ -25,12 +25,12 @@ pub async fn module_rules_matcher<'rule, 'ctx>(
   matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
 ) -> Result<()> {
   let matched_rules_len = matched_rules.len();
-  let mut resource_data = Cow::Borrowed(ctx.resource_data);
+  let mut resource_data = ctx.resource_data.for_rule_matching();
   if let Some(result) = module_rules_matcher_sync(rules, ctx, &mut resource_data, matched_rules) {
     return result;
   }
   matched_rules.truncate(matched_rules_len);
-  resource_data = Cow::Borrowed(ctx.resource_data);
+  resource_data = ctx.resource_data.for_rule_matching();
   module_rules_matcher_async(rules, ctx, &mut resource_data, matched_rules).await
 }
 

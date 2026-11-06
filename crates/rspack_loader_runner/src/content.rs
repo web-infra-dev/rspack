@@ -18,7 +18,9 @@ use rspack_cacheable::{
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
-use rspack_util::identifier::strip_zero_width_space_for_fragment;
+use rspack_util::identifier::{
+  insert_zero_width_space_for_fragment, strip_zero_width_space_for_fragment,
+};
 use rustc_hash::FxHashMap;
 
 use crate::{Scheme, get_scheme, loader::path_query_fragment};
@@ -133,19 +135,25 @@ fn resource_offset(offset: usize) -> u32 {
   u32::try_from(offset).expect("resource data exceeds u32::MAX bytes")
 }
 
+#[derive(Debug, Clone, Default)]
+struct DecodedResource {
+  path: OnceCell<Utf8PathBuf>,
+  query: OnceCell<String>,
+}
+
 #[cacheable]
 #[derive(Debug, Clone, Default)]
 pub struct ResourceData {
-  // The complete resource occupies the prefix. Independently supplied or decoded
-  // components may use the rest of the same buffer.
   resource: String,
-  resource_end: u32,
   resource_path: Option<Range<u32>>,
   resource_query: Option<Range<u32>>,
   resource_fragment: Option<Range<u32>>,
+  // Ranges use this buffer when independently supplied components differ from the request.
+  component_resource: Option<Box<str>>,
   path_escaped: bool,
+  query_escaped: bool,
   #[cacheable(with=Skip)]
-  decoded_path: OnceCell<Utf8PathBuf>,
+  decoded: OnceCell<Box<DecodedResource>>,
   resource_description: Option<DescriptionData>,
   mimetype: Option<String>,
   parameters: Option<String>,
@@ -162,26 +170,36 @@ impl ResourceData {
     let (path, query, fragment) = path_query_fragment(&resource);
     let path_end = resource_offset(path.len());
     let path_escaped = path.contains("\u{200b}#");
+    let query_escaped = query.is_some_and(|query| query.contains("\u{200b}#"));
     let resource_query = query.map(|query| path_end..resource_offset(path.len() + query.len()));
-    let decoded_query = match query.map(strip_zero_width_space_for_fragment) {
-      Some(Cow::Owned(query)) => Some(query),
-      _ => None,
-    };
     let resource_fragment =
       fragment.map(|fragment| resource_end - resource_offset(fragment.len())..resource_end);
-    let mut data = Self {
+    Self {
       resource,
-      resource_end,
       resource_path: Some(0..path_end),
       resource_query,
       resource_fragment,
       path_escaped,
+      query_escaped,
       ..Default::default()
-    };
-    if let Some(query) = decoded_query {
-      data.resource_query = Some(data.store_component(resource_end as usize, &query));
     }
-    data
+  }
+
+  /// Construct the escaped request from components returned by the resolver.
+  pub fn new_with_resolved_path(path: Utf8PathBuf, query: &str, fragment: &str) -> Self {
+    let escaped_path = insert_zero_width_space_for_fragment(path.as_str());
+    let path_escaped = matches!(escaped_path, Cow::Owned(_));
+    let path = match escaped_path {
+      Cow::Borrowed(_) => path.into_string(),
+      Cow::Owned(path) => path,
+    };
+    let query = insert_zero_width_space_for_fragment(query);
+    let query_escaped = matches!(query, Cow::Owned(_));
+    Self {
+      path_escaped,
+      query_escaped,
+      ..Self::from_concatenated_parts(Some(path), Some(query.as_ref()), Some(fragment))
+    }
   }
 
   pub fn new_with_path(
@@ -195,6 +213,7 @@ impl ResourceData {
       Some(path.as_str()),
       false,
       query.as_deref(),
+      false,
       fragment.as_deref(),
     )
   }
@@ -204,76 +223,118 @@ impl ResourceData {
     path: Option<&str>,
     path_escaped: bool,
     query: Option<&str>,
+    query_escaped: bool,
     fragment: Option<&str>,
   ) -> Self {
-    let resource_end = resource_offset(resource.len());
     let fragment_start = resource.len().saturating_sub(fragment.map_or(0, str::len));
     let query_start = fragment_start.saturating_sub(query.map_or(0, str::len));
-    let mut data = Self {
-      resource,
-      resource_end,
-      path_escaped,
-      ..Default::default()
+    let resource_path = path.and_then(|path| Self::locate_component(&resource, 0, path));
+    let resource_query =
+      query.and_then(|query| Self::locate_component(&resource, query_start, query));
+    let resource_fragment =
+      fragment.and_then(|fragment| Self::locate_component(&resource, fragment_start, fragment));
+    let mut data = if resource_path.is_some() == path.is_some()
+      && resource_query.is_some() == query.is_some()
+      && resource_fragment.is_some() == fragment.is_some()
+    {
+      Self {
+        resource,
+        resource_path,
+        resource_query,
+        resource_fragment,
+        ..Default::default()
+      }
+    } else {
+      let mut data = Self::from_concatenated_parts(path.map(str::to_owned), query, fragment);
+      let components = std::mem::replace(&mut data.resource, resource);
+      data.component_resource = Some(components.into_boxed_str());
+      data
     };
-    data.resource_path = path.map(|path| data.store_component(0, path));
-    data.resource_query = query.map(|query| data.store_component(query_start, query));
-    data.resource_fragment =
-      fragment.map(|fragment| data.store_component(fragment_start, fragment));
+    data.path_escaped = path_escaped;
+    data.query_escaped = query_escaped;
     data
   }
 
-  fn component(&self, range: Option<&Range<u32>>) -> Option<&str> {
-    range.map(|range| &self.resource[range.start as usize..range.end as usize])
+  fn locate_component(resource: &str, offset: usize, value: &str) -> Option<Range<u32>> {
+    let end = offset.saturating_add(value.len());
+    (resource.get(offset..end) == Some(value))
+      .then(|| resource_offset(offset)..resource_offset(end))
   }
 
-  fn store_component(&mut self, offset: usize, value: &str) -> Range<u32> {
-    let end = offset.saturating_add(value.len());
-    if self.resource().get(offset..end) == Some(value) {
-      resource_offset(offset)..resource_offset(end)
-    } else {
-      let start = resource_offset(self.resource.len());
-      let end = resource_offset(self.resource.len().saturating_add(value.len()));
-      self.resource.push_str(value);
-      start..end
-    }
+  fn component(&self, range: Option<&Range<u32>>) -> Option<&str> {
+    let range = range?;
+    let resource = self.component_resource.as_deref().unwrap_or(&self.resource);
+    Some(&resource[range.start as usize..range.end as usize])
+  }
+
+  fn raw_path(&self) -> Option<&str> {
+    self.component(self.resource_path.as_ref())
+  }
+
+  fn raw_query(&self) -> Option<&str> {
+    self.component(self.resource_query.as_ref())
   }
 
   fn replace_components(&mut self, data: Self) {
     self.resource = data.resource;
-    self.resource_end = data.resource_end;
     self.resource_path = data.resource_path;
     self.resource_query = data.resource_query;
     self.resource_fragment = data.resource_fragment;
+    self.component_resource = data.component_resource;
     self.path_escaped = data.path_escaped;
-    self.decoded_path = data.decoded_path;
+    self.query_escaped = data.query_escaped;
+    self.decoded = data.decoded;
+  }
+
+  fn from_concatenated_parts(
+    path: Option<String>,
+    query: Option<&str>,
+    fragment: Option<&str>,
+  ) -> Self {
+    let path_present = path.is_some();
+    let mut resource = path.unwrap_or_default();
+    let path_end = resource_offset(resource.len());
+    let resource_query = query.map(|query| {
+      resource.push_str(query);
+      path_end..resource_offset(resource.len())
+    });
+    let resource_fragment = fragment.map(|fragment| {
+      let start = resource_offset(resource.len());
+      resource.push_str(fragment);
+      start..resource_offset(resource.len())
+    });
+    Self {
+      resource,
+      resource_path: path_present.then_some(0..path_end),
+      resource_query,
+      resource_fragment,
+      ..Default::default()
+    }
   }
 
   /// Build a virtual resource from known components without parsing its delimiters.
-  pub fn with_matching_path(&self, mut path: String) -> Self {
-    let path_end = resource_offset(path.len());
-    let resource_query = self.query().map(|query| {
-      path.push_str(query);
-      path_end..resource_offset(path.len())
-    });
-    let resource_fragment = self.fragment().map(|fragment| {
-      let start = resource_offset(path.len());
-      path.push_str(fragment);
-      start..resource_offset(path.len())
-    });
-    let resource_end = resource_offset(path.len());
+  pub fn with_matching_path(&self, path: String) -> Self {
+    self.with_matching_components(Some(path))
+  }
+
+  /// Match separately supplied components without changing the resource used by the module.
+  pub fn for_rule_matching(&self) -> Cow<'_, Self> {
+    if self.component_resource.is_some() {
+      Cow::Owned(self.with_matching_components(self.path().map(|path| path.as_str().to_owned())))
+    } else {
+      Cow::Borrowed(self)
+    }
+  }
+
+  fn with_matching_components(&self, path: Option<String>) -> Self {
     Self {
-      resource: path,
-      resource_end,
-      resource_path: Some(0..path_end),
-      resource_query,
-      resource_fragment,
       resource_description: self.resource_description.clone(),
       mimetype: self.mimetype.clone(),
       parameters: self.parameters.clone(),
       encoding: self.encoding.clone(),
       encoded_content: self.encoded_content.clone(),
       context: self.context.clone(),
-      ..Default::default()
+      ..Self::from_concatenated_parts(path, self.query(), self.fragment())
     }
   }
 
@@ -296,23 +357,24 @@ impl ResourceData {
   }
 
   pub fn resource(&self) -> &str {
-    &self.resource[..self.resource_end as usize]
+    &self.resource
   }
 
   pub fn set_resource(&mut self, v: String) {
     self.replace_components(Self::from_parts(
       v,
-      self.component(self.resource_path.as_ref()),
+      self.raw_path(),
       self.path_escaped,
-      self.query(),
+      self.raw_query(),
+      self.query_escaped,
       self.fragment(),
     ));
   }
 
   pub fn path(&self) -> Option<&Utf8Path> {
-    let path = self.component(self.resource_path.as_ref())?;
+    let path = self.raw_path()?;
     if self.path_escaped {
-      Some(self.decoded_path.get_or_init(|| {
+      Some(self.decoded.get_or_init(Box::default).path.get_or_init(|| {
         strip_zero_width_space_for_fragment(path)
           .into_owned()
           .into()
@@ -332,7 +394,8 @@ impl ResourceData {
         self.resource().to_owned(),
         Some(new_path.as_str()),
         false,
-        self.query(),
+        self.raw_query(),
+        self.query_escaped,
         self.fragment(),
       ));
     }
@@ -345,7 +408,18 @@ impl ResourceData {
   }
 
   pub fn query(&self) -> Option<&str> {
-    self.component(self.resource_query.as_ref())
+    let query = self.raw_query()?;
+    if self.query_escaped {
+      Some(
+        self
+          .decoded
+          .get_or_init(Box::default)
+          .query
+          .get_or_init(|| strip_zero_width_space_for_fragment(query).into_owned()),
+      )
+    } else {
+      Some(query)
+    }
   }
 
   pub fn set_query(&mut self, v: String) {
@@ -355,9 +429,10 @@ impl ResourceData {
   pub fn set_query_optional(&mut self, v: Option<String>) {
     self.replace_components(Self::from_parts(
       self.resource().to_owned(),
-      self.component(self.resource_path.as_ref()),
+      self.raw_path(),
       self.path_escaped,
       v.as_deref(),
+      false,
       self.fragment(),
     ));
   }
@@ -373,9 +448,10 @@ impl ResourceData {
   pub fn set_fragment_optional(&mut self, v: Option<String>) {
     self.replace_components(Self::from_parts(
       self.resource().to_owned(),
-      self.component(self.resource_path.as_ref()),
+      self.raw_path(),
       self.path_escaped,
-      self.query(),
+      self.raw_query(),
+      self.query_escaped,
       v.as_deref(),
     ));
   }
@@ -430,7 +506,8 @@ impl ResourceData {
           data.resource().to_owned(),
           Some(old_path.as_str()),
           false,
-          data.query(),
+          data.raw_query(),
+          data.query_escaped,
           data.fragment(),
         );
       }
