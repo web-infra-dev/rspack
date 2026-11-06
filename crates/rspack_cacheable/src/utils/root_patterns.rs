@@ -103,14 +103,18 @@ pub fn root_patterns(root: &str) -> Vec<Vec<u8>> {
       for escapes in ASCII_ESCAPES {
         let escaped = ascii_escape(&json, escapes);
         candidates.push(json_escape(&escaped));
-        candidates.push(replace_char(&escaped, '/', "\\/"));
+        let solidus = replace_char(&escaped, '/', "\\/");
+        candidates.push(json_escape(&solidus));
+        candidates.push(solidus);
         candidates.push(escaped);
       }
     }
     candidates.push(json_escape(&json));
     candidates.push(json);
     if spelling.contains('/') {
-      candidates.push(replace_char(spelling, '/', "\\/"));
+      let solidus = replace_char(spelling, '/', "\\/");
+      candidates.push(json_escape(&solidus));
+      candidates.push(solidus);
     }
     if !windows || !spelling.contains('\\') {
       candidates.push(file_url_path(spelling, windows));

@@ -51,10 +51,16 @@ fn ascii_escaped_root_is_bound() {
       format!("/work/{dir}/proj/src/a.jsx"),
       format!(r"\/work\/{dir}\/proj\/src\/a\.jsx"),
       format!("/work/{nested}/proj/src/a.jsx"),
+      format!(r"\\/work\\/{nested}\\/proj\\/src\\/a.jsx"),
     ] {
       assert!(is_bound(&root, &value), "{value}");
     }
   }
+}
+
+#[test]
+fn json_nested_regex_source_of_an_ascii_root_is_bound() {
+  assert!(is_bound("/work/proj", r"\\/work\\/proj\\/src\\/a.js"));
 }
 
 #[test]
