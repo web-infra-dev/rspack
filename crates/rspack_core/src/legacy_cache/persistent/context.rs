@@ -12,6 +12,25 @@ use crate::{CompilationLogger, LogType, Logger};
 
 const PATH_LOG_LIMIT: usize = 3;
 
+/// Path keys successfully loaded from each snapshot scope.
+#[derive(Debug, Default)]
+pub(crate) struct LoadedSnapshotPaths {
+  pub(crate) file: InternedPathSet,
+  pub(crate) context: InternedPathSet,
+  pub(crate) missing: InternedPathSet,
+}
+
+impl LoadedSnapshotPaths {
+  fn get_mut(&mut self, scope: SnapshotScope) -> &mut InternedPathSet {
+    match scope {
+      SnapshotScope::FILE => &mut self.file,
+      SnapshotScope::CONTEXT => &mut self.context,
+      SnapshotScope::MISSING => &mut self.missing,
+      SnapshotScope::BUILD => unreachable!("build snapshots are loaded separately"),
+    }
+  }
+}
+
 /// Per-build runtime state shared across all cache operations.
 ///
 /// `load_failed` gates every `load_*` call in a single build: once any
@@ -186,38 +205,51 @@ impl CacheContext {
     self.logger().time_end(start);
   }
 
-  /// Computes modified/removed paths from all snapshot scopes.
+  /// Computes modified/removed paths and retains loaded keys from all snapshot scopes.
   ///
   /// Returns `None` when the cache is invalid or any scope fails to load.
   /// On failure all snapshot scopes are reset (unless readonly) so they
   /// are fully rewritten this build.
   #[tracing::instrument("Cache::Context::load_snapshot", skip_all)]
-  pub async fn load_snapshot(
+  pub(crate) async fn load_snapshot(
     &mut self,
     snapshot: &Snapshot,
-  ) -> Option<(bool, InternedPathSet, InternedPathSet)> {
+  ) -> Option<(bool, InternedPathSet, InternedPathSet, LoadedSnapshotPaths)> {
     if !self.load_failed {
       let start = self.logger().time("read snapshot from persistent cache");
       let mut is_hot_start = false;
       let mut modified_paths = InternedPathSet::default();
       let mut removed_paths = InternedPathSet::default();
-      let data = vec![
-        snapshot
-          .calc_modified_paths(&*self.storage, SnapshotScope::FILE)
-          .await,
-        snapshot
-          .calc_modified_paths(&*self.storage, SnapshotScope::CONTEXT)
-          .await,
-        snapshot
-          .calc_modified_paths(&*self.storage, SnapshotScope::MISSING)
-          .await,
+      let mut loaded_paths = LoadedSnapshotPaths::default();
+      let data = [
+        (
+          SnapshotScope::FILE,
+          snapshot
+            .calc_modified_paths(&*self.storage, SnapshotScope::FILE)
+            .await,
+        ),
+        (
+          SnapshotScope::CONTEXT,
+          snapshot
+            .calc_modified_paths(&*self.storage, SnapshotScope::CONTEXT)
+            .await,
+        ),
+        (
+          SnapshotScope::MISSING,
+          snapshot
+            .calc_modified_paths(&*self.storage, SnapshotScope::MISSING)
+            .await,
+        ),
       ];
-      for item in data {
+      for (scope, item) in data {
         match item {
-          Ok((a, b, c, _)) => {
-            is_hot_start = is_hot_start || a;
-            modified_paths.extend(b);
-            removed_paths.extend(c);
+          Ok((scope_is_hot, modified, removed, unchanged)) => {
+            is_hot_start = is_hot_start || scope_is_hot;
+            loaded_paths
+              .get_mut(scope)
+              .extend(modified.iter().chain(&removed).cloned().chain(unchanged));
+            modified_paths.extend(modified);
+            removed_paths.extend(removed);
           }
           Err(err) => {
             self.load_failed = true;
@@ -241,7 +273,7 @@ impl CacheContext {
             ));
           }
         }
-        return Some((is_hot_start, modified_paths, removed_paths));
+        return Some((is_hot_start, modified_paths, removed_paths, loaded_paths));
       }
       self.logger().time_end(start);
     }
