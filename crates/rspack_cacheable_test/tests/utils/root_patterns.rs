@@ -110,7 +110,10 @@ fn trailing_separators_are_ignored() {
 fn unix_root_patterns() {
   let mut found = patterns("/work/project");
   found.sort();
-  assert_eq!(found, vec!["/work/project", r"\/work\/project"]);
+  assert_eq!(
+    found,
+    vec!["/work/project", r"\/work\/project", r"\\/work\\/project"]
+  );
 }
 
 #[test]
