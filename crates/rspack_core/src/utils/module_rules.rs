@@ -62,17 +62,6 @@ async fn module_rules_matcher_async<'rule, 'ctx>(
   Ok(())
 }
 
-fn push_escaped_resource_part(resource: &mut String, part: &str, reserved: &[char]) {
-  let mut start = 0;
-  for (index, character) in part.match_indices(reserved) {
-    resource.push_str(&part[start..index]);
-    resource.push('\u{200b}');
-    resource.push_str(character);
-    start = index + character.len();
-  }
-  resource.push_str(&part[start..]);
-}
-
 fn create_rule_as_resource(
   template: &Filename,
   resource_data: &ResourceData,
@@ -84,24 +73,13 @@ fn create_rule_as_resource(
       PlaceholderKind::ResourcePath => Some(FilenameRenderValue::Value(resource_path.into())),
       _ => None,
     });
-  let query = resource_data.query().unwrap_or_default();
-  let fragment = resource_data.fragment().unwrap_or_default();
-  let mut resource = String::with_capacity(
-    path
-      .len()
-      .saturating_add(query.len())
-      .saturating_add(fragment.len()),
-  );
-  #[cfg(windows)]
-  let prefix_len = rspack_paths::dos_device_path_prefix_len(&path);
-  #[cfg(not(windows))]
-  let prefix_len = 0;
-  let (prefix, path_to_escape) = path.split_at(prefix_len);
-  // Function conditions parse the full resource to recover its components.
-  resource.push_str(prefix);
-  push_escaped_resource_part(&mut resource, path_to_escape, &['?', '#', '\u{200b}']);
-  push_escaped_resource_part(&mut resource, query, &['#', '\u{200b}']);
-  resource.push_str(fragment);
+  let mut resource = path.clone();
+  if let Some(query) = resource_data.query() {
+    resource.push_str(query);
+  }
+  if let Some(fragment) = resource_data.fragment() {
+    resource.push_str(fragment);
+  }
   // Preserve metadata in the matching resource without changing the resource used for loading.
   let mut match_resource_data = resource_data.clone();
   match_resource_data.set_path(path);
