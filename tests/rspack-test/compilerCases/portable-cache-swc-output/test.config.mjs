@@ -142,6 +142,41 @@ export default [
 			});
 		}
 	},
+	...[
+		{ target: "es5", charset: "utf8", escaped: "l\\xf6nger-读者-\\uD83D\\uDE00" },
+		{
+			target: "es2020",
+			charset: "ascii",
+			escaped: "l\\xf6nger-\\u8BFB\\u8005-\\u{1F600}"
+		}
+	].flatMap(({ target, charset, escaped }) => [true, false].map((portableOutput) => ({
+		name: `escaped-writer-root-${target}-portable-output-${portableOutput}`,
+		description:
+			"rebuilds output that spells a non-ASCII writer root in ASCII escapes instead of reusing its stale path",
+		async run() {
+			await withProjects(async (reader, writer) => {
+				writeProject(writer, { "component.jsx": jsxSource() });
+				const rules = [swcRule(/\.jsx$/, {
+					...swcOptions,
+					rspackExperiments: { portableOutput },
+					jsc: { ...swcOptions.jsc, target, output: { charset } }
+				})];
+				// A source map would hold the raw root and bind the entry for an unrelated reason.
+				const configuration = { devtool: false };
+				const first = await build(writer, rules, undefined, configuration);
+				expect(first.built).toEqual(["component.jsx"]);
+				expect(first.sources["component.jsx"]).toContain(escaped);
+				expect(first.sources["component.jsx"]).not.toContain(writer);
+				copyProject(writer, reader);
+				const moved = await build(reader, rules, undefined, configuration);
+				expect(moved.built).toEqual(["component.jsx"]);
+				expect(moved.values[0].value.fileName).toBe(
+					path.join(reader, "src", "component.jsx")
+				);
+				await expectColdEquality(moved, reader, rules, configuration);
+			});
+		}
+	}))),
 	{
 		name: "excluded-options",
 		description:

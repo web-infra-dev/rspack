@@ -111,10 +111,9 @@ export async function build(
 			.map((asset) => asset.name)
 			.find((name) => name.endsWith(".js"));
 		const output = fs.readFileSync(path.join(context, "dist", file), "utf-8");
-		const map = fs.readFileSync(
-			path.join(context, "dist", `${file}.map`),
-			"utf-8"
-		);
+		const map = configuration.devtool === false
+			? undefined
+			: fs.readFileSync(path.join(context, "dist", `${file}.map`), "utf-8");
 		const logs = [];
 		let refreshCalls = 0;
 		// The refresh plugin normally supplies this runtime. Provide it at execution time:
