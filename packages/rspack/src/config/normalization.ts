@@ -375,8 +375,19 @@ export const getNormalizedRspackOptions = (
     performance: config.performance,
     plugins: nestedArray(config.plugins, (p) => [...p]),
     experiments: nestedConfig(config.experiments, (experiments) => {
+      const { portableCache, ...rest } = experiments;
       return {
-        ...experiments,
+        ...rest,
+        ...(portableCache === undefined
+          ? {}
+          : {
+              portableCache:
+                portableCache === true
+                  ? { seed: true }
+                  : portableCache && {
+                      ...portableCache,
+                    },
+            }),
         newCache:
           experiments.newCache === undefined
             ? undefined
@@ -676,6 +687,7 @@ export type CacheNormalized =
     };
 
 export interface ExperimentsNormalized {
+  portableCache?: false | { seedFrom?: string; seed?: boolean };
   asyncWebAssembly?: boolean;
   css?: boolean;
   futureDefaults?: boolean;

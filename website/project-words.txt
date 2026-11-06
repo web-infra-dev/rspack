@@ -12,9 +12,11 @@ analysable
 ansi
 antd
 antfu
+APFS
 arad
 arewerspackyet
 auvred
+Btrfs
 ɑrespæk
 bazel
 behaviour

@@ -10,7 +10,10 @@ mod memory;
 
 pub use self::{
   error::{Error, Result},
-  filesystem::{CacheDirectory, FileSystemOptions, FileSystemStorage},
+  filesystem::{
+    CacheDirectory, FileSystemOptions, FileSystemStorage, SeedStage, StagedUnit, rank_seed_donors,
+    read_seed_scope, stage_seed, sweep_seed_staging,
+  },
   memory::MemoryStorage,
 };
 
