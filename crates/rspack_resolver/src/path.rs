@@ -7,6 +7,132 @@ use camino::{Utf8Component, Utf8Path, Utf8PathBuf};
 
 pub const SLASH_START: &[char; 2] = &['/', '\\'];
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum PathType {
+  Empty,
+  Normal,
+  Relative,
+  AbsoluteWindows,
+  AbsolutePosix,
+  Internal,
+}
+
+impl PathType {
+  pub(crate) fn of(path: &str) -> Self {
+    let bytes = path.as_bytes();
+    match bytes.first() {
+      None => Self::Empty,
+      Some(b'/') => Self::AbsolutePosix,
+      Some(b'#') => Self::Internal,
+      Some(b'.')
+        if matches!(bytes, b"." | b"..") || path.starts_with("./") || path.starts_with("../") =>
+      {
+        Self::Relative
+      }
+      _ if bytes.len() >= 2
+        && bytes[0].is_ascii_alphabetic()
+        && bytes[1] == b':'
+        && (bytes.len() == 2 || matches!(bytes[2], b'/' | b'\\')) =>
+      {
+        Self::AbsoluteWindows
+      }
+      _ if path.starts_with(r"\\") => Self::AbsoluteWindows,
+      _ => Self::Normal,
+    }
+  }
+
+  pub(crate) fn is_absolute(self) -> bool {
+    matches!(self, Self::AbsoluteWindows | Self::AbsolutePosix)
+  }
+}
+
+fn normalize_segments(mut result: String, tail: &str, windows: bool, rooted: bool) -> Utf8PathBuf {
+  let separator = if windows { '\\' } else { '/' };
+  let root_len = result.len();
+  for segment in tail.split(|c| c == '/' || (windows && c == '\\')) {
+    match segment {
+      "" | "." => {}
+      ".."
+        if result.len() > root_len && result[root_len..].rsplit(separator).next() != Some("..") =>
+      {
+        let end = result[root_len..]
+          .rfind(separator)
+          .map_or(root_len, |i| root_len + i);
+        result.truncate(end);
+      }
+      ".." if rooted => {}
+      _ => {
+        if result.len() > root_len {
+          result.push(separator);
+        }
+        result.push_str(segment);
+      }
+    }
+  }
+  if result.len() == root_len && !rooted {
+    result.push('.');
+  }
+  if result.len() > root_len && tail.ends_with(|c| c == '/' || (windows && c == '\\')) {
+    result.push(separator);
+  }
+  result.into()
+}
+
+fn normalize_posix(path: &str) -> Utf8PathBuf {
+  let rooted = path.starts_with('/');
+  let mut result = String::with_capacity(path.len() + 1);
+  if rooted {
+    result.push('/');
+  }
+  normalize_segments(result, path, false, rooted)
+}
+
+fn normalize_windows(path: &str) -> Utf8PathBuf {
+  let bytes = path.as_bytes();
+  let is_separator = |byte: u8| matches!(byte, b'/' | b'\\');
+  let mut result = String::with_capacity(path.len() + 1);
+  let mut root_end = 0;
+  let mut rooted = false;
+  if bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':' {
+    result.push_str(&path[..2]);
+    root_end = 2;
+    rooted = bytes.get(2).is_some_and(|&b| is_separator(b));
+    if rooted {
+      result.push('\\');
+      root_end = 3;
+    }
+  } else if bytes.first().is_some_and(|&b| is_separator(b)) {
+    rooted = true;
+    root_end = 1;
+    result.push('\\');
+    if bytes.get(1).is_some_and(|&b| is_separator(b)) {
+      let server_end = bytes[2..]
+        .iter()
+        .position(|&b| is_separator(b))
+        .map(|i| i + 2);
+      if let Some(server_end) = server_end.filter(|&end| end > 2) {
+        let share_start = bytes[server_end..]
+          .iter()
+          .position(|&b| !is_separator(b))
+          .map(|i| i + server_end);
+        if let Some(share_start) = share_start {
+          let share_end = bytes[share_start..]
+            .iter()
+            .position(|&b| is_separator(b))
+            .map_or(bytes.len(), |i| i + share_start);
+          result.push('\\');
+          result.push_str(&path[2..server_end]);
+          result.push('\\');
+          result.push_str(&path[share_start..share_end]);
+          result.push('\\');
+          root_end = share_end;
+        }
+      }
+    }
+  }
+  normalize_segments(result, &path[root_end..], true, rooted)
+}
+
 /// Extension trait to add path normalization to camino's [`Utf8Path`].
 pub trait PathUtil {
   /// Normalize this path without performing I/O.
@@ -29,67 +155,46 @@ pub trait PathUtil {
 }
 
 impl PathUtil for Utf8Path {
-  // https://github.com/parcel-bundler/parcel/blob/e0b99c2a42e9109a9ecbd6f537844a1b33e7faf5/packages/utils/node-resolver-rs/src/path.rs#L7
   fn normalize(&self) -> Utf8PathBuf {
-    let mut components = self.components().peekable();
-    let mut ret = if let Some(c @ Utf8Component::Prefix(..)) = components.peek() {
-      let buf = Utf8PathBuf::from(c.as_str());
-      components.next();
-      buf
-    } else {
-      Utf8PathBuf::new()
-    };
-
-    for component in components {
-      match component {
-        Utf8Component::Prefix(..) => unreachable!("Path {:?}", self),
-        Utf8Component::RootDir => {
-          ret.push(component.as_str());
-        }
-        Utf8Component::CurDir => {}
-        Utf8Component::ParentDir => {
-          ret.pop();
-        }
-        Utf8Component::Normal(c) => {
-          ret.push(c);
+    let path_type = PathType::of(self.as_str());
+    match path_type {
+      PathType::Empty => Utf8PathBuf::new(),
+      PathType::AbsoluteWindows => normalize_windows(self.as_str()),
+      _ => {
+        let result = normalize_posix(self.as_str());
+        if path_type == PathType::Relative && PathType::of(result.as_str()) != PathType::Relative {
+          Utf8PathBuf::from(format!("./{result}"))
+        } else {
+          result
         }
       }
     }
-
-    ret
   }
 
-  // https://github.com/parcel-bundler/parcel/blob/e0b99c2a42e9109a9ecbd6f537844a1b33e7faf5/packages/utils/node-resolver-rs/src/path.rs#L37
   fn normalize_with<B: AsRef<Self>>(&self, subpath: B) -> Utf8PathBuf {
     let subpath = subpath.as_ref();
-
-    let mut components = subpath.components();
-
-    let Some(head) = components.next() else {
-      return subpath.to_path_buf();
-    };
-
-    if matches!(head, Utf8Component::Prefix(..) | Utf8Component::RootDir) {
-      return subpath.to_path_buf();
+    let subpath_type = PathType::of(subpath.as_str());
+    if subpath_type == PathType::Empty {
+      return self.normalize();
     }
-
-    let mut ret = self.to_path_buf();
-    for component in std::iter::once(head).chain(components) {
-      match component {
-        Utf8Component::CurDir => {}
-        Utf8Component::ParentDir => {
-          ret.pop();
-        }
-        Utf8Component::Normal(c) => {
-          ret.push(c);
-        }
-        Utf8Component::Prefix(..) | Utf8Component::RootDir => {
-          unreachable!("Path {:?} Subpath {:?}", self, subpath)
+    if subpath_type.is_absolute() {
+      return subpath.normalize();
+    }
+    match PathType::of(self.as_str()) {
+      PathType::AbsoluteWindows => normalize_windows(&format!(r"{self}\{subpath}")),
+      PathType::Normal | PathType::Relative | PathType::AbsolutePosix => {
+        normalize_posix(&format!("{self}/{subpath}"))
+      }
+      _ => {
+        let result = normalize_posix(self.as_str());
+        if subpath_type == PathType::Relative && PathType::of(result.as_str()) != PathType::Relative
+        {
+          Utf8PathBuf::from(format!("./{result}"))
+        } else {
+          result
         }
       }
     }
-
-    ret
   }
 
   fn is_invalid_exports_target(&self) -> bool {

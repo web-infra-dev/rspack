@@ -97,7 +97,7 @@ use crate::{
   cache::{Cache, CachedPath},
   context::ResolveContext as Ctx,
   package_json::JSONMap,
-  path::{PathUtil, SLASH_START},
+  path::{PathType, PathUtil, SLASH_START},
   specifier::Specifier,
   tsconfig::{ExtendsField, ProjectReference, TsConfig, is_relative_specifier},
 };
@@ -389,19 +389,15 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       return Ok(path);
     }
 
-    let result = match Utf8Path::new(specifier).components().next() {
+    let result = match PathType::of(specifier) {
       // 2. If X begins with '/'
-      Some(Utf8Component::RootDir | Utf8Component::Prefix(_)) => {
+      PathType::AbsolutePosix | PathType::AbsoluteWindows => {
         self.require_absolute(cached_path, specifier, ctx).await
       }
       // 3. If X begins with './' or '/' or '../'
-      Some(Utf8Component::CurDir | Utf8Component::ParentDir) => {
-        self.require_relative(cached_path, specifier, ctx).await
-      }
+      PathType::Relative => self.require_relative(cached_path, specifier, ctx).await,
       // 4. If X begins with '#'
-      Some(Utf8Component::Normal(_)) if specifier.as_bytes()[0] == b'#' => {
-        self.require_hash(cached_path, specifier, ctx).await
-      }
+      PathType::Internal => self.require_hash(cached_path, specifier, ctx).await,
       _ => {
         // 1. If X is a core module,
         //   a. return the core module
@@ -460,12 +456,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     ctx: &mut Ctx,
   ) -> Result<CachedPath, ResolveError> {
     // Make sure only path prefixes gets called
-    debug_assert!(
-      Utf8Path::new(specifier)
-        .components()
-        .next()
-        .is_some_and(|c| matches!(c, Utf8Component::RootDir | Utf8Component::Prefix(_)))
-    );
+    debug_assert!(PathType::of(specifier).is_absolute());
     if !self.options.prefer_relative && self.options.prefer_absolute {
       if let Ok(path) = self
         .load_package_self_or_node_modules(cached_path, specifier, ctx)
@@ -479,13 +470,14 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     }
     // 2. If X begins with '/'
     //   a. set Y to be the file system root
-    let path = self.cache.value(
-      //
-      #[cfg(windows)]
-      &Utf8Path::new(specifier).normalize(),
-      #[cfg(not(windows))]
-      Utf8Path::new(specifier),
-    );
+    let normalized;
+    let path = if PathType::of(specifier) == PathType::AbsoluteWindows {
+      normalized = Utf8Path::new(specifier).normalize();
+      &normalized
+    } else {
+      Utf8Path::new(specifier)
+    };
+    let path = self.cache.value(path);
 
     if let Some(path) = self
       .load_as_file_or_directory(&path, specifier, ctx)
@@ -505,15 +497,10 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     ctx: &mut Ctx,
   ) -> Result<CachedPath, ResolveError> {
     // Make sure only relative or normal paths gets called
-    debug_assert!(
-      Utf8Path::new(specifier)
-        .components()
-        .next()
-        .is_some_and(|c| matches!(
-          c,
-          Utf8Component::CurDir | Utf8Component::ParentDir | Utf8Component::Normal(_)
-        ))
-    );
+    debug_assert!(matches!(
+      PathType::of(specifier),
+      PathType::Relative | PathType::Normal
+    ));
     let path = cached_path.path().normalize_with(specifier);
     let cached_path = self.cache.value(&path);
     // a. LOAD_AS_FILE(Y + X)
@@ -555,12 +542,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     ctx: &mut Ctx,
   ) -> Result<CachedPath, ResolveError> {
     // Make sure no other path prefixes gets called
-    debug_assert!(
-      Utf8Path::new(specifier)
-        .components()
-        .next()
-        .is_some_and(|c| matches!(c, Utf8Component::Normal(_)))
-    );
+    debug_assert_eq!(PathType::of(specifier), PathType::Normal);
     if self.options.prefer_relative {
       if let Ok(path) = self.require_relative(cached_path, specifier, ctx).await {
         return Ok(path);

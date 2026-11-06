@@ -134,6 +134,26 @@ jobs:
           rustup target add wasm32-unknown-unknown
           cargo check -p rspack_resolver --all-features --target wasm32-unknown-unknown --locked
 
+  path_normalization_probe:
+    name: Resolver path normalization (${{ matrix.os }})
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref_name, 'verify/resolver-path-normalize-')
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          key: resolver-path-normalization-${{ matrix.os }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Compare path normalization and resolve Windows-style paths
+        run: python .github/scripts/resolver_path_probe.py --resolver
+
   resolver_required_check:
     # this job is used as the required status check for branch protection;
     # it succeeds directly when resolver files are unchanged.
