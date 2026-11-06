@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -73,6 +74,40 @@ async function withProjects(files, run) {
 		await run(writer, reader);
 	} finally {
 		fs.rmSync(temp, { recursive: true, force: true });
+	}
+}
+
+// A root short enough that its base64 spelling is shorter than 12 characters at some alignment.
+// Only Linux has a writable short real path: macOS links /tmp to /private/tmp, and Windows has none.
+async function withShortRoots(files, run) {
+	const make = () => {
+		for (;;) {
+			const root = path.join(path.sep, "tmp", crypto.randomBytes(2).toString("hex").slice(0, 3));
+			try {
+				fs.mkdirSync(root);
+				return root;
+			} catch (error) {
+				if (error.code !== "EEXIST") throw error;
+			}
+		}
+	};
+	const writer = make();
+	const reader = make();
+	try {
+		fs.mkdirSync(path.join(writer, ".git"));
+		for (const [name, source] of Object.entries({
+			"package.json": '{"name":"factory-decisions"}',
+			"src/index.js": 'module.exports = require("./dep.js");',
+			"src/dep.js": 'module.exports = "original";',
+			...files
+		})) {
+			const file = path.join(writer, name);
+			fs.mkdirSync(path.dirname(file), { recursive: true });
+			fs.writeFileSync(file, source);
+		}
+		await run(writer, reader);
+	} finally {
+		for (const root of [writer, reader]) fs.rmSync(root, { recursive: true, force: true });
 	}
 }
 
@@ -504,6 +539,30 @@ export default [
 				copyTree(writer, reader);
 				const moved = await build(reader, configuration);
 				expect(moved.built).toEqual([path.join(reader, "src", "dep.js")]);
+			});
+		}
+	},
+	{
+		name: "short-root-base64",
+		description: "rebuilds loader output that holds a short root in base64, as an inline source map or a bare digest",
+		async run() {
+			if (process.platform !== "linux") return;
+			await withShortRoots({
+				"src/index.js": 'module.exports = [require("./dep.js"), require("./digest.js")];',
+				"src/digest.js": 'module.exports = "original";',
+				"map.cjs": 'module.exports = function () { const map = JSON.stringify({ version: 3, sources: [this.resourcePath], names: [], mappings: "AAAA" }); return "module.exports = " + JSON.stringify("data:application/json;base64," + Buffer.from(map).toString("base64")); };',
+				"digest.cjs": 'module.exports = function () { return "module.exports = " + JSON.stringify(Buffer.from(this.resourcePath).toString("base64")); };'
+			}, async (writer, reader) => {
+				expect(Buffer.byteLength(writer)).toBeLessThan(9);
+				const configuration = {
+					module: { rules: [{ test: /dep\.js$/, use: ["./map.cjs"] }, { test: /digest\.js$/, use: ["./digest.cjs"] }] }
+				};
+				const written = await build(writer, configuration);
+				expect(JSON.stringify(written.assets)).toContain(Buffer.from(path.join(writer, "src", "digest.js")).toString("base64"));
+				copyTree(writer, reader);
+				const moved = await build(reader, configuration);
+				expect(moved.built).toEqual([path.join(reader, "src", "dep.js"), path.join(reader, "src", "digest.js")]);
+				await expectColdEquality(reader, configuration, moved);
 			});
 		}
 	},
