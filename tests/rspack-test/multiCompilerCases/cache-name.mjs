@@ -2,11 +2,25 @@ import path from "node:path";
 
 const cacheContext = path.join(import.meta.dirname, "../fixtures");
 
+const cases = [
+	{
+		newCache: false,
+		description: "should preserve the existing multi-compiler cache paths"
+	},
+	{
+		newCache: true,
+		description: "should use compiler namespaces for new cache paths"
+	},
+	{
+		newCache: true,
+		readonly: true,
+		description: "should use the same new cache paths in read-only mode"
+	}
+];
+
 /** @type {import('@rspack/test-tools').TMultiCompilerCaseConfig[]} */
-export default [false, true].map(newCache => ({
-	description: newCache
-		? "should use compiler namespaces for new cache paths"
-		: "should preserve the existing multi-compiler cache paths",
+export default cases.map(({ newCache, readonly, description }) => ({
+	description,
 	options() {
 		const names = newCache
 			? [undefined, undefined, "client", "client"]
@@ -18,7 +32,8 @@ export default [false, true].map(newCache => ({
 			mode: "development",
 			experiments: { newCache },
 			cache: {
-				type: "persistent"
+				type: "persistent",
+				readonly
 			}
 		}));
 	},
