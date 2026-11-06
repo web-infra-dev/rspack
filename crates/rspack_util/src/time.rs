@@ -1,21 +1,10 @@
 //! Filesystem timestamp helpers shared by watch and cache validation.
 
-use std::{
-  sync::atomic::{AtomicU64, Ordering},
-  time::{SystemTime, UNIX_EPOCH},
-};
+use std::sync::atomic::{AtomicU64, Ordering};
+
+pub use rspack_fs::{current_time, system_time_to_millis};
 
 static FS_ACCURACY: AtomicU64 = AtomicU64::new(2000);
-
-pub fn current_time() -> u64 {
-  system_time_to_millis(SystemTime::now())
-}
-
-pub fn system_time_to_millis(time: SystemTime) -> u64 {
-  time
-    .duration_since(UNIX_EPOCH)
-    .map_or(0, |duration| duration.as_millis() as u64)
-}
 
 /// The process-wide filesystem timestamp accuracy learned so far.
 pub fn fs_accuracy() -> u64 {
