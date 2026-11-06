@@ -41,7 +41,7 @@ impl PathType {
     }
   }
 
-  pub(crate) fn is_absolute(self) -> bool {
+  pub(crate) fn is_absolute(&self) -> bool {
     matches!(self, Self::AbsoluteWindows | Self::AbsolutePosix)
   }
 }
