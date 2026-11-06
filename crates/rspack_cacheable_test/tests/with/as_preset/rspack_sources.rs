@@ -22,14 +22,14 @@ fn test_rspack_source() {
 }
 
 #[test]
-fn source_map_code_keeps_graph_and_cache_shape() {
+fn dev_tool_code_keeps_graph_and_cache_shape() {
   use std::sync::Arc;
 
-  use rspack_sources::{ConcatSource, OriginalSource, Source, SourceMapCodeSource};
+  use rspack_sources::{ConcatSource, DevToolCodeSource, OriginalSource, Source};
 
   let inner = OriginalSource::new("console.log('你好');", "input.js").boxed();
   let suffix = "\n//# sourceMappingURL=out.js.map";
-  let source = SourceMapCodeSource::new(Arc::clone(&inner), RawStringSource::from(suffix).boxed());
+  let source = DevToolCodeSource::new(Arc::clone(&inner), RawStringSource::from(suffix).boxed());
   assert!(Arc::ptr_eq(source.inner(), &inner));
   assert!(source.map(&Default::default()).is_none());
   let expected = format!("console.log('你好');{suffix}");
@@ -44,14 +44,14 @@ fn source_map_code_keeps_graph_and_cache_shape() {
 
   for suffix in ["", suffix] {
     let data = Data(
-      SourceMapCodeSource::new(Arc::clone(&inner), RawStringSource::from(suffix).boxed()).boxed(),
+      DevToolCodeSource::new(Arc::clone(&inner), RawStringSource::from(suffix).boxed()).boxed(),
     );
     let bytes = to_bytes(&data, &()).unwrap();
     let restored: Data = from_bytes(&bytes, &()).unwrap();
     let code = restored
       .0
       .as_any()
-      .downcast_ref::<SourceMapCodeSource>()
+      .downcast_ref::<DevToolCodeSource>()
       .unwrap();
     assert_eq!(code.suffix().source().into_string_lossy(), suffix);
     assert!(code.inner().as_any().is::<OriginalSource>());
@@ -64,17 +64,17 @@ fn source_map_code_keeps_graph_and_cache_shape() {
 }
 
 #[test]
-fn source_map_code_preserves_binary_normalization() {
-  use rspack_sources::{ConcatSource, Source, SourceMapCodeSource};
+fn dev_tool_code_preserves_binary_normalization() {
+  use rspack_sources::{ConcatSource, DevToolCodeSource, Source};
 
   let bytes = vec![0xff, 0, b'x'];
-  let bare = SourceMapCodeSource::new(
+  let bare = DevToolCodeSource::new(
     RawBufferSource::from(bytes.clone()).boxed(),
     RawStringSource::from_static("").boxed(),
   );
   assert!(!bare.is_text());
   assert_eq!(bare.buffer().as_ref(), bytes);
-  let appended = SourceMapCodeSource::new(
+  let appended = DevToolCodeSource::new(
     RawBufferSource::from(bytes.clone()).boxed(),
     RawStringSource::from_static("!").boxed(),
   );
@@ -88,22 +88,20 @@ fn source_map_code_preserves_binary_normalization() {
   ])
   .boxed();
   let expected = format!("{}!", mixed.source().into_string_lossy());
-  let normalized = SourceMapCodeSource::new(mixed, RawStringSource::from_static("!").boxed());
+  let normalized = DevToolCodeSource::new(mixed, RawStringSource::from_static("!").boxed());
   assert!(normalized.is_text());
   assert_eq!(normalized.buffer().as_ref(), expected.as_bytes());
 }
 
 #[test]
 fn source_map_sources_compare_rendered_bytes() {
-  use rspack_sources::{
-    OriginalSource, Source, SourceMap, SourceMapCodeSource, SourceMapMappingSource,
-  };
+  use rspack_sources::{DevToolCodeSource, DevToolMapSource, OriginalSource, Source, SourceMap};
 
   let map = SourceMap::from_json(r#"{"version":3,"sources":["a\"b.js"],"sourcesContent":["\u0000\n你好\\world"],"names":[],"mappings":"AAAA"}"#.to_owned()).unwrap();
-  let source = SourceMapMappingSource::new(map);
+  let source = DevToolMapSource::new(map);
   let text = source.source().into_string_lossy().into_owned();
   let split = text.find("sourcesContent").unwrap();
-  let code = SourceMapCodeSource::new(
+  let code = DevToolCodeSource::new(
     OriginalSource::new(text[..split].to_owned(), "prefix").boxed(),
     RawStringSource::from(text[split..].to_owned()).boxed(),
   );
@@ -118,7 +116,7 @@ fn source_map_sources_compare_rendered_bytes() {
   let data = Data(source.boxed());
   let bytes = to_bytes(&data, &()).unwrap();
   let restored: Data = from_bytes(&bytes, &()).unwrap();
-  assert!(restored.0.as_any().is::<SourceMapMappingSource>());
+  assert!(restored.0.as_any().is::<DevToolMapSource>());
   assert_eq!(restored.0.buffer(), data.0.buffer());
 }
 
@@ -127,14 +125,14 @@ fn source_map_edits_share_graph_and_survive_cache() {
   use std::sync::Arc;
 
   use rspack_sources::{
-    OriginalSource, ReplaceSource, Source, SourceMap, SourceMapCodeSource, SourceMapMappingSource,
+    DevToolCodeSource, DevToolMapSource, OriginalSource, ReplaceSource, Source, SourceMap,
     is_source_map_text, source_content_eq,
   };
 
   let inner = OriginalSource::new("你好;body", "input.js").boxed();
   let suffix = "\n//# sourceMappingURL=out.deadbeef.js.map";
   let source =
-    SourceMapCodeSource::new(Arc::clone(&inner), RawStringSource::from(suffix).boxed()).boxed();
+    DevToolCodeSource::new(Arc::clone(&inner), RawStringSource::from(suffix).boxed()).boxed();
   let start = inner.size() + suffix.find("deadbeef").unwrap();
   for (from, to, replacement, expected) in [
     (
@@ -168,7 +166,7 @@ fn source_map_edits_share_graph_and_survive_cache() {
     assert!(Arc::ptr_eq(
       source
         .as_any()
-        .downcast_ref::<SourceMapCodeSource>()
+        .downcast_ref::<DevToolCodeSource>()
         .unwrap()
         .inner(),
       &inner
@@ -186,7 +184,7 @@ fn source_map_edits_share_graph_and_survive_cache() {
   }
 
   let map = SourceMap::from_json(r#"{"version":3,"file":"deadbeef.js","sources":["a.js"],"sourcesContent":["😀\n\"deadbeef\""],"names":[],"mappings":"AAAA"}"#.to_owned()).unwrap();
-  let source = SourceMapMappingSource::new(map).boxed();
+  let source = DevToolMapSource::new(map).boxed();
   let text = source.source().into_string_lossy().into_owned();
   let mut edited = ReplaceSource::new(Arc::clone(&source));
   for (start, _) in text.match_indices("deadbeef") {
@@ -210,10 +208,10 @@ fn replaced_content_cursor_matches_rope_and_hash() {
   use std::hash::{DefaultHasher, Hasher};
 
   use rspack_sources::{
-    ConcatSource, ReplaceSource, Source, SourceMapCodeSource, source_content_eq,
+    ConcatSource, DevToolCodeSource, ReplaceSource, Source, source_content_eq,
     update_text_content_hash,
   };
-  let source = SourceMapCodeSource::new(
+  let source = DevToolCodeSource::new(
     ConcatSource::new([
       RawStringSource::from_static("ab").boxed(),
       RawStringSource::from_static("cdef").boxed(),

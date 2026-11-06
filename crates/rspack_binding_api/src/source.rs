@@ -2,9 +2,9 @@ use std::{cell::Cell, hash::Hash, sync::Arc};
 
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
-  BoxSource, CachedSource, ConcatSource, MapOptions, OriginalSource, RawBufferSource,
-  RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapCodeSource,
-  SourceMapMappingSource, SourceMapSource, SourceValue, WithoutOriginalOptions, utf16_len,
+  BoxSource, CachedSource, ConcatSource, DevToolCodeSource, DevToolMapSource, MapOptions,
+  OriginalSource, RawBufferSource, RawStringSource, ReplaceSource, Source, SourceExt, SourceMap,
+  SourceMapSource, SourceValue, WithoutOriginalOptions, utf16_len,
 };
 use rspack_napi::napi::bindgen_prelude::*;
 
@@ -242,8 +242,8 @@ fn has_map_without_generation(source: &dyn Source) -> Option<bool> {
   let source = source.as_any();
   if source.is::<RawStringSource>()
     || source.is::<RawBufferSource>()
-    || source.is::<SourceMapCodeSource>()
-    || source.is::<SourceMapMappingSource>()
+    || source.is::<DevToolCodeSource>()
+    || source.is::<DevToolMapSource>()
   {
     return Some(false);
   }

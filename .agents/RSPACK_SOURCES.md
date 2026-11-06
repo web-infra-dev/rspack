@@ -245,8 +245,8 @@ representation optimizations.
 | `RawBufferSource`        | binary leaf              | exact bytes; lazy lossy rope view                                   |
 | `OriginalSource`         | mapped text leaf         | lazily creates token-like or line mappings                          |
 | `SourceMapSource`        | existing/nested map      | shares one map or composes outer and inner maps                     |
-| `SourceMapCodeSource`    | generated code + comment | shared code and comment; no mappings; edits use ReplaceSource         |
-| `SourceMapMappingSource` | external map JSON        | retains the original map and serializes JSON on demand              |
+| `DevToolCodeSource`      | generated code + comment | shared code and comment; no mappings; edits use ReplaceSource         |
+| `DevToolMapSource`       | external map JSON        | retains the original map and serializes JSON on demand              |
 | `ConcatSource`           | ordered composition      | flattens nested concats, merges adjacent raw strings, remaps tables |
 | `ReplaceSource`          | byte-range transform     | maintains sorted edits and repairs mappings                         |
 | `CachedSource`           | memoization wrapper      | owns cross-call memoized state                                      |
@@ -256,13 +256,13 @@ Important implementation details:
 - `OriginalSource` splits potential JavaScript tokens with `memchr`; it is not an AST tokenizer.
 - `SourceMapSource` composition indexes inner mappings by line and binary-searches the closest
   preceding segment. Avoid rebuilding shared maps or eagerly splitting all `sourcesContent`.
-- `SourceMapCodeSource` keeps the generated code graph and rendered URL/debugId comment
+- `DevToolCodeSource` keeps the generated code graph and rendered URL/debugId comment
   separate. It hides maps through both `map()` and `stream_chunks()`. The comment is a shared
   raw source so devtool cache entries and the emitted asset do not copy inline-map URLs.
   Both cache backends restore this wrapper, including hidden maps with an empty comment.
   Ordinary UTF-8 graphs stay shared; mixed binary/text and unknown implementations normalize
   through `source()` to preserve the old devtool boundary. Bare buffers retain their byte semantics.
-- `SourceMapMappingSource` is the JSON asset itself, so `map()` returns `None`. It retains the
+- `DevToolMapSource` is the JSON asset itself, so `map()` returns `None`. It retains the
   original `SourceMap` without interning, deduplicating, or rewriting
   `sourcesContent`. `source()` and `buffer()` serialize on demand and cache only the byte length.
   Rope APIs expose borrowed JSON fragments. Hashing and scanning use the SIMD writer, and

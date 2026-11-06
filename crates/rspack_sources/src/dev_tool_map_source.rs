@@ -33,17 +33,17 @@ impl Hash for MapData {
   }
 }
 
-/// An external source map asset which retains its original SourceMap instead
-/// of retaining another complete JSON string.
+/// A complete external source map JSON asset emitted by DevTool. Retains its
+/// original SourceMap instead of another complete JSON string.
 ///
 /// Content APIs serialize on demand; streaming APIs borrow fragments without
 /// flattening the JSON asset. RCH wraps edited JSON in ReplaceSource without retaining a flat string.
 /// The JSON asset itself has no source map.
 #[derive(Clone)]
 #[cfg_attr(feature = "allocative", derive(rspack_allocative::Allocative))]
-pub struct SourceMapMappingSource(Arc<MapData>);
+pub struct DevToolMapSource(Arc<MapData>);
 
-impl SourceMapMappingSource {
+impl DevToolMapSource {
   /// Create a JSON source map asset.
   pub fn new(map: SourceMap) -> Self {
     let version = map.version.to_string();
@@ -285,7 +285,7 @@ impl<'a> Iterator for JsonStringChunks<'a> {
   }
 }
 
-impl Source for SourceMapMappingSource {
+impl Source for DevToolMapSource {
   fn source(&self) -> SourceValue<'_> {
     SourceValue::String(Cow::Owned(self.0.to_json()))
   }
@@ -314,30 +314,30 @@ impl Source for SourceMapMappingSource {
   }
 }
 
-impl PartialEq for SourceMapMappingSource {
+impl PartialEq for DevToolMapSource {
   fn eq(&self, other: &Self) -> bool {
     Arc::ptr_eq(&self.0, &other.0) || self.0 == other.0
   }
 }
-impl Eq for SourceMapMappingSource {}
+impl Eq for DevToolMapSource {}
 
-impl Hash for SourceMapMappingSource {
+impl Hash for DevToolMapSource {
   fn hash<H: Hasher>(&self, state: &mut H) {
-    "SourceMapMappingSource".hash(state);
+    "DevToolMapSource".hash(state);
     self.0.hash(state);
   }
 }
 
-impl std::fmt::Debug for SourceMapMappingSource {
+impl std::fmt::Debug for DevToolMapSource {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("SourceMapMappingSource")
+    f.debug_struct("DevToolMapSource")
       .field("size", &self.size())
       .field("sources", &self.original_map().sources().len())
       .finish()
   }
 }
 
-struct MappingChunks<'a>(&'a SourceMapMappingSource);
+struct MappingChunks<'a>(&'a DevToolMapSource);
 impl<'source> Chunks<'source> for MappingChunks<'source> {
   fn stream<'chunk>(
     &'chunk self,
@@ -350,7 +350,7 @@ impl<'source> Chunks<'source> for MappingChunks<'source> {
     stream_chunks_of_raw_rope(self.0, options, on_chunk)
   }
 }
-impl StreamChunks for SourceMapMappingSource {
+impl StreamChunks for DevToolMapSource {
   fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a> {
     Box::new(MappingChunks(self))
   }
