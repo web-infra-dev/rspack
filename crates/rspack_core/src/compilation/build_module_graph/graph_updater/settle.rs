@@ -100,7 +100,7 @@ impl Task<VerifyContext> for VerifyTask {
 }
 
 async fn matches_no_parse(data: &ModuleFactoryCreateData, module: &NormalModule) -> Result<bool> {
-  match &data.options.module.no_parse {
+  match &data.build_context.compiler_options.module.no_parse {
     Some(no_parse) => no_parse.try_match(module.request()).await,
     None => Ok(false),
   }
