@@ -236,6 +236,8 @@ export default {
 
 Rspack 通过在缓存数据中查找根目录的原生写法、正斜杠写法、JSON 转义写法、JavaScript ASCII 转义写法、base64 写法和 `file://` URL 写法，识别包含根目录的 loader 输出。这种查找只能尽力而为。如果 loader 根据路径生成输出，但输出中不包含上述任何写法（例如，对 `this.resourcePath` 进行哈希），应调用 `this.cacheable(false)` 或设置适当的 `cache.version`。
 
+base64 检测也涵盖较短的项目根目录。如果根目录太短，无法在所有 base64 字节对齐位置检测到（例如 `/`），Rspack 会保守地将所有编码后的缓存条目与该根目录绑定，根目录变化时这些条目会重新构建。
+
 **示例：**
 
 ```js title="rspack.config.mjs"
