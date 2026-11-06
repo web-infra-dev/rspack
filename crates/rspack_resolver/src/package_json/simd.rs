@@ -166,7 +166,7 @@ pub struct PackageJson {
   raw_json: std::sync::Arc<JSONCell>,
 
   #[cfg(feature = "package_json_raw_json_api")]
-  serde_json: std::sync::Arc<serde_json::Value>,
+  serde_json: std::sync::OnceLock<std::sync::Arc<serde_json::Value>>,
 }
 
 const BOM: [u8; 3] = [0xEF, 0xBB, 0xBF];
@@ -221,12 +221,6 @@ impl PackageJson {
     let side_effects = json_object
       .and_then(|object| object.get("sideEffects"))
       .and_then(|field| SideEffects::try_from(field).ok());
-    #[cfg(feature = "package_json_raw_json_api")]
-    let serde_json = json_object.map_or_else(
-      || std::sync::Arc::new(serde_json::Value::Null),
-      Self::serde_json_from,
-    );
-
     Ok(Self {
       path: InternedPath::new(&path),
       realpath,
@@ -235,7 +229,7 @@ impl PackageJson {
       side_effects,
       raw_json: std::sync::Arc::new(json_cell),
       #[cfg(feature = "package_json_raw_json_api")]
-      serde_json,
+      serde_json: std::sync::OnceLock::new(),
     })
   }
 
@@ -279,7 +273,35 @@ impl PackageJson {
   /// `dependencies` and `devDependencies`, `peerDependencies`, `optionalDependencies`.
   #[cfg(feature = "package_json_raw_json_api")]
   pub fn raw_json(&self) -> &std::sync::Arc<serde_json::Value> {
-    &self.serde_json
+    self.serde_json.get_or_init(|| {
+      self.raw_json.borrow_dependent().as_object().map_or_else(
+        || std::sync::Arc::new(serde_json::Value::Null),
+        Self::serde_json_from,
+      )
+    })
+  }
+
+  /// Reads an object property path without materializing the full serde JSON mirror.
+  /// If the mirror already exists, borrows the value from it instead.
+  #[cfg(feature = "package_json_raw_json_api")]
+  pub fn raw_json_at<'a>(
+    &self,
+    path: impl IntoIterator<Item = &'a str>,
+  ) -> Option<std::borrow::Cow<'_, serde_json::Value>> {
+    if let Some(json) = self.serde_json.get() {
+      return path
+        .into_iter()
+        .try_fold(json.as_ref(), |value, key| value.get(key))
+        .map(std::borrow::Cow::Borrowed);
+    }
+    let value = path
+      .into_iter()
+      .try_fold(self.raw_json.borrow_dependent(), |value, key| {
+        value.as_object()?.get(key)
+      })?;
+    from_refborrowed_value(value)
+      .ok()
+      .map(std::borrow::Cow::Owned)
   }
 
   /// Directory to `package.json`

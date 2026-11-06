@@ -1,5 +1,6 @@
 use std::{
   any::Any,
+  borrow::Cow,
   fmt::Debug,
   path::{Path, PathBuf},
   sync::Arc,
@@ -11,11 +12,12 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   rkyv::string::ArchivedString,
   utils::PortablePath,
-  with::{As, AsInner, AsOption, AsPreset},
+  with::{As, AsInner, AsInnerConverter, AsOption, AsPreset},
 };
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_resolver::PackageJson;
 use rustc_hash::FxHashMap;
 
 use crate::{Scheme, get_scheme, parse_resource};
@@ -322,12 +324,45 @@ pub struct DescriptionData {
 
   /// Raw package.json
   #[cacheable(with=AsInner<AsPreset>)]
-  json: Arc<serde_json::Value>,
+  json: DescriptionJson,
+}
+
+/// Resolver metadata stays borrowed until a consumer needs the entire JSON object.
+/// Cache serialization materializes that object; cache reads use the owned variant.
+#[derive(Debug, Clone)]
+enum DescriptionJson {
+  Package(Arc<PackageJson>),
+  Owned(Arc<serde_json::Value>),
+}
+
+impl AsInnerConverter for DescriptionJson {
+  type Inner = serde_json::Value;
+
+  fn to_inner(&self) -> &Self::Inner {
+    match self {
+      Self::Package(package) => package.raw_json(),
+      Self::Owned(json) => json,
+    }
+  }
+
+  fn from_inner(json: Self::Inner) -> Self {
+    Self::Owned(Arc::new(json))
+  }
 }
 
 impl DescriptionData {
   pub fn new(path: PathBuf, json: Arc<serde_json::Value>) -> Self {
-    Self { path, json }
+    Self {
+      path,
+      json: DescriptionJson::Owned(json),
+    }
+  }
+
+  pub fn from_package_json(package: Arc<PackageJson>) -> Self {
+    Self {
+      path: package.directory().to_path_buf(),
+      json: DescriptionJson::Package(package),
+    }
   }
 
   pub fn path(&self) -> &Path {
@@ -335,11 +370,29 @@ impl DescriptionData {
   }
 
   pub fn json(&self) -> &serde_json::Value {
-    self.json.as_ref()
+    self.json.to_inner()
+  }
+
+  /// Reads only the requested property, leaving unrelated fields unmaterialized.
+  pub fn get<'a>(
+    &self,
+    path: impl IntoIterator<Item = &'a str>,
+  ) -> Option<Cow<'_, serde_json::Value>> {
+    match &self.json {
+      DescriptionJson::Package(package) => package.raw_json_at(path),
+      DescriptionJson::Owned(json) => path
+        .into_iter()
+        .try_fold(json.as_ref(), |value, key| value.get(key))
+        .map(Cow::Borrowed),
+    }
   }
 
   pub fn into_parts(self) -> (PathBuf, Arc<serde_json::Value>) {
-    (self.path, self.json)
+    let json = match self.json {
+      DescriptionJson::Package(package) => Arc::clone(package.raw_json()),
+      DescriptionJson::Owned(json) => json,
+    };
+    (self.path, json)
   }
 }
 
