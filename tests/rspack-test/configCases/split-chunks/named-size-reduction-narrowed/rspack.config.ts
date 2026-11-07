@@ -43,9 +43,9 @@ export default defineConfig({
           test: /[\\/][nq]\.js$/,
           chunks: /^e[12]$/,
         },
-        // Selects the most chunks, so it wins first and moves m out of e3. That narrows g to
-        // e1 and e2 without removing a module: g now saves (100 + 100) * 1 = 200 rather than
-        // (100 + 100) * 2, and must lose n to h.
+        // Selects the most chunks, so it wins first and moves m out of e3. Like webpack, g then
+        // drops m and keeps n on e1, e2 and e3. g now spans more chunks than h, so it wins
+        // next and h keeps only q.
         w: {
           test: /[\\/]m\.js$/,
           chunks: /^e[3-6]$/,
@@ -75,10 +75,14 @@ export default defineConfig({
                 .filter((chunkFiles) => chunkFiles.includes(file));
             const g = compilation.namedChunks.get('g');
             expect(g).toBeDefined();
-            expect(files(g!)).toEqual(['m.js']);
-            expect(chunksWith('q.js')).toEqual([['n.js', 'q.js']]);
-            // One copy of m for e1 and e2 (g), the other for e3 to e6 (w).
-            expect(chunksWith('m.js')).toEqual([['m.js'], ['m.js']]);
+            expect(files(g!)).toEqual(['n.js']);
+            expect(chunksWith('q.js')).toEqual([['q.js']]);
+            // w takes m from e3 to e6. e1 and e2 keep their own copy.
+            expect(chunksWith('m.js').sort()).toEqual([
+              ['all.js', 'm.js'],
+              ['all.js', 'm.js'],
+              ['m.js'],
+            ]);
           });
         },
       );
