@@ -23,6 +23,7 @@ pub mod shared_container_plugin;
 pub mod shared_container_runtime_module;
 pub mod shared_used_exports_optimizer_plugin;
 pub mod shared_used_exports_optimizer_runtime_module;
+mod version;
 
 const DESCRIPTION_FILE_NAME: &str = "package.json";
 
