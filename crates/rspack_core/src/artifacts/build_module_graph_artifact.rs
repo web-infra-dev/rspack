@@ -192,6 +192,7 @@ impl BuildModuleGraphArtifact {
 
     self.affected_modules.mark_as_remove(module_identifier);
     self.issuer_update_modules.remove(module_identifier);
+    self.module_to_lazy_make.revoke_module(module_identifier);
     self.module_graph.revoke_module(module_identifier)
   }
 
@@ -254,6 +255,7 @@ impl BuildModuleGraphArtifact {
     self.affected_modules.reset();
     self.affected_dependencies.reset();
     self.issuer_update_modules.clear();
+    self.module_to_lazy_make.reset_updated_modules();
     self.side_effects_state_artifact = Default::default();
 
     self.file_dependencies.reset_incremental_info();

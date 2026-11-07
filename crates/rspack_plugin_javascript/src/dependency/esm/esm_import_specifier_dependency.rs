@@ -10,7 +10,7 @@ use rspack_core::{
   DependencyCondition, DependencyConditionFn, DependencyDiagnosticsContext, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportPresenceMode, ExportProvided, ExportsInfoArtifact, ExportsType, ForwardId,
-  ImportAttributes, ImportPhase, JavascriptParserOptions, ModuleDependency, ModuleGraph,
+  ImportAttributes, ImportPhase, JavascriptParserOptions, LazyRole, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport,
   ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
   TemplateReplaceSource, UsedByExports, UsedName, create_exports_object_referenced,
@@ -352,6 +352,10 @@ impl Dependency for ESMImportSpecifierDependency {
     } else {
       ForwardId::All
     }
+  }
+
+  fn lazy_role(&self) -> Option<LazyRole> {
+    Some(LazyRole::ImportDeclaration)
   }
 }
 

@@ -4,7 +4,7 @@ use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ESMExportBinding, ESMExportInitFragment,
-  ExportNameOrSpec, ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, LazyUntil,
+  ExportNameOrSpec, ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, LazyRole,
   ModuleGraph, ModuleGraphCacheArtifact, SideEffectsStateArtifact, TSEnumValue, TemplateContext,
   TemplateReplaceSource, UsedName,
 };
@@ -118,8 +118,8 @@ impl Dependency for ESMExportSpecifierDependency {
     rspack_core::AffectType::False
   }
 
-  fn lazy(&self) -> Option<LazyUntil> {
-    Some(LazyUntil::Local(self.name.clone()))
+  fn lazy_role(&self) -> Option<LazyRole> {
+    Some(LazyRole::LocalExport(self.name.clone()))
   }
 }
 

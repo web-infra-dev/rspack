@@ -61,6 +61,7 @@ impl Occasion for MakeOccasion {
 
     let mut need_update_modules = issuer_update_modules.clone();
     need_update_modules.extend(affected_modules.active());
+    need_update_modules.extend(module_to_lazy_make.updated_modules().iter().copied());
 
     // The updated dependencies should be synced to persistent cache.
     let mg = module_graph;

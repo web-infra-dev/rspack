@@ -32,7 +32,7 @@ use super::{
 };
 use crate::{
   AsContextDependency, ConnectionState, Context, ExportsInfoArtifact, ForwardId, ImportAttributes,
-  ImportPhase, JavascriptParserUrl, LazyUntil, Module, ModuleGraph, ModuleGraphCacheArtifact,
+  ImportPhase, JavascriptParserUrl, LazyRole, Module, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleLayer, ReferencedExport, RuntimeSpec, SideEffectsStateArtifact,
   create_exports_object_referenced,
 };
@@ -178,14 +178,8 @@ pub trait Dependency:
     ForwardId::All
   }
 
-  fn lazy(&self) -> Option<LazyUntil> {
+  fn lazy_role(&self) -> Option<LazyRole> {
     None
-  }
-
-  fn set_lazy(&self) {}
-
-  fn unset_lazy(&self) -> bool {
-    false
   }
 }
 

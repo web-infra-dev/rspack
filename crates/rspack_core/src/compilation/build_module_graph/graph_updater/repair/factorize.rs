@@ -8,7 +8,7 @@ use crate::{
   BuildContext, Context, DependencyRef, FactorizeInfo, ImportPhase, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, Resolve,
   dependency::DependencyType,
-  module_graph::ModuleGraphModule,
+  module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -139,7 +139,11 @@ impl Task<TaskContext> for FactorizeResultTask {
     };
 
     if let Some(module) = factory_result.module.as_ref()
-      && skip_side_effect_free_esm_import_side_effect_dependencies(module, &dependencies)
+      && skip_side_effect_free_esm_import_side_effect_dependencies(
+        module_graph,
+        module,
+        &dependencies,
+      )
     {
       let dep = &dependencies[0];
       tracing::trace!("Module make-skipped as side-effect-only import: {dep:?}");
@@ -177,6 +181,7 @@ impl Task<TaskContext> for FactorizeResultTask {
 }
 
 fn skip_side_effect_free_esm_import_side_effect_dependencies(
+  module_graph: &mut ModuleGraph,
   module: &crate::BoxModule,
   dependencies: &[DependencyRef],
 ) -> bool {
@@ -189,9 +194,9 @@ fn skip_side_effect_free_esm_import_side_effect_dependencies(
 
   for dep in dependencies {
     if should_skip {
-      dep.set_lazy();
+      module_graph.defer_dependency(*dep.id());
     } else {
-      dep.unset_lazy();
+      module_graph.activate_dependency(dep.id());
     }
   }
 

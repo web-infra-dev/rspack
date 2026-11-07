@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 
 use crate::{
   Compilation, build_chunk_graph::build_chunk_graph, compilation::pass::PassExt,
@@ -28,6 +28,23 @@ impl PassExt for BuildChunkGraphPass {
       Ok(compilation)
     })
     .await?;
+    check_lazy_barrel_imports(compilation);
     Ok(())
   }
+}
+
+fn check_lazy_barrel_imports(compilation: &mut Compilation) {
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let diagnostics = compilation
+    .build_module_graph_artifact
+    .module_to_lazy_make
+    .modules_deferring_imports()
+    .filter(|module| chunk_graph.get_number_of_module_chunks(**module) > 0)
+    .map(|module| {
+      Diagnostic::from(rspack_error::error!(
+        "Lazy barrel deferred the imports of {module}, but the module is included in a chunk, so its imports are missing at runtime. This is a bug in Rspack, please report it."
+      ))
+    })
+    .collect::<Vec<_>>();
+  compilation.extend_diagnostics(diagnostics);
 }

@@ -13,7 +13,7 @@ use tracing::instrument;
 pub use self::{
   graph_updater::{UpdateParam, update_module_graph},
   lazy_barrel_artifact::{
-    ForwardId, ForwardedIdSet, HasLazyDependencies, LazyDependencies, LazyUntil, ModuleToLazyMake,
+    ForwardId, ForwardedIdSet, HasLazyDependencies, LazyDependencies, LazyRole, ModuleToLazyMake,
   },
   module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor},
 };
