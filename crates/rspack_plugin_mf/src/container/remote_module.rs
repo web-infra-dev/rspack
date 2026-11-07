@@ -58,8 +58,8 @@ impl RemoteModule {
     Self {
       dependencies_block: Default::default(),
       identifier: ModuleIdentifier::from(format!(
-        "remote ({}) {} {}",
-        share_scope.key(),
+        "remote {} {} {}",
+        share_scope.identifier_fragment(),
         external_requests.join(" "),
         internal_request
       )),
