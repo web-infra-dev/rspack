@@ -13,7 +13,12 @@ export type {
 } from './Compilation';
 export { Compilation } from './Compilation';
 export { Compiler, type CompilerHooks } from './Compiler';
-export type { MultiCompilerOptions, MultiRspackOptions } from './MultiCompiler';
+export type {
+  MultiCompilerOptions,
+  MultiCompilerPluginFunction,
+  MultiCompilerPluginInstance,
+  MultiRspackOptions,
+} from './MultiCompiler';
 export { MultiCompiler } from './MultiCompiler';
 export { rspackVersion, version };
 

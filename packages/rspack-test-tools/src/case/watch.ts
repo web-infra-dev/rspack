@@ -1,5 +1,9 @@
 import path from 'node:path';
-import type { RspackOptions, StatsCompilation } from '@rspack/core';
+import type {
+  MultiRspackOptions,
+  RspackOptions,
+  StatsCompilation,
+} from '@rspack/core';
 import fs from 'fs-extra';
 import merge from 'rspack-merge';
 import { ECompilerEvent } from '../compiler';
@@ -80,7 +84,10 @@ export function createWatchInitialProcessor(
       const compilerOptions =
         multiCompilerOptions.length === 1
           ? multiCompilerOptions[0]
-          : multiCompilerOptions;
+          : Object.assign(multiCompilerOptions, {
+              parallelism: (caseOptions as MultiRspackOptions).parallelism,
+              plugins: (caseOptions as MultiRspackOptions).plugins,
+            });
       const compiler = context.getCompiler();
       compiler.setOptions(compilerOptions as any);
       context.setValue('multiCompilerOptions', multiCompilerOptions);

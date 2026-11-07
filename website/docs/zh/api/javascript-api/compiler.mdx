@@ -472,6 +472,33 @@ new MultiCompiler({
 
 MultiCompiler 也提供了部分 Compiler 的方法和属性。
 
+### MultiCompiler 插件
+
+在配置数组上设置 `plugins`，或将其传给 `new MultiCompiler`，可以让插件只应用一次到 `MultiCompiler`，而不是应用到每个子 compiler。假值会被忽略。
+
+```js
+import { rspack } from '@rspack/core';
+
+const configs = [
+  { entry: './index1.js', output: { filename: 'bundle1.js' } },
+  { entry: './index2.js', output: { filename: 'bundle2.js' } },
+];
+
+configs.plugins = [
+  {
+    apply(multiCompiler) {
+      multiCompiler.hooks.done.tap('MyPlugin', (multiStats) => {
+        console.log(`${multiStats.stats.length} compilers finished`);
+      });
+    },
+  },
+];
+
+const compiler = rspack(configs);
+```
+
+这些插件接收的是 `MultiCompiler`，它只提供 `done`、`invalid`、`run`、`watchRun`、`watchClose`、`beforeCompile`、`shutdown` 和 `infrastructureLog` 这些钩子。为 `Compiler` 编写的插件（包括 `ProgressPlugin` 等内置插件）不能在这里使用，请将它们添加到每个配置的 `plugins` 中。
+
 ### MultiCompiler 方法
 
 #### setDependencies

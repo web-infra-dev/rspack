@@ -139,6 +139,7 @@ export async function loadExtendedConfig(
       }),
     )) as MultiRspackOptions;
     extendedConfigs.parallelism = config.parallelism;
+    extendedConfigs.plugins = config.plugins;
     return { config: extendedConfigs, pathMap: resultPathMap };
   }
 

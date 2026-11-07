@@ -290,7 +290,8 @@ export class RspackCLI {
     };
 
     if (Array.isArray(item)) {
-      return item.map(internalBuildConfig);
+      item.forEach(internalBuildConfig);
+      return item;
     }
     return internalBuildConfig(item as RspackOptions);
   }
@@ -330,7 +331,7 @@ export class RspackCLI {
     if (options.configName) {
       const notFoundConfigNames: string[] = [];
 
-      config = options.configName.map((configName: string) => {
+      const selected = options.configName.map((configName: string) => {
         let found: RspackOptions | undefined;
 
         if (Array.isArray(config)) {
@@ -362,6 +363,12 @@ export class RspackCLI {
         );
         process.exit(2);
       }
+
+      if (Array.isArray(config)) {
+        const { parallelism, plugins } = config as MultiRspackOptions;
+        return Object.assign(selected, { parallelism, plugins });
+      }
+      return selected;
     }
     return config;
   }
