@@ -398,6 +398,7 @@ const getRawModuleRule = (
         `${path}.use`,
         options,
         fingerprint,
+        true,
       );
     };
   }

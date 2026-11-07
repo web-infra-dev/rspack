@@ -1535,7 +1535,11 @@ async fn resolve_each_with_options(
     options: LoaderRunnerOptions {
       cache: true,
       loader_name,
-      options_cache_key: loader.options_cache_key.clone(),
+      // `JSON.stringify` can't tell apart what a portable build compares, such as `Set` contents.
+      options_cache_key: comparable_options
+        .as_ref()
+        .unwrap_or(&loader.options_cache_key)
+        .clone(),
       loader_version,
       incomparable_options: is_portable(options) && loader.comparable_options.is_none(),
     },
