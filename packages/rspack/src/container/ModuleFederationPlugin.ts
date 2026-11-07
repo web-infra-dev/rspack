@@ -84,10 +84,11 @@ export class ModuleFederationPlugin {
       const runtimeBuildAssets = Object.fromEntries(
         Object.entries(variants).map(([shareKey, entries]) => [
           shareKey,
-          entries.map(({ entry, version, globalName }) => [
+          entries.map(({ entry, version, globalName, shareScope, layer }) => [
             entry,
             version,
             globalName,
+            { shareScope, layer },
           ]),
         ]),
       ) as ShareFallback;
