@@ -201,16 +201,12 @@ impl<V> PagedSlots<V> {
     true
   }
 
-  // Out of line so that an inlined `get` costs about as much as `Vec::get`.
-  // Only ids allocated after the first removal end up here.
-  #[cold]
-  #[inline(never)]
+  #[inline]
   fn get_paged(&self, index: usize) -> Option<&V> {
     self.pages.get(index >> PAGE_BITS)?.as_ref()?.slots[index & PAGE_MASK].as_ref()
   }
 
-  #[cold]
-  #[inline(never)]
+  #[inline]
   fn get_paged_mut(&mut self, index: usize) -> Option<&mut V> {
     self.pages.get_mut(index >> PAGE_BITS)?.as_mut()?.slots[index & PAGE_MASK].as_mut()
   }
