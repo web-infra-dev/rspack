@@ -5,6 +5,7 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
+use cow_utils::CowUtils;
 use memchr::{memchr, memmem, memrchr};
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
@@ -1030,9 +1031,6 @@ module.exports = "data:,";
       }
     };
 
-    let mut function_use = None;
-    let mut function_use_comparable = true;
-    let portable = is_portable(&self.options);
     let resolved_loaders: Vec<ResolvedLoader> = {
       let mut pre_loaders: Vec<ModuleRuleUseLoader> = vec![];
       let mut post_loaders: Vec<ModuleRuleUseLoader> = vec![];
@@ -1053,14 +1051,6 @@ module.exports = "data:,";
               issuer_layer: data.issuer_layer.clone(),
             };
             let loaders = func_use(context).await?;
-            if portable {
-              let digest = function_use.get_or_insert_with(rustc_hash::FxHasher::default);
-              for loader in &loaders {
-                loader.options.hash(digest);
-                loader.comparable_options.hash(digest);
-                function_use_comparable &= loader.comparable_options.is_some();
-              }
-            }
             Cow::Owned(loaders)
           }
         };
@@ -1130,6 +1120,48 @@ module.exports = "data:,";
       }
 
       all_loaders
+    };
+
+    let loader_options_digest = match &self.options.cache {
+      crate::CacheOptions::Persistent(crate::PersistentCacheOptions {
+        portable_root: Some(root),
+        ..
+      }) => {
+        let mut root_spellings = Vec::new();
+        for root in [&root.root, &root.canonical_root] {
+          // The typed encoder JSON-quotes strings and object keys. Strip only the surrounding
+          // quotes, preserving escapes (especially doubled Windows path separators).
+          let quoted = serde_json::to_string(root.as_str()).expect("serialize portable root");
+          root_spellings.push(quoted[1..quoted.len() - 1].to_owned());
+          root_spellings.push(root.as_str().to_owned());
+        }
+        // Replace longer spellings first when the lexical and canonical roots overlap.
+        root_spellings.sort_by(|a, b| b.len().cmp(&a.len()).then_with(|| a.cmp(b)));
+        root_spellings.dedup();
+        let mut digest = rustc_hash::FxHasher::default();
+        let mut comparable = true;
+        for loader in &resolved_loaders {
+          if let Some(options) = &loader.comparable_options {
+            let mut normalized = Cow::Borrowed(options.as_str());
+            for root in &root_spellings {
+              if let Cow::Owned(replaced) = normalized.cow_replace(root, "<root>") {
+                normalized = Cow::Owned(replaced);
+              }
+            }
+            normalized.hash(&mut digest);
+          } else {
+            comparable = false;
+          }
+        }
+        comparable.then(|| {
+          if resolved_loaders.is_empty() {
+            0
+          } else {
+            digest.finish()
+          }
+        })
+      }
+      _ => Some(0),
     };
 
     let request = if !resolved_loaders.is_empty() {
@@ -1267,8 +1299,7 @@ module.exports = "data:,";
     };
 
     if let Some(normal) = module.as_normal_module_mut() {
-      normal.function_use_digest =
-        function_use_comparable.then(|| function_use.map_or(0, |digest| digest.finish()));
+      normal.loader_options_digest = loader_options_digest;
     }
     self
       .plugin_driver
@@ -1437,6 +1468,7 @@ struct ResolvedLoader {
   loader: BoxLoader,
   options: LoaderRunnerOptions,
   filter: Option<Arc<LoaderFilter>>,
+  comparable_options: Option<String>,
 }
 
 impl ResolvedLoader {
@@ -1445,6 +1477,7 @@ impl ResolvedLoader {
       loader,
       options: LoaderRunnerOptions::default(),
       filter: None,
+      comparable_options: None,
     }
   }
 }
@@ -1474,11 +1507,17 @@ async fn resolve_each_with_options(
     data,
   )
   .await?;
+  let comparable_options = if is_portable(options) {
+    loader.comparable_options.clone()
+  } else {
+    None
+  };
   if !loader.cache {
     return Ok(ResolvedLoader {
       loader: resolved,
       options: LoaderRunnerOptions::default(),
       filter: loader.filter.clone(),
+      comparable_options,
     });
   }
   let loader_name = parse_resource(&loader.loader).map_or_else(
@@ -1499,6 +1538,7 @@ async fn resolve_each_with_options(
       incomparable_options: is_portable(options) && loader.comparable_options.is_none(),
     },
     filter: loader.filter.clone(),
+    comparable_options,
   })
 }
 
