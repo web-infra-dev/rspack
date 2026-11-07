@@ -1472,12 +1472,14 @@ struct ResolvedLoader {
 }
 
 impl ResolvedLoader {
+  /// An inline loader. Its options live in the request, which the module identifier already
+  /// covers, so they compare equal whenever the identifier does.
   fn uncached(loader: BoxLoader) -> Self {
     Self {
       loader,
       options: LoaderRunnerOptions::default(),
       filter: None,
-      comparable_options: None,
+      comparable_options: Some(String::new()),
     }
   }
 }

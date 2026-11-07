@@ -907,6 +907,23 @@ export default [
 		}
 	},
 	{
+		name: "inline-loader-reuse",
+		description: "keeps a module whose request names an inline loader after a move",
+		async run() {
+			await withProjects({
+				"src/index.js": 'module.exports = require("../transform.cjs!./dep.js");'
+			}, async (writer, reader) => {
+				const configuration = {};
+				const written = await build(writer, configuration);
+				expect(execute(written)).toBe("transformed");
+				copyTree(writer, reader);
+				const moved = await build(reader, configuration);
+				expect(moved.built).toEqual([]);
+				await expectColdEquality(reader, configuration, moved);
+			});
+		}
+	},
+	{
 		name: "inline-source-map",
 		description: "rebuilds loader output that holds the root in a base64 inline source map",
 		async run() {
