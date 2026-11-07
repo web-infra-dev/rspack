@@ -1,5 +1,5 @@
 use std::sync::{
-  Arc, RwLock,
+  Arc,
   atomic::{AtomicBool, Ordering},
 };
 
@@ -11,7 +11,8 @@ use get_mode::*;
 use get_side_effects_connection_state::*;
 use module_graph_hash::*;
 use rspack_intern::Atom;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rspack_util::fx_hash::FxDashMap;
+use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   ConcatenationEntry, ConnectionState, DependencyId, ExportInfo, ExportsType, ModuleIdentifier,
@@ -26,6 +27,10 @@ pub struct ModuleGraphCacheArtifactInner {
   /// Webpack enables module graph caches by creating new cache maps and disable them by setting them to undefined.
   /// But in rust I think it's better to use a bool flag to avoid memory reallocation.
   freezed: AtomicBool,
+  /// Star-export assignment scans can be cached on their own. Flag-dependency-exports
+  /// turns this on for one read-only collect batch while provide info is still
+  /// changing, so the rest of the module-graph cache stays cold.
+  determine_export_assignments_enabled: AtomicBool,
   get_mode_cache: GetModeCache,
   determine_export_assignments_cache: DetermineExportAssignmentsCache,
   get_exports_type_cache: GetExportsTypeCache,
@@ -42,11 +47,46 @@ impl ModuleGraphCacheArtifactInner {
     self.get_side_effects_connection_state_cache.freeze();
     self.concatenated_module_entries.freeze();
     self.module_graph_hash_cache.freeze();
+    self
+      .determine_export_assignments_enabled
+      .store(true, Ordering::Release);
     self.freezed.store(true, Ordering::Release);
   }
 
   pub fn unfreeze(&self) {
+    self
+      .determine_export_assignments_enabled
+      .store(false, Ordering::Release);
     self.freezed.store(false, Ordering::Release);
+  }
+
+  /// Cache star-export assignment scans until [`Self::end_determine_export_assignments_cache`].
+  ///
+  /// A no-op when the whole module-graph cache is already frozen, because that
+  /// path already caches these scans and must keep the map.
+  pub fn begin_determine_export_assignments_cache(&self) {
+    if self.freezed.load(Ordering::Acquire) {
+      return;
+    }
+    self.determine_export_assignments_cache.freeze();
+    self
+      .determine_export_assignments_enabled
+      .store(true, Ordering::Release);
+  }
+
+  /// Disable and clear the star-export assignment cache started by
+  /// [`Self::begin_determine_export_assignments_cache`].
+  ///
+  /// A no-op when the whole module-graph cache is frozen, so a surrounding
+  /// freeze is left intact.
+  pub fn end_determine_export_assignments_cache(&self) {
+    if self.freezed.load(Ordering::Acquire) {
+      return;
+    }
+    self
+      .determine_export_assignments_enabled
+      .store(false, Ordering::Release);
+    self.determine_export_assignments_cache.freeze();
   }
 
   pub fn cached_get_exports_type<F: FnOnce() -> ExportsType>(
@@ -92,7 +132,10 @@ impl ModuleGraphCacheArtifactInner {
     key: DetermineExportAssignmentsKey,
     f: F,
   ) -> DetermineExportAssignmentsValue {
-    if !self.freezed.load(Ordering::Acquire) {
+    if !self
+      .determine_export_assignments_enabled
+      .load(Ordering::Acquire)
+    {
       return f();
     }
 
@@ -289,27 +332,24 @@ pub(super) mod get_mode {
 
   pub type GetModeCacheKey = (DependencyId, Option<RuntimeKey>);
 
+  /// Sharded map: `freeze` clears this cache and the next parallel pass fills it
+  /// again, so a single `RwLock` would serialize every miss.
   #[derive(Debug, Default)]
   pub struct GetModeCache {
-    cache: RwLock<HashMap<GetModeCacheKey, ExportMode>>,
+    cache: FxDashMap<GetModeCacheKey, ExportMode>,
   }
 
   impl GetModeCache {
     pub fn freeze(&self) {
-      self.cache.write().expect("should get lock").clear();
+      self.cache.clear();
     }
 
     pub fn get(&self, key: &GetModeCacheKey) -> Option<ExportMode> {
-      let inner = self.cache.read().expect("should get lock");
-      inner.get(key).cloned()
+      self.cache.get(key).map(|value| value.value().clone())
     }
 
     pub fn set(&self, key: GetModeCacheKey, value: ExportMode) {
-      self
-        .cache
-        .write()
-        .expect("should get lock")
-        .insert(key, value);
+      self.cache.insert(key, value);
     }
   }
 }
@@ -329,30 +369,27 @@ pub(super) mod determine_export_assignments {
   }
   pub type DetermineExportAssignmentsValue = (Vec<Atom>, Vec<usize>);
 
+  /// Sharded map for the same reason as [`super::get_mode::GetModeCache`]: parallel
+  /// export flagging fills the cache immediately after it is cleared.
   #[derive(Debug, Default)]
   pub struct DetermineExportAssignmentsCache {
-    cache: RwLock<HashMap<DetermineExportAssignmentsKey, DetermineExportAssignmentsValue>>,
+    cache: FxDashMap<DetermineExportAssignmentsKey, DetermineExportAssignmentsValue>,
   }
 
   impl DetermineExportAssignmentsCache {
     pub fn freeze(&self) {
-      self.cache.write().expect("should get lock").clear();
+      self.cache.clear();
     }
 
     pub fn get(
       &self,
       key: &DetermineExportAssignmentsKey,
     ) -> Option<DetermineExportAssignmentsValue> {
-      let inner = self.cache.read().expect("should get lock");
-      inner.get(key).cloned()
+      self.cache.get(key).map(|value| value.value().clone())
     }
 
     pub fn set(&self, key: DetermineExportAssignmentsKey, value: DetermineExportAssignmentsValue) {
-      self
-        .cache
-        .write()
-        .expect("should get lock")
-        .insert(key, value);
+      self.cache.insert(key, value);
     }
   }
 }

@@ -222,7 +222,7 @@ impl Dependency for CommonJsExportRequireDependency {
       Some(ExportsSpec {
         exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
           name: name.to_owned(),
-          from: Some(from.to_owned()),
+          from: Some(from.dependency_id),
           can_mangle: Some(!OBJECT_PROTOTYPE_METHODS.contains(&name.as_str())),
           export: Some(if ids.is_empty() {
             Nullable::Null
@@ -252,7 +252,7 @@ impl Dependency for CommonJsExportRequireDependency {
                 export.extend(vec![name.to_owned()]);
                 ExportNameOrSpec::ExportSpec(ExportSpec {
                   name: name.to_owned(),
-                  from: Some(from.to_owned()),
+                  from: Some(from.dependency_id),
                   export: Some(Nullable::Value(export)),
                   // `module.exports = require("./m")` can't be mangled
                   can_mangle: Some(!self.is_all_exported_by_module_exports()),
@@ -268,7 +268,7 @@ impl Dependency for CommonJsExportRequireDependency {
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::UnknownExports,
           from: if ids.is_empty() {
-            Some(from.to_owned())
+            Some(from.dependency_id)
           } else {
             None
           },
