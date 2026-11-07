@@ -566,6 +566,7 @@ impl ModuleGraph {
       .insert(dependency_id, parents);
   }
 
+  #[inline]
   pub fn get_parent_module(&self, dependency_id: &DependencyId) -> Option<&ModuleIdentifier> {
     self
       .inner
@@ -574,6 +575,7 @@ impl ModuleGraph {
       .map(|p| &p.module)
   }
 
+  #[inline]
   pub fn get_parent_block(
     &self,
     dependency_id: &DependencyId,
@@ -585,6 +587,7 @@ impl ModuleGraph {
       .and_then(|p| p.block.as_ref())
   }
 
+  #[inline]
   pub fn get_parent_block_index(&self, dependency_id: &DependencyId) -> Option<usize> {
     self
       .inner
@@ -678,7 +681,7 @@ impl ModuleGraph {
       .and_then(|module_identifier| self.module_graph_module_by_identifier(module_identifier))
   }
 
-  #[inline]
+  #[inline(always)]
   pub fn module_identifier_by_dependency_id(
     &self,
     dep_id: &DependencyId,
@@ -875,7 +878,7 @@ impl ModuleGraph {
     }
   }
 
-  #[inline]
+  #[inline(always)]
   pub fn get_resolved_module(&self, dependency_id: &DependencyId) -> Option<&ModuleIdentifier> {
     match self.connection_by_dependency_id(dependency_id) {
       Some(connection) => Some(&connection.resolved_module),
@@ -1013,6 +1016,7 @@ impl ModuleGraph {
 
   /// We can't insert all sort of things into one hashmap like javascript, so we create different
   /// hashmap to store different kinds of meta.
+  #[inline]
   pub fn get_dep_meta_if_existing(&self, id: &DependencyId) -> Option<&DependencyExtraMeta> {
     self.inner.dep_meta_map.get(id)
   }
