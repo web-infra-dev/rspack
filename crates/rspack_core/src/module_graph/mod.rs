@@ -842,6 +842,7 @@ impl ModuleGraph {
     self.inner.connections.get(connection_id)
   }
 
+  #[inline]
   fn connection_by_id_mut(
     &mut self,
     connection_id: &ModuleGraphConnectionId,
