@@ -2,9 +2,9 @@ use std::{cell::Cell, hash::Hash, sync::Arc};
 
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
-  BoxSource, CachedSource, ConcatSource, MapOptions, OriginalSource, RawBufferSource,
-  RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource, SourceValue,
-  WithoutOriginalOptions, utf16_len,
+  BoxSource, CachedSource, ConcatSource, DevToolCodeSource, DevToolMapSource, MapOptions,
+  OriginalSource, RawBufferSource, RawStringSource, ReplaceSource, Source, SourceExt, SourceMap,
+  SourceMapSource, SourceValue, WithoutOriginalOptions, utf16_len,
 };
 use rspack_napi::napi::bindgen_prelude::*;
 
@@ -240,7 +240,11 @@ impl JsSourceWithLazyMap<'_> {
 // Composite or custom sources can discard all mappings, so their presence is left unknown.
 fn has_map_without_generation(source: &dyn Source) -> Option<bool> {
   let source = source.as_any();
-  if source.is::<RawStringSource>() || source.is::<RawBufferSource>() {
+  if source.is::<RawStringSource>()
+    || source.is::<RawBufferSource>()
+    || source.is::<DevToolCodeSource>()
+    || source.is::<DevToolMapSource>()
+  {
     return Some(false);
   }
   if let Some(source) = source.downcast_ref::<OriginalSource>() {
@@ -253,6 +257,11 @@ fn has_map_without_generation(source: &dyn Source) -> Option<bool> {
   }
   if let Some(source) = source.downcast_ref::<CachedSource>() {
     return has_map_without_generation(source.inner().as_ref());
+  }
+  if let Some(source) = source.downcast_ref::<ReplaceSource>() {
+    // Edits cannot introduce original mappings into an unmapped source.
+    // A mapped source can lose all its mappings, so keep that case unknown.
+    return has_map_without_generation(source.inner().as_ref()).filter(|has_map| !has_map);
   }
   None
 }

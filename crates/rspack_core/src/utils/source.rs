@@ -1,14 +1,8 @@
-use rspack_sources::{MappingSource, Source};
+use rspack_sources::{Source, is_source_map_text, source_content_eq};
 
 pub fn is_source_equal(a: &dyn Source, b: &dyn Source) -> bool {
-  if let Some(mapping) = a.as_any().downcast_ref::<MappingSource>() {
-    return mapping.content_eq(b);
+  if is_source_map_text(a) || is_source_map_text(b) {
+    return source_content_eq(a, b);
   }
-  if let Some(mapping) = b.as_any().downcast_ref::<MappingSource>() {
-    return mapping.content_eq(a);
-  }
-  let a_source = a.buffer();
-  let b_source = b.buffer();
-
-  a_source == b_source
+  a.buffer() == b.buffer()
 }

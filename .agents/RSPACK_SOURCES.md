@@ -218,41 +218,48 @@ representation optimizations.
 
 ### Type selection
 
-| Type              | Role                 | Important behavior                                                  |
-| ----------------- | -------------------- | ------------------------------------------------------------------- |
-| `RawStringSource` | text leaf            | no mappings; use `from_static` for literals                         |
-| `RawBufferSource` | binary leaf          | exact bytes; lazy lossy rope view                                   |
-| `OriginalSource`  | mapped text leaf     | lazily creates token-like or line mappings                          |
-| `SourceMapSource` | existing/nested map  | directly borrows one map or composes outer and inner maps           |
-| `MappingSource`   | external map JSON    | retains the original map and serializes JSON on demand              |
-| `ConcatSource`    | ordered composition  | flattens nested concats, merges adjacent raw strings, remaps tables |
-| `ReplaceSource`   | byte-range transform | maintains sorted edits and repairs mappings                         |
-| `CachedSource`    | memoization wrapper  | owns cross-call memoized state                                      |
+| Type                | Role                     | Important behavior                                                  |
+| ------------------- | ------------------------ | ------------------------------------------------------------------- |
+| `RawStringSource`   | text leaf                | no mappings; use `from_static` for literals                         |
+| `RawBufferSource`   | binary leaf              | exact bytes; lazy lossy rope view                                   |
+| `OriginalSource`    | mapped text leaf         | lazily creates token-like or line mappings                          |
+| `SourceMapSource`   | existing/nested map      | directly borrows one map or composes outer and inner maps           |
+| `DevToolCodeSource` | generated code + comment | shared code and comment; no mappings; edits use ReplaceSource       |
+| `DevToolMapSource`  | external map JSON        | retains the original map and serializes JSON on demand              |
+| `ConcatSource`      | ordered composition      | flattens nested concats, merges adjacent raw strings, remaps tables |
+| `ReplaceSource`     | byte-range transform     | maintains sorted edits and repairs mappings                         |
+| `CachedSource`      | memoization wrapper      | owns cross-call memoized state                                      |
 
 Important implementation details:
 
 - `OriginalSource` splits potential JavaScript tokens with `memchr`; it is not an AST tokenizer.
 - `SourceMapSource` composition indexes inner mappings by line and binary-searches the closest
   preceding segment. Avoid cloning maps or eagerly splitting all `sourcesContent`.
-- `MappingSource` is the JSON asset itself, so `map()` returns `None`. It retains the original
-  `SourceMap` and its owner without interning, deduplicating, or rewriting `sourcesContent`.
-  Unedited `source()` and `buffer()` use the existing `SourceMap::to_json()` serializer on demand
-  and cache only its byte length. Construction must not scan the map to compute its exact JSON
-  size; `size()` computes it lazily if needed, and this cache must not affect equality or hashing.
-  Rope APIs expose borrowed JSON fragments, including splits at escapes, and rope and JSON chunk
-  iteration share one lazy edit overlay so the two views cannot diverge. RCH scans serialized bytes
-  with bounded buffering and retains edits in another `MappingSource`, including custom digests
-  and maps participating in content-hash groups. Reuse the scan's byte count when creating edited
-  views so their size calculation does not serialize the input again. Edited writers apply byte
-  ranges to the original SIMD serializer's output; do not route them through the scalar rope escaper.
-  SRI computes all requested digests in one serialization pass. Content equality retains field references and
-  advances through escapes lazily, rather than retaining a reference per escaped fragment.
-  Content hashing and equality consume the exact rendered bytes; structural Source hashing remains
-  separate. Persistent cache stores map fields and edit layers directly, preserving empty fields
-  without JSON encoding or parsing. Its map record is boxed so other cached source nodes do not
-  grow. For external `noSources` maps, own the remaining borrowed metadata before releasing the
-  owner of the removed contents. Do not retain the whole JSON in either the map asset or its
-  replacement result. JS binding content requests remain an explicit materialization boundary.
+- `DevToolCodeSource` keeps the generated code graph and rendered URL/debugId comment
+  separate. It hides maps through both `map()` and `stream_chunks()`. The comment is a shared
+  raw source so devtool cache entries and the emitted asset do not copy inline-map URLs.
+  Both cache backends restore this wrapper, including hidden maps with an empty comment.
+  Ordinary UTF-8 graphs stay shared; mixed binary/text and unknown implementations normalize
+  through `source()` to preserve the old devtool boundary. Bare buffers retain their byte semantics.
+- `DevToolMapSource` is the JSON asset itself, so `map()` returns `None`. It retains the
+  original `SourceMap` and its owner without interning, deduplicating, or rewriting
+  `sourcesContent`. `source()` and `buffer()` serialize on demand and cache only the byte length.
+  Rope APIs expose borrowed JSON fragments. Hashing and scanning use the SIMD writer, and
+  equality advances through a field/escape cursor without collecting one reference per escape.
+  Persistent cache stores fields directly, including empty arrays. For external `noSources` maps,
+  own the remaining metadata before releasing the owner of removed source contents.
+- RCH scans the two devtool outputs (also behind ReplaceSource/CachedSource) with the bounded
+  streaming matcher. Unchanged assets keep their source graph. Changed code, comments and map
+  JSON are wrapped in ordinary ReplaceSource; both the hash input without own hashes and the
+  final output are derived from the original scanned source. ReplaceSource uses u32 offsets;
+  edits outside that range retain the flat-string fallback instead of truncating offsets.
+  Content hashing uses emitted bytes with small writes buffered; bare maps retain SIMD writing.
+  Content equality uses a lazy JSON/edit cursor, independent of rope boundaries, without a
+  vector entry per JSON escape. Source structural hashing remains separate. RCH deduplicates
+  devtool text outputs and their edit/cache wrappers with raw strings by content; unrelated
+  sources keep their previous equality behavior. Binary/unknown sources keep scan/buffer
+  fallbacks. SRI, asset comparison and binding map-presence checks recognize these wrappers.
+  ReplaceSource's JSON writer currently uses rope rather than the bare map's SIMD writer.
 - `ConcatSource::add` uses `&mut self` and `Mutex::get_mut`; reads lazily optimize children. Mapping
   shifts generated positions and remaps child-local indices into global deduplicated tables.
 - `ReplaceSource` ranges are half-open byte ranges. Edits are ordered by
