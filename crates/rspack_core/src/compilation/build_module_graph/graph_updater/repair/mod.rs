@@ -53,6 +53,7 @@ pub async fn repair(
             original_module_identifier: None,
             original_module_source: None,
             issuer: None,
+            issuer_dependencies: Default::default(),
             issuer_layer: None,
             original_module_context: None,
             dependencies: vec![dependency],
