@@ -63,6 +63,8 @@ export default {
 };
 ```
 
+通过 `export *` 查找某个导出名时，如果一条重导出路径回到同一模块的同名导出，Rspack 会跳过这条路径，继续从该模块的其他 `export *` 中查找。
+
 ### Dynamic import()
 
 ```ts
