@@ -423,6 +423,112 @@ async function buildAcrossProcesses(kinds, loaderCache, check) {
 	});
 }
 
+// Reports an option of any type without running its getters or functions.
+const inspectOption = {
+	"inspect.cjs": "module.exports = function () { return 'module.exports = ' + JSON.stringify(require('node:util').inspect(this.getOptions().value)); };"
+};
+
+class Plugin {
+	constructor(data) {
+		this.data = data;
+	}
+	apply() {}
+}
+class OtherPlugin extends Plugin {}
+
+function shared() {
+	const value = { list: [1] };
+	return { first: value, second: value };
+}
+function throwingGetter() {
+	return { get data() { throw new Error("getter invoked"); } };
+}
+function cycle() {
+	const value = {};
+	value.self = value;
+	return value;
+}
+
+const same = (name, make) => ({ name, values: [make(), make()], reused: true });
+const differ = (name, ...values) => ({ name, values, reused: false });
+const dataComparisons = [
+	same("dateSame", () => new Date(1000)),
+	same("dateInvalid", () => new Date(NaN)),
+	differ("dateOther", new Date(1000), new Date(2000)),
+	same("regexpSame", () => /a/g),
+	differ("regexpSource", /a/, /b/),
+	differ("regexpFlags", /a/, /a/g),
+	same("setSame", () => new Set(["a", "b"])),
+	differ("setOther", new Set(["a"]), new Set(["b"])),
+	differ("setOrder", new Set(["a", "b"]), new Set(["b", "a"])),
+	differ("setArray", new Set(["a"]), ["a"]),
+	same("mapSame", () => new Map([["a", 1]])),
+	differ("mapValue", new Map([["a", 1]]), new Map([["a", 2]])),
+	differ("mapSet", new Map([["a", 1]]), new Set([["a", 1]])),
+	same("bigintSame", () => 1n),
+	differ("bigintOther", 1n, 2n),
+	differ("bigintNumber", 1n, 1),
+	same("nanSame", () => NaN),
+	differ("nanInfinity", NaN, Infinity),
+	differ("infinitySign", Infinity, -Infinity)
+];
+// Array use: static config, where functions and plugin objects stand in for what they are.
+const arrayUseComparisons = [
+	...dataComparisons,
+	same("functionSame", () => function () {}),
+	differ("functionFalse", function () {}, false),
+	same("symbolSame", () => Symbol("a")),
+	differ("symbolOther", Symbol("a"), Symbol("b")),
+	same("instanceSame", () => new Plugin({ list: [1] })),
+	differ("instanceData", new Plugin(1), new Plugin(2)),
+	differ("instanceClass", new Plugin(1), new OtherPlugin(1)),
+	differ("instancePlain", new Plugin(1), { data: 1 }),
+	same("getterSame", throwingGetter),
+	differ("getterData", throwingGetter(), { data: 1 }),
+	same("sharedSame", shared),
+	differ("cycleSame", cycle(), cycle()),
+	differ("boxedSame", new Number(1), new Number(1))
+];
+// Function use: values built per module, where only exact data can be trusted to agree.
+const functionUseComparisons = [
+	...dataComparisons,
+	differ("functionSame", function () {}, function () {}),
+	differ("symbolSame", Symbol("a"), Symbol("a")),
+	differ("instanceSame", new Plugin(1), new Plugin(1)),
+	differ("getterSame", throwingGetter(), throwingGetter()),
+	differ("sharedSame", shared(), shared())
+];
+
+function optionComparisonCase(kind, comparisons) {
+	return {
+		name: `${kind}-use-option-comparison`,
+		description: `compares the options of ${kind} use by value after a move, matching cold and uncached builds`,
+		async run() {
+			await withProjects(
+				{ ...observedModules(comparisons.map(({ name }) => name)), ...inspectOption },
+				async (writer, reader) => {
+					const configuration = (context) => ({
+						module: { rules: comparisons.map(({ name, values }) => {
+							const use = [{
+								loader: "./inspect.cjs",
+								options: { value: values[context === writer ? 0 : 1] }
+							}];
+							return { test: new RegExp(`${name}-dep\\.js$`), use: kind === "function" ? () => use : use };
+						}) }
+					});
+					await build(writer, configuration(writer));
+					copyTree(writer, reader);
+					const moved = await build(reader, configuration(reader));
+					expect(moved.built.map((id) => /(\w+)-dep\.js$/.exec(id)[1]).sort()).toEqual(
+						comparisons.filter(({ reused }) => !reused).map(({ name }) => name).sort()
+					);
+					await expectColdEquality(reader, configuration(reader), moved);
+				}
+			);
+		}
+	};
+}
+
 const collisions = [
 	{ name: "undefined", value: undefined, text: "[undefined]" },
 	{ name: "nan", value: NaN, text: "NaN" },
@@ -477,7 +583,7 @@ export default [
 	})),
 	...loaderCaches.map(({ suffix, cache }) => ({
 		name: `array-use-set-option-${suffix}`,
-		description: "rebuilds an array use whose options cannot be compared as plain data",
+		description: "rebuilds an array use whose set option holds a value from the checkout location",
 		async run() {
 			await withProjects(emitOption, async (writer, reader) => {
 				const configuration = (context) => ({
@@ -500,6 +606,46 @@ export default [
 			});
 		}
 	})),
+	{
+		name: "array-use-static-plugin-options",
+		description: "reuses an array use whose options hold plugin functions and plugin objects",
+		async run() {
+			await withProjects({}, async (writer, reader) => {
+				const configuration = {
+					module: { rules: [{
+						test: /dep\.js$/,
+						use: [{
+							loader: transform,
+							options: { plugins: [function () {}, { postcssPlugin: "x", Once() {} }] }
+						}]
+					}] }
+				};
+				await build(writer, configuration);
+				copyTree(writer, reader);
+				const moved = await build(reader, configuration);
+				expect(moved.built).toEqual([]);
+				expect(execute(moved)).toBe("transformed");
+				await expectColdEquality(reader, configuration, moved);
+			});
+		}
+	},
+	{
+		name: "function-use-same-set-option",
+		description: "reuses a function use returning a set with the same contents on both sides",
+		async run() {
+			await withProjects(observeLoader, async (writer, reader) => {
+				const configuration = useObserved(writer, new Set(["same"]), new Set(["same"]));
+				await build(writer, configuration);
+				copyTree(writer, reader);
+				const moved = await build(reader, configuration);
+				expect(moved.built).toEqual([]);
+				expect(execute(moved)).toBe("[object Set] same");
+				await expectColdEquality(reader, configuration, moved);
+			});
+		}
+	},
+	optionComparisonCase("array", arrayUseComparisons),
+	optionComparisonCase("function", functionUseComparisons),
 	...[
 		{ kind: "array", changed: false },
 		{ kind: "array", changed: true },
@@ -614,13 +760,26 @@ export default [
 	...["function", "array"].flatMap((kind) => [
 		{
 			name: `loader-result-cache-skips-set-option-${kind}-use`,
-			description: `does not serve a loader result by a set option from a ${kind} use on a portable build`,
+			description: `does not serve the loader result of another set option from a ${kind} use on a portable build`,
 			async run() {
 				await withProjects(observeLoader, async (writer) => {
 					const first = await build(writer, useLoaderResultCache(kind, { value: new Set(["first"]) }));
 					expect(execute(first)).toBe("[object Set] first");
 					const second = await build(writer, useLoaderResultCache(kind, { value: new Set(["second"]) }));
 					expect(execute(second)).toBe("[object Set] second");
+				});
+			}
+		},
+		{
+			name: `loader-result-cache-keeps-set-option-${kind}-use`,
+			description: `serves a loader result by unchanged set contents from a ${kind} use on a portable build`,
+			async run() {
+				await withProjects(observeLoader, async (writer) => {
+					const log = path.join(writer, "runs.log");
+					await build(writer, useLoaderResultCache(kind, { value: new Set(["same"]), log }));
+					const second = await build(writer, useLoaderResultCache(kind, { value: new Set(["same"]), log }));
+					expect(execute(second)).toBe("[object Set] same");
+					expect(fs.readFileSync(log, "utf8")).toBe("run\n");
 				});
 			}
 		},
@@ -639,6 +798,18 @@ export default [
 			}
 		}
 	]),
+	{
+		name: "loader-result-cache-skips-function-option-function-use",
+		description: "does not serve a loader result by a function returned from a function use on a portable build",
+		async run() {
+			await withProjects(observeLoader, async (writer) => {
+				const first = await build(writer, useLoaderResultCache("function", { value: () => "first" }));
+				expect(execute(first)).toBe("[object Function] first");
+				const second = await build(writer, useLoaderResultCache("function", { value: () => "second" }));
+				expect(execute(second)).toBe("[object Function] second");
+			});
+		}
+	},
 	...scenarios.map(({ name, files = {}, rules, plugins, noParse }) => ({
 		name,
 		description: `decides ${name} at the reader of a relocated cache`,
