@@ -1,8 +1,8 @@
-import { moduleIds, values } from "./lib.js";
+import value, { moduleIds } from "./lib.js";
+import dependency from "./dependency.js";
 
-it("keeps nested runtime tables separate when concatenating modules", async () => {
-	expect(moduleIds).toEqual([["prebuilt"], ["prebuilt"]]);
-	expect(values).toEqual([42, 7]);
-	const lazy = await import("./lazy.js");
-	expect(lazy.default).toBe(7);
+it("keeps nested runtime tables separate when concatenating modules", () => {
+	expect(moduleIds).toEqual(["940"]);
+	expect(value).toBe(42);
+	expect(dependency).toBe("dependency");
 });

@@ -1,15 +1,17 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  ChunkGraph, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
-  CodeGenerationDataTopLevelDeclarations, Compilation, ExportsArgument, Module, ModuleGraph,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable, SourceType,
-  property_access, render_init_fragments,
+  ChunkGraph, ChunkInitFragments, ChunkRenderContext, ChunkUkey, Compilation, ExportsArgument,
+  Module, ModuleGraph, RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode,
+  RuntimeVariable, SourceType, property_access, render_init_fragments,
   rspack_sources::{BoxSource, ConcatSource, OriginalSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
 
-use super::{JsPlugin, RenderBootstrapResult, get_js_entry_modules_with_chunk_group};
+use super::{
+  JsPlugin, RenderBootstrapResult, entry_top_level_declarations_bailout,
+  get_js_entry_modules_with_chunk_group,
+};
 use crate::{
   RenderSource,
   runtime::{
@@ -396,36 +398,16 @@ function {}(moduleId) {{
             );
             allow_inline_startup = false;
           }
-          if allow_inline_startup {
-            let codegen = compilation
-              .code_generation_results
-              .get(module, Some(chunk.runtime()));
-            let module_graph = compilation.get_module_graph();
-            let module_build_info = module_graph
-              .module_by_identifier(module)
-              .map(|m| m.build_info());
-            let top_level_decls = codegen
-              .data()
-              .get::<CodeGenerationDataTopLevelDeclarations>()
-              .map(|decls| decls.inner())
-              .or_else(|| {
-                module_build_info
-                  .as_ref()
-                  .and_then(|info| info.top_level_declarations.as_ref())
-              });
-            if let Some(top_level_decls) = top_level_decls {
-              for variable in [RuntimeVariable::Modules, RuntimeVariable::ModuleCache] {
-                let name = runtime_template.render_runtime_variable(&variable);
-                if top_level_decls.contains(name.as_str()) {
-                  buf2.push(format!("// This entry module declares '{name}' on top-level, which the runtime also declares, so it can't be inlined").into());
-                  allow_inline_startup = false;
-                  break;
-                }
-              }
-            } else {
-              buf2.push("// This entry module doesn't tell about it's top-level declarations so it can't be inlined".into());
-              allow_inline_startup = false;
-            }
+          if allow_inline_startup
+            && let Some(bailout) = entry_top_level_declarations_bailout(
+              compilation,
+              module,
+              chunk.runtime(),
+              runtime_template,
+            )
+          {
+            buf2.push(bailout.into());
+            allow_inline_startup = false;
           }
           let hooks = JsPlugin::get_compilation_hooks(compilation.id());
           let bailout = hooks
