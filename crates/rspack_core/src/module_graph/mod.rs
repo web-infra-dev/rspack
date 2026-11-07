@@ -678,6 +678,7 @@ impl ModuleGraph {
       .and_then(|module_identifier| self.module_graph_module_by_identifier(module_identifier))
   }
 
+  #[inline]
   pub fn module_identifier_by_dependency_id(
     &self,
     dep_id: &DependencyId,
@@ -818,6 +819,7 @@ impl ModuleGraph {
       .flatten()
   }
 
+  #[inline]
   pub fn connection_by_dependency_id(
     &self,
     dependency_id: &DependencyId,
@@ -829,6 +831,7 @@ impl ModuleGraph {
     self.connection_by_id(connection_id)
   }
 
+  #[inline]
   pub fn connection_by_id(
     &self,
     connection_id: &ModuleGraphConnectionId,
@@ -872,6 +875,7 @@ impl ModuleGraph {
     }
   }
 
+  #[inline]
   pub fn get_resolved_module(&self, dependency_id: &DependencyId) -> Option<&ModuleIdentifier> {
     match self.connection_by_dependency_id(dependency_id) {
       Some(connection) => Some(&connection.resolved_module),
