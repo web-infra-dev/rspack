@@ -318,7 +318,7 @@ export class IndependentSharedPlugin {
     parentCompiler: Compiler,
     shareRequestsMap: ShareRequestsMap,
   ) {
-    const { sharedOptions } = this;
+    const { sharedOptions, outputDir } = this;
     console.log('Start building shared fallback resources ...');
 
     await Promise.all(
@@ -328,19 +328,30 @@ export class IndependentSharedPlugin {
         }
         const shareRequests = getShareRequests(shareRequestsMap, shareName);
         await Promise.all(
-          shareRequests.map(async ([request, version]) => {
+          shareRequests.map(async ([request, version], index) => {
             const sharedConfig = sharedOptions.find(
               ([name]) => name === shareName,
             )?.[1];
-            await this.createIndependentCompiler(parentCompiler, {
-              shareRequestsMap,
-              currentShare: {
-                shareName,
-                version,
-                request,
-                independentShareFileName: sharedConfig?.treeShaking?.filename,
-              },
-            });
+            const [shareFileName, globalName, sharedVersion] =
+              await this.createIndependentCompiler(parentCompiler, {
+                shareRequestsMap,
+                currentShare: {
+                  shareName,
+                  version,
+                  request,
+                  independentShareFileName: sharedConfig?.treeShaking?.filename,
+                },
+              });
+            if (
+              typeof shareFileName === 'string' &&
+              this.buildAssets[shareName]?.[index]
+            ) {
+              this.buildAssets[shareName][index] = [
+                join(resolveOutputDir(outputDir, shareName), shareFileName),
+                sharedVersion,
+                globalName,
+              ];
+            }
           }),
         );
       }),

@@ -47,6 +47,7 @@ export default defineConfig({
           requiredVersion: '*',
           treeShaking: {
             mode: 'server-calc',
+            filename: 'shared.[contenthash:8].js',
           },
         },
         'ui-lib-dynamic-specific-export': {
