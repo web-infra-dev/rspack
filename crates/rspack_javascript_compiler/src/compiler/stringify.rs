@@ -1,5 +1,6 @@
 use std::{borrow::Cow, sync::Arc};
 
+use bytes_str::BytesStr;
 use rspack_error::Result;
 use rspack_sources::{
   MapOptions, Mapping, OriginalLocation, Source, SourceMap, SourceMapSource,
@@ -76,7 +77,7 @@ pub struct PrintOptions<'a> {
   pub source_map: Arc<SwcSourceMap>,
   pub target: EsVersion,
   pub source_map_config: SourceMapConfig,
-  pub input_source_map: Option<SourceMap<'static>>,
+  pub input_source_map: Option<SourceMap>,
   pub minify: bool,
   pub comments: Option<&'a dyn Comments>,
   pub preamble: &'a str,
@@ -166,10 +167,10 @@ impl JavaScriptCompiler {
 fn build_rspack_source_map(
   swc_cm: &SwcSourceMap,
   mappings: &[(BytePos, LineCol)],
-  input_source_map: Option<SourceMap<'static>>,
+  input_source_map: Option<SourceMap>,
   config: &SourceMapConfig,
   generated_code: &str,
-) -> Option<SourceMap<'static>> {
+) -> Option<SourceMap> {
   let mut builder = RspackSourceMapBuilder::default();
 
   let mut cur_file: Option<Lrc<SourceFile>> = None;
@@ -216,7 +217,7 @@ fn build_rspack_source_map(
           Cow::Owned(config.file_name_to_source(&file.name)),
           config
             .inline_sources_content(&file.name)
-            .then(|| Cow::Owned(file.src.to_string())),
+            .then(|| file.src.clone()),
         );
         if input_source_map.is_none() && config.ignore_list(&file.name) {
           builder.add_to_ignore_list(cur_src_id);
@@ -279,14 +280,14 @@ fn build_rspack_source_map(
 #[derive(Default)]
 struct RspackSourceMapBuilder<'a> {
   mappings: Vec<Mapping>,
-  sources_content: Vec<Option<Cow<'a, str>>>,
+  sources_content: Vec<Option<BytesStr>>,
   source_indices: FxHashMap<Cow<'a, str>, u32>,
   name_indices: FxHashMap<Cow<'a, str>, u32>,
   ignore_list: FxHashSet<u32>,
 }
 
 impl<'a> RspackSourceMapBuilder<'a> {
-  fn add_source(&mut self, source: Cow<'a, str>, source_content: Option<Cow<'a, str>>) -> u32 {
+  fn add_source(&mut self, source: Cow<'a, str>, source_content: Option<BytesStr>) -> u32 {
     if let Some(index) = self.source_indices.get(source.as_ref()) {
       return *index;
     }
@@ -315,16 +316,12 @@ impl<'a> RspackSourceMapBuilder<'a> {
     self.mappings.push(mapping);
   }
 
-  fn into_source_map(self) -> SourceMap<'static> {
+  fn into_source_map(self) -> SourceMap {
     let mut source_map = SourceMap::new(
-      encode_mappings(self.mappings.into_iter()),
-      ordered_cows(self.source_indices),
-      self
-        .sources_content
-        .into_iter()
-        .map(|source_content| source_content.map(|content| Cow::Owned(content.into_owned())))
-        .collect(),
-      ordered_cows(self.name_indices),
+      encode_mappings(self.mappings.into_iter()).into(),
+      ordered_texts(self.source_indices),
+      self.sources_content,
+      ordered_texts(self.name_indices),
     );
     if !self.ignore_list.is_empty() {
       let mut ignore_list = self.ignore_list.into_iter().collect::<Vec<_>>();
@@ -335,10 +332,10 @@ impl<'a> RspackSourceMapBuilder<'a> {
   }
 }
 
-fn ordered_cows(entries: FxHashMap<Cow<'_, str>, u32>) -> Vec<Cow<'static, str>> {
-  let mut ordered = vec![Cow::Borrowed(""); entries.len()];
+fn ordered_texts(entries: FxHashMap<Cow<'_, str>, u32>) -> Vec<BytesStr> {
+  let mut ordered = vec![BytesStr::new(); entries.len()];
   for (value, index) in entries {
-    ordered[index as usize] = Cow::Owned(value.into_owned());
+    ordered[index as usize] = value.into_owned().into();
   }
   ordered
 }
@@ -575,7 +572,8 @@ mod tests {
           }),
         }]
         .into_iter(),
-      ),
+      )
+      .into(),
       vec!["original.js".into()],
       vec![Some(source.into())],
       vec![],
@@ -637,7 +635,8 @@ mod tests {
           },
         ]
         .into_iter(),
-      ),
+      )
+      .into(),
       vec!["original.js".into()],
       vec![Some(source.into())],
       vec![],
@@ -705,7 +704,8 @@ mod tests {
           },
         ]
         .into_iter(),
-      ),
+      )
+      .into(),
       vec!["/src/app.js".into(), "https://example.com/vendor.js".into()],
       vec![
         Some("const first = second;\n".into()),

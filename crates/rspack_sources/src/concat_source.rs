@@ -5,6 +5,7 @@ use std::{
   sync::{Arc, Mutex, OnceLock},
 };
 
+use bytes_str::BytesStr;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -214,14 +215,13 @@ impl Source for ConcatSource {
       .sum()
   }
 
-  fn map<'a>(&'a self, options: &MapOptions) -> Option<SourceMap<'a>> {
+  fn map(&self, options: &MapOptions) -> Option<SourceMap> {
     let chunks = self.stream_chunks();
-    get_map(chunks.as_ref(), options).map(SourceMap::from_fields)
+    get_map(chunks.as_ref(), options)
   }
 
-  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap<'static>> {
-    let owner = self.clone();
-    self.as_ref().map(options).map(|map| map.into_static(owner))
+  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap> {
+    self.as_ref().map(options)
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -268,16 +268,16 @@ impl<'source> Chunks<'source> for ConcatSourceChunks<'source> {
     &'chunk self,
     options: &MapOptions,
     on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
-    on_source: crate::helpers::OnSource<'_, 'source>,
-    on_name: crate::helpers::OnName<'_, 'source>,
+    on_source: crate::helpers::OnSource<'_>,
+    on_name: crate::helpers::OnName<'_>,
   ) -> GeneratedInfo {
     if self.children_chunks.len() == 1 {
       return self.children_chunks[0].stream(options, on_chunk, on_source, on_name);
     }
     let mut current_line_offset = 0;
     let mut current_column_offset = 0;
-    let mut source_mapping: HashMap<Cow<str>, u32> = HashMap::default();
-    let mut name_mapping: HashMap<Cow<str>, u32> = HashMap::default();
+    let mut source_mapping: HashMap<BytesStr, u32> = HashMap::default();
+    let mut name_mapping: HashMap<BytesStr, u32> = HashMap::default();
     let mut need_to_close_mapping = false;
 
     let source_index_mapping: RefCell<LinearMap<u32>> = RefCell::new(LinearMap::default());

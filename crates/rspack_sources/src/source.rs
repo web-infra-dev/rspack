@@ -6,12 +6,15 @@ use std::{
   sync::Arc,
 };
 
+use bytes::Bytes;
+use bytes_str::BytesStr;
 use serde::{Serialize, Serializer};
 use simd_json::{BorrowedValue, ErrorType, prelude::*};
+use triomphe::ThinArc;
 
 use crate::{
   ReplaceSource, Result,
-  helpers::{Chunks, StreamChunks, decode_mappings_fields},
+  helpers::{Chunks, StreamChunks, decode_mappings},
 };
 
 /// An alias for `Box<dyn Source>`.
@@ -126,10 +129,10 @@ pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + S
   fn size(&self) -> usize;
 
   /// Get the [SourceMap].
-  fn map<'a>(&'a self, options: &MapOptions) -> Option<SourceMap<'a>>;
+  fn map(&self, options: &MapOptions) -> Option<SourceMap>;
 
   /// Get a [SourceMap] that can outlive the borrowed source reference.
-  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap<'static>>;
+  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap>;
 
   /// Update hash based on the source.
   fn update_hash(&self, state: &mut dyn Hasher) {
@@ -162,12 +165,12 @@ impl Source for BoxSource {
   }
 
   #[inline]
-  fn map<'a>(&'a self, options: &MapOptions) -> Option<SourceMap<'a>> {
+  fn map(&self, options: &MapOptions) -> Option<SourceMap> {
     self.as_ref().map(options)
   }
 
   #[inline]
-  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap<'static>> {
+  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap> {
     self.as_ref().clone().map_static(options)
   }
 
@@ -288,377 +291,220 @@ impl MapOptions {
   }
 }
 
-pub(crate) fn is_all_none(val: &[Option<Cow<'_, str>>]) -> bool {
-  val.iter().all(Option::is_none)
+pub(crate) fn is_all_none(val: &ThinArc<(), Option<BytesStr>>) -> bool {
+  val.slice.iter().all(Option::is_none)
 }
 
-/// The source map created by [Source::map].
-#[derive(Serialize)]
-pub(crate) struct SourceMapFields<'a> {
+pub(crate) fn shared_slice<T>(items: Vec<T>) -> ThinArc<(), T> {
+  // Freeze the element handles together with the reference count and length.
+  ThinArc::from_header_and_iter((), items.into_iter())
+}
+
+fn serialize_shared_slice<T: Serialize, S: Serializer>(
+  value: &ThinArc<(), T>,
+  serializer: S,
+) -> std::result::Result<S::Ok, S::Error> {
+  value.slice.serialize(serializer)
+}
+
+fn serialize_ignore_list<S: Serializer>(
+  value: &Option<ThinArc<(), u32>>,
+  serializer: S,
+) -> std::result::Result<S::Ok, S::Error> {
+  value.as_ref().map(|list| &list.slice).serialize(serializer)
+}
+
+/// A source map owning shared UTF-8 text independently of its generating Source.
+/// Cloning shares immutable text and field arrays; setters replace individual fields.
+#[derive(Clone, Serialize, PartialEq, Eq)]
+pub struct SourceMap {
   pub(crate) version: u8,
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub(crate) file: Option<Cow<'a, str>>,
-  pub(crate) sources: Cow<'a, [Cow<'a, str>]>,
-  #[serde(rename = "sourcesContent", skip_serializing_if = "is_all_none")]
-  pub(crate) sources_content: Cow<'a, [Option<Cow<'a, str>>]>,
-  pub(crate) names: Cow<'a, [Cow<'a, str>]>,
-  pub(crate) mappings: Cow<'a, str>,
+  pub(crate) file: Option<BytesStr>,
+  #[serde(serialize_with = "serialize_shared_slice")]
+  pub(crate) sources: ThinArc<(), BytesStr>,
+  #[serde(
+    rename = "sourcesContent",
+    skip_serializing_if = "is_all_none",
+    serialize_with = "serialize_shared_slice"
+  )]
+  pub(crate) sources_content: ThinArc<(), Option<BytesStr>>,
+  #[serde(serialize_with = "serialize_shared_slice")]
+  pub(crate) names: ThinArc<(), BytesStr>,
+  pub(crate) mappings: BytesStr,
   #[serde(rename = "sourceRoot", skip_serializing_if = "Option::is_none")]
-  pub(crate) source_root: Option<Cow<'a, str>>,
+  pub(crate) source_root: Option<BytesStr>,
   #[serde(rename = "debugId", skip_serializing_if = "Option::is_none")]
-  pub(crate) debug_id: Option<Cow<'a, str>>,
-  #[serde(rename = "ignoreList", skip_serializing_if = "Option::is_none")]
-  pub(crate) ignore_list: Option<Cow<'a, [u32]>>,
+  pub(crate) debug_id: Option<BytesStr>,
+  #[serde(
+    rename = "ignoreList",
+    skip_serializing_if = "Option::is_none",
+    serialize_with = "serialize_ignore_list"
+  )]
+  pub(crate) ignore_list: Option<ThinArc<(), u32>>,
 }
 
-impl<'a> SourceMapFields<'a> {
-  /// Return a source map view borrowing all fields from this map.
-  pub(crate) fn as_borrowed(&self) -> SourceMapFields<'_> {
-    SourceMapFields {
-      version: self.version,
-      file: self.file.as_ref().map(|f| Cow::Borrowed(f.as_ref())),
-      sources: Cow::Borrowed(self.sources.as_ref()),
-      sources_content: Cow::Borrowed(self.sources_content.as_ref()),
-      names: Cow::Borrowed(self.names.as_ref()),
-      mappings: Cow::Borrowed(self.mappings.as_ref()),
-      source_root: self.source_root.as_ref().map(|s| Cow::Borrowed(s.as_ref())),
-      debug_id: self.debug_id.as_ref().map(|s| Cow::Borrowed(s.as_ref())),
-      ignore_list: self.ignore_list.as_ref().map(|s| Cow::Borrowed(s.as_ref())),
-    }
+impl SourceMap {
+  /// Share this source map's immutable text and field arrays.
+  pub fn as_borrowed(&self) -> Self {
+    self.clone()
   }
 
-  pub(crate) fn mappings(&self) -> &str {
-    self.mappings.as_ref()
-  }
-
-  pub(crate) fn source_root(&self) -> Option<&str> {
-    self.source_root.as_deref()
-  }
-
-  pub(crate) fn sources(&self) -> &[Cow<'a, str>] {
-    self.sources.as_ref()
-  }
-
-  pub(crate) fn get_source_content(&self, index: usize) -> Option<&Cow<'a, str>> {
-    self.sources_content.get(index).and_then(Option::as_ref)
-  }
-
-  pub(crate) fn names(&self) -> &[Cow<'a, str>] {
-    self.names.as_ref()
-  }
-
-  pub(crate) fn decoded_mappings(&self) -> impl Iterator<Item = Mapping> + '_ {
-    decode_mappings_fields(self)
-  }
-}
-
-impl<'a, 'b> PartialEq<SourceMapFields<'b>> for SourceMapFields<'a> {
-  fn eq(&self, other: &SourceMapFields<'b>) -> bool {
-    self.version == other.version
-      && self.file == other.file
-      && self.sources == other.sources
-      && self
-        .sources_content
-        .iter()
-        .map(Option::as_deref)
-        .eq(other.sources_content.iter().map(Option::as_deref))
-      && self.names == other.names
-      && self.mappings == other.mappings
-      && self.source_root == other.source_root
-      && self.debug_id == other.debug_id
-      && self.ignore_list == other.ignore_list
-  }
-}
-
-impl Eq for SourceMapFields<'_> {}
-
-impl Hash for SourceMapFields<'_> {
-  fn hash<H: Hasher>(&self, state: &mut H) {
-    self.file.hash(state);
-    self.mappings.hash(state);
-    self.sources.hash(state);
-    self.sources_content.hash(state);
-    self.names.hash(state);
-    self.source_root.hash(state);
-    self.ignore_list.hash(state);
-  }
-}
-
-#[allow(dead_code)]
-enum SourceMapOwner {
-  Bytes(Vec<u8>),
-  Source(BoxSource),
-}
-
-/// The source map created by [Source::map].
-pub struct SourceMap<'a> {
-  // Kept to retain data borrowed by `fields`; it is intentionally not read.
-  #[allow(dead_code)]
-  owner: Option<SourceMapOwner>,
-  fields: SourceMapFields<'a>,
-}
-
-impl<'a> SourceMap<'a> {
-  pub(crate) fn from_fields(fields: SourceMapFields<'a>) -> Self {
-    Self {
-      owner: None,
-      fields,
-    }
-  }
-
-  pub(crate) fn into_static(self, owner: BoxSource) -> SourceMap<'static> {
-    #[allow(unsafe_code)]
-    // SAFETY: `fields` must borrow from `owner` or contain owned data. The
-    // returned SourceMap stores `owner`, keeping borrowed fields alive for the
-    // lifetime of the SourceMap.
-    let fields =
-      unsafe { std::mem::transmute::<SourceMapFields<'a>, SourceMapFields<'static>>(self.fields) };
-    SourceMap {
-      owner: Some(SourceMapOwner::Source(owner)),
-      fields,
-    }
-  }
-
-  /// Return a source map view borrowing all fields from this source map.
-  pub fn as_borrowed(&self) -> SourceMap<'_> {
-    SourceMap {
-      owner: None,
-      fields: self.fields.as_borrowed(),
-    }
-  }
-
-  pub(crate) fn fields(&self) -> &SourceMapFields<'a> {
-    &self.fields
-  }
-}
-
-impl SourceMap<'static> {
-  /// Create a [SourceMap].
+  /// Create a source map from shared UTF-8 text.
   pub fn new(
-    mappings: impl Into<Cow<'static, str>>,
-    sources: Vec<Cow<'static, str>>,
-    sources_content: Vec<Option<Cow<'static, str>>>,
-    names: Vec<Cow<'static, str>>,
+    mappings: BytesStr,
+    sources: Vec<BytesStr>,
+    sources_content: Vec<Option<BytesStr>>,
+    names: Vec<BytesStr>,
   ) -> Self {
     Self {
-      owner: None,
-      fields: SourceMapFields {
-        version: 3,
-        file: None,
-        mappings: mappings.into(),
-        sources: Cow::Owned(sources),
-        sources_content: Cow::Owned(sources_content),
-        names: Cow::Owned(names),
-        source_root: None,
-        debug_id: None,
-        ignore_list: None,
-      },
+      version: 3,
+      file: None,
+      mappings,
+      sources: shared_slice(sources),
+      sources_content: shared_slice(sources_content),
+      names: shared_slice(names),
+      source_root: None,
+      debug_id: None,
+      ignore_list: None,
     }
   }
 
-  /// Create a [SourceMap] from bytes.
+  /// Create a source map, sharing decoded strings in the input allocation.
   pub fn from_bytes(mut bytes: Vec<u8>) -> Result<Self> {
-    let fields = {
-      let tape = simd_json::to_tape(bytes.as_mut_slice())?;
-      let value = tape.as_value();
-      let object = value
-        .as_object()
-        .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedMap))?;
-      let mut raw_fields = [None; 8];
-      let mut duplicate = false;
-      for (key, value) in object.iter() {
-        let index = match key {
-          "mappings" => 0,
-          "file" => 1,
-          "sources" => 2,
-          "sourcesContent" => 3,
-          "names" => 4,
-          "sourceRoot" => 5,
-          "debugId" => 6,
-          "ignoreList" => 7,
-          _ => continue,
-        };
-        duplicate |= raw_fields[index].replace(value).is_some();
-      }
-      let borrowed_value;
-      let fields = if duplicate {
-        // Keep the DOM parser's duplicate-key behavior, including feature-dependent handling.
-        borrowed_value = simd_json::value::lazy::Value::from_tape(value).into_value();
-        deserialize_source_map_fields(&borrowed_value)?
-      } else {
-        deserialize_source_map_tape_fields(raw_fields)?
+    #[allow(unsafe_code)]
+    // SAFETY: The slice exclusively borrows this Vec's allocation during parsing.
+    // Its lifetime is deliberately independent of the Vec header, so the Vec can
+    // subsequently move into Bytes::from_owner without moving its allocation.
+    // After parsing, only immutable string views remain. The buffer is never
+    // mutated again, and `parsed` drops the tape before its owner on both return
+    // and unwind. Only independently owning BytesStr slices leave this function.
+    let input = unsafe { std::slice::from_raw_parts_mut(bytes.as_mut_ptr(), bytes.len()) };
+    let tape = simd_json::to_tape(input)?;
+    // Keep from_owner: Bytes::from(Vec) may convert to Box<[u8]>, invalidating the
+    // tape's references even if the allocation's address does not change.
+    let parsed = (tape, Bytes::from_owner(bytes));
+    let value = parsed.0.as_value();
+    let object = value
+      .as_object()
+      .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedMap))?;
+    let mut raw_fields = [None; 8];
+    let mut duplicate = false;
+    for (key, value) in object.iter() {
+      let index = match key {
+        "mappings" => 0,
+        "file" => 1,
+        "sources" => 2,
+        "sourcesContent" => 3,
+        "names" => 4,
+        "sourceRoot" => 5,
+        "debugId" => 6,
+        "ignoreList" => 7,
+        _ => continue,
       };
-      #[allow(unsafe_code)]
-      // SAFETY: All borrowed strings in `fields` point into the stable backing
-      // allocation of `bytes`; the returned SourceMap stores `bytes` in
-      // SourceMapOwner::Bytes.
-      unsafe {
-        std::mem::transmute::<SourceMapFields<'_>, SourceMapFields<'static>>(fields)
-      }
-    };
-    Ok(Self {
-      owner: Some(SourceMapOwner::Bytes(bytes)),
-      fields,
-    })
+      duplicate |= raw_fields[index].replace(value).is_some();
+    }
+    if duplicate {
+      // Preserve the DOM parser's feature-dependent duplicate-key behavior.
+      let value = simd_json::value::lazy::Value::from_tape(value).into_value();
+      deserialize_source_map(&value, &parsed.1)
+    } else {
+      deserialize_source_map_tape(raw_fields, &parsed.1)
+    }
   }
 
-  /// Create a [SourceMap] from json string.
-  pub fn from_json(s: String) -> Result<Self> {
-    Self::from_bytes(s.into_bytes())
+  /// Create a source map from a JSON string, reusing its allocation.
+  pub fn from_json(json: String) -> Result<Self> {
+    Self::from_bytes(json.into_bytes())
   }
-}
 
-impl<'a> SourceMap<'a> {
-  /// Get the file field in [SourceMap].
+  /// Get the file field.
   pub fn file(&self) -> Option<&str> {
-    self.fields.file.as_deref()
+    self.file.as_deref()
   }
-
-  /// Set the file field in [SourceMap].
-  pub fn set_file(&mut self, file: Option<Cow<'a, str>>) {
-    self.fields.file = file.map(|file| Cow::Owned(file.into()));
+  /// Set the file field.
+  pub fn set_file(&mut self, file: Option<BytesStr>) {
+    self.file = file;
   }
-
-  /// Get the ignoreList field in [SourceMap].
+  /// Get the ignoreList field.
   pub fn ignore_list(&self) -> Option<&[u32]> {
-    self.fields.ignore_list.as_deref()
+    self.ignore_list.as_ref().map(|list| &list.slice)
   }
-
-  /// Set the ignoreList field in [SourceMap].
-  pub fn set_ignore_list(&mut self, ignore_list: Option<Cow<'a, [u32]>>) {
-    self.fields.ignore_list = ignore_list;
+  /// Set the ignoreList field.
+  pub fn set_ignore_list(&mut self, ignore_list: Option<Cow<'_, [u32]>>) {
+    self.ignore_list = ignore_list.map(|list| shared_slice(list.into_owned()));
   }
-
-  /// Get the decoded mappings in [SourceMap].
+  /// Get the decoded mappings.
   pub fn decoded_mappings(&self) -> impl Iterator<Item = Mapping> + '_ {
-    decode_mappings_fields(self.fields())
+    decode_mappings(self)
   }
-
-  /// Get the mappings string in [SourceMap].
+  /// Get the encoded mappings.
   pub fn mappings(&self) -> &str {
-    self.fields.mappings.as_ref()
+    &self.mappings
   }
-
-  /// Get the sources field in [SourceMap].
-  pub fn sources(&self) -> &[Cow<'_, str>] {
-    self.fields.sources.as_ref()
+  /// Get the shared source names.
+  pub fn sources(&self) -> &[BytesStr] {
+    &self.sources.slice
   }
-
-  /// Set the sources field in [SourceMap].
-  pub fn set_sources<T, I>(&mut self, sources: I)
-  where
-    T: Into<String>,
-    I: IntoIterator<Item = T>,
-  {
-    self.fields.sources = Cow::Owned(
-      sources
-        .into_iter()
-        .map(|source| Cow::Owned(source.into()))
-        .collect(),
-    );
+  /// Set the shared source names.
+  pub fn set_sources<T: Into<BytesStr>>(&mut self, sources: impl IntoIterator<Item = T>) {
+    self.sources = shared_slice(sources.into_iter().map(Into::into).collect());
   }
-
-  /// Get the source by index from sources field in [SourceMap].
+  /// Get a source name by index.
   pub fn get_source(&self, index: usize) -> Option<&str> {
-    self.fields.sources.get(index).map(AsRef::as_ref)
+    self.sources().get(index).map(BytesStr::as_str)
   }
-
-  /// Get the sourcesContent field in [SourceMap].
-  /// Missing contents are `None`; an empty source is `Some("")`.
-  pub fn sources_content(&self) -> &[Option<Cow<'_, str>>] {
-    self.fields.sources_content.as_ref()
+  /// Get the shared source contents. Missing content is None; empty text is Some("").
+  pub fn sources_content(&self) -> &[Option<BytesStr>] {
+    &self.sources_content.slice
   }
-
-  /// Set the sourcesContent field in [SourceMap].
-  pub fn set_sources_content(&mut self, sources_content: Vec<Option<Cow<'a, str>>>) {
-    self.fields.sources_content = Cow::Owned(sources_content);
+  /// Set the shared source contents.
+  pub fn set_sources_content(&mut self, sources_content: Vec<Option<BytesStr>>) {
+    self.sources_content = shared_slice(sources_content);
   }
-
-  /// Remove source contents without retaining the source or JSON buffer that owned them.
-  ///
-  /// Borrowed metadata is copied before releasing its owner; owned fields are reused.
+  /// Remove source contents and detach metadata from their backing allocations.
   #[doc(hidden)]
   pub fn remove_sources_content(&mut self) {
-    self.fields.sources_content = Cow::Owned(Vec::new());
-    if self.owner.is_none() {
-      return;
-    }
-
-    // Clearing sourcesContent alone leaves the owner alive for the remaining borrows.
-    // Own every remaining field before releasing that source graph or parsed JSON buffer.
-    if let Some(file) = &mut self.fields.file {
-      file.to_mut();
-    }
-    for source in self.fields.sources.to_mut() {
-      source.to_mut();
-    }
-    for name in self.fields.names.to_mut() {
-      name.to_mut();
-    }
-    self.fields.mappings.to_mut();
-    if let Some(source_root) = &mut self.fields.source_root {
-      source_root.to_mut();
-    }
-    if let Some(debug_id) = &mut self.fields.debug_id {
-      debug_id.to_mut();
-    }
-    if let Some(ignore_list) = &mut self.fields.ignore_list {
-      ignore_list.to_mut();
-    }
-    self.owner = None;
+    self.sources_content = shared_slice(Vec::new());
+    let detach = |text: &BytesStr| BytesStr::from_string(text.to_string());
+    self.file = self.file.as_ref().map(detach);
+    self.sources = shared_slice(self.sources().iter().map(detach).collect());
+    self.names = shared_slice(self.names().iter().map(detach).collect());
+    self.mappings = detach(&self.mappings);
+    self.source_root = self.source_root.as_ref().map(detach);
+    self.debug_id = self.debug_id.as_ref().map(detach);
   }
-
-  /// Get the source content by index from sourcesContent field in [SourceMap].
-  pub fn get_source_content(&self, index: usize) -> Option<&Cow<'_, str>> {
-    self
-      .fields
-      .sources_content
-      .get(index)
-      .and_then(Option::as_ref)
+  /// Get shared source content by index.
+  pub fn get_source_content(&self, index: usize) -> Option<&BytesStr> {
+    self.sources_content().get(index).and_then(Option::as_ref)
   }
-
-  /// Get the names field in [SourceMap].
-  pub fn names(&self) -> &[Cow<'_, str>] {
-    self.fields.names.as_ref()
+  /// Get the shared names.
+  pub fn names(&self) -> &[BytesStr] {
+    &self.names.slice
   }
-
-  /// Set the names field in [SourceMap].
-  pub fn set_names<T, I>(&mut self, names: I)
-  where
-    T: Into<String>,
-    I: IntoIterator<Item = T>,
-  {
-    self.fields.names = Cow::Owned(
-      names
-        .into_iter()
-        .map(|name| Cow::Owned(name.into()))
-        .collect(),
-    );
-  }
-
-  /// Get the name by index from names field in [SourceMap].
+  /// Get a name by index.
   pub fn get_name(&self, index: usize) -> Option<&str> {
-    self.fields.names.get(index).map(AsRef::as_ref)
+    self.names().get(index).map(BytesStr::as_str)
   }
-
-  /// Get the source_root field in [SourceMap].
+  /// Set the shared names.
+  pub fn set_names<T: Into<BytesStr>>(&mut self, names: impl IntoIterator<Item = T>) {
+    self.names = shared_slice(names.into_iter().map(Into::into).collect());
+  }
+  /// Get the source root.
   pub fn source_root(&self) -> Option<&str> {
-    self.fields.source_root.as_deref()
+    self.source_root.as_deref()
   }
-
-  /// Set the source_root field in [SourceMap].
-  pub fn set_source_root(&mut self, source_root: Option<Cow<'a, str>>) {
-    self.fields.source_root = source_root;
+  /// Set the source root.
+  pub fn set_source_root(&mut self, source_root: Option<BytesStr>) {
+    self.source_root = source_root;
   }
-
-  /// Set the debug_id field in [SourceMap].
-  pub fn set_debug_id(&mut self, debug_id: Option<Cow<'a, str>>) {
-    self.fields.debug_id = debug_id;
+  /// Set the debug identifier.
+  pub fn set_debug_id(&mut self, debug_id: Option<BytesStr>) {
+    self.debug_id = debug_id;
   }
-
-  /// Get the debug_id field in [SourceMap].
+  /// Get the debug identifier.
   pub fn get_debug_id(&self) -> Option<&str> {
-    self.fields.debug_id.as_deref()
+    self.debug_id.as_deref()
   }
 
   /// Estimate the JSON string size for pre-allocation.
@@ -676,49 +522,48 @@ impl<'a> SourceMap<'a> {
     let mut size: usize = 70;
 
     // file field: "file":"...",
-    if let Some(file) = &self.fields.file {
+    if let Some(file) = &self.file {
       size += 9 + file.len(); // "file":"", + content
     }
 
     // sources array: each element needs quotes + comma + potential escaping
     // ["src/a.js","src/b.js"] = 2 + (len + 3) * count - 1
-    let sources_len: usize = self.fields.sources.iter().map(|s| s.len()).sum();
-    size += 2 + sources_len + self.fields.sources.len() * 3;
+    let sources_len: usize = self.sources().iter().map(|s| s.len()).sum();
+    size += 2 + sources_len + self.sources().len() * 3;
 
     // sourcesContent array
-    if !self.fields.sources_content.is_empty() {
+    if !self.sources_content().is_empty() {
       let content_len: usize = self
-        .fields
-        .sources_content
+        .sources_content()
         .iter()
         .flatten()
         .map(|c| c.len())
         .sum();
       // Source content often contains special characters that need escaping
       // Estimate 10% escaping overhead for source content
-      size += 19 + content_len + (content_len / 10) + self.fields.sources_content.len() * 5;
+      size += 19 + content_len + (content_len / 10) + self.sources_content().len() * 5;
     }
 
     // names array
-    let names_len: usize = self.fields.names.iter().map(|n| n.len()).sum();
-    size += 2 + names_len + self.fields.names.len() * 3;
+    let names_len: usize = self.names().iter().map(|n| n.len()).sum();
+    size += 2 + names_len + self.names().len() * 3;
 
     // mappings string (usually the largest part)
     // VLQ mappings rarely need escaping, add small overhead
-    size += self.fields.mappings.len() + 14; // "mappings":"...",
+    size += self.mappings.len() + 14; // "mappings":"...",
 
     // sourceRoot field
-    if let Some(source_root) = &self.fields.source_root {
+    if let Some(source_root) = &self.source_root {
       size += 15 + source_root.len(); // "sourceRoot":"...",
     }
 
     // debugId field
-    if let Some(debug_id) = &self.fields.debug_id {
+    if let Some(debug_id) = &self.debug_id {
       size += 12 + debug_id.len(); // "debugId":"...",
     }
 
     // ignoreList field: [0,1,2] - numbers as strings
-    if let Some(ignore_list) = &self.fields.ignore_list {
+    if let Some(ignore_list) = self.ignore_list() {
       // "ignoreList":[]
       size += 14;
       // Each number: up to 10 digits + comma
@@ -743,24 +588,7 @@ impl<'a> SourceMap<'a> {
   }
 }
 
-impl Serialize for SourceMap<'_> {
-  fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-  where
-    S: Serializer,
-  {
-    self.fields.serialize(serializer)
-  }
-}
-
-impl<'a, 'b> PartialEq<SourceMap<'b>> for SourceMap<'a> {
-  fn eq(&self, other: &SourceMap<'b>) -> bool {
-    self.fields == other.fields
-  }
-}
-
-impl Eq for SourceMap<'_> {}
-
-impl std::fmt::Debug for SourceMap<'_> {
+impl std::fmt::Debug for SourceMap {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
     let indent = f.width().unwrap_or(0);
     let indent_str = format!("{:indent$}", "", indent = indent);
@@ -775,15 +603,22 @@ impl std::fmt::Debug for SourceMap<'_> {
   }
 }
 
-impl Hash for SourceMap<'_> {
+impl Hash for SourceMap {
   fn hash<H: Hasher>(&self, state: &mut H) {
-    self.fields.hash(state);
+    self.file.hash(state);
+    self.mappings.hash(state);
+    self.sources().hash(state);
+    self.sources_content().hash(state);
+    self.names().hash(state);
+    self.source_root.hash(state);
+    self.ignore_list().hash(state);
   }
 }
 
-fn deserialize_source_map_tape_fields<'a>(
-  fields: [Option<simd_json::tape::Value<'_, 'a>>; 8],
-) -> Result<SourceMapFields<'a>> {
+fn deserialize_source_map_tape(
+  fields: [Option<simd_json::tape::Value<'_, '_>>; 8],
+  storage: &Bytes,
+) -> Result<SourceMap> {
   let [
     mappings,
     file,
@@ -796,36 +631,38 @@ fn deserialize_source_map_tape_fields<'a>(
   ] = fields;
   let mappings = mappings
     .and_then(|value| value.into_string())
-    .map(Cow::Borrowed)
+    .map(|text| shared_string(storage, text))
     .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString))?;
-  Ok(SourceMapFields {
+  Ok(SourceMap {
     version: 3,
-    file: optional_tape_string(file)?,
-    sources: Cow::Owned(optional_tape_strings(sources)?),
-    sources_content: Cow::Owned(optional_tape_source_contents(sources_content)?),
-    names: Cow::Owned(optional_tape_strings(names)?),
+    file: optional_tape_string(file, storage)?,
+    sources: shared_slice(optional_tape_strings(sources, storage)?),
+    sources_content: shared_slice(optional_tape_source_contents(sources_content, storage)?),
+    names: shared_slice(optional_tape_strings(names, storage)?),
     mappings,
-    source_root: optional_tape_string(source_root)?,
-    debug_id: optional_tape_string(debug_id)?,
-    ignore_list: optional_tape_u32s(ignore_list)?,
+    source_root: optional_tape_string(source_root, storage)?,
+    debug_id: optional_tape_string(debug_id, storage)?,
+    ignore_list: optional_tape_u32s(ignore_list)?.map(shared_slice),
   })
 }
 
-fn optional_tape_string<'a>(
-  value: Option<simd_json::tape::Value<'_, 'a>>,
-) -> Result<Option<Cow<'a, str>>> {
+fn optional_tape_string(
+  value: Option<simd_json::tape::Value<'_, '_>>,
+  storage: &Bytes,
+) -> Result<Option<BytesStr>> {
   let Some(value) = value.filter(|value| !value.is_null()) else {
     return Ok(None);
   };
   value
     .into_string()
-    .map(|value| Some(Cow::Borrowed(value)))
+    .map(|text| Some(shared_string(storage, text)))
     .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString).into())
 }
 
-fn optional_tape_strings<'a>(
-  value: Option<simd_json::tape::Value<'_, 'a>>,
-) -> Result<Vec<Cow<'a, str>>> {
+fn optional_tape_strings(
+  value: Option<simd_json::tape::Value<'_, '_>>,
+  storage: &Bytes,
+) -> Result<Vec<BytesStr>> {
   let Some(value) = value.filter(|value| !value.is_null()) else {
     return Ok(Vec::new());
   };
@@ -835,20 +672,21 @@ fn optional_tape_strings<'a>(
     .iter()
     .map(|value| {
       if value.is_null() {
-        Ok(Cow::Borrowed(""))
+        Ok(BytesStr::new())
       } else {
         value
           .into_string()
-          .map(Cow::Borrowed)
+          .map(|text| shared_string(storage, text))
           .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString).into())
       }
     })
     .collect()
 }
 
-fn optional_tape_source_contents<'a>(
-  value: Option<simd_json::tape::Value<'_, 'a>>,
-) -> Result<Vec<Option<Cow<'a, str>>>> {
+fn optional_tape_source_contents(
+  value: Option<simd_json::tape::Value<'_, '_>>,
+  storage: &Bytes,
+) -> Result<Vec<Option<BytesStr>>> {
   let Some(value) = value.filter(|value| !value.is_null()) else {
     return Ok(Vec::new());
   };
@@ -856,13 +694,11 @@ fn optional_tape_source_contents<'a>(
     .as_array()
     .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedArray))?
     .iter()
-    .map(|value| optional_tape_string(Some(value)))
+    .map(|value| optional_tape_string(Some(value), storage))
     .collect()
 }
 
-fn optional_tape_u32s<'a>(
-  value: Option<simd_json::tape::Value<'_, 'a>>,
-) -> Result<Option<Cow<'a, [u32]>>> {
+fn optional_tape_u32s(value: Option<simd_json::tape::Value<'_, '_>>) -> Result<Option<Vec<u32>>> {
   let Some(value) = value.filter(|value| !value.is_null()) else {
     return Ok(None);
   };
@@ -876,43 +712,59 @@ fn optional_tape_u32s<'a>(
         .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedUnsigned).into())
     })
     .collect::<Result<Vec<_>>>()
-    .map(|value| Some(Cow::Owned(value)))
+    .map(Some)
 }
 
-fn deserialize_source_map_fields<'a>(value: &'a BorrowedValue<'a>) -> Result<SourceMapFields<'a>> {
+fn deserialize_source_map(value: &BorrowedValue<'_>, storage: &Bytes) -> Result<SourceMap> {
   let object = value
     .as_object()
     .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedMap))?;
   let mappings = required_string_field(object, "mappings")?;
-
-  Ok(SourceMapFields {
+  let text = |text| shared_string(storage, text);
+  Ok(SourceMap {
     version: 3,
-    file: optional_string_field(object, "file")?,
-    sources: Cow::Owned(optional_string_array_field(object, "sources")?),
-    sources_content: Cow::Owned(optional_source_contents_field(object, "sourcesContent")?),
-    names: Cow::Owned(optional_string_array_field(object, "names")?),
-    mappings,
-    source_root: optional_string_field(object, "sourceRoot")?,
-    debug_id: optional_string_field(object, "debugId")?,
-    ignore_list: optional_u32_array_field(object, "ignoreList")?,
+    file: optional_string_field(object, "file")?.map(text),
+    sources: shared_slice(optional_string_array_field(object, "sources", storage)?),
+    sources_content: shared_slice(optional_source_contents_field(
+      object,
+      "sourcesContent",
+      storage,
+    )?),
+    names: shared_slice(optional_string_array_field(object, "names", storage)?),
+    mappings: text(mappings),
+    source_root: optional_string_field(object, "sourceRoot")?.map(text),
+    debug_id: optional_string_field(object, "debugId")?.map(text),
+    ignore_list: optional_u32_array_field(object, "ignoreList")?.map(shared_slice),
   })
+}
+
+fn shared_string(storage: &Bytes, text: &str) -> BytesStr {
+  // Empty/null array entries may refer to a static empty string.
+  if text.is_empty() {
+    return BytesStr::new();
+  }
+  #[allow(unsafe_code)]
+  // SAFETY: slice_ref checks that this UTF-8 string is within storage. The slice
+  // contains exactly its validated bytes and independently owns their backing.
+  unsafe {
+    BytesStr::from_utf8_unchecked(storage.slice_ref(text.as_bytes()))
+  }
 }
 
 fn required_string_field<'a>(
   object: &'a simd_json::borrowed::Object<'a>,
   key: &str,
-) -> Result<Cow<'a, str>> {
+) -> Result<&'a str> {
   object
     .get(key)
     .and_then(BorrowedValue::as_str)
-    .map(Cow::Borrowed)
     .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString).into())
 }
 
 fn optional_string_field<'a>(
   object: &'a simd_json::borrowed::Object<'a>,
   key: &str,
-) -> Result<Option<Cow<'a, str>>> {
+) -> Result<Option<&'a str>> {
   let Some(value) = object.get(key) else {
     return Ok(None);
   };
@@ -921,14 +773,15 @@ fn optional_string_field<'a>(
   }
   value
     .as_str()
-    .map(|value| Some(Cow::Borrowed(value)))
+    .map(Some)
     .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString).into())
 }
 
-fn optional_string_array_field<'a>(
-  object: &'a simd_json::borrowed::Object<'a>,
+fn optional_string_array_field(
+  object: &simd_json::borrowed::Object<'_>,
   key: &str,
-) -> Result<Vec<Cow<'a, str>>> {
+  storage: &Bytes,
+) -> Result<Vec<BytesStr>> {
   let Some(value) = object.get(key) else {
     return Ok(Vec::new());
   };
@@ -943,27 +796,29 @@ fn optional_string_array_field<'a>(
     .iter()
     .map(|value| {
       if value.is_null() {
-        Ok(Cow::Borrowed(""))
+        Ok(BytesStr::new())
       } else {
         value
           .as_str()
-          .map(Cow::Borrowed)
+          .map(|text| shared_string(storage, text))
           .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString).into())
       }
     })
     .collect()
 }
 
-fn optional_source_contents_field<'a>(
-  object: &'a simd_json::borrowed::Object<'a>,
+fn optional_source_contents_field(
+  object: &simd_json::borrowed::Object<'_>,
   key: &str,
-) -> Result<Vec<Option<Cow<'a, str>>>> {
+  storage: &Bytes,
+) -> Result<Vec<Option<BytesStr>>> {
   let Some(value) = object.get(key).filter(|value| !value.is_null()) else {
     return Ok(Vec::new());
   };
   value
     .as_array()
     .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedArray))?
+    .as_slice()
     .iter()
     .map(|value| {
       if value.is_null() {
@@ -971,17 +826,17 @@ fn optional_source_contents_field<'a>(
       } else {
         value
           .as_str()
-          .map(|value| Some(Cow::Borrowed(value)))
+          .map(|text| Some(shared_string(storage, text)))
           .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString).into())
       }
     })
     .collect()
 }
 
-fn optional_u32_array_field<'a>(
-  object: &'a simd_json::borrowed::Object<'a>,
+fn optional_u32_array_field(
+  object: &simd_json::borrowed::Object<'_>,
   key: &str,
-) -> Result<Option<Cow<'a, [u32]>>> {
+) -> Result<Option<Vec<u32>>> {
   let Some(value) = object.get(key) else {
     return Ok(None);
   };
@@ -999,7 +854,7 @@ fn optional_u32_array_field<'a>(
         .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedUnsigned).into())
     })
     .collect::<Result<Vec<_>>>()
-    .map(|v| Some(Cow::Owned(v)))
+    .map(Some)
 }
 
 /// Represent a [Mapping] information of source map.
@@ -1073,7 +928,7 @@ mod tests {
   #[test]
   fn should_not_have_sources_content_field_when_it_is_missing() {
     let map = SourceMap::new(
-      ";;",
+      ";;".into(),
       vec!["a.js".into()],
       vec![None, None, None],
       vec!["".into(), "".into()],

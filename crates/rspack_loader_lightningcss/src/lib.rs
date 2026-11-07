@@ -297,14 +297,14 @@ impl LightningCssLoader {
       let posix_context = posix_context.into_owned();
 
       let rspack_source_map = SourceMap::new(
-        mappings,
+        mappings.into(),
         // Parcel stores sources relative to project_root, while Rspack source maps
         // use absolute module paths for downstream loader/plugin handling.
         parcel_source_map
           .get_sources()
           .iter()
           .map(|source| {
-            Cow::Owned(if source.starts_with('/') || source.contains(':') {
+            (if source.starts_with('/') || source.contains(':') {
               source.clone()
             } else {
               let mut absolute_source = String::with_capacity(posix_context.len() + source.len());
@@ -312,17 +312,18 @@ impl LightningCssLoader {
               absolute_source.push_str(source);
               absolute_source
             })
+            .into()
           })
           .collect::<Vec<_>>(),
         parcel_source_map
           .get_sources_content()
           .iter()
-          .map(|source_content| Some(Cow::Owned(source_content.clone())))
+          .map(|source_content| Some(source_content.clone().into()))
           .collect::<Vec<_>>(),
         parcel_source_map
           .get_names()
           .iter()
-          .map(|name| Cow::Owned(name.clone()))
+          .map(|name| name.clone().into())
           .collect::<Vec<_>>(),
       );
 

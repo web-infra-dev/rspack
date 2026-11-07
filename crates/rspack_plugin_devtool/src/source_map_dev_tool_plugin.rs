@@ -117,7 +117,7 @@ fn relative_source_name_from_url(
 /// Compute source references from a source map's sources list.
 fn compute_source_references(
   compilation: &Compilation,
-  source_map: &SourceMap<'_>,
+  source_map: &SourceMap,
 ) -> Vec<SourceReference> {
   source_map
     .sources()
@@ -220,7 +220,7 @@ enum SourceMappingUrlCommentRef<'a> {
 struct SourceMapTask {
   pub asset_filename: Arc<str>,
   pub source: BoxSource,
-  pub source_map: SourceMap<'static>,
+  pub source_map: SourceMap,
   pub unresolved_source_map_path: Option<Utf8PathBuf>,
   pub source_references: Vec<SourceReference>,
 }
@@ -959,7 +959,7 @@ impl SourceMapDevToolPlugin {
 
   fn update_source_map(
     &self,
-    source_map: &mut SourceMap<'static>,
+    source_map: &mut SourceMap,
     reference_to_source_name_mapping: &ReferenceToSourceNameMapping,
     asset_filename: &str,
     source_map_path: Option<&Utf8Path>,
@@ -967,7 +967,7 @@ impl SourceMapDevToolPlugin {
     debug_id: Option<&str>,
   ) {
     // Update source_map with deduplicated source names
-    source_map.set_file(Some(Cow::Owned(asset_filename.to_owned())));
+    source_map.set_file(Some(asset_filename.to_owned().into()));
     source_map.set_sources(source_references.iter().map(|source_reference| {
       reference_to_source_name_mapping
         .get(source_reference)
@@ -977,6 +977,7 @@ impl SourceMapDevToolPlugin {
           )
         })
         .render_for_source_map(source_map_path)
+        .into_owned()
     }));
 
     if let Some(asset_conditions) = &self.ignore_list {
@@ -996,11 +997,11 @@ impl SourceMapDevToolPlugin {
     }
 
     if let Some(source_root) = &self.source_root {
-      source_map.set_source_root(Some(Cow::Owned(source_root.to_string())));
+      source_map.set_source_root(Some(source_root.to_string().into()));
     }
 
     if let Some(debug_id) = debug_id {
-      source_map.set_debug_id(Some(Cow::Owned(debug_id.to_owned())));
+      source_map.set_debug_id(Some(debug_id.to_owned().into()));
     }
 
     if self.no_sources {
@@ -1021,7 +1022,7 @@ impl SourceMapDevToolPlugin {
     reference_to_source_name_mapping: &ReferenceToSourceNameMapping,
     asset_filename: Arc<str>,
     source: BoxSource,
-    mut source_map: SourceMap<'static>,
+    mut source_map: SourceMap,
     unresolved_source_map_path: Option<Utf8PathBuf>,
     source_references: Vec<SourceReference>,
   ) -> Result<MappedAsset> {
