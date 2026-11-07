@@ -94,9 +94,6 @@ catalogs:
     '@rstest/playwright':
       specifier: 0.12.6
       version: 0.12.6
-    '@shikijs/transformers':
-      specifier: ^4.5.0
-      version: 4.5.0
     '@swc-next/parser':
       specifier: 0.4.1
       version: 0.4.1
@@ -1303,9 +1300,6 @@ importers:
       '@rspress/plugin-rss':
         specifier: 'catalog:'
         version: 2.1.1(@rspress/core@2.1.1)
-      '@shikijs/transformers':
-        specifier: 'catalog:'
-        version: 4.5.0
       '@types/node':
         specifier: 'catalog:'
         version: 20.19.43
