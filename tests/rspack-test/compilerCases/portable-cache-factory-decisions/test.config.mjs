@@ -287,6 +287,15 @@ const parsed = {
 const emitOption = {
 	"options.cjs": "module.exports = function () { const value = this.getOptions().value; return 'module.exports = ' + JSON.stringify(String(value instanceof Set ? [...value] : value)); };"
 };
+const readConfigOption = {
+	"settings.json": '{"value":"settings"}',
+	"options.cjs": `module.exports = function () {
+		const { configFile } = this.getOptions();
+		this.addDependency(configFile);
+		const { value } = JSON.parse(require("node:fs").readFileSync(configFile, "utf8"));
+		return "module.exports = " + JSON.stringify(value);
+	};`
+};
 scenarios.push(
 	{
 		name: "no-parse-regex",
@@ -401,6 +410,95 @@ function useLoaderResultCache(kind, options) {
 }
 
 export default [
+	...[undefined, "pre", "post"].map((enforce) => ({
+		name: `array-use-location-option-${enforce ?? "normal"}`,
+		description: `rebuilds a ${enforce ?? "normal"} array use whose option depends on the checkout location`,
+		async run() {
+			await withProjects(emitOption, async (writer, reader) => {
+				const configuration = (context) => ({
+					module: { rules: [{
+						test: /dep\.js$/,
+						enforce,
+						use: [{
+							loader: "./options.cjs",
+							// withProjects nests context under writer-only/project and reader/project.
+							options: { value: path.basename(path.dirname(context)) }
+						}]
+					}] }
+				});
+				const written = await build(writer, configuration(writer));
+				expect(execute(written)).toBe("writer-only");
+				copyTree(writer, reader);
+				const moved = await build(reader, configuration(reader));
+				expect({ built: moved.built.length, executed: execute(moved) }).toEqual({
+					built: 1,
+					executed: "reader"
+				});
+				await expectWarmEquality(reader, configuration(reader), moved);
+				fs.rmSync(path.join(reader, "node_modules", ".cache"), { recursive: true, force: true });
+				const cold = await build(reader, configuration(reader));
+				const uncached = await build(reader, configuration(reader), false);
+				expect(execute(moved)).toEqual(execute(cold));
+				expect(execute(moved)).toEqual(execute(uncached));
+				expect(moved.assets).toEqual(cold.assets);
+				expect(moved.assets).toEqual(uncached.assets);
+			});
+		}
+	})),
+	...loaderCaches.map(({ suffix, cache }) => ({
+		name: `array-use-set-option-${suffix}`,
+		description: "rebuilds an array use whose options cannot be compared as plain data",
+		async run() {
+			await withProjects(emitOption, async (writer, reader) => {
+				const configuration = (context) => ({
+					module: { rules: [{
+						test: /dep\.js$/,
+						use: [{
+							loader: "./options.cjs",
+							cache,
+							options: { value: new Set([path.basename(path.dirname(context))]) }
+						}]
+					}] }
+				});
+				const written = await build(writer, configuration(writer));
+				expect(execute(written)).toBe("writer-only");
+				copyTree(writer, reader);
+				const moved = await build(reader, configuration(reader));
+				expect(execute(moved)).toBe("reader");
+				expect(moved.built).toHaveLength(1);
+				await expectColdEquality(reader, configuration(reader), moved);
+			});
+		}
+	})),
+	...[
+		{ kind: "array", changed: false },
+		{ kind: "array", changed: true },
+		{ kind: "function", changed: false }
+	].map(({ kind, changed }) => ({
+		name: `${kind}-use-absolute-config-option-${changed ? "changed" : "unchanged"}`,
+		description: `${changed ? "rebuilds" : "reuses"} a ${kind} use with an absolute config path and ${changed ? "changed" : "unchanged"} file content`,
+		async run() {
+			await withProjects(readConfigOption, async (writer, reader) => {
+				const configuration = (root) => {
+					const use = [{
+						loader: "./options.cjs",
+						options: { configFile: path.join(root, "settings.json") }
+					}];
+					return { module: { rules: [{ test: /dep\.js$/, use: kind === "function" ? () => use : use }] } };
+				};
+				const written = await build(writer, configuration(writer));
+				expect(execute(written)).toBe("settings");
+				copyTree(writer, reader);
+				if (changed) fs.writeFileSync(path.join(reader, "settings.json"), '{"value":"changed"}');
+				const moved = await build(reader, configuration(reader));
+				expect(execute(moved)).toBe(changed ? "changed" : "settings");
+				if (changed) expect(moved.built).toHaveLength(1);
+				else expect(moved.built).toEqual([]);
+				await expectWarmEquality(reader, configuration(reader), moved);
+				await expectColdEquality(reader, configuration(reader), moved);
+			});
+		}
+	})),
 	...[
 		{ kind: "set", type: "[object Set]" },
 		{ kind: "function", type: "[object Function]" }
