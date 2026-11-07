@@ -714,6 +714,41 @@ export default [
 		}
 	},
 	{
+		name: "producing-importer-rebuilt-keeps-import",
+		description: "keeps a shared module when its producer is rebuilt at the reader and only the other importer changes its decision",
+		async run() {
+			await withProjects(sharedImporters, async (writer, reader) => {
+				const configuration = strictWhenImportedBy(/reader.*b\.js$/, [factoryGroups(A_PRODUCES)]);
+				await build(writer, configuration);
+				copyTree(writer, reader);
+				fs.appendFileSync(path.join(reader, "src/a.js"), "\n// edited");
+				const moved = await build(reader, configuration);
+				expect(moved.built).toEqual([path.join(reader, "src", "a.js")]);
+				expect(execute(moved)).toEqual([false, false]);
+				await expectWarmEquality(reader, configuration, moved);
+				await expectColdEquality(reader, configuration, moved);
+			});
+		}
+	},
+	{
+		name: "producing-importer-edited-at-writer",
+		description: "keeps a shared module when its producer was edited at the writer and only the other importer changes its decision",
+		async run() {
+			await withProjects(sharedImporters, async (writer, reader) => {
+				const configuration = strictWhenImportedBy(/reader.*b\.js$/, [factoryGroups(A_PRODUCES)]);
+				await build(writer, configuration);
+				fs.appendFileSync(path.join(writer, "src/a.js"), "\n// edited");
+				expect((await build(writer, configuration)).built).toEqual([path.join(writer, "src", "a.js")]);
+				copyTree(writer, reader);
+				const moved = await build(reader, configuration);
+				expect(moved.built).toEqual([]);
+				expect(execute(moved)).toEqual([false, false]);
+				await expectWarmEquality(reader, configuration, moved);
+				await expectColdEquality(reader, configuration, moved);
+			});
+		}
+	},
+	{
 		name: "disagreeing-importers-in-a-cycle",
 		description: "still rebuilds the modules of an import cycle whose deciding groups come from each other",
 		async run() {
