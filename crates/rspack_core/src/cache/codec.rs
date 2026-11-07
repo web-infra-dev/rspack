@@ -158,6 +158,10 @@ impl CacheCodec {
     codec
   }
 
+  pub(crate) fn portable_root(&self) -> Option<&PortableRoot> {
+    self.context.portable_root.as_ref()
+  }
+
   pub fn is_portable(&self) -> bool {
     self.root_patterns.is_some()
   }

@@ -9,7 +9,8 @@ use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{As, AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
+  utils::PortableString,
+  with::{As, AsCacheable, AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result};
@@ -314,6 +315,8 @@ pub struct BuildInfo {
   pub cacheable: bool,
   /// Whether parsing derived a value from the module's absolute resource path.
   pub root_sensitive: bool,
+  /// Whether a loader wrote an absolute request that `rebaseLoaderRequests` would rewrite.
+  pub absolute_loader_requests: bool,
   pub hash: Option<RspackHashDigest>,
   pub strict: bool,
   pub module_argument: ModuleArgument,
@@ -323,6 +326,9 @@ pub struct BuildInfo {
   /// the module build cache is enabled; other builds leave it empty to avoid
   /// snapshot creation overhead.
   pub snapshot: Option<Snapshot>,
+  /// Compared with the current configuration, so a path below the root that moved with the
+  /// checkout stays equal, and one that names another checkout rebuilds the module.
+  #[cacheable(with=AsMap<AsCacheable, As<PortableString>>)]
   pub value_dependencies: HashMap<String, String>,
   #[cacheable(with=AsVec<AsPreset>)]
   pub esm_named_exports: HashSet<Atom>,
@@ -367,6 +373,7 @@ impl Default for BuildInfo {
     Self {
       cacheable: true,
       root_sensitive: false,
+      absolute_loader_requests: false,
       hash: None,
       strict: false,
       module_argument: Default::default(),

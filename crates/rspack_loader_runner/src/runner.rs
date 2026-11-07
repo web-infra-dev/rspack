@@ -202,6 +202,7 @@ fn create_loader_context<Context: Send>(
     hot: false,
     cacheable: true,
     portable: Default::default(),
+    root_sensitive: false,
     parse_meta: Default::default(),
     dependencies,
     added_dependencies: Default::default(),
@@ -340,6 +341,7 @@ pub struct LoaderResult<Context> {
   pub cacheable: bool,
   /// Intact certification chain and deduplicated absolute declared path values.
   pub portable_output: Option<Vec<Utf8PathBuf>>,
+  pub root_sensitive: bool,
   pub dependencies: LoaderDependencies,
   pub diagnostics: Vec<Diagnostic>,
   pub content: Content,
@@ -355,6 +357,7 @@ impl<Context: Send> LoaderResult<Context> {
       context: loader_context.context,
       cacheable: loader_context.cacheable,
       portable_output: loader_context.portable.into_paths(),
+      root_sensitive: loader_context.root_sensitive,
       dependencies: loader_context.dependencies,
       diagnostics: loader_context.diagnostics,
       content: loader_context

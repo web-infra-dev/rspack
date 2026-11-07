@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use rspack_error::Diagnostic;
 
-use super::{TaskContext, add::AddTask};
+use super::{TaskContext, add::AddTask, process_dependencies::producer_group};
 use crate::{
-  BuildContext, Context, DependencyRef, FactorizeInfo, ImportPhase, ModuleFactory,
+  BuildContext, Context, DependencyRef, FactorizeInfo, ImportPhase, Module, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, Resolve, SourceView,
   dependency::DependencyType,
   module_graph::ModuleGraphModule,
@@ -12,16 +12,62 @@ use crate::{
 };
 
 #[derive(Debug)]
+pub(crate) struct FactorizeInput {
+  build_context: Arc<BuildContext>,
+  module_factory: Arc<dyn ModuleFactory>,
+  parent: Option<ModuleIdentifier>,
+  context: Option<Box<Context>>,
+  issuer: Option<Box<str>>,
+  pub(crate) issuer_layer: Option<ModuleLayer>,
+  resolve_options: Option<Arc<Resolve>>,
+  dependencies: Vec<DependencyRef>,
+}
+
+impl FactorizeInput {
+  pub(crate) fn new(
+    build_context: Arc<BuildContext>,
+    module_factory: Arc<dyn ModuleFactory>,
+    parent: Option<&dyn crate::Module>,
+    dependencies: Vec<DependencyRef>,
+  ) -> Self {
+    Self {
+      build_context,
+      module_factory,
+      parent: parent.map(|module| module.identifier()),
+      context: parent.and_then(|module| module.get_context()),
+      issuer: parent
+        .and_then(|module| module.as_normal_module())
+        .and_then(|module| module.name_for_condition()),
+      issuer_layer: parent.and_then(|module| module.get_layer().cloned()),
+      resolve_options: parent.and_then(|module| module.get_resolve_options()),
+      dependencies,
+    }
+  }
+
+  pub(crate) async fn run(
+    self,
+  ) -> (
+    ModuleFactoryCreateData,
+    rspack_error::Result<ModuleFactoryResult>,
+  ) {
+    let mut create_data = ModuleFactoryCreateData::new(
+      self.build_context,
+      self.resolve_options,
+      self.context.as_deref(),
+      self.dependencies,
+      self.issuer,
+      self.parent,
+      self.issuer_layer,
+    );
+    let result = self.module_factory.create(&mut create_data).await;
+    (create_data, result)
+  }
+}
+
+#[derive(Debug)]
 pub struct FactorizeTask {
-  pub build_context: Arc<BuildContext>,
-  pub module_factory: Arc<dyn ModuleFactory>,
-  pub original_module_identifier: Option<ModuleIdentifier>,
+  pub(crate) input: FactorizeInput,
   pub original_module_source: Option<Arc<SourceView>>,
-  pub original_module_context: Option<Box<Context>>,
-  pub issuer: Option<Box<str>>,
-  pub issuer_layer: Option<ModuleLayer>,
-  pub dependencies: Vec<DependencyRef>,
-  pub resolve_options: Option<Arc<Resolve>>,
   pub from_unlazy: bool,
 }
 
@@ -30,19 +76,10 @@ impl Task<TaskContext> for FactorizeTask {
   fn get_task_type(&self) -> TaskType {
     TaskType::Background
   }
-  async fn background_run(mut self: Box<Self>) -> TaskResult<TaskContext> {
-    // Error and result are not mutually exclusive in webpack module factorization.
-    // Rspack puts results that need to be shared in both error and ok in [ModuleFactoryCreateData].
-    let mut create_data = ModuleFactoryCreateData::new(
-      self.build_context,
-      self.resolve_options,
-      self.original_module_context.as_deref(),
-      self.dependencies,
-      self.issuer,
-      self.original_module_identifier,
-      self.issuer_layer,
-    );
-    let factory_result = match self.module_factory.create(&mut create_data).await {
+  async fn background_run(self: Box<Self>) -> TaskResult<TaskContext> {
+    let parent = self.input.parent;
+    let (mut create_data, result) = self.input.run().await;
+    let factory_result = match result {
       Ok(result) => Some(result),
       Err(mut e) => {
         // Wrap source code if available
@@ -88,7 +125,7 @@ impl Task<TaskContext> for FactorizeTask {
     );
     Ok(vec![Box::new(FactorizeResultTask {
       build_context: create_data.build_context,
-      original_module_identifier: self.original_module_identifier,
+      original_module_identifier: parent,
       factory_result,
       dependencies: create_data.dependencies,
       factorize_info,
@@ -168,6 +205,10 @@ impl Task<TaskContext> for FactorizeResultTask {
     let module_identifier = module.identifier();
     let mut mgm = ModuleGraphModule::new(module.identifier());
     mgm.set_issuer_if_unset(original_module_identifier);
+    mgm.set_producer(
+      original_module_identifier
+        .and_then(|parent| producer_group(parent, dependencies[0].as_ref())),
+    );
 
     tracing::trace!("Module created: {}", &module_identifier);
 
@@ -186,12 +227,7 @@ fn skip_side_effect_free_esm_import_side_effect_dependencies(
   module: &crate::BoxModule,
   dependencies: &[DependencyRef],
 ) -> bool {
-  let should_skip = module.as_normal_module().is_some()
-    && module.factory_meta().and_then(|meta| meta.side_effect_free) == Some(true)
-    && dependencies.iter().all(|dep| {
-      dep.dependency_type() == &DependencyType::EsmImport
-        && dep.get_phase() == ImportPhase::Evaluation
-    });
+  let should_skip = is_side_effect_only_import(module, dependencies);
 
   for dep in dependencies {
     if should_skip {
@@ -202,4 +238,16 @@ fn skip_side_effect_free_esm_import_side_effect_dependencies(
   }
 
   should_skip
+}
+
+pub(crate) fn is_side_effect_only_import(
+  module: &crate::BoxModule,
+  dependencies: &[DependencyRef],
+) -> bool {
+  module.as_normal_module().is_some()
+    && module.factory_meta().and_then(|meta| meta.side_effect_free) == Some(true)
+    && dependencies.iter().all(|dep| {
+      dep.dependency_type() == &DependencyType::EsmImport
+        && dep.get_phase() == ImportPhase::Evaluation
+    })
 }

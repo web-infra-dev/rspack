@@ -150,6 +150,13 @@ struct ParsedText {
   portable_site_cut: bool,
 }
 
+fn clone_parse_meta(parse_meta: &ParseMeta) -> ParseMeta {
+  parse_meta
+    .iter()
+    .map(|(key, value)| (key.clone(), value.clone_parse_meta()))
+    .collect()
+}
+
 #[cacheable]
 pub struct JavaScriptParserAndGenerator {
   #[cacheable(with=AsInner)]
@@ -478,8 +485,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_identifier,
       loaders,
       module_parser_options,
+      module_context,
       mut parse_meta,
       portable_output,
+      portable_requests,
       ..
     } = parse_context;
 
@@ -491,7 +500,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       build_info.collected_typescript_info = Some(*collected_ts_info);
     }
 
-    let source = remove_bom(source);
+    let mut source = remove_bom(source);
 
     let jsx = module_parser_options
       .and_then(|options| options.get_javascript())
@@ -516,15 +525,53 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       lang,
     };
 
+    let create_require = module_parser_options
+      .and_then(|options| options.get_javascript())
+      .is_some_and(|options| options.is_create_require_enabled());
+
+    // A request a loader generated for this checkout is spelled relative to the module, so the
+    // dependency, source, map and hashes hold no root. Only the scan can prove what is a request.
+    // createRequire resolves against its own base, so a relative spelling could change the target.
+    if let Some(requests) = portable_requests.filter(|_| !create_require) {
+      let saved_build_info = build_info.clone();
+      let saved_build_meta = build_meta.clone();
+      let scanned = self.parse_text(
+        &input,
+        source.clone(),
+        Some(&Canonical::unchanged(source.clone())),
+        build_info,
+        build_meta,
+        clone_parse_meta(&parse_meta),
+      );
+      *build_info = saved_build_info;
+      *build_meta = saved_build_meta;
+      if let Some(relative) = scanned
+        .filter(|scanned| scanned.diagnostics.is_empty())
+        .and_then(|scanned| {
+          portable_paths::relativize_requests(
+            &source,
+            &scanned.result,
+            module_context.as_path(),
+            requests.root,
+            source_type,
+            lang,
+          )
+        })
+      {
+        if requests.rebase {
+          source = relative;
+        } else {
+          build_info.absolute_loader_requests = true;
+        }
+      }
+    }
+
     // Certified literals are normalized with or without a persistent cache, so cache:false and
     // cached builds emit the same code, maps and hashes.
     let mut root_sensitive = false;
     if let Some(paths) = portable_output.filter(|paths| !paths.is_empty()) {
       let text = source.source().into_string_lossy();
-      let prepared = if module_parser_options
-        .and_then(|options| options.get_javascript())
-        .is_some_and(|options| options.is_create_require_enabled())
-      {
+      let prepared = if create_require {
         // createRequire replacements copy source spans, including enclosing expressions.
         // Those spans must contain real paths rather than canonical placeholders.
         Prepared::Unsupported
@@ -544,10 +591,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         Prepared::Canonical(canonical) => {
           let saved_build_info = build_info.clone();
           let saved_build_meta = build_meta.clone();
-          let saved_parse_meta: ParseMeta = parse_meta
-            .iter()
-            .map(|(key, value)| (key.clone(), value.clone_parse_meta()))
-            .collect();
+          let saved_parse_meta = clone_parse_meta(&parse_meta);
           let parsed = self.parse_text(
             &input,
             canonical.source.clone(),

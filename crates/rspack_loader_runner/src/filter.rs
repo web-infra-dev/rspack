@@ -3,7 +3,7 @@ use rspack_cacheable::cacheable;
 use crate::CodeFilter;
 
 #[cacheable]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct LoaderFilter {
   code: Option<CodeFilter>,
 }

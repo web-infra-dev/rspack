@@ -1,16 +1,20 @@
 mod scope;
 mod strategy;
 
-use std::sync::Arc;
+use std::{
+  path::{Path, PathBuf},
+  sync::Arc,
+};
 
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
 use rspack_parallel::TryFutureConsumer;
 use rspack_paths::{InternedPath, InternedPathMap, InternedPathSet};
+use rustc_hash::FxHashSet;
 
 pub(crate) use self::strategy::{StrategyHelper, ValidateResult};
 pub use self::{scope::SnapshotScope, strategy::Strategy};
-use super::storage::Storage;
+use super::{storage::Storage, validation::is_relocated};
 use crate::{
   Context, FutureConsumer, SnapshotOptions, SnapshotStrategyOptions,
   cache::{CacheCodec, RootBinding},
@@ -267,6 +271,50 @@ impl Snapshot {
     }
   }
 
+  /// Directories below the root that are links here, in a cache written under another root that
+  /// did not follow them. The same path can reach other files through such a link, so a matching
+  /// hash proves nothing: `node_modules` linked to another checkout resolves into that checkout.
+  async fn unrecorded_links(
+    helper: &Arc<StrategyHelper>,
+    codec: &Arc<CacheCodec>,
+    data: &[(Vec<u8>, Vec<u8>)],
+  ) -> Result<FxHashSet<PathBuf>> {
+    let mut links = FxHashSet::default();
+    let Some(root) = codec.portable_root() else {
+      return Ok(links);
+    };
+    let recorded = data
+      .iter()
+      .map(|(key, _)| codec.decode::<InternedPath>(key))
+      .collect::<Result<InternedPathSet>>()?;
+    let mut directories = FxHashSet::default();
+    for path in &recorded {
+      let path: &Path = path.as_ref();
+      for ancestor in path.ancestors().skip(1) {
+        if ancestor == root.root
+          || ancestor == root.canonical_root
+          || !(ancestor.starts_with(&root.root) || ancestor.starts_with(&root.canonical_root))
+          || !directories.insert(ancestor.to_path_buf())
+        {
+          break;
+        }
+      }
+    }
+    directories
+      .into_iter()
+      .map(|directory| {
+        let helper = helper.clone();
+        let path = InternedPath::from(directory.as_path());
+        let recorded = recorded.contains(&path);
+        async move {
+          (!recorded && helper.is_symlink(&path).await == Some(true)).then_some(directory)
+        }
+      })
+      .fut_consume(|directory| links.extend(directory))
+      .await;
+    Ok(links)
+  }
+
   #[allow(clippy::type_complexity)]
   #[tracing::instrument("Cache::Snapshot::calc_modified_path", skip_all)]
   pub async fn calc_modified_paths(
@@ -296,16 +344,31 @@ impl Snapshot {
 
     let data = storage.load(scope.name()).await?;
     let is_hot_start = !data.is_empty();
+    // Written under another root: every record's timestamps describe other files.
+    let relocated = codec.is_portable() && is_relocated(storage, &codec).await?;
+    let unrecorded_links = Arc::new(if relocated && matches!(scope, SnapshotScope::FILE) {
+      Self::unrecorded_links(&helper, &codec, &data).await?
+    } else {
+      Default::default()
+    });
     data
       .into_iter()
       .map(|(key, value)| {
         let helper = helper.clone();
         let options = self.options.clone();
         let codec = codec.clone();
+        let unrecorded_links = unrecorded_links.clone();
         async move {
           let path = codec.decode::<InternedPath>(&key)?;
           if codec.encode_path_key(&path)? != key {
             return Ok((path, ValidateResult::Modified, None, Some(key)));
+          }
+          if !unrecorded_links.is_empty()
+            && AsRef::<Path>::as_ref(&path)
+              .ancestors()
+              .any(|ancestor| unrecorded_links.contains(ancestor))
+          {
+            return Ok((path, ValidateResult::Modified, None, None));
           }
           let validate = match codec.decode::<(Option<u64>, Strategy)>(&value) {
             Ok((bound_root, strategy)) => {
@@ -316,19 +379,7 @@ impl Snapshot {
                 // Fixed build inputs still bind the build segment; fixed factory groups still
                 // expire and refactorize. Global build dependencies have no such owner gate.
                 if !path.is_fixed() && !matches!(scope, SnapshotScope::BUILD) {
-                  // Timestamps at different roots do not establish content identity. Use
-                  // the stored hash even when times match, or decline timestamp-only reuse.
-                  let relocated = match &strategy {
-                    Strategy::FileTimestampAndHash { hash, .. } => {
-                      Strategy::FileHash { hash: *hash }
-                    }
-                    Strategy::DirTimestampAndHash { hash, .. } => Strategy::DirHash { hash: *hash },
-                    Strategy::FileTimestamp { .. } | Strategy::DirTimestamp { .. } => {
-                      Strategy::Failed
-                    }
-                    _ => strategy.clone(),
-                  };
-                  let validate = match helper.validate(&path, &relocated).await {
+                  let validate = match helper.validate_relocated(&path, &strategy).await {
                     ValidateResult::NoChanged => ValidateResult::NoChangedRefresh(strategy),
                     validate => validate,
                   };
@@ -336,7 +387,14 @@ impl Snapshot {
                 }
                 return Ok((path, ValidateResult::Modified, None, Some(key)));
               }
-              helper.validate(&path, &strategy).await
+              if relocated {
+                // Ordinary records carry no root binding, yet their timestamps were observed
+                // on the writer's files. Equal times on a copy prove nothing about content or
+                // about what the path now resolves to: validate the content instead.
+                helper.validate_relocated(&path, &strategy).await
+              } else {
+                helper.validate(&path, &strategy).await
+              }
             }
             Err(_) => ValidateResult::Modified,
           };

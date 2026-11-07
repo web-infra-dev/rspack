@@ -1,15 +1,23 @@
 use std::hash::BuildHasherDefault;
 
-use rspack_collections::{IdentifierHasher, IdentifierSet};
+use rspack_collections::{IdentifierHasher, IdentifierMap, IdentifierSet};
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet;
 
 use crate::{
-  ArtifactExt, BuildDependency, DependencyId, DependencyRef, FactorizationArtifact, FactorizeInfo,
-  ModuleGraph, ModuleIdentifier, SideEffectsStateArtifact,
+  ArtifactExt, BoxModule, BuildDependency, DependencyId, DependencyRef, FactorizationArtifact,
+  FactorizeInfo, ModuleGraph, ModuleIdentifier, ProducerGroup, SideEffectsStateArtifact,
   compilation::build_module_graph::ModuleToLazyMake, incremental::IncrementalPasses,
   incremental_info::IncrementalInfo, utils::FileCounter,
 };
+
+/// A freshly factorized module and the group that decided it.
+#[derive(Debug)]
+pub(crate) struct FactoryChoice {
+  pub(crate) module: BoxModule,
+  /// The group, in the form of `ModuleGraphModule::producer`. A rebuild of its parent replaces it.
+  pub(crate) producer: Option<ProducerGroup>,
+}
 
 /// Make Artifact, including all side effects of the make stage.
 #[derive(Debug)]
@@ -36,6 +44,11 @@ pub struct BuildModuleGraphArtifact {
   /// these dependencies, then clears this set. `reset_temporary_data` keeps it, because recovery
   /// runs before the reset of the first build.
   pub(crate) refactorize_dependencies: FxHashSet<DependencyId>,
+
+  pub(crate) verify_factory_decisions: Option<FxHashSet<DependencyId>>,
+  /// The modules that verification chose for the rebuilds it forces. The groups refactorized by a
+  /// rebuild race to `AddTask`, which takes the module from here instead of the first arrival's.
+  pub(crate) factory_choices: IdentifierMap<FactoryChoice>,
 
   // data
   /// Module graph data
@@ -70,6 +83,8 @@ impl BuildModuleGraphArtifact {
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
       check_issuer_cycles: false,
+      verify_factory_decisions: None,
+      factory_choices: Default::default(),
       refactorize_dependencies: Default::default(),
       module_graph: Default::default(),
       factorization_artifact: Default::default(),

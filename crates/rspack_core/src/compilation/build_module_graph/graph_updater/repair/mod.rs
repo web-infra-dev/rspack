@@ -48,15 +48,13 @@ pub async fn repair(
           let module_factory = compilation.get_dependency_factory(dependency.as_ref());
           let dependency = dependency.clone();
           Box::new(factorize::FactorizeTask {
-            build_context: ctx.build_context.clone(),
-            module_factory,
-            original_module_identifier: None,
+            input: factorize::FactorizeInput::new(
+              ctx.build_context.clone(),
+              module_factory,
+              None,
+              vec![dependency],
+            ),
             original_module_source: None,
-            issuer: None,
-            issuer_layer: None,
-            original_module_context: None,
-            dependencies: vec![dependency],
-            resolve_options: None,
             from_unlazy: false,
           }) as Box<dyn Task<TaskContext>>
         })

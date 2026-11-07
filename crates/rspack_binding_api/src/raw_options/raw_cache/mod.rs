@@ -19,6 +19,8 @@ pub struct RawCacheOptionsPersistent {
   pub storage: Option<RawStorageOptions>,
   pub seed_donors: Option<Vec<String>>,
   pub portable_root: Option<String>,
+  pub rebase_loader_requests: Option<bool>,
+  pub warn_loader_requests: Option<bool>,
   pub readonly: Option<bool>,
 }
 
@@ -43,6 +45,8 @@ impl TryFrom<RawCacheOptionsPersistent> for PersistentCacheOptions {
         .map(Into::into)
         .collect(),
       portable_root: value.portable_root.map(portable_root),
+      rebase_loader_requests: value.rebase_loader_requests.unwrap_or_default(),
+      warn_loader_requests: value.warn_loader_requests.unwrap_or_default(),
       readonly: value.readonly.unwrap_or_default(),
       max_age: value.max_age.into(),
       max_memory_generations: value.max_memory_generations.into(),

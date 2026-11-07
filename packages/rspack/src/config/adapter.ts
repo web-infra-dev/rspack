@@ -176,6 +176,9 @@ function getRawCache(
     }
     return value;
   };
+  const rebaseLoaderRequests =
+    typeof cache.portable === 'object' &&
+    cache.portable.rebaseLoaderRequests === true;
   return {
     type: cache.type,
     buildDependencies: cache.buildDependencies,
@@ -189,6 +192,11 @@ function getRawCache(
     },
     portableRoot:
       typeof cache.portable === 'object' ? cache.portable.root : undefined,
+    rebaseLoaderRequests: !compiler.options.externals && rebaseLoaderRequests,
+    warnLoaderRequests:
+      !compiler.options.externals &&
+      !rebaseLoaderRequests &&
+      Boolean(compiler.options.experiments.portableCache),
     seedDonors: findSeedDonors(cache, compiler),
     readonly: cache.readonly,
   };
@@ -371,6 +379,10 @@ const getRawModuleRule = (
         },
       ]
     : rule.use;
+  const cache = options.compiler.options.cache;
+  const fingerprint = Boolean(
+    cache && cache.type === 'persistent' && cache.portable,
+  );
   let funcUse: undefined | ((rawContext: RawFuncUseCtx) => RawModuleRuleUse[]);
   if (typeof normalizedUse === 'function') {
     const use = normalizedUse;
@@ -381,7 +393,13 @@ const getRawModuleRule = (
       };
       const uses = use(context);
 
-      return createRawModuleRuleUses(uses ?? [], `${path}.use`, options);
+      return createRawModuleRuleUses(
+        uses ?? [],
+        `${path}.use`,
+        options,
+        fingerprint,
+        true,
+      );
     };
   }
 
@@ -427,7 +445,12 @@ const getRawModuleRule = (
     use:
       typeof normalizedUse === 'function'
         ? funcUse
-        : createRawModuleRuleUses(normalizedUse ?? [], `${path}.use`, options),
+        : createRawModuleRuleUses(
+            normalizedUse ?? [],
+            `${path}.use`,
+            options,
+            fingerprint,
+          ),
     type: rule.type,
     layer: rule.layer,
     parser: rule.parser

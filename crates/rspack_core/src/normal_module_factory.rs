@@ -1,9 +1,11 @@
 use std::{
   borrow::Cow,
+  hash::{Hash, Hasher},
   ops::Deref,
   sync::{Arc, LazyLock},
 };
 
+use cow_utils::CowUtils;
 use memchr::{memchr, memmem, memrchr};
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
@@ -867,6 +869,7 @@ impl NormalModuleFactory {
             }),
             cache: false,
             options_cache_key: String::new(),
+            comparable_options: None,
             filter: None,
           }
         }));
@@ -1047,7 +1050,8 @@ module.exports = "data:,";
               issuer: data.issuer.clone(),
               issuer_layer: data.issuer_layer.clone(),
             };
-            Cow::Owned(func_use(context).await?)
+            let loaders = func_use(context).await?;
+            Cow::Owned(loaders)
           }
         };
 
@@ -1116,6 +1120,48 @@ module.exports = "data:,";
       }
 
       all_loaders
+    };
+
+    let loader_options_digest = match &self.options.cache {
+      crate::CacheOptions::Persistent(crate::PersistentCacheOptions {
+        portable_root: Some(root),
+        ..
+      }) => {
+        let mut root_spellings = Vec::new();
+        for root in [&root.root, &root.canonical_root] {
+          // The typed encoder JSON-quotes strings and object keys. Strip only the surrounding
+          // quotes, preserving escapes (especially doubled Windows path separators).
+          let quoted = serde_json::to_string(root.as_str()).expect("serialize portable root");
+          root_spellings.push(quoted[1..quoted.len() - 1].to_owned());
+          root_spellings.push(root.as_str().to_owned());
+        }
+        // Replace longer spellings first when the lexical and canonical roots overlap.
+        root_spellings.sort_by(|a, b| b.len().cmp(&a.len()).then_with(|| a.cmp(b)));
+        root_spellings.dedup();
+        let mut digest = rustc_hash::FxHasher::default();
+        let mut comparable = true;
+        for loader in &resolved_loaders {
+          if let Some(options) = &loader.comparable_options {
+            let mut normalized = Cow::Borrowed(options.as_str());
+            for root in &root_spellings {
+              if let Cow::Owned(replaced) = normalized.cow_replace(root, "<root>") {
+                normalized = Cow::Owned(replaced);
+              }
+            }
+            normalized.hash(&mut digest);
+          } else {
+            comparable = false;
+          }
+        }
+        comparable.then(|| {
+          if resolved_loaders.is_empty() {
+            0
+          } else {
+            digest.finish()
+          }
+        })
+      }
+      _ => Some(0),
     };
 
     let request = if !resolved_loaders.is_empty() {
@@ -1252,6 +1298,9 @@ module.exports = "data:,";
       .boxed()
     };
 
+    if let Some(normal) = module.as_normal_module_mut() {
+      normal.loader_options_digest = loader_options_digest;
+    }
     self
       .plugin_driver
       .normal_module_factory_hooks
@@ -1396,6 +1445,10 @@ module.exports = "data:,";
   }
 }
 
+fn is_portable(options: &CompilerOptions) -> bool {
+  matches!(&options.cache, crate::CacheOptions::Persistent(options) if options.portable_root.is_some())
+}
+
 async fn resolve_each(
   plugin_driver: &SharedPluginDriver,
   context: &Context,
@@ -1415,14 +1468,18 @@ struct ResolvedLoader {
   loader: BoxLoader,
   options: LoaderRunnerOptions,
   filter: Option<Arc<LoaderFilter>>,
+  comparable_options: Option<String>,
 }
 
 impl ResolvedLoader {
+  /// An inline loader. Its options live in the request, which the module identifier already
+  /// covers, so they compare equal whenever the identifier does.
   fn uncached(loader: BoxLoader) -> Self {
     Self {
       loader,
       options: LoaderRunnerOptions::default(),
       filter: None,
+      comparable_options: Some(String::new()),
     }
   }
 }
@@ -1452,11 +1509,17 @@ async fn resolve_each_with_options(
     data,
   )
   .await?;
+  let comparable_options = if is_portable(options) {
+    loader.comparable_options.clone()
+  } else {
+    None
+  };
   if !loader.cache {
     return Ok(ResolvedLoader {
       loader: resolved,
       options: LoaderRunnerOptions::default(),
       filter: loader.filter.clone(),
+      comparable_options,
     });
   }
   let loader_name = parse_resource(&loader.loader).map_or_else(
@@ -1472,10 +1535,16 @@ async fn resolve_each_with_options(
     options: LoaderRunnerOptions {
       cache: true,
       loader_name,
-      options_cache_key: loader.options_cache_key.clone(),
+      // `JSON.stringify` can't tell apart what a portable build compares, such as `Set` contents.
+      options_cache_key: comparable_options
+        .as_ref()
+        .unwrap_or(&loader.options_cache_key)
+        .clone(),
       loader_version,
+      incomparable_options: is_portable(options) && loader.comparable_options.is_none(),
     },
     filter: loader.filter.clone(),
+    comparable_options,
   })
 }
 

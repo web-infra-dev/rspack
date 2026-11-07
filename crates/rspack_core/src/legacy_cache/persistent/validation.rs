@@ -13,7 +13,10 @@ use super::{
   snapshot::SnapshotScope,
   storage::Storage,
 };
-use crate::{CompilationLogger, cache::CacheCodec};
+use crate::{
+  CompilationLogger,
+  cache::{CacheCodec, RootBinding},
+};
 
 pub const SCOPE: &str = "meta";
 
@@ -21,6 +24,8 @@ pub const SCOPE: &str = "meta";
 struct Meta {
   version: String,
   max_dependencies_id: u32,
+  /// Identifies the root that wrote the cache, to tell when it has moved.
+  root: Option<u64>,
 }
 
 #[derive(Debug)]
@@ -57,6 +62,15 @@ pub struct CacheValidation {
   codec: Arc<CacheCodec>,
   version: String,
   build_dependencies: BuildDeps,
+}
+
+/// Whether the cache in `storage` was written under another root.
+pub(super) async fn is_relocated(storage: &dyn Storage, codec: &CacheCodec) -> Result<bool, Error> {
+  let Some((_, value)) = storage.load(SCOPE).await?.pop() else {
+    return Ok(false);
+  };
+  let meta: Meta = codec.decode(&value)?;
+  Ok(meta.root != codec.bound_root(RootBinding::Bound))
 }
 
 impl CacheValidation {
@@ -154,6 +168,7 @@ impl CacheValidation {
     let meta = Meta {
       version: self.version.clone(),
       max_dependencies_id: get_current_dependency_id(),
+      root: self.codec.bound_root(RootBinding::Bound),
     };
     storage.set(
       SCOPE,

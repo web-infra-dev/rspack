@@ -502,6 +502,8 @@ export function createRawModuleRuleUses(
   uses: RuleSetUseItem | RuleSetUseItem[],
   path: string,
   options: ComposeJsUseOptions,
+  fingerprint = false,
+  strict = false,
 ): RawModuleRuleUse[] {
   const normalizeRuleSetUseItem = (
     item: RuleSetUseItem,
@@ -510,7 +512,13 @@ export function createRawModuleRuleUses(
   const allUses = Array.isArray(uses)
     ? [...uses].map(normalizeRuleSetUseItem)
     : [normalizeRuleSetUseItem(uses)];
-  return createRawModuleRuleUsesImpl(allUses, path, options);
+  return createRawModuleRuleUsesImpl(
+    allUses,
+    path,
+    options,
+    fingerprint,
+    strict,
+  );
 }
 
 export type GetLoaderOptions = (
@@ -538,6 +546,8 @@ function createRawModuleRuleUsesImpl(
   uses: (RuleSetLoaderWithOptions | Falsy)[],
   path: string,
   options: ComposeJsUseOptions,
+  fingerprint: boolean,
+  strict: boolean,
 ): RawModuleRuleUse[] {
   if (!uses.length) {
     return [];
@@ -575,12 +585,196 @@ function createRawModuleRuleUsesImpl(
       optionsCacheKey: use.cache
         ? (JSON.stringify(fingerprintOptions) ?? '')
         : '',
+      comparableOptions: fingerprint
+        ? encodeComparableOptions(fingerprintOptions, strict)
+        : undefined,
       codeFilter: createRawLoaderCodeFilter(
         use.codeFilter,
         `${path}[${index}].codeFilter`,
       ),
     };
   });
+}
+
+function incomparable(): never {
+  throw new Error('Incomparable loader options');
+}
+
+function encodeProperty(
+  owner: object,
+  key: PropertyKey,
+  seen: Map<object, string | undefined>,
+  strict: boolean,
+): string {
+  // A descriptor reads the value without running a getter.
+  const descriptor = Reflect.getOwnPropertyDescriptor(owner, key);
+  if (descriptor?.enumerable && 'value' in descriptor) {
+    return encodeComparable(descriptor.value, seen, strict);
+  }
+  if (strict) incomparable();
+  return 'g';
+}
+
+function encodeProperties(
+  owner: object,
+  keys: (string | symbol)[],
+  seen: Map<object, string | undefined>,
+  strict: boolean,
+): string {
+  const entries: string[] = [];
+  for (const key of keys) {
+    const encodable =
+      typeof key === 'string' &&
+      (strict
+        ? key !== 'toJSON'
+        : Object.prototype.propertyIsEnumerable.call(owner, key));
+    if (encodable) {
+      entries.push(
+        `${JSON.stringify(key)}:${encodeProperty(owner, key, seen, strict)}`,
+      );
+    } else if (strict) {
+      incomparable();
+    }
+  }
+  return `{${entries.join()}}`;
+}
+
+// These methods read a value's internal state, so its own properties can't stand in for it.
+function encodeBuiltin(
+  value: object,
+  prototype: object | null,
+  seen: Map<object, string | undefined>,
+  strict: boolean,
+): string | undefined {
+  const items: string[] = [];
+  switch (prototype) {
+    case Date.prototype:
+      return `d${Date.prototype.getTime.call(value as Date)}`;
+    case RegExp.prototype: {
+      const { source, flags } = value as RegExp;
+      return `r${JSON.stringify(source)}/${flags}`;
+    }
+    case Set.prototype:
+      Set.prototype.forEach.call(value as Set<unknown>, (item) => {
+        items.push(encodeComparable(item, seen, strict));
+      });
+      return `S[${items.join()}]`;
+    case Map.prototype:
+      Map.prototype.forEach.call(
+        value as Map<unknown, unknown>,
+        (item, key) => {
+          const encodedKey = encodeComparable(key, seen, strict);
+          items.push(`[${encodedKey},${encodeComparable(item, seen, strict)}]`);
+        },
+      );
+      return `M[${items.join()}]`;
+    case Boolean.prototype:
+    case Number.prototype:
+    case String.prototype:
+    case Symbol.prototype:
+    case BigInt.prototype:
+      return incomparable();
+    default:
+      return undefined;
+  }
+}
+
+function encodeObject(
+  value: object,
+  seen: Map<object, string | undefined>,
+  strict: boolean,
+): string {
+  const prototype = Object.getPrototypeOf(value);
+  const keys = Reflect.ownKeys(value);
+  const builtin = encodeBuiltin(value, prototype, seen, strict);
+  if (builtin !== undefined) {
+    // `lastIndex` is the own key every regexp has, and it changes as the regexp runs.
+    const ownKeys = prototype === RegExp.prototype ? 1 : 0;
+    if (strict && keys.length !== ownKeys) incomparable();
+    return builtin;
+  }
+  // Own keys are the indices and `length`, so any other key leaves a hole that `encodeProperty` sees.
+  if (
+    Array.isArray(value) &&
+    prototype === Array.prototype &&
+    keys.length === value.length + 1
+  ) {
+    const items: string[] = [];
+    for (let index = 0; index < value.length; index++) {
+      items.push(encodeProperty(value, index, seen, strict));
+    }
+    return `[${items.join()}]`;
+  }
+  const properties = encodeProperties(value, keys, seen, strict);
+  if (prototype === Object.prototype) return properties;
+  if (prototype === null) return `N${properties}`;
+  if (strict) incomparable();
+  // The prototype's own `constructor`, as reading through the value could run a getter.
+  const constructor = Reflect.getOwnPropertyDescriptor(
+    prototype,
+    'constructor',
+  )?.value;
+  return `c${JSON.stringify(constructor?.name)}${properties}`;
+}
+
+// Every value has its own tag, so a string that reads like another value stays a string.
+// Objects never reach JSON.stringify, so `toJSON` doesn't run.
+function encodeComparable(
+  value: unknown,
+  seen: Map<object, string | undefined>,
+  strict: boolean,
+): string {
+  switch (typeof value) {
+    case 'undefined':
+      return 'u';
+    case 'boolean':
+      return value ? 't' : 'F';
+    case 'string':
+      return `s${JSON.stringify(value)}`;
+    case 'number':
+      return Object.is(value, -0) ? 'n-0' : `n${value}`;
+    case 'bigint':
+      return `b${value}`;
+    case 'object':
+      break;
+    default:
+      if (strict) incomparable();
+      return typeof value === 'symbol'
+        ? `y${JSON.stringify(value.description)}`
+        : 'f';
+  }
+  if (value === null) return 'l';
+  if (seen.has(value)) {
+    // Object identity is observable to a loader and has no place in the encoding, so results of a
+    // function `use` can't repeat an object. A static config shares objects freely, and only a
+    // cycle, still undefined here, has no encoding.
+    const encoded = seen.get(value);
+    if (strict || encoded === undefined) incomparable();
+    return encoded;
+  }
+  seen.set(value, undefined);
+  const encoded = encodeObject(value, seen, strict);
+  seen.set(value, encoded);
+  return encoded;
+}
+
+/**
+ * Encodes loader options as typed data that a build in another process can compare.
+ * Returns `undefined` for options that can't be compared.
+ *
+ * Results of a function `use` are built per module, so `strict` accepts only values that encode
+ * exactly. Options of an array `use` are static config: functions, symbols and class instances
+ * stand in for what they are, and are assumed not to depend on the checkout.
+ */
+function encodeComparableOptions(
+  options: unknown,
+  strict: boolean,
+): string | undefined {
+  try {
+    return encodeComparable(options, new Map(), strict);
+  } catch {
+    return undefined;
+  }
 }
 
 function createRawLoaderCodeFilter(

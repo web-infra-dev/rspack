@@ -33,7 +33,7 @@ type CacheOptions =
       maxAge?: number;
       maxMemoryGenerations?: number;
       maxVersions?: number;
-      portable?: boolean | { root?: string };
+      portable?: boolean | { root?: string; rebaseLoaderRequests?: boolean };
       readonly?: boolean;
       snapshot?: {
         immutablePaths?: Array<string | RegExp>;
@@ -219,7 +219,7 @@ export default {
 
 如需从其他 worktree 初始化独立缓存，请参阅 [`experiments.portableCache`](/config/experiments#experimentsportablecache)。
 
-- **类型：** `boolean | { root?: string }`
+- **类型：** `boolean | { root?: string; rebaseLoaderRequests?: boolean }`
 - **默认值：** `false`
 
 设置为 `true` 或 `{ root }` 可启用可移植路径编码。默认根目录是从 `context`（含自身）向上查找的第一个包含 `.git` 文件或目录的祖先目录；找不到时使用 `context`。使用 Git 顶层目录可以涵盖 monorepo 中的兄弟包和仓库级依赖。显式指定的 `root` 相对于 `context` 解析。根目录保留 `context` 的路径写法，因此通过符号链接访问的项目仍可移植；位于根目录真实路径下的路径也会被重定位。
@@ -236,7 +236,24 @@ export default {
 
 旧版缓存后端会重定位根目录内的入口上下文和模块标识，因此即使文件时间戳已更新，迁移后仍可复用未变化的模块。启用可移植缓存时，上下文依赖通过目录中各条目的名称、类型（文件、目录或符号链接）和内容进行校验。通过内容哈希回退校验的文件会刷新时间戳快照，供后续构建使用。
 
-Rspack 通过在缓存数据中查找根目录的原生写法、正斜杠写法、JSON 转义写法、JavaScript ASCII 转义写法、base64 写法和 `file://` URL 写法，识别包含根目录的 loader 输出。这种查找只能尽力而为。如果 loader 根据路径生成输出，但输出中不包含上述任何写法（例如，对 `this.resourcePath` 进行哈希），应调用 `this.cacheable(false)` 或设置适当的 `cache.version`。
+如果 loader 将根目录内的绝对路径写入模块请求（例如来自 `require.resolve()` 的路径），该模块就会依赖根目录，因此 Rspack 会在迁移后重新构建它。将 `rebaseLoaderRequests` 设置为 `true` 后，这类请求会改写为相对于模块的路径，因此 loader 无需修改，模块也可以复用：
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    portable: { rebaseLoaderRequests: true },
+  },
+};
+```
+
+这也适用于 Rspack 移除的分支中的请求，例如未启用 HMR 时的 `if (module.hot)`。读取请求的插件看到的是相对路径。模块也会变小，因此 [`optimization.splitChunks`](/plugins/split-chunks-plugin) 的分包结果可能与未启用此选项时不同。修改此选项会启用新的缓存。启用 [`experiments.portableCache`](/config/experiments#experimentsportablecache) 且未启用此选项时，如果构建中发现此选项可以改写的请求，Rspack 会通过 `rspack.persistentCache` 输出一条警告。
+
+启用此选项后，Rspack 假定这类路径是针对当前检出目录计算的。如果资源文件或 loader 添加为依赖的文件中包含根目录，或者设置了 [`externals`](/config/externals)、[`resolve.roots`](/config/resolve#resolveroots)，或 [`resolve.alias`](/config/resolve#resolvealias)、[`resolve.fallback`](/config/resolve#resolvefallback) 中的绝对路径键，由于它们读取绝对路径写法，路径会保持原样。如果 loader 通过其他方式获取路径（例如来自指向某个检出目录的环境变量），迁移后该路径会指向新的检出目录。这类 loader 应调用 `this.cacheable(false)`，或不启用此选项。
+
+Rspack 还会将 `resolve` 选项中位于根目录内的绝对路径（例如 [`resolve.alias`](/config/resolve#resolvealias) 和 [`resolve.modules`](/config/resolve#resolvemodules)）视为随检出目录移动的路径。迁移后，如果某个检出目录的 `resolve` 选项指向另一个检出目录中的路径，Rspack 会重新解析请求，并保留模块构建结果。迁移后的构建会在读取缓存的检出目录重新运行模块工厂，包括工厂钩子和 `module.rules` 条件。工厂决策一致时，Rspack 保留缓存的构建结果；决策变化时则修复，包括匹配规则中的 loader 选项。被多个导入方共享的模块由产生其缓存构建的导入方决定，这与全新构建一致：在全新构建中，最先到达该模块的导入方决定它的构建。符号链接通过其相对于根目录的目标进行校验，因此相对链接在迁移后仍然有效，而指向另一个检出目录的链接则会失效。这也包括迁移后才出现的链接，例如 `node_modules` 链接到主检出目录的 worktree。
+
+Rspack 通过在缓存数据中查找根目录的原生写法、正斜杠写法、JSON 转义写法、JavaScript ASCII 转义写法、base64 写法和 `file://` URL 写法，识别包含根目录的 loader 输出。这种查找只能尽力而为。如果 loader 根据路径生成输出，但输出中不包含上述任何写法（例如，对 `this.resourcePath` 进行哈希），应调用 `this.cacheable(false)` 或设置适当的 `cache.version`。如果模块的 loader 调用了 `this.importModule`，该模块会在迁移后重新构建。匹配规则中的 loader 选项，包括 pre、normal 和 post 规则中数组和函数形式的 `use`，会按值进行比较，包括 `Set`、`Map`、`Date` 和 `RegExp`。根目录内的绝对路径被视为随检出目录移动；根据检出位置派生的其他值（例如目录名）发生变化时，会使模块在迁移后重新构建。数组形式 `use` 的选项中的函数和插件实例被假定与检出目录无关：任意两个函数比较结果相等，实例则按类名及其自身数据比较。如果插件将检出路径写入输出，但输出中不包含该路径的任何写法，则需要设置适当的 `cache.version`。在函数形式 `use` 的返回结果中，函数、symbol 或类实例会使模块在迁移后重新构建，并且不会缓存其 loader 结果。任何 loader 选项中的循环引用也是如此。
 
 base64 检测也涵盖较短的项目根目录。如果根目录太短，无法在所有 base64 字节对齐位置检测到（例如 `/`），Rspack 会保守地将所有编码后的缓存条目与该根目录绑定，根目录变化时这些条目会重新构建。
 

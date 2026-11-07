@@ -14,10 +14,11 @@ use crate::{
   AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockRef, BoxDependency, CompilationLogger,
   ContextElementDependency, DependenciesBlock, Dependency, DependencyId, DependencyParents,
   DependencyRef, FactorizationArtifact, FactorizeInfo, ModuleGraph, ModuleGraphConnection,
-  ModuleGraphModule, ModuleIdentifier, ModuleIssuer, ModuleRef, RayonConsumer,
+  ModuleGraphModule, ModuleIdentifier, ModuleIssuer, ModuleRef, ProducerGroup, RayonConsumer,
   cache::CacheCodec,
   compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
   legacy_cache::persistent::storage::Storage,
+  module_graph::{build_input_dependencies, can_refactorize_group},
 };
 
 pub const SCOPE: &str = "occasion_make_module_graph";
@@ -62,6 +63,7 @@ struct SegmentedNode {
   build: Vec<u8>,
   resolutions: Vec<ResolutionSegment>,
   issuer: Vec<u8>,
+  producer: Vec<u8>,
 }
 
 pub struct RecoveredModuleGraph {
@@ -176,17 +178,7 @@ pub fn save_module_graph(
         .collect::<Vec<_>>();
       // Factories may replace graph dependencies (for example a resolved mock request). The
       // module and its blocks retain build inputs, which must be used when resolving again.
-      let mut build_dependencies = FxHashMap::default();
-      for dep in module.get_dependencies() {
-        build_dependencies.insert(*dep.id(), dep);
-      }
-      let mut queue = module.get_block_refs().iter().collect::<Vec<_>>();
-      while let Some(block) = queue.pop() {
-        for dep in block.get_dependencies() {
-          build_dependencies.insert(*dep.id(), dep);
-        }
-        queue.extend(block.get_block_refs());
-      }
+      let build_dependencies = build_input_dependencies(module.as_ref());
       let dependencies = mgm
         .all_dependencies()
         .par_iter()
@@ -290,10 +282,12 @@ pub fn save_module_graph(
       let bytes = build.and_then(|build| {
         let resolutions = resolutions?;
         let issuer = BoundEntry::encode(node_codec, mgm.issuer(), false)?;
+        let producer = BoundEntry::encode(node_codec, &mgm.producer(), false)?;
         codec.encode(&SegmentedNode {
           build,
           resolutions,
           issuer,
+          producer,
         })
       });
       (key, bytes)
@@ -350,12 +344,14 @@ pub async fn recovery_module_graph(
         .resolutions
         .into_iter()
         .map(|segment| {
+          // Inputs that were never resolved, such as export specifiers, have nothing to repair.
           let resolution = BoundEntry::decode::<Resolution>(codec, &segment.bytes)?;
           Ok((segment.dependencies, resolution))
         })
         .collect::<Result<Vec<_>>>()?;
       let issuer = BoundEntry::decode::<ModuleIssuer>(codec, &frame.issuer)?;
-      Ok((key, Some((node, resolutions, issuer))))
+      let producer = BoundEntry::decode::<Option<ProducerGroup>>(codec, &frame.producer)?;
+      Ok((key, Some((node, resolutions, issuer, producer.flatten()))))
     })
     .collect::<Result<Vec<_>>>()?;
   let mut dropped = vec![];
@@ -369,14 +365,14 @@ pub async fn recovery_module_graph(
   }
   let recovered = nodes
     .iter()
-    .map(|(node, _, _)| node.module.as_ref().identifier())
+    .map(|(node, _, _, _)| node.module.as_ref().identifier())
     .collect::<IdentifierSet>();
   let mut connections = vec![];
   let mut refactorize_dependencies = FxHashSet::default();
   let mut check_issuer_cycles = !dropped.is_empty();
   let mut dependency_ids = FxHashSet::default();
   let mut block_ids = FxHashSet::default();
-  for (node, resolutions, issuer) in nodes {
+  for (node, resolutions, issuer, producer) in nodes {
     let mut mgm = node.mgm.into_owned();
     let mut module = node.module.into_owned();
     let mid = module.identifier();
@@ -460,6 +456,7 @@ pub async fn recovery_module_graph(
     }
     let mut expired = issuer.is_none();
     mgm.set_issuer(issuer.unwrap_or(ModuleIssuer::Unset));
+    mgm.set_producer(producer);
     let mut refresh = FxHashSet::default();
     let mut resolved_dependencies = FxHashMap::default();
     let mut infos = vec![];
@@ -534,23 +531,15 @@ pub async fn recovery_module_graph(
     if segmented.len() != input_dependencies.len() {
       return Err(error!("missing make cache resolution segment"));
     }
-    let can_refactorize = module.as_normal_module().is_some()
-      && node.lazy_info.as_ref().is_none_or(|lazy| {
-        !lazy
-          .as_ref()
-          .all_lazy_dependencies()
-          .any(|id| refresh.contains(&id))
-      })
-      && refresh.iter().all(|id| {
-        input_dependencies.get(id).is_some_and(|dep| {
-          // Context replacement mutates critical diagnostics in the dependency itself. Rebuild
-          // those owners, and lazy/placeholder/injected inputs, rather than reuse resolved state.
-          build_inputs.contains_key(id)
-            && dep.lazy().is_none()
-            && dep.as_module_dependency().is_some()
-            && dep.as_context_dependency().is_none()
-        })
-      });
+    let can_refactorize = can_refactorize_group(
+      module.as_ref(),
+      node.lazy_info.as_ref().map(OwnedOrRef::as_ref),
+      refresh.iter().filter_map(|id| {
+        input_dependencies
+          .get(id)
+          .map(|dep| (*id, *dep, build_inputs.contains_key(id)))
+      }),
+    );
     let rebuild = (expired || !refresh.is_empty()) && !can_refactorize;
     check_issuer_cycles |= expired || !refresh.is_empty();
     for (dep, parent_block, index_in_block) in node.dependencies {

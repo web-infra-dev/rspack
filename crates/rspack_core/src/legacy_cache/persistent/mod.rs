@@ -37,6 +37,7 @@ pub struct PersistentCache {
   /// Guards `initialize` from running more than once per compiler instance
   initialized: bool,
   seed: Option<CacheSeed>,
+  warn_loader_requests: bool,
 
   ctx: CacheContext,
   validation: CacheValidation,
@@ -79,6 +80,7 @@ impl PersistentCache {
     Self {
       initialized: false,
       seed,
+      warn_loader_requests: option.warn_loader_requests,
       ctx: CacheContext::new(
         storage,
         option.readonly,
@@ -87,8 +89,9 @@ impl PersistentCache {
       validation: CacheValidation::new(
         codec.clone(),
         format!(
-          "{}|{}",
+          "{}|{}|{}",
           rspack_pkg_version!(),
+          option.rebase_loader_requests,
           codec.validation_version(&option.version, compiler_options.context.as_path())
         ),
         BuildDeps::new(
@@ -101,6 +104,26 @@ impl PersistentCache {
       make_occasion: MakeOccasion::new(codec.clone()),
       minimize_occasion: MinimizeOccasion::new(codec.clone()),
       source_map_dev_tool_plugin_occasion: SourceMapDevToolPluginOccasion::new(codec),
+    }
+  }
+
+  /// Names the reason modules a loader bound to the root rebuild in another worktree, since nothing
+  /// else shows it and only the project can decide that those paths move with the checkout.
+  fn warn_absolute_loader_requests(&self, compilation: &Compilation) {
+    let artifact = &compilation.build_module_graph_artifact;
+    let module_graph = artifact.get_module_graph();
+    let mut modules: Vec<_> = artifact
+      .built_modules()
+      .filter_map(|identifier| module_graph.module_by_identifier(identifier))
+      .filter(|module| module.build_info().absolute_loader_requests)
+      .map(|module| module.readable_identifier(&compilation.options.context))
+      .collect();
+    modules.sort_unstable();
+    if let Some(first) = modules.first() {
+      self.ctx.logger().warn(format!(
+        "Modules with absolute requests written by loaders rebuild in another worktree: {} in this build, such as {first}. Set cache.portable.rebaseLoaderRequests to true to write those requests relative to the module. See https://rspack.rs/config/cache#portable",
+        modules.len()
+      ));
     }
   }
 
@@ -197,6 +220,9 @@ impl Cache for PersistentCache {
   }
 
   async fn after_build_module_graph(&mut self, compilation: &Compilation) {
+    if self.warn_loader_requests && !compilation.is_rebuild {
+      self.warn_absolute_loader_requests(compilation);
+    }
     self.ctx.save_occasion(
       &self.make_occasion,
       &compilation.build_module_graph_artifact,

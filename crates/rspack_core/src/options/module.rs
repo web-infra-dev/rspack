@@ -1445,6 +1445,10 @@ impl RuleSetConditionWithEmpty {
     }
   }
 
+  pub fn condition(&self) -> &RuleSetCondition {
+    &self.condition
+  }
+
   pub fn try_match_sync(&self, data: DataRef<'_>) -> Option<Result<bool>> {
     self.condition.try_match_sync(data)
   }
@@ -1687,6 +1691,9 @@ pub struct ModuleRuleUseLoader {
   pub cache: bool,
   /// Stable serialization of the public loader options.
   pub options_cache_key: String,
+  /// Typed serialization of the public loader options that builds in other processes can compare.
+  /// Set on portable builds; `None` there means the options hold values that can't be compared.
+  pub comparable_options: Option<String>,
   /// Preconditions for running the normal loader handler.
   pub filter: Option<Arc<rspack_loader_runner::LoaderFilter>>,
 }

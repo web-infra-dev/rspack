@@ -71,6 +71,35 @@ export default [
 		}
 	})),
 	{
+		name: "authored-enum-path",
+		description:
+			"keeps an authored TypeScript enum member that folds to the resource path fixed when the checkout moves",
+		async run() {
+			await withProjects(async (writer, reader) => {
+				const resource = path.join(writer, "src", "enum-path.tsx");
+				const split = resource.length - "enum-path.tsx".length;
+				// No input literal equals the resource path; the enum transform folds one.
+				writeProject(writer, {
+					"enum-path.tsx": [
+						`enum Resource { Path = ${JSON.stringify(resource.slice(0, split))} + ${JSON.stringify(resource.slice(split))} }`,
+						"export const value = Resource.Path;",
+						""
+					].join("\n")
+				});
+				const rules = [swcRule(/\.tsx$/)];
+				const first = await build(writer, rules);
+				expect(first.built).toEqual(["enum-path.tsx"]);
+				expect(first.values[0].value).toBe(resource);
+				copyProject(writer, reader);
+				const moved = await build(reader, rules);
+				// An authored constant keeps its value; the module is bound to the writer root.
+				expect(moved.values[0].value).toBe(resource);
+				expect(moved.built).toEqual(["enum-path.tsx"]);
+				await expectColdEquality(moved, reader, rules);
+			});
+		}
+	},
+	{
 		name: "authored-resource-paths",
 		description:
 			"binds authored cooked resource paths while preserving their fixed values and relocating generated JSX filenames",
@@ -151,12 +180,13 @@ export default [
 	{
 		name: "excluded-options",
 		description:
-			"keeps default, excluded SWC configurations and uncertified loader chains bound while compiling them successfully",
+			"reuses default and explicit-target SWC configurations and keeps excluded ones and uncertified loader chains bound while compiling them successfully",
 		async run() {
 			await withProjects(async (writer, reader) => {
 				writeProject(writer, {
 					"chain.jsx": jsxSource(),
 					"default.jsx": jsxSource(),
+					"env-query.jsx": jsxSource(),
 					"unknown.jsx": jsxSource(),
 					"plugin.jsx": jsxSource(
 						'console.log("removed by the WASM plugin");'
@@ -207,6 +237,11 @@ export default [
 						jsc: { transform: swcOptions.jsc.transform },
 						env: { targets: { chrome: "60" } }
 					}),
+					swcRule(/env-query\.jsx$/, {
+						...swcOptions,
+						jsc: { transform: swcOptions.jsc.transform },
+						env: { targets: "chrome 60" }
+					}),
 					swcRule(
 						/refresh\.jsx$/,
 						{
@@ -239,8 +274,8 @@ export default [
 				copyProject(writer, reader);
 				const moved = await build(reader, rules);
 				expect(moved.built).toEqual([
-					"chain.jsx", "default.jsx", "env.jsx", "input-map.jsx", "plugin.jsx",
-					"refresh.jsx", "unknown.jsx"
+					"chain.jsx", "env-query.jsx", "input-map.jsx", "plugin.jsx",
+					"unknown.jsx"
 				]);
 				expectRealPaths(moved, reader);
 				await expectColdEquality(moved, reader, rules);
