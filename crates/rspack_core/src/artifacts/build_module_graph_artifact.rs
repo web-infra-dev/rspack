@@ -11,11 +11,14 @@ use crate::{
   incremental_info::IncrementalInfo, utils::FileCounter,
 };
 
-/// A freshly factorized module and the parent of the group that decided it.
+/// A freshly factorized module and the group that decided it.
 #[derive(Debug)]
 pub(crate) struct FactoryChoice {
   pub(crate) module: BoxModule,
-  pub(crate) producer: Option<ModuleIdentifier>,
+  /// The module that holds the group, whose rebuild replaces the group.
+  pub(crate) parent: Option<ModuleIdentifier>,
+  /// The group's owner dependency, in the form of `ModuleGraphModule::producer`.
+  pub(crate) producer: Option<DependencyId>,
 }
 
 /// Make Artifact, including all side effects of the make stage.

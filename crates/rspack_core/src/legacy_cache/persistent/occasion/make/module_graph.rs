@@ -350,7 +350,7 @@ pub async fn recovery_module_graph(
         })
         .collect::<Result<Vec<_>>>()?;
       let issuer = BoundEntry::decode::<ModuleIssuer>(codec, &frame.issuer)?;
-      let producer = BoundEntry::decode::<Option<ModuleIdentifier>>(codec, &frame.producer)?;
+      let producer = BoundEntry::decode::<Option<DependencyId>>(codec, &frame.producer)?;
       Ok((key, Some((node, resolutions, issuer, producer.flatten()))))
     })
     .collect::<Result<Vec<_>>>()?;

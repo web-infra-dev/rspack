@@ -46,11 +46,12 @@ pub struct ModuleGraphModule {
   incoming_connections: FxHashSet<ModuleGraphConnectionId>,
 
   issuer: ModuleIssuer,
-  // The parent of the factory group that produced this build, `None` for an entry. `fix_issuers`
-  // rewrites the issuer after a forced rebuild, so only this field tells which group decided the
-  // build. Persistent cache stores it beside the issuer, outside the module build.
+  // The owner dependency of the factory group that produced this build, `None` for an entry, whose
+  // dependency is new to each compiler. `fix_issuers` rewrites the issuer after a forced rebuild,
+  // so only this field tells which group decided the build. Persistent cache stores it beside the
+  // issuer, outside the module build.
   #[cacheable(with=Skip)]
-  producer: Option<ModuleIdentifier>,
+  producer: Option<DependencyId>,
 
   // pub exec_order: usize,
   pub module_identifier: ModuleIdentifier,
@@ -126,11 +127,11 @@ impl ModuleGraphModule {
     &self.issuer
   }
 
-  pub(crate) fn set_producer(&mut self, producer: Option<ModuleIdentifier>) {
+  pub(crate) fn set_producer(&mut self, producer: Option<DependencyId>) {
     self.producer = producer;
   }
 
-  pub(crate) fn producer(&self) -> Option<ModuleIdentifier> {
+  pub(crate) fn producer(&self) -> Option<DependencyId> {
     self.producer
   }
 

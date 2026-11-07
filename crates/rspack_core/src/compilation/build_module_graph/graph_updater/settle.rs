@@ -14,8 +14,8 @@ use super::{
 };
 use crate::{
   BoxModule, BuildContext, BuildModuleGraphArtifact, Compilation, DependencyId,
-  ExportsInfoArtifact, FactoryChoice, Logger, ModuleFactoryCreateData, ModuleIdentifier,
-  NormalModule,
+  ExportsInfoArtifact, FactorizeInfo, FactoryChoice, Logger, ModuleFactoryCreateData,
+  ModuleIdentifier, NormalModule,
   module_graph::{build_input_dependencies, can_refactorize_group},
   normal_module::NormalFactoryDecision,
   utils::task_loop::{Task, TaskResult, TaskType, run_task_loop},
@@ -39,10 +39,9 @@ struct VerifyContext {
   /// The fresh modules of the groups whose decision differs from their target's build, per target.
   /// Kept until settling ends, because a repair can leave the target without its producer.
   disagreements: IdentifierMap<Vec<FactoryChoice>>,
-  /// The `(target, parent)` of the groups whose decision matches their target's build.
-  agreed: FxHashSet<(ModuleIdentifier, Option<ModuleIdentifier>)>,
-  /// The `(target, parent)` of every group reachable from the entries in the current graph.
-  reaching: FxHashSet<(ModuleIdentifier, Option<ModuleIdentifier>)>,
+  /// The target and group, in the form of `ModuleGraphModule::producer`, of every group reachable
+  /// from the entries in the current graph.
+  reaching: FxHashSet<(ModuleIdentifier, Option<DependencyId>)>,
 }
 
 #[derive(Debug)]
@@ -136,19 +135,18 @@ impl Task<VerifyContext> for CompareTask {
   async fn main_run(self: Box<Self>, context: &mut VerifyContext) -> TaskResult<VerifyContext> {
     match (&self.recorded.outcome, &self.fresh) {
       (GroupOutcome::Module(recorded), GroupOutcome::Module(fresh)) if recorded == fresh => {
-        if !NormalFactoryDecision::agree(&self.recorded.decision, &self.fresh_decision) {
-          if let Some(module) = self.fresh_module {
-            context
-              .disagreements
-              .entry(*recorded)
-              .or_default()
-              .push(FactoryChoice {
-                module,
-                producer: self.recorded.parent,
-              });
-          }
-        } else {
-          context.agreed.insert((*recorded, self.recorded.parent));
+        if !NormalFactoryDecision::agree(&self.recorded.decision, &self.fresh_decision)
+          && let Some(module) = self.fresh_module
+        {
+          context
+            .disagreements
+            .entry(*recorded)
+            .or_default()
+            .push(FactoryChoice {
+              module,
+              parent: self.recorded.parent,
+              producer: self.recorded.parent.map(|_| self.recorded.dependencies[0]),
+            });
         }
       }
       (GroupOutcome::Ignored, GroupOutcome::Ignored)
@@ -170,13 +168,16 @@ impl Task<VerifyContext> for CompareTask {
 /// The group that produced a build decides whether it is stale, so a disagreement of any other
 /// group keeps the module, and the producer's fresh module is the one to rebuild. A producer that
 /// no longer reaches the module cannot decide, so any remaining disagreement rebuilds it.
+///
+/// A rebuild replaces the groups of a module, so a group whose parent is being rebuilt cannot
+/// decide yet. Its target waits for the next iteration, when the fresh groups have reported.
 fn rebuild_disagreeing_modules(
   artifact: &mut BuildModuleGraphArtifact,
   context: &mut VerifyContext,
 ) {
   let VerifyContext {
+    refactorize,
     disagreements,
-    agreed,
     reaching,
     rebuild,
     rebuilt,
@@ -184,9 +185,14 @@ fn rebuild_disagreeing_modules(
   } = context;
   let BuildModuleGraphArtifact {
     module_graph,
+    factorization_artifact,
     factory_choices,
     ..
   } = artifact;
+  // A decision that differs on every factory call can never settle, as with a function `use`
+  // that returns a timestamp in its options.
+  rebuild.retain(|id| !rebuilt.contains(id));
+  let mut deciding = IdentifierMap::default();
   disagreements.retain(|target, groups| {
     if rebuilt.contains(target) {
       return false;
@@ -194,24 +200,49 @@ fn rebuild_disagreeing_modules(
     let Some(mgm) = module_graph.module_graph_module_by_identifier(target) else {
       return false;
     };
-    let producer = mgm.producer();
-    let choice = if !reaching.contains(&(*target, producer)) {
+    // Refactorizing a group can reorder its dependencies, which changes its owner.
+    let producer = mgm.producer().map(|id| {
+      factorization_artifact
+        .get(&id)
+        .map_or(id, FactorizeInfo::owner_dep_id)
+    });
+    let group = if reaching.contains(&(*target, producer)) {
+      groups.iter().position(|group| group.producer == producer)
+    } else {
       groups
         .iter()
         .position(|group| reaching.contains(&(*target, group.producer)))
-    } else if agreed.contains(&(*target, producer)) {
-      // One parent can hold two groups to a target, and either may have produced its build.
-      None
-    } else {
-      groups.iter().position(|group| group.producer == producer)
     };
-    let Some(choice) = choice else {
-      return true;
-    };
-    factory_choices.insert(*target, groups.swap_remove(choice));
-    rebuild.insert(*target);
-    false
+    if let Some(group) = group {
+      deciding.insert(*target, group);
+    }
+    true
   });
+  let rebuilding = rebuild
+    .iter()
+    .chain(deciding.keys())
+    .copied()
+    .collect::<IdentifierSet>();
+  let (mut ready, waiting): (Vec<_>, Vec<_>) = deciding.into_iter().partition(|(target, group)| {
+    let choice = &disagreements[target][*group];
+    choice
+      .parent
+      .is_none_or(|parent| !rebuilding.contains(&parent))
+      && choice.producer.is_none_or(|id| !refactorize.contains(&id))
+  });
+  // The targets of an import cycle can wait for each other, and then no rebuild ever comes. One has
+  // to decide first, and the fresh groups of its rebuild report to the others.
+  if ready.is_empty() && rebuild.is_empty() && refactorize.is_empty() {
+    ready.extend(waiting.into_iter().min_by_key(|(target, _)| *target));
+  }
+  for (target, group) in ready {
+    let mut groups = disagreements
+      .remove(&target)
+      .expect("should have disagreements of a deciding target");
+    factory_choices.insert(target, groups.swap_remove(group));
+    rebuild.insert(target);
+  }
+  rebuilt.extend(rebuild.iter().copied());
 }
 
 fn unverified_groups(
@@ -237,7 +268,10 @@ fn unverified_groups(
       .unwrap_or_default();
     for id in ids {
       if let Some(target) = graph.module_identifier_by_dependency_id(&id) {
-        context.reaching.insert((*target, parent_id));
+        let owner = artifact
+          .factorize_info(&id)
+          .map_or(id, FactorizeInfo::owner_dep_id);
+        context.reaching.insert((*target, parent_id.map(|_| owner)));
         if reachable.insert(*target)
           && let Some(module) = graph.module_graph_module_by_identifier(target)
         {
@@ -329,12 +363,6 @@ pub(in super::super) async fn settle_factory_decisions(
     let tasks = unverified_groups(compilation, &artifact, &build_context, &mut context);
     run_task_loop(&mut context, tasks).await?;
     rebuild_disagreeing_modules(&mut artifact, &mut context);
-    // A decision that differs on every factory call can never settle, as with a function `use`
-    // that returns a timestamp in its options.
-    let VerifyContext {
-      rebuild, rebuilt, ..
-    } = &mut context;
-    rebuild.retain(|id| rebuilt.insert(*id));
     if context.refactorize.is_empty() && context.rebuild.is_empty() {
       if !complete {
         compilation.get_logger("rspack.persistentCache").debug(format!(
@@ -349,16 +377,17 @@ pub(in super::super) async fn settle_factory_decisions(
     // A rebuild replaces the groups of a module, and the new ones report their own decisions.
     let VerifyContext {
       rebuild,
-      agreed,
       disagreements,
       ..
     } = &mut context;
     let replaced =
       |parent: Option<ModuleIdentifier>| parent.is_some_and(|parent| rebuild.contains(&parent));
-    agreed.retain(|(_, parent)| !replaced(*parent));
     for groups in disagreements.values_mut() {
-      groups.retain(|group| !replaced(group.producer));
+      groups.retain(|group| !replaced(group.parent));
     }
+    artifact
+      .factory_choices
+      .retain(|_, choice| !replaced(choice.parent));
     for id in &context.refactorize {
       if let Some(info) = artifact.factorize_info(id)
         && context.repaired.insert(info.owner_dep_id())
