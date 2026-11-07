@@ -10,8 +10,7 @@
 - Bundle: parent.chunk.CURRENT_HASH.js
 - Bundle: q.chunk.CURRENT_HASH.js
 - Bundle: r.chunk.CURRENT_HASH.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 45
-- Update: child.LAST_HASH.hot-update.js, size: 270
+- Manifest: main.LAST_HASH.hot-update.json, size: 76
 - Update: main.LAST_HASH.hot-update.js, size: 410
 - Update: parent.LAST_HASH.hot-update.js, size: 282
 
@@ -20,39 +19,11 @@
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["child","main","parent"],"r":[],"m":[]}
+{"c":["main","parent"],"r":[],"m":[],"changed":{"./parent-b.js":["parent"]}}
 ```
 
 
 ## Update
-
-
-### child.LAST_HASH.hot-update.js
-
-#### Changed Modules
-- ./m.js
-
-#### Changed Runtime Modules
-
-
-#### Changed Content
-```js
-"use strict";
-self["rspackHotUpdate"]("child", {
-"./m.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  value: () => (value)
-});
-const value = 42;
-
-
-
-},
-
-});
-```
-
 
 
 ### main.LAST_HASH.hot-update.js

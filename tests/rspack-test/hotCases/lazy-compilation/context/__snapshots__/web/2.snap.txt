@@ -9,7 +9,7 @@
 - Bundle: modules_demo_js_lazy-compilation-proxy.chunk.CURRENT_HASH.js
 - Bundle: modules_module_js.chunk.CURRENT_HASH.js
 - Bundle: modules_module_js_lazy-compilation-proxy.chunk.CURRENT_HASH.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 71
+- Manifest: main.LAST_HASH.hot-update.json, size: 173
 - Update: main.LAST_HASH.hot-update.js, size: 696
 - Update: modules_module_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1054
 
@@ -18,7 +18,7 @@
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["main","modules_module_js_lazy-compilation-proxy"],"r":[],"m":[]}
+{"c":["main","modules_module_js_lazy-compilation-proxy"],"r":[],"m":[],"changed":{"./modules/module.js!lazy-compilation-proxy":["modules_module_js_lazy-compilation-proxy"]}}
 ```
 
 
