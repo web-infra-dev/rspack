@@ -7,7 +7,7 @@ import {
 	runCompiler
 } from "@rspack/test-tools/helper/lifecycle";
 
-const { context, writer, kind, loaderCache, cached } = JSON.parse(process.argv[2]);
+const { context, writer, kinds, loaderCache, cached } = JSON.parse(process.argv[2]);
 
 const values = {
 	set: (origin) => new Set([origin]),
@@ -30,8 +30,8 @@ const compiler = rspack({
 	optimization: { minimize: false },
 	infrastructureLogging: { level: "error" },
 	module: {
-		rules: [{
-			test: /dep\.js$/,
+		rules: kinds.map((kind) => ({
+			test: new RegExp(`${kind}-dep\\.js$`),
 			use: (info) => [{
 				loader: "./observe.cjs",
 				cache: loaderCache,
@@ -39,7 +39,7 @@ const compiler = rspack({
 					value: values[kind](info.resource.startsWith(writer + path.sep) ? "writer" : "reader")
 				}
 			}]
-		}]
+		}))
 	},
 	cache: cached ? { type: "persistent", portable: true } : false
 });

@@ -111,12 +111,14 @@ async function withShortRoots(files, run) {
 	}
 }
 
-async function expectColdEquality(reader, configuration, moved) {
+async function expectColdEquality(reader, configuration, ...movedResults) {
 	fs.rmSync(path.join(reader, "node_modules", ".cache"), { recursive: true, force: true });
 	const cold = await build(reader, configuration);
 	const uncached = await build(reader, configuration, false);
-	expect(moved.assets).toEqual(cold.assets);
-	expect(moved.assets).toEqual(uncached.assets);
+	for (const moved of movedResults) {
+		expect(moved.assets).toEqual(cold.assets);
+		expect(moved.assets).toEqual(uncached.assets);
+	}
 }
 
 function beforeResolve(callback) {
@@ -130,9 +132,24 @@ function beforeResolve(callback) {
 }
 
 async function expectWarmEquality(reader, configuration, moved) {
-	const warm = await build(reader, configuration);
+	const warm = await buildRecovered(reader, configuration);
 	expect(warm.built).toEqual([]);
 	expect(warm.assets).toEqual(moved.assets);
+}
+
+async function buildRecovered(reader, configuration) {
+	// Recovery already has the recorded producer. Only cold builds need the 200 ms
+	// winner hold; keep the shorter repair holds that order refactorized groups.
+	const groups = (configuration.plugins ?? []).filter((plugin) => plugin.delays);
+	const delays = groups.map((group) => group.delays);
+	try {
+		for (const group of groups) {
+			group.delays = Object.fromEntries(Object.entries(group.delays).filter(([, delay]) => delay !== 200));
+		}
+		return await build(reader, configuration);
+	} finally {
+		groups.forEach((group, index) => { group.delays = delays[index]; });
+	}
 }
 
 function execute({ assets }) {
@@ -378,17 +395,28 @@ function runChild(options) {
 	return JSON.parse(result.stdout);
 }
 
-async function buildAcrossProcesses(kind, loaderCache, check) {
-	await withProjects(observeLoader, async (writer, reader) => {
-		const options = { writer, kind, loaderCache };
+// Each option gets its own module, while process startup and cache relocation are shared.
+function observedModules(kinds) {
+	return {
+		...observeLoader,
+		"src/index.js": `module.exports = { ${kinds.map((kind) => `${kind}: require("./${kind}-dep.js")`).join(", ")} };`,
+		...Object.fromEntries(kinds.map((kind) => [`src/${kind}-dep.js`, 'module.exports = "original";']))
+	};
+}
+
+async function buildAcrossProcesses(kinds, loaderCache, check) {
+	await withProjects(observedModules(kinds), async (writer, reader) => {
+		const options = { writer, kinds, loaderCache };
 		const written = runChild({ ...options, context: writer, cached: true });
 		copyTree(writer, reader);
 		const moved = runChild({ ...options, context: reader, cached: true });
 		fs.rmSync(path.join(reader, "node_modules", ".cache"), { recursive: true, force: true });
 		const cold = runChild({ ...options, context: reader, cached: true });
 		const uncached = runChild({ ...options, context: reader, cached: false });
-		expect(moved.executed).toEqual(cold.executed);
-		expect(moved.executed).toEqual(uncached.executed);
+		for (const kind of kinds) {
+			expect(moved.executed[kind]).toEqual(cold.executed[kind]);
+			expect(moved.executed[kind]).toEqual(uncached.executed[kind]);
+		}
 		expect(moved.assets).toEqual(cold.assets);
 		expect(moved.assets).toEqual(uncached.assets);
 		check({ written, moved });
@@ -501,51 +529,56 @@ export default [
 			});
 		}
 	})),
-	...[
-		{ kind: "set", type: "[object Set]" },
-		{ kind: "function", type: "[object Function]" }
-	].flatMap(({ kind, type }) => loaderCaches.map(({ suffix, cache }) => ({
-		name: `process-${kind}-option-${suffix}`,
-		description: `rebuilds a function use returning a ${kind} option when writer and reader are separate processes`,
-		async run() {
-			await buildAcrossProcesses(kind, cache, ({ written, moved }) => {
-				expect(written.executed).toBe(`${type} writer`);
-				expect(moved.executed).toBe(`${type} reader`);
-			});
-		}
-	}))),
 	...loaderCaches.map(({ suffix, cache }) => ({
-		name: `process-plain-option-${suffix}`,
-		description: "reuses a function use returning identical plain data when writer and reader are separate processes",
+		name: `process-set-function-and-plain-options-${suffix}`,
+		description: "rebuilds set and function options with reader values but reuses identical plain options across separate writer and reader processes",
 		async run() {
-			await buildAcrossProcesses("plain", cache, ({ moved }) => {
-				expect(moved.built).toEqual([]);
+			await buildAcrossProcesses(["set", "function", "plain"], cache, ({ written, moved }) => {
+				for (const [kind, type] of [["set", "[object Set]"], ["function", "[object Function]"]]) {
+					expect(written.executed[kind]).toBe(`${type} writer`);
+					expect(moved.executed[kind]).toBe(`${type} reader`);
+					expect(moved.built.some((id) => id.endsWith(`${kind}-dep.js`))).toBe(true);
+				}
+				// Neither the plain-option dependency nor the entry needs rebuilding.
+				expect(moved.built).toHaveLength(2);
+				expect(moved.built.some((id) => id.endsWith("plain-dep.js"))).toBe(false);
 			});
 		}
 	})),
-	...collisions.flatMap(({ name, value, text }) => [
-		{ direction: "value-to-text", writerValue: value, readerValue: text },
-		{ direction: "text-to-value", writerValue: text, readerValue: value }
-	].flatMap(({ direction, writerValue, readerValue }) => loaderCaches.map(({ suffix, cache }) => ({
-		name: `collision-${name}-${direction}-${suffix}`,
-		description: `tells a ${name} option from its text across a move, ${direction}`,
+	...["value-to-text", "text-to-value"].flatMap((direction) => loaderCaches.map(({ suffix, cache }) => ({
+		name: `collision-undefined-nan-date-${direction}-${suffix}`,
+		description: `tells undefined, NaN and Date options from their text across a move, ${direction}, matching cold and uncached builds per module`,
 		async run() {
-			await withProjects(observeLoader, async (writer, reader) => {
-				const configuration = useObserved(writer, writerValue, readerValue, cache);
+			await withProjects(observedModules(collisions.map(({ name }) => name)), async (writer, reader) => {
+				const configuration = {
+					module: { rules: collisions.map(({ name, value, text }) => ({
+						test: new RegExp(`${name}-dep\\.js$`),
+						use: (info) => [{
+							loader: "./observe.cjs",
+							cache,
+							options: {
+								value: (info.resource.startsWith(writer + path.sep) === (direction === "value-to-text")) ? value : text
+							}
+						}]
+					})) }
+				};
 				const written = await build(writer, configuration);
 				copyTree(writer, reader);
 				const moved = await build(reader, configuration);
-				expect(execute(moved)).not.toEqual(execute(written));
 				fs.rmSync(path.join(reader, "node_modules", ".cache"), { recursive: true, force: true });
 				const cold = await build(reader, configuration);
 				const uncached = await build(reader, configuration, false);
-				expect(execute(moved)).toEqual(execute(cold));
-				expect(execute(moved)).toEqual(execute(uncached));
+				const results = [written, moved, cold, uncached].map(execute);
+				for (const { name } of collisions) {
+					expect(results[1][name]).not.toEqual(results[0][name]);
+					expect(results[1][name]).toEqual(results[2][name]);
+					expect(results[1][name]).toEqual(results[3][name]);
+				}
 				expect(moved.assets).toEqual(cold.assets);
 				expect(moved.assets).toEqual(uncached.assets);
 			});
 		}
-	})))),
+	}))),
 	...loaderCaches.flatMap(({ suffix, cache }) => [
 		{
 			name: `plain-options-unchanged-${suffix}`,
@@ -667,69 +700,49 @@ export default [
 		}
 	},
 	...[
-		{
-			name: "changed-decision-of-producing-importer",
-			description: "rebuilds a shared module with the changed decision of the importer that produced it",
-			issuer: /reader.*a\.js$/,
-			// The group of b.js reaches `AddTask` first among the groups the rebuild refactorizes.
-			repairDelays: { [DEP_OF_A]: 50 },
-			rebuilt: true,
-			exports: [true, true]
-		},
-		{
-			name: "changed-decision-of-other-importer",
-			description: "keeps a shared module when only an importer that did not produce it changes its decision",
-			issuer: /reader.*b\.js$/,
-			rebuilt: false,
-			exports: [false, false]
-		},
-		{
-			name: "same-difference-with-producing-importer",
-			description: "keeps a shared module whose importers differ at both roots, when the producer's rule matches",
-			issuer: /a\.js$/,
-			rebuilt: false,
-			exports: [true, true]
-		},
-		{
-			name: "same-difference-with-other-importer",
-			description: "keeps a shared module whose importers differ at both roots, when the other importer's rule matches",
-			issuer: /b\.js$/,
-			rebuilt: false,
-			exports: [false, false]
-		},
-		{
-			name: "safe-shared-module",
-			description: "keeps a shared module whose importers all agree",
-			issuer: /never/,
-			rebuilt: false,
-			exports: [false, false]
-		}
-	].map(({ name, description, issuer, repairDelays = {}, rebuilt, exports }) => ({
-		name,
-		description,
+		{ importer: "producing", issuer: /a\.js$/, exports: [true, true] },
+		{ importer: "other", issuer: /b\.js$/, exports: [false, false] },
+		{ importer: "agreeing", issuer: /never/, exports: [false, false] }
+	].map(({ importer, issuer, exports }) => ({
+		name: importer === "agreeing" ? "safe-shared-module" : `changed-and-unchanged-decision-of-${importer}-importer`,
+		description: importer === "agreeing"
+			? "keeps a shared module whose importers all agree"
+			: `${importer === "producing" ? "rebuilds a changed producing decision but keeps an unchanged one" : "keeps both changed and unchanged non-producing decisions"}, verifying every factory call and warm, cold and uncached equality`,
 		async run() {
 			await withProjects(sharedImporters, async (writer, reader) => {
 				const groups = factoryGroups(A_PRODUCES);
 				const configuration = strictWhenImportedBy(issuer, [groups]);
-				await build(writer, configuration);
-				copyTree(writer, reader);
-				groups.calls = {};
-				groups.delays = { ...A_PRODUCES, ...repairDelays };
-				const moved = await build(reader, configuration);
-				expect(moved.built).toEqual(rebuilt ? [path.join(reader, "src", "dep.js")] : []);
-				expect(execute(moved)).toEqual(exports);
-				// Verification calls every factory once, and only a rebuild refactorizes the groups of dep.js.
-				// The entry dependency is new to the recovered graph, so make factorizes it before verification.
-				expect(groups.calls).toEqual({
-					" > ./src/index.js": 2,
-					"index.js > ./a.js": 1,
-					"index.js > ./c1.js": 1,
-					"c1.js > ./b.js": 1,
-					[DEP_OF_A]: rebuilt ? 2 : 1,
-					[DEP_OF_B]: rebuilt ? 2 : 1
-				});
-				await expectWarmEquality(reader, configuration, moved);
-				await expectColdEquality(reader, configuration, moved);
+				const results = [];
+				for (const changed of importer === "agreeing" ? [false] : [true, false]) {
+					fs.rmSync(path.join(writer, "node_modules", ".cache"), { recursive: true, force: true });
+					fs.rmSync(reader, { recursive: true, force: true });
+					groups.delays = A_PRODUCES;
+					// Both scenarios have the exact same reader configuration; only the writer differs.
+					await build(writer, changed ? strictWhenImportedBy(/never/, [groups]) : configuration);
+					copyTree(writer, reader);
+					const rebuilt = changed && importer === "producing";
+					groups.calls = {};
+					// b.js reaches AddTask first when the producing group is refactorized.
+					groups.delays = rebuilt ? { ...A_PRODUCES, [DEP_OF_A]: 50 } : A_PRODUCES;
+					const moved = await buildRecovered(reader, configuration);
+					expect(moved.built).toEqual(rebuilt ? [path.join(reader, "src", "dep.js")] : []);
+					expect(execute(moved)).toEqual(exports);
+					// Verification calls every factory once; only a rebuild refactorizes dep.js's groups.
+					// The new entry dependency is factorized before verification.
+					expect(groups.calls).toEqual({
+						" > ./src/index.js": 2,
+						"index.js > ./a.js": 1,
+						"index.js > ./c1.js": 1,
+						"c1.js > ./b.js": 1,
+						[DEP_OF_A]: rebuilt ? 2 : 1,
+						[DEP_OF_B]: rebuilt ? 2 : 1
+					});
+					await expectWarmEquality(reader, configuration, moved);
+					results.push(moved);
+				}
+				groups.delays = A_PRODUCES;
+				// One cold/uncached pair suffices for these identical reader inputs.
+				await expectColdEquality(reader, configuration, ...results);
 			});
 		}
 	})),
@@ -738,14 +751,17 @@ export default [
 		description: "rebuilds a shared module for the remaining importer when the importer that produced it is gone",
 		async run() {
 			await withProjects(sharedImporters, async (writer, reader) => {
-				const configuration = strictWhenImportedBy(/reader.*b\.js$/, [factoryGroups(A_PRODUCES)]);
+				const groups = factoryGroups(A_PRODUCES);
+				const configuration = strictWhenImportedBy(/reader.*b\.js$/, [groups]);
 				await build(writer, configuration);
 				copyTree(writer, reader);
 				fs.writeFileSync(path.join(reader, "src/index.js"), 'module.exports = [require("./c1.js")];');
-				const moved = await build(reader, configuration);
+				const moved = await buildRecovered(reader, configuration);
 				expect(moved.built).toContain(path.join(reader, "src", "dep.js"));
 				expect(execute(moved)).toEqual([true]);
 				await expectWarmEquality(reader, configuration, moved);
+				// Only b.js imports dep.js in the reader; there is no cold winner race.
+				groups.delays = {};
 				await expectColdEquality(reader, configuration, moved);
 			});
 		}
@@ -755,18 +771,21 @@ export default [
 		description: "rebuilds a shared module for the remaining importer when the producer's group resolves elsewhere",
 		async run() {
 			await withProjects({ ...sharedImporters, ...replacements }, async (writer, reader) => {
+				const groups = factoryGroups(A_PRODUCES);
 				const configuration = strictWhenImportedBy(/reader.*b\.js$/, [
-					factoryGroups(A_PRODUCES),
+					groups,
 					beforeResolve((data) => {
 						if (data.request === "./dep.js" && /reader.*a\.js$/.test(data.contextInfo.issuer)) data.request = "./dep2.js";
 					})
 				]);
 				await build(writer, configuration);
 				copyTree(writer, reader);
-				const moved = await build(reader, configuration);
+				const moved = await buildRecovered(reader, configuration);
 				expect(moved.built).toContain(path.join(reader, "src", "dep.js"));
 				expect(execute(moved)).toEqual(["replacement", true]);
 				await expectWarmEquality(reader, configuration, moved);
+				// a.js resolves dep2.js, so b.js is the only reader importer of dep.js.
+				groups.delays = {};
 				await expectColdEquality(reader, configuration, moved);
 			});
 		}
@@ -779,14 +798,17 @@ export default [
 				...sharedImporters,
 				"src/a.js": 'module.exports = "a"; globalThis.never && require("./dep.js");'
 			}, async (writer, reader) => {
-				const configuration = strictWhenImportedBy(/reader.*b\.js$/, [factoryGroups(A_PRODUCES)]);
+				const groups = factoryGroups(A_PRODUCES);
+				const configuration = strictWhenImportedBy(/reader.*b\.js$/, [groups]);
 				configuration.module.noParse = /reader.*a\.js$/;
 				await build(writer, configuration);
 				copyTree(writer, reader);
-				const moved = await build(reader, configuration);
+				const moved = await buildRecovered(reader, configuration);
 				expect(moved.built.sort()).toEqual([path.join(reader, "src", "a.js"), path.join(reader, "src", "dep.js")]);
 				expect(execute(moved)).toEqual(["a", true]);
 				await expectWarmEquality(reader, configuration, moved);
+				// noParse removes a.js's dependency; only b.js can produce dep.js.
+				groups.delays = {};
 				await expectColdEquality(reader, configuration, moved);
 			});
 		}
@@ -799,50 +821,44 @@ export default [
 				...sharedImporters,
 				"src/a.js": 'module.exports = "a"; globalThis.never && require("./dep.js");'
 			}, async (writer, reader) => {
-				const configuration = strictWhenImportedBy(/reader.*a\.js$/, [factoryGroups(A_PRODUCES)]);
+				const groups = factoryGroups(A_PRODUCES);
+				const configuration = strictWhenImportedBy(/reader.*a\.js$/, [groups]);
 				configuration.module.noParse = /reader.*a\.js$/;
 				await build(writer, configuration);
 				copyTree(writer, reader);
-				const moved = await build(reader, configuration);
+				const moved = await buildRecovered(reader, configuration);
 				expect(moved.built).toEqual([path.join(reader, "src", "a.js")]);
 				expect(execute(moved)).toEqual(["a", false]);
 				await expectWarmEquality(reader, configuration, moved);
+				groups.delays = {};
 				await expectColdEquality(reader, configuration, moved);
 			});
 		}
 	},
 	{
-		name: "producing-importer-rebuilt-keeps-import",
-		description: "keeps a shared module when its producer is rebuilt at the reader and only the other importer changes its decision",
+		name: "producing-importer-edited-at-writer-or-reader-keeps-import",
+		description: "keeps a shared module when its producer is edited at either root and only the other importer changes its decision; rebuilds the edited importer only at that root",
 		async run() {
 			await withProjects(sharedImporters, async (writer, reader) => {
 				const configuration = strictWhenImportedBy(/reader.*b\.js$/, [factoryGroups(A_PRODUCES)]);
 				await build(writer, configuration);
 				copyTree(writer, reader);
 				fs.appendFileSync(path.join(reader, "src/a.js"), "\n// edited");
-				const moved = await build(reader, configuration);
-				expect(moved.built).toEqual([path.join(reader, "src", "a.js")]);
-				expect(execute(moved)).toEqual([false, false]);
-				await expectWarmEquality(reader, configuration, moved);
-				await expectColdEquality(reader, configuration, moved);
-			});
-		}
-	},
-	{
-		name: "producing-importer-edited-at-writer",
-		description: "keeps a shared module when its producer was edited at the writer and only the other importer changes its decision",
-		async run() {
-			await withProjects(sharedImporters, async (writer, reader) => {
-				const configuration = strictWhenImportedBy(/reader.*b\.js$/, [factoryGroups(A_PRODUCES)]);
-				await build(writer, configuration);
+				const readerEdited = await buildRecovered(reader, configuration);
+				expect(readerEdited.built).toEqual([path.join(reader, "src", "a.js")]);
+				expect(execute(readerEdited)).toEqual([false, false]);
+				await expectWarmEquality(reader, configuration, readerEdited);
+
 				fs.appendFileSync(path.join(writer, "src/a.js"), "\n// edited");
-				expect((await build(writer, configuration)).built).toEqual([path.join(writer, "src", "a.js")]);
+				expect((await buildRecovered(writer, configuration)).built).toEqual([path.join(writer, "src", "a.js")]);
+				fs.rmSync(reader, { recursive: true, force: true });
 				copyTree(writer, reader);
-				const moved = await build(reader, configuration);
+				const moved = await buildRecovered(reader, configuration);
 				expect(moved.built).toEqual([]);
 				expect(execute(moved)).toEqual([false, false]);
 				await expectWarmEquality(reader, configuration, moved);
-				await expectColdEquality(reader, configuration, moved);
+				// Both edits produce identical reader files and configuration.
+				await expectColdEquality(reader, configuration, readerEdited, moved);
 			});
 		}
 	},
@@ -869,7 +885,7 @@ export default [
 				copyTree(writer, reader);
 				// The producer of t1.js is gone, so t2.js decides t1.js while t1.js decides t2.js.
 				fs.writeFileSync(path.join(reader, "src/index.js"), 'module.exports = [require("./x.js")];');
-				const moved = await build(reader, configuration);
+				const moved = await buildRecovered(reader, configuration);
 				expect(execute(moved)[0].strict()).toBe(true);
 				await expectWarmEquality(reader, configuration, moved);
 				// A cold build takes t1.js from x.js. The fallback takes it from t2.js, a documented limit
@@ -930,7 +946,7 @@ export default [
 				};
 				await build(writer, configuration);
 				copyTree(writer, reader);
-				const moved = await build(reader, configuration);
+				const moved = await buildRecovered(reader, configuration);
 				expect(moved.built).toEqual([]);
 			});
 		}
@@ -949,7 +965,7 @@ export default [
 				};
 				await build(writer, configuration);
 				copyTree(writer, reader);
-				const moved = await build(reader, configuration);
+				const moved = await buildRecovered(reader, configuration);
 				expect(moved.built).toEqual([path.join(reader, "src", "dep.js")]);
 				const [{ sync, later }] = execute(moved);
 				expect([sync, (await later()).default]).toEqual([true, true]);
