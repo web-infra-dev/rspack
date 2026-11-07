@@ -51,6 +51,15 @@ it("should keep mutated default exports as getters", () => {
 	expect(mutatedDefaultFnExports.default()).toBe("mutated");
 });
 
+it("should enumerate mixed export bindings in UTF-16 order", async () => {
+	const ns = await import("./mixed-exports");
+	expect(Object.keys(ns)).toEqual(["inc", "x", "\u{10000}", "\uE000"]);
+	expectValueDescriptor(ns, "inc", ns.inc);
+	expectGetterDescriptor(ns, "x");
+	ns.inc();
+	expect(ns.x).toBe(2);
+});
+
 it("should keep mutated exports as getters", () => {
 	expectGetterDescriptor(letExports, "counter");
 	expect(letExports.counter).toBe(0);
