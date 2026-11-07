@@ -403,7 +403,7 @@ pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
   })
 }
 
-fn path_query_fragment(input: &str) -> (&str, Option<&str>, Option<&str>) {
+pub(crate) fn path_query_fragment(input: &str) -> (&str, Option<&str>, Option<&str>) {
   #[cfg(windows)]
   let prefix_len = rspack_paths::dos_device_path_prefix_len(input);
   #[cfg(not(windows))]

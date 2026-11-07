@@ -101,12 +101,8 @@ impl Resource {
 
 impl From<Resource> for ResourceData {
   fn from(resource: Resource) -> Self {
-    let mut resource_data = Self::new_with_path(
-      resource.full_path(),
-      resource.path,
-      Some(resource.query),
-      Some(resource.fragment),
-    );
+    let mut resource_data =
+      Self::new_with_resolved_path(resource.path, &resource.query, &resource.fragment);
     resource_data.set_description_optional(resource.description_data);
     resource_data
   }
