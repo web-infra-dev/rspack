@@ -3,9 +3,14 @@ use std::sync::LazyLock;
 use rspack_intern::Atom;
 use rustc_hash::FxHashSet;
 
-pub const RESERVED_NAMES: [&str; 188] = [
+pub const RESERVED_NAMES: [&str; 192] = [
   "__rspack_default_export",
   "__rspack_ns_object",
+  // The chunk bootstrap declares these in the scope hoisted module code lands in.
+  "__webpack_modules__",
+  "__webpack_module_cache__",
+  "__rspack_modules",
+  "__rspack_module_cache",
   "abstract",
   "arguments",
   "async",
