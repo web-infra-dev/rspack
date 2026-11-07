@@ -266,7 +266,62 @@ async fn render_startup(
     .map(|e| property_access(e, 0))
     .unwrap_or_default();
   let exports_name = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
-  if matches!(self.options.unnamed, Unnamed::Static) {
+  let module_graph = compilation.get_module_graph();
+  let is_container = module_graph
+    .module_by_identifier(module)
+    .is_some_and(|module| {
+      module
+        .source_types(module_graph)
+        .contains(&SourceType::Expose)
+    });
+  if is_container
+    && options.name.is_some()
+    && matches!(
+      self.options.library_type.as_str(),
+      "var" | "global" | "window" | "self"
+    )
+  {
+    let (global, names) = if self.options.declare {
+      (
+        "typeof globalThis === \"object\" ? globalThis : typeof self === \"object\" ? self : this",
+        full_name_resolved.as_slice(),
+      )
+    } else {
+      (full_name_resolved[0].as_str(), &full_name_resolved[1..])
+    };
+    let names = simd_json::to_string(&names).to_rspack_result()?;
+    let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), false);
+    source.add(RawStringSource::from(format!(
+      r#"if((function(target, names) {{
+  function collision() {{
+    throw new Error("[Module Federation] Cannot register container " + names.join(".") + ": the global name is already in use. Choose a different library name or use a module library type.");
+  }}
+  for(var i = 0; i < names.length; i++) {{
+    var name = names[i];
+    var descriptor = Object.getOwnPropertyDescriptor(target, name);
+    var current = descriptor && descriptor.value;
+    if(name in target && (!descriptor || !("value" in descriptor))) collision();
+    var prototype = Object.getPrototypeOf(target);
+    if(current === undefined && prototype && name in prototype) collision();
+    if(i === names.length - 1) {{
+      if(current && typeof current.get === "function" && typeof current.init === "function") return false;
+      if(name in target && (current !== undefined || !descriptor.writable)) collision();
+    }} else if(current === undefined && (!descriptor || descriptor.writable)) {{
+      target = {{}};
+    }} else if(name in target) {{
+      if(current === null || (typeof current !== "object" && typeof current !== "function")) collision();
+      target = current;
+    }} else {{
+      target = {{}};
+    }}
+  }}
+  return true;
+}})({global}, {names})) {{
+  {export_target} = {exports_name}{export_access};
+}}
+"#
+    )));
+  } else if matches!(self.options.unnamed, Unnamed::Static) {
     let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
     let exports_info = compilation
       .exports_info_artifact
