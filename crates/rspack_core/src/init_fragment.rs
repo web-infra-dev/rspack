@@ -474,61 +474,43 @@ impl InitFragment for ESMExportInitFragment {
   ) -> Result<InitFragmentContents> {
     let runtime_template = context.runtime_template();
 
-    self.export_map.sort_by(|a, b| a.0.cmp(&b.0));
-
-    let mut content =
-      runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-    content.push('(');
-    content.push_str(&runtime_template.render_exports_argument(self.exports_argument));
-    content.push_str(", {");
-
-    let mut getters = self
+    self
       .export_map
-      .iter()
-      .filter_map(|(key, value)| match value {
-        ESMExportBinding::Getter(getter) => Some((key, getter)),
-        _ => None,
-      });
-    if let Some((key, getter)) = getters.next() {
-      content.push_str("\n  ");
-      content.push_str(&property_name(key)?);
-      content.push_str(": ");
-      content.push_str(&runtime_template.returning_function(getter, ""));
-    }
-    for (key, getter) in getters {
-      content.push_str(",\n  ");
-      content.push_str(&property_name(key)?);
-      content.push_str(": ");
-      content.push_str(&runtime_template.returning_function(getter, ""));
-    }
-    content.push_str("\n}");
+      .sort_by(|(a, _), (b, _)| a.encode_utf16().cmp(b.encode_utf16()));
 
-    let mut values_content = String::new();
-    let mut values = self
-      .export_map
-      .iter()
-      .filter_map(|(key, value)| match value {
-        ESMExportBinding::Value(value) => Some((key, value)),
-        _ => None,
-      });
-    if let Some((key, value)) = values.next() {
-      values_content.push_str("\n  ");
-      values_content.push_str(&property_name(key)?);
-      values_content.push_str(": ");
-      values_content.push_str(value);
-    }
-    for (key, value) in values {
-      values_content.push_str(",\n  ");
-      values_content.push_str(&property_name(key)?);
-      values_content.push_str(": ");
-      values_content.push_str(value);
-    }
-
-    if values_content.is_empty() {
-      content.push_str(");\n");
-    } else {
+    let define = runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+    let exports = runtime_template.render_exports_argument(self.exports_argument);
+    let mut content = String::new();
+    // Each call defines its getters before its values. Start a new call whenever
+    // a getter follows a value to preserve the order of the namespace keys.
+    for batch in self.export_map.chunk_by(|(_, a), (_, b)| {
+      !matches!(
+        (a, b),
+        (ESMExportBinding::Value(_), ESMExportBinding::Getter(_))
+      )
+    }) {
+      content.push_str(&define);
+      content.push('(');
+      content.push_str(&exports);
       content.push_str(", {");
-      content.push_str(&values_content);
+      let mut in_values = false;
+      for (i, (key, binding)) in batch.iter().enumerate() {
+        if !in_values && matches!(binding, ESMExportBinding::Value(_)) {
+          content.push_str("\n}, {");
+          in_values = true;
+        } else if i > 0 {
+          content.push(',');
+        }
+        content.push_str("\n  ");
+        content.push_str(&property_name(key)?);
+        content.push_str(": ");
+        match binding {
+          ESMExportBinding::Getter(getter) => {
+            content.push_str(&runtime_template.returning_function(getter, ""));
+          }
+          ESMExportBinding::Value(value) => content.push_str(value),
+        }
+      }
       content.push_str("\n});\n");
     }
 
