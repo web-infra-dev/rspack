@@ -16,6 +16,11 @@ if (phase === "warm") {
 	fs.writeFileSync(path.join(sourceDirectory, "index.js"),
 		'import value from "./value.js";\nconsole.log(value);\n');
 	fs.writeFileSync(valueFile, `export default ${JSON.stringify(initialValue)};\n`);
+	// Keep the initial files outside the snapshot timestamp accuracy window.
+	const timestamp = new Date(Date.now() - 10_000);
+	for (const file of [path.join(sourceDirectory, "index.js"), valueFile]) {
+		fs.utimesSync(file, timestamp, timestamp);
+	}
 }
 
 const compiler = rspack({
