@@ -5,7 +5,18 @@ use rustc_hash::FxHashSet;
 
 use crate::{
   DependencyId, DependencyLocation, ModuleGraphConnectionId, ModuleIdentifier, ModuleIssuer,
+  ResourceIdentifier,
 };
+
+/// A factory group by what outlives its dependencies, which a rebuild of the parent replaces: the
+/// parent, and the key that partitions the parent's dependencies into groups.
+#[cacheable]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct ProducerGroup {
+  pub(crate) parent: ModuleIdentifier,
+  /// An identifier, like the one a dependency keeps, so that it rebases the same way.
+  pub(crate) resource: ResourceIdentifier,
+}
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -46,12 +57,11 @@ pub struct ModuleGraphModule {
   incoming_connections: FxHashSet<ModuleGraphConnectionId>,
 
   issuer: ModuleIssuer,
-  // The owner dependency of the factory group that produced this build, `None` for an entry, whose
-  // dependency is new to each compiler. `fix_issuers` rewrites the issuer after a forced rebuild,
-  // so only this field tells which group decided the build. Persistent cache stores it beside the
-  // issuer, outside the module build.
+  // The factory group that produced this build, `None` for an entry, which has no parent.
+  // `fix_issuers` rewrites the issuer after a forced rebuild, so only this field tells which group
+  // decided the build. Persistent cache stores it beside the issuer, outside the module build.
   #[cacheable(with=Skip)]
-  producer: Option<DependencyId>,
+  producer: Option<ProducerGroup>,
 
   // pub exec_order: usize,
   pub module_identifier: ModuleIdentifier,
@@ -127,11 +137,11 @@ impl ModuleGraphModule {
     &self.issuer
   }
 
-  pub(crate) fn set_producer(&mut self, producer: Option<DependencyId>) {
+  pub(crate) fn set_producer(&mut self, producer: Option<ProducerGroup>) {
     self.producer = producer;
   }
 
-  pub(crate) fn producer(&self) -> Option<DependencyId> {
+  pub(crate) fn producer(&self) -> Option<ProducerGroup> {
     self.producer
   }
 

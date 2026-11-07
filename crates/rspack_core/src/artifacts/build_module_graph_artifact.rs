@@ -6,7 +6,7 @@ use rustc_hash::FxHashSet;
 
 use crate::{
   ArtifactExt, BoxModule, BuildDependency, DependencyId, DependencyRef, FactorizationArtifact,
-  FactorizeInfo, ModuleGraph, ModuleIdentifier, SideEffectsStateArtifact,
+  FactorizeInfo, ModuleGraph, ModuleIdentifier, ProducerGroup, SideEffectsStateArtifact,
   compilation::build_module_graph::ModuleToLazyMake, incremental::IncrementalPasses,
   incremental_info::IncrementalInfo, utils::FileCounter,
 };
@@ -15,10 +15,8 @@ use crate::{
 #[derive(Debug)]
 pub(crate) struct FactoryChoice {
   pub(crate) module: BoxModule,
-  /// The module that holds the group, whose rebuild replaces the group.
-  pub(crate) parent: Option<ModuleIdentifier>,
-  /// The group's owner dependency, in the form of `ModuleGraphModule::producer`.
-  pub(crate) producer: Option<DependencyId>,
+  /// The group, in the form of `ModuleGraphModule::producer`. A rebuild of its parent replaces it.
+  pub(crate) producer: Option<ProducerGroup>,
 }
 
 /// Make Artifact, including all side effects of the make stage.

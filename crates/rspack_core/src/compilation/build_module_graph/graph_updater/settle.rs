@@ -9,13 +9,14 @@ use super::{
   repair::{
     context::TaskContext,
     factorize::{FactorizeInput, is_side_effect_only_import},
+    process_dependencies::producer_group,
   },
   update_module_graph,
 };
 use crate::{
   BoxModule, BuildContext, BuildModuleGraphArtifact, Compilation, DependencyId,
   ExportsInfoArtifact, FactorizeInfo, FactoryChoice, Logger, ModuleFactoryCreateData,
-  ModuleIdentifier, NormalModule,
+  ModuleIdentifier, NormalModule, ProducerGroup,
   module_graph::{build_input_dependencies, can_refactorize_group},
   normal_module::NormalFactoryDecision,
   utils::task_loop::{Task, TaskResult, TaskType, run_task_loop},
@@ -34,6 +35,8 @@ struct VerifyContext {
   verified: FxHashSet<DependencyId>,
   repaired: FxHashSet<DependencyId>,
   refactorize: FxHashSet<DependencyId>,
+  /// The groups of `refactorize`.
+  refactorizing: FxHashSet<ProducerGroup>,
   rebuild: IdentifierSet,
   rebuilt: IdentifierSet,
   /// The fresh modules of the groups whose decision differs from their target's build, per target.
@@ -41,12 +44,13 @@ struct VerifyContext {
   disagreements: IdentifierMap<Vec<FactoryChoice>>,
   /// The target and group, in the form of `ModuleGraphModule::producer`, of every group reachable
   /// from the entries in the current graph.
-  reaching: FxHashSet<(ModuleIdentifier, Option<DependencyId>)>,
+  reaching: FxHashSet<(ModuleIdentifier, Option<ProducerGroup>)>,
 }
 
 #[derive(Debug)]
 struct RecordedGroup {
   parent: Option<ModuleIdentifier>,
+  producer: Option<ProducerGroup>,
   dependencies: Vec<DependencyId>,
   can_refactorize: bool,
   outcome: GroupOutcome,
@@ -144,8 +148,7 @@ impl Task<VerifyContext> for CompareTask {
             .or_default()
             .push(FactoryChoice {
               module,
-              parent: self.recorded.parent,
-              producer: self.recorded.parent.map(|_| self.recorded.dependencies[0]),
+              producer: self.recorded.producer,
             });
         }
       }
@@ -154,6 +157,7 @@ impl Task<VerifyContext> for CompareTask {
       _ => {
         if self.recorded.can_refactorize {
           context.refactorize.extend(self.recorded.dependencies);
+          context.refactorizing.extend(self.recorded.producer);
         } else if let Some(parent) = self.recorded.parent {
           context.rebuild.insert(parent);
         }
@@ -177,6 +181,7 @@ fn rebuild_disagreeing_modules(
 ) {
   let VerifyContext {
     refactorize,
+    refactorizing,
     disagreements,
     reaching,
     rebuild,
@@ -185,7 +190,6 @@ fn rebuild_disagreeing_modules(
   } = context;
   let BuildModuleGraphArtifact {
     module_graph,
-    factorization_artifact,
     factory_choices,
     ..
   } = artifact;
@@ -200,12 +204,7 @@ fn rebuild_disagreeing_modules(
     let Some(mgm) = module_graph.module_graph_module_by_identifier(target) else {
       return false;
     };
-    // Refactorizing a group can reorder its dependencies, which changes its owner.
-    let producer = mgm.producer().map(|id| {
-      factorization_artifact
-        .get(&id)
-        .map_or(id, FactorizeInfo::owner_dep_id)
-    });
+    let producer = mgm.producer();
     let group = if reaching.contains(&(*target, producer)) {
       groups.iter().position(|group| group.producer == producer)
     } else {
@@ -224,11 +223,11 @@ fn rebuild_disagreeing_modules(
     .copied()
     .collect::<IdentifierSet>();
   let (mut ready, waiting): (Vec<_>, Vec<_>) = deciding.into_iter().partition(|(target, group)| {
-    let choice = &disagreements[target][*group];
-    choice
-      .parent
-      .is_none_or(|parent| !rebuilding.contains(&parent))
-      && choice.producer.is_none_or(|id| !refactorize.contains(&id))
+    disagreements[target][*group]
+      .producer
+      .is_none_or(|producer| {
+        !rebuilding.contains(&producer.parent) && !refactorizing.contains(&producer)
+      })
   });
   // The targets of an import cycle can wait for each other, and then no rebuild ever comes. One has
   // to decide first, and the fresh groups of its rebuild report to the others.
@@ -267,11 +266,15 @@ fn unverified_groups(
       .map(|parent| build_input_dependencies(parent.as_ref()))
       .unwrap_or_default();
     for id in ids {
-      if let Some(target) = graph.module_identifier_by_dependency_id(&id) {
+      // A factory can replace the first dependency of a group, and the producer holds the result.
+      let producer = parent_id.and_then(|parent| {
         let owner = artifact
           .factorize_info(&id)
           .map_or(id, FactorizeInfo::owner_dep_id);
-        context.reaching.insert((*target, parent_id.map(|_| owner)));
+        producer_group(parent, graph.dependency_by_id(&owner))
+      });
+      if let Some(target) = graph.module_identifier_by_dependency_id(&id) {
+        context.reaching.insert((*target, producer));
         if reachable.insert(*target)
           && let Some(module) = graph.module_graph_module_by_identifier(target)
         {
@@ -329,6 +332,7 @@ fn unverified_groups(
         ),
         recorded: RecordedGroup {
           parent: parent_id,
+          producer,
           dependencies: info.related_dep_ids().to_vec(),
           can_refactorize,
           outcome: recorded,
@@ -380,14 +384,17 @@ pub(in super::super) async fn settle_factory_decisions(
       disagreements,
       ..
     } = &mut context;
-    let replaced =
-      |parent: Option<ModuleIdentifier>| parent.is_some_and(|parent| rebuild.contains(&parent));
+    let replaced = |choice: &FactoryChoice| {
+      choice
+        .producer
+        .is_some_and(|group| rebuild.contains(&group.parent))
+    };
     for groups in disagreements.values_mut() {
-      groups.retain(|group| !replaced(group.parent));
+      groups.retain(|choice| !replaced(choice));
     }
     artifact
       .factory_choices
-      .retain(|_, choice| !replaced(choice.parent));
+      .retain(|_, choice| !replaced(choice));
     for id in &context.refactorize {
       if let Some(info) = artifact.factorize_info(id)
         && context.repaired.insert(info.owner_dep_id())
@@ -398,6 +405,7 @@ pub(in super::super) async fn settle_factory_decisions(
     changed_targets += context.refactorize.len();
     changed_modules += context.rebuild.len();
     artifact.refactorize_dependencies = std::mem::take(&mut context.refactorize);
+    context.refactorizing.clear();
     artifact.check_issuer_cycles = true;
     (artifact, exports) = update_module_graph(
       compilation,

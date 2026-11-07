@@ -7,9 +7,45 @@ use super::{
   factorize::{FactorizeInput, FactorizeTask},
 };
 use crate::{
-  ContextDependency, DependencyId, ModuleIdentifier,
+  ContextDependency, Dependency, DependencyId, ModuleIdentifier, ProducerGroup,
   utils::task_loop::{Task, TaskResult, TaskType},
 };
+
+/// The key that partitions the dependencies of a module into factory groups.
+pub(crate) fn group_resource_identifier(dependency: &dyn Dependency) -> Option<Cow<'_, str>> {
+  // FIXME: now only module/context dependency can put into resolve queue.
+  // FIXME: should align webpack
+  if let Some(module_dependency) = dependency.as_module_dependency() {
+    // TODO need implement more dependency `resource_identifier()`
+    // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L1621
+    let id = if let Some(resource_identifier) = module_dependency.resource_identifier() {
+      Cow::Borrowed(resource_identifier)
+    } else {
+      Cow::Owned(format!(
+        "{}|{}",
+        module_dependency.dependency_type(),
+        module_dependency.request()
+      ))
+    };
+    Some(id)
+  } else {
+    dependency
+      .as_context_dependency()
+      .map(|d| Cow::Borrowed(ContextDependency::resource_identifier(d)))
+  }
+}
+
+/// The factory group of `parent` whose first dependency is `dependency`.
+pub(crate) fn producer_group(
+  parent: ModuleIdentifier,
+  dependency: &dyn Dependency,
+) -> Option<ProducerGroup> {
+  let resource = group_resource_identifier(dependency)?;
+  Some(ProducerGroup {
+    parent,
+    resource: resource.as_ref().into(),
+  })
+}
 
 #[derive(Debug)]
 pub struct ProcessDependenciesTask {
@@ -44,28 +80,7 @@ impl Task<TaskContext> for ProcessDependenciesTask {
 
     for dependency_id in dependencies {
       let dependency = module_graph.dependency_by_id(&dependency_id);
-      // FIXME: now only module/context dependency can put into resolve queue.
-      // FIXME: should align webpack
-      let resource_identifier = if let Some(module_dependency) = dependency.as_module_dependency() {
-        // TODO need implement more dependency `resource_identifier()`
-        // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L1621
-        let id = if let Some(resource_identifier) = module_dependency.resource_identifier() {
-          Cow::Borrowed(resource_identifier)
-        } else {
-          Cow::Owned(format!(
-            "{}|{}",
-            module_dependency.dependency_type(),
-            module_dependency.request()
-          ))
-        };
-        Some(id)
-      } else {
-        dependency
-          .as_context_dependency()
-          .map(|d| Cow::Borrowed(ContextDependency::resource_identifier(d)))
-      };
-
-      if let Some(resource_identifier) = resource_identifier {
+      if let Some(resource_identifier) = group_resource_identifier(dependency) {
         let dependency = module_graph.dependency_ref_by_id(&dependency_id).clone();
         sorted_dependencies
           .entry(resource_identifier)

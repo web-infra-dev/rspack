@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rspack_error::Diagnostic;
 
-use super::{TaskContext, add::AddTask};
+use super::{TaskContext, add::AddTask, process_dependencies::producer_group};
 use crate::{
   BuildContext, Context, DependencyRef, FactorizeInfo, ImportPhase, Module, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, Resolve, SourceView,
@@ -205,7 +205,10 @@ impl Task<TaskContext> for FactorizeResultTask {
     let module_identifier = module.identifier();
     let mut mgm = ModuleGraphModule::new(module.identifier());
     mgm.set_issuer_if_unset(original_module_identifier);
-    mgm.set_producer(original_module_identifier.map(|_| *dependencies[0].id()));
+    mgm.set_producer(
+      original_module_identifier
+        .and_then(|parent| producer_group(parent, dependencies[0].as_ref())),
+    );
 
     tracing::trace!("Module created: {}", &module_identifier);
 

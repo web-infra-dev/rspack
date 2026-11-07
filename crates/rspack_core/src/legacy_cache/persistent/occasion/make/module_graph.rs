@@ -14,7 +14,7 @@ use crate::{
   AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockRef, BoxDependency, CompilationLogger,
   ContextElementDependency, DependenciesBlock, Dependency, DependencyId, DependencyParents,
   DependencyRef, FactorizationArtifact, FactorizeInfo, ModuleGraph, ModuleGraphConnection,
-  ModuleGraphModule, ModuleIdentifier, ModuleIssuer, ModuleRef, RayonConsumer,
+  ModuleGraphModule, ModuleIdentifier, ModuleIssuer, ModuleRef, ProducerGroup, RayonConsumer,
   cache::CacheCodec,
   compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
   legacy_cache::persistent::storage::Storage,
@@ -350,7 +350,7 @@ pub async fn recovery_module_graph(
         })
         .collect::<Result<Vec<_>>>()?;
       let issuer = BoundEntry::decode::<ModuleIssuer>(codec, &frame.issuer)?;
-      let producer = BoundEntry::decode::<Option<DependencyId>>(codec, &frame.producer)?;
+      let producer = BoundEntry::decode::<Option<ProducerGroup>>(codec, &frame.producer)?;
       Ok((key, Some((node, resolutions, issuer, producer.flatten()))))
     })
     .collect::<Result<Vec<_>>>()?;
