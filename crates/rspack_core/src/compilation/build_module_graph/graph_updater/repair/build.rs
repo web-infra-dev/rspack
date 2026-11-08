@@ -4,13 +4,13 @@ use rspack_util::time::current_time;
 use rustc_hash::FxHashSet;
 
 use super::{
-  TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
+  TaskContext, lazy::request_lazy_dependencies, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
   AsyncDependenciesBlockRef, BoxModule, BuildContext, DependenciesBlock, DependencyParents,
   DependencyRef, ModuleRef, SharedPluginDriver, ValueCacheVersions,
   compilation::build_module_graph::{
-    ForwardedIdSet, HasLazyDependencies, LazyDependencies, module_build_cache::ModuleBuildCache,
+    ForwardedIdSet, LazyDependencies, LazyRole, module_build_cache::ModuleBuildCache,
   },
   utils::task_loop::{Task, TaskResult, TaskType},
 };
@@ -167,16 +167,26 @@ impl Task<TaskContext> for BuildResultTask {
       .add_module_files(module.identifier(), &build_info.dependencies.build);
     drop(build_info);
 
+    let side_effect_free = module
+      .factory_meta()
+      .and_then(|meta| meta.side_effect_free)
+      .unwrap_or_default();
     let module_graph = &mut context.artifact.module_graph;
     let mut lazy_dependencies = LazyDependencies::default();
+    let mut import_declarations = vec![];
+    let mut deferred_dependencies = vec![];
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
     let mut handle_block =
       |dependencies: &[DependencyRef], current_block: Option<&AsyncDependenciesBlockRef>| {
         for (index_in_block, dependency) in dependencies.iter().enumerate() {
           let dependency_id = *dependency.id();
-          if let Some(until) = dependency.lazy() {
-            lazy_dependencies.insert(dependency, until);
+          if side_effect_free && let Some(role) = dependency.lazy_role() {
+            if role == LazyRole::ImportDeclaration {
+              import_declarations.push(dependency.clone());
+            } else if lazy_dependencies.insert(dependency, role) {
+              deferred_dependencies.push(dependency_id);
+            }
           }
           all_dependencies.push(dependency_id);
           module_graph.set_parents(
@@ -210,29 +220,51 @@ impl Task<TaskContext> for BuildResultTask {
 
     module_graph.add_module(module);
 
+    if let Some(pending_forwarded_ids) = context
+      .artifact
+      .module_to_lazy_make
+      .take_pending_forwarded_ids(&module_identifier)
+    {
+      forwarded_ids.append(pending_forwarded_ids);
+    }
+
+    let lazy_imports = side_effect_free
+      && context
+        .build_context
+        .compiler_options
+        .optimization
+        .provided_exports
+      && lazy_dependencies.can_lazy_imports(&forwarded_ids);
+    if lazy_imports {
+      for dependency in &import_declarations {
+        lazy_dependencies.insert(dependency, LazyRole::ImportDeclaration);
+        deferred_dependencies.push(*dependency.id());
+      }
+    }
+
     let mut tasks: Vec<Box<dyn Task<TaskContext>>> = vec![];
 
     let dependencies_to_process = if !lazy_dependencies.is_empty() {
-      let lazy_dependency_ids = lazy_dependencies
-        .all_lazy_dependencies()
-        .collect::<FxHashSet<_>>();
-      all_dependencies.retain(|dep| !lazy_dependency_ids.contains(dep));
+      for dependency_id in &deferred_dependencies {
+        module_graph.defer_dependency(*dependency_id);
+      }
+      let deferred_dependencies = deferred_dependencies.into_iter().collect::<FxHashSet<_>>();
+      all_dependencies.retain(|dep| !deferred_dependencies.contains(dep));
 
-      if let Some(HasLazyDependencies::Pending(pending_forwarded_ids)) = context
+      context
         .artifact
         .module_to_lazy_make
-        .update_module_lazy_dependencies(module_identifier, Some(lazy_dependencies))
-      {
-        forwarded_ids.append(pending_forwarded_ids);
-      }
-      if let Some(task) = process_unlazy_dependencies(
-        &context.artifact.module_to_lazy_make,
-        module_graph,
-        forwarded_ids,
-        module_identifier,
-      ) {
-        tasks.push(Box::new(task));
-      }
+        .update_module_lazy_dependencies(module_identifier, Some(lazy_dependencies));
+      tasks.extend(
+        request_lazy_dependencies(
+          &mut context.artifact.module_to_lazy_make,
+          module_graph,
+          module_identifier,
+          forwarded_ids,
+        )
+        .into_iter()
+        .map(|task| Box::new(task) as Box<dyn Task<TaskContext>>),
+      );
 
       all_dependencies
     } else {

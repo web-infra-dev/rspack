@@ -121,6 +121,9 @@ pub(crate) struct ModuleGraphData {
   dependency_id_to_parents: rollback::DenseDependencyIdMap<DependencyParents>,
   // TODO try move condition as connection field
   connection_to_condition: rollback::DenseDependencyIdMap<DependencyCondition>,
+  /// Dependencies left unresolved on purpose: a lazy barrel defers them, or their target was
+  /// skipped as a side-effect-free module imported only for its side effects.
+  deferred_dependencies: rustc_hash::FxHashSet<DependencyId>,
 
   /************************** Modified by Seal Phase **********************/
   /// ModuleGraphModule indexed by `ModuleIdentifier`.
@@ -311,6 +314,7 @@ impl ModuleGraph {
       self.inner.dependencies.remove(dep_id);
       self.inner.dependency_id_to_parents.remove(dep_id);
       self.inner.connection_to_condition.remove(dep_id);
+      self.inner.deferred_dependencies.remove(dep_id);
       if let Some(b_id) = parent_block
         && let Some(block) = self.inner.blocks.get_mut(&b_id)
       {
@@ -985,6 +989,18 @@ impl ModuleGraph {
 
   pub fn set_dependency_extra_meta(&mut self, dep_id: DependencyId, extra: DependencyExtraMeta) {
     self.inner.dep_meta_map.insert(dep_id, extra);
+  }
+
+  pub fn is_dependency_deferred(&self, dep_id: &DependencyId) -> bool {
+    self.inner.deferred_dependencies.contains(dep_id)
+  }
+
+  pub fn defer_dependency(&mut self, dep_id: DependencyId) {
+    self.inner.deferred_dependencies.insert(dep_id);
+  }
+
+  pub fn activate_dependency(&mut self, dep_id: &DependencyId) -> bool {
+    self.inner.deferred_dependencies.remove(dep_id)
   }
 
   pub fn can_update_module(&self, dep_id: &DependencyId, module_id: &ModuleIdentifier) -> bool {
