@@ -175,7 +175,14 @@ export default [false, true].flatMap((retained) =>
             "check must not dispose the running module",
           );
           assert.equal(factories["./dep.js"], oldFactory);
-          if (mode === "late-loaded") await sandbox.loadOther();
+          let lateLoaded;
+          if (mode === "late-loaded") {
+            lateLoaded = sandbox.loadOther();
+            // Deliver the ordinary chunk during prepare. Its group import now
+            // waits until the supplemental dependencies are installed by apply.
+            await new Promise(setImmediate);
+            assert(requests.includes("other.js"));
+          }
           if (mode === "abort") {
             hot.decline();
             hot.invalidate();
@@ -188,6 +195,7 @@ export default [false, true].flatMap((retained) =>
             continue;
           }
           await hot.apply();
+          if (lateLoaded) await lateLoaded;
           if (pending) {
             deliverOther();
             assert.equal((await pending).default, 3);

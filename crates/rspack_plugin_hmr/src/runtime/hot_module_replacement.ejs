@@ -18,6 +18,7 @@
 // The update info
 <%- var("currentUpdateApplyHandlers") %>;
 <%- var("queuedInvalidatedModules") %>;
+<%- var("hotUpdateChunk") %>;
 // Concurrent ensures share the actual attempt and its starting runtime hash.
 <%- var("chunkLoadingPromises") %> = Object.create(null);
 
@@ -90,10 +91,10 @@
 		}
 	}
 
-	if (<% if (_is_rspack_runtime_mode) { %>context.e<% } else { %>require.e<% } %>) fn.e = function (chunkId, fetchPriority) {
+	var ensureChunk = function (chunkId, fetchPriority) {
 		var loading = chunkLoadingPromises[chunkId];
 		if (loading) {
-			trackBlockingPromise(loading[0]);
+			if (loading[0]) trackBlockingPromise(loading[0]);
 			return loading[1];
 		}
 		// [current download, complete retry]
@@ -106,7 +107,7 @@
 			// Only one attempt blocks prepare; catch-up and retries must not.
 			var hash = <%- GET_FULL_HASH %>();
 			try {
-				loading[0] = <% if (_is_rspack_runtime_mode) { %>context.e<% } else { %>require.e<% } %>(chunkId, fetchPriority);
+				loading[0] = <% if (_is_rspack_runtime_mode) { %>context.e<% } else { %>require.e<% } %>(chunkId, fetchPriority, true);
 			} catch (error) {
 				loading[0] = Promise.reject(error);
 			}
@@ -115,6 +116,7 @@
 			return trackBlockingPromise(loading[0]).catch(function (error) {
 				if (error.name !== "ChunkVersionError") throw error;
 				return waitForUpdate(hash, chunkId).then(function () {
+					if (!loading[0]) return;
 					var nextHash = <%- GET_FULL_HASH %>();
 					if (retriedHash === nextHash) throw error;
 					retriedHash = nextHash;
@@ -126,6 +128,20 @@
 		chunkLoadingPromises[chunkId] = loading;
 		loading[1].then(clear, clear);
 		return loading[1];
+	};
+	if (<% if (_is_rspack_runtime_mode) { %>context.e<% } else { %>require.e<% } %>) fn.e = function (chunkId, fetchPriority) {
+		var promises = [];
+		var needsApply = hotUpdateChunk && hotUpdateChunk(chunkId, promises);
+		var groups = <%- REQUIRE_SCOPE %>.hmrS_chunkGroups;
+		var siblings = groups && groups[chunkId];
+		// Version retries load each physical chunk without expanding its group again.
+		var promise = siblings ? Promise.all(siblings.concat([chunkId]).map(function (id) {
+			return ensureChunk(id, fetchPriority);
+		})) : ensureChunk(chunkId, fetchPriority);
+		if (!needsApply) return promise;
+		return Promise.all([promise, trackBlockingPromise(Promise.all(promises)).then(function () {
+			return waitForUpdate(undefined, chunkId);
+		})]);
 	};
 	return fn;
 }
@@ -362,13 +378,23 @@
 			return setStatus("prepare").then(function () {
 				var updatedModules = [];
 				currentUpdateApplyHandlers = [];
+				if (update.r.length) currentUpdateApplyHandlers.push(function () {
+					return {
+						apply: function () {
+							update.r.forEach(function (chunkId) {
+								var loading = chunkLoadingPromises[chunkId];
+								if (loading) loading[0] = undefined;
+							});
+						}
+					};
+				});
 
 				return Promise.all(
 					Object.keys(<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>).reduce(function (
 						promises,
 						key
 					) {
-						<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>[key](
+						var prepareChunk = <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>[key](
 							update.c,
 							update.r,
 							update.m,
@@ -381,6 +407,7 @@
 							update.changed,
 							chunkLoadingPromises
 						);
+						if (typeof prepareChunk === "function") hotUpdateChunk = prepareChunk;
 						return promises;
 					},
 						[])
@@ -410,6 +437,7 @@
 }
 
 <%- fn("internalApply") %>(options) {
+	hotUpdateChunk = undefined;
 	options = options || {};
 	applyInvalidatedModules();
 	var results = currentUpdateApplyHandlers.map(function (handler) {

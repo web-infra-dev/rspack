@@ -234,9 +234,12 @@
 	<% } %>
 
 	var moduleOutdatedDependencies;
+	var removedChunkResolves = [];
 	return {
 		dispose: function () {
 			hotCurrentUpdateRemovedChunks.forEach(function (chunkId) {
+				var installed = <%- _installed_chunks %>[chunkId];
+				if (Array.isArray(installed)) removedChunkResolves.push(installed[0]);
 				delete <%- _installed_chunks %>[chunkId];
 			});
 			hotCurrentUpdateRemovedChunks = undefined;
@@ -333,6 +336,7 @@
 			// Factories and runtime are installed. Complete ordinary chunk loading
 			// with an empty factory payload to resolve imports and deferred startup.
 			if (fullChunkIds.length) <%- _install_full_chunks %>;
+			removedChunkResolves.forEach(function (resolve) { resolve(); });
 
 			// call accept handlers
 			for (var outdatedModuleId in outdatedDependencies) {
@@ -500,17 +504,22 @@
 	var preparedChunks = Object.create(null);
 	removedChunks.forEach(function (chunkId) { preparedChunks[chunkId] = false; });
 	function prepareFullChunk(chunkId, promises) {
-		if (<%- HAS_OWN_PROPERTY %>(preparedChunks, chunkId)) return;
+		if (<%- HAS_OWN_PROPERTY %>(preparedChunks, chunkId)) return preparedChunks[chunkId] === true;
+		if (<%- _installed_chunks %>[chunkId] === <%- _loaded_chunk_state %>) return false;
 		preparedChunks[chunkId] = true;
-		if (<%- _installed_chunks %>[chunkId] === <%- _loaded_chunk_state %>) return;
 		promises.push(<%- _load_update_chunk %>(chunkId, undefined, true));
 		if (hotCurrentUpdateChunks[chunkId] === false) {
 			hotCurrentUpdateChunks[chunkId] = true;
 			promises.push(<%- _load_update_chunk %>(chunkId, updatedModulesList));
 		}
+		return true;
 	}
 	function prepareLoad(chunkId, promises) {
-		if (load && <%- HAS_OWN_PROPERTY %>(load, chunkId)) load[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
+		var needsApply = false;
+		if (load && <%- HAS_OWN_PROPERTY %>(load, chunkId)) load[chunkId].forEach(function (id) {
+			if (prepareFullChunk(id, promises)) needsApply = true;
+		});
+		return needsApply;
 	}
 	// Full payloads supplement chunks; deltas independently update changed modules.
 	Object.keys(load || {}).forEach(function (chunkId) {
@@ -543,4 +552,5 @@
 			}
 		};
 	}
+	return prepareLoad;
 };

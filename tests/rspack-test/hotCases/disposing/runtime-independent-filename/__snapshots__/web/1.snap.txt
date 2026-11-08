@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Bundle: chunk1_js.chunk.CURRENT_HASH.js
-- Update: main.LAST_HASH.hot-update.js, size: 23194
+- Update: main.LAST_HASH.hot-update.js, size: 23570
 
 ## Manifest
 
@@ -391,9 +391,12 @@ function hotApplyHandler(options) {
 	
 
 	var moduleOutdatedDependencies;
+	var removedChunkResolves = [];
 	return {
 		dispose: function () {
 			hotCurrentUpdateRemovedChunks.forEach(function (chunkId) {
+				var installed = jsonpInstalledChunks[chunkId];
+				if (Array.isArray(installed)) removedChunkResolves.push(installed[0]);
 				delete jsonpInstalledChunks[chunkId];
 			});
 			hotCurrentUpdateRemovedChunks = undefined;
@@ -488,6 +491,7 @@ function hotApplyHandler(options) {
 			// Factories and runtime are installed. Complete ordinary chunk loading
 			// with an empty factory payload to resolve imports and deferred startup.
 			if (fullChunkIds.length) __rspack_jsonp(0, [fullChunkIds, {}]);
+			removedChunkResolves.forEach(function (resolve) { resolve(); });
 
 			// call accept handlers
 			for (var outdatedModuleId in outdatedDependencies) {
@@ -655,17 +659,22 @@ __webpack_require__.hmrC.jsonp = function (
 	var preparedChunks = Object.create(null);
 	removedChunks.forEach(function (chunkId) { preparedChunks[chunkId] = false; });
 	function prepareFullChunk(chunkId, promises) {
-		if (__webpack_require__.o(preparedChunks, chunkId)) return;
+		if (__webpack_require__.o(preparedChunks, chunkId)) return preparedChunks[chunkId] === true;
+		if (jsonpInstalledChunks[chunkId] === 0) return false;
 		preparedChunks[chunkId] = true;
-		if (jsonpInstalledChunks[chunkId] === 0) return;
 		promises.push(jsonpLoadUpdateChunk(chunkId, undefined, true));
 		if (hotCurrentUpdateChunks[chunkId] === false) {
 			hotCurrentUpdateChunks[chunkId] = true;
 			promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList));
 		}
+		return true;
 	}
 	function prepareLoad(chunkId, promises) {
-		if (load && __webpack_require__.o(load, chunkId)) load[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
+		var needsApply = false;
+		if (load && __webpack_require__.o(load, chunkId)) load[chunkId].forEach(function (id) {
+			if (prepareFullChunk(id, promises)) needsApply = true;
+		});
+		return needsApply;
 	}
 	// Full payloads supplement chunks; deltas independently update changed modules.
 	Object.keys(load || {}).forEach(function (chunkId) {
@@ -698,6 +707,7 @@ __webpack_require__.hmrC.jsonp = function (
 			}
 		};
 	}
+	return prepareLoad;
 };
 __webpack_require__.hmrM = () => {
 	if (typeof fetch === "undefined")
