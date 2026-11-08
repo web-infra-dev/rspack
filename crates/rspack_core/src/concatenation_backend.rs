@@ -614,7 +614,8 @@ fn analyze_identifiers<T>(
 
   let ast = parse_return.ast;
   let semantic = analyze(&ast, AnalyzeOptions::default()).semantic;
-  Ok(analyze_program(&ast, &semantic))
+  // SAFETY: Analysis only reads handles from this AST, which remains unchanged.
+  Ok(analyze_program(unsafe { ast.ast() }, semantic.semantic()))
 }
 
 /// Copy only the facts needed after the arena-backed AST and semantic are dropped.

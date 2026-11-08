@@ -46,9 +46,12 @@ pub fn eval_source<'parser>(
       parser.add_warning(error.into());
       None
     }
-    Ok(mut ast) => {
+    Ok(mut ctx) => {
+      // SAFETY: The wrapper uses only this fragment's handles and preserves them
+      // when replacing its expression root with a program. No handles are removed.
+      let ast = unsafe { ctx.ast_mut() };
       let expression = ast.root_expression();
-      let expression_span = expression.span(&ast);
+      let expression_span = expression.span(ast);
 
       // ParsedJavaScriptAst represents programs in the main scan path. Build a
       // minimal valid program root around the fragment so any evaluation hook
@@ -59,17 +62,19 @@ pub fn eval_source<'parser>(
       let program = ast.program(expression_span, directives, body, None);
       ast.set_root_program(program);
 
-      let ast = &*allocator.alloc(ast);
+      let ctx = &*allocator.alloc(ctx);
+      // SAFETY: Evaluation only reads this fragment's handles after construction.
+      let ast = unsafe { ctx.ast() };
       let comments = &*allocator.alloc(RspackComments::from_ast(ast));
       let SemanticReturn {
         semantic,
         diagnostics: _,
-      } = analyze(ast, AnalyzeOptions::default());
+      } = analyze(ctx, AnalyzeOptions::default());
       let semantic = &*allocator.alloc(semantic);
       let fragment_ast = &*allocator.alloc(ParsedJavaScriptAst {
         ast,
         comments,
-        semantic,
+        semantic: semantic.semantic(),
         program,
       });
 

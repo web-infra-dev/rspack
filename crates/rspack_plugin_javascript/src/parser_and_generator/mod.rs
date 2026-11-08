@@ -330,7 +330,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     }
 
     let mut semicolons = Default::default();
-    let scan_diagnostics = AstScanner::new(&mut semicolons, &tokens).scan(&ast);
+    // SAFETY: Scanning only reads handles from this AST, which remains unchanged.
+    let ast_view = unsafe { ast.ast() };
+    let scan_diagnostics = AstScanner::new(&mut semicolons, &tokens).scan(ast_view);
     if !scan_diagnostics.is_empty() {
       append_swc_next_diagnostics(&mut diagnostics, &source_string, scan_diagnostics);
       return default_with_diagnostics(source, diagnostics);
@@ -365,11 +367,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     }
 
     let program = ast.root_program();
-    let comments = RspackComments::from_ast(&ast);
+    let comments = RspackComments::from_ast(ast_view);
     let parsed_ast = ParsedJavaScriptAst {
-      ast: &ast,
+      ast: ast_view,
       comments: &comments,
-      semantic: &semantic,
+      semantic: semantic.semantic(),
       program,
     };
     let parser_runtime_requirements = ParserRuntimeRequirementsData::new(runtime_template);

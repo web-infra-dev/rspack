@@ -389,7 +389,9 @@ fn parse_magic_comment_object<'a>(
   )
   .parse_expression_fragment(FragmentContext::TopLevel)
   .ok()?;
-  Some((ast, magic_comment_start))
+  // SAFETY: Magic comment readers only use handles from this parsed AST and
+  // never mutate it or mix its handles with the module AST.
+  Some((unsafe { ast.into_ast() }, magic_comment_start))
 }
 
 static WEBPACK_COMMENT_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
