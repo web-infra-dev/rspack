@@ -11,10 +11,11 @@ use rspack_error::Result;
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
 use rspack_util::{
   fx_hash::FxHashMap,
-  time::{current_time, fs_accuracy, mtime_accuracy, mtime_safe_time, system_time_to_millis},
+  time::{current_time, system_time_to_millis},
 };
 
 use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher};
+use crate::time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis};
 
 /// An iterator that chains together references to all files, directories, and missing paths
 /// stored in the [`PathTracker`]. This allows iteration over all registered paths as a single sequence.
@@ -237,11 +238,12 @@ impl FileTime {
   /// scan, so only its mtime says when it changed — the safe time is that
   /// mtime padded by the filesystem's timestamp accuracy.
   fn initial(mtime: SystemTime) -> Self {
-    let mtime_ms = system_time_to_millis(mtime);
+    let mtime_ms = mtime_to_millis(mtime);
+    let accuracy = mtime_accuracy(mtime);
     Self {
       mtime,
-      safe_time: mtime_safe_time(mtime_ms),
-      accuracy: mtime_accuracy(mtime_ms),
+      safe_time: current_time().min(mtime_ms).saturating_add(accuracy),
+      accuracy,
     }
   }
 
@@ -264,6 +266,7 @@ impl FileTime {
   /// content carries (a restored backup, a timestamp-preserving copy), so the
   /// safe time is now, exactly.
   fn observed(mtime: SystemTime) -> Self {
+    mtime_accuracy(mtime);
     Self {
       mtime,
       safe_time: current_time(),
@@ -628,7 +631,7 @@ impl PathManager {
             metadata
               .created()
               .or_else(|_| metadata.modified())
-              .is_ok_and(|birthtime| mtime_safe_time(system_time_to_millis(birthtime)) >= since)
+              .is_ok_and(|birthtime| mtime_safe_time(birthtime) >= since)
           }) {
             changed.push(path.clone());
           }
@@ -642,10 +645,7 @@ impl PathManager {
           if self.forget_if_orphaned(&path) {
             break;
           }
-          if !registered
-            && changed_since
-              .is_some_and(|since| mtime_safe_time(system_time_to_millis(mtime)) >= since)
-          {
+          if !registered && changed_since.is_some_and(|since| mtime_safe_time(mtime) >= since) {
             changed.push(path);
           }
         }
@@ -724,10 +724,12 @@ impl PathManager {
     if judged {
       return true;
     }
-    let mtime_ms = system_time_to_millis(mtime);
-    let untouched = self.file_times.get(path).is_some_and(|old| {
-      old.mtime == mtime && mtime_ms + mtime_accuracy(mtime_ms) < current_time()
-    });
+    let mtime_ms = mtime_to_millis(mtime);
+    let accuracy = mtime_accuracy(mtime);
+    let untouched = self
+      .file_times
+      .get(path)
+      .is_some_and(|old| old.mtime == mtime && mtime_ms + accuracy < current_time());
     if untouched {
       return false;
     }
@@ -1011,15 +1013,11 @@ impl PathManager {
     disk_mtime(path).map(FileTime::initial)
   }
 
-  fn stat_mtime_ms(path: &InternedPath) -> Option<u64> {
-    disk_mtime(path).map(system_time_to_millis)
-  }
-
   fn entry(time: FileTime) -> TimeInfoEntry {
     let time = time.narrowed();
     TimeInfoEntry::Entry {
       safe_time: time.safe_time,
-      timestamp: system_time_to_millis(time.mtime),
+      timestamp: mtime_to_millis(time.mtime),
       accuracy: time.accuracy,
     }
   }
@@ -1101,7 +1099,7 @@ impl PathManager {
       // or `{ safeTime: 0 }`: webpack then sees it as missing and rebuilds
       // once it appears, instead of trusting a time for a directory not there.
       let safe_time = if self.absent_directories.contains(dir) {
-        Self::stat_mtime_ms(dir)
+        disk_mtime(dir)
           .map(mtime_safe_time)
           .map(|own| last_watch_event.map_or(own, |event| own.max(event)))
       } else {
