@@ -7,7 +7,7 @@ use swc_next_ecma_ast::{
   VariableDeclarator,
 };
 
-use crate::visitors::{HookMemberExpression, PatternIdentifier};
+use crate::visitors::{HookMemberExpression, PatternIdentifier, WriteExpression};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
@@ -52,6 +52,8 @@ pub enum JavascriptParserPluginHook {
   This,
   Assign,
   AssignMemberChain,
+  Write,
+  WriteMemberChain,
   ImportCall,
   MetaProperty,
   Import,
@@ -501,6 +503,42 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     &self,
     _parser: &mut JavascriptParser<'p>,
     _expr: AssignmentExpression,
+    _members: &[Atom],
+    _member_ranges: &[Span],
+    _for_name: &str,
+  ) -> Option<bool> {
+    None
+  }
+
+  /// Called for every identifier a statement or expression writes to: the
+  /// target of an assignment, each identifier of a destructuring target, the
+  /// argument of an update (`a++`) and the head of a `for-in` / `for-of` loop.
+  /// `expr` is the construct that writes and `span` is the identifier.
+  ///
+  /// `assign` runs first for the targets of an assignment expression and this
+  /// hook only sees the ones it left unhandled. Returning `Some(true)` skips
+  /// the default walk of the identifier.
+  fn write(
+    &self,
+    _parser: &mut JavascriptParser<'p>,
+    _expr: WriteExpression,
+    _span: Span,
+    _for_name: &str,
+  ) -> Option<bool> {
+    None
+  }
+
+  /// The `write` hook for a member target such as `a.b = 1`, `a.b++`,
+  /// `[a.b] = c` or `for (a.b of c)`. `span` is the member expression.
+  ///
+  /// `assign_member_chain` runs first for the target of an assignment
+  /// expression. Unlike that hook, a plugin handling this one owns only the
+  /// target: the parser walks the right-hand side itself.
+  fn write_member_chain(
+    &self,
+    _parser: &mut JavascriptParser<'p>,
+    _expr: WriteExpression,
+    _span: Span,
     _members: &[Atom],
     _member_ranges: &[Span],
     _for_name: &str,

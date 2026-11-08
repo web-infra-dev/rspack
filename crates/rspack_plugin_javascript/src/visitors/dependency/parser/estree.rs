@@ -6,12 +6,14 @@
 use rspack_intern::Atom;
 use rspack_util::swc::AstSubRangeExt;
 use swc_next_ecma_ast::{
-  Ast, BindingIdentifier, BindingPattern, ExportAllDeclaration as SwcExportAllDeclaration,
+  AssignmentExpression, Ast, BindingIdentifier, BindingPattern,
+  ExportAllDeclaration as SwcExportAllDeclaration,
   ExportDefaultDeclaration as SwcExportDefaultDeclaration, ExportDefaultDeclarationKind,
-  ExportNamedDeclaration as SwcExportNamedDeclaration, Expr, ExprData, FormalParameterPattern,
-  FormalParameterPatternData, FormalParameters, GetSpan, IdentifierReference, ImportAttribute,
-  JsxMemberExpression, MemberExpression, ModuleExportName, ModuleExportNameData,
-  SimpleAssignmentTarget, SimpleAssignmentTargetData, Span, SubRange,
+  ExportNamedDeclaration as SwcExportNamedDeclaration, Expr, ExprData, ForInStatement,
+  ForOfStatement, FormalParameterPattern, FormalParameterPatternData, FormalParameters, GetSpan,
+  IdentifierReference, ImportAttribute, JsxMemberExpression, MemberExpression, ModuleExportName,
+  ModuleExportNameData, SimpleAssignmentTarget, SimpleAssignmentTargetData, Span, SubRange,
+  UpdateExpression,
 };
 
 /// An identifier visited by pattern hooks, either in a binding or an assignment.
@@ -63,6 +65,15 @@ impl HookMemberExpression {
       Self::Jsx(_) => None,
     }
   }
+}
+
+/// The construct that performs a write, as seen by the write hooks.
+#[derive(Debug, Clone, Copy)]
+pub enum WriteExpression {
+  Assign(AssignmentExpression),
+  Update(UpdateExpression),
+  ForIn(ForInStatement),
+  ForOf(ForOfStatement),
 }
 
 impl From<MemberExpression> for HookMemberExpression {
