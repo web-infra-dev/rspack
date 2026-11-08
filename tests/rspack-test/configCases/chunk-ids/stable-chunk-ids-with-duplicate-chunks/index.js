@@ -5,8 +5,8 @@ export default async () => {
 };
 
 it("should have stable chunkIds and chunk content", async () => {
-	const fs = __non_webpack_require__("fs");
-	const path = __non_webpack_require__("path");
+	const fs = require("fs");
+	const path = require("path");
 	const files = (await fs.promises.readdir(__dirname)).filter(file => file.startsWith("node_modules_cell_index_js-") || file.startsWith("node_modules_row_index_js-"));
 	let snapshot = "";
 	for (const file of files) {

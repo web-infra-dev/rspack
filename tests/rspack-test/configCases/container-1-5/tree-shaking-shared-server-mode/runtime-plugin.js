@@ -10,7 +10,7 @@ module.exports = function () {
       if (entry.includes('PUBLIC_PATH')) {
         const relativePath = entry.replace('PUBLIC_PATH', './');
         globalThis[entryGlobalName] =
-          __non_webpack_require__(relativePath)[entryGlobalName];
+          eval("require")(relativePath)[entryGlobalName];
         return globalThis[entryGlobalName];
       }
     },

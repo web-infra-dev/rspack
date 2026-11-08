@@ -1,0 +1,58 @@
+use super::{Cache, memory::MemoryCache, persistent::PersistentCache};
+use crate::Compilation;
+
+/// Combines process-local and persistent build caches.
+#[derive(Debug)]
+pub struct MixedCache {
+  persistent: PersistentCache,
+  memory: MemoryCache,
+}
+
+impl MixedCache {
+  pub fn new(persistent: PersistentCache) -> Self {
+    Self {
+      persistent,
+      memory: MemoryCache::default(),
+    }
+  }
+}
+
+#[async_trait::async_trait]
+impl Cache for MixedCache {
+  async fn before_compile(&mut self, compilation: &mut Compilation) -> bool {
+    if compilation.is_rebuild {
+      self.memory.before_compile(compilation).await
+    } else {
+      self.persistent.before_compile(compilation).await
+    }
+  }
+
+  async fn after_compile(&mut self, compilation: &Compilation) {
+    self.persistent.after_compile(compilation).await;
+  }
+
+  async fn before_build_module_graph(&mut self, compilation: &mut Compilation) {
+    self.persistent.before_build_module_graph(compilation).await;
+  }
+
+  async fn after_build_module_graph(&mut self, compilation: &Compilation) {
+    self.persistent.after_build_module_graph(compilation).await;
+  }
+
+  async fn before_process_assets(&mut self, compilation: &mut Compilation) {
+    self.memory.before_process_assets(compilation).await;
+    self.persistent.before_process_assets(compilation).await;
+  }
+
+  async fn after_process_assets(&mut self, compilation: &Compilation) {
+    self.persistent.after_process_assets(compilation).await;
+  }
+
+  fn store_hot_cache(&mut self, compilation: &mut Compilation) {
+    self.memory.store_hot_cache(compilation);
+  }
+
+  async fn close(&self) {
+    self.persistent.close().await;
+  }
+}

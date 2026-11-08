@@ -2,9 +2,7 @@
 description: 'Rspack 支持 tree shaking 功能，这是一个在 JavaScript 生态中广泛使用的术语，主要用于去除未被访问的代码，俗称“死代码”。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.docschina.org/guides/tree-shaking/" />
+import Attribution from '@components/Attribution';
 
 # Tree shaking
 
@@ -27,8 +25,16 @@ Rspack 支持 [tree shaking](https://developer.mozilla.org/zh-CN/docs/Glossary/T
 - 将 Rspack 的 [mode](/config/mode) 设置为 `production` 以启用相关优化。
   - 在执行生产环境构建时，`mode` 默认为 `production`。
 - 使用 ES modules 语法（即 `import` 和 `export`）。
-  - 在使用 SWC 或 Babel 等编译器时，确保它们没有将 ES modules 语法转换为 CommonJS。
-  - 例如在 [@babel/preset-env](https://babeljs.io/docs/en/babel-preset-env) 中，需要将 `modules` 选项设置为 `false`。
+  - 使用 SWC 或 Babel 等编译器时，确保它们保留 ES modules 语法。例如，将 [@babel/preset-env](https://babeljs.io/docs/en/babel-preset-env) 中的 `modules` 选项设置为 `false`。
+
+Rspack 分析的是 loader 处理后的代码。例如，loader 将 ES modules 转换为 CommonJS 时，导出语句可能会变成这样：
+
+```diff
+- export const unused = 1;
++ exports.unused = 1;
+```
+
+这种转换可能影响 tree shaking 的效果。如果构建产物中仍然包含未使用的导出，请检查 loader 或编译器的配置，确保它们保留 ES modules 语法。
 
 ## 配置项
 
@@ -192,7 +198,7 @@ export const foo = 42;
 `/*#__NO_SIDE_EFFECTS__*/` 是一项遵循社区[规范](https://github.com/javascript-compiler-hints/compiler-notations-spec/blob/main/no-side-effects-notation-spec.md) 的特性。与 `/*#__PURE__*/` 标记在调用方不同，`/*#__NO_SIDE_EFFECTS__*/` 用于标记**函数的定义**，声明该函数在被调用时不会产生副作用。
 相比 `/*#__PURE__*/`，它的优势在于只需在定义处标记一次，所有调用都会受益。
 
-该功能目前处于实验阶段，需要通过下面的实验性 feature 开关开启，且依赖于 [optimization.sideEffects](/config/optimization#optimizationsideeffects)（sideEffects 在生产模式下默认开启）：
+该功能目前处于实验阶段，由 `experiments.pureFunctions` 控制；该选项在生产模式下默认开启。它还依赖 [optimization.sideEffects](/config/optimization#optimizationsideeffects) 为 `true`（sideEffects 在生产模式下默认值为 `true`）：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -231,7 +237,7 @@ export function baz() {}
 配置方式请参考 [`experiments.pureFunctions`](/config/experiments#experimentspurefunctions) 和 [`module.parser.javascript.pureFunctions`](/config/module-parser#javascriptpurefunctions)。
 
 :::warning
-该选项目前是实验能力，且只有在启用 `experiments.pureFunctions` 时才会生效。
+该选项目前是实验能力，且只有在启用 `experiments.pureFunctions` 时才会生效；该实验选项在生产模式下默认开启。
 :::
 
 :::note
@@ -271,3 +277,5 @@ export default {
 ```
 
 Rspack 会校验 `pureFunctions` 中配置的每个名字是否能在命中模块中解析到顶层绑定；如果找不到，就会发出警告。
+
+<Attribution url="https://webpack.docschina.org/guides/tree-shaking/" />

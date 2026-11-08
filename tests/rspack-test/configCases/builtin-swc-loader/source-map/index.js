@@ -6,10 +6,14 @@ it("should generate correct sourceMap", async () => {
 	const source = fs.readFileSync(__filename + ".map", "utf-8");
 	const map = JSON.parse(source);
 	const sourceContent = fs.readFileSync(
-		__dirname + "/" + require("!!./a.ts?resource"),
+		__dirname + "/" + require("!./a.ts?resource"),
 		"utf-8"
 	);
-	const aSourceIndex = map.sources.indexOf("webpack:///./a.ts");
+	let aSource = "webpack:///./a.ts";
+	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+		aSource = "rspack:///./a.ts";
+	}
+	const aSourceIndex = map.sources.indexOf(aSource);
 	expect(aSourceIndex).toBeGreaterThanOrEqual(0);
 	expect(map.sourcesContent[aSourceIndex]).toEqual(sourceContent);
 

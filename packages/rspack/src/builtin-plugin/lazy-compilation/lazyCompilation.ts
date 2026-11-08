@@ -6,19 +6,19 @@ import { create } from '../base';
 export const BuiltinLazyCompilationPlugin = create(
   BuiltinPluginName.LazyCompilationPlugin,
   (
-    currentActiveModules: () => Set<string>,
+    takeNewlyActiveModules: () => Set<string>,
     entries: boolean,
     imports: boolean,
     client: string,
-    reservedExternals: string[],
+    collectReservedExternals: (layer?: string | null) => string[],
     test?: RegExp | ((module: Module) => boolean),
   ) => ({
     imports,
     entries,
     test,
     client,
-    currentActiveModules,
-    reservedExternals,
+    takeNewlyActiveModules,
+    collectReservedExternals,
   }),
   'thisCompilation',
 );

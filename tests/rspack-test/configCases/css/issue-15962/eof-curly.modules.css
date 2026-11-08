@@ -1,0 +1,3 @@
+.eofCurlyRecovery {
+	/* EOF closes the sole curly value without turning it into a rule body. */
+	color:{.opaqueAtEof

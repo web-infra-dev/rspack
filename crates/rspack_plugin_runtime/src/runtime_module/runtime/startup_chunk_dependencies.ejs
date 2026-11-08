@@ -1,4 +1,4 @@
-var next = <%- STARTUP %>
-<%- STARTUP %> = <%- basicFunction("") %> {
+<%- var("next") %> = <%- STARTUP %>
+<%- define(STARTUP) %> = <%- basicFunction("") %> {
   <%- _body %>
 }

@@ -7,7 +7,7 @@ import "./outside_index_js.mjs";
 
 it('should not produce duplicate chunk names when entry module is moved', () => {
   expect((/* inlined export .value */"lib")).toBe('lib')
-})
+});
 
 export {};
 
@@ -18,7 +18,7 @@ export {};
 // This module is outside the preserveModules root (src/)
 // It stays in the original entry chunk, which should NOT
 // retain the entry name after the entry module is moved out.
-console.log.bind(console)
+console.log.bind(console);
 
 export {};
 

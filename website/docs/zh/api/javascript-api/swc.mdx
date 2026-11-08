@@ -72,7 +72,7 @@ class MyPlugin {
   apply(compiler) {
     const { swc } = compiler.rspack.experiments;
 
-    compiler.hooks.emit.tapAsync('MyPlugin', (compilation, callback) => {
+    compiler.hooks.emit.tap('MyPlugin', (compilation) => {
       const customCode = `
         const a = 10;
         const b = 20;
@@ -101,7 +101,7 @@ Rspack 底层使用 SWC 来转换和压缩 JavaScript 代码。上述 API 接受
 
 ```ts
 declare namespace rspack {
-  namespace experimental {
+  namespace experiments {
     declare const swc: {
       transform(
         code: string,

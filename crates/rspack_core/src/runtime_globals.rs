@@ -2,9 +2,8 @@ use std::sync::LazyLock;
 
 use bitflags::bitflags;
 use heck::ToLowerCamelCase;
+use rspack_hash::{RspackHash, RspackHasher};
 use rustc_hash::FxHashMap;
-
-use crate::{CompilerOptions, runtime_mode::RuntimeMode};
 
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
@@ -283,6 +282,10 @@ define_runtime_globals! {
 
   const HAS_CSS_MODULES;
 
+  const CSS_INJECT_STYLE;
+
+  const CSS_STYLE_SHEET;
+
   // rspack only
   const RSPACK_UNIQUE_ID;
 
@@ -306,6 +309,16 @@ define_runtime_globals! {
 
   // react server component
   const RSC_MANIFEST;
+
+  // reexport
+  const REEXPORT;
+
+  // Exports objects shared by deferred namespaces and the module bootstrap.
+  const DEFERRED_MODULE_EXPORTS;
+
+  /// Expected JavaScript versions of asynchronously loadable chunks.
+  const HMR_CHUNK_VERSIONS;
+
 }
 
 impl Default for RuntimeGlobals {
@@ -325,7 +338,11 @@ pub static REQUIRE_SCOPE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
       | RuntimeGlobals::EXPORTS
       | RuntimeGlobals::THIS_AS_EXPORTS
       | RuntimeGlobals::HAS_CSS_MODULES
-      | RuntimeGlobals::HAS_FETCH_PRIORITY,
+      | RuntimeGlobals::HAS_FETCH_PRIORITY
+      | RuntimeGlobals::STARTUP_NO_DEFAULT
+      | RuntimeGlobals::STARTUP_CHUNK_DEPENDENCIES
+      | RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES
+      | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY,
   );
   runtime_globals
 });
@@ -340,17 +357,13 @@ pub static BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS: LazyLock<RuntimeGlobals> = LazyLoc
     | RuntimeGlobals::MODULE_FACTORIES
     | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY
     | RuntimeGlobals::MODULE_CACHE
+    | RuntimeGlobals::DEFERRED_MODULE_EXPORTS
     | RuntimeGlobals::ON_CHUNKS_LOADED
     | RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
     | RuntimeGlobals::STARTUP_ENTRYPOINT
     | RuntimeGlobals::STARTUP
-});
-
-pub static HOT_RUNTIME_WRITE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
-  RuntimeGlobals::HMR_DOWNLOAD_MANIFEST
-    | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
-    | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
-    | RuntimeGlobals::HMR_MODULE_DATA
+    | RuntimeGlobals::CSS_INJECT_STYLE
+    | RuntimeGlobals::CSS_STYLE_SHEET
 });
 
 pub static INITIALIZE_OBJECT_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
@@ -371,6 +384,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::MODULE_ID => "id",
     RuntimeGlobals::MODULE_LOADED => "loaded",
     RuntimeGlobals::MODULE_CACHE => "c",
+    RuntimeGlobals::DEFERRED_MODULE_EXPORTS => "zD",
     RuntimeGlobals::ENSURE_CHUNK => "e",
     RuntimeGlobals::ENSURE_CHUNK_HANDLERS => "f",
     RuntimeGlobals::PUBLIC_PATH => "p",
@@ -385,6 +399,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::INTERCEPT_MODULE_EXECUTION => "i",
     RuntimeGlobals::HMR_DOWNLOAD_MANIFEST => "hmrM",
     RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS => "hmrC",
+    RuntimeGlobals::HMR_CHUNK_VERSIONS => "hmrV",
     RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS => "hmrI",
     RuntimeGlobals::HMR_MODULE_DATA => "hmrD",
     RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX => "hmrS",
@@ -408,6 +423,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::CREATE_SCRIPT => "ts",
     RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => "tt",
     RuntimeGlobals::DEFINE_PROPERTY_GETTERS => "d",
+    RuntimeGlobals::REEXPORT => "re",
     RuntimeGlobals::ENTRY_MODULE_ID => "s",
     RuntimeGlobals::STARTUP_NO_DEFAULT => "x (no default handler)",
     RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES => "f (include entries)",
@@ -439,6 +455,8 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::RSPACK_VERSION => "rv",
     RuntimeGlobals::RSPACK_UNIQUE_ID => "ruid",
     RuntimeGlobals::HAS_CSS_MODULES => "has css modules",
+    RuntimeGlobals::CSS_INJECT_STYLE => "is",
+    RuntimeGlobals::CSS_STYLE_SHEET => "css",
     RuntimeGlobals::ASYNC_STARTUP => "asyncStartup",
     RuntimeGlobals::HAS_FETCH_PRIORITY => "has fetch priority",
 
@@ -492,16 +510,6 @@ pub enum RuntimeVariable {
   StartupExec,
 }
 
-pub fn runtime_variable_to_string(
-  runtime_variable: &RuntimeVariable,
-  compiler_options: &CompilerOptions,
-) -> String {
-  match compiler_options.experiments.runtime_mode {
-    RuntimeMode::Webpack => runtime_variable_name(runtime_variable).to_string(),
-    RuntimeMode::Rspack => rspack_runtime_variable_name(runtime_variable).to_string(),
-  }
-}
-
 pub fn rspack_runtime_variable_name(runtime_variable: &RuntimeVariable) -> &'static str {
   match *runtime_variable {
     RuntimeVariable::Require => "__rspack_require",
@@ -511,6 +519,18 @@ pub fn rspack_runtime_variable_name(runtime_variable: &RuntimeVariable) -> &'sta
     RuntimeVariable::Exports => "__rspack_exports",
     RuntimeVariable::Module => "__rspack_module",
     RuntimeVariable::StartupExec => "__rspack_exec",
+  }
+}
+
+pub fn rspack_export_runtime_variable_name(runtime_variable: &RuntimeVariable) -> &'static str {
+  match *runtime_variable {
+    RuntimeVariable::Require => "rspackRequire",
+    RuntimeVariable::Context => "context",
+    RuntimeVariable::Modules => "modules",
+    RuntimeVariable::ModuleCache => "moduleCache",
+    RuntimeVariable::Exports => "exports",
+    RuntimeVariable::Module => "module",
+    RuntimeVariable::StartupExec => "startupExec",
   }
 }
 
@@ -573,10 +593,6 @@ impl RuntimeGlobals {
     }
   }
 
-  pub fn name(&self) -> Option<&'static str> {
-    RUNTIME_GLOBAL_MAP.0.get(self).copied()
-  }
-
   pub fn from_property_name(property_name: &str) -> Option<Self> {
     RUNTIME_GLOBAL_MAP.2.get(property_name).copied()
   }
@@ -603,6 +619,15 @@ impl RuntimeGlobals {
 
   pub fn to_lexical_name(&self) -> Option<&str> {
     RUNTIME_GLOBAL_MAP.3.get(self).map(String::as_str)
+  }
+
+  pub fn to_rspack_export_setter_name(&self) -> Option<String> {
+    let name = self.to_lexical_name()?;
+    let mut setter = String::with_capacity(name.len() + 3);
+    setter.push_str("set");
+    setter.push(name.as_bytes()[0].to_ascii_uppercase() as char);
+    setter.push_str(&name[1..]);
+    Some(setter)
   }
 
   pub fn should_initialize_as_object(&self) -> bool {
@@ -638,5 +663,11 @@ impl RuntimeGlobals {
       }
     }
     res
+  }
+}
+
+impl RspackHash for RuntimeGlobals {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.bits().hash(state);
   }
 }

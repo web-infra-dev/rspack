@@ -9,6 +9,10 @@ it("import.meta.url.xxx", () => {
 	);
 });
 
+it("should preserve optional calls on supported import.meta properties", () => {
+	expect(import.meta.url?.toString()).toBe(url);
+});
+
 it('import.meta?.env?.X', () => {
 	expect(import.meta?.env?.X).toBeUndefined();
 	expect(typeof import.meta?.env?.X).toBe("undefined");

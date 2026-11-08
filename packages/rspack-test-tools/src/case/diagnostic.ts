@@ -2,7 +2,7 @@ import assert from 'node:assert';
 import path from 'node:path';
 import type { RspackOptions } from '@rspack/core';
 import merge from 'rspack-merge';
-import { readConfigFile } from '../helper';
+import { readConfigFile, RSPACK_CONFIG_FILES } from '../helper';
 import { normalizePlaceholder } from '../helper/expect/placeholder';
 import { BasicCaseCreator } from '../test/creator';
 import type { ITestContext, ITestEnv } from '../type';
@@ -16,9 +16,7 @@ const creator = new BasicCaseCreator({
         const compiler = context.getCompiler();
         let options = defaultOptions(context);
         const custom = readConfigFile(
-          ['rspack.config.js', 'webpack.config.js'].map((i) =>
-            context.getSource(i),
-          ),
+          RSPACK_CONFIG_FILES.map((i) => context.getSource(i)),
           context,
           options,
         )[0];

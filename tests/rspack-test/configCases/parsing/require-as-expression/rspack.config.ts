@@ -1,0 +1,21 @@
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  entry: {
+    bundle0: './index.js',
+    test: './test.js',
+  },
+  module: {
+    parser: {
+      javascript: {
+        requireAsExpression: false,
+      },
+    },
+  },
+  output: {
+    filename: '[name].js',
+  },
+  node: {
+    __dirname: false,
+  },
+});

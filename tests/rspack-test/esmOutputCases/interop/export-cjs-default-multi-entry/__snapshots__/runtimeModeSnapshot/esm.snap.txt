@@ -1,0 +1,99 @@
+```mjs title=foo.mjs
+import { rspackRequire, moduleFactories, compatGetDefaultExport } from "./runtime.mjs";
+moduleFactories.add({
+"./foo.cjs"
+/*!*****************!*\
+  !*** ./foo.cjs ***!
+  \*****************/
+(module) {
+module.exports = 42;
+
+
+},
+});
+rspackRequire("./foo.cjs");
+
+export {};
+
+```
+
+```mjs title=main.mjs
+import { rspackRequire, compatGetDefaultExport } from "./runtime.mjs";
+import "./foo.mjs";
+
+// ./index.js
+
+
+it('should re-export a CommonJS default from another entry', async () => {
+  const { value } = await import(
+    /* webpackIgnore: true */ './main.mjs'
+  );
+  expect(value).toBe(42);
+});
+
+const foo = rspackRequire("./foo.cjs");
+var foo_default = /*#__PURE__*/compatGetDefaultExport(foo);
+var foo_default_0 = foo_default();
+
+export { foo_default_0 as value };
+
+```
+
+```mjs title=runtime.mjs
+
+var modules = {};
+// The module cache
+var moduleCache = {};
+// The require function
+function rspackRequire(moduleId) {
+// Check if module is in cache
+var cachedModule = moduleCache[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (moduleCache[moduleId] = {
+exports: {}
+});
+// Execute the module function
+modules[moduleId](module, module.exports, rspackRequire);
+
+// Return the exports of the module
+return module.exports;
+}
+export { rspackRequire };
+// expose the modules object (modules)
+var moduleFactories = modules;
+export { moduleFactories };
+
+// rspack/runtime/compat_get_default_export
+// getDefaultExport function for compatibility with non-ESM modules
+var compatGetDefaultExport = (module) => {
+	var getter = module && module.__esModule ?
+		() => (module['default']) :
+		() => (module);
+	definePropertyGetters(getter, { a: getter });
+	return getter;
+};
+;
+export { compatGetDefaultExport };
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+// rspack/runtime/esm_register_module
+moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
+;
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+
+
+```

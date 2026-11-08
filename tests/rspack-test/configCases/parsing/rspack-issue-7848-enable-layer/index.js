@@ -1,5 +1,5 @@
-const fs = __non_webpack_require__("node:fs");
-const path = __non_webpack_require__("node:path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const a1 = __webpack_layer__ === "main" ? "yes" : "no";
 const a2 = __RUNTIME_TYPE__ === "main" ? "yes" : "no";

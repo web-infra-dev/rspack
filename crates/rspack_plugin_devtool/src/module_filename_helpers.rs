@@ -1,15 +1,12 @@
-use std::{
-  borrow::Cow,
-  cell::OnceCell,
-  hash::{Hash, Hasher},
-  path::Path,
-};
+use std::{borrow::Cow, cell::OnceCell, path::Path, sync::LazyLock};
 
 use cow_utils::CowUtils;
-use rspack_core::{ChunkGraph, Compilation, OutputOptions, contextify};
+use regex::Regex;
+use rspack_core::{ChunkGraph, Compilation, OutputOptions, contextify, runtime_mode::RuntimeMode};
 use rspack_error::Result;
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::Utf8Path;
+use rspack_util::identifier::split_at_query_mark;
 use rustc_hash::FxHashMap as HashMap;
 use sugar_path::SugarPath;
 
@@ -32,8 +29,8 @@ fn get_hash(text: &str, output_options: &OutputOptions) -> String {
     hash_salt,
     ..
   } = output_options;
-  let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
-  text.as_bytes().hash(&mut hasher);
+  let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
+  text.hash(&mut hasher);
   let mut buf = format!("{:x}", hasher.finish());
   buf.truncate(4);
   buf
@@ -41,14 +38,36 @@ fn get_hash(text: &str, output_options: &OutputOptions) -> String {
 
 pub struct ModuleFilenameHelpers;
 
+static DEFAULT_RESOURCE_PATH_TEMPLATE_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(r"^(webpack://|rspack://)\[namespace\]/\[resourcePath\]$")
+    .expect("failed to compile DEFAULT_RESOURCE_PATH_TEMPLATE_REGEXP regex")
+});
+
+fn default_resource_path_template_scheme(module_filename_template: &str) -> Option<&str> {
+  DEFAULT_RESOURCE_PATH_TEMPLATE_REGEXP
+    .captures(module_filename_template)
+    .and_then(|captures| captures.get(1).map(|scheme| scheme.as_str()))
+}
+
 // sources in a source map should be relative/URL-style (not absolute filesystem paths)
 fn resolve_relative_resource_path(
   absolute_resource_path: &str,
   source_map_path: Option<&Utf8Path>,
+  runtime_mode: RuntimeMode,
 ) -> Option<String> {
-  if absolute_resource_path.starts_with("webpack/runtime") {
-    // Webpack runtime modules are virtual
-    return Some(format!("webpack://{absolute_resource_path}"));
+  if absolute_resource_path.starts_with("webpack/runtime")
+    || absolute_resource_path.starts_with("rspack/runtime")
+    || matches!(
+      absolute_resource_path,
+      "webpack/bootstrap" | "webpack/startup" | "rspack/bootstrap" | "rspack/startup"
+    )
+  {
+    // Runtime modules, bootstrap, and startup are virtual.
+    let scheme = match runtime_mode {
+      RuntimeMode::Webpack => "webpack",
+      RuntimeMode::Rspack => "rspack",
+    };
+    return Some(format!("{scheme}://{absolute_resource_path}"));
   }
 
   let Some(source_map_path) = source_map_path else {
@@ -98,27 +117,49 @@ impl ModuleFilenameHelpers {
 
         let short_identifier = module.readable_identifier(context).to_string();
         let identifier = contextify(context, module_identifier);
+        // Readable identifiers may contain display-only prefixes such as `css `.
+        let resource_identifier = match module.as_normal_module() {
+          Some(normal_module) => contextify(context, normal_module.user_request()),
+          None => short_identifier.clone(),
+        };
         let module_id =
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
             .map(|s| s.to_string())
             .unwrap_or_default();
-        let absolute_resource_path = module
-          .identifier()
-          .split('!')
-          .next_back()
-          .unwrap_or("")
-          .to_string();
+        let absolute_resource_path = match module.as_normal_module() {
+          Some(normal_module) => normal_module.resource_resolved_data().path().map_or_else(
+            || {
+              module
+                .identifier()
+                .split('!')
+                .next_back()
+                .unwrap_or("")
+                .to_string()
+            },
+            |p| p.to_string(),
+          ),
+          None => module
+            .identifier()
+            .split('!')
+            .next_back()
+            .unwrap_or("")
+            .to_string(),
+        };
 
         let hash = get_hash(&identifier, output_options);
 
-        let resource = short_identifier
+        let resource = resource_identifier
           .split('!')
           .next_back()
           .unwrap_or("")
           .to_string();
-        let relative_resource_path = Some(resource.clone());
+        let relative_resource_path = resolve_relative_resource_path(
+          &absolute_resource_path,
+          unresolved_source_map_path,
+          options.experiments.runtime_mode,
+        );
 
-        let loaders = get_before(&short_identifier, "!").to_string();
+        let loaders = get_before(&resource_identifier, "!").to_string();
         let all_loaders = get_before(&identifier, "!").to_string();
         let query = get_after(&resource, "?").to_string();
 
@@ -168,8 +209,11 @@ impl ModuleFilenameHelpers {
         };
 
         let absolute_resource_path = source.split('!').next_back().unwrap_or("").to_string();
-        let relative_resource_path =
-          resolve_relative_resource_path(&absolute_resource_path, unresolved_source_map_path);
+        let relative_resource_path = resolve_relative_resource_path(
+          &absolute_resource_path,
+          unresolved_source_map_path,
+          options.experiments.runtime_mode,
+        );
 
         ModuleFilenameTemplateFnCtx {
           short_identifier,
@@ -216,8 +260,8 @@ impl ModuleFilenameHelpers {
     namespace: &str,
     unresolved_source_map_path: Option<&Utf8Path>,
   ) -> String {
-    if module_filename_template == "webpack://[namespace]/[resourcePath]" {
-      return create_default_module_filename(source_reference, compilation, namespace);
+    if let Some(scheme) = default_resource_path_template_scheme(module_filename_template) {
+      return create_default_module_filename(source_reference, compilation, namespace, scheme);
     }
 
     let ctx = ModuleFilenameHelpers::create_module_filename_template_string_ctx(
@@ -279,6 +323,7 @@ impl ModuleFilenameHelpers {
       unresolved_source_map_path,
       short_identifier: Default::default(),
       identifier: Default::default(),
+      resource_identifier: Default::default(),
     }
   }
 }
@@ -287,6 +332,7 @@ fn create_default_module_filename(
   source_reference: &SourceReference,
   compilation: &Compilation,
   namespace: &str,
+  scheme: &str,
 ) -> String {
   let Compilation { options, .. } = compilation;
   let context = &options.context;
@@ -305,11 +351,10 @@ fn create_default_module_filename(
   };
 
   let resource = short_identifier.split('!').next_back().unwrap_or("");
-  let resource_path = resource.split_once('?').map_or(resource, |(path, _)| path);
+  let resource_path = split_at_query_mark(resource).0;
 
-  let mut result =
-    String::with_capacity("webpack://".len() + namespace.len() + 1 + resource_path.len());
-  result.push_str("webpack://");
+  let mut result = String::with_capacity(scheme.len() + namespace.len() + 1 + resource_path.len());
+  result.push_str(scheme);
   result.push_str(namespace);
   result.push('/');
   result.push_str(resource_path);
@@ -326,6 +371,7 @@ struct ModuleFilenameTemplateStringCtx<'a> {
   // Lazy fields using OnceCell for caching
   short_identifier: OnceCell<Cow<'a, str>>,
   identifier: OnceCell<Cow<'a, str>>,
+  resource_identifier: OnceCell<Cow<'a, str>>,
 }
 
 impl<'a> ModuleFilenameTemplateStringCtx<'a> {
@@ -385,17 +431,22 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
   }
 
   pub fn relative_resource_path(&self) -> Option<Cow<'_, str>> {
-    match &self.source_reference {
-      SourceReference::Module(_) => {
-        let short_identifier = self.short_identifier();
-        let resource = short_identifier.split('!').next_back().unwrap_or("");
-        Some(Cow::Borrowed(resource))
+    let absolute_resource_path = self.absolute_resource_path();
+    let resolved = resolve_relative_resource_path(
+      absolute_resource_path,
+      self.unresolved_source_map_path,
+      self.compilation.options.experiments.runtime_mode,
+    );
+
+    match (resolved, &self.source_reference) {
+      (Some(path), _) => Some(Cow::Owned(path)),
+      (None, SourceReference::Module(_)) => {
+        // Eval devtool modes have no source map file path to resolve against.
+        let resource_identifier = self.resource_identifier();
+        let resource = resource_identifier.split('!').next_back().unwrap_or("");
+        Some(Cow::Owned(resource.to_string()))
       }
-      SourceReference::Source(_) => {
-        let absolute_resource_path = self.absolute_resource_path();
-        resolve_relative_resource_path(absolute_resource_path, self.unresolved_source_map_path)
-          .map(Cow::Owned)
-      }
+      (None, SourceReference::Source(_)) => None,
     }
   }
 
@@ -405,13 +456,37 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
   }
 
   pub fn resource(&self) -> &str {
-    let short_identifier = self.short_identifier();
-    short_identifier.split('!').next_back().unwrap_or("")
+    let resource_identifier = self.resource_identifier();
+    resource_identifier.split('!').next_back().unwrap_or("")
   }
 
   pub fn loaders(&self) -> &str {
-    let short_identifier = self.short_identifier();
-    get_before(short_identifier, "!")
+    let resource_identifier = self.resource_identifier();
+    get_before(resource_identifier, "!")
+  }
+
+  /// Returns the request path without readable-identifier decorations such as `css `.
+  pub fn resource_identifier(&self) -> &str {
+    self.resource_identifier.get_or_init(|| {
+      let Compilation { options, .. } = self.compilation;
+      let context = &options.context;
+
+      match &self.source_reference {
+        SourceReference::Module(module_identifier) => {
+          let module_graph = self.compilation.get_module_graph();
+          let module = module_graph
+            .module_by_identifier(module_identifier)
+            .unwrap_or_else(|| {
+              panic!("failed to find a module for the given identifier '{module_identifier}'")
+            });
+          match module.as_normal_module() {
+            Some(normal_module) => Cow::Owned(contextify(context, normal_module.user_request())),
+            None => module.readable_identifier(context),
+          }
+        }
+        SourceReference::Source(source) => Cow::Owned(contextify(context, source)),
+      }
+    })
   }
 
   pub fn all_loaders(&self) -> &str {

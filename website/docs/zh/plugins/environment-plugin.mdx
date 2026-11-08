@@ -1,0 +1,144 @@
+---
+description: '使用 EnvironmentPlugin 将指定的 process.env 变量注入打包代码，并为其设置可选的默认值。'
+---
+
+import Attribution from '@components/Attribution';
+
+# EnvironmentPlugin
+
+`EnvironmentPlugin` 是通过 [`DefinePlugin`](/plugins/define-plugin) 定义指定 [`process.env`](https://nodejs.org/api/process.html#process_process_env) 变量的简写。它会在 Rspack 创建编译器并应用插件时，从当前 Node.js 进程的 `process.env` 中读取指定变量。读取结果会作为常量写入打包产物，应用运行时不会再次读取这些环境变量。
+
+## 示例
+
+### 基本使用
+
+可以将环境变量名作为多个参数传入，也可以传入一个字符串数组。以下两种写法等价：
+
+```js
+new rspack.EnvironmentPlugin('NODE_ENV', 'DEBUG');
+
+new rspack.EnvironmentPlugin(['NODE_ENV', 'DEBUG']);
+```
+
+这两种写法都等同于以下 `DefinePlugin` 配置：
+
+```js
+new rspack.DefinePlugin({
+  'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+  'process.env.DEBUG': JSON.stringify(process.env.DEBUG),
+});
+```
+
+如果指定的变量不存在且未提供默认值，编译会失败并报告 `EnvVariableNotDefinedError`。
+
+### 使用默认值
+
+传入对象可以为每个环境变量设置默认值。读取变量时，如果当前 Node.js 进程的 `process.env` 中不存在对应变量，则使用对象中提供的默认值。
+
+```js
+new rspack.EnvironmentPlugin({
+  NODE_ENV: 'development',
+  DEBUG: false,
+});
+```
+
+`EnvironmentPlugin` 会先使用 `JSON.stringify` 序列化默认值，再将其传给 `DefinePlugin`。因此，与 JSON 兼容的默认值会保留自身类型：上述 `false` 会作为布尔值而不是字符串注入。
+
+将默认值设置为 `undefined` 表示该变量是必需的，缺少该变量会导致编译失败。如果变量是可选的，可以使用 `null` 作为后备值。
+
+使用 CLI 时，应在启动 Rspack 命令前设置环境变量；使用 Node.js API 时，应在调用 `rspack(options)` 前设置。编译器创建后再修改 `process.env`，不会更新 `EnvironmentPlugin` 已生成的定义。
+
+例如，假设 `entry.js` 包含以下代码：
+
+```js
+if (process.env.NODE_ENV === 'production') {
+  console.log('Welcome to production');
+}
+if (process.env.DEBUG) {
+  console.log('Debugging output');
+}
+```
+
+`EnvironmentPlugin` 读取变量时，如果 `process.env.NODE_ENV` 为 `'production'`，而 `process.env.DEBUG` 为 `undefined`，替换结果等同于：
+
+```js
+if ('production' === 'production') {
+  // process.env.NODE_ENV 取自环境变量
+  console.log('Welcome to production');
+}
+if (false) {
+  // process.env.DEBUG 使用默认值
+  console.log('Debugging output');
+}
+```
+
+`EnvironmentPlugin` 读取变量时，如果 `process.env.DEBUG` 为 `'false'`，而 `process.env.NODE_ENV` 为 `undefined`，替换结果等同于：
+
+```js
+if ('development' === 'production') {
+  // process.env.NODE_ENV 使用默认值
+  console.log('Welcome to production');
+}
+if ('false') {
+  // process.env.DEBUG 取自环境变量
+  console.log('Debugging output');
+}
+```
+
+:::tip 提示
+`EnvironmentPlugin` 从 `process.env` 读取到的环境变量值始终是字符串。即使将 `DEBUG` 设置为 `false`，注入代码的仍是字符串 `'false'`，而不是布尔值 `false`。
+:::
+
+### 使用 Git 元数据
+
+默认值也可以在加载 Rspack 配置时动态计算。以下示例会注入当前 Git 提交的版本和作者日期：
+
+```js
+import { execFileSync } from 'node:child_process';
+
+function git(...args) {
+  return execFileSync('git', args, { encoding: 'utf8' }).trim();
+}
+
+new rspack.EnvironmentPlugin({
+  GIT_VERSION: git('describe', '--always'),
+  GIT_AUTHOR_DATE: git('log', '-1', '--format=%aI'),
+});
+```
+
+### 加载 `.env` 文件
+
+`EnvironmentPlugin` 本身不会读取 `.env` 文件。若要从文件中加载变量，可以使用 [`dotenv-webpack`](https://github.com/mrsteele/dotenv-webpack) 等第三方插件：
+
+```text title=".env"
+PUBLIC_API_ORIGIN=https://api.example.com
+FEATURE_ENABLED=true
+```
+
+```js
+import Dotenv from 'dotenv-webpack';
+
+new Dotenv({
+  path: './.env',
+});
+```
+
+只应加载可以安全嵌入客户端代码的值，因为注入的内容可以从生成的产物中读取。
+
+## 选项
+
+- **类型：**
+
+```ts
+declare class EnvironmentPlugin {
+  constructor(...keys: string[]);
+  constructor(keys: string[]);
+  constructor(defaultValues: Record<string, any>);
+}
+```
+
+如果不需要为任何变量设置默认值，可以逐个传入变量名，也可以传入字符串数组。`EnvironmentPlugin` 读取变量时，`process.env` 中缺少任意指定变量都会导致编译失败。
+
+如果需要设置默认值，请使用对象形式。对象中的值为 `undefined` 同样表示不提供默认值，因此对应变量仍必须存在于 `process.env` 中。
+
+<Attribution url="https://webpack.docschina.org/plugins/environment-plugin/" />

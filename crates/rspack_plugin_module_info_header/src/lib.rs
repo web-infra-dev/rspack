@@ -1,16 +1,16 @@
-use std::{borrow::Cow, hash::Hash};
+use std::borrow::Cow;
 
 use rspack_cacheable::with::AsVecConverter;
 use rspack_core::{
-  BuildMetaExportsType, ChunkCodeTemplate, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
-  CompilationParams, CompilerCompilation, ExportInfo, ExportProvided, ExportsInfoArtifact,
-  ExportsInfoData, GetTargetResult, Module, ModuleGraph, ModuleIdentifier, OptimizationBailoutItem,
-  Plugin, UsageState, get_target,
+  BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
+  CompilerCompilation, ExportInfo, ExportProvided, ExportsInfoArtifact, ExportsInfoData,
+  GetTargetResult, Module, ModuleGraph, ModuleIdentifier, OptimizationBailoutItem, Plugin,
+  RuntimeCodeTemplate, UsageState, get_target,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_comment_with_nl,
 };
 use rspack_error::Result;
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_css::{
   CssPlugin,
@@ -202,7 +202,7 @@ async fn chunk_hash(
   &self,
   _compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
-  hasher: &mut RspackHash,
+  hasher: &mut RspackHasher,
 ) -> Result<()> {
   "ModuleInfoHeaderPlugin".hash(hasher);
   "1".hash(hasher);
@@ -238,7 +238,7 @@ async fn render_js_module_package(
   module: &dyn Module,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
   let mut new_source: ConcatSource = Default::default();
 
@@ -247,10 +247,10 @@ async fn render_js_module_package(
   ));
 
   if self.verbose {
-    let export_type = module.build_meta().exports_type;
+    let export_type = module.build_meta().exports_type();
 
     new_source.add(RawStringSource::from(to_comment_with_nl(
-      &module.build_meta().exports_type.to_string(),
+      module.build_meta().exports_type().description(),
     )));
 
     let module_graph = compilation.get_module_graph();

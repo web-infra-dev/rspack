@@ -1,0 +1,14 @@
+.forward { composes: leaf leaf; }
+.leaf {}
+.backward { composes: leaf leaf; }
+.mixed { composes: later; }
+.later {}
+.mixed { composes: later; }
+.external { composes: imported imported from "./leaf.module.css"; }
+.externalAgain { composes: imported from "./leaf.module.css"; }
+.sharedLeft { composes: leaf; }
+.sharedRight { composes: leaf; }
+.sharedTop { composes: sharedLeft sharedRight; }
+.cycleA { composes: cycleB; }
+.cycleB { composes: cycleA; }
+.afterCycle { composes: cycleA cycleB; }

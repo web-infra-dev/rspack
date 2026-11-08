@@ -3,18 +3,21 @@ name: CI Diff
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    # Ignore md files in PR to skip workflow when only documentation changes
+    # Ignore files that do not affect build output to skip unnecessary builds
     paths-ignore:
       - '**/*.md'
+      - '.agents/**'
       - 'website/**'
 
   push:
     branches:
       - main
+      - release/2.3.0
       - v1.x
-    # Ignore md files in push to skip workflow when only documentation changes
+    # Ignore files that do not affect build output to skip unnecessary builds
     paths-ignore:
       - '**/*.md'
+      - '.agents/**'
       - 'website/**'
 
   workflow_dispatch:
@@ -27,7 +30,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.ref_name != 'main' && github.ref_name != 'v1.x' }}
+  cancel-in-progress: ${{ github.ref_name != 'main' && github.ref_name != 'release/2.3.0' && github.ref_name != 'v1.x' }}
 
 permissions:
   # Allow commenting on issues for `reusable-build.yml`
@@ -54,7 +57,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           clean: ${{ runner.environment == 'github-hosted' }}
@@ -96,11 +99,11 @@ jobs:
         run: RSDOCTOR=true CI=true pnpm run build:cases
 
       - name: Report Compressed Size
-        uses: web-infra-dev/rsdoctor-action@96c3d1f7e1d2abf41c1203c3486364c9c4561b60 # v1.1.2
+        uses: web-infra-dev/rsdoctor-action@21f1a9449eedfb4a7ce0f39a0004b950e616d489 # v1.2.0
         env:
           AI_TOKEN: ${{ secrets.AI_TOKEN }}
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           file_path: '../build-tools-performance/**/dist/rsdoctor-data.json'
-          target_branch: ${{ inputs.target_branch || 'main' }}
+          target_branch: ${{ github.event_name == 'push' && github.ref_name || github.event_name == 'pull_request' && github.base_ref || inputs.target_branch || 'main' }}
           ai_model: qwen3.5-plus

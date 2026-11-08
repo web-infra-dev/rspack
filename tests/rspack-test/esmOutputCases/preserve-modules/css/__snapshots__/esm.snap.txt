@@ -30,16 +30,7 @@
 
 it('should preserve modules with native css', () => {
   expect((/* inlined export .name */"button")).toBe('button')
-})
+});
 
-
-```
-
-```mjs title=runtime.mjs
-// The require scope
-var __webpack_require__ = {};
-
-
-export { __webpack_require__ };
 
 ```

@@ -2,10 +2,8 @@
 description: '外部依赖（externals）用于指定哪些模块不需要被 Rspack 打包，而是直接使用外部环境中提供的实现。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import { Stability } from '../../../components/ApiMeta';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/externals/" />
 
 # Externals
 
@@ -22,7 +20,12 @@ type ExternalItem =
   | string
   | RegExp
   | Function
-  | { [x: string]: ExternalItemValue };
+  | { [x: string]: ExternalItemValue }
+  | {
+      byLayer:
+        | Record<string, ExternalItem>
+        | ((layer: string | null) => ExternalItem | undefined);
+    };
 
 type Externals = ExternalItem | ExternalItem[];
 ```
@@ -163,99 +166,101 @@ export default {
 
 此语法用于描述外部 library 所有可用的访问方式。这里 `lodash` 这个外部库可以在 AMD 和 CommonJS 模块系统中通过 `lodash` 访问，但在全局变量形式下用 `_` 访问。`subtract` 可以通过全局 `math` 对象下的属性 `subtract` 访问（例如 `window['math']['subtract']`）。
 
-### 函数
+### 函数 \{#function}
 
-- **类型：**
-  - `function ({ context, request, contextInfo, getResolve }, callback)`
-  - `function ({ context, request, contextInfo, getResolve }) => promise`
+**类型：**
 
-如果你想要自定义外部化的行为，可以使用函数。例如使用 [webpack-node-externals](https://www.npmjs.com/package/webpack-node-externals) 排除所有来自 `node_modules` 目录的模块，并提供了选项来允许列出白名单中的包。
+```ts
+type ExternalFunction = (
+  data: ExternalItemFunctionData,
+  callback: (
+    error?: Error | null,
+    result?: ExternalItemValue,
+    externalsType?: ExternalsType,
+  ) => void,
+) => ExternalItemValue | void | Promise<ExternalItemValue | void>;
+```
 
-函数接收两个入参：
+如果需要根据模块请求或其他模块信息决定是否将依赖外部化，可以使用函数。函数可以直接返回结果、返回 Promise，或调用回调。
 
-- `ctx` (`object`): 包含文件的详细信息的对象。
-  - `ctx.context` (`string`): 包含 import 的文件的目录。
-  - `ctx.request` (`string`): 被请求的 import 路径。
-  - `ctx.contextInfo` (`object`): 包含有关发起者的信息（例如 layer 和编译器）。
-  - `ctx.getResolve`: 获取一个带有当前解析器选项的解析函数。
-- `callback` (`function (err, result, type)`): 用来指示模块如何被外部化的回调函数。
-
-回调函数接收三个参数：
-
-- `err` (`Error`): 用于标识外部化导入时是否出现错误。如果有错误，这应该是唯一使用的参数。
-- `result` (`string | string[] | object | boolean`): 描述外部模块。
-  - `string | string[] | object`: 使用其他外部格式描述外部模块（[字符串](#字符串)，[字符串数组](#字符串数组)或[对象](#对象)）。
-  - `boolean`: 传递 `true` 会将依赖外部化，使用原始的请求路径作为外部模块名称。传递 `false` 会告诉 Rspack 跳过剩余的 external 配置并打包该依赖。
-- `type` (`string`): 指示 [externalsType](#externalstype) 的可选参数（如果还没有在 `result` 参数中指出的话）。
-
-例如，要外部化所有导入路径与正则表达式匹配的导入，可以这样做：
+例如，下面的配置将 `react` 及其子路径保留为 ES 模块导入：
 
 ```js title="rspack.config.mjs"
 export default {
-  externals: [
-    function ({ context, request }, callback) {
-      if (/^yourregex$/.test(request)) {
-        // 将请求路径外部化到 CommonJS 模块
-        return callback(null, 'commonjs ' + request);
-      }
-
-      // 跳过外部化导入
-      callback();
-    },
-  ],
+  output: {
+    module: true,
+  },
+  externalsType: 'module',
+  externals: ({ request }) => {
+    if (request === 'react' || request?.startsWith('react/')) {
+      return request;
+    }
+  },
 };
 ```
 
-其他使用不同模块格式的例子：
+使用产物的环境需要能够解析这些导入，例如通过另一个打包工具或浏览器的 import map。
+
+同步返回结果时，函数应只声明一个参数，例如 `({ request }) => ...`。Rspack 通过函数的参数个数区分同步返回和回调用法。需要异步处理时，可以使用 `async` 函数或返回 Promise。
+
+#### 请求信息 \{#request-data}
+
+第一个参数包含依赖的相关信息：
+
+- `request`：源码中的模块请求，例如 `react` 或 `./utils.js`，此时尚未解析为文件路径。
+- `context`：解析请求时使用的起始目录。
+- `dependencyType`：依赖类别，例如 `esm` 或 `commonjs`。
+- `contextInfo.issuer`：发起请求的模块路径。
+- `contextInfo.issuerLayer`：发起请求的模块所属的层（如果已设置）。
+- `getResolve`：使用当前解析选项创建解析函数，详见[解析请求](#resolving-requests)。
+
+#### 返回结果 \{#results}
+
+直接返回的值、Promise 的结果和回调的结果具有相同含义：
+
+- **字符串、字符串数组或对象**：按对应的值格式将请求外部化，详见[字符串](#字符串)、[字符串数组](#字符串数组)和[对象](#对象)。
+- **`true`**：使用原始请求名称和 [`externalsType`](#externalstype) 将请求外部化。
+- **`false`**：停止检查当前 `externals` 配置的剩余规则，不将请求外部化。其他 `ExternalsPlugin` 实例仍可能将其外部化。
+- **`undefined`**：继续检查下一条规则。使用回调时，调用 `callback()`。
+
+如果没有规则将请求外部化，Rspack 会继续正常的模块处理流程。若要为单个结果覆盖 `externalsType`，可以添加 `'window _'` 这样的类型前缀，或通过回调的第三个参数指定类型。
+
+#### 回调用法 \{#callback-usage}
+
+第二个参数是回调函数。失败时调用 `callback(error)`，提供结果时调用 `callback(null, result, externalsType?)`，继续检查其他规则则调用 `callback()`。使用这种形式时，每个分支都应调用回调，而不是直接返回结果。
+
+上面的 ESM 示例也可以改用回调：
 
 ```js title="rspack.config.mjs"
 export default {
-  externals: [
-    function (ctx, callback) {
-      // 外部化为 `@scope/library` 的 `commonjs2` 模块
-      callback(null, '@scope/library', 'commonjs2');
-    },
-  ],
+  output: {
+    module: true,
+  },
+  externalsType: 'module',
+  externals: ({ request }, callback) => {
+    if (request === 'react' || request?.startsWith('react/')) {
+      callback(null, request);
+      return;
+    }
+    callback();
+  },
 };
 ```
 
-```js title="rspack.config.mjs"
-export default {
-  externals: [
-    function (ctx, callback) {
-      // 外部化名为 `nameOfGlobal` 的全局变量
-      callback(null, 'nameOfGlobal');
-    },
-  ],
-};
+#### 解析请求 \{#resolving-requests}
+
+如果需要根据解析后的路径或包元数据决定是否将依赖外部化，可以使用 `getResolve()`。例如，在接收 `{ context, request, getResolve }` 的异步外部依赖函数中：
+
+```js
+const resolve = getResolve();
+const resolvedPath = await resolve(context, request);
 ```
 
-```js title="rspack.config.mjs"
-export default {
-  externals: [
-    function (ctx, callback) {
-      // 外部化为 `@scope/library` 模块中的具名导出
-      callback(null, ['@scope/library', 'namedexport'], 'commonjs');
-    },
-  ],
-};
-```
+可以向 `getResolve(options)` 传入[解析选项](/config/resolve)，定制解析函数。返回的函数也支持回调：`resolve(context, request, (error, resolvedPath, resolveData) => { ... })`。
 
-```js title="rspack.config.mjs"
-export default {
-  externals: [
-    function (ctx, callback) {
-      // 外部化为 UMD 模块
-      callback(null, {
-        root: 'componentsGlobal',
-        commonjs: '@scope/components',
-        commonjs2: '@scope/components',
-        amd: 'components',
-      });
-    },
-  ],
-};
-```
+解析成功时会返回路径。如果请求被忽略，例如其别名被设为 `false`，Promise 的结果为 `undefined`，回调的第二个参数为 `false`。解析失败时，Promise 会被拒绝，或通过回调的第一个参数传递错误。
+
+使用回调时，可选的第三个参数包含解析详情。其中的 `descriptionFileData` 字段在有值时是解析后的 `package.json` 对象，可以直接读取 `name`、`version`、`type` 等字段，无需调用 `JSON.parse()`。
 
 ### 正则表达式
 
@@ -305,20 +310,65 @@ export default {
 如果没有指定类型，将使用[默认类型](#externalstype)，例如 `externals: { react: 'react' }` 而不是 `externals: { react: 'commonjs-module react' }`。
 :::
 
+### externals.byLayer
+
+在 externals 对象中使用 `byLayer`，可以根据导入模块所属的 [layer](/config/module-rules#ruleslayer) 选择外部依赖。匹配分支会与基础配置合并，分支中的值覆盖基础值。没有匹配分支时才使用 `byLayer.default`；显式声明的分支即使是空对象，也不会使用 `default`。
+
+```js title="rspack.config.mjs"
+export default {
+  externalsType: 'commonjs',
+  externals: {
+    fs: 'fs',
+    byLayer: {
+      server: { path: 'path' },
+      default: { crypto: 'crypto' },
+    },
+  },
+  module: {
+    rules: [{ test: /server\.js$/, layer: 'server' }],
+  },
+};
+```
+
+在这个例子中，`server` 层导入的 `fs` 和 `path` 都是外部依赖。其他层（包括没有设置 layer 的模块）导入的 `fs` 和 `crypto` 是外部依赖。在分支中把某个请求设为 `false`，可以取消基础配置对该请求的外部化。
+
+Rspack 也允许分支使用字符串、`RegExp` 或 externals 函数。这些形式会替代基础映射，并按顶层 `externals` 的相同规则匹配请求。
+
+`byLayer` 也可以是同步函数，接收导入模块所属的层（`string`，没有 layer 时为 `null`），返回与基础配置合并的 externals 对象，或返回其他 external 配置来替代基础映射；返回 `undefined` 则只使用基础配置。把 `byLayer` 本身设为 `undefined` 也会只保留基础配置：
+
+```js
+externals: {
+  fs: 'commonjs fs',
+  byLayer: (layer) =>
+    layer === 'server' ? { path: 'commonjs path' } : undefined,
+},
+```
+
+:::warning 懒编译与库输出
+同时启用懒编译和 `umd`、`umd2`、`amd`、`amd-require` 或 `system` 库输出时，Rspack 会在初始库 wrapper 中预留可以枚举的 external。预留范围包括懒模块自身的层，以及模块规则中声明的所有层，让同步后代切换 layer 后也能使用 external。
+
+这些 external 可能在懒模块激活前加载，包括来自从未命中可达模块的规则的 external，因此必须在库加载时就可用。用于匹配请求的 externals 函数和 `RegExp` 分支无法枚举，不能提前预留；函数形式的 `byLayer` 选择器返回对象或字符串时可以枚举。
+:::
+
 ## externalsType
 
 - **类型：** `string`
-- **默认值：** 取决于 [`output.library.type`](/config/output#outputlibrarytype) 和 [`output.module`](/config/output#outputmodule)
 
-默认值的推导规则如下：
+`externalsType` 决定 Rspack 默认如何加载 external 依赖。使用 `'amd'`、`'umd'`、`'system'` 或 `'jsonp'` 类型时，[`output.library.type`](/config/output#outputlibrarytype) 必须设置为相同的值。例如，只有 `'amd'` 库才能使用 `'amd'` 类型的 external。
 
-- 配置了 [`output.library`](/config/output#outputlibrary) 时，与 [`output.library.type`](/config/output#outputlibrarytype) 保持一致。
-- 否则，如果 [`output.module`](/config/output#outputmodule) 为 `true`，则为 `'module-import'`。
-- 否则为 `'var'`。
+如果 external 依赖需要使用与推导结果不同的加载格式，请显式设置 `externalsType`。
 
-指定 externals 的默认类型。当 external 被设置为 `amd`，`umd`，`system` 以及 `jsonp` 时，[`output.library.type`](/config/output#outputlibrarytype) 的值也应相同。例如，你只能在 `amd` 库中使用 `amd` 的 externals。
+### 默认值
 
-如果 external 依赖需要使用不同于推导结果的加载格式，请显式设置 `externalsType`。
+默认值按以下顺序推导：
+
+- 如果配置了 [`output.library`](/config/output#outputlibrary)，且其类型不是 `'modern-module'`，则 `externalsType` 默认为 [`output.library.type`](/config/output#outputlibrarytype)。
+- 否则，如果 [`output.module`](/config/output#outputmodule) 为 `true`，则默认为 `'module-import'`。
+- 其他情况下默认为 `'var'`。
+
+出于向后兼容的考虑，[`output.library.type: 'modern-module'`](/config/output#outputlibrarytype) 目前会跳过第一条规则，继续按照 `output.module` 推导默认值。如需使用 modern module externals，请显式设置 `externalsType: 'modern-module'`。
+
+### 可选值
 
 支持的类型如下：
 
@@ -326,7 +376,9 @@ export default {
 - `'amd-require'`
 - `'assign'` - 同 `'var'`
 - [`'commonjs'`](#externalstypecommonjs)
+- `'commonjs2'`
 - `'commonjs-module'`
+- `'commonjs-static'`
 - [`'global'`](#externalstypeglobal)
 - [`'module'`](#externalstypemodule)
 - [`'import'`](#externalstypeimport) - 使用 `import()` 加载一个原生的 ECMAScript 模块（异步模块）
@@ -539,18 +591,16 @@ async function foo() {
 
 ```js title="rspack.config.mjs"
 export default {
-  externalsType: "module-import",
+  externalsType: 'module-import',
   externals: [
-    function (
-      { request, dependencyType },
-      callback
-    ) {
-      if (dependencyType === "commonjs") {
+    function ({ request, dependencyType }, callback) {
+      if (dependencyType === 'commonjs') {
         return callback(null, `node-commonjs ${request}`);
       }
       callback();
     },
-  ]
+  ],
+};
 ```
 
 ### externalsType['modern-module']
@@ -979,3 +1029,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.docschina.org/configuration/externals/" />

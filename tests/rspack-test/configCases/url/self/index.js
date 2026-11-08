@@ -1,5 +1,5 @@
 it("should not parse new URL(import.meta.url) to generate a dynamic chunk", () => {
-  const path = __non_webpack_require__("path");
+  const path = require("path");
   const url = new URL(import.meta.url);
   // On Windows, URL pathname has a leading slash like '/D:/path/to/file'
   // We need to remove it for proper path comparison

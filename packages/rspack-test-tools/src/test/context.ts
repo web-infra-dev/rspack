@@ -35,6 +35,23 @@ export class TestContext implements ITestContext {
     return this.config.dist;
   }
 
+  // Source/dist the compiler actually reads from / writes to. With
+  // `isolateSource`, each suite compiles from its own copy under <dist>/src and
+  // emits to <dist>/dist; otherwise it stays in-place (shared source, dist root).
+  getCompileSource(sub?: string): string {
+    if (this.config.testConfig?.isolateSource) {
+      return this.getDist(sub ? path.join('src', sub) : 'src');
+    }
+    return this.getSource(sub);
+  }
+
+  getCompileDist(sub?: string): string {
+    if (this.config.testConfig?.isolateSource) {
+      return this.getDist(sub ? path.join('dist', sub) : 'dist');
+    }
+    return this.getDist(sub);
+  }
+
   getTemp(sub?: string): string | null {
     if (!this.config.temp) return null;
     if (sub) {

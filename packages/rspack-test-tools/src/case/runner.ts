@@ -1,7 +1,12 @@
 import type { RspackOptions, StatsCompilation } from '@rspack/core';
 import { NodeRunner, WebRunner } from '../runner';
+import type { INodeRunnerOptions } from '../runner/node';
 import { DEBUG_SCOPES } from '../test/debug';
 import type { ITestContext, ITestEnv, ITestRunner } from '../type';
+
+type RunnerOverrides = Partial<
+  Pick<INodeRunnerOptions, 'testConfig' | 'cachable'>
+>;
 
 const isWebTarget = (compilerOptions: RspackOptions): boolean => {
   const target = compilerOptions.target;
@@ -59,6 +64,7 @@ export function createRunner(
   name: string,
   file: string,
   env: ITestEnv,
+  overrides: RunnerOverrides = {},
 ): ITestRunner {
   const compiler = context.getCompiler();
   const testConfig = context.getTestConfig();
@@ -70,9 +76,10 @@ export function createRunner(
     stats: cachedStats(context, name),
     name,
     testConfig: context.getTestConfig(),
-    source: context.getSource(),
-    dist: context.getDist(),
+    source: context.getCompileSource(),
+    dist: context.getCompileDist(),
     compilerOptions,
+    ...overrides,
   };
   const isWeb = isWebTarget(compilerOptions);
   if (isWeb) {
@@ -124,6 +131,7 @@ export function createMultiCompilerRunner(
   name: string,
   file: string,
   env: ITestEnv,
+  overrides: RunnerOverrides = {},
 ): ITestRunner {
   const testConfig = context.getTestConfig();
   const { getIndex, flagIndex } = getFileIndexHandler(context, name, file);
@@ -133,8 +141,7 @@ export function createMultiCompilerRunner(
   const compilerOptions = multiCompilerOptions[index];
   const logs = context.getValue(DEBUG_SCOPES.RunLogs) as string[] | undefined;
   const errors = context.getValue(DEBUG_SCOPES.RunErrors) as
-    | Error[]
-    | undefined;
+    Error[] | undefined;
   let runner;
   const runnerOptions = {
     runInNewContext: false,
@@ -150,11 +157,12 @@ export function createMultiCompilerRunner(
     },
     name,
     testConfig: context.getTestConfig(),
-    source: context.getSource(),
-    dist: context.getDist(),
+    source: context.getCompileSource(),
+    dist: context.getCompileDist(),
     compilerOptions,
     logs,
     errors,
+    ...overrides,
   };
   const isWeb = isWebTarget(compilerOptions);
   if (isWeb) {

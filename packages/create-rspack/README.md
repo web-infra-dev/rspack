@@ -6,6 +6,15 @@
 
 Create a new rspack project.
 
+## Usage
+
+```bash
+npx create-rspack
+
+# Skip Git initialization
+npx create-rspack --no-git
+```
+
 ## Documentation
 
 See [https://rspack.rs](https://rspack.rs) for details.

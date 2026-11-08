@@ -11,6 +11,28 @@ it("should mangle export when destructuring module", () => {
 	expect(objCanMangle).toBe(true)
 });
 
+it("should mangle computed destructuring keys with comments and defaults", () => {
+	const {
+		[ /* before */ "a" + "aa" /* after */ ]: value = "fallback",
+		[
+			// before
+			"default"
+			// after
+		]: defaultValue
+	} = module;
+	expect(value).toBe("aaa");
+	expect(defaultValue).toBe("default");
+	expect(module.aaaCanMangle).toBe(true);
+	expect(module.defaultCanMangle).toBe(true);
+});
+
+it("should mangle nested computed keys in destructuring assignments", () => {
+	let value;
+	({ ["o" + "bj"]: { ["a"]: value } } = module);
+	expect(value).toBe("a");
+	expect(module.objCanMangle).toBe(true);
+});
+
 it("should mangle export when destructuring module's property", () => {
 	const { a, b } = module.obj2
 	const { obj2CanMangle } = module
@@ -65,7 +87,7 @@ it("should mangle when destructuring json", async () => {
 	expect(values[0]).toBe("foo");
 	expect(values[1]).toBe(3);
 
-	const generatedJson = __non_webpack_require__(path.resolve(__dirname, "data.json.js"));
+	const generatedJson = eval("require")(path.resolve(__dirname, "data.json.js"));
 	expect(generatedJson).toEqual({
 		"W": {
 			"Q": [
@@ -83,7 +105,7 @@ it("should mangle when destructuring json 2", async () => {
 	expect(prop1).toBe(1);
 	expect(prop2).toBe(2);
 
-	const generatedJson = __non_webpack_require__(path.resolve(__dirname, "data.json_2.js"));
+	const generatedJson = eval("require")(path.resolve(__dirname, "data.json_2.js"));
 	expect(generatedJson).toEqual({
 		"W": {
 			"Q": [

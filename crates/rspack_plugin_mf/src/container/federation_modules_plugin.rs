@@ -12,7 +12,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{define_hook, plugin, plugin_hook};
 #[cfg(allocative)]
-use rspack_util::allocative;
+use rspack_util::rspack_allocative;
 use rustc_hash::FxHashMap;
 use tokio::sync::Mutex as TokioMutex;
 
@@ -25,7 +25,7 @@ define_hook!(AddContainerEntryDependencyHook: Series(dependency: &ContainerEntry
 define_hook!(AddFederationRuntimeDependencyHook: Series(dependency: &FederationRuntimeDependency));
 define_hook!(AddRemoteDependencyHook: Series(dependency: &dyn Dependency));
 
-#[cfg_attr(allocative, derive(allocative::Allocative))]
+#[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
 pub struct FederationModulesPluginCompilationHooks {
   #[cfg_attr(allocative, allocative(skip))]
   pub add_container_entry_dependency: Arc<TokioMutex<AddContainerEntryDependencyHookHook>>,
@@ -49,7 +49,7 @@ impl Default for FederationModulesPluginCompilationHooks {
   }
 }
 
-#[cfg_attr(allocative, allocative::root)]
+#[cfg_attr(allocative, rspack_allocative::root)]
 static FEDERATION_MODULES_PLUGIN_HOOKS_MAP: OnceLock<
   Mutex<FxHashMap<CompilationId, Arc<FederationModulesPluginCompilationHooks>>>,
 > = OnceLock::new();

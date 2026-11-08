@@ -37,7 +37,7 @@ async fn chunk_ids(
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
-    IncrementalPasses::CHUNK_IDS,
+    IncrementalPasses::CHUNK_IDS | IncrementalPasses::MODULES_HASHES,
     "OccurrenceChunkIdsPlugin (optimization.chunkIds = \"size\")",
     "it requires calculating the id of all the chunks, which is a global effect",
   ) && let Some(diagnostic) = diagnostic

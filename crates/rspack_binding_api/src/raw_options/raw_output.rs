@@ -57,9 +57,11 @@ pub struct RawEnvironment {
   pub global_this: bool,
   pub module: bool,
   pub optional_chaining: bool,
+  pub logical_assignment: bool,
   pub template_literal: bool,
   pub dynamic_import_in_worker: bool,
   pub import_meta_dirname_and_filename: bool,
+  pub top_level_await: bool,
 }
 
 impl From<RawEnvironment> for Environment {
@@ -79,9 +81,11 @@ impl From<RawEnvironment> for Environment {
       global_this: value.global_this,
       module: value.module,
       optional_chaining: value.optional_chaining,
+      logical_assignment: value.logical_assignment,
       template_literal: value.template_literal,
       dynamic_import_in_worker: value.dynamic_import_in_worker,
       import_meta_dirname_and_filename: value.import_meta_dirname_and_filename,
+      top_level_await: value.top_level_await,
     }
   }
 }
@@ -98,6 +102,7 @@ pub struct RawOutputOptions {
   pub asset_module_filename: JsFilename,
   #[napi(ts_type = "string | false")]
   pub wasm_loading: RawWasmLoading,
+  pub wasm_streaming_fallback: bool,
   pub enabled_wasm_loading_types: Vec<String>,
   pub webassembly_module_filename: String,
   pub filename: JsFilename,
@@ -119,6 +124,8 @@ pub struct RawOutputOptions {
   pub import_meta_name: String,
   pub iife: bool,
   pub module: bool,
+  #[napi(ts_type = "string | false")]
+  pub chunk_format: WithFalse<String>,
   #[napi(ts_type = "string | false")]
   pub chunk_loading: RawChunkLoading,
   pub chunk_load_timeout: u32,
@@ -183,8 +190,13 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
       public_path: value.public_path.into(),
       asset_module_filename: value.asset_module_filename.into(),
       wasm_loading: value.wasm_loading.into(),
+      wasm_streaming_fallback: value.wasm_streaming_fallback,
       webassembly_module_filename: value.webassembly_module_filename.into(),
       unique_name: value.unique_name,
+      chunk_format: match value.chunk_format {
+        WithFalse::False => "false".to_string(),
+        WithFalse::True(format) => format,
+      },
       chunk_loading: value.chunk_loading.into(),
       chunk_loading_global: value.chunk_loading_global.as_str().into(),
       filename: value.filename.into(),

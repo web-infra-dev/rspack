@@ -38,3 +38,13 @@ it("false-index.html inject", () => {
 	const htmlContent = fs.readFileSync(htmlPath, "utf-8");
 	expect(htmlContent.includes('<script src="bundle4.js"')).toBe(false);
 });
+
+it("output-module-index.html inject", () => {
+	const htmlPath = path.join(__dirname, "./output-module-index.html");
+	const htmlContent = fs.readFileSync(htmlPath, "utf-8");
+	expect(
+		htmlContent.includes(
+			'<script src="bundle5.mjs" type="module"></script></head>'
+		)
+	).toBe(true);
+});

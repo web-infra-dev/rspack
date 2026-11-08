@@ -1,0 +1,30 @@
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  mode: 'development',
+  entry: {
+    main: './index',
+  },
+  node: {
+    __dirname: false,
+    __filename: false,
+  },
+  output: {
+    filename: '[name].js',
+    chunkFilename: '[name].bundle.js',
+    chunkLoadingGlobal: '_load_chunk',
+  },
+  optimization: {
+    splitChunks: {
+      automaticNameDelimiter: '~',
+      cacheGroups: {
+        async: {
+          chunks: 'async',
+          reuseExistingChunk: true,
+          minSize: 1,
+          maxSize: 1,
+        },
+      },
+    },
+  },
+});

@@ -7,21 +7,22 @@ repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
 [dependencies]
-cow-utils    = { workspace = true }
-derive_more  = { workspace = true, features = ["debug"] }
-fast-glob    = { workspace = true }
-futures      = { workspace = true }
-pathdiff     = { workspace = true, features = ["camino"] }
-regex        = { workspace = true }
-rspack_core  = { workspace = true }
-rspack_error = { workspace = true }
-rspack_hash  = { workspace = true }
-rspack_hook  = { workspace = true }
-rspack_paths = { workspace = true }
-rspack_util  = { workspace = true }
-rustc-hash   = { workspace = true }
-sugar_path   = { workspace = true }
-tracing      = { workspace = true }
+cow-utils       = { workspace = true }
+derive_more     = { workspace = true, features = ["debug"] }
+fast-glob       = { workspace = true }
+futures         = { workspace = true }
+pathdiff        = { workspace = true, features = ["camino"] }
+regex           = { workspace = true }
+rspack_core     = { workspace = true }
+rspack_error    = { workspace = true }
+rspack_hash     = { workspace = true }
+rspack_hook     = { workspace = true }
+rspack_parallel = { workspace = true }
+rspack_paths    = { workspace = true }
+rspack_util     = { workspace = true }
+rustc-hash      = { workspace = true }
+sugar_path      = { workspace = true }
+tracing         = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]

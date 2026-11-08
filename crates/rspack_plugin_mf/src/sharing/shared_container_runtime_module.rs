@@ -1,6 +1,6 @@
 use rspack_core::{
-  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage,
-  RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
+  impl_runtime_module,
 };
 
 use crate::utils::{runtime_require_scope_name, runtime_require_scope_requirement};
@@ -17,6 +17,10 @@ impl ShareContainerRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ShareContainerRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
@@ -30,8 +34,13 @@ impl RuntimeModule for ShareContainerRuntimeModule {
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }
-
-  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
-    runtime_require_scope_requirement(compilation)
+  fn runtime_requirements(
+    &self,
+    compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: { runtime_require_scope_requirement(compilation) },
+      ..Default::default()
+    }
   }
 }

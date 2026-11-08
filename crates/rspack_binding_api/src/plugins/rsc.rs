@@ -4,13 +4,13 @@ use futures::future::BoxFuture;
 use napi::{
   Env, Status,
   bindgen_prelude::{
-    ClassInstance, Either, Either3, External, ExternalRef, FromNapiValue, Function, JsObjectValue,
-    Null, Object, Promise, Reference, Undefined, ValidateNapiValue, WeakReference, sys,
+    ClassInstance, Either, Either3, FromNapiValue, Function, JsObjectValue, Null, Object, Promise,
+    Reference, Undefined, ValidateNapiValue, WeakReference, sys,
   },
   threadsafe_function::ThreadsafeFunction,
 };
 use once_cell::unsync::OnceCell;
-use rspack_core::{Compiler, CompilerId};
+use rspack_core::Compiler;
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_plugin_rsc::{
   Coordinator, OnManifest, RscClientPluginOptions, RscCssLinkProps, RscServerPluginOptions,
@@ -30,32 +30,10 @@ pub struct JsCoordinator {
 #[napi]
 impl JsCoordinator {
   #[napi(constructor)]
-  pub fn new(
-    get_server_compiler_id_js_fn: Function<'static, (), &'static External<CompilerId>>,
-  ) -> napi::Result<Self> {
-    let get_server_compiler_id = {
-      let ts_fn = Arc::new(
-        get_server_compiler_id_js_fn
-          .build_threadsafe_function::<()>()
-          .callee_handled::<false>()
-          .max_queue_size::<0>()
-          .weak::<true>()
-          .build()?,
-      );
-      Box::new(
-        move || -> BoxFuture<'static, rspack_error::Result<CompilerId>> {
-          let ts_fn = ts_fn.clone();
-          Box::pin(async move {
-            let external = ts_fn.call_async(()).await.to_rspack_result()?;
-            Ok(**external)
-          })
-        },
-      )
-    };
-
-    Ok(Self {
-      i: Arc::new(Coordinator::new(get_server_compiler_id)),
-    })
+  pub fn new() -> Self {
+    Self {
+      i: Arc::new(Coordinator::new()),
+    }
   }
 }
 

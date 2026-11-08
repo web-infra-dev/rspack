@@ -1,7 +1,10 @@
-use std::fmt::Display;
+use std::{
+  fmt::Display,
+  sync::{Arc, OnceLock},
+};
 
 use miette::{Diagnostic as MietteDiagnostic, LabeledSpan};
-use rspack_cacheable::cacheable;
+use rspack_cacheable::{cacheable, with::Skip};
 
 /// Error severity. Defaults to [`Severity::Error`].
 #[cacheable]
@@ -35,7 +38,7 @@ pub struct ErrorData {
   /// Message.
   pub message: String,
   /// Source code.
-  pub src: Option<String>,
+  pub src: Option<Arc<str>>,
   /// Labels displayed in source code.
   ///
   /// The source code block will be displayed only if both source code and labels exist.
@@ -67,40 +70,92 @@ pub struct ErrorData {
 /// Wrap ErrorData to avoid result_large_err.
 #[cacheable]
 #[derive(Debug, Clone, Default)]
-pub struct Error(Box<ErrorData>);
+pub struct Error(Arc<ErrorInner>);
+
+#[cacheable]
+#[derive(Debug, Default)]
+struct ErrorInner {
+  data: ErrorData,
+  // Diagnostic clones from unchanged modules share both the data and rendered reports.
+  // Reports are transient and must not be restored from the persistent cache.
+  #[cacheable(with=Skip)]
+  rendered_colored: OnceLock<Box<str>>,
+  #[cacheable(with=Skip)]
+  rendered_uncolored: OnceLock<Box<str>>,
+}
+
+impl Clone for ErrorInner {
+  fn clone(&self) -> Self {
+    Self {
+      data: self.data.clone(),
+      rendered_colored: Default::default(),
+      rendered_uncolored: Default::default(),
+    }
+  }
+}
 
 impl std::ops::Deref for Error {
   type Target = ErrorData;
 
   fn deref(&self) -> &Self::Target {
-    &self.0
+    &self.0.data
   }
 }
 
 impl std::ops::DerefMut for Error {
   fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.0
+    // Any mutation, including one to a nested source error, invalidates both themes.
+    let inner = Arc::make_mut(&mut self.0);
+    inner.rendered_colored = Default::default();
+    inner.rendered_uncolored = Default::default();
+    &mut inner.data
   }
 }
 
 impl Error {
-  #[allow(clippy::self_named_constructors)]
-  pub fn error(message: String) -> Self {
-    Self(Box::new(ErrorData {
-      message,
-      ..Default::default()
+  fn new(data: ErrorData) -> Self {
+    Self(Arc::new(ErrorInner {
+      data,
+      rendered_colored: Default::default(),
+      rendered_uncolored: Default::default(),
     }))
   }
+
+  pub(crate) fn render_cache(&self, colored: bool) -> &OnceLock<Box<str>> {
+    if colored {
+      &self.0.rendered_colored
+    } else {
+      &self.0.rendered_uncolored
+    }
+  }
+
+  #[allow(clippy::self_named_constructors)]
+  pub fn error(message: String) -> Self {
+    Self::new(ErrorData {
+      message,
+      ..Default::default()
+    })
+  }
   pub fn warning(message: String) -> Self {
-    Self(Box::new(ErrorData {
+    Self::new(ErrorData {
       severity: Severity::Warning,
       message,
       ..Default::default()
-    }))
+    })
   }
 
   pub fn from_string(
     src: Option<String>,
+    start: usize,
+    end: usize,
+    title: String,
+    message: String,
+  ) -> Self {
+    Self::from_shared_source(src.map(Into::into), start, end, title, message)
+  }
+
+  pub fn from_shared_source(
+    src: Option<Arc<str>>,
     start: usize,
     end: usize,
     title: String,
@@ -136,11 +191,11 @@ impl Error {
   where
     D: std::fmt::Display,
   {
-    Self(Box::new(ErrorData {
+    Self::new(ErrorData {
       message: msg.to_string(),
       source_error: Some(Box::new(self)),
       ..Default::default()
-    }))
+    })
   }
 }
 
@@ -238,12 +293,15 @@ impl From<anyhow::Error> for Error {
 
 #[cfg(test)]
 mod test {
+  use owo_colors::with_override;
+
   use super::{Error, ErrorData, Label};
   use crate::{Renderer, Severity};
+
   #[test]
   fn should_error_display() {
     let renderer = Renderer::new(false);
-    let sub_err = Error(Box::new(ErrorData {
+    let sub_err = Error::new(ErrorData {
       severity: Severity::Warning,
       message: "An unexpected keyword.".into(),
       src: Some("const a = { const };\nconst b = { var };".into()),
@@ -265,8 +323,8 @@ mod test {
       details: Some("detail info".into()),
       stack: Some("stack info".into()),
       hide_stack: None,
-    }));
-    let mid_err = Error(Box::new(ErrorData {
+    });
+    let mid_err = Error::new(ErrorData {
       severity: Severity::Error,
       message: "Can not parse current module.".into(),
       src: Some("const a = { const };".into()),
@@ -281,8 +339,8 @@ mod test {
       details: Some("detail info".into()),
       stack: Some("stack info".into()),
       hide_stack: None,
-    }));
-    let root_err = Error(Box::new(ErrorData {
+    });
+    let root_err = Error::new(ErrorData {
       severity: Severity::Error,
       message: "Build Module Failed".into(),
       src: None,
@@ -293,7 +351,7 @@ mod test {
       details: Some("detail info".into()),
       stack: Some("stack info".into()),
       hide_stack: None,
-    }));
+    });
     let expect_display = r#"
  × Build Module Failed
   ├─▶   × Can not parse current module.
@@ -315,9 +373,12 @@ mod test {
          ╰────
         help: Maybe you should remove it.
 "#;
-    assert_eq!(
-      renderer.render(&root_err).unwrap().trim(),
-      expect_display.trim()
-    );
+    // Force color support to prove the renderer respects its own theme
+    with_override(true, || {
+      assert_eq!(
+        renderer.render(&root_err).unwrap().trim(),
+        expect_display.trim()
+      );
+    });
   }
 }

@@ -1,5 +1,5 @@
 /** @type {import('fs')} */
-const fs = __non_webpack_require__("fs");
+const fs = require("fs");
 
 import ignored from "./ignored-module";
 

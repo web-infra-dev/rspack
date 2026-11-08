@@ -6,20 +6,35 @@ use rspack_cacheable::{
 };
 use rspack_collections::Identifier;
 use rspack_core::{
-  BoxLoader, Context, Loader, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader, ResolveResult,
-  Resolver, Resource, RunnerContext,
+  BoxLoader, Context, Loader, LoaderExecutionKind, ModuleFactoryCreateData, ModuleRuleUseLoader,
+  NormalModuleFactoryResolveLoader, ResolveResult, Resolver, Resource, RunnerContext,
 };
 use rspack_error::Result;
+use rspack_hash::{HashFunction, RspackHasher};
 use rspack_hook::plugin_hook;
 use rspack_paths::Utf8Path;
+use rspack_util::identifier::split_at_query_mark;
 
 use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
+
+pub(crate) async fn loader_cache_version(
+  resolver: &Resolver,
+  path: &Utf8Path,
+) -> Result<Option<String>> {
+  // V1 fingerprints only the resolved loader entry file. Files that the
+  // loader imports or requires are intentionally not included yet.
+  let contents = resolver.inner_fs().read(path).await?;
+  let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
+  hasher.write(&contents);
+  Ok(Some(format!("file:{:016x}", hasher.finish())))
+}
 
 #[cacheable]
 #[derive(Debug)]
 pub struct JsLoader(
   pub Identifier,
   /* LoaderType */ #[cacheable(with=AsOption<AsRefStr>)] pub Option<Cow<'static, str>>,
+  pub Option<String>,
 );
 
 #[cacheable_dyn]
@@ -31,9 +46,17 @@ impl Loader<RunnerContext> for JsLoader {
   fn r#type(&self) -> Option<&str> {
     self.1.as_deref()
   }
+
+  fn cache_version(&self) -> Option<&str> {
+    self.2.as_deref()
+  }
+
+  fn execution_kind(&self) -> LoaderExecutionKind {
+    LoaderExecutionKind::JavaScript
+  }
 }
 
-// TODO: should be compiled with a different cfg
+#[cfg(feature = "test-loader")]
 pub fn get_builtin_test_loader(builtin: &str) -> Option<BoxLoader> {
   if builtin.starts_with(rspack_loader_testing::SIMPLE_ASYNC_LOADER_IDENTIFIER) {
     return Some(Arc::new(rspack_loader_testing::SimpleAsyncLoader));
@@ -50,6 +73,9 @@ pub fn get_builtin_test_loader(builtin: &str) -> Option<BoxLoader> {
   if builtin.starts_with(rspack_loader_testing::NO_PASS_THROUGH_LOADER_IDENTIFIER) {
     return Some(Arc::new(rspack_loader_testing::NoPassthroughLoader));
   }
+  if builtin.starts_with(rspack_loader_testing::DEPENDENCY_LOADER_IDENTIFIER) {
+    return Some(Arc::new(rspack_loader_testing::DependencyLoader));
+  }
   None
 }
 
@@ -59,26 +85,27 @@ pub(crate) async fn resolve_loader(
   context: &Context,
   resolver: &Resolver,
   l: &ModuleRuleUseLoader,
+  data: &mut ModuleFactoryCreateData,
 ) -> Result<Option<BoxLoader>> {
   let context = context.as_path();
   let loader_request = &l.loader;
-  let mut rest = None;
-  let prev = if let Some(index) = loader_request.find('?') {
-    rest = Some(&loader_request[index..]);
-    Utf8Path::new(&loader_request[0..index])
-  } else {
-    Utf8Path::new(loader_request)
-  };
-
+  let (loader_path, rest) = split_at_query_mark(loader_request);
+  let prev = Utf8Path::new(loader_path);
+  #[cfg(feature = "test-loader")]
   if loader_request.starts_with("builtin:test") {
     return Ok(get_builtin_test_loader(loader_request));
   }
 
-  let Some(resolve_result) = resolver
-    .resolve(context.as_std_path(), prev.as_str())
-    .await
-    .ok()
-  else {
+  let (result, dependencies) = resolver
+    .resolve_with_context(context.as_std_path(), prev.as_str())
+    .await;
+  data
+    .file_dependencies
+    .extend(dependencies.file_dependencies);
+  data
+    .missing_dependencies
+    .extend(dependencies.missing_dependencies);
+  let Ok(resolve_result) = result else {
     return Ok(None);
   };
 
@@ -95,6 +122,12 @@ pub(crate) async fn resolve_loader(
       // Use `str::ends_with` instead of `Path::extension` to avoid unnecessary allocation
       let path = path.as_str();
 
+      let cache_version = if l.cache {
+        loader_cache_version(resolver, Utf8Path::new(path)).await?
+      } else {
+        None
+      };
+
       let r#type = if path.ends_with(".mjs") {
         Some(Cow::Borrowed("module"))
       } else if path.ends_with(".cjs") {
@@ -107,6 +140,14 @@ pub(crate) async fn resolve_loader(
             .and_then(|t| t.as_str().map(|t| Cow::Owned(t.to_owned())))
         })
       };
+      #[cfg(windows)]
+      let path = {
+        // Node's module loader may interpret a namespaced drive path as only
+        // its drive component. Filesystem access and cache versioning above
+        // still use the original namespaced path.
+        rspack_paths::strip_dos_device_path_prefix(path)
+      };
+
       // favor explicit loader query over aliased query, see webpack issue-3320
       let resource = if let Some(rest) = rest
         && !rest.is_empty()
@@ -115,7 +156,11 @@ pub(crate) async fn resolve_loader(
       } else {
         format!("{path}{query}")
       };
-      Ok(Some(Arc::new(JsLoader(resource.into(), r#type))))
+      Ok(Some(Arc::new(JsLoader(
+        resource.into(),
+        r#type,
+        cache_version,
+      ))))
     }
     ResolveResult::Ignored => Ok(None),
   }

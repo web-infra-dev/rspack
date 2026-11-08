@@ -1,0 +1,85 @@
+---
+description: 'Handles the bundling of JavaScript, usually used to access the hooks of the JavascriptModulesPlugin:'
+---
+
+import { ApiMeta } from '@components/ApiMeta';
+
+# JavascriptModulesPlugin
+
+Handles the bundling of JavaScript, usually used to access the [hooks of the JavascriptModulesPlugin](/api/plugin-api/javascript-modules-plugin-hooks):
+
+## Examples
+
+```js title="rspack.config.mjs"
+class MyJsMinimizerPlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap(MyJsMinimizerPlugin.name, (compilation) => {
+      // Access the chunkHash hooks of JavascriptModulesPlugin
+      const hooks =
+        compiler.rspack.javascript.JavascriptModulesPlugin.getCompilationHooks(
+          compilation,
+        );
+      // Since the JS chunk has been optimized and its content has changed, the chunk hash for the JS chunk needs to be updated
+      hooks.chunkHash.tap(MyJsMinimizerPlugin.name, (chunk, hash) => {
+        hash.update(`minimized by ${MyJsMinimizerPlugin.name}`);
+      });
+      // Optimize the JS chunk
+      compilation.hooks.processAssets.tap(
+        MyJsMinimizerPlugin.name,
+        (assets) => {
+          optimize(assets);
+        },
+      );
+    });
+  }
+}
+
+export default {
+  plugins: [new MyJsMinimizerPlugin()],
+};
+```
+
+## Static methods
+
+### `getChunkFilenameTemplate`
+
+<ApiMeta addedVersion="2.2.2" />
+
+```ts
+function getChunkFilenameTemplate(
+  chunk: Chunk,
+  outputOptions: Output,
+): Filename | undefined;
+```
+
+Returns the filename template that is used to render the JavaScript file of the
+given chunk, resolved in this order:
+
+1. `chunk.filenameTemplate`, if the chunk carries its own template (for example
+   a chunk produced by a `splitChunks` cache group with `filename` set).
+2. [`output.filename`](/config/output#outputfilename), if the chunk can be initial.
+3. [`output.chunkFilename`](/config/output#outputchunkfilename) otherwise.
+
+```js
+class MyPlugin {
+  apply(compiler) {
+    const { JavascriptModulesPlugin } = compiler.rspack.javascript;
+    compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
+      compilation.hooks.afterSeal.tap('MyPlugin', () => {
+        for (const chunk of compilation.chunks) {
+          const template = JavascriptModulesPlugin.getChunkFilenameTemplate(
+            chunk,
+            compilation.outputOptions,
+          );
+          const filename = compilation.getPath(template, { chunk });
+          console.log(filename);
+        }
+      });
+    });
+  }
+}
+```
+
+:::info Difference from webpack
+Hot update chunks are not currently supported because they are not yet exposed to the JavaScript side.
+:::

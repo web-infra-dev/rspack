@@ -1,0 +1,4 @@
+```mjs title=main.mjs
+import value_asset from "./assets/value.asset.mjs";
+module.exports = value_asset;
+```

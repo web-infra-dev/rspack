@@ -1,5 +1,9 @@
 "use strict";
 
+const bundlerName = globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK
+	? "rspack"
+	: "webpack";
+
 let warnings = [];
 let oldWarn;
 
@@ -56,8 +60,7 @@ it("should allow to handle remote loading error with top-level-await import()", 
 it("should allow to handle invalid remote module error with import()", async () => {
 	await expect(import("./invalid-module")).rejects.toEqual(
 		expect.objectContaining({
-			message:
-				'Module "./invalid" does not exist in container.\nwhile loading "./invalid" from webpack/container/reference/remote'
+			message: `Module "./invalid" does not exist in container.\nwhile loading "./invalid" from ${bundlerName}/container/reference/remote`
 		})
 	);
 	// at this point sharing initialization runs and triggers a warning that 'invalid' remote can't be loaded
@@ -68,8 +71,7 @@ it("should allow to handle invalid remote module error with require", async () =
 	const { error } = await import("./invalid-module-cjs");
 	expect(error).toEqual(
 		expect.objectContaining({
-			message:
-				'Module "./invalid" does not exist in container.\nwhile loading "./invalid" from webpack/container/reference/remote'
+			message: `Module "./invalid" does not exist in container.\nwhile loading "./invalid" from ${bundlerName}/container/reference/remote`
 		})
 	);
 });
@@ -78,8 +80,7 @@ it("should allow to handle invalid remote module error with top-level-await impo
 	const { error } = await import("./invalid-module-tl-await");
 	expect(error).toEqual(
 		expect.objectContaining({
-			message:
-				'Module "./invalid" does not exist in container.\nwhile loading "./invalid" from webpack/container/reference/remote'
+			message: `Module "./invalid" does not exist in container.\nwhile loading "./invalid" from ${bundlerName}/container/reference/remote`
 		})
 	);
 });

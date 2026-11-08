@@ -3,12 +3,12 @@ use std::path::Path;
 use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
-use rspack_paths::ArcPathSet;
+use rspack_paths::InternedPathSet;
 use rspack_tasks::within_compiler_context;
 use rustc_hash::FxHashSet;
 
 use crate::{
-  ChunkGraph, ChunkKind, Compilation, Compiler, RuntimeSpec,
+  ChunkGraph, ChunkKind, Compilation, Compiler, RuntimeModuleRecord, RuntimeSpec,
   chunk_graph_chunk::ChunkIdMap,
   chunk_graph_module::{ModuleIdMap, ModuleIdSet},
   compilation::build_module_graph::ModuleExecutor,
@@ -21,7 +21,7 @@ impl Compiler {
     changed_files: FxHashSet<String>,
     deleted_files: FxHashSet<String>,
   ) -> Result<()> {
-    match within_compiler_context(
+    let result = match within_compiler_context(
       self.compiler_context.clone(),
       self.rebuild_inner(changed_files, deleted_files),
     )
@@ -33,19 +33,20 @@ impl Compiler {
           .compiler_hooks
           .done
           .call(&self.compilation)
-          .await?;
-        Ok(())
+          .await
       }
       Err(e) => {
-        self
+        let failed = self
           .plugin_driver
           .compiler_hooks
           .failed
           .call(&self.compilation)
-          .await?;
-        Err(e)
+          .await;
+        failed.and(Err(e))
       }
-    }
+    };
+    self.store_cache_metadata(result.is_ok());
+    result
   }
 
   #[tracing::instrument("Compiler:rebuild", skip_all, fields(
@@ -61,15 +62,18 @@ impl Compiler {
 
     // build without stats
     {
-      let mut modified_files: ArcPathSet = ArcPathSet::default();
+      let mut modified_files: InternedPathSet = InternedPathSet::default();
       modified_files.extend(changed_files.iter().map(|files| Path::new(files).into()));
-      let mut removed_files: ArcPathSet = ArcPathSet::default();
+      let mut removed_files: InternedPathSet = InternedPathSet::default();
       removed_files.extend(deleted_files.iter().map(|files| Path::new(files).into()));
 
       let mut all_files = modified_files.clone();
-      all_files.extend(removed_files.clone());
+      all_files.extend(removed_files.iter().cloned());
 
+      self.resolver_factory.clear_cache();
+      self.loader_resolver_factory.clear_cache();
       self.plugin_driver.clear_cache(self.compilation.id());
+
       let compilation_logging = self.compilation.get_logging().clone();
       compilation_logging.clear();
 
@@ -85,6 +89,7 @@ impl Compiler {
         Incremental::new_hot(self.options.incremental),
         Some(ModuleExecutor::default()),
         compilation_logging,
+        self.new_cache.clone(),
         modified_files,
         removed_files,
         self.input_filesystem.clone(),
@@ -93,7 +98,7 @@ impl Compiler {
         true,
         self.compiler_context.clone(),
       );
-      next_compilation.hot_index = self.compilation.hot_index + 1;
+      next_compilation.hot_index = self.compilation.hot_index;
 
       if next_compilation
         .incremental
@@ -103,10 +108,14 @@ impl Compiler {
         next_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
       }
 
-      // Store old compilation in cache for artifact recovery during run_passes
-      // The cache hooks will recover artifacts based on their associated incremental passes
+      self.cache.store_hot_cache(&mut self.compilation);
+
+      // Artifact recovery belongs to incremental compilation and is independent
+      // from the configured build cache.
       let old_compilation = std::mem::replace(&mut self.compilation, next_compilation);
-      self.cache.store_old_compilation(Box::new(old_compilation));
+      self
+        .incremental_artifacts
+        .store_previous_compilation(Box::new(old_compilation));
 
       // FOR BINDING SAFETY:
       // Update `compilation` for each rebuild.
@@ -115,11 +124,17 @@ impl Compiler {
       self.compile().await?;
     }
 
+    self
+      .plugin_driver
+      .compiler_hooks
+      .after_compile
+      .call(&mut self.compilation)
+      .await?;
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
 
     #[cfg(allocative)]
-    crate::utils::snapshot_allocative("rebuild");
+    crate::utils::snapshot_allocative("rebuild", self)?;
 
     Ok(())
   }
@@ -128,7 +143,7 @@ impl Compiler {
 #[derive(Debug)]
 pub struct CompilationRecords {
   pub runtimes: RuntimeSpec,
-  pub runtime_modules: IdentifierMap<RspackHashDigest>,
+  pub runtime_modules: IdentifierMap<RuntimeModuleRecord>,
   pub chunks: ChunkIdMap<(RuntimeSpec, ModuleIdSet)>,
   pub modules: ModuleIdMap<ChunkIdMap<RspackHashDigest>>,
   pub hash: Option<RspackHashDigest>,
@@ -180,18 +195,23 @@ impl CompilationRecords {
       .collect()
   }
 
-  fn record_runtime_modules(compilation: &Compilation) -> IdentifierMap<RspackHashDigest> {
+  fn record_runtime_modules(compilation: &Compilation) -> IdentifierMap<RuntimeModuleRecord> {
     compilation
       .runtime_modules
-      .keys()
-      .map(|identifier| {
+      .iter()
+      .map(|(identifier, module)| {
         (
           *identifier,
-          compilation
-            .runtime_modules_hash
-            .get(identifier)
-            .expect("should have runtime module hash")
-            .clone(),
+          RuntimeModuleRecord {
+            hash: compilation
+              .runtime_modules_hash
+              .get(identifier)
+              .expect("should have runtime module hash")
+              .clone(),
+            update_data: module.get_update_data(compilation),
+            // Retain loading metadata, but custom sources still need a full update.
+            has_custom_source: module.get_custom_source().is_some(),
+          },
         )
       })
       .collect()
@@ -206,7 +226,7 @@ impl CompilationRecords {
           .chunk_by_ukey
           .get(&entry_ukey)
       })
-      .flat_map(|entry_chunk| entry_chunk.runtime().clone())
+      .flat_map(|entry_chunk| entry_chunk.runtime().iter().copied())
       .collect()
   }
 

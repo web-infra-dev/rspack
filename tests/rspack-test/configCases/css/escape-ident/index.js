@@ -1,12 +1,16 @@
 import * as styles from "./index.module.css";
 
 it("should generate correct exports", () => {
-	const fs = __non_webpack_require__('fs')
-	const path = __non_webpack_require__('path')
+	const fs = require('fs')
+	const path = require('path')
 	expect(styles).toEqual(
 		nsObj({
 			a: '"aaa" 123',
-			b: "multiple lines  bbb",
+			b: `multiple lines /**
+    comment1
+    comment2
+    comment3
+  */ bbb/* comment4 */`,
 			'a/b': 'a/b-./'
 		})
 	);

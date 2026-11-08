@@ -23,8 +23,18 @@ impl RscManifestRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RscManifestRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::RSC_MANIFEST
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      define: { RuntimeGlobals::RSC_MANIFEST },
+      ..Default::default()
+    }
   }
 
   fn stage(&self) -> RuntimeModuleStage {
@@ -40,7 +50,7 @@ impl RuntimeModule for RscManifestRuntimeModule {
     let server_compiler_id = compilation.compiler_id();
 
     let Some(entry_name) = self
-      .chunk
+      .chunk()
       .as_ref()
       .and_then(|chunk_ukey| {
         compilation
@@ -91,7 +101,7 @@ impl RuntimeModule for RscManifestRuntimeModule {
       r#"
         {rsc_manifest} = JSON.parse({rsc_manifest_json});
       "#,
-      rsc_manifest = runtime_template.render_runtime_globals(&RuntimeGlobals::RSC_MANIFEST),
+      rsc_manifest = runtime_template.render_runtime_global_definition(&RuntimeGlobals::RSC_MANIFEST),
       rsc_manifest_json = to_json_string_literal(&rsc_manifest).to_rspack_result()?,
     })
   }

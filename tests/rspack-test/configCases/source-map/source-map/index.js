@@ -10,7 +10,11 @@ it("should map to the original content if `module` enabled", async () => {
 	const app = fs.readFileSync(path.resolve(CONTEXT, "./App.jsx"), "utf-8");
 	const map = JSON.parse(source);
 	const consumer = await new sourceMap.SourceMapConsumer(map);
-	const appSourceIndex = map.sources.indexOf("webpack:///./App.jsx")
+	let sourceUrl = source => `webpack:///${source}`;
+	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+		sourceUrl = source => `rspack:///${source}`;
+	}
+	const appSourceIndex = map.sources.indexOf(sourceUrl("./App.jsx"));
 	expect(appSourceIndex).toBeGreaterThanOrEqual(0);
 	expect(map.sourcesContent[appSourceIndex]).toEqual(app);
 	const STUB = "Hello Rspack!";

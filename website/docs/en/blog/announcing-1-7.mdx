@@ -9,11 +9,11 @@ authors:
     x: 'https://x.com/rspack_dev'
 ---
 
-import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
 # Announcing Rspack 1.7
 
-December 31, 2025
+_December 31, 2025_
 
 <BlogAuthors />
 
@@ -70,7 +70,7 @@ const text = decoder.decode(module.default);
 
 ### Lazy compilation
 
-In Rspack 1.5, we stabilized the [Lazy Compilation](/guide/features/lazy-compilation) feature and enabled it by default for dynamically imported modules in Rsbuild.
+In Rspack 1.5, we stabilized the [Lazy Compilation](/guide/advanced/lazy-compilation) feature and enabled it by default for dynamically imported modules in Rsbuild.
 
 Starting from Rspack 1.7, the Rspack CLI also enables lazy compilation by default for dynamically imported modules when building web applications. This change reduces the number of modules in the initial build, thereby speeding up the dev server startup.
 
@@ -95,7 +95,7 @@ In Rspack 1.7, we have stabilized several experimental features. The following c
   - If you need to disable this behavior, use [optimization.inlineExports](/config/optimization#optimizationinlineexports) to control it.
 - **TypeScript Enum Inlining Optimization**: This optimization is now stable.
   - The original [experiments.inlineEnum](/config/optimization#optimizationinlineexports) option is deprecated.
-  - Use [collectTypeScriptInfo.exportedEnum](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) to control whether to collect exported `enum` information.
+  - Use [collectTypeScriptInfo.exportedEnum](/guide/builtin-loaders/swc-loader#collecttypescriptinfoexportedenum) to control whether to collect exported `enum` information.
   - Use [optimization.inlineExports](/config/optimization#optimizationinlineexports) to control whether to inline `enum`.
 - **Type Re-export Check**: This optimization is now stable.
   - The original [experiments.typeReexportsPresence](/config/module-parser#javascripttypereexportspresence) option is deprecated.
@@ -305,7 +305,7 @@ export default {
 };
 ```
 
-- Adjust the position of the [collectTypeScriptInfo](/guide/features/builtin-swc-loader#collecttypescriptinfo) option in `builtin:swc-loader`, removing the `rspackExperiments` level:
+- Adjust the position of the [collectTypeScriptInfo](/guide/builtin-loaders/swc-loader#collecttypescriptinfo) option in `builtin:swc-loader`, removing the `rspackExperiments` level:
 
 ```js title="rspack.config.mjs"
 export default {

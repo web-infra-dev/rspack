@@ -6,10 +6,10 @@ use std::{
 use cow_utils::CowUtils;
 use pathdiff::diff_paths;
 use rspack_core::{
-  AssetEmittedInfo, AssetInfo, BuildModuleGraphArtifact, ChunkCodeTemplate, ChunkUkey, Compilation,
-  CompilationAsset, CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
+  AssetEmittedInfo, AssetInfo, BuildModuleGraphArtifact, ChunkUkey, Compilation, CompilationAsset,
+  CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
   CompilerAssetEmitted, CompilerCompilation, DependencyType, ExportsInfoArtifact, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, RuntimeCodeTemplate,
   SideEffectsOptimizeArtifact, get_module_directives, get_module_hashbang,
   rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
 };
@@ -34,6 +34,8 @@ use crate::{
   isolated_dts::{IsolatedDtsAsset, complete_isolated_dts_outputs},
   parser_plugin::RslibParserPlugin,
   react_directives_parser_plugin::ReactDirectivesParserPlugin,
+  url_external::{ExternalURLDependencyTemplate, cutout_url_externals},
+  worker_external::{ExternalWorkerDependencyTemplate, cutout_worker_externals},
 };
 
 #[derive(Debug, Clone)]
@@ -192,7 +194,7 @@ async fn nmf_parser(
       // force_node_shims means we want to handle CJS shims (__dirname/__filename) in ESM modules
       // So we use handle_cjs=true to enable __dirname/__filename handling
       parser.add_parser_plugin(Box::new(
-        rspack_plugin_javascript::node_stuff_plugin::NodeStuffPlugin::new(true, false),
+        rspack_plugin_javascript::node_stuff_plugin::NodeStuffPlugin::new(true),
       ) as BoxJavascriptParserPlugin);
     }
   } else if parser.is::<AssetParserAndGenerator>() {
@@ -224,6 +226,28 @@ async fn compilation(
     }),
   );
 
+  let worker_template = compilation.get_dependency_template(
+    rspack_core::DependencyTemplateType::Dependency(DependencyType::NewWorker),
+  );
+  compilation.set_dependency_template(
+    rspack_core::DependencyTemplateType::Dependency(DependencyType::NewWorker),
+    Arc::new(ExternalWorkerDependencyTemplate {
+      cutout_all_externals: true,
+      template: worker_template,
+    }),
+  );
+
+  let url_template = compilation.get_dependency_template(
+    rspack_core::DependencyTemplateType::Dependency(DependencyType::NewUrl),
+  );
+  compilation.set_dependency_template(
+    rspack_core::DependencyTemplateType::Dependency(DependencyType::NewUrl),
+    Arc::new(ExternalURLDependencyTemplate {
+      cutout_all_externals: true,
+      template: url_template,
+    }),
+  );
+
   let export_template = compilation.get_dependency_template(
     rspack_core::DependencyTemplateType::Dependency(DependencyType::EsmExportImportedSpecifier),
   );
@@ -249,7 +273,7 @@ async fn render(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
-  _runtime_template: &ChunkCodeTemplate,
+  _runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
   // NOTE: This function handles hashbang and directives for non new ESM library formats.
   // Similar logic exists in rspack_plugin_esm_library/src/render.rs for ESM format,
@@ -315,6 +339,16 @@ async fn optimize_dependencies(
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   cutout_dyn_import_externals(
+    true,
+    compilation.options.output.module,
+    build_module_graph_artifact,
+  );
+  cutout_worker_externals(
+    true,
+    compilation.options.output.module,
+    build_module_graph_artifact,
+  );
+  cutout_url_externals(
     true,
     compilation.options.output.module,
     build_module_graph_artifact,

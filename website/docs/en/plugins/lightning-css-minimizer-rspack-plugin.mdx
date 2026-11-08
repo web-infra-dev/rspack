@@ -1,0 +1,192 @@
+---
+description: 'This plugin uses lightningcss to minify CSS assets'
+---
+
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# LightningCssMinimizerRspackPlugin
+
+<ApiMeta specific={['Rspack']} />
+
+This plugin uses [lightningcss](https://lightningcss.dev/) to minify CSS assets. See [optimization.minimizer](/config/optimization#optimizationminimizer).
+
+## Examples
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  optimization: {
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin(),
+      new rspack.LightningCssMinimizerRspackPlugin(),
+    ],
+  },
+};
+```
+
+Minimizers run when [optimization.minimize](/config/optimization#optimizationminimize) is enabled, which is the default for production builds. Setting `optimization.minimizer` replaces the default minimizers, so include `SwcJsMinimizerRspackPlugin` to keep JavaScript minification enabled.
+
+## Options
+
+### include
+
+- **Type:** `string | RegExp | (string | RegExp)[]`
+- **Default:** `undefined`
+
+Use this to specify which files should be minified, it matches the path of the output files.
+
+### exclude
+
+- **Type:** `string | RegExp | (string | RegExp)[]`
+- **Default:** `undefined`
+
+Use this to specify which files should be excluded from minification, it matches the path of the output files.
+
+For example, skip an emitted file named `vendor.css` while still minifying other CSS assets:
+
+```js
+new rspack.LightningCssMinimizerRspackPlugin({
+  exclude: /vendor\.css$/,
+});
+```
+
+This option matches output filenames rather than source paths such as `src/vendor.css`. To control CSS syntax transformations, use `minimizerOptions.exclude`.
+
+### test
+
+- **Type:** `string | RegExp | (string | RegExp)[]`
+- **Default:** `undefined`
+
+Use this to provide a pattern that CSS files are matched against. If the output filename matches the given pattern, it will be minified, otherwise it won't be.
+
+### removeUnusedLocalIdents
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether to automatically remove the unused local idents of CSS Modules, including unused CSS class names, ids, and @keyframe names. The declarations of these will be removed.
+
+For example, in the following CSS Modules, class names a and b are exported, but only class name a is used in the js file:
+
+```css title=index.module.css
+.a {
+  color: red;
+}
+
+.b {
+  color: blue;
+}
+```
+
+```js title=index.js
+import * as styles from './index.module.css';
+document.body.className = styles.a;
+```
+
+At this point, the information that class name b is unused will be obtained via Rspack's tree shaking feature and provided to lightningcss. During minimization, the declaration for class name b will be removed from the CSS output, resulting in the following final output:
+
+{/* prettier-ignore */}
+```css
+.a{color: red}
+```
+
+### minimizerOptions
+
+Options passed to Lightning CSS to control browser compatibility, syntax transformations, and minification.
+
+#### Browser targets
+
+`minimizerOptions.targets` specifies the browsers that the output CSS must support. It accepts:
+
+- A Browserslist query string, such as `'chrome >= 100'`.
+- An array of query strings, such as `['chrome >= 100', 'safari >= 15']`.
+- An object with minimum browser versions, such as `{ chrome: '100', safari: '15' }`. Supported keys are `android`, `chrome`, `edge`, `firefox`, `ie`, `ios_saf`, `opera`, `safari`, and `samsung`.
+
+When `minimizerOptions.targets` is omitted, the plugin attempts to inherit browser targets from Rspack's `target`. See [`target` default behavior](/config/target#default-behavior) for how Rspack selects its target environment.
+
+Lightning CSS uses these targets both to transform unsupported syntax and to choose shorter syntax during minification. Configure targets that match your application's browser requirements, either through Rspack's `target` or through `minimizerOptions.targets`.
+
+#### Example
+
+The following example targets Chrome 100 and later, uses [built-in CSS support](/guide/languages/css#built-in-css-support), and includes both JavaScript and CSS minimizers:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  module: {
+    rules: [{ test: /\.css$/i, type: 'css' }],
+  },
+  optimization: {
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin(),
+      new rspack.LightningCssMinimizerRspackPlugin({
+        minimizerOptions: {
+          targets: ['chrome >= 100'],
+        },
+      }),
+    ],
+  },
+};
+```
+
+```js title="src/index.js"
+import './style.css';
+console.log('Hello');
+```
+
+```css title="src/style.css"
+.card {
+  color: red;
+
+  &:hover {
+    color: blue;
+  }
+}
+```
+
+Chrome 100 does not support CSS nesting, so a production build flattens the nested rule:
+
+{/* prettier-ignore */}
+```css title="dist/main.css"
+.card{color:red}.card:hover{color:#00f}
+```
+
+#### Syntax transforms
+
+By default, Lightning CSS decides which syntax transformations to apply based on `targets`. Use feature objects to override these decisions:
+
+- `minimizerOptions.include` forces specific transformations, even when the target browsers support the original syntax.
+- `minimizerOptions.exclude` disables specific transformations, even when the target browsers need them.
+
+For example, preserve the nested rule from the example above:
+
+```js
+new rspack.LightningCssMinimizerRspackPlugin({
+  minimizerOptions: {
+    targets: ['chrome >= 100'],
+    exclude: { nesting: true },
+  },
+});
+```
+
+The output then requires a browser that supports CSS nesting, despite the configured Chrome 100 target. Conversely, setting `include: { nesting: true }` forces nesting to be transformed even for browsers that support it.
+
+Other feature keys include `vendorPrefixes`, `logicalProperties`, and `color`. For the full list, see `LightningcssFeatureOptions` in the [Lightning CSS loader option types](/guide/builtin-loaders/lightningcss-loader#options). For the behavior of each transformation, see [Lightning CSS transpilation](https://lightningcss.dev/transpilation.html).
+
+These feature options apply to CSS syntax. The plugin's top-level `include` and `exclude` select which output files to minify.
+
+#### Other options
+
+The following options are also supported under `minimizerOptions`:
+
+| Option          | Type                                   | Description                                                                                                                |
+| --------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `errorRecovery` | `boolean`                              | Recover from invalid CSS rules or declarations where possible instead of failing during parsing. Defaults to `true`.       |
+| `drafts`        | `{ customMedia?: boolean }`            | Enable parsing of draft `@custom-media` syntax.                                                                            |
+| `nonStandard`   | `{ deepSelectorCombinator?: boolean }` | Enable the non-standard `>>>` and `/deep/` selector combinators.                                                           |
+| `pseudoClasses` | Object with optional string values     | Replace pseudo classes with class names. Supported keys are `hover`, `active`, `focus`, `focusVisible`, and `focusWithin`. |
+| `unusedSymbols` | `string[]`                             | Specify symbols that are known to be unused so Lightning CSS can remove them. Defaults to `[]`.                            |
+
+For details on draft syntax, non-standard syntax, and pseudo class replacement, see [Lightning CSS transpilation](https://lightningcss.dev/transpilation.html#draft-syntax). For `unusedSymbols`, see [removing unused symbols](https://lightningcss.dev/minification.html#unused-symbols).

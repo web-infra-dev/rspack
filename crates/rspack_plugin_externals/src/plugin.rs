@@ -1,9 +1,5 @@
-use std::{
-  fmt::Debug,
-  sync::{Arc, LazyLock},
-};
+use std::{fmt::Debug, sync::Arc};
 
-use regex::Regex;
 use rspack_core::{
   BoxModule, ContextInfo, DependencyMeta, DependencyType, ExternalItem, ExternalItemFnCtx,
   ExternalItemValue, ExternalModule, ExternalRequest, ExternalRequestValue, ExternalType,
@@ -12,10 +8,8 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_css::dependency::CssImportDependency;
 use rspack_plugin_javascript::dependency::{ESMImportSideEffectDependency, ImportDependency};
-
-static UNSPECIFIED_EXTERNAL_TYPE_REGEXP: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^[a-z0-9-]+ ").expect("Invalid regex"));
 
 #[plugin]
 #[derive(Debug)]
@@ -107,10 +101,12 @@ impl ExternalsPlugin {
     };
 
     fn parse_external_type_from_str(v: &str) -> Option<(ExternalType, String)> {
-      if UNSPECIFIED_EXTERNAL_TYPE_REGEXP.is_match(v)
-        && let Some((t, c)) = v.split_once(' ')
-      {
-        return Some((t.to_owned(), c.to_owned()));
+      let type_end = v
+        .bytes()
+        .take_while(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || *byte == b'-')
+        .count();
+      if type_end > 0 && v.as_bytes().get(type_end) == Some(&b' ') {
+        return Some((v[..type_end].to_owned(), v[type_end + 1..].to_owned()));
       }
       None
     }
@@ -127,6 +123,7 @@ impl ExternalsPlugin {
 
     let mut dependency_meta: DependencyMeta = DependencyMeta {
       attributes: dependency.get_attributes().cloned(),
+      phase: dependency.get_phase(),
       external_type: {
         if is_import_dependency
           || matches!(
@@ -144,15 +141,19 @@ impl ExternalsPlugin {
         }
       },
       source_type: None,
+      css_import_conditions: dependency
+        .as_any()
+        .downcast_ref::<CssImportDependency>()
+        .map(|dependency| dependency.render_condition().clone()),
     };
 
-    if r#type.as_ref().is_some_and(|t| t == "asset")
+    let external_module_type = r#type.unwrap_or(external_module_type);
+    if matches!(external_module_type.as_str(), "asset" | "asset-url")
       && matches!(dependency.dependency_type(), DependencyType::CssUrl)
     {
-      dependency_meta.source_type = Some(SourceType::CssUrl);
+      dependency_meta.source_type = Some(SourceType::AssetUrl);
     }
 
-    let external_module_type = r#type.unwrap_or(external_module_type);
     if external_module_type == "modern-module"
       && matches!(
         dependency_type,
@@ -194,6 +195,18 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
           return Ok(maybe_module.map(|i| i.boxed()));
         }
       }
+      ExternalItem::ByLayer(layers) => {
+        let externals = layers
+          .get(data.issuer_layer.as_deref().unwrap_or("null"))
+          .or_else(|| layers.get("default"));
+        if let Some(value) = externals.and_then(|externals| externals.get(dependency.request())) {
+          return Ok(
+            self
+              .handle_external(value, None, dependency)
+              .map(|i| i.boxed()),
+          );
+        }
+      }
       ExternalItem::RegExp(r) => {
         let request = dependency.request();
         if r.test(request) {
@@ -213,6 +226,12 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
             None,
             dependency,
           );
+          return Ok(maybe_module.map(|i| i.boxed()));
+        }
+      }
+      ExternalItem::RequestPredicate(predicate) => {
+        if predicate(dependency.request()) {
+          let maybe_module = self.handle_external(&ExternalItemValue::Bool(true), None, dependency);
           return Ok(maybe_module.map(|i| i.boxed()));
         }
       }
@@ -242,7 +261,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
               .expect("Expected at least one dependency")
               .category(),
           },
-          resolver_factory: data.resolver_factory.clone(),
+          resolver_factory: data.build_context.resolver_factory.clone(),
         })
         .await?;
         if let Some(r) = result.result {

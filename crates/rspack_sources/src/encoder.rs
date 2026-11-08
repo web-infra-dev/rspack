@@ -51,10 +51,12 @@ impl MappingsEncoder {
 
   #[inline]
   pub fn drain(&mut self) -> String {
-    match self {
+    let mut mappings = match self {
       MappingsEncoder::Full(enc) => enc.drain(),
       MappingsEncoder::LinesOnly(enc) => enc.drain(),
-    }
+    };
+    mappings.shrink_to_fit();
+    mappings
   }
 }
 
@@ -109,6 +111,11 @@ impl FullMappingsEncoder {
           && original.name_index.is_none()
       }) {
         // avoid repeating the same original mapping
+        return;
+      }
+      if mapping.original.is_none() && mapping.generated_column == self.current_column {
+        // avoid shadowing the active mapping with a generated-only mapping
+        // at the same position, consumers would resolve it to nothing
         return;
       }
     } else {

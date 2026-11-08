@@ -1,17 +1,22 @@
-use std::{borrow::Cow, hash::Hash, sync::atomic::AtomicU32};
+use std::{
+  borrow::Cow,
+  fmt::{Display, Formatter},
+  sync::atomic::AtomicU32,
+};
 
 use either::Either;
 use rspack_cacheable::{
   cacheable,
   with::{AsPreset, AsVec},
 };
-use rspack_util::{atom::Atom, json_stringify, ryu_js};
+use rspack_hash::RspackHasher;
+use rspack_intern::Atom;
+use rspack_util::{json_stringify, ryu_js};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{DependencyId, property_access};
 
 pub static NEXT_EXPORTS_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
-pub static NEXT_EXPORT_INFO_UKEY: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Clone, Hash)]
 pub struct ExportInfoTargetValue {
@@ -42,7 +47,7 @@ pub enum EvaluatedInlinableValue {
   String(#[cacheable(with=AsPreset)] Atom),
 }
 
-impl Hash for EvaluatedInlinableValue {
+impl std::hash::Hash for EvaluatedInlinableValue {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     std::mem::discriminant(self).hash(state);
     match self {
@@ -57,6 +62,12 @@ impl Hash for EvaluatedInlinableValue {
       }
       _ => {}
     }
+  }
+}
+
+impl rspack_hash::RspackHash for EvaluatedInlinableValue {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.render("").hash(state);
   }
 }
 
@@ -115,7 +126,16 @@ pub enum UsedNameItem {
   Inlined(EvaluatedInlinableValue),
 }
 
-#[derive(Debug, Clone, Hash)]
+impl rspack_hash::RspackHash for UsedNameItem {
+  fn hash(&self, state: &mut RspackHasher) {
+    match self {
+      UsedNameItem::Str(value) => value.hash(state),
+      UsedNameItem::Inlined(value) => value.hash(state),
+    }
+  }
+}
+
+#[derive(Debug, Clone, rspack_hash::RspackHash)]
 pub struct InlinedUsedName {
   value: EvaluatedInlinableValue,
   suffix: Vec<Atom>,
@@ -169,6 +189,28 @@ pub enum ExportProvided {
   Unknown,
 }
 
+impl rspack_hash::RspackHash for ExportProvided {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.as_str().hash(state);
+  }
+}
+
+impl Display for ExportProvided {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    f.write_str(self.as_str())
+  }
+}
+
+impl ExportProvided {
+  fn as_str(&self) -> &'static str {
+    match self {
+      ExportProvided::Provided => "provided",
+      ExportProvided::NotProvided => "not-provided",
+      ExportProvided::Unknown => "unknown",
+    }
+  }
+}
+
 #[derive(Debug, Hash, PartialEq, Eq, Default, Clone)]
 pub struct UsageKey(pub Vec<Either<Box<UsageKey>, UsageState>>);
 
@@ -186,6 +228,30 @@ pub enum UsageState {
   #[default]
   Unknown = 3,
   Used = 4,
+}
+
+impl rspack_hash::RspackHash for UsageState {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.as_str().hash(state);
+  }
+}
+
+impl Display for UsageState {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    f.write_str(self.as_str())
+  }
+}
+
+impl UsageState {
+  fn as_str(&self) -> &'static str {
+    match self {
+      UsageState::Unused => "unused",
+      UsageState::OnlyPropertiesUsed => "only-properties-used",
+      UsageState::NoInfo => "no-info",
+      UsageState::Unknown => "unknown",
+      UsageState::Used => "used",
+    }
+  }
 }
 
 #[cacheable]

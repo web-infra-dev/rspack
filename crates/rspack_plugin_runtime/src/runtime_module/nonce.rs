@@ -15,8 +15,19 @@ impl NonceRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for NonceRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::SCRIPT_NONCE
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      define: { RuntimeGlobals::SCRIPT_NONCE },
+      force_context: RuntimeGlobals::SCRIPT_NONCE,
+      ..Default::default()
+    }
   }
 
   async fn generate(
@@ -27,7 +38,7 @@ impl RuntimeModule for NonceRuntimeModule {
       "{} = undefined;",
       context
         .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::SCRIPT_NONCE)
+        .render_runtime_global_definition(&RuntimeGlobals::SCRIPT_NONCE)
     ))
   }
 }

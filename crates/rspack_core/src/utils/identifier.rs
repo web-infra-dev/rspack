@@ -1,7 +1,9 @@
 use std::borrow::Cow;
 
+use memchr::memchr_iter;
 use rspack_paths::Utf8Path;
-use rspack_util::identifier::push_absolute_to_request;
+use rspack_sources::SourceMap;
+use rspack_util::identifier::{make_paths_relative, push_absolute_to_request};
 use swc_core::ecma::utils::is_valid_prop_ident;
 
 use crate::BoxLoader;
@@ -19,16 +21,106 @@ pub fn contextify(context: impl AsRef<Utf8Path>, request: &str) -> String {
   let mut result = String::with_capacity(request.len());
   let mut last = 0;
 
-  for (index, byte) in request.bytes().enumerate() {
-    if byte == b'!' {
-      push_absolute_to_request(context, &request[last..index], &mut result);
-      result.push('!');
-      last = index + 1;
-    }
+  for index in memchr_iter(b'!', request.as_bytes()) {
+    push_absolute_to_request(context, &request[last..index], &mut result);
+    result.push('!');
+    last = index + 1;
   }
 
   push_absolute_to_request(context, &request[last..], &mut result);
   result
+}
+
+/// Converts a source path to a context-relative `webpack://` URL, preserving existing URLs.
+///
+/// `file://` URLs are converted too, so build-local paths don't leak into module hashes.
+pub fn contextify_source_url(context: &str, source: &str) -> String {
+  if let Some(path) = source.strip_prefix("file://").and_then(file_url_path) {
+    return to_context_relative_url(context, &path);
+  }
+  if source.starts_with("webpack://")
+    || source.starts_with("rspack://")
+    || source.starts_with("data:")
+    || source.starts_with("http:")
+    || source.starts_with("https:")
+  {
+    return source.to_string();
+  }
+  to_context_relative_url(context, source)
+}
+
+fn to_context_relative_url(context: &str, path: &str) -> String {
+  let mut result = String::with_capacity("webpack://".len() + context.len() + path.len());
+  result.push_str("webpack://");
+  result.push_str(&make_paths_relative(context, path));
+  result
+}
+
+/// Returns the decoded path of a `file://` URL with an empty host (`file:///abs/path`).
+/// URLs naming a host are left alone.
+fn file_url_path(url_path: &str) -> Option<String> {
+  if !url_path.starts_with('/') {
+    return None;
+  }
+  let path = urlencoding::decode(url_path).ok()?;
+  Some(strip_slash_before_drive(&path).to_string())
+}
+
+/// URLs write Windows paths as `/C:/path`; drop the leading slash so they read as absolute.
+fn strip_slash_before_drive(path: &str) -> &str {
+  match path.strip_prefix('/') {
+    Some(rest) if is_windows_drive_path(rest) => rest,
+    _ => path,
+  }
+}
+
+fn is_windows_drive_path(path: &str) -> bool {
+  let bytes = path.as_bytes();
+  bytes.len() >= 3
+    && bytes[0].is_ascii_alphabetic()
+    && bytes[1] == b':'
+    && matches!(bytes[2], b'/' | b'\\')
+}
+
+/// Matches absolute sources that override `sourceRoot` in `rspack_sources::helpers::get_source`.
+fn is_absolute_source(source: &str) -> bool {
+  if source.starts_with('/') {
+    return true;
+  }
+  let Some((scheme, _)) = source.split_once(':') else {
+    return false;
+  };
+  let mut chars = scheme.chars();
+  matches!(chars.next(), Some(first) if first.is_ascii_alphabetic())
+    && chars.all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '+' | '-' | '.'))
+}
+
+/// Removes context-dependent paths from a loader-provided source map.
+pub fn contextify_source_map(context: &str, source_map: &mut SourceMap<'static>) {
+  let source_root = source_map
+    .source_root()
+    .filter(|source_root| !source_root.is_empty())
+    .map(str::to_string);
+  let sources: Vec<String> = source_map
+    .sources()
+    .iter()
+    .map(|source| {
+      let source = match &source_root {
+        Some(source_root) if !is_absolute_source(source) => {
+          if source_root.ends_with('/') {
+            format!("{source_root}{source}")
+          } else {
+            format!("{source_root}/{source}")
+          }
+        }
+        _ => source.to_string(),
+      };
+      contextify_source_url(context, &source)
+    })
+    .collect();
+  source_map.set_file(Some(Cow::Borrowed("x")));
+  source_map.set_source_root(None);
+  source_map.set_sources(sources);
 }
 
 #[inline]

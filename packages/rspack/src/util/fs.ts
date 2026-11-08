@@ -12,21 +12,30 @@ import path from 'node:path';
 
 import type { WatchOptions } from '../config';
 
+// watchpack's `TimeInfoEntries`: `Entry` ({ safeTime, timestamp, accuracy }),
+// `OnlySafeTimeEntry` ({ safeTime }), `ExistenceOnlyTimeEntry` ({}) or `null`
+// for a watched path absent on disk; webpack adds 'ignore'.
+export type ExistenceOnlyTimeEntry = Record<string, never>;
+export type TimeInfoEntries = Map<
+  string,
+  FileSystemInfoEntry | ExistenceOnlyTimeEntry | 'ignore' | null
+>;
+
 export interface Watcher {
   close(): void; // closes the watcher and all underlying file watchers
   pause(): void; // pause closes the watcher, but keeps underlying file watchers alive until the next watch call
   getAggregatedChanges?(): Set<string>; // getAggregatedChanges get current aggregated changes that have not yet send to callback
   getAggregatedRemovals?(): Set<string>; // get current aggregated removals that have not yet send to callback
-  getFileTimeInfoEntries?(): Map<string, FileSystemInfoEntry | 'ignore'>; // get info about files
-  getContextTimeInfoEntries?(): Map<string, FileSystemInfoEntry | 'ignore'>; // get info about directories
+  getFileTimeInfoEntries?(): TimeInfoEntries; // get info about files
+  getContextTimeInfoEntries?(): TimeInfoEntries; // get info about directories
   getInfo(): WatcherInfo; // get info about timestamps and changes
 }
 
 export interface WatcherInfo {
   changes: Set<string>; // get current aggregated changes that have not yet send to callback
   removals: Set<string>; // get current aggregated removals that have not yet send to callback
-  fileTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>; // get info about files
-  contextTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>; // get info about directories
+  fileTimeInfoEntries: TimeInfoEntries; // get info about files
+  contextTimeInfoEntries: TimeInfoEntries; // get info about directories
 }
 
 export type IStatsBase<T> = {
@@ -162,7 +171,6 @@ export type JsonObject = { [Key in string]: JsonValue } & {
   [Key in string]?: JsonValue | undefined;
 };
 
-export type NoParamCallback = (err: NodeJS.ErrnoException | null) => void;
 export type StringCallback = (
   err: NodeJS.ErrnoException | null,
   data?: string,
@@ -202,10 +210,6 @@ export type BigIntStatsCallback = (
 export type StatsOrBigIntStatsCallback = (
   err: NodeJS.ErrnoException | null,
   stats?: IStats | IBigIntStats,
-) => void;
-export type NumberCallback = (
-  err: NodeJS.ErrnoException | null,
-  data?: number,
 ) => void;
 export type ReadJsonCallback = (
   err: NodeJS.ErrnoException | Error | null,
@@ -253,8 +257,8 @@ export type ReadFile = {
 export type ReadFileSync = {
   (
     path: PathOrFileDescriptor,
-    options: {
-      encoding: null | undefined;
+    options?: {
+      encoding?: null | undefined;
       flag?: string;
     } | null,
   ): Buffer;
@@ -264,18 +268,13 @@ export type ReadFileSync = {
   ): string;
   (
     path: PathOrFileDescriptor,
-    options:
-      | (ObjectEncodingOptions & { flag?: string })
-      | BufferEncoding
-      | null,
+    options?:
+      (ObjectEncodingOptions & { flag?: string }) | BufferEncoding | null,
   ): string | Buffer;
 };
 
 export type EncodingOption =
-  | ObjectEncodingOptions
-  | BufferEncoding
-  | undefined
-  | null;
+  ObjectEncodingOptions | BufferEncoding | undefined | null;
 
 export type BufferEncodingOption = 'buffer' | { encoding: 'buffer' };
 
@@ -304,9 +303,9 @@ export type Readlink = {
 };
 
 export type ReadlinkSync = {
-  (path: PathLike, options: EncodingOption): string;
+  (path: PathLike, options?: EncodingOption): string;
   (path: PathLike, options: BufferEncodingOption): Buffer;
-  (path: PathLike, options: EncodingOption): string | Buffer;
+  (path: PathLike, options?: EncodingOption): string | Buffer;
 };
 
 export type Readdir = {
@@ -334,7 +333,7 @@ export type Readdir = {
   (
     path: PathLike,
     options:
-      | (ObjectEncodingOptions & { withFileTypes: true; recursive?: boolean })
+      | (ObjectEncodingOptions & { withFileTypes?: false; recursive?: boolean })
       | BufferEncoding
       | null
       | undefined,
@@ -353,7 +352,7 @@ export type Readdir = {
 export type ReaddirSync = {
   (
     path: PathLike,
-    options:
+    options?:
       | {
           encoding: BufferEncoding | null;
           withFileTypes?: false;
@@ -370,7 +369,7 @@ export type ReaddirSync = {
   ): Buffer[];
   (
     path: PathLike,
-    options:
+    options?:
       | (ObjectEncodingOptions & { withFileTypes?: false; recursive?: boolean })
       | BufferEncoding
       | null,
@@ -521,25 +520,6 @@ export type IntermediateFileSystem = InputFileSystem &
   OutputFileSystem &
   IntermediateFileSystemExtras;
 
-export type WriteStreamOptions = {
-  flags?: string;
-  encoding?:
-    | 'ascii'
-    | 'utf8'
-    | 'utf-8'
-    | 'utf16le'
-    | 'utf-16le'
-    | 'ucs2'
-    | 'ucs-2'
-    | 'latin1'
-    | 'binary'
-    | 'base64'
-    | 'base64url'
-    | 'hex';
-  fd?: any;
-  mode?: number;
-};
-
 export type MakeDirectoryOptions = {
   recursive?: boolean;
   mode?: string | number;
@@ -570,7 +550,7 @@ export type Read<TBuffer extends ArrayBufferView = Buffer> = (
 export type WriteAsyncOptions<TBuffer extends ArrayBufferView = Buffer> = {
   offset?: number;
   length?: number;
-  position?: null | number | bigint;
+  position?: null | number;
   buffer?: TBuffer;
 };
 
@@ -727,6 +707,7 @@ export const mkdirp = (
 export interface FileSystemInfoEntry {
   safeTime: number;
   timestamp?: number;
+  accuracy?: number;
 }
 
 export interface WatchFileSystem {
@@ -747,11 +728,49 @@ export interface WatchFileSystem {
     options: WatchOptions,
     callback: (
       error: Error | null,
-      fileTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>,
-      contextTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>,
+      fileTimeInfoEntries: TimeInfoEntries,
+      contextTimeInfoEntries: TimeInfoEntries,
       changedFiles: Set<string>,
       removedFiles: Set<string>,
     ) => void,
     callbackUndelayed: (fileName: string, changeTime: number) => void,
   ): Watcher;
+
+  // watchpack-compatible times API. Optional to avoid a breaking change for
+  // external `WatchFileSystem` implementations.
+  getTimes?(): Record<string, number | null>;
+  getTimeInfoEntries?(): TimeInfoEntries;
+  collectTimeInfoEntries?(
+    fileTimestamps: TimeInfoEntries,
+    directoryTimestamps: TimeInfoEntries,
+  ): void;
+
+  // Standard event API so plugins can observe and inject file changes without
+  // reaching into the underlying watchpack/native watcher internals. Optional
+  // to avoid a breaking change for external `WatchFileSystem` implementations.
+  on?(
+    event: 'change',
+    listener: (filename: string, mtime: number | null) => void,
+  ): this;
+  on?(event: 'remove', listener: (filename: string) => void): this;
+  on?(
+    event: 'aggregated',
+    listener: (changes: Set<string>, removals: Set<string>) => void,
+  ): this;
+  once?(
+    event: 'change',
+    listener: (filename: string, mtime: number | null) => void,
+  ): this;
+  once?(event: 'remove', listener: (filename: string) => void): this;
+  once?(
+    event: 'aggregated',
+    listener: (changes: Set<string>, removals: Set<string>) => void,
+  ): this;
+  emit?(event: 'change', filename: string, mtime: number): boolean;
+  emit?(event: 'remove', filename: string): boolean;
+  emit?(
+    event: 'aggregated',
+    changes: Set<string>,
+    removals: Set<string>,
+  ): boolean;
 }

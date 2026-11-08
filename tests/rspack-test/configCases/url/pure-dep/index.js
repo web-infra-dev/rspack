@@ -1,7 +1,7 @@
 import { foo } from "./foo.js";
 
 let generated = /** @type {string} */ (
-	__non_webpack_require__("fs").readFileSync(__filename, "utf-8")
+	require("fs").readFileSync(__filename, "utf-8")
 );
 
 it("should work", () => {

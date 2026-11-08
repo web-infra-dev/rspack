@@ -1,7 +1,7 @@
 import { BRANCH_FALSE, BRANCH_TRUE, INNER, OUTER } from "./constants";
 
-const fs = __non_webpack_require__("fs");
-const path = __non_webpack_require__("path");
+const fs = require("fs");
+const path = require("path");
 
 function emittedSource() {
   return fs

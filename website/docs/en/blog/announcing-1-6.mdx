@@ -9,11 +9,11 @@ authors:
     x: 'https://x.com/rspack_dev'
 ---
 
-import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
 # Announcing Rspack 1.6
 
-October 30, 2025
+_October 30, 2025_
 
 <BlogAuthors />
 
@@ -109,13 +109,13 @@ export default {
 
 Optimizing ESM output has long been one of the key challenges faced by Rspack. Previously, we relied on [module concatenation](/config/optimization#optimizationconcatenatemodules) to optimize ESM outputs, but that approach had several limitations:
 
-- **Impure output** – The generated files contained Rspack's runtime code.
+- **Impure output** – The generated files contained Rspack runtime code.
 - **Prone to errors** – Some modules could not be correctly concatenated, leading to unexpected runtime issues.
 - **Limited code-splitting support** – Split bundles became complex and difficult to analyze or optimize statically.
 
 To address these issues once and for all, we introduced an experimental plugin called [EsmLibraryPlugin](https://v1.rspack.rs/plugins/rspack/esm-library-plugin), purpose-built for constructing clean and efficient ESM libraries:
 
-- **Full control over the bundling process** – All modules are linked during compilation, eliminating reliance on Rspack's runtime.
+- **Full control over the bundling process** – All modules are linked during compilation, eliminating reliance on the Rspack runtime.
 - **Code-splitting support** – Code after splitting can be statically analyzed and is tree-shaking friendly.
 
 The image below compares the code splitting output before and after using this plugin — the left side shows the previous output, while the right side shows the cleaner output produced by EsmLibraryPlugin:
@@ -130,7 +130,7 @@ import { rspack } from '@rspack/core';
 export default {
   plugins: [new rspack.experiments.EsmLibraryPlugin()],
   optimization: {
-    // Recommended to enable; otherwise, consumers must import runtime code from the entry.
+    // Recommended to enable; otherwise, consumers must import Rspack runtime code from the entry.
     runtimeChunk: true,
   },
 };
@@ -152,7 +152,7 @@ export default {
 
 ### Optimized barrels by default
 
-In Rspack 1.5, we introduced the experimental [lazyBarrel](/guide/optimization/lazy-barrel) optimization feature, specifically designed to improve the build performance of barrel files. After a period of production environment practice and user feedback collection, we confirmed that the lazyBarrel feature has reached a stable state, so it is enabled by default in Rspack 1.6.
+In Rspack 1.5, we introduced the experimental [lazyBarrel](/guide/advanced/lazy-barrel) optimization feature, specifically designed to improve the build performance of barrel files. After a period of production environment practice and user feedback collection, we confirmed that the lazyBarrel feature has reached a stable state, so it is enabled by default in Rspack 1.6.
 
 :::info
 What are barrel files? Barrel files are files that are primarily used to re-export content from other modules, typically used to simplify import paths and provide a unified API entry point.
@@ -165,9 +165,9 @@ Layer is a feature for organizing modules into different layers, which can be us
 - Compiling modules in different layers for different target environments
 - Outputting them to separate build directories
 
-Starting from Rspack 1.6, the layer feature has become stable enough that the experimental flag [experiments.layers](/guide/features/layer) has been deprecated. You can now use the layer feature directly without the experimental flag.
+Starting from Rspack 1.6, the layer feature has become stable enough that the experimental flag [experiments.layers](/guide/advanced/layer) has been deprecated. You can now use the layer feature directly without the experimental flag.
 
-For more details and practical examples, check out our new [Layer guide](/guide/features/layer#layer).
+For more details and practical examples, check out our new [Module layers guide](/guide/advanced/layer).
 
 ### Preserve JSX syntax
 

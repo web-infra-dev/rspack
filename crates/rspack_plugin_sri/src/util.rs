@@ -1,9 +1,8 @@
-use std::{borrow::Cow, sync::LazyLock};
+use std::borrow::Cow;
 
 use cow_utils::CowUtils;
 use rspack_core::{
-  AssetInfo, ChunkGroupUkey, ChunkUkey, Compilation, ManifestAssetType, ModuleCodeTemplate,
-  RuntimeGlobals, SourceType,
+  AssetInfo, ChunkGroupUkey, ChunkUkey, Compilation, ManifestAssetType, SourceType,
 };
 use rspack_util::fx_hash::FxIndexSet;
 
@@ -11,22 +10,48 @@ use crate::{SubresourceIntegrityHashFunction, integrity::compute_integrity};
 
 pub const PLACEHOLDER_PREFIX: &str = "*-*-*-CHUNK-SRI-HASH-";
 
-pub static PLACEHOLDER_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
-  let escaped_prefix = regex::escape(PLACEHOLDER_PREFIX);
-  regex::Regex::new(&format!(
-    r"{escaped_prefix}[a-zA-Z0-9=/+]+(\s+sha\d{{3}}-[a-zA-Z0-9=/+]+)*"
-  ))
-  .expect("should initialize `Regex`")
-});
+// A placeholder has the same shape and length as its integrity value, including
+// any additional hashes when more than one algorithm is enabled.
+pub fn placeholder_len(rest: &str) -> Option<(usize, ())> {
+  fn hash_len(value: &str) -> usize {
+    value
+      .bytes()
+      .take_while(|b| b.is_ascii_alphanumeric() || matches!(b, b'=' | b'/' | b'+'))
+      .count()
+  }
 
-pub fn get_hash_variable(runtime_template: &ModuleCodeTemplate, source_type: SourceType) -> String {
-  let require_name =
-    runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::REQUIRE);
+  let mut end = hash_len(rest);
+  if end == 0 {
+    return None;
+  }
+  loop {
+    let remaining = &rest[end..];
+    let next = remaining.trim_start_matches(char::is_whitespace);
+    if next.len() == remaining.len() {
+      break;
+    }
+    let Some(hash) = next.strip_prefix("sha") else {
+      break;
+    };
+    let bytes = hash.as_bytes();
+    if bytes.len() < 4 || !bytes[..3].iter().all(u8::is_ascii_digit) || bytes[3] != b'-' {
+      break;
+    }
+    let len = hash_len(&hash[4..]);
+    if len == 0 {
+      break;
+    }
+    end += remaining.len() - next.len() + 7 + len;
+  }
+  Some((end, ()))
+}
+
+pub fn get_hash_variable(runtime_require_name: &str, source_type: SourceType) -> String {
   match source_type {
-    SourceType::JavaScript => format!("{require_name}.sriHashes"),
-    SourceType::Css => format!("{require_name}.sriCssHashes"),
+    SourceType::JavaScript => format!("{runtime_require_name}.sriHashes"),
+    SourceType::Css => format!("{runtime_require_name}.sriCssHashes"),
     SourceType::Custom(t) if t == "css/mini-extract" => {
-      format!("{require_name}.sriExtractCssHashes")
+      format!("{runtime_require_name}.sriExtractCssHashes")
     }
     _ => unreachable!(),
   }

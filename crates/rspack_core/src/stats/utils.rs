@@ -11,9 +11,9 @@ use super::{
   StatsModule, StatsModuleTrace,
 };
 use crate::{
-  BoxModule, BoxRuntimeModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey,
+  BoxRuntimeModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey,
   ChunkGroupOrderKey, ChunkGroupUkey, CompilationAssets, Context, ModuleGraph, ModuleId,
-  ModuleIdsArtifact, SourceType, compare_chunks_iterables, rspack_sources::BoxSource,
+  ModuleIdsArtifact, ModuleRef, SourceType, compare_chunks_iterables, rspack_sources::BoxSource,
 };
 
 pub fn get_asset_size(file: &str, assets: &CompilationAssets) -> usize {
@@ -36,13 +36,30 @@ pub fn sort_modules(modules: &mut [StatsModule]) {
     {
       a_name.len().cmp(&b_name.len())
     } else {
-      a.name.cmp(&b.name)
+      a.name.cmp(&b.name).then_with(|| {
+        let a_runtime = matches!(a.module_type, crate::ModuleType::Runtime);
+        let b_runtime = matches!(b.module_type, crate::ModuleType::Runtime);
+        a_runtime.cmp(&b_runtime).then_with(|| {
+          // Keep runtime instances ordered even when chunk IDs are unavailable.
+          if a_runtime {
+            a.identifier
+              .as_ref()
+              .map(|id| id.as_str())
+              .cmp(&b.identifier.as_ref().map(|id| id.as_str()))
+              .then_with(|| a.chunks.cmp(&b.chunks))
+              .then_with(|| a.build_time_executed.cmp(&b.build_time_executed))
+              .then_with(|| a.size.total_cmp(&b.size))
+          } else {
+            Ordering::Equal
+          }
+        })
+      })
     }
   });
 }
 
 pub fn get_stats_module_name_and_id<'s>(
-  module: &'s BoxModule,
+  module: &'s ModuleRef,
   module_ids_artifact: &ModuleIdsArtifact,
   context: &Context,
 ) -> (Cow<'s, str>, Option<ModuleId>) {
@@ -77,14 +94,14 @@ pub fn get_chunk_group_ordered_children<'a>(
     .collect::<Vec<_>>()
 }
 
-pub fn get_chunk_group_oreded_child_assets<'a>(
+pub fn get_chunk_group_ordered_child_assets<'a>(
   ordered_children: &HashMap<ChunkGroupOrderKey, Vec<ChunkGroupUkey>>,
   order_key: &ChunkGroupOrderKey,
   chunk_group_by_ukey: &ChunkGroupByUkey,
   chunk_by_ukey: &'a ChunkByUkey,
 ) -> Vec<&'a str> {
   ordered_children
-    .get(&ChunkGroupOrderKey::Preload)
+    .get(order_key)
     .unwrap_or_else(|| panic!("should have {order_key} chunk groups"))
     .iter()
     .flat_map(|ukey| {
@@ -345,7 +362,7 @@ pub fn get_chunk_modules_size(
         + m
           .source_types(module_graph)
           .iter()
-          .fold(0.0, |acc, t| acc + m.size(Some(t), None))
+          .fold(0.0, |acc, t| acc + m.size(Some(t)))
     })
 }
 
@@ -364,7 +381,7 @@ pub fn get_chunk_modules_sizes(
     let module = module_graph.module_by_identifier(identifier);
     if let Some(module) = module {
       for source_type in module.source_types(module_graph) {
-        let size = module.size(Some(source_type), None);
+        let size = module.size(Some(source_type));
         sizes
           .entry(*source_type)
           .and_modify(|s| *s += size)
@@ -408,7 +425,7 @@ fn get_runtime_module_size(
   let Some(runtime_module) = runtime_modules.get(identifier) else {
     return 0f64;
   };
-  let size = runtime_module.size(Some(&SourceType::Runtime), None);
+  let size = runtime_module.size(Some(&SourceType::Runtime));
   if size == 0f64 {
     runtime_modules_code_generation_source
       .get(identifier)

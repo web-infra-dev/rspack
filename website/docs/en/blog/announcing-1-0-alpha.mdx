@@ -9,13 +9,13 @@ authors:
     x: 'https://x.com/rspack_dev'
 ---
 
-import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
 import { PackageManagerTabs } from '@theme';
 
 # Announcing Rspack 1.0 alpha
 
-June 29, 2024
+_June 29, 2024_
 
 <BlogAuthors />
 
@@ -87,7 +87,7 @@ To ensure the long term stability of Rspack v1, we have removed some non-core fe
 
 In v0.x, Rspack core has built-in SWC plugins to support Emotion, Styled Components, and Relay. This is because in the early days Rspack did not support the use of SWC Wasm plugins and could only integrate them into the core.
 
-Currently, Rspack supports the use of SWC plugins via [experimental.plugins](/guide/features/builtin-swc-loader#jscexperimentalplugins) in `builtin:swc-loader`. So we have removed the built-in plugins from the Rspack core, including:
+Currently, Rspack supports the use of SWC plugins via [experimental.plugins](/guide/builtin-loaders/swc-loader#jscexperimentalplugins) in `builtin:swc-loader`. So we have removed the built-in plugins from the Rspack core, including:
 
 - [@swc/plugin-emotion](https://www.npmjs.com/package/@swc/plugin-emotion)
 - [@swc/plugin-relay](https://www.npmjs.com/package/@swc/plugin-relay)

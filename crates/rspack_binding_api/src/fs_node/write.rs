@@ -1,10 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use napi::{
-  Either,
-  bindgen_prelude::{Either3, block_on},
-};
+use napi::{Either, bindgen_prelude::Either3};
 use rspack_fs::{
   Error, FileMetadata, FilePermissions, IntermediateFileSystem, IntermediateFileSystemExtras,
   ReadStream, ReadableFileSystem, Result, RspackResultToFsResultExt, WritableFileSystem,
@@ -189,7 +186,7 @@ impl ReadableFileSystem for NodeFileSystem {
   #[instrument(skip(self), level = "debug")]
   fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
     #[allow(clippy::disallowed_methods)]
-    block_on(self.read(path))
+    rspack_napi::runtime::block_on(self.read(path))
   }
 
   #[instrument(skip(self), level = "debug")]
@@ -212,7 +209,7 @@ impl ReadableFileSystem for NodeFileSystem {
   #[instrument(skip(self), level = "debug")]
   fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
     #[allow(clippy::disallowed_methods)]
-    block_on(self.metadata(path))
+    rspack_napi::runtime::block_on(self.metadata(path))
   }
 
   #[instrument(skip(self), level = "debug")]
@@ -228,6 +225,23 @@ impl ReadableFileSystem for NodeFileSystem {
       Either::B(_) => Err(Error::new(
         std::io::ErrorKind::Other,
         "input file system call lstat failed",
+      )),
+    }
+  }
+
+  #[instrument(skip(self), level = "debug")]
+  async fn read_link(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
+    let res = self
+      .0
+      .readlink
+      .call_with_promise(path.as_str().to_string())
+      .await
+      .to_fs_result()?;
+    match res {
+      Either::A(target) => Ok(Utf8PathBuf::from(target)),
+      Either::B(_) => Err(Error::new(
+        std::io::ErrorKind::Other,
+        "input file system call readlink failed",
       )),
     }
   }
@@ -268,7 +282,7 @@ impl ReadableFileSystem for NodeFileSystem {
   #[instrument(skip(self), level = "debug")]
   fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     #[allow(clippy::disallowed_methods)]
-    block_on(ReadableFileSystem::read_dir(self, dir))
+    rspack_napi::runtime::block_on(ReadableFileSystem::read_dir(self, dir))
   }
   #[instrument(skip(self), level = "debug")]
   async fn permissions(&self, path: &Utf8Path) -> Result<Option<FilePermissions>> {

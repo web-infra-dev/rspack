@@ -1,0 +1,140 @@
+---
+description: 'Use EnvironmentPlugin to expose selected process.env values to bundled code with optional defaults'
+---
+
+import Attribution from '@components/Attribution';
+
+# EnvironmentPlugin
+
+`EnvironmentPlugin` is shorthand for defining selected [`process.env`](https://nodejs.org/api/process.html#process_process_env) values with [`DefinePlugin`](/plugins/define-plugin). It reads environment variables when Rspack builds and replaces the corresponding `process.env.*` expressions in your bundled code.
+
+## Examples
+
+### Basic usage
+
+Pass environment variable names as separate arguments or as an array. The following calls are equivalent:
+
+```js
+new rspack.EnvironmentPlugin('NODE_ENV', 'DEBUG');
+
+new rspack.EnvironmentPlugin(['NODE_ENV', 'DEBUG']);
+```
+
+Both configurations create definitions equivalent to:
+
+```js
+new rspack.DefinePlugin({
+  'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+  'process.env.DEBUG': JSON.stringify(process.env.DEBUG),
+});
+```
+
+If a requested variable is missing and has no default value, compilation fails with an `EnvVariableNotDefinedError`.
+
+### Using default values
+
+Pass an object to provide a default value for each variable. A default is used only when the corresponding key is `undefined` in `process.env` when the build starts.
+
+```js
+new rspack.EnvironmentPlugin({
+  NODE_ENV: 'development',
+  DEBUG: false,
+});
+```
+
+`EnvironmentPlugin` serializes default values with `JSON.stringify` before passing them to `DefinePlugin`. As a result, JSON-compatible defaults preserve their types: the `false` default above is injected as a boolean rather than a string.
+
+Use `undefined` for a variable that must be provided during the build. If it is missing, compilation fails. Use `null` to provide an optional variable with a `null` fallback.
+
+For example, suppose `entry.js` contains:
+
+```js
+if (process.env.NODE_ENV === 'production') {
+  console.log('Welcome to production');
+}
+if (process.env.DEBUG) {
+  console.log('Debugging output');
+}
+```
+
+If `NODE_ENV=production` is set for the build and `DEBUG` is unset, the replacements are equivalent to:
+
+```js
+if ('production' === 'production') {
+  // process.env.NODE_ENV comes from the environment
+  console.log('Welcome to production');
+}
+if (false) {
+  // process.env.DEBUG uses the default value
+  console.log('Debugging output');
+}
+```
+
+If `DEBUG=false` is set and `NODE_ENV` is unset, the replacements are equivalent to:
+
+```js
+if ('development' === 'production') {
+  // process.env.NODE_ENV uses the default value
+  console.log('Welcome to production');
+}
+if ('false') {
+  // process.env.DEBUG comes from the environment
+  console.log('Debugging output');
+}
+```
+
+:::tip
+Environment variables read from `process.env` are always strings. Setting `DEBUG=false` injects the string `'false'`, not the boolean `false`.
+:::
+
+### Using Git metadata
+
+Default values can also be computed while loading the Rspack configuration. This example exposes the version and author date of the current Git commit:
+
+```js
+import { execFileSync } from 'node:child_process';
+
+function git(...args) {
+  return execFileSync('git', args, { encoding: 'utf8' }).trim();
+}
+
+new rspack.EnvironmentPlugin({
+  GIT_VERSION: git('describe', '--always'),
+  GIT_AUTHOR_DATE: git('log', '-1', '--format=%aI'),
+});
+```
+
+### Loading `.env` files
+
+`EnvironmentPlugin` does not read `.env` files by itself. To load variables from a file, use a third-party plugin such as [`dotenv-webpack`](https://github.com/mrsteele/dotenv-webpack):
+
+```text title=".env"
+PUBLIC_API_ORIGIN=https://api.example.com
+FEATURE_ENABLED=true
+```
+
+```js
+import Dotenv from 'dotenv-webpack';
+
+new Dotenv({
+  path: './.env',
+});
+```
+
+Only load values that are safe to embed in client-side code, because injected values can be read from the generated bundle.
+
+## Options
+
+- **Type:**
+
+```ts
+declare class EnvironmentPlugin {
+  constructor(...keys: string[]);
+  constructor(keys: string[]);
+  constructor(defaultValues: Record<string, any>);
+}
+```
+
+Use either string form when every selected variable is required. Use the object form to provide default values; assigning `undefined` still marks that variable as required.
+
+<Attribution url="https://webpack.js.org/plugins/environment-plugin/" />

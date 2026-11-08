@@ -3,8 +3,8 @@ use std::sync::Arc;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BuildModuleGraphArtifact, Compilation, DependenciesBlock, Dependency, DependencyId,
-  DependencyTemplate, ExportsInfoArtifact, ExternalModule, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, NormalInitFragment,
+  DependencyTemplate, ExportsInfoArtifact, ExternalModule, ImportPhase, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, NormalInitFragment,
 };
 use rspack_plugin_javascript::dependency::{
   ESMExportImportedSpecifierDependency, ESMImportSideEffectDependency, ImportDependency,
@@ -33,12 +33,9 @@ pub fn cutout_star_re_export_externals(
     let mut side_effects_deps_by_module = IdentifierMap::<Vec<DependencyId>>::default();
     let mut star_export_deps_by_module = IdentifierMap::default();
 
-    for dep_id in module.get_dependencies() {
-      let dep = mg.dependency_by_id(dep_id);
-      let Some(module) = mg
-        .module_identifier_by_dependency_id(dep_id)
-        .and_then(|module_id| mg.module_by_identifier(module_id))
-      else {
+    for dep in module.get_dependencies() {
+      let dep_id = dep.id();
+      let Some(module) = mg.get_module_by_dependency_id(dep_id) else {
         continue;
       };
 
@@ -90,7 +87,7 @@ pub fn cutout_star_re_export_externals(
       .module_by_identifier(&module_id)
       .expect("should have entry module");
 
-    if !module.build_meta().esm {
+    if !module.build_meta().esm() {
       continue;
     }
 
@@ -101,12 +98,11 @@ pub fn cutout_star_re_export_externals(
       exports_info.other_exports_info().provided(),
       Some(rspack_core::ExportProvided::Unknown)
     ) {
-      let has_unknown_exports = module.get_dependencies().iter().any(|dep_id| {
-        if connections_to_disable.contains(dep_id) {
+      let has_unknown_exports = module.get_dependencies().iter().any(|dep| {
+        if connections_to_disable.contains(dep.id()) {
           return false;
         }
 
-        let dep = mg.dependency_by_id(dep_id);
         let Some(exports) = dep.get_exports(
           mg,
           &compilation.module_graph_cache_artifact,
@@ -140,12 +136,14 @@ pub fn cutout_dyn_import_externals(
   let mg = build_module_graph_artifact.get_module_graph();
   let mut connections_to_disable = Vec::new();
   for (_, module) in mg.modules() {
-    for block_id in module.get_blocks() {
-      let Some(block) = mg.block_by_id(block_id) else {
+    let mut blocks = module.get_blocks().to_vec();
+    while let Some(block_id) = blocks.pop() {
+      let Some(block) = mg.block_by_id(&block_id) else {
         continue;
       };
-      for block_dep_id in block.get_dependencies() {
-        let block_dep = mg.dependency_by_id(block_dep_id);
+      blocks.extend_from_slice(block.get_blocks());
+      for block_dep in block.get_dependencies() {
+        let block_dep_id = block_dep.id();
         if block_dep.as_any().is::<ImportDependency>() {
           let import_dep_connection = mg.connection_by_dependency_id(block_dep_id);
           if let Some(import_dep_connection) = import_dep_connection {
@@ -220,11 +218,17 @@ pub fn render_dyn_import_external_module(
     comments_string
   };
 
+  let callee = match import_dep.get_phase() {
+    ImportPhase::Evaluation => "import",
+    ImportPhase::Source => "import.source",
+    ImportPhase::Defer => "import.defer",
+  };
+
   source.replace(
     import_dep.range.start,
     import_dep.range.end,
     format!(
-      "import({}{}{})",
+      "{callee}({}{}{})",
       comments_str,
       rspack_util::json_stringify_str(&request.primary),
       attributes_str
@@ -250,9 +254,7 @@ impl DependencyTemplate for ImportDependencyTemplate {
       .downcast_ref::<ImportDependency>()
       .expect("should be import dependency");
     let mg = code_generatable_context.compilation.get_module_graph();
-    let ref_module = mg
-      .module_identifier_by_dependency_id(&dep.id)
-      .and_then(|module_id| mg.module_by_identifier(module_id));
+    let ref_module = mg.get_module_by_dependency_id(&dep.id);
     if let Some(external) = ref_module.and_then(|m| m.as_external_module()) {
       render_dyn_import_external_module(dep, external, source);
       return;

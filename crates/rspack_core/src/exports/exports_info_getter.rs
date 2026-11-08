@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use either::Either;
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 
 use super::{ExportInfoData, ExportProvided, ExportsInfoData, UsageState, UsedName, UsedNameItem};
 use crate::{

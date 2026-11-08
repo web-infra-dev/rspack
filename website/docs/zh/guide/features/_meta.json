@@ -5,11 +5,6 @@
   "asset-module",
   "asset-base-path",
   "module-resolution",
-  "module-federation",
   "web-workers",
-  "lazy-compilation",
-  "builtin-swc-loader",
-  "builtin-lightningcss-loader",
-  "esm",
-  "layer"
+  "esm"
 ]

@@ -1,15 +1,17 @@
-use std::{borrow::Cow, hash::Hash, sync::Arc};
+#![allow(clippy::too_many_arguments)]
+
+use std::{borrow::Cow, sync::Arc};
 
 use derive_more::Debug;
 use futures::future::join_all;
 use rspack_core::{
-  ChunkCodeTemplate, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
+  ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
   CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation, Filename,
-  Module, ModuleIdentifier, PathData, Plugin, RuntimeGlobals,
-  rspack_sources::{BoxSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt},
+  Module, ModuleIdentifier, PathData, Plugin, RuntimeCodeTemplate, RuntimeGlobals,
+  rspack_sources::{BoxSource, MapOptions, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
-use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesInlineInRuntimeBailout,
@@ -25,7 +27,8 @@ use rspack_util::{
 
 use crate::{
   ModuleFilenameTemplate, SourceMapDevToolPluginOptions, SourceReference,
-  generate_debug_id::generate_debug_id, module_filename_helpers::ModuleFilenameHelpers,
+  default_eval_module_filename_template, generate_debug_id::generate_debug_id,
+  module_filename_helpers::ModuleFilenameHelpers,
 };
 
 const EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME: &str = "rspack.EvalSourceMapDevToolPlugin";
@@ -36,7 +39,7 @@ pub struct EvalSourceMapDevToolPlugin {
   columns: bool,
   no_sources: bool,
   #[debug(skip)]
-  module_filename_template: ModuleFilenameTemplate,
+  module_filename_template: Option<ModuleFilenameTemplate>,
   namespace: String,
   source_root: Option<String>,
   debug_ids: bool,
@@ -51,19 +54,12 @@ pub struct EvalSourceMapDevToolPlugin {
 
 impl EvalSourceMapDevToolPlugin {
   pub fn new(options: SourceMapDevToolPluginOptions) -> Self {
-    let module_filename_template =
-      options
-        .module_filename_template
-        .unwrap_or(ModuleFilenameTemplate::String(
-          "webpack://[namespace]/[resource-path]?[hash]".to_string(),
-        ));
-
     let namespace = options.namespace.unwrap_or_default();
 
     Self::new_inner(
       options.columns,
       options.no_sources,
-      module_filename_template,
+      options.module_filename_template,
       namespace,
       options.source_root,
       options.debug_ids,
@@ -101,9 +97,13 @@ async fn render_module_content(
   chunk: &ChunkUkey,
   module: &dyn Module,
   render_source: &mut RenderSource,
+  runtime_requirements: &mut RuntimeGlobals,
   _init_fragments: &mut ChunkInitFragments,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
+  if compilation.options.output.trusted_types.is_some() {
+    runtime_requirements.insert(RuntimeGlobals::CREATE_SCRIPT);
+  }
   let output_options = &compilation.options.output;
   let chunk = compilation
     .build_chunk_graph_artifact
@@ -140,16 +140,16 @@ async fn render_module_content(
   if let Some(cached_source) = self.cache.get(module_hash) {
     render_source.source = cached_source.value().clone();
     return Ok(());
-  } else if let Some(mut map) = origin_source
-    .clone()
-    .map(&ObjectPool::default(), &MapOptions::new(self.columns))
-  {
+  } else if let Some(mut map) = origin_source.clone().map(&MapOptions::new(self.columns)) {
     let source = {
       let source = origin_source.source().into_string_lossy();
 
       {
         let modules = map.sources().iter().map(|source| {
-          if let Some(stripped) = source.strip_prefix("webpack://") {
+          if let Some(stripped) = source
+            .strip_prefix("webpack://")
+            .or_else(|| source.strip_prefix("rspack://"))
+          {
             let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
             let identifier = ModuleIdentifier::from(source.as_str());
             match compilation
@@ -164,6 +164,7 @@ async fn render_module_content(
           }
         });
         let path_data = PathData::default()
+          .chunk(chunk.ukey(), compilation)
           .chunk_id_optional(chunk.id().map(|id| id.as_str()))
           .chunk_name_optional(chunk.name())
           .chunk_hash_optional(chunk.rendered_hash(
@@ -174,7 +175,13 @@ async fn render_module_content(
         let filename = Filename::from(self.namespace.as_str());
         let namespace = compilation.get_path(&filename, path_data).await?;
 
-        let module_filenames = match &self.module_filename_template {
+        let default_module_filename_template =
+          default_eval_module_filename_template(compilation.options.experiments.runtime_mode);
+        let module_filename_template = self
+          .module_filename_template
+          .as_ref()
+          .unwrap_or(default_module_filename_template);
+        let module_filenames = match module_filename_template {
           ModuleFilenameTemplate::String(s) => modules
             .map(|source_reference| {
               ModuleFilenameHelpers::create_filename_of_string_template(
@@ -234,14 +241,6 @@ async fn render_module_content(
       }
 
       map.set_source_root(self.source_root.as_ref().map(|s| Cow::Borrowed(s.as_str())));
-      map.set_file(Some(Cow::Borrowed(module.identifier().as_str())));
-
-      if self.debug_ids {
-        map.set_debug_id(Some(Cow::Owned(generate_debug_id(
-          module.identifier().as_str(),
-          source.as_bytes(),
-        ))));
-      }
 
       let module_ids = &compilation.module_ids_artifact;
       // align with https://github.com/webpack/webpack/blob/3919c844eca394d73ca930e4fc5506fb86e2b094/lib/EvalSourceMapDevToolPlugin.js#L171
@@ -251,6 +250,19 @@ async fn render_module_content(
         } else {
           "unknown"
         };
+      let map_file = if module_id.bytes().all(|b| b.is_ascii_digit()) {
+        format!("{module_id}.js")
+      } else {
+        module_id.to_owned()
+      };
+      map.set_file(Some(Cow::Owned(map_file.clone())));
+
+      if self.debug_ids {
+        map.set_debug_id(Some(Cow::Owned(generate_debug_id(
+          &map_file,
+          source.as_bytes(),
+        ))));
+      }
       let source_map = map.to_json();
       let base64 = base64::encode_to_string(&source_map);
       let footer = format!(
@@ -286,9 +298,9 @@ async fn js_chunk_hash(
   &self,
   _compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
-  hasher: &mut RspackHash,
+  hasher: &mut RspackHasher,
 ) -> Result<()> {
-  EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME.hash(hasher);
+  RspackHash::hash(&EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME, hasher);
   Ok(())
 }
 

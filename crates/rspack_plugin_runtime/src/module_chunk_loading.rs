@@ -54,7 +54,18 @@ async fn runtime_requirements_in_tree(
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   let chunk_loading_value = ChunkLoading::Enable(ChunkLoadingType::Import);
-  if should_export_webpack_require_for_module_chunk_loading(chunk_ukey, compilation) {
+  if all_runtime_requirements.contains(RuntimeGlobals::LOAD_SCRIPT) {
+    return Ok(None);
+  }
+  let has_chunk_loading_runtime_globals = RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+    | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
+    | RuntimeGlobals::HMR_DOWNLOAD_MANIFEST
+    | RuntimeGlobals::ON_CHUNKS_LOADED
+    | RuntimeGlobals::BASE_URI
+    | RuntimeGlobals::EXTERNAL_INSTALL_CHUNK;
+  let should_export_webpack_require =
+    should_export_webpack_require_for_module_chunk_loading(chunk_ukey, compilation);
+  if should_export_webpack_require {
     runtime_requirements_mut.insert(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
   }
 
@@ -63,19 +74,14 @@ async fn runtime_requirements_in_tree(
   // import() to return installChunk data, so it must not attach the JS handler.
   let omit_on_demand_loading = is_modern_module_library_chunk(chunk_ukey, compilation)
     && runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
-    && !runtime_requirements.contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
+    && !(runtime_requirements.contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK)
+      || should_export_webpack_require);
 
   let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &chunk_loading_value, compilation);
   if !is_enabled_for_chunk {
     return Ok(None);
   }
 
-  let has_chunk_loading_runtime_globals = RuntimeGlobals::ENSURE_CHUNK_HANDLERS
-    | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
-    | RuntimeGlobals::HMR_DOWNLOAD_MANIFEST
-    | RuntimeGlobals::ON_CHUNKS_LOADED
-    | RuntimeGlobals::BASE_URI
-    | RuntimeGlobals::EXTERNAL_INSTALL_CHUNK;
   let prefetch_preload_runtime_globals =
     RuntimeGlobals::PREFETCH_CHUNK_HANDLERS | RuntimeGlobals::PRELOAD_CHUNK_HANDLERS;
   let non_ensure_runtime_globals = RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS

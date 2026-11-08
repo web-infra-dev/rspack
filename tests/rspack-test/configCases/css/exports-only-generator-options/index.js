@@ -1,6 +1,6 @@
 it("should not have .css file", async () => {
-	__non_webpack_require__("./pseudo-export_style_module_css.bundle0.js");
-	// __non_webpack_require__("./pseudo-export_style_module_css_exportsOnly.bundle0.js");
+	require("./pseudo-export_style_module_css.bundle0.js");
+	// require("./pseudo-export_style_module_css_exportsOnly.bundle0.js");
 	await Promise.all([
 		import("../pseudo-export/style.module.css"),
 		import("../pseudo-export/style.module.css?module"),
@@ -9,7 +9,7 @@ it("should not have .css file", async () => {
 		const ns = nsObj({
 			a: "a",
 			abc: "a b c",
-			comments: "abc      def",
+			comments: "abc/****/   /* hello world *//****/   def",
 			whitespace: "abc\n\tdef",
 			default: "default"
 		});
@@ -17,8 +17,8 @@ it("should not have .css file", async () => {
 		expect(style2).toEqual(ns);
 		// expect(style3).toEqual(ns);
 	}).then(() => {
-		const fs = __non_webpack_require__("fs");
-		const path = __non_webpack_require__("path");
+		const fs = require("fs");
+		const path = require("path");
 		// expect(fs.existsSync(path.resolve(__dirname, "pseudo-export_style_module_css.bundle0.css"))).toBe(false);
 		// expect(fs.existsSync(path.resolve(__dirname, "pseudo-export_style_module_css_exportsOnly.bundle0.css"))).toBe(false);
 	})

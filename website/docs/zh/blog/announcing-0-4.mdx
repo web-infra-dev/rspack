@@ -9,11 +9,11 @@ authors:
     x: 'https://x.com/rspack_dev'
 ---
 
-import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
 # Rspack 0.4 发布公告
 
-2023 年 11 月 22 日
+_2023 年 11 月 22 日_
 
 <BlogAuthors />
 
@@ -65,7 +65,6 @@ export default {
             emotion: true, // 与 `builtins` 相同
           },
         },
-        type: 'javascript/auto',
       },
     ],
   },
@@ -99,7 +98,6 @@ export default {
 +         targets: "chrome >= 48"
 +        }
         }
-        type: 'javascript/auto',
       },
     ],
   }
@@ -154,7 +152,7 @@ export default {
 };
 ```
 
-查看更多详情，请访问 [这里](/guide/tech/react#fast-refresh)。
+查看更多详情，请访问 [这里](/guide/integrations/react#fast-refresh)。
 
 ### 废弃 builtin:sass-loader
 
@@ -253,7 +251,7 @@ export default {
 }
 ```
 
-对于 `builtins.html` 可以直接迁移到 [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin)：
+对于 `builtins.html` 可以直接迁移到 [HtmlRspackPlugin](/plugins/html-rspack-plugin)：
 
 ```diff title="rspack.config.mjs"
 + import { rspack } from '@rspack/core';
@@ -281,9 +279,9 @@ export default {
 };
 ```
 
-对于 `builtins.copy` 可以直接迁移到 [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin)。
+对于 `builtins.copy` 可以直接迁移到 [CopyRspackPlugin](/plugins/copy-rspack-plugin)。
 
-原先的 `builtins.minifyOptions` 我们提供了 [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin)：
+原先的 `builtins.minifyOptions` 我们提供了 [SwcJsMinimizerRspackPlugin](/plugins/swc-js-minimizer-rspack-plugin)：
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';

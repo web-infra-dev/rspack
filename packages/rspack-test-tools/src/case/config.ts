@@ -1,6 +1,8 @@
 import path from 'node:path';
 import type { RspackOptions } from '@rspack/core';
 import fs from 'fs-extra';
+import { checkPersistentCache, type TCacheTestOptions } from '../helper/cache';
+import { RSPACK_CONFIG_FILES } from '../helper/read-config-file';
 import { parseResource } from '../helper/legacy/parseResource';
 import {
   BasicCaseCreator,
@@ -24,21 +26,28 @@ import {
 import { applyRuntimeModeTestDefines } from './runtime-mode';
 import { createMultiCompilerRunner, getMultiCompilerRunnerKey } from './runner';
 
-export type TConfigCaseConfig = Omit<TTestConfig, 'validate'>;
+export type TConfigCaseConfig = TTestConfig;
 type TConfigCaseOptions = Partial<IBasicCaseCreatorOptions> & {
   rspackOptions?: RspackOptions;
+  cache?: TCacheTestOptions;
 };
 
 export function createConfigProcessor(
   name: string,
   rspackOptions?: RspackOptions,
+  cache?: TCacheTestOptions,
 ): ITestProcessor {
   return {
     config: (context: ITestContext) => {
+      // Isolated cases compile from a private copy of the case dir, so the
+      // config (and any fixtures it writes via __dirname) live under <dist>/src.
+      if (context.getTestConfig().isolateSource) {
+        fs.copySync(context.getSource(), context.getCompileSource());
+      }
       configMultiCompiler(
         context,
         name,
-        ['rspack.config.cjs', 'rspack.config.js', 'webpack.config.js'],
+        RSPACK_CONFIG_FILES,
         defaultOptions,
         (index, context, options) => {
           overrideOptions(index, context, options);
@@ -63,6 +72,7 @@ export function createConfigProcessor(
     },
     after: async (context: ITestContext) => {
       await afterExecute(context, name);
+      if (cache) await checkPersistentCache(context, cache);
     },
   };
 }
@@ -81,7 +91,13 @@ const creator = new BasicCaseCreator({
       return res;
     };
   },
-  steps: ({ name }) => [createConfigProcessor(name)],
+  steps: ({ name, rspackOptions, cache }) => [
+    createConfigProcessor(
+      name,
+      rspackOptions as RspackOptions | undefined,
+      cache as TCacheTestOptions | undefined,
+    ),
+  ],
   runner: {
     key: getMultiCompilerRunnerKey,
     runner: createMultiCompilerRunner,
@@ -94,12 +110,11 @@ export function createConfigCase(
   src: string,
   dist: string,
   rspackOptions?: RspackOptions,
+  cache?: TCacheTestOptions,
 ) {
   creator.create(name, src, dist, undefined, {
     rspackOptions,
-    steps: ({ name, rspackOptions }) => [
-      createConfigProcessor(name, rspackOptions as RspackOptions | undefined),
-    ],
+    cache,
   } satisfies TConfigCaseOptions);
 }
 
@@ -108,13 +123,12 @@ export function defaultOptions(
   context: ITestContext,
 ): RspackOptions {
   return {
-    context: context.getSource(),
+    context: context.getCompileSource(),
     mode: 'production',
     target: 'async-node',
     devtool: false,
-    cache: false,
     output: {
-      path: context.getDist(),
+      path: context.getCompileDist(),
       bundlerInfo: {
         force: false,
       },
@@ -158,7 +172,6 @@ export function overrideOptions(
     options.optimization.runtimeChunk ??= { name: `runtime~${index}` };
   }
 
-  if (options.cache === undefined) options.cache = false;
   if (!global.printLogger) {
     options.infrastructureLogging = {
       level: 'error',

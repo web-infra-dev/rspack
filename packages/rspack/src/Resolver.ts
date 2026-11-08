@@ -16,12 +16,7 @@ export type ResolveContext = {
 export type ResourceData = binding.JsResourceData;
 
 type JsonValueTypes =
-  | null
-  | string
-  | number
-  | boolean
-  | JsonObjectTypes
-  | JsonValueTypes[];
+  null | string | number | boolean | JsonObjectTypes | JsonValueTypes[];
 
 type JsonObjectTypes = { [index: string]: JsonValueTypes } & {
   [index: string]:
@@ -38,7 +33,8 @@ export interface ResolveRequest {
   path: string;
   query: string;
   fragment: string;
-  descriptionFileData?: string;
+  /** Parsed contents of the package description file, when available. */
+  descriptionFileData?: JsonObjectTypes | null;
   descriptionFilePath?: string;
   fileDependencies?: string[];
   missingDependencies?: string[];

@@ -3,6 +3,7 @@ description: 'NormalModuleFactory is used by the Compiler to generate modules (N
 ---
 
 import ResolveDataType from '../../types/resolve-data.mdx';
+import { ApiMeta } from '@components/ApiMeta';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 
 # NormalModuleFactory
@@ -16,6 +17,27 @@ NormalModuleFactory.hooks.someHook.tap(/* ... */);
 ```
 
 All hooks inherit from `Tapable`. In addition to `tap()`, you can also use `tapAsync()` and `tapPromise()`, depending on the type of the hook.
+
+## Import attributes
+
+<ApiMeta addedVersion="2.2.3" />
+
+**Type:** `Readonly<Record<string, string>>`
+
+`ResolveData.attributes` holds the [import attributes](https://github.com/tc39/proposal-import-attributes) of the dependency that triggered the resolution, for example `{ type: 'json' }` for `import data from './data.json' with { type: 'json' }`. It is available on the [`beforeResolve`](#beforeresolve), [`factorize`](#factorize), [`resolve`](#resolve) and [`afterResolve`](#afterresolve) hooks, and is `undefined` when the request carries no attributes.
+
+```js
+compiler.hooks.compilation.tap(
+  'MyPlugin',
+  (compilation, { normalModuleFactory }) => {
+    normalModuleFactory.hooks.beforeResolve.tap('MyPlugin', (resolveData) => {
+      if (resolveData.attributes?.type === 'json') {
+        // ...
+      }
+    });
+  },
+);
+```
 
 ## `beforeResolve`
 
@@ -115,9 +137,11 @@ Returning module instance or `false` is not supported for now.
 
 ## `afterResolve`
 
-`AsyncSeriesBailHook<[ResolveData]>`
+`AsyncSeriesBailHook<[ResolveData], false | void>`
 
 Called after the module specifier is resolved.
+
+Return `false` to ignore the request and stop subsequent taps. Return `undefined` or omit the return value to continue.
 
 The `afterResolve` hook is used to further process or modify the results after the module has been resolved. It is called at the end of the module resolution process, which means that at this stage, the module's path, request information, etc., have already been determined.
 
@@ -126,6 +150,10 @@ compiler.hooks.compilation.tap(
   'MyPlugin',
   (compilation, { normalModuleFactory }) => {
     normalModuleFactory.hooks.afterResolve.tap('MyPlugin', (resolveData) => {
+      if (resolveData.request === './optional-module.js') {
+        return false;
+      }
+
       // access and modify the resolved module information
       console.log(JSON.stringify(resolveData, null, 2));
     });
@@ -163,11 +191,13 @@ compiler.hooks.compilation.tap(
 
 ## `resolveForScheme`
 
-`AsyncSeriesBailHook<[ResourceDataWithData]>`
+`HookMap<AsyncSeriesBailHook<[ResourceDataWithData], true | void>>`
 
 Called before a module specifier with scheme (URI) is resolved.
 
 The `resolveForScheme` is typically used to handle module specifiers that have a specific protocol, such as `file://`, `https://`, etc.
+
+Select a scheme with `.for(scheme)`, such as `.for('https')`, then register a tap on the returned hook. Return `true` when the resource has been handled to skip subsequent taps for that scheme. Return `undefined` or omit the return value to continue to the next tap.
 
 ```js
 compiler.hooks.compilation.tap(

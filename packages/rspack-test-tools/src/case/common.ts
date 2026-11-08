@@ -4,7 +4,10 @@ import fs from 'fs-extra';
 import merge from 'rspack-merge';
 import { readConfigFile } from '../helper';
 import { normalizePlaceholder } from '../helper/expect/placeholder';
-import { checkArrayExpectation } from '../helper/legacy/checkArrayExpectation';
+import {
+  checkArrayExpectation,
+  findExpectationFile,
+} from '../helper/legacy/checkArrayExpectation';
 import { DEBUG_SCOPES } from '../test/debug';
 import type { ITestContext, ITestEnv } from '../type';
 
@@ -90,8 +93,7 @@ export async function run(
     const runner = context.getRunner(bundle, env);
     if (__DEBUG__) {
       const runLogs = context.getValue(DEBUG_SCOPES.RunLogs) as
-        | string[]
-        | undefined;
+        string[] | undefined;
       runLogs?.push(
         `Start running entry: ${bundle} in ${runner.constructor.name}(${(runner as any).__key__})`,
       );
@@ -154,8 +156,8 @@ export async function check(
     }
 
     if (
-      fs.existsSync(context.getSource('errors.js')) ||
-      fs.existsSync(context.getSource('warnings.js')) ||
+      findExpectationFile(context.getSource(), 'errors') ||
+      findExpectationFile(context.getSource(), 'warnings') ||
       stats.hasErrors() ||
       stats.hasWarnings()
     ) {
@@ -174,6 +176,10 @@ export async function check(
       if (statsJson.warnings) {
         warnings.push(...statsJson.warnings);
       }
+    }
+
+    if (typeof testConfig.validate === 'function') {
+      await testConfig.validate(stats, undefined, options);
     }
   }
   await checkArrayExpectation(
@@ -195,7 +201,7 @@ export async function check(
   );
 
   // clear error if checked
-  if (fs.existsSync(context.getSource('errors.js'))) {
+  if (findExpectationFile(context.getSource(), 'errors')) {
     context.clearError();
   }
 }
@@ -347,14 +353,14 @@ export function configMultiCompiler(
   const multiCompilerOptions: RspackOptions[] = [];
   const caseOptions: RspackOptions[] = Array.isArray(configFiles)
     ? readConfigFile(
-        configFiles!.map((i) => context.getSource(i)),
+        configFiles!.map((i) => context.getCompileSource(i)),
         context,
         {},
         (configs) => {
           return configs.flatMap((c) => {
             if (typeof c === 'function') {
               const options = {
-                testPath: context.getDist(),
+                testPath: context.getCompileDist(),
                 env: undefined,
               };
 

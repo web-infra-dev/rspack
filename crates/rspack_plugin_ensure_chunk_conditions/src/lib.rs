@@ -13,26 +13,29 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let logger = compilation.get_logger(self.name());
   let start = logger.time("ensure chunk conditions");
   let mut source_module_chunks = HashMap::default();
-  compilation
-    .get_module_graph()
-    .modules()
-    .for_each(|(module_id, module)| {
-      let source_chunks = compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_module_chunks(module.identifier())
-        .iter()
-        .filter_map(|chunk| {
-          if matches!(module.chunk_condition(chunk, compilation), Some(false)) {
-            return Some(chunk.to_owned());
-          }
-          None
-        })
-        .collect::<Vec<_>>();
-      if !source_chunks.is_empty() {
-        source_module_chunks.insert(*module_id, source_chunks);
+  for (module_id, module) in compilation.get_module_graph().modules() {
+    let external_module = module.as_external_module();
+    let module_chunks = compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_module_chunks(module.identifier());
+    let mut source_chunks = Vec::new();
+    for chunk in module_chunks {
+      let condition = if let Some(external_module) = external_module {
+        external_module
+          .chunk_condition_with_hooks(chunk, compilation)
+          .await?
+      } else {
+        module.chunk_condition(chunk, compilation)
+      };
+      if matches!(condition, Some(false)) {
+        source_chunks.push(*chunk);
       }
-    });
+    }
+    if !source_chunks.is_empty() {
+      source_module_chunks.insert(*module_id, source_chunks);
+    }
+  }
 
   let mut target_module_chunks = HashMap::default();
   let mut visited_chunk_group_keys = HashSet::default();
@@ -46,6 +49,10 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   for (module_id, chunk_keys) in &source_module_chunks {
     adjust_module_size += 1;
     let mut target_chunks = HashSet::default();
+    let module = compilation
+      .get_module_graph()
+      .module_by_identifier(module_id);
+    let external_module = module.and_then(|module| module.as_external_module());
     for chunk_key in chunk_keys {
       adjust_chunk_size += 1;
       if let Some(chunk) = compilation
@@ -68,13 +75,18 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             adjust_chunk_group_size += 1;
             for chunk in &chunk_group.chunks {
               adjust_chunk_in_chunk_group_size += 1;
-              if let Some(module) = compilation
-                .get_module_graph()
-                .module_by_identifier(module_id)
-                && matches!(module.chunk_condition(chunk, compilation), Some(true))
-              {
-                target_chunks.insert(*chunk);
-                continue 'out;
+              if let Some(module) = module {
+                let condition = if let Some(external_module) = external_module {
+                  external_module
+                    .chunk_condition_with_hooks(chunk, compilation)
+                    .await?
+                } else {
+                  module.chunk_condition(chunk, compilation)
+                };
+                if matches!(condition, Some(true)) {
+                  target_chunks.insert(*chunk);
+                  continue 'out;
+                }
               }
             }
             if chunk_group.is_initial() {

@@ -9,13 +9,35 @@ use std::{
 
 use async_trait::async_trait;
 use derive_more::Debug;
+use memchr::{memchr2, memchr3};
 use rspack_cacheable::cacheable_dyn;
 use rspack_collections::Identifier;
 use rspack_error::Result;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::identifier::strip_zero_width_space_for_fragment;
 
-use super::LoaderContext;
+use super::{Content, LoaderContext, LoaderFilter, LoaderRunnerOptions};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LoaderExecutionKind {
+  Native,
+  JavaScript,
+}
+
+#[derive(Debug)]
+struct LoaderFilterExecution {
+  filter: Arc<LoaderFilter>,
+  matched: AtomicBool,
+}
+
+impl LoaderFilterExecution {
+  fn new(filter: Arc<LoaderFilter>) -> Self {
+    Self {
+      filter,
+      matched: AtomicBool::new(false),
+    }
+  }
+}
 
 #[derive(Debug)]
 pub struct LoaderItem<Context: Send> {
@@ -38,6 +60,9 @@ pub struct LoaderItem<Context: Send> {
   /// Data shared between pitching and normal
   data: serde_json::Value,
   r#type: String,
+  cache_options: Option<Box<LoaderRunnerOptions>>,
+  filter: Option<LoaderFilterExecution>,
+  execution_kind: LoaderExecutionKind,
   pitch_executed: AtomicBool,
   normal_executed: AtomicBool,
   /// Whether loader was called with [LoaderContext::finish_with].
@@ -51,6 +76,11 @@ pub struct LoaderItem<Context: Send> {
 }
 
 impl<C: Send> LoaderItem<C> {
+  #[inline]
+  pub fn execution_kind(&self) -> LoaderExecutionKind {
+    self.execution_kind
+  }
+
   pub fn loader(&self) -> &Arc<dyn Loader<C>> {
     &self.loader
   }
@@ -71,13 +101,42 @@ impl<C: Send> LoaderItem<C> {
   }
 
   #[inline]
-  pub fn fragment(&self) -> Option<&str> {
-    self.fragment.as_deref()
+  pub fn r#type(&self) -> &str {
+    &self.r#type
   }
 
   #[inline]
-  pub fn r#type(&self) -> &str {
-    &self.r#type
+  pub fn cache(&self) -> bool {
+    self.cache_options.is_some()
+  }
+
+  #[inline]
+  pub fn loader_name(&self) -> &str {
+    self
+      .cache_options
+      .as_deref()
+      .map_or("", |options| &options.loader_name)
+  }
+
+  #[inline]
+  pub fn options_cache_key(&self) -> &str {
+    self
+      .cache_options
+      .as_deref()
+      .map_or("", |options| &options.options_cache_key)
+  }
+
+  #[inline]
+  pub fn loader_version(&self) -> &str {
+    self
+      .cache_options
+      .as_deref()
+      .map_or("", |options| &options.loader_version)
+  }
+
+  #[inline]
+  pub fn cache_options(&self) -> Option<&LoaderRunnerOptions> {
+    self.cache_options.as_deref()
   }
 
   #[inline]
@@ -103,6 +162,47 @@ impl<C: Send> LoaderItem<C> {
   }
 
   #[inline]
+  pub fn filter(&self) -> Option<&LoaderFilter> {
+    self.filter.as_ref().map(|entry| entry.filter.as_ref())
+  }
+
+  #[inline]
+  pub fn filter_matched(&self) -> bool {
+    self
+      .filter
+      .as_ref()
+      .is_some_and(|entry| entry.matched.load(Ordering::Relaxed))
+  }
+
+  #[inline]
+  pub fn should_skip_normal(&self, content: Option<&Content>) -> bool {
+    let Some(entry) = &self.filter else {
+      return false;
+    };
+    if entry.matched.load(Ordering::Relaxed) {
+      return false;
+    }
+    let Some(content) = content else {
+      return false;
+    };
+    let content = match content {
+      Content::String(content) => content.as_str(),
+      Content::Buffer(content) => {
+        let Ok(content) = simdutf8::basic::from_utf8(content) else {
+          return false;
+        };
+        // Match the JS filter's TextDecoder view of a UTF-8 buffer.
+        content.strip_prefix('\u{feff}').unwrap_or(content)
+      }
+    };
+    let matched = entry.filter.matches(content);
+    if matched {
+      entry.matched.store(true, Ordering::Relaxed);
+    }
+    !matched
+  }
+
+  #[inline]
   #[doc(hidden)]
   pub fn finish_called(&self) -> bool {
     self.finish_called.load(Ordering::Relaxed)
@@ -118,6 +218,14 @@ impl<C: Send> LoaderItem<C> {
   #[doc(hidden)]
   pub fn set_normal_executed(&self) {
     self.normal_executed.store(true, Ordering::Relaxed)
+  }
+
+  #[inline]
+  #[doc(hidden)]
+  pub fn set_filter_matched(&self) {
+    if let Some(entry) = &self.filter {
+      entry.matched.store(true, Ordering::Relaxed);
+    }
   }
 
   #[inline]
@@ -201,11 +309,34 @@ where
   fn r#type(&self) -> Option<&str> {
     None
   }
+
+  /// Version identity used by loader caching.
+  fn cache_version(&self) -> Option<&str> {
+    None
+  }
+
+  /// Selects the runtime responsible for executing this loader.
+  fn execution_kind(&self) -> LoaderExecutionKind {
+    LoaderExecutionKind::Native
+  }
 }
 
 impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
   fn from(loader: Arc<dyn Loader<C>>) -> Self {
+    Self::new(loader, LoaderRunnerOptions::default(), None)
+  }
+}
+
+impl<C: Send> LoaderItem<C> {
+  pub(crate) fn new(
+    loader: Arc<dyn Loader<C>>,
+    options: LoaderRunnerOptions,
+    filter: Option<Arc<LoaderFilter>>,
+  ) -> Self {
+    let cache_options = options.cache.then(|| Box::new(options));
+    let filter = filter.map(LoaderFilterExecution::new);
     let ident = &**loader.identifier();
+    let execution_kind = loader.execution_kind();
     if let Some(r#type) = loader.r#type() {
       let ResourceParsedData {
         path,
@@ -221,6 +352,9 @@ impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
         fragment,
         data: serde_json::Value::Null,
         r#type: ty,
+        cache_options,
+        filter,
+        execution_kind,
         pitch_executed: AtomicBool::new(false),
         normal_executed: AtomicBool::new(false),
         finish_called: AtomicBool::new(false),
@@ -240,6 +374,9 @@ impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
       fragment,
       data: serde_json::Value::Null,
       r#type: String::default(),
+      cache_options,
+      filter,
+      execution_kind,
       pitch_executed: AtomicBool::new(false),
       normal_executed: AtomicBool::new(false),
       finish_called: AtomicBool::new(false),
@@ -255,7 +392,7 @@ pub struct ResourceParsedData {
 }
 
 pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
-  let (path, query, fragment) = path_query_fragment(resource).ok()?;
+  let (path, query, fragment) = path_query_fragment(resource);
 
   Some(ResourceParsedData {
     path: strip_zero_width_space_for_fragment(path)
@@ -266,27 +403,50 @@ pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
   })
 }
 
-fn path_query_fragment(mut input: &str) -> winnow::ModalResult<(&str, Option<&str>, Option<&str>)> {
-  use winnow::{
-    combinator::{alt, opt, repeat},
-    prelude::*,
-    token::{any, none_of, rest},
+fn path_query_fragment(input: &str) -> (&str, Option<&str>, Option<&str>) {
+  #[cfg(windows)]
+  let prefix_len = rspack_paths::dos_device_path_prefix_len(input);
+  #[cfg(not(windows))]
+  let prefix_len = 0;
+
+  let path_end = prefix_len + find_resource_delimiter(&input[prefix_len..], true);
+  let (path, rest) = input.split_at(path_end);
+  let (query, rest) = if let Some(query_body) = rest.strip_prefix('?') {
+    let (query, rest) = rest.split_at(1 + find_resource_delimiter(query_body, false));
+    (Some(query), rest)
+  } else {
+    (None, rest)
   };
+  (path, query, rest.starts_with('#').then_some(rest))
+}
 
-  let path = alt((
-    ('\u{200b}', any).take(),
-    none_of(('?', '#', '\u{200b}')).take(),
-  ));
-  let query = alt((('\u{200b}', any).take(), none_of(('#', '\u{200b}')).take()));
-  let fragment = rest;
+fn find_resource_delimiter(input: &str, allow_query: bool) -> usize {
+  const ESCAPE_START: u8 = 0xe2; // The first UTF-8 byte of U+200B.
 
-  let mut parser = (
-    repeat::<_, _, (), _, _>(.., path).take(),
-    opt(('?', repeat::<_, _, (), _, _>(.., query)).take()),
-    opt(('#', fragment).take()),
-  );
+  let mut offset = 0;
+  loop {
+    let tail = &input[offset..];
+    let bytes = tail.as_bytes();
+    let next = if allow_query {
+      memchr3(b'?', b'#', ESCAPE_START, bytes)
+    } else {
+      memchr2(b'#', ESCAPE_START, bytes)
+    };
+    let Some(next) = next else {
+      return input.len();
+    };
+    if bytes[next] != ESCAPE_START {
+      return offset + next;
+    }
 
-  parser.parse_next(&mut input)
+    // The UTF-8 leading byte can also match other characters.
+    let mut chars = tail[next..].chars();
+    if chars.next() == Some('\u{200b}') && chars.next().is_none() {
+      // A trailing escape ends the path or query without becoming part of it.
+      return offset + next;
+    }
+    offset = input.len() - chars.as_str().len();
+  }
 }
 
 #[cfg(test)]

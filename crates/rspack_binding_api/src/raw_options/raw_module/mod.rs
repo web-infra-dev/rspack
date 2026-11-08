@@ -15,16 +15,18 @@ use regex::Regex;
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorDataUrlOptions,
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
-  AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions,
+  AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions, CodeFilter,
   CssAutoOrModuleParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, CssParserImport, CssParserImportContext, CssParserOptions,
   DescriptionData, DynamicImportFetchPriority, DynamicImportMode, ExportPresenceMode, FuncUseCtx,
-  GeneratorOptions, GeneratorOptionsMap, ImportMeta, JavascriptParserCommonjsExportsOption,
-  JavascriptParserCommonjsOptions, JavascriptParserCreateRequire, JavascriptParserOptions,
-  JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions,
-  ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule,
-  ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict,
-  ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
+  GeneratorOptions, GeneratorOptionsMap, ImportMeta, ImportMetaOptions,
+  JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
+  JavascriptParserCreateRequire, JavascriptParserOptions, JavascriptParserOrder,
+  JavascriptParserUrl, JavascriptParserWorkerOptions, JavascriptParserWorkerUrl,
+  JsonGeneratorOptions, JsonParserOptions, LoaderFilter, ModuleNoParseRule, ModuleNoParseRules,
+  ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleEnforce,
+  ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParseOption, ParserOptions, ParserOptionsMap,
+  TypeReexportPresenceMode,
 };
 use rspack_error::error;
 use rspack_regex::RspackRegex;
@@ -47,6 +49,18 @@ use crate::{
 pub struct RawModuleRuleUse {
   pub loader: String,
   pub options: Option<String>,
+  pub cache: bool,
+  pub options_cache_key: String,
+  #[napi(ts_type = "string | RegExp")]
+  pub code_filter: Option<Either<String, RspackRegex>>,
+}
+
+fn into_loader_filter(value: Either<String, RspackRegex>) -> Arc<LoaderFilter> {
+  let code = match value {
+    Either::A(value) => CodeFilter::String(value),
+    Either::B(value) => CodeFilter::Regexp(value),
+  };
+  Arc::new(LoaderFilter::new(Some(code)))
 }
 
 #[rspack_napi_macros::tagged_union]
@@ -150,6 +164,7 @@ type ThreadsafeUse = ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>>;
 #[derive(Debug, Default)]
 #[napi(object, object_to_js = false)]
 pub struct RawModuleRule {
+  pub r#as: Option<String>,
   /// A conditional match matching an absolute path + query + fragment.
   /// Note:
   ///   This is a custom matching rule not initially designed by webpack.
@@ -282,6 +297,7 @@ impl From<RawParserOptions> for ParserOptions {
 #[napi(object)]
 pub struct RawJavascriptParserOptions {
   pub dynamic_import_mode: Option<String>,
+  pub dynamic_url: Option<bool>,
   pub dynamic_import_preload: Option<String>,
   pub dynamic_import_prefetch: Option<String>,
   pub dynamic_import_fetch_priority: Option<String>,
@@ -295,9 +311,11 @@ pub struct RawJavascriptParserOptions {
   pub exports_presence: Option<String>,
   pub import_exports_presence: Option<String>,
   pub reexport_exports_presence: Option<String>,
-  pub worker: Option<Vec<String>>,
+  #[napi(ts_type = "boolean | Array<string> | RawJavascriptParserWorkerOptions")]
+  pub worker: Option<Either3<bool, Vec<String>, RawJavascriptParserWorkerOptions>>,
   pub override_strict: Option<String>,
-  pub import_meta: Option<String>,
+  #[napi(ts_type = "string | Record<string, boolean>")]
+  pub import_meta: Option<Either<String, RawImportMetaOptions>>,
   pub commonjs_magic_comments: Option<bool>,
   #[napi(ts_type = "boolean | string")]
   pub create_require: Option<Either<bool, String>>,
@@ -337,11 +355,20 @@ pub struct RawJavascriptParserOptions {
   pub pure_functions: Option<Vec<String>>,
 }
 
+pub type RawImportMetaOptions = HashMap<String, bool>;
+
 #[napi(object)]
 #[derive(Debug)]
 pub struct RawJavascriptParserCommonjsOptions {
   #[napi(ts_type = "boolean | 'skipInEsm'")]
   pub exports: Option<Either<bool, RawJavascriptParserCommonjsExports>>,
+}
+
+#[napi(object)]
+#[derive(Debug)]
+pub struct RawJavascriptParserWorkerOptions {
+  pub alias: Option<Vec<String>>,
+  pub url: Option<String>,
 }
 
 #[napi(string_enum)]
@@ -367,6 +394,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
         .dynamic_import_fetch_priority
         .map(|x| DynamicImportFetchPriority::from(x.as_str())),
       url: value.url.map(|v| JavascriptParserUrl::from(v.as_str())),
+      dynamic_url: value.dynamic_url,
       expr_context_critical: value.expr_context_critical,
       unknown_context_critical: value.unknown_context_critical,
       wrapped_context_reg_exp: value.wrapped_context_reg_exp,
@@ -384,11 +412,30 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       type_reexports_presence: value
         .type_reexports_presence
         .map(|e| TypeReexportPresenceMode::from(e.as_str())),
-      worker: value.worker,
+      worker: value.worker.map(|worker| match worker {
+        Either3::A(flag) => JavascriptParserWorkerOptions::new(
+          if flag {
+            vec!["...".to_string()]
+          } else {
+            vec![]
+          },
+          None,
+        ),
+        Either3::B(alias) => JavascriptParserWorkerOptions::new(alias, None),
+        Either3::C(options) => JavascriptParserWorkerOptions {
+          alias: options.alias,
+          url: options
+            .url
+            .and_then(|url| JavascriptParserWorkerUrl::from(url.as_str())),
+        },
+      }),
       override_strict: value
         .override_strict
         .map(|e| OverrideStrict::from(e.as_str())),
-      import_meta: value.import_meta.map(|e| ImportMeta::from(e.as_str())),
+      import_meta: value.import_meta.map(|e| match e {
+        Either::A(value) => ImportMeta::from(value.as_str()),
+        Either::B(value) => ImportMeta::Granular(ImportMetaOptions::new(value)),
+      }),
       require_alias: value.require_alias,
       require_as_expression: value.require_as_expression,
       require_dynamic: value.require_dynamic,
@@ -539,6 +586,8 @@ fn convert_import_option(import: Option<Either<bool, RawCssImportFn>>) -> Option
 #[derive(Debug, Default)]
 #[napi(object, object_to_js = false)]
 pub struct RawCssParserOptions {
+  #[napi(ts_type = r#""link" | "text" | "css-style-sheet" | "style""#)]
+  pub export_type: Option<String>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   #[napi(js_name = "import")]
@@ -552,6 +601,7 @@ pub struct RawCssParserOptions {
 impl From<RawCssParserOptions> for CssParserOptions {
   fn from(value: RawCssParserOptions) -> Self {
     Self {
+      export_type: value.export_type.map(Into::into),
       named_exports: value.named_exports,
       url: value.url,
       r#import: value.r#import,
@@ -563,6 +613,8 @@ impl From<RawCssParserOptions> for CssParserOptions {
 #[derive(Debug, Default)]
 #[napi(object, object_to_js = false)]
 pub struct RawCssModuleParserOptions {
+  #[napi(ts_type = r#""link" | "text" | "css-style-sheet" | "style""#)]
+  pub export_type: Option<String>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   #[napi(js_name = "import")]
@@ -583,6 +635,7 @@ pub struct RawCssModuleParserOptions {
 impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
   fn from(value: RawCssModuleParserOptions) -> Self {
     Self {
+      export_type: value.export_type.map(Into::into),
       named_exports: value.named_exports,
       url: value.url,
       r#import: value.r#import,
@@ -600,6 +653,8 @@ impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
 #[derive(Debug, Default)]
 #[napi(object, object_to_js = false)]
 pub struct RawCssAutoOrModuleParserOptions {
+  #[napi(ts_type = r#""link" | "text" | "css-style-sheet" | "style""#)]
+  pub export_type: Option<String>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   #[napi(js_name = "import")]
@@ -621,6 +676,7 @@ pub struct RawCssAutoOrModuleParserOptions {
 impl From<RawCssAutoOrModuleParserOptions> for CssAutoOrModuleParserOptions {
   fn from(value: RawCssAutoOrModuleParserOptions) -> Self {
     Self {
+      export_type: value.export_type.map(Into::into),
       named_exports: value.named_exports,
       url: value.url,
       r#import: value.r#import,
@@ -891,6 +947,7 @@ impl From<RawAssetGeneratorDataUrlOptions> for AssetGeneratorDataUrlOptions {
 #[napi(object)]
 pub struct RawCssGeneratorOptions {
   pub exports_only: Option<bool>,
+  pub runtime_public_path: Option<bool>,
   pub es_module: Option<bool>,
 }
 
@@ -898,6 +955,7 @@ impl From<RawCssGeneratorOptions> for CssGeneratorOptions {
   fn from(value: RawCssGeneratorOptions) -> Self {
     Self {
       exports_only: value.exports_only,
+      runtime_public_path: value.runtime_public_path,
       es_module: value.es_module,
     }
   }
@@ -909,6 +967,7 @@ pub struct RawCssModuleGeneratorOptions {
   #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
   pub exports_convention: Option<String>,
   pub exports_only: Option<bool>,
+  pub runtime_public_path: Option<bool>,
   pub local_ident_hash_digest: Option<String>,
   pub local_ident_hash_digest_length: Option<u32>,
   pub local_ident_hash_function: Option<String>,
@@ -922,6 +981,7 @@ impl From<RawCssModuleGeneratorOptions> for CssModuleGeneratorOptions {
     Self {
       exports_convention: value.exports_convention.map(|s| s.into()),
       exports_only: value.exports_only,
+      runtime_public_path: value.runtime_public_path,
       local_ident_hash_digest: value.local_ident_hash_digest.map(|s| s.as_str().into()),
       local_ident_hash_digest_length: value.local_ident_hash_digest_length,
       local_ident_hash_function: value.local_ident_hash_function.map(|s| s.as_str().into()),
@@ -980,6 +1040,9 @@ impl TryFrom<RawModuleRule> for ModuleRule {
           .map(|rule_use| ModuleRuleUseLoader {
             loader: rule_use.loader,
             options: rule_use.options,
+            cache: rule_use.cache,
+            options_cache_key: rule_use.options_cache_key,
+            filter: rule_use.code_filter.map(into_loader_filter),
           })
           .collect::<Vec<_>>();
         Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(uses))
@@ -994,6 +1057,9 @@ impl TryFrom<RawModuleRule> for ModuleRule {
                 .map(|rule_use| ModuleRuleUseLoader {
                   loader: rule_use.loader,
                   options: rule_use.options,
+                  cache: rule_use.cache,
+                  options_cache_key: rule_use.options_cache_key,
+                  filter: rule_use.code_filter.map(into_loader_filter),
                 })
                 .collect::<Vec<_>>()
             })
@@ -1057,6 +1123,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       .unwrap_or_default();
 
     Ok(ModuleRule {
+      r#as: value.r#as.map(Into::into),
       rspack_resource: value
         .rspack_resource
         .map(|raw| raw.try_into())

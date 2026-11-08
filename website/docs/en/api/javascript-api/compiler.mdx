@@ -1,12 +1,12 @@
 ---
-description: "The Compiler is a core object in Rspack. A Compiler instance is created when you call Rspack's JavaScript API or CLI"
+description: 'Compiler and MultiCompiler APIs for running, watching, and closing builds, creating child compilers, and accessing filesystems.'
 ---
 
 import StatsType from '../../types/stats.mdx';
 import CompilerType from '../../types/compiler.mdx';
 import LoggerType from '../../types/logger.mdx';
 import CacheType from '../../types/cache.mdx';
-import ChunkType from '../../types/cache.mdx';
+import ChunkType from '../../types/chunk.mdx';
 import InputFileSystemType from '../../types/input-file-system.mdx';
 import OutputFileSystemType from '../../types/output-file-system.mdx';
 import WatchFileSystemType from '../../types/watch-file-system.mdx';
@@ -101,7 +101,7 @@ const watching = compiler.watch(
 The Watching object provides the following methods:
 
 - `watch`:
-  - **Type**: `(files: string[], dirs: string[], missing: string[]): void`
+  - **Type**: `(files: Iterable<string>, dirs: Iterable<string>, missing: Iterable<string>): void`
   - **Usage**: Adds files and directories to watch.
 - `invalidate`:
   - **Type**: `(callback: () => void): void`
@@ -187,7 +187,7 @@ function purgeInputFileSystem(): void;
 
 ### createChildCompiler
 
-Runs another Rspack instance inside Rspack as a child compiler with different settings. Copies all hooks and plugins from the parent (or top-level) compiler and creates a child `Compiler` instance. Returns the created `Compiler`.
+Create and return a child `Compiler` with its own output options and additional plugins. For hook and plugin inheritance rules, see [compilation.createChildCompiler](/api/javascript-api/compilation#createchildcompiler).
 
 ```ts
 function createChildCompiler(
@@ -195,7 +195,7 @@ function createChildCompiler(
   compilerName: string,
   compilerIndex: number,
   outputOptions: OutputOptions,
-  plugins: RspackPlugin[],
+  plugins?: (RspackPluginInstance | Falsy)[],
 ): Compiler;
 ```
 
@@ -455,12 +455,8 @@ rspack(
 It can also be created through `new MultiCompiler`:
 
 ```js
-const compiler1 = new Compiler({
-  /* */
-});
-const compiler2 = new Compiler({
-  /* */
-});
+const compiler1 = new Compiler({/* */});
+const compiler2 = new Compiler({/* */});
 
 new MultiCompiler([compiler1, compiler2]);
 

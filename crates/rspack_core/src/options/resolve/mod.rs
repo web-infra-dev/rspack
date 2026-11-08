@@ -1,3 +1,4 @@
+mod alias_value_cacheable;
 mod clever_merge;
 mod value_type;
 
@@ -11,6 +12,7 @@ use rspack_paths::Utf8PathBuf;
 use rspack_regex::RspackRegex;
 use rspack_util::fx_hash::FxLinkedHashMap;
 
+use self::alias_value_cacheable::AsAliasValue;
 use crate::DependencyCategory;
 
 pub type AliasMap = rspack_resolver::AliasValue;
@@ -26,7 +28,7 @@ pub type AliasMap = rspack_resolver::AliasValue;
 pub enum Alias {
   OverwriteToNoAlias,
   MergeAlias(
-    #[cacheable(with=AsVec<AsTuple2<AsCacheable, AsVec<AsPreset>>>)] rspack_resolver::Alias,
+    #[cacheable(with=AsVec<AsTuple2<AsCacheable, AsVec<AsAliasValue>>>)] rspack_resolver::Alias,
   ),
 }
 

@@ -8,20 +8,19 @@ use rspack_cacheable::{
 };
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, CodeGenerationResult, Compilation,
-  Context, DependenciesBlock, Dependency, DependencyId, DependencyRange, FactoryMeta, ImportPhase,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  BuildMetaExportsType, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock,
+  DependenciesBlockData, DependencyRange, FactoryMetaStore, FreezeLock, ImportPhase,
   LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer,
   ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
   impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
-use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hash::{RspackHashDigest, RspackHasher};
+use rspack_intern::{Atom, IndexAtomSet};
 use rspack_plugin_javascript::dependency::ImportEagerDependency;
 use rspack_util::{fx_hash::FxIndexSet, source_map::SourceMapKind};
-use rustc_hash::FxHashSet;
-use swc_core::ecma::atoms::Atom;
 
 use crate::{
   client_reference_dependency::ClientReferenceDependency,
@@ -33,8 +32,7 @@ use crate::{
 #[cacheable]
 #[derive(Debug)]
 pub struct RscEntryModule {
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  dependencies: Vec<DependencyId>,
+  dependencies_block: DependenciesBlockData,
   identifier: ModuleIdentifier,
   lib_ident: String,
   client_modules: Vec<ClientModuleImport>,
@@ -46,9 +44,9 @@ pub struct RscEntryModule {
   name: Arc<str>,
   /// When true, client modules are loaded eagerly (not as code-split points).
   is_server_side_rendering: bool,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  factory_meta: FactoryMetaStore,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
   layer: Option<ModuleLayer>,
 }
 
@@ -77,8 +75,7 @@ impl RscEntryModule {
     };
 
     Self {
-      blocks: Vec::new(),
-      dependencies: Vec::new(),
+      dependencies_block: Default::default(),
       identifier,
       lib_ident,
       client_modules,
@@ -87,16 +84,16 @@ impl RscEntryModule {
       css_imports_by_server_entry,
       name,
       is_server_side_rendering,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         strict: true,
-        top_level_declarations: Some(FxHashSet::default()),
+        top_level_declarations: Some(Default::default()),
         ..Default::default()
-      },
-      build_meta: BuildMeta {
-        exports_type: BuildMetaExportsType::Namespace,
-        ..Default::default()
-      },
+      }
+      .into(),
+      build_meta: BuildMeta::default()
+        .with_exports_type(BuildMetaExportsType::Namespace)
+        .into(),
       source_map_kind: SourceMapKind::empty(),
       layer,
     }
@@ -196,24 +193,12 @@ impl Identifiable for RscEntryModule {
 }
 
 impl DependenciesBlock for RscEntryModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency)
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }
 
@@ -222,7 +207,7 @@ impl DependenciesBlock for RscEntryModule {
 impl Module for RscEntryModule {
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>) -> f64 {
     42.0
   }
 
@@ -252,30 +237,30 @@ impl Module for RscEntryModule {
 
   async fn build(
     mut self: Box<Self>,
-    _build_context: BuildContext,
+    _build_context: Arc<BuildContext>,
     _: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<BoxModule> {
     if self.is_server_side_rendering {
       // Eager: no code-split points; use ImportEagerDependency (CSS filtering done at call site).
       let all_client_modules = self.all_client_modules();
       let mut dependencies: Vec<BoxDependency> = Vec::with_capacity(all_client_modules.len());
       for client_module in all_client_modules {
         let referenced_specifiers = create_referenced_specifiers(&client_module.ids);
-        let dep = ImportEagerDependency::new(
+        let mut dep = ImportEagerDependency::new(
           Atom::from(client_module.request.as_str()),
           DependencyRange { start: 0, end: 0 },
-          referenced_specifiers,
           None,
           ImportPhase::Evaluation,
         );
-        dependencies.push(Box::new(dep));
+        if let Some(referenced_specifiers) = referenced_specifiers {
+          dep.set_referenced_specifiers(referenced_specifiers, true);
+        }
+        dependencies.push(BoxDependency::new(dep));
       }
-      Ok(BuildResult {
-        module: BoxModule::new(self),
-        dependencies,
-        blocks: vec![],
-        optimization_bailouts: vec![],
-      })
+      Ok(
+        BoxModule::new(self)
+          .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![]),
+      )
     } else {
       // Non-eager: code-split points; use AsyncDependenciesBlock + ClientReferenceDependency.
       let mut blocks = Vec::with_capacity(
@@ -303,21 +288,21 @@ impl Module for RscEntryModule {
 
         if let Some(css_imports) = self.css_imports_by_server_entry.get(&server_entry) {
           block_dependencies.extend(css_imports.iter().map(|request| {
-            Box::new(ClientReferenceDependency::new(
+            BoxDependency::new(ClientReferenceDependency::new(
               request.clone(),
               Default::default(),
               self.is_server_side_rendering,
-            )) as Box<dyn Dependency>
+            ))
           }));
         }
 
         if let Some(client_modules) = self.client_modules_by_server_entry.get(&server_entry) {
           block_dependencies.extend(client_modules.iter().map(|client_module| {
-            Box::new(ClientReferenceDependency::new(
+            BoxDependency::new(ClientReferenceDependency::new(
               client_module.request.clone(),
               client_module.ids.clone(),
               self.is_server_side_rendering,
-            )) as Box<dyn Dependency>
+            ))
           }));
         }
 
@@ -341,11 +326,11 @@ impl Module for RscEntryModule {
           .root_client_modules
           .iter()
           .map(|client_module| {
-            Box::new(ClientReferenceDependency::new(
+            BoxDependency::new(ClientReferenceDependency::new(
               client_module.request.clone(),
               client_module.ids.clone(),
               self.is_server_side_rendering,
-            )) as Box<dyn Dependency>
+            ))
           })
           .collect::<Vec<_>>();
 
@@ -369,18 +354,16 @@ impl Module for RscEntryModule {
           self.identifier,
           None,
           None,
-          vec![Box::new(dep) as Box<dyn Dependency>],
+          vec![BoxDependency::new(dep)],
           Some(client_module.request.clone()),
         );
         blocks.push(Box::new(block));
       }
 
-      Ok(BuildResult {
-        module: BoxModule::new(self),
-        dependencies,
-        blocks,
-        optimization_bailouts: vec![],
-      })
+      Ok(BoxModule::new(self).with_dependencies(
+        dependencies.into_iter().map(Into::into).collect(),
+        blocks.into_iter().map(Into::into).collect(),
+      ))
     }
   }
 
@@ -391,11 +374,16 @@ impl Module for RscEntryModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let compilation = code_generation_context.compilation;
     let source = self.render_debug_comments(compilation);
 
-    Ok(CodeGenerationResult::default().with_javascript(RawStringSource::from(source).boxed()))
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
+    code_generation_result.add(
+      SourceType::JavaScript,
+      RawStringSource::from(source).boxed(),
+    );
+    Ok(code_generation_result)
   }
 
   async fn get_runtime_hash(
@@ -403,7 +391,7 @@ impl Module for RscEntryModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHash::from(&compilation.options.output);
+    let mut hasher = RspackHasher::from(&compilation.options.output);
     module_update_hash(self, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
@@ -485,7 +473,7 @@ fn push_value(identifier: &mut String, value: &str) {
   identifier.push_str(value);
 }
 
-fn create_referenced_specifiers(ids: &FxIndexSet<Atom>) -> Option<Vec<ReferencedSpecifier>> {
+fn create_referenced_specifiers(ids: &IndexAtomSet) -> Option<Vec<ReferencedSpecifier>> {
   if ids.is_empty() || ids.iter().any(|id| id == "*") {
     return None;
   }

@@ -1,0 +1,14 @@
+# Case import-attributes: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: data_a_json_lazy-compilation-proxy.chunk.CURRENT_HASH.js
+- Bundle: data_b_json_lazy-compilation-proxy.chunk.CURRENT_HASH.js
+
+## Manifest
+
+
+## Update

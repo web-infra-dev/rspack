@@ -279,6 +279,24 @@ export const resolve = (
       kaios: [3, 0],
       node: 14,
     }),
+    logicalAssignment: rawChecker({
+      chrome: 85,
+      and_chr: 85,
+      edge: 85,
+      firefox: 79,
+      and_ff: 79,
+      // ie: Not supported,
+      opera: 71,
+      op_mob: 60,
+      safari: 14,
+      ios_saf: 14,
+      samsung: 14,
+      android: 85,
+      // and_qq: Not supported
+      // baidu: Not supported
+      // and_uc: Not supported
+      node: 15,
+    }),
     templateLiteral: rawChecker({
       chrome: 41,
       and_chr: 41,
@@ -316,6 +334,25 @@ export const resolve = (
       and_uc: [15, 5],
       kaios: 3,
       node: [7, 6],
+    }),
+    topLevelAwait: rawChecker({
+      chrome: 89,
+      and_chr: 89,
+      edge: 89,
+      firefox: 89,
+      and_ff: 89,
+      // ie: Not supported,
+      opera: 75,
+      op_mob: 63,
+      safari: 15,
+      ios_saf: 15,
+      samsung: 15,
+      android: 89,
+      // and_qq: Not supported
+      // baidu: Not supported
+      // and_uc: Not supported
+      // kaios: Not supported
+      node: [14, 8],
     }),
     browser: browserProperty,
     electron: false,

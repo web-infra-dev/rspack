@@ -43,7 +43,7 @@ async fn finish_modules(
   let mut async_modules = IdentifierLinkedSet::default();
   for (module_identifier, module) in module_graph.modules() {
     let build_meta = module.build_meta();
-    if build_meta.has_top_level_await {
+    if build_meta.has_top_level_await() {
       async_modules.insert(*module_identifier);
     } else {
       sync_modules.insert(*module_identifier);
@@ -140,7 +140,10 @@ fn set_sync_modules(
           let dep = module_graph.dependency_by_id(&con.dependency_id);
           matches!(
             dep.dependency_type(),
-            DependencyType::EsmImport | DependencyType::EsmExportImport
+            DependencyType::EsmImport
+              | DependencyType::EsmExportImport
+              | DependencyType::EsmExportImportedSpecifier
+              | DependencyType::Provided
           )
         })
         .for_each(|con| {
@@ -173,7 +176,10 @@ fn set_async_modules(
         let dep = module_graph.dependency_by_id(&con.dependency_id);
         matches!(
           dep.dependency_type(),
-          DependencyType::EsmImport | DependencyType::EsmExportImport
+          DependencyType::EsmImport
+            | DependencyType::EsmExportImport
+            | DependencyType::EsmExportImportedSpecifier
+            | DependencyType::Provided
         )
       })
       .for_each(|con| {

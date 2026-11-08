@@ -66,6 +66,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
       .get_path(
         &self.options.path,
         PathData::default()
+          .chunk(chunk.ukey(), compilation)
           .chunk_id_optional(chunk.id().map(|id| id.as_str()))
           .chunk_hash_optional(chunk.rendered_hash(
             &compilation.chunk_hashes_artifact,
@@ -85,6 +86,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
           .get_path(
             name,
             PathData::default()
+              .chunk(chunk.ukey(), compilation)
               .chunk_id_optional(chunk.id().map(|id| id.as_str()))
               .chunk_hash_optional(chunk.rendered_hash(
                 &compilation.chunk_hashes_artifact,
@@ -123,7 +125,14 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
         None => &compilation.options.context,
       };
 
-      let ident = module.lib_ident(LibIdentOptions { context });
+      // Match webpack by deriving the library identifier from the concatenation root.
+      let module_for_ident = module
+        .as_concatenated_module()
+        .and_then(|concatenated_module| {
+          module_graph.module_by_identifier(&concatenated_module.get_root())
+        })
+        .unwrap_or(module);
+      let ident = module_for_ident.lib_ident(LibIdentOptions { context });
 
       if let Some(ident) = ident {
         let exports_info = compilation

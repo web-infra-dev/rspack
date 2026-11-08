@@ -2,12 +2,14 @@ use std::{ops::Deref, sync::Arc};
 
 use rspack_cacheable::{cacheable, with::AsInnerConverter};
 use rspack_util::fx_hash::FxDashMap;
+#[cfg(allocative)]
+use rspack_util::rspack_allocative;
 
 use crate::{
   AssetGeneratorOptions, AssetParserOptions, AssetResourceGeneratorOptions, CompilationHooks,
   CompilerHooks, CompilerOptions, ConcatenatedModuleHooks, ContextModuleFactoryHooks,
-  CssAutoOrModuleParserOptions, CssModuleGeneratorOptions, CssModuleParserOptions,
-  GeneratorOptions, JsonGeneratorOptions, JsonParserOptions, MODULE_RULE_ID_UNASSIGNED,
+  CssAutoOrModuleParserOptions, CssModuleGeneratorOptions, GeneratorOptions, ImportMeta,
+  JavascriptParserOptions, JsonGeneratorOptions, JsonParserOptions, MODULE_RULE_ID_UNASSIGNED,
   ModuleRuleEffect, ModuleRuleIds, ModuleType, NormalModuleFactoryHooks, NormalModuleHooks,
   ParserAndGenerator, ParserOptions,
 };
@@ -16,9 +18,16 @@ pub type BoxedParserAndGenerator = Box<dyn ParserAndGenerator>;
 pub type BoxedParserAndGeneratorBuilder =
   Box<dyn 'static + Send + Sync + Fn(Arc<ResolvedModuleOptions>) -> BoxedParserAndGenerator>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
+#[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
+#[cfg_attr(
+  allocative,
+  allocative(bound = "T: rspack_allocative::Visit + 'static, U")
+)]
 pub struct ArcComputed<T, U> {
   owner: Arc<T>,
+  // Non-owning projection into owner; visiting it would count the same value twice.
+  #[cfg_attr(allocative, allocative(skip))]
   computed: *const U,
 }
 
@@ -32,9 +41,14 @@ impl<T, U> ArcComputed<T, U> {
     let computed = compute(&owner)? as *const U;
     Some(Self { owner, computed })
   }
+}
 
-  pub fn owner(&self) -> &Arc<T> {
-    &self.owner
+impl<T, U> Clone for ArcComputed<T, U> {
+  fn clone(&self) -> Self {
+    Self {
+      owner: Arc::clone(&self.owner),
+      computed: self.computed,
+    }
   }
 }
 
@@ -92,15 +106,6 @@ impl<'a> From<&'a ResolvedModuleOptions> for &'a AssetParserOptions {
   }
 }
 
-impl<'a> From<&'a ResolvedModuleOptions> for &'a CssModuleParserOptions {
-  fn from(owner: &'a ResolvedModuleOptions) -> Self {
-    owner
-      .parser_options()
-      .and_then(ParserOptions::get_css_global)
-      .expect("should have CssModuleParserOptions")
-  }
-}
-
 impl<'a> From<&'a ResolvedModuleOptions> for &'a CssAutoOrModuleParserOptions {
   fn from(owner: &'a ResolvedModuleOptions) -> Self {
     owner
@@ -116,6 +121,22 @@ impl<'a> From<&'a ResolvedModuleOptions> for &'a JsonParserOptions {
       .parser_options()
       .and_then(ParserOptions::get_json)
       .expect("should have JsonParserOptions")
+  }
+}
+
+impl<'a> From<&'a ResolvedModuleOptions> for &'a JavascriptParserOptions {
+  fn from(owner: &'a ResolvedModuleOptions) -> Self {
+    owner
+      .parser_options()
+      .and_then(ParserOptions::get_javascript)
+      .expect("should have JavascriptParserOptions")
+  }
+}
+
+impl<'a> From<&'a ResolvedModuleOptions> for &'a ImportMeta {
+  fn from(owner: &'a ResolvedModuleOptions) -> Self {
+    let javascript_options: &JavascriptParserOptions = owner.into();
+    javascript_options.import_meta()
   }
 }
 

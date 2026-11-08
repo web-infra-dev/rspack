@@ -1,7 +1,7 @@
 use std::fmt::Write as _;
 
 use rspack_core::{
-  Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, RuntimeCodeTemplate, RuntimeGlobals,
+  Chunk, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, PathData, RuntimeCodeTemplate,
   SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdSet},
   get_js_chunk_filename_template, get_undo_path,
@@ -63,18 +63,40 @@ pub fn stringify_chunks(chunks: &ChunkIdSet, value: u8) -> String {
 }
 
 pub fn render_hmr_runtime_state_expression(
-  runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &RuntimeCodeTemplate,
   key: &str,
 ) -> String {
-  let state_prefix = if runtime_template.uses_lexical_runtime_globals() {
-    RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX
-      .property_name()
-      .expect("hmr runtime state prefix should have property name")
-      .to_string()
-  } else {
-    runtime_template.render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
+  runtime_template.render_hmr_runtime_state_expression(key)
+}
+
+// renders the hmr state expression of whichever chunk loading runtime is
+// active for the chunk; falls back to jsonp for custom loaders (consumers
+// guard with typeof, so an absent state just reads as not loaded)
+pub fn render_chunk_loading_hmr_state_expression(
+  runtime_template: &RuntimeCodeTemplate,
+  chunk_ukey: &ChunkUkey,
+  compilation: &Compilation,
+) -> String {
+  let chunk_loading = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .get(chunk_ukey)
+    .and_then(|chunk| {
+      chunk.get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+    })
+    .and_then(|options| options.chunk_loading.as_ref())
+    .unwrap_or(&compilation.options.output.chunk_loading);
+  let key = match chunk_loading {
+    ChunkLoading::Enable(ChunkLoadingType::Import) => "module",
+    ChunkLoading::Enable(ChunkLoadingType::ImportScripts) => "importScripts",
+    ChunkLoading::Enable(ChunkLoadingType::Require) => "require",
+    ChunkLoading::Enable(ChunkLoadingType::AsyncNode) => "readFileVm",
+    ChunkLoading::Enable(ChunkLoadingType::Jsonp) => "jsonp",
+    ChunkLoading::Enable(ChunkLoadingType::Custom(_)) => "custom",
+    // A Fallback value While Chunk loading disable, HMR throw Error in Browser.
+    ChunkLoading::Disable => "disable",
   };
-  format!("{state_prefix}_{key}")
+  render_hmr_runtime_state_expression(runtime_template, key)
 }
 
 pub fn chunk_has_css(chunk: &ChunkUkey, compilation: &Compilation) -> bool {
@@ -98,6 +120,7 @@ pub async fn get_output_dir(
     .get_path(
       &filename,
       PathData::default()
+        .chunk(chunk.ukey(), compilation)
         .chunk_id_optional(chunk.id().map(|id| id.as_str()))
         .chunk_hash_optional(chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
@@ -254,6 +277,8 @@ pub fn generate_javascript_hmr_runtime(
     key,
     Some(serde_json::json!({
       "_loading_method": method,
+      "_installed_chunks": format!("{method}InstalledChunks"),
+      "_load_update_chunk": format!("{method}LoadUpdateChunk"),
       "_is_hot_test": is_hot_test(),
     })),
   )

@@ -61,4 +61,8 @@ it("should compile", async () => {
 		"START reexport-async-dep.js",
 		"END reexport-async-dep.js",
 	]);
+
+	let request = "consumer.js";
+	let providedAsync = await import.defer("./provided/" + request);
+	expect(providedAsync.x).toBe(5);
 });

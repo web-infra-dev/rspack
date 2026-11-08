@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import vm, { SourceTextModule } from 'node:vm';
+import vm from 'node:vm';
 import type { RspackOptions, StatsCompilation } from '@rspack/core';
 import { enableEsmLibraryPlugin } from '../../case/config';
 import { asModule } from '../../helper/legacy/asModule';
@@ -370,9 +370,7 @@ export class NodeRunner implements ITestRunner {
       if (!file) {
         return this.requirers.get('miss')!(currentDirectory, modulePath);
       }
-      return JSON.parse(
-        fs.readFileSync(path.join(this._options.dist, modulePath), 'utf-8'),
-      );
+      return JSON.parse(fs.readFileSync(file.path, 'utf-8'));
     };
   }
 
@@ -424,7 +422,10 @@ export class NodeRunner implements ITestRunner {
           currentModuleScope.__STATS_I__ = statsIndex;
         }
       }
-      if (file.content.includes('webpack/runtime/startup_chunk_dependencies')) {
+      if (
+        file.content.includes('webpack/runtime/startup_chunk_dependencies') ||
+        file.content.includes('rspack/runtime/startup_chunk_dependencies')
+      ) {
         currentModuleScope.__AFTER_CHUNK_LOADED__ = (next: () => void) => {
           let done;
           const task = new Promise((resolve) => (done = resolve));
@@ -482,13 +483,13 @@ export class NodeRunner implements ITestRunner {
     const esmContext = vm.createContext(this.baseModuleScope!, {
       name: 'context for esm',
     });
-    const esmCache = new Map<string, SourceTextModule>();
+    const esmCache = new Map<string, vm.SourceTextModule>();
     const esmIdentifier = this._options.name;
 
     return (currentDirectory, modulePath, context = {}) => {
-      if (!SourceTextModule) {
+      if (!vm.SourceTextModule) {
         throw new Error(
-          "Running this test requires '--experimental-vm-modules'.\nRun with 'node --experimental-vm-modules node_modules/@rstest/core/bin/rstest'.",
+          "Running this test requires '--experimental-vm-modules'.\nRun with 'node --experimental-vm-modules node_modules/rstack/bin/rs.js test'.",
         );
       }
       const _require = this.getRequire();
@@ -511,7 +512,7 @@ export class NodeRunner implements ITestRunner {
 
       let esm = esmCache.get(file.path);
       if (!esm) {
-        esm = new SourceTextModule(file.content, {
+        esm = new vm.SourceTextModule(file.content, {
           identifier: `${esmIdentifier}-${file.path}`,
           // no attribute
           url: `${pathToFileURL(file.path).href}?${esmIdentifier}`,

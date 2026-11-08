@@ -1,0 +1,25 @@
+.syntax {
+	/* A generic declaration may have a sole curly block as its value. */
+	color:{.opaque};
+	color: /* { ; } */ {.commentOpaque} /* } */ ! IMPORTANT;
+	color:{.escapedImportant} !\69mportant;
+	animation:{literal} !important;
+
+	/* Custom properties may mix curly blocks with other component values. */
+	--tokens:before{.customOpaque}after;
+	\2d -escaped:before{.escapedCustomOpaque}after;
+
+	/* Component values keep their own delimiters and terminators. */
+	background:paint([{.functionOpaque;}]);
+	background-image:url(data:text/plain,foo{bar);
+	content:"a quote: \" and delimiters: ; { }";
+	font-family:alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau upsilon phi chi psi omega;
+
+	/* Other values followed by a curly block must fall back to a rule. */
+	button:where(.functionalSyntax) { color: red; }
+	button /* comment */ :local(.commentSyntax) { color: blue; }
+	button[data-value=";{}"].attributeSyntax { color: blue; }
+	button:is([data-value="}"], .balancedSyntax) { color: blue; }
+	button.escaped\;boundary { color: blue; }
+	.afterSyntax { color: green; }
+}

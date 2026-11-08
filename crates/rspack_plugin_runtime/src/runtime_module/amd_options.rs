@@ -17,8 +17,18 @@ impl AmdOptionsRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for AmdOptionsRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::AMD_OPTIONS
+  fn runtime_module_variables() -> &'static [&'static str] {
+    &[]
+  }
+
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      define: { RuntimeGlobals::AMD_OPTIONS },
+      ..Default::default()
+    }
   }
 
   async fn generate(
@@ -29,7 +39,7 @@ impl RuntimeModule for AmdOptionsRuntimeModule {
       "{} = {}",
       context
         .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::AMD_OPTIONS),
+        .render_runtime_global_definition(&RuntimeGlobals::AMD_OPTIONS),
       self.options,
     ))
   }

@@ -1,0 +1,68 @@
+---
+description: '这个插件可以更细致地控制源映射文件（source map）的生成。在特定的 devtool 配置选项设置下，它也会被自动启用。'
+---
+
+import Attribution from '@components/Attribution';
+
+# EvalSourceMapDevToolPlugin
+
+这个插件可以更细致地控制源映射文件（source map）的生成。在特定的 [`devtool`](/config/devtool) 配置选项设置下，它也会被自动启用。
+
+## 示例
+
+### 基本使用
+
+你可以使用以下代码来替换配置选项 `devtool: eval-source-map`，使用等效的自定义插件配置：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  devtool: false,
+  plugins: [new rspack.EvalSourceMapDevToolPlugin({})],
+};
+```
+
+### 排除 Vendor maps
+
+`test`、`include` 和 `exclude` 匹配的是模块资源路径，而不是输出文件名。以下示例排除 `node_modules` 中模块的 source map：
+
+```js
+new rspack.EvalSourceMapDevToolPlugin({
+  exclude: /[\\/]node_modules[\\/]/,
+});
+```
+
+## 选项
+
+### test
+
+- **类型：** `string` `RegExp` `[string, RegExp]`
+
+为资源路径与给定值匹配的模块生成 source map。默认情况下，此选项不限制包含哪些模块。
+
+### include
+
+- **类型：** `string` `RegExp` `[string, RegExp]`
+
+使路径与该值匹配的模块生成 source map。
+
+### exclude
+
+- **类型：** `string` `RegExp` `[string, RegExp]`
+
+使匹配该值的模块不生成 source map。
+
+### module
+
+- **类型：** `boolean`
+
+指示 loader 是否应生成 source map（默认为 `true`）。
+
+### columns
+
+- **类型：** `boolean`
+
+指示是否应该使用列映射（默认为 `true`）。
+
+<Attribution url="https://webpack.docschina.org/plugins/eval-source-map-dev-tool-plugin/" />

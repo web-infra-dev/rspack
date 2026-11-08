@@ -19,7 +19,7 @@ it("should allow to share chunks", async () => {
 	const script = document.head._children[0];
 	const src = script.src;
 	const file = src.slice(src.lastIndexOf("/"));
-	__non_webpack_require__(`./${file}`);
+	eval("require")(`./${file}`);
 	script.onload();
 	const { upper } = await promise;
 	expect(upper("ok")).toBe("OK");

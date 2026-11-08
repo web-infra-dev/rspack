@@ -1,0 +1,173 @@
+---
+description: 'Restrict or redirect the modules available to dynamic require and import() contexts.'
+---
+
+import Attribution from '@components/Attribution';
+
+# ContextReplacementPlugin
+
+`ContextReplacementPlugin` changes which modules dynamic `require`, dynamic `import()`, and [`require.context()`](/api/runtime-api/module-methods#requirecontext) calls can load, and where Rspack looks for them.
+
+Rspack represents these requests as [context modules](/misc/glossary#context-module). For example, `import('./locales/' + name + '.js')` creates a context module.
+
+Use [`resourceRegExp`](#resourceregexp) to select the context modules to modify. `ContextReplacementPlugin` can replace their search directory, recursive behavior, request-matching regular expression, or request map. Omitted arguments keep the original values, and other context modules are unchanged.
+
+The plugin also suppresses the `Critical dependency` warning for matched contexts.
+
+## Examples
+
+### Limit the modules in a context
+
+Suppose `src/locales` contains `en.js`, `fr.js`, and `zh.js`, and the entry loads a locale dynamically:
+
+```js title="src/index.js"
+export const loadLocale = (name) => import(`./locales/${name}.js`);
+```
+
+The following configuration searches only the top level of `src/locales` and includes only the English and Chinese locale modules:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.ContextReplacementPlugin(
+      /[/\\]locales$/,
+      false,
+      /^\.\/(en|zh)\.js$/,
+    ),
+  ],
+};
+```
+
+The generated context map contains only these request keys:
+
+```js title="dist/main.js (simplified)"
+const localeRequestMap = {
+  './en.js': 'module-id-for-en',
+  './zh.js': 'module-id-for-zh',
+};
+```
+
+## Options
+
+The plugin accepts positional arguments, so their order matters.
+
+### resourceRegExp
+
+- **Type:** `RegExp`
+- **Required:** Yes
+
+Selects the context modules to modify. Before resolution, Rspack tests the expression against the context request, such as `./locales`. After resolution, it tests the same expression against the resolved context resource directory, which is normally an absolute path. At each matching phase, Rspack applies the replacement arguments supported by that phase. A context that does not match at either phase is unchanged.
+
+Use a regular expression that accounts for both `/` and `\` when matching directory separators. If no other arguments are passed, Rspack keeps the inferred resource, recursive flag, and request regular expression, but still removes the critical dependency warning from a matched context.
+
+```js
+new rspack.ContextReplacementPlugin(/[/\\]locales$/);
+```
+
+### newContentResource
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+Replaces the resource directory from which a matched context resolves modules. When `resourceRegExp` matches before resolution, this value replaces the context request and is resolved as the new request. When `resourceRegExp` matches the resolved resource, an absolute value replaces that resource directly, while a relative value is resolved from the previous resource directory.
+
+Pass `newContentResource` as the second argument. If it is omitted, Rspack keeps the inferred resource. When it is followed by [`newContentCreateContextMap`](#newcontentcreatecontextmap), the replacement resource is also the base directory for the map's compile-time requests.
+
+```js
+new rspack.ContextReplacementPlugin(
+  /[/\\]src[/\\]locales$/,
+  '../translated-locales',
+);
+```
+
+For a context originally resolved to `src/locales`, this example changes the resource to the sibling directory `src/translated-locales`.
+
+### newContentRecursive
+
+- **Type:** `boolean`
+- **Default:** `undefined`
+
+Replaces the recursive flag used when Rspack discovers modules under the context resource. Set it to `true` to search subdirectories or `false` to search only the resource directory itself. If omitted, Rspack keeps the recursive behavior inferred from the original context.
+
+This flag controls which directories Rspack scans before [`newContentRegExp`](#newcontentregexp) filters the generated request keys. It is not used with [`newContentCreateContextMap`](#newcontentcreatecontextmap), because an explicit map replaces directory scanning.
+
+- **Without resource replacement:** Pass the boolean as the second argument.
+
+  ```js
+  new rspack.ContextReplacementPlugin(/[/\\]locales$/, false);
+  ```
+
+- **With resource replacement:** Pass the resource string second and the boolean third.
+
+  ```js
+  new rspack.ContextReplacementPlugin(
+    /[/\\]src[/\\]locales$/,
+    '../translated-locales',
+    false,
+  );
+  ```
+
+### newContentRegExp
+
+- **Type:** `RegExp`
+- **Default:** `undefined`
+
+Replaces the regular expression used to select request keys while Rspack scans the context resource. It is tested against context-relative requests such as `./en.js`, not absolute file paths. This expression replaces the inferred expression; the two expressions are not combined. If omitted, Rspack keeps the inferred expression.
+
+[`newContentRecursive`](#newcontentrecursive) first determines which directories are scanned, then `newContentRegExp` filters the request keys found in those directories. This argument is not used with [`newContentCreateContextMap`](#newcontentcreatecontextmap), because the map supplies the complete set of request keys.
+
+- **Without resource or recursive replacement:** Pass the regular expression as the second argument.
+
+  ```js
+  new rspack.ContextReplacementPlugin(/[/\\]locales$/, /^\.\/(en|zh)\.js$/);
+  ```
+
+- **With recursive replacement only:** Pass the boolean second and the regular expression third.
+
+  ```js
+  new rspack.ContextReplacementPlugin(
+    /[/\\]locales$/,
+    false,
+    /^\.\/(en|zh)\.js$/,
+  );
+  ```
+
+- **With resource replacement:** Pass the resource string second, a boolean third, and the regular expression fourth. The boolean cannot be skipped.
+
+  ```js
+  new rspack.ContextReplacementPlugin(
+    /[/\\]src[/\\]locales$/,
+    '../translated-locales',
+    false,
+    /^\.\/(en|zh)\.js$/,
+  );
+  ```
+
+### newContentCreateContextMap
+
+- **Type:** `Record<string, string>`
+- **Default:** `undefined`
+
+Supplies the complete request map for a matched context. Each property key is a runtime request accepted by the context, and its value is the compile-time request resolved from `newContentResource`. Only keys in this map are available at runtime. Resource queries and fragments from the context are appended to the mapped compile-time requests.
+
+Pass the map as the third argument after a `newContentResource` string. This form replaces automatic directory scanning, so it is an alternative to `newContentRecursive` and `newContentRegExp`. If the map is omitted, Rspack discovers modules using the current resource, recursive flag, and request regular expression.
+
+Rspack installs the map after resolving the context. Therefore, `resourceRegExp` must match the resource seen after resolution; matching only the pre-resolution request is not sufficient.
+
+```js
+new rspack.ContextReplacementPlugin(
+  /[/\\]src[/\\]locales$/,
+  '../translated-locales',
+  {
+    './en.js': './en.js',
+    './default.js': './en.js',
+  },
+);
+```
+
+For a context originally resolved to `src/locales`, this example loads modules from `src/translated-locales`. At runtime, both `./en.js` and `./default.js` load the compile-time request `./en.js` from that replacement resource.
+
+<Attribution url="https://webpack.js.org/plugins/context-replacement-plugin/" />

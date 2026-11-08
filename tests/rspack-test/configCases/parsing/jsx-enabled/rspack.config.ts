@@ -1,0 +1,103 @@
+import { defineConfig } from '@rspack/cli';
+import { rspack } from '@rspack/core';
+
+const baseConfig = defineConfig({
+  mode: 'production',
+  context: import.meta.dirname,
+  entry: './index.jsx',
+  externalsType: 'module-import',
+  externals: {
+    react: 'react',
+    './App1': './App1',
+    './App2': './App2',
+  },
+  output: {
+    module: true,
+    library: {
+      type: 'modern-module',
+    },
+  },
+  plugins: [new rspack.experiments.RslibPlugin()],
+  optimization: {
+    minimize: false,
+  },
+  module: {
+    parser: {
+      javascript: {
+        jsx: true,
+      },
+      'javascript/auto': {
+        jsx: true,
+      },
+      'javascript/dynamic': {
+        jsx: true,
+      },
+      'javascript/esm': {
+        jsx: true,
+      },
+    },
+    rules: [
+      {
+        test: /\.(jsx|tsx)$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          detectSyntax: 'auto',
+          jsc: {
+            transform: {
+              react: {
+                runtime: 'preserve',
+              },
+            },
+            target: 'esnext',
+          },
+        },
+      },
+    ],
+  },
+});
+
+export default defineConfig([
+  {
+    ...baseConfig,
+    output: {
+      ...baseConfig.output,
+      filename: 'bundle0.jsx',
+    },
+  },
+  {
+    ...baseConfig,
+    output: {
+      ...baseConfig.output,
+      filename: 'bundle1.jsx',
+    },
+    optimization: {
+      ...baseConfig.optimization,
+      minimize: true,
+      minimizer: [
+        new rspack.SwcJsMinimizerRspackPlugin({
+          test: /\.jsx?$/,
+          minimizerOptions: {
+            mangle: false,
+            compress: {
+              defaults: false,
+              unused: true,
+              dead_code: true,
+            },
+            format: {
+              comments: 'some',
+              preserve_annotations: true,
+            },
+          },
+        }),
+      ],
+    },
+  },
+  {
+    name: 'test-output',
+    entry: './test.js',
+    output: {
+      ...baseConfig.output,
+      filename: 'test.js',
+    },
+  },
+]);

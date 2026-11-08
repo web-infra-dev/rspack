@@ -61,38 +61,12 @@ impl JavaScriptCompiler {
           .with_context(ast::Context::new(self.cm, Some(self.globals)))
       })
       .map_err(|errs| {
+        let source: Arc<str> = Arc::from(fm.src.as_ref());
         BatchErrors(
           errs
             .dedup_ecma_errors()
             .into_iter()
-            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, fm.src.to_string()))
-            .collect::<Vec<_>>(),
-        )
-      })
-  }
-
-  pub fn parse_with_lexer(
-    self,
-    source: &str,
-    lexer: Lexer,
-    is_module: IsModule,
-    comments: Option<SingleThreadedComments>,
-    with_tokens: bool,
-  ) -> Result<(Ast, Option<Vec<TokenAndSpan>>), BatchErrors> {
-    parse_with_lexer(lexer, is_module, with_tokens)
-      .map(|(program, tokens)| {
-        (
-          Ast::new(program, self.cm.clone(), comments)
-            .with_context(ast::Context::new(self.cm.clone(), Some(self.globals))),
-          tokens,
-        )
-      })
-      .map_err(|errs| {
-        BatchErrors(
-          errs
-            .dedup_ecma_errors()
-            .into_iter()
-            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, source.to_string()))
+            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, source.clone()))
             .collect::<Vec<_>>(),
         )
       })
@@ -111,11 +85,12 @@ impl JavaScriptCompiler {
     parse_with_lexer(lexer, is_module, false)
       .map(|(program, _)| program)
       .map_err(|errs| {
+        let source: Arc<str> = Arc::from(fm.src.as_ref());
         BatchErrors(
           errs
             .dedup_ecma_errors()
             .into_iter()
-            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, fm.src.to_string()))
+            .map(|err| ecma_parse_error_deduped_to_rspack_error(err, source.clone()))
             .collect::<Vec<_>>(),
         )
       })

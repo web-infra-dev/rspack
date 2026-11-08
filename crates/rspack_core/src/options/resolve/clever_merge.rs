@@ -469,7 +469,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
 fn normalize_string_array(a: Vec<String>, b: Vec<String>) -> Vec<String> {
   b.into_iter().fold(vec![], |mut acc, item| {
     if item.eq("...") {
-      acc.append(&mut a.clone());
+      acc.extend(a.iter().cloned());
     } else {
       acc.push(item);
     }

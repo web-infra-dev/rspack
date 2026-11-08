@@ -1,15 +1,37 @@
-use std::hash::Hash;
-
 use rspack_cacheable::cacheable;
+use rspack_hash::RspackHasher;
 
 use crate::{
   DependencyId, ExportsInfoArtifact, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   RuntimeSpec, SideEffectsStateArtifact,
 };
 
+/// A copyable connection identity allocated by its owning module graph.
+/// Multiple connections may share a dependency while retaining distinct IDs.
+#[cacheable(hashable)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ModuleGraphConnectionId(u32);
+
+impl From<u32> for ModuleGraphConnectionId {
+  fn from(id: u32) -> Self {
+    Self(id)
+  }
+}
+
+impl std::ops::Deref for ModuleGraphConnectionId {
+  type Target = u32;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+/// Connections are cloned when concatenation copies an inner module's external
+/// references to a new root, preserving the dependency while changing the origin.
 #[cacheable]
 #[derive(Debug, Clone, Eq)]
 pub struct ModuleGraphConnection {
+  pub id: ModuleGraphConnectionId,
   pub dependency_id: DependencyId,
   /// The referencing module identifier
   pub original_module_identifier: Option<ModuleIdentifier>,
@@ -23,26 +45,28 @@ pub struct ModuleGraphConnection {
   conditional: bool,
 }
 
-impl Hash for ModuleGraphConnection {
+impl std::hash::Hash for ModuleGraphConnection {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.dependency_id.hash(state);
+    self.id.hash(state);
   }
 }
 
 impl PartialEq for ModuleGraphConnection {
   fn eq(&self, other: &Self) -> bool {
-    self.dependency_id == other.dependency_id
+    self.id == other.id
   }
 }
 
 impl ModuleGraphConnection {
   pub fn new(
+    id: ModuleGraphConnectionId,
     dependency_id: DependencyId,
     original_module_identifier: Option<ModuleIdentifier>,
     module_identifier: ModuleIdentifier,
     conditional: bool,
   ) -> Self {
     Self {
+      id,
       dependency_id,
       original_module_identifier,
       module_identifier,
@@ -139,6 +163,19 @@ pub enum ConnectionState {
   CircularConnection,
   // Module itself is not connected, but transitive modules are connected transitively.
   TransitiveOnly,
+}
+
+impl rspack_hash::RspackHash for ConnectionState {
+  fn hash(&self, state: &mut RspackHasher) {
+    match self {
+      ConnectionState::Active(value) => {
+        "active".hash(state);
+        value.hash(state);
+      }
+      ConnectionState::CircularConnection => "circular".hash(state),
+      ConnectionState::TransitiveOnly => "transitive-only".hash(state),
+    }
+  }
 }
 
 impl ConnectionState {

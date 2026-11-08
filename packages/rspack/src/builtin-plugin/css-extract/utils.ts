@@ -8,6 +8,18 @@ export function isAbsolutePath(str: string) {
 
 export const PLUGIN_NAME = 'css-extract-rspack-plugin';
 
+// The plugin shares its options with the loader through the compilation.
+// They are bundled separately, so the key must use the global symbol registry.
+export const pluginSymbol = Symbol.for(PLUGIN_NAME);
+
+export interface CssExtractPluginData {
+  runtime: boolean;
+}
+
+export interface CssExtractPluginContext {
+  [pluginSymbol]?: CssExtractPluginData;
+}
+
 const RELATIVE_PATH_REGEXP = /^\.\.?[/\\]/;
 
 export function isRelativePath(str: string) {

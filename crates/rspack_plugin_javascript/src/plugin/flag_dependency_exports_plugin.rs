@@ -10,7 +10,8 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use swc_atoms::Atom;
+
+use crate::Atom;
 
 struct FlagDependencyExportsState<'a> {
   mg: &'a ModuleGraph,
@@ -39,7 +40,7 @@ impl<'a> FlagDependencyExportsState<'a> {
         .module_by_identifier(module_id)
         .expect("should have module")
         .build_meta()
-        .exports_type
+        .exports_type()
         == BuildMetaExportsType::Unset;
       let exports_info = self
         .exports_info_artifact

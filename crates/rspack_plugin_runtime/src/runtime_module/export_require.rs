@@ -1,8 +1,15 @@
 use rspack_core::{
-  RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  impl_runtime_module, runtime_mode::RuntimeMode,
 };
 
 pub static EXPORT_REQUIRE_RUNTIME_MODULE_ID: &str = "export_webpack_require";
+pub static EXPORT_REQUIRE_RSPACK_RUNTIME_MODULE_ID: &str = "export_require";
+const RUNTIME_MODULE_VARIABLES: &[&str] = &[
+  "__webpack_require__temp",
+  "__rspack_contexttemp",
+  "rspackRequiretemp",
+];
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -10,12 +17,31 @@ pub struct ExportRequireRuntimeModule {}
 
 impl ExportRequireRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_name(runtime_template, EXPORT_REQUIRE_RUNTIME_MODULE_ID)
+    let name = if runtime_template.render_mode().is_legacy() {
+      EXPORT_REQUIRE_RUNTIME_MODULE_ID
+    } else {
+      EXPORT_REQUIRE_RSPACK_RUNTIME_MODULE_ID
+    };
+    Self::with_name(runtime_template, name)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for ExportRequireRuntimeModule {
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES
+  }
+
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: RuntimeGlobals::REQUIRE_SCOPE,
+      ..Default::default()
+    }
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
@@ -31,7 +57,7 @@ export {{ {export_temp_name} as {export_name} }};
     ))
   }
 
-  fn should_isolate(&self) -> bool {
+  fn should_isolate(&self, _runtime_mode: RuntimeMode) -> bool {
     false
   }
 }

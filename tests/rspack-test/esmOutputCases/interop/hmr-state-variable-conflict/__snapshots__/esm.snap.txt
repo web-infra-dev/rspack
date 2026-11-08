@@ -1,0 +1,5 @@
+```mjs title=main.mjs
+const __rspack_hmr_s_module = "application";
+	expect(__rspack_hmr_s_module).toBe("application");
+export { __rspack_hmr_s_module };
+```

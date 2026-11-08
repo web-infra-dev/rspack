@@ -12,11 +12,13 @@ import path from 'node:path';
 import type { HttpUriPluginOptions } from '../builtin-plugin';
 import type { Compilation } from '../Compilation';
 import type WebpackError from '../lib/WebpackError';
+import { deprecate } from '../util';
 import type {
   Amd,
   AssetModuleFilename,
   Bail,
   BundlerInfoOptions,
+  SnapshotOptions,
   ChunkFilename,
   ChunkLoading,
   ChunkLoadingGlobal,
@@ -60,6 +62,8 @@ import type {
   LibraryOptions,
   Loader,
   Mode,
+  NewCache,
+  NewCachePresets,
   Name,
   Node,
   NoParseOption,
@@ -75,7 +79,6 @@ import type {
   RspackOptions,
   RuleSetRules,
   ScriptType,
-  SnapshotOptions,
   SourceMapFilename,
   StatsValue,
   StrictModuleErrorHandling,
@@ -83,6 +86,7 @@ import type {
   TrustedTypes,
   UniqueName,
   WasmLoading,
+  WasmStreamingFallback,
   Watch,
   WatchOptions,
   WebassemblyModuleFilename,
@@ -176,6 +180,7 @@ export const getNormalizedRspackOptions = (
         hotUpdateGlobal: output.hotUpdateGlobal,
         assetModuleFilename: output.assetModuleFilename,
         wasmLoading: output.wasmLoading,
+        wasmStreamingFallback: output.wasmStreamingFallback,
         enabledChunkLoadingTypes: output.enabledChunkLoadingTypes
           ? [...output.enabledChunkLoadingTypes]
           : ['...'],
@@ -271,38 +276,59 @@ export const getNormalizedRspackOptions = (
         },
     ),
     loader: cloneObject(config.loader),
-    snapshot: nestedConfig(config.snapshot, (_snapshot) => ({})),
     cache: optionalNestedConfig(config.cache, (cache) => {
-      if (typeof cache === 'boolean') {
-        return cache;
+      if (cache === false) return false;
+      if (cache === true) {
+        return {
+          type: 'memory',
+        };
       }
-      if (cache.type === 'memory') {
-        return cache;
+      switch (cache.type) {
+        case undefined:
+        case 'memory':
+          return {
+            type: 'memory',
+          };
+        case 'persistent': {
+          const hasMaxVersions = Object.hasOwn(cache, 'maxVersions');
+          if (hasMaxVersions) {
+            deprecate(
+              '`cache.maxVersions` is deprecated and has no effect. Rspack keeps only one persistent cache per compiler path.',
+            );
+          }
+          const context = config.context || process.cwd();
+          return {
+            type: 'persistent',
+            name: cache.name,
+            version: cache.version,
+            maxAge: cache.maxAge,
+            maxMemoryGenerations: cache.maxMemoryGenerations,
+            ...(hasMaxVersions ? { maxVersions: cache.maxVersions } : {}),
+            portable: cache.portable,
+            readonly: cache.readonly,
+            buildDependencies: nestedArray(cache.buildDependencies, (deps) =>
+              deps.map((d) => path.resolve(context, d)),
+            ),
+            storage: nestedConfig(cache.storage, (storage) => ({
+              type: storage.type,
+              directory: optionalNestedConfig(storage.directory, (directory) =>
+                path.resolve(context, directory),
+              ),
+              location: optionalNestedConfig(storage.location, (location) =>
+                path.resolve(context, location),
+              ),
+            })),
+          };
+        }
+        default:
+          throw new Error(`Not implemented cache.type ${(cache as any).type}`);
       }
-      const snapshot = cache.snapshot || {};
-      return {
-        type: 'persistent',
-        buildDependencies: nestedArray(cache.buildDependencies, (deps) =>
-          deps.map((d) => path.resolve(config.context || process.cwd(), d)),
-        ),
-        version: cache.version || '',
-        snapshot: {
-          immutablePaths: nestedArray(snapshot.immutablePaths, (p) => [...p]),
-          unmanagedPaths: nestedArray(snapshot.unmanagedPaths, (p) => [...p]),
-          managedPaths: optionalNestedArray(snapshot.managedPaths, (p) => [
-            ...p,
-          ]) || [/[\\/]node_modules[\\/][^.]/],
-        },
-        storage: {
-          type: 'filesystem',
-          directory: path.resolve(
-            config.context || process.cwd(),
-            cache.storage?.directory || 'node_modules/.cache/rspack',
-          ),
-        },
-        portable: cache.portable,
-        readonly: cache.readonly,
-      };
+    }),
+    snapshot: getNormalizedSnapshot({
+      ...(typeof config.cache === 'object' && config.cache.type === 'persistent'
+        ? config.cache.snapshot
+        : undefined),
+      ...config.snapshot,
     }),
     stats: nestedConfig(config.stats, (stats) => {
       if (stats === false) {
@@ -348,6 +374,10 @@ export const getNormalizedRspackOptions = (
     experiments: nestedConfig(config.experiments, (experiments) => {
       return {
         ...experiments,
+        newCache:
+          experiments.newCache === undefined
+            ? undefined
+            : getNormalizedNewCacheOptions(experiments.newCache),
         buildHttp: experiments.buildHttp,
         useInputFileSystem: experiments.useInputFileSystem,
       };
@@ -466,6 +496,32 @@ const getNormalizedIncrementalOptions = (
   return incremental;
 };
 
+const getNormalizedNewCacheOptions = (
+  newCache: NewCachePresets | NewCache,
+): false | NewCache => {
+  if (newCache === false) return false;
+  if (newCache === true) return {};
+  return newCache;
+};
+
+const getNormalizedSnapshot = (snapshot?: SnapshotOptions): SnapshotOptions =>
+  nestedConfig(snapshot, (snapshot) => ({
+    immutablePaths: optionalNestedArray(snapshot.immutablePaths, (p) => [...p]),
+    unmanagedPaths: optionalNestedArray(snapshot.unmanagedPaths, (p) => [...p]),
+    managedPaths: optionalNestedArray(snapshot.managedPaths, (p) => [...p]),
+    buildDependencies: optionalNestedConfig(
+      snapshot.buildDependencies,
+      cloneObject,
+    ),
+    resolveBuildDependencies: optionalNestedConfig(
+      snapshot.resolveBuildDependencies,
+      cloneObject,
+    ),
+    module: optionalNestedConfig(snapshot.module, cloneObject),
+    contextModule: optionalNestedConfig(snapshot.contextModule, cloneObject),
+    resolve: optionalNestedConfig(snapshot.resolve, cloneObject),
+  }));
+
 const nestedConfig = <T, R>(value: T | undefined, fn: (value: T) => R) =>
   value === undefined ? fn({} as T) : fn(value);
 
@@ -557,6 +613,7 @@ export interface OutputNormalized {
   importMetaName?: ImportMetaName;
   iife?: Iife;
   wasmLoading?: WasmLoading;
+  wasmStreamingFallback?: WasmStreamingFallback;
   enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
   webassemblyModuleFilename?: WebassemblyModuleFilename;
   chunkFormat?: string | false;
@@ -590,31 +647,36 @@ export interface ModuleOptionsNormalized {
   noParse?: NoParseOption;
 }
 
+/** @deprecated Use the top-level `snapshot` option. */
+export type CacheSnapshotNormalized = SnapshotOptions;
+
 export type CacheNormalized =
-  | boolean
+  | false
   | {
       type: 'memory';
     }
   | {
       type: 'persistent';
+      name?: string;
       buildDependencies: string[];
-      version: string;
-      snapshot: {
-        immutablePaths: (string | RegExp)[];
-        unmanagedPaths: (string | RegExp)[];
-        managedPaths: (string | RegExp)[];
-      };
+      version?: string;
+      maxAge?: number;
+      maxMemoryGenerations?: number;
+      maxVersions?: number;
       storage: {
         type: 'filesystem';
-        directory: string;
+        directory?: string;
+        location?: string;
       };
       portable?: boolean;
+      readonly?: boolean;
     };
 
 export interface ExperimentsNormalized {
   asyncWebAssembly?: boolean;
   css?: boolean;
   futureDefaults?: boolean;
+  newCache?: false | NewCache;
   buildHttp?: HttpUriPluginOptions;
   useInputFileSystem?: false | RegExp[];
   nativeWatcher?: boolean;
@@ -653,8 +715,8 @@ export interface RspackOptionsNormalized {
   devtool?: DevTool;
   node: Node;
   loader: Loader;
-  snapshot: SnapshotOptions;
   cache?: CacheNormalized;
+  snapshot: SnapshotOptions;
   stats: StatsValue;
   optimization: Optimization;
   plugins: Plugins;

@@ -2,18 +2,18 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsPreset, AsVec},
 };
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
+  AsContextDependency, AsModuleDependency, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact,
   ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, TemplateContext,
-  TemplateReplaceSource, UsedName, property_access,
+  ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, SideEffectsStateArtifact,
+  TemplateContext, TemplateReplaceSource, UsedName, property_access,
 };
 use rspack_util::json_stringify_str;
-use swc_atoms::Atom;
 
-use crate::dependency::commonjs::OBJECT_PROTOTYPE_METHODS;
+use crate::{Atom, dependency::commonjs::OBJECT_PROTOTYPE_METHODS};
 
 #[cacheable]
 #[derive(Debug, Clone, Copy)]
@@ -55,7 +55,7 @@ impl ExportsBase {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CommonJsExportsDependency {
   id: DependencyId,
   range: DependencyRange,
@@ -124,6 +124,23 @@ impl Dependency for CommonJsExportsDependency {
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::False
   }
+
+  // A CommonJS export write (`exports.foo = ...`) points back at this same
+  // module; it does not evaluate another module, so it must not contribute
+  // `Active(true)` to the module-evaluation side-effect state on its own.
+  // Actual RHS side effects are still captured by the parser side-effects
+  // bailout (see SideEffectsParserPlugin). Without this, a module whose body is
+  // only export assignments could never be tree-shaken even when unused.
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
+    _module_chain: &mut IdentifierSet,
+    _connection_state_cache: &mut IdentifierMap<ConnectionState>,
+  ) -> ConnectionState {
+    ConnectionState::Active(false)
+  }
 }
 
 impl AsModuleDependency for CommonJsExportsDependency {}
@@ -169,11 +186,6 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       runtime_template,
       ..
     } = code_generatable_context;
-
-    let module_graph = compilation.get_module_graph();
-    let module = module_graph
-      .module_by_identifier(&module.identifier())
-      .expect("should have mgm");
 
     let exports_info = compilation
       .exports_info_artifact

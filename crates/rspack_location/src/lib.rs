@@ -2,13 +2,14 @@ use std::fmt::{self, Debug};
 
 pub use itoa::Buffer;
 use rspack_cacheable::cacheable;
+use simd_utf16_len::utf16_len;
 
 /// Represents a position within a source file (line and column).
 /// Semantics match V8 Error stack positions:
 /// - Both line and column are 1-based.
 /// - Column counts UTF-16 code units (not Unicode scalar values or UTF-8 bytes).
 #[cacheable]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SourcePosition {
   pub line: u32,
   pub column: u32,
@@ -26,7 +27,7 @@ impl From<(u32, u32)> for SourcePosition {
 /// Represents the real location of a dependency in a source file, including both start and optional end positions.
 /// These positions are described in terms of lines and columns in the source code.
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RealDependencyLocation {
   pub start: SourcePosition,
   pub end: Option<SourcePosition>,
@@ -80,9 +81,8 @@ impl RealDependencyLocation {
     }
 
     // 3. Calculate the UTF-16 length of the start column.
-    // This avoids the overhead of constructing the surrogate pair iterator and only performs numerical accumulation.
     let start_line_slice = source.get(line_start_offset..start_byte)?;
-    let start_utf16_col = start_line_slice.encode_utf16().count() + 1; // 1-based
+    let start_utf16_col = utf16_len(start_line_slice) + 1; // 1-based
 
     let start = SourcePosition {
       line,
@@ -106,12 +106,12 @@ impl RealDependencyLocation {
       let end_line = line.checked_add(newlines_in_span as u32)?;
 
       let end_column = if newlines_in_span == 0 {
-        start_utf16_col + span_slice.encode_utf16().count()
+        start_utf16_col + utf16_len(span_slice)
       } else {
         #[allow(clippy::unwrap_used)]
         let last_newline_pos = span_slice.rfind('\n').unwrap();
         let text_after_last_newline = &span_slice[last_newline_pos + 1..];
-        text_after_last_newline.encode_utf16().count() + 1 // 1-based
+        utf16_len(text_after_last_newline) + 1 // 1-based
       };
 
       Some(SourcePosition {
@@ -158,16 +158,14 @@ impl fmt::Display for RealDependencyLocation {
 
 /// Represents a synthetic dependency location, such as a generated dependency.
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SyntheticDependencyLocation {
-  pub name: String,
+  pub name: Box<str>,
 }
 
 impl SyntheticDependencyLocation {
   pub fn new(name: &str) -> Self {
-    SyntheticDependencyLocation {
-      name: name.to_string(),
-    }
+    SyntheticDependencyLocation { name: name.into() }
   }
 }
 
@@ -177,8 +175,10 @@ impl fmt::Display for SyntheticDependencyLocation {
   }
 }
 
+/// Real source locations sort before synthetic locations. Real locations are
+/// ordered by their start position and then their optional end position.
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DependencyLocation {
   Real(RealDependencyLocation),
   Synthetic(SyntheticDependencyLocation),

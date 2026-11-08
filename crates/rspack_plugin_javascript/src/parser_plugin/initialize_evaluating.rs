@@ -1,8 +1,9 @@
 use std::borrow::Cow;
 
 use cow_utils::CowUtils;
-use rspack_util::SpanExt;
-use swc_experimental_ecma_ast::CallExpr;
+use rspack_util::{SpanExt, swc::AstSubRangeExt};
+use smallvec::SmallVec;
+use swc_next_ecma_ast::{CallExpression, GetSpan};
 
 use super::JavascriptParserPlugin;
 use crate::{utils::eval::BasicEvaluatedExpression, visitors::JavascriptParser};
@@ -23,16 +24,16 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
     &self,
     parser: &mut JavascriptParser<'p>,
     name: &str,
-    expr: &'a CallExpr<'a>,
-  ) -> Option<BasicEvaluatedExpression<'a>>
-  where
-    'p: 'a,
-  {
-    if expr.args.len() != 1 || expr.args[0].spread.is_some() {
+    expr: CallExpression,
+  ) -> Option<BasicEvaluatedExpression<'p>> {
+    let ast = parser.ast.ast;
+    let args = expr.arguments(ast);
+    if args.len() != 1 {
       return None;
     }
-    let arg = parser.evaluate_expression(&expr.args[0].expr);
-    let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
+    let arg = parser.evaluate_expression(ast.first(args)?.as_expr(ast)?);
+    let span = expr.span(ast);
+    let mut res = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
     match name {
       "String" => {
         if let Some(s) = arg.as_string() {
@@ -66,38 +67,33 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
     &self,
     parser: &mut crate::visitors::JavascriptParser<'p>,
     property: &str,
-    expr: &'a CallExpr<'a>,
-    param: BasicEvaluatedExpression<'a>,
-  ) -> Option<BasicEvaluatedExpression<'a>>
-  where
-    'p: 'a,
-  {
+    expr: CallExpression,
+    param: &BasicEvaluatedExpression<'p>,
+  ) -> Option<BasicEvaluatedExpression<'p>> {
+    let ast = parser.ast.ast;
+    let args = expr.arguments(ast);
+    if ast
+      .nodes(args)
+      .any(|argument| argument.is_spread_element(ast))
+    {
+      return None;
+    }
+    let span = expr.span(ast);
     if property == INDEXOF_METHOD_NAME && param.is_string() {
-      let arg1 = (!expr.args.is_empty()).then_some(true).and_then(|_| {
-        if expr.args[0].spread.is_some() {
-          return None;
-        }
-        let arg = parser.evaluate_expression(&expr.args[0].expr);
+      let arg1 = (!args.is_empty()).then_some(true).and_then(|_| {
+        let arg = parser.evaluate_expression(ast.first(args)?.as_expr(ast)?);
         arg.is_string().then_some(arg)
       });
 
-      let arg2 = (expr.args.len() >= 2).then_some(true).and_then(|_| {
-        if expr.args[1].spread.is_some() {
-          return None;
-        }
-        let arg = parser.evaluate_expression(&expr.args[1].expr);
+      let arg2 = (args.len() >= 2).then_some(true).and_then(|_| {
+        let arg = parser.evaluate_expression(ast.second(args)?.as_expr(ast)?);
         arg.is_number().then_some(arg)
       });
 
       if let Some(result) = arg1.map(|arg1| {
-        mock_javascript_indexof(
-          param.string().as_str(),
-          arg1.string().as_str(),
-          arg2.map(|a| a.number()),
-        )
+        mock_javascript_indexof(param.string(), arg1.string(), arg2.map(|a| a.number()))
       }) {
-        let mut res =
-          BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
+        let mut res = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
         res.set_number(result as f64);
         res.set_side_effects(param.could_have_side_effects());
         return Some(res);
@@ -106,24 +102,23 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
       property,
       SLICE_METHOD_NAME | SUBSTR_METHOD_NAME | SUBSTRING_METHOD_NAME
     ) && param.is_string()
-      && (expr.args.len() == 1 || expr.args.len() == 2)
-      && expr.args.iter().all(|a| a.spread.is_none())
+      && (args.len() == 1 || args.len() == 2)
     {
       let str = param.string();
-      let arg1 = parser.evaluate_expression(&expr.args[0].expr);
+      let arg1 = parser.evaluate_expression(ast.first(args)?.as_expr(ast)?);
       if !arg1.is_number() || arg1.could_have_side_effects() {
         return None;
       }
-      let result = if expr.args.len() == 1 {
+      let result = if args.len() == 1 {
         match property {
-          SLICE_METHOD_NAME => mock_javascript_slice(str.as_str(), arg1.number()),
+          SLICE_METHOD_NAME => mock_javascript_slice(str, arg1.number()),
           // 1-arg forms of substr/substring have additional edge cases;
           // keep them unevaluated for now.
           SUBSTR_METHOD_NAME | SUBSTRING_METHOD_NAME => return None,
           _ => unreachable!(),
         }
       } else {
-        let arg2 = parser.evaluate_expression(&expr.args[1].expr);
+        let arg2 = parser.evaluate_expression(ast.second(args)?.as_expr(ast)?);
         if !arg2.is_number() || arg2.could_have_side_effects() {
           return None;
         }
@@ -135,92 +130,99 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
             if start < 0.0 || end < 0.0 || end < start {
               return None;
             }
-            mock_javascript_slice_range(str.as_str(), start, end)
+            mock_javascript_slice_range(str, start, end)
           }
           // substring has distinct semantics (clamps negatives, swaps indices).
           SUBSTRING_METHOD_NAME => {
-            mock_javascript_substring_range(str.as_str(), arg1.number(), arg2.number())
+            mock_javascript_substring_range(str, arg1.number(), arg2.number())
           }
-          SUBSTR_METHOD_NAME => mock_javascript_substr(str.as_str(), arg1.number(), arg2.number()),
+          SUBSTR_METHOD_NAME => mock_javascript_substr(str, arg1.number(), arg2.number()),
           _ => unreachable!(),
         }
       };
-      let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
+      let mut res = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
       res.set_string(result);
       // param side effects are preserved; arg side effects are rejected above.
       res.set_side_effects(param.could_have_side_effects());
       return Some(res);
-    } else if property == REPLACE_METHOD_NAME
-      && param.is_string()
-      && expr.args.len() == 2
-      && expr.args[0].spread.is_none()
-      && expr.args[1].spread.is_none()
-    {
-      let arg1 = parser.evaluate_expression(&expr.args[0].expr);
+    } else if property == REPLACE_METHOD_NAME && param.is_string() && args.len() == 2 {
+      let arg1 = parser.evaluate_expression(ast.first(args)?.as_expr(ast)?);
       if !arg1.is_string() && !arg1.is_regexp() {
         return None;
       }
-      let arg2 = parser.evaluate_expression(&expr.args[1].expr);
+      let arg2 = parser.evaluate_expression(ast.second(args)?.as_expr(ast)?);
       if !arg2.is_string() {
         return None;
       }
-      let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
+      let mut res = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
       // mock js replace
       let s: Cow<'_, str> = if arg1.is_string() {
-        param
-          .string()
-          .cow_replacen(arg1.string(), arg2.string().as_str(), 1)
+        param.string().cow_replacen(arg1.string(), arg2.string(), 1)
       } else if arg1.regexp().1.contains('g') {
         let raw = arg1.regexp();
         let regexp = eval_regexp_to_regexp(&raw.0, &raw.1);
-        Cow::Owned(regexp.replace_all(param.string().as_ref(), arg2.string()))
+        Cow::Owned(regexp.replace_all(param.string(), arg2.string()))
       } else {
         let raw = arg1.regexp();
         let regexp = eval_regexp_to_regexp(&raw.0, &raw.1);
-        Cow::Owned(regexp.replace(param.string().as_ref(), arg2.string()))
+        Cow::Owned(regexp.replace(param.string(), arg2.string()))
       };
-      res.set_string(s.to_string());
+      res.set_string(s.into_owned());
       res.set_side_effects(param.could_have_side_effects());
       return Some(res);
     } else if property == CONCAT_METHOD_NAME && (param.is_string() || param.is_wrapped()) {
-      let mut string_suffix: Option<BasicEvaluatedExpression<'a>> = None;
+      let mut suffix_parts: SmallVec<[String; 4]> = SmallVec::new();
+      let mut suffix_range: Option<(u32, u32)> = None;
+      let mut suffix_side_effects = None;
       let mut has_unknown_params = false;
-      let mut inner_exprs: Vec<BasicEvaluatedExpression<'a>> = Vec::new();
-      for arg in expr.args.iter().rev() {
-        if arg.spread.is_some() {
-          return None;
-        }
-        let arg_expr = parser.evaluate_expression(&arg.expr);
+      let mut inner_exprs: Vec<BasicEvaluatedExpression<'p>> = Vec::new();
+      for arg in ast.nodes(args).rev() {
+        let arg_expr = parser.evaluate_expression(arg.as_expr(ast)?);
         if has_unknown_params || (!arg_expr.is_string() && !arg_expr.is_number()) {
           has_unknown_params = true;
           inner_exprs.push(arg_expr);
           continue;
         }
-        let mut new_string = if arg_expr.is_string() {
-          arg_expr.string().clone()
+        let value = if arg_expr.is_string() {
+          arg_expr.string().to_owned()
         } else {
           format!("{}", arg_expr.number())
         };
-        if let Some(string_suffix) = &string_suffix {
-          new_string += string_suffix.string();
-        }
-        let mut eval = BasicEvaluatedExpression::with_range(
-          arg_expr.range().0,
-          string_suffix.as_ref().unwrap_or(&arg_expr).range().1,
-        );
-        eval.set_string(new_string);
-        eval.set_side_effects(string_suffix.as_ref().map_or_else(
-          || arg_expr.could_have_side_effects(),
-          |s| s.could_have_side_effects(),
-        ));
-        string_suffix = Some(eval);
+        let range = arg_expr.range();
+        suffix_range = Some((range.0, suffix_range.map_or(range.1, |range| range.1)));
+        suffix_side_effects.get_or_insert_with(|| arg_expr.could_have_side_effects());
+        suffix_parts.push(value);
       }
+      // Keep reverse argument evaluation, but copy the constant suffix only once.
+      let join_suffix = |prefix: &str| {
+        let mut value =
+          String::with_capacity(prefix.len() + suffix_parts.iter().map(String::len).sum::<usize>());
+        value.push_str(prefix);
+        for part in suffix_parts.iter().rev() {
+          value.push_str(part);
+        }
+        value
+      };
+      if !has_unknown_params && param.is_string() {
+        let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
+        eval.set_string(join_suffix(param.string()));
+        eval
+          .set_side_effects(suffix_side_effects.unwrap_or_else(|| param.could_have_side_effects()));
+        return Some(eval);
+      }
+      let string_suffix = suffix_range.map(|range| {
+        let mut eval = BasicEvaluatedExpression::with_range(range.0, range.1);
+        eval.set_string(join_suffix(""));
+        eval.set_side_effects(suffix_side_effects.expect("constant suffix"));
+        eval
+      });
       if has_unknown_params {
         let (prefix, inner) = if param.is_string() {
           inner_exprs.reverse();
-          (Some(param), inner_exprs)
+          (Some(param.clone()), inner_exprs)
         } else if param.is_wrapped() {
-          let (prefix, _, mut wrapped_inner_exprs) = param.into_wrapped().expect("checked wrapped");
+          let (prefix, _, mut wrapped_inner_exprs) =
+            param.clone().into_wrapped().expect("checked wrapped");
           inner_exprs.reverse();
           wrapped_inner_exprs.extend(inner_exprs);
           (prefix, wrapped_inner_exprs)
@@ -228,38 +230,19 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
           inner_exprs.reverse();
           (None, inner_exprs)
         };
-        let mut eval =
-          BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
+        let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
         eval.set_wrapped(prefix, string_suffix, inner);
         return Some(eval);
       } else if param.is_wrapped() {
-        let (prefix, postfix, mut inner) = param.into_wrapped().expect("checked wrapped");
+        let (prefix, postfix, mut inner) = param.clone().into_wrapped().expect("checked wrapped");
         let postfix = string_suffix.or(postfix);
         inner.extend(inner_exprs);
-        let mut eval =
-          BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
+        let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
         eval.set_wrapped(prefix, postfix, inner);
         return Some(eval);
-      } else {
-        let mut new_string = param.string().to_owned();
-        if let Some(string_suffix) = &string_suffix {
-          new_string += string_suffix.string();
-        }
-        let mut eval =
-          BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-        eval.set_string(new_string);
-        eval.set_side_effects(string_suffix.as_ref().map_or_else(
-          || param.could_have_side_effects(),
-          |s| s.could_have_side_effects(),
-        ));
-        return Some(eval);
       }
-    } else if property == SPLIT_METHOD_NAME
-      && param.is_string()
-      && expr.args.len() == 1
-      && expr.args[0].spread.is_none()
-    {
-      let arg = parser.evaluate_expression(&expr.args[0].expr);
+    } else if property == SPLIT_METHOD_NAME && param.is_string() && args.len() == 1 {
+      let arg = parser.evaluate_expression(ast.first(args)?.as_expr(ast)?);
       let array: Vec<String> = if arg.is_string() {
         param
           .string()
@@ -273,7 +256,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
       } else {
         return None;
       };
-      let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
+      let mut res = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
       res.set_array(array);
       res.set_side_effects(param.could_have_side_effects());
       return Some(res);

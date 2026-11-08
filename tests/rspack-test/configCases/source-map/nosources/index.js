@@ -17,7 +17,11 @@ it("should preserve test call original positions when noSources option is used",
 	var testSource = fs.readFileSync(path.resolve(CONTEXT, "./list.test.ts"), "utf-8");
 	var map = JSON.parse(source);
 	var consumer = await new sourceMap.SourceMapConsumer(map);
-	var testSourceIndex = map.sources.indexOf("webpack:///./list.test.ts");
+	let sourceUrl = source => `webpack:///${source}`;
+	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+		sourceUrl = source => `rspack:///${source}`;
+	}
+	var testSourceIndex = map.sources.indexOf(sourceUrl("./list.test.ts"));
 	expect(testSourceIndex).toBeGreaterThanOrEqual(0);
 	expect(map).not.toHaveProperty("sourcesContent");
 

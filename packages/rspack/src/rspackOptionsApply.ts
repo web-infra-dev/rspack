@@ -24,6 +24,8 @@ import {
   ChunkPrefetchPreloadPlugin,
   CircularModulesInfoPlugin,
   CommonJsChunkFormatPlugin,
+  CompactHashedChunkIdsPlugin,
+  CompactHashedModuleIdsPlugin,
   CssHttpExternalsRspackPlugin,
   CssModulesPlugin,
   DataUriPlugin,
@@ -35,6 +37,7 @@ import {
   EnableLibraryPlugin,
   EnableWasmLoadingPlugin,
   EnsureChunkConditionsPlugin,
+  applyLimits,
   EvalDevToolModulePlugin,
   EvalSourceMapDevToolPlugin,
   ExternalsPlugin,
@@ -45,6 +48,7 @@ import {
   HttpExternalsRspackPlugin,
   HttpUriPlugin,
   InferAsyncModulesPlugin,
+  ImportedByDeferModulesPlugin,
   InlineExportsPlugin,
   JavascriptModulesPlugin,
   JsonModulesPlugin,
@@ -91,6 +95,13 @@ export class RspackOptionsApply {
     compiler.outputPath = options.output.path;
     compiler.name = options.name;
     compiler.outputFileSystem = fs;
+
+    if (options.output.enabledLibraryTypes?.includes('modern-module')) {
+      applyLimits(
+        options,
+        compiler.getInfrastructureLogger('rspack.RspackOptionsApply'),
+      );
+    }
 
     if (options.externals) {
       if (!options.externalsType) {
@@ -211,12 +222,17 @@ export class RspackOptionsApply {
           ? EvalSourceMapDevToolPlugin
           : SourceMapDevToolPlugin;
         new Plugin({
-          filename: inline ? null : options.output.sourceMapFilename,
+          ...(evalWrapped
+            ? {}
+            : {
+                filename: inline ? null : options.output.sourceMapFilename,
+                fallbackModuleFilenameTemplate:
+                  options.output.devtoolFallbackModuleFilenameTemplate,
+                append: hidden ? false : undefined,
+              }),
           moduleFilenameTemplate: options.output.devtoolModuleFilenameTemplate,
-          fallbackModuleFilenameTemplate:
-            options.output.devtoolFallbackModuleFilenameTemplate,
-          append: hidden ? false : undefined,
           module: moduleMaps ? true : !cheap,
+          test: evalWrapped ? undefined : /\.((c|m)?js|css)($|\?)/i,
           columns: !cheap,
           noSources: noSources,
           namespace: options.output.devtoolNamespace,
@@ -249,6 +265,9 @@ export class RspackOptionsApply {
     }
 
     new InferAsyncModulesPlugin().apply(compiler);
+    if (options.experiments.deferImport) {
+      new ImportedByDeferModulesPlugin().apply(compiler);
+    }
     new APIPlugin().apply(compiler);
 
     new DataUriPlugin().apply(compiler);
@@ -264,9 +283,10 @@ export class RspackOptionsApply {
     }
 
     if (options.optimization.sideEffects) {
-      new SideEffectsFlagPlugin(options.experiments.pureFunctions).apply(
-        compiler,
-      );
+      new SideEffectsFlagPlugin(
+        options.experiments.pureFunctions &&
+          options.optimization.sideEffects === true,
+      ).apply(compiler);
     }
     if (options.optimization.providedExports) {
       new FlagDependencyExportsPlugin().apply(compiler);
@@ -353,6 +373,11 @@ export class RspackOptionsApply {
           new DeterministicModuleIdsPlugin().apply(compiler);
           break;
         }
+        case 'compact-hashed':
+        case 'compat-hashed': {
+          new CompactHashedModuleIdsPlugin().apply(compiler);
+          break;
+        }
         case 'hashed': {
           new HashedModuleIdsPlugin().apply(compiler);
           break;
@@ -374,6 +399,11 @@ export class RspackOptionsApply {
         }
         case 'deterministic': {
           new DeterministicChunkIdsPlugin().apply(compiler);
+          break;
+        }
+        case 'compact-hashed':
+        case 'compat-hashed': {
+          new CompactHashedChunkIdsPlugin().apply(compiler);
           break;
         }
         case 'size': {

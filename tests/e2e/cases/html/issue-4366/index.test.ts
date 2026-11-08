@@ -5,8 +5,10 @@ test('html should refresh after reload', async ({ page, fileAction }) => {
   fileAction.updateFile('./src/index.html', (content) =>
     content.replace('123', '456'),
   );
-  await expect(async () => {
-    await page.reload();
-    expect(await page.title()).toBe('456');
-  }).toPass();
+  await expect
+    .poll(async () => {
+      await page.reload();
+      return await page.title();
+    })
+    .toBe('456');
 });

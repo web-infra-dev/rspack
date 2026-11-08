@@ -1,9 +1,11 @@
-use rspack_core::{BoxDependency, DependencyRange};
-use rspack_util::SpanExt;
-use swc_atoms::Atom;
-use swc_experimental_ecma_ast::{CallExpr, GetSpan, MemberExpr, Span};
+use std::sync::Arc;
+
+use rspack_core::{BoxDependency, DependencyRange, ImportMetaKnownProperties};
+use rspack_util::{SpanExt, swc::AstSubRangeExt};
+use swc_next_ecma_ast::{ArgumentData, CallExpression, GetSpan, Span};
 
 use crate::{
+  Atom,
   dependency::{
     ESMAcceptDependency, ImportMetaHotAcceptDependency, ImportMetaHotDeclineDependency,
     ModuleArgumentDependency, ModuleHotAcceptDependency, ModuleHotDeclineDependency,
@@ -11,35 +13,32 @@ use crate::{
   },
   parser_plugin::JavascriptParserPlugin,
   utils::eval,
-  visitors::{JavascriptParser, expr_name},
+  visitors::{HookMemberExpression, JavascriptParser, expr_name},
 };
 
 type CreateDependency = fn(Atom, DependencyRange) -> BoxDependency;
 
 fn extract_deps(
   parser: &mut JavascriptParser,
-  call_expr: &CallExpr,
+  call_expr: CallExpression,
   create_dependency: CreateDependency,
 ) -> Vec<BoxDependency> {
   let mut dependencies: Vec<BoxDependency> = vec![];
+  let ast = parser.ast.ast;
 
-  if let Some(first_arg) = call_expr.args.first() {
-    let expr = parser.evaluate_expression(&first_arg.expr);
+  if let Some(first_arg) = ast.first(call_expr.arguments(ast))
+    && let ArgumentData::Expr(first_arg) = ast.argument_data(first_arg)
+  {
+    let expr = parser.evaluate_expression(first_arg);
     if expr.is_string() {
-      dependencies.push(create_dependency(
-        expr.string().as_str().into(),
-        expr.range().into(),
-      ));
+      dependencies.push(create_dependency(expr.string().into(), expr.range().into()));
     } else if expr.is_array() {
       expr
         .items()
         .iter()
         .filter(|item| item.is_string())
         .for_each(|expr| {
-          dependencies.push(create_dependency(
-            expr.string().as_str().into(),
-            expr.range().into(),
-          ));
+          dependencies.push(create_dependency(expr.string().into(), expr.range().into()));
         });
     }
   }
@@ -52,7 +51,7 @@ impl JavascriptParser<'_> {
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
     let range = DependencyRange::from(span);
     let loc = self.to_dependency_location(range);
-    self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
+    self.add_presentational_dependency(Arc::new(ModuleArgumentDependency::new(
       Some("hot".into()),
       span.into(),
       loc,
@@ -61,14 +60,15 @@ impl JavascriptParser<'_> {
 
   fn create_accept_handler(
     &mut self,
-    call_expr: &CallExpr,
+    call_expr: CallExpression,
     create_dependency: CreateDependency,
   ) -> Option<bool> {
+    let ast = self.ast.ast;
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
-    let callee_span = call_expr.callee.span();
+    let callee_span = call_expr.callee(ast).span(ast);
     let callee_range = DependencyRange::from(callee_span);
     let loc = self.to_dependency_location(callee_range);
-    self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
+    self.add_presentational_dependency(Arc::new(ModuleArgumentDependency::new(
       Some("hot.accept".into()),
       callee_span.into(),
       loc,
@@ -76,40 +76,39 @@ impl JavascriptParser<'_> {
     let dependencies = extract_deps(self, call_expr, create_dependency);
     if !dependencies.is_empty() {
       let dependency_ids = dependencies.iter().map(|dep| *dep.id()).collect::<Vec<_>>();
-      let callback_arg = call_expr.args.get(1);
+      let callback_arg = ast.second(call_expr.arguments(ast));
       let range = if let Some(callback) = callback_arg {
-        Into::<DependencyRange>::into(callback.span())
+        Into::<DependencyRange>::into(callback.span(ast))
       } else {
-        DependencyRange::new(call_expr.span().real_hi() - 1, 0)
+        DependencyRange::new(call_expr.span(ast).real_hi() - 1, 0)
       };
-      let call_range = DependencyRange::from(call_expr.span());
+      let call_range = DependencyRange::from(call_expr.span(ast));
       let loc = self.to_dependency_location(call_range);
-      self.add_presentational_dependency(Box::new(ESMAcceptDependency::new(
+      self.add_presentational_dependency(Arc::new(ESMAcceptDependency::new(
         range,
         callback_arg.is_some(),
         dependency_ids,
         loc,
       )));
       self.add_dependencies(dependencies);
-      for arg in call_expr.args.iter().skip(1) {
-        self.walk_expression(&arg.expr);
-      }
+      self.walk_arguments(ast.nodes(call_expr.arguments(ast)).skip(1));
       return Some(true);
     }
-    self.walk_expr_or_spread(&call_expr.args);
+    self.walk_arguments(ast.nodes(call_expr.arguments(ast)));
     Some(true)
   }
 
   fn create_decline_handler(
     &mut self,
-    call_expr: &CallExpr,
+    call_expr: CallExpression,
     create_dependency: CreateDependency,
   ) -> Option<bool> {
+    let ast = self.ast.ast;
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
-    let callee_span = call_expr.callee.span();
+    let callee_span = call_expr.callee(ast).span(ast);
     let callee_range = DependencyRange::from(callee_span);
     let loc = self.to_dependency_location(callee_range);
-    self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
+    self.add_presentational_dependency(Arc::new(ModuleArgumentDependency::new(
       Some("hot.decline".into()),
       callee_span.into(),
       loc,
@@ -158,11 +157,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ModuleHotReplacementParserPlugin
   fn member(
     &self,
     parser: &mut JavascriptParser<'p>,
-    expr: &MemberExpr,
+    expr: HookMemberExpression,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::MODULE_HOT {
-      parser.create_hmr_expression_handler(expr.span());
+      parser.create_hmr_expression_handler(expr.span(parser.ast.ast));
       Some(true)
     } else {
       None
@@ -172,16 +171,16 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ModuleHotReplacementParserPlugin
   fn call(
     &self,
     parser: &mut JavascriptParser<'p>,
-    call_expr: &CallExpr,
+    call_expr: CallExpression,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::MODULE_HOT_ACCEPT {
       parser.create_accept_handler(call_expr, |request, range| {
-        Box::new(ModuleHotAcceptDependency::new(request, range))
+        BoxDependency::new(ModuleHotAcceptDependency::new(request, range))
       })
     } else if for_name == expr_name::MODULE_HOT_DECLINE {
       parser.create_decline_handler(call_expr, |request, range| {
-        Box::new(ModuleHotDeclineDependency::new(request, range))
+        BoxDependency::new(ModuleHotDeclineDependency::new(request, range))
       })
     } else {
       None
@@ -205,13 +204,18 @@ impl ImportMetaHotReplacementParserPlugin {
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaHotReplacementParserPlugin {
   fn evaluate_identifier(
     &self,
-    _parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser<'p>,
     for_name: &str,
     _member_expr_info: Option<&crate::visitors::ExpressionExpressionInfo>,
     start: u32,
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'p>> {
-    if for_name == expr_name::IMPORT_META_HOT {
+    if for_name == expr_name::IMPORT_META_HOT
+      && parser
+        .javascript_options
+        .import_meta()
+        .is_known_property_enabled(ImportMetaKnownProperties::WEBPACK_HOT)
+    {
       Some(eval::evaluate_to_identifier(
         expr_name::IMPORT_META_HOT.into(),
         expr_name::IMPORT_META.into(),
@@ -227,11 +231,16 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaHotReplacementParserPl
   fn member(
     &self,
     parser: &mut JavascriptParser<'p>,
-    expr: &MemberExpr,
+    expr: HookMemberExpression,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == expr_name::IMPORT_META_HOT {
-      parser.create_hmr_expression_handler(expr.span());
+    if for_name == expr_name::IMPORT_META_HOT
+      && parser
+        .javascript_options
+        .import_meta()
+        .is_known_property_enabled(ImportMetaKnownProperties::WEBPACK_HOT)
+    {
+      parser.create_hmr_expression_handler(expr.span(parser.ast.ast));
       Some(true)
     } else {
       None
@@ -241,16 +250,24 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaHotReplacementParserPl
   fn call(
     &self,
     parser: &mut JavascriptParser<'p>,
-    call_expr: &CallExpr,
+    call_expr: CallExpression,
     for_name: &str,
   ) -> Option<bool> {
+    if !parser
+      .javascript_options
+      .import_meta()
+      .is_known_property_enabled(ImportMetaKnownProperties::WEBPACK_HOT)
+    {
+      return None;
+    }
+
     if for_name == expr_name::IMPORT_META_HOT_ACCEPT {
       parser.create_accept_handler(call_expr, |request, range| {
-        Box::new(ImportMetaHotAcceptDependency::new(request, range))
+        BoxDependency::new(ImportMetaHotAcceptDependency::new(request, range))
       })
     } else if for_name == expr_name::IMPORT_META_HOT_DECLINE {
       parser.create_decline_handler(call_expr, |request, range| {
-        Box::new(ImportMetaHotDeclineDependency::new(request, range))
+        BoxDependency::new(ImportMetaHotDeclineDependency::new(request, range))
       })
     } else {
       None

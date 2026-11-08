@@ -1,11 +1,9 @@
-use std::hash::Hasher;
-
 use rspack_core::{
   ChunkGraph, Compilation, CompilationModuleIds, ModuleIdsArtifact, Plugin,
   incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_hash::{HashDigest, HashFunction, RspackHash};
+use rspack_hash::{HashDigest, HashFunction, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashSet;
 
@@ -58,17 +56,18 @@ async fn module_ids(
   &self,
   compilation: &Compilation,
   module_ids: &mut ModuleIdsArtifact,
+  preserved_module_ids: &ModuleIdsArtifact,
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   if let Some(diagnostic) = compilation.incremental.disable_passes(
-    IncrementalPasses::MODULE_IDS,
+    IncrementalPasses::MODULE_IDS | IncrementalPasses::MODULES_HASHES,
     "HashedModuleIdsPlugin",
     "it requires calculating the id of all the modules, which is a global effect",
   ) {
     if let Some(diagnostic) = diagnostic {
       diagnostics.push(diagnostic);
     }
-    module_ids.clear();
+    module_ids.retain(|module, _| preserved_module_ids.contains_key(module));
   }
 
   let context = self
@@ -92,7 +91,7 @@ async fn module_ids(
     };
     let ident = get_full_module_name(module, context);
 
-    let mut hasher = RspackHash::new(&self.hash_function);
+    let mut hasher = RspackHasher::new(&self.hash_function);
     hasher.write(ident.as_bytes());
     let hash_digest = hasher.digest(&self.hash_digest);
     let hash_id = hash_digest.encoded();

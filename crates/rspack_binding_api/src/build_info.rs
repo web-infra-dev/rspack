@@ -3,23 +3,14 @@ use std::{cell::RefCell, sync::LazyLock};
 use napi::{
   Env, JsString, JsValue, Property, PropertyAttributes, Unknown,
   bindgen_prelude::{
-    Array, FromNapiMutRef, FromNapiValue, JsObjectValue, Object, ToNapiValue, WeakReference,
+    Array, FromNapiMutRef, FromNapiValue, JsObjectValue, Object, ToNapiValue, ValidateNapiValue,
   },
 };
-use rspack_core::WeakBindingCell;
+use rspack_core::{CompilerId, ModuleIdentifier, WeakBindingCell};
 use rspack_napi::unknown_to_json_value;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::{define_symbols, module::Module};
-
-define_symbols! {
-  BUILD_INFO_ASSETS_SYMBOL => "rspack.buildInfo.assets",
-  BUILD_INFO_FILE_DEPENDENCIES_SYMBOL => "rspack.buildInfo.fileDependencies",
-  BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL => "rspack.buildInfo.contextDependencies",
-  BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL => "rspack.buildInfo.missingDependencies",
-  BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL => "rspack.buildInfo.buildDependencies",
-  COMMIT_CUSTOM_FIELDS_SYMBOL => "rspack.buildInfo.commitCustomFields",
-}
+use crate::{module::with_module_instance, shared_properties::define_shared_properties, symbols};
 
 // Record<string, Source>
 #[napi]
@@ -70,12 +61,16 @@ static KNOWN_BUILD_INFO_FIELD_NAMES: LazyLock<FxHashSet<&'static str>> = LazyLoc
 
 #[napi]
 pub struct KnownBuildInfo {
-  module_reference: WeakReference<Module>,
+  compiler_id: CompilerId,
+  module_identifier: ModuleIdentifier,
 }
 
 impl KnownBuildInfo {
-  pub fn new(module_reference: WeakReference<Module>) -> Self {
-    Self { module_reference }
+  pub(crate) fn new(compiler_id: CompilerId, module_identifier: ModuleIdentifier) -> Self {
+    Self {
+      compiler_id,
+      module_identifier,
+    }
   }
 
   pub fn get_jsobject(self, env: &Env) -> napi::Result<Object<'_>> {
@@ -88,43 +83,33 @@ impl KnownBuildInfo {
     &mut self,
     f: impl FnOnce(&dyn rspack_core::Module) -> napi::Result<T>,
   ) -> napi::Result<T> {
-    match self.module_reference.get_mut() {
-      Some(reference) => {
-        let (_, module) = reference.as_ref()?;
-        f(module)
-      }
-      None => Err(napi::Error::from_reason(
-        "Unable to access buildInfo. The Module has been garbage collected by JavaScript."
-          .to_string(),
-      )),
-    }
+    with_module_instance(self.compiler_id, self.module_identifier, |reference| {
+      reference.with_ref(|_, module| f(module))
+    })
   }
 
   pub fn with_mut<T>(
     &mut self,
     f: impl FnOnce(&mut dyn rspack_core::Module) -> napi::Result<T>,
   ) -> napi::Result<T> {
-    match self.module_reference.get_mut() {
-      Some(reference) => {
-        let module = reference.as_mut()?;
-        f(module)
-      }
-      None => Err(napi::Error::from_reason(
-        "Unable to access buildInfo. The Module has been garbage collected by JavaScript."
-          .to_string(),
-      )),
-    }
+    with_module_instance(self.compiler_id, self.module_identifier, |reference| {
+      f(reference.as_mut()?)
+    })
   }
 }
 
 // KnownBuildInfo & Record<string, any>
 pub struct BuildInfo {
-  module_reference: WeakReference<Module>,
+  compiler_id: CompilerId,
+  module_identifier: ModuleIdentifier,
 }
 
 impl BuildInfo {
-  pub fn new(module_reference: WeakReference<Module>) -> Self {
-    Self { module_reference }
+  pub(crate) fn new(compiler_id: CompilerId, module_identifier: ModuleIdentifier) -> Self {
+    Self {
+      compiler_id,
+      module_identifier,
+    }
   }
 
   pub fn get_jsobject(self, env: &Env) -> napi::Result<Object<'_>> {
@@ -137,130 +122,124 @@ impl BuildInfo {
     &mut self,
     f: impl FnOnce(&dyn rspack_core::Module) -> napi::Result<T>,
   ) -> napi::Result<T> {
-    match self.module_reference.get_mut() {
-      Some(reference) => {
-        let (_, module) = reference.as_ref()?;
-        f(module)
-      }
-      None => Err(napi::Error::from_reason(
-        "Unable to access buildInfo. The Module has been garbage collected by JavaScript."
-          .to_string(),
-      )),
-    }
+    with_module_instance(self.compiler_id, self.module_identifier, |reference| {
+      reference.with_ref(|_, module| f(module))
+    })
   }
 }
 
 fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) -> napi::Result<()> {
-  BUILD_INFO_ASSETS_SYMBOL.with(|once_cell| {
-    #[allow(clippy::unwrap_used)]
-    let symbol = once_cell.get().unwrap();
-    properties.push(
-      Property::new()
-        .with_name(env, symbol)?
-        .with_getter_closure(|env, this| {
-          let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
-          wrapped_value.with_ref(|module| Ok(module.build_info().assets.reflector()))
-        })
-        .with_property_attributes(PropertyAttributes::Configurable),
-    );
-    Ok::<(), napi::Error>(())
-  })?;
+  properties.push(
+    Property::new()
+      .with_name(env, env.symbol_for(symbols::BUILD_INFO_ASSETS_SYMBOL)?)?
+      .with_getter_closure(|env, this| {
+        // Native references do not escape this synchronous getter.
+        let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
+        let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
+        wrapped_value.with_ref(|module| Ok(module.build_info().assets.reflector()))
+      })
+      .with_property_attributes(PropertyAttributes::Configurable),
+  );
 
-  BUILD_INFO_FILE_DEPENDENCIES_SYMBOL.with(|once_cell| {
-    #[allow(clippy::unwrap_used)]
-    let symbol = once_cell.get().unwrap();
-    properties.push(
-      Property::new()
-        .with_name(env, symbol)?
-        .with_getter_closure(|env, this| {
-          let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
-          let env_ref = &env;
-          let result = wrapped_value.with_ref(|module| {
-            module
-              .build_info()
-              .file_dependencies
-              .iter()
-              .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
-              .collect::<napi::Result<Vec<JsString>>>()
-          });
-          unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
-        })
-        .with_property_attributes(PropertyAttributes::Configurable),
-    );
-    Ok::<(), napi::Error>(())
-  })?;
+  properties.push(
+    Property::new()
+      .with_name(
+        env,
+        env.symbol_for(symbols::BUILD_INFO_FILE_DEPENDENCIES_SYMBOL)?,
+      )?
+      .with_getter_closure(|env, this| {
+        // Native references do not escape this synchronous getter.
+        let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
+        let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
+        let env_ref = &env;
+        let result = wrapped_value.with_ref(|module| {
+          module
+            .build_info()
+            .dependencies
+            .file
+            .iter()
+            .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
+            .collect::<napi::Result<Vec<JsString>>>()
+        });
+        unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
+      })
+      .with_property_attributes(PropertyAttributes::Configurable),
+  );
 
-  BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL.with(|once_cell| {
-    #[allow(clippy::unwrap_used)]
-    let symbol = once_cell.get().unwrap();
-    properties.push(
-      Property::new()
-        .with_name(env, symbol)?
-        .with_getter_closure(|env, this| {
-          let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
-          let env_ref = &env;
-          let result = wrapped_value.with_ref(|module| {
-            module
-              .build_info()
-              .context_dependencies
-              .iter()
-              .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
-              .collect::<napi::Result<Vec<JsString>>>()
-          });
-          unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
-        })
-        .with_property_attributes(PropertyAttributes::Configurable),
-    );
-    Ok::<(), napi::Error>(())
-  })?;
+  properties.push(
+    Property::new()
+      .with_name(
+        env,
+        env.symbol_for(symbols::BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL)?,
+      )?
+      .with_getter_closure(|env, this| {
+        // Native references do not escape this synchronous getter.
+        let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
+        let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
+        let env_ref = &env;
+        let result = wrapped_value.with_ref(|module| {
+          module
+            .build_info()
+            .dependencies
+            .context
+            .iter()
+            .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
+            .collect::<napi::Result<Vec<JsString>>>()
+        });
+        unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
+      })
+      .with_property_attributes(PropertyAttributes::Configurable),
+  );
 
-  BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL.with(|once_cell| {
-    #[allow(clippy::unwrap_used)]
-    let symbol = once_cell.get().unwrap();
-    properties.push(
-      Property::new()
-        .with_name(env, symbol)?
-        .with_getter_closure(|env, this| {
-          let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
-          let env_ref = &env;
-          let result = wrapped_value.with_ref(|module| {
-            module
-              .build_info()
-              .missing_dependencies
-              .iter()
-              .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
-              .collect::<napi::Result<Vec<JsString>>>()
-          });
-          unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
-        })
-        .with_property_attributes(PropertyAttributes::Configurable),
-    );
-    Ok::<(), napi::Error>(())
-  })?;
+  properties.push(
+    Property::new()
+      .with_name(
+        env,
+        env.symbol_for(symbols::BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL)?,
+      )?
+      .with_getter_closure(|env, this| {
+        // Native references do not escape this synchronous getter.
+        let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
+        let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
+        let env_ref = &env;
+        let result = wrapped_value.with_ref(|module| {
+          module
+            .build_info()
+            .dependencies
+            .missing
+            .iter()
+            .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
+            .collect::<napi::Result<Vec<JsString>>>()
+        });
+        unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
+      })
+      .with_property_attributes(PropertyAttributes::Configurable),
+  );
 
-  BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL.with(|once_cell| {
-    #[allow(clippy::unwrap_used)]
-    let symbol = once_cell.get().unwrap();
-    properties.push(
-      Property::new()
-        .with_name(env, symbol)?
-        .with_getter_closure(|env, this| {
-          let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
-          let env_ref = &env;
-          let result = wrapped_value.with_ref(|module| {
-            module
-              .build_info()
-              .build_dependencies
-              .iter()
-              .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
-              .collect::<napi::Result<Vec<JsString>>>()
-          });
-          unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
-        })
-        .with_property_attributes(PropertyAttributes::Configurable),
-    );
-    Ok::<(), napi::Error>(())
-  })?;
+  properties.push(
+    Property::new()
+      .with_name(
+        env,
+        env.symbol_for(symbols::BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL)?,
+      )?
+      .with_getter_closure(|env, this| {
+        // Native references do not escape this synchronous getter.
+        let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
+        let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
+        let env_ref = &env;
+        let result = wrapped_value.with_ref(|module| {
+          module
+            .build_info()
+            .dependencies
+            .build
+            .iter()
+            .map(|dependency| env_ref.create_string(dependency.to_string_lossy().as_ref()))
+            .collect::<napi::Result<Vec<JsString>>>()
+        });
+        unsafe { ToNapiValue::to_napi_value(env.raw(), result) }
+      })
+      .with_property_attributes(PropertyAttributes::Configurable),
+  );
 
   Ok(())
 }
@@ -276,24 +255,24 @@ impl ToNapiValue for BuildInfo {
   ) -> napi::Result<napi::sys::napi_value> {
     unsafe {
       let env_wrapper = Env::from_raw(env);
-      let module_reference = val.module_reference.clone();
-      let known = KnownBuildInfo::new(module_reference);
+      let known = KnownBuildInfo::new(val.compiler_id, val.module_identifier);
       let napi_val = ToNapiValue::to_napi_value(env, known)?;
       let mut object = Object::from_raw(env, napi_val);
 
       BUILD_INFO_PROPERTIES_BUFFER.with(|ref_cell| {
         let mut properties = ref_cell.borrow_mut();
         properties.clear();
-        create_known_private_properties(&env_wrapper, &mut properties)?;
+        define_shared_properties::<KnownBuildInfo>(&env_wrapper, object, || {
+          let mut properties = Vec::with_capacity(6);
+          create_known_private_properties(&env_wrapper, &mut properties)?;
 
-        let commit_custom_fields_fn: napi::bindgen_prelude::Function<'_, (), ()> = env_wrapper
-          .create_function_from_closure("commitCustomFieldsToRust", |ctx| {
-            let object = ctx.this::<Object>()?;
-            let env = ctx.env;
-            let this: &mut KnownBuildInfo =
-              FromNapiMutRef::from_napi_mut_ref(env.raw(), object.raw())?;
-
-            this.with_mut(|module| {
+          let commit_custom_fields_fn: napi::bindgen_prelude::Function<'_, (), ()> = env_wrapper
+            .create_function_from_closure("commitCustomFieldsToRust", |ctx| {
+              let object = ctx.this::<Object>()?;
+              let env = ctx.env;
+              <&KnownBuildInfo>::validate(env.raw(), object.raw())?;
+              // Reading custom properties can invoke user getters that re-enter
+              // BuildInfo or the module cache. Finish that work before borrowing either.
               let mut extras = serde_json::Map::new();
               let names = Array::from_unknown(object.get_property_names()?.to_unknown())?;
               for index in 0..names.len() {
@@ -307,11 +286,26 @@ impl ToNapiValue for BuildInfo {
                 }
               }
 
-              module.build_info_mut().extras = extras;
+              let _borrow_scope = napi::bindgen_prelude::NativeBorrowScope::new();
+              let this: &mut KnownBuildInfo =
+                FromNapiMutRef::from_napi_mut_ref(env.raw(), object.raw())?;
+              this.with_mut(|module| {
+                module.build_info_mut().extras = extras;
+                Ok(())
+              })
+            })?;
 
-              Ok(())
-            })
-          })?;
+          properties.push(
+            Property::new()
+              .with_name(
+                &env_wrapper,
+                env_wrapper.symbol_for(symbols::COMMIT_CUSTOM_FIELDS_SYMBOL)?,
+              )?
+              .with_value(&commit_custom_fields_fn)
+              .with_property_attributes(PropertyAttributes::Configurable),
+          );
+          Ok(properties)
+        })?;
 
         val.with_ref(|module| {
           let extras = &module.build_info().extras;
@@ -325,17 +319,6 @@ impl ToNapiValue for BuildInfo {
             );
           }
           Ok(())
-        })?;
-        COMMIT_CUSTOM_FIELDS_SYMBOL.with(|once_cell| {
-          #[allow(clippy::unwrap_used)]
-          let symbol = once_cell.get().unwrap();
-          properties.push(
-            Property::new()
-              .with_name(&env_wrapper, symbol)?
-              .with_value(&commit_custom_fields_fn)
-              .with_property_attributes(PropertyAttributes::Configurable),
-          );
-          Ok::<(), napi::Error>(())
         })?;
         object.define_properties(&properties)
       })?;

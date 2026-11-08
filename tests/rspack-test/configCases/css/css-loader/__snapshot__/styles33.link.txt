@@ -1,0 +1,4 @@
+Object {
+  local-name: composes-circular_module_css-local-name,
+  other-name: composes-circular_module_css-other-name composes-circular_module_css-local-name,
+}

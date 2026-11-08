@@ -47,20 +47,20 @@ export {};
 ```mjs title=node_events-node_events.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 
-import * as __rspack_external_node_events_0a6aefe7 from "node:events";
+import * as __rspack_external_node_events_3969b2b3 from "node:events";
 __webpack_require__.add({
 "node:events?df85"
 /*!******************************!*\
   !*** external "node:events" ***!
   \******************************/
 (module, __unused_rspack_exports, __webpack_require__) {
-var __rspack_create_module_external_namespace_node_events_0a6aefe7 = (y) => {
+var __rspack_create_module_external_namespace_node_events_3969b2b3 = (y) => {
 var x = {};
 __webpack_require__.d(x, y);
 return x;
 };
-var __rspack_wrap_module_external_namespace_node_events_0a6aefe7 = (x) => (() => (x));
-module.exports = __rspack_create_module_external_namespace_node_events_0a6aefe7({["a"]: () => (__rspack_external_node_events_0a6aefe7.EventEmitter), ["b"]: () => (__rspack_external_node_events_0a6aefe7.once)});
+var __rspack_wrap_module_external_namespace_node_events_3969b2b3 = (x) => (() => (x));
+module.exports = __rspack_create_module_external_namespace_node_events_3969b2b3({["a"]: () => (__rspack_external_node_events_3969b2b3.EventEmitter), ["b"]: () => (__rspack_external_node_events_3969b2b3.once)});
 
 },
 });

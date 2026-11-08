@@ -1,16 +1,16 @@
-use std::{borrow::Cow, ptr::NonNull, sync::LazyLock};
+use std::{borrow::Cow, sync::LazyLock};
 
 use rspack_core::{
   BooleanMatcher, Chunk, ChunkGroupOrderKey, Compilation, RuntimeCodeTemplate, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
-  compile_boolean_matcher, impl_runtime_module,
+  RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements,
+  RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
 };
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
 use super::generate_javascript_hmr_runtime;
 use crate::{
-  LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
-  extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
+  LinkPrefetchData, LinkPreloadData, RuntimePlugin, extract_runtime_globals_from_ejs,
+  extract_runtime_module_variables_from_ejs, get_chunk_runtime_requirements,
   runtime_module::utils::{
     get_initial_chunk_ids, render_hmr_runtime_state_expression, stringify_chunks,
   },
@@ -35,42 +35,57 @@ static JSONP_CHUNK_LOADING_WITH_CALLBACK_TEMPLATE: &str =
   include_str!("runtime/jsonp_chunk_loading_with_callback.ejs");
 static JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
   include_str!("runtime/javascript_hot_module_replacement.ejs");
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
+  let mut variables = extract_runtime_module_variables_from_ejs(&[
+    JSONP_CHUNK_LOADING_TEMPLATE,
+    JSONP_CHUNK_LOADING_WITH_PREFETCH_TEMPLATE,
+    JSONP_CHUNK_LOADING_WITH_PREFETCH_LINK_TEMPLATE,
+    JSONP_CHUNK_LOADING_WITH_PRELOAD_TEMPLATE,
+    JSONP_CHUNK_LOADING_WITH_PRELOAD_LINK_TEMPLATE,
+    JSONP_CHUNK_LOADING_WITH_HMR_TEMPLATE,
+    JSONP_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE,
+    JSONP_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_TEMPLATE,
+    JSONP_CHUNK_LOADING_WITH_CALLBACK_TEMPLATE,
+    JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE,
+  ]);
+  variables.push("jsonpInstalledChunks");
+  variables.push("__rspack_hmr_s_jsonp");
+  variables
+});
 
-static JSONP_CHUNK_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+static JSONP_CHUNK_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_TEMPLATE));
-static JSONP_CHUNK_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| {
-    extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_PREFETCH_TEMPLATE)
-      | extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_PREFETCH_LINK_TEMPLATE)
-  });
-static JSONP_CHUNK_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| {
-    extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_PRELOAD_TEMPLATE)
-      | extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_PRELOAD_LINK_TEMPLATE)
-  });
-static JSONP_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_HMR_TEMPLATE));
-static JSONP_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| {
-    extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE)
-  });
-static JSONP_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| {
-    extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_TEMPLATE)
-  });
-static JSONP_CHUNK_LOADING_WITH_CALLBACK_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| {
-    let mut res = extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_CALLBACK_TEMPLATE);
-    res.remove(RuntimeGlobals::ON_CHUNKS_LOADED);
-    res
-  });
-static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| {
-    let mut res = extract_runtime_globals_from_ejs(JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE);
-    // ensure chunk handlers is optional
-    res.remove(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
-    res
-  });
+static JSONP_CHUNK_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS: LazyLock<
+  RuntimeModuleRuntimeRequirements,
+> = LazyLock::new(|| {
+  extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_PREFETCH_TEMPLATE)
+    | extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_PREFETCH_LINK_TEMPLATE)
+});
+static JSONP_CHUNK_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS: LazyLock<
+  RuntimeModuleRuntimeRequirements,
+> = LazyLock::new(|| {
+  extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_PRELOAD_TEMPLATE)
+    | extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_PRELOAD_LINK_TEMPLATE)
+});
+static JSONP_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<
+  RuntimeModuleRuntimeRequirements,
+> = LazyLock::new(|| extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_HMR_TEMPLATE));
+static JSONP_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS: LazyLock<
+  RuntimeModuleRuntimeRequirements,
+> = LazyLock::new(|| {
+  extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE)
+});
+static JSONP_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_RUNTIME_REQUIREMENTS: LazyLock<
+  RuntimeModuleRuntimeRequirements,
+> = LazyLock::new(|| {
+  extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_TEMPLATE)
+});
+static JSONP_CHUNK_LOADING_WITH_CALLBACK_RUNTIME_REQUIREMENTS: LazyLock<
+  RuntimeModuleRuntimeRequirements,
+> = LazyLock::new(|| extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_CALLBACK_TEMPLATE));
+static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<
+  RuntimeModuleRuntimeRequirements,
+> = LazyLock::new(|| extract_runtime_globals_from_ejs(JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -82,27 +97,27 @@ impl JsonpChunkLoadingRuntimeModule {
   }
 
   pub fn get_runtime_requirements_basic() -> RuntimeGlobals {
-    *JSONP_CHUNK_LOADING_BASIC_RUNTIME_REQUIREMENTS
+    JSONP_CHUNK_LOADING_BASIC_RUNTIME_REQUIREMENTS.dependencies
   }
   pub fn get_runtime_requirements_with_prefetch() -> RuntimeGlobals {
-    *JSONP_CHUNK_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS
+    JSONP_CHUNK_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS.dependencies
   }
   pub fn get_runtime_requirements_with_preload() -> RuntimeGlobals {
-    *JSONP_CHUNK_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS
+    JSONP_CHUNK_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS.dependencies
   }
   pub fn get_runtime_requirements_with_hmr() -> RuntimeGlobals {
-    *JSONP_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS
-      | *JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS
+    JSONP_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS.dependencies
+      | JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS.dependencies
       | RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX
   }
   pub fn get_runtime_requirements_with_hmr_manifest() -> RuntimeGlobals {
-    *JSONP_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS
+    JSONP_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS.dependencies
   }
   pub fn get_runtime_requirements_with_on_chunk_load() -> RuntimeGlobals {
-    *JSONP_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_RUNTIME_REQUIREMENTS
+    JSONP_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_RUNTIME_REQUIREMENTS.dependencies
   }
   pub fn get_runtime_requirements_with_callback() -> RuntimeGlobals {
-    *JSONP_CHUNK_LOADING_WITH_CALLBACK_RUNTIME_REQUIREMENTS
+    JSONP_CHUNK_LOADING_WITH_CALLBACK_RUNTIME_REQUIREMENTS.dependencies
   }
 }
 
@@ -111,7 +126,7 @@ impl JsonpChunkLoadingRuntimeModule {
     &self,
     chunk: &Chunk,
     compilation: &Compilation,
-    runtime_template: &RuntimeCodeTemplate<'_>,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> String {
     let base_uri = chunk
       .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
@@ -128,7 +143,7 @@ impl JsonpChunkLoadingRuntimeModule {
   }
 
   fn template_id(&self, id: TemplateId) -> String {
-    let base_id = self.id.as_str();
+    let base_id = self.id().as_str();
 
     match id {
       TemplateId::Raw => base_id.to_string(),
@@ -161,14 +176,57 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::BASE_URI
-      | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
-      | RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
-      | RuntimeGlobals::HMR_DOWNLOAD_MANIFEST
-      | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
-      | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
-      | RuntimeGlobals::HMR_MODULE_DATA
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES.as_slice()
+  }
+
+  fn runtime_requirements(&self, compilation: &Compilation) -> RuntimeModuleRuntimeRequirements {
+    let Some(chunk_ukey) = self.chunk() else {
+      return RuntimeModuleRuntimeRequirements::default();
+    };
+    let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
+    let mut dependencies = Self::get_runtime_requirements_basic()
+      | RuntimeGlobals::MODULE_FACTORIES
+      | RuntimeGlobals::REQUIRE_SCOPE
+      | RuntimeGlobals::MODULE_CACHE;
+    let mut weak = RuntimeGlobals::default();
+    let mut define = RuntimeGlobals::default();
+    let mut force_context = RuntimeGlobals::default();
+    if runtime_requirements.contains(RuntimeGlobals::BASE_URI) {
+      force_context.insert(RuntimeGlobals::BASE_URI);
+    }
+    if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
+      dependencies.insert(Self::get_runtime_requirements_with_on_chunk_load());
+    }
+    if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
+      dependencies.insert(
+        Self::get_runtime_requirements_with_hmr()
+          | RuntimeGlobals::MODULE_CACHE
+          | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+          | RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX,
+      );
+      weak.insert(JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS.weak);
+    }
+    if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST) {
+      dependencies.insert(Self::get_runtime_requirements_with_hmr_manifest());
+      define.insert(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
+    }
+    if runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS) {
+      let requirements = *JSONP_CHUNK_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS;
+      dependencies.insert(requirements.dependencies);
+      weak.insert(requirements.weak);
+    }
+    if runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS) {
+      let requirements = *JSONP_CHUNK_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS;
+      dependencies.insert(requirements.dependencies);
+      weak.insert(requirements.weak);
+    }
+    RuntimeModuleRuntimeRequirements {
+      dependencies,
+      weak,
+      define,
+      force_context,
+    }
   }
 
   fn template(&self) -> Vec<(String, String)> {
@@ -225,7 +283,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
-      .expect_get(&self.chunk.expect("The chunk should be attached"));
+      .expect_get(&self.chunk().expect("The chunk should be attached"));
 
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey());
     let with_base_uri = runtime_requirements.contains(RuntimeGlobals::BASE_URI);
@@ -261,7 +319,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       .chunk_graph
       .get_chunk_condition_map(&chunk.ukey(), compilation, chunk_has_js);
     let has_js_matcher = compile_boolean_matcher(&condition_map);
-    let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
+    let initial_chunks = get_initial_chunk_ids(self.chunk(), compilation, chunk_has_js);
 
     let js_matcher = has_js_matcher.render("chunkId");
 
@@ -276,7 +334,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       // object to store loaded and loading chunks
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
       // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
-      var installedChunks = {}{};
+      var jsonpInstalledChunks = {}{};
       "#,
       match with_hmr {
         true => {
@@ -290,12 +348,13 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
 
     if with_loading {
       let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
-        "installedChunks[chunkId] = 0;".to_string()
+        "jsonpInstalledChunks[chunkId] = 0;".to_string()
       } else {
         runtime_template.render(
           &self.template_id(TemplateId::Raw),
           Some(serde_json::json!({
             "_js_matcher": &js_matcher,
+            "_with_hmr": with_hmr,
             "_fetch_priority": if with_fetch_priority {
                ", fetchPriority"
             } else {
@@ -328,18 +387,16 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         })),
       )?;
 
-      let chunk_ukey = self.chunk.expect("The chunk should be attached");
       let res = hooks
         .borrow()
         .link_prefetch
-        .call(LinkPrefetchData {
-          code: link_prefetch_code,
-          chunk: RuntimeModuleChunkWrapper {
-            chunk_ukey,
-            compilation_id: compilation.id(),
-            compilation: NonNull::from(compilation),
+        .call(
+          compilation,
+          LinkPrefetchData {
+            code: link_prefetch_code,
+            chunk,
           },
-        })
+        )
         .await?;
 
       let source_with_prefetch = runtime_template.render(
@@ -362,18 +419,16 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         })),
       )?;
 
-      let chunk_ukey = self.chunk.expect("The chunk should be attached");
       let res = hooks
         .borrow()
         .link_preload
-        .call(LinkPreloadData {
-          code: link_preload_code,
-          chunk: RuntimeModuleChunkWrapper {
-            chunk_ukey,
-            compilation_id: compilation.id(),
-            compilation: NonNull::from(compilation),
+        .call(
+          compilation,
+          LinkPreloadData {
+            code: link_preload_code,
+            chunk,
           },
-        })
+        )
         .await?;
 
       let source_with_preload = runtime_template.render(
@@ -418,15 +473,25 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     }
 
     if with_callback || with_loading {
-      let chunk_loading_global_expr = format!(
-        r#"{}["{}"]"#,
-        &compilation.options.output.global_object, &compilation.options.output.chunk_loading_global
-      );
+      let global_object = &compilation.options.output.global_object;
+      let chunk_loading_global = &compilation.options.output.chunk_loading_global;
+      let chunk_loading_global_expr = format!(r#"{global_object}["{chunk_loading_global}"]"#);
+      let chunk_loading_global_init_expr = if compilation
+        .options
+        .output
+        .environment
+        .supports_logical_assignment()
+      {
+        format!("{chunk_loading_global_expr} ||= []")
+      } else {
+        format!("{chunk_loading_global_expr} = {chunk_loading_global_expr} || []")
+      };
       let source_with_callback = runtime_template.render(
         &self.template_id(TemplateId::WithCallback),
         Some(serde_json::json!({
-          "_chunk_loading_global_expr": &chunk_loading_global_expr,
+          "_chunk_loading_global_init_expr": &chunk_loading_global_init_expr,
           "_with_on_chunk_load": with_on_chunk_load,
+          "_with_hmr": with_hmr,
         })),
       )?;
 

@@ -1,0 +1,69 @@
+```js title=main.js
+(() => {
+var __webpack_modules__ = ({
+"./a.js"
+/*!**************!*\
+  !*** ./a.js ***!
+  \**************/
+(module) {
+module.exports = "root";
+
+
+},
+
+});
+// The module cache
+var __webpack_module_cache__ = {};
+
+// The require function
+function __webpack_require__(moduleId) {
+
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+
+}
+
+var __webpack_exports__ = {};
+// This entry needs to be wrapped in an IIFE because it needs to be in strict mode.
+(() => {
+"use strict";
+
+/*!******************************!*\
+  !*** ./index.js + 1 modules ***!
+  \******************************/
+
+;// CONCATENATED MODULE: external "module"
+const external_module_namespaceObject = require("module");
+;// CONCATENATED MODULE: ./index.js
+
+
+
+it("should parse createRequire import.meta.url in CJS output", () => {
+	const requireFromAlias = /* createRequire() */ undefined;
+	expect(__webpack_require__(/*! ./a */ "./a.js")).toBe("root");
+
+	const requireFromNamespace = /* createRequire() */ undefined;
+	expect(__webpack_require__(/*! ./a */ "./a.js")).toBe("root");
+
+	const requireFromDefault = /* createRequire() */ undefined;
+	expect(__webpack_require__(/*! ./a */ "./a.js")).toBe("root");
+});
+
+})();
+
+module.exports = __webpack_exports__;
+})()
+;
+```

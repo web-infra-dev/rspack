@@ -1,7 +1,17 @@
 // @ts-nocheck
-'use strict';
-const fs = require('fs-extra');
-const path = require('node:path');
+import fs from 'fs-extra';
+import path from 'node:path';
+
+export function findExpectationFile(testDirectory, filename) {
+  return ['mjs', 'cjs', 'js']
+    .map((extension) => path.join(testDirectory, `${filename}.${extension}`))
+    .find((file) => fs.existsSync(file));
+}
+
+function readExpectationFile(file) {
+  const expected = require(file);
+  return file.endsWith('.mjs') ? expected.default : expected;
+}
 
 const check = (expected, actual) => {
   if (expected instanceof RegExp) {
@@ -63,6 +73,8 @@ ${tooMuch.map((item) => `${explain(item)}`).join('\n\n')}`);
   return diff.join('\n\n');
 };
 
+// Keep the promise-returning contract of this publicly exported legacy helper.
+// eslint-disable-next-line @typescript-eslint/require-await
 export async function checkArrayExpectation(
   testDirectory,
   object,
@@ -82,14 +94,18 @@ export async function checkArrayExpectation(
   if (Array.isArray(array) && kind === 'warning') {
     array = array.filter((item) => !/from Terser/.test(item));
   }
-  if (fs.existsSync(path.join(testDirectory, `${filename}.js`))) {
+  const expectedFilename = findExpectationFile(testDirectory, filename);
+  if (expectedFilename) {
     // CHANGE: added file for sorting messages in multi-thread environment
-    if (fs.existsSync(path.join(testDirectory, `${filename}-sort.js`))) {
-      const sorter = require(path.join(testDirectory, `${filename}-sort.js`));
+    const sorterFilename = findExpectationFile(
+      testDirectory,
+      `${filename}-sort`,
+    );
+    if (sorterFilename) {
+      const sorter = readExpectationFile(sorterFilename);
       array = sorter(array);
     }
-    const expectedFilename = path.join(testDirectory, `${filename}.js`);
-    let expected = require(expectedFilename);
+    let expected = readExpectationFile(expectedFilename);
     if (typeof expected === 'function') {
       expected = expected(options);
     }

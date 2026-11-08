@@ -6,12 +6,7 @@
 
 use std::ptr;
 
-use napi::{
-  Result,
-  bindgen_prelude::ToNapiValue,
-  check_status, sys,
-  sys::{napi_env, napi_value},
-};
+use napi::{Result, bindgen_prelude::ToNapiValue, check_status, sys};
 
 pub struct Ref {
   pub(crate) raw_ref: sys::napi_ref,
@@ -21,32 +16,6 @@ pub struct Ref {
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for Ref {}
 unsafe impl Sync for Ref {}
-
-impl Ref {
-  pub fn new(env: napi_env, value: napi_value, ref_count: u32) -> Result<Ref> {
-    let mut raw_ref = ptr::null_mut();
-    assert_ne!(ref_count, 0, "Initial `ref_count` must be > 0");
-    check_status!(unsafe { sys::napi_create_reference(env, value, ref_count, &mut raw_ref) })?;
-    Ok(Ref {
-      raw_ref,
-      count: ref_count,
-    })
-  }
-
-  pub fn reference(&mut self, env: napi_env) -> Result<u32> {
-    check_status!(unsafe { sys::napi_reference_ref(env, self.raw_ref, &mut self.count) })?;
-    Ok(self.count)
-  }
-
-  pub fn unref(&mut self, env: napi_env) -> Result<u32> {
-    check_status!(unsafe { sys::napi_reference_unref(env, self.raw_ref, &mut self.count) })?;
-
-    if self.count == 0 {
-      check_status!(unsafe { sys::napi_delete_reference(env, self.raw_ref) })?;
-    }
-    Ok(self.count)
-  }
-}
 
 #[cfg(debug_assertions)]
 impl Drop for Ref {

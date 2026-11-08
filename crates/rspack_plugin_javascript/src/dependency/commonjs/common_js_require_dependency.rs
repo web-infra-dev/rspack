@@ -5,17 +5,17 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Context, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport,
-  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedSpecifier,
-  ResourceIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ReferencedExport, ReferencedSpecifier, ResourceIdentifier, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  create_referenced_exports_by_referenced_specifiers,
 };
 
 use super::create_resource_identifier_for_contextual_commonjs_dependency;
 use crate::dependency::{DependencyBranchGuard, compose_dependency_condition};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CommonJsRequireDependency {
   id: DependencyId,
   request: String,
@@ -29,7 +29,6 @@ pub struct CommonJsRequireDependency {
   branch_guard: Option<DependencyBranchGuard>,
   context: Option<Context>,
   resource_identifier: ResourceIdentifier,
-  factorize_info: FactorizeInfo,
 }
 
 impl CommonJsRequireDependency {
@@ -39,7 +38,6 @@ impl CommonJsRequireDependency {
     range_expr: Option<DependencyRange>,
     optional: bool,
     loc: Option<DependencyLocation>,
-    referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   ) -> Self {
     Self {
       id: DependencyId::new(),
@@ -48,11 +46,10 @@ impl CommonJsRequireDependency {
       range,
       range_expr,
       loc,
-      referenced_specifiers,
+      referenced_specifiers: None,
       branch_guard: None,
       context: None,
       resource_identifier: Default::default(),
-      factorize_info: Default::default(),
     }
   }
 
@@ -63,7 +60,6 @@ impl CommonJsRequireDependency {
     optional: bool,
     context: Context,
     loc: Option<DependencyLocation>,
-    referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_contextual_commonjs_dependency(
       "cjs require",
@@ -74,18 +70,17 @@ impl CommonJsRequireDependency {
     Self {
       context: Some(context),
       resource_identifier,
-      ..Self::new(
-        request,
-        range,
-        range_expr,
-        optional,
-        loc,
-        referenced_specifiers,
-      )
+      ..Self::new(request, range, range_expr, optional, loc)
     }
   }
 
   pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
+    if referenced_specifiers.is_empty() {
+      // If the referenced specifiers are empty, keep it as default (None), since this dependency can't eliminate by side effects optimization,
+      // so if we set it to Some(vec![]), and the dependency still executes, it will cause runtime error because the exports are all tree shaken.
+      // see test case `tests/rspack-test/configCases/cjs-tree-shaking/side-effects-free`
+      return;
+    }
     self.referenced_specifiers = Some(referenced_specifiers);
   }
 
@@ -94,6 +89,10 @@ impl CommonJsRequireDependency {
       Some(old_guard) => old_guard.and(guard),
       None => guard,
     });
+  }
+
+  pub fn request_range(&self) -> DependencyRange {
+    self.range
   }
 }
 
@@ -136,7 +135,7 @@ impl Dependency for CommonJsRequireDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
+  ) -> Vec<ReferencedExport> {
     if let Some(referenced_specifiers) = &self.referenced_specifiers {
       let module = module_graph
         .get_module_by_dependency_id(&self.id)
@@ -150,7 +149,8 @@ impl Dependency for CommonJsRequireDependency {
       create_referenced_exports_by_referenced_specifiers(
         referenced_specifiers,
         exports_type,
-        module.build_info().json_data.is_some(),
+        exports_info_artifact,
+        exports_info_artifact.get_exports_info_data(&module.identifier()),
       )
     } else {
       create_exports_object_referenced()
@@ -178,14 +178,6 @@ impl ModuleDependency for CommonJsRequireDependency {
 
   fn get_condition(&self) -> Option<DependencyCondition> {
     compose_dependency_condition(None, self.branch_guard.as_ref())
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

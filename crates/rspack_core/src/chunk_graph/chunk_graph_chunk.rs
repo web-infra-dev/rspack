@@ -1,29 +1,26 @@
 //!  There are methods whose verb is `ChunkGraphChunk`
 
-use std::{
-  collections::VecDeque,
-  fmt,
-  hash::{BuildHasherDefault, Hash},
-};
+use std::{collections::VecDeque, fmt, hash::BuildHasherDefault};
 
 use hashlink::LinkedHashMap;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_collections::{IdentifierHasher, IdentifierLinkedMap, IdentifierMap, IdentifierSet};
+use rspack_hash::RspackHasher;
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Serialize, Serializer};
 use ustr::Ustr;
 
 use crate::{
-  BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGraphModule, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkUkey, Compilation, ExportsInfoArtifact, Module, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact, SourceType,
+  Chunk, ChunkByUkey, ChunkGraph, ChunkGraphModule, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey,
+  Compilation, ExportsInfoArtifact, Module, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, ModuleRef, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact, SourceType,
   find_graph_roots, merge_runtime,
 };
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct ChunkSizeOptions {
   // constant overhead for a chunk
   pub chunk_overhead: Option<f64>,
@@ -81,6 +78,12 @@ impl ChunkId {
   }
 }
 
+impl rspack_hash::RspackHash for ChunkId {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.0.as_str().hash(state);
+  }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraphChunk {
   /// URI of modules => ChunkGroupUkey
@@ -94,32 +97,29 @@ pub struct ChunkGraphChunk {
 }
 
 impl ChunkGraphChunk {
-  pub fn new() -> Self {
-    Self {
-      entry_modules: Default::default(),
-      modules: Default::default(),
-      runtime_modules: Default::default(),
-      source_types_by_module: Default::default(),
-    }
-  }
-
   pub fn modules(&self) -> &IdentifierSet {
     &self.modules
   }
 }
 
-fn get_modules_size(modules: &[&BoxModule], compilation: &Compilation) -> f64 {
+fn get_modules_size(modules: &[&ModuleRef], compilation: &Compilation) -> f64 {
   let mut size = 0f64;
   let module_graph = compilation.get_module_graph();
   for module in modules {
     for source_type in module.source_types(module_graph) {
-      size += module.size(Some(source_type), Some(compilation));
+      size += module.size(Some(source_type));
     }
   }
   size
 }
 
 impl ChunkGraph {
+  pub(crate) fn reserve_chunks(&mut self, total: usize) {
+    self
+      .chunk_graph_chunk_by_chunk_ukey
+      .reserve(total.saturating_sub(self.chunk_graph_chunk_by_chunk_ukey.len()));
+  }
+
   pub fn add_chunk(&mut self, chunk_ukey: ChunkUkey) {
     self
       .chunk_graph_chunk_by_chunk_ukey
@@ -379,7 +379,7 @@ impl ChunkGraph {
     &self,
     chunk: &ChunkUkey,
     module_graph: &'module ModuleGraph,
-  ) -> Vec<&'module BoxModule> {
+  ) -> Vec<&'module ModuleRef> {
     let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
     chunk_graph_chunk
       .modules
@@ -408,7 +408,7 @@ impl ChunkGraph {
     &self,
     chunk: &ChunkUkey,
     module_graph: &'module ModuleGraph,
-  ) -> Vec<&'module BoxModule> {
+  ) -> Vec<&'module ModuleRef> {
     let mut modules = self.get_chunk_modules(chunk, module_graph);
     // SAFETY: module identifier is unique
     modules.sort_unstable_by_key(|m| m.identifier().as_str());
@@ -522,52 +522,6 @@ impl ChunkGraph {
         }
       })
       .collect::<Vec<_>>()
-  }
-
-  pub fn get_chunk_modules_size(&self, chunk: &ChunkUkey, compilation: &Compilation) -> f64 {
-    let module_graph = &compilation.get_module_graph();
-    self
-      .get_chunk_modules(chunk, module_graph)
-      .iter()
-      .fold(0.0, |acc, m| {
-        acc
-          + m
-            .source_types(module_graph)
-            .iter()
-            .fold(0.0, |acc, t| acc + m.size(Some(t), Some(compilation)))
-      })
-  }
-
-  pub fn get_chunk_modules_sizes(
-    &self,
-    chunk: &ChunkUkey,
-    compilation: &Compilation,
-  ) -> FxHashMap<SourceType, f64> {
-    let mut sizes = FxHashMap::<SourceType, f64>::default();
-    let cgc = self.expect_chunk_graph_chunk(chunk);
-    let module_graph = &compilation.get_module_graph();
-    for identifier in &cgc.modules {
-      let module = module_graph.module_by_identifier(identifier);
-      if let Some(module) = module {
-        for source_type in module.source_types(module_graph) {
-          let size = module.size(Some(source_type), Some(compilation));
-          sizes
-            .entry(*source_type)
-            .and_modify(|s| *s += size)
-            .or_insert(size);
-        }
-      } else {
-        let runtime_module = compilation.runtime_modules.get(identifier);
-        if let Some(runtime_module) = runtime_module {
-          let size = runtime_module.size(Some(&SourceType::Runtime), Some(compilation));
-          sizes
-            .entry(SourceType::Runtime)
-            .and_modify(|s| *s += size)
-            .or_insert(size);
-        }
-      }
-    }
-    sizes
   }
 
   pub fn get_number_of_chunk_modules(&self, chunk: &ChunkUkey) -> usize {
@@ -946,8 +900,8 @@ impl ChunkGraph {
     let is_available_chunk = |a: &Chunk, b: &Chunk| {
       let mut queue = b
         .groups()
-        .clone()
-        .into_iter()
+        .iter()
+        .copied()
         .collect::<FxIndexSet<ChunkGroupUkey>>();
       let mut index: usize = 0;
       while index < queue.len() {
@@ -997,7 +951,7 @@ impl ChunkGraph {
     compilation: &Compilation,
   ) -> f64 {
     let cgc = self.expect_chunk_graph_chunk(chunk_ukey);
-    let modules: Vec<&BoxModule> = cgc
+    let modules: Vec<&ModuleRef> = cgc
       .modules
       .iter()
       .filter_map(|id| module_graph.module_by_identifier(id))
@@ -1028,7 +982,7 @@ impl ChunkGraph {
   ) -> f64 {
     let cgc_a = self.expect_chunk_graph_chunk(chunk_a_ukey);
     let cgc_b = self.expect_chunk_graph_chunk(chunk_b_ukey);
-    let mut all_modules: Vec<&BoxModule> = cgc_a
+    let mut all_modules: Vec<&ModuleRef> = cgc_a
       .modules
       .iter()
       .filter_map(|id| module_graph.module_by_identifier(id))
@@ -1063,10 +1017,17 @@ impl ChunkGraph {
     b: &ChunkUkey,
     chunk_by_ukey: &mut ChunkByUkey,
     chunk_group_by_ukey: &mut ChunkGroupByUkey,
+    named_chunks: &mut FxHashMap<String, ChunkUkey>,
     module_graph: &ModuleGraph,
   ) {
     let chunk_b = chunk_by_ukey.expect_get(b).clone();
     let chunk_a = chunk_by_ukey.expect_get_mut(a);
+
+    for chunk in named_chunks.values_mut() {
+      if chunk == b {
+        *chunk = *a;
+      }
+    }
 
     // Decide for one name (deterministic)
     if let (Some(chunk_a_name), Some(chunk_b_name)) = (chunk_a.name(), chunk_b.name()) {
@@ -1160,7 +1121,7 @@ impl ChunkGraph {
   pub fn get_chunk_module_source_types(
     &self,
     chunk: &ChunkUkey,
-    module: &BoxModule,
+    module: &ModuleRef,
     module_graph: &ModuleGraph,
   ) -> FxHashSet<SourceType> {
     self

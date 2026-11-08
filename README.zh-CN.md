@@ -31,7 +31,7 @@ Rspack 是一个基于 Rust 编写的高性能 Web 打包工具，它提供现�
 
 ## 🦀 Rstack
 
-Rstack 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优秀的性能和一致的架构。
+Rspack 是 Rstack 的一员。Rstack 是为开发者与 Agent 打造的高性能、一体化 JavaScript 工具链。
 
 | 名称                                                  | 描述           | 版本                                                                                                                                                                             |
 | ----------------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -42,6 +42,7 @@ Rstack 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优�
 | [Rsdoctor](https://github.com/web-infra-dev/rsdoctor) | 构建分析工具   | <a href="https://npmjs.com/package/@rsdoctor/core"><img src="https://img.shields.io/npm/v/@rsdoctor/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" /></a> |
 | [Rstest](https://github.com/web-infra-dev/rstest)     | 测试框架       | <a href="https://npmjs.com/package/@rstest/core"><img src="https://img.shields.io/npm/v/@rstest/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" /></a>     |
 | [Rslint](https://github.com/web-infra-dev/rslint)     | 代码检查工具   | <a href="https://npmjs.com/package/@rslint/core"><img src="https://img.shields.io/npm/v/@rslint/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" /></a>     |
+| [Rstack CLI](https://github.com/rstackjs/rstack-cli)  | 统一命令行工具 | <a href="https://npmjs.com/package/rstack"><img src="https://img.shields.io/npm/v/rstack?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" /></a>                 |
 
 ## 快速上手
 
@@ -113,6 +114,7 @@ Rstack 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优�
 - [webpack-subresource-integrity](https://github.com/waysact/webpack-subresource-integrity) 项目（由 [@jscheid](https://github.com/jscheid) 创建），它启发了 Rspack 内的 SubresourceIntegrityPlugin 实现。
 - [circular-dependency-plugin](https://github.com/aackerman/circular-dependency-plugin) 项目（由 [@aackerman](https://github.com/aackerman) 创建），它启发 Rspack 中循环依赖插件的实现。
 - [tracing-chrome](https://github.com/thoren-d/tracing-chrome) 项目（由 [thoren-d](https://github.com/thoren-d) 创建），它启发 Rspack tracing 功能的实现。
+- [Buck2](https://github.com/facebook/buck2) 的 [allocative](https://github.com/facebookexperimental/allocative) 项目，为 Rspack 的 Rust 内存分析提供了基础。
 
 ## License
 

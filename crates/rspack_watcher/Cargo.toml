@@ -6,10 +6,13 @@ name              = "rspack_watcher"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
+[features]
+testing = []
+
 [dependencies]
 cow-utils    = { workspace = true }
 dashmap      = { workspace = true }
-fast-glob    = { workspace = true }
+futures      = { workspace = true }
 notify       = { workspace = true, features = ["macos_fsevent"] }
 regex        = { workspace = true }
 rspack_error = { workspace = true }
@@ -23,7 +26,10 @@ tracing      = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros", "sync", "fs"] }
 
 [dev-dependencies]
-tempfile = "3.23.0"
+tempfile = { workspace = true }
+# The tests build a multi-threaded runtime; declare it rather than relying on some other crate
+# in the graph happening to turn the feature on.
+tokio = { workspace = true, features = ["rt-multi-thread"] }
 
 [lints]
 workspace = true

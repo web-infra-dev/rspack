@@ -1,4 +1,4 @@
-const fs = __non_webpack_require__("fs");
+const fs = require("fs");
 const generated = /** @type {string} */ (fs.readFileSync(__filename, "utf-8"));
 
 it("should provide inlined const exports", () => {

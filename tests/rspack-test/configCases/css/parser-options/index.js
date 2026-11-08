@@ -1,8 +1,8 @@
 import * as animation from "./animation-name.module.css";
 import * as styles from "./options.module.css";
 
-const fs = __non_webpack_require__("fs");
-const path = __non_webpack_require__("path");
+const fs = require("fs");
+const path = require("path");
 
 const css = () =>
   fs.readFileSync(path.resolve(__dirname, "bundle0.css"), "utf-8");
@@ -38,7 +38,7 @@ it("should support disabling dashed and custom identifier renaming", () => {
 
 it("should support disabling import and url handling", () => {
   const content = css();
-  expect(content).toContain('@import "./imported.css";');
-  expect(content).toContain('url("./missing.png")');
+  expect(content).toContain('@import /* webpackIgnore: 1 */ "./imported.css";');
+  expect(content).toContain('/* rspackIgnore: 1 */ url("./missing.png")');
   expect(content).not.toContain(".imported");
 });

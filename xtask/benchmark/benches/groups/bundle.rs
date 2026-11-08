@@ -9,12 +9,18 @@ use crate::groups::{
 };
 
 pub mod basic_react;
+pub mod css;
+pub mod css_modules;
+pub mod misc;
 pub mod threejs;
 pub mod util;
 
 pub(crate) fn bundle_benchmark_case(c: &mut Criterion, target_id: &str) {
   let projects: Vec<(&'static str, CompilerBuilderGenerator)> = vec![
     ("basic-react", Arc::new(basic_react::compiler)),
+    ("css", Arc::new(css::compiler)),
+    ("css-modules", Arc::new(css::modules_compiler)),
+    ("misc", Arc::new(misc::compiler)),
     ("threejs", Arc::new(threejs::compiler)),
   ];
   let (id, get_compiler) = derive_projects(projects)

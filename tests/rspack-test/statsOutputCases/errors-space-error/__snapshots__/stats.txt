@@ -1,25 +1,11 @@
 assets by status xx bytes [cached] 1 asset
-./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
+./loader.mjs!./index.js xx bytes [built] [code generated] [2 errors]
 
-ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error1
+ERROR in ./index.js (./loader.mjs!./index.js)
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.mjs):loader error1
 
-ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error2
-
-2 errors have detailed information that is not shown.
-Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
-
-Rspack x.x.x compiled with 2 errors in X s
-
-assets by status xx bytes [cached] 1 asset
-./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
-
-ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error1
-
-ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error2
+ERROR in ./index.js (./loader.mjs!./index.js)
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.mjs):loader error2
 
 2 errors have detailed information that is not shown.
 Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
@@ -27,13 +13,13 @@ Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
 Rspack x.x.x compiled with 2 errors in X s
 
 assets by status xx bytes [cached] 1 asset
-./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
+./loader.mjs!./index.js xx bytes [built] [code generated] [2 errors]
 
-ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error1
+ERROR in ./index.js (./loader.mjs!./index.js)
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.mjs):loader error1
 
-ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error2
+ERROR in ./index.js (./loader.mjs!./index.js)
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.mjs):loader error2
 
 2 errors have detailed information that is not shown.
 Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
@@ -41,14 +27,28 @@ Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
 Rspack x.x.x compiled with 2 errors in X s
 
 assets by status xx bytes [cached] 1 asset
-./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
+./loader.mjs!./index.js xx bytes [built] [code generated] [2 errors]
 
-ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader errorX
+ERROR in ./index.js (./loader.mjs!./index.js)
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.mjs):loader error1
+
+ERROR in ./index.js (./loader.mjs!./index.js)
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.mjs):loader error2
+
+2 errors have detailed information that is not shown.
+Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
+
+Rspack x.x.x compiled with 2 errors in X s
+
+assets by status xx bytes [cached] 1 asset
+./loader.mjs!./index.js xx bytes [built] [code generated] [2 errors]
+
+ERROR in ./index.js (./loader.mjs!./index.js)
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.mjs):loader errorX
 stack1
 
-ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error2
+ERROR in ./index.js (./loader.mjs!./index.js)
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.mjs):loader error2
 
 1 error has detailed information that is not shown.
 Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
@@ -56,16 +56,16 @@ Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
 Rspack x.x.x compiled with 2 errors in X s
 
 assets by status xx bytes [cached] 1 asset
-./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
+./loader.mjs!./index.js xx bytes [built] [code generated] [2 errors]
 
-ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader errorX
+ERROR in ./index.js (./loader.mjs!./index.js)
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.mjs):loader errorX
 stackX
 stackX
 stack3
 
-ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader error2
+ERROR in ./index.js (./loader.mjs!./index.js)
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.mjs):loader error2
 
 1 error has detailed information that is not shown.
 Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
@@ -73,16 +73,16 @@ Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
 Rspack x.x.x compiled with 2 errors in X s
 
 assets by status xx bytes [cached] 1 asset
-./loader.js!./index.js xx bytes [built] [code generated] [2 errors]
+./loader.mjs!./index.js xx bytes [built] [code generated] [2 errors]
 
-ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader errorX
+ERROR in ./index.js (./loader.mjs!./index.js)
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.mjs):loader errorX
 stackX
 stackX
 stack3
 
-ERROR in ./index.js (./loader.js!./index.js)
-  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.js):loader errorX
+ERROR in ./index.js (./loader.mjs!./index.js)
+  × Module Error (from <TEST_ROOT>/statsOutputCases/errors-space-error/loader.mjs):loader errorX
 stackX
 stack2
 

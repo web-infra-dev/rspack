@@ -1,3 +1,3 @@
-const pathModule = __non_webpack_require__('path');
+const pathModule = require('path');
 
 export default pathModule;

@@ -1,0 +1,53 @@
+import { defineConfig } from '@rspack/cli';
+import { rspack } from '@rspack/core';
+
+const basic = defineConfig({
+  output: {
+    filename: `[name].js`,
+    chunkFilename: `async.js`,
+    module: true,
+    library: {
+      type: 'modern-module',
+    },
+  },
+  externals: {
+    react: 'react-alias',
+    vue: 'vue-alias',
+    angular: 'angular-alias',
+    svelte: 'svelte-alias',
+    lit: 'lit-alias',
+    solid: 'module solid-alias',
+    jquery: 'jquery-alias',
+  },
+  externalsType: 'module-import',
+  plugins: [new rspack.experiments.RslibPlugin()],
+  optimization: {
+    concatenateModules: true,
+    avoidEntryIife: true,
+    minimize: false,
+  },
+});
+
+export default defineConfig([
+  {
+    entry: {
+      main: './main.js',
+    },
+    ...basic,
+  },
+  {
+    entry: {
+      main2: './main2.js',
+    },
+    ...basic,
+  },
+  {
+    entry: {
+      index: './index.js',
+    },
+    output: {
+      module: true,
+      filename: 'index.mjs',
+    },
+  },
+]);

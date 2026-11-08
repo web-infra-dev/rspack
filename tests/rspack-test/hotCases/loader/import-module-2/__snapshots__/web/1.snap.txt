@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 224
+- Update: main.LAST_HASH.hot-update.js, size: 225
 
 ## Manifest
 
@@ -23,7 +23,7 @@
 ### main.LAST_HASH.hot-update.js
 
 #### Changed Modules
-- ./loader.js!./a.js
+- ./loader.mjs!./a.js
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
@@ -31,7 +31,7 @@
 #### Changed Content
 ```js
 self["rspackHotUpdate"]("main", {
-"./loader.js!./a.js"(module) {
+"./loader.mjs!./a.js"(module) {
 module.exports = 3;
 
 },

@@ -1,6 +1,9 @@
-var installChunk = <%- basicFunction("chunk") %> {
+<%- var("readFileVmInstallChunk") %> = <%- basicFunction("chunk") %> {
   var moreModules = chunk.modules, chunkIds = chunk.ids,
-    runtime = chunk.runtime;
+    runtime = chunk.runtime;<% if (_with_hmr) { %>
+  var error = hotCheckChunk(chunk.ids, chunk.__rspack_cjs_hash);
+  if (error) throw error;
+<% } %>
   for (var moduleId in moreModules) {
     if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
       <%- MODULE_FACTORIES %>[moduleId] = moreModules[moduleId];
@@ -8,10 +11,10 @@ var installChunk = <%- basicFunction("chunk") %> {
   }
   if (runtime) runtime(<%- REQUIRE_SCOPE %> );
   for (var i = 0; i < chunkIds.length; i++) {
-    if (installedChunks[chunkIds[i]]) {
-      installedChunks[chunkIds[i]][0]();
+    if (readFileVmInstalledChunks[chunkIds[i]]) {
+      readFileVmInstalledChunks[chunkIds[i]][0]();
     }
-    installedChunks[chunkIds[i]] = 0;
+    readFileVmInstalledChunks[chunkIds[i]] = 0;
   }
   <%- _with_on_chunk_loaded %>
 };

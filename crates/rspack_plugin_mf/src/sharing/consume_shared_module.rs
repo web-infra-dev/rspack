@@ -1,40 +1,42 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
-  DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext,
-  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
+  ExportsType, FactoryMetaStore, FreezeLock, LibIdentOptions, Module, ModuleCodeGenerationContext,
+  ModuleGraph, ModuleIdentifier, ModuleType, NeedBuildContext, RuntimeGlobals, RuntimeSpec,
+  SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  rspack_sources::BoxSource, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
-use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_util::{ext::DynHash, json_stringify, json_stringify_str, source_map::SourceMapKind};
+use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
+use rspack_util::{json_stringify, json_stringify_str, source_map::SourceMapKind};
 
 use super::{
   consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
   consume_shared_runtime_module::CodeGenerationDataConsumeShared,
 };
-use crate::{ConsumeOptions, ShareScope};
+use crate::{ConsumeOptions, ShareScope, utils::module_identifier_namespace};
 
 #[impl_source_map_config]
 #[cacheable]
 #[derive(Debug)]
 pub struct ConsumeSharedModule {
   #[cacheable(with=Unsupported)]
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  dependencies: Vec<DependencyId>,
+  dependencies_block: DependenciesBlockData,
   identifier: ModuleIdentifier,
   lib_ident: String,
   readable_identifier: String,
   context: Context,
   options: ConsumeOptions,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  // Preserve the original configuration key when a prefix share is expanded.
+  configured_share_key: Option<String>,
+  factory_meta: FactoryMetaStore,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
 }
 
 impl ConsumeSharedModule {
@@ -42,8 +44,20 @@ impl ConsumeSharedModule {
     &self.options.share_scope
   }
 
-  pub fn new(context: Context, options: ConsumeOptions) -> Self {
+  pub(crate) fn configured_share_key(&self) -> &str {
+    self
+      .configured_share_key
+      .as_deref()
+      .unwrap_or(&self.options.share_key)
+  }
+
+  pub(crate) fn set_configured_share_key(&mut self, key: String) {
+    self.configured_share_key = Some(key);
+  }
+
+  pub fn new(context: Context, options: ConsumeOptions, runtime_mode: RuntimeMode) -> Self {
     let scopes_key = options.share_scope.key();
+    let namespace = module_identifier_namespace(runtime_mode);
     let identifier = format!(
       "consume shared module ({}) {}@{}{}{}{}{}",
       &scopes_key,
@@ -74,11 +88,10 @@ impl ConsumeSharedModule {
       },
     );
     Self {
-      blocks: Vec::new(),
-      dependencies: Vec::new(),
+      dependencies_block: Default::default(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),
       lib_ident: format!(
-        "webpack/sharing/consume/{}/{}{}",
+        "{namespace}/sharing/consume/{}/{}{}",
         &scopes_key,
         &options.share_key,
         options
@@ -90,7 +103,8 @@ impl ConsumeSharedModule {
       readable_identifier: identifier,
       context,
       options,
-      factory_meta: None,
+      configured_share_key: None,
+      factory_meta: Default::default(),
       build_info: Default::default(),
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
@@ -105,24 +119,12 @@ impl Identifiable for ConsumeSharedModule {
 }
 
 impl DependenciesBlock for ConsumeSharedModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency)
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }
 
@@ -131,7 +133,7 @@ impl DependenciesBlock for ConsumeSharedModule {
 impl Module for ConsumeSharedModule {
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>) -> f64 {
     42.0
   }
 
@@ -161,51 +163,77 @@ impl Module for ConsumeSharedModule {
 
   fn get_exports_type(
     &self,
-    _module_graph: &ModuleGraph,
-    _module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
-    _exports_info_artifact: &rspack_core::ExportsInfoArtifact,
-    _strict: bool,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
+    exports_info_artifact: &rspack_core::ExportsInfoArtifact,
+    strict: bool,
   ) -> ExportsType {
-    ExportsType::Dynamic
+    if self.options.import.is_none() {
+      return ExportsType::Dynamic;
+    }
+
+    let fallback_dependency = if self.options.eager {
+      self.get_dependency_ids().next()
+    } else {
+      self
+        .get_blocks()
+        .first()
+        .and_then(|block_id| module_graph.block_by_id(block_id))
+        .and_then(|block| block.get_dependency_ids().next())
+    };
+    let Some(fallback_module) =
+      fallback_dependency.and_then(|dep_id| module_graph.get_module_by_dependency_id(dep_id))
+    else {
+      return ExportsType::Dynamic;
+    };
+
+    fallback_module.get_exports_type(
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      strict,
+    )
+  }
+
+  async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+    Ok(self.build_info.frozen().is_none())
   }
 
   async fn build(
     mut self: Box<Self>,
-    _build_context: BuildContext,
+    _build_context: Arc<BuildContext>,
     _: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<BoxModule> {
     let mut blocks = vec![];
     let mut dependencies = vec![];
     if let Some(fallback) = &self.options.import {
-      let dep = Box::new(ConsumeSharedFallbackDependency::new(fallback.to_owned()));
+      let dep = BoxDependency::new(ConsumeSharedFallbackDependency::new(fallback.to_owned()));
       if self.options.eager {
-        dependencies.push(dep as BoxDependency);
+        dependencies.push(dep);
       } else {
         let block = AsyncDependenciesBlock::new(self.identifier, None, None, vec![dep], None);
         blocks.push(Box::new(block));
       }
     }
 
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies,
-      blocks,
-      optimization_bailouts: vec![],
-    })
+    Ok(BoxModule::new(self).with_dependencies(
+      dependencies.into_iter().map(Into::into).collect(),
+      blocks.into_iter().map(Into::into).collect(),
+    ))
   }
 
   // #[tracing::instrument("ConsumeSharedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime_template,
       ..
     } = code_generation_context;
 
-    let mut code_generation_result = CodeGenerationResult::default();
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
     runtime_template
       .runtime_requirements_mut()
       .insert(RuntimeGlobals::SHARE_SCOPE_MAP);
@@ -230,13 +258,20 @@ impl Module for ConsumeSharedModule {
     }
     let factory = self.options.import.as_ref().map(|fallback| {
       if self.options.eager {
-        runtime_template.sync_module_factory(&self.get_dependencies()[0], fallback, compilation)
+        runtime_template.sync_module_factory(
+          self
+            .get_dependency_ids()
+            .next()
+            .expect("should have fallback dependency"),
+          fallback,
+          compilation,
+        )
       } else {
         runtime_template.async_module_factory(&self.get_blocks()[0], fallback, compilation)
       }
     });
     code_generation_result
-      .data
+      .data_mut()
       .insert(CodeGenerationDataConsumeShared {
         share_scope: self.options.share_scope.clone(),
         share_key: self.options.share_key.clone(),
@@ -256,8 +291,8 @@ impl Module for ConsumeSharedModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHash::from(&compilation.options.output);
-    self.options.dyn_hash(&mut hasher);
+    let mut hasher = RspackHasher::from(&compilation.options.output);
+    self.options.hash(&mut hasher);
     module_update_hash(self, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }

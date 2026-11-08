@@ -1,7 +1,7 @@
-var mfStartupBase = <%- REQUIRE %>.mfStartupBase = (function () {
+<%- var("mfStartupBase") %> = <%- REQUIRE %>.mfStartupBase = (function () {
 	var hasRun = false;
 	var result;
-	return function __webpack_require__mfStartupBase() {
+	return function __rspack_require_mfStartupBase() {
 		if (hasRun) return result;
 		hasRun = true;
 		result = (function () {
@@ -10,15 +10,15 @@ var mfStartupBase = <%- REQUIRE %>.mfStartupBase = (function () {
 	};
 })();
 
-var mfAsyncStartup = <%- REQUIRE %>.mfAsyncStartup = (function () {
+<%- var("mfAsyncStartup") %> = <%- REQUIRE %>.mfAsyncStartup = (function () {
 	var hasRun = false;
 	var result;
-	return function __webpack_require__mfAsyncStartup() {
+	return function __rspack_require_mfAsyncStartup() {
 		if (hasRun) return result;
 		hasRun = true;
 		var base = mfStartupBase && mfStartupBase();
 		var promises = base && base.then ? [base] : [];
-		var handlers = <%- REQUIRE %>.f;
+		var handlers = <%- ENSURE_CHUNK_HANDLERS %>;
 		if (handlers) {
 			var startupChunkIds = <%- _entry_chunk_ids %>;
 			for (var i = 0; i < startupChunkIds.length; i++) {
@@ -33,7 +33,7 @@ var mfAsyncStartup = <%- REQUIRE %>.mfAsyncStartup = (function () {
 
 <%- REQUIRE %>.mfStartup = <%- STARTUP %>;
 
-var wrapStartup = function (prev, isEntry) {
+<%- var("wrapStartup") %> = function (prev, isEntry) {
 	prev = typeof prev === "function" ? prev : function () {};
 	return function (result, chunkIds, cb) {
 		var res = mfAsyncStartup();

@@ -1,4 +1,4 @@
-/// <reference types="@rstest/core/globals" />
+/// <reference types="rstack/test/globals" />
 
 import type { DiffOptions } from 'jest-diff';
 
@@ -6,7 +6,7 @@ declare interface FileMatcherOptions {
   diff?: DiffOptions;
 }
 
-declare module '@rstest/core' {
+declare module 'rstack/test' {
   interface Assertion {
     toMatchFileSnapshotSync: (
       filename?: string,
@@ -16,9 +16,9 @@ declare module '@rstest/core' {
 }
 
 declare global {
-  type Expect = import('@rstest/core').Expect;
-  type Describe = import('@rstest/core').Describe;
-  type Assertion<T> = import('@rstest/core').Assertion<T>;
+  type Expect = import('rstack/test').Expect;
+  type Describe = import('rstack/test').Describe;
+  type Assertion<T> = import('rstack/test').Assertion<T>;
 }
 
 export {};

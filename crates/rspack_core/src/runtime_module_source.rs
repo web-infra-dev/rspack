@@ -6,6 +6,7 @@ pub fn render_runtime_module_source(
   source: BoxSource,
   should_isolate: bool,
   supports_arrow_function: bool,
+  add_separator: bool,
 ) -> BoxSource {
   let mut sources = ConcatSource::default();
   if source.size() == 0 {
@@ -27,6 +28,8 @@ pub fn render_runtime_module_source(
     } else {
       "\n}();\n"
     }));
+  } else if add_separator {
+    sources.add(RawStringSource::from_static(";\n"));
   }
 
   sources.boxed()

@@ -7,6 +7,7 @@ repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [features]
+allocative = ["rspack_swc_plugin_import/allocative"]
 default = []
 plugin = [
   "rspack_util/plugin",
@@ -27,6 +28,7 @@ rspack_cacheable               = { workspace = true }
 rspack_core                    = { workspace = true }
 rspack_error                   = { workspace = true }
 rspack_hook                    = { workspace = true }
+rspack_intern                  = { workspace = true, features = ["swc"] }
 rspack_javascript_compiler     = { workspace = true }
 rspack_loader_runner           = { workspace = true }
 rspack_paths                   = { workspace = true }
@@ -41,7 +43,7 @@ sha2                           = { workspace = true }
 sugar_path                     = { workspace = true }
 swc                            = { workspace = true, features = ["manual-tokio-runtime"] }
 swc_config                     = { workspace = true }
-swc_core                       = { workspace = true, features = ["base", "ecma_ast", "common", "ecma_preset_env", "ecma_helpers_inline", "base_module"] }
+swc_core                       = { workspace = true, features = ["base_react_compiler", "ecma_ast", "common", "ecma_preset_env", "ecma_helpers_inline", "base_module"] }
 tokio                          = { workspace = true }
 tracing                        = { workspace = true }
 

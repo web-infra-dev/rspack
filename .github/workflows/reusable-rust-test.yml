@@ -2,12 +2,6 @@ name: Reusable Rust Test
 
 on:
   workflow_call:
-    inputs:
-      cargo-check-strategy:
-        type: string
-        required: false
-        default: 'all'
-        description: 'Strategy for cargo check: all (default) or separated'
 
 jobs:
   check-changed:
@@ -17,8 +11,8 @@ jobs:
       code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
       document_changed: ${{ steps.filter.outputs.document_changed == 'true' }}
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
-      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         id: filter
         with:
           predicate-quantifier: 'every'
@@ -26,6 +20,7 @@ jobs:
             code_changed:
               - "!**/*.md"
               - "!**/*.mdx"
+              - "!.agents/**"
               - "!website/**"
             document_changed:
               - "website/**"
@@ -35,8 +30,11 @@ jobs:
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  '"ubuntu-22.04"') }}
+    env:
+      CARGO_INCREMENTAL: 0
+      RUSTC: rustc
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -48,15 +46,16 @@ jobs:
         run: cargo codegen
 
       - name: Install cargo-binstall
-        if: ${{ inputs.cargo-check-strategy == 'separated' }}
-        uses: cargo-bins/cargo-binstall@aaa84a43aec4955a42c5ffc65d258961e39f276e # v1.19.1
+        if: ${{ github.ref == 'refs/heads/main' }}
+        uses: cargo-bins/cargo-binstall@81df5c23b0dc775b009efdfc9895c5965b7a4e40 # v1.26.1
 
       - name: Install cargo-workspaces
-        if: ${{ inputs.cargo-check-strategy == 'separated' }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         run: cargo binstall --no-confirm cargo-workspaces@0.4.0 --force
 
-      - name: Run Cargo Check (separated strategy)
-        if: ${{ inputs.cargo-check-strategy == 'separated' }}
+      # Check standalone published crates on main; Clippy checks the workspace on every branch.
+      - name: Run Cargo Check (per crate)
+        if: ${{ github.ref == 'refs/heads/main' }}
         run: cargo workspaces exec --ignore-private cargo check --lib --locked
 
       - name: Run Clippy
@@ -65,18 +64,13 @@ jobs:
       - name: Run rustfmt
         run: cargo fmt --all -- --check
 
-      - name: Install taplo
-        run: cargo install taplo-cli --locked
-      - name: Run toml format check
-        run: taplo format --check
-
   rust_unused_dependencies:
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     name: Check Rust Dependencies
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/rustup
         with:
           key: check
@@ -85,7 +79,7 @@ jobs:
         run: cargo codegen
 
       - name: Install cargo-deny
-        uses: taiki-e/install-action@25435dc8dd3baed7417e0c96d3fe89013a5b2e09 # v2
+        uses: taiki-e/install-action@16b05812d776ae1dfaabc8277e421fb6d2506419 # v2
         with:
           tool: cargo-deny@0.18.3
       - name: Check licenses
@@ -93,7 +87,7 @@ jobs:
           cargo deny --all-features check license bans
           cargo xtask deny-ext
 
-      - uses: cargo-bins/cargo-binstall@aaa84a43aec4955a42c5ffc65d258961e39f276e # v1.19.1
+      - uses: cargo-bins/cargo-binstall@81df5c23b0dc775b009efdfc9895c5965b7a4e40 # v1.26.1
       - run: cargo binstall --no-confirm cargo-shear@1.11.2 --force
       - run: cargo shear
 
@@ -103,7 +97,7 @@ jobs:
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -131,6 +125,8 @@ jobs:
             --exclude rspack_binding_build \
             --exclude rspack_napi \
             --exclude rspack_watcher \
+            --exclude rspack_watcher_testing \
+            --exclude rspack_resolver \
             -- --nocapture
 
   rust_watcher_test:
@@ -146,21 +142,12 @@ jobs:
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Disable CPU hogs (Windows)
         if: runner.os == 'Windows'
-        shell: powershell
         continue-on-error: true
-        run: |
-          $ErrorActionPreference = 'SilentlyContinue'
-          Set-MpPreference -DisableRealtimeMonitoring $true -Force
-          Add-MpPreference -ExclusionPath "C:\" -Force
-          Add-MpPreference -ExclusionPath "D:\" -Force
-          sc.exe config wuauserv start= disabled
-          Stop-Service wuauserv
-          reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\wsl.exe" /v Debugger /t REG_SZ /d "block.exe" /f
-          reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\CompatTelRunner.exe" /v Debugger /t REG_SZ /d "block.exe" /f
+        uses: ./.github/actions/windows-disable-cpu-hogs
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -175,9 +162,11 @@ jobs:
           echo '[profile.test]' >> Cargo.toml
           echo 'debug = false' >> Cargo.toml
 
-      - name: Run rspack test
-        run: |
-          cargo test -p rspack_watcher -- --nocapture
+      - name: Run watcher tests
+        run: cargo test -p rspack_watcher -- --nocapture
+
+      - name: Run directory analyzer regression tests
+        run: cargo test -p rspack_watcher_testing -- --nocapture
 
   test_required_check:
     name: Rust Test Required Check

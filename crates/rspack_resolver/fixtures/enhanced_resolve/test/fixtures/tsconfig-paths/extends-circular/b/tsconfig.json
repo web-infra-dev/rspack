@@ -1,0 +1,9 @@
+{
+  "extends": "${configDir}/../a/tsconfig",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@util/*": ["${configDir}/src/util/*"]
+    }
+  }
+}

@@ -1,0 +1,6 @@
+@media screen { button.small, .smallSecond { color:red } }
+
+.commaRollback {
+	button:hover:global .discardedCommaMode, ) ;
+	.afterCommaRollback { color:green; }
+}

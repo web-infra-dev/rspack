@@ -20,20 +20,4 @@ impl CompilerPlatform {
   pub fn is_web(&self) -> bool {
     self.web.unwrap_or_default()
   }
-
-  pub fn is_browser(&self) -> bool {
-    self.browser.unwrap_or_default()
-  }
-
-  pub fn is_webworker(&self) -> bool {
-    self.webworker.unwrap_or_default()
-  }
-
-  pub fn is_nwjs(&self) -> bool {
-    self.nwjs.unwrap_or_default()
-  }
-
-  pub fn is_electron(&self) -> bool {
-    self.electron.unwrap_or_default()
-  }
 }

@@ -24,17 +24,11 @@ const VIRTUAL_ENTRY = './virtual-entry.js';
 const VIRTUAL_ENTRY_NAME = 'virtual-entry';
 const BUILD_SHARED_FALLBACK_STAGE = 102;
 
-export type MakeRequired<T, K extends keyof T> = Required<Pick<T, K>> &
-  Omit<T, K>;
-
 const filterPlugin = (plugin: Plugins[0], excludedPlugins: string[] = []) => {
   if (!plugin) {
     return true;
   }
-  const pluginName = plugin.name || plugin.constructor?.name;
-  if (!pluginName) {
-    return true;
-  }
+  const pluginNames = [plugin.name, plugin.constructor?.name];
   return ![
     'TreeShakingSharedPlugin',
     'IndependentSharedPlugin',
@@ -44,7 +38,7 @@ const filterPlugin = (plugin: Plugins[0], excludedPlugins: string[] = []) => {
     'HtmlRspackPlugin',
     'RsbuildHtmlPlugin',
     ...excludedPlugins,
-  ].includes(pluginName);
+  ].some((excludedPluginName) => pluginNames.includes(excludedPluginName));
 };
 
 export interface IndependentSharePluginOptions {

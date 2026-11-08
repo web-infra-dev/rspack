@@ -1,10 +1,4 @@
 const { registerClientReference } = require("react-server-dom-rspack/server");
-const React = require("react");
-const resources = (__rspack_rsc_manifest__.clientManifest?.["/some-project/src/some-file.js"]?.cssFiles ?? []).map(function(href) {
-    return React.createElement("link", {
-        ...__rspack_rsc_manifest__.cssLinkProps,
-        key: href,
-        rel: "stylesheet",
-        href: href
-    });
-});
+module.exports = registerClientReference(function() {
+    throw new Error("Attempted to call the default export of \"/some-project/src/some-file.js\" from the server, but it's on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.");
+}, "/some-project/src/some-file.js", "default");

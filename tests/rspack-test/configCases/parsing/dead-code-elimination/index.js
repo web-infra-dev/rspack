@@ -111,6 +111,75 @@ it("Shouldn't eliminate hoisted function in sloppy mode", () => {
 		expect(true).toBe(false);
 	}
 });
+
+it("Shouldn't hoist const/let from dead for-of/for-in branch", () => {
+	// Bug: const/let in for-of inside if(false) was incorrectly hoisted as var,
+	// causing a duplicate declaration with any outer let/const of the same name.
+	let output = "start";
+	if (false) {
+		for (const output of [1, 2, 3]) {
+			console.log(output);
+		}
+	}
+	expect(output).toBe("start");
+});
+
+it("Shouldn't hoist const/let from dead for-in branch", () => {
+	let key = "start";
+	if (false) {
+		for (const key in { a: 1 }) {
+			console.log(key);
+		}
+	}
+	expect(key).toBe("start");
+});
+
+it("Shouldn't eliminate statements after a do-while loop whose body ends in throw (#15617)", () => {
+	let afterCalled = false;
+	const f = (x, c) => {
+		do {
+			if (x()) break;
+			throw new Error("e");
+		} while (c());
+		afterCalled = true;
+		return "done";
+	};
+	expect(
+		f(
+			() => true,
+			() => false
+		)
+	).toBe("done");
+	expect(afterCalled).toBe(true);
+
+	const g = (x, c) => {
+		let i = 0;
+		do {
+			if (x(i++)) continue;
+			throw new Error("e");
+		} while (c(i));
+		afterCalled = "g";
+		return "done";
+	};
+	expect(
+		g(
+			() => true,
+			i => i < 2
+		)
+	).toBe("done");
+	expect(afterCalled).toBe("g");
+
+	const h = x => {
+		do {
+			if (x()) break;
+			return 1;
+		} while (false);
+		return 2;
+	};
+	expect(h(() => true)).toBe(2);
+	expect(h(() => false)).toBe(1);
+});
+
 if (true) {
 	return;
 }

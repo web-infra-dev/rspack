@@ -1,4 +1,4 @@
-const path = __non_webpack_require__("path");
+const path = require("path");
 
 it("css modules localsConvention with camelCaseOnly", () => {
 	const style = require("./index.css");

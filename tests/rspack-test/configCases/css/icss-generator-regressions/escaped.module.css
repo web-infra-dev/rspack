@@ -1,0 +1,2 @@
+:root { --foo\\bar: red; }
+.a { color: var(--foo\\bar); }

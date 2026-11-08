@@ -27,7 +27,7 @@ describe('build command', () => {
   it.concurrent('should work with configuration return function', async () => {
     const { exitCode, stderr, stdout } = await run(
       __dirname,
-      ['--config', './entry.function.js'],
+      ['--config', './entry.function.mts'],
       {},
       {},
       true,
@@ -41,7 +41,7 @@ describe('build command', () => {
     async () => {
       const { stdout } = await run(
         __dirname,
-        ['--config', './entry.env.js'],
+        ['--config', './entry.env.mts'],
         {},
         {},
         true,
@@ -57,7 +57,7 @@ describe('build command', () => {
     async () => {
       const { stdout } = await runWatch(
         __dirname,
-        ['--watch', '--config', './entry.env.js'],
+        ['--watch', '--config', './entry.env.mts'],
         {
           // `Rspack compiled successfully` or `Rspack compiled with 1 error`
           killString: /rspack compiled/i,
@@ -71,7 +71,7 @@ describe('build command', () => {
   it.concurrent('should work with configuration return promise', async () => {
     const { exitCode, stderr, stdout } = await run(
       __dirname,
-      ['--config', './entry.promise.js'],
+      ['--config', './entry.promise.mts'],
       {},
       {},
       true,
@@ -92,6 +92,69 @@ describe('build command', () => {
     expect(stderr).toBeFalsy();
     expect(stdout).toBeTruthy();
   });
+  it('should use stats logging defaults', async () => {
+    const defaultResult = await run(
+      __dirname,
+      ['--config', './logging.config.mts'],
+      {},
+      {},
+      true,
+    );
+    const defaultOutput = `${defaultResult.stdout}${defaultResult.stderr}`;
+
+    expect(defaultResult.exitCode).toBe(0);
+    expect(defaultOutput).not.toContain('compilation logger warning');
+
+    const partialStatsResult = await run(
+      __dirname,
+      ['--config', './logging.config.mts'],
+      {},
+      { PARTIAL_STATS: 'true' },
+      true,
+    );
+    const partialStatsOutput = `${partialStatsResult.stdout}${partialStatsResult.stderr}`;
+
+    expect(partialStatsResult.exitCode).toBe(0);
+    expect(partialStatsOutput).not.toContain('compilation logger warning');
+
+    for (const statsPreset of ['string', 'object']) {
+      const presetResult = await run(
+        __dirname,
+        ['--config', './logging.config.mts'],
+        {},
+        { STATS_PRESET: statsPreset },
+        true,
+      );
+      const presetOutput = `${presetResult.stdout}${presetResult.stderr}`;
+
+      expect(presetResult.exitCode).toBe(0);
+      expect(presetOutput).toContain('compilation logger warning');
+    }
+
+    const allStatsResult = await run(
+      __dirname,
+      ['--config', './logging.config.mts'],
+      {},
+      { ALL_STATS: 'true' },
+      true,
+    );
+    const allStatsOutput = `${allStatsResult.stdout}${allStatsResult.stderr}`;
+
+    expect(allStatsResult.exitCode).toBe(0);
+    expect(allStatsOutput).toContain('compilation logger warning');
+
+    const explicitResult = await run(
+      __dirname,
+      ['--config', './logging.config.mts'],
+      {},
+      { EXPLICIT_LOGGING: 'true' },
+      true,
+    );
+    const explicitOutput = `${explicitResult.stdout}${explicitResult.stderr}`;
+
+    expect(explicitResult.exitCode).toBe(0);
+    expect(explicitOutput).toContain('compilation logger warning');
+  });
   it('entry option should have higher priority than config', async () => {
     const { exitCode, stderr, stdout } = await run(
       __dirname,
@@ -99,7 +162,7 @@ describe('build command', () => {
         '--entry',
         './src/other.js',
         '--config',
-        './entry.config.js',
+        './entry.config.mts',
         '--output-path',
         'dist/priority',
       ],
@@ -124,7 +187,7 @@ describe('build command', () => {
     async (command) => {
       const { exitCode, stderr, stdout } = await run(
         __dirname,
-        [command, 'dist/public', '--config', './entry.config.js'],
+        [command, 'dist/public', '--config', './entry.config.mts'],
         {},
         {},
         true,
@@ -153,7 +216,7 @@ describe('build command', () => {
     async (command, option) => {
       const { exitCode, stderr, stdout } = await run(
         __dirname,
-        [command, option, '--config', './entry.config.js'],
+        [command, option, '--config', './entry.config.mts'],
         {},
         {},
         true,

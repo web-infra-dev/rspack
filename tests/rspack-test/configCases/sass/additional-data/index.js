@@ -1,5 +1,5 @@
-const fs = __non_webpack_require__("fs");
-const path = __non_webpack_require__("path");
+const fs = require("fs");
+const path = require("path");
 
 it("should works as string", () => {
 	require("./index.scss");

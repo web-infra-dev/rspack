@@ -1,17 +1,15 @@
-use std::hash::Hash;
-
 use rspack_core::{
-  ChunkCodeTemplate, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationDependentFullHash, CompilationParams, CompilerCompilation, Plugin, RuntimeGlobals,
-  RuntimeModule,
+  ChunkGraph, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationDependentFullHash, CompilationParams, CompilerCompilation, Plugin,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JsPlugin, RenderSource,
-  runtime::render_chunk_runtime_modules,
+  runtime::{get_hmr_chunk_version, render_chunk_runtime_modules},
 };
 use rspack_util::json_stringify_str;
 
@@ -75,7 +73,7 @@ async fn js_chunk_hash(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  hasher: &mut RspackHash,
+  hasher: &mut RspackHasher,
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
@@ -125,7 +123,7 @@ async fn render_chunk(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation
@@ -134,6 +132,15 @@ async fn render_chunk(
     .expect_get(chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
   let mut sources = ConcatSource::default();
+  if !matches!(chunk.kind(), ChunkKind::HotUpdate)
+    && ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey)
+      .contains(RuntimeGlobals::HMR_CHUNK_VERSIONS)
+  {
+    sources.add(RawStringSource::from(format!(
+      "exports.__rspack_cjs_hash = {};\n",
+      json_stringify_str(&get_hmr_chunk_version(compilation, chunk))
+    )));
+  }
   sources.add(RawStringSource::from(format!(
     "exports.ids = [{}];\n",
     rspack_util::json_stringify(chunk.expect_id())

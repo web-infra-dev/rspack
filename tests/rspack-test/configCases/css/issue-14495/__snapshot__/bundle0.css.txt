@@ -1,0 +1,18 @@
+.style\.module_module_css-card {
+  animation-name: externalFade;
+  background-image: --external-function(var(--external-bg));
+  background-color: var(--external-bg);
+  border-radius: var(--external-radius);
+  color: var(--style\.module_module_css-local-color);
+  font-palette: --external-palette;
+  grid-area: externalArea;
+  grid-row: externalRow;
+  list-style: externalCounter;
+  --style\.module_module_css-local-color: red;
+}
+
+@container externalContainer (min-width: 400px) {
+  .style\.module_module_css-card {
+    color: var(--external-bg);
+  }
+}

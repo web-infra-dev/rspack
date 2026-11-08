@@ -18,8 +18,7 @@ export type ProvideSharedPluginOptions<Enhanced extends boolean = false> = {
   enhanced?: Enhanced;
 };
 export type Provides<Enhanced extends boolean> =
-  | (ProvidesItem | ProvidesObject<Enhanced>)[]
-  | ProvidesObject<Enhanced>;
+  (ProvidesItem | ProvidesObject<Enhanced>)[] | ProvidesObject<Enhanced>;
 export type ProvidesItem = string;
 export type ProvidesObject<Enhanced extends boolean> = {
   [k: string]: ProvidesConfig<Enhanced> | ProvidesItem;

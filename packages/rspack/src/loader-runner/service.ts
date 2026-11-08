@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import { MessageChannel } from 'node:worker_threads';
 import type { Tinypool } from 'tinypool' with { 'resolution-mode': 'import' };
 
 const require = createRequire(import.meta.url);
@@ -109,6 +110,12 @@ function isWorkerRequestMessage(
   return message.type === 'request';
 }
 
+function isWorkerRequestSyncMessage(
+  message: WorkerMessage,
+): message is WorkerRequestSyncMessage {
+  return message.type === 'request-sync';
+}
+
 export function isWorkerResponseErrorMessage(
   message: WorkerMessage,
 ): message is WorkerResponseErrorMessage {
@@ -134,6 +141,7 @@ export enum RequestType {
   SetCacheable = 'SetCacheable',
   ImportModule = 'ImportModule',
   UpdateLoaderObjects = 'UpdateLoaderObjects',
+  UpdateBuildInfo = 'UpdateBuildInfo',
   CompilationGetPath = 'CompilationGetPath',
   CompilationGetPathWithInfo = 'CompilationGetPathWithInfo',
   CompilationGetAssetPath = 'CompilationGetAssetPath',
@@ -152,20 +160,54 @@ export type HandleIncomingRequest = (
 // content, sourceMap, additionalData
 type WorkerArgs = any[];
 
-export type WorkerError = Error;
+type SerializedAggregateErrorMember =
+  | {
+      __internal__type: 'error';
+      value: WorkerError;
+    }
+  | {
+      __internal__type: 'value';
+      value: unknown;
+    };
 
-export function serializeError(error: unknown): WorkerError {
+export type WorkerError = Error & {
+  __internal__isAggregateError?: boolean;
+  errors?: unknown;
+};
+
+function serializeAggregateErrorMember(
+  value: unknown,
+): SerializedAggregateErrorMember {
+  return value instanceof Error
+    ? {
+        __internal__type: 'error',
+        value: serializeErrorWithoutCloneCheck(value),
+      }
+    : {
+        __internal__type: 'value',
+        value,
+      };
+}
+
+function serializeErrorWithoutCloneCheck(error: unknown): WorkerError {
   if (
     error instanceof Error ||
     (error && typeof error === 'object' && 'message' in error)
   ) {
     // Consider object with message property as an error
-    return {
+    const serializedError = {
       ...error,
       name: (error as Error).name,
       stack: (error as Error).stack,
       message: (error as Error).message,
-    };
+    } as WorkerError;
+    if (error instanceof AggregateError) {
+      serializedError.__internal__isAggregateError = true;
+      serializedError.errors = error.errors.map(serializeAggregateErrorMember);
+    } else {
+      delete serializedError.__internal__isAggregateError;
+    }
+    return serializedError;
   }
 
   if (typeof error === 'string') {
@@ -179,28 +221,104 @@ export function serializeError(error: unknown): WorkerError {
     'Failed to serialize error, only string, Error instances and objects with a message property are supported',
   );
 }
-// check which props are not cloneable
-function checkCloneableProps(obj: any, loaderName: string) {
-  const errors = [];
 
-  for (const key of Object.keys(obj)) {
-    try {
-      structuredClone(obj[key]);
-    } catch (e: any) {
-      errors.push({ key, type: typeof obj[key], reason: e.message });
+export function serializeError(error: unknown): WorkerError {
+  try {
+    const serializedError = serializeErrorWithoutCloneCheck(error);
+    structuredClone(serializedError);
+    return serializedError;
+  } catch (serializationError) {
+    const reason =
+      serializationError instanceof Error
+        ? serializationError.message
+        : 'unknown reason';
+    return serializeErrorWithoutCloneCheck(
+      new Error(`Failed to serialize error: ${reason}`),
+    );
+  }
+}
+
+function deserializeAggregateErrorMember(
+  member: SerializedAggregateErrorMember,
+): unknown {
+  return member.__internal__type === 'error'
+    ? deserializeError(member.value)
+    : member.value;
+}
+
+export function deserializeError(error: WorkerError): WorkerError {
+  const { __internal__isAggregateError, errors, ...properties } = error;
+  const shouldDeserializeAsAggregate =
+    __internal__isAggregateError === true && Array.isArray(errors);
+  const deserializedError = (
+    shouldDeserializeAsAggregate
+      ? new AggregateError(
+          errors.map(deserializeAggregateErrorMember),
+          error.message,
+        )
+      : new Error(error.message)
+  ) as WorkerError;
+  Object.assign(deserializedError, properties);
+  if (!shouldDeserializeAsAggregate && errors !== undefined) {
+    deserializedError.errors = errors;
+  }
+  return deserializedError;
+}
+
+const UNCLONEABLE_PATH_DEPTH = 6;
+
+function findUncloneablePath(
+  value: unknown,
+  path: string,
+  depth: number,
+): { path: string; reason: string } | undefined {
+  try {
+    structuredClone(value);
+    return undefined;
+  } catch (e: any) {
+    if (depth > 0 && typeof value === 'object' && value !== null) {
+      for (const key of Object.keys(value)) {
+        const deeper = findUncloneablePath(
+          (value as Record<string, unknown>)[key],
+          `${path}.${key}`,
+          depth - 1,
+        );
+        if (deeper) {
+          return deeper;
+        }
+      }
+    }
+    return { path, reason: e.message };
+  }
+}
+
+const readablePath = (path: string) =>
+  path
+    .replace(/^loaderContext\._module\.buildInfo/, 'module.buildInfo')
+    .replace(/^loaderContext\.loaders\.\d+\.options/, 'options')
+    .replace(/^loaderContext\.?/, '');
+
+function checkCloneableProps(task: any, loaderName: string) {
+  const found = [];
+
+  for (const key of Object.keys(task)) {
+    const uncloneable = findUncloneablePath(
+      task[key],
+      key,
+      UNCLONEABLE_PATH_DEPTH,
+    );
+    if (uncloneable) {
+      found.push(uncloneable);
     }
   }
 
-  if (errors.length > 0) {
-    const errorMsg = errors
-      .map(
-        (err) =>
-          `option "${err.key}" (type: ${err.type}) is not cloneable: ${err.reason}`,
-      )
+  if (found.length > 0) {
+    const details = found
+      .map((item) => `  ${readablePath(item.path)}: ${item.reason}`)
       .join('\n');
 
     throw new Error(
-      `The options for ${loaderName} are not cloneable, which is not supported by parallelLoader. Consider disabling parallel for this loader or removing the non-cloneable properties from the options:\n${errorMsg}`,
+      `${loaderName} cannot run with \`parallel: true\`. A parallel loader runs in a worker thread and receives its loader context through a structured clone, so the loader options and the custom \`module.buildInfo\` fields the module already carries all have to be cloneable:\n${details}\nEither remove \`parallel\` from this loader, or keep the value above out of the loader options and \`module.buildInfo\`.`,
     );
   }
 }
@@ -213,11 +331,10 @@ export const run = async (
   },
   workerOptions?: { maxWorkers?: number },
 ) =>
-  ensureLoaderWorkerPool(workerOptions).then(async (pool) => {
-    const { MessageChannel } = await import('node:worker_threads');
+  ensureLoaderWorkerPool(workerOptions).then((pool) => {
     const { port1: mainPort, port2: workerPort } = new MessageChannel();
-    // Create message channel for processing sync API requests from worker
-    // threads.
+    // Synchronous requests share the regular request channel to preserve message
+    // ordering. This channel only carries their responses back to workers.
     const { port1: mainSyncPort, port2: workerSyncPort } = new MessageChannel();
     return new Promise<WorkerArgs>((resolve, reject) => {
       const handleError = (error: any) => {
@@ -237,7 +354,7 @@ export const run = async (
           Promise.allSettled(pendingRequests.values()).then(() => {
             mainPort.close();
             mainSyncPort.close();
-            reject(message.error);
+            reject(deserializeError(message.error));
           });
         } else if (isWorkerRequestMessage(message)) {
           pendingRequests.set(
@@ -265,11 +382,13 @@ export const run = async (
                 } satisfies WorkerResponseErrorMessage);
               }),
           );
+        } else if (isWorkerRequestSyncMessage(message)) {
+          void handleSyncRequest(message);
         }
       });
       mainPort.on('messageerror', handleError);
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      mainSyncPort.on('message', async (message: WorkerRequestSyncMessage) => {
+
+      async function handleSyncRequest(message: WorkerRequestSyncMessage) {
         const { sharedBuffer } = message;
         const sharedBufferView = new Int32Array(sharedBuffer);
 
@@ -285,7 +404,13 @@ export const run = async (
               // To handle errors, you should not call `wait()` on send request
               // result;
               result = await Promise.all(
-                ids.map((id) => pendingRequests.get(id)),
+                ids.map((id) => {
+                  const pendingRequest = pendingRequests.get(id);
+                  if (!pendingRequest) {
+                    throw new Error(`Unknown pending request: ${id}`);
+                  }
+                  return pendingRequest;
+                }),
               );
 
               if (!isArray) {
@@ -316,10 +441,10 @@ export const run = async (
         Atomics.add(sharedBufferView, 0, 1);
 
         // Otherwise, if `Atomics.wait` is called before this `Atomics.add` call,
-        // We uses `Atomics.notify` to wake up the worker instead.
+        // we use `Atomics.notify` to wake up the worker instead.
         Atomics.notify(sharedBufferView, 0, Number.POSITIVE_INFINITY);
-      });
-      mainSyncPort.on('messageerror', handleError);
+      }
+
       checkCloneableProps(task, loaderName);
       pool
         .run(

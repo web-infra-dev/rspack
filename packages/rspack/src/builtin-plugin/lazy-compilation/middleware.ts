@@ -4,6 +4,7 @@ import { type Compiler, MultiCompiler } from '../..';
 import type { LazyCompilationOptions } from '../../config';
 import type { ExternalItem, Externals } from '../../config';
 import type { DevServerMiddlewareHandler } from '../../config/devServer';
+import { resolveLayerExternals } from '../../util/resolveLayerExternals';
 import { BuiltinLazyCompilationPlugin } from './lazyCompilation';
 
 const require = createRequire(import.meta.url);
@@ -68,23 +69,25 @@ export const lazyCompilationMiddleware = (
 
       const prefix = options.prefix || LAZY_COMPILATION_PREFIX;
       options.prefix = `${prefix}__${i++}`;
-      const activeModules = new Set<string>();
+      const newlyActiveModules = new Set<string>();
 
       middlewareByCompiler.set(
         options.prefix,
         lazyCompilationMiddlewareInternal(
-          compiler,
-          activeModules,
+          c,
+          newlyActiveModules,
           options.prefix,
         ),
       );
 
-      applyPlugin(c, options, activeModules);
+      applyPlugin(c, options, newlyActiveModules);
     }
 
     const keys = [...middlewareByCompiler.keys()];
     return (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-      const key = keys.find((key) => req.url?.startsWith(key));
+      const key = keys.find(
+        (key) => req.url === key || req.url?.startsWith(`${key}?`),
+      );
       if (!key) {
         return next?.();
       }
@@ -99,18 +102,18 @@ export const lazyCompilationMiddleware = (
     return noop;
   }
 
-  const activeModules: Set<string> = new Set();
+  const newlyActiveModules: Set<string> = new Set();
 
   const options = {
     ...compiler.options.lazyCompilation,
   };
 
-  applyPlugin(compiler, options, activeModules);
+  applyPlugin(compiler, options, newlyActiveModules);
 
   const lazyCompilationPrefix = options.prefix || LAZY_COMPILATION_PREFIX;
   return lazyCompilationMiddlewareInternal(
     compiler,
-    activeModules,
+    newlyActiveModules,
     lazyCompilationPrefix,
   );
 };
@@ -118,18 +121,21 @@ export const lazyCompilationMiddleware = (
 function applyPlugin(
   compiler: Compiler,
   options: LazyCompilationOptions,
-  activeModules: Set<string>,
+  newlyActiveModules: Set<string>,
 ) {
+  const externals = compiler.options.externals;
   const plugin = new BuiltinLazyCompilationPlugin(
+    // Hand over the modules reported since the last compilation; the native
+    // plugin keeps every activated module and skips the ones already active.
     () => {
-      const res = new Set(activeModules);
-      activeModules.clear();
+      const res = new Set(newlyActiveModules);
+      newlyActiveModules.clear();
       return res;
     },
     options.entries ?? true,
     options.imports ?? true,
     `${options.client || getDefaultClient(compiler)}?${encodeURIComponent(getFullServerUrl(options))}`,
-    collectReservedExternals(compiler.options.externals),
+    (layer) => collectReservedExternals(externals, layer ?? null),
     options.test,
   );
   plugin.apply(compiler);
@@ -137,7 +143,10 @@ function applyPlugin(
 
 // Statically-declared external requests to reserve in the closure-library wrapper
 // (externals live on the JS options, not Rust's `CompilerOptions`).
-function collectReservedExternals(externals: Externals | undefined): string[] {
+function collectReservedExternals(
+  externals: Externals | undefined,
+  layer: string | null,
+): string[] {
   const requests = new Set<string>();
   const visit = (item: ExternalItem) => {
     if (typeof item === 'string') {
@@ -147,7 +156,19 @@ function collectReservedExternals(externals: Externals | undefined): string[] {
     if (!item || typeof item !== 'object' || item instanceof RegExp) {
       return;
     }
-    for (const [request, value] of Object.entries(item)) {
+    const resolved = resolveLayerExternals(item, layer);
+    if (typeof resolved === 'string') {
+      requests.add(resolved);
+      return;
+    }
+    if (
+      !resolved ||
+      typeof resolved !== 'object' ||
+      resolved instanceof RegExp
+    ) {
+      return;
+    }
+    for (const [request, value] of Object.entries(resolved)) {
       // `false` opts out of externalization; every other key mirrors `ExternalsPlugin`.
       if (value === false) {
         continue;
@@ -230,7 +251,7 @@ function readModuleIdsFromBody(
 
 const lazyCompilationMiddlewareInternal = (
   compiler: Compiler | MultiCompiler,
-  activeModules: Set<string>,
+  newlyActiveModules: Set<string>,
   lazyCompilationPrefix: string,
 ): DevServerMiddlewareHandler => {
   const logger = compiler.getInfrastructureLogger('LazyCompilation');
@@ -256,9 +277,8 @@ const lazyCompilationMiddlewareInternal = (
 
     const moduleActivated = [];
     for (const key of modules) {
-      const activated = activeModules.has(key);
-      activeModules.add(key);
-      if (!activated) {
+      if (!newlyActiveModules.has(key)) {
+        newlyActiveModules.add(key);
         logger.log(`${key} is now in use and will be compiled.`);
         moduleActivated.push(key);
       }

@@ -459,18 +459,14 @@ enum RuntimeGlobals {
   makeDeferredNamespaceObject,
 
   makeDeferredNamespaceObjectSymbol,
+
+  deferredModuleExports,
 }
 
 export const isReservedRuntimeGlobal = (
   r: string,
   compilerRuntimeGlobals: Record<string, string>,
 ) => Object.values(compilerRuntimeGlobals).includes(r);
-
-export function renderModulePrefix(
-  _compilerOptions: RspackOptionsNormalized,
-): string {
-  return 'webpack/runtime/';
-}
 
 export enum RuntimeVariable {
   Require,
@@ -568,6 +564,8 @@ function renderRuntimeGlobals(
       return `${scope_name}.s`;
     case RuntimeGlobals.moduleCache:
       return `${scope_name}.c`;
+    case RuntimeGlobals.deferredModuleExports:
+      return `${scope_name}.zD`;
     case RuntimeGlobals.moduleFactories:
       return `${scope_name}.m`;
     case RuntimeGlobals.moduleFactoriesAddOnly:

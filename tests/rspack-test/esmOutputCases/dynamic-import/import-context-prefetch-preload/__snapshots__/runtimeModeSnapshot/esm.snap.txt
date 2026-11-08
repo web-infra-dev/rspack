@@ -1,0 +1,417 @@
+```mjs title=a.mjs
+import { rspackRequire, moduleFactories, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+moduleFactories.add({
+"./modules/a.js"
+/*!**********************!*\
+  !*** ./modules/a.js ***!
+  \**********************/
+(__unused_rspack_module, exports) {
+makeNamespaceObject(exports);
+/* export default */ const __rspack_default_export = ("a");
+
+definePropertyGetters(exports, {
+}, {
+  "default": __rspack_default_export
+});
+
+
+},
+});
+
+```
+
+```mjs title=b.mjs
+import { rspackRequire, moduleFactories, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+moduleFactories.add({
+"./modules/b.js"
+/*!**********************!*\
+  !*** ./modules/b.js ***!
+  \**********************/
+(__unused_rspack_module, exports) {
+makeNamespaceObject(exports);
+import("./c.mjs").then(rspackRequire.bind(rspackRequire, /*! ./c */ "./modules/c.js"));
+
+/* export default */ const __rspack_default_export = ("b");
+
+definePropertyGetters(exports, {
+}, {
+  "default": __rspack_default_export
+});
+
+
+},
+});
+
+```
+
+```mjs title=c.mjs
+import { rspackRequire, moduleFactories, definePropertyGetters, makeNamespaceObject } from "./runtime.mjs";
+moduleFactories.add({
+"./modules/c.js"
+/*!**********************!*\
+  !*** ./modules/c.js ***!
+  \**********************/
+(__unused_rspack_module, exports) {
+makeNamespaceObject(exports);
+/* export default */ const __rspack_default_export = ("c");
+
+definePropertyGetters(exports, {
+}, {
+  "default": __rspack_default_export
+});
+
+
+},
+});
+
+```
+
+```mjs title=main.mjs
+import { rspackRequire, ensureChunk, hasOwnProperty, onChunksLoaded, moduleFactories, prefetchChunk } from "./runtime.mjs";
+moduleFactories.add({
+"./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?32bc"
+/*!*******************************************************************************************************************************************!*\
+  !*** ./modules|lazy|/^\.\/.*\.js$/|referencedExports: default|groupOptions: {prefetchOrder: 0,}|namespace object|importPhase: evaluation ***!
+  \*******************************************************************************************************************************************/
+(module) {
+var map = {
+  "./a.js": [
+    "./modules/a.js",
+    [
+      "a"
+    ]
+  ],
+  "./c.js": [
+    "./modules/c.js",
+    [
+      "c"
+    ]
+  ],
+  "./b.js": [
+    "./modules/b.js",
+    [
+      "b"
+    ]
+  ]
+};
+function __rspack_async_context(req) {
+  if(!hasOwnProperty(map, req)) {
+    return Promise.resolve().then(() => {
+var e = new Error("Cannot find module '" + req + "'");
+e.code = 'MODULE_NOT_FOUND';
+throw e;
+});
+  }
+
+  var ids = map[req], id = ids[0];
+  return ensureChunk(ids[1][0]).then(() => (rspackRequire(id)));
+}
+
+__rspack_async_context.keys = () => (Object.keys(map));
+__rspack_async_context.id = "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?32bc";
+module.exports = __rspack_async_context;
+
+
+},
+"./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?bdfa"
+/*!******************************************************************************************************************************************!*\
+  !*** ./modules|lazy|/^\.\/.*\.js$/|referencedExports: default|groupOptions: {preloadOrder: 0,}|namespace object|importPhase: evaluation ***!
+  \******************************************************************************************************************************************/
+(module) {
+var map = {
+  "./a.js": [
+    "./modules/a.js",
+    [
+      "a"
+    ]
+  ],
+  "./c.js": [
+    "./modules/c.js",
+    [
+      "c"
+    ]
+  ],
+  "./b.js": [
+    "./modules/b.js",
+    [
+      "b"
+    ]
+  ]
+};
+function __rspack_async_context(req) {
+  if(!hasOwnProperty(map, req)) {
+    return Promise.resolve().then(() => {
+var e = new Error("Cannot find module '" + req + "'");
+e.code = 'MODULE_NOT_FOUND';
+throw e;
+});
+  }
+
+  var ids = map[req], id = ids[0];
+  return ensureChunk(ids[1][0]).then(() => (rspackRequire(id)));
+}
+
+__rspack_async_context.keys = () => (Object.keys(map));
+__rspack_async_context.id = "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?bdfa";
+module.exports = __rspack_async_context;
+
+
+},
+"./modules lazy ./modules/*.js"
+/*!*******************************************************************!*\
+  !*** ./modules|lazy|nonrecursive|./modules/*.js|namespace object ***!
+  \*******************************************************************/
+(module) {
+
+module.exports = {
+
+  "./modules/a.js": function() { return ensureChunk(/*! esm */ "a").then(rspackRequire.bind(rspackRequire, /*! ./modules/a.js */ "./modules/a.js")); },
+
+  "./modules/b.js": function() { return ensureChunk(/*! esm */ "b").then(rspackRequire.bind(rspackRequire, /*! ./modules/b.js */ "./modules/b.js")); },
+
+  "./modules/c.js": function() { return ensureChunk(/*! esm */ "c").then(rspackRequire.bind(rspackRequire, /*! ./modules/c.js */ "./modules/c.js")); }
+};
+
+
+},
+});
+// ./index.js
+it("should keep prefetch and preload handlers for context chunks", async () => {
+	const modules = rspackRequire(/*! ./modules/ */ "./modules lazy ./modules/*.js");
+	const prefetchName = "a";
+	const preloadName = "b";
+	const prefetchValue = await rspackRequire(/*! ./modules */ "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?32bc")(`./${prefetchName}.js`);
+	const preloadValue = await rspackRequire(/*! ./modules */ "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?bdfa")(`./${preloadName}.js`);
+
+	expect(Object.keys(modules).sort()).toEqual([
+		"./modules/a.js",
+		"./modules/b.js",
+		"./modules/c.js",
+	]);
+	expect(prefetchValue.default).toBe("a");
+	expect(preloadValue.default).toBe("b");
+});
+
+
+```
+
+```mjs title=runtime.mjs
+
+var modules = {};
+// The module cache
+var moduleCache = {};
+// The require function
+function rspackRequire(moduleId) {
+// Check if module is in cache
+var cachedModule = moduleCache[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (moduleCache[moduleId] = {
+exports: {}
+});
+// Execute the module function
+modules[moduleId](module, module.exports, rspackRequire);
+
+// Return the exports of the module
+return module.exports;
+}
+export { rspackRequire };
+// expose the modules object (modules)
+var moduleFactories = modules;
+export { moduleFactories };
+
+var scriptNonce;
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+export { definePropertyGetters };
+// rspack/runtime/esm_ensure_chunk
+var ensureChunkHandlers = {};
+var ensureChunk = function(chunkId, fetchPriority) {
+	return Promise.all(Object.keys(ensureChunkHandlers).reduce(function(promises, key) {
+		ensureChunkHandlers[key](chunkId, promises, fetchPriority);
+		return promises;
+	}, []));
+};
+;
+export { ensureChunk };
+// rspack/runtime/esm_register_module
+moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
+;
+// rspack/runtime/get javascript chunk filename
+// This function allow to reference chunks
+var getChunkScriptFilename = (chunkId) => {
+  // return url for filenames not based on template
+
+  // return url for filenames based on template
+  return "" + chunkId + ".mjs"
+};
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+export { hasOwnProperty };
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+export { makeNamespaceObject };
+// rspack/runtime/on_chunk_loaded
+var deferred = [];
+var onChunksLoaded = (result, chunkIds, fn, priority) => {
+	if (chunkIds) {
+		priority = priority || 0;
+		for (var i = deferred.length; i > 0 && deferred[i - 1][2] > priority; i--)
+			deferred[i] = deferred[i - 1];
+		deferred[i] = [chunkIds, fn, priority];
+		return;
+	}
+	var notFulfilled = Infinity;
+	for (var i = 0; i < deferred.length; i++) {
+		var [chunkIds, fn, priority] = deferred[i];
+		var fulfilled = true;
+		for (var j = 0; j < chunkIds.length; j++) {
+			if (
+				(priority & (1 === 0) || notFulfilled >= priority) &&
+				Object.keys(onChunksLoaded).every((key) => (onChunksLoaded[key](chunkIds[j])))
+			) {
+				chunkIds.splice(j--, 1);
+			} else {
+				fulfilled = false;
+				if (priority < notFulfilled) notFulfilled = priority;
+			}
+		}
+		if (fulfilled) {
+			deferred.splice(i--, 1);
+			var r = fn();
+			if (r !== undefined) result = r;
+		}
+	}
+	return result;
+};
+;
+export { onChunksLoaded };
+// rspack/runtime/prefetch
+var prefetchChunkHandlers = {};
+var prefetchChunk = (chunkId) => {
+  Object.keys(prefetchChunkHandlers).map((key) => {
+    prefetchChunkHandlers[key](chunkId);
+  });
+};
+export { prefetchChunk };
+// rspack/runtime/preload
+var preloadChunkHandlers = {};
+var preloadChunk = (chunkId) => {
+  Object.keys(preloadChunkHandlers).map((key) => {
+    preloadChunkHandlers[key](chunkId);
+  });
+};
+export { preloadChunk };
+// rspack/runtime/auto_public_path
+var scriptUrl;
+
+if (typeof import.meta.url === "string") scriptUrl = import.meta.url
+
+// When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration",
+// or pass an empty string ("") and set the __webpack_public_path__ variable from your code to use your own logic.',
+if (!scriptUrl) throw new Error("Automatic publicPath is not supported in this browser");
+scriptUrl = scriptUrl.replace(/^blob:/, "").replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
+
+var publicPath = scriptUrl;
+;
+export { publicPath };
+// rspack/runtime/esm_chunk_loading
+var esmInstalledChunks = {};
+var esmChunkMap = {
+"a": function() { return import("./a.mjs"); },
+"b": function() { return import("./b.mjs"); },
+"c": function() { return import("./c.mjs"); }
+};
+ensureChunkHandlers.j = function(chunkId, promises) {
+	var installedChunkData = esmInstalledChunks[chunkId];
+	if(installedChunkData === 0) return;
+	if(installedChunkData) {
+		promises.push(installedChunkData);
+		return;
+	}
+	var loadChunk = esmChunkMap[chunkId];
+	if(!loadChunk) return;
+	var promise = loadChunk().then(function() {
+		esmInstalledChunks[chunkId] = 0;
+	}, function(error) {
+		delete esmInstalledChunks[chunkId];
+		throw error;
+	});
+	esmInstalledChunks[chunkId] = promise;
+	promises.push(promise);
+};
+;
+// rspack/runtime/module_chunk_loading
+// no BaseURI
+      // object to store loaded and loading chunks
+      // undefined = chunk not loaded, null = chunk preloaded/prefetched
+      // [resolve, Promise] = chunk loading, 0 = chunk loaded
+      var moduleInstalledChunks = {"runtime": 0,};
+      // no install chunk// no chunk on demand loading
+prefetchChunkHandlers.j = (chunkId) => {
+
+    if((!hasOwnProperty(moduleInstalledChunks, chunkId) || moduleInstalledChunks[chunkId] === undefined) && "runtime" != chunkId) {
+        moduleInstalledChunks[chunkId] = null;
+        var link = document.createElement('link');
+
+if (scriptNonce) {
+  link.setAttribute('nonce', scriptNonce);
+}
+link.rel = 'prefetch';
+link.as = 'script';
+link.href = publicPath + getChunkScriptFilename(chunkId);
+
+        document.head.appendChild(link);
+    }
+};
+preloadChunkHandlers.j = (chunkId) => {
+
+    if((!hasOwnProperty(moduleInstalledChunks, chunkId) || moduleInstalledChunks[chunkId] === undefined) && "runtime" != chunkId) {
+        moduleInstalledChunks[chunkId] = null;
+        var link = document.createElement('link');
+if (scriptNonce) {
+  link.setAttribute("nonce", scriptNonce);
+}
+link.rel = 'modulepreload';
+link.href = publicPath + getChunkScriptFilename(chunkId);
+
+
+        document.head.appendChild(link);
+    }
+};
+// no external install chunk
+
+        onChunksLoaded.j = function(chunkId) {
+            return moduleInstalledChunks[chunkId] === 0;
+        }
+        // no HMR
+// no HMR manifest
+;
+// rspack/runtime/chunk_preload_trigger
+var chunkPreloadChunkToChildrenMap = {"b":["c","c","c"]};
+ensureChunkHandlers.preload =  (chunkId) => {
+  var chunks = chunkPreloadChunkToChildrenMap[chunkId];
+  Array.isArray(chunks) && chunks.map(preloadChunk);
+};
+;
+
+
+```

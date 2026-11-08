@@ -1,0 +1,126 @@
+---
+description: 'Capture Rspack memory snapshots during builds and HMR updates for issue reports.'
+---
+
+import { ApiMeta } from '@components/ApiMeta';
+
+# Memory analysis
+
+Rspack supports capturing memory snapshots during builds and HMR updates. When you report a memory issue, include these files to help maintainers investigate.
+
+## Enable profiling
+
+<ApiMeta addedVersion="2.3.0" />
+
+Use a debug or profiling package at this version or later (standard release packages do not include allocative support). Snapshot collection is off by default. To enable it, set `RSPACK_ALLOCATIVE_DIR` to an output directory when running your project.
+
+### Direct Rspack users
+
+If your project depends on `@rspack/core` directly, replace it with the debug package at the same version. For example, change `2.3.0` to `npm:@rspack-debug/core@2.3.0`:
+
+```diff title="package.json"
+ {
+   "devDependencies": {
+-    "@rspack/core": "2.3.0"
++    "@rspack/core": "npm:@rspack-debug/core@2.3.0"
+   }
+ }
+```
+
+Keep the dependency in its original section (`dependencies` or `devDependencies`), then run `pnpm install`.
+
+### Using Rspack through higher-level tools
+
+If your project uses Rspack indirectly through a higher-level tool such as Rsbuild, add a package manager override for `@rspack/core`. For pnpm, add this configuration to `package.json`:
+
+```json title="package.json"
+{
+  "pnpm": {
+    "overrides": {
+      "@rspack/core": "npm:@rspack-debug/core@2.3.0"
+    },
+    "peerDependencyRules": {
+      "allowAny": ["@rspack/*"]
+    }
+  }
+}
+```
+
+Use the same version as the tool's resolved `@rspack/core` dependency (`2.3.0` in this example), then run `pnpm install`. See [Debugging](/contribute/development/debugging) for more about diagnostic package overrides.
+
+For either approach, you can use a profiling build instead of the debug package. Set `RSPACK_ALLOCATIVE_DIR` when running your project's original build or dev command. Leave it unset to skip snapshot collection. If no suitable package is available, see [Build a local binding](/contribute/development/memory#build-a-local-binding) to build from source.
+
+## Capture memory snapshots
+
+### Capture a build
+
+Run the project's original build command with an absolute output directory:
+
+```sh
+RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/build-1 pnpm exec rspack build
+```
+
+Verify that the build, its configuration, and its plugins all load the intended diagnostic package. For tools that integrate Rspack, keep the tool's normal build command and use a compatible diagnostic package override.
+
+After the initial build completes, the output directory contains:
+
+```text
+build-1/
+  0-build.allocative
+  0-build.counts.json
+  0-build.metadata.json
+  0-build.warnings.txt
+```
+
+Use a fresh directory for each process. Snapshot numbering is shared across compilers within a process and resets in a new process. Reusing a directory between processes can overwrite files.
+
+### Capture HMR updates
+
+Set the same output variable when starting the dev server:
+
+```sh
+RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/hmr-1 pnpm exec rspack dev
+```
+
+Edit a source file and wait for each rebuild to finish. A single compiler with three rebuilds produces four byte snapshots:
+
+```text
+0-build.allocative
+1-rebuild.allocative
+2-rebuild.allocative
+3-rebuild.allocative
+```
+
+Each snapshot also has matching counts, metadata, and warnings files. Watch-mode builds using the same package can also collect snapshots via `RSPACK_ALLOCATIVE_DIR`.
+
+Keep the project's build mode and sourcemap settings while reproducing the issue, and record the edits made for each HMR update.
+
+## Attach data to an issue report
+
+After the build or the intended HMR updates have completed, compress the entire output directory and attach the archive to your issue report. Include all four file types for every snapshot:
+
+| File              | Contents                                                    |
+| ----------------- | ----------------------------------------------------------- |
+| `*.allocative`    | The Rust data-structure memory snapshot.                    |
+| `*.counts.json`   | Module and dependency entry counts.                         |
+| `*.metadata.json` | Snapshot identity, memory totals, and collection metadata.  |
+| `*.warnings.txt`  | Coverage and accounting warnings; include it even if empty. |
+
+For example, archive the build capture directory:
+
+```sh
+tar -czf rspack-memory-build-1.tar.gz -C /absolute/path/profiles build-1
+```
+
+For an HMR issue, archive the complete sequence from the initial build through the last relevant rebuild, including all matching files for each snapshot. Keep the original filenames so maintainers can match the snapshots and sidecars.
+
+Include this context in the issue report:
+
+- The Rspack and diagnostic package versions, Node.js version, and operating system.
+- The command, configuration, build mode, and sourcemap setting used for the capture.
+- A reproduction project or reproduction steps; for HMR, include the edits and their order.
+- The observed memory issue, when it occurs, and the build logs. If no snapshots were produced, report that along with the command and logs.
+
+:::tip
+For a deeper look at Rspack's memory usage, see the [memory analysis contribution guide](/contribute/development/memory). It explains how to capture and analyze memory snapshots, along with how collection works and its limitations.
+:::

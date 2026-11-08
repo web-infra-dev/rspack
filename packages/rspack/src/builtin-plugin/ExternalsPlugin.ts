@@ -2,13 +2,21 @@ import {
   type BuiltinPlugin,
   BuiltinPluginName,
   type RawExternalItemFnCtx,
+  type RawExternalItemFnResult,
+  type RawExternalItemObject,
   type RawExternalsPluginOptions,
 } from '@rspack/binding';
 
-import type { ExternalItem, ExternalItemValue, Externals } from '..';
+import type {
+  ExternalItem,
+  ExternalItemObjectKnown,
+  ExternalItemValue,
+  Externals,
+} from '..';
 import { getRawResolve } from '../config/adapter';
 import type { ResolveCallback } from '../config/adapterRuleUse';
 import type { ResolveRequest } from '../Resolver';
+import { resolveLayerExternals } from '../util/resolveLayerExternals';
 import { createBuiltinPlugin, RspackBuiltinPlugin } from './base';
 
 export class ExternalsPlugin extends RspackBuiltinPlugin {
@@ -70,6 +78,7 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
 
     if (typeof item === 'function') {
       const processResolveResult = this.#processResolveResult;
+      const processRequest = this.#processRequest;
 
       return async (ctx: RawExternalItemFnCtx) => {
         return new Promise((resolve, reject) => {
@@ -87,39 +96,47 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
                 const rawResolve = options ? getRawResolve(options) : undefined;
                 const resolve = ctx.getResolve(rawResolve);
 
-                return (
+                function resolveFunction(
+                  context: string,
+                  request: string,
+                  callback: ResolveCallback,
+                ): void;
+                function resolveFunction(
+                  context: string,
+                  request: string,
+                ): Promise<string | undefined>;
+                function resolveFunction(
                   context: string,
                   request: string,
                   callback?: ResolveCallback,
-                ) => {
+                ): void | Promise<string | undefined> {
                   if (callback) {
                     resolve(context, request, (error, text) => {
                       if (error) {
                         callback(error);
                       } else {
                         const req = processResolveResult(text);
-                        callback(
-                          null,
-                          req ? this.#processRequest(req) : false,
-                          req,
-                        );
+                        callback(null, req ? processRequest(req) : false, req);
                       }
                     });
                   } else {
-                    return new Promise((promiseResolve, promiseReject) => {
-                      resolve(context, request, (error, text) => {
-                        if (error) {
-                          promiseReject(error);
-                        } else {
-                          const req = processResolveResult(text);
-                          promiseResolve(
-                            req ? this.#processRequest(req) : undefined,
-                          );
-                        }
-                      });
-                    });
+                    return new Promise<string | undefined>(
+                      (promiseResolve, promiseReject) => {
+                        resolve(context, request, (error, text) => {
+                          if (error) {
+                            promiseReject(error);
+                          } else {
+                            const req = processResolveResult(text);
+                            promiseResolve(
+                              req ? processRequest(req) : undefined,
+                            );
+                          }
+                        });
+                      },
+                    );
                   }
-                };
+                }
+                return resolveFunction;
               },
             },
             (err, result, type) => {
@@ -152,18 +169,71 @@ export class ExternalsPlugin extends RspackBuiltinPlugin {
       };
     }
     if (typeof item === 'object') {
-      return Object.fromEntries(
-        Object.entries(item).map(([k, v]) => [k, getRawExternalItemValue(v)]),
-      );
+      const { byLayer } = item as ExternalItemObjectKnown;
+      if (
+        typeof byLayer === 'function' ||
+        (byLayer &&
+          typeof byLayer === 'object' &&
+          Object.values(byLayer).some(
+            (branch) => typeof branch !== 'object' || branch instanceof RegExp,
+          ))
+      ) {
+        const cache = new Map<string | null, RawExternalItem>();
+        return async (
+          ctx: RawExternalItemFnCtx,
+        ): Promise<RawExternalItemFnResult> => {
+          const { request, contextInfo } = ctx.data();
+          const layer = contextInfo.issuerLayer ?? null;
+          let raw = cache.get(layer);
+          if (raw === undefined) {
+            raw = this.#getRawExternalItem(resolveLayerExternals(item, layer));
+            cache.set(layer, raw);
+          }
+          if (typeof raw === 'function') return await raw(ctx);
+          let result: RawExternalItemFnResult['result'];
+          if (typeof raw === 'string') {
+            if (raw === request) result = request;
+          } else if (raw instanceof RegExp) {
+            raw.lastIndex = 0;
+            if (raw.test(request)) result = request;
+            raw.lastIndex = 0;
+          } else {
+            const values = raw.byLayer?.[layer ?? 'null'] ?? raw.values;
+            if (Object.hasOwn(values, request)) result = values[request];
+          }
+          return { result, externalType: undefined };
+        };
+      }
+      return {
+        values: getRawExternalObject(resolveLayerExternals(item, 'default')),
+        byLayer:
+          byLayer &&
+          Object.fromEntries(
+            Object.keys(byLayer).map((layer) => [
+              layer,
+              getRawExternalObject(resolveLayerExternals(item, layer)),
+            ]),
+          ),
+      };
     }
     throw new TypeError(`Unexpected type of external item: ${typeof item}`);
   };
 }
 
 type ArrayType<T> = T extends (infer R)[] ? R : never;
-type RecordValue<T> = T extends Record<any, infer R> ? R : never;
 type RawExternalItem = ArrayType<RawExternalsPluginOptions['externals']>;
-type RawExternalItemValue = RecordValue<RawExternalItem>;
+type RawExternalItemValue = RawExternalItemObject['values'][string];
+
+function getRawExternalObject(
+  item: ExternalItem,
+): RawExternalItemObject['values'] {
+  return Object.fromEntries(
+    Object.entries(item).map(([key, value]) => [
+      key,
+      getRawExternalItemValue(value),
+    ]),
+  );
+}
 
 function getRawExternalItemValueFormFnResult(result?: ExternalItemValue) {
   return result === undefined ? result : getRawExternalItemValue(result);

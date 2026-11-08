@@ -3,10 +3,10 @@ use rspack_cacheable::{
   with::{AsMap, AsPreset, AsVec},
 };
 use rspack_collections::IdentifierMap;
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::{BoxDependency, DependencyId, ModuleIdentifier};
+use crate::{DependencyId, DependencyRef, ModuleIdentifier};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum ForwardId {
@@ -26,7 +26,7 @@ impl ForwardedIdSet {
     Self::IdSet(FxHashSet::default())
   }
 
-  pub fn from_dependencies(dependencies: &[BoxDependency]) -> Self {
+  pub fn from_dependencies(dependencies: &[DependencyRef]) -> Self {
     let mut set = FxHashSet::default();
     for dep in dependencies {
       match dep.forward_id() {
@@ -60,20 +60,6 @@ impl ForwardedIdSet {
       Self::IdSet(set) => set.is_empty(),
     }
   }
-
-  pub fn contains(&self, id: &Atom) -> bool {
-    match self {
-      Self::All => true,
-      Self::IdSet(set) => set.contains(id),
-    }
-  }
-
-  pub fn remove(&mut self, id: &Atom) -> bool {
-    match self {
-      Self::All => true,
-      Self::IdSet(set) => set.remove(id),
-    }
-  }
 }
 
 pub enum LazyUntil {
@@ -100,7 +86,7 @@ impl LazyDependencies {
     self.request_to_dependencies.is_empty() && self.fallback_dependencies.is_empty()
   }
 
-  pub fn insert(&mut self, dependency: &BoxDependency, until: LazyUntil) {
+  pub fn insert(&mut self, dependency: &DependencyRef, until: LazyUntil) {
     if matches!(&until, LazyUntil::Fallback) {
       self.fallback_dependencies.insert(*dependency.id());
     } else if let LazyUntil::Local(forward_id) = &until {
@@ -132,9 +118,18 @@ impl LazyDependencies {
   pub fn requested_lazy_dependencies(
     &self,
     forwarded_ids: &ForwardedIdSet,
+    eager_on_local_reference: bool,
   ) -> FxHashSet<DependencyId> {
     match forwarded_ids {
       ForwardedIdSet::All => self.all_lazy_dependencies().collect(),
+      ForwardedIdSet::IdSet(set)
+        if eager_on_local_reference
+          && set
+            .iter()
+            .any(|forward_id| self.terminal_forward_ids.contains(forward_id)) =>
+      {
+        self.all_lazy_dependencies().collect()
+      }
       ForwardedIdSet::IdSet(set) => set
         .iter()
         .filter(|forward_id| !self.terminal_forward_ids.contains(*forward_id))
@@ -159,6 +154,9 @@ pub enum HasLazyDependencies {
 
 #[derive(Debug, Default)]
 pub struct ModuleToLazyMake {
+  /// Expand a barrel before its local exports make its factory observable.
+  /// Enabled by lazy compilation to avoid changing that factory on activation.
+  pub eager_on_local_reference: bool,
   module_to_lazy_dependencies: IdentifierMap<HasLazyDependencies>,
 }
 

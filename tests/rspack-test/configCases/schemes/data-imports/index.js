@@ -12,8 +12,8 @@ const p = Promise.all([
 ])
 
 it("data imports", async () => {
-	const fs = __non_webpack_require__("node:fs");
-	const path = __non_webpack_require__("node:path");
+	const fs = require("node:fs");
+	const path = require("node:path");
 	await p;
 	expect(a).toBe("a");
 	expect(b).toBe("b");

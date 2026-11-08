@@ -136,12 +136,12 @@ const coreTeam: Member[] = [
   {
     id: 'fi3ework',
     avatar: 'https://github.com/fi3ework.png',
-    x: 'https://x.com/f13wk',
+    x: 'https://x.com/fi3ework27',
     desc: 'Rspack core team, creator of vite-plugin-checker, webpack contributor',
   },
   {
-    id: 'easy1090',
-    avatar: 'https://github.com/easy1090.png',
+    id: 'yifancong',
+    avatar: 'https://github.com/yifancong.png',
     x: 'https://x.com/yifan56737904',
     desc: 'Rspack core team',
   },
@@ -208,6 +208,18 @@ const coreTeam: Member[] = [
     x: 'https://x.com/elecmonkeyjs',
     desc: 'Rspack core team',
   },
+  {
+    id: 'swwind',
+    avatar: 'https://github.com/swwind.png',
+    x: 'https://x.com/swwind233',
+    desc: 'Rspack core team',
+  },
+  {
+    id: 'hai-x',
+    avatar: 'https://github.com/hai-x.png',
+    x: 'https://x.com/__haijie',
+    desc: 'Rspack & webpack core team',
+  },
 ];
 
 export const RandomMemberList = ({ list = coreTeam }: { list?: Member[] }) => {
@@ -248,9 +260,9 @@ export const RandomMemberList = ({ list = coreTeam }: { list?: Member[] }) => {
 export const RandomContributorsList = () => {
   const list: Member[] = [
     {
-      id: 'hyf0',
-      avatar: 'https://github.com/hyf0.png',
-      x: 'https://x.com/_hyf0',
+      id: 'hyfdev',
+      avatar: 'https://github.com/hyfdev.png',
+      x: 'https://x.com/hyfdev',
       desc: 'Rspack & Rolldown core team',
     },
     {
@@ -270,8 +282,8 @@ export const RandomContributorsList = () => {
       desc: 'Rspack & Rolldown core team',
     },
     {
-      id: 'suxin2017',
-      avatar: 'https://github.com/suxin2017.png',
+      id: 'xin2017338',
+      avatar: 'https://github.com/xin2017338.png',
       x: 'https://x.com/suxin2017',
       desc: 'Rspack core team, Biome contributor',
     },

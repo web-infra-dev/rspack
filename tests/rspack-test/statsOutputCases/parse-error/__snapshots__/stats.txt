@@ -1,6 +1,6 @@
 ERROR in ./b.js
   × Module parse failed:
-  ╰─▶   × JavaScript parse error: Expected ';', '}' or <eof>
+  ╰─▶   × JavaScript parse error: Expected a semicolon or an implicit semicolon after a statement, but found ')'
          ╭─[6:7]
        4 │ includes
        5 │ a

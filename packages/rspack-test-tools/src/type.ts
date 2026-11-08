@@ -12,6 +12,8 @@ import type {
 export interface ITestContext {
   getSource(sub?: string): string;
   getDist(sub?: string): string;
+  getCompileSource(sub?: string): string;
+  getCompileDist(sub?: string): string;
   getTemp(sub?: string): string | null;
 
   getCompiler(): ITestCompilerManager;
@@ -36,7 +38,7 @@ export interface ITestCompilerManager {
   getCompiler(): Compiler | null;
   createCompiler(): Compiler;
   createCompilerWithCallback(
-    callback: (error: Error | null, stats: Stats | null) => void,
+    callback: (error: Error | null, stats?: Stats) => void,
   ): Compiler;
   build(): Promise<Stats>;
   watch(timeout?: number): void;
@@ -152,8 +154,17 @@ export interface ITestEnv {
 
 export type TTestConfig = {
   location?: string;
-  validate?: (stats: Stats | MultiStats, stderr?: string) => void;
+  validate?: (
+    stats: Stats | MultiStats,
+    stderr?: string,
+    options?: RspackOptions,
+  ) => MaybePromise<void>;
   noTests?: boolean;
+  // Compile from a per-suite copy of the case dir (context = <dist>/src,
+  // output = <dist>/dist) instead of in-place from the shared source dir.
+  // Needed for cases whose config writes fixtures into the case dir, so the
+  // parallel Config.* / RuntimeModeConfig.* suites don't race on it.
+  isolateSource?: boolean;
   writeStatsOuptut?: boolean;
   writeStatsJson?: boolean;
   beforeExecute?: (options: RspackOptions) => void;
@@ -185,7 +196,10 @@ export type TTestConfig = {
   checkSteps?: boolean;
   // Only valid for Watch tests
   ignoreNotFriendlyForIncrementalWarnings?: boolean;
-  resourceLoader?: (url: string, element: HTMLScriptElement) => Buffer | null;
+  resourceLoader?: (
+    url: string,
+    element: HTMLScriptElement,
+  ) => Buffer | null | undefined;
 };
 
 export type TTestFilter = (
@@ -201,7 +215,7 @@ export interface ITestRunner {
 
 export type TCompilerFactory = (
   options: RspackOptions | RspackOptions[],
-  callback?: (error: Error | null, stats: Stats | null) => void,
+  callback?: (error: Error | null, stats?: Stats) => void,
 ) => Compiler;
 
 export interface TRunnerFactory {

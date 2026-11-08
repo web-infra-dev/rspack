@@ -1,5 +1,5 @@
-const fs = __non_webpack_require__("fs");
-const path = __non_webpack_require__("path");
+const fs = require("fs");
+const path = require("path");
 
 const statsPath = path.join(__dirname, "mf-stats.json");
 const manifestPath = path.join(__dirname, "mf-manifest.json");
@@ -15,6 +15,7 @@ it("should still emit the remote entry", () => {
 
 it("should omit asset details from stats when disableAssetsAnalyze is true", () => {
 	expect(stats.shared).toHaveLength(1);
+	expect(stats.shared[0].singleton).toBe(true);
 	expect(stats.shared[0].assets.js.sync).toEqual([]);
 	expect(stats.shared[0].assets.js.async).toEqual([]);
 	expect(stats.exposes).toHaveLength(1);
@@ -24,6 +25,7 @@ it("should omit asset details from stats when disableAssetsAnalyze is true", () 
 
 it("should omit asset details from manifest when disableAssetsAnalyze is true", () => {
 	expect(manifest.shared).toHaveLength(1);
+	expect(manifest.shared[0].singleton).toBe(true);
 	expect(manifest.shared[0].assets.js.sync).toEqual([]);
 	expect(manifest.shared[0].assets.js.async).toEqual([]);
 	expect(manifest.exposes).toHaveLength(1);

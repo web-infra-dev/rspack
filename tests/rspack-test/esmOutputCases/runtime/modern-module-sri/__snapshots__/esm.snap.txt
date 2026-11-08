@@ -1,0 +1,30 @@
+```mjs title=main.mjs
+// ./index.js
+const value = import("./value.mjs");
+
+export { value };
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/sri_hash_variable
+(() => {
+
+          __webpack_require__.sriHashes = {"value": "sha384-n/vSaOHnKSkGM5h7v+v8wRPJlDOhVXbgjK6iYxj8/sWl7re7g0lRNVYd7Gs6mPAy"};
+          
+})();
+
+export { __webpack_require__ };
+
+```
+
+```mjs title=value.mjs
+// ./value.js
+/* export default */ const value = (42);
+
+export default value;
+
+```

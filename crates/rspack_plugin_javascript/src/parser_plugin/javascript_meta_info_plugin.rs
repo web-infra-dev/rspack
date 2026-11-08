@@ -1,6 +1,4 @@
-use rspack_util::atom::Atom;
-use rustc_hash::FxHashSet;
-use swc_experimental_ecma_ast::CallExpr;
+use swc_next_ecma_ast::CallExpression;
 
 use super::{
   JavascriptParserPlugin,
@@ -15,11 +13,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
   fn call(
     &self,
     parser: &mut JavascriptParser<'p>,
-    _expr: &CallExpr<'_>,
+    _expr: CallExpression,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "eval" {
       parser.build_info.module_concatenation_bailout = Some("eval()".into());
+      parser.build_info.has_direct_eval = true;
       if let Some(top_level_symbol) = parser.inner_graph.get_top_level_symbol() {
         parser.inner_graph.add_usage(
           TopLevelSymbol::global(),
@@ -35,20 +34,23 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
 
   fn finish(&self, parser: &mut JavascriptParser<'p>) -> Option<bool> {
     if parser.build_info.top_level_declarations.is_none() {
-      parser.build_info.top_level_declarations = Some(FxHashSet::default());
+      parser.build_info.top_level_declarations = Some(Default::default());
     }
-    let variables: Vec<_> = parser
-      .get_all_variables_from_current_scope()
-      .map(|(name, _)| Atom::new(name))
-      .collect();
-    for name in variables {
-      if parser.is_variable_defined(&name) {
+    let variables = parser.definitions_db.current_variables();
+    let has_direct_eval = parser.build_info.has_direct_eval;
+    for (name, info) in variables {
+      if !parser.definitions_db.expect_get_variable(info).is_free() {
         parser
           .build_info
           .top_level_declarations
           .as_mut()
           .expect("must have value")
-          .insert(name);
+          .insert(name.clone());
+        // Direct eval can reach any top-level binding through a FREE alias;
+        // treat all of them as mutated so value-binding emit bails out.
+        if has_direct_eval {
+          parser.mark_mutated_binding(name);
+        }
       }
     }
     None

@@ -1,0 +1,89 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+__webpack_require__.add({
+"./wrapped.js"
+/*!********************!*\
+  !*** ./wrapped.js ***!
+  \********************/
+(module, __unused_rspack___webpack_exports__, __webpack_require__) {
+/* module decorator */ module = __webpack_require__.hmd(module);
+const exports = 44;
+
+// Accessing module prevents this module from being scope hoisted.
+console.log.bind(module);
+
+
+},
+});
+// ./before-export.js
+var before_export_exports = 43;
+
+
+// ./index.js
+const index_exports = 42;
+
+
+
+it("should preserve direct and deconflicted exports bindings", async () => {
+	expect(index_exports).toBe(42);
+	const namespace = await import(/* webpackIgnore: true */ "./main.mjs");
+	expect(namespace.exports).toBe(42);
+	expect(namespace.beforeExport).toBe(43);
+	expect(namespace.wrappedExports).toBe(44);
+});
+
+var index_wrappedExports = (/* inlined export .exports */44);
+export { before_export_exports as beforeExport, index_exports as exports, index_wrappedExports as wrappedExports };
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+id: moduleId,
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// webpack/runtime/esm_module_decorator
+(() => {
+__webpack_require__.hmd = (module) => {
+  module = Object.create(module);
+  if (!module.children) module.children = [];
+  Object.defineProperty(module, 'exports', {
+      enumerable: true,
+      set: () => {
+          throw new Error('ES Modules may not assign module.exports or exports.*, Use ESM export syntax, instead: ' + module.id);
+      }
+  });
+  return module;
+};
+})();
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+
+export { __webpack_require__ };
+
+```

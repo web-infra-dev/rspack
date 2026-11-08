@@ -10,9 +10,11 @@ use std::{
   time::SystemTime,
 };
 
-use rspack_paths::{ArcPath, Utf8PathBuf};
+use rspack_paths::{InternedPath, Utf8PathBuf};
 use rspack_util::fx_hash::FxHashSet;
-use rspack_watcher::{EventAggregateHandler, EventHandler, FsWatcher};
+use rspack_watcher::{
+  EventAggregateHandler, EventHandler, FsWatcher, TimeInfoEntries, TimeInfoEntry,
+};
 use tempfile::TempDir;
 use tokio::sync::RwLock;
 
@@ -194,14 +196,86 @@ impl TestHelper {
     f();
   }
 
+  /// Deliver `kind` for `name` as if the OS had reported it.
+  pub fn trigger_event(&self, name: &str, kind: rspack_watcher::FsEventKind) {
+    let path = InternedPath::from(self.canonicalized_temp_dir.join(name));
+    self.watcher.blocking_read().trigger_event(&path, kind);
+  }
+
+  pub fn pause(&self) {
+    self.watcher.blocking_read().pause().unwrap();
+  }
+
+  /// watchpack's `aggregatedChanges` / `aggregatedRemovals`.
+  pub fn peek_aggregated(&self) -> (FxHashSet<String>, FxHashSet<String>) {
+    self.watcher.blocking_read().peek_aggregated()
+  }
+
+  /// [`Self::peek_aggregated`], drained.
+  pub fn take_aggregated(&self) -> (FxHashSet<String>, FxHashSet<String>) {
+    self.watcher.blocking_read().take_aggregated()
+  }
+
+  pub fn index_sizes(&self) -> (usize, usize) {
+    self.watcher.blocking_read().index_sizes()
+  }
+
+  /// watchpack's `collectTimeInfoEntries`, as `(fileTimestamps, directoryTimestamps)`.
+  pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
+    self.watcher.blocking_read().collect_time_info_entries()
+  }
+
+  /// The entry recorded for `name` (relative to the temporary directory) in
+  /// `entries`, panicking when the path was never reported.
+  pub fn time_info_entry<'a>(&self, entries: &'a TimeInfoEntries, name: &str) -> &'a TimeInfoEntry {
+    let path = self.join(name);
+    entries
+      .iter()
+      .find(|(entry_path, _)| entry_path == path.as_str())
+      .map_or_else(
+        || panic!("no time-info entry for {path}"),
+        |(_, entry)| entry,
+      )
+  }
+
   /// Watches the specified files, directories, and missing paths.
   ///
   /// All paths are relative to the temporary directory.
   pub fn watch(
     &mut self,
-    files: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
-    directories: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
-    missing: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
+    files: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
+    directories: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
+    missing: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
+  ) -> Receiver<Event> {
+    self.watch_since(files, directories, missing, SystemTime::now())
+  }
+
+  /// [`Self::watch`] with the start time of the build it follows: changes
+  /// since then that the watch was not active for are reported.
+  pub fn watch_since(
+    &mut self,
+    files: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
+    directories: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
+    missing: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
+    start_time: SystemTime,
   ) -> Receiver<Event> {
     let (tx, rx) = std::sync::mpsc::channel();
 
@@ -214,11 +288,11 @@ impl TestHelper {
       ($expr:expr) => {{
         let left = $expr
           .0
-          .map(|p| ArcPath::from(self.canonicalized_temp_dir.join(p)))
+          .map(|p| InternedPath::from(self.canonicalized_temp_dir.join(p)))
           .collect::<Vec<_>>();
         let right = $expr
           .1
-          .map(|p| ArcPath::from(self.canonicalized_temp_dir.join(p)))
+          .map(|p| InternedPath::from(self.canonicalized_temp_dir.join(p)))
           .collect::<Vec<_>>();
         (left, right)
       }};
@@ -249,7 +323,7 @@ impl TestHelper {
               paths_to_iter!(files),
               paths_to_iter!(directories),
               paths_to_iter!(missing),
-              SystemTime::now(),
+              start_time,
               Box::new(AggregateHandler(tx.clone())),
               Box::new(ChangeHandler(tx)),
             )

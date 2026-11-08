@@ -44,7 +44,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
@@ -63,7 +63,7 @@ jobs:
           key: rust-bench-${{ inputs.target }}
 
       - name: Install cargo-codspeed binary
-        uses: taiki-e/install-action@25435dc8dd3baed7417e0c96d3fe89013a5b2e09 # v2
+        uses: taiki-e/install-action@16b05812d776ae1dfaabc8277e421fb6d2506419 # v2
         with:
           tool: cargo-codspeed@4.4.1
 
@@ -94,6 +94,14 @@ jobs:
           TMPDIR: ${{ runner.temp }}/codspeed-valgrind-tmp
           CODSPEED_EXPERIMENTAL_FAIR_SCHED: true
           MIMALLOC_PURGE_DELAY: '-1'
+          # Pin glibc string-function selection to the SSE2 baseline. Simulation
+          # reports a pure instruction count, but glibc resolves memcpy/memmove/
+          # memset via CPU-feature ifunc dispatch, so the same binary yields a
+          # different instruction count on different runner CPUs (e.g. AVX512 vs
+          # AVX2). That environmental drift (~2%) shows up as phantom regressions
+          # on short, copy-heavy benches. Forcing one variant on every runner
+          # removes the cross-runner variance.
+          GLIBC_TUNABLES: glibc.cpu.hwcaps=-AVX512F,-AVX2,-AVX,-AVX_Fast_Unaligned_Load,-ERMS,-Prefer_ERMS,-SSE4_2,-SSSE3
         with:
           mode: simulation
           run: |
@@ -116,6 +124,9 @@ jobs:
         timeout-minutes: 30
         env:
           TMPDIR: ${{ runner.temp }}/codspeed-valgrind-tmp
+          # self-hosted physical runner runs as root but does not export HOME;
+          # the codspeed runner installer sources $HOME/.cargo/env
+          HOME: /root
         with:
           mode: walltime
           run: |
@@ -125,9 +136,9 @@ jobs:
               if [ -n "${{ inputs.bench_filter }}" ]; then
                 bench_args+=("${{ inputs.bench_filter }}")
               fi
-              taskset -c 176-191 env RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run "${bench_args[@]}"
+              RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run "${bench_args[@]}"
             else
-              taskset -c 176-191 pnpm run bench:rust
+              pnpm run bench:rust
             fi
           token: ${{ secrets.CODSPEED_TOKEN }}
           runner-version: rev:2ca934f5a71e0299e0a3941a84ac3b242b3b63b6

@@ -182,6 +182,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .get_path(
           &Filename::from(banner),
           PathData::default()
+            .chunk(chunk.ukey(), compilation)
             .chunk_hash_optional(chunk.rendered_hash(
               &compilation.chunk_hashes_artifact,
               compilation.options.output.hash_digest_length,

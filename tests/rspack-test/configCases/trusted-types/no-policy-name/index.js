@@ -14,7 +14,7 @@ it("should skip trusted types logic when policy name is empty", function () {
 		"./empty?b" /* webpackChunkName: "no-trusted-types-policy-name" */
 	);
 	var script = document.head._children.pop();
-	__non_webpack_require__("./no-trusted-types-policy-name.web.js");
+	require("./no-trusted-types-policy-name.web.js");
 	expect(script.src).toBe(
 		"https://test.cases/path/no-trusted-types-policy-name.web.js"
 	);

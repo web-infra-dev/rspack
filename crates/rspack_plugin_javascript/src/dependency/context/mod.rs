@@ -1,6 +1,7 @@
 use rspack_core::{
   ContextDependency, ContextMode, ContextModulePattern, ContextOptions, DependencyRange,
-  GroupOptions, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
+  GroupOptions, ReferencedSpecifier, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
+  context_identifier,
 };
 
 mod amd_require_context_dependency;
@@ -36,7 +37,9 @@ fn create_resource_identifier_for_context_dependency(
   context: Option<&str>,
   options: &ContextOptions,
 ) -> ResourceIdentifier {
-  let context = context.unwrap_or_default();
+  let context = context
+    .and_then(|context| context_identifier(&options.compiler_context, context))
+    .unwrap_or_default();
   let request = &options.request;
   let recursive = options.recursive.to_string();
   let pattern = match &options.pattern {
@@ -61,14 +64,7 @@ fn create_resource_identifier_for_context_dependency(
     .map(|specifiers| {
       specifiers
         .iter()
-        .map(|specifier| {
-          let s = specifier.names.iter().join(".");
-          if specifier.namespace_object_as_context && specifier.is_call {
-            format!("*.{s}()")
-          } else {
-            s
-          }
-        })
+        .map(ReferencedSpecifier::to_identifier_string)
         .join(", ")
     })
     .unwrap_or_default();
@@ -81,6 +77,11 @@ fn create_resource_identifier_for_context_dependency(
     "globExhaustive"
   } else {
     ""
+  };
+  let glob_case_sensitive = if options.glob_case_sensitive {
+    ""
+  } else {
+    " globCaseInsensitive"
   };
   let mut group_options = String::new();
 
@@ -102,7 +103,7 @@ fn create_resource_identifier_for_context_dependency(
   }
 
   let id = format!(
-    "context{context}|ctx request{request} {recursive} {pattern} {include} {exclude} {mode} {group_options} {referenced_exports} {glob_import} {glob_exhaustive}",
+    "context{context}|ctx request{request} {recursive} {pattern} {include} {exclude} {mode} {group_options} {referenced_exports} {glob_import} {glob_exhaustive}{glob_case_sensitive}",
   );
   id.into()
 }

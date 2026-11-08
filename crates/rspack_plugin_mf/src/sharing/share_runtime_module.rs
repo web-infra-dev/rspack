@@ -1,11 +1,15 @@
 use std::sync::LazyLock;
 
 use itertools::Itertools;
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  Compilation, ModuleId, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
-  RuntimeTemplate, SourceType, impl_runtime_module,
+  CodeGenerationDataItem, Compilation, ModuleId, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements, RuntimeTemplate, SourceType,
+  impl_runtime_module,
 };
-use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
+use rspack_plugin_runtime::{
+  extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs,
+};
 use rspack_util::{
   fx_hash::{FxLinkedHashMap, FxLinkedHashSet},
   json_stringify_str,
@@ -19,8 +23,13 @@ use crate::{
 };
 
 static INITIALIZE_SHARING_TEMPLATE: &str = include_str!("./initializeSharing.ejs");
-static INITIALIZE_SHARING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| extract_runtime_globals_from_ejs(INITIALIZE_SHARING_TEMPLATE));
+static INITIALIZE_SHARING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
+  LazyLock::new(|| RuntimeModuleRuntimeRequirements {
+    force_context: RuntimeGlobals::INITIALIZE_SHARING | RuntimeGlobals::SHARE_SCOPE_MAP,
+    ..extract_runtime_globals_from_ejs(INITIALIZE_SHARING_TEMPLATE)
+  });
+static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> =
+  LazyLock::new(|| extract_runtime_module_variables_from_ejs(&[INITIALIZE_SHARING_TEMPLATE]));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -36,12 +45,30 @@ impl ShareRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ShareRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::INITIALIZE_SHARING | RuntimeGlobals::SHARE_SCOPE_MAP
+  fn runtime_module_variables() -> &'static [&'static str] {
+    RUNTIME_MODULE_VARIABLES.as_slice()
+  }
+
+  fn runtime_requirements(
+    &self,
+    compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: {
+        INITIALIZE_SHARING_RUNTIME_REQUIREMENTS.dependencies
+          | runtime_require_scope_requirement(compilation)
+      },
+      define: INITIALIZE_SHARING_RUNTIME_REQUIREMENTS.define,
+      force_context: RuntimeGlobals::INITIALIZE_SHARING | RuntimeGlobals::SHARE_SCOPE_MAP,
+      ..Default::default()
+    }
   }
 
   fn template(&self) -> Vec<(String, String)> {
-    vec![(self.id.to_string(), INITIALIZE_SHARING_TEMPLATE.to_string())]
+    vec![(
+      self.id().to_string(),
+      INITIALIZE_SHARING_TEMPLATE.to_string(),
+    )]
   }
 
   async fn generate(
@@ -51,7 +78,7 @@ impl RuntimeModule for ShareRuntimeModule {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
     let chunk_ukey = self
-      .chunk
+      .chunk()
       .expect("should have chunk in <ShareRuntimeModule as RuntimeModule>::generate");
     let chunk = compilation
       .build_chunk_graph_artifact
@@ -78,7 +105,7 @@ impl RuntimeModule for ShareRuntimeModule {
         let code_gen = compilation
           .code_generation_results
           .get(&mid, Some(chunk.runtime()));
-        let Some(data) = code_gen.data.get::<CodeGenerationDataShareInit>() else {
+        let Some(data) = code_gen.data().get::<CodeGenerationDataShareInit>() else {
           continue;
         };
         for item in &data.items {
@@ -137,12 +164,14 @@ impl RuntimeModule for ShareRuntimeModule {
       .join(", ");
     let initialize_sharing_impl = if self.enhanced {
       format!(
-        "{initialize_sharing} = {initialize_sharing} || function() {{ throw new Error(\"should have {initialize_sharing}\") }}",
+        "{initialize_sharing_define} = {initialize_sharing} || function() {{ throw new Error(\"should have {initialize_sharing}\") }}",
+        initialize_sharing_define =
+          runtime_template.render_runtime_global_definition(&RuntimeGlobals::INITIALIZE_SHARING),
         initialize_sharing =
           runtime_template.render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING)
       )
     } else {
-      runtime_template.render(self.id.as_str(), None)?
+      runtime_template.render(self.id().as_str(), None)?
     };
     Ok(format!(
       r#"
@@ -157,17 +186,15 @@ impl RuntimeModule for ShareRuntimeModule {
       initialize_sharing_impl = initialize_sharing_impl,
     ))
   }
-
-  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
-    *INITIALIZE_SHARING_RUNTIME_REQUIREMENTS | runtime_require_scope_requirement(compilation)
-  }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataShareInit {
   pub items: Vec<ShareInitData>,
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ShareInitData {
   pub share_scope: ShareScope,
@@ -177,12 +204,14 @@ pub struct ShareInitData {
 
 pub type DataInitStage = i8;
 
+#[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum DataInitInfo {
   ExternalModuleId(Option<ModuleId>),
   ProvideSharedInfo(ProvideSharedInfo),
 }
 
+#[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProvideSharedInfo {
   pub name: String,
@@ -194,3 +223,6 @@ pub struct ProvideSharedInfo {
   pub strict_version: Option<bool>,
   pub tree_shaking_mode: Option<String>,
 }
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataShareInit {}

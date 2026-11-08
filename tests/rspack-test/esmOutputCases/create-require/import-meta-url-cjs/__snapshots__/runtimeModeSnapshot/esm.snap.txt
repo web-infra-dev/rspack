@@ -1,0 +1,73 @@
+```js title=main.js
+(() => {
+var __rspack_modules = ({
+"./a.js"
+/*!**************!*\
+  !*** ./a.js ***!
+  \**************/
+(module) {
+module.exports = "root";
+
+
+},
+
+});
+// The module cache
+var __rspack_module_cache = {};
+
+var __rspack_context={};
+
+// The require function
+function __rspack_require(moduleId) {
+
+// Check if module is in cache
+var cachedModule = __rspack_module_cache[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__rspack_module_cache[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__rspack_modules[moduleId](module, module.exports, __rspack_context);
+
+// Return the exports of the module
+return module.exports;
+
+}
+
+__rspack_context.r = __rspack_require;
+
+var __rspack_exports = {};
+// This entry needs to be wrapped in an IIFE because it needs to be in strict mode.
+(() => {
+"use strict";
+
+/*!******************************!*\
+  !*** ./index.js + 1 modules ***!
+  \******************************/
+
+;// CONCATENATED MODULE: external "module"
+const external_module_namespaceObject = require("module");
+;// CONCATENATED MODULE: ./index.js
+
+
+
+it("should parse createRequire import.meta.url in CJS output", () => {
+	const requireFromAlias = /* createRequire() */ undefined;
+	expect(__rspack_context.r(/*! ./a */ "./a.js")).toBe("root");
+
+	const requireFromNamespace = /* createRequire() */ undefined;
+	expect(__rspack_context.r(/*! ./a */ "./a.js")).toBe("root");
+
+	const requireFromDefault = /* createRequire() */ undefined;
+	expect(__rspack_context.r(/*! ./a */ "./a.js")).toBe("root");
+});
+
+})();
+
+module.exports = __rspack_exports;
+})()
+;
+```

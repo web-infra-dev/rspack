@@ -11,10 +11,6 @@ on:
         type: boolean
         required: false
         default: false
-      bench: # Run benchmarks?
-        type: boolean
-        required: false
-        default: false
       ref: # Git reference to checkout
         required: false
         type: string
@@ -29,9 +25,17 @@ jobs:
             runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
           - target: aarch64-unknown-linux-gnu
             runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+          - target: riscv64gc-unknown-linux-gnu
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
           - target: x86_64-unknown-linux-musl
             runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
           - target: aarch64-unknown-linux-musl
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+          - target: riscv64gc-unknown-linux-musl
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+          - target: powerpc64le-unknown-linux-gnu
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+          - target: s390x-unknown-linux-gnu
             runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
           - target: i686-pc-windows-msvc
             runner: ${{ '"windows-latest"' }}
@@ -43,10 +47,18 @@ jobs:
             runner: ${{ '"macos-latest"' }}
           - target: aarch64-apple-darwin
             runner: ${{ '"macos-latest"' }}
+          - target: wasm32-wasip1-threads
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+            profile: release
+          - target: wasm32-wasip1-threads
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+            binding_postfix: '-browser'
+            profile: release
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{ inputs.ref }}
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
-      profile: ${{ inputs.profile }}
+      binding_postfix: ${{ matrix.array.binding_postfix }}
+      profile: ${{ matrix.array.profile || inputs.profile }}
       test: ${{ inputs.test }}

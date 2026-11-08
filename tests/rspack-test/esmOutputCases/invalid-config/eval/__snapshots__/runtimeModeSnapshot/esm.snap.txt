@@ -1,0 +1,7 @@
+```mjs title=main.mjs
+// ./index.js
+it('should disable eval devtool', () => {});
+
+export {};
+
+```

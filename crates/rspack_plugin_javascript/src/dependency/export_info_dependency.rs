@@ -7,10 +7,11 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportProvided,
   TemplateContext, TemplateReplaceSource, UsageState, UsedExports, UsedName,
 };
-use swc_atoms::Atom;
+
+use crate::Atom;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ExportInfoDependency {
   start: u32,
   end: u32,
@@ -146,12 +147,9 @@ impl DependencyTemplate for ExportInfoDependencyTemplate {
       .downcast_ref::<ExportInfoDependency>()
       .expect("ExportInfoDependencyTemplate should be used for ExportInfoDependency");
 
-    let value = dep.get_property(code_generatable_context);
-    source.replace(
-      dep.start,
-      dep.end,
-      value.unwrap_or("undefined".to_string()),
-      None,
-    );
+    match dep.get_property(code_generatable_context) {
+      Some(value) => source.replace(dep.start, dep.end, value, None),
+      None => source.replace_static(dep.start, dep.end, "undefined", None),
+    }
   }
 }

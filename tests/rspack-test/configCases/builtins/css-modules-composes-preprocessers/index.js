@@ -1,4 +1,4 @@
-const path = __non_webpack_require__("path");
+const path = require("path");
 
 it("css modules with css preprocessers", () => {
 	const style = require("./index.css");

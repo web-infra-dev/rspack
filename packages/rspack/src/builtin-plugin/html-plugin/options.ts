@@ -57,7 +57,7 @@ export type HtmlRspackPluginOptions = {
    * Modern browsers support non-blocking JavaScript loading ([`defer` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script#defer)) to improve the page startup performance.
    *
    * Setting this option to `'module'` adds attribute `type="module"` to the `script`. This also implies `defer` attribute on the `script`, since modules are automatically deferred.
-   * @default "defer"
+   * @default "module" when `output.module` is enabled, otherwise "defer"
    * */
   scriptLoading?: 'blocking' | 'defer' | 'module' | 'systemjs-module';
 

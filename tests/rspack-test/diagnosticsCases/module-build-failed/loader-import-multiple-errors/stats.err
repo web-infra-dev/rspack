@@ -1,0 +1,19 @@
+ERROR in × Module parse failed:
+  ╰─▶   × JavaScript parse error: 'const' declarations must be initialized
+         ╭────
+       1 │ const foo {};
+         ·       ───
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in × Module parse failed:
+  ╰─▶   × JavaScript parse error: Expected a semicolon or an implicit semicolon after a statement, but found '{'
+         ╭────
+       1 │ const foo {};
+         ·           ─
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.

@@ -12,6 +12,18 @@ export type NormalModuleCreateData =
     settings: {};
   };
 
+export function createResolveData(data: binding.JsResolveData): ResolveData {
+  // TODO(v3): Remove resolveData.fileDependencies, resolveData.contextDependencies,
+  // and resolveData.missingDependencies.
+  // These arrays are kept only for compatibility and initialized in JavaScript
+  // to avoid transferring unused dependencies.
+  const resolveData = data as ResolveData;
+  resolveData.fileDependencies = [];
+  resolveData.contextDependencies = [];
+  resolveData.missingDependencies = [];
+  return resolveData;
+}
+
 export class NormalModuleFactory {
   hooks: {
     // TODO: second param resolveData

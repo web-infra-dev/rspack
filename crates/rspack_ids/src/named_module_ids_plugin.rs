@@ -10,7 +10,9 @@ use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{comparators::compare_ids, itoa};
 
-use crate::id_helpers::{get_long_module_name, get_short_module_name};
+use crate::id_helpers::{
+  get_long_module_name, get_short_module_name_with_graph, should_assign_module_id_without_chunk,
+};
 
 fn add_conflicted_module_name(
   name_to_item: &mut ModuleIdMap<ModuleIdentifier>,
@@ -42,7 +44,11 @@ fn assign_named_module_ids(
       let module = module_graph
         .module_by_identifier(&item)
         .expect("should have module");
-      let name = ModuleId::from(get_short_module_name(module, context));
+      let name = ModuleId::from(get_short_module_name_with_graph(
+        module,
+        context,
+        module_graph,
+      ));
       (item, name)
     })
     .collect();
@@ -189,6 +195,7 @@ async fn module_ids(
   &self,
   compilation: &rspack_core::Compilation,
   module_ids_artifact: &mut ModuleIdsArtifact,
+  _preserved_module_ids: &ModuleIdsArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   let mut module_ids = std::mem::take(module_ids_artifact);
@@ -197,6 +204,7 @@ async fn module_ids(
     .map(|(&module, id)| (id.clone(), module))
     .collect();
   let module_graph = compilation.get_module_graph();
+  let mut existing_module_set_id_mutations_len = 0;
   if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::MODULE_IDS)
@@ -217,6 +225,9 @@ async fn module_ids(
           }
           module_ids.remove(module);
         }
+        Mutation::ModuleSetId { .. } => {
+          existing_module_set_id_mutations_len += 1;
+        }
         _ => {}
       }
     });
@@ -233,11 +244,12 @@ async fn module_ids(
         };
       not_used
         && module.need_id()
-        && compilation
+        && (compilation
           .build_chunk_graph_artifact
           .chunk_graph
           .get_number_of_module_chunks(*module_identifier)
           != 0
+          || should_assign_module_id_without_chunk(module.as_ref()))
     })
     .map(|(m, _)| *m)
     .collect();
@@ -289,7 +301,7 @@ async fn module_ids(
     ));
     logger.log(format!(
       "{} modules are updated by set_module_id, with {} unnamed modules",
-      mutations.len(),
+      mutations.len() + existing_module_set_id_mutations_len,
       unnamed_modules_len,
     ));
   }

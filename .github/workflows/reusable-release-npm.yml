@@ -34,8 +34,23 @@ permissions:
   issues: write
 
 jobs:
+  validate:
+    name: Validate Npm Tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check tag matches tag_confirm
+        run: |
+          if [ "${{ inputs.tag }}" != "${{ inputs.tag_confirm }}" ]; then
+            echo "Error: tag and tag_confirm must match"
+            echo "tag: ${{ inputs.tag }}"
+            echo "tag_confirm: ${{ inputs.tag_confirm }}"
+            exit 1
+          fi
+          echo "npm tag validation passed: ${{ inputs.tag }}"
+
   build:
     name: Build ${{ matrix.array.target }}${{ matrix.array.binding_postfix }}
+    needs: validate
     strategy:
       fail-fast: false # for better utilize ci runners
       matrix:
@@ -46,10 +61,22 @@ jobs:
           - target: aarch64-unknown-linux-gnu
             runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
             test-runner: '"ubuntu-22.04"'
+          - target: riscv64gc-unknown-linux-gnu
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+            test-runner: '"ubuntu-22.04"'
           - target: x86_64-unknown-linux-musl
             runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
             test-runner: '"ubuntu-22.04"'
           - target: aarch64-unknown-linux-musl
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+            test-runner: '"ubuntu-22.04"'
+          - target: riscv64gc-unknown-linux-musl
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+            test-runner: '"ubuntu-22.04"'
+          - target: powerpc64le-unknown-linux-gnu
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+            test-runner: '"ubuntu-22.04"'
+          - target: s390x-unknown-linux-gnu
             runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
             test-runner: '"ubuntu-22.04"'
           - target: i686-pc-windows-msvc
@@ -99,7 +126,7 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           # This makes Actions fetch only one branch to release
           fetch-depth: 1
@@ -127,7 +154,7 @@ jobs:
       - name: Move artifacts
         run: |
           ls -R artifacts
-          node scripts/build-npm.cjs
+          node scripts/build-npm.mjs
 
       - name: Show binding packages
         run: ls -R npm

@@ -8,7 +8,7 @@ module.exports = function () {
     loadEntry: ({ remoteInfo }) => {
       const { entryGlobalName } = remoteInfo;
       globalThis[entryGlobalName] =
-          __non_webpack_require__(path.resolve(__dirname, 'remoteEntry.js'))[entryGlobalName];
+          eval("require")(path.resolve(__dirname, 'remoteEntry.js'))[entryGlobalName];
         return globalThis[entryGlobalName];
     },
   };

@@ -3,10 +3,10 @@ use rspack_core::{
   Compilation, DependencyCodeGeneration, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
-use rspack_util::ext::DynHash;
+use rspack_hash::{RspackHash, RspackHasher};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ModuleArgumentDependency {
   id: Option<String>,
   range: DependencyRange,
@@ -17,9 +17,32 @@ impl ModuleArgumentDependency {
   pub fn new(id: Option<String>, range: DependencyRange, loc: Option<DependencyLocation>) -> Self {
     Self { id, range, loc }
   }
+}
 
-  pub fn loc(&self) -> Option<DependencyLocation> {
-    self.loc.clone()
+impl RspackHash for ModuleArgumentDependency {
+  fn hash(&self, state: &mut RspackHasher) {
+    "range".hash(state);
+    self.range.hash(state);
+    if let Some(id) = &self.id {
+      "id".hash(state);
+      id.hash(state);
+    }
+
+    match self.id.as_deref() {
+      Some("id") => {
+        "runtime_requirements".hash(state);
+        RuntimeGlobals::MODULE_ID.hash(state);
+      }
+      Some("loaded") => {
+        "runtime_requirements".hash(state);
+        RuntimeGlobals::MODULE_LOADED.hash(state);
+      }
+      Some("hot" | "hot.accept" | "hot.decline") => {
+        "runtime_requirements".hash(state);
+        RuntimeGlobals::MODULE.hash(state);
+      }
+      _ => {}
+    }
   }
 }
 
@@ -31,12 +54,11 @@ impl DependencyCodeGeneration for ModuleArgumentDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
+    hasher: &mut RspackHasher,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    self.id.dyn_hash(hasher);
-    self.range.dyn_hash(hasher);
+    RspackHash::hash(self, hasher);
   }
 }
 
@@ -63,19 +85,12 @@ impl DependencyTemplate for ModuleArgumentDependencyTemplate {
       .expect("ModuleArgumentDependencyTemplate should be used for ModuleArgumentDependency");
 
     let TemplateContext {
-      compilation,
       module,
       runtime_template,
       ..
     } = code_generatable_context;
 
-    let module_argument = runtime_template.render_module_argument(
-      compilation
-        .get_module_graph()
-        .module_by_identifier(&module.identifier())
-        .expect("should have mgm")
-        .get_module_argument(),
-    );
+    let module_argument = runtime_template.render_module_argument(module.get_module_argument());
 
     let content = if let Some(id) = &dep.id {
       match id.as_str() {

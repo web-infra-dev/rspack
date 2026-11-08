@@ -45,5 +45,6 @@ pub fn to_bytes<T, C: CacheableContext>(_value: &T, _ctx: &C) -> Result<Vec<u8>>
 pub use context::{CacheableContext, ContextGuard};
 pub use deserialize::{Deserializer, Validator};
 pub use error::{Error, Result};
+pub use rkyv;
 pub use serialize::Serializer;
 pub use xxhash_rust;

@@ -1,5 +1,5 @@
 ---
-description: 'monorepo containing both Rust crates and JavaScript packages:'
+description: 'Navigate the Rspack monorepo, including Rust crates, JavaScript packages, test suites, and benchmark directories.'
 ---
 
 # Project architecture
@@ -16,6 +16,9 @@ This is a **monorepo** containing both Rust crates and JavaScript packages:
 - **`node_binding`**: Node.js binding implementation that generates Node.js native modules
 - **`rspack_napi`**: NAPI (Node-API) support layer for interoperability between Rust and Node.js
 - **`rspack_allocator`**: Memory allocator using mimalloc to optimize memory allocation performance (Linux/macOS)
+
+See [JavaScript API architecture](/api/javascript-api/architecture) for the ownership, threading,
+hook bridge, and lifecycle relationships between these crates and `@rspack/core`.
 
 ### Build & binding crates
 
@@ -35,7 +38,7 @@ This is a **monorepo** containing both Rust crates and JavaScript packages:
 - **`rspack_ids`**: ID generation and management for creating unique identifiers for modules, chunks, etc.
 - **`rspack_collections`**: Collection data structures providing optimized HashMap, HashSet, etc.
 - **`rspack_util`**: Utility function collection containing various helper functions
-- **`rspack_futures`**: Async utilities providing asynchronous programming support
+- **`rspack_parallel`**: Parallel execution utilities for consuming iterators with Rayon or async tasks and running scoped async work
 - **`rspack_workspace`**: Workspace support for handling monorepo scenarios
 
 ### Caching & storage
@@ -66,7 +69,7 @@ This is a **monorepo** containing both Rust crates and JavaScript packages:
 #### Core plugins
 
 - **`rspack_plugin_javascript`**: JavaScript plugin for parsing, transforming, and code generation of JS/TS modules
-- **`rspack_plugin_runtime`**: Runtime plugin generating webpack-compatible runtime code
+- **`rspack_plugin_runtime`**: Plugin generating webpack-compatible Rspack runtime code
 - **`rspack_plugin_entry`**: Entry plugin for handling entry point configuration
 - **`rspack_plugin_dynamic_entry`**: Dynamic entry plugin supporting dynamic entry points
 
@@ -116,7 +119,7 @@ This is a **monorepo** containing both Rust crates and JavaScript packages:
 - **`rspack_plugin_dll`**: DLL plugin implementing dynamic link library functionality
 - **`rspack_plugin_worker`**: Web Worker plugin for processing Worker files
 - **`rspack_plugin_schemes`**: Custom scheme plugin supporting custom resource protocols
-- **`rspack_plugin_runtime_chunk`**: Runtime chunk plugin for separating runtime code
+- **`rspack_plugin_runtime_chunk`**: Plugin for extracting Rspack runtime code into separate chunks
 
 #### Utility plugins
 
@@ -127,7 +130,7 @@ This is a **monorepo** containing both Rust crates and JavaScript packages:
 - **`rspack_plugin_size_limits`**: Size limits plugin for checking bundle sizes
 - **`rspack_plugin_sri`**: Subresource Integrity (SRI) plugin
 - **`rspack_plugin_module_info_header`**: Module info header plugin
-- **`rspack_plugin_warn_sensitive_module`**: Warn sensitive module plugin
+- **`rspack_plugin_case_sensitive`**: Warns about module names and output filenames that differ only in casing
 
 #### Debug & testing plugins
 

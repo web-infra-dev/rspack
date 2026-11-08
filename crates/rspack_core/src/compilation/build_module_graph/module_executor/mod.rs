@@ -138,15 +138,17 @@ impl ModuleExecutor {
     )
     .await?;
 
-    let mg = compilation
-      .build_module_graph_artifact
-      .get_module_graph_mut();
+    let mg = compilation.build_module_graph_artifact.get_module_graph();
     let module_assets = std::mem::take(&mut self.module_assets);
     for (original_module_identifier, assets) in module_assets {
       // recursive import module may not exist the module, just skip it
-      if let Some(module) = mg.module_by_identifier_mut(&original_module_identifier) {
-        module.build_info_mut().assets.extend(assets);
+      if let Some(module) = mg.module_by_identifier(&original_module_identifier) {
+        module.extend_build_assets(assets);
       }
+    }
+
+    for (_, module) in make_artifact.get_module_graph().modules() {
+      module.freeze_build_info();
     }
 
     let diagnostics = make_artifact.diagnostics();
@@ -203,7 +205,7 @@ impl ModuleExecutor {
       executed_runtime_modules,
     } = rx.await.expect("should receiver success");
 
-    if execute_result.error.is_none() {
+    if execute_result.errors.is_empty() {
       self
         .module_assets
         .entry(origin_module_identifier)

@@ -1,13 +1,11 @@
-use std::hash::Hash;
-
 use rspack_core::{
-  ChunkCodeTemplate, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationParams, CompilerCompilation, ExternalModule, ExternalRequest, Filename, LibraryName,
-  LibraryNonUmdObject, LibraryOptions, PathData, Plugin, RuntimeGlobals, RuntimeModule,
+  ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
+  CompilerCompilation, ExternalModule, ExternalRequest, Filename, LibraryName, LibraryNonUmdObject,
+  LibraryOptions, PathData, Plugin, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error_bail};
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRender, JsPlugin, RenderSource,
@@ -21,10 +19,6 @@ const PLUGIN_NAME: &str = "rspack.SystemLibraryPlugin";
 struct SystemLibraryPluginParsed<'a> {
   name: Option<&'a str>,
 }
-
-#[derive(Debug, Default)]
-#[allow(dead_code)]
-struct SystemLibraryJavascriptModulesPluginPlugin;
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -84,7 +78,7 @@ async fn render(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
-  _runtime_template: &ChunkCodeTemplate,
+  _runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
@@ -96,15 +90,17 @@ async fn render(
       .chunk_by_ukey
       .get(chunk_ukey);
     let filename = Filename::from(name);
-    let path_data = PathData::default()
-      .chunk_id_optional(chunk.and_then(|c| c.id().map(|id| id.as_str())))
-      .chunk_name_optional(chunk.and_then(|c| c.name()))
-      .chunk_hash_optional(chunk.and_then(|c| {
-        c.rendered_hash(
+    let path_data = match chunk {
+      Some(chunk) => PathData::default()
+        .chunk(chunk.ukey(), compilation)
+        .chunk_id_optional(chunk.id().map(|id| id.as_str()))
+        .chunk_name_optional(chunk.name())
+        .chunk_hash_optional(chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,
           compilation.options.output.hash_digest_length,
-        )
-      }));
+        )),
+      None => PathData::default(),
+    };
     let name = compilation.get_path(&filename, path_data).await?;
     let name_str = rspack_util::json_stringify_str(&name);
     format!("{name_str}, ")
@@ -187,7 +183,7 @@ async fn js_chunk_hash(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  hasher: &mut RspackHash,
+  hasher: &mut RspackHasher,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());

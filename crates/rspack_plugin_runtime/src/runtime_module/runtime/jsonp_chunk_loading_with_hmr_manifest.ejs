@@ -1,4 +1,4 @@
-<%- HMR_DOWNLOAD_MANIFEST %> = <%- basicFunction("") %> {
+<%- define(HMR_DOWNLOAD_MANIFEST) %> = <%- basicFunction("") %> {
 	if (typeof fetch === "undefined")
 		throw new Error("No browser support: need fetch API");
 	return fetch(<%- PUBLIC_PATH %> + <%- GET_UPDATE_MANIFEST_FILENAME %>()).then(

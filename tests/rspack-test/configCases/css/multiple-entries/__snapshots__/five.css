@@ -1,0 +1,13 @@
+@import url("https://some/other/external/css");
+@import url("https://some/external/css");
+
+
+.a {
+	color: yellow;
+}
+
+
+
+.b {
+	color: yellow;
+}

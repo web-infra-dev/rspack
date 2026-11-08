@@ -14,7 +14,7 @@ ERROR in ./not-existing.js 1:9-25
 
 ERROR in ./parse-error.js
   × Module parse failed:
-  ╰─▶   × JavaScript parse error: Expression expected
+  ╰─▶   × JavaScript parse error: Unexpected token ')'
          ╭─[3:4]
        1 │ Here
        2 │ could

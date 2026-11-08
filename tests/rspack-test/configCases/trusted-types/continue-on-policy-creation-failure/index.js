@@ -16,7 +16,7 @@ it("can continue on policy creation failure", function () {
 	expect(script.src).toBe(
 		"https://test.cases/path/continue-on-policy-creation-failure.web.js"
 	);
-	__non_webpack_require__("./continue-on-policy-creation-failure.web.js");
+	require("./continue-on-policy-creation-failure.web.js");
 
 	expect(createPolicySpy).toHaveBeenCalledWith(
 		"CustomPolicyName",

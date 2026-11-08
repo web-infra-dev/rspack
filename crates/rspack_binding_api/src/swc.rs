@@ -1,6 +1,6 @@
 use std::{rc::Rc, sync::Arc};
 
-use napi::bindgen_prelude::within_runtime_if_available;
+use napi::{Env, bindgen_prelude::PromiseRaw};
 use rspack_javascript_compiler::{
   JavaScriptCompiler, TransformOutput as CompilerTransformOutput, minify::JsMinifyOptions,
   transform::SwcOptions,
@@ -74,13 +74,17 @@ fn _transform(source: String, options: String) -> napi::Result<TransformOutput> 
 }
 
 #[napi]
-pub async fn transform(source: String, options: String) -> napi::Result<TransformOutput> {
-  _transform(source, options)
+pub fn transform<'env>(
+  env: &'env Env,
+  source: String,
+  options: String,
+) -> napi::Result<PromiseRaw<'env, TransformOutput>> {
+  rspack_napi::runtime::promise_from_future(env, async move { _transform(source, options) })
 }
 
 #[napi]
 pub fn transform_sync(source: String, options: String) -> napi::Result<TransformOutput> {
-  within_runtime_if_available(|| _transform(source, options))
+  rspack_napi::runtime::within_runtime_if_available(|| _transform(source, options))
 }
 
 fn _minify(source: String, options: String) -> napi::Result<TransformOutput> {
@@ -107,8 +111,12 @@ fn _minify(source: String, options: String) -> napi::Result<TransformOutput> {
 }
 
 #[napi]
-pub async fn minify(source: String, options: String) -> napi::Result<TransformOutput> {
-  _minify(source, options)
+pub fn minify<'env>(
+  env: &'env Env,
+  source: String,
+  options: String,
+) -> napi::Result<PromiseRaw<'env, TransformOutput>> {
+  rspack_napi::runtime::promise_from_future(env, async move { _minify(source, options) })
 }
 
 #[napi]

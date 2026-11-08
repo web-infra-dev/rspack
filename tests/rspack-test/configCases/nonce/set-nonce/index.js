@@ -5,7 +5,7 @@ it("should load script with nonce 'nonce1234'", function () {
 	);
 
 	var script = document.head._children.pop();
-	__non_webpack_require__("./chunk-with-nonce.web.js");
+	require("./chunk-with-nonce.web.js");
 	expect(script.getAttribute("nonce")).toBe("nonce1234");
 
 	return promise;

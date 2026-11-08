@@ -1,8 +1,8 @@
 import { Link, renderInlineMarkdown } from '@rspress/core/theme';
 import { useLang } from '@rspress/core/runtime';
-import { BlogList as BaseBlogList } from '@rstack-dev/doc-ui/blog-list';
+import { BlogList as BaseBlogList } from '@rstackjs/doc-ui/blog-list';
 import { useBlogPages } from '../hooks/useBlogPages';
-import { BlogBackground } from '@rstack-dev/doc-ui/blog-background';
+import { BlogBackground } from '@rstackjs/doc-ui/blog-background';
 
 export function BlogList() {
   const lang = useLang();

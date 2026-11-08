@@ -2,19 +2,20 @@ use std::{ptr::NonNull, sync::Arc};
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use rspack_core::{LoaderContext, Module, RunnerContext};
+use rspack_collections::Identifiable;
+use rspack_core::{CodeFilter, Content, LoaderContext, LoaderDependencies, Module, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
-use rspack_napi::threadsafe_js_value_ref::ThreadsafeJsValueRef;
+use rspack_napi::ThreadsafeOneShotRef;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{error::RspackError, module::ModuleObject};
 
 #[napi(object)]
-#[derive(Hash)]
 pub struct JsLoaderItem {
   pub loader: String,
   pub r#type: String,
+  pub cache: bool,
 
   // data
   pub data: serde_json::Value,
@@ -23,7 +24,18 @@ pub struct JsLoaderItem {
   pub normal_executed: bool,
   pub pitch_executed: bool,
 
+  #[napi(ts_type = "string | RegExp")]
+  pub code_filter: Option<Either<String, rspack_regex::RspackRegex>>,
+  pub filter_matched: bool,
+
   pub no_pitch: bool,
+}
+
+fn into_js_code_filter(value: &CodeFilter) -> Either<String, rspack_regex::RspackRegex> {
+  match value {
+    CodeFilter::String(value) => Either::A(value.clone()),
+    CodeFilter::Regexp(value) => Either::B(value.clone()),
+  }
 }
 
 impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
@@ -31,10 +43,15 @@ impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
     JsLoaderItem {
       loader: value.request().to_string(),
       r#type: value.r#type().to_string(),
+      cache: value.cache(),
 
       data: value.data().clone(),
       normal_executed: value.normal_executed(),
       pitch_executed: value.pitch_executed(),
+      code_filter: value
+        .filter()
+        .and_then(|filter| filter.code().map(into_js_code_filter)),
+      filter_matched: value.filter_matched(),
 
       no_pitch: false,
     }
@@ -53,8 +70,11 @@ where
         loader: ident.to_string(),
         data: serde_json::Value::Null,
         r#type: r#type.to_string(),
+        cache: false,
         pitch_executed: false,
         normal_executed: false,
+        code_filter: None,
+        filter_matched: false,
         no_pitch: false,
       };
     }
@@ -62,8 +82,11 @@ where
       loader: identifier.to_string(),
       data: serde_json::Value::Null,
       r#type: String::default(),
+      cache: false,
       pitch_executed: false,
       normal_executed: false,
+      code_filter: None,
+      filter_matched: false,
       no_pitch: false,
     }
   }
@@ -88,6 +111,73 @@ impl From<LoaderState> for JsLoaderState {
 }
 
 #[napi(object)]
+#[derive(Clone, Default)]
+pub struct JsLoaderDependencies {
+  pub file_dependencies: Vec<String>,
+  pub context_dependencies: Vec<String>,
+  pub missing_dependencies: Vec<String>,
+  pub build_dependencies: Vec<String>,
+}
+
+impl From<&LoaderDependencies> for JsLoaderDependencies {
+  fn from(value: &LoaderDependencies) -> Self {
+    Self {
+      file_dependencies: value
+        .file
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect(),
+      context_dependencies: value
+        .context
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect(),
+      missing_dependencies: value
+        .missing
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect(),
+      build_dependencies: value
+        .build
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect(),
+    }
+  }
+}
+
+impl From<JsLoaderDependencies> for LoaderDependencies {
+  fn from(value: JsLoaderDependencies) -> Self {
+    Self {
+      file: value
+        .file_dependencies
+        .iter()
+        .map(String::as_str)
+        .map(Into::into)
+        .collect(),
+      context: value
+        .context_dependencies
+        .iter()
+        .map(String::as_str)
+        .map(Into::into)
+        .collect(),
+      missing: value
+        .missing_dependencies
+        .iter()
+        .map(String::as_str)
+        .map(Into::into)
+        .collect(),
+      build: value
+        .build_dependencies
+        .iter()
+        .map(String::as_str)
+        .map(Into::into)
+        .collect(),
+    }
+  }
+}
+
+#[napi(object)]
 pub struct JsLoaderContext {
   pub resource: String,
   #[napi(js_name = "_module", ts_type = "Module")]
@@ -96,29 +186,25 @@ pub struct JsLoaderContext {
   pub hot: bool,
 
   /// Content maybe empty in pitching stage
-  pub content: Either<Null, Buffer>,
+  pub content: Either3<String, Buffer, Null>,
   #[napi(ts_type = "any")]
-  pub additional_data: Option<ThreadsafeJsValueRef<Unknown<'static>>>,
+  pub additional_data: Option<ThreadsafeOneShotRef>,
   #[napi(js_name = "__internal__parseMeta")]
   pub parse_meta: HashMap<String, String>,
   pub source_map: Option<Buffer>,
   pub cacheable: bool,
-  pub file_dependencies: Vec<String>,
-  pub context_dependencies: Vec<String>,
-  pub missing_dependencies: Vec<String>,
-  pub build_dependencies: Vec<String>,
+  pub dependencies: JsLoaderDependencies,
+  pub added_dependencies: JsLoaderDependencies,
+  pub removed_dependencies: JsLoaderDependencies,
 
   pub loader_items: Vec<JsLoaderItem>,
   pub loader_index: i32,
   #[napi(ts_type = "Readonly<JsLoaderState>")]
   pub loader_state: JsLoaderState,
+  pub loader_chain_start: u32,
+  pub loader_chain_end: u32,
   #[napi(js_name = "__internal__error")]
   pub error: Option<RspackError>,
-
-  /// UTF-8 hint for `content`
-  /// - Some(true): `content` is a `UTF-8` encoded sequence
-  #[napi(js_name = "__internal__utf8Hint")]
-  pub utf8_hint: Option<bool>,
 }
 
 impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
@@ -127,58 +213,48 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
   fn try_from(
     cx: &mut rspack_core::LoaderContext<RunnerContext>,
   ) -> std::result::Result<Self, Self::Error> {
+    let content = match cx.take_content() {
+      Some(Content::String(content)) => Either3::A(content),
+      Some(Content::Buffer(content)) => Either3::B(content.into()),
+      None => Either3::C(Null),
+    };
+    let additional_data = cx
+      .take_additional_data()
+      .and_then(|mut data| data.remove::<ThreadsafeOneShotRef>());
+
     let module = &cx.context.module;
 
-    #[allow(clippy::unwrap_used)]
+    let execution_span = cx
+      .current_chain()
+      .map_or(0..cx.loader_items.len(), |chain| chain.start()..chain.end());
     Ok(JsLoaderContext {
       resource: cx.resource_data.resource().to_owned(),
       module: ModuleObject::with_ptr(
-        NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module).unwrap(),
+        NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module)
+          .expect("module reference should always produce a non-null pointer"),
         cx.context.compiler_id,
       ),
       hot: cx.hot,
-      content: match cx.content() {
-        Some(c) => Either::B(c.to_owned().into_bytes().into()),
-        None => Either::A(Null),
-      },
+      content,
       // Since js side only set parse meta, and can't read it, so we can use Default here to only bring the
       // set values from js side to rust side.
       parse_meta: Default::default(),
-      additional_data: cx
-        .additional_data()
-        .and_then(|data| data.get::<ThreadsafeJsValueRef<Unknown>>())
-        .cloned(),
+      additional_data,
       source_map: cx
         .source_map()
         .map(|v| v.to_json())
         .map(|v| v.into_bytes().into()),
       cacheable: cx.cacheable,
-      file_dependencies: cx
-        .file_dependencies
-        .iter()
-        .map(|i| i.to_string_lossy().to_string())
-        .collect(),
-      context_dependencies: cx
-        .context_dependencies
-        .iter()
-        .map(|i| i.to_string_lossy().to_string())
-        .collect(),
-      missing_dependencies: cx
-        .missing_dependencies
-        .iter()
-        .map(|i| i.to_string_lossy().to_string())
-        .collect(),
-      build_dependencies: cx
-        .build_dependencies
-        .iter()
-        .map(|i| i.to_string_lossy().to_string())
-        .collect(),
+      dependencies: cx.dependencies().as_ref().into(),
+      added_dependencies: cx.added_dependencies().into(),
+      removed_dependencies: cx.removed_dependencies().into(),
 
       loader_items: cx.loader_items.iter().map(Into::into).collect(),
       loader_index: cx.loader_index,
       loader_state: cx.state().into(),
       error: None,
-      utf8_hint: None,
+      loader_chain_start: execution_span.start as u32,
+      loader_chain_end: execution_span.end as u32,
     })
   }
 }

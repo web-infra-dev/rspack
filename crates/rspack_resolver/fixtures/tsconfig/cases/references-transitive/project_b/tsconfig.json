@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["./aliased/*"]
+    }
+  },
+  "references": [{ "path": "../project_c" }]
+}

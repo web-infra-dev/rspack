@@ -1,5 +1,5 @@
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsRefStr};
-use rspack_util::ext::DynHash;
+use rspack_hash::{RspackHash, RspackHasher};
 
 use super::DependencyRange;
 use crate::{
@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ConstDependency {
   pub range: DependencyRange,
   #[cacheable(with=AsRefStr)]
@@ -21,6 +21,14 @@ impl ConstDependency {
   }
 }
 
+impl RspackHash for ConstDependency {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.range.hash(state);
+    state.write(b"|");
+    self.content.hash(state);
+  }
+}
+
 #[cacheable_dyn]
 impl DependencyCodeGeneration for ConstDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
@@ -29,17 +37,16 @@ impl DependencyCodeGeneration for ConstDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
+    hasher: &mut RspackHasher,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    self.range.dyn_hash(hasher);
-    self.content.dyn_hash(hasher);
+    RspackHash::hash(self, hasher);
   }
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct ConstDependencyTemplate;
 
 impl ConstDependencyTemplate {

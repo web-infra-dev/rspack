@@ -1,8 +1,7 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { rimrafSync } from 'rimraf';
 
 import { createLazyTestEnv } from '../helper/legacy/createLazyTestEnv';
+import { findTestFile, readTestFile } from '../helper/read-test-file';
 import type {
   ITestContext,
   ITestEnv,
@@ -10,6 +9,7 @@ import type {
   ITesterConfig,
   ITestProcessor,
   TTestConfig,
+  TTestFilter,
   TTestRunnerCreator,
 } from '../type';
 import { Tester } from './tester';
@@ -366,8 +366,8 @@ export class BasicCaseCreator {
   }
 
   protected readTestConfig(src: string): TTestConfig {
-    const testConfigFile = path.join(src, 'test.config.js');
-    return fs.existsSync(testConfigFile) ? require(testConfigFile) : {};
+    const testConfigFile = findTestFile(src, 'test.config');
+    return testConfigFile ? readTestFile<TTestConfig>(testConfigFile) : {};
   }
 
   protected checkSkipped(
@@ -375,13 +375,13 @@ export class BasicCaseCreator {
     testConfig: TTestConfig,
     options: IBasicCaseCreatorOptions,
   ): boolean | string {
-    const filterPath = path.join(src, 'test.filter.js');
-    // no test.filter.js, should not skip
-    if (!fs.existsSync(filterPath)) {
+    const filterPath = findTestFile(src, 'test.filter');
+    if (!filterPath) {
       return false;
     }
-    // test.filter.js exists, skip if it returns false|string|array
-    const filtered = require(filterPath)(options, testConfig);
+    // Skip if the filter returns false, a string, or an array.
+    const filter = readTestFile<TTestFilter>(filterPath);
+    const filtered = filter(options, testConfig);
     if (typeof filtered === 'string' || Array.isArray(filtered)) {
       return true;
     }

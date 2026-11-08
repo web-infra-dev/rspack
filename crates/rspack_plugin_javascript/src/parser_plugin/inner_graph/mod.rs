@@ -3,7 +3,8 @@ use rspack_core::{
   ModuleGraphConnection, ModuleIdentifier, ResolvedExportInfoTarget, RuntimeCondition, RuntimeSpec,
   UsageState, UsedByExports, UsedByExportsCondition, filter_runtime, get_target,
 };
-use swc_atoms::Atom;
+
+use crate::Atom;
 
 pub mod plugin;
 pub mod state;
@@ -14,11 +15,12 @@ fn module_has_side_effects_free_export(
   atom: &Atom,
 ) -> Option<bool> {
   let module = module_graph.module_by_identifier(module_identifier)?;
-  let side_effects_free = module.build_info().side_effects_free.as_ref()?;
+  let build_info = module.build_info();
+  let side_effects_free = build_info.side_effects_free.as_ref()?;
   Some(side_effects_free.contains(atom))
 }
 
-pub(crate) fn deferred_pure_check_is_impure(
+pub fn deferred_pure_check_is_impure(
   module_graph: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
   dep_id: &DependencyId,
@@ -70,7 +72,7 @@ pub(crate) fn deferred_pure_check_is_impure(
   true
 }
 
-pub(crate) fn has_impure_deferred_pure_checks(
+pub fn has_impure_deferred_pure_checks(
   module_graph: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
   used_by_exports: &UsedByExports,

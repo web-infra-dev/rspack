@@ -1,5 +1,5 @@
-const fs = __non_webpack_require__('fs')
-const path = __non_webpack_require__('path')
+const fs = require('fs')
+const path = require('path')
 
 it('should have correct css result', async () => {
 	const css = await fs.promises.readFile(path.resolve(eval('__dirname'), './imported_js.bundle0.css'))
@@ -20,7 +20,7 @@ it("should allow to dynamic import a css module", async () => {
 });
 
 it("should allow to reexport a css module", async () => {
-	__non_webpack_require__("./reexported_js.bundle0.js");
+	require("./reexported_js.bundle0.js");
 	await import("./reexported").then(x => {
 			expect(x).toEqual(
 				nsObj({
@@ -34,7 +34,7 @@ it("should allow to reexport a css module", async () => {
 });
 
 it("should allow to import a css module", async () => {
-	__non_webpack_require__("./imported_js.bundle0.js");
+	require("./imported_js.bundle0.js");
 	await import("./imported").then(({ default: x }) => {
 			expect(x).toEqual(
 				nsObj({

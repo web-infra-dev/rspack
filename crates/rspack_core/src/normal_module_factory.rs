@@ -1,12 +1,18 @@
-use std::{borrow::Cow, collections::HashMap, ops::Deref, sync::Arc};
+use std::{
+  borrow::Cow,
+  ops::Deref,
+  sync::{Arc, LazyLock},
+};
 
+use memchr::{memchr, memmem, memrchr};
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
-use rspack_loader_runner::{Loader, Scheme, get_scheme};
-use rspack_paths::ArcResolverPathSet;
-use rspack_util::{MergeFrom, fx_hash::FxDashMap};
+use rspack_loader_runner::{Loader, LoaderFilter, LoaderRunnerOptions, Scheme, get_scheme};
+use rspack_util::{
+  MergeFrom,
+  fx_hash::{FxDashMap, FxHashMap as HashMap},
+};
 use sugar_path::SugarPath;
-use winnow::prelude::*;
 
 use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
@@ -31,12 +37,11 @@ define_hook!(NormalModuleFactoryAfterResolve: SeriesBail(data: &mut ModuleFactor
 define_hook!(NormalModuleFactoryCreateModule: SeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> BoxModule,tracing=false);
 define_hook!(NormalModuleFactoryModule: Series(data: &mut ModuleFactoryCreateData, create_data: &NormalModuleCreateData, module: &mut BoxModule),tracing=false);
 define_hook!(NormalModuleFactoryParser: Series(module_type: &ModuleType, parser: &mut Box<dyn ParserAndGenerator>, parser_options: Option<&ParserOptions>),tracing=false);
-define_hook!(NormalModuleFactoryResolveLoader: SeriesBail(context: &Context, resolver: &Resolver, l: &ModuleRuleUseLoader) -> BoxLoader,tracing=false);
+define_hook!(NormalModuleFactoryResolveLoader: SeriesBail(context: &Context, resolver: &Resolver, l: &ModuleRuleUseLoader, data: &mut ModuleFactoryCreateData) -> BoxLoader,tracing=false);
 define_hook!(NormalModuleFactoryAfterFactorize: Series(data: &mut ModuleFactoryCreateData, module: &mut BoxModule),tracing=false);
 
 pub enum NormalModuleFactoryResolveResult {
   Module(BoxModule),
-  Ignored,
 }
 
 #[derive(Debug)]
@@ -96,7 +101,7 @@ impl AsRef<ResourceData> for NormalModuleCreateDataResource {
 fn create_global_parser_options_cache(
   parser_options: Option<&ParserOptionsMap>,
 ) -> HashMap<String, ParserOptions> {
-  let mut cache = HashMap::new();
+  let mut cache = HashMap::default();
   let Some(parser_options) = parser_options else {
     return cache;
   };
@@ -124,7 +129,7 @@ fn create_global_parser_options_cache(
 fn create_global_generator_options_cache(
   generator_options: Option<&crate::GeneratorOptionsMap>,
 ) -> HashMap<String, GeneratorOptions> {
-  let mut cache = HashMap::new();
+  let mut cache = HashMap::default();
   let Some(generator_options) = generator_options else {
     return cache;
   };
@@ -218,28 +223,25 @@ fn resolve_global_parser_options(
         },
       )
     }
-    ModuleType::CssGlobal => rspack_util::merge_from_optional_with(
-      parser_options.get("css").cloned(),
-      options,
-      |css_options, options| match (css_options, options) {
-        (ParserOptions::Css(a), ParserOptions::CssModule(b)) => {
-          ParserOptions::CssModule(Into::<CssModuleParserOptions>::into(&a).merge_from(b))
-        }
-        _ => unreachable!(),
-      },
-    ),
-    ModuleType::CssAuto | ModuleType::CssModule => rspack_util::merge_from_optional_with(
-      parser_options.get("css").cloned(),
-      options,
-      |css_options, options| match (css_options, options) {
-        (ParserOptions::Css(a), ParserOptions::CssAutoOrModule(b)) => {
-          ParserOptions::CssAutoOrModule(
-            Into::<CssAutoOrModuleParserOptions>::into(&a).merge_from(b),
-          )
-        }
-        _ => unreachable!(),
-      },
-    ),
+    ModuleType::CssAuto | ModuleType::CssGlobal | ModuleType::CssModule => {
+      rspack_util::merge_from_optional_with(
+        parser_options.get("css").cloned(),
+        options,
+        |css_options, options| match (css_options, options) {
+          (ParserOptions::Css(a), ParserOptions::CssAutoOrModule(b)) => {
+            ParserOptions::CssAutoOrModule(
+              Into::<CssAutoOrModuleParserOptions>::into(&a).merge_from(b),
+            )
+          }
+          (ParserOptions::Css(a), ParserOptions::CssModule(b)) => ParserOptions::CssAutoOrModule(
+            Into::<CssModuleParserOptions>::into(&a)
+              .merge_from(b)
+              .into(),
+          ),
+          _ => unreachable!(),
+        },
+      )
+    }
     _ => options.cloned(),
   }
 }
@@ -308,15 +310,12 @@ fn normalize_css_parser_options(
     return parser;
   }
 
-  match (module_type, parser.as_ref()) {
-    (ModuleType::CssGlobal, Some(ParserOptions::Css(options))) => Some(ParserOptions::CssModule(
-      CssModuleParserOptions::from(options),
-    )),
-    (
-      ModuleType::Css | ModuleType::CssAuto | ModuleType::CssModule,
-      Some(ParserOptions::Css(options)),
-    ) => Some(ParserOptions::CssAutoOrModule(
+  match parser.as_ref() {
+    Some(ParserOptions::Css(options)) => Some(ParserOptions::CssAutoOrModule(
       CssAutoOrModuleParserOptions::from(options),
+    )),
+    Some(ParserOptions::CssModule(options)) => Some(ParserOptions::CssAutoOrModule(
+      CssAutoOrModuleParserOptions::from(options.clone()),
     )),
     _ => parser,
   }
@@ -585,34 +584,44 @@ mod tests {
   fn normalize_css_options_for_parser_and_generator_builder() {
     let options_cache = FxDashMap::default();
     let module_rules: [&ModuleRuleEffect; 0] = [];
-    let options = resolve_module_options(
-      &options_cache,
-      &module_rules,
-      &ModuleType::Css,
-      Some(&ParserOptions::Css(CssParserOptions {
-        named_exports: Some(true),
-        url: None,
-        r#import: None,
-        resolve_import: None,
-      })),
-      Some(&GeneratorOptions::Css(CssGeneratorOptions {
-        exports_only: Some(false),
-        es_module: Some(true),
-      })),
-    );
+    for module_type in [
+      ModuleType::Css,
+      ModuleType::CssAuto,
+      ModuleType::CssGlobal,
+      ModuleType::CssModule,
+    ] {
+      let options = resolve_module_options(
+        &options_cache,
+        &module_rules,
+        &module_type,
+        Some(&ParserOptions::Css(CssParserOptions {
+          export_type: None,
+          named_exports: Some(true),
+          url: None,
+          r#import: None,
+          resolve_import: None,
+        })),
+        Some(&GeneratorOptions::Css(CssGeneratorOptions {
+          exports_only: Some(false),
+          runtime_public_path: Some(false),
+          es_module: Some(true),
+        })),
+      );
 
-    let parser_options = options
-      .parser_options()
-      .and_then(ParserOptions::get_css_module)
-      .expect("css parser options should be normalized to CssModule");
-    let generator_options = options
-      .generator_options()
-      .and_then(GeneratorOptions::get_css_module)
-      .expect("css generator options should be normalized to CssModule");
+      let parser_options = options
+        .parser_options()
+        .and_then(ParserOptions::get_css_module)
+        .expect("css parser options should be normalized to CssAutoOrModule");
+      let generator_options = options
+        .generator_options()
+        .and_then(GeneratorOptions::get_css_module)
+        .expect("css generator options should be normalized to CssModule");
 
-    assert_eq!(parser_options.named_exports, Some(true));
-    assert_eq!(generator_options.exports_only, Some(false));
-    assert_eq!(generator_options.es_module, Some(true));
+      assert_eq!(parser_options.named_exports, Some(true));
+      assert_eq!(generator_options.exports_only, Some(false));
+      assert_eq!(generator_options.runtime_public_path, Some(false));
+      assert_eq!(generator_options.es_module, Some(true));
+    }
   }
 
   #[test]
@@ -648,6 +657,11 @@ mod tests {
       match_resource: None,
       side_effects: None,
       context: None,
+      module_options: Arc::new(ResolvedModuleOptions::new(
+        ResolvedModuleOptionsCacheKey::new(&[], ModuleType::JsAuto),
+        None,
+        None,
+      )),
     };
 
     let resource_data = create_data.resource_resolve_data.take_shared();
@@ -726,8 +740,7 @@ impl NormalModuleFactory {
     let importer = data.issuer_identifier;
     let raw_request = data.request.clone();
 
-    let mut file_dependencies: ArcResolverPathSet = Default::default();
-    let mut missing_dependencies: ArcResolverPathSet = Default::default();
+    let context = data.context.clone();
 
     let plugin_driver = &self.plugin_driver;
     let loader_resolver = self.get_loader_resolver();
@@ -745,7 +758,7 @@ impl NormalModuleFactory {
     if scheme.is_none() {
       let mut request_without_match_resource = data.request.as_str();
       request_without_match_resource = {
-        if let Ok((resource, full_matched)) = match_resource(request_without_match_resource) {
+        if let Some((resource, full_matched)) = match_resource(request_without_match_resource) {
           let match_resource = {
             let mut chars = resource.chars();
             let first_char = chars.next();
@@ -846,11 +859,15 @@ impl NormalModuleFactory {
             loader: r.to_owned(),
             options: ident.and_then(|ident| {
               data
-                .options
+                .build_context
+                .compiler_options
                 .__references
                 .get(ident)
                 .map(|object| object.to_string())
             }),
+            cache: false,
+            options_cache_key: String::new(),
+            filter: None,
           }
         }));
         scheme = get_scheme(unresolved_resource);
@@ -907,26 +924,30 @@ impl NormalModuleFactory {
         };
 
         let (resource_data, resolve_dependencies) = resolve(resolve_args, plugin_driver).await;
-        file_dependencies = resolve_dependencies.file_dependencies;
-        missing_dependencies = resolve_dependencies.missing_dependencies;
+        data
+          .file_dependencies
+          .extend(resolve_dependencies.file_dependencies);
+        data
+          .missing_dependencies
+          .extend(resolve_dependencies.missing_dependencies);
 
         match resource_data {
           Ok(ResolveResult::Resource(resource)) => resource.into(),
           Ok(ResolveResult::Ignored) => {
             let ident = format!("{}/{}", &data.context, resource);
-            let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
-            let mut raw_module = if matches!(
+            let raw_module = if matches!(
               dependency_type,
               DependencyType::CssUrl | DependencyType::NewUrl
             ) {
               // use RawModule instead of RawDataUrlModule
+              // Keep ignored assets separate from ignored JS modules in the graph and cache.
               RawModule::new(
                 r#"/* (ignored-asset) */
 module.exports = "data:,";
 "#
                 .to_owned(),
-                module_identifier,
+                ModuleIdentifier::from(format!("ignored-asset|{ident}")),
                 format!("{} (ignored-asset)", data.request),
                 RuntimeGlobals::MODULE,
               )
@@ -934,7 +955,7 @@ module.exports = "data:,";
             } else {
               RawModule::new(
                 "/* (ignored) */".to_owned(),
-                module_identifier,
+                ModuleIdentifier::from(format!("ignored|{ident}")),
                 format!("{} (ignored)", data.request),
                 Default::default(),
               )
@@ -947,17 +968,13 @@ module.exports = "data:,";
 
             return Ok(Some(ModuleFactoryResult::new_with_module(raw_module)));
           }
-          Err(err) => {
-            data.file_dependencies = file_dependencies.into_iter().map(Into::into).collect();
-            data.missing_dependencies = missing_dependencies.into_iter().map(Into::into).collect();
-            return Err(err);
-          }
+          Err(err) => return Err(err),
         }
       }
     };
 
     let matched_module_rules = if let Some(match_resource_data) = &mut match_resource_data
-      && let Ok((module, module_type)) = match_ext(match_resource_data.resource())
+      && let Some((module, module_type)) = match_ext(match_resource_data.resource())
     {
       match_module_type = Some(module_type.into());
       match_resource_data.set_resource(module.into());
@@ -981,7 +998,7 @@ module.exports = "data:,";
     let mut resolved_inline_loaders = vec![];
     for l in inline_loaders {
       resolved_inline_loaders
-        .push(resolve_each(plugin_driver, &data.context, &loader_resolver, &l).await?)
+        .push(resolve_each(plugin_driver, &context, &loader_resolver, &l, data).await?)
     }
 
     let user_request = {
@@ -997,7 +1014,7 @@ module.exports = "data:,";
       }
     };
 
-    let loaders: Vec<BoxLoader> = {
+    let resolved_loaders: Vec<ResolvedLoader> = {
       let mut pre_loaders: Vec<ModuleRuleUseLoader> = vec![];
       let mut post_loaders: Vec<ModuleRuleUseLoader> = vec![];
       let mut normal_loaders: Vec<ModuleRuleUseLoader> = vec![];
@@ -1047,44 +1064,91 @@ module.exports = "data:,";
       );
 
       for l in post_loaders {
-        all_loaders
-          .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
+        all_loaders.push(
+          resolve_each_with_options(plugin_driver, &self.options, &loader_resolver, &l, data)
+            .await?,
+        )
       }
 
       let mut resolved_normal_loaders = vec![];
       for l in normal_loaders {
-        resolved_normal_loaders
-          .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
+        resolved_normal_loaders.push(
+          resolve_each_with_options(plugin_driver, &self.options, &loader_resolver, &l, data)
+            .await?,
+        )
       }
 
       if match_resource_data.is_some() {
         all_loaders.extend(resolved_normal_loaders);
-        all_loaders.extend(resolved_inline_loaders);
+        all_loaders.extend(
+          resolved_inline_loaders
+            .into_iter()
+            .map(ResolvedLoader::uncached),
+        );
       } else {
-        all_loaders.extend(resolved_inline_loaders);
+        all_loaders.extend(
+          resolved_inline_loaders
+            .into_iter()
+            .map(ResolvedLoader::uncached),
+        );
         all_loaders.extend(resolved_normal_loaders);
       }
 
       for l in pre_loaders {
-        all_loaders
-          .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
+        all_loaders.push(
+          resolve_each_with_options(plugin_driver, &self.options, &loader_resolver, &l, data)
+            .await?,
+        )
       }
 
       all_loaders
     };
 
-    let request = if !loaders.is_empty() {
-      let s = loaders
+    let request = if !resolved_loaders.is_empty() {
+      let s = resolved_loaders
         .iter()
-        .map(|i| i.identifier().as_str())
+        .map(|i| i.loader.identifier().as_str())
         .collect::<Vec<_>>()
         .join("!");
       format!("{s}!{}", resource_data.resource())
     } else {
       resource_data.resource().to_owned()
     };
+    let mut has_cached_loader = false;
+    let mut has_filter = false;
+    for resolved in &resolved_loaders {
+      has_cached_loader |= resolved.options.cache;
+      has_filter |= resolved.filter.is_some();
+    }
+    let loader_filters = has_filter.then(|| {
+      resolved_loaders
+        .iter()
+        .map(|resolved| resolved.filter.clone())
+        .collect::<Vec<_>>()
+        .into_boxed_slice()
+    });
+    let (loaders, loader_options) = if has_cached_loader {
+      let (loaders, loader_options) = resolved_loaders
+        .into_iter()
+        .map(|resolved| (resolved.loader, resolved.options))
+        .unzip();
+      (loaders, Some(loader_options))
+    } else {
+      (
+        resolved_loaders
+          .into_iter()
+          .map(|resolved| resolved.loader)
+          .collect(),
+        None,
+      )
+    };
 
-    let resolved_module_type = self.calculate_module_type(match_module_type, &matched_module_rules);
+    let resolved_module_type = if no_pre_post_auto_loaders {
+      // Like webpack, `!!` also disables Rule.type, but preserves an explicit matchResource type.
+      match_module_type.unwrap_or(ModuleType::JsAuto)
+    } else {
+      self.calculate_module_type(match_module_type, &matched_module_rules)
+    };
     let resolved_module_layer =
       self.calculate_module_layer(data.issuer_layer.as_ref(), &matched_module_rules);
 
@@ -1124,6 +1188,7 @@ module.exports = "data:,";
           .map(|d| d.resource().to_owned()),
         side_effects: resolved_side_effects,
         context: resource_data.context().map(|c| c.to_owned()),
+        module_options: resolved_options.clone(),
         resource_resolve_data: NormalModuleCreateDataResource::Owned(resource_data),
       };
       if let Some(plugin_result) = self
@@ -1164,6 +1229,8 @@ module.exports = "data:,";
         resource_resolve_data,
         resolved_resolve_options,
         loaders,
+        loader_options,
+        loader_filters,
         create_data.context.clone().map(|x| x.into()),
         resolved_extract_source_map,
         dependency_phase,
@@ -1178,9 +1245,6 @@ module.exports = "data:,";
       .call(data, &create_data, &mut module)
       .await?;
 
-    data.file_dependencies = file_dependencies.into_iter().map(Into::into).collect();
-    data.missing_dependencies = missing_dependencies.into_iter().map(Into::into).collect();
-
     Ok(Some(ModuleFactoryResult::new_with_module(module)))
   }
 
@@ -1188,8 +1252,8 @@ module.exports = "data:,";
     &'a self,
     resource_data: &ResourceData,
     dependency: &dyn Dependency,
-    issuer: Option<&'a str>,
-    issuer_layer: Option<&'a str>,
+    issuer: Option<&str>,
+    issuer_layer: Option<&str>,
   ) -> Result<Vec<&'a ModuleRuleEffect>> {
     let mut rules = Vec::new();
     let match_ctx = MatchContext {
@@ -1304,26 +1368,8 @@ module.exports = "data:,";
       .call(data)
       .await?
     {
-      if let NormalModuleFactoryResolveResult::Module(result) = result {
-        return Ok(ModuleFactoryResult::new_with_module(result));
-      } else {
-        let ident = format!("{}/{}", &data.context, data.request);
-        let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
-
-        let mut raw_module = RawModule::new(
-          "/* (ignored) */".to_owned(),
-          module_identifier,
-          format!("{} (ignored)", data.request),
-          Default::default(),
-        )
-        .boxed();
-
-        raw_module.set_factory_meta(FactoryMeta {
-          side_effect_free: Some(true),
-        });
-
-        return Ok(ModuleFactoryResult::new_with_module(raw_module));
-      }
+      let NormalModuleFactoryResolveResult::Module(result) = result;
+      return Ok(ModuleFactoryResult::new_with_module(result));
     }
 
     if let Some(result) = self.resolve_normal_module(data).await? {
@@ -1341,17 +1387,87 @@ async fn resolve_each(
   context: &Context,
   loader_resolver: &Resolver,
   l: &ModuleRuleUseLoader,
+  data: &mut ModuleFactoryCreateData,
 ) -> Result<Arc<dyn Loader<RunnerContext>>> {
   plugin_driver
     .normal_module_factory_hooks
     .resolve_loader
-    .call(context, loader_resolver, l)
+    .call(context, loader_resolver, l, data)
     .await?
     .ok_or_else(|| error!("Unable to resolve loader {}", l.loader))
 }
 
+struct ResolvedLoader {
+  loader: BoxLoader,
+  options: LoaderRunnerOptions,
+  filter: Option<Arc<LoaderFilter>>,
+}
+
+impl ResolvedLoader {
+  fn uncached(loader: BoxLoader) -> Self {
+    Self {
+      loader,
+      options: LoaderRunnerOptions::default(),
+      filter: None,
+    }
+  }
+}
+
+async fn resolve_each_with_options(
+  plugin_driver: &SharedPluginDriver,
+  options: &CompilerOptions,
+  loader_resolver: &Resolver,
+  loader: &ModuleRuleUseLoader,
+  data: &mut ModuleFactoryCreateData,
+) -> Result<ResolvedLoader> {
+  let uncached_loader;
+  let loader = if options.experiments.new_cache.loader {
+    loader
+  } else {
+    uncached_loader = ModuleRuleUseLoader {
+      cache: false,
+      ..loader.clone()
+    };
+    &uncached_loader
+  };
+  let resolved = resolve_each(
+    plugin_driver,
+    &options.context,
+    loader_resolver,
+    loader,
+    data,
+  )
+  .await?;
+  if !loader.cache {
+    return Ok(ResolvedLoader {
+      loader: resolved,
+      options: LoaderRunnerOptions::default(),
+      filter: loader.filter.clone(),
+    });
+  }
+  let loader_name = parse_resource(&loader.loader).map_or_else(
+    || loader.loader.clone(),
+    |resource| resource.path.to_string(),
+  );
+  let loader_version = resolved
+    .cache_version()
+    .unwrap_or(rspack_workspace::rspack_pkg_version!())
+    .to_owned();
+  Ok(ResolvedLoader {
+    loader: resolved,
+    options: LoaderRunnerOptions {
+      cache: true,
+      loader_name,
+      options_cache_key: loader.options_cache_key.clone(),
+      loader_version,
+    },
+    filter: loader.filter.clone(),
+  })
+}
+
 #[derive(Debug)]
 pub struct NormalModuleCreateData {
+  pub module_options: Arc<ResolvedModuleOptions>,
   pub raw_request: String,
   pub request: String,
   pub user_request: String,
@@ -1362,42 +1478,53 @@ pub struct NormalModuleCreateData {
 }
 
 fn split_element(mut input: &str) -> Vec<&str> {
-  use winnow::{
-    combinator::separated,
-    error::ContextError,
-    token::{take_till, take_while},
-  };
-
-  separated::<_, _, _, _, ContextError, _, _>(.., take_till(.., '!'), take_while(1.., '!'))
-    .parse_next(&mut input)
-    .expect("split should never fail")
+  let mut elements = Vec::new();
+  while let Some(end) = memchr(b'!', input.as_bytes()) {
+    elements.push(&input[..end]);
+    // Consecutive separators form one split point.
+    let rest = &input[end + 1..];
+    let skip = rest
+      .as_bytes()
+      .iter()
+      .take_while(|&&byte| byte == b'!')
+      .count();
+    input = &rest[skip..];
+  }
+  elements.push(input);
+  elements
 }
 
-fn match_resource(mut input: &str) -> winnow::ModalResult<(&str, &str)> {
-  use winnow::{combinator::terminated, token::take_until};
-
-  let backup = input;
-
-  let res = terminated(take_until(1.., '!'), "!=!").parse_next(&mut input)?;
-  let whole_matched = &backup[..backup.len() - input.len()];
-  Ok((res, whole_matched))
+fn match_resource(input: &str) -> Option<(&str, &str)> {
+  let end = memchr(b'!', input.as_bytes())?;
+  if end == 0 {
+    return None;
+  }
+  let rest = input[end..].strip_prefix("!=!")?;
+  Some((&input[..end], &input[..input.len() - rest.len()]))
 }
 
-fn match_ext(mut input: &str) -> winnow::ModalResult<(&str, &str)> {
-  use winnow::{
-    combinator::{alt, delimited, eof, preceded, terminated},
-    token::take_until,
-  };
+fn match_ext(input: &str) -> Option<(&str, &str)> {
+  static MARKERS: LazyLock<[memmem::Finder<'static>; 2]> = LazyLock::new(|| {
+    [
+      memmem::Finder::new(b".rspack["),
+      memmem::Finder::new(b".webpack["),
+    ]
+  });
 
-  let parser = (
-    alt((take_until(0.., ".rspack"), take_until(0.., ".webpack"))),
-    preceded(
-      alt((".rspack", ".webpack")),
-      delimited('[', take_until(1.., ']'), ']'),
-    ),
-  );
-
-  terminated(parser, eof).parse_next(&mut input)
+  let input = input.strip_suffix(']')?;
+  let bytes = input.as_bytes();
+  // A suffix can only start after the previous closing bracket.
+  let suffix_start = memrchr(b']', bytes).map_or(0, |index| index + 1);
+  for marker in MARKERS.iter() {
+    if let Some(start) = marker.find(&bytes[suffix_start..]) {
+      let start = suffix_start + start;
+      let module_type = &input[start + marker.needle().len()..];
+      if !module_type.is_empty() {
+        return Some((&input[..start], module_type));
+      }
+    }
+  }
+  None
 }
 
 #[test]
@@ -1409,24 +1536,24 @@ fn test_split_element() {
 
 #[test]
 fn test_match_ext() {
-  assert!(match_ext("foo.webpack[type/javascript]").is_ok());
+  assert!(match_ext("foo.webpack[type/javascript]").is_some());
   let cap = match_ext("foo.webpack[type/javascript]").unwrap();
 
   assert_eq!(cap, ("foo", "type/javascript"));
 
   assert_eq!(
     match_ext("foo.css.webpack[javascript/auto]"),
-    Ok(("foo.css", "javascript/auto"))
+    Some(("foo.css", "javascript/auto"))
   );
 
   // Test .rspack support
-  assert!(match_ext("foo.rspack[type/javascript]").is_ok());
+  assert!(match_ext("foo.rspack[type/javascript]").is_some());
   let cap = match_ext("foo.rspack[type/javascript]").unwrap();
 
   assert_eq!(cap, ("foo", "type/javascript"));
 
   assert_eq!(
     match_ext("foo.css.rspack[javascript/auto]"),
-    Ok(("foo.css", "javascript/auto"))
+    Some(("foo.css", "javascript/auto"))
   );
 }

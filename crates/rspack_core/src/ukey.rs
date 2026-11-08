@@ -1,8 +1,5 @@
 use std::sync::atomic::AtomicU32;
 
-#[cfg(allocative)]
-use rspack_util::allocative;
-
 use crate::{Chunk, ChunkGroup};
 
 static NEXT_CHUNK_UKEY: AtomicU32 = AtomicU32::new(0);
@@ -39,7 +36,6 @@ impl From<u32> for ChunkUkey {
 static NEXT_CHUNK_GROUP_UKEY: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ChunkGroupUkey(u32, std::marker::PhantomData<ChunkGroup>);
 
 impl Default for ChunkGroupUkey {

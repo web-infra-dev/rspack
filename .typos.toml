@@ -23,12 +23,13 @@ extend-exclude = [
 
 [default.extend-identifiers]
 JSerFeng = "JSerFeng"
+fi3ework = "fi3ework"
 
 [default.extend-words]
 Colum    = "Colum"
 Nd       = "Nd"
+Pn       = "Pn"
 fo       = "fo"
 splitted = "splitted"
-ws       = "ws"
-Pn       = "Pn"
 styl     = "styl"
+ws       = "ws"

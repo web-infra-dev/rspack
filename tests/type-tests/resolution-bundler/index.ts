@@ -49,6 +49,17 @@ const lazyDefaultGlobModules = import.meta.glob<string>('./dir/*.js', {
 });
 lazyDefaultGlobModules['./dir/foo.js']().then((mod) => mod.toUpperCase());
 
+import.meta.rspackPublicPath.toUpperCase();
+import.meta.rspackBaseUri.toUpperCase();
+Object.keys(import.meta.rspackShareScopes).forEach((scope) =>
+  scope.toUpperCase(),
+);
+import.meta.rspackInitSharing('default').then(() => undefined);
+import.meta.rspackNonce.toUpperCase();
+import.meta.rspackUniqueId.toUpperCase();
+import.meta.rspackVersion.toUpperCase();
+import.meta.rspackHash.toUpperCase();
+
 const multiGlobModules = import.meta.glob<GlobModule>(
   ['./dir/*.js', '!**/bar.js'] as const,
   {
@@ -58,6 +69,7 @@ const multiGlobModules = import.meta.glob<GlobModule>(
     },
     base: './base',
     exhaustive: true,
+    caseSensitive: false,
   },
 );
 multiGlobModules['./dir/foo.js'].default.toUpperCase();

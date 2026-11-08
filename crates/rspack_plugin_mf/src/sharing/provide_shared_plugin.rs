@@ -244,7 +244,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
     .iter()
     .map(|(resource, config)| {
       (
-        Box::new(ProvideSharedDependency::new(
+        BoxDependency::new(ProvideSharedDependency::new(
           config.share_scope.clone(),
           config.share_key.clone(),
           config.version.clone(),
@@ -254,7 +254,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
           config.required_version.clone(),
           config.strict_version,
           config.tree_shaking_mode.clone(),
-        )) as BoxDependency,
+        )),
         EntryOptions {
           name: None,
           ..Default::default()

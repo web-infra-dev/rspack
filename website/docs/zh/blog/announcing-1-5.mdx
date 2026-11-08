@@ -9,11 +9,11 @@ authors:
     x: 'https://x.com/rspack_dev'
 ---
 
-import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
 # Rspack 1.5 发布公告
 
-2025 年 8 月 26 日
+_2025 年 8 月 26 日_
 
 <BlogAuthors />
 
@@ -61,7 +61,7 @@ export * from './hooks';
 
 虽然这种模式简化了模块导入的使用方式，但是在构建过程中会带来性能问题：当导入 barrel 文件中的某个模块时，Rspack 需要解析和构建 barrel 文件依赖的所有模块，即使实际只使用了其中的一小部分。
 
-为了解决这一问题，Rspack 1.5 引入了实验性的 [lazyBarrel](/guide/optimization/lazy-barrel) 功能，它能够自动识别无副作用的 barrel 文件，对其中的重导出进行延迟构建优化，只在真正需要时才会解析和构建相关模块，从而显著减少不必要的模块解析和构建开销。这一优化对于包含大量 barrel 文件的项目尤其有效，能够带来显著的构建性能提升。
+为了解决这一问题，Rspack 1.5 引入了实验性的 [lazyBarrel](/guide/advanced/lazy-barrel) 功能，它能够自动识别无副作用的 barrel 文件，对其中的重导出进行延迟构建优化，只在真正需要时才会解析和构建相关模块，从而显著减少不必要的模块解析和构建开销。这一优化对于包含大量 barrel 文件的项目尤其有效，能够带来显著的构建性能提升。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -89,7 +89,7 @@ export default {
 | 模块路径解析次数 | 181,078 次 | 137,232 次 | `-24%` |
 | 模块构建次数     | 38,046 次  | 29,405 次  | `-23%` |
 
-我们已经在 Rsbuild 1.5 中默认开启了 barrel 文件优化，并计划在 Rspack 1.6 中为所有项目默认启用该功能。详见 [experiments.lazyBarrel 文档](/guide/optimization/lazy-barrel)。
+我们已经在 Rsbuild 1.5 中默认开启了 barrel 文件优化，并计划在 Rspack 1.6 中为所有项目默认启用该功能。详见 [experiments.lazyBarrel 文档](/guide/advanced/lazy-barrel)。
 
 ### 更快的文件系统监听器
 
@@ -247,7 +247,7 @@ Rspack 1.5 引入了 [experiments.typeReexportsPresence](/config/module-parser#j
 
 在 Rspack 1.4 中，我们引入了[自定义 InputFileSystem](/blog/announcing-1-4#自定义文件读取系统) 功能，配合 `webpack-virtual-modules` 插件可以支持虚拟模块。然而，当虚拟模块数量较大时，该方式仍然存在性能瓶颈。
 
-为了更好地支持虚拟模块，Rspack 1.5 新增了内置的 [VirtualModulesPlugin](/plugins/rspack/virtual-modules-plugin)，它基于 Rust 实现，将虚拟模块的存储和管理迁移到 Rust 层，有效减少了模块读取和解析的开销，在处理大量虚拟模块时能够保持更好的性能表现。
+为了更好地支持虚拟模块，Rspack 1.5 新增了内置的 [VirtualModulesPlugin](/plugins/virtual-modules-plugin)，它基于 Rust 实现，将虚拟模块的存储和管理迁移到 Rust 层，有效减少了模块读取和解析的开销，在处理大量虚拟模块时能够保持更好的性能表现。
 
 `VirtualModulesPlugin` 与 `webpack-virtual-modules` 保持了一致的 API 设计，以便你可以轻松地迁移：
 
@@ -267,13 +267,13 @@ export default {
 
 ### 模块联邦运行时提升
 
-此前 Module Federation 的运行时是通过在入口模块打补丁的形式运行起来的。新版的 Module Federation 插件通过将自己的运行时代码和 Rspack 的运行时代码合并，同时将 Module Federation 运行时代码提升到了运行时 chunk 中。这样能在应用启动前就将 Module Federation 的运行时提前准备好了。
+此前，Module Federation 通过修改入口模块来启动自己的运行时。新版插件将这些代码集成到 Rspack 运行时中，并放入对应的运行时 chunk，使 Module Federation 在应用启动前完成准备。
 
 这样改动带来如下收益：
 
 1. 在多入口的场景下产物尺寸减少
 2. 修复了 Module Federation 初始化出错的问题
-3. Module Federation 可以提取到运行时 chunk 中
+3. Module Federation 的运行时代码可以提取到 Rspack 运行时 chunk 中
 4. 提供一套基于 hook 的插件体系
 
 下面是一个演示项目在使用新版 Module Federation 插件所带来的产物体积优化对比。
@@ -392,7 +392,7 @@ Rslint 仍处于早期阶段，我们正在积极开发更多功能和规则支�
 开箱即用一直是 Rsbuild 的核心设计理念。在 Rsbuild 1.5 中，我们默认启用了多项 Rspack 的最新特性，带来更优秀的构建性能，包括：
 
 - 启用 [lazyCompilation](/config/lazy-compilation) 来按需编译动态导入的模块，这可以提升开发服务器的启动速度。
-- 启用 [lazyBarrel](/guide/optimization/lazy-barrel) 来优化 barrel 文件的构建速度，减少不必要的模块解析。
+- 启用 [lazyBarrel](/guide/advanced/lazy-barrel) 来优化 barrel 文件的构建速度，减少不必要的模块解析。
 - 启用 [inlineEnum](/config/optimization#optimizationinlineexports) 来内联 TypeScript 枚举，这可以减少枚举被编译后的包体积。
 - 启用 [typeReexportsPresence](/config/module-parser#javascripttypereexportspresence) 来正确识别 TypeScript 类型重导出，提升类型处理的准确性。
 

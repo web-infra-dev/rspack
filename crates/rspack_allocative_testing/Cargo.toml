@@ -1,0 +1,36 @@
+[package]
+edition.workspace = true
+license.workspace = true
+name              = "rspack_allocative_testing"
+publish           = false
+version.workspace = true
+
+[lib]
+test = false
+
+[features]
+allocative = ["dep:rspack-allocative", "rspack_sources/allocative", "rspack-allocative/smallvec"]
+default    = []
+
+[dependencies]
+rspack-allocative = { workspace = true, optional = true }
+
+[dev-dependencies]
+cow-utils                = { workspace = true }
+hashlink                 = { workspace = true }
+indexmap                 = { workspace = true }
+rspack_allocative_driver = { workspace = true }
+rspack_sources           = { workspace = true }
+rspack_tasks             = { workspace = true }
+smallvec                 = { workspace = true }
+smol_str                 = { workspace = true }
+swc_core                 = { workspace = true, features = ["base"] }
+urlencoding              = { workspace = true }
+
+[[test]]
+name              = "ownership"
+path              = "tests/ownership.rs"
+required-features = ["allocative"]
+
+[lints]
+workspace = true

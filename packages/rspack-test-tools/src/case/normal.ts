@@ -1,15 +1,18 @@
-import fs from 'node:fs';
 import path from 'node:path';
+import TerserPlugin from 'terser-webpack-plugin';
 import {
   type Compiler,
   HotModuleReplacementPlugin,
   type RspackOptions,
 } from '@rspack/core';
+import { checkPersistentCache, type TCacheTestOptions } from '../helper/cache';
+import { RSPACK_CONFIG_FILES } from '../helper/read-config-file';
+import { findTestFile, readTestFile } from '../helper/read-test-file';
 import {
   BasicCaseCreator,
   type IBasicCaseCreatorOptions,
 } from '../test/creator';
-import type { ITestContext, ITestEnv } from '../type';
+import type { ITestContext, ITestEnv, ITestProcessor } from '../type';
 import { afterExecute, build, check, compiler, config, run } from './common';
 import { createRunner } from './runner';
 
@@ -22,42 +25,13 @@ const createCaseOptions = (
   return {
     clean: true,
     describe: false,
-    steps: ({ name }) => [
-      {
-        config: async (context: ITestContext) => {
-          const compiler = context.getCompiler();
-          let options = defaultOptions(
-            context,
-            {
-              plugins: hot ? [new HotModuleReplacementPlugin()] : [],
-            },
-            mode,
-          );
-          options = await config(
-            context,
-            name,
-            ['rspack.config.js', 'webpack.config.js'],
-            options,
-          );
-          overrideOptions(context, options);
-          compiler.setOptions(options);
-        },
-        compiler: async (context: ITestContext) => {
-          await compiler(context, name);
-        },
-        build: async (context: ITestContext) => {
-          await build(context, name);
-        },
-        run: async (env: ITestEnv, context: ITestContext) => {
-          await run(env, context, name, findBundle);
-        },
-        check: async (env: ITestEnv, context: ITestContext) => {
-          await check(env, context, name);
-        },
-        after: async (context: ITestContext) => {
-          await afterExecute(context, name);
-        },
-      },
+    steps: ({ name, cache }) => [
+      createNormalProcessor(
+        name,
+        hot,
+        mode,
+        cache as TCacheTestOptions | undefined,
+      ),
     ],
     runner: {
       key: (context: ITestContext, name: string, file: string) => name,
@@ -67,9 +41,53 @@ const createCaseOptions = (
   };
 };
 
+export function createNormalProcessor(
+  name: string,
+  hot = false,
+  mode?: 'development' | 'production',
+  cache?: TCacheTestOptions,
+): ITestProcessor {
+  return {
+    config: async (context: ITestContext) => {
+      const compiler = context.getCompiler();
+      let options = defaultOptions(
+        context,
+        {
+          plugins: hot ? [new HotModuleReplacementPlugin()] : [],
+        },
+        mode,
+      );
+      options = await config(context, name, RSPACK_CONFIG_FILES, options);
+      overrideOptions(context, options);
+      compiler.setOptions(options);
+    },
+    compiler: async (context: ITestContext) => {
+      await compiler(context, name);
+    },
+    build: async (context: ITestContext) => {
+      await build(context, name);
+    },
+    run: async (env: ITestEnv, context: ITestContext) => {
+      await run(env, context, name, findBundle);
+    },
+    check: async (env: ITestEnv, context: ITestContext) => {
+      await check(env, context, name);
+    },
+    after: async (context: ITestContext) => {
+      await afterExecute(context, name);
+      if (cache) await checkPersistentCache(context, cache);
+    },
+  };
+}
+
 const creator = new BasicCaseCreator(createCaseOptions(false));
-export function createNormalCase(name: string, src: string, dist: string) {
-  creator.create(name, src, dist);
+export function createNormalCase(
+  name: string,
+  src: string,
+  dist: string,
+  cache?: TCacheTestOptions,
+) {
+  creator.create(name, src, dist, undefined, { cache });
 }
 
 const hotCreator = new BasicCaseCreator(createCaseOptions(true));
@@ -108,11 +126,10 @@ function defaultOptions(
   mode?: 'development' | 'production',
 ) {
   let testConfig: RspackOptions = {};
-  const testConfigPath = path.join(context.getSource(), 'test.config.js');
-  if (fs.existsSync(testConfigPath)) {
-    testConfig = require(testConfigPath);
+  const testConfigPath = findTestFile(context.getSource(), 'test.config');
+  if (testConfigPath) {
+    testConfig = readTestFile<RspackOptions>(testConfigPath);
   }
-  const TerserPlugin = require('terser-webpack-plugin');
   const terserForTesting = new TerserPlugin({
     parallel: false,
   });

@@ -1,12 +1,5 @@
 {
-  "exclude": [
-    "node_modules",
-    "dist",
-    "js/**/*"
-  ],
-  "include": [
-    "**/*"
-  ],
+  "exclude": ["node_modules", "**/dist", "js"],
   "compilerOptions": {
     "types": ["./rstest.d.ts"]
   }

@@ -1,0 +1,5 @@
+{
+  "name": "synthetic",
+  "nested": { "value": 7 },
+  "__proto__": { "safe": true }
+}

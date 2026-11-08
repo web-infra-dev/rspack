@@ -81,4 +81,8 @@ impl ParserAndGenerator for RslibAssetParserAndGenerator {
   ) -> Result<RspackHashDigest> {
     self.0.get_runtime_hash(module, compilation, runtime).await
   }
+
+  fn has_runtime_hash(&self) -> bool {
+    self.0.has_runtime_hash()
+  }
 }

@@ -6,7 +6,7 @@ use rspack_util::SpanExt;
 /// Represents a range in a dependency, typically used for tracking the span of code in a source file.
 /// It stores the start and end positions (as offsets) of the range, typically using base-0 indexing.
 #[cacheable]
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Default, rspack_hash::RspackHash)]
 pub struct DependencyRange {
   pub start: u32,
   pub end: u32,
@@ -30,8 +30,8 @@ impl From<swc_core::common::Span> for DependencyRange {
   }
 }
 
-impl From<swc_experimental_ecma_ast::Span> for DependencyRange {
-  fn from(span: swc_experimental_ecma_ast::Span) -> Self {
+impl From<swc_next_ecma_ast::Span> for DependencyRange {
+  fn from(span: swc_next_ecma_ast::Span) -> Self {
     Self {
       start: span.real_lo(),
       end: span.real_hi(),

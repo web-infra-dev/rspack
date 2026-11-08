@@ -1,4 +1,4 @@
-import * as __rspack_external_external1_alias_bc4b12e4 from "external1-alias";
+import * as __rspack_external_external1_alias_dd38afe7 from "external1-alias";
 
 
 

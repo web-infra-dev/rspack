@@ -12,7 +12,7 @@ pub struct TraceEvent {
   pub args: Option<HashMap<String, String>>,
   // track_uuid
   pub uuid: u32,
-  // timestamp in microseconds
+  // timestamp relative to the tracer start, in nanoseconds
   pub ts: u64,
   // ph
   pub ph: String,

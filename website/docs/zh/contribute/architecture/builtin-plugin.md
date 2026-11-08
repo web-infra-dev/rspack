@@ -1,5 +1,5 @@
 ---
-description: 'Builtin 插件介绍'
+description: '使用 rspack_macros 实现 Rust 内置插件，并通过 plugin 和 plugin_hook 宏注册钩子处理函数。'
 ---
 
 # Builtin 插件

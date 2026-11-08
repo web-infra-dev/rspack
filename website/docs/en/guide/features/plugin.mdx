@@ -1,5 +1,5 @@
 ---
-description: 'If loaders are the workhorse for file transformations, then plugins are the workhorse for the overall Rspack build process'
+description: 'Use, write, and publish Rspack plugins, including plugin structure, TypeScript support, and peer dependencies.'
 ---
 
 import { Tabs, Tab } from '@theme';
@@ -51,7 +51,7 @@ module.exports = {
 
 If you're looking for more Rspack plugins, have a look at the great list of [supported plugins](/plugins/).
 
-You can also refer to [Plugin compat](/guide/compatibility/plugin) for the list of webpack plugins that have passed Rspack compatibility tests.
+You can also refer to [Community plugin compatibility](/plugins/community-plugin-compatibility) for the list of webpack plugins that have passed Rspack compatibility tests.
 
 ## Other plugins
 
@@ -96,7 +96,7 @@ module.exports = {
 
 ### SWC plugins
 
-In the built-in [swc-loader](/guide/features/builtin-swc-loader) of Rspack, you can use SWC's Wasm plugins, see [jsc.experimental.plugins](/guide/features/builtin-swc-loader#jscexperimentalplugins).
+In the built-in [swc-loader](/guide/builtin-loaders/swc-loader) of Rspack, you can use SWC's Wasm plugins, see [jsc.experimental.plugins](/guide/builtin-loaders/swc-loader#jscexperimentalplugins).
 
 ### Rsbuild plugins
 

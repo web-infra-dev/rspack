@@ -1,0 +1,18 @@
+.plainRecovery {
+	background:paint(opaque) "unterminated
+		.discarded;
+	button:hover { color: red; }
+	/* Selector pseudo-functions must not create declaration URL dependencies. */
+	button:url("./must-not-resolve-selector.svg") {
+		background:url("./selector-body.svg");
+	}
+	button:url(./must-not-resolve-unquoted-selector.svg) { color: red; }
+	button:image-set("./must-not-resolve-image-set-selector.svg" 1x) { color: red; }
+
+	/* Bad tokens inside a sole curly value remain declaration components. */
+	background:{
+		broken:paint(opaque) "unterminated
+			.discardedInner;
+	}
+	.afterPlainRecovery { color: green; }
+}

@@ -20,6 +20,7 @@ import { isNil } from '../util';
 import { assertNotNill } from '../util/assertNotNil';
 import { cleverMerge } from '../util/cleverMerge';
 import type {
+  CacheNormalized,
   EntryDescriptionNormalized,
   EntryNormalized,
   ExperimentsNormalized,
@@ -48,18 +49,23 @@ import type {
   Loader,
   Mode,
   ModuleOptions,
+  Name,
   Node,
   Optimization,
   Performance,
   ResolveOptions,
   RuleSetRules,
   SnapshotOptions,
+  WasmLoadingType,
 } from './types';
 
 const ERROR_PREFIX = 'Invalid Rspack configuration:';
+const DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
+const DEFAULT_CACHE_NAME = '';
 
 export const applyRspackOptionsDefaults = (
   options: RspackOptionsNormalized,
+  compilerIndex?: number,
 ) => {
   F(options, 'context', () => process.cwd());
   F(options, 'target', () => {
@@ -95,19 +101,27 @@ export const applyRspackOptionsDefaults = (
   D(options, 'lazyCompilation', false);
   D(options, 'bail', false);
 
-  // but Rspack currently does not support this option
-  F(options, 'cache', () => development);
+  F(options, 'cache', () =>
+    development ? { type: 'memory' as const } : false,
+  );
+  applyCacheDefaults(options.cache!, {
+    context: options.context!,
+    name: options.name || DEFAULT_CACHE_NAME,
+    mode: options.mode || 'production',
+    compilerIndex,
+  });
 
   applyIncrementalDefaults(options);
 
-  applyExperimentsDefaults(options.experiments);
+  applyExperimentsDefaults(options.experiments, { production });
+  applySnapshotDefaults(options.snapshot, {
+    production,
+  });
 
   applyOptimizationDefaults(options.optimization, {
     production,
     development,
   });
-
-  applySnapshotDefaults(options.snapshot, { production });
 
   applyOutputDefaults(options, {
     context: options.context!,
@@ -201,6 +215,71 @@ export const applyRspackOptionsDefaults = (
       };
 };
 
+const applyCacheDefaults = (
+  cache: CacheNormalized,
+  {
+    context,
+    name,
+    mode,
+    compilerIndex,
+  }: {
+    context: string;
+    name: Name;
+    mode: Mode;
+    compilerIndex?: number;
+  },
+) => {
+  if (cache === false) return;
+  if (cache.type === 'persistent') {
+    F(cache, 'name', () => {
+      const cacheName = name ? `${name}-${mode}` : mode;
+      return compilerIndex !== undefined && compilerIndex > 0
+        ? `${cacheName}-${compilerIndex}`
+        : cacheName;
+    });
+    D(cache, 'version', '');
+    D(cache, 'maxMemoryGenerations', mode === 'development' ? 5 : Infinity);
+    D(cache, 'readonly', false);
+  }
+  switch (cache.type) {
+    case 'memory':
+      break;
+    case 'persistent':
+      D(cache.storage, 'type', 'filesystem');
+      F(cache.storage, 'directory', () =>
+        path.resolve(context, 'node_modules/.cache/rspack'),
+      );
+      F(cache.storage, 'location', () =>
+        path.resolve(cache.storage.directory!, cache.name!),
+      );
+      D(cache, 'maxAge', DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS);
+      F(cache, 'buildDependencies', () => []);
+      D(cache, 'portable', false);
+      break;
+  }
+};
+
+const applySnapshotDefaults = (
+  snapshot: SnapshotOptions,
+  { production }: { production: boolean },
+) => {
+  F(snapshot, 'immutablePaths', () => []);
+  F(snapshot, 'unmanagedPaths', () => []);
+  F(snapshot, 'managedPaths', () => [/[\\/]node_modules[\\/][^.]/]);
+  F(snapshot, 'resolveBuildDependencies', () => ({
+    timestamp: true,
+    hash: true,
+  }));
+  F(snapshot, 'buildDependencies', () => ({ timestamp: true, hash: true }));
+  F(snapshot, 'module', () =>
+    production ? { timestamp: true, hash: true } : { timestamp: true },
+  );
+  F(snapshot, 'contextModule', () => ({ timestamp: true }));
+  F(snapshot, 'resolve', () =>
+    production ? { timestamp: true, hash: true } : { timestamp: true },
+  );
+};
+
 export const applyRspackOptionsBaseDefaults = (
   options: RspackOptionsNormalized,
 ) => {
@@ -220,8 +299,20 @@ const applyInfrastructureLoggingDefaults = (
   D(infrastructureLogging, 'appendOnly', !tty);
 };
 
-const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
+const applyExperimentsDefaults = (
+  experiments: ExperimentsNormalized,
+  { production }: { production: boolean },
+) => {
   D(experiments, 'futureDefaults', false);
+  D(experiments, 'newCache', false);
+  if (typeof experiments.newCache === 'object') {
+    D(experiments.newCache, 'codeGeneration', true);
+    D(experiments.newCache, 'module', true);
+    D(experiments.newCache, 'devtool', true);
+    D(experiments.newCache, 'loader', true);
+    D(experiments.newCache, 'minimize', true);
+    D(experiments.newCache, 'resolver', false);
+  }
   D(experiments, 'asyncWebAssembly', true);
   D(experiments, 'deferImport', false);
   D(experiments, 'sourceImport', false);
@@ -229,14 +320,14 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
   D(experiments, 'buildHttp', undefined);
   if (experiments.buildHttp && typeof experiments.buildHttp === 'object') {
     D(experiments.buildHttp, 'upgrade', false);
-    // D(experiments.buildHttp, "frozen", false);
+    D(experiments.buildHttp, 'frozen', production);
   }
 
   // Enable `useInputFileSystem` will introduce much more fs overheads,  So disable by default.
   D(experiments, 'useInputFileSystem', false);
 
   // IGNORE(experiments.pureFunctions): Rspack specific configuration for pure function annotations and hints
-  D(experiments, 'pureFunctions', false);
+  D(experiments, 'pureFunctions', production);
   D(experiments, 'runtimeMode', 'webpack');
 };
 
@@ -261,29 +352,23 @@ const applyIncrementalDefaults = (options: RspackOptionsNormalized) => {
   }
 };
 
-const applySnapshotDefaults = (
-  _snapshot: SnapshotOptions,
-  _env: { production: boolean },
-) => {};
-
 const applyJavascriptParserOptionsDefaults = (
   parserOptions: JavascriptParserOptions,
   {
     deferImport,
     sourceImport,
     outputModule,
-    targetProperties,
   }: {
     deferImport?: boolean;
     sourceImport?: boolean;
     outputModule: RspackOptionsNormalized['output']['module'];
-    targetProperties: false | TargetProperties;
   },
 ) => {
   D(parserOptions, 'dynamicImportMode', 'lazy');
   D(parserOptions, 'dynamicImportPrefetch', false);
   D(parserOptions, 'dynamicImportPreload', false);
   D(parserOptions, 'url', true);
+  D(parserOptions, 'dynamicUrl', true);
   D(parserOptions, 'exprContextCritical', true);
   D(parserOptions, 'unknownContextCritical', true);
   D(parserOptions, 'wrappedContextCritical', false);
@@ -303,11 +388,7 @@ const applyJavascriptParserOptionsDefaults = (
   D(parserOptions, 'deferImport', deferImport);
   D(parserOptions, 'sourceImport', sourceImport);
   D(parserOptions, 'importMetaResolve', false);
-  D(
-    parserOptions,
-    'createRequire',
-    Boolean(targetProperties && targetProperties.node),
-  );
+  D(parserOptions, 'createRequire', false);
 };
 
 const applyCssGeneratorOptionsDefaults = (
@@ -421,7 +502,6 @@ const applyModuleDefaults = (
     deferImport,
     sourceImport,
     outputModule,
-    targetProperties,
   });
 
   F(module.parser, JSON_MODULE_TYPE, () => ({}));
@@ -724,6 +804,12 @@ const applyOutputDefaults = (
   );
   F(
     environment,
+    'logicalAssignment',
+    // No optimistic, because it is new syntax and older runtimes parse-fail on it.
+    () => tp && tp.logicalAssignment === true,
+  );
+  F(
+    environment,
     'nodePrefixForCoreModules',
     () => tp && optimistic(tp.nodePrefixForCoreModules),
   );
@@ -734,14 +820,14 @@ const applyOutputDefaults = (
     () => tp && (tp.importMetaDirnameAndFilename as boolean | undefined),
   );
   F(environment, 'templateLiteral', () => tp && optimistic(tp.templateLiteral));
+  F(environment, 'topLevelAwait', () => tp && optimistic(tp.topLevelAwait));
   F(
     environment,
     'dynamicImport',
     () =>
       tp &&
       (conditionallyOptimistic(tp.dynamicImport, output.module) as
-        | boolean
-        | undefined),
+        boolean | undefined),
   );
   F(
     environment,
@@ -749,8 +835,7 @@ const applyOutputDefaults = (
     () =>
       tp &&
       (conditionallyOptimistic(tp.dynamicImportInWorker, output.module) as
-        | boolean
-        | undefined),
+        boolean | undefined),
   );
   F(
     environment,
@@ -758,8 +843,7 @@ const applyOutputDefaults = (
     () =>
       tp &&
       (conditionallyOptimistic(tp.module, output.module) as
-        | boolean
-        | undefined),
+        boolean | undefined),
   );
   F(environment, 'document', () => tp && optimistic(tp.document));
 
@@ -808,6 +892,7 @@ const applyOutputDefaults = (
   F(output, 'chunkLoadingGlobal', () => `rspackChunk${uniqueNameId}`);
   D(output, 'assetModuleFilename', '[hash][ext][query]');
   D(output, 'webassemblyModuleFilename', '[hash].module.wasm');
+  D(output, 'wasmStreamingFallback', true);
   D(output, 'compareBeforeEmit', true);
   if (output.path && !path.isAbsolute(output.path)) {
     if (!context) {
@@ -967,7 +1052,7 @@ const applyOutputDefaults = (
     return Array.from(enabledChunkLoadingTypes);
   });
   A(output, 'enabledWasmLoadingTypes', () => {
-    const enabledWasmLoadingTypes = new Set<string>();
+    const enabledWasmLoadingTypes = new Set<WasmLoadingType>();
     if (output.wasmLoading) {
       enabledWasmLoadingTypes.add(output.wasmLoading);
     }
@@ -1160,13 +1245,14 @@ const applyOptimizationDefaults = (
   });
   const { splitChunks } = optimization;
   if (splitChunks) {
+    D(splitChunks, 'dedupDepth', production ? 1 : 0);
     A(splitChunks, 'defaultSizeTypes', () => ['javascript', 'css', 'unknown']);
     D(splitChunks, 'hidePathInfo', production);
     D(splitChunks, 'chunks', 'async');
     D(splitChunks, 'usedExports', optimization.usedExports === true);
     D(splitChunks, 'minChunks', 1);
     F(splitChunks, 'minSize', () => (production ? 20000 : 10000));
-    // F(splitChunks, "minRemainingSize", () => (development ? 0 : undefined));
+    F(splitChunks, 'minRemainingSize', () => (development ? 0 : undefined));
     F(splitChunks, 'enforceSizeThreshold', () => (production ? 50000 : 30000));
     F(splitChunks, 'maxAsyncRequests', () =>
       production ? 30 : Number.POSITIVE_INFINITY,

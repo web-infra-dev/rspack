@@ -2,7 +2,7 @@ it("should be able to load a file with the require.context method", function() {
 	expect(require.context("./templates")("./tmpl")).toBe("test template");
 	expect((require.context("./././templates"))("./tmpl")).toBe("test template");
 	expect((require.context("././templates/.")("./tmpl"))).toBe("test template");
-	expect(require.context("./loaders/queryloader?dog=bark!./templates?cat=meow")("./tmpl")).toEqual({
+	expect(require.context("./loaders/queryloader.mjs?dog=bark!./templates?cat=meow")("./tmpl")).toEqual({
 		resourceQuery: "?cat=meow",
 		query: "?dog=bark",
 		prev: 'module.exports = "test template";'

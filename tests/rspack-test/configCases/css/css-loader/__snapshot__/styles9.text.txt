@@ -1,0 +1,4 @@
+Object {
+  color-grey: gray,
+  copyright: resolving-from-node_modules_module_css-copyright node_modules_@localpackage_style_css-type-heading node_modules_@otherlocalpackage_style_css-type-heading2,
+}
