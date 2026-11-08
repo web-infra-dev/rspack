@@ -1550,6 +1550,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         /* root */ true,
         Utf8Path::from_path(&tsconfig_options.config_file).expect("path should be UTF-8"),
         &tsconfig_options.references,
+        &mut Vec::new(),
       )
       .await?;
     if ctx.file_dependencies.is_some() {
@@ -1573,6 +1574,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     root: bool,
     path: &'a Utf8Path,
     references: &'a TsconfigReferences,
+    extends_chain: &'a mut Vec<Utf8PathBuf>,
   ) -> BoxFuture<'a, Result<Arc<TsConfig>, ResolveError>> {
     let fut = async move {
       self
@@ -1583,7 +1585,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
 
           // Extend tsconfig
           self
-            .merge_tsconfig_extends(&mut tsconfig, &directory)
+            .merge_tsconfig_extends(&mut tsconfig, &directory, extends_chain)
             .await?;
 
           // Load project references
@@ -1663,7 +1665,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
                 // `baseUrl`/`paths` before its own references are walked.
                 let directory = self.cache.value(reference_tsconfig.directory());
                 self
-                  .merge_tsconfig_extends(&mut reference_tsconfig, &directory)
+                  .merge_tsconfig_extends(&mut reference_tsconfig, &directory, &mut Vec::new())
                   .await?;
                 self
                   .load_references(&mut reference_tsconfig, visited)
@@ -1696,10 +1698,21 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     &self,
     tsconfig: &mut TsConfig,
     directory: &CachedPath,
+    extends_chain: &mut Vec<Utf8PathBuf>,
   ) -> Result<(), ResolveError> {
     let Some(extends) = &tsconfig.extends else {
       return Ok(());
     };
+    if extends_chain.contains(&tsconfig.path) {
+      let chain = extends_chain
+        .iter()
+        .chain(std::iter::once(&tsconfig.path))
+        .map(|path| path.as_str())
+        .collect::<Vec<_>>()
+        .join(" -> ");
+      return Err(ResolveError::TsconfigCircularExtend(chain));
+    }
+    extends_chain.push(tsconfig.path.clone());
     let extended_tsconfig_paths = match extends {
       ExtendsField::Single(s) => {
         vec![
@@ -1723,10 +1736,12 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
           /* root */ false,
           &extended_tsconfig_path,
           &TsconfigReferences::Disabled,
+          extends_chain,
         )
         .await?;
       tsconfig.extend_tsconfig(&extended_tsconfig);
     }
+    extends_chain.pop();
     Ok(())
   }
 
