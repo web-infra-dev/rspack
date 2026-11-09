@@ -83,7 +83,11 @@ impl IntoIterator for RuntimeSpec {
 }
 
 impl RuntimeSpec {
-  pub fn new(inner: UstrSet) -> Self {
+  pub fn new(mut inner: UstrSet) -> Self {
+    // A set collected from an iterator reserves room for every item, duplicates
+    // included, and each clone copies that room. Runtime specs are cloned into
+    // per-module tables, so trim the set once here.
+    inner.shrink_to_fit();
     let mut this = Self {
       inner,
       key: RuntimeKey::default(),

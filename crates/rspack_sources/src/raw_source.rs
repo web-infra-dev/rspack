@@ -1,7 +1,7 @@
 use std::{
   borrow::Cow,
   hash::{Hash, Hasher},
-  sync::{Arc, OnceLock},
+  sync::OnceLock,
 };
 
 use crate::{
@@ -77,11 +77,7 @@ impl Source for RawStringSource {
     self.0.len()
   }
 
-  fn map(&self, _: &MapOptions) -> Option<SourceMap<'_>> {
-    None
-  }
-
-  fn map_static(self: Arc<Self>, _: &MapOptions) -> Option<SourceMap<'static>> {
+  fn map(&self, _: &MapOptions) -> Option<SourceMap> {
     None
   }
 
@@ -122,8 +118,8 @@ impl<'source> Chunks<'source> for RawStringChunks<'source> {
     &'chunk self,
     options: &MapOptions,
     on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
-    on_source: crate::helpers::OnSource<'_, 'source>,
-    on_name: crate::helpers::OnName<'_, 'source>,
+    on_source: crate::helpers::OnSource<'_>,
+    on_name: crate::helpers::OnName<'_>,
   ) -> crate::helpers::GeneratedInfo {
     let source = TextSpan::new(self.0);
     if options.final_source {
@@ -224,11 +220,7 @@ impl Source for RawBufferSource {
     self.value.len()
   }
 
-  fn map(&self, _: &MapOptions) -> Option<SourceMap<'_>> {
-    None
-  }
-
-  fn map_static(self: Arc<Self>, _: &MapOptions) -> Option<SourceMap<'static>> {
+  fn map(&self, _: &MapOptions) -> Option<SourceMap> {
     None
   }
 
@@ -263,8 +255,8 @@ impl<'source> Chunks<'source> for RawBufferSourceChunks<'source> {
     &'chunk self,
     options: &MapOptions,
     on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
-    on_source: crate::helpers::OnSource<'_, 'source>,
-    on_name: crate::helpers::OnName<'_, 'source>,
+    on_source: crate::helpers::OnSource<'_>,
+    on_name: crate::helpers::OnName<'_>,
   ) -> GeneratedInfo {
     let code = self.0.get_or_init_value_as_string();
     let source = TextSpan::new(code);

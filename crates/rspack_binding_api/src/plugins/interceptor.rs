@@ -733,6 +733,8 @@ pub struct RegisterJsTaps {
 }
 
 /* Compiler Hooks */
+// `cache = false, skip = false` makes every `thisCompilation` call wait for the
+// JS thread. `Compiler::compile` relies on that to free the previous assets.
 define_register!(
   RegisterCompilerThisCompilationTaps,
   tap = CompilerThisCompilationTap<JsCompilationWrapper, ()> @ CompilerThisCompilationHook,

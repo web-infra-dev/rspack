@@ -1,4 +1,4 @@
-//! Filesystem timestamp helpers shared by watch and cache validation.
+//! Filesystem timestamp helpers and cache snapshot accuracy.
 
 use std::{
   sync::atomic::{AtomicU64, Ordering},
@@ -17,12 +17,12 @@ pub fn system_time_to_millis(time: SystemTime) -> u64 {
     .map_or(0, |duration| duration.as_millis() as u64)
 }
 
-/// The process-wide filesystem timestamp accuracy learned so far.
+/// The process-wide cache snapshot timestamp accuracy learned so far.
 pub fn fs_accuracy() -> u64 {
   FS_ACCURACY.load(Ordering::Relaxed)
 }
 
-/// Narrow the process-wide filesystem timestamp accuracy using an observed
+/// Narrow the process-wide cache snapshot timestamp accuracy using an observed
 /// mtime and return the current conservative accuracy.
 pub fn mtime_accuracy(mtime_ms: u64) -> u64 {
   let mut accuracy = FS_ACCURACY.load(Ordering::Relaxed);

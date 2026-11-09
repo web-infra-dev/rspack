@@ -62,25 +62,27 @@ impl OwningSideEffectsResult {
 
 impl SideEffects {
   pub fn from_description(description: &serde_json::Value) -> Option<Self> {
-    description.get("sideEffects").and_then(|value| {
-      if let Some(b) = value.as_bool() {
-        Some(SideEffects::Bool(b))
-      } else if let Some(s) = value.as_str() {
-        Some(SideEffects::String(s.to_owned()))
-      } else if let Some(vec) = value.as_array() {
-        let mut side_effects = vec![];
-        for value in vec {
-          if let Some(str) = value.as_str() {
-            side_effects.push(str.to_string());
-          } else {
-            return None;
-          }
+    description.get("sideEffects").and_then(Self::from_value)
+  }
+
+  fn from_value(value: &serde_json::Value) -> Option<Self> {
+    if let Some(b) = value.as_bool() {
+      Some(SideEffects::Bool(b))
+    } else if let Some(s) = value.as_str() {
+      Some(SideEffects::String(s.to_owned()))
+    } else if let Some(vec) = value.as_array() {
+      let mut side_effects = vec![];
+      for value in vec {
+        if let Some(str) = value.as_str() {
+          side_effects.push(str.to_string());
+        } else {
+          return None;
         }
-        Some(SideEffects::Array(side_effects))
-      } else {
-        None
       }
-    })
+      Some(SideEffects::Array(side_effects))
+    } else {
+      None
+    }
   }
 }
 
@@ -215,13 +217,16 @@ async fn nmf_module(
     return Ok(());
   };
   let package_path = description.path();
-  let direct = SideEffects::from_description(description.json());
+  let side_effects_value = description.get(["sideEffects"]);
+  let direct = side_effects_value
+    .as_deref()
+    .and_then(SideEffects::from_value);
   let inherited;
   let (side_effects, package_path) = if let Some(side_effects) = &direct {
     (side_effects, package_path.assert_utf8())
   } else {
     // A named package owns its metadata boundary even when it omits sideEffects.
-    if description.json().get("name").is_some() || description.json().get("sideEffects").is_some() {
+    if description.get(["name"]).is_some() || side_effects_value.is_some() {
       return Ok(());
     }
 

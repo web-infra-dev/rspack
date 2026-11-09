@@ -236,11 +236,10 @@ fn module_rule_matcher_sync<'rule, 'ctx>(
   if let Some(description_data) = &module_rule.description_data {
     if let Some(resource_description) = resource_data.description() {
       for (k, matcher) in description_data {
+        let value = resource_description.get(k.split('.'));
         ensure_sync_matched!(check_optional_sync(
           matcher,
-          k.split('.')
-            .try_fold(resource_description.json(), |acc, key| acc.get(key))
-            .map(Into::into),
+          value.as_deref().map(Into::into),
         ));
       }
     } else {
@@ -404,14 +403,8 @@ async fn module_rule_matcher_async<'rule, 'ctx>(
   if let Some(description_data) = &module_rule.description_data {
     if let Some(resource_description) = resource_data.description() {
       for (k, matcher) in description_data {
-        if !check_optional_async(
-          matcher,
-          k.split('.')
-            .try_fold(resource_description.json(), |acc, key| acc.get(key))
-            .map(Into::into),
-        )
-        .await?
-        {
+        let value = resource_description.get(k.split('.'));
+        if !check_optional_async(matcher, value.as_deref().map(Into::into)).await? {
           return Ok(false);
         }
       }
