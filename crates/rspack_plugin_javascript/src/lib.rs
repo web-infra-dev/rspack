@@ -29,7 +29,7 @@ pub use crate::plugin::{
 #[derive(Debug)]
 pub struct TransformOutput {
   pub code: String,
-  pub map: Option<SourceMap<'static>>,
+  pub map: Option<SourceMap>,
 }
 
 #[derive(Debug)]

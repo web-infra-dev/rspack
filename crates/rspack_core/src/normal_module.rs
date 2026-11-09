@@ -1020,7 +1020,7 @@ impl NormalModule {
     &self,
     context: &str,
     content: Content,
-    source_map: Option<SourceMap<'static>>,
+    source_map: Option<SourceMap>,
   ) -> Result<BoxSource> {
     if content.is_buffer() {
       return Ok(RawBufferSource::from(content.into_bytes()).boxed());

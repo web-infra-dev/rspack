@@ -1866,11 +1866,6 @@ impl<'parser> JavascriptParser<'parser> {
       ExprData::IdentifierReference(ident) => {
         let span = ident.span(ast);
         let name = ast.get_utf8(ident.name(ast));
-        if name == "undefined" {
-          let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
-          eval.set_undefined();
-          return Some(eval);
-        }
         let drive = self.plugin_drive();
         let resolution = self
           .definitions_db
@@ -1884,6 +1879,8 @@ impl<'parser> JavascriptParser<'parser> {
           .resolve_identifier(self.ast, ident, resolution)
         {
           call_hooks_name::call_hooks_info(state, self, evaluate)
+        } else if name == "undefined" {
+          Some(eval::evaluate_to_undefined(span.real_lo(), span.real_hi()))
         } else {
           evaluate(self, name)
         };
