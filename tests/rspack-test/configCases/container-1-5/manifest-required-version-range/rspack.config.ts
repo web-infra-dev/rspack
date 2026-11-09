@@ -18,7 +18,7 @@ export default defineConfig({
         './module': './module.js',
       },
       shared: {
-        // Inferred from package.json: "^1.0.0 || ^2.0.0"
+        // Trim outer whitespace in the inferred range, preserving spaces around ||.
         xreact: {},
         // Configured, overriding the "^2.0.0" in package.json
         yreact: { requiredVersion: '^2.0.0 || ^3.0.0' },
