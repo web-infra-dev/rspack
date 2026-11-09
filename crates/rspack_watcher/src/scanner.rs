@@ -172,12 +172,13 @@ fn changed_since(path: &InternedPath, start_time: SystemTime) -> bool {
   let Ok(metadata) = path.metadata() else {
     return false;
   };
-  let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
+  let mtime = metadata.modified();
+  if let Ok(mtime) = &mtime {
+    mtime_accuracy(*mtime);
+  }
+  let Ok(mtime) = mtime.or_else(|_| metadata.created()) else {
     return false;
   };
-  if !metadata.is_dir() {
-    mtime_accuracy(mtime);
-  }
   mtime_safe_time(mtime) >= system_time_to_millis(start_time)
 }
 
