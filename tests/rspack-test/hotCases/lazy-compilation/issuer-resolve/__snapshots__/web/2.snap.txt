@@ -9,7 +9,7 @@
 - Bundle: data_issuer_txt_lazy-compilation-proxy.chunk.CURRENT_HASH.js
 - Bundle: data_resolve_txt.chunk.CURRENT_HASH.js
 - Bundle: data_resolve_txt_lazy-compilation-proxy.chunk.CURRENT_HASH.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 70
+- Manifest: main.LAST_HASH.hot-update.json, size: 170
 - Update: data_resolve_txt_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1023
 - Update: main.LAST_HASH.hot-update.js, size: 694
 
@@ -18,7 +18,7 @@
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["data_resolve_txt_lazy-compilation-proxy","main"],"r":[],"m":[]}
+{"c":["data_resolve_txt_lazy-compilation-proxy","main"],"r":[],"m":[],"changed":{"./data/resolve.txt!lazy-compilation-proxy":["data_resolve_txt_lazy-compilation-proxy"]}}
 ```
 
 

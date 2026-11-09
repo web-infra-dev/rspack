@@ -3,10 +3,6 @@ import { pluginSass } from '@rsbuild/plugin-sass';
 import { pluginTailwindcss } from '@rsbuild/plugin-tailwindcss';
 import { pluginAlgolia } from '@rspress/plugin-algolia';
 import { pluginRss } from '@rspress/plugin-rss';
-import {
-  transformerNotationDiff,
-  transformerNotationHighlight,
-} from '@shikijs/transformers';
 import { define } from 'rstack';
 import { pluginGoogleAnalytics } from 'rsbuild-plugin-google-analytics';
 import { pluginOpenGraph } from 'rsbuild-plugin-open-graph';
@@ -33,7 +29,6 @@ define.doc({
       checkAnchors: true,
     },
     shiki: {
-      transformers: [transformerNotationHighlight(), transformerNotationDiff()],
       langAlias: {
         ejs: 'js',
       },
