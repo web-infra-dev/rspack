@@ -20,7 +20,6 @@ bazel
 behaviour
 behaviours
 Boshen
-bpmnlint
 Brooooooklyn
 browserslistrc
 builtinscssmodules
@@ -78,8 +77,6 @@ glsl
 GLSL
 glslify
 golar
-griffel
-Griffel
 Hana
 HerringtonDarkholme
 heyq
@@ -117,8 +114,6 @@ Kirana
 kuaishou
 Kyrylo
 ldconfig
-lezer
-Lezer
 libjemalloc
 lightningcss
 lingui
@@ -127,7 +122,6 @@ Lingyu
 lingyucoder
 linux
 lippzhang
-liquidjs
 lldb
 LLDB
 llms
@@ -201,7 +195,6 @@ qwertyui
 recognise
 relocator
 resolvepnp
-riotjs
 riscv
 riscv64gc
 Rollup
