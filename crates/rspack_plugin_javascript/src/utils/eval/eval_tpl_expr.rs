@@ -14,7 +14,7 @@ fn get_simplified_template_result<'parser>(
   parser: &mut JavascriptParser<'parser>,
   kind: TemplateStringKind,
   template: TemplateLiteral,
-) -> Vec<BasicEvaluatedExpression<'parser>> {
+) -> Option<Vec<BasicEvaluatedExpression<'parser>>> {
   let ast = parser.ast.ast;
   let quasis_nodes = template.quasis(ast);
   let mut expressions = ast.nodes(template.expressions(ast));
@@ -22,11 +22,9 @@ fn get_simplified_template_result<'parser>(
   for (index, quasi_node) in ast.nodes(quasis_nodes).enumerate() {
     let quasi = match kind {
       TemplateStringKind::Cooked if !quasi_node.is_cooked_undefined(ast) => {
-        ast.get_wtf8(quasi_node.cooked(ast)).to_string_lossy()
+        ast.get_wtf8(quasi_node.cooked(ast)).as_str()?
       }
-      TemplateStringKind::Cooked | TemplateStringKind::Raw => {
-        ast.get_utf8(quasi_node.raw(ast)).into()
-      }
+      TemplateStringKind::Cooked | TemplateStringKind::Raw => ast.get_utf8(quasi_node.raw(ast)),
     };
     let quasi_span = quasi_node.span(ast);
     if index > 0 {
@@ -51,7 +49,7 @@ fn get_simplified_template_result<'parser>(
     part.set_range(quasi_span.real_lo(), quasi_span.real_hi());
     parts.push(part);
   }
-  parts
+  Some(parts)
 }
 
 #[inline]
@@ -60,7 +58,7 @@ pub fn eval_tpl_expression<'parser>(
   template: TemplateLiteral,
 ) -> Option<BasicEvaluatedExpression<'parser>> {
   let kind = TemplateStringKind::Cooked;
-  let mut parts = get_simplified_template_result(parser, kind, template);
+  let mut parts = get_simplified_template_result(parser, kind, template)?;
   let span = template.span(parser.ast.ast);
   if parts.len() == 1 {
     let mut part = parts.remove(0);
@@ -84,7 +82,7 @@ pub fn eval_tagged_tpl_expression<'parser>(
     return None;
   }
   let kind = TemplateStringKind::Raw;
-  let parts = get_simplified_template_result(parser, kind, tagged.quasi(ast));
+  let parts = get_simplified_template_result(parser, kind, tagged.quasi(ast))?;
   let span = tagged.span(ast);
   let mut result = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
   result.set_template_string(parts, kind);

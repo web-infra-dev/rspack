@@ -28,6 +28,8 @@ pub use simd_json::BorrowedValue as JSONValue;
 #[cfg(feature = "package_json_raw_json_api")]
 use simd_json::serde::from_refborrowed_value;
 
+#[cfg(feature = "package_json_raw_json_api")]
+use super::PackageJsonData;
 use crate::package_json::{ModuleType, SideEffects};
 
 /// Top-level `package.json` fields the resolver never reads. They are skipped
@@ -166,7 +168,7 @@ pub struct PackageJson {
   raw_json: std::sync::Arc<JSONCell>,
 
   #[cfg(feature = "package_json_raw_json_api")]
-  serde_json: std::sync::Arc<serde_json::Value>,
+  data: std::sync::OnceLock<std::sync::Arc<PackageJsonData>>,
 }
 
 const BOM: [u8; 3] = [0xEF, 0xBB, 0xBF];
@@ -221,12 +223,6 @@ impl PackageJson {
     let side_effects = json_object
       .and_then(|object| object.get("sideEffects"))
       .and_then(|field| SideEffects::try_from(field).ok());
-    #[cfg(feature = "package_json_raw_json_api")]
-    let serde_json = json_object.map_or_else(
-      || std::sync::Arc::new(serde_json::Value::Null),
-      Self::serde_json_from,
-    );
-
     Ok(Self {
       path: InternedPath::new(&path),
       realpath,
@@ -235,7 +231,7 @@ impl PackageJson {
       side_effects,
       raw_json: std::sync::Arc::new(json_cell),
       #[cfg(feature = "package_json_raw_json_api")]
-      serde_json,
+      data: std::sync::OnceLock::new(),
     })
   }
 
@@ -279,7 +275,40 @@ impl PackageJson {
   /// `dependencies` and `devDependencies`, `peerDependencies`, `optionalDependencies`.
   #[cfg(feature = "package_json_raw_json_api")]
   pub fn raw_json(&self) -> &std::sync::Arc<serde_json::Value> {
-    &self.serde_json
+    self
+      .data
+      .get_or_init(|| {
+        let json = self.raw_json.borrow_dependent().as_object().map_or_else(
+          || std::sync::Arc::new(serde_json::Value::Null),
+          Self::serde_json_from,
+        );
+        std::sync::Arc::new(PackageJsonData::from_json(json))
+      })
+      .json()
+  }
+
+  /// Metadata that can outlive the resolver cache without retaining its input buffer.
+  #[cfg(feature = "package_json_raw_json_api")]
+  pub fn description_data(&self) -> &std::sync::Arc<PackageJsonData> {
+    self.data.get_or_init(|| {
+      std::sync::Arc::new(self.raw_json.borrow_dependent().as_object().map_or_else(
+        || PackageJsonData::from_json(std::sync::Arc::new(serde_json::Value::Null)),
+        PackageJsonData::from_object,
+      ))
+    })
+  }
+
+  /// Reads and caches the selected top-level field without materializing other fields.
+  /// An empty path returns the same complete value as [`Self::raw_json`].
+  #[cfg(feature = "package_json_raw_json_api")]
+  pub fn raw_json_at<'a>(
+    &self,
+    path: impl IntoIterator<Item = &'a str>,
+  ) -> Option<std::borrow::Cow<'_, serde_json::Value>> {
+    self
+      .description_data()
+      .get(path)
+      .map(std::borrow::Cow::Borrowed)
   }
 
   /// Directory to `package.json`

@@ -8,7 +8,7 @@
 - Bundle: common.chunk.mjs
 - Bundle: main.mjs
 - Bundle: vendor.chunk.mjs
-- Manifest: main.LAST_HASH.hot-update.json.mjs, size: 62
+- Manifest: main.LAST_HASH.hot-update.json.mjs, size: 148
 - Update: common.LAST_HASH.hot-update.mjs, size: 482
 - Update: main.LAST_HASH.hot-update.mjs, size: 430
 - Update: vendor.LAST_HASH.hot-update.mjs, size: 503
@@ -18,7 +18,7 @@
 ### main.LAST_HASH.hot-update.json.mjs
 
 ```json
-{"c":["common","main","vendor"],"r":[],"m":[]}
+{"c":["common","main","vendor"],"r":[],"m":[],"changed":{"./common/shared.js":["common"],"./node_modules/vendor-lib.js":["vendor"]}}
 ```
 
 

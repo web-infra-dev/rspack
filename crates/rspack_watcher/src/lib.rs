@@ -4,6 +4,7 @@ mod executor;
 mod ignored;
 mod paths;
 mod scanner;
+mod time;
 mod trigger;
 
 #[cfg(feature = "testing")]
