@@ -22,6 +22,7 @@ import {
   type RawOptions,
   type RawOutputOptions,
   type RawParserOptions,
+  type RawRuleOptions,
   type RawRuleSetCondition,
   RawRuleSetConditionType,
   type RawRuleSetLogicalConditions,
@@ -31,6 +32,7 @@ import {
 import type { Compiler } from '../Compiler';
 import { normalizeStatsPreset } from '../Stats';
 import { isNil } from '../util';
+import { cleverMerge } from '../util/cleverMerge';
 import { parseResource } from '../util/identifier';
 import { isStatsColorSupported } from '../util/supportsColor';
 import {
@@ -96,6 +98,7 @@ type ExperimentsWithDefaults = Omit<
 export const getRawOptions = (
   options: RspackOptionsNormalized,
   compiler: Compiler,
+  convertRuleOptions: (options: RawRuleOptions) => object,
 ): RawOptions => {
   const mode = options.mode;
   const experiments = options.experiments as ExperimentsWithDefaults;
@@ -107,12 +110,11 @@ export const getRawOptions = (
     output: getRawOutput(options.output),
     resolve: getRawResolve(options.resolve),
     resolveLoader: getRawResolve(options.resolveLoader),
-    module: getRawModule(options.module, {
-      compiler,
-      mode,
-      context: options.context!,
-      experiments,
-    }),
+    module: getRawModule(
+      options.module,
+      { compiler, mode, context: options.context!, experiments },
+      convertRuleOptions,
+    ),
     optimization: options.optimization as Required<Optimization>,
     stats: getRawStats(options.stats),
     cache: getRawCache(cache),
@@ -291,9 +293,12 @@ export function getRawResolve(resolve: Resolve): RawOptions['resolve'] {
   };
 }
 
+type RuleOptions = Pick<RuleSetRule, 'parser' | 'generator'>;
+
 function getRawModule(
   module: ModuleOptionsNormalized,
   options: ComposeJsUseOptions,
+  convertRuleOptions: (options: RawRuleOptions) => object,
 ): RawOptions['module'] {
   if (isNil(module.defaultRules)) {
     throw new Error('module.defaultRules should not be nil after defaults');
@@ -304,14 +309,37 @@ function getRawModule(
     { rules: module.defaultRules as RuleSetRule[] },
     { rules: module.rules as RuleSetRule[] },
   ];
-  const rules = ruleSet.map((rule, index) =>
-    getRawModuleRule(rule, `ruleSet[${index}]`, options, 'javascript/auto'),
-  );
+  const ruleOptions: RuleOptions[] = [];
+  const rules: RawModuleRule[] = [];
+  for (const [index, rule] of ruleSet.entries()) {
+    rules.push(
+      getRawModuleRule(rule, `ruleSet[${index}]`, options, ruleOptions),
+    );
+  }
   return {
     rules,
     parser: getRawParserOptionsMap(module.parser),
     generator: getRawGeneratorOptionsMap(module.generator),
     noParse: module.noParse,
+    resolveRuleOptions: ruleOptions.length
+      ? (indices, moduleType) => {
+          let parser: RuleOptions['parser'];
+          let generator: RuleOptions['generator'];
+          for (const index of indices) {
+            const options = ruleOptions[index];
+            parser = cleverMerge(parser, options.parser);
+            generator = cleverMerge(generator, options.generator);
+          }
+          return convertRuleOptions({
+            parser: parser
+              ? getRawParserOptions(parser, moduleType, true)
+              : undefined,
+            generator: generator
+              ? getRawGeneratorOptions(generator, moduleType, true)
+              : undefined,
+          });
+        }
+      : undefined,
   };
 }
 
@@ -353,7 +381,7 @@ const getRawModuleRule = (
   rule: RuleSetRule,
   path: string,
   options: ComposeJsUseOptions,
-  upperType: string,
+  ruleOptions: RuleOptions[],
 ): RawModuleRule => {
   // Rule.loader is a shortcut to Rule.use: [ { loader } ].
   // See: https://webpack.js.org/configuration/module/#ruleloader
@@ -379,6 +407,11 @@ const getRawModuleRule = (
     };
   }
 
+  const { parser, generator } = rule;
+  const optionsIndex =
+    parser || generator
+      ? ruleOptions.push({ parser, generator }) - 1
+      : undefined;
   const rawModuleRule: RawModuleRule = {
     as: rule.as,
     test: rule.test ? getRawRuleSetCondition(rule.test) : undefined,
@@ -424,12 +457,7 @@ const getRawModuleRule = (
         : createRawModuleRuleUses(normalizedUse ?? [], `${path}.use`, options),
     type: rule.type,
     layer: rule.layer,
-    parser: rule.parser
-      ? getRawParserOptions(rule.parser, rule.type ?? upperType)
-      : undefined,
-    generator: rule.generator
-      ? getRawGeneratorOptions(rule.generator, rule.type ?? upperType)
-      : undefined,
+    optionsIndex,
     resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
     oneOf: rule.oneOf
       ? rule.oneOf
@@ -439,7 +467,7 @@ const getRawModuleRule = (
               rule as RuleSetRule,
               `${path}.oneOf[${index}]`,
               options,
-              (rule as RuleSetRule).type ?? upperType,
+              ruleOptions,
             ),
           )
       : undefined,
@@ -451,7 +479,7 @@ const getRawModuleRule = (
               rule as RuleSetRule,
               `${path}.rules[${index}]`,
               options,
-              (rule as RuleSetRule).type ?? upperType,
+              ruleOptions,
             ),
           )
       : undefined,
@@ -577,6 +605,7 @@ function getRawGeneratorOptionsMap(
 function getRawParserOptions(
   parser: { [k: string]: any },
   type: string,
+  ignoreUnsupportedType = false,
 ): RawParserOptions | undefined {
   if (type === 'asset') {
     return {
@@ -640,7 +669,9 @@ function getRawParserOptions(
     };
   }
 
-  // FIXME: shouldn't depend on module type, for example: `rules: [{ test: /\.css/, generator: {..} }]` will error
+  if (ignoreUnsupportedType) {
+    return undefined;
+  }
   throw new Error(`unreachable: unknown module type: ${type}`);
 }
 
@@ -799,6 +830,7 @@ function getRawJsonParserOptions(
 function getRawGeneratorOptions(
   generator: { [k: string]: any },
   type: string,
+  ignoreUnsupportedType = false,
 ): RawGeneratorOptions | undefined {
   if (type === 'asset') {
     return {
@@ -854,6 +886,7 @@ function getRawGeneratorOptions(
   }
 
   if (
+    ignoreUnsupportedType ||
     [
       'asset/source',
       'asset/bytes',

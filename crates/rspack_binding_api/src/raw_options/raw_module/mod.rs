@@ -8,7 +8,7 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use napi::{
   Either,
-  bindgen_prelude::{Buffer, Either3, FnArgs},
+  bindgen_prelude::{Buffer, Either3, External, FnArgs, FromNapiMutRef, FromNapiValue},
 };
 use napi_derive::napi;
 use regex::Regex;
@@ -25,8 +25,8 @@ use rspack_core::{
   JavascriptParserUrl, JavascriptParserWorkerOptions, JavascriptParserWorkerUrl,
   JsonGeneratorOptions, JsonParserOptions, LoaderFilter, ModuleNoParseRule, ModuleNoParseRules,
   ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleEnforce,
-  ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParseOption, ParserOptions, ParserOptionsMap,
-  TypeReexportPresenceMode,
+  ModuleRuleOptions, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, OverrideStrict, ParseOption,
+  ParserOptions, ParserOptionsMap, ResolveModuleRuleOptions, TypeReexportPresenceMode,
 };
 use rspack_error::error;
 use rspack_regex::RspackRegex;
@@ -186,8 +186,7 @@ pub struct RawModuleRule {
   pub r#use: Option<Either<Vec<RawModuleRuleUse>, ThreadsafeUse>>,
   pub r#type: Option<String>,
   pub layer: Option<String>,
-  pub parser: Option<RawParserOptions>,
-  pub generator: Option<RawGeneratorOptions>,
+  pub options_index: Option<u32>,
   pub resolve: Option<RawResolveOptions>,
   pub issuer: Option<RawRuleSetCondition>,
   pub issuer_layer: Option<RawRuleSetCondition>,
@@ -993,6 +992,30 @@ impl From<RawCssModuleGeneratorOptions> for CssModuleGeneratorOptions {
 }
 
 #[napi(object, object_to_js = false)]
+pub struct RawRuleOptions {
+  pub parser: Option<RawParserOptions>,
+  pub generator: Option<RawGeneratorOptions>,
+}
+
+pub struct ConvertedRuleOptions(RawRuleOptions);
+
+impl FromNapiValue for ConvertedRuleOptions {
+  unsafe fn from_napi_value(
+    env: napi::sys::napi_env,
+    value: napi::sys::napi_value,
+  ) -> napi::Result<Self> {
+    let options = unsafe { External::<Option<RawRuleOptions>>::from_napi_mut_ref(env, value) }?;
+    options
+      .take()
+      .map(Self)
+      .ok_or_else(|| napi::Error::from_reason("Rule options have already been consumed"))
+  }
+}
+
+type ThreadsafeResolveRuleOptions =
+  ThreadsafeFunction<FnArgs<(Vec<u32>, String)>, ConvertedRuleOptions>;
+
+#[napi(object, object_to_js = false)]
 #[derive(Debug)]
 pub struct RawModuleOptions {
   pub rules: Vec<RawModuleRule>,
@@ -1003,6 +1026,8 @@ pub struct RawModuleOptions {
   )]
   #[debug(skip)]
   pub no_parse: Option<RawModuleNoParseRules>,
+  #[napi(ts_type = "(indices: number[], moduleType: string) => object")]
+  pub resolve_rule_options: Option<ThreadsafeResolveRuleOptions>,
 }
 
 #[derive(Debug, Clone)]
@@ -1151,8 +1176,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
         r#use: uses.transpose()?.unwrap_or_default(),
         r#type: module_type,
         layer: value.layer,
-        parser: value.parser.map(|raw| raw.into()),
-        generator: value.generator.map(|raw| raw.into()),
+        options_index: value.options_index,
         resolve: value.resolve.map(|raw| raw.try_into()).transpose()?,
         side_effects: value.side_effects,
         enforce,
@@ -1173,6 +1197,21 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
       .into_iter()
       .map(|rule| rule.try_into())
       .collect::<rspack_error::Result<Vec<ModuleRule>>>()?;
+    let resolve_rule_options = value.resolve_rule_options.map(|resolve| {
+      let resolve: ResolveModuleRuleOptions = Box::new(move |indices, module_type: ModuleType| {
+        let resolve = resolve.clone();
+        Box::pin(async move {
+          let ConvertedRuleOptions(options) = resolve
+            .call_with_sync(FnArgs::from((indices, module_type.as_str().to_owned())))
+            .await?;
+          Ok(ModuleRuleOptions {
+            parser: options.parser.map(Into::into),
+            generator: options.generator.map(Into::into),
+          })
+        })
+      });
+      resolve
+    });
 
     let mut module_options = ModuleOptions {
       rules,
@@ -1195,6 +1234,7 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
       no_parse: value
         .no_parse
         .map(|x| RawModuleNoParseRulesWrapper(x).into()),
+      resolve_rule_options,
     };
     module_options.assign_rule_ids()?;
     Ok(module_options)

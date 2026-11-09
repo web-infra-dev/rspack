@@ -13,6 +13,7 @@ use rspack_util::{
   fx_hash::{FxDashMap, FxHashMap as HashMap},
 };
 use sugar_path::SugarPath;
+use tokio::sync::OnceCell;
 
 use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
@@ -21,11 +22,11 @@ use crate::{
   GeneratorOptions, MatchContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
   ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect, ModuleRuleEnforce,
   ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
-  ParserOptionsMap, RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
-  ResolveResult, ResolvedModuleOptions, ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory,
-  ResourceData, ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
-  diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
-  stringify_loaders_and_resource,
+  ParserOptionsMap, RawModule, Resolve, ResolveArgs, ResolveModuleRuleOptions,
+  ResolveOptionsWithDependencyType, ResolveResult, ResolvedModuleOptions,
+  ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory, ResourceData, ResourceParsedData,
+  RunnerContext, RuntimeGlobals, SharedPluginDriver, diagnostics::EmptyDependency,
+  module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> bool,tracing=false);
@@ -294,6 +295,14 @@ fn merge_generator_options_with_local(
       | (GeneratorOptions::Css(_), GeneratorOptions::Css(_))
       | (GeneratorOptions::CssModule(_), GeneratorOptions::CssModule(_))
       | (GeneratorOptions::Json(_), GeneratorOptions::Json(_)) => global.clone().merge_from(local),
+      (GeneratorOptions::Asset(a), GeneratorOptions::AssetInline(b)) => {
+        GeneratorOptions::AssetInline(AssetInlineGeneratorOptions::from(a.clone()).merge_from(b))
+      }
+      (GeneratorOptions::Asset(a), GeneratorOptions::AssetResource(b)) => {
+        GeneratorOptions::AssetResource(
+          AssetResourceGeneratorOptions::from(a.clone()).merge_from(b),
+        )
+      }
       (global, _) => global.clone(),
     }),
   }
@@ -340,21 +349,26 @@ fn normalize_css_generator_options(
   }
 }
 
-fn resolve_module_options(
-  options_cache: &FxDashMap<ResolvedModuleOptionsCacheKey, Arc<ResolvedModuleOptions>>,
+type ModuleOptionsCache =
+  FxDashMap<ResolvedModuleOptionsCacheKey, Arc<OnceCell<Arc<ResolvedModuleOptions>>>>;
+
+async fn resolve_module_options(
+  options_cache: &ModuleOptionsCache,
   module_rules: &[&ModuleRuleEffect],
   module_type: &ModuleType,
   global_parser: Option<&ParserOptions>,
   global_generator: Option<&GeneratorOptions>,
-) -> Arc<ResolvedModuleOptions> {
+  resolve_rule_options: Option<&ResolveModuleRuleOptions>,
+) -> Result<Arc<ResolvedModuleOptions>> {
   let cache_key = ResolvedModuleOptionsCacheKey::new(module_rules, *module_type);
-  if let Some(options) = options_cache.get(&cache_key) {
-    return Arc::clone(&options);
-  }
-
-  match options_cache.entry(cache_key.clone()) {
-    dashmap::mapref::entry::Entry::Occupied(entry) => Arc::clone(entry.get()),
-    dashmap::mapref::entry::Entry::Vacant(entry) => {
+  let cell = if let Some(cell) = options_cache.get(&cache_key) {
+    Arc::clone(cell.value())
+  } else {
+    Arc::clone(options_cache.entry(cache_key.clone()).or_default().value())
+  };
+  // The map guard is released before invoking the resolver on the JS thread.
+  cell
+    .get_or_try_init(|| async {
       let mut local_parser = None;
       let mut local_generator = None;
 
@@ -363,18 +377,29 @@ fn resolve_module_options(
         local_generator = local_generator.merge_from(&rule.generator);
       }
 
+      if let Some(resolve_rule_options) = resolve_rule_options {
+        let indices: Vec<_> = module_rules
+          .iter()
+          .filter_map(|rule| rule.options_index)
+          .collect();
+        if !indices.is_empty() {
+          let options = resolve_rule_options(indices, *module_type).await?;
+          local_parser = local_parser.merge_from(&options.parser);
+          local_generator = local_generator.merge_from(&options.generator);
+        }
+      }
+
       let parser = merge_parser_options_with_local(global_parser, local_parser.as_ref());
       let generator =
         merge_generator_options_with_local(global_generator, local_generator.as_ref());
-      let options = Arc::new(ResolvedModuleOptions::new(
+      Ok(Arc::new(ResolvedModuleOptions::new(
         cache_key,
         normalize_css_parser_options(module_type, parser),
         normalize_css_generator_options(module_type, generator),
-      ));
-      entry.insert(Arc::clone(&options));
-      options
-    }
-  }
+      )))
+    })
+    .await
+    .cloned()
 }
 
 #[derive(Debug, Default)]
@@ -401,7 +426,7 @@ pub struct NormalModuleFactory {
   options: Arc<CompilerOptions>,
   global_parser_options: HashMap<String, ParserOptions>,
   global_generator_options: HashMap<String, GeneratorOptions>,
-  resolved_module_options: FxDashMap<ResolvedModuleOptionsCacheKey, Arc<ResolvedModuleOptions>>,
+  resolved_module_options: ModuleOptionsCache,
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
 }
@@ -491,8 +516,8 @@ mod tests {
     }
   }
 
-  #[test]
-  fn lazily_reuse_parser_and_generator_options_for_rule_ids() {
+  #[tokio::test]
+  async fn lazily_reuse_parser_and_generator_options_for_rule_ids() {
     let mut module_options = crate::ModuleOptions {
       rules: vec![crate::ModuleRule {
         effect: asset_rule_effect(200.0, false),
@@ -522,14 +547,20 @@ mod tests {
       &ModuleType::Asset,
       Some(&global_parser),
       Some(&global_generator),
-    );
+      None,
+    )
+    .await
+    .expect("module options should resolve");
     let second = resolve_module_options(
       &options_cache,
       &module_rules,
       &ModuleType::Asset,
       Some(&global_parser),
       Some(&global_generator),
-    );
+      None,
+    )
+    .await
+    .expect("module options should resolve");
 
     assert!(Arc::ptr_eq(&first, &second));
     assert_eq!(options_cache.len(), 1);
@@ -553,8 +584,8 @@ mod tests {
     assert_eq!(generator_options.emit, Some(false));
   }
 
-  #[test]
-  fn reuse_global_generator_options_when_local_options_are_empty() {
+  #[tokio::test]
+  async fn reuse_global_generator_options_when_local_options_are_empty() {
     let options_cache = FxDashMap::default();
     let module_rules: [&ModuleRuleEffect; 0] = [];
     let global_generator = GeneratorOptions::Asset(AssetGeneratorOptions {
@@ -568,7 +599,10 @@ mod tests {
       &ModuleType::Asset,
       None,
       Some(&global_generator),
-    );
+      None,
+    )
+    .await
+    .expect("module options should resolve");
 
     assert_eq!(
       options
@@ -580,8 +614,8 @@ mod tests {
     );
   }
 
-  #[test]
-  fn normalize_css_options_for_parser_and_generator_builder() {
+  #[tokio::test]
+  async fn normalize_css_options_for_parser_and_generator_builder() {
     let options_cache = FxDashMap::default();
     let module_rules: [&ModuleRuleEffect; 0] = [];
     for module_type in [
@@ -606,7 +640,10 @@ mod tests {
           runtime_public_path: Some(false),
           es_module: Some(true),
         })),
-      );
+        None,
+      )
+      .await
+      .expect("module options should resolve");
 
       let parser_options = options
         .parser_options()
@@ -1153,8 +1190,9 @@ module.exports = "data:,";
       self.calculate_module_layer(data.issuer_layer.as_ref(), &matched_module_rules);
 
     let resolved_resolve_options = self.calculate_resolve_options(&matched_module_rules);
-    let resolved_options =
-      self.resolve_module_options(&resolved_module_type, &matched_module_rules);
+    let resolved_options = self
+      .resolve_module_options(&resolved_module_type, &matched_module_rules)
+      .await?;
     let resolved_side_effects = self.calculate_side_effects(&matched_module_rules);
     let resolved_extract_source_map = self.calculate_extract_source_map(&matched_module_rules);
     let mut resolved_parser_and_generator = self
@@ -1304,11 +1342,11 @@ module.exports = "data:,";
     extract_source_map_res
   }
 
-  fn resolve_module_options(
+  async fn resolve_module_options(
     &self,
     module_type: &ModuleType,
     module_rules: &[&ModuleRuleEffect],
-  ) -> Arc<ResolvedModuleOptions> {
+  ) -> Result<Arc<ResolvedModuleOptions>> {
     let global_parser = self.global_parser_options.get(module_type.as_str());
     let global_generator = self.global_generator_options.get(module_type.as_str());
     resolve_module_options(
@@ -1317,7 +1355,9 @@ module.exports = "data:,";
       module_type,
       global_parser,
       global_generator,
+      self.options.module.resolve_rule_options.as_ref(),
     )
+    .await
   }
 
   fn calculate_module_type(

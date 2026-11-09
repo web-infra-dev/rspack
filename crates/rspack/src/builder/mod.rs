@@ -1672,7 +1672,7 @@ impl NodeOptionBuilder {
 /// Builder used to build [`ModuleOptions`].
 ///
 /// [`ModuleOptions`]: rspack_core::options::ModuleOptions
-#[derive(Debug, Default)]
+#[derive(derive_more::Debug, Default)]
 pub struct ModuleOptionsBuilder {
   /// An array of rules that match the module's requests when it is created.
   rules: Vec<ModuleRule>,
@@ -1682,6 +1682,8 @@ pub struct ModuleOptionsBuilder {
   generator: Option<GeneratorOptionsMap>,
   /// Keep module mechanism of the matched modules as-is, such as module.exports, require, import.
   no_parse: Option<ModuleNoParseRules>,
+  #[debug(skip)]
+  resolve_rule_options: Option<rspack_core::ResolveModuleRuleOptions>,
 }
 
 impl From<ModuleOptions> for ModuleOptionsBuilder {
@@ -1691,6 +1693,7 @@ impl From<ModuleOptions> for ModuleOptionsBuilder {
       parser: value.parser,
       generator: value.generator,
       no_parse: value.no_parse,
+      resolve_rule_options: value.resolve_rule_options,
     }
   }
 }
@@ -1702,6 +1705,7 @@ impl From<&mut ModuleOptionsBuilder> for ModuleOptionsBuilder {
       parser: value.parser.take(),
       generator: value.generator.take(),
       no_parse: value.no_parse.take(),
+      resolve_rule_options: value.resolve_rule_options.take(),
     }
   }
 }
@@ -1903,6 +1907,7 @@ impl ModuleOptionsBuilder {
       parser: self.parser.take(),
       generator: self.generator.take(),
       no_parse: self.no_parse.take(),
+      resolve_rule_options: self.resolve_rule_options.take(),
     };
     module_options.assign_rule_ids()?;
     Ok(module_options)

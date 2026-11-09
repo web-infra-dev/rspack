@@ -961,7 +961,15 @@ class Compiler {
     }
 
     const { options } = this;
-    this.#rawOptions = getRawOptions(options, this);
+    // The native build pins the binding while the deferred resolver runs.
+    let instanceRef: WeakRef<binding.JsCompiler> | undefined;
+    this.#rawOptions = getRawOptions(options, this, (options) => {
+      const instance = instanceRef?.deref();
+      if (!instance) {
+        throw new Error('Unable to convert rule options without a compiler');
+      }
+      return instance.__internal__convertRuleOptions(options);
+    });
     this.#rawOptions.__references = Object.fromEntries(
       this.#ruleSet.builtinReferences.entries(),
     );
@@ -1006,6 +1014,7 @@ class Compiler {
         bindingHelpers,
       );
 
+      instanceRef = new WeakRef(this.#instance);
       callback(null, this.#instance);
     } catch (err) {
       if (err instanceof Error) {

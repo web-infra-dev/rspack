@@ -1729,6 +1729,15 @@ pub type ModuleRuleId = u16;
 pub const MODULE_RULE_ID_UNASSIGNED: ModuleRuleId = ModuleRuleId::MAX;
 pub type ModuleRuleIds = SmallVec<[ModuleRuleId; 4]>;
 
+#[derive(Debug, Default)]
+pub struct ModuleRuleOptions {
+  pub parser: Option<ParserOptions>,
+  pub generator: Option<GeneratorOptions>,
+}
+
+pub type ResolveModuleRuleOptions =
+  Box<dyn Fn(Vec<u32>, ModuleType) -> BoxFuture<'static, Result<ModuleRuleOptions>> + Sync + Send>;
+
 #[derive(Debug)]
 pub struct ModuleRuleEffect {
   pub id: ModuleRuleId,
@@ -1739,6 +1748,8 @@ pub struct ModuleRuleEffect {
   pub r#use: ModuleRuleUse,
   pub parser: Option<ParserOptions>,
   pub generator: Option<GeneratorOptions>,
+  /// Index into the binding's table of deferred rule options.
+  pub options_index: Option<u32>,
   pub resolve: Option<Resolve>,
   pub enforce: ModuleRuleEnforce,
   pub extract_source_map: Option<bool>,
@@ -1754,6 +1765,7 @@ impl Default for ModuleRuleEffect {
       r#use: ModuleRuleUse::default(),
       parser: None,
       generator: None,
+      options_index: None,
       resolve: None,
       enforce: ModuleRuleEnforce::default(),
       extract_source_map: None,
@@ -1850,6 +1862,8 @@ pub struct ModuleOptions {
   pub parser: Option<ParserOptionsMap>,
   pub generator: Option<GeneratorOptionsMap>,
   pub no_parse: Option<ModuleNoParseRules>,
+  #[debug(skip)]
+  pub resolve_rule_options: Option<ResolveModuleRuleOptions>,
 }
 
 impl ModuleOptions {

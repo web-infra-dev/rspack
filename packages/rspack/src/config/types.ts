@@ -1498,7 +1498,7 @@ export type JsonParserOptions = {
   exportsDepth?: number;
   /**
    * Custom synchronous parser for json modules. It receives the module source and should return JSON-serializable data.
-   * Can be configured through module.parser.json or through Rule.parser when Rule.type is 'json'.
+   * Can be configured through module.parser.json or through Rule.parser when the module's final type is 'json'.
    */
   parse?: (source: string) => any;
 };
