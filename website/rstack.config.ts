@@ -31,9 +31,6 @@ define.doc({
       },
     },
   },
-  search: {
-    codeBlocks: true,
-  },
   route: {
     exclude: ['**/types/*.mdx'],
   },
