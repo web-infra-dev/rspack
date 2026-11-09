@@ -92,6 +92,8 @@ use futures::future::{BoxFuture, try_join_all};
 pub use rspack_paths::{InternedPath, InternedPathSet};
 use rustc_hash::{FxBuildHasher, FxHashSet};
 
+#[cfg(feature = "package_json_raw_json_api")]
+pub use crate::package_json::PackageJsonData;
 use crate::{
   alias_trie::AliasTrie,
   cache::{Cache, CachedPath},

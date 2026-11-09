@@ -33,7 +33,7 @@ fn erased_proxy(replacement: &str) -> BoxSource {
     value: PROXY_TEXT.to_owned(),
     name: PROXY_NAME.to_owned(),
     source_map: SourceMap::new(
-      "AAAA",
+      "AAAA".into(),
       vec![PROXY_NAME.into()],
       vec![Some(PROXY_TEXT.into())],
       vec![],
@@ -141,7 +141,7 @@ fn test_cached_source_prewarmed_none_and_serialization_preserve_parent_raw_map()
     assert_eq!(
       leaf.source_map().to_json(),
       SourceMap::new(
-        "AAAA",
+        "AAAA".into(),
         vec![PROXY_NAME.into()],
         vec![Some(PROXY_TEXT.into())],
         vec![]
@@ -173,9 +173,13 @@ fn test_cached_source_none_replays_identical_stream_events() {
           &options,
           &mut |chunk, mapping| chunks.push((chunk.map(|c| c.as_str().to_owned()), mapping)),
           &mut |index, name, content| {
-            sources.push((index, name.into_owned(), content.map(str::to_owned)))
+            sources.push((
+              index,
+              name.to_string(),
+              content.map(|content| content.to_string()),
+            ))
           },
-          &mut |index, name| names.push((index, name.into_owned())),
+          &mut |index, name| names.push((index, name.to_string())),
         );
         (chunks, sources, names, end)
       };

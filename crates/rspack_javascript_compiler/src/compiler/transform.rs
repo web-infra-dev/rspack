@@ -60,7 +60,7 @@ use crate::error::swc_diagnostics_to_rspack_error;
 
 const SWC_SYNTAX_ERROR_CODE: &str = "Syntax Error";
 
-pub type InputSourceMapResult = anyhow::Result<Option<RspackSourceMap<'static>>>;
+pub type InputSourceMapResult = anyhow::Result<Option<RspackSourceMap>>;
 
 /// The next actual I/O operation required by the shared map-selection policy.
 pub enum InputSourceMapRequest {
@@ -157,7 +157,7 @@ impl InputSourceMapResolver {
   }
 }
 
-fn read_inline_sourcemap(data_url: Option<&str>) -> anyhow::Result<RspackSourceMap<'static>> {
+fn read_inline_sourcemap(data_url: Option<&str>) -> anyhow::Result<RspackSourceMap> {
   let Some(data_url) = data_url else {
     bail!("failed to parse inline source map: `sourceMappingURL` not found")
   };
