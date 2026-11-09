@@ -65,6 +65,11 @@ impl DevToolMapSource {
     crate::update_text_content_hash(self, hasher);
   }
 
+  /// Cache the byte count of a completed write of this map's unmodified JSON.
+  pub fn record_serialized_size(&self, size: usize) {
+    let _ = self.0.size.set(size);
+  }
+
   pub(crate) fn json_chunks_iter(&self) -> impl Iterator<Item = &str> {
     JsonChunks::new(&self.0)
   }
@@ -141,8 +146,7 @@ impl MapData {
   fn size(&self) -> usize {
     *self.size.get_or_init(|| {
       let mut writer = SizeWriter(0);
-      simd_json::to_writer(&mut writer as &mut dyn Write, &self.map)
-        .expect("count map JSON bytes");
+      simd_json::to_writer(&mut writer as &mut dyn Write, &self.map).expect("count map JSON bytes");
       writer.0
     })
   }
@@ -262,6 +266,10 @@ impl<'a> Iterator for JsonStringChunks<'a> {
 }
 
 impl Source for DevToolMapSource {
+  fn mapped(&self) -> bool {
+    false
+  }
+
   fn source(&self) -> SourceValue<'_> {
     SourceValue::String(Cow::Owned(self.0.to_json()))
   }
@@ -283,7 +291,6 @@ impl Source for DevToolMapSource {
   fn map(&self, _: &MapOptions) -> Option<SourceMap> {
     None
   }
-
 
   fn to_writer(&self, writer: &mut dyn Write) -> io::Result<()> {
     simd_json::to_writer(writer, &self.0.map).map_err(io::Error::other)

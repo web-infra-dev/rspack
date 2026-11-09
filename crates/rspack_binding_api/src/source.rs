@@ -2,9 +2,9 @@ use std::{cell::Cell, hash::Hash, sync::Arc};
 
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
-  BoxSource, CachedSource, ConcatSource, DevToolCodeSource, DevToolMapSource, MapOptions,
-  OriginalSource, RawBufferSource, RawStringSource, ReplaceSource, Source, SourceExt, SourceMap,
-  SourceMapSource, SourceValue, WithoutOriginalOptions, utf16_len,
+  BoxSource, CachedSource, ConcatSource, MapOptions, OriginalSource, RawBufferSource,
+  RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource, SourceValue,
+  WithoutOriginalOptions, utf16_len,
 };
 use rspack_napi::napi::bindgen_prelude::*;
 
@@ -239,31 +239,19 @@ impl JsSourceWithLazyMap<'_> {
 // Preserve map()'s Some/None result without generating a map for the common module sources.
 // Composite or custom sources can discard all mappings, so their presence is left unknown.
 fn has_map_without_generation(source: &dyn Source) -> Option<bool> {
-  let source = source.as_any();
-  if source.is::<RawStringSource>()
-    || source.is::<RawBufferSource>()
-    || source.is::<DevToolCodeSource>()
-    || source.is::<DevToolMapSource>()
-  {
-    return Some(false);
-  }
-  if let Some(source) = source.downcast_ref::<OriginalSource>() {
+  let any = source.as_any();
+  if let Some(source) = any.downcast_ref::<OriginalSource>() {
     // With columns enabled, OriginalSource maps every token except standalone newlines.
     return Some(source.value().bytes().any(|byte| byte != b'\n'));
   }
-  if let Some(source) = source.downcast_ref::<SourceMapSource>() {
+  if let Some(source) = any.downcast_ref::<SourceMapSource>() {
     // A directly supplied map is present even when its mappings are empty.
     return source.inner_source_map().is_none().then_some(true);
   }
-  if let Some(source) = source.downcast_ref::<CachedSource>() {
+  if let Some(source) = any.downcast_ref::<CachedSource>() {
     return has_map_without_generation(source.inner().as_ref());
   }
-  if let Some(source) = source.downcast_ref::<ReplaceSource>() {
-    // Edits cannot introduce original mappings into an unmapped source.
-    // A mapped source can lose all its mappings, so keep that case unknown.
-    return has_map_without_generation(source.inner().as_ref()).filter(|has_map| !has_map);
-  }
-  None
+  (!source.mapped()).then_some(false)
 }
 
 /// An owned source snapshot that defers map generation until JavaScript reads its serialized map.

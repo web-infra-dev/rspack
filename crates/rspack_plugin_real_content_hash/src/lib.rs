@@ -15,8 +15,8 @@ use rayon::prelude::*;
 use rspack_core::{
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
   rspack_sources::{
-    BoxSource, RawStringSource, ReplaceSource, Source, SourceExt, SourceValue, is_source_map_text,
-    source_content_eq, update_text_content_hash,
+    BoxSource, DevToolMapSource, RawStringSource, ReplaceSource, Source, SourceExt, SourceValue,
+    is_devtool_text_source, source_content_eq, update_text_content_hash,
   },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
@@ -237,7 +237,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
               } else {
                 let mut hasher = RspackHasher::from(&compilation.options.output);
                 for asset_content in asset_contents {
-                  if is_source_map_text(asset_content.as_ref()) {
+                  if is_devtool_text_source(asset_content.as_ref()) {
                     update_text_content_hash(asset_content.as_ref(), &mut hasher);
                   } else {
                     // Preserve buffer semantics for binary and unknown sources.
@@ -322,8 +322,8 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
 }
 
 fn equal_for_hash(a: &(dyn Source + 'static), b: &(dyn Source + 'static)) -> bool {
-  let a_is_devtool = is_source_map_text(a);
-  let b_is_devtool = is_source_map_text(b);
+  let a_is_devtool = is_devtool_text_source(a);
+  let b_is_devtool = is_devtool_text_source(b);
   if (a_is_devtool && (b_is_devtool || b.as_any().is::<RawStringSource>()))
     || (b_is_devtool && a.as_any().is::<RawStringSource>())
   {
@@ -357,7 +357,7 @@ impl<'a> AssetData<'a> {
   ) -> Self {
     let mut own_hashes = HashSet::default();
     let mut referenced_hashes = HashSet::default();
-    if is_source_map_text(source.as_ref()) {
+    if is_devtool_text_source(source.as_ref()) {
       let mut matches = Vec::new();
       let mut matcher = StreamingMatcher::new(hash_ac, |found| {
         let hash = hash_patterns[found.pattern().as_usize()];
@@ -369,7 +369,11 @@ impl<'a> AssetData<'a> {
         matches.push(found);
       });
       source.to_writer(&mut matcher).expect("scan devtool asset");
-      matcher.finish();
+      let scanned_size = matcher.finish();
+      // An outer edit can change the byte count, so only record it on a bare map.
+      if let Some(map) = source.as_ref().as_any().downcast_ref::<DevToolMapSource>() {
+        map.record_serialized_size(scanned_size);
+      }
       return Self {
         own_hashes,
         referenced_hashes,

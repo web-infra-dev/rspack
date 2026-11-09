@@ -77,8 +77,9 @@ Preserve these contracts:
    arbitrary bytes; text-oriented rope composition may use lossy UTF-8.
 6. **Line-only maps are a separate mode.** They retain at most the useful mapping for each generated
    line and omit names. Do not build a full map and discard columns afterward.
-7. **Generated-only content is valid.** The common map builder returns `None` when encoded mappings
-   are empty; this says nothing about whether content exists.
+7. **Generated-only content is valid.** When `Source::mapped()` returns `false`, a caller
+   can skip map generation because the result is always `None`. Streamed chunks must still advance the
+   generated position when the source is composed with mapped content.
 8. **Borrowed `'static` views must retain their owner.** The lifetime extensions in
    `CachedSource` and `SourceContentLines` depend on explicit owner relationships.
 9. **`Source` remains `Send + Sync`.** Temporary UTF-16 indices are local to each mapping stream.

@@ -4,13 +4,13 @@ use std::{
 };
 
 use crate::{
-  CachedSource, ConcatSource, DevToolCodeSource, DevToolMapSource, ReplaceSource, Replacement,
-  Source, dev_tool_code_source::has_utf8_text,
+  CachedSource, ConcatSource, DevToolCodeSource, DevToolMapSource, ReplaceSource, Source,
+  dev_tool_code_source::has_utf8_text,
 };
 
 /// Whether this is a text devtool asset, possibly behind edit/cache wrappers.
 /// Other source graphs retain their existing content and equality semantics.
-pub fn is_source_map_text(source: &dyn Source) -> bool {
+pub fn is_devtool_text_source(source: &dyn Source) -> bool {
   let any = source.as_any();
   if any.is::<DevToolMapSource>() {
     return true;
@@ -19,10 +19,10 @@ pub fn is_source_map_text(source: &dyn Source) -> bool {
     return code.is_text();
   }
   if let Some(source) = any.downcast_ref::<ReplaceSource>() {
-    return is_source_map_text(source.inner().as_ref());
+    return is_devtool_text_source(source.inner().as_ref());
   }
   if let Some(source) = any.downcast_ref::<CachedSource>() {
-    return is_source_map_text(source.inner().as_ref());
+    return is_devtool_text_source(source.inner().as_ref());
   }
   false
 }
@@ -95,70 +95,13 @@ fn text_chunks(source: &dyn Source) -> TextChunks<'_> {
     );
   }
   if let Some(source) = any.downcast_ref::<ReplaceSource>() {
-    return Box::new(ReplacedChunks {
-      chunks: text_chunks(source.inner().as_ref()),
-      replacements: source.replacements().iter().peekable(),
-      pending: "",
-      position: 0,
-      skip_until: 0,
-    });
+    return Box::new(source.edited_chunks(text_chunks(source.inner().as_ref())));
   }
   // Known text leaves expose borrowed chunks. Map escapes and graph wrappers
   // above stay lazy instead of collecting a reference per JSON escape.
   let mut chunks = Vec::new();
   source.rope(&mut |chunk| chunks.push(chunk));
   Box::new(chunks.into_iter())
-}
-
-// Pull counterpart of ReplaceSource::rope for equality's left-hand cursor.
-// Preserve its ordering, overlap, insertion-at-end and beyond-end semantics.
-struct ReplacedChunks<'a> {
-  chunks: TextChunks<'a>,
-  replacements: std::iter::Peekable<std::slice::Iter<'a, Replacement>>,
-  pending: &'a str,
-  position: usize,
-  skip_until: usize,
-}
-
-impl<'a> Iterator for ReplacedChunks<'a> {
-  type Item = &'a str;
-  fn next(&mut self) -> Option<Self::Item> {
-    loop {
-      if self.pending.is_empty() {
-        match self.chunks.next() {
-          Some(chunk) => {
-            self.pending = chunk;
-            continue;
-          }
-          None => return self.replacements.next().map(Replacement::content),
-        }
-      }
-      if self.position < self.skip_until {
-        let n = (self.skip_until - self.position).min(self.pending.len());
-        self.pending = &self.pending[n..];
-        self.position += n;
-        continue;
-      }
-      if let Some(replacement) = self.replacements.peek()
-        && (replacement.start() as usize) < self.position + self.pending.len()
-      {
-        if replacement.start() as usize > self.position {
-          let n = replacement.start() as usize - self.position;
-          let chunk = &self.pending[..n];
-          self.pending = &self.pending[n..];
-          self.position += n;
-          return Some(chunk);
-        }
-        let replacement = self.replacements.next().expect("peeked replacement");
-        self.skip_until = self.skip_until.max(replacement.end() as usize);
-        return Some(replacement.content());
-      }
-      let chunk = self.pending;
-      self.pending = "";
-      self.position += chunk.len();
-      return Some(chunk);
-    }
-  }
 }
 
 struct CompareWriter<'a> {

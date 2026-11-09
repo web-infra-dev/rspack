@@ -17,9 +17,9 @@
 
 mod cached_source;
 mod concat_source;
-mod content;
 mod decoder;
 mod dev_tool_code_source;
+mod dev_tool_content;
 mod dev_tool_map_source;
 mod encoder;
 mod error;
@@ -39,8 +39,8 @@ pub mod cacheable;
 
 pub use cached_source::CachedSource;
 pub use concat_source::ConcatSource;
-pub use content::{is_source_map_text, source_content_eq, update_text_content_hash};
 pub use dev_tool_code_source::DevToolCodeSource;
+pub use dev_tool_content::{is_devtool_text_source, source_content_eq, update_text_content_hash};
 pub use dev_tool_map_source::DevToolMapSource;
 pub use error::{Error, Result};
 pub use original_source::OriginalSource;

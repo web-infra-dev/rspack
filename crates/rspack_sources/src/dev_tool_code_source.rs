@@ -19,6 +19,7 @@ use crate::{
 pub struct DevToolCodeSource {
   inner: BoxSource,
   suffix: BoxSource,
+  is_text: bool,
 }
 
 impl DevToolCodeSource {
@@ -38,7 +39,16 @@ impl DevToolCodeSource {
     } else {
       RawStringSource::from(suffix.source().into_string_lossy().into_owned()).boxed()
     };
-    Self { inner, suffix }
+    // After normalization, only a raw buffer can still have binary semantics.
+    let is_text = match inner.as_any().downcast_ref::<RawBufferSource>() {
+      Some(buffer) => suffix.size() != 0 && std::str::from_utf8(&buffer.buffer()).is_ok(),
+      None => true,
+    };
+    Self {
+      inner,
+      suffix,
+      is_text,
+    }
   }
 
   /// The shared code graph, without the appended comment.
@@ -54,14 +64,15 @@ impl DevToolCodeSource {
   /// Whether rope, source and emitted bytes agree on UTF-8 text. A bare buffer
   /// remains a binary source, even when its bytes happen to be valid UTF-8.
   pub fn is_text(&self) -> bool {
-    if self.inner.as_any().is::<RawBufferSource>() {
-      return self.suffix.size() != 0 && has_utf8_text(self.inner.as_ref());
-    }
-    has_utf8_text(self.inner.as_ref())
+    self.is_text
   }
 }
 
 impl Source for DevToolCodeSource {
+  fn mapped(&self) -> bool {
+    false
+  }
+
   fn source(&self) -> SourceValue<'_> {
     if self.suffix.size() == 0 {
       return self.inner.source();
@@ -96,7 +107,6 @@ impl Source for DevToolCodeSource {
   fn map(&self, _: &MapOptions) -> Option<SourceMap> {
     None
   }
-
 
   fn to_writer(&self, writer: &mut dyn Write) -> io::Result<()> {
     self.inner.to_writer(writer)?;

@@ -67,6 +67,14 @@ fn dev_tool_code_keeps_graph_and_cache_shape() {
 fn dev_tool_code_preserves_binary_normalization() {
   use rspack_sources::{ConcatSource, DevToolCodeSource, Source};
 
+  for (suffix, is_text) in [("", false), ("!", true)] {
+    let source = DevToolCodeSource::new(
+      RawBufferSource::from("你好".as_bytes()).boxed(),
+      RawStringSource::from_static(suffix).boxed(),
+    );
+    assert_eq!(source.is_text(), is_text);
+  }
+
   let bytes = vec![0xff, 0, b'x'];
   let bare = DevToolCodeSource::new(
     RawBufferSource::from(bytes.clone()).boxed(),
@@ -130,8 +138,8 @@ fn source_map_edits_share_graph_and_survive_cache() {
   use std::sync::Arc;
 
   use rspack_sources::{
-    DevToolCodeSource, DevToolMapSource, OriginalSource, ReplaceSource, Source, SourceMap,
-    is_source_map_text, source_content_eq,
+    CachedSource, ConcatSource, DevToolCodeSource, DevToolMapSource, OriginalSource, ReplaceSource,
+    Source, SourceMap, is_devtool_text_source, source_content_eq,
   };
 
   let inner = OriginalSource::new("你好;body", "input.js").boxed();
@@ -176,13 +184,13 @@ fn source_map_edits_share_graph_and_survive_cache() {
         .inner(),
       &inner
     ));
-    assert!(is_source_map_text(&edited));
+    assert!(is_devtool_text_source(&edited));
     assert!(edited.map(&Default::default()).is_none());
     assert!(source_content_eq(&edited, &RawStringSource::from(expected)));
     let data = Data(edited.boxed());
     let restored: Data = from_bytes(&to_bytes(&data, &()).unwrap(), &()).unwrap();
     assert!(restored.0.as_any().is::<ReplaceSource>());
-    assert!(is_source_map_text(restored.0.as_ref()));
+    assert!(is_devtool_text_source(restored.0.as_ref()));
     assert!(data.0.as_ref() == restored.0.as_ref());
     assert_eq!(data.0.buffer(), restored.0.buffer());
     assert!(restored.0.map(&Default::default()).is_none());
@@ -206,6 +214,19 @@ fn source_map_edits_share_graph_and_survive_cache() {
   assert!(data.0.as_ref() == restored.0.as_ref());
   assert!(source_content_eq(data.0.as_ref(), restored.0.as_ref()));
   assert!(restored.0.map(&Default::default()).is_none());
+
+  // An unmapped edit can skip map generation on its own, but must still advance
+  // the generated position when followed by a mapped source.
+  let mut prefix = ReplaceSource::new(CachedSource::new(restored.0));
+  prefix.insert(prefix.size() as u32, "\n😀".to_owned(), None);
+  assert!(!prefix.mapped());
+  let combined = ConcatSource::new([prefix.boxed(), OriginalSource::new("x", "tail.js").boxed()]);
+  let map = combined.map(&Default::default()).unwrap();
+  let mapping = map
+    .decoded_mappings()
+    .find(|m| m.original.is_some())
+    .unwrap();
+  assert_eq!((mapping.generated_line, mapping.generated_column), (2, 2));
 }
 
 #[test]
@@ -227,19 +248,20 @@ fn replaced_content_cursor_matches_rope_and_hash() {
   .boxed();
   // Include overlapping ranges, end/beyond-end insertions, a cross-fragment
   // edit, empty replacement strings and empty generated content.
-  for edits in [
-    vec![],
-    vec![(0, 8, "")],
-    vec![(1, 7, "你好")],
-    vec![(1, 4, "X"), (2, 6, "Y"), (6, 6, "!")],
-    vec![(1, 20, "X"), (2, 3, "Y"), (30, 30, "Z")],
-    vec![(8, 8, "!"), (9, 10, "?")],
+  for (edits, output) in [
+    (vec![], "abcdefgh"),
+    (vec![(0, 8, "")], ""),
+    (vec![(1, 7, "你好")], "a你好h"),
+    (vec![(1, 4, "X"), (2, 6, "Y"), (6, 6, "!")], "aXY!gh"),
+    (vec![(1, 20, "X"), (2, 3, "Y"), (30, 30, "Z")], "aXYZ"),
+    (vec![(8, 8, "!"), (9, 10, "?")], "abcdefgh!?"),
   ] {
     let mut source = ReplaceSource::new(source.clone());
     for (start, end, text) in edits {
       source.replace(start, end, text.to_owned(), None);
     }
-    let raw = RawStringSource::from(source.source().into_string_lossy().into_owned());
+    assert_eq!(source.source().into_string_lossy(), output);
+    let raw = RawStringSource::from_static(output);
     assert!(
       source_content_eq(&source, &raw),
       "edits={:?}, size={}, expected={:?}",

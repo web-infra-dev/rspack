@@ -128,6 +128,13 @@ pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + S
   /// Get the size of the source.
   fn size(&self) -> usize;
 
+  /// Whether this source may have original mappings. The default is conservative.
+  /// Return `false` only if `map()` always returns `None` and streamed
+  /// chunks never have original locations.
+  fn mapped(&self) -> bool {
+    true
+  }
+
   /// Get an independently owned [SourceMap] that can outlive the source.
   fn map(&self, options: &MapOptions) -> Option<SourceMap>;
 
@@ -159,6 +166,11 @@ impl Source for BoxSource {
   #[inline]
   fn size(&self) -> usize {
     self.as_ref().size()
+  }
+
+  #[inline]
+  fn mapped(&self) -> bool {
+    self.as_ref().mapped()
   }
 
   #[inline]

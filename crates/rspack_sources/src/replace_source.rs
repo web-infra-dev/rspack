@@ -114,6 +114,49 @@ impl PartialOrd for Replacement {
   }
 }
 
+// Edits use byte offsets in the original input, independent of its chunk boundaries.
+struct EditCursor<'a> {
+  edits: std::slice::Iter<'a, Replacement>,
+  position: usize,
+  skip_until: usize,
+}
+
+impl<'a> EditCursor<'a> {
+  fn new(edits: &'a [Replacement]) -> Self {
+    Self {
+      edits: edits.iter(),
+      position: 0,
+      skip_until: 0,
+    }
+  }
+
+  fn next_in_chunk(&mut self, chunk: &mut &'a str) -> Option<&'a str> {
+    if self.position < self.skip_until {
+      let skip = (self.skip_until - self.position).min(chunk.len());
+      *chunk = &chunk[skip..];
+      self.position += skip;
+    }
+    if chunk.is_empty() {
+      return None;
+    }
+    if let Some(edit) = self.edits.as_slice().first() {
+      let before = (edit.start as usize).saturating_sub(self.position);
+      if before == 0 {
+        self.skip_until = self.skip_until.max(edit.end as usize);
+        return self.edits.next().map(Replacement::content);
+      }
+      if before < chunk.len() {
+        let (prefix, rest) = chunk.split_at(before);
+        *chunk = rest;
+        self.position += before;
+        return Some(prefix);
+      }
+    }
+    self.position += chunk.len();
+    Some(std::mem::take(chunk))
+  }
+}
+
 impl ReplaceSource {
   /// Create a [ReplaceSource].
   pub fn new<T: SourceExt>(source: T) -> Self {
@@ -131,6 +174,25 @@ impl ReplaceSource {
   /// Get the sorted list of replacements.
   pub fn replacements(&self) -> &[Replacement] {
     &self.replacements
+  }
+
+  pub(crate) fn edited_chunks<'a>(
+    &'a self,
+    mut chunks: impl Iterator<Item = &'a str> + 'a,
+  ) -> impl Iterator<Item = &'a str> + 'a {
+    let mut cursor = EditCursor::new(&self.replacements);
+    let mut pending = "";
+    std::iter::from_fn(move || {
+      loop {
+        if let Some(fragment) = cursor.next_in_chunk(&mut pending) {
+          return Some(fragment);
+        }
+        match chunks.next() {
+          Some(chunk) => pending = chunk,
+          None => return cursor.edits.next().map(Replacement::content),
+        }
+      }
+    })
   }
 
   pub(crate) fn shrink_to_fit(&mut self) {
@@ -321,6 +383,10 @@ impl ReplaceSource {
 }
 
 impl Source for ReplaceSource {
+  fn mapped(&self) -> bool {
+    self.inner.mapped()
+  }
+
   fn source(&self) -> SourceValue<'_> {
     if self.replacements.is_empty() {
       return self.inner.source();
@@ -333,97 +399,18 @@ impl Source for ReplaceSource {
     SourceValue::String(Cow::Owned(string))
   }
 
-  #[allow(unsafe_code)]
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
     if self.replacements.is_empty() {
       return self.inner.rope(on_chunk);
     }
-
-    let mut pos: usize = 0;
-    let mut replacement_idx: usize = 0;
-    let mut replacement_end: Option<usize> = None;
-    let mut next_replacement: Option<usize> = self
-      .replacements
-      .get(replacement_idx)
-      .map(|repl| repl.start as usize);
-
-    self.inner.rope(&mut |chunk| {
-      let mut chunk_pos = 0;
-      let end_pos = pos + chunk.len();
-
-      // Skip over when it has been replaced
-      if let Some(replacement_end) =
-        replacement_end.filter(|replacement_end| *replacement_end > pos)
-      {
-        // Skip over the whole chunk
-        if replacement_end >= end_pos {
-          pos = end_pos;
-          return;
-        }
-        // Partially skip over chunk
-        chunk_pos = replacement_end - pos;
-        pos += chunk_pos;
+    let mut cursor = EditCursor::new(&self.replacements);
+    self.inner.rope(&mut |mut chunk| {
+      while let Some(fragment) = cursor.next_in_chunk(&mut chunk) {
+        on_chunk(fragment);
       }
-
-      // Is a replacement in the chunk?
-      while let Some(next_replacement_pos) =
-        next_replacement.filter(|next_replacement_pos| *next_replacement_pos < end_pos)
-      {
-        if next_replacement_pos > pos {
-          // Emit chunk until replacement
-          let offset = next_replacement_pos - pos;
-          let chunk_slice = unsafe { chunk.get_unchecked(chunk_pos..(chunk_pos + offset)) };
-          on_chunk(chunk_slice);
-          chunk_pos += offset;
-          pos = next_replacement_pos;
-        }
-        // Insert replacement content split into chunks by lines
-        let replacement = unsafe { self.replacements.get_unchecked(replacement_idx) };
-        on_chunk(&replacement.content);
-
-        // Remove replaced content by settings this variable
-        replacement_end = if let Some(replacement_end) = replacement_end {
-          Some(replacement_end.max(replacement.end as usize))
-        } else {
-          Some(replacement.end as usize)
-        };
-
-        // Move to next replacement
-        replacement_idx += 1;
-        next_replacement = self
-          .replacements
-          .get(replacement_idx)
-          .map(|repl| repl.start as usize);
-
-        // Skip over when it has been replaced
-        let offset =
-          chunk.len() as i64 - end_pos as i64 + replacement_end.unwrap() as i64 - chunk_pos as i64;
-        if offset > 0 {
-          // Skip over whole chunk
-          if replacement_end.is_some_and(|replacement_end| replacement_end >= end_pos) {
-            pos = end_pos;
-            return;
-          }
-
-          // Partially skip over chunk
-          chunk_pos += offset as usize;
-          pos += offset as usize;
-        }
-      }
-
-      // Emit remaining chunk
-      if chunk_pos < chunk.len() {
-        on_chunk(unsafe { chunk.get_unchecked(chunk_pos..) });
-      }
-      pos = end_pos;
     });
-
-    // Handle remaining replacements one by one
-    while replacement_idx < self.replacements.len() {
-      let replacement = unsafe { self.replacements.get_unchecked(replacement_idx) };
-      on_chunk(&replacement.content);
-      replacement_idx += 1;
-    }
+    // Edits at or beyond the end are appended in replacement order.
+    cursor.edits.map(Replacement::content).for_each(on_chunk);
   }
 
   fn buffer(&self) -> Cow<'_, [u8]> {
@@ -473,6 +460,9 @@ impl Source for ReplaceSource {
     let replacements = &self.replacements;
     if replacements.is_empty() {
       return self.inner.map(options);
+    }
+    if !self.mapped() {
+      return None;
     }
     let chunks = self.stream_chunks();
     get_map(chunks.as_ref(), options)
