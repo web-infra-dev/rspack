@@ -5,8 +5,7 @@ use std::{
 };
 
 use crate::{
-  BoxSource, CachedSource, ConcatSource, DevToolMapSource, MapOptions, OriginalSource,
-  RawBufferSource, RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
+  BoxSource, MapOptions, RawBufferSource, RawStringSource, Source, SourceExt, SourceMap,
   SourceValue,
   helpers::{Chunks, GeneratedInfo, StreamChunks, stream_chunks_of_raw_rope},
 };
@@ -23,23 +22,12 @@ pub struct DevToolCodeSource {
 }
 
 impl DevToolCodeSource {
-  /// Keep ordinary UTF-8 graphs shared. Devtool previously normalized through
-  /// source(), so unknown and mixed binary/text graphs retain that boundary.
   pub fn new(inner: BoxSource, suffix: BoxSource) -> Self {
-    let inner = if inner.as_any().is::<RawBufferSource>() || has_utf8_text(inner.as_ref()) {
-      inner
-    } else {
-      match inner.source() {
-        SourceValue::String(text) => RawStringSource::from(text.into_owned()).boxed(),
-        SourceValue::Buffer(bytes) => RawBufferSource::from(bytes.into_owned()).boxed(),
-      }
-    };
     let suffix = if suffix.as_any().is::<RawStringSource>() {
       suffix
     } else {
       RawStringSource::from(suffix.source().into_string_lossy().into_owned()).boxed()
     };
-    // After normalization, only a raw buffer can still have binary semantics.
     let is_text = match inner.as_any().downcast_ref::<RawBufferSource>() {
       Some(buffer) => suffix.size() != 0 && std::str::from_utf8(&buffer.buffer()).is_ok(),
       None => true,
@@ -61,8 +49,7 @@ impl DevToolCodeSource {
     &self.suffix
   }
 
-  /// Whether rope, source and emitted bytes agree on UTF-8 text. A bare buffer
-  /// remains a binary source, even when its bytes happen to be valid UTF-8.
+  /// Generated code is treated as text. A bare buffer retains binary semantics.
   pub fn is_text(&self) -> bool {
     self.is_text
   }
@@ -154,31 +141,4 @@ impl StreamChunks for DevToolCodeSource {
   fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a> {
     Box::new(CodeChunks(self))
   }
-}
-
-pub(crate) fn has_utf8_text(source: &dyn Source) -> bool {
-  let any = source.as_any();
-  if any.is::<RawStringSource>()
-    || any.is::<OriginalSource>()
-    || any.is::<SourceMapSource>()
-    || any.is::<DevToolMapSource>()
-  {
-    return true;
-  }
-  if let Some(source) = any.downcast_ref::<RawBufferSource>() {
-    return std::str::from_utf8(&source.buffer()).is_ok();
-  }
-  if let Some(source) = any.downcast_ref::<DevToolCodeSource>() {
-    return source.is_text();
-  }
-  if let Some(source) = any.downcast_ref::<CachedSource>() {
-    return has_utf8_text(source.inner().as_ref());
-  }
-  if let Some(source) = any.downcast_ref::<ConcatSource>() {
-    return source.children().iter().all(|s| has_utf8_text(s.as_ref()));
-  }
-  if let Some(source) = any.downcast_ref::<ReplaceSource>() {
-    return has_utf8_text(source.inner().as_ref());
-  }
-  false
 }

@@ -3,6 +3,7 @@ mod drive;
 use std::{
   borrow::Cow,
   hash::BuildHasherDefault,
+  io::Write,
   sync::{Arc, LazyLock},
 };
 
@@ -15,8 +16,8 @@ use rayon::prelude::*;
 use rspack_core::{
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
   rspack_sources::{
-    BoxSource, RawStringSource, ReplaceSource, SourceExt, SourceValue, is_devtool_text_source,
-    source_content_eq, update_text_content_hash,
+    BoxSource, CachedSource, DevToolMapSource, RawStringSource, ReplaceSource, SourceExt,
+    SourceValue, is_devtool_text_source, source_content_eq, update_text_content_hash,
   },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
@@ -368,7 +369,22 @@ impl<'a> AssetData<'a> {
         }
         matches.push(found);
       });
-      source.to_writer(&mut matcher).expect("scan devtool asset");
+      let mut scan_source = source.as_ref();
+      while let Some(cached) = scan_source.as_any().downcast_ref::<CachedSource>() {
+        scan_source = cached.inner().as_ref();
+      }
+      if scan_source.as_any().is::<DevToolMapSource>() {
+        scan_source
+          .to_writer(&mut matcher)
+          .expect("scan devtool map");
+      } else {
+        // ReplaceSource applies these byte offsets to rope chunks.
+        scan_source.rope(&mut |chunk| {
+          matcher
+            .write_all(chunk.as_bytes())
+            .expect("scan devtool text");
+        });
+      }
       matcher.finish();
       return Self {
         own_hashes,
@@ -448,7 +464,8 @@ impl<'a> AssetData<'a> {
           }
           return edited.boxed();
         }
-        let content = self.old_source.source().into_string_lossy();
+        let mut content = String::with_capacity(self.old_source.size());
+        self.old_source.rope(&mut |chunk| content.push_str(chunk));
         let mut result = String::with_capacity(content.len());
         let mut start = 0;
         for (from, to, replacement) in replacements {

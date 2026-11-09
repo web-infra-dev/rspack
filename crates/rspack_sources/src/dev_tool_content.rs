@@ -4,8 +4,8 @@ use std::{
 };
 
 use crate::{
-  CachedSource, ConcatSource, DevToolCodeSource, DevToolMapSource, ReplaceSource, Source,
-  dev_tool_code_source::has_utf8_text,
+  CachedSource, ConcatSource, DevToolCodeSource, DevToolMapSource, OriginalSource, RawBufferSource,
+  RawStringSource, ReplaceSource, Source, SourceMapSource,
 };
 
 /// Whether this is a text devtool asset, possibly behind edit/cache wrappers.
@@ -82,6 +82,33 @@ pub fn source_content_eq(a: &dyn Source, b: &dyn Source) -> bool {
   source.to_writer(&mut writer).is_ok()
     && writer.pending.is_empty()
     && writer.chunks.all(|chunk| chunk.is_empty())
+}
+
+fn has_utf8_text(source: &dyn Source) -> bool {
+  let any = source.as_any();
+  if any.is::<RawStringSource>()
+    || any.is::<OriginalSource>()
+    || any.is::<SourceMapSource>()
+    || any.is::<DevToolMapSource>()
+  {
+    return true;
+  }
+  if let Some(source) = any.downcast_ref::<RawBufferSource>() {
+    return std::str::from_utf8(&source.buffer()).is_ok();
+  }
+  if let Some(source) = any.downcast_ref::<DevToolCodeSource>() {
+    return source.is_text() && has_utf8_text(source.inner().as_ref());
+  }
+  if let Some(source) = any.downcast_ref::<CachedSource>() {
+    return has_utf8_text(source.inner().as_ref());
+  }
+  if let Some(source) = any.downcast_ref::<ConcatSource>() {
+    return source.children().iter().all(|s| has_utf8_text(s.as_ref()));
+  }
+  if let Some(source) = any.downcast_ref::<ReplaceSource>() {
+    return has_utf8_text(source.inner().as_ref());
+  }
+  false
 }
 
 type TextChunks<'a> = Box<dyn Iterator<Item = &'a str> + 'a>;
