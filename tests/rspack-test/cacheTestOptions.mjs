@@ -51,6 +51,7 @@ const excludes = {
 		/^container-1-5\/manifest-entry-filter$/,
 		/^container-1-5\/manifest-file-name$/,
 		/^container-1-5\/manifest-prefix-singleton$/,
+		/^container-1-5\/manifest-required-version-range$/,
 		/^container-1-5\/provide-sharing-extra-data$/,
 		/^container-1-5\/remote-array-share-scope$/,
 		/^container-1-5\/runtime-plugin-with-params$/,
