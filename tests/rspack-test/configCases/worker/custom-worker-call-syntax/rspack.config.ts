@@ -13,6 +13,12 @@ export default defineConfig({
           worker: ['MyWorker()', '...'],
         },
       },
+      {
+        test: /\.[cm]?js$/,
+        parser: {
+          worker: { alias: ['...'] },
+        },
+      },
     ],
   },
 });

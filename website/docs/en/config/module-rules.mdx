@@ -573,7 +573,7 @@ export default {
 - **Type:** `Object`
 - **Default:** `{}`
 
-Rspack merges parser options from all matching rules in order and applies them to the module's final type. These options override the corresponding options in `module.parser`. A separate rule can set the type.
+Rspack interprets parser options from each matching rule using the module's final type, then merges them in rule order. These options override the corresponding options in `module.parser`. A separate rule can set the type.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -598,7 +598,7 @@ For specific parser options and the corresponding module type, you can refer to 
 - **Type:** `Object`
 - **Default:** `{}`
 
-Rspack merges generator options from all matching rules in order and applies them to the module's final type. These options override the corresponding options in `module.generator`. In this example, one rule names the emitted PNG files and the other sets their type.
+Rspack interprets generator options from each matching rule using the module's final type, then merges them in rule order. These options override the corresponding options in `module.generator`. In this example, one rule names the emitted PNG files and the other sets their type.
 
 ```js title="rspack.config.mjs"
 export default {

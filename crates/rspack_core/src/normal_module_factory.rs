@@ -16,7 +16,7 @@ use sugar_path::SugarPath;
 use tokio::sync::OnceCell;
 
 use crate::{
-  AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
+  AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule, CompilerId,
   CompilerOptions, Context, CssAutoOrModuleParserOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, Dependency, DependencyCategory, DependencyType, FactoryMeta, FuncUseCtx,
   GeneratorOptions, MatchContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
@@ -358,7 +358,7 @@ async fn resolve_module_options(
   module_type: &ModuleType,
   global_parser: Option<&ParserOptions>,
   global_generator: Option<&GeneratorOptions>,
-  resolve_rule_options: Option<&ResolveModuleRuleOptions>,
+  rule_options_resolver: Option<(CompilerId, &ResolveModuleRuleOptions)>,
 ) -> Result<Arc<ResolvedModuleOptions>> {
   let cache_key = ResolvedModuleOptionsCacheKey::new(module_rules, *module_type);
   let cell = if let Some(cell) = options_cache.get(&cache_key) {
@@ -369,21 +369,33 @@ async fn resolve_module_options(
   // The map guard is released before invoking the resolver on the JS thread.
   cell
     .get_or_try_init(|| async {
-      let mut local_parser = None;
-      let mut local_generator = None;
-
-      for rule in module_rules {
-        local_parser = local_parser.merge_from(&rule.parser);
-        local_generator = local_generator.merge_from(&rule.generator);
-      }
-
-      if let Some(resolve_rule_options) = resolve_rule_options {
+      let mut deferred_options = Vec::new();
+      if let Some((compiler_id, resolve_rule_options)) = rule_options_resolver {
         let indices: Vec<_> = module_rules
           .iter()
           .filter_map(|rule| rule.options_index)
           .collect();
         if !indices.is_empty() {
-          let options = resolve_rule_options(indices, *module_type).await?;
+          let expected_count = indices.len();
+          deferred_options = resolve_rule_options(compiler_id, indices, *module_type).await?;
+          if deferred_options.len() != expected_count {
+            return Err(error!(
+              "Expected {expected_count} converted rule options, got {}",
+              deferred_options.len()
+            ));
+          }
+        }
+      }
+
+      let mut deferred_options = deferred_options.into_iter();
+      let mut local_parser = None;
+      let mut local_generator = None;
+      for rule in module_rules {
+        local_parser = local_parser.merge_from(&rule.parser);
+        local_generator = local_generator.merge_from(&rule.generator);
+        if rule.options_index.is_some()
+          && let Some(options) = deferred_options.next()
+        {
           local_parser = local_parser.merge_from(&options.parser);
           local_generator = local_generator.merge_from(&options.generator);
         }
@@ -1191,7 +1203,11 @@ module.exports = "data:,";
 
     let resolved_resolve_options = self.calculate_resolve_options(&matched_module_rules);
     let resolved_options = self
-      .resolve_module_options(&resolved_module_type, &matched_module_rules)
+      .resolve_module_options(
+        data.build_context.compiler_id,
+        &resolved_module_type,
+        &matched_module_rules,
+      )
       .await?;
     let resolved_side_effects = self.calculate_side_effects(&matched_module_rules);
     let resolved_extract_source_map = self.calculate_extract_source_map(&matched_module_rules);
@@ -1344,6 +1360,7 @@ module.exports = "data:,";
 
   async fn resolve_module_options(
     &self,
+    compiler_id: CompilerId,
     module_type: &ModuleType,
     module_rules: &[&ModuleRuleEffect],
   ) -> Result<Arc<ResolvedModuleOptions>> {
@@ -1355,7 +1372,12 @@ module.exports = "data:,";
       module_type,
       global_parser,
       global_generator,
-      self.options.module.resolve_rule_options.as_ref(),
+      self
+        .options
+        .module
+        .resolve_rule_options
+        .as_ref()
+        .map(|resolve| (compiler_id, resolve)),
     )
     .await
   }

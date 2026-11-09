@@ -166,7 +166,11 @@ impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
     rx.await.expect("failed to resolve js error")
   }
 
-  fn call_with_return<D: 'static + FromNapiValue>(&self, value: T) -> Receiver<Result<D>> {
+  async fn call_async_with<D: 'static>(
+    &self,
+    value: T,
+    convert: impl FnOnce(&Env, &Unknown<'static>) -> napi::Result<D> + Send + 'static,
+  ) -> Result<D> {
     let (tx, rx) = channel::<Result<D>>();
     self
       .inner
@@ -174,24 +178,34 @@ impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
         move |r: napi::Result<Unknown>, env| {
           let r = match r {
             Err(err) => Err(err.to_rspack_error(&env)),
-            Ok(o) => {
-              let raw_env = env.raw();
-              let return_value = o.raw();
-              unsafe { D::from_napi_value(raw_env, return_value) }
-                .map_err(|e| pretty_type_error(o, e))
-            }
+            Ok(o) => convert(&env, &o).map_err(|e| pretty_type_error(o, e)),
           };
           tx.send(r)
             .unwrap_or_else(|_| panic!("failed to send tsfn value"));
           Ok(())
         }
       });
-    rx
+    rx.await.expect("failed to receive tsfn value")
   }
 
   async fn call_async<D: 'static + FromNapiValue>(&self, value: T) -> Result<D> {
-    let rx = self.call_with_return(value);
-    rx.await.expect("failed to receive tsfn value")
+    self
+      .call_async_with(value, |env, value| unsafe {
+        D::from_napi_value(env.raw(), value.raw())
+      })
+      .await
+  }
+
+  /// Invoke the result converter on the owning JS thread before returning to Rust.
+  pub async fn call_with_sync_and_convert(
+    &self,
+    value: T,
+    convert: impl FnOnce(&Env, &Unknown<'static>) -> napi::Result<R> + Send + 'static,
+  ) -> Result<R>
+  where
+    R: 'static,
+  {
+    self.call_async_with(value, convert).await
   }
 }
 

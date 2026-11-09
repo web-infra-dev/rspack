@@ -573,7 +573,7 @@ export default {
 - **类型：** `Object`
 - **默认值：** `{}`
 
-Rspack 按顺序合并所有匹配规则中的解析器选项，并将其应用于模块的最终类型。这些选项会覆盖 `module.parser` 中的对应选项。模块类型可以由另一条规则设置。
+Rspack 根据模块的最终类型解释每条匹配规则的解析器选项，再按规则顺序合并。这些选项会覆盖 `module.parser` 中的对应选项。模块类型可以由另一条规则设置。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -598,7 +598,7 @@ export default {
 - **类型：** `Object`
 - **默认值：** `{}`
 
-Rspack 按顺序合并所有匹配规则中的生成器选项，并将其应用于模块的最终类型。这些选项会覆盖 `module.generator` 中的对应选项。以下示例用一条规则设置输出的 PNG 文件名，用另一条规则设置模块类型。
+Rspack 根据模块的最终类型解释每条匹配规则的生成器选项，再按规则顺序合并。这些选项会覆盖 `module.generator` 中的对应选项。以下示例用一条规则设置输出的 PNG 文件名，用另一条规则设置模块类型。
 
 ```js title="rspack.config.mjs"
 export default {

@@ -146,7 +146,7 @@ use crate::{
   plugins::{
     JsCleanupPlugin, JsHooksAdapterPlugin, RegisterJsTapKind, RegisterJsTaps, buildtime_plugins,
   },
-  raw_options::{BuiltinPlugin, RawOptions, RawRuleOptions, WithFalse},
+  raw_options::{BuiltinPlugin, RawOptions, WithFalse},
   resolver_factory::JsResolverFactory,
   trace_event::RawTraceEvent,
   utils::callbackify,
@@ -454,24 +454,6 @@ impl JsCompiler {
   #[napi]
   pub fn set_non_skippable_registers(&self, kinds: Vec<RegisterJsTapKind>) {
     self.js_hooks_plugin.set_non_skippable_registers(kinds)
-  }
-
-  #[napi(
-    js_name = "__internal__convertRuleOptions",
-    ts_args_type = "options: RawRuleOptions",
-    ts_return_type = "object"
-  )]
-  pub fn convert_rule_options(
-    &self,
-    env: &Env,
-    options: Unknown<'_>,
-  ) -> Result<External<Option<RawRuleOptions>>> {
-    // Convert nested callbacks while their owning compiler is in scope.
-    // The TSFN takes the converted options out of the returned external.
-    let options = self
-      .compiler_scoped_tsfn_manager
-      .scope(|| unsafe { RawRuleOptions::from_napi_value(env.raw(), options.raw()) })?;
-    Ok(External::new(Some(options)))
   }
 
   /// Build with the given option passed to the constructor

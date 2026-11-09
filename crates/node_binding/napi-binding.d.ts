@@ -286,7 +286,6 @@ export declare class JsCompilation {
 export declare class JsCompiler {
   constructor(compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache, jsHelpers: JsHelpers)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
-  __internal__convertRuleOptions(options: RawRuleOptions): object
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
   /** Rebuild with the given option passed to the constructor */
@@ -2778,7 +2777,7 @@ export interface RawModuleOptions {
   parser?: Record<string, RawParserOptions>
   generator?: Record<string, RawGeneratorOptions>
   noParse?: string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]
-  resolveRuleOptions?: (indices: number[], moduleType: string) => object
+  resolveRuleOptions?: (indices: number[], moduleType: string) => RawRuleOptions[]
 }
 
 export interface RawModuleRule {

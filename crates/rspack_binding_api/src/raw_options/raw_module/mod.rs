@@ -8,7 +8,7 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use napi::{
   Either,
-  bindgen_prelude::{Buffer, Either3, External, FnArgs, FromNapiMutRef, FromNapiValue},
+  bindgen_prelude::{Buffer, Either3, FnArgs},
 };
 use napi_derive::napi;
 use regex::Regex;
@@ -997,23 +997,8 @@ pub struct RawRuleOptions {
   pub generator: Option<RawGeneratorOptions>,
 }
 
-pub struct ConvertedRuleOptions(RawRuleOptions);
-
-impl FromNapiValue for ConvertedRuleOptions {
-  unsafe fn from_napi_value(
-    env: napi::sys::napi_env,
-    value: napi::sys::napi_value,
-  ) -> napi::Result<Self> {
-    let options = unsafe { External::<Option<RawRuleOptions>>::from_napi_mut_ref(env, value) }?;
-    options
-      .take()
-      .map(Self)
-      .ok_or_else(|| napi::Error::from_reason("Rule options have already been consumed"))
-  }
-}
-
 type ThreadsafeResolveRuleOptions =
-  ThreadsafeFunction<FnArgs<(Vec<u32>, String)>, ConvertedRuleOptions>;
+  ThreadsafeFunction<FnArgs<(Vec<u32>, String)>, Vec<RawRuleOptions>>;
 
 #[napi(object, object_to_js = false)]
 #[derive(Debug)]
@@ -1026,7 +1011,7 @@ pub struct RawModuleOptions {
   )]
   #[debug(skip)]
   pub no_parse: Option<RawModuleNoParseRules>,
-  #[napi(ts_type = "(indices: number[], moduleType: string) => object")]
+  #[napi(ts_type = "(indices: number[], moduleType: string) => RawRuleOptions[]")]
   pub resolve_rule_options: Option<ThreadsafeResolveRuleOptions>,
 }
 
@@ -1197,21 +1182,31 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
       .into_iter()
       .map(|rule| rule.try_into())
       .collect::<rspack_error::Result<Vec<ModuleRule>>>()?;
-    let resolve_rule_options = value.resolve_rule_options.map(|resolve| {
-      let resolve: ResolveModuleRuleOptions = Box::new(move |indices, module_type: ModuleType| {
-        let resolve = resolve.clone();
-        Box::pin(async move {
-          let ConvertedRuleOptions(options) = resolve
-            .call_with_sync(FnArgs::from((indices, module_type.as_str().to_owned())))
-            .await?;
-          Ok(ModuleRuleOptions {
-            parser: options.parser.map(Into::into),
-            generator: options.generator.map(Into::into),
+    let resolve_rule_options =
+      value
+        .resolve_rule_options
+        .map(|resolve| -> ResolveModuleRuleOptions {
+          Box::new(move |compiler_id, indices, module_type: ModuleType| {
+            let resolve = resolve.clone();
+            Box::pin(async move {
+              let options = resolve
+                .call_with_sync_in_scope(
+                  FnArgs::from((indices, module_type.as_str().to_owned())),
+                  compiler_id,
+                )
+                .await?;
+              Ok(
+                options
+                  .into_iter()
+                  .map(|options| ModuleRuleOptions {
+                    parser: options.parser.map(Into::into),
+                    generator: options.generator.map(Into::into),
+                  })
+                  .collect(),
+              )
+            })
           })
-        })
-      });
-      resolve
-    });
+        });
 
     let mut module_options = ModuleOptions {
       rules,

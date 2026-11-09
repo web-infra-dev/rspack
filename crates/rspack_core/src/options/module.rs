@@ -18,7 +18,7 @@ use rustc_hash::FxHashMap as HashMap;
 use smallvec::SmallVec;
 use tokio::sync::OnceCell;
 
-use crate::{Compilation, Filename, Module, ModuleType, PublicPath, Resolve};
+use crate::{Compilation, CompilerId, Filename, Module, ModuleType, PublicPath, Resolve};
 
 #[derive(Debug, Default)]
 pub struct ParserOptionsMap(HashMap<String, ParserOptions>);
@@ -831,7 +831,10 @@ impl Clone for ParseOption {
 
 impl MergeFrom for ParseOption {
   fn merge_from(self, other: &Self) -> Self {
-    other.clone()
+    match other {
+      Self::Func(_) => other.clone(),
+      Self::None => self,
+    }
   }
 }
 
@@ -1058,7 +1061,10 @@ impl Clone for AssetGeneratorDataUrl {
 
 impl MergeFrom for AssetGeneratorDataUrl {
   fn merge_from(self, other: &Self) -> Self {
-    other.clone()
+    match (self, other) {
+      (Self::Options(base), Self::Options(options)) => Self::Options(base.merge_from(options)),
+      (_, other) => other.clone(),
+    }
   }
 }
 
@@ -1735,8 +1741,11 @@ pub struct ModuleRuleOptions {
   pub generator: Option<GeneratorOptions>,
 }
 
-pub type ResolveModuleRuleOptions =
-  Box<dyn Fn(Vec<u32>, ModuleType) -> BoxFuture<'static, Result<ModuleRuleOptions>> + Sync + Send>;
+pub type ResolveModuleRuleOptions = Box<
+  dyn Fn(CompilerId, Vec<u32>, ModuleType) -> BoxFuture<'static, Result<Vec<ModuleRuleOptions>>>
+    + Sync
+    + Send,
+>;
 
 #[derive(Debug)]
 pub struct ModuleRuleEffect {

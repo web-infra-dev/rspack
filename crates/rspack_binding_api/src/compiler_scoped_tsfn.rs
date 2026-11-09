@@ -7,7 +7,7 @@ use std::{
 
 use atomic_refcell::AtomicRefCell;
 use napi::{
-  Env, JsValue, Status, ValueType,
+  Env, JsValue, Status, Unknown, ValueType,
   bindgen_prelude::{
     FromNapiValue, JsObjectValue, JsValuesTupleIntoVec, Promise, TypeName, ValidateNapiValue,
   },
@@ -20,9 +20,7 @@ use slotmap::{DefaultKey, SlotMap};
 const COMPILER_CLOSED_MESSAGE: &str = "Rspack compiler has already been closed by `compiler.close()`. Do not call Rspack compiler APIs after close; create a new compiler instead.";
 
 thread_local! {
-  // `FromNapiValue` does not accept extra context, so constructor-time parsing uses a
-  // thread-local scope to tell nested callback conversions which compiler-local manager
-  // should own their TSFN cleanup.
+  // `FromNapiValue` uses this scope to find the manager that owns nested callbacks.
   static CURRENT_COMPILER_SCOPED_TS_FN_CONTEXT: RefCell<Option<CompilerScopedTsFnContext>> = Default::default();
 }
 
@@ -203,6 +201,22 @@ impl<T: 'static + JsValuesTupleIntoVec, R: 'static + FromNapiValue> CompilerScop
   pub async fn call_with_sync(&self, value: T) -> rspack_error::Result<R> {
     self.expect_active_tsfn()?.call_with_sync(value).await
   }
+
+  pub async fn call_with_sync_in_scope(
+    &self,
+    value: T,
+    compiler_id: rspack_core::CompilerId,
+  ) -> rspack_error::Result<R> {
+    self
+      .expect_active_tsfn()?
+      .call_with_sync_and_convert(value, move |env: &Env, value: &Unknown<'static>| {
+        let compiler = crate::upgrade_compiler(env, compiler_id)?;
+        compiler
+          .compiler_scoped_tsfn_manager
+          .scope(|| unsafe { R::from_napi_value(env.raw(), value.raw()) })
+      })
+      .await
+  }
 }
 
 impl<T: 'static + JsValuesTupleIntoVec, R: 'static + FromNapiValue>
@@ -231,16 +245,14 @@ impl<T: 'static + JsValuesTupleIntoVec, R: 'static> FromNapiValue
         unsafe { ThreadsafeFunction::from_napi_value_with_finalize(env, napi_val, finalize) }?;
       *active_tsfn.borrow_mut() = Some(tsfn);
     } else {
-      // Callbacks parsed outside a compiler construction scope fall back to eager TSFN behavior.
+      // Callbacks parsed outside a compiler scope fall back to eager TSFN behavior.
       // This should not happen in normal usage - report an error in debug builds to catch issues early.
       #[cfg(debug_assertions)]
       {
         let function_desc = format_js_function(env, napi_val);
         return Err(napi::Error::new(
           Status::GenericFailure,
-          format!(
-            "Compiler-scoped callback {function_desc} was parsed outside a compiler construction scope",
-          ),
+          format!("Compiler-scoped callback {function_desc} was parsed outside a compiler scope"),
         ));
       }
       #[cfg(not(debug_assertions))]

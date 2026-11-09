@@ -22,7 +22,6 @@ import {
   type RawOptions,
   type RawOutputOptions,
   type RawParserOptions,
-  type RawRuleOptions,
   type RawRuleSetCondition,
   RawRuleSetConditionType,
   type RawRuleSetLogicalConditions,
@@ -32,7 +31,6 @@ import {
 import type { Compiler } from '../Compiler';
 import { normalizeStatsPreset } from '../Stats';
 import { isNil } from '../util';
-import { cleverMerge } from '../util/cleverMerge';
 import { parseResource } from '../util/identifier';
 import { isStatsColorSupported } from '../util/supportsColor';
 import {
@@ -98,7 +96,6 @@ type ExperimentsWithDefaults = Omit<
 export const getRawOptions = (
   options: RspackOptionsNormalized,
   compiler: Compiler,
-  convertRuleOptions: (options: RawRuleOptions) => object,
 ): RawOptions => {
   const mode = options.mode;
   const experiments = options.experiments as ExperimentsWithDefaults;
@@ -110,11 +107,12 @@ export const getRawOptions = (
     output: getRawOutput(options.output),
     resolve: getRawResolve(options.resolve),
     resolveLoader: getRawResolve(options.resolveLoader),
-    module: getRawModule(
-      options.module,
-      { compiler, mode, context: options.context!, experiments },
-      convertRuleOptions,
-    ),
+    module: getRawModule(options.module, {
+      compiler,
+      mode,
+      context: options.context!,
+      experiments,
+    }),
     optimization: options.optimization as Required<Optimization>,
     stats: getRawStats(options.stats),
     cache: getRawCache(cache),
@@ -298,7 +296,6 @@ type RuleOptions = Pick<RuleSetRule, 'parser' | 'generator'>;
 function getRawModule(
   module: ModuleOptionsNormalized,
   options: ComposeJsUseOptions,
-  convertRuleOptions: (options: RawRuleOptions) => object,
 ): RawOptions['module'] {
   if (isNil(module.defaultRules)) {
     throw new Error('module.defaultRules should not be nil after defaults');
@@ -322,23 +319,18 @@ function getRawModule(
     generator: getRawGeneratorOptionsMap(module.generator),
     noParse: module.noParse,
     resolveRuleOptions: ruleOptions.length
-      ? (indices, moduleType) => {
-          let parser: RuleOptions['parser'];
-          let generator: RuleOptions['generator'];
-          for (const index of indices) {
-            const options = ruleOptions[index];
-            parser = cleverMerge(parser, options.parser);
-            generator = cleverMerge(generator, options.generator);
-          }
-          return convertRuleOptions({
-            parser: parser
-              ? getRawParserOptions(parser, moduleType, true)
-              : undefined,
-            generator: generator
-              ? getRawGeneratorOptions(generator, moduleType, true)
-              : undefined,
-          });
-        }
+      ? (indices, moduleType) =>
+          indices.map((index) => {
+            const { parser, generator } = ruleOptions[index];
+            return {
+              parser: parser
+                ? getRawParserOptions(parser, moduleType, true)
+                : undefined,
+              generator: generator
+                ? getRawGeneratorOptions(generator, moduleType, true)
+                : undefined,
+            };
+          })
       : undefined,
   };
 }
