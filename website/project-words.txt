@@ -50,6 +50,7 @@ devserverhot
 devserverwebsocketserver
 dhruvkelawala
 disabletransformbydefault
+douyinfe
 ecma
 edusperoni
 elecmonkey
@@ -68,6 +69,7 @@ feishu
 feng
 fetchcompileasyncwasmplugin
 fi3ework
+fluentui
 fnames
 funs
 gengkun
@@ -84,6 +86,7 @@ Iife
 incrementality
 indicatif
 inituit
+Inlines
 innovatively
 inottn
 intellild
@@ -102,6 +105,8 @@ jridgewell
 jscexperimentalplugins
 jserfeng
 kaffi
+kirana
+Kirana
 kuaishou
 Kyrylo
 ldconfig
@@ -219,6 +224,7 @@ sonda
 sooniter
 statoscope
 struct
+stylexswc
 svgr
 swcjsminimizerplugin
 swcjsminimizerrspackplugin
@@ -243,6 +249,8 @@ TSRX
 tuchg
 typeofs
 TypeScript
+typia
+Typia
 ulivz
 unaccessed
 Undelayed
@@ -254,6 +262,7 @@ vant
 verkada
 viktoriialurie
 vize
+vizejs
 wasi
 WASI
 weapp
