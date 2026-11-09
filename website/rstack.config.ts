@@ -25,9 +25,6 @@ define.doc({
   lang: 'en',
   globalStyles: path.join(import.meta.dirname, 'theme', 'index.css'),
   markdown: {
-    link: {
-      checkAnchors: true,
-    },
     shiki: {
       langAlias: {
         ejs: 'js',
@@ -38,7 +35,6 @@ define.doc({
     codeBlocks: true,
   },
   route: {
-    cleanUrls: true,
     exclude: ['**/types/*.mdx'],
   },
   plugins: [
