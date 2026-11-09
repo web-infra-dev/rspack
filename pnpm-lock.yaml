@@ -6429,8 +6429,8 @@ packages:
     resolution: {integrity: sha512-3YHlOa/JgH6Mnpr05jP9eDG254US9ek25LyIxZlDItp2iJtwyaXQb57lBYLdT3MowkUFYEV2XXNAYIPlESvJlA==}
     engines: {node: '>= 0.10'}
 
-  parse5-parser-stream@8.1.1:
-    resolution: {integrity: sha512-hMcVbbUJcQmP8rURWUdYrT1flRiBiBVjq/RYGguJpDUgIXSqdYKlE0CxthmdMWoSlBAuL5bUBa73g0pttSy7Hw==}
+  parse5-parser-stream@8.1.0:
+    resolution: {integrity: sha512-58MPfNTA+DsIzro41rU94xghnu/h2N4yEPdPdGPlZVHM/QvA5jlVGYVo7IzlHbFLHYx3cZUnr9s9HBrA0tEYyw==}
 
   parse5@7.3.0:
     resolution: {integrity: sha512-IInvU7fabl34qmi9gY8XOVxhYyMyuH2xUNpb2q8/Y+7552KlejkRvqvD19nMoUW/uQGGbqNpA6Tufu5FL5BZgw==}
@@ -6438,8 +6438,8 @@ packages:
   parse5@8.0.1:
     resolution: {integrity: sha512-z1e/HMG90obSGeidlli3hj7cbocou0/wa5HacvI3ASx34PecNjNQeaHNo5WIZpWofN9kgkqV1q5YvXe3F0FoPw==}
 
-  parse5@8.1.1:
-    resolution: {integrity: sha512-EcR/6WDcU7b2N3vQSxKALCk9lXGtUMQxXio008OEMBE0kavu/7JLfBEeFPzi43nMqVDSbEn3QCK+BMCc9zO//w==}
+  parse5@8.1.0:
+    resolution: {integrity: sha512-sq3qBFpee5jeocbFbO48VHlGr8sT7mbXS0vxlKN6sottBtJzrOG3998sr0llSZcQAGgfpdmEYAIZE0P9z0dE8w==}
 
   pascal-case@3.1.2:
     resolution: {integrity: sha512-uWlGT3YSnK9x3BQJaOdcZwrnV6hPpd8jFH1/ucpiLRPh/2zCVJKS19E4GvYHvaCcACn3foXZ0cLB9Wrx1KGe5g==}
@@ -9596,6 +9596,7 @@ snapshots:
       '@rspack/binding-win32-arm64-msvc': 2.3.1
       '@rspack/binding-win32-ia32-msvc': 2.3.1
       '@rspack/binding-win32-x64-msvc': 2.3.1
+    optional: true
 
   '@rspack/core@2.3.0(@module-federation/runtime-tools@2.9.3)(@swc/helpers@0.5.23)':
     dependencies:
@@ -12156,8 +12157,8 @@ snapshots:
       html-encoding-sniffer: 7.0.0
       is-potential-custom-element-name: 1.0.1
       lru-cache: 11.5.3
-      parse5: 8.1.1
-      parse5-parser-stream: 8.1.1
+      parse5: 8.1.0
+      parse5-parser-stream: 8.1.0
       saxes: 6.0.0
       tough-cookie: 6.0.2
       undici: 8.12.4
@@ -13141,9 +13142,9 @@ snapshots:
 
   parse-node-version@1.0.1: {}
 
-  parse5-parser-stream@8.1.1:
+  parse5-parser-stream@8.1.0:
     dependencies:
-      parse5: 8.1.1
+      parse5: 8.1.0
 
   parse5@7.3.0:
     dependencies:
@@ -13153,7 +13154,7 @@ snapshots:
     dependencies:
       entities: 8.0.0
 
-  parse5@8.1.1:
+  parse5@8.1.0:
     dependencies:
       entities: 9.0.0
 
