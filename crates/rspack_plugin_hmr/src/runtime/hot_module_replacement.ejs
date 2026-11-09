@@ -439,18 +439,21 @@
 	};
 
 	var outdatedModules = [];
-	return Promise.all(results.map(function (result) {
-		return result.apply ? result.apply(reportError) : undefined;
-	})).then(function (applyResults) {
-		applyResults.forEach(function (modules) {
-			if (modules) {
-				for (var i = 0; i < modules.length; i++) {
-					outdatedModules.push(modules[i]);
+	return Promise.all([
+		disposePromise,
+		applyPromise,
+		Promise.all(results.map(function (result) {
+			return result.apply ? result.apply(reportError) : undefined;
+		})).then(function (applyResults) {
+			applyResults.forEach(function (modules) {
+				if (modules) {
+					for (var i = 0; i < modules.length; i++) {
+						outdatedModules.push(modules[i]);
+					}
 				}
-			}
-		});
-		return Promise.all([disposePromise, applyPromise]);
-	}).then(function () {
+			});
+		})
+	]).then(function () {
 		if (error) {
 			return setStatus("fail").then(function () {
 				throw error;
