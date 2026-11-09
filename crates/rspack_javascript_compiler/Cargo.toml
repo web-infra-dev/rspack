@@ -14,8 +14,8 @@ version.workspace       = true
 codspeed = []
 
 [dependencies]
-bytes-str = { workspace = true }
 anyhow              = { workspace = true }
+bytes-str           = { workspace = true }
 indoc               = { workspace = true }
 rustc-hash          = { workspace = true }
 serde               = { workspace = true, features = ["derive"] }

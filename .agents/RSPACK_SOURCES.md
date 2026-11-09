@@ -99,15 +99,15 @@ Despite its historical name:
 pub type BoxSource = Arc<dyn Source>;
 ```
 
-| Method                | Use                                       | Cost expectations                           |
-| --------------------- | ----------------------------------------- | ------------------------------------------- |
-| `source()`            | text/binary value                         | borrowed for leaves; may flatten composites |
-| `rope(on_chunk)`      | incremental text spans                    | preserve borrowing; text-oriented           |
-| `buffer()`            | exact bytes                               | preferred for binary data                   |
-| `size()`              | output byte length                        | must match buffer/writer length             |
-| `map(options)`        | independently owned map                   | share an existing map or one streamed rebuild |
-| `update_hash()`       | structural hash                           | cached by `CachedSource`                    |
-| `to_writer()`         | incremental byte output                   | preferred for emission                      |
+| Method           | Use                     | Cost expectations                             |
+| ---------------- | ----------------------- | --------------------------------------------- |
+| `source()`       | text/binary value       | borrowed for leaves; may flatten composites   |
+| `rope(on_chunk)` | incremental text spans  | preserve borrowing; text-oriented             |
+| `buffer()`       | exact bytes             | preferred for binary data                     |
+| `size()`         | output byte length      | must match buffer/writer length               |
+| `map(options)`   | independently owned map | share an existing map or one streamed rebuild |
+| `update_hash()`  | structural hash         | cached by `CachedSource`                      |
+| `to_writer()`    | incremental byte output | preferred for emission                        |
 
 For every implementation:
 
@@ -244,7 +244,7 @@ representation optimizations.
 | `RawStringSource` | text leaf            | no mappings; use `from_static` for literals                         |
 | `RawBufferSource` | binary leaf          | exact bytes; lazy lossy rope view                                   |
 | `OriginalSource`  | mapped text leaf     | lazily creates token-like or line mappings                          |
-| `SourceMapSource` | existing/nested map  | shares one map or composes outer and inner maps           |
+| `SourceMapSource` | existing/nested map  | shares one map or composes outer and inner maps                     |
 | `MappingSource`   | external map JSON    | retains the original map and serializes JSON on demand              |
 | `ConcatSource`    | ordered composition  | flattens nested concats, merges adjacent raw strings, remaps tables |
 | `ReplaceSource`   | byte-range transform | maintains sorted edits and repairs mappings                         |
