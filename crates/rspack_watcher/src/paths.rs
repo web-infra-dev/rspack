@@ -3,6 +3,7 @@ use std::{
   fmt::Debug,
   ops::Deref,
   path::{Path, PathBuf},
+  sync::{Mutex, OnceLock, Weak},
   time::SystemTime,
 };
 
@@ -14,7 +15,10 @@ use rspack_util::{
   time::{current_time, system_time_to_millis},
 };
 
-use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher};
+use super::{
+  FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, disk_watcher::DiskWatcher,
+  ignored::IgnoredMatcher,
+};
 use crate::time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis};
 
 /// An iterator that chains together references to all files, directories, and missing paths
@@ -329,6 +333,8 @@ pub(crate) struct PathManager {
   /// The `followSymlinks` watch option: the context scan descends into
   /// symlinked directories, as watchpack does.
   follow_symlinks: bool,
+  /// Only directory-based backends need filtered, per-directory context watches.
+  context_watcher: OnceLock<Weak<Mutex<DiskWatcher>>>,
 }
 
 impl PathManager {
@@ -349,6 +355,7 @@ impl PathManager {
       recorded_children: InternedPathDashMap::default(),
       index_lock: std::sync::Mutex::default(),
       follow_symlinks: false,
+      context_watcher: OnceLock::new(),
     }
   }
 
@@ -406,6 +413,34 @@ impl PathManager {
     self.set_file_time(path, mtime, true, true);
   }
 
+  pub(crate) fn set_context_watcher(&self, watcher: Weak<Mutex<DiskWatcher>>) {
+    self.context_watcher.get_or_init(|| watcher);
+  }
+
+  fn watch_context_directory(&self, path: &InternedPath) -> rspack_error::Result<bool> {
+    if let Some(watcher) = self.context_watcher.get().and_then(Weak::upgrade) {
+      let mut watcher = watcher.lock().expect("disk watcher lock poisoned");
+      // A scan can outlive the context that started it.
+      if (self.directories.all.contains(path) || self.is_below_context(path)) && path.is_dir() {
+        match watcher.watch_context_directory(path) {
+          Ok(added) => return Ok(added),
+          Err(error) if path.is_dir() => return Err(error),
+          Err(_) => {}
+        }
+      }
+    }
+    Ok(false)
+  }
+
+  fn remove_context_watch(&self, path: &InternedPath, removed: bool) {
+    if let Some(watcher) = self.context_watcher.get().and_then(Weak::upgrade) {
+      watcher
+        .lock()
+        .expect("disk watcher lock poisoned")
+        .remove_context_directory(path, removed);
+    }
+  }
+
   /// Whether a removal was already reported for this path. The scanner must
   /// still report an absence with no prior record.
   pub fn is_known_absent(&self, path: &InternedPath) -> bool {
@@ -426,6 +461,7 @@ impl PathManager {
   /// Drop a removed path's time info and present baseline. A reported absence
   /// survives later removals until the path reappears or is unregistered.
   pub fn remove_file_time(&self, path: &InternedPath) {
+    self.remove_context_watch(path, true);
     self.file_times.remove(path);
     self.baselines.remove_if(path, |_, time| time.is_some());
     self.context_files.remove(path);
@@ -441,6 +477,7 @@ impl PathManager {
     let _index = self.lock_index();
     let mut pending = vec![dir.clone()];
     while let Some(path) = pending.pop() {
+      self.remove_context_watch(&path, true);
       if let Some((_, children)) = self.recorded_children.remove(&path) {
         pending.extend(children);
       }
@@ -593,6 +630,8 @@ impl PathManager {
     changed_since: Option<u64>,
   ) -> Vec<InternedPath> {
     let mut changed = Vec::new();
+    let mut watch_errors = 0;
+    let mut first_watch_error = None;
     // Each directory carries the real paths of the directories above it: with
     // `followSymlinks`, a link back into its own ancestry is a loop, while two
     // links to one directory are two aliases, each scanned.
@@ -609,6 +648,12 @@ impl PathManager {
           continue;
         }
         ancestry.push(real);
+      }
+      // Install the non-recursive watch before enumerating, including empty
+      // directories. Children pass the ignored filter before reaching this walk.
+      if let Err(error) = self.watch_context_directory(&dir) {
+        watch_errors += 1;
+        first_watch_error.get_or_insert(error);
       }
       let Ok(entries) = std::fs::read_dir(&dir) else {
         continue;
@@ -651,6 +696,12 @@ impl PathManager {
         }
       }
     }
+    if let Some(error) = first_watch_error {
+      tracing::error!(target: "rspack_watcher::disk_watcher", watch_errors, "{error}");
+      eprintln!(
+        "Error in file watcher: failed to watch {watch_errors} context directories; first error: {error}"
+      );
+    }
     changed
   }
 
@@ -663,6 +714,7 @@ impl PathManager {
     if self.is_below_context(path) {
       return false;
     }
+    self.remove_context_watch(path, false);
     self.context_files.remove(path);
     self.context_directories.remove(path);
     if !self.files.all.contains(path) && !self.missing.all.contains(path) {
@@ -711,8 +763,10 @@ impl PathManager {
     };
     if metadata.is_dir() {
       // Like watchpack's `setDirectory`, only a directory not known before is
-      // scanned: an event on a known one, e.g. a `chmod`, changes nothing below.
-      if self.record(path, || self.context_directories.insert(path.clone())) {
+      // scanned, unless a failed watch was dropped and can now be restored.
+      if self.record(path, || self.context_directories.insert(path.clone()))
+        || !matches!(self.watch_context_directory(path), Ok(false))
+      {
         self.scan_below(vec![path.clone()], false, None).await;
       }
       return true;
@@ -944,6 +998,9 @@ impl PathManager {
     let removed_dirs: Vec<InternedPath> =
       self.directories.removed.iter().map(|p| p.clone()).collect();
     for dir in &removed_dirs {
+      if !self.is_below_context(dir) {
+        self.remove_context_watch(dir, false);
+      }
       // Still below a registered context and on disk: it stays reported, as a
       // directory found there, and keeps its event clock. Absent, it is
       // forgotten, so it is scanned as a new directory when it comes back.
@@ -983,6 +1040,7 @@ impl PathManager {
         self.unlink_unrecorded(path);
       }
       if self.context_directories.remove(path).is_some() {
+        self.remove_context_watch(path, false);
         self.last_watch_events.remove(path);
         self.unlink_unrecorded(path);
       }

@@ -343,13 +343,10 @@ impl EventProcessor {
     });
     let mut recovered = Vec::new();
     if appeared && path.is_dir() && !path.is_symlink() {
-      // On Linux, inotify adds a new directory's watch before emitting its
-      // Create event, so files written before that watch existed are already
-      // on disk; later writes produce their own events. On every backend, a
-      // directory moved into place reports only itself. Recover registered
-      // descendants here, off the OS reader thread. Duplicate events coalesce
-      // in the aggregate sets. Cost is proportional to the new subtree; on
-      // Linux it is comparable to notify's own add-watch walk.
+      // Context scans install each directory's filtered watch before reading
+      // it. A moved-in subtree can also contain registered file dependencies;
+      // recover those here, off the OS reader thread. Duplicate events coalesce
+      // in the aggregate sets. Cost is proportional to the new subtree.
       let mut directories = vec![path.clone()];
       while let Some(directory) = directories.pop() {
         let Ok(entries) = std::fs::read_dir(&directory) else {
