@@ -226,7 +226,6 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     self.cache.clear();
     #[cfg(feature = "yarn_pnp")]
     {
-      self.pnp_manifest.store(None);
       self.pnp_no_manifest_cache.clear();
     }
   }

@@ -702,6 +702,8 @@ export default {
 };
 ```
 
+Rspack reuses the dependency mappings from the PnP manifest (`.pnp.cjs`) across rebuilds. If installing or updating dependencies changes this file, restart the dev server or watch process to use the updated dependency mappings.
+
 ## resolve.preferAbsolute
 
 - **Type:** `boolean`

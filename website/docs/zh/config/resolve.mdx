@@ -700,6 +700,8 @@ export default {
 };
 ```
 
+Rspack 会在多次构建之间复用 `.pnp.cjs` 中的依赖映射。如果安装或更新依赖导致该文件发生变化，请重启 dev server 或 watch 进程，使新的依赖映射生效。
+
 ## resolve.preferAbsolute
 
 - **类型：** `boolean`
