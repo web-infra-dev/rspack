@@ -31,6 +31,7 @@ import {
 import type { Compiler } from '../Compiler';
 import { normalizeStatsPreset } from '../Stats';
 import { isNil } from '../util';
+import { cleverMerge } from '../util/cleverMerge';
 import { parseResource } from '../util/identifier';
 import { isStatsColorSupported } from '../util/supportsColor';
 import {
@@ -292,6 +293,7 @@ export function getRawResolve(resolve: Resolve): RawOptions['resolve'] {
 }
 
 type RuleOptions = Pick<RuleSetRule, 'parser' | 'generator'>;
+const MAX_MODULE_RULES = 0xffff;
 
 function getRawModule(
   module: ModuleOptionsNormalized,
@@ -306,7 +308,7 @@ function getRawModule(
     { rules: module.defaultRules as RuleSetRule[] },
     { rules: module.rules as RuleSetRule[] },
   ];
-  const ruleOptions: RuleOptions[] = [];
+  const ruleOptions: (RuleOptions | undefined)[] = [];
   const rules: RawModuleRule[] = [];
   for (const [index, rule] of ruleSet.entries()) {
     rules.push(
@@ -318,19 +320,27 @@ function getRawModule(
     parser: getRawParserOptionsMap(module.parser),
     generator: getRawGeneratorOptionsMap(module.generator),
     noParse: module.noParse,
-    resolveRuleOptions: ruleOptions.length
-      ? (indices, moduleType) =>
-          indices.map((index) => {
-            const { parser, generator } = ruleOptions[index];
-            return {
-              parser: parser
-                ? getRawParserOptions(parser, moduleType, true)
-                : undefined,
-              generator: generator
-                ? getRawGeneratorOptions(generator, moduleType, true)
-                : undefined,
-            };
-          })
+    resolveRuleOptions: ruleOptions.some(Boolean)
+      ? (ruleIds, moduleType) => {
+          let parser: RawParserOptions | undefined;
+          let generator: RawGeneratorOptions | undefined;
+          for (const id of ruleIds) {
+            const options = ruleOptions[id];
+            if (options?.parser) {
+              parser = cleverMerge(
+                parser,
+                getRawParserOptions(options.parser, moduleType, true),
+              );
+            }
+            if (options?.generator) {
+              generator = cleverMerge(
+                generator,
+                getRawGeneratorOptions(options.generator, moduleType, true),
+              );
+            }
+          }
+          return { parser, generator };
+        }
       : undefined,
   };
 }
@@ -373,7 +383,7 @@ const getRawModuleRule = (
   rule: RuleSetRule,
   path: string,
   options: ComposeJsUseOptions,
-  ruleOptions: RuleOptions[],
+  ruleOptions: (RuleOptions | undefined)[],
 ): RawModuleRule => {
   // Rule.loader is a shortcut to Rule.use: [ { loader } ].
   // See: https://webpack.js.org/configuration/module/#ruleloader
@@ -400,11 +410,16 @@ const getRawModuleRule = (
   }
 
   const { parser, generator } = rule;
-  const optionsIndex =
-    parser || generator
-      ? ruleOptions.push({ parser, generator }) - 1
-      : undefined;
+  const id = ruleOptions.length;
+  if (id >= MAX_MODULE_RULES) {
+    throw new Error(
+      `module.rules exceeds the maximum supported rule count of ${MAX_MODULE_RULES}`,
+    );
+  }
+  const hasDeferredOptions = Boolean(parser || generator);
+  ruleOptions.push(hasDeferredOptions ? { parser, generator } : undefined);
   const rawModuleRule: RawModuleRule = {
+    id,
     as: rule.as,
     test: rule.test ? getRawRuleSetCondition(rule.test) : undefined,
     include: rule.include ? getRawRuleSetCondition(rule.include) : undefined,
@@ -449,20 +464,8 @@ const getRawModuleRule = (
         : createRawModuleRuleUses(normalizedUse ?? [], `${path}.use`, options),
     type: rule.type,
     layer: rule.layer,
-    optionsIndex,
+    hasDeferredOptions: hasDeferredOptions || undefined,
     resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
-    oneOf: rule.oneOf
-      ? rule.oneOf
-          .filter(Boolean)
-          .map((rule, index) =>
-            getRawModuleRule(
-              rule as RuleSetRule,
-              `${path}.oneOf[${index}]`,
-              options,
-              ruleOptions,
-            ),
-          )
-      : undefined,
     rules: rule.rules
       ? rule.rules
           .filter(Boolean)
@@ -470,6 +473,18 @@ const getRawModuleRule = (
             getRawModuleRule(
               rule as RuleSetRule,
               `${path}.rules[${index}]`,
+              options,
+              ruleOptions,
+            ),
+          )
+      : undefined,
+    oneOf: rule.oneOf
+      ? rule.oneOf
+          .filter(Boolean)
+          .map((rule, index) =>
+            getRawModuleRule(
+              rule as RuleSetRule,
+              `${path}.oneOf[${index}]`,
               options,
               ruleOptions,
             ),
@@ -716,7 +731,7 @@ function getRawJavascriptParserWorkerOptions(
   worker: JavascriptParserOptions['worker'],
 ): RawJavascriptParserOptions['worker'] {
   if (typeof worker === 'boolean') {
-    return worker;
+    return { alias: worker ? ['...'] : [] };
   }
   if (Array.isArray(worker)) {
     return { alias: worker };

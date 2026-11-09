@@ -164,6 +164,7 @@ type ThreadsafeUse = ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>>;
 #[derive(Debug, Default)]
 #[napi(object, object_to_js = false)]
 pub struct RawModuleRule {
+  pub id: u16,
   pub r#as: Option<String>,
   /// A conditional match matching an absolute path + query + fragment.
   /// Note:
@@ -186,7 +187,7 @@ pub struct RawModuleRule {
   pub r#use: Option<Either<Vec<RawModuleRuleUse>, ThreadsafeUse>>,
   pub r#type: Option<String>,
   pub layer: Option<String>,
-  pub options_index: Option<u32>,
+  pub has_deferred_options: Option<bool>,
   pub resolve: Option<RawResolveOptions>,
   pub issuer: Option<RawRuleSetCondition>,
   pub issuer_layer: Option<RawRuleSetCondition>,
@@ -997,8 +998,7 @@ pub struct RawRuleOptions {
   pub generator: Option<RawGeneratorOptions>,
 }
 
-type ThreadsafeResolveRuleOptions =
-  ThreadsafeFunction<FnArgs<(Vec<u32>, String)>, Vec<RawRuleOptions>>;
+type ThreadsafeResolveRuleOptions = ThreadsafeFunction<FnArgs<(Vec<u16>, String)>, RawRuleOptions>;
 
 #[napi(object, object_to_js = false)]
 #[derive(Debug)]
@@ -1011,7 +1011,7 @@ pub struct RawModuleOptions {
   )]
   #[debug(skip)]
   pub no_parse: Option<RawModuleNoParseRules>,
-  #[napi(ts_type = "(indices: number[], moduleType: string) => RawRuleOptions[]")]
+  #[napi(ts_type = "(ruleIds: number[], moduleType: string) => RawRuleOptions")]
   pub resolve_rule_options: Option<ThreadsafeResolveRuleOptions>,
 }
 
@@ -1158,10 +1158,11 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       one_of,
       rules,
       effect: ModuleRuleEffect {
+        id: value.id,
         r#use: uses.transpose()?.unwrap_or_default(),
         r#type: module_type,
         layer: value.layer,
-        options_index: value.options_index,
+        has_deferred_options: value.has_deferred_options.unwrap_or_default(),
         resolve: value.resolve.map(|raw| raw.try_into()).transpose()?,
         side_effects: value.side_effects,
         enforce,
@@ -1186,29 +1187,24 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
       value
         .resolve_rule_options
         .map(|resolve| -> ResolveModuleRuleOptions {
-          Box::new(move |compiler_id, indices, module_type: ModuleType| {
+          Box::new(move |compiler_id, rule_ids, module_type: ModuleType| {
             let resolve = resolve.clone();
             Box::pin(async move {
               let options = resolve
                 .call_with_sync_in_scope(
-                  FnArgs::from((indices, module_type.as_str().to_owned())),
+                  FnArgs::from((rule_ids, module_type.as_str().to_owned())),
                   compiler_id,
                 )
                 .await?;
-              Ok(
-                options
-                  .into_iter()
-                  .map(|options| ModuleRuleOptions {
-                    parser: options.parser.map(Into::into),
-                    generator: options.generator.map(Into::into),
-                  })
-                  .collect(),
-              )
+              Ok(ModuleRuleOptions {
+                parser: options.parser.map(Into::into),
+                generator: options.generator.map(Into::into),
+              })
             })
           })
         });
 
-    let mut module_options = ModuleOptions {
+    Ok(ModuleOptions {
       rules,
       parser: value
         .parser
@@ -1230,9 +1226,7 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
         .no_parse
         .map(|x| RawModuleNoParseRulesWrapper(x).into()),
       resolve_rule_options,
-    };
-    module_options.assign_rule_ids()?;
-    Ok(module_options)
+    })
   }
 }
 

@@ -362,6 +362,9 @@ async fn resolve_module_options(
 ) -> Result<Arc<ResolvedModuleOptions>> {
   let cache_key = ResolvedModuleOptionsCacheKey::new(module_rules, *module_type);
   let cell = if let Some(cell) = options_cache.get(&cache_key) {
+    if let Some(options) = cell.get() {
+      return Ok(Arc::clone(options));
+    }
     Arc::clone(cell.value())
   } else {
     Arc::clone(options_cache.entry(cache_key.clone()).or_default().value())
@@ -369,36 +372,20 @@ async fn resolve_module_options(
   // The map guard is released before invoking the resolver on the JS thread.
   cell
     .get_or_try_init(|| async {
-      let mut deferred_options = Vec::new();
-      if let Some((compiler_id, resolve_rule_options)) = rule_options_resolver {
-        let indices: Vec<_> = module_rules
-          .iter()
-          .filter_map(|rule| rule.options_index)
-          .collect();
-        if !indices.is_empty() {
-          let expected_count = indices.len();
-          deferred_options = resolve_rule_options(compiler_id, indices, *module_type).await?;
-          if deferred_options.len() != expected_count {
-            return Err(error!(
-              "Expected {expected_count} converted rule options, got {}",
-              deferred_options.len()
-            ));
-          }
-        }
-      }
-
-      let mut deferred_options = deferred_options.into_iter();
       let mut local_parser = None;
       let mut local_generator = None;
       for rule in module_rules {
         local_parser = local_parser.merge_from(&rule.parser);
         local_generator = local_generator.merge_from(&rule.generator);
-        if rule.options_index.is_some()
-          && let Some(options) = deferred_options.next()
-        {
-          local_parser = local_parser.merge_from(&options.parser);
-          local_generator = local_generator.merge_from(&options.generator);
-        }
+      }
+
+      if let Some((compiler_id, resolve_rule_options)) = rule_options_resolver
+        && module_rules.iter().any(|rule| rule.has_deferred_options)
+      {
+        let options =
+          resolve_rule_options(compiler_id, cache_key.rule_ids.to_vec(), *module_type).await?;
+        local_parser = local_parser.merge_from(&options.parser);
+        local_generator = local_generator.merge_from(&options.generator);
       }
 
       let parser = merge_parser_options_with_local(global_parser, local_parser.as_ref());

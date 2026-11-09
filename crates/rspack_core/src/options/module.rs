@@ -1742,7 +1742,7 @@ pub struct ModuleRuleOptions {
 }
 
 pub type ResolveModuleRuleOptions = Box<
-  dyn Fn(CompilerId, Vec<u32>, ModuleType) -> BoxFuture<'static, Result<Vec<ModuleRuleOptions>>>
+  dyn Fn(CompilerId, Vec<ModuleRuleId>, ModuleType) -> BoxFuture<'static, Result<ModuleRuleOptions>>
     + Sync
     + Send,
 >;
@@ -1757,8 +1757,7 @@ pub struct ModuleRuleEffect {
   pub r#use: ModuleRuleUse,
   pub parser: Option<ParserOptions>,
   pub generator: Option<GeneratorOptions>,
-  /// Index into the binding's table of deferred rule options.
-  pub options_index: Option<u32>,
+  pub has_deferred_options: bool,
   pub resolve: Option<Resolve>,
   pub enforce: ModuleRuleEnforce,
   pub extract_source_map: Option<bool>,
@@ -1774,7 +1773,7 @@ impl Default for ModuleRuleEffect {
       r#use: ModuleRuleUse::default(),
       parser: None,
       generator: None,
-      options_index: None,
+      has_deferred_options: false,
       resolve: None,
       enforce: ModuleRuleEnforce::default(),
       extract_source_map: None,

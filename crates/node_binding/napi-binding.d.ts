@@ -2777,10 +2777,11 @@ export interface RawModuleOptions {
   parser?: Record<string, RawParserOptions>
   generator?: Record<string, RawGeneratorOptions>
   noParse?: string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]
-  resolveRuleOptions?: (indices: number[], moduleType: string) => RawRuleOptions[]
+  resolveRuleOptions?: (ruleIds: number[], moduleType: string) => RawRuleOptions
 }
 
 export interface RawModuleRule {
+  id: number
   as?: string
   /**
    * A conditional match matching an absolute path + query + fragment.
@@ -2804,7 +2805,7 @@ export interface RawModuleRule {
   use?: RawModuleRuleUse[] | ((arg: RawFuncUseCtx) => RawModuleRuleUse[])
   type?: string
   layer?: string
-  optionsIndex?: number
+  hasDeferredOptions?: boolean
   resolve?: RawResolveOptions
   issuer?: RawRuleSetCondition
   issuerLayer?: RawRuleSetCondition
