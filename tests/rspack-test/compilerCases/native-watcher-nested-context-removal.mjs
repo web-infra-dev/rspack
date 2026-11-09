@@ -125,8 +125,23 @@ export default scenarios.map((scenario) => ({
 					? [{ kind: "change", file: inside, mtime: null }]
 					: []),
 			];
+			// Recursive removal can change the directory before deleting it.
 			const normalize = (events) =>
-				[...new Set(events.map((event) => JSON.stringify(event)))].sort();
+				[
+					...new Set(
+						events
+							.filter(
+								(event) =>
+									!(
+										scenario.populated &&
+										event.kind === "change" &&
+										event.file === child &&
+										typeof event.mtime === "number"
+									),
+							)
+							.map((event) => JSON.stringify(event)),
+					),
+				].sort();
 			for (const events of [nativeEvents, shimEvents]) {
 				expect(normalize(events)).toEqual(normalize(expectedEvents));
 			}
