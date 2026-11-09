@@ -1,7 +1,6 @@
 use std::{
   borrow::Cow,
   hash::{Hash, Hasher},
-  sync::Arc,
 };
 
 use bytes_str::BytesStr;
@@ -82,10 +81,6 @@ impl Source for OriginalSource {
   fn map(&self, options: &MapOptions) -> Option<SourceMap> {
     let chunks = self.stream_chunks();
     get_map(chunks.as_ref(), options)
-  }
-
-  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap> {
-    self.as_ref().map(options)
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {

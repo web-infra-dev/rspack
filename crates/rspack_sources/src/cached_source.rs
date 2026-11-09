@@ -123,7 +123,7 @@ impl CachedSource {
   fn get_or_init_map(&self, options: &MapOptions) -> &Option<SourceMap> {
     self
       .map_cache(options)
-      .get_or_init(|| self.inner.clone().map_static(options))
+      .get_or_init(|| self.inner.map(options))
   }
 }
 
@@ -181,10 +181,6 @@ impl Source for CachedSource {
       .get_or_init_map(options)
       .as_ref()
       .map(SourceMap::as_borrowed)
-  }
-
-  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap> {
-    self.get_or_init_map(options).clone()
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {

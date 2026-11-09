@@ -128,11 +128,8 @@ pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + S
   /// Get the size of the source.
   fn size(&self) -> usize;
 
-  /// Get the [SourceMap].
+  /// Get an independently owned [SourceMap] that can outlive the source.
   fn map(&self, options: &MapOptions) -> Option<SourceMap>;
-
-  /// Get a [SourceMap] that can outlive the borrowed source reference.
-  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap>;
 
   /// Update hash based on the source.
   fn update_hash(&self, state: &mut dyn Hasher) {
@@ -167,11 +164,6 @@ impl Source for BoxSource {
   #[inline]
   fn map(&self, options: &MapOptions) -> Option<SourceMap> {
     self.as_ref().map(options)
-  }
-
-  #[inline]
-  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap> {
-    self.as_ref().clone().map_static(options)
   }
 
   #[inline]

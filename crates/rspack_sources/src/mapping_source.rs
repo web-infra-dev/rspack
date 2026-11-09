@@ -561,10 +561,6 @@ impl Source for MappingSource {
     None
   }
 
-  fn map_static(self: Arc<Self>, _: &MapOptions) -> Option<SourceMap> {
-    None
-  }
-
   fn to_writer(&self, writer: &mut dyn Write) -> io::Result<()> {
     match self.0.as_ref() {
       Data::Map(data) => simd_json::to_writer(writer, &data.map).map_err(io::Error::other),

@@ -270,16 +270,16 @@ impl LazySourceMap {
       Some(false) => None,
       Some(true) => Some(Self::Source(Arc::clone(source))),
       // Keep RawSource / SourceMapSource selection exact for sources without a cheap presence check.
-      None => Arc::clone(source)
-        .map_static(&MapOptions::default())
+      None => source
+        .map(&MapOptions::default())
         .map(|map| Self::Map(Box::new(map))),
     }
   }
 
   fn to_json(&self) -> Result<String> {
     match self {
-      Self::Source(source) => Arc::clone(source)
-        .map_static(&MapOptions::default())
+      Self::Source(source) => source
+        .map(&MapOptions::default())
         .map(|map| map.to_json())
         .ok_or_else(|| napi::Error::from_reason("Source map is not available")),
       Self::Map(map) => Ok(map.to_json()),

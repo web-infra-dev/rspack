@@ -263,15 +263,15 @@ fn build_rspack_source_map(
       .get_source(0)
       .map(ToString::to_string)
       .unwrap_or_default();
-    Arc::new(SourceMapSource::new(SourceMapSourceOptions {
+    SourceMapSource::new(SourceMapSourceOptions {
       value: generated_code.to_string(),
       name,
       source_map: intermediate_map,
       original_source: None,
       inner_source_map: Some(input_source_map),
       remove_original_source: true,
-    }))
-    .map_static(&MapOptions::new(config.source_map_kind.emit_columns()))
+    })
+    .map(&MapOptions::new(config.source_map_kind.emit_columns()))
   } else {
     Some(intermediate_map)
   }

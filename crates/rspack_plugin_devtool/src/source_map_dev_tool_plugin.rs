@@ -621,7 +621,7 @@ impl SourceMapDevToolPlugin {
           s.spawn(
             |(plugin, compilation, file_to_chunk, output_path, template)| async move {
               let source_map = {
-                match source.clone().map_static(&map_options) {
+                match source.map(&map_options) {
                   Some(sm) => sm,
                   None => return Ok(None),
                 }
@@ -722,7 +722,7 @@ impl SourceMapDevToolPlugin {
           s.spawn(
             |(plugin, compilation, output_path, f, source, asset_filename)| async move {
               let source_map = {
-                match source.clone().map_static(&map_options) {
+                match source.map(&map_options) {
                   Some(sm) => sm,
                   None => return Ok(None),
                 }

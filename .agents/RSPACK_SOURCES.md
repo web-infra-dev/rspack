@@ -106,7 +106,6 @@ pub type BoxSource = Arc<dyn Source>;
 | `buffer()`            | exact bytes                               | preferred for binary data                   |
 | `size()`              | output byte length                        | must match buffer/writer length             |
 | `map(options)`        | independently owned map                   | share an existing map or one streamed rebuild |
-| `map_static(options)` | independently owned map                   | shares immutable text and field arrays       |
 | `update_hash()`       | structural hash                           | cached by `CachedSource`                    |
 | `to_writer()`         | incremental byte output                   | preferred for emission                      |
 
@@ -219,8 +218,8 @@ Source maps mainly come from parsed JSON or a `Source` graph. `SourceMap` owns U
 - `remove_sources_content` detaches remaining metadata, because a small shared JSON slice would
   otherwise keep the removed contents' allocation alive.
 
-There is no SourceMap lifetime extension or Source owner. `map()` and `map_static()` both return
-an owned map; generated text can be released when its Source is otherwise no longer referenced.
+There is no SourceMap lifetime extension or Source owner. `map()` returns an owned map;
+generated text can be released when its Source is otherwise no longer referenced.
 `sources_content` entries use `Option<BytesStr>`: `None` is missing content (JSON `null`),
 while `Some("")` is an explicitly empty source. Preserve this distinction through parsing,
 streaming, serialization, and persistent cache. Omit `sourcesContent` only when all entries

@@ -21,7 +21,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   Loader, LoaderContext, RunnerContext,
   rspack_sources::{
-    MapOptions, Mapping, OriginalLocation, SourceExt, SourceMap, SourceMapSource,
+    MapOptions, Mapping, OriginalLocation, Source, SourceMap, SourceMapSource,
     SourceMapSourceOptions, encode_mappings,
   },
 };
@@ -335,9 +335,8 @@ impl LightningCssLoader {
         original_source: None,
         inner_source_map: loader_context.take_source_map(),
         remove_original_source: false,
-      })
-      .boxed();
-      let source_map = source_map_source.map_static(&MapOptions::default());
+      });
+      let source_map = source_map_source.map(&MapOptions::default());
       loader_context.finish_with((content.code, source_map));
     } else {
       loader_context.finish_with(content.code);

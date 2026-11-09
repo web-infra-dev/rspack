@@ -180,7 +180,7 @@ fn generated_map_outlives_its_source_without_retaining_the_graph() {
   ));
   let weak = Arc::downgrade(&source);
   let pointer = source.value().as_ptr();
-  let map = source.clone().map_static(&MapOptions::default()).unwrap();
+  let map = source.map(&MapOptions::default()).unwrap();
   drop(source);
   assert!(weak.upgrade().is_none());
   assert_eq!(map.get_source_content(0).unwrap().as_ptr(), pointer);
@@ -203,7 +203,7 @@ fn cached_map_releases_its_source_graph() {
   replacement.replace_static(14, 15, "2", Some("value"));
   let source = CachedSource::new(ConcatSource::new([replacement.boxed()])).boxed();
   let weak_source = Arc::downgrade(&source);
-  let map = source.clone().map_static(&MapOptions::default()).unwrap();
+  let map = source.map(&MapOptions::default()).unwrap();
   drop(source);
   assert!(weak_source.upgrade().is_none());
   assert!(weak_original.upgrade().is_none());

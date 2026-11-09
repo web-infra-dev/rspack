@@ -1,7 +1,6 @@
 use std::{
   borrow::Cow,
   hash::{Hash, Hasher},
-  sync::Arc,
 };
 
 use bytes_str::BytesStr;
@@ -145,10 +144,6 @@ impl Source for SourceMapSource {
     }
     let chunks = self.stream_chunks();
     get_map(chunks.as_ref(), options)
-  }
-
-  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap> {
-    self.as_ref().map(options)
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -311,7 +306,7 @@ mod tests {
       name: "text",
       source_map: SourceMap::from_json(source_map_str.to_string()).unwrap(),
       original_source: Some(inner_source.source().into_string_lossy().into()),
-      inner_source_map: inner_source.clone().map_static(&MapOptions::default()),
+      inner_source_map: inner_source.map(&MapOptions::default()),
       remove_original_source: false,
     });
     let sms2 = SourceMapSource::new(SourceMapSourceOptions {
@@ -319,7 +314,7 @@ mod tests {
       name: "text",
       source_map: SourceMap::from_json(source_map_str.to_string()).unwrap(),
       original_source: Some(inner_source.source().into_string_lossy().into()),
-      inner_source_map: inner_source.clone().map_static(&MapOptions::default()),
+      inner_source_map: inner_source.map(&MapOptions::default()),
       remove_original_source: true,
     });
     let expected_content = "Translated: Hallo Welt\nist ein test Text\nAnderer Text";
@@ -512,14 +507,8 @@ mod tests {
       .source()
       .into_string_lossy()
       .into_owned());
-    test_cached!(source, |s: BoxSource| Source::map_static(
-      s,
-      &MapOptions::default()
-    ));
-    test_cached!(source, |s: BoxSource| Source::map_static(
-      s,
-      &MapOptions::new(false)
-    ));
+    test_cached!(source, |s: BoxSource| s.map(&MapOptions::default()));
+    test_cached!(source, |s: BoxSource| s.map(&MapOptions::new(false)));
   }
 
   #[test]
@@ -675,8 +664,7 @@ mod tests {
       value: "console.log('a')\n",
       name: "a.js",
       source_map: OriginalSource::new("console.log('a')\n", "a.js")
-        .boxed()
-        .map_static(&MapOptions::new(false))
+        .map(&MapOptions::new(false))
         .unwrap(),
     });
     let source = ConcatSource::new([
@@ -711,14 +699,10 @@ mod tests {
         .to_string(),
     )
     .unwrap();
-    let inner_source_map =
-      inner_source
-        .clone()
-        .map_static(&MapOptions::default())
-        .map(|mut map| {
-          map.set_source_root(Some("/path/to/folder/".to_string().into()));
-          map
-        });
+    let inner_source_map = inner_source.map(&MapOptions::default()).map(|mut map| {
+      map.set_source_root(Some("/path/to/folder/".to_string().into()));
+      map
+    });
     let sms = SourceMapSource::new(SourceMapSourceOptions {
       value: source_r_code,
       name: "text",

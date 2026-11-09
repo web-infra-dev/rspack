@@ -2,7 +2,6 @@ use std::{
   borrow::Cow,
   cell::RefCell,
   hash::{Hash, Hasher},
-  sync::Arc,
 };
 
 use bytes_str::BytesStr;
@@ -477,13 +476,6 @@ impl Source for ReplaceSource {
     }
     let chunks = self.stream_chunks();
     get_map(chunks.as_ref(), options)
-  }
-
-  fn map_static(self: Arc<Self>, options: &crate::MapOptions) -> Option<SourceMap> {
-    if self.replacements.is_empty() {
-      return self.inner.clone().map_static(options);
-    }
-    self.as_ref().map(options)
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {

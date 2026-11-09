@@ -1,7 +1,7 @@
 use std::{
   borrow::Cow,
   hash::{Hash, Hasher},
-  sync::{Arc, OnceLock},
+  sync::OnceLock,
 };
 
 use crate::{
@@ -78,10 +78,6 @@ impl Source for RawStringSource {
   }
 
   fn map(&self, _: &MapOptions) -> Option<SourceMap> {
-    None
-  }
-
-  fn map_static(self: Arc<Self>, _: &MapOptions) -> Option<SourceMap> {
     None
   }
 
@@ -225,10 +221,6 @@ impl Source for RawBufferSource {
   }
 
   fn map(&self, _: &MapOptions) -> Option<SourceMap> {
-    None
-  }
-
-  fn map_static(self: Arc<Self>, _: &MapOptions) -> Option<SourceMap> {
     None
   }
 
