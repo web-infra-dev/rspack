@@ -84,7 +84,17 @@ async function run(operation) {
 					.collectTimeInfoEntries()
 					.fileTimestamps.entries.some(e => e.path === file)
 		);
-		await sleep(600);
+		if (operation.endsWith("future")) {
+			// A future mtime makes both initial scans report index.js as changed.
+			// Consume those batches before measuring the rename or recreation.
+			await until(() =>
+				Object.values(data).every(value =>
+					value.batches.some(batch => batch.changed.includes("index.js"))
+				)
+			);
+		} else {
+			await sleep(600);
+		}
 		for (const value of Object.values(data)) {
 			value.raw.length = 0;
 			value.batches.length = 0;
