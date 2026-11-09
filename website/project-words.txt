@@ -73,6 +73,9 @@ fluentui
 fnames
 funs
 gengkun
+glsl
+GLSL
+glslify
 golar
 Hana
 HerringtonDarkholme
@@ -103,6 +106,7 @@ Jiahan
 jkzing
 jridgewell
 jscexperimentalplugins
+jsdevtools
 jserfeng
 kaffi
 kirana
@@ -112,6 +116,8 @@ Kyrylo
 ldconfig
 libjemalloc
 lightningcss
+lingui
+Lingui
 Lingyu
 lingyucoder
 linux
@@ -187,6 +193,7 @@ pxtorem
 quininer
 qwertyui
 recognise
+relocator
 resolvepnp
 riscv
 riscv64gc
@@ -267,6 +274,7 @@ wasi
 WASI
 weapp
 webpack
+wext
 xcode
 xcrun
 xctrace
