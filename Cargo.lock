@@ -4547,6 +4547,7 @@ dependencies = [
  "serde_json",
  "simd-json",
  "tracing",
+ "xxhash-rust",
 ]
 
 [[package]]
