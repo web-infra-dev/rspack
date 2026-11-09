@@ -34,8 +34,9 @@ use crate::{
   FreezeLock, GroupOptions, ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
   ModuleLayer, ModuleType, NeedBuildContext, RealDependencyLocation, ReferencedSpecifier, Resolve,
-  RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, contextify,
-  get_exports_type_with_strict, get_outgoing_async_modules, impl_module_meta_info,
+  RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, SourceType,
+  context_module_factory::ContextGlobMatch,
+  contextify, get_exports_type_with_strict, get_outgoing_async_modules, impl_module_meta_info,
   module_update_hash,
   new_cache::{FileSystemInfo, Snapshot, SnapshotValidationResult},
   property_access, to_path,
@@ -245,6 +246,11 @@ pub struct ContextModuleOptions {
   pub resource_query: String,
   pub resource_fragment: String,
   pub context_options: ContextOptions,
+  /// Only needed by the dependency resolver before building the module.
+  #[cacheable(with=Skip)]
+  pub(crate) glob_matches: Option<Arc<[ContextGlobMatch]>>,
+  #[cacheable(with=AsOption<AsCacheable>)]
+  pub(crate) glob_matches_key: Option<RspackHashDigest>,
   pub layer: Option<ModuleLayer>,
   pub resolve_options: Option<Arc<Resolve>>,
   pub type_prefix: ContextTypePrefix,
@@ -1409,6 +1415,10 @@ impl Module for ContextModule {
         .map(ReferencedSpecifier::to_identifier_string)
         .join(", ");
     }
+    if let Some(key) = &self.options.glob_matches_key {
+      id += " globMatches: ";
+      id += key.encoded();
+    }
     if let Some(import) = &self.options.context_options.glob_import {
       id += " globImport: ";
       id += import;
@@ -1479,7 +1489,11 @@ impl Module for ContextModule {
       .resolve_dependencies
       .take()
       .expect("context module should have a resolver before building");
-    let context_element_dependencies = resolve_dependencies(self.options.clone()).await?;
+    let options = ContextModuleOptions {
+      glob_matches: self.options.glob_matches.take(),
+      ..self.options.clone()
+    };
+    let context_element_dependencies = resolve_dependencies(options).await?;
 
     let mut dependencies: Vec<BoxDependency> = vec![];
     let mut blocks = vec![];
@@ -1657,6 +1671,10 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
       .iter()
       .map(ReferencedSpecifier::to_identifier_string)
       .join(", ");
+  }
+  if let Some(key) = &options.glob_matches_key {
+    id += "|globMatches: ";
+    id += key.encoded();
   }
   if let Some(import) = &options.context_options.glob_import {
     id += "|globImport: ";

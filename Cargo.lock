@@ -1463,15 +1463,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2acce4a10f12dc2fb14a218589d4f1f62ef011b2d0cc4b3cb1bba8e94da14649"
 
 [[package]]
-name = "fast-glob"
-version = "1.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a044ed96eb57253e806d08b74260638af189687e583f04947a5e11e75e0b0d1"
-dependencies = [
- "arrayvec",
-]
-
-[[package]]
 name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4861,14 +4852,13 @@ dependencies = [
 name = "rspack_plugin_copy"
 version = "0.103.1"
 dependencies = [
- "cow-utils",
  "derive_more",
- "fast-glob",
  "futures",
  "pathdiff",
  "regex",
  "rspack_core",
  "rspack_error",
+ "rspack_fs",
  "rspack_hash",
  "rspack_hook",
  "rspack_parallel",
@@ -5149,7 +5139,6 @@ dependencies = [
  "concat-string",
  "cow-utils",
  "either",
- "fast-glob",
  "form_urlencoded",
  "indexmap",
  "itertools 0.14.0",
@@ -5854,7 +5843,6 @@ dependencies = [
  "concat-string",
  "cow-utils",
  "dashmap",
- "fast-glob",
  "hashlink",
  "indexmap",
  "itoa",
@@ -5864,7 +5852,6 @@ dependencies = [
  "regex",
  "rspack-allocative",
  "rspack_cacheable",
- "rspack_error",
  "rspack_fs",
  "rspack_intern",
  "rspack_paths",

@@ -15,7 +15,6 @@ bitflags          = { workspace = true }
 concat-string     = { workspace = true }
 cow-utils         = { workspace = true }
 dashmap           = { workspace = true }
-fast-glob         = { workspace = true }
 hashlink          = { workspace = true }
 indexmap          = { workspace = true }
 itoa              = { workspace = true }
@@ -24,11 +23,10 @@ memchr            = { workspace = true }
 regex             = { workspace = true, features = ["pattern"] }
 rspack-allocative = { workspace = true, optional = true }
 rspack_cacheable  = { workspace = true }
-rspack_error      = { workspace = true }
 rspack_fs         = { workspace = true }
 rspack_intern     = { workspace = true, features = ["atom"] }
 rspack_paths      = { workspace = true }
-rustc-hash        = { workspace = true }
+rustc-hash        = { workspace = true, features = ["std"] }
 ryu-js            = { workspace = true }
 serde             = { workspace = true }
 serde_json        = { workspace = true }

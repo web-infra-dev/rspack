@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use concat_string::concat_string;
 use rspack_core::{
   BoxDependency, ContextMode, ContextModulePattern, ContextNameSpaceObject, ContextOptions,
@@ -8,8 +10,11 @@ use rspack_macros::AstObject;
 use rspack_paths::{Utf8Path, normalize_path_separators};
 use rspack_regex::RspackRegex;
 use rspack_util::{
-  SpanExt, glob::normalize_path_separators as normalize_glob_path_separators,
-  identifier::relative_path_to_request, node_path::NodePath, swc::AstSubRangeExt,
+  SpanExt,
+  glob::{GlobOptions, GlobPattern},
+  identifier::relative_path_to_request,
+  node_path::NodePath,
+  swc::AstSubRangeExt,
 };
 use sugar_path::SugarPath;
 use swc_next_ecma_ast::{Ast, CallExpression, Expr, GetSpan, ObjectExpression};
@@ -206,12 +211,10 @@ fn import_meta_glob_path_parts<'a>(
 }
 
 fn join_import_meta_glob_path(base: &str, path: &str) -> String {
-  normalize_glob_path_separators(
-    Utf8Path::new(base)
-      .node_join_posix(path)
-      .node_normalize_posix()
-      .as_ref(),
-  )
+  Utf8Path::new(base)
+    .node_join_posix(path)
+    .node_normalize_posix()
+    .to_string()
 }
 
 fn join_import_meta_glob_fs_path(base: &str, path: &str) -> String {
@@ -258,12 +261,22 @@ fn normalize_base_glob_pattern(
     (false, pattern.as_str())
   };
 
-  let pattern = normalize_glob_path_separators(pattern);
+  let parsed = GlobPattern::new_with_options(
+    pattern.as_bytes(),
+    GlobOptions {
+      windows_paths: true,
+      ..Default::default()
+    },
+  )
+  .ok();
+  let pattern = parsed.as_ref().map_or(Cow::Borrowed(pattern), |pattern| {
+    String::from_utf8_lossy(pattern.source())
+  });
   let Some(pattern) = pattern.strip_prefix('/') else {
     return if negative {
       concat_string!("!", pattern)
     } else {
-      pattern
+      pattern.into_owned()
     };
   };
 
