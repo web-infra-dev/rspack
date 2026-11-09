@@ -30,9 +30,9 @@ use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, Ide
 use rspack_core::{
   ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleAnalysis,
-  ConcatenationNameAllocator, ExportsArgument, Module, ModuleGraph, RuntimeCodeTemplate,
-  RuntimeGlobals, RuntimeVariable, SourceType, analyze_program_identifiers,
-  analyze_program_unresolved_names, render_init_fragments,
+  ConcatenationNameAllocator, ExportsArgument, Module, ModuleGraph, ModuleIdentifier,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, RuntimeVariable, SourceType,
+  analyze_program_identifiers, analyze_program_unresolved_names, render_init_fragments,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   rspack_sources::{
     BoxSource, ConcatSource, OriginalSource, RawStringSource, ReplaceSource, Source, SourceExt,
@@ -42,6 +42,7 @@ use rspack_core::{
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::plugin;
+use rspack_intern::AtomSet;
 #[cfg(allocative)]
 use rspack_util::rspack_allocative;
 pub use side_effects_flag_plugin::*;
@@ -477,22 +478,15 @@ var {} = {{}};
             );
             allow_inline_startup = false;
           }
-          if allow_inline_startup && {
-            let codegen = compilation
-              .code_generation_results
-              .get(module, Some(chunk.runtime()));
-            let top_level_decls = codegen
-              .data()
-              .get::<CodeGenerationDataTopLevelDeclarations>()
-              .map(|_| ())
-              .or_else(|| {
-                module_graph
-                  .module_by_identifier(module)
-                  .and_then(|m| m.build_info().top_level_declarations.as_ref().map(|_| ()))
-              });
-            top_level_decls.is_none()
-          } {
-            buf2.push("// This entry module doesn't tell about it's top-level declarations so it can't be inlined".into());
+          if allow_inline_startup
+            && let Some(bailout) = entry_top_level_declarations_bailout(
+              compilation,
+              module,
+              chunk.runtime(),
+              runtime_template,
+            )
+          {
+            buf2.push(bailout.into());
             allow_inline_startup = false;
           }
           let hooks = JsPlugin::get_compilation_hooks(compilation.id());
@@ -1464,6 +1458,42 @@ fn get_js_entry_modules_with_chunk_group(
     .filter(|(module_identifier, _)| module_has_js(module_identifier, module_graph))
     .map(|(module_identifier, chunk_group_ukey)| (*module_identifier, *chunk_group_ukey))
     .collect()
+}
+
+fn entry_top_level_declarations_bailout(
+  compilation: &Compilation,
+  module: &ModuleIdentifier,
+  runtime: &RuntimeSpec,
+  runtime_template: &RuntimeCodeTemplate,
+) -> Option<String> {
+  let declares_runtime_table = |top_level_declarations: &AtomSet| {
+    [RuntimeVariable::Modules, RuntimeVariable::ModuleCache]
+      .iter()
+      .map(|variable| runtime_template.render_runtime_variable(variable))
+      .find(|name| top_level_declarations.contains(name.as_str()))
+      .map(|name| {
+        format!(
+          "// This entry module declares '{name}' on top-level, which the runtime also declares, so it can't be inlined"
+        )
+      })
+  };
+  if let Some(data) = compilation
+    .code_generation_results
+    .get(module, Some(runtime))
+    .data()
+    .get::<CodeGenerationDataTopLevelDeclarations>()
+  {
+    return declares_runtime_table(data.inner());
+  }
+  if let Some(module) = compilation.get_module_graph().module_by_identifier(module)
+    && let Some(top_level_declarations) = &module.build_info().top_level_declarations
+  {
+    return declares_runtime_table(top_level_declarations);
+  }
+  Some(
+    "// This entry module doesn't tell about it's top-level declarations so it can't be inlined"
+      .into(),
+  )
 }
 
 #[derive(Debug, RspackHash)]
