@@ -29,40 +29,6 @@ permissions:
   pull-requests: write
 
 jobs:
-  diagnose-watcher-deletion:
-    name: Diagnose native watcher deletion (Windows)
-    if: github.event_name == 'pull_request' && github.event.pull_request.number == 16519
-    runs-on: windows-latest
-    timeout-minutes: 10
-    permissions:
-      actions: read
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        with:
-          node-version: 22.23.4
-      - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
-        with:
-          name: bindings-x86_64-pc-windows-msvc
-          path: ${{ runner.temp }}/native-watcher-diagnostic/binding
-          run-id: 42140292903
-          github-token: ${{ github.token }}
-      - name: Install Watchpack
-        shell: bash
-        run: npm install --prefix "$RUNNER_TEMP/native-watcher-diagnostic" --no-save --ignore-scripts --package-lock=false watchpack@2.6.3
-      - name: Record deletion events
-        env:
-          DIAGNOSTIC_DIR: ${{ runner.temp }}/native-watcher-diagnostic
-        run: node scripts/native-watcher-deletion-diagnostic.mjs
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: always()
-        with:
-          name: native-watcher-deletion-diagnostic
-          path: |
-            ${{ runner.temp }}/native-watcher-diagnostic/events.ndjson
-            ${{ runner.temp }}/native-watcher-diagnostic/notify-events.log
-
   check-changed:
     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     name: Check Source Changed
