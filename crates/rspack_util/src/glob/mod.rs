@@ -1,16 +1,18 @@
 //! Shared glob matching and filesystem traversal.
 
-mod dfa;
+mod expression;
 
 use core::fmt;
 use std::sync::Arc;
 
 use cow_utils::CowUtils;
-pub use dfa::{GlobDfa, GlobDfaState, GlobExpression};
+pub use expression::GlobExpression;
 use fast_glob::glob_match;
 use rspack_error::Result;
 use rspack_fs::{ReadableFileSystem, WalkMatcher};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+
+use crate::path_state_machine::{PathMatchState, PathStateMachine};
 
 #[derive(Debug)]
 pub struct GlobMatchOptions {
@@ -212,7 +214,7 @@ struct GlobWalkMatcher<'a> {
   pattern: &'a str,
   base_dir: &'a str,
   options: &'a GlobMatchOptions,
-  cursor: Option<GlobDfaState<'a>>,
+  cursor: Option<PathMatchState<'a>>,
 }
 
 impl WalkMatcher for GlobWalkMatcher<'_> {
@@ -294,7 +296,7 @@ pub async fn find_files_by_glob(
     } else {
       normalized_pattern.cow_to_lowercase()
     };
-    GlobExpression::new("", &pattern).and_then(|pattern| GlobDfa::new(&[pattern], 1))
+    GlobExpression::new("", &pattern).and_then(|pattern| PathStateMachine::new(&[pattern], 1))
   };
   let cursor = program.as_ref().map(|program| {
     let directory = if options.case_sensitive {

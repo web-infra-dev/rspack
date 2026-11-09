@@ -3,12 +3,13 @@ use rspack_loader_runner::parse_resource;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::{
   glob::{
-    GlobDfa, GlobDfaState, GlobExpression, GlobMatchOptions, escape_glob_pattern,
-    extract_glob_base_dir, glob_allows_dot_components, glob_match_normalized_with_explicit_dot,
-    normalize_path_separators, normalize_path_separators_for_path, unescape_glob_path,
+    GlobExpression, GlobMatchOptions, escape_glob_pattern, extract_glob_base_dir,
+    glob_allows_dot_components, glob_match_normalized_with_explicit_dot, normalize_path_separators,
+    normalize_path_separators_for_path, unescape_glob_path,
   },
   identifier::relative_path_to_request,
   node_path::NodePath,
+  path_state_machine::{PathMatchState, PathStateMachine},
 };
 use smallvec::SmallVec;
 use sugar_path::SugarPath;
@@ -21,7 +22,7 @@ struct ContextModuleGlobPattern {
   pattern_base: String,
   negative: bool,
   root_relative: bool,
-  dfa_index: Option<usize>,
+  compiled_index: Option<usize>,
 }
 
 #[derive(Debug)]
@@ -271,13 +272,13 @@ fn parse_context_module_glob_pattern(pattern: &str) -> ContextModuleGlobPattern 
     pattern_base,
     negative,
     root_relative,
-    dfa_index: None,
+    compiled_index: None,
   }
 }
 
 pub(super) struct ContextModuleGlobMatcher<'a> {
   patterns: Vec<ContextModuleGlobPattern>,
-  dfa: Option<GlobDfa>,
+  machine: Option<PathStateMachine>,
   fallback_include: bool,
   positive_pattern_bases: Vec<String>,
   context: &'a str,
@@ -310,10 +311,10 @@ impl<'a> ContextModuleGlobMatcher<'a> {
         })
         .collect()
     };
-    let dfa = context_options
+    let machine = context_options
       .glob_case_sensitive
       .then(|| {
-        compile_context_glob_dfa(
+        compile_context_glob_state_machine(
           &mut patterns,
           &context_options.context,
           &context_options.compiler_context,
@@ -323,10 +324,10 @@ impl<'a> ContextModuleGlobMatcher<'a> {
       .flatten();
     let fallback_include = patterns
       .iter()
-      .any(|pattern| !pattern.negative && pattern.dfa_index.is_none());
+      .any(|pattern| !pattern.negative && pattern.compiled_index.is_none());
     Some(Self {
       patterns,
-      dfa,
+      machine,
       fallback_include,
       positive_pattern_bases,
       context: &context_options.context,
@@ -340,9 +341,9 @@ impl<'a> ContextModuleGlobMatcher<'a> {
     self.patterns.is_empty()
   }
 
-  pub(super) fn scan_state(&self, root: &Utf8Path) -> Option<GlobDfaState<'_>> {
+  pub(super) fn scan_state(&self, root: &Utf8Path) -> Option<PathMatchState<'_>> {
     let root = normalize_path_separators_for_path(root.node_normalize().as_str());
-    let state = self.dfa.as_ref()?.start().advance(&root);
+    let state = self.machine.as_ref()?.start().advance(&root);
     Some(if root.ends_with('/') {
       state
     } else {
@@ -350,21 +351,21 @@ impl<'a> ContextModuleGlobMatcher<'a> {
     })
   }
 
-  pub(super) fn can_visit(&self, state: GlobDfaState<'_>) -> bool {
+  pub(super) fn can_visit(&self, state: PathMatchState<'_>) -> bool {
     self.fallback_include || state.can_include()
   }
 
   pub(super) fn match_request(
     &self,
     path: &str,
-    state: Option<GlobDfaState<'_>>,
+    state: Option<PathMatchState<'_>>,
   ) -> Option<String> {
     let mut accepted = SmallVec::<[usize; 4]>::new();
     if let Some(state) = state {
       accepted.extend(state.matches());
     }
     let match_pattern = |pattern: &ContextModuleGlobPattern| {
-      if let Some(index) = pattern.dfa_index
+      if let Some(index) = pattern.compiled_index
         && !accepted.contains(&index)
       {
         return None;
@@ -378,7 +379,7 @@ impl<'a> ContextModuleGlobMatcher<'a> {
         },
         pattern.root_relative,
       );
-      let matched = if pattern.dfa_index.is_some() {
+      let matched = if pattern.compiled_index.is_some() {
         glob_allows_dot_components(
           &pattern.pattern,
           &request,
@@ -433,12 +434,12 @@ impl<'a> ContextModuleGlobMatcher<'a> {
   }
 }
 
-fn compile_context_glob_dfa(
+fn compile_context_glob_state_machine(
   patterns: &mut [ContextModuleGlobPattern],
   context: &str,
   compiler_context: &str,
   scan_root: &Utf8Path,
-) -> Option<GlobDfa> {
+) -> Option<PathStateMachine> {
   let literal_directory = |path: &str| {
     let mut path =
       normalize_path_separators_for_path(Utf8Path::new(path).node_normalize().as_str());
@@ -483,11 +484,11 @@ fn compile_context_glob_dfa(
   if expressions.is_empty() {
     return None;
   }
-  let dfa = GlobDfa::new(&expressions, include_count)?;
-  for (dfa_index, pattern_index) in indices.into_iter().enumerate() {
-    patterns[pattern_index].dfa_index = Some(dfa_index);
+  let machine = PathStateMachine::new(&expressions, include_count)?;
+  for (compiled_index, pattern_index) in indices.into_iter().enumerate() {
+    patterns[pattern_index].compiled_index = Some(compiled_index);
   }
-  Some(dfa)
+  Some(machine)
 }
 
 fn absolute_context_module_glob_pattern_base(
