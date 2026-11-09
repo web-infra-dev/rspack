@@ -859,7 +859,7 @@ impl PathManager {
     };
     let mtime_ms = system_time_to_millis(current_mtime);
     if self.baselines.insert(path.clone(), Some(current_mtime)) == Some(Some(current_mtime))
-      && mtime_ms.saturating_add(mtime_accuracy(mtime_ms)) < current_time()
+      && mtime_ms.saturating_add(mtime_accuracy(current_mtime)) < current_time()
     {
       return false;
     }
