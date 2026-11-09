@@ -1006,6 +1006,11 @@ impl SourceMapDevToolPlugin {
 
     if self.no_sources {
       source_map.set_sources_content(vec![]);
+      if self.source_map_filename.is_some() {
+        // External maps retain their metadata in MappingSource. Inline maps
+        // are serialized and dropped immediately, so they need no compaction.
+        source_map.shrink_to_fit();
+      }
     }
   }
 
