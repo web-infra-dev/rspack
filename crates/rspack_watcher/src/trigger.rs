@@ -124,6 +124,8 @@ pub struct Trigger {
 enum Origin {
   /// The OS watcher; `appeared` when it created or renamed the path into place.
   Disk { appeared: bool },
+  /// An explicit event supplied through `FsWatcher::trigger_event`.
+  Injected,
   /// A scan, for what changed while the watch was not active yet: a file a
   /// context's initial scan found changed since the start time, or a
   /// registered path the scanner backfills. Already judged a change, it is
@@ -166,11 +168,10 @@ impl Trigger {
     Self { pending, analyzer }
   }
 
-  /// Hands a raw event to the filter thread. Never blocks — this runs straight
-  /// from the OS watcher callback.
+  /// Queues an explicit event from `FsWatcher::trigger_event` without blocking.
   pub fn on_event(&self, path: &InternedPath, kind: FsEventKind) {
     self.analyzer.invalidate_path(path);
-    self.on_disk_event(path, kind, kind == FsEventKind::Create);
+    let _ = self.pending.send((path.clone(), kind, Origin::Injected));
   }
 
   /// Preserves whether an OS event created or renamed a path into place,
@@ -225,7 +226,8 @@ impl EventProcessor {
   /// - `/path`
   /// - `/path/to`
   async fn process(&self, path: &InternedPath, kind: FsEventKind, origin: Origin) {
-    let appeared = matches!(origin, Origin::Disk { appeared: true });
+    let appeared = matches!(origin, Origin::Disk { appeared: true })
+      || (matches!(origin, Origin::Injected) && kind == FsEventKind::Create);
     // Drop events inside ignored subtrees. The recursive-root watch delivers
     // events for unregistered paths (e.g. the build-output dir); left through,
     // `find_associated_event` bubbles them to a registered parent and triggers
@@ -244,8 +246,10 @@ impl EventProcessor {
     // filter below, which only applies to `Change`/`Create`.
     // The reverse holds too: a removal of a path back on disk (unlinked and
     // re-created) ends as the path's final state, like watchpack's lstat on
-    // each event. Its records still go, so it is taken as new.
-    let removed = kind == FsEventKind::Remove;
+    // each event. Keep its records unless the absence was observed, so an
+    // unchanged aged mtime is suppressed just as it is by watchpack. Explicit and
+    // scanned removals already declare the old record invalid.
+    let removed = kind == FsEventKind::Remove && !matches!(origin, Origin::Disk { .. });
     let initial_missing = removed && matches!(origin, Origin::Scan);
     let exists = std::fs::symlink_metadata(path).is_ok();
     let kind = match kind {

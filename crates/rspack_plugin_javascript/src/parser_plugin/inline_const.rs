@@ -172,7 +172,8 @@ pub(super) fn to_evaluated_inlinable_value(
     Some(EvaluatedInlinableValue::new_boolean(evaluated.bool()))
   } else if evaluated.is_number()
     && let num = evaluated.number()
-    && ryu_js::Buffer::new().format(num).len() <= EvaluatedInlinableValue::SHORT_SIZE
+    && ryu_js::format_number_literal(&mut ryu_js::Buffer::new(), num).len()
+      <= EvaluatedInlinableValue::SHORT_SIZE
   {
     Some(EvaluatedInlinableValue::new_number(num))
   } else if evaluated.is_string()

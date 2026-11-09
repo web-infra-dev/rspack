@@ -74,7 +74,7 @@ fn a_recorded_accuracy_narrows_with_the_filesystem_accuracy() {
     "precondition: nothing narrowed the accuracy yet"
   );
 
-  // A new context's scan of a file on an odd millisecond narrows it to 1ms.
+  // A new context's scan of a file on an odd millisecond narrows it to 10ms.
   std::fs::create_dir_all(helper.join("ctx2")).unwrap();
   helper.file("ctx2/fine");
   set_modified(
@@ -92,6 +92,9 @@ fn a_recorded_accuracy_narrows_with_the_filesystem_accuracy() {
   );
 
   let (safe_time, timestamp, accuracy) = accuracy_of(&helper, "ctx/coarse");
-  assert_eq!(accuracy, 1, "the coarse record keeps a 2s accuracy");
-  assert_eq!(safe_time, timestamp + 1);
+  assert_eq!(
+    accuracy, 10,
+    "the coarse record must use the learned accuracy"
+  );
+  assert_eq!(safe_time, timestamp + 10);
 }
