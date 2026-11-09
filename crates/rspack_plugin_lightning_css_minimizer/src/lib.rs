@@ -15,8 +15,7 @@ use rspack_core::{
   ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
   diagnostics::MinifyError,
   rspack_sources::{
-    MapOptions, RawStringSource, Source, SourceExt, SourceMap, SourceMapSource,
-    SourceMapSourceOptions,
+    MapOptions, RawStringSource, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
   },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
@@ -124,8 +123,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       if let Some(original_source) = original.get_source() {
         let input = original_source.source().into_string_lossy().into_owned();
-        let input_source_map =
-          Source::map_static(original_source.clone(), &MapOptions::default());
+        let input_source_map = original_source.map(&MapOptions::default());
 
         let mut parser_flags = ParserFlags::empty();
         parser_flags.set(
