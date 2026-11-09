@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Bundle: lazy.chunk.CURRENT_HASH.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 60
+- Manifest: main.LAST_HASH.hot-update.json, size: 93
 - Update: lazy.LAST_HASH.hot-update.js, size: 1223
 - Update: main.LAST_HASH.hot-update.js, size: 6610
 
@@ -15,7 +15,7 @@
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["lazy","main"],"r":[],"m":[],"miniCss":{"c":["lazy"]}}
+{"c":["lazy","main"],"r":[],"m":[],"changed":{"./lazy.js":["lazy"]},"miniCss":{"c":["lazy"]}}
 ```
 
 

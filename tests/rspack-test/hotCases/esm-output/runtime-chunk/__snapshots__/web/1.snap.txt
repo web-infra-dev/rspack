@@ -7,7 +7,7 @@
 - Bundle: async-shared_js.chunk.mjs
 - Bundle: main.mjs
 - Bundle: runtime.mjs
-- Manifest: runtime.LAST_HASH.hot-update.json.mjs, size: 54
+- Manifest: runtime.LAST_HASH.hot-update.json.mjs, size: 89
 - Update: main.LAST_HASH.hot-update.mjs, size: 362
 - Update: runtime.LAST_HASH.hot-update.mjs, size: 252
 
@@ -16,7 +16,7 @@
 ### runtime.LAST_HASH.hot-update.json.mjs
 
 ```json
-{"c":["main","runtime"],"r":[],"m":[]}
+{"c":["main","runtime"],"r":[],"m":[],"changed":{"./shared.js":["main"]}}
 ```
 
 
