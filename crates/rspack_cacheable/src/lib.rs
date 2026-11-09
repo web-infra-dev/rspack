@@ -42,7 +42,7 @@ pub fn to_bytes<T, C: CacheableContext>(_value: &T, _ctx: &C) -> Result<Vec<u8>>
   panic!("Cannot use to_bytes when noop feature is enabled")
 }
 
-pub use context::{CacheableContext, ContextGuard};
+pub use context::{CacheableContext, ContextGuard, Interner};
 pub use deserialize::{Deserializer, Validator};
 pub use error::{Error, Result};
 pub use rkyv;

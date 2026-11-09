@@ -1,8 +1,8 @@
-use std::path::Path;
+use std::{path::Path, sync::Arc};
 
 use rspack_cacheable::{
   __private::rkyv::{Archive, Deserialize, Serialize, bytecheck::CheckBytes},
-  Deserializer, Serializer, Validator, from_bytes, to_bytes,
+  Deserializer, Interner, Serializer, Validator, from_bytes, to_bytes,
 };
 use rspack_error::Result;
 use rspack_paths::Utf8PathBuf;
@@ -11,11 +11,16 @@ use rspack_paths::Utf8PathBuf;
 #[derive(Debug, Clone)]
 struct Context {
   portable_project_root: Option<Utf8PathBuf>,
+  interner: Arc<Interner>,
 }
 
 impl rspack_cacheable::CacheableContext for Context {
   fn project_root(&self) -> Option<&Path> {
     self.portable_project_root.as_ref().map(|p| p.as_std_path())
+  }
+
+  fn interner(&self) -> Option<&Interner> {
+    Some(&self.interner)
   }
 }
 
@@ -45,6 +50,7 @@ impl CacheCodec {
     Self {
       context: Context {
         portable_project_root,
+        interner: Arc::default(),
       },
     }
   }
