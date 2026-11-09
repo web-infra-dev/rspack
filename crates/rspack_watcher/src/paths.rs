@@ -713,10 +713,10 @@ impl PathManager {
     let Ok(metadata) = std::fs::symlink_metadata(path) else {
       return true;
     };
-    if metadata.is_dir() {
-      if let Ok(mtime) = metadata.modified() {
-        mtime_accuracy(mtime);
-      }
+    if metadata.is_dir()
+      && let Ok(mtime) = metadata.modified()
+    {
+      mtime_accuracy(mtime);
     }
     if registered_directory {
       return true;
