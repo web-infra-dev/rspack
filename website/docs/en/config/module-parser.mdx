@@ -1305,6 +1305,8 @@ export default {
 
 Enable or disable renaming custom identifiers, such as local `@counter-style` and `@font-palette-values` names.
 
+In the `list-style` shorthand, references to a local counter style are renamed whether the position keyword comes before or after the name, as in `inside stars` and `stars inside`.
+
 ```js title="rspack.config.mjs"
 export default {
   module: {
@@ -1380,6 +1382,8 @@ export default {
 - **Default:** `true`
 
 Enable or disable renaming local CSS grid line and area names and their usages, such as `grid-template-areas`, `grid-area`, and `grid-row`.
+
+References to an area's implicit grid lines use the generated area name followed by `-start` or `-end`. For example, if `main` becomes `main-local`, then `grid-column: main-start / main-end` becomes `grid-column: main-local-start / main-local-end`.
 
 ```js title="rspack.config.mjs"
 export default {
