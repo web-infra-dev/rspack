@@ -3,13 +3,13 @@ use std::sync::Arc;
 use napi::Either;
 use napi_derive::napi;
 use rspack_plugin_mf::{
-  CollectSharedEntryPluginOptions, ConsumeOptions, ConsumeSharedPluginOptions, ConsumeVersion,
-  ContainerPluginOptions, ContainerReferencePluginOptions, ExposeOptions, ManifestExposeOption,
-  ManifestSharedOption, ModuleFederationManifestPluginOptions,
-  ModuleFederationRuntimeExperimentsOptions, ModuleFederationRuntimePluginOptions,
-  OptimizeSharedConfig, ProvideOptions, ProvideVersion, RemoteAliasTarget, RemoteOptions,
-  ShareScope, SharedContainerPluginOptions, SharedUsedExportsOptimizerPluginOptions,
-  StatsBuildInfo,
+  ConsumeVersion, ContainerPluginOptions, ContainerReferencePluginOptions,
+  EnhancedCollectSharedEntryPluginOptions, EnhancedConsumeOptions,
+  EnhancedConsumeSharedPluginOptions, EnhancedOptimizeSharedConfig, EnhancedProvideOptions,
+  EnhancedSharedContainerPluginOptions, EnhancedSharedUsedExportsOptimizerPluginOptions,
+  ExposeOptions, ManifestExposeOption, ManifestSharedOption, ModuleFederationManifestPluginOptions,
+  ModuleFederationRuntimeExperimentsOptions, ModuleFederationRuntimePluginOptions, ProvideVersion,
+  RemoteAliasTarget, RemoteOptions, ShareScope, StatsBuildInfo,
 };
 use rspack_util::fx_hash::FxHashMap as HashMap;
 
@@ -118,6 +118,8 @@ impl From<RawRemoteOptions> for (String, RemoteOptions) {
 #[napi(object)]
 pub struct RawProvideOptions {
   pub key: String,
+  pub request: Option<String>,
+  pub layer: Option<String>,
   pub share_key: String,
   pub share_scope: Either<String, Vec<String>>,
   #[napi(ts_type = "string | false | undefined")]
@@ -130,11 +132,13 @@ pub struct RawProvideOptions {
   pub tree_shaking_mode: Option<String>,
 }
 
-impl From<RawProvideOptions> for (String, ProvideOptions) {
+impl From<RawProvideOptions> for (String, EnhancedProvideOptions) {
   fn from(value: RawProvideOptions) -> Self {
     (
       value.key,
-      ProvideOptions {
+      EnhancedProvideOptions {
+        request: value.request,
+        layer: value.layer,
         share_key: value.share_key,
         share_scope: into_share_scope(value.share_scope),
         version: value.version.map(|v| RawVersionWrapper(v).into()),
@@ -155,14 +159,14 @@ pub struct RawCollectShareEntryPluginOptions {
   pub filename: Option<String>,
 }
 
-impl From<RawCollectShareEntryPluginOptions> for CollectSharedEntryPluginOptions {
+impl From<RawCollectShareEntryPluginOptions> for EnhancedCollectSharedEntryPluginOptions {
   fn from(value: RawCollectShareEntryPluginOptions) -> Self {
     Self {
       consumes: value
         .consumes
         .into_iter()
         .map(|provide| {
-          let (key, consume_options): (String, ConsumeOptions) = provide.into();
+          let (key, consume_options): (String, EnhancedConsumeOptions) = provide.into();
           (key, std::sync::Arc::new(consume_options))
         })
         .collect(),
@@ -177,16 +181,26 @@ pub struct RawSharedContainerPluginOptions {
   pub name: String,
   pub request: String,
   pub version: String,
+  pub share_key: Option<String>,
+  pub share_scope: Option<Either<String, Vec<String>>>,
+  pub layer: Option<String>,
   pub file_name: Option<String>,
   pub library: JsLibraryOptions,
 }
 
-impl From<RawSharedContainerPluginOptions> for SharedContainerPluginOptions {
+impl From<RawSharedContainerPluginOptions> for EnhancedSharedContainerPluginOptions {
   fn from(value: RawSharedContainerPluginOptions) -> Self {
-    SharedContainerPluginOptions {
+    let share_key = value.share_key.unwrap_or_else(|| value.name.clone());
+    EnhancedSharedContainerPluginOptions {
       name: value.name,
       request: value.request,
       version: value.version,
+      share_key,
+      share_scope: value.share_scope.map_or_else(
+        || ShareScope::Single("default".to_string()),
+        into_share_scope,
+      ),
+      layer: value.layer,
       library: value.library.into(),
       file_name: value.file_name.map(Into::into),
     }
@@ -200,7 +214,7 @@ pub struct RawConsumeSharedPluginOptions {
   pub enhanced: bool,
 }
 
-impl From<RawConsumeSharedPluginOptions> for ConsumeSharedPluginOptions {
+impl From<RawConsumeSharedPluginOptions> for EnhancedConsumeSharedPluginOptions {
   fn from(value: RawConsumeSharedPluginOptions) -> Self {
     Self {
       consumes: value
@@ -217,17 +231,29 @@ impl From<RawConsumeSharedPluginOptions> for ConsumeSharedPluginOptions {
 #[derive(Debug)]
 #[napi(object)]
 pub struct RawOptimizeSharedConfig {
+  pub request: Option<String>,
+  pub issuer_layer: Option<String>,
   pub share_key: String,
+  pub share_scope: Option<Either<String, Vec<String>>>,
   pub tree_shaking: bool,
   pub used_exports: Option<Vec<String>>,
+  pub layer: Option<String>,
 }
 
-impl From<RawOptimizeSharedConfig> for OptimizeSharedConfig {
+impl From<RawOptimizeSharedConfig> for EnhancedOptimizeSharedConfig {
   fn from(value: RawOptimizeSharedConfig) -> Self {
+    let request = value.request.unwrap_or_else(|| value.share_key.clone());
     Self {
+      request,
+      issuer_layer: value.issuer_layer,
       share_key: value.share_key,
+      share_scope: value.share_scope.map_or_else(
+        || ShareScope::Single("default".to_string()),
+        into_share_scope,
+      ),
       tree_shaking: value.tree_shaking,
       used_exports: value.used_exports.unwrap_or_default(),
+      layer: value.layer,
     }
   }
 }
@@ -241,7 +267,9 @@ pub struct RawSharedUsedExportsOptimizerPluginOptions {
   pub stats_file_name: Option<String>,
 }
 
-impl From<RawSharedUsedExportsOptimizerPluginOptions> for SharedUsedExportsOptimizerPluginOptions {
+impl From<RawSharedUsedExportsOptimizerPluginOptions>
+  for EnhancedSharedUsedExportsOptimizerPluginOptions
+{
   fn from(value: RawSharedUsedExportsOptimizerPluginOptions) -> Self {
     Self {
       shared: value
@@ -264,6 +292,9 @@ impl From<RawSharedUsedExportsOptimizerPluginOptions> for SharedUsedExportsOptim
 #[napi(object)]
 pub struct RawConsumeOptions {
   pub key: String,
+  pub request: Option<String>,
+  pub issuer_layer: Option<String>,
+  pub layer: Option<String>,
   pub import: Option<String>,
   pub import_resolved: Option<String>,
   pub share_key: String,
@@ -277,11 +308,14 @@ pub struct RawConsumeOptions {
   pub tree_shaking_mode: Option<String>,
 }
 
-impl From<RawConsumeOptions> for (String, ConsumeOptions) {
+impl From<RawConsumeOptions> for (String, EnhancedConsumeOptions) {
   fn from(value: RawConsumeOptions) -> Self {
     (
       value.key,
-      ConsumeOptions {
+      EnhancedConsumeOptions {
+        request: value.request,
+        issuer_layer: value.issuer_layer,
+        layer: value.layer,
         import: value.import,
         import_resolved: value.import_resolved,
         share_key: value.share_key,

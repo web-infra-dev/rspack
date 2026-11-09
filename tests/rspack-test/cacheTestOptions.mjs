@@ -52,10 +52,13 @@ const excludes = {
 		/^container-1-5\/manifest-file-name$/,
 		/^container-1-5\/manifest-prefix-singleton$/,
 		/^container-1-5\/provide-sharing-extra-data$/,
+		/^container-1-5\/relative-layered-consume-issuer-context$/,
 		/^container-1-5\/remote-array-share-scope$/,
 		/^container-1-5\/runtime-plugin-with-params$/,
 		/^container-1-5\/runtime-plugin-with-used-exports$/,
 		/^container-1-5\/share-strategy$/,
+		/^container-1-5\/shared-module-id-collisions$/,
+		/^container-1-5\/shared-request-defaults$/,
 		/^container-1-5\/tree-shaking-shared-infer-mode$/,
 		/^container-1-5\/tree-shaking-shared-pnpm-versions$/,
 		/^container-1-5\/tree-shaking-shared-server-mode$/,
@@ -73,6 +76,7 @@ const excludes = {
 		/^sharing\/consume-multiple-versions$/,
 		/^sharing\/consume-self-reference$/,
 		/^sharing\/no-override-loaded$/,
+		/^sharing\/provide-discovered-during-add-include$/,
 		/^sharing\/share-multiple-versions$/,
 		/^sharing\/share-plugin$/,
 		/^sharing\/share-plugin-dual-mode$/,
@@ -104,7 +108,10 @@ const excludes = {
 		/^source-map\/exclude-chunks-source-map$/,
 
 		// Independent shared fallback compilers write to the same cache database as their parent.
+		/^container-1-5\/tree-shaking-shared-equivalent-providers$/,
+		/^container-1-5\/tree-shaking-shared-prefix-exports$/,
 		/^container-1-5\/tree-shaking-shared-provide-only$/,
+		/^container-1-5\/tree-shaking-shared-request-origins$/,
 		/^sharing\/reshake-share$/,
 
 		// Unawaited child compilation races with closing/flushing the parent cache.
