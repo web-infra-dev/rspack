@@ -2,9 +2,6 @@ import path from "node:path";
 
 const excludes = {
 	normal: [
-		// Module restoration does not retain loader-emitted diagnostics yet.
-		/^errors\/loader-error-warning$/,
-
 		// Module cache misses after restarting the compiler.
 		/^errors\/import-module-cycle$/,
 		/^errors\/import-module-cycle-multiple$/,
