@@ -4,14 +4,11 @@ use std::{
 };
 
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
-use rspack_util::{
-  current_time,
-  fx_hash::{FxHashMap, FxHashSet},
-};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, IoResultToFsResultExt,
-  ReadStream, ReadableFileSystem, Result, WritableFileSystem, WriteStream,
+  ReadStream, ReadableFileSystem, Result, WritableFileSystem, WriteStream, current_time,
   file_metadata::FilePermissions,
 };
 

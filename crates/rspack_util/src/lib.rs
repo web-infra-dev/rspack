@@ -7,6 +7,7 @@ pub mod comparators;
 pub mod debug_tool;
 pub mod ext;
 pub mod fx_hash;
+pub mod glob;
 pub mod identifier;
 pub mod itoa;
 pub mod location;
