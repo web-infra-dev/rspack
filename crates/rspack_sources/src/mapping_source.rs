@@ -13,7 +13,7 @@ use crate::{
 
 #[cfg_attr(feature = "allocative", derive(rspack_allocative::Allocative))]
 pub(crate) struct MapData {
-  pub(crate) map: SourceMap<'static>,
+  pub(crate) map: SourceMap,
   version: String,
   ignore_list: Option<String>,
   size: OnceLock<usize>,
@@ -56,8 +56,8 @@ pub struct MappingSource(Arc<Data>);
 
 impl MappingSource {
   /// Create a JSON source map asset.
-  pub fn new(map: SourceMap<'static>) -> Self {
-    let version = map.fields().version.to_string();
+  pub fn new(map: SourceMap) -> Self {
+    let version = map.version.to_string();
     let ignore_list = map
       .ignore_list()
       .map(|list| simd_json::to_string(list).expect("serialize ignoreList"));
@@ -158,13 +158,12 @@ impl MappingSource {
   pub fn sources_content(&self) -> impl Iterator<Item = &str> {
     self
       .original_map()
-      .fields()
-      .sources_content
+      .sources_content()
       .iter()
       .filter_map(Option::as_deref)
   }
 
-  fn original_map(&self) -> &SourceMap<'static> {
+  fn original_map(&self) -> &SourceMap {
     match self.0.as_ref() {
       Data::Map(data) => &data.map,
       Data::Edited { inner, .. } => inner.original_map(),
@@ -403,31 +402,30 @@ impl MapData {
   fn size(&self) -> usize {
     *self.size.get_or_init(|| {
       let mut writer = SizeWriter(0);
-      simd_json::to_writer(&mut writer as &mut dyn Write, self.map.fields())
-        .expect("count map JSON bytes");
+      simd_json::to_writer(&mut writer as &mut dyn Write, &self.map).expect("count map JSON bytes");
       writer.0
     })
   }
 
   fn visit<'a>(&'a self, visit: &mut impl FnMut(Part<'a>)) {
-    let fields = self.map.fields();
+    let map = &self.map;
     visit(Part::Raw("{\"version\":"));
     visit(Part::Raw(&self.version));
-    if let Some(file) = fields.file.as_deref() {
+    if let Some(file) = map.file.as_deref() {
       visit(Part::Raw(",\"file\":"));
       visit(Part::String(file));
     }
     visit(Part::Raw(",\"sources\":["));
-    for (i, source) in fields.sources.iter().enumerate() {
+    for (i, source) in map.sources().iter().enumerate() {
       if i != 0 {
         visit(Part::Raw(","));
       }
       visit(Part::String(source));
     }
     visit(Part::Raw("]"));
-    if !is_all_none(&fields.sources_content) {
+    if !is_all_none(&map.sources_content) {
       visit(Part::Raw(",\"sourcesContent\":["));
-      for (i, content) in fields.sources_content.iter().enumerate() {
+      for (i, content) in map.sources_content().iter().enumerate() {
         if i != 0 {
           visit(Part::Raw(","));
         }
@@ -439,19 +437,19 @@ impl MapData {
       visit(Part::Raw("]"));
     }
     visit(Part::Raw(",\"names\":["));
-    for (i, name) in fields.names.iter().enumerate() {
+    for (i, name) in map.names().iter().enumerate() {
       if i != 0 {
         visit(Part::Raw(","));
       }
       visit(Part::String(name));
     }
     visit(Part::Raw("],\"mappings\":"));
-    visit(Part::String(&fields.mappings));
-    if let Some(root) = fields.source_root.as_deref() {
+    visit(Part::String(&map.mappings));
+    if let Some(root) = map.source_root.as_deref() {
       visit(Part::Raw(",\"sourceRoot\":"));
       visit(Part::String(root));
     }
-    if let Some(id) = fields.debug_id.as_deref() {
+    if let Some(id) = map.debug_id.as_deref() {
       visit(Part::Raw(",\"debugId\":"));
       visit(Part::String(id));
     }
@@ -559,17 +557,13 @@ impl Source for MappingSource {
     }
   }
 
-  fn map<'a>(&'a self, _: &MapOptions) -> Option<SourceMap<'a>> {
-    None
-  }
-
-  fn map_static(self: Arc<Self>, _: &MapOptions) -> Option<SourceMap<'static>> {
+  fn map(&self, _: &MapOptions) -> Option<SourceMap> {
     None
   }
 
   fn to_writer(&self, writer: &mut dyn Write) -> io::Result<()> {
     match self.0.as_ref() {
-      Data::Map(data) => simd_json::to_writer(writer, data.map.fields()).map_err(io::Error::other),
+      Data::Map(data) => simd_json::to_writer(writer, &data.map).map_err(io::Error::other),
       Data::Edited {
         inner,
         replacements,
@@ -617,8 +611,8 @@ impl<'source> Chunks<'source> for MappingChunks<'source> {
     &'chunk self,
     options: &MapOptions,
     on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
-    on_source: crate::helpers::OnSource<'_, 'source>,
-    on_name: crate::helpers::OnName<'_, 'source>,
+    on_source: crate::helpers::OnSource<'_>,
+    on_name: crate::helpers::OnName<'_>,
   ) -> GeneratedInfo {
     let _ = (on_source, on_name);
     stream_chunks_of_raw_rope(self.0, options, on_chunk)
