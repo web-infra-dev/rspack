@@ -478,41 +478,36 @@ impl InitFragment for ESMExportInitFragment {
       .export_map
       .sort_by(|(a, _), (b, _)| a.encode_utf16().cmp(b.encode_utf16()));
 
-    let define = runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-    let exports = runtime_template.render_exports_argument(self.exports_argument);
-    let mut content = String::new();
-    // Each call defines its getters before its values. Start a new call whenever
-    // a getter follows a value to preserve the order of the namespace keys.
-    for batch in self.export_map.chunk_by(|(_, a), (_, b)| {
-      !matches!(
-        (a, b),
-        (ESMExportBinding::Value(_), ESMExportBinding::Getter(_))
-      )
-    }) {
-      content.push_str(&define);
-      content.push('(');
-      content.push_str(&exports);
-      content.push_str(", {");
-      let mut in_values = false;
-      for (i, (key, binding)) in batch.iter().enumerate() {
-        if !in_values && matches!(binding, ESMExportBinding::Value(_)) {
-          content.push_str("\n}, {");
-          in_values = true;
-        } else if i > 0 {
-          content.push(',');
-        }
-        content.push_str("\n  ");
-        content.push_str(&property_name(key)?);
-        content.push_str(": ");
-        match binding {
-          ESMExportBinding::Getter(getter) => {
-            content.push_str(&runtime_template.returning_function(getter, ""));
-          }
-          ESMExportBinding::Value(value) => content.push_str(value),
-        }
+    // The runtime registers getters before values. Render every export through
+    // the last getter as a getter, leaving only the sorted suffix as values.
+    let getter_count = self
+      .export_map
+      .iter()
+      .rposition(|(_, binding)| matches!(binding, ESMExportBinding::Getter(_)))
+      .map_or(0, |i| i + 1);
+
+    let mut content =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+    content.push('(');
+    content.push_str(&runtime_template.render_exports_argument(self.exports_argument));
+    content.push_str(", {");
+    for (i, (key, binding)) in self.export_map.iter().enumerate() {
+      if i == getter_count {
+        content.push_str("\n}, {");
+      } else if i > 0 {
+        content.push(',');
       }
-      content.push_str("\n});\n");
+      content.push_str("\n  ");
+      content.push_str(&property_name(key)?);
+      content.push_str(": ");
+      let (ESMExportBinding::Getter(value) | ESMExportBinding::Value(value)) = binding;
+      if i < getter_count {
+        content.push_str(&runtime_template.returning_function(value, ""));
+      } else {
+        content.push_str(value);
+      }
     }
+    content.push_str("\n});\n");
 
     let res = if matches!(self.is_circular_module, None | Some(true)) {
       InitFragmentContents {

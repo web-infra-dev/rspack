@@ -53,9 +53,13 @@ it("should keep mutated default exports as getters", () => {
 
 it("should enumerate mixed export bindings in UTF-16 order", async () => {
 	const ns = await import("./mixed-exports");
-	expect(Object.keys(ns)).toEqual(["inc", "x", "\u{10000}", "\uE000"]);
-	expectValueDescriptor(ns, "inc", ns.inc);
+	expect(Object.keys(ns)).toEqual(["inc", "x", "z", "\u{10000}", "\uE000"]);
+	expectGetterDescriptor(ns, "inc");
 	expectGetterDescriptor(ns, "x");
+	expectGetterDescriptor(ns, "z");
+	expect(ns.z).toBe(3);
+	expectGetterDescriptor(ns, "\u{10000}");
+	expectValueDescriptor(ns, "\uE000", ns.inc);
 	ns.inc();
 	expect(ns.x).toBe(2);
 });
