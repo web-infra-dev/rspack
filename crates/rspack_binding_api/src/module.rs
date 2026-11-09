@@ -3,7 +3,10 @@ use std::{
   any::TypeId,
   cell::{Cell, RefCell},
   ptr::NonNull,
-  sync::{Arc, Weak},
+  sync::{
+    Arc, Weak,
+    atomic::{AtomicBool, Ordering},
+  },
 };
 
 use napi::JsString;
@@ -11,7 +14,7 @@ use napi_derive::napi;
 use rspack_collections::Identifier;
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
-  FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleCommon,
+  Context, FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleCommon,
   RuntimeModuleStage, SourceType, internal, rspack_sources::Source,
 };
 use rspack_napi::{OneShotRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt};
@@ -59,13 +62,13 @@ pub fn module_get_identifier<'env>(env: &'env Env, module: Object<'env>) -> Resu
 #[napi(ts_args_type = "module: Module")]
 pub fn module_get_type<'env>(env: &'env Env, module: Object<'env>) -> Result<JsString<'env>> {
   let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
-  module.with_ref(|_, module| env.create_string(module.module_type().as_str()))
+  module.with_local_ref(|module| env.create_string(module.module_type().as_str()))
 }
 
 #[napi(ts_args_type = "module: Module")]
 pub fn module_get_context(module: Object<'_>) -> napi::Result<Either<String, ()>> {
   let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
-  module.with_ref(|_, module| {
+  module.with_local_ref(|module| {
     Ok(match module.get_context() {
       Some(ctx) => Either::A(ctx.to_string()),
       None => Either::B(()),
@@ -76,7 +79,7 @@ pub fn module_get_context(module: Object<'_>) -> napi::Result<Either<String, ()>
 #[napi(ts_args_type = "module: Module")]
 pub fn module_get_layer(module: Object<'_>) -> napi::Result<Either<String, ()>> {
   let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
-  module.with_ref(|_, module| {
+  module.with_local_ref(|module| {
     Ok(match module.get_layer() {
       Some(layer) => Either::A(layer.to_owned()),
       None => Either::B(()),
@@ -87,19 +90,19 @@ pub fn module_get_layer(module: Object<'_>) -> napi::Result<Either<String, ()>> 
 #[napi(ts_args_type = "module: Module")]
 pub fn module_get_use_source_map(module: Object<'_>) -> napi::Result<bool> {
   let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
-  module.with_ref(|_, module| Ok(module.get_source_map_kind().source_map()))
+  module.with_local_ref(|module| Ok(module.get_source_map_kind().source_map()))
 }
 
 #[napi(ts_args_type = "module: Module")]
 pub fn module_get_use_simple_source_map(module: Object<'_>) -> napi::Result<bool> {
   let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
-  module.with_ref(|_, module| Ok(module.get_source_map_kind().simple_source_map()))
+  module.with_local_ref(|module| Ok(module.get_source_map_kind().simple_source_map()))
 }
 
 #[napi(ts_args_type = "module: Module")]
 pub fn module_get_factory_meta(module: Object<'_>) -> napi::Result<JsFactoryMeta> {
   let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
-  module.with_ref(|_, module| {
+  module.with_local_ref(|module| {
     Ok(match module.as_normal_module() {
       Some(normal_module) => match normal_module.factory_meta() {
         Some(meta) => JsFactoryMeta {
@@ -281,11 +284,42 @@ struct OriginalSourceNapiRef {
   napi_ref: OneShotRef,
 }
 
+/// Native state stays owned by the loader task. Worker handles are revoked
+/// before the task returns that state, including when the worker exits.
+#[derive(Debug)]
+pub(crate) struct WorkerModuleScope {
+  active: AtomicBool,
+  context: Context,
+}
+
+impl WorkerModuleScope {
+  pub(crate) fn new(context: Context) -> Arc<Self> {
+    Arc::new(Self {
+      active: AtomicBool::new(true),
+      context,
+    })
+  }
+
+  pub(crate) fn revoke(&self) {
+    self.active.store(false, Ordering::Release);
+  }
+
+  fn validate(&self) -> napi::Result<()> {
+    if !self.active.load(Ordering::Acquire) {
+      return Err(napi::Error::from_reason(
+        "Worker Module is unavailable after its loader task has completed",
+      ));
+    }
+    Ok(())
+  }
+}
+
 pub struct ModuleHandle {
   pub(crate) identifier: ModuleIdentifier,
   pub(crate) ptr: Cell<Option<NonNull<dyn rspack_core::Module>>>,
   pub(crate) compiler_id: CompilerId,
   pub(crate) type_id: TypeId,
+  worker_scope: Option<Arc<WorkerModuleScope>>,
   original_source_ref: RefCell<Option<OriginalSourceNapiRef>>,
   pub(crate) build_info_ref: RefCell<Option<WeakRef>>,
 }
@@ -297,6 +331,7 @@ impl ModuleHandle {
       compiler_id: value.compiler_id,
       type_id: value.type_id,
       ptr: Cell::new(value.ptr),
+      worker_scope: value.worker_scope.clone(),
       original_source_ref: RefCell::new(None),
       build_info_ref: RefCell::new(None),
     }
@@ -328,6 +363,11 @@ impl ModuleHandle {
     &self,
     f: impl FnOnce(&Compilation) -> napi::Result<R>,
   ) -> napi::Result<R> {
+    if self.worker_scope.is_some() {
+      return Err(napi::Error::from_reason(
+        "Compilation access is unavailable in loader workers",
+      ));
+    }
     let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
       let references = ref_cell.borrow();
       references.get(&self.compiler_id).cloned()
@@ -363,7 +403,23 @@ impl ModuleHandle {
     })
   }
 
+  pub(crate) fn with_local_ref<R>(
+    &self,
+    f: impl FnOnce(&dyn rspack_core::Module) -> napi::Result<R>,
+  ) -> napi::Result<R> {
+    if let Some(scope) = &self.worker_scope {
+      scope.validate()?;
+      let ptr = self.ptr.get().ok_or_else(|| self.module_removed_error())?;
+      // The worker task owns this module for the duration of the scope.
+      return f(unsafe { ptr.as_ref() });
+    }
+    self.with_ref(|_, module| f(module))
+  }
+
   pub(crate) fn as_mut(&self) -> napi::Result<&'static mut dyn rspack_core::Module> {
+    if let Some(scope) = &self.worker_scope {
+      scope.validate()?;
+    }
     match self.ptr.get() {
       Some(mut ptr) => {
         // SAFETY:
@@ -381,6 +437,10 @@ impl ModuleHandle {
 
 impl ModuleHandle {
   pub fn readable_identifier(&self) -> napi::Result<String> {
+    if let Some(scope) = &self.worker_scope {
+      return self
+        .with_local_ref(|module| Ok(module.readable_identifier(&scope.context).to_string()));
+    }
     self.with_ref(|compilation, module| {
       Ok(
         module
@@ -391,6 +451,9 @@ impl ModuleHandle {
   }
 
   pub fn original_source<'a>(&self, env: &'a Env) -> napi::Result<Either<Unknown<'a>, ()>> {
+    if self.worker_scope.is_some() {
+      return self.with_local_ref(|module| self.original_source_from_module(env, module));
+    }
     let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
       let references = ref_cell.borrow();
       references.get(&self.compiler_id).cloned()
@@ -419,6 +482,14 @@ impl ModuleHandle {
       }
     };
 
+    self.original_source_from_module(env, module)
+  }
+
+  fn original_source_from_module<'a>(
+    &self,
+    env: &'a Env,
+    module: &dyn rspack_core::Module,
+  ) -> napi::Result<Either<Unknown<'a>, ()>> {
     let Some(original_source) = module.source() else {
       *self.original_source_ref.borrow_mut() = None;
       return Ok(Either::B(()));
@@ -445,7 +516,7 @@ impl ModuleHandle {
   }
 
   pub fn name_for_condition(&self) -> napi::Result<Either<String, ()>> {
-    self.with_ref(|_, module| {
+    self.with_local_ref(|module| {
       Ok(match module.name_for_condition() {
         Some(s) => Either::A(s.to_string()),
         None => Either::B(()),
@@ -495,7 +566,7 @@ impl ModuleHandle {
   }
 
   pub fn size(&self, ty: Option<String>) -> napi::Result<f64> {
-    self.with_ref(|_, module| {
+    self.with_local_ref(|module| {
       let ty = ty.map(|s| SourceType::from(s.as_str()));
       Ok(module.size(ty.as_ref()))
     })
@@ -506,7 +577,7 @@ impl ModuleHandle {
     env: &'a Env,
     options: JsLibIdentOptions,
   ) -> napi::Result<Option<JsString<'a>>> {
-    self.with_ref(|_, module| {
+    self.with_local_ref(|module| {
       Ok(
         match module.lib_ident(LibIdentOptions {
           context: &options.context,
@@ -531,7 +602,10 @@ impl ModuleHandle {
           unsafe { FromNapiValue::from_napi_value(env.raw(), object.raw())? };
         let info: rspack_core::AssetInfo = js_info.into();
         let info = BindingCell::from(info);
-        info.reflector().set_jsobject(env, object)?;
+        // The asset outlives the task and is reflected in the main JS env.
+        if self.worker_scope.is_none() {
+          info.reflector().set_jsobject(env, object)?;
+        }
         info
       }
       None => Default::default(),
@@ -562,6 +636,7 @@ pub struct ModuleObject {
   pub(crate) identifier: ModuleIdentifier,
   pub(crate) ptr: Option<NonNull<dyn rspack_core::Module>>,
   pub(crate) compiler_id: CompilerId,
+  pub(crate) worker_scope: Option<Arc<WorkerModuleScope>>,
 }
 
 unsafe impl Send for ModuleObject {}
@@ -574,6 +649,7 @@ impl ModuleObject {
       identifier: module.identifier(),
       ptr: None,
       compiler_id,
+      worker_scope: None,
     }
   }
 
@@ -585,7 +661,13 @@ impl ModuleObject {
       identifier: module.identifier(),
       ptr: Some(module_ptr),
       compiler_id,
+      worker_scope: None,
     }
+  }
+
+  pub(crate) fn with_worker_scope(mut self, scope: Arc<WorkerModuleScope>) -> Self {
+    self.worker_scope = Some(scope);
+    self
   }
 
   pub fn cleanup_by_compiler_id(compiler_id: &CompilerId) {
@@ -619,6 +701,7 @@ impl FromNapiValue for ModuleObject {
       identifier: handle.identifier,
       ptr: handle.ptr.get(),
       compiler_id: handle.compiler_id,
+      worker_scope: handle.worker_scope.clone(),
     })
   }
 }

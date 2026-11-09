@@ -51,6 +51,13 @@ impl Loader<RunnerContext> for JsLoader {
     self.2.as_deref()
   }
 
+  fn js_runtime(
+    &self,
+    context: &RunnerContext,
+  ) -> Option<Arc<rspack_loader_runner::JsLoaderRuntime>> {
+    super::runtime(context.compiler_id)
+  }
+
   fn execution_kind(&self) -> LoaderExecutionKind {
     LoaderExecutionKind::JavaScript
   }

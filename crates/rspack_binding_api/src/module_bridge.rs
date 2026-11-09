@@ -101,6 +101,13 @@ pub(crate) fn with_module_instance<R>(
 }
 
 pub(crate) fn to_jsobject(env: &Env, value: ModuleObject) -> Result<sys::napi_value> {
+  if value.worker_scope.is_some() {
+    // A worker has no JS Compiler. Its task-local facade calls the same native
+    // getters on this tagged handle, without entering the main identity cache.
+    let object = Object::new(env)?;
+    wrap(env, object, &Rc::new(ModuleHandle::new(&value)))?;
+    return Ok(object.raw());
+  }
   let cached = MODULE_INSTANCE_REFS.with_borrow(|instances| {
     instances
       .get(&value.compiler_id)
@@ -120,7 +127,23 @@ pub(crate) fn to_jsobject(env: &Env, value: ModuleObject) -> Result<sys::napi_va
   // borrow before entering JS. The helper captures no Compiler or Compilation.
   let compiler = crate::upgrade_compiler(env, value.compiler_id)?;
   let object = compiler.js_helpers.create_module(env, kind)?;
-  let data = Rc::into_raw(Rc::clone(&handle));
+  wrap(env, object, &handle)?;
+  let reference = OneShotRef::new(env.raw(), object).inspect_err(|_| {
+    // A helper may have retained this JS object. If cache insertion fails,
+    // there will be no revocation entry to clear its loader-scoped pointer.
+    handle.ptr.set(None);
+  })?;
+  MODULE_INSTANCE_REFS.with_borrow_mut(|instances| {
+    instances
+      .entry(value.compiler_id)
+      .or_default()
+      .insert(value.identifier, Instance { reference, handle });
+  });
+  Ok(object.raw())
+}
+
+fn wrap(env: &Env, object: Object<'_>, handle: &Rc<ModuleHandle>) -> Result<()> {
+  let data = Rc::into_raw(Rc::clone(handle));
   let status = unsafe {
     sys::napi_wrap(
       env.raw(),
@@ -141,18 +164,7 @@ pub(crate) fn to_jsobject(env: &Env, value: ModuleObject) -> Result<sys::napi_va
     handle.ptr.set(None);
     return Err(error);
   }
-  let reference = OneShotRef::new(env.raw(), object).inspect_err(|_| {
-    // A helper may have retained this JS object. If cache insertion fails,
-    // there will be no revocation entry to clear its loader-scoped pointer.
-    handle.ptr.set(None);
-  })?;
-  MODULE_INSTANCE_REFS.with_borrow_mut(|instances| {
-    instances
-      .entry(value.compiler_id)
-      .or_default()
-      .insert(value.identifier, Instance { reference, handle });
-  });
-  Ok(object.raw())
+  Ok(())
 }
 
 pub(crate) fn cleanup_compiler(compiler_id: &CompilerId) {

@@ -182,13 +182,13 @@ export default {
 
 Setting `parallel: true` enables parallel execution with an automatically chosen number of worker threads.
 
-When multiple loaders within the same rule have `parallel` enabled, Rspack executes them sequentially inside the same worker until it encounters a non-parallel loader or a Rust-implemented builtin loader. This preserves the loader execution order while maximizing parallel efficiency.
+When multiple loaders within the same rule use the same parallel execution mode, Rspack executes them sequentially inside the same worker. Switching modes or encountering a non-parallel or builtin loader starts a new segment. This preserves the loader execution order while maximizing parallel efficiency.
 
 :::tip
 
 - When parallel execution is enabled, `options` must be an object. Even if the loader has no options, you must explicitly set `options: {}`. Omitting `options` causes a configuration error.
-- The loader options must comply with the [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist), otherwise transmission will fail.
-- In worker mode, most methods on `LoaderContext._compilation`, `LoaderContext._compiler`, and `LoaderContext._module` are not supported.
+- Regular parallel loaders use the main-thread bridge for compiler and compilation APIs and non-serializable options. Worker segments skip the loader hook.
+- Use [`parallel: 'pure'`](/config/module-rules#pure-execution) for loaders that can run entirely in a worker.
 
 :::
 

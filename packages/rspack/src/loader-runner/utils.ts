@@ -10,6 +10,10 @@ import loadLoaderRaw from './loadLoader';
 
 const decoder = new TextDecoder();
 
+export function pureLoaderError(feature: string): Error {
+  return new Error(`${feature} is unavailable with \`parallel: 'pure'\`.`);
+}
+
 function utf8BufferToString(buf: Uint8Array) {
   // The provided ArrayBufferView value must not be shared.
   // ArrayBuffer or Uint8Array objects from other contexts (i.e. iframes) do not pass
@@ -43,7 +47,7 @@ export function convertArgs(args: any[], raw: boolean) {
 
 export const loadLoader: (
   loaderObject: LoaderObject,
-  compiler: Compiler,
+  compiler: Compiler | undefined,
 ) => Promise<void> = promisify(loadLoaderRaw);
 
 export const runSyncOrAsync = promisify(function runSyncOrAsync(

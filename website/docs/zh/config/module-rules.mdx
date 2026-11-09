@@ -811,7 +811,7 @@ type RuleSetLoaderWithOptions = {
   ident?: string;
   loader: string;
   options?: string | Record<string, any>;
-  parallel?: boolean | { maxWorkers?: number };
+  parallel?: boolean | 'pure' | { maxWorkers?: number };
   cache?: boolean;
   codeFilter?: RuleSetLoaderCodeFilter;
 };
@@ -986,16 +986,25 @@ export default {
 
 <ApiMeta addedVersion="1.3.1" />
 
-- **类型**: `boolean | { maxWorkers?: number }`
+- **类型**: `boolean | 'pure' | { maxWorkers?: number }`
 - **默认值:** `false`
 
 用于将指定 loader 放入 worker threads 中并行执行，被标记为 `parallel` 的 loader 会通过多线程调度运行，从而减少主线程的负担并提升构建性能。
 
 - 设置为 `true` 时，loader 会在 worker 中执行，并由 Rspack 自动选择合适的线程数量。
 - 设置为 `{ maxWorkers }` 时，可以手动控制最大 worker 的数量。
+- 设置为 `'pure'` 时，pitch 和 normal 阶段均在 worker 中执行，不调用主线程对象桥。
 - 设置为 `false` 或省略时，该 loader 默认会在主线程中执行。
 
 使用示例和限制请参考 [并行 Loader](/guide/features/loader#parallel-loader)。
+
+### 纯模式
+
+使用 native binding 时，可以为能完全在 worker 内运行的 loader 设置 `parallel: 'pure'`。例如，Babel 可以在设置 `cacheDirectory: false` 时使用纯模式转换源码。
+
+- 纯模式跳过 loader hook。loader options、顶层 `loader` 配置和跨 loader 段传递的 `additionalData` 必须可序列化。选项中不能包含函数。
+- 无法访问 `_compiler`、`_compilation`、`_module.buildInfo`、`fs`、`resolve`、`getResolve`、`importModule` 和 compilation diagnostics 等依赖主线程的 API。`getLogger()` 返回丢弃消息的 worker 本地 logger。
+- 通过 `this.emitFile()` 写入资产。loader 可以访问 worker 本地的模块元数据和依赖登记 API。
 
 ## rules[].use.parallel.maxWorkers
 
@@ -1004,9 +1013,7 @@ export default {
 
 当 `parallel` 配置为对象时，限制共享 loader worker pool 使用的最大 worker 线程数。请使用正整数。
 
-默认情况下，Rspack 使用 `os.cpus()` 返回的逻辑 CPU 数量减一，最少为一个 worker。
-
-loader worker pool 在当前进程内共享；如果多个 loader 都配置 `parallel`，建议使用一致的 `maxWorkers` 值。
+如果省略 `maxWorkers`，Rspack 默认使用 CPU 数量减二，且至少启动一个 worker。注册并行 loader 规则时会异步初始化 worker，编译会在构建模块前等待初始化完成。loader worker pool 在当前进程内共享；如果多个 loader 都配置 `parallel`，建议使用一致的 `maxWorkers` 值。
 
 ```js title="rspack.config.mjs"
 export default {

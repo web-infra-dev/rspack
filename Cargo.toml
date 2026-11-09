@@ -22,6 +22,7 @@ anyhow          = { version = "1.0.104", default-features = false, features = ["
 anymap          = { package = "anymap3", version = "1.1.0", default-features = false, features = ["std"] }
 arc-swap        = { version = "1.9.3", default-features = false }
 async-recursion = { version = "1.2.0", default-features = false }
+async-channel   = { version = "2.5.0" }
 async-trait     = { version = "0.1.92", default-features = false }
 atomic_refcell  = { version = "0.1.14", default-features = false }
 base64-simd     = { version = "0.8.0", default-features = false, features = ["alloc"] }
@@ -119,6 +120,7 @@ termcolor           = { version = "1.4.1", default-features = false }
 textwrap            = { version = "0.16.1", default-features = false }
 thiserror           = { version = "2.0.21", default-features = false, features = ["std"] }
 tokio               = { version = "1.53.2", default-features = false, features = ["rt"] }
+tokio-util          = { version = "0.7.19", features = ["rt"] }
 tracing             = { version = "0.1.44", default-features = false, features = ["max_level_trace", "release_max_level_trace"] }
 tracing-subscriber  = { version = "0.3.23", default-features = false, features = ["fmt", "registry"] }
 triomphe            = { version = "0.1.17", default-features = false, features = ["std", "unsize"] }
@@ -188,6 +190,7 @@ rspack_error                           = { version = "=0.103.1", path = "crates/
 rspack_fs                              = { version = "=0.103.1", path = "crates/rspack_fs", default-features = false }
 rspack_hash                            = { version = "=0.103.1", path = "crates/rspack_hash", default-features = false }
 rspack_hook                            = { version = "=0.103.1", path = "crates/rspack_hook", default-features = false }
+rspack_js_tasks                        = { version = "=0.103.1", path = "crates/rspack_js_tasks", default-features = false }
 rspack_ids                             = { version = "=0.103.1", path = "crates/rspack_ids", default-features = false }
 rspack_intern                          = { version = "=0.103.1", path = "crates/rspack_intern", default-features = false }
 rspack_javascript_compiler             = { version = "=0.103.1", path = "crates/rspack_javascript_compiler", default-features = false }

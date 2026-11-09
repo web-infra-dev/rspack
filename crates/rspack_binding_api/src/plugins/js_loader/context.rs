@@ -6,9 +6,9 @@ use rspack_collections::Identifiable;
 use rspack_core::{CodeFilter, Content, LoaderContext, LoaderDependencies, Module, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
-use rspack_napi::ThreadsafeOneShotRef;
 use rustc_hash::FxHashMap as HashMap;
 
+use super::bridge::{MainObjectHandle, SerializedLoaderData};
 use crate::{error::RspackError, module::ModuleObject};
 
 #[napi(object)]
@@ -181,14 +181,15 @@ impl From<JsLoaderDependencies> for LoaderDependencies {
 pub struct JsLoaderContext {
   pub resource: String,
   #[napi(js_name = "_module", ts_type = "Module")]
-  pub module: ModuleObject,
+  pub module: Option<ModuleObject>,
   #[napi(ts_type = "Readonly<boolean>")]
   pub hot: bool,
 
   /// Content maybe empty in pitching stage
   pub content: Either3<String, Buffer, Null>,
-  #[napi(ts_type = "any")]
-  pub additional_data: Option<ThreadsafeOneShotRef>,
+  pub additional_data: Option<Either<u32, Buffer>>,
+  pub hooks_only: bool,
+  pub bridge_handle: Option<u32>,
   #[napi(js_name = "__internal__parseMeta")]
   pub parse_meta: HashMap<String, String>,
   pub source_map: Option<Buffer>,
@@ -213,14 +214,28 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
   fn try_from(
     cx: &mut rspack_core::LoaderContext<RunnerContext>,
   ) -> std::result::Result<Self, Self::Error> {
-    let content = match cx.take_content() {
-      Some(Content::String(content)) => Either3::A(content),
-      Some(Content::Buffer(content)) => Either3::B(content.into()),
-      None => Either3::C(Null),
-    };
-    let additional_data = cx
-      .take_additional_data()
-      .and_then(|mut data| data.remove::<ThreadsafeOneShotRef>());
+    Self::from_native(cx, false)
+  }
+}
+
+impl JsLoaderContext {
+  pub(super) fn from_native(
+    cx: &mut LoaderContext<RunnerContext>,
+    hooks_only: bool,
+  ) -> rspack_error::Result<Self> {
+    let additional_data = (!hooks_only)
+      .then(|| cx.additional_data())
+      .flatten()
+      .and_then(|data| {
+        data
+          .get::<SerializedLoaderData>()
+          .map(|data| Either::B(Buffer::from(data.0.clone())))
+          .or_else(|| {
+            data
+              .get::<MainObjectHandle>()
+              .map(|handle| Either::A(handle.handle()))
+          })
+      });
 
     let module = &cx.context.module;
 
@@ -229,23 +244,30 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       .map_or(0..cx.loader_items.len(), |chain| chain.start()..chain.end());
     Ok(JsLoaderContext {
       resource: cx.resource_data.resource().to_owned(),
-      module: ModuleObject::with_ptr(
+      module: Some(ModuleObject::with_ptr(
         NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module)
           .expect("module reference should always produce a non-null pointer"),
         cx.context.compiler_id,
-      ),
+      )),
       hot: cx.hot,
-      content,
+      content: match if hooks_only { None } else { cx.take_content() } {
+        Some(Content::String(content)) => Either3::A(content),
+        Some(Content::Buffer(content)) => Either3::B(content.into()),
+        None => Either3::C(Null),
+      },
       // Since js side only set parse meta, and can't read it, so we can use Default here to only bring the
       // set values from js side to rust side.
       parse_meta: Default::default(),
       additional_data,
-      source_map: cx
-        .source_map()
+      hooks_only,
+      bridge_handle: None,
+      source_map: (!hooks_only)
+        .then(|| cx.source_map())
+        .flatten()
         .map(|v| v.to_json())
         .map(|v| v.into_bytes().into()),
       cacheable: cx.cacheable,
-      dependencies: cx.dependencies().as_ref().into(),
+      dependencies: cx.existing_dependencies().into(),
       added_dependencies: cx.added_dependencies().into(),
       removed_dependencies: cx.removed_dependencies().into(),
 

@@ -12,17 +12,13 @@ use crate::{
 
 #[async_trait::async_trait]
 pub trait LoaderRunnerPlugin: Send + Sync {
-  type Context: Send;
+  type Context: Send + 'static;
 
   fn name(&self) -> &'static str {
     "unknown"
   }
 
   async fn before_all(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()> {
-    Ok(())
-  }
-
-  async fn start_yielding(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()> {
     Ok(())
   }
 

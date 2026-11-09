@@ -76,6 +76,7 @@ mod fs_node;
 mod html;
 mod identifier;
 mod js_helpers;
+mod js_tasks;
 mod location;
 mod logging;
 mod module;
@@ -251,6 +252,7 @@ fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
 
 #[napi(custom_finalize)]
 struct JsCompiler {
+  task_subscription: Arc<js_tasks::JsTaskSubscription>,
   // whether to skip drop compiler in finalize
   unsafe_fast_drop: bool,
   file_system_dependency_string_pool: RefCell<FileSystemDependencyStringPool>,
@@ -272,7 +274,7 @@ impl JsCompiler {
   #[allow(clippy::too_many_arguments)]
   #[napi(
     constructor,
-    ts_args_type = "compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache, jsHelpers: JsHelpers"
+    ts_args_type = "compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache, jsHelpers: JsHelpers, taskSubscription: ExternalObject<'JsTaskSubscription'>"
   )]
   pub fn new(
     env: Env,
@@ -290,7 +292,12 @@ impl JsCompiler {
     raw_infrastructure_log_callback: Unknown<'static>,
     cache: Reference<JsCache>,
     js_helpers: JsHelpers<'_>,
+    task_subscription: &mut External<Option<Arc<js_tasks::JsTaskSubscription>>>,
   ) -> Result<Self> {
+    let task_subscription = task_subscription
+      .take()
+      .ok_or_else(|| napi::Error::from_reason("Expected an unused main JS task subscription"))?;
+
     tracing::info!(name:"rspack_version", version = rspack_workspace::rspack_pkg_version!());
 
     let compiler_scoped_tsfn_manager = CompilerScopedTsFnManager::new();
@@ -342,7 +349,7 @@ impl JsCompiler {
       plugins.push(js_cleanup_plugin.boxed());
 
       for bp in builtin_plugins {
-        compiler_scoped_tsfn_manager.scope(|| bp.append_to(env, &mut this, &mut plugins))?;
+        compiler_scoped_tsfn_manager.scope(|| bp.append_to(env, &mut plugins))?;
       }
 
       let pnp = options.resolve.pnp.unwrap_or(false);
@@ -433,6 +440,7 @@ impl JsCompiler {
       );
 
       Ok(Self {
+        task_subscription,
         infrastructure_log_dispatcher,
         compiler_scoped_tsfn_manager,
         compiler: ManuallyDrop::new(Compiler::from(rspack)),
@@ -659,6 +667,7 @@ impl JsCompiler {
 impl ObjectFinalize for JsCompiler {
   fn finalize(mut self, _env: Env) -> Result<()> {
     let compiler_id = self.compiler.id();
+    plugins::js_loader::release_runtime(compiler_id);
 
     COMPILER_REFERENCES.with(|ref_cell| {
       let mut references = ref_cell.borrow_mut();

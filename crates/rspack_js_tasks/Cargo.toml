@@ -1,0 +1,17 @@
+[package]
+description       = "Native task queues for JavaScript execution"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_js_tasks"
+repository        = "https://github.com/web-infra-dev/rspack"
+version.workspace = true
+
+[dependencies]
+async-channel = { workspace = true }
+rspack_error  = { workspace = true }
+serde_json    = { workspace = true }
+tokio         = { workspace = true, features = ["sync", "macros"] }
+tokio-util    = { workspace = true }
+
+[lints]
+workspace = true

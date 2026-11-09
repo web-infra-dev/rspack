@@ -4,6 +4,8 @@ import { getSwcLoaderOptions } from '../builtin-loader/swc';
 import type { Compilation } from '../Compilation';
 import type { Compiler } from '../Compiler';
 import type { LoaderObject } from '../loader-runner';
+import { registerParallelLoader } from '../loader-runner/service';
+import { pureLoaderError } from '../loader-runner/utils';
 import type { Logger } from '../logging/Logger';
 import type { Module } from '../Module';
 import type { ResolveRequest } from '../Resolver';
@@ -607,6 +609,16 @@ function resolveStringifyLoaders(
 
   const parallelism = use.parallel;
 
+  if (parallelism === 'pure' && (IS_BROWSER || process.env.WASM)) {
+    throw pureLoaderError('The WASI binding');
+  }
+
+  if (parallelism === 'pure' && isBuiltin) {
+    throw new Error(
+      "`Rule.use.parallel: 'pure'` requires a JavaScript loader.",
+    );
+  }
+
   if (!!parallelism && (!use.options || typeof use.options !== 'object')) {
     throw new Error(
       `\`Rule.use.parallel\` requires \`Rule.use.options\` to be an object.\nHowever the received value is \`${use.options}\` under option path \`${path}\`\nInternally, parallelism is provided by passing \`Rule.use.ident\` to the loader as an identifier to ident the parallelism option\nYou can either replace the \`Rule.use.loader\` with \`Rule.use.options = {}\` or remove \`Rule.use.parallel\`.`,
@@ -615,11 +627,19 @@ function resolveStringifyLoaders(
 
   if (use.options && typeof use.options === 'object') {
     if (!ident) ident = '[[missing ident]]';
-    compiler.__internal__ruleSet.references.set(ident, use.options);
-    compiler.__internal__ruleSet.references.set(
-      `${ident}$$parallelism`,
-      parallelism,
-    );
+    const references = compiler.__internal__ruleSet.references;
+    const parallelIdent = `${ident}$$parallelism`;
+    if (
+      references.has(parallelIdent) &&
+      (references.get(parallelIdent) === 'pure') !== (parallelism === 'pure')
+    ) {
+      throw new Error(
+        `Use distinct loader idents for pure and other loaders. Ident '${ident}' is already registered with a different execution mode.`,
+      );
+    }
+    references.set(ident, use.options);
+    registerParallelLoader(compiler, ident, parallelism);
+    references.set(parallelIdent, parallelism);
     if (isBuiltin) {
       // Inline builtin loaders resolve their options from this native map.
       compiler.__internal__ruleSet.builtinReferences.set(

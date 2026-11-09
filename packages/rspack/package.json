@@ -21,7 +21,7 @@
     "./module": "./module.d.ts"
   },
   "scripts": {
-    "prepare": "prebundle && node ./move-tinypool.js",
+    "prepare": "prebundle",
     "build": "rs lib",
     "build:browser": "rs lib -c rstack.browser.config.ts",
     "dev": "rs lib --watch"
@@ -58,7 +58,6 @@
     "open": "catalog:",
     "prebundle": "catalog:",
     "rstack": "catalog:",
-    "tinypool": "catalog:",
     "typescript": "catalog:",
     "watchpack": "catalog:",
     "webpack-sources": "catalog:"
