@@ -25,7 +25,7 @@ use self::{
 };
 use super::{
   BuildModuleGraphArtifact,
-  graph_updater::{UpdateParam, repair::context::TaskContext, update_module_graph},
+  graph_updater::{UpdateParam, repair::context::TaskContext, update_module_graph_with_cache},
 };
 use crate::{
   Compilation, CompilationAsset, Context, DependencyId, ExportsInfoArtifact, PublicPath, StealCell,
@@ -78,12 +78,19 @@ impl ModuleExecutor {
     }
     make_artifact.reset_temporary_data();
 
-    // update the module affected by modified_files
-    (make_artifact, exports_info_artifact) =
-      update_module_graph(compilation, make_artifact, exports_info_artifact, params).await?;
+    // The executor owns a separate graph. Sharing the main graph's module cache
+    // would mix pending builds for different module instances with the same identifier.
+    (make_artifact, exports_info_artifact) = update_module_graph_with_cache(
+      compilation,
+      make_artifact,
+      exports_info_artifact,
+      params,
+      None,
+    )
+    .await?;
 
     let mut ctx = ExecutorTaskContext {
-      origin_context: TaskContext::new(compilation, make_artifact, exports_info_artifact),
+      origin_context: TaskContext::new(compilation, make_artifact, exports_info_artifact, None),
       tracker: Default::default(),
       entries: std::mem::take(&mut self.entries),
       executed_entry_deps: Default::default(),
@@ -128,13 +135,14 @@ impl ModuleExecutor {
     entries.retain(|k, v| {
       !removed_module.contains(&k.origin_module_identifier) || ctx.executed_entry_deps.contains(v)
     });
-    (make_artifact, exports_info_artifact) = update_module_graph(
+    (make_artifact, exports_info_artifact) = update_module_graph_with_cache(
       compilation,
       make_artifact,
       exports_info_artifact,
       vec![UpdateParam::BuildEntryAndClean(
         entries.values().copied().collect(),
       )],
+      None,
     )
     .await?;
 

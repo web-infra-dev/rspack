@@ -32,10 +32,11 @@ pub struct TaskContext {
 }
 
 impl TaskContext {
-  pub fn new(
+  pub(crate) fn new(
     compilation: &Compilation,
     artifact: BuildModuleGraphArtifact,
     exports_info_artifact: ExportsInfoArtifact,
+    module_build_cache: Option<ModuleBuildCache>,
   ) -> Self {
     Self {
       build_context: Arc::new(BuildContext {
@@ -57,7 +58,7 @@ impl TaskContext {
       dependency_templates: compilation.dependency_templates.clone(),
       intermediate_fs: compilation.intermediate_filesystem.clone(),
       output_fs: compilation.output_filesystem.clone(),
-      module_build_cache: compilation.module_build_cache.clone(),
+      module_build_cache,
       cache: compilation.cache.clone(),
       value_cache_versions: Arc::new(compilation.value_cache_versions.clone()),
       artifact,

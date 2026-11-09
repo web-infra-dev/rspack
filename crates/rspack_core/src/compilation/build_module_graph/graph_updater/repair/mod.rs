@@ -12,16 +12,23 @@ use self::context::TaskContext;
 use super::BuildModuleGraphArtifact;
 use crate::{
   BuildDependency, Compilation, ExportsInfoArtifact,
+  compilation::build_module_graph::module_build_cache::ModuleBuildCache,
   utils::task_loop::{Task, run_task_loop},
 };
 
-pub async fn repair(
+pub(super) async fn repair(
   compilation: &Compilation,
   artifact: BuildModuleGraphArtifact,
   exports_info_artifact: ExportsInfoArtifact,
   build_dependencies: HashSet<BuildDependency>,
+  module_build_cache: Option<ModuleBuildCache>,
 ) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
-  let mut ctx = TaskContext::new(compilation, artifact, exports_info_artifact);
+  let mut ctx = TaskContext::new(
+    compilation,
+    artifact,
+    exports_info_artifact,
+    module_build_cache,
+  );
   let module_graph = &ctx.artifact.module_graph;
   let mut grouped_deps = HashMap::default();
   for (dep_id, parent_module_identifier) in build_dependencies {
