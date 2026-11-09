@@ -112,6 +112,14 @@ Starting with NestJS 12, the Nest CLI uses Rspack as the default bundler for mon
 
 Rspack team and Next.js team have partnered to provide the `next-rspack` plugin. This plugin allows you to use Rspack as the bundler for Next.js, see [Next.js guide](/guide/integrations/next) for details.
 
+### Nitro
+
+<Tag color="geekblue">Server framework</Tag>
+
+[Nitro](https://nitro.build/) is a server framework for building applications that deploy to Node.js, Bun, Deno, serverless platforms, and edge runtimes.
+
+Nitro supports using Rspack to bundle the server through [`builder: 'rspack'`](https://nitro.build/config/build#builder). Its [Rsbuild plugin](https://nitro.build/docs/rsbuild) adds API routes, SSR, and WebSockets to Rsbuild applications.
+
 ### Nuxt
 
 <Tag color="geekblue">Web framework</Tag>
@@ -195,24 +203,37 @@ Plugins are listed alphabetically by package name. We welcome PRs to add your pu
 
 - [@aaroon/workbox-rspack-plugin](https://github.com/Clarkkkk/workbox-rspack-plugin): Integrates Workbox to generate service workers and precache manifests.
 - [@datadog/rspack-plugin](https://github.com/DataDog/build-plugins): Integrates Datadog into the build process.
+- [@douyinfe/semi-rspack-plugin](https://github.com/DouyinFE/semi-design/tree/main/packages/semi-rspack): Customizes Semi Design themes and CSS class prefixes.
+- [@fluentui/react-icons-font-subsetting-webpack-plugin](https://github.com/microsoft/fluentui-system-icons/tree/main/packages/react-icons-font-subsetting-webpack-plugin): Subsets Fluent UI icon fonts to include only the glyphs used by the application.
 - [@golar-rstack/rspack](https://github.com/OskarLebuda/golar-rstack-plugin/tree/main/packages/rspack): Runs golar type checking and type-aware linting in a separate process.
 - [@heyq02/rspack-plugin-git-revision](https://github.com/heyq02/rspack-plugin-git-revision): Generates version, commit hash, branch, and commit time metadata from Git.
+- [@kirana-style/webpack](https://github.com/kirana-style/kirana/tree/main/packages/kirana/npm/webpack): Compiles Kirana styles into atomic CSS.
 - [@lunora/rspack](https://github.com/anolilab/lunora/tree/alpha/packages/rspack): Integrates the Lunora backend framework for Cloudflare Workers. Currently available as `@lunora/rspack@alpha`.
 - [@module-federation/enhanced](https://github.com/module-federation/core/tree/main/packages/enhanced): Provides enhanced Module Federation features.
 - [@octanejs/rspack-plugin](https://octanejs.dev/docs/build-tools#rspack): Compiles Octane TSRX source files.
 - [@rsdoctor/rspack-plugin](https://github.com/web-infra-dev/rsdoctor): Analyzes the build process and output with Rsdoctor.
 - [@rspack/plugin-preact-refresh](https://github.com/rstackjs/rspack-plugin-preact-refresh): Enables Preact Refresh.
 - [@rspack/plugin-react-refresh](https://github.com/rstackjs/rspack-plugin-react-refresh): Enables React Fast Refresh.
+- [@scalprum/remote-types](https://github.com/scalprum/scaffolding): Fetches remote Module Federation types during the build.
 - [@sentry/webpack-plugin](https://github.com/getsentry/sentry-javascript-bundler-plugins): Provides source map uploads and release management for Sentry.
 - [@serwist/webpack-plugin](https://github.com/serwist/serwist): Generates service workers and precache manifests with Serwist.
-- [@unocss/webpack](https://github.com/unocss/unocss/tree/main/packages-integrations/webpack): Integrates UnoCSS through `@unocss/webpack/rspack`.
+- [@statoscope/webpack-plugin](https://github.com/statoscope/statoscope/tree/master/packages/webpack-plugin): Generates interactive reports for analyzing build statistics.
+- [@stillwind/integration](https://github.com/SegaraRai/stillwind/tree/main/packages/integration): Integrates Stillwind's on-demand CSS generation.
+- [@stylexswc/rspack-plugin](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/rspack-plugin): Compiles StyleX with SWC and extracts CSS.
+- [@unocss/webpack](https://github.com/unocss/unocss/tree/main/packages-integrations/webpack): Integrates UnoCSS.
 - [@vanilla-extract/webpack-plugin](https://github.com/vanilla-extract-css/vanilla-extract): Extracts vanilla-extract styles into CSS files.
+- [@vizejs/rspack-plugin](https://github.com/ubugeeei-prod/vize/tree/main/npm/builder/rspack): Compiles Vue single-file components with Vize.
 - [@vue-devtools-rstack/rspack](https://github.com/OskarLebuda/vue-devtools-rstack/tree/main/packages/rspack): Integrates Vue DevTools into Rspack applications.
+- [add-charset-webpack-plugin](https://github.com/VN666/add-charset-webpack-plugin): Adds charset declarations to generated CSS files.
+- [beasties-webpack-plugin](https://github.com/danielroe/beasties/tree/main/packages/beasties-webpack-plugin): Inlines critical CSS and lazy-loads the remaining styles.
+- [bundle-stats-webpack-plugin](https://github.com/relative-ci/bundle-stats): Analyzes bundle sizes, assets, modules, and packages, and compares builds.
+- [carbon-preprocess-svelte](https://github.com/carbon-design-system/carbon-preprocess-svelte): Optimizes Carbon Svelte components and removes unused CSS.
 - [case-sensitive-paths-webpack-plugin](https://github.com/Urthen/case-sensitive-paths-webpack-plugin): Checks the case of imported file paths.
 - [clean-webpack-plugin](https://github.com/johnagan/clean-webpack-plugin): Removes files from the build output directory.
 - [code-inspector-plugin](https://github.com/zh-lx/code-inspector): Opens an element's source code in the editor when you click it on the page.
 - [compression-rspack-plugin](https://github.com/ramon-villain/compression-rspack-plugin): Compresses assets in parallel with a Rust implementation.
 - [compression-webpack-plugin](https://github.com/webpack/compression-webpack-plugin): Generates compressed versions of assets.
+- [csp-rspack-plugin](https://github.com/rstackjs/csp-rspack-plugin): Generates Content Security Policy directives for HTML files.
 - [css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin): Minifies CSS with cssnano.
 - [dotenv-webpack](https://github.com/mrsteele/dotenv-webpack): Loads environment variables from `.env` files.
 - [eslint-rspack-plugin](https://github.com/rstackjs/eslint-rspack-plugin): Runs ESLint checks during compilation.
@@ -221,6 +242,8 @@ Plugins are listed alphabetically by package name. We welcome PRs to add your pu
 - [inject-manifest-plugin](https://github.com/tobua/inject-manifest-plugin): Injects a Workbox precache manifest into a service worker.
 - [node-polyfill-webpack-plugin](https://github.com/Richienb/node-polyfill-webpack-plugin): Provides polyfills for Node.js core modules.
 - [oxc-webpack-plugin](https://github.com/oxc-project/oxc-webpack-plugin): Minifies JavaScript assets with Oxc.
+- [prosebook](https://github.com/gkurt/prosebook): Compiles translation catalogs and removes unused messages.
+- [purgecss-webpack-plugin](https://github.com/FullHuman/purgecss/tree/main/packages/purgecss-webpack-plugin): Removes unused CSS from build assets.
 - [react-cosmos-plugin-rspack](https://github.com/birchill/react-cosmos-plugin-rspack/): Builds and runs React Cosmos with Rspack.
 - [rspack-manifest-plugin](https://github.com/rstackjs/rspack-manifest-plugin): Generates an asset manifest.
 - [rspack-plugin-cli-copy](https://github.com/rstackjs/rspack-plugin-cli-copy): Copies the development server's network URL to the clipboard.
@@ -231,8 +254,11 @@ Plugins are listed alphabetically by package name. We welcome PRs to add your pu
 - [rspack-plugin-virtual-module](https://github.com/rstackjs/rspack-plugin-virtual-module): Creates virtual modules.
 - [rspack-s3-plugin](https://github.com/ts-codeworks/rspack-s3-plugin): Uploads build assets to Amazon S3.
 - [rspack-unocss-plugin](https://github.com/umbrella22/rspack-unocss-plugin): Integrates UnoCSS with virtual CSS modules and native CSS processing.
+- [rtlcss-rspack-plugin](https://github.com/cbbfcd/rtlcss-rspack-plugin): Generates CSS for right-to-left layouts.
 - [sonda](https://github.com/filipsobol/sonda): Visualizes and analyzes JavaScript and CSS bundles.
 - [ts-checker-rspack-plugin](https://github.com/rstackjs/ts-checker-rspack-plugin): Runs TypeScript type checking in a separate process.
+- [typia-rspack-plugin](https://github.com/colinaaa/typia-rspack-plugin): Integrates Typia to generate runtime type validation code.
+- [weapp-tailwindcss](https://github.com/weapp-tailwindcss/weapp-tailwindcss/tree/main/packages/weapp-tailwindcss): Adapts Tailwind CSS for mini-programs.
 - [webpack-bundle-analyzer](https://github.com/webpack/webpack-bundle-analyzer): Visualizes bundle sizes with an interactive treemap.
 - [webpackbar](https://github.com/unjs/webpackbar): Displays build progress and profiling information.
 - [zephyr-rspack-plugin](https://www.npmjs.com/package/zephyr-rspack-plugin): Deploys applications to Zephyr Cloud.
@@ -243,28 +269,74 @@ The following community loaders work with Rspack. See the [Loader guide](/guide/
 
 Loaders are listed alphabetically by package name. We welcome PRs to add your published loaders to this list.
 
+- [@alienfast/i18next-loader](https://github.com/alienfast/i18next-loader): Collects translation resources for i18next.
+- [@discord/rspack-intl-loader](https://github.com/discord/discord-intl/tree/main/packages/rspack-intl-loader): Compiles Discord internationalization messages and generates translation chunks.
+- [@graphql-tools/webpack-loader](https://github.com/ardatan/graphql-tools/tree/master/packages/webpack-loader): Compiles GraphQL documents into abstract syntax trees.
+- [@jsdevtools/coverage-istanbul-loader](https://github.com/JS-DevTools/coverage-istanbul-loader): Instruments JavaScript for Istanbul code coverage.
+- [@lingui/loader](https://github.com/lingui/js-lingui/tree/main/packages/loader): Compiles Lingui translation catalogs.
+- [@locator/webpack-loader](https://github.com/infi-pc/locatorjs/tree/master/packages/webpack-loader): Adds component source location information for LocatorJS.
 - [@mdx-js/loader](https://github.com/mdx-js/mdx/tree/main/packages/loader): Compiles MDX into JavaScript components.
+- [@sucrase/webpack-loader](https://github.com/alangpierce/sucrase/tree/main/integrations/webpack-loader): Transpiles TypeScript, JSX, and JavaScript with Sucrase.
 - [@svgr/webpack](https://github.com/gregberge/svgr/tree/main/packages/webpack): Transforms SVG files into React components.
 - [@tailwindcss/webpack](https://github.com/tailwindlabs/tailwindcss/tree/main/packages/%40tailwindcss-webpack): Compiles Tailwind CSS v4 styles.
+- [@teamsupercell/typings-for-css-modules-loader](https://github.com/TeamSupercell/typings-for-css-modules-loader): Generates TypeScript declarations for CSS Modules.
+- [@vercel/webpack-asset-relocator-loader](https://github.com/vercel/webpack-asset-relocator-loader): Relocates assets referenced by Node.js modules and rewrites their paths.
 - [@vue-vine/rspack-loader](https://github.com/vue-vine/vue-vine): Compiles Vue Vine components.
+- [@webdiscus/pug-loader](https://github.com/webdiscus/pug-loader): Compiles Pug templates with support for template data.
+- [@wyw-in-js/webpack-loader](https://github.com/wyw-in-js/wyw-in-js/tree/main/packages/webpack-loader): Extracts CSS-in-JS styles at build time.
+- [arraybuffer-loader](https://github.com/pine/arraybuffer-loader): Imports binary files as ArrayBuffer objects.
 - [babel-loader](https://github.com/babel/babel-loader): Transpiles JavaScript with Babel.
 - [coffee-loader](https://www.npmjs.com/package/coffee-loader): Compiles CoffeeScript into JavaScript.
 - [css-loader](https://github.com/webpack/css-loader): Resolves CSS imports and asset URLs, and exports CSS as JavaScript modules.
+- [css-modules-typescript-loader](https://github.com/seek-oss/css-modules-typescript-loader): Generates TypeScript declarations for CSS Modules.
+- [csv-loader](https://github.com/theplatapi/csv-loader): Parses CSV files into JavaScript data.
+- [ejs-compiled-loader](https://github.com/bazilio91/ejs-compiled-loader): Precompiles EJS templates.
+- [esbuild-loader](https://github.com/privatenumber/esbuild-loader): Transpiles JavaScript, TypeScript, and JSX with esbuild.
+- [frontmatter-markdown-loader](https://github.com/hmsk/frontmatter-markdown-loader): Extracts front matter and renders Markdown content.
+- [glob-import-loader](https://github.com/soluml/glob-import-loader): Expands glob patterns in imports.
+- [glslify-loader](https://github.com/glslify/glslify-loader): Preprocesses GLSL modules and their dependencies.
+- [graphql-tag/loader](https://github.com/apollographql/graphql-tag): Compiles GraphQL queries and fragments into abstract syntax trees.
+- [handlebars-loader](https://github.com/pcardune/handlebars-loader): Precompiles Handlebars templates.
 - [html-loader](https://www.npmjs.com/package/html-loader): Exports HTML as a string and resolves referenced assets.
+- [ifdef-loader](https://github.com/nippur72/ifdef-loader): Includes or removes code based on compile-time conditions.
+- [import-glob-loader](https://github.com/Aintaer/import-glob-loader): Expands glob patterns in JavaScript, CSS, and Sass imports.
 - [imports-loader](https://www.npmjs.com/package/imports-loader): Injects imports into modules that depend on specific global variables.
+- [isomorphic-style-loader](https://github.com/kriasoft/isomorphic-style-loader): Collects and injects styles for server-side rendering.
 - [less-loader](https://github.com/webpack/less-loader): Compiles Less into CSS.
+- [magic-comments-loader](https://github.com/morganney/magic-comments-loader): Adds magic comments to dynamic imports.
+- [markdown-loader](https://github.com/peerigon/markdown-loader): Converts Markdown into HTML.
+- [nearley-loader](https://github.com/kozily/nearley-loader): Compiles Nearley grammars into parser definitions.
 - [node-loader](https://www.npmjs.com/package/node-loader): Loads native Node.js addons with the `.node` extension.
 - [oxc-webpack-loader](https://github.com/oxc-project/oxc-webpack-loader): Transforms JavaScript and TypeScript with Oxc.
 - [postcss-loader](https://github.com/webpack/postcss-loader): Processes CSS with PostCSS plugins.
+- [pug-plain-loader](https://github.com/yyx990803/pug-plain-loader): Compiles Pug templates into HTML.
+- [rails-erb-loader](https://github.com/usabilityhub/rails-erb-loader): Processes ERB templates with Ruby at build time.
 - [react-compiler-webpack](https://github.com/SukkaW/react-compiler-webpack): Integrates React Compiler into the build.
+- [react-svg-loader](https://github.com/boopathi/react-svg-loader/tree/master/packages/react-svg-loader): Transforms SVG files into React components.
+- [resolve-url-loader](https://github.com/bholloway/resolve-url-loader/tree/v5/packages/resolve-url-loader): Uses source maps to resolve relative asset paths in Sass files.
+- [responsive-loader](https://github.com/dazuaz/responsive-loader): Generates images at multiple sizes and exports srcSet metadata.
+- [restrict-imports-loader](https://github.com/SimonAlling/restrict-imports-loader): Checks for restricted imports.
 - [rspack-vue-loader](https://github.com/rstackjs/rspack-vue-loader): Compiles Vue 3 single-file components.
 - [sass-loader](https://github.com/webpack/sass-loader): Compiles Sass and SCSS into CSS.
+- [sass-resources-loader](https://github.com/shakacode/sass-resources-loader): Injects shared Sass variables and mixins.
+- [shader-loader](https://github.com/Makio64/shader-loader): Loads GLSL shaders and combines shader chunks.
 - [source-map-loader](https://github.com/webpack-contrib/source-map-loader): Extracts existing source maps from JavaScript files.
+- [string-replace-loader](https://github.com/Va1/string-replace-loader): Replaces strings in source files.
 - [style-loader](https://github.com/webpack/style-loader): Injects CSS into the DOM.
+- [style-resources-loader](https://github.com/yenshih/style-resources-loader): Injects shared style variables and mixins.
 - [stylus-loader](https://github.com/webpack/stylus-loader): Compiles Stylus into CSS.
 - [svelte-loader](https://github.com/sveltejs/svelte-loader): Compiles Svelte components.
 - [svg-react-loader](https://github.com/jhamlet/svg-react-loader): Transforms SVG files into React components.
+- [svg-url-loader](https://github.com/bhovhannes/svg-url-loader): Encodes SVG files as optimized data URLs.
 - [svgo-loader](https://github.com/svg/svgo-loader): Optimizes SVG files with SVGO.
+- [to-string-loader](https://github.com/gajus/to-string-loader): Converts the output of other loaders into strings.
+- [underscore-template-loader](https://github.com/emaphp/underscore-template-loader): Precompiles Underscore templates.
+- [vue-docgen-loader](https://github.com/pocka/vue-docgen-loader): Adds documentation metadata to Vue components.
+- [vue-svg-inline-loader](https://github.com/oliverfindl/vue-svg-inline-loader): Inlines SVG images in Vue templates.
+- [webfonts-loader](https://github.com/jeerbl/webfonts-loader): Generates fonts and CSS from SVG icons.
+- [webpack-graphql-loader](https://github.com/samsarahq/graphql-loader): Loads GraphQL queries with support for validation and fragments.
+- [webpack-import-glob-loader](https://github.com/fred104/webpack-import-glob-loader): Expands glob imports and collects matching modules.
+- [wext-manifest-loader](https://github.com/abhijithvijayan/wext-manifest-loader): Generates browser-specific extension manifests.
 - [worker-rspack-loader](https://github.com/rstackjs/worker-rspack-loader): Bundles scripts for use as Web Workers.
 - [yaml-loader](https://github.com/eemeli/yaml-loader): Imports YAML files as JavaScript objects.
 

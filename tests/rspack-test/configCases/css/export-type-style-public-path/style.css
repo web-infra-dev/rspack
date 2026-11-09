@@ -1,0 +1,6 @@
+@import './imported.css';
+@import './conditional.css' layer(components);
+.initial { background: url('./image.svg'); }
+.fixed { background: url('./image.svg?fixed'); }
+.inline { background: url('./image.svg?inline'); }
+.external { background: url('https://external.example.com/image.svg'); }

@@ -100,7 +100,53 @@ Counters measure cache operations in the current compilation. A hit does not gua
 
 ## Asset object
 
-Each asset object represents an output file emitted from the compilation, and its structure is as follows:
+When [stats.assets](/config/stats#statsassets) is enabled, `assets` contains information about the compilation's output files. The type below describes a single asset. Optional fields depend on the stats options and the metadata available for that asset.
+
+When asset grouping is enabled, entries can also represent groups. In a group, `children` lists the child entries, and `filteredChildren` counts the child entries omitted from the output.
+
+Stats assets report the file size, emission status, and associated chunks. To access the file contents, use [compilation.getAsset()](/api/javascript-api/compilation#getasset), which returns an asset with a `source` object.
+
+```ts
+type StatsAsset = {
+  // Stats item type, such as "asset" or a related asset type
+  type: string;
+  // Asset filename relative to the output directory
+  name: string;
+  // Additional information about the asset
+  info: StatsAssetInfo;
+  // The size of the file in bytes
+  size: number;
+  // Whether the asset was emitted during this compilation
+  emitted: boolean;
+  // Whether the asset was not emitted during this compilation (`!emitted`)
+  cached: boolean;
+  // Related assets, included when `stats.relatedAssets` is enabled
+  related?: StatsAsset[];
+  // Chunk IDs related to this asset, included when `stats.ids` is enabled
+  chunks?: Array<string | number | null | undefined>;
+  // Chunk names related to this asset
+  chunkNames?: string[];
+  // Chunk ID hints related to this asset
+  chunkIdHints?: string[];
+  // IDs of chunks that reference this auxiliary asset (`stats.ids`)
+  auxiliaryChunks?: Array<string | number | null | undefined>;
+  // Chunk names related to this auxiliary asset
+  auxiliaryChunkNames?: string[];
+  // Chunk ID hints related to this auxiliary asset
+  auxiliaryChunkIdHints?: string[];
+  // Number of related assets omitted from the output
+  filteredRelated?: number;
+  // Whether the asset exceeds `performance.maxAssetSize`
+  // Included when `stats.performance` is enabled
+  isOverSizeLimit?: boolean;
+} & Record<string, any>;
+```
+
+### Asset info
+
+The `info` object contains asset metadata set by Rspack or plugins. Optional fields are omitted when they have not been set.
+
+You can also read these fields from the `info` property of the asset returned by [compilation.getAsset()](/api/javascript-api/compilation#getasset). In Stats JSON, hash values and related filenames are always represented as arrays.
 
 ```ts
 type StatsAssetInfo = {
@@ -116,7 +162,7 @@ type StatsAssetInfo = {
   contenthash: string[];
   // Original source filename, when the asset was created from a source file
   sourceFilename?: string;
-  // Whether the asset was copied from another file
+  // Whether the asset was copied from a file, for example by CopyRspackPlugin
   copied?: boolean;
   // Whether the asset exceeds `performance.maxAssetSize`
   isOverSizeLimit?: boolean;
@@ -129,40 +175,17 @@ type StatsAssetInfo = {
   // Related asset filenames, grouped by relationship type
   related: Record<string, string[]>;
 } & Record<string, any>;
-
-type StatsAsset = {
-  // Stats item type, such as "asset" or a related asset type
-  type: string;
-  // The `output` filename
-  name: string;
-  // Additional information about the asset
-  info: StatsAssetInfo;
-  // The size of the file in bytes
-  size: number;
-  // Whether the asset was emitted during this compilation
-  emitted: boolean;
-  // Whether the asset was not emitted during this compilation (`!emitted`)
-  cached: boolean;
-  // Related assets, such as source maps
-  related?: StatsAsset[];
-  // Chunk IDs related to this asset
-  chunks?: Array<string | number | null | undefined>;
-  // Chunk names related to this asset
-  chunkNames?: string[];
-  // Chunk ID hints related to this asset
-  chunkIdHints?: string[];
-  // Chunk IDs related to this auxiliary asset
-  auxiliaryChunks?: Array<string | number | null | undefined>;
-  // Chunk names related to this auxiliary asset
-  auxiliaryChunkNames?: string[];
-  // Chunk ID hints related to this auxiliary asset
-  auxiliaryChunkIdHints?: string[];
-  // Number of related assets omitted from the output
-  filteredRelated?: number;
-  // Whether the asset exceeds `performance.maxAssetSize`
-  isOverSizeLimit?: boolean;
-} & Record<string, any>;
 ```
+
+#### javascriptModule
+
+A `javascriptModule` value of `true` means the JavaScript asset uses the ES module format. Rspack sets this flag based on [output.module](/config/output#outputmodule) when generating JavaScript chunks.
+
+Not every JavaScript asset has this field. For example, [CopyRspackPlugin](/plugins/copy-rspack-plugin) can copy an existing file from `public/vendor.js` to `dist/vendor.js`. The plugin does not determine the file's module format from its contents or extension, so it does not set `javascriptModule` on the new asset. The file may still be an ES module even when this field is absent.
+
+#### related
+
+`info.related` lists filenames by relationship type. For example, `{ sourceMap: ['main.js.map'] }` identifies the asset's source map. When [stats.relatedAssets](/config/stats#statsrelatedassets) is enabled, the asset's top-level `related` field can also include stats objects for related assets.
 
 ## Chunk object
 
@@ -182,7 +205,7 @@ type StatsChunk = {
   names: string[];
   // List of ID hints associated with the chunk
   idHints: string[];
-  // The runtime used by the chunk
+  // The Rspack runtime used by the chunk
   runtime: string[];
   // Size of the chunk (in bytes)
   size: number;

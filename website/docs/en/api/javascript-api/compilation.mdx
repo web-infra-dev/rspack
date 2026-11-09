@@ -1,5 +1,5 @@
 ---
-description: 'Compilation API for managing assets, modules, dependencies, diagnostics, runtime modules, and child compilers.'
+description: 'Compilation API for managing assets, modules, dependencies, diagnostics, Rspack runtime modules, and child compilers.'
 ---
 
 import Attribution from '@components/Attribution';
@@ -188,7 +188,7 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
 
 ### getAssets
 
-Get the list of asset objects.
+Get the list of asset objects. For descriptions of common `info` fields, see [Asset info](/api/javascript-api/stats-json#asset-info).
 
 ```ts
 getAssets(): ReadonlyArray<{
@@ -232,7 +232,7 @@ compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
 
 ### getAsset
 
-Get the asset object with the specified name.
+Get the asset object with the specified name. For descriptions of common `info` fields, see [Asset info](/api/javascript-api/stats-json#asset-info).
 
 ```ts
 getAsset(
@@ -437,16 +437,16 @@ compiler.hooks.make.tap('MyPlugin', (compilation) => {
 
 ### addRuntimeModule
 
-Add a custom runtime module to the compilation.
+Add a custom [Rspack runtime module](/misc/glossary#rspack-runtime-module) to the compilation.
 
 ```ts
 addRuntimeModule(
-  c: Chunk, // the runtime chunk which to add the runtime module
-  m: RuntimeModule, // the runtime module instance to add
+  c: Chunk, // the chunk to add the Rspack runtime module to
+  m: RuntimeModule, // the Rspack runtime module instance to add
 ): void;
 ```
 
-The following code will add a runtime module which define `__webpack_require__.mock` to the `"main"` chunk:
+The following code adds a Rspack runtime module to the `"main"` chunk to define `__webpack_require__.mock`:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -486,7 +486,7 @@ export default {
 };
 ```
 
-When implementing a custom runtime module class, the following methods/properties can be overridden to control the behavior of the runtime module:
+When implementing a custom Rspack runtime module, you can override the following methods and properties to control its behavior:
 
 - Pass the `name` and `stage` parameters in the constructor to specify the module name and the insertion stage.
 - Override the `generate()` method to control the generated code of the module.
@@ -600,7 +600,7 @@ The normalized options used by this Compilation, see [Configure Rspack](/config/
 
 **Type**: `RuntimeTemplate`
 
-Helpers that generate runtime code matching the capabilities of the targeted environment, as
+Helpers that generate Rspack runtime code matching the capabilities of the targeted environment, as
 declared by [`output.environment`](/config/output#outputenvironment). Use them instead of
 hand-written snippets so that generated code stays valid for older targets.
 
@@ -710,7 +710,52 @@ The list of chunk group objects, with the structure as follows:
 
 **Type**: `ReadonlyMap<string, Entrypoint>`
 
-The mapping from name to entrypoint, which is a special chunk group and include a runtime chunk.
+A map with entry names as keys and `Entrypoint` objects as values. Each `Entrypoint` represents the chunk group for an entry and provides access to its chunks and output files.
+
+For example, when generating HTML on the server, you need to know which JavaScript and CSS files to include for each entry. Iterate over `compilation.entrypoints`, call `entrypoint.getFiles()` to get those filenames, and save them in a manifest.
+
+The following plugin generates `entrypoints.json` after the standard asset optimization and hash processing stages:
+
+```js
+class EntryManifestPlugin {
+  apply(compiler) {
+    const { Compilation, sources } = compiler.rspack;
+
+    compiler.hooks.thisCompilation.tap('EntryManifestPlugin', (compilation) => {
+      compilation.hooks.processAssets.tap(
+        {
+          name: 'EntryManifestPlugin',
+          stage: Compilation.PROCESS_ASSETS_STAGE_REPORT,
+        },
+        () => {
+          const manifest = Object.fromEntries(
+            Array.from(compilation.entrypoints, ([name, entrypoint]) => [
+              name,
+              entrypoint.getFiles(),
+            ]),
+          );
+          compilation.emitAsset(
+            'entrypoints.json',
+            new sources.RawSource(JSON.stringify(manifest, null, 2)),
+          );
+        },
+      );
+    });
+  }
+}
+```
+
+The manifest maps each entry name to an array of filenames. For example, if the `main` entry produces an entry script, a separate Rspack runtime, and a CSS file, the manifest might look like this:
+
+```json title="entrypoints.json"
+{
+  "main": ["runtime.js", "main.js", "main.css"]
+}
+```
+
+The filenames returned by `getFiles()` are relative to the output directory and do not include `publicPath`.
+
+`getFiles()` only returns files in the entrypoint's chunk group. Async chunks loaded on demand through `import()` and plugin assets outside that chunk group, such as `entrypoints.json` itself, are not included in the manifest.
 
 <Collapse>
   <CollapsePanel
@@ -826,7 +871,22 @@ The mapping from names to chunks.
 
 **Type:** `FileSystemDependencies`
 
-List of files this compilation depends on.
+Files that this compilation depends on. In watch mode, Rspack rebuilds when these files change.
+
+For example, a plugin may read `site.json` from the project root. Reading the file with Node.js alone does not make Rspack watch it. Add its absolute path to `fileDependencies` in the `thisCompilation` hook so the dependency is recorded on every compilation.
+
+```js
+import path from 'node:path';
+
+class WatchConfigPlugin {
+  apply(compiler) {
+    compiler.hooks.thisCompilation.tap('WatchConfigPlugin', (compilation) => {
+      const configPath = path.resolve(compiler.context, 'site.json');
+      compilation.fileDependencies.add(configPath);
+    });
+  }
+}
+```
 
 <Collapse>
   <CollapsePanel
@@ -842,7 +902,27 @@ List of files this compilation depends on.
 
 **Type:** `FileSystemDependencies`
 
-List of directories this compilation depends on.
+Directories that this compilation depends on. In watch mode, Rspack rebuilds when files are added to or removed from these directories.
+
+For example, if a plugin scans an existing `templates` directory to get a list of templates, add the directory's absolute path:
+
+```js
+import path from 'node:path';
+
+class WatchTemplatesPlugin {
+  apply(compiler) {
+    compiler.hooks.thisCompilation.tap(
+      'WatchTemplatesPlugin',
+      (compilation) => {
+        const templatesPath = path.resolve(compiler.context, 'templates');
+        compilation.contextDependencies.add(templatesPath);
+      },
+    );
+  }
+}
+```
+
+If the plugin also reads template contents, add those files to `fileDependencies` to watch for changes to their contents.
 
 <Collapse>
   <CollapsePanel
@@ -858,7 +938,30 @@ List of directories this compilation depends on.
 
 **Type:** `FileSystemDependencies`
 
-List of not existing files this compilation depends on.
+Files that this compilation needs to watch but that do not yet exist. In watch mode, Rspack rebuilds when these files are created.
+
+For example, a plugin may support an optional `site.local.json` configuration file that the user has not created yet. The plugin should check whether the file exists on each compilation: if it is absent, add its path to `missingDependencies`; if it exists, add its path to `fileDependencies`. This triggers rebuilds both when the file is created and when it is edited later.
+
+```js
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+
+class WatchLocalConfigPlugin {
+  apply(compiler) {
+    compiler.hooks.thisCompilation.tap(
+      'WatchLocalConfigPlugin',
+      (compilation) => {
+        const configPath = path.resolve(compiler.context, 'site.local.json');
+        if (existsSync(configPath)) {
+          compilation.fileDependencies.add(configPath);
+        } else {
+          compilation.missingDependencies.add(configPath);
+        }
+      },
+    );
+  }
+}
+```
 
 <Collapse>
   <CollapsePanel
@@ -874,7 +977,9 @@ List of not existing files this compilation depends on.
 
 **Type:** `FileSystemDependencies`
 
-List of build dependencies this compilation depends on.
+Files that the build tooling itself depends on, such as configuration files and loaders. Rspack uses these dependencies to determine whether the persistent cache is still valid. See [cache.buildDependencies](/config/cache#builddependencies) for configuration details.
+
+To rebuild when files or directories read by a plugin change in watch mode, use `fileDependencies`, `contextDependencies`, or `missingDependencies`.
 
 <Collapse>
   <CollapsePanel

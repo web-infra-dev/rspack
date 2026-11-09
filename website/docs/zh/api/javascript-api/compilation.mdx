@@ -1,5 +1,5 @@
 ---
-description: '查阅 Compilation API，管理资源、模块、依赖、错误警告、运行时模块和子编译器。'
+description: '查阅 Compilation API，管理资源、模块、依赖、错误警告、Rspack 运行时模块和子编译器。'
 ---
 
 import Attribution from '@components/Attribution';
@@ -188,7 +188,7 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
 
 ### getAssets
 
-获取产物对象列表。
+获取产物对象列表。`info` 中常见字段的含义见[产物信息](/api/javascript-api/stats-json#asset-info)。
 
 ```ts
 getAssets(): ReadonlyArray<{
@@ -232,7 +232,7 @@ compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
 
 ### getAsset
 
-获取指定名称的产物对象。
+获取指定名称的产物对象。`info` 中常见字段的含义见[产物信息](/api/javascript-api/stats-json#asset-info)。
 
 ```ts
 getAsset(
@@ -437,16 +437,16 @@ compiler.hooks.make.tap('MyPlugin', (compilation) => {
 
 ### addRuntimeModule
 
-添加一个自定义的运行时模块。
+添加一个自定义的 [Rspack 运行时模块](/misc/glossary#rspack-runtime-module)。
 
 ```ts
 addRuntimeModule(
-  c: Chunk, // 运行时模块所在的 Chunk
-  m: RuntimeModule, // 运行时模块的实例
+  c: Chunk, // Rspack 运行时模块所在的 Chunk
+  m: RuntimeModule, // Rspack 运行时模块的实例
 ): void;
 ```
 
-以下代码添加一个运行时模块，该模块定义 `__webpack_require__.mock`，并添加到 `"main"` Chunk 中：
+以下代码向 `"main"` chunk 添加一个 Rspack 运行时模块，用于定义 `__webpack_require__.mock`：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -486,7 +486,7 @@ export default {
 };
 ```
 
-实现自定义的运行时模块 Class 时，可覆盖如下方法/属性来控制其行为：
+自定义 Rspack 运行时模块类时，可以覆盖以下方法和属性来控制其行为：
 
 - 在构造器中传入 `name` 和 `stage` 参数来指定模块名称和插入的阶段
 - 覆盖 `generate()` 方法以控制模块生成的代码
@@ -597,7 +597,7 @@ getCache(name: string): CacheFacade;
 
 **类型：** `RuntimeTemplate`
 
-用于生成运行时代码的辅助方法，会根据 [`output.environment`](/config/output#outputenvironment)
+用于生成 Rspack 运行时代码的辅助方法，会根据 [`output.environment`](/config/output#outputenvironment)
 声明的目标环境能力来选择语法。相比手写代码片段，使用这些方法可以保证生成的代码在旧目标环境下依然合法。
 
 ```js
@@ -706,7 +706,52 @@ compiler.hooks.thisCompilation.tap('MyPlugin', (compilation) => {
 
 **类型：** `ReadonlyMap<string, Entrypoint>`
 
-获取 Entry 对象映射表，其为作为入口的特殊的 Chunk Group，会额外包含一个 Runtime Chunk。
+以入口名称为键、`Entrypoint` 对象为值的映射。每个 `Entrypoint` 表示一个入口对应的 chunk group，可用于获取该入口的 chunk 及其产物文件。
+
+例如，服务端生成 HTML 时，需要知道每个入口应引入哪些 JavaScript 和 CSS 文件。可以遍历 `compilation.entrypoints`，通过 `entrypoint.getFiles()` 获取这些文件名，并保存为一份清单。
+
+以下插件在常规的产物优化和哈希处理完成后生成 `entrypoints.json`：
+
+```js
+class EntryManifestPlugin {
+  apply(compiler) {
+    const { Compilation, sources } = compiler.rspack;
+
+    compiler.hooks.thisCompilation.tap('EntryManifestPlugin', (compilation) => {
+      compilation.hooks.processAssets.tap(
+        {
+          name: 'EntryManifestPlugin',
+          stage: Compilation.PROCESS_ASSETS_STAGE_REPORT,
+        },
+        () => {
+          const manifest = Object.fromEntries(
+            Array.from(compilation.entrypoints, ([name, entrypoint]) => [
+              name,
+              entrypoint.getFiles(),
+            ]),
+          );
+          compilation.emitAsset(
+            'entrypoints.json',
+            new sources.RawSource(JSON.stringify(manifest, null, 2)),
+          );
+        },
+      );
+    });
+  }
+}
+```
+
+清单以入口名称为键、文件名数组为值。例如，`main` 入口生成了入口脚本、独立的 Rspack 运行时和 CSS 文件时，清单可能如下：
+
+```json title="entrypoints.json"
+{
+  "main": ["runtime.js", "main.js", "main.css"]
+}
+```
+
+`getFiles()` 返回的文件名相对于产物目录，不包含 `publicPath`。
+
+`getFiles()` 只返回入口 chunk group 中的文件。通过 `import()` 按需加载的异步 chunk，以及未关联到该 chunk group 的插件产物（如 `entrypoints.json` 自身），都不会列入清单。
 
 <Collapse>
   <CollapsePanel
@@ -822,7 +867,22 @@ compiler.hooks.compilation.tap('InspectModules', (compilation) => {
 
 **类型：** `FileSystemDependencies`
 
-获取此 Compilation 对资源文件的依赖信息，其结构如下：
+记录本次编译依赖的文件。在 watch 模式下，这些文件发生变化时，Rspack 会重新构建。
+
+例如，插件可能需要读取项目根目录中的 `site.json`。仅通过 Node.js 读取文件不会让 Rspack 自动监听它，因此需要在 `thisCompilation` 钩子中将其绝对路径添加到 `fileDependencies`，确保每次编译都记录这项依赖。
+
+```js
+import path from 'node:path';
+
+class WatchConfigPlugin {
+  apply(compiler) {
+    compiler.hooks.thisCompilation.tap('WatchConfigPlugin', (compilation) => {
+      const configPath = path.resolve(compiler.context, 'site.json');
+      compilation.fileDependencies.add(configPath);
+    });
+  }
+}
+```
 
 <Collapse>
   <CollapsePanel
@@ -838,7 +898,27 @@ compiler.hooks.compilation.tap('InspectModules', (compilation) => {
 
 **类型：** `FileSystemDependencies`
 
-获取此 Compilation 对目录的依赖信息。
+记录本次编译依赖的目录。在 watch 模式下，目录中新增或删除文件时，Rspack 会重新构建。
+
+例如，插件扫描已存在的 `templates` 目录来获取模板列表时，可以添加该目录的绝对路径：
+
+```js
+import path from 'node:path';
+
+class WatchTemplatesPlugin {
+  apply(compiler) {
+    compiler.hooks.thisCompilation.tap(
+      'WatchTemplatesPlugin',
+      (compilation) => {
+        const templatesPath = path.resolve(compiler.context, 'templates');
+        compilation.contextDependencies.add(templatesPath);
+      },
+    );
+  }
+}
+```
+
+如果插件还会读取模板内容，也应将读取的文件添加到 `fileDependencies`，以监听文件内容的变化。
 
 <Collapse>
   <CollapsePanel
@@ -854,7 +934,30 @@ compiler.hooks.compilation.tap('InspectModules', (compilation) => {
 
 **类型：** `FileSystemDependencies`
 
-获取此 Compilation 对缺失文件的依赖信息。
+记录本次编译需要监听、但尚不存在的文件。在 watch 模式下，这些文件被创建后，Rspack 会重新构建。
+
+例如，插件支持可选配置文件 `site.local.json`，但用户可能还没有创建它。插件应在每次编译时检查文件是否存在：如果不存在，将文件路径添加到 `missingDependencies`；如果已存在，则添加到 `fileDependencies`。这样，无论是创建文件还是后续修改文件，都会触发重新构建。
+
+```js
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+
+class WatchLocalConfigPlugin {
+  apply(compiler) {
+    compiler.hooks.thisCompilation.tap(
+      'WatchLocalConfigPlugin',
+      (compilation) => {
+        const configPath = path.resolve(compiler.context, 'site.local.json');
+        if (existsSync(configPath)) {
+          compilation.fileDependencies.add(configPath);
+        } else {
+          compilation.missingDependencies.add(configPath);
+        }
+      },
+    );
+  }
+}
+```
 
 <Collapse>
   <CollapsePanel
@@ -870,7 +973,9 @@ compiler.hooks.compilation.tap('InspectModules', (compilation) => {
 
 **类型：** `FileSystemDependencies`
 
-获取此 Compilation 对构建文件的依赖信息。
+记录构建工具本身依赖的文件，例如配置文件和 loader。Rspack 根据这些依赖判断持久化缓存是否仍然有效，配置方式见 [cache.buildDependencies](/config/cache#builddependencies)。
+
+如果需要在 watch 模式下监听插件读取的文件或目录，并在变化时重新构建，请使用 `fileDependencies`、`contextDependencies` 或 `missingDependencies`。
 
 <Collapse>
   <CollapsePanel

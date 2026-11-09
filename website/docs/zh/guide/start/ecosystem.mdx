@@ -106,6 +106,14 @@ Extension.js 使用 Rspack 打包，并把 `manifest.json` 中声明的入口解
 
 Rspack 团队与 Next.js 团队合作提供了 `next-rspack` 插件。该插件允许你使用 Rspack 作为 Next.js 的打包工具，详见 [Next.js 指南](/guide/integrations/next)。
 
+### Nitro
+
+<Tag color="geekblue">服务端框架</Tag>
+
+[Nitro](https://nitro.build/) 是一个服务端框架，用于构建可部署到 Node.js、Bun、Deno、Serverless 平台和边缘运行时的应用。
+
+Nitro 支持通过 [`builder: 'rspack'`](https://nitro.build/config/build#builder) 使用 Rspack 打包服务端代码。它还提供了 [Rsbuild 插件](https://nitro.build/docs/rsbuild)，为 Rsbuild 应用添加 API 路由、SSR 和 WebSockets 支持。
+
 ### Nuxt
 
 <Tag color="geekblue">Web 框架</Tag> <Tag color="purple">Vue</Tag>
@@ -181,24 +189,37 @@ TanStack Start 提供了对 Rsbuild 的官方支持，允许你使用 Rsbuild �
 
 - [@aaroon/workbox-rspack-plugin](https://github.com/Clarkkkk/workbox-rspack-plugin)：集成 Workbox，生成 service worker 和预缓存清单。
 - [@datadog/rspack-plugin](https://github.com/DataDog/build-plugins)：在构建流程中集成 Datadog。
+- [@douyinfe/semi-rspack-plugin](https://github.com/DouyinFE/semi-design/tree/main/packages/semi-rspack)：定制 Semi Design 主题和 CSS 类名前缀。
+- [@fluentui/react-icons-font-subsetting-webpack-plugin](https://github.com/microsoft/fluentui-system-icons/tree/main/packages/react-icons-font-subsetting-webpack-plugin)：裁剪 Fluent UI 图标字体，仅保留应用使用的字形。
 - [@golar-rstack/rspack](https://github.com/OskarLebuda/golar-rstack-plugin/tree/main/packages/rspack)：在独立进程中运行 golar 类型检查和类型感知的 lint 检查。
 - [@heyq02/rspack-plugin-git-revision](https://github.com/heyq02/rspack-plugin-git-revision)：从 Git 生成版本、提交哈希、分支和提交时间等元数据。
+- [@kirana-style/webpack](https://github.com/kirana-style/kirana/tree/main/packages/kirana/npm/webpack)：将 Kirana 样式编译为原子 CSS。
 - [@lunora/rspack](https://github.com/anolilab/lunora/tree/alpha/packages/rspack)：集成面向 Cloudflare Workers 的 Lunora 后端框架，目前通过 `@lunora/rspack@alpha` 提供预览版本。
 - [@module-federation/enhanced](https://github.com/module-federation/core/tree/main/packages/enhanced)：提供增强的模块联邦功能。
 - [@octanejs/rspack-plugin](https://octanejs.dev/docs/build-tools#rspack)：编译 Octane TSRX 源文件。
 - [@rsdoctor/rspack-plugin](https://github.com/web-infra-dev/rsdoctor)：使用 Rsdoctor 分析构建流程和产物。
 - [@rspack/plugin-preact-refresh](https://github.com/rstackjs/rspack-plugin-preact-refresh)：启用 Preact Refresh。
 - [@rspack/plugin-react-refresh](https://github.com/rstackjs/rspack-plugin-react-refresh)：启用 React Fast Refresh。
+- [@scalprum/remote-types](https://github.com/scalprum/scaffolding)：在构建时获取远端模块联邦类型。
 - [@sentry/webpack-plugin](https://github.com/getsentry/sentry-javascript-bundler-plugins)：提供 Sentry 的 source map 上传和版本管理功能。
 - [@serwist/webpack-plugin](https://github.com/serwist/serwist)：使用 Serwist 生成 service worker 和预缓存清单。
-- [@unocss/webpack](https://github.com/unocss/unocss/tree/main/packages-integrations/webpack)：通过 `@unocss/webpack/rspack` 集成 UnoCSS。
+- [@statoscope/webpack-plugin](https://github.com/statoscope/statoscope/tree/master/packages/webpack-plugin)：生成交互式报告，分析构建统计数据。
+- [@stillwind/integration](https://github.com/SegaraRai/stillwind/tree/main/packages/integration)：集成 Stillwind 的按需 CSS 生成。
+- [@stylexswc/rspack-plugin](https://github.com/Dwlad90/stylex-swc-plugin/tree/develop/packages/rspack-plugin)：使用 SWC 编译 StyleX 并提取 CSS。
+- [@unocss/webpack](https://github.com/unocss/unocss/tree/main/packages-integrations/webpack)：集成 UnoCSS。
 - [@vanilla-extract/webpack-plugin](https://github.com/vanilla-extract-css/vanilla-extract)：将 vanilla-extract 样式提取为 CSS 文件。
+- [@vizejs/rspack-plugin](https://github.com/ubugeeei-prod/vize/tree/main/npm/builder/rspack)：使用 Vize 编译 Vue 单文件组件。
 - [@vue-devtools-rstack/rspack](https://github.com/OskarLebuda/vue-devtools-rstack/tree/main/packages/rspack)：在 Rspack 应用中集成 Vue DevTools。
+- [add-charset-webpack-plugin](https://github.com/VN666/add-charset-webpack-plugin)：为生成的 CSS 文件添加 charset 声明。
+- [beasties-webpack-plugin](https://github.com/danielroe/beasties/tree/main/packages/beasties-webpack-plugin)：内联关键 CSS，并延迟加载其余样式。
+- [bundle-stats-webpack-plugin](https://github.com/relative-ci/bundle-stats)：分析构建产物的体积、资源、模块和依赖包，并比较不同构建。
+- [carbon-preprocess-svelte](https://github.com/carbon-design-system/carbon-preprocess-svelte)：优化 Carbon Svelte 组件并移除未使用的 CSS。
 - [case-sensitive-paths-webpack-plugin](https://github.com/Urthen/case-sensitive-paths-webpack-plugin)：检查导入文件路径的大小写。
 - [clean-webpack-plugin](https://github.com/johnagan/clean-webpack-plugin)：清理构建输出目录中的文件。
 - [code-inspector-plugin](https://github.com/zh-lx/code-inspector)：点击页面元素，在编辑器中打开对应的源代码。
 - [compression-rspack-plugin](https://github.com/ramon-villain/compression-rspack-plugin)：使用 Rust 实现并行压缩资源。
 - [compression-webpack-plugin](https://github.com/webpack/compression-webpack-plugin)：生成资源的压缩版本。
+- [csp-rspack-plugin](https://github.com/rstackjs/csp-rspack-plugin)：为 HTML 文件生成 Content Security Policy 指令。
 - [css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin)：使用 cssnano 压缩 CSS。
 - [dotenv-webpack](https://github.com/mrsteele/dotenv-webpack)：从 `.env` 文件加载环境变量。
 - [eslint-rspack-plugin](https://github.com/rstackjs/eslint-rspack-plugin)：在编译过程中运行 ESLint 检查。
@@ -207,6 +228,8 @@ TanStack Start 提供了对 Rsbuild 的官方支持，允许你使用 Rsbuild �
 - [inject-manifest-plugin](https://github.com/tobua/inject-manifest-plugin)：将 Workbox 预缓存清单注入 service worker。
 - [node-polyfill-webpack-plugin](https://github.com/Richienb/node-polyfill-webpack-plugin)：为 Node.js 核心模块提供 polyfill。
 - [oxc-webpack-plugin](https://github.com/oxc-project/oxc-webpack-plugin)：使用 Oxc 压缩 JavaScript 资源。
+- [prosebook](https://github.com/gkurt/prosebook)：编译翻译资源并移除未使用的消息。
+- [purgecss-webpack-plugin](https://github.com/FullHuman/purgecss/tree/main/packages/purgecss-webpack-plugin)：移除构建产物中未使用的 CSS。
 - [react-cosmos-plugin-rspack](https://github.com/birchill/react-cosmos-plugin-rspack/)：使用 Rspack 构建和运行 React Cosmos。
 - [rspack-manifest-plugin](https://github.com/rstackjs/rspack-manifest-plugin)：生成资源清单。
 - [rspack-plugin-cli-copy](https://github.com/rstackjs/rspack-plugin-cli-copy)：将开发服务器的网络 URL 复制到剪贴板。
@@ -217,8 +240,11 @@ TanStack Start 提供了对 Rsbuild 的官方支持，允许你使用 Rsbuild �
 - [rspack-plugin-virtual-module](https://github.com/rstackjs/rspack-plugin-virtual-module)：创建虚拟模块。
 - [rspack-s3-plugin](https://github.com/ts-codeworks/rspack-s3-plugin)：将构建产物上传到 Amazon S3。
 - [rspack-unocss-plugin](https://github.com/umbrella22/rspack-unocss-plugin)：通过虚拟 CSS 模块和原生 CSS 处理能力集成 UnoCSS。
+- [rtlcss-rspack-plugin](https://github.com/cbbfcd/rtlcss-rspack-plugin)：生成适用于从右到左布局的 CSS。
 - [sonda](https://github.com/filipsobol/sonda)：可视化并分析 JavaScript 和 CSS 构建产物。
 - [ts-checker-rspack-plugin](https://github.com/rstackjs/ts-checker-rspack-plugin)：在独立进程中运行 TypeScript 类型检查。
+- [typia-rspack-plugin](https://github.com/colinaaa/typia-rspack-plugin)：集成 Typia，生成运行时类型校验代码。
+- [weapp-tailwindcss](https://github.com/weapp-tailwindcss/weapp-tailwindcss/tree/main/packages/weapp-tailwindcss)：为小程序适配 Tailwind CSS。
 - [webpack-bundle-analyzer](https://github.com/webpack/webpack-bundle-analyzer)：通过交互式矩形树图展示构建产物的体积。
 - [webpackbar](https://github.com/unjs/webpackbar)：展示构建进度和性能分析信息。
 - [zephyr-rspack-plugin](https://www.npmjs.com/package/zephyr-rspack-plugin)：将应用部署到 Zephyr Cloud。
@@ -229,28 +255,74 @@ TanStack Start 提供了对 Rsbuild 的官方支持，允许你使用 Rsbuild �
 
 Loader 按包名字母顺序排列。欢迎提交 PR，将你已发布的 loader 添加到列表中。
 
+- [@alienfast/i18next-loader](https://github.com/alienfast/i18next-loader)：汇总 i18next 翻译资源。
+- [@discord/rspack-intl-loader](https://github.com/discord/discord-intl/tree/main/packages/rspack-intl-loader)：编译 Discord 国际化消息并生成翻译分包。
+- [@graphql-tools/webpack-loader](https://github.com/ardatan/graphql-tools/tree/master/packages/webpack-loader)：将 GraphQL 文档编译为 AST。
+- [@jsdevtools/coverage-istanbul-loader](https://github.com/JS-DevTools/coverage-istanbul-loader)：使用 Istanbul 为 JavaScript 添加代码覆盖率插桩。
+- [@lingui/loader](https://github.com/lingui/js-lingui/tree/main/packages/loader)：编译 Lingui 翻译目录。
+- [@locator/webpack-loader](https://github.com/infi-pc/locatorjs/tree/master/packages/webpack-loader)：为 React 组件添加 LocatorJS 定位信息。
 - [@mdx-js/loader](https://github.com/mdx-js/mdx/tree/main/packages/loader)：将 MDX 编译为 JavaScript 组件。
+- [@sucrase/webpack-loader](https://github.com/alangpierce/sucrase/tree/main/integrations/webpack-loader)：使用 Sucrase 转译 TypeScript、JSX 和 JavaScript。
 - [@svgr/webpack](https://github.com/gregberge/svgr/tree/main/packages/webpack)：将 SVG 文件转换为 React 组件。
 - [@tailwindcss/webpack](https://github.com/tailwindlabs/tailwindcss/tree/main/packages/%40tailwindcss-webpack)：编译 Tailwind CSS v4 样式。
+- [@teamsupercell/typings-for-css-modules-loader](https://github.com/TeamSupercell/typings-for-css-modules-loader)：生成 CSS Modules TypeScript 声明。
+- [@vercel/webpack-asset-relocator-loader](https://github.com/vercel/webpack-asset-relocator-loader)：搬运 Node.js 构建引用的资源并重写路径。
 - [@vue-vine/rspack-loader](https://github.com/vue-vine/vue-vine)：编译 Vue Vine 组件。
+- [@webdiscus/pug-loader](https://github.com/webdiscus/pug-loader)：编译 Pug 模板并注入数据。
+- [@wyw-in-js/webpack-loader](https://github.com/wyw-in-js/wyw-in-js/tree/main/packages/webpack-loader)：静态提取 CSS-in-JS 样式。
+- [arraybuffer-loader](https://github.com/pine/arraybuffer-loader)：将二进制资源导出为 ArrayBuffer。
 - [babel-loader](https://github.com/babel/babel-loader)：使用 Babel 转译 JavaScript。
 - [coffee-loader](https://www.npmjs.com/package/coffee-loader)：将 CoffeeScript 编译为 JavaScript。
 - [css-loader](https://github.com/webpack/css-loader)：解析 CSS 导入和资源 URL，并将 CSS 导出为 JavaScript 模块。
+- [css-modules-typescript-loader](https://github.com/seek-oss/css-modules-typescript-loader)：生成 CSS Modules TypeScript 声明。
+- [csv-loader](https://github.com/theplatapi/csv-loader)：将 CSV 文件解析为 JavaScript 数据。
+- [ejs-compiled-loader](https://github.com/bazilio91/ejs-compiled-loader)：预编译 EJS 模板。
+- [esbuild-loader](https://github.com/privatenumber/esbuild-loader)：使用 esbuild 转译 JavaScript、TypeScript 和 JSX。
+- [frontmatter-markdown-loader](https://github.com/hmsk/frontmatter-markdown-loader)：提取 Markdown front matter 并转换正文。
+- [glob-import-loader](https://github.com/soluml/glob-import-loader)：展开 glob 导入。
+- [glslify-loader](https://github.com/glslify/glslify-loader)：预处理 GLSL 模块和依赖。
+- [graphql-tag/loader](https://github.com/apollographql/graphql-tag)：将 GraphQL 查询及 fragment 编译为 AST。
+- [handlebars-loader](https://github.com/pcardune/handlebars-loader)：预编译 Handlebars 模板。
 - [html-loader](https://www.npmjs.com/package/html-loader)：将 HTML 导出为字符串，并解析其中引用的资源。
+- [ifdef-loader](https://github.com/nippur72/ifdef-loader)：根据编译常量裁剪条件代码。
+- [import-glob-loader](https://github.com/Aintaer/import-glob-loader)：展开 JavaScript、CSS 和 Sass 导入中的 glob 模式。
 - [imports-loader](https://www.npmjs.com/package/imports-loader)：为依赖特定全局变量的模块注入导入语句。
+- [isomorphic-style-loader](https://github.com/kriasoft/isomorphic-style-loader)：支持 SSR 的样式收集和注入。
 - [less-loader](https://github.com/webpack/less-loader)：将 Less 编译为 CSS。
+- [magic-comments-loader](https://github.com/morganney/magic-comments-loader)：为动态导入添加 magic comments。
+- [markdown-loader](https://github.com/peerigon/markdown-loader)：将 Markdown 转换为 HTML。
+- [nearley-loader](https://github.com/kozily/nearley-loader)：将 Nearley 语法编译为解析器配置。
 - [node-loader](https://www.npmjs.com/package/node-loader)：加载扩展名为 `.node` 的 Node.js 原生模块。
 - [oxc-webpack-loader](https://github.com/oxc-project/oxc-webpack-loader)：使用 Oxc 转换 JavaScript 和 TypeScript。
 - [postcss-loader](https://github.com/webpack/postcss-loader)：使用 PostCSS 插件处理 CSS。
+- [pug-plain-loader](https://github.com/yyx990803/pug-plain-loader)：将 Pug 模板编译为 HTML。
+- [rails-erb-loader](https://github.com/usabilityhub/rails-erb-loader)：构建时使用 Ruby 处理 ERB 模板。
 - [react-compiler-webpack](https://github.com/SukkaW/react-compiler-webpack)：在构建中集成 React Compiler。
+- [react-svg-loader](https://github.com/boopathi/react-svg-loader/tree/master/packages/react-svg-loader)：将 SVG 转成 React 组件。
+- [resolve-url-loader](https://github.com/bholloway/resolve-url-loader/tree/v5/packages/resolve-url-loader)：根据 source map 修正 Sass 中的相对资源路径。
+- [responsive-loader](https://github.com/dazuaz/responsive-loader)：生成多尺寸图片和 srcSet 元数据。
+- [restrict-imports-loader](https://github.com/SimonAlling/restrict-imports-loader)：校验并限制不允许的 import。
 - [rspack-vue-loader](https://github.com/rstackjs/rspack-vue-loader)：编译 Vue 3 单文件组件。
 - [sass-loader](https://github.com/webpack/sass-loader)：将 Sass 和 SCSS 编译为 CSS。
+- [sass-resources-loader](https://github.com/shakacode/sass-resources-loader)：自动注入共享 Sass 资源。
+- [shader-loader](https://github.com/Makio64/shader-loader)：加载 GLSL 并组合 shader chunk。
 - [source-map-loader](https://github.com/webpack-contrib/source-map-loader)：从 JavaScript 文件中提取已有的 source map。
+- [string-replace-loader](https://github.com/Va1/string-replace-loader)：构建时替换源码字符串。
 - [style-loader](https://github.com/webpack/style-loader)：将 CSS 注入 DOM。
+- [style-resources-loader](https://github.com/yenshih/style-resources-loader)：自动注入共享样式变量和 mixin。
 - [stylus-loader](https://github.com/webpack/stylus-loader)：将 Stylus 编译为 CSS。
 - [svelte-loader](https://github.com/sveltejs/svelte-loader)：编译 Svelte 组件。
 - [svg-react-loader](https://github.com/jhamlet/svg-react-loader)：将 SVG 文件转换为 React 组件。
+- [svg-url-loader](https://github.com/bhovhannes/svg-url-loader)：将 SVG 优化并编码为 data URL。
 - [svgo-loader](https://github.com/svg/svgo-loader)：使用 SVGO 优化 SVG 文件。
+- [to-string-loader](https://github.com/gajus/to-string-loader)：将其他 loader 的导出转换成字符串。
+- [underscore-template-loader](https://github.com/emaphp/underscore-template-loader)：预编译 Underscore 模板。
+- [vue-docgen-loader](https://github.com/pocka/vue-docgen-loader)：向 Vue 组件注入文档元数据。
+- [vue-svg-inline-loader](https://github.com/oliverfindl/vue-svg-inline-loader)：将 Vue 模板中的 SVG 图片替换为内联 SVG。
+- [webfonts-loader](https://github.com/jeerbl/webfonts-loader)：将 SVG 图标生成字体及配套 CSS。
+- [webpack-graphql-loader](https://github.com/samsarahq/graphql-loader)：加载 GraphQL 查询，支持校验与 fragment。
+- [webpack-import-glob-loader](https://github.com/fred104/webpack-import-glob-loader)：展开 glob 导入并汇总模块。
+- [wext-manifest-loader](https://github.com/abhijithvijayan/wext-manifest-loader)：生成针对不同浏览器的扩展 manifest。
 - [worker-rspack-loader](https://github.com/rstackjs/worker-rspack-loader)：将脚本打包为 Web Worker。
 - [yaml-loader](https://github.com/eemeli/yaml-loader)：将 YAML 文件导入为 JavaScript 对象。
 

@@ -3,7 +3,7 @@ edition.workspace = true
 license.workspace = true
 name              = "rspack_watcher_testing"
 publish           = false
-version           = "0.103.0"
+version           = "0.103.1"
 
 [lib]
 doctest = false
@@ -11,7 +11,9 @@ test    = false
 
 [dev-dependencies]
 notify         = { workspace = true }
+rspack_error   = { workspace = true }
 rspack_paths   = { workspace = true }
+rspack_util    = { workspace = true }
 rspack_watcher = { workspace = true, features = ["testing"] }
 tempfile       = { workspace = true }
 tokio          = { workspace = true, features = ["rt", "macros", "time"] }

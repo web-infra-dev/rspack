@@ -9,7 +9,7 @@
 - Bundle: b.js
 - Bundle: runtime.js
 - Bundle: shared.js
-- Manifest: runtime.LAST_HASH.hot-update.json, size: 48
+- Manifest: runtime.LAST_HASH.hot-update.json, size: 102
 - Update: a.LAST_HASH.hot-update.js, size: 292
 - Update: b.LAST_HASH.hot-update.js, size: 349
 - Update: runtime.LAST_HASH.hot-update.js, size: 184
@@ -20,7 +20,7 @@
 ### runtime.LAST_HASH.hot-update.json
 
 ```json
-{"c":["a","b","runtime","shared"],"r":[],"m":[]}
+{"c":["a","b","runtime","shared"],"r":[],"m":[],"changed":{"./b.js":["b"],"./shared/moving.js":["a"]}}
 ```
 
 

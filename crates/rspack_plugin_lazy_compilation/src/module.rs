@@ -20,17 +20,25 @@ use rspack_util::{
 };
 
 use crate::{
-  dependency::{DependencyOptions, LazyCompilationDependency},
+  dependency::{DependencyOptions, LazyCompilationDependency, ReservedExternalDependency},
   utils::calc_value_dependency_key,
 };
 
 static MODULE_TYPE: ModuleType = ModuleType::JsAuto;
 static SOURCE_TYPE: [SourceType; 1] = [SourceType::JavaScript];
 
+#[cacheable]
+#[derive(Debug)]
+pub(crate) struct ReservedLayerExternals {
+  pub layer: ModuleLayer,
+  #[cacheable(with=AsVec)]
+  pub requests: Arc<[String]>,
+}
+
 // Library types whose wrappers pass externals as closure arguments baked into the entry chunk.
 const CLOSURE_LIBRARY_TYPES: [&str; 5] = ["umd", "umd2", "amd", "amd-require", "system"];
 
-fn has_closure_library(output: &OutputOptions) -> bool {
+pub(crate) fn has_closure_library(output: &OutputOptions) -> bool {
   if let Some(enabled) = &output.enabled_library_types
     && enabled
       .iter()
@@ -65,10 +73,12 @@ pub(crate) struct LazyCompilationProxyModule {
   resource: String,
   active: bool,
   client: String,
-  // Immutable once collected from config; shared across every proxy module as a
+  // Immutable once collected for a layer; shared across its proxy modules as a
   // slice so each clones the `Arc`, not the whole list.
   #[cacheable(with=AsVec)]
   reserved_externals: Arc<[String]>,
+  #[cacheable(with=AsVec)]
+  reserved_layer_externals: Arc<[ReservedLayerExternals]>,
   #[cacheable(with=rspack_cacheable::rkyv::with::AtomicLoad<rspack_cacheable::rkyv::with::Relaxed>)]
   need_build: std::sync::atomic::AtomicBool,
 }
@@ -93,7 +103,9 @@ impl LazyCompilationProxyModule {
     resource: String,
     active: bool,
     client: String,
+    layer: Option<ModuleLayer>,
     reserved_externals: Arc<[String]>,
+    reserved_layer_externals: Arc<[ReservedLayerExternals]>,
   ) -> Self {
     let lib_ident = lib_ident.map(|s| format!("{s}!lazy-compilation-proxy"));
 
@@ -103,6 +115,7 @@ impl LazyCompilationProxyModule {
       phase: original_dependency.get_phase(),
       attributes: original_dependency.get_attributes().cloned(),
       issuer: create_data.issuer.clone(),
+      issuer_layer: create_data.issuer_layer.clone(),
       resolve_options: create_data.resolve_options.clone(),
       file_dependencies: create_data.file_dependencies.clone(),
       context_dependencies: create_data.context_dependencies.clone(),
@@ -120,12 +133,13 @@ impl LazyCompilationProxyModule {
       source_map_kind: SourceMapKind::empty(),
       dependencies_block: Default::default(),
       context: Box::new(create_data.context.clone()),
-      layer: create_data.issuer_layer.clone(),
+      layer,
       dep_options,
       resource,
       active,
       client,
       reserved_externals,
+      reserved_layer_externals,
       need_build: false.into(),
     }
   }
@@ -232,13 +246,21 @@ impl Module for LazyCompilationProxyModule {
       // identifiers. Once the proxy activates and the lazily-built module
       // references those externals, the identifiers resolve instead of throwing.
       for request in self.reserved_externals.iter() {
-        dependencies.push(BoxDependency::new(CommonJsRequireDependency::new(
+        dependencies.push(BoxDependency::new(ReservedExternalDependency::new(
           request.clone(),
-          DependencyRange::new(0, 0),
-          None,
-          false,
-          None,
+          self.layer.clone(),
         )));
+      }
+      for externals in self.reserved_layer_externals.iter() {
+        if self.layer.as_ref() == Some(&externals.layer) {
+          continue;
+        }
+        for request in externals.requests.iter() {
+          dependencies.push(BoxDependency::new(ReservedExternalDependency::new(
+            request.clone(),
+            Some(externals.layer.clone()),
+          )));
+        }
       }
     }
 

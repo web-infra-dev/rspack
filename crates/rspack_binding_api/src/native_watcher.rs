@@ -226,6 +226,7 @@ fn to_native_time_info_table(entries: TimeInfoEntries) -> NativeTimeInfoTable {
 pub struct NativeWatchUndelayedEvent {
   pub kind: String,
   pub path: String,
+  pub mtime: Option<Null>,
 }
 
 #[napi]
@@ -591,6 +592,7 @@ impl rspack_watcher::EventHandler for JsEventHandler {
       NativeWatchUndelayedEvent {
         kind: "change".to_string(),
         path: changed_file,
+        mtime: None,
       },
     ))
   }
@@ -601,6 +603,18 @@ impl rspack_watcher::EventHandler for JsEventHandler {
       NativeWatchUndelayedEvent {
         kind: "remove".to_string(),
         path: deleted_file,
+        mtime: None,
+      },
+    ))
+  }
+
+  fn on_context_remove(&self, removed_file: String) -> rspack_error::Result<()> {
+    self.delivery.send(JsDelivery::Undelayed(
+      Arc::clone(&self.callbacks),
+      NativeWatchUndelayedEvent {
+        kind: "change".to_string(),
+        path: removed_file,
+        mtime: Some(Null),
       },
     ))
   }

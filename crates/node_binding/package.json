@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "binding.js",
@@ -27,6 +27,7 @@
     "build:release:browser": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 node scripts/build.mjs --profile release-wasi",
     "move-binding": "node scripts/move-binding.mjs",
     "test": "tsc -p tsconfig.type-test.json",
+    "test:wasi": "tsc -p tsconfig.wasi-type-test.json",
     "wasm-add-external-debug": "node scripts/add-external-debug-info.mjs rspack.wasm32-wasi.wasm rspack.wasm32-wasi.debug.wasm"
   },
   "homepage": "https://rspack.rs",
@@ -59,10 +60,12 @@
       "riscv64gc-unknown-linux-gnu",
       "riscv64gc-unknown-linux-musl",
       "powerpc64le-unknown-linux-gnu",
-      "s390x-unknown-linux-gnu"
+      "s390x-unknown-linux-gnu",
+      "wasm32-wasip1-threads"
     ],
     "wasm": {
-      "initialMemory": 16384,
+      "initialMemory": 32768,
+      "maximumMemory": 32768,
       "browser": {
         "fs": true,
         "asyncInit": true,

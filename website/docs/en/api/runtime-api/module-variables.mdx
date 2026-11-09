@@ -618,7 +618,7 @@ __webpack_require__.ruid = 'bundler=rspack@2.1.2';
 
 </Columns>
 
-## Runtime
+## Rspack runtime
 
 ### \_\_webpack_hash\_\_
 
@@ -630,7 +630,7 @@ The CommonJS equivalent of [`import.meta.rspackHash`](#importmetarspackhash).
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-Access the runtime id of current entry.
+Access the Rspack runtime ID of the current entry.
 
 <Columns>
 ```js title=Source
@@ -954,7 +954,7 @@ __webpack_require__.u = function (chunkId) {
 
 </Columns>
 
-It is assignable, which allows changing the filename used by the runtime. For example, it can be used to determine the final path when loading chunks.
+You can reassign this function to change the script filenames used by the Rspack runtime when loading chunks.
 
 ```js
 const oldFn = __webpack_get_script_filename__;

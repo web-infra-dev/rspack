@@ -449,6 +449,8 @@ export type Environment = {
 
   /** The environment supports template literals. */
   templateLiteral?: boolean;
+  /** The environment supports top-level await ('await x' at the top level of a module). */
+  topLevelAwait?: boolean;
 };
 
 export type Output = {
@@ -960,6 +962,14 @@ export type RuleSetRuleUseAndLoader =
 
 /** Rule defines the conditions for matching a module and the behavior of handling those modules. */
 export type RuleSetRule = RuleSetRuleUseAndLoader & {
+  /**
+   * Create a resource for matching subsequent rules from a path template.
+   * `[resource-path]` expands to the current matching path, including its extension.
+   * Query and fragment are preserved. The original resource is used by loaders.
+   * @experimental
+   */
+  as?: string;
+
   /** Matches all modules that match this resource, and will match against Resource. */
   test?: RuleSetCondition;
 
@@ -1632,6 +1642,15 @@ export type CssGeneratorOptions = {
    */
   exportsOnly?: CssGeneratorExportsOnly;
 
+  /**
+   * Resolve asset URLs in injected styles against the runtime public path
+   * (`import.meta.rspackPublicPath`) instead of the build-time `output.publicPath`.
+   * Only applies when `parser.exportType` is "style". Assets with their own
+   * `generator.publicPath` keep that value.
+   * @default false
+   */
+  runtimePublicPath?: boolean;
+
   /** This configuration is available for improved ESM-CJS interoperability purposes. */
   esModule?: CssGeneratorEsModule;
 };
@@ -1649,6 +1668,15 @@ export type CssModuleGeneratorOptions = {
    * If false, generate stylesheets and embed them in the template.
    */
   exportsOnly?: CssGeneratorExportsOnly;
+
+  /**
+   * Resolve asset URLs in injected styles against the runtime public path
+   * (`import.meta.rspackPublicPath`) instead of the build-time `output.publicPath`.
+   * Only applies when `parser.exportType` is "style". Assets with their own
+   * `generator.publicPath` keep that value.
+   * @default false
+   */
+  runtimePublicPath?: boolean;
 
   /**
    * Digest types used for the hash.
@@ -1870,6 +1898,13 @@ export type ExternalItemObjectUnknown = {
   [x: string]: ExternalItemValue;
 };
 
+export type ExternalItemObjectKnown = {
+  /** Specify externals depending on the importing module's layer. */
+  byLayer?:
+    | Record<string, ExternalItem>
+    | ((layer: string | null) => ExternalItem | undefined);
+};
+
 /**
  * Data object passed as argument when a function is set for 'externals'.
  */
@@ -1907,6 +1942,7 @@ export type ExternalItemFunctionData = {
 export type ExternalItem =
   | string
   | RegExp
+  | ExternalItemObjectKnown
   | ExternalItemObjectUnknown
   | ((
       data: ExternalItemFunctionData,
