@@ -18,7 +18,7 @@ const binding = require(
 );
 const Watchpack = require(path.join(diagnosticDir, "node_modules/watchpack"));
 const execFileAsync = promisify(execFile);
-const modes = ["sync", "split", "exec"];
+const modes = ["sync", "split", "exec", "sync-many"];
 const scenarios = ["context", "file", "missing"];
 const fixtures = [];
 
@@ -47,6 +47,10 @@ for (const mode of modes) {
 			fs.mkdirSync(child, { recursive: true });
 			for (const file of [inside, ready, scanned, ignored])
 				fs.writeFileSync(file, "0");
+			if (mode === "sync-many") {
+				for (let index = 0; index < 64; index++)
+					fs.writeFileSync(path.join(child, `extra-${index}.js`), "0");
+			}
 			const past = new Date(Date.now() - 10_000);
 			for (const file of [inside, ready, scanned, ignored, child, source])
 				fs.utimesSync(file, past, past);
@@ -162,7 +166,7 @@ for (const fixture of fixtures) {
 		events.length = batches.length = 0;
 		phase = mode;
 		operations.push({ operation: mode, edge: "start", time: Date.now() });
-		if (mode === "sync") {
+		if (mode === "sync" || mode === "sync-many") {
 			fs.rmSync(child, { recursive: true });
 		} else if (mode === "exec") {
 			const rm =
