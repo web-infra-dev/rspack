@@ -16,7 +16,7 @@ use rspack_core::{
   diagnostics::MinifyError,
   legacy_cache::persistent::occasion::minimize::MinimizeCacheKey,
   rspack_sources::{
-    BoxSource, ConcatSource, MapOptions, RawStringSource, Source, SourceExt, SourceMapSource,
+    BoxSource, ConcatSource, MapOptions, RawStringSource, SourceExt, SourceMapSource,
     SourceMapSourceOptions,
   },
 };
@@ -325,8 +325,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           counter.miss();
         }
         let input = original_source.source().into_string_lossy().into_owned();
-        let input_source_map =
-          Source::map_static(original_source.clone(), &MapOptions::default());
+        let input_source_map = original_source.map(&MapOptions::default());
 
         let js_minify_options = rspack_javascript_compiler::minify::JsMinifyOptions {
           minify: minimizer_options.minify.unwrap_or(true),

@@ -8,7 +8,7 @@
 - Bundle: bundle.js
 - Bundle: chunk_js.CURRENT_HASH.js
 - Bundle: unaffected-chunk_js.CURRENT_HASH.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 39
+- Manifest: main.LAST_HASH.hot-update.json, size: 77
 - Update: chunk_js.LAST_HASH.hot-update.js, size: 339
 - Update: main.LAST_HASH.hot-update.js, size: 593
 
@@ -17,7 +17,7 @@
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["chunk_js","main"],"r":[],"m":[]}
+{"c":["chunk_js","main"],"r":[],"m":[],"changed":{"./inner.js":["chunk_js"]}}
 ```
 
 
