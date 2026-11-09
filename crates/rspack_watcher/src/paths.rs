@@ -704,7 +704,8 @@ impl PathManager {
       self.scan_below(recovered, true, None).await;
     }
 
-    if self.directories.all.contains(path) || !self.is_below_context(path) {
+    let registered_directory = self.directories.all.contains(path);
+    if !registered_directory && !self.is_below_context(path) {
       return true;
     }
     // Like watchpack's live events, `lstat`: a link is a file entry here even
@@ -716,6 +717,11 @@ impl PathManager {
       if let Ok(mtime) = metadata.modified() {
         mtime_accuracy(mtime);
       }
+    }
+    if registered_directory {
+      return true;
+    }
+    if metadata.is_dir() {
       // Like watchpack's `setDirectory`, only a directory not known before is
       // scanned: an event on a known one, e.g. a `chmod`, changes nothing below.
       if self.record(path, || self.context_directories.insert(path.clone())) {
