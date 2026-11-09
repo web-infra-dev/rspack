@@ -843,13 +843,12 @@ impl PathManager {
     }
   }
 
-  /// Check whether a watched path's mtime differs from its stored baseline,
+  /// Check whether a watched path's mtime can represent a change,
   /// advancing the baseline when it does. Covers registered files and
   /// registered-missing paths (on disk by the time an event names them);
   /// other paths, files found below a context included, pass through
   /// unfiltered.
-  /// Returns `true` if the event should pass through (mtime changed or no baseline).
-  /// Returns `false` if the event should be suppressed (mtime unchanged = stale).
+  /// Equal mtimes are only stale once they are past the filesystem accuracy window.
   pub fn has_mtime_changed(&self, path: &InternedPath) -> bool {
     if !self.files.all.contains(path) && !self.missing.all.contains(path) {
       return true;
@@ -858,7 +857,10 @@ impl PathManager {
     let Some(current_mtime) = disk_mtime(path) else {
       return true;
     };
-    if self.baselines.insert(path.clone(), Some(current_mtime)) == Some(Some(current_mtime)) {
+    let mtime_ms = system_time_to_millis(current_mtime);
+    if self.baselines.insert(path.clone(), Some(current_mtime)) == Some(Some(current_mtime))
+      && mtime_ms.saturating_add(mtime_accuracy(mtime_ms)) < current_time()
+    {
       return false;
     }
     self.set_file_time(path, current_mtime, false, false);
