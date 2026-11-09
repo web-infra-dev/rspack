@@ -6,6 +6,11 @@ on:
   merge_group:
     types: [checks_requested]
   workflow_dispatch:
+    inputs:
+      watcher_burst_diagnostics:
+        description: Run only the Windows watcher burst diagnostics
+        type: boolean
+        default: false
   push:
     branches:
       - main
@@ -20,8 +25,76 @@ on:
     tags-ignore:
       - '**'
 jobs:
+  watcher_burst_diagnostics:
+    name: Watcher burst timing diagnostics (Windows)
+    if: github.event_name == 'workflow_dispatch' && inputs.watcher_burst_diagnostics
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: burst-baseline
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: 1cda1510485917194e58ab79c2a0c69941f9f96e
+          path: burst-baseline
+      - name: Disable CPU hogs (Windows)
+        continue-on-error: true
+        uses: ./.github/actions/windows-disable-cpu-hogs
+      - uses: ./.github/actions/rustup
+        with:
+          key: test-os-"windows-latest"
+          save-if: false
+      - name: Build watcher test artifacts
+        shell: pwsh
+        env:
+          CARGO_PROFILE_TEST_DEBUG: 'false'
+        run: |
+          Copy-Item "$env:GITHUB_WORKSPACE/crates/rspack_watcher_testing/tests/aggregate_burst_diagnostics.rs" crates/rspack_watcher_testing/tests/
+          Add-Content crates/rspack_watcher_testing/Cargo.toml "`n[dev-dependencies.rspack_error]`nworkspace = true`n[dev-dependencies.rspack_util]`nworkspace = true"
+          cargo test -p rspack_watcher -p rspack_watcher_testing --no-run
+          exit $LASTEXITCODE
+      - name: Repeat original watcher suite with its normal concurrency
+        shell: pwsh
+        env:
+          CARGO_PROFILE_TEST_DEBUG: 'false'
+        run: |
+          for ($iteration = 1; $iteration -le 20; $iteration++) {
+            "Original watcher suite iteration $iteration" | Tee-Object -FilePath burst-original.log -Append
+            cargo test -p rspack_watcher --test watcher -- --nocapture 2>&1 | Tee-Object -FilePath burst-original.log -Append
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+      - name: Record burst write and callback timing
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        env:
+          CARGO_PROFILE_TEST_DEBUG: 'false'
+        run: |
+          for ($iteration = 1; $iteration -le 20; $iteration++) {
+            "Instrumented burst iteration $iteration" | Tee-Object -FilePath burst-timing.log -Append
+            cargo test -p rspack_watcher_testing --test aggregate_burst_diagnostics -- --ignored --nocapture 2>&1 | Tee-Object -FilePath burst-timing.log -Append
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+      - name: Reproduce a burst split by a delayed final write
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        env:
+          CARGO_PROFILE_TEST_DEBUG: 'false'
+          RSPACK_BURST_LAST_GAP_MS: '900'
+        run: |
+          cargo test -p rspack_watcher_testing --test aggregate_burst_diagnostics -- --ignored --nocapture 2>&1 | Tee-Object -FilePath burst-delayed-write.log
+          exit $LASTEXITCODE
+      - name: Upload timing logs
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: watcher-burst-timing-windows
+          path: burst-baseline/burst-*.log
+
   rust_tests:
     name: Run Rust Tests
+    if: ${{ !inputs.watcher_burst_diagnostics }}
     uses: ./.github/workflows/reusable-rust-test.yml
 
   test_required_check:
@@ -30,7 +103,7 @@ jobs:
     # When *only* doc changed, it will run as success directly
     name: Rust Test Required Check
     needs: [rust_tests]
-    if: ${{ always() && !cancelled() }}
+    if: ${{ always() && !cancelled() && !inputs.watcher_burst_diagnostics }}
     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     steps:
       - name: Log
