@@ -277,8 +277,9 @@ Important implementation details:
   final output are derived from the original scanned source. ReplaceSource uses u32 offsets;
   edits outside that range retain the flat-string fallback instead of truncating offsets.
   Content hashing uses emitted bytes with small writes buffered; bare maps retain SIMD writing.
-  Content equality streams edited text through the source writer and compares bytes across
-  chunk boundaries. If both text graphs contain edits, it materializes one side. Source structural hashing remains separate. RCH deduplicates
+  Content equality compares writer output against a map’s JSON iterator or the other source’s
+  buffer. If neither source supports exact byte streaming, it compares their buffers.
+  Source structural hashing remains separate. RCH deduplicates
   devtool text outputs and their edit/cache wrappers with raw strings by content; unrelated
   sources keep their previous equality behavior. Binary/unknown sources keep scan/buffer
   fallbacks. SRI, asset comparison and binding map-presence checks recognize these wrappers.

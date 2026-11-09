@@ -4,8 +4,7 @@ use std::{
 };
 
 use crate::{
-  CachedSource, ConcatSource, DevToolCodeSource, DevToolMapSource, OriginalSource, RawBufferSource,
-  RawStringSource, ReplaceSource, Source, SourceMapSource,
+  CachedSource, ConcatSource, DevToolCodeSource, DevToolMapSource, ReplaceSource, Source,
 };
 
 /// Whether this is a text devtool asset, possibly behind edit/cache wrappers.
@@ -54,27 +53,55 @@ pub fn source_content_eq(a: &dyn Source, b: &dyn Source) -> bool {
   if std::ptr::eq(a, b) {
     return true;
   }
-  if let (Some(a), Some(b)) = (
-    a.as_any().downcast_ref::<DevToolMapSource>(),
-    b.as_any().downcast_ref::<DevToolMapSource>(),
-  ) && a == b
-  {
+  let (stream, other) = match (streaming_source(a), streaming_source(b)) {
+    // Prefer a map on the iterator side so both sources can stream.
+    (Some(a), Some(b)) if a.as_any().is::<DevToolMapSource>() => (b, a),
+    (Some(a), Some(b)) => (a, b),
+    (Some(a), None) => (a, b),
+    (None, Some(b)) => (b, a),
+    (None, None) => return a.buffer() == b.buffer(),
+  };
+  if std::ptr::eq(stream, other) {
     return true;
   }
-  if !has_utf8_text(a) || !has_utf8_text(b) {
-    return a.buffer() == b.buffer();
+  if let Some(map) = other.as_any().downcast_ref::<DevToolMapSource>() {
+    if stream.as_any().downcast_ref::<DevToolMapSource>() == Some(map) {
+      return true;
+    }
+    return matches_chunks(stream, map.json_chunks().map(str::as_bytes));
   }
-  let flat;
-  let (source, chunks) = if let Some(chunks) = text_chunks(a) {
-    (b, chunks)
-  } else if let Some(chunks) = text_chunks(b) {
-    (a, chunks)
-  } else {
-    // Both graphs contain edits. Render one side instead of replaying replacements here.
-    flat = a.source().into_string_lossy();
-    let chunks: TextChunks<'_> = Box::new(std::iter::once(flat.as_ref()));
-    (b, chunks)
-  };
+  matches_chunks(stream, std::iter::once(other.buffer().as_ref()))
+}
+
+// Follow wrappers that delegate buffer() to a single source. Stream only when
+// to_writer() emits exactly those bytes (an unedited ReplaceSource need not).
+fn streaming_source(source: &dyn Source) -> Option<&dyn Source> {
+  let any = source.as_any();
+  if let Some(cached) = any.downcast_ref::<CachedSource>() {
+    return streaming_source(cached.inner().as_ref());
+  }
+  if let Some(code) = any.downcast_ref::<DevToolCodeSource>() {
+    return if code.suffix().size() == 0 {
+      streaming_source(code.inner().as_ref())
+    } else {
+      Some(source)
+    };
+  }
+  if let Some(concat) = any.downcast_ref::<ConcatSource>() {
+    return if let [child] = concat.children() {
+      streaming_source(child.as_ref())
+    } else {
+      Some(source)
+    };
+  }
+  (any.is::<DevToolMapSource>()
+    || any
+      .downcast_ref::<ReplaceSource>()
+      .is_some_and(|s| !s.replacements().is_empty()))
+  .then_some(source)
+}
+
+fn matches_chunks<'a>(source: &dyn Source, chunks: impl Iterator<Item = &'a [u8]>) -> bool {
   let mut writer = CompareWriter {
     chunks,
     pending: &[],
@@ -84,74 +111,11 @@ pub fn source_content_eq(a: &dyn Source, b: &dyn Source) -> bool {
     && writer.chunks.all(|chunk| chunk.is_empty())
 }
 
-fn has_utf8_text(source: &dyn Source) -> bool {
-  let any = source.as_any();
-  if any.is::<RawStringSource>()
-    || any.is::<OriginalSource>()
-    || any.is::<SourceMapSource>()
-    || any.is::<DevToolMapSource>()
-  {
-    return true;
-  }
-  if let Some(source) = any.downcast_ref::<RawBufferSource>() {
-    return std::str::from_utf8(&source.buffer()).is_ok();
-  }
-  if let Some(source) = any.downcast_ref::<DevToolCodeSource>() {
-    return source.is_text() && has_utf8_text(source.inner().as_ref());
-  }
-  if let Some(source) = any.downcast_ref::<CachedSource>() {
-    return has_utf8_text(source.inner().as_ref());
-  }
-  if let Some(source) = any.downcast_ref::<ConcatSource>() {
-    return source.children().iter().all(|s| has_utf8_text(s.as_ref()));
-  }
-  if let Some(source) = any.downcast_ref::<ReplaceSource>() {
-    return has_utf8_text(source.inner().as_ref());
-  }
-  false
-}
-
-type TextChunks<'a> = Box<dyn Iterator<Item = &'a str> + 'a>;
-
-fn text_chunks(source: &dyn Source) -> Option<TextChunks<'_>> {
-  let any = source.as_any();
-  if let Some(map) = any.downcast_ref::<DevToolMapSource>() {
-    return Some(Box::new(map.json_chunks_iter()));
-  }
-  if let Some(code) = any.downcast_ref::<DevToolCodeSource>() {
-    return Some(Box::new(
-      text_chunks(code.inner().as_ref())?.chain(text_chunks(code.suffix().as_ref())?),
-    ));
-  }
-  if let Some(source) = any.downcast_ref::<CachedSource>() {
-    return text_chunks(source.inner().as_ref());
-  }
-  if let Some(source) = any.downcast_ref::<ConcatSource>() {
-    let children = source
-      .children()
-      .iter()
-      .map(|child| text_chunks(child.as_ref()))
-      .collect::<Option<Vec<_>>>()?;
-    return Some(Box::new(children.into_iter().flatten()));
-  }
-  if let Some(source) = any.downcast_ref::<ReplaceSource>() {
-    if source.replacements().is_empty() {
-      return text_chunks(source.inner().as_ref());
-    }
-    return None;
-  }
-  // Known text leaves expose borrowed chunks. Map escapes and graph wrappers
-  // above stay lazy instead of collecting a reference per JSON escape.
-  let mut chunks = Vec::new();
-  source.rope(&mut |chunk| chunks.push(chunk));
-  Some(Box::new(chunks.into_iter()))
-}
-
-struct CompareWriter<'a> {
-  chunks: TextChunks<'a>,
+struct CompareWriter<'a, I> {
+  chunks: I,
   pending: &'a [u8],
 }
-impl Write for CompareWriter<'_> {
+impl<'a, I: Iterator<Item = &'a [u8]>> Write for CompareWriter<'a, I> {
   fn write(&mut self, mut bytes: &[u8]) -> io::Result<usize> {
     let len = bytes.len();
     while !bytes.is_empty() {
@@ -159,8 +123,7 @@ impl Write for CompareWriter<'_> {
         self.pending = self
           .chunks
           .next()
-          .ok_or_else(|| io::Error::other("source contents differ"))?
-          .as_bytes();
+          .ok_or_else(|| io::Error::other("source contents differ"))?;
       }
       let n = bytes.len().min(self.pending.len());
       if bytes[..n] != self.pending[..n] {

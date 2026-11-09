@@ -7,7 +7,7 @@ use std::{
 use crate::{
   BoxSource, MapOptions, RawBufferSource, RawStringSource, Source, SourceExt, SourceMap,
   SourceValue,
-  helpers::{Chunks, GeneratedInfo, StreamChunks, stream_chunks_of_raw_rope},
+  helpers::{Chunks, RawRopeChunks, StreamChunks},
 };
 
 /// Generated code emitted by DevTool, with an optional
@@ -125,20 +125,8 @@ impl std::fmt::Debug for DevToolCodeSource {
   }
 }
 
-struct CodeChunks<'a>(&'a DevToolCodeSource);
-impl<'source> Chunks<'source> for CodeChunks<'source> {
-  fn stream<'chunk>(
-    &'chunk self,
-    options: &MapOptions,
-    on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
-    _on_source: crate::helpers::OnSource<'_>,
-    _on_name: crate::helpers::OnName<'_>,
-  ) -> GeneratedInfo {
-    stream_chunks_of_raw_rope(self.0, options, on_chunk)
-  }
-}
 impl StreamChunks for DevToolCodeSource {
   fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a> {
-    Box::new(CodeChunks(self))
+    Box::new(RawRopeChunks(self))
   }
 }

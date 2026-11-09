@@ -7,7 +7,7 @@ use std::{
 
 use crate::{
   MapOptions, Source, SourceMap, SourceValue,
-  helpers::{Chunks, GeneratedInfo, StreamChunks, stream_chunks_of_raw_rope},
+  helpers::{Chunks, RawRopeChunks, StreamChunks},
   source::is_all_none,
 };
 
@@ -59,8 +59,21 @@ impl DevToolMapSource {
     Self(Arc::new(data))
   }
 
-  pub(crate) fn json_chunks_iter(&self) -> impl Iterator<Item = &str> {
-    JsonChunks::new(&self.0)
+  pub(crate) fn json_chunks(&self) -> impl Iterator<Item = &str> {
+    // Keep one entry per JSON part, not per escape in sourcesContent.
+    let mut parts = self.0.json_parts().into_iter();
+    let mut quoted = None;
+    std::iter::from_fn(move || {
+      loop {
+        if let Some(chunk) = quoted.as_mut().and_then(Iterator::next) {
+          return Some(chunk);
+        }
+        match parts.next()? {
+          Part::Raw(chunk) => return Some(chunk),
+          Part::String(value) => quoted = Some(quoted_json(value)),
+        }
+      }
+    })
   }
 
   pub(crate) fn original_map(&self) -> &SourceMap {
@@ -90,43 +103,6 @@ enum Part<'a> {
   String(&'a str),
 }
 
-struct JsonChunks<'a> {
-  parts: std::vec::IntoIter<Part<'a>>,
-  string: Option<JsonStringChunks<'a>>,
-}
-
-impl<'a> JsonChunks<'a> {
-  fn new(data: &'a MapData) -> Self {
-    // Keep one reference per field rather than per escape. The string cursor
-    // scans each field only as a consumer needs its fragments.
-    let mut parts = Vec::new();
-    data.visit(&mut |part| parts.push(part));
-    Self {
-      parts: parts.into_iter(),
-      string: None,
-    }
-  }
-}
-
-impl<'a> Iterator for JsonChunks<'a> {
-  type Item = &'a str;
-
-  fn next(&mut self) -> Option<Self::Item> {
-    loop {
-      if let Some(string) = &mut self.string {
-        if let Some(chunk) = string.next() {
-          return Some(chunk);
-        }
-        self.string = None;
-      }
-      match self.parts.next()? {
-        Part::Raw(chunk) => return Some(chunk),
-        Part::String(value) => self.string = Some(JsonStringChunks::new(value)),
-      }
-    }
-  }
-}
-
 impl MapData {
   fn to_json(&self) -> String {
     // Reuse the capacity estimate and concrete Vec writer so emission needs
@@ -150,118 +126,94 @@ impl MapData {
     Ok(writer.written)
   }
 
-  fn visit<'a>(&'a self, visit: &mut impl FnMut(Part<'a>)) {
+  fn json_parts(&self) -> Vec<Part<'_>> {
+    let mut parts = Vec::new();
     let map = &self.map;
-    visit(Part::Raw("{\"version\":"));
-    visit(Part::Raw(&self.version));
+    parts.push(Part::Raw("{\"version\":"));
+    parts.push(Part::Raw(&self.version));
     if let Some(file) = map.file.as_deref() {
-      visit(Part::Raw(",\"file\":"));
-      visit(Part::String(file));
+      parts.push(Part::Raw(",\"file\":"));
+      parts.push(Part::String(file));
     }
-    visit(Part::Raw(",\"sources\":["));
+    parts.push(Part::Raw(",\"sources\":["));
     for (i, source) in map.sources().iter().enumerate() {
       if i != 0 {
-        visit(Part::Raw(","));
+        parts.push(Part::Raw(","));
       }
-      visit(Part::String(source));
+      parts.push(Part::String(source));
     }
-    visit(Part::Raw("]"));
+    parts.push(Part::Raw("]"));
     if !is_all_none(&map.sources_content) {
-      visit(Part::Raw(",\"sourcesContent\":["));
+      parts.push(Part::Raw(",\"sourcesContent\":["));
       for (i, content) in map.sources_content().iter().enumerate() {
         if i != 0 {
-          visit(Part::Raw(","));
+          parts.push(Part::Raw(","));
         }
         match content {
-          Some(content) => visit(Part::String(content)),
-          None => visit(Part::Raw("null")),
+          Some(content) => parts.push(Part::String(content)),
+          None => parts.push(Part::Raw("null")),
         }
       }
-      visit(Part::Raw("]"));
+      parts.push(Part::Raw("]"));
     }
-    visit(Part::Raw(",\"names\":["));
+    parts.push(Part::Raw(",\"names\":["));
     for (i, name) in map.names().iter().enumerate() {
       if i != 0 {
-        visit(Part::Raw(","));
+        parts.push(Part::Raw(","));
       }
-      visit(Part::String(name));
+      parts.push(Part::String(name));
     }
-    visit(Part::Raw("],\"mappings\":"));
-    visit(Part::String(&map.mappings));
+    parts.push(Part::Raw("],\"mappings\":"));
+    parts.push(Part::String(&map.mappings));
     if let Some(root) = map.source_root.as_deref() {
-      visit(Part::Raw(",\"sourceRoot\":"));
-      visit(Part::String(root));
+      parts.push(Part::Raw(",\"sourceRoot\":"));
+      parts.push(Part::String(root));
     }
     if let Some(id) = map.debug_id.as_deref() {
-      visit(Part::Raw(",\"debugId\":"));
-      visit(Part::String(id));
+      parts.push(Part::Raw(",\"debugId\":"));
+      parts.push(Part::String(id));
     }
     if let Some(list) = &self.ignore_list {
-      visit(Part::Raw(",\"ignoreList\":"));
-      visit(Part::Raw(list));
+      parts.push(Part::Raw(",\"ignoreList\":"));
+      parts.push(Part::Raw(list));
     }
-    visit(Part::Raw("}"));
+    parts.push(Part::Raw("}"));
+    parts
   }
 }
 
-struct JsonStringChunks<'a> {
-  remaining: &'a str,
-  pending: Option<&'static str>,
-  finished: bool,
-}
-
-impl<'a> JsonStringChunks<'a> {
-  fn new(value: &'a str) -> Self {
-    Self {
-      remaining: value,
-      pending: Some("\""),
-      finished: false,
-    }
-  }
-}
-
-impl<'a> Iterator for JsonStringChunks<'a> {
-  type Item = &'a str;
-
-  fn next(&mut self) -> Option<Self::Item> {
-    // These spellings match simd_json's compact serializer. Every slice
-    // borrows the immutable input or a static escape, including for rope().
-    const CONTROLS: [&str; 32] = [
-      "\\u0000", "\\u0001", "\\u0002", "\\u0003", "\\u0004", "\\u0005", "\\u0006", "\\u0007",
-      "\\b", "\\t", "\\n", "\\u000b", "\\f", "\\r", "\\u000e", "\\u000f", "\\u0010", "\\u0011",
-      "\\u0012", "\\u0013", "\\u0014", "\\u0015", "\\u0016", "\\u0017", "\\u0018", "\\u0019",
-      "\\u001a", "\\u001b", "\\u001c", "\\u001d", "\\u001e", "\\u001f",
-    ];
-    if let Some(chunk) = self.pending.take() {
-      return Some(chunk);
-    }
-    if self.finished {
+fn quoted_json(mut value: &str) -> impl Iterator<Item = &str> {
+  // Match simd_json's compact spelling while borrowing all unescaped text.
+  const CONTROLS: [&str; 32] = [
+    "\\u0000", "\\u0001", "\\u0002", "\\u0003", "\\u0004", "\\u0005", "\\u0006", "\\u0007", "\\b",
+    "\\t", "\\n", "\\u000b", "\\f", "\\r", "\\u000e", "\\u000f", "\\u0010", "\\u0011", "\\u0012",
+    "\\u0013", "\\u0014", "\\u0015", "\\u0016", "\\u0017", "\\u0018", "\\u0019", "\\u001a",
+    "\\u001b", "\\u001c", "\\u001d", "\\u001e", "\\u001f",
+  ];
+  let content = std::iter::from_fn(move || {
+    if value.is_empty() {
       return None;
     }
-    let value = self.remaining;
     for (i, byte) in value.bytes().enumerate() {
-      let escaped = match byte {
+      let escape = match byte {
         b'"' => "\\\"",
         b'\\' => "\\\\",
         0..=31 => CONTROLS[usize::from(byte)],
         _ => continue,
       };
-      self.remaining = &value[i + 1..];
       if i == 0 {
-        return Some(escaped);
+        value = &value[1..];
+        return Some(escape);
       }
-      self.pending = Some(escaped);
-      return Some(&value[..i]);
+      let (prefix, rest) = value.split_at(i);
+      value = rest;
+      return Some(prefix);
     }
-    self.remaining = "";
-    self.finished = true;
-    if value.is_empty() {
-      Some("\"")
-    } else {
-      self.pending = Some("\"");
-      Some(value)
-    }
-  }
+    Some(std::mem::take(&mut value))
+  });
+  std::iter::once("\"")
+    .chain(content)
+    .chain(std::iter::once("\""))
 }
 
 impl Source for DevToolMapSource {
@@ -274,7 +226,7 @@ impl Source for DevToolMapSource {
   }
 
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
-    for chunk in self.json_chunks_iter() {
+    for chunk in self.json_chunks() {
       on_chunk(chunk);
     }
   }
@@ -324,21 +276,8 @@ impl std::fmt::Debug for DevToolMapSource {
   }
 }
 
-struct MappingChunks<'a>(&'a DevToolMapSource);
-impl<'source> Chunks<'source> for MappingChunks<'source> {
-  fn stream<'chunk>(
-    &'chunk self,
-    options: &MapOptions,
-    on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
-    on_source: crate::helpers::OnSource<'_>,
-    on_name: crate::helpers::OnName<'_>,
-  ) -> GeneratedInfo {
-    let _ = (on_source, on_name);
-    stream_chunks_of_raw_rope(self.0, options, on_chunk)
-  }
-}
 impl StreamChunks for DevToolMapSource {
   fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a> {
-    Box::new(MappingChunks(self))
+    Box::new(RawRopeChunks(self))
   }
 }
