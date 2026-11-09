@@ -36,15 +36,18 @@ export default scenarios.map((scenario) => ({
 		const child = path.join(source, "child");
 		const inside = path.join(child, "inside.js");
 		const ready = path.join(source, "ready.js");
+		const scanned = path.join(source, "scanned.js");
 		const ignored = path.join(source, "ignored.js");
 		fs.mkdirSync(source);
 		fs.mkdirSync(child);
 		if (scenario.populated) fs.writeFileSync(inside, "0");
 		fs.writeFileSync(ready, "0");
+		fs.writeFileSync(scanned, "0");
 		fs.writeFileSync(ignored, "0");
 		const past = new Date(Date.now() - 10_000);
 		for (const file of [
 			ready,
+			scanned,
 			child,
 			ignored,
 			source,
@@ -52,6 +55,7 @@ export default scenarios.map((scenario) => ({
 		])
 			fs.utimesSync(file, past, past);
 		const files = [
+			ready,
 			ignored,
 			...(scenario.dependency === "file" ? [child] : []),
 			...(scenario.insideDependency === "file" ? [inside] : []),
@@ -101,8 +105,8 @@ export default scenarios.map((scenario) => ({
 		);
 		listen(native.watcher, shimEvents);
 		try {
-			// The unregistered ready file gets time info from the context scan.
-			await waitFor(() => native.getTimeInfoEntries().has(ready));
+			// The unregistered file gets time info from the context scan.
+			await waitFor(() => native.getTimeInfoEntries().has(scanned));
 			nativeEvents.length = shimEvents.length = 0;
 			nativeBatches.length = 0;
 			if (scenario.populated) fs.rmSync(child, { recursive: true });
