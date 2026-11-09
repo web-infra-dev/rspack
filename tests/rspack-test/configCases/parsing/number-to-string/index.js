@@ -15,6 +15,31 @@ it("should preserve number strings across module boundaries", () => {
   expect(large).toBe("1e+21");
 });
 
+it("should join array elements when folding String()", () => {
+  if (String([-0]) === "[0]") require("fail");
+  if (String([]) !== "") require("fail");
+  if (String([null, [-0, 1e21], undefined]) !== ",0,1e+21,") require("fail");
+
+  // Leave sparse arrays and values that are only known at runtime to JavaScript.
+  expect(String([, -0]) === ",0" ? "match" : "wrong").toBe("match");
+  const isEmpty = undefined => String([undefined]) === "" ? true : false;
+  expect(isEmpty("x")).toBe(false);
+  expect(isEmpty(undefined)).toBe(true);
+});
+
+it("should compare known template prefixes and suffixes at Unicode boundaries", () => {
+  function check(value) {
+    if (`${-0}${value}` === `é${value}`) require("fail");
+    if (`${value}é` === `${value}${-0}`) require("fail");
+  }
+  check("x");
+
+  // Compatible prefixes alone cannot decide equality.
+  const matches = (a, b) => `é${a}` === `é0${b}` ? true : false;
+  expect(matches("0x", "x")).toBe(true);
+  expect(matches("x", "x")).toBe(false);
+});
+
 it("should use JavaScript number strings in dynamic request suffixes", () => {
   const withNumber = name => require("./modules/" + name + -0 + ".js");
   const withStringAndNumber = name => require("./modules/" + name + "m" + -0 + ".js");

@@ -313,15 +313,16 @@ impl<'a> BasicEvaluatedExpression<'a> {
     } else if self.is_number() {
       Some(ryu_js::Buffer::new().format(self.number()).to_owned())
     } else if self.is_array() {
-      let mut arr = Vec::new();
-      for item in self.items() {
-        if let Some(item) = item.as_string() {
-          arr.push(item)
-        } else {
-          return None;
+      let mut result = String::new();
+      for (index, item) in self.items().iter().enumerate() {
+        if index != 0 {
+          result.push(',');
+        }
+        if !item.is_null() && !item.is_undefined() {
+          result.push_str(&item.as_string()?);
         }
       }
-      Some(format!("[{}]", arr.join(", ")))
+      Some(result)
     } else if self.is_template_string() {
       let mut s = String::new();
       for p in self.parts() {

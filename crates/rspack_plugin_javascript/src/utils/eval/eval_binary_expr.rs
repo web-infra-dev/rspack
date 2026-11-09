@@ -42,8 +42,7 @@ fn handle_template_string_compare<'parser>(
   let prefix_res = {
     let left_prefix = get_prefix(left.parts());
     let right_prefix = get_prefix(right.parts());
-    let len_prefix = usize::min(left_prefix.len(), right_prefix.len());
-    len_prefix > 0 && left_prefix[0..len_prefix] != right_prefix[0..len_prefix]
+    !left_prefix.starts_with(&right_prefix) && !right_prefix.starts_with(&left_prefix)
   };
   if prefix_res {
     res.set_bool(!eql);
@@ -54,10 +53,7 @@ fn handle_template_string_compare<'parser>(
   let suffix_res = {
     let left_suffix = get_suffix(left.parts());
     let right_suffix = get_suffix(right.parts());
-    let len_suffix = usize::min(left_suffix.len(), right_suffix.len());
-    len_suffix > 0
-      && left_suffix[left_suffix.len() - len_suffix..]
-        != right_suffix[right_suffix.len() - len_suffix..]
+    !left_suffix.ends_with(&right_suffix) && !right_suffix.ends_with(&left_suffix)
   };
   if suffix_res {
     res.set_bool(!eql);
