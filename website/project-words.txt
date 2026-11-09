@@ -50,6 +50,7 @@ devserverhot
 devserverwebsocketserver
 dhruvkelawala
 disabletransformbydefault
+douyinfe
 ecma
 edusperoni
 elecmonkey
@@ -68,9 +69,13 @@ feishu
 feng
 fetchcompileasyncwasmplugin
 fi3ework
+fluentui
 fnames
 funs
 gengkun
+glsl
+GLSL
+glslify
 golar
 Hana
 HerringtonDarkholme
@@ -84,6 +89,7 @@ Iife
 incrementality
 indicatif
 inituit
+Inlines
 innovatively
 inottn
 intellild
@@ -100,13 +106,18 @@ Jiahan
 jkzing
 jridgewell
 jscexperimentalplugins
+jsdevtools
 jserfeng
 kaffi
+kirana
+Kirana
 kuaishou
 Kyrylo
 ldconfig
 libjemalloc
 lightningcss
+lingui
+Lingui
 Lingyu
 lingyucoder
 linux
@@ -182,6 +193,7 @@ pxtorem
 quininer
 qwertyui
 recognise
+relocator
 resolvepnp
 riscv
 riscv64gc
@@ -219,6 +231,7 @@ sonda
 sooniter
 statoscope
 struct
+stylexswc
 svgr
 swcjsminimizerplugin
 swcjsminimizerrspackplugin
@@ -243,6 +256,8 @@ TSRX
 tuchg
 typeofs
 TypeScript
+typia
+Typia
 ulivz
 unaccessed
 Undelayed
@@ -254,10 +269,12 @@ vant
 verkada
 viktoriialurie
 vize
+vizejs
 wasi
 WASI
 weapp
 webpack
+wext
 xcode
 xcrun
 xctrace

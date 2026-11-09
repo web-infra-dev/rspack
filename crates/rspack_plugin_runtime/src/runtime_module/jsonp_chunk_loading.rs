@@ -472,7 +472,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       source.push_str(&source_with_on_chunk_load);
     }
 
-    if with_callback || with_loading {
+    if with_callback || with_loading || with_hmr {
       let global_object = &compilation.options.output.global_object;
       let chunk_loading_global = &compilation.options.output.chunk_loading_global;
       let chunk_loading_global_expr = format!(r#"{global_object}["{chunk_loading_global}"]"#);

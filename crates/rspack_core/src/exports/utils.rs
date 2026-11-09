@@ -95,14 +95,12 @@ impl EvaluatedInlinableValue {
   }
 
   pub fn render(&self, comment: &str) -> String {
+    let mut number_buffer = ryu_js::Buffer::new();
     let s: Cow<str> = match self {
       Self::Null => "null".into(),
       Self::Undefined => "undefined".into(),
       Self::Boolean(v) => if *v { "true" } else { "false" }.into(),
-      Self::Number(v) => {
-        let mut buf = ryu_js::Buffer::new();
-        buf.format(*v).to_string().into()
-      }
+      Self::Number(v) => ryu_js::format_number_literal(&mut number_buffer, *v).into(),
       Self::String(v) => json_stringify(v.as_str()).into(),
     };
     format!("({comment}{s})")

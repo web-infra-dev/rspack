@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use rspack_util::SpanExt;
 use swc_next_ecma_ast::{Ast, Expr, ExprData, GetSpan};
 
@@ -12,11 +10,8 @@ pub fn eval_lit_expr<'a>(ast: &'a Ast<'_>, expr: Expr) -> Option<BasicEvaluatedE
   match ast.expr_data(expr) {
     ExprData::StringLiteral(string) => {
       let value = ast.get_wtf8(string.value(ast));
-      // Skip WTF-8's surrogate scan for valid UTF-8; preserve its lossy fallback otherwise.
-      result.set_string(match std::str::from_utf8(value.as_bytes()) {
-        Ok(value) => Cow::Borrowed(value),
-        Err(_) => value.to_string_lossy(),
-      });
+      // Leave lone surrogates to JavaScript: a Rust str cannot represent them.
+      result.set_string(std::str::from_utf8(value.as_bytes()).ok()?);
     }
     ExprData::RegExpLiteral(regexp) => result.set_regexp(
       ast.get_utf8(regexp.pattern(ast)).to_string(),
