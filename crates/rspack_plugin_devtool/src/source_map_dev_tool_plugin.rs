@@ -17,7 +17,7 @@ use rspack_core::{
   legacy_cache::persistent::occasion::SourceMapDevToolPluginCache,
   rspack_sources::{
     BoxSource, DevToolCodeSource, DevToolMapSource, MapOptions, RawStringSource, Source, SourceExt,
-    SourceMap,
+    SourceMap, update_text_content_hash,
   },
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
@@ -1070,7 +1070,7 @@ impl SourceMapDevToolPlugin {
       let content_hash_digest =
         if chunk.is_some() && source_map_filename_config.has_content_hash_placeholder() {
           let mut hasher = RspackHasher::from(&compilation.options.output);
-          dev_tool_map_source.update_content_hash(&mut hasher);
+          update_text_content_hash(&dev_tool_map_source, &mut hasher);
           let digest = hasher.digest(&compilation.options.output.hash_digest);
           Some(digest)
         } else {

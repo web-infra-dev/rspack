@@ -59,12 +59,6 @@ impl DevToolMapSource {
     Self(Arc::new(data))
   }
 
-  /// Hash the rendered bytes, coalescing small escaped fragments. Unlike the
-  /// structural Source hash, this matches hashing the complete output buffer.
-  pub fn update_content_hash(&self, hasher: &mut dyn Hasher) {
-    crate::update_text_content_hash(self, hasher);
-  }
-
   pub(crate) fn json_chunks_iter(&self) -> impl Iterator<Item = &str> {
     JsonChunks::new(&self.0)
   }
