@@ -157,6 +157,8 @@ pub struct FsWatcher {
   path_manager: Arc<PathManager>,
   /// Shared with the executor for the same reason: `getInfo()` drains it.
   aggregated: Aggregated,
+  #[cfg(feature = "testing")]
+  executor_trace: testing::ExecutorTrace,
 }
 
 struct FsWatcherInner {
@@ -185,6 +187,8 @@ impl FsWatcher {
     let paused = Arc::new(AtomicBool::new(false));
     let executor = Executor::new(rx, options.aggregate_timeout, Arc::clone(&paused));
     let aggregated = executor.aggregated();
+    #[cfg(feature = "testing")]
+    let executor_trace = executor.trace();
     let scanner = Scanner::new(trigger.backfill_sender(), Arc::clone(&path_manager));
     let trigger = Arc::new(Mutex::new(Some(trigger)));
 
@@ -203,6 +207,8 @@ impl FsWatcher {
       op_tx: spawn_owner_thread(inner),
       path_manager,
       aggregated,
+      #[cfg(feature = "testing")]
+      executor_trace,
     }
   }
 
