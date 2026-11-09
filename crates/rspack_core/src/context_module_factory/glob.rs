@@ -1,14 +1,18 @@
 use cow_utils::CowUtils;
 use rspack_loader_runner::parse_resource;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
-use rspack_util::{identifier::relative_path_to_request, node_path::NodePath};
+use rspack_util::{
+  glob::{
+    GlobMatchOptions, escape_glob_pattern, extract_glob_base_dir,
+    glob_match_normalized_with_explicit_dot, normalize_path_separators,
+    normalize_path_separators_for_path, unescape_glob_path,
+  },
+  identifier::relative_path_to_request,
+  node_path::NodePath,
+};
 use sugar_path::SugarPath;
 
-use crate::{
-  ContextModuleOptions, GlobMatchOptions, ResolveInnerOptions, escape_glob_pattern,
-  extract_glob_base_dir, glob_match_normalized_with_explicit_dot, normalize_path_separators,
-  normalize_path_separators_for_path, unescape_glob_path,
-};
+use crate::{ContextModuleOptions, ResolveInnerOptions};
 
 #[derive(Debug)]
 struct ContextModuleGlobPattern {

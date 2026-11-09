@@ -2,14 +2,14 @@ use concat_string::concat_string;
 use rspack_core::{
   BoxDependency, ContextMode, ContextModulePattern, ContextNameSpaceObject, ContextOptions,
   DependencyCategory, ReferencedSpecifier, compile_context_module_glob_request, get_context,
-  normalize_path_separators as normalize_glob_path_separators,
 };
 use rspack_error::{Error, Result, Severity};
 use rspack_macros::AstObject;
 use rspack_paths::{Utf8Path, normalize_path_separators};
 use rspack_regex::RspackRegex;
 use rspack_util::{
-  SpanExt, identifier::relative_path_to_request, node_path::NodePath, swc::AstSubRangeExt,
+  SpanExt, glob::normalize_path_separators as normalize_glob_path_separators,
+  identifier::relative_path_to_request, node_path::NodePath, swc::AstSubRangeExt,
 };
 use sugar_path::SugarPath;
 use swc_next_ecma_ast::{Ast, CallExpression, Expr, GetSpan, ObjectExpression};
