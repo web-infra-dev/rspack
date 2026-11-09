@@ -65,11 +65,6 @@ impl DevToolMapSource {
     crate::update_text_content_hash(self, hasher);
   }
 
-  /// Cache the byte count of a completed write of this map's unmodified JSON.
-  pub fn record_serialized_size(&self, size: usize) {
-    let _ = self.0.size.set(size);
-  }
-
   pub(crate) fn json_chunks_iter(&self) -> impl Iterator<Item = &str> {
     JsonChunks::new(&self.0)
   }
@@ -79,16 +74,20 @@ impl DevToolMapSource {
   }
 }
 
-struct SizeWriter(usize);
+struct CountingWriter<W> {
+  inner: W,
+  written: usize,
+}
 
-impl Write for SizeWriter {
+impl<W: Write> Write for CountingWriter<W> {
   fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-    self.0 += bytes.len();
-    Ok(bytes.len())
+    let n = self.inner.write(bytes)?;
+    self.written += n;
+    Ok(n)
   }
 
   fn flush(&mut self) -> io::Result<()> {
-    Ok(())
+    self.inner.flush()
   }
 }
 
@@ -145,10 +144,16 @@ impl MapData {
 
   fn size(&self) -> usize {
     *self.size.get_or_init(|| {
-      let mut writer = SizeWriter(0);
-      simd_json::to_writer(&mut writer as &mut dyn Write, &self.map).expect("count map JSON bytes");
-      writer.0
+      self
+        .write_counted(io::sink())
+        .expect("count map JSON bytes")
     })
+  }
+
+  fn write_counted(&self, inner: impl Write) -> io::Result<usize> {
+    let mut writer = CountingWriter { inner, written: 0 };
+    simd_json::to_writer(&mut writer as &mut dyn Write, &self.map).map_err(io::Error::other)?;
+    Ok(writer.written)
   }
 
   fn visit<'a>(&'a self, visit: &mut impl FnMut(Part<'a>)) {
@@ -293,7 +298,12 @@ impl Source for DevToolMapSource {
   }
 
   fn to_writer(&self, writer: &mut dyn Write) -> io::Result<()> {
-    simd_json::to_writer(writer, &self.0.map).map_err(io::Error::other)
+    if self.0.size.get().is_some() {
+      return simd_json::to_writer(writer, &self.0.map).map_err(io::Error::other);
+    }
+    let written = self.0.write_counted(writer)?;
+    let _ = self.0.size.set(written);
+    Ok(())
   }
 }
 

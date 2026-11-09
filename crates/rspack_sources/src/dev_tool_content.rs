@@ -48,7 +48,7 @@ pub fn update_text_content_hash(source: &dyn Source, hasher: &mut dyn Hasher) {
   writer.flush().expect("flush source content to hasher");
 }
 
-/// Compare rendered bytes without flattening known UTF-8 source graphs.
+/// Compare rendered bytes, streaming edits through the existing source writer.
 /// Unknown and binary sources retain buffer semantics.
 pub fn source_content_eq(a: &dyn Source, b: &dyn Source) -> bool {
   if std::ptr::eq(a, b) {
@@ -64,44 +64,60 @@ pub fn source_content_eq(a: &dyn Source, b: &dyn Source) -> bool {
   if !has_utf8_text(a) || !has_utf8_text(b) {
     return a.buffer() == b.buffer();
   }
+  let flat;
+  let (source, chunks) = if let Some(chunks) = text_chunks(a) {
+    (b, chunks)
+  } else if let Some(chunks) = text_chunks(b) {
+    (a, chunks)
+  } else {
+    // Both graphs contain edits. Render one side instead of replaying replacements here.
+    flat = a.source().into_string_lossy();
+    let chunks: TextChunks<'_> = Box::new(std::iter::once(flat.as_ref()));
+    (b, chunks)
+  };
   let mut writer = CompareWriter {
-    chunks: text_chunks(a),
+    chunks,
     pending: &[],
   };
-  b.to_writer(&mut writer).is_ok()
+  source.to_writer(&mut writer).is_ok()
     && writer.pending.is_empty()
     && writer.chunks.all(|chunk| chunk.is_empty())
 }
 
 type TextChunks<'a> = Box<dyn Iterator<Item = &'a str> + 'a>;
 
-fn text_chunks(source: &dyn Source) -> TextChunks<'_> {
+fn text_chunks(source: &dyn Source) -> Option<TextChunks<'_>> {
   let any = source.as_any();
   if let Some(map) = any.downcast_ref::<DevToolMapSource>() {
-    return Box::new(map.json_chunks_iter());
+    return Some(Box::new(map.json_chunks_iter()));
   }
   if let Some(code) = any.downcast_ref::<DevToolCodeSource>() {
-    return Box::new(text_chunks(code.inner().as_ref()).chain(text_chunks(code.suffix().as_ref())));
+    return Some(Box::new(
+      text_chunks(code.inner().as_ref())?.chain(text_chunks(code.suffix().as_ref())?),
+    ));
   }
   if let Some(source) = any.downcast_ref::<CachedSource>() {
     return text_chunks(source.inner().as_ref());
   }
   if let Some(source) = any.downcast_ref::<ConcatSource>() {
-    return Box::new(
-      source
-        .children()
-        .iter()
-        .flat_map(|child| text_chunks(child.as_ref())),
-    );
+    let children = source
+      .children()
+      .iter()
+      .map(|child| text_chunks(child.as_ref()))
+      .collect::<Option<Vec<_>>>()?;
+    return Some(Box::new(children.into_iter().flatten()));
   }
   if let Some(source) = any.downcast_ref::<ReplaceSource>() {
-    return Box::new(source.edited_chunks(text_chunks(source.inner().as_ref())));
+    if source.replacements().is_empty() {
+      return text_chunks(source.inner().as_ref());
+    }
+    return None;
   }
   // Known text leaves expose borrowed chunks. Map escapes and graph wrappers
   // above stay lazy instead of collecting a reference per JSON escape.
   let mut chunks = Vec::new();
   source.rope(&mut |chunk| chunks.push(chunk));
-  Box::new(chunks.into_iter())
+  Some(Box::new(chunks.into_iter()))
 }
 
 struct CompareWriter<'a> {

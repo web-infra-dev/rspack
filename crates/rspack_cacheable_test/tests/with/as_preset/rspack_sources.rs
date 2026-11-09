@@ -109,7 +109,13 @@ fn source_map_sources_compare_rendered_bytes() {
 
   let map = SourceMap::from_json(r#"{"version":3,"sources":["a\"b.js"],"sourcesContent":["\u0000\n你好\\world"],"names":[],"mappings":"AAAA"}"#.to_owned()).unwrap();
   let source = DevToolMapSource::new(map);
+  // A failed write must not cache the length of a JSON prefix.
+  assert!(source.to_writer(&mut [0u8; 8].as_mut_slice()).is_err());
+  let mut rendered = Vec::new();
+  source.to_writer(&mut rendered).unwrap();
+  assert_eq!(source.size(), rendered.len());
   let text = source.source().into_string_lossy().into_owned();
+  assert_eq!(rendered, text.as_bytes());
   let split = text.find("sourcesContent").unwrap();
   let code = DevToolCodeSource::new(
     OriginalSource::new(text[..split].to_owned(), "prefix").boxed(),
@@ -230,7 +236,7 @@ fn source_map_edits_share_graph_and_survive_cache() {
 }
 
 #[test]
-fn replaced_content_cursor_matches_rope_and_hash() {
+fn replaced_content_matches_rendered_bytes_and_hash() {
   use std::hash::{DefaultHasher, Hasher};
 
   use rspack_sources::{
@@ -270,6 +276,11 @@ fn replaced_content_cursor_matches_rope_and_hash() {
       raw.source()
     );
     assert!(source_content_eq(&raw, &source));
+    let mut other = ReplaceSource::new(RawStringSource::from_static("?"));
+    other.replace(0, 1, output.to_owned(), None);
+    assert!(source_content_eq(&source, &other));
+    other.insert(1, "!".to_owned(), None);
+    assert!(!source_content_eq(&source, &other));
     assert!(!source_content_eq(
       &source,
       &RawStringSource::from(format!("{}!", raw.source().into_string_lossy()))

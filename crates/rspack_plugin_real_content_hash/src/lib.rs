@@ -15,8 +15,8 @@ use rayon::prelude::*;
 use rspack_core::{
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
   rspack_sources::{
-    BoxSource, DevToolMapSource, RawStringSource, ReplaceSource, Source, SourceExt, SourceValue,
-    is_devtool_text_source, source_content_eq, update_text_content_hash,
+    BoxSource, RawStringSource, ReplaceSource, SourceExt, SourceValue, is_devtool_text_source,
+    source_content_eq, update_text_content_hash,
   },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
@@ -225,7 +225,18 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
                 .filter_map(|name| batch_sources.get(&(old_hash.as_str(), name)))
                 .cloned()
                 .collect::<Vec<_>>();
-              asset_contents.dedup_by(|a, b| equal_for_hash(a.as_ref(), b.as_ref()));
+              asset_contents.dedup_by(|a, b| {
+                let (a, b) = (a.as_ref(), b.as_ref());
+                let a_is_devtool = is_devtool_text_source(a);
+                let b_is_devtool = is_devtool_text_source(b);
+                if (a_is_devtool && (b_is_devtool || b.as_any().is::<RawStringSource>()))
+                  || (b_is_devtool && a.as_any().is::<RawStringSource>())
+                {
+                  source_content_eq(a, b)
+                } else {
+                  a == b
+                }
+              });
               let updated_hash = hooks
                 .borrow()
                 .update_hash
@@ -321,17 +332,6 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-fn equal_for_hash(a: &(dyn Source + 'static), b: &(dyn Source + 'static)) -> bool {
-  let a_is_devtool = is_devtool_text_source(a);
-  let b_is_devtool = is_devtool_text_source(b);
-  if (a_is_devtool && (b_is_devtool || b.as_any().is::<RawStringSource>()))
-    || (b_is_devtool && a.as_any().is::<RawStringSource>())
-  {
-    return source_content_eq(a, b);
-  }
-  a == b
-}
-
 #[derive(Debug)]
 struct AssetData<'a> {
   own_hashes: HashSet<&'a str>,
@@ -369,11 +369,7 @@ impl<'a> AssetData<'a> {
         matches.push(found);
       });
       source.to_writer(&mut matcher).expect("scan devtool asset");
-      let scanned_size = matcher.finish();
-      // An outer edit can change the byte count, so only record it on a bare map.
-      if let Some(map) = source.as_ref().as_any().downcast_ref::<DevToolMapSource>() {
-        map.record_serialized_size(scanned_size);
-      }
+      matcher.finish();
       return Self {
         own_hashes,
         referenced_hashes,

@@ -265,7 +265,8 @@ Important implementation details:
   through `source()` to preserve the old devtool boundary. Bare buffers retain their byte semantics.
 - `DevToolMapSource` is the JSON asset itself, so `map()` returns `None`. It retains the
   original `SourceMap` without interning, deduplicating, or rewriting
-  `sourcesContent`. `source()` and `buffer()` serialize on demand and cache only the byte length.
+  `sourcesContent`. `source()`, `buffer()`, and successful `to_writer()` calls cache only the
+  serialized byte length, so a later `size()` need not serialize the map again.
   Rope APIs expose borrowed JSON fragments. Hashing and scanning use the SIMD writer, and
   equality advances through a field/escape cursor without collecting one reference per escape.
   Persistent cache stores fields directly, including empty arrays. For external `noSources` maps,
@@ -276,8 +277,8 @@ Important implementation details:
   final output are derived from the original scanned source. ReplaceSource uses u32 offsets;
   edits outside that range retain the flat-string fallback instead of truncating offsets.
   Content hashing uses emitted bytes with small writes buffered; bare maps retain SIMD writing.
-  Content equality uses a lazy JSON/edit cursor, independent of rope boundaries, without a
-  vector entry per JSON escape. Source structural hashing remains separate. RCH deduplicates
+  Content equality streams edited text through the source writer and compares bytes across
+  chunk boundaries. If both text graphs contain edits, it materializes one side. Source structural hashing remains separate. RCH deduplicates
   devtool text outputs and their edit/cache wrappers with raw strings by content; unrelated
   sources keep their previous equality behavior. Binary/unknown sources keep scan/buffer
   fallbacks. SRI, asset comparison and binding map-presence checks recognize these wrappers.
