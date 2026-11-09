@@ -1,6 +1,8 @@
 //! Cacheable source types for serialization/deserialization.
 #![allow(missing_docs)]
 
+use triomphe::ThinArc;
+
 use crate::{
   BoxSource, CachedSource, ConcatSource, MappingSource, OriginalSource, RawBufferSource,
   RawStringSource, ReplaceSource, ReplacementEnforce, Source, SourceExt, SourceMap,
@@ -46,19 +48,20 @@ impl From<CacheableSourceMap> for SourceMap {
     SourceMap {
       version: map.version,
       file: map.file.map(Into::into),
-      sources: shared_slice(map.sources.into_iter().map(Into::into).collect()),
+      sources: shared_slice(map.sources.into_iter().map(Into::into)),
       sources_content: shared_slice(
         map
           .sources_content
           .into_iter()
-          .map(|content| content.map(Into::into))
-          .collect(),
+          .map(|content| content.map(Into::into)),
       ),
-      names: shared_slice(map.names.into_iter().map(Into::into).collect()),
+      names: shared_slice(map.names.into_iter().map(Into::into)),
       mappings: map.mappings.into(),
       source_root: map.source_root.map(Into::into),
       debug_id: map.debug_id.map(Into::into),
-      ignore_list: map.ignore_list.map(shared_slice),
+      ignore_list: map
+        .ignore_list
+        .map(|items| ThinArc::from_header_and_iter((), items.into_iter())),
     }
   }
 }

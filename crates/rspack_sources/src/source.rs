@@ -283,20 +283,25 @@ impl MapOptions {
   }
 }
 
-pub(crate) fn is_all_none(val: &ThinArc<(), Option<BytesStr>>) -> bool {
-  val.slice.iter().all(Option::is_none)
+pub(crate) fn is_all_none(val: &Option<ThinArc<(), Option<BytesStr>>>) -> bool {
+  val
+    .as_ref()
+    .is_none_or(|items| items.slice.iter().all(Option::is_none))
 }
 
-pub(crate) fn shared_slice<T>(items: Vec<T>) -> ThinArc<(), T> {
-  // Freeze the element handles together with the reference count and length.
-  ThinArc::from_header_and_iter((), items.into_iter())
+pub(crate) fn shared_slice<T>(items: impl ExactSizeIterator<Item = T>) -> Option<ThinArc<(), T>> {
+  // Empty field arrays need neither an allocation nor a shared reference count.
+  (items.len() != 0).then(|| ThinArc::from_header_and_iter((), items))
 }
 
 fn serialize_shared_slice<T: Serialize, S: Serializer>(
-  value: &ThinArc<(), T>,
+  value: &Option<ThinArc<(), T>>,
   serializer: S,
 ) -> std::result::Result<S::Ok, S::Error> {
-  value.slice.serialize(serializer)
+  value
+    .as_ref()
+    .map_or(&[][..], |items| &items.slice)
+    .serialize(serializer)
 }
 
 fn serialize_ignore_list<S: Serializer>(
@@ -314,15 +319,15 @@ pub struct SourceMap {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub(crate) file: Option<BytesStr>,
   #[serde(serialize_with = "serialize_shared_slice")]
-  pub(crate) sources: ThinArc<(), BytesStr>,
+  pub(crate) sources: Option<ThinArc<(), BytesStr>>,
   #[serde(
     rename = "sourcesContent",
     skip_serializing_if = "is_all_none",
     serialize_with = "serialize_shared_slice"
   )]
-  pub(crate) sources_content: ThinArc<(), Option<BytesStr>>,
+  pub(crate) sources_content: Option<ThinArc<(), Option<BytesStr>>>,
   #[serde(serialize_with = "serialize_shared_slice")]
-  pub(crate) names: ThinArc<(), BytesStr>,
+  pub(crate) names: Option<ThinArc<(), BytesStr>>,
   pub(crate) mappings: BytesStr,
   #[serde(rename = "sourceRoot", skip_serializing_if = "Option::is_none")]
   pub(crate) source_root: Option<BytesStr>,
@@ -353,9 +358,9 @@ impl SourceMap {
       version: 3,
       file: None,
       mappings,
-      sources: shared_slice(sources),
-      sources_content: shared_slice(sources_content),
-      names: shared_slice(names),
+      sources: shared_slice(sources.into_iter()),
+      sources_content: shared_slice(sources_content.into_iter()),
+      names: shared_slice(names.into_iter()),
       source_root: None,
       debug_id: None,
       ignore_list: None,
@@ -424,7 +429,8 @@ impl SourceMap {
   }
   /// Set the ignoreList field.
   pub fn set_ignore_list(&mut self, ignore_list: Option<Cow<'_, [u32]>>) {
-    self.ignore_list = ignore_list.map(|list| shared_slice(list.into_owned()));
+    self.ignore_list =
+      ignore_list.map(|list| ThinArc::from_header_and_iter((), list.iter().copied()));
   }
   /// Get the decoded mappings.
   pub fn decoded_mappings(&self) -> impl Iterator<Item = Mapping> + '_ {
@@ -436,11 +442,17 @@ impl SourceMap {
   }
   /// Get the shared source names.
   pub fn sources(&self) -> &[BytesStr] {
-    &self.sources.slice
+    self.sources.as_ref().map_or(&[], |items| &items.slice)
   }
   /// Set the shared source names.
   pub fn set_sources<T: Into<BytesStr>>(&mut self, sources: impl IntoIterator<Item = T>) {
-    self.sources = shared_slice(sources.into_iter().map(Into::into).collect());
+    self.sources = shared_slice(
+      sources
+        .into_iter()
+        .map(Into::into)
+        .collect::<Vec<_>>()
+        .into_iter(),
+    );
   }
   /// Get a source name by index.
   pub fn get_source(&self, index: usize) -> Option<&str> {
@@ -448,20 +460,23 @@ impl SourceMap {
   }
   /// Get the shared source contents. Missing content is None; empty text is Some("").
   pub fn sources_content(&self) -> &[Option<BytesStr>] {
-    &self.sources_content.slice
+    self
+      .sources_content
+      .as_ref()
+      .map_or(&[], |items| &items.slice)
   }
   /// Set the shared source contents.
   pub fn set_sources_content(&mut self, sources_content: Vec<Option<BytesStr>>) {
-    self.sources_content = shared_slice(sources_content);
+    self.sources_content = shared_slice(sources_content.into_iter());
   }
   /// Remove source contents and detach metadata from their backing allocations.
   #[doc(hidden)]
   pub fn remove_sources_content(&mut self) {
-    self.sources_content = shared_slice(Vec::new());
+    self.sources_content = None;
     let detach = |text: &BytesStr| BytesStr::from_string(text.to_string());
     self.file = self.file.as_ref().map(detach);
-    self.sources = shared_slice(self.sources().iter().map(detach).collect());
-    self.names = shared_slice(self.names().iter().map(detach).collect());
+    self.sources = shared_slice(self.sources().iter().map(detach));
+    self.names = shared_slice(self.names().iter().map(detach));
     self.mappings = detach(&self.mappings);
     self.source_root = self.source_root.as_ref().map(detach);
     self.debug_id = self.debug_id.as_ref().map(detach);
@@ -472,7 +487,7 @@ impl SourceMap {
   }
   /// Get the shared names.
   pub fn names(&self) -> &[BytesStr] {
-    &self.names.slice
+    self.names.as_ref().map_or(&[], |items| &items.slice)
   }
   /// Get a name by index.
   pub fn get_name(&self, index: usize) -> Option<&str> {
@@ -480,7 +495,13 @@ impl SourceMap {
   }
   /// Set the shared names.
   pub fn set_names<T: Into<BytesStr>>(&mut self, names: impl IntoIterator<Item = T>) {
-    self.names = shared_slice(names.into_iter().map(Into::into).collect());
+    self.names = shared_slice(
+      names
+        .into_iter()
+        .map(Into::into)
+        .collect::<Vec<_>>()
+        .into_iter(),
+    );
   }
   /// Get the source root.
   pub fn source_root(&self) -> Option<&str> {
@@ -628,13 +649,16 @@ fn deserialize_source_map_tape(
   Ok(SourceMap {
     version: 3,
     file: optional_tape_string(file, storage)?,
-    sources: shared_slice(optional_tape_strings(sources, storage)?),
-    sources_content: shared_slice(optional_tape_source_contents(sources_content, storage)?),
-    names: shared_slice(optional_tape_strings(names, storage)?),
+    sources: shared_slice(optional_tape_strings(sources, storage)?.into_iter()),
+    sources_content: shared_slice(
+      optional_tape_source_contents(sources_content, storage)?.into_iter(),
+    ),
+    names: shared_slice(optional_tape_strings(names, storage)?.into_iter()),
     mappings,
     source_root: optional_tape_string(source_root, storage)?,
     debug_id: optional_tape_string(debug_id, storage)?,
-    ignore_list: optional_tape_u32s(ignore_list)?.map(shared_slice),
+    ignore_list: optional_tape_u32s(ignore_list)?
+      .map(|items| ThinArc::from_header_and_iter((), items.into_iter())),
   })
 }
 
@@ -658,21 +682,21 @@ fn optional_tape_strings(
   let Some(value) = value.filter(|value| !value.is_null()) else {
     return Ok(Vec::new());
   };
-  value
+  let array = value
     .as_array()
-    .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedArray))?
-    .iter()
-    .map(|value| {
-      if value.is_null() {
-        Ok(BytesStr::new())
-      } else {
-        value
-          .into_string()
-          .map(|text| shared_string(storage, text))
-          .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString).into())
-      }
-    })
-    .collect()
+    .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedArray))?;
+  let mut strings = Vec::with_capacity(array.len());
+  for value in array.iter() {
+    strings.push(if value.is_null() {
+      BytesStr::new()
+    } else {
+      let text = value
+        .into_string()
+        .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString))?;
+      shared_string(storage, text)
+    });
+  }
+  Ok(strings)
 }
 
 fn optional_tape_source_contents(
@@ -682,29 +706,32 @@ fn optional_tape_source_contents(
   let Some(value) = value.filter(|value| !value.is_null()) else {
     return Ok(Vec::new());
   };
-  value
+  let array = value
     .as_array()
-    .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedArray))?
-    .iter()
-    .map(|value| optional_tape_string(Some(value), storage))
-    .collect()
+    .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedArray))?;
+  let mut contents = Vec::with_capacity(array.len());
+  for value in array.iter() {
+    contents.push(optional_tape_string(Some(value), storage)?);
+  }
+  Ok(contents)
 }
 
 fn optional_tape_u32s(value: Option<simd_json::tape::Value<'_, '_>>) -> Result<Option<Vec<u32>>> {
   let Some(value) = value.filter(|value| !value.is_null()) else {
     return Ok(None);
   };
-  value
+  let array = value
     .as_array()
-    .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedArray))?
-    .iter()
-    .map(|value| {
+    .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedArray))?;
+  let mut items = Vec::with_capacity(array.len());
+  for value in array.iter() {
+    items.push(
       value
         .as_u32()
-        .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedUnsigned).into())
-    })
-    .collect::<Result<Vec<_>>>()
-    .map(Some)
+        .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedUnsigned))?,
+    );
+  }
+  Ok(Some(items))
 }
 
 fn deserialize_source_map(value: &BorrowedValue<'_>, storage: &Bytes) -> Result<SourceMap> {
@@ -716,17 +743,16 @@ fn deserialize_source_map(value: &BorrowedValue<'_>, storage: &Bytes) -> Result<
   Ok(SourceMap {
     version: 3,
     file: optional_string_field(object, "file")?.map(text),
-    sources: shared_slice(optional_string_array_field(object, "sources", storage)?),
-    sources_content: shared_slice(optional_source_contents_field(
-      object,
-      "sourcesContent",
-      storage,
-    )?),
-    names: shared_slice(optional_string_array_field(object, "names", storage)?),
+    sources: shared_slice(optional_string_array_field(object, "sources", storage)?.into_iter()),
+    sources_content: shared_slice(
+      optional_source_contents_field(object, "sourcesContent", storage)?.into_iter(),
+    ),
+    names: shared_slice(optional_string_array_field(object, "names", storage)?.into_iter()),
     mappings: text(mappings),
     source_root: optional_string_field(object, "sourceRoot")?.map(text),
     debug_id: optional_string_field(object, "debugId")?.map(text),
-    ignore_list: optional_u32_array_field(object, "ignoreList")?.map(shared_slice),
+    ignore_list: optional_u32_array_field(object, "ignoreList")?
+      .map(|items| ThinArc::from_header_and_iter((), items.into_iter())),
   })
 }
 
@@ -783,20 +809,18 @@ fn optional_string_array_field(
   let values = value
     .as_array()
     .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedArray))?;
-  values
-    .as_slice()
-    .iter()
-    .map(|value| {
-      if value.is_null() {
-        Ok(BytesStr::new())
-      } else {
-        value
-          .as_str()
-          .map(|text| shared_string(storage, text))
-          .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString).into())
-      }
-    })
-    .collect()
+  let mut strings = Vec::with_capacity(values.len());
+  for value in values.as_slice() {
+    strings.push(if value.is_null() {
+      BytesStr::new()
+    } else {
+      let text = value
+        .as_str()
+        .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString))?;
+      shared_string(storage, text)
+    });
+  }
+  Ok(strings)
 }
 
 fn optional_source_contents_field(
@@ -807,22 +831,21 @@ fn optional_source_contents_field(
   let Some(value) = object.get(key).filter(|value| !value.is_null()) else {
     return Ok(Vec::new());
   };
-  value
+  let values = value
     .as_array()
-    .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedArray))?
-    .as_slice()
-    .iter()
-    .map(|value| {
-      if value.is_null() {
-        Ok(None)
-      } else {
-        value
-          .as_str()
-          .map(|text| Some(shared_string(storage, text)))
-          .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString).into())
-      }
-    })
-    .collect()
+    .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedArray))?;
+  let mut contents = Vec::with_capacity(values.len());
+  for value in values.as_slice() {
+    contents.push(if value.is_null() {
+      None
+    } else {
+      let text = value
+        .as_str()
+        .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString))?;
+      Some(shared_string(storage, text))
+    });
+  }
+  Ok(contents)
 }
 
 fn optional_u32_array_field(
@@ -838,15 +861,15 @@ fn optional_u32_array_field(
   let values = value
     .as_array()
     .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedArray))?;
-  values
-    .iter()
-    .map(|value| {
+  let mut items = Vec::with_capacity(values.len());
+  for value in values.as_slice() {
+    items.push(
       value
         .as_u32()
-        .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedUnsigned).into())
-    })
-    .collect::<Result<Vec<_>>>()
-    .map(Some)
+        .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedUnsigned))?,
+    );
+  }
+  Ok(Some(items))
 }
 
 /// Represent a [Mapping] information of source map.

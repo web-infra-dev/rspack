@@ -59,13 +59,16 @@ pub fn get_map<'a>(chunks: &dyn Chunks<'a>, options: &MapOptions) -> Option<Sour
     sources_content.resize(sources.len(), None);
   }
   let mappings = mappings_encoder.drain();
-  (!mappings.is_empty()).then_some(SourceMap {
+  if mappings.is_empty() {
+    return None;
+  }
+  Some(SourceMap {
     version: 3,
     file: None,
     mappings: mappings.into(),
-    sources: shared_slice(sources),
-    sources_content: shared_slice(sources_content),
-    names: shared_slice(names),
+    sources: shared_slice(sources.into_iter()),
+    sources_content: shared_slice(sources_content.into_iter()),
+    names: shared_slice(names.into_iter()),
     source_root: None,
     debug_id: None,
     ignore_list: None,
@@ -1412,9 +1415,9 @@ pub fn stream_and_get_source_and_map<'source, 'chunk>(
       version: 3,
       file: None,
       mappings: mappings.into(),
-      sources: shared_slice(sources),
-      sources_content: shared_slice(sources_content),
-      names: shared_slice(names),
+      sources: shared_slice(sources.into_iter()),
+      sources_content: shared_slice(sources_content.into_iter()),
+      names: shared_slice(names.into_iter()),
       source_root: None,
       debug_id: None,
       ignore_list: None,
