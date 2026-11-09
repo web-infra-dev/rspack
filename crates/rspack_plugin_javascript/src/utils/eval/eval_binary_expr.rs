@@ -1,5 +1,5 @@
 use rspack_core::DependencyRange;
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, ryu_js};
 use swc_next_ecma_ast::{
   BinaryExpression, BinaryOperator, GetSpan, LogicalExpression, LogicalOperator,
 };
@@ -316,7 +316,11 @@ fn handle_add<'parser>(
     if right.is_string() {
       res.set_string(format!("{}{}", left.string(), right.string()));
     } else if right.is_number() {
-      res.set_string(format!("{}{}", left.string(), right.number()));
+      res.set_string(format!(
+        "{}{}",
+        left.string(),
+        ryu_js::Buffer::new().format(right.number())
+      ));
     } else if right.is_wrapped() {
       let (right_prefix, right_postfix, right_inner_expressions) =
         right.into_wrapped().expect("right should be wrapped");
@@ -335,7 +339,11 @@ fn handle_add<'parser>(
     }
   } else if left.is_number() {
     if right.is_string() {
-      res.set_string(format!("{}{}", left.number(), right.string()));
+      res.set_string(format!(
+        "{}{}",
+        ryu_js::Buffer::new().format(left.number()),
+        right.string()
+      ));
     } else if right.is_number() {
       res.set_number(left.number() + right.number())
     } else {
@@ -372,7 +380,11 @@ fn handle_add<'parser>(
     {
       let range = join_locations(postfix.range_ref(), right.range_ref());
       let mut right_postfix = BasicEvaluatedExpression::with_range(range.0, range.1);
-      right_postfix.set_string(format!("{}{}", postfix.string(), right.number()));
+      right_postfix.set_string(format!(
+        "{}{}",
+        postfix.string(),
+        ryu_js::Buffer::new().format(right.number())
+      ));
       res.set_wrapped(
         left_prefix.take(),
         Some(right_postfix),
@@ -387,7 +399,7 @@ fn handle_add<'parser>(
     } else if right.is_number() {
       let range = right.range();
       let mut postfix = BasicEvaluatedExpression::with_range(range.0, range.1);
-      postfix.set_string(right.number().to_string());
+      postfix.set_string(ryu_js::Buffer::new().format(right.number()).to_owned());
       res.set_wrapped(
         left_prefix.take(),
         Some(postfix),
