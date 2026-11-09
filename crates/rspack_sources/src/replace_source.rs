@@ -784,7 +784,7 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
               if global_index.is_none() {
                 let len = name_mapping.len() as u32;
                 name_mapping.insert(name.clone(), len);
-                on_name.borrow_mut()(len, name.clone());
+                on_name.borrow_mut()(len, name);
                 global_index = Some(len);
               }
               replacement_name_index = global_index;
@@ -946,16 +946,15 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
       &mut |source_index, source, source_content| {
         if !self.is_original_source {
           let mut source_content_lines = source_content_lines.borrow_mut();
-          let lines = source_content
-            .as_ref()
-            .map(|source_content| SourceContent::Raw(source_content.clone()));
+          let lines =
+            source_content.map(|source_content| SourceContent::Raw(source_content.clone()));
           source_content_lines.insert(source_index, lines);
         }
         on_source(source_index, source, source_content);
       },
       &mut |name_index, name| {
         let mut name_mapping = name_mapping.borrow_mut();
-        let mut global_index = name_mapping.get(&name).copied();
+        let mut global_index = name_mapping.get(name).copied();
         if global_index.is_none() {
           let len = name_mapping.len() as u32;
           name_mapping.insert(name.clone(), len);

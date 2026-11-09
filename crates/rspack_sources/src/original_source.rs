@@ -130,7 +130,7 @@ impl<'source> Chunks<'source> for OriginalSourceChunks<'source> {
     on_source: crate::helpers::OnSource<'_>,
     _on_name: crate::helpers::OnName<'_>,
   ) -> GeneratedInfo {
-    on_source(0, self.0.name.clone(), Some(self.0.value.clone()));
+    on_source(0, &self.0.name, Some(&self.0.value));
     let source = TextSpan::new(self.0.value.as_ref());
     if options.columns {
       // With column info we need to read all lines and split them

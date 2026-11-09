@@ -1,6 +1,6 @@
 use core::str;
 use std::{
-  borrow::BorrowMut,
+  borrow::{BorrowMut, Cow},
   cell::{OnceCell, RefCell},
 };
 
@@ -38,12 +38,12 @@ pub fn get_map<'a>(chunks: &dyn Chunks<'a>, options: &MapOptions) -> Option<Sour
       if sources.len() <= source_index {
         sources.resize(source_index + 1, BytesStr::new());
       }
-      sources[source_index] = source;
+      sources[source_index] = source.clone();
       if let Some(source_content) = source_content {
         if sources_content.len() <= source_index {
           sources_content.resize(source_index + 1, None);
         }
-        sources_content[source_index] = Some(source_content);
+        sources_content[source_index] = Some(source_content.clone());
       }
     },
     // on_name
@@ -52,7 +52,7 @@ pub fn get_map<'a>(chunks: &dyn Chunks<'a>, options: &MapOptions) -> Option<Sour
       if names.len() <= name_index {
         names.resize(name_index + 1, BytesStr::new());
       }
-      names[name_index] = name;
+      names[name_index] = name.clone();
     },
   );
   if !sources_content.is_empty() {
@@ -277,10 +277,12 @@ impl std::ops::Deref for TextSpan<'_> {
 pub type OnChunk<'a, 'b> = &'a mut dyn FnMut(Option<TextSpan<'b>>, Mapping);
 
 /// [OnSource] abstraction, see [webpack-sources onSource](https://github.com/webpack/webpack-sources/blob/9f98066311d53a153fdc7c633422a1d086528027/lib/helpers/streamChunks.js#L13).
-pub type OnSource<'a> = &'a mut dyn FnMut(u32, BytesStr, Option<BytesStr>);
+/// Metadata borrows are valid only during the callback; clone handles to retain them.
+pub type OnSource<'a> = &'a mut dyn FnMut(u32, &BytesStr, Option<&BytesStr>);
 
 /// [OnName] abstraction, see [webpack-sources onName](https://github.com/webpack/webpack-sources/blob/9f98066311d53a153fdc7c633422a1d086528027/lib/helpers/streamChunks.js#L13).
-pub type OnName<'a> = &'a mut dyn FnMut(u32, BytesStr);
+/// The name borrow is valid only during the callback; clone its handle to retain it.
+pub type OnName<'a> = &'a mut dyn FnMut(u32, &BytesStr);
 
 /// Default stream chunks behavior impl, see [webpack-sources streamChunks](https://github.com/webpack/webpack-sources/blob/9f98066311d53a153fdc7c633422a1d086528027/lib/helpers/streamChunks.js#L15-L35).
 pub fn stream_chunks_default<'chunk>(
@@ -544,12 +546,12 @@ pub fn stream_chunks_of_source_map<'chunk>(
   }
 }
 
-fn get_source(source_map: &SourceMap, source: &BytesStr) -> BytesStr {
+fn get_source<'a>(source_map: &SourceMap, source: &'a BytesStr) -> Cow<'a, BytesStr> {
   match source_map.source_root() {
-    Some("") | None => source.clone(),
-    Some(_) if is_absolute_source(source) => source.clone(),
-    Some(root) if root.ends_with('/') => format!("{root}{source}").into(),
-    Some(root) => format!("{root}/{source}").into(),
+    Some("") | None => Cow::Borrowed(source),
+    Some(_) if is_absolute_source(source) => Cow::Borrowed(source),
+    Some(root) if root.ends_with('/') => Cow::Owned(format!("{root}{source}").into()),
+    Some(root) => Cow::Owned(format!("{root}/{source}").into()),
   }
 }
 
@@ -583,12 +585,12 @@ fn stream_chunks_of_source_map_final<'chunk, 'source>(
   for (i, source) in source_map.sources().iter().enumerate() {
     on_source(
       i as u32,
-      get_source(source_map, source),
-      source_map.get_source_content(i).cloned(),
+      get_source(source_map, source).as_ref(),
+      source_map.get_source_content(i),
     )
   }
   for (i, name) in source_map.names().iter().enumerate() {
-    on_name(i as u32, name.clone());
+    on_name(i as u32, name);
   }
   let mut mapping_active_line = 0;
   let mut on_mapping = |mapping: Mapping| {
@@ -643,12 +645,12 @@ fn stream_chunks_of_source_map_full<'chunk>(
   for (i, source) in source_map.sources().iter().enumerate() {
     on_source(
       i as u32,
-      get_source(source_map, source),
-      source_map.get_source_content(i).cloned(),
+      get_source(source_map, source).as_ref(),
+      source_map.get_source_content(i),
     )
   }
   for (i, name) in source_map.names().iter().enumerate() {
-    on_name(i as u32, name.clone());
+    on_name(i as u32, name);
   }
   // SAFETY: Empty sources returned above, so the last line exists.
   let last_line = unsafe { lines.get_unchecked(lines.line_count() - 1) }.line;
@@ -786,8 +788,8 @@ fn stream_chunks_of_source_map_lines_final<'chunk, 'source>(
   for (i, source) in source_map.sources().iter().enumerate() {
     on_source(
       i as u32,
-      get_source(source_map, source),
-      source_map.get_source_content(i).cloned(),
+      get_source(source_map, source).as_ref(),
+      source_map.get_source_content(i),
     )
   }
   let final_line = if result.generated_column == 0 {
@@ -830,8 +832,8 @@ fn stream_chunks_of_source_map_lines_full<'chunk>(
   for (i, source) in source_map.sources().iter().enumerate() {
     on_source(
       i as u32,
-      get_source(source_map, source),
-      source_map.get_source_content(i).cloned(),
+      get_source(source_map, source).as_ref(),
+      source_map.get_source_content(i),
     )
   }
   let mut current_generated_line = 1;
@@ -1057,13 +1059,14 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
               .copied()
               .unwrap_or(-2);
             if source_index == -2 {
+              let inner_source_index_value_mapping = inner_source_index_value_mapping.borrow();
+              let empty_source = BytesStr::new();
               let (source, source_content) = inner_source_index_value_mapping
-                .borrow()
                 .get(&inner_source_index)
-                .cloned()
-                .unwrap_or(("".into(), None));
+                .map(|(source, content)| (source, content.as_ref()))
+                .unwrap_or((&empty_source, None));
               let mut source_mapping = source_mapping.borrow_mut();
-              let mut global_index = source_mapping.get(&source).copied();
+              let mut global_index = source_mapping.get(source).copied();
               if global_index.is_none() {
                 let len = source_mapping.len() as u32;
                 source_mapping.insert(source.clone(), len);
@@ -1093,7 +1096,7 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
                   if global_index.is_none() {
                     let len = name_mapping.len() as u32;
                     name_mapping.insert(name.clone(), len);
-                    on_name(len, name.clone());
+                    on_name(len, name);
                     global_index = Some(len);
                   }
                   final_name_index = global_index.unwrap() as i64;
@@ -1123,7 +1126,7 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
               };
               if let Some(original_source_lines) = original_source_lines {
                 let name_index_value_mapping = name_index_value_mapping.borrow();
-                let name = name_index_value_mapping.get(&name_index).cloned().unwrap();
+                let name = name_index_value_mapping.get(&name_index).unwrap();
                 let original_name = original_source_lines
                   .get(inner_original_line as usize - 1)
                   .map_or("", |i| {
@@ -1131,7 +1134,7 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
                     let end = start + name.len();
                     i.substring(start, end)
                   });
-                if name == original_name {
+                if name.as_str() == original_name {
                   let mut name_index_mapping = name_index_mapping.borrow_mut();
                   final_name_index = name_index_mapping.get(&name_index).copied().unwrap_or(-2);
                   if final_name_index == -2 {
@@ -1140,7 +1143,7 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
                       if global_index.is_none() {
                         let len = name_mapping.len() as u32;
                         name_mapping.insert(name.clone(), len);
-                        on_name(len, name.clone());
+                        on_name(len, name);
                         global_index = Some(len);
                       }
                       final_name_index = global_index.unwrap() as i64;
@@ -1188,11 +1191,7 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
             if global_index.is_none() {
               let len = source_mapping.len() as u32;
               source_mapping.insert(inner_source_name.clone(), len);
-              on_source.borrow_mut()(
-                len,
-                inner_source_name.clone(),
-                inner_source.borrow().as_ref().map(|text| (*text).clone()),
-              );
+              on_source.borrow_mut()(len, inner_source_name, *inner_source.borrow());
               global_index = Some(len);
             }
             source_index_mapping.insert(source_index, global_index.unwrap() as i64);
@@ -1237,7 +1236,7 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
           if global_index.is_none() {
             let len = name_mapping.len() as u32;
             name_mapping.borrow_mut().insert(name.clone(), len);
-            on_name(len, name.clone());
+            on_name(len, name);
             global_index = Some(len);
           }
           final_name_index = global_index.unwrap() as i64;
@@ -1259,7 +1258,7 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
       }
     },
     &mut |i, source, source_content| {
-      if source == *inner_source_name {
+      if source == inner_source_name {
         *inner_source_index.borrow_mut() = i as i64;
         let mut inner_source = inner_source.borrow_mut();
         if inner_source.is_none() {
@@ -1327,23 +1326,25 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
           &mut |i, source, source_content| {
             inner_source_contents
               .borrow_mut()
-              .insert(i, source_content.clone());
+              .insert(i, source_content.cloned());
             inner_source_content_lines
               .borrow_mut()
               .insert(i, Default::default());
             inner_source_index_mapping.borrow_mut().insert(i, -2);
             inner_source_index_value_mapping
               .borrow_mut()
-              .insert(i, (source, source_content));
+              .insert(i, (source.clone(), source_content.cloned()));
           },
           &mut |i, name| {
             inner_name_index_mapping.borrow_mut().insert(i, -2);
-            inner_name_index_value_mapping.borrow_mut().insert(i, name);
+            inner_name_index_value_mapping
+              .borrow_mut()
+              .insert(i, name.clone());
           },
         );
       } else {
         let mut source_mapping = source_mapping.borrow_mut();
-        let mut global_index = source_mapping.get(&source).copied();
+        let mut global_index = source_mapping.get(source).copied();
         if global_index.is_none() {
           let len = source_mapping.len() as u32;
           source_mapping.insert(source.clone(), len);
@@ -1357,7 +1358,9 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
     },
     &mut |i, name| {
       name_index_mapping.borrow_mut().insert(i, -2);
-      name_index_value_mapping.borrow_mut().insert(i, name);
+      name_index_value_mapping
+        .borrow_mut()
+        .insert(i, name.clone());
     },
   )
 }
@@ -1386,7 +1389,7 @@ pub fn stream_and_get_source_and_map<'source, 'chunk>(
         sources.push(BytesStr::new());
       }
       sources[source_index2] = source.clone();
-      if let Some(source_content) = source_content.as_ref() {
+      if let Some(source_content) = source_content {
         while sources_content.len() <= source_index2 {
           sources_content.push(None);
         }

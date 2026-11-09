@@ -1005,11 +1005,7 @@ impl SourceMapDevToolPlugin {
     }
 
     if self.no_sources {
-      if self.source_map_filename.is_some() {
-        source_map.remove_sources_content();
-      } else {
-        source_map.set_sources_content(vec![]);
-      }
+      source_map.set_sources_content(vec![]);
     }
   }
 

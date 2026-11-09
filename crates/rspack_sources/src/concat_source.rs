@@ -370,7 +370,7 @@ impl<'source> Chunks<'source> for ConcatSourceChunks<'source> {
           }
         },
         &mut |i, source, source_content| {
-          let mut global_index = source_mapping.get(&source).copied();
+          let mut global_index = source_mapping.get(source).copied();
           if global_index.is_none() {
             let len = source_mapping.len() as u32;
             source_mapping.insert(source.clone(), len);
@@ -382,7 +382,7 @@ impl<'source> Chunks<'source> for ConcatSourceChunks<'source> {
             .insert(i, global_index.unwrap());
         },
         &mut |i, name| {
-          let mut global_index = name_mapping.get(&name).copied();
+          let mut global_index = name_mapping.get(name).copied();
           if global_index.is_none() {
             let len = name_mapping.len() as u32;
             name_mapping.insert(name.clone(), len);

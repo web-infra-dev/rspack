@@ -466,13 +466,16 @@ impl SourceMap {
       .map_or(&[], |items| &items.slice)
   }
   /// Set the shared source contents.
+  /// An empty vector also detaches the remaining metadata from source-content storage.
   pub fn set_sources_content(&mut self, sources_content: Vec<Option<BytesStr>>) {
     self.sources_content = shared_slice(sources_content.into_iter());
-  }
-  /// Remove source contents and detach metadata from their backing allocations.
-  #[doc(hidden)]
-  pub fn remove_sources_content(&mut self) {
-    self.sources_content = None;
+    if self.sources_content.is_some() {
+      return;
+    }
+
+    // Parsed fields can share the entire JSON allocation with sourcesContent.
+    // Copy the remaining metadata so clearing the contents also releases this
+    // map's references to that allocation, including the removed source text.
     let detach = |text: &BytesStr| BytesStr::from_string(text.to_string());
     self.file = self.file.as_ref().map(detach);
     self.sources = shared_slice(self.sources().iter().map(detach));

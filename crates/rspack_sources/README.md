@@ -21,10 +21,14 @@ Immutable field arrays use `ThinArc<(), T>` to keep their elements, length, and 
 in one allocation. Freezing a builder's `Vec` moves element handles without copying UTF-8 text.
 
 Maps no longer have a lifetime parameter or retain their generating Source graph. `OnSource`
-and `OnName` callbacks receive shared `BytesStr` values. A custom Source should keep its original
-text in shared storage and clone the handle when reporting sources or names. JSON construction
+and `OnName` callbacks borrow `BytesStr` values for the duration of each call. A custom Source
+can report references to its shared text directly. Consumers clone a handle only when retaining
+it in a deduplication table, resulting map, or cache; callbacks may also receive temporary joined
+source paths, so their references must not escape the call. JSON construction
 shares decoded fields in the input allocation, including escaped strings; an individual slice
 can keep that entire allocation alive.
+Passing an empty vector to `set_sources_content` copies the remaining metadata into independent
+storage so this map no longer retains the removed source contents through shared JSON slices.
 
 ## SourceMap 文本存储
 
@@ -37,8 +41,12 @@ can keep that entire allocation alive.
 冻结构建过程的 `Vec` 时会搬移元素句柄，不复制 UTF-8 文本。
 
 map 不再带生命周期参数，也不通过 Source 图保活文本。`OnSource` 和 `OnName` 回调接收
-`BytesStr`；自定义 Source 应保存共享文本并在回调中克隆句柄。JSON 构造会共享输入中解码后的字段，
+`&BytesStr`，借用只在当前回调期间有效；自定义 Source 可以直接传递共享文本的引用。
+只有保存到去重表、结果 map 或缓存时才克隆句柄。拼接后的来源路径可能是临时值，
+回调中的引用不能逃逸。JSON 构造会共享输入中解码后的字段，
 包括转义字符串；小切片仍可能保活完整输入 allocation。
+向 `set_sources_content` 传入空数组时，会将其余元数据复制到独立存储，
+避免当前 map 通过共享 JSON 切片继续保留已移除的源码内容。
 
 ## Credits
 

@@ -207,9 +207,10 @@ Source maps mainly come from parsed JSON or a `Source` graph. `SourceMap` owns U
   `from_owner` with `Bytes::from(Vec)`: a Box conversion can invalidate the tape's references.
   Duplicate known fields use the DOM fallback to preserve simd-json's duplicate-key behavior.
   Escaped strings share the input allocation too.
-- `OnSource` and `OnName` transfer `BytesStr` handles. `OriginalSource`, map inputs and replacement
-  names provide shared storage, so the map collector does not copy source contents or retain a
-  Source graph merely to keep strings alive.
+- `OnSource` and `OnName` borrow `BytesStr` handles for each callback. Leaves and transforms
+  forward references; collectors clone only when retaining text in deduplication tables, maps,
+  or caches. Joined source-root paths may be temporary, so references cannot escape the callback.
+  Resulting maps own their handles without copying source contents or retaining a Source graph.
 - all fields live directly in `SourceMap`, which derives `Serialize`. Clones and `as_borrowed`
   clone text/array handles; setters replace individual fields without copying unchanged text.
   Nonempty immutable arrays use `ThinArc<(), T>`, with elements and metadata in one allocation;
@@ -218,8 +219,9 @@ Source maps mainly come from parsed JSON or a `Source` graph. `SourceMap` owns U
   reserves the tape array's known length before collecting. Text bytes remain shared. Serialize
   and hash the slices,
   preserving the array representation and excluding ThinArc's internal length/header from hashes.
-- `remove_sources_content` detaches remaining metadata, because a small shared JSON slice would
-  otherwise keep the removed contents' allocation alive.
+- `set_sources_content` with an empty vector detaches remaining metadata, because a small shared
+  JSON slice would otherwise keep the removed contents' allocation alive. Nonempty arrays,
+  including arrays of missing entries, only replace the shared contents array.
 
 There is no SourceMap lifetime extension or Source owner. `map()` returns an owned map;
 generated text can be released when its Source is otherwise no longer referenced.
