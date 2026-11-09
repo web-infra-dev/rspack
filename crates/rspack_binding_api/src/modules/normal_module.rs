@@ -108,6 +108,14 @@ pub fn normal_module_set_match_resource(
 #[napi(ts_args_type = "module: Module")]
 pub fn normal_module_get_error(module: Object<'_>) -> Result<Either<RspackError, ()>> {
   let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
+  if module.worker_scope.is_some() {
+    return module.with_normal(|module| {
+      Ok(match module.first_error() {
+        Some(diagnostic) => Either::A(RspackError::from_module_diagnostic(diagnostic.as_ref())?),
+        None => Either::B(()),
+      })
+    });
+  }
   module.with_ref(|compilation, module| {
     let module = module
       .as_normal_module()

@@ -24,7 +24,7 @@ use crate::{
   COMPILER_REFERENCES,
   asset::AssetInfo,
   async_dependency_block::AsyncDependenciesBlockWrapper,
-  build_info::BuildInfo,
+  build_info::{BuildInfoExtras, KnownBuildInfo, sync_build_info_extras},
   chunk::ChunkWrapper,
   codegen_result::JsCodegenerationResults,
   compiler_scoped_tsfn::CompilerScopedTsFnHandle,
@@ -138,19 +138,45 @@ pub fn module_get_build_info<'env>(
   let mut this = module;
   let raw_env = env.raw();
   let reference = unsafe { ModuleHandle::from_napi_ref(raw_env, this.raw())? };
-  if let Some(r) = &*reference.build_info_ref.borrow() {
-    return r.as_object(env);
+  let cached = {
+    let cached = reference.build_info_ref.borrow();
+    cached
+      .as_ref()
+      .map(|cached| {
+        let object = cached.object.as_object(env)?;
+        let changed = if reference.worker_scope.is_none() {
+          // A pure task may have changed native fields while the main JS object
+          // was retained. Keep its identity and apply only the native changes.
+          reference
+            .with_local_ref(|module| {
+              let extras = &module.build_info().extras;
+              Ok((extras != &cached.extras).then(|| (cached.extras.clone(), extras.clone())))
+            })
+            .unwrap_or(None)
+        } else {
+          None
+        };
+        Ok::<_, napi::Error>((object, changed))
+      })
+      .transpose()?
+  };
+  if let Some((object, changed)) = cached {
+    if let Some((previous, current)) = changed {
+      sync_build_info_extras(env, object, &previous, &current)?;
+      reference.record_native_build_info_extras(&current);
+    }
+    return Ok(object);
   }
-  let mut build_info =
-    BuildInfo::new(reference.compiler_id, reference.identifier).get_jsobject(env)?;
+
+  let (mut build_info, extras) = KnownBuildInfo::new(reference).get_jsobject(env)?;
   this.set_property(
     env.symbol_for(symbols::MODULE_BUILD_INFO_SYMBOL)?,
     build_info,
   )?;
-  let r = WeakRef::new(raw_env, &mut build_info)?;
-  let result = r.as_object(env);
-  *reference.build_info_ref.borrow_mut() = Some(r);
-  result
+  let object = WeakRef::new(raw_env, &mut build_info)?;
+  let result = object.as_object(env)?;
+  *reference.build_info_ref.borrow_mut() = Some(CachedBuildInfo { object, extras });
+  Ok(result)
 }
 
 #[napi(ts_args_type = "module: Module, value: BuildInfo")]
@@ -162,8 +188,7 @@ pub fn module_set_build_info(
   let mut this = module;
   let raw_env = env.raw();
   let reference = unsafe { ModuleHandle::from_napi_ref(raw_env, this.raw())? };
-  let new_build_info = BuildInfo::new(reference.compiler_id, reference.identifier);
-  let mut new_instance = new_build_info.get_jsobject(env)?;
+  let (mut new_instance, extras) = KnownBuildInfo::new(reference).get_jsobject(env)?;
 
   let names = input_object.get_all_property_names(
     napi::KeyCollectionMode::OwnOnly,
@@ -187,7 +212,20 @@ pub fn module_set_build_info(
     env.symbol_for(symbols::MODULE_BUILD_INFO_SYMBOL)?,
     new_instance,
   )?;
-  *reference.build_info_ref.borrow_mut() = Some(WeakRef::new(raw_env, &mut new_instance)?);
+  let object = WeakRef::new(raw_env, &mut new_instance)?;
+  *reference.build_info_ref.borrow_mut() = Some(CachedBuildInfo { object, extras });
+  Ok(())
+}
+
+#[napi(ts_args_type = "module: Module, json: string")]
+pub fn module_set_worker_build_info_extras(module: Object<'_>, json: String) -> napi::Result<()> {
+  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
+  if module.worker_scope.is_none() {
+    return Err(napi::Error::from_reason("Expected a loader worker Module"));
+  }
+  let extras =
+    serde_json::from_str(&json).map_err(|error| napi::Error::from_reason(error.to_string()))?;
+  module.as_mut()?.build_info_mut().extras = extras;
   Ok(())
 }
 
@@ -304,7 +342,7 @@ impl WorkerModuleScope {
     self.active.store(false, Ordering::Release);
   }
 
-  fn validate(&self) -> napi::Result<()> {
+  pub(crate) fn validate(&self) -> napi::Result<()> {
     if !self.active.load(Ordering::Acquire) {
       return Err(napi::Error::from_reason(
         "Worker Module is unavailable after its loader task has completed",
@@ -314,14 +352,19 @@ impl WorkerModuleScope {
   }
 }
 
+struct CachedBuildInfo {
+  object: WeakRef,
+  extras: BuildInfoExtras,
+}
+
 pub struct ModuleHandle {
   pub(crate) identifier: ModuleIdentifier,
   pub(crate) ptr: Cell<Option<NonNull<dyn rspack_core::Module>>>,
   pub(crate) compiler_id: CompilerId,
   pub(crate) type_id: TypeId,
-  worker_scope: Option<Arc<WorkerModuleScope>>,
+  pub(crate) worker_scope: Option<Arc<WorkerModuleScope>>,
   original_source_ref: RefCell<Option<OriginalSourceNapiRef>>,
-  pub(crate) build_info_ref: RefCell<Option<WeakRef>>,
+  build_info_ref: RefCell<Option<CachedBuildInfo>>,
 }
 
 impl ModuleHandle {
@@ -334,6 +377,22 @@ impl ModuleHandle {
       worker_scope: value.worker_scope.clone(),
       original_source_ref: RefCell::new(None),
       build_info_ref: RefCell::new(None),
+    }
+  }
+
+  pub(crate) fn record_native_build_info_extras(&self, extras: &BuildInfoExtras) {
+    if let Some(cached) = self.build_info_ref.borrow_mut().as_mut() {
+      cached.extras.clone_from(extras);
+    }
+  }
+
+  pub(crate) fn to_module_object(&self) -> ModuleObject {
+    ModuleObject {
+      type_id: self.type_id,
+      identifier: self.identifier,
+      ptr: self.ptr.get(),
+      compiler_id: self.compiler_id,
+      worker_scope: self.worker_scope.clone(),
     }
   }
 
@@ -525,6 +584,23 @@ impl ModuleHandle {
   }
 
   pub fn blocks(&self) -> napi::Result<Vec<AsyncDependenciesBlockWrapper>> {
+    if let Some(scope) = &self.worker_scope {
+      return self.with_local_ref(|module| {
+        Ok(
+          module
+            .get_block_refs()
+            .iter()
+            .map(|block| {
+              AsyncDependenciesBlockWrapper::from_worker(
+                block.clone(),
+                self.compiler_id,
+                scope.clone(),
+              )
+            })
+            .collect(),
+        )
+      });
+    }
     self.with_ref(|compilation, module| {
       let Some(module_graph) = compilation.try_get_module_graph() else {
         return Err(napi::Error::from_reason(
@@ -546,6 +622,17 @@ impl ModuleHandle {
   }
 
   pub fn dependencies(&self) -> napi::Result<Vec<DependencyWrapper>> {
+    if let Some(scope) = &self.worker_scope {
+      return self.with_local_ref(|module| {
+        Ok(
+          module
+            .get_dependencies()
+            .iter()
+            .map(|dep| DependencyWrapper::from_worker(dep.clone(), scope.clone()))
+            .collect(),
+        )
+      });
+    }
     self.with_ref(|compilation, module| {
       let Some(module_graph) = compilation.try_get_module_graph() else {
         return Err(napi::Error::from_reason(
@@ -696,13 +783,7 @@ impl ToNapiValue for ModuleObject {
 impl FromNapiValue for ModuleObject {
   unsafe fn from_napi_value(env: sys::napi_env, value: sys::napi_value) -> Result<Self> {
     let handle = unsafe { ModuleHandle::from_napi_ref(env, value)? };
-    Ok(Self {
-      type_id: handle.type_id,
-      identifier: handle.identifier,
-      ptr: handle.ptr.get(),
-      compiler_id: handle.compiler_id,
-      worker_scope: handle.worker_scope.clone(),
-    })
+    Ok(handle.to_module_object())
   }
 }
 

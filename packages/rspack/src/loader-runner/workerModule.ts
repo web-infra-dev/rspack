@@ -1,11 +1,12 @@
 import binding, { type BuildInfo, type Module } from '@rspack/binding';
+import { pickCustomBuildInfoFields } from '../BuildInfo';
 import type { NormalModule } from '../NormalModule';
 import { SourceAdapter } from '../util/source';
-import { pureLoaderError } from './utils';
 
 /** The worker API deliberately excludes compilation graph access. */
 export function createWorkerModule(native: Module, buildInfo?: BuildInfo) {
   let active = true;
+  let localBuildInfo: BuildInfo | undefined;
   const getNative = () => {
     if (!active)
       throw new Error(
@@ -54,12 +55,10 @@ export function createWorkerModule(native: Module, buildInfo?: BuildInfo) {
       binding.moduleSetFactoryMeta(getNative(), value);
     },
     get buildInfo() {
-      getNative();
-      if (!buildInfo)
-        throw pureLoaderError('Module buildInfo (including asset reads)');
-      // Custom values may include functions. Keep the existing object bridge,
-      // including assets, whose reflector belongs to the main JS env.
-      return buildInfo;
+      const handle = getNative();
+      return (
+        buildInfo ?? (localBuildInfo ??= binding.moduleGetBuildInfo(handle))
+      );
     },
     identifier() {
       return binding.moduleGetIdentifier(getNative());
@@ -89,8 +88,42 @@ export function createWorkerModule(native: Module, buildInfo?: BuildInfo) {
       );
     },
   };
+  if (!buildInfo) {
+    Object.defineProperties(module, {
+      resourceResolveData: {
+        get: () => binding.normalModuleGetResourceResolveData(getNative()),
+      },
+      loaders: {
+        get: () => binding.normalModuleGetLoaders(getNative()),
+      },
+      blocks: {
+        get: () => binding.moduleGetBlocks(getNative()),
+      },
+      dependencies: {
+        get: () => binding.moduleGetDependencies(getNative()),
+      },
+      error: {
+        get: () => binding.normalModuleGetError(getNative()),
+      },
+    });
+    Object.defineProperty(module, 'buildInfo', {
+      set(value: BuildInfo) {
+        const handle = getNative();
+        binding.moduleSetBuildInfo(handle, value);
+        localBuildInfo = binding.moduleGetBuildInfo(handle);
+      },
+    });
+  }
   return {
     module: module as unknown as NormalModule,
+    commitBuildInfo() {
+      if (localBuildInfo) {
+        binding.moduleSetWorkerBuildInfoExtras(
+          getNative(),
+          JSON.stringify(pickCustomBuildInfoFields(localBuildInfo)),
+        );
+      }
+    },
     dispose() {
       active = false;
     },

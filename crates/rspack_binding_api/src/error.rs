@@ -322,19 +322,22 @@ impl RspackError {
     compilation: &Compilation,
     diagnostic: &Diagnostic,
   ) -> napi::Result<Self> {
-    let message = diagnostic
-      .render_report(false)
-      .map_err(|e| napi::Error::from_reason(e.to_string()))?;
-
-    let mut module = None;
+    let mut error = Self::from_module_diagnostic(diagnostic)?;
     if let Some(module_identifier) = &diagnostic.module_identifier
-      && let Some(m) = compilation.module_by_identifier(module_identifier)
+      && let Some(module) = compilation.module_by_identifier(module_identifier)
     {
-      module = Some(ModuleObject::with_ref(
-        m.as_ref(),
+      error.module = Some(ModuleObject::with_ref(
+        module.as_ref(),
         compilation.compiler_id(),
       ));
     }
+    Ok(error)
+  }
+
+  pub(crate) fn from_module_diagnostic(diagnostic: &Diagnostic) -> napi::Result<Self> {
+    let message = diagnostic
+      .render_report(false)
+      .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
     let rust_diagnostic = Some(diagnostic.clone());
     let name = diagnostic
@@ -353,7 +356,7 @@ impl RspackError {
       message,
       details: diagnostic.details.as_ref().cloned(),
       stack: diagnostic.stack.as_ref().cloned(),
-      module,
+      module: None,
       loc: diagnostic.loc.as_ref().map(Into::into),
       file: diagnostic.file.as_ref().map(|f| f.as_str().to_string()),
       hide_stack: diagnostic.hide_stack,

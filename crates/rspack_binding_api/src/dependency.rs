@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, sync::Arc};
 
 use napi::{
   Either, Env,
@@ -13,7 +13,10 @@ use rspack_plugin_javascript::dependency::{
 };
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{module::ModuleObject, with_compilation};
+use crate::{
+  module::{ModuleObject, WorkerModuleScope},
+  with_compilation,
+};
 
 // A dependency remains readable while its JS wrapper owns a shared reference.
 // Graph-derived properties still require the compilation that supplied it.
@@ -22,6 +25,7 @@ pub struct Dependency {
   compilation_id: Option<CompilationId>,
   pub(crate) dependency_id: DependencyId,
   dependency: DependencyRef,
+  worker_scope: Option<Arc<WorkerModuleScope>>,
 }
 
 impl Dependency {
@@ -110,6 +114,9 @@ impl Dependency {
 
   #[napi(setter)]
   pub fn set_critical(&mut self, val: bool) -> napi::Result<()> {
+    if let Some(scope) = &self.worker_scope {
+      scope.validate()?;
+    }
     if let Some(dep) = self.dependency.as_context_dependency()
       && !val
     {
@@ -173,7 +180,8 @@ thread_local! {
 pub struct DependencyWrapper {
   dependency_id: DependencyId,
   dependency: DependencyRef,
-  cache_compilation_id: CompilationId,
+  cache_compilation_id: Option<CompilationId>,
+  worker_scope: Option<Arc<WorkerModuleScope>>,
   compilation_id: Option<CompilationId>,
 }
 
@@ -183,7 +191,8 @@ impl DependencyWrapper {
     Self {
       dependency_id,
       dependency,
-      cache_compilation_id: compilation_id,
+      cache_compilation_id: Some(compilation_id),
+      worker_scope: None,
       compilation_id: Some(compilation_id),
     }
   }
@@ -193,8 +202,19 @@ impl DependencyWrapper {
     Self {
       dependency_id,
       dependency,
-      cache_compilation_id: compilation_id,
+      cache_compilation_id: Some(compilation_id),
+      worker_scope: None,
       compilation_id: None,
+    }
+  }
+
+  pub(crate) fn from_worker(dependency: DependencyRef, scope: Arc<WorkerModuleScope>) -> Self {
+    Self {
+      dependency_id: *dependency.id(),
+      dependency,
+      cache_compilation_id: None,
+      compilation_id: None,
+      worker_scope: Some(scope),
     }
   }
 
@@ -212,9 +232,20 @@ impl ToNapiValue for DependencyWrapper {
     val: Self,
   ) -> napi::Result<napi::sys::napi_value> {
     unsafe {
+      let Some(compilation_id) = val.cache_compilation_id else {
+        return Dependency::to_napi_value(
+          env,
+          Dependency {
+            compilation_id: None,
+            dependency_id: val.dependency_id,
+            dependency: val.dependency,
+            worker_scope: val.worker_scope,
+          },
+        );
+      };
       DEPENDENCY_INSTANCE_REFS.with(|refs| {
         let mut refs_by_compilation_id = refs.borrow_mut();
-        let entry = refs_by_compilation_id.entry(val.cache_compilation_id);
+        let entry = refs_by_compilation_id.entry(compilation_id);
         let refs = match entry {
           std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
           std::collections::hash_map::Entry::Vacant(entry) => {
@@ -237,6 +268,7 @@ impl ToNapiValue for DependencyWrapper {
               compilation_id: val.compilation_id,
               dependency_id: val.dependency_id,
               dependency: val.dependency,
+              worker_scope: None,
             };
             let r = vacant_entry.insert(OneShotInstanceRef::new(env, js_dependency)?);
             ToNapiValue::to_napi_value(env, r)

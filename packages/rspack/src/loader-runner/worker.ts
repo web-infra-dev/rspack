@@ -42,6 +42,7 @@ async function execute(task: JsLoaderTask): Promise<void> {
         pureCompiler: pure ? createPureLoaderCompiler(handle) : undefined,
       },
     );
+    if (pure && !result.__internal__error) module.commitBuildInfo();
     task.complete(result);
   } catch (error) {
     task.fail(

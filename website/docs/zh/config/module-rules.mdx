@@ -1003,8 +1003,9 @@ export default {
 使用 native binding 时，可以为能完全在 worker 内运行的 loader 设置 `parallel: 'pure'`。例如，Babel 可以在设置 `cacheDirectory: false` 时使用纯模式转换源码。
 
 - 纯模式跳过 loader hook。loader options、顶层 `loader` 配置和跨 loader 段传递的 `additionalData` 必须可序列化。选项中不能包含函数。
-- 无法访问 `_compiler`、`_compilation`、`_module.buildInfo`、`fs`、`resolve`、`getResolve`、`importModule` 和 compilation diagnostics 等依赖主线程的 API。`getLogger()` 返回丢弃消息的 worker 本地 logger。
-- 通过 `this.emitFile()` 写入资产。loader 可以访问 worker 本地的模块元数据和依赖登记 API。
+- loader 可以通过 `this._module` 访问当前模块自身的数据，包括 `resourceResolveData`、`loaders`、`blocks`、`dependencies`、`error` 和 `buildInfo`。纯模式 loader 写入的 `buildInfo` 自定义字段必须可序列化为 JSON，后续 loader 段才能读取这些字段。
+- 无法访问 `_compiler`、`_compilation`、`fs`、`resolve`、`getResolve`、`importModule` 和 compilation diagnostics 等依赖主线程的 API。`getLogger()` 返回丢弃消息的 worker 本地 logger。
+- 通过 `this.emitFile()` 或 `this._module.emitFile()` 写入资产。无法通过 `this._module.buildInfo.assets` 读取资产。
 
 ## rules[].use.parallel.maxWorkers
 

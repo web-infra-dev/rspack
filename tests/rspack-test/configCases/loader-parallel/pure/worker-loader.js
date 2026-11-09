@@ -5,5 +5,6 @@ module.exports = function (content, map, data) {
   assert.equal(isMainThread, false);
   assert.equal(this._compilation.outputOptions.hashFunction, 'sha256');
   assert.equal(data.suffix, 'pure');
+  assert.equal(this._module.buildInfo.pureMetadata.phase, 'normal');
   this.callback(null, content, map, { suffix: `${data.suffix}:worker` });
 };

@@ -1,16 +1,19 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, sync::Arc};
 
 use napi_derive::napi;
-use rspack_core::{Compilation, CompilerId, DependenciesBlock as _, internal};
+use rspack_core::{
+  AsyncDependenciesBlockRef, Compilation, CompilerId, DependenciesBlock as _, internal,
+};
 use rspack_napi::{OneShotRef, napi::bindgen_prelude::*};
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{COMPILER_REFERENCES, dependency::DependencyWrapper};
+use crate::{COMPILER_REFERENCES, dependency::DependencyWrapper, module::WorkerModuleScope};
 
 #[napi]
 pub struct AsyncDependenciesBlock {
   pub(crate) block_id: rspack_core::AsyncDependenciesBlockIdentifier,
   compiler_id: CompilerId,
+  owned: Option<(AsyncDependenciesBlockRef, Arc<WorkerModuleScope>)>,
 }
 
 impl AsyncDependenciesBlock {
@@ -66,6 +69,16 @@ impl AsyncDependenciesBlock {
 impl AsyncDependenciesBlock {
   #[napi(getter, ts_return_type = "Dependency[]")]
   pub fn dependencies(&self) -> napi::Result<Vec<DependencyWrapper>> {
+    if let Some((block, scope)) = &self.owned {
+      scope.validate()?;
+      return Ok(
+        block
+          .get_dependencies()
+          .iter()
+          .map(|dep| DependencyWrapper::from_worker(dep.clone(), scope.clone()))
+          .collect(),
+      );
+    }
     self.with_ref(|compilation, block| {
       let module_graph = compilation.get_module_graph();
       // Only expose dependencies that are still present in the current graph.
@@ -83,6 +96,22 @@ impl AsyncDependenciesBlock {
 
   #[napi(getter, ts_return_type = "AsyncDependenciesBlock[]")]
   pub fn blocks(&self) -> napi::Result<Vec<AsyncDependenciesBlockWrapper>> {
+    if let Some((block, scope)) = &self.owned {
+      scope.validate()?;
+      return Ok(
+        block
+          .get_block_refs()
+          .iter()
+          .map(|block| {
+            AsyncDependenciesBlockWrapper::from_worker(
+              block.clone(),
+              self.compiler_id,
+              scope.clone(),
+            )
+          })
+          .collect(),
+      );
+    }
     self.with_ref(|compilation, block| {
       let module_graph = compilation.get_module_graph();
       Ok(
@@ -111,8 +140,9 @@ thread_local! {
 
 pub struct AsyncDependenciesBlockWrapper {
   block_id: rspack_core::AsyncDependenciesBlockIdentifier,
-  compilation_id: rspack_core::CompilationId,
+  compilation_id: Option<rspack_core::CompilationId>,
   compiler_id: CompilerId,
+  owned: Option<(AsyncDependenciesBlockRef, Arc<WorkerModuleScope>)>,
 }
 
 impl AsyncDependenciesBlockWrapper {
@@ -124,8 +154,22 @@ impl AsyncDependenciesBlockWrapper {
 
     Self {
       block_id,
-      compilation_id: compilation.id(),
+      compilation_id: Some(compilation.id()),
       compiler_id: compilation.compiler_id(),
+      owned: None,
+    }
+  }
+
+  pub(crate) fn from_worker(
+    block: AsyncDependenciesBlockRef,
+    compiler_id: CompilerId,
+    scope: Arc<WorkerModuleScope>,
+  ) -> Self {
+    Self {
+      block_id: block.identifier(),
+      compilation_id: None,
+      compiler_id,
+      owned: Some((block, scope)),
     }
   }
 
@@ -143,9 +187,19 @@ impl ToNapiValue for AsyncDependenciesBlockWrapper {
     val: Self,
   ) -> napi::Result<napi::sys::napi_value> {
     unsafe {
+      let Some(compilation_id) = val.compilation_id else {
+        return AsyncDependenciesBlock::to_napi_value(
+          env,
+          AsyncDependenciesBlock {
+            block_id: val.block_id,
+            compiler_id: val.compiler_id,
+            owned: val.owned,
+          },
+        );
+      };
       BLOCK_INSTANCE_REFS.with(|refs| {
         let mut refs_by_compilation_id = refs.borrow_mut();
-        let entry = refs_by_compilation_id.entry(val.compilation_id);
+        let entry = refs_by_compilation_id.entry(compilation_id);
         let refs = match entry {
           std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
           std::collections::hash_map::Entry::Vacant(entry) => {
@@ -163,6 +217,7 @@ impl ToNapiValue for AsyncDependenciesBlockWrapper {
             let js_block = AsyncDependenciesBlock {
               block_id: val.block_id,
               compiler_id: val.compiler_id,
+              owned: None,
             };
             let r = vacant_entry.insert(OneShotRef::new(env, js_block)?);
             ToNapiValue::to_napi_value(env, r)

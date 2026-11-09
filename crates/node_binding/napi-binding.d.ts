@@ -1672,6 +1672,8 @@ export declare function moduleSetBuildInfo(module: Module, value: BuildInfo): vo
 
 export declare function moduleSetFactoryMeta(module: Module, factoryMeta: JsFactoryMeta): void
 
+export declare function moduleSetWorkerBuildInfoExtras(module: Module, json: string): void
+
 export declare function moduleSize(module: Module, ty?: string | null): number
 
 /**

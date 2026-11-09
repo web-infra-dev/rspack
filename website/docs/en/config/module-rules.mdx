@@ -1005,8 +1005,9 @@ For usage examples and limitations, see [Parallel loader](/guide/features/loader
 Use `parallel: 'pure'` with the native binding for loaders that can work entirely in a worker. For example, Babel can transform source this way with `cacheDirectory: false`.
 
 - Pure loaders skip the loader hook. Loader options, the top-level `loader` settings, and `additionalData` passed between segments must be serializable. Function-valued options are unsupported.
-- Main-thread APIs such as `_compiler`, `_compilation`, `_module.buildInfo`, `fs`, `resolve`, `getResolve`, `importModule`, and compilation diagnostics are unavailable. `getLogger()` returns a worker-local logger that discards messages.
-- Use `this.emitFile()` to write assets. Loaders can use the module's worker-local metadata and dependency APIs.
+- Loaders can access the current module's own data through `this._module`, including `resourceResolveData`, `loaders`, `blocks`, `dependencies`, `error`, and `buildInfo`. Custom `buildInfo` fields written by a pure loader must be JSON-serializable to be available to later loader segments.
+- Main-thread APIs such as `_compiler`, `_compilation`, `fs`, `resolve`, `getResolve`, `importModule`, and compilation diagnostics are unavailable. `getLogger()` returns a worker-local logger that discards messages.
+- Use `this.emitFile()` or `this._module.emitFile()` to write assets. Reading assets through `this._module.buildInfo.assets` is unavailable.
 
 ## rules[].use.parallel.maxWorkers
 
