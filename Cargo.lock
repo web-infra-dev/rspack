@@ -5862,6 +5862,7 @@ dependencies = [
  "memchr",
  "once_cell",
  "regex",
+ "regex-automata",
  "rspack-allocative",
  "rspack_cacheable",
  "rspack_error",

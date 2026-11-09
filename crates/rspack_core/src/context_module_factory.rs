@@ -7,6 +7,7 @@ use rspack_fs::{ReadableFileSystem, WalkMatcher};
 use rspack_hook::define_hook;
 use rspack_loader_runner::parse_resource;
 use rspack_paths::{Utf8Path, Utf8PathBuf, normalize_path_separators};
+use rspack_util::path_state_machine::{PathMatchState, PathStateMachine};
 use smallvec::SmallVec;
 use swc_core::common::util::take::Take;
 use tracing::instrument;
@@ -508,7 +509,13 @@ async fn visit_dirs(
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
   let glob = ContextModuleGlobMatcher::new(options);
-  let matcher = ContextModuleMatcher::new(options, resolve_options, glob.as_ref());
+  let regex = options
+    .context_options
+    .pattern
+    .reg_exp()
+    .and_then(|regex| regex.path_match_expression())
+    .and_then(|expression| PathStateMachine::new(&[expression], 1));
+  let matcher = ContextModuleMatcher::new(options, resolve_options, glob.as_ref(), regex.as_ref());
   if matcher.is_empty() {
     return Ok(());
   }
@@ -584,6 +591,8 @@ struct ContextModuleMatcher<'a, 'resolver> {
   options: &'a ContextModuleOptions,
   resolve_options: &'a ResolveInnerOptions<'resolver>,
   glob: Option<&'a ContextModuleGlobMatcher<'a>>,
+  regex_start: Option<PathMatchState<'a>>,
+  state: Option<PathMatchState<'a>>,
   matches: SmallVec<[ContextModuleMatchedRequest; 1]>,
 }
 
@@ -592,11 +601,17 @@ impl<'a, 'resolver> ContextModuleMatcher<'a, 'resolver> {
     options: &'a ContextModuleOptions,
     resolve_options: &'a ResolveInnerOptions<'resolver>,
     glob: Option<&'a ContextModuleGlobMatcher<'a>>,
+    regex: Option<&'a PathStateMachine>,
   ) -> Self {
+    let regex_start = regex.map(PathStateMachine::start);
     Self {
       options,
       resolve_options,
       glob,
+      regex_start,
+      state: glob
+        .and_then(|matcher| matcher.scan_state(&options.resource))
+        .or_else(|| regex_start.map(|state| state.advance("./"))),
       matches: SmallVec::new(),
     }
   }
@@ -607,10 +622,115 @@ impl<'a, 'resolver> ContextModuleMatcher<'a, 'resolver> {
       pattern => pattern.is_empty(),
     }
   }
+
+  fn relative_request(&self, path: &str) -> String {
+    // The resolver can return a context with or without a trailing slash.
+    let relative = normalize_path_separators(&path[self.options.resource.as_str().len()..]);
+    if relative.starts_with('/') {
+      format!(".{relative}")
+    } else {
+      format!("./{relative}")
+    }
+  }
+
+  fn matching_alternatives(
+    &self,
+    request: String,
+    direct_state: Option<PathMatchState<'a>>,
+  ) -> impl Iterator<Item = AlternativeRequest> + '_ {
+    let regex = self.options.context_options.pattern.reg_exp();
+    let original_len = request.len();
+    alternative_requests(
+      self.resolve_options,
+      vec![AlternativeRequest::new(
+        self.options.resource.to_string(),
+        request,
+      )],
+    )
+    .into_iter()
+    .filter(move |item| {
+      if let Some(start) = self.regex_start {
+        // Resolver alternatives only remove bytes from the request.
+        let state = if item.request.len() == original_len
+          && let Some(state) = direct_state
+        {
+          state
+        } else {
+          start.advance(&item.request)
+        };
+        state.matches().next().is_some()
+      } else {
+        regex.is_some_and(|regex| regex.test(&item.request))
+      }
+    })
+  }
+
+  fn can_visit_regex_alternative(
+    &self,
+    dir: &Utf8Path,
+    name: &str,
+    state: PathMatchState<'a>,
+  ) -> bool {
+    // A multi-component suffix can truncate a descendant's path above this entry.
+    if self
+      .resolve_options
+      .extensions()
+      .chain(self.resolve_options.main_files())
+      .any(|suffix| suffix.contains('/'))
+    {
+      return true;
+    }
+
+    let request = self.relative_request(dir.join(name).as_str());
+    let relative = &request[2..];
+    // Requests below a module root can lose that prefix. Keep both the root's
+    // ancestors and its descendants eligible for those alternative requests.
+    if self.resolve_options.modules().any(|module| {
+      let module = normalize_path_separators(module);
+      relative == module
+        || relative
+          .strip_prefix(module.as_ref())
+          .is_some_and(|rest| rest.starts_with('/'))
+        || module
+          .strip_prefix(relative)
+          .is_some_and(|rest| rest.starts_with('/'))
+    }) {
+      return true;
+    }
+
+    self
+      .matching_alternatives(request, Some(state))
+      .next()
+      .is_some()
+  }
 }
 
 impl WalkMatcher for ContextModuleMatcher<'_, '_> {
   const VISIT_ON_METADATA_ERROR: bool = true;
+
+  fn prepare_child(&self, dir: &Utf8Path, name: &str) -> Option<Self> {
+    let mut child = self.clone();
+    if let Some(state) = self.state {
+      let state = if let Some(start) = self.regex_start
+        && name.contains('\\')
+      {
+        // A literal backslash can become a leading separator in the request.
+        start.advance(&self.relative_request(dir.join(name).as_str()))
+      } else {
+        state.advance(&normalize_path_separators(name))
+      };
+      let can_visit = if let Some(glob) = self.glob {
+        glob.can_visit(state)
+      } else {
+        state.can_include() || self.can_visit_regex_alternative(dir, name, state)
+      };
+      if !can_visit {
+        return None;
+      }
+      child.state = Some(state);
+    }
+    Some(child)
+  }
 
   fn match_entry(mut self, dir: &Utf8Path, name: &str, is_directory: bool) -> Option<Self> {
     let context_options = &self.options.context_options;
@@ -636,6 +756,14 @@ impl WalkMatcher for ContextModuleMatcher<'_, '_> {
       return None;
     }
     if is_directory {
+      if let Some(state) = self.state {
+        let state = state.advance("/");
+        // A regex alternative such as ./dir from ./dir/index.js can still match.
+        if self.glob.is_some_and(|glob| !glob.can_visit(state)) {
+          return None;
+        }
+        self.state = Some(state);
+      }
       return Some(self);
     }
     if context_options
@@ -646,35 +774,21 @@ impl WalkMatcher for ContextModuleMatcher<'_, '_> {
       return None;
     }
 
-    // The resolver can return a context with or without a trailing slash.
-    let ctx = self.options.resource.as_str();
-    let relative = normalize_path_separators(&path[ctx.len()..]);
-    let relative_request = if relative.starts_with('/') {
-      format!(".{relative}")
-    } else {
-      format!("./{relative}")
-    };
+    let relative_request = self.relative_request(path);
     if let Some(glob) = self.glob {
       // Glob maps expose filesystem paths without the resolver's alternative requests.
       self.matches.push(ContextModuleMatchedRequest {
-        request: glob.match_request(path)?,
+        request: glob.match_request(path, self.state)?,
         resource_request: Some(relative_request),
       });
     } else {
-      let reg_exp = context_options.pattern.reg_exp()?;
-      let requests = alternative_requests(
-        self.resolve_options,
-        vec![AlternativeRequest::new(ctx.to_string(), relative_request)],
-      );
-      self.matches.extend(
-        requests
-          .into_iter()
-          .filter(|item| reg_exp.test(&item.request))
-          .map(|item| ContextModuleMatchedRequest {
-            request: item.request,
-            resource_request: None,
-          }),
-      );
+      self.matches = self
+        .matching_alternatives(relative_request, self.state)
+        .map(|item| ContextModuleMatchedRequest {
+          request: item.request,
+          resource_request: None,
+        })
+        .collect();
     }
     (!self.matches.is_empty()).then_some(self)
   }

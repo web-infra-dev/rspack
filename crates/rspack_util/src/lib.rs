@@ -13,6 +13,7 @@ pub mod itoa;
 pub mod location;
 pub mod node_path;
 pub mod number_hash;
+pub mod path_state_machine;
 pub mod placeholder;
 pub mod queue;
 pub mod ryu_js;

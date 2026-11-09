@@ -1,5 +1,6 @@
 mod algo;
 mod napi;
+mod path_expression;
 
 use std::fmt::Debug;
 
@@ -66,6 +67,12 @@ impl RspackRegex {
   #[inline]
   pub fn test(&self, text: &str) -> bool {
     self.algo.test(text)
+  }
+
+  /// Return an equivalent end-of-input expression for the resumable path state machine.
+  /// Unsupported expressions keep using `test`.
+  pub fn path_match_expression(&self) -> Option<String> {
+    path_expression::translate(&self.algo, &self.source, &self.flags)
   }
 
   #[inline]
