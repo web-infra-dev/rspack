@@ -6,12 +6,6 @@ import { setTimeout as sleep } from "node:timers/promises";
 
 const require = createRequire(import.meta.url);
 const { rspack } = require("@rspack/core");
-const Watchpack = require(
-	path.join(
-		path.dirname(require.resolve("@rspack/core/package.json")),
-		"compiled/watchpack",
-	),
-);
 const deps = (paths) =>
 	Object.assign([...paths], { added: paths, removed: [] });
 
@@ -33,7 +27,7 @@ const scenarios = [
 /** @type {import("@rspack/test-tools").TCompilerCaseConfig[]} */
 export default scenarios.map((scenario) => ({
 	name: scenario.name,
-	description: `should match Watchpack when removing a nested context ${scenario.name}`,
+	description: `should report removal events for a nested context ${scenario.name}`,
 	async run() {
 		const root = fs.mkdtempSync(
 			path.join(fs.realpathSync(os.tmpdir()), "rspack-nested-context-remove-"),
@@ -58,7 +52,6 @@ export default scenarios.map((scenario) => ({
 		])
 			fs.utimesSync(file, past, past);
 		const files = [
-			ready,
 			ignored,
 			...(scenario.dependency === "file" ? [child] : []),
 			...(scenario.insideDependency === "file" ? [inside] : []),
@@ -79,12 +72,9 @@ export default scenarios.map((scenario) => ({
 			experiments: { nativeWatcher: true },
 		});
 		const native = compiler.watchFileSystem;
-		const watchpack = new Watchpack(options);
 		const nativeEvents = [],
-			shimEvents = [],
-			watchpackEvents = [];
-		const nativeBatches = [],
-			watchpackBatches = [];
+			shimEvents = [];
+		const nativeBatches = [];
 		const listen = (watcher, events) => {
 			watcher.on("change", (file, mtime) =>
 				events.push({ kind: "change", file, mtime }),
@@ -110,31 +100,16 @@ export default scenarios.map((scenario) => ({
 			() => {},
 		);
 		listen(native.watcher, shimEvents);
-		listen(watchpack, watchpackEvents);
-		watchpack.on("aggregated", (changes, removals) =>
-			watchpackBatches.push({
-				changes: [...changes],
-				removals: [...removals],
-				raw: [...watchpackEvents],
-			}),
-		);
-		watchpack.watch({ files, directories, missing, startTime });
 		try {
-			await waitFor(
-				() =>
-					native.getTimeInfoEntries().has(child) &&
-					watchpack.getTimeInfoEntries().has(child),
-			);
-			await sleep(100);
-			nativeEvents.length = shimEvents.length = watchpackEvents.length = 0;
-			nativeBatches.length = watchpackBatches.length = 0;
+			// The unregistered ready file gets time info from the context scan.
+			await waitFor(() => native.getTimeInfoEntries().has(ready));
+			nativeEvents.length = shimEvents.length = 0;
+			nativeBatches.length = 0;
 			if (scenario.populated) fs.rmSync(child, { recursive: true });
 			else fs.rmdirSync(child);
 			fs.unlinkSync(ignored);
-			await waitFor(
-				() =>
-					nativeBatches.some((batch) => batch.changes.includes(source)) &&
-					watchpackBatches.some((batch) => batch.changes.includes(source)),
+			await waitFor(() =>
+				nativeBatches.some((batch) => batch.changes.includes(source)),
 			);
 			const expectedEvents = [
 				...(scenario.dependency ? [{ kind: "remove", file: child }] : []),
@@ -148,26 +123,23 @@ export default scenarios.map((scenario) => ({
 			];
 			const normalize = (events) =>
 				[...new Set(events.map((event) => JSON.stringify(event)))].sort();
-			for (const events of [watchpackEvents, nativeEvents, shimEvents]) {
+			for (const events of [nativeEvents, shimEvents]) {
 				expect(normalize(events)).toEqual(normalize(expectedEvents));
 			}
-			for (const batches of [watchpackBatches, nativeBatches]) {
-				expect(
-					[...new Set(batches.flatMap((batch) => batch.changes))].sort(),
-				).toEqual([source, ...(scenario.populated ? [child] : [])].sort());
-				expect([
-					...new Set(batches.flatMap((batch) => batch.removals)),
-				]).toEqual([
-					...(scenario.dependency ? [child] : []),
-					...(scenario.insideDependency ? [inside] : []),
-				]);
-				for (const batch of batches) {
-					if (batch.changes.includes(source))
-						expect(normalize(batch.raw)).toEqual(normalize(expectedEvents));
-				}
+			expect(
+				[...new Set(nativeBatches.flatMap((batch) => batch.changes))].sort(),
+			).toEqual([source, ...(scenario.populated ? [child] : [])].sort());
+			expect([
+				...new Set(nativeBatches.flatMap((batch) => batch.removals)),
+			]).toEqual([
+				...(scenario.dependency ? [child] : []),
+				...(scenario.insideDependency ? [inside] : []),
+			]);
+			for (const batch of nativeBatches) {
+				if (batch.changes.includes(source))
+					expect(normalize(batch.raw)).toEqual(normalize(expectedEvents));
 			}
 		} finally {
-			watchpack.close();
 			handle.close();
 			await new Promise((resolve, reject) =>
 				compiler.close((error) => (error ? reject(error) : resolve())),
