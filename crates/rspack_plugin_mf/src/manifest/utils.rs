@@ -226,21 +226,6 @@ pub fn parse_provide_shared_identifier(identifier: &str) -> Option<(String, Stri
   Some((name.to_string(), version.to_string()))
 }
 
-pub fn parse_consume_shared_identifier(identifier: &str) -> Option<(String, Option<String>)> {
-  let (_, rest) = identifier.split_once(") ")?;
-  // The range can contain spaces (`^1.0.0 || ^2.0.0`); the flags after it start with ` (`.
-  let token = rest.split(" (").next()?.trim();
-  // For scoped packages like @scope/pkg@1.0.0, split at the LAST '@'
-  let (name, version) = token.rsplit_once('@')?;
-  let version = version.trim();
-  let required = if version.is_empty() || version == "*" {
-    None
-  } else {
-    Some(version.to_string())
-  };
-  Some((name.to_string(), required))
-}
-
 pub fn collect_expose_requirements(
   shared_map: &mut HashMap<String, StatsShared>,
   exposes_map: &mut HashMap<String, StatsExpose>,
