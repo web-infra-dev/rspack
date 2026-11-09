@@ -1304,8 +1304,6 @@ export default {
 
 启用或禁用对自定义标识符的重命名，例如本地 `@counter-style` 和 `@font-palette-values` 名称。
 
-在 `list-style` 简写中，无论位置关键字在名称之前还是之后，例如 `inside stars` 或 `stars inside`，本地计数器样式的引用都会被重命名。
-
 ```js title="rspack.config.mjs"
 export default {
   module: {
@@ -1381,8 +1379,6 @@ export default {
 - **默认值：** `true`
 
 启用或禁用对本地 CSS grid 线名和区域名及其使用处的重命名，例如 `grid-template-areas`、`grid-area` 和 `grid-row`。
-
-区域的隐式网格线引用使用生成的区域名加上 `-start` 或 `-end`。例如，当 `main` 被重命名为 `main-local` 时，`grid-column: main-start / main-end` 会变成 `grid-column: main-local-start / main-local-end`。
 
 ```js title="rspack.config.mjs"
 export default {
