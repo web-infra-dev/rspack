@@ -154,14 +154,17 @@ export async function build(
 	}
 }
 
-export async function withProjects(run) {
+export async function withProjects(
+	run,
+	[writerName, readerName] = ["a", "much-lönger-读者-😀"]
+) {
 	const temp = fs.realpathSync.native(
 		fs.mkdtempSync(path.join(os.tmpdir(), "rspack-portable-swc-"))
 	);
 	try {
 		await run(
-			path.join(temp, "a", "proj"),
-			path.join(temp, "much-lönger-读者-😀", "proj")
+			path.join(temp, writerName, "proj"),
+			path.join(temp, readerName, "proj")
 		);
 	} finally {
 		fs.rmSync(temp, { recursive: true, force: true });

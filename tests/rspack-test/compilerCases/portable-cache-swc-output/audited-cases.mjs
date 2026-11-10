@@ -173,6 +173,23 @@ export const parts = ["/", "src", ".tsx", \`/\${"src"}/\`, Flags.B, true, null, 
       });
     }
   },
+  {
+    name: "root-independent-decline",
+    description: "declines at every root when literals can spell a path at one of them, so a reused module equals a cold build",
+    async run() {
+      // Only the writer's root has a character that the literals lack.
+      await withProjects(async (writer, reader) => {
+        const table = [...new Set(path.join(reader, "src", "table.jsx"))];
+        writeProject(writer, { "table.jsx": jsxSource(`export const table = ${JSON.stringify(table)};`) });
+        const rules = [swcRule(/\.jsx$/)];
+        await build(writer, rules, undefined, withoutMaps);
+        copyProject(writer, reader);
+        const moved = await build(reader, rules, undefined, withoutMaps);
+        expect(moved.values[0].value.fileName).toBe(path.join(reader, "src", "table.jsx"));
+        await expectColdEquality(moved, reader, rules, withoutMaps);
+      }, ["w~1", "r-读"]);
+    }
+  },
   ...[false, true].map(portableOutput => ({
     name: `async-map-filesystem-${portableOutput ? "portable" : "default"}`,
     description: "acquires absent and virtual-only adjacent input maps through async filesystem callbacks on native and WASI bindings",

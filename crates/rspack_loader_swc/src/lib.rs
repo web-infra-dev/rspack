@@ -185,8 +185,11 @@ impl SwcLoader {
         Some(input_source_map),
         |program, unresolved_mark| {
           if portable_output {
-            portable_output =
-              !portable_output::input_can_spell_resource_path(program, resource_path.as_str());
+            portable_output = !portable_output::input_can_spell_resource_path(
+              program,
+              &resource_path,
+              loader_context.context.options.context.as_path(),
+            );
           }
           if !is_typescript {
             return;
