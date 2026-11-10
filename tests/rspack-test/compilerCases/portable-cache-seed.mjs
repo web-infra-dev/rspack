@@ -475,6 +475,105 @@ export default [
 			});
 		}
 	},
+	...["git", "commondir", "config", "gitdir"].map((metadata) => ({
+		name: `non-regular-${metadata}`,
+		description: "ignores Git metadata FIFOs and completes a normal build",
+		skip: process.platform === "win32",
+		async run() {
+			await withFixture(async (root) => {
+				fixture(root);
+				const common = path.join(root, ".git");
+				let fifo = common;
+				if (metadata === "commondir") {
+					const admin = path.join(root, "admin");
+					fs.mkdirSync(admin);
+					fs.writeFileSync(common, "gitdir: admin");
+					fifo = path.join(admin, "commondir");
+				} else if (metadata !== "git") {
+					fs.mkdirSync(common);
+					fifo = path.join(common, "config");
+					if (metadata === "gitdir") {
+						const admin = path.join(common, "worktrees", "other");
+						fs.mkdirSync(admin, { recursive: true });
+						fifo = path.join(admin, "gitdir");
+					}
+				}
+				execFileSync("mkfifo", [fifo]);
+				let cold;
+				for (const enabled of [false, true]) {
+					const child = spawnSync(
+						process.execPath,
+						[
+							"--input-type=module",
+							"-e",
+							`
+import { rspack } from ${JSON.stringify(import.meta.resolve("@rspack/core"))};
+const compiler = rspack({
+ context: ${JSON.stringify(root)}, mode: "development", entry: "./value-two.js",
+ cache: { type: "persistent" }, experiments: { portableCache: ${enabled} },
+ output: { path: ${JSON.stringify(path.join(root, "dist"))} }
+});
+compiler.run((error, stats) => {
+ if (error || stats.hasErrors()) process.exitCode = 1;
+ compiler.close(() => console.log("completed"));
+});
+`
+						],
+						{ encoding: "utf8", timeout: 10000 }
+					);
+					expect(child.error).toBeUndefined();
+					expect(child.status).toBe(0);
+					expect(child.stdout).toContain("completed");
+					const output = contents(path.join(root, "dist"));
+					if (!enabled) cold = output;
+					expect(output).toEqual(cold);
+				}
+			});
+		}
+	})),
+	{
+		name: "submodule-primary-donor",
+		description: "discovers a submodule primary checkout through core.worktree",
+		skip: !gitAvailable,
+		async run() {
+			await withFixture(async (temp) => {
+				const main = path.join(temp, "primary checkout");
+				const target = path.join(temp, "target");
+				fixture(main);
+				const git = (...args) =>
+					execFileSync("git", args, { cwd: main, stdio: "pipe" });
+				git("init");
+				git("add", ".");
+				git(
+					"-c",
+					"user.name=Rspack",
+					"-c",
+					"user.email=rspack@example.com",
+					"-c",
+					"commit.gpgsign=false",
+					"commit",
+					"-m",
+					"fixture"
+				);
+				const common = path.join(temp, "super.git", "modules", "app");
+				fs.mkdirSync(path.dirname(common), { recursive: true });
+				fs.renameSync(path.join(main, ".git"), common);
+				fs.writeFileSync(path.join(main, ".git"), `gitdir: ${common}`);
+				git("config", "core.worktree", path.relative(common, main));
+				git("worktree", "add", target, "-b", "target");
+				await build(main);
+				await build(main);
+				const donor = contents(cacheLocation(main));
+				const result = await build(target);
+				expectSeededFrom(result.logs, cacheLocation(main));
+				expect(result.built).toEqual(["index.js"]);
+				expect(result.output).toEqual(
+					(await build(target, { cache: false })).output
+				);
+				expect(contents(cacheLocation(main))).toEqual(donor);
+			});
+		}
+	},
 	{
 		name: "option-defaults",
 		description:

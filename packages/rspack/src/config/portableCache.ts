@@ -16,10 +16,15 @@ function realLocation(location: string): string {
 }
 
 function readText(file: string): string | undefined {
+  let fd: number | undefined;
   try {
-    return fs.readFileSync(file, 'utf8');
+    // Opening a FIFO must not block, including if the path changes before fstat.
+    fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NONBLOCK);
+    return fs.fstatSync(fd).isFile() ? fs.readFileSync(fd, 'utf8') : undefined;
   } catch {
     return undefined;
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
   }
 }
 
@@ -54,8 +59,10 @@ function findCommonDir(top: string, logger: Logger): string | undefined {
   return path.resolve(gitdir, commondir.trim());
 }
 
-function isBare(common: string): boolean {
+function primaryWorktree(common: string): string | undefined {
   let core = false;
+  let bare = false;
+  let worktree: string | undefined;
   for (const line of (readText(path.join(common, 'config')) ?? '').split(
     /\r?\n/,
   )) {
@@ -65,15 +72,28 @@ function isBare(common: string): boolean {
       core &&
       /^\s*bare(?:\s*=\s*"?(true|yes|on|1)"?)?\s*(?:[#;].*)?$/i.test(line)
     )
-      return true;
+      bare = true;
+    else if (core) {
+      const match =
+        /^\s*worktree\s*=\s*("(?:\\.|[^"\\])*"|[^#;]*?)\s*(?:[#;].*)?$/i.exec(
+          line,
+        );
+      if (match?.[1]) {
+        worktree = match[1].startsWith('"')
+          ? (JSON.parse(match[1]) as string)
+          : match[1];
+      }
+    }
   }
-  return false;
+  if (bare) return;
+  if (worktree !== undefined) return path.resolve(common, worktree);
+  if (path.basename(common) === '.git') return path.dirname(common);
 }
 
 function worktreeTops(common: string): string[] {
   const tops: string[] = [];
-  if (path.basename(common) === '.git' && !isBare(common))
-    tops.push(path.dirname(common));
+  const primary = primaryWorktree(common);
+  if (primary) tops.push(primary);
   const registry = path.join(common, 'worktrees');
   if (!fs.existsSync(registry)) return tops;
   for (const entry of fs.readdirSync(registry)) {
