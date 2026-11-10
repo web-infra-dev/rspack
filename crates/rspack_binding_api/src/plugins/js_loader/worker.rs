@@ -8,7 +8,7 @@ use std::sync::{
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{LoaderContext, RunnerContext};
-use rspack_js_tasks::{
+use rspack_napi::js_tasks::{
   LoaderTask as NativeLoaderTask, LoaderTaskMode, TimingPoint, js_task_dispatcher,
 };
 use rustc_hash::FxHashMap;

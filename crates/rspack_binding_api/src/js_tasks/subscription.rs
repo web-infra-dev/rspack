@@ -5,7 +5,7 @@ use std::{
 
 use dashmap::DashMap;
 use napi::{Env, sys};
-use rspack_js_tasks::{MainTaskRegistration, TimingPoint, js_task_dispatcher};
+use rspack_napi::js_tasks::{MainTaskRegistration, TimingPoint, js_task_dispatcher};
 use tokio_util::sync::CancellationToken;
 
 use super::{

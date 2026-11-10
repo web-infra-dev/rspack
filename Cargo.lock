@@ -4218,7 +4218,6 @@ dependencies = [
  "rspack_ids",
  "rspack_intern",
  "rspack_javascript_compiler",
- "rspack_js_tasks",
  "rspack_loader_lightningcss",
  "rspack_loader_preact_refresh",
  "rspack_loader_react_refresh",
@@ -4636,17 +4635,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_js_tasks"
-version = "0.103.1"
-dependencies = [
- "async-channel",
- "rspack_error",
- "serde_json",
- "tokio",
- "tokio-util",
-]
-
-[[package]]
 name = "rspack_loader_lightningcss"
 version = "0.103.1"
 dependencies = [
@@ -4707,7 +4695,7 @@ dependencies = [
  "rspack_error",
  "rspack_fs",
  "rspack_hash",
- "rspack_js_tasks",
+ "rspack_napi",
  "rspack_paths",
  "rspack_regex",
  "rspack_resolver",
@@ -4812,6 +4800,7 @@ dependencies = [
 name = "rspack_napi"
 version = "0.103.1"
 dependencies = [
+ "async-channel",
  "napi",
  "oneshot",
  "rspack-allocative",
@@ -4819,6 +4808,7 @@ dependencies = [
  "scopeguard",
  "serde_json",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]

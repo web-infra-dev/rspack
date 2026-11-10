@@ -6,8 +6,8 @@ use napi::{
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
 };
 use napi_derive::napi;
-use rspack_js_tasks::LoaderTaskMode;
 use rspack_loader_runner::JsLoaderRuntime;
+use rspack_napi::js_tasks::LoaderTaskMode;
 use rustc_hash::FxHashMap;
 
 type ReleaseCallback = ThreadsafeFunction<u32, (), u32, Status, false, true, 0>;

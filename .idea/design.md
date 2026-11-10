@@ -2,7 +2,7 @@
 
 本文记录当前执行设计。按最新讨论收敛为：**dispatcher 是进程级单例；每个 JS 线程有一个 subscription；subscription 创建时启动 Tokio 接收循环，Drop 时通过 CancellationToken 结束循环。**
 
-队列放在独立 crate `rspack_js_tasks`，不放 core、rspack_parallel 或 binding。`rspack_loader_runner::LoaderContext::loader_yield` 直接构造任务、投递队列、等待结果并恢复 context；删除 LoaderRunnerPlugin::start_yielding、core NormalModuleLoaderStartYielding / loader_yield hook 和 binding scheduler hook。
+队列放在 `rspack_napi::js_tasks`。`rspack_loader_runner::LoaderContext::loader_yield` 直接构造任务、投递队列、等待结果并恢复 context；删除 LoaderRunnerPlugin::start_yielding、core NormalModuleLoaderStartYielding / loader_yield hook 和 binding scheduler hook。
 
 ```text
 NormalModule::build
@@ -14,7 +14,7 @@ run_loaders → LoaderContext::loader_yield
   take_owned，原 Box<LoaderContext> 移入任务
        ↓
 js_task_dispatcher().dispatch_main / dispatch_worker
-  crates/rspack_js_tasks/src/{dispatcher,task}.rs
+  crates/rspack_napi/src/js_tasks/{dispatcher,task}.rs
   私有 async-channel；检查 main ready/cancel 或 worker 是否可用
        ↓
 JsTaskSubscription / TSFN
@@ -26,7 +26,7 @@ JsLoaderTask.takeContext → 统一 runLoaders → complete / fail
 loader runner 恢复原 Box<LoaderContext>，继续 pitch / normal / builtin
 ```
 
-依赖方向为 binding → core → loader runner → rspack_js_tasks，binding 也直接订阅 rspack_js_tasks。新 crate 不依赖 core、loader runner 或 N-API。任务中的 context 在队列内部保存为 `Box<dyn Any + Send>`，由 binding 恢复为 `LoaderContext<RunnerContext>`，返回后 runner 恢复自己的 `LoaderContext<Context>`；只擦除类型，不复制、序列化或重新构造 native state。公共 channel 类型和 close 操作均不暴露。
+依赖方向为 binding → core → loader runner → rspack_napi。binding 直接订阅 `rspack_napi::js_tasks`。队列实现独立于 core、loader runner 和 N-API 调用。任务中的 context 在队列内部保存为 `Box<dyn Any + Send>`，由 binding 恢复为 `LoaderContext<RunnerContext>`，返回后 runner 恢复自己的 `LoaderContext<Context>`；只擦除类型，不复制、序列化或重新构造 native state。公共 channel 类型和 close 操作均不暴露。
 
 每个 compiler 的 `JsLoaderRuntime` 保存 main object handle、parallel references 和无 pitch 缓存。binding 的 JsLoader 通过 compiler ID 获取该元数据，返回 Arc；不执行异步 hook，不把当前 compiler 的 handle 持久化进可缓存的 JsLoader。thisCompilation 复用原有 hook 登记 Weak 路由；JsCompiler finalize 删除路由，包括 unsafeFastDrop。
 
@@ -36,8 +36,8 @@ loader runner 恢复原 Box<LoaderContext>，继续 pitch / normal / builtin
 
 | 名称                                        | 职责与生命周期                                                                           |
 | ------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `JsTaskDispatcher`                          | 独立 crate 中的进程级单例；封装私有 main/worker channel、main Weak 注册和 worker 可用 ID |
-| `JS_TASK_DISPATCHER`                        | 新 crate 私有的 `LazyLock<JsTaskDispatcher>`，通过 js_task_dispatcher() 访问             |
+| `JsTaskDispatcher`                          | `rspack_napi::js_tasks` 中的进程级单例，封装私有 main/worker channel、main Weak 注册和 worker 可用 ID |
+| `JS_TASK_DISPATCHER`                        | 队列模块私有的 `LazyLock<JsTaskDispatcher>`，通过 js_task_dispatcher() 访问             |
 | `JsTaskSubscription`                        | 一个 JS 线程的 TSFN、receiver 与取消信号；构造时启动一次接收循环                         |
 | `MAIN_TASK_SUBSCRIPTION`                    | 主线程订阅的全局 Weak 入口；各 JsCompiler 持有实例的 Arc，实例拥有 worker 订阅表         |
 | `worker_subscriptions`                      | 主线程 subscription 上的 DashMap，按 Node thread ID 强引用 worker 订阅                   |
@@ -50,7 +50,7 @@ loader runner 恢复原 Box<LoaderContext>，继续 pitch / normal / builtin
 
 ## 最小结构
 
-以下为订阅所有权示意，省略队列封装、MainTaskRegistration 和初始化错误处理；dispatcher 位于独立 crate，subscription 位于 binding：
+以下为订阅所有权示意，省略队列封装、MainTaskRegistration 和初始化错误处理；dispatcher 位于 `rspack_napi::js_tasks`，subscription 位于 binding。
 
 ```rust
 static JS_TASK_DISPATCHER: LazyLock<JsTaskDispatcher> =
@@ -285,7 +285,7 @@ env cleanup 需要确认循环退出时，可使用退出通知或接收循环�
 任务本身使用枚举即可，不重复在每项里放 dispatcher ID 或目标队列字段。调用 `dispatch_main(task)` / `dispatch_worker(task)` 时已选定队列。
 
 ```rust
-// rspack_js_tasks，不依赖 loader runner 或 core。
+// rspack_napi::js_tasks
 enum JsTask {
   Loader(LoaderTask),
   // WorkerFunction 可在有调用方时增加自己的 payload / completion。
@@ -450,16 +450,16 @@ worker options cache、loader references、MessagePort、初始化 Promise 仍�
 
 | 步骤                             | 文件/范围                                                                                                            | 完成条件                                                                                                                                                        |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. 提取通用队列                  | 独立 `rspack_js_tasks/src/{lib,dispatcher,task}.rs`                                                                  | 一个 static dispatcher；两条 async-channel；`JsTask` enum；不引入 dispatcher ID/envelope/generation                                                             |
+| 1. 提取通用队列                  | `rspack_napi/src/js_tasks/{mod,dispatcher,task}.rs`                                                                  | 一个 static dispatcher；两条 async-channel；`JsTask` enum；不引入 dispatcher ID/envelope/generation                                                             |
 | 2. 实现订阅循环                  | `subscription.rs`、`crates/rspack_napi/src/runtime.rs` 的现有入口                                                    | 构造后自动 spawn；只捕获独立资源；Drop cancel；验证循环和 TSFN 的释放                                                                                           |
 | 3. 导出订阅并注入 compiler       | `js_tasks/mod.rs`、binding `lib.rs`、`Compiler.ts`、worker 初始化/cleanup、binding 导出与生成类型                    | 导出 `get_js_task_subscription(is_worker)`；main 返回 Arc 经不透明参数移交 JsCompiler；全局 main Weak；main 表持有 worker Arc；worker env 只存 Weak；同线程复用 |
 | 4. 移除 bound runner             | `Compiler.ts`、`JsLoaderRspackPlugin.ts`、`raw_builtins/mod.rs`、loader plugin `mod.rs`                              | TSFN 不捕获 compiler；通过 CompilerId 查高层 JS owner，再显式传参                                                                                               |
-| 5. main 与 worker 统一入队       | `rspack_loader_runner/src/javascript.rs`；独立任务队列；binding `worker.rs`                                          | runner 直接投递两类任务；删除所有 yield hook 转发；main 可异步并发；worker import 重入及节流保持                                                                |
+| 5. main 与 worker 统一入队       | `rspack_loader_runner/src/javascript.rs`、`rspack_napi::js_tasks`、binding `worker.rs`                                          | runner 直接投递两类任务；删除所有 yield hook 转发；main 可异步并发；worker import 重入及节流保持                                                                |
 | 6. 统一 loader context 与 Module | loader plugin `context.rs`、`worker.rs`，binding `module.rs`；JS loader-runner `worker.ts`、`service.ts`、`index.ts` | worker context 保留 native `_module`，loader 使用受限包装；移除专用 module 代理替换；适配 Module 的线程本地依赖；compiler/compilation 沿用主线程 RPC            |
 | 7. 处理退出及对象路由            | worker pool、task 完成表、`bridge.rs`、`service.ts`                                                                  | 无消费者时失败归还；订阅交接无遗漏；旧 release 回调不影响新对象；close 一个 compiler 不影响其他 compiler                                                        |
 | 8. 构建与回归                    | binding/JS 构建、现有测试 runner、生成类型                                                                           | 满足下方验证矩阵                                                                                                                                                |
 
-队列及原生完成协议放在 `crates/rspack_js_tasks/`；binding `js_tasks/` 只保留 subscription、capacity 和 tsfn；JS context merge 位于 `plugins/js_loader/result.rs`。runner 自己调用 `take_owned/restore_owned`，不修改 `rspack_core::Compiler::new` 的公共构造参数，也不同时搬迁所有 compilation RPC。
+队列及原生完成协议位于 `crates/rspack_napi/src/js_tasks/`。binding `js_tasks/` 负责 subscription、capacity 和 tsfn。JS context merge 位于 `plugins/js_loader/result.rs`。runner 自己调用 `take_owned/restore_owned`，不修改 `rspack_core::Compiler::new` 的公共构造参数，也不同时搬迁所有 compilation RPC。
 
 具体 worker pool 的迁移与此订阅模型解耦。落实前文直接使用 worker_threads 的目标时，保持默认 `max(CPU - 2, 1)` 和 make 等待 ready 的约定。WASI 另核对其环境/内存边界，不能认为 native static 自动跨 WASM instance 共享。
 

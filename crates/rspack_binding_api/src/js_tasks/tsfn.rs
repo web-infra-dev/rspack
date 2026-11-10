@@ -2,7 +2,7 @@ use std::{ffi::c_void, ptr, sync::Mutex};
 
 use napi::{bindgen_prelude::*, sys};
 use rspack_core::{LoaderContext, RunnerContext};
-use rspack_js_tasks::{JsTask, TimingPoint};
+use rspack_napi::js_tasks::{JsTask, TimingPoint};
 use tokio_util::sync::CancellationToken;
 
 use crate::{COMPILER_REFERENCES, plugins::js_loader::worker::JsLoaderTask};

@@ -190,7 +190,6 @@ rspack_error                           = { version = "=0.103.1", path = "crates/
 rspack_fs                              = { version = "=0.103.1", path = "crates/rspack_fs", default-features = false }
 rspack_hash                            = { version = "=0.103.1", path = "crates/rspack_hash", default-features = false }
 rspack_hook                            = { version = "=0.103.1", path = "crates/rspack_hook", default-features = false }
-rspack_js_tasks                        = { version = "=0.103.1", path = "crates/rspack_js_tasks", default-features = false }
 rspack_ids                             = { version = "=0.103.1", path = "crates/rspack_ids", default-features = false }
 rspack_intern                          = { version = "=0.103.1", path = "crates/rspack_intern", default-features = false }
 rspack_javascript_compiler             = { version = "=0.103.1", path = "crates/rspack_javascript_compiler", default-features = false }

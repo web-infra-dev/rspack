@@ -3,7 +3,7 @@ use std::{any::Any, sync::Arc};
 use rspack_error::{Result, error};
 use tokio::sync::oneshot;
 
-use crate::{LoaderTaskTiming, TimingPoint};
+use super::{LoaderTaskTiming, TimingPoint};
 
 /// The original allocation travels through the queue and back without copying.
 /// Type erasure keeps the queue independent of the loader runner's context type.

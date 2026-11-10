@@ -1,7 +1,9 @@
 use std::sync::Mutex;
 
 use rspack_error::{Result, error};
-use rspack_js_tasks::{JsTask, LoaderTask, LoaderTaskMode, LoaderTaskTiming, js_task_dispatcher};
+use rspack_napi::js_tasks::{
+  JsTask, LoaderTask, LoaderTaskMode, LoaderTaskTiming, js_task_dispatcher,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 use tokio::sync::oneshot;
 

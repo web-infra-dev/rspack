@@ -1,5 +1,5 @@
 //! Process-wide native queues. JS environments and loader context types belong
-//! to the callers; this crate has no dependency on core, loader runner or N-API.
+//! to the callers; this module has no dependency on core, loader runner or N-API.
 mod dispatcher;
 mod task;
 mod timing;

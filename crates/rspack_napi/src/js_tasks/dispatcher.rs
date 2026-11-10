@@ -6,7 +6,7 @@ use std::{
 use async_channel::{Receiver, Sender};
 use tokio_util::sync::CancellationToken;
 
-use crate::{JsTask, TimingPoint};
+use super::{JsTask, TimingPoint};
 
 static JS_TASK_DISPATCHER: LazyLock<JsTaskDispatcher> = LazyLock::new(JsTaskDispatcher::new);
 
