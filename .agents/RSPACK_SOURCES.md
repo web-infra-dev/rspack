@@ -261,8 +261,9 @@ Important implementation details:
   separate. It hides maps through both `map()` and `stream_chunks()`. The comment is a shared
   raw source so devtool cache entries and the emitted asset do not copy inline-map URLs.
   Both cache backends restore this wrapper, including hidden maps with an empty comment.
-  For minimized assets, keep only the generated text after composing the final map, on
-  both cache hits and misses. The minifier's source graph can retain the entire unminified chunk.
+  For inline maps and minimized assets, retain only the generated text and comment on both
+  cache hits and misses. The inline URL already contains the map; a minifier's input graph
+  can retain the entire unminified chunk.
   The wrapper is only for generated text. Buffer assets have no source map and pass through
   DevTool unchanged, including on cache hits. RCH scans code through rope chunks so edit offsets use the same text.
 - `DevToolMapSource` is the JSON asset itself, so `map()` returns `None`. It retains the

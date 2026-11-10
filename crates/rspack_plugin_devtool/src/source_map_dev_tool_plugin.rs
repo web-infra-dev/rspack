@@ -1040,9 +1040,9 @@ impl SourceMapDevToolPlugin {
       })
       .clone();
 
-    // The minimizer's intermediate maps can own the entire unminified chunk.
-    // Once the final map is composed, only the generated text is needed.
-    let source = if asset.info.minimized == Some(true) {
+    // An inline map lives in the URL; keeping its input graph would retain the original map too.
+    // A minimizer's input graph can likewise retain the entire unminified chunk.
+    let source = if plugin.source_map_filename.is_none() || asset.info.minimized == Some(true) {
       RawStringSource::from(source.source().into_string_lossy().into_owned()).boxed()
     } else {
       source

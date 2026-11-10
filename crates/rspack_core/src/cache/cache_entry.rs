@@ -72,8 +72,8 @@ impl CachedSourceMapDevToolPluginEntry {
         RawStringSource::from(suffix).boxed()
       }
     };
-    // As on a cache miss, don't retain the minimizer's input through the emitted asset.
-    let code = if asset.info.minimized == Some(true) {
+    // No separate map asset means the cached suffix already contains the inline map.
+    let code = if self.source_map.is_none() || asset.info.minimized == Some(true) {
       RawStringSource::from(source.source().into_string_lossy().into_owned()).boxed()
     } else {
       source.clone()
