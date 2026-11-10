@@ -11,7 +11,7 @@ pub(crate) mod snapshot;
 mod statistics;
 mod validator;
 
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock, Weak};
 
 pub use cache::{Cache, CompilerCache};
 pub use cache_facade::{CacheFacade, ItemCacheFacade, MultiItemCache};
@@ -22,16 +22,59 @@ pub use file_cache_strategy::FileCacheStrategy;
 pub use idle_file_cache::IdleFileCache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
 use rspack_fs::ReadableFileSystem;
+use rspack_paths::{InternedPath, InternedPathMap};
 pub use snapshot::{FileSystemInfo, Snapshot, SnapshotValidationResult};
 pub use statistics::{CacheInfo, CacheRecord};
+use tokio::sync::Mutex;
 
 use crate::{
   CompilerOptions, InfrastructureLogSink, InfrastructureLogger, MaxMemoryGenerations,
   cache::CacheCodec,
 };
 
+static SHARED_PERSISTENT_CACHES: LazyLock<Mutex<InternedPathMap<Weak<Cache>>>> =
+  LazyLock::new(|| Mutex::new(InternedPathMap::default()));
+
 /// Creates cache storage independently of a compiler's namespace.
 pub fn create_cache(
+  compiler_options: &CompilerOptions,
+  input_filesystem: Arc<dyn ReadableFileSystem>,
+  infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
+) -> Arc<Cache> {
+  let storage_dir = match (
+    compiler_options.experiments.new_cache.is_enabled(),
+    &compiler_options.cache,
+  ) {
+    (true, crate::CacheOptions::Persistent(options)) => match &options.storage {
+      crate::StorageOptions::FileSystem { location, .. } => {
+        Some(InternedPath::from(location.as_path()))
+      }
+    },
+    _ => None,
+  };
+
+  let Some(storage_dir) = storage_dir else {
+    return Arc::new(create_cache_storage(
+      compiler_options,
+      input_filesystem,
+      infrastructure_log_sink,
+    ));
+  };
+
+  let mut caches = SHARED_PERSISTENT_CACHES.blocking_lock();
+  if let Some(cache) = caches.get(&storage_dir).and_then(Weak::upgrade) {
+    return cache;
+  }
+  let cache = Arc::new(create_cache_storage(
+    compiler_options,
+    input_filesystem,
+    infrastructure_log_sink,
+  ));
+  caches.insert(storage_dir, Arc::downgrade(&cache));
+  cache
+}
+
+fn create_cache_storage(
   compiler_options: &CompilerOptions,
   input_filesystem: Arc<dyn ReadableFileSystem>,
   infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
@@ -94,4 +137,21 @@ pub fn create_cache(
   };
 
   Cache::new(memory_cache, Some(idle_file_cache), logger)
+}
+
+pub async fn shutdown_cache(cache: Arc<Cache>) {
+  let Some(storage_dir) = cache.storage_dir() else {
+    cache.shutdown().await;
+    return;
+  };
+
+  let mut caches = SHARED_PERSISTENT_CACHES.lock().await;
+  let is_current = caches
+    .get(&storage_dir)
+    .and_then(Weak::upgrade)
+    .is_some_and(|current| Arc::ptr_eq(&current, &cache));
+  cache.shutdown().await;
+  if is_current {
+    caches.remove(&storage_dir);
+  }
 }

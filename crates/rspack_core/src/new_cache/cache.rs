@@ -1,6 +1,6 @@
 use std::{ops::Deref, sync::Arc, time::Duration};
 
-use rspack_paths::InternedPathSet;
+use rspack_paths::{InternedPath, InternedPathSet};
 use rustc_hash::FxHashMap;
 
 use super::{
@@ -106,6 +106,14 @@ impl Cache {
     self.storage.idle_file_cache.is_some()
   }
 
+  pub(super) fn storage_dir(&self) -> Option<InternedPath> {
+    self
+      .storage
+      .idle_file_cache
+      .as_ref()
+      .map(IdleFileCache::storage_dir)
+  }
+
   pub fn begin_idle(&self, build_time: Duration) {
     let storage = &self.storage;
     if let Some(memory_cache) = &storage.memory_cache {
@@ -123,7 +131,7 @@ impl Cache {
     }
   }
 
-  pub async fn shutdown(&self) {
+  pub(super) async fn shutdown(&self) {
     let storage = &self.storage;
     if let Some(file_cache) = &storage.idle_file_cache {
       file_cache.shutdown().await;
@@ -164,6 +172,11 @@ impl CompilerCache {
   pub fn facade(&self, name: &str) -> CacheFacade {
     let cache_name = [self.compiler_path.as_ref(), name].join("|");
     CacheFacade::new(Arc::clone(&self.cache), cache_name.into())
+  }
+
+  /// Returns a cache namespace shared by every compiler using this storage.
+  pub fn shared_facade(&self, name: &str) -> CacheFacade {
+    CacheFacade::new(Arc::clone(&self.cache), ["", name].join("|").into())
   }
 
   pub fn cache_info(&self) -> FxHashMap<String, CacheInfo> {
