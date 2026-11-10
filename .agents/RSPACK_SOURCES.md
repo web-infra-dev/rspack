@@ -268,7 +268,7 @@ Important implementation details:
   `sourcesContent`. `source()`, `buffer()`, and successful `to_writer()` calls cache only the
   serialized byte length, so a later `size()` need not serialize the map again.
   Rope APIs expose borrowed JSON fragments. Hashing and scanning use the SIMD writer, and
-  equality advances through a field/escape cursor without collecting one reference per escape.
+  equality iterates JSON fields and escapes on demand without collecting them in a vector.
   Persistent cache stores fields directly, including empty arrays. For external `noSources` maps,
   detach remaining metadata so it cannot keep removed source contents alive.
 - RCH scans the two devtool outputs (also behind ReplaceSource/CachedSource) with the bounded

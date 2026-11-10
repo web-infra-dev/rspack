@@ -3,24 +3,27 @@ use std::{
   io::{self, Write},
 };
 
-use crate::{
-  CachedSource, ConcatSource, DevToolCodeSource, DevToolMapSource, ReplaceSource, Source,
-};
+use crate::{CachedSource, DevToolCodeSource, DevToolMapSource, ReplaceSource, Source};
 
 /// Whether this is a text devtool asset, possibly behind edit/cache wrappers.
 /// Other source graphs retain their existing content and equality semantics.
 pub fn is_devtool_source(source: &dyn Source) -> bool {
+  devtool_source(source).is_some()
+}
+
+// Ignore cache wrappers for comparison, but keep edits on the writer side.
+fn devtool_source(source: &dyn Source) -> Option<&dyn Source> {
   let any = source.as_any();
   if any.is::<DevToolCodeSource>() || any.is::<DevToolMapSource>() {
-    return true;
+    return Some(source);
   }
-  if let Some(source) = any.downcast_ref::<ReplaceSource>() {
-    return is_devtool_source(source.inner().as_ref());
+  if let Some(edited) = any.downcast_ref::<ReplaceSource>() {
+    return is_devtool_source(edited.inner().as_ref()).then_some(source);
   }
-  if let Some(source) = any.downcast_ref::<CachedSource>() {
-    return is_devtool_source(source.inner().as_ref());
+  if let Some(cached) = any.downcast_ref::<CachedSource>() {
+    return devtool_source(cached.inner().as_ref());
   }
-  false
+  None
 }
 
 /// Hash emitted UTF-8 bytes, independently of source type or rope boundaries.
@@ -50,55 +53,29 @@ pub fn source_content_eq(a: &dyn Source, b: &dyn Source) -> bool {
   if std::ptr::eq(a, b) {
     return true;
   }
-  let (stream, other) = match (streaming_source(a), streaming_source(b)) {
-    // Prefer a map on the iterator side so both sources can stream.
-    (Some(a), Some(b)) if a.as_any().is::<DevToolMapSource>() => (b, a),
-    (Some(a), Some(b)) => (a, b),
+  let (writer, other) = match (devtool_source(a), devtool_source(b)) {
+    (Some(a), Some(b)) => {
+      if std::ptr::eq(a, b) {
+        return true;
+      }
+      for (source, other) in [(a, b), (b, a)] {
+        if let Some(map) = source.as_any().downcast_ref::<DevToolMapSource>() {
+          return map.content_eq(other);
+        }
+      }
+      (a, b)
+    }
     (Some(a), None) => (a, b),
     (None, Some(b)) => (b, a),
     (None, None) => return a.buffer() == b.buffer(),
   };
-  if std::ptr::eq(stream, other) {
-    return true;
-  }
-  if let Some(map) = other.as_any().downcast_ref::<DevToolMapSource>() {
-    if stream.as_any().downcast_ref::<DevToolMapSource>() == Some(map) {
-      return true;
-    }
-    return matches_chunks(stream, map.json_chunks().map(str::as_bytes));
-  }
-  matches_chunks(stream, std::iter::once(other.buffer().as_ref()))
+  matches_chunks(writer, std::iter::once(other.buffer().as_ref()))
 }
 
-// Follow wrappers that delegate buffer() to a single source. Stream only when
-// to_writer() emits exactly those bytes (an unedited ReplaceSource need not).
-fn streaming_source(source: &dyn Source) -> Option<&dyn Source> {
-  let any = source.as_any();
-  if let Some(cached) = any.downcast_ref::<CachedSource>() {
-    return streaming_source(cached.inner().as_ref());
-  }
-  if let Some(code) = any.downcast_ref::<DevToolCodeSource>() {
-    return if code.suffix().size() == 0 {
-      streaming_source(code.inner().as_ref())
-    } else {
-      Some(source)
-    };
-  }
-  if let Some(concat) = any.downcast_ref::<ConcatSource>() {
-    return if let [child] = concat.children() {
-      streaming_source(child.as_ref())
-    } else {
-      Some(source)
-    };
-  }
-  (any.is::<DevToolMapSource>()
-    || any
-      .downcast_ref::<ReplaceSource>()
-      .is_some_and(|s| !s.replacements().is_empty()))
-  .then_some(source)
-}
-
-fn matches_chunks<'a>(source: &dyn Source, chunks: impl Iterator<Item = &'a [u8]>) -> bool {
+pub(super) fn matches_chunks<'a>(
+  source: &dyn Source,
+  chunks: impl Iterator<Item = &'a [u8]>,
+) -> bool {
   let mut writer = CompareWriter {
     chunks,
     pending: &[],

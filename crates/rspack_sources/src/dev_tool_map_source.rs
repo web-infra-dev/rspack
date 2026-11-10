@@ -7,6 +7,7 @@ use std::{
 
 use crate::{
   MapOptions, Source, SourceMap, SourceValue,
+  dev_tool_content::matches_chunks,
   helpers::{Chunks, RawRopeChunks, StreamChunks},
   source::is_all_none,
 };
@@ -59,9 +60,14 @@ impl DevToolMapSource {
     Self(Arc::new(data))
   }
 
-  pub(crate) fn json_chunks(&self) -> impl Iterator<Item = &str> {
-    // Keep one entry per JSON part, not per escape in sourcesContent.
-    let mut parts = self.0.json_parts().into_iter();
+  /// Compare with another DevTool text source without flattening either asset.
+  pub(super) fn content_eq(&self, other: &dyn Source) -> bool {
+    other.as_any().downcast_ref::<Self>() == Some(self)
+      || matches_chunks(other, self.json_chunks().map(str::as_bytes))
+  }
+
+  fn json_chunks(&self) -> impl Iterator<Item = &str> {
+    let mut parts = self.0.json_parts();
     let mut quoted = None;
     std::iter::from_fn(move || {
       loop {
@@ -126,59 +132,55 @@ impl MapData {
     Ok(writer.written)
   }
 
-  fn json_parts(&self) -> Vec<Part<'_>> {
-    let mut parts = Vec::new();
+  fn json_parts(&self) -> impl Iterator<Item = Part<'_>> {
+    use std::iter::once;
+
+    use Part::{Raw, String};
+
+    fn string_field<'a>(
+      key: &'static str,
+      value: Option<&'a str>,
+    ) -> impl Iterator<Item = Part<'a>> {
+      value.into_iter().flat_map(move |s| [Raw(key), String(s)])
+    }
+
+    fn array<'a>(items: impl Iterator<Item = Part<'a>>) -> impl Iterator<Item = Part<'a>> {
+      items
+        .enumerate()
+        .flat_map(|(i, item)| (i != 0).then_some(Raw(",")).into_iter().chain(once(item)))
+    }
+
     let map = &self.map;
-    parts.push(Part::Raw("{\"version\":"));
-    parts.push(Part::Raw(&self.version));
-    if let Some(file) = map.file.as_deref() {
-      parts.push(Part::Raw(",\"file\":"));
-      parts.push(Part::String(file));
-    }
-    parts.push(Part::Raw(",\"sources\":["));
-    for (i, source) in map.sources().iter().enumerate() {
-      if i != 0 {
-        parts.push(Part::Raw(","));
-      }
-      parts.push(Part::String(source));
-    }
-    parts.push(Part::Raw("]"));
-    if !is_all_none(&map.sources_content) {
-      parts.push(Part::Raw(",\"sourcesContent\":["));
-      for (i, content) in map.sources_content().iter().enumerate() {
-        if i != 0 {
-          parts.push(Part::Raw(","));
-        }
-        match content {
-          Some(content) => parts.push(Part::String(content)),
-          None => parts.push(Part::Raw("null")),
-        }
-      }
-      parts.push(Part::Raw("]"));
-    }
-    parts.push(Part::Raw(",\"names\":["));
-    for (i, name) in map.names().iter().enumerate() {
-      if i != 0 {
-        parts.push(Part::Raw(","));
-      }
-      parts.push(Part::String(name));
-    }
-    parts.push(Part::Raw("],\"mappings\":"));
-    parts.push(Part::String(&map.mappings));
-    if let Some(root) = map.source_root.as_deref() {
-      parts.push(Part::Raw(",\"sourceRoot\":"));
-      parts.push(Part::String(root));
-    }
-    if let Some(id) = map.debug_id.as_deref() {
-      parts.push(Part::Raw(",\"debugId\":"));
-      parts.push(Part::String(id));
-    }
-    if let Some(list) = &self.ignore_list {
-      parts.push(Part::Raw(",\"ignoreList\":"));
-      parts.push(Part::Raw(list));
-    }
-    parts.push(Part::Raw("}"));
-    parts
+    let sources_content = (!is_all_none(&map.sources_content)).then(|| {
+      once(Raw(",\"sourcesContent\":["))
+        .chain(array(
+          map
+            .sources_content()
+            .iter()
+            .map(|s| s.as_deref().map_or(Raw("null"), String)),
+        ))
+        .chain(once(Raw("]")))
+    });
+    [Raw("{\"version\":"), Raw(&self.version)]
+      .into_iter()
+      .chain(string_field(",\"file\":", map.file.as_deref()))
+      .chain(once(Raw(",\"sources\":[")))
+      .chain(array(map.sources().iter().map(|s| String(s))))
+      .chain(once(Raw("]")))
+      .chain(sources_content.into_iter().flatten())
+      .chain(once(Raw(",\"names\":[")))
+      .chain(array(map.names().iter().map(|s| String(s))))
+      .chain([Raw("],\"mappings\":"), String(&map.mappings)])
+      .chain(string_field(",\"sourceRoot\":", map.source_root.as_deref()))
+      .chain(string_field(",\"debugId\":", map.debug_id.as_deref()))
+      .chain(
+        self
+          .ignore_list
+          .as_deref()
+          .into_iter()
+          .flat_map(|s| [Raw(",\"ignoreList\":"), Raw(s)]),
+      )
+      .chain(once(Raw("}")))
   }
 }
 
