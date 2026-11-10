@@ -99,12 +99,13 @@ impl InputSourceMapResolver {
     let marker = "sourceMappingURL=";
     let idx = source.rfind(marker);
     resolver.automatic_lookup = Some(idx.is_some());
+    // The URL ends at the line break, which is not part of it.
     let data_url = idx.map(|idx| {
       let start = idx + marker.len();
-      match source[start..].find('\n') {
-        Some(end) => &source[start..start + end + 1],
-        None => &source[start..],
-      }
+      let end = source[start..]
+        .find('\n')
+        .map_or(source.len(), |end| start + end);
+      source[start..end].trim()
     });
     if let Ok(map) = read_inline_sourcemap(data_url) {
       resolver.result = Ok(Some(map));

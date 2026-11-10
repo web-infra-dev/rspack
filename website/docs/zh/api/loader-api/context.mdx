@@ -276,7 +276,7 @@ module.exports = function () {
 
 `builtin:swc-loader` 需要显式配置 `rspackExperiments.portableOutput: true`（默认为 `false`）。当前白名单接受 `detectSyntax`、布尔值 source-map 选项和 `inputSourceMap`、`isModule`，以及受限的 `jsc` 选项：parser 的 `syntax`/`jsx`/`tsx`/`decorators`、`target`、`externalHelpers`、`experimental.disableAllLints` 和 React 的 `development`/`runtime`/`refresh: false`。`decorators: true` 必须显式指定 `syntax: "typescript"`，并使用 SWC 的 TypeScript 旧版装饰器转换。装饰器 metadata/version 选项和其他 transform 字段仍不在白名单内。其他字段（包括配置文件、插件、minify、env、路径、模块转换、RSC、导入转换和 refresh 签名设置）不会获得声明。原生 React refresh loader 仅对追加固定代码的转换进行声明。
 
-自动查找输入 map 使用 loader 的输入文件系统，并为实际探测和读取记录文件依赖或缺失依赖，包括在使用相邻 map 回退前发现的缺失指定文件。只有没有传入 map、没有 `sourceMappingURL=` 标记、相邻的 `<resource>.map` 确定不存在且已注册缺失依赖时，才会获得声明。找到 map、内联 map、格式错误、不可读、不确定或符号链接等情况均保留 map 选择行为，但不进行声明。显式 JSON 或 `"inline"` 选项仍不在白名单内。无法确定为缺失的文件系统错误还会禁用该次调用的缓存。
+自动查找输入 map 使用 loader 的输入文件系统。开启 `rspackExperiments.portableOutput` 时，会为实际探测和读取记录文件依赖或缺失依赖，包括在使用相邻 map 回退前发现的缺失指定文件；未开启时，SWC 不记录 map 依赖。只有没有传入 map、没有 `sourceMappingURL=` 标记、相邻的 `<resource>.map` 确定不存在且已注册缺失依赖时，才会获得声明。找到 map、内联 map、格式错误、不可读、不确定或符号链接等情况均保留 map 选择行为，但不进行声明。显式 JSON 或 `"inline"` 选项仍不在白名单内。无法确定为缺失的文件系统错误还会禁用该次调用的缓存。
 
 传入 map 和附加数据的权限必须来自生产者：每次执行的生产者和消费者调用都必须独立满足契约。SWC 会保留附加数据。资源 hook（包括 `extractSourceMap`）获得的 map，以及在调用权限范围外提供的不透明数据，都会使整个链不进行规范化。AST 路径检查和 source-map 路径规范化不能证明生产者权限。绝对来源 URL 保持固定身份。这些规则适用于通用 loader 组合，不包含框架特例。缺失依赖仍会阻止最小 loader 缓存存储条目，但持久化模块缓存仍可复用已声明的输出。
 

@@ -189,8 +189,11 @@ export const parts = ["/", "src", ".tsx", \`/\${"src"}/\`, Flags.B, true, null, 
           "absent.jsx": jsxSource(),
           "virtual.jsx": jsxSource(),
           "denied.jsx": jsxSource(),
-          "unknown.jsx": jsxSource()
+          "unknown.jsx": jsxSource(),
+          "marked.jsx": `${jsxSource()}//# ${sourceMappingURL}marked-original.map\n`
         });
+        writeMap(writer, "marked-original.map", "marked-original.tsx");
+        const markedMap = path.join(writer, "src", "marked-original.map");
         const absentMap = path.join(writer, "src", "absent.jsx.map");
         const virtualMap = path.join(writer, "src", "virtual.jsx.map");
         const deniedMap = path.join(writer, "src", "denied.jsx.map");
@@ -237,15 +240,27 @@ export const parts = ["/", "src", ".tsx", \`/\${"src"}/\`, Flags.B, true, null, 
           ...(portableOutput ? { rspackExperiments } : {})
         })];
         const result = await build(writer, rules, false, configuration);
-        expect(result.values.map(entry => entry.value.title)).toEqual(["portable", "portable", "portable", "portable"]);
+        expect(result.values.map(entry => entry.value.title)).toEqual(["portable", "portable", "portable", "portable", "portable"]);
         expectMapped(result, "absent.jsx");
         expectMapped(result, "virtual-only-original.tsx");
-        expect(result.fileDependencies).toContain(virtualMap);
-        expect(result.missingDependencies).toContain(absentMap);
-        expect(result.fileDependencies).not.toContain(absentMap);
+        // The URL ends at the line break; the break is not part of the path.
+        expectMapped(result, "marked-original.tsx");
+        const dependencies = [...result.fileDependencies, ...result.missingDependencies];
+        expect(dependencies.filter(file => /[\r\n]/.test(file))).toEqual([]);
+        if (portableOutput) {
+          expect(result.fileDependencies).toContain(virtualMap);
+          expect(result.fileDependencies).toContain(markedMap);
+          expect(result.missingDependencies).toContain(absentMap);
+          expect(result.fileDependencies).not.toContain(absentMap);
+          for (const uncertainMap of [deniedMap, unknownMap]) {
+            expect(result.fileDependencies).toContain(uncertainMap);
+            expect(result.missingDependencies).not.toContain(uncertainMap);
+          }
+        } else {
+          // Without certification the loader records no map candidates, as before.
+          expect(dependencies.filter(file => file.endsWith(".map"))).toEqual([]);
+        }
         for (const uncertainMap of [deniedMap, unknownMap]) {
-          expect(result.fileDependencies).toContain(uncertainMap);
-          expect(result.missingDependencies).not.toContain(uncertainMap);
           expect(probes.filter(file => file === uncertainMap)).toHaveLength(1);
           expect(reads).not.toContain(uncertainMap);
         }

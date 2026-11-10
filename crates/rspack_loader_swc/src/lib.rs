@@ -368,7 +368,11 @@ impl Loader<RunnerContext> for SwcLoader {
     let result = self
       .loader_impl(loader_context, &mut input_source_maps)
       .await;
-    input_source_maps.register_dependencies(loader_context);
+    // Certification needs the map probes as dependencies. Without it, keep the dependencies
+    // SWC's own map lookup has always recorded: none.
+    if self.options_with_additional.portable_output {
+      input_source_maps.register_dependencies(loader_context);
+    }
     if let Some(path) = result? {
       if input_source_maps.is_automatic_absence(&path)
         && !input_source_maps.absence_is_unambiguous().await
