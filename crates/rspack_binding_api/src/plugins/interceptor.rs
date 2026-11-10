@@ -2108,7 +2108,7 @@ impl RealContentHashPluginUpdateHash for RealContentHashPluginUpdateHashTap {
   ) -> rspack_error::Result<Option<String>> {
     let assets = assets
       .iter()
-      .map(|asset| Buffer::from(asset.buffer().to_vec()))
+      .map(|asset| Buffer::from(asset.buffer().into_owned()))
       .collect::<Vec<_>>();
     self
       .function
