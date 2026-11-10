@@ -226,8 +226,9 @@ export default {
 
 Rspack 在 pitch 阶段之后查询缓存，命中时跳过普通转换。相邻且都设置了 `cache: true` 的 loader 会一起缓存，配置了 `codeFilter` 的 loader 会单独查询缓存。
 
-### 已知限制 \{#known-limitations}
+:::tip
 
-- Rspack 只对 JavaScript loader 的入口文件计算指纹。请使用 [`this.addDependency()`](/zh/api/loader-api/context#thisadddependency) 或 [`this.addBuildDependency()`](/zh/api/loader-api/context#thisaddbuilddependency) 登记影响转换结果的辅助文件和配置文件。
-- 缓存键使用 JSON 序列化后的 loader 选项，查询缓存时会忽略输入 source map。请将影响转换结果的设置作为可序列化为 JSON 的 loader 选项传入。如果转换结果依赖 Rspack 无法追踪的输入，请关闭该 loader 的缓存。
-- 如果 loader 调用 `this.cacheable(false)`、添加目录依赖或缺失依赖、发出警告或产出资源，Rspack 会跳过缓存。如果 `additionalData` 进入或离开待缓存的 loader 组，Rspack 也会跳过该组的缓存。
+- Loader 选项需要支持 JSON 序列化。
+- 如果 loader 调用 `this.cacheable(false)`、添加目录依赖或缺失依赖、发出警告或产出资源，缓存会失效。
+
+:::
