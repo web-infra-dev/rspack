@@ -32,10 +32,11 @@ use rspack_util::fx_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use utils::{
   collect_entry_files, collect_expose_requirements, compose_id_with_separator,
   ensure_configured_remotes, ensure_shared_entry, filter_assets, is_hot_file,
-  parse_consume_shared_identifier, parse_provide_shared_identifier, record_shared_usage, strip_ext,
+  parse_provide_shared_identifier, record_shared_usage, strip_ext,
 };
 
 use crate::{
+  ConsumeVersion,
   container::{container_entry_module::ContainerEntryModule, remote_module::RemoteModule},
   sharing::{
     consume_shared_module::ConsumeSharedModule, provide_shared_module::ProvideSharedModule,
@@ -447,9 +448,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         continue;
       }
 
-      if let Some(consume_shared) = module.as_any().downcast_ref::<ConsumeSharedModule>()
-        && let Some((pkg, required)) = parse_consume_shared_identifier(&identifier)
-      {
+      if let Some(consume_shared) = module.as_any().downcast_ref::<ConsumeSharedModule>() {
+        let options = consume_shared.options();
+        let pkg = options.share_key.clone();
+        let required = match &options.required_version {
+          Some(ConsumeVersion::Version(v)) if !v.is_empty() && v != "*" => Some(v.clone()),
+          _ => None,
+        };
         let mut target_ids: IdentifierSet = IdentifierSet::default();
         for connection in module_graph.get_outgoing_connections(&module_identifier) {
           let module_id = *connection.module_identifier();
