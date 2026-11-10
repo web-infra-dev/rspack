@@ -11,6 +11,7 @@ version.workspace = true
 workspace = true
 
 [dev-dependencies]
+async-trait              = { workspace = true }
 camino                   = { workspace = true }
 cow-utils                = { workspace = true }
 dashmap                  = { workspace = true }

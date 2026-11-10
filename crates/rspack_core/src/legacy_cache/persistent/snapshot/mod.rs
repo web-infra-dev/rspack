@@ -50,7 +50,7 @@ impl Snapshot {
     match helper.is_symlink(path).await {
       // A context lists the linked directory, so it keeps the content hash. Other scopes only
       // need the link target and a shallow identity of it.
-      Some(true) => {
+      Ok(true) => {
         return Some(match scope {
           SnapshotScope::CONTEXT => helper.dir_hash(path).await,
           _ => {
@@ -60,8 +60,13 @@ impl Snapshot {
           }
         });
       }
-      None if !matches!(scope, SnapshotScope::MISSING) => return Some(Strategy::Failed),
-      _ => {}
+      Err(rspack_fs::Error::Io(error))
+        if matches!(
+          error.kind(),
+          std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory
+        ) => {}
+      Err(_) => return Some(Strategy::Failed),
+      Ok(false) => {}
     }
     let path_str = path.to_string_lossy();
     if options.is_immutable_path(&path_str) {
@@ -249,21 +254,30 @@ impl Snapshot {
         let codec = codec.clone();
         async move {
           let path = codec.decode::<InternedPath>(&key)?;
-          if codec.encode(&path)? != key {
+          // Unix native path payloads round-trip verbatim. Other platforms may intern a
+          // component-equivalent spelling, and portable decoding can rebase a key.
+          if (codec.is_portable() || !cfg!(unix)) && codec.encode(&path)? != key {
             return Ok((path, ValidateResult::Modified, None, Some(key)));
           }
-          let validate = match codec.decode::<Strategy>(&value) {
-            Ok(strategy) => helper.validate(&path, &strategy).await,
-            Err(_) => ValidateResult::Modified,
-          };
-          // Context modules read their directory after this, so keep what validation saw.
-          let observed = match scope {
-            SnapshotScope::CONTEXT => {
-              let portable = codec.is_portable();
-              Self::calc_strategy(&options, &helper, &path, scope, portable).await
+          let (validate, mut observed) = match codec.decode::<Strategy>(&value) {
+            Ok(strategy) => {
+              let (validate, observed) = helper.validate(&path, &strategy).await;
+              let observed = observed
+                .or_else(|| matches!(validate, ValidateResult::NoChanged).then_some(strategy));
+              (validate, observed)
             }
-            _ => None,
+            Err(_) => (ValidateResult::Modified, None),
           };
+          // Keep exactly what validation saw, including a changed directory's current hash.
+          // A failed or undecodable snapshot has no observation, so recover it once here.
+          if matches!(scope, SnapshotScope::CONTEXT) {
+            if observed.is_none() {
+              observed =
+                Self::calc_strategy(&options, &helper, &path, scope, codec.is_portable()).await;
+            }
+          } else {
+            observed = None;
+          }
           Ok::<_, rspack_error::Error>((path, validate, observed, None))
         }
       })
