@@ -188,6 +188,8 @@ export default {
 
 Omitting `interop` preserves the default behavior. The hint also works on object values returned by an externals function. It does not change interop for targets that select a property, such as `{ commonjs: ['dep', 'named'], interop: 'esModule' }`.
 
+For UMD externals, the hint is ignored if any of the `root`, `commonjs`, `commonjs2`, or `amd` targets selects a property.
+
 ### Function
 
 **Type:**

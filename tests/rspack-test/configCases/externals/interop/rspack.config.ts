@@ -4,7 +4,7 @@ import {
   type RspackOptions,
 } from '@rspack/core';
 
-export default (['commonjs', 'amd', 'umd'] as const).flatMap((type) =>
+export default (['commonjs', 'amd', 'umd', 'umd2'] as const).flatMap((type) =>
   [false, true].flatMap((strict) =>
     [false, true].map((concatenateModules): RspackOptions => {
       const target = {

@@ -188,6 +188,8 @@ export default {
 
 省略 `interop` 时保留默认行为。externals 函数返回的对象同样支持此字段。对于选择了属性的目标，例如 `{ commonjs: ['dep', 'named'], interop: 'esModule' }`，该字段不会改变其互操作行为。
 
+对于 UMD 外部模块，只要 `root`、`commonjs`、`commonjs2` 或 `amd` 中任一目标选择了属性，便会忽略该字段。
+
 ### 函数 \{#function}
 
 **类型：**

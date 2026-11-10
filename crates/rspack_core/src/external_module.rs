@@ -1245,6 +1245,16 @@ impl Module for ExternalModule {
       ExternalRequest::Single(request) => Some(request),
       ExternalRequest::Map(map) => map.get(&self.external_type),
     };
+    let has_property_selection = match (resolved_external_type, &self.request) {
+      ("umd" | "umd2", ExternalRequest::Map(map)) => ["root", "commonjs", "commonjs2", "amd"]
+        .iter()
+        .any(|external_type| {
+          map
+            .get(*external_type)
+            .is_some_and(|request| request.has_rest())
+        }),
+      _ => request.is_some_and(|request| request.has_rest()),
+    };
     let mut can_mangle = false;
     let mut exports_type = BuildMetaExportsType::Dynamic;
 
@@ -1283,7 +1293,7 @@ impl Module for ExternalModule {
     }
     // Property-selected externals keep their existing dynamic export semantics.
     if let Some(interop) = self.interop
-      && !request.is_some_and(|request| request.has_rest())
+      && !has_property_selection
     {
       match interop {
         ExternalInterop::EsModule => exports_type = BuildMetaExportsType::Namespace,
