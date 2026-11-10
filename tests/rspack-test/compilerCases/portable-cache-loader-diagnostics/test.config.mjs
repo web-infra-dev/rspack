@@ -95,8 +95,75 @@ function expectDiagnostics(actual, expected) {
 	expect(actual.warnings).toEqual(expected.warnings);
 }
 
+const CHAIN_LOADER = String.raw`
+const path = require("node:path");
+module.exports = function (source) {
+	const warning = new Error("warning " + path.basename(this.resourcePath));
+	warning.stack = "";
+	this.emitWarning(warning);
+	return source;
+};
+`;
+
+// Each module of the chain is found only after its importer is built, so a cold build
+// publishes the loader warnings in chain order. A plugin reports them in that order.
+async function buildChain(root) {
+	const compiler = rspack({
+		context: root,
+		mode: "development",
+		devtool: false,
+		incremental: false,
+		entry: "./p0.js",
+		output: { path: path.join(root, "dist") },
+		cache: { type: "persistent" },
+		experiments: { portableCache: true },
+		module: { rules: [{ test: /[\\/]p\d\.js$/, loader: "./loader.cjs" }] },
+		plugins: [(compiler) => {
+			compiler.hooks.thisCompilation.tap("diagnostic-report", (compilation) => {
+				compilation.hooks.processAssets.tap({
+					name: "diagnostic-report",
+					stage: rspack.Compilation.PROCESS_ASSETS_STAGE_REPORT
+				}, () => {
+					compilation.emitAsset("diagnostics.json", new rspack.sources.RawSource(
+						JSON.stringify(compilation.warnings.map((warning) => warning.message.match(/warning p\d\.js/)?.[0]))
+					));
+				});
+			});
+		}],
+		infrastructureLogging: { level: "error" }
+	});
+	try {
+		await runCompiler(compiler);
+		return fs.readFileSync(path.join(root, "dist", "diagnostics.json"), "utf8");
+	} finally {
+		await closeCompiler(compiler);
+	}
+}
+
+const chainOrder = {
+	name: "retained-warning-order",
+	description: "publishes retained loader warnings in the order a cold build emits them",
+	async run() {
+		const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "rspack-loader-diagnostics-order-")));
+		try {
+			fs.mkdirSync(path.join(root, ".git"));
+			fs.writeFileSync(path.join(root, "package.json"), '{"name":"loader-diagnostics-order"}');
+			fs.writeFileSync(path.join(root, "loader.cjs"), CHAIN_LOADER);
+			const length = 8;
+			for (let index = 0; index < length; index++) {
+				fs.writeFileSync(path.join(root, `p${index}.js`), `${index + 1 < length ? `import "./p${index + 1}.js";\n` : ""}console.log(${index});`);
+			}
+			const cold = await buildChain(root);
+			expect(JSON.parse(cold)).toEqual(Array.from({ length }, (_, index) => `warning p${index}.js`));
+			expect(await buildChain(root)).toBe(cold);
+		} finally {
+			fs.rmSync(root, { recursive: true, force: true });
+		}
+	}
+};
+
 /** @type {import("@rspack/test-tools").TCompilerCaseConfig[]} */
-export default [false, true].map((error) => ({
+export default [...[false, true].map((error) => ({
 	name: error ? "emitted-error" : "emitted-warnings",
 	description: "retains loader diagnostics when persistent graph reuse skips the loader",
 	async run() {
@@ -167,4 +234,4 @@ export default [false, true].map((error) => ({
 			fs.rmSync(temp, { recursive: true, force: true });
 		}
 	}
-}));
+})), chainOrder];

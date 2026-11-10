@@ -1,6 +1,6 @@
-use std::hash::BuildHasherDefault;
+use std::{collections::VecDeque, hash::BuildHasherDefault};
 
-use rspack_collections::{IdentifierHasher, IdentifierSet};
+use rspack_collections::{IdentifierHasher, IdentifierMap, IdentifierSet};
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet;
 
@@ -268,22 +268,59 @@ impl BuildModuleGraphArtifact {
     &self,
     compilation_id: crate::CompilationId,
   ) -> Vec<Diagnostic> {
-    self
+    let mut retained = self
       .make_failed_module
       .iter()
-      .flat_map(|identifier| {
-        self
+      .filter_map(|identifier| {
+        let diagnostics = self
           .module_graph
           .module_by_identifier(identifier)
           .expect("should have module")
-          .module_build_diagnostics()
-          .map_or(&[][..], |diagnostics| {
-            diagnostics.for_compilation(compilation_id)
-          })
-          .iter()
-          .cloned()
+          .module_build_diagnostics()?
+          .for_compilation(compilation_id);
+        (!diagnostics.is_empty()).then_some((*identifier, diagnostics))
       })
+      .collect::<Vec<_>>();
+    if retained.len() > 1 {
+      // A fresh build publishes loader emissions while it builds modules, in the order it finds
+      // them from the entries. Replay retained ones in that order rather than set order.
+      let order = self.discovery_order();
+      retained.sort_by_key(|(identifier, _)| {
+        (
+          order.get(identifier).copied().unwrap_or(usize::MAX),
+          *identifier,
+        )
+      });
+    }
+    retained
+      .into_iter()
+      .flat_map(|(_, diagnostics)| diagnostics.iter().cloned())
       .collect()
+  }
+
+  /// Breadth-first order of modules from the entries, following dependencies in order.
+  fn discovery_order(&self) -> IdentifierMap<usize> {
+    let mg = &self.module_graph;
+    // Entry dependencies are created in entry order.
+    let mut entries = self.entry_dependencies.iter().collect::<Vec<_>>();
+    entries.sort_unstable();
+    let mut queue = entries
+      .into_iter()
+      .filter_map(|dependency_id| mg.module_identifier_by_dependency_id(dependency_id))
+      .copied()
+      .collect::<VecDeque<_>>();
+    let mut order = IdentifierMap::default();
+    while let Some(identifier) = queue.pop_front() {
+      if order.contains_key(&identifier) {
+        continue;
+      }
+      order.insert(identifier, order.len());
+      queue.extend(
+        mg.get_ordered_outgoing_connections(&identifier)
+          .map(|connection| *connection.module_identifier()),
+      );
+    }
+    order
   }
 
   pub fn reset_temporary_data(&mut self) {
