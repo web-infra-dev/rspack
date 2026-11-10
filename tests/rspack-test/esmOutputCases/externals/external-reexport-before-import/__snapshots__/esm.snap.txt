@@ -1,5 +1,5 @@
 ```mjs title=main.mjs
-export { yv } from "./y.js";
+import { yv } from "./y.js";
 import "./x.js";
 
 
@@ -12,5 +12,8 @@ import "./x.js";
 
 
 
+expect(globalThis.__order).toEqual(['y', 'x']);
+
+export { yv };
 
 ```

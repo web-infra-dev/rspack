@@ -11,7 +11,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
-use rspack_intern::{Atom, IndexAtomSet};
+use rspack_intern::Atom;
 use rspack_plugin_javascript::{
   JsPlugin, RenderSource,
   runtime::{AUTO_PUBLIC_PATH_MATCHER, render_module, render_runtime_modules},
@@ -36,58 +36,6 @@ use crate::{
 /// This deliberately checks for CSS source types rather than `!JavaScript` so
 /// that other non-JS module kinds (e.g. `RemoteModule` from Module Federation
 /// whose source types are `Remote/ShareInit`) are **not** skipped.
-fn render_star_export_stmts(source: &str, export_names: &IndexAtomSet) -> String {
-  let mut out = String::new();
-  for name in export_names {
-    if name == "*" {
-      out.push_str("export * from ");
-      out.push_str(&rspack_util::json_stringify_str(source));
-      out.push_str(";\n");
-    } else {
-      let name_str = export_name(name).expect("should have export_name");
-      out.push_str("export * as ");
-      out.push_str(&name_str);
-      out.push_str(" from ");
-      out.push_str(&rspack_util::json_stringify_str(source));
-      out.push_str(";\n");
-    }
-  }
-  out
-}
-
-fn render_named_reexport_stmt(
-  from: &str,
-  export_symbols: &FxHashMap<Atom, FxHashSet<Atom>>,
-) -> String {
-  let mut export_symbols = export_symbols.iter().collect::<Vec<_>>();
-  export_symbols.sort_by(|a, b| a.0.cmp(b.0));
-
-  let mut stmt = String::with_capacity(export_symbols.len() * 30 + from.len() + 30);
-  stmt.push_str("export { ");
-  let mut first = true;
-  for (imported, exports) in &export_symbols {
-    let mut sorted_exports = exports.iter().collect::<Vec<_>>();
-    sorted_exports.sort_unstable();
-    let imported_name = export_name(imported).expect("should have export_name");
-    for exported_name in sorted_exports {
-      if !first {
-        stmt.push_str(", ");
-      }
-      first = false;
-      stmt.push_str(&imported_name);
-      if *imported != exported_name {
-        let exported_name_str = export_name(exported_name).expect("should have export_name");
-        stmt.push_str(" as ");
-        stmt.push_str(&exported_name_str);
-      }
-    }
-  }
-  stmt.push_str(" } from \"");
-  stmt.push_str(from);
-  stmt.push_str("\";\n");
-  stmt
-}
-
 fn is_css_only_module(
   module: &dyn rspack_core::Module,
   module_graph: &rspack_core::ModuleGraph,
@@ -718,36 +666,61 @@ var {} = {{}};
 
     // render star exports
     for (source, export_names) in &chunk_link.raw_star_exports {
-      if chunk_link.inlined_star_export_sources.contains(source) {
-        continue;
+      for name in export_names {
+        if name == "*" {
+          final_source.add(RawStringSource::from(format!(
+            "export * from {};\n",
+            rspack_util::json_stringify_str(source)
+          )));
+        } else {
+          let name_str = export_name(name).expect("should have export_name");
+          final_source.add(RawStringSource::from(format!(
+            "export * as {name_str} from {};\n",
+            rspack_util::json_stringify_str(source)
+          )));
+        }
       }
-      final_source.add(RawStringSource::from(render_star_export_stmts(
-        source,
-        export_names,
-      )));
     }
 
     // render re-exports
     for (re_export_from, export_symbols) in chunk_link.re_exports() {
-      if let ReExportFrom::Request(request) = re_export_from
-        && chunk_link.inlined_reexport_requests.contains(request)
-      {
-        continue;
-      }
+      let mut export_symbols = export_symbols.iter().collect::<Vec<_>>();
+      export_symbols.sort_by(|a, b| a.0.cmp(b.0));
+
       let from_str = match re_export_from {
-        ReExportFrom::Chunk(chunk_ukey) => {
+        crate::chunk_link::ReExportFrom::Chunk(chunk_ukey) => {
           let chunk = compilation
             .build_chunk_graph_artifact
             .chunk_by_ukey
             .expect_get(chunk_ukey);
           Cow::Owned(format!("__RSPACK_ESM_CHUNK_{}", chunk.expect_id().as_str()))
         }
-        ReExportFrom::Request(request) => Cow::Borrowed(request.as_str()),
+        crate::chunk_link::ReExportFrom::Request(request) => Cow::Borrowed(request.as_str()),
       };
-      final_source.add(RawStringSource::from(render_named_reexport_stmt(
-        &from_str,
-        export_symbols,
-      )));
+      let mut stmt = String::with_capacity(export_symbols.len() * 30 + from_str.len() + 30);
+      stmt.push_str("export { ");
+      let mut first = true;
+      for (imported, exports) in &export_symbols {
+        let mut sorted_exports = exports.iter().collect::<Vec<_>>();
+        sorted_exports.sort_unstable();
+        let imported_name = export_name(imported).expect("should have export_name");
+        for exported_name in sorted_exports {
+          if !first {
+            stmt.push_str(", ");
+          }
+          first = false;
+          stmt.push_str(&imported_name);
+          if *imported != exported_name {
+            let exported_name_str = export_name(exported_name).expect("should have export_name");
+            stmt.push_str(" as ");
+            stmt.push_str(&exported_name_str);
+          }
+        }
+      }
+      stmt.push_str(" } from \"");
+      stmt.push_str(&from_str);
+      stmt.push_str("\";\n");
+      final_source.add(RawStringSource::from(stmt));
     }
 
     if let Some(default_export) = export_default {

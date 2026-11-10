@@ -1,9 +1,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+const sourceDir = import.meta.dirname;
+
 export default {
+  beforeExecute(options) {
+    const config = Array.isArray(options) ? options[0] : options;
+    for (const name of ['x.js', 'y.js']) {
+      fs.copyFileSync(
+        path.join(sourceDir, name),
+        path.join(config.output.path, name),
+      );
+    }
+  },
   findBundle() {
-    return [];
+    return ['main.mjs'];
   },
   afterExecute(options) {
     const source = fs.readFileSync(
@@ -17,8 +28,9 @@ export default {
         (line) => line.startsWith('import ') || line.startsWith('export '),
       );
     expect(ordered).toEqual([
-      'export { yv } from "./y.js";',
+      'import { yv } from "./y.js";',
       'import "./x.js";',
+      'export { yv };',
     ]);
   },
 };

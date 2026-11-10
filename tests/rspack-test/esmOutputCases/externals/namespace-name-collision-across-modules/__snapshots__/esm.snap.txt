@@ -1,5 +1,5 @@
 ```mjs title=main.mjs
-export { readFile, readFileSync } from "fs";
+import { readFile, readFileSync } from "fs";
 import * as __rspack_external_path from "path";
 
 // fs
@@ -32,6 +32,6 @@ it("should deconflict concatenated namespace imports that match generated module
   expect(mod.joinFn).toBe(path.join);
 });
 
-export { __rspack_external_path as pathNs, joinFn };
+export { __rspack_external_path as pathNs, joinFn, readFile, readFileSync };
 
 ```
