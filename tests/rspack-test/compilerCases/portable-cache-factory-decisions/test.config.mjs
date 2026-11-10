@@ -1343,8 +1343,8 @@ export default [
 	{
 		name: "short-root-base64",
 		description: "rebuilds loader output that holds a short root in base64, as an inline source map or a bare digest",
+		skip: process.platform !== "linux",
 		async run() {
-			if (process.platform !== "linux") return;
 			await withShortRoots({
 				"src/index.js": 'module.exports = [require("./dep.js"), require("./digest.js")];',
 				"src/digest.js": 'module.exports = "original";',
