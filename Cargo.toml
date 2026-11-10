@@ -20,7 +20,7 @@ libraries = [{ path = "linting/*" }]
 aho-corasick    = { version = "1.1.5", default-features = false }
 anyhow          = { version = "1.0.104", default-features = false, features = ["backtrace", "std"] }
 anymap          = { package = "anymap3", version = "1.1.0", default-features = false, features = ["std"] }
-arc-swap        = { version = "1.9.3", default-features = false }
+arc-swap        = { version = "1.9.5", default-features = false }
 async-recursion = { version = "1.2.0", default-features = false }
 async-trait     = { version = "0.1.92", default-features = false }
 atomic_refcell  = { version = "0.1.14", default-features = false }
@@ -28,7 +28,7 @@ base64-simd     = { version = "0.8.0", default-features = false, features = ["al
 bitflags        = { version = "2.13.2", default-features = false }
 browserslist-rs = { version = "0.22.0", default-features = false, features = ["deflate"] }
 bytes           = { version = "1.12.1", default-features = false }
-bytes-str       = { version = "0.2.7", default-features = false, features = ["serde"] }
+bytes-str       = { version = "0.2.9", default-features = false, features = ["serde"] }
 camino          = { version = "1.2.6", default-features = false }
 cargo_toml      = { version = "1.0.1", default-features = false }
 cfg-if          = { version = "1.0.5", default-features = false }
@@ -48,7 +48,7 @@ dyn-clone           = { version = "1.0.20", default-features = false }
 either              = { version = "1.19.0", default-features = false }
 enum-tag            = { version = "0.3.0", default-features = false }
 fast-glob           = { version = "1.1.2", default-features = false }
-fixedbitset         = { version = "0.5.7", default-features = false }
+fixedbitset         = { version = "0.5.9", default-features = false }
 form_urlencoded     = { version = "1.2.2", default-features = false }
 fs-err              = { version = "3.3.2", default-features = false }
 futures             = { version = "0.3.34", default-features = false, features = ["std"] }
@@ -63,7 +63,7 @@ indicatif           = { version = "0.18.6", default-features = false }
 indoc               = { version = "2.0.8", default-features = false }
 insta               = { version = "1.48.0", default-features = false }
 itertools           = { version = "0.14.0", default-features = false, features = ["use_std"] }
-itoa                = { version = "1.0.18", default-features = false }
+itoa                = { version = "1.0.19", default-features = false }
 json                = { version = "0.12.4", default-features = false }
 json-escape-simd    = { version = "3.1.3", default-features = false }
 json-strip-comments = { version = "3.1.2", default-features = false }
@@ -76,12 +76,12 @@ miette              = { version = "7.6.0", default-features = false }
 mimalloc            = { version = "0.1.48", default-features = false }
 mime_guess          = { version = "2.0.5", default-features = false, features = ["rev-mappings"] }
 normalize-path      = { version = "0.2.2", default-features = false }
-notify              = { version = "8.2.1", default-features = false }
+notify              = { version = "8.2.2", default-features = false }
 num-bigint          = { version = "0.5.1", default-features = false }
 once_cell           = { version = "1.21.4", default-features = false }
 oneshot             = { version = "0.2.1", default-features = false, features = ["std", "async"] }
 owo-colors          = { version = "4.0.0", default-features = false, features = ["supports-colors"] }
-parcel_sourcemap    = { version = "2.1.1", default-features = false }
+parcel_sourcemap    = { version = "2.1.2", default-features = false }
 parking_lot         = { version = "0.12.5", default-features = false, features = ["send_guard"] }
 paste               = { version = "1.0.15", default-features = false }
 path-clean          = { version = "1.0.1", default-features = false }
@@ -127,7 +127,7 @@ trybuild            = { version = "1.0.122", default-features = false, features 
 turbo-persistence   = { package = "rspack-turbo-persistence", version = "0.1.1", default-features = false }
 twox-hash           = { version = "2.1.5", default-features = false }
 unicase             = { version = "2.9.0", default-features = false }
-unicode-width       = { version = "0.2.2", default-features = false }
+unicode-width       = { version = "0.2.3", default-features = false }
 unsize              = { version = "1.1.0", default-features = false }
 url                 = { version = "2.5.8", default-features = false }
 urlencoding         = { version = "2.1.3", default-features = false }
@@ -147,7 +147,7 @@ rkyv      = { version = "=0.8.18", default-features = false, features = ["std", 
 
 # Must be pinned with the same swc versions
 # pnp 0.12.12 requires regress 0.12, while swc_config still requires regress 0.11.
-pnp                 = { version = "=0.12.11", default-features = false }
+pnp                 = { version = "=0.12.12", default-features = false }
 swc                 = { version = "=82.0.1", default-features = false }
 swc_config          = { version = "6.0.1", default-features = false }
 swc_core            = { version = "=84.0.2", default-features = false, features = ["parallel_rayon"] }
@@ -164,8 +164,8 @@ swc_next_ecma_parser   = { version = "0.6.1", default-features = false }
 swc_next_ecma_semantic = { version = "0.6.1", default-features = false }
 
 tracy-client = { version = "=0.18.4", default-features = false, features = ["enable", "sampling", "demangle", "system-tracing"] }
-wasi-common  = { version = "36.0.19", default-features = false }
-wasmtime     = { version = "36.0.19", default-features = false }
+wasi-common  = { version = "36.0.20", default-features = false }
+wasmtime     = { version = "36.0.20", default-features = false }
 
 
 # all rspack workspace dependencies
