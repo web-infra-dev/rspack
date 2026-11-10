@@ -4,6 +4,7 @@ use std::{
   cell::{OnceCell, RefCell},
 };
 
+use bytes::Bytes;
 use bytes_str::BytesStr;
 use rustc_hash::FxHashMap as HashMap;
 
@@ -911,6 +912,15 @@ struct SourceMapLineData<'a> {
 
 type InnerSourceIndexValueMapping = LinearMap<(BytesStr, Option<BytesStr>)>;
 
+fn retain_outer_text(text: &BytesStr) -> BytesStr {
+  let bytes: &Bytes = text.as_ref();
+  if bytes.is_unique() {
+    text.clone()
+  } else {
+    BytesStr::from_str_slice(text)
+  }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
   options: &MapOptions,
@@ -925,6 +935,7 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
   on_name: OnName<'_>,
 ) -> GeneratedInfo {
   let on_source = RefCell::new(on_source);
+  let has_provided_inner_source = inner_source.is_some();
   let inner_source: RefCell<Option<&BytesStr>> = RefCell::new(inner_source);
   let source_mapping: RefCell<HashMap<BytesStr, u32>> = RefCell::new(HashMap::default());
   let mut name_mapping: HashMap<BytesStr, u32> = HashMap::default();
@@ -1142,8 +1153,9 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
                       let mut global_index = name_mapping.get(name).copied();
                       if global_index.is_none() {
                         let len = name_mapping.len() as u32;
+                        let name = retain_outer_text(name);
                         name_mapping.insert(name.clone(), len);
-                        on_name(len, name);
+                        on_name(len, &name);
                         global_index = Some(len);
                       }
                       final_name_index = global_index.unwrap() as i64;
@@ -1191,7 +1203,14 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
             if global_index.is_none() {
               let len = source_mapping.len() as u32;
               source_mapping.insert(inner_source_name.clone(), len);
-              on_source.borrow_mut()(len, inner_source_name, *inner_source.borrow());
+              let content = inner_source.borrow().map(|content| {
+                if has_provided_inner_source {
+                  content.clone()
+                } else {
+                  retain_outer_text(content)
+                }
+              });
+              on_source.borrow_mut()(len, inner_source_name, content.as_ref());
               global_index = Some(len);
             }
             source_index_mapping.insert(source_index, global_index.unwrap() as i64);
@@ -1235,8 +1254,9 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
           let mut global_index = name_mapping.get(name).copied();
           if global_index.is_none() {
             let len = name_mapping.len() as u32;
+            let name = retain_outer_text(name);
             name_mapping.borrow_mut().insert(name.clone(), len);
-            on_name(len, name);
+            on_name(len, &name);
             global_index = Some(len);
           }
           final_name_index = global_index.unwrap() as i64;
@@ -1347,8 +1367,11 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
         let mut global_index = source_mapping.get(source).copied();
         if global_index.is_none() {
           let len = source_mapping.len() as u32;
+          // Outer fields can share a JSON allocation with discarded intermediate contents.
+          let source = retain_outer_text(source);
+          let source_content = source_content.map(retain_outer_text);
           source_mapping.insert(source.clone(), len);
-          on_source.borrow_mut()(len, source, source_content);
+          on_source.borrow_mut()(len, &source, source_content.as_ref());
           global_index = Some(len);
         }
         source_index_mapping

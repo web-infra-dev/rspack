@@ -210,7 +210,7 @@ Source maps mainly come from parsed JSON or a `Source` graph. `SourceMap` owns U
 - `OnSource` and `OnName` borrow `BytesStr` handles for each callback. Leaves and transforms
   forward references; collectors clone only when retaining text in deduplication tables, maps,
   or caches. Joined source-root paths may be temporary, so references cannot escape the callback.
-  Resulting maps own their handles without copying source contents or retaining a Source graph.
+  Resulting maps own their handles without retaining a Source graph.
 - all fields live directly in `SourceMap`, which derives `Serialize`. Clones and `as_borrowed`
   clone text/array handles; setters replace individual fields without copying unchanged text.
   Nonempty immutable arrays use `ThinArc<(), T>`, with elements and metadata in one allocation;
@@ -259,7 +259,10 @@ Important implementation details:
 
 - `OriginalSource` splits potential JavaScript tokens with `memchr`; it is not an AST tokenizer.
 - `SourceMapSource` composition indexes inner mappings by line and binary-searches the closest
-  preceding segment. Avoid rebuilding shared maps or eagerly splitting all `sourcesContent`.
+  preceding segment. Emitted outer fields with non-unique backing storage are copied so discarded
+  outer mappings and contents can be released even when parsed fields share one JSON allocation.
+  Uniquely owned outer text, inner map fields, and an explicitly supplied intermediate source
+  remain shared. Avoid rebuilding shared maps or eagerly splitting all `sourcesContent`.
 - `MappingSource` is the JSON asset itself, so `map()` returns `None`. It retains the original
   `SourceMap` without interning, deduplicating, or rewriting `sourcesContent`.
   Unedited `source()` and `buffer()` use the existing `SourceMap::to_json()` serializer on demand
