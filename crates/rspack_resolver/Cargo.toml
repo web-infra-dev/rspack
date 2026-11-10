@@ -54,6 +54,7 @@ tokio = { workspace = true, features = ["sync", "macros"] }
 [dev-dependencies]
 normalize-path = { workspace = true }
 regex          = { workspace = true }
+tempfile       = { workspace = true }
 vfs            = { workspace = true } # for testing with in memory file system
 
 [features]

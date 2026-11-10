@@ -78,7 +78,6 @@ impl ModuleExecutor {
     }
     make_artifact.reset_temporary_data();
 
-    // update the module affected by modified_files
     (make_artifact, exports_info_artifact) =
       update_module_graph(compilation, make_artifact, exports_info_artifact, params).await?;
 

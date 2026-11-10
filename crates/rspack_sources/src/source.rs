@@ -13,12 +13,31 @@ use simd_json::{BorrowedValue, ErrorType, prelude::*};
 use triomphe::ThinArc;
 
 use crate::{
-  ReplaceSource, Result,
+  CachedSource, ConcatSource, RawBufferSource, ReplaceSource, Result,
   helpers::{Chunks, StreamChunks, decode_mappings},
 };
 
 /// An alias for `Box<dyn Source>`.
 pub type BoxSource = Arc<dyn Source>;
+
+/// Whether a built-in source returns a Buffer without materializing its content.
+pub fn is_buffer_source(source: &dyn Source) -> bool {
+  let source = source.as_any();
+  if source.is::<RawBufferSource>() {
+    return true;
+  }
+  if let Some(source) = source.downcast_ref::<CachedSource>() {
+    // CachedSource only preserves Buffer output for a directly wrapped RawBufferSource.
+    return source.inner().as_ref().as_any().is::<RawBufferSource>();
+  }
+  if let Some(source) = source.downcast_ref::<ConcatSource>() {
+    return matches!(source.children(), [child] if is_buffer_source(child.as_ref()));
+  }
+  if let Some(source) = source.downcast_ref::<ReplaceSource>() {
+    return source.replacements().is_empty() && is_buffer_source(source.inner().as_ref());
+  }
+  false
+}
 
 /// A unified representation for source content that can be either text or binary data.
 ///
@@ -128,6 +147,13 @@ pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + S
   /// Get the size of the source.
   fn size(&self) -> usize;
 
+  /// Whether this source may have original mappings. The default is conservative.
+  /// Return `false` only if `map()` always returns `None` and streamed
+  /// chunks never have original locations.
+  fn mapped(&self) -> bool {
+    true
+  }
+
   /// Get an independently owned [SourceMap] that can outlive the source.
   fn map(&self, options: &MapOptions) -> Option<SourceMap>;
 
@@ -159,6 +185,11 @@ impl Source for BoxSource {
   #[inline]
   fn size(&self) -> usize {
     self.as_ref().size()
+  }
+
+  #[inline]
+  fn mapped(&self) -> bool {
+    self.as_ref().mapped()
   }
 
   #[inline]
