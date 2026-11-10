@@ -150,18 +150,18 @@ rkyv      = { version = "=0.8.18", default-features = false, features = ["std", 
 pnp                 = { version = "=0.12.11", default-features = false }
 swc                 = { version = "=82.0.1", default-features = false }
 swc_config          = { version = "6.0.1", default-features = false }
-swc_core            = { version = "=84.0.1", default-features = false, features = ["parallel_rayon"] }
-swc_ecma_minifier   = { version = "64.0.2", default-features = false }
+swc_core            = { version = "=84.0.2", default-features = false, features = ["parallel_rayon"] }
+swc_ecma_minifier   = { version = "64.0.3", default-features = false }
 swc_error_reporters = { version = "29.0.0", default-features = false }
 swc_html            = { version = "39.0.0", default-features = false }
 swc_html_minifier   = { version = "64.0.0", default-features = false }
 swc_plugin_runner   = { version = "35.0.0", default-features = false }
 swc_typescript      = { version = "35.0.0", default-features = false }
 
-swc_next_allocator     = { version = "0.4.1", default-features = false }
-swc_next_ecma_ast      = { version = "0.4.1", default-features = false }
-swc_next_ecma_parser   = { version = "0.4.1", default-features = false }
-swc_next_ecma_semantic = { version = "0.4.1", default-features = false }
+swc_next_allocator     = { version = "0.6.1", default-features = false }
+swc_next_ecma_ast      = { version = "0.6.1", default-features = false }
+swc_next_ecma_parser   = { version = "0.6.1", default-features = false }
+swc_next_ecma_semantic = { version = "0.6.1", default-features = false }
 
 tracy-client = { version = "=0.18.4", default-features = false, features = ["enable", "sampling", "demangle", "system-tracing"] }
 wasi-common  = { version = "36.0.19", default-features = false }

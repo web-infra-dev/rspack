@@ -219,9 +219,14 @@ Source maps mainly come from parsed JSON or a `Source` graph. `SourceMap` owns U
   reserves the tape array's known length before collecting. Text bytes remain shared. Serialize
   and hash the slices,
   preserving the array representation and excluding ThinArc's internal length/header from hashes.
-- `set_sources_content` with an empty vector detaches remaining metadata, because a small shared
-  JSON slice would otherwise keep the removed contents' allocation alive. Nonempty arrays,
-  including arrays of missing entries, only replace the shared contents array.
+- `set_sources_content` only replaces the shared contents array, including for an empty vector.
+  `shrink_to_fit` explicitly compacts every text field to its visible contents, so a small JSON
+  slice need not retain a much larger input allocation. It consumes text through Bytes' public
+  Vec conversion and shrinks the Vec before freezing it again. Ordinary uniquely owned buffers
+  and field arrays can be reused; shared arrays use copy-on-write, while shared/static/from_owner
+  text may be copied even if already compact. Other maps keep their existing storage. External
+  noSources maps retained in `MappingSource` compact after clearing; inline/eval maps serialize
+  and drop the temporary map without compaction. Do not infer Bytes' private layout via transmute.
 
 There is no SourceMap lifetime extension or Source owner. `map()` returns an owned map;
 generated text can be released when its Source is otherwise no longer referenced.

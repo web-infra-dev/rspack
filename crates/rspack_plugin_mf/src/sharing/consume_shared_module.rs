@@ -44,6 +44,10 @@ impl ConsumeSharedModule {
     &self.options.share_scope
   }
 
+  pub(crate) fn options(&self) -> &ConsumeOptions {
+    &self.options
+  }
+
   pub(crate) fn configured_share_key(&self) -> &str {
     self
       .configured_share_key
