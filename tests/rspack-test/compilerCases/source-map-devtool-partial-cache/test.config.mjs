@@ -12,7 +12,8 @@ async function build(
 	cacheName,
 	changed,
 	newCache,
-	identityA = "worker.js"
+	identityA = "worker.js",
+	omitA = false
 ) {
 	const codeA = identityA === "worker.js" ? "a();\n" : "a(2);\n";
 	fs.writeFileSync(path.join(root, "a.js"), codeA);
@@ -31,7 +32,7 @@ async function build(
 			type: "persistent",
 			storage: { type: "filesystem", directory: path.join(root, cacheName) }
 		},
-		output: { path: path.join(root, "dist") },
+		output: { path: path.join(root, "dist"), clean: true },
 		plugins: [
 			new rspack.SourceMapDevToolPlugin({
 				filename: "[file].map",
@@ -60,6 +61,10 @@ async function build(
 											changed ? "b(2);\n" : "b(1);\n"
 										]
 									]) {
+										if (omitA && file === "a.js") {
+											compilation.deleteAsset(file);
+											continue;
+										}
 										const map = {
 											version: 3,
 											sources: [identity],
@@ -115,6 +120,7 @@ async function build(
 				.map((file) => [file, fs.readFileSync(path.join(root, "dist", file))])
 		);
 		return {
+			hash: stats.hash,
 			originals,
 			assets,
 			mapped: mapped.sort(),
@@ -224,6 +230,22 @@ export default [false, true].map((newCache) => ({
 			expect(JSON.parse(changedContext.assets["b.js.map"]).sources).toEqual([
 				"webpack:///worker.js"
 			]);
+
+			// Removing an asset after hashing must invalidate its former collision partner.
+			const beforeRemove = await build(root, "remove-cache", true, newCache);
+			const removed = await build(root, "remove-cache", true, newCache, "worker.js", true);
+			const coldRemoved = await build(root, "remove-cold", true, newCache, "worker.js", true);
+			expect(removed.hash).toBe(beforeRemove.hash);
+			expectCache(removed, 0, 1);
+			expect(removed.mapped).toEqual(["b.js"]);
+			expect(removed.assets).toEqual(coldRemoved.assets);
+			expect(JSON.parse(removed.assets["b.js.map"]).sources).toEqual([
+				"webpack:///worker.js"
+			]);
+			const repeatRemoved = await build(root, "remove-cache", true, newCache, "worker.js", true);
+			expectCache(repeatRemoved, 1, 0);
+			expect(repeatRemoved.mapped).toEqual([]);
+			expect(repeatRemoved.assets).toEqual(coldRemoved.assets);
 		} finally {
 			fs.rmSync(root, { recursive: true, force: true });
 		}
