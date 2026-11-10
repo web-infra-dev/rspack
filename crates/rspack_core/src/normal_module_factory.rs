@@ -1441,7 +1441,7 @@ impl NormalModuleCreateData {
 
   pub fn update_resource_data(&mut self, new_resource: String) {
     Arc::get_mut(&mut self.resource_resolve_data)
-      .expect("resource resolve data is exclusive before module creation")
+      .expect("shared resource resolve data cannot be mutated after module creation")
       .update_resource_data(new_resource);
   }
 }

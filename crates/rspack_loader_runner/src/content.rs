@@ -134,12 +134,12 @@ impl Debug for Content {
 pub struct ResourceData {
   resource: ResourceString,
   /// Absolute resource path only
-  #[cacheable(with=AsOption<AsInner<AsPreset>>)]
-  resource_path: Option<Arc<Utf8PathBuf>>,
+  #[cacheable(with=AsOption<AsPreset>)]
+  resource_path: Option<Utf8PathBuf>,
   /// Resource query with `?` prefix
-  resource_query: Option<Arc<str>>,
+  resource_query: Option<String>,
   /// Resource fragment with `#` prefix
-  resource_fragment: Option<Arc<str>>,
+  resource_fragment: Option<String>,
   resource_description: Option<DescriptionData>,
   mimetype: Option<String>,
   parameters: Option<String>,
@@ -164,14 +164,6 @@ impl Default for ResourceString {
   }
 }
 
-fn shared_resource_part(value: String) -> Arc<str> {
-  if value.is_empty() {
-    Arc::default()
-  } else {
-    value.into()
-  }
-}
-
 impl ResourceData {
   pub fn new_with_resource(resource: String) -> Self {
     if let Some(parsed) = parse_resource(&resource) {
@@ -186,9 +178,9 @@ impl ResourceData {
   pub fn new_with_resolved_path(path: Utf8PathBuf, query: String, fragment: String) -> Self {
     Self {
       resource: ResourceString::Derived(OnceCell::new()),
-      resource_path: Some(Arc::new(path)),
-      resource_query: Some(shared_resource_part(query)),
-      resource_fragment: Some(shared_resource_part(fragment)),
+      resource_path: Some(path),
+      resource_query: Some(query),
+      resource_fragment: Some(fragment),
       ..Default::default()
     }
   }
@@ -201,9 +193,9 @@ impl ResourceData {
   ) -> Self {
     Self {
       resource: ResourceString::Explicit(resource),
-      resource_path: Some(Arc::new(path)),
-      resource_query: query.map(shared_resource_part),
-      resource_fragment: fragment.map(shared_resource_part),
+      resource_path: Some(path),
+      resource_query: query,
+      resource_fragment: fragment,
       ..Default::default()
     }
   }
@@ -257,7 +249,7 @@ impl ResourceData {
   }
 
   pub fn path(&self) -> Option<&Utf8Path> {
-    self.resource_path.as_deref().map(Utf8PathBuf::as_path)
+    self.resource_path.as_deref()
   }
 
   pub fn set_path<P: Into<Utf8PathBuf>>(&mut self, v: P) {
@@ -266,7 +258,7 @@ impl ResourceData {
       && path != new_path
     {
       self.scheme.take();
-      self.resource_path = Some(Arc::new(new_path));
+      self.resource_path = Some(new_path);
       self.invalidate_derived_resource();
     }
   }
@@ -286,7 +278,7 @@ impl ResourceData {
   }
 
   pub fn set_query_optional(&mut self, v: Option<String>) {
-    self.resource_query = v.map(shared_resource_part);
+    self.resource_query = v;
     self.invalidate_derived_resource();
   }
 
@@ -299,7 +291,7 @@ impl ResourceData {
   }
 
   pub fn set_fragment_optional(&mut self, v: Option<String>) {
-    self.resource_fragment = v.map(shared_resource_part);
+    self.resource_fragment = v;
     self.invalidate_derived_resource();
   }
 
