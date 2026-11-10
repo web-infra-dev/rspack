@@ -4339,6 +4339,7 @@ dependencies = [
 name = "rspack_cacheable_test"
 version = "0.103.1"
 dependencies = [
+ "async-trait",
  "camino",
  "cow-utils",
  "dashmap",
@@ -4388,6 +4389,7 @@ dependencies = [
 name = "rspack_core"
 version = "0.103.1"
 dependencies = [
+ "aho-corasick",
  "anymap3",
  "arc-swap",
  "async-recursion",

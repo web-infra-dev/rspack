@@ -280,6 +280,10 @@ async function checkGitSeeding() {
 		}
 		const original = await build(main);
 		expect(original.built).toEqual([...sources].sort());
+		// utimes changes ctime. Let the first-use snapshot's safety window pass,
+		// then give the donor a writable build that can record a trusted snapshot.
+		await new Promise((resolve) => setTimeout(resolve, 2100));
+		await build(main);
 		git("worktree", "add", wt, "-b", "wt");
 		for (const source of sources) {
 			expect(fs.readFileSync(path.join(wt, source))).toEqual(
@@ -377,6 +381,205 @@ async function checkExplicitSeeding() {
 }
 
 export default [
+	{
+		name: "symlink-donor-unit",
+		description:
+			"rejects a linked donor unit without modifying it or sharing storage",
+		skip: process.platform === "win32",
+		async run() {
+			await withFixture(async (temp) => {
+				const main = path.join(temp, "main");
+				const target = path.join(temp, "target");
+				fixture(main);
+				fixture(target);
+				await build(main);
+				const [unit] = units(main);
+				const source = path.join(cacheLocation(main), unit);
+				const real = path.join(temp, "donor-unit");
+				fs.renameSync(source, real);
+				fs.symlinkSync(real, source, "dir");
+				for (const name of [".temp", "_stale"]) {
+					fs.mkdirSync(path.join(real, name), { recursive: true });
+					fs.writeFileSync(path.join(real, name, "marker"), "keep");
+				}
+				const donor = contents(real);
+				const result = await build(target, {
+					portableCache: { seedFrom: cacheLocation(main) }
+				});
+				expect(contents(real)).toEqual(donor);
+				const destination = path.join(cacheLocation(target), unit);
+				expect(fs.lstatSync(destination).isDirectory()).toBe(true);
+				expect(fs.realpathSync(destination)).not.toBe(real);
+				expect(result.built).toHaveLength(5);
+				expect(result.output).toEqual(
+					(await build(target, { cache: false })).output
+				);
+			});
+		}
+	},
+	{
+		name: "readonly-donor-copy",
+		description:
+			"seeds a writable private copy and removes read-only abandoned staging",
+		skip: !unreadablePacks,
+		async run() {
+			await withFixture(async (temp) => {
+				const main = path.join(temp, "main");
+				const target = path.join(temp, "target");
+				fixture(main);
+				fixture(target);
+				await build(main);
+				await build(main);
+				const donor = contents(cacheLocation(main));
+				const [unit] = units(main);
+				const abandoned = plantStaging(target, unit, deadPid(), "readonly");
+				const chmodTree = (root, readonly) => {
+					if (!fs.existsSync(root)) return;
+					fs.chmodSync(root, readonly ? 0o555 : 0o755);
+					for (const entry of fs.readdirSync(root, {
+						recursive: true,
+						withFileTypes: true
+					})) {
+						fs.chmodSync(
+							path.join(entry.parentPath, entry.name),
+							entry.isDirectory()
+								? readonly
+									? 0o555
+									: 0o755
+								: readonly
+									? 0o444
+									: 0o644
+						);
+					}
+				};
+				chmodTree(cacheLocation(main), true);
+				chmodTree(path.join(cacheLocation(target), abandoned), true);
+				try {
+					const result = await build(target, {
+						portableCache: { seedFrom: cacheLocation(main) }
+					});
+					expectSeededFrom(result.logs, cacheLocation(main));
+					expect(result.built).toEqual(["index.js"]);
+					expect(stagingDirs(target)).toEqual([]);
+					expect(contents(cacheLocation(main))).toEqual(donor);
+					for (const entry of fs.readdirSync(cacheLocation(main), {
+						recursive: true,
+						withFileTypes: true
+					})) {
+						expect(
+							fs.statSync(path.join(entry.parentPath, entry.name)).mode & 0o222
+						).toBe(0);
+					}
+					expect((await build(target)).built).toEqual([]);
+					expect(result.output).toEqual(
+						(await build(target, { cache: false })).output
+					);
+				} finally {
+					chmodTree(cacheLocation(main), false);
+					chmodTree(cacheLocation(target), false);
+				}
+			});
+		}
+	},
+	...["git", "commondir", "config", "gitdir"].map((metadata) => ({
+		name: `non-regular-${metadata}`,
+		description: "ignores Git metadata FIFOs and completes a normal build",
+		skip: process.platform === "win32",
+		async run() {
+			await withFixture(async (root) => {
+				fixture(root);
+				const common = path.join(root, ".git");
+				let fifo = common;
+				if (metadata === "commondir") {
+					const admin = path.join(root, "admin");
+					fs.mkdirSync(admin);
+					fs.writeFileSync(common, "gitdir: admin");
+					fifo = path.join(admin, "commondir");
+				} else if (metadata !== "git") {
+					fs.mkdirSync(common);
+					fifo = path.join(common, "config");
+					if (metadata === "gitdir") {
+						const admin = path.join(common, "worktrees", "other");
+						fs.mkdirSync(admin, { recursive: true });
+						fifo = path.join(admin, "gitdir");
+					}
+				}
+				execFileSync("mkfifo", [fifo]);
+				let cold;
+				for (const enabled of [false, true]) {
+					const child = spawnSync(
+						process.execPath,
+						[
+							"--input-type=module",
+							"-e",
+							`
+import { rspack } from ${JSON.stringify(import.meta.resolve("@rspack/core"))};
+const compiler = rspack({
+ context: ${JSON.stringify(root)}, mode: "development", entry: "./value-two.js",
+ cache: { type: "persistent" }, experiments: { portableCache: ${enabled} },
+ output: { path: ${JSON.stringify(path.join(root, "dist"))} }
+});
+compiler.run((error, stats) => {
+ if (error || stats.hasErrors()) process.exitCode = 1;
+ compiler.close(() => console.log("completed"));
+});
+`
+						],
+						{ encoding: "utf8", timeout: 10000 }
+					);
+					expect(child.error).toBeUndefined();
+					expect(child.status).toBe(0);
+					expect(child.stdout).toContain("completed");
+					const output = contents(path.join(root, "dist"));
+					if (!enabled) cold = output;
+					expect(output).toEqual(cold);
+				}
+			});
+		}
+	})),
+	{
+		name: "submodule-primary-donor",
+		description: "discovers a submodule primary checkout through core.worktree",
+		skip: !gitAvailable,
+		async run() {
+			await withFixture(async (temp) => {
+				const main = path.join(temp, "primary checkout");
+				const target = path.join(temp, "target");
+				fixture(main);
+				const git = (...args) =>
+					execFileSync("git", args, { cwd: main, stdio: "pipe" });
+				git("init");
+				git("add", ".");
+				git(
+					"-c",
+					"user.name=Rspack",
+					"-c",
+					"user.email=rspack@example.com",
+					"-c",
+					"commit.gpgsign=false",
+					"commit",
+					"-m",
+					"fixture"
+				);
+				const common = path.join(temp, "super.git", "modules", "app");
+				fs.mkdirSync(path.dirname(common), { recursive: true });
+				fs.renameSync(path.join(main, ".git"), common);
+				fs.writeFileSync(path.join(main, ".git"), `gitdir: ${common}`);
+				git("config", "core.worktree", path.relative(common, main));
+				git("worktree", "add", target, "-b", "target");
+				await build(main);
+				await build(main);
+				const donor = contents(cacheLocation(main));
+				const result = await build(target);
+				expectSeededFrom(result.logs, cacheLocation(main));
+				expect(result.built).toEqual(["index.js"]);
+				expect(result.output).toEqual(
+					(await build(target, { cache: false })).output
+				);
+				expect(contents(cacheLocation(main))).toEqual(donor);
+			});
+		}
+	},
 	{
 		name: "option-defaults",
 		description:
