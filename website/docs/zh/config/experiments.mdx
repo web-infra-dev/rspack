@@ -286,7 +286,7 @@ type NewCache = {
 | `codeGeneration` | `true`  | 缓存模块代码生成结果。                                                                              |
 | `module`         | `true`  | 缓存模块构建结果，包括 loader 执行和解析的结果。                                                    |
 | `devtool`        | `true`  | 缓存 [SourceMapDevToolPlugin](/plugins/source-map-dev-tool-plugin) 生成的 source map 产物。         |
-| `loader`         | `true`  | 为配置了 `cache: true` 的 loader 启用单独缓存。                                                     |
+| `loader`         | `true`  | 缓存配置了 [`cache: true`](/zh/config/module-rules#rulesusecache) 的 loader 的转换结果。              |
 | `minimize`       | `true`  | 缓存 [SwcJsMinimizerRspackPlugin](/plugins/swc-js-minimizer-rspack-plugin) 的 JavaScript 压缩结果。 |
 | `resolver`       | `false` | 缓存模块和 loader 的路径解析结果。                                                                  |
 
