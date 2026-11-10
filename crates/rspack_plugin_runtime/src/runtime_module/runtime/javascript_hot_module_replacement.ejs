@@ -237,8 +237,6 @@
 	return {
 		dispose: function () {
 			hotCurrentUpdateRemovedChunks.forEach(function (chunkId) {
-				var installed = <%- _installed_chunks %>[chunkId];
-				if (Array.isArray(installed)) installed[0]();
 				delete <%- _installed_chunks %>[chunkId];
 			});
 			hotCurrentUpdateRemovedChunks = undefined;
@@ -503,8 +501,8 @@
 	removedChunks.forEach(function (chunkId) { preparedChunks[chunkId] = false; });
 	function prepareFullChunk(chunkId, promises) {
 		if (<%- HAS_OWN_PROPERTY %>(preparedChunks, chunkId)) return;
-		if (<%- _installed_chunks %>[chunkId] === <%- _loaded_chunk_state %>) return;
 		preparedChunks[chunkId] = true;
+		if (<%- _installed_chunks %>[chunkId] === <%- _loaded_chunk_state %>) return;
 		promises.push(<%- _load_update_chunk %>(chunkId, undefined, true));
 		if (hotCurrentUpdateChunks[chunkId] === false) {
 			hotCurrentUpdateChunks[chunkId] = true;
@@ -512,9 +510,7 @@
 		}
 	}
 	function prepareLoad(chunkId, promises) {
-		if (load && <%- HAS_OWN_PROPERTY %>(load, chunkId)) load[chunkId].forEach(function (id) {
-			prepareFullChunk(id, promises);
-		});
+		if (load && <%- HAS_OWN_PROPERTY %>(load, chunkId)) load[chunkId].forEach(function (id) { prepareFullChunk(id, promises); });
 	}
 	// Full payloads supplement chunks; deltas independently update changed modules.
 	Object.keys(load || {}).forEach(function (chunkId) {
@@ -547,9 +543,4 @@
 			}
 		};
 	}
-	return function (chunkId) {
-		return load && <%- HAS_OWN_PROPERTY %>(load, chunkId) && load[chunkId].some(function (id) {
-			return preparedChunks[id] === true;
-		});
-	};
 };

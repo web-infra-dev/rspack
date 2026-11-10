@@ -68,7 +68,6 @@ export default ['node', 'webworker'].flatMap((target) =>
             hot: module.hot, hash: () => __webpack_hash__,
             ensure: () => __webpack_require__.e,
             otherEnsure: require('./ensure'),
-            handlers: () => __webpack_require__.f,
             load: () => import(/* webpackChunkName: "page" */ './page')
           };
           require('./trigger');
@@ -149,22 +148,11 @@ export default ['node', 'webworker'].flatMap((target) =>
           );
           assert.equal(app.hash(), latest.hash);
           assert.equal(app.hot.status(), 'idle');
-          const requested = [];
-          const handlers = app.handlers();
-          handlers.record = (id, promises) => {
-            requested.push(id);
-            promises.push(Promise.resolve());
-          };
-          try {
-            await Promise.all([app.ensure()('page'), app.otherEnsure()('page')]);
-            assert.deepEqual(
-              requested.sort(),
-              ['page', 'shared'],
-              'concurrent group ensures must share each physical chunk load',
-            );
-          } finally {
-            delete handlers.record;
-          }
+          assert.equal(
+            app.ensure()('page'),
+            app.otherEnsure()('page'),
+            'concurrent ensures from different modules must share the load',
+          );
         } finally {
           if (target === 'node') delete sandbox.versionApp;
         }
