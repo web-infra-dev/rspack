@@ -279,14 +279,26 @@ impl ChunkManifest {
         }
       }
 
-      let parent_hashes = intersect_parent_hashes(
-        &mut chunk
-          .groups()
-          .iter()
-          .flat_map(|group| &chunk_group_by_ukey.expect_get(group).parents),
-        &hashes_by_group_and_parents,
-      );
-      child_chunks.retain(|child| !parent_hashes.contains(child));
+      // The hashes provided on every path to this chunk: each of its groups provides
+      // what every path through that group's parents does, and a group without
+      // parents, such as an entry, provides none.
+      let mut parent_hashes: Option<HashSet<ChunkUkey>> = None;
+      for group_ukey in chunk.groups() {
+        let group_parent_hashes = intersect_parent_hashes(
+          &mut chunk_group_by_ukey.expect_get(group_ukey).parents.iter(),
+          &hashes_by_group_and_parents,
+        );
+        parent_hashes = Some(match parent_hashes {
+          None => group_parent_hashes,
+          Some(mut so_far) => {
+            so_far.retain(|chunk| group_parent_hashes.contains(chunk));
+            so_far
+          }
+        });
+      }
+      if let Some(parent_hashes) = parent_hashes {
+        child_chunks.retain(|child| !parent_hashes.contains(child));
+      }
 
       for group_ukey in chunk.groups() {
         let mut group_hashes = intersect_parent_hashes(
