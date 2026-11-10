@@ -702,7 +702,7 @@ export default {
 };
 ```
 
-Rspack reuses the dependency mappings from the PnP manifest (`.pnp.cjs`) across rebuilds. If installing or updating dependencies changes this file, restart the dev server or watch process to use the updated dependency mappings.
+Rspack remembers the location of the PnP manifest (`.pnp.cjs`) across rebuilds and reloads its dependency mappings after clearing the resolver cache. This allows packages in Yarn's global cache to use updated dependency mappings on the next rebuild.
 
 ## resolve.preferAbsolute
 

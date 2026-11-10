@@ -139,6 +139,9 @@ pub struct ResolverGeneric<Fs> {
   alias_trie: AliasTrie,
   /// Pre-built byte-trie over `options.fallback` keys.
   fallback_trie: AliasTrie,
+  /// Keep the discovered path across cache clears so global cache packages can reload the manifest.
+  #[cfg(feature = "yarn_pnp")]
+  pnp_manifest_path: Arc<OnceLock<PathBuf>>,
   #[cfg(feature = "yarn_pnp")]
   pnp_manifest: Arc<arc_swap::ArcSwapOption<(PathBuf, pnp::Manifest)>>,
   /// Paths that have been searched and confirmed to have no `.pnp.cjs` reachable by filesystem walk.
@@ -171,6 +174,8 @@ impl<Fs: Send + Sync + FileSystem + Default> ResolverGeneric<Fs> {
       alias_trie,
       fallback_trie,
       #[cfg(feature = "yarn_pnp")]
+      pnp_manifest_path: Arc::new(OnceLock::new()),
+      #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::new(arc_swap::ArcSwapOption::empty()),
       #[cfg(feature = "yarn_pnp")]
       pnp_no_manifest_cache: Arc::new(FxDashSet::default()),
@@ -189,6 +194,8 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       cache: Arc::new(Cache::new(file_system)),
       alias_trie,
       fallback_trie,
+      #[cfg(feature = "yarn_pnp")]
+      pnp_manifest_path: Arc::new(OnceLock::new()),
       #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::new(arc_swap::ArcSwapOption::empty()),
       #[cfg(feature = "yarn_pnp")]
@@ -209,6 +216,8 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       alias_trie,
       fallback_trie,
       #[cfg(feature = "yarn_pnp")]
+      pnp_manifest_path: Arc::clone(&self.pnp_manifest_path),
+      #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::clone(&self.pnp_manifest),
       #[cfg(feature = "yarn_pnp")]
       pnp_no_manifest_cache: Arc::clone(&self.pnp_no_manifest_cache),
@@ -226,6 +235,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     self.cache.clear();
     #[cfg(feature = "yarn_pnp")]
     {
+      self.pnp_manifest.store(None);
       self.pnp_no_manifest_cache.clear();
     }
   }
@@ -1049,30 +1059,35 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       return Some(manifest);
     }
 
-    // 2. This path was searched before and found nothing → skip filesystem walk
-    if self.pnp_no_manifest_cache.contains(cached_path) {
-      return None;
-    }
-
-    // 3. Search for `.pnp.cjs` by walking up from this path
-    let base_path = cached_path.to_path_buf();
-    let Some(manifest_path) = pnp::find_closest_pnp_manifest_path(base_path.as_std_path()) else {
-      self.pnp_no_manifest_cache.insert(cached_path.clone());
-
-      for p in base_path.ancestors() {
-        let p_cached = self.cache.value(p);
-        if self.pnp_no_manifest_cache.contains(&p_cached) {
-          break;
-        }
-        self.pnp_no_manifest_cache.insert(p_cached);
+    let manifest_path = if let Some(path) = self.pnp_manifest_path.get() {
+      path
+    } else {
+      // This path was searched before and found nothing → skip filesystem walk
+      if self.pnp_no_manifest_cache.contains(cached_path) {
+        return None;
       }
-      return None;
+
+      // Search for `.pnp.cjs` by walking up from this path
+      let base_path = cached_path.to_path_buf();
+      let Some(manifest_path) = pnp::find_closest_pnp_manifest_path(base_path.as_std_path()) else {
+        self.pnp_no_manifest_cache.insert(cached_path.clone());
+
+        for p in base_path.ancestors() {
+          let p_cached = self.cache.value(p);
+          if self.pnp_no_manifest_cache.contains(&p_cached) {
+            break;
+          }
+          self.pnp_no_manifest_cache.insert(p_cached);
+        }
+        return None;
+      };
+      self.pnp_manifest_path.get_or_init(|| manifest_path)
     };
 
     tracing::debug!("use manifest path: {:?}", manifest_path);
 
-    let manifest = pnp::load_pnp_manifest(&manifest_path).ok()?;
-    let manifest = Arc::new((manifest_path, manifest));
+    let manifest = pnp::load_pnp_manifest(manifest_path).ok()?;
+    let manifest = Arc::new((manifest_path.clone(), manifest));
 
     let previous = self
       .pnp_manifest
