@@ -688,33 +688,65 @@ There are two phases that all loaders enter one after the other:
 
 - **Type:** `string`
 
-Creates a separate resource for rule matching using a path template. The only supported placeholder is `[resource-path]`, which expands to the current matching path, including its extension but excluding query and fragment. All other text, including `*`, is used literally.
+Sets a path template that changes how a resource matches nested and subsequent rules. It only changes the path used for rule matching; file reading and loaders still use the original resource.
 
-Rules are evaluated in order. When a matching rule has `as`, its template sets the new matching path, and the full matching resource is rebuilt with the original query and fragment. Matching then continues with nested and subsequent rules; earlier rules are not evaluated again. A later `as` expands `[resource-path]` using the path produced by the previous `as`.
+### Using `as`
 
-The original resource is preserved for file reading and loaders. If the request contains an [inline match resource](/api/loader-api/inline-match-resource), `as` uses that matching path as its starting point.
+For example, you may want to handle imports of the same JavaScript file in two ways: compile a regular import with SWC, or emit the original file and return its URL when the import has the `type: 'url'` attribute:
 
-For example, `example.source.js` matches the later `.txt` rule as `example.source.js.txt`, then the `.processed` rule as `example.source.js.txt.processed`:
+```js
+import example from './example.js';
+import exampleUrl from './example.js' with { type: 'url' };
+```
+
+Use the following configuration to handle both types of imports:
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     rules: [
       {
-        test: /\.source\.js$/,
-        type: 'asset/source',
-        as: '[resource-path].txt',
+        test: /\.js$/,
+        // Match files imported with the type: 'url' attribute
+        with: { type: 'url' },
+        // Emit the file and provide its URL as the default export
+        type: 'asset/resource',
+        // Append .asset to the matching path to skip the SWC rule below
+        as: '[resource-path].asset',
       },
       {
-        test: /\.txt$/,
-        use: './text-loader.js',
-        as: '[resource-path].processed',
+        test: /\.js$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          // Preserve import attributes in the importing module for Rspack to match
+          jsc: { experimental: { keepImportAttributes: true } },
+        },
       },
-      { test: /\.processed$/, use: './processed-loader.js' },
     ],
   },
 };
 ```
+
+With this configuration:
+
+- The regular import does not match the first rule. Its matching path still ends in `.js`, so the second rule compiles it with SWC.
+- The URL import matches the first rule, which sets its type to [`asset/resource`](/guide/features/asset-module) and changes its matching path to end in `example.js.asset`. It no longer matches the SWC rule, so Rspack emits the original file without compiling it with SWC.
+
+### Rule matching order
+
+Rules are evaluated in order. The new path produced by `as` is used for the current rule's nested `rules` and `oneOf` rules, as well as subsequent rules.
+
+`as` does not re-evaluate earlier rules or undo their loaders and other settings. This is why the rule for URL imports in the example must come before the SWC rule.
+
+If a later matching rule also applies `as`, its `[resource-path]` expands to the path produced by the previous `as`.
+
+### Path template
+
+The value of `as` is a path template. The only supported placeholder is `[resource-path]`, which expands to the full file path currently used for matching, including its extension. All other text is used literally. For example, `[resource-path].asset` appends `.asset` to the current matching path.
+
+`[resource-path]` excludes the query and fragment, and `as` leaves them unchanged. [`resourceQuery`](#rulesresourcequery) and [`resourceFragment`](#rulesresourcefragment) still match the original query and fragment, respectively.
+
+The generated path is only used for rule matching; it does not change the file being read or the resource processed by loaders. Both imports in the example therefore read `example.js`; no `example.js.asset` file is needed.
 
 ## rules[].type
 
