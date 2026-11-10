@@ -235,6 +235,10 @@ Enable portable path encoding with `true` or `{ root }`. The default root is the
 
 When Rspack restores the cache elsewhere, it rebases only paths under the root. Paths outside it stay verbatim.
 
+:::tip
+`portable: true` used to take `context` as the root. Set `portable: { root: '.' }` to keep that root, for example when the same package builds inside its repository and from a copy without `.git`, such as a Docker build context.
+:::
+
 Rspack reuses a portable cache only where the project has the same layout, meaning the same position of `context` under the root and the same relation between the root and its real path. Moving the whole root, as with another Git worktree of the same repository, keeps the layout. Moving a package to another directory of the repository, adding or removing the `.git` that sets the default root, or reaching the project through a symlink in a different place starts a new cache. Two projects with different layouts should not share a cache [name](#name) and [storage](#storage) location. Windows and other operating systems also cannot share a portable cache.
 
 When `portable` is `false`, Rspack binds the cache to the project [context](/config/context). It treats a cache copied or shared to a project at another path as invalid and rebuilds it.
@@ -247,7 +251,7 @@ The legacy backend rebases entry contexts and module identities under the root, 
 
 Unresolvable symbolic links are tracked by their stored target. Directory cycles are recorded without walking the same directory again.
 
-Rspack finds loader output that contains the root by searching cached data for the root's native, forward-slash, JSON-escaped, JavaScript ASCII-escaped, base64 and `file://` URL spellings. This search is best-effort. Loaders that derive output from a path without including one of these spellings (for example, a hash of `this.resourcePath`) should call `this.cacheable(false)` or use an appropriate `cache.version`.
+Rspack finds loader output that contains the root by searching cached data for the root's native, forward-slash, JSON-escaped, JavaScript ASCII-escaped, regex-escaped, base64 and `file://` URL spellings. This search is best-effort. Loaders that derive output from a path without including one of these spellings (for example, a hash of `this.resourcePath`) should call `this.cacheable(false)` or use an appropriate `cache.version`.
 
 Base64 detection includes short project roots. If a root is too short to detect at every base64 alignment (for example, `/`), Rspack conservatively binds all encoded entries to that root, so they rebuild when the root changes.
 
