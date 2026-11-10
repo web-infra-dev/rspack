@@ -1457,7 +1457,7 @@ module.exports = "data:,";
   }
 }
 
-fn is_portable(options: &CompilerOptions) -> bool {
+pub(crate) fn is_portable(options: &CompilerOptions) -> bool {
   matches!(&options.cache, crate::CacheOptions::Persistent(options) if options.portable_root.is_some())
 }
 

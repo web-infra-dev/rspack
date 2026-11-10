@@ -20,7 +20,8 @@ use crate::{
   ContextModulePattern, DependencyCategory, DependencyId, DependencyRef, DependencyType, ModuleExt,
   ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, OverrideStrict, ResolveArgs,
   ResolveContextModuleDependencies, ResolveInnerOptions, ResolveOptionsWithDependencyType,
-  ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, resolve, walk_dir,
+  ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, context_module::ContextListing,
+  normal_module_factory::is_portable, resolve, walk_dir,
 };
 
 mod glob;
@@ -93,6 +94,7 @@ pub struct ContextModuleFactoryHooks {
 
 #[derive(Debug)]
 pub struct ContextModuleFactory {
+  resolver_factory: Arc<ResolverFactory>,
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
   #[debug(skip)]
@@ -131,22 +133,16 @@ impl ContextModuleFactory {
     loader_resolver_factory: Arc<ResolverFactory>,
     plugin_driver: SharedPluginDriver,
   ) -> Self {
+    let listing_resolver_factory = resolver_factory.clone();
     let resolve_dependencies: ResolveContextModuleDependencies = Arc::new(move |options| {
-      let resolver_factory = resolver_factory.clone();
+      let resolver_factory = listing_resolver_factory.clone();
       Box::pin(async move {
         tracing::trace!("resolving context module path {}", options.resource);
         if options.resource.as_str().is_empty() {
           return Ok(vec![]);
         }
 
-        let resolver = &resolver_factory.get(ResolveOptionsWithDependencyType {
-          resolve_options: options
-            .resolve_options
-            .clone()
-            .map(|r| Box::new(Arc::unwrap_or_clone(r))),
-          resolve_to_context: false,
-          dependency_category: options.context_options.category,
-        });
+        let resolver = &listing_resolver(&resolver_factory, &options);
         let mut context_element_dependencies = vec![];
         visit_dirs(
           options.resource.as_str(),
@@ -169,6 +165,7 @@ impl ContextModuleFactory {
     });
 
     Self {
+      resolver_factory,
       loader_resolver_factory,
       plugin_driver,
       resolve_dependencies,
@@ -476,16 +473,25 @@ impl ContextModuleFactory {
         context_module_options.context_options.pattern = after_resolve_data.pattern.clone();
         context_module_options.context_options.recursive = after_resolve_data.recursive;
 
-        let factory_resolved = Arc::ptr_eq(
-          &after_resolve_data.resolve_dependencies,
-          &self.resolve_dependencies,
-        );
+        // Only the factory's own resolver lists the dependencies from these resolver options.
+        let listing = (is_portable(&self.plugin_driver.options)
+          && Arc::ptr_eq(
+            &after_resolve_data.resolve_dependencies,
+            &self.resolve_dependencies,
+          ))
+        .then(|| {
+          ContextListing::new(
+            &listing_resolver(&self.resolver_factory, context_module_options).options(),
+          )
+        });
         let mut module = ContextModule::new_with_strict(
           after_resolve_data.resolve_dependencies,
           context_module_options.clone(),
           self.global_override_strict(),
         );
-        module.set_factory_resolved(factory_resolved);
+        if let Some(listing) = listing {
+          module.set_listing(listing);
+        }
 
         Ok(Some(ModuleFactoryResult::new_with_module(module.boxed())))
       }
@@ -698,6 +704,21 @@ impl AlternativeRequest {
   pub fn new(context: String, request: String) -> Self {
     Self { context, request }
   }
+}
+
+/// The resolver whose options list the dependencies of a context module.
+fn listing_resolver(
+  resolver_factory: &ResolverFactory,
+  options: &ContextModuleOptions,
+) -> Arc<Resolver> {
+  resolver_factory.get(ResolveOptionsWithDependencyType {
+    resolve_options: options
+      .resolve_options
+      .clone()
+      .map(|r| Box::new(Arc::unwrap_or_clone(r))),
+    resolve_to_context: false,
+    dependency_category: options.context_options.category,
+  })
 }
 
 fn alternative_requests(

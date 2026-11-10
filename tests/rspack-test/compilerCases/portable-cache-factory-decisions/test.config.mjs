@@ -398,6 +398,19 @@ const readerScenarios = [
 			}]
 		})
 	},
+	...[
+		{ name: "context-resolve-extensions", resolve: (extensions) => ({ extensions }) },
+		{ name: "context-dependency-extensions", resolve: (extensions) => ({ byDependency: { commonjs: { extensions } } }) }
+	].map(({ name, resolve }) => ({
+		name,
+		description: "rebuilds a context module whose keys change with the resolver options at the reader",
+		files: {
+			"src/index.js": 'module.exports = require.context("./ctx", false, /./).keys().sort();',
+			"src/ctx/a.js": 'module.exports = "a";',
+			"src/ctx/b.txt": 'module.exports = "b";'
+		},
+		configuration: (context, writer) => ({ resolve: resolve(context === writer ? [".js"] : [".js", ".txt"]) })
+	})),
 	{
 		name: "loader-option-root-token",
 		description: "tells a literal root token in a loader option from a path below the reader's root",

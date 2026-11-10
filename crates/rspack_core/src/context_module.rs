@@ -35,8 +35,8 @@ use crate::{
   FreezeLock, GroupOptions, ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
   ModuleLayer, ModuleType, NeedBuildContext, RealDependencyLocation, ReferencedSpecifier, Resolve,
-  RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, contextify,
-  get_exports_type_with_strict, get_outgoing_async_modules, impl_module_meta_info,
+  ResolveInnerOptions, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, SourceType,
+  contextify, get_exports_type_with_strict, get_outgoing_async_modules, impl_module_meta_info,
   module_update_hash,
   new_cache::{FileSystemInfo, Snapshot, SnapshotValidationResult},
   property_access, to_path,
@@ -286,9 +286,33 @@ pub struct ContextModule {
   #[debug(skip)]
   #[cacheable(with=Skip)]
   resolve_dependencies: Option<ResolveContextModuleDependencies>,
-  /// Whether the factory's own resolver lists the dependencies, so that the options decide them.
-  /// A plugin can set another resolver, as `ContextReplacementPlugin` with a map does.
-  factory_resolved: bool,
+  /// The resolver options that list the dependencies, recorded on portable builds when the
+  /// factory's own resolver lists them. A plugin can set another resolver, as
+  /// `ContextReplacementPlugin` with a map does, and then nothing decides the dependencies.
+  listing: Option<ContextListing>,
+}
+
+/// The resolver options that turn the files of a context into its keys.
+#[cacheable]
+#[derive(Debug)]
+pub(crate) struct ContextListing {
+  enforce_extension: bool,
+  extensions: Vec<String>,
+  main_files: Vec<String>,
+  /// Directory names, or absolute directories that move with the checkout below the root.
+  #[cacheable(with=AsVec<As<PortableString>>)]
+  modules: Vec<String>,
+}
+
+impl ContextListing {
+  pub(crate) fn new(options: &ResolveInnerOptions) -> Self {
+    Self {
+      enforce_extension: options.is_enforce_extension_enabled(),
+      extensions: options.extensions().cloned().collect(),
+      main_files: options.main_files().cloned().collect(),
+      modules: options.modules().cloned().collect(),
+    }
+  }
 }
 
 impl ContextModule {
@@ -328,21 +352,26 @@ impl ContextModule {
       force_build: true,
       source_map_kind: SourceMapKind::empty(),
       resolve_dependencies: Some(resolve_dependencies),
-      factory_resolved: true,
+      listing: None,
     }
   }
 
-  pub(crate) fn set_factory_resolved(&mut self, factory_resolved: bool) {
-    self.factory_resolved = factory_resolved;
+  pub(crate) fn set_listing(&mut self, listing: ContextListing) {
+    self.listing = Some(listing);
   }
 
   /// What the factory decided for this module, which a relocated build compares with a fresh
-  /// decision, or `None` when a plugin's resolver lists the dependencies.
+  /// decision, or `None` when nothing recorded how the dependencies are listed.
   pub(crate) fn factory_decision(&self) -> Option<Vec<u8>> {
-    if !self.factory_resolved {
-      return None;
+    let listing = self.listing.as_ref()?;
+    let mut decision = Vec::new();
+    for field in [
+      rspack_cacheable::to_bytes(&self.options, &()).ok()?,
+      rspack_cacheable::to_bytes(listing, &()).ok()?,
+    ] {
+      decision.extend(field.len().to_le_bytes());
+      decision.extend(field);
     }
-    let mut decision = rspack_cacheable::to_bytes(&self.options, &()).ok()?;
     decision.push(u8::from(self.build_info().strict));
     Some(decision)
   }
