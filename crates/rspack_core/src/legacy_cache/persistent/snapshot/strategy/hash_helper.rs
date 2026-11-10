@@ -327,11 +327,11 @@ impl HashHelper {
           has_cycle: true,
         });
       }
-      ancestors.push(directory);
       let Ok(mut children) = self.fs.read_dir(utf8_path).await else {
         self.timestamp_hash_cache.insert(path.into(), None);
         return None;
       };
+      ancestors.push(directory);
       children.sort();
 
       let mut hasher = FxHasher::default();
