@@ -1,6 +1,5 @@
 use std::{
   borrow::Cow,
-  ops::Deref,
   sync::{Arc, LazyLock},
 };
 
@@ -42,60 +41,6 @@ define_hook!(NormalModuleFactoryAfterFactorize: Series(data: &mut ModuleFactoryC
 
 pub enum NormalModuleFactoryResolveResult {
   Module(BoxModule),
-}
-
-#[derive(Debug)]
-#[allow(clippy::large_enum_variant)]
-pub enum NormalModuleCreateDataResource {
-  Owned(ResourceData),
-  Shared(Arc<ResourceData>),
-}
-
-impl NormalModuleCreateDataResource {
-  fn into_shared(self) -> Arc<ResourceData> {
-    match self {
-      Self::Owned(resource_data) => Arc::new(resource_data),
-      Self::Shared(resource_data) => resource_data,
-    }
-  }
-
-  fn take_shared(&mut self) -> Arc<ResourceData> {
-    let shared = std::mem::take(self).into_shared();
-    *self = Self::Shared(shared.clone());
-    shared
-  }
-
-  pub fn update_resource_data(&mut self, new_resource: String) {
-    match self {
-      Self::Owned(resource_data) => resource_data.update_resource_data(new_resource),
-      Self::Shared(_) => {
-        panic!("shared resource resolve data cannot be mutated after module creation")
-      }
-    }
-  }
-}
-
-impl Default for NormalModuleCreateDataResource {
-  fn default() -> Self {
-    Self::Owned(ResourceData::default())
-  }
-}
-
-impl Deref for NormalModuleCreateDataResource {
-  type Target = ResourceData;
-
-  fn deref(&self) -> &Self::Target {
-    match self {
-      Self::Owned(resource_data) => resource_data,
-      Self::Shared(resource_data) => resource_data,
-    }
-  }
-}
-
-impl AsRef<ResourceData> for NormalModuleCreateDataResource {
-  fn as_ref(&self) -> &ResourceData {
-    self
-  }
 }
 
 fn create_global_parser_options_cache(
@@ -648,12 +593,15 @@ mod tests {
 
   #[test]
   fn reuse_create_data_resource_resolve_data_for_normal_module() {
-    let resource_data = ResourceData::new_with_resource("/a.js".to_string());
     let mut create_data = NormalModuleCreateData {
       raw_request: "./a".to_string(),
       request: "/a.js".to_string(),
       user_request: "./a".to_string(),
-      resource_resolve_data: NormalModuleCreateDataResource::Owned(resource_data),
+      resource_resolve_data: Arc::new(ResourceData::new_with_resolved_path(
+        "/a.js".into(),
+        String::new(),
+        String::new(),
+      )),
       match_resource: None,
       side_effects: None,
       context: None,
@@ -663,10 +611,18 @@ mod tests {
         None,
       )),
     };
+    let resource_data = create_data.resource_resolve_data();
+    let original = std::ptr::from_ref(resource_data);
+    let path = resource_data.path().expect("resolved path");
+    assert_eq!(resource_data.resource().as_ptr(), path.as_str().as_ptr());
 
-    let resource_data = create_data.resource_resolve_data.take_shared();
+    create_data.update_resource_data("/b.js?raw#preview".to_string());
+    let resource_data = Arc::clone(&create_data.resource_resolve_data);
 
-    assert_eq!(resource_data.resource(), "/a.js");
+    assert_eq!(Arc::as_ptr(&resource_data), original);
+    assert_eq!(resource_data.resource(), "/b.js?raw#preview");
+    assert_eq!(resource_data.query(), Some("?raw"));
+    assert_eq!(resource_data.fragment(), Some("#preview"));
   }
 }
 
@@ -879,21 +835,23 @@ impl NormalModuleFactory {
     let resource = unresolved_resource.to_owned();
     let resource_data = if !scheme.is_none() {
       // resource with scheme
-      let mut resource_data = ResourceData::new_with_resource(resource);
+      let mut resource_data = Arc::new(ResourceData::new_with_resource(resource));
+      let resource_data_mut = Arc::get_mut(&mut resource_data).expect("new resource is unique");
       plugin_driver
         .normal_module_factory_hooks
         .resolve_for_scheme
-        .call(data, &mut resource_data, &scheme)
+        .call(data, resource_data_mut, &scheme)
         .await?;
       resource_data
     } else if !context_scheme.is_none()
       // resource within scheme
       && let Some(resource_data) = {
-        let mut resource_data = ResourceData::new_with_resource(resource.clone());
+        let mut resource_data = Arc::new(ResourceData::new_with_resource(resource.clone()));
+        let resource_data_mut = Arc::get_mut(&mut resource_data).expect("new resource is unique");
         let handled = plugin_driver
           .normal_module_factory_hooks
           .resolve_in_scheme
-          .call(data, &mut resource_data, &context_scheme)
+          .call(data, resource_data_mut, &context_scheme)
           .await?
           .unwrap_or_default();
         handled.then_some(resource_data)
@@ -903,7 +861,7 @@ impl NormalModuleFactory {
     } else {
       // resource without scheme and without path
       if resource.is_empty() || resource.starts_with(QUESTION_MARK) {
-        ResourceData::new_with_resource(resource.clone())
+        Arc::new(ResourceData::new_with_resource(resource))
       } else {
         // resource without scheme and with path
         let resolve_args = ResolveArgs {
@@ -932,7 +890,7 @@ impl NormalModuleFactory {
           .extend(resolve_dependencies.missing_dependencies);
 
         match resource_data {
-          Ok(ResolveResult::Resource(resource)) => resource.into(),
+          Ok(ResolveResult::Resource(resource)) => Arc::new(resource.into()),
           Ok(ResolveResult::Ignored) => {
             let ident = format!("{}/{}", &data.context, resource);
 
@@ -1189,7 +1147,7 @@ module.exports = "data:,";
         side_effects: resolved_side_effects,
         context: resource_data.context().map(|c| c.to_owned()),
         module_options: resolved_options.clone(),
-        resource_resolve_data: NormalModuleCreateDataResource::Owned(resource_data),
+        resource_resolve_data: resource_data,
       };
       if let Some(plugin_result) = self
         .plugin_driver
@@ -1216,7 +1174,6 @@ module.exports = "data:,";
     {
       module
     } else {
-      let resource_resolve_data = create_data.resource_resolve_data.take_shared();
       NormalModule::new(
         create_data.request.clone(),
         create_data.user_request.clone(),
@@ -1226,7 +1183,7 @@ module.exports = "data:,";
         resolved_parser_and_generator,
         resolved_options,
         match_resource_data,
-        resource_resolve_data,
+        Arc::clone(&create_data.resource_resolve_data),
         resolved_resolve_options,
         loaders,
         loader_options,
@@ -1471,10 +1428,22 @@ pub struct NormalModuleCreateData {
   pub raw_request: String,
   pub request: String,
   pub user_request: String,
-  pub resource_resolve_data: NormalModuleCreateDataResource,
+  resource_resolve_data: Arc<ResourceData>,
   pub match_resource: Option<String>,
   pub side_effects: Option<bool>,
   pub context: Option<String>,
+}
+
+impl NormalModuleCreateData {
+  pub fn resource_resolve_data(&self) -> &ResourceData {
+    &self.resource_resolve_data
+  }
+
+  pub fn update_resource_data(&mut self, new_resource: String) {
+    Arc::get_mut(&mut self.resource_resolve_data)
+      .expect("resource resolve data is exclusive before module creation")
+      .update_resource_data(new_resource);
+  }
 }
 
 fn split_element(mut input: &str) -> Vec<&str> {
