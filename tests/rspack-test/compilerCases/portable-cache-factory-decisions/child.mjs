@@ -15,12 +15,15 @@ const values = {
 	plain: () => ({ list: [1, "x", null, undefined, true], nested: { ratio: 1.5 } })
 };
 
-// Static options whose objects share their children.
-function sharedGraph() {
-	let graph = { leaf: 1 };
-	for (let depth = 0; depth < 24; depth++) graph = { left: graph, right: graph };
-	return { value: "shared", graph };
-}
+// Static options whose objects share their children, and options too large to compare.
+const staticOptions = {
+	shared: () => {
+		let graph = { leaf: 1 };
+		for (let depth = 0; depth < 24; depth++) graph = { left: graph, right: graph };
+		return { value: "shared", graph };
+	},
+	large: () => ({ value: "large", list: new Array(8_400_000).fill(null) })
+};
 
 const compiler = rspack({
 	context,
@@ -39,8 +42,8 @@ const compiler = rspack({
 	module: {
 		rules: kinds.map((kind) => ({
 			test: new RegExp(`${kind}-dep\\.js$`),
-			use: kind === "shared"
-				? [{ loader: "./observe.cjs", cache: loaderCache, options: sharedGraph() }]
+			use: kind in staticOptions
+				? [{ loader: "./observe.cjs", cache: loaderCache, options: staticOptions[kind]() }]
 				: (info) => [{
 					loader: "./observe.cjs",
 					cache: loaderCache,

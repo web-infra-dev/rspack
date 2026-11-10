@@ -553,6 +553,9 @@ function withExtra(value, extra) {
 	value.extra = extra;
 	return value;
 }
+function readOnly(writable) {
+	return Object.defineProperty({}, "x", { enumerable: true, configurable: true, writable, value: 1 });
+}
 function regexpAt(lastIndex) {
 	const value = /a/g;
 	value.lastIndex = lastIndex;
@@ -571,6 +574,9 @@ const dataComparisons = [
 	differ("regexpLastIndex", regexpAt(1), regexpAt(2)),
 	differ("regexpOwn", withExtra(/a/, "writer"), withExtra(/a/, "reader")),
 	differ("dateOwn", withExtra(new Date(1000), "writer"), withExtra(new Date(1000), "reader")),
+	same("frozenSame", () => Object.freeze({ x: 1 })),
+	differ("frozenOther", Object.freeze({ x: 1 }), { x: 1 }),
+	differ("readOnlyOther", readOnly(false), readOnly(true)),
 	same("setSame", () => new Set(["a", "b"])),
 	differ("setOther", new Set(["a"]), new Set(["b"])),
 	differ("setOrder", new Set(["a", "b"]), new Set(["b", "a"])),
@@ -970,6 +976,50 @@ export default [
 				expect(moved.built).toHaveLength(1);
 				await expectColdEquality(reader, configuration, moved);
 				expect(calls).toBe(0);
+			});
+		}
+	},
+	{
+		name: "option-intrinsic-reads",
+		description: "reads regexp flags and class names without running getters that a config installs",
+		async run() {
+			await withProjects({ "quiet.cjs": "module.exports = () => 'module.exports = 1;';" }, async (writer, reader) => {
+				let calls = 0;
+				const regexp = /a/g;
+				const global = Object.getOwnPropertyDescriptor(RegExp.prototype, "global");
+				const prototype = {};
+				Object.defineProperty(prototype, "constructor", { value: { get name() { calls++; return "Plugin"; } } });
+				const configuration = {
+					module: { rules: [
+						{ test: /dep\.js$/, use: () => [{ loader: "./quiet.cjs", options: { regexp } }] },
+						{ test: /dep\.js$/, use: [{ loader: "./quiet.cjs", options: { plugin: Object.create(prototype) } }] }
+					] }
+				};
+				Object.defineProperty(RegExp.prototype, "global", {
+					configurable: true,
+					get() {
+						if (this === regexp) calls++;
+						return global.get.call(this);
+					}
+				});
+				try {
+					await build(writer, configuration);
+					copyTree(writer, reader);
+					await build(reader, configuration);
+				} finally {
+					Object.defineProperty(RegExp.prototype, "global", global);
+				}
+				expect(calls).toBe(0);
+			});
+		}
+	},
+	{
+		name: "large-array-option",
+		description: "gives up comparing a large array option before listing its keys",
+		async run() {
+			await withProjects(observedModules(["large"]), async (writer) => {
+				// Listing the keys of 8.4M elements needs more than this heap; building doesn't.
+				runChild({ writer, kinds: ["large"], loaderCache: false, context: writer, cached: true }, ["--max-old-space-size=128"]);
 			});
 		}
 	},
