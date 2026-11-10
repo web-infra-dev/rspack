@@ -1107,20 +1107,15 @@ impl ModuleCodeTemplate {
       chunk_name: block.get_group_options().and_then(|o| o.name()),
       message: Some(message),
     });
-    let chunks = chunk_group
-      .chunks
-      .iter()
-      .map(|c| {
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_by_ukey
-          .expect_get(c)
-      })
-      .filter(|c| {
-        !c.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
-          && c.id().is_some()
-      })
-      .collect::<Vec<_>>();
+    let chunks = if compilation.hot
+      && let Some(chunk) = chunk_group.get_hmr_loading_chunk(compilation)
+    {
+      vec![chunk]
+    } else {
+      chunk_group
+        .get_loading_chunks(compilation)
+        .collect::<Vec<_>>()
+    };
 
     if chunks.len() == 1 {
       let chunk_id = simd_json::to_string(chunks[0].id().expect("should have chunk.id"))

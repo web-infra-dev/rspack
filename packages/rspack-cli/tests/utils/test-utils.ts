@@ -1,11 +1,11 @@
+import { execa, execaNode } from 'execa';
+
 const os = require('os');
 const { stripVTControlCharacters: stripAnsi } = require('node:util');
 const path = require('path');
 const net = require('node:net');
 const fs = require('fs');
-const execa = require('execa');
 const { exec } = require('child_process');
-const { node: execaNode } = execa;
 const { Writable } = require('node:stream');
 const concat = require('concat-stream');
 
@@ -64,7 +64,7 @@ const processKill = (process) => {
  * @returns {Promise}
  */
 const createProcess = (cwd, args, options, env) => {
-  const { nodeOptions = [] } = options;
+  const { nodeOptions = [], ...processOptions } = options;
   const processExecutor = nodeOptions.length ? execaNode : execa;
   return processExecutor(RSPACK_PATH, args, {
     cwd: path.resolve(cwd),
@@ -72,7 +72,8 @@ const createProcess = (cwd, args, options, env) => {
     stdio: ENABLE_LOG_COMPILATION ? 'inherit' : 'pipe',
     maxBuffer: Infinity,
     env: { RSPACK_CLI_HELP_WIDTH: 1024, ...env },
-    ...options,
+    ...processOptions,
+    ...(nodeOptions.length ? { nodeOptions } : {}),
   });
 };
 
