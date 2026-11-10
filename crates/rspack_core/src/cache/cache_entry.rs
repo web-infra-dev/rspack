@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_cacheable::{
   cacheable,
   with::{AsCacheable, AsOption, AsPreset, AsTuple2, AsVec},
@@ -25,6 +27,11 @@ pub struct CachedExtractedComments {
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct CachedSourceMapDevToolPluginEntry {
+  /// Input map sources, validated by the source's structural hash before collection.
+  pub input_sources: Arc<[String]>,
+  /// Names after compilation-wide collision resolution.
+  pub name_version: String,
+  pub compilation_version: String,
   #[cacheable(with=AsVec<AsPreset>)]
   asset_append: Vec<BoxSource>,
   #[cacheable(with=AsOption<AsTuple2<AsCacheable, AsPreset>>)]
@@ -42,6 +49,9 @@ impl CachedSourceMapDevToolPluginEntry {
     };
 
     Some(Self {
+      input_sources: Arc::default(),
+      name_version: String::new(),
+      compilation_version: String::new(),
       asset_append: asset_append.to_vec(),
       source_map,
     })
@@ -77,26 +87,5 @@ impl CachedSourceMapDevToolPluginEntry {
     });
 
     Some((source_asset, source_map, self.asset_append.clone()))
-  }
-
-  pub(crate) fn asset_append(&self) -> &[BoxSource] {
-    &self.asset_append
-  }
-
-  pub(crate) fn source_map(&self) -> Option<(&str, &BoxSource)> {
-    self
-      .source_map
-      .as_ref()
-      .map(|(filename, source)| (filename.as_str(), source))
-  }
-
-  pub(crate) fn from_parts(
-    asset_append: Vec<BoxSource>,
-    source_map: Option<(String, BoxSource)>,
-  ) -> Self {
-    Self {
-      asset_append,
-      source_map,
-    }
   }
 }
