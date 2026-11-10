@@ -77,6 +77,12 @@ impl SourceMapDevToolPluginCache {
     entry.restore(asset)
   }
 
+  /// Reuse the existing entries after validating the complete map input set.
+  pub fn reuse_unchanged(&mut self) {
+    self.pending_writes.clear();
+    self.pending_removes.clear();
+  }
+
   pub fn store<'a>(
     &mut self,
     items: impl IntoIterator<Item = (&'a str, &'a str, CachedSourceMapDevToolPluginEntry)>,

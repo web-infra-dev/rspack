@@ -27,7 +27,7 @@ pub struct CachedExtractedComments {
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct CachedSourceMapDevToolPluginEntry {
-  /// Input map sources, validated by the source's structural hash before collection.
+  /// Input map sources, reused while the asset version is unchanged.
   pub input_sources: Arc<[String]>,
   /// Names after compilation-wide collision resolution.
   pub name_version: String,
