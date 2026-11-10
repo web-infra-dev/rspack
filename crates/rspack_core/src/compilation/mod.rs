@@ -85,8 +85,7 @@ use crate::{
   RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
   SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
   compilation::build_module_graph::{
-    BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, module_build_cache::ModuleBuildCache,
-    update_module_graph,
+    BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
   },
   compiler::{CompilationRecords, CompilerId},
   get_runtime_key,
@@ -236,7 +235,6 @@ pub struct Compilation {
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   pub cache: CompilerCache,
-  pub(crate) module_build_cache: Option<ModuleBuildCache>,
   pub resolver_cache: Option<crate::ResolverCache>,
   pub file_system_info: FileSystemInfo,
   pub plugin_driver: SharedPluginDriver,
@@ -358,13 +356,6 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
-    // Rebuilds own their invalidation path, so skip module restoration while
-    // still publishing rebuilt modules for subsequent compilations.
-    let module_build_cache = options
-      .experiments
-      .new_cache
-      .module
-      .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules"), !is_rebuild));
     let file_system_info = FileSystemInfo::new(
       input_filesystem.clone(),
       CompilationLogger::new("rspack.FileSystemInfo", logging.clone()),
@@ -396,7 +387,6 @@ impl Compilation {
       diagnostics: Default::default(),
       logging,
       cache,
-      module_build_cache,
       resolver_cache,
       file_system_info,
       plugin_driver,

@@ -7,7 +7,7 @@ use rspack_paths::InternedPathSet;
 use rustc_hash::FxHashSet;
 
 use self::{cutout::Cutout, repair::repair};
-use super::{BuildModuleGraphArtifact, module_build_cache::ModuleBuildCache};
+use super::BuildModuleGraphArtifact;
 use crate::{Compilation, DependencyId, ExportsInfoArtifact};
 
 /// The param to update module graph
@@ -32,26 +32,9 @@ pub enum UpdateParam {
 /// Update module graph through `UpdateParam`
 pub async fn update_module_graph(
   compilation: &Compilation,
-  artifact: BuildModuleGraphArtifact,
-  exports_info_artifact: ExportsInfoArtifact,
-  params: Vec<UpdateParam>,
-) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
-  update_module_graph_with_cache(
-    compilation,
-    artifact,
-    exports_info_artifact,
-    params,
-    compilation.module_build_cache.clone(),
-  )
-  .await
-}
-
-pub(super) async fn update_module_graph_with_cache(
-  compilation: &Compilation,
   mut artifact: BuildModuleGraphArtifact,
   mut exports_info_artifact: ExportsInfoArtifact,
   params: Vec<UpdateParam>,
-  module_build_cache: Option<ModuleBuildCache>,
 ) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
   let mut cutout = Cutout::default();
 
@@ -70,7 +53,6 @@ pub(super) async fn update_module_graph_with_cache(
     artifact,
     exports_info_artifact,
     build_dependencies,
-    module_build_cache,
   )
   .await?;
   cutout.fix_artifact(&mut artifact);

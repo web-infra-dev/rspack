@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use rspack_error::Result;
 
-use super::build_module_graph_pass;
+use super::{build_module_graph_pass, module_build_cache::ModuleBuildCache};
 use crate::{
   Compilation,
   compilation::{
@@ -33,6 +33,16 @@ impl PassExt for BuildModuleGraphPhasePass {
 
   async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
     cache.before_build_module_graph(compilation).await;
+    // Initialize after artifact recovery and before the make hook can build modules.
+    // Rebuilds own their invalidation path, so skip module restoration while
+    // still publishing rebuilt modules for subsequent compilations.
+    compilation.build_module_graph_artifact.module_build_cache =
+      compilation.options.experiments.new_cache.module.then(|| {
+        ModuleBuildCache::new(
+          compilation.cache.facade("Compilation/modules"),
+          !compilation.is_rebuild,
+        )
+      });
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
@@ -61,7 +71,11 @@ impl PassExt for BuildModuleGraphPhasePass {
   }
 
   async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) -> Result<()> {
-    if let Some(module_build_cache) = compilation.module_build_cache.clone() {
+    if let Some(module_build_cache) = compilation
+      .build_module_graph_artifact
+      .module_build_cache
+      .clone()
+    {
       module_build_cache
         .store_pending(
           &mut compilation.build_module_graph_artifact,
