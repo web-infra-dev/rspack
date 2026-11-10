@@ -376,6 +376,106 @@ async function checkExplicitSeeding() {
 
 export default [
 	{
+		name: "symlink-donor-unit",
+		description:
+			"rejects a linked donor unit without modifying it or sharing storage",
+		skip: process.platform === "win32",
+		async run() {
+			await withFixture(async (temp) => {
+				const main = path.join(temp, "main");
+				const target = path.join(temp, "target");
+				fixture(main);
+				fixture(target);
+				await build(main);
+				const [unit] = units(main);
+				const source = path.join(cacheLocation(main), unit);
+				const real = path.join(temp, "donor-unit");
+				fs.renameSync(source, real);
+				fs.symlinkSync(real, source, "dir");
+				for (const name of [".temp", "_stale"]) {
+					fs.mkdirSync(path.join(real, name), { recursive: true });
+					fs.writeFileSync(path.join(real, name, "marker"), "keep");
+				}
+				const donor = contents(real);
+				const result = await build(target, {
+					portableCache: { seedFrom: cacheLocation(main) }
+				});
+				expect(contents(real)).toEqual(donor);
+				const destination = path.join(cacheLocation(target), unit);
+				expect(fs.lstatSync(destination).isDirectory()).toBe(true);
+				expect(fs.realpathSync(destination)).not.toBe(real);
+				expect(result.built).toHaveLength(5);
+				expect(result.output).toEqual(
+					(await build(target, { cache: false })).output
+				);
+			});
+		}
+	},
+	{
+		name: "readonly-donor-copy",
+		description:
+			"seeds a writable private copy and removes read-only abandoned staging",
+		skip: !unreadablePacks,
+		async run() {
+			await withFixture(async (temp) => {
+				const main = path.join(temp, "main");
+				const target = path.join(temp, "target");
+				fixture(main);
+				fixture(target);
+				await build(main);
+				await build(main);
+				const donor = contents(cacheLocation(main));
+				const [unit] = units(main);
+				const abandoned = plantStaging(target, unit, deadPid(), "readonly");
+				const chmodTree = (root, readonly) => {
+					if (!fs.existsSync(root)) return;
+					fs.chmodSync(root, readonly ? 0o555 : 0o755);
+					for (const entry of fs.readdirSync(root, {
+						recursive: true,
+						withFileTypes: true
+					})) {
+						fs.chmodSync(
+							path.join(entry.parentPath, entry.name),
+							entry.isDirectory()
+								? readonly
+									? 0o555
+									: 0o755
+								: readonly
+									? 0o444
+									: 0o644
+						);
+					}
+				};
+				chmodTree(cacheLocation(main), true);
+				chmodTree(path.join(cacheLocation(target), abandoned), true);
+				try {
+					const result = await build(target, {
+						portableCache: { seedFrom: cacheLocation(main) }
+					});
+					expectSeededFrom(result.logs, cacheLocation(main));
+					expect(result.built).toEqual(["index.js"]);
+					expect(stagingDirs(target)).toEqual([]);
+					expect(contents(cacheLocation(main))).toEqual(donor);
+					for (const entry of fs.readdirSync(cacheLocation(main), {
+						recursive: true,
+						withFileTypes: true
+					})) {
+						expect(
+							fs.statSync(path.join(entry.parentPath, entry.name)).mode & 0o222
+						).toBe(0);
+					}
+					expect((await build(target)).built).toEqual([]);
+					expect(result.output).toEqual(
+						(await build(target, { cache: false })).output
+					);
+				} finally {
+					chmodTree(cacheLocation(main), false);
+					chmodTree(cacheLocation(target), false);
+				}
+			});
+		}
+	},
+	{
 		name: "option-defaults",
 		description:
 			"portable cache implies cache.portable without changing snapshot defaults",

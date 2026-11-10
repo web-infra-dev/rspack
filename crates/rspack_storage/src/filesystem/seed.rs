@@ -25,6 +25,39 @@ fn is_transient(name: &std::ffi::OsStr) -> bool {
   name == ".temp" || name == "_stale"
 }
 
+fn require_directory(directory: &Path) -> Result<()> {
+  if !fs::symlink_metadata(directory)?.is_dir() {
+    return Err(rspack_error::error!(
+      "cache donor contains a non-directory: {}",
+      directory.display()
+    ));
+  }
+  Ok(())
+}
+
+/// Changes only private staging entries, without following symbolic links.
+fn make_writable(path: &Path) -> Result<()> {
+  let metadata = fs::symlink_metadata(path)?;
+  if !metadata.is_dir() && !metadata.is_file() {
+    return Ok(());
+  }
+  let mut permissions = metadata.permissions();
+  #[cfg(unix)]
+  {
+    use std::os::unix::fs::PermissionsExt;
+    permissions.set_mode(permissions.mode() | if metadata.is_dir() { 0o700 } else { 0o600 });
+  }
+  #[cfg(not(unix))]
+  permissions.set_readonly(false);
+  fs::set_permissions(path, permissions)?;
+  if metadata.is_dir() {
+    for entry in fs::read_dir(path)? {
+      make_writable(&entry?.path())?;
+    }
+  }
+  Ok(())
+}
+
 /// Removes staging directories whose seeding process has exited. When the process
 /// table cannot be queried, removes only directories older than a day.
 pub fn sweep_seed_staging(location: &Path) {
@@ -60,6 +93,7 @@ pub fn sweep_seed_staging(location: &Path) {
       |running| !running,
     );
     if abandoned {
+      let _ = make_writable(&entry.path());
       let _ = fs::remove_dir_all(entry.path());
     }
   }
@@ -90,6 +124,7 @@ pub fn rank_seed_donors(donors: Vec<PathBuf>, unit: &CacheDirectory) -> Vec<Path
 }
 
 fn generations(directory: &Path, stamps: &mut BTreeMap<PathBuf, Vec<u8>>) -> Result<()> {
+  require_directory(directory)?;
   for entry in fs::read_dir(directory)? {
     let entry = entry?;
     if is_transient(&entry.file_name()) {
@@ -111,11 +146,15 @@ fn generations(directory: &Path, stamps: &mut BTreeMap<PathBuf, Vec<u8>>) -> Res
 /// Replicates a donor unit, cloning it in one call where the filesystem supports
 /// copy-on-write directory clones and copying file by file otherwise.
 fn replicate_directory(source: &Path, target: &Path) -> Result<()> {
+  require_directory(source)?;
   if clone_directory(source, target) {
+    make_writable(target)?;
     return prune_clone(target);
   }
+  let _ = make_writable(target);
   let _ = fs::remove_dir_all(target);
-  copy_directory(source, target)
+  copy_directory(source, target)?;
+  make_writable(target)
 }
 
 /// APFS clones a whole directory tree with `clonefile`, sharing blocks until either side writes.
@@ -155,6 +194,7 @@ fn clone_directory(_source: &Path, _target: &Path) -> bool {
 /// Drops the transient entries a file-by-file copy would have skipped, and rejects what it
 /// would have refused to copy.
 fn prune_clone(dir: &Path) -> Result<()> {
+  require_directory(dir)?;
   for entry in fs::read_dir(dir)? {
     let entry = entry?;
     let kind = entry.file_type()?;
@@ -176,6 +216,7 @@ fn prune_clone(dir: &Path) -> Result<()> {
 }
 
 fn copy_directory(source: &Path, target: &Path) -> Result<()> {
+  require_directory(source)?;
   fs::create_dir(target)?;
   for entry in fs::read_dir(source)? {
     let entry = entry?;
@@ -274,6 +315,7 @@ pub fn stage_seed(location: &Path, donor: &Path, unit: &CacheDirectory) -> Resul
     return Ok(SeedStage::Skipped("compiler unit already exists"));
   }
   let source = donor.join(unit.as_str());
+  require_directory(&source)?;
   fs::create_dir_all(location)?;
   for _ in 0..ATTEMPTS {
     if let Some(reason) = pending_transaction(&source)? {
