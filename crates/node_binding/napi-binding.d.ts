@@ -939,6 +939,7 @@ export interface JsLoaderContext {
   loaderChainStart: number
   loaderChainEnd: number
   __internal__error?: RspackError
+  __internal__diagnostics?: Array<JsRspackDiagnostic>
 }
 
 export interface JsLoaderDependencies {

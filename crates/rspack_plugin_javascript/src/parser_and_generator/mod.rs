@@ -330,7 +330,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     }
 
     let mut semicolons = Default::default();
-    let scan_diagnostics = AstScanner::new(&mut semicolons, &tokens).scan(&ast);
+    // SAFETY: The scanner only reads nodes and tokens from this parsed AST.
+    let scan_diagnostics = AstScanner::new(&mut semicolons, &tokens).scan(unsafe { ast.ast() });
     if !scan_diagnostics.is_empty() {
       append_swc_next_diagnostics(&mut diagnostics, &source_string, scan_diagnostics);
       return default_with_diagnostics(source, diagnostics);
@@ -358,16 +359,19 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let SemanticReturn {
       semantic,
       diagnostics: semantic_diagnostics,
-    } = analyze(&ast, AnalyzeOptions { check_syntax });
+    } = analyze(ast, AnalyzeOptions { check_syntax });
     if !semantic_diagnostics.is_empty() {
       append_swc_next_diagnostics(&mut diagnostics, &source_string, semantic_diagnostics);
       return default_with_diagnostics(source, diagnostics);
     }
 
+    let (ast, semantic) = semantic.into_parts();
+    // SAFETY: The dependency scan keeps handles with their owning AST and does not mutate it.
+    let ast = unsafe { ast.ast() };
     let program = ast.root_program();
-    let comments = RspackComments::from_ast(&ast);
+    let comments = RspackComments::from_ast(ast);
     let parsed_ast = ParsedJavaScriptAst {
-      ast: &ast,
+      ast,
       comments: &comments,
       semantic: &semantic,
       program,
