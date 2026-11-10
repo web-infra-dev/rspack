@@ -540,7 +540,7 @@ async fn symlink_snapshot_intermediate_equal_content_retarget_and_relocation() {
 }
 
 #[tokio::test]
-async fn symlink_snapshot_errors_fail_closed_including_managed_roots() {
+async fn symlink_contexts_track_unresolvable_links_including_managed_roots() {
   use std::{fs, os::unix::fs::symlink};
 
   use rspack_core::PathMatcher;
@@ -577,7 +577,7 @@ async fn symlink_snapshot_errors_fail_closed_including_managed_roots() {
       .decode::<(Option<u64>, Strategy)>(&entries[0].1)
       .unwrap()
       .1,
-    Strategy::Failed
+    Strategy::DirHash { .. }
   ));
   fs::remove_file(root.join("scan/loop")).unwrap();
   symlink("missing", root.join("scan/broken")).unwrap();
@@ -590,7 +590,7 @@ async fn symlink_snapshot_errors_fail_closed_including_managed_roots() {
       .decode::<(Option<u64>, Strategy)>(&entries[0].1)
       .unwrap()
       .1,
-    Strategy::Failed
+    Strategy::DirHash { .. }
   ));
   // The snapshot root itself is a link under managedPaths, so package shortcuts must not hide it.
   let path = InternedPath::from(root.join("scan/broken").as_std_path());
@@ -840,6 +840,45 @@ async fn mixed_snapshot_owners_validate_the_reader_in_both_registration_orders()
 }
 
 #[tokio::test]
+async fn missing_file_dependency_stays_valid_until_created() {
+  for portable in [false, true] {
+    let fs = Arc::new(MemoryFileSystem::default());
+    fs.create_dir_all("/project".into()).await.unwrap();
+    let codec = if portable {
+      codec("/project", "/project")
+    } else {
+      Arc::new(CacheCodec::new(None))
+    };
+    let snapshot = Snapshot::new(options(), "/project".into(), fs.clone(), codec);
+    let path = InternedPath::from("/project/optional.config.js");
+    let mut storage = MemoryStorage::default();
+    snapshot
+      .add(
+        &mut storage,
+        SnapshotScope::FILE,
+        [path.clone()].into_iter(),
+      )
+      .await;
+    for _ in 0..2 {
+      let (_, modified, deleted, unchanged, _, _) = snapshot
+        .calc_modified_paths(&storage, SnapshotScope::FILE)
+        .await
+        .unwrap();
+      assert!(modified.is_empty() && deleted.is_empty());
+      assert!(unchanged.contains(&path));
+    }
+    fs.write(path.assert_utf8(), b"module.exports = 1")
+      .await
+      .unwrap();
+    let (_, modified, _, _, _, _) = snapshot
+      .calc_modified_paths(&storage, SnapshotScope::FILE)
+      .await
+      .unwrap();
+    assert!(modified.contains(&path));
+  }
+}
+
+#[tokio::test]
 async fn expired_layout_observations_survive_partial_saves_in_every_input_scope() {
   for scope in [
     SnapshotScope::FILE,
@@ -1079,4 +1118,309 @@ async fn expired_layout_snapshots_still_detect_link_and_package_metadata_changes
   assert!(modified.contains(&InternedPath::from(
     reader.join("node_modules/pkg/index.js").as_std_path()
   )));
+}
+
+#[tokio::test]
+async fn context_with_unresolvable_links_stays_valid_and_detects_retarget() {
+  use std::{fs, os::unix::fs::symlink};
+  for portable in [false, true] {
+    for target in ["missing", ".", "..", "loop"] {
+      let temp = tempfile::tempdir().unwrap();
+      let root = fs::canonicalize(temp.path()).unwrap().assert_utf8();
+      fs::create_dir(root.join("scan")).unwrap();
+      fs::write(root.join("scan/a.js"), "a").unwrap();
+      symlink(target, root.join("scan/loop")).unwrap();
+      let codec = if portable {
+        codec_for_moved(root.as_str())
+      } else {
+        Arc::new(CacheCodec::new(None))
+      };
+      let snapshot = Snapshot::new(
+        options(),
+        root.as_str().into(),
+        Arc::new(NativeFileSystem::new(false)),
+        codec,
+      );
+      let path = InternedPath::from(root.join("scan").as_std_path());
+      let mut storage = MemoryStorage::default();
+      snapshot
+        .add(
+          &mut storage,
+          SnapshotScope::CONTEXT,
+          [path.clone()].into_iter(),
+        )
+        .await;
+      let (_, modified, deleted, unchanged, _, _) = snapshot
+        .calc_modified_paths(&storage, SnapshotScope::CONTEXT)
+        .await
+        .unwrap();
+      assert!(
+        modified.is_empty() && deleted.is_empty(),
+        "portable={portable}, target={target}"
+      );
+      assert!(unchanged.contains(&path));
+      fs::remove_file(root.join("scan/loop")).unwrap();
+      symlink("other-missing", root.join("scan/loop")).unwrap();
+      let (_, modified, _, _, _, _) = snapshot
+        .calc_modified_paths(&storage, SnapshotScope::CONTEXT)
+        .await
+        .unwrap();
+      assert!(modified.contains(&path));
+    }
+  }
+}
+
+/// Count observations through the same filesystem interface used by the compiler.
+#[derive(Debug)]
+struct ObservedFileSystem {
+  inner: NativeFileSystem,
+  watched: rspack_paths::Utf8PathBuf,
+  observations: std::sync::atomic::AtomicUsize,
+  reads: std::sync::atomic::AtomicUsize,
+}
+
+impl ObservedFileSystem {
+  fn new(watched: rspack_paths::Utf8PathBuf) -> Self {
+    Self {
+      inner: NativeFileSystem::new(false),
+      watched,
+      observations: 0.into(),
+      reads: 0.into(),
+    }
+  }
+}
+
+#[async_trait::async_trait]
+impl ReadableFileSystem for ObservedFileSystem {
+  async fn read(&self, path: &rspack_paths::Utf8Path) -> rspack_fs::Result<Vec<u8>> {
+    self
+      .reads
+      .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    self.inner.read(path).await
+  }
+  fn read_sync(&self, path: &rspack_paths::Utf8Path) -> rspack_fs::Result<Vec<u8>> {
+    self.inner.read_sync(path)
+  }
+  async fn metadata(
+    &self,
+    path: &rspack_paths::Utf8Path,
+  ) -> rspack_fs::Result<rspack_fs::FileMetadata> {
+    self.inner.metadata(path).await
+  }
+  fn metadata_sync(
+    &self,
+    path: &rspack_paths::Utf8Path,
+  ) -> rspack_fs::Result<rspack_fs::FileMetadata> {
+    self.inner.metadata_sync(path)
+  }
+  async fn symlink_metadata(
+    &self,
+    path: &rspack_paths::Utf8Path,
+  ) -> rspack_fs::Result<rspack_fs::FileMetadata> {
+    if path == self.watched {
+      self
+        .observations
+        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    }
+    self.inner.symlink_metadata(path).await
+  }
+  async fn read_link(
+    &self,
+    path: &rspack_paths::Utf8Path,
+  ) -> rspack_fs::Result<rspack_paths::Utf8PathBuf> {
+    self.inner.read_link(path).await
+  }
+  async fn canonicalize(
+    &self,
+    path: &rspack_paths::Utf8Path,
+  ) -> rspack_fs::Result<rspack_paths::Utf8PathBuf> {
+    self.inner.canonicalize(path).await
+  }
+  async fn read_dir(&self, path: &rspack_paths::Utf8Path) -> rspack_fs::Result<Vec<String>> {
+    ReadableFileSystem::read_dir(&self.inner, path).await
+  }
+  fn read_dir_sync(&self, path: &rspack_paths::Utf8Path) -> rspack_fs::Result<Vec<String>> {
+    self.inner.read_dir_sync(path)
+  }
+  async fn permissions(
+    &self,
+    path: &rspack_paths::Utf8Path,
+  ) -> rspack_fs::Result<Option<rspack_fs::FilePermissions>> {
+    self.inner.permissions(path).await
+  }
+}
+
+#[tokio::test]
+async fn timestamp_context_does_not_read_linked_file_contents() {
+  use std::{fs, os::unix::fs::symlink, sync::atomic::Ordering};
+  let temp = tempfile::tempdir().unwrap();
+  let root = fs::canonicalize(temp.path()).unwrap().assert_utf8();
+  fs::create_dir(root.join("scan")).unwrap();
+  fs::create_dir_all(root.join("assets/nested")).unwrap();
+  fs::write(root.join("assets/nested/a.bin"), "asset").unwrap();
+  symlink("../assets", root.join("scan/assets")).unwrap();
+  let fs = Arc::new(ObservedFileSystem::new(root.join("scan")));
+  let snapshot = Snapshot::new(
+    options(),
+    root.as_str().into(),
+    fs.clone(),
+    Arc::new(CacheCodec::new(None)),
+  );
+  let path = InternedPath::from(root.join("scan").as_std_path());
+  let mut storage = MemoryStorage::default();
+  snapshot
+    .add(
+      &mut storage,
+      SnapshotScope::CONTEXT,
+      [path.clone()].into_iter(),
+    )
+    .await;
+  fs.reads.store(0, Ordering::Relaxed);
+  let (_, modified, deleted, unchanged, _, _) = snapshot
+    .calc_modified_paths(&storage, SnapshotScope::CONTEXT)
+    .await
+    .unwrap();
+  assert!(modified.is_empty() && deleted.is_empty());
+  assert!(unchanged.contains(&path));
+  assert_eq!(
+    fs.reads.load(Ordering::Relaxed),
+    0,
+    "timestamp validation must not read asset content"
+  );
+  // A context dependency must still notice changes below the linked directory.
+  std::fs::write(root.join("assets/nested/added.bin"), "new asset").unwrap();
+  let (_, modified, _, _, _, _) = snapshot
+    .calc_modified_paths(&storage, SnapshotScope::CONTEXT)
+    .await
+    .unwrap();
+  assert!(modified.contains(&path));
+}
+
+#[tokio::test]
+async fn context_validation_keeps_its_single_observation() {
+  use std::{fs, sync::atomic::Ordering};
+  let temp = tempfile::tempdir().unwrap();
+  let root = fs::canonicalize(temp.path()).unwrap().assert_utf8();
+  fs::create_dir(root.join("scan")).unwrap();
+  fs::write(root.join("scan/a.js"), "a").unwrap();
+  let fs = Arc::new(ObservedFileSystem::new(root.join("scan")));
+  let codec = Arc::new(CacheCodec::new(None));
+  let snapshot = Snapshot::new(options(), root.as_str().into(), fs.clone(), codec);
+  let path = InternedPath::from(root.join("scan").as_std_path());
+  let mut storage = MemoryStorage::default();
+  snapshot
+    .add(
+      &mut storage,
+      SnapshotScope::CONTEXT,
+      [path.clone()].into_iter(),
+    )
+    .await;
+  fs.observations.store(0, Ordering::Relaxed);
+  let (_, modified, deleted, unchanged, observed, _) = snapshot
+    .calc_modified_paths(&storage, SnapshotScope::CONTEXT)
+    .await
+    .unwrap();
+  assert!(modified.is_empty() && deleted.is_empty());
+  assert!(unchanged.contains(&path));
+  assert_eq!(
+    fs.observations.load(Ordering::Relaxed),
+    1,
+    "validation must observe a context only once"
+  );
+  // Saving validation's observation must not hide an input changed after it was read.
+  std::fs::write(root.join("scan/b.js"), "b").unwrap();
+  snapshot.refresh(&mut storage, SnapshotScope::CONTEXT, observed.into_iter());
+  let (_, modified, _, _, _, _) = snapshot
+    .calc_modified_paths(&storage, SnapshotScope::CONTEXT)
+    .await
+    .unwrap();
+  assert!(modified.contains(&path));
+}
+
+#[test]
+fn equal_link_snapshots_compare_equal() {
+  assert_eq!(
+    Strategy::LinkHash {
+      hash: 42,
+      deep: false
+    },
+    Strategy::LinkHash {
+      hash: 42,
+      deep: false
+    }
+  );
+  assert_ne!(
+    Strategy::LinkHash {
+      hash: 42,
+      deep: false
+    },
+    Strategy::LinkHash {
+      hash: 42,
+      deep: true
+    }
+  );
+  assert_ne!(
+    Strategy::LinkHash {
+      hash: 42,
+      deep: false
+    },
+    Strategy::LinkHash {
+      hash: 43,
+      deep: false
+    }
+  );
+}
+
+#[tokio::test]
+async fn inaccessible_file_dependency_does_not_become_missing() {
+  use std::{fs, os::unix::fs::PermissionsExt};
+  let temp = tempfile::tempdir().unwrap();
+  let root = fs::canonicalize(temp.path()).unwrap().assert_utf8();
+  let directory = root.join("private");
+  fs::create_dir(&directory).unwrap();
+  fs::write(directory.join("config.js"), "config").unwrap();
+  let codec = Arc::new(CacheCodec::new(None));
+  let snapshot = Snapshot::new(
+    options(),
+    root.as_str().into(),
+    Arc::new(NativeFileSystem::new(false)),
+    codec.clone(),
+  );
+  let mut storage = MemoryStorage::default();
+  // ENOTDIR also means the dependency does not exist, rather than an inspection failure.
+  let missing = InternedPath::from(directory.join("config.js/child").as_std_path());
+  snapshot
+    .add(
+      &mut storage,
+      SnapshotScope::FILE,
+      [missing.clone()].into_iter(),
+    )
+    .await;
+  let (_, modified, deleted, unchanged, _, _) = snapshot
+    .calc_modified_paths(&storage, SnapshotScope::FILE)
+    .await
+    .unwrap();
+  assert!(modified.is_empty() && deleted.is_empty());
+  assert!(unchanged.contains(&missing));
+  storage.reset(SnapshotScope::FILE.name());
+  fs::set_permissions(&directory, fs::Permissions::from_mode(0o0)).unwrap();
+  snapshot
+    .add(
+      &mut storage,
+      SnapshotScope::FILE,
+      [InternedPath::from(
+        directory.join("config.js").as_std_path(),
+      )]
+      .into_iter(),
+    )
+    .await;
+  fs::set_permissions(&directory, fs::Permissions::from_mode(0o700)).unwrap();
+  let entries = storage.load(SnapshotScope::FILE.name()).await.unwrap();
+  assert!(matches!(
+    codec
+      .decode::<(Option<u64>, Strategy)>(&entries[0].1)
+      .unwrap()
+      .1,
+    Strategy::Failed
+  ));
 }

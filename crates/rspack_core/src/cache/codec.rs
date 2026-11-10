@@ -5,7 +5,7 @@ use std::{
   sync::Arc,
 };
 
-use memchr::memmem::Finder;
+use aho_corasick::AhoCorasick;
 use rspack_cacheable::{
   __private::rkyv::{Archive, Deserialize, Serialize, bytecheck::CheckBytes},
   ContextIdentifierLayout, Deserializer, Serializer, Validator, from_bytes, to_bytes,
@@ -31,7 +31,7 @@ pub enum RootBinding {
 #[derive(Debug)]
 struct RootPatterns {
   hash: u64,
-  finders: Vec<Finder<'static>>,
+  matcher: AhoCorasick,
   bind_all: bool,
 }
 
@@ -100,10 +100,7 @@ impl CacheCodec {
       patterns.dedup();
       Arc::new(RootPatterns {
         hash: hasher.finish(),
-        finders: patterns
-          .iter()
-          .map(|pattern| Finder::new(pattern).into_owned())
-          .collect(),
+        matcher: AhoCorasick::new(&patterns).expect("root patterns should build a matcher"),
         bind_all,
       })
     });
@@ -195,13 +192,7 @@ impl CacheCodec {
     };
     let (bytes, outside) =
       to_bytes_with_binding(data, &self.context).map_err(rspack_error::Error::from_error)?;
-    let binding = if outside
-      || patterns.bind_all
-      || patterns
-        .finders
-        .iter()
-        .any(|finder| finder.find(&bytes).is_some())
-    {
+    let binding = if outside || patterns.bind_all || patterns.matcher.is_match(&bytes) {
       RootBinding::Bound
     } else {
       RootBinding::Unbound

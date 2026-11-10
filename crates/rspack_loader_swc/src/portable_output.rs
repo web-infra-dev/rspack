@@ -145,10 +145,21 @@ const NUMBER_TEXT: [&str; 16] = [
 /// value equal to the resource must stay fixed when a checkout moves, and transforms can build
 /// that value from several literals. So the question covers every concatenation of literal text
 /// rather than each transform that concatenates.
-pub(crate) fn input_can_spell_resource_path(program: &Program, resource: &str) -> bool {
+///
+/// The answer must not depend on where the checkout is, or a module certified at one root would
+/// be reused at another root where a cold build declines. So it asks about the part of the path
+/// below `context`, which every checkout shares, and lets the first literal end anywhere inside
+/// it. Literals that spell the whole path always spell that, so this declines a superset.
+pub(crate) fn input_can_spell_resource_path(
+  program: &Program,
+  resource: &Utf8Path,
+  context: &Utf8Path,
+) -> bool {
+  let resource = resource.strip_prefix(context).unwrap_or(resource).as_str();
   let mut visitor = ResourceFragments {
     resource,
     fragments: FxHashSet::default(),
+    starts: FxHashSet::default(),
     declined: false,
   };
   program.visit_with(&mut visitor);
@@ -160,17 +171,25 @@ struct ResourceFragments<'a> {
   /// Literal text occurring in the resource, as slices of it because a visitor can't keep AST
   /// borrows.
   fragments: FxHashSet<&'a str>,
+  /// Offsets where a literal that also spells the root's end can stop.
+  starts: FxHashSet<usize>,
   declined: bool,
 }
 
 impl ResourceFragments<'_> {
   fn add(&mut self, text: &str) {
-    if !text.is_empty()
-      && let Some(start) = self.resource.find(text)
-    {
+    if text.is_empty() {
+      return;
+    }
+    if let Some(start) = self.resource.find(text) {
       self
         .fragments
         .insert(&self.resource[start..start + text.len()]);
+    }
+    for end in 1..=text.len().min(self.resource.len()) {
+      if self.resource.is_char_boundary(end) && text.ends_with(&self.resource[..end]) {
+        self.starts.insert(end);
+      }
     }
   }
 
@@ -185,6 +204,9 @@ impl ResourceFragments<'_> {
   fn spell_resource(&self) -> bool {
     let mut reachable = vec![false; self.resource.len() + 1];
     reachable[0] = true;
+    for &start in &self.starts {
+      reachable[start] = true;
+    }
     for start in 0..self.resource.len() {
       if reachable[start] {
         for fragment in &self.fragments {

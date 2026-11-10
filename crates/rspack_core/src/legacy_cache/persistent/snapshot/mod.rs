@@ -57,7 +57,7 @@ impl Snapshot {
     match helper.is_symlink(path).await {
       // A context lists the linked directory, so it keeps the content hash. Other scopes only
       // need the link target and a shallow identity of it.
-      Some(true) => {
+      Ok(true) => {
         return Some(match scope {
           SnapshotScope::CONTEXT => helper.dir_hash(path).await,
           _ => {
@@ -67,8 +67,13 @@ impl Snapshot {
           }
         });
       }
-      None if !matches!(scope, SnapshotScope::MISSING) => return Some(Strategy::Failed),
-      _ => {}
+      Err(rspack_fs::Error::Io(error))
+        if matches!(
+          error.kind(),
+          std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory
+        ) => {}
+      Err(_) => return Some(Strategy::Failed),
+      Ok(false) => {}
     }
     let path_str = path.to_string_lossy();
     if options.is_immutable_path(&path_str) {
@@ -307,7 +312,7 @@ impl Snapshot {
         let path = InternedPath::from(directory.as_path());
         let recorded = recorded.contains(&path);
         async move {
-          (!recorded && helper.is_symlink(&path).await == Some(true)).then_some(directory)
+          (!recorded && matches!(helper.is_symlink(&path).await, Ok(true))).then_some(directory)
         }
       })
       .fut_consume(|directory| links.extend(directory))
@@ -360,7 +365,9 @@ impl Snapshot {
         let unrecorded_links = unrecorded_links.clone();
         async move {
           let path = codec.decode::<InternedPath>(&key)?;
-          if codec.encode_path_key(&path)? != key {
+          // Unix native path payloads round-trip verbatim. Other platforms may intern a
+          // component-equivalent spelling, and portable decoding can rebase a key.
+          if (codec.is_portable() || !cfg!(unix)) && codec.encode_path_key(&path)? != key {
             return Ok((path, ValidateResult::Modified, None, Some(key)));
           }
           if !unrecorded_links.is_empty()
@@ -370,7 +377,7 @@ impl Snapshot {
           {
             return Ok((path, ValidateResult::Modified, None, None));
           }
-          let validate = match codec.decode::<(Option<u64>, Strategy)>(&value) {
+          let (validate, mut observed) = match codec.decode::<(Option<u64>, Strategy)>(&value) {
             Ok((bound_root, strategy)) => {
               if !codec.accepts_bound_root(bound_root) {
                 // A fixed factory observation also writes a layout tombstone because path
@@ -391,21 +398,26 @@ impl Snapshot {
                 // Ordinary records carry no root binding, yet their timestamps were observed
                 // on the writer's files. Equal times on a copy prove nothing about content or
                 // about what the path now resolves to: validate the content instead.
-                helper.validate_relocated(&path, &strategy).await
+                (helper.validate_relocated(&path, &strategy).await, None)
               } else {
-                helper.validate(&path, &strategy).await
+                let (validate, observed) = helper.validate(&path, &strategy).await;
+                let observed = observed
+                  .or_else(|| matches!(validate, ValidateResult::NoChanged).then_some(strategy));
+                (validate, observed)
               }
             }
-            Err(_) => ValidateResult::Modified,
+            Err(_) => (ValidateResult::Modified, None),
           };
-          // Context modules read their directory after this, so keep what validation saw.
-          let observed = match scope {
-            SnapshotScope::CONTEXT => {
-              let portable = codec.is_portable();
-              Self::calc_strategy(&options, &helper, &path, scope, portable).await
+          // Keep exactly what validation saw, including a changed directory's current hash.
+          // A failed or undecodable snapshot has no observation, so recover it once here.
+          if matches!(scope, SnapshotScope::CONTEXT) {
+            if observed.is_none() {
+              observed =
+                Self::calc_strategy(&options, &helper, &path, scope, codec.is_portable()).await;
             }
-            _ => None,
-          };
+          } else {
+            observed = None;
+          }
           Ok::<_, rspack_error::Error>((path, validate, observed, None))
         }
       })

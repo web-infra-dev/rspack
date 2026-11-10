@@ -499,7 +499,7 @@ export default {
 
 ## experiments.portableCache
 
-<ApiMeta stability={Stability.Experimental} />
+<ApiMeta stability={Stability.Experimental} addedVersion="2.3.2" />
 
 - **类型：** `boolean | { seedFrom?: string; seed?: boolean }`
 - **默认值：** `false`
@@ -518,3 +518,5 @@ Rspack 直接读取 Git worktree 元数据，不运行 Git 命令，列出其他
 每个 worktree 拥有独立缓存。在 APFS 上，Rspack 通过一次写时复制调用克隆整个缓存单元。在其他平台上，文件通过平台的复制接口复制；Btrfs、XFS 等支持克隆的文件系统会克隆文件。克隆的副本在任一方被修改前共享磁盘数据块；否则进行完整复制。绝不使用硬链接。来源缓存正在保存、存在未完成的提交，或每次复制期间元数据都发生变化时，会跳过该来源；已退出进程遗留的锁不会阻止初始化。没有可用来源时，构建从冷缓存开始。中断的初始化遗留的副本，会在创建它的进程退出后由之后的初始化删除；无法判断进程状态时，会在 24 小时后删除。初始化结果以 info 级别记录在 `rspack.persistentCache` 中，候选来源和最终选择的来源以 debug 级别记录。
 
 目标缓存位置必须位于可移植根目录内。位于根目录之外的位置（包括通过符号链接指向外部）会产生基础设施日志警告并禁用初始化，以避免多个 worktree 共用可写缓存。设置 `portableCache: { seed: false }` 可禁用初始化；如需冷构建，还应删除本地缓存。目前仅使用原生中间文件系统的旧版缓存后端支持初始化，缓存复用仍取决于正常的缓存校验及条目的可移植性。
+
+与原位置的热构建相同，初始化后的构建会信任 `node_modules` 等受管理路径下版本未变的包。如果 worktree 对相同版本的包应用了不同的补丁，请勿从其他 worktree 初始化缓存。

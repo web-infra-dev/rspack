@@ -24,6 +24,8 @@ pub struct TimestampHash {
   pub is_directory: bool,
   /// The latest modified time of the entry and everything the hash covers below it.
   pub newest: u64,
+  // A cycle's hash depends on the ancestors of this walk, so only cache it as a root.
+  has_cycle: bool,
 }
 
 /// A helper for computing content hashes of files and directories.
@@ -165,18 +167,33 @@ impl HashHelper {
     // Inspect links before following them or applying managed/immutable shortcuts.
     let metadata = self.fs.symlink_metadata(utf8_path).await.ok()?;
     if metadata.is_symlink {
-      self.fs.read_link(utf8_path).await.ok()?;
-      let target = self.fs.canonicalize(utf8_path).await.ok()?;
-      let target_path = InternedPath::from(target.as_std_path());
-      let content = self.inner_dir_hash(&target_path, ancestors).await?;
+      let raw_target = self.fs.read_link(utf8_path).await.ok()?;
       let mut hasher = FxHasher::default();
       "l".hash(&mut hasher);
-      // Reuse the codec's root projection; unchanged in-root links survive relocation.
-      self.codec.encode(&target_path).ok()?.hash(&mut hasher);
-      content.hash.hash(&mut hasher);
+      let mut mtime = Self::modified_time_from_metadata(&metadata);
+      match self.fs.canonicalize(utf8_path).await {
+        Ok(target) => {
+          let target_path = InternedPath::from(target.as_std_path());
+          // Reuse the codec's root projection; unchanged in-root links survive relocation.
+          self.codec.encode(&target_path).ok()?.hash(&mut hasher);
+          if ancestors.contains(&target) {
+            // The ancestor is already covered by the enclosing directory observation.
+            "cycle".hash(&mut hasher);
+          } else {
+            let content = self.inner_dir_hash(&target_path, ancestors).await?;
+            content.hash.hash(&mut hasher);
+            mtime = mtime.max(content.mtime);
+          }
+        }
+        Err(_) => {
+          // Dangling and looping links have a stable identity until resolved or retargeted.
+          "unresolved".hash(&mut hasher);
+          raw_target.hash(&mut hasher);
+        }
+      }
       return Some(ContentHash {
         hash: hasher.finish(),
-        mtime: Self::modified_time_from_metadata(&metadata).max(content.mtime),
+        mtime,
       });
     }
     if !metadata.is_directory {
@@ -184,7 +201,13 @@ impl HashHelper {
     }
     let directory = utf8_path.to_path_buf();
     if ancestors.contains(&directory) {
-      return None;
+      let mut hasher = FxHasher::default();
+      "cycle".hash(&mut hasher);
+      self.codec.encode(path).ok()?.hash(&mut hasher);
+      return Some(ContentHash {
+        hash: hasher.finish(),
+        mtime: Self::modified_time_from_metadata(&metadata),
+      });
     }
     ancestors.push(directory);
     let mut children = self.fs.read_dir(utf8_path).await.ok()?;
@@ -235,10 +258,26 @@ impl HashHelper {
   ///
   /// This matches webpack's context timestamp behavior: directory snapshots
   /// hash child names and each child's timestamp or nested timestamp hash.
-  #[async_recursion::async_recursion]
   pub async fn dir_timestamp_hash(&self, path: &InternedPath) -> Option<TimestampHash> {
     if let Some(timestamp_hash) = self.timestamp_hash_cache.get(path) {
       return timestamp_hash.clone();
+    }
+
+    let hash = self.inner_dir_timestamp_hash(path, &mut Vec::new()).await;
+    self.timestamp_hash_cache.insert(path.into(), hash.clone());
+    hash
+  }
+
+  #[async_recursion::async_recursion]
+  async fn inner_dir_timestamp_hash(
+    &self,
+    path: &InternedPath,
+    ancestors: &mut Vec<Utf8PathBuf>,
+  ) -> Option<TimestampHash> {
+    if let Some(hash) = self.timestamp_hash_cache.get(path)
+      && hash.as_ref().is_none_or(|hash| !hash.has_cycle)
+    {
+      return hash.clone();
     }
 
     let utf8_path = path.assert_utf8();
@@ -248,30 +287,56 @@ impl HashHelper {
     };
 
     let timestamp_hash = if metadata.is_symlink {
-      let content = self.dir_hash(path).await?;
-      let target = self.fs.read_link(utf8_path).await.ok()?;
-      let target = if target.is_absolute() {
-        target
-      } else {
-        utf8_path.parent()?.join(target)
-      };
-      let target = self
-        .dir_timestamp_hash(&InternedPath::from(target.as_std_path()))
-        .await?;
+      // A timestamp walk follows the target's timestamps without reading its content.
+      let raw_target = self.fs.read_link(utf8_path).await.ok()?;
+      let mut hasher = FxHasher::default();
+      "l".hash(&mut hasher);
+      raw_target.hash(&mut hasher);
+      let mut newest = Self::modified_time_from_metadata(&metadata);
+      newest.hash(&mut hasher);
+      let mut is_directory = false;
+      let mut has_cycle = false;
+      match self.fs.canonicalize(utf8_path).await {
+        Ok(target) => {
+          let target_hash = self
+            .inner_dir_timestamp_hash(&InternedPath::from(target.as_std_path()), ancestors)
+            .await?;
+          target_hash.hash.hash(&mut hasher);
+          newest = newest.max(target_hash.newest);
+          is_directory = target_hash.is_directory;
+          has_cycle = target_hash.has_cycle;
+        }
+        Err(_) => "unresolved".hash(&mut hasher),
+      }
       Some(TimestampHash {
-        hash: content.hash,
-        is_directory: target.is_directory,
-        newest: Self::modified_time_from_metadata(&metadata).max(target.newest),
+        hash: hasher.finish(),
+        is_directory,
+        newest,
+        has_cycle,
       })
     } else if metadata.is_directory {
+      let directory = utf8_path.to_path_buf();
+      if ancestors.contains(&directory) {
+        let mut hasher = FxHasher::default();
+        "cycle".hash(&mut hasher);
+        self.codec.encode(path).ok()?.hash(&mut hasher);
+        return Some(TimestampHash {
+          hash: hasher.finish(),
+          is_directory: true,
+          newest: Self::modified_time_from_metadata(&metadata),
+          has_cycle: true,
+        });
+      }
       let Ok(mut children) = self.fs.read_dir(utf8_path).await else {
         self.timestamp_hash_cache.insert(path.into(), None);
         return None;
       };
+      ancestors.push(directory);
       children.sort();
 
       let mut hasher = FxHasher::default();
       let mut newest = Self::modified_time_from_metadata(&metadata);
+      let mut has_cycle = false;
       for item in children {
         let child_path = InternedPath::from(path.join(&item));
         let child_path_str = child_path.to_string_lossy();
@@ -293,7 +358,8 @@ impl HashHelper {
           continue;
         }
 
-        if let Some(child_hash) = self.dir_timestamp_hash(&child_path).await {
+        if let Some(child_hash) = self.inner_dir_timestamp_hash(&child_path, ancestors).await {
+          has_cycle |= child_hash.has_cycle;
           newest = newest.max(child_hash.newest);
           if child_hash.is_directory {
             "d".hash(&mut hasher);
@@ -306,10 +372,12 @@ impl HashHelper {
         }
       }
 
+      ancestors.pop();
       Some(TimestampHash {
         hash: hasher.finish(),
         is_directory: true,
         newest,
+        has_cycle,
       })
     } else {
       let modified_time = Self::modified_time_from_metadata(&metadata);
@@ -317,12 +385,15 @@ impl HashHelper {
         hash: modified_time,
         is_directory: false,
         newest: modified_time,
+        has_cycle: false,
       })
     };
 
-    self
-      .timestamp_hash_cache
-      .insert(path.into(), timestamp_hash.clone());
+    if timestamp_hash.as_ref().is_none_or(|hash| !hash.has_cycle) {
+      self
+        .timestamp_hash_cache
+        .insert(path.into(), timestamp_hash.clone());
+    }
     timestamp_hash
   }
 }

@@ -332,20 +332,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       return Err(ResolveError::NotFound(specifier.to_string()));
     }
 
-    // A symlink may leave the original package tree. Find the description file from the
-    // resolved path so the returned resource and its package metadata share that tree.
-    let cached_path = if path.as_path() == cached_path.path() {
-      cached_path
-    } else {
-      self.cache.value(&path)
-    };
+    // Like enhanced-resolve, the description file comes from the requested path. A symlink below
+    // the package can resolve outside it, so the resolved path need not be inside the package.
     let package_json = cached_path
       .find_package_json(&self.cache.fs, &self.options, ctx)
       .await?;
-    if let Some(package_json) = &package_json {
-      // path must be inside the package.
-      debug_assert!(path.starts_with(package_json.directory()));
-    }
     Ok(Resolution {
       path,
       query: ctx.query.take(),

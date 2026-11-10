@@ -85,6 +85,9 @@ impl PartialEq for Strategy {
       (Self::DirTimestampAndHash { hash: h1, .. }, Self::DirTimestampAndHash { hash: h2, .. }) => {
         h1 == h2
       }
+      (Self::LinkHash { hash: h1, deep: d1 }, Self::LinkHash { hash: h2, deep: d2 }) => {
+        h1 == h2 && d1 == d2
+      }
       (Self::Missing, Self::Missing) => true,
       (Self::Failed, Self::Failed) => true,
       _ => false,
@@ -127,12 +130,11 @@ impl StrategyHelper {
   }
 
   /// Inspect the snapshot root before any path shortcuts.
-  pub async fn is_symlink(&self, path: &InternedPath) -> Option<bool> {
+  pub async fn is_symlink(&self, path: &InternedPath) -> rspack_fs::Result<bool> {
     self
       .fs
       .symlink_metadata(path.assert_utf8())
       .await
-      .ok()
       .map(|m| m.is_symlink)
   }
 
@@ -323,18 +325,25 @@ impl StrategyHelper {
           ValidateResult::Deleted
         }
       }
-      _ => self.validate(path, strategy).await,
+      _ => self.validate(path, strategy).await.0,
     }
   }
 
   /// validate path file by target strategy
-  pub async fn validate(&self, path: &InternedPath, strategy: &Strategy) -> ValidateResult {
-    match strategy {
+  pub async fn validate(
+    &self,
+    path: &InternedPath,
+    strategy: &Strategy,
+  ) -> (ValidateResult, Option<Strategy>) {
+    let mut observed = None;
+    let result = match strategy {
       Strategy::PackageVersion(version) => {
-        let Some(ref cur_version) = self.package_helper.package_version(path).await else {
-          return ValidateResult::Deleted;
+        let Some(cur_version) = self.package_helper.package_version(path).await else {
+          return (ValidateResult::Deleted, Some(Strategy::Failed));
         };
-        if cur_version == version {
+        let unchanged = &cur_version == version;
+        observed = Some(Strategy::PackageVersion(cur_version));
+        if unchanged {
           ValidateResult::NoChanged
         } else {
           ValidateResult::Modified
@@ -343,7 +352,7 @@ impl StrategyHelper {
       Strategy::FileHash { hash } => {
         let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.file_hash(path).await
         else {
-          return ValidateResult::Deleted;
+          return (ValidateResult::Deleted, Some(Strategy::Failed));
         };
         if &cur_hash == hash {
           ValidateResult::NoChanged
@@ -353,7 +362,7 @@ impl StrategyHelper {
       }
       Strategy::FileTimestamp { mtime } => {
         let Some(modified_time) = self.modified_time(path).await else {
-          return ValidateResult::Deleted;
+          return (ValidateResult::Deleted, Some(Strategy::Failed));
         };
         if &modified_time == mtime {
           ValidateResult::NoChanged
@@ -363,17 +372,17 @@ impl StrategyHelper {
       }
       Strategy::FileTimestampAndHash { mtime, hash } => {
         let Some(modified_time) = self.modified_time(path).await else {
-          return ValidateResult::Deleted;
+          return (ValidateResult::Deleted, Some(Strategy::Failed));
         };
         if &modified_time == mtime {
-          return ValidateResult::NoChanged;
+          return (ValidateResult::NoChanged, None);
         }
         let Some(ContentHash {
           hash: cur_hash,
           mtime: cur_mtime,
         }) = self.hash_helper.file_hash(path).await
         else {
-          return ValidateResult::Deleted;
+          return (ValidateResult::Deleted, Some(Strategy::Failed));
         };
         if &cur_hash == hash {
           ValidateResult::NoChangedRefresh(Strategy::FileTimestampAndHash {
@@ -386,8 +395,9 @@ impl StrategyHelper {
       }
       Strategy::DirHash { hash } => {
         let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.dir_hash(path).await else {
-          return ValidateResult::Deleted;
+          return (ValidateResult::Deleted, Some(Strategy::Failed));
         };
+        observed = Some(Strategy::DirHash { hash: cur_hash });
         if &cur_hash == hash {
           ValidateResult::NoChanged
         } else {
@@ -396,7 +406,7 @@ impl StrategyHelper {
       }
       Strategy::LinkHash { hash, deep } => {
         let Some(cur_hash) = self.hash_helper.link_hash(path, *deep).await else {
-          return ValidateResult::Deleted;
+          return (ValidateResult::Deleted, Some(Strategy::Failed));
         };
         if &cur_hash == hash {
           ValidateResult::NoChanged
@@ -410,8 +420,11 @@ impl StrategyHelper {
           ..
         }) = self.hash_helper.dir_timestamp_hash(path).await
         else {
-          return ValidateResult::Deleted;
+          return (ValidateResult::Deleted, Some(Strategy::Failed));
         };
+        observed = Some(Strategy::DirTimestamp {
+          timestamp_hash: cur_timestamp_hash,
+        });
         if &cur_timestamp_hash == timestamp_hash {
           ValidateResult::NoChanged
         } else {
@@ -427,14 +440,18 @@ impl StrategyHelper {
           ..
         }) = self.hash_helper.dir_timestamp_hash(path).await
         else {
-          return ValidateResult::Deleted;
+          return (ValidateResult::Deleted, Some(Strategy::Failed));
         };
         if &cur_timestamp_hash == timestamp_hash {
-          return ValidateResult::NoChanged;
+          return (ValidateResult::NoChanged, None);
         }
         let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.dir_hash(path).await else {
-          return ValidateResult::Deleted;
+          return (ValidateResult::Deleted, Some(Strategy::Failed));
         };
+        observed = Some(Strategy::DirTimestampAndHash {
+          timestamp_hash: cur_timestamp_hash,
+          hash: cur_hash,
+        });
         if &cur_hash == hash {
           ValidateResult::NoChanged
         } else {
@@ -449,6 +466,7 @@ impl StrategyHelper {
         }
       }
       Strategy::Failed => ValidateResult::Modified,
-    }
+    };
+    (result, observed)
   }
 }

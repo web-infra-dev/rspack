@@ -2,6 +2,7 @@ use std::fmt::Write;
 
 use CharEscape::{Brace, Raw, U, X};
 use Hex::{Lower, Upper};
+use RegexEscape::{HexHyphen, Hyphen, Standard, Syntax};
 use percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
 use url::Host;
 
@@ -72,6 +73,19 @@ const ASCII_ESCAPES: [[CharEscape; 3]; 11] = [
   [U(Upper), U(Upper), Brace(Upper)],
 ];
 
+/// What a regex escaper escapes besides the regex syntax characters.
+#[derive(Clone, Copy)]
+enum RegexEscape {
+  /// Nothing else: the MDN snippet, lodash `escapeRegExp` and `escape-string-regexp` 1.
+  Syntax,
+  /// `-` as `\-`: a hand-written character class that lists `-`.
+  Hyphen,
+  /// `-` as `\x2d`: `escape-string-regexp` 5.
+  HexHyphen,
+  /// `RegExp.escape`: `/` as `\/`, and other punctuators and white space as hex escapes.
+  Standard,
+}
+
 /// Byte patterns under which `root` can appear in serialized cache data.
 ///
 /// Detection is best-effort. It covers the spellings that path-producing code commonly emits, and
@@ -86,6 +100,9 @@ const ASCII_ESCAPES: [[CharEscape; 3]; 11] = [
 ///   `url::Url::from_file_path` normalizes it;
 /// - for a non-ASCII root, its `JSON.stringify` string content in each [`ASCII_ESCAPES`] spelling,
 ///   as is, with every `/` escaped as `\/`, and nested in JSON;
+/// - the source of a regex that matches the spelling literally, as each [`RegexEscape`] builds it,
+///   as is and as `JSON.stringify` string content, and for a non-ASCII root both of those in each
+///   [`ASCII_ESCAPES`] spelling;
 /// - the spelling and its JSON string content in base64, as in an inline source map.
 ///
 /// On every host platform, a root that starts with a drive letter or `\\` is a Windows path.
@@ -137,6 +154,17 @@ pub fn root_patterns(root: &str) -> RootPatterns {
       candidates.push(file_url_path(spelling, windows));
     }
     candidates.push(spelling.clone());
+    for source in regex_sources(spelling) {
+      let json = json_escape(&source);
+      if !json.is_ascii() {
+        for escapes in ASCII_ESCAPES {
+          candidates.push(ascii_escape(&json, escapes));
+          candidates.push(ascii_escape(&source, escapes));
+        }
+      }
+      candidates.push(json);
+      candidates.push(source);
+    }
   }
   candidates.sort_by_key(String::len);
 
@@ -246,6 +274,61 @@ fn ascii_escape(value: &str, [latin1, bmp, astral]: [CharEscape; 3]) -> String {
         .iter()
         .try_for_each(|unit| write!(escaped, "\\u{}", hex(u32::from(*unit), 4, case))),
       Brace(case) => write!(escaped, "\\u{{{}}}", hex(c as u32, 0, case)),
+    };
+  }
+  escaped
+}
+
+/// The sources of the regexes that match `spelling` literally, one per [`RegexEscape`]. A regex
+/// source escapes `/` as `\/`, and the escaped string itself does not.
+fn regex_sources(spelling: &str) -> Vec<String> {
+  let mut sources = Vec::new();
+  for style in [Syntax, Hyphen, HexHyphen] {
+    let escaped = regex_escape(spelling, style);
+    sources.push(replace_char(&escaped, '/', "\\/"));
+    sources.push(escaped);
+  }
+  let standard = regex_escape(spelling, Standard);
+  // `RegExp.escape` spells a letter or digit that starts its input as `\xHH`.
+  if let Some(first) = spelling.chars().next().filter(char::is_ascii_alphanumeric) {
+    sources.push(format!(
+      "\\x{}{}",
+      hex(first as u32, 2, Lower),
+      &standard[1..]
+    ));
+  }
+  sources.push(standard);
+  sources
+}
+
+fn regex_escape(value: &str, style: RegexEscape) -> String {
+  let mut escaped = String::with_capacity(value.len());
+  for c in value.chars() {
+    let _ = match (c, style) {
+      ('\\' | '^' | '$' | '.' | '*' | '+' | '?' | '(' | ')' | '[' | ']' | '{' | '}' | '|', _)
+      | ('-', Hyphen)
+      | ('/', Standard) => write!(escaped, "\\{c}"),
+      ('-', HexHyphen) => write!(escaped, "\\x2d"),
+      ('\t', Standard) => write!(escaped, "\\t"),
+      ('\n', Standard) => write!(escaped, "\\n"),
+      ('\u{b}', Standard) => write!(escaped, "\\v"),
+      ('\u{c}', Standard) => write!(escaped, "\\f"),
+      ('\r', Standard) => write!(escaped, "\\r"),
+      // The other punctuators, and ECMAScript `WhiteSpace` and `LineTerminator`.
+      (_, Standard)
+        if ",-=<>#&!%:;@~'`\"".contains(c)
+          || c == '\u{feff}'
+          || (c.is_whitespace() && c != '\u{85}') =>
+      {
+        if c as u32 <= 0xff {
+          write!(escaped, "\\x{}", hex(c as u32, 2, Lower))
+        } else {
+          c.encode_utf16(&mut [0; 2])
+            .iter()
+            .try_for_each(|unit| write!(escaped, "\\u{}", hex(u32::from(*unit), 4, Lower)))
+        }
+      }
+      _ => write!(escaped, "{c}"),
     };
   }
   escaped

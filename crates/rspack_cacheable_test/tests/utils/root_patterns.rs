@@ -67,6 +67,70 @@ fn escaped_solidus() {
 }
 
 #[test]
+fn regex_escaped_root() {
+  let root = "/work/github.com/my-app[1]";
+  for spelling in [
+    // The MDN snippet, lodash `escapeRegExp` and `escape-string-regexp` 1: the escaped string,
+    // `regex.toString()`, and `JSON.stringify(regex.source)`.
+    r"/work/github\.com/my-app\[1\]/src/",
+    r"/^\/work\/github\.com\/my-app\[1\]\/src\//",
+    r#""^\\/work\\/github\\.com\\/my-app\\[1\\]\\/src\\/""#,
+    // A character class that lists `-`.
+    r"/work/github\.com/my\-app\[1\]/src/",
+    r"/^\/work\/github\.com\/my\-app\[1\]\/src\//",
+    // `escape-string-regexp` 5.
+    r"/work/github\.com/my\x2dapp\[1\]/src/",
+    r#""/work/github\\.com/my\\x2dapp\\[1\\]/src/""#,
+    // `RegExp.escape`, which agrees with `escape-string-regexp` 5 in a regex source here.
+    r"/^\/work\/github\.com\/my\x2dapp\[1\]\/src\//",
+  ] {
+    assert!(matches(root, spelling), "{spelling}");
+  }
+  assert!(!matches(root, r"/^\/work\/github\.com\/my-lib\/src\//"));
+}
+
+#[test]
+fn standard_regex_escape_of_punctuation_and_white_space() {
+  // `RegExp.escape(root)` in Node.js 24.
+  assert!(matches(
+    "/work/my app, v2",
+    r"/^\/work\/my\x20app\x2c\x20v2\/src\//"
+  ));
+  assert!(matches(
+    "/work/a\u{3000}b\tc",
+    r"/^\/work\/a\u3000b\tc\/src\//"
+  ));
+}
+
+#[test]
+fn regex_escaped_windows_root() {
+  let root = r"C:\work\my-app.v2";
+  for spelling in [
+    r"/^C:\\work\\my-app\.v2\\src/",
+    r"/^C:\/work\/my-app\.v2\/src/",
+    r"/^c:\\work\\my\x2dapp\.v2\\src/",
+    // `RegExp.escape` with the root first, and with the root after other text.
+    r"/\x43\x3a\\work\\my\x2dapp\.v2\\src/",
+    r"/^C\x3a\\work\\my\x2dapp\.v2\\src/",
+  ] {
+    assert!(matches(root, spelling), "{spelling}");
+  }
+}
+
+#[test]
+fn regex_escaped_non_ascii_root() {
+  let root = "/work/读.b";
+  for spelling in [
+    r"/^\/work\/读\.b\/src\//",
+    // A regex literal and its JSON string content, printed with an ASCII charset.
+    r"/^\/work\/\u8bfb\.b\/src\//",
+    r#""^\\/work\\/\u8BFB\\.b\\/src\\/""#,
+  ] {
+    assert!(matches(root, spelling), "{spelling}");
+  }
+}
+
+#[test]
 fn windows_root_with_special_characters() {
   let root = r"C:\work\my project\ü";
   assert!(matches(
