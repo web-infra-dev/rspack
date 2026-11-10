@@ -1,4 +1,8 @@
-use std::{ops::Deref, sync::Arc};
+use std::{
+  hash::{Hash, Hasher},
+  ops::Deref,
+  sync::Arc,
+};
 
 use rspack_cacheable::{cacheable, with::AsInnerConverter};
 use rspack_util::fx_hash::FxDashMap;
@@ -209,6 +213,10 @@ pub struct ResolvedModuleOptions {
   cache_key: ResolvedModuleOptionsCacheKey,
   parser: Option<ParserOptions>,
   generator: Option<GeneratorOptions>,
+  /// A hash of these options by value, which a relocated build compares, as a rule can hold
+  /// different options at each checkout. Set on portable builds, and `None` there when the
+  /// options hold a function, which can't be serialized.
+  comparable_digest: Option<u64>,
 }
 
 impl ResolvedModuleOptions {
@@ -221,11 +229,24 @@ impl ResolvedModuleOptions {
       cache_key,
       parser,
       generator,
+      comparable_digest: None,
     }
   }
 
   pub fn cache_key(&self) -> &ResolvedModuleOptionsCacheKey {
     &self.cache_key
+  }
+
+  pub(crate) fn comparable_digest(&self) -> Option<u64> {
+    self.comparable_digest
+  }
+
+  pub(crate) fn set_comparable_digest(&mut self) {
+    self.comparable_digest = rspack_cacheable::to_bytes(self, &()).ok().map(|bytes| {
+      let mut hasher = rustc_hash::FxHasher::default();
+      bytes.hash(&mut hasher);
+      hasher.finish()
+    });
   }
 
   pub fn parser_options_computed<U>(

@@ -15,7 +15,7 @@ use super::{
 };
 use crate::{
   BoxModule, BuildContext, BuildModuleGraphArtifact, Compilation, DependencyId,
-  ExportsInfoArtifact, FactorizeInfo, FactoryChoice, Logger, ModuleFactoryCreateData,
+  ExportsInfoArtifact, FactorizeInfo, FactoryChoice, Logger, Module, ModuleFactoryCreateData,
   ModuleIdentifier, NormalModule, ProducerGroup,
   module_graph::{build_input_dependencies, can_refactorize_group},
   normal_module::NormalFactoryDecision,
@@ -47,6 +47,24 @@ struct VerifyContext {
   reaching: FxHashSet<(ModuleIdentifier, Option<ProducerGroup>)>,
 }
 
+/// What a factory produced for a module, which a fresh factory result must reproduce for the
+/// module to be kept.
+#[derive(Debug)]
+enum FactoryDecision {
+  Normal(NormalFactoryDecision),
+  /// The serialized factory outputs of a context or external module.
+  Other(Vec<u8>),
+}
+
+/// The decision of a module that isn't a normal module, or `None` when nothing decides it, as for
+/// a context module whose dependencies a plugin lists.
+fn other_factory_decision(module: &dyn Module) -> Option<Vec<u8>> {
+  match module.as_context_module() {
+    Some(context) => context.factory_decision(),
+    None => module.as_external_module()?.factory_decision(),
+  }
+}
+
 #[derive(Debug)]
 struct RecordedGroup {
   parent: Option<ModuleIdentifier>,
@@ -54,7 +72,7 @@ struct RecordedGroup {
   dependencies: Vec<DependencyId>,
   can_refactorize: bool,
   outcome: GroupOutcome,
-  decision: Option<NormalFactoryDecision>,
+  decision: Option<FactoryDecision>,
 }
 
 #[derive(Debug)]
@@ -70,46 +88,53 @@ impl Task<VerifyContext> for VerifyTask {
   }
 
   async fn background_run(self: Box<Self>) -> TaskResult<VerifyContext> {
-    let Self {
-      input,
-      mut recorded,
-    } = *self;
+    let Self { input, recorded } = *self;
     let (data, result) = input.run().await;
-    let (fresh, fresh_decision, fresh_module) = match result {
+    let (fresh, agrees, fresh_module) = match result {
       Ok(result) if data.diagnostics.is_empty() => match result.module {
         Some(module) if is_side_effect_only_import(&module, &data.dependencies) => {
-          (GroupOutcome::SideEffectOnly, None, None)
+          (GroupOutcome::SideEffectOnly, true, None)
         }
-        Some(module) => {
-          let identifier = if module.as_self_module().is_some() {
-            recorded.decision = None;
-            recorded.parent.expect("self module should have a parent")
-          } else {
-            module.identifier()
-          };
-          match module.as_normal_module() {
-            Some(normal) => match matches_no_parse(&data, normal).await {
-              Ok(no_parse) => {
-                let decision = normal.factory_decision(no_parse);
-                (
-                  GroupOutcome::Module(identifier),
-                  Some(decision),
-                  Some(module),
-                )
-              }
-              Err(_) => (GroupOutcome::Failed, None, None),
-            },
-            None => (GroupOutcome::Module(identifier), None, Some(module)),
+        // A self reference is its parent, whose own group decides it.
+        Some(module) if module.as_self_module().is_some() => (
+          GroupOutcome::Module(recorded.parent.expect("self module should have a parent")),
+          true,
+          None,
+        ),
+        Some(module) => match module.as_normal_module() {
+          Some(normal) => match matches_no_parse(&data, normal).await {
+            Ok(no_parse) => {
+              let fresh = normal.factory_decision(no_parse);
+              let agrees = matches!(&recorded.decision,
+                Some(FactoryDecision::Normal(recorded)) if recorded.agrees_with(&fresh));
+              (
+                GroupOutcome::Module(module.identifier()),
+                agrees,
+                Some(module),
+              )
+            }
+            Err(_) => (GroupOutcome::Failed, false, None),
+          },
+          // A module without a decision takes the fresh module.
+          None => {
+            let fresh = other_factory_decision(module.as_ref());
+            let agrees = matches!((&recorded.decision, fresh),
+              (Some(FactoryDecision::Other(recorded)), Some(fresh)) if *recorded == fresh);
+            (
+              GroupOutcome::Module(module.identifier()),
+              agrees,
+              Some(module),
+            )
           }
-        }
-        None => (GroupOutcome::Ignored, None, None),
+        },
+        None => (GroupOutcome::Ignored, true, None),
       },
-      _ => (GroupOutcome::Failed, None, None),
+      _ => (GroupOutcome::Failed, false, None),
     };
     Ok(vec![Box::new(CompareTask {
       recorded,
       fresh,
-      fresh_decision,
+      agrees,
       fresh_module,
     })])
   }
@@ -126,7 +151,8 @@ async fn matches_no_parse(data: &ModuleFactoryCreateData, module: &NormalModule)
 struct CompareTask {
   recorded: RecordedGroup,
   fresh: GroupOutcome,
-  fresh_decision: Option<NormalFactoryDecision>,
+  /// Whether the fresh module agrees with the recorded decision of the target.
+  agrees: bool,
   fresh_module: Option<BoxModule>,
 }
 
@@ -139,7 +165,7 @@ impl Task<VerifyContext> for CompareTask {
   async fn main_run(self: Box<Self>, context: &mut VerifyContext) -> TaskResult<VerifyContext> {
     match (&self.recorded.outcome, &self.fresh) {
       (GroupOutcome::Module(recorded), GroupOutcome::Module(fresh)) if recorded == fresh => {
-        if !NormalFactoryDecision::agree(&self.recorded.decision, &self.fresh_decision)
+        if !self.agrees
           && let Some(module) = self.fresh_module
         {
           context
@@ -336,9 +362,12 @@ fn unverified_groups(
           dependencies: info.related_dep_ids().to_vec(),
           can_refactorize,
           outcome: recorded,
-          decision: target
-            .and_then(|module| module.as_normal_module())
-            .map(|module| module.factory_decision(!module.parsed())),
+          decision: target.and_then(|module| match module.as_normal_module() {
+            Some(normal) => Some(FactoryDecision::Normal(
+              normal.factory_decision(!normal.parsed()),
+            )),
+            None => other_factory_decision(module.as_ref()).map(FactoryDecision::Other),
+          }),
         },
       }));
     }

@@ -355,6 +355,60 @@ scenarios.push(
 	}
 );
 
+// Scenarios whose configuration differs between the writer and the reader under the same rules.
+const readerScenarios = [
+	{
+		name: "context-replacement-map",
+		description: "rebuilds a context module whose replacement map changes at the reader",
+		files: {
+			"src/index.js": 'const context = require.context("./ctx", false, /./); module.exports = context("./item");',
+			"src/ctx/a.js": 'module.exports = "a";',
+			"src/ctx/b.js": 'module.exports = "b";'
+		},
+		configuration: (context, writer) => ({
+			plugins: [new rspack.ContextReplacementPlugin(/ctx$/, path.join(context, "src", "ctx"), {
+				"./item": context === writer ? "./a.js" : "./b.js"
+			})]
+		})
+	},
+	{
+		name: "parser-option-value",
+		description: "rebuilds a module whose parser option changes at the reader under the same rule",
+		files: { "src/dep.js": "module.exports = (function () { return this === undefined; })();" },
+		configuration: (context, writer) => ({
+			module: { rules: [{ test: /dep\.js$/, parser: { overrideStrict: context === writer ? "strict" : "non-strict" } }] }
+		})
+	},
+	{
+		name: "after-resolve-user-request",
+		description: "rebuilds a module whose user request an afterResolve hook changes at the reader",
+		configuration: (context, writer) => ({
+			plugins: [{
+				apply(compiler) {
+					compiler.hooks.normalModuleFactory.tap("FactoryDecisions", (factory) => {
+						factory.hooks.afterResolve.tap("FactoryDecisions", (data) => {
+							if (data.request === "./dep.js") {
+								data.createData.userRequest = context === writer ? "writer-user.js" : "reader-user.js";
+							}
+						});
+					});
+				}
+			}]
+		})
+	},
+	{
+		name: "loader-option-root-token",
+		description: "tells a literal root token in a loader option from a path below the reader's root",
+		files: emitOption,
+		configuration: (context, writer) => ({
+			module: { rules: [{ test: /dep\.js$/, use: () => [{
+				loader: "./options.cjs",
+				options: { value: context === writer ? `<root>${path.sep}file` : path.join(context, "file") }
+			}] }] }
+		})
+	}
+];
+
 // Reports what the loader saw through `this.getOptions()`: the option's type and its value.
 const observeLoader = {
 	"observe.cjs": `module.exports = function () {
@@ -823,6 +877,18 @@ export default [
 				copyTree(writer, reader);
 				const moved = await build(reader, configuration);
 				await expectColdEquality(reader, configuration, moved);
+			});
+		}
+	})),
+	...readerScenarios.map(({ name, description, files = {}, configuration }) => ({
+		name,
+		description,
+		async run() {
+			await withProjects(files, async (writer, reader) => {
+				await build(writer, configuration(writer, writer));
+				copyTree(writer, reader);
+				const moved = await build(reader, configuration(reader, writer));
+				await expectColdEquality(reader, configuration(reader, writer), moved);
 			});
 		}
 	})),

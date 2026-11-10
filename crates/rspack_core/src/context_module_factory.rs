@@ -476,14 +476,18 @@ impl ContextModuleFactory {
         context_module_options.context_options.pattern = after_resolve_data.pattern.clone();
         context_module_options.context_options.recursive = after_resolve_data.recursive;
 
-        let module = ContextModule::new_with_strict(
+        let factory_resolved = Arc::ptr_eq(
+          &after_resolve_data.resolve_dependencies,
+          &self.resolve_dependencies,
+        );
+        let mut module = ContextModule::new_with_strict(
           after_resolve_data.resolve_dependencies,
           context_module_options.clone(),
           self.global_override_strict(),
-        )
-        .boxed();
+        );
+        module.set_factory_resolved(factory_resolved);
 
-        Ok(Some(ModuleFactoryResult::new_with_module(module)))
+        Ok(Some(ModuleFactoryResult::new_with_module(module.boxed())))
       }
     }
   }

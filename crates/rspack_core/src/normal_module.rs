@@ -168,29 +168,29 @@ pub struct NormalModule {
 
 static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
+/// What the normal module factory produced for a module, other than the request that the module
+/// identifier holds. Layer and module type are part of the identifier too, and the parser and
+/// generator come from the module type and options.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct NormalFactoryDecision {
+  user_request: String,
+  raw_request: String,
+  context: Context,
+  match_resource: Option<String>,
   resource: String,
   resolve_options: Option<Arc<Resolve>>,
-  rule_ids: crate::ResolvedModuleOptionsCacheKey,
+  module_options: Option<u64>,
   loader_filters: Option<LoaderFilters>,
   loader_options: Option<u64>,
   side_effect_free: Option<bool>,
+  extract_source_map: Option<bool>,
   no_parse: bool,
 }
 
 impl NormalFactoryDecision {
   /// A decision with options that can't be compared agrees with nothing, not even itself.
   pub(crate) fn agrees_with(&self, fresh: &Self) -> bool {
-    self.loader_options.is_some() && self == fresh
-  }
-
-  /// Modules outside the normal factory have no decision, and those agree.
-  pub(crate) fn agree(recorded: &Option<Self>, fresh: &Option<Self>) -> bool {
-    match (recorded, fresh) {
-      (Some(recorded), Some(fresh)) => recorded.agrees_with(fresh),
-      (recorded, fresh) => recorded.is_none() && fresh.is_none(),
-    }
+    self.loader_options.is_some() && self.module_options.is_some() && self == fresh
   }
 }
 
@@ -201,12 +201,20 @@ impl NormalModule {
 
   pub(crate) fn factory_decision(&self, no_parse: bool) -> NormalFactoryDecision {
     NormalFactoryDecision {
+      user_request: self.user_request().to_owned(),
+      raw_request: self.raw_request.to_string(),
+      context: (*self.context).clone(),
+      match_resource: self
+        .match_resource
+        .as_ref()
+        .map(|resource| resource.resource().to_owned()),
       resource: self.resource_data.resource().to_owned(),
       resolve_options: self.resolve_options.clone(),
-      rule_ids: self.parser_and_generator_options.cache_key().clone(),
+      module_options: self.parser_and_generator_options.comparable_digest(),
       loader_filters: self.loader_filters.clone(),
       loader_options: self.loader_options_digest,
       side_effect_free: self.factory_meta().and_then(|meta| meta.side_effect_free),
+      extract_source_map: self.extract_source_map,
       no_parse,
     }
   }

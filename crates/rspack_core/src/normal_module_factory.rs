@@ -348,6 +348,7 @@ fn resolve_module_options(
   module_type: &ModuleType,
   global_parser: Option<&ParserOptions>,
   global_generator: Option<&GeneratorOptions>,
+  portable: bool,
 ) -> Arc<ResolvedModuleOptions> {
   let cache_key = ResolvedModuleOptionsCacheKey::new(module_rules, *module_type);
   if let Some(options) = options_cache.get(&cache_key) {
@@ -368,11 +369,15 @@ fn resolve_module_options(
       let parser = merge_parser_options_with_local(global_parser, local_parser.as_ref());
       let generator =
         merge_generator_options_with_local(global_generator, local_generator.as_ref());
-      let options = Arc::new(ResolvedModuleOptions::new(
+      let mut options = ResolvedModuleOptions::new(
         cache_key,
         normalize_css_parser_options(module_type, parser),
         normalize_css_generator_options(module_type, generator),
-      ));
+      );
+      if portable {
+        options.set_comparable_digest();
+      }
+      let options = Arc::new(options);
       entry.insert(Arc::clone(&options));
       options
     }
@@ -524,6 +529,7 @@ mod tests {
       &ModuleType::Asset,
       Some(&global_parser),
       Some(&global_generator),
+      false,
     );
     let second = resolve_module_options(
       &options_cache,
@@ -531,6 +537,7 @@ mod tests {
       &ModuleType::Asset,
       Some(&global_parser),
       Some(&global_generator),
+      false,
     );
 
     assert!(Arc::ptr_eq(&first, &second));
@@ -570,6 +577,7 @@ mod tests {
       &ModuleType::Asset,
       None,
       Some(&global_generator),
+      false,
     );
 
     assert_eq!(
@@ -608,6 +616,7 @@ mod tests {
           runtime_public_path: Some(false),
           es_module: Some(true),
         })),
+        false,
       );
 
       let parser_options = options
@@ -1144,7 +1153,9 @@ module.exports = "data:,";
           if let Some(options) = &loader.comparable_options {
             let mut normalized = Cow::Borrowed(options.as_str());
             for root in &root_spellings {
-              if let Cow::Owned(replaced) = normalized.cow_replace(root, "<root>") {
+              // The encoder escapes control characters in every string it writes, so no option
+              // can spell this token, as a literal `<root>` could.
+              if let Cow::Owned(replaced) = normalized.cow_replace(root, "\0") {
                 normalized = Cow::Owned(replaced);
               }
             }
@@ -1380,6 +1391,7 @@ module.exports = "data:,";
       module_type,
       global_parser,
       global_generator,
+      is_portable(&self.options),
     )
   }
 

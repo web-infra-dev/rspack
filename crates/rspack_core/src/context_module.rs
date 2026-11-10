@@ -286,6 +286,9 @@ pub struct ContextModule {
   #[debug(skip)]
   #[cacheable(with=Skip)]
   resolve_dependencies: Option<ResolveContextModuleDependencies>,
+  /// Whether the factory's own resolver lists the dependencies, so that the options decide them.
+  /// A plugin can set another resolver, as `ContextReplacementPlugin` with a map does.
+  factory_resolved: bool,
 }
 
 impl ContextModule {
@@ -325,7 +328,23 @@ impl ContextModule {
       force_build: true,
       source_map_kind: SourceMapKind::empty(),
       resolve_dependencies: Some(resolve_dependencies),
+      factory_resolved: true,
     }
+  }
+
+  pub(crate) fn set_factory_resolved(&mut self, factory_resolved: bool) {
+    self.factory_resolved = factory_resolved;
+  }
+
+  /// What the factory decided for this module, which a relocated build compares with a fresh
+  /// decision, or `None` when a plugin's resolver lists the dependencies.
+  pub(crate) fn factory_decision(&self) -> Option<Vec<u8>> {
+    if !self.factory_resolved {
+      return None;
+    }
+    let mut decision = rspack_cacheable::to_bytes(&self.options, &()).ok()?;
+    decision.push(u8::from(self.build_info().strict));
+    Some(decision)
   }
 
   async fn create_cache_snapshot(
