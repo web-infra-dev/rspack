@@ -186,9 +186,29 @@ export default {
 };
 ```
 
-Omitting `interop` preserves the default behavior. The hint also works on object values returned by an externals function. It does not change interop for targets that select a property, such as `{ commonjs: ['dep', 'named'], interop: 'esModule' }`.
+Omitting `interop` preserves the default behavior. The hint also works on object values returned by an externals function.
 
-For UMD externals, the hint is ignored if any of the `root`, `commonjs`, `commonjs2`, or `amd` targets selects a property.
+`interop` only applies when the configuration references the whole external module. A configuration such as `commonjs: ['dep', 'named']` reads the `require('dep').named` property. In this case, Rspack ignores `interop` and uses the default import rules described above.
+
+For `umd` and `umd2`, `root`, `commonjs`, `commonjs2`, and `amd` describe how the same external is loaded in different environments. They share one `interop` setting. For example:
+
+```js title="rspack.config.mjs"
+export default {
+  output: { library: { type: 'umd' } },
+  externalsType: 'umd',
+  externals: {
+    dep: {
+      root: 'dep',
+      commonjs: 'dep',
+      commonjs2: ['dep', 'nested'], // Reads require('dep').nested
+      amd: 'dep',
+      interop: 'esModule', // Ignored because commonjs2 reads the nested property
+    },
+  },
+};
+```
+
+Although only `commonjs2` reads a property here, the `interop` setting is ignored for the entire `dep` external. The other three branches also use the default import rules. When loaded through CommonJS2, a default import from a strict ES module receives `require('dep').nested`; other importers still use the `__esModule` check to decide whether to read its `.default`.
 
 ### Function
 

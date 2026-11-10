@@ -186,9 +186,29 @@ export default {
 };
 ```
 
-省略 `interop` 时保留默认行为。externals 函数返回的对象同样支持此字段。对于选择了属性的目标，例如 `{ commonjs: ['dep', 'named'], interop: 'esModule' }`，该字段不会改变其互操作行为。
+省略 `interop` 时保留默认行为。externals 函数返回的对象同样支持此字段。
 
-对于 UMD 外部模块，只要 `root`、`commonjs`、`commonjs2` 或 `amd` 中任一目标选择了属性，便会忽略该字段。
+`interop` 只对直接引用整个外部模块的配置生效。如果配置为 `commonjs: ['dep', 'named']`，读取的是 `require('dep').named` 这个属性，此时 Rspack 会忽略 `interop`，继续按上文的默认规则处理导入。
+
+对于 `umd` 和 `umd2`，`root`、`commonjs`、`commonjs2`、`amd` 描述同一个外部模块在不同环境中的加载方式，共用一个 `interop` 设置。例如：
+
+```js title="rspack.config.mjs"
+export default {
+  output: { library: { type: 'umd' } },
+  externalsType: 'umd',
+  externals: {
+    dep: {
+      root: 'dep',
+      commonjs: 'dep',
+      commonjs2: ['dep', 'nested'], // 读取 require('dep').nested
+      amd: 'dep',
+      interop: 'esModule', // 因 commonjs2 读取了 nested 属性，此设置会被忽略
+    },
+  },
+};
+```
+
+这里虽然只有 `commonjs2` 读取了属性，但整个 `dep` 的 `interop` 设置都会被忽略，其他三个分支也会使用默认导入规则。通过 CommonJS2 加载时，严格 ES 模块的默认导入会得到 `require('dep').nested`；其他导入方仍通过 `__esModule` 检查决定是否读取它的 `.default`。
 
 ### 函数 \{#function}
 
