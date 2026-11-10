@@ -14,6 +14,8 @@ async function build(
 	newCache,
 	identityA = "worker.js"
 ) {
+	const codeA = identityA === "worker.js" ? "a();\n" : "a(2);\n";
+	fs.writeFileSync(path.join(root, "a.js"), codeA);
 	const originals = {};
 	const mapped = [];
 	fs.writeFileSync(path.join(root, "b.js"), changed ? "b(2);\n" : "b(1);\n");
@@ -51,7 +53,7 @@ async function build(
 								},
 								() => {
 									for (const [file, identity, code] of [
-										["a.js", identityA, "a();\n"],
+										["a.js", identityA, codeA],
 										[
 											"b.js",
 											"loader!worker.js",
@@ -200,8 +202,8 @@ export default [false, true].map((newCache) => ({
 			expect(repeat.mapped).toEqual([]);
 			expect(repeat.assets).toEqual(cold.assets);
 
-			// Both generated assets keep their versions. Changing A's source identity removes the
-			// collision and must invalidate B's previously named map as well as A's map.
+			// Changing A's content and source identity removes the collision. B keeps its version,
+			// but its previously resolved name must still be invalidated.
 			const changedContext = await build(
 				root,
 				"warm-cache",

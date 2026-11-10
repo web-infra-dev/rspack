@@ -230,7 +230,6 @@ struct PreparedSourceMaps {
   tasks: Vec<SourceMapTask>,
   source_names: ReferenceToSourceNameMapping,
   cache_versions: HashMap<String, String>,
-  input_versions: HashMap<String, String>,
   input_sources: HashMap<String, Arc<[String]>>,
   compilation_version: String,
 }
@@ -420,19 +419,31 @@ impl SourceMapDevToolPlugin {
     compilation: &Compilation,
     file_to_chunk: &HashMap<&str, &Chunk>,
     output_path: &Utf8Path,
-    compilation_assets: Vec<(String, &CompilationAsset)>,
-    input_versions: HashMap<String, String>,
-    cached_entries: &HashMap<String, CachedSourceMapDevToolPluginEntry>,
+    compilation_assets: &[(String, &CompilationAsset)],
+    cached_entries: &HashMap<String, Cow<'_, CachedSourceMapDevToolPluginEntry>>,
     use_cache: bool,
     compilation_version: String,
   ) -> Result<PreparedSourceMaps> {
-    // A complete unchanged input set has exactly the same collision participants. Reuse the
-    // resolved names too; a partial hit still participates in compilation-wide name resolution.
+    let map_options = MapOptions::new(self.columns);
+    let condition_object = AssetConditionsObject {
+      test: self.test.as_ref(),
+      include: self.include.as_ref(),
+      exclude: self.exclude.as_ref(),
+    };
+    // Reuse resolved names when the collision context is unchanged and every map is cached.
+    // Other assets may have no map (or be excluded), so they need no cache entry.
     if use_cache
-      && cached_entries.len() == compilation_assets.len()
+      && !cached_entries.is_empty()
       && cached_entries
         .values()
         .all(|entry| entry.compilation_version == compilation_version)
+      && compilation_assets.iter().all(|(filename, asset)| {
+        cached_entries.contains_key(filename)
+          || !match_object(&condition_object, filename)
+          || asset
+            .get_source()
+            .is_none_or(|source| source.map(&map_options).is_none())
+      })
     {
       return Ok(PreparedSourceMaps {
         tasks: Vec::new(),
@@ -441,7 +452,6 @@ impl SourceMapDevToolPlugin {
           .iter()
           .map(|(file, entry)| (file.clone(), entry.name_version.clone()))
           .collect(),
-        input_versions,
         input_sources: cached_entries
           .iter()
           .map(|(file, entry)| (file.clone(), entry.input_sources.clone()))
@@ -449,14 +459,13 @@ impl SourceMapDevToolPlugin {
         compilation_version,
       });
     }
-    let map_options = MapOptions::new(self.columns);
     // Name resolution is compilation-wide, including assets whose finished maps can be reused.
     let (tasks, mut source_names) = self
       .collect_tasks(
         compilation,
         file_to_chunk,
         output_path,
-        compilation_assets,
+        compilation_assets.to_vec(),
         &map_options,
         cached_entries,
       )
@@ -498,7 +507,6 @@ impl SourceMapDevToolPlugin {
       tasks,
       source_names,
       cache_versions,
-      input_versions,
       input_sources,
       compilation_version,
     })
@@ -518,10 +526,9 @@ impl SourceMapDevToolPlugin {
     for (filename, asset) in compilation_assets {
       let cacheable = asset.get_source().is_some() && !asset.info.version.is_empty();
       let cached = if cacheable {
-        let version = &prepared.input_versions[&filename];
         cache.get_validated::<CachedSourceMapDevToolPluginEntry>(
           &filename,
-          Some(Etag::from(version.clone())),
+          Some(Etag::from(asset.info.version.clone())),
           |entry| Some(&entry.name_version) == prepared.cache_versions.get(&filename),
         )
       } else {
@@ -567,10 +574,9 @@ impl SourceMapDevToolPlugin {
       cache_entry.input_sources = prepared.input_sources[filename].clone();
       cache_entry.name_version = prepared.cache_versions[filename].clone();
       cache_entry.compilation_version = prepared.compilation_version.clone();
-      let version = &prepared.input_versions[filename];
       cache.store(
         mapped_asset.asset.0.as_ref(),
-        Some(Etag::from(version.clone())),
+        Some(Etag::from(asset.info.version.clone())),
         CacheValue::new(cache_entry),
       );
     }
@@ -601,10 +607,9 @@ impl SourceMapDevToolPlugin {
     let mut cached_filenames = HashSet::default();
     for (filename, asset) in compilation_assets {
       if let Some((source_asset, source_map, asset_append)) = prepared
-        .input_versions
+        .cache_versions
         .get(&filename)
-        .zip(prepared.cache_versions.get(&filename))
-        .and_then(|(version, name_version)| cache.restore(&filename, asset, version, name_version))
+        .and_then(|name_version| cache.restore(&filename, asset, &asset.info.version, name_version))
       {
         if let Some(counter) = cache_counter {
           counter.hit();
@@ -625,7 +630,6 @@ impl SourceMapDevToolPlugin {
       tasks,
       source_names,
       cache_versions,
-      input_versions,
       input_sources,
       compilation_version,
     } = prepared;
@@ -640,7 +644,7 @@ impl SourceMapDevToolPlugin {
 
     cache.store(mapped_assets.iter().filter_map(|mapped_asset| {
       let filename = mapped_asset.asset.0.as_ref();
-      let version = input_versions.get(filename)?;
+      let version = &mapped_asset.asset.1.info.version;
       let mut entry = CachedSourceMapDevToolPluginEntry::from_assets(
         &mapped_asset.asset_append,
         mapped_asset
@@ -665,7 +669,7 @@ impl SourceMapDevToolPlugin {
     output_path: &Utf8Path,
     compilation_assets: Vec<(String, &CompilationAsset)>,
     map_options: &MapOptions,
-    cached_entries: &HashMap<String, CachedSourceMapDevToolPluginEntry>,
+    cached_entries: &HashMap<String, Cow<'_, CachedSourceMapDevToolPluginEntry>>,
   ) -> Result<(Vec<SourceMapTask>, ReferenceToSourceNameMapping)> {
     let need_match = self.test.is_some() || self.include.is_some() || self.exclude.is_some();
     let condition_object = AssetConditionsObject {
@@ -1378,37 +1382,25 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .map(|(filename, asset)| (filename.clone(), asset))
     .collect::<Vec<_>>();
   let use_cache = new_cache.is_some() || legacy_cache.is_some();
-  let mut input_versions = HashMap::default();
   let mut cached_entries = HashMap::default();
   if use_cache {
-    let hash_start = logger.time("hash source map inputs");
     for (filename, asset) in &compilation_assets {
-      if asset.info.version.is_empty() {
+      if asset.info.version.is_empty() || asset.get_source().is_none() {
         continue;
       }
-      let Some(source) = asset.get_source() else {
-        continue;
-      };
-      let mut hasher = RspackHasher::from(&compilation.options.output);
-      asset.info.version.hash(&mut hasher);
-      source.hash(&mut hasher);
-      let version = hasher
-        .digest(&compilation.options.output.hash_digest)
-        .encoded()
-        .to_string();
-      input_versions.insert(filename.clone(), version);
-    }
-    logger.time_end(hash_start);
-    for (filename, version) in &input_versions {
+      // Match the asset-version key used by the render cache and main's devtool cache.
       let cached = if let Some(cache) = &new_cache {
         cache
-          .peek::<CachedSourceMapDevToolPluginEntry>(filename, Some(Etag::from(version.clone())))
-          .map(|entry| (*entry).clone())
+          .peek::<CachedSourceMapDevToolPluginEntry>(
+            filename,
+            Some(Etag::from(asset.info.version.clone())),
+          )
+          .map(|entry| Cow::Owned((*entry).clone()))
       } else {
         legacy_cache
           .as_ref()
-          .and_then(|cache| cache.get(filename, version))
-          .cloned()
+          .and_then(|cache| cache.get(filename, &asset.info.version))
+          .map(Cow::Borrowed)
       };
       if let Some(cached) = cached {
         cached_entries.insert(filename.clone(), cached);
@@ -1426,17 +1418,23 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     {
       filename.hash(&mut hasher);
       asset.info.version.hash(&mut hasher);
-      input_versions.get(filename).hash(&mut hasher);
-      if let Some(chunk) = file_to_chunk.get(filename.as_str()) {
-        chunk.id().hash(&mut hasher);
-        chunk.name().hash(&mut hasher);
-        chunk
-          .rendered_hash(
-            &compilation.chunk_hashes_artifact,
-            compilation.options.output.hash_digest_length,
-          )
-          .hash(&mut hasher);
-      }
+    }
+    // Auxiliary assets can belong to multiple chunks. Hash all chunks in a stable order,
+    // rather than the arbitrary owner selected by file_to_chunk's hash-map iteration.
+    for chunk in compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .values()
+      .sorted_by_key(|chunk| chunk.id().map(|id| id.as_str()))
+    {
+      chunk.id().hash(&mut hasher);
+      chunk.name().hash(&mut hasher);
+      chunk
+        .rendered_hash(
+          &compilation.chunk_hashes_artifact,
+          compilation.options.output.hash_digest_length,
+        )
+        .hash(&mut hasher);
     }
     hasher
       .digest(&compilation.options.output.hash_digest)
@@ -1450,13 +1448,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       compilation,
       &file_to_chunk,
       &output_path,
-      compilation_assets.clone(),
-      input_versions,
+      &compilation_assets,
       &cached_entries,
       use_cache,
       compilation_version,
     )
     .await?;
+  drop(cached_entries);
   let mapped_assets = if let Some(cache) = &new_cache {
     self
       .use_new_cache(

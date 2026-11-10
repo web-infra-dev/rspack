@@ -15,7 +15,7 @@ export default [false, true].flatMap((newCache) =>
 			const root = fs.realpathSync.native(
 				fs.mkdtempSync(path.join(os.tmpdir(), "rspack-warm-map-"))
 			);
-			async function build(cacheName) {
+			async function build(cacheName, concatSource = false) {
 				const named = [];
 				const compiler = rspack({
 					context: root,
@@ -34,6 +34,37 @@ export default [false, true].flatMap((newCache) =>
 					},
 					output: { path: path.join(root, "dist") },
 					plugins: [
+						{
+							apply(compiler) {
+								compiler.hooks.thisCompilation.tap(
+									"EquivalentSource",
+									(compilation) => {
+										compilation.hooks.processAssets.tap(
+											{
+												name: "EquivalentSource",
+												stage:
+													compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
+											},
+											() => {
+												if (concatSource) {
+													// Equivalent graphs retain the asset version and emitted map.
+													for (const { name, source } of compilation.getAssets()) {
+														compilation.updateAsset(
+															name,
+															new compiler.webpack.sources.ConcatSource(source)
+														);
+													}
+												}
+												compilation.emitAsset(
+													"mapless.txt",
+													new compiler.webpack.sources.RawSource("unmapped\n")
+												);
+											}
+										);
+									}
+								);
+							}
+						},
 						new rspack.SourceMapDevToolPlugin({
 							filename: "[file].map",
 							moduleFilenameTemplate(info) {
@@ -69,7 +100,7 @@ export default [false, true].flatMap((newCache) =>
 					'export const load = () => import("./async.js");\n'
 				);
 				fs.writeFileSync(path.join(root, "async.js"), "export default 42;\n");
-				const first = await build("warm-cache");
+				const first = await build("warm-cache", true);
 				const warm = await build("warm-cache");
 				const cold = await build("cold-cache");
 				expect(first.named.length).toBeGreaterThan(0);
