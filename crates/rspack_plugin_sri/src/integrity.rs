@@ -1,20 +1,15 @@
 use std::io::{self, Write};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use rspack_core::rspack_sources::{RawString, Source};
+use rspack_core::rspack_sources::Source;
 use rspack_util::base64;
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
-/// Source map JSON can feed the digest directly without a full text allocation.
+/// Hash the emitted bytes without materializing the asset.
 pub fn compute_source_integrity(
   hash_func_names: &Vec<SubresourceIntegrityHashFunction>,
   source: &dyn Source,
 ) -> String {
-  match source.raw_string() {
-    Some(RawString::Rendered(_)) => {}
-    Some(RawString::Borrowed(text)) => return compute_integrity(hash_func_names, text),
-    None => return compute_integrity(hash_func_names, &source.source().into_string_lossy()),
-  }
   if hash_func_names.is_empty() {
     return String::new();
   }

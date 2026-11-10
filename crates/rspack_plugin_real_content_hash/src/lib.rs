@@ -16,8 +16,8 @@ use rayon::prelude::*;
 use rspack_core::{
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
   rspack_sources::{
-    BoxSource, DevToolMapSource, RawString, RawStringSource, ReplaceSource, SourceExt, SourceValue,
-    source_content_eq, update_content_hash,
+    BoxSource, CachedSource, DevToolCodeSource, DevToolMapSource, RawStringSource, ReplaceSource,
+    SourceExt, SourceValue, source_content_eq, update_content_hash,
   },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
@@ -203,7 +203,10 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
           &hash_ac,
           &hash_patterns,
         );
-        ((hash, name), new_source)
+        // Lazy DevTool outputs stand in for raw text, even after hash replacement.
+        let by_content =
+          data.streaming_matches.is_some() || new_source.as_ref().as_any().is::<RawStringSource>();
+        ((hash, name), (new_source, by_content))
       })
       .collect::<HashMap<_, _>>();
 
@@ -221,18 +224,19 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
           s.spawn(
             |(hooks, compilation, batch_sources, old_hash, mut asset_names)| async move {
               asset_names.sort_unstable();
-              let mut asset_contents = asset_names
-                .iter()
-                .filter_map(|name| batch_sources.get(&(old_hash.as_str(), name)))
-                .cloned()
-                .collect::<Vec<_>>();
-              asset_contents.dedup_by(|a, b| {
-                if a.raw_string().is_some() && b.raw_string().is_some() {
+              asset_names.dedup_by(|a, b| {
+                let (a, a_by_content) = &batch_sources[&(old_hash.as_str(), *a)];
+                let (b, b_by_content) = &batch_sources[&(old_hash.as_str(), *b)];
+                if *a_by_content && *b_by_content {
                   source_content_eq(a.as_ref(), b.as_ref())
                 } else {
                   a == b
                 }
               });
+              let asset_contents = asset_names
+                .into_iter()
+                .map(|name| Arc::clone(&batch_sources[&(old_hash.as_str(), name)].0))
+                .collect::<Vec<_>>();
               let updated_hash = hooks
                 .borrow()
                 .update_hash
@@ -348,7 +352,21 @@ impl<'a> AssetData<'a> {
   ) -> Self {
     let mut own_hashes = HashSet::default();
     let mut referenced_hashes = HashSet::default();
-    if let Some(RawString::Rendered(scan_source)) = source.raw_string() {
+    // Cache wrappers are transparent; keep the outermost edit when scanning.
+    let mut inner = source.as_ref();
+    let mut edited = None;
+    loop {
+      if let Some(cache) = inner.as_any().downcast_ref::<CachedSource>() {
+        inner = cache.inner().as_ref();
+      } else if let Some(edit) = inner.as_any().downcast_ref::<ReplaceSource>() {
+        edited.get_or_insert(inner);
+        inner = edit.inner().as_ref();
+      } else {
+        break;
+      }
+    }
+    if inner.as_any().is::<DevToolCodeSource>() || inner.as_any().is::<DevToolMapSource>() {
+      let scan_source = edited.unwrap_or(inner);
       let mut matches = Vec::new();
       let mut matcher = StreamingMatcher::new(hash_ac, |found| {
         let hash = hash_patterns[found.pattern().as_usize()];

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { defineConfig } from '@rspack/cli';
@@ -43,6 +44,9 @@ export default defineConfig({
           const expectedHash = hash.digest('hex').slice(0, oldHash.length);
           const filename = `binary.${expectedHash}.js`;
           const asset = compilation.getAsset(filename)!;
+          expect(asset.info.contenthash).toContain(
+            `sha384-${createHash('sha384').update(payload).digest('base64')}`,
+          );
           expect(asset.info.related?.sourceMap).toBeUndefined();
           expect(Buffer.isBuffer(asset.source.source())).toBe(true);
           expect(compilation.getAsset(`${filename}.map`)).toBeUndefined();

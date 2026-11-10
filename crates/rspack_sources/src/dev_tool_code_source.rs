@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-  BoxSource, MapOptions, RawString, RawStringSource, Source, SourceExt, SourceMap, SourceValue,
+  BoxSource, MapOptions, RawStringSource, Source, SourceExt, SourceMap, SourceValue,
   helpers::{Chunks, RawRopeChunks, StreamChunks},
 };
 
@@ -42,10 +42,6 @@ impl DevToolCodeSource {
 }
 
 impl Source for DevToolCodeSource {
-  fn raw_string(&self) -> Option<RawString<'_>> {
-    Some(RawString::Rendered(self))
-  }
-
   fn mapped(&self) -> bool {
     false
   }

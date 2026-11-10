@@ -280,9 +280,8 @@ Important implementation details:
   other source’s `buffer()`, which may materialize one whole asset.
   Source structural hashing remains separate. RCH deduplicates
   devtool text outputs and their edit/cache wrappers with raw strings by content; unrelated
-  sources keep their structural equality. `Source::raw_string()` exposes borrowed raw text or
-  the source that renders its lazy equivalent. Ordinary cache/edit wrappers around a raw string
-  remain distinct graphs. Binary sources are not scanned for text replacements.
+  sources keep their structural equality. RCH records this distinction when preparing hash inputs.
+  Ordinary cache/edit wrappers around a raw string remain distinct graphs. Binary sources are not scanned for text replacements.
   ReplaceSource's JSON writer currently uses rope rather than the bare map's SIMD writer.
 - `ConcatSource::add` uses `&mut self` and `Mutex::get_mut`; reads lazily optimize children. Mapping
   shifts generated positions and remaps child-local indices into global deduplicated tables.

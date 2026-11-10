@@ -8,8 +8,8 @@ use bytes_str::BytesStr;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  BoxSource, MapOptions, Mapping, OriginalLocation, OriginalSource, RawString, Source, SourceExt,
-  SourceMap, SourceValue,
+  BoxSource, MapOptions, Mapping, OriginalLocation, OriginalSource, Source, SourceExt, SourceMap,
+  SourceValue,
   helpers::{Chunks, GeneratedInfo, StreamChunks, TextSpan, get_map},
   linear_map::LinearMap,
   source_content_lines::SourceContentLines,
@@ -321,10 +321,6 @@ impl ReplaceSource {
 }
 
 impl Source for ReplaceSource {
-  fn raw_string(&self) -> Option<RawString<'_>> {
-    matches!(self.inner.raw_string()?, RawString::Rendered(_)).then_some(RawString::Rendered(self))
-  }
-
   fn mapped(&self) -> bool {
     self.inner.mapped()
   }

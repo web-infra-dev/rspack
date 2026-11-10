@@ -133,24 +133,10 @@ impl<'a> SourceValue<'a> {
   }
 }
 
-/// A raw string asset can already be contiguous, or be rendered on demand.
-/// Mapped sources and ordinary source graphs retain their own structural identity.
-pub enum RawString<'a> {
-  /// The source owns contiguous UTF-8 text.
-  Borrowed(&'a str),
-  /// This graph represents a raw string without retaining its flat contents.
-  Rendered(&'a dyn Source),
-}
-
 /// [Source] abstraction, [webpack-sources docs](https://github.com/webpack/webpack-sources/#source).
 pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + Send {
   /// Get the source code.
   fn source(&self) -> SourceValue<'_>;
-
-  /// Expose a raw string representation, if this source stands in for one.
-  fn raw_string(&self) -> Option<RawString<'_>> {
-    None
-  }
 
   /// Return a lightweight "rope" view of the source as borrowed string slices.
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str));
@@ -181,10 +167,6 @@ pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + S
 }
 
 impl Source for BoxSource {
-  fn raw_string(&self) -> Option<RawString<'_>> {
-    self.as_ref().raw_string()
-  }
-
   #[inline]
   fn source(&self) -> SourceValue<'_> {
     self.as_ref().source()

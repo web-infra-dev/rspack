@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::{
-  MapOptions, RawString, Source, SourceMap, SourceValue,
+  MapOptions, Source, SourceMap, SourceValue,
   helpers::{Chunks, RawRopeChunks, StreamChunks},
   source::is_all_none,
 };
@@ -212,10 +212,6 @@ fn quoted_json(mut value: &str) -> impl Iterator<Item = &str> {
 }
 
 impl Source for DevToolMapSource {
-  fn raw_string(&self) -> Option<RawString<'_>> {
-    Some(RawString::Rendered(self))
-  }
-
   fn mapped(&self) -> bool {
     false
   }
