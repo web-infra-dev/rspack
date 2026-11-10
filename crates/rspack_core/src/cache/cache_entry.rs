@@ -51,6 +51,7 @@ impl CachedSourceMapDevToolPluginEntry {
   pub fn restore(
     &self,
     asset: &CompilationAsset,
+    detach_source: bool,
   ) -> Option<(
     CompilationAsset,
     Option<(String, CompilationAsset)>,
@@ -72,8 +73,7 @@ impl CachedSourceMapDevToolPluginEntry {
         RawStringSource::from(suffix).boxed()
       }
     };
-    // No separate map asset means the cached suffix already contains the inline map.
-    let code = if self.source_map.is_none() || asset.info.minimized == Some(true) {
+    let code = if detach_source {
       RawStringSource::from(source.source().into_string_lossy().into_owned()).boxed()
     } else {
       source.clone()

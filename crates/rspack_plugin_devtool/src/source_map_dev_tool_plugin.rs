@@ -437,6 +437,12 @@ impl SourceMapDevToolPlugin {
       .await
   }
 
+  fn should_detach_source(&self, info: &AssetInfo) -> bool {
+    // Keeping the code's input graph would retain inlined maps, omitted source contents,
+    // or the minimizer's unminified input.
+    self.source_map_filename.is_none() || self.no_sources || info.minimized == Some(true)
+  }
+
   async fn use_new_cache(
     &self,
     compilation: &Compilation,
@@ -461,7 +467,8 @@ impl SourceMapDevToolPlugin {
       };
 
       if let Some(cached) = cached
-        && let Some((source_asset, source_map, asset_append)) = cached.restore(asset)
+        && let Some((source_asset, source_map, asset_append)) =
+          cached.restore(asset, self.should_detach_source(&asset.info))
       {
         cache.record_reuse();
         mapped_assets.push(MappedAsset {
@@ -530,7 +537,9 @@ impl SourceMapDevToolPlugin {
     let mut vanilla_assets = Vec::new();
 
     for (index, (filename, asset)) in compilation_assets.into_iter().enumerate() {
-      if let Some((source_asset, source_map, asset_append)) = cache.take(&filename, asset) {
+      if let Some((source_asset, source_map, asset_append)) =
+        cache.take(&filename, asset, self.should_detach_source(&asset.info))
+      {
         if let Some(counter) = cache_counter {
           counter.hit();
         }
@@ -1040,9 +1049,7 @@ impl SourceMapDevToolPlugin {
       })
       .clone();
 
-    // An inline map lives in the URL; keeping its input graph would retain the original map too.
-    // A minimizer's input graph can likewise retain the entire unminified chunk.
-    let source = if plugin.source_map_filename.is_none() || asset.info.minimized == Some(true) {
+    let source = if plugin.should_detach_source(&asset.info) {
       RawStringSource::from(source.source().into_string_lossy().into_owned()).boxed()
     } else {
       source
