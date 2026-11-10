@@ -79,6 +79,7 @@ define.test(() => {
   }
 
   const sharedConfig = defineProject({
+    globalSetup: ['./globalSetup.mjs'],
     setupFiles: setupFilesAfterEnv,
     testTimeout: process.env.CI ? 60000 : 30000,
     hookTimeout: process.env.CI ? 60000 : 30000,
@@ -100,7 +101,8 @@ define.test(() => {
     disableConsoleIntercept: true,
     globals: true,
     output: {
-      externals: [/.*/],
+      // The setup entry must expose its lifecycle exports to the runner.
+      externals: [/^(?!.*globalSetup\.mjs$).*/],
     },
     passWithNoTests: true,
     hideSkippedTests: true,

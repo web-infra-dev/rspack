@@ -82,11 +82,6 @@ const excludes = {
 		/^loader\/emit-error$/,
 		/^source-map\/extract-source-map$/,
 
-		// afterExecute removes the temporary Browserslist packages before cache builds.
-		/^ecmaVersion\/browserslist-config-env-extends$/,
-		/^ecmaVersion\/browserslist-config-extends$/,
-		/^ecmaVersion\/browserslist-extends$/,
-
 		// Existing bundle/compiler assertions fail in the compatibility suite.
 		/^builtin-lightningcss-loader\/custom-media$/,
 		/^compilation\/errors$/,
