@@ -700,8 +700,6 @@ export default {
 };
 ```
 
-Rspack 会在多次构建之间保留 PnP manifest（`.pnp.cjs`）的路径，并在清除 resolver 缓存后重新读取其中的依赖映射。因此，Yarn 全局缓存中的包也能在下一次重新构建时使用更新后的依赖映射。
-
 ## resolve.preferAbsolute
 
 - **类型：** `boolean`
