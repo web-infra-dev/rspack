@@ -2857,18 +2857,117 @@ var {} = {{}};
         }
       }
 
+      #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+      enum OrderedImportItem {
+        Raw(RawImportSource),
+        Chunk(ChunkUkey),
+      }
+
+      let mut ordered_items = Vec::new();
+      let mut seen_items = FxHashSet::default();
+
+      for m in chunk_link
+        .hoisted_modules
+        .iter()
+        .chain(chunk_link.decl_modules.iter())
+      {
+        let Some(module) = module_graph.module_by_identifier(m) else {
+          continue;
+        };
+        for dep in module.get_dependencies() {
+          let Some(conn) = module_graph.connection_by_dependency_id(dep.id()) else {
+            continue;
+          };
+          if !conn.is_active(
+            module_graph,
+            None,
+            binding_resolver.context.module_graph_cache,
+            &compilation
+              .build_module_graph_artifact
+              .side_effects_state_artifact,
+            binding_resolver.context.exports_info_artifact,
+          ) {
+            continue;
+          }
+          let ref_module = conn.module_identifier();
+          if let Some(ext) = module_graph
+            .module_by_identifier(ref_module)
+            .and_then(|m| m.as_external_module())
+          {
+            if ext.resolve_external_type() == "module" {
+              let key = (ext.get_request().primary().to_string(), None);
+              let raw_key = RawImportSource::Source(key);
+              if chunk_link.raw_import_stmts.contains_key(&raw_key) {
+                let item = OrderedImportItem::Raw(raw_key);
+                if seen_items.insert(item.clone()) {
+                  ordered_items.push(item);
+                }
+              }
+            }
+          } else {
+            let ref_chunks = compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .get_module_chunks(*ref_module);
+            if !ref_chunks.contains(&chunk_link.chunk) {
+              for &ref_chunk in ref_chunks {
+                if compilation
+                  .build_chunk_graph_artifact
+                  .chunk_graph
+                  .has_chunk_module_by_source_type(&ref_chunk, SourceType::JavaScript, module_graph)
+                {
+                  let item = OrderedImportItem::Chunk(ref_chunk);
+                  if seen_items.insert(item.clone()) {
+                    ordered_items.push(item);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      for raw_key in chunk_link.raw_import_stmts.keys() {
+        let item = OrderedImportItem::Raw(raw_key.clone());
+        if seen_items.insert(item.clone()) {
+          ordered_items.push(item);
+        }
+      }
+
+      let mut blocked_by_prior_chunk = FxHashSet::default();
+      let mut has_prior_chunk = false;
+      for item in &ordered_items {
+        match item {
+          OrderedImportItem::Chunk(_) => {
+            has_prior_chunk = true;
+          }
+          OrderedImportItem::Raw(raw_key) => {
+            if has_prior_chunk {
+              blocked_by_prior_chunk.insert(raw_key.clone());
+            }
+          }
+        }
+      }
+
       // `export ... from` is rendered after all imports, so keep an import in
-      // place when a remaining user import follows it. Otherwise the later
-      // module would be evaluated first.
+      // place when a remaining user import follows it, unless a prior chunk
+      // import would be superseded.
       let mut keep = FxHashSet::default();
       let mut later_user_import = false;
-      for raw_key in chunk_link.raw_import_stmts.keys().rev() {
-        let removable = star_removals.contains(raw_key)
-          || matches!(raw_key, RawImportSource::Source(key) if removed_import_stmts.iter().any(|(k, _)| k == key));
-        if !removable {
-          later_user_import |= matches!(raw_key, RawImportSource::Source((request, _)) if !request.contains("__RSPACK_ESM_CHUNK_"));
-        } else if later_user_import {
-          keep.insert(raw_key.clone());
+      for item in ordered_items.iter().rev() {
+        match item {
+          OrderedImportItem::Chunk(_) => {
+            later_user_import = true;
+          }
+          OrderedImportItem::Raw(raw_key) => {
+            let removable = star_removals.contains(raw_key)
+              || matches!(raw_key, RawImportSource::Source(key) if removed_import_stmts.iter().any(|(k, _)| k == key));
+            if !removable {
+              later_user_import |= matches!(raw_key, RawImportSource::Source((request, _)) if !request.contains("__RSPACK_ESM_CHUNK_"));
+            } else if later_user_import && !blocked_by_prior_chunk.contains(raw_key) {
+              keep.insert(raw_key.clone());
+            }
+          }
         }
       }
 

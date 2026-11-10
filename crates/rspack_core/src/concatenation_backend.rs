@@ -26,7 +26,8 @@ use crate::{
   ConcatenatedModuleSymbol, Context, ExportInfo, ExportProvided, ExportsInfoArtifact, ExportsType,
   FindTargetResult, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo,
   ModuleStaticCache, RuntimeSpec, UsedName, escape_name_atom_ref, find_target,
-  get_cached_readable_identifier, split_readable_identifier, to_identifier_with_escaped,
+  get_cached_readable_identifier, is_valid_prop_ident, split_readable_identifier,
+  to_identifier_with_escaped,
 };
 
 /// Reusable read-only context shared by concatenation implementations.
@@ -491,9 +492,11 @@ impl ConcatenationNameAllocator {
     module_info: &mut ConcatenatedModuleInfo,
     context: &ConcatenationContext,
   ) -> Atom {
-    let should_update_raw_export = existing_name.is_some() || self.contains(imported_name);
+    let is_valid_ident = is_valid_prop_ident(imported_name) && imported_name != "default";
+    let should_update_raw_export =
+      existing_name.is_some() || self.contains(imported_name) || !is_valid_ident;
     let internal_name = existing_name.cloned().unwrap_or_else(|| {
-      if !self.contains(imported_name) {
+      if is_valid_ident && !self.contains(imported_name) {
         self.insert(imported_name.clone());
         return imported_name.clone();
       }
@@ -501,12 +504,13 @@ impl ConcatenationNameAllocator {
       if imported_name == "default" {
         self.find_new_name("", context.source_identifier(source))
       } else {
+        let escaped_name = context
+          .escaped_names
+          .get(imported_name)
+          .cloned()
+          .unwrap_or_else(|| escape_name_atom_ref(imported_name));
         self.find_new_name(
-          context
-            .escaped_names
-            .get(imported_name)
-            .expect("should have escaped name")
-            .as_ref(),
+          escaped_name.as_ref(),
           context.module_identifier(&module_info.module),
         )
       }
