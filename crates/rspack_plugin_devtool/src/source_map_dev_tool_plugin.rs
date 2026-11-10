@@ -454,8 +454,16 @@ impl SourceMapDevToolPlugin {
     let asset_count = compilation_assets.len();
     let mut mapped_assets = Vec::with_capacity(asset_count);
     let mut vanilla_assets = Vec::new();
+    let condition_object = AssetConditionsObject {
+      test: self.test.as_ref(),
+      include: self.include.as_ref(),
+      exclude: self.exclude.as_ref(),
+    };
 
     for (index, (filename, asset)) in compilation_assets.into_iter().enumerate() {
+      if !match_object(&condition_object, &filename) {
+        continue;
+      }
       let cacheable = asset.get_source().is_some() && !asset.info.version.is_empty();
       let cached = if cacheable {
         cache.get::<CachedSourceMapDevToolPluginEntry>(
