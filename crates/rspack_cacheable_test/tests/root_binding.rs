@@ -58,6 +58,26 @@ fn json_nested_regex_source_of_an_ascii_root_is_bound() {
 }
 
 #[test]
+fn regex_escaped_root_is_bound() {
+  for (root, value) in [
+    ("/work/writer.plain", r"/^\/work\/writer\.plain\/src\//"),
+    ("/work/writer.json", r"^\\/work\\/writer\\.json\\/src\\/"),
+    (
+      "/work/writer[bracket]",
+      r"/^\/work\/writer\[bracket\]\/src\//",
+    ),
+    ("/work/my-app", r"/^\/work\/my\x2dapp\/src\//"),
+    ("/work/my-app", r"/^\/work\/my\-app\/src\//"),
+  ] {
+    assert!(is_bound(root, value), "{value}");
+  }
+  assert!(!is_bound(
+    "/work/writer.plain",
+    r"/^\/work\/writerXplain\/src\//"
+  ));
+}
+
+#[test]
 fn ascii_escaped_windows_root_is_bound() {
   let root = format!(r"C:\work\{ROOT_DIR}\proj");
   for dir in ESCAPED_ROOT_DIRS {
