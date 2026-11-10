@@ -1,6 +1,6 @@
 require("./module");
 
-it("should preserve a falsy accept rejection and remain in apply status", async () => {
+it("should fail with an Error for a falsy accept rejection like webpack", async () => {
 	const reason = null;
 	module.hot.accept("./module", () => Promise.reject(reason));
 	let rejected = false;
@@ -12,6 +12,6 @@ it("should preserve a falsy accept rejection and remain in apply status", async 
 		failure = err;
 	}
 	expect(rejected).toBe(true);
-	expect(failure).toBe(reason);
-	expect(module.hot.status()).toBe("apply");
+	expect(failure).toEqual(new Error("Update failed with " + reason));
+	expect(module.hot.status()).toBe("fail");
 });

@@ -1,11 +1,11 @@
 require("./module");
 
-it("should report an error handler throw after a synchronous accept throws", async () => {
+it("should report an error handler throw after an async accept rejects", async () => {
 	const originalError = new Error("accept failed");
 	const handlerError = new Error("handler failed");
 	module.hot.accept(
 		"./module",
-		() => {
+		async () => {
 			throw originalError;
 		},
 		() => {

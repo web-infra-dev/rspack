@@ -2,7 +2,7 @@ const events = require("./state");
 require("./self");
 require("./module");
 
-it("should skip self-accepted modules when an accept promise rejects", async () => {
+it("should execute self-accepted modules after an accept rejection is handled", async () => {
 	const error = new Error("accept failed");
 	let handled = false;
 	const reported = [];
@@ -19,10 +19,10 @@ it("should skip self-accepted modules when an accept promise rejects", async () 
 		rejected = true;
 		failure = err;
 	}
-	expect(events).toEqual(["initial"]);
-	expect(rejected).toBe(true);
-	expect(failure).toBe(error);
-	expect(handled).toBe(false);
+	expect(events).toEqual(["initial", "self"]);
+	expect(rejected).toBe(false);
+	expect(failure).toBeUndefined();
+	expect(handled).toBe(true);
 	expect(reported).toEqual([]);
-	expect(module.hot.status()).toBe("apply");
+	expect(module.hot.status()).toBe("idle");
 });

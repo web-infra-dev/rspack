@@ -1,7 +1,7 @@
 require("./a");
 require("./b");
 
-it("should preserve the first rejection when a later accept rejects with an Error", async () => {
+it("should report all rejections and fail with the first error like webpack", async () => {
 	const laterError = new Error("later accept failed");
 	module.hot.accept("./a", () => Promise.reject());
 	module.hot.accept("./b", async () => {
@@ -17,8 +17,8 @@ it("should preserve the first rejection when a later accept rejects with an Erro
 		rejected = true;
 		failure = err;
 	}
-	expect(errors).toEqual([]);
+	expect(errors).toEqual([undefined, laterError]);
 	expect(rejected).toBe(true);
-	expect(failure).toBeUndefined();
-	expect(module.hot.status()).toBe("apply");
+	expect(failure).toEqual(new Error("Update failed with undefined"));
+	expect(module.hot.status()).toBe("fail");
 });

@@ -69,8 +69,9 @@ export const update = () => module.hot.check(true);
 		await entry.waitForAccept();
 		if (acceptOutcome === "reject-before-status") {
 			entry.finish();
-			assert.equal(await update, entry.acceptError);
+			await setImmediate();
 			entry.rejectStatus();
+			assert.equal(await update, entry.statusError);
 		} else {
 			entry.rejectStatus();
 			await setImmediate();

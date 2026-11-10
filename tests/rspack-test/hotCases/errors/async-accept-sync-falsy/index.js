@@ -1,6 +1,6 @@
 require("./module");
 
-it("should ignore a synchronous falsy throw like webpack", async () => {
+it("should fail for a synchronous falsy throw like webpack", async () => {
 	module.hot.accept("./module", () => { throw 0; });
 	const errors = [];
 	let rejected = false;
@@ -9,7 +9,7 @@ it("should ignore a synchronous falsy throw like webpack", async () => {
 	} catch (err) {
 		rejected = true;
 	}
-	expect(rejected).toBe(false);
+	expect(rejected).toBe(true);
 	expect(errors).toEqual([0]);
-	expect(module.hot.status()).toBe("idle");
+	expect(module.hot.status()).toBe("fail");
 });
