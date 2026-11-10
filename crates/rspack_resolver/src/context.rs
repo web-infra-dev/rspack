@@ -1,7 +1,4 @@
-use std::{
-  ops::{AsyncFnOnce, Deref, DerefMut},
-  path::PathBuf,
-};
+use std::ops::{AsyncFnOnce, Deref, DerefMut};
 
 use rspack_paths::InternedPath;
 
@@ -19,7 +16,6 @@ pub struct ResolveContextImpl {
   pub fixed_dependencies: bool,
   /// The next specifier is a configured path that moves with the checkout.
   pub relocatable_specifier: bool,
-  pub issuer: PathBuf,
 
   pub query: Option<String>,
 

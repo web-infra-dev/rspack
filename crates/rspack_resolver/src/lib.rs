@@ -266,7 +266,6 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   ) -> Result<Resolution, ResolveError> {
     let mut ctx = Ctx::default();
     ctx.init_file_dependencies();
-    ctx.issuer = directory.as_ref().to_path_buf();
     let result = self
       .resolve_tracing(directory.as_ref(), specifier, &mut ctx)
       .await;
