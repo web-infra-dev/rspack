@@ -411,6 +411,38 @@ const readerScenarios = [
 		},
 		configuration: (context, writer) => ({ resolve: resolve(context === writer ? [".js"] : [".js", ".txt"]) })
 	})),
+	...[
+		{ part: "path", read: 'require("node:path").basename(this._module.resourceResolveData.path)' },
+		{ part: "query", read: "this._module.resourceResolveData.query" },
+		{ part: "fragment", read: "this._module.resourceResolveData.fragment" }
+	].map(({ part, read }) => ({
+		name: `resource-${part}-from-scheme-hook`,
+		description: `rebuilds a module whose resource ${part} a scheme hook sets apart from the resource at the reader`,
+		files: {
+			"src/index.js": 'module.exports = require("custom:stable");',
+			"src/a.js": "",
+			"src/b.js": "",
+			"pitch.cjs": `exports.pitch = function () { return "module.exports = " + JSON.stringify(${read}); };`
+		},
+		configuration: (context, writer) => {
+			const side = context === writer ? "writer" : "reader";
+			return {
+				plugins: [{
+					apply(compiler) {
+						compiler.hooks.normalModuleFactory.tap("FactoryDecisions", (factory) => {
+							factory.hooks.resolveForScheme.for("custom").tap("FactoryDecisions", (data) => {
+								data.path = path.join(context, "src", part === "path" && side === "reader" ? "b.js" : "a.js");
+								data.query = part === "query" ? `?${side}` : undefined;
+								data.fragment = part === "fragment" ? `#${side}` : undefined;
+								return true;
+							});
+						});
+					}
+				}],
+				module: { rules: [{ test: /[ab]\.js$/, use: ["./pitch.cjs"] }] }
+			};
+		}
+	})),
 	{
 		name: "loader-option-root-token",
 		description: "tells a literal root token in a loader option from a path below the reader's root",

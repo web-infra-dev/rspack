@@ -68,7 +68,7 @@ type GroupTarget = (ModuleIdentifier, Option<ProducerGroup>);
 /// module to be kept.
 #[derive(Debug)]
 enum FactoryDecision {
-  Normal(NormalFactoryDecision),
+  Normal(Box<NormalFactoryDecision>),
   /// The serialized factory outputs of a context or external module.
   Other(Vec<u8>),
 }
@@ -467,9 +467,9 @@ fn unverified_groups(
           can_refactorize,
           outcome: recorded,
           decision: target.and_then(|module| match module.as_normal_module() {
-            Some(normal) => Some(FactoryDecision::Normal(
+            Some(normal) => Some(FactoryDecision::Normal(Box::new(
               normal.factory_decision(!normal.parsed()),
-            )),
+            ))),
             None => other_factory_decision(module.as_ref()).map(FactoryDecision::Other),
           }),
         },

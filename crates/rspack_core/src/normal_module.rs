@@ -178,6 +178,10 @@ pub(crate) struct NormalFactoryDecision {
   context: Context,
   match_resource: Option<String>,
   resource: String,
+  /// Parts of the resolved resource that a hook can set apart from `resource`, and the
+  /// description file that loaders read. Its content isn't compared: like a warm build in place,
+  /// a module rebuilds for a change to it only when a loader adds the file as a dependency.
+  resource_parts: [Option<String>; 8],
   resolve_options: Option<Arc<Resolve>>,
   module_options: Option<u64>,
   loader_filters: Option<LoaderFilters>,
@@ -209,6 +213,20 @@ impl NormalModule {
         .as_ref()
         .map(|resource| resource.resource().to_owned()),
       resource: self.resource_data.resource().to_owned(),
+      resource_parts: [
+        self.resource_data.path().map(|path| path.as_str()),
+        self.resource_data.query(),
+        self.resource_data.fragment(),
+        self.resource_data.mimetype(),
+        self.resource_data.parameters(),
+        self.resource_data.encoding(),
+        self.resource_data.encoded_content(),
+        self
+          .resource_data
+          .description()
+          .and_then(|description| description.path().to_str()),
+      ]
+      .map(|part| part.map(str::to_owned)),
       resolve_options: self.resolve_options.clone(),
       module_options: self.parser_and_generator_options.comparable_digest(),
       loader_filters: self.loader_filters.clone(),
