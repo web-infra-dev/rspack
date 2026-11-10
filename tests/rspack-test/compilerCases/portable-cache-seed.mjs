@@ -278,6 +278,10 @@ async function checkGitSeeding() {
 		}
 		const original = await build(main);
 		expect(original.built).toEqual([...sources].sort());
+		// utimes changes ctime. Let the first-use snapshot's safety window pass,
+		// then give the donor a writable build that can record a trusted snapshot.
+		await new Promise((resolve) => setTimeout(resolve, 2100));
+		await build(main);
 		git("worktree", "add", wt, "-b", "wt");
 		for (const source of sources) {
 			expect(fs.readFileSync(path.join(wt, source))).toEqual(
