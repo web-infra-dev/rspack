@@ -1,9 +1,11 @@
 use std::io::{self, Write};
 
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rspack_core::rspack_sources::Source;
 use rspack_util::base64;
 use sha2::{Digest, Sha256, Sha384, Sha512};
+
+const INTEGRITY_BUFFER_SIZE: usize = 64 * 1024;
 
 /// Hash the emitted bytes without materializing the asset.
 pub fn compute_source_integrity(
@@ -28,7 +30,7 @@ pub fn compute_source_integrity(
     }
   }
   {
-    let mut writer = io::BufWriter::with_capacity(64 * 1024, &mut digests);
+    let mut writer = io::BufWriter::with_capacity(INTEGRITY_BUFFER_SIZE, &mut digests);
     source
       .to_writer(&mut writer)
       .expect("write source to integrity digest");
@@ -54,8 +56,7 @@ pub fn compute_source_integrity(
   integrity
 }
 
-// Serialize each source map once, including when several algorithms are used.
-// Parallelism is provided by the callers that process assets in parallel.
+// Serialize each source once, even when several digests need its bytes.
 #[derive(Default)]
 struct IntegrityWriter {
   sha256: Option<Sha256>,
@@ -65,14 +66,22 @@ struct IntegrityWriter {
 
 impl Write for IntegrityWriter {
   fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-    if let Some(digest) = &mut self.sha256 {
-      digest.update(bytes);
-    }
-    if let Some(digest) = &mut self.sha384 {
-      digest.update(bytes);
-    }
-    if let Some(digest) = &mut self.sha512 {
-      digest.update(bytes);
+    let digests: [Option<&mut (dyn sha2::digest::Update + Send)>; 3] = [
+      self.sha256.as_mut().map(|d| d as _),
+      self.sha384.as_mut().map(|d| d as _),
+      self.sha512.as_mut().map(|d| d as _),
+    ];
+    // BufWriter can flush a partial block before the next source fragment fits.
+    // Parallelize substantial blocks, but avoid spawning work for small writes.
+    if bytes.len() >= INTEGRITY_BUFFER_SIZE / 2 && digests.iter().flatten().count() > 1 {
+      digests
+        .into_par_iter()
+        .flatten()
+        .for_each(|digest| digest.update(bytes));
+    } else {
+      for digest in digests.into_iter().flatten() {
+        digest.update(bytes);
+      }
     }
     Ok(bytes.len())
   }

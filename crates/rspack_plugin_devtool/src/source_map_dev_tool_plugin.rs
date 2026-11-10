@@ -1040,6 +1040,14 @@ impl SourceMapDevToolPlugin {
       })
       .clone();
 
+    // The minimizer's intermediate maps can own the entire unminified chunk.
+    // Once the final map is composed, only the generated text is needed.
+    let source = if asset.info.minimized == Some(true) {
+      RawStringSource::from(source.source().into_string_lossy().into_owned()).boxed()
+    } else {
+      source
+    };
+
     let css_extension_detected = has_css_extension(&asset_filename);
     let current_source_mapping_url_comment = match &plugin.source_mapping_url_comment {
       Some(SourceMappingUrlComment::String(s)) => {

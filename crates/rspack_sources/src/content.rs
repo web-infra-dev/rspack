@@ -3,7 +3,7 @@ use std::{
   io::{self, Write},
 };
 
-use crate::Source;
+use crate::{RawBufferSource, RawStringSource, Source};
 
 /// Hash emitted bytes, independently of source type or rope boundaries.
 /// Unlike Source::update_hash, this is a content hash, not a graph hash.
@@ -18,8 +18,17 @@ pub fn update_content_hash(source: &dyn Source, hasher: &mut dyn Hasher) {
       Ok(())
     }
   }
+  let mut writer = HashWriter(hasher);
+  // Raw assets already write one contiguous slice; buffering only allocates and copies it.
+  let any = source.as_any();
+  if let Some(raw) = any.downcast_ref::<RawStringSource>() {
+    return raw.to_writer(&mut writer).expect("hash source contents");
+  }
+  if let Some(raw) = any.downcast_ref::<RawBufferSource>() {
+    return raw.to_writer(&mut writer).expect("hash source contents");
+  }
   // Coalesce small writes from JSON serialization and edits.
-  let mut writer = io::BufWriter::new(HashWriter(hasher));
+  let mut writer = io::BufWriter::new(writer);
   source.to_writer(&mut writer).expect("hash source contents");
   writer.flush().expect("flush source content to hasher");
 }

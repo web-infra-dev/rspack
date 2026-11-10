@@ -72,7 +72,13 @@ impl CachedSourceMapDevToolPluginEntry {
         RawStringSource::from(suffix).boxed()
       }
     };
-    let source = DevToolCodeSource::new(source.clone(), suffix).boxed();
+    // As on a cache miss, don't retain the minimizer's input through the emitted asset.
+    let code = if asset.info.minimized == Some(true) {
+      RawStringSource::from(source.source().into_string_lossy().into_owned()).boxed()
+    } else {
+      source.clone()
+    };
+    let source = DevToolCodeSource::new(code, suffix).boxed();
 
     let source_asset = CompilationAsset::new(Some(source), (*asset.info).clone());
     let source_map = self.source_map.as_ref().map(|(filename, source)| {

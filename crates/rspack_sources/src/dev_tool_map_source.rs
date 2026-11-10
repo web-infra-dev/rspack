@@ -59,22 +59,6 @@ impl DevToolMapSource {
     Self(Arc::new(data))
   }
 
-  fn json_chunks(&self) -> impl Iterator<Item = &str> {
-    let mut parts = self.0.json_parts();
-    let mut quoted = None;
-    std::iter::from_fn(move || {
-      loop {
-        if let Some(chunk) = quoted.as_mut().and_then(Iterator::next) {
-          return Some(chunk);
-        }
-        match parts.next()? {
-          Part::Raw(chunk) => return Some(chunk),
-          Part::String(value) => quoted = Some(quoted_json(value)),
-        }
-      }
-    })
-  }
-
   pub(crate) fn original_map(&self) -> &SourceMap {
     &self.0.map
   }
@@ -177,7 +161,23 @@ impl MapData {
   }
 }
 
-fn quoted_json(mut value: &str) -> impl Iterator<Item = &str> {
+fn needs_escape(b: u8) -> bool {
+  b < 32 || b == b'"' || b == b'\\'
+}
+
+// Return the high bit of each matching byte, with byte 0 in the lowest lane.
+// Masking each lane to 7 bits prevents these additions carrying into its neighbor.
+fn escape_mask(word: u64) -> u64 {
+  const LOW: u64 = u64::from_le_bytes([0x7f; 8]);
+  let zero = |v: u64| !(((v & LOW) + LOW) | v);
+  let control = !(((word & LOW) + u64::from_le_bytes([0x60; 8])) | word);
+  (control
+    | zero(word ^ u64::from_le_bytes([b'"'; 8]))
+    | zero(word ^ u64::from_le_bytes([b'\\'; 8])))
+    & !LOW
+}
+
+fn quoted_json<'a>(value: &'a str, on_chunk: &mut dyn FnMut(&'a str)) {
   // Match simd_json's compact spelling while borrowing all unescaped text.
   const CONTROLS: [&str; 32] = [
     "\\u0000", "\\u0001", "\\u0002", "\\u0003", "\\u0004", "\\u0005", "\\u0006", "\\u0007", "\\b",
@@ -185,30 +185,51 @@ fn quoted_json(mut value: &str) -> impl Iterator<Item = &str> {
     "\\u0013", "\\u0014", "\\u0015", "\\u0016", "\\u0017", "\\u0018", "\\u0019", "\\u001a",
     "\\u001b", "\\u001c", "\\u001d", "\\u001e", "\\u001f",
   ];
-  let content = std::iter::from_fn(move || {
-    if value.is_empty() {
-      return None;
+  on_chunk("\"");
+  let mut start = 0;
+  let mut emit_escape = |i: usize, byte: u8| {
+    let escape = match byte {
+      b'"' => "\\\"",
+      b'\\' => "\\\\",
+      _ => CONTROLS[usize::from(byte)],
+    };
+    if start < i {
+      on_chunk(&value[start..i]);
     }
-    for (i, byte) in value.bytes().enumerate() {
-      let escape = match byte {
-        b'"' => "\\\"",
-        b'\\' => "\\\\",
-        0..=31 => CONTROLS[usize::from(byte)],
-        _ => continue,
-      };
-      if i == 0 {
-        value = &value[1..];
-        return Some(escape);
+    on_chunk(escape);
+    start = i + 1;
+  };
+  for (i, chunk) in value.as_bytes().chunks(64).enumerate() {
+    // A fixed-width reduction vectorizes. Most mappings and long spans of code
+    // have no escapes; leave these spans borrowed, even across block boundaries.
+    if let Ok(block) = <&[u8; 64]>::try_from(chunk)
+      && block
+        .iter()
+        .fold(0u8, |mask, &b| mask | u8::from(needs_escape(b)))
+        == 0
+    {
+      continue;
+    }
+    let base = i * 64;
+    let (words, tail) = chunk.as_chunks::<8>();
+    for (j, word) in words.iter().enumerate() {
+      let mut mask = escape_mask(u64::from_le_bytes(*word));
+      while mask != 0 {
+        let lane = mask.trailing_zeros() as usize / 8;
+        emit_escape(base + j * 8 + lane, word[lane]);
+        mask &= mask - 1;
       }
-      let (prefix, rest) = value.split_at(i);
-      value = rest;
-      return Some(prefix);
     }
-    Some(std::mem::take(&mut value))
-  });
-  std::iter::once("\"")
-    .chain(content)
-    .chain(std::iter::once("\""))
+    for (j, &b) in tail.iter().enumerate() {
+      if needs_escape(b) {
+        emit_escape(base + words.len() * 8 + j, b);
+      }
+    }
+  }
+  if start < value.len() {
+    on_chunk(&value[start..]);
+  }
+  on_chunk("\"");
 }
 
 impl Source for DevToolMapSource {
@@ -221,8 +242,11 @@ impl Source for DevToolMapSource {
   }
 
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
-    for chunk in self.json_chunks() {
-      on_chunk(chunk);
+    for part in self.0.json_parts() {
+      match part {
+        Part::Raw(s) => on_chunk(s),
+        Part::String(value) => quoted_json(value, on_chunk),
+      }
     }
   }
 

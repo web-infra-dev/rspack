@@ -3,6 +3,12 @@ import { rspack, type Compiler } from '@rspack/core';
 
 const oldHash = 'aabbccdd';
 const content = `😀:${oldHash}:end`;
+// Exercise escapes at byte 63, across UTF-8 boundaries, and in the last partial block.
+const original =
+  'x'.repeat(63) +
+  '"😀\\' +
+  String.fromCharCode(...Array.from({ length: 32 }, (_, i) => i)) +
+  oldHash;
 const binary = Buffer.concat([Buffer.from([0xff, 0]), Buffer.from(oldHash)]);
 
 function digest(compiler: Compiler, value: string | Buffer) {
@@ -62,6 +68,13 @@ class TestPlugin {
             'plain.txt',
             new SourceMapSource('unchanged', 'plain.js', sourceMap),
           );
+          compilation.emitAsset(
+            'escaped.js',
+            new SourceMapSource('0;', 'escaped.js', {
+              ...sourceMap,
+              sourcesContent: [original],
+            }),
+          );
           compilation.emitAsset('binary.deadbeef.bin', new RawSource(binary), {
             contenthash: 'deadbeef',
           });
@@ -90,6 +103,14 @@ class TestPlugin {
           )!;
           expect(binaryAsset.source.buffer()).toEqual(binary);
           if (this.overrideHash) expect(hookCalls).toBe(1);
+          if (compiler.options.devtool) {
+            const map = compilation
+              .getAssets()
+              .find((asset) => asset.name.startsWith('escaped.js.'));
+            expect(map!.source.buffer().toString()).toContain(
+              JSON.stringify(original.replace(oldHash, hash)),
+            );
+          }
           for (const asset of compilation.getAssets()) {
             if (!asset.name.endsWith('.js')) continue;
             const mapName = asset.info.related?.sourceMap;

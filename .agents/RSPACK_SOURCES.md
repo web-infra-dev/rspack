@@ -257,10 +257,12 @@ Important implementation details:
 - `OriginalSource` splits potential JavaScript tokens with `memchr`; it is not an AST tokenizer.
 - `SourceMapSource` composition indexes inner mappings by line and binary-searches the closest
   preceding segment. Avoid rebuilding shared maps or eagerly splitting all `sourcesContent`.
-- `DevToolCodeSource` keeps the generated code graph and rendered URL/debugId comment
+- `DevToolCodeSource` keeps the generated code and rendered URL/debugId comment
   separate. It hides maps through both `map()` and `stream_chunks()`. The comment is a shared
   raw source so devtool cache entries and the emitted asset do not copy inline-map URLs.
   Both cache backends restore this wrapper, including hidden maps with an empty comment.
+  For minimized assets, keep only the generated text after composing the final map, on
+  both cache hits and misses. The minifier's source graph can retain the entire unminified chunk.
   The wrapper is only for generated text. Buffer assets have no source map and pass through
   DevTool unchanged, including on cache hits. RCH scans code through rope chunks so edit offsets use the same text.
 - `DevToolMapSource` is the JSON asset itself, so `map()` returns `None`. It retains the
@@ -275,7 +277,8 @@ Important implementation details:
   JSON are wrapped in ordinary ReplaceSource; both the hash input without own hashes and the
   final output are derived from the original scanned source. ReplaceSource uses u32 offsets;
   edits outside that range retain the flat-string fallback instead of truncating offsets.
-  Content hashing uses emitted bytes with small writes buffered; bare maps retain SIMD writing.
+  Content hashing writes raw strings and buffers directly to the hasher and buffers small writes
+  from other sources; bare maps retain SIMD writing.
   Content equality streams one source through `to_writer()` and compares each write against the
   other source’s `buffer()`, which may materialize one whole asset.
   Source structural hashing remains separate. RCH deduplicates
