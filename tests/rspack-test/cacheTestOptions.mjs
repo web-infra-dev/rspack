@@ -4,17 +4,6 @@ const excludes = {
 	normal: [
 		// Code generation cache misses after restarting the compiler.
 		/^optimize\/side-effects-simple-unused$/,
-
-		// Resolver cache misses, including unresolved requests.
-		/^cjs-tree-shaking\/full-require$/,
-		/^parsing\/extract-amd$/,
-		/^parsing\/extract-amd\.nominimize$/,
-		/^parsing\/webpack-is-included$/,
-		/^runtime\/missing-module-exception$/,
-		/^runtime\/missing-module-exception-dynamic-import$/,
-		/^runtime\/missing-module-exception-require$/,
-		/^warnings\/not-fully-specified$/,
-
 	],
 	config: [
 		// These cases expect stateful loaders to build again on every compiler.
