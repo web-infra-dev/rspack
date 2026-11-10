@@ -182,7 +182,6 @@ export default {
 				path.join("src", "data.gen"),
 				path.join("src", "keyed.gen"),
 				path.join("src", "listed.gen"),
-				path.join("src", "reexport.gen"),
 				path.join("src", "shadowed.gen")
 			]);
 			expect(moved.values).toEqual({
@@ -205,7 +204,7 @@ export default {
 			const notEnabled = relocated(temp, "not-enabled", writeProject);
 			const expectWarning = ({ warnings }) => {
 				expect(warnings).toHaveLength(1);
-				expect(warnings[0]).toContain("5 in this build, such as");
+				expect(warnings[0]).toContain("7 in this build, such as");
 				expect(warnings[0]).toContain("data.gen");
 				expect(warnings[0]).toContain("cache.portable.rebaseLoaderRequests");
 			};

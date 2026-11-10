@@ -206,6 +206,10 @@ impl Dependency for CommonJsExportRequireDependency {
     &DependencyType::CjsExportRequire
   }
 
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
+  }
+
   fn get_exports(
     &self,
     mg: &ModuleGraph,
