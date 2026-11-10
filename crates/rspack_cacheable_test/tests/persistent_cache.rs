@@ -646,6 +646,47 @@ async fn timestamp_context_does_not_read_linked_file_contents() {
 }
 
 #[tokio::test]
+async fn context_validation_keeps_its_single_observation() {
+  use std::{fs, sync::atomic::Ordering};
+  let temp = tempfile::tempdir().unwrap();
+  let root = fs::canonicalize(temp.path()).unwrap().assert_utf8();
+  fs::create_dir(root.join("scan")).unwrap();
+  fs::write(root.join("scan/a.js"), "a").unwrap();
+  let fs = Arc::new(ObservedFileSystem::new(root.join("scan")));
+  let codec = Arc::new(CacheCodec::new(None));
+  let snapshot = Snapshot::new(options(), root.as_str().into(), fs.clone(), codec);
+  let path = InternedPath::from(root.join("scan").as_std_path());
+  let mut storage = MemoryStorage::default();
+  snapshot
+    .add(
+      &mut storage,
+      SnapshotScope::CONTEXT,
+      [path.clone()].into_iter(),
+    )
+    .await;
+  fs.observations.store(0, Ordering::Relaxed);
+  let (_, modified, deleted, unchanged, observed, _) = snapshot
+    .calc_modified_paths(&storage, SnapshotScope::CONTEXT)
+    .await
+    .unwrap();
+  assert!(modified.is_empty() && deleted.is_empty());
+  assert!(unchanged.contains(&path));
+  assert_eq!(
+    fs.observations.load(Ordering::Relaxed),
+    1,
+    "validation must observe a context only once"
+  );
+  // Saving validation's observation must not hide an input changed after it was read.
+  std::fs::write(root.join("scan/b.js"), "b").unwrap();
+  snapshot.refresh(&mut storage, SnapshotScope::CONTEXT, observed.into_iter());
+  let (_, modified, _, _, _, _) = snapshot
+    .calc_modified_paths(&storage, SnapshotScope::CONTEXT)
+    .await
+    .unwrap();
+  assert!(modified.contains(&path));
+}
+
+#[tokio::test]
 async fn inaccessible_file_dependency_does_not_become_missing() {
   use std::{fs, os::unix::fs::PermissionsExt};
   let temp = tempfile::tempdir().unwrap();

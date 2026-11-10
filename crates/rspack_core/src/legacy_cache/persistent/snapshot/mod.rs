@@ -254,21 +254,30 @@ impl Snapshot {
         let codec = codec.clone();
         async move {
           let path = codec.decode::<InternedPath>(&key)?;
-          if codec.encode(&path)? != key {
+          // Unix native path payloads round-trip verbatim. Other platforms may intern a
+          // component-equivalent spelling, and portable decoding can rebase a key.
+          if (codec.is_portable() || !cfg!(unix)) && codec.encode(&path)? != key {
             return Ok((path, ValidateResult::Modified, None, Some(key)));
           }
-          let validate = match codec.decode::<Strategy>(&value) {
-            Ok(strategy) => helper.validate(&path, &strategy).await,
-            Err(_) => ValidateResult::Modified,
-          };
-          // Context modules read their directory after this, so keep what validation saw.
-          let observed = match scope {
-            SnapshotScope::CONTEXT => {
-              let portable = codec.is_portable();
-              Self::calc_strategy(&options, &helper, &path, scope, portable).await
+          let (validate, mut observed) = match codec.decode::<Strategy>(&value) {
+            Ok(strategy) => {
+              let (validate, observed) = helper.validate(&path, &strategy).await;
+              let observed = observed
+                .or_else(|| matches!(validate, ValidateResult::NoChanged).then_some(strategy));
+              (validate, observed)
             }
-            _ => None,
+            Err(_) => (ValidateResult::Modified, None),
           };
+          // Keep exactly what validation saw, including a changed directory's current hash.
+          // A failed or undecodable snapshot has no observation, so recover it once here.
+          if matches!(scope, SnapshotScope::CONTEXT) {
+            if observed.is_none() {
+              observed =
+                Self::calc_strategy(&options, &helper, &path, scope, codec.is_portable()).await;
+            }
+          } else {
+            observed = None;
+          }
           Ok::<_, rspack_error::Error>((path, validate, observed, None))
         }
       })
