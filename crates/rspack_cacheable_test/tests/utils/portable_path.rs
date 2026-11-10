@@ -34,9 +34,12 @@ fn resource_uses_the_restored_portable_path() {
   let new_root = Utf8PathBuf::from(new_root);
   let old_path = old_root.join("src#icons").join("icon.svg");
   let new_path = new_root.join("src#icons").join("icon.svg");
-  let request =
-    |path: &Utf8Path| format!("{}?raw#preview", path.as_str().replace('#', "\u{200b}#"));
-  let old_request = request(&old_path);
+  let request = |root: &Utf8Path| {
+    let path = root.join("src\u{200b}#icons").join("icon.svg");
+    format!("{path}?raw#preview")
+  };
+  let old_request = request(&old_root);
+  let new_request = request(&new_root);
   let resource =
     ResourceData::new_with_resolved_path(old_path, "?raw".to_string(), "#preview".to_string());
   assert_eq!(resource.resource(), old_request);
@@ -47,7 +50,7 @@ fn resource_uses_the_restored_portable_path() {
   let restored: ResourceData =
     rspack_cacheable::from_bytes(&bytes, &TestContext(Some(new_root.into_std_path_buf()))).unwrap();
   assert_eq!(restored.path(), Some(new_path.as_path()));
-  assert_eq!(restored.resource(), request(&new_path));
+  assert_eq!(restored.resource(), new_request);
   assert_eq!(restored.query(), Some("?raw"));
   assert_eq!(restored.fragment(), Some("#preview"));
 }
