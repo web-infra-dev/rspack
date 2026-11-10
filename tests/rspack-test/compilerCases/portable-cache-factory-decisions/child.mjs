@@ -15,6 +15,13 @@ const values = {
 	plain: () => ({ list: [1, "x", null, undefined, true], nested: { ratio: 1.5 } })
 };
 
+// Static options whose objects share their children.
+function sharedGraph() {
+	let graph = { leaf: 1 };
+	for (let depth = 0; depth < 24; depth++) graph = { left: graph, right: graph };
+	return { value: "shared", graph };
+}
+
 const compiler = rspack({
 	context,
 	mode: "development",
@@ -32,13 +39,15 @@ const compiler = rspack({
 	module: {
 		rules: kinds.map((kind) => ({
 			test: new RegExp(`${kind}-dep\\.js$`),
-			use: (info) => [{
-				loader: "./observe.cjs",
-				cache: loaderCache,
-				options: {
-					value: values[kind](info.resource.startsWith(writer + path.sep) ? "writer" : "reader")
-				}
-			}]
+			use: kind === "shared"
+				? [{ loader: "./observe.cjs", cache: loaderCache, options: sharedGraph() }]
+				: (info) => [{
+					loader: "./observe.cjs",
+					cache: loaderCache,
+					options: {
+						value: values[kind](info.resource.startsWith(writer + path.sep) ? "writer" : "reader")
+					}
+				}]
 		}))
 	},
 	cache: cached ? { type: "persistent", portable: true } : false

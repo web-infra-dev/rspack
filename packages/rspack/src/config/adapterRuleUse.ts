@@ -1,3 +1,4 @@
+import { types } from 'node:util';
 import type { AssetInfo, RawModuleRuleUse, RawOptions } from '@rspack/binding';
 import { getLightningcssLoaderOptions } from '../builtin-loader/lightningcss';
 import { getSwcLoaderOptions } from '../builtin-loader/swc';
@@ -600,99 +601,125 @@ function incomparable(): never {
   throw new Error('Incomparable loader options');
 }
 
+interface EncodeState {
+  strict: boolean;
+  /** Objects mapped to their index in encoding order, or to -1 while they are being encoded. */
+  seen: Map<object, number>;
+  encoded: number;
+  /** Characters left before the options count as too large to compare. */
+  budget: number;
+}
+
+// Shared objects encode once, so only an option this large on its own runs out.
+const ENCODING_BUDGET = 1 << 24;
+
+// Taken before any config runs, so reading built-in state never runs a replaced method.
+const getTime = Date.prototype.getTime;
+const regexpSource = Reflect.getOwnPropertyDescriptor(
+  RegExp.prototype,
+  'source',
+)!.get!;
+const regexpFlags = Reflect.getOwnPropertyDescriptor(
+  RegExp.prototype,
+  'flags',
+)!.get!;
+const setForEach = Set.prototype.forEach;
+const mapForEach = Map.prototype.forEach;
+let builtinPrototypes: Set<unknown> | undefined;
+
+// Instances of a built-in class can hold state that no own property shows, as a `URL` or an
+// `ArrayBuffer` does.
+function isBuiltinPrototype(prototype: object): boolean {
+  builtinPrototypes ??= new Set(
+    Reflect.ownKeys(globalThis).map((key) => {
+      const value = Reflect.getOwnPropertyDescriptor(globalThis, key)?.value;
+      return typeof value === 'function' ? value.prototype : undefined;
+    }),
+  );
+  return builtinPrototypes.has(prototype);
+}
+
+function spend(state: EncodeState, encoded: string): string {
+  state.budget -= encoded.length;
+  if (state.budget < 0) incomparable();
+  return encoded;
+}
+
 function encodeProperty(
   owner: object,
   key: PropertyKey,
-  seen: Map<object, string | undefined>,
-  strict: boolean,
+  state: EncodeState,
 ): string {
-  // A descriptor reads the value without running a getter.
+  // A descriptor reads the value without running a getter. A getter or a hidden property can
+  // hold anything.
   const descriptor = Reflect.getOwnPropertyDescriptor(owner, key);
-  if (descriptor?.enumerable && 'value' in descriptor) {
-    return encodeComparable(descriptor.value, seen, strict);
-  }
-  if (strict) incomparable();
-  return 'g';
+  if (!descriptor?.enumerable || !('value' in descriptor)) incomparable();
+  return encodeComparable(descriptor.value, state);
 }
 
 function encodeProperties(
   owner: object,
   keys: (string | symbol)[],
-  seen: Map<object, string | undefined>,
-  strict: boolean,
+  state: EncodeState,
 ): string {
   const entries: string[] = [];
   for (const key of keys) {
-    const encodable =
-      typeof key === 'string' &&
-      (strict
-        ? key !== 'toJSON'
-        : Object.prototype.propertyIsEnumerable.call(owner, key));
-    if (encodable) {
-      entries.push(
-        `${JSON.stringify(key)}:${encodeProperty(owner, key, seen, strict)}`,
-      );
-    } else if (strict) {
+    if (typeof key !== 'string' || (state.strict && key === 'toJSON')) {
       incomparable();
     }
+    entries.push(
+      `${spend(state, JSON.stringify(key))}:${encodeProperty(owner, key, state)}`,
+    );
   }
   return `{${entries.join()}}`;
 }
 
-// These methods read a value's internal state, so its own properties can't stand in for it.
+// These read a value's internal state, so an own property would be state the encoding misses.
 function encodeBuiltin(
   value: object,
   prototype: object | null,
-  seen: Map<object, string | undefined>,
-  strict: boolean,
+  keys: (string | symbol)[],
+  state: EncodeState,
 ): string | undefined {
   const items: string[] = [];
   switch (prototype) {
     case Date.prototype:
-      return `d${Date.prototype.getTime.call(value as Date)}`;
+      if (keys.length) incomparable();
+      return spend(state, `d${getTime.call(value)}`);
     case RegExp.prototype: {
-      const { source, flags } = value as RegExp;
-      return `r${JSON.stringify(source)}/${flags}`;
+      // Every regexp owns `lastIndex`, which a loader can read and a global regexp moves.
+      const lastIndex = Reflect.getOwnPropertyDescriptor(value, 'lastIndex');
+      if (keys.length !== 1 || !lastIndex || !('value' in lastIndex)) {
+        incomparable();
+      }
+      const source = JSON.stringify(regexpSource.call(value));
+      return `r${spend(state, `${source}/${regexpFlags.call(value)}`)}@${encodeComparable(lastIndex.value, state)}`;
     }
     case Set.prototype:
-      Set.prototype.forEach.call(value as Set<unknown>, (item) => {
-        items.push(encodeComparable(item, seen, strict));
+      if (keys.length) incomparable();
+      setForEach.call(value, (item: unknown) => {
+        items.push(encodeComparable(item, state));
       });
       return `S[${items.join()}]`;
     case Map.prototype:
-      Map.prototype.forEach.call(
-        value as Map<unknown, unknown>,
-        (item, key) => {
-          const encodedKey = encodeComparable(key, seen, strict);
-          items.push(`[${encodedKey},${encodeComparable(item, seen, strict)}]`);
-        },
-      );
+      if (keys.length) incomparable();
+      mapForEach.call(value, (item: unknown, key: unknown) => {
+        const encodedKey = encodeComparable(key, state);
+        items.push(`[${encodedKey},${encodeComparable(item, state)}]`);
+      });
       return `M[${items.join()}]`;
-    case Boolean.prototype:
-    case Number.prototype:
-    case String.prototype:
-    case Symbol.prototype:
-    case BigInt.prototype:
-      return incomparable();
     default:
       return undefined;
   }
 }
 
-function encodeObject(
-  value: object,
-  seen: Map<object, string | undefined>,
-  strict: boolean,
-): string {
+function encodeObject(value: object, state: EncodeState): string {
+  // A proxy runs its traps on every read.
+  if (types.isProxy(value)) incomparable();
   const prototype = Object.getPrototypeOf(value);
   const keys = Reflect.ownKeys(value);
-  const builtin = encodeBuiltin(value, prototype, seen, strict);
-  if (builtin !== undefined) {
-    // `lastIndex` is the own key every regexp has, and it changes as the regexp runs.
-    const ownKeys = prototype === RegExp.prototype ? 1 : 0;
-    if (strict && keys.length !== ownKeys) incomparable();
-    return builtin;
-  }
+  const builtin = encodeBuiltin(value, prototype, keys, state);
+  if (builtin !== undefined) return builtin;
   // Own keys are the indices and `length`, so any other key leaves a hole that `encodeProperty` sees.
   if (
     Array.isArray(value) &&
@@ -701,60 +728,63 @@ function encodeObject(
   ) {
     const items: string[] = [];
     for (let index = 0; index < value.length; index++) {
-      items.push(encodeProperty(value, index, seen, strict));
+      items.push(encodeProperty(value, index, state));
     }
     return `[${items.join()}]`;
   }
-  const properties = encodeProperties(value, keys, seen, strict);
+  const properties = encodeProperties(value, keys, state);
   if (prototype === Object.prototype) return properties;
   if (prototype === null) return `N${properties}`;
-  if (strict) incomparable();
+  if (state.strict) incomparable();
+  for (
+    let current: object | null = prototype;
+    current !== Object.prototype && current !== null;
+    current = Object.getPrototypeOf(current)
+  ) {
+    if (types.isProxy(current) || isBuiltinPrototype(current)) incomparable();
+  }
   // The prototype's own `constructor`, as reading through the value could run a getter.
   const constructor = Reflect.getOwnPropertyDescriptor(
     prototype,
     'constructor',
   )?.value;
-  return `c${JSON.stringify(constructor?.name)}${properties}`;
+  return `c${spend(state, JSON.stringify(constructor?.name) ?? '')}${properties}`;
 }
 
 // Every value has its own tag, so a string that reads like another value stays a string.
 // Objects never reach JSON.stringify, so `toJSON` doesn't run.
-function encodeComparable(
-  value: unknown,
-  seen: Map<object, string | undefined>,
-  strict: boolean,
-): string {
+function encodeComparable(value: unknown, state: EncodeState): string {
   switch (typeof value) {
     case 'undefined':
       return 'u';
     case 'boolean':
       return value ? 't' : 'F';
     case 'string':
-      return `s${JSON.stringify(value)}`;
+      return `s${spend(state, JSON.stringify(value))}`;
     case 'number':
-      return Object.is(value, -0) ? 'n-0' : `n${value}`;
+      return spend(state, Object.is(value, -0) ? 'n-0' : `n${value}`);
     case 'bigint':
-      return `b${value}`;
+      return spend(state, `b${value}`);
     case 'object':
       break;
     default:
-      if (strict) incomparable();
+      if (state.strict) incomparable();
       return typeof value === 'symbol'
-        ? `y${JSON.stringify(value.description)}`
+        ? `y${spend(state, JSON.stringify(value.description) ?? '')}`
         : 'f';
   }
   if (value === null) return 'l';
-  if (seen.has(value)) {
-    // Object identity is observable to a loader and has no place in the encoding, so results of a
-    // function `use` can't repeat an object. A static config shares objects freely, and only a
-    // cycle, still undefined here, has no encoding.
-    const encoded = seen.get(value);
-    if (strict || encoded === undefined) incomparable();
-    return encoded;
+  const index = state.seen.get(value);
+  if (index !== undefined) {
+    // A cycle has no encoding. Results of a function `use` are built per module, and can't share
+    // an object whose identity a loader could observe.
+    if (index < 0 || state.strict) incomparable();
+    // A shared object refers to its first encoding, so sharing can't multiply the encoding.
+    return spend(state, `#${index}`);
   }
-  seen.set(value, undefined);
-  const encoded = encodeObject(value, seen, strict);
-  seen.set(value, encoded);
+  state.seen.set(value, -1);
+  const encoded = encodeObject(value, state);
+  state.seen.set(value, state.encoded++);
   return encoded;
 }
 
@@ -764,14 +794,21 @@ function encodeComparable(
  *
  * Results of a function `use` are built per module, so `strict` accepts only values that encode
  * exactly. Options of an array `use` are static config: functions, symbols and class instances
- * stand in for what they are, and are assumed not to depend on the checkout.
+ * stand in for what they are, and are assumed not to depend on the checkout. Either way, a getter,
+ * a proxy, a property that isn't enumerable and a built-in value with own properties make the
+ * options incomparable, as reading them could run user code or miss state.
  */
 function encodeComparableOptions(
   options: unknown,
   strict: boolean,
 ): string | undefined {
   try {
-    return encodeComparable(options, new Map(), strict);
+    return encodeComparable(options, {
+      strict,
+      seen: new Map(),
+      encoded: 0,
+      budget: ENCODING_BUDGET,
+    });
   } catch {
     return undefined;
   }

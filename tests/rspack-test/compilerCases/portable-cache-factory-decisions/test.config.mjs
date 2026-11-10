@@ -438,10 +438,10 @@ function useObserved(writer, writerValue, readerValue, cache) {
 	};
 }
 
-function runChild(options) {
+function runChild(options, nodeOptions = []) {
 	const result = spawnSync(
 		process.execPath,
-		[fileURLToPath(new URL("./child.mjs", import.meta.url)), JSON.stringify(options)],
+		[...nodeOptions, fileURLToPath(new URL("./child.mjs", import.meta.url)), JSON.stringify(options)],
 		{ encoding: "utf8", timeout: 60_000 }
 	);
 	expect(result.error).toBeUndefined();
@@ -502,6 +502,15 @@ function cycle() {
 	value.self = value;
 	return value;
 }
+function withExtra(value, extra) {
+	value.extra = extra;
+	return value;
+}
+function regexpAt(lastIndex) {
+	const value = /a/g;
+	value.lastIndex = lastIndex;
+	return value;
+}
 
 const same = (name, make) => ({ name, values: [make(), make()], reused: true });
 const differ = (name, ...values) => ({ name, values, reused: false });
@@ -512,6 +521,9 @@ const dataComparisons = [
 	same("regexpSame", () => /a/g),
 	differ("regexpSource", /a/, /b/),
 	differ("regexpFlags", /a/, /a/g),
+	differ("regexpLastIndex", regexpAt(1), regexpAt(2)),
+	differ("regexpOwn", withExtra(/a/, "writer"), withExtra(/a/, "reader")),
+	differ("dateOwn", withExtra(new Date(1000), "writer"), withExtra(new Date(1000), "reader")),
 	same("setSame", () => new Set(["a", "b"])),
 	differ("setOther", new Set(["a"]), new Set(["b"])),
 	differ("setOrder", new Set(["a", "b"]), new Set(["b", "a"])),
@@ -537,8 +549,10 @@ const arrayUseComparisons = [
 	differ("instanceData", new Plugin(1), new Plugin(2)),
 	differ("instanceClass", new Plugin(1), new OtherPlugin(1)),
 	differ("instancePlain", new Plugin(1), { data: 1 }),
-	same("getterSame", throwingGetter),
+	// A getter can return anything, so it can't be compared without running it.
+	differ("getterSame", throwingGetter(), throwingGetter()),
 	differ("getterData", throwingGetter(), { data: 1 }),
+	differ("urlOther", new URL("http://a/"), new URL("http://b/")),
 	same("sharedSame", shared),
 	differ("cycleSame", cycle(), cycle()),
 	differ("boxedSame", new Number(1), new Number(1))
@@ -892,6 +906,41 @@ export default [
 			});
 		}
 	})),
+	{
+		name: "regexp-option-getter",
+		description: "does not run a getter that a regexp option owns while comparing loader options",
+		async run() {
+			await withProjects({ "quiet.cjs": "module.exports = () => 'module.exports = 1;';" }, async (writer, reader) => {
+				let calls = 0;
+				const value = /a/;
+				Object.defineProperty(value, "source", { get() { calls++; return "a"; } });
+				const configuration = {
+					module: { rules: [{ test: /dep\.js$/, use: () => [{ loader: "./quiet.cjs", options: { value } }] }] }
+				};
+				await build(writer, configuration);
+				copyTree(writer, reader);
+				const moved = await build(reader, configuration);
+				expect(moved.built).toHaveLength(1);
+				await expectColdEquality(reader, configuration, moved);
+				expect(calls).toBe(0);
+			});
+		}
+	},
+	{
+		name: "shared-options-graph",
+		description: "compares array use options that share objects without expanding every path through them",
+		async run() {
+			await withProjects(observedModules(["shared"]), async (writer, reader) => {
+				const options = { writer, kinds: ["shared"], loaderCache: false };
+				// 26 objects whose paths would expand to 2^24 leaves.
+				const heap = ["--max-old-space-size=128"];
+				runChild({ ...options, context: writer, cached: true }, heap);
+				copyTree(writer, reader);
+				const moved = runChild({ ...options, context: reader, cached: true }, heap);
+				expect(moved.built).toEqual([]);
+			});
+		}
+	},
 	{
 		name: "reuse",
 		description: "keeps unchanged function decisions, mjs, type-module packages and side-effect-only ESM imports without builds",
