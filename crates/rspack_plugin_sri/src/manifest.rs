@@ -106,8 +106,10 @@ fn module_call_site_groups(
     if let Some(block) = module_graph.block_by_id(&block_id) {
       blocks.extend(block.get_blocks().iter().copied());
     }
+    // An entrypoint, such as a worker's, is loaded by URL with its own runtime, not
+    // through this runtime's chunk loading.
     if let Some(group) = chunk_graph.get_block_chunk_group(&block_id, chunk_group_by_ukey)
-      && !group.is_initial()
+      && !group.kind.is_entrypoint()
     {
       groups.push(group.ukey);
     }
@@ -190,7 +192,7 @@ impl ChunkManifest {
 
     // The chunks that the calls in each chunk's modules request.
     let mut groups_by_module: HashMap<ModuleIdentifier, Vec<ChunkGroupUkey>> = HashMap::default();
-    let mut reached = HashSet::default();
+    let mut reached_from: HashMap<ChunkGroupUkey, HashSet<ChunkGroupUkey>> = HashMap::default();
     let mut edges: HashMap<ChunkUkey, Vec<ChunkUkey>> = HashMap::default();
     for chunk_ukey in &chunks {
       let mut groups = HashSet::default();
@@ -200,7 +202,12 @@ impl ChunkManifest {
           .or_insert_with(|| module_call_site_groups(module, compilation));
         groups.extend(module_groups.iter().copied());
       }
-      reached.extend(groups.iter().copied());
+      for group in chunk_by_ukey.expect_get(chunk_ukey).groups() {
+        reached_from
+          .entry(*group)
+          .or_default()
+          .extend(groups.iter().copied());
+      }
       let children = groups
         .iter()
         .flat_map(|group| loaded_by(chunk_group_by_ukey.expect_get(group)))
@@ -208,9 +215,11 @@ impl ChunkManifest {
       edges.insert(*chunk_ukey, children);
     }
     // A module that does not list the block of an import() would leave the chunks it
-    // loads without a hash, so a child group that no call reaches is carried by its
-    // parent's last chunk with JavaScript instead.
+    // loads without a hash, so a child group that no call in a parent's chunks reaches
+    // is carried by that parent's last chunk with JavaScript instead.
+    let none_reached = HashSet::default();
     for (_, group) in chunk_group_by_ukey.iter() {
+      let reached = reached_from.get(&group.ukey).unwrap_or(&none_reached);
       let Some(carrier) = group.chunks.iter().rev().copied().find(|chunk| {
         chunk_graph.has_chunk_module_by_source_type(chunk, SourceType::JavaScript, module_graph)
       }) else {
