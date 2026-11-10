@@ -1520,7 +1520,9 @@ fn a_scan_updates_a_recorded_file_whose_mtime_moved_on() {
 
   // The change event is dropped, so only a scan can see the new mtime.
   hide.store(true, Ordering::SeqCst);
-  let moved_on = std::time::SystemTime::now() - std::time::Duration::from_secs(1800);
+  let moved_on = std::time::UNIX_EPOCH
+    + std::time::Duration::from_millis(1_700_000_000_000)
+    + std::time::Duration::from_micros(500);
   set_modified(helper.join("ctx/sub/found").as_std_path(), moved_on).unwrap();
   std::thread::sleep(std::time::Duration::from_millis(500));
   hide.store(false, Ordering::SeqCst);
@@ -1532,11 +1534,10 @@ fn a_scan_updates_a_recorded_file_whose_mtime_moved_on() {
   else {
     panic!("ctx/sub/found is not a file entry");
   };
-  let moved_on_millis = moved_on
-    .duration_since(std::time::UNIX_EPOCH)
-    .unwrap()
-    .as_millis() as u64;
-  assert_eq!(timestamp, moved_on_millis, "the scan kept the old mtime");
+  assert_eq!(
+    timestamp, 1_700_000_000_001,
+    "the scan must round like Stats.mtime"
+  );
 }
 
 /// With `ctx` and `ctx/sub` both registered, a removed `ctx/sub` that is then
@@ -1558,9 +1559,9 @@ fn an_unregistered_inner_context_removed_before_is_new_again_to_its_outer_one() 
   while rx.try_recv().is_ok() {}
 
   helper.tick(|| std::fs::remove_dir(helper.join("ctx/sub")).unwrap());
-  let sub = helper.join("ctx/sub");
+  let context = helper.join("ctx");
   wait_for_aggregated(&helper, rx, |batch| {
-    batch.deleted_files.contains(sub.as_str())
+    batch.changed_files.contains(context.as_str())
   });
   let _rx = helper.watch(
     e!(),

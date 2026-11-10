@@ -18,43 +18,20 @@ export type BuildInfo = KnownBuildInfo & Record<string, any>;
 
 export interface Module {
 	readonly type: string;
-	get context(): string | undefined;
-	get layer(): string | undefined;
-	get factoryMeta(): JsFactoryMeta
-	set factoryMeta(factoryMeta: JsFactoryMeta);
-	get useSourceMap(): boolean;
-	get useSimpleSourceMap(): boolean;
+	readonly context: string | undefined;
+	readonly layer: string | undefined;
+	readonly useSourceMap: boolean;
+	readonly useSimpleSourceMap: boolean;
+	factoryMeta: JsFactoryMeta;
 	buildInfo: BuildInfo;
 	buildMeta: Record<string, any>;
-}
-
-interface NormalModuleConstructor {
-	new(): NormalModule;
-	readonly prototype: NormalModule;
-}
-
-export var NormalModule: NormalModuleConstructor;
-
-export interface NormalModule extends Module {
-	readonly resource: string;
-	readonly request: string;
-	readonly userRequest: string;
-	readonly rawRequest: string;
-	readonly resourceResolveData: Readonly<JsResourceData> | undefined;
-	readonly loaders: JsLoaderItem[];
-	get matchResource(): string | undefined;
-	set matchResource(val: string | undefined);
-	get error(): RspackError | undefined;
-}
-
-export interface ConcatenatedModule extends Module {
-}
-
-export interface ContextModule extends Module {
-}
-
-export interface ExternalModule extends Module {
-	readonly userRequest: string;
+	readonly blocks: AsyncDependenciesBlock[];
+	readonly dependencies: Dependency[];
+	identifier(): string;
+	readableIdentifier(): string;
+	nameForCondition(): string | undefined;
+	size(type?: string | null): number;
+	libIdent(options: JsLibIdentOptions): string | null;
 }
 
 export interface RspackError extends Error {
@@ -170,30 +147,6 @@ export declare class CodeGenerationResults {
   get(module: Module, runtime: string | string[] | undefined): CodeGenerationResult
 }
 
-export declare class ConcatenatedModule {
-  get rootModule(): Module
-  get modules(): Module[]
-  readableIdentifier(): string
-  _originalSource(): JsSourceWithLazyMap | undefined
-  nameForCondition(): string | undefined
-  get blocks(): AsyncDependenciesBlock[]
-  get dependencies(): Dependency[]
-  size(ty?: string | undefined | null): number
-  libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null): void
-}
-
-export declare class ContextModule {
-  readableIdentifier(): string
-  _originalSource(): JsSourceWithLazyMap | undefined
-  nameForCondition(): string | undefined
-  get blocks(): AsyncDependenciesBlock[]
-  get dependencies(): Dependency[]
-  size(ty?: string | undefined | null): number
-  libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null): void
-}
-
 export declare class Dependency {
   get _parentModule(): Module | undefined
   get type(): string
@@ -247,17 +200,6 @@ export declare class EntryOptionsDto {
   set layer(layer: string | undefined)
 }
 export type EntryOptionsDTO = EntryOptionsDto
-
-export declare class ExternalModule {
-  readableIdentifier(): string
-  _originalSource(): JsSourceWithLazyMap | undefined
-  nameForCondition(): string | undefined
-  get blocks(): AsyncDependenciesBlock[]
-  get dependencies(): Dependency[]
-  size(ty?: string | undefined | null): number
-  libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null): void
-}
 
 /** Native operations on the owning compiler's current dependency collection. */
 export declare class FileSystemDependencies {
@@ -442,17 +384,6 @@ export declare class JsStats {
 
 export declare class KnownBuildInfo {}
 
-export declare class Module {
-  readableIdentifier(): string
-  _originalSource(): JsSourceWithLazyMap | undefined
-  nameForCondition(): string | undefined
-  get blocks(): AsyncDependenciesBlock[]
-  get dependencies(): Dependency[]
-  size(ty?: string | undefined | null): number
-  libIdent(options: JsLibIdentOptions): string | null
-  _emitFile(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null): void
-}
-
 export declare class ModuleGraphConnection {
   get dependency(): Dependency
   get module(): Module | null
@@ -499,7 +430,6 @@ export declare class NativeWatchResult {
   changedFiles: Array<string>
   removedFiles: Array<string>
 }
-
 
 export declare class RawExternalItemFnCtx {
   data(): RawExternalItemFnCtxData
@@ -654,6 +584,10 @@ export declare enum BuiltinPluginName {
 
 export declare function cleanupGlobalTrace(): void
 
+export declare function concatenatedModuleGetModules(module: Module): Module[]
+
+export declare function concatenatedModuleGetRootModule(module: Module): Module
+
 export interface ContextInfo {
   issuer: string
   issuerLayer?: string
@@ -670,6 +604,8 @@ export declare enum EnforceExtension {
  * @internal
  */
 export declare const EXPECTED_RSPACK_CORE_VERSION: string
+
+export declare function externalModuleGetUserRequest(module: Module): string
 
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
 
@@ -907,6 +843,7 @@ export interface JsFactoryMeta {
 }
 
 export interface JsHelpers {
+  createModule: (kind: ModuleKind) => Module
   applyIndexedArrayUpdates: <T>(source: ReadonlyArray<T>, target: T[], commands: Uint32Array) => void
   swapRemoveArrayElements: <T>(array: T[], removedIndices: Uint32Array) => void
 }
@@ -1666,6 +1603,51 @@ export declare function minify(source: string, options: string): Promise<Transfo
 
 export declare function minifySync(source: string, options: string): TransformOutput
 
+export declare function moduleEmitFile(module: Module, filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | null): void
+
+export declare function moduleGetBlocks(module: Module): AsyncDependenciesBlock[]
+
+export declare function moduleGetBuildInfo(module: Module): BuildInfo
+
+export declare function moduleGetContext(module: Module): string | undefined
+
+export declare function moduleGetDependencies(module: Module): Dependency[]
+
+export declare function moduleGetFactoryMeta(module: Module): JsFactoryMeta
+
+export declare function moduleGetIdentifier(module: Module): string
+
+export declare function moduleGetLayer(module: Module): string | undefined
+
+export declare function moduleGetNameForCondition(module: Module): string | undefined
+
+export declare function moduleGetOriginalSource(module: Module): JsSourceWithLazyMap | undefined
+
+export declare function moduleGetReadableIdentifier(module: Module): string
+
+export declare function moduleGetType(module: Module): string
+
+export declare function moduleGetUseSimpleSourceMap(module: Module): boolean
+
+export declare function moduleGetUseSourceMap(module: Module): boolean
+
+/** JavaScript class selected when wrapping a native module. */
+export declare enum ModuleKind {
+  Module = 0,
+  Normal = 1,
+  Concatenated = 2,
+  Context = 3,
+  External = 4,
+}
+
+export declare function moduleLibIdent(module: Module, options: JsLibIdentOptions): string | null
+
+export declare function moduleSetBuildInfo(module: Module, value: BuildInfo): void
+
+export declare function moduleSetFactoryMeta(module: Module, factoryMeta: JsFactoryMeta): void
+
+export declare function moduleSize(module: Module, ty?: string | null): number
+
 /**
  * Module Resolution Options
  *
@@ -1876,6 +1858,7 @@ export interface NativeWatcherOptions {
 export interface NativeWatchUndelayedEvent {
   kind: string
   path: string
+  mtime?: null
 }
 
 export interface NodeFsStats {
@@ -1889,6 +1872,24 @@ export interface NodeFsStats {
   size: number
   mode: number
 }
+
+export declare function normalModuleGetError(module: Module): RspackError | undefined
+
+export declare function normalModuleGetLoaders(module: Module): Array<JsLoaderItem>
+
+export declare function normalModuleGetMatchResource(module: Module): string | undefined
+
+export declare function normalModuleGetRawRequest(module: Module): string
+
+export declare function normalModuleGetRequest(module: Module): string
+
+export declare function normalModuleGetResource(module: Module): string
+
+export declare function normalModuleGetResourceResolveData(module: Module): Readonly<JsResourceData>
+
+export declare function normalModuleGetUserRequest(module: Module): string
+
+export declare function normalModuleSetMatchResource(module: Module, value: string | undefined): void
 
 export interface PathWithInfo {
   path: string
@@ -2234,6 +2235,7 @@ export interface RawCssExtractPluginOption {
 
 export interface RawCssGeneratorOptions {
   exportsOnly?: boolean
+  runtimePublicPath?: boolean
   esModule?: boolean
 }
 
@@ -2248,6 +2250,7 @@ export interface RawCssImportContext {
 export interface RawCssModuleGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
+  runtimePublicPath?: boolean
   localIdentHashDigest?: string
   localIdentHashDigestLength?: number
   localIdentHashFunction?: string
@@ -2397,10 +2400,15 @@ export interface RawExternalItemFnResult {
   result?: string | boolean | string[] | Record<string, string[]>
 }
 
+export interface RawExternalItemObject {
+  values: Record<string, string | boolean | string[] | Record<string, string[]>>
+  byLayer?: Record<string, Record<string, string | boolean | string[] | Record<string, string[]>>>
+}
+
 export interface RawExternalsPluginOptions {
   type: string
   fallbackType?: string
-  externals: (string | RegExp | Record<string, string | boolean | string[] | Record<string, string[]>> | ((...args: any[]) => any))[]
+  externals: (string | RegExp | RawExternalItemObject | ((...args: any[]) => any))[]
   placeInInitial: boolean
 }
 
@@ -2652,7 +2660,7 @@ export interface RawLazyCompilationOption {
   entries: boolean
   imports: boolean
   client: string
-  reservedExternals: Array<string>
+  collectReservedExternals: (layer?: string | null) => string[]
 }
 
 export interface RawLibManifestPluginOptions {
@@ -2772,6 +2780,7 @@ export interface RawModuleOptions {
 }
 
 export interface RawModuleRule {
+  as?: string
   /**
    * A conditional match matching an absolute path + query + fragment.
    * Note:

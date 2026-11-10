@@ -261,7 +261,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       ));
     }
 
-    if with_loading || with_callback {
+    if with_loading || with_callback || with_hmr {
       let global_object = &compilation.options.output.global_object;
       let chunk_loading_global = &compilation.options.output.chunk_loading_global;
       let chunk_loading_global_expr = format!(r#"{global_object}["{chunk_loading_global}"]"#);

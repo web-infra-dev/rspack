@@ -380,6 +380,7 @@ const getRawModuleRule = (
   }
 
   const rawModuleRule: RawModuleRule = {
+    as: rule.as,
     test: rule.test ? getRawRuleSetCondition(rule.test) : undefined,
     include: rule.include ? getRawRuleSetCondition(rule.include) : undefined,
     exclude: rule.exclude ? getRawRuleSetCondition(rule.exclude) : undefined,
@@ -924,6 +925,7 @@ function getRawCssGeneratorOptions(
 ): RawCssGeneratorOptions {
   return {
     exportsOnly: options.exportsOnly,
+    runtimePublicPath: options.runtimePublicPath,
     esModule: options.esModule,
   };
 }
@@ -939,6 +941,7 @@ function getRawCssAutoOrModuleGeneratorOptions(
     localIdentHashSalt: options.localIdentHashSalt,
     exportsConvention: options.exportsConvention,
     exportsOnly: options.exportsOnly,
+    runtimePublicPath: options.runtimePublicPath,
     esModule: options.esModule,
   };
 }

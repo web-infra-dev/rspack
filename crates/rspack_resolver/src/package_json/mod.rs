@@ -1,7 +1,11 @@
+#[cfg(feature = "package_json_raw_json_api")]
+mod data;
 mod simd;
 
 use std::fmt::Display;
 
+#[cfg(feature = "package_json_raw_json_api")]
+pub use data::PackageJsonData;
 pub use simd::*;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
