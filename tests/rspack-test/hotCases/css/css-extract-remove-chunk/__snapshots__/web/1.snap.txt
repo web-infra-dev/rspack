@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 147
-- Update: main.LAST_HASH.hot-update.js, size: 27677
+- Update: main.LAST_HASH.hot-update.js, size: 27552
 
 ## Manifest
 
@@ -504,12 +504,11 @@ function hotApplyHandler(options) {
 	
 
 	var moduleOutdatedDependencies;
-	var removedChunkResolves = [];
 	return {
 		dispose: function () {
 			hotCurrentUpdateRemovedChunks.forEach(function (chunkId) {
 				var installed = jsonpInstalledChunks[chunkId];
-				if (Array.isArray(installed)) removedChunkResolves.push(installed[0]);
+				if (Array.isArray(installed)) installed[0]();
 				delete jsonpInstalledChunks[chunkId];
 			});
 			hotCurrentUpdateRemovedChunks = undefined;
@@ -604,7 +603,6 @@ function hotApplyHandler(options) {
 			// Factories and runtime are installed. Complete ordinary chunk loading
 			// with an empty factory payload to resolve imports and deferred startup.
 			if (fullChunkIds.length) __rspack_jsonp(0, [fullChunkIds, {}]);
-			removedChunkResolves.forEach(function (resolve) { resolve(); });
 
 			// call accept handlers
 			for (var outdatedModuleId in outdatedDependencies) {

@@ -234,12 +234,11 @@
 	<% } %>
 
 	var moduleOutdatedDependencies;
-	var removedChunkResolves = [];
 	return {
 		dispose: function () {
 			hotCurrentUpdateRemovedChunks.forEach(function (chunkId) {
 				var installed = <%- _installed_chunks %>[chunkId];
-				if (Array.isArray(installed)) removedChunkResolves.push(installed[0]);
+				if (Array.isArray(installed)) installed[0]();
 				delete <%- _installed_chunks %>[chunkId];
 			});
 			hotCurrentUpdateRemovedChunks = undefined;
@@ -336,7 +335,6 @@
 			// Factories and runtime are installed. Complete ordinary chunk loading
 			// with an empty factory payload to resolve imports and deferred startup.
 			if (fullChunkIds.length) <%- _install_full_chunks %>;
-			removedChunkResolves.forEach(function (resolve) { resolve(); });
 
 			// call accept handlers
 			for (var outdatedModuleId in outdatedDependencies) {
