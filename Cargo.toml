@@ -150,8 +150,8 @@ rkyv      = { version = "=0.8.18", default-features = false, features = ["std", 
 pnp                 = { version = "=0.12.11", default-features = false }
 swc                 = { version = "=82.0.1", default-features = false }
 swc_config          = { version = "6.0.1", default-features = false }
-swc_core            = { version = "=84.0.1", default-features = false, features = ["parallel_rayon"] }
-swc_ecma_minifier   = { version = "64.0.2", default-features = false }
+swc_core            = { version = "=84.0.2", default-features = false, features = ["parallel_rayon"] }
+swc_ecma_minifier   = { version = "64.0.3", default-features = false }
 swc_error_reporters = { version = "29.0.0", default-features = false }
 swc_html            = { version = "39.0.0", default-features = false }
 swc_html_minifier   = { version = "64.0.0", default-features = false }
