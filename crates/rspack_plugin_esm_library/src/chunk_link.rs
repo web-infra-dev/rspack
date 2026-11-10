@@ -292,6 +292,18 @@ pub struct ChunkLinkContext {
   pub raw_import_stmts: FxIndexMap<RawImportSource, ImportSpec>,
 
   /**
+  External `export { ... } from` statements that replaced an import and must
+  stay at that import's position. A later import would otherwise be evaluated
+  first.
+   */
+  pub inlined_reexport_requests: FxHashSet<String>,
+
+  /**
+  External `export * from` statements kept at the original import position.
+   */
+  pub inlined_star_export_sources: FxHashSet<String>,
+
+  /**
   namespace imports already provided by module init fragments
    */
   pub module_external_namespace_imports: FxHashMap<RawImportSource, Atom>,
@@ -359,6 +371,8 @@ impl ChunkLinkContext {
       name_allocator: Default::default(),
       exported_symbols: Default::default(),
       raw_import_stmts: Default::default(),
+      inlined_reexport_requests: Default::default(),
+      inlined_star_export_sources: Default::default(),
       module_external_namespace_imports: Default::default(),
       raw_star_exports: Default::default(),
     }

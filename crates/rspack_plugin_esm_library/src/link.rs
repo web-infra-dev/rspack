@@ -338,6 +338,15 @@ impl EsmLibraryPlugin {
     self.strict_export_chunks.borrow().contains(&chunk)
   }
 
+  /// User `import` / `export ... from` requests. Runtime chunk imports are
+  /// inserted after source imports and are not part of that order.
+  fn is_user_module_import(source: &RawImportSource) -> bool {
+    match source {
+      RawImportSource::Chunk(_) => false,
+      RawImportSource::Source((request, _)) => !request.contains("__RSPACK_ESM_CHUNK_"),
+    }
+  }
+
   fn add_chunk_export(
     chunk: ChunkUkey,
     local: Atom,
@@ -2788,6 +2797,10 @@ var {} = {{}};
 
     export { a } from 'external module'
     ```
+
+    `export ... from` is itself a module request. When a later import stays in
+    this list, keep the rewritten statement at the original import position.
+    Moving it below that import evaluates the later module first.
     */
     for chunk_link in link.values_mut() {
       let all_chunk_used_symbols = chunk_link
@@ -2802,8 +2815,7 @@ var {} = {{}};
         })
         .collect::<FxHashSet<_>>();
 
-      let all_chunk_exported_symbols = &exports[&chunk_link.chunk].exports;
-
+      let mut star_removals = vec![];
       for (source, _) in &chunk_link.raw_star_exports {
         let key = (source.clone(), None);
         if let Some(import_spec) = chunk_link
@@ -2813,55 +2825,91 @@ var {} = {{}};
           && import_spec.default_import.is_none()
           && import_spec.ns_import.is_none()
         {
-          chunk_link
-            .raw_import_stmts
-            .swap_remove(&RawImportSource::Source(key));
+          star_removals.push((source.clone(), key));
         }
       }
 
-      let mut removed_import_stmts = vec![];
-      for (key, specifiers) in &chunk_link.raw_import_stmts {
-        let RawImportSource::Source(key) = key else {
-          continue;
-        };
+      let removed_import_stmts = {
+        let all_chunk_exported_symbols = &exports[&chunk_link.chunk].exports;
+        let mut removed_import_stmts = vec![];
+        for (key, specifiers) in &chunk_link.raw_import_stmts {
+          let RawImportSource::Source(key) = key else {
+            continue;
+          };
 
-        if specifiers.atoms.is_empty() && specifiers.default_import.is_none() {
-          // import 'externals'
-          continue;
+          if specifiers.atoms.is_empty() && specifiers.default_import.is_none() {
+            // import 'externals'
+            continue;
+          }
+
+          if key.1.is_some() {
+            // TODO: optimize import attributes
+            continue;
+          }
+
+          let locals = specifiers
+            .atoms
+            .iter()
+            .map(|(imported, atom)| (atom.clone(), imported.clone()))
+            .chain(
+              specifiers
+                .default_import
+                .as_ref()
+                .map(|atom| vec![(atom.clone(), "default".into())])
+                .unwrap_or(vec![]),
+            )
+            .collect::<Vec<_>>();
+
+          // check if all atoms are not used, and only used for export
+          if locals.iter().all(|(local, _)| {
+            // not accessed but exported
+            !all_chunk_used_symbols.contains(local)
+              && all_chunk_exported_symbols.contains_key(local)
+          }) {
+            removed_import_stmts.push((key.clone(), locals));
+          }
         }
+        removed_import_stmts
+      };
 
-        if key.1.is_some() {
-          // TODO: optimize import attributes
-          continue;
+      let mut removed_sources = FxHashSet::default();
+      for (_, key) in &star_removals {
+        removed_sources.insert(RawImportSource::Source(key.clone()));
+      }
+      for (key, _) in &removed_import_stmts {
+        removed_sources.insert(RawImportSource::Source(key.clone()));
+      }
+
+      // A removed import must stay in place when any later user import remains.
+      // Runtime chunk imports are not part of the source module-request order.
+      let mut later_user_import = false;
+      let mut inline_sources = FxHashSet::default();
+      for key in chunk_link.raw_import_stmts.keys().rev() {
+        if removed_sources.contains(key) {
+          if later_user_import {
+            inline_sources.insert(key.clone());
+          }
+        } else if Self::is_user_module_import(key) {
+          later_user_import = true;
         }
+      }
 
-        let locals = specifiers
-          .atoms
-          .iter()
-          .map(|(imported, atom)| (atom.clone(), imported.clone()))
-          .chain(
-            specifiers
-              .default_import
-              .as_ref()
-              .map(|atom| vec![(atom.clone(), "default".into())])
-              .unwrap_or(vec![]),
-          )
-          .collect::<Vec<_>>();
-
-        // check if all atoms are not used, and only used for export
-        if locals.iter().all(|(local, _)| {
-          // not accessed but exported
-          !all_chunk_used_symbols.contains(local) && all_chunk_exported_symbols.contains_key(local)
-        }) {
-          // remove the import statement
-          removed_import_stmts.push((key.clone(), locals));
+      for (source, key) in star_removals {
+        let raw_key = RawImportSource::Source(key);
+        if inline_sources.contains(&raw_key) {
+          chunk_link.inlined_star_export_sources.insert(source);
+        } else {
+          chunk_link.raw_import_stmts.swap_remove(&raw_key);
         }
       }
 
       for (key, locals) in removed_import_stmts {
-        chunk_link
-          .raw_import_stmts
-          .swap_remove(&RawImportSource::Source(key.clone()));
+        let raw_key = RawImportSource::Source(key.clone());
+        if inline_sources.contains(&raw_key) {
+          chunk_link.inlined_reexport_requests.insert(key.0.clone());
+        } else {
+          chunk_link.raw_import_stmts.swap_remove(&raw_key);
+        }
 
         // change it from normal export to re-export
         for (local, imported) in locals {

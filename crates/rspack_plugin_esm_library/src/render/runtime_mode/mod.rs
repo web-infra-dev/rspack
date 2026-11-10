@@ -17,7 +17,7 @@ use self::{
   rspack_context::RspackContextRuntimeRenderer, rspack_export::RspackExportRuntimeRenderer,
   webpack::WebpackRuntimeRenderer,
 };
-use crate::chunk_link::{ChunkLinkContext, RawImportSource};
+use crate::chunk_link::{ChunkLinkContext, RawImportSource, ReExportFrom};
 
 static WEBPACK_RENDERER: WebpackRuntimeRenderer = WebpackRuntimeRenderer;
 static RSPACK_CONTEXT_RENDERER: RspackContextRuntimeRenderer = RspackContextRuntimeRenderer;
@@ -226,6 +226,29 @@ fn render_raw_import_stmts(
     };
     if should_skip {
       continue;
+    }
+
+    if let RawImportSource::Source((request, None)) = raw_import_source {
+      if chunk_link.inlined_star_export_sources.contains(request)
+        && let Some(export_names) = chunk_link.raw_star_exports.get(request)
+      {
+        source.add(RawStringSource::from(super::render_star_export_stmts(
+          request,
+          export_names,
+        )));
+        continue;
+      }
+      if chunk_link.inlined_reexport_requests.contains(request)
+        && let Some(export_symbols) = chunk_link
+          .re_exports()
+          .get(&ReExportFrom::Request(request.clone()))
+      {
+        source.add(RawStringSource::from(super::render_named_reexport_stmt(
+          request,
+          export_symbols,
+        )));
+        continue;
+      }
     }
 
     let (request, attr) = match raw_import_source {
