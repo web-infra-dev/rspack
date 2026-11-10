@@ -259,7 +259,10 @@ Important implementation details:
 
 - `OriginalSource` splits potential JavaScript tokens with `memchr`; it is not an AST tokenizer.
 - `SourceMapSource` composition indexes inner mappings by line and binary-searches the closest
-  preceding segment. Avoid rebuilding shared maps or eagerly splitting all `sourcesContent`.
+  preceding segment. Each entry keeps its `u32` generated column, optional `OriginalLocation`, and
+  borrowed `TextSpan` together in one per-line vector. Do not expand mapping fields into `i64`
+  sentinel arrays or allocate a parallel chunk vector. Avoid rebuilding shared maps or eagerly
+  splitting all `sourcesContent`.
 - `MappingSource` is the JSON asset itself, so `map()` returns `None`. It retains the original
   `SourceMap` without interning, deduplicating, or rewriting `sourcesContent`.
   Unedited `source()` and `buffer()` use the existing `SourceMap::to_json()` serializer on demand

@@ -178,19 +178,20 @@ fn build_rspack_source_map(
   let mut prev_dst_line = u32::MAX;
   let mut position_converter = SourceMapPositionConverter::default();
 
-  for (raw_pos, lc) in mappings {
+  // Encode each converted mapping without retaining a second vector alongside SWC's mappings.
+  let encoded_mappings = encode_mappings(mappings.iter().filter_map(|(raw_pos, lc)| {
     let pos = *raw_pos;
 
     if pos.is_reserved_for_comments() {
-      continue;
+      return None;
     }
 
     if lc.line == 0 && lc.col == 0 && pos.is_dummy() {
-      continue;
+      return None;
     }
 
     if pos == BytePos(u32::MAX) {
-      builder.add_mapping(Mapping {
+      return Some(Mapping {
         generated_line: lc.line + 1,
         generated_column: lc.col,
         original: Some(OriginalLocation {
@@ -200,17 +201,14 @@ fn build_rspack_source_map(
           name_index: None,
         }),
       });
-      continue;
     }
 
     let file = match cur_file {
       Some(ref file) if file.start_pos <= *raw_pos && *raw_pos < file.end_pos => file,
       _ => {
-        let Some(file) = swc_cm.try_lookup_source_file(*raw_pos).ok().flatten() else {
-          continue;
-        };
+        let file = swc_cm.try_lookup_source_file(*raw_pos).ok().flatten()?;
         if config.skip(&file.name) {
-          continue;
+          return None;
         }
 
         cur_src_id = builder.add_source(
@@ -223,28 +221,27 @@ fn build_rspack_source_map(
           builder.add_to_ignore_list(cur_src_id);
         }
 
-        cur_file = Some(file.clone());
+        cur_file = Some(file);
         cur_file.as_ref().expect("source file was just set")
       }
     };
 
     if config.skip(&file.name) {
-      continue;
+      return None;
     }
 
     if !config.emit_columns(&file.name) && lc.line == prev_dst_line {
-      continue;
+      return None;
     }
 
-    let Some((original_line, original_column)) = position_converter.convert(file, pos) else {
-      continue;
-    };
+    let (original_line, original_column) = position_converter.convert(file, pos)?;
 
     let name_index = config
       .name_for_bytepos(pos)
       .map(|name| builder.add_name(name));
 
-    builder.add_mapping(Mapping {
+    prev_dst_line = lc.line;
+    Some(Mapping {
       generated_line: lc.line + 1,
       generated_column: lc.col,
       original: Some(OriginalLocation {
@@ -253,11 +250,10 @@ fn build_rspack_source_map(
         original_column,
         name_index,
       }),
-    });
-    prev_dst_line = lc.line;
-  }
+    })
+  }));
 
-  let intermediate_map = builder.into_source_map();
+  let intermediate_map = builder.into_source_map(encoded_mappings);
   if let Some(input_source_map) = input_source_map {
     let name = intermediate_map
       .get_source(0)
@@ -279,7 +275,6 @@ fn build_rspack_source_map(
 
 #[derive(Default)]
 struct RspackSourceMapBuilder<'a> {
-  mappings: Vec<Mapping>,
   sources_content: Vec<Option<BytesStr>>,
   source_indices: FxHashMap<Cow<'a, str>, u32>,
   name_indices: FxHashMap<Cow<'a, str>, u32>,
@@ -312,13 +307,9 @@ impl<'a> RspackSourceMapBuilder<'a> {
     index
   }
 
-  fn add_mapping(&mut self, mapping: Mapping) {
-    self.mappings.push(mapping);
-  }
-
-  fn into_source_map(self) -> SourceMap {
+  fn into_source_map(self, mappings: String) -> SourceMap {
     let mut source_map = SourceMap::new(
-      encode_mappings(self.mappings.into_iter()).into(),
+      mappings.into(),
       ordered_texts(self.source_indices),
       self.sources_content,
       ordered_texts(self.name_indices),
