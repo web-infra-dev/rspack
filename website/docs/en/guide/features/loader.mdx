@@ -224,8 +224,9 @@ export default {
 
 Rspack checks the cache after the pitch phase and skips the normal transformation on a hit. Rspack caches adjacent loaders with `cache: true` together and checks loaders configured with `codeFilter` separately.
 
-### Known limitations
+:::tip
 
-- Rspack fingerprints only the entry file of a JavaScript loader. Register any helper or configuration files that affect the result with [`this.addDependency()`](/api/loader-api/context#thisadddependency) or [`this.addBuildDependency()`](/api/loader-api/context#thisaddbuilddependency).
-- The cache key uses JSON-serialized loader options, and cache lookup ignores the input source map. Pass settings that affect the result as JSON-serializable loader options. If the result depends on inputs Rspack cannot track, leave loader caching disabled.
-- Rspack bypasses caching when a loader calls `this.cacheable(false)`, adds a directory or missing dependency, or emits a warning or asset. Rspack also bypasses caching when `additionalData` enters or leaves the loader group being cached.
+- Loader options must be JSON-serializable.
+- The loader cache becomes invalid if a loader calls `this.cacheable(false)`, adds a directory or missing dependency, or emits a warning or asset.
+
+:::
