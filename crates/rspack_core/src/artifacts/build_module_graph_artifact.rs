@@ -29,9 +29,7 @@ pub struct BuildModuleGraphArtifact {
   ///
   /// This field is empty on the initial compilation.
   pub issuer_update_modules: IdentifierSet,
-  /// Cache session for this graph's current build, initialized only for the main graph.
-  ///
-  /// This session is neither recovered for incremental builds nor persisted.
+  /// Main-graph cache session for the current build; never recovered or persisted.
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
 
   // data

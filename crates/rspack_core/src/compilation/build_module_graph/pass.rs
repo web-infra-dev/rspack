@@ -33,9 +33,8 @@ impl PassExt for BuildModuleGraphPhasePass {
 
   async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
     cache.before_build_module_graph(compilation).await;
-    // Initialize after artifact recovery and before the make hook can build modules.
-    // Rebuilds own their invalidation path, so skip module restoration while
-    // still publishing rebuilt modules for subsequent compilations.
+    // Initialize after recovery and before make can build modules.
+    // Rebuilds publish modules but handle invalidation without cache restoration.
     compilation.build_module_graph_artifact.module_build_cache =
       compilation.options.experiments.new_cache.module.then(|| {
         ModuleBuildCache::new(
@@ -71,14 +70,10 @@ impl PassExt for BuildModuleGraphPhasePass {
   }
 
   async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) -> Result<()> {
-    if let Some(module_build_cache) = compilation
-      .build_module_graph_artifact
-      .module_build_cache
-      .clone()
-    {
+    if let Some(module_build_cache) = &compilation.build_module_graph_artifact.module_build_cache {
       module_build_cache
         .store_pending(
-          &mut compilation.build_module_graph_artifact,
+          &compilation.build_module_graph_artifact,
           &compilation.file_system_info,
         )
         .await?;
