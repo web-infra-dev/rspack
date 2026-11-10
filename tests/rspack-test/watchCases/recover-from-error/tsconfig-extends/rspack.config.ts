@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { defineConfig } from '@rspack/cli';
+import type { Compiler } from '@rspack/core';
 
 export default ['a.json', 'references.json'].map((configFile, index) =>
   defineConfig({
     output: { filename: `bundle${index}.js` },
     plugins: [
       {
-        apply(compiler) {
+        apply(compiler: Compiler) {
           compiler.options.resolve.tsConfig = {
             configFile: path.join(compiler.context, configFile),
             references: 'auto',
