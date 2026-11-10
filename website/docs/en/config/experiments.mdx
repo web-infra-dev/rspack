@@ -499,7 +499,7 @@ Rspack will use the input file system wrapped by `VirtualModulesPlugin`; other t
 
 ## experiments.portableCache
 
-<ApiMeta stability={Stability.Experimental} />
+<ApiMeta stability={Stability.Experimental} addedVersion="2.3.1" />
 
 - **Type:** `boolean | { seedFrom?: string; seed?: boolean }`
 - **Default:** `false`
@@ -518,3 +518,5 @@ Rspack reads Git's worktree metadata without running Git and lists every other w
 Each worktree owns an independent cache. On APFS, Rspack clones the whole cache unit in one copy-on-write call. Elsewhere it copies files with the platform copy, which clones them on filesystems that support it, such as Btrfs and XFS. Clones share disk blocks until either side changes. Otherwise the copy is a full copy. Rspack never uses hardlinks. Seeding skips a donor while a save is in progress, while it has an unfinished commit, or when its metadata changes during every copy attempt. A donor lock left by a process that has exited does not block seeding. When no donor is usable, the build starts cold. A later seed removes a copy left by an interrupted seed once the process that made it has exited, or after 24 hours when Rspack cannot tell. Rspack logs the outcome at info level, and the candidates and chosen donor at debug level, under `rspack.persistentCache`.
 
 The destination storage location must be inside the portable root. A location outside it, including one reached through a symlink, produces an infrastructure warning and disables seeding, because worktrees must not share a writable cache directory. Set `portableCache: { seed: false }` to disable seeding; remove the local cache as well when you want a cold build. Seeding currently applies only to the legacy cache backend with the native intermediate filesystem. Reuse still depends on normal cache validation and portable entry support.
+
+As with an in-place warm build, a seeded build trusts packages under managed paths such as `node_modules` when their package version is unchanged. Do not seed a worktree that applies a different patch to the same package version.
