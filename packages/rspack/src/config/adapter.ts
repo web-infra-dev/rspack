@@ -10,6 +10,7 @@ import {
   type RawAssetResourceGeneratorOptions,
   type RawCssAutoOrModuleParserOptions,
   type RawCssGeneratorOptions,
+  type RawIgnorePluginOptions,
   type RawCssModuleGeneratorOptions,
   type RawCssModuleParserOptions,
   type RawCssParserOptions,
@@ -180,14 +181,22 @@ function getRawCache(
   const rebaseLoaderRequests =
     typeof cache.portable === 'object' &&
     cache.portable.rebaseLoaderRequests === true;
-  // Plugins applied by other plugins read requests just like configured externals do.
+  const ignorePlugins = compiler.__internal__builtinPlugins.flatMap(
+    ({ name, options }) =>
+      name === BuiltinPluginName.IgnorePlugin
+        ? [options as RawIgnorePluginOptions]
+        : [],
+  );
+  // An `ExternalsPlugin` applied by another plugin reads requests just like configured externals
+  // do. So does `checkResource`, a function whose answers for two spellings Rspack can't compare.
   const requestPlugin =
     (rebaseLoaderRequests || compiler.options.experiments.portableCache) &&
-    compiler.__internal__builtinPlugins.find(
-      ({ name }) =>
-        name === BuiltinPluginName.ExternalsPlugin ||
-        name === BuiltinPluginName.IgnorePlugin,
-    );
+    (compiler.__internal__builtinPlugins.find(
+      ({ name }) => name === BuiltinPluginName.ExternalsPlugin,
+    ) ??
+      (ignorePlugins.some(({ checkResource }) => checkResource)
+        ? { name: BuiltinPluginName.IgnorePlugin }
+        : undefined));
   if (rebaseLoaderRequests && requestPlugin) {
     compiler.hooks.thisCompilation.tap(
       'rspack.persistentCache',
@@ -214,6 +223,12 @@ function getRawCache(
     portableRoot:
       typeof cache.portable === 'object' ? cache.portable.root : undefined,
     rebaseLoaderRequests: !requestPlugin && rebaseLoaderRequests,
+    // A request that a resource pattern matches in one spelling only keeps the loader's spelling.
+    ignoredRequests: ignorePlugins.flatMap(({ resourceRegExp }) =>
+      resourceRegExp
+        ? [{ source: resourceRegExp.source, flags: resourceRegExp.flags }]
+        : [],
+    ),
     warnLoaderRequests:
       !requestPlugin &&
       !rebaseLoaderRequests &&

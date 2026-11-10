@@ -7,7 +7,7 @@ import { closeCompiler, runCompiler } from "@rspack/test-tools/helper/lifecycle"
 
 /** @type {import("@rspack/test-tools").TCompilerCaseConfig} */
 export default {
-	description: "should preserve plugin externals and ignores when loader request rebasing is requested",
+	description: "should preserve plugin externals and ignores when loader request rebasing is requested, and keep rebasing next to an ignore pattern that reads both spellings alike",
 	async run() {
 		const root = fs.realpathSync.native(
 			fs.mkdtempSync(path.join(os.tmpdir(), "rspack-portable-request-guards-"))
@@ -28,6 +28,7 @@ module.exports = function () {
 	return "var api = require(" + JSON.stringify(path.join(this.rootContext, "node_modules/api/index.js")) + "); module.exports = api;";
 };
 `);
+			const absoluteApi = /^(?:\/|[A-Z]:[\\/]).*node_modules[\\/]api[\\/]index\.js$/i;
 			const external = ({ request }, callback) => {
 				if (/node_modules[\\/]api/.test(request)) callback(null, `commonjs ${request}`);
 				else callback();
@@ -38,12 +39,23 @@ module.exports = function () {
 				}),
 				externalsOption: () => ({ externals: external }),
 				externalsObject: () => ({ externals: { unused: "Unused" } }),
+				// The pattern matches the absolute spelling only, so this request keeps it.
 				ignorePlugin: () => ({
 					plugins: [{ apply(compiler) {
-						new rspack.IgnorePlugin({ resourceRegExp: /^(?:\/|[A-Z]:[\\/]).*node_modules[\\/]api[\\/]index\.js$/i }).apply(compiler);
+						new rspack.IgnorePlugin({ resourceRegExp: absoluteApi }).apply(compiler);
 					} }]
+				}),
+				// A function can't be compared across spellings, so it turns rebasing off.
+				ignoreCheckResource: () => ({
+					plugins: [new rspack.IgnorePlugin({ checkResource: resource => absoluteApi.test(resource) })]
+				}),
+				// A pattern that reads both spellings alike leaves rebasing on.
+				ignoreOtherRequest: () => ({
+					plugins: [new rspack.IgnorePlugin({ resourceRegExp: /moment/, contextRegExp: /pikaday/ })]
 				})
 			};
+			const ignored = ["ignorePlugin", "ignoreCheckResource"];
+			const disabled = ["externalsPlugin", "externalsOption", "externalsObject", "ignoreCheckResource"];
 			for (const [name, configure] of Object.entries(variants)) {
 				for (const rebaseLoaderRequests of [false, true]) {
 					const compiler = rspack({
@@ -75,12 +87,24 @@ module.exports = function () {
 							runtime, runtime.exports, createRequire(filename)
 						);
 						expect({ name, rebaseLoaderRequests, value: runtime.exports }).toEqual({
-							name, rebaseLoaderRequests, value: name === "ignorePlugin" ? "ignored" : "api"
+							name, rebaseLoaderRequests, value: ignored.includes(name) ? "ignored" : "api"
 						});
 						const warnings = (stats.toJson({ all: false, logging: "warn" }).logging?.["rspack.persistentCache"]?.entries ?? [])
 							.map(entry => entry.message).filter(message => message.includes("rebaseLoaderRequests"));
-						expect(warnings).toHaveLength(rebaseLoaderRequests ? 1 : 0);
-						if (rebaseLoaderRequests) expect(warnings[0]).toContain("disabled");
+						expect({ name, warnings: warnings.length }).toEqual({
+							name, warnings: rebaseLoaderRequests && disabled.includes(name) ? 1 : 0
+						});
+						if (warnings.length) expect(warnings[0]).toContain("disabled");
+						if (name === "ignoreOtherRequest") {
+							// The request the loader wrote is spelled relative to the module only when rebased.
+							const requests = stats.toJson({ all: false, modules: true, reasons: true }).modules
+								.find(module => module.name.includes("node_modules/api/index.js"))
+								.reasons.filter(reason => reason.type === "cjs require")
+								.map(reason => path.isAbsolute(reason.userRequest));
+							expect({ rebaseLoaderRequests, requests }).toEqual({
+								rebaseLoaderRequests, requests: [!rebaseLoaderRequests]
+							});
+						}
 					} finally {
 						await closeCompiler(compiler);
 					}

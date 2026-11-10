@@ -2013,6 +2013,7 @@ export interface RawCacheOptionsPersistent {
   portableRoot?: string
   rebaseLoaderRequests?: boolean
   warnLoaderRequests?: boolean
+  ignoredRequests?: Array<RawRequestPattern>
   readonly?: boolean
 }
 
@@ -3020,6 +3021,12 @@ export interface RawRemoteOptions {
   key: string
   external: Array<string>
   shareScope: string | Array<string>
+}
+
+/** The source and flags of a JavaScript `RegExp`. */
+export interface RawRequestPattern {
+  source: string
+  flags: string
 }
 
 export interface RawResolveOptions {

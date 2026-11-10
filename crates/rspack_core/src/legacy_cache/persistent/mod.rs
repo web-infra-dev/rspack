@@ -89,9 +89,16 @@ impl PersistentCache {
       validation: CacheValidation::new(
         codec.clone(),
         format!(
-          "{}|{}|{}",
+          "{}|{}|{:?}|{}",
           rspack_pkg_version!(),
           option.rebase_loader_requests,
+          // A cached module holds the spelling these patterns chose for each of its requests.
+          option
+            .ignored_requests
+            .iter()
+            .filter(|_| option.rebase_loader_requests)
+            .map(|pattern| (pattern.source(), pattern.flags()))
+            .collect::<Vec<_>>(),
           codec.validation_version(&option.version, compiler_options.context.as_path())
         ),
         BuildDeps::new(

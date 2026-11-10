@@ -37,6 +37,7 @@ use rspack_core::{
 use rspack_hash::RspackHasher;
 use rspack_location::portable::quote_ascii;
 use rspack_paths::{Utf8Component, Utf8Path, Utf8PathBuf};
+use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap, FxHashSet};
 use simd_utf16_len::utf16_len;
 use swc_next_allocator::{Allocator, wtf8::Wtf8};
@@ -307,11 +308,14 @@ fn relative_request(request: &str, context: &Utf8Path, root: &PortableRoot) -> O
 
 /// Rewrites each whole string literal below the root that the scan proved is a module request or
 /// removed code. Equal strings elsewhere are left alone, so they keep the module bound to its root.
+/// So is a request that an `IgnorePlugin` pattern in `ignored` matches in one spelling only, because
+/// the plugin would decide it differently once it is rewritten.
 pub(crate) fn relativize_requests(
   source: &BoxSource,
   scanned: &ParseResult,
   context: &Utf8Path,
   root: &PortableRoot,
+  ignored: &[RspackRegex],
   source_type: SwcSourceType,
   lang: Lang,
 ) -> Option<BoxSource> {
@@ -362,6 +366,9 @@ pub(crate) fn relativize_requests(
     });
     if (is_request || removed.iter().any(|range| encloses(range, span)))
       && let Some(relative) = relative_request(value, context, root)
+      && ignored
+        .iter()
+        .all(|pattern| pattern.test(value) == pattern.test(&relative))
     {
       sites.push((*span, relative));
     }

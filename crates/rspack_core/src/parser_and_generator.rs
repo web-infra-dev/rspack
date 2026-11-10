@@ -10,6 +10,7 @@ use rspack_hash::RspackHashDigest;
 use rspack_intern::Atom;
 use rspack_loader_runner::{AdditionalData, ParseMeta, ParseMetaValue, ResourceData};
 use rspack_paths::Utf8PathBuf;
+use rspack_regex::RspackRegex;
 use rspack_sources::BoxSource;
 use rspack_util::{ext::AsAny, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -75,6 +76,8 @@ pub struct PortableRequests<'a> {
   pub root: &'a PortableRoot,
   /// Whether parsers rewrite the requests or only record them in `BuildInfo`.
   pub rebase: bool,
+  /// `IgnorePlugin` resource patterns, which read the request as it is spelled.
+  pub ignored: &'a [RspackRegex],
 }
 
 #[derive(Debug)]

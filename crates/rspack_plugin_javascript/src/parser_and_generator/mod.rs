@@ -553,6 +553,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             &scanned.result,
             module_context.as_path(),
             requests.root,
+            requests.ignored,
             source_type,
             lang,
           )

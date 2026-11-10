@@ -1161,6 +1161,7 @@ impl NormalModule {
     Some(PortableRequests {
       root,
       rebase: cache.rebase_loader_requests,
+      ignored: &cache.ignored_requests,
     })
   }
 

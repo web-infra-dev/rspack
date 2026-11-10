@@ -204,6 +204,7 @@ fn persistent_compiler(project_dir: &Path, cache_dir: &Path) -> rspack::builder:
       portable_root: None,
       rebase_loader_requests: false,
       warn_loader_requests: false,
+      ignored_requests: Vec::new(),
       readonly: false,
       max_age: 0,
       max_memory_generations: MaxMemoryGenerations::Infinity,
