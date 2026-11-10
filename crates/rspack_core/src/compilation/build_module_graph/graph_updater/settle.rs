@@ -6,6 +6,7 @@ use rustc_hash::FxHashSet;
 
 use super::{
   UpdateParam,
+  cutout::repair_issuer_cycles,
   repair::{
     context::TaskContext,
     factorize::{FactorizeInput, is_side_effect_only_import},
@@ -45,7 +46,23 @@ struct VerifyContext {
   /// The target and group, in the form of `ModuleGraphModule::producer`, of every group reachable
   /// from the entries in the current graph.
   reaching: FxHashSet<(ModuleIdentifier, Option<ProducerGroup>)>,
+  /// The modules reachable from the entries in the current graph.
+  reachable: IdentifierSet,
+  /// The targets of `disagreements` per parent of a disagreeing group.
+  reporters: IdentifierMap<IdentifierSet>,
+  /// The targets to decide again, because their groups, producer or reaching groups changed.
+  pending: IdentifierSet,
+  /// The targets with a deciding group, and the producer of that group.
+  deciding: IdentifierMap<Option<ProducerGroup>>,
+  /// The deciding targets that wait for the rebuild of a parent of their deciding group, per parent.
+  waiters: IdentifierMap<IdentifierSet>,
+  /// The deciding targets that wait for their deciding group to be refactorized.
+  refactor_waiters: Vec<ModuleIdentifier>,
+  /// The modules rebuilt by the last update, whose waiters can decide now.
+  released: Vec<ModuleIdentifier>,
 }
+
+type GroupTarget = (ModuleIdentifier, Option<ProducerGroup>);
 
 /// What a factory produced for a module, which a fresh factory result must reproduce for the
 /// module to be kept.
@@ -176,6 +193,14 @@ impl Task<VerifyContext> for CompareTask {
               module,
               producer: self.recorded.producer,
             });
+          if let Some(parent) = self.recorded.parent {
+            context
+              .reporters
+              .entry(parent)
+              .or_default()
+              .insert(*recorded);
+          }
+          context.pending.insert(*recorded);
         }
       }
       (GroupOutcome::Ignored, GroupOutcome::Ignored)
@@ -201,6 +226,9 @@ impl Task<VerifyContext> for CompareTask {
 ///
 /// A rebuild replaces the groups of a module, so a group whose parent is being rebuilt cannot
 /// decide yet. Its target waits for the next iteration, when the fresh groups have reported.
+///
+/// Only the targets whose groups changed are decided again, and only the waiters of a parent that
+/// stopped rebuilding are checked again, so a chain of rebuilds costs what it changes.
 fn rebuild_disagreeing_modules(
   artifact: &mut BuildModuleGraphArtifact,
   context: &mut VerifyContext,
@@ -212,6 +240,11 @@ fn rebuild_disagreeing_modules(
     reaching,
     rebuild,
     rebuilt,
+    pending,
+    deciding,
+    waiters,
+    refactor_waiters,
+    released,
     ..
   } = context;
   let BuildModuleGraphArtifact {
@@ -222,86 +255,157 @@ fn rebuild_disagreeing_modules(
   // A decision that differs on every factory call can never settle, as with a function `use`
   // that returns a timestamp in its options.
   rebuild.retain(|id| !rebuilt.contains(id));
-  let mut deciding = IdentifierMap::default();
-  disagreements.retain(|target, groups| {
-    if rebuilt.contains(target) {
-      return false;
-    }
-    let Some(mgm) = module_graph.module_graph_module_by_identifier(target) else {
-      return false;
+  let mut checking = std::mem::take(refactor_waiters);
+  for parent in released.drain(..) {
+    pending.insert(parent);
+    checking.extend(waiters.remove(&parent).into_iter().flatten());
+  }
+  for target in pending.drain() {
+    let mgm = module_graph
+      .module_graph_module_by_identifier(&target)
+      .filter(|_| !rebuilt.contains(&target));
+    let Some(mgm) = mgm else {
+      disagreements.remove(&target);
+      if deciding.remove(&target).is_some() {
+        checking.extend(waiters.remove(&target).into_iter().flatten());
+      }
+      continue;
     };
     let producer = mgm.producer();
-    let group = if reaching.contains(&(*target, producer)) {
-      groups.iter().position(|group| group.producer == producer)
-    } else {
-      groups
-        .iter()
-        .position(|group| reaching.contains(&(*target, group.producer)))
-    };
-    if let Some(group) = group {
-      deciding.insert(*target, group);
+    let group = disagreements.get(&target).and_then(|groups| {
+      if reaching.contains(&(target, producer)) {
+        groups.iter().find(|group| group.producer == producer)
+      } else {
+        groups
+          .iter()
+          .find(|group| reaching.contains(&(target, group.producer)))
+      }
+    });
+    match group {
+      Some(group) => {
+        deciding.insert(target, group.producer);
+        checking.push(target);
+      }
+      // A target that stops deciding stops blocking its waiters.
+      None => {
+        if deciding.remove(&target).is_some() {
+          checking.extend(waiters.remove(&target).into_iter().flatten());
+        }
+      }
     }
-    true
-  });
-  let rebuilding = rebuild
-    .iter()
-    .chain(deciding.keys())
-    .copied()
-    .collect::<IdentifierSet>();
-  let (mut ready, waiting): (Vec<_>, Vec<_>) = deciding.into_iter().partition(|(target, group)| {
-    disagreements[target][*group]
-      .producer
-      .is_none_or(|producer| {
-        !rebuilding.contains(&producer.parent) && !refactorizing.contains(&producer)
-      })
-  });
+  }
+  let mut ready = vec![];
+  for target in checking {
+    let Some(producer) = deciding.get(&target) else {
+      continue;
+    };
+    match producer {
+      Some(producer)
+        if rebuild.contains(&producer.parent) || deciding.contains_key(&producer.parent) =>
+      {
+        waiters.entry(producer.parent).or_default().insert(target);
+      }
+      Some(producer) if refactorizing.contains(producer) => refactor_waiters.push(target),
+      _ => ready.push(target),
+    }
+  }
+  ready.sort_unstable();
+  ready.dedup();
   // The targets of an import cycle can wait for each other, and then no rebuild ever comes. One has
   // to decide first, and the fresh groups of its rebuild report to the others.
   if ready.is_empty() && rebuild.is_empty() && refactorize.is_empty() {
-    ready.extend(waiting.into_iter().min_by_key(|(target, _)| *target));
+    ready.extend(deciding.keys().min().copied());
   }
-  for (target, group) in ready {
+  for target in ready {
+    let producer = deciding
+      .remove(&target)
+      .expect("should have the deciding group of a ready target");
     let mut groups = disagreements
       .remove(&target)
       .expect("should have disagreements of a deciding target");
+    let group = groups
+      .iter()
+      .position(|group| group.producer == producer)
+      .expect("should have the deciding group");
     factory_choices.insert(target, groups.swap_remove(group));
     rebuild.insert(target);
   }
   rebuilt.extend(rebuild.iter().copied());
 }
 
+/// A factory can replace the first dependency of a group, and the producer holds the result.
+fn group_producer(
+  artifact: &BuildModuleGraphArtifact,
+  parent: Option<ModuleIdentifier>,
+  id: DependencyId,
+) -> Option<ProducerGroup> {
+  parent.and_then(|parent| {
+    let owner = artifact
+      .factorize_info(&id)
+      .map_or(id, FactorizeInfo::owner_dep_id);
+    producer_group(parent, artifact.get_module_graph().dependency_by_id(&owner))
+  })
+}
+
+/// The targets and groups of the dependencies of `parent`, or `None` when it left the graph.
+fn group_targets(
+  artifact: &BuildModuleGraphArtifact,
+  parent: ModuleIdentifier,
+) -> Option<FxHashSet<GroupTarget>> {
+  let graph = artifact.get_module_graph();
+  let module = graph.module_graph_module_by_identifier(&parent)?;
+  Some(
+    module
+      .all_dependencies()
+      .iter()
+      .filter_map(|id| {
+        let target = graph.module_identifier_by_dependency_id(id)?;
+        Some((*target, group_producer(artifact, Some(parent), *id)))
+      })
+      .collect(),
+  )
+}
+
+/// The groups to verify, found from the entries, or from `changed` modules when the graph only
+/// gained groups since the last walk.
 fn unverified_groups(
   compilation: &Compilation,
   artifact: &BuildModuleGraphArtifact,
   build_context: &Arc<BuildContext>,
   context: &mut VerifyContext,
+  changed: Option<Vec<ModuleIdentifier>>,
 ) -> Vec<Box<dyn Task<VerifyContext>>> {
   let graph = artifact.get_module_graph();
   let mut tasks: Vec<Box<dyn Task<VerifyContext>>> = vec![];
-  let mut queue = vec![(
-    None,
-    super::super::entry_dependencies(compilation)
+  let mut queue = match changed {
+    Some(changed) => changed
       .into_iter()
-      .collect::<Vec<_>>(),
-  )];
-  let mut reachable = IdentifierSet::default();
-  context.reaching.clear();
+      .filter_map(|id| {
+        let module = graph.module_graph_module_by_identifier(&id)?;
+        Some((Some(id), module.all_dependencies().to_vec()))
+      })
+      .collect(),
+    None => {
+      context.reachable.clear();
+      context.reaching.clear();
+      vec![(
+        None,
+        super::super::entry_dependencies(compilation)
+          .into_iter()
+          .collect::<Vec<_>>(),
+      )]
+    }
+  };
   while let Some((parent_id, ids)) = queue.pop() {
     let parent = parent_id.and_then(|id| graph.module_by_identifier(&id));
     let inputs = parent
       .map(|parent| build_input_dependencies(parent.as_ref()))
       .unwrap_or_default();
     for id in ids {
-      // A factory can replace the first dependency of a group, and the producer holds the result.
-      let producer = parent_id.and_then(|parent| {
-        let owner = artifact
-          .factorize_info(&id)
-          .map_or(id, FactorizeInfo::owner_dep_id);
-        producer_group(parent, graph.dependency_by_id(&owner))
-      });
+      let producer = group_producer(artifact, parent_id, id);
       if let Some(target) = graph.module_identifier_by_dependency_id(&id) {
         context.reaching.insert((*target, producer));
-        if reachable.insert(*target)
+        if context.reachable.insert(*target)
           && let Some(module) = graph.module_graph_module_by_identifier(target)
         {
           queue.push((Some(*target), module.all_dependencies().to_vec()));
@@ -392,8 +496,15 @@ pub(in super::super) async fn settle_factory_decisions(
   let build_context = TaskContext::build_context(compilation);
   let mut changed_targets = 0;
   let mut changed_modules = 0;
+  let mut changed = None;
   loop {
-    let tasks = unverified_groups(compilation, &artifact, &build_context, &mut context);
+    let tasks = unverified_groups(
+      compilation,
+      &artifact,
+      &build_context,
+      &mut context,
+      changed.take(),
+    );
     run_task_loop(&mut context, tasks).await?;
     rebuild_disagreeing_modules(&mut artifact, &mut context);
     if context.refactorize.is_empty() && context.rebuild.is_empty() {
@@ -411,19 +522,25 @@ pub(in super::super) async fn settle_factory_decisions(
     let VerifyContext {
       rebuild,
       disagreements,
+      reporters,
+      pending,
+      released,
       ..
     } = &mut context;
-    let replaced = |choice: &FactoryChoice| {
+    for parent in rebuild.iter() {
+      for target in reporters.remove(parent).into_iter().flatten() {
+        if let Some(groups) = disagreements.get_mut(&target) {
+          groups.retain(|choice| choice.producer.is_none_or(|group| group.parent != *parent));
+          pending.insert(target);
+        }
+      }
+    }
+    released.extend(rebuild.iter().copied());
+    artifact.factory_choices.retain(|_, choice| {
       choice
         .producer
-        .is_some_and(|group| rebuild.contains(&group.parent))
-    };
-    for groups in disagreements.values_mut() {
-      groups.retain(|choice| !replaced(choice));
-    }
-    artifact
-      .factory_choices
-      .retain(|_, choice| !replaced(choice));
+        .is_none_or(|group| !rebuild.contains(&group.parent))
+    });
     for id in &context.refactorize {
       if let Some(info) = artifact.factorize_info(id)
         && context.repaired.insert(info.owner_dep_id())
@@ -431,11 +548,26 @@ pub(in super::super) async fn settle_factory_decisions(
         context.verified.remove(&info.owner_dep_id());
       }
     }
+    // Only the rebuilt modules and the parents of refactorized groups change their groups. When
+    // they keep every group they had, nothing became unreachable, and their new groups are the
+    // only ones left to walk. Otherwise the next walk starts over from the entries.
+    let graph = artifact.get_module_graph();
+    let parents = context
+      .refactorize
+      .iter()
+      .map(|id| graph.get_parent_module(id).copied())
+      .chain(context.rebuild.iter().copied().map(Some))
+      .collect::<Option<IdentifierSet>>();
+    let before = parents.map(|parents| {
+      parents
+        .into_iter()
+        .map(|parent| (parent, group_targets(&artifact, parent)))
+        .collect::<Vec<_>>()
+    });
     changed_targets += context.refactorize.len();
     changed_modules += context.rebuild.len();
     artifact.refactorize_dependencies = std::mem::take(&mut context.refactorize);
     context.refactorizing.clear();
-    artifact.check_issuer_cycles = true;
     (artifact, exports) = update_module_graph(
       compilation,
       artifact,
@@ -446,5 +578,36 @@ pub(in super::super) async fn settle_factory_decisions(
       ],
     )
     .await?;
+    // The targets whose groups changed decide again.
+    let mut added = false;
+    changed = before.and_then(|before| {
+      let mut changed = Vec::with_capacity(before.len());
+      for (parent, before) in before {
+        let after = group_targets(&artifact, parent)?;
+        for (target, _) in before.iter().flatten().chain(&after) {
+          if context.disagreements.contains_key(target) {
+            context.pending.insert(*target);
+          }
+        }
+        added |= after
+          .iter()
+          .any(|(target, _)| !context.reachable.contains(target));
+        if !before.is_none_or(|before| before.is_subset(&after)) {
+          return None;
+        }
+        changed.push(parent);
+      }
+      Some(changed)
+    });
+    if changed.is_none() {
+      context
+        .pending
+        .extend(context.disagreements.keys().copied());
+    }
+    // A rebuild restores the issuer of its module, so only a module added to the graph, such as one
+    // that cache recovery dropped, can close an issuer cycle.
+    if added || changed.is_none() {
+      repair_issuer_cycles(&mut artifact);
+    }
   }
 }

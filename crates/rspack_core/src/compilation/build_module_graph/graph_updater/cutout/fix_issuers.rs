@@ -206,7 +206,7 @@ impl FixIssuers {
 
   /// Gives every module on an issuer cycle a parent whose issuer chain reaches an entry without
   /// passing through the module, or no issuer when none does.
-  fn repair_issuer_cycles(artifact: &mut BuildModuleGraphArtifact) {
+  pub(super) fn repair_issuer_cycles(artifact: &mut BuildModuleGraphArtifact) {
     let reaches_entry =
       |module_graph: &ModuleGraph, from: &ModuleIdentifier, base: &ModuleIdentifier| {
         let mut seen = IdentifierSet::default();

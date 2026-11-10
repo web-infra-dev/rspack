@@ -11,6 +11,8 @@ import {
 } from "@rspack/test-tools/helper/lifecycle";
 
 const transform = "./transform.cjs";
+// Long enough that settling the cycle one producer at a time over the whole graph would time out.
+const CYCLE_SIZE = 3000;
 
 async function build(context, configuration, cache = { type: "persistent", portable: true }) {
 	const compiler = rspack({
@@ -938,6 +940,33 @@ export default [
 				copyTree(writer, reader);
 				const moved = runChild({ ...options, context: reader, cached: true }, heap);
 				expect(moved.built).toEqual([]);
+			});
+		}
+	},
+	{
+		name: "changed-import-cycle",
+		description: "rebuilds every module of a long import cycle whose loader option changes, matching a cold build",
+		async run() {
+			const size = CYCLE_SIZE;
+			await withProjects({
+				"src/index.js": 'module.exports = require("./m0.js");',
+				"cycle.cjs": "module.exports = function (source) { return source.replace('original', this.getOptions().value); };",
+				...Object.fromEntries(Array.from({ length: size }, (_, index) => [
+					`src/m${index}.js`,
+					`exports.value = "original"; require("./m${(index + 1) % size}.js");`
+				]))
+			}, async (writer, reader) => {
+				const configuration = (context) => ({
+					module: { rules: [{ test: /m\d+\.js$/, use: () => [{
+						loader: "./cycle.cjs",
+						options: { value: context === writer ? "writer" : "reader" }
+					}] }] }
+				});
+				await build(writer, configuration(writer));
+				copyTree(writer, reader);
+				const moved = await build(reader, configuration(reader));
+				expect(moved.built).toHaveLength(size);
+				await expectColdEquality(reader, configuration(reader), moved);
 			});
 		}
 	},
