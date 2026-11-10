@@ -124,12 +124,11 @@ impl StrategyHelper {
   }
 
   /// Inspect the snapshot root before any path shortcuts.
-  pub async fn is_symlink(&self, path: &InternedPath) -> Option<bool> {
+  pub async fn is_symlink(&self, path: &InternedPath) -> rspack_fs::Result<bool> {
     self
       .fs
       .symlink_metadata(path.assert_utf8())
       .await
-      .ok()
       .map(|m| m.is_symlink)
   }
 

@@ -10,7 +10,9 @@ describeByWalk(
 		if (new Set([
 			"snapshot-refresh-after-compile",
 			"snapshot-refresh-plugin-overlap",
-			"context-snapshot-after-compile"
+			"context-snapshot-after-compile",
+			"missing-file-dependency",
+			"unresolvable-context-links"
 		]).has(path.basename(src)) && path.basename(path.dirname(src)) === "portable") {
 			const variant = `${name}-non-portable`;
 			createCacheCase(variant, src, `${dist}-non-portable`, "async-node", path.join(tempDir, variant), { portable: false });

@@ -50,7 +50,7 @@ impl Snapshot {
     match helper.is_symlink(path).await {
       // A context lists the linked directory, so it keeps the content hash. Other scopes only
       // need the link target and a shallow identity of it.
-      Some(true) => {
+      Ok(true) => {
         return Some(match scope {
           SnapshotScope::CONTEXT => helper.dir_hash(path).await,
           _ => {
@@ -60,8 +60,13 @@ impl Snapshot {
           }
         });
       }
-      None if !matches!(scope, SnapshotScope::MISSING) => return Some(Strategy::Failed),
-      _ => {}
+      Err(rspack_fs::Error::Io(error))
+        if matches!(
+          error.kind(),
+          std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory
+        ) => {}
+      Err(_) => return Some(Strategy::Failed),
+      Ok(false) => {}
     }
     let path_str = path.to_string_lossy();
     if options.is_immutable_path(&path_str) {
