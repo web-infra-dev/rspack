@@ -5709,6 +5709,7 @@ dependencies = [
  "serde",
  "serde_json",
  "simd-json",
+ "tempfile",
  "thiserror 2.0.21",
  "tokio",
  "tracing",
