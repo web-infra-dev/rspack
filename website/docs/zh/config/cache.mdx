@@ -249,7 +249,7 @@ export default {
 
 这也适用于 Rspack 移除的分支中的请求，例如未启用 HMR 时的 `if (module.hot)`。读取请求的插件看到的是相对路径。模块也会变小，因此 [`optimization.splitChunks`](/plugins/split-chunks-plugin) 的分包结果可能与未启用此选项时不同。修改此选项会启用新的缓存。启用 [`experiments.portableCache`](/config/experiments#experimentsportablecache) 且未启用此选项时，如果构建中发现此选项可以改写的请求，Rspack 会通过 `rspack.persistentCache` 输出一条警告。
 
-启用此选项后，Rspack 假定这类路径是针对当前检出目录计算的。如果资源文件或 loader 添加为依赖的文件中包含根目录，或者设置了 [`externals`](/config/externals)、[`resolve.roots`](/config/resolve#resolveroots)，或 [`resolve.alias`](/config/resolve#resolvealias)、[`resolve.fallback`](/config/resolve#resolvefallback) 中的绝对路径键，由于它们读取绝对路径写法，路径会保持原样。如果 loader 通过其他方式获取路径（例如来自指向某个检出目录的环境变量），迁移后该路径会指向新的检出目录。这类 loader 应调用 `this.cacheable(false)`，或不启用此选项。
+启用此选项后，Rspack 假定这类路径是针对当前检出目录计算的。如果应用了 `ExternalsPlugin`（包括 [`externals`](/config/externals)）或 `IgnorePlugin`，则会禁用请求改写，因为这些插件可能依赖绝对路径写法。Rspack 会在每次编译中通过 `rspack.persistentCache` 输出一次禁用原因。如果资源文件或 loader 添加为依赖的文件中包含根目录，或者设置了 [`resolve.roots`](/config/resolve#resolveroots)，或 [`resolve.alias`](/config/resolve#resolvealias)、[`resolve.fallback`](/config/resolve#resolvefallback) 中的绝对路径键，路径也会保持原样。如果 loader 通过其他方式获取路径（例如来自指向某个检出目录的环境变量），迁移后该路径会指向新的检出目录。这类 loader 应调用 `this.cacheable(false)`，或不启用此选项。
 
 Rspack 还会将 `resolve` 选项中位于根目录内的绝对路径（例如 [`resolve.alias`](/config/resolve#resolvealias) 和 [`resolve.modules`](/config/resolve#resolvemodules)）视为随检出目录移动的路径。迁移后，如果某个检出目录的 `resolve` 选项指向另一个检出目录中的路径，Rspack 会重新解析请求，并保留模块构建结果。迁移后的构建会在读取缓存的检出目录重新运行模块工厂，包括工厂钩子和 `module.rules` 条件。工厂决策一致时，Rspack 保留缓存的构建结果；决策变化时则修复，包括匹配规则中的 loader 选项。被多个导入方共享的模块由产生其缓存构建的导入方决定，这与全新构建一致：在全新构建中，最先到达该模块的导入方决定它的构建。符号链接通过其相对于根目录的目标进行校验，因此相对链接在迁移后仍然有效，而指向另一个检出目录的链接则会失效。这也包括迁移后才出现的链接，例如 `node_modules` 链接到主检出目录的 worktree。
 

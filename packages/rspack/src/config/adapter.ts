@@ -1,6 +1,7 @@
 import { findSeedDonors } from './portableCache';
 import path from 'node:path';
 import {
+  BuiltinPluginName,
   type RawAssetGeneratorDataUrlFnCtx,
   type RawAssetGeneratorOptions,
   type RawAssetInlineGeneratorOptions,
@@ -179,6 +180,26 @@ function getRawCache(
   const rebaseLoaderRequests =
     typeof cache.portable === 'object' &&
     cache.portable.rebaseLoaderRequests === true;
+  // Plugins applied by other plugins read requests just like configured externals do.
+  const requestPlugin =
+    (rebaseLoaderRequests || compiler.options.experiments.portableCache) &&
+    compiler.__internal__builtinPlugins.find(
+      ({ name }) =>
+        name === BuiltinPluginName.ExternalsPlugin ||
+        name === BuiltinPluginName.IgnorePlugin,
+    );
+  if (rebaseLoaderRequests && requestPlugin) {
+    compiler.hooks.thisCompilation.tap(
+      'rspack.persistentCache',
+      (compilation) => {
+        compilation
+          .getLogger('rspack.persistentCache')
+          .warn(
+            `cache.portable.rebaseLoaderRequests is disabled because ${requestPlugin.name} reads module requests. Absolute loader requests will be kept.`,
+          );
+      },
+    );
+  }
   return {
     type: cache.type,
     buildDependencies: cache.buildDependencies,
@@ -192,9 +213,9 @@ function getRawCache(
     },
     portableRoot:
       typeof cache.portable === 'object' ? cache.portable.root : undefined,
-    rebaseLoaderRequests: !compiler.options.externals && rebaseLoaderRequests,
+    rebaseLoaderRequests: !requestPlugin && rebaseLoaderRequests,
     warnLoaderRequests:
-      !compiler.options.externals &&
+      !requestPlugin &&
       !rebaseLoaderRequests &&
       Boolean(compiler.options.experiments.portableCache),
     seedDonors: findSeedDonors(cache, compiler),
