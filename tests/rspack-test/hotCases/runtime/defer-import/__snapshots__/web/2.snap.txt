@@ -8,7 +8,7 @@
 - Bundle: async_js.chunk.CURRENT_HASH.js
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 33296
+- Update: main.LAST_HASH.hot-update.js, size: 33295
 
 ## Manifest
 
@@ -208,7 +208,6 @@ __webpack_require__.e = (chunkId) => {
 		return result;
 	}) : promise;
 };
-
 })();
 // webpack/runtime/get javascript chunk filename
 (() => {
