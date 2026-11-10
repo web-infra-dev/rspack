@@ -74,7 +74,6 @@ const excludes = {
 		/^loader\/binary-with-source-map$/,
 		/^source-map\/devtool-skip-non-js-css-assets$/,
 		/^source-map\/empty-mapping$/,
-		/^source-map\/exclude-chunks-source-map$/,
 
 		// Independent shared fallback compilers write to the same cache database as their parent.
 		/^container-1-5\/tree-shaking-shared-provide-only$/,
