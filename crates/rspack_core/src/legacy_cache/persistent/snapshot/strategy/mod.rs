@@ -82,6 +82,9 @@ impl PartialEq for Strategy {
       (Self::DirTimestampAndHash { hash: h1, .. }, Self::DirTimestampAndHash { hash: h2, .. }) => {
         h1 == h2
       }
+      (Self::LinkHash { hash: h1, deep: d1 }, Self::LinkHash { hash: h2, deep: d2 }) => {
+        h1 == h2 && d1 == d2
+      }
       (Self::Missing, Self::Missing) => true,
       (Self::Failed, Self::Failed) => true,
       _ => false,

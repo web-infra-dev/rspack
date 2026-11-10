@@ -686,6 +686,40 @@ async fn context_validation_keeps_its_single_observation() {
   assert!(modified.contains(&path));
 }
 
+#[test]
+fn equal_link_snapshots_compare_equal() {
+  assert_eq!(
+    Strategy::LinkHash {
+      hash: 42,
+      deep: false
+    },
+    Strategy::LinkHash {
+      hash: 42,
+      deep: false
+    }
+  );
+  assert_ne!(
+    Strategy::LinkHash {
+      hash: 42,
+      deep: false
+    },
+    Strategy::LinkHash {
+      hash: 42,
+      deep: true
+    }
+  );
+  assert_ne!(
+    Strategy::LinkHash {
+      hash: 42,
+      deep: false
+    },
+    Strategy::LinkHash {
+      hash: 43,
+      deep: false
+    }
+  );
+}
+
 #[tokio::test]
 async fn inaccessible_file_dependency_does_not_become_missing() {
   use std::{fs, os::unix::fs::PermissionsExt};
