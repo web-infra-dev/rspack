@@ -196,7 +196,9 @@ For more details, see [rules[].use.parallel](/config/module-rules#rulesuseparall
 
 ## Loader cache
 
-Set `cache: true` on a loader in `module.rules[].use` to reuse its transformation results across builds when its input code, version, options, and tracked file and build dependencies are unchanged.
+The module build cache reuses the result of running the full loader chain and parsing the module. The loader cache can reuse a transformation even when the module needs to be rebuilt.
+
+Set `cache: true` on an individual loader in `module.rules[].use` to cache its output. Rspack uses the code passed to the loader, its options, and its version to look up the cached output. The tracked file and build dependencies must also remain valid.
 
 :::info
 
@@ -221,8 +223,6 @@ export default {
   },
 };
 ```
-
-Rspack checks the cache after the pitch phase and skips the normal transformation on a hit. Rspack caches adjacent loaders with `cache: true` together and checks loaders configured with `codeFilter` separately.
 
 :::tip
 

@@ -198,7 +198,9 @@ export default {
 
 ## Loader 缓存 \{#loader-cache}
 
-在 `module.rules[].use` 中为 loader 设置 `cache: true` 后，当输入代码、loader 版本、选项以及追踪的文件依赖和构建依赖均未变化时，Rspack 可以在多次构建之间复用转换结果。
+模块构建缓存会复用执行完整 loader 链并解析模块后的结果。即使模块需要重新构建，loader 缓存仍可以复用其中的转换结果。
+
+在 `module.rules[].use` 中为单个 loader 设置 `cache: true`，即可缓存它的输出。Rspack 根据传给该 loader 的代码、loader 选项和版本查找缓存，并检查已追踪的文件依赖和构建依赖是否仍然有效。
 
 :::info
 
@@ -223,8 +225,6 @@ export default {
   },
 };
 ```
-
-Rspack 在 pitch 阶段之后查询缓存，命中时跳过普通转换。相邻且都设置了 `cache: true` 的 loader 会一起缓存，配置了 `codeFilter` 的 loader 会单独查询缓存。
 
 :::tip
 
