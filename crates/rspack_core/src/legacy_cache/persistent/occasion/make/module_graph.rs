@@ -221,12 +221,16 @@ pub fn save_module_graph(
       for id in mgm.outgoing_connections() {
         build_mgm.remove_outgoing_connection(id);
       }
-      let mut groups = FxHashMap::<DependencyId, Vec<DependencyId>>::default();
+      let mut groups = FxHashMap::<Option<DependencyId>, Vec<DependencyId>>::default();
       for id in mgm.all_dependencies() {
         let owner = factorization_artifact
           .get(id)
           .map_or(*id, FactorizeInfo::owner_dep_id);
-        groups.entry(owner).or_default().push(*id);
+        groups.entry(Some(owner)).or_default().push(*id);
+      }
+      if !codec.is_portable() {
+        groups.clear();
+        groups.insert(None, mgm.all_dependencies().to_vec());
       }
       let resolutions = groups
         .into_iter()
@@ -243,22 +247,26 @@ pub fn save_module_graph(
                 (!unchanged).then(|| dep.into())
               })
               .collect(),
-            infos: factorization_artifact
-              .get_by_owner(&owner)
-              .map(Into::into)
-              .into_iter()
-              .collect(),
+            infos: if codec.is_portable() {
+              factorization_artifact
+                .get_by_owner(owner.as_ref().expect("portable resolution has owner"))
+                .map(Into::into)
+                .into_iter()
+                .collect()
+            } else {
+              ids
+                .iter()
+                .filter_map(|id| factorization_artifact.get_by_owner(id).map(Into::into))
+                .collect()
+            },
             connections: ids
               .iter()
               .filter_map(|id| connections.get(id).map(|con| (*con).into()))
               .collect(),
           };
-          BoundEntry::encode(node_codec, &resolution, false).map(|bytes| ResolutionSegment {
-            dependencies: ids,
-            bytes,
-          })
+          (ids, resolution)
         })
-        .collect::<Result<Vec<_>>>();
+        .collect::<Vec<_>>();
       let mut node = Node {
         mgm: build_mgm.into(),
         module: module.into(),
@@ -271,7 +279,18 @@ pub fn save_module_graph(
       // Original requests remain build inputs. An absolute request can still bind this
       // segment (for example /fixed.js on POSIX); only resolver-owned state was split off.
       let root_sensitive = module.build_info().root_sensitive;
-      let build = match BoundEntry::encode(node_codec, &node, root_sensitive) {
+      let encode = |node: &Node<'_>| {
+        if codec.is_portable() {
+          BoundEntry::encode(node_codec, node, root_sensitive)
+        } else {
+          codec.encode(&(
+            OwnedOrRef::<Node>::from(node),
+            OwnedOrRef::<Resolution>::from(&resolutions[0].1),
+            OwnedOrRef::<ModuleIssuer>::from(mgm.issuer()),
+          ))
+        }
+      };
+      let build = match encode(&node) {
         Ok(bytes) => Ok(bytes),
         Err(err) if err.to_string().contains("unsupported field") => {
           tracing::warn!("to bytes failed {:?}", err);
@@ -283,19 +302,31 @@ pub fn save_module_graph(
             .map(|(dep, _, index)| (TempDependency::transform_from(dep), None, index))
             .collect();
           node.blocks = vec![];
-          BoundEntry::encode(node_codec, &node, root_sensitive)
+          encode(&node)
         }
         Err(err) => Err(err),
       };
-      let bytes = build.and_then(|build| {
-        let resolutions = resolutions?;
-        let issuer = BoundEntry::encode(node_codec, mgm.issuer(), false)?;
-        codec.encode(&SegmentedNode {
-          build,
-          resolutions,
-          issuer,
+      let bytes = if !codec.is_portable() {
+        build
+      } else {
+        build.and_then(|build| {
+          let resolutions = resolutions
+            .into_iter()
+            .map(|(dependencies, resolution)| {
+              BoundEntry::encode(node_codec, &resolution, false).map(|bytes| ResolutionSegment {
+                dependencies,
+                bytes,
+              })
+            })
+            .collect::<Result<Vec<_>>>()?;
+          let issuer = BoundEntry::encode(node_codec, mgm.issuer(), false)?;
+          codec.encode(&SegmentedNode {
+            build,
+            resolutions,
+            issuer,
+          })
         })
-      });
+      };
       (key, bytes)
     })
     .consume(|(id, bytes)| match bytes {
@@ -324,17 +355,43 @@ pub async fn recovery_module_graph(
   let mut module_to_lazy_make = ModuleToLazyMake::default();
   let entries = storage.load(SCOPE).await?;
   let mut counts = FxHashMap::<ModuleIdentifier, usize>::default();
-  for (key, _) in &entries {
-    if let Ok(identifier) = codec.decode::<ModuleIdentifier>(key) {
+  let entries = entries
+    .into_iter()
+    .map(|(key, value)| {
+      let identifier = codec.decode::<ModuleIdentifier>(&key)?;
       *counts.entry(identifier).or_default() += 1;
-    }
-  }
+      Ok((identifier, key, value))
+    })
+    .collect::<Result<Vec<_>>>()?;
   let decoded = entries
     .into_par_iter()
-    .map(|(key, value)| -> Result<_> {
-      let identifier = codec.decode::<ModuleIdentifier>(&key)?;
+    .map(|(identifier, key, value)| -> Result<_> {
       if counts.get(&identifier).copied().unwrap_or_default() != 1 {
+        if !codec.is_portable() {
+          return Err(error!("duplicate make cache module identifier"));
+        }
         return Ok((key, None));
+      }
+      if !codec.is_portable() {
+        let (node, resolution, issuer) = codec.decode::<(
+          OwnedOrRef<Node>,
+          OwnedOrRef<Resolution>,
+          OwnedOrRef<ModuleIssuer>,
+        )>(&value)?;
+        let (node, resolution, issuer) = (
+          node.into_owned(),
+          resolution.into_owned(),
+          issuer.into_owned(),
+        );
+        if identifier != node.module.as_ref().identifier()
+          || identifier != node.mgm.as_ref().module_identifier
+        {
+          return Err(error!("inconsistent make cache module identifier"));
+        }
+        return Ok((
+          key,
+          Some((node, vec![(vec![], Some(resolution))], Some(issuer))),
+        ));
       }
       let frame = codec.decode::<SegmentedNode>(&value)?;
       let Some(node) = BoundEntry::decode::<Node>(codec, &frame.build)? else {
@@ -376,10 +433,63 @@ pub async fn recovery_module_graph(
   let mut check_issuer_cycles = !dropped.is_empty();
   let mut dependency_ids = FxHashSet::default();
   let mut block_ids = FxHashSet::default();
-  for (node, resolutions, issuer) in nodes {
+  for (node, mut resolutions, issuer) in nodes {
     let mut mgm = node.mgm.into_owned();
     let mut module = node.module.into_owned();
     let mid = module.identifier();
+    if !codec.is_portable() {
+      // Local caches cannot lose individual segments to root binding. Restore the single
+      // archive directly, without building the indexes used to validate partial recovery.
+      mgm.set_issuer(issuer.expect("local cache includes issuer"));
+      let resolution = resolutions
+        .pop()
+        .expect("local cache includes resolution")
+        .1
+        .expect("local resolution cannot expire");
+      let mut replacements = resolution
+        .dependencies
+        .into_iter()
+        .map(OwnedOrRef::into_owned)
+        .map(|dep| (*dep.id(), dep))
+        .collect::<FxHashMap<_, _>>();
+      for (dep, parent_block, index_in_block) in node.dependencies {
+        let input = dep.into_owned();
+        let dep = replacements.remove(input.id()).unwrap_or(input);
+        mg.set_parents(
+          *dep.id(),
+          DependencyParents {
+            block: parent_block.map(OwnedOrRef::into_owned),
+            module: mid,
+            index_in_block,
+          },
+        );
+        mg.add_dependency_ref(dep);
+      }
+      for info in resolution.infos.into_iter().map(OwnedOrRef::into_owned) {
+        factorization_artifact.insert(info);
+      }
+      connections.extend(
+        resolution
+          .connections
+          .into_iter()
+          .map(OwnedOrRef::into_owned),
+      );
+      let mut blocks = node
+        .blocks
+        .into_iter()
+        .map(OwnedOrRef::into_owned)
+        .collect::<Vec<_>>();
+      while let Some(block) = blocks.pop() {
+        blocks.extend(block.get_block_refs().iter().cloned());
+        mg.add_block(block);
+      }
+      if let Some(lazy_info) = node.lazy_info {
+        module_to_lazy_make.update_module_lazy_dependencies(mid, Some(lazy_info.into_owned()));
+      }
+      mg.add_module_graph_module(mgm);
+      mg.add_module(module);
+      continue;
+    }
     let ids = node
       .dependencies
       .iter()
