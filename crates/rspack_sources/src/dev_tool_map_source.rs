@@ -6,8 +6,7 @@ use std::{
 };
 
 use crate::{
-  MapOptions, Source, SourceMap, SourceValue,
-  dev_tool_content::matches_chunks,
+  MapOptions, RawString, Source, SourceMap, SourceValue,
   helpers::{Chunks, RawRopeChunks, StreamChunks},
   source::is_all_none,
 };
@@ -58,12 +57,6 @@ impl DevToolMapSource {
       size: OnceLock::new(),
     };
     Self(Arc::new(data))
-  }
-
-  /// Compare with another DevTool text source without flattening either asset.
-  pub(super) fn content_eq(&self, other: &dyn Source) -> bool {
-    other.as_any().downcast_ref::<Self>() == Some(self)
-      || matches_chunks(other, self.json_chunks().map(str::as_bytes))
   }
 
   fn json_chunks(&self) -> impl Iterator<Item = &str> {
@@ -219,6 +212,10 @@ fn quoted_json(mut value: &str) -> impl Iterator<Item = &str> {
 }
 
 impl Source for DevToolMapSource {
+  fn raw_string(&self) -> Option<RawString<'_>> {
+    Some(RawString::Rendered(self))
+  }
+
   fn mapped(&self) -> bool {
     false
   }

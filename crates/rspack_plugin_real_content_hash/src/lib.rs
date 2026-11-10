@@ -16,8 +16,8 @@ use rayon::prelude::*;
 use rspack_core::{
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
   rspack_sources::{
-    BoxSource, CachedSource, DevToolMapSource, RawStringSource, ReplaceSource, SourceExt,
-    SourceValue, is_devtool_source, source_content_eq, update_text_content_hash,
+    BoxSource, DevToolMapSource, RawString, RawStringSource, ReplaceSource, SourceExt, SourceValue,
+    source_content_eq, update_content_hash,
   },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
@@ -227,13 +227,8 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
                 .cloned()
                 .collect::<Vec<_>>();
               asset_contents.dedup_by(|a, b| {
-                let (a, b) = (a.as_ref(), b.as_ref());
-                let a_is_devtool = is_devtool_source(a);
-                let b_is_devtool = is_devtool_source(b);
-                if (a_is_devtool && (b_is_devtool || b.as_any().is::<RawStringSource>()))
-                  || (b_is_devtool && a.as_any().is::<RawStringSource>())
-                {
-                  source_content_eq(a, b)
+                if a.raw_string().is_some() && b.raw_string().is_some() {
+                  source_content_eq(a.as_ref(), b.as_ref())
                 } else {
                   a == b
                 }
@@ -249,12 +244,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
               } else {
                 let mut hasher = RspackHasher::from(&compilation.options.output);
                 for asset_content in asset_contents {
-                  if is_devtool_source(asset_content.as_ref()) {
-                    update_text_content_hash(asset_content.as_ref(), &mut hasher);
-                  } else {
-                    // Preserve buffer semantics for binary and unknown sources.
-                    hasher.write(&asset_content.buffer());
-                  }
+                  update_content_hash(asset_content.as_ref(), &mut hasher);
                 }
                 let new_hash = hasher.digest(&compilation.options.output.hash_digest);
 
@@ -358,7 +348,7 @@ impl<'a> AssetData<'a> {
   ) -> Self {
     let mut own_hashes = HashSet::default();
     let mut referenced_hashes = HashSet::default();
-    if is_devtool_source(source.as_ref()) {
+    if let Some(RawString::Rendered(scan_source)) = source.raw_string() {
       let mut matches = Vec::new();
       let mut matcher = StreamingMatcher::new(hash_ac, |found| {
         let hash = hash_patterns[found.pattern().as_usize()];
@@ -369,10 +359,6 @@ impl<'a> AssetData<'a> {
         }
         matches.push(found);
       });
-      let mut scan_source = source.as_ref();
-      while let Some(cached) = scan_source.as_any().downcast_ref::<CachedSource>() {
-        scan_source = cached.inner().as_ref();
-      }
       if scan_source.as_any().is::<DevToolMapSource>() {
         scan_source
           .to_writer(&mut matcher)

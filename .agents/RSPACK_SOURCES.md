@@ -267,8 +267,7 @@ Important implementation details:
   original `SourceMap` without interning, deduplicating, or rewriting
   `sourcesContent`. `source()`, `buffer()`, and successful `to_writer()` calls cache only the
   serialized byte length, so a later `size()` need not serialize the map again.
-  Rope APIs expose borrowed JSON fragments. Hashing and scanning use the SIMD writer, and
-  equality iterates JSON fields and escapes on demand without collecting them in a vector.
+  Rope APIs expose borrowed JSON fragments. Hashing and scanning bare maps use the SIMD writer.
   Persistent cache stores fields directly, including empty arrays. For external `noSources` maps,
   detach remaining metadata so it cannot keep removed source contents alive.
 - RCH scans the two devtool outputs (also behind ReplaceSource/CachedSource) with the bounded
@@ -277,12 +276,13 @@ Important implementation details:
   final output are derived from the original scanned source. ReplaceSource uses u32 offsets;
   edits outside that range retain the flat-string fallback instead of truncating offsets.
   Content hashing uses emitted bytes with small writes buffered; bare maps retain SIMD writing.
-  Content equality compares writer output against a map’s JSON iterator or the other source’s
-  buffer. If neither source supports exact byte streaming, it compares their buffers.
+  Content equality streams one source through `to_writer()` and compares each write against the
+  other source’s `buffer()`, which may materialize one whole asset.
   Source structural hashing remains separate. RCH deduplicates
   devtool text outputs and their edit/cache wrappers with raw strings by content; unrelated
-  sources keep their previous equality behavior. Binary/unknown sources keep scan/buffer
-  fallbacks. SRI, asset comparison and binding map-presence checks recognize these wrappers.
+  sources keep their structural equality. `Source::raw_string()` exposes borrowed raw text or
+  the source that renders its lazy equivalent. Ordinary cache/edit wrappers around a raw string
+  remain distinct graphs. Binary sources are not scanned for text replacements.
   ReplaceSource's JSON writer currently uses rope rather than the bare map's SIMD writer.
 - `ConcatSource::add` uses `&mut self` and `Mutex::get_mut`; reads lazily optimize children. Mapping
   shifts generated positions and remaps child-local indices into global deduplicated tables.

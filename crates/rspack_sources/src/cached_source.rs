@@ -8,7 +8,7 @@ use std::{
 use rustc_hash::FxHasher;
 
 use crate::{
-  BoxSource, MapOptions, RawBufferSource, Source, SourceExt, SourceMap,
+  BoxSource, MapOptions, RawBufferSource, RawString, Source, SourceExt, SourceMap,
   helpers::{
     Chunks, GeneratedInfo, StreamChunks, TextSpan, stream_and_get_source_and_map,
     stream_chunks_of_raw_rope, stream_chunks_of_source_map,
@@ -128,6 +128,13 @@ impl CachedSource {
 }
 
 impl Source for CachedSource {
+  fn raw_string(&self) -> Option<RawString<'_>> {
+    match self.inner.raw_string()? {
+      raw @ RawString::Rendered(_) => Some(raw),
+      RawString::Borrowed(_) => None,
+    }
+  }
+
   fn mapped(&self) -> bool {
     self.inner.mapped()
   }

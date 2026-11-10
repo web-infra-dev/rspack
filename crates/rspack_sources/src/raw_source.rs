@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-  MapOptions, Source, SourceMap, SourceValue,
+  MapOptions, RawString, Source, SourceMap, SourceValue,
   helpers::{
     Chunks, GeneratedInfo, StreamChunks, TextSpan, get_generated_source_info,
     stream_chunks_of_raw_source,
@@ -61,6 +61,10 @@ impl From<&str> for RawStringSource {
 }
 
 impl Source for RawStringSource {
+  fn raw_string(&self) -> Option<RawString<'_>> {
+    Some(RawString::Borrowed(&self.0))
+  }
+
   fn mapped(&self) -> bool {
     false
   }
