@@ -1381,6 +1381,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let mut input_versions = HashMap::default();
   let mut cached_entries = HashMap::default();
   if use_cache {
+    let hash_start = logger.time("hash source map inputs");
     for (filename, asset) in &compilation_assets {
       if asset.info.version.is_empty() {
         continue;
@@ -1395,6 +1396,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .digest(&compilation.options.output.hash_digest)
         .encoded()
         .to_string();
+      input_versions.insert(filename.clone(), version);
+    }
+    logger.time_end(hash_start);
+    for (filename, version) in &input_versions {
       let cached = if let Some(cache) = &new_cache {
         cache
           .peek::<CachedSourceMapDevToolPluginEntry>(filename, Some(Etag::from(version.clone())))
@@ -1402,13 +1407,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       } else {
         legacy_cache
           .as_ref()
-          .and_then(|cache| cache.get(filename, &version))
+          .and_then(|cache| cache.get(filename, version))
           .cloned()
       };
       if let Some(cached) = cached {
         cached_entries.insert(filename.clone(), cached);
       }
-      input_versions.insert(filename.clone(), version);
     }
   }
   let compilation_version = if use_cache {

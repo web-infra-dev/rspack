@@ -1,9 +1,12 @@
+use std::hash::{Hash, Hasher};
+
 use rspack_cacheable::{enable_cacheable as cacheable, from_bytes, to_bytes, with::AsPreset};
 use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, MapOptions, OriginalSource, RawBufferSource,
   RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
-  WithoutOriginalOptions,
+  SourceMapSourceOptions, WithoutOriginalOptions,
 };
+use rustc_hash::FxHasher;
 
 #[cacheable]
 #[derive(Debug)]
@@ -23,6 +26,55 @@ fn test_rspack_source() {
 
   test_data(Data(RawBufferSource::from("123".as_bytes()).boxed()));
   test_data(Data(RawStringSource::from_static("123").boxed()));
+}
+
+#[test]
+fn test_source_map_source_round_trip_preserves_missing_content_hash() {
+  let hash = |source: &BoxSource| {
+    let mut hasher = FxHasher::default();
+    source.hash(&mut hasher);
+    hasher.finish()
+  };
+  for contents in [
+    vec![],
+    vec![None],
+    vec![None, None],
+    vec![Some("".into())],
+    vec![Some("original();\n".into())],
+    vec![None, Some("".into())],
+  ] {
+    for with_inner_map in [false, true] {
+      let map = SourceMap::new(
+        "AAAA".into(),
+        vec!["original.js".into(), "other.js".into()],
+        contents.clone(),
+        vec![],
+      );
+      let source = SourceMapSource::new(SourceMapSourceOptions {
+        value: "generated();\n".to_owned(),
+        name: "original.js".to_owned(),
+        source_map: map.clone(),
+        original_source: Some("original();\n".into()),
+        inner_source_map: with_inner_map.then_some(map),
+        remove_original_source: false,
+      });
+      let data = Data(CachedSource::new(source).boxed());
+      let expected_hash = hash(&data.0);
+      let bytes = to_bytes(&data, &()).unwrap();
+      let restored: Data = from_bytes(&bytes, &()).unwrap();
+      assert_eq!(
+        expected_hash,
+        hash(&restored.0),
+        "sourcesContent {contents:?}, inner map {with_inner_map}"
+      );
+      assert_eq!(data.0.as_ref(), restored.0.as_ref());
+      assert_eq!(data.0.buffer(), restored.0.buffer());
+      assert_eq!(
+        data.0.map(&MapOptions::default()),
+        restored.0.map(&MapOptions::default())
+      );
+    }
+  }
 }
 
 const PROXY_TEXT: &str = "export * from './template';\n";
