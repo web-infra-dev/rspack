@@ -18,7 +18,7 @@
 // The update info
 <%- var("currentUpdateApplyHandlers") %>;
 <%- var("queuedInvalidatedModules") %>;
-<%- var("hotUpdateChunk") %>;
+<%- var("hotNeedsApply") %>;
 // Concurrent ensures share the actual attempt and its starting runtime hash.
 <%- var("chunkLoadingPromises") %> = Object.create(null);
 
@@ -130,13 +130,11 @@
 		return loading[1];
 	};
 	if (<% if (_is_rspack_runtime_mode) { %>context.e<% } else { %>require.e<% } %>) fn.e = function (chunkId, fetchPriority) {
-		var promises = [];
-		var needsApply = hotUpdateChunk && hotUpdateChunk(chunkId, promises);
 		var promise = ensureChunk(chunkId, fetchPriority);
-		if (!needsApply) return promise;
-		return Promise.all([promise, trackBlockingPromise(Promise.all(promises)).then(function () {
+		if (!hotNeedsApply || !hotNeedsApply(chunkId)) return promise;
+		return promise.then(function () {
 			return waitForUpdate(undefined, chunkId);
-		})]);
+		});
 	};
 	return fn;
 }
@@ -389,7 +387,7 @@
 						promises,
 						key
 					) {
-						var prepareChunk = <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>[key](
+						var needsApply = <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>[key](
 							update.c,
 							update.r,
 							update.m,
@@ -402,7 +400,7 @@
 							update.changed,
 							chunkLoadingPromises
 						);
-						if (typeof prepareChunk === "function") hotUpdateChunk = prepareChunk;
+						if (typeof needsApply === "function") hotNeedsApply = needsApply;
 						return promises;
 					},
 						[])
@@ -432,7 +430,7 @@
 }
 
 <%- fn("internalApply") %>(options) {
-	hotUpdateChunk = undefined;
+	hotNeedsApply = undefined;
 	options = options || {};
 	applyInvalidatedModules();
 	var results = currentUpdateApplyHandlers.map(function (handler) {

@@ -502,22 +502,19 @@
 	var preparedChunks = Object.create(null);
 	removedChunks.forEach(function (chunkId) { preparedChunks[chunkId] = false; });
 	function prepareFullChunk(chunkId, promises) {
-		if (<%- HAS_OWN_PROPERTY %>(preparedChunks, chunkId)) return preparedChunks[chunkId] === true;
-		if (<%- _installed_chunks %>[chunkId] === <%- _loaded_chunk_state %>) return false;
+		if (<%- HAS_OWN_PROPERTY %>(preparedChunks, chunkId)) return;
+		if (<%- _installed_chunks %>[chunkId] === <%- _loaded_chunk_state %>) return;
 		preparedChunks[chunkId] = true;
 		promises.push(<%- _load_update_chunk %>(chunkId, undefined, true));
 		if (hotCurrentUpdateChunks[chunkId] === false) {
 			hotCurrentUpdateChunks[chunkId] = true;
 			promises.push(<%- _load_update_chunk %>(chunkId, updatedModulesList));
 		}
-		return true;
 	}
 	function prepareLoad(chunkId, promises) {
-		var needsApply = false;
 		if (load && <%- HAS_OWN_PROPERTY %>(load, chunkId)) load[chunkId].forEach(function (id) {
-			if (prepareFullChunk(id, promises)) needsApply = true;
+			prepareFullChunk(id, promises);
 		});
-		return needsApply;
 	}
 	// Full payloads supplement chunks; deltas independently update changed modules.
 	Object.keys(load || {}).forEach(function (chunkId) {
@@ -550,5 +547,9 @@
 			}
 		};
 	}
-	return prepareLoad;
+	return function (chunkId) {
+		return load && <%- HAS_OWN_PROPERTY %>(load, chunkId) && load[chunkId].some(function (id) {
+			return preparedChunks[id] === true;
+		});
+	};
 };

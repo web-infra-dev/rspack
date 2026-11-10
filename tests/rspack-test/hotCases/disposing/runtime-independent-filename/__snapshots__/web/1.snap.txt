@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Bundle: chunk1_js.chunk.CURRENT_HASH.js
-- Update: main.LAST_HASH.hot-update.js, size: 23445
+- Update: main.LAST_HASH.hot-update.js, size: 23470
 
 ## Manifest
 
@@ -657,22 +657,19 @@ __webpack_require__.hmrC.jsonp = function (
 	var preparedChunks = Object.create(null);
 	removedChunks.forEach(function (chunkId) { preparedChunks[chunkId] = false; });
 	function prepareFullChunk(chunkId, promises) {
-		if (__webpack_require__.o(preparedChunks, chunkId)) return preparedChunks[chunkId] === true;
-		if (jsonpInstalledChunks[chunkId] === 0) return false;
+		if (__webpack_require__.o(preparedChunks, chunkId)) return;
+		if (jsonpInstalledChunks[chunkId] === 0) return;
 		preparedChunks[chunkId] = true;
 		promises.push(jsonpLoadUpdateChunk(chunkId, undefined, true));
 		if (hotCurrentUpdateChunks[chunkId] === false) {
 			hotCurrentUpdateChunks[chunkId] = true;
 			promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList));
 		}
-		return true;
 	}
 	function prepareLoad(chunkId, promises) {
-		var needsApply = false;
 		if (load && __webpack_require__.o(load, chunkId)) load[chunkId].forEach(function (id) {
-			if (prepareFullChunk(id, promises)) needsApply = true;
+			prepareFullChunk(id, promises);
 		});
-		return needsApply;
 	}
 	// Full payloads supplement chunks; deltas independently update changed modules.
 	Object.keys(load || {}).forEach(function (chunkId) {
@@ -705,7 +702,11 @@ __webpack_require__.hmrC.jsonp = function (
 			}
 		};
 	}
-	return prepareLoad;
+	return function (chunkId) {
+		return load && __webpack_require__.o(load, chunkId) && load[chunkId].some(function (id) {
+			return preparedChunks[id] === true;
+		});
+	};
 };
 __webpack_require__.hmrM = () => {
 	if (typeof fetch === "undefined")
