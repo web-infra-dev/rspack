@@ -458,7 +458,7 @@ impl ContextModuleFactory {
         data.dependencies = after_resolve_data.dependencies.take();
 
         let parsed_resource = parse_resource(after_resolve_data.resource.as_str());
-        if let Some(parsed_resource) = parsed_resource {
+        if let Some(parsed_resource) = &parsed_resource {
           if let Some(query) = &parsed_resource.query {
             context_module_options.resource_query.clone_from(query);
           }
@@ -469,7 +469,9 @@ impl ContextModuleFactory {
           }
         }
 
-        context_module_options.resource = after_resolve_data.resource;
+        context_module_options.resource = parsed_resource
+          .map(|parsed_resource| parsed_resource.path)
+          .unwrap_or(after_resolve_data.resource);
         if !matches!(&after_resolve_data.pattern, ContextModulePattern::Glob(_)) {
           context_module_options.context_options.context = after_resolve_data.context;
         }
