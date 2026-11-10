@@ -39,7 +39,10 @@ async function build(context, resolve, cache = { type: "persistent" }) {
 			assets,
 			diagnostics,
 			values: await runtime.exports.default,
-			runs: globalThis[RUNS].map(file => path.relative(context, file)).sort()
+			runs: globalThis[RUNS].map(file => path.relative(context, file)).sort(),
+			sharedRequest: [...stats.compilation.modules].find(
+				module => module.resource === path.join(context, "src/shared.js")
+			)?.rawRequest
 		};
 	} finally {
 		await closeCompiler(compiler);
@@ -95,8 +98,12 @@ export default {
 					const moved = await build(reader, resolve);
 					expect(moved.values).toEqual([7, changed ? 99 : 7]);
 					expect(moved.runs).not.toContain(path.join("src", "index.js"));
-					if (changed) expect(moved.runs).toContain(path.join("src", "shared.js"));
-					else expect(moved.runs).not.toContain(path.join("src", "shared.js"));
+					// Whichever import the factory finishes first produces the shared module. The alias
+					// leaves it after the move, so a module the alias produced is built again for the
+					// relative import, as in a cold build.
+					const kept = !changed && initial.sharedRequest === "./shared.js";
+					if (kept) expect(moved.runs).not.toContain(path.join("src", "shared.js"));
+					else expect(moved.runs).toContain(path.join("src", "shared.js"));
 					const cold = await build(reader, resolve, false);
 					same(moved, cold);
 					await warm(reader, resolve, cold);
