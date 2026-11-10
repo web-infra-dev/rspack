@@ -261,8 +261,8 @@ Important implementation details:
   separate. It hides maps through both `map()` and `stream_chunks()`. The comment is a shared
   raw source so devtool cache entries and the emitted asset do not copy inline-map URLs.
   Both cache backends restore this wrapper, including hidden maps with an empty comment.
-  The constructor shares the input without traversing its children. Bare buffers retain their
-  byte semantics. RCH scans code through rope chunks so edit offsets use the same text.
+  The wrapper is only for generated text. Buffer assets have no source map and pass through
+  DevTool unchanged, including on cache hits. RCH scans code through rope chunks so edit offsets use the same text.
 - `DevToolMapSource` is the JSON asset itself, so `map()` returns `None`. It retains the
   original `SourceMap` without interning, deduplicating, or rewriting
   `sourcesContent`. `source()`, `buffer()`, and successful `to_writer()` calls cache only the

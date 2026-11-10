@@ -40,7 +40,7 @@ pub mod cacheable;
 pub use cached_source::CachedSource;
 pub use concat_source::ConcatSource;
 pub use dev_tool_code_source::DevToolCodeSource;
-pub use dev_tool_content::{is_devtool_text_source, source_content_eq, update_text_content_hash};
+pub use dev_tool_content::{is_devtool_source, source_content_eq, update_text_content_hash};
 pub use dev_tool_map_source::DevToolMapSource;
 pub use error::{Error, Result};
 pub use original_source::OriginalSource;
@@ -48,6 +48,7 @@ pub use raw_source::{RawBufferSource, RawStringSource};
 pub use replace_source::{ReplaceSource, Replacement, ReplacementEnforce};
 pub use source::{
   BoxSource, MapOptions, Mapping, OriginalLocation, Source, SourceExt, SourceMap, SourceValue,
+  is_buffer_source,
 };
 pub use source_map_source::{SourceMapSource, SourceMapSourceOptions, WithoutOriginalOptions};
 

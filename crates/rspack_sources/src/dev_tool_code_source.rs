@@ -5,8 +5,7 @@ use std::{
 };
 
 use crate::{
-  BoxSource, MapOptions, RawBufferSource, RawStringSource, Source, SourceExt, SourceMap,
-  SourceValue,
+  BoxSource, MapOptions, RawStringSource, Source, SourceExt, SourceMap, SourceValue,
   helpers::{Chunks, RawRopeChunks, StreamChunks},
 };
 
@@ -18,25 +17,17 @@ use crate::{
 pub struct DevToolCodeSource {
   inner: BoxSource,
   suffix: BoxSource,
-  is_text: bool,
 }
 
 impl DevToolCodeSource {
+  /// Wrap generated text after DevTool has collected its source map.
   pub fn new(inner: BoxSource, suffix: BoxSource) -> Self {
     let suffix = if suffix.as_any().is::<RawStringSource>() {
       suffix
     } else {
       RawStringSource::from(suffix.source().into_string_lossy().into_owned()).boxed()
     };
-    let is_text = match inner.as_any().downcast_ref::<RawBufferSource>() {
-      Some(buffer) => suffix.size() != 0 && std::str::from_utf8(&buffer.buffer()).is_ok(),
-      None => true,
-    };
-    Self {
-      inner,
-      suffix,
-      is_text,
-    }
+    Self { inner, suffix }
   }
 
   /// The shared code graph, without the appended comment.
@@ -47,11 +38,6 @@ impl DevToolCodeSource {
   /// The fully rendered comment, including whitespace and CSS/JS delimiters.
   pub fn suffix(&self) -> &BoxSource {
     &self.suffix
-  }
-
-  /// Generated code is treated as text. A bare buffer retains binary semantics.
-  pub fn is_text(&self) -> bool {
-    self.is_text
   }
 }
 

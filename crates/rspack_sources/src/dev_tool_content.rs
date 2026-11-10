@@ -9,19 +9,16 @@ use crate::{
 
 /// Whether this is a text devtool asset, possibly behind edit/cache wrappers.
 /// Other source graphs retain their existing content and equality semantics.
-pub fn is_devtool_text_source(source: &dyn Source) -> bool {
+pub fn is_devtool_source(source: &dyn Source) -> bool {
   let any = source.as_any();
-  if any.is::<DevToolMapSource>() {
+  if any.is::<DevToolCodeSource>() || any.is::<DevToolMapSource>() {
     return true;
   }
-  if let Some(code) = any.downcast_ref::<DevToolCodeSource>() {
-    return code.is_text();
-  }
   if let Some(source) = any.downcast_ref::<ReplaceSource>() {
-    return is_devtool_text_source(source.inner().as_ref());
+    return is_devtool_source(source.inner().as_ref());
   }
   if let Some(source) = any.downcast_ref::<CachedSource>() {
-    return is_devtool_text_source(source.inner().as_ref());
+    return is_devtool_source(source.inner().as_ref());
   }
   false
 }

@@ -4,7 +4,7 @@ use napi_derive::napi;
 use rspack_core::rspack_sources::{
   BoxSource, CachedSource, ConcatSource, MapOptions, OriginalSource, RawBufferSource,
   RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource, SourceValue,
-  WithoutOriginalOptions, utf16_len,
+  WithoutOriginalOptions, is_buffer_source, utf16_len,
 };
 use rspack_napi::napi::bindgen_prelude::*;
 
@@ -71,25 +71,6 @@ impl FromNapiValue for JsSourceFromJs<'_> {
       ))),
     }
   }
-}
-
-// Match the built-in sources' return types without materializing their content.
-fn is_buffer_source(source: &dyn Source) -> bool {
-  let source = source.as_any();
-  if source.is::<RawBufferSource>() {
-    return true;
-  }
-  if let Some(source) = source.downcast_ref::<CachedSource>() {
-    // CachedSource only preserves Buffer output for a directly wrapped RawBufferSource.
-    return source.inner().as_ref().as_any().is::<RawBufferSource>();
-  }
-  if let Some(source) = source.downcast_ref::<ConcatSource>() {
-    return matches!(source.children(), [child] if is_buffer_source(child.as_ref()));
-  }
-  if let Some(source) = source.downcast_ref::<ReplaceSource>() {
-    return source.replacements().is_empty() && is_buffer_source(source.inner().as_ref());
-  }
-  false
 }
 
 impl<'jsobject> TryFrom<JsSourceFromJs<'jsobject>> for BoxSource {

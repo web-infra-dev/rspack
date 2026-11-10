@@ -2,7 +2,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsCacheable, AsOption, AsPreset, AsTuple2, AsVec},
 };
-use rspack_sources::{BoxSource, DevToolCodeSource, RawStringSource, SourceExt};
+use rspack_sources::{BoxSource, DevToolCodeSource, RawStringSource, SourceExt, is_buffer_source};
 
 use crate::{AssetInfo, CompilationAsset};
 
@@ -56,7 +56,11 @@ impl CachedSourceMapDevToolPluginEntry {
     Option<(String, CompilationAsset)>,
     Vec<BoxSource>,
   )> {
-    let source = asset.get_source()?.clone();
+    let source = asset.get_source()?;
+    // A cache hit skips map collection. Never apply cached DevTool output to a buffer.
+    if is_buffer_source(source.as_ref()) {
+      return None;
+    }
     let suffix = match self.asset_append.as_slice() {
       [] => RawStringSource::from_static("").boxed(),
       [suffix] => suffix.clone(),
@@ -68,7 +72,7 @@ impl CachedSourceMapDevToolPluginEntry {
         RawStringSource::from(suffix).boxed()
       }
     };
-    let source = DevToolCodeSource::new(source, suffix).boxed();
+    let source = DevToolCodeSource::new(source.clone(), suffix).boxed();
 
     let source_asset = CompilationAsset::new(Some(source), (*asset.info).clone());
     let source_map = self.source_map.as_ref().map(|(filename, source)| {

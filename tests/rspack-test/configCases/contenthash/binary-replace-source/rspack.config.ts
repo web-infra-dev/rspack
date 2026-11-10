@@ -9,7 +9,7 @@ const payload = Buffer.from([0xff, 0, 0x78]);
 export default defineConfig({
   mode: 'production',
   target: 'web',
-  devtool: false,
+  devtool: 'source-map',
   output: {
     filename: `binary.${oldHash}.js`,
     hashFunction: 'xxhash64',
@@ -42,7 +42,10 @@ export default defineConfig({
           hash.update(payload);
           const expectedHash = hash.digest('hex').slice(0, oldHash.length);
           const filename = `binary.${expectedHash}.js`;
-          expect(compilation.getAsset(filename)).toBeDefined();
+          const asset = compilation.getAsset(filename)!;
+          expect(asset.info.related?.sourceMap).toBeUndefined();
+          expect(Buffer.isBuffer(asset.source.source())).toBe(true);
+          expect(compilation.getAsset(`${filename}.map`)).toBeUndefined();
           expect(
             readFileSync(path.join(compiler.outputPath, filename)),
           ).toEqual(payload);

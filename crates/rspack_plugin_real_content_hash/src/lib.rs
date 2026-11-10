@@ -17,7 +17,7 @@ use rspack_core::{
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
   rspack_sources::{
     BoxSource, CachedSource, DevToolMapSource, RawStringSource, ReplaceSource, SourceExt,
-    SourceValue, is_devtool_text_source, source_content_eq, update_text_content_hash,
+    SourceValue, is_devtool_source, source_content_eq, update_text_content_hash,
   },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
@@ -228,8 +228,8 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
                 .collect::<Vec<_>>();
               asset_contents.dedup_by(|a, b| {
                 let (a, b) = (a.as_ref(), b.as_ref());
-                let a_is_devtool = is_devtool_text_source(a);
-                let b_is_devtool = is_devtool_text_source(b);
+                let a_is_devtool = is_devtool_source(a);
+                let b_is_devtool = is_devtool_source(b);
                 if (a_is_devtool && (b_is_devtool || b.as_any().is::<RawStringSource>()))
                   || (b_is_devtool && a.as_any().is::<RawStringSource>())
                 {
@@ -249,7 +249,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
               } else {
                 let mut hasher = RspackHasher::from(&compilation.options.output);
                 for asset_content in asset_contents {
-                  if is_devtool_text_source(asset_content.as_ref()) {
+                  if is_devtool_source(asset_content.as_ref()) {
                     update_text_content_hash(asset_content.as_ref(), &mut hasher);
                   } else {
                     // Preserve buffer semantics for binary and unknown sources.
@@ -358,7 +358,7 @@ impl<'a> AssetData<'a> {
   ) -> Self {
     let mut own_hashes = HashSet::default();
     let mut referenced_hashes = HashSet::default();
-    if is_devtool_text_source(source.as_ref()) {
+    if is_devtool_source(source.as_ref()) {
       let mut matches = Vec::new();
       let mut matcher = StreamingMatcher::new(hash_ac, |found| {
         let hash = hash_patterns[found.pattern().as_usize()];
