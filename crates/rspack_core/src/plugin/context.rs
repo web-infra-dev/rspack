@@ -213,9 +213,10 @@ pub struct ResolvedModuleOptions {
   cache_key: ResolvedModuleOptionsCacheKey,
   parser: Option<ParserOptions>,
   generator: Option<GeneratorOptions>,
-  /// A hash of these options by value, which a relocated build compares, as a rule can hold
-  /// different options at each checkout. Set on portable builds, and `None` there when the
-  /// options hold a function, which can't be serialized.
+  /// A hash of the parser and generator options by value, which a relocated build compares, as a
+  /// rule can hold different options at each checkout. Which rules gave them doesn't matter. Set
+  /// on portable builds, and `None` there when the options hold a function, which can't be
+  /// serialized.
   comparable_digest: Option<u64>,
 }
 
@@ -242,9 +243,11 @@ impl ResolvedModuleOptions {
   }
 
   pub(crate) fn set_comparable_digest(&mut self) {
-    self.comparable_digest = rspack_cacheable::to_bytes(self, &()).ok().map(|bytes| {
+    let parser = rspack_cacheable::to_bytes(&self.parser, &());
+    let generator = rspack_cacheable::to_bytes(&self.generator, &());
+    self.comparable_digest = parser.ok().zip(generator.ok()).map(|options| {
       let mut hasher = rustc_hash::FxHasher::default();
-      bytes.hash(&mut hasher);
+      options.hash(&mut hasher);
       hasher.finish()
     });
   }

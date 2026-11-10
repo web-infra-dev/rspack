@@ -1024,6 +1024,25 @@ export default [
 		}
 	},
 	{
+		name: "equal-resolved-options",
+		description: "reuses a module whose parser options come from another rule with the same options at the reader",
+		async run() {
+			await withProjects({}, async (writer, reader) => {
+				const configuration = (context) => ({
+					module: { rules: [
+						{ test: /dep\.js$/, include: () => context === writer, parser: { overrideStrict: "strict" } },
+						{ test: /dep\.js$/, include: () => context !== writer, parser: { overrideStrict: "strict" } }
+					] }
+				});
+				await build(writer, configuration(writer));
+				copyTree(writer, reader);
+				const moved = await build(reader, configuration(reader));
+				expect(moved.built).toEqual([]);
+				await expectColdEquality(reader, configuration(reader), moved);
+			});
+		}
+	},
+	{
 		name: "shared-options-graph",
 		description: "compares array use options that share objects without expanding every path through them",
 		async run() {
