@@ -33,6 +33,7 @@
 //! Chunks and edges are visited in chunk id order, so the components, and the
 //! manifests that depend on the order within a component, are the same every build.
 
+use rspack_collections::IdentifierMap;
 use rspack_core::{
   ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, DependenciesBlock,
   ModuleIdentifier, SourceType,
@@ -193,7 +194,7 @@ impl ChunkManifest {
     chunks.sort_by(by_id);
 
     // The chunks that the calls in each chunk's modules request.
-    let mut groups_by_module: HashMap<ModuleIdentifier, Vec<ChunkGroupUkey>> = HashMap::default();
+    let mut groups_by_module: IdentifierMap<Vec<ChunkGroupUkey>> = IdentifierMap::default();
     let mut reached_from: HashMap<ChunkGroupUkey, HashSet<ChunkGroupUkey>> = HashMap::default();
     let mut edges: HashMap<ChunkUkey, Vec<ChunkUkey>> = HashMap::default();
     // A module that renders no JavaScript, such as a consumed shared module, does not
