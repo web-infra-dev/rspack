@@ -5,7 +5,9 @@ import {
   __from_binding_runtime_globals,
   __to_binding_runtime_globals,
   isReservedRuntimeGlobal,
+  renderRuntimeGlobalProperty,
   renderRuntimeVariables,
+  RuntimeGlobal,
   RuntimeVariable,
 } from '../RuntimeGlobals';
 import { createRenderedRuntimeModule } from '../RuntimeModule';
@@ -268,13 +270,31 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
             // before executing runtime modules, which may access them as well.
             const moduleCache: Record<string, any> = {};
             const interceptModuleExecution: ((execOptions: any) => void)[] = [];
-            if (getCompiler().options.experiments.runtimeMode === 'rspack') {
-              runtimeContext.c = moduleCache;
-              runtimeContext.i = interceptModuleExecution;
-              runtimeContext.r = moduleRequireFn;
-            } else {
-              moduleRequireFn.c = moduleCache;
-              moduleRequireFn.i = interceptModuleExecution;
+            const compilerOptions = getCompiler().options;
+            const isRspackRuntimeMode =
+              compilerOptions.experiments.runtimeMode === 'rspack';
+            const runtimeScope = isRspackRuntimeMode
+              ? runtimeContext
+              : moduleRequireFn;
+            runtimeScope[
+              renderRuntimeGlobalProperty(
+                RuntimeGlobal.moduleCache,
+                compilerOptions,
+              )
+            ] = moduleCache;
+            runtimeScope[
+              renderRuntimeGlobalProperty(
+                RuntimeGlobal.interceptModuleExecution,
+                compilerOptions,
+              )
+            ] = interceptModuleExecution;
+            if (isRspackRuntimeMode) {
+              runtimeContext[
+                renderRuntimeGlobalProperty(
+                  RuntimeGlobal.require,
+                  compilerOptions,
+                )
+              ] = moduleRequireFn;
             }
             for (const runtimeModule of runtimeModules) {
               moduleRequireFn(runtimeModule);
