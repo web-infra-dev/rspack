@@ -420,6 +420,13 @@ impl PathManager {
       .and_then(|symlinks| symlinks.resolved_directory_entry(path))
   }
 
+  pub(crate) fn ignored_target_links(&self, path: &InternedPath) -> Option<Vec<InternedPath>> {
+    self
+      .symlinks
+      .as_ref()
+      .and_then(|symlinks| symlinks.ignored_target_links(path))
+  }
+
   pub(crate) fn symlink_aliases(&self, path: &InternedPath) -> Vec<SymlinkAlias> {
     self
       .symlinks

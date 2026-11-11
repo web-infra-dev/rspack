@@ -1,4 +1,4 @@
-use std::{ops::Deref, sync::Arc, time::SystemTime};
+use std::{fs::Metadata, sync::Arc, time::SystemTime};
 
 use rspack_paths::{InternedPath, InternedPathDashSet};
 use rspack_util::time::system_time_to_millis;
@@ -42,17 +42,50 @@ impl Scanner {
     }
 
     if let Some(tx) = self.tx.clone() {
-      // only apply for added files
-      let files = accessor
-        .files()
-        .1
-        .iter()
-        .map(|file| file.deref().clone())
-        .collect::<Vec<_>>();
+      // Ignoring a target leaves its retained links watched as lstat entries.
+      let mut link_scans = Vec::new();
+      let mut collect_paths = |paths: &InternedPathDashSet| {
+        paths
+          .iter()
+          .filter_map(|path| {
+            if let Some(links) = self.path_manager.ignored_target_links(&path) {
+              link_scans.push((path.key().clone(), links));
+              None
+            } else {
+              Some(path.key().clone())
+            }
+          })
+          .collect::<Vec<_>>()
+      };
+      let files = collect_paths(accessor.files().1);
+      let directories = collect_paths(accessor.directories().1);
+      let missing_added = collect_paths(accessor.missing().1);
       let missing = accessor.missing().0.clone();
       let files_tx = tx.clone();
       let files_path_manager = Arc::clone(&self.path_manager);
       tokio::spawn(async move {
+        let mut link_changes = Vec::new();
+        let mut link_removals = Vec::new();
+        for (path, links) in link_scans {
+          let mut absent = false;
+          let mut changed = false;
+          for link in links {
+            match link.symlink_metadata() {
+              Ok(metadata) => changed |= metadata_changed_since(&metadata, start_time),
+              Err(_) => absent = true,
+            }
+          }
+          if absent {
+            if !missing.contains(&path) {
+              link_removals.push(path);
+            }
+          } else if changed {
+            link_changes.push(path);
+          }
+        }
+        _ = send_events(link_removals, FsEventKind::Remove, &files_tx);
+        _ = send_events(link_changes, FsEventKind::Change, &files_tx);
+
         // A file is there as `lstat` sees it, so a dangling link counts.
         let mut removed = absent_paths(&files, &missing, |path| {
           std::fs::symlink_metadata(path).is_ok()
@@ -75,12 +108,6 @@ impl Scanner {
         _ = send_events(changed, FsEventKind::Change, &files_tx);
       });
 
-      let directories = accessor
-        .directories()
-        .1
-        .iter()
-        .map(|file| file.deref().clone())
-        .collect::<Vec<_>>();
       let missing = accessor.missing().0.clone();
       let dirs_tx = tx.clone();
       tokio::spawn(async move {
@@ -100,12 +127,6 @@ impl Scanner {
 
       // Backfill registered-missing dependencies created in the gap before this
       // `watch()` registration: a `Create` once the file appears on disk.
-      let missing_added = accessor
-        .missing()
-        .1
-        .iter()
-        .map(|p| p.deref().clone())
-        .collect::<Vec<_>>();
       let path_manager = Arc::clone(&self.path_manager);
       tokio::spawn(async move {
         // Record the file time of every one found on disk and, like
@@ -172,6 +193,10 @@ fn changed_since(path: &InternedPath, start_time: SystemTime) -> bool {
   let Ok(metadata) = path.metadata() else {
     return false;
   };
+  metadata_changed_since(&metadata, start_time)
+}
+
+fn metadata_changed_since(metadata: &Metadata, start_time: SystemTime) -> bool {
   let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
     return false;
   };

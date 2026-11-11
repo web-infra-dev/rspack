@@ -57,6 +57,8 @@ jobs:
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-symlink-retained-context
       - name: Verify ignored real directory roots
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-symlink-ignored-root
+      - name: Verify ignored targets during startup backfill
+        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-ignored-startup
       - name: Verify ordinary paths containing parent components
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-parent-components
       - name: Verify intermediate link parents and subscription gaps

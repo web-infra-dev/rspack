@@ -71,6 +71,7 @@ pub(crate) struct LinkSubscriptions {
   resolved_directories: InternedPathMap<InternedPath>,
   directory_targets: InternedPathMap<InternedPath>,
   context_files: InternedPathSet,
+  ignored_target_links: InternedPathMap<Vec<InternedPath>>,
   links: InternedPathMap<InternedPathSet>,
   patterns: Vec<WatchPattern>,
 }
@@ -143,6 +144,18 @@ impl LinkSubscriptions {
         .insert(path.clone(), resolution.target.clone());
     }
     if !nested && manager.is_ignored_path(&resolution.target).await {
+      let links = resolution
+        .links
+        .iter()
+        .filter(|link| {
+          self
+            .links
+            .get(*link)
+            .is_some_and(|aliases| aliases.contains(&path))
+        })
+        .cloned()
+        .collect();
+      self.ignored_target_links.insert(path, links);
       return;
     }
     self
@@ -233,6 +246,16 @@ pub(crate) struct SymlinkUpdate {
 }
 
 impl Symlinks {
+  pub(crate) fn ignored_target_links(&self, path: &InternedPath) -> Option<Vec<InternedPath>> {
+    self
+      .0
+      .read()
+      .expect("symlink subscriptions lock poisoned")
+      .ignored_target_links
+      .get(path)
+      .cloned()
+  }
+
   pub(crate) fn resolved_directory(&self, path: &InternedPath) -> Option<InternedPath> {
     self
       .0
