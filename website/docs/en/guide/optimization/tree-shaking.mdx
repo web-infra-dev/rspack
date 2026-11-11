@@ -34,6 +34,19 @@ Rspack analyzes your code after loaders have processed it. A loader that convert
 
 This conversion can limit tree shaking. If your bundle still includes unused exports, check your loader or compiler settings to make sure they preserve ES module syntax.
 
+### Dynamic import namespace bindings
+
+Rspack tracks property reads through destructured dynamic import bindings, including namespace re-exports:
+
+```js
+const { z } = await import('zod/v4');
+z.toJSONSchema(schema);
+```
+
+In this example, `z` is an ESM namespace export.
+
+This allows Rspack to retain the referenced `toJSONSchema` export without treating every member of `z` as used. Passing the entire binding to another function, exporting it, or observing it through direct `eval` conservatively retains the namespace. The same tracking applies to destructured `.then()` parameters and `Promise.all()` results.
+
 ## Configurations
 
 When [mode](/config/mode) is set to `production`, Rspack enables several tree shaking optimizations:

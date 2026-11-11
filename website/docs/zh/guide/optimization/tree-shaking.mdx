@@ -36,6 +36,19 @@ Rspack 分析的是 loader 处理后的代码。例如，loader 将 ES modules �
 
 这种转换可能影响 tree shaking 的效果。如果构建产物中仍然包含未使用的导出，请检查 loader 或编译器的配置，确保它们保留 ES modules 语法。
 
+### 动态导入的命名空间绑定
+
+Rspack 会追踪动态导入结果解构后绑定的属性读取，包括命名空间重导出：
+
+```js
+const { z } = await import('zod/v4');
+z.toJSONSchema(schema);
+```
+
+这个例子中的 `z` 是 ESM 命名空间导出。
+
+这让 Rspack 可以保留实际引用的 `toJSONSchema` 导出，而不将 `z` 的所有成员都视为使用。将整个绑定传给其他函数、导出绑定，或者通过直接 `eval` 观察绑定时，会保守地保留命名空间。同样的追踪也适用于 `.then()` 的解构参数和 `Promise.all()` 的解构结果。
+
 ## 配置项
 
 当 [mode](/config/mode) 被设置为 `production` 时，Rspack 会默认启用一系列与 tree shaking 相关的优化措施，包括：

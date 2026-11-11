@@ -27,6 +27,10 @@ pub struct ESMExportSpecifierDependency {
 }
 
 impl ESMExportSpecifierDependency {
+  pub fn local_name(&self) -> &Atom {
+    &self.value
+  }
+
   pub fn new(
     name: Atom,
     value: Atom,

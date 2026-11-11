@@ -9,7 +9,7 @@ use rspack_util::{
   SpanExt,
   swc::{AstSubRangeExt, get_swc_next_comments},
 };
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_next_ecma_ast::{
   Ast, BindingPattern, BindingPatternData, CallExpression, Expr, ExprData, Function, GetSpan,
   IdentifierReference, ImportExpression, ObjectPattern, Span, VariableDeclaration,
@@ -23,7 +23,8 @@ use super::{
 use crate::{
   Atom, InnerGraphParserPlugin,
   dependency::{
-    ImportContextDependency, ImportDependency, ImportEagerDependency, ImportWeakDependency,
+    ESMExportSpecifierDependency, ImportContextDependency, ImportDependency, ImportEagerDependency,
+    ImportWeakDependency,
   },
   magic_comment::try_extract_magic_comment,
   utils::object_properties::{get_attributes, get_value_by_obj_prop},
@@ -43,16 +44,34 @@ fn tag_dynamic_import_referenced(
   import_call: ImportExpression,
   variable_name: Atom,
 ) {
+  tag_dynamic_import_binding(parser, import_call, variable_name, vec![]);
+}
+
+fn tag_dynamic_import_binding(
+  parser: &mut JavascriptParser,
+  import_call: ImportExpression,
+  variable_name: Atom,
+  export_path: Vec<Atom>,
+) {
   let import_span = import_call.span(parser.ast.ast);
   parser.dynamic_import_references.add_import(import_span);
-  parser
+  let references = parser
     .dynamic_import_references
-    .get_import_mut_expect(&import_span)
-    .variable_name = Some(variable_name.clone());
+    .get_import_mut_expect(&import_span);
+  if export_path.is_empty() {
+    references.variable_name = Some(variable_name.clone());
+  } else {
+    references
+      .destructured_bindings
+      .push((variable_name.clone(), export_path.clone()));
+  }
   parser.tag_variable(
     variable_name,
     DYNAMIC_IMPORT_TAG,
-    Some(ImportTagData { import_span }),
+    Some(ImportTagData {
+      import_span,
+      export_path,
+    }),
   );
 }
 
@@ -66,24 +85,57 @@ fn collect_destructuring_references(
   references
 }
 
-fn add_destructuring_import_references(
+fn track_destructuring_import_bindings(
   parser: &mut JavascriptParser,
   import_call: ImportExpression,
   pattern: ObjectPattern,
+  prefix: Vec<Atom>,
 ) {
   let Some(properties) =
     parser.collect_destructuring_assignment_properties_from_object_pattern(pattern)
   else {
+    if !prefix.is_empty() {
+      let import_span = import_call.span(parser.ast.ast);
+      parser.dynamic_import_references.add_import(import_span);
+      parser
+        .dynamic_import_references
+        .get_import_mut_expect(&import_span)
+        .add_reference(prefix);
+    }
     return;
   };
-  let references = collect_destructuring_references(&properties);
   let import_span = import_call.span(parser.ast.ast);
   parser.dynamic_import_references.add_import(import_span);
-  let import_references = parser
-    .dynamic_import_references
-    .get_import_mut_expect(&import_span);
-  for reference in references {
-    import_references.add_reference(reference);
+  let ast = parser.ast.ast;
+  if properties.iter().next().is_none() && !prefix.is_empty() {
+    parser
+      .dynamic_import_references
+      .get_import_mut_expect(&import_span)
+      .add_reference(prefix.clone());
+  }
+  for (property, key) in ast.nodes(pattern.properties(ast)).zip(properties.iter()) {
+    let mut path = prefix.clone();
+    path.push(key.id.clone());
+    let value = property.value(ast);
+    match ast.binding_pattern_data(value) {
+      BindingPatternData::BindingIdentifier(binding) => {
+        tag_dynamic_import_binding(
+          parser,
+          import_call,
+          Atom::from(ast.get_utf8(binding.name(ast))),
+          path,
+        );
+      }
+      BindingPatternData::ObjectPattern(pattern) => {
+        track_destructuring_import_bindings(parser, import_call, pattern, path);
+      }
+      // A default value or iterable pattern may produce a different object.
+      // Retain that export rather than attaching an import tag to its binding.
+      _ => parser
+        .dynamic_import_references
+        .get_import_mut_expect(&import_span)
+        .add_reference(path),
+    }
   }
 }
 
@@ -115,7 +167,7 @@ fn track_dynamic_import_pattern(
       tag_dynamic_import_referenced(parser, import_call, name);
     }
     BindingPatternData::ObjectPattern(pattern) => {
-      add_destructuring_import_references(parser, import_call, pattern);
+      track_destructuring_import_bindings(parser, import_call, pattern, vec![]);
     }
     BindingPatternData::AssignmentPattern(pattern) => {
       track_dynamic_import_pattern(parser, import_call, pattern.left(ast));
@@ -205,18 +257,11 @@ impl ImportsReferencesState {
 
   fn take_all_import_references(
     &mut self,
-  ) -> impl Iterator<
-    Item = (
-      ImportDependencyLocator,
-      Option<Atom>,
-      Vec<ReferencedSpecifier>,
-    ),
-  > + use<> {
+  ) -> impl Iterator<Item = (ImportDependencyLocator, ImportReferences)> + use<> {
     let inner = std::mem::take(&mut self.inner);
-    inner.into_values().filter_map(|value| {
-      value
-        .dep_locator
-        .map(|locator| (locator, value.variable_name, value.references))
+    inner.into_values().filter_map(|mut value| {
+      let locator = value.dep_locator.take()?;
+      Some((locator, value))
     })
   }
 }
@@ -225,6 +270,7 @@ impl ImportsReferencesState {
 struct ImportReferences {
   dep_locator: Option<ImportDependencyLocator>,
   variable_name: Option<Atom>,
+  destructured_bindings: Vec<(Atom, Vec<Atom>)>,
   references: Vec<ReferencedSpecifier>,
 }
 
@@ -251,6 +297,8 @@ struct ImportDependencyLocator {
 #[derive(Debug, Clone)]
 struct ImportTagData {
   import_span: Span,
+  // Parser tag snapshots own their paths, including after leaving a scope.
+  export_path: Vec<Atom>,
 }
 
 pub struct ImportParserPlugin;
@@ -290,10 +338,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       if let Some(init) = declarator.init(ast)
         && let Some(expr) = init.as_await_expression(ast)
         && let Some(import) = expr.argument(ast).as_import_expression(ast)
-        && let Some(binding) = declarator.id(ast).as_binding_identifier(ast)
       {
-        let name = Atom::from(ast.get_utf8(binding.name(ast)));
-        tag_dynamic_import_referenced(parser, import, name);
+        track_dynamic_import_pattern(parser, import, declarator.id(ast));
       }
       track_dynamic_imports_in_promise_all(parser, declarator);
     }
@@ -318,13 +364,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         parser
           .dynamic_import_references
           .get_import_mut_expect(&data.import_span)
-          .add_reference(ids);
+          .add_reference(data.export_path.iter().cloned().chain(ids).collect());
       }
     } else {
       parser
         .dynamic_import_references
         .get_import_mut_expect(&data.import_span)
-        .add_reference(vec![]);
+        .add_reference(data.export_path);
     }
     Some(true)
   }
@@ -349,7 +395,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
     parser
       .dynamic_import_references
       .get_import_mut_expect(&data.import_span)
-      .add_reference(ids.to_vec());
+      .add_reference(data.export_path.iter().chain(ids).cloned().collect());
     Some(true)
   }
 
@@ -375,7 +421,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       .dynamic_import_references
       .get_import_mut_expect(&data.import_span)
       .add_call_reference(
-        ids.to_vec(),
+        data.export_path.iter().chain(ids).cloned().collect(),
         parser
           .javascript_options
           .strict_this_context_on_imports
@@ -687,17 +733,49 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
   }
 
   fn finish(&self, parser: &mut JavascriptParser<'p>) -> Option<bool> {
-    for (locator, variable_name, mut references) in parser
+    if parser.dynamic_import_references.inner.is_empty() {
+      return None;
+    }
+    let exported_locals = parser
+      .get_dependencies()
+      .iter()
+      .filter_map(|dependency| {
+        dependency
+          .downcast_ref::<ESMExportSpecifierDependency>()
+          .map(|dependency| dependency.local_name().clone())
+      })
+      .collect::<FxHashSet<_>>();
+    for (locator, import) in parser
       .dynamic_import_references
       .take_all_import_references()
     {
+      let ImportReferences {
+        variable_name,
+        destructured_bindings,
+        mut references,
+        ..
+      } = import;
       // If the import result is assigned to a variable that is also an ESM
       // named export, importers may access arbitrary properties on it. In that
       // case the entire module must be considered referenced.
       if let Some(variable_name) = variable_name
-        && parser.build_info.esm_named_exports.contains(&variable_name)
+        && (parser.build_info.esm_named_exports.contains(&variable_name)
+          || exported_locals.contains(&variable_name))
       {
         references.push(ReferencedSpecifier::new(vec![]));
+      }
+      for (name, path) in destructured_bindings {
+        // Destructuring still reads the property even if its binding is unused.
+        // Keep the whole value if it can escape through an export or direct eval.
+        if parser.build_info.has_direct_eval
+          || parser.build_info.esm_named_exports.contains(&name)
+          || exported_locals.contains(&name)
+          || !references
+            .iter()
+            .any(|reference| reference.names.starts_with(&path))
+        {
+          references.push(ReferencedSpecifier::new(path));
+        }
       }
       let dep = if let Some(block_idx) = locator.block_idx
         && let Some(block) = parser.get_block_mut(block_idx)
@@ -849,22 +927,7 @@ fn walk_import_then_fulfilled_callback(
           Atom::from(ast.get_utf8(ns_obj.name(ast))),
         );
       } else if let Some(ns_obj) = namespace_obj_arg.as_object_pattern(ast) {
-        if let Some(keys) =
-          parser.collect_destructuring_assignment_properties_from_object_pattern(ns_obj)
-        {
-          let import_span = import_call.span(parser.ast.ast);
-          parser.dynamic_import_references.add_import(import_span);
-          let import_references = parser
-            .dynamic_import_references
-            .get_import_mut_expect(&import_span);
-          let mut refs = Vec::new();
-          keys.traverse_on_leaf(&mut |stack| {
-            refs.push(stack.iter().map(|p| p.id.clone()).collect::<Vec<Atom>>());
-          });
-          for ids in refs {
-            import_references.add_reference(ids);
-          }
-        }
+        track_destructuring_import_bindings(parser, import_call, ns_obj, vec![]);
       } else {
         unreachable!()
       }
