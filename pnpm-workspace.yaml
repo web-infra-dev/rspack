@@ -209,7 +209,7 @@ minimumReleaseAgeExclude:
   - glob@14.0.2
 
 patchedDependencies:
-  webpack-sources@3.6.0: patches/webpack-sources@3.6.0.patch
+  webpack-sources@3.7.0: patches/webpack-sources@3.7.0.patch
 
 # Prevent un-reviewed build scripts
 strictDepBuilds: true
