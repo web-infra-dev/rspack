@@ -1,5 +1,7 @@
 #[cfg(target_os = "linux")]
 use std::os::unix::fs::MetadataExt;
+#[cfg(target_os = "windows")]
+use std::os::windows::fs::MetadataExt;
 use std::{sync::Arc, time::Duration};
 
 use notify::{
@@ -7,7 +9,7 @@ use notify::{
   event::{ModifyKind, RenameMode},
 };
 use rspack_paths::InternedPath;
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "windows"))]
 use rspack_paths::InternedPathMap;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
@@ -20,7 +22,7 @@ pub struct DiskWatcher {
   inner: Option<RecommendedWatcher>,
   /// The patterns currently registered with the backend.
   watch_patterns: HashSet<WatchPattern>,
-  #[cfg(target_os = "linux")]
+  #[cfg(any(target_os = "linux", target_os = "windows"))]
   directory_identities: Option<InternedPathMap<(u64, u64)>>,
 }
 
@@ -31,7 +33,7 @@ impl DiskWatcher {
     poll_interval: Option<u32>,
     trigger: Arc<trigger::Trigger>,
   ) -> Self {
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
     let _ = follow_symlinks;
     let config = match poll_interval {
       Some(poll) => notify::Config::default()
@@ -56,7 +58,7 @@ impl DiskWatcher {
     DiskWatcher {
       inner: Some(inner),
       watch_patterns: HashSet::default(),
-      #[cfg(target_os = "linux")]
+      #[cfg(any(target_os = "linux", target_os = "windows"))]
       directory_identities: follow_symlinks.then(InternedPathMap::default),
     }
   }
@@ -77,19 +79,14 @@ impl DiskWatcher {
       .map(|pattern| pattern.path.clone())
       .collect();
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "windows"))]
     let identities: Option<InternedPathMap<_>> = self.directory_identities.as_ref().map(|_| {
       new_patterns
         .keys()
-        .filter_map(|path| {
-          path
-            .metadata()
-            .ok()
-            .map(|metadata| (path.clone(), (metadata.dev(), metadata.ino())))
-        })
+        .filter_map(|path| directory_identity(path).map(|identity| (path.clone(), identity)))
         .collect()
     });
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "windows"))]
     let stale_paths = {
       let mut stale_paths = stale_paths;
       if let (Some(previous), Some(current)) = (&self.directory_identities, &identities) {
@@ -167,7 +164,7 @@ impl DiskWatcher {
       self.watch_patterns.insert(pattern);
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "windows"))]
     {
       self.directory_identities = identities;
     }
@@ -184,6 +181,18 @@ impl DiskWatcher {
   fn watch(&mut self, patterns: impl Iterator<Item = WatchPattern>) -> rspack_error::Result<()> {
     self.apply_plan(WatchPlan::new(patterns, false))
   }
+}
+
+#[cfg(any(target_os = "linux", target_os = "windows"))]
+fn directory_identity(path: &InternedPath) -> Option<(u64, u64)> {
+  let metadata = path.metadata().ok()?;
+  #[cfg(target_os = "linux")]
+  return Some((metadata.dev(), metadata.ino()));
+  #[cfg(target_os = "windows")]
+  return Some((
+    metadata.volume_serial_number()?.into(),
+    metadata.file_index()?,
+  ));
 }
 
 pub(crate) fn handle_event(event: Event, trigger: &trigger::Trigger) {

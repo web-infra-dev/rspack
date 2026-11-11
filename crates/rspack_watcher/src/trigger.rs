@@ -193,7 +193,10 @@ impl Trigger {
               }
             }
             if !mapped_original {
-              processor.process(&path, kind, origin, None).await;
+              let resolved_path = processor.path_manager.resolved_directory_entry(&path);
+              processor
+                .process(&path, kind, origin, resolved_path.as_ref())
+                .await;
             }
           }
         });

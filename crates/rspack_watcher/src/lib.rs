@@ -1,3 +1,5 @@
+#![cfg_attr(target_os = "windows", feature(windows_by_handle))]
+
 mod analyzer;
 mod disk_watcher;
 mod executor;

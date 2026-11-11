@@ -413,6 +413,13 @@ impl PathManager {
     symlinks.replace(subscriptions)
   }
 
+  pub(crate) fn resolved_directory_entry(&self, path: &InternedPath) -> Option<InternedPath> {
+    self
+      .symlinks
+      .as_ref()
+      .and_then(|symlinks| symlinks.resolved_directory_entry(path))
+  }
+
   pub(crate) fn symlink_aliases(&self, path: &InternedPath) -> Vec<SymlinkAlias> {
     self
       .symlinks
@@ -739,10 +746,7 @@ impl PathManager {
       };
       for entry in entries.flatten() {
         let path = InternedPath::from(entry.path());
-        let resolved_path = self
-          .symlinks
-          .as_ref()
-          .and_then(|symlinks| symlinks.resolved_directory_entry(&path));
+        let resolved_path = self.resolved_directory_entry(&path);
         if self
           .is_ignored_path(resolved_path.as_ref().unwrap_or(&path))
           .await

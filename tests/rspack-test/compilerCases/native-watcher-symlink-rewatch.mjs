@@ -96,6 +96,8 @@ export default ['file', 'directory'].map((kind) => ({
         replacement,
         kind === 'file' ? 'file' : 'junction',
       );
+      if (process.platform === 'win32' && kind === 'directory')
+        fs.unlinkSync(link);
       fs.renameSync(replacement, link);
       await waitFor(() => changes.every((set) => set.has(link)));
       watch(false);
