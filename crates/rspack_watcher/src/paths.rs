@@ -1,4 +1,5 @@
 use std::{
+  borrow::Cow,
   ffi::OsStr,
   fmt::Debug,
   ops::Deref,
@@ -753,7 +754,7 @@ impl PathManager {
         {
           continue;
         }
-        let Ok(metadata) = Self::scan_metadata(ancestry.last(), &path) else {
+        let Ok(metadata) = self.context_metadata(ancestry.last(), &path) else {
           continue;
         };
         if metadata.is_dir() {
@@ -839,18 +840,7 @@ impl PathManager {
     if self.directories.all.contains(path) || !self.is_below_context(path) {
       return true;
     }
-    // Keep a discovered directory link's identity across target removal and
-    // recovery. Other links are file entries until a context scan follows them.
-    let metadata = if self
-      .symlinks
-      .as_ref()
-      .is_some_and(|symlinks| symlinks.is_directory(path))
-    {
-      std::fs::metadata(path)
-    } else {
-      std::fs::symlink_metadata(path)
-    };
-    let Ok(metadata) = metadata else {
+    let Ok(metadata) = self.context_metadata(None, path) else {
       return true;
     };
     if metadata.is_dir() {
@@ -881,17 +871,24 @@ impl PathManager {
     true
   }
 
-  /// A scanned entry's metadata. `real_dir`, the real path of the directory
-  /// being scanned, is known only with `followSymlinks`; a link is then
+  /// A context entry's metadata. Scans reuse their directory's real path;
+  /// live events resolve it only for links with `followSymlinks`. A link is
   /// followed like watchpack's scan does, except a dangling link, one into its
   /// own directory, or one back above itself: those are recorded as
   /// themselves (`lstat`).
-  fn scan_metadata(
+  fn context_metadata(
+    &self,
     real_dir: Option<&PathBuf>,
     path: &InternedPath,
   ) -> std::io::Result<std::fs::Metadata> {
     let own = std::fs::symlink_metadata(path)?;
-    let Some(real_dir) = real_dir.filter(|_| own.file_type().is_symlink()) else {
+    if !self.follows_symlinks() || !own.file_type().is_symlink() {
+      return Ok(own);
+    }
+    let real_dir = real_dir
+      .map(Cow::Borrowed)
+      .or_else(|| std::fs::canonicalize(path.parent()?).ok().map(Cow::Owned));
+    let Some(real_dir) = real_dir else {
       return Ok(own);
     };
     let Ok(target) = std::fs::canonicalize(path) else {

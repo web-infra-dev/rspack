@@ -1,5 +1,5 @@
 use std::{
-  path::{Component, Path, PathBuf},
+  path::Component,
   sync::{Arc, RwLock},
 };
 
@@ -44,13 +44,16 @@ impl LinkResolver {
       }));
     };
     let parent = self.resolve(&InternedPath::from(parent))?;
-    let real = InternedPath::from(parent.target.join(path.file_name()?));
+    let real = match path.components().next_back()? {
+      Component::ParentDir => InternedPath::from(parent.target.parent().unwrap_or(&parent.target)),
+      _ => InternedPath::from(parent.target.join(path.file_name()?)),
+    };
     let mut links = parent.links.clone();
     let target = if let Ok(content) = std::fs::read_link(&real) {
       links.insert(real);
-      let target = self.resolve(&InternedPath::from(normalize(
-        &parent.target.join(dunce::simplified(&content)),
-      )))?;
+      let target = self.resolve(&InternedPath::from(
+        parent.target.join(dunce::simplified(&content)),
+      ))?;
       links.extend(target.links.iter().cloned());
       target.target.clone()
     } else {
@@ -58,20 +61,6 @@ impl LinkResolver {
     };
     Some(Arc::new(Resolution { target, links }))
   }
-}
-
-fn normalize(path: &Path) -> PathBuf {
-  let mut result = PathBuf::new();
-  for component in path.components() {
-    match component {
-      Component::CurDir => {}
-      Component::ParentDir => {
-        result.pop();
-      }
-      component => result.push(component.as_os_str()),
-    }
-  }
-  result
 }
 
 #[derive(Default)]
@@ -234,15 +223,6 @@ impl Symlinks {
       .filter(|path| !subscriptions.resolved_directories.contains_key(*path))
       .cloned()
       .collect()
-  }
-
-  pub(crate) fn is_directory(&self, path: &InternedPath) -> bool {
-    self
-      .0
-      .read()
-      .expect("symlink subscriptions lock poisoned")
-      .directory_targets
-      .contains_key(path)
   }
 
   pub(crate) fn resolved_directory_entry(&self, path: &InternedPath) -> Option<InternedPath> {

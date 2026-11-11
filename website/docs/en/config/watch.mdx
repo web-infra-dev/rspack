@@ -170,6 +170,8 @@ Follow symbolic links while looking for a file. This is usually not needed as Rs
 
 This option also applies to the native watcher. It watches link targets and intermediate links, including missing files below linked directories, so a linked package can recover after its output directory is deleted and recreated. Aggregated changes use the registered dependency paths, preserving symbolic link paths for file dependencies.
 
+Directory links created inside a watched directory are discovered during watching and followed on the next watch cycle. On POSIX systems, link targets containing `..` are resolved after expanding preceding links, matching filesystem path traversal.
+
 When enabled, `ignored` checks both the registered path and the resolved path of a directory dependency. Entries below that directory use the resolved directory path. A directory link discovered while scanning a watched parent directory instead keeps its link path for `ignored` checks, including its children.
 
 ```js title="rspack.config.mjs"
