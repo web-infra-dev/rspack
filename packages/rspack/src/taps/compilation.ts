@@ -264,19 +264,13 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
               return moduleObject.exports;
             };
 
-            const moduleCache: Record<string, any> = (moduleRequireFn[
-              RuntimeGlobals.moduleCache.replace(
-                `${RuntimeGlobals.require}.`,
-                '',
-              )
-            ] = {});
-            const interceptModuleExecution: ((execOptions: any) => void)[] =
-              (moduleRequireFn[
-                RuntimeGlobals.interceptModuleExecution.replace(
-                  `${RuntimeGlobals.require}.`,
-                  '',
-                )
-              ] = []);
+            // Build-time modules use require properties in webpack mode and
+            // context properties in rspack mode. Share both objects before
+            // executing runtime modules, which may access them as well.
+            const moduleCache: Record<string, any> = {};
+            const interceptModuleExecution: ((execOptions: any) => void)[] = [];
+            moduleRequireFn.c = runtimeContext.c = moduleCache;
+            moduleRequireFn.i = runtimeContext.i = interceptModuleExecution;
             moduleRequireFn.r = moduleRequireFn;
             runtimeContext.r = moduleRequireFn;
             for (const runtimeModule of runtimeModules) {
