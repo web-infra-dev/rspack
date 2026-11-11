@@ -271,8 +271,23 @@ impl Visit for ResourceFragments<'_> {
   }
 
   fn visit_jsx_text(&mut self, text: &JSXText) {
-    // JSX text additionally normalizes whitespace. Conservatively decline path-shaped text.
-    self.declined |= text.value.to_string_lossy().contains(['/', '\\']);
+    let Some(value) = text.value.as_str() else {
+      // Entities can leave a lone surrogate, which joins with another one like in `add_cooked`.
+      self.declined = true;
+      return;
+    };
+    if self.resource.contains(char::is_whitespace) {
+      // SWC trims and joins the lines of JSX text, which a path with whitespace could need.
+      // Conservatively decline path-shaped text.
+      self.declined |= value.contains(['/', '\\']);
+      return;
+    }
+    // SWC changes only the whitespace, so the emitted literal keeps these words. The path has no
+    // whitespace: the literal lies inside it only as a single word, and ends with its start only
+    // through the last word.
+    for word in value.split_whitespace() {
+      self.add(word);
+    }
   }
 }
 
