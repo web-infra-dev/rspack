@@ -45,17 +45,15 @@ impl Scanner {
       // Ignoring a target leaves its retained links watched as lstat entries.
       let mut link_scans = Vec::new();
       let mut collect_paths = |paths: &InternedPathDashSet| {
-        paths
-          .iter()
-          .filter_map(|path| {
-            if let Some(links) = self.path_manager.ignored_target_links(&path) {
-              link_scans.push((path.key().clone(), links));
-              None
-            } else {
-              Some(path.key().clone())
-            }
-          })
-          .collect::<Vec<_>>()
+        let mut retained = Vec::with_capacity(paths.len());
+        for path in paths.iter() {
+          if let Some(links) = self.path_manager.ignored_target_links(&path) {
+            link_scans.push((path.key().clone(), links));
+          } else {
+            retained.push(path.key().clone());
+          }
+        }
+        retained
       };
       let files = collect_paths(accessor.files().1);
       let directories = collect_paths(accessor.directories().1);
