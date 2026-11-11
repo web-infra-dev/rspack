@@ -168,6 +168,8 @@ export default {
 
 是否根据软链接查找文件。这通常是不需要的，因为 Rspack 已经使用 [resolve.symlinks](/config/resolve#resolvesymlinks) 解析了软链接。
 
+此选项也适用于原生文件监听器。它会监听链接目标和解析过程中经过的链接，也支持链接目录下尚不存在的文件。因此，通过链接引用的包在产物目录被删除并重建后，可以恢复构建。聚合后的变更集合使用登记的依赖路径，文件依赖中的链接路径会被保留。
+
 ```js title="rspack.config.mjs"
 export default {
   watchOptions: {

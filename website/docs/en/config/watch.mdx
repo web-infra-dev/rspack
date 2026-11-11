@@ -168,6 +168,8 @@ export default {
 
 Follow symbolic links while looking for a file. This is usually not needed as Rspack already resolves symlinks with [resolve.symlinks](/config/resolve#resolvesymlinks).
 
+This option also applies to the native watcher. It watches link targets and intermediate links, including missing files below linked directories, so a linked package can recover after its output directory is deleted and recreated. Aggregated changes use the registered dependency paths, preserving symbolic link paths for file dependencies.
+
 ```js title="rspack.config.mjs"
 export default {
   watchOptions: {

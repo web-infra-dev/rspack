@@ -1,10 +1,12 @@
+#[cfg(target_os = "linux")]
+use std::os::unix::fs::MetadataExt;
 use std::{sync::Arc, time::Duration};
 
 use notify::{
   Event, EventKind, RecommendedWatcher, Watcher,
   event::{ModifyKind, RenameMode},
 };
-use rspack_paths::InternedPath;
+use rspack_paths::{InternedPath, InternedPathMap};
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
 use crate::{FsEventKind, WatchPattern, analyzer::Analyzer, trigger};
@@ -14,8 +16,11 @@ use crate::{FsEventKind, WatchPattern, analyzer::Analyzer, trigger};
 pub struct DiskWatcher {
   /// The actual file system watcher from the `notify` crate.
   inner: Option<RecommendedWatcher>,
-  /// A set of pattern that are currently being watched.
+  /// The patterns currently registered with the backend.
   watch_patterns: HashSet<WatchPattern>,
+  follow_symlinks: bool,
+  #[cfg(target_os = "linux")]
+  directory_identities: Option<InternedPathMap<(u64, u64)>>,
 }
 
 impl DiskWatcher {
@@ -27,9 +32,9 @@ impl DiskWatcher {
   ) -> Self {
     let config = match poll_interval {
       Some(poll) => notify::Config::default()
-        .with_follow_symlinks(follow_symlinks)
+        .with_follow_symlinks(false)
         .with_poll_interval(Duration::from_millis(u64::from(poll))),
-      None => notify::Config::default().with_follow_symlinks(follow_symlinks),
+      None => notify::Config::default().with_follow_symlinks(false),
     };
 
     let inner = RecommendedWatcher::new(
@@ -48,6 +53,9 @@ impl DiskWatcher {
     DiskWatcher {
       inner: Some(inner),
       watch_patterns: HashSet::default(),
+      follow_symlinks,
+      #[cfg(target_os = "linux")]
+      directory_identities: follow_symlinks.then(InternedPathMap::default),
     }
   }
 
@@ -60,17 +68,87 @@ impl DiskWatcher {
     &mut self,
     patterns: impl Iterator<Item = WatchPattern>,
   ) -> rspack_error::Result<()> {
-    let new_patterns: HashSet<WatchPattern> = patterns.collect();
-
-    let new_paths = new_patterns.iter().map(|p| &p.path).collect::<HashSet<_>>();
+    // Register each physical directory once: inotify aliases share a descriptor
+    // and registering one overwrites the other's event path.
+    let mut new_patterns = InternedPathMap::default();
+    for mut pattern in patterns {
+      if self.follow_symlinks
+        && let Ok(real) = dunce::canonicalize(&pattern.path)
+      {
+        pattern.path = real.into();
+      }
+      new_patterns
+        .entry(pattern.path)
+        .and_modify(|mode| {
+          if pattern.mode == notify::RecursiveMode::Recursive {
+            *mode = pattern.mode;
+          }
+        })
+        .or_insert(pattern.mode);
+    }
 
     // Collect stale paths that are no longer needed, then unwatch and remove them.
     let stale_paths: HashSet<InternedPath> = self
       .watch_patterns
       .iter()
-      .filter(|p| !new_paths.contains(&p.path))
-      .map(|p| p.path.clone())
+      .filter(|pattern| new_patterns.get(&pattern.path) != Some(&pattern.mode))
+      .map(|pattern| pattern.path.clone())
       .collect();
+
+    #[cfg(target_os = "linux")]
+    let identities: Option<InternedPathMap<_>> = self.directory_identities.as_ref().map(|_| {
+      new_patterns
+        .keys()
+        .filter_map(|path| {
+          path
+            .metadata()
+            .ok()
+            .map(|metadata| (path.clone(), (metadata.dev(), metadata.ino())))
+        })
+        .collect()
+    });
+    #[cfg(target_os = "linux")]
+    let stale_paths = {
+      let mut stale_paths = stale_paths;
+      if let (Some(previous), Some(current)) = (&self.directory_identities, &identities) {
+        stale_paths.extend(
+          previous
+            .iter()
+            .filter(|(path, identity)| current.get(*path) != Some(*identity))
+            .map(|(path, _)| path.clone()),
+        );
+      }
+      stale_paths
+    };
+
+    // Removing a recursive inotify watch also removes its descendants, even
+    // when a descendant is still requested by another symbolic link.
+    let stale_recursive_paths: HashSet<_> = stale_paths
+      .iter()
+      .filter(|path| {
+        self.watch_patterns.contains(&WatchPattern {
+          path: (*path).clone(),
+          mode: notify::RecursiveMode::Recursive,
+        })
+      })
+      .cloned()
+      .collect();
+    let mut stale_paths = stale_paths;
+    if !stale_recursive_paths.is_empty() {
+      stale_paths.extend(
+        self
+          .watch_patterns
+          .iter()
+          .filter(|pattern| {
+            pattern
+              .path
+              .ancestors()
+              .skip(1)
+              .any(|ancestor| stale_recursive_paths.contains(&InternedPath::from(ancestor)))
+          })
+          .map(|pattern| pattern.path.clone()),
+      );
+    }
 
     for path in &stale_paths {
       // A failed unwatch must not stop the new patterns from being watched. For example, on
@@ -90,9 +168,10 @@ impl DiskWatcher {
 
     self
       .watch_patterns
-      .retain(|p| !stale_paths.contains(&p.path));
+      .retain(|pattern| !stale_paths.contains(&pattern.path));
 
-    for pattern in new_patterns {
+    for (path, mode) in new_patterns {
+      let pattern = WatchPattern { path, mode };
       if self.watch_patterns.contains(&pattern) {
         continue;
       }
@@ -104,6 +183,11 @@ impl DiskWatcher {
       }
 
       self.watch_patterns.insert(pattern);
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+      self.directory_identities = identities;
     }
 
     Ok(())

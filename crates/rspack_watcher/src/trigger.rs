@@ -8,6 +8,7 @@ use crate::{
   EventBatch, ResolvedEvents,
   analyzer::{Analyzer, RecommendedAnalyzer},
   paths::PathManager,
+  symlinks::SymlinkAlias,
 };
 /// `DependencyFinder` provides references to sets of files, directories, and missing paths,
 /// allowing efficient lookup and dependency resolution for a given path.
@@ -131,6 +132,11 @@ enum Origin {
   /// registered path the scanner backfills. Already judged a change, it is
   /// never dropped as a duplicate or as attribute-only.
   Scan,
+  Symlink {
+    link_changed: bool,
+    appeared: bool,
+    injected: bool,
+  },
 }
 
 impl Trigger {
@@ -159,7 +165,36 @@ impl Trigger {
 
         runtime.block_on(async move {
           while let Some((path, kind, origin)) = incoming.recv().await {
-            processor.process(&path, kind, origin).await;
+            let mut mapped_original = false;
+            if !matches!(origin, Origin::Scan) {
+              for SymlinkAlias {
+                path: alias,
+                link_changed,
+                resolved_path,
+              } in processor.path_manager.symlink_aliases(&path)
+              {
+                if alias != path || link_changed {
+                  mapped_original |= alias == path;
+                  processor.analyzer.invalidate_path(&alias);
+                  processor
+                    .process(
+                      &alias,
+                      kind,
+                      Origin::Symlink {
+                        link_changed,
+                        injected: matches!(origin, Origin::Injected),
+                        appeared: matches!(origin, Origin::Disk { appeared: true })
+                          || kind == FsEventKind::Create,
+                      },
+                      resolved_path.as_ref(),
+                    )
+                    .await;
+                }
+              }
+            }
+            if !mapped_original {
+              processor.process(&path, kind, origin, None).await;
+            }
           }
         });
       })
@@ -225,8 +260,15 @@ impl EventProcessor {
   /// If the file `/path/to/file.js` is changed, the trigger will send an event for the following paths:
   /// - `/path`
   /// - `/path/to`
-  async fn process(&self, path: &InternedPath, kind: FsEventKind, origin: Origin) {
+  async fn process(
+    &self,
+    path: &InternedPath,
+    kind: FsEventKind,
+    origin: Origin,
+    resolved_path: Option<&InternedPath>,
+  ) {
     let appeared = matches!(origin, Origin::Disk { appeared: true })
+      || matches!(origin, Origin::Symlink { appeared: true, .. })
       || (matches!(origin, Origin::Injected) && kind == FsEventKind::Create);
     // Drop events inside ignored subtrees. The recursive-root watch delivers
     // events for unregistered paths (e.g. the build-output dir); left through,
@@ -249,9 +291,21 @@ impl EventProcessor {
     // each event. Keep its records unless the absence was observed, so an
     // unchanged aged mtime is suppressed just as it is by watchpack. Explicit and
     // scanned removals already declare the old record invalid.
-    let removed = kind == FsEventKind::Remove && !matches!(origin, Origin::Disk { .. });
+    let removed = kind == FsEventKind::Remove
+      && !matches!(
+        origin,
+        Origin::Disk { .. }
+          | Origin::Symlink {
+            injected: false,
+            ..
+          }
+      );
     let initial_missing = removed && matches!(origin, Origin::Scan);
-    let exists = std::fs::symlink_metadata(path).is_ok();
+    let exists = if matches!(origin, Origin::Symlink { .. }) {
+      path.exists()
+    } else {
+      std::fs::symlink_metadata(path).is_ok()
+    };
     let kind = match kind {
       FsEventKind::Change | FsEventKind::Create if !exists => FsEventKind::Remove,
       FsEventKind::Remove if exists => FsEventKind::Change,
@@ -260,6 +314,20 @@ impl EventProcessor {
 
     let accessor = self.path_manager.access();
     let is_watched_path = accessor.files().0.contains(path) || accessor.missing().0.contains(path);
+    // Watchpack keeps a discovered file link as an entry when only its target
+    // disappears; the link itself is still present in the context.
+    if matches!(
+      origin,
+      Origin::Symlink {
+        link_changed: false,
+        ..
+      }
+    ) && !exists
+      && !is_watched_path
+      && self.path_manager.is_context_symlink_file(path)
+    {
+      return;
+    }
 
     // Drop a removed path's record so it reads as `null`, like watchpack. A
     // directory moved or deleted as a whole is one event with no per-file
@@ -285,6 +353,13 @@ impl EventProcessor {
     if (kind == FsEventKind::Change || (kind == FsEventKind::Create && is_watched_path))
       && !self.path_manager.has_mtime_changed(path)
       && !matches!(origin, Origin::Scan)
+      && !matches!(
+        origin,
+        Origin::Symlink {
+          link_changed: true,
+          ..
+        }
+      )
     {
       return;
     }
@@ -292,10 +367,28 @@ impl EventProcessor {
     if kind != FsEventKind::Remove
       && !self
         .path_manager
-        .set_context_entry(path, matches!(origin, Origin::Scan) || is_watched_path)
+        .set_context_entry(
+          path,
+          matches!(origin, Origin::Scan | Origin::Symlink { .. }) || is_watched_path,
+        )
         .await
     {
       return;
+    }
+    if matches!(origin, Origin::Symlink { .. })
+      && kind != FsEventKind::Remove
+      && !path.is_dir()
+      && (!is_watched_path
+        || matches!(
+          origin,
+          Origin::Symlink {
+            link_changed: true,
+            ..
+          }
+        ))
+      && let Ok(mtime) = path.metadata().and_then(|metadata| metadata.modified())
+    {
+      self.path_manager.set_file_time(path, mtime, false, false);
     }
     self.path_manager.set_last_watch_events(path);
 
@@ -324,7 +417,7 @@ impl EventProcessor {
       && associated_event
         .iter()
         .any(|(associated, kind)| associated != path && *kind == FsEventKind::Change))
-    .then(|| path.clone());
+    .then(|| resolved_path.unwrap_or(path).clone());
     let context_only_removal = context_removal.is_some() && !finder.contains_file(path);
     if context_removal.is_some() {
       associated_event.retain_mut(|(associated, associated_kind)| {
@@ -337,11 +430,21 @@ impl EventProcessor {
         true
       });
     }
-    let raw = (!associated_event.is_empty() && !context_only_removal).then(|| FsEvent {
+    let mut raw = (!associated_event.is_empty() && !context_only_removal).then(|| FsEvent {
       path: path.clone(),
       kind,
     });
     let mut recovered = Vec::new();
+    if let (Some(raw), Some(resolved_path)) = (&mut raw, resolved_path) {
+      if finder.contains_file(path) {
+        recovered.push(FsEvent {
+          path: resolved_path.clone(),
+          kind,
+        });
+      } else {
+        raw.path = resolved_path.clone();
+      }
+    }
     if appeared && path.is_dir() && !path.is_symlink() {
       // On Linux, inotify adds a new directory's watch before emitting its
       // Create event, so files written before that watch existed are already

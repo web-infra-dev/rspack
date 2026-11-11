@@ -4,6 +4,7 @@ mod executor;
 mod ignored;
 mod paths;
 mod scanner;
+mod symlinks;
 mod time;
 mod trigger;
 
@@ -447,12 +448,28 @@ impl FsWatcherInner {
     //     in flight for that write would then be suppressed as a duplicate.
     self.record_initial_file_mtimes();
 
-    let watch_patterns = self.analyzer.analyze(self.path_manager.access());
+    let mut watch_patterns = self.analyzer.analyze(self.path_manager.access());
+    let (link_patterns, retargeted) = self.path_manager.refresh_symlinks().await;
+    watch_patterns.extend(link_patterns);
+    let rescan_patterns = (self.path_manager.follows_symlinks()
+      && (!retargeted.is_empty() || !self.path_manager.access().directories().1.is_empty()))
+    .then(|| watch_patterns.clone());
     if let Err(error) = self.disk_watcher.watch(watch_patterns.into_iter()) {
       self.analyzer.invalidate_all();
       return Err(error);
     }
-    let changed_in_contexts = self.path_manager.scan_contexts(start_time).await;
+    let mut changed_in_contexts = self
+      .path_manager
+      .scan_contexts(start_time, retargeted)
+      .await;
+    if let Some(mut watch_patterns) = rescan_patterns {
+      watch_patterns.extend(self.path_manager.refresh_symlinks().await.0);
+      if let Err(error) = self.disk_watcher.watch(watch_patterns.into_iter()) {
+        self.analyzer.invalidate_all();
+        return Err(error);
+      }
+      changed_in_contexts.extend(self.path_manager.scan_linked_contexts(start_time).await);
+    }
     if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
       for path in &changed_in_contexts {
         trigger.on_scanned_change(path);

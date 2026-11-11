@@ -15,7 +15,11 @@ use rspack_util::{
 };
 
 use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher};
-use crate::time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis};
+use crate::{
+  WatchPattern,
+  symlinks::{LinkResolver, LinkSubscriptions, SymlinkAlias, Symlinks},
+  time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
+};
 
 /// An iterator that chains together references to all files, directories, and missing paths
 /// stored in the [`PathTracker`]. This allows iteration over all registered paths as a single sequence.
@@ -328,7 +332,7 @@ pub(crate) struct PathManager {
   absent_directories: InternedPathDashSet,
   /// The `followSymlinks` watch option: the context scan descends into
   /// symlinked directories, as watchpack does.
-  follow_symlinks: bool,
+  symlinks: Option<Box<Symlinks>>,
 }
 
 impl PathManager {
@@ -348,13 +352,65 @@ impl PathManager {
       absent_directories: InternedPathDashSet::default(),
       recorded_children: InternedPathDashMap::default(),
       index_lock: std::sync::Mutex::default(),
-      follow_symlinks: false,
+      symlinks: None,
     }
   }
 
   pub fn with_follow_symlinks(mut self, follow_symlinks: bool) -> Self {
-    self.follow_symlinks = follow_symlinks;
+    self.symlinks = follow_symlinks.then(Box::default);
     self
+  }
+
+  pub(crate) fn follows_symlinks(&self) -> bool {
+    self.symlinks.is_some()
+  }
+
+  pub(crate) fn is_context_symlink_file(&self, path: &InternedPath) -> bool {
+    self.context_files.contains(path)
+      && !self.context_directories.contains(path)
+      && path.is_symlink()
+  }
+
+  pub(crate) async fn refresh_symlinks(&self) -> (Vec<WatchPattern>, Vec<InternedPath>) {
+    let Some(symlinks) = &self.symlinks else {
+      return (Vec::new(), Vec::new());
+    };
+    let mut resolver = LinkResolver::default();
+    let mut subscriptions = LinkSubscriptions::default();
+    let registered: Vec<_> = self.access().all().collect();
+    for path in registered {
+      let directory = self.directories.all.contains(&path);
+      subscriptions
+        .add(&mut resolver, path, directory, false, self)
+        .await;
+    }
+    for entries in [&self.context_files, &self.context_directories] {
+      let paths: Vec<_> = entries.iter().map(|entry| entry.key().clone()).collect();
+      for path in paths {
+        if path.is_symlink()
+          && !self.files.all.contains(&path)
+          && !self.directories.all.contains(&path)
+        {
+          subscriptions
+            .add(
+              &mut resolver,
+              path.clone(),
+              self.context_directories.contains(&path),
+              true,
+              self,
+            )
+            .await;
+        }
+      }
+    }
+    symlinks.replace(subscriptions)
+  }
+
+  pub(crate) fn symlink_aliases(&self, path: &InternedPath) -> Vec<SymlinkAlias> {
+    self
+      .symlinks
+      .as_ref()
+      .map_or_else(Vec::new, |symlinks| symlinks.aliases(path))
   }
 
   /// Reset the per-`watch()`-call diff state (added / removed sets) without
@@ -573,11 +629,72 @@ impl PathManager {
   /// Returns the files that changed since `start_time` (watchpack's
   /// `checkStartTime`): they changed before the watch was active, so no event
   /// will come for them.
-  pub async fn scan_contexts(&self, start_time: SystemTime) -> Vec<InternedPath> {
-    let contexts: Vec<InternedPath> = self.directories.added.iter().map(|p| p.clone()).collect();
+  pub async fn scan_contexts(
+    &self,
+    start_time: SystemTime,
+    retargeted: Vec<InternedPath>,
+  ) -> Vec<InternedPath> {
+    let mut contexts: Vec<InternedPath> =
+      self.directories.added.iter().map(|p| p.clone()).collect();
+    for path in retargeted {
+      self.remove_file_times_under(&path);
+      if path.is_dir() {
+        if self.directories.all.contains(&path) {
+          self.absent_directories.remove(&path);
+        } else if self.is_below_context(&path) {
+          self.record(&path, || self.context_directories.insert(path.clone()));
+        }
+        contexts.push(path);
+      }
+    }
     self
       .scan_below(contexts, false, Some(system_time_to_millis(start_time)))
       .await
+  }
+
+  /// Discovered targets are subscribed after the context scan. Recheck those
+  /// links once the watches are active to cover changes during that gap.
+  pub(crate) async fn scan_linked_contexts(&self, start_time: SystemTime) -> Vec<InternedPath> {
+    let Some(symlinks) = &self.symlinks else {
+      return Vec::new();
+    };
+    let followed_files = symlinks.context_files();
+    let directories: InternedPathSet = self
+      .context_directories
+      .iter()
+      .filter(|path| path.is_symlink())
+      .map(|path| path.key().clone())
+      .collect();
+    let entries: Vec<_> = self
+      .context_files
+      .iter()
+      .chain(self.context_directories.iter())
+      .map(|path| path.key().clone())
+      .collect();
+    let since = system_time_to_millis(start_time);
+    let mut changed = Vec::new();
+    for path in entries {
+      if followed_files.contains(&path) {
+        if let Some(mtime) = disk_mtime(&path)
+          && mtime_safe_time(mtime) >= since
+        {
+          self.set_file_time(&path, mtime, true, true);
+          changed.push(path);
+        }
+      } else if path
+        .ancestors()
+        .any(|ancestor| directories.contains(&InternedPath::from(ancestor)))
+        && !path.exists()
+      {
+        changed.push(path);
+      }
+    }
+    changed.extend(
+      self
+        .scan_below(directories.into_iter().collect(), false, Some(since))
+        .await,
+    );
+    changed
   }
 
   /// Index every file and subdirectory below `roots`, minus what `ignored`
@@ -601,7 +718,7 @@ impl PathManager {
       .map(|root| (root, Vec::new(), recovered))
       .collect();
     while let Some((dir, mut ancestry, observed)) = pending.pop() {
-      if self.follow_symlinks {
+      if self.follows_symlinks() {
         let Ok(real) = std::fs::canonicalize(&dir) else {
           continue;
         };
