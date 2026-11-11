@@ -196,25 +196,49 @@ impl ChunkManifest {
     let mut groups_by_module: HashMap<ModuleIdentifier, Vec<ChunkGroupUkey>> = HashMap::default();
     let mut reached_from: HashMap<ChunkGroupUkey, HashSet<ChunkGroupUkey>> = HashMap::default();
     let mut edges: HashMap<ChunkUkey, Vec<ChunkUkey>> = HashMap::default();
+    // A module that renders no JavaScript, such as a consumed shared module, does not
+    // run in its chunk: the runtime loads its blocks, such as the shared module's
+    // fallback, while it ensures the chunk, before the chunk's code has run. Whatever
+    // requests the chunk provides those hashes instead.
+    let mut loaded_while_ensuring: HashMap<ChunkUkey, Vec<ChunkUkey>> = HashMap::default();
     for chunk_ukey in &chunks {
       let mut groups = HashSet::default();
+      let mut ensure_groups = HashSet::default();
       for module in chunk_graph.get_chunk_modules_identifier(chunk_ukey) {
         let module_groups = groups_by_module
           .entry(*module)
           .or_insert_with(|| module_call_site_groups(module, compilation));
-        groups.extend(module_groups.iter().copied());
+        let runs_in_chunk = module_graph
+          .module_by_identifier(module)
+          .is_some_and(|module| {
+            module
+              .source_types(module_graph)
+              .contains(&SourceType::JavaScript)
+          });
+        if runs_in_chunk {
+          groups.extend(module_groups.iter().copied());
+        } else {
+          ensure_groups.extend(module_groups.iter().copied());
+        }
       }
       for group in chunk_by_ukey.expect_get(chunk_ukey).groups() {
         reached_from
           .entry(*group)
           .or_default()
-          .extend(groups.iter().copied());
+          .extend(groups.iter().chain(ensure_groups.iter()).copied());
       }
       let children = groups
         .iter()
         .flat_map(|group| loaded_by(chunk_group_by_ukey.expect_get(group)))
         .collect();
       edges.insert(*chunk_ukey, children);
+      loaded_while_ensuring.insert(
+        *chunk_ukey,
+        ensure_groups
+          .iter()
+          .flat_map(|group| loaded_by(chunk_group_by_ukey.expect_get(group)))
+          .collect(),
+      );
     }
     // A module that does not list the block of an import() would leave the chunks it
     // loads without a hash, so a child group that no call in a parent's chunks reaches
@@ -236,6 +260,47 @@ impl ChunkManifest {
             .extend(loaded_by(child));
         }
       }
+    }
+    // Every chunk the runtime loads while ensuring a chunk, including chunks those load
+    // in turn, goes to whatever requests that chunk. An entry's initial chunks are not
+    // requested by a call, so the entry's runtime chunk provides theirs.
+    let ensured_with = |chunk: &ChunkUkey| {
+      let mut loaded = HashSet::default();
+      let mut stack = vec![*chunk];
+      while let Some(chunk) = stack.pop() {
+        for ensured in loaded_while_ensuring.get(&chunk).into_iter().flatten() {
+          if loaded.insert(*ensured) {
+            stack.push(*ensured);
+          }
+        }
+      }
+      loaded
+    };
+    let mut extra_edges: HashMap<ChunkUkey, HashSet<ChunkUkey>> = HashMap::default();
+    for (chunk, children) in &edges {
+      for child in children {
+        extra_edges
+          .entry(*chunk)
+          .or_default()
+          .extend(ensured_with(child));
+      }
+    }
+    for (_, group) in chunk_group_by_ukey.iter() {
+      if group.kind.is_entrypoint() {
+        let runtime = group.get_runtime_chunk(chunk_group_by_ukey);
+        for chunk in &group.chunks {
+          extra_edges
+            .entry(runtime)
+            .or_default()
+            .extend(ensured_with(chunk));
+        }
+      }
+    }
+    for (chunk, extra) in extra_edges {
+      edges
+        .get_mut(&chunk)
+        .expect("every chunk has edges")
+        .extend(extra);
     }
     for children in edges.values_mut() {
       children.sort_by(by_id);

@@ -78,6 +78,7 @@ const excludes = {
 		/^sharing\/share-plugin-dual-mode$/,
 		/^sharing\/share-plugin-monorepo$/,
 		/^sharing\/share-plugin-secondary-entry-point$/,
+		/^sri\/lazy-consume-shared-fallback$/,
 		/^sri\/mf$/,
 		/^tree-shaking\/side-effects-consume-shared$/,
 
