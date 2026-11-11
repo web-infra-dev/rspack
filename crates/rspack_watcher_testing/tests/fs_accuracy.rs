@@ -74,6 +74,21 @@ async fn watcher_accuracy_is_shared_between_instances_and_isolated_from_cache() 
   let context = InternedPath::from(base.join("context"));
   fs::create_dir(&context).expect("create context");
   fs::create_dir(base.join("context/empty")).expect("create empty child directory");
+  let mut directory_options = fs::File::options();
+  #[cfg(windows)]
+  {
+    use std::os::windows::fs::OpenOptionsExt;
+    directory_options.write(true).custom_flags(0x0200_0000);
+  }
+  #[cfg(not(windows))]
+  directory_options.read(true);
+  for directory in [base.join("context/empty"), base.join("context")] {
+    directory_options
+      .open(directory)
+      .expect("open directory")
+      .set_modified(round)
+      .expect("set coarse directory mtime");
+  }
   let context_watcher = FsWatcher::new(Default::default(), Default::default());
   context_watcher
     .watch(

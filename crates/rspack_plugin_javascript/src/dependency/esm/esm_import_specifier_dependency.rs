@@ -535,6 +535,10 @@ impl ESMImportSpecifierDependencyTemplate {
     let Some(con) = connection else {
       return;
     };
+    if ids.is_empty() {
+      source.replace_static(dep.range.start, dep.range.end, " true", None);
+      return;
+    }
     let TemplateContext {
       runtime,
       module: self_module,

@@ -9,7 +9,10 @@ use rspack_loader_runner::State as LoaderState;
 use rspack_napi::ThreadsafeOneShotRef;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{error::RspackError, module::ModuleObject};
+use crate::{
+  error::{JsRspackDiagnostic, RspackError},
+  module::ModuleObject,
+};
 
 #[napi(object)]
 pub struct JsLoaderItem {
@@ -205,6 +208,8 @@ pub struct JsLoaderContext {
   pub loader_chain_end: u32,
   #[napi(js_name = "__internal__error")]
   pub error: Option<RspackError>,
+  #[napi(js_name = "__internal__diagnostics")]
+  pub diagnostics: Option<Vec<JsRspackDiagnostic>>,
 }
 
 impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
@@ -253,6 +258,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       loader_index: cx.loader_index,
       loader_state: cx.state().into(),
       error: None,
+      diagnostics: None,
       loader_chain_start: execution_span.start as u32,
       loader_chain_end: execution_span.end as u32,
     })

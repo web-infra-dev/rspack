@@ -733,6 +733,8 @@ pub struct RegisterJsTaps {
 }
 
 /* Compiler Hooks */
+// `cache = false, skip = false` makes every `thisCompilation` call wait for the
+// JS thread. `Compiler::compile` relies on that to free the previous assets.
 define_register!(
   RegisterCompilerThisCompilationTaps,
   tap = CompilerThisCompilationTap<JsCompilationWrapper, ()> @ CompilerThisCompilationHook,
@@ -2106,7 +2108,7 @@ impl RealContentHashPluginUpdateHash for RealContentHashPluginUpdateHashTap {
   ) -> rspack_error::Result<Option<String>> {
     let assets = assets
       .iter()
-      .map(|asset| Buffer::from(asset.buffer().to_vec()))
+      .map(|asset| Buffer::from(asset.buffer().into_owned()))
       .collect::<Vec<_>>();
     self
       .function

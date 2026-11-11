@@ -50,6 +50,7 @@ impl Occasion for MakeOccasion {
       affected_dependencies,
       issuer_update_modules,
       // skip
+      module_build_cache: _,
       entry_dependencies: _,
       file_dependencies: _,
       context_dependencies: _,
@@ -122,6 +123,7 @@ impl Occasion for MakeOccasion {
       affected_modules: Default::default(),
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
+      module_build_cache: None,
 
       side_effects_state_artifact: Default::default(),
       module_graph: mg,

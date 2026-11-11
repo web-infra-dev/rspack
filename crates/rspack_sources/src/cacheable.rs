@@ -1,10 +1,12 @@
 //! Cacheable source types for serialization/deserialization.
 #![allow(missing_docs)]
 
+use triomphe::ThinArc;
+
 use crate::{
-  BoxSource, CachedSource, ConcatSource, MappingSource, OriginalSource, RawBufferSource,
-  RawStringSource, ReplaceSource, ReplacementEnforce, Source, SourceExt, SourceMap,
-  SourceMapFields, SourceMapSource, SourceMapSourceOptions, mapping_source::Data,
+  BoxSource, CachedSource, ConcatSource, DevToolCodeSource, DevToolMapSource, OriginalSource,
+  RawBufferSource, RawStringSource, ReplaceSource, ReplacementEnforce, Source, SourceExt,
+  SourceMap, SourceMapSource, SourceMapSourceOptions, source::shared_slice,
 };
 
 /// Source map fields stored without an intermediate JSON representation.
@@ -21,55 +23,46 @@ pub struct CacheableSourceMap {
   ignore_list: Option<Vec<u32>>,
 }
 
-impl From<&SourceMap<'_>> for CacheableSourceMap {
-  fn from(map: &SourceMap<'_>) -> Self {
-    let fields = map.fields();
+impl From<&SourceMap> for CacheableSourceMap {
+  fn from(map: &SourceMap) -> Self {
     Self {
-      version: fields.version,
-      file: fields.file.as_deref().map(str::to_owned),
-      sources: fields.sources.iter().map(ToString::to_string).collect(),
-      sources_content: fields
-        .sources_content
+      version: map.version,
+      file: map.file.as_deref().map(str::to_owned),
+      sources: map.sources().iter().map(ToString::to_string).collect(),
+      sources_content: map
+        .sources_content()
         .iter()
         .map(|content| content.as_deref().map(str::to_owned))
         .collect(),
-      names: fields.names.iter().map(ToString::to_string).collect(),
-      mappings: fields.mappings.to_string(),
-      source_root: fields.source_root.as_deref().map(str::to_owned),
-      debug_id: fields.debug_id.as_deref().map(str::to_owned),
-      ignore_list: fields.ignore_list.as_deref().map(<[u32]>::to_vec),
+      names: map.names().iter().map(ToString::to_string).collect(),
+      mappings: map.mappings.to_string(),
+      source_root: map.source_root.as_deref().map(str::to_owned),
+      debug_id: map.debug_id.as_deref().map(str::to_owned),
+      ignore_list: map.ignore_list().map(<[u32]>::to_vec),
     }
   }
 }
 
-impl From<CacheableSourceMap> for SourceMap<'static> {
+impl From<CacheableSourceMap> for SourceMap {
   fn from(map: CacheableSourceMap) -> Self {
-    SourceMap::from_fields(SourceMapFields {
+    SourceMap {
       version: map.version,
       file: map.file.map(Into::into),
-      sources: map
-        .sources
-        .into_iter()
-        .map(Into::into)
-        .collect::<Vec<_>>()
-        .into(),
-      sources_content: map
-        .sources_content
-        .into_iter()
-        .map(|content| content.map(Into::into))
-        .collect::<Vec<_>>()
-        .into(),
-      names: map
-        .names
-        .into_iter()
-        .map(Into::into)
-        .collect::<Vec<_>>()
-        .into(),
+      sources: shared_slice(map.sources.into_iter().map(Into::into)),
+      sources_content: shared_slice(
+        map
+          .sources_content
+          .into_iter()
+          .map(|content| content.map(Into::into)),
+      ),
+      names: shared_slice(map.names.into_iter().map(Into::into)),
       mappings: map.mappings.into(),
       source_root: map.source_root.map(Into::into),
       debug_id: map.debug_id.map(Into::into),
-      ignore_list: map.ignore_list.map(Into::into),
-    })
+      ignore_list: map
+        .ignore_list
+        .map(|items| ThinArc::from_header_and_iter((), items.into_iter())),
+    }
   }
 }
 
@@ -152,34 +145,30 @@ pub enum CacheableSource {
     #[rkyv(omit_bounds)]
     inner: Box<CacheableSource>,
   },
-  /// [`MappingSource`], preserving every field, including omitted empty arrays.
-  Mapping {
+  /// [`DevToolMapSource`], preserving every field, including omitted empty arrays.
+  DevToolMap {
     /// Keep map metadata from enlarging every cached source node.
     map: Box<CacheableSourceMap>,
   },
-  /// An edited [`MappingSource`] remains a structural view of its input.
-  EditedMapping {
+  /// [`DevToolCodeSource`], preserving the shared code and appended comment.
+  DevToolCode {
     #[rkyv(omit_bounds)]
     inner: Box<CacheableSource>,
-    replacements: Vec<(usize, usize, String)>,
+    suffix: String,
   },
 }
 
 /// Convert a [`Source`] trait object into a serializable [`CacheableSource`].
 pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
-  if let Some(s) = source.as_any().downcast_ref::<MappingSource>() {
-    return match s.data() {
-      Data::Map(data) => CacheableSource::Mapping {
-        map: Box::new((&data.map).into()),
-      },
-      Data::Edited {
-        inner,
-        replacements,
-        ..
-      } => CacheableSource::EditedMapping {
-        inner: Box::new(to_cacheable(inner)),
-        replacements: replacements.clone(),
-      },
+  if let Some(s) = source.as_any().downcast_ref::<DevToolMapSource>() {
+    return CacheableSource::DevToolMap {
+      map: Box::new(s.original_map().into()),
+    };
+  }
+  if let Some(s) = source.as_any().downcast_ref::<DevToolCodeSource>() {
+    return CacheableSource::DevToolCode {
+      inner: Box::new(to_cacheable(s.inner().as_ref())),
+      suffix: s.suffix().source().into_string_lossy().into_owned(),
     };
   }
   if let Some(s) = source.as_any().downcast_ref::<CachedSource>() {
@@ -258,19 +247,12 @@ pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
 /// Convert a [`CacheableSource`] back into a [`BoxSource`].
 pub fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
   match cacheable {
-    CacheableSource::Mapping { map } => MappingSource::new((*map).into()).boxed(),
-    CacheableSource::EditedMapping {
-      inner,
-      replacements,
-    } => {
-      let inner = from_cacheable(*inner);
-      inner
-        .as_any()
-        .downcast_ref::<MappingSource>()
-        .expect("edited mapping source must retain a mapping source")
-        .with_replacements(replacements, inner.size())
-        .boxed()
-    }
+    CacheableSource::DevToolMap { map } => DevToolMapSource::new((*map).into()).boxed(),
+    CacheableSource::DevToolCode { inner, suffix } => DevToolCodeSource::new(
+      from_cacheable(*inner),
+      RawStringSource::from(suffix).boxed(),
+    )
+    .boxed(),
     CacheableSource::RawBuffer { buffer } => RawBufferSource::from(buffer).boxed(),
     CacheableSource::RawString { value } => RawStringSource::from(value).boxed(),
     CacheableSource::Original { value, name } => OriginalSource::new(value, name).boxed(),

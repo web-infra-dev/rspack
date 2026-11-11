@@ -275,7 +275,7 @@ impl SwcLoader {
           .sources()
           .iter()
           .map(|source| {
-            let source_path = Path::new(source.as_ref());
+            let source_path = Path::new(source.as_str());
             if source_path.is_relative() {
               source_path
                 .absolutize_with(resource_dir.as_std_path())
