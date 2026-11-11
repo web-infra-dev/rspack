@@ -9,14 +9,9 @@ import {
 	closeCompiler,
 	runCompiler
 } from "@rspack/test-tools/helper/lifecycle";
+import { removeTree } from "../_remove-tree.mjs";
 
 const transform = "./transform.cjs";
-
-// On Linux CI, removing a cache directory right after its compiler closed failed with ENOTEMPTY.
-// Node retries that error when asked to.
-function removeTree(target) {
-	fs.rmSync(target, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
-}
 // Long enough that settling the cycle one producer at a time over the whole graph would time out.
 const CYCLE_SIZE = 3000;
 

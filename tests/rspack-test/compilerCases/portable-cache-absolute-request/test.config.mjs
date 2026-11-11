@@ -7,6 +7,7 @@ import {
 	closeCompiler,
 	runCompiler
 } from "@rspack/test-tools/helper/lifecycle";
+import { removeTree, retry } from "../_remove-tree.mjs";
 
 const LOADER_RUNS = Symbol.for("portable-cache-absolute-request-loader-runs");
 
@@ -154,7 +155,7 @@ const move = (writer, reader) => {
 };
 
 const coldBuild = async (root, configuration, portable) => {
-	fs.rmSync(path.join(root, "app/.cache"), { recursive: true, force: true });
+	removeTree(path.join(root, "app/.cache"));
 	return build(root, configuration, portable);
 };
 
@@ -431,7 +432,7 @@ export default {
 				const shared = relocated(temp, "shared-node-modules", writeProject);
 				await build(shared.writer);
 				move(shared.writer, shared.reader);
-				fs.rmSync(path.join(shared.reader, "node_modules"), { recursive: true });
+				fs.rmSync(path.join(shared.reader, "node_modules"), { recursive: true, ...retry });
 				fs.symlinkSync(path.join(shared.writer, "node_modules"), path.join(shared.reader, "node_modules"));
 				const sharedMoved = await build(shared.reader);
 				const sharedCold = await coldBuild(shared.reader);
@@ -439,7 +440,7 @@ export default {
 				expect(sharedMoved.assets).toEqual(sharedCold.assets);
 			}
 		} finally {
-			fs.rmSync(temp, { recursive: true, force: true });
+			removeTree(temp);
 		}
 	}
 };

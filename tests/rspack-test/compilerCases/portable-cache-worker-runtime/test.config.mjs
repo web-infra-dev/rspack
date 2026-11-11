@@ -6,6 +6,7 @@ import {
 	closeCompiler,
 	runCompiler
 } from "@rspack/test-tools/helper/lifecycle";
+import { removeTree } from "../_remove-tree.mjs";
 
 async function build(root) {
 	const compiler = rspack({
@@ -61,13 +62,13 @@ export default {
 			fs.mkdirSync(path.dirname(reader), { recursive: true });
 			fs.cpSync(writer, reader, { recursive: true });
 			const moved = await build(reader);
-			fs.rmSync(path.join(reader, ".cache"), { recursive: true, force: true });
+			removeTree(path.join(reader, ".cache"));
 			const cold = await build(reader);
 			expect(moved.built).toBeLessThan(cold.built);
 			expect(moved.hash).toBe(cold.hash);
 			expect(moved.assets).toEqual(cold.assets);
 		} finally {
-			fs.rmSync(temp, { recursive: true, force: true });
+			removeTree(temp);
 		}
 	}
 };

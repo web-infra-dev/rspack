@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { rspack } from "@rspack/core";
 import { closeCompiler, runCompiler } from "@rspack/test-tools/helper/lifecycle";
+import { removeTree } from "../_remove-tree.mjs";
 
 /** @type {import("@rspack/test-tools").TCompilerCaseConfig} */
 export default {
@@ -111,7 +112,7 @@ module.exports = function () {
 				}
 			}
 		} finally {
-			fs.rmSync(root, { recursive: true, force: true });
+			removeTree(root);
 		}
 	}
 };
