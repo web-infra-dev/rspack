@@ -130,11 +130,7 @@ impl StrategyHelper {
   pub async fn is_missing(&self, path: &InternedPath) -> bool {
     matches!(
       self.fs.metadata(path.assert_utf8()).await,
-      Err(rspack_fs::Error::Io(error))
-        if matches!(
-          error.kind(),
-          std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory
-        )
+      Err(rspack_fs::Error::Io(error)) if error.kind() == std::io::ErrorKind::NotFound
     )
   }
 
