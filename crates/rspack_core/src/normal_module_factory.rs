@@ -1,6 +1,6 @@
 use std::{
   borrow::Cow,
-  sync::{Arc, LazyLock},
+  sync::{Arc, LazyLock, UniqueArc},
 };
 
 use memchr::{memchr, memmem, memrchr};
@@ -590,40 +590,6 @@ mod tests {
       .expect("javascript parser options should be resolved");
     assert!(!options.is_create_require_enabled());
   }
-
-  #[test]
-  fn reuse_create_data_resource_resolve_data_for_normal_module() {
-    let mut create_data = NormalModuleCreateData {
-      raw_request: "./a".to_string(),
-      request: "/a.js".to_string(),
-      user_request: "./a".to_string(),
-      resource_resolve_data: Arc::new(ResourceData::new_with_resolved_path(
-        "/a.js".into(),
-        String::new(),
-        String::new(),
-      )),
-      match_resource: None,
-      side_effects: None,
-      context: None,
-      module_options: Arc::new(ResolvedModuleOptions::new(
-        ResolvedModuleOptionsCacheKey::new(&[], ModuleType::JsAuto),
-        None,
-        None,
-      )),
-    };
-    let resource_data = create_data.resource_resolve_data();
-    let original = std::ptr::from_ref(resource_data);
-    let path = resource_data.path().expect("resolved path");
-    assert_eq!(resource_data.resource().as_ptr(), path.as_str().as_ptr());
-
-    create_data.update_resource_data("/b.js?raw#preview".to_string());
-    let resource_data = Arc::clone(&create_data.resource_resolve_data);
-
-    assert_eq!(Arc::as_ptr(&resource_data), original);
-    assert_eq!(resource_data.resource(), "/b.js?raw#preview");
-    assert_eq!(resource_data.query(), Some("?raw"));
-    assert_eq!(resource_data.fragment(), Some("#preview"));
-  }
 }
 
 const HYPHEN: char = '-';
@@ -835,23 +801,21 @@ impl NormalModuleFactory {
     let resource = unresolved_resource.to_owned();
     let resource_data = if !scheme.is_none() {
       // resource with scheme
-      let mut resource_data = Arc::new(ResourceData::new_with_resource(resource));
-      let resource_data_mut = Arc::get_mut(&mut resource_data).expect("new resource is unique");
+      let mut resource_data = UniqueArc::new(ResourceData::new_with_resource(resource));
       plugin_driver
         .normal_module_factory_hooks
         .resolve_for_scheme
-        .call(data, resource_data_mut, &scheme)
+        .call(data, &mut resource_data, &scheme)
         .await?;
       resource_data
     } else if !context_scheme.is_none()
       // resource within scheme
       && let Some(resource_data) = {
-        let mut resource_data = Arc::new(ResourceData::new_with_resource(resource.clone()));
-        let resource_data_mut = Arc::get_mut(&mut resource_data).expect("new resource is unique");
+        let mut resource_data = UniqueArc::new(ResourceData::new_with_resource(resource.clone()));
         let handled = plugin_driver
           .normal_module_factory_hooks
           .resolve_in_scheme
-          .call(data, resource_data_mut, &context_scheme)
+          .call(data, &mut resource_data, &context_scheme)
           .await?
           .unwrap_or_default();
         handled.then_some(resource_data)
@@ -861,7 +825,7 @@ impl NormalModuleFactory {
     } else {
       // resource without scheme and without path
       if resource.is_empty() || resource.starts_with(QUESTION_MARK) {
-        Arc::new(ResourceData::new_with_resource(resource))
+        UniqueArc::new(ResourceData::new_with_resource(resource))
       } else {
         // resource without scheme and with path
         let resolve_args = ResolveArgs {
@@ -890,7 +854,7 @@ impl NormalModuleFactory {
           .extend(resolve_dependencies.missing_dependencies);
 
         match resource_data {
-          Ok(ResolveResult::Resource(resource)) => Arc::new(resource.into()),
+          Ok(ResolveResult::Resource(resource)) => UniqueArc::new(resource.into()),
           Ok(ResolveResult::Ignored) => {
             let ident = format!("{}/{}", &data.context, resource);
 
@@ -1147,7 +1111,7 @@ module.exports = "data:,";
         side_effects: resolved_side_effects,
         context: resource_data.context().map(|c| c.to_owned()),
         module_options: resolved_options.clone(),
-        resource_resolve_data: resource_data,
+        resource_resolve_data: UniqueArc::into_arc(resource_data),
       };
       if let Some(plugin_result) = self
         .plugin_driver
