@@ -473,9 +473,11 @@ const getRawModuleRule = (
     delete rawModuleRule.resourceQuery;
     delete rawModuleRule.resourceFragment;
 
-    rawModuleRule.rspackResource = getRawRuleSetCondition(
-      (resourceQueryFragment) => {
-        const { path, query, fragment } = parseResource(resourceQueryFragment);
+    rawModuleRule.rspackResource = {
+      type: RawRuleSetConditionType.func,
+      func: (resource: string | ReturnType<typeof parseResource>) => {
+        const { path, query, fragment } =
+          typeof resource === 'string' ? parseResource(resource) : resource;
 
         if (rule.test && !tryMatch(path, rule.test)) {
           return false;
@@ -497,7 +499,7 @@ const getRawModuleRule = (
 
         return true;
       },
-    );
+    };
   }
   return rawModuleRule;
 };

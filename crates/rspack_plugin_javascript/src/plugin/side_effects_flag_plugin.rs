@@ -209,7 +209,7 @@ async fn nmf_module(
     return Ok(());
   }
 
-  let resource_data = create_data.resource_resolve_data.as_ref();
+  let resource_data = create_data.resource_resolve_data();
   let Some(resource_path) = resource_data.path() else {
     return Ok(());
   };
