@@ -3,10 +3,11 @@ use std::sync::LazyLock;
 use futures::future::join_all;
 use regex::Regex;
 use rspack_core::{
-  AsyncModulesArtifact, BuildMetaExportsType, CanInlineUse, Chunk, ChunkUkey, CodeGenerationDataTopLevelDeclarations,
-  Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules,
-  CompilationParams, CompilerCompilation, EntryData, ExportProvided, ExportsInfoArtifact, Filename,
-  LibraryExport, LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleGraph, ModuleIdentifier, ModuleRef,
+  AsyncModulesArtifact, BuildMetaExportsType, CanInlineUse, Chunk, ChunkUkey,
+  CodeGenerationDataTopLevelDeclarations, Compilation,
+  CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
+  CompilerCompilation, EntryData, ExportProvided, ExportsInfoArtifact, Filename, LibraryExport,
+  LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleGraph, ModuleIdentifier, ModuleRef,
   PathData, Plugin, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeVariable,
   SideEffectsStateArtifact, SourceType, UsageState, get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},

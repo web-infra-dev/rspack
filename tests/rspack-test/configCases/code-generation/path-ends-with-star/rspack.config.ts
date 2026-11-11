@@ -25,6 +25,10 @@ export default defineConfig({
           fs.mkdirSync(dir);
         }
         fs.writeFileSync(path.resolve(dir, 'a.js'), 'export const a = 1;');
+        // cleanup
+        compiler.hooks.done.tap('skipWindows', () => {
+          fs.rmSync(dir, { recursive: true, force: true });
+        });
       }
     }),
   ],

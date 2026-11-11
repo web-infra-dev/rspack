@@ -484,7 +484,7 @@ it("should avoid broad consumer cache cleanup in browser runtime", async () => {
 	);
 });
 
-it("should remove unloaded and loading shared records from the target remote", async () => {
+it("should remove unloaded shared records while preserving loaded and pending shared identity", async () => {
 	const shareMap = globalThis.__FEDERATION__.__SHARE__;
 	const instanceId = "__rspack_clear_cache_shared_test__";
 	const previous = shareMap[instanceId];
@@ -537,12 +537,14 @@ it("should remove unloaded and loading shared records from the target remote", a
 		const scope = shareMap[instanceId].default;
 		expect(scope.unloaded["1.0.0"]).toBeUndefined();
 		expect(scope.loaded["1.0.0"]).toBe(loadedShared);
-		expect(scope.loading["1.0.0"]).toBeUndefined();
+		expect(scope.loading["1.0.0"]).toBe(loadingShared);
 		expect(scope.other["1.0.0"]).toBe(otherRemoteShared);
 
-		loadingDeferred.resolve(() => "loading");
-		await staleLoading;
-		expect(scope.loading["1.0.0"]).toBeUndefined();
+		const loadingFactory = () => "loading";
+		loadingDeferred.resolve(loadingFactory);
+		await expect(staleLoading).resolves.toBe(loadingFactory);
+		expect(scope.loading["1.0.0"]).toBe(loadingShared);
+		expect(scope.loading["1.0.0"].lib).toBe(loadingFactory);
 	} finally {
 		if (previous) {
 			shareMap[instanceId] = previous;

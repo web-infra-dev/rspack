@@ -84,6 +84,10 @@ export function createRemoteServer() {
 					this.remoteEntryClears.push(`${entryVersion}:${entry}`);
 					remoteEntry.__webpack_clear_cache__();
 				},
+				__webpack_clear_exposed_cache__: () => {
+					this.remoteEntryClears.push(`${entryVersion}:${entry}`);
+					remoteEntry.__webpack_clear_exposed_cache__();
+				},
 				get: expose => {
 					this.remoteGets.push(`${entryVersion}:${expose}`);
 					const getFactory = Promise.resolve(remoteEntry.get(expose)).then(

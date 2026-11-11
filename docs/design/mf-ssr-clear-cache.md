@@ -1,5 +1,37 @@
 # MF SSR ClearCache 设计方案
 
+## 当前集成契约（2026-11-11）
+
+本次将完整 `feat/mf-ssr-clear-cache` PoC（包括 Node entry exports 更新）迁移到
+Rspack `main` 的 `c44d424a7f422d5be894defb956efb29eb976588`，并与当前 MF
+和 Modern 的本地构建联合验证。下面的初版方案保留为演进记录，涉及加载等待、
+shared 清理和 remote 注册更新的描述以本节为准。
+
+- Rspack 原生 enhanced `ModuleFederationPlugin` 生成反向依赖图、remote/chunk
+  索引及 Node chunk cache controls。Rspack 调用方不需要另外安装 webpack 的
+  `SSRDependencyPlugin`。MF bundler runtime 的 `installClearCache` 消费这些产物。
+- 低层 `clearCache` 先推进代际并失效旧状态，然后有限等待已追踪的 remote load。
+  迟到的 `readFileVm` chunk 会以 `stale` 错误拒绝，不能重新写入 module factories
+  或 `installedChunks`。此 API 不负责业务请求排空。Modern 在调用低层失效前
+  停止相关新请求进入并等待在途工作完成，提供请求层的一致性。
+- 只删除未加载的 shared 记录。已加载或正在加载的 shared 保留原对象和 factory
+  身份，provider 通过 `__webpack_clear_exposed_cache__` 选择性清理非 shared
+  的 exposed 缓存。包装 provider entry 时必须保留该方法。
+- MF 保留现有 `registerRemotes(..., { force: true })` 的同步兼容契约。需要等待
+  旧缓存清理的调用方使用新的异步 `updateRemotes`，不能把 force register 的
+  返回值当作完成清理的 Promise。
+- Node entry namespace 通过 `RuntimeGlobals.updateEntryExports` 发布新的同步
+  ESM 导出。保留 namespace 的调用方可见新值，已经单独保存的旧导出值保持
+  原值。没有受支持的 entry owner 时能力返回 `false`。
+
+主分支新增的 persistent-cache harness 要求模块缓存全部复用。其 `RemoteModule`
+和 `ConsumeSharedModule` 仍保守重建，现有 MF cases 已对这项额外检查做精确排除。
+本次新增的三个 MF config cases 沿用该规则，正常编译执行及 runtime-module mode
+的行为断言均保留。独立两次编译诊断分别确认了重建的 remote 和 consume-shared
+模块，本次不宣称这些 cases 达到 100% 持久缓存复用。
+
+## 初版方案与演进记录
+
 ## 背景问题
 
 MF 在 SSR 场景中运行在 Node 进程内。remote 第一次加载后，旧版本会同时留在多层缓存里：

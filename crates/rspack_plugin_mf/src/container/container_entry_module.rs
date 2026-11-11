@@ -5,13 +5,14 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier, IdentifierSet};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildMetaExportsType, ChunkGraph, ChunkGroupOptions, CodeGenerationDataItem, CodeGenerationResultBuilder,
-  CodeGenerationRuntimeRequirementsWrite, Compilation, Context, DependenciesBlock,
-  DependenciesBlockData, Dependency, DependencyType, ExportsArgument, FactoryMetaStore, FreezeLock,
-  GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleCodeTemplate,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, NeedBuildContext, RuntimeGlobals,
-  RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
-  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  BuildMetaExportsType, ChunkGraph, ChunkGroupOptions, CodeGenerationDataItem,
+  CodeGenerationResultBuilder, CodeGenerationRuntimeRequirementsWrite, Compilation, Context,
+  DependenciesBlock, DependenciesBlockData, Dependency, DependencyType, ExportsArgument,
+  FactoryMetaStore, FreezeLock, GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext,
+  ModuleCodeTemplate, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
+  NeedBuildContext, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec, impl_module_meta_info, impl_source_map_config,
+  module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
 };
