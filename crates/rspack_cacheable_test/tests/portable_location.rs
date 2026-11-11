@@ -3,8 +3,8 @@ use std::path::{Path, PathBuf};
 use camino::Utf8PathBuf;
 use rspack_cacheable::CacheableContext;
 use rspack_location::{
-  DependencyLocation, PortableDependencyLocation, PortableLocationShift, RealDependencyLocation,
-  SourcePosition, SyntheticDependencyLocation, portable::quote_ascii,
+  DependencyLocation, PathSpelling, PortableDependencyLocation, PortableLocationShift,
+  RealDependencyLocation, SourcePosition, SyntheticDependencyLocation, portable::quote_ascii,
 };
 
 struct Context(PathBuf);
@@ -41,7 +41,11 @@ fn fixture(context: &Context) -> (Vec<DependencyLocation>, Vec<DependencyLocatio
   let canonical_literals = names.map(|name| quote_ascii(&format!("[portable-root]/{name}")));
   let paths = names
     .map(|name| Utf8PathBuf::from_path_buf(context.0.join(name)).expect("should be a UTF-8 path"));
-  let literals = paths.each_ref().map(|path| quote_ascii(path.as_str()));
+  // One literal per spelling. The first two keep non-ASCII characters, which are narrower in
+  // UTF-16 columns than in bytes.
+  let spellings = [PathSpelling::Swc, PathSpelling::SwcEs5, PathSpelling::Ascii];
+  let literals: [String; 3] =
+    std::array::from_fn(|index| spellings[index].quote(paths[index].as_str()));
   let source = |literals: &[String; 3]| {
     format!(
       "/* 😀é */ const p = {}; {}; import 'dep';\n{}; import 'other';\nlast\n",
@@ -61,6 +65,7 @@ fn fixture(context: &Context) -> (Vec<DependencyLocation>, Vec<DependencyLocatio
       start: position(&canonical, canonical_starts[index]),
       canonical_width: canonical_literals[index].len() as u32,
       path: paths[index].clone(),
+      spelling: spellings[index],
     })
     .collect::<Vec<_>>();
 
@@ -179,4 +184,31 @@ fn test_portable_path_quote_uses_ascii_utf16_escapes() {
     quote_ascii("\"\\\n\r\t\u{8}\u{c}\0é😀"),
     r#""\"\\\n\r\t\b\f\u0000\u00e9\ud83d\ude00""#
   );
+}
+
+#[test]
+fn test_portable_path_spelling_follows_swc() {
+  // SWC's rule above ES5, then its rule for ES5 and below.
+  let value = "/é-中-😀-it's/\u{7f}\t\u{1}\u{2028}\u{feff}\\";
+  assert_eq!(
+    PathSpelling::Swc.quote(value),
+    "\"/é-中-😀-it's/\u{7f}\t\\x01\\u2028\\uFEFF\\\\\""
+  );
+  assert_eq!(
+    PathSpelling::SwcEs5.quote(value),
+    "\"/\\xe9-中-\\uD83D\\uDE00-it's/\\x7f\t\\x01\\u2028\\uFEFF\\\\\""
+  );
+  // SWC takes the quote that needs fewer escapes.
+  assert_eq!(PathSpelling::Swc.quote("a\"b"), "'a\"b'");
+  assert_eq!(PathSpelling::Swc.quote("a\"b''"), "\"a\\\"b''\"");
+
+  // A literal keeps the rule that wrote it. With no character the two rules treat differently,
+  // the loader says which one it follows.
+  let spelling = |value: &str, raw: &str, es5| PathSpelling::of(raw, value, es5);
+  assert_eq!(spelling("/é", "\"/é\"", true), PathSpelling::Swc);
+  assert_eq!(spelling("/é", "\"/\\xe9\"", false), PathSpelling::SwcEs5);
+  assert_eq!(spelling("/a", "\"/a\"", false), PathSpelling::Swc);
+  assert_eq!(spelling("/a", "\"/a\"", true), PathSpelling::SwcEs5);
+  assert_eq!(spelling("/a", "'/a'", false), PathSpelling::Ascii);
+  assert_eq!(spelling("/é", "\"/\\u00e9\"", false), PathSpelling::Ascii);
 }

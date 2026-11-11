@@ -360,6 +360,10 @@ impl Loader<RunnerContext> for SwcLoader {
     self.identifier
   }
 
+  fn portable_output_es5_strings(&self) -> bool {
+    self.options_with_additional.es5_strings
+  }
+
   #[tracing::instrument("loader:builtin-swc", skip_all, fields(
     perfetto.track_name = "loader:builtin-swc",
     perfetto.process_name = "Loader Analysis",

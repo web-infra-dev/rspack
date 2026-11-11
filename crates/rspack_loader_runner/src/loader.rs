@@ -316,6 +316,12 @@ where
     None
   }
 
+  /// Whether the path literals this loader certifies follow SWC's string rule for ES5 and below.
+  /// Read to spell such a path under another root the way this loader writes it there.
+  fn portable_output_es5_strings(&self) -> bool {
+    false
+  }
+
   /// Selects the runtime responsible for executing this loader.
   fn execution_kind(&self) -> LoaderExecutionKind {
     LoaderExecutionKind::Native
