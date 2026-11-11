@@ -49,4 +49,4 @@ The minimum encoded id length. Rspack extends an id one character at a time when
 - **Type:** `number`
 - **Default:** `0`
 
-Use an unsigned 32-bit integer to seed the hash. The same inputs and salt produce the same ids. Changing the salt can change the ids.
+The hash salt used when generating ids. Change this value to try a different hash starting value in the same id space.
