@@ -2,10 +2,6 @@ import path from "node:path";
 
 const excludes = {
 	normal: [
-		// Module cache misses after restarting the compiler.
-		/^errors\/import-module-cycle$/,
-		/^errors\/import-module-cycle-multiple$/,
-
 		// Code generation cache misses after restarting the compiler.
 		/^optimize\/side-effects-simple-unused$/,
 

@@ -176,6 +176,7 @@ impl ExecuteTask {
         execute_result: ExecuteModuleResult {
           id,
           errors: vec![error.into()],
+          cacheable: true,
           ..Default::default()
         },
         assets: Default::default(),
