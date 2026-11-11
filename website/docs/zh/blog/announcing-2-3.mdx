@@ -40,7 +40,7 @@ authors:
 
 import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
-import { PackageManagerTabs } from '@theme';
+import { PackageManagerTabs, Prompt } from '@theme';
 
 # Rspack 2.3 发布公告
 
@@ -430,14 +430,19 @@ test('button appearance', async () => {
 
 Rspress 2.1.0 默认支持 [WebMCP](https://developer.chrome.com/docs/ai/webmcp)，内置站点信息查询、文档搜索和页面导航等工具，让浏览器中的 Agent 可以直接与文档站点交互。
 
-想尝试该功能？在支持 WebMCP 的浏览器中，运行以下代码：
+<Prompt
+  title="用你的 Agent 试试 WebMCP"
+  description="把这段提示词发给你的 Agent，看看 Rspress 官网提供了哪些 WebMCP 工具。"
+  prompt={`在浏览器中打开 https://rspress.rs，从浏览器的 WebMCP 工具注册表中列出页面提供的工具，并简要说明每个工具的用途。
 
-```js
-const tools = await document.modelContext.getTools();
-const tool = tools.find(({ name }) => name === 'rspress_get_current_page');
-const page = JSON.parse(await document.modelContext.executeTool(tool, {}));
-console.log(page.markdown);
-```
+如果 Agent 无法直接通过浏览器连接 WebMCP，可以使用 agent-browser：
+
+npx -y agent-browser@latest --session rspress-webmcp --args "--enable-features=WebMCP" --json batch "open https://rspress.rs" "wait --load networkidle" "webmcp list" "close"
+
+如果缺少 Chrome，请先运行 npx -y agent-browser@latest install 再重试。用法详见 https://agent-browser.dev/webmcp。
+
+请使用浏览器实际返回的工具名称和描述。如果查询失败，请报告错误，并与查询成功但没有发现工具的情况区分开。`}
+/>
 
 你也可以通过 `useWebMcp` Hook 注册自定义工具，扩展站点与 Agent 的交互能力。
 

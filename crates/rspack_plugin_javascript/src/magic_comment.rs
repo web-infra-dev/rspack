@@ -389,7 +389,8 @@ fn parse_magic_comment_object<'a>(
   )
   .parse_expression_fragment(FragmentContext::TopLevel)
   .ok()?;
-  Some((ast, magic_comment_start))
+  // SAFETY: Callers only inspect handles from this AST and never mutate its storage.
+  Some((unsafe { ast.into_ast() }, magic_comment_start))
 }
 
 static WEBPACK_COMMENT_REGEXP: LazyLock<Regex> = LazyLock::new(|| {

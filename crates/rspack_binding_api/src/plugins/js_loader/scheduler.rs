@@ -83,6 +83,9 @@ pub(crate) fn merge_loader_context(
     from.added_dependencies.into(),
     from.removed_dependencies.into(),
   );
+  for diagnostic in from.diagnostics.into_iter().flatten() {
+    to.emit_diagnostic(diagnostic.into());
+  }
 
   if let Some(error) = from.error {
     if let Some(diagnostic) = error.rust_diagnostic.as_ref() {
