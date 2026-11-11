@@ -63,6 +63,8 @@ jobs:
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-parent-components
       - name: Verify intermediate link parents and subscription gaps
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-symlink-subscription-gaps
+      - name: Verify directory junction creation
+        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-junction-creation
 
   watcher-rename-windows:
     name: Native watcher rename regression (Windows)
