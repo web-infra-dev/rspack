@@ -4,6 +4,9 @@ import { findTestFile } from "@rspack/test-tools/helper/read-test-file";
 
 const srcDir = path.resolve(import.meta.dirname, "./fixtures");
 
+// The portable cache cases run in Compiler.part2.test.mjs, so the two files share the time.
+const exclude = [/^portable-cache/];
+
 // Both walks share the outer suite while preserving each case's describe block.
 function describeCase(name, register) {
   if (name === "compiler") {
@@ -19,7 +22,7 @@ describe("compiler", () => {
     (name, testConfig, dist) => {
       createCompilerCase(name, srcDir, dist, testConfig);
     },
-    { level: 1, type: "file", describe: describeCase },
+    { level: 1, type: "file", describe: describeCase, exclude },
   );
 
   describeByWalk(
@@ -30,6 +33,6 @@ describe("compiler", () => {
         createCompilerCase(name, src, dist, testConfig);
       }
     },
-    { level: 1, type: "directory", describe: describeCase },
+    { level: 1, type: "directory", describe: describeCase, exclude },
   );
 });
