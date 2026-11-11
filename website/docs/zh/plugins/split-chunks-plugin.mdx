@@ -994,6 +994,8 @@ export default {
 
 设置来源 chunk 在拆分后至少需要减少的总体积，单位为字节。[`minSize`](#splitchunksminsize) 检查待抽离模块本身有多大，`minSizeReduction` 则检查这些模块从来源 chunk 移除后，共能减少多少体积。
 
+该阈值按资源类型分别检查。与 `minSize` 一样，产生不达标资源类型的模块会被排除出抽离候选，并留在原来的 chunk 中；其他资源类型满足剩余约束时仍可抽离。例如，CSS 减少的体积不足，不会阻止共享 JavaScript 的抽离。这与 webpack 的行为不同：webpack 会在某种资源类型未达到 `minSizeReduction` 时拒绝整个候选。
+
 例如，将阈值设为 100KB：
 
 ```js title="rspack.config.mjs"

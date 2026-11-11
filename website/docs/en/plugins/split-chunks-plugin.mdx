@@ -996,6 +996,8 @@ This sets the thresholds to 100KB for JavaScript and 300KB for CSS. If the modul
 
 Sets the minimum total size reduction across the source chunks, in bytes. [`minSize`](#splitchunksminsize) checks the size of the modules to extract, while `minSizeReduction` checks the total size removed from the source chunks.
 
+The threshold is checked separately for each source type. As with `minSize`, modules that generate a source type below its threshold are excluded from the extraction candidate and remain in their original chunks. Other source types can still be extracted if they satisfy the remaining constraints. For example, insufficient CSS size reduction does not prevent shared JavaScript from being extracted. This differs from webpack, which rejects the entire candidate when a source type fails `minSizeReduction`.
+
 For example, set the threshold to 100KB:
 
 ```js title="rspack.config.mjs"
