@@ -174,6 +174,28 @@ export const parts = ["/", "src", ".tsx", \`/\${"src"}/\`, Flags.B, true, null, 
     }
   },
   {
+    name: "jsx-text-with-separator",
+    description: "keeps reusing a module whose JSX text holds a path separator, and rebuilds one whose JSX text spells its own path",
+    async run() {
+      await withProjects(async (writer, reader) => {
+        writeProject(writer, {
+          "link.jsx": jsxSource("", '"portable"', "grafana.com/dashboards and/or 1/2"),
+          "table.jsx": jsxSource("", '"portable"', "src/table.jsx")
+        });
+        const rules = [swcRule(/\.jsx$/)];
+        const first = await build(writer, rules, undefined, withoutMaps);
+        expect(first.built).toEqual(["link.jsx", "table.jsx"]);
+        copyProject(writer, reader);
+        const moved = await build(reader, rules, undefined, withoutMaps);
+        expect(moved.built).toEqual(["table.jsx"]);
+        for (const { value } of moved.values) {
+          expect(path.dirname(value.fileName)).toBe(path.join(reader, "src"));
+        }
+        await expectColdEquality(moved, reader, rules, withoutMaps);
+      });
+    }
+  },
+  {
     name: "root-independent-decline",
     description: "declines at every root when literals can spell a path at one of them, so a reused module equals a cold build",
     async run() {
