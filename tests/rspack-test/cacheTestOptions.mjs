@@ -88,11 +88,6 @@ const excludes = {
 		/^ecmaVersion\/browserslist-config-extends$/,
 		/^ecmaVersion\/browserslist-extends$/,
 
-		// ContextModuleFactory retains the query in context dependencies. Snapshot
-		// metadata probes reject the resulting "modules?cats=meow" paths on Windows.
-		/^context-modules\/replacement-d$/,
-		/^context-replacement\/d$/,
-
 		// Existing bundle/compiler assertions fail in the compatibility suite.
 		/^builtin-lightningcss-loader\/custom-media$/,
 		/^compilation\/errors$/,
