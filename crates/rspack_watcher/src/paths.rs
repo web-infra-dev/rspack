@@ -733,7 +733,12 @@ impl PathManager {
       .map(|root| (root, Vec::new(), recovered))
       .collect();
     while let Some((dir, mut ancestry, observed)) = pending.pop() {
-      if self.follows_symlinks() {
+      if let Some(symlinks) = &self.symlinks {
+        if let Some(resolved) = symlinks.resolved_directory(&dir)
+          && self.is_ignored_path(&resolved).await
+        {
+          continue;
+        }
         let Ok(real) = std::fs::canonicalize(&dir) else {
           continue;
         };

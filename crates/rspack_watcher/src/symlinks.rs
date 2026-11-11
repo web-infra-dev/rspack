@@ -126,9 +126,6 @@ impl LinkSubscriptions {
         .insert(path.clone());
       self.watch(link, false);
     }
-    if !nested && manager.is_ignored_path(&resolution.target).await {
-      return;
-    }
     if directory && !nested {
       self
         .resolved_directories
@@ -138,6 +135,9 @@ impl LinkSubscriptions {
       self
         .directory_targets
         .insert(path.clone(), resolution.target.clone());
+    }
+    if !nested && manager.is_ignored_path(&resolution.target).await {
+      return;
     }
     self
       .targets
@@ -215,6 +215,16 @@ pub(crate) struct SymlinkAlias {
 }
 
 impl Symlinks {
+  pub(crate) fn resolved_directory(&self, path: &InternedPath) -> Option<InternedPath> {
+    self
+      .0
+      .read()
+      .expect("symlink subscriptions lock poisoned")
+      .resolved_directories
+      .get(path)
+      .cloned()
+  }
+
   pub(crate) fn context_directories(&self) -> InternedPathSet {
     let subscriptions = self.0.read().expect("symlink subscriptions lock poisoned");
     subscriptions

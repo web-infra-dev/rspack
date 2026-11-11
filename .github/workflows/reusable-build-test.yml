@@ -53,6 +53,10 @@ jobs:
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-follow-symlinks/target-roundtrip
       - name: Verify directory link discovery after watching starts
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-symlink-discovery
+      - name: Verify retained recursive directory coverage
+        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-symlink-retained-context
+      - name: Verify ignored real directory roots
+        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-symlink-ignored-root
 
   watcher-rename-windows:
     name: Native watcher rename regression (Windows)

@@ -1,5 +1,5 @@
 use notify::RecursiveMode;
-use rspack_paths::{InternedPath, InternedPathMap};
+use rspack_paths::{InternedPath, InternedPathMap, InternedPathSet};
 
 use crate::WatchPattern;
 
@@ -31,6 +31,20 @@ impl WatchPlan {
         let path = dunce::canonicalize(&path).map_or(path, InternedPath::from);
         plan.insert(path, mode);
       }
+      // Recursive inotify watches share descriptors with explicit child watches.
+      // Keep only the ancestor so adding or removing a child cannot weaken it.
+      let recursive_roots: InternedPathSet = plan
+        .patterns
+        .iter()
+        .filter(|(_, mode)| **mode == RecursiveMode::Recursive)
+        .map(|(path, _)| path.clone())
+        .collect();
+      plan.patterns.retain(|path, _| {
+        !path
+          .ancestors()
+          .skip(1)
+          .any(|parent| recursive_roots.contains(&InternedPath::from(parent)))
+      });
     }
     plan
   }
