@@ -63,6 +63,13 @@ impl LinkResolver {
   }
 }
 
+/// Cloned so startup scans can run after releasing the subscription lock.
+#[derive(Clone)]
+pub(crate) struct LinkScan {
+  pub links: Vec<InternedPath>,
+  pub target_ignored: bool,
+}
+
 #[derive(Default)]
 pub(crate) struct LinkSubscriptions {
   targets: InternedPathMap<InternedPathSet>,
@@ -71,7 +78,7 @@ pub(crate) struct LinkSubscriptions {
   resolved_directories: InternedPathMap<InternedPath>,
   directory_targets: InternedPathMap<InternedPath>,
   context_files: InternedPathSet,
-  ignored_target_links: InternedPathMap<Vec<InternedPath>>,
+  link_scans: InternedPathMap<LinkScan>,
   links: InternedPathMap<InternedPathSet>,
   patterns: Vec<WatchPattern>,
 }
@@ -143,7 +150,8 @@ impl LinkSubscriptions {
         .directory_targets
         .insert(path.clone(), resolution.target.clone());
     }
-    if !nested && manager.is_ignored_path(&resolution.target).await {
+    let target_ignored = !nested && manager.is_ignored_path(&resolution.target).await;
+    if !nested {
       let links = resolution
         .links
         .iter()
@@ -155,7 +163,15 @@ impl LinkSubscriptions {
         })
         .cloned()
         .collect();
-      self.ignored_target_links.insert(path, links);
+      self.link_scans.insert(
+        path.clone(),
+        LinkScan {
+          links,
+          target_ignored,
+        },
+      );
+    }
+    if target_ignored {
       return;
     }
     self
@@ -246,12 +262,12 @@ pub(crate) struct SymlinkUpdate {
 }
 
 impl Symlinks {
-  pub(crate) fn ignored_target_links(&self, path: &InternedPath) -> Option<Vec<InternedPath>> {
+  pub(crate) fn link_scan(&self, path: &InternedPath) -> Option<LinkScan> {
     self
       .0
       .read()
       .expect("symlink subscriptions lock poisoned")
-      .ignored_target_links
+      .link_scans
       .get(path)
       .cloned()
   }

@@ -172,7 +172,7 @@ This option also applies to the native watcher. It watches link targets and inte
 
 Directory links created inside a watched directory are discovered during watching and followed on the next watch cycle. On POSIX systems, link targets containing `..` are resolved after expanding preceding links, matching filesystem path traversal.
 
-Newly followed targets are checked for changes made before their watches became active. Moving a directory containing an intermediate link also invalidates dependencies that pass through that link. Enabling this option also preserves registered dependency paths containing `..`, even when they do not contain a symbolic link.
+Links and newly followed targets are checked independently for changes made before their watches became active. Replacing a link during a build triggers a rebuild even when the new target has an old modification time. Moving a directory containing an intermediate link also invalidates dependencies that pass through that link. Enabling this option also preserves registered dependency paths containing `..`, even when they do not contain a symbolic link.
 
 When enabled, `ignored` checks both the registered path and the resolved path of a directory dependency. Entries below that directory use the resolved directory path. An ignored resolved directory is excluded from scanning, including any links inside it. A directory link discovered while scanning a watched parent directory instead keeps its link path for `ignored` checks, including its children. Startup checks also exclude ignored targets while still reporting changes to links that remain watched.
 

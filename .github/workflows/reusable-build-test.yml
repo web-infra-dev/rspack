@@ -59,12 +59,16 @@ jobs:
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-symlink-ignored-root
       - name: Verify ignored targets during startup backfill
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-ignored-startup
+      - name: Verify link replacements before startup
+        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-link-startup
       - name: Verify ordinary paths containing parent components
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-parent-components
       - name: Verify intermediate link parents and subscription gaps
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-symlink-subscription-gaps
       - name: Verify directory junction creation
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-junction-creation
+      - name: Verify directory junction transition
+        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-junction-transition
 
   watcher-rename-windows:
     name: Native watcher rename regression (Windows)

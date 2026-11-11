@@ -19,7 +19,7 @@ use rspack_util::{
 
 use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher};
 use crate::{
-  symlinks::{LinkResolver, LinkSubscriptions, SymlinkAlias, SymlinkUpdate, Symlinks},
+  symlinks::{LinkResolver, LinkScan, LinkSubscriptions, SymlinkAlias, SymlinkUpdate, Symlinks},
   time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
 };
 
@@ -420,11 +420,11 @@ impl PathManager {
       .and_then(|symlinks| symlinks.resolved_directory_entry(path))
   }
 
-  pub(crate) fn ignored_target_links(&self, path: &InternedPath) -> Option<Vec<InternedPath>> {
+  pub(crate) fn link_scan(&self, path: &InternedPath) -> Option<LinkScan> {
     self
       .symlinks
       .as_ref()
-      .and_then(|symlinks| symlinks.ignored_target_links(path))
+      .and_then(|symlinks| symlinks.link_scan(path))
   }
 
   pub(crate) fn symlink_aliases(&self, path: &InternedPath) -> Vec<SymlinkAlias> {

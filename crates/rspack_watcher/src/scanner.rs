@@ -42,16 +42,18 @@ impl Scanner {
     }
 
     if let Some(tx) = self.tx.clone() {
-      // Ignoring a target leaves its retained links watched as lstat entries.
+      // Links and their targets have independent subscriptions and timestamps.
       let mut link_scans = Vec::new();
       let mut collect_paths = |paths: &InternedPathDashSet| {
         let mut retained = Vec::with_capacity(paths.len());
         for path in paths.iter() {
-          if let Some(links) = self.path_manager.ignored_target_links(&path) {
-            link_scans.push((path.key().clone(), links));
-          } else {
-            retained.push(path.key().clone());
+          if let Some(scan) = self.path_manager.link_scan(&path) {
+            link_scans.push((path.key().clone(), scan.links));
+            if scan.target_ignored {
+              continue;
+            }
           }
+          retained.push(path.key().clone());
         }
         retained
       };
