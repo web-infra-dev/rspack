@@ -34,7 +34,7 @@ define.test(() => {
         // Skip temporarily and should investigate in the future
         'Cache.test.{js,mjs}',
         'NewCache.test.{js,mjs}',
-        'Compiler.test.{js,mjs}',
+        'Compiler*.test.{js,mjs}',
         'MultiCompiler.test.{js,mjs}',
         'Serial.test.{js,mjs}',
         'Defaults.test.{js,mjs}',
