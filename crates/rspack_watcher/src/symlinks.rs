@@ -82,6 +82,23 @@ struct WatchedLink {
   mtime: Option<SystemTime>,
 }
 
+impl WatchedLink {
+  fn is_unchanged(&mut self, path: &InternedPath) -> bool {
+    let mtime = path
+      .symlink_metadata()
+      .and_then(|metadata| metadata.modified())
+      .ok();
+    let previous = std::mem::replace(&mut self.mtime, mtime);
+    match mtime {
+      Some(mtime) => {
+        mtime_accuracy(mtime);
+        previous == Some(mtime) && mtime_safe_time(mtime) < current_time()
+      }
+      None => previous.is_none(),
+    }
+  }
+}
+
 #[derive(Default)]
 pub(crate) struct LinkSubscriptions {
   targets: InternedPathMap<InternedPathSet>,
@@ -262,7 +279,7 @@ pub(crate) struct Symlinks(RwLock<LinkSubscriptions>);
 
 pub(crate) struct SymlinkAlias {
   pub path: InternedPath,
-  pub link_changed: bool,
+  pub changed_link: Option<InternedPath>,
   pub resolved_path: Option<InternedPath>,
 }
 
@@ -282,18 +299,7 @@ impl Symlinks {
     let Some(link) = subscriptions.links.get_mut(path) else {
       return false;
     };
-    let mtime = path
-      .symlink_metadata()
-      .and_then(|metadata| metadata.modified())
-      .ok();
-    let previous = std::mem::replace(&mut link.mtime, mtime);
-    match mtime {
-      Some(mtime) => {
-        mtime_accuracy(mtime);
-        previous == Some(mtime) && mtime_safe_time(mtime) < current_time()
-      }
-      None => previous.is_none(),
-    }
+    link.is_unchanged(path)
   }
 
   pub(crate) fn has_target_subscription(&self, path: &InternedPath) -> bool {
@@ -425,8 +431,9 @@ impl Symlinks {
     &self,
     path: &InternedPath,
     include_descendants: bool,
+    injected: bool,
   ) -> Vec<SymlinkAlias> {
-    let subscriptions = self.0.read().expect("symlink subscriptions lock poisoned");
+    let mut subscriptions = self.0.write().expect("symlink subscriptions lock poisoned");
     let include_descendants =
       include_descendants || (subscriptions.watched_children.contains_key(path) && !path.exists());
     let mut aliases = InternedPathMap::default();
@@ -434,13 +441,14 @@ impl Symlinks {
     while let Some(watched) = pending.pop() {
       if let Some(targets) = subscriptions.targets.get(&watched) {
         for target in targets {
-          aliases.entry(target.clone()).or_insert(false);
+          aliases.entry(target.clone()).or_insert(None);
         }
       }
-      if let Some(link) = subscriptions.links.get(&watched) {
+      if let Some(link) = subscriptions.links.get_mut(&watched)
+        && (watched == *path || injected || !link.is_unchanged(&watched))
+      {
         for target in &link.aliases {
-          let link_changed = aliases.entry(target.clone()).or_insert(false);
-          *link_changed |= watched == *path;
+          aliases.insert(target.clone(), Some(watched.clone()));
         }
       }
       if include_descendants && let Some(children) = subscriptions.watched_children.get(&watched) {
@@ -457,21 +465,21 @@ impl Symlinks {
           } else {
             InternedPath::from(directory.join(suffix))
           };
-          aliases.entry(alias).or_insert(false);
+          aliases.entry(alias).or_insert(None);
         }
       }
     }
     aliases
       .into_iter()
-      .map(|(alias, link_changed)| {
-        let resolved_path = if link_changed {
+      .map(|(alias, changed_link)| {
+        let resolved_path = if changed_link.is_some() {
           None
         } else {
           subscriptions.resolved_directory_entry(&alias)
         };
         SymlinkAlias {
           path: alias,
-          link_changed,
+          changed_link,
           resolved_path,
         }
       })

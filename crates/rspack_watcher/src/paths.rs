@@ -462,9 +462,10 @@ impl PathManager {
     &self,
     path: &InternedPath,
     include_descendants: bool,
+    injected: bool,
   ) -> Vec<SymlinkAlias> {
     self.symlinks.as_ref().map_or_else(Vec::new, |symlinks| {
-      symlinks.aliases(path, include_descendants)
+      symlinks.aliases(path, include_descendants, injected)
     })
   }
 

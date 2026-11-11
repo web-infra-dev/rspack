@@ -202,19 +202,21 @@ impl Trigger {
                 || matches!(origin, Origin::Disk { appeared: true } | Origin::Injected);
               for SymlinkAlias {
                 path: alias,
-                link_changed,
+                changed_link,
                 resolved_path,
-              } in processor
-                .path_manager
-                .symlink_aliases(&path, include_descendants)
-              {
+              } in processor.path_manager.symlink_aliases(
+                &path,
+                include_descendants,
+                matches!(origin, Origin::Injected),
+              ) {
+                let link_changed = changed_link.is_some();
                 if alias != path || link_changed {
                   mapped_original |= alias == path;
                   processor.analyzer.invalidate_path(&alias);
                   processor
                     .process(
                       &alias,
-                      &path,
+                      changed_link.as_ref().unwrap_or(&path),
                       kind,
                       Origin::Symlink {
                         link_changed,
@@ -380,11 +382,12 @@ impl EventProcessor {
         origin,
         Origin::Symlink {
           link_changed: false,
+          injected: false,
           ..
         }
       )
-      && accessor.missing().0.contains(path)
-      && !self.path_manager.has_file_time(path)
+      && ((accessor.missing().0.contains(path) && !self.path_manager.has_file_time(path))
+        || self.path_manager.is_known_absent(path))
     {
       return;
     }
@@ -550,6 +553,15 @@ impl EventProcessor {
           }
 
           if is_registered {
+            if file_type.is_symlink()
+              && !matches!(
+                origin,
+                Origin::Injected | Origin::Symlink { injected: true, .. }
+              )
+              && self.path_manager.is_unchanged_link_event(&entry_path)
+            {
+              continue;
+            }
             if finder.files.contains(&entry_path)
               && !self.path_manager.has_mtime_changed(&entry_path)
             {
