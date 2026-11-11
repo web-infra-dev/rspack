@@ -102,6 +102,8 @@ export default scenarios.map((scenario) => ({
     const options = {
       aggregateTimeout: 50,
       followSymlinks: scenario !== 'no-follow',
+      // Like Watchpack, inspect the target after the synchronous rename pair.
+      ...(scenario === 'target-roundtrip' ? { ignored: () => false } : {}),
       ...(scenario.includes('ignored')
         ? {
             ignored: (scenario === 'ignored-link' ? link : outside).replaceAll(

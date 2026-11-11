@@ -49,8 +49,8 @@ jobs:
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-path-identity
       - name: Verify watch path preparation and recursive coverage
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-watch-plan
-      - name: Trace Windows symlink regressions
-        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-windows-trace
+      - name: Verify synchronous symlink target renames
+        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-follow-symlinks/target-roundtrip
 
   watcher-rename-windows:
     name: Native watcher rename regression (Windows)
