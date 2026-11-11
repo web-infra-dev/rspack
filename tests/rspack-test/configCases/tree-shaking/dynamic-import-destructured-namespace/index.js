@@ -56,3 +56,56 @@ it("should retain the receiver of array prototype calls", async () => {
   const {values} = await import("./array");
   expect(values.map(n => n + 1)).toEqual([158,164,168]);
 });
+
+it("should retain exported namespaces with deconflicted binding names", async () => {
+  const modules = await Promise.all([
+    import("./reserved-require"),
+    import("./reserved-exports"),
+    import("./reserved-context"),
+    import("./reserved-rspack-exports"),
+    import("./export-before-declaration")
+  ]);
+  for (const module of modules) {
+    expect(module.renamed.used).toBe(139);
+    expect(module.renamed.unused).toBe("nested-namespace-escape-kept");
+  }
+});
+it("should preserve calls, typeof and shorthand references after deconfliction", async () => {
+  const modules = await Promise.all([
+    import("./call-require"),
+    import("./call-exports"),
+    import("./call-context"),
+    import("./call-rspack-exports")
+  ]);
+  const names = ["__webpack_require__", "__webpack_exports__", "__rspack_context", "__rspack_exports"];
+  for (let i = 0; i < modules.length; i++) {
+    expect(modules[i].result).toBe(157);
+    expect(modules[i].type).toBe("object");
+    expect(modules[i].wrapped[names[i]].unused).toBe("called-namespace-kept");
+  }
+});
+it("should distinguish a shadowed local from an exported binding", async () => {
+  const module = await import("./shadowed-export");
+  expect(module.alias).toBe("unrelated");
+  expect(await module.read()).toBe(137);
+  if (!STRICT_IMPORT_RECEIVER) {
+    const content = fs.readFileSync(path.join(__dirname, "loose", "shadowed.js"), "utf8");
+    expect(content).not.toContain("SHADOWED_NAMESPACE_UNUSED_DROP");
+  }
+});
+
+it("should preserve shorthand declarations and callback bindings", async () => {
+  const module = await import("./reserved-shorthand");
+  expect(module.values).toEqual([157,157,157,157]);
+  for (const value of Object.values(module.wrapped)) {
+    expect(value.unused).toBe("called-namespace-kept");
+  }
+  const called = await import("./reserved-shorthand-barrel").then(({
+    __webpack_require__, __webpack_exports__, __rspack_context, __rspack_exports
+  }) => [__webpack_require__.used(), __webpack_exports__.used(), __rspack_context.used(), __rspack_exports.used()]);
+  expect(called).toEqual([157,157,157,157]);
+  const [{__webpack_require__, __webpack_exports__, __rspack_context, __rspack_exports}] =
+    await Promise.all([import("./reserved-shorthand-barrel")]);
+  expect([__webpack_require__.used(), __webpack_exports__.used(), __rspack_context.used(), __rspack_exports.used()])
+    .toEqual([157,157,157,157]);
+});
