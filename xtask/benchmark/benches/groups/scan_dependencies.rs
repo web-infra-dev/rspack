@@ -121,46 +121,12 @@ fn create_scan_dependencies_compiler() -> Compiler {
 }
 
 fn load_scan_dependencies_benchmark_specs() -> Vec<ScanDependenciesBenchmarkCaseSpec> {
-  let mut cases = vec![ScanDependenciesBenchmarkCaseSpec {
+  vec![ScanDependenciesBenchmarkCaseSpec {
     benchmark_id: THREE_MODULE_BENCHMARK_ID,
     source_text: load_three_module_benchmark_source(),
     resource_path: THREE_MODULE_RESOURCE_PATH,
     module_type: ModuleType::JsEsm,
-  }];
-  let names = (0..2048)
-    .map(|index| format!("ns{index}"))
-    .collect::<Vec<_>>();
-  let declaration = format!(
-    "const {{ {} }} = await import('./namespaces.js');",
-    names.join(",")
-  );
-  let reads = names
-    .iter()
-    .map(|name| format!("{name}.used"))
-    .collect::<Vec<_>>()
-    .join(",");
-  for (benchmark_id, source_text) in [
-    (
-      "rust@scan_dependencies@dynamic_import_unused_bindings",
-      format!("{declaration}\nexport const result = 1;"),
-    ),
-    (
-      "rust@scan_dependencies@dynamic_import_used_bindings",
-      format!("{declaration}\nexport const result = [{reads}];"),
-    ),
-    (
-      "rust@scan_dependencies@dynamic_import_exported_bindings",
-      format!("{declaration}\nexport {{ {} }};", names.join(",")),
-    ),
-  ] {
-    cases.push(ScanDependenciesBenchmarkCaseSpec {
-      benchmark_id,
-      source_text,
-      resource_path: "/src/dynamic-import.mjs",
-      module_type: ModuleType::JsEsm,
-    });
-  }
-  cases
+  }]
 }
 
 fn prepare_scan_dependencies_benchmark_case(
