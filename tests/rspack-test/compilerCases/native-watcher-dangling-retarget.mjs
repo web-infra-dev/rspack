@@ -15,6 +15,8 @@ const Watchpack = require(
   ),
 );
 
+let tracing = false;
+
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 export default [false, true].flatMap((native) =>
   [false, true].map((missing) => ({
@@ -22,6 +24,14 @@ export default [false, true].flatMap((native) =>
     description:
       'should report a dangling link replacement and follow its new target',
     async run() {
+      if (native && process.env.RSPACK_WATCHER_TRACE && !tracing) {
+        await require('@rspack/core').experiments.globalTrace.register(
+          'rspack_watcher::fs_event=debug',
+          'logger',
+          'stdout',
+        );
+        tracing = true;
+      }
       const root = fs.mkdtempSync(
         path.join(
           fs.realpathSync.native(os.tmpdir()),
@@ -46,6 +56,13 @@ export default [false, true].flatMap((native) =>
       const removals = new Set();
       let error;
       const record = (changed, removed) => {
+        if (process.env.RSPACK_WATCHER_TRACE)
+          console.log('dangling retarget callback', {
+            native,
+            missing,
+            changed: [...changed],
+            removed: [...removed],
+          });
         for (const file of changed) changes.add(file);
         for (const file of removed) removals.add(file);
       };
@@ -82,6 +99,14 @@ export default [false, true].flatMap((native) =>
         removals.clear();
         const replacement = path.join(app, 'replacement.js');
         fs.symlinkSync(targets[1], replacement, 'file');
+        if (process.env.RSPACK_WATCHER_TRACE)
+          console.log('dangling retarget replacement', {
+            native,
+            missing,
+            link,
+            previousMtime: fs.lstatSync(link).mtimeMs,
+            nextMtime: fs.lstatSync(replacement).mtimeMs,
+          });
         fs.renameSync(replacement, link);
         await waitFor(() => changes.has(link));
         expect([...removals]).toEqual([]);

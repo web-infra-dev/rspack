@@ -574,6 +574,15 @@ impl EventProcessor {
         self.analyzer.invalidate_path(associated);
       }
     }
+    tracing::debug!(
+      target: "rspack_watcher::fs_event",
+      ?path,
+      ?source_path,
+      ?kind,
+      link_changed = origin.link_changed(),
+      ?associated_event,
+      "resolved fs event",
+    );
     self.trigger_events(associated_event, raw, recovered, context_removal);
   }
   /// Helper to construct a `DependencyFinder` for the current path register state.

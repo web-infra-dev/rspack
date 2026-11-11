@@ -287,6 +287,13 @@ impl Symlinks {
       .and_then(|metadata| metadata.modified())
       .ok();
     let previous = std::mem::replace(&mut link.mtime, mtime);
+    tracing::debug!(
+      target: "rspack_watcher::fs_event",
+      ?path,
+      ?previous,
+      ?mtime,
+      "link event timestamp",
+    );
     match mtime {
       Some(mtime) => {
         mtime_accuracy(mtime);

@@ -44,6 +44,7 @@ jobs:
       - name: Install dependencies
         run: pnpm i --frozen-lockfile
       - name: Build JavaScript packages
+        id: build-js
         run: pnpm run build:js
       - name: Verify original, canonical, and lowercase paths
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-path-identity
@@ -66,14 +67,19 @@ jobs:
       - name: Verify dangling link retargeting
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-dangling-retarget
       - name: Verify dangling link startup changes
+        if: ${{ !cancelled() && steps.build-js.outcome == 'success' }}
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-dangling-startup
       - name: Verify ordinary paths containing parent components
+        if: ${{ !cancelled() && steps.build-js.outcome == 'success' }}
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-parent-components
       - name: Verify intermediate link parents and subscription gaps
+        if: ${{ !cancelled() && steps.build-js.outcome == 'success' }}
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-symlink-subscription-gaps
       - name: Verify directory junction creation
+        if: ${{ !cancelled() && steps.build-js.outcome == 'success' }}
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-junction-creation
       - name: Verify directory junction transition
+        if: ${{ !cancelled() && steps.build-js.outcome == 'success' }}
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-junction-transition
 
   watcher-rename-windows:
