@@ -454,16 +454,8 @@ impl SourceMapDevToolPlugin {
     let asset_count = compilation_assets.len();
     let mut mapped_assets = Vec::with_capacity(asset_count);
     let mut vanilla_assets = Vec::new();
-    let condition_object = AssetConditionsObject {
-      test: self.test.as_ref(),
-      include: self.include.as_ref(),
-      exclude: self.exclude.as_ref(),
-    };
 
     for (index, (filename, asset)) in compilation_assets.into_iter().enumerate() {
-      if !match_object(&condition_object, &filename) {
-        continue;
-      }
       let cacheable = asset.get_source().is_some() && !asset.info.version.is_empty();
       let cached = if cacheable {
         cache.get::<CachedSourceMapDevToolPluginEntry>(
@@ -601,12 +593,6 @@ impl SourceMapDevToolPlugin {
     compilation_assets: Vec<(String, &CompilationAsset)>,
     map_options: &MapOptions,
   ) -> Result<(Vec<SourceMapTask>, ReferenceToSourceNameMapping)> {
-    let need_match = self.test.is_some() || self.include.is_some() || self.exclude.is_some();
-    let condition_object = AssetConditionsObject {
-      test: self.test.as_ref(),
-      include: self.include.as_ref(),
-      exclude: self.exclude.as_ref(),
-    };
     let default_module_filename_template =
       default_source_map_module_filename_template(compilation.options.experiments.runtime_mode);
     let module_filename_template = self
@@ -620,14 +606,6 @@ impl SourceMapDevToolPlugin {
         Result<Option<TaskAndSourceNames>>,
       >(|token| {
         for (asset_filename, asset) in compilation_assets {
-          let is_match = if need_match {
-            match_object(&condition_object, &asset_filename)
-          } else {
-            true
-          };
-          if !is_match {
-            continue;
-          }
           let source = match asset.get_source() {
             Some(s) => s.clone(),
             None => continue,
@@ -715,14 +693,6 @@ impl SourceMapDevToolPlugin {
         Result<Option<TaskAndSourceNames>>,
       >(|token| {
         for (asset_filename, asset) in compilation_assets {
-          let is_match = if need_match {
-            match_object(&condition_object, &asset_filename)
-          } else {
-            true
-          };
-          if !is_match {
-            continue;
-          }
           let source = match asset.get_source() {
             Some(s) => s.clone(),
             None => continue,
@@ -1280,10 +1250,21 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .then(|| logger.cache("source map persistent cache"));
 
   let start = logger.time("collect source maps");
+  let condition_object = (self.test.is_some() || self.include.is_some() || self.exclude.is_some())
+    .then(|| AssetConditionsObject {
+      test: self.test.as_ref(),
+      include: self.include.as_ref(),
+      exclude: self.exclude.as_ref(),
+    });
   let compilation_assets = compilation
     .assets()
     .iter()
     .filter(|(_filename, asset)| asset.info.related.source_map.is_none())
+    .filter(|(filename, _asset)| {
+      condition_object
+        .as_ref()
+        .is_none_or(|condition| match_object(condition, filename))
+    })
     .map(|(filename, asset)| (filename.clone(), asset))
     .collect();
   let mapped_assets = if let Some(cache) = &new_cache {
