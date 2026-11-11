@@ -688,7 +688,45 @@ export default {
 
 `as` 可以改变后续规则用于匹配当前文件的路径，从而让文件命中或跳过某些规则。它只影响规则匹配，文件读取和 loader 处理仍使用原始资源。
 
-### 使用示例 \{#using-as}
+### 示例 \{#examples}
+
+#### 复用编译规则 \{#reusing-compilation-rules}
+
+通过 `as`，不同扩展名的文件可以匹配同一条编译规则，复用已有的 loader 及其配置。
+
+例如，安装 [`@mdx-js/loader`](https://mdxjs.com/packages/loader/) 后，可以将 Markdown 和 MDX 文件转换为 JavaScript，并通过以下配置复用处理 `.js` 文件的 SWC 规则：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.mdx?$/,
+        // 在 SWC 编译之前，将 Markdown / MDX 转换为 JavaScript
+        enforce: 'pre',
+        loader: '@mdx-js/loader',
+        // 匹配下面的 JavaScript 规则
+        as: '[resource-path].js',
+      },
+      {
+        test: /\.js$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: { target: 'es2017' },
+        },
+      },
+    ],
+  },
+};
+```
+
+导入 `./content.mdx` 时，它的匹配路径会变为以 `content.mdx.js` 结尾，因此也会命中 SWC 规则。MDX loader 先将内容转换为 JavaScript，再由 SWC 编译为配置的目标版本。普通 `.js` 文件则继续使用同一条 SWC 规则。
+
+`as` 只改变规则匹配，内容转换仍由 MDX loader 完成。[`enforce: 'pre'`](#rulesenforce) 用于保证 MDX 转换先于 SWC 执行，因为规则的匹配顺序并不决定 loader 的执行顺序。
+
+#### 跳过编译规则 \{#skipping-compilation-rules}
+
+当具有相同扩展名的文件需要不同的处理方式时，可以通过 `as` 让其中一部分文件跳过后续的通用编译规则。
 
 例如，你可能希望对同一个 JavaScript 文件采用两种导入方式：普通导入时使用 SWC 编译；带有 `type: 'url'` 导入属性时，则原样输出文件并返回它的 URL：
 

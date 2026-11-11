@@ -690,7 +690,45 @@ There are two phases that all loaders enter one after the other:
 
 Sets a path template that changes how a resource matches nested and subsequent rules. It only changes the path used for rule matching; file reading and loaders still use the original resource.
 
-### Using `as`
+### Examples
+
+#### Reusing compilation rules
+
+With `as`, files with different extensions can match the same compilation rule, reusing its loaders and their configuration.
+
+For example, install [`@mdx-js/loader`](https://mdxjs.com/packages/loader/) to convert Markdown and MDX files to JavaScript, then use the following configuration to reuse the SWC rule for `.js` files:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.mdx?$/,
+        // Convert Markdown / MDX to JavaScript before SWC runs
+        enforce: 'pre',
+        loader: '@mdx-js/loader',
+        // Match the JavaScript rule below
+        as: '[resource-path].js',
+      },
+      {
+        test: /\.js$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: { target: 'es2017' },
+        },
+      },
+    ],
+  },
+};
+```
+
+When you import `./content.mdx`, its matching path becomes `content.mdx.js`, so it also matches the SWC rule. The MDX loader converts the content to JavaScript, then SWC compiles it to the configured target. Regular `.js` files continue to use the same SWC rule.
+
+`as` only changes rule matching; the MDX loader performs the content conversion. [`enforce: 'pre'`](#rulesenforce) ensures this conversion runs before SWC, since rule matching order does not determine loader execution order.
+
+#### Skipping compilation rules
+
+When files with the same extension need different processing, use `as` to let some of them skip subsequent compilation rules that would otherwise apply to all of them.
 
 For example, you may want to handle imports of the same JavaScript file in two ways: compile a regular import with SWC, or emit the original file and return its URL when the import has the `type: 'url'` attribute:
 
