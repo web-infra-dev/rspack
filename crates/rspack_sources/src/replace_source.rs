@@ -2,9 +2,9 @@ use std::{
   borrow::Cow,
   cell::RefCell,
   hash::{Hash, Hasher},
-  sync::Arc,
 };
 
+use bytes_str::BytesStr;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -59,13 +59,13 @@ pub enum ReplacementEnforce {
 /// Module sources keep every replacement they recorded alive until the
 /// compilation is finished, so the size of this type is part of the peak memory
 /// of a build. The name is boxed because few replacements carry one: a thin
-/// pointer keeps `Replacement` at 48 bytes instead of 64.
+/// pointer keeps the optional name one pointer wide.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Replacement {
   start: u32,
   end: u32,
   content: Cow<'static, str>,
-  name: Option<Box<Cow<'static, str>>>,
+  name: Option<Box<BytesStr>>,
   enforce: ReplacementEnforce,
   insertion_order: u32,
 }
@@ -88,7 +88,7 @@ impl Replacement {
 
   /// Get the replacement name.
   pub fn name(&self) -> Option<&str> {
-    self.name.as_deref().map(|name| &**name)
+    self.name.as_deref().map(BytesStr::as_str)
   }
 
   /// Get the replacement enforce order.
@@ -252,7 +252,7 @@ impl ReplaceSource {
       start,
       end,
       content: content.into(),
-      name: name.map(|name| Box::new(Cow::Owned(name))),
+      name: name.map(|name| Box::new(name.into())),
       enforce,
       insertion_order: self.replacements.len() as u32,
     });
@@ -289,7 +289,7 @@ impl ReplaceSource {
       start,
       end,
       content: Cow::Borrowed(content),
-      name: name.map(|name| Box::new(Cow::Borrowed(name))),
+      name: name.map(|name| Box::new(BytesStr::from_static(name))),
       enforce,
       insertion_order: self.replacements.len() as u32,
     });
@@ -321,6 +321,10 @@ impl ReplaceSource {
 }
 
 impl Source for ReplaceSource {
+  fn mapped(&self) -> bool {
+    self.inner.mapped()
+  }
+
   fn source(&self) -> SourceValue<'_> {
     if self.replacements.is_empty() {
       return self.inner.source();
@@ -469,24 +473,23 @@ impl Source for ReplaceSource {
     size
   }
 
-  fn map(&self, options: &crate::MapOptions) -> Option<SourceMap<'_>> {
+  fn map(&self, options: &crate::MapOptions) -> Option<SourceMap> {
     let replacements = &self.replacements;
     if replacements.is_empty() {
       return self.inner.map(options);
     }
-    let chunks = self.stream_chunks();
-    get_map(chunks.as_ref(), options).map(SourceMap::from_fields)
-  }
-
-  fn map_static(self: Arc<Self>, options: &crate::MapOptions) -> Option<SourceMap<'static>> {
-    if self.replacements.is_empty() {
-      return self.inner.clone().map_static(options);
+    if !self.mapped() {
+      return None;
     }
-    let owner = self.clone();
-    self.as_ref().map(options).map(|map| map.into_static(owner))
+    let chunks = self.stream_chunks();
+    get_map(chunks.as_ref(), options)
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
+    if self.replacements.is_empty() && crate::is_buffer_source(self.inner.as_ref()) {
+      return self.inner.to_writer(writer);
+    }
+
     let mut result = Ok(());
     self.rope(&mut |chunk| {
       if result.is_err() {
@@ -537,9 +540,9 @@ impl std::fmt::Debug for ReplaceSource {
   }
 }
 
-enum SourceContent<'source> {
-  Raw(Cow<'source, str>),
-  Lines(SourceContentLines<'source>),
+enum SourceContent {
+  Raw(BytesStr),
+  Lines(SourceContentLines),
 }
 
 fn check_content_at_position(
@@ -605,8 +608,8 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
     &'chunk self,
     options: &MapOptions,
     on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
-    on_source: crate::helpers::OnSource<'_, 'source>,
-    on_name: crate::helpers::OnName<'_, 'source>,
+    on_source: crate::helpers::OnSource<'_>,
+    on_name: crate::helpers::OnName<'_>,
   ) -> crate::helpers::GeneratedInfo {
     let on_name = RefCell::new(on_name);
     let repls = &self.replacements;
@@ -617,9 +620,9 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
     let mut generated_line_offset: i64 = 0;
     let mut generated_column_offset: i64 = 0;
     let mut generated_column_offset_line = 0;
-    let source_content_lines: RefCell<LinearMap<Option<SourceContent<'source>>>> =
+    let source_content_lines: RefCell<LinearMap<Option<SourceContent>>> =
       RefCell::new(LinearMap::default());
-    let name_mapping: RefCell<HashMap<Cow<str>, u32>> = RefCell::new(HashMap::default());
+    let name_mapping: RefCell<HashMap<BytesStr, u32>> = RefCell::new(HashMap::default());
     let name_index_mapping: RefCell<LinearMap<u32>> = RefCell::new(LinearMap::default());
 
     // check if source_content[line][col] is equal to expect
@@ -786,13 +789,13 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
             .as_ref()
             .and_then(|original| original.name_index);
           if mapping.original.is_some() {
-            if let Some(name) = repl.name() {
+            if let Some(name) = repl.name.as_deref() {
               let mut name_mapping = name_mapping.borrow_mut();
               let mut global_index = name_mapping.get(name).copied();
               if global_index.is_none() {
                 let len = name_mapping.len() as u32;
-                name_mapping.insert(Cow::Borrowed(name), len);
-                on_name.borrow_mut()(len, Cow::Borrowed(name));
+                name_mapping.insert(name.clone(), len);
+                on_name.borrow_mut()(len, name);
                 global_index = Some(len);
               }
               replacement_name_index = global_index;
@@ -955,14 +958,14 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
         if !self.is_original_source {
           let mut source_content_lines = source_content_lines.borrow_mut();
           let lines =
-            source_content.map(|source_content| SourceContent::Raw(Cow::Borrowed(source_content)));
+            source_content.map(|source_content| SourceContent::Raw(source_content.clone()));
           source_content_lines.insert(source_index, lines);
         }
         on_source(source_index, source, source_content);
       },
       &mut |name_index, name| {
         let mut name_mapping = name_mapping.borrow_mut();
-        let mut global_index = name_mapping.get(&name).copied();
+        let mut global_index = name_mapping.get(name).copied();
         if global_index.is_none() {
           let len = name_mapping.len() as u32;
           name_mapping.insert(name.clone(), len);
@@ -1078,7 +1081,7 @@ mod tests {
     SourceMapSourceOptions, source_map_source::WithoutOriginalOptions,
   };
 
-  fn with_readable_mappings(sourcemap: &SourceMap<'_>) -> String {
+  fn with_readable_mappings(sourcemap: &SourceMap) -> String {
     let mut first = true;
     let mut last_line = 0;
     sourcemap
@@ -1380,7 +1383,7 @@ function StaticPage(_ref) {
     assert_eq!(source_map.get_name(1).unwrap(), "data");
     assert_eq!(source_map.get_name(2).unwrap(), "foo");
     assert_eq!(
-      source_map.get_source_content(0).unwrap().as_ref(),
+      source_map.get_source_content(0).unwrap().as_str(),
       r#"export default function StaticPage({ data }) {
 return <div>{data.foo}</div>
 }

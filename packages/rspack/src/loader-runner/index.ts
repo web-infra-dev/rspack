@@ -597,8 +597,7 @@ export async function runLoaders(
         loaderContext.loaders[loaderContext.loaderIndex],
       ),
     });
-    error.module = loaderContext._module;
-    compiler._lastCompilation!.__internal__pushRspackDiagnostic({
+    (context.__internal__diagnostics ??= []).push({
       error,
       severity: JsRspackSeverity.Error,
     });
@@ -612,8 +611,7 @@ export async function runLoaders(
         loaderContext.loaders[loaderContext.loaderIndex],
       ),
     });
-    warning.module = loaderContext._module;
-    compiler._lastCompilation!.__internal__pushRspackDiagnostic({
+    (context.__internal__diagnostics ??= []).push({
       error: warning,
       severity: JsRspackSeverity.Warn,
     });

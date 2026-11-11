@@ -316,7 +316,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
       source.push_str(&source_with_on_chunk_load);
     }
 
-    if with_loading || with_external_install_chunk {
+    if with_loading || with_external_install_chunk || with_hmr {
       let raw_source = runtime_template.render(
         &self.template_id(TemplateId::Raw),
         Some(serde_json::json!({

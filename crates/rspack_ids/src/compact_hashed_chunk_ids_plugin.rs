@@ -20,12 +20,14 @@ use crate::{
 #[derive(Debug, Clone, Default)]
 pub struct CompactHashedChunkIdsPluginOptions {
   pub min_length: Option<usize>,
+  pub salt: Option<u32>,
 }
 
 #[plugin]
 #[derive(Debug)]
 pub struct CompactHashedChunkIdsPlugin {
   min_length: usize,
+  salt: u32,
 }
 
 impl Default for CompactHashedChunkIdsPlugin {
@@ -36,7 +38,10 @@ impl Default for CompactHashedChunkIdsPlugin {
 
 impl CompactHashedChunkIdsPlugin {
   pub fn new(options: CompactHashedChunkIdsPluginOptions) -> Self {
-    Self::new_inner(normalize_min_length(options.min_length))
+    Self::new_inner(
+      normalize_min_length(options.min_length),
+      options.salt.unwrap_or_default(),
+    )
   }
 }
 
@@ -86,6 +91,7 @@ async fn chunk_ids(
     .filter(|chunk| chunk.id().is_none())
     .collect::<Vec<_>>();
 
+  let hash_name = |name: &str| hash_lowercase_alphanumeric(name, self.salt);
   let mut chunks_with_hashes = chunks
     .into_par_iter()
     .map(|chunk| -> Result<_> {
@@ -101,7 +107,7 @@ async fn chunk_ids(
         context,
         &compilation.exports_info_artifact,
       )?;
-      Ok((chunk, hash_lowercase_alphanumeric(&name), name))
+      Ok((chunk, hash_name(&name), name))
     })
     .collect::<Result<Vec<_>>>()?;
 
@@ -121,7 +127,7 @@ async fn chunk_ids(
     FxHashMap::with_capacity_and_hasher(chunks_with_hashes.len(), FxBuildHasher::default());
   let mut id_assigner = CompactHashedIdAssigner::new(self.min_length, used_ids);
   for (chunk, hash, name) in chunks_with_hashes {
-    let Some(chunk_id) = id_assigner.assign(&name, hash, hash_lowercase_alphanumeric) else {
+    let Some(chunk_id) = id_assigner.assign(&name, hash, hash_name) else {
       return Err(error!(
         "Unable to assign a unique compact-hashed id to chunk '{:?}' after {MAX_REHASH_ATTEMPTS} rehash attempts",
         chunk.ukey()

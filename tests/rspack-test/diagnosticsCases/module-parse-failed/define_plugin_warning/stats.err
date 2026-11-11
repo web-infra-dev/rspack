@@ -3,5 +3,5 @@ WARNING in ./index.js
   ╰─▶   ⚠ DefinePlugin warning: failed to parse "😄"
          ╭────
        1 │ 😄
-         · ▲
+         · ──
          ╰────

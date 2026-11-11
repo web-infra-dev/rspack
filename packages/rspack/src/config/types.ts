@@ -962,6 +962,14 @@ export type RuleSetRuleUseAndLoader =
 
 /** Rule defines the conditions for matching a module and the behavior of handling those modules. */
 export type RuleSetRule = RuleSetRuleUseAndLoader & {
+  /**
+   * Create a resource for matching subsequent rules from a path template.
+   * `[resource-path]` expands to the current matching path, including its extension.
+   * Query and fragment are preserved. The original resource is used by loaders.
+   * @experimental
+   */
+  as?: string;
+
   /** Matches all modules that match this resource, and will match against Resource. */
   test?: RuleSetCondition;
 
@@ -2934,8 +2942,9 @@ export type Optimization = {
 
   /**
    * Which algorithm to use when choosing chunk ids.
-   * Setting to `false` disables the built-in algorithm, allowing a custom plugin
-   * to provide chunk ids instead.
+   * Setting this to `false` disables automatic chunk ID assignment. Add a chunk ID
+   * plugin from `rspack.ids`, such as `new rspack.ids.CompactHashedChunkIdsPlugin()`,
+   * to `plugins`. Custom JavaScript plugins cannot currently assign chunk IDs.
    */
   chunkIds?:
     | false
