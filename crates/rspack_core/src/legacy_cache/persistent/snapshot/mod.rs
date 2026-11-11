@@ -54,6 +54,7 @@ impl Snapshot {
     scope: SnapshotScope,
     portable: bool,
   ) -> Option<Strategy> {
+    let mut missing = false;
     match helper.is_symlink(path).await {
       // A context lists the linked directory, so it keeps the content hash. Other scopes only
       // need the link target and a shallow identity of it.
@@ -71,7 +72,10 @@ impl Snapshot {
         if matches!(
           error.kind(),
           std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory
-        ) => {}
+        ) =>
+      {
+        missing = true;
+      }
       Err(_) => return Some(Strategy::Failed),
       Ok(false) => {}
     }
@@ -91,6 +95,9 @@ impl Snapshot {
           .await
       }
       SnapshotScope::MISSING => Strategy::Missing,
+      // A context directory that does not exist stays valid until it appears, like a missing
+      // file. Recording it as failed rebuilt its module on every start.
+      SnapshotScope::CONTEXT if missing => Strategy::Missing,
       SnapshotScope::CONTEXT => {
         helper
           .dir_strategy(

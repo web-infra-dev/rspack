@@ -35,6 +35,15 @@ struct CacheKey {
 }
 
 impl CacheKey {
+  /// The key of the cache's compilation version. No asset has it, because `new` rejects an
+  /// empty version.
+  fn compilation_version() -> Self {
+    Self {
+      filename: String::new(),
+      version: String::new(),
+    }
+  }
+
   fn new(filename: &str, version: &str) -> Option<Self> {
     if version.is_empty() {
       return None;
@@ -49,11 +58,19 @@ impl CacheKey {
 #[derive(Debug, Default)]
 pub struct SourceMapDevToolPluginCache {
   entries: FxHashMap<CacheKey, CachedSourceMapDevToolPluginEntry>,
+  /// The compilation version the stored entries were last validated under. It is kept once for
+  /// the cache: stored in every entry, a changed version would rewrite every entry.
+  compilation_version: String,
   pending_writes: Vec<CacheKey>,
   pending_removes: Vec<CacheKey>,
+  pending_compilation_version: bool,
 }
 
 impl SourceMapDevToolPluginCache {
+  pub fn compilation_version(&self) -> &str {
+    &self.compilation_version
+  }
+
   pub fn get(&self, filename: &str, version: &str) -> Option<&CachedSourceMapDevToolPluginEntry> {
     self.entries.get(&CacheKey::new(filename, version)?)
   }
@@ -81,10 +98,12 @@ impl SourceMapDevToolPluginCache {
   pub fn reuse_unchanged(&mut self) {
     self.pending_writes.clear();
     self.pending_removes.clear();
+    self.pending_compilation_version = false;
   }
 
   pub fn store<'a>(
     &mut self,
+    compilation_version: &str,
     items: impl IntoIterator<Item = (&'a str, &'a str, CachedSourceMapDevToolPluginEntry)>,
   ) {
     let entries = items
@@ -100,13 +119,15 @@ impl SourceMapDevToolPluginCache {
     self.pending_writes = entries
       .iter()
       .filter_map(|(key, entry)| {
-        let unchanged = self.entries.get(key).is_some_and(|old| {
-          old.name_version == entry.name_version
-            && old.compilation_version == entry.compilation_version
-        });
+        let unchanged = self
+          .entries
+          .get(key)
+          .is_some_and(|old| old.name_version == entry.name_version);
         (!unchanged).then(|| key.clone())
       })
       .collect();
+    self.pending_compilation_version = self.compilation_version != compilation_version;
+    self.compilation_version = compilation_version.to_string();
     self.entries = entries;
   }
 }
@@ -173,6 +194,21 @@ impl Occasion for SourceMapDevToolPluginOccasion {
         storage.set(SCOPE, key, bytes);
       });
 
+    if cache_item.pending_compilation_version {
+      match (
+        self.codec.encode(&CacheKey::compilation_version()),
+        self.codec.encode(&cache_item.compilation_version),
+      ) {
+        (Ok(key), Ok(value)) => storage.set(SCOPE, key, value),
+        (Err(err), _) | (_, Err(err)) => {
+          tracing::warn!(
+            "source map persistent cache version encode failed: {:?}",
+            err
+          );
+        }
+      }
+    }
+
     tracing::debug!(
       "saved {} and removed {} source map persistent cache entries",
       cache_item.pending_writes.len(),
@@ -186,7 +222,23 @@ impl Occasion for SourceMapDevToolPluginOccasion {
     storage: &dyn Storage,
     logger: &CompilationLogger,
   ) -> Result<Recovered<SourceMapDevToolPluginCache>> {
-    let items = storage.load(SCOPE).await?;
+    let mut items = storage.load(SCOPE).await?;
+    let version_key = self.codec.encode(&CacheKey::compilation_version())?;
+    // Without a readable version no build takes the unchanged path, and names are resolved again.
+    let compilation_version = items
+      .iter()
+      .position(|(key, _)| *key == version_key)
+      .map(|index| items.swap_remove(index).1)
+      .and_then(|value| match self.codec.decode::<String>(&value) {
+        Ok(version) => Some(version),
+        Err(err) => {
+          logger.warn(format!(
+            "source map persistent cache version decode failed: {err}"
+          ));
+          None
+        }
+      })
+      .unwrap_or_default();
     let (entries, dropped): (FxHashMap<_, _>, Vec<_>) = items
       .into_par_iter()
       .filter_map(|(key_bytes, value)| {
@@ -217,8 +269,10 @@ impl Occasion for SourceMapDevToolPluginOccasion {
     Ok(Recovered {
       item: SourceMapDevToolPluginCache {
         entries,
+        compilation_version,
         pending_writes: Vec::new(),
         pending_removes: Vec::new(),
+        pending_compilation_version: false,
       },
       dropped,
     })
