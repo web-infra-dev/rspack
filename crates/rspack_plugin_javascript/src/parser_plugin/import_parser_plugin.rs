@@ -9,7 +9,7 @@ use rspack_util::{
   SpanExt,
   swc::{AstSubRangeExt, get_swc_next_comments},
 };
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_next_ecma_ast::{
   Ast, BindingIdentifier, BindingPattern, BindingPatternData, CallExpression, Expr, ExprData,
   Function, GetSpan, IdentifierReference, ImportExpression, ObjectPattern, Span,
@@ -747,7 +747,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
     if parser.dynamic_import_references.inner.is_empty() {
       return None;
     }
-    let exported_bindings = std::mem::take(&mut parser.dynamic_import_references.exported_bindings);
+    let exported_bindings: FxHashSet<SymbolBinding> =
+      std::mem::take(&mut parser.dynamic_import_references.exported_bindings)
+        .into_iter()
+        .collect();
     for (locator, import) in parser
       .dynamic_import_references
       .take_all_import_references()
@@ -757,16 +760,29 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         mut references,
         ..
       } = import;
-      for (binding, path) in bindings {
-        // Destructuring still reads the property even if its binding is unused.
-        // Keep the whole value if it can escape through an export or direct eval.
-        if parser.build_info.has_direct_eval
-          || exported_bindings.contains(&binding)
-          || (!path.is_empty()
-            && !references
-              .iter()
-              .any(|reference| reference.names.starts_with(&path)))
-        {
+      // Borrow prefixes instead of cloning paths or rescanning the growing
+      // reference list once for each destructured binding.
+      let mut referenced_prefixes: FxHashSet<&[Atom]> = references
+        .iter()
+        .flat_map(|reference| (1..=reference.names.len()).map(move |len| &reference.names[..len]))
+        .collect();
+      let retain_bindings = bindings
+        .iter()
+        .map(|(binding, path)| {
+          // Destructuring still reads an unused property. Exports and eval can
+          // also expose the entire value to otherwise untracked observations.
+          let retain = parser.build_info.has_direct_eval
+            || exported_bindings.contains(binding)
+            || (!path.is_empty() && !referenced_prefixes.contains(path.as_slice()));
+          if retain {
+            referenced_prefixes.extend((1..=path.len()).map(|len| &path[..len]));
+          }
+          retain
+        })
+        .collect::<Vec<_>>();
+      drop(referenced_prefixes);
+      for ((_, path), retain) in bindings.into_iter().zip(retain_bindings) {
+        if retain {
           references.push(ReferencedSpecifier::new(path));
         }
       }

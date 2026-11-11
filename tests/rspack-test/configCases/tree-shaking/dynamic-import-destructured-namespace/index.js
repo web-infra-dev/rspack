@@ -19,6 +19,15 @@ it("should trace callback, Promise.all and computed literal bindings", async () 
   const {z: {used: direct}} = await import("./barrel");
   expect(direct()).toBe(137);
 });
+it("should index existing and fallback references across overlapping binding prefixes", async () => {
+  const {z: {used}, z: unusedParent, z: {used: unusedDuplicate}} =
+    await import(/* webpackChunkName: "prefixes" */ "./prefix-barrel");
+  expect(used).toBe(179);
+  const {z: {used: unusedLeaf}, z: fallbackParent} =
+    await import(/* webpackChunkName: "prefixes" */ "./prefix-barrel");
+  const content = fs.readFileSync(path.join(__dirname, STRICT_IMPORT_RECEIVER ? "strict" : "loose", "prefixes.js"), "utf8");
+  expect(content).not.toContain("OVERLAPPING_PREFIX_UNUSED_DROP");
+});
 it("should retain the namespace when the alias escapes", async () => {
   const {z} = await import("./escaped-barrel");
   expect(Object.keys(z).sort()).toEqual(["unused", "used"]);
