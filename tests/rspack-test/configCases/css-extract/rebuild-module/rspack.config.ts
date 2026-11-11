@@ -17,23 +17,22 @@ export default defineConfig({
     }),
     definePlugin((compiler) => {
       let initial = true;
-      compiler.hooks.thisCompilation.tap('TEST_PLUGIN', (compilation) => {
-        compilation.hooks.finishModules.tapAsync(
-          'TEST_PLUGIN',
-          (modules, callback) => {
-            if (!initial) {
-              return callback();
-            }
-            initial = false;
-            const cssModule = Array.from(modules).find(
-              (module) =>
-                module.identifier().includes('.css') &&
-                module.type === 'javascript/auto',
-            );
-            compilation.rebuildModule(cssModule!, (error) => callback(error));
-          },
-        );
-      });
+      compiler.hooks.finishMake.tapAsync(
+        'TEST_PLUGIN',
+        (compilation, callback) => {
+          const modules = compilation.modules;
+          if (!initial) {
+            return callback();
+          }
+          initial = false;
+          const cssModule = Array.from(modules).find(
+            (module) =>
+              module.identifier().includes('.css') &&
+              module.type === 'javascript/auto',
+          );
+          compilation.rebuildModule(cssModule!, (error) => callback(error));
+        },
+      );
     }),
   ],
 });

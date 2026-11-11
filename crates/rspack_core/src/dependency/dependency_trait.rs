@@ -174,6 +174,12 @@ pub trait Dependency:
 
   fn could_affect_referencing_module(&self) -> AffectType;
 
+  /// The referenced module is generated from this dependency's data rather than
+  /// an independently loaded resource. Rebuilding its producer must recreate it.
+  fn creates_module_from_dependency(&self) -> bool {
+    false
+  }
+
   fn forward_id(&self) -> ForwardId {
     ForwardId::All
   }

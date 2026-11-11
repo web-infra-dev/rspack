@@ -17,8 +17,9 @@ const excludes = {
 
 	],
 	config: [
-		// This case expects its stateful loader to build again on every compiler.
+		// These cases expect stateful loaders to build again on every compiler.
 		/^compilation\/rebuild-module$/,
+		/^css-extract\/rebuild-module$/,
 
 		// Module cache misses after restarting the compiler.
 		/^asset-modules\/custom-encoder$/,

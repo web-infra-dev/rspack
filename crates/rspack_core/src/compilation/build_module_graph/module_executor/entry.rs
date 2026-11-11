@@ -50,6 +50,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
           origin_module_context.unwrap_or_else(|| Context::from("")),
         ));
         let dep_id = *dep.id();
+        origin_context.artifact.entry_dependencies.insert(dep_id);
 
         let mg = TaskContext::get_module_graph_mut(&mut origin_context.artifact);
         mg.add_dependency_ref(dep.clone());

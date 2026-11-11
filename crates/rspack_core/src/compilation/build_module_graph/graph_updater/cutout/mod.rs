@@ -80,6 +80,8 @@ impl Cutout {
       };
     }
 
+    super::expand_rebuild_modules(module_graph, &mut force_build_modules);
+
     // analyze force_build_module and force_build_deps
     self
       .fix_issuers

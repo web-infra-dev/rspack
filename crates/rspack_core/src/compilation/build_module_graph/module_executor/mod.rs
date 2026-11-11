@@ -5,7 +5,7 @@ mod execute;
 mod module_tracker;
 mod overwrite;
 
-use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet};
+use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet, IdentifierSet};
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::{
@@ -39,10 +39,11 @@ pub struct ModuleExecutor {
   pub entries: HashMap<ImportModuleMeta, DependencyId>,
   pub exports_info_artifact: StealCell<ExportsInfoArtifact>,
   pub has_build_cycle: bool,
+  executed_entry_deps: HashSet<DependencyId>,
 
   // temporary data, used by hook_after_finish_modules
   event_sender: Option<UnboundedSender<Event>>,
-  stop_receiver: Option<oneshot::Receiver<ExecutorTaskContext>>,
+  stop_receiver: Option<oneshot::Receiver<(ExecutorTaskContext, Result<()>)>>,
   module_assets: IdentifierDashMap<HashMap<String, CompilationAsset>>,
   code_generated_modules: IdentifierDashSet,
   pub executed_runtime_modules: IdentifierDashMap<ExecutedRuntimeModule>,
@@ -55,6 +56,7 @@ impl Default for ModuleExecutor {
       entries: Default::default(),
       exports_info_artifact: StealCell::new(Default::default()),
       has_build_cycle: false,
+      executed_entry_deps: Default::default(),
       event_sender: Default::default(),
       stop_receiver: Default::default(),
       module_assets: Default::default(),
@@ -79,16 +81,36 @@ impl ModuleExecutor {
       params.push(UpdateParam::RemovedFiles(compilation.removed_files.clone()));
     }
     make_artifact.reset_temporary_data();
+    self.executed_entry_deps.clear();
+    self.has_build_cycle = false;
 
-    (make_artifact, exports_info_artifact) =
-      update_module_graph(compilation, make_artifact, exports_info_artifact, params).await?;
+    let update =
+      update_module_graph(compilation, make_artifact, exports_info_artifact, params).await;
+    make_artifact = update.artifact;
+    exports_info_artifact = update.exports_info_artifact;
+    if let Err(error) = update.result {
+      self.make_artifact = make_artifact.into();
+      self.exports_info_artifact = exports_info_artifact.into();
+      return Err(error);
+    }
 
+    self.make_artifact = make_artifact.into();
+    self.exports_info_artifact = exports_info_artifact.into();
+    self.start(compilation);
+    Ok(())
+  }
+
+  fn start(&mut self, compilation: &Compilation) {
     let mut ctx = ExecutorTaskContext {
-      origin_context: TaskContext::new(compilation, make_artifact, exports_info_artifact),
+      origin_context: TaskContext::new(
+        compilation,
+        self.make_artifact.steal(),
+        self.exports_info_artifact.steal(),
+      ),
       tracker: Default::default(),
       entries: std::mem::take(&mut self.entries),
-      executed_entry_deps: Default::default(),
-      has_build_cycle: false,
+      executed_entry_deps: std::mem::take(&mut self.executed_entry_deps),
+      has_build_cycle: self.has_build_cycle,
     };
     let (event_sender, event_receiver) = unbounded_channel();
     let (stop_sender, stop_receiver) = oneshot::channel();
@@ -97,48 +119,29 @@ impl ModuleExecutor {
     // avoid coop budget consumed to zero cause hang risk
     // related to https://tokio.rs/blog/2020-04-preemption
     rspack_tasks::spawn_in_compiler_context(task::unconstrained(async move {
-      let _ = run_task_loop(&mut ctx, vec![Box::new(CtrlTask { event_receiver })]).await;
-
-      // ignore error, stop_receiver may be dropped if make stage occur error.
-      let _ = stop_sender.send(ctx);
+      let result = run_task_loop(&mut ctx, vec![Box::new(CtrlTask { event_receiver })]).await;
+      if result.is_err() {
+        // Drop pending execute callbacks now. Their loaders must be released
+        // before make can finish and receive the failed executor context.
+        ctx.tracker = Default::default();
+      }
+      let _ = stop_sender.send((ctx, result));
     }));
-
-    Ok(())
   }
 
   pub async fn after_build_module_graph(&mut self, compilation: &mut Compilation) -> Result<()> {
-    let sender = std::mem::take(&mut self.event_sender);
-    sender
-      .expect("should have sender")
-      .send(Event::Stop)
-      .expect("should success");
-
-    let stop_receiver = std::mem::take(&mut self.stop_receiver);
-    let Ok(ctx) = stop_receiver.expect("should have receiver").await else {
-      panic!("receive make artifact failed");
-    };
-    let mut make_artifact = ctx.origin_context.artifact;
-    let mut entries = ctx.entries;
-    let mut exports_info_artifact = ctx.origin_context.exports_info_artifact;
+    self.pause().await?;
 
     // clean removed entries
     let removed_module = compilation
       .build_module_graph_artifact
       .revoked_modules()
-      .chain(make_artifact.revoked_modules())
+      .chain(self.make_artifact.revoked_modules())
       .collect::<HashSet<_>>();
-    entries.retain(|k, v| {
-      !removed_module.contains(&k.origin_module_identifier) || ctx.executed_entry_deps.contains(v)
+    self.entries.retain(|k, v| {
+      !removed_module.contains(&k.origin_module_identifier) || self.executed_entry_deps.contains(v)
     });
-    (make_artifact, exports_info_artifact) = update_module_graph(
-      compilation,
-      make_artifact,
-      exports_info_artifact,
-      vec![UpdateParam::BuildEntryAndClean(
-        entries.values().copied().collect(),
-      )],
-    )
-    .await?;
+    self.clean_entries(compilation).await?;
 
     let mg = compilation.build_module_graph_artifact.get_module_graph();
     let module_assets = std::mem::take(&mut self.module_assets);
@@ -149,11 +152,11 @@ impl ModuleExecutor {
       }
     }
 
-    for (_, module) in make_artifact.get_module_graph().modules() {
+    for (_, module) in self.make_artifact.get_module_graph().modules() {
       module.freeze_build_info();
     }
 
-    let diagnostics = make_artifact.diagnostics();
+    let diagnostics = self.make_artifact.diagnostics();
     compilation.extend_diagnostics(diagnostics);
 
     let code_generated_modules = std::mem::take(&mut self.code_generated_modules);
@@ -161,11 +164,97 @@ impl ModuleExecutor {
       compilation.code_generated_modules.insert(id);
     }
 
-    self.make_artifact = make_artifact.into();
-    self.exports_info_artifact = exports_info_artifact.into();
-    self.entries = entries;
-    self.has_build_cycle = ctx.has_build_cycle;
     Ok(())
+  }
+
+  async fn clean_entries(&mut self, compilation: &Compilation) -> Result<()> {
+    loop {
+      let update = update_module_graph(
+        compilation,
+        self.make_artifact.steal(),
+        self.exports_info_artifact.steal(),
+        vec![UpdateParam::BuildEntryAndClean(
+          self.entries.values().copied().collect(),
+        )],
+      )
+      .await;
+      self.make_artifact = update.artifact.into();
+      self.exports_info_artifact = update.exports_info_artifact.into();
+      update.result?;
+
+      // Removing an import can remove a module that itself called importModule.
+      // Prune those nested entries before collecting diagnostics and dependencies.
+      let previous_len = self.entries.len();
+      self.entries.retain(|meta, _| {
+        compilation
+          .get_module_graph()
+          .module_by_identifier(&meta.origin_module_identifier)
+          .is_some()
+          || self
+            .make_artifact
+            .get_module_graph()
+            .module_by_identifier(&meta.origin_module_identifier)
+            .is_some()
+      });
+      if previous_len == self.entries.len() {
+        return Ok(());
+      }
+    }
+  }
+
+  // Suspend execution between main-graph update batches. Keep all contributions
+  // until the end of finishMake, replacing only those of rebuilt origin modules.
+  pub async fn prepare_rebuild(
+    &mut self,
+    compilation: &Compilation,
+    modules: &IdentifierSet,
+  ) -> Result<()> {
+    self.pause().await?;
+    self.entries.retain(|meta, dependency| {
+      if modules.contains(&meta.origin_module_identifier) {
+        self.executed_entry_deps.remove(dependency);
+        return false;
+      }
+      true
+    });
+    for module in modules {
+      self.module_assets.remove(module);
+    }
+    self.clean_entries(compilation).await?;
+    self.start(compilation);
+    Ok(())
+  }
+
+  async fn pause(&mut self) -> Result<()> {
+    let (ctx, result) = self
+      .stop()
+      .await?
+      .ok_or_else(|| rspack_error::error!("Module executor is not running"))?;
+    self.make_artifact = ctx.origin_context.artifact.into();
+    self.exports_info_artifact = ctx.origin_context.exports_info_artifact.into();
+    self.entries = ctx.entries;
+    self.executed_entry_deps = ctx.executed_entry_deps;
+    self.has_build_cycle = ctx.has_build_cycle;
+    result
+  }
+
+  async fn stop(&mut self) -> Result<Option<(ExecutorTaskContext, Result<()>)>> {
+    if let Some(sender) = self.event_sender.take() {
+      // The task loop may already have stopped because a loader or hook failed.
+      let _ = sender.send(Event::Stop);
+    }
+    match self.stop_receiver.take() {
+      Some(receiver) => receiver
+        .await
+        .map(Some)
+        .map_err(|_| rspack_error::error!("Module executor stopped without returning its graph")),
+      None => Ok(None),
+    }
+  }
+
+  pub async fn abort(&mut self) {
+    let _ = self.stop().await;
+    *self = Self::default();
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -178,10 +267,10 @@ impl ModuleExecutor {
     origin_module_context: Option<Context>,
     origin_module_identifier: Identifier,
   ) -> Result<ExecuteModuleResult> {
-    let sender = self
-      .event_sender
-      .as_ref()
-      .expect("should have event sender");
+    let stopped = || rspack_error::error!("Module executor stopped before importModule completed");
+    let Some(sender) = self.event_sender.as_ref() else {
+      return Err(stopped());
+    };
 
     let meta = ImportModuleMeta {
       origin_module_identifier,
@@ -189,7 +278,7 @@ impl ModuleExecutor {
       layer,
     };
     let (tx, rx) = oneshot::channel();
-    sender
+    if sender
       .send(Event::ImportModule(EntryTask {
         meta: meta.clone(),
         origin_module_context,
@@ -200,13 +289,17 @@ impl ModuleExecutor {
           result_sender: tx,
         },
       }))
-      .expect("should success");
+      .is_err()
+    {
+      return Err(stopped());
+    }
+    let result = rx.await.map_err(|_| stopped())?;
     let ExecuteResult {
       execute_result,
       assets,
       code_generated_modules,
       executed_runtime_modules,
-    } = rx.await.expect("should receiver success")?;
+    } = result?;
 
     if execute_result.errors.is_empty() && !assets.is_empty() {
       self

@@ -24,6 +24,9 @@ impl IncrementalArtifacts {
   }
 
   pub(crate) fn store_previous_compilation(&mut self, compilation: Box<Compilation>) {
+    if !compilation.incremental_artifacts_ready {
+      self.build_chunk_graph_artifact_snapshot = BuildChunkGraphArtifact::default();
+    }
     self.previous_compilation = Some(compilation);
   }
 
@@ -40,6 +43,15 @@ impl IncrementalArtifacts {
   }
 
   pub(crate) fn recover(&mut self, passes: IncrementalPasses, compilation: &mut Compilation) {
+    // Keep a failed compilation alive for binding lifetimes, but never recover
+    // its incomplete or stolen artifacts, even when a pass is configured on.
+    if self
+      .previous_compilation
+      .as_ref()
+      .is_some_and(|previous| !previous.incremental_artifacts_ready)
+    {
+      return;
+    }
     if passes.contains(IncrementalPasses::BUILD_CHUNK_GRAPH)
       && BuildChunkGraphArtifact::should_recover(&compilation.incremental)
     {

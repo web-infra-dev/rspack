@@ -114,6 +114,10 @@ impl Dependency for CssDependency {
   fn could_affect_referencing_module(&self) -> AffectType {
     AffectType::Transitive
   }
+
+  fn creates_module_from_dependency(&self) -> bool {
+    true
+  }
 }
 
 #[cacheable_dyn]

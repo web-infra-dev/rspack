@@ -498,6 +498,12 @@ When implementing a custom Rspack runtime module, you can override the following
 
 Triggers a re-build of the module.
 
+Call this method from [`compiler.hooks.finishMake`](/api/plugin-api/compiler-hooks#finishmake), and wait for its callback before completing the hook. Calls from `finishModules` or later hooks return an error through the callback because those phases require a fixed module graph.
+
+Each call completes its callback once, including repeated requests for the same module. If another rebuild removes the module, the callback receives an error. A fatal rebuild failure can also fail the compilation even when the plugin handles the callback error; the next build starts with fresh incremental artifacts.
+
+Rebuilding a module also refreshes its extracted CSS and replaces its loader import contributions. Assets, diagnostics, and watch dependencies are collected after `finishMake` completes.
+
 ```ts
 rebuildModule(
   m: Module, // module to be rebuilt
@@ -508,24 +514,22 @@ rebuildModule(
 The following code will rebuild the module ending with `a.js`:
 
 ```js
-compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
-  compilation.hooks.finishModules.tapPromise('MyPlugin', async (modules) => {
-    const oldModule = Array.from(modules).find((item) =>
-      item.resource?.endsWith('a.js'),
-    );
-    if (!oldModule) {
-      return;
-    }
+compiler.hooks.finishMake.tapPromise('MyPlugin', async (compilation) => {
+  const oldModule = Array.from(compilation.modules).find((item) =>
+    item.resource?.endsWith('a.js'),
+  );
+  if (!oldModule) {
+    return;
+  }
 
-    await new Promise((resolve, reject) => {
-      compilation.rebuildModule(oldModule, (err, rebuiltModule) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        console.log(`Rebuilt ${rebuiltModule.identifier()}.`);
-        resolve();
-      });
+  await new Promise((resolve, reject) => {
+    compilation.rebuildModule(oldModule, (err, rebuiltModule) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      console.log(`Rebuilt ${rebuiltModule.identifier()}.`);
+      resolve();
     });
   });
 });

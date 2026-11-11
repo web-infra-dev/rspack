@@ -498,6 +498,12 @@ export default {
 
 重新构建指定模块。
 
+请在 [`compiler.hooks.finishMake`](/api/plugin-api/compiler-hooks#finishmake) 中调用，并等待回调完成后再结束 hook。`finishModules` 及后续阶段需要固定的模块图，在这些阶段调用会通过回调返回错误。
+
+每次调用都会完成一次回调，包括对同一模块的重复请求。如果模块被另一次重建移除，回调会收到错误。即使插件处理了回调错误，严重的重建失败仍可能使本轮编译失败；下一轮构建会使用新的增量产物。
+
+重建模块也会更新其提取的 CSS，并替换其 loader 导入产生的结果。资源、诊断信息和监听依赖会在 `finishMake` 完成后统一收集。
+
 ```ts
 rebuildModule(m: Module, f: (err: Error | null, m: Module | null) => void): void;
 ```
@@ -505,24 +511,22 @@ rebuildModule(m: Module, f: (err: Error | null, m: Module | null) => void): void
 以下示例将重新构建结尾为 `a.js` 模块：
 
 ```js
-compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
-  compilation.hooks.finishModules.tapPromise('MyPlugin', async (modules) => {
-    const oldModule = Array.from(modules).find((item) =>
-      item.resource?.endsWith('a.js'),
-    );
-    if (!oldModule) {
-      return;
-    }
+compiler.hooks.finishMake.tapPromise('MyPlugin', async (compilation) => {
+  const oldModule = Array.from(compilation.modules).find((item) =>
+    item.resource?.endsWith('a.js'),
+  );
+  if (!oldModule) {
+    return;
+  }
 
-    await new Promise((resolve, reject) => {
-      compilation.rebuildModule(oldModule, (err, rebuiltModule) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        console.log(`Rebuilt ${rebuiltModule.identifier()}.`);
-        resolve();
-      });
+  await new Promise((resolve, reject) => {
+    compilation.rebuildModule(oldModule, (err, rebuiltModule) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      console.log(`Rebuilt ${rebuiltModule.identifier()}.`);
+      resolve();
     });
   });
 });

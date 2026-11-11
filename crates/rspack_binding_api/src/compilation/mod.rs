@@ -14,7 +14,6 @@ use diagnostics::Diagnostics;
 use entries::JsEntries;
 use modules::Modules;
 use napi_derive::napi;
-use rspack_collections::IdentifierSet;
 use rspack_core::{
   BindingCell, Compilation, CompilationId, DependencyRef, EntryOptions, ExportsInfoArtifact,
   ModuleIdentifier, OptimizationBailoutItem, Reflector, rspack_sources::BoxSource,
@@ -712,9 +711,6 @@ impl JsCompilation {
     let compilation = self
       .as_mut()
       .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
-    let exports_info_artifact = self
-      .exports_info_artifact_mut()
-      .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
     let compiler_context = compilation.compiler_context.clone();
     callbackify(
       f,
@@ -726,12 +722,13 @@ impl JsCompilation {
             module_identifiers
               .into_iter()
               .map(ModuleIdentifier::from)
-              .collect::<IdentifierSet>(),
-            exports_info_artifact,
+              .collect(),
             |modules| {
               modules
                 .into_iter()
-                .map(|module| ModuleObject::with_ref(module.as_ref(), compiler_id))
+                .map(|module| {
+                  module.map(|module| ModuleObject::with_ref(module.as_ref(), compiler_id))
+                })
                 .collect::<Vec<_>>()
             },
           )
