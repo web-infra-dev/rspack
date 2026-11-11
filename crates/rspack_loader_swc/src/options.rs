@@ -467,8 +467,9 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
     let es5_strings = jsc
       .other_fields
       .get("target")
-      .map(|target| serde_json::from_value::<EsVersion>(target.clone()))
+      .map(|target| serde_json::from_value::<Option<EsVersion>>(target.clone()))
       .transpose()?
+      .flatten()
       .unwrap_or_default()
       <= EsVersion::Es5;
     let needs_resource_specific_jsc = detect_syntax.is_auto() && !jsc.has_explicit_syntax();
