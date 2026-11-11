@@ -1748,7 +1748,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         .await?
       }
     };
-    for extended_tsconfig_path in extended_tsconfig_paths {
+    for extended_tsconfig_path in extended_tsconfig_paths.into_iter().rev() {
       let extended_tsconfig = self
         .load_tsconfig(
           /* root */ false,
