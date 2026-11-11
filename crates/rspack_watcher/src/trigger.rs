@@ -275,7 +275,12 @@ impl EventProcessor {
     // `find_associated_event` bubbles them to a registered parent and triggers
     // a spurious rebuild.
     // A scan's event was filtered when the scan found the path.
-    if !matches!(origin, Origin::Scan) && self.path_manager.is_ignored_path(path.as_ref()).await {
+    if !matches!(origin, Origin::Scan)
+      && self
+        .path_manager
+        .is_ignored_path(resolved_path.unwrap_or(path))
+        .await
+    {
       return;
     }
 

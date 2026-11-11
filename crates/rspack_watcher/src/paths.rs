@@ -8,7 +8,9 @@ use std::{
 
 use dashmap::setref::multiple::RefMulti;
 use rspack_error::Result;
-use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
+use rspack_paths::{
+  InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathMap, InternedPathSet,
+};
 use rspack_util::{
   fx_hash::FxHashMap,
   time::{current_time, system_time_to_millis},
@@ -384,23 +386,28 @@ impl PathManager {
         .add(&mut resolver, path, directory, false, self)
         .await;
     }
-    for entries in [&self.context_files, &self.context_directories] {
-      let paths: Vec<_> = entries.iter().map(|entry| entry.key().clone()).collect();
-      for path in paths {
-        if path.is_symlink()
-          && !self.files.all.contains(&path)
-          && !self.directories.all.contains(&path)
-        {
-          subscriptions
-            .add(
-              &mut resolver,
-              path.clone(),
-              self.context_directories.contains(&path),
-              true,
-              self,
-            )
-            .await;
-        }
+    let mut context_links: InternedPathMap<bool> = self
+      .context_files
+      .iter()
+      .map(|entry| (entry.key().clone(), false))
+      .collect();
+    // A missing target loses its time records, but its link still needs a
+    // subscription until the owning context or the link itself is removed.
+    for path in symlinks.context_directories() {
+      context_links.insert(path, true);
+    }
+    for entry in self.context_directories.iter() {
+      context_links.insert(entry.key().clone(), true);
+    }
+    for (path, directory) in context_links {
+      if self.is_below_context(&path)
+        && path.is_symlink()
+        && !self.files.all.contains(&path)
+        && !self.directories.all.contains(&path)
+      {
+        subscriptions
+          .add(&mut resolver, path, directory, true, self)
+          .await;
       }
     }
     symlinks.replace(subscriptions)
@@ -732,7 +739,14 @@ impl PathManager {
       };
       for entry in entries.flatten() {
         let path = InternedPath::from(entry.path());
-        if self.is_ignored_path(path.as_ref()).await {
+        let resolved_path = self
+          .symlinks
+          .as_ref()
+          .and_then(|symlinks| symlinks.resolved_directory_entry(&path));
+        if self
+          .is_ignored_path(resolved_path.as_ref().unwrap_or(&path))
+          .await
+        {
           continue;
         }
         let Ok(metadata) = Self::scan_metadata(ancestry.last(), &path) else {
@@ -821,9 +835,18 @@ impl PathManager {
     if self.directories.all.contains(path) || !self.is_below_context(path) {
       return true;
     }
-    // Like watchpack's live events, `lstat`: a link is a file entry here even
-    // with `followSymlinks`; only the scan descends into links.
-    let Ok(metadata) = std::fs::symlink_metadata(path) else {
+    // Keep a discovered directory link's identity across target removal and
+    // recovery. Other links are file entries until a context scan follows them.
+    let metadata = if self
+      .symlinks
+      .as_ref()
+      .is_some_and(|symlinks| symlinks.is_directory(path))
+    {
+      std::fs::metadata(path)
+    } else {
+      std::fs::symlink_metadata(path)
+    };
+    let Ok(metadata) = metadata else {
       return true;
     };
     if metadata.is_dir() {

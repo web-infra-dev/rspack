@@ -87,6 +87,17 @@ pub(crate) struct LinkSubscriptions {
 }
 
 impl LinkSubscriptions {
+  fn resolved_directory_entry(&self, path: &InternedPath) -> Option<InternedPath> {
+    path.ancestors().skip(1).find_map(|parent| {
+      self
+        .resolved_directories
+        .get(&InternedPath::from(parent))
+        .map(|target| {
+          InternedPath::from(target.join(path.strip_prefix(parent).expect("path ancestor")))
+        })
+    })
+  }
+
   pub(crate) async fn add(
     &mut self,
     resolver: &mut LinkResolver,
@@ -158,6 +169,10 @@ impl LinkSubscriptions {
       child = parent;
     }
     self.watch(&resolution.target, directory);
+    if directory {
+      // FSEvents can report only the parent when a target tree is removed.
+      self.watch(&resolution.target, false);
+    }
     // Directory aliases also translate parent removal/creation events. In
     // particular, mkdir of a missing target's parent must recover its files.
     for ancestor in path.ancestors() {
@@ -211,6 +226,33 @@ pub(crate) struct SymlinkAlias {
 }
 
 impl Symlinks {
+  pub(crate) fn context_directories(&self) -> InternedPathSet {
+    let subscriptions = self.0.read().expect("symlink subscriptions lock poisoned");
+    subscriptions
+      .directory_targets
+      .keys()
+      .filter(|path| !subscriptions.resolved_directories.contains_key(*path))
+      .cloned()
+      .collect()
+  }
+
+  pub(crate) fn is_directory(&self, path: &InternedPath) -> bool {
+    self
+      .0
+      .read()
+      .expect("symlink subscriptions lock poisoned")
+      .directory_targets
+      .contains_key(path)
+  }
+
+  pub(crate) fn resolved_directory_entry(&self, path: &InternedPath) -> Option<InternedPath> {
+    self
+      .0
+      .read()
+      .expect("symlink subscriptions lock poisoned")
+      .resolved_directory_entry(path)
+  }
+
   pub(crate) fn context_files(&self) -> InternedPathSet {
     self
       .0
@@ -289,14 +331,7 @@ impl Symlinks {
         let resolved_path = if link_changed {
           None
         } else {
-          alias.ancestors().skip(1).find_map(|parent| {
-            subscriptions
-              .resolved_directories
-              .get(&InternedPath::from(parent))
-              .map(|target| {
-                InternedPath::from(target.join(alias.strip_prefix(parent).expect("path ancestor")))
-              })
-          })
+          subscriptions.resolved_directory_entry(&alias)
         };
         SymlinkAlias {
           path: alias,
