@@ -98,7 +98,7 @@ impl LinkSubscriptions {
     let Some(resolution) = resolver.resolve(&path) else {
       return;
     };
-    if resolution.links.is_empty() {
+    if resolution.links.is_empty() && resolution.target == path {
       return;
     }
     if nested && !directory {
