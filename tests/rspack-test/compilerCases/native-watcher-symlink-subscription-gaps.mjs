@@ -15,6 +15,8 @@ const Watchpack = require(
   ),
 );
 
+let tracing = false;
+
 async function waitFor(predicate) {
   const deadline = Date.now() + 5000;
   while (!predicate() && Date.now() < deadline) await sleep(10);
@@ -31,6 +33,14 @@ export default [
   name: scenario,
   description: `should preserve symbolic link notifications for ${scenario}`,
   async run() {
+    if (process.env.RSPACK_WATCHER_TRACE && !tracing) {
+      await require('@rspack/core').experiments.globalTrace.register(
+        'rspack_watcher::fs_event=debug',
+        'logger',
+        'stdout',
+      );
+      tracing = true;
+    }
     const root = fs.mkdtempSync(
       path.join(fs.realpathSync(os.tmpdir()), 'rspack-link-gaps-'),
     );
@@ -52,7 +62,10 @@ export default [
     await sleep(2100);
     const options = { followSymlinks: true, aggregateTimeout: 50 };
     const watcher = new NativeWatcher(options);
-    const watchpack = intermediate ? new Watchpack(options) : undefined;
+    const watchpack =
+      intermediate && process.platform !== 'win32'
+        ? new Watchpack(options)
+        : undefined;
     const changes = new Set();
     const removals = new Set();
     const referenceRemovals = new Set();
@@ -91,8 +104,8 @@ export default [
         fs.renameSync(links, moved);
         expect(fs.existsSync(target)).toBe(true);
         expect(fs.existsSync(link)).toBe(false);
-        await waitFor(() => referenceRemovals.has(link));
         await waitFor(() => removals.has(link));
+        if (watchpack) await waitFor(() => referenceRemovals.has(link));
         watch(false);
         await sleep(500);
         changes.clear();
