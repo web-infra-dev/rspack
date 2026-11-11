@@ -770,7 +770,7 @@ With this configuration:
 - The regular import does not match the first rule. Its matching path still ends in `.js`, so the second rule compiles it with SWC.
 - The URL import matches the first rule, which sets its type to [`asset/resource`](/guide/features/asset-module) and changes its matching path to end in `example.js.asset`. It no longer matches the SWC rule, so Rspack emits the file as an asset without processing it with `builtin:swc-loader`.
 
-`as` does not change output filenames or disable minification. In production builds, emitted `.js` assets may still be minified. To preserve their original contents, use [`generator.filename`](/config/module-generator#assetfilename) to place these assets in a dedicated output directory, then exclude that directory with [`SwcJsMinimizerRspackPlugin.exclude`](/plugins/swc-js-minimizer-rspack-plugin#exclude).
+Skipping `builtin:swc-loader` does not disable asset minification. In production builds, emitted `.js` assets may still be minified. To preserve their original contents, use [`generator.filename`](/config/module-generator#assetfilename) to place these assets in a dedicated output directory, then exclude that directory with [`SwcJsMinimizerRspackPlugin.exclude`](/plugins/swc-js-minimizer-rspack-plugin#exclude).
 
 ### Rule matching order
 
@@ -786,7 +786,7 @@ The value of `as` is a path template. The only supported placeholder is `[resour
 
 `[resource-path]` excludes the query and fragment, and `as` leaves them unchanged. [`resourceQuery`](#rulesresourcequery) and [`resourceFragment`](#rulesresourcefragment) still match the original query and fragment, respectively.
 
-The generated path is only used for rule matching; it does not change the file being read or the resource processed by loaders. Both imports in the example therefore read `example.js`; no `example.js.asset` file is needed.
+The generated path is only used for rule matching; it does not change the file being read, the resource processed by loaders, or the output filename. Both imports in the example therefore read `example.js`; no `example.js.asset` file is needed.
 
 ## rules[].type
 

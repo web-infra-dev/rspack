@@ -768,7 +768,7 @@ export default {
 - 普通导入不满足第一条规则的条件，匹配路径仍以 `.js` 结尾，因此会命中第二条规则，由 SWC 编译。
 - URL 导入命中第一条规则，模块类型被设为 [`asset/resource`](/guide/features/asset-module)，匹配路径则变为以 `example.js.asset` 结尾。它不再满足 SWC 规则的条件，因此 Rspack 会将文件作为资源输出，不经过 `builtin:swc-loader` 处理。
 
-`as` 不会改变输出文件名，也不会禁用产物压缩。在生产构建中，输出的 `.js` 资源仍可能被压缩。如果需要保留文件的原始内容，可以通过 [`generator.filename`](/config/module-generator#assetfilename) 将这类资源输出到单独的目录，再通过 [`SwcJsMinimizerRspackPlugin.exclude`](/plugins/swc-js-minimizer-rspack-plugin#exclude) 排除该目录。
+跳过 `builtin:swc-loader` 不会禁用产物压缩。在生产构建中，输出的 `.js` 资源仍可能被压缩。如果需要保留文件的原始内容，可以通过 [`generator.filename`](/config/module-generator#assetfilename) 将这类资源输出到单独的目录，再通过 [`SwcJsMinimizerRspackPlugin.exclude`](/plugins/swc-js-minimizer-rspack-plugin#exclude) 排除该目录。
 
 ### 规则匹配顺序 \{#rule-matching-order}
 
@@ -784,7 +784,7 @@ export default {
 
 `[resource-path]` 不包含查询参数和片段，`as` 也不会修改它们。[`resourceQuery`](#rulesresourcequery) 和 [`resourceFragment`](#rulesresourcefragment) 仍分别匹配原有的查询参数和片段。
 
-模板生成的路径只用于规则匹配，不会改变实际读取的文件或 loader 处理的资源。因此，上例中的两种导入都读取 `example.js`，不需要实际创建 `example.js.asset` 文件。
+模板生成的路径只用于规则匹配，不会改变实际读取的文件、loader 处理的资源或输出文件名。因此，上例中的两种导入都读取 `example.js`，不需要实际创建 `example.js.asset` 文件。
 
 ## rules[].type
 
