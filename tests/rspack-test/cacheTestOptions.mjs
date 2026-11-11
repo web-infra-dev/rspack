@@ -212,6 +212,7 @@ const excludes = {
 		/^split-chunks\/intersections-min-size$/,
 		/^split-chunks\/max-size-split-with-css$/,
 		/^split-chunks\/min-remaining-size-css$/,
+		/^split-chunks\/min-size-reduction-types$/,
 		/^sri\/css-chunk-extract$/,
 		/^sri\/css-chunk-mix$/,
 		/^sri\/css-only-chunk-extract$/,
