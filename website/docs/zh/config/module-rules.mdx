@@ -728,7 +728,7 @@ export default {
 
 当具有相同扩展名的文件需要不同的处理方式时，可以通过 `as` 让其中一部分文件跳过后续的通用编译规则。
 
-例如，你可能希望对同一个 JavaScript 文件采用两种导入方式：普通导入时使用 SWC 编译；带有 `type: 'url'` 导入属性时，则原样输出文件并返回它的 URL：
+例如，你可能希望对同一个 JavaScript 文件采用两种导入方式：普通导入时使用 SWC 编译；带有 `type: 'url'` 导入属性时，则将文件作为资源输出并返回它的 URL：
 
 ```js
 import example from './example.js';
@@ -766,7 +766,9 @@ export default {
 在这个配置中：
 
 - 普通导入不满足第一条规则的条件，匹配路径仍以 `.js` 结尾，因此会命中第二条规则，由 SWC 编译。
-- URL 导入命中第一条规则，模块类型被设为 [`asset/resource`](/guide/features/asset-module)，匹配路径则变为以 `example.js.asset` 结尾。它不再满足 SWC 规则的条件，因此 Rspack 会原样输出文件，不经过 SWC 编译。
+- URL 导入命中第一条规则，模块类型被设为 [`asset/resource`](/guide/features/asset-module)，匹配路径则变为以 `example.js.asset` 结尾。它不再满足 SWC 规则的条件，因此 Rspack 会将文件作为资源输出，不经过 `builtin:swc-loader` 处理。
+
+`as` 不会改变输出文件名，也不会禁用产物压缩。在生产构建中，输出的 `.js` 资源仍可能被压缩。如果需要保留文件的原始内容，可以通过 [`generator.filename`](/config/module-generator#assetfilename) 将这类资源输出到单独的目录，再通过 [`SwcJsMinimizerRspackPlugin.exclude`](/plugins/swc-js-minimizer-rspack-plugin#exclude) 排除该目录。
 
 ### 规则匹配顺序 \{#rule-matching-order}
 
