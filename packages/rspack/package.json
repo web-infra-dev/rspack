@@ -58,6 +58,8 @@
     "open": "catalog:",
     "prebundle": "catalog:",
     "rstack": "catalog:",
+    "stream-chain": "catalog:",
+    "stream-json": "catalog:",
     "tinypool": "catalog:",
     "typescript": "catalog:",
     "watchpack": "catalog:",

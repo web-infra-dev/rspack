@@ -21,6 +21,7 @@ use crate::{
 /// At the moment there's only one implementation, the one which generates flame graph,
 /// and this trait is crate-private. This may change in the future.
 pub(crate) trait VisitorImpl {
+  fn identity_impl(&mut self, address: usize, type_name: &'static str);
   fn opaque_impl(&mut self, _name: &'static str) {}
   /// Enter simple field like `u32`.
   /// All sizes are in bytes.
@@ -126,7 +127,12 @@ impl<'a> Visitor<'a> {
   where
     'a: 'b,
   {
-    self.enter(Key::for_type_name::<T>(), mem::size_of_val(this))
+    let visitor = self.enter(Key::for_type_name::<T>(), mem::size_of_val(this));
+    visitor.visitor.identity_impl(
+      std::ptr::from_ref(this).cast::<()>() as usize,
+      std::any::type_name::<T>(),
+    );
+    visitor
   }
 
   /// Visit simple sized field (e.g. `u32`) without descending into children.

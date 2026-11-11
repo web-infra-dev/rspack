@@ -69,6 +69,11 @@ import {
 import { TraceHookPlugin } from './trace/traceHookPlugin';
 import { JavaScriptTracer } from './trace';
 import { unsupported } from './util';
+import {
+  installAllocativeSnapshotHook,
+  linkAllocativeBinding,
+  markAllocativeRoot,
+} from './util/allocative';
 import { assertNotNill } from './util/assertNotNil';
 import { checkVersion } from './util/bindingVersionCheck';
 import type {
@@ -315,6 +320,10 @@ class Compiler {
 
     this.options = options;
     this.context = context;
+    if (SUPPORTS_ALLOCATIVE) {
+      installAllocativeSnapshotHook();
+      markAllocativeRoot(this, 'Compiler');
+    }
     this.cache = new Cache();
 
     this.compilerPath = options.name || '';
@@ -1005,6 +1014,9 @@ class Compiler {
         Cache.__to_binding(this.cache),
         bindingHelpers,
       );
+      if (SUPPORTS_ALLOCATIVE) {
+        linkAllocativeBinding(this, this.#instance);
+      }
 
       callback(null, this.#instance);
     } catch (err) {

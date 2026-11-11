@@ -22,13 +22,16 @@ impl JsCache {
     input_filesystem: Arc<dyn ReadableFileSystem>,
     infrastructure_log_sink: Arc<dyn InfrastructureLogSink>,
   ) -> Arc<Cache> {
-    Arc::clone(self.cache.get_or_init(|| {
+    let cache = self.cache.get_or_init(|| {
       Arc::new(create_cache(
         options,
         input_filesystem,
         infrastructure_log_sink,
       ))
-    }))
+    });
+    #[cfg(allocative)]
+    rspack_napi::allocative::link_target(self, Arc::as_ptr(cache), None);
+    Arc::clone(cache)
   }
 }
 

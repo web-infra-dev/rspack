@@ -16,6 +16,7 @@ import {
   SyncHook,
 } from '@rspack/lite-tapable';
 
+import { linkAllocativeBinding, markAllocativeRoot } from '../util/allocative';
 import { makeWebpackError, makeWebpackErrorCallback } from './HookWebpackError';
 import type { WebpackError } from './WebpackError';
 
@@ -66,6 +67,9 @@ export class Cache {
   };
 
   constructor() {
+    if (SUPPORTS_ALLOCATIVE) {
+      markAllocativeRoot(this, 'Cache');
+    }
     this.hooks = {
       get: new AsyncSeriesBailHook(['identifier', 'etag', 'gotHandlers']),
       store: new AsyncParallelHook(['identifier', 'etag', 'data']),
@@ -76,6 +80,9 @@ export class Cache {
     };
     const { JsCache } = require('@rspack/binding') as typeof binding;
     this.#binding = new JsCache();
+    if (SUPPORTS_ALLOCATIVE) {
+      linkAllocativeBinding(this, this.#binding);
+    }
   }
 
   static __to_binding(cache: Cache): binding.JsCache {

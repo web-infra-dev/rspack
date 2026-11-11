@@ -120,11 +120,57 @@ impl FlameGraph {
 
 #[derive(Debug)]
 pub struct FlameGraphOutput {
+  objects: Vec<ObjectIdentity>,
   flamegraph: FlameGraph,
   warnings: String,
 }
 
+#[derive(Debug, serde::Serialize)]
+pub struct ObjectIdentity {
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub address: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub js_node_id: Option<u32>,
+  pub type_name: &'static str,
+  pub path: Vec<String>,
+  /// True only when the native wrapper itself was traversed.
+  pub measured: bool,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub target: Option<ObjectTarget>,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct ObjectTarget {
+  pub type_name: &'static str,
+  pub path: Vec<String>,
+}
+
+/// Copyable address/type metadata only: never owns or dereferences the target.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub struct TargetIdentity {
+  address: usize,
+  type_name: &'static str,
+}
+
+impl TargetIdentity {
+  pub fn new<T: ?Sized>(target: *const T) -> Self {
+    Self {
+      address: target.cast::<()>() as usize,
+      type_name: std::any::type_name::<T>(),
+    }
+  }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Hash)]
+enum BindingIdentity {
+  Address(usize),
+  JsNode(u32),
+}
+
 impl FlameGraphOutput {
+  pub fn objects(&self) -> &[ObjectIdentity] {
+    &self.objects
+  }
   /// Flamegraph source, can be fed to `flamegraph.pl` or `inferno`.
   pub fn flamegraph(&self) -> &FlameGraph {
     &self.flamegraph
@@ -331,6 +377,10 @@ unsafe impl Send for VisitedSharedPointer {}
 /// [inferno]: https://github.com/jonhoo/inferno
 #[derive(Debug)]
 pub struct FlameGraphBuilder {
+  objects: std::collections::BTreeSet<(BindingIdentity, &'static str)>,
+  binding_wrappers: FxHashMap<(BindingIdentity, &'static str), TargetIdentity>,
+  binding_targets: FxHashMap<(BindingIdentity, &'static str), TargetIdentity>,
+  target_paths: FxHashMap<TargetIdentity, Vec<String>>,
   shared_under_first_owner: bool,
   opaque: std::collections::BTreeSet<(&'static str, Vec<Key>)>,
   /// Visited shared pointers.
@@ -357,6 +407,10 @@ impl Default for FlameGraphBuilder {
     let mut trees = Trees::default();
     let root = trees.new_tree();
     FlameGraphBuilder {
+      objects: Default::default(),
+      binding_wrappers: Default::default(),
+      binding_targets: Default::default(),
+      target_paths: Default::default(),
       trees,
       visited_shared: FxHashSet::default(),
       current: TreeStack {
@@ -380,6 +434,57 @@ impl FlameGraphBuilder {
       shared_under_first_owner: true,
       ..Self::default()
     }
+  }
+
+  /// Record a binding's identity without traversing a potentially mutable target.
+  /// The compiler traversal accounts for native bytes separately.
+  pub fn record_binding(&mut self, address: usize, type_name: &'static str) {
+    let identity = (BindingIdentity::Address(address), type_name);
+    self.objects.insert(identity);
+    let wrapper = TargetIdentity { address, type_name };
+    self.binding_wrappers.insert(identity, wrapper);
+    self.target_paths.entry(wrapper).or_default();
+  }
+
+  /// Record a binding under its V8 node ID in a redacted heap snapshot.
+  pub fn record_js_binding(&mut self, node_id: u32, type_name: &'static str) {
+    self
+      .objects
+      .insert((BindingIdentity::JsNode(node_id), type_name));
+  }
+
+  /// Keep the address only while matching traversal; redacted output contains no pointers.
+  pub fn record_js_binding_at(&mut self, node_id: u32, type_name: &'static str, address: usize) {
+    self.record_js_binding(node_id, type_name);
+    let wrapper = TargetIdentity { address, type_name };
+    self
+      .binding_wrappers
+      .insert((BindingIdentity::JsNode(node_id), type_name), wrapper);
+    self.target_paths.entry(wrapper).or_default();
+  }
+
+  pub fn record_binding_target(
+    &mut self,
+    address: usize,
+    type_name: &'static str,
+    target: TargetIdentity,
+  ) {
+    self
+      .binding_targets
+      .insert((BindingIdentity::Address(address), type_name), target);
+    self.target_paths.entry(target).or_default();
+  }
+
+  pub fn record_js_binding_target(
+    &mut self,
+    node_id: u32,
+    type_name: &'static str,
+    target: TargetIdentity,
+  ) {
+    self
+      .binding_targets
+      .insert((BindingIdentity::JsNode(node_id), type_name), target);
+    self.target_paths.entry(target).or_default();
   }
 
   pub fn root_visitor(&mut self) -> Visitor<'_> {
@@ -418,7 +523,40 @@ impl FlameGraphBuilder {
   }
 
   /// Finish building the flamegraph.
-  pub fn finish(self) -> FlameGraphOutput {
+  pub fn finish(mut self) -> FlameGraphOutput {
+    let objects = std::mem::take(&mut self.objects)
+      .into_iter()
+      .map(|(identity, type_name)| {
+        let (address, js_node_id) = match identity {
+          BindingIdentity::Address(address) => (Some(format!("0x{address:x}")), None),
+          BindingIdentity::JsNode(node_id) => (None, Some(node_id)),
+        };
+        let wrapper_path = self
+          .binding_wrappers
+          .get(&(identity, type_name))
+          .and_then(|wrapper| self.target_paths.get(wrapper))
+          .filter(|path| !path.is_empty());
+        ObjectIdentity {
+          address,
+          js_node_id,
+          type_name,
+          path: wrapper_path
+            .cloned()
+            .unwrap_or_else(|| vec!["Bindings".into(), type_name.into()]),
+          measured: wrapper_path.is_some(),
+          target: self
+            .binding_targets
+            .get(&(identity, type_name))
+            .and_then(|target| {
+              let path = self.target_paths.get(target)?;
+              (!path.is_empty()).then(|| ObjectTarget {
+                type_name: target.type_name,
+                path: path.clone(),
+              })
+            }),
+        }
+      })
+      .collect();
     let opaque = self
       .opaque
       .iter()
@@ -431,6 +569,7 @@ impl FlameGraphBuilder {
     let (flamegraph, mut warnings) = tree.to_flame_graph();
     warnings.push_str(&opaque);
     FlameGraphOutput {
+      objects,
       flamegraph,
       warnings,
     }
@@ -485,6 +624,17 @@ impl FlameGraphBuilder {
 }
 
 impl VisitorImpl for FlameGraphBuilder {
+  fn identity_impl(&mut self, address: usize, type_name: &'static str) {
+    if let Some(path) = self
+      .target_paths
+      .get_mut(&TargetIdentity { address, type_name })
+      && path.is_empty()
+    {
+      // Record only explicitly requested targets, at their first visited owner.
+      path.extend(self.current.stack.iter().map(|(_, key)| key.to_string()));
+    }
+  }
+
   fn opaque_impl(&mut self, name: &'static str) {
     // Include the owning edges even when the legacy shared-allocation mode
     // relocates the payload to a separate flamegraph root.

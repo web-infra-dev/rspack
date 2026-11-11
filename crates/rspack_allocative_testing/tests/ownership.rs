@@ -1677,3 +1677,174 @@ fn custom_module_count_labels_are_reversible_valid_and_distinct() {
     );
   }
 }
+
+#[test]
+fn binding_identities_do_not_traverse_targets_or_charge_native_memory_twice() {
+  let mut builder = FlameGraphBuilder::with_shared_ownership();
+  builder.record_binding(0x1234, "Binding");
+  builder.record_binding(0x1234, "Binding");
+  let output = builder.finish();
+  assert_eq!(output.flamegraph().total_size(), 0);
+  assert_eq!(output.objects().len(), 1);
+  assert_eq!(output.objects()[0].address.as_deref(), Some("0x1234"));
+  assert_eq!(output.objects()[0].path, ["Bindings", "Binding"]);
+}
+
+#[test]
+fn binding_targets_use_visited_instance_paths_without_adding_bytes() {
+  use rspack_allocative::TargetIdentity;
+
+  struct Target {
+    payload: String,
+  }
+  struct Owner {
+    first: Target,
+    second: Target,
+  }
+  let owner = Owner {
+    first: Target {
+      payload: "first".into(),
+    },
+    second: Target {
+      payload: "second".into(),
+    },
+  };
+  let outside = Target {
+    payload: "outside".into(),
+  };
+  let expected_bytes =
+    size_of_val(&owner) + owner.first.payload.capacity() + owner.second.payload.capacity();
+  let mut builder = FlameGraphBuilder::with_shared_ownership();
+  builder.record_binding(1, "Wrapper");
+  builder.record_js_binding(2, "Wrapper");
+  builder.record_js_binding(3, "Wrapper");
+  builder.record_binding_target(1, "Wrapper", TargetIdentity::new(&owner.first));
+  builder.record_js_binding_target(2, "Wrapper", TargetIdentity::new(&owner.second));
+  builder.record_js_binding_target(3, "Wrapper", TargetIdentity::new(&outside));
+  builder.visit_root(&owner);
+  let output = builder.finish();
+  assert_eq!(output.flamegraph().total_size(), expected_bytes);
+  assert_eq!(output.objects().len(), 3);
+  for (object, field) in output.objects()[..2].iter().zip(["first", "second"]) {
+    let target = object.target.as_ref().expect("visited target");
+    assert_eq!(target.type_name, std::any::type_name::<Target>());
+    assert_eq!(
+      target.path,
+      [
+        std::any::type_name::<Owner>(),
+        field,
+        std::any::type_name::<Target>()
+      ]
+    );
+  }
+  assert!(
+    output.objects()[2].target.is_none(),
+    "same type is not the same target"
+  );
+}
+
+#[test]
+fn shared_binding_targets_follow_the_emitted_path_in_both_ownership_modes() {
+  use rspack_allocative::TargetIdentity;
+
+  struct Target {
+    payload: String,
+  }
+  let shared = Arc::new(Target {
+    payload: "shared".into(),
+  });
+  let root = (Arc::clone(&shared), Arc::clone(&shared));
+  let expected_bytes =
+    size_of_val(&root) + shared_allocation_size(&*shared) + shared.payload.capacity();
+  for mut builder in [
+    FlameGraphBuilder::default(),
+    FlameGraphBuilder::with_shared_ownership(),
+  ] {
+    builder.record_js_binding(1, "Wrapper");
+    builder.record_js_binding_target(1, "Wrapper", TargetIdentity::new(Arc::as_ptr(&shared)));
+    builder.visit_root(&root);
+    let output = builder.finish();
+    assert_eq!(output.flamegraph().total_size(), expected_bytes);
+    let target = output.objects()[0].target.as_ref().expect("shared target");
+    let folded = output.flamegraph().write();
+    assert!(
+      folded.contains(&format!("{};payload;", target.path.join(";"))),
+      "{folded}"
+    );
+  }
+}
+
+#[rspack_allocative::root]
+static SNAPSHOT_GLOBAL_ROOT: LazyLock<String> =
+  LazyLock::new(|| String::from("registered snapshot root"));
+
+#[test]
+fn global_root_registration_uses_the_reexported_constructor() {
+  // This test crate deliberately has no direct ctor dependency.
+  let value = &*SNAPSHOT_GLOBAL_ROOT;
+  let mut builder = FlameGraphBuilder::with_shared_ownership();
+  builder.visit_global_roots();
+  let output = builder.finish();
+  assert!(output.flamegraph().total_size() >= value.len());
+}
+
+#[test]
+fn measured_binding_owner_includes_fields_and_shared_core_payload_once() {
+  use rspack_allocative::{TargetIdentity, ident_key};
+  struct Core {
+    shared: Arc<String>,
+  }
+  struct Wrapper {
+    core: std::mem::ManuallyDrop<Core>,
+    shared: Arc<String>,
+    own: Vec<u8>,
+  }
+  impl rspack_allocative::Allocative for Wrapper {
+    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut rspack_allocative::Visitor<'b>) {
+      let mut visitor = visitor.enter_self(self);
+      visitor.visit_field(ident_key!(core), &*self.core);
+      visitor.visit_field(ident_key!(shared), &self.shared);
+      visitor.visit_field(ident_key!(own), &self.own);
+      visitor.exit();
+    }
+  }
+  let shared = Arc::new(String::from("one shared payload"));
+  let mut wrapper = Wrapper {
+    core: std::mem::ManuallyDrop::new(Core {
+      shared: Arc::clone(&shared),
+    }),
+    shared,
+    own: vec![0; 127],
+  };
+  let ty = std::any::type_name::<Wrapper>();
+  let expected = size_of_val(&wrapper)
+    + wrapper.own.capacity()
+    + shared_allocation_size(&*wrapper.shared)
+    + wrapper.shared.capacity();
+  for redacted in [false, true] {
+    let mut builder = FlameGraphBuilder::with_shared_ownership();
+    let address = std::ptr::from_ref(&wrapper) as usize;
+    if redacted {
+      builder.record_js_binding_at(7, ty, address);
+      builder.record_js_binding_target(7, ty, TargetIdentity::new(&*wrapper.core));
+    } else {
+      builder.record_binding(address, ty);
+      builder.record_binding_target(address, ty, TargetIdentity::new(&*wrapper.core));
+    }
+    builder.visit_root(&wrapper);
+    let output = builder.finish();
+    assert_eq!(output.flamegraph().total_size(), expected);
+    assert!(output.warnings().is_empty(), "{}", output.warnings());
+    let object = &output.objects()[0];
+    assert!(object.measured);
+    assert_eq!(object.path, [ty]);
+    assert_eq!(
+      object.target.as_ref().unwrap().path,
+      [ty, "core", std::any::type_name::<Core>()]
+    );
+  }
+  // The test owns the initialized ManuallyDrop and releases it after traversal.
+  unsafe {
+    std::mem::ManuallyDrop::drop(&mut wrapper.core);
+  }
+}

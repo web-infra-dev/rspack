@@ -141,6 +141,10 @@ pub(crate) fn to_jsobject(env: &Env, value: ModuleObject) -> Result<sys::napi_va
     handle.ptr.set(None);
     return Err(error);
   }
+  #[cfg(allocative)]
+  // Module objects are wrapped here instead of through the napi-derive shim.
+  unsafe { rspack_napi::allocative::attach::<ModuleHandle>(env.raw(), object.raw()) }
+    .inspect_err(|_| handle.ptr.set(None))?;
   let reference = OneShotRef::new(env.raw(), object).inspect_err(|_| {
     // A helper may have retained this JS object. If cache insertion fails,
     // there will be no revocation entry to clear its loader-scoped pointer.
