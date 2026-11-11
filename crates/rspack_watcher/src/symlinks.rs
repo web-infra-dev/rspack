@@ -126,6 +126,11 @@ impl LinkSubscriptions {
         .insert(path.clone());
       self.index_ancestors(link);
       self.watch(link, false);
+      // ReadDirectoryChangesW does not report moves of its watched directory.
+      #[cfg(target_os = "windows")]
+      if let Some(parent) = link.parent() {
+        self.watch(&InternedPath::from(parent), false);
+      }
     }
     if directory && !nested {
       self
