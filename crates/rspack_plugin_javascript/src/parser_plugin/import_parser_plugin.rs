@@ -298,6 +298,52 @@ impl ImportReferences {
   }
 }
 
+/// A flat trie of binding paths, borrowing their atoms until finalization.
+/// References stop at the first missing edge instead of hashing every prefix.
+#[derive(Default)]
+struct ReferencedBindingPaths<'a> {
+  edges: FxHashMap<(usize, &'a Atom), usize>,
+  referenced: Vec<bool>,
+}
+
+impl<'a> ReferencedBindingPaths<'a> {
+  fn add_binding(&mut self, path: &'a [Atom]) {
+    if !path.is_empty() && self.referenced.is_empty() {
+      self.referenced.push(false); // Node zero is the root.
+    }
+    let mut node = 0;
+    for property in path {
+      let next = self.referenced.len();
+      node = *self.edges.entry((node, property)).or_insert_with(|| {
+        self.referenced.push(false);
+        next
+      });
+    }
+  }
+
+  fn add_reference(&mut self, path: &[Atom]) {
+    let mut node = 0;
+    for property in path {
+      let Some(&next) = self.edges.get(&(node, property)) else {
+        break;
+      };
+      self.referenced[next] = true;
+      node = next;
+    }
+  }
+
+  fn is_referenced(&self, path: &[Atom]) -> bool {
+    let mut node = 0;
+    for property in path {
+      let Some(&next) = self.edges.get(&(node, property)) else {
+        return false;
+      };
+      node = next;
+    }
+    self.referenced.get(node).copied().unwrap_or_default()
+  }
+}
+
 #[derive(Debug, PartialEq, Eq, Hash)]
 struct ImportDependencyLocator {
   block_idx: Option<usize>,
@@ -310,6 +356,30 @@ struct ImportTagData {
   import_span: Span,
   // Parser tag snapshots own their paths, including after leaving a scope.
   export_path: Vec<Atom>,
+}
+
+fn add_import_member_reference(
+  parser: &mut JavascriptParser,
+  data: &ImportTagData,
+  members: &[Atom],
+  members_optionals: &[bool],
+  is_call: bool,
+) {
+  let ids = get_non_optional_part(members, members_optionals);
+  let names = data.export_path.iter().chain(ids).cloned().collect();
+  let namespace_object_as_context = parser
+    .javascript_options
+    .strict_this_context_on_imports
+    .unwrap_or(false)
+    && !members.is_empty();
+  let references = parser
+    .dynamic_import_references
+    .get_import_mut_expect(&data.import_span);
+  if is_call {
+    references.add_call_reference(names, namespace_object_as_context);
+  } else {
+    references.add_reference(names);
+  }
 }
 
 pub struct ImportParserPlugin;
@@ -402,11 +472,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
     let data = ImportTagData::downcast(tag_info.data.clone()?);
-    let ids = get_non_optional_part(members, members_optionals);
-    parser
-      .dynamic_import_references
-      .get_import_mut_expect(&data.import_span)
-      .add_reference(data.export_path.iter().chain(ids).cloned().collect());
+    let is_call = parser.in_tagged_template_tag;
+    add_import_member_reference(parser, &data, members, members_optionals, is_call);
     Some(true)
   }
 
@@ -426,19 +493,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
     let data = ImportTagData::downcast(tag_info.data.clone()?);
-    let ids = get_non_optional_part(members, members_optionals);
-    let direct_import = members.is_empty();
-    parser
-      .dynamic_import_references
-      .get_import_mut_expect(&data.import_span)
-      .add_call_reference(
-        data.export_path.iter().chain(ids).cloned().collect(),
-        parser
-          .javascript_options
-          .strict_this_context_on_imports
-          .unwrap_or(false)
-          && !direct_import,
-      );
+    add_import_member_reference(parser, &data, members, members_optionals, true);
     let ast = parser.ast.ast;
     parser.walk_arguments(ast.nodes(expr.arguments(ast)));
     Some(true)
@@ -760,12 +815,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         mut references,
         ..
       } = import;
-      // Borrow prefixes instead of cloning paths or rescanning the growing
-      // reference list once for each destructured binding.
-      let mut referenced_prefixes: FxHashSet<&[Atom]> = references
-        .iter()
-        .flat_map(|reference| (1..=reference.names.len()).map(move |len| &reference.names[..len]))
-        .collect();
+      let mut referenced_paths = ReferencedBindingPaths::default();
+      for (_, path) in &bindings {
+        referenced_paths.add_binding(path);
+      }
+      if !referenced_paths.edges.is_empty() {
+        for reference in &references {
+          referenced_paths.add_reference(&reference.names);
+        }
+      }
       let retain_bindings = bindings
         .iter()
         .map(|(binding, path)| {
@@ -773,14 +831,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           // also expose the entire value to otherwise untracked observations.
           let retain = parser.build_info.has_direct_eval
             || exported_bindings.contains(binding)
-            || (!path.is_empty() && !referenced_prefixes.contains(path.as_slice()));
+            || (!path.is_empty() && !referenced_paths.is_referenced(path));
           if retain {
-            referenced_prefixes.extend((1..=path.len()).map(|len| &path[..len]));
+            referenced_paths.add_reference(path);
           }
           retain
         })
         .collect::<Vec<_>>();
-      drop(referenced_prefixes);
+      drop(referenced_paths);
       for ((_, path), retain) in bindings.into_iter().zip(retain_bindings) {
         if retain {
           references.push(ReferencedSpecifier::new(path));
