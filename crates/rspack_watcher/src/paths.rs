@@ -458,11 +458,14 @@ impl PathManager {
     self.baselines.remove(path);
   }
 
-  pub(crate) fn symlink_aliases(&self, path: &InternedPath) -> Vec<SymlinkAlias> {
-    self
-      .symlinks
-      .as_ref()
-      .map_or_else(Vec::new, |symlinks| symlinks.aliases(path))
+  pub(crate) fn symlink_aliases(
+    &self,
+    path: &InternedPath,
+    include_descendants: bool,
+  ) -> Vec<SymlinkAlias> {
+    self.symlinks.as_ref().map_or_else(Vec::new, |symlinks| {
+      symlinks.aliases(path, include_descendants)
+    })
   }
 
   pub(crate) fn is_unchanged_link_event(&self, path: &InternedPath) -> bool {

@@ -287,13 +287,6 @@ impl Symlinks {
       .and_then(|metadata| metadata.modified())
       .ok();
     let previous = std::mem::replace(&mut link.mtime, mtime);
-    tracing::debug!(
-      target: "rspack_watcher::fs_event",
-      ?path,
-      ?previous,
-      ?mtime,
-      "link event timestamp",
-    );
     match mtime {
       Some(mtime) => {
         mtime_accuracy(mtime);
@@ -428,8 +421,14 @@ impl Symlinks {
 
   /// Changing a link invalidates its dependencies even when the replacement
   /// target has the same modification time.
-  pub(crate) fn aliases(&self, path: &InternedPath) -> Vec<SymlinkAlias> {
+  pub(crate) fn aliases(
+    &self,
+    path: &InternedPath,
+    include_descendants: bool,
+  ) -> Vec<SymlinkAlias> {
     let subscriptions = self.0.read().expect("symlink subscriptions lock poisoned");
+    let include_descendants =
+      include_descendants || (subscriptions.watched_children.contains_key(path) && !path.exists());
     let mut aliases = InternedPathMap::default();
     let mut pending = vec![path.clone()];
     while let Some(watched) = pending.pop() {
@@ -444,7 +443,7 @@ impl Symlinks {
           *link_changed |= watched == *path;
         }
       }
-      if let Some(children) = subscriptions.watched_children.get(&watched) {
+      if include_descendants && let Some(children) = subscriptions.watched_children.get(&watched) {
         pending.extend(children.iter().cloned());
       }
     }

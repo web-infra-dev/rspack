@@ -198,11 +198,15 @@ impl Trigger {
             }
             let mut mapped_original = false;
             if !origin.is_scan() {
+              let include_descendants = kind != FsEventKind::Change
+                || matches!(origin, Origin::Disk { appeared: true } | Origin::Injected);
               for SymlinkAlias {
                 path: alias,
                 link_changed,
                 resolved_path,
-              } in processor.path_manager.symlink_aliases(&path)
+              } in processor
+                .path_manager
+                .symlink_aliases(&path, include_descendants)
               {
                 if alias != path || link_changed {
                   mapped_original |= alias == path;
@@ -574,15 +578,6 @@ impl EventProcessor {
         self.analyzer.invalidate_path(associated);
       }
     }
-    tracing::debug!(
-      target: "rspack_watcher::fs_event",
-      ?path,
-      ?source_path,
-      ?kind,
-      link_changed = origin.link_changed(),
-      ?associated_event,
-      "resolved fs event",
-    );
     self.trigger_events(associated_event, raw, recovered, context_removal);
   }
   /// Helper to construct a `DependencyFinder` for the current path register state.
