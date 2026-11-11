@@ -14,6 +14,40 @@ on:
         type: string
 
 jobs:
+  watcher-path-identity-windows:
+    name: Native watcher path identity (Windows)
+    if: inputs.target == 'x86_64-pc-windows-msvc'
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
+      PUPPETEER_SKIP_DOWNLOAD: true
+      RSPACK_WATCHER_TRACE: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref }}
+          clean: ${{ runner.environment == 'github-hosted' }}
+      - name: Download bindings
+        uses: ./.github/actions/artifact/download
+        with:
+          name: bindings-${{ inputs.target }}
+          path: crates/node_binding/
+      - name: Setup Pnpm
+        uses: ./.github/actions/pnpm/setup
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: pnpm i --frozen-lockfile
+      - name: Build JavaScript packages
+        run: pnpm run build:js
+      - name: Verify original, canonical, and lowercase paths
+        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-path-identity
+
   watcher-rename-windows:
     name: Native watcher rename regression (Windows)
     if: inputs.target == 'x86_64-pc-windows-msvc'

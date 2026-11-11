@@ -29,41 +29,6 @@ permissions:
   pull-requests: write
 
 jobs:
-  watcher-path-identity-windows:
-    name: Diagnose watcher path identity (Windows)
-    if: github.event_name == 'pull_request'
-    runs-on: windows-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      actions: read
-    defaults:
-      run:
-        shell: bash
-    env:
-      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
-      PUPPETEER_SKIP_DOWNLOAD: true
-      RSPACK_WATCHER_TRACE: '1'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - name: Download the failing commit's unchanged binding
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
-        with:
-          name: bindings-x86_64-pc-windows-msvc
-          path: crates/node_binding/
-          run-id: 42943141570
-          github-token: ${{ github.token }}
-      - name: Setup Pnpm
-        uses: ./.github/actions/pnpm/setup
-        with:
-          node-version: 22
-      - name: Install dependencies
-        run: pnpm i --frozen-lockfile
-      - name: Build JavaScript packages
-        run: pnpm run build:js
-      - name: Compare original, canonical, and lowercase paths
-        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-path-identity
-
   check-changed:
     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     name: Check Source Changed

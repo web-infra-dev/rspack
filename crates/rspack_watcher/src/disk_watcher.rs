@@ -70,9 +70,12 @@ impl DiskWatcher {
   ) -> rspack_error::Result<()> {
     // Register each physical directory once: inotify aliases share a descriptor
     // and registering one overwrites the other's event path.
+    // Windows prefixes events with the supplied watch root. Keep its spelling
+    // consistent with the link index, including short names and casing.
     let mut new_patterns = InternedPathMap::default();
     for mut pattern in patterns {
       if self.follow_symlinks
+        && !cfg!(target_os = "windows")
         && let Ok(real) = dunce::canonicalize(&pattern.path)
       {
         pattern.path = real.into();
