@@ -44,7 +44,7 @@ use crate::{
   ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition,
   RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState,
   UsedName, UsedNameItem, analyze_module_scope, escape_identifier, fast_set, filter_runtime,
-  get_runtime_key, impl_source_map_config, is_valid_prop_ident, merge_runtime_condition,
+  get_runtime_key, impl_source_map_config, is_safe_identifier, merge_runtime_condition,
   merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
@@ -695,7 +695,7 @@ pub fn render_imports(source: &str, attr: Option<&str>, import_spec: &ImportSpec
       atoms
         .iter()
         .map(|(atom, internal)| {
-          if atom == internal && is_valid_prop_ident(atom) {
+          if atom == internal && is_safe_identifier(atom) {
             atom.to_string()
           } else {
             format!("{} as {internal}", to_module_export_name(atom))

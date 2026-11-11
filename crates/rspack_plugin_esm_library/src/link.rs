@@ -2865,14 +2865,23 @@ var {} = {{}};
 
       let mut ordered_items = Vec::new();
       let mut seen_items = FxHashSet::default();
+      let mut visited_modules = FxHashSet::default();
 
-      for m in chunk_link
-        .hoisted_modules
-        .iter()
-        .chain(chunk_link.decl_modules.iter())
-      {
-        let Some(module) = module_graph.module_by_identifier(m) else {
-          continue;
+      fn traverse_chunk_dependencies(
+        module_id: ModuleIdentifier,
+        chunk_link: &ChunkLinkContext,
+        compilation: &Compilation,
+        module_graph: &ModuleGraph,
+        binding_resolver: &ConcatenationBindingResolver,
+        visited_modules: &mut FxHashSet<ModuleIdentifier>,
+        seen_items: &mut FxHashSet<OrderedImportItem>,
+        ordered_items: &mut Vec<OrderedImportItem>,
+      ) {
+        if !visited_modules.insert(module_id) {
+          return;
+        }
+        let Some(module) = module_graph.module_by_identifier(&module_id) else {
+          return;
         };
         for dep in module.get_dependencies() {
           let Some(conn) = module_graph.connection_by_dependency_id(dep.id()) else {
@@ -2922,8 +2931,72 @@ var {} = {{}};
                   }
                 }
               }
+            } else if chunk_link.hoisted_modules.contains(ref_module)
+              || chunk_link.decl_modules.contains(ref_module)
+            {
+              traverse_chunk_dependencies(
+                *ref_module,
+                chunk_link,
+                compilation,
+                module_graph,
+                binding_resolver,
+                visited_modules,
+                seen_items,
+                ordered_items,
+              );
             }
           }
+        }
+      }
+
+      let mut start_modules = compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_entry_modules(&chunk_link.chunk);
+      if start_modules.is_empty() {
+        start_modules = compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_chunk_root_modules(
+            &chunk_link.chunk,
+            module_graph,
+            binding_resolver.context.module_graph_cache,
+            &compilation
+              .build_module_graph_artifact
+              .side_effects_state_artifact,
+            binding_resolver.context.exports_info_artifact,
+          );
+      }
+
+      for m in start_modules {
+        traverse_chunk_dependencies(
+          m,
+          chunk_link,
+          compilation,
+          module_graph,
+          binding_resolver,
+          &mut visited_modules,
+          &mut seen_items,
+          &mut ordered_items,
+        );
+      }
+
+      for m in chunk_link
+        .hoisted_modules
+        .iter()
+        .chain(chunk_link.decl_modules.iter())
+      {
+        if !visited_modules.contains(m) {
+          traverse_chunk_dependencies(
+            *m,
+            chunk_link,
+            compilation,
+            module_graph,
+            binding_resolver,
+            &mut visited_modules,
+            &mut seen_items,
+            &mut ordered_items,
+          );
         }
       }
 

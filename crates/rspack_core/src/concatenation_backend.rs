@@ -26,7 +26,7 @@ use crate::{
   ConcatenatedModuleSymbol, Context, ExportInfo, ExportProvided, ExportsInfoArtifact, ExportsType,
   FindTargetResult, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo,
   ModuleStaticCache, RuntimeSpec, UsedName, escape_name_atom_ref, find_target,
-  get_cached_readable_identifier, is_valid_prop_ident, split_readable_identifier,
+  get_cached_readable_identifier, is_safe_identifier, split_readable_identifier,
   to_identifier_with_escaped,
 };
 
@@ -492,7 +492,7 @@ impl ConcatenationNameAllocator {
     module_info: &mut ConcatenatedModuleInfo,
     context: &ConcatenationContext,
   ) -> Atom {
-    let is_valid_ident = is_valid_prop_ident(imported_name) && imported_name != "default";
+    let is_valid_ident = is_safe_identifier(imported_name);
     let should_update_raw_export =
       existing_name.is_some() || self.contains(imported_name) || !is_valid_ident;
     let internal_name = existing_name.cloned().unwrap_or_else(|| {
