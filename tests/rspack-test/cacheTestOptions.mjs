@@ -79,6 +79,7 @@ const excludes = {
 		// Independent shared fallback compilers write to the same cache database as their parent.
 		/^container-1-5\/tree-shaking-shared-provide-only$/,
 		/^sharing\/reshake-share$/,
+		/^sharing\/tree-shaking-shared$/,
 
 		// Unawaited child compilation races with closing/flushing the parent cache.
 		/^chunk-loading\/issue-4754$/,
