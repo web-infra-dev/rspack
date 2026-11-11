@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { rspack } from "@rspack/core";
 import { closeCompiler, runCompiler } from "@rspack/test-tools/helper/lifecycle";
+import { removeTree } from "../_remove-tree.mjs";
 
 const ENTRIES = 6;
 
@@ -72,7 +73,7 @@ export default {
 			// hash used to rewrite every entry.
 			expect(kept.length).toBeGreaterThanOrEqual(ENTRIES - 2);
 		} finally {
-			fs.rmSync(root, { recursive: true, force: true });
+			removeTree(root);
 		}
 	}
 };

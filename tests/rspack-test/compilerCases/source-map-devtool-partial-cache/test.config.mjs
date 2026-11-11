@@ -6,6 +6,7 @@ import {
 	closeCompiler,
 	runCompiler
 } from "@rspack/test-tools/helper/lifecycle";
+import { removeTree } from "../_remove-tree.mjs";
 
 async function build(
 	root,
@@ -247,7 +248,7 @@ export default [false, true].map((newCache) => ({
 			expect(repeatRemoved.mapped).toEqual([]);
 			expect(repeatRemoved.assets).toEqual(coldRemoved.assets);
 		} finally {
-			fs.rmSync(root, { recursive: true, force: true });
+			removeTree(root);
 		}
 	}
 }));

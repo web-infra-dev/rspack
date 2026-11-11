@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { rspack } from "@rspack/core";
 import { closeCompiler, runCompiler } from "@rspack/test-tools/helper/lifecycle";
+import { removeTree } from "../_remove-tree.mjs";
 
 const RUNS = "__portableSnapshotOwnersLoaderRuns";
 
@@ -139,7 +140,7 @@ export default {
 			same(created, cold);
 			await warm(reader, resolve, cold);
 		} finally {
-			fs.rmSync(temp, { recursive: true, force: true });
+			removeTree(temp);
 		}
 	}
 };

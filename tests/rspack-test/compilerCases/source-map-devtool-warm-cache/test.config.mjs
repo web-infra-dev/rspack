@@ -6,6 +6,7 @@ import {
 	closeCompiler,
 	runCompiler
 } from "@rspack/test-tools/helper/lifecycle";
+import { removeTree } from "../_remove-tree.mjs";
 
 export default [false, true].flatMap((newCache) =>
 	[false, true].map((portable) => ({
@@ -109,7 +110,7 @@ export default [false, true].flatMap((newCache) =>
 				expect(warm.assets).toEqual(cold.assets);
 				expect(warm.assets).toEqual(first.assets);
 			} finally {
-				fs.rmSync(root, { recursive: true, force: true });
+				removeTree(root);
 			}
 		}
 	}))

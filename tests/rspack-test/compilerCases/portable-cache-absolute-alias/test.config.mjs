@@ -7,6 +7,7 @@ import {
   closeCompiler,
   runCompiler,
 } from '@rspack/test-tools/helper/lifecycle';
+import { removeTree } from "../_remove-tree.mjs";
 
 const LOADER_RUNS = '__portableCacheAbsoluteAliasLoaderRuns';
 
@@ -469,7 +470,7 @@ export default import('./lazy.js').then(({default: value}) => console.log(value)
         );
       }
     } finally {
-      fs.rmSync(temp, { recursive: true, force: true });
+      removeTree(temp);
     }
   },
 };

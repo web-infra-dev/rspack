@@ -6,6 +6,7 @@ import {
 	closeCompiler,
 	runCompiler
 } from "@rspack/test-tools/helper/lifecycle";
+import { removeTree } from "../_remove-tree.mjs";
 
 export const swcOptions = {
 	rspackExperiments: { portableOutput: true },
@@ -167,7 +168,7 @@ export async function withProjects(
 			path.join(temp, readerName, "proj")
 		);
 	} finally {
-		fs.rmSync(temp, { recursive: true, force: true });
+		removeTree(temp);
 	}
 }
 
@@ -194,7 +195,7 @@ export function expectEqualOutput(actual, expected) {
 }
 
 export async function expectColdEquality(moved, reader, rules, configuration) {
-	fs.rmSync(path.join(reader, "node_modules"), { recursive: true, force: true });
+	removeTree(path.join(reader, "node_modules"));
 	const cold = await build(reader, rules, undefined, configuration);
 	const uncached = await build(reader, rules, false, configuration);
 	for (const result of [cold, uncached]) {

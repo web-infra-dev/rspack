@@ -6,6 +6,7 @@ import {
 	closeCompiler,
 	runCompiler
 } from "@rspack/test-tools/helper/lifecycle";
+import { removeTree } from "../_remove-tree.mjs";
 
 async function build({ context, entry, root, storage, cache = true }) {
 	const compiler = rspack({
@@ -89,7 +90,7 @@ export default {
 				});
 				expect(next.output).toBe(cold.output);
 			} finally {
-				fs.rmSync(base, { recursive: true, force: true });
+				removeTree(base);
 			}
 		}
 
@@ -125,7 +126,7 @@ export default {
 				});
 				expect(next.output).toBe(cold.output);
 			} finally {
-				fs.rmSync(base, { recursive: true, force: true });
+				removeTree(base);
 			}
 		}
 
@@ -157,7 +158,7 @@ export default {
 				});
 				expect(next.output).toBe(cold.output);
 			} finally {
-				fs.rmSync(base, { recursive: true, force: true });
+				removeTree(base);
 			}
 		}
 	}

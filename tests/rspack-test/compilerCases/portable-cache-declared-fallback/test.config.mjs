@@ -7,6 +7,7 @@ import {
 	closeCompiler,
 	runCompiler
 } from "@rspack/test-tools/helper/lifecycle";
+import { removeTree } from "../_remove-tree.mjs";
 
 // Each resource exercises one place where a certified literal cannot be relocated. Escaped
 // spellings hold no root bytes, so only the parser's own decision can bind those modules.
@@ -188,16 +189,13 @@ export default {
 			expect([...moved.built].sort()).toEqual(
 				CASES.filter((name) => name !== "outside").sort()
 			);
-			fs.rmSync(path.join(reader, "node_modules"), {
-				recursive: true,
-				force: true
-			});
+			removeTree(path.join(reader, "node_modules"));
 			const cold = await build(reader);
 			expect(moved.output).toBe(cold.output);
 			const uncached = await build(reader, false);
 			expect(uncached.output).toBe(cold.output);
 		} finally {
-			fs.rmSync(temp, { recursive: true, force: true });
+			removeTree(temp);
 		}
 	}
 };

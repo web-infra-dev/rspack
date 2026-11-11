@@ -7,6 +7,7 @@ import {
   closeCompiler,
   runCompiler,
 } from '@rspack/test-tools/helper/lifecycle';
+import { removeTree } from "../_remove-tree.mjs";
 
 const LOADER_RUNS = '__portableCacheDroppedTargetLoaderRuns';
 
@@ -148,7 +149,7 @@ export default [import.meta.url, stable];
       expect(rewarm.loaderRuns).toEqual([]);
       expect(rewarm.output).toBe(cold.output);
     } finally {
-      fs.rmSync(temp, { recursive: true, force: true });
+      removeTree(temp);
     }
   },
 };
