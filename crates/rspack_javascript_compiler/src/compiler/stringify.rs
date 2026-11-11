@@ -1,13 +1,16 @@
+mod source_map_writer;
+
 use std::{borrow::Cow, sync::Arc};
 
 use bytes_str::BytesStr;
 use rspack_error::Result;
 use rspack_sources::{
-  MapOptions, Mapping, OriginalLocation, Source, SourceMap, SourceMapSource,
-  SourceMapSourceOptions, encode_mappings,
+  FullMappingsEncoder, MapOptions, Mapping, OriginalLocation, Source, SourceMap, SourceMapSource,
+  SourceMapSourceOptions,
 };
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::{FxHashMap, FxHashSet};
+use source_map_writer::SourceMapWriter;
 use swc_core::{
   common::{
     BytePos, FileName, LineCol, SourceFile, SourceMap as SwcSourceMap,
@@ -99,8 +102,6 @@ impl JavaScriptCompiler {
       ascii_only,
       inline_script,
     } = options;
-    let mut src_map_buf = vec![];
-
     if source_map_config.enabled() {
       let mut v = IdentCollector {
         names: Default::default(),
@@ -111,18 +112,23 @@ impl JavaScriptCompiler {
       source_map_config.names = v.names;
     }
 
+    let mut source_map_generator = source_map_config
+      .enabled()
+      .then(|| SourceMapGenerator::new(&source_map, &source_map_config, input_source_map));
     let src = {
       let mut buf = Vec::with_capacity(source_len as usize);
       {
-        let mut w = text_writer::JsWriter::new(
-          source_map.clone(),
-          "\n",
-          &mut buf,
-          source_map_config.enabled().then_some(&mut src_map_buf),
-        );
-
-        w.preamble(preamble)?;
-        let mut wr = Box::new(w) as Box<dyn WriteJs>;
+        let mut wr: Box<dyn WriteJs> = if let Some(generator) = &mut source_map_generator {
+          let mut writer = SourceMapWriter::new(&mut buf, |position, location| {
+            generator.add_mapping(position, location);
+          });
+          writer.preamble(preamble)?;
+          Box::new(writer)
+        } else {
+          let mut writer = text_writer::JsWriter::new(source_map.clone(), "\n", &mut buf, None);
+          writer.preamble(preamble)?;
+          Box::new(writer)
+        };
 
         if minify {
           wr = Box::new(text_writer::omit_trailing_semi(wr));
@@ -144,17 +150,7 @@ impl JavaScriptCompiler {
       unsafe { String::from_utf8_unchecked(buf) }
     };
 
-    let map = if source_map_config.enabled() {
-      build_rspack_source_map(
-        &source_map,
-        &src_map_buf,
-        input_source_map,
-        &source_map_config,
-        &src,
-      )
-    } else {
-      None
-    };
+    let map = source_map_generator.and_then(|generator| generator.finish(&src));
 
     Ok(TransformOutput {
       code: src,
@@ -164,24 +160,44 @@ impl JavaScriptCompiler {
   }
 }
 
-fn build_rspack_source_map(
-  swc_cm: &SwcSourceMap,
-  mappings: &[(BytePos, LineCol)],
+struct SourceMapGenerator<'a> {
+  swc_cm: &'a SwcSourceMap,
+  config: &'a SourceMapConfig,
   input_source_map: Option<SourceMap>,
-  config: &SourceMapConfig,
-  generated_code: &str,
-) -> Option<SourceMap> {
-  let mut builder = RspackSourceMapBuilder::default();
+  builder: RspackSourceMapBuilder<'a>,
+  encoder: FullMappingsEncoder,
+  cur_file: Option<Lrc<SourceFile>>,
+  cur_src_id: u32,
+  prev_dst_line: u32,
+  position_converter: SourceMapPositionConverter,
+}
 
-  let mut cur_file: Option<Lrc<SourceFile>> = None;
-  let mut cur_src_id = 0u32;
-  let mut prev_dst_line = u32::MAX;
-  let mut position_converter = SourceMapPositionConverter::default();
+impl<'a> SourceMapGenerator<'a> {
+  fn new(
+    swc_cm: &'a SwcSourceMap,
+    config: &'a SourceMapConfig,
+    input_source_map: Option<SourceMap>,
+  ) -> Self {
+    Self {
+      swc_cm,
+      config,
+      input_source_map,
+      builder: Default::default(),
+      encoder: FullMappingsEncoder::new(),
+      cur_file: None,
+      cur_src_id: 0,
+      prev_dst_line: u32::MAX,
+      position_converter: Default::default(),
+    }
+  }
 
-  // Encode each converted mapping without retaining a second vector alongside SWC's mappings.
-  let encoded_mappings = encode_mappings(mappings.iter().filter_map(|(raw_pos, lc)| {
-    let pos = *raw_pos;
+  fn add_mapping(&mut self, pos: BytePos, location: LineCol) {
+    if let Some(mapping) = self.convert_mapping(pos, location) {
+      self.encoder.encode(&mapping);
+    }
+  }
 
+  fn convert_mapping(&mut self, pos: BytePos, lc: LineCol) -> Option<Mapping> {
     if pos.is_reserved_for_comments() {
       return None;
     }
@@ -195,7 +211,7 @@ fn build_rspack_source_map(
         generated_line: lc.line + 1,
         generated_column: lc.col,
         original: Some(OriginalLocation {
-          source_index: cur_src_id,
+          source_index: self.cur_src_id,
           original_line: 1,
           original_column: 0,
           name_index: None,
@@ -203,73 +219,77 @@ fn build_rspack_source_map(
       });
     }
 
-    let file = match cur_file {
-      Some(ref file) if file.start_pos <= *raw_pos && *raw_pos < file.end_pos => file,
+    let file = match self.cur_file {
+      Some(ref file) if file.start_pos <= pos && pos < file.end_pos => file,
       _ => {
-        let file = swc_cm.try_lookup_source_file(*raw_pos).ok().flatten()?;
-        if config.skip(&file.name) {
+        let file = self.swc_cm.try_lookup_source_file(pos).ok().flatten()?;
+        if self.config.skip(&file.name) {
           return None;
         }
 
-        cur_src_id = builder.add_source(
-          Cow::Owned(config.file_name_to_source(&file.name)),
-          config
+        self.cur_src_id = self.builder.add_source(
+          Cow::Owned(self.config.file_name_to_source(&file.name)),
+          self
+            .config
             .inline_sources_content(&file.name)
             .then(|| file.src.clone()),
         );
-        if input_source_map.is_none() && config.ignore_list(&file.name) {
-          builder.add_to_ignore_list(cur_src_id);
+        if self.input_source_map.is_none() && self.config.ignore_list(&file.name) {
+          self.builder.add_to_ignore_list(self.cur_src_id);
         }
 
-        cur_file = Some(file);
-        cur_file.as_ref().expect("source file was just set")
+        self.cur_file = Some(file);
+        self.cur_file.as_ref().expect("source file was just set")
       }
     };
 
-    if config.skip(&file.name) {
+    if self.config.skip(&file.name) {
       return None;
     }
 
-    if !config.emit_columns(&file.name) && lc.line == prev_dst_line {
+    if !self.config.emit_columns(&file.name) && lc.line == self.prev_dst_line {
       return None;
     }
 
-    let (original_line, original_column) = position_converter.convert(file, pos)?;
+    let (original_line, original_column) = self.position_converter.convert(file, pos)?;
 
-    let name_index = config
+    let name_index = self
+      .config
       .name_for_bytepos(pos)
-      .map(|name| builder.add_name(name));
+      .map(|name| self.builder.add_name(name));
 
-    prev_dst_line = lc.line;
+    self.prev_dst_line = lc.line;
     Some(Mapping {
       generated_line: lc.line + 1,
       generated_column: lc.col,
       original: Some(OriginalLocation {
-        source_index: cur_src_id,
+        source_index: self.cur_src_id,
         original_line,
         original_column,
         name_index,
       }),
     })
-  }));
+  }
 
-  let intermediate_map = builder.into_source_map(encoded_mappings);
-  if let Some(input_source_map) = input_source_map {
-    let name = intermediate_map
-      .get_source(0)
-      .map(ToString::to_string)
-      .unwrap_or_default();
-    SourceMapSource::new(SourceMapSourceOptions {
-      value: generated_code.to_string(),
-      name,
-      source_map: intermediate_map,
-      original_source: None,
-      inner_source_map: Some(input_source_map),
-      remove_original_source: true,
-    })
-    .map(&MapOptions::new(config.source_map_kind.emit_columns()))
-  } else {
-    Some(intermediate_map)
+  fn finish(self, generated_code: &str) -> Option<SourceMap> {
+    let intermediate_map = self.builder.into_source_map(self.encoder.finish());
+    if let Some(input_source_map) = self.input_source_map {
+      let name = intermediate_map
+        .get_source(0)
+        .map(ToString::to_string)
+        .unwrap_or_default();
+      SourceMapSource::new(SourceMapSourceOptions {
+        value: generated_code.to_string(),
+        name,
+        source_map: intermediate_map,
+        original_source: None,
+        inner_source_map: Some(input_source_map),
+        remove_original_source: true,
+      })
+      .map(&MapOptions::new(self.config.source_map_kind.emit_columns()))
+    } else {
+      Some(intermediate_map)
+    }
   }
 }
 
@@ -497,7 +517,21 @@ mod tests {
   use rspack_util::source_map::SourceMapKind;
   use swc_core::common::{BytePos, FileName, LineCol, SourceMap as SwcSourceMap};
 
-  use super::{SourceMapConfig, build_rspack_source_map};
+  use super::{SourceMapConfig, SourceMapGenerator};
+
+  fn build_rspack_source_map(
+    swc_cm: &SwcSourceMap,
+    mappings: &[(BytePos, LineCol)],
+    input_source_map: Option<SourceMap>,
+    config: &SourceMapConfig,
+    generated_code: &str,
+  ) -> Option<SourceMap> {
+    let mut generator = SourceMapGenerator::new(swc_cm, config, input_source_map);
+    for &(position, location) in mappings {
+      generator.add_mapping(position, location);
+    }
+    generator.finish(generated_code)
+  }
 
   #[test]
   fn composes_input_source_map_in_cheap_mode() {

@@ -317,9 +317,9 @@ pub fn decode_mappings<'a>(source_map: &'a SourceMap) -> impl Iterator<Item = Ma
 
 /// Encodes the given iterator of `Mapping` items into a `String`.
 pub fn encode_mappings(mappings: impl Iterator<Item = Mapping>) -> String {
-  let mut encoder = create_encoder(true);
+  let mut encoder = crate::FullMappingsEncoder::new();
   mappings.for_each(|mapping| encoder.encode(&mapping));
-  encoder.drain()
+  encoder.finish()
 }
 
 /// Compute the number of UTF-16 code units for a UTF-8 string, using SIMD.
@@ -907,7 +907,7 @@ fn stream_chunks_of_source_map_lines_full<'chunk>(
 struct InnerMapping<'a> {
   generated_column: u32,
   original: Option<OriginalLocation>,
-  chunk: TextSpan<'a>,
+  chunk: &'a str,
 }
 
 type InnerSourceIndexValueMapping = LinearMap<(BytesStr, Option<BytesStr>)>;
@@ -1034,7 +1034,6 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
                 if let Some(original_chunk) = original_chunk {
                   if original_chunk.len() <= inner_chunk.len()
                     && inner_chunk
-                      .as_str()
                       .get(..original_chunk.len())
                       .is_some_and(|slice| slice == original_chunk)
                   {
@@ -1286,15 +1285,14 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
             }
             let data = &mut inner_source_map_line_data[mapping.generated_line as usize - 1];
             if data.is_empty() {
-              // Many lines have only one or two mappings; Vec's initial capacity of four
-              // would waste more space now that each entry also contains its text span.
+              // Many lines have only one or two mappings; start small to avoid unused records.
               data.reserve_exact(2);
             }
             data.push(InnerMapping {
               generated_column: mapping.generated_column,
               original: mapping.original,
               // final_source is false, so every mapping has a chunk.
-              chunk: chunk.unwrap(),
+              chunk: chunk.unwrap().as_str(),
             });
           },
           &mut |i, source, source_content| {

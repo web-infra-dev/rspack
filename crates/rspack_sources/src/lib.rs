@@ -37,6 +37,7 @@ pub mod cacheable;
 
 pub use cached_source::CachedSource;
 pub use concat_source::ConcatSource;
+pub use encoder::FullMappingsEncoder;
 pub use error::{Error, Result};
 pub use mapping_source::MappingSource;
 pub use original_source::OriginalSource;

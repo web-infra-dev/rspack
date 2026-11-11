@@ -68,7 +68,11 @@ pub fn create_encoder(columns: bool) -> MappingsEncoder {
   }
 }
 
-pub(crate) struct FullMappingsEncoder {
+/// Incrementally encodes mappings with generated columns.
+///
+/// Supply mappings in generated-position order, then consume the encoder with
+/// [`Self::finish`]. Equal-position mappings retain their input order.
+pub struct FullMappingsEncoder {
   current_line: u32,
   current_column: u32,
   current_original_line: u32,
@@ -81,7 +85,14 @@ pub(crate) struct FullMappingsEncoder {
   mappings: Vec<u8>,
 }
 
+impl Default for FullMappingsEncoder {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl FullMappingsEncoder {
+  /// Creates an empty encoder.
   pub fn new() -> Self {
     Self {
       current_line: 1,
@@ -96,11 +107,19 @@ impl FullMappingsEncoder {
       mappings: Vec::with_capacity(INITIAL_MAPPINGS_CAPACITY),
     }
   }
+
+  /// Consumes the encoder and returns the compacted VLQ mapping string.
+  pub fn finish(mut self) -> String {
+    let mut mappings = self.drain();
+    mappings.shrink_to_fit();
+    mappings
+  }
 }
 
 impl FullMappingsEncoder {
+  /// Encodes one mapping without retaining its decoded representation.
   #[inline(always)]
-  fn encode(&mut self, mapping: &Mapping) {
+  pub fn encode(&mut self, mapping: &Mapping) {
     if self.active_mapping && self.current_line == mapping.generated_line {
       // A mapping is still active
       if mapping.original.as_ref().is_some_and(|original| {

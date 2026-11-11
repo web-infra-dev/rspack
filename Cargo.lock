@@ -4541,6 +4541,7 @@ dependencies = [
  "anyhow",
  "bytes-str",
  "indoc",
+ "memchr",
  "rspack_error",
  "rspack_sources",
  "rspack_util",
@@ -4554,6 +4555,16 @@ dependencies = [
  "swc_error_reporters",
  "swc_typescript",
  "url",
+]
+
+[[package]]
+name = "rspack_javascript_compiler_testing"
+version = "0.103.1"
+dependencies = [
+ "memchr",
+ "rspack_sources",
+ "rustc-hash",
+ "swc_core",
 ]
 
 [[package]]

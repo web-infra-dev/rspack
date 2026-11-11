@@ -5,7 +5,7 @@ description             = "Rspack javascript compiler"
 documentation.workspace = true
 edition.workspace       = true
 homepage.workspace      = true
-license.workspace       = true
+license                 = "MIT AND Apache-2.0"
 name                    = "rspack_javascript_compiler"
 repository.workspace    = true
 version.workspace       = true
@@ -17,6 +17,7 @@ codspeed = []
 anyhow              = { workspace = true }
 bytes-str           = { workspace = true }
 indoc               = { workspace = true }
+memchr              = { workspace = true }
 rustc-hash          = { workspace = true }
 serde               = { workspace = true, features = ["derive"] }
 swc_config          = { workspace = true }
