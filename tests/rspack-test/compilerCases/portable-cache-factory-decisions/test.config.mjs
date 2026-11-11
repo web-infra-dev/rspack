@@ -11,6 +11,12 @@ import {
 } from "@rspack/test-tools/helper/lifecycle";
 
 const transform = "./transform.cjs";
+
+// On Linux CI, removing a cache directory right after its compiler closed failed with ENOTEMPTY.
+// Node retries that error when asked to.
+function removeTree(target) {
+	fs.rmSync(target, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+}
 // Long enough that settling the cycle one producer at a time over the whole graph would time out.
 const CYCLE_SIZE = 3000;
 
@@ -75,7 +81,7 @@ async function withProjects(files, run) {
 		}
 		await run(writer, reader);
 	} finally {
-		fs.rmSync(temp, { recursive: true, force: true });
+		removeTree(temp);
 	}
 }
 
@@ -109,12 +115,12 @@ async function withShortRoots(files, run) {
 		}
 		await run(writer, reader);
 	} finally {
-		for (const root of [writer, reader]) fs.rmSync(root, { recursive: true, force: true });
+		for (const root of [writer, reader]) removeTree(root);
 	}
 }
 
 async function expectColdEquality(reader, configuration, ...movedResults) {
-	fs.rmSync(path.join(reader, "node_modules", ".cache"), { recursive: true, force: true });
+	removeTree(path.join(reader, "node_modules", ".cache"));
 	const cold = await build(reader, configuration);
 	const uncached = await build(reader, configuration, false);
 	for (const moved of movedResults) {
@@ -511,7 +517,7 @@ async function buildAcrossProcesses(kinds, loaderCache, check) {
 		const written = runChild({ ...options, context: writer, cached: true });
 		copyTree(writer, reader);
 		const moved = runChild({ ...options, context: reader, cached: true });
-		fs.rmSync(path.join(reader, "node_modules", ".cache"), { recursive: true, force: true });
+		removeTree(path.join(reader, "node_modules", ".cache"));
 		const cold = runChild({ ...options, context: reader, cached: true });
 		const uncached = runChild({ ...options, context: reader, cached: false });
 		for (const kind of kinds) {
@@ -692,7 +698,7 @@ export default [
 					executed: "reader"
 				});
 				await expectWarmEquality(reader, configuration(reader), moved);
-				fs.rmSync(path.join(reader, "node_modules", ".cache"), { recursive: true, force: true });
+				removeTree(path.join(reader, "node_modules", ".cache"));
 				const cold = await build(reader, configuration(reader));
 				const uncached = await build(reader, configuration(reader), false);
 				expect(execute(moved)).toEqual(execute(cold));
@@ -832,7 +838,7 @@ export default [
 				const written = await build(writer, configuration);
 				copyTree(writer, reader);
 				const moved = await build(reader, configuration);
-				fs.rmSync(path.join(reader, "node_modules", ".cache"), { recursive: true, force: true });
+				removeTree(path.join(reader, "node_modules", ".cache"));
 				const cold = await build(reader, configuration);
 				const uncached = await build(reader, configuration, false);
 				const results = [written, moved, cold, uncached].map(execute);
@@ -1143,8 +1149,8 @@ export default [
 				const configuration = strictWhenImportedBy(issuer, [groups]);
 				const results = [];
 				for (const changed of importer === "agreeing" ? [false] : [true, false]) {
-					fs.rmSync(path.join(writer, "node_modules", ".cache"), { recursive: true, force: true });
-					fs.rmSync(reader, { recursive: true, force: true });
+					removeTree(path.join(writer, "node_modules", ".cache"));
+					removeTree(reader);
 					groups.delays = A_PRODUCES;
 					// Both scenarios have the exact same reader configuration; only the writer differs.
 					await build(writer, changed ? strictWhenImportedBy(/never/, [groups]) : configuration);
@@ -1280,7 +1286,7 @@ export default [
 
 				fs.appendFileSync(path.join(writer, "src/a.js"), "\n// edited");
 				expect((await buildRecovered(writer, configuration)).built).toEqual([path.join(writer, "src", "a.js")]);
-				fs.rmSync(reader, { recursive: true, force: true });
+				removeTree(reader);
 				copyTree(writer, reader);
 				const moved = await buildRecovered(reader, configuration);
 				expect(moved.built).toEqual([]);
@@ -1319,7 +1325,7 @@ export default [
 				await expectWarmEquality(reader, configuration, moved);
 				// A cold build takes t1.js from x.js. The fallback takes it from t2.js, a documented limit
 				// that this module's behavior does not show, so the assets can differ.
-				fs.rmSync(path.join(reader, "node_modules", ".cache"), { recursive: true, force: true });
+				removeTree(path.join(reader, "node_modules", ".cache"));
 				expect(execute(await build(reader, configuration))[0].strict()).toBe(true);
 			});
 		}
