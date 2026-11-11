@@ -180,7 +180,8 @@ export const parts = ["/", "src", ".tsx", \`/\${"src"}/\`, Flags.B, true, null, 
       await withProjects(async (writer, reader) => {
         writeProject(writer, {
           "link.jsx": jsxSource("", '"portable"', "grafana.com/dashboards and/or 1/2"),
-          "table.jsx": jsxSource("", '"portable"', "src/table.jsx")
+          // The text spells the path below `context` only with this platform's separator.
+          "table.jsx": jsxSource("", '"portable"', path.join("src", "table.jsx"))
         });
         const rules = [swcRule(/\.jsx$/)];
         const first = await build(writer, rules, undefined, withoutMaps);
