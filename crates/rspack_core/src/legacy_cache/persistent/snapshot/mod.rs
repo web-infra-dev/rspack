@@ -67,7 +67,9 @@ impl Snapshot {
           std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory
         ) =>
       {
-        missing = true;
+        // A path below a file fails to read with a different error than an absent one, so only
+        // the absent one counts as missing.
+        missing = error.kind() == std::io::ErrorKind::NotFound;
       }
       Err(_) => return Some(Strategy::Failed),
       Ok(false) => {}
@@ -167,13 +169,16 @@ impl Snapshot {
           let mut strategy =
             Self::calc_strategy(&options, &helper, &path, scope, codec.is_portable()).await?;
           if let Some(start_time) = start_time
-            && matches!(
-              strategy,
+            && match strategy {
               Strategy::DirHash { .. }
-                | Strategy::DirTimestamp { .. }
-                | Strategy::DirTimestampAndHash { .. }
-            )
-            && helper.dir_modified_since(&path, start_time).await
+              | Strategy::DirTimestamp { .. }
+              | Strategy::DirTimestampAndHash { .. } => {
+                helper.dir_modified_since(&path, start_time).await
+              }
+              // The build may have read the directory before something removed it.
+              Strategy::Missing => helper.removed_since(&path, start_time).await,
+              _ => false,
+            }
           {
             strategy = Strategy::Failed;
           }

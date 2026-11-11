@@ -265,6 +265,20 @@ impl StrategyHelper {
       })
   }
 
+  /// Whether a path that does not exist may have been removed at or after `time`. Removing it
+  /// modifies the nearest directory above it that still exists.
+  pub async fn removed_since(&self, path: &InternedPath, time: u64) -> bool {
+    let mut current = path.assert_utf8();
+    while let Some(parent) = current.parent() {
+      if let Ok(info) = self.fs.metadata(parent).await {
+        let newest = info.ctime_ms.max(info.mtime_ms);
+        return newest.saturating_add(rspack_util::time::mtime_accuracy(newest)) >= time;
+      }
+      current = parent;
+    }
+    true
+  }
+
   /// validate path file by target strategy
   pub async fn validate(
     &self,
@@ -394,13 +408,19 @@ impl StrategyHelper {
           ValidateResult::Modified
         }
       }
-      Strategy::Missing => {
-        if self.modified_time(path).await.is_some() {
-          ValidateResult::Modified
-        } else {
+      // A link at the path is a change even while it cannot be followed, so this does not follow
+      // links. Only the errors that recorded the path as missing keep it valid.
+      Strategy::Missing => match self.fs.symlink_metadata(path.assert_utf8()).await {
+        Err(rspack_fs::Error::Io(error))
+          if matches!(
+            error.kind(),
+            std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory
+          ) =>
+        {
           ValidateResult::NoChanged
         }
-      }
+        _ => ValidateResult::Modified,
+      },
       Strategy::Failed => ValidateResult::Modified,
     };
     (result, observed)
