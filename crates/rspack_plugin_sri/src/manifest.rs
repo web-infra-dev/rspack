@@ -10,6 +10,8 @@
 //!
 //! Chunks whose calls request each other form a strongly connected component (SCC),
 //! whose members are provided together by the chunk that first reaches the component.
+//! An entry that loads a member directly reaches the component without a call into
+//! it, so the entry's runtime chunk provides the other members' hashes.
 //! Holding a hash then always follows a path of calls into another component, so the
 //! chunks can be digested leaves first.
 //!
@@ -267,6 +269,29 @@ impl ChunkManifest {
         result
       };
 
+    // An entry can load a member of a component without an import() call into it, so no
+    // chunk outside the component provides the other members' hashes on that path. The
+    // entry's runtime chunk provides them instead. A member cannot, since two members
+    // initial in different entries would each need the other's final hash.
+    let mut provided_by_runtime: HashMap<ChunkUkey, HashSet<ChunkUkey>> = HashMap::default();
+    for (_, group) in chunk_group_by_ukey.iter() {
+      if !group.kind.is_entrypoint() {
+        continue;
+      }
+      let runtime = group.get_runtime_chunk(chunk_group_by_ukey);
+      for chunk in &group.chunks {
+        let members = &sccs[scc_of[chunk]];
+        if members.len() > 1 {
+          provided_by_runtime.entry(runtime).or_default().extend(
+            members
+              .iter()
+              .copied()
+              .filter(|member| !group.chunks.contains(member)),
+          );
+        }
+      }
+    }
+
     let mut manifest: HashMap<ChunkUkey, HashSet<ChunkUkey>> = HashMap::default();
     // Walk from the roots down to the leaves, so the chunks whose calls load a group are
     // settled first. Leaving out the hashes parents provide is best effort: a parent's
@@ -286,6 +311,9 @@ impl ChunkManifest {
         if child_scc != index {
           child_chunks.extend(sccs[child_scc].iter().copied());
         }
+      }
+      if let Some(members) = provided_by_runtime.get(chunk_ukey) {
+        child_chunks.extend(members.iter().copied());
       }
 
       // The hashes provided on every path to this chunk: each of its groups provides
