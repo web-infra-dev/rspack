@@ -13,6 +13,8 @@ describeByWalk(
 			"context-snapshot-after-compile",
 			"missing-file-dependency",
 			"missing-context-dependency",
+			"missing-context-dangling-link",
+			"context-removed-after-compile",
 			"unresolvable-context-links"
 		]).has(path.basename(src)) && path.basename(path.dirname(src)) === "portable") {
 			const variant = `${name}-non-portable`;
