@@ -373,6 +373,13 @@ impl PathManager {
       && path.is_symlink()
   }
 
+  pub(crate) fn is_followed_context_file(&self, path: &InternedPath) -> bool {
+    self
+      .symlinks
+      .as_ref()
+      .is_some_and(|symlinks| symlinks.is_context_file(path))
+  }
+
   pub(crate) async fn refresh_symlinks(&self) -> SymlinkUpdate {
     let Some(symlinks) = &self.symlinks else {
       return SymlinkUpdate::default();
@@ -410,7 +417,11 @@ impl PathManager {
           .await;
       }
     }
-    symlinks.replace(subscriptions)
+    let update = symlinks.replace(subscriptions);
+    for path in &update.new_context_files {
+      self.baselines.insert(path.clone(), disk_mtime(path));
+    }
+    update
   }
 
   pub(crate) fn resolved_directory_entry(&self, path: &InternedPath) -> Option<InternedPath> {
@@ -427,11 +438,38 @@ impl PathManager {
       .and_then(|symlinks| symlinks.link_scan(path))
   }
 
+  pub(crate) fn is_file_present(&self, path: &InternedPath) -> bool {
+    if self
+      .symlinks
+      .as_ref()
+      .is_some_and(|symlinks| symlinks.has_target_subscription(path))
+    {
+      path.exists()
+    } else {
+      std::fs::symlink_metadata(path).is_ok()
+    }
+  }
+
+  pub(crate) fn has_file_time(&self, path: &InternedPath) -> bool {
+    self.file_times.contains_key(path)
+  }
+
+  pub(crate) fn clear_file_baseline(&self, path: &InternedPath) {
+    self.baselines.remove(path);
+  }
+
   pub(crate) fn symlink_aliases(&self, path: &InternedPath) -> Vec<SymlinkAlias> {
     self
       .symlinks
       .as_ref()
       .map_or_else(Vec::new, |symlinks| symlinks.aliases(path))
+  }
+
+  pub(crate) fn is_unchanged_link_event(&self, path: &InternedPath) -> bool {
+    self
+      .symlinks
+      .as_ref()
+      .is_some_and(|symlinks| symlinks.is_unchanged_link_event(path))
   }
 
   /// Reset the per-`watch()`-call diff state (added / removed sets) without
@@ -494,7 +532,7 @@ impl PathManager {
   pub fn set_reported_file_removal(&self, path: &InternedPath) {
     self.baselines.insert(path.clone(), None);
     if (!self.files.all.contains(path) && !self.missing.all.contains(path))
-      || std::fs::symlink_metadata(path).is_ok()
+      || self.is_file_present(path)
     {
       self.baselines.remove_if(path, |_, time| time.is_none());
     }
@@ -817,6 +855,7 @@ impl PathManager {
     self.context_directories.remove(path);
     if !self.files.all.contains(path) && !self.missing.all.contains(path) {
       self.file_times.remove(path);
+      self.baselines.remove(path);
     }
     if !self.directories.all.contains(path) {
       self.last_watch_events.remove(path);
@@ -867,9 +906,10 @@ impl PathManager {
       return true;
     }
     if metadata.is_dir() {
-      // Like watchpack's `setDirectory`, only a directory not known before is
-      // scanned: an event on a known one, e.g. a `chmod`, changes nothing below.
-      if self.record(path, || self.context_directories.insert(path.clone())) {
+      // Windows creates a junction as an empty directory before setting its target.
+      if self.record(path, || self.context_directories.insert(path.clone()))
+        || (self.follows_symlinks() && path.is_symlink())
+      {
         self.scan_below(vec![path.clone()], false, None).await;
       }
       return true;
@@ -1009,12 +1049,14 @@ impl PathManager {
 
   /// Check whether a watched path's mtime can represent a change,
   /// advancing the baseline when it does. Covers registered files and
-  /// registered-missing paths (on disk by the time an event names them);
-  /// other paths, files found below a context included, pass through
-  /// unfiltered.
+  /// registered-missing paths and file targets followed from a context.
+  /// Ordinary context files are filtered by `set_context_entry` instead.
   /// Equal mtimes are only stale once they are past the filesystem accuracy window.
   pub fn has_mtime_changed(&self, path: &InternedPath) -> bool {
-    if !self.files.all.contains(path) && !self.missing.all.contains(path) {
+    if !self.files.all.contains(path)
+      && !self.missing.all.contains(path)
+      && !self.is_followed_context_file(path)
+    {
       return true;
     }
 
@@ -1144,6 +1186,7 @@ impl PathManager {
         && !self.missing.all.contains(path)
       {
         self.file_times.remove(path);
+        self.baselines.remove(path);
         self.unlink_unrecorded(path);
       }
       if self.context_directories.remove(path).is_some() {

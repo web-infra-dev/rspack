@@ -1,11 +1,17 @@
 use std::{
   path::Component,
   sync::{Arc, RwLock},
+  time::SystemTime,
 };
 
 use rspack_paths::{InternedPath, InternedPathMap, InternedPathSet};
+use rspack_util::time::current_time;
 
-use crate::{WatchPattern, paths::PathManager};
+use crate::{
+  WatchPattern,
+  paths::PathManager,
+  time::{mtime_accuracy, mtime_safe_time},
+};
 
 struct Resolution {
   target: InternedPath,
@@ -67,7 +73,13 @@ impl LinkResolver {
 #[derive(Clone)]
 pub(crate) struct LinkScan {
   pub links: Vec<InternedPath>,
-  pub target_ignored: bool,
+  pub target: Option<InternedPath>,
+}
+
+#[derive(Default)]
+struct WatchedLink {
+  aliases: InternedPathSet,
+  mtime: Option<SystemTime>,
 }
 
 #[derive(Default)]
@@ -79,7 +91,7 @@ pub(crate) struct LinkSubscriptions {
   directory_targets: InternedPathMap<InternedPath>,
   context_files: InternedPathSet,
   link_scans: InternedPathMap<LinkScan>,
-  links: InternedPathMap<InternedPathSet>,
+  links: InternedPathMap<WatchedLink>,
   patterns: Vec<WatchPattern>,
 }
 
@@ -131,6 +143,7 @@ impl LinkSubscriptions {
         .links
         .entry(link.clone())
         .or_default()
+        .aliases
         .insert(path.clone());
       self.index_ancestors(link);
       self.watch(link, false);
@@ -159,7 +172,7 @@ impl LinkSubscriptions {
           self
             .links
             .get(*link)
-            .is_some_and(|aliases| aliases.contains(&path))
+            .is_some_and(|link| link.aliases.contains(&path))
         })
         .cloned()
         .collect();
@@ -167,7 +180,7 @@ impl LinkSubscriptions {
         path.clone(),
         LinkScan {
           links,
-          target_ignored,
+          target: (!target_ignored).then(|| resolution.target.clone()),
         },
       );
     }
@@ -256,12 +269,43 @@ pub(crate) struct SymlinkAlias {
 #[derive(Default)]
 pub(crate) struct SymlinkUpdate {
   pub patterns: Vec<WatchPattern>,
+  pub newly_subscribed: Vec<InternedPath>,
+  pub new_context_files: Vec<InternedPath>,
   /// Only retargeting discards old entries; new subscriptions need them to detect deletions.
   pub retargeted_directories: Vec<InternedPath>,
   pub needs_context_scan: bool,
 }
 
 impl Symlinks {
+  pub(crate) fn is_unchanged_link_event(&self, path: &InternedPath) -> bool {
+    let mut subscriptions = self.0.write().expect("symlink subscriptions lock poisoned");
+    let Some(link) = subscriptions.links.get_mut(path) else {
+      return false;
+    };
+    let mtime = path
+      .symlink_metadata()
+      .and_then(|metadata| metadata.modified())
+      .ok();
+    let previous = std::mem::replace(&mut link.mtime, mtime);
+    match mtime {
+      Some(mtime) => {
+        mtime_accuracy(mtime);
+        previous == Some(mtime) && mtime_safe_time(mtime) < current_time()
+      }
+      None => previous.is_none(),
+    }
+  }
+
+  pub(crate) fn has_target_subscription(&self, path: &InternedPath) -> bool {
+    self
+      .0
+      .read()
+      .expect("symlink subscriptions lock poisoned")
+      .link_scans
+      .get(path)
+      .is_some_and(|scan| scan.target.is_some())
+  }
+
   pub(crate) fn link_scan(&self, path: &InternedPath) -> Option<LinkScan> {
     self
       .0
@@ -309,9 +353,51 @@ impl Symlinks {
       .clone()
   }
 
+  pub(crate) fn is_context_file(&self, path: &InternedPath) -> bool {
+    self
+      .0
+      .read()
+      .expect("symlink subscriptions lock poisoned")
+      .context_files
+      .contains(path)
+  }
+
   pub(crate) fn replace(&self, mut subscriptions: LinkSubscriptions) -> SymlinkUpdate {
     let patterns = std::mem::take(&mut subscriptions.patterns);
     let mut previous = self.0.write().expect("symlink subscriptions lock poisoned");
+    for (path, link) in &mut subscriptions.links {
+      link.mtime = match previous.links.get(path) {
+        Some(old) => old.mtime,
+        None => path
+          .symlink_metadata()
+          .and_then(|metadata| metadata.modified())
+          .ok(),
+      };
+    }
+    let newly_subscribed = subscriptions
+      .link_scans
+      .iter()
+      .filter(|(path, scan)| {
+        previous.link_scans.get(*path).is_none_or(|old| {
+          scan.target != old.target || scan.links.iter().any(|link| !old.links.contains(link))
+        })
+      })
+      .map(|(path, _)| path.clone())
+      .collect();
+    let mut new_context_files = Vec::new();
+    for (target, aliases) in &subscriptions.targets {
+      for alias in aliases {
+        if subscriptions.context_files.contains(alias)
+          && (!previous.context_files.contains(alias)
+            || !previous
+              .targets
+              .get(target)
+              .is_some_and(|old| old.contains(alias)))
+        {
+          new_context_files.push(alias.clone());
+        }
+      }
+    }
     let mut retargeted_directories = Vec::new();
     let mut has_new_directories = false;
     for (path, target) in &subscriptions.directory_targets {
@@ -321,15 +407,13 @@ impl Symlinks {
         _ => {}
       }
     }
-    let needs_context_scan = has_new_directories
-      || !retargeted_directories.is_empty()
-      || subscriptions
-        .context_files
-        .iter()
-        .any(|path| !previous.context_files.contains(path));
+    let needs_context_scan =
+      has_new_directories || !retargeted_directories.is_empty() || !new_context_files.is_empty();
     *previous = subscriptions;
     SymlinkUpdate {
       patterns,
+      newly_subscribed,
+      new_context_files,
       retargeted_directories,
       needs_context_scan,
     }
@@ -347,8 +431,8 @@ impl Symlinks {
           aliases.entry(target.clone()).or_insert(false);
         }
       }
-      if let Some(targets) = subscriptions.links.get(&watched) {
-        for target in targets {
+      if let Some(link) = subscriptions.links.get(&watched) {
+        for target in &link.aliases {
           let link_changed = aliases.entry(target.clone()).or_insert(false);
           *link_changed |= watched == *path;
         }

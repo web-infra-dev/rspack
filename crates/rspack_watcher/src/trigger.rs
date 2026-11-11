@@ -121,10 +121,11 @@ pub struct Trigger {
 }
 
 /// Where an event comes from.
-#[derive(Clone, Copy)]
 enum Origin {
   /// The OS watcher; `appeared` when it created or renamed the path into place.
-  Disk { appeared: bool },
+  Disk {
+    appeared: bool,
+  },
   /// An explicit event supplied through `FsWatcher::trigger_event`.
   Injected,
   /// A scan, for what changed while the watch was not active yet: a file a
@@ -132,11 +133,29 @@ enum Origin {
   /// registered path the scanner backfills. Already judged a change, it is
   /// never dropped as a duplicate or as attribute-only.
   Scan,
+  LinkScan(InternedPath),
   Symlink {
     link_changed: bool,
     appeared: bool,
     injected: bool,
   },
+}
+
+impl Origin {
+  fn is_scan(&self) -> bool {
+    matches!(self, Self::Scan | Self::LinkScan(_))
+  }
+
+  fn link_changed(&self) -> bool {
+    matches!(
+      self,
+      Self::LinkScan(_)
+        | Self::Symlink {
+          link_changed: true,
+          ..
+        }
+    )
+  }
 }
 
 impl Trigger {
@@ -165,8 +184,20 @@ impl Trigger {
 
         runtime.block_on(async move {
           while let Some((path, kind, origin)) = incoming.recv().await {
+            if let Origin::LinkScan(source_path) = &origin {
+              let source_path = source_path.clone();
+              processor
+                .process(&path, &source_path, kind, origin, None)
+                .await;
+              continue;
+            }
+            if matches!(origin, Origin::Disk { .. })
+              && processor.path_manager.is_unchanged_link_event(&path)
+            {
+              continue;
+            }
             let mut mapped_original = false;
-            if !matches!(origin, Origin::Scan) {
+            if !origin.is_scan() {
               for SymlinkAlias {
                 path: alias,
                 link_changed,
@@ -179,6 +210,7 @@ impl Trigger {
                   processor
                     .process(
                       &alias,
+                      &path,
                       kind,
                       Origin::Symlink {
                         link_changed,
@@ -195,7 +227,7 @@ impl Trigger {
             if !mapped_original {
               let resolved_path = processor.path_manager.resolved_directory_entry(&path);
               processor
-                .process(&path, kind, origin, resolved_path.as_ref())
+                .process(&path, &path, kind, origin, resolved_path.as_ref())
                 .await;
             }
           }
@@ -227,6 +259,17 @@ impl Trigger {
     let _ = self
       .pending
       .send((path.clone(), FsEventKind::Change, Origin::Scan));
+  }
+
+  pub(crate) fn on_scanned_link(
+    &self,
+    path: &InternedPath,
+    link: &InternedPath,
+    kind: FsEventKind,
+  ) {
+    let _ = self
+      .pending
+      .send((path.clone(), kind, Origin::LinkScan(link.clone())));
   }
 
   /// A sender for the scanner's backfilled events. They queue with the live
@@ -266,6 +309,7 @@ impl EventProcessor {
   async fn process(
     &self,
     path: &InternedPath,
+    source_path: &InternedPath,
     kind: FsEventKind,
     origin: Origin,
     resolved_path: Option<&InternedPath>,
@@ -278,7 +322,7 @@ impl EventProcessor {
     // `find_associated_event` bubbles them to a registered parent and triggers
     // a spurious rebuild.
     // A scan's event was filtered when the scan found the path.
-    if !matches!(origin, Origin::Scan)
+    if !origin.is_scan()
       && self
         .path_manager
         .is_ignored_path(resolved_path.unwrap_or(path))
@@ -308,9 +352,13 @@ impl EventProcessor {
             ..
           }
       );
-    let initial_missing = removed && matches!(origin, Origin::Scan);
-    let exists = if matches!(origin, Origin::Symlink { .. }) {
+    let initial_missing = removed && origin.is_scan();
+    let exists = if origin.link_changed() {
+      std::fs::symlink_metadata(source_path).is_ok()
+    } else if matches!(origin, Origin::Symlink { .. }) {
       path.exists()
+    } else if origin.is_scan() {
+      self.path_manager.is_file_present(path)
     } else {
       std::fs::symlink_metadata(path).is_ok()
     };
@@ -322,6 +370,20 @@ impl EventProcessor {
 
     let accessor = self.path_manager.access();
     let is_watched_path = accessor.files().0.contains(path) || accessor.missing().0.contains(path);
+    let is_followed_context_file = self.path_manager.is_followed_context_file(path);
+    if kind == FsEventKind::Remove
+      && matches!(
+        origin,
+        Origin::Symlink {
+          link_changed: false,
+          ..
+        }
+      )
+      && accessor.missing().0.contains(path)
+      && !self.path_manager.has_file_time(path)
+    {
+      return;
+    }
     // Watchpack keeps a discovered file link as an entry when only its target
     // disappears; the link itself is still present in the context.
     if matches!(
@@ -334,6 +396,7 @@ impl EventProcessor {
       && !is_watched_path
       && self.path_manager.is_context_symlink_file(path)
     {
+      self.path_manager.clear_file_baseline(path);
       return;
     }
 
@@ -358,16 +421,11 @@ impl EventProcessor {
     // Apply the same suppression to Create for already-registered files, since
     // macOS may emit stale Create events for files that predate the watcher.
     // A registered-missing path takes its first record here, once it exists.
-    if (kind == FsEventKind::Change || (kind == FsEventKind::Create && is_watched_path))
+    if (kind == FsEventKind::Change
+      || (kind == FsEventKind::Create && (is_watched_path || is_followed_context_file)))
       && !self.path_manager.has_mtime_changed(path)
-      && !matches!(origin, Origin::Scan)
-      && !matches!(
-        origin,
-        Origin::Symlink {
-          link_changed: true,
-          ..
-        }
-      )
+      && !origin.is_scan()
+      && !origin.link_changed()
     {
       return;
     }
@@ -377,7 +435,7 @@ impl EventProcessor {
         .path_manager
         .set_context_entry(
           path,
-          matches!(origin, Origin::Scan | Origin::Symlink { .. }) || is_watched_path,
+          origin.is_scan() || origin.link_changed() || is_watched_path || is_followed_context_file,
         )
         .await
     {
@@ -402,6 +460,14 @@ impl EventProcessor {
 
     let finder = self.finder();
     let mut associated_event = finder.find_associated_event(path, kind);
+    if origin.link_changed()
+      && finder.contains_path(path)
+      && !associated_event
+        .iter()
+        .any(|(dependency, _)| dependency == path)
+    {
+      associated_event.push((path.clone(), kind));
+    }
     // A directory above changes with `path`, unless it is gone itself: an
     // event below it may arrive after the directory's own removal.
     // Its records go with it, as for `path` itself.
@@ -502,7 +568,7 @@ impl EventProcessor {
       }
     }
 
-    if matches!(origin, Origin::Scan) {
+    if origin.is_scan() {
       self.analyzer.invalidate_path(path);
       for (associated, _) in &associated_event {
         self.analyzer.invalidate_path(associated);

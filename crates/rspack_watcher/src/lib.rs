@@ -194,7 +194,8 @@ impl FsWatcher {
     let aggregated = executor.aggregated();
     #[cfg(feature = "testing")]
     let executor_trace = executor.trace();
-    let scanner = Scanner::new(trigger.backfill_sender(), Arc::clone(&path_manager));
+    let scanner = Scanner::new(trigger.backfill_sender(), Arc::clone(&path_manager))
+      .with_symlink_trigger(&trigger);
     let trigger = Arc::new(Mutex::new(Some(trigger)));
 
     let inner = FsWatcherInner {
@@ -499,7 +500,9 @@ impl FsWatcherInner {
     // deliver the event — so no rebuild was triggered. With this order, a change
     // before the watch is active is on disk by scan time (caught by
     // `mtime > start_time`), and a change after it is active is delivered live.
-    self.scanner.scan(start_time);
+    self
+      .scanner
+      .scan_subscriptions(start_time, symlink_update.newly_subscribed);
 
     Ok(())
   }
