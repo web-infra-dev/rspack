@@ -18,7 +18,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 The generated module ids are case-sensitive and may contain uppercase letters. On case-insensitive file systems, avoid using `[id]` as the only distinguishing placeholder in [Asset module filenames](/config/output#outputassetmodulefilename) or [WebAssembly module filenames](/config/output#outputwebassemblymodulefilename). Prefer `[contenthash]`, or include it alongside `[id]`.
 :::
 
-[`optimization.moduleIds: 'compact-hashed'`](/config/optimization#optimizationmoduleids) uses this plugin internally. Use the plugin directly when you need to set the minimum id length or a hash salt.
+[`optimization.moduleIds: 'compact-hashed'`](/config/optimization#optimizationmoduleids) uses this plugin internally. Add the plugin manually when you need to customize its options.
 
 ## Examples
 

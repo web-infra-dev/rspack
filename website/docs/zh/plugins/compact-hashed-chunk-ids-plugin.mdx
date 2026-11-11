@@ -14,7 +14,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 `CompatHashedChunkIdsPlugin` 可在 Rspack 2.2.0 中使用，现已废弃，并于 Rspack 2.2.1 更名为 `CompactHashedChunkIdsPlugin`。旧名称目前仅作为兼容别名保留。
 :::
 
-`optimization.chunkIds: 'compact-hashed'` 内部会使用该插件。需要设置 id 最小长度或 hash 盐值时，可以直接使用该插件。
+`optimization.chunkIds: 'compact-hashed'` 内部会使用该插件。需要自定义插件配置时，可以手动添加该插件。
 
 ## 示例
 
