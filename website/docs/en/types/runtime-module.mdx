@@ -22,3 +22,42 @@ declare class RuntimeModule {
 ```
 
 </>
+
+## Updating retained entry exports
+
+Rspack plugins can request `compiler.webpack.RuntimeGlobals.updateEntryExports`
+through `additionalTreeRuntimeRequirements`. This emits a runtime function:
+
+```ts
+updateEntryExports(entryModuleId: string | number, nextExports: unknown): boolean;
+```
+
+The function replaces the bootstrap's retained startup exports when the module ID
+matches the final entry module of the default startup in that runtime chunk. It
+returns `true` on replacement. It returns `false` without modifying exports for
+other IDs, shared runtime chunks without an entry, or custom startup
+(`startupNoDefault`). Callers must fall back to rebuilding their application when
+synchronization is unsupported.
+
+This is an opt-in bundler capability for entry reloaders in long-running Node.js
+applications. SSR servers are one use case; RSC servers may also use this primitive,
+but it does not implement or validate an RSC update protocol. It has no dependency
+on a framework or Module Federation.
+
+It does not execute modules, invalidate module caches, or release application-owned
+references. The caller must reload the same compiled entry first, then synchronize
+its startup exports. Publication behavior depends on the library output below.
+
+For a synchronous ESM entry with statically known exports, `commonjs2` and
+`commonjs-module` output publishes a stable namespace with getters that follow the
+startup exports. This prevents Node's private initial-export snapshot from
+retaining the previous entry exports. The namespace keeps its compiled export
+names; this API does not support changing its shape. Other
+library outputs and asynchronous or dynamic export shapes retain their existing
+publication behavior and require caller-managed cleanup. Requesting this capability disables entry
+inlining; builds that do not request it are unchanged.
+
+Values already captured by callers (for example, destructured exports) are not
+rewritten. Callers must coordinate active requests and retire their own old references.
+The stable namespace uses getter descriptors rather than writable value properties.
+This API does not replace HMR, update server manifests, or clean up arbitrary side effects.

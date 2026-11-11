@@ -2,16 +2,17 @@ use std::{borrow::Cow, sync::Arc};
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_collections::{Identifiable, Identifier};
+use rspack_collections::{Identifiable, Identifier, IdentifierSet};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildMetaExportsType, ChunkGroupOptions, CodeGenerationDataItem, CodeGenerationResultBuilder,
-  CodeGenerationRuntimeRequirementsWrite, Compilation, Context, DependenciesBlock,
-  DependenciesBlockData, Dependency, DependencyType, ExportsArgument, FactoryMetaStore, FreezeLock,
-  GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleCodeTemplate,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, NeedBuildContext, RuntimeGlobals,
-  RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
-  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  BuildMetaExportsType, ChunkGraph, ChunkGroupOptions, CodeGenerationDataItem,
+  CodeGenerationResultBuilder, CodeGenerationRuntimeRequirementsWrite, Compilation, Context,
+  DependenciesBlock, DependenciesBlockData, Dependency, DependencyType, ExportsArgument,
+  FactoryMetaStore, FreezeLock, GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext,
+  ModuleCodeTemplate, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
+  NeedBuildContext, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec, impl_module_meta_info, impl_source_map_config,
+  module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
 };
@@ -227,7 +228,12 @@ impl Module for ContainerEntryModule {
         blocks.push(Box::new(block));
       }
       dependencies.push(BoxDependency::new(StaticExportsDependency::new(
-        StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
+        StaticExportsSpec::Array(vec![
+          "get".into(),
+          "init".into(),
+          "__webpack_clear_cache__".into(),
+          "__webpack_clear_exposed_cache__".into(),
+        ]),
         false,
       )));
     }
@@ -347,17 +353,74 @@ impl Module for ContainerEntryModule {
         runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
       let get_container = format!("{require_name}.getContainer");
       let init_container = format!("{require_name}.initContainer");
+      let module_cache = runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_CACHE);
+      let clear_cache = runtime_template.basic_function(
+        "",
+        &format!(
+          r#"
+for(var id in {module_cache}) {{
+	delete {module_cache}[id];
+}}"#
+        ),
+      );
+
+      // Preserve the dependency closure of all declared/consumed shared modules,
+      // including async dependencies which may execute after remote removal.
+      // Keeping all shares is conservative and avoids depending on framework state.
+      let module_graph = compilation.get_module_graph();
+      let mut pending = module_graph
+        .modules()
+        .filter_map(|(id, module)| {
+          matches!(
+            module.module_type(),
+            ModuleType::ProvideShared | ModuleType::ConsumeShared
+          )
+          .then_some(*id)
+        })
+        .collect::<Vec<_>>();
+      let mut visited = IdentifierSet::default();
+      while let Some(id) = pending.pop() {
+        if !visited.insert(id) {
+          continue;
+        }
+        for connection in module_graph.get_outgoing_connections(&id) {
+          pending.push(*connection.module_identifier());
+        }
+      }
+      let mut retained_ids = visited
+        .iter()
+        .filter_map(|id| ChunkGraph::get_module_id(&compilation.module_ids_artifact, *id).cloned())
+        .collect::<Vec<_>>();
+      retained_ids.sort_unstable();
+      retained_ids.dedup();
+      let retained_ids = json_stringify(&retained_ids);
+      let clear_exposed_cache = runtime_template.basic_function(
+        "",
+        &format!(
+          r#"
+var retained = new Set({retained_ids}.map(String));
+for(var id in {module_cache}) {{
+	if (!retained.has(id)) delete {module_cache}[id];
+}}"#
+        ),
+      );
 
       format!(
         r#"
+var clearExposedCache = {clear_exposed_cache};
+var clearCache = {clear_cache};
 {}({}, {{
 	get: {},
-	init: {}
+	init: {},
+	__webpack_clear_cache__: {},
+	__webpack_clear_exposed_cache__: {}
 }});"#,
         define_property_getters,
         runtime_template.render_exports_argument(ExportsArgument::Exports),
         runtime_template.returning_function(&get_container, ""),
         runtime_template.returning_function(&init_container, ""),
+        runtime_template.returning_function("clearCache", ""),
+        runtime_template.returning_function("clearExposedCache", ""),
       )
     } else {
       let current_remote_get_scope =
@@ -375,9 +438,15 @@ impl Module for ContainerEntryModule {
           format!("{current_remote_get_scope} = {value};")
         }
       };
+      let module_cache = runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_CACHE);
       format!(
         r#"
 var moduleMap = {module_map_str};
+var clearCache = function() {{
+  for(var id in {module_cache}) {{
+    delete {module_cache}[id];
+  }}
+}}
 var get = function(module, getScope) {{
   {set_current_remote_get_scope}
   getScope = (
@@ -398,11 +467,13 @@ var init = function(shareScope, initScope) {{
 }}
 {define_property_getters}({exports}, {{
 	get: {export_get},
-	init: {export_init}
+	init: {export_init},
+	__webpack_clear_cache__: {export_clear_cache}
 }});"#,
         exports = runtime_template.render_exports_argument(ExportsArgument::Exports),
         set_current_remote_get_scope = render_current_remote_get_scope_assignment("getScope"),
         clear_current_remote_get_scope = render_current_remote_get_scope_assignment("undefined"),
+        module_cache = module_cache,
         has_own_property =
           runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
         share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
@@ -422,6 +493,7 @@ var init = function(shareScope, initScope) {{
         ),
         export_get = runtime_template.returning_function("get", ""),
         export_init = runtime_template.returning_function("init", ""),
+        export_clear_cache = runtime_template.returning_function("clearCache", ""),
       )
     };
     code_generation_result.add(
@@ -433,7 +505,15 @@ var init = function(shareScope, initScope) {{
       code_generation_result
         .data_mut()
         .insert(CodeGenerationRuntimeRequirementsWrite {
-          runtime_requirements: RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
+          runtime_requirements: RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE
+            | RuntimeGlobals::MODULE_CACHE,
+        });
+    }
+    if self.enhanced {
+      code_generation_result
+        .data_mut()
+        .insert(CodeGenerationRuntimeRequirementsWrite {
+          runtime_requirements: RuntimeGlobals::MODULE_CACHE,
         });
     }
     if self.enhanced {
