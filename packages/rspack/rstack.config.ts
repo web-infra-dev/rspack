@@ -51,6 +51,10 @@ const commonLibConfig: LibConfig = {
       WEBPACK_VERSION: JSON.stringify(packageJson.webpackVersion),
       RSPACK_VERSION: JSON.stringify(packageJson.version),
       IS_BROWSER: JSON.stringify(false),
+      SUPPORTS_ALLOCATIVE: JSON.stringify(
+        process.env.RSPACK_BUILD_PROFILE !== 'release' ||
+          Boolean(process.env.ALLOCATIVE),
+      ),
     },
   },
   output: {

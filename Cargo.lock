@@ -3991,6 +3991,7 @@ dependencies = [
  "pnp",
  "rspack-allocative_derive",
  "rustc-hash",
+ "serde",
  "serde_json",
  "simd-json",
  "smallvec",

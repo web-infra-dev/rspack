@@ -132,6 +132,8 @@ jobs:
           npm --version
 
       - name: Release
+        env:
+          RSPACK_BUILD_PROFILE: ${{ inputs.profile || 'release' }}
         run: |
           ./x version snapshot
           pnpm run build:js:canary
