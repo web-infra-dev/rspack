@@ -11,7 +11,7 @@
 - Bundle: q.chunk.CURRENT_HASH.js
 - Bundle: r.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 76
-- Update: main.LAST_HASH.hot-update.js, size: 410
+- Update: main.LAST_HASH.hot-update.js, size: 361
 - Update: parent.LAST_HASH.hot-update.js, size: 282
 
 ## Manifest
@@ -47,7 +47,6 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 (() => {
 __webpack_require__.hmrV["child"] = "CHUNK_VERSION";
 __webpack_require__.hmrV["parent"] = "CHUNK_VERSION";
-__webpack_require__.hmrV["r"] = "CHUNK_VERSION";
 
 })();
 

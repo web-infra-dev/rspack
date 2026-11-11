@@ -155,10 +155,11 @@ async fn render_chunk(
   if !matches!(chunk.kind(), ChunkKind::HotUpdate)
     && ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey)
       .contains(RuntimeGlobals::HMR_CHUNK_VERSIONS)
+    && let Some(version) = get_hmr_chunk_version(compilation, chunk)
   {
     sources.add(RawStringSource::from(format!(
       "export const __rspack_esm_hash = {};\n",
-      rspack_util::json_stringify_str(&get_hmr_chunk_version(compilation, chunk))
+      rspack_util::json_stringify_str(version)
     )));
   }
   sources.add(RawStringSource::from(format!(
