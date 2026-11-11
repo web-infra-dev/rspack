@@ -251,9 +251,14 @@ impl TsConfig {
       Clone::clone,
     );
 
+    let paths_base = self
+      .compiler_options
+      .base_url
+      .as_ref()
+      .unwrap_or(&self.compiler_options.paths_base);
     paths
       .into_iter()
-      .map(|p| self.compiler_options.paths_base.normalize_with(p))
+      .map(|p| paths_base.normalize_with(p))
       .chain(base_url_iter)
       .collect()
   }

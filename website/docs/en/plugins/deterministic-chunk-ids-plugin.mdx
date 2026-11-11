@@ -1,0 +1,35 @@
+---
+description: 'Assign short numeric chunk ids that stay stable between compilations'
+---
+
+# DeterministicChunkIdsPlugin
+
+`DeterministicChunkIdsPlugin` assigns short numeric chunk ids that remain stable between builds, helping with long-term caching.
+
+`optimization.chunkIds: 'deterministic'` uses this plugin internally. Add the plugin manually when you need to customize its options.
+
+## Examples
+
+```js title="rspack.config.mjs"
+import rspack from '@rspack/core';
+
+export default {
+  optimization: {
+    chunkIds: false,
+  },
+  plugins: [
+    new rspack.ids.DeterministicChunkIdsPlugin({
+      salt: 42,
+    }),
+  ],
+};
+```
+
+## Options
+
+### salt
+
+- **Type:** `number`
+- **Default:** `10`
+
+The hash salt used when generating ids. Change this value to try a different hash starting value in the same id space.

@@ -3,6 +3,7 @@ mod drive;
 use std::{
   borrow::Cow,
   hash::BuildHasherDefault,
+  io::Write,
   sync::{Arc, LazyLock},
 };
 
@@ -14,7 +15,10 @@ use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use rspack_core::{
   AssetInfo, BindingCell, Compilation, CompilationId, CompilationProcessAssets, Logger, Plugin,
-  rspack_sources::{BoxSource, MappingSource, RawStringSource, Source, SourceExt, SourceValue},
+  rspack_sources::{
+    BoxSource, CachedSource, DevToolCodeSource, DevToolMapSource, RawStringSource, ReplaceSource,
+    SourceExt, SourceValue, source_content_eq, update_content_hash,
+  },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHasher;
@@ -199,7 +203,10 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
           &hash_ac,
           &hash_patterns,
         );
-        ((hash, name), new_source)
+        // Lazy DevTool outputs stand in for raw text, even after hash replacement.
+        let by_content =
+          data.streaming_matches.is_some() || new_source.as_ref().as_any().is::<RawStringSource>();
+        ((hash, name), (new_source, by_content))
       })
       .collect::<HashMap<_, _>>();
 
@@ -217,23 +224,19 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
           s.spawn(
             |(hooks, compilation, batch_sources, old_hash, mut asset_names)| async move {
               asset_names.sort_unstable();
-              let mut asset_contents = asset_names
-                .iter()
-                .filter_map(|name| batch_sources.get(&(old_hash.as_str(), name)))
-                .cloned()
-                .collect::<Vec<_>>();
-              asset_contents.dedup_by(|a, b| {
-                if let Some(mapping) = a.as_any().downcast_ref::<MappingSource>() {
-                  // External maps previously used RawStringSource. Preserve
-                  // type-sensitive equality for all other source kinds.
-                  (b.as_any().is::<MappingSource>() || b.as_any().is::<RawStringSource>())
-                    && mapping.content_eq(b.as_ref())
-                } else if let Some(mapping) = b.as_any().downcast_ref::<MappingSource>() {
-                  a.as_any().is::<RawStringSource>() && mapping.content_eq(a.as_ref())
+              asset_names.dedup_by(|a, b| {
+                let (a, a_by_content) = &batch_sources[&(old_hash.as_str(), *a)];
+                let (b, b_by_content) = &batch_sources[&(old_hash.as_str(), *b)];
+                if *a_by_content && *b_by_content {
+                  source_content_eq(a.as_ref(), b.as_ref())
                 } else {
                   a == b
                 }
               });
+              let asset_contents = asset_names
+                .into_iter()
+                .map(|name| Arc::clone(&batch_sources[&(old_hash.as_str(), name)].0))
+                .collect::<Vec<_>>();
               let updated_hash = hooks
                 .borrow()
                 .update_hash
@@ -245,11 +248,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
               } else {
                 let mut hasher = RspackHasher::from(&compilation.options.output);
                 for asset_content in asset_contents {
-                  if let Some(mapping) = asset_content.as_any().downcast_ref::<MappingSource>() {
-                    mapping.update_content_hash(&mut hasher);
-                  } else {
-                    hasher.write(&asset_content.buffer());
-                  }
+                  update_content_hash(asset_content.as_ref(), &mut hasher);
                 }
                 let new_hash = hasher.digest(&compilation.options.output.hash_digest);
 
@@ -337,8 +336,7 @@ struct AssetData<'a> {
   #[debug(skip)]
   content: Option<Cow<'a, str>>,
   #[debug(skip)]
-  mapping_matches: Vec<Match>,
-  mapping_size: usize,
+  streaming_matches: Option<Vec<Match>>,
   #[debug(skip)]
   new_source: OnceCell<BoxSource>,
   #[debug(skip)]
@@ -354,8 +352,22 @@ impl<'a> AssetData<'a> {
   ) -> Self {
     let mut own_hashes = HashSet::default();
     let mut referenced_hashes = HashSet::default();
-    if let Some(mapping) = source.as_any().downcast_ref::<MappingSource>() {
-      let mut mapping_matches = Vec::new();
+    // Cache wrappers are transparent; keep the outermost edit when scanning.
+    let mut inner = source.as_ref();
+    let mut edited = None;
+    loop {
+      if let Some(cache) = inner.as_any().downcast_ref::<CachedSource>() {
+        inner = cache.inner().as_ref();
+      } else if let Some(edit) = inner.as_any().downcast_ref::<ReplaceSource>() {
+        edited.get_or_insert(inner);
+        inner = edit.inner().as_ref();
+      } else {
+        break;
+      }
+    }
+    if inner.as_any().is::<DevToolCodeSource>() || inner.as_any().is::<DevToolMapSource>() {
+      let scan_source = edited.unwrap_or(inner);
+      let mut matches = Vec::new();
       let mut matcher = StreamingMatcher::new(hash_ac, |found| {
         let hash = hash_patterns[found.pattern().as_usize()];
         if info.content_hash.contains(hash) {
@@ -363,19 +375,27 @@ impl<'a> AssetData<'a> {
         } else {
           referenced_hashes.insert(hash);
         }
-        mapping_matches.push(found);
+        matches.push(found);
       });
-      mapping
-        .to_writer(&mut matcher)
-        .expect("scan source map JSON");
-      let mapping_size = matcher.finish();
+      if scan_source.as_any().is::<DevToolMapSource>() {
+        scan_source
+          .to_writer(&mut matcher)
+          .expect("scan devtool map");
+      } else {
+        // ReplaceSource applies these byte offsets to rope chunks.
+        scan_source.rope(&mut |chunk| {
+          matcher
+            .write_all(chunk.as_bytes())
+            .expect("scan devtool text");
+        });
+      }
+      matcher.finish();
       return Self {
         own_hashes,
         referenced_hashes,
         old_source: source,
         content: None,
-        mapping_matches,
-        mapping_size,
+        streaming_matches: Some(matches),
         new_source: OnceCell::new(),
         new_source_without_own: OnceCell::new(),
       };
@@ -402,8 +422,7 @@ impl<'a> AssetData<'a> {
       referenced_hashes,
       old_source: source,
       content,
-      mapping_matches: Vec::new(),
-      mapping_size: 0,
+      streaming_matches: None,
       new_source: OnceCell::new(),
       new_source_without_own: OnceCell::new(),
     }
@@ -422,9 +441,8 @@ impl<'a> AssetData<'a> {
       &self.new_source
     })
     .get_or_init(|| {
-      if let Some(mapping) = self.old_source.as_any().downcast_ref::<MappingSource>() {
-        let mut replacements = Vec::new();
-        for found in &self.mapping_matches {
+      if let Some(matches) = &self.streaming_matches {
+        let replacements = matches.iter().filter_map(|found| {
           let hash = hash_patterns[found.pattern().as_usize()];
           let replacement = if without_own && self.own_hashes.contains(hash) {
             ""
@@ -433,17 +451,34 @@ impl<'a> AssetData<'a> {
               .get(hash)
               .expect("RealContentHashPlugin: should have new hash")
           };
-          if replacement != hash {
-            replacements.push((found.start(), found.end(), replacement.to_owned()));
-          }
+          (replacement != hash).then_some((found.start(), found.end(), replacement))
+        });
+        if replacements.clone().next().is_none() {
+          return Arc::clone(self.old_source);
         }
-        return if replacements.is_empty() {
-          Arc::clone(self.old_source)
-        } else {
-          mapping
-            .with_replacements(replacements, self.mapping_size)
-            .boxed()
-        };
+        // ReplaceSource uses u32 offsets. Keep the previous flat fallback for
+        // an asset whose edits cannot be represented without truncation.
+        if replacements
+          .clone()
+          .all(|(_, end, _)| u32::try_from(end).is_ok())
+        {
+          let mut edited = ReplaceSource::new(Arc::clone(self.old_source));
+          for (start, end, replacement) in replacements {
+            edited.replace(start as u32, end as u32, replacement.to_owned(), None);
+          }
+          return edited.boxed();
+        }
+        let mut content = String::with_capacity(self.old_source.size());
+        self.old_source.rope(&mut |chunk| content.push_str(chunk));
+        let mut result = String::with_capacity(content.len());
+        let mut start = 0;
+        for (from, to, replacement) in replacements {
+          result.push_str(&content[start..from]);
+          result.push_str(replacement);
+          start = to;
+        }
+        result.push_str(&content[start..]);
+        return RawStringSource::from(result).boxed();
       }
       if let Some(content) = &self.content
         && (!self.own_hashes.is_empty()

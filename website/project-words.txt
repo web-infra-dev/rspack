@@ -274,6 +274,7 @@ wasi
 WASI
 weapp
 webpack
+webmcp
 wext
 xcode
 xcrun

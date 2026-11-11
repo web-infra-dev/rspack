@@ -401,7 +401,10 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     for dependency in self.module.get_dependencies() {
       if let Some(symbol) = dependency.downcast_ref::<CssIcssSymbolDependency>() {
         let value = match symbol.kind {
-          CssIcssSymbolKind::LocalDeclaration | CssIcssSymbolKind::LocalReference => {
+          CssIcssSymbolKind::LocalDeclaration
+          | CssIcssSymbolKind::LocalReference
+          | CssIcssSymbolKind::LocalGridStart
+          | CssIcssSymbolKind::LocalGridEnd => {
             let value = local_idents.entry(symbol.target).or_insert_with(|| {
               let definition =
                 css_export_dependency(context.compilation.get_module_graph(), &symbol.target);
@@ -414,12 +417,16 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
           }
         };
         if let Some(value) = value {
+          let mut value = value.to_owned();
+          match symbol.kind {
+            CssIcssSymbolKind::LocalGridStart => value.push_str("-start"),
+            CssIcssSymbolKind::LocalGridEnd => value.push_str("-end"),
+            _ => {}
+          }
           let range = symbol
             .range()
             .expect("CSS symbol should have a source range");
-          self
-            .css_output
-            .replace(range.start, range.end, value.to_owned(), None);
+          self.css_output.replace(range.start, range.end, value, None);
         }
       } else if dependency.dependency_type() != &DependencyType::CssIcssExport
         && let Some(dependency) = dependency.as_dependency_code_generation()

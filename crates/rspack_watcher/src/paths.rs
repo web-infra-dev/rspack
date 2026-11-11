@@ -773,6 +773,9 @@ impl PathManager {
           if self.forget_if_orphaned(&path) {
             break;
           }
+          if let Ok(mtime) = metadata.modified() {
+            mtime_accuracy(mtime);
+          }
           // watchpack's initial `setDirectory` checks the birthtime.
           if changed_since.is_some_and(|since| {
             metadata
@@ -848,12 +851,21 @@ impl PathManager {
       self.scan_below(recovered, true, None).await;
     }
 
-    if self.directories.all.contains(path) || !self.is_below_context(path) {
+    let registered_directory = self.directories.all.contains(path);
+    if !registered_directory && !self.is_below_context(path) {
       return true;
     }
     let Ok(metadata) = self.context_metadata(None, path) else {
       return true;
     };
+    if metadata.is_dir()
+      && let Ok(mtime) = metadata.modified()
+    {
+      mtime_accuracy(mtime);
+    }
+    if registered_directory {
+      return true;
+    }
     if metadata.is_dir() {
       // Like watchpack's `setDirectory`, only a directory not known before is
       // scanned: an event on a known one, e.g. a `chmod`, changes nothing below.
@@ -1009,7 +1021,7 @@ impl PathManager {
     let Some(current_mtime) = disk_mtime(path) else {
       return true;
     };
-    let mtime_ms = system_time_to_millis(current_mtime);
+    let mtime_ms = mtime_to_millis(current_mtime);
     if self.baselines.insert(path.clone(), Some(current_mtime)) == Some(Some(current_mtime))
       && mtime_ms.saturating_add(mtime_accuracy(current_mtime)) < current_time()
     {

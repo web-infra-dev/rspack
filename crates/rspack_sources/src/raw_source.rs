@@ -61,6 +61,10 @@ impl From<&str> for RawStringSource {
 }
 
 impl Source for RawStringSource {
+  fn mapped(&self) -> bool {
+    false
+  }
+
   fn source(&self) -> SourceValue<'_> {
     SourceValue::String(Cow::Borrowed(&self.0))
   }
@@ -204,6 +208,10 @@ impl From<&[u8]> for RawBufferSource {
 }
 
 impl Source for RawBufferSource {
+  fn mapped(&self) -> bool {
+    false
+  }
+
   fn source(&self) -> SourceValue<'_> {
     SourceValue::Buffer(Cow::Borrowed(&self.value))
   }
