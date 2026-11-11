@@ -76,8 +76,6 @@ export default {
 };
 ```
 
-要为确定性 Chunk id 设置种子，请设置 `chunkIds: false`，并在 `plugins` 中添加 `new rspack.ids.DeterministicChunkIdsPlugin({ salt: 42 })`。`salt` 是 32 位无符号整数，默认值为 `10`。输入和盐值相同时，多次构建会生成相同的 id。
-
 `compact-hashed` 选项使用稳定小写字母数字 hash 的最短可用前缀作为 Chunk id，兼顾长期缓存、产物体积和运行时性能。
 
 :::warning 已废弃的别名
