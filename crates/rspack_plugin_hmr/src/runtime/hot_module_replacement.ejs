@@ -292,18 +292,19 @@
 		return Promise.reject(new Error("Chunk loading failed because the update failed (" + currentStatus + ")"));
 	}
 	var waiting = currentStatus !== "idle";
-	if (!waiting && hash !== <%- GET_FULL_HASH %>()) return Promise.resolve();
+	var canCatchUp = currentStatus === "apply" && currentApply;
+	if ((!waiting || canCatchUp) && hash !== <%- GET_FULL_HASH %>()) return Promise.resolve();
 	var onStatus, timeout, promise;
 	if (currentCatchUp) {
 		promise = currentCatchUp.ready;
 		waiting = false;
-	} else if (currentStatus === "apply" && currentApply) {
+	} else if (canCatchUp) {
 		promise = catchUpDuringApply();
 		waiting = false;
 	} else if (waiting) {
 		promise = new Promise(function (resolve, reject) {
 			onStatus = function (status) {
-				if (status === "idle" || status === "abort" || status === "fail") resolve();
+				if (status === "apply" || status === "idle" || status === "abort" || status === "fail") resolve();
 			};
 			registeredStatusHandlers.push(onStatus);
 			// Download failures can reject check() without changing its status.
@@ -346,12 +347,12 @@
 		ready: new Promise(function (res, rej) { resolve = res; reject = rej; })
 	};
 	currentCatchUp = catchUp;
-	var check = internalCheck(true, function () {
+	var check = internalCheck(apply.options, function () {
 		// Factories and runtime are installed. Retry imports before awaiting
 		// accept callbacks, which may themselves await these imports.
 		if (currentCatchUp === catchUp) currentCatchUp = undefined;
 		resolve();
-	});
+	}, apply);
 	apply.catchUps.push(check);
 	var cleanup = function () {
 		if (currentCatchUp === catchUp) currentCatchUp = undefined;
@@ -375,7 +376,7 @@
 	return internalCheck(applyOnUpdate);
 }
 
-<%- fn("internalCheck") %>(applyOnUpdate, onApplied) {
+<%- fn("internalCheck") %>(applyOnUpdate, onApplied, parentApply) {
 	<% if (_is_hot_test) { %>
 	self.__HMR_UPDATED_RUNTIME__ = {
 		javascript: {
@@ -394,7 +395,7 @@
 		.then(<%- HMR_DOWNLOAD_MANIFEST %>)
 		.then(function (update) {
 			if (!update) {
-				return setStatus(currentApply ? "apply" : applyInvalidatedModules() ? "ready" : "idle").then(
+				return setStatus(parentApply || currentApply ? "apply" : applyInvalidatedModules() ? "ready" : "idle").then(
 					function () {
 						return null;
 					}
@@ -429,7 +430,7 @@
 				).then(function () {
 					return waitForBlockingPromises(function () {
 						if (applyOnUpdate) {
-							return internalApply(applyOnUpdate, onApplied);
+							return internalApply(applyOnUpdate, onApplied, parentApply);
 						}
 						return setStatus("ready").then(function () {
 							return updatedModules;
@@ -451,7 +452,7 @@
 	return internalApply(options);
 }
 
-<%- fn("internalApply") %>(options, onApplied) {
+<%- fn("internalApply") %>(options, onApplied, parentApply) {
 	options = options || {};
 	applyInvalidatedModules();
 	var results = currentUpdateApplyHandlers.map(function (handler) {
@@ -470,7 +471,7 @@
 		});
 	}
 
-	var apply = { parent: currentApply, catchUps: [], finished: false, failed: false };
+	var apply = { parent: parentApply || currentApply, options: options, catchUps: [], finished: false, failed: false };
 	var finish = function () {
 		apply.finished = true;
 		var failed = false;

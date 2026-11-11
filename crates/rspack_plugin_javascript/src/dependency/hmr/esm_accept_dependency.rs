@@ -152,11 +152,34 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
     let opt_async = if async_imports.is_empty() {
       ""
     } else {
-      let imports = async_imports.join(", ");
       let values = async_import_values.join(", ");
+      let changed = async_import_values
+        .iter()
+        .enumerate()
+        .map(|(index, value)| format!("__rspack_async_imports[{index}] !== ({value})"))
+        .collect::<Vec<_>>()
+        .join(" || ");
       content.push_str(&format!(
-        "var __rspack_async_deps = __rspack_load_async_deps([{values}]);\n([{imports}] = __rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps);\n{async_compat}"
+        "for (;;) {{\nvar __rspack_async_imports = [{values}];\ntry {{\nvar __rspack_async_deps = __rspack_load_async_deps(__rspack_async_imports);\nvar __rspack_async_deps_result = __rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps;\n}} catch (__rspack_async_error) {{\nif ({changed}) continue;\nthrow __rspack_async_error;\n}}\nif ({changed}) continue;\n"
       ));
+      if async_imports.len() == 1
+        || !compilation
+          .options
+          .output
+          .environment
+          .supports_destructuring()
+      {
+        for (index, import_var) in async_imports.iter().enumerate() {
+          content.push_str(&format!(
+            "{import_var} = __rspack_async_deps_result[{index}];\n"
+          ));
+        }
+      } else {
+        let imports = async_imports.join(", ");
+        content.push_str(&format!("([{imports}] = __rspack_async_deps_result);\n"));
+      }
+      content.push_str("break;\n}\n");
+      content.push_str(&async_compat);
       "async "
     };
 
