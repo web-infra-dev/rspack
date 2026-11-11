@@ -75,7 +75,7 @@ function blockNextAsyncChunkRead() {
 	};
 }
 
-it("should wait pending readFileVm remote chunk before clearing it", async () => {
+it("should reject pending readFileVm results after invalidation without restoring old caches", async () => {
 	const chunkControl = getChunkCacheControl();
 	const clearCalls = [];
 	const originalClear = chunkControl.clear;
@@ -106,13 +106,18 @@ it("should wait pending readFileVm remote chunk before clearing it", async () =>
 		await Promise.resolve();
 		expect(remoteServer.snapshot()).toEqual(beforeClear);
 
-		blockedRead.release();
-		await expect(oldRequest).resolves.toBe("pageA:./A:v1");
+		// Low-level invalidation fences old loads immediately. A server that must
+		// finish in-flight requests drains them before calling this API.
 		await removePromise;
+		const factoriesAfterClear = { ...__webpack_require__.m };
+		for (const chunkId of pendingRemoteChunkIds) {
+			expect(chunkControl.getState(chunkId)).toBeUndefined();
+			expect(clearCalls.some(call => call.result.includes(chunkId))).toBe(true);
+		}
 
-		expect(clearCalls).toEqual([
-			{ chunkIds: pendingRemoteChunkIds, result: pendingRemoteChunkIds }
-		]);
+		blockedRead.release();
+		await expect(oldRequest).rejects.toThrow("stale");
+		expect(__webpack_require__.m).toEqual(factoriesAfterClear);
 		for (const chunkId of pendingRemoteChunkIds) {
 			expect(chunkControl.getState(chunkId)).toBeUndefined();
 		}
