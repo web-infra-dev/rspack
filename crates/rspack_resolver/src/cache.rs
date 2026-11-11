@@ -410,7 +410,8 @@ impl CachedPathImpl {
     options: &ResolveOptions,
     ctx: &mut Ctx,
   ) -> Result<Option<Arc<PackageJson>>, ResolveError> {
-    if options.symlinks && ctx.file_dependencies.is_some() {
+    if options.symlinks && ctx.file_dependencies.is_some() && !options.relocatable_roots.is_empty()
+    {
       let fixed = self.has_symlink_below(fs, &ctx.issuer).await;
       ctx.fixed_dependencies |= fixed;
     }

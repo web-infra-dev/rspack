@@ -801,7 +801,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     ctx: &mut Ctx,
   ) -> Result<Utf8PathBuf, ResolveError> {
     if self.options.symlinks {
-      if ctx.file_dependencies.is_some() {
+      if ctx.file_dependencies.is_some() && !self.options.relocatable_roots.is_empty() {
         let fixed = cached_path
           .has_symlink_below(&self.cache.fs, &ctx.issuer)
           .await;

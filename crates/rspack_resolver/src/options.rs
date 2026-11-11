@@ -4,7 +4,7 @@ use std::{
   sync::Arc,
 };
 
-use camino::Utf8Path;
+use camino::{Utf8Path, Utf8PathBuf};
 
 use crate::path::PathUtil;
 
@@ -174,6 +174,12 @@ pub struct ResolveOptions {
   ///
   /// Default `false`
   pub node_path: bool,
+
+  /// The roots of a portable persistent cache. The resolver looks for symlinks only when this is
+  /// set, because no other build reads which of its dependencies are fixed.
+  ///
+  /// Default `[]`
+  pub relocatable_roots: Vec<Utf8PathBuf>,
 }
 
 impl ResolveOptions {
@@ -523,6 +529,7 @@ impl Default for ResolveOptions {
       symlinks: true,
       builtin_modules: false,
       node_path: false,
+      relocatable_roots: vec![],
     }
   }
 }
@@ -677,6 +684,7 @@ mod test {
       symlinks: false,
       tsconfig: None,
       node_path: false,
+      relocatable_roots: vec![],
     };
 
     assert_eq!(format!("{options}"), "");
