@@ -7,6 +7,7 @@ mod scanner;
 mod symlinks;
 mod time;
 mod trigger;
+mod watch_plan;
 
 #[cfg(feature = "testing")]
 #[doc(hidden)]
@@ -33,6 +34,7 @@ use rspack_util::fx_hash::FxHashSet as HashSet;
 use scanner::Scanner;
 use tokio::sync::{mpsc, oneshot};
 use trigger::Trigger;
+use watch_plan::WatchPlan;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct WatchPattern {
@@ -454,7 +456,8 @@ impl FsWatcherInner {
     let rescan_patterns = (self.path_manager.follows_symlinks()
       && (!retargeted.is_empty() || !self.path_manager.access().directories().1.is_empty()))
     .then(|| watch_patterns.clone());
-    if let Err(error) = self.disk_watcher.watch(watch_patterns.into_iter()) {
+    let plan = WatchPlan::new(watch_patterns, self.path_manager.follows_symlinks());
+    if let Err(error) = self.disk_watcher.apply_plan(plan) {
       self.analyzer.invalidate_all();
       return Err(error);
     }
@@ -464,7 +467,8 @@ impl FsWatcherInner {
       .await;
     if let Some(mut watch_patterns) = rescan_patterns {
       watch_patterns.extend(self.path_manager.refresh_symlinks().await.0);
-      if let Err(error) = self.disk_watcher.watch(watch_patterns.into_iter()) {
+      let plan = WatchPlan::new(watch_patterns, self.path_manager.follows_symlinks());
+      if let Err(error) = self.disk_watcher.apply_plan(plan) {
         self.analyzer.invalidate_all();
         return Err(error);
       }
@@ -480,7 +484,7 @@ impl FsWatcherInner {
     // registers the underlying inotify/FSEvents watch synchronously, so once it
     // returns every later change is delivered as a live event. Scanning here
     // closes a startup race: previously the scan ran (in spawned tasks) before
-    // `disk_watcher.watch()`, so it could snapshot a file's mtime before the
+    // applying the watch plan, so it could snapshot a file's mtime before the
     // watch was active. A change landing in that gap was seen by neither path —
     // the scan read the pre-change mtime, and the watch was not yet active to
     // deliver the event — so no rebuild was triggered. With this order, a change

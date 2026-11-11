@@ -6,10 +6,12 @@ use notify::{
   Event, EventKind, RecommendedWatcher, Watcher,
   event::{ModifyKind, RenameMode},
 };
-use rspack_paths::{InternedPath, InternedPathMap};
+use rspack_paths::InternedPath;
+#[cfg(target_os = "linux")]
+use rspack_paths::InternedPathMap;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
-use crate::{FsEventKind, WatchPattern, analyzer::Analyzer, trigger};
+use crate::{FsEventKind, WatchPattern, analyzer::Analyzer, trigger, watch_plan::WatchPlan};
 
 /// `DiskWatcher` is responsible for managing the underlying file system watcher
 /// and keeping track of the currently watched paths.
@@ -18,7 +20,6 @@ pub struct DiskWatcher {
   inner: Option<RecommendedWatcher>,
   /// The patterns currently registered with the backend.
   watch_patterns: HashSet<WatchPattern>,
-  follow_symlinks: bool,
   #[cfg(target_os = "linux")]
   directory_identities: Option<InternedPathMap<(u64, u64)>>,
 }
@@ -30,6 +31,8 @@ impl DiskWatcher {
     poll_interval: Option<u32>,
     trigger: Arc<trigger::Trigger>,
   ) -> Self {
+    #[cfg(not(target_os = "linux"))]
+    let _ = follow_symlinks;
     let config = match poll_interval {
       Some(poll) => notify::Config::default()
         .with_follow_symlinks(false)
@@ -53,42 +56,18 @@ impl DiskWatcher {
     DiskWatcher {
       inner: Some(inner),
       watch_patterns: HashSet::default(),
-      follow_symlinks,
       #[cfg(target_os = "linux")]
       directory_identities: follow_symlinks.then(InternedPathMap::default),
     }
   }
 
-  /// Watches the given path with the specified recursive mode.
+  /// Applies prepared backend paths without changing their spelling or modes.
   ///
   /// # Returns
   ///
   /// * `rspack_error::Result<()>` - Ok if successful, otherwise an error.
-  pub fn watch(
-    &mut self,
-    patterns: impl Iterator<Item = WatchPattern>,
-  ) -> rspack_error::Result<()> {
-    // Register each physical directory once: inotify aliases share a descriptor
-    // and registering one overwrites the other's event path.
-    // Windows prefixes events with the supplied watch root. Keep its spelling
-    // consistent with the link index, including short names and casing.
-    let mut new_patterns = InternedPathMap::default();
-    for mut pattern in patterns {
-      if self.follow_symlinks
-        && !cfg!(target_os = "windows")
-        && let Ok(real) = dunce::canonicalize(&pattern.path)
-      {
-        pattern.path = real.into();
-      }
-      new_patterns
-        .entry(pattern.path)
-        .and_modify(|mode| {
-          if pattern.mode == notify::RecursiveMode::Recursive {
-            *mode = pattern.mode;
-          }
-        })
-        .or_insert(pattern.mode);
-    }
+  pub(crate) fn apply_plan(&mut self, plan: WatchPlan) -> rspack_error::Result<()> {
+    let new_patterns = plan.into_patterns();
 
     // Collect stale paths that are no longer needed, then unwatch and remove them.
     let stale_paths: HashSet<InternedPath> = self
@@ -199,6 +178,11 @@ impl DiskWatcher {
   pub fn close(&mut self) {
     // the trigger.tx is dropped in the FsWatcher
     std::mem::drop(self.inner.take());
+  }
+
+  #[cfg(test)]
+  fn watch(&mut self, patterns: impl Iterator<Item = WatchPattern>) -> rspack_error::Result<()> {
+    self.apply_plan(WatchPlan::new(patterns, false))
   }
 }
 

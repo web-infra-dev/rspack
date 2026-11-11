@@ -47,6 +47,8 @@ jobs:
         run: pnpm run build:js
       - name: Verify original, canonical, and lowercase paths
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-path-identity
+      - name: Verify watch path preparation and recursive coverage
+        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-watch-plan
 
   watcher-rename-windows:
     name: Native watcher rename regression (Windows)
