@@ -126,6 +126,18 @@ impl StrategyHelper {
     }
   }
 
+  /// whether the path does not exist
+  pub async fn is_missing(&self, path: &InternedPath) -> bool {
+    matches!(
+      self.fs.metadata(path.assert_utf8()).await,
+      Err(rspack_fs::Error::Io(error))
+        if matches!(
+          error.kind(),
+          std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory
+        )
+    )
+  }
+
   /// get path file package version strategy
   pub async fn package_version(&self, path: &InternedPath) -> Option<Strategy> {
     self
