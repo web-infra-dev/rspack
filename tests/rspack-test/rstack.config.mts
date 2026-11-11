@@ -149,8 +149,16 @@ define.test(() => {
       {
         extends: sharedConfig,
         name: 'base',
-        exclude: ['NativeWatcher*.test.{js,mjs}'],
+        exclude: ['NativeWatcher*.test.{js,mjs}', 'Compiler.test.mjs'],
       },
+      ...Array.from({ length: 3 }, (_, index) => ({
+        extends: sharedConfig,
+        name: `compiler-${index + 1}`,
+        include: process.env.WASM ? [] : ['Compiler.test.mjs'],
+        env: {
+          RSPACK_COMPILER_SHARD: `${index}/3`,
+        },
+      })),
       {
         extends: sharedConfig,
         name: 'hottest',
