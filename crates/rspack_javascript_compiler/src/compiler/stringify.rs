@@ -9,7 +9,7 @@ use rspack_sources::{
   SourceMapSourceOptions,
 };
 use rspack_util::source_map::SourceMapKind;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use source_map_writer::SourceMapWriter;
 use swc_core::{
   common::{
@@ -62,8 +62,8 @@ impl SourceMapConfig {
     self.source_map_kind.emit_columns()
   }
 
-  fn name_for_bytepos(&self, pos: BytePos) -> Option<&str> {
-    self.names.get(&pos).map(|v| &**v)
+  fn name_for_bytepos(&self, pos: BytePos) -> Option<&Atom> {
+    self.names.get(&pos)
   }
 
   fn skip(&self, f: &FileName) -> bool {
@@ -114,25 +114,21 @@ impl JavaScriptCompiler {
 
     let mut source_map_generator = source_map_config
       .enabled()
-      .then(|| SourceMapGenerator::new(&source_map, &source_map_config, input_source_map));
+      .then(|| SourceMapGenerator::new(&source_map, source_map_config, input_source_map));
     let src = {
       let mut buf = Vec::with_capacity(source_len as usize);
       {
-        let mut wr: Box<dyn WriteJs> = if let Some(generator) = &mut source_map_generator {
+        let wr: Box<dyn WriteJs> = if let Some(generator) = &mut source_map_generator {
           let mut writer = SourceMapWriter::new(&mut buf, |position, location| {
             generator.add_mapping(position, location);
           });
           writer.preamble(preamble)?;
-          Box::new(writer)
+          into_box_writer(writer, minify)
         } else {
           let mut writer = text_writer::JsWriter::new(source_map.clone(), "\n", &mut buf, None);
           writer.preamble(preamble)?;
-          Box::new(writer)
+          into_box_writer(writer, minify)
         };
-
-        if minify {
-          wr = Box::new(text_writer::omit_trailing_semi(wr));
-        }
 
         let mut emitter = Emitter {
           cfg: codegen::Config::default()
@@ -160,11 +156,19 @@ impl JavaScriptCompiler {
   }
 }
 
+fn into_box_writer<'a>(writer: impl WriteJs + 'a, minify: bool) -> Box<dyn WriteJs + 'a> {
+  if minify {
+    Box::new(text_writer::omit_trailing_semi(writer))
+  } else {
+    Box::new(writer)
+  }
+}
+
 struct SourceMapGenerator<'a> {
   swc_cm: &'a SwcSourceMap,
-  config: &'a SourceMapConfig,
+  config: SourceMapConfig,
   input_source_map: Option<SourceMap>,
-  builder: RspackSourceMapBuilder<'a>,
+  builder: RspackSourceMapBuilder,
   encoder: FullMappingsEncoder,
   cur_file: Option<Lrc<SourceFile>>,
   cur_src_id: u32,
@@ -175,7 +179,7 @@ struct SourceMapGenerator<'a> {
 impl<'a> SourceMapGenerator<'a> {
   fn new(
     swc_cm: &'a SwcSourceMap,
-    config: &'a SourceMapConfig,
+    config: SourceMapConfig,
     input_source_map: Option<SourceMap>,
   ) -> Self {
     Self {
@@ -228,7 +232,7 @@ impl<'a> SourceMapGenerator<'a> {
         }
 
         self.cur_src_id = self.builder.add_source(
-          Cow::Owned(self.config.file_name_to_source(&file.name)),
+          self.config.file_name_to_source(&file.name),
           self
             .config
             .inline_sources_content(&file.name)
@@ -272,8 +276,18 @@ impl<'a> SourceMapGenerator<'a> {
   }
 
   fn finish(self, generated_code: &str) -> Option<SourceMap> {
-    let intermediate_map = self.builder.into_source_map(self.encoder.finish());
-    if let Some(input_source_map) = self.input_source_map {
+    let Self {
+      config,
+      input_source_map,
+      builder,
+      encoder,
+      ..
+    } = self;
+    let emit_columns = config.source_map_kind.emit_columns();
+    drop(config);
+
+    let intermediate_map = builder.into_source_map(encoder.finish());
+    if let Some(input_source_map) = input_source_map {
       let name = intermediate_map
         .get_source(0)
         .map(ToString::to_string)
@@ -286,7 +300,7 @@ impl<'a> SourceMapGenerator<'a> {
         inner_source_map: Some(input_source_map),
         remove_original_source: true,
       })
-      .map(&MapOptions::new(self.config.source_map_kind.emit_columns()))
+      .map(&MapOptions::new(emit_columns))
     } else {
       Some(intermediate_map)
     }
@@ -294,61 +308,60 @@ impl<'a> SourceMapGenerator<'a> {
 }
 
 #[derive(Default)]
-struct RspackSourceMapBuilder<'a> {
+struct RspackSourceMapBuilder {
+  sources: Vec<BytesStr>,
   sources_content: Vec<Option<BytesStr>>,
-  source_indices: FxHashMap<Cow<'a, str>, u32>,
-  name_indices: FxHashMap<Cow<'a, str>, u32>,
-  ignore_list: FxHashSet<u32>,
+  source_indices: FxHashMap<BytesStr, u32>,
+  names: Vec<BytesStr>,
+  name_indices: FxHashMap<Atom, u32>,
+  ignore_list: Vec<u32>,
 }
 
-impl<'a> RspackSourceMapBuilder<'a> {
-  fn add_source(&mut self, source: Cow<'a, str>, source_content: Option<BytesStr>) -> u32 {
-    if let Some(index) = self.source_indices.get(source.as_ref()) {
-      return *index;
+impl RspackSourceMapBuilder {
+  fn add_source(&mut self, source: String, source_content: Option<BytesStr>) -> u32 {
+    if let Some(&index) = self.source_indices.get(source.as_str()) {
+      return index;
     }
 
-    let index = self.source_indices.len() as u32;
+    let source = BytesStr::from_string(source);
+    let index = self.sources.len() as u32;
+    self.sources.push(source.clone());
     self.sources_content.push(source_content);
     self.source_indices.insert(source, index);
     index
   }
 
   fn add_to_ignore_list(&mut self, source_index: u32) {
-    self.ignore_list.insert(source_index);
+    self.ignore_list.push(source_index);
   }
 
-  fn add_name(&mut self, name: &'a str) -> u32 {
-    if let Some(index) = self.name_indices.get(name) {
-      return *index;
+  fn add_name(&mut self, name: &Atom) -> u32 {
+    if let Some(&index) = self.name_indices.get(name) {
+      return index;
     }
 
-    let index = self.name_indices.len() as u32;
-    self.name_indices.insert(Cow::Borrowed(name), index);
+    let index = self.names.len() as u32;
+    self.names.push(BytesStr::from_str_slice(name));
+    self.name_indices.insert(name.clone(), index);
     index
   }
 
-  fn into_source_map(self, mappings: String) -> SourceMap {
+  fn into_source_map(mut self, mappings: String) -> SourceMap {
+    drop(self.source_indices);
+    drop(self.name_indices);
     let mut source_map = SourceMap::new(
       mappings.into(),
-      ordered_texts(self.source_indices),
+      self.sources,
       self.sources_content,
-      ordered_texts(self.name_indices),
+      self.names,
     );
     if !self.ignore_list.is_empty() {
-      let mut ignore_list = self.ignore_list.into_iter().collect::<Vec<_>>();
-      ignore_list.sort_unstable();
-      source_map.set_ignore_list(Some(Cow::Owned(ignore_list)));
+      self.ignore_list.sort_unstable();
+      self.ignore_list.dedup();
+      source_map.set_ignore_list(Some(Cow::Owned(self.ignore_list)));
     }
     source_map
   }
-}
-
-fn ordered_texts(entries: FxHashMap<Cow<'_, str>, u32>) -> Vec<BytesStr> {
-  let mut ordered = vec![BytesStr::new(); entries.len()];
-  for (value, index) in entries {
-    ordered[index as usize] = value.into_owned().into();
-  }
-  ordered
 }
 
 #[derive(Default)]
@@ -505,7 +518,9 @@ impl Visit for IdentCollector {
   noop_visit_type!();
 
   fn visit_ident(&mut self, ident: &Ident) {
-    self.names.insert(ident.span.lo, ident.sym.clone());
+    if !ident.span.lo.is_dummy() && !ident.span.lo.is_reserved_for_comments() {
+      self.names.insert(ident.span.lo, ident.sym.clone());
+    }
   }
 }
 
@@ -526,7 +541,7 @@ mod tests {
     config: &SourceMapConfig,
     generated_code: &str,
   ) -> Option<SourceMap> {
-    let mut generator = SourceMapGenerator::new(swc_cm, config, input_source_map);
+    let mut generator = SourceMapGenerator::new(swc_cm, config.clone(), input_source_map);
     for &(position, location) in mappings {
       generator.add_mapping(position, location);
     }

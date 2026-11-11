@@ -114,9 +114,7 @@ impl FullMappingsEncoder {
     mappings.shrink_to_fit();
     mappings
   }
-}
 
-impl FullMappingsEncoder {
   /// Encodes one mapping without retaining its decoded representation.
   #[inline(always)]
   pub fn encode(&mut self, mapping: &Mapping) {

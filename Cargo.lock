@@ -4558,16 +4558,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_javascript_compiler_testing"
-version = "0.103.1"
-dependencies = [
- "memchr",
- "rspack_sources",
- "rustc-hash",
- "swc_core",
-]
-
-[[package]]
 name = "rspack_loader_lightningcss"
 version = "0.103.1"
 dependencies = [

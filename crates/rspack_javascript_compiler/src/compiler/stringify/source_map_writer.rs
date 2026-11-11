@@ -1,15 +1,13 @@
-// SPDX-License-Identifier: Apache-2.0
-// Adapted from swc_ecma_codegen 33.0.0's JsWriter, originally ported from
-// TypeScript's createTextWriter. Copyright the SWC contributors.
-// https://docs.rs/crate/swc_ecma_codegen/33.0.0/source/src/text_writer/basic_impl.rs
-// Changes: mapping deduplication is scoped to the current output position;
-// indentation and newlines use Rspack's fixed settings; scope tracking is omitted.
-// See ../../../LICENSE-APACHE for the license.
-
+/**
+ * Some code is modified based on
+ * https://github.com/swc-project/swc/blob/v33.0.0/crates/swc_ecma_codegen/src/text_writer/basic_impl.rs
+ * Apache-2.0 licensed
+ * Author Donny/강동윤
+ * Copyright (c)
+ */
 use std::io::{self, Write};
 
 use memchr::memchr2;
-use rustc_hash::FxHashSet;
 use swc_core::{
   common::{BytePos, LineCol, Span},
   ecma::codegen::text_writer::WriteJs,
@@ -23,8 +21,9 @@ pub(super) struct SourceMapWriter<W, F> {
   line: usize,
   column: usize,
   pending_mapping: Option<BytePos>,
-  mapping_position: Option<(usize, usize)>,
-  seen_positions: FxHashSet<BytePos>,
+  last_mapping_loc: LineCol,
+  last_source: BytePos,
+  extra_sources: Vec<BytePos>,
 }
 
 impl<W: Write, F: FnMut(BytePos, LineCol)> SourceMapWriter<W, F> {
@@ -37,8 +36,12 @@ impl<W: Write, F: FnMut(BytePos, LineCol)> SourceMapWriter<W, F> {
       line: 0,
       column: 0,
       pending_mapping: None,
-      mapping_position: None,
-      seen_positions: Default::default(),
+      last_mapping_loc: LineCol {
+        line: u32::MAX,
+        col: u32::MAX,
+      },
+      last_source: BytePos::DUMMY,
+      extra_sources: Vec::new(),
     }
   }
 
@@ -48,6 +51,7 @@ impl<W: Write, F: FnMut(BytePos, LineCol)> SourceMapWriter<W, F> {
     Ok(())
   }
 
+  #[inline]
   fn write(&mut self, span: Option<Span>, text: &str) -> io::Result<()> {
     if text.is_empty() {
       return Ok(());
@@ -73,114 +77,120 @@ impl<W: Write, F: FnMut(BytePos, LineCol)> SourceMapWriter<W, F> {
     Ok(())
   }
 
+  #[inline]
   fn update_position(&mut self, text: &str) {
-    if text.is_empty() {
-      return;
-    }
     let bytes = text.as_bytes();
-    if bytes.len() == 1 {
-      match bytes[0] {
-        b'\r' | b'\n' => {
-          self.line += 1;
-          self.column = 0;
-        }
-        _ => self.column += 1,
+    match bytes {
+      [] => return,
+      [b'\r' | b'\n'] => {
+        self.line += 1;
+        self.column = 0;
+        return;
       }
-      return;
-    }
-    if memchr2(b'\r', b'\n', bytes).is_none() {
-      self.column += if text.is_ascii() {
-        bytes.len()
-      } else {
-        text.encode_utf16().count()
-      };
-      return;
+      [_] => {
+        self.column += 1;
+        return;
+      }
+      _ => {}
     }
 
-    let mut position = 0;
     let mut line_start = 0;
-    while position < bytes.len() {
-      match bytes[position] {
-        b'\r' => {
-          self.line += 1;
-          position += 1;
-          if position < bytes.len() && bytes[position] == b'\n' {
-            position += 1;
-          }
-          line_start = position;
-        }
-        b'\n' => {
-          self.line += 1;
-          position += 1;
-          line_start = position;
-        }
-        _ => position += 1,
-      }
+    while let Some(offset) = memchr2(b'\r', b'\n', &bytes[line_start..]) {
+      let pos = line_start + offset;
+      self.line += 1;
+      line_start = if bytes[pos] == b'\r' && bytes.get(pos + 1) == Some(&b'\n') {
+        pos + 2
+      } else {
+        pos + 1
+      };
     }
-    self.column = if text.is_ascii() {
-      bytes.len() - line_start
+
+    let tail = &text[line_start..];
+    if line_start == 0 {
+      self.column += utf16_columns(tail);
     } else {
-      text[line_start..].encode_utf16().count()
-    };
+      self.column = utf16_columns(tail);
+    }
   }
 
+  #[inline]
   fn record_mapping(&mut self, source: BytePos) {
     if source.is_dummy() && source != BytePos(u32::MAX) {
       return;
     }
-    let position = (self.line, self.column);
-    if self.mapping_position != Some(position) {
-      // Generated positions only advance, so an earlier position cannot be a duplicate.
-      self.seen_positions.clear();
-      self.mapping_position = Some(position);
+    let loc = LineCol {
+      line: self.line as u32,
+      col: self.column as u32,
+    };
+    if self.last_mapping_loc != loc {
+      // Generated positions only advance, so earlier positions cannot recur.
+      self.last_mapping_loc = loc;
+      self.last_source = source;
+      self.extra_sources.clear();
+      (self.on_mapping)(source, loc);
+      return;
     }
-    if self.seen_positions.insert(source) {
-      (self.on_mapping)(
-        source,
-        LineCol {
-          line: self.line as u32,
-          col: self.column as u32,
-        },
-      );
+    if self.last_source == source || self.extra_sources.contains(&source) {
+      return;
     }
+    self.extra_sources.push(source);
+    (self.on_mapping)(source, loc);
+  }
+}
+
+#[inline]
+fn utf16_columns(text: &str) -> usize {
+  if text.is_ascii() {
+    text.len()
+  } else {
+    rspack_sources::utf16_len(text)
   }
 }
 
 impl<W: Write, F: FnMut(BytePos, LineCol)> WriteJs for SourceMapWriter<W, F> {
+  #[inline]
   fn increase_indent(&mut self) -> io::Result<()> {
     self.indent += 1;
     Ok(())
   }
 
+  #[inline]
   fn decrease_indent(&mut self) -> io::Result<()> {
     self.indent -= 1;
     Ok(())
   }
 
+  #[inline]
   fn write_semi(&mut self, span: Option<Span>) -> io::Result<()> {
     self.write(span, ";")
   }
 
+  #[inline]
   fn write_space(&mut self) -> io::Result<()> {
     self.write(None, " ")
   }
 
+  #[inline]
   fn write_keyword(&mut self, span: Option<Span>, text: &'static str) -> io::Result<()> {
     self.write(span, text)
   }
 
+  #[inline]
   fn write_operator(&mut self, span: Option<Span>, text: &str) -> io::Result<()> {
     self.write(span, text)
   }
 
+  #[inline]
   fn write_param(&mut self, text: &str) -> io::Result<()> {
     self.write(None, text)
   }
 
+  #[inline]
   fn write_property(&mut self, text: &str) -> io::Result<()> {
     self.write(None, text)
   }
 
+  #[inline]
   fn write_line(&mut self) -> io::Result<()> {
     let pending = self.pending_mapping.take();
     if !self.line_start {
@@ -195,6 +205,7 @@ impl<W: Write, F: FnMut(BytePos, LineCol)> WriteJs for SourceMapWriter<W, F> {
     Ok(())
   }
 
+  #[inline]
   fn write_lit(&mut self, span: Span, text: &str) -> io::Result<()> {
     if !text.is_empty() {
       self.record_mapping(span.lo());
@@ -204,22 +215,27 @@ impl<W: Write, F: FnMut(BytePos, LineCol)> WriteJs for SourceMapWriter<W, F> {
     Ok(())
   }
 
+  #[inline]
   fn write_comment(&mut self, text: &str) -> io::Result<()> {
     self.write(None, text)
   }
 
+  #[inline]
   fn write_str_lit(&mut self, span: Span, text: &str) -> io::Result<()> {
     self.write_lit(span, text)
   }
 
+  #[inline]
   fn write_str(&mut self, text: &str) -> io::Result<()> {
     self.write(None, text)
   }
 
+  #[inline]
   fn write_symbol(&mut self, span: Span, text: &str) -> io::Result<()> {
     self.write(Some(span), text)
   }
 
+  #[inline]
   fn write_punct(
     &mut self,
     span: Option<Span>,
@@ -229,10 +245,12 @@ impl<W: Write, F: FnMut(BytePos, LineCol)> WriteJs for SourceMapWriter<W, F> {
     self.write(span, text)
   }
 
+  #[inline]
   fn care_about_srcmap(&self) -> bool {
     true
   }
 
+  #[inline]
   fn add_srcmap(&mut self, position: BytePos) -> io::Result<()> {
     if self.line_start {
       self.pending_mapping = Some(position);
@@ -242,6 +260,7 @@ impl<W: Write, F: FnMut(BytePos, LineCol)> WriteJs for SourceMapWriter<W, F> {
     Ok(())
   }
 
+  #[inline]
   fn commit_pending_semi(&mut self) -> io::Result<()> {
     Ok(())
   }

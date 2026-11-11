@@ -903,11 +903,55 @@ fn stream_chunks_of_source_map_lines_full<'chunk>(
   }
 }
 
-#[derive(Debug)]
-struct InnerMapping<'a> {
+const NONE_INDEX: u32 = u32::MAX;
+
+#[derive(Clone, Copy, Debug)]
+struct InnerMapping {
   generated_column: u32,
-  original: Option<OriginalLocation>,
-  chunk: &'a str,
+  chunk_start: u32,
+  chunk_len: u32,
+  source_index: u32,
+  original_line: u32,
+  original_column: u32,
+  name_index: u32,
+}
+
+#[derive(Default)]
+struct InnerSourceMapLineData {
+  // 1-based line `l` spans `mappings[line_starts[l - 1]..line_starts[l]]`.
+  line_starts: Vec<u32>,
+  mappings: Vec<InnerMapping>,
+}
+
+impl InnerSourceMapLineData {
+  fn clear(&mut self) {
+    self.line_starts.clear();
+    self.mappings.clear();
+  }
+
+  fn push(&mut self, generated_line: u32, mapping: InnerMapping) {
+    let line = generated_line as usize;
+    if self.line_starts.is_empty() {
+      self.line_starts.push(0);
+    }
+    if self.line_starts.len() <= line {
+      let current_len = self.mappings.len() as u32;
+      self.line_starts.resize(line + 1, current_len);
+    }
+    debug_assert_eq!(self.line_starts.len(), line + 1);
+    self.mappings.push(mapping);
+    self.line_starts[line] = self.mappings.len() as u32;
+  }
+
+  fn find(&self, line: i64, column: i64) -> Option<InnerMapping> {
+    let line = usize::try_from(line).ok()?;
+    let line_idx = line.checked_sub(1)?;
+    let start = *self.line_starts.get(line_idx)? as usize;
+    let end = *self.line_starts.get(line_idx + 1)? as usize;
+    let mappings = &self.mappings[start..end];
+    let idx = mappings.partition_point(|m| i64::from(m.generated_column) <= column);
+    idx.checked_sub(1).map(|i| mappings[i])
+  }
 }
 
 type InnerSourceIndexValueMapping = LinearMap<(BytesStr, Option<BytesStr>)>;
@@ -943,29 +987,8 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
   let inner_name_index_mapping: RefCell<LinearMap<i64>> = RefCell::new(LinearMap::default());
   let inner_name_index_value_mapping: RefCell<LinearMap<BytesStr>> =
     RefCell::new(LinearMap::default());
-  let inner_source_map_line_data: RefCell<Vec<Vec<InnerMapping>>> = RefCell::new(Vec::new());
-
-  let find_inner_mapping = |line: i64, column: i64| -> Option<u32> {
-    let inner_source_map_line_data = inner_source_map_line_data.borrow();
-    if line as usize > inner_source_map_line_data.len() {
-      return None;
-    }
-    let mappings = &inner_source_map_line_data[line as usize - 1];
-    let mut l = 0;
-    let mut r = mappings.len();
-    while l < r {
-      let m = (l + r) >> 1;
-      if i64::from(mappings[m].generated_column) <= column {
-        l = m + 1;
-      } else {
-        r = m;
-      }
-    }
-    if l == 0 {
-      return None;
-    }
-    Some(l as u32 - 1)
-  };
+  let inner_source_map_line_data: RefCell<InnerSourceMapLineData> =
+    RefCell::new(InnerSourceMapLineData::default());
 
   stream_chunks_of_source_map(
     options,
@@ -996,17 +1019,21 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
         let source_index = source_index as u32;
 
         // Check if there is a mapping in the inner source
-        if let Some(idx) = find_inner_mapping(original_line, original_column) {
-          let inner_source_map_line_data = inner_source_map_line_data.borrow();
-          let inner_mapping = &inner_source_map_line_data[original_line as usize - 1][idx as usize];
-          if let Some(original) = inner_mapping.original {
-            let inner_source_index = original.source_index;
-            let inner_original_line = original.original_line;
-            let mut inner_original_column = i64::from(original.original_column);
-            let mut inner_name_index = original.name_index.map_or(-1, i64::from);
+        if let Some(inner_mapping) = inner_source_map_line_data
+          .borrow()
+          .find(original_line, original_column)
+        {
+          if inner_mapping.source_index != NONE_INDEX {
+            let inner_source_index = inner_mapping.source_index;
+            let inner_original_line = inner_mapping.original_line;
+            let mut inner_original_column = i64::from(inner_mapping.original_column);
+            let mut inner_name_index = if inner_mapping.name_index == NONE_INDEX {
+              -1
+            } else {
+              i64::from(inner_mapping.name_index)
+            };
             // Check for an identity mapping
             // where we are allowed to adjust the original column
-            let inner_chunk = inner_mapping.chunk;
             let location_in_chunk = original_column - i64::from(inner_mapping.generated_column);
             if location_in_chunk > 0 {
               let inner_source_content_lines = inner_source_content_lines.borrow_mut();
@@ -1032,6 +1059,11 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
                     lines.substring(start, end)
                   });
                 if let Some(original_chunk) = original_chunk {
+                  let inner_source_text =
+                    inner_source.borrow().expect("inner source exists").as_str();
+                  let chunk_start = inner_mapping.chunk_start as usize;
+                  let inner_chunk =
+                    &inner_source_text[chunk_start..chunk_start + inner_mapping.chunk_len as usize];
                   if original_chunk.len() <= inner_chunk.len()
                     && inner_chunk
                       .get(..original_chunk.len())
@@ -1265,35 +1297,49 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source>(
         let Some(source_content) = *inner_source else {
           return;
         };
+        let source_text = source_content.as_str();
+        let mut line_data = inner_source_map_line_data.borrow_mut();
+        line_data.clear();
         stream_chunks_of_source_map(
           &MapOptions {
             columns: options.columns,
             final_source: false,
           },
-          TextSpan::new(source_content.as_str()),
+          TextSpan::new(source_text),
           inner_source_map,
           &mut |chunk, mapping| {
-            let mut inner_source_map_line_data = inner_source_map_line_data.borrow_mut();
-            let inner_source_map_line_data_len = inner_source_map_line_data.len();
-            let mapping_generated_line_len = mapping.generated_line as usize;
-            if inner_source_map_line_data_len <= mapping_generated_line_len {
-              inner_source_map_line_data
-                .reserve(mapping_generated_line_len - inner_source_map_line_data_len + 1);
-              while inner_source_map_line_data.len() <= mapping_generated_line_len {
-                inner_source_map_line_data.push(Vec::new());
-              }
-            }
-            let data = &mut inner_source_map_line_data[mapping.generated_line as usize - 1];
-            if data.is_empty() {
-              // Many lines have only one or two mappings; start small to avoid unused records.
-              data.reserve_exact(2);
-            }
-            data.push(InnerMapping {
-              generated_column: mapping.generated_column,
-              original: mapping.original,
-              // final_source is false, so every mapping has a chunk.
-              chunk: chunk.unwrap().as_str(),
-            });
+            // final_source is false, so every mapping has a chunk.
+            let chunk = chunk.unwrap().as_str();
+            let (chunk_start, chunk_len) = if chunk.is_empty() {
+              (0, 0)
+            } else {
+              (
+                (chunk.as_ptr() as usize - source_text.as_ptr() as usize) as u32,
+                chunk.len() as u32,
+              )
+            };
+            let (source_index, original_line, original_column, name_index) = match mapping.original
+            {
+              Some(original) => (
+                original.source_index,
+                original.original_line,
+                original.original_column,
+                original.name_index.unwrap_or(NONE_INDEX),
+              ),
+              None => (NONE_INDEX, 0, 0, NONE_INDEX),
+            };
+            line_data.push(
+              mapping.generated_line,
+              InnerMapping {
+                generated_column: mapping.generated_column,
+                chunk_start,
+                chunk_len,
+                source_index,
+                original_line,
+                original_column,
+                name_index,
+              },
+            );
           },
           &mut |i, source, source_content| {
             inner_source_contents
