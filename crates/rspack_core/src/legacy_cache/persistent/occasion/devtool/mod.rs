@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::sync::{
+  Arc,
+  atomic::{AtomicBool, Ordering},
+};
 
 use rayon::{iter::Either, prelude::*};
 use rspack_cacheable::cacheable;
@@ -170,6 +173,7 @@ impl Occasion for SourceMapDevToolPluginOccasion {
       }
     }
 
+    let incomplete = AtomicBool::new(false);
     cache_item
       .pending_writes
       .par_iter()
@@ -178,6 +182,7 @@ impl Occasion for SourceMapDevToolPluginOccasion {
           Ok(bytes) => bytes,
           Err(err) => {
             tracing::warn!("source map persistent cache key encode failed: {:?}", err);
+            incomplete.store(true, Ordering::Relaxed);
             return None;
           }
         };
@@ -186,6 +191,7 @@ impl Occasion for SourceMapDevToolPluginOccasion {
           Ok(bytes) => Some((key_bytes, bytes)),
           Err(err) => {
             tracing::warn!("source map persistent cache encode failed: {:?}", err);
+            incomplete.store(true, Ordering::Relaxed);
             None
           }
         }
@@ -194,7 +200,13 @@ impl Occasion for SourceMapDevToolPluginOccasion {
         storage.set(SCOPE, key, bytes);
       });
 
-    if cache_item.pending_compilation_version {
+    if incomplete.into_inner() {
+      // An entry that was not written keeps its old value, which the version must not vouch for.
+      // Without a version the next start resolves names again.
+      if let Ok(key) = self.codec.encode(&CacheKey::compilation_version()) {
+        storage.remove(SCOPE, &key);
+      }
+    } else if cache_item.pending_compilation_version {
       match (
         self.codec.encode(&CacheKey::compilation_version()),
         self.codec.encode(&cache_item.compilation_version),
