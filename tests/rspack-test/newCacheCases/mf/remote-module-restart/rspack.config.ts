@@ -6,8 +6,8 @@ let buildIndex = 0;
 export default defineConfig({
   optimization: { minimize: false },
   plugins: [
-    new container.ModuleFederationPlugin({
-      name: 'remote_cache',
+    new container.ModuleFederationPluginV1({
+      name: 'remote_cache_v1',
       remotes: {
         remote:
           "promise Promise.resolve().then(() => ({ get: () => Promise.resolve(() => 'remote value'), init: () => {} }))",
@@ -16,21 +16,17 @@ export default defineConfig({
     definePlugin({
       apply(compiler) {
         compiler.hooks.done.tap('CheckRemoteModuleCache', (stats) => {
-          const compilation = stats.compilation;
-          const externals = [...compilation.modules].filter((module) =>
-            module.identifier().includes('remote value'),
+          const remoteModules = [...stats.compilation.modules].filter(
+            (module) => module.identifier().startsWith('remote ('),
           );
-          expect(externals).toHaveLength(1);
-          const chunks = [
-            ...compilation.chunkGraph.getModuleChunksIterable(externals[0]),
-          ];
-          expect(chunks.map((chunk) => chunk.name)).toContain('main');
+          expect(remoteModules).toHaveLength(1);
           if (buildIndex++ === 0) return;
           const info = stats.toJson({ all: false, cacheInfo: true }).cacheInfo![
             '|Compilation/modules'
           ];
+          expect(info.hits).toBe(3);
           expect(info.misses).toBe(0);
-          expect(info.reused).toBe(info.hits);
+          expect(info.reused).toBe(3);
         });
       },
     }),
