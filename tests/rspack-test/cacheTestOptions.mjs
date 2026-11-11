@@ -122,6 +122,7 @@ const excludes = {
 		/^css-extract\/module-layer$/,
 		/^css-extract\/public-path-function$/,
 		/^css-extract\/public-path-import-chunk-loading$/,
+		/^css-extract\/public-path-query$/,
 		/^css-extract\/with-contenthash$/,
 		/^css\/css-extract-with-bom$/,
 		/^css\/css-extract-with-bom-at-import$/,
