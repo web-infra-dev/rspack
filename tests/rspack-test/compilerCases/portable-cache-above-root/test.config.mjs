@@ -6,6 +6,7 @@ import {
 	closeCompiler,
 	runCompiler
 } from "@rspack/test-tools/helper/lifecycle";
+import { removeTree } from "../_remove-tree.mjs";
 
 async function build(context, cache = { type: "persistent", portable: true }) {
 	const logs = [];
@@ -106,7 +107,7 @@ export default {
 			const deepCold = await build(deepReader, false);
 			expect(deepMoved.output).toBe(deepCold.output);
 		} finally {
-			fs.rmSync(temp, { recursive: true, force: true });
+			removeTree(temp);
 		}
 	}
 };

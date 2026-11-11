@@ -6,6 +6,7 @@ import {
 	closeCompiler,
 	runCompiler
 } from "@rspack/test-tools/helper/lifecycle";
+import { removeTree } from "../_remove-tree.mjs";
 
 // The loader certifies the resource path and emits it in several spellings, with a source map
 // whose generated columns follow the real text.
@@ -181,10 +182,7 @@ export default {
 			const moved = await build(reader);
 			expect(moved.built).toBe(false);
 			expectPaths(moved, reader);
-			fs.rmSync(path.join(reader, "node_modules"), {
-				recursive: true,
-				force: true
-			});
+			removeTree(path.join(reader, "node_modules"));
 			const cold = await build(reader);
 			expect(cold.built).toBe(true);
 			expect(moved.output).toBe(cold.output);
@@ -197,7 +195,7 @@ export default {
 			// The output follows the root it was built in.
 			expect(moved.file).not.toBe(first.file);
 		} finally {
-			fs.rmSync(temp, { recursive: true, force: true });
+			removeTree(temp);
 		}
 	}
 };

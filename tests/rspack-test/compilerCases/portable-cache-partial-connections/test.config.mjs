@@ -6,6 +6,7 @@ import {
 	closeCompiler,
 	runCompiler
 } from "@rspack/test-tools/helper/lifecycle";
+import { removeTree } from "../_remove-tree.mjs";
 
 const LOADER_RUNS = "__portablePartialConnectionsLoaderRuns";
 const COUNT = 32;
@@ -158,7 +159,7 @@ return source;
 			await change(reader, [13, 15]);
 			await change(reader, [17, 19, 21]);
 		} finally {
-			fs.rmSync(temp, { recursive: true, force: true });
+			removeTree(temp);
 		}
 	}
 };

@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { rspack } from "@rspack/core";
 import { closeCompiler, runCompiler } from "@rspack/test-tools/helper/lifecycle";
+import { removeTree } from "../_remove-tree.mjs";
 
 const LOADER = String.raw`
 const fs = require("node:fs");
@@ -157,7 +158,7 @@ const chainOrder = {
 			expect(JSON.parse(cold)).toEqual(Array.from({ length }, (_, index) => `warning p${index}.js`));
 			expect(await buildChain(root)).toBe(cold);
 		} finally {
-			fs.rmSync(root, { recursive: true, force: true });
+			removeTree(root);
 		}
 	}
 };
@@ -231,7 +232,7 @@ export default [...[false, true].map((error) => ({
 				await closeCompiler(compiler);
 			}
 		} finally {
-			fs.rmSync(temp, { recursive: true, force: true });
+			removeTree(temp);
 		}
 	}
 })), chainOrder];

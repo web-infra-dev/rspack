@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { rspack } from "@rspack/core";
+import { removeTree, retry } from "./_remove-tree.mjs";
 
 const gitAvailable = spawnSync("git", ["--version"]).status === 0;
 const cacheLocation = (root) =>
@@ -214,7 +215,7 @@ async function withFixture(run) {
 	try {
 		return await run(temp);
 	} finally {
-		fs.rmSync(temp, { recursive: true, force: true });
+		removeTree(temp);
 	}
 }
 
@@ -236,7 +237,7 @@ async function checkReadonlySeeding(root, donorRoot, portableCache) {
 	});
 	expect(warm.built).toEqual([]);
 	expect(contents(cacheLocation(donorRoot))).toEqual(donor);
-	fs.rmSync(cacheLocation(root), { recursive: true });
+	fs.rmSync(cacheLocation(root), { recursive: true, ...retry });
 }
 
 async function checkGitSeeding() {
@@ -370,7 +371,7 @@ async function checkExplicitSeeding() {
 		const cold = await build(target, { cache: false });
 		expect(result.output).toEqual(cold.output);
 		expect(contents(cacheLocation(main))).toEqual(donor);
-		fs.rmSync(cacheLocation(target), { recursive: true });
+		fs.rmSync(cacheLocation(target), { recursive: true, ...retry });
 		const disabled = await build(target, {
 			portableCache: { ...portableCache, seed: false }
 		});

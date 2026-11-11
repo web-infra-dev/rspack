@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { rspack } from "@rspack/core";
 import { closeCompiler, runCompiler } from "@rspack/test-tools/helper/lifecycle";
+import { removeTree } from "../_remove-tree.mjs";
 
 const loader = `const path = require("node:path");
 module.exports = function () {
@@ -60,11 +61,11 @@ export default {
       expect(Object.keys(moved.assets).some((name) => name.endsWith(".png"))).toBe(false);
       const uncached = await build(reader, false);
       expect(moved.assets).toEqual(uncached.assets);
-      fs.rmSync(path.join(reader, "node_modules"), { recursive: true, force: true });
+      removeTree(path.join(reader, "node_modules"));
       const cold = await build(reader);
       expect(moved.assets).toEqual(cold.assets);
     } finally {
-      fs.rmSync(temp, { recursive: true, force: true });
+      removeTree(temp);
     }
   }
 };

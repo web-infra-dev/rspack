@@ -6,6 +6,7 @@ import {
   closeCompiler,
   runCompiler,
 } from "@rspack/test-tools/helper/lifecycle";
+import { removeTree } from "../_remove-tree.mjs";
 
 async function build(context, log, { entry, symlinks, cache = true }) {
   fs.writeFileSync(log, "");
@@ -108,7 +109,7 @@ export default {
           next.cacheLog.filter(message => /dropped [1-9]/.test(message)),
         ).toEqual([]);
       } finally {
-        fs.rmSync(base, { recursive: true, force: true });
+        removeTree(base);
       }
     }
 
@@ -127,7 +128,7 @@ export default {
         const cold = await build(real, log, { ...options, cache: false });
         expect(next.output).toBe(cold.output);
       } finally {
-        fs.rmSync(base, { recursive: true, force: true });
+        removeTree(base);
       }
     }
   },
