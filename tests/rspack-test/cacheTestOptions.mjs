@@ -64,17 +64,7 @@ const excludes = {
 		/^rstest\/mock-dynamic-import-external$/,
 
 		// Source map cache misses after restarting the compiler.
-		/^asset\/real-content-hash-related-source-map$/,
-		/^asset\/webpack-sources$/,
-		/^builtin-swc-loader\/source-map$/,
-		/^builtins\/banner$/,
-		/^builtins\/banner-stage$/,
-		/^less-loader\/with-source-map$/,
-		/^loader-parallel\/binary-with-source-map$/,
-		/^loader\/binary-with-source-map$/,
-		/^source-map\/devtool-skip-non-js-css-assets$/,
 		/^source-map\/empty-mapping$/,
-		/^source-map\/exclude-chunks-source-map$/,
 
 		// Independent shared fallback compilers write to the same cache database as their parent.
 		/^container-1-5\/tree-shaking-shared-provide-only$/,
