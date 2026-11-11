@@ -16,7 +16,7 @@ rspack_paths   = { workspace = true }
 rspack_util    = { workspace = true }
 rspack_watcher = { workspace = true, features = ["testing"] }
 tempfile       = { workspace = true }
-tokio          = { workspace = true, features = ["rt", "macros", "time"] }
+tokio          = { workspace = true, features = ["rt", "macros", "sync", "time"] }
 
 [lints]
 workspace = true
