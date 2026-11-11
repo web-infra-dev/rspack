@@ -703,6 +703,26 @@ function renderRuntimeGlobals(
   }
 }
 
+export function renderRuntimeGlobalProperty(
+  runtimeGlobal: RuntimeGlobals,
+  compilerOptions?: RspackOptionsNormalized,
+): string {
+  const rendered = renderRuntimeGlobals(runtimeGlobal, compilerOptions);
+  const scope = renderRuntimeVariables(
+    compilerOptions?.experiments.runtimeMode === 'rspack'
+      ? RuntimeVariable.Context
+      : RuntimeVariable.Require,
+    compilerOptions,
+  );
+  const prefix = `${scope}.`;
+  if (!rendered.startsWith(prefix)) {
+    throw new Error(
+      `Runtime global "${RuntimeGlobals[runtimeGlobal]}" is not a property of "${scope}".`,
+    );
+  }
+  return rendered.slice(prefix.length);
+}
+
 export function createCompilerRuntimeGlobals(
   compilerOptions?: RspackOptionsNormalized,
 ): Record<keyof typeof RuntimeGlobals, string> {
@@ -718,4 +738,7 @@ export function createCompilerRuntimeGlobals(
 
 const DefaultRuntimeGlobals = createCompilerRuntimeGlobals();
 
-export { DefaultRuntimeGlobals as RuntimeGlobals };
+export {
+  RuntimeGlobals as RuntimeGlobal,
+  DefaultRuntimeGlobals as RuntimeGlobals,
+};
