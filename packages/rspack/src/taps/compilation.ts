@@ -264,21 +264,20 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
               return moduleObject.exports;
             };
 
-            // Build-time modules use require properties in webpack mode and
-            // context properties in rspack mode. Share both objects before
-            // executing runtime modules, which may access them as well.
+            // Initialize globals on the scope used by generated build-time code
+            // before executing runtime modules, which may access them as well.
             const moduleCache: Record<string, any> = {};
             const interceptModuleExecution: ((execOptions: any) => void)[] = [];
-            moduleRequireFn.c = runtimeContext.c = moduleCache;
-            moduleRequireFn.i = runtimeContext.i = interceptModuleExecution;
-            moduleRequireFn.r = moduleRequireFn;
-            runtimeContext.r = moduleRequireFn;
+            if (getCompiler().options.experiments.runtimeMode === 'rspack') {
+              runtimeContext.c = moduleCache;
+              runtimeContext.i = interceptModuleExecution;
+              runtimeContext.r = moduleRequireFn;
+            } else {
+              moduleRequireFn.c = moduleCache;
+              moduleRequireFn.i = interceptModuleExecution;
+            }
             for (const runtimeModule of runtimeModules) {
               moduleRequireFn(runtimeModule);
-            }
-            for (const key of Reflect.ownKeys(moduleRequireFn)) {
-              runtimeContext[key] =
-                moduleRequireFn[key as keyof typeof moduleRequireFn];
             }
 
             const executeResult = moduleRequireFn(entry);
