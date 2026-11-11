@@ -442,6 +442,8 @@ impl SourceMapDevToolPlugin {
     output_path: &Utf8Path,
     compilation_assets: &[(String, &CompilationAsset)],
     cached_entries: &HashMap<String, Cow<'_, CachedSourceMapDevToolPluginEntry>>,
+    // The legacy cache keeps one compilation version for all of its entries.
+    legacy_version: Option<&str>,
     use_cache: bool,
     context_version: String,
   ) -> Result<PreparedSourceMaps> {
@@ -464,9 +466,12 @@ impl SourceMapDevToolPlugin {
     // Other assets may have no map (or be excluded), so they need no cache entry.
     if use_cache
       && !cached_entries.is_empty()
-      && cached_entries
-        .values()
-        .all(|entry| entry.compilation_version == compilation_version)
+      && match legacy_version {
+        Some(version) => version == compilation_version,
+        None => cached_entries
+          .values()
+          .all(|entry| entry.compilation_version == compilation_version),
+      }
       && compilation_assets.iter().all(|(filename, asset)| {
         cached_entries.contains_key(filename)
           || !match_object(&condition_object, filename)
@@ -686,21 +691,23 @@ impl SourceMapDevToolPlugin {
       .await?;
     mapped_assets.extend(new_mapped_assets);
 
-    cache.store(mapped_assets.iter().filter_map(|mapped_asset| {
-      let filename = mapped_asset.asset.0.as_ref();
-      let version = &mapped_asset.asset.1.info.version;
-      let mut entry = CachedSourceMapDevToolPluginEntry::from_assets(
-        &mapped_asset.asset_append,
-        mapped_asset
-          .source_map
-          .as_ref()
-          .map(|(filename, asset)| (filename.as_str(), asset)),
-      )?;
-      entry.input_sources = input_sources.get(filename)?.clone();
-      entry.name_version = cache_versions.get(filename)?.clone();
-      entry.compilation_version = compilation_version.clone();
-      Some((filename, version.as_str(), entry))
-    }));
+    cache.store(
+      &compilation_version,
+      mapped_assets.iter().filter_map(|mapped_asset| {
+        let filename = mapped_asset.asset.0.as_ref();
+        let version = &mapped_asset.asset.1.info.version;
+        let mut entry = CachedSourceMapDevToolPluginEntry::from_assets(
+          &mapped_asset.asset_append,
+          mapped_asset
+            .source_map
+            .as_ref()
+            .map(|(filename, asset)| (filename.as_str(), asset)),
+        )?;
+        entry.input_sources = input_sources.get(filename)?.clone();
+        entry.name_version = cache_versions.get(filename)?.clone();
+        Some((filename, version.as_str(), entry))
+      }),
+    );
     Ok(mapped_assets)
   }
 
@@ -1463,6 +1470,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   } else {
     String::new()
   };
+  let legacy_version = legacy_cache
+    .as_ref()
+    .map(|cache| cache.compilation_version().to_string());
   let prepared = self
     .prepare_source_maps(
       compilation,
@@ -1470,6 +1480,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       &output_path,
       &compilation_assets,
       &cached_entries,
+      legacy_version.as_deref(),
       use_cache,
       context_version,
     )
