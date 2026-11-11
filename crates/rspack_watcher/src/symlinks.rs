@@ -66,7 +66,7 @@ impl LinkResolver {
 #[derive(Default)]
 pub(crate) struct LinkSubscriptions {
   targets: InternedPathMap<InternedPathSet>,
-  target_children: InternedPathMap<InternedPathSet>,
+  watched_children: InternedPathMap<InternedPathSet>,
   directories: InternedPathMap<InternedPathSet>,
   resolved_directories: InternedPathMap<InternedPath>,
   directory_targets: InternedPathMap<InternedPath>,
@@ -124,6 +124,7 @@ impl LinkSubscriptions {
         .entry(link.clone())
         .or_default()
         .insert(path.clone());
+      self.index_ancestors(link);
       self.watch(link, false);
     }
     if directory && !nested {
@@ -144,19 +145,7 @@ impl LinkSubscriptions {
       .entry(resolution.target.clone())
       .or_default()
       .insert(path.clone());
-    let mut child = resolution.target.clone();
-    for ancestor in resolution.target.ancestors().skip(1) {
-      let parent = InternedPath::from(ancestor);
-      if !self
-        .target_children
-        .entry(parent.clone())
-        .or_default()
-        .insert(child)
-      {
-        break;
-      }
-      child = parent;
-    }
+    self.index_ancestors(&resolution.target);
     self.watch(&resolution.target, directory);
     if directory {
       // FSEvents can report only the parent when a target tree is removed.
@@ -176,6 +165,22 @@ impl LinkSubscriptions {
           .or_default()
           .insert(ancestor);
       }
+    }
+  }
+
+  fn index_ancestors(&mut self, path: &InternedPath) {
+    let mut child = path.clone();
+    for ancestor in path.ancestors().skip(1) {
+      let parent = InternedPath::from(ancestor);
+      if !self
+        .watched_children
+        .entry(parent.clone())
+        .or_default()
+        .insert(child)
+      {
+        break;
+      }
+      child = parent;
     }
   }
 
@@ -212,6 +217,14 @@ pub(crate) struct SymlinkAlias {
   pub path: InternedPath,
   pub link_changed: bool,
   pub resolved_path: Option<InternedPath>,
+}
+
+#[derive(Default)]
+pub(crate) struct SymlinkUpdate {
+  pub patterns: Vec<WatchPattern>,
+  /// Only retargeting discards old entries; new subscriptions need them to detect deletions.
+  pub retargeted_directories: Vec<InternedPath>,
+  pub needs_context_scan: bool,
 }
 
 impl Symlinks {
@@ -252,25 +265,30 @@ impl Symlinks {
       .clone()
   }
 
-  pub(crate) fn replace(
-    &self,
-    mut subscriptions: LinkSubscriptions,
-  ) -> (Vec<WatchPattern>, Vec<InternedPath>) {
+  pub(crate) fn replace(&self, mut subscriptions: LinkSubscriptions) -> SymlinkUpdate {
     let patterns = std::mem::take(&mut subscriptions.patterns);
     let mut previous = self.0.write().expect("symlink subscriptions lock poisoned");
-    let retargeted = subscriptions
-      .directory_targets
-      .iter()
-      .filter(|(path, target)| {
-        previous
-          .directory_targets
-          .get(*path)
-          .is_some_and(|old| old != *target)
-      })
-      .map(|(path, _)| path.clone())
-      .collect();
+    let mut retargeted_directories = Vec::new();
+    let mut has_new_directories = false;
+    for (path, target) in &subscriptions.directory_targets {
+      match previous.directory_targets.get(path) {
+        Some(old) if old != target => retargeted_directories.push(path.clone()),
+        None => has_new_directories = true,
+        _ => {}
+      }
+    }
+    let needs_context_scan = has_new_directories
+      || !retargeted_directories.is_empty()
+      || subscriptions
+        .context_files
+        .iter()
+        .any(|path| !previous.context_files.contains(path));
     *previous = subscriptions;
-    (patterns, retargeted)
+    SymlinkUpdate {
+      patterns,
+      retargeted_directories,
+      needs_context_scan,
+    }
   }
 
   /// Changing a link invalidates its dependencies even when the replacement
@@ -278,22 +296,21 @@ impl Symlinks {
   pub(crate) fn aliases(&self, path: &InternedPath) -> Vec<SymlinkAlias> {
     let subscriptions = self.0.read().expect("symlink subscriptions lock poisoned");
     let mut aliases = InternedPathMap::default();
-    if let Some(targets) = subscriptions.targets.get(path) {
-      for target in targets {
-        aliases.insert(target.clone(), false);
-      }
-    }
     let mut pending = vec![path.clone()];
-    while let Some(parent) = pending.pop() {
-      if let Some(children) = subscriptions.target_children.get(&parent) {
-        for child in children {
-          if let Some(targets) = subscriptions.targets.get(child) {
-            for target in targets {
-              aliases.entry(target.clone()).or_insert(false);
-            }
-          }
-          pending.push(child.clone());
+    while let Some(watched) = pending.pop() {
+      if let Some(targets) = subscriptions.targets.get(&watched) {
+        for target in targets {
+          aliases.entry(target.clone()).or_insert(false);
         }
+      }
+      if let Some(targets) = subscriptions.links.get(&watched) {
+        for target in targets {
+          let link_changed = aliases.entry(target.clone()).or_insert(false);
+          *link_changed |= watched == *path;
+        }
+      }
+      if let Some(children) = subscriptions.watched_children.get(&watched) {
+        pending.extend(children.iter().cloned());
       }
     }
     for ancestor in path.ancestors() {
@@ -308,11 +325,6 @@ impl Symlinks {
           };
           aliases.entry(alias).or_insert(false);
         }
-      }
-    }
-    if let Some(targets) = subscriptions.links.get(path) {
-      for target in targets {
-        aliases.insert(target.clone(), true);
       }
     }
     aliases

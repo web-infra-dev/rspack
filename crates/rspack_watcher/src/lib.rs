@@ -453,10 +453,11 @@ impl FsWatcherInner {
     self.record_initial_file_mtimes();
 
     let mut watch_patterns = self.analyzer.analyze(self.path_manager.access());
-    let (link_patterns, retargeted) = self.path_manager.refresh_symlinks().await;
-    watch_patterns.extend(link_patterns);
+    let symlink_update = self.path_manager.refresh_symlinks().await;
+    watch_patterns.extend(symlink_update.patterns);
     let rescan_patterns = (self.path_manager.follows_symlinks()
-      && (!retargeted.is_empty() || !self.path_manager.access().directories().1.is_empty()))
+      && (symlink_update.needs_context_scan
+        || !self.path_manager.access().directories().1.is_empty()))
     .then(|| watch_patterns.clone());
     let plan = WatchPlan::new(watch_patterns, self.path_manager.follows_symlinks());
     if let Err(error) = self.disk_watcher.apply_plan(plan) {
@@ -465,10 +466,10 @@ impl FsWatcherInner {
     }
     let mut changed_in_contexts = self
       .path_manager
-      .scan_contexts(start_time, retargeted)
+      .scan_contexts(start_time, symlink_update.retargeted_directories)
       .await;
     if let Some(mut watch_patterns) = rescan_patterns {
-      watch_patterns.extend(self.path_manager.refresh_symlinks().await.0);
+      watch_patterns.extend(self.path_manager.refresh_symlinks().await.patterns);
       let plan = WatchPlan::new(watch_patterns, self.path_manager.follows_symlinks());
       if let Err(error) = self.disk_watcher.apply_plan(plan) {
         self.analyzer.invalidate_all();

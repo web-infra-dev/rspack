@@ -19,8 +19,7 @@ use rspack_util::{
 
 use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher};
 use crate::{
-  WatchPattern,
-  symlinks::{LinkResolver, LinkSubscriptions, SymlinkAlias, Symlinks},
+  symlinks::{LinkResolver, LinkSubscriptions, SymlinkAlias, SymlinkUpdate, Symlinks},
   time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
 };
 
@@ -374,9 +373,9 @@ impl PathManager {
       && path.is_symlink()
   }
 
-  pub(crate) async fn refresh_symlinks(&self) -> (Vec<WatchPattern>, Vec<InternedPath>) {
+  pub(crate) async fn refresh_symlinks(&self) -> SymlinkUpdate {
     let Some(symlinks) = &self.symlinks else {
-      return (Vec::new(), Vec::new());
+      return SymlinkUpdate::default();
     };
     let mut resolver = LinkResolver::default();
     let mut subscriptions = LinkSubscriptions::default();
