@@ -148,6 +148,39 @@ export default [
 			});
 		}
 	}))),
+	...["es5", "es2020"].map((target) => ({
+		name: `non-ascii-root-spelling-${target}`,
+		description:
+			"writes a JSX filename below a non-ASCII root with the bytes SWC writes without portable output",
+		async run() {
+			await withProjects(async (writer, reader) => {
+				writeProject(writer, { "component.jsx": jsxSource() });
+				const rule = (portableOutput) => swcRule(/\.jsx$/, {
+					...swcOptions,
+					rspackExperiments: { portableOutput },
+					jsc: { ...swcOptions.jsc, target }
+				});
+				const rules = [rule(true)];
+				await build(writer, rules);
+				copyProject(writer, reader);
+				const moved = await build(reader, rules);
+				expect(moved.built).toEqual([]);
+				await expectColdEquality(moved, reader, rules);
+				const swc = await build(reader, [rule(false)], false);
+				// SWC escapes part of this root for ES5, so the two targets write different bytes.
+				expect(swc.sources["component.jsx"]).toContain(
+					target === "es5" ? "l\\xf6nger-读者-\\uD83D\\uDE00" : "lönger-读者-😀"
+				);
+				expect(moved.sources).toEqual(swc.sources);
+				// Only the hashed file name differs, in the map and in the comment that links it.
+				const unnamed = (result) => [
+					result.output.replaceAll(result.file, ""),
+					result.map.replaceAll(result.file, "")
+				];
+				expect(unnamed(moved)).toEqual(unnamed(swc));
+			});
+		}
+	})),
 	{
 		name: "excluded-options",
 		description:

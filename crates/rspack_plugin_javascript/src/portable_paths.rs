@@ -16,7 +16,8 @@
 //!   parse.
 //! - Code generation and the public source view render every site as the current root's path.
 //!   Canonical text is never emitted: a site under a replacement that already removed its range
-//!   renders nothing, and any other site range is fully rewritten.
+//!   renders nothing, and any other site range is fully rewritten. A site that SWC wrote keeps
+//!   SWC's spelling, so the output has the bytes of a build without this module.
 //!
 //! Anything this module cannot relocate keeps today's behavior: the real text is parsed, and the
 //! module is bound to the root when a certified value occurs in it.
@@ -34,7 +35,7 @@ use rspack_core::{
   },
 };
 use rspack_hash::RspackHasher;
-use rspack_location::portable::quote_ascii;
+use rspack_location::portable::{PathSpelling, quote_ascii};
 use rspack_paths::{Utf8Component, Utf8Path, Utf8PathBuf};
 use rustc_hash::{FxHashMap, FxHashSet};
 use simd_utf16_len::utf16_len;
@@ -53,6 +54,8 @@ struct Site {
   path: Utf8PathBuf,
   /// The real literal as the producer spelled it, quotes included.
   raw: String,
+  /// How to write the path under any root.
+  spelling: PathSpelling,
 }
 
 /// Canonical text for one parse, and the sites it holds.
@@ -83,11 +86,13 @@ fn parser_options(source_type: SwcSourceType, lang: Lang) -> Options {
 /// Finds the sites in the real text with the JS parser and builds the canonical text.
 ///
 /// `paths` are the deduplicated absolute values the loader chain certified. Paths outside
-/// `context` are not sites; they stay fixed in the real text as today.
+/// `context` are not sites; they stay fixed in the real text as today. `es5_strings` says that
+/// a loader of the chain writes its literals by SWC's rule for ES5 and below.
 pub(crate) fn prepare(
   source: &BoxSource,
   text: &str,
   paths: &[Utf8PathBuf],
+  es5_strings: bool,
   context: &Utf8Path,
   source_type: SwcSourceType,
   lang: Lang,
@@ -204,6 +209,7 @@ pub(crate) fn prepare(
       range: DependencyRange::new(start, end),
       path: (*path).clone(),
       raw: raw.to_owned(),
+      spelling: PathSpelling::of(raw, path.as_str(), es5_strings),
     });
   }
   let code = replaced.source().into_string_lossy().into_owned();
@@ -290,6 +296,7 @@ impl Canonical {
           start: position,
           canonical_width: site.range.end - site.range.start,
           path: site.path.clone(),
+          spelling: site.spelling,
         }
       })
       .collect()
@@ -300,6 +307,7 @@ impl Canonical {
       std::sync::Arc::new(PortablePathDependency {
         range: site.range,
         path: site.path,
+        spelling: site.spelling,
       }) as DependencyCodeGenerationRef
     })
   }
@@ -331,6 +339,7 @@ pub struct PortablePathDependency {
   /// Stored relative to the portable root, restored under the reader's root.
   #[cacheable(with=As<PortablePath>)]
   path: Utf8PathBuf,
+  spelling: PathSpelling,
 }
 
 impl PortablePathDependency {
@@ -344,7 +353,7 @@ impl PortablePathDependency {
       .take_while(|replacement| replacement.start() <= start)
       .any(|replacement| replacement.start() < replacement.end() && replacement.end() >= end);
     if !covered {
-      source.replace(start, end, quote_ascii(self.path.as_str()), None);
+      source.replace(start, end, self.spelling.quote(self.path.as_str()), None);
     }
   }
 }
@@ -364,6 +373,7 @@ impl DependencyCodeGeneration for PortablePathDependency {
     // The module hash follows the rendered bytes; the build hash covers the canonical source.
     self.range.hash(hasher);
     self.path.as_str().hash(hasher);
+    self.spelling.hash(hasher);
   }
 }
 
@@ -407,18 +417,17 @@ pub(crate) fn render_view(
   sites.peek()?;
   Some(render_sites(
     source,
-    sites.map(|site| (site.range, site.path.as_str())),
+    sites.map(|site| (site.range, site.spelling.quote(site.path.as_str()))),
   ))
 }
 
-fn render_sites<'a>(
+fn render_sites(
   source: &BoxSource,
-  sites: impl Iterator<Item = (DependencyRange, &'a str)>,
+  sites: impl Iterator<Item = (DependencyRange, String)>,
 ) -> SourceView {
   let mut view = ReplaceSource::new(source.clone());
   let mut replacements = Vec::new();
-  for (range, path) in sites {
-    let rendered = quote_ascii(path);
+  for (range, rendered) in sites {
     replacements.push((range, rendered.len() as u32));
     view.replace(range.start, range.end, rendered, None);
   }

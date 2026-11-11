@@ -6,7 +6,7 @@ use std::{
 
 pub mod portable;
 pub use itoa::Buffer;
-pub use portable::{PortableDependencyLocation, PortableLocationShift};
+pub use portable::{PathSpelling, PortableDependencyLocation, PortableLocationShift};
 use rspack_cacheable::cacheable;
 use simd_utf16_len::utf16_len;
 

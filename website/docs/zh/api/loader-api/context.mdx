@@ -272,7 +272,7 @@ module.exports = function () {
 
 经过审查的透传 loader 可以在返回输入前调用 `this.experiments.portableOutput()`。声明会在原生 loader、JavaScript loader、worker、pitch 和 loader 缓存命中之间合并。任何一次调用未声明，都会使整个链不进行规范化。声明不会启用缓存，也不会覆盖 `this.cacheable(false)`。浏览器中的 JavaScript loader 调用目前不进行声明，因为该环境缺少异步调用隔离能力。
 
-对于已声明的 JavaScript 构建，规范化以 `compiler.context` 为基准，在 `cache: false` 时也会执行；声明的字面量可能采用规范化的引号与转义。不支持的字面量位置、非 JavaScript 模块和 `noParse` 不会获得此优化。原生 loader 通过 `LoaderContext::portable_output(paths)` 使用相同契约。
+对于已声明的 JavaScript 构建，规范化以 `compiler.context` 为基准，在 `cache: false` 时也会执行。如果声明的字面量与 SWC 输出字符串的写法一致，它会保留原有的引号与转义，因此 `builtin:swc-loader` 的输出字节不变。其他声明的字面量可能采用规范化的引号与转义。不支持的字面量位置、非 JavaScript 模块和 `noParse` 不会获得此优化。原生 loader 通过 `LoaderContext::portable_output(paths)` 使用相同契约。
 
 `builtin:swc-loader` 需要显式配置 `rspackExperiments.portableOutput: true`（默认为 `false`）。当前白名单接受 `detectSyntax`、布尔值 source-map 选项和 `inputSourceMap`、`isModule`，以及受限的 `jsc` 选项：parser 的 `syntax`/`jsx`/`tsx`/`decorators`、`target`、`externalHelpers`、`experimental.disableAllLints` 和 React 的 `development`/`runtime`/`refresh: false`。`decorators: true` 必须显式指定 `syntax: "typescript"`，并使用 SWC 的 TypeScript 旧版装饰器转换。装饰器 metadata/version 选项和其他 transform 字段仍不在白名单内。其他字段（包括配置文件、插件、minify、env、路径、模块转换、RSC、导入转换和 refresh 签名设置）不会获得声明。原生 React refresh loader 仅对追加固定代码的转换进行声明。
 

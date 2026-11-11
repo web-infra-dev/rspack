@@ -533,6 +533,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           &source,
           &text,
           paths,
+          loaders
+            .iter()
+            .any(|loader| loader.portable_output_es5_strings()),
           compiler_options.context.as_path(),
           source_type,
           lang,
