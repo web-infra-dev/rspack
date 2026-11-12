@@ -158,6 +158,7 @@ button.LOCAL-root.LOCAL-hovered { color: red; }
 
 .LOCAL-pureRecovery {
 	missingColon /* cssmodules-pure-ignore */;
+	/* cssmodules-pure-ignore */
 	color:{.opaquePure; :global(.opaqueGlobalPure)} !important;
 	button:where(.pureGlobal, .LOCAL-pureLocal) {
 		color:red;

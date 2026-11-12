@@ -5,10 +5,13 @@ export default defineConfig({
     rules: [
       {
         test: /\.toml$/,
-        type: 'json',
         parser: {
           parse: () => ({ foo: 'bar' }),
         },
+      },
+      {
+        test: /\.toml$/,
+        type: 'json',
       },
     ],
   },

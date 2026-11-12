@@ -4,7 +4,7 @@ export default defineConfig({
   module: {
     generator: {
       css: {
-        exportsOnly: true,
+        exportsOnly: false,
       },
     },
     rules: [
@@ -13,7 +13,7 @@ export default defineConfig({
         type: 'css/module',
         generator: {
           localIdentName: '[path][name][ext]-[local]',
-          exportsOnly: false,
+          exportsOnly: true,
         },
       },
       {

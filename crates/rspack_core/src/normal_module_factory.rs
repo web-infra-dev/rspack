@@ -291,14 +291,14 @@ fn resolve_module_options(
   module_type: &ModuleType,
   global_parser: Option<&ParserOptions>,
   global_generator: Option<&GeneratorOptions>,
-) -> Arc<ResolvedModuleOptions> {
+) -> Result<Arc<ResolvedModuleOptions>> {
   let cache_key = ResolvedModuleOptionsCacheKey::new(module_rules, *module_type);
   if let Some(options) = options_cache.get(&cache_key) {
-    return Arc::clone(&options);
+    return Ok(Arc::clone(&options));
   }
 
   match options_cache.entry(cache_key.clone()) {
-    dashmap::mapref::entry::Entry::Occupied(entry) => Arc::clone(entry.get()),
+    dashmap::mapref::entry::Entry::Occupied(entry) => Ok(Arc::clone(entry.get())),
     dashmap::mapref::entry::Entry::Vacant(entry) => {
       let mut local_parser = None;
       let mut local_generator = None;
@@ -306,6 +306,11 @@ fn resolve_module_options(
       for rule in module_rules {
         local_parser = local_parser.merge_from(&rule.parser);
         local_generator = local_generator.merge_from(&rule.generator);
+        if let Some(deferred) = &rule.deferred_options {
+          let options = deferred.resolve(*module_type)?;
+          local_parser = local_parser.merge_from(&options.parser);
+          local_generator = local_generator.merge_from(&options.generator);
+        }
       }
 
       let parser = merge_parser_options_with_local(global_parser, local_parser.as_ref());
@@ -317,7 +322,7 @@ fn resolve_module_options(
         normalize_css_generator_options(module_type, generator),
       ));
       entry.insert(Arc::clone(&options));
-      options
+      Ok(options)
     }
   }
 }
@@ -467,14 +472,16 @@ mod tests {
       &ModuleType::Asset,
       Some(&global_parser),
       Some(&global_generator),
-    );
+    )
+    .expect("should resolve module options");
     let second = resolve_module_options(
       &options_cache,
       &module_rules,
       &ModuleType::Asset,
       Some(&global_parser),
       Some(&global_generator),
-    );
+    )
+    .expect("should resolve module options");
 
     assert!(Arc::ptr_eq(&first, &second));
     assert_eq!(options_cache.len(), 1);
@@ -513,7 +520,8 @@ mod tests {
       &ModuleType::Asset,
       None,
       Some(&global_generator),
-    );
+    )
+    .expect("should resolve module options");
 
     assert_eq!(
       options
@@ -551,7 +559,8 @@ mod tests {
           runtime_public_path: Some(false),
           es_module: Some(true),
         })),
-      );
+      )
+      .expect("should resolve module options");
 
       let parser_options = options
         .parser_options()
@@ -1076,7 +1085,7 @@ module.exports = "data:,";
 
     let resolved_resolve_options = self.calculate_resolve_options(&matched_module_rules);
     let resolved_options =
-      self.resolve_module_options(&resolved_module_type, &matched_module_rules);
+      self.resolve_module_options(&resolved_module_type, &matched_module_rules)?;
     let resolved_side_effects = self.calculate_side_effects(&matched_module_rules);
     let resolved_extract_source_map = self.calculate_extract_source_map(&matched_module_rules);
     let mut resolved_parser_and_generator = self
@@ -1229,7 +1238,7 @@ module.exports = "data:,";
     &self,
     module_type: &ModuleType,
     module_rules: &[&ModuleRuleEffect],
-  ) -> Arc<ResolvedModuleOptions> {
+  ) -> Result<Arc<ResolvedModuleOptions>> {
     let global_parser = self.global_parser_options.get(module_type.as_str());
     let global_generator = self.global_generator_options.get(module_type.as_str());
     resolve_module_options(

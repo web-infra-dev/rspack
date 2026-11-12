@@ -1,5 +1,6 @@
 .pureRecovery {
 	missingColon /* cssmodules-pure-ignore */;
+	/* cssmodules-pure-ignore */
 	color:{.opaquePure; :global(.opaqueGlobalPure)} !important;
 	button:where(:global(.pureGlobal), .pureLocal) {
 		color:red;
