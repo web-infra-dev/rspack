@@ -3,11 +3,15 @@ mod db;
 mod meta;
 mod options;
 mod scope_fs;
+mod seed;
 mod task_queue;
 
 use std::sync::{Arc, Mutex};
 
 use rustc_hash::FxHashMap as HashMap;
+pub use seed::{
+  SeedStage, StagedUnit, rank_seed_donors, read_seed_scope, stage_seed, sweep_seed_staging,
+};
 
 pub use self::{cache_directory::CacheDirectory, options::FileSystemOptions};
 use self::{db::DB, meta::Meta, scope_fs::ScopeFileSystem, task_queue::TaskQueue};

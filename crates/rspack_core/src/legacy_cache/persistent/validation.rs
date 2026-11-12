@@ -171,8 +171,22 @@ impl CacheValidation {
     self.build_dependencies.add(storage, data, logger).await;
   }
 
+  /// Checks whether `storage` was written by a compatible cache version.
+  pub async fn matches_version(&self, storage: &dyn Storage) -> bool {
+    matches!(self.load_meta(storage).await, Ok(Some(meta)) if meta.version == self.version)
+  }
+
+  /// Checks whether the entries of a meta scope record a different cache version.
+  pub fn records_other_version(&self, entries: Vec<(Vec<u8>, Vec<u8>)>) -> bool {
+    matches!(self.decode_meta(entries), Ok(Some(meta)) if meta.version != self.version)
+  }
+
   async fn load_meta(&self, storage: &dyn Storage) -> Result<Option<Meta>, Error> {
-    let Some((_, value)) = storage.load(SCOPE).await?.pop() else {
+    self.decode_meta(storage.load(SCOPE).await?)
+  }
+
+  fn decode_meta(&self, mut entries: Vec<(Vec<u8>, Vec<u8>)>) -> Result<Option<Meta>, Error> {
+    let Some((_, value)) = entries.pop() else {
       return Ok(None);
     };
     self.codec.decode(&value).map(Some)
