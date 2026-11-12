@@ -102,48 +102,51 @@ fn track_destructuring_import_bindings(
   parser: &mut JavascriptParser,
   import_call: ImportExpression,
   pattern: ObjectPattern,
-  prefix: Vec<Atom>,
 ) {
   let Some(properties) =
     parser.collect_destructuring_assignment_properties_from_object_pattern(pattern)
   else {
-    if !prefix.is_empty() {
-      let import_span = import_call.span(parser.ast.ast);
-      parser.dynamic_import_references.add_import(import_span);
-      parser
-        .dynamic_import_references
-        .get_import_mut_expect(&import_span)
-        .add_reference(prefix);
-    }
     return;
   };
   let import_span = import_call.span(parser.ast.ast);
   parser.dynamic_import_references.add_import(import_span);
+  track_collected_import_bindings(parser, import_call, pattern, &properties, &mut Vec::new());
+}
+
+fn track_collected_import_bindings(
+  parser: &mut JavascriptParser,
+  import_call: ImportExpression,
+  pattern: ObjectPattern,
+  properties: &DestructuringAssignmentProperties,
+  path: &mut Vec<Atom>,
+) {
+  let import_span = import_call.span(parser.ast.ast);
   let ast = parser.ast.ast;
-  if properties.iter().next().is_none() && !prefix.is_empty() {
+  if properties.iter().next().is_none() && !path.is_empty() {
     parser
       .dynamic_import_references
       .get_import_mut_expect(&import_span)
-      .add_reference(prefix.clone());
+      .add_reference(path.clone());
   }
   for (property, key) in ast.nodes(pattern.properties(ast)).zip(properties.iter()) {
-    let mut path = prefix.clone();
     path.push(key.id.clone());
     let value = property.value(ast);
-    match ast.binding_pattern_data(value) {
-      BindingPatternData::BindingIdentifier(binding) => {
-        tag_dynamic_import_binding(parser, import_call, binding, path);
+    match (ast.binding_pattern_data(value), &key.pattern) {
+      (BindingPatternData::BindingIdentifier(binding), _) => {
+        tag_dynamic_import_binding(parser, import_call, binding, path.clone());
       }
-      BindingPatternData::ObjectPattern(pattern) => {
-        track_destructuring_import_bindings(parser, import_call, pattern, path);
+      (BindingPatternData::ObjectPattern(pattern), Some(properties)) => {
+        track_collected_import_bindings(parser, import_call, pattern, properties, path);
       }
-      // A default value or iterable pattern may produce a different object.
+      // Defaults, iterable patterns and uncollectable nested patterns may
+      // produce a different object or expose otherwise untracked properties.
       // Retain that export rather than attaching an import tag to its binding.
       _ => parser
         .dynamic_import_references
         .get_import_mut_expect(&import_span)
-        .add_reference(path),
+        .add_reference(path.clone()),
     }
+    path.pop();
   }
 }
 
@@ -174,7 +177,7 @@ fn track_dynamic_import_pattern(
       tag_dynamic_import_referenced(parser, import_call, binding);
     }
     BindingPatternData::ObjectPattern(pattern) => {
-      track_destructuring_import_bindings(parser, import_call, pattern, vec![]);
+      track_destructuring_import_bindings(parser, import_call, pattern);
     }
     BindingPatternData::AssignmentPattern(pattern) => {
       track_dynamic_import_pattern(parser, import_call, pattern.left(ast));
@@ -990,7 +993,7 @@ fn walk_import_then_fulfilled_callback(
       if let Some(ns_obj) = namespace_obj_arg.as_binding_identifier(ast) {
         tag_dynamic_import_referenced(parser, import_call, ns_obj);
       } else if let Some(ns_obj) = namespace_obj_arg.as_object_pattern(ast) {
-        track_destructuring_import_bindings(parser, import_call, ns_obj, vec![]);
+        track_destructuring_import_bindings(parser, import_call, ns_obj);
       } else {
         unreachable!()
       }
