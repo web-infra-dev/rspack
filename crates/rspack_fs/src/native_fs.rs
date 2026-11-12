@@ -1,13 +1,13 @@
 use std::{
+  fs::{self, File},
   io::{BufRead, BufReader, BufWriter, Read, Write},
   path::{Path, PathBuf},
 };
 
-#[cfg(not(target_family = "wasm"))]
-use fs_err::tokio as tokio_fs;
-use fs_err::{self as fs, File};
 use pnp::fs::{FileType, LruZipCache, VPath, VPathInfo, ZipCache};
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
+#[cfg(not(target_family = "wasm"))]
+use tokio::fs as tokio_fs;
 use tracing::instrument;
 
 use crate::{
@@ -358,7 +358,12 @@ impl ReadableFileSystem for NativeFileSystem {
 impl IntermediateFileSystemExtras for NativeFileSystem {
   #[instrument(skip(self), level = "debug")]
   async fn rename(&self, from: &Utf8Path, to: &Utf8Path) -> Result<()> {
-    fs::rename(from, to).to_fs_result()
+    fs::rename(from, to).map_err(|error| {
+      Error::Io(std::io::Error::new(
+        error.kind(),
+        format!("failed to rename file from `{from}` to `{to}`: {error}"),
+      ))
+    })
   }
   #[instrument(skip(self), level = "debug")]
   async fn create_read_stream(&self, file: &Utf8Path) -> Result<Box<dyn ReadStream>> {

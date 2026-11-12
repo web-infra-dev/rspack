@@ -50,7 +50,6 @@ enum-tag            = { version = "0.3.0", default-features = false }
 fast-glob           = { version = "1.1.2", default-features = false }
 fixedbitset         = { version = "0.5.7", default-features = false }
 form_urlencoded     = { version = "1.2.2", default-features = false }
-fs-err              = { version = "3.3.2", default-features = false }
 futures             = { version = "0.3.34", default-features = false, features = ["std"] }
 hashbrown           = { version = "0.17.1", default-features = false }
 hashlink            = { version = "0.12.2", default-features = false }

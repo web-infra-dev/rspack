@@ -1082,9 +1082,15 @@ fn digest_hasher(hasher: RspackHasher) -> RspackHashDigest {
 }
 
 fn is_not_found(error: &FsError) -> bool {
-  // Node/libuv reports Windows ERROR_INVALID_NAME as ENOENT. Resolver probes
+  // Node/libuv reports these Windows path errors as ENOENT. Resolver probes
   // containing an absolute path in a query or fragment cannot exist either.
   const WINDOWS_ERROR_INVALID_NAME: i32 = 123;
+  const WINDOWS_ERROR_BAD_PATHNAME: i32 = 161;
+  const WINDOWS_ERROR_DIRECTORY: i32 = 267;
   matches!(error, FsError::Io(error) if error.kind() == std::io::ErrorKind::NotFound
-    || cfg!(windows) && error.raw_os_error() == Some(WINDOWS_ERROR_INVALID_NAME))
+  || cfg!(windows)
+    && matches!(
+      error.raw_os_error(),
+      Some(WINDOWS_ERROR_INVALID_NAME | WINDOWS_ERROR_BAD_PATHNAME | WINDOWS_ERROR_DIRECTORY)
+    ))
 }
