@@ -136,7 +136,11 @@ impl Task<TaskContext> for BuildResultTask {
 
     let build_info = module.build_info();
 
-    if !module.diagnostics().is_empty() {
+    if !module.diagnostics().is_empty()
+      || module
+        .module_build_diagnostics()
+        .is_some_and(|diagnostics| !diagnostics.diagnostics.is_empty())
+    {
       context
         .artifact
         .make_failed_module

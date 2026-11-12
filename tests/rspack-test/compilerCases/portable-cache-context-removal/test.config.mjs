@@ -6,6 +6,7 @@ import {
 	closeCompiler,
 	runCompiler
 } from "@rspack/test-tools/helper/lifecycle";
+import { removeTree } from "../_remove-tree.mjs";
 
 async function build(context) {
 	const compiler = rspack({
@@ -51,7 +52,7 @@ export default {
 			// The removed context module must not come back from the cache.
 			expect(await build(base)).toHaveLength(1);
 		} finally {
-			fs.rmSync(base, { recursive: true, force: true });
+			removeTree(base);
 		}
 	}
 };

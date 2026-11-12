@@ -18,7 +18,8 @@ pub use self::rebuild::CompilationRecords;
 use crate::{
   BoxPlugin, CacheOptions, CleanOptions, Compilation, CompilationAsset, CompilationLogging,
   CompilerOptions, CompilerPlatform, ContextModuleFactory, Filename, InfrastructureLogSink,
-  KeepPattern, NormalModuleFactory, PluginDriver, ResolverFactory, SharedPluginDriver,
+  KeepPattern, NormalModuleFactory, PersistentCacheOptions, PluginDriver, ResolverFactory,
+  SharedPluginDriver,
   artifacts::IncrementalArtifacts,
   compilation::build_module_graph::ModuleExecutor,
   fast_set,
@@ -144,6 +145,15 @@ impl Compiler {
       }
     }
 
+    if let CacheOptions::Persistent(PersistentCacheOptions {
+      portable_root: Some(root),
+      ..
+    }) = &options.cache
+    {
+      let roots = vec![root.root.clone(), root.canonical_root.clone()];
+      resolver_factory.set_relocatable_roots(roots.clone());
+      loader_resolver_factory.set_relocatable_roots(roots);
+    }
     let options = Arc::new(options);
     let compilation_logging: CompilationLogging = Default::default();
     let plugin_driver = PluginDriver::new(options.clone(), plugins, resolver_factory.clone());

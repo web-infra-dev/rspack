@@ -11,7 +11,7 @@ use crate::{
   BoxSource, MapOptions, RawBufferSource, Source, SourceExt, SourceMap,
   helpers::{
     Chunks, GeneratedInfo, StreamChunks, TextSpan, stream_and_get_source_and_map,
-    stream_chunks_of_raw_rope, stream_chunks_of_source_map,
+    stream_chunks_of_source_map,
   },
   source::SourceValue,
 };
@@ -241,7 +241,13 @@ impl<'source> Chunks<'source> for CachedSourceChunks<'source> {
         let source = self.get_or_init_source();
         stream_chunks_of_source_map(options, source, map, on_chunk, on_source, on_name)
       }
-      Some(None) => stream_chunks_of_raw_rope(self.cache_source.inner.as_ref(), options, on_chunk),
+      Some(None) => {
+        // No encoded mappings does not mean the inner stream has no source/name events.
+        // Preserve those events for parents even when all mapped text was deleted.
+        self
+          .get_or_init_chunks()
+          .stream(options, on_chunk, on_source, on_name)
+      }
       None => {
         let (generated_info, map) = stream_and_get_source_and_map(
           options,

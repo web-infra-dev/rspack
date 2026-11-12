@@ -27,11 +27,29 @@ where
   to_bytes_with_binding(value, ctx).map(|(bytes, _)| bytes)
 }
 
-pub fn to_bytes_with_binding<T, C: CacheableContext>(value: &T, ctx: &C) -> Result<(Vec<u8>, bool)>
+/// Like [`to_bytes`], with paths above the project root stored relative to it. Snapshot keys use
+/// it: a key only identifies the path a snapshot validates, and the validation itself happens at
+/// the restored location.
+pub fn to_bytes_above_root<T, C: CacheableContext>(value: &T, ctx: &C) -> Result<Vec<u8>>
 where
   T: for<'a> Serialize<Serializer<'a>>,
 {
   let guard = ContextGuard::new(ctx);
+  guard.set_allow_above_root(true);
+  to_bytes_with_guard(value, guard).map(|(bytes, _)| bytes)
+}
+
+pub fn to_bytes_with_binding<T, C: CacheableContext>(value: &T, ctx: &C) -> Result<(Vec<u8>, bool)>
+where
+  T: for<'a> Serialize<Serializer<'a>>,
+{
+  to_bytes_with_guard(value, ContextGuard::new(ctx))
+}
+
+fn to_bytes_with_guard<T>(value: &T, guard: ContextGuard<'_>) -> Result<(Vec<u8>, bool)>
+where
+  T: for<'a> Serialize<Serializer<'a>>,
+{
   let mut arena = Arena::new();
   let mut serializer = RkyvSerializer::new(AlignedVec::new(), arena.acquire(), Share::new());
   guard.add_to_sharing(&mut serializer)?;

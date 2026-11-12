@@ -235,7 +235,7 @@ See [`experiments.portableCache`](/config/experiments#experimentsportablecache) 
 
 Enable portable path encoding with `true` or `{ root }`. The default root is the nearest ancestor of `context`, or `context` itself, that contains a `.git` file or directory. Without one, the root is `context`. Using the git toplevel includes sibling packages and repository-level dependencies in monorepos. Rspack resolves an explicit `root` against `context`. The root keeps the spelling of `context`, so a project reached through a symlink stays portable. Rspack also rebases paths under the root's real path.
 
-When Rspack restores the cache elsewhere, it rebases only paths under the root. Paths outside it stay verbatim.
+When Rspack restores the cache elsewhere, it rebases paths under the root. It also rebases resolver lookups above the root, such as `../node_modules`, by their position relative to it. Snapshots validate those paths at the new location. Moving to a different depth invalidates lookups that reached the filesystem root, because the new location may have ancestors that the original resolver never searched. Other absolute paths stay verbatim, and entries that depend on them are rebuilt when the root changes.
 
 :::tip
 `portable: true` used to take `context` as the root. Set `portable: { root: '.' }` to keep that root, for example when the same package builds inside its repository and from a copy without `.git`, such as a Docker build context.
@@ -247,7 +247,7 @@ When `portable` is `false`, Rspack binds the cache to the project [context](/con
 
 The cache backend that [experiments.newCache](/config/experiments#experimentsnewcache) enables does not rebase paths yet, so Rspack always binds it to the project context, even when `portable` is `true`.
 
-In the legacy cache backend, Rspack rebuilds entries that still depend on the writer's project root when the root changes. This includes `import.meta.url`, loader output containing absolute project paths, and references outside the project root. Unchanged builds at the same root can still reuse these entries.
+In the legacy cache backend, Rspack rebuilds entries that still depend on the writer's project root when the root changes. This includes `import.meta.url`, loader output containing absolute project paths, and references to paths that stay verbatim. Unchanged builds at the same root can still reuse these entries.
 
 The legacy backend rebases entry contexts and module identities under the root, so a relocated project reuses unchanged modules even when their file timestamps are new. Rspack validates a portable context dependency by the names, types and contents of its entries, where the type is file, directory or symbolic link. When a content-hash fallback validates a file, Rspack refreshes its timestamp snapshot for later builds.
 

@@ -66,7 +66,10 @@ async fn run_pitch_chain<Context: Send>(
       let loader = cx.current_loader().loader().clone();
       let loader_span = info_span!("run_loader:pitch", resource);
       cx.reset_dependency_changes();
+      cx.portable.begin();
       let result = loader.pitch(cx).instrument(loader_span).await;
+      // Even a non-returning pitch can mutate data read by later loaders.
+      cx.portable.end();
       cx.merge_dependency_changes();
       result?;
       if cx.content.is_some() {
@@ -122,7 +125,9 @@ impl<Context: Send> LoaderContext<Context> {
         cx.current_loader().set_normal_executed();
         let loader = cx.current_loader().loader().clone();
         let loader_span = info_span!("run_loader:normal", resource = cx.resource());
+        cx.portable.begin();
         let result = loader.run(cx).instrument(loader_span).await;
+        cx.portable.end();
         if result.is_ok() && !cx.current_loader().finish_called() {
           // If nothing is returned from this loader, set every output to None
           // to match webpack loader-runner behavior.
@@ -153,6 +158,11 @@ async fn process_resource<Context: Send>(
   {
     loader_context.content = Some(content);
     loader_context.source_map = source_map.map(Box::new);
+    // Resource hooks (including extractSourceMap) run outside invocation authority.
+    // Their maps and opaque data cannot inherit a later loader's declaration.
+    if loader_context.source_map.is_some() || loader_context.additional_data.is_some() {
+      loader_context.break_portable_output();
+    }
     for dependency in file_dependencies {
       loader_context.add_file_dependency(dependency);
     }
@@ -191,6 +201,7 @@ fn create_loader_context<Context: Send>(
   LoaderContext {
     hot: false,
     cacheable: true,
+    portable: Default::default(),
     parse_meta: Default::default(),
     dependencies,
     added_dependencies: Default::default(),
@@ -251,6 +262,9 @@ pub async fn run_loaders<Context: Send>(
     .collect::<Vec<LoaderItem<Context>>>();
   let mut cx = create_loader_context(loaders, resource_data, plugin, context);
   let result = run_loaders_impl(&mut cx, fs).await;
+  if result.is_err() {
+    cx.break_portable_output();
+  }
   (LoaderResult::new(cx), result.err())
 }
 
@@ -260,6 +274,9 @@ async fn run_loaders_impl<Context: Send>(
 ) -> Result<()> {
   if let Some(plugin) = cx.plugin.clone() {
     plugin.before_all(cx).await?;
+    if cx.source_map.is_some() || cx.additional_data.is_some() {
+      cx.break_portable_output();
+    }
   }
   let resource = cx.resource().to_owned();
   let resource = resource.as_str();
@@ -321,6 +338,8 @@ async fn run_loaders_impl<Context: Send>(
 pub struct LoaderResult<Context> {
   pub context: Context,
   pub cacheable: bool,
+  /// Intact certification chain and deduplicated absolute declared path values.
+  pub portable_output: Option<Vec<Utf8PathBuf>>,
   pub dependencies: LoaderDependencies,
   pub diagnostics: Vec<Diagnostic>,
   pub content: Content,
@@ -335,6 +354,7 @@ impl<Context: Send> LoaderResult<Context> {
     LoaderResult {
       context: loader_context.context,
       cacheable: loader_context.cacheable,
+      portable_output: loader_context.portable.into_paths(),
       dependencies: loader_context.dependencies,
       diagnostics: loader_context.diagnostics,
       content: loader_context

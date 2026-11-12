@@ -39,6 +39,82 @@ fn options() -> SnapshotOptions {
 }
 
 #[tokio::test]
+async fn expired_layout_files_compare_hashes_when_timestamps_match() {
+  use std::{
+    fs,
+    time::{Duration, SystemTime},
+  };
+
+  let temp = tempfile::tempdir().unwrap();
+  let base = fs::canonicalize(temp.path()).unwrap();
+  // Future mtime dominates ctime on Unix, making equality deterministic across roots.
+  let time = SystemTime::now() + Duration::from_secs(3600);
+  for (name, contents) in [("writer", "seven"), ("same", "seven"), ("changed", "other")] {
+    let root = base.join(name);
+    fs::create_dir_all(&root).unwrap();
+    let path = root.join("input.js");
+    fs::write(&path, contents).unwrap();
+    fs::File::options()
+      .write(true)
+      .open(path)
+      .unwrap()
+      .set_times(fs::FileTimes::new().set_modified(time))
+      .unwrap();
+  }
+  let writer = base.join("writer").assert_utf8();
+  let filesystem = Arc::new(NativeFileSystem::new(false));
+  let writer_meta = filesystem
+    .metadata(writer.join("input.js").as_path())
+    .await
+    .unwrap();
+  let mut storage = MemoryStorage::default();
+  Snapshot::new(
+    options(),
+    writer.as_str().into(),
+    filesystem.clone(),
+    codec_for_moved(writer.as_str()),
+  )
+  .add(
+    &mut storage,
+    SnapshotScope::FILE,
+    [InternedPath::from(writer.join("input.js").as_std_path()).into_fixed()].into_iter(),
+  )
+  .await;
+  let entries = storage.load(SnapshotScope::FILE.name()).await.unwrap();
+  assert_eq!(entries.len(), 2);
+  for (_, value) in &entries {
+    let (bound_root, strategy) = codec_for_moved(writer.as_str())
+      .decode::<(Option<u64>, Strategy)>(value)
+      .unwrap();
+    assert!(bound_root.is_some());
+    assert!(matches!(strategy, Strategy::FileTimestampAndHash { .. }));
+  }
+  for (name, changed) in [("same", false), ("changed", true)] {
+    let root = base.join(name).assert_utf8();
+    let path = root.join("input.js");
+    let meta = filesystem.metadata(&path).await.unwrap();
+    assert_eq!(
+      writer_meta.mtime_ms.max(writer_meta.ctime_ms),
+      meta.mtime_ms.max(meta.ctime_ms)
+    );
+    let reader = Snapshot::new(
+      options(),
+      root.as_str().into(),
+      filesystem.clone(),
+      codec_for_moved(root.as_str()),
+    );
+    let (_, modified, deleted, unchanged, _, _) = reader
+      .calc_modified_paths(&storage, SnapshotScope::FILE)
+      .await
+      .unwrap();
+    let path = InternedPath::from(path.as_std_path());
+    assert_eq!(modified.contains(&path), changed);
+    assert_eq!(unchanged.contains(&path), !changed);
+    assert!(!deleted.contains(&path));
+  }
+}
+
+#[tokio::test]
 async fn snapshot_first_use_pads_timestamp_precision() {
   let fs = Arc::new(MemoryFileSystem::default());
   fs.create_dir_all("/project/dir".into()).await.unwrap();
@@ -57,7 +133,10 @@ async fn snapshot_first_use_pads_timestamp_precision() {
   let entries = storage.load(SnapshotScope::CONTEXT.name()).await.unwrap();
   assert_eq!(entries.len(), 1);
   assert!(matches!(
-    codec.decode::<Strategy>(&entries[0].1).unwrap(),
+    codec
+      .decode::<(Option<u64>, Strategy)>(&entries[0].1)
+      .unwrap()
+      .1,
     Strategy::Failed
   ));
 }
@@ -336,7 +415,10 @@ async fn symlink_contexts_track_unresolvable_links_including_managed_roots() {
   assert_eq!(entries.len(), 1);
   let decoder = codec_for_moved(root.as_str());
   assert!(matches!(
-    decoder.decode::<Strategy>(&entries[0].1).unwrap(),
+    decoder
+      .decode::<(Option<u64>, Strategy)>(&entries[0].1)
+      .unwrap()
+      .1,
     Strategy::DirHash { .. }
   ));
   fs::remove_file(root.join("scan/loop")).unwrap();
@@ -346,7 +428,10 @@ async fn symlink_contexts_track_unresolvable_links_including_managed_roots() {
     .await;
   let entries = storage.load(SnapshotScope::CONTEXT.name()).await.unwrap();
   assert!(matches!(
-    decoder.decode::<Strategy>(&entries[0].1).unwrap(),
+    decoder
+      .decode::<(Option<u64>, Strategy)>(&entries[0].1)
+      .unwrap()
+      .1,
     Strategy::DirHash { .. }
   ));
   // The snapshot root itself is a link under managedPaths, so package shortcuts must not hide it.
@@ -356,7 +441,10 @@ async fn symlink_contexts_track_unresolvable_links_including_managed_roots() {
     .await;
   let entries = storage.load(SnapshotScope::FILE.name()).await.unwrap();
   assert!(matches!(
-    decoder.decode::<Strategy>(&entries[0].1).unwrap(),
+    decoder
+      .decode::<(Option<u64>, Strategy)>(&entries[0].1)
+      .unwrap()
+      .1,
     Strategy::Failed
   ));
 }
@@ -431,6 +519,169 @@ async fn linked_file_dependencies_check_the_target_without_rehashing_it() {
 }
 
 #[tokio::test]
+async fn deeper_root_invalidates_missing_ancestor_lookups() {
+  let fs = Arc::new(MemoryFileSystem::default());
+  let mut storage = MemoryStorage::default();
+  let writer = Snapshot::new(
+    options(),
+    "/a/proj".into(),
+    fs.clone(),
+    codec("/a/proj", "/a/proj"),
+  );
+  writer
+    .add(
+      &mut storage,
+      SnapshotScope::MISSING,
+      ["/a/node_modules/optional", "/node_modules/optional"]
+        .map(InternedPath::from)
+        .into_iter(),
+    )
+    .await;
+  // This directory is a new ancestor of the reader and has no writer-side counterpart.
+  fs.create_dir_all("/b/node_modules/optional".into())
+    .await
+    .unwrap();
+  let reader = Snapshot::new(
+    options(),
+    "/b/c/proj".into(),
+    fs,
+    codec("/b/c/proj", "/b/c/proj"),
+  );
+  let (_, modified, deleted, _, _, _) = reader
+    .calc_modified_paths(&storage, SnapshotScope::MISSING)
+    .await
+    .unwrap();
+  assert!(
+    !modified.is_empty() || !deleted.is_empty(),
+    "new ancestors must force resolution to run again"
+  );
+}
+
+#[tokio::test]
+async fn fixed_snapshot_keys_expire_after_relocation_and_remove_both_policies() {
+  for fixed_path in ["/a/proj/optional.js", "/a/optional.js"] {
+    let fs = Arc::new(MemoryFileSystem::default());
+    let mut storage = MemoryStorage::default();
+    let writer = Snapshot::new(
+      options(),
+      "/a/proj".into(),
+      fs.clone(),
+      codec("/a/proj", "/a/proj"),
+    );
+    let fixed = InternedPath::from(fixed_path).into_fixed();
+    writer
+      .add(
+        &mut storage,
+        SnapshotScope::MISSING,
+        [fixed.clone()].into_iter(),
+      )
+      .await;
+    // The second key covers a movable factorization sharing this same filesystem identity.
+    assert_eq!(
+      storage
+        .load(SnapshotScope::MISSING.name())
+        .await
+        .unwrap()
+        .len(),
+      2
+    );
+    fs.create_dir_all("/a/proj".into()).await.unwrap();
+    fs.write(fixed_path.into(), b"appeared").await.unwrap();
+    let reader = Snapshot::new(options(), "/b/proj".into(), fs, codec("/b/proj", "/b/proj"));
+    let (_, modified, _, _, _, dropped) = reader
+      .calc_modified_paths(&storage, SnapshotScope::MISSING)
+      .await
+      .unwrap();
+    assert!(modified.contains(&fixed));
+    assert_eq!(dropped.len(), 2, "both fixed and layout records expire");
+    // Removal cannot depend on which policy survived aggregation in the path counter.
+    writer.remove(
+      &mut storage,
+      SnapshotScope::MISSING,
+      [fixed.without_fixed()].into_iter(),
+    );
+    assert!(
+      storage
+        .load(SnapshotScope::MISSING.name())
+        .await
+        .unwrap()
+        .is_empty()
+    );
+  }
+}
+
+#[tokio::test]
+async fn mixed_snapshot_owners_validate_the_reader_in_both_registration_orders() {
+  use rspack_core::DependencyId;
+  use rspack_paths::InternedPathList;
+
+  for fixed_first in [true, false] {
+    let fs = Arc::new(MemoryFileSystem::default());
+    for root in ["/a/project", "/b/project"] {
+      fs.create_dir_all(root.into()).await.unwrap();
+      fs.write(format!("{root}/shared.js").as_str().into(), b"same")
+        .await
+        .unwrap();
+    }
+    let file = InternedPath::from("/a/project/shared.js");
+    let fixed = InternedPathList::from_vec(vec![file.clone().into_fixed()]);
+    let relative = InternedPathList::from_vec(vec![file.clone()]);
+    let mut artifact = BuildModuleGraphArtifact::new();
+    let counter = &mut artifact.file_dependencies;
+    if fixed_first {
+      counter.add_dependency_files(DependencyId::from(1), &fixed);
+    }
+    counter.add_module_files("module".into(), [&file]);
+    counter.add_dependency_files(DependencyId::from(2), &relative);
+    if !fixed_first {
+      counter.add_dependency_files(DependencyId::from(1), &fixed);
+    }
+    let mut storage = MemoryStorage::default();
+    let writer = Snapshot::new(
+      options(),
+      "/a/project".into(),
+      fs.clone(),
+      codec("/a/project", "/a/project"),
+    );
+    writer
+      .add(&mut storage, SnapshotScope::FILE, counter.files().cloned())
+      .await;
+    let reader = Snapshot::new(
+      options(),
+      "/b/project".into(),
+      fs.clone(),
+      codec("/b/project", "/b/project"),
+    );
+    let moved = InternedPath::from("/b/project/shared.js");
+    let (_, modified, deleted, unchanged, _, dropped) = reader
+      .calc_modified_paths(&storage, SnapshotScope::FILE)
+      .await
+      .unwrap();
+    assert!(!modified.contains(&moved), "fixed_first={fixed_first}");
+    assert!(!deleted.contains(&moved));
+    assert!(unchanged.contains(&moved));
+    if fixed_first {
+      assert!(
+        modified.contains(&file),
+        "the raw fixed record still expires"
+      );
+      assert_eq!(dropped.len(), 2, "both encodings still expire");
+    }
+    // MemoryFileSystem timestamps have millisecond precision. Advance past the unchanged
+    // file's timestamp so this tests content invalidation rather than an undetectable write.
+    std::thread::sleep(std::time::Duration::from_millis(20));
+    fs.write("/b/project/shared.js".into(), b"changed reader")
+      .await
+      .unwrap();
+    let (_, modified, _, _, _, _) = reader
+      .calc_modified_paths(&storage, SnapshotScope::FILE)
+      .await
+      .unwrap();
+    assert!(modified.contains(&moved), "fixed_first={fixed_first}");
+  }
+}
+
+#[tokio::test]
 async fn missing_file_dependency_stays_valid_until_created() {
   for portable in [false, true] {
     let fs = Arc::new(MemoryFileSystem::default());
@@ -467,6 +718,248 @@ async fn missing_file_dependency_stays_valid_until_created() {
       .unwrap();
     assert!(modified.contains(&path));
   }
+}
+
+#[tokio::test]
+async fn expired_layout_observations_survive_partial_saves_in_every_input_scope() {
+  for scope in [
+    SnapshotScope::FILE,
+    SnapshotScope::CONTEXT,
+    SnapshotScope::MISSING,
+  ] {
+    let fs = Arc::new(MemoryFileSystem::default());
+    for root in ["/a/project", "/b/project"] {
+      fs.create_dir_all(format!("{root}/directory").as_str().into())
+        .await
+        .unwrap();
+      fs.write(format!("{root}/file").as_str().into(), b"same")
+        .await
+        .unwrap();
+    }
+    let name = match scope {
+      SnapshotScope::FILE => "file",
+      SnapshotScope::CONTEXT => "directory",
+      SnapshotScope::MISSING => "missing",
+      SnapshotScope::BUILD => unreachable!(),
+    };
+    let original = InternedPath::from(format!("/a/project/{name}").as_str()).into_fixed();
+    let moved = InternedPath::from(format!("/b/project/{name}").as_str());
+    let mut storage = MemoryStorage::default();
+    Snapshot::new(
+      options(),
+      "/a/project".into(),
+      fs.clone(),
+      codec("/a/project", "/a/project"),
+    )
+    .add(&mut storage, scope, [original.clone()].into_iter())
+    .await;
+    let reader = Snapshot::new(
+      options(),
+      "/b/project".into(),
+      fs.clone(),
+      codec("/b/project", "/b/project"),
+    );
+    let mut context = CacheContext::new(
+      Box::new(storage),
+      false,
+      CompilationLogger::new("test", Default::default()),
+    );
+    let (_, modified, deleted) = context.load_snapshot(&reader).await.unwrap();
+    assert!(modified.contains(&original));
+    assert!(!modified.contains(&moved) && !deleted.contains(&moved));
+    let empty = || (std::iter::empty(), std::iter::empty());
+    context
+      .save_snapshot(&reader, empty(), empty(), empty())
+      .await;
+    let (hot, modified, deleted) = context.load_snapshot(&reader).await.unwrap();
+    assert!(hot && modified.is_empty() && deleted.is_empty());
+    let changed = match scope {
+      SnapshotScope::CONTEXT => "/b/project/directory/new",
+      SnapshotScope::FILE => "/b/project/file",
+      SnapshotScope::MISSING => "/b/project/missing",
+      SnapshotScope::BUILD => unreachable!(),
+    };
+    std::thread::sleep(std::time::Duration::from_millis(20));
+    fs.write(changed.into(), b"new input").await.unwrap();
+    let (_, modified, _) = context.load_snapshot(&reader).await.unwrap();
+    assert!(modified.contains(&moved), "scope={scope:?}");
+  }
+}
+
+#[tokio::test]
+async fn fixed_build_inputs_still_bind_their_build_owner() {
+  rspack_tasks::within_compiler_context_for_testing(async {
+    let writer = MakeOccasion::new(codec("/a/project", "/a/project"));
+    let reader = MakeOccasion::new(codec("/b/project", "/b/project"));
+    let logger = CompilationLogger::new("test", Default::default());
+    let mut storage = MemoryStorage::default();
+    writer.save(
+      &mut storage,
+      &artifact("/a/project/module.js".into(), "source"),
+    );
+    let recovered = reader.recovery(&storage, &logger).await.unwrap();
+    assert_eq!(recovered.item.module_graph.modules_len(), 1);
+    assert!(recovered.dropped.is_empty());
+    for path in ["/a/project/input", "/a/outside"] {
+      for scope in [
+        SnapshotScope::FILE,
+        SnapshotScope::CONTEXT,
+        SnapshotScope::MISSING,
+        SnapshotScope::BUILD,
+      ] {
+        let identifier = ModuleIdentifier::from("/a/project/module.js");
+        let mut item = BuildModuleGraphArtifact::new();
+        item
+          .module_graph
+          .add_module_graph_module(ModuleGraphModule::new(identifier));
+        let mut module = RawModule::new(
+          "source".into(),
+          identifier,
+          "module".into(),
+          RuntimeGlobals::empty(),
+        );
+        let dependencies = &mut module.build_info_mut().dependencies;
+        let paths = match scope {
+          SnapshotScope::FILE => &mut dependencies.file,
+          SnapshotScope::CONTEXT => &mut dependencies.context,
+          SnapshotScope::MISSING => &mut dependencies.missing,
+          SnapshotScope::BUILD => &mut dependencies.build,
+        };
+        paths.insert(InternedPath::from(path).into_fixed());
+        module.freeze_build_info();
+        module.freeze_build_meta();
+        item
+          .module_graph
+          .add_module(BoxModule::new(Box::new(module)));
+        item.issuer_update_modules.insert(identifier);
+        let mut storage = MemoryStorage::default();
+        MakeOccasion::new(codec("/a/project", "/a/project")).save(&mut storage, &item);
+        let recovered = MakeOccasion::new(codec("/b/project", "/b/project"))
+          .recovery(
+            &storage,
+            &CompilationLogger::new("test", Default::default()),
+          )
+          .await
+          .unwrap();
+        assert_eq!(
+          recovered.item.module_graph.modules_len(),
+          0,
+          "{path} {scope:?}"
+        );
+        assert_eq!(recovered.dropped.len(), 1);
+      }
+    }
+  })
+  .await;
+}
+
+#[tokio::test]
+async fn layout_revalidation_does_not_relax_global_build_dependencies() {
+  let fs = Arc::new(MemoryFileSystem::default());
+  for root in ["/a/project", "/b/project"] {
+    fs.create_dir_all(root.into()).await.unwrap();
+    fs.write(format!("{root}/input").as_str().into(), b"same")
+      .await
+      .unwrap();
+  }
+  let mut storage = MemoryStorage::default();
+  Snapshot::new(
+    options(),
+    "/a/project".into(),
+    fs.clone(),
+    codec("/a/project", "/a/project"),
+  )
+  .add(
+    &mut storage,
+    SnapshotScope::BUILD,
+    [InternedPath::from("/a/project/input").into_fixed()].into_iter(),
+  )
+  .await;
+  let (_, modified, _, unchanged, _, dropped) = Snapshot::new(
+    options(),
+    "/b/project".into(),
+    fs,
+    codec("/b/project", "/b/project"),
+  )
+  .calc_modified_paths(&storage, SnapshotScope::BUILD)
+  .await
+  .unwrap();
+  assert!(modified.contains(&InternedPath::from("/b/project/input")));
+  assert!(unchanged.is_empty());
+  assert_eq!(dropped.len(), 2);
+}
+
+#[tokio::test]
+async fn expired_layout_snapshots_still_detect_link_and_package_metadata_changes() {
+  use std::{fs, os::unix::fs::symlink};
+
+  use rspack_core::PathMatcher;
+
+  let temp = tempfile::tempdir().unwrap();
+  let base = fs::canonicalize(temp.path()).unwrap();
+  for root in [base.join("a/project"), base.join("b/project")] {
+    fs::create_dir_all(root.join("node_modules/pkg")).unwrap();
+    fs::write(root.join("first.js"), "same").unwrap();
+    fs::write(root.join("second.js"), "same").unwrap();
+    symlink("first.js", root.join("link.js")).unwrap();
+    fs::write(
+      root.join("node_modules/pkg/package.json"),
+      r#"{"name":"pkg","version":"1"}"#,
+    )
+    .unwrap();
+    fs::write(root.join("node_modules/pkg/index.js"), "same").unwrap();
+  }
+  let writer = base.join("a/project").assert_utf8();
+  let reader = base.join("b/project").assert_utf8();
+  let mut configuration = options();
+  configuration
+    .managed_paths
+    .push(PathMatcher::String(base.to_string_lossy().into_owned()));
+  let mut storage = MemoryStorage::default();
+  Snapshot::new(
+    configuration.clone(),
+    writer.as_str().into(),
+    Arc::new(NativeFileSystem::new(false)),
+    codec_for_moved(writer.as_str()),
+  )
+  .add(
+    &mut storage,
+    SnapshotScope::FILE,
+    ["link.js", "node_modules/pkg/index.js"]
+      .map(|p| InternedPath::from(writer.join(p).as_std_path()).into_fixed())
+      .into_iter(),
+  )
+  .await;
+  let snapshot = Snapshot::new(
+    configuration,
+    reader.as_str().into(),
+    Arc::new(NativeFileSystem::new(false)),
+    codec_for_moved(reader.as_str()),
+  );
+  let (_, modified, _, unchanged, _, _) = snapshot
+    .calc_modified_paths(&storage, SnapshotScope::FILE)
+    .await
+    .unwrap();
+  for p in ["link.js", "node_modules/pkg/index.js"] {
+    let path = InternedPath::from(reader.join(p).as_std_path());
+    assert!(!modified.contains(&path));
+    assert!(unchanged.contains(&path));
+  }
+  fs::remove_file(reader.join("link.js")).unwrap();
+  symlink("second.js", reader.join("link.js")).unwrap();
+  fs::write(
+    reader.join("node_modules/pkg/package.json"),
+    r#"{"name":"pkg","version":"2"}"#,
+  )
+  .unwrap();
+  let (_, modified, _, _, _, _) = snapshot
+    .calc_modified_paths(&storage, SnapshotScope::FILE)
+    .await
+    .unwrap();
+  assert!(modified.contains(&InternedPath::from(reader.join("link.js").as_std_path())));
+  assert!(modified.contains(&InternedPath::from(
+    reader.join("node_modules/pkg/index.js").as_std_path()
+  )));
 }
 
 #[tokio::test]
@@ -766,7 +1259,10 @@ async fn inaccessible_file_dependency_does_not_become_missing() {
   fs::set_permissions(&directory, fs::Permissions::from_mode(0o700)).unwrap();
   let entries = storage.load(SnapshotScope::FILE.name()).await.unwrap();
   assert!(matches!(
-    codec.decode::<Strategy>(&entries[0].1).unwrap(),
+    codec
+      .decode::<(Option<u64>, Strategy)>(&entries[0].1)
+      .unwrap()
+      .1,
     Strategy::Failed
   ));
 }

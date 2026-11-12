@@ -4,8 +4,9 @@ mod util;
 
 use rspack_core::{
   ArcComputed, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, CompilerOptions,
-  DependencyCodeGenerationRef, FactoryMeta, ImportMeta, ModuleIdentifier, ModuleLayer, ModuleType,
-  ParseMeta, ParserOptions, ResolvedModuleOptions, ResourceData, SideEffectsBailoutItemWithSpan,
+  DependencyCodeGenerationRef, DependencyRange, FactoryMeta, ImportMeta, ModuleIdentifier,
+  ModuleLayer, ModuleType, ParseMeta, ParserOptions, PortableLocationShift, ResolvedModuleOptions,
+  ResourceData, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Diagnostic;
 use rspack_util::swc::RspackComments;
@@ -32,6 +33,10 @@ pub struct ScanDependenciesResult {
   pub presentational_dependencies: Vec<DependencyCodeGenerationRef>,
   pub warning_diagnostics: Vec<Diagnostic>,
   pub side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
+  /// Whether the evaluator read a certified path literal.
+  pub portable_site_evaluated: bool,
+  /// Whether a dependency range cuts into a certified path literal.
+  pub portable_site_cut: bool,
 }
 
 pub struct ParsedJavaScriptAst<'ast> {
@@ -59,6 +64,8 @@ pub fn scan_dependencies(
   parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
   parse_meta: ParseMeta,
   parser_runtime_requirements: &ParserRuntimeRequirementsData,
+  portable_sites: Option<&[DependencyRange]>,
+  portable_location_shifts: Option<&[PortableLocationShift]>,
 ) -> Result<ScanDependenciesResult, Vec<Diagnostic>> {
   let javascript_options = module_parser_options
     .and_then(|p| p.get_javascript())
@@ -66,6 +73,7 @@ pub fn scan_dependencies(
   // The drive is owned here and borrowed by the parser: hooks receive
   // `&mut parser`, so a parser that owned its drive could not lend it out
   // without cloning the handle on every hook call.
+  let module_plugin_count = parser_plugins.len();
   let plugin_drive = JavascriptParser::build_plugin_drive(
     compiler_options,
     javascript_options,
@@ -92,6 +100,23 @@ pub fn scan_dependencies(
     parser_runtime_requirements,
   );
 
+  if let Some(portable_sites) = portable_sites {
+    parser.portable_sites = portable_sites;
+  }
+  if let Some(shifts) = portable_location_shifts {
+    parser.portable_location_shifts = shifts;
+  }
+
   parser.walk_program(ast.program);
-  parser.into_results()
+  let result = parser.into_results();
+  if portable_sites.is_some() {
+    // The caller may scan the real text again with the same module plugins.
+    parser_plugins.extend(
+      plugin_drive
+        .into_plugins()
+        .into_iter()
+        .take(module_plugin_count),
+    );
+  }
+  result
 }

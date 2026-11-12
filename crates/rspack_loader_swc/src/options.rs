@@ -7,9 +7,12 @@ use rspack_swc_plugin_import::{ImportOptions, RawImportOptions};
 use serde::{Deserialize, Deserializer};
 use serde_json::{Map, Value};
 use swc_config::{file_pattern::FilePattern, types::BoolConfig};
-use swc_core::base::config::{
-  Config, ErrorConfig, FileMatcher, InputSourceMap, IsModule, JscConfig, ModuleConfig, Options,
-  SourceMapsConfig,
+use swc_core::{
+  base::config::{
+    Config, ErrorConfig, FileMatcher, InputSourceMap, IsModule, JscConfig, ModuleConfig, Options,
+    SourceMapsConfig,
+  },
+  ecma::ast::EsVersion,
 };
 
 #[derive(Default, Deserialize, Debug, Clone)]
@@ -38,6 +41,8 @@ impl Default for RawReactServerComponents {
 #[derive(Default, Deserialize, Debug)]
 #[serde(rename_all = "camelCase", default)]
 pub struct RawRspackExperiments {
+  /// Opt in only when every option belongs to the audited portable-output subset.
+  pub portable_output: bool,
   pub import: Option<Vec<RawImportOptions>>,
   #[serde(default)]
   pub react_server_components: RawReactServerComponents,
@@ -389,6 +394,9 @@ pub(crate) struct SwcCompilerOptionsWithAdditional {
   pub(crate) resource_specific_jsc: Option<ResourceSpecificJscResolver>,
   pub(crate) transform_import: Option<Vec<ImportOptions>>,
   pub(crate) rspack_experiments: RspackExperiments,
+  pub(crate) portable_output: bool,
+  /// Whether SWC prints strings by its rule for ES5 and below.
+  pub(crate) es5_strings: bool,
   pub(crate) collect_typescript_info: Option<CollectTypeScriptInfoOptions>,
 }
 
@@ -425,6 +433,13 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
   type Error = serde_json::Error;
   fn try_from(value: &str) -> Result<Self, Self::Error> {
     let option: SwcLoaderJsOptions = serde_json::from_str(value)?;
+    let portable_output = option
+      .rspack_experiments
+      .as_ref()
+      .is_some_and(|experiments| experiments.portable_output)
+      && serde_json::from_str::<Value>(value)?
+        .as_object()
+        .is_some_and(crate::portable_output::supports_portable_output);
     let SwcLoaderJsOptions {
       source_maps,
       source_map,
@@ -447,6 +462,16 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
       detect_syntax,
     } = option;
 
+    // SWC prints for ES5 when `jsc.target` is unset, including with `env`. The target is read
+    // here because `detectSyntax: "auto"` parses the rest of `jsc` for each resource.
+    let es5_strings = jsc
+      .other_fields
+      .get("target")
+      .map(|target| serde_json::from_value::<Option<EsVersion>>(target.clone()))
+      .transpose()?
+      .flatten()
+      .unwrap_or_default()
+      <= EsVersion::Es5;
     let needs_resource_specific_jsc = detect_syntax.is_auto() && !jsc.has_explicit_syntax();
     let parsed_jsc = if needs_resource_specific_jsc {
       JscConfig::default()
@@ -465,6 +490,8 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
     }
     Ok(SwcCompilerOptionsWithAdditional {
       raw_options: value.into(),
+      portable_output,
+      es5_strings,
       swc_options: Options {
         config: Config {
           env,

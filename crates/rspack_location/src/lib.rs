@@ -1,6 +1,12 @@
-use std::fmt::{self, Debug};
+use std::{
+  borrow::Cow,
+  cmp::Ordering,
+  fmt::{self, Debug},
+};
 
+pub mod portable;
 pub use itoa::Buffer;
+pub use portable::{PathSpelling, PortableDependencyLocation, PortableLocationShift};
 use rspack_cacheable::cacheable;
 use simd_utf16_len::utf16_len;
 
@@ -178,13 +184,23 @@ impl fmt::Display for SyntheticDependencyLocation {
 /// Real source locations sort before synthetic locations. Real locations are
 /// ordered by their start position and then their optional end position.
 #[cacheable]
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone)]
 pub enum DependencyLocation {
   Real(RealDependencyLocation),
+  Portable(Box<PortableDependencyLocation>),
   Synthetic(SyntheticDependencyLocation),
 }
 
 impl DependencyLocation {
+  /// Resolve portable columns only when a consumer needs the public location.
+  pub fn real(&self) -> Option<Cow<'_, RealDependencyLocation>> {
+    match self {
+      Self::Real(real) => Some(Cow::Borrowed(real)),
+      Self::Portable(portable) => Some(Cow::Owned(portable.resolve())),
+      Self::Synthetic(_) => None,
+    }
+  }
+
   pub fn from_byte_location(
     source: &str,
     line: u32,
@@ -196,10 +212,37 @@ impl DependencyLocation {
   }
 }
 
+// Portable and ordinary real locations share the same ordering, independent of representation.
+impl Ord for DependencyLocation {
+  fn cmp(&self, other: &Self) -> Ordering {
+    match (self, other) {
+      (Self::Synthetic(left), Self::Synthetic(right)) => left.cmp(right),
+      (Self::Synthetic(_), _) => Ordering::Greater,
+      (_, Self::Synthetic(_)) => Ordering::Less,
+      _ => self.real().cmp(&other.real()),
+    }
+  }
+}
+
+impl PartialOrd for DependencyLocation {
+  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    Some(self.cmp(other))
+  }
+}
+
+impl PartialEq for DependencyLocation {
+  fn eq(&self, other: &Self) -> bool {
+    self.cmp(other).is_eq()
+  }
+}
+
+impl Eq for DependencyLocation {}
+
 impl fmt::Display for DependencyLocation {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     let loc = match self {
       DependencyLocation::Real(real) => real.to_string(),
+      DependencyLocation::Portable(portable) => portable.resolve().to_string(),
       DependencyLocation::Synthetic(synthetic) => synthetic.to_string(),
     };
     write!(f, "{loc}")

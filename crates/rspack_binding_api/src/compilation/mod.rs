@@ -538,12 +538,19 @@ impl JsCompilation {
     ))
   }
 
-  #[napi]
-  pub fn push_diagnostic(&mut self, diagnostic: JsRspackDiagnostic) -> Result<()> {
+  #[napi(ts_return_type = "ExternalObject<'Diagnostic'> | null")]
+  pub fn push_diagnostic(
+    &mut self,
+    diagnostic: JsRspackDiagnostic,
+    capture_for_module: Option<bool>,
+  ) -> Result<Option<External<Diagnostic>>> {
     let compilation = self.as_mut()?;
-
-    compilation.push_diagnostic(diagnostic.into());
-    Ok(())
+    let diagnostic = diagnostic.into();
+    let captured = capture_for_module
+      .unwrap_or_default()
+      .then(|| External::new(Diagnostic::clone(&diagnostic)));
+    compilation.push_diagnostic(diagnostic);
+    Ok(captured)
   }
 
   #[napi(ts_args_type = r#"diagnostic: ExternalObject<'Diagnostic'>"#)]

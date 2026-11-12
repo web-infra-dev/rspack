@@ -525,6 +525,17 @@ Experimental features provided by rspack.
 `rspackExperiments.import` has been moved to the top-level [`transformImport`](#transformimport) option. The `rspackExperiments.import` option is deprecated and will be removed in a future version.
 :::
 
+#### rspackExperiments.portableOutput
+
+<ApiMeta addedVersion="2.4.0" stability={Stability.Experimental} />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Opt in to the [portable output contract](/api/loader-api/context#thisexperimentsportableoutput) for supported SWC transforms. This lets Rspack normalize declared filename literals consistently, including when `cache: false`. It does not enable persistent caching.
+
+The supported option subset and exclusions are listed in the loader-context documentation. Unknown options, WASM plugins, minification, and path-dependent transforms withhold certification; compilation still proceeds normally. Boolean `inputSourceMap` settings and the default automatic lookup can certify an actually absent adjacent map when no source-map marker or incoming map exists and its missing dependency is registered. Found or uncertain automatic maps remain uncertified. Incoming maps and additional data require certified producer invocations; resource-hook maps do not inherit SWC’s declaration. Explicit TypeScript legacy decorators are supported, while decorator metadata/version and SWC refresh signatures remain excluded. See the loader-context documentation for the complete boundary.
+
 #### rspackExperiments.reactServerComponents
 
 <ApiMeta stability={Stability.Experimental} />

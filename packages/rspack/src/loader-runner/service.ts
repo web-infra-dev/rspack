@@ -139,6 +139,7 @@ export enum RequestType {
   EmitFile = 'EmitFile',
   EmitDiagnostic = 'EmitDiagnostic',
   SetCacheable = 'SetCacheable',
+  PortableOutput = 'PortableOutput',
   ImportModule = 'ImportModule',
   UpdateLoaderObjects = 'UpdateLoaderObjects',
   UpdateBuildInfo = 'UpdateBuildInfo',

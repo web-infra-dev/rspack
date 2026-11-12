@@ -109,6 +109,7 @@ fn transform_fixture(input: &Path) -> (String, Option<RscMeta>, Option<String>) 
     comments.clone(),
     options,
     None,
+    None,
     |_, _| {},
     |_| (build_rsc_transform(input, comments, &rsc_meta), noop_pass()),
   );

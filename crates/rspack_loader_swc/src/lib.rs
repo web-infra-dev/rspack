@@ -4,6 +4,7 @@ mod collect_ts_info;
 mod isolated_dts;
 mod options;
 mod plugin;
+mod portable_output;
 mod rsc_transforms;
 mod transformer;
 
@@ -17,7 +18,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RscMeta, RunnerContext};
 use rspack_error::{Diagnostic, Error, Result, SerdeResultToRspackResultExt};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
-use rspack_loader_runner::{Identifier, Loader, LoaderContext};
+use rspack_loader_runner::{Identifier, Loader, LoaderContext, get_scheme};
+use rspack_paths::Utf8PathBuf;
 pub use rspack_workspace::rspack_swc_core_version;
 use sugar_path::SugarPath;
 use swc_config::{merge::Merge, types::MergingOption};
@@ -55,14 +57,18 @@ impl SwcLoader {
     self
   }
 
-  fn loader_impl(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
+  async fn loader_impl(
+    &self,
+    loader_context: &mut LoaderContext<RunnerContext>,
+    input_source_maps: &mut portable_output::InputSourceMapAcquisition,
+  ) -> Result<Option<Utf8PathBuf>> {
     let resource_path = loader_context
       .resource_path()
       .map(|p| p.to_path_buf())
       .unwrap_or_default();
     loader_context.context.module.build_info_mut().isolated_dts = None;
     let Some(content) = loader_context.take_content() else {
-      return Ok(());
+      return Ok(None);
     };
     let swc_options = {
       let mut swc_options = self.options_with_additional.swc_options.clone();
@@ -118,186 +124,230 @@ impl SwcLoader {
       swc_options
     };
 
-    let javascript_compiler = JavaScriptCompiler::new();
+    // Incoming maps require aggregate producer-chain authority in the runner. Merely
+    // preserving/normalizing a map or inspecting the AST does not establish its provenance.
+    let input_map_disabled_or_supplied = matches!(
+      swc_options.config.input_source_map.as_ref(),
+      Some(InputSourceMap::Bool(false))
+    ) || loader_context.source_map().is_some();
+    let mut portable_output =
+      self.options_with_additional.portable_output && resource_path.is_absolute();
+
     let filename = Arc::new(FileName::Real(resource_path.clone().into_std_path_buf()));
-    let comments = Rc::new(SingleThreadedComments::default());
-
     let source = content.into_string_lossy();
-    let is_typescript =
-      matches!(swc_options.config.jsc.syntax, Some(syntax) if syntax.typescript());
-    let isolated_dts_context = (is_typescript
-      && swc_options
-        .config
-        .jsc
-        .experimental
-        .emit_isolated_dts
-        .into_bool())
-    .then(|| {
-      (
-        swc_options.config.jsc.target.unwrap_or(EsVersion::EsNext),
-        filename.clone(),
-        comments.clone(),
+    let default_input_source_map = InputSourceMap::default();
+    let input_source_map = input_source_maps
+      .acquire(
+        &source,
+        &filename,
+        swc_options
+          .config
+          .input_source_map
+          .as_ref()
+          .unwrap_or(&default_input_source_map),
       )
-    });
-    let mut isolated_dts = Ok(None);
-    let mut collected_ts_info = None;
-    let rsc_meta: RefCell<Option<RscMeta>> = Default::default();
+      .await;
 
-    let TransformOutput {
-      code,
-      mut map,
-      diagnostics,
-    } = javascript_compiler.transform(
-      source,
-      Some(filename.clone()),
-      comments.clone(),
-      swc_options,
-      Some(loader_context.context.source_map_kind),
-      |program, unresolved_mark| {
-        if !is_typescript {
-          return;
-        }
-
-        if let Some((target, dts_filename, dts_comments)) = &isolated_dts_context {
-          isolated_dts = javascript_compiler
-            .emit_isolated_dts(
-              program,
-              dts_filename.clone(),
-              unresolved_mark,
-              *target,
-              dts_comments,
-            )
-            .map(Some);
-        }
-
-        let Some(options) = &self.options_with_additional.collect_typescript_info else {
-          return;
-        };
-        collected_ts_info = Some(collect_typescript_info(
-          program,
-          SyntaxContext::empty().apply_mark(unresolved_mark),
-          options,
-        ));
-      },
-      |_| {
+    // Keep SWC's Rc comments, transforms and thread-local state entirely after async I/O.
+    let inner = || {
+      let javascript_compiler = JavaScriptCompiler::new();
+      let comments = Rc::new(SingleThreadedComments::default());
+      let is_typescript =
+        matches!(swc_options.config.jsc.syntax, Some(syntax) if syntax.typescript());
+      let isolated_dts_context = (is_typescript
+        && swc_options
+          .config
+          .jsc
+          .experimental
+          .emit_isolated_dts
+          .into_bool())
+      .then(|| {
         (
-          if self
-            .options_with_additional
-            .rspack_experiments
-            .react_server_components
-            .enabled
-          {
-            let module = &loader_context.context.module;
-            let is_react_server_layer = module
-              .get_layer()
-              .is_some_and(|layer| layer == "react-server-components");
+          swc_options.config.jsc.target.unwrap_or(EsVersion::EsNext),
+          filename.clone(),
+          comments.clone(),
+        )
+      });
+      let mut isolated_dts = Ok(None);
+      let mut collected_ts_info = None;
+      let rsc_meta: RefCell<Option<RscMeta>> = Default::default();
 
-            // Avoid transforming the redirected server entry module to prevent duplicate RSC metadata generation.
-            let server_entry_proxy = loader_context
-              .resource_query()
-              .is_some_and(|q| q.contains("rsc-server-entry-proxy=true"));
+      let TransformOutput {
+        code,
+        mut map,
+        diagnostics,
+      } = javascript_compiler.transform(
+        source,
+        Some(filename.clone()),
+        comments.clone(),
+        swc_options,
+        Some(loader_context.context.source_map_kind),
+        Some(input_source_map),
+        |program, unresolved_mark| {
+          if portable_output {
+            portable_output = !portable_output::input_can_spell_resource_path(
+              program,
+              &resource_path,
+              loader_context.context.options.context.as_path(),
+            );
+          }
+          if !is_typescript {
+            return;
+          }
 
-            // Match the RSC manifest resource key from get_module_resource: path + query.
-            let module_resource = match loader_context.resource_query() {
-              Some(query) => format!("{resource_path}{query}"),
-              None => resource_path.to_string(),
-            };
+          if let Some((target, dts_filename, dts_comments)) = &isolated_dts_context {
+            isolated_dts = javascript_compiler
+              .emit_isolated_dts(
+                program,
+                dts_filename.clone(),
+                unresolved_mark,
+                *target,
+                dts_comments,
+              )
+              .map(Some);
+          }
 
-            let disable_client_api_checks = self
+          let Some(options) = &self.options_with_additional.collect_typescript_info else {
+            return;
+          };
+          collected_ts_info = Some(collect_typescript_info(
+            program,
+            SyntaxContext::empty().apply_mark(unresolved_mark),
+            options,
+          ));
+        },
+        |_| {
+          (
+            if self
               .options_with_additional
               .rspack_experiments
               .react_server_components
-              .disable_client_api_checks;
+              .enabled
+            {
+              let module = &loader_context.context.module;
+              let is_react_server_layer = module
+                .get_layer()
+                .is_some_and(|layer| layer == "react-server-components");
 
-            swc_core::common::pass::Either::Left(rsc_transform(
-              filename,
-              resource_path.to_string(),
-              module_resource,
-              comments,
-              &rsc_meta,
-              RscTransformOptions {
-                is_react_server_layer,
-                enable_server_entry: !server_entry_proxy,
-                disable_client_api_checks,
-                is_development: Mode::is_development(&loader_context.context.options.mode),
-                hash_salt: String::new(),
-              },
-            ))
-          } else {
-            swc_core::common::pass::Either::Right(noop_pass())
-          },
-          transformer::transform(
-            &self.options_with_additional.transform_import,
-            &self.options_with_additional.rspack_experiments,
-          ),
-        )
-      },
-    )?;
+              // Avoid transforming the redirected server entry module to prevent duplicate RSC metadata generation.
+              let server_entry_proxy = loader_context
+                .resource_query()
+                .is_some_and(|q| q.contains("rsc-server-entry-proxy=true"));
 
-    for diagnostic in diagnostics {
-      loader_context.emit_diagnostic(Error::warning(diagnostic).into());
-    }
+              // Match the RSC manifest resource key from get_module_resource: path + query.
+              let module_resource = match loader_context.resource_query() {
+                Some(query) => format!("{resource_path}{query}"),
+                None => resource_path.to_string(),
+              };
 
-    if let Some(isolated_dts) = isolated_dts? {
-      handle_isolated_dts_diagnostics(isolated_dts.diagnostics)?;
+              let disable_client_api_checks = self
+                .options_with_additional
+                .rspack_experiments
+                .react_server_components
+                .disable_client_api_checks;
 
-      set_build_info(
-        loader_context.context.module.build_info_mut(),
-        resource_path.as_path(),
-        loader_context.context.options.context.as_path(),
-        isolated_dts.code,
-        isolated_dts.references,
-      );
-    }
-
-    if let Some(rsc) = rsc_meta.borrow_mut().take() {
-      let module = &mut loader_context.context.module;
-      module.build_info_mut().rsc = Some(Box::new(rsc));
-      if let Some(code) = to_server_entry(module)? {
-        loader_context.finish_with(code);
-        return Ok(());
-      }
-    }
-
-    if let Some(collected_ts_info) = collected_ts_info {
-      loader_context.parse_meta.insert(
-        COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY.to_string(),
-        Box::new(collected_ts_info),
-      );
-    }
-
-    // When compiling target modules, SWC retrieves the source map via sourceMapUrl.
-    // The sources paths in the source map are relative to the target module. We need to resolve these paths
-    // to absolute paths using the resource path to avoid incorrect project path references.
-    if let (Some(map), Some(resource_dir)) = (map.as_mut(), resource_path.parent()) {
-      map.set_sources(
-        map
-          .sources()
-          .iter()
-          .map(|source| {
-            let source_path = Path::new(source.as_str());
-            if source_path.is_relative() {
-              source_path
-                .absolutize_with(resource_dir.as_std_path())
-                .to_string_lossy()
-                .into_owned()
+              swc_core::common::pass::Either::Left(rsc_transform(
+                filename,
+                resource_path.to_string(),
+                module_resource,
+                comments,
+                &rsc_meta,
+                RscTransformOptions {
+                  is_react_server_layer,
+                  enable_server_entry: !server_entry_proxy,
+                  disable_client_api_checks,
+                  is_development: Mode::is_development(&loader_context.context.options.mode),
+                  hash_salt: String::new(),
+                },
+              ))
             } else {
-              source.to_string()
-            }
-          })
-          .collect::<Vec<_>>(),
-      );
+              swc_core::common::pass::Either::Right(noop_pass())
+            },
+            transformer::transform(
+              &self.options_with_additional.transform_import,
+              &self.options_with_additional.rspack_experiments,
+            ),
+          )
+        },
+      )?;
+
+      for diagnostic in diagnostics {
+        loader_context.emit_diagnostic(Error::warning(diagnostic).into());
+      }
+
+      if let Some(isolated_dts) = isolated_dts? {
+        handle_isolated_dts_diagnostics(isolated_dts.diagnostics)?;
+
+        set_build_info(
+          loader_context.context.module.build_info_mut(),
+          resource_path.as_path(),
+          loader_context.context.options.context.as_path(),
+          isolated_dts.code,
+          isolated_dts.references,
+        );
+      }
+
+      if let Some(rsc) = rsc_meta.borrow_mut().take() {
+        let module = &mut loader_context.context.module;
+        module.build_info_mut().rsc = Some(Box::new(rsc));
+        if let Some(code) = to_server_entry(module)? {
+          loader_context.finish_with(code);
+          return Ok(None);
+        }
+      }
+
+      if let Some(collected_ts_info) = collected_ts_info {
+        loader_context.parse_meta.insert(
+          COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY.to_string(),
+          Box::new(collected_ts_info),
+        );
+      }
+
+      // When compiling target modules, SWC retrieves the source map via sourceMapUrl.
+      // The sources paths in the source map are relative to the target module. We need to resolve these paths
+      // to absolute paths using the resource path to avoid incorrect project path references.
+      if let (Some(map), Some(resource_dir)) = (map.as_mut(), resource_path.parent()) {
+        map.set_sources(
+          map
+            .sources()
+            .iter()
+            .map(|source| {
+              let source_path = Path::new(source.as_str());
+              if source_path.is_relative() && get_scheme(source).is_none() {
+                source_path
+                  .absolutize_with(resource_dir.as_std_path())
+                  .to_string_lossy()
+                  .into_owned()
+                  .into()
+              } else {
+                source.clone()
+              }
+            })
+            .collect::<Vec<_>>(),
+        );
+      }
+
+      // Earlier loaders may collect metadata (for example, feature flags) for later loaders
+      // and plugins. SWC does not consume it, but must preserve it across the transform.
+      // This matches swc-loader >= 0.2.7; see the metadata passthrough fixes:
+      // https://github.com/swc-project/pkgs/pull/121
+      // https://github.com/web-infra-dev/rspack/pull/13661 (fixes #13654).
+      let additional_data = loader_context.take_additional_data();
+      let portable_path = (portable_output
+        && (input_map_disabled_or_supplied
+          || input_source_maps.is_automatic_absence(&resource_path)))
+      .then_some(resource_path);
+      loader_context.finish_with((code, map, additional_data));
+
+      Ok(portable_path)
+    };
+    #[cfg(all(debug_assertions, not(target_family = "wasm")))]
+    {
+      // Adjust stack to avoid stack overflow.
+      stacker::maybe_grow(2 * 1024 * 1024, 4 * 1024 * 1024, inner)
     }
-
-    // Earlier loaders may collect metadata (for example, feature flags) for later loaders
-    // and plugins. SWC does not consume it, but must preserve it across the transform.
-    // This matches swc-loader >= 0.2.7; see the metadata passthrough fixes:
-    // https://github.com/swc-project/pkgs/pull/121
-    // https://github.com/web-infra-dev/rspack/pull/13661 (fixes #13654).
-    let additional_data = loader_context.take_additional_data();
-    loader_context.finish_with((code, map, additional_data));
-
-    Ok(())
+    #[cfg(any(not(debug_assertions), target_family = "wasm"))]
+    inner()
   }
 }
 
@@ -310,24 +360,34 @@ impl Loader<RunnerContext> for SwcLoader {
     self.identifier
   }
 
+  fn portable_output_es5_strings(&self) -> bool {
+    self.options_with_additional.es5_strings
+  }
+
   #[tracing::instrument("loader:builtin-swc", skip_all, fields(
     perfetto.track_name = "loader:builtin-swc",
     perfetto.process_name = "Loader Analysis",
     resource =loader_context.resource(),
   ))]
   async fn run(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
-    #[allow(unused_mut)]
-    let mut inner = || self.loader_impl(loader_context);
-    #[cfg(all(debug_assertions, not(target_family = "wasm")))]
-    {
-      // Adjust stack to avoid stack overflow.
-      stacker::maybe_grow(
-        2 * 1024 * 1024, /* 2mb */
-        4 * 1024 * 1024, /* 4mb */
-        inner,
-      )
+    let mut input_source_maps =
+      portable_output::InputSourceMapAcquisition::new(loader_context.context.fs.clone());
+    let result = self
+      .loader_impl(loader_context, &mut input_source_maps)
+      .await;
+    // Certification needs the map probes as dependencies. Without it, keep the dependencies
+    // SWC's own map lookup has always recorded: none.
+    if self.options_with_additional.portable_output {
+      input_source_maps.register_dependencies(loader_context);
     }
-    #[cfg(any(not(debug_assertions), target_family = "wasm"))]
-    inner()
+    if let Some(path) = result? {
+      if input_source_maps.is_automatic_absence(&path)
+        && !input_source_maps.absence_is_unambiguous().await
+      {
+        return Ok(());
+      }
+      loader_context.portable_output([path])?;
+    }
+    Ok(())
   }
 }

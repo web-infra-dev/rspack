@@ -116,12 +116,12 @@ pub enum CacheableSource {
     value: String,
     /// The source name.
     name: String,
-    /// The source map JSON.
-    source_map: String,
+    /// Preserve fields that the JSON representation can omit, such as all-null sourcesContent.
+    source_map: Box<CacheableSourceMap>,
     /// The optional original source.
     original_source: Option<String>,
-    /// The optional inner source map JSON.
-    inner_source_map: Option<String>,
+    /// The optional inner source map fields.
+    inner_source_map: Option<Box<CacheableSourceMap>>,
     /// Whether to remove the original source.
     remove_original_source: bool,
   },
@@ -200,9 +200,9 @@ pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
     return CacheableSource::SourceMap {
       value: s.value().to_string(),
       name: s.name().to_string(),
-      source_map: s.source_map().to_json(),
+      source_map: Box::new(s.source_map().into()),
       original_source: s.original_source().map(|v| v.to_string()),
-      inner_source_map: s.inner_source_map().map(|m| m.to_json()),
+      inner_source_map: s.inner_source_map().map(|map| Box::new(map.into())),
       remove_original_source: s.remove_original_source(),
     };
   }
@@ -263,19 +263,15 @@ pub fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
       original_source,
       inner_source_map,
       remove_original_source,
-    } => {
-      let source_map = SourceMap::from_json(source_map).expect("invalid source map JSON");
-      let inner_source_map = inner_source_map.and_then(|json| SourceMap::from_json(json).ok());
-      SourceMapSource::new(SourceMapSourceOptions {
-        value,
-        name,
-        source_map,
-        original_source: original_source.map(|s| s.into()),
-        inner_source_map,
-        remove_original_source,
-      })
-      .boxed()
-    }
+    } => SourceMapSource::new(SourceMapSourceOptions {
+      value,
+      name,
+      source_map: (*source_map).into(),
+      original_source: original_source.map(|s| s.into()),
+      inner_source_map: inner_source_map.map(|map| (*map).into()),
+      remove_original_source,
+    })
+    .boxed(),
     CacheableSource::Concat { children } => {
       let children: Vec<BoxSource> = children.into_iter().map(from_cacheable).collect();
       ConcatSource::new(children).boxed()

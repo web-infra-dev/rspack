@@ -244,6 +244,42 @@ function emitWarning(warning: Error): void;
 
 发出一个警告。
 
+## this.experiments.portableOutput()
+
+<ApiMeta addedVersion="2.4.0" stability={Stability.Experimental} />
+
+```ts
+function portableOutput(declaration?: { paths?: readonly string[] }): void;
+```
+
+声明当前 loader 调用的输出可进行可移植规范化。必须在函数返回、返回的 Promise 完成或调用 loader 回调之前调用。每个实际执行的 normal 函数和 pitch 函数都需要独立声明，包括不返回内容的 pitch：它们的状态修改也可能影响后续输出。缺少声明时不应用此优化，保留现有 loader 行为。调用完成后的异步游离任务中的声明会被忽略。
+
+`paths` 默认为空数组，每一项必须是绝对路径，多次调用会合并这些值。不传路径表示当前转换保留输入的可移植性，且不产生依赖路径的新输出。
+
+这是由输出生产者保证的契约，不会根据任意文本推断路径：
+
+- 除已声明的完整 JavaScript 字符串字面量值之外，生成文本在检出目录相对于 `compiler.context` 迁移时必须保持一致。
+- 所有等于声明值的出现位置都必须表示该可迁移路径。如果同一个值也表示固定应用数据，即使它恰好位于检出目录内，也不能声明。
+- Source map 必须遵循相同的迁移规律：平移源路径并为规范化字面量重新生成映射后，结果应与全新构建一致。元数据和其他副作用也必须遵循相同规律。
+- 哈希、base64 数据、部分路径和嵌入的源文本等隐藏派生值，不会因声明原始路径而获得支持。生成这些值的 loader 不应进行声明。
+
+```js title="loader.cjs"
+module.exports = function () {
+  this.experiments.portableOutput({ paths: [this.resourcePath] });
+  return `export default ${JSON.stringify(this.resourcePath)};`;
+};
+```
+
+经过审查的透传 loader 可以在返回输入前调用 `this.experiments.portableOutput()`。声明会在原生 loader、JavaScript loader、worker、pitch 和 loader 缓存命中之间合并。任何一次调用未声明，都会使整个链不进行规范化。声明不会启用缓存，也不会覆盖 `this.cacheable(false)`。浏览器中的 JavaScript loader 调用目前不进行声明，因为该环境缺少异步调用隔离能力。
+
+对于已声明的 JavaScript 构建，规范化以 `compiler.context` 为基准，在 `cache: false` 时也会执行。如果声明的字面量与 SWC 输出字符串的写法一致，它会保留原有的引号与转义，因此 `builtin:swc-loader` 的输出字节不变。其他声明的字面量可能采用规范化的引号与转义。不支持的字面量位置、非 JavaScript 模块和 `noParse` 不会获得此优化。原生 loader 通过 `LoaderContext::portable_output(paths)` 使用相同契约。
+
+`builtin:swc-loader` 需要显式配置 `rspackExperiments.portableOutput: true`（默认为 `false`）。当前白名单接受 `detectSyntax`、布尔值 source-map 选项和 `inputSourceMap`、`isModule`，以及受限的 `jsc` 选项：parser 的 `syntax`/`jsx`/`tsx`/`decorators`、`target`、`externalHelpers`、`experimental.disableAllLints` 和 React 的 `development`/`runtime`/`refresh: false`。`decorators: true` 必须显式指定 `syntax: "typescript"`，并使用 SWC 的 TypeScript 旧版装饰器转换。装饰器 metadata/version 选项和其他 transform 字段仍不在白名单内。其他字段（包括配置文件、插件、minify、env、路径、模块转换、RSC、导入转换和 refresh 签名设置）不会获得声明。原生 React refresh loader 仅对追加固定代码的转换进行声明。
+
+自动查找输入 map 使用 loader 的输入文件系统。开启 `rspackExperiments.portableOutput` 时，会为实际探测和读取记录文件依赖或缺失依赖，包括在使用相邻 map 回退前发现的缺失指定文件；未开启时，SWC 不记录 map 依赖。只有没有传入 map、没有 `sourceMappingURL=` 标记、相邻的 `<resource>.map` 确定不存在且已注册缺失依赖时，才会获得声明。找到 map、内联 map、格式错误、不可读、不确定或符号链接等情况均保留 map 选择行为，但不进行声明。显式 JSON 或 `"inline"` 选项仍不在白名单内。无法确定为缺失的文件系统错误还会禁用该次调用的缓存。
+
+传入 map 和附加数据的权限必须来自生产者：每次执行的生产者和消费者调用都必须独立满足契约。SWC 会保留附加数据。资源 hook（包括 `extractSourceMap`）获得的 map，以及在调用权限范围外提供的不透明数据，都会使整个链不进行规范化。AST 路径检查和 source-map 路径规范化不能证明生产者权限。绝对来源 URL 保持固定身份。这些规则适用于通用 loader 组合，不包含框架特例。缺失依赖仍会阻止最小 loader 缓存存储条目，但持久化模块缓存仍可复用已声明的输出。
+
 ## this.experiments.emitDiagnostic()
 
 <ApiMeta stability={Stability.Experimental} />

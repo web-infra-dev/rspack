@@ -77,7 +77,17 @@ pub(crate) fn merge_loader_context(
   to: &mut LoaderContext<RunnerContext>,
   mut from: JsLoaderContext,
 ) -> Result<()> {
+  // Preserve emissions even when this span returns an error. The module moves
+  // back out of the loader runner on both success and failure.
+  to.context
+    .module
+    .add_module_build_diagnostics(from.module_build_diagnostics.0, to.context.compilation_id);
   to.cacheable = from.cacheable;
+  to.merge_portable_output(
+    from
+      .portable_output
+      .map(|paths| paths.into_iter().map(Into::into).collect()),
+  )?;
   to.replace_dependencies(
     from.dependencies.into(),
     from.added_dependencies.into(),

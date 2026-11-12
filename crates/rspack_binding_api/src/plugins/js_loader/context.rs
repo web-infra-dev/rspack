@@ -180,6 +180,52 @@ impl From<JsLoaderDependencies> for LoaderDependencies {
   }
 }
 
+/// Convert opaque JS emission handles into owned Rust diagnostics while still on
+/// the JS thread. No external reference is carried across the loader callback.
+pub struct JsModuleBuildDiagnostics(pub Vec<rspack_error::Diagnostic>);
+
+impl TypeName for JsModuleBuildDiagnostics {
+  fn type_name() -> &'static str {
+    "Array"
+  }
+
+  fn value_type() -> ValueType {
+    ValueType::Object
+  }
+}
+
+impl ValidateNapiValue for JsModuleBuildDiagnostics {}
+
+impl FromNapiValue for JsModuleBuildDiagnostics {
+  unsafe fn from_napi_value(
+    env: napi::sys::napi_env,
+    value: napi::sys::napi_value,
+  ) -> napi::Result<Self> {
+    let diagnostics =
+      unsafe { Vec::<&External<rspack_error::Diagnostic>>::from_napi_value(env, value)? };
+    Ok(Self(
+      diagnostics
+        .into_iter()
+        .map(|diagnostic| (**diagnostic).clone())
+        .collect(),
+    ))
+  }
+}
+
+impl ToNapiValue for JsModuleBuildDiagnostics {
+  unsafe fn to_napi_value(
+    env: napi::sys::napi_env,
+    value: Self,
+  ) -> napi::Result<napi::sys::napi_value> {
+    unsafe {
+      Vec::<External<rspack_error::Diagnostic>>::to_napi_value(
+        env,
+        value.0.into_iter().map(External::new).collect(),
+      )
+    }
+  }
+}
+
 #[napi(object)]
 pub struct JsLoaderContext {
   pub resource: String,
@@ -196,6 +242,11 @@ pub struct JsLoaderContext {
   pub parse_meta: HashMap<String, String>,
   pub source_map: Option<Buffer>,
   pub cacheable: bool,
+  /// Owned emissions from this JS span, including emissions before a loader error.
+  #[napi(ts_type = "ExternalObject<'Diagnostic'>[]")]
+  pub module_build_diagnostics: JsModuleBuildDiagnostics,
+  /// Contribution of this JS execution span only; absence means uncertified.
+  pub portable_output: Option<Vec<String>>,
   pub dependencies: JsLoaderDependencies,
   pub added_dependencies: JsLoaderDependencies,
   pub removed_dependencies: JsLoaderDependencies,
@@ -250,6 +301,8 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .map(|v| v.to_json())
         .map(|v| v.into_bytes().into()),
       cacheable: cx.cacheable,
+      module_build_diagnostics: JsModuleBuildDiagnostics(Vec::new()),
+      portable_output: Some(Vec::new()),
       dependencies: cx.dependencies().as_ref().into(),
       added_dependencies: cx.added_dependencies().into(),
       removed_dependencies: cx.removed_dependencies().into(),
