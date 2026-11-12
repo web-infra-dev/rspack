@@ -87,6 +87,7 @@ pub(crate) enum PropertyKind {
   Generic,
   Animation,
   ListStyle,
+  ListStyleType,
   FontPalette,
   Container,
   Grid,
@@ -1133,7 +1134,9 @@ impl AnimationReserved {
 }
 
 #[derive(Debug, Default)]
-struct ListStyleReserved;
+struct ListStyleReserved {
+  position_available: bool,
+}
 
 impl ReservedValues for ListStyleReserved {
   fn check(&mut self, ident: &str, flags: TokenFlags) -> bool {
@@ -1214,6 +1217,9 @@ impl ReservedValues for ListStyleReserved {
             | "unset"
             | "revert"
             | "revert-layer" => false,
+            // The first position keyword in the shorthand fills the position
+            // slot. A later one can be a custom counter style name.
+            "inside" | "outside" => !std::mem::take(&mut self.position_available),
             _ => true,
         }
   }
@@ -1330,7 +1336,10 @@ pub(crate) fn special_value_is_candidate(
     return true;
   }
   match property {
-    PropertyKind::ListStyle => ListStyleReserved.check(ident, TokenFlags::ascii()),
+    PropertyKind::ListStyle | PropertyKind::ListStyleType => {
+      // Keep position keywords so the shorthand parser can track their order.
+      ListStyleReserved::default().check(ident, TokenFlags::ascii())
+    }
     PropertyKind::FontPalette => ident.starts_with("--"),
     PropertyKind::Container => ContainerReserved.check(ident, TokenFlags::ascii()),
     PropertyKind::Grid => !is_reserved_grid_ident(ident, TokenFlags::ascii()),
@@ -2080,7 +2089,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
           self.balanced.last(),
           Some(last) if matches!(last.kind, BalancedItemKind::Url | BalancedItemKind::ImageSet)
       );
-    let preserve_delimiters = !self.balanced.is_empty();
+    let preserve_delimiters = property == PropertyKind::Grid || !self.balanced.is_empty();
     let icss_symbols = (!self.icss_symbols.is_empty()).then_some(&self.icss_symbols);
     stream.fast_forward_special_value_if_buffer_empty(
       keep_comments,
@@ -2129,7 +2138,9 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
   fn enter_property_value(&mut self, stream: &mut DependencyTokenStream<'_, 's>) -> Option<()> {
     match self.property_kind {
       PropertyKind::Animation => self.enter_animation_property(),
-      PropertyKind::ListStyle => self.enter_list_style_property(),
+      PropertyKind::ListStyle | PropertyKind::ListStyleType => {
+        self.enter_list_style_property(self.property_kind == PropertyKind::ListStyle);
+      }
       PropertyKind::FontPalette => self.enter_font_palette_property(),
       PropertyKind::Container => self.enter_container_property(),
       PropertyKind::Grid => {
@@ -2194,8 +2205,11 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     if matches!(unprefixed, "animation" | "animation-name") {
       return (PropertyKind::Animation, None);
     }
-    if matches!(name, "list-style" | "list-style-type") {
+    if name == "list-style" {
       return (PropertyKind::ListStyle, None);
+    }
+    if name == "list-style-type" {
+      return (PropertyKind::ListStyleType, None);
     }
     if name == "font-palette" {
       return (PropertyKind::FontPalette, None);
@@ -2297,8 +2311,11 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     self.in_animation_property = None;
   }
 
-  fn enter_list_style_property(&mut self) {
-    self.in_list_style_property = Some(InProperty::new(ListStyleReserved, self.balanced.len()));
+  fn enter_list_style_property(&mut self, position_available: bool) {
+    self.in_list_style_property = Some(InProperty::new(
+      ListStyleReserved { position_available },
+      self.balanced.len(),
+    ));
   }
 
   fn exit_list_style_property(&mut self) {
@@ -4217,7 +4234,11 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
           }
 
           if self.in_grid_property.is_some() {
-            if self.balanced.is_empty() && !is_reserved_grid_ident(ident, flags) {
+            // Bracketed explicit lines can share an implicit line's name.
+            if (self.balanced.is_empty()
+              || matches!(self.balanced.last(), Some(last) if matches!(last.kind, BalancedItemKind::Square)))
+              && !is_reserved_grid_ident(ident, flags)
+            {
               self
                 .dependency_context
                 .push_dependency(Dependency::LocalGrid {

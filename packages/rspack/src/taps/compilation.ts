@@ -5,7 +5,9 @@ import {
   __from_binding_runtime_globals,
   __to_binding_runtime_globals,
   isReservedRuntimeGlobal,
+  renderRuntimeGlobalProperty,
   renderRuntimeVariables,
+  RuntimeGlobal,
   RuntimeVariable,
 } from '../RuntimeGlobals';
 import { createRenderedRuntimeModule } from '../RuntimeModule';
@@ -264,27 +266,38 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
               return moduleObject.exports;
             };
 
-            const moduleCache: Record<string, any> = (moduleRequireFn[
-              RuntimeGlobals.moduleCache.replace(
-                `${RuntimeGlobals.require}.`,
-                '',
+            // Initialize globals on the scope used by generated build-time code
+            // before executing runtime modules, which may access them as well.
+            const moduleCache: Record<string, any> = {};
+            const interceptModuleExecution: ((execOptions: any) => void)[] = [];
+            const compilerOptions = getCompiler().options;
+            const isRspackRuntimeMode =
+              compilerOptions.experiments.runtimeMode === 'rspack';
+            const runtimeScope = isRspackRuntimeMode
+              ? runtimeContext
+              : moduleRequireFn;
+            runtimeScope[
+              renderRuntimeGlobalProperty(
+                RuntimeGlobal.moduleCache,
+                compilerOptions,
               )
-            ] = {});
-            const interceptModuleExecution: ((execOptions: any) => void)[] =
-              (moduleRequireFn[
-                RuntimeGlobals.interceptModuleExecution.replace(
-                  `${RuntimeGlobals.require}.`,
-                  '',
+            ] = moduleCache;
+            runtimeScope[
+              renderRuntimeGlobalProperty(
+                RuntimeGlobal.interceptModuleExecution,
+                compilerOptions,
+              )
+            ] = interceptModuleExecution;
+            if (isRspackRuntimeMode) {
+              runtimeContext[
+                renderRuntimeGlobalProperty(
+                  RuntimeGlobal.require,
+                  compilerOptions,
                 )
-              ] = []);
-            moduleRequireFn.r = moduleRequireFn;
-            runtimeContext.r = moduleRequireFn;
+              ] = moduleRequireFn;
+            }
             for (const runtimeModule of runtimeModules) {
               moduleRequireFn(runtimeModule);
-            }
-            for (const key of Reflect.ownKeys(moduleRequireFn)) {
-              runtimeContext[key] =
-                moduleRequireFn[key as keyof typeof moduleRequireFn];
             }
 
             const executeResult = moduleRequireFn(entry);

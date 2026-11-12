@@ -11,7 +11,7 @@
   - ./node_modules/vue.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 211
 - Update: file_js.LAST_HASH.hot-update.js, size: 380
-- Update: main.LAST_HASH.hot-update.js, size: 920
+- Update: main.LAST_HASH.hot-update.js, size: 820
 - Update: vendors-node_modules_vue_js.LAST_HASH.hot-update.js, size: 300
 
 ## Manifest
@@ -57,29 +57,17 @@ __webpack_require__.d(__webpack_exports__, {
 ### main.LAST_HASH.hot-update.js
 
 #### Changed Modules
-- ./chunk.js
+
 
 #### Changed Runtime Modules
+- webpack/runtime/chunk_group_map
 - webpack/runtime/get_full_hash
 - webpack/runtime/hot_module_replacement_chunk_versions
 
 #### Changed Content
 ```js
 "use strict";
-self["rspackHotUpdate"]("main", {
-"./chunk.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  test: () => (test)
-});
-function test(count) {
-  return Promise.all(/* import() */ [__webpack_require__.e("vendors-node_modules_vue_js"), __webpack_require__.e("file_js")]).then(__webpack_require__.bind(__webpack_require__, "./file.js")).then(({ React, Vue }) => count === 0 ? React : Vue)
-}
-
-
-},
-
-},function(__webpack_require__) {
+self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
@@ -89,6 +77,19 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 __webpack_require__.hmrV["file_js"] = "CHUNK_VERSION";
 __webpack_require__.hmrV["vendors-node_modules_vue_js"] = "CHUNK_VERSION";
 delete __webpack_require__.hmrV["vendors-node_modules_react_js"];
+
+})();
+// webpack/runtime/chunk_group_map
+(() => {
+((groups) => {
+	var map = __webpack_require__.hmrS_chunkGroups = __webpack_require__.hmrS_chunkGroups || Object.create(null);
+	
+	Object.keys(groups).forEach((chunkId) => {
+		if (groups[chunkId] === null) delete map[chunkId];
+		else map[chunkId] = groups[chunkId];
+	});
+})({"file_js":["vendors-node_modules_vue_js"]});
+
 
 })();
 

@@ -254,6 +254,20 @@ pub fn insert_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {
   s.cow_replace("#", "\u{200b}#")
 }
 
+/// Format a resolver result as a resource request, escaping literal fragment markers.
+pub fn format_resolved_resource(path: &str, query: &str, fragment: &str) -> String {
+  let mut resource = String::with_capacity(
+    path
+      .len()
+      .saturating_add(query.len())
+      .saturating_add(fragment.len()),
+  );
+  resource.push_str(&insert_zero_width_space_for_fragment(path));
+  resource.push_str(&insert_zero_width_space_for_fragment(query));
+  resource.push_str(fragment);
+  resource
+}
+
 static REQUEST_TO_ID_REGEX1: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^(\.\.?/)+").expect("Failed to initialize REQUEST_TO_ID_REGEX1"));
 static REQUEST_TO_ID_REGEX2: LazyLock<Regex> = LazyLock::new(|| {

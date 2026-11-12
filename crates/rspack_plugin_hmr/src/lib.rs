@@ -149,6 +149,7 @@ async fn compilation(
     compilation.hot_index += 1;
   }
 
+  compilation.hot = true;
   compilation.set_dependency_factory(
     DependencyType::ImportMetaHotAccept,
     params.normal_module_factory.clone(),

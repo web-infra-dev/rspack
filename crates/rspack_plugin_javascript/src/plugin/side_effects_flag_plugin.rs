@@ -9,11 +9,11 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsyncModulesArtifact, BoxModule, Compilation, CompilationFinishModules,
   CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta, DependencyId,
-  ExportsInfoArtifact, FactoryMeta, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
-  OptimizationBailoutItem, Plugin, ResolvedExportInfoTarget, SideEffectsDoOptimize,
-  SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact, SideEffectsState,
-  SideEffectsStateArtifact,
+  ExportProvided, ExportsInfoArtifact, FactoryMeta, GetTargetResult, Logger, Module,
+  ModuleFactoryCreateData, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  NormalModuleCreateData, NormalModuleFactoryModule, OptimizationBailoutItem, Plugin,
+  ResolvedExportInfoTarget, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
+  SideEffectsOptimizeArtifact, SideEffectsState, SideEffectsStateArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   can_move_target, get_target,
   incremental::{self, IncrementalPasses, Mutation},
@@ -26,7 +26,7 @@ use rustc_hash::FxHashMap;
 use sugar_path::SugarPath;
 
 use crate::{
-  FLAG_DEPENDENCY_EXPORTS_STAGE, deferred_pure_check_is_impure,
+  FLAG_DEPENDENCY_EXPORTS_STAGE, JS_DEFAULT_KEYWORD, deferred_pure_check_is_impure,
   dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency},
 };
 
@@ -209,7 +209,7 @@ async fn nmf_module(
     return Ok(());
   }
 
-  let resource_data = create_data.resource_resolve_data.as_ref();
+  let resource_data = create_data.resource_resolve_data();
   let Some(resource_path) = resource_data.path() else {
     return Ok(());
   };
@@ -342,25 +342,49 @@ async fn optimize_dependencies(
   let logger = compilation.get_logger("rspack.SideEffectsFlagPlugin");
   let start = logger.time("update connections");
 
-  let side_effects_state_map: IdentifierMap<ConnectionState> = {
+  let (side_effects_state_map, star_passthrough_targets) = {
     let module_graph = &build_module_graph_artifact.module_graph;
     let side_effects_state_artifact = &build_module_graph_artifact.side_effects_state_artifact;
 
-    module_graph
+    let states: Vec<_> = module_graph
       .modules_par()
       .map(|(module_identifier, module)| {
-        (
-          *module_identifier,
-          module.get_side_effects_connection_state(
-            module_graph,
-            &compilation.module_graph_cache_artifact,
-            side_effects_state_artifact,
-            &mut Default::default(),
-            &mut Default::default(),
-          ),
-        )
+        let state = module.get_side_effects_connection_state(
+          module_graph,
+          &compilation.module_graph_cache_artifact,
+          side_effects_state_artifact,
+          &mut Default::default(),
+          &mut Default::default(),
+        );
+        let star_passthrough_target = (state == ConnectionState::Active(false)
+          && has_single_star_reexport(module.as_ref())
+          && matches!(
+            exports_info_artifact
+              .get_exports_info_data(module_identifier)
+              .other_exports_info()
+              .provided(),
+            Some(ExportProvided::NotProvided)
+          ))
+        .then(|| {
+          module_graph
+            .module_identifier_by_dependency_id(&module.build_info().all_star_exports[0])
+            .copied()
+        })
+        .flatten();
+        (*module_identifier, state, star_passthrough_target)
       })
-      .collect()
+      .collect();
+
+    let mut side_effects_state_map: IdentifierMap<ConnectionState> =
+      IdentifierMap::with_capacity_and_hasher(states.len(), Default::default());
+    let mut star_passthrough_targets: IdentifierMap<ModuleIdentifier> = IdentifierMap::default();
+    for (module_identifier, state, star_passthrough_target) in states {
+      side_effects_state_map.insert(module_identifier, state);
+      if let Some(target) = star_passthrough_target {
+        star_passthrough_targets.insert(module_identifier, target);
+      }
+    }
+    (side_effects_state_map, star_passthrough_targets)
   };
   let module_graph = build_module_graph_artifact.get_module_graph();
 
@@ -458,6 +482,7 @@ async fn optimize_dependencies(
         can_optimize_connection(
           connection,
           &side_effects_state_map,
+          &star_passthrough_targets,
           module_graph,
           exports_info_artifact,
         ),
@@ -503,6 +528,7 @@ async fn optimize_dependencies(
         can_optimize_connection(
           connection,
           &side_effects_state_map,
+          &star_passthrough_targets,
           module_graph,
           exports_info_artifact,
         )
@@ -554,16 +580,51 @@ fn do_optimize_connection(
   (dependency, target_module)
 }
 
+fn has_single_star_reexport(module: &dyn Module) -> bool {
+  let build_info = module.build_info();
+  // `export *` never forwards `default`, so a default export does not change what star consumers see.
+  build_info.all_star_exports.len() == 1
+    && build_info
+      .esm_named_exports
+      .iter()
+      .all(|name| *name == *JS_DEFAULT_KEYWORD)
+}
+
 #[tracing::instrument("can_optimize_connection", level = "trace", skip_all)]
 fn can_optimize_connection(
   connection: &ModuleGraphConnection,
   side_effects_state_map: &IdentifierMap<ConnectionState>,
+  star_passthrough_targets: &IdentifierMap<ModuleIdentifier>,
   module_graph: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Option<SideEffectsDoOptimize> {
   let original_module = connection.original_module_identifier?;
   let dependency_id = connection.dependency_id;
   let dep = module_graph.dependency_by_id(&dependency_id);
+
+  if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
+    && dep.name.is_none()
+  {
+    // The export targets of a star re-export point at this dependency and keep their names,
+    // so they follow the connection once it is updated and need no move.
+    let mut target_module = *connection.module_identifier();
+    let mut hops = 0;
+    while let Some(next) = star_passthrough_targets.get(&target_module) {
+      if hops == star_passthrough_targets.len() {
+        return None;
+      }
+      target_module = *next;
+      hops += 1;
+    }
+    if hops == 0 || target_module == original_module {
+      return None;
+    }
+    return Some(SideEffectsDoOptimize {
+      ids: dep.get_ids(module_graph).to_vec(),
+      target_module,
+      need_move_target: None,
+    });
+  }
 
   if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
     && let Some(name) = &dep.name

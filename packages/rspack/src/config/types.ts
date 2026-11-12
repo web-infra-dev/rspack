@@ -2950,8 +2950,9 @@ export type Optimization = {
 
   /**
    * Which algorithm to use when choosing chunk ids.
-   * Setting to `false` disables the built-in algorithm, allowing a custom plugin
-   * to provide chunk ids instead.
+   * Setting this to `false` disables automatic chunk ID assignment. Add a chunk ID
+   * plugin from `rspack.ids`, such as `new rspack.ids.CompactHashedChunkIdsPlugin()`,
+   * to `plugins`. Custom JavaScript plugins cannot currently assign chunk IDs.
    */
   chunkIds?:
     | false
