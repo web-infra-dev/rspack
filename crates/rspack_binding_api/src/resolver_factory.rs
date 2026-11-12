@@ -138,16 +138,3 @@ impl JsResolverFactory {
     }
   }
 }
-
-#[cfg(feature = "test-loader")]
-#[napi]
-impl JsResolverFactory {
-  #[napi(factory, skip_typescript, js_name = "__testCreate")]
-  pub fn test_create(
-    pnp: bool,
-    resolve_options: RawResolveOptions,
-    loader_resolve_options: RawResolveOptions,
-  ) -> napi::Result<Self> {
-    Self::new(pnp, resolve_options, loader_resolve_options)
-  }
-}

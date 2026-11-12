@@ -164,7 +164,8 @@ RSPACK_ALLOCATIVE_DIR="$profile_dir" \
 The V8 snapshot is saved in `v8/` under the profile directory. Keep the matching Rust `.allocative` and `.objects.json` files in the profile directory when converting the capture.
 
 ```bash
-node "$rspack_root/scripts/v8-to-allocative.mjs" "$profile_dir/v8/0-build.heapsnapshot"
+node "$rspack_root/.agents/skills/rspack-allocative/scripts/v8-to-allocative.mjs" \
+  "$profile_dir/v8/0-build.heapsnapshot"
 ```
 
 Open `reports/0-build.js.allocative` or `reports/0-build.combined.allocative` in Speedscope to inspect the JavaScript or combined Rust and JavaScript profile. Open `reports/0-build.links.json` to look up the Rust targets associated with JavaScript objects. See [View snapshots](#view-snapshots) for tips on exploring a profile.

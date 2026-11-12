@@ -17,7 +17,7 @@ import {
   readBindingMarker,
   readHeapCategories,
   readHeapGraph,
-} from '../packages/rspack/src/util/heapSnapshot.mjs';
+} from '../../../../packages/rspack/src/util/heapSnapshot.mjs';
 
 // Match allocative's folded-stack escaping. Weights are shallow bytes, never
 // retained sizes: shared objects and cycles must contribute only once.
@@ -325,7 +325,7 @@ export function main(args = process.argv.slice(2)) {
   });
   if (positionals.length !== 1) {
     throw new Error(
-      'Usage: node scripts/v8-to-allocative.mjs <prefix.heapsnapshot> [--out-dir <existing-dir>] [--max-depth 32] [--include-content]',
+      'Usage: node .agents/skills/rspack-allocative/scripts/v8-to-allocative.mjs <prefix.heapsnapshot> [--out-dir <existing-dir>] [--max-depth 32] [--include-content]',
     );
   }
   const source = path.resolve(positionals[0]);
