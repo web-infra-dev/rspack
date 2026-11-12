@@ -1,6 +1,7 @@
 export function test(it) {
-  it("should able to access federation object on __webpack_require__", () => {
+  it("should able to access federation object on __webpack_require__", async () => {
     expect(__webpack_require__.federation.test).toBe(1)
     expect(__webpack_require__.federation.rootOutputDir).toBe("../")
+    expect((await import("remote/value")).default).toBe("remote value")
   })
 }

@@ -28,6 +28,9 @@ export default defineConfig({
       runtimePlugins: [
         fileURLToPath(import.meta.resolve('./runtime-plugin.js')),
       ],
+      exposes: {
+        './fallbacks': './fallbacks.js',
+      },
       shared: {
         'provided-only': {
           import: './node_modules/provided-only/index.js',

@@ -66,10 +66,13 @@ async fn compilation(
 async fn additional_tree_runtime_requirements(
   &self,
   compilation: &Compilation,
-  _chunk_ukey: &ChunkUkey,
+  chunk_ukey: &ChunkUkey,
   _runtime_requirements: &mut RuntimeGlobals,
   runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
+  if !crate::utils::has_federation_runtime(compilation, chunk_ukey) {
+    return Ok(());
+  }
   // Add base FederationRuntimeModule which is responsible for providing bundler data to the runtime.
   runtime_modules.push(Box::new(FederationDataRuntimeModule::new(
     &compilation.runtime_template,

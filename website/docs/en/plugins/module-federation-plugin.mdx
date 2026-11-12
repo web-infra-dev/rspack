@@ -35,6 +35,14 @@ export default {
 };
 ```
 
+## Automatic runtime inclusion
+
+Rspack includes the federation runtime automatically for container entries and for application entries that use a remote or consume a shared module. This includes dependencies reached through ordinary asynchronous imports.
+
+Each Worker is evaluated independently from its parent entry. Entries that share a runtime also share federation runtime support when any of them needs it.
+
+An entry that only provides shared modules does not require the federation runtime. Configuring remotes, shared providers, or `runtimePlugins` alone does not enable it for an otherwise unrelated entry. Calls through dynamic runtime APIs and runtime plugin side effects do not influence this build-time decision.
+
 ## Options
 
 ### implementation

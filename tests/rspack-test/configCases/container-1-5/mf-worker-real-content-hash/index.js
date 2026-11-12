@@ -1,3 +1,3 @@
-it("should exclude shared providers but retain the federation runtime in workers", () => {
+it("should exclude shared providers and unused federation runtime from workers", () => {
 	expect(true).toBe(true);
 });

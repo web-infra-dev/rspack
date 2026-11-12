@@ -69,7 +69,9 @@ async fn additional_chunk_runtime_requirements_tree(
     .expect_get(chunk_ukey);
 
   // Skip build time chunks
-  if chunk.name() == Some("build time chunk") {
+  if chunk.name() == Some("build time chunk")
+    || !crate::utils::has_federation_runtime(compilation, chunk_ukey)
+  {
     return Ok(());
   }
 
@@ -113,7 +115,9 @@ async fn runtime_requirement_in_tree(
     .expect_get(chunk_ukey);
 
   // Skip build time chunks
-  if chunk.name() == Some("build time chunk") {
+  if chunk.name() == Some("build time chunk")
+    || !crate::utils::has_federation_runtime(compilation, chunk_ukey)
+  {
     return Ok(None);
   }
 
@@ -191,7 +195,9 @@ async fn render_startup(
     .expect_get(chunk_ukey);
 
   // Skip build time chunks
-  if chunk.name() == Some("build time chunk") {
+  if chunk.name() == Some("build time chunk")
+    || !crate::utils::has_federation_runtime(compilation, chunk_ukey)
+  {
     return Ok(());
   }
 

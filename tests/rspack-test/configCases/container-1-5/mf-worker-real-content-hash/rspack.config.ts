@@ -41,10 +41,10 @@ class CheckWorkerSharingPlugin {
                 providerPattern,
                 'worker entrypoints should not contain the shared provider',
               );
-              assert.match(
+              assert.doesNotMatch(
                 worker,
                 federationRuntimePattern,
-                'worker entrypoints should retain the federation runtime',
+                'workers without federation dependencies should omit the federation runtime',
               );
             }
 
