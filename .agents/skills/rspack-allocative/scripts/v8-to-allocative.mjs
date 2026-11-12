@@ -69,7 +69,7 @@ export function convert(
   const redacted = Array.isArray(snapshot.rspack_binding_nodes);
   if (redacted && includeContent) {
     throw new Error(
-      'This V8 snapshot is redacted. Capture with RSPACK_ALLOCATIVE_INCLUDE_CONTENT=1 to include content in reports.',
+      'This V8 snapshot is redacted. Use an original V8 snapshot to include content in reports.',
     );
   }
   const graph = readHeapGraph(snapshot);
