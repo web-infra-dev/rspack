@@ -849,7 +849,7 @@ class Compiler {
     };
 
     this.hooks.shutdown.callAsync((err) => {
-      if (err) return instanceCallback(err);
+      if (err || this.isChild()) return instanceCallback(err);
       this.cache.shutdown(instanceCallback);
     });
   }

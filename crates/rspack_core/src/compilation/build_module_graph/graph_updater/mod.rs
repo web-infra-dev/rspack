@@ -36,6 +36,11 @@ pub async fn update_module_graph(
   mut exports_info_artifact: ExportsInfoArtifact,
   params: Vec<UpdateParam>,
 ) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+  // Also covers rebuildModule and entry additions outside the make phase.
+  let _loader_cache_guard = compilation
+    .loader_cache()
+    .upgrade()
+    .map(|cache| cache.begin_build());
   let mut cutout = Cutout::default();
 
   let build_dependencies = cutout.cutout_artifact(compilation, &mut artifact, params);

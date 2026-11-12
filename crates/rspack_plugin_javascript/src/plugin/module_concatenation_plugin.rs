@@ -1992,7 +1992,8 @@ async fn create_concatenated_module(
         resolver_factory: compilation.resolver_factory.clone(),
         plugin_driver: compilation.plugin_driver.clone(),
         compiler_options: compilation.options.clone(),
-        loader_cache: compilation.get_cache("loader"),
+        loader_cache: compilation.loader_cache(),
+        loader_cache_counters: compilation.loader_cache_counters(),
         // Concatenated modules do not parse source or read value cache versions.
         value_cache_versions: Default::default(),
         file_system_info: compilation.file_system_info.clone(),

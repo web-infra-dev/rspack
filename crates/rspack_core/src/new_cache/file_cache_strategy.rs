@@ -74,7 +74,7 @@ impl FileCacheStrategy {
     rspack_pkg_version: String,
     cache_version: String,
     codec: Arc<CacheCodec>,
-    file_system_info: FileSystemInfo,
+    file_system_info: Option<FileSystemInfo>,
     logger: Arc<InfrastructureLogger>,
   ) -> Self {
     Self {
@@ -91,6 +91,10 @@ impl FileCacheStrategy {
       readonly,
       logger,
     }
+  }
+
+  pub(super) fn matches_cache_version(&self, version: &str) -> bool {
+    self.validator.matches_cache_version(version)
   }
 
   pub async fn db_init(&self, (base_path, path): (Utf8PathBuf, Utf8PathBuf)) {
@@ -252,7 +256,7 @@ impl FileCacheStrategy {
   }
 
   pub fn store_build_dependencies(&self, dependencies: InternedPathSet) {
-    if self.readonly {
+    if self.readonly || self.validator.is_version_only() {
       return;
     }
     let state = self.read_state();
@@ -340,6 +344,12 @@ impl FileCacheStrategy {
         )
       };
 
+      let new_build_dependencies = new_build_dependencies.or_else(|| {
+        self
+          .validator
+          .is_version_only()
+          .then(InternedPathSet::default)
+      });
       let validator = if let Some(dependencies) = new_build_dependencies {
         self.validator.update(dependencies).await?
       } else {

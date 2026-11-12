@@ -47,7 +47,7 @@ pub(super) enum CacheValidatorResult {
 pub(super) struct CacheValidator {
   data: Mutex<CacheValidatorData>,
   codec: Arc<CacheCodec>,
-  file_system_info: FileSystemInfo,
+  file_system_info: Option<FileSystemInfo>,
   logger: Arc<InfrastructureLogger>,
 }
 
@@ -56,7 +56,7 @@ impl CacheValidator {
     rspack_pkg_version: String,
     cache_version: String,
     codec: Arc<CacheCodec>,
-    file_system_info: FileSystemInfo,
+    file_system_info: Option<FileSystemInfo>,
     logger: Arc<InfrastructureLogger>,
   ) -> Self {
     Self {
@@ -65,6 +65,14 @@ impl CacheValidator {
       file_system_info,
       logger,
     }
+  }
+
+  pub(super) fn is_version_only(&self) -> bool {
+    self.file_system_info.is_none()
+  }
+
+  pub(super) fn matches_cache_version(&self, version: &str) -> bool {
+    self.data().cache_version == version
   }
 
   fn data(&self) -> MutexGuard<'_, CacheValidatorData> {
@@ -81,12 +89,14 @@ impl CacheValidator {
     if !validator.has_same_version(&self.data()) {
       return Ok(CacheValidatorResult::InvalidVersion);
     }
+    let Some(file_system_info) = &self.file_system_info else {
+      return Ok(CacheValidatorResult::Valid);
+    };
     let Some(build_dependencies_snapshot) = &validator.build_dependencies_snapshot else {
       return Ok(CacheValidatorResult::InvalidError);
     };
     let start = self.logger.time("check build dependencies");
-    let validation = self
-      .file_system_info
+    let validation = file_system_info
       .check_snapshot_valid(build_dependencies_snapshot)
       .await;
     self.logger.time_end(start);
@@ -112,6 +122,9 @@ impl CacheValidator {
     &self,
     mut new_build_dependencies: InternedPathSet,
   ) -> Result<Option<Vec<u8>>> {
+    let Some(file_system_info) = &self.file_system_info else {
+      return Ok(Some(self.codec.encode(&*self.data())?));
+    };
     {
       let data = self.data();
       new_build_dependencies.retain(|path| !data.build_dependencies.contains(path));
@@ -125,21 +138,19 @@ impl CacheValidator {
       new_build_dependencies.len()
     ));
     let start = self.logger.time("resolve build dependencies");
-    let resolved = self
-      .file_system_info
+    let resolved = file_system_info
       .resolve_build_dependencies(new_build_dependencies.iter().cloned())
       .await;
     self.logger.time_end(start);
 
     let start = self.logger.time("snapshot build dependencies");
-    let snapshot = self
-      .file_system_info
+    let snapshot = file_system_info
       .create_snapshot(
         None,
         &resolved.files,
         &resolved.contexts,
         &resolved.missing,
-        self.file_system_info.build_dependencies_strategy(),
+        file_system_info.build_dependencies_strategy(),
       )
       .await;
     self.logger.time_end(start);
@@ -147,7 +158,7 @@ impl CacheValidator {
     let mut data = self.data();
     data.build_dependencies_snapshot = Some(
       if let Some(current) = data.build_dependencies_snapshot.take() {
-        self.file_system_info.merge_snapshots(current, snapshot)
+        file_system_info.merge_snapshots(current, snapshot)
       } else {
         snapshot
       },

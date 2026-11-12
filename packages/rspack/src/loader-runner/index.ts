@@ -32,7 +32,6 @@ import type { Compiler } from '../Compiler';
 import {
   type Diagnostic,
   isUseSimpleSourceMap,
-  isUseSourceMap,
   type LoaderContext,
   type ResolveCallback,
 } from '../config/adapterRuleUse';
@@ -507,9 +506,7 @@ export async function runLoaders(
     },
   });
   loaderContext.version = 2;
-  loaderContext.sourceMap = compiler.options.devtool
-    ? isUseSourceMap(compiler.options.devtool)
-    : (context._module.useSourceMap ?? false);
+  loaderContext.sourceMap = context._module.useSourceMap;
   loaderContext.mode = compiler.options.mode;
   Object.assign(loaderContext, compiler.options.loader);
 

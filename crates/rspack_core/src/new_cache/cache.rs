@@ -5,7 +5,9 @@ use rustc_hash::FxHashMap;
 
 use super::{
   CacheFacade, CacheInfo, CacheKey, CacheValue, Etag, IdleFileCache, MemoryCache,
-  MemoryCacheGetResult, cache_value::CacheValueData, statistics::CacheStatistics,
+  MemoryCacheGetResult,
+  cache_value::CacheValueData,
+  statistics::{CacheCounters, CacheStatistics},
 };
 use crate::InfrastructureLogger;
 
@@ -106,6 +108,20 @@ impl Cache {
     self.storage.idle_file_cache.is_some()
   }
 
+  pub(super) fn matches_file_cache_version(&self, version: &str) -> bool {
+    self
+      .storage
+      .idle_file_cache
+      .as_ref()
+      .is_some_and(|file_cache| file_cache.matches_cache_version(version))
+  }
+
+  pub(super) fn shutdown_blocking(&mut self) {
+    if let Some(file_cache) = self.storage.idle_file_cache.take() {
+      file_cache.shutdown_blocking();
+    }
+  }
+
   pub fn begin_idle(&self, build_time: Duration) {
     let storage = &self.storage;
     if let Some(memory_cache) = &storage.memory_cache {
@@ -124,11 +140,10 @@ impl Cache {
   }
 
   pub async fn shutdown(&self) {
-    let storage = &self.storage;
-    if let Some(file_cache) = &storage.idle_file_cache {
+    if let Some(file_cache) = &self.storage.idle_file_cache {
       file_cache.shutdown().await;
     }
-    if let Some(memory_cache) = &storage.memory_cache {
+    if let Some(memory_cache) = &self.storage.memory_cache {
       memory_cache.clear();
     }
   }
@@ -159,6 +174,13 @@ impl CompilerCache {
       cache,
       compiler_path,
     }
+  }
+
+  pub(crate) fn counters(&self, name: &str) -> Arc<CacheCounters> {
+    self
+      .cache
+      .statistics()
+      .register(format!("{}|{name}", self.compiler_path).into())
   }
 
   pub fn facade(&self, name: &str) -> CacheFacade {
