@@ -5,6 +5,7 @@ use std::{
 };
 
 use aho_corasick::AhoCorasick;
+use memchr::memmem;
 use rspack_cacheable::{
   __private::rkyv::{Archive, Deserialize, Serialize, bytecheck::CheckBytes},
   Deserializer, Serializer, Validator, from_bytes, to_bytes, to_bytes_with_binding,
@@ -23,8 +24,94 @@ pub enum RootBinding {
 #[derive(Debug)]
 struct RootPatterns {
   hash: u64,
-  matcher: AhoCorasick,
+  matcher: RootMatcher,
   bind_all: bool,
+}
+
+/// Finds any root pattern in encoded bytes. Every entry of a portable cache is searched, so this
+/// runs over all the bytes a build stores.
+#[derive(Debug)]
+struct RootMatcher {
+  /// A substring of every pattern in `gated`: bytes without it hold none of them. The spellings
+  /// of a root share its names, so one substring search stands in for most patterns.
+  gate: Option<memmem::Finder<'static>>,
+  gated: PatternSet,
+  /// The patterns that lack the gate, such as the base64 spellings.
+  ungated: PatternSet,
+}
+
+impl RootMatcher {
+  fn new(patterns: &[Vec<u8>]) -> Self {
+    // The run of letters and digits that the most patterns contain, and the longest of those.
+    // The shortest pattern is the root as it is, whose names every escaped spelling keeps.
+    let gate = patterns
+      .iter()
+      .min_by_key(|pattern| pattern.len())
+      .into_iter()
+      .flat_map(|pattern| pattern.split(|byte| !byte.is_ascii_alphanumeric()))
+      .filter(|run| run.len() >= 3)
+      .map(|run| {
+        let count = patterns
+          .iter()
+          .filter(|pattern| memmem::find(pattern, run).is_some())
+          .count();
+        (count, run.len(), run)
+      })
+      .filter(|(count, ..)| *count > 1)
+      .max()
+      .map(|(.., run)| run);
+    let (gated, ungated): (Vec<_>, Vec<_>) = patterns
+      .iter()
+      .partition(|pattern| gate.is_some_and(|gate| memmem::find(pattern, gate).is_some()));
+    Self {
+      gate: gate.map(|gate| memmem::Finder::new(gate).into_owned()),
+      gated: PatternSet::new(&gated),
+      ungated: PatternSet::new(&ungated),
+    }
+  }
+
+  fn is_match(&self, bytes: &[u8]) -> bool {
+    self.ungated.is_match(bytes)
+      || (self
+        .gate
+        .as_ref()
+        .is_some_and(|gate| gate.find(bytes).is_some())
+        && self.gated.is_match(bytes))
+  }
+}
+
+#[derive(Debug)]
+enum PatternSet {
+  /// A substring search for each pattern. While the patterns are few this outruns the automaton,
+  /// whose prefilter stops at bytes that are common in source code.
+  Finders(Vec<memmem::Finder<'static>>),
+  Automaton(AhoCorasick),
+}
+
+impl PatternSet {
+  /// A Windows root has a few dozen base64 spellings. Above that a pass for each pattern costs
+  /// more than one pass of the automaton.
+  const MAX_FINDERS: usize = 32;
+
+  fn new(patterns: &[&Vec<u8>]) -> Self {
+    if patterns.len() <= Self::MAX_FINDERS {
+      Self::Finders(
+        patterns
+          .iter()
+          .map(|pattern| memmem::Finder::new(pattern).into_owned())
+          .collect(),
+      )
+    } else {
+      Self::Automaton(AhoCorasick::new(patterns).expect("root patterns should build a matcher"))
+    }
+  }
+
+  fn is_match(&self, bytes: &[u8]) -> bool {
+    match self {
+      Self::Finders(finders) => finders.iter().any(|finder| finder.find(bytes).is_some()),
+      Self::Automaton(automaton) => automaton.is_match(bytes),
+    }
+  }
 }
 
 /// Internal cacheable context for serialization
@@ -69,8 +156,7 @@ impl CacheCodec {
       let patterns = root_patterns(root.as_str());
       Arc::new(RootPatterns {
         hash: hasher.finish(),
-        matcher: AhoCorasick::new(&patterns.patterns)
-          .expect("root patterns should build a matcher"),
+        matcher: RootMatcher::new(&patterns.patterns),
         bind_all: patterns.bind_all,
       })
     });
