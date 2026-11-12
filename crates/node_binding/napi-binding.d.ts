@@ -64,6 +64,11 @@ export type CompilerId = void;
 
 /* -- napi-rs generated below -- */
 
+export interface RawConfigValue {
+	root: number;
+	nodes: unknown[];
+}
+
 export declare class ExternalObject<T> {
   readonly '': {
     readonly '': unique symbol
@@ -608,6 +613,8 @@ export declare const EXPECTED_RSPACK_CORE_VERSION: string
 export declare function externalModuleGetUserRequest(module: Module): string
 
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
+
+export declare function getConfigDomFields(): Record<string, Array<string>>
 
 export interface JsAddingRuntimeModule {
   name: string
@@ -2579,8 +2586,8 @@ export interface RawModuleInfo {
 
 export interface RawModuleOptions {
   rules: Array<RawModuleRule>
-  parser?: Record<string, Record<string, unknown>>
-  generator?: Record<string, Record<string, unknown>>
+  parser?: Record<string, RawConfigValue>
+  generator?: Record<string, RawConfigValue>
   noParse?: string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]
 }
 
@@ -2608,9 +2615,9 @@ export interface RawModuleRule {
   use?: RawModuleRuleUse[] | ((arg: RawFuncUseCtx) => RawModuleRuleUse[])
   type?: string
   layer?: string
-  parser?: Record<string, unknown>
-  generator?: Record<string, unknown>
-  resolve?: RawResolveOptions
+  parser?: RawConfigValue
+  generator?: RawConfigValue
+  resolve?: RawConfigValue
   issuer?: RawRuleSetCondition
   issuerLayer?: RawRuleSetCondition
   dependency?: RawRuleSetCondition
@@ -2817,7 +2824,7 @@ export interface RawResolveOptions {
   symlinks?: boolean
   tsconfig?: RawResolveTsconfigOptions
   modules?: Array<string>
-  byDependency?: Record<string, RawResolveOptions>
+  byDependency?: Record<string, RawConfigValue>
   fullySpecified?: boolean
   exportsFields?: Array<string>
   descriptionFiles?: Array<string>
@@ -2842,7 +2849,7 @@ export interface RawResolveOptionsWithDependencyType {
   symlinks?: boolean
   tsconfig?: RawResolveTsconfigOptions
   modules?: Array<string>
-  byDependency?: Record<string, RawResolveOptions>
+  byDependency?: Record<string, RawConfigValue>
   fullySpecified?: boolean
   exportsFields?: Array<string>
   descriptionFiles?: Array<string>

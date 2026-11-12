@@ -32,6 +32,7 @@ import type {
   OutputNormalized,
   RspackOptionsNormalized,
 } from './normalization';
+import { encodeConfigDom, encodeModuleOptions } from './optionGraph';
 import type {
   NewCache,
   Node,
@@ -219,15 +220,6 @@ function getRawAlias(
   return false;
 }
 
-function getRawResolveByDependency(
-  byDependency: Resolve['byDependency'],
-): RawOptions['resolve']['byDependency'] {
-  if (byDependency === undefined) return byDependency;
-  return Object.fromEntries(
-    Object.entries(byDependency).map(([k, v]) => [k, getRawResolve(v)]),
-  );
-}
-
 function getRawTsConfig(
   tsConfig: Resolve['tsConfig'],
 ): RawOptions['resolve']['tsconfig'] {
@@ -246,8 +238,33 @@ function getRawTsConfig(
   };
 }
 
+type NormalizedResolve = Omit<RawOptions['resolve'], 'byDependency'> & {
+  byDependency?: Record<string, NormalizedResolve>;
+};
+
 export function getRawResolve(resolve: Resolve): RawOptions['resolve'] {
+  const raw = convertResolve(resolve, new WeakMap());
   return {
+    ...raw,
+    byDependency:
+      raw.byDependency &&
+      Object.fromEntries(
+        Object.entries(raw.byDependency).map(([key, options]) => [
+          key,
+          encodeConfigDom(options, 'resolve'),
+        ]),
+      ),
+  };
+}
+
+function convertResolve(
+  resolve: Resolve,
+  seen: WeakMap<Resolve, NormalizedResolve>,
+): NormalizedResolve {
+  const previous = seen.get(resolve);
+  if (previous !== undefined) return previous;
+
+  const raw: NormalizedResolve = {
     ...resolve,
     alias: getRawAlias(resolve.alias),
     fallback: getRawAlias(resolve.fallback),
@@ -256,8 +273,20 @@ export function getRawResolve(resolve: Resolve): RawOptions['resolve'] {
       string[]
     >,
     tsconfig: getRawTsConfig(resolve.tsConfig),
-    byDependency: getRawResolveByDependency(resolve.byDependency),
+    byDependency: undefined,
   };
+  // Preserve object identity across nested options, including back-references.
+  seen.set(resolve, raw);
+  const byDependency = resolve.byDependency;
+  if (byDependency !== undefined) {
+    raw.byDependency = Object.fromEntries(
+      Object.entries(byDependency).map(([key, options]) => [
+        key,
+        convertResolve(options, seen),
+      ]),
+    );
+  }
+  return raw;
 }
 
 function getRawModule(
@@ -279,7 +308,7 @@ function getRawModule(
   return {
     rules,
     parser: getRawParserOptionsMap(module.parser),
-    generator: module.generator,
+    generator: encodeModuleOptions('generator', module.generator),
     noParse: module.noParse,
   };
 }
@@ -392,9 +421,13 @@ const getRawModuleRule = (
         : createRawModuleRuleUses(normalizedUse ?? [], `${path}.use`, options),
     type: rule.type,
     layer: rule.layer,
-    parser: getRawParser(rule.parser),
-    generator: rule.generator,
-    resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
+    parser:
+      rule.parser && encodeConfigDom(getRawParser(rule.parser), 'parser:rule'),
+    generator:
+      rule.generator && encodeConfigDom(rule.generator, 'generator:rule'),
+    resolve:
+      rule.resolve &&
+      encodeConfigDom(convertResolve(rule.resolve, new WeakMap()), 'resolve'),
     oneOf: rule.oneOf
       ? rule.oneOf
           .filter(Boolean)
@@ -518,18 +551,16 @@ function getRawRuleSetLogicalConditions(
   };
 }
 
-function getRawParserOptionsMap(
-  parser: ParserOptionsByModuleType,
-): Record<string, Record<string, unknown>> {
-  const json = parser.json;
-  const rawJson = getRawParser(json);
-  return rawJson && rawJson !== json ? { ...parser, json: rawJson } : parser;
+function getRawParserOptionsMap(parser: ParserOptionsByModuleType) {
+  return encodeModuleOptions('parser', parser, (type, options) =>
+    type === 'json' ? getRawParser(options) : options,
+  );
 }
 
 function getRawParser(
-  parser: RuleSetRule['parser'],
-): Record<string, unknown> | undefined {
-  if (!parser || typeof parser.parse !== 'function') {
+  parser: NonNullable<RuleSetRule['parser']>,
+): Record<string, unknown> {
+  if (typeof parser.parse !== 'function') {
     return parser;
   }
   const parse = (source: string) => JSON.stringify(parser.parse(source));

@@ -1,8 +1,8 @@
 use std::sync::{Arc, LazyLock, Mutex};
 
 use napi::{
-  Either, JsValue, Unknown, ValueType,
-  bindgen_prelude::{Array, FromNapiValue, JsValuesTupleIntoVec, Object},
+  Either,
+  bindgen_prelude::{FromNapiValue, JsValuesTupleIntoVec, Object},
 };
 use once_cell::sync::OnceCell;
 use rspack_core::{
@@ -11,7 +11,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_napi::owned_value::{
-  FromObject, FromValue, ObjectValue, Value, capture_object, enumerable_own_keys,
+  FromObject, FromValue, Value, ValueGraph, ValueRef, enumerable_own_keys,
 };
 use rspack_regex::RspackRegex;
 use rspack_util::fx_hash::FxIndexSet;
@@ -31,80 +31,62 @@ use crate::{
   filename::JsFilename,
 };
 
-type RuleObject = ObjectValue;
-type RuleValue = Value;
+pub type RawParserOptions = ValueGraph;
+pub type RawGeneratorOptions = ValueGraph;
 
-pub type RawParserOptions = RuleObject;
-pub type RawGeneratorOptions = RuleObject;
-
-fn capture_option(value: Unknown<'_>, field: Option<&str>) -> napi::Result<RuleValue> {
-  Value::capture(value, |value, kind| match kind {
-    ValueType::Function => capture_scoped_function(value).map(Value::Function),
-    ValueType::Object if value.is_array()? => {
-      Value::capture_array(Array::from_unknown(value)?, |element| match element {
-        Some(value) if value.get_type()? == ValueType::String => {
-          Ok(RuleValue::String(unsafe { value.cast()? }))
-        }
-        _ => Ok(RuleValue::Unsupported),
-      })
-    }
-    ValueType::Object => {
-      let object = value.coerce_to_object()?;
-      let keys = match field {
-        Some("wrappedContextRegExp") => &["source", "flags"],
-        Some("worker") => RawJavascriptParserWorkerOptions::FIELDS,
-        Some("commonjs") => RawJavascriptParserCommonjsOptions::FIELDS,
-        Some("dataUrlCondition") => RawAssetParserDataUrlOptions::FIELDS,
-        Some("dataUrl") => RawAssetGeneratorDataUrlOptions::FIELDS,
-        Some("importMeta") => {
-          let mut fields = RuleObject::default();
-          for key in enumerable_own_keys(&object)? {
-            if let Some(value) = object.get::<Unknown>(&key)?
-              && value.get_type()? == ValueType::Boolean
-            {
-              fields.insert(key, RuleValue::Bool(unsafe { value.cast()? }));
-            }
-          }
-          return Ok(RuleValue::Object(fields));
-        }
-        _ => return Ok(RuleValue::Unsupported),
-      };
-      capture_object(object, keys.iter().copied(), |_, value| {
-        capture_option(value, None)
-      })
-      .map(RuleValue::Object)
-    }
-    _ => Ok(RuleValue::Unsupported),
+fn capture_options(object: Object<'_>) -> napi::Result<ValueGraph> {
+  ValueGraph::capture(object, |value| {
+    capture_scoped_function(value).map(Value::Function)
   })
 }
 
-fn capture_options(
-  object: Object<'_>,
-  fields: impl IntoIterator<Item = &'static str>,
-) -> napi::Result<RuleObject> {
-  capture_object(object, fields, |key, value| {
-    capture_option(value, Some(key))
-  })
+pub(super) fn config_dom_fields() -> HashMap<String, Vec<String>> {
+  let mut fields = HashMap::default();
+  RawParserOptionObject::add_fields("parser", &mut fields);
+  RawGeneratorOptionObject::add_fields("generator", &mut fields);
+  fields.extend([
+    (
+      "worker".into(),
+      field_names(RawJavascriptParserWorkerOptions::FIELDS),
+    ),
+    (
+      "commonjs".into(),
+      field_names(RawJavascriptParserCommonjsOptions::FIELDS),
+    ),
+    (
+      "dataUrlCondition".into(),
+      field_names(RawAssetParserDataUrlOptions::FIELDS),
+    ),
+    (
+      "dataUrl".into(),
+      field_names(RawAssetGeneratorDataUrlOptions::FIELDS),
+    ),
+  ]);
+  crate::options::raw_resolve::add_dom_fields(&mut fields);
+  fields
+}
+
+fn field_names(fields: &[&str]) -> Vec<String> {
+  fields.iter().map(|field| (*field).to_owned()).collect()
 }
 
 fn capture_module_options(
   object: Object<'_>,
   fields_for_type: fn(&str) -> Option<&'static [&'static str]>,
   ignore_type: fn(&str) -> bool,
-) -> napi::Result<HashMap<String, RuleObject>> {
+) -> napi::Result<HashMap<String, ValueGraph>> {
   let mut options = HashMap::default();
   for key in enumerable_own_keys(&object)? {
-    let Some(fields) = fields_for_type(&key) else {
+    if fields_for_type(&key).is_none() {
       if ignore_type(&key) {
         continue;
       }
       return Err(napi::Error::from_reason(format!(
         "Unknown module type: {key}"
       )));
-    };
+    }
     if let Some(value) = object.get::<Object>(&key)? {
-      let fields = capture_options(value, fields.iter().copied())?;
-      options.insert(key, fields);
+      options.insert(key, capture_options(value)?);
     }
   }
   Ok(options)
@@ -183,7 +165,7 @@ macro_rules! module_options {
     $($($kind:literal)|+ => $variant:ident($raw:ident)),+ $(,)?
   }) => {
     #[derive(Debug)]
-    pub struct $object(RuleObject);
+    pub struct $object(ValueGraph);
 
     impl FromNapiValue for $object {
       unsafe fn from_napi_value(
@@ -191,7 +173,7 @@ macro_rules! module_options {
         value: napi::sys::napi_value,
       ) -> napi::Result<Self> {
         let object = unsafe { Object::from_napi_value(env, value)? };
-        capture_options(object, Self::rule_fields().iter().copied()).map(Self)
+        capture_options(object).map(Self)
       }
     }
 
@@ -204,6 +186,17 @@ macro_rules! module_options {
         &FIELDS
       }
 
+      fn add_fields(prefix: &str, fields: &mut HashMap<String, Vec<String>>) {
+        fields.insert(format!("{prefix}:rule"), field_names(
+          Self::rule_fields().iter().copied().collect::<Vec<_>>().as_slice(),
+        ));
+        $(
+          for kind in [$($kind),+] {
+            fields.insert(format!("{prefix}:{kind}"), field_names($raw::FIELDS));
+          }
+        )+
+      }
+
       fn fields_for_type(module_type: &str) -> Option<&'static [&'static str]> {
         match module_type {
           $($($kind)|+ => Some($raw::FIELDS),)+
@@ -211,7 +204,10 @@ macro_rules! module_options {
         }
       }
 
-      fn resolve(fields: &RuleObject, module_type: &str) -> Result<Option<$options>> {
+      fn resolve(graph: &ValueGraph, module_type: &str) -> Result<Option<$options>> {
+        let fields = graph.root().object().ok_or_else(|| {
+          rspack_error::error!("Expected module options to be an object")
+        })?;
         Ok(Some(match module_type {
           $($($kind)|+ => $options::$variant($raw::from_object(fields)?.into()),)+
           _ => return Ok(None),
@@ -262,20 +258,18 @@ module_options!(RawGeneratorOptionObject, RawGeneratorOptions, GeneratorOptions,
 });
 
 impl<T: 'static + JsValuesTupleIntoVec, R> FromValue for ThreadsafeFunction<T, R> {
-  fn from_value(value: &RuleValue) -> Option<Self> {
-    match value {
-      RuleValue::Function(callback) => Some(Self::from_dynamic(callback.clone())),
+  fn from_value(value: ValueRef<'_>) -> Option<Self> {
+    match value.value() {
+      Value::Function(callback) => Some(Self::from_dynamic(callback.clone())),
       _ => None,
     }
   }
 }
 
-pub(super) fn wrapped_context_reg_exp(value: &RuleValue) -> Option<RspackRegex> {
-  let RuleValue::Object(fields) = value else {
-    return None;
-  };
-  let (RuleValue::String(source), RuleValue::String(flags)) =
-    (fields.get("source")?, fields.get("flags")?)
+pub(super) fn wrapped_context_reg_exp(value: ValueRef<'_>) -> Option<RspackRegex> {
+  let fields = value.object()?;
+  let (Value::String(source), Value::String(flags)) =
+    (fields.get("source")?.value(), fields.get("flags")?.value())
   else {
     return None;
   };
@@ -283,12 +277,10 @@ pub(super) fn wrapped_context_reg_exp(value: &RuleValue) -> Option<RspackRegex> 
 }
 
 impl FromValue for JsFilename {
-  fn from_value(value: &RuleValue) -> Option<Self> {
-    let filename = match value {
-      RuleValue::String(value) => Either::A(value.clone()),
-      RuleValue::Function(callback) => {
-        Either::B(ThreadsafeFunction::from_dynamic(callback.clone()))
-      }
+  fn from_value(value: ValueRef<'_>) -> Option<Self> {
+    let filename = match value.value() {
+      Value::String(value) => Either::A(value.clone()),
+      Value::Function(callback) => Either::B(ThreadsafeFunction::from_dynamic(callback.clone())),
       _ => return None,
     };
     Some(Self { filename })
@@ -296,38 +288,39 @@ impl FromValue for JsFilename {
 }
 
 impl FromValue for RawJavascriptParserCommonjsExports {
-  fn from_value(value: &RuleValue) -> Option<Self> {
-    match value {
-      RuleValue::String(value) if value == "skipInEsm" => Some(Self::SkipInEsm),
+  fn from_value(value: ValueRef<'_>) -> Option<Self> {
+    match value.value() {
+      Value::String(value) if value == "skipInEsm" => Some(Self::SkipInEsm),
       _ => None,
     }
   }
 }
 
-pub(super) fn stringified(value: &RuleValue) -> Option<String> {
-  match value {
-    RuleValue::Bool(value) => Some(value.to_string()),
-    RuleValue::Number(value) => Some(rspack_util::ryu_js::Buffer::new().format(*value).to_owned()),
+pub(super) fn stringified(value: ValueRef<'_>) -> Option<String> {
+  match value.value() {
+    Value::Bool(value) => Some(value.to_string()),
+    Value::Number(value) => Some(rspack_util::ryu_js::Buffer::new().format(*value).to_owned()),
     _ => String::from_value(value),
   }
 }
 
-pub(super) fn false_or_string(value: &RuleValue) -> Option<String> {
-  match value {
-    RuleValue::Bool(false) => Some("false".into()),
+pub(super) fn false_or_string(value: ValueRef<'_>) -> Option<String> {
+  match value.value() {
+    Value::Bool(false) => Some("false".into()),
     _ => String::from_value(value),
   }
 }
 
-pub(super) fn import_meta(value: &RuleValue) -> Option<Either<String, RawImportMetaOptions>> {
-  match value {
-    RuleValue::Object(fields) => Some(Either::B(
-      fields
+pub(super) fn import_meta(value: ValueRef<'_>) -> Option<Either<String, RawImportMetaOptions>> {
+  match value.value() {
+    Value::Object(_) => Some(Either::B(
+      value
+        .object()?
         .iter()
         .filter_map(|(key, value)| bool::from_value(value).map(|value| (key.clone(), value)))
         .collect(),
     )),
-    RuleValue::Bool(value) => Some(Either::A(value.to_string())),
+    Value::Bool(value) => Some(Either::A(value.to_string())),
     _ => String::from_value(value).map(Either::A),
   }
 }

@@ -51,19 +51,14 @@ pub(crate) fn expand(input: DeriveInput) -> syn::Result<TokenStream> {
     impl #impl_generics #value::FromObject for #name #ty_generics #where_clause {
       const FIELDS: &'static [&'static str] = &[#(#keys),*];
 
-      fn from_object(fields: &#value::ObjectValue) -> ::rspack_error::Result<Self> {
+      fn from_object(fields: #value::ObjectRef<'_>) -> ::rspack_error::Result<Self> {
         Ok(Self { #(#initializers),* })
       }
     }
 
     impl #impl_generics #value::FromValue for #name #ty_generics #where_clause {
-      fn from_value(value: &#value::Value) -> ::std::option::Option<Self> {
-        match value {
-          #value::Value::Object(fields) => {
-            <Self as #value::FromObject>::from_object(fields).ok()
-          }
-          _ => None,
-        }
+      fn from_value(value: #value::ValueRef<'_>) -> ::std::option::Option<Self> {
+        <Self as #value::FromObject>::from_object(value.object()?).ok()
       }
     }
   })
