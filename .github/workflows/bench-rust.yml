@@ -50,7 +50,7 @@ jobs:
           clean: ${{ runner.environment == 'github-hosted' }}
 
       - name: Pnpm Setup
-        timeout-minutes: 5
+        timeout-minutes: 10
         uses: ./.github/actions/pnpm/setup
 
       - name: Prepare benchmark cases
