@@ -16,6 +16,7 @@ pub enum JavascriptParserPluginHook {
   BlockPreStatement,
   TopLevelAwaitExpr,
   TopLevelForOfAwaitStmt,
+  TopLevelAwaitUsingDeclaration,
   CanRename,
   Rename,
   Program,
@@ -175,6 +176,14 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
 
   /// The return value will have no effect.
   fn top_level_for_of_await_stmt(&self, _parser: &mut JavascriptParser<'p>, _stmt: ForOfStatement) {
+  }
+
+  /// The return value will have no effect.
+  fn top_level_await_using_declaration(
+    &self,
+    _parser: &mut JavascriptParser<'p>,
+    _decl: VariableDeclaration,
+  ) {
   }
 
   fn can_rename(&self, _parser: &mut JavascriptParser<'p>, _str: &str) -> Option<bool> {
