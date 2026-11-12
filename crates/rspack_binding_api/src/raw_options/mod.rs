@@ -60,6 +60,7 @@ pub struct RawOptions {
     ts_type = r#"boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent)"#
   )]
   pub cache: RawCacheOptions,
+  pub loader_options_cache_key: Option<String>,
   pub snapshot: RawSnapshotOptions,
   pub experiments: RawExperiments,
   #[napi(ts_type = "false | { [key: string]: boolean }")]
@@ -141,6 +142,7 @@ impl TryFrom<RawOptions> for CompilerOptions {
       incremental,
       stats,
       cache,
+      loader_options_cache_key: value.loader_options_cache_key,
       snapshot: value.snapshot.into(),
       optimization,
       node,

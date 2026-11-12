@@ -526,6 +526,44 @@ function getBuiltinLoaderOptions(
   return o;
 }
 
+export function serializeLoaderOptionsForCache(
+  options: unknown,
+): string | undefined {
+  try {
+    return (
+      JSON.stringify(options, function (key, value: unknown) {
+        const original: unknown = this[key];
+        // JSON can omit or coerce values that a loader can still observe.
+        if (
+          typeof original === 'function' ||
+          typeof value === 'function' ||
+          typeof value === 'symbol' ||
+          (typeof value === 'number' &&
+            (!Number.isFinite(value) || Object.is(value, -0))) ||
+          // An explicit undefined can override a default, e.g. sourceMap.
+          (value === undefined && this === options) ||
+          !Object.is(original, value)
+        ) {
+          throw new TypeError('Loader options are not JSON serializable');
+        }
+        if (
+          value !== null &&
+          typeof value === 'object' &&
+          !Array.isArray(value)
+        ) {
+          const prototype = Object.getPrototypeOf(value);
+          if (prototype !== Object.prototype && prototype !== null) {
+            throw new TypeError('Loader options are not JSON serializable');
+          }
+        }
+        return value;
+      }) ?? ''
+    );
+  } catch {
+    return undefined;
+  }
+}
+
 function createRawModuleRuleUsesImpl(
   uses: (RuleSetLoaderWithOptions | Falsy)[],
   path: string,
@@ -554,6 +592,9 @@ function createRawModuleRuleUsesImpl(
       isBuiltin = true;
     }
 
+    const optionsCacheKey = use.cache
+      ? serializeLoaderOptionsForCache(fingerprintOptions)
+      : undefined;
     return {
       loader: resolveStringifyLoaders(
         use,
@@ -563,10 +604,8 @@ function createRawModuleRuleUsesImpl(
         fingerprintOptions,
       ),
       options: o,
-      cache: use.cache ?? false,
-      optionsCacheKey: use.cache
-        ? (JSON.stringify(fingerprintOptions) ?? '')
-        : '',
+      cache: optionsCacheKey !== undefined,
+      optionsCacheKey: optionsCacheKey ?? '',
       codeFilter: createRawLoaderCodeFilter(
         use.codeFilter,
         `${path}[${index}].codeFilter`,

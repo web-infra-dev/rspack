@@ -1770,6 +1770,7 @@ CompilerOptions {
         colors: <env-dependent>,
     },
     cache: Disabled,
+    loader_options_cache_key: None,
     snapshot: SnapshotOptions {
         immutable_paths: [],
         unmanaged_paths: [],

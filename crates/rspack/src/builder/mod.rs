@@ -1341,6 +1341,7 @@ impl CompilerOptionsBuilder {
       module,
       stats,
       cache,
+      loader_options_cache_key: None,
       snapshot,
       experiments,
       incremental,

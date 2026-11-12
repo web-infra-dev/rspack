@@ -40,6 +40,7 @@ import {
   type LoaderDefinition,
   type LoaderDefinitionFunction,
   type PitchLoaderDefinitionFunction,
+  serializeLoaderOptionsForCache,
 } from './adapterRuleUse';
 import type {
   CacheNormalized,
@@ -116,6 +117,10 @@ export const getRawOptions = (
     optimization: options.optimization as Required<Optimization>,
     stats: getRawStats(options.stats),
     cache: getRawCache(cache),
+    loaderOptionsCacheKey:
+      cache !== false && experiments.newCache && experiments.newCache.loader
+        ? serializeLoaderOptionsForCache(options.loader)
+        : undefined,
     snapshot: getRawSnapshot(options.snapshot),
     experiments,
     incremental: mode === 'development' && options.incremental,

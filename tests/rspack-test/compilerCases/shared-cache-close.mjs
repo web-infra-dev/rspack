@@ -205,4 +205,56 @@ function createSourceMapOptions(context, name, devtool) {
   };
 }
 
-export default [...closeCases, readonlyCase, sourceMapCase];
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
+const loaderOptionsCase = {
+  name: 'loader-options',
+  description: 'should reuse loader results only for serializable loader options',
+  options(context) {
+    return createSourceMapOptions(context, 'first', 'source-map');
+  },
+  async build(context, first) {
+    async function check(compiler, sourceMap, expected) {
+      const stats = await runCompiler(compiler);
+      expect(stats.hasErrors()).toBe(false);
+      const { cacheInfo } = stats.toJson({ all: false, cacheInfo: true });
+      expect(cacheInfo?.[`${compiler.compilerPath}|loader`]).toEqual(expected);
+      const bundle = stats.compilation.getAsset('main.js').source.source();
+      expect(bundle.toString()).toContain(`expect(${sourceMap}).toBe(true)`);
+    }
+
+    const miss = { hits: 0, misses: 1, reused: 0, stores: 1 };
+    const hit = { hits: 1, misses: 0, reused: 1, stores: 0 };
+    await check(first, true, miss);
+
+    const cyclic = {};
+    cyclic.self = cyclic;
+    const cases = [
+      ['override', { sourceMap: false }, undefined, false, miss],
+      ['reuse-override', { sourceMap: false }, undefined, false, hit],
+      [
+        'undefined-override',
+        { sourceMap: undefined },
+        undefined,
+        undefined,
+        undefined,
+      ],
+      ['global-function', { nested: [() => {}] }, undefined, true, undefined],
+      ['rule-function', undefined, { nested: [() => {}] }, true, undefined],
+      ['global-cycle', cyclic, undefined, true, undefined],
+      ['rule-bigint', undefined, { value: 1n }, true, undefined],
+    ];
+    for (const [name, loader, ruleOptions, sourceMap, expected] of cases) {
+      const options = createSourceMapOptions(context, name, 'source-map');
+      options.loader = loader;
+      options.module.rules[0].use[0].options = ruleOptions;
+      const compiler = rspack(options);
+      try {
+        await check(compiler, sourceMap, expected);
+      } finally {
+        await closeCompiler(compiler);
+      }
+    }
+  },
+};
+
+export default [...closeCases, readonlyCase, sourceMapCase, loaderOptionsCase];

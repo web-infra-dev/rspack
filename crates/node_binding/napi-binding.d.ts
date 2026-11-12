@@ -2901,6 +2901,7 @@ export interface RawOptions {
   optimization: RawOptimizationOptions
   stats: RawStatsOptions
   cache: boolean | { type: "memory" } | ({ type: "persistent" } & RawCacheOptionsPersistent)
+  loaderOptionsCacheKey?: string
   snapshot: RawSnapshotOptions
   experiments: RawExperiments
   incremental?: false | { [key: string]: boolean }
