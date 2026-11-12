@@ -139,6 +139,9 @@ pub struct ResolverGeneric<Fs> {
   alias_trie: AliasTrie,
   /// Pre-built byte-trie over `options.fallback` keys.
   fallback_trie: AliasTrie,
+  /// Keep the discovered path across cache clears so global cache packages can reload the manifest.
+  #[cfg(feature = "yarn_pnp")]
+  pnp_manifest_path: Arc<OnceLock<PathBuf>>,
   #[cfg(feature = "yarn_pnp")]
   pnp_manifest: Arc<arc_swap::ArcSwapOption<(PathBuf, pnp::Manifest)>>,
   /// Paths that have been searched and confirmed to have no `.pnp.cjs` reachable by filesystem walk.
@@ -171,6 +174,8 @@ impl<Fs: Send + Sync + FileSystem + Default> ResolverGeneric<Fs> {
       alias_trie,
       fallback_trie,
       #[cfg(feature = "yarn_pnp")]
+      pnp_manifest_path: Arc::new(OnceLock::new()),
+      #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::new(arc_swap::ArcSwapOption::empty()),
       #[cfg(feature = "yarn_pnp")]
       pnp_no_manifest_cache: Arc::new(FxDashSet::default()),
@@ -190,6 +195,8 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       alias_trie,
       fallback_trie,
       #[cfg(feature = "yarn_pnp")]
+      pnp_manifest_path: Arc::new(OnceLock::new()),
+      #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::new(arc_swap::ArcSwapOption::empty()),
       #[cfg(feature = "yarn_pnp")]
       pnp_no_manifest_cache: Arc::new(FxDashSet::default()),
@@ -208,6 +215,8 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       cache: Arc::clone(&self.cache),
       alias_trie,
       fallback_trie,
+      #[cfg(feature = "yarn_pnp")]
+      pnp_manifest_path: Arc::clone(&self.pnp_manifest_path),
       #[cfg(feature = "yarn_pnp")]
       pnp_manifest: Arc::clone(&self.pnp_manifest),
       #[cfg(feature = "yarn_pnp")]
@@ -1050,30 +1059,35 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       return Some(manifest);
     }
 
-    // 2. This path was searched before and found nothing → skip filesystem walk
-    if self.pnp_no_manifest_cache.contains(cached_path) {
-      return None;
-    }
-
-    // 3. Search for `.pnp.cjs` by walking up from this path
-    let base_path = cached_path.to_path_buf();
-    let Some(manifest_path) = pnp::find_closest_pnp_manifest_path(base_path.as_std_path()) else {
-      self.pnp_no_manifest_cache.insert(cached_path.clone());
-
-      for p in base_path.ancestors() {
-        let p_cached = self.cache.value(p);
-        if self.pnp_no_manifest_cache.contains(&p_cached) {
-          break;
-        }
-        self.pnp_no_manifest_cache.insert(p_cached);
+    let manifest_path = if let Some(path) = self.pnp_manifest_path.get() {
+      path
+    } else {
+      // This path was searched before and found nothing → skip filesystem walk
+      if self.pnp_no_manifest_cache.contains(cached_path) {
+        return None;
       }
-      return None;
+
+      // Search for `.pnp.cjs` by walking up from this path
+      let base_path = cached_path.to_path_buf();
+      let Some(manifest_path) = pnp::find_closest_pnp_manifest_path(base_path.as_std_path()) else {
+        self.pnp_no_manifest_cache.insert(cached_path.clone());
+
+        for p in base_path.ancestors() {
+          let p_cached = self.cache.value(p);
+          if self.pnp_no_manifest_cache.contains(&p_cached) {
+            break;
+          }
+          self.pnp_no_manifest_cache.insert(p_cached);
+        }
+        return None;
+      };
+      self.pnp_manifest_path.get_or_init(|| manifest_path)
     };
 
     tracing::debug!("use manifest path: {:?}", manifest_path);
 
-    let manifest = pnp::load_pnp_manifest(&manifest_path).ok()?;
-    let manifest = Arc::new((manifest_path, manifest));
+    let manifest = pnp::load_pnp_manifest(manifest_path).ok()?;
+    let manifest = Arc::new((manifest_path.clone(), manifest));
 
     let previous = self
       .pnp_manifest
@@ -1552,13 +1566,10 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         /* root */ true,
         Utf8Path::from_path(&tsconfig_options.config_file).expect("path should be UTF-8"),
         &tsconfig_options.references,
+        &mut Vec::new(),
+        ctx,
       )
       .await?;
-    if ctx.file_dependencies.is_some() {
-      for dependency in &tsconfig.file_dependencies {
-        ctx.add_file_dependency(dependency.as_path());
-      }
-    }
     let paths = tsconfig.resolve(cached_path.path(), specifier);
     for path in paths {
       let cached_path = self.cache.value(&path);
@@ -1575,17 +1586,19 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     root: bool,
     path: &'a Utf8Path,
     references: &'a TsconfigReferences,
+    extends_chain: &'a mut Vec<Utf8PathBuf>,
+    ctx: &'a mut Ctx,
   ) -> BoxFuture<'a, Result<Arc<TsConfig>, ResolveError>> {
     let fut = async move {
       self
         .cache
-        .tsconfig(root, path, |mut tsconfig| async move {
+        .tsconfig(root, path, ctx, |mut tsconfig, ctx| async move {
           let directory = self.cache.value(tsconfig.directory());
           tracing::trace!(tsconfig = ?tsconfig, "load_tsconfig");
 
           // Extend tsconfig
           self
-            .merge_tsconfig_extends(&mut tsconfig, &directory)
+            .merge_tsconfig_extends(&mut tsconfig, &directory, extends_chain, ctx)
             .await?;
 
           // Load project references
@@ -1605,7 +1618,9 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
             }
           }
           let mut visited = FxHashSet::default();
-          self.load_references(&mut tsconfig, &mut visited).await?;
+          self
+            .load_references(&mut tsconfig, &mut visited, ctx)
+            .await?;
 
           Ok(tsconfig)
         })
@@ -1627,6 +1642,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     &'a self,
     tsconfig: &'a mut TsConfig,
     visited: &'a mut FxHashSet<Utf8PathBuf>,
+    ctx: &'a mut Ctx,
   ) -> BoxFuture<'a, Result<(), ResolveError>> {
     Box::pin(async move {
       if tsconfig.references.is_empty() {
@@ -1647,7 +1663,8 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
           .tsconfig(
             /* root */ true,
             &reference_tsconfig_path,
-            |mut reference_tsconfig| {
+            ctx,
+            |mut reference_tsconfig, ctx| {
               let current_path = current_path.clone();
               async move {
                 if reference_tsconfig.path == current_path {
@@ -1665,10 +1682,10 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
                 // `baseUrl`/`paths` before its own references are walked.
                 let directory = self.cache.value(reference_tsconfig.directory());
                 self
-                  .merge_tsconfig_extends(&mut reference_tsconfig, &directory)
+                  .merge_tsconfig_extends(&mut reference_tsconfig, &directory, &mut Vec::new(), ctx)
                   .await?;
                 self
-                  .load_references(&mut reference_tsconfig, visited)
+                  .load_references(&mut reference_tsconfig, visited, ctx)
                   .await?;
                 Ok(reference_tsconfig)
               }
@@ -1698,10 +1715,22 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     &self,
     tsconfig: &mut TsConfig,
     directory: &CachedPath,
+    extends_chain: &mut Vec<Utf8PathBuf>,
+    ctx: &mut Ctx,
   ) -> Result<(), ResolveError> {
     let Some(extends) = &tsconfig.extends else {
       return Ok(());
     };
+    if extends_chain.contains(&tsconfig.path) {
+      let chain = extends_chain
+        .iter()
+        .chain(std::iter::once(&tsconfig.path))
+        .map(|path| path.as_str())
+        .collect::<Vec<_>>()
+        .join(" -> ");
+      return Err(ResolveError::TsconfigCircularExtend(chain));
+    }
+    extends_chain.push(tsconfig.path.clone());
     let extended_tsconfig_paths = match extends {
       ExtendsField::Single(s) => {
         vec![
@@ -1719,16 +1748,19 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         .await?
       }
     };
-    for extended_tsconfig_path in extended_tsconfig_paths {
+    for extended_tsconfig_path in extended_tsconfig_paths.into_iter().rev() {
       let extended_tsconfig = self
         .load_tsconfig(
           /* root */ false,
           &extended_tsconfig_path,
           &TsconfigReferences::Disabled,
+          extends_chain,
+          ctx,
         )
         .await?;
       tsconfig.extend_tsconfig(&extended_tsconfig);
     }
+    extends_chain.pop();
     Ok(())
   }
 

@@ -939,6 +939,7 @@ export interface JsLoaderContext {
   loaderChainStart: number
   loaderChainEnd: number
   __internal__error?: RspackError
+  __internal__diagnostics?: Array<JsRspackDiagnostic>
 }
 
 export interface JsLoaderDependencies {
@@ -2032,10 +2033,12 @@ export interface RawCollectShareEntryPluginOptions {
 
 export interface RawCompactHashedChunkIdsPluginOptions {
   minLength?: number
+  salt?: number
 }
 
 export interface RawCompactHashedModuleIdsPluginOptions {
   minLength?: number
+  salt?: number
 }
 
 export interface RawCompilerPlatform {
@@ -2279,6 +2282,10 @@ export interface RawCssParserOptions {
   url?: boolean
   import?: boolean
   resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
+}
+
+export interface RawDeterministicChunkIdsPluginOptions {
+  salt?: number
 }
 
 export interface RawDeterministicModuleIdsPluginOptions {
