@@ -121,64 +121,6 @@ jobs:
       test-runner: '"windows-latest"'
       test: true
 
-  windows-binding-diagnostic:
-    name: Windows binding diagnostic (${{ matrix.name }})
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' && vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS != '' }}
-    runs-on: ${{ fromJSON(vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"') }}
-    timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: cached
-            wrapper: sccache
-            repetitions: 3
-          - name: uncached
-            wrapper: ''
-            repetitions: 1
-    defaults:
-      run:
-        shell: bash
-    env:
-      CARGO_INCREMENTAL: 0
-      MEASURE_CARGO_FRESH: 1
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: ./.github/actions/windows-disable-cpu-hogs
-        continue-on-error: true
-      - uses: ./.github/actions/pnpm/setup
-      - run: pnpm --filter @rspack/binding install --frozen-lockfile
-      - uses: ./.github/actions/rustup
-        with:
-          key: x86_64-pc-windows-msvc-ci
-      - run: rustup target add x86_64-pc-windows-msvc
-      - run: cargo codegen
-      - name: Match binding build configuration
-        run: |
-          echo 'trim-paths = true' >> .cargo/config.toml
-          echo 'checksum-freshness = true' >> .cargo/config.toml
-      - name: Repeat full binding build
-        env:
-          RUST_MIN_STACK: 33554432
-          RUSTC_WRAPPER: ${{ matrix.wrapper }}
-          RUST_BACKTRACE: full
-        run: |
-          failed=0
-          for iteration in $(seq 1 ${{ matrix.repetitions }}); do
-            echo "::group::Binding build $iteration (${{ matrix.name }})"
-            cargo clean --profile ci --target x86_64-pc-windows-msvc
-            cargo clean --profile ci
-            if ! RUST_TARGET=x86_64-pc-windows-msvc pnpm build:binding:ci; then
-              failed=1
-            fi
-            if [[ -n "$RUSTC_WRAPPER" ]]; then
-              sccache --show-stats
-            fi
-            echo '::endgroup::'
-          done
-          exit "$failed"
-
   test-mac:
     name: Test Mac ARM64
     needs: [check-changed]
