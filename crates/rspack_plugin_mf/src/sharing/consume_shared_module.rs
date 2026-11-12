@@ -1,7 +1,7 @@
 use std::{borrow::Cow, sync::Arc};
 
 use async_trait::async_trait;
-use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
@@ -25,7 +25,6 @@ use crate::{ConsumeOptions, ShareScope, utils::module_identifier_namespace};
 #[cacheable]
 #[derive(Debug)]
 pub struct ConsumeSharedModule {
-  #[cacheable(with=Unsupported)]
   dependencies_block: DependenciesBlockData,
   identifier: ModuleIdentifier,
   lib_ident: String,
@@ -42,6 +41,10 @@ pub struct ConsumeSharedModule {
 impl ConsumeSharedModule {
   pub fn share_scope(&self) -> &ShareScope {
     &self.options.share_scope
+  }
+
+  pub(crate) fn options(&self) -> &ConsumeOptions {
+    &self.options
   }
 
   pub(crate) fn configured_share_key(&self) -> &str {

@@ -7,8 +7,10 @@ use rustc_hash::FxHashSet;
 use crate::{
   ArtifactExt, BoxModule, BuildDependency, DependencyId, DependencyRef, FactorizationArtifact,
   FactorizeInfo, ModuleGraph, ModuleIdentifier, ProducerGroup, SideEffectsStateArtifact,
-  compilation::build_module_graph::ModuleToLazyMake, incremental::IncrementalPasses,
-  incremental_info::IncrementalInfo, utils::FileCounter,
+  compilation::build_module_graph::{ModuleToLazyMake, module_build_cache::ModuleBuildCache},
+  incremental::IncrementalPasses,
+  incremental_info::IncrementalInfo,
+  utils::FileCounter,
 };
 
 /// A freshly factorized module and the group that decided it.
@@ -44,6 +46,8 @@ pub struct BuildModuleGraphArtifact {
   /// these dependencies, then clears this set. `reset_temporary_data` keeps it, because recovery
   /// runs before the reset of the first build.
   pub(crate) refactorize_dependencies: FxHashSet<DependencyId>,
+  /// Main-graph cache session for the current build; never recovered or persisted.
+  pub(crate) module_build_cache: Option<ModuleBuildCache>,
 
   pub(crate) verify_factory_decisions: Option<FxHashSet<DependencyId>>,
   /// The modules that verification chose for the rebuilds it forces. The groups refactorized by a
@@ -86,6 +90,7 @@ impl BuildModuleGraphArtifact {
       verify_factory_decisions: None,
       factory_choices: Default::default(),
       refactorize_dependencies: Default::default(),
+      module_build_cache: None,
       module_graph: Default::default(),
       factorization_artifact: Default::default(),
       side_effects_state_artifact: Default::default(),
@@ -363,6 +368,7 @@ impl ArtifactExt for BuildModuleGraphArtifact {
   fn recover(incremental: &crate::incremental::Incremental, new: &mut Self, old: &mut Self) {
     if incremental.mutations_readable(Self::PASS) {
       std::mem::swap(new, old);
+      new.module_build_cache = None;
       new.get_module_graph_mut().reset();
       new.side_effects_state_artifact = Default::default();
     }

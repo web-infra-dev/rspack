@@ -296,9 +296,11 @@ mod tests {
   use super::*;
 
   fn parse_expr<'a>(allocator: &'a Allocator, source: &'a str) -> Ast<'a> {
-    Parser::init(allocator, source, Options::default(), TokenParserConfig)
+    let ast = Parser::init(allocator, source, Options::default(), TokenParserConfig)
       .parse_expression_fragment(FragmentContext::TopLevel)
-      .expect("failed to parse test expression")
+      .expect("failed to parse test expression");
+    // SAFETY: Tests only read handles from this AST without mutating its storage.
+    unsafe { ast.into_ast() }
   }
 
   fn default_true() -> bool {
@@ -504,9 +506,11 @@ mod get_tests {
   use super::*;
 
   fn parse_expr<'a>(allocator: &'a Allocator, source: &'a str) -> Ast<'a> {
-    Parser::init(allocator, source, Options::default(), TokenParserConfig)
+    let ast = Parser::init(allocator, source, Options::default(), TokenParserConfig)
       .parse_expression_fragment(FragmentContext::TopLevel)
-      .expect("failed to parse test expression")
+      .expect("failed to parse test expression");
+    // SAFETY: Tests only read handles from this AST without mutating its storage.
+    unsafe { ast.into_ast() }
   }
 
   #[test]

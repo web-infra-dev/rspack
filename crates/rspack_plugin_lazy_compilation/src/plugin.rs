@@ -206,7 +206,7 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
   ) -> impl Future<Output = Result<()>> + Send {
     #[inline(never)]
     async move {
-      if DEV_SERVER_CLIENT_RE.test(create_data.resource_resolve_data.resource())
+      if DEV_SERVER_CLIENT_RE.test(create_data.resource_resolve_data().resource())
         || !self
           .check_test(
             module_factory_create_data.build_context.compiler_id,
@@ -292,7 +292,7 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
         readable_identifier,
         lib_ident.map(|ident| ident.into_owned()),
         module_factory_create_data,
-        create_data.resource_resolve_data.resource().to_owned(),
+        create_data.resource_resolve_data().resource().to_owned(),
         active,
         self.client.clone(),
         layer,

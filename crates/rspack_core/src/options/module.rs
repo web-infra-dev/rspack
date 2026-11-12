@@ -18,7 +18,7 @@ use rustc_hash::FxHashMap as HashMap;
 use smallvec::SmallVec;
 use tokio::sync::OnceCell;
 
-use crate::{Compilation, Filename, Module, ModuleType, PublicPath, Resolve};
+use crate::{Compilation, Filename, Module, ModuleType, PublicPath, Resolve, ResourceData};
 
 #[derive(Debug, Default)]
 pub struct ParserOptionsMap(HashMap<String, ParserOptions>);
@@ -1285,6 +1285,7 @@ impl fmt::Debug for RuleSetCondition {
 pub enum DataRef<'a> {
   Str(&'a str),
   Value(&'a serde_json::Value),
+  Resource(&'a ResourceData),
 }
 
 impl<'s> From<&'s str> for DataRef<'s> {
@@ -1304,6 +1305,7 @@ impl DataRef<'_> {
     match self {
       Self::Str(s) => Some(s),
       Self::Value(v) => v.as_str(),
+      Self::Resource(resource) => Some(resource.resource()),
     }
   }
 
@@ -1311,6 +1313,11 @@ impl DataRef<'_> {
     match self {
       Self::Str(s) => serde_json::Value::String((*s).to_owned()),
       Self::Value(v) => (*v).to_owned(),
+      Self::Resource(resource) => serde_json::json!({
+        "path": resource.path().map(|path| path.as_str()).unwrap_or_default(),
+        "query": resource.query().unwrap_or_default(),
+        "fragment": resource.fragment().unwrap_or_default(),
+      }),
     }
   }
 }

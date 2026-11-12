@@ -266,7 +266,12 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       for (name, asset) in build_info.assets.as_ref() {
         assets.insert(name.clone(), asset.clone());
       }
-      if !has_error && make_failed_module.contains(&m) {
+      if !has_error
+        && make_failed_module.contains(&m)
+        && module
+          .as_normal_module()
+          .is_none_or(|module| module.error().is_some())
+      {
         let diagnostics = module
           .diagnostics()
           .iter()

@@ -321,6 +321,10 @@ impl ReplaceSource {
 }
 
 impl Source for ReplaceSource {
+  fn mapped(&self) -> bool {
+    self.inner.mapped()
+  }
+
   fn source(&self) -> SourceValue<'_> {
     if self.replacements.is_empty() {
       return self.inner.source();
@@ -474,11 +478,18 @@ impl Source for ReplaceSource {
     if replacements.is_empty() {
       return self.inner.map(options);
     }
+    if !self.mapped() {
+      return None;
+    }
     let chunks = self.stream_chunks();
     get_map(chunks.as_ref(), options)
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
+    if self.replacements.is_empty() && crate::is_buffer_source(self.inner.as_ref()) {
+      return self.inner.to_writer(writer);
+    }
+
     let mut result = Ok(());
     self.rope(&mut |chunk| {
       if result.is_err() {
