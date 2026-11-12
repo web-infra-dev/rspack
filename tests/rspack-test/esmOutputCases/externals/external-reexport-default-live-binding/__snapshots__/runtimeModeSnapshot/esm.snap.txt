@@ -1,0 +1,18 @@
+```mjs title=main.mjs
+import { update, value } from "./ext.mjs";
+import "./side.mjs";
+
+
+
+// ./ext.mjs
+
+// ./side.mjs
+
+// ./index.js
+
+
+
+export { update };
+export { value as default } from "./ext.mjs";
+
+```
