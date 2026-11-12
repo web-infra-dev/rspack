@@ -12,12 +12,13 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   rkyv::string::ArchivedString,
   utils::PortablePath,
-  with::{As, AsInner, AsInnerConverter, AsOption, AsPreset},
+  with::{As, AsInner, AsInnerConverter, AsOption, AsPreset, Skip},
 };
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_resolver::{PackageJson, PackageJsonData};
+use rspack_util::identifier::format_resolved_resource;
 use rustc_hash::FxHashMap;
 
 use crate::{Scheme, get_scheme, parse_resource};
@@ -131,8 +132,7 @@ impl Debug for Content {
 #[cacheable]
 #[derive(Debug, Clone, Default)]
 pub struct ResourceData {
-  /// Resource with absolute path, query and fragment
-  resource: String,
+  resource: ResourceString,
   /// Absolute resource path only
   #[cacheable(with=AsOption<AsPreset>)]
   resource_path: Option<Utf8PathBuf>,
@@ -150,23 +150,38 @@ pub struct ResourceData {
   scheme: OnceCell<Scheme>,
 }
 
+#[cacheable]
+#[derive(Debug, Clone)]
+enum ResourceString {
+  Explicit(String),
+  // An initialized None lets resource() borrow the path directly.
+  Derived(#[cacheable(with=Skip)] OnceCell<Option<String>>),
+}
+
+impl Default for ResourceString {
+  fn default() -> Self {
+    Self::Explicit(String::new())
+  }
+}
+
 impl ResourceData {
   pub fn new_with_resource(resource: String) -> Self {
     if let Some(parsed) = parse_resource(&resource) {
       return Self::new_with_path(resource, parsed.path, parsed.query, parsed.fragment);
     };
     Self {
-      resource,
-      resource_path: None,
-      resource_query: None,
-      resource_fragment: None,
-      resource_description: None,
-      mimetype: None,
-      parameters: None,
-      encoding: None,
-      encoded_content: None,
-      scheme: OnceCell::new(),
-      context: None,
+      resource: ResourceString::Explicit(resource),
+      ..Default::default()
+    }
+  }
+
+  pub fn new_with_resolved_path(path: Utf8PathBuf, query: String, fragment: String) -> Self {
+    Self {
+      resource: ResourceString::Derived(OnceCell::new()),
+      resource_path: Some(path),
+      resource_query: Some(query),
+      resource_fragment: Some(fragment),
+      ..Default::default()
     }
   }
 
@@ -177,17 +192,11 @@ impl ResourceData {
     fragment: Option<String>,
   ) -> Self {
     Self {
-      resource,
+      resource: ResourceString::Explicit(resource),
       resource_path: Some(path),
       resource_query: query,
       resource_fragment: fragment,
-      resource_description: None,
-      mimetype: None,
-      parameters: None,
-      encoding: None,
-      encoded_content: None,
-      scheme: OnceCell::new(),
-      context: None,
+      ..Default::default()
     }
   }
 
@@ -210,11 +219,33 @@ impl ResourceData {
   }
 
   pub fn resource(&self) -> &str {
-    &self.resource
+    let derived = match &self.resource {
+      ResourceString::Explicit(resource) => return resource,
+      ResourceString::Derived(derived) => derived,
+    };
+    let path = self.path().map_or("", Utf8Path::as_str);
+    derived
+      .get_or_init(|| {
+        let query = self.query().unwrap_or_default();
+        let fragment = self.fragment().unwrap_or_default();
+        if query.is_empty() && fragment.is_empty() && !path.contains('#') {
+          None
+        } else {
+          Some(format_resolved_resource(path, query, fragment))
+        }
+      })
+      .as_deref()
+      .unwrap_or(path)
   }
 
   pub fn set_resource(&mut self, v: String) {
-    self.resource = v;
+    self.resource = ResourceString::Explicit(v);
+  }
+
+  fn invalidate_derived_resource(&mut self) {
+    if let ResourceString::Derived(derived) = &mut self.resource {
+      derived.take();
+    }
   }
 
   pub fn path(&self) -> Option<&Utf8Path> {
@@ -228,6 +259,7 @@ impl ResourceData {
     {
       self.scheme.take();
       self.resource_path = Some(new_path);
+      self.invalidate_derived_resource();
     }
   }
 
@@ -242,11 +274,12 @@ impl ResourceData {
   }
 
   pub fn set_query(&mut self, v: String) {
-    self.resource_query = Some(v);
+    self.set_query_optional(Some(v));
   }
 
   pub fn set_query_optional(&mut self, v: Option<String>) {
     self.resource_query = v;
+    self.invalidate_derived_resource();
   }
 
   pub fn fragment(&self) -> Option<&str> {
@@ -254,11 +287,12 @@ impl ResourceData {
   }
 
   pub fn set_fragment(&mut self, v: String) {
-    self.resource_fragment = Some(v);
+    self.set_fragment_optional(Some(v));
   }
 
   pub fn set_fragment_optional(&mut self, v: Option<String>) {
     self.resource_fragment = v;
+    self.invalidate_derived_resource();
   }
 
   pub fn description(&self) -> Option<&DescriptionData> {

@@ -481,6 +481,20 @@ pub fn stream_chunks_of_raw_source<'chunk>(
 }
 
 /// Stream unmapped borrowed fragments without constructing a contiguous source.
+pub(crate) struct RawRopeChunks<'a>(pub(crate) &'a dyn crate::Source);
+
+impl<'source> Chunks<'source> for RawRopeChunks<'source> {
+  fn stream<'chunk>(
+    &'chunk self,
+    options: &MapOptions,
+    on_chunk: OnChunk<'_, 'chunk>,
+    _on_source: OnSource<'_>,
+    _on_name: OnName<'_>,
+  ) -> GeneratedInfo {
+    stream_chunks_of_raw_rope(self.0, options, on_chunk)
+  }
+}
+
 pub(crate) fn stream_chunks_of_raw_rope<'a>(
   source: &'a dyn crate::Source,
   options: &MapOptions,

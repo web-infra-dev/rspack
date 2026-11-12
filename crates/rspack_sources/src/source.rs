@@ -13,12 +13,31 @@ use simd_json::{BorrowedValue, ErrorType, prelude::*};
 use triomphe::ThinArc;
 
 use crate::{
-  ReplaceSource, Result,
+  CachedSource, ConcatSource, RawBufferSource, ReplaceSource, Result,
   helpers::{Chunks, StreamChunks, decode_mappings},
 };
 
 /// An alias for `Box<dyn Source>`.
 pub type BoxSource = Arc<dyn Source>;
+
+/// Whether a built-in source returns a Buffer without materializing its content.
+pub fn is_buffer_source(source: &dyn Source) -> bool {
+  let source = source.as_any();
+  if source.is::<RawBufferSource>() {
+    return true;
+  }
+  if let Some(source) = source.downcast_ref::<CachedSource>() {
+    // CachedSource only preserves Buffer output for a directly wrapped RawBufferSource.
+    return source.inner().as_ref().as_any().is::<RawBufferSource>();
+  }
+  if let Some(source) = source.downcast_ref::<ConcatSource>() {
+    return matches!(source.children(), [child] if is_buffer_source(child.as_ref()));
+  }
+  if let Some(source) = source.downcast_ref::<ReplaceSource>() {
+    return source.replacements().is_empty() && is_buffer_source(source.inner().as_ref());
+  }
+  false
+}
 
 /// A unified representation for source content that can be either text or binary data.
 ///
@@ -128,6 +147,13 @@ pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + S
   /// Get the size of the source.
   fn size(&self) -> usize;
 
+  /// Whether this source may have original mappings. The default is conservative.
+  /// Return `false` only if `map()` always returns `None` and streamed
+  /// chunks never have original locations.
+  fn mapped(&self) -> bool {
+    true
+  }
+
   /// Get an independently owned [SourceMap] that can outlive the source.
   fn map(&self, options: &MapOptions) -> Option<SourceMap>;
 
@@ -159,6 +185,11 @@ impl Source for BoxSource {
   #[inline]
   fn size(&self) -> usize {
     self.as_ref().size()
+  }
+
+  #[inline]
+  fn mapped(&self) -> bool {
+    self.as_ref().mapped()
   }
 
   #[inline]
@@ -292,6 +323,37 @@ pub(crate) fn is_all_none(val: &Option<ThinArc<(), Option<BytesStr>>>) -> bool {
 pub(crate) fn shared_slice<T>(items: impl ExactSizeIterator<Item = T>) -> Option<ThinArc<(), T>> {
   // Empty field arrays need neither an allocation nor a shared reference count.
   (items.len() != 0).then(|| ThinArc::from_header_and_iter((), items))
+}
+
+fn shrink_string(text: &mut BytesStr) {
+  // Unlike BytesStr::into_vec(), this conversion can reuse uniquely owned Bytes.
+  let bytes: Vec<u8> = std::mem::take(text).into_bytes().into();
+  let bytes = Bytes::from(bytes.into_boxed_slice());
+  // SAFETY: Converting and shrinking the buffer preserves the valid UTF-8 bytes
+  // from the original BytesStr.
+  *text = unsafe { BytesStr::from_utf8_unchecked(bytes) };
+}
+
+fn shrink_shared_slice<T>(
+  items: &mut Option<ThinArc<(), T>>,
+  mut shrink: impl FnMut(&mut T),
+  copy: impl FnMut(&T) -> T,
+) {
+  let Some(items) = items else { return };
+  let unique = items.with_arc_mut(|arc| {
+    let Some(items) = triomphe::Arc::get_mut(arc) else {
+      return false;
+    };
+    for item in items.slice_mut() {
+      shrink(item);
+    }
+    true
+  });
+  if !unique {
+    // The old array retains these handles, so they cannot be uniquely owned.
+    // Copy the visible text directly without cloning and dropping each handle.
+    *items = ThinArc::from_header_and_iter((), items.slice.iter().map(copy));
+  }
 }
 
 fn serialize_shared_slice<T: Serialize, S: Serializer>(
@@ -466,23 +528,42 @@ impl SourceMap {
       .map_or(&[], |items| &items.slice)
   }
   /// Set the shared source contents.
-  /// An empty vector also detaches the remaining metadata from source-content storage.
   pub fn set_sources_content(&mut self, sources_content: Vec<Option<BytesStr>>) {
     self.sources_content = shared_slice(sources_content.into_iter());
-    if self.sources_content.is_some() {
-      return;
-    }
+  }
 
-    // Parsed fields can share the entire JSON allocation with sourcesContent.
-    // Copy the remaining metadata so clearing the contents also releases this
-    // map's references to that allocation, including the removed source text.
-    let detach = |text: &BytesStr| BytesStr::from_string(text.to_string());
-    self.file = self.file.as_ref().map(detach);
-    self.sources = shared_slice(self.sources().iter().map(detach));
-    self.names = shared_slice(self.names().iter().map(detach));
-    self.mappings = detach(&self.mappings);
-    self.source_root = self.source_root.as_ref().map(detach);
-    self.debug_id = self.debug_id.as_ref().map(detach);
+  /// Compact text storage to the visible contents without changing map data.
+  ///
+  /// This releases this map's references to larger input allocations. Ordinary
+  /// uniquely owned buffers and field arrays can be reused; shared, static, and
+  /// `Bytes::from_owner` text may be copied even if it is already compact.
+  /// Other maps that share the old storage remain unchanged and may retain it.
+  /// Prefer this for long-lived maps after removing or replacing fields; maps
+  /// that are immediately serialized and dropped do not need compaction.
+  pub fn shrink_to_fit(&mut self) {
+    for text in self
+      .file
+      .iter_mut()
+      .chain(self.source_root.iter_mut())
+      .chain(self.debug_id.iter_mut())
+    {
+      shrink_string(text);
+    }
+    shrink_string(&mut self.mappings);
+    let copy = |text: &BytesStr| BytesStr::from_str_slice(text);
+    shrink_shared_slice(&mut self.sources, shrink_string, copy);
+    shrink_shared_slice(&mut self.names, shrink_string, copy);
+    if !is_all_none(&self.sources_content) {
+      shrink_shared_slice(
+        &mut self.sources_content,
+        |content| {
+          if let Some(text) = content {
+            shrink_string(text);
+          }
+        },
+        |content| content.as_deref().map(BytesStr::from_str_slice),
+      );
+    }
   }
   /// Get shared source content by index.
   pub fn get_source_content(&self, index: usize) -> Option<&BytesStr> {

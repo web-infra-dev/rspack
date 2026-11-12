@@ -1,0 +1,3 @@
+{
+	"extends": ["./configs/base.json", "./configs/paths.json"]
+}
