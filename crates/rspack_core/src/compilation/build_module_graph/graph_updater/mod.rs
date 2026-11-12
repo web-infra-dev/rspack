@@ -6,7 +6,8 @@ use rspack_error::Result;
 use rspack_paths::InternedPathSet;
 use rustc_hash::FxHashSet;
 
-use self::{cutout::Cutout, repair::repair};
+pub(crate) use self::cutout::Cutout;
+use self::repair::repair;
 use super::BuildModuleGraphArtifact;
 use crate::{Compilation, DependencyId, ExportsInfoArtifact, ModuleGraph};
 
@@ -82,9 +83,10 @@ pub async fn update_module_graph(
     .loader_cache()
     .upgrade()
     .map(|cache| cache.begin_build());
-  let mut cutout = Cutout::default();
+  let mut cutout = artifact.pending_cutout.take().unwrap_or_default();
 
   let build_dependencies = cutout.cutout_artifact(compilation, &mut artifact, params);
+  artifact.pending_dependencies.extend(build_dependencies);
 
   let revoked_modules = artifact.revoked_modules().copied().collect();
   let result = compilation
@@ -94,6 +96,7 @@ pub async fn update_module_graph(
     .call(compilation, &revoked_modules)
     .await;
   if let Err(error) = result {
+    artifact.pending_cutout = Some(cutout);
     return ModuleGraphUpdateResult {
       artifact,
       exports_info_artifact,
@@ -102,13 +105,8 @@ pub async fn update_module_graph(
   }
 
   let result;
-  (artifact, exports_info_artifact, result) = repair(
-    compilation,
-    artifact,
-    exports_info_artifact,
-    build_dependencies,
-  )
-  .await;
+  (artifact, exports_info_artifact, result) =
+    repair(compilation, artifact, exports_info_artifact).await;
   if result.is_ok() {
     cutout.fix_artifact(&mut artifact);
     let module_graph = artifact.get_module_graph();
@@ -117,6 +115,8 @@ pub async fn update_module_graph(
         module.freeze_build_meta();
       }
     }
+  } else {
+    artifact.pending_cutout = Some(cutout);
   }
   ModuleGraphUpdateResult {
     artifact,

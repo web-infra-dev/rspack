@@ -229,6 +229,12 @@ impl Task<TaskContext> for BuildResultTask {
         forwarded_ids,
         module_identifier,
       ) {
+        context.artifact.pending_dependencies.extend(
+          task
+            .dependencies
+            .iter()
+            .map(|id| (*id, Some(module_identifier))),
+        );
         tasks.push(Box::new(task));
       }
 
@@ -241,6 +247,12 @@ impl Task<TaskContext> for BuildResultTask {
       all_dependencies
     };
 
+    context.artifact.pending_dependencies.extend(
+      dependencies_to_process
+        .iter()
+        .map(|id| (*id, Some(module_identifier))),
+    );
+    context.artifact.pending_modules.remove(&module_identifier);
     tasks.push(Box::new(ProcessDependenciesTask {
       dependencies: dependencies_to_process,
       original_module_identifier: module_identifier,

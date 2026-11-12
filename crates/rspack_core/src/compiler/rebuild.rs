@@ -86,13 +86,10 @@ impl Compiler {
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         records,
-        if self.compilation.incremental_artifacts_ready {
-          Incremental::new_hot(self.options.incremental)
-        } else {
-          // A failed pipeline may not have reached graph or exports checkpoints.
-          // Keep cache configuration, but construct fresh incremental artifacts.
-          Incremental::new_cold(self.options.incremental)
-        },
+        Incremental::new_hot_with_passes(
+          self.options.incremental,
+          self.compilation.recoverable_artifacts,
+        ),
         Some(ModuleExecutor::default()),
         compilation_logging,
         self.new_cache.clone(),

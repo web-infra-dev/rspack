@@ -22,28 +22,32 @@ impl PassExt for OptimizeDependenciesPass {
     let mut side_effects_optimize_artifact = compilation.side_effects_optimize_artifact.steal();
     let mut build_module_graph_artifact = compilation.build_module_graph_artifact.steal();
     let mut exports_info_artifact = compilation.exports_info_artifact.steal();
-    while matches!(
-      compilation
-        .plugin_driver
-        .clone()
-        .compilation_hooks
-        .optimize_dependencies
-        .call(
-          compilation,
-          &mut side_effects_optimize_artifact,
-          &mut build_module_graph_artifact,
-          &mut exports_info_artifact,
-          &mut diagnostics
-        )
-        .await
-        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeDependencies"))?,
-      Some(true)
-    ) {}
+    let result = async {
+      while matches!(
+        compilation
+          .plugin_driver
+          .clone()
+          .compilation_hooks
+          .optimize_dependencies
+          .call(
+            compilation,
+            &mut side_effects_optimize_artifact,
+            &mut build_module_graph_artifact,
+            &mut exports_info_artifact,
+            &mut diagnostics
+          )
+          .await
+          .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeDependencies"))?,
+        Some(true)
+      ) {}
+      Ok(())
+    }
+    .await;
     compilation.side_effects_optimize_artifact = side_effects_optimize_artifact.into();
     compilation.build_module_graph_artifact = build_module_graph_artifact.into();
     compilation.exports_info_artifact = exports_info_artifact.into();
     compilation.extend_diagnostics(diagnostics);
 
-    Ok(())
+    result
   }
 }

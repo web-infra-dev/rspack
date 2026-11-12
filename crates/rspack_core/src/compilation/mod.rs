@@ -295,8 +295,8 @@ pub struct Compilation {
   pub build_time_executed_modules: IdentifierSet,
   pub build_chunk_graph_artifact: BuildChunkGraphArtifact,
   pub incremental: Incremental,
-  /// Only a completed pipeline can supply artifacts for the next compilation.
-  pub(crate) incremental_artifacts_ready: bool,
+  /// Artifact groups that can be recovered, independently of later pass failures.
+  pub(crate) recoverable_artifacts: IncrementalPasses,
 
   pub hash: Option<RspackHashDigest>,
 
@@ -437,7 +437,7 @@ impl Compilation {
       source_map_dev_tool_plugin_cache: None,
       build_time_executed_modules: Default::default(),
       incremental,
-      incremental_artifacts_ready: false,
+      recoverable_artifacts: IncrementalPasses::empty(),
       build_chunk_graph_artifact: Default::default(),
 
       hash: None,

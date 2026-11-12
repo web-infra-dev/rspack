@@ -137,14 +137,17 @@ enum IncrementalState {
   /// Initial compilation with no mutations from a previous compilation.
   Cold,
   /// Rebuild with mutations relative to a previous compilation.
-  Hot { mutations: Mutex<Mutations> },
+  Hot {
+    mutations: Mutex<Mutations>,
+    recoverable_passes: IncrementalPasses,
+  },
 }
 
 impl fmt::Debug for IncrementalState {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       Self::Cold => write!(f, "Cold"),
-      Self::Hot { mutations } => {
+      Self::Hot { mutations, .. } => {
         let mutations = mutations
           .lock()
           .expect("Mutex poisoned: failed to acquire lock on incremental mutations for debug");
@@ -182,11 +185,19 @@ impl Incremental {
   }
 
   pub fn new_hot(options: IncrementalOptions) -> Self {
+    Self::new_hot_with_passes(options, IncrementalPasses::all())
+  }
+
+  pub(crate) fn new_hot_with_passes(
+    options: IncrementalOptions,
+    recoverable_passes: IncrementalPasses,
+  ) -> Self {
     Self {
       silent: options.silent,
       passes: AtomicU16::new(options.passes.bits()),
       state: IncrementalState::Hot {
         mutations: Mutex::new(Mutations::default()),
+        recoverable_passes,
       },
     }
   }
@@ -242,14 +253,17 @@ impl Incremental {
   }
 
   pub fn mutations_readable(&self, passes: IncrementalPasses) -> bool {
-    if matches!(self.state, IncrementalState::Hot { .. }) {
-      return self.passes().allow_read(passes);
+    if let IncrementalState::Hot {
+      recoverable_passes, ..
+    } = &self.state
+    {
+      return recoverable_passes.contains(passes) && self.passes().allow_read(passes);
     }
     false
   }
 
   pub fn mutations_write(&self) -> Option<MutexGuard<'_, Mutations>> {
-    if let IncrementalState::Hot { mutations } = &self.state
+    if let IncrementalState::Hot { mutations, .. } = &self.state
       && self.passes().allow_write()
     {
       return Some(
@@ -262,8 +276,8 @@ impl Incremental {
   }
 
   pub fn mutations_read(&self, passes: IncrementalPasses) -> Option<MutexGuard<'_, Mutations>> {
-    if let IncrementalState::Hot { mutations } = &self.state
-      && self.passes().allow_read(passes)
+    if let IncrementalState::Hot { mutations, .. } = &self.state
+      && self.mutations_readable(passes)
     {
       return Some(
         mutations

@@ -180,7 +180,7 @@ for (const hook of ['make', 'finishMake', 'finishModules', 'rebuildModule']) {
             const result = await request(compilation, module);
             expect(result.error.message).toContain('rebuild failed');
             // Deliberately swallow the callback error. The incomplete graph must
-            // still fail this compilation, and the next build must start fresh.
+            // still fail this compilation, and the next build must retry it.
           });
         },
         async build(context, compiler) {

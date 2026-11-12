@@ -51,6 +51,10 @@ impl Occasion for MakeOccasion {
       issuer_update_modules,
       // skip
       module_build_cache: _,
+      pending_dependencies: _,
+      pending_modules: _,
+      pending_files: _,
+      pending_cutout: _,
       entry_dependencies: _,
       file_dependencies: _,
       context_dependencies: _,
@@ -124,6 +128,10 @@ impl Occasion for MakeOccasion {
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
       module_build_cache: None,
+      pending_dependencies: Default::default(),
+      pending_modules: Default::default(),
+      pending_files: Default::default(),
+      pending_cutout: None,
 
       side_effects_state_artifact: Default::default(),
       module_graph: mg,

@@ -89,7 +89,6 @@ impl Compilation {
     }
 
     self.module_static_cache.disable_cache();
-    self.incremental_artifacts_ready = true;
 
     Ok(())
   }

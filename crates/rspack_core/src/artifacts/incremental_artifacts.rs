@@ -24,7 +24,10 @@ impl IncrementalArtifacts {
   }
 
   pub(crate) fn store_previous_compilation(&mut self, compilation: Box<Compilation>) {
-    if !compilation.incremental_artifacts_ready {
+    if !compilation
+      .recoverable_artifacts
+      .contains(IncrementalPasses::BUILD_CHUNK_GRAPH)
+    {
       self.build_chunk_graph_artifact_snapshot = BuildChunkGraphArtifact::default();
     }
     self.previous_compilation = Some(compilation);
@@ -43,15 +46,15 @@ impl IncrementalArtifacts {
   }
 
   pub(crate) fn recover(&mut self, passes: IncrementalPasses, compilation: &mut Compilation) {
-    // Keep a failed compilation alive for binding lifetimes, but never recover
-    // its incomplete or stolen artifacts, even when a pass is configured on.
-    if self
-      .previous_compilation
-      .as_ref()
-      .is_some_and(|previous| !previous.incremental_artifacts_ready)
-    {
-      return;
-    }
+    // A later failure does not invalidate completed upstream artifacts. A graph
+    // update can also preserve its completed modules and retry unfinished work.
+    let passes = passes
+      & self
+        .previous_compilation
+        .as_ref()
+        .map_or(IncrementalPasses::empty(), |previous| {
+          previous.recoverable_artifacts
+        });
     if passes.contains(IncrementalPasses::BUILD_CHUNK_GRAPH)
       && BuildChunkGraphArtifact::should_recover(&compilation.incremental)
     {
@@ -73,11 +76,26 @@ impl IncrementalArtifacts {
         &mut compilation.build_module_graph_artifact,
         &mut previous.build_module_graph_artifact,
       );
-      recover_artifact(
-        incremental,
-        &mut compilation.exports_info_artifact,
-        &mut previous.exports_info_artifact,
-      );
+      if previous
+        .recoverable_artifacts
+        .contains(IncrementalPasses::FINISH_MODULES)
+      {
+        recover_artifact(
+          incremental,
+          &mut compilation.exports_info_artifact,
+          &mut previous.exports_info_artifact,
+        );
+      } else if incremental.mutations_readable(IncrementalPasses::BUILD_MODULE_GRAPH) {
+        // Exports are checkpointed after finishModules, later than the module
+        // graph. Recreate only this analysis when it did not finish.
+        for module in compilation
+          .build_module_graph_artifact
+          .module_graph
+          .modules_keys()
+        {
+          compilation.exports_info_artifact.new_exports_info(*module);
+        }
+      }
     }
 
     if passes.contains(IncrementalPasses::FINISH_MODULES) {

@@ -4,9 +4,9 @@ use rspack_error::Result;
 
 use super::{TaskContext, build::BuildTask, lazy::process_unlazy_dependencies};
 use crate::{
-  BoxModule, BuildContext, DependencyRef, ModuleIdentifier,
+  BoxModule, BuildContext, BuildModuleGraphArtifact, DependencyRef, ModuleIdentifier,
   compilation::build_module_graph::ForwardedIdSet,
-  module_graph::{ModuleGraph, ModuleGraphModule},
+  module_graph::ModuleGraphModule,
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -44,7 +44,7 @@ impl Task<TaskContext> for AddTask {
         .expect("self module should have issuer");
 
       set_resolved_module(
-        &mut context.artifact.module_graph,
+        &mut context.artifact,
         original_module_identifier,
         dependencies,
         *issuer,
@@ -63,7 +63,7 @@ impl Task<TaskContext> for AddTask {
       .is_some()
     {
       set_resolved_module(
-        &mut context.artifact.module_graph,
+        &mut context.artifact,
         original_module_identifier,
         dependencies,
         module_identifier,
@@ -94,6 +94,12 @@ impl Task<TaskContext> for AddTask {
             forwarded_ids,
             module_identifier,
           ) {
+            context.artifact.pending_dependencies.extend(
+              task
+                .dependencies
+                .iter()
+                .map(|id| (*id, Some(module_identifier))),
+            );
             return Ok(vec![Box::new(task)]);
           }
           return Ok(vec![]);
@@ -118,8 +124,10 @@ impl Task<TaskContext> for AddTask {
       .exports_info_artifact
       .new_exports_info(module_identifier);
 
+    context.artifact.pending_modules.insert(module_identifier);
+
     set_resolved_module(
-      &mut context.artifact.module_graph,
+      &mut context.artifact,
       original_module_identifier,
       dependencies,
       module_identifier,
@@ -141,18 +149,21 @@ impl Task<TaskContext> for AddTask {
 }
 
 fn set_resolved_module(
-  module_graph: &mut ModuleGraph,
+  artifact: &mut BuildModuleGraphArtifact,
   original_module_identifier: Option<ModuleIdentifier>,
   dependencies: Vec<DependencyRef>,
   module_identifier: ModuleIdentifier,
 ) -> Result<()> {
   for dependency in dependencies {
-    module_graph.set_resolved_module(
+    artifact.module_graph.set_resolved_module(
       original_module_identifier,
       *dependency.id(),
       module_identifier,
     )?;
-    module_graph.add_dependency_ref(dependency);
+    artifact
+      .pending_dependencies
+      .remove(&(*dependency.id(), original_module_identifier));
+    artifact.module_graph.add_dependency_ref(dependency);
   }
   Ok(())
 }

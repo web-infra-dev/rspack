@@ -1,7 +1,6 @@
 mod fix_build_meta;
 mod fix_issuers;
 
-use rspack_collections::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{fix_build_meta::FixBuildMeta, fix_issuers::FixIssuers};
@@ -29,14 +28,19 @@ impl Cutout {
     &mut self,
     compilation: &Compilation,
     artifact: &mut BuildModuleGraphArtifact,
-    params: Vec<UpdateParam>,
+    mut params: Vec<UpdateParam>,
   ) -> HashSet<BuildDependency> {
     // the entry dependencies after update module graph
     let mut next_entry_dependencies = HashSet::default();
     // whether to clean up useless entry dependencies
     let mut clean_entry_dependencies = false;
-    let mut force_build_modules = IdentifierSet::default();
+    let mut force_build_modules = std::mem::take(&mut artifact.pending_modules);
     let mut force_build_deps = HashSet::default();
+    if !artifact.pending_files.is_empty() {
+      params.push(UpdateParam::ModifiedFiles(std::mem::take(
+        &mut artifact.pending_files,
+      )));
+    }
 
     let module_graph = artifact.get_module_graph();
 
@@ -110,7 +114,7 @@ impl Cutout {
       }
     }
 
-    let mut build_deps = HashSet::default();
+    let mut build_deps = std::mem::take(&mut artifact.pending_dependencies);
 
     // do revoke dependencies and collect deps
     for dep_id in force_build_deps {
