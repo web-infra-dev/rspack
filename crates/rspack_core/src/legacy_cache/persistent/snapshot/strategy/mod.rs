@@ -7,7 +7,10 @@ use rspack_fs::ReadableFileSystem;
 use rspack_paths::{AssertUtf8, InternedPath};
 
 use self::hash_helper::{ContentHash, HashHelper, TimestampHash};
-use crate::{Context, SnapshotOptions, SnapshotStrategyOptions, cache::PackageHelper};
+use crate::{
+  Context, SnapshotOptions, SnapshotStrategyOptions,
+  cache::{CacheCodec, PackageHelper},
+};
 
 /// Snapshot check strategy
 #[cacheable]
@@ -40,6 +43,11 @@ pub enum Strategy {
 
   /// Check by dir timestamp hash
   DirTimestamp { timestamp_hash: u64 },
+
+  /// Check a symbolic link by its resolved target and a shallow identity of that target
+  ///
+  /// `deep` also covers the content of a linked directory.
+  LinkHash { hash: u64, deep: bool },
 
   /// Check by dir timestamp hash and content hash
   DirTimestampAndHash { timestamp_hash: u64, hash: u64 },
@@ -74,6 +82,9 @@ impl PartialEq for Strategy {
       (Self::DirTimestampAndHash { hash: h1, .. }, Self::DirTimestampAndHash { hash: h2, .. }) => {
         h1 == h2
       }
+      (Self::LinkHash { hash: h1, deep: d1 }, Self::LinkHash { hash: h2, deep: d2 }) => {
+        h1 == h2 && d1 == d2
+      }
       (Self::Missing, Self::Missing) => true,
       (Self::Failed, Self::Failed) => true,
       _ => false,
@@ -90,6 +101,8 @@ pub enum ValidateResult {
   Modified,
   /// The target file has no changed
   NoChanged,
+  /// The content is unchanged but the stored file timestamp needs refreshing.
+  NoChangedRefresh(Strategy),
 }
 
 pub struct StrategyHelper {
@@ -103,13 +116,23 @@ impl StrategyHelper {
     fs: Arc<dyn ReadableFileSystem>,
     snapshot_options: Arc<SnapshotOptions>,
     context: Context,
+    codec: Arc<CacheCodec>,
   ) -> Self {
     let package_helper = Arc::new(PackageHelper::new(fs.clone(), context));
     Self {
       fs: fs.clone(),
-      hash_helper: HashHelper::new(fs, snapshot_options, package_helper.clone()),
+      hash_helper: HashHelper::new(fs, snapshot_options, package_helper.clone(), codec),
       package_helper,
     }
+  }
+
+  /// Inspect the snapshot root before any path shortcuts.
+  pub async fn is_symlink(&self, path: &InternedPath) -> rspack_fs::Result<bool> {
+    self
+      .fs
+      .symlink_metadata(path.assert_utf8())
+      .await
+      .map(|m| m.is_symlink)
   }
 
   /// get path file modified time
@@ -179,6 +202,14 @@ impl StrategyHelper {
     }
   }
 
+  /// get symbolic link strategy
+  pub async fn link_strategy(&self, path: &InternedPath, deep: bool) -> Strategy {
+    match self.hash_helper.link_hash(path, deep).await {
+      Some(hash) => Strategy::LinkHash { hash, deep },
+      None => Strategy::Failed,
+    }
+  }
+
   /// get path context strategy
   pub async fn dir_strategy(
     &self,
@@ -219,14 +250,50 @@ impl StrategyHelper {
     }
   }
 
+  /// Whether the directory, or anything below it that its strategies cover, was modified at or
+  /// after `time`.
+  pub async fn dir_modified_since(&self, path: &InternedPath, time: u64) -> bool {
+    self
+      .hash_helper
+      .dir_timestamp_hash(path)
+      .await
+      .is_none_or(|timestamp| {
+        timestamp
+          .newest
+          .saturating_add(rspack_util::time::mtime_accuracy(timestamp.newest))
+          >= time
+      })
+  }
+
+  /// Whether a path that does not exist may have been removed at or after `time`. Removing it
+  /// modifies the nearest directory above it that still exists.
+  pub async fn removed_since(&self, path: &InternedPath, time: u64) -> bool {
+    let mut current = path.assert_utf8();
+    while let Some(parent) = current.parent() {
+      if let Ok(info) = self.fs.metadata(parent).await {
+        let newest = info.ctime_ms.max(info.mtime_ms);
+        return newest.saturating_add(rspack_util::time::mtime_accuracy(newest)) >= time;
+      }
+      current = parent;
+    }
+    true
+  }
+
   /// validate path file by target strategy
-  pub async fn validate(&self, path: &InternedPath, strategy: &Strategy) -> ValidateResult {
-    match strategy {
+  pub async fn validate(
+    &self,
+    path: &InternedPath,
+    strategy: &Strategy,
+  ) -> (ValidateResult, Option<Strategy>) {
+    let mut observed = None;
+    let result = match strategy {
       Strategy::PackageVersion(version) => {
-        let Some(ref cur_version) = self.package_helper.package_version(path).await else {
-          return ValidateResult::Deleted;
+        let Some(cur_version) = self.package_helper.package_version(path).await else {
+          return (ValidateResult::Deleted, Some(Strategy::Failed));
         };
-        if cur_version == version {
+        let unchanged = &cur_version == version;
+        observed = Some(Strategy::PackageVersion(cur_version));
+        if unchanged {
           ValidateResult::NoChanged
         } else {
           ValidateResult::Modified
@@ -235,7 +302,7 @@ impl StrategyHelper {
       Strategy::FileHash { hash } => {
         let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.file_hash(path).await
         else {
-          return ValidateResult::Deleted;
+          return (ValidateResult::Deleted, Some(Strategy::Failed));
         };
         if &cur_hash == hash {
           ValidateResult::NoChanged
@@ -245,7 +312,7 @@ impl StrategyHelper {
       }
       Strategy::FileTimestamp { mtime } => {
         let Some(modified_time) = self.modified_time(path).await else {
-          return ValidateResult::Deleted;
+          return (ValidateResult::Deleted, Some(Strategy::Failed));
         };
         if &modified_time == mtime {
           ValidateResult::NoChanged
@@ -255,24 +322,41 @@ impl StrategyHelper {
       }
       Strategy::FileTimestampAndHash { mtime, hash } => {
         let Some(modified_time) = self.modified_time(path).await else {
-          return ValidateResult::Deleted;
+          return (ValidateResult::Deleted, Some(Strategy::Failed));
         };
         if &modified_time == mtime {
-          return ValidateResult::NoChanged;
+          return (ValidateResult::NoChanged, None);
         }
-        let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.file_hash(path).await
+        let Some(ContentHash {
+          hash: cur_hash,
+          mtime: cur_mtime,
+        }) = self.hash_helper.file_hash(path).await
         else {
-          return ValidateResult::Deleted;
+          return (ValidateResult::Deleted, Some(Strategy::Failed));
         };
         if &cur_hash == hash {
-          ValidateResult::NoChanged
+          ValidateResult::NoChangedRefresh(Strategy::FileTimestampAndHash {
+            mtime: cur_mtime,
+            hash: cur_hash,
+          })
         } else {
           ValidateResult::Modified
         }
       }
       Strategy::DirHash { hash } => {
         let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.dir_hash(path).await else {
-          return ValidateResult::Deleted;
+          return (ValidateResult::Deleted, Some(Strategy::Failed));
+        };
+        observed = Some(Strategy::DirHash { hash: cur_hash });
+        if &cur_hash == hash {
+          ValidateResult::NoChanged
+        } else {
+          ValidateResult::Modified
+        }
+      }
+      Strategy::LinkHash { hash, deep } => {
+        let Some(cur_hash) = self.hash_helper.link_hash(path, *deep).await else {
+          return (ValidateResult::Deleted, Some(Strategy::Failed));
         };
         if &cur_hash == hash {
           ValidateResult::NoChanged
@@ -286,8 +370,11 @@ impl StrategyHelper {
           ..
         }) = self.hash_helper.dir_timestamp_hash(path).await
         else {
-          return ValidateResult::Deleted;
+          return (ValidateResult::Deleted, Some(Strategy::Failed));
         };
+        observed = Some(Strategy::DirTimestamp {
+          timestamp_hash: cur_timestamp_hash,
+        });
         if &cur_timestamp_hash == timestamp_hash {
           ValidateResult::NoChanged
         } else {
@@ -303,28 +390,39 @@ impl StrategyHelper {
           ..
         }) = self.hash_helper.dir_timestamp_hash(path).await
         else {
-          return ValidateResult::Deleted;
+          return (ValidateResult::Deleted, Some(Strategy::Failed));
         };
         if &cur_timestamp_hash == timestamp_hash {
-          return ValidateResult::NoChanged;
+          return (ValidateResult::NoChanged, None);
         }
         let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.dir_hash(path).await else {
-          return ValidateResult::Deleted;
+          return (ValidateResult::Deleted, Some(Strategy::Failed));
         };
+        observed = Some(Strategy::DirTimestampAndHash {
+          timestamp_hash: cur_timestamp_hash,
+          hash: cur_hash,
+        });
         if &cur_hash == hash {
           ValidateResult::NoChanged
         } else {
           ValidateResult::Modified
         }
       }
-      Strategy::Missing => {
-        if self.modified_time(path).await.is_some() {
-          ValidateResult::Modified
-        } else {
+      // A link at the path is a change even while it cannot be followed, so this does not follow
+      // links. Only the errors that recorded the path as missing keep it valid.
+      Strategy::Missing => match self.fs.symlink_metadata(path.assert_utf8()).await {
+        Err(rspack_fs::Error::Io(error))
+          if matches!(
+            error.kind(),
+            std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory
+          ) =>
+        {
           ValidateResult::NoChanged
         }
-      }
+        _ => ValidateResult::Modified,
+      },
       Strategy::Failed => ValidateResult::Modified,
-    }
+    };
+    (result, observed)
   }
 }

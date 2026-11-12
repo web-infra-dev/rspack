@@ -1,18 +1,20 @@
 mod alias_value_cacheable;
 mod clever_merge;
+mod regex_restriction;
 mod value_type;
 
 use std::borrow::Cow;
 
 use rspack_cacheable::{
   cacheable,
-  with::{AsCacheable, AsMap, AsPreset, AsRefStr, AsTuple2, AsVec},
+  utils::PortablePath,
+  with::{As, AsCacheable, AsMap, AsOption, AsPreset, AsRefStr, AsTuple2, AsVec},
 };
 use rspack_paths::Utf8PathBuf;
 use rspack_regex::RspackRegex;
 use rspack_util::fx_hash::FxLinkedHashMap;
 
-use self::alias_value_cacheable::AsAliasValue;
+use self::{alias_value_cacheable::AsAliasValue, regex_restriction::RegexRestriction};
 use crate::DependencyCategory;
 
 pub type AliasMap = rspack_resolver::AliasValue;
@@ -56,8 +58,8 @@ impl value_type::GetValueType for Alias {
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Restriction {
-  Path(String),
-  Regex(RspackRegex),
+  Path(#[cacheable(with=As<PortablePath>)] String),
+  Regex(#[cacheable(with=As<RegexRestriction>)] RspackRegex),
 }
 
 pub(super) type Extensions = Vec<String>;
@@ -108,6 +110,7 @@ pub struct Resolve {
   pub tsconfig: Option<TsconfigOptions>,
   /// A list of directories to resolve modules from, can be absolute path or folder name.
   /// Default is `["node_modules"]`
+  #[cacheable(with=AsOption<AsVec<As<PortablePath>>>)]
   pub modules: Option<Modules>,
   /// Same as `alias`, but only used if default resolving fails
   /// Default is `[]`
@@ -125,6 +128,7 @@ pub struct Resolve {
   /// Specify a field, such as browser, to be parsed according to [this specification](https://github.com/defunctzombie/package-browser-field-spec).
   pub alias_fields: Option<AliasFields>,
   /// A list of directories where requests of server-relative URLs (starting with '/') are resolved
+  #[cacheable(with=AsOption<AsVec<As<PortablePath>>>)]
   pub roots: Option<Roots>,
   /// A list of resolve restrictions to restrict the paths that a request can be resolved on.
   pub restrictions: Option<Restrictions>,

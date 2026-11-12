@@ -105,7 +105,7 @@ impl fmt::Display for Identifier {
 impl CustomConverter for Identifier {
   type Target = PortableString;
   fn serialize(&self, guard: &ContextGuard) -> Result<Self::Target, CacheableError> {
-    Ok(PortableString::new(self.as_str(), guard))
+    Ok(PortableString::from_identifier(self.as_str(), guard))
   }
   fn deserialize(data: Self::Target, guard: &ContextGuard) -> Result<Self, CacheableError> {
     Ok(Self::from(data.into_path_string(guard)))
