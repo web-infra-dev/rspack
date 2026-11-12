@@ -115,7 +115,7 @@ impl Dependency for CssDependency {
     AffectType::Transitive
   }
 
-  fn creates_module_from_dependency(&self) -> bool {
+  fn is_module_executor_result(&self) -> bool {
     true
   }
 }

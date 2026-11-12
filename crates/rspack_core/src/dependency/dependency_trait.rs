@@ -174,9 +174,10 @@ pub trait Dependency:
 
   fn could_affect_referencing_module(&self) -> AffectType;
 
-  /// The referenced module is generated from this dependency's data rather than
-  /// an independently loaded resource. Rebuilding its producer must recreate it.
-  fn creates_module_from_dependency(&self) -> bool {
+  /// Whether this dependency carries a module executor result used to create
+  /// its referenced module. Rebuilding the producer must refresh the result
+  /// and recreate that module.
+  fn is_module_executor_result(&self) -> bool {
     false
   }
 
