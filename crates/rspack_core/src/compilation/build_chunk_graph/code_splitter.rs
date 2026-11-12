@@ -19,12 +19,12 @@ use smallvec::{SmallVec, smallvec};
 use super::incremental::ChunkCreateData;
 use crate::{
   AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
-  AsyncDependenciesBlockIdentifierSet, ChunkGraph, ChunkGroup, ChunkGroupKind, ChunkGroupOptions,
-  ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, ConnectionState, DependenciesBlock,
-  DependencyId, DependencyLocation, DependencyType, EntryDependency, EntryRuntime,
-  ExportsInfoArtifact, GroupOptions, Logger, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, RuntimeSpec, SideEffectsStateArtifact, SourceType,
-  SyntheticDependencyLocation, assign_depths,
+  AsyncDependenciesBlockIdentifierSet, BundlerRuntimeExclusion, ChunkGraph, ChunkGroup,
+  ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
+  ConnectionState, DependenciesBlock, DependencyId, DependencyLocation, DependencyType,
+  EntryDependency, EntryRuntime, ExportsInfoArtifact, GroupOptions, Logger, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, RuntimeSpec, SideEffectsStateArtifact,
+  SourceType, SyntheticDependencyLocation, assign_depths,
   dependencies_block::AsyncDependenciesToInitialChunkError,
   get_entry_runtime,
   incremental::{IncrementalPasses, Mutation},
@@ -375,6 +375,7 @@ pub(crate) type BlockModulesRuntimeMap = HashMap<Option<Arc<RuntimeSpec>>, Block
 
 #[derive(Debug, Default)]
 struct FederationIncludes {
+  runtime_dependencies: Vec<DependencyId>,
   runtime_modules: Vec<ModuleIdentifier>,
   provider_modules: Vec<ModuleIdentifier>,
   required_modules: Vec<ModuleIdentifier>,
@@ -2906,22 +2907,32 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     compilation: &Compilation,
   ) -> Result<()> {
     let mg = compilation.get_module_graph();
-    let runtime_modules = compilation
+    let runtime_dependencies = compilation
       .global_entry
       .include_dependencies
       .iter()
       .filter(|dep| {
         mg.dependency_by_id(dep).dependency_type() == &DependencyType::FederationRuntime
       })
+      .copied()
+      .collect::<Vec<_>>();
+    let filtering_enabled = runtime_dependencies.iter().any(|dep| {
+      mg.dependency_by_id(dep)
+        .bundler_runtime_exclusion()
+        .is_some_and(|exclusion| !matches!(exclusion, BundlerRuntimeExclusion::Disabled))
+    });
+    let runtime_modules = runtime_dependencies
+      .iter()
       .filter_map(|dep| mg.module_identifier_by_dependency_id(dep))
       .copied()
       .sorted_unstable()
       .dedup()
       .collect::<Vec<_>>();
-    self.federation_includes = if runtime_modules.is_empty() {
+    self.federation_includes = if !filtering_enabled || runtime_modules.is_empty() {
       None
     } else {
       Some(FederationIncludes {
+        runtime_dependencies,
         runtime_modules,
         provider_modules: compilation
           .global_entry
@@ -3020,7 +3031,45 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let Some(includes) = &self.federation_includes else {
       return false;
     };
-    let artifact = &mut compilation.build_chunk_graph_artifact;
+    let artifact = &compilation.build_chunk_graph_artifact;
+    let module_graph = compilation.get_module_graph();
+    let retained_entry_runtimes = artifact
+      .entrypoints
+      .iter()
+      .map(|(name, group)| (Some(name.as_str()), group))
+      .chain(artifact.async_entrypoints.iter().map(|group| {
+        (
+          artifact
+            .chunk_group_by_ukey
+            .expect_get(group)
+            .kind
+            .get_entry_options()
+            .and_then(|options| options.name.as_deref()),
+          group,
+        )
+      }))
+      .filter(|(name, _)| {
+        // Every include must opt in before a shared runtime can be omitted.
+        includes.runtime_dependencies.iter().any(|dep| {
+          !module_graph
+            .dependency_by_id(dep)
+            .bundler_runtime_exclusion()
+            .is_some_and(|exclusion| exclusion.matches(*name))
+        })
+      })
+      .map(|(_, group)| {
+        self
+          .chunk_group_infos
+          .get(
+            self
+              .chunk_group_info_map
+              .get(group)
+              .expect("should have chunk group info"),
+          )
+          .expect("should have chunk group info")
+          .runtime
+          .as_ref()
+      });
     let required_runtimes = RuntimeSpec::from_runtimes(
       includes
         .required_modules
@@ -3039,8 +3088,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             .expect("should have chunk group info")
             .runtime
             .as_ref()
-        }),
+        })
+        .chain(retained_entry_runtimes),
     );
+    let artifact = &mut compilation.build_chunk_graph_artifact;
     artifact.federation_runtimes = Some(required_runtimes);
     let required_runtimes = artifact
       .federation_runtimes

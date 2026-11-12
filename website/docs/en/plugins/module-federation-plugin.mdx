@@ -35,15 +35,35 @@ export default {
 };
 ```
 
-## Automatic runtime inclusion
-
-Rspack includes the federation runtime automatically for container entries and for application entries that use a remote or consume a shared module. This includes dependencies reached through ordinary asynchronous imports.
-
-Each Worker is evaluated independently from its parent entry. Entries that share a runtime also share federation runtime support when any of them needs it.
-
-An entry that only provides shared modules does not require the federation runtime. Configuring remotes, shared providers, or `runtimePlugins` alone does not enable it for an otherwise unrelated entry. Calls through dynamic runtime APIs and runtime plugin side effects do not influence this build-time decision.
-
 ## Options
+
+### excludeBundlerRuntime
+
+- Type: `boolean | RegExp`
+- Default: `false`
+
+Omit the federation bundler runtime from entries that do not need it. By default, the plugin keeps injecting the runtime into application entries and Workers.
+
+Set `true` to enable automatic filtering for all entries, including unnamed Workers. Set a `RegExp` to enable filtering only for matching **entry names**, including named Workers; unmatched entries and unnamed Workers retain the runtime. For a Worker, Rspack uses a static `name` in its constructor options or a `webpackChunkName` comment, with the comment taking precedence. The expression does not match source paths, output filenames, or generated Worker runtime identifiers.
+
+Within this scope, Rspack retains the runtime for container entries that expose modules and entries that reach a remote or shared-consumer module, including through ordinary asynchronous imports. Each Worker is evaluated independently from its parent. When entries share a runtime through `runtimeChunk` or `dependOn`, the runtime is retained if any member needs federation **or is outside the filtering scope**.
+
+Local dependencies, configured but unused remotes, shared providers without consumers, and `runtimePlugins` alone do not require the runtime under automatic filtering. Dynamic federation API calls and runtime-plugin side effects are not discovered by this build-time analysis. Keep the default `false`, or leave those entries outside the expression, if they rely on this initialization.
+
+```js
+new rspack.container.ModuleFederationPlugin({
+  name: 'app',
+  excludeBundlerRuntime: true,
+});
+
+// Filter unused runtime code only from entries and Workers named "local-*".
+new rspack.container.ModuleFederationPlugin({
+  name: 'app',
+  excludeBundlerRuntime: /^local-/,
+});
+```
+
+Matching the expression never forces removal from an entry that has static federation dependencies. Watch builds reevaluate usage when those dependencies change. This option applies to Module Federation 1.5.
 
 ### implementation
 

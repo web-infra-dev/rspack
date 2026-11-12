@@ -12,18 +12,26 @@ async function receive(worker) {
 }
 
 it('keeps worker federation demand separate from its parent', async () => {
-  expect(__webpack_require__.federation).toBeUndefined();
+  expect(Boolean(__webpack_require__.federation)).toBe(EXPECT_PARENT_FEDERATION);
   expect((await import('./local.js')).default).toBe('local value');
-  expect(await receive(new Worker(new URL('./plain-worker.js', import.meta.url)))).toEqual({
-    federation: false,
+  expect(await receive(new Worker(new URL('./plain-worker.js', import.meta.url), { name: 'plain-worker' }))).toEqual({
+    federation: EXPECT_NAMED_FEDERATION,
     value: 'local value',
   });
-  expect(await receive(new Worker(new URL('./remote-worker.js', import.meta.url)))).toEqual({
+  expect(await receive(new Worker(new URL('./plain-worker.js', import.meta.url)))).toEqual({
+    federation: EXPECT_UNNAMED_FEDERATION,
+    value: 'local value',
+  });
+  expect(await receive(new Worker(new URL(/* webpackChunkName: "comment-worker" */ './plain-worker.js', import.meta.url), { name: 'outside-scope' }))).toEqual({
+    federation: EXPECT_NAMED_FEDERATION,
+    value: 'local value',
+  });
+  expect(await receive(new Worker(new URL('./remote-worker.js', import.meta.url), { name: 'remote-worker' }))).toEqual({
     federation: true,
     value: 'remote value',
-    child: { federation: false, value: 'local value' },
+    child: { federation: EXPECT_NAMED_FEDERATION, value: 'local value' },
   });
-  expect(await receive(new Worker(new URL('./shared-worker.js', import.meta.url)))).toEqual({
+  expect(await receive(new Worker(new URL('./shared-worker.js', import.meta.url), { name: 'shared-worker' }))).toEqual({
     federation: true,
     value: 'shared value',
   });

@@ -16,10 +16,6 @@ export default defineConfig({
     new ModuleFederationPlugin({
       filename: 'someDir/container.js',
       runtimePlugins: ['./plugin.js'],
-      remotes: {
-        remote:
-          "promise Promise.resolve({ get: () => Promise.resolve(() => 'remote value'), init: () => {} })",
-      },
     }),
   ],
 });

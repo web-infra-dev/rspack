@@ -1,6 +1,6 @@
 import { parentPort, Worker } from 'worker_threads';
 
-const child = new Worker(new URL('./plain-worker.js', import.meta.url));
+const child = new Worker(new URL('./plain-worker.js', import.meta.url), { name: 'plain-worker' });
 const childResult = new Promise((resolve, reject) => {
   child.on('message', resolve);
   child.on('error', reject);

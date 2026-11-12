@@ -8,7 +8,7 @@ use std::{
 };
 
 use rspack_cacheable::{
-  cacheable_dyn,
+  cacheable, cacheable_dyn,
   rkyv::{
     Archive, ArchiveUnsized, Deserialize, DeserializeUnsized, Place, Serialize, SerializeUnsized,
     de::{FromMetadata, Metadata, Pooling, PoolingExt, SharedPointer},
@@ -22,6 +22,7 @@ use rspack_cacheable::{
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::Diagnostic;
 use rspack_location::DependencyLocation;
+use rspack_regex::RspackRegex;
 use rspack_util::ext::AsAny;
 use triomphe::{Arc as TriompheArc, UniqueArc};
 use unsize::{CoerceUnsize, Coercion};
@@ -42,6 +43,26 @@ pub enum AffectType {
   True,
   False,
   Transitive,
+}
+
+/// Scope in which an unused bundler runtime include may be omitted.
+#[cacheable]
+#[derive(Debug, Default)]
+pub enum BundlerRuntimeExclusion {
+  #[default]
+  Disabled,
+  All,
+  EntryName(RspackRegex),
+}
+
+impl BundlerRuntimeExclusion {
+  pub fn matches(&self, name: Option<&str>) -> bool {
+    match self {
+      Self::Disabled => false,
+      Self::All => true,
+      Self::EntryName(regex) => name.is_some_and(|name| regex.test(name)),
+    }
+  }
 }
 
 /// Module-scoped state shared while collecting diagnostics from its dependencies.
@@ -83,6 +104,11 @@ pub trait Dependency:
   /// async entrypoint.
   fn skip_async_entrypoints(&self) -> bool {
     false
+  }
+
+  /// Opt-in scope for omitting unused bundler runtime includes.
+  fn bundler_runtime_exclusion(&self) -> Option<&BundlerRuntimeExclusion> {
+    None
   }
 
   fn url_mode(&self) -> Option<JavascriptParserUrl> {

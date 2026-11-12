@@ -1,7 +1,9 @@
+use std::sync::Arc;
+
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ModuleDependency,
+  AsContextDependency, AsDependencyCodeGeneration, BundlerRuntimeExclusion, Dependency,
+  DependencyCategory, DependencyId, DependencyType, ModuleDependency,
 };
 
 #[cacheable]
@@ -9,13 +11,15 @@ use rspack_core::{
 pub struct FederationRuntimeDependency {
   pub id: DependencyId,
   request: String,
+  exclusion: Arc<BundlerRuntimeExclusion>,
 }
 
 impl FederationRuntimeDependency {
-  pub fn new(request: String) -> Self {
+  pub fn new(request: String, exclusion: Arc<BundlerRuntimeExclusion>) -> Self {
     Self {
       id: DependencyId::new(),
       request,
+      exclusion,
     }
   }
 }
@@ -32,6 +36,10 @@ impl Dependency for FederationRuntimeDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::FederationRuntime
+  }
+
+  fn bundler_runtime_exclusion(&self) -> Option<&BundlerRuntimeExclusion> {
+    Some(&self.exclusion)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

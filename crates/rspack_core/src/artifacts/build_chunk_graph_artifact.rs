@@ -27,7 +27,7 @@ pub struct BuildChunkGraphArtifact {
   pub(crate) code_splitter: CodeSplitter,
   pub module_idx: IdentifierMap<(u32, u32)>,
   /// Runtimes selected for the automatically included federation entry. `None` means
-  /// no federation runtime include was registered (including Module Federation v1).
+  /// filtering is disabled or no federation runtime include was registered (including v1).
   pub federation_runtimes: Option<RuntimeSpec>,
 }
 

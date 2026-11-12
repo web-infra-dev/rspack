@@ -3,9 +3,11 @@
 //! Main orchestration plugin for Module Federation runtime functionality.
 //! Coordinates federation plugins, manages runtime dependencies, and adds the base FederationRuntimeModule.
 
+use std::sync::Arc;
+
 use rspack_cacheable::cacheable;
 use rspack_core::{
-  AsyncModulesArtifact, BoxDependency, ChunkUkey, Compilation,
+  AsyncModulesArtifact, BoxDependency, BundlerRuntimeExclusion, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationFinishModules, CompilationParams,
   CompilerCompilation, CompilerFinishMake, DependencyType, EntryOptions, ExportsInfoArtifact,
   Plugin, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact,
@@ -26,6 +28,8 @@ use super::{
 #[derive(Debug, Default, Deserialize, Clone)]
 pub struct ModuleFederationRuntimePluginOptions {
   pub entry_runtime: Option<String>,
+  #[serde(skip)]
+  pub exclude_bundler_runtime: Arc<BundlerRuntimeExclusion>,
   #[serde(default)]
   pub experiments: ModuleFederationRuntimeExperimentsOptions,
 }
@@ -84,7 +88,10 @@ async fn additional_tree_runtime_requirements(
 #[plugin_hook(CompilerFinishMake for ModuleFederationRuntimePlugin, stage = 1000)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   if let Some(entry_request) = self.options.entry_runtime.clone() {
-    let federation_runtime_dep = FederationRuntimeDependency::new(entry_request.clone());
+    let federation_runtime_dep = FederationRuntimeDependency::new(
+      entry_request.clone(),
+      Arc::clone(&self.options.exclude_bundler_runtime),
+    );
 
     let hooks = FederationModulesPlugin::get_compilation_hooks(compilation);
 
