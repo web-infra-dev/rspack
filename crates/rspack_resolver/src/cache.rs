@@ -168,6 +168,27 @@ impl CacheKey for CachedPath {
   }
 }
 
+/// Whether `path` is below `root`. A resolution asks this for every directory above the path it
+/// resolved, and comparing components parses both paths each time. So a path that continues
+/// `root` with a separator and an ordinary name is found by its bytes, and any other spelling is
+/// compared by components.
+fn is_below(path: &Utf8Path, root: &Utf8Path) -> bool {
+  let continues_root = path
+    .as_str()
+    .strip_prefix(root.as_str())
+    .is_some_and(|rest| {
+      matches!(
+        rest.as_bytes(),
+        [separator, name, ..]
+          if std::path::is_separator(char::from(*separator))
+            && !std::path::is_separator(char::from(*name))
+            && *name != b'.'
+      )
+    });
+  (continues_root && !root.as_str().ends_with(std::path::is_separator))
+    || (path != root && path.starts_with(root))
+}
+
 pub struct CachedPathImpl {
   hash: u64,
   path: Box<Utf8Path>,
@@ -278,7 +299,7 @@ impl CachedPathImpl {
       let below_root = options
         .relocatable_roots
         .iter()
-        .any(|root| path.path() != root && path.path().starts_with(root));
+        .any(|root| is_below(path.path(), root));
       if !below_root {
         break;
       }
