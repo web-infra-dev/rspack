@@ -207,13 +207,14 @@ async fn render_chunk(
     }
     if ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey)
       .contains(RuntimeGlobals::HMR_CHUNK_VERSIONS)
+      && let Some(version) = get_hmr_chunk_version(compilation, chunk)
     {
       if !has_entry && !has_runtime_modules {
         source.add(RawStringSource::from_static(",0"));
       }
       source.add(RawStringSource::from(format!(
         ",{}",
-        rspack_util::json_stringify_str(&get_hmr_chunk_version(compilation, chunk))
+        rspack_util::json_stringify_str(version)
       )));
     }
     source.add(RawStringSource::from_static("])"));
