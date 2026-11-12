@@ -4,7 +4,6 @@ mod hot_module_replacement;
 use std::{
   collections::hash_map,
   future::Future,
-  hash::Hash,
   pin::Pin,
   sync::{Arc, LazyLock, Mutex},
 };
@@ -35,7 +34,6 @@ use rspack_plugin_javascript::{
     ImportMetaHotReplacementParserPlugin, ModuleHotReplacementParserPlugin,
   },
   parser_and_generator::JavaScriptParserAndGenerator,
-  runtime::get_hmr_chunk_version,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -171,7 +169,6 @@ async fn compilation(
   Ok(())
 }
 
-// Include the emitted JavaScript version tag in the chunk's content hash.
 // Runs after the css plugins' taps (their default stage is 0) filled the
 // css-related entries, and before the chunk-hash salt is applied to them, so
 // the digests change exactly when the chunk's css content does.
@@ -199,17 +196,6 @@ async fn content_hash(
     return Ok(());
   };
   let output = &compilation.options.output;
-  if ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey)
-    .contains(RuntimeGlobals::HMR_CHUNK_VERSIONS)
-  {
-    // Module hashes can change without changing generated factories. The version
-    // tag still changes the rendered chunk, so it must invalidate the asset cache.
-    get_hmr_chunk_version(compilation, chunk).hash(
-      hashes
-        .entry(SourceType::JavaScript)
-        .or_insert_with(|| RspackHasher::from(output)),
-    );
-  }
   let digest_of = |source_type: &SourceType| {
     hashes
       .get(source_type)
