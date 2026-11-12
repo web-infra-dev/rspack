@@ -37,7 +37,7 @@ use crate::{
 /// ```
 #[derive(Clone, Eq)]
 pub struct OriginalSource {
-  pub(crate) value: BytesStr,
+  value: BytesStr,
   name: BytesStr,
 }
 
@@ -55,8 +55,8 @@ impl OriginalSource {
     &self.name
   }
 
-  /// Get the value as a shared string reference.
-  pub fn value(&self) -> &str {
+  /// Borrow the source text. Cloning the returned `BytesStr` shares its storage.
+  pub fn value(&self) -> &BytesStr {
     &self.value
   }
 }

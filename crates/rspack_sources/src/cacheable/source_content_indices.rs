@@ -56,7 +56,7 @@ fn visit_contents<'a>(source: &'a dyn Source, visit: &mut impl FnMut(&'a BytesSt
   visit_leaves(source, &mut |leaf| {
     let any = leaf.as_any();
     if let Some(source) = any.downcast_ref::<OriginalSource>() {
-      visit(&source.value);
+      visit(source.value());
     } else if let Some(source) = any.downcast_ref::<SourceMapSource>() {
       for map in std::iter::once(source.source_map()).chain(source.inner_source_map()) {
         for content in map.sources_content().iter().flatten() {
