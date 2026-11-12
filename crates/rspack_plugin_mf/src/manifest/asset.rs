@@ -1,7 +1,7 @@
 use std::path::Path;
 
-use rspack_core::{BoxModule, Compilation, ModuleGraph, ModuleIdentifier, NormalModule};
-use rspack_util::fx_hash::FxHashSet as HashSet;
+use rspack_core::{Compilation, ModuleGraph, ModuleIdentifier, ModuleRef, NormalModule};
+use rspack_util::{fx_hash::FxHashSet as HashSet, identifier::split_at_query_mark};
 
 use super::{
   data::{AssetsSplit, StatsAssetsGroup},
@@ -168,18 +168,16 @@ pub fn collect_usage_files_for_module(
     let Some(origin) = origin_identifier else {
       continue;
     };
-    if let Some(path) = module_graph
-      .module_by_identifier(&origin)
-      .and_then(|module| module_source_path(module, compilation))
-    {
+    let origin_module = module_graph.module_by_identifier(&origin);
+    if let Some(path) = origin_module.and_then(|module| module_source_path(module, compilation)) {
       files.insert(path);
       continue;
     }
     if let Some(assets) = collect_assets_for_module(compilation, &origin, entry_point_names) {
       files.extend(assets.js.sync);
       files.extend(assets.js.r#async);
-    } else if let Some(origin_module) = module_graph.module_by_identifier(&origin) {
-      files.insert(origin_module.identifier().to_string());
+    } else if origin_module.is_some() {
+      files.insert(origin.to_string());
     }
   }
   let mut collected: Vec<String> = files.into_iter().collect();
@@ -187,7 +185,7 @@ pub fn collect_usage_files_for_module(
   collected
 }
 
-pub fn module_source_path(module: &BoxModule, compilation: &Compilation) -> Option<String> {
+pub fn module_source_path(module: &ModuleRef, compilation: &Compilation) -> Option<String> {
   if let Some(normal_module) = module.as_ref().as_any().downcast_ref::<NormalModule>()
     && let Some(path) = normal_module.resource_resolved_data().path()
   {
@@ -226,9 +224,7 @@ pub fn module_source_path(module: &BoxModule, compilation: &Compilation) -> Opti
   if let Some(pos) = identifier.rfind('!') {
     identifier = identifier.split_off(pos + 1);
   }
-  if let Some(pos) = identifier.find('?') {
-    identifier.truncate(pos);
-  }
+  identifier.truncate(split_at_query_mark(&identifier).0.len());
   // strip aggregated suffix like " + 1 modules"
   if let Some((before, _)) = identifier.split_once(" + ") {
     identifier = before.to_string();

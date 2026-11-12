@@ -1,4 +1,4 @@
-asset c560fa876f51d750.png xx KiB [emitted] [immutable] [from: images/file.png] (auxiliary name: main)
+asset xxx.png xx KiB [emitted] [immutable] [from: images/file.png] (auxiliary name: main)
 asset bundle.js xx KiB [emitted] (name: main)
 asset static/file.html xx bytes [emitted] [from: static/file.html] (auxiliary name: main)
 orphan modules xx KiB (javascript) xx KiB (asset) [orphan] 10 modules

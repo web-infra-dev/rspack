@@ -13,7 +13,7 @@
     "sort-projects-words": "node ./sortProjectWords.js"
   },
   "dependencies": {
-    "@rstack-dev/doc-ui": "catalog:",
+    "@rstackjs/doc-ui": "catalog:",
     "markdown-to-jsx": "catalog:",
     "mermaid": "catalog:",
     "react": "catalog:",
@@ -25,10 +25,7 @@
     "@rsbuild/plugin-tailwindcss": "catalog:",
     "@rspress/core": "catalog:",
     "@rspress/plugin-algolia": "catalog:",
-    "@rspress/plugin-client-redirects": "catalog:",
     "@rspress/plugin-rss": "catalog:",
-    "@rspress/plugin-sitemap": "catalog:",
-    "@shikijs/transformers": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/semver": "catalog:",

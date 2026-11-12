@@ -19,7 +19,6 @@ pub const ACTION_ENTRY_LOADER_IDENTIFIER: &str = "builtin:rsc-action-entry-loade
 
 #[cacheable]
 #[derive(Debug)]
-#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct ActionEntryLoader {
   identifier: Identifier,
 }

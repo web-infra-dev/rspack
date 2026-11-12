@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Rspack Allocative'
+  short_description: 'Inspect Rspack memory and counts with Speedscope'
+  default_prompt: 'Use $rspack-allocative to capture local Rspack memory snapshots and measured counts, prepare them for Speedscope, and explain coverage.'
+
+policy:
+  allow_implicit_invocation: false

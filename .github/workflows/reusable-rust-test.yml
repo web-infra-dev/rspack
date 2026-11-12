@@ -2,12 +2,6 @@ name: Reusable Rust Test
 
 on:
   workflow_call:
-    inputs:
-      cargo-check-strategy:
-        type: string
-        required: false
-        default: 'all'
-        description: 'Strategy for cargo check: all (default) or separated'
 
 jobs:
   check-changed:
@@ -18,7 +12,7 @@ jobs:
       document_changed: ${{ steps.filter.outputs.document_changed == 'true' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         id: filter
         with:
           predicate-quantifier: 'every'
@@ -26,6 +20,7 @@ jobs:
             code_changed:
               - "!**/*.md"
               - "!**/*.mdx"
+              - "!.agents/**"
               - "!website/**"
             document_changed:
               - "website/**"
@@ -35,6 +30,9 @@ jobs:
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  '"ubuntu-22.04"') }}
+    env:
+      CARGO_INCREMENTAL: 0
+      RUSTC: rustc
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -48,15 +46,16 @@ jobs:
         run: cargo codegen
 
       - name: Install cargo-binstall
-        if: ${{ inputs.cargo-check-strategy == 'separated' }}
-        uses: cargo-bins/cargo-binstall@ead08b90bd7b2e6d81963fb9cf0b7239f66d5db4 # v1.21.0
+        if: ${{ github.ref == 'refs/heads/main' }}
+        uses: cargo-bins/cargo-binstall@81df5c23b0dc775b009efdfc9895c5965b7a4e40 # v1.26.1
 
       - name: Install cargo-workspaces
-        if: ${{ inputs.cargo-check-strategy == 'separated' }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         run: cargo binstall --no-confirm cargo-workspaces@0.4.0 --force
 
-      - name: Run Cargo Check (separated strategy)
-        if: ${{ inputs.cargo-check-strategy == 'separated' }}
+      # Check standalone published crates on main; Clippy checks the workspace on every branch.
+      - name: Run Cargo Check (per crate)
+        if: ${{ github.ref == 'refs/heads/main' }}
         run: cargo workspaces exec --ignore-private cargo check --lib --locked
 
       - name: Run Clippy
@@ -64,11 +63,6 @@ jobs:
 
       - name: Run rustfmt
         run: cargo fmt --all -- --check
-
-      - name: Install taplo
-        run: cargo install taplo-cli --locked
-      - name: Run toml format check
-        run: taplo format --check
 
   rust_unused_dependencies:
     needs: [check-changed]
@@ -93,7 +87,7 @@ jobs:
           cargo deny --all-features check license bans
           cargo xtask deny-ext
 
-      - uses: cargo-bins/cargo-binstall@ead08b90bd7b2e6d81963fb9cf0b7239f66d5db4 # v1.21.0
+      - uses: cargo-bins/cargo-binstall@81df5c23b0dc775b009efdfc9895c5965b7a4e40 # v1.26.1
       - run: cargo binstall --no-confirm cargo-shear@1.11.2 --force
       - run: cargo shear
 
@@ -131,6 +125,8 @@ jobs:
             --exclude rspack_binding_build \
             --exclude rspack_napi \
             --exclude rspack_watcher \
+            --exclude rspack_watcher_testing \
+            --exclude rspack_resolver \
             -- --nocapture
 
   rust_watcher_test:
@@ -166,9 +162,11 @@ jobs:
           echo '[profile.test]' >> Cargo.toml
           echo 'debug = false' >> Cargo.toml
 
-      - name: Run rspack test
-        run: |
-          cargo test -p rspack_watcher -- --nocapture
+      - name: Run watcher tests
+        run: cargo test -p rspack_watcher -- --nocapture
+
+      - name: Run directory analyzer regression tests
+        run: cargo test -p rspack_watcher_testing -- --nocapture
 
   test_required_check:
     name: Rust Test Required Check

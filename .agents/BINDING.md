@@ -1,4 +1,4 @@
-# JavaScript Binding Guide
+# JavaScript binding guide
 
 Use this guide for changes involving any of these paths:
 
@@ -159,8 +159,16 @@ TSFN an explicit release boundary:
   `CompilerScopedTsFnManager::scope`. The scope uses thread-local context because `FromNapiValue`
   cannot receive the owning compiler as additional conversion context.
 - Each handle stores an `Arc<AtomicRefCell<Option<ThreadsafeFunction>>>`. Handle clones share the
-  same slot. The manager registers a releaser that replaces the option with `None`, which drops the
-  TSFN and its strong reference to the JavaScript callback for every clone at once.
+  same slot. The manager only weakly references this slot, so the last consumer can release its
+  callback before compiler close. On close, registered releasers replace surviving slots with
+  `None`, dropping the TSFN reference for every handle clone at once.
+- A TSFN's napi-rs argument-conversion closure holds its unregister callback until finalization.
+  N-API finalizes it on the owning JS thread, even if the last Rust handle was dropped on a worker.
+  This removes stale registrations without cross-thread registry access. The unregister callback
+  weakly references the manager; it must not keep the compiler or the TSFN alive. Construction
+  failures also drop the closure and unregister on the creating JS thread.
+- Releasing the manager takes all registrations out before invoking releasers, so finalization
+  never overlaps a registry borrow. Later finalizers tolerate an empty or already-dropped manager.
 - `JsCompiler::close` waits until in-flight build or rebuild work is idle before closing the native
   compiler, because that work may still need its callbacks. The close Promise releases the manager
   in `finally`; manager `Drop` performs the same release as a fallback.
@@ -251,6 +259,8 @@ available on the Rust side.
 - Change Rust `#[napi]` annotations or `crates/node_binding/scripts/banner.d.ts`.
 - `crates/node_binding/binding.d.ts` is the handwritten CJS/ESM interop wrapper.
 - Generated native and WASI exports must stay aligned.
+- The binding's `Module` interface must not depend on `@rspack/core`. Core augments it with
+  JavaScript-only source methods that use `webpack-sources` types.
 
 ## Layer and file map
 
@@ -301,9 +311,25 @@ Descriptor location is independent of how the value is produced:
   construction. It is suitable for immutable, frequently accessed state that should remain owned
   and readable on the JavaScript side without another native call.
 
-Rspack uses instance-level `define_properties` for N-API classes whose public state should be
-visible during ordinary object inspection; `Module` and its derived classes are one application of
-this general strategy. Use `#[napi(getter)]` or `#[napi(setter)]` when prototype semantics are
+Rspack uses instance-level descriptors for objects whose public state should be visible during
+ordinary inspection. `Module` and its derived classes define their shared descriptors in JavaScript;
+each constructor installs its own descriptors, with base properties before derived properties.
+Each class keeps its shared descriptor table in a private static field. `identifier()` caches its
+result in a private instance field; the public Module type remains structural for binding returns.
+The public `originalSource()` and `emitFile()` methods call binding functions directly without
+underscore-prefixed forwarding methods on Module.
+Rust creates them through `jsHelpers.createModule` and attaches one `ModuleHandle` with `napi_wrap`.
+The `module_*` and specialized module functions unwrap a shared, call-scoped handle, checking its
+native type tag before dereferencing it. Prototype methods and getters use the standard,
+non-enumerable JavaScript class descriptors. Immutable fields use shared own accessors that call
+Rust on the first successful read and cache the result in private instance fields. The own accessors
+remain unchanged, so sealing or freezing the object does not prevent lazy reads. Failed reads remain
+retryable, and assignment caches a value, including undefined, without entering Rust. An unread field
+still requires a valid native target; a cached value remains readable after revocation. Preserve instance
+descriptor flags, base-before-derived property order, and the compiler/module identity cache when
+changing this bridge. Cache and JS finalization have independent ownership of the handle, including
+during Worker teardown.
+Use `#[napi(getter)]` or `#[napi(setter)]` for native classes when prototype semantics are
 intended. Do not move a property between the prototype and the instance as a mechanical refactor:
 it can change `console.log`, `Object.hasOwn`, `Object.keys`, inheritance, and
 `Object.getOwnPropertyDescriptor` results.

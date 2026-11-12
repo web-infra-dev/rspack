@@ -1,4 +1,4 @@
-it("should not include sourcesContent if noSources option is used", function () {
+it("should include source contents and a JavaScript filename in eval source maps", function () {
 	var fs = require("fs");
 	var source = fs.readFileSync(__filename, "utf-8");
 	var match = /\/\/# sourceMappingURL\s*=\s*data:application\/json;charset=utf-8;base64,(.*)\\n\/\/#/.exec(source);

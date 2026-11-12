@@ -1,0 +1,65 @@
+import type { Compiler } from '@rspack/core';
+import { defineConfig } from '@rspack/cli';
+import path from 'node:path';
+
+const pluginName = 'plugin';
+class Plugin {
+  apply(compiler: Compiler) {
+    compiler.hooks.afterCompile.tap(pluginName, (compilation) => {
+      const deps = [
+        ...compilation.fileDependencies,
+        ...compilation.contextDependencies,
+        ...compilation.missingDependencies,
+        ...compilation.buildDependencies,
+      ];
+      expect(deps.every((item) => path.isAbsolute(item))).toBe(true);
+    });
+  }
+}
+
+export default defineConfig({
+  externals: {
+    'node:fs': 'node-commonjs node:fs',
+    'node:path': 'node-commonjs node:path',
+  },
+  target: 'web',
+  node: false,
+  module: {
+    generator: {
+      css: {
+        exportsOnly: false,
+      },
+      'css/auto': {
+        exportsOnly: false,
+      },
+      'css/module': {
+        exportsOnly: false,
+      },
+    },
+    rules: [
+      {
+        dependency: 'url',
+        scheme: /^data$/,
+        type: 'asset/resource',
+      },
+      {
+        issuer: /\.js/,
+        mimetype: /^image\/svg/,
+        type: 'asset/inline',
+      },
+      {
+        mimetype: /^text\/bad-base64/,
+        type: 'asset/inline',
+      },
+      {
+        test: /\.css$/,
+        type: 'css/auto',
+      },
+      {
+        mimetype: 'text/css',
+        type: 'css/auto',
+      },
+    ],
+  },
+  plugins: [new Plugin()],
+});

@@ -1,4 +1,5 @@
 pub mod amd_define_dependency;
+pub mod amd_exports_dependency;
 pub mod amd_require_array_dependency;
 pub mod amd_require_dependency;
 pub mod amd_require_item_dependency;

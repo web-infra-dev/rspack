@@ -8,6 +8,29 @@ const WINDOWS_ABS_PATH_REGEXP = /^[a-zA-Z]:[\\/]/;
 const SEGMENTS_SPLIT_REGEXP = /([|!])/;
 const WINDOWS_PATH_SEPARATOR_REGEXP = /\\/g;
 
+// Align with https://github.com/webpack/enhanced-resolve/pull/551: `?` is part
+// of a DOS device path prefix and must not be interpreted as a resource query
+// separator.
+const getWindowsDosDevicePathPrefixLength = (identifier: string): number => {
+  if (
+    identifier.length >= 4 &&
+    identifier.charCodeAt(0) === 92 &&
+    identifier.charCodeAt(1) === 92 &&
+    identifier.charCodeAt(3) === 92
+  ) {
+    const namespace = identifier.charCodeAt(2);
+    if (namespace === 63 || namespace === 46) return 4;
+  }
+  return 0;
+};
+
+const isWindowsAbsolutePath = (identifier: string): boolean =>
+  WINDOWS_ABS_PATH_REGEXP.test(identifier) ||
+  getWindowsDosDevicePathPrefixLength(identifier) !== 0;
+
+const getQuerySplitPosition = (identifier: string): number =>
+  identifier.indexOf('?', getWindowsDosDevicePathPrefixLength(identifier));
+
 interface ParsedResource {
   path: string;
   query: string;
@@ -42,7 +65,7 @@ const absoluteToRequest = (
       return maybeAbsolutePath;
     }
 
-    const querySplitPos = maybeAbsolutePath.indexOf('?');
+    const querySplitPos = getQuerySplitPosition(maybeAbsolutePath);
     let resource =
       querySplitPos === -1
         ? maybeAbsolutePath
@@ -53,14 +76,14 @@ const absoluteToRequest = (
       : resource + maybeAbsolutePath.slice(querySplitPos);
   }
 
-  if (WINDOWS_ABS_PATH_REGEXP.test(maybeAbsolutePath)) {
-    const querySplitPos = maybeAbsolutePath.indexOf('?');
+  if (isWindowsAbsolutePath(maybeAbsolutePath)) {
+    const querySplitPos = getQuerySplitPosition(maybeAbsolutePath);
     let resource =
       querySplitPos === -1
         ? maybeAbsolutePath
         : maybeAbsolutePath.slice(0, querySplitPos);
     resource = path.win32.relative(context, resource);
-    if (!WINDOWS_ABS_PATH_REGEXP.test(resource)) {
+    if (!isWindowsAbsolutePath(resource)) {
       resource = relativePathToRequest(
         resource.replace(WINDOWS_PATH_SEPARATOR_REGEXP, '/'),
       );
@@ -306,16 +329,25 @@ const PATH_QUERY_FRAGMENT_REGEXP =
 const PATH_QUERY_REGEXP = /^((?:\u200b.|[^?\u200b])*)(\?.*)?$/;
 
 function _parseResource(str: string): ParsedResource {
+  const prefixLength = getWindowsDosDevicePathPrefixLength(str);
+  const resource = str.slice(prefixLength);
+
   // Most requests are plain paths, so avoid the regexp on the hot path.
-  if (!str.includes('?') && !str.includes('#') && !str.includes('\u200b')) {
+  if (
+    !resource.includes('?') &&
+    !resource.includes('#') &&
+    !resource.includes('\u200b')
+  ) {
     return { path: str, query: '', fragment: '' };
   }
 
-  const match = PATH_QUERY_FRAGMENT_REGEXP.exec(str);
+  // Parse only the part after a DOS device prefix so the prefix's `?` remains
+  // part of the path while preserving the existing escaping semantics.
+  const match = PATH_QUERY_FRAGMENT_REGEXP.exec(resource);
   if (!match) return { path: '', query: '', fragment: '' };
 
   return {
-    path: match[1].replace(/\u200b(.)/g, '$1'),
+    path: str.slice(0, prefixLength) + match[1].replace(/\u200b(.)/g, '$1'),
     query: match[2] ? match[2].replace(/\u200b(.)/g, '$1') : '',
     fragment: match[3] || '',
   };
@@ -331,9 +363,10 @@ export const parseResource = makeCacheable(_parseResource);
 const _parseResourceWithoutFragment = (
   str: string,
 ): ParsedResourceWithoutFragment => {
-  const match = PATH_QUERY_REGEXP.exec(str);
+  const prefixLength = getWindowsDosDevicePathPrefixLength(str);
+  const match = PATH_QUERY_REGEXP.exec(str.slice(prefixLength));
   return {
-    path: match![1].replace(/\u200b(.)/g, '$1'),
+    path: str.slice(0, prefixLength) + match![1].replace(/\u200b(.)/g, '$1'),
     query: match![2] ? match![2].replace(/\u200b(.)/g, '$1') : '',
   };
 };

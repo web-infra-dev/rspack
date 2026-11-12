@@ -55,6 +55,7 @@ mod asset_condition;
 mod async_dependency_block;
 mod browserslist;
 mod build_info;
+mod cache;
 mod chunk;
 mod chunk_graph;
 mod chunk_group;
@@ -64,18 +65,21 @@ mod compilation;
 mod compiler;
 mod compiler_scoped_tsfn;
 mod context_module_factory;
-mod define_symbols;
 mod dependencies;
 mod dependency;
 mod diagnostic;
 mod error;
 mod exports_info;
+mod file_system_dependency_strings;
 mod filename;
 mod fs_node;
 mod html;
 mod identifier;
+mod js_helpers;
 mod location;
+mod logging;
 mod module;
+mod module_bridge;
 mod module_graph;
 mod module_graph_connection;
 mod modules;
@@ -95,9 +99,11 @@ mod rslib;
 mod rspack_resolver;
 mod rstest;
 mod runtime;
+mod shared_properties;
 mod source;
 mod stats;
 mod swc;
+mod symbols;
 mod trace_event;
 mod utils;
 mod virtual_modules;
@@ -111,8 +117,8 @@ use std::{
 use napi::{CallContext, bindgen_prelude::*};
 pub use raw_options::{CustomPluginBuilder, register_custom_plugin};
 use rspack_core::{
-  BoxDependency, Compilation, CompilationId, CompilerId, CompilerPlatform, EntryOptions,
-  ModuleIdentifier, PluginExt,
+  Compilation, CompilationId, CompilerId, CompilerPlatform, DependencyRef, EntryOptions,
+  ModuleIdentifier, Plugin, PluginExt,
 };
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
@@ -122,14 +128,18 @@ use swc_core::common::util::take::Take;
 
 use crate::{
   async_dependency_block::AsyncDependenciesBlockWrapper,
+  cache::JsCache,
   chunk::ChunkWrapper,
   chunk_group::ChunkGroupWrapper,
   compilation::JsCompilationWrapper,
   compiler::{Compiler, CompilerState, CompilerStateGuard},
-  compiler_scoped_tsfn::CompilerScopedTsFnManager,
+  compiler_scoped_tsfn::{CompilerScopedTsFnHandle, CompilerScopedTsFnManager},
   dependency::DependencyWrapper,
   error::{ErrorCode, RspackResultToNapiResultExt},
+  file_system_dependency_strings::FileSystemDependencyStringPool,
   fs_node::{HybridFileSystem, NodeFileSystem, ThreadsafeNodeFS},
+  js_helpers::{JsHelperRefs, JsHelpers},
+  logging::{InfrastructureLogDispatcher, JsLog},
   module::ModuleObject,
   module_graph_connection::ModuleGraphConnectionWrapper,
   platform::RawCompilerPlatform,
@@ -153,6 +163,23 @@ pub const EXPECTED_RSPACK_CORE_VERSION: &str = rspack_workspace::rspack_pkg_vers
 
 thread_local! {
   static COMPILER_REFERENCES: RefCell<FxHashMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
+}
+
+pub(crate) fn upgrade_compiler(
+  env: &Env,
+  compiler_id: CompilerId,
+) -> napi::Result<Reference<JsCompiler>> {
+  let weak = COMPILER_REFERENCES.with(|references| references.borrow().get(&compiler_id).cloned());
+  let owner = weak
+    .map(|reference| reference.upgrade(*env))
+    .transpose()?
+    .flatten()
+    .ok_or_else(|| napi::Error::from_reason(format!(
+      "Unable to access compiler with id = {compiler_id:?}. The Compiler has been garbage collected by JavaScript."
+    )))?;
+  // Pin for the active binding call: N-API allocations may otherwise collect the owner
+  // while a native-backed wrapper, which stores only its id, is still reachable.
+  Ok(owner)
 }
 
 pub(crate) fn with_compilation<R>(
@@ -226,13 +253,16 @@ fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
 struct JsCompiler {
   // whether to skip drop compiler in finalize
   unsafe_fast_drop: bool,
+  file_system_dependency_string_pool: RefCell<FileSystemDependencyStringPool>,
+  js_helpers: JsHelperRefs,
+  infrastructure_log_dispatcher: Arc<InfrastructureLogDispatcher>,
   compiler_scoped_tsfn_manager: CompilerScopedTsFnManager,
   js_hooks_plugin: JsHooksAdapterPlugin,
   // call drop manually to avoid unnecessary drop overhead in cli build
   compiler: ManuallyDrop<Compiler>,
   state: CompilerState,
-  include_dependencies_map: FxHashMap<EntryDependencyCacheKey, BoxDependency>,
-  entry_dependencies_map: FxHashMap<EntryDependencyCacheKey, BoxDependency>,
+  include_dependencies_map: FxHashMap<EntryDependencyCacheKey, DependencyRef>,
+  entry_dependencies_map: FxHashMap<EntryDependencyCacheKey, DependencyRef>,
   compiler_context: Arc<CompilerContext>,
   virtual_file_store: Option<Arc<RwLock<dyn VirtualFileStore>>>,
 }
@@ -242,7 +272,7 @@ impl JsCompiler {
   #[allow(clippy::too_many_arguments)]
   #[napi(
     constructor,
-    ts_args_type = "compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform"
+    ts_args_type = "compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache, jsHelpers: JsHelpers"
   )]
   pub fn new(
     env: Env,
@@ -257,6 +287,9 @@ impl JsCompiler {
     mut resolver_factory_reference: Reference<JsResolverFactory>,
     unsafe_fast_drop: bool,
     platform: RawCompilerPlatform,
+    raw_infrastructure_log_callback: Unknown<'static>,
+    cache: Reference<JsCache>,
+    js_helpers: JsHelpers<'_>,
   ) -> Result<Self> {
     tracing::info!(name:"rspack_version", version = rspack_workspace::rspack_pkg_version!());
 
@@ -271,6 +304,12 @@ impl JsCompiler {
     let register_js_taps: RegisterJsTaps = compiler_scoped_tsfn_manager.scope(|| unsafe {
       RegisterJsTaps::from_napi_value(env.raw(), raw_register_js_taps.raw())
     })?;
+    let infrastructure_log_callback: CompilerScopedTsFnHandle<Vec<JsLog>, ()> =
+      compiler_scoped_tsfn_manager.scope(|| unsafe {
+        CompilerScopedTsFnHandle::from_napi_value(env.raw(), raw_infrastructure_log_callback.raw())
+      })?;
+    let (infrastructure_log_sink, infrastructure_log_dispatcher) =
+      InfrastructureLogDispatcher::new(infrastructure_log_callback);
 
     let compiler_context = Arc::new(CompilerContext::new());
     CURRENT_COMPILER_CONTEXT.sync_scope(compiler_context.clone(), || {
@@ -313,8 +352,8 @@ impl JsCompiler {
 
       tracing::debug!(name:"normalized_options", options=?&compiler_options);
 
-      let mut input_file_system: Option<Arc<dyn ReadableFileSystem>> =
-        input_filesystem.and_then(|fs| {
+      let mut input_file_system: Arc<dyn ReadableFileSystem> = input_filesystem
+        .and_then(|fs| {
           use_input_fs.and_then(|use_input_file_system| {
             let node_fs = NodeFileSystem::new(fs).expect("Failed to create readable filesystem");
 
@@ -333,7 +372,8 @@ impl JsCompiler {
               }
             }
           })
-        });
+        })
+        .unwrap_or_else(|| Arc::new(NativeFileSystem::new(pnp)));
 
       let mut virtual_file_store: Option<Arc<RwLock<dyn VirtualFileStore>>> = None;
       if let Some(list) = virtual_files {
@@ -344,19 +384,7 @@ impl JsCompiler {
           }
           Arc::new(RwLock::new(store))
         };
-        input_file_system = input_file_system
-          .map(|real_fs| {
-            let binding: Arc<dyn ReadableFileSystem> =
-              Arc::new(VirtualFileSystem::new(real_fs, store.clone()));
-            binding
-          })
-          .or_else(|| {
-            let binding: Arc<dyn ReadableFileSystem> = Arc::new(VirtualFileSystem::new(
-              Arc::new(NativeFileSystem::new(pnp)),
-              store.clone(),
-            ));
-            Some(binding)
-          });
+        input_file_system = Arc::new(VirtualFileSystem::new(input_file_system, store.clone()));
         virtual_file_store = Some(store);
       }
 
@@ -368,38 +396,44 @@ impl JsCompiler {
       let resolver_factory = resolver_factory_reference.get_resolver_factory();
       let loader_resolver_factory = resolver_factory_reference.get_loader_resolver_factory();
 
-      let intermediate_filesystem: Option<Arc<dyn IntermediateFileSystem>> =
+      let intermediate_filesystem: Arc<dyn IntermediateFileSystem> =
         if let Some(fs) = intermediate_filesystem {
-          Some(Arc::new(
-            NodeFileSystem::new(fs).to_napi_result_with_message(|e| {
-              format!("Failed to create intermediate filesystem: {e}")
-            })?,
-          ))
+          Arc::new(NodeFileSystem::new(fs).to_napi_result_with_message(|e| {
+            format!("Failed to create intermediate filesystem: {e}")
+          })?)
         } else {
-          None
+          Arc::new(NativeFileSystem::new(false))
         };
 
       let platform = Arc::new(CompilerPlatform::from(platform));
+      let output_filesystem = Arc::new(
+        NodeFileSystem::new(output_filesystem)
+          .to_napi_result_with_message(|e| format!("Failed to create writable filesystem: {e}"))?,
+      );
+      let cache = cache.get_or_initialize(
+        &compiler_options,
+        input_file_system.clone(),
+        infrastructure_log_sink.clone(),
+      );
 
       let rspack = rspack_core::Compiler::new(
-        compiler_path,
+        compiler_path.into(),
         compiler_options,
         plugins,
         buildtime_plugins::buildtime_plugins(),
-        Some(Arc::new(
-          NodeFileSystem::new(output_filesystem).to_napi_result_with_message(|e| {
-            format!("Failed to create writable filesystem: {e}")
-          })?,
-        )),
-        intermediate_filesystem,
         input_file_system,
-        Some(resolver_factory),
-        Some(loader_resolver_factory),
+        output_filesystem,
+        intermediate_filesystem,
+        resolver_factory,
+        loader_resolver_factory,
         Some(compiler_context.clone()),
         platform,
+        cache,
+        infrastructure_log_sink,
       );
 
       Ok(Self {
+        infrastructure_log_dispatcher,
         compiler_scoped_tsfn_manager,
         compiler: ManuallyDrop::new(Compiler::from(rspack)),
         state: CompilerState::init(),
@@ -409,6 +443,10 @@ impl JsCompiler {
         compiler_context,
         virtual_file_store,
         unsafe_fast_drop,
+        file_system_dependency_string_pool: RefCell::new(FileSystemDependencyStringPool::new(
+          &env, &mut this,
+        )?),
+        js_helpers: JsHelperRefs::new(&env, &mut this, js_helpers)?,
       })
     })
   }
@@ -422,11 +460,12 @@ impl JsCompiler {
   #[napi(ts_args_type = "callback: (err: null | Error) => void")]
   pub fn build(
     &mut self,
+    env: Env,
     reference: Reference<JsCompiler>,
     f: Function<'static>,
   ) -> Result<(), ErrorCode> {
     unsafe {
-      self.run(reference, |compiler, guard| {
+      self.run(&env, reference, |compiler, guard| {
         callbackify(
           f,
           async move {
@@ -437,9 +476,7 @@ impl JsCompiler {
             tracing::debug!("build ok");
             Ok(())
           },
-          Some(move || {
-            drop(guard);
-          }),
+          Some(move |env: &Env, result: &mut _| guard.finish(env, result)),
         )
       })
     }
@@ -451,13 +488,14 @@ impl JsCompiler {
   )]
   pub fn rebuild(
     &mut self,
+    env: Env,
     reference: Reference<JsCompiler>,
     changed_files: Vec<String>,
     removed_files: Vec<String>,
     f: Function<'static>,
   ) -> Result<(), ErrorCode> {
     unsafe {
-      self.run(reference, |compiler, guard| {
+      self.run(&env, reference, |compiler, guard| {
         callbackify(
           f,
           async move {
@@ -474,9 +512,7 @@ impl JsCompiler {
             tracing::debug!("rebuild ok");
             Ok(())
           },
-          Some(move || {
-            drop(guard);
-          }),
+          Some(move |env: &Env, result: &mut _| guard.finish(env, result)),
         )
       })
     }
@@ -494,6 +530,7 @@ impl JsCompiler {
     // async operation. This allows us to safely extend the lifetime to 'static.
     let compiler =
       unsafe { std::mem::transmute::<&Compiler, &'static Compiler>(&reference.compiler) };
+    let infrastructure_log_dispatcher = self.infrastructure_log_dispatcher.clone();
 
     let wait_idle = self.state.wait_idle();
     let spawn_future_result = rspack_napi::runtime::promise_from_future(env, async move {
@@ -505,6 +542,7 @@ impl JsCompiler {
         .close()
         .await
         .to_napi_result_with_message(|e| print_error_diagnostic(e, compiler.options.stats.colors));
+      infrastructure_log_dispatcher.shutdown().await;
       result?;
       Ok(())
     });
@@ -514,6 +552,11 @@ impl JsCompiler {
       return spawn_future_result;
     };
     promise.finally(|_env| {
+      // Cached hook taps can retain the compiler after the final rebuild.
+      // Release them even when a close hook fails, after in-flight work is idle.
+      self
+        .js_hooks_plugin
+        .clear_cache(self.compiler.compilation.id());
       self.compiler_scoped_tsfn_manager.release();
       drop(reference);
       Ok(())
@@ -539,6 +582,23 @@ struct RunGuard {
   _reference: Reference<JsCompiler>,
 }
 
+impl RunGuard {
+  fn finish(self, env: &Env, result: &mut Result<(), ErrorCode>) {
+    if result.is_ok() {
+      *result = self
+        ._reference
+        .prune_file_system_dependency_strings(env)
+        .map_err(|error| napi::Error::new(ErrorCode::Napi(error.status), error.reason));
+    }
+    if result.is_err() {
+      // Preserve the original error even if clearing the string pool fails.
+      let _ = self._reference.clear_file_system_dependency_strings(env);
+    }
+    // Release the running state and compiler reference before the JS callback.
+    drop(self);
+  }
+}
+
 impl JsCompiler {
   /// Run the given function with the compiler.
   ///
@@ -548,6 +608,7 @@ impl JsCompiler {
   ///    Accessing `Compiler` beyond the lifetime of `CompilerStateGuard` would lead to potential race condition.
   unsafe fn run<R>(
     &mut self,
+    env: &Env,
     mut reference: Reference<JsCompiler>,
     f: impl FnOnce(&'static mut Compiler, RunGuard) -> Result<R, ErrorCode>,
   ) -> Result<R, ErrorCode> {
@@ -556,7 +617,6 @@ impl JsCompiler {
     }
 
     let compiler_state_guard = self.state.enter();
-
     // SAFETY:
     // We ensure the lifetime of JsCompiler by holding a Reference<JsCompiler> until the JS callback function completes.
     // Therefore, we can safely transmute the lifetime of Compiler to 'static here.
@@ -576,7 +636,12 @@ impl JsCompiler {
     };
 
     self.cleanup_last_compilation(&compiler.compilation);
-    within_compiler_context_sync(self.compiler_context.clone(), || f(compiler, guard))
+    let result = within_compiler_context_sync(self.compiler_context.clone(), || f(compiler, guard));
+    if result.is_err() {
+      // This includes failure to construct the completion TSFN, before a task starts.
+      let _ = self.clear_file_system_dependency_strings(env);
+    }
+    result
   }
 
   fn cleanup_last_compilation(&self, compilation: &Compilation) {
@@ -600,6 +665,7 @@ impl ObjectFinalize for JsCompiler {
       references.remove(&compiler_id);
     });
 
+    // Pool strings, dependency arrays and JS helpers are owned by JS objects.
     self.cleanup_last_compilation(&self.compiler.compilation);
     ModuleObject::cleanup_by_compiler_id(&compiler_id);
 
@@ -694,9 +760,5 @@ fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
 
   rspack_napi::runtime::ensure_runtime(&env)?;
   node_init(exports, env)?;
-  module::export_symbols(exports, env)?;
-  build_info::export_symbols(exports, env)?;
-  error::export_symbols(exports, env)?;
-  module_graph_connection::export_symbols(exports, env)?;
   Ok(())
 }

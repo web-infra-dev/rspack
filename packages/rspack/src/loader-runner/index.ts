@@ -22,15 +22,19 @@ import {
   SourceMapSource,
 } from 'webpack-sources';
 
-import { commitCustomFieldsToRust } from '../BuildInfo';
+import {
+  commitCustomFieldsToRust,
+  pickCustomBuildInfoFields,
+  replaceCustomBuildInfoFields,
+} from '../BuildInfo';
 import type { Compilation } from '../Compilation';
 import type { Compiler } from '../Compiler';
 import {
-  BUILTIN_LOADER_PREFIX,
   type Diagnostic,
   isUseSimpleSourceMap,
   isUseSourceMap,
   type LoaderContext,
+  type ResolveCallback,
 } from '../config/adapterRuleUse';
 import { NormalModule } from '../NormalModule';
 import type { ResolveContext } from '../Resolver';
@@ -53,6 +57,12 @@ import {
 } from '../util/identifier';
 import { memoize } from '../util/memoize';
 import { ModuleError, ModuleWarning } from './ModuleError';
+import {
+  createCodeFilterTextCache,
+  invalidateCodeFilterTextCache,
+  matchesCodeFilter,
+} from './codeFilter';
+import { LoaderDependenciesState } from './dependencies';
 import * as pool from './service';
 import { type HandleIncomingRequest, RequestType } from './service';
 import {
@@ -61,8 +71,10 @@ import {
   loadLoader,
   runSyncOrAsync,
 } from './utils';
+import { MODULE_BUILD_INFO_SYMBOL } from '../util/symbols';
 
 const LOADER_PROCESS_NAME = 'Loader Analysis';
+const IS_WASM = Boolean(process.env.WASM);
 
 type LoaderObjectOptions = string | (object & { ident?: unknown }) | null;
 
@@ -172,8 +184,16 @@ export class LoaderObject {
     this.loaderItem.noPitch = true;
   }
 
-  shouldYield() {
-    return this.request.startsWith(BUILTIN_LOADER_PREFIX);
+  shouldSkipNormal(
+    content: unknown,
+    cache: ReturnType<typeof createCodeFilterTextCache>,
+  ) {
+    const codeFilter = this.loaderItem.codeFilter;
+    if (!codeFilter || this.loaderItem.filterMatched) return false;
+    const matched = matchesCodeFilter(codeFilter, content, cache);
+    if (matched === false) return true;
+    if (matched) this.loaderItem.filterMatched = true;
+    return false;
   }
 
   static __from_binding(
@@ -189,7 +209,7 @@ export class LoaderObject {
 }
 
 class JsSourceMap {
-  static __from_binding(map?: Buffer) {
+  static __from_binding(map?: Uint8Array) {
     return isNil(map) ? undefined : toObject(map);
   }
 
@@ -231,6 +251,8 @@ export async function runLoaders(
   context: JsLoaderContext,
 ): Promise<JsLoaderContext> {
   const loaderState = context.loaderState;
+  const loaderChainStart = context.loaderChainStart;
+  const loaderChainEnd = context.loaderChainEnd;
   const pitch = loaderState === JsLoaderState.Pitching;
 
   const { resource } = context;
@@ -262,10 +284,11 @@ export async function runLoaders(
   const contextDirectory = resourcePath ? dirname(resourcePath) : null;
 
   // execution state
-  const fileDependencies = context.fileDependencies;
-  const contextDependencies = context.contextDependencies;
-  const missingDependencies = context.missingDependencies;
-  const buildDependencies = context.buildDependencies;
+  const dependencies = new LoaderDependenciesState(
+    context.dependencies,
+    context.addedDependencies,
+    context.removedDependencies,
+  );
 
   /// Construct `loaderContext`
   const loaderContext = {} as LoaderContext;
@@ -281,30 +304,28 @@ export async function runLoaders(
   loaderContext.resourceFragment = resourceFragment!;
   loaderContext.dependency = loaderContext.addDependency =
     function addDependency(file) {
-      fileDependencies.push(file);
+      dependencies.addFile(file);
     };
   loaderContext.addContextDependency = function addContextDependency(context) {
-    contextDependencies.push(context);
+    dependencies.addContext(context);
   };
   loaderContext.addMissingDependency = function addMissingDependency(context) {
-    missingDependencies.push(context);
+    dependencies.addMissing(context);
   };
   loaderContext.addBuildDependency = function addBuildDependency(file) {
-    buildDependencies.push(file);
+    dependencies.addBuild(file);
   };
   loaderContext.getDependencies = function getDependencies() {
-    return fileDependencies.slice();
+    return dependencies.fileDependencies();
   };
   loaderContext.getContextDependencies = function getContextDependencies() {
-    return contextDependencies.slice();
+    return dependencies.contextDependencies();
   };
   loaderContext.getMissingDependencies = function getMissingDependencies() {
-    return missingDependencies.slice();
+    return dependencies.missingDependencies();
   };
   loaderContext.clearDependencies = function clearDependencies() {
-    fileDependencies.length = 0;
-    contextDependencies.length = 0;
-    missingDependencies.length = 0;
+    dependencies.clearDependencies();
     context.cacheable = true;
   };
 
@@ -362,11 +383,23 @@ export async function runLoaders(
               args: traceData.args,
             });
           }
-          if (res.error) {
-            onError(
-              compiler.__internal__takeModuleExecutionResult(res.id) ??
-                new Error(res.error),
-            );
+          if (res.errors.length > 0) {
+            const executionError =
+              compiler.__internal__takeModuleExecutionResult(res.id);
+            if (executionError != null) {
+              onError(executionError);
+            } else if (res.errors.length === 1) {
+              onError(res.errors[0]);
+            } else {
+              const error = new AggregateError(
+                res.errors,
+                res.errors
+                  .map((error: RspackError) => error.message)
+                  .join('\n'),
+              );
+              (error as RspackError).hideStack = true;
+              onError(error);
+            }
           } else {
             onDone(compiler.__internal__takeModuleExecutionResult(res.id));
           }
@@ -511,7 +544,21 @@ export async function runLoaders(
   loaderContext.getResolve = function getResolve(options) {
     const resolver = getResolver();
     const child = options ? resolver.withOptions(options) : resolver;
-    return (context, request, callback) => {
+
+    function resolveWithOptions(
+      context: string,
+      request: string,
+      callback: ResolveCallback,
+    ): void;
+    function resolveWithOptions(
+      context: string,
+      request: string,
+    ): Promise<string | false | undefined>;
+    function resolveWithOptions(
+      context: string,
+      request: string,
+      callback?: ResolveCallback,
+    ) {
       if (callback) {
         child.resolve({}, context, request, getResolveContext(), callback);
         return;
@@ -529,7 +576,9 @@ export async function runLoaders(
           },
         );
       });
-    };
+    }
+
+    return resolveWithOptions;
   };
   loaderContext.getLogger = function getLogger(name) {
     return compiler._lastCompilation!.getLogger(
@@ -537,6 +586,8 @@ export async function runLoaders(
     );
   };
   loaderContext.rootContext = compiler.context;
+  // The public API intentionally accepts only Error instances. Keep these runtime checks for
+  // untyped JavaScript loaders that pass strings or other non-Error values.
   loaderContext.emitError = function emitError(e) {
     if (!(e instanceof Error)) {
       e = new NonErrorEmittedError(e);
@@ -546,8 +597,7 @@ export async function runLoaders(
         loaderContext.loaders[loaderContext.loaderIndex],
       ),
     });
-    error.module = loaderContext._module;
-    compiler._lastCompilation!.__internal__pushRspackDiagnostic({
+    (context.__internal__diagnostics ??= []).push({
       error,
       severity: JsRspackSeverity.Error,
     });
@@ -561,8 +611,7 @@ export async function runLoaders(
         loaderContext.loaders[loaderContext.loaderIndex],
       ),
     });
-    warning.module = loaderContext._module;
-    compiler._lastCompilation!.__internal__pushRspackDiagnostic({
+    (context.__internal__diagnostics ??= []).push({
       error: warning,
       severity: JsRspackSeverity.Warn,
     });
@@ -599,7 +648,7 @@ export async function runLoaders(
     }
     loaderContext._module.emitFile(name, source!, assetInfo);
   };
-  loaderContext.fs = compiler.inputFileSystem;
+  loaderContext.fs = compiler.inputFileSystem!;
   loaderContext.experiments = {
     emitDiagnostic: (diagnostic: Diagnostic) => {
       const d = Object.assign({}, diagnostic, {
@@ -671,22 +720,6 @@ export async function runLoaders(
     return options;
   };
 
-  let compilation: Compilation | undefined = compiler._lastCompilation;
-  let step = 0;
-  while (compilation) {
-    NormalModule.getCompilationHooks(compilation).loader.call(
-      loaderContext,
-      loaderContext._module,
-    );
-    compilation = compilation.compiler.parentCompilation;
-    step++;
-    if (step > 1000) {
-      throw Error(
-        'Too many nested child compiler, exceeded max limitation 1000',
-      );
-    }
-  }
-
   /// Sync with `context`
   Object.defineProperty(loaderContext, 'loaderIndex', {
     enumerable: true,
@@ -713,12 +746,51 @@ export async function runLoaders(
     context.__internal__parseMeta[key] = value;
   };
 
+  let compilation: Compilation | undefined = compiler._lastCompilation;
+  let step = 0;
+  while (compilation) {
+    NormalModule.getCompilationHooks(compilation).loader.call(
+      loaderContext,
+      loaderContext._module,
+    );
+    compilation = compilation.compiler.parentCompilation;
+    step++;
+    if (step > 1000) {
+      throw Error(
+        'Too many nested child compiler, exceeded max limitation 1000',
+      );
+    }
+  }
+  dependencies.mergeChanges();
+
+  const getWorkerLoaderSpan = () => {
+    let start = loaderContext.loaderIndex;
+    let end = start + 1;
+
+    if (loaderState === JsLoaderState.Pitching) {
+      while (end < loaderChainEnd && loaderContext.loaders[end]?.parallel) {
+        end++;
+      }
+    } else {
+      while (
+        start > loaderChainStart &&
+        loaderContext.loaders[start - 1]?.parallel
+      ) {
+        start--;
+      }
+    }
+
+    return { start, end };
+  };
+
   const getWorkerLoaderContext = () => {
     const normalModule =
       loaderContext._module instanceof NormalModule
         ? loaderContext._module
         : undefined;
+    const workerLoaderSpan = getWorkerLoaderSpan();
     const workerLoaderContext = {
+      version: loaderContext.version,
       hot: loaderContext.hot,
       context: loaderContext.context,
       resourcePath: loaderContext.resourcePath,
@@ -729,13 +801,19 @@ export async function runLoaders(
       sourceMap: loaderContext.sourceMap,
       rootContext: loaderContext.rootContext,
       loaderIndex: loaderContext.loaderIndex,
-      loaders: loaderContext.loaders.map((item) => {
+      loaderChainStart: workerLoaderSpan.start,
+      loaderChainEnd: workerLoaderSpan.end,
+      loaders: loaderContext.loaders.map((item, index) => {
         let options = item.options;
         // Do not pass options into worker, if it's not prepared to be executed
         // in the worker thread.
         //
         // Aligns yielding strategy within the worker.
-        if (!item.parallel || item.request.startsWith(BUILTIN_LOADER_PREFIX)) {
+        if (
+          !item.parallel ||
+          index < workerLoaderSpan.start ||
+          index >= workerLoaderSpan.end
+        ) {
           options = undefined;
         }
         return {
@@ -759,6 +837,7 @@ export async function runLoaders(
         },
       },
       _compilation: {
+        hash: compiler._lastCompilation!.hash,
         options: {
           output: {
             // css-loader
@@ -781,6 +860,7 @@ export async function runLoaders(
         request: normalModule?.request,
         userRequest: normalModule?.userRequest,
         rawRequest: normalModule?.rawRequest,
+        buildInfo: pickCustomBuildInfoFields(normalModule?.buildInfo),
       },
     } as any;
     Object.assign(workerLoaderContext, compiler.options.loader);
@@ -824,10 +904,14 @@ export async function runLoaders(
           }
           case RequestType.Resolve: {
             return new Promise((resolve, reject) => {
-              loaderContext.resolve(args[0], args[1], (err, result) => {
-                if (err) reject(err);
-                else resolve(result);
-              });
+              loaderContext.resolve(
+                args[0],
+                args[1],
+                (err, result, resolveRequest) => {
+                  if (err) reject(err);
+                  else resolve([result, resolveRequest]);
+                },
+              );
             });
           }
           case RequestType.GetResolve: {
@@ -835,9 +919,9 @@ export async function runLoaders(
               loaderContext.getResolve(args[0])(
                 args[1],
                 args[2],
-                (err, result) => {
+                (err, result, resolveRequest) => {
                   if (err) reject(err);
-                  else resolve(result);
+                  else resolve([result, resolveRequest]);
                 },
               );
             });
@@ -892,8 +976,22 @@ export async function runLoaders(
               if (update.normalExecuted) {
                 item.normalExecuted = true;
               }
+              if (update.filterMatched) {
+                item.loaderItem.filterMatched = true;
+              }
               return item;
             });
+            break;
+          }
+          case RequestType.UpdateBuildInfo: {
+            const buildInfo = loaderContext._module?.buildInfo as
+              Record<string, unknown> | undefined;
+            if (buildInfo) {
+              replaceCustomBuildInfoFields(
+                buildInfo,
+                pickCustomBuildInfoFields(args[0]),
+              );
+            }
             break;
           }
           case RequestType.CompilationGetPath: {
@@ -904,7 +1002,16 @@ export async function runLoaders(
           case RequestType.CompilationGetPathWithInfo: {
             const filename = args[0];
             const data = args[1];
-            return compiler._lastCompilation!.getPathWithInfo(filename, data);
+            const initialInfo = args[2];
+            return compiler._lastCompilation!.getPathWithInfo(
+              initialInfo
+                ? (_pathData, info) => {
+                    Object.assign(info!, initialInfo);
+                    return filename;
+                  }
+                : filename,
+              data,
+            );
           }
           case RequestType.CompilationGetAssetPath: {
             const filename = args[0];
@@ -914,8 +1021,14 @@ export async function runLoaders(
           case RequestType.CompilationGetAssetPathWithInfo: {
             const filename = args[0];
             const data = args[1];
+            const initialInfo = args[2];
             return compiler._lastCompilation!.getAssetPathWithInfo(
-              filename,
+              initialInfo
+                ? (_pathData, info) => {
+                    Object.assign(info!, initialInfo);
+                    return filename;
+                  }
+                : filename,
               data,
             );
           }
@@ -928,6 +1041,11 @@ export async function runLoaders(
   };
 
   const enableParallelism = (currentLoaderObject: any) => {
+    // A buffer backed by WASM linear memory retains the entire backing store
+    // after crossing the worker boundary, so a cached loader must stay on the
+    // main thread to avoid copying the whole WASM memory through N-API.
+    if (IS_WASM && currentLoaderObject?.loaderItem.cache) return false;
+
     return currentLoaderObject?.parallel;
   };
 
@@ -987,12 +1105,11 @@ export async function runLoaders(
   try {
     switch (loaderState) {
       case JsLoaderState.Pitching: {
-        while (loaderContext.loaderIndex < loaderContext.loaders.length) {
+        while (loaderContext.loaderIndex < loaderChainEnd) {
           const currentLoaderObject =
             loaderContext.loaders[loaderContext.loaderIndex];
           const parallelism = enableParallelism(currentLoaderObject);
 
-          if (currentLoaderObject.shouldYield()) break;
           if (currentLoaderObject.pitchExecuted) {
             loaderContext.loaderIndex += 1;
             continue;
@@ -1007,17 +1124,27 @@ export async function runLoaders(
           }
           if (!fn) continue;
 
-          const args = await isomorphoicRun(fn, [
-            loaderContext.remainingRequest,
-            loaderContext.previousRequest,
-            currentLoaderObject.loaderItem.data,
-          ]);
+          dependencies.resetChanges();
+          let args: any[];
+          try {
+            args = await isomorphoicRun(fn, [
+              loaderContext.remainingRequest,
+              loaderContext.previousRequest,
+              currentLoaderObject.loaderItem.data,
+            ]);
+          } finally {
+            dependencies.mergeChanges();
+          }
 
           const hasArg = args.some((value: any) => value !== undefined);
 
           if (hasArg) {
             const [content, sourceMap, additionalData] = args;
-            context.content = isNil(content) ? null : toBuffer(content);
+            context.content = isNil(content)
+              ? null
+              : typeof content === 'string'
+                ? content
+                : toBuffer(content);
             context.sourceMap = serializeObject(sourceMap);
             context.additionalData = additionalData || undefined;
             break;
@@ -1027,51 +1154,70 @@ export async function runLoaders(
         break;
       }
       case JsLoaderState.Normal: {
-        let content = context.content;
+        let content: Parameters<typeof toBuffer>[0] | null | undefined =
+          context.content;
         const rawSourceMap = context.sourceMap;
         let sourceMap: string | object | undefined;
         let sourceMapParsed = false;
         let additionalData = context.additionalData;
+        const codeFilterTextCache = createCodeFilterTextCache();
 
-        while (loaderContext.loaderIndex >= 0) {
+        while (loaderContext.loaderIndex >= loaderChainStart) {
           const currentLoaderObject =
             loaderContext.loaders[loaderContext.loaderIndex];
-          const parallelism = enableParallelism(currentLoaderObject);
-
-          if (currentLoaderObject.shouldYield()) break;
           if (currentLoaderObject.normalExecuted) {
             loaderContext.loaderIndex--;
             continue;
           }
-
-          await loadLoader(currentLoaderObject, compiler);
-          const fn = currentLoaderObject.normal;
-          // If parallelism is enabled,
-          // we delegate the current loader to use the runner in worker.
-          if (!parallelism || !fn) {
+          if (
+            currentLoaderObject.shouldSkipNormal(content, codeFilterTextCache)
+          ) {
             currentLoaderObject.normalExecuted = true;
-          }
-          if (!fn) continue;
-
-          // Parse source map lazily only when a JavaScript loader consumes it.
-          if (!sourceMapParsed) {
-            sourceMap = JsSourceMap.__from_binding(rawSourceMap);
-            sourceMapParsed = true;
+            loaderContext.loaderIndex--;
+            continue;
           }
 
-          [content, sourceMap, additionalData] = await isomorphoicRun(fn, [
-            content,
-            sourceMap,
-            additionalData,
-          ]);
+          const parallelism = enableParallelism(currentLoaderObject);
+          try {
+            await loadLoader(currentLoaderObject, compiler);
+            const fn = currentLoaderObject.normal;
+            // If parallelism is enabled,
+            // we delegate the current loader to use the runner in worker.
+            if (!parallelism || !fn) {
+              currentLoaderObject.normalExecuted = true;
+            }
+            if (!fn) continue;
+
+            // Parse source map lazily only when a JavaScript loader consumes it.
+            if (!sourceMapParsed) {
+              sourceMap = JsSourceMap.__from_binding(rawSourceMap);
+              sourceMapParsed = true;
+            }
+
+            [content, sourceMap, additionalData] = await isomorphoicRun(fn, [
+              content,
+              sourceMap,
+              additionalData,
+            ]);
+            invalidateCodeFilterTextCache(codeFilterTextCache);
+          } finally {
+            dependencies.mergeChanges();
+          }
         }
 
-        context.content = isNil(content) ? null : toBuffer(content);
+        context.content = isNil(content)
+          ? null
+          : typeof content === 'string'
+            ? content
+            : toBuffer(content);
         context.sourceMap = sourceMapParsed
           ? JsSourceMap.__to_binding(sourceMap)
           : rawSourceMap;
-        context.additionalData = additionalData || undefined;
-        context.__internal__utf8Hint = typeof content === 'string';
+        // Rust has no consumer after the chain finishes; avoid creating an unused JS reference.
+        context.additionalData =
+          loaderContext.loaderIndex < 0
+            ? undefined
+            : additionalData || undefined;
 
         break;
       }
@@ -1102,9 +1248,14 @@ export async function runLoaders(
     });
   }
 
-  if (compiler.options?.cache) {
+  if (
+    compiler.options?.cache &&
+    Object.hasOwn(context._module, MODULE_BUILD_INFO_SYMBOL)
+  ) {
     commitCustomFieldsToRust(context._module.buildInfo);
   }
 
+  context.addedDependencies = dependencies.added;
+  context.removedDependencies = dependencies.removed;
   return context;
 }

@@ -1,0 +1,11 @@
+```mjs title=main.mjs
+import same_name_asset from "./assets/same-name.asset.mjs";
+import same_name_asset_0 from "./assets/same_name.asset.mjs";
+module.exports = same_name_asset;
+module.exports = same_name_asset_0;
+const same_name_asset_1 = __webpack_require__("./same-name.asset.mjs");
+const same_name_asset_2 = __webpack_require__("./same_name.asset.mjs");
+const index_same_name_asset = 'first application value'
+const index_same_name_asset_0 = 'second application value'
+export { applicationValues, index_same_name_asset as firstApplicationValue, index_same_name_asset_0 as secondApplicationValue, same_name_asset_1 as dashedAsset, same_name_asset_2 as underscoredAsset };
+```

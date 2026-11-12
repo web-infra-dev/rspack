@@ -12,8 +12,6 @@ pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_macros::MergeFrom;
 use rspack_paths::Utf8PathBuf;
-#[cfg(allocative)]
-use rspack_util::allocative;
 
 use super::CleanOptions;
 use crate::{Chunk, ChunkGroupByUkey, ChunkKind, ChunkUkey, Compilation, Filename};
@@ -35,8 +33,10 @@ pub struct OutputOptions {
   pub public_path: PublicPath,
   pub asset_module_filename: Filename,
   pub wasm_loading: WasmLoading,
+  pub wasm_streaming_fallback: bool,
   pub webassembly_module_filename: Filename,
   pub unique_name: String,
+  pub chunk_format: String,
   pub chunk_loading: ChunkLoading,
   pub chunk_loading_global: String,
   pub chunk_load_timeout: u32,
@@ -260,7 +260,6 @@ impl From<&str> for WasmLoadingType {
 }
 
 #[derive(Debug, Clone)]
-#[cfg_attr(allocative, derive(allocative::Allocative))]
 pub enum CrossOriginLoading {
   Disable,
   Enable(String),
@@ -637,6 +636,7 @@ pub struct Environment {
   pub template_literal: bool,
   pub dynamic_import_in_worker: bool,
   pub import_meta_dirname_and_filename: bool,
+  pub top_level_await: bool,
 }
 
 impl Environment {
@@ -664,14 +664,6 @@ impl Environment {
     self.import_meta_dirname_and_filename
   }
 
-  pub fn supports_async_function(&self) -> bool {
-    self.async_function
-  }
-
-  pub fn supports_big_int_literal(&self) -> bool {
-    self.big_int_literal
-  }
-
   pub fn supports_destructuring(&self) -> bool {
     self.destructuring
   }
@@ -684,31 +676,11 @@ impl Environment {
     self.dynamic_import
   }
 
-  pub fn supports_dynamic_import_in_worker(&self) -> bool {
-    self.dynamic_import_in_worker
-  }
-
-  pub fn supports_for_of(&self) -> bool {
-    self.for_of
-  }
-
-  pub fn supports_global_this(&self) -> bool {
-    self.global_this
-  }
-
-  pub fn supports_module(&self) -> bool {
-    self.module
-  }
-
-  pub fn supports_optional_chaining(&self) -> bool {
-    self.optional_chaining
-  }
-
   pub fn supports_logical_assignment(&self) -> bool {
     self.logical_assignment
   }
 
-  pub fn supports_template_literal(&self) -> bool {
-    self.template_literal
+  pub fn supports_top_level_await(&self) -> bool {
+    self.top_level_await
   }
 }

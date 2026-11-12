@@ -64,6 +64,7 @@ export type KnownAssetInfo = {
   development?: boolean;
   hotModuleReplacement?: boolean;
   javascriptModule?: boolean;
+  isOverSizeLimit?: boolean;
   related?: Record<string, string | string[]>;
 };
 
@@ -126,6 +127,7 @@ export type KnownStatsModule = {
   errors?: number;
   warnings?: number;
   reasons?: StatsModuleReason[];
+  filteredReasons?: number;
   usedExports?: boolean | string[] | null;
   providedExports?: string[] | null;
   optimizationBailout?: string[] | null;
@@ -250,6 +252,13 @@ export type KnownStatsChunkOrigin = {
 
 export type StatsChunkOrigin = KnownStatsChunkOrigin & Record<string, any>;
 
+export type StatsCacheInfo = {
+  hits: number;
+  misses: number;
+  reused: number;
+  stores: number;
+};
+
 export type KnownStatsCompilation = {
   /**
    * webpack version.
@@ -260,11 +269,14 @@ export type KnownStatsCompilation = {
   rspackVersion?: string;
   name?: string;
   hash?: string;
+  cacheInfo?: Record<string, StatsCacheInfo>;
+  env?: any;
   time?: number;
   builtAt?: number;
   publicPath?: string;
   outputPath?: string;
   assets?: StatsAsset[];
+  filteredAssets?: number;
   assetsByChunkName?: Record<string, string[]>;
   chunks?: StatsChunk[];
   modules?: StatsModule[];
@@ -272,16 +284,16 @@ export type KnownStatsCompilation = {
   namedChunkGroups?: Record<string, StatsChunkGroup>;
   errors?: StatsError[];
   errorsCount?: number;
+  filteredErrorDetailsCount?: number;
   warnings?: StatsError[];
   warningsCount?: number;
+  filteredWarningDetailsCount?: number;
   filteredModules?: number;
   children?: StatsCompilation[];
   logging?: Record<string, StatsLogging>;
 
   // TODO: not aligned with webpack
-  // env?: any;
   // needAdditionalPass?: boolean;
-  // filteredAssets?: number;
 };
 
 export type StatsCompilation = KnownStatsCompilation & Record<string, any>;
@@ -601,7 +613,7 @@ const sortOrderRegular = (field: string) => {
 
 export const sortByField = (
   field: string,
-): ((a1: Object, a2: Object) => number) => {
+): ((a1: Record<string, any>, a2: Record<string, any>) => number) => {
   if (!field) {
     const noSort = (_a: any, _b: any) => 0;
     return noSort;
@@ -652,13 +664,10 @@ export const moduleGroup = (
   };
 };
 
-export const mergeToObject = (
-  items: {
-    [key: string]: any;
-    name: string;
-  }[],
-): Object => {
-  const obj = Object.create(null);
+export const mergeToObject = <T extends { name: string }>(
+  items: T[],
+): Record<string, T> => {
+  const obj: Record<string, T> = Object.create(null);
   for (const item of items) {
     obj[item.name] = item;
   }

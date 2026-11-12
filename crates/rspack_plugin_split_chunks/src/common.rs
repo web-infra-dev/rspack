@@ -1,16 +1,17 @@
 use std::{
   ops::{Deref, DerefMut},
-  sync::Arc,
+  sync::{Arc, LazyLock},
 };
 
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use rayon::prelude::*;
-use rspack_collections::IdentifierMap;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{ChunkUkey, Compilation, Module, ModuleIdentifier, SourceType};
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap, FxHashSet};
+use smallvec::SmallVec;
 
 pub type ChunkFilterFunc =
   Arc<dyn Fn(&ChunkUkey, &Compilation) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
@@ -67,15 +68,67 @@ impl ChunkFilter {
 }
 
 pub type ModuleTypeFilter = Arc<dyn Fn(&dyn Module) -> bool + Send + Sync>;
-pub type ModuleLayerFilter =
-  Arc<dyn Fn(Option<String>) -> BoxFuture<'static, Result<bool>> + Send + Sync>;
+pub type ModuleLayerFilter = Arc<dyn ModuleLayerFilterFn>;
+pub type NativeModuleLayerFilterFn = dyn Fn(Option<&str>) -> bool + Send + Sync;
+
+pub trait ModuleLayerFilterFn: Send + Sync {
+  fn call(&self, layer: Option<String>) -> BoxFuture<'static, Result<bool>>;
+
+  fn native(&self) -> Option<&NativeModuleLayerFilterFn> {
+    None
+  }
+}
+
+impl<F> ModuleLayerFilterFn for F
+where
+  F: Fn(Option<String>) -> BoxFuture<'static, Result<bool>> + Send + Sync,
+{
+  fn call(&self, layer: Option<String>) -> BoxFuture<'static, Result<bool>> {
+    self(layer)
+  }
+}
+
+struct NativeModuleLayerFilter<F>(F);
+
+impl<F> ModuleLayerFilterFn for NativeModuleLayerFilter<F>
+where
+  F: Fn(Option<&str>) -> bool + Send + Sync + 'static,
+{
+  fn call(&self, layer: Option<String>) -> BoxFuture<'static, Result<bool>> {
+    let matched = (self.0)(layer.as_deref());
+    Box::pin(async move { Ok(matched) })
+  }
+
+  fn native(&self) -> Option<&NativeModuleLayerFilterFn> {
+    Some(&self.0)
+  }
+}
+
+pub fn create_native_module_layer_filter(
+  filter: impl Fn(Option<&str>) -> bool + Send + Sync + 'static,
+) -> ModuleLayerFilter {
+  Arc::new(NativeModuleLayerFilter(filter))
+}
+
+static DEFAULT_MODULE_TYPE_FILTER: LazyLock<ModuleTypeFilter> =
+  LazyLock::new(|| Arc::new(|_| true));
+static DEFAULT_MODULE_LAYER_FILTER: LazyLock<ModuleLayerFilter> =
+  LazyLock::new(|| create_native_module_layer_filter(|_| true));
 
 pub fn create_default_module_type_filter() -> ModuleTypeFilter {
-  Arc::new(|_| true)
+  Arc::clone(&DEFAULT_MODULE_TYPE_FILTER)
 }
 
 pub fn create_default_module_layer_filter() -> ModuleLayerFilter {
-  Arc::new(|_| Box::pin(async move { Ok(true) }))
+  Arc::clone(&DEFAULT_MODULE_LAYER_FILTER)
+}
+
+pub(crate) fn is_default_module_type_filter(filter: &ModuleTypeFilter) -> bool {
+  Arc::ptr_eq(filter, &DEFAULT_MODULE_TYPE_FILTER)
+}
+
+pub(crate) fn is_default_module_layer_filter(filter: &ModuleLayerFilter) -> bool {
+  Arc::ptr_eq(filter, &DEFAULT_MODULE_LAYER_FILTER)
 }
 
 pub fn create_async_chunk_filter() -> ChunkFilter {
@@ -214,9 +267,12 @@ pub fn get_module_sizes<T: ParallelIterator<Item = ModuleIdentifier>>(
       let sizes = module
         .source_types(module_graph)
         .iter()
-        .map(|ty| (*ty, module.size(Some(ty), Some(compilation))))
+        .map(|ty| (*ty, module.size(Some(ty))))
         .collect::<FxHashMap<_, _>>();
-      (module.identifier(), sizes)
+      (
+        module.identifier(),
+        ModuleSourceSizes(sizes.into_iter().collect()),
+      )
     })
     .collect::<IdentifierMap<_>>()
 }
@@ -231,5 +287,93 @@ pub struct FallbackCacheGroup {
   pub automatic_name_delimiter: String,
 }
 
-pub type ModuleSizes = IdentifierMap<FxHashMap<SourceType, f64>>;
-pub(crate) type ModuleChunks = Vec<FxHashSet<ChunkUkey>>;
+/// Immutable module sizes are traversed for many different candidates. Keep the
+/// common single source type inline, retaining the original map's iteration
+/// order so size accumulation performs the same floating-point operations.
+#[derive(Debug)]
+pub struct ModuleSourceSizes(SmallVec<[(SourceType, f64); 1]>);
+
+impl ModuleSourceSizes {
+  pub fn iter(&self) -> impl Iterator<Item = (&SourceType, &f64)> {
+    self.0.iter().map(|(ty, size)| (ty, size))
+  }
+
+  pub fn values(&self) -> impl Iterator<Item = &f64> {
+    self.0.iter().map(|(_, size)| size)
+  }
+
+  pub fn get(&self, ty: &SourceType) -> Option<&f64> {
+    self
+      .0
+      .iter()
+      .find_map(|(source_type, size)| (source_type == ty).then_some(size))
+  }
+
+  pub fn contains_key(&self, ty: &SourceType) -> bool {
+    self.get(ty).is_some()
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.0.is_empty()
+  }
+}
+
+pub type ModuleSizes = IdentifierMap<ModuleSourceSizes>;
+
+/// Returns a lossy mask for quickly proving that two chunk sets are disjoint. Chunk keys may
+/// collide in the mask, so overlapping masks must always fall back to an exact check.
+pub(crate) fn chunk_mask<'a>(chunks: impl Iterator<Item = &'a ChunkUkey>) -> u64 {
+  chunks.fold(0, |mask, chunk| {
+    mask | (1u64 << (chunk.as_u32() & (u64::BITS - 1)))
+  })
+}
+
+#[derive(Debug)]
+pub(crate) enum ModuleChunkMap {
+  Shared {
+    modules: IdentifierSet,
+    chunks: FxHashSet<ChunkUkey>,
+  },
+  ByModule(IdentifierMap<FxHashSet<ChunkUkey>>),
+}
+
+impl ModuleChunkMap {
+  pub fn chunk_mask(&self) -> u64 {
+    match self {
+      Self::Shared { chunks, .. } => chunk_mask(chunks.iter()),
+      Self::ByModule(module_chunks) => chunk_mask(module_chunks.values().flatten()),
+    }
+  }
+
+  pub fn get(&self, module: &ModuleIdentifier) -> Option<&FxHashSet<ChunkUkey>> {
+    match self {
+      Self::Shared { modules, chunks } => modules.contains(module).then_some(chunks),
+      Self::ByModule(module_chunks) => module_chunks.get(module),
+    }
+  }
+
+  pub fn insert_chunk(&mut self, module: ModuleIdentifier, chunk: ChunkUkey) {
+    if let Self::Shared { modules, chunks } = self {
+      let mut module_chunks = modules
+        .iter()
+        .map(|module| (*module, chunks.clone()))
+        .collect::<IdentifierMap<_>>();
+      module_chunks.entry(module).or_default().insert(chunk);
+      *self = Self::ByModule(module_chunks);
+      return;
+    }
+    let Self::ByModule(module_chunks) = self else {
+      unreachable!();
+    };
+    module_chunks.entry(module).or_default().insert(chunk);
+  }
+
+  pub fn retain_modules(&mut self, modules_to_keep: &IdentifierSet) {
+    match self {
+      Self::Shared { modules, .. } => modules.retain(|module| modules_to_keep.contains(module)),
+      Self::ByModule(module_chunks) => {
+        module_chunks.retain(|module, _| modules_to_keep.contains(module));
+      }
+    }
+  }
+}

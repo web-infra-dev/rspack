@@ -5,7 +5,10 @@ use miette::GraphicalTheme;
 use self::graphical::GraphicalReportHandler;
 use crate::{Result, error::Error};
 
-pub struct Renderer(GraphicalReportHandler);
+pub struct Renderer {
+  handler: GraphicalReportHandler,
+  colored: bool,
+}
 
 impl Renderer {
   pub fn new(colored: bool) -> Self {
@@ -14,17 +17,25 @@ impl Renderer {
     } else {
       GraphicalTheme::unicode_nocolor()
     };
-    Self(
-      GraphicalReportHandler::new()
+    Self {
+      handler: GraphicalReportHandler::new()
         .with_theme(theme)
         .with_context_lines(2)
         .with_width(usize::MAX),
-    )
+      colored,
+    }
   }
 
   pub fn render(&self, error: &Error) -> Result<String> {
+    let cache = error.render_cache(self.colored);
+    if let Some(rendered) = cache.get() {
+      return Ok(rendered.as_ref().to_owned());
+    }
+
     let mut buf = String::new();
-    self.0.render_report(&mut buf, error)?;
+    self.handler.render_report(&mut buf, error)?;
+    // Concurrent readers may populate the same cache; either report is equivalent.
+    let _ = cache.set(Box::from(buf.as_str()));
     Ok(buf)
   }
 }

@@ -5,15 +5,15 @@
 
 ## Asset Files
 - Bundle: bundle.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.hot-update.js, size: 6038
+- Manifest: main.LAST_HASH.hot-update.json, size: 53
+- Update: main.hot-update.js, size: 6029
 
 ## Manifest
 
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["main"],"r":[],"m":[]}
+{"c":["main"],"r":[],"m":[],"miniCss":{"c":["main"]}}
 ```
 
 
@@ -84,7 +84,7 @@ function normalizeUrl(url) {
         return accumulator;
     }, []).join('/');
 }
-let srcByModuleId = Object.create(null), noDocument = "u" < typeof document, { forEach: forEach } = Array.prototype;
+let srcByModuleId = Object.create(null), noDocument = "u" < typeof document, { forEach } = Array.prototype;
 function noop() {}
 function updateCss(el, url) {
     let normalizedUrl;

@@ -1,0 +1,14 @@
+{
+  // This is a line comment
+  "compilerOptions": {
+    /* This is a block comment */
+    "baseUrl": ".",
+    "paths": {
+      // Another line comment
+      "@components/*": ["${configDir}/src/components/*"],
+      "foo": ["${configDir}/src/mapped/foo"],
+      /* Block comment in paths */
+      "bar/*": ["${configDir}/src/mapped/bar/*"]
+    }
+  }
+}

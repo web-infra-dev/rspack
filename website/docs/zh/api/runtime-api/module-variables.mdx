@@ -2,11 +2,9 @@
 description: '本节涵盖了使用 Rspack 编译代码时所有可用的变量。模块将能够通过 module 和其他变量访问来自编译过程的特定数据。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import Columns from '@components/Columns';
 import { ApiMeta, Stability } from '@components/ApiMeta';
-
-<WebpackLicense from="https://webpack.docschina.org/api/module-variables/" />
 
 # 模块变量
 
@@ -96,7 +94,7 @@ __dirname
 
 ## import.meta（ESM） \{#import-meta}
 
-`import.meta` 将特定上下文的元数据暴露给 JavaScript 模块，例如模块的 URL。它仅在支持 ESM（[模块类型](/misc/glossary#module-type模块类型)为 `javascript/auto` 或 `javascript/esm`）的模块中可用。
+`import.meta` 将特定上下文的元数据暴露给 JavaScript 模块，例如模块的 URL。它仅在支持 ESM（[模块类型](/misc/glossary#module-type)为 `javascript/auto` 或 `javascript/esm`）的模块中可用。
 
 通常情况下，未知的 `import.meta` 元数据默认会被替换为 `undefined`。当使用 [ESM 格式](/guide/features/esm)输出时，[`module.parser.javascript.importMeta`](/config/module-parser#javascriptimportmeta) 的默认值为 `'preserve-unknown'`，因此未知的元数据会被保留并在运行时被计算。你也可以使用 `module.parser.javascript.importMeta` 的对象形式，分别控制已知的 `import.meta` 字段。
 
@@ -236,6 +234,12 @@ interface ImportMetaGlobOptions<Eager extends boolean = boolean> {
    * 用于解析相对 glob 模式和返回 key 的 base 路径。
    */
   base?: string;
+  /**
+   * 是否区分文件路径大小写。
+   *
+   * @default true
+   */
+  caseSensitive?: boolean;
 }
 
 function glob(
@@ -256,12 +260,13 @@ function glob(
 ```
 
 - **参数：**
-  - `pattern`：匹配文件的 glob 模式字符串，或 glob 模式字符串数组（例如 `'./dir/*.js'`）。支持 `*`、`?`、`[abc]`、`{a,b}` 以及 `**`（递归匹配）。数组模式也可以包含负向模式，例如 `'!**/bar.js'`。
+  - `pattern`：匹配文件的 glob 模式字符串，或 glob 模式字符串数组（例如 `'./dir/*.js'`）。支持 `*`、`?`、`[abc]`、`{a,b}` 以及 `**`（递归匹配）。不以相对路径符号开头的模式可以使用 `resolve.alias`（例如 `'@/pages/*.js'`）；当文件位于项目根目录内时，返回对象的 key 使用相对于项目根目录的解析后路径。数组模式也可以包含负向模式，例如 `'!**/bar.js'`。
   - `options.eager`：设置为 `true` 时，模块直接包含在 bundle 中并同步加载。默认为 `false`，模块会延迟加载，每个值是一个返回 `Promise` 的 thunk 函数。
   - `options.import`：只导入每个匹配模块的指定导出。例如使用 `'default'` 获取默认导出，或使用 `'setup'` 这样的具名导出。
   - `options.query`：为每个匹配模块请求追加 query。可以是 `'?raw'` 这样的 query 字符串，也可以是会序列化为 URL query 字符串的对象。`import.meta.glob()` 返回对象中的 key 不包含 query。
   - `options.exhaustive`：搜索 `node_modules` 和隐藏路径中的文件。默认关闭，因为可能增加构建时间。
   - `options.base`：用于解析相对 glob 模式和返回 key 的 base 路径。绝对 glob 模式仍从项目根目录解析，但返回 key 会相对于 `base`。
+  - `options.caseSensitive`：是否区分文件路径大小写。设置为 `false` 时忽略大小写匹配，返回对象的 key 保留文件系统原始大小写。默认为 `true`。
 
 - **示例：**
 
@@ -502,21 +507,17 @@ __webpack_require__.p = '由 document/location 计算得来';
 
 <ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
 
-运行时获取或修改 Base URI。
+读取或修改 Rspack 在运行时用于解析资源和 Worker 相对 URL 的基准 URI。通常可以直接使用默认值，无需修改。
 
-<Columns>
-```js title=源码
-import.meta.rspackBaseUri;
+```js
+// 读取当前基准 URI。
+const baseUri = import.meta.rspackBaseUri;
+
+// 如果需要修改，在创建资源 URL 前设置。
+import.meta.rspackBaseUri = 'https://example.com/app/';
 ```
 
-```js title=产物
-__webpack_require__.b;
-
-// chunk loading
-__webpack_require__.b = document.baseURI || self.location.href;
-```
-
-</Columns>
+关于默认值、与 `publicPath` 的关系及使用示例，参阅 [Base URI](/guide/features/asset-base-path#base-uri)。
 
 ### import.meta.rspackNonce
 
@@ -613,12 +614,12 @@ import.meta.rspackUniqueId;
 __webpack_require__.ruid;
 
 // webpack/runtime/rspack_unique_id
-__webpack_require__.ruid = 'bundler=rspack@0.7.4';
+__webpack_require__.ruid = 'bundler=rspack@2.1.2';
 ```
 
 </Columns>
 
-## Runtime
+## Rspack 运行时 \{#rspack-runtime}
 
 ### \_\_webpack_hash\_\_
 
@@ -630,7 +631,7 @@ __webpack_require__.ruid = 'bundler=rspack@0.7.4';
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-访问当前入口的 runtime chunk 的 id。
+读取当前入口的 Rspack 运行时 ID。
 
 <Columns>
 ```js title=源码
@@ -726,6 +727,25 @@ __webpack_module__.id
 
 </Columns>
 
+### \_\_webpack_layer\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} />
+
+访问当前模块的 [layer](/guide/advanced/layer)。它的值是配置的 layer 名称；如果模块未分配 layer，则为 `null`。
+
+Rspack 会在编译时替换 `__webpack_layer__`，使优化器能够移除不可达的特定 layer 分支。
+
+<Columns>
+```js title=源码
+const currentLayer = __webpack_layer__;
+```
+
+```js title=产物
+const currentLayer = 'client';
+```
+
+</Columns>
+
 ### \_\_webpack_require\_\_
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
@@ -808,7 +828,7 @@ __resourceQuery
 
 ### \_\_webpack_exports_info\_\_
 
-<ApiMeta addedVersion="1.0.0" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 在模块中通过 `__webpack_exports_info__` 可以读取如下导出信息：
 
@@ -912,7 +932,7 @@ import('./module-a').then((moduleA) => {
 
 ### \_\_webpack_get_script_filename\_\_
 
-<ApiMeta addedVersion="1.0.0" specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} />
 
 通过 chunk 的 id 获取 chunk 的文件名。
 
@@ -932,7 +952,7 @@ __webpack_require__.u = function (chunkId) {
 
 </Columns>
 
-可以通过赋值来在运行时修改它的行为。比如以下示例，在最终加载 chunk 的路径后增加特定后缀。
+可以重新赋值此函数，修改 Rspack 运行时加载 chunk 时使用的脚本文件名。例如，在文件名后添加特定后缀：
 
 ```js
 const oldFn = __webpack_get_script_filename__;
@@ -975,10 +995,8 @@ __webpack_get_script_filename__ = (chunkId) => {
 
 ### \_\_rspack_unique_id\_\_
 
-<ApiMeta
-  addedVersion="1.0.0"
-  specific={['Rspack']}
-  stability={Stability.Deprecated}
-/>
+<ApiMeta specific={['Rspack']} stability={Stability.Deprecated} />
 
 是 [`import.meta.rspackUniqueId`](#importmetarspackuniqueid) 在 CommonJS 下的等价写法。
+
+<Attribution url="https://webpack.docschina.org/api/module-variables/" />

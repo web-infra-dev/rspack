@@ -1,3 +1,4 @@
+import path from 'node:path';
 import {
   type RawAssetGeneratorDataUrlFnCtx,
   type RawAssetGeneratorOptions,
@@ -24,6 +25,7 @@ import {
   type RawRuleSetCondition,
   RawRuleSetConditionType,
   type RawRuleSetLogicalConditions,
+  type RawSnapshotOptions,
 } from '@rspack/binding';
 
 import type { Compiler } from '../Compiler';
@@ -62,6 +64,7 @@ import type {
   JavascriptParserOptions,
   JsonGeneratorOptions,
   JsonParserOptions,
+  NewCache,
   Node,
   Optimization,
   Output,
@@ -82,13 +85,21 @@ export type {
 
 const MAX_U32 = 0xffffffff;
 
+type ExperimentsWithDefaults = Omit<
+  Required<ExperimentsNormalized>,
+  'newCache'
+> & {
+  newCache: false | Required<NewCache>;
+};
+
 // invariant: `options` is normalized with default value applied
 export const getRawOptions = (
   options: RspackOptionsNormalized,
   compiler: Compiler,
 ): RawOptions => {
   const mode = options.mode;
-  const experiments = options.experiments as Required<ExperimentsNormalized>;
+  const experiments = options.experiments as ExperimentsWithDefaults;
+  const cache = options.cache!;
   return {
     name: options.name,
     mode,
@@ -104,9 +115,10 @@ export const getRawOptions = (
     }),
     optimization: options.optimization as Required<Optimization>,
     stats: getRawStats(options.stats),
-    cache: getRawCache(options.cache!),
+    cache: getRawCache(cache),
+    snapshot: getRawSnapshot(options.snapshot),
     experiments,
-    incremental: options.incremental,
+    incremental: mode === 'development' && options.incremental,
     node: getRawNode(options.node),
     amd: options.amd ? JSON.stringify(options.amd || {}) : undefined,
     bail: options.bail!,
@@ -114,9 +126,34 @@ export const getRawOptions = (
   };
 };
 
+function getRawSnapshot(
+  snapshot: RspackOptionsNormalized['snapshot'],
+): RawSnapshotOptions {
+  const strategy = (
+    value: { hash?: boolean; timestamp?: boolean } | undefined,
+  ) => ({
+    hash: value?.hash ?? false,
+    timestamp: value?.timestamp ?? false,
+  });
+  return {
+    immutablePaths: snapshot.immutablePaths!,
+    unmanagedPaths: snapshot.unmanagedPaths!,
+    managedPaths: snapshot.managedPaths!,
+    buildDependencies: strategy(snapshot.buildDependencies),
+    resolveBuildDependencies: strategy(snapshot.resolveBuildDependencies),
+    module: strategy(snapshot.module),
+    contextModule: strategy(snapshot.contextModule),
+    resolve: strategy(snapshot.resolve),
+  };
+}
+
 function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
   if (cache === false) return false;
-  if (cache.type === 'memory') return cache;
+  if (cache.type === 'memory') {
+    return {
+      type: cache.type,
+    };
+  }
   const toRawStorageLimit = (name: string, value: number) => {
     if (value === Infinity) return 0;
     if (!Number.isSafeInteger(value) || value < 1 || value > MAX_U32) {
@@ -126,19 +163,28 @@ function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
     }
     return value;
   };
+  const toRawMemoryGenerations = (value: number) => {
+    if (value === Infinity) return undefined;
+    if (!Number.isSafeInteger(value) || value < 0 || value > MAX_U32) {
+      throw new Error(
+        `Invalid Rspack configuration: "cache.maxMemoryGenerations" must be a non-negative integer (0..${MAX_U32}) or Infinity, get \`${value}\`.`,
+      );
+    }
+    return value;
+  };
   return {
-    ...cache,
+    type: cache.type,
+    buildDependencies: cache.buildDependencies,
+    version: cache.version,
     maxAge: toRawStorageLimit('cache.maxAge', cache.maxAge!),
-    maxVersions: toRawStorageLimit('cache.maxVersions', cache.maxVersions!),
+    maxMemoryGenerations: toRawMemoryGenerations(cache.maxMemoryGenerations!),
     storage: {
-      ...cache.storage,
+      type: cache.storage.type,
       directory: cache.storage.directory!,
+      location: cache.storage.location!,
     },
-    snapshot: {
-      immutablePaths: cache.snapshot.immutablePaths!,
-      unmanagedPaths: cache.snapshot.unmanagedPaths!,
-      managedPaths: cache.snapshot.managedPaths!,
-    },
+    portable: cache.portable,
+    readonly: cache.readonly,
   };
 }
 
@@ -170,6 +216,7 @@ function getRawOutputEnvironment(
     optionalChaining: Boolean(environment.optionalChaining),
     logicalAssignment: Boolean(environment.logicalAssignment),
     templateLiteral: Boolean(environment.templateLiteral),
+    topLevelAwait: Boolean(environment.topLevelAwait),
     importMetaDirnameAndFilename: Boolean(
       environment.importMetaDirnameAndFilename,
     ),
@@ -222,7 +269,8 @@ function getRawTsConfig(
   if (tsConfig === undefined) return tsConfig;
   const { configFile, references } = tsConfig;
   return {
-    configFile,
+    // WASI's cwd can differ from the JavaScript host's working directory.
+    configFile: path.resolve(configFile),
     referencesType:
       references === 'auto' ? 'auto' : references ? 'manual' : 'disabled',
     references: references === 'auto' ? undefined : references,
@@ -332,6 +380,7 @@ const getRawModuleRule = (
   }
 
   const rawModuleRule: RawModuleRule = {
+    as: rule.as,
     test: rule.test ? getRawRuleSetCondition(rule.test) : undefined,
     include: rule.include ? getRawRuleSetCondition(rule.include) : undefined,
     exclude: rule.exclude ? getRawRuleSetCondition(rule.exclude) : undefined,
@@ -424,9 +473,11 @@ const getRawModuleRule = (
     delete rawModuleRule.resourceQuery;
     delete rawModuleRule.resourceFragment;
 
-    rawModuleRule.rspackResource = getRawRuleSetCondition(
-      (resourceQueryFragment) => {
-        const { path, query, fragment } = parseResource(resourceQueryFragment);
+    rawModuleRule.rspackResource = {
+      type: RawRuleSetConditionType.func,
+      func: (resource: string | ReturnType<typeof parseResource>) => {
+        const { path, query, fragment } =
+          typeof resource === 'string' ? parseResource(resource) : resource;
 
         if (rule.test && !tryMatch(path, rule.test)) {
           return false;
@@ -448,7 +499,7 @@ const getRawModuleRule = (
 
         return true;
       },
-    );
+    };
   }
   return rawModuleRule;
 };
@@ -605,6 +656,7 @@ function getRawJavascriptParserOptions(
     dynamicImportFetchPriority: parser.dynamicImportFetchPriority,
     importMeta: getRawImportMeta(parser.importMeta),
     url: parser.url?.toString(),
+    dynamicUrl: parser.dynamicUrl,
     exprContextCritical: parser.exprContextCritical,
     unknownContextCritical: parser.unknownContextCritical,
     wrappedContextCritical: parser.wrappedContextCritical,
@@ -875,6 +927,7 @@ function getRawCssGeneratorOptions(
 ): RawCssGeneratorOptions {
   return {
     exportsOnly: options.exportsOnly,
+    runtimePublicPath: options.runtimePublicPath,
     esModule: options.esModule,
   };
 }
@@ -890,6 +943,7 @@ function getRawCssAutoOrModuleGeneratorOptions(
     localIdentHashSalt: options.localIdentHashSalt,
     exportsConvention: options.exportsConvention,
     exportsOnly: options.exportsOnly,
+    runtimePublicPath: options.runtimePublicPath,
     esModule: options.esModule,
   };
 }

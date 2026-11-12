@@ -2,7 +2,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsModuleDependency, Context, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleGraph,
   ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier, TemplateContext,
   TemplateReplaceSource,
 };
@@ -13,7 +13,7 @@ use super::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CommonJsRequireContextDependency {
   id: DependencyId,
   loc: DependencyLocation,
@@ -23,8 +23,7 @@ pub struct CommonJsRequireContextDependency {
   resource_identifier: ResourceIdentifier,
   options: ContextOptions,
   optional: bool,
-  critical: Option<Diagnostic>,
-  factorize_info: FactorizeInfo,
+  critical: rspack_core::DependencyCriticalState,
 }
 
 impl CommonJsRequireContextDependency {
@@ -49,8 +48,7 @@ impl CommonJsRequireContextDependency {
       resource_identifier,
       optional,
       id: DependencyId::new(),
-      critical: None,
-      factorize_info: Default::default(),
+      critical: Default::default(),
     }
   }
 
@@ -102,7 +100,7 @@ impl Dependency for CommonJsRequireContextDependency {
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     if let Some(critical) = self.critical() {
-      return Some(vec![critical.clone()]);
+      return Some(vec![critical]);
     }
     None
   }
@@ -137,20 +135,12 @@ impl ContextDependency for CommonJsRequireContextDependency {
     rspack_core::ContextTypePrefix::Normal
   }
 
-  fn critical(&self) -> &Option<Diagnostic> {
-    &self.critical
+  fn critical(&self) -> Option<Diagnostic> {
+    self.critical.get()
   }
 
-  fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
-    &mut self.critical
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
+  fn set_critical(&self, critical: Option<Diagnostic>) {
+    self.critical.set(critical);
   }
 }
 

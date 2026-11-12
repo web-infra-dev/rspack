@@ -28,10 +28,6 @@ impl HookCommon {
     &self.tap_stages
   }
 
-  pub fn push_tap_stage(&mut self, stage: i32) {
-    self.tap_stages.push(stage);
-  }
-
   pub fn insert_tap_stage(&mut self, index: usize, stage: i32) {
     self.tap_stages.insert(index, stage);
   }

@@ -1,7 +1,7 @@
 ```mjs title=lib.mjs
 // ./lib.js
 const value = () => 42
-const useless = () => 42
+const useless = () => 42;
 export { value };
 
 ```
@@ -15,7 +15,7 @@ it('should have no other exports', async () => {
 
   expect(value()).toBe(42)
   expect(Reflect.ownKeys(ns).length).toBe(1)
-})
+});
 export {};
 
 ```

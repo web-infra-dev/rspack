@@ -1,5 +1,5 @@
 import { JsCoordinator } from '@rspack/binding';
-import { type Compiler, GET_COMPILER_ID } from '../../Compiler';
+import type { Compiler } from '../../Compiler';
 import type { Compilation } from '../../exports';
 
 const PLUGIN_NAME = 'RscPlugin';
@@ -22,16 +22,7 @@ export class Coordinator {
       writable: false,
       value: () => {
         if (!this.#binding) {
-          this.#binding = new JsCoordinator(() => {
-            if (!this.#serverCompiler) {
-              throw new Error(
-                '[RscPlugin] Coordinator.getOrInitBinding() called before the server compiler was attached. ' +
-                  'Call coordinator.applyServerCompiler(serverCompiler) first.',
-              );
-            }
-            // @ts-ignore
-            return this.#serverCompiler[GET_COMPILER_ID]();
-          });
+          this.#binding = new JsCoordinator();
         }
         return this.#binding;
       },

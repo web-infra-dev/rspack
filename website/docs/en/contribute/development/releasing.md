@@ -14,19 +14,38 @@ The latest stable release follows the Semantic Versioning specification (x.y.z).
 
 The [full release workflow](https://github.com/web-infra-dev/rspack/actions/workflows/release.yml?query=is%3Asuccess) is triggered manually by Rspack maintainers on Tuesday with the complete release notes.
 
-During the release, the following binary artifacts for the target platforms are built:
+During the release, the binary artifacts below are built, grouped by the support tier that the [Node.js platform list](https://github.com/nodejs/node/blob/main/BUILDING.md#platform-list) gives to the platform they run on:
+
+**Tier 1**
 
 - x86_64-unknown-linux-gnu
 - aarch64-unknown-linux-gnu
-- riscv64gc-unknown-linux-gnu
+- x86_64-pc-windows-msvc
+- aarch64-apple-darwin
+
+**Tier 2**
+
+- powerpc64le-unknown-linux-gnu
+- s390x-unknown-linux-gnu
+- aarch64-pc-windows-msvc
+- x86_64-apple-darwin
+
+**Experimental**
+
 - x86_64-unknown-linux-musl
+- riscv64gc-unknown-linux-gnu
+
+**Others**
+
 - aarch64-unknown-linux-musl
 - riscv64gc-unknown-linux-musl
 - i686-pc-windows-msvc
-- x86_64-pc-windows-msvc
-- aarch64-pc-windows-msvc
-- x86_64-apple-darwin
-- aarch64-apple-darwin
+
+:::warning Platforms below Tier 1
+
+For these platforms Rspack only guarantees that the binding is built successfully. CI verifies the build only and never runs the test suite on them, so a green CI run is not a guarantee that Rspack behaves correctly there.
+
+:::
 
 ### Release steps
 
@@ -63,9 +82,9 @@ git push origin release/vx.y.z
 
 4. Create a PR with the title `chore: release v1.0.0`.
 5. Run the [Ecosystem CI workflow](https://github.com/web-infra-dev/rspack/actions/workflows/ecosystem-ci.yml) to ensure all ecosystem projects are working properly.
-6. Run the full release workflow on the release branch:
-   - [Release Full](https://github.com/web-infra-dev/rspack/actions/workflows/release.yml): Publish npm packages to registry
-   - [Release Crates](https://github.com/web-infra-dev/rspack/actions/workflows/release-crates.yml): Publish Rust crates to crates.io
+6. Run the [Release Full workflow](https://github.com/web-infra-dev/rspack/actions/workflows/release.yml) on the release branch. These options control what it publishes, and both are enabled by default:
+   - `release_npm`: Publish npm packages to registry
+   - `release_crates`: Publish Rust crates to crates.io
 7. After the release, merge the PR to the `main` branch.
 8. Use the `create-draft-release-notes` skill to create a draft [GitHub release note](https://github.com/web-infra-dev/rspack/releases).
 9. Review the draft release note, optionally add release highlights, and publish it.

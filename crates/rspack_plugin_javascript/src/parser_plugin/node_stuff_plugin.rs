@@ -1,11 +1,14 @@
+use std::sync::Arc;
+
 use rspack_core::{
   CachedConstDependency, CachedConstDependencyPlace, ConstDependency, NodeDirnameOption,
   NodeFilenameOption, NodeGlobalOption, RuntimeGlobals, RuntimeRequirementsDependency, get_context,
   parse_resource,
 };
 use rspack_error::{Diagnostic, cyan, yellow};
+use rspack_util::SpanExt;
 use sugar_path::SugarPath;
-use swc_experimental_ecma_ast::{Expr, GetSpan, Ident, UnaryExpr};
+use swc_next_ecma_ast::{Expr, GetSpan, Span, UnaryExpression};
 
 use crate::{
   JavascriptParserPlugin, dependency::ExternalModuleDependency, utils::eval,
@@ -87,7 +90,7 @@ impl NodeStuffPlugin {
       )],
       None,
     );
-    parser.add_presentational_dependency(Box::new(external_url_dep));
+    parser.add_presentational_dependency(Arc::new(external_url_dep));
 
     if matches!(property, NodeMetaProperty::Dirname) {
       let external_path_dep = ExternalModuleDependency::new(
@@ -95,13 +98,13 @@ impl NodeStuffPlugin {
         vec![("dirname".to_string(), "__rspack_dirname".to_string())],
         None,
       );
-      parser.add_presentational_dependency(Box::new(external_path_dep));
+      parser.add_presentational_dependency(Arc::new(external_path_dep));
     }
   }
 
   fn add_cjs_node_module_dependency(
     parser: &mut JavascriptParser,
-    ident_span: swc_experimental_ecma_ast::Span,
+    ident_span: swc_next_ecma_ast::Span,
     name: &str,
     property: NodeMetaProperty,
   ) {
@@ -122,7 +125,7 @@ impl NodeStuffPlugin {
       property.node_module_runtime_expr().into(),
       place,
     );
-    parser.add_presentational_dependency(Box::new(const_dep));
+    parser.add_presentational_dependency(Arc::new(const_dep));
   }
 }
 
@@ -131,7 +134,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
   fn identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
-    ident: &Ident,
+    span: Span,
     for_name: &str,
   ) -> Option<bool> {
     // Skip CJS handling if not enabled
@@ -156,12 +159,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
         NodeDirnameOption::NodeModule => {
           // `ExternalModuleDependency` extends `CachedConstDependency` in webpack.
           // We need to create two separate dependencies in Rspack.
-          Self::add_cjs_node_module_dependency(
-            parser,
-            ident.span,
-            DIRNAME,
-            NodeMetaProperty::Dirname,
-          );
+          Self::add_cjs_node_module_dependency(parser, span, DIRNAME, NodeMetaProperty::Dirname);
           return Some(true);
         }
         NodeDirnameOption::EvalOnly => {
@@ -169,20 +167,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
           if !parser.compiler_options.output.module {
             return None;
           }
-          Self::add_cjs_node_module_dependency(
-            parser,
-            ident.span,
-            DIRNAME,
-            NodeMetaProperty::Dirname,
-          );
+          Self::add_cjs_node_module_dependency(parser, span, DIRNAME, NodeMetaProperty::Dirname);
           return Some(true);
         }
         NodeDirnameOption::True => Self::get_relative_path(parser, NodeMetaProperty::Dirname),
         NodeDirnameOption::False => None,
       };
       if let Some(dirname) = dirname {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
-          ident.span.into(),
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+          span.into(),
           rspack_util::json_stringify_str(&dirname).into(),
         )));
         return Some(true);
@@ -200,12 +193,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
         NodeFilenameOption::NodeModule => {
           // `ExternalModuleDependency` extends `CachedConstDependency` in webpack.
           // We need to create two separate dependencies in Rspack.
-          Self::add_cjs_node_module_dependency(
-            parser,
-            ident.span,
-            FILENAME,
-            NodeMetaProperty::Filename,
-          );
+          Self::add_cjs_node_module_dependency(parser, span, FILENAME, NodeMetaProperty::Filename);
           return Some(true);
         }
         NodeFilenameOption::EvalOnly => {
@@ -213,20 +201,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
           if !parser.compiler_options.output.module {
             return None;
           }
-          Self::add_cjs_node_module_dependency(
-            parser,
-            ident.span,
-            FILENAME,
-            NodeMetaProperty::Filename,
-          );
+          Self::add_cjs_node_module_dependency(parser, span, FILENAME, NodeMetaProperty::Filename);
           return Some(true);
         }
         NodeFilenameOption::True => Self::get_relative_path(parser, NodeMetaProperty::Filename),
         NodeFilenameOption::False => None,
       };
       if let Some(filename) = filename {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
-          ident.span.into(),
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+          span.into(),
           rspack_util::json_stringify_str(&filename).into(),
         )));
         return Some(true);
@@ -237,8 +220,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
         NodeGlobalOption::True | NodeGlobalOption::Warn
       )
     {
-      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-        ident.span.into(),
+      if parser.in_short_hand {
+        let start = span.real_lo();
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+          (start, start).into(),
+          format!("{for_name}: ").into(),
+        )));
+      }
+      parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
+        span.into(),
         RuntimeGlobals::GLOBAL,
       )));
       return Some(true);
@@ -246,7 +236,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
     None
   }
 
-  fn rename(&self, parser: &mut JavascriptParser<'p>, expr: &Expr, for_name: &str) -> Option<bool> {
+  fn rename(&self, parser: &mut JavascriptParser<'p>, expr: Expr, for_name: &str) -> Option<bool> {
     // Skip CJS handling if not enabled
     if !self.handle_cjs {
       return None;
@@ -259,8 +249,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
         NodeGlobalOption::True | NodeGlobalOption::Warn
       )
     {
-      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-        expr.span().into(),
+      parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
+        expr.span(parser.ast.ast).into(),
         RuntimeGlobals::GLOBAL,
       )));
       return Some(false);
@@ -271,7 +261,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
   fn r#typeof(
     &self,
     parser: &mut JavascriptParser<'p>,
-    unary_expr: &UnaryExpr,
+    unary_expr: UnaryExpression,
     for_name: &str,
   ) -> Option<bool> {
     match for_name {
@@ -310,8 +300,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
       _ => return None,
     }
 
-    parser.add_presentational_dependency(Box::new(ConstDependency::new(
-      unary_expr.span().into(),
+    parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+      unary_expr.span(parser.ast.ast).into(),
       "'string'".into(),
     )));
     Some(true)

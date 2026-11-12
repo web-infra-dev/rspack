@@ -22,12 +22,14 @@ CompilerOptions {
         wasm_loading: Enable(
             Fetch,
         ),
+        wasm_streaming_fallback: true,
         webassembly_module_filename: Filename(
             Template(
                 "[hash].module.wasm",
             ),
         ),
         unique_name: "",
+        chunk_format: "array-push",
         chunk_loading: Enable(
             Jsonp,
         ),
@@ -113,6 +115,7 @@ CompilerOptions {
             template_literal: false,
             dynamic_import_in_worker: false,
             import_meta_dirname_and_filename: false,
+            top_level_await: false,
         },
         compare_before_emit: true,
     },
@@ -649,6 +652,7 @@ CompilerOptions {
     module: ModuleOptions {
         rules: [
             ModuleRule {
+                as: None,
                 rspack_resource: None,
                 test: None,
                 include: None,
@@ -668,6 +672,7 @@ CompilerOptions {
                 rules: Some(
                     [
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: None,
                             include: None,
@@ -709,6 +714,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: Some(
                                 RspackRegex {
@@ -748,6 +754,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: None,
                             include: None,
@@ -789,6 +796,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: Some(
                                 RspackRegex {
@@ -886,6 +894,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: Some(
                                 RspackRegex {
@@ -992,6 +1001,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: Some(
                                 RspackRegex {
@@ -1031,6 +1041,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: Some(
                                 RspackRegex {
@@ -1079,6 +1090,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: None,
                             include: None,
@@ -1187,6 +1199,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: Some(
                                 RspackRegex {
@@ -1211,6 +1224,7 @@ CompilerOptions {
                             rules: Some(
                                 [
                                     ModuleRule {
+                                        as: None,
                                         rspack_resource: None,
                                         test: None,
                                         include: None,
@@ -1298,6 +1312,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: None,
                             include: None,
@@ -1324,6 +1339,7 @@ CompilerOptions {
                             rules: Some(
                                 [
                                     ModuleRule {
+                                        as: None,
                                         rspack_resource: None,
                                         test: None,
                                         include: None,
@@ -1411,6 +1427,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: None,
                             include: None,
@@ -1431,6 +1448,7 @@ CompilerOptions {
                             one_of: Some(
                                 [
                                     ModuleRule {
+                                        as: None,
                                         rspack_resource: None,
                                         test: None,
                                         include: None,
@@ -1472,6 +1490,7 @@ CompilerOptions {
                                         extract_source_map: None,
                                     },
                                     ModuleRule {
+                                        as: None,
                                         rspack_resource: None,
                                         test: None,
                                         include: None,
@@ -1523,6 +1542,7 @@ CompilerOptions {
                             extract_source_map: None,
                         },
                         ModuleRule {
+                            as: None,
                             rspack_resource: None,
                             test: None,
                             include: None,
@@ -1582,6 +1602,7 @@ CompilerOptions {
                 extract_source_map: None,
             },
             ModuleRule {
+                as: None,
                 rspack_resource: None,
                 test: None,
                 include: None,
@@ -1654,6 +1675,9 @@ CompilerOptions {
                             dynamic_import_fetch_priority: None,
                             url: Some(
                                 Enable,
+                            ),
+                            dynamic_url: Some(
+                                true,
                             ),
                             unknown_context_critical: Some(
                                 true,
@@ -1746,8 +1770,48 @@ CompilerOptions {
         colors: <env-dependent>,
     },
     cache: Disabled,
+    snapshot: SnapshotOptions {
+        immutable_paths: [],
+        unmanaged_paths: [],
+        managed_paths: [
+            Regexp(
+                RspackRegex {
+                    flags: "",
+                    source: "[\\\\/]node_modules[\\\\/][^.]",
+                },
+            ),
+        ],
+        resolve_build_dependencies: SnapshotStrategyOptions {
+            hash: true,
+            timestamp: true,
+        },
+        build_dependencies: SnapshotStrategyOptions {
+            hash: true,
+            timestamp: true,
+        },
+        resolve: SnapshotStrategyOptions {
+            hash: false,
+            timestamp: true,
+        },
+        module: SnapshotStrategyOptions {
+            hash: false,
+            timestamp: true,
+        },
+        context_module: SnapshotStrategyOptions {
+            hash: false,
+            timestamp: true,
+        },
+    },
     experiments: Experiments {
         css: false,
+        new_cache: NewCacheOptions {
+            code_generation: false,
+            module: false,
+            devtool: false,
+            loader: false,
+            minimize: false,
+            resolver: false,
+        },
         defer_import: false,
         source_import: false,
         pure_functions: false,

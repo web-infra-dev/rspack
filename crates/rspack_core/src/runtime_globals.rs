@@ -312,6 +312,13 @@ define_runtime_globals! {
 
   // reexport
   const REEXPORT;
+
+  // Exports objects shared by deferred namespaces and the module bootstrap.
+  const DEFERRED_MODULE_EXPORTS;
+
+  /// Expected JavaScript versions of asynchronously loadable chunks.
+  const HMR_CHUNK_VERSIONS;
+
 }
 
 impl Default for RuntimeGlobals {
@@ -350,6 +357,7 @@ pub static BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS: LazyLock<RuntimeGlobals> = LazyLoc
     | RuntimeGlobals::MODULE_FACTORIES
     | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY
     | RuntimeGlobals::MODULE_CACHE
+    | RuntimeGlobals::DEFERRED_MODULE_EXPORTS
     | RuntimeGlobals::ON_CHUNKS_LOADED
     | RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
     | RuntimeGlobals::STARTUP_ENTRYPOINT
@@ -376,6 +384,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::MODULE_ID => "id",
     RuntimeGlobals::MODULE_LOADED => "loaded",
     RuntimeGlobals::MODULE_CACHE => "c",
+    RuntimeGlobals::DEFERRED_MODULE_EXPORTS => "zD",
     RuntimeGlobals::ENSURE_CHUNK => "e",
     RuntimeGlobals::ENSURE_CHUNK_HANDLERS => "f",
     RuntimeGlobals::PUBLIC_PATH => "p",
@@ -390,6 +399,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::INTERCEPT_MODULE_EXECUTION => "i",
     RuntimeGlobals::HMR_DOWNLOAD_MANIFEST => "hmrM",
     RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS => "hmrC",
+    RuntimeGlobals::HMR_CHUNK_VERSIONS => "hmrV",
     RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS => "hmrI",
     RuntimeGlobals::HMR_MODULE_DATA => "hmrD",
     RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX => "hmrS",
@@ -581,10 +591,6 @@ impl RuntimeGlobals {
     } else {
       self.property_name()
     }
-  }
-
-  pub fn name(&self) -> Option<&'static str> {
-    RUNTIME_GLOBAL_MAP.0.get(self).copied()
   }
 
   pub fn from_property_name(property_name: &str) -> Option<Self> {

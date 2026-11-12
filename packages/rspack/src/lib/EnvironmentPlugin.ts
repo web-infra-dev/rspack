@@ -17,18 +17,15 @@ type CodeValue = any;
 
 class EnvironmentPlugin {
   keys: string[];
-  defaultValues: Record<string, string | undefined | null>;
+  defaultValues: Record<string, any>;
 
-  constructor(
-    ...keys:
-      string[] | [Record<string, string | undefined | null> | string | string[]]
-  ) {
+  constructor(...keys: string[] | [Record<string, any> | string | string[]]) {
     if (keys.length === 1 && Array.isArray(keys[0])) {
       this.keys = keys[0];
       this.defaultValues = {};
     } else if (keys.length === 1 && keys[0] && typeof keys[0] === 'object') {
       this.keys = Object.keys(keys[0]);
-      this.defaultValues = keys[0] as Record<string, string | undefined | null>;
+      this.defaultValues = keys[0] as Record<string, any>;
     } else {
       this.keys = keys as string[];
       this.defaultValues = {};

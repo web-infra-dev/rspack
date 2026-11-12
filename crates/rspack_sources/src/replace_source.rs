@@ -2,9 +2,9 @@ use std::{
   borrow::Cow,
   cell::RefCell,
   hash::{Hash, Hasher},
-  sync::Arc,
 };
 
+use bytes_str::BytesStr;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -12,7 +12,6 @@ use crate::{
   SourceValue,
   helpers::{Chunks, GeneratedInfo, StreamChunks, TextSpan, get_map},
   linear_map::LinearMap,
-  object_pool::ObjectPool,
   source_content_lines::SourceContentLines,
 };
 
@@ -56,12 +55,17 @@ pub enum ReplacementEnforce {
 }
 
 /// A single text replacement in a [ReplaceSource].
+///
+/// Module sources keep every replacement they recorded alive until the
+/// compilation is finished, so the size of this type is part of the peak memory
+/// of a build. The name is boxed because few replacements carry one: a thin
+/// pointer keeps the optional name one pointer wide.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Replacement {
   start: u32,
   end: u32,
   content: Cow<'static, str>,
-  name: Option<Cow<'static, str>>,
+  name: Option<Box<BytesStr>>,
   enforce: ReplacementEnforce,
   insertion_order: u32,
 }
@@ -84,7 +88,7 @@ impl Replacement {
 
   /// Get the replacement name.
   pub fn name(&self) -> Option<&str> {
-    self.name.as_deref()
+    self.name.as_deref().map(BytesStr::as_str)
   }
 
   /// Get the replacement enforce order.
@@ -127,6 +131,10 @@ impl ReplaceSource {
   /// Get the sorted list of replacements.
   pub fn replacements(&self) -> &[Replacement] {
     &self.replacements
+  }
+
+  pub(crate) fn shrink_to_fit(&mut self) {
+    self.replacements.shrink_to_fit();
   }
 
   /// Insert a content at start.
@@ -244,7 +252,7 @@ impl ReplaceSource {
       start,
       end,
       content: content.into(),
-      name: name.map(Into::into),
+      name: name.map(|name| Box::new(name.into())),
       enforce,
       insertion_order: self.replacements.len() as u32,
     });
@@ -281,7 +289,7 @@ impl ReplaceSource {
       start,
       end,
       content: Cow::Borrowed(content),
-      name: name.map(Cow::Borrowed),
+      name: name.map(|name| Box::new(BytesStr::from_static(name))),
       enforce,
       insertion_order: self.replacements.len() as u32,
     });
@@ -313,6 +321,10 @@ impl ReplaceSource {
 }
 
 impl Source for ReplaceSource {
+  fn mapped(&self) -> bool {
+    self.inner.mapped()
+  }
+
   fn source(&self) -> SourceValue<'_> {
     if self.replacements.is_empty() {
       return self.inner.source();
@@ -413,8 +425,7 @@ impl Source for ReplaceSource {
     // Handle remaining replacements one by one
     while replacement_idx < self.replacements.len() {
       let replacement = unsafe { self.replacements.get_unchecked(replacement_idx) };
-      let content = &replacement.content;
-      on_chunk(content);
+      on_chunk(&replacement.content);
       replacement_idx += 1;
     }
   }
@@ -462,31 +473,23 @@ impl Source for ReplaceSource {
     size
   }
 
-  fn map(&self, object_pool: &ObjectPool, options: &crate::MapOptions) -> Option<SourceMap<'_>> {
+  fn map(&self, options: &crate::MapOptions) -> Option<SourceMap> {
     let replacements = &self.replacements;
     if replacements.is_empty() {
-      return self.inner.map(object_pool, options);
+      return self.inner.map(options);
+    }
+    if !self.mapped() {
+      return None;
     }
     let chunks = self.stream_chunks();
-    get_map(object_pool, chunks.as_ref(), options).map(SourceMap::from_fields)
-  }
-
-  fn map_static(
-    self: Arc<Self>,
-    object_pool: &ObjectPool,
-    options: &crate::MapOptions,
-  ) -> Option<SourceMap<'static>> {
-    if self.replacements.is_empty() {
-      return self.inner.clone().map_static(object_pool, options);
-    }
-    let owner = self.clone();
-    self
-      .as_ref()
-      .map(object_pool, options)
-      .map(|map| map.into_static(owner))
+    get_map(chunks.as_ref(), options)
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
+    if self.replacements.is_empty() && crate::is_buffer_source(self.inner.as_ref()) {
+      return self.inner.to_writer(writer);
+    }
+
     let mut result = Ok(());
     self.rope(&mut |chunk| {
       if result.is_err() {
@@ -537,9 +540,9 @@ impl std::fmt::Debug for ReplaceSource {
   }
 }
 
-enum SourceContent<'object_pool, 'source> {
-  Raw(Cow<'source, str>),
-  Lines(SourceContentLines<'object_pool, 'source>),
+enum SourceContent {
+  Raw(BytesStr),
+  Lines(SourceContentLines),
 }
 
 fn check_content_at_position(
@@ -603,11 +606,10 @@ impl<'a> ReplaceSourceChunks<'a> {
 impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
   fn stream<'chunk>(
     &'chunk self,
-    object_pool: &ObjectPool,
     options: &MapOptions,
     on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
-    on_source: crate::helpers::OnSource<'_, 'source>,
-    on_name: crate::helpers::OnName<'_, 'source>,
+    on_source: crate::helpers::OnSource<'_>,
+    on_name: crate::helpers::OnName<'_>,
   ) -> crate::helpers::GeneratedInfo {
     let on_name = RefCell::new(on_name);
     let repls = &self.replacements;
@@ -618,9 +620,9 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
     let mut generated_line_offset: i64 = 0;
     let mut generated_column_offset: i64 = 0;
     let mut generated_column_offset_line = 0;
-    let source_content_lines: RefCell<LinearMap<Option<SourceContent<'_, 'source>>>> =
+    let source_content_lines: RefCell<LinearMap<Option<SourceContent>>> =
       RefCell::new(LinearMap::default());
-    let name_mapping: RefCell<HashMap<Cow<str>, u32>> = RefCell::new(HashMap::default());
+    let name_mapping: RefCell<HashMap<BytesStr, u32>> = RefCell::new(HashMap::default());
     let name_index_mapping: RefCell<LinearMap<u32>> = RefCell::new(LinearMap::default());
 
     // check if source_content[line][col] is equal to expect
@@ -655,7 +657,7 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
         {
           match source_content {
             SourceContent::Raw(source) => {
-              let lines = SourceContentLines::new(object_pool, source.clone());
+              let lines = SourceContentLines::new(source.clone());
               let matched = check_content_at_position(&lines, line, column, expected_chunk);
               *source_content = SourceContent::Lines(lines);
               matched
@@ -670,7 +672,6 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
       };
 
     let result = self.chunks.stream(
-      object_pool,
       &MapOptions {
         columns: options.columns,
         final_source: false,
@@ -704,6 +705,7 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
           }
           // Partially skip over chunk
           chunk_pos = replacement_end - pos;
+          let chunk_utf16_pos = chunk.slice_to(chunk_pos as usize).utf16_len();
           if let Some(original) = mapping.original.as_mut() {
             if self.is_original_source
               || check_original_content(
@@ -713,11 +715,10 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
                 chunk.slice_to(chunk_pos as usize).as_str(),
               )
             {
-              original.original_column += chunk_pos;
+              original.original_column += chunk_utf16_pos as u32;
             }
           }
           pos += chunk_pos;
-          let chunk_utf16_pos = chunk.slice_to(chunk_pos as usize).utf16_len();
           let line = mapping.generated_line as i64 + generated_line_offset;
           if generated_column_offset_line == line {
             generated_column_offset -= chunk_utf16_pos as i64;
@@ -788,13 +789,13 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
             .as_ref()
             .and_then(|original| original.name_index);
           if mapping.original.is_some() {
-            if let Some(name) = repl.name.as_ref() {
+            if let Some(name) = repl.name.as_deref() {
               let mut name_mapping = name_mapping.borrow_mut();
-              let mut global_index = name_mapping.get(name.as_ref()).copied();
+              let mut global_index = name_mapping.get(name).copied();
               if global_index.is_none() {
                 let len = name_mapping.len() as u32;
-                name_mapping.insert(Cow::Borrowed(name), len);
-                on_name.borrow_mut()(len, Cow::Borrowed(name));
+                name_mapping.insert(name.clone(), len);
+                on_name.borrow_mut()(len, name);
                 global_index = Some(len);
               }
               replacement_name_index = global_index;
@@ -890,24 +891,21 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
 
             // Partially skip over chunk
             let line = mapping.generated_line as i64 + generated_line_offset;
+            let skipped = chunk.slice(chunk_pos as usize, (chunk_pos + offset as u32) as usize);
+            let utf16_offset = skipped.utf16_len() as i64;
             if let Some(original) = mapping.original.as_mut() {
               if self.is_original_source
                 || check_original_content(
                   original.source_index,
                   original.original_line,
                   original.original_column,
-                  chunk
-                    .slice(chunk_pos as usize, (chunk_pos + offset as u32) as usize)
-                    .as_str(),
+                  skipped.as_str(),
                 )
               {
-                original.original_column += offset as u32;
+                original.original_column += utf16_offset as u32;
               }
             }
 
-            let utf16_offset = chunk
-              .slice(chunk_pos as usize, (chunk_pos + offset as u32) as usize)
-              .utf16_len() as i64;
             chunk_pos += offset as u32;
             pos += offset as u32;
 
@@ -960,14 +958,14 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
         if !self.is_original_source {
           let mut source_content_lines = source_content_lines.borrow_mut();
           let lines =
-            source_content.map(|source_content| SourceContent::Raw(Cow::Borrowed(source_content)));
+            source_content.map(|source_content| SourceContent::Raw(source_content.clone()));
           source_content_lines.insert(source_index, lines);
         }
         on_source(source_index, source, source_content);
       },
       &mut |name_index, name| {
         let mut name_mapping = name_mapping.borrow_mut();
-        let mut global_index = name_mapping.get(&name).copied();
+        let mut global_index = name_mapping.get(name).copied();
         if global_index.is_none() {
           let len = name_mapping.len() as u32;
           name_mapping.insert(name.clone(), len);
@@ -1083,7 +1081,7 @@ mod tests {
     SourceMapSourceOptions, source_map_source::WithoutOriginalOptions,
   };
 
-  fn with_readable_mappings(sourcemap: &SourceMap<'_>) -> String {
+  fn with_readable_mappings(sourcemap: &SourceMap) -> String {
     let mut first = true;
     let mut last_line = 0;
     sourcemap
@@ -1145,9 +1143,7 @@ mod tests {
     source.replace_static(start_line6 + 4, start_line6 + 5, " ", None);
 
     let result = source.source();
-    let result_map = source
-      .map(&ObjectPool::default(), &MapOptions::default())
-      .unwrap();
+    let result_map = source.map(&MapOptions::default()).unwrap();
 
     assert_eq!(
       code,
@@ -1179,9 +1175,7 @@ Last Line"#
 5:0 -> [file.txt] 6:0, :4 -> [file.txt] 6:4, :5 -> [file.txt] 7:0"#
     );
 
-    let result_list_map = source
-      .map(&ObjectPool::default(), &MapOptions::new(false))
-      .unwrap();
+    let result_list_map = source.map(&MapOptions::new(false)).unwrap();
     assert_eq!(
       with_readable_mappings(&result_list_map),
       r#"
@@ -1204,12 +1198,8 @@ Last Line"#
     source.insert_static(0, "Message: ", None);
     source.replace_static(2, (line1.len() + 5) as u32, "y A", None);
     let result_text = source.source();
-    let result_map = source
-      .map(&ObjectPool::default(), &MapOptions::default())
-      .unwrap();
-    let result_list_map = source
-      .map(&ObjectPool::default(), &MapOptions::new(false))
-      .unwrap();
+    let result_map = source.map(&MapOptions::default()).unwrap();
+    let result_list_map = source.map(&MapOptions::new(false)).unwrap();
 
     assert_eq!(
       original_code,
@@ -1238,12 +1228,8 @@ World!"#
     source.insert_static(0, "Line 0\n", None);
 
     let result_text = source.source();
-    let result_map = source
-      .map(&ObjectPool::default(), &MapOptions::default())
-      .unwrap();
-    let result_list_map = source
-      .map(&ObjectPool::default(), &MapOptions::new(false))
-      .unwrap();
+    let result_map = source.map(&MapOptions::default()).unwrap();
+    let result_list_map = source.map(&MapOptions::new(false)).unwrap();
 
     assert_eq!(result_text.into_string_lossy(), "Line -1\nLine 0\nLine 1");
     assert_eq!(
@@ -1271,12 +1257,8 @@ World!"#
     source.insert_static(0, "Line 0\n", None);
     source.replace_static(0, 6, "Hello", None);
     let result_text = source.source();
-    let result_map = source
-      .map(&ObjectPool::default(), &MapOptions::default())
-      .unwrap();
-    let result_list_map = source
-      .map(&ObjectPool::default(), &MapOptions::new(false))
-      .unwrap();
+    let result_map = source.map(&MapOptions::default()).unwrap();
+    let result_list_map = source.map(&MapOptions::new(false)).unwrap();
 
     assert_eq!(
       result_text.into_string_lossy(),
@@ -1300,12 +1282,8 @@ Line 2"#
     let mut source = ReplaceSource::new(OriginalSource::new(line1, "file.txt"));
     source.insert_static((line1.len() + 1) as u32, "Line 2\n", None);
     let result_text = source.source();
-    let result_map = source
-      .map(&ObjectPool::default(), &MapOptions::default())
-      .unwrap();
-    let result_list_map = source
-      .map(&ObjectPool::default(), &MapOptions::new(false))
-      .unwrap();
+    let result_map = source.map(&MapOptions::default()).unwrap();
+    let result_list_map = source.map(&MapOptions::new(false)).unwrap();
 
     assert_eq!(result_text.into_string_lossy(), "Line 1\nLine 2\n");
     assert_eq!(
@@ -1324,9 +1302,7 @@ Line 2"#
     let mut source = ReplaceSource::new(OriginalSource::new(bootstrap_code, "file.js"));
     source.replace_static(7, 12, "h", Some("hello"));
     source.replace_static(20, 25, "w", Some("world"));
-    let result_map = source
-      .map(&ObjectPool::default(), &MapOptions::default())
-      .expect("failed");
+    let result_map = source.map(&MapOptions::default()).expect("failed");
 
     let target_code = source.source();
     assert_eq!(target_code.into_string_lossy(), "   var h\n   var w\n");
@@ -1390,9 +1366,7 @@ export default function StaticPage(_ref) {
     );
 
     let target_code = source.source();
-    let source_map = source
-      .map(&ObjectPool::default(), &MapOptions::default())
-      .unwrap();
+    let source_map = source.map(&MapOptions::default()).unwrap();
 
     assert_eq!(
       target_code.into_string_lossy(),
@@ -1409,7 +1383,7 @@ function StaticPage(_ref) {
     assert_eq!(source_map.get_name(1).unwrap(), "data");
     assert_eq!(source_map.get_name(2).unwrap(), "foo");
     assert_eq!(
-      source_map.get_source_content(0).unwrap().as_ref(),
+      source_map.get_source_content(0).unwrap().as_str(),
       r#"export default function StaticPage({ data }) {
 return <div>{data.foo}</div>
 }
@@ -1442,9 +1416,7 @@ return <div>{data.foo}</div>
     source.replace_static(12, 24, "", None);
 
     let target_code = source.source();
-    let source_map = source
-      .map(&ObjectPool::default(), &MapOptions::default())
-      .unwrap();
+    let source_map = source.map(&MapOptions::default()).unwrap();
 
     assert_eq!(target_code.into_string_lossy(), "if (false) {}");
     assert_eq!(
@@ -1470,9 +1442,7 @@ return <div>{data.foo}</div>
     source.replace_static(0, 999, "replaced!\n", Some("whole"));
 
     let result_text = source.source();
-    let result_map = source
-      .map(&ObjectPool::default(), &MapOptions::default())
-      .unwrap();
+    let result_map = source.map(&MapOptions::default()).unwrap();
 
     assert_eq!(
       result_text.into_string_lossy(),
@@ -1493,10 +1463,7 @@ return <div>{data.foo}</div>
     source.replace_static(3, 5, "", None);
     assert_eq!(source.size(), 3);
     assert_eq!(source.source().into_string_lossy(), "box");
-    assert_eq!(
-      source.map(&ObjectPool::default(), &MapOptions::default()),
-      None
-    );
+    assert_eq!(source.map(&MapOptions::default()), None);
     let mut hasher = twox_hash::XxHash64::default();
     source.hash(&mut hasher);
     assert_eq!(format!("{:x}", hasher.finish()), "96abdb94c6fd5aba");
@@ -1529,10 +1496,7 @@ return <div>{data.foo}</div>
 "#
     );
     assert_eq!(
-      source
-        .map(&ObjectPool::default(), &MapOptions::default())
-        .unwrap()
-        .to_json(),
+      source.map(&MapOptions::default()).unwrap().to_json(),
       r#"{"version":3,"sources":["file.css"],"sourcesContent":["\n\"abc\"; url(__PUBLIC_PATH__logo.png);\n\"ヒラギノ角ゴ\"; url(__PUBLIC_PATH__logo.png);\n\"游ゴシック体\"; url(__PUBLIC_PATH__logo.png);\n\"🤪\"; url(__PUBLIC_PATH__logo.png);\n\"👨‍👩‍👧‍👧\"; url(__PUBLIC_PATH__logo.png);\n"],"names":[],"mappings":";AACA,OAAO,IAAI,GAAe;AAC1B,UAAU,IAAI,GAAe;AAC7B,UAAU,IAAI,GAAe;AAC7B,MAAM,IAAI,GAAe;AACzB,eAAe,IAAI,GAAe"}"#,
     );
   }
@@ -1702,7 +1666,7 @@ return <div>{data.foo}</div>
       source.source().into_string_lossy(),
       "var i18n = JSON.parse('{\"魑魅魍魉\":{\"en-US\":\"Evil spirits\",\"zh-CN\":\"魑魅魍魉\"}}');\nvar __webpack_exports___ = i18n[\"魑魅魍魉\"];\n\n"
     );
-    assert_eq!(source.map(&ObjectPool::default(), &MapOptions::default()).unwrap(), SourceMap::from_json(
+    assert_eq!(source.map(&MapOptions::default()).unwrap(), SourceMap::from_json(
       r#"{
           "version": 3,
           "sources": ["i18n.js"],
@@ -1728,10 +1692,8 @@ return <div>{data.foo}</div>
     );
 
     let mut chunks = vec![];
-    let object_pool = ObjectPool::default();
     let handle = source.stream_chunks();
     handle.stream(
-      &object_pool,
       &MapOptions::default(),
       &mut |chunk, mapping| {
         chunks.push((chunk.unwrap().as_str(), mapping));
@@ -1764,7 +1726,7 @@ return <div>{data.foo}</div>
             original: Some(OriginalLocation {
               source_index: 0,
               original_line: 1,
-              original_column: 19,
+              original_column: 7,
               name_index: None
             })
           }

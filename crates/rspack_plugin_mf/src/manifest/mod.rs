@@ -9,7 +9,7 @@ use std::path::Path;
 
 use asset::{
   collect_assets_for_module, collect_assets_from_chunk, collect_usage_files_for_module,
-  empty_assets_group, module_source_path, normalize_assets_group,
+  empty_assets_group, merge_assets_group, module_source_path, normalize_assets_group,
 };
 use data::{
   BasicStatsMetaData, ManifestExpose, ManifestRemote, ManifestRoot, ManifestShared,
@@ -31,11 +31,17 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use utils::{
   collect_entry_files, collect_expose_requirements, compose_id_with_separator,
-  ensure_configured_remotes, ensure_shared_entry, filter_assets, is_hot_file,
-  parse_consume_shared_identifier, parse_provide_shared_identifier, record_shared_usage, strip_ext,
+  ensure_configured_remotes, ensure_shared_entry, filter_assets, is_hot_file, record_shared_usage,
+  strip_ext,
 };
 
-use crate::container::{container_entry_module::ContainerEntryModule, remote_module::RemoteModule};
+use crate::{
+  ConsumeVersion,
+  container::{container_entry_module::ContainerEntryModule, remote_module::RemoteModule},
+  sharing::{
+    consume_shared_module::ConsumeSharedModule, provide_shared_module::ProvideSharedModule,
+  },
+};
 
 #[plugin]
 #[derive(Debug)]
@@ -286,6 +292,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let mut expose_fallback_chunk_keys: HashMap<String, rspack_core::ChunkUkey> =
       HashMap::default();
     let mut shared_map: HashMap<String, StatsShared> = HashMap::default();
+    let mut consumed_singletons: HashMap<String, bool> = HashMap::default();
     let mut shared_usage_links: Vec<(String, String)> = Vec::new();
     let mut shared_module_targets: HashMap<String, IdentifierSet> = HashMap::default();
     let mut module_ids_by_name: HashMap<String, ModuleIdentifier> = HashMap::default();
@@ -397,55 +404,59 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       let module_type = module.module_type();
-      let identifier = module_identifier.to_string();
 
       if matches!(module_type, ModuleType::Remote) {
         remote_module_ids.push(module_identifier);
       }
 
-      if matches!(module_type, ModuleType::ProvideShared) {
-        if let Some((pkg, ver)) = parse_provide_shared_identifier(&identifier) {
-          let entry = ensure_shared_entry(&mut shared_map, &container_name, &pkg);
-          if entry.version.is_empty() {
-            entry.version = ver;
-          }
-          // overlay user-configured shared options (singleton/requiredVersion/version)
-          if let Some(opt) = self.options.shared.iter().find(|s| s.name == pkg) {
-            if let Some(singleton) = opt.singleton {
-              entry.singleton = Some(singleton);
-            }
-            if entry.requiredVersion.is_none() {
-              entry.requiredVersion = opt.required_version.clone();
-            }
-            if let Some(cfg_ver) = opt.version.clone().filter(|_| entry.version.is_empty()) {
-              entry.version = cfg_ver;
-            }
-          }
-          let targets = shared_module_targets.entry(pkg.clone()).or_default();
-          for connection in module_graph.get_outgoing_connections(&module_identifier) {
-            let referenced = *connection.module_identifier();
-            if should_collect_module(&referenced) {
-              targets.insert(referenced);
-            }
-            let resolved = connection.resolved_module;
-            if should_collect_module(&resolved) {
-              targets.insert(resolved);
-            }
-          }
-          record_shared_usage(
-            &mut shared_usage_links,
-            &pkg,
-            &module_identifier,
-            module_graph,
-            compilation,
-          );
+      if let Some(provide_shared) = module.as_any().downcast_ref::<ProvideSharedModule>() {
+        let pkg = provide_shared.share_key().to_owned();
+        let entry = ensure_shared_entry(&mut shared_map, &container_name, &pkg);
+        if entry.version.is_empty() {
+          // Preserve the runtime version used when version is false.
+          entry.version = provide_shared.version().unwrap_or("0").to_owned();
         }
+        entry.singleton = Some(provide_shared.singleton().unwrap_or(true));
+        // overlay user-configured shared version options
+        if let Some(opt) = self.options.shared.iter().find(|s| s.name == pkg) {
+          if entry.requiredVersion.is_none() {
+            entry.requiredVersion = opt.required_version.clone();
+          }
+          if let Some(cfg_ver) = opt.version.clone().filter(|_| entry.version.is_empty()) {
+            entry.version = cfg_ver;
+          }
+        }
+        let targets = shared_module_targets.entry(pkg.clone()).or_default();
+        for connection in module_graph.get_outgoing_connections(&module_identifier) {
+          let referenced = *connection.module_identifier();
+          if should_collect_module(&referenced) {
+            targets.insert(referenced);
+          }
+          let resolved = connection.resolved_module;
+          if should_collect_module(&resolved) {
+            targets.insert(resolved);
+          }
+        }
+        record_shared_usage(
+          &mut shared_usage_links,
+          &pkg,
+          &module_identifier,
+          module_graph,
+          compilation,
+        );
         continue;
       }
 
-      if matches!(module_type, ModuleType::ConsumeShared)
-        && let Some((pkg, required)) = parse_consume_shared_identifier(&identifier)
-      {
+      if let Some(consume_shared) = module.as_any().downcast_ref::<ConsumeSharedModule>() {
+        let options = consume_shared.options();
+        let pkg = options.share_key.clone();
+        let required = match &options.required_version {
+          Some(ConsumeVersion::Version(v)) => {
+            let v = v.trim();
+            (!v.is_empty() && v != "*").then(|| v.to_owned())
+          }
+          Some(ConsumeVersion::False) | None => None,
+        };
         let mut target_ids: IdentifierSet = IdentifierSet::default();
         for connection in module_graph.get_outgoing_connections(&module_identifier) {
           let module_id = *connection.module_identifier();
@@ -467,10 +478,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
         // overlay user-configured shared options
         if let Some(opt) = self.options.shared.iter().find(|s| s.name == pkg) {
-          if let Some(singleton) = opt.singleton {
-            entry.singleton = Some(singleton);
-          }
-          // prefer parsed requiredVersion but fill from config if still None
+          // Prefer the module requiredVersion but fill from config if still None.
           if entry.requiredVersion.is_none() {
             entry.requiredVersion = opt.required_version.clone();
           }
@@ -485,6 +493,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           module_graph,
           compilation,
         );
+        // Read the original configuration so an omitted singleton retains the manifest default.
+        let singleton = self
+          .options
+          .shared
+          .iter()
+          .find(|s| s.name == consume_shared.configured_share_key())
+          .and_then(|s| s.singleton)
+          .unwrap_or(true);
+        consumed_singletons.insert(pkg, singleton);
       }
     }
 
@@ -558,48 +575,56 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     for (expose_file_key, expose) in exposes_map.iter_mut() {
-      let mut assets = None;
-      if let Some(chunk_key) = expose_chunk_keys.get(expose_file_key) {
-        assets = Some(collect_assets_from_chunk(
-          compilation,
-          chunk_key,
-          &entry_files,
-        ));
-      }
-      if assets.is_none()
-        && let Some(chunk_key) = compilation
+      let chunk_keys = expose_chunk_keys
+        .get(expose_file_key)
+        .or_else(|| {
+          compilation
+            .build_chunk_graph_artifact
+            .named_chunks
+            .get(expose_file_key)
+        })
+        .map(|chunk_key| vec![*chunk_key])
+        .or_else(|| {
+          module_ids_by_name
+            .get(expose_file_key)
+            .and_then(|module_id| {
+              let chunks = chunk_graph.get_module_chunks(*module_id);
+              (!chunks.is_empty()).then(|| chunks.iter().copied().collect())
+            })
+        })
+        .or_else(|| {
+          expose_fallback_chunk_keys
+            .get(expose_file_key)
+            .map(|chunk_key| vec![*chunk_key])
+        })
+        .unwrap_or_default();
+
+      let mut assets = empty_assets_group();
+      for chunk_key in chunk_keys {
+        let chunk = compilation
           .build_chunk_graph_artifact
-          .named_chunks
-          .get(expose_file_key)
-      {
-        assets = Some(collect_assets_from_chunk(
-          compilation,
-          chunk_key,
-          &entry_files,
-        ));
+          .chunk_by_ukey
+          .expect_get(&chunk_key);
+        // A provided module can also be imported locally into an expose chunk.
+        // Protect the same chunks used to collect assets, including unnamed ones.
+        for file in chunk.files() {
+          shared_asset_files.remove(file);
+        }
+        merge_assets_group(
+          &mut assets,
+          collect_assets_from_chunk(compilation, &chunk_key, &entry_files),
+        );
       }
-      if assets.is_none()
-        && let Some(module_id) = module_ids_by_name.get(expose_file_key)
-      {
-        assets = collect_assets_for_module(compilation, module_id, &entry_files);
-      }
-      if assets.is_none()
-        && let Some(chunk_key) = expose_fallback_chunk_keys.get(expose_file_key)
-      {
-        assets = Some(collect_assets_from_chunk(
-          compilation,
-          chunk_key,
-          &entry_files,
-        ));
-      }
-      let mut assets = assets.unwrap_or_else(empty_assets_group);
       if let Some(path) = expose_module_paths.get(expose_file_key) {
         expose.file = path.clone();
       }
-      // Remove main entry files from assets
-      filter_assets(&mut assets, &entry_files, &shared_asset_files, true);
-      normalize_assets_group(&mut assets);
       expose.assets = assets;
+    }
+
+    // Finish protecting every expose before filtering assets shared between them.
+    for expose in exposes_map.values_mut() {
+      filter_assets(&mut expose.assets, &entry_files, &shared_asset_files, true);
+      normalize_assets_group(&mut expose.assets);
     }
 
     if let Some(module_id) = container_entry_module
@@ -689,6 +714,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let shared = shared_map
       .into_values()
       .map(|mut v| {
+        // Consumer options take precedence regardless of module traversal order.
+        if let Some(singleton) = consumed_singletons.get(&v.name) {
+          v.singleton = Some(*singleton);
+        }
         v.usedIn.sort();
         v.usedIn.dedup();
         v

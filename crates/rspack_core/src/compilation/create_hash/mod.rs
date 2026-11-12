@@ -3,9 +3,7 @@ use rspack_hash::RspackHasher;
 use rustc_hash::FxHashSet;
 
 use super::*;
-use crate::{
-  ModuleCodeGenerationContext, cache::Cache, compilation::pass::PassExt, logger::Logger,
-};
+use crate::{ModuleCodeGenerationContext, compilation::pass::PassExt, logger::Logger};
 
 pub struct ChunkHashResult {
   pub hash: RspackHashDigest,
@@ -20,8 +18,8 @@ impl PassExt for CreateHashPass {
     "hashing"
   }
 
-  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.before_chunks_hashes(compilation).await;
+  fn incremental_passes(&self) -> IncrementalPasses {
+    IncrementalPasses::CHUNKS_HASHES
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
@@ -29,10 +27,6 @@ impl PassExt for CreateHashPass {
     create_hash(compilation, plugin_driver).await?;
     runtime_modules_code_generation(compilation).await?;
     Ok(())
-  }
-
-  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.after_chunks_hashes(compilation).await;
   }
 }
 
@@ -391,7 +385,8 @@ pub async fn create_hash(
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .values()
-    .sorted_unstable_by_key(|chunk| chunk.ukey())
+    // Chunk ids are stable across compilations; ukeys depend on creation history.
+    .sorted_unstable_by(|a, b| a.id().cmp(&b.id()).then_with(|| a.ukey().cmp(&b.ukey())))
     .for_each(|chunk| {
       if let Some(hash) = chunk.hash(&compilation.chunk_hashes_artifact) {
         compilation_hasher.update(hash);

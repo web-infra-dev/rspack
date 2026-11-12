@@ -31,7 +31,7 @@ it('should have correct re-export', async () => {
 	expect(foo()).toBe('foo')
 	expect(bar()).toBe('bar')
 	expect(defaultV.bar()).toBe('bar')
-})
+});
 
 const cjs_unknown = rspackRequire("./cjs-unknown.cjs");
 var bar_0 = cjs_unknown.bar;

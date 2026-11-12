@@ -10,10 +10,6 @@ modules by path ./node_modules/pmodule/*.js xx bytes
     [only some exports used: default]
     [inactive] esm import pmodule ./index.js 1:1-34
     [inactive] esm import specifier pmodule ./index.js 3:13-16
-  ./node_modules/pmodule/a.js xx bytes [orphan] [built]
-    [module unused]
-    [inactive] esm export import ./a ./node_modules/pmodule/index.js 1:1-21
-    [inactive] esm export import specifier ./a ./node_modules/pmodule/index.js 1:1-21
   ./node_modules/pmodule/b.js xx bytes [orphan] [built]
     [module unused]
     [inactive] esm export import ./b ./node_modules/pmodule/index.js 2:1-31

@@ -10,8 +10,12 @@ name                    = "rspack_javascript_compiler"
 repository.workspace    = true
 version.workspace       = true
 
+[features]
+codspeed = []
+
 [dependencies]
 anyhow              = { workspace = true }
+bytes-str           = { workspace = true }
 indoc               = { workspace = true }
 rustc-hash          = { workspace = true }
 serde               = { workspace = true, features = ["derive"] }

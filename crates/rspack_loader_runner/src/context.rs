@@ -1,14 +1,14 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{borrow::Cow, sync::Arc};
 
 use derive_more::Debug;
+use rspack_cacheable::cacheable;
 use rspack_error::Diagnostic;
-use rspack_paths::Utf8Path;
+use rspack_paths::{InternedPath, InternedPathSet, Utf8Path};
 use rspack_sources::SourceMap;
-use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  AdditionalData, Content, LoaderItem, LoaderRunnerPlugin, ParseMeta, ResourceData,
-  loader::LoaderItemList,
+  AdditionalData, Content, LoaderChain, LoaderItem, LoaderRunnerPlugin, ParseMeta, ResourceData,
+  chain::LoaderChains, loader::LoaderItemList,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -33,6 +33,24 @@ impl State {
   }
 }
 
+#[cacheable]
+#[derive(Clone, Debug, Default)]
+pub struct LoaderDependencies {
+  pub file: InternedPathSet,
+  pub context: InternedPathSet,
+  pub missing: InternedPathSet,
+  pub build: InternedPathSet,
+}
+
+impl LoaderDependencies {
+  pub fn is_empty(&self) -> bool {
+    self.file.is_empty()
+      && self.context.is_empty()
+      && self.missing.is_empty()
+      && self.build.is_empty()
+  }
+}
+
 #[derive(Debug)]
 pub struct LoaderContext<Context: Send> {
   pub hot: bool,
@@ -42,14 +60,19 @@ pub struct LoaderContext<Context: Send> {
   pub parse_meta: ParseMeta,
 
   pub(crate) content: Option<Content>,
-  pub(crate) source_map: Option<Box<SourceMap<'static>>>,
+  pub(crate) source_map: Option<Box<SourceMap>>,
   pub(crate) additional_data: Option<AdditionalData>,
 
   pub cacheable: bool,
-  pub file_dependencies: HashSet<PathBuf>,
-  pub context_dependencies: HashSet<PathBuf>,
-  pub missing_dependencies: HashSet<PathBuf>,
-  pub build_dependencies: HashSet<PathBuf>,
+  /// Dependencies committed by resource processing and preceding loaders.
+  pub(crate) dependencies: LoaderDependencies,
+  /// Dependencies added by the current loader (pitch) or root chain (normal).
+  /// Repeated registrations remain here even after merging into `dependencies`.
+  pub(crate) added_dependencies: LoaderDependencies,
+  /// Dependencies removed by the current loader (pitch) or root chain (normal).
+  /// A later addition takes precedence for the effective set, but retains the
+  /// removal record so the chain is not cached.
+  pub(crate) removed_dependencies: LoaderDependencies,
 
   pub diagnostics: Vec<Diagnostic>,
 
@@ -57,11 +80,228 @@ pub struct LoaderContext<Context: Send> {
   pub(crate) state: State,
   pub loader_index: i32,
   pub loader_items: Vec<LoaderItem<Context>>,
+  pub(crate) loader_chains: LoaderChains,
   #[debug(skip)]
   pub plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
 }
 
 impl<Context: Send> LoaderContext<Context> {
+  #[inline]
+  pub fn current_root_chain(&self) -> Option<&LoaderChain> {
+    self
+      .loader_chains
+      .root_chain(usize::try_from(self.loader_index).ok()?)
+  }
+
+  #[inline]
+  pub fn current_chain(&self) -> Option<&LoaderChain> {
+    self
+      .loader_chains
+      .execution_chain(usize::try_from(self.loader_index).ok()?)
+  }
+
+  fn effective_dependency_set<'a>(
+    existing: &'a InternedPathSet,
+    added: &InternedPathSet,
+    removed: &InternedPathSet,
+  ) -> Cow<'a, InternedPathSet> {
+    if added.is_empty() && removed.is_empty() {
+      return Cow::Borrowed(existing);
+    }
+    let mut dependencies = existing.clone();
+    for dependency in removed {
+      dependencies.remove(dependency);
+    }
+    dependencies.extend(added.iter().cloned());
+    Cow::Owned(dependencies)
+  }
+
+  /// Dependencies visible to the current loader, with its pending additions and removals applied.
+  pub fn dependencies(&self) -> Cow<'_, LoaderDependencies> {
+    if self.added_dependencies.is_empty() && self.removed_dependencies.is_empty() {
+      return Cow::Borrowed(&self.dependencies);
+    }
+    Cow::Owned(LoaderDependencies {
+      file: self.file_dependencies().into_owned(),
+      context: self.context_dependencies().into_owned(),
+      missing: self.missing_dependencies().into_owned(),
+      build: self.build_dependencies().into_owned(),
+    })
+  }
+
+  /// Dependencies committed before the current loader started.
+  #[doc(hidden)]
+  pub fn existing_dependencies(&self) -> &LoaderDependencies {
+    &self.dependencies
+  }
+
+  pub fn file_dependencies(&self) -> Cow<'_, InternedPathSet> {
+    Self::effective_dependency_set(
+      &self.dependencies.file,
+      &self.added_dependencies.file,
+      &self.removed_dependencies.file,
+    )
+  }
+
+  pub fn context_dependencies(&self) -> Cow<'_, InternedPathSet> {
+    Self::effective_dependency_set(
+      &self.dependencies.context,
+      &self.added_dependencies.context,
+      &self.removed_dependencies.context,
+    )
+  }
+
+  pub fn missing_dependencies(&self) -> Cow<'_, InternedPathSet> {
+    Self::effective_dependency_set(
+      &self.dependencies.missing,
+      &self.added_dependencies.missing,
+      &self.removed_dependencies.missing,
+    )
+  }
+
+  pub fn build_dependencies(&self) -> Cow<'_, InternedPathSet> {
+    Self::effective_dependency_set(
+      &self.dependencies.build,
+      &self.added_dependencies.build,
+      &self.removed_dependencies.build,
+    )
+  }
+
+  #[doc(hidden)]
+  pub fn added_dependencies(&self) -> &LoaderDependencies {
+    &self.added_dependencies
+  }
+
+  #[doc(hidden)]
+  pub fn removed_dependencies(&self) -> &LoaderDependencies {
+    &self.removed_dependencies
+  }
+
+  #[doc(hidden)]
+  pub fn reset_dependency_changes(&mut self) {
+    self.added_dependencies = Default::default();
+    self.removed_dependencies = Default::default();
+  }
+
+  /// Update the effective dependencies while retaining the chain's change records.
+  #[doc(hidden)]
+  pub fn merge_dependency_changes(&mut self) {
+    macro_rules! merge_dependencies {
+      ($field:ident) => {{
+        for dependency in &self.removed_dependencies.$field {
+          self.dependencies.$field.remove(dependency);
+        }
+        self
+          .dependencies
+          .$field
+          .extend(self.added_dependencies.$field.iter().cloned());
+      }};
+    }
+
+    merge_dependencies!(file);
+    merge_dependencies!(context);
+    merge_dependencies!(missing);
+    merge_dependencies!(build);
+  }
+
+  #[doc(hidden)]
+  pub fn replace_dependencies(
+    &mut self,
+    dependencies: LoaderDependencies,
+    added: LoaderDependencies,
+    removed: LoaderDependencies,
+  ) {
+    self.dependencies = dependencies;
+    self.added_dependencies = added;
+    self.removed_dependencies = removed;
+  }
+
+  #[doc(hidden)]
+  pub fn add_dependencies(&mut self, dependencies: &LoaderDependencies) {
+    for dependency in &dependencies.file {
+      self.add_file_dependency(dependency.clone());
+    }
+    for dependency in &dependencies.context {
+      self.add_context_dependency(dependency.clone());
+    }
+    for dependency in &dependencies.missing {
+      self.add_missing_dependency(dependency.clone());
+    }
+    for dependency in &dependencies.build {
+      self.add_build_dependency(dependency.clone());
+    }
+  }
+
+  pub fn add_file_dependency(&mut self, dependency: impl Into<InternedPath>) {
+    let dependency = dependency.into();
+    self.added_dependencies.file.insert(dependency);
+  }
+
+  pub fn add_context_dependency(&mut self, dependency: impl Into<InternedPath>) {
+    let dependency = dependency.into();
+    self.added_dependencies.context.insert(dependency);
+  }
+
+  pub fn add_missing_dependency(&mut self, dependency: impl Into<InternedPath>) {
+    let dependency = dependency.into();
+    self.added_dependencies.missing.insert(dependency);
+  }
+
+  pub fn add_build_dependency(&mut self, dependency: impl Into<InternedPath>) {
+    let dependency = dependency.into();
+    self.added_dependencies.build.insert(dependency);
+  }
+
+  pub fn remove_file_dependency(&mut self, dependency: impl Into<InternedPath>) {
+    let dependency = dependency.into();
+    self.added_dependencies.file.remove(&dependency);
+    if self.dependencies.file.contains(&dependency) {
+      self.removed_dependencies.file.insert(dependency);
+    }
+  }
+
+  pub fn remove_context_dependency(&mut self, dependency: impl Into<InternedPath>) {
+    let dependency = dependency.into();
+    self.added_dependencies.context.remove(&dependency);
+    if self.dependencies.context.contains(&dependency) {
+      self.removed_dependencies.context.insert(dependency);
+    }
+  }
+
+  pub fn remove_missing_dependency(&mut self, dependency: impl Into<InternedPath>) {
+    let dependency = dependency.into();
+    self.added_dependencies.missing.remove(&dependency);
+    if self.dependencies.missing.contains(&dependency) {
+      self.removed_dependencies.missing.insert(dependency);
+    }
+  }
+
+  pub fn remove_build_dependency(&mut self, dependency: impl Into<InternedPath>) {
+    let dependency = dependency.into();
+    self.added_dependencies.build.remove(&dependency);
+    if self.dependencies.build.contains(&dependency) {
+      self.removed_dependencies.build.insert(dependency);
+    }
+  }
+
+  pub fn clear_dependencies(&mut self) {
+    self
+      .removed_dependencies
+      .file
+      .extend(self.dependencies.file.iter().cloned());
+    self
+      .removed_dependencies
+      .context
+      .extend(self.dependencies.context.iter().cloned());
+    self
+      .removed_dependencies
+      .missing
+      .extend(self.dependencies.missing.iter().cloned());
+    self.added_dependencies.file.clear();
+    self.added_dependencies.context.clear();
+    self.added_dependencies.missing.clear();
+  }
+
   pub fn remaining_request(&self) -> LoaderItemList<'_, Context> {
     if self.loader_index >= self.loader_items.len() as i32 - 1 {
       return Default::default();
@@ -69,16 +309,8 @@ impl<Context: Send> LoaderContext<Context> {
     LoaderItemList(&self.loader_items[self.loader_index as usize + 1..])
   }
 
-  pub fn current_request(&self) -> LoaderItemList<'_, Context> {
-    LoaderItemList(&self.loader_items[self.loader_index as usize..])
-  }
-
   pub fn previous_request(&self) -> LoaderItemList<'_, Context> {
     LoaderItemList(&self.loader_items[..self.loader_index as usize])
-  }
-
-  pub fn request(&self) -> LoaderItemList<'_, Context> {
-    LoaderItemList(&self.loader_items[..])
   }
 
   #[inline]
@@ -89,10 +321,6 @@ impl<Context: Send> LoaderContext<Context> {
   /// Emit a diagnostic, it can be a `warning` or `error`.
   pub fn emit_diagnostic(&mut self, diagnostic: Diagnostic) {
     self.diagnostics.push(diagnostic)
-  }
-
-  pub fn resource_data(&self) -> &ResourceData {
-    &self.resource_data
   }
 
   /// The resource part of the request, including query and fragment.
@@ -113,17 +341,11 @@ impl<Context: Send> LoaderContext<Context> {
     self.resource_data.query()
   }
 
-  /// The fragment of the request
-  /// E.g. some-fragment
-  pub fn resource_fragment(&self) -> Option<&str> {
-    self.resource_data.fragment()
-  }
-
   pub fn content(&self) -> Option<&Content> {
     self.content.as_ref()
   }
 
-  pub fn source_map(&self) -> Option<&SourceMap<'static>> {
+  pub fn source_map(&self) -> Option<&SourceMap> {
     self.source_map.as_deref()
   }
 
@@ -135,7 +357,7 @@ impl<Context: Send> LoaderContext<Context> {
     self.content.take()
   }
 
-  pub fn take_source_map(&mut self) -> Option<SourceMap<'static>> {
+  pub fn take_source_map(&mut self) -> Option<SourceMap> {
     self.source_map.take().map(|source_map| *source_map)
   }
 
@@ -143,13 +365,7 @@ impl<Context: Send> LoaderContext<Context> {
     self.additional_data.take()
   }
 
-  pub fn take_all(
-    &mut self,
-  ) -> (
-    Option<Content>,
-    Option<SourceMap<'static>>,
-    Option<AdditionalData>,
-  ) {
+  pub fn take_all(&mut self) -> (Option<Content>, Option<SourceMap>, Option<AdditionalData>) {
     (
       self.content.take(),
       self.take_source_map(),
@@ -185,7 +401,7 @@ impl<Context: Send> LoaderContext<Context> {
 
 pub struct LoaderPatch {
   pub(crate) content: Option<Content>,
-  pub(crate) source_map: Option<SourceMap<'static>>,
+  pub(crate) source_map: Option<SourceMap>,
   pub(crate) additional_data: Option<AdditionalData>,
 }
 
@@ -202,11 +418,11 @@ where
   }
 }
 
-impl<T> From<(T, SourceMap<'static>)> for LoaderPatch
+impl<T> From<(T, SourceMap)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (T, SourceMap<'static>)) -> Self {
+  fn from(value: (T, SourceMap)) -> Self {
     Self {
       content: Some(value.0.into()),
       source_map: Some(value.1),
@@ -215,11 +431,11 @@ where
   }
 }
 
-impl<T> From<(T, Option<SourceMap<'static>>)> for LoaderPatch
+impl<T> From<(T, Option<SourceMap>)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (T, Option<SourceMap<'static>>)) -> Self {
+  fn from(value: (T, Option<SourceMap>)) -> Self {
     Self {
       content: Some(value.0.into()),
       source_map: value.1,
@@ -228,11 +444,11 @@ where
   }
 }
 
-impl<T> From<(T, SourceMap<'static>, AdditionalData)> for LoaderPatch
+impl<T> From<(T, SourceMap, AdditionalData)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (T, SourceMap<'static>, AdditionalData)) -> Self {
+  fn from(value: (T, SourceMap, AdditionalData)) -> Self {
     Self {
       content: Some(value.0.into()),
       source_map: Some(value.1),
@@ -241,11 +457,11 @@ where
   }
 }
 
-impl<T> From<(T, Option<SourceMap<'static>>, Option<AdditionalData>)> for LoaderPatch
+impl<T> From<(T, Option<SourceMap>, Option<AdditionalData>)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (T, Option<SourceMap<'static>>, Option<AdditionalData>)) -> Self {
+  fn from(value: (T, Option<SourceMap>, Option<AdditionalData>)) -> Self {
     Self {
       content: Some(value.0.into()),
       source_map: value.1,
@@ -267,11 +483,11 @@ where
   }
 }
 
-impl<T> From<(Option<T>, SourceMap<'static>)> for LoaderPatch
+impl<T> From<(Option<T>, SourceMap)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (Option<T>, SourceMap<'static>)) -> Self {
+  fn from(value: (Option<T>, SourceMap)) -> Self {
     Self {
       content: value.0.map(|c| c.into()),
       source_map: Some(value.1),
@@ -280,11 +496,11 @@ where
   }
 }
 
-impl<T> From<(Option<T>, Option<SourceMap<'static>>)> for LoaderPatch
+impl<T> From<(Option<T>, Option<SourceMap>)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (Option<T>, Option<SourceMap<'static>>)) -> Self {
+  fn from(value: (Option<T>, Option<SourceMap>)) -> Self {
     Self {
       content: value.0.map(|c| c.into()),
       source_map: value.1,
@@ -293,11 +509,11 @@ where
   }
 }
 
-impl<T> From<(Option<T>, SourceMap<'static>, AdditionalData)> for LoaderPatch
+impl<T> From<(Option<T>, SourceMap, AdditionalData)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (Option<T>, SourceMap<'static>, AdditionalData)) -> Self {
+  fn from(value: (Option<T>, SourceMap, AdditionalData)) -> Self {
     Self {
       content: value.0.map(|c| c.into()),
       source_map: Some(value.1),
@@ -306,22 +522,11 @@ where
   }
 }
 
-impl<T>
-  From<(
-    Option<T>,
-    Option<SourceMap<'static>>,
-    Option<AdditionalData>,
-  )> for LoaderPatch
+impl<T> From<(Option<T>, Option<SourceMap>, Option<AdditionalData>)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(
-    value: (
-      Option<T>,
-      Option<SourceMap<'static>>,
-      Option<AdditionalData>,
-    ),
-  ) -> Self {
+  fn from(value: (Option<T>, Option<SourceMap>, Option<AdditionalData>)) -> Self {
     Self {
       content: value.0.map(|c| c.into()),
       source_map: value.1,

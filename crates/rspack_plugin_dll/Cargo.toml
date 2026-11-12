@@ -14,6 +14,7 @@ rspack_core             = { workspace = true }
 rspack_error            = { workspace = true }
 rspack_hash             = { workspace = true }
 rspack_hook             = { workspace = true }
+rspack_intern           = { workspace = true, features = ["atom"] }
 rspack_paths            = { workspace = true }
 rspack_plugin_externals = { workspace = true }
 rspack_util             = { workspace = true }

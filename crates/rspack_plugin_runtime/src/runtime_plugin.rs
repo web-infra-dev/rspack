@@ -14,9 +14,9 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JsPlugin, impl_plugin_for_js_plugin::chunk_has_js,
 };
-#[cfg(allocative)]
-use rspack_util::allocative;
 use rspack_util::fx_hash::FxDashMap;
+#[cfg(allocative)]
+use rspack_util::rspack_allocative;
 
 use crate::{
   RuntimePluginHooks,
@@ -43,7 +43,7 @@ use crate::{
 /// We should make sure that there's no read-write and write-write conflicts for each hook instance by looking up [RuntimePlugin::get_compilation_hooks_mut]
 type ArcRuntimePluginHooks = Arc<AtomicRefCell<RuntimePluginHooks>>;
 
-#[cfg_attr(allocative, allocative::root)]
+#[cfg_attr(allocative, rspack_allocative::root)]
 static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcRuntimePluginHooks>> =
   LazyLock::new(Default::default);
 
@@ -191,6 +191,13 @@ async fn runtime_requirements_in_tree(
       *chunk_ukey,
       EnsureChunkRuntimeModule::new(&compilation.runtime_template, has_async_chunks).boxed(),
     ));
+    if compilation.hot && has_async_chunks {
+      runtime_modules_to_add.push((
+        *chunk_ukey,
+        crate::runtime_module::ChunkGroupMapRuntimeModule::new(&compilation.runtime_template)
+          .boxed(),
+      ));
+    }
   }
 
   let library_type = {
@@ -274,6 +281,14 @@ async fn runtime_requirements_in_tree(
             },
             *chunk_ukey,
           )
+          .with_full_hash(
+            compilation.options.output.filename.has_full_hash_digest()
+              || compilation
+                .options
+                .output
+                .chunk_filename
+                .has_full_hash_digest(),
+          )
           .boxed(),
         ));
       }
@@ -302,6 +317,19 @@ async fn runtime_requirements_in_tree(
               })
             },
             *chunk_ukey,
+          )
+          .with_initial_chunks_in_async_groups()
+          .with_full_hash(
+            compilation
+              .options
+              .output
+              .css_filename
+              .has_full_hash_digest()
+              || compilation
+                .options
+                .output
+                .css_chunk_filename
+                .has_full_hash_digest(),
           )
           .boxed(),
         ));

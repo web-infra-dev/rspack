@@ -2,7 +2,7 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsPreset, AsVec},
 };
-use swc_core::ecma::atoms::Atom;
+use rspack_intern::Atom;
 
 use super::AffectType;
 use crate::{
@@ -19,7 +19,7 @@ pub enum StaticExportsSpec {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct StaticExportsDependency {
   id: DependencyId,
   exports: StaticExportsSpec,

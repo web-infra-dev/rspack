@@ -1,4 +1,4 @@
-import mod from "./loader.js!./module";
+import mod from "./loader.mjs!./module";
 
 it("should compile and export target and environment", function() {
 	expect(mod.target).toBe("node");

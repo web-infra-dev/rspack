@@ -179,6 +179,7 @@ declare namespace Rspack {
     query?: ImportMetaGlobQuery;
     exhaustive?: boolean;
     base?: string;
+    caseSensitive?: boolean;
   };
 
   interface Module {

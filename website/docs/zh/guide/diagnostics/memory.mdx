@@ -1,0 +1,126 @@
+---
+description: '在构建和 HMR 更新时采集 Rspack 内存快照，用于反馈内存问题。'
+---
+
+import { ApiMeta } from '@components/ApiMeta';
+
+# 内存分析 \{#memory-analysis}
+
+Rspack 可以在构建和 HMR 更新时采集内存快照。反馈内存问题时，请收集这些文件，帮助维护者调查问题。
+
+## 启用分析 \{#enable-profiling}
+
+<ApiMeta addedVersion="2.3.0" />
+
+请使用该版本或更高版本的 debug 或 profiling 包（标准 release 包不含 allocative 支持）。快照采集默认关闭，需要在运行项目时设置 `RSPACK_ALLOCATIVE_DIR`，开启采集并指定输出目录。
+
+### 直接使用 Rspack \{#direct-rspack-users}
+
+如果项目直接依赖 `@rspack/core`，将其替换为相同版本的 debug 包。例如，将 `2.3.0` 改为 `npm:@rspack-debug/core@2.3.0`：
+
+```diff title="package.json"
+ {
+   "devDependencies": {
+-    "@rspack/core": "2.3.0"
++    "@rspack/core": "npm:@rspack-debug/core@2.3.0"
+   }
+ }
+```
+
+保留依赖原本所在的字段（`dependencies` 或 `devDependencies`），然后执行 `pnpm install`。
+
+### 通过上层工具使用 Rspack \{#using-rspack-through-higher-level-tools}
+
+如果项目通过 Rsbuild 等上层工具间接使用 Rspack，需要通过包管理器的 override 覆盖 `@rspack/core`。使用 pnpm 时，在 `package.json` 中添加以下配置：
+
+```json title="package.json"
+{
+  "pnpm": {
+    "overrides": {
+      "@rspack/core": "npm:@rspack-debug/core@2.3.0"
+    },
+    "peerDependencyRules": {
+      "allowAny": ["@rspack/*"]
+    }
+  }
+}
+```
+
+版本号应与上层工具实际使用的 `@rspack/core` 版本一致（本例为 `2.3.0`），然后执行 `pnpm install`。关于诊断包覆盖的更多说明，请参阅[调试指南](/contribute/development/debugging)。
+
+两种方式也都可以使用 profiling 构建的包替代 debug 包。运行项目原有的构建或 dev 命令时，设置 `RSPACK_ALLOCATIVE_DIR` 即可。不设置该变量时，不会采集快照。如果没有合适的包，可以参考[构建本地 binding](/contribute/development/memory#build-a-local-binding)，从源码构建。
+
+## 采集内存快照 \{#capture-memory-snapshots}
+
+### 采集构建快照 \{#capture-a-build}
+
+使用项目原有的构建命令，并设置一个绝对输出目录：
+
+```sh
+RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/build-1 pnpm exec rspack build
+```
+
+请确认构建、配置文件及插件都加载了预期的诊断包。对于集成 Rspack 的上层工具，保留上层工具原有的构建命令，并使用版本兼容的诊断包覆盖。
+
+首次构建完成后，输出目录中会生成以下文件：
+
+```text
+build-1/
+  0-build.allocative
+  0-build.counts.json
+  0-build.metadata.json
+  0-build.warnings.txt
+```
+
+每个进程应使用新的目录。同一进程内的多个 compiler 共用快照编号，新进程会重新编号；多个进程共用目录可能覆盖文件。
+
+### 采集 HMR 更新 \{#capture-hmr-updates}
+
+启动 dev server 时，设置相同的输出变量：
+
+```sh
+RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/hmr-1 pnpm exec rspack dev
+```
+
+修改源文件，并等待每次重建完成。单个 compiler 在完成三次重建后，会生成四份字节快照：
+
+```text
+0-build.allocative
+1-rebuild.allocative
+2-rebuild.allocative
+3-rebuild.allocative
+```
+
+每份快照都有对应的 counts、metadata 和 warnings 文件。使用相同包的 watch 模式构建，同样支持通过 `RSPACK_ALLOCATIVE_DIR` 采集快照。
+
+复现问题时，请保持项目原有的构建模式和 sourcemap 设置，并记录每次 HMR 更新的修改内容。
+
+## 上传问题反馈数据 \{#attach-data-to-an-issue-report}
+
+构建或需要复现的 HMR 更新完成后，将整个输出目录压缩打包，并作为附件上传到问题反馈中。每份快照都需要包含以下四类文件：
+
+| 文件              | 内容                                   |
+| ----------------- | -------------------------------------- |
+| `*.allocative`    | Rust 数据结构的内存快照。              |
+| `*.counts.json`   | 模块和依赖条目数。                     |
+| `*.metadata.json` | 快照标识、内存总量和采集元数据。       |
+| `*.warnings.txt`  | 覆盖和计量警告，即使文件为空也请保留。 |
+
+例如，打包构建快照目录：
+
+```sh
+tar -czf rspack-memory-build-1.tar.gz -C /absolute/path/profiles build-1
+```
+
+反馈 HMR 问题时，请打包从首次构建到最后一次相关重建的完整序列，包含每份快照的配套文件。保留原始文件名，方便维护者匹配快照及其附加文件。
+
+问题反馈中还应包含以下信息：
+
+- Rspack 和诊断包版本、Node.js 版本及操作系统。
+- 采集时使用的命令、配置、构建模式和 sourcemap 设置。
+- 复现项目或复现步骤；对于 HMR，还需要说明修改内容及顺序。
+- 观察到的内存问题、出现时机和构建日志。如果未生成快照，也请说明情况，并附上命令和日志。
+
+:::tip
+如需深入分析 Rspack 的内存使用，请参阅[内存分析贡献指南](/contribute/development/memory)。该指南介绍内存快照的采集与分析方法，以及采集原理与局限。
+:::

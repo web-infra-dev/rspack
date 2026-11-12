@@ -5,23 +5,34 @@ use std::{
 };
 
 use async_trait::async_trait;
+use futures::future::BoxFuture;
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_sources::{BoxSource, OriginalSource, RawStringSource, Source, SourceExt};
-use rspack_util::source_map::SourceMapKind;
+use rspack_util::{ext::AsAny, source_map::SourceMapKind};
 use tokio::sync::OnceCell;
 
 use crate::{
-  ChunkUkey, CodeGenerationResult, Compilation, Module, ModuleCodeGenerationContext,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, RuntimeTemplate, SourceType,
-  runtime_mode::RuntimeMode,
+  ChunkUkey, CodeGenerationResultBuilder, Compilation, Module, ModuleCodeGenerationContext,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeTemplate, SourceType, runtime_mode::RuntimeMode,
 };
 
 pub struct RuntimeModuleGenerateContext<'a> {
   pub compilation: &'a Compilation,
   pub runtime_template: &'a RuntimeCodeTemplate,
+}
+
+/// Immutable data retained by HMR records for the next runtime update.
+/// The producing runtime module defines the representation of this data.
+pub trait RuntimeModuleUpdateData: Debug + AsAny + Send + Sync {}
+
+#[derive(Debug)]
+pub struct RuntimeModuleRecord {
+  pub hash: RspackHashDigest,
+  pub update_data: Option<Arc<dyn RuntimeModuleUpdateData>>,
+  pub has_custom_source: bool,
 }
 
 pub fn runtime_module_owned_define_fields(
@@ -122,10 +133,6 @@ impl RuntimeModuleCommon {
     self.chunk = Some(chunk);
   }
 
-  pub fn name(&self) -> Identifier {
-    self.id
-  }
-
   pub fn id(&self) -> &Identifier {
     &self.id
   }
@@ -160,40 +167,42 @@ impl RuntimeModuleCommon {
   }
 }
 
-pub async fn runtime_module_get_generated_code(
-  module: &dyn RuntimeModule,
-  common: &RuntimeModuleCommon,
-  compilation: &Compilation,
-) -> Result<Arc<dyn Source>> {
-  let result: Result<&BoxSource> = common
-    .cached_generated_code
-    .get_or_try_init(|| async {
-      let runtime_template = compilation
-        .runtime_template
-        .create_runtime_module_code_template();
-      let context = RuntimeModuleGenerateContext {
-        compilation,
-        runtime_template: &runtime_template,
-      };
-      let source_str = module.generate_with_custom(&context).await?;
-      let source_map_kind = module.get_source_map_kind();
-      Ok(if source_map_kind.enabled() {
-        OriginalSource::new(source_str, module.identifier().as_str()).boxed()
-      } else {
-        RawStringSource::from(source_str).boxed()
+pub fn runtime_module_get_generated_code<'a>(
+  module: &'a dyn RuntimeModule,
+  common: &'a RuntimeModuleCommon,
+  compilation: &'a Compilation,
+) -> BoxFuture<'a, Result<Arc<dyn Source>>> {
+  Box::pin(async move {
+    let result: Result<&BoxSource> = common
+      .cached_generated_code
+      .get_or_try_init(|| async {
+        let runtime_template = compilation
+          .runtime_template
+          .create_runtime_module_code_template();
+        let context = RuntimeModuleGenerateContext {
+          compilation,
+          runtime_template: &runtime_template,
+        };
+        let source_str = module.generate_with_custom(&context).await?;
+        let source_map_kind = module.get_source_map_kind();
+        Ok(if source_map_kind.enabled() {
+          OriginalSource::new(source_str, module.identifier().as_str()).boxed()
+        } else {
+          RawStringSource::from(source_str).boxed()
+        })
       })
-    })
-    .await;
-  let source = result?.clone();
-  Ok(source)
+      .await;
+    let source = result?.clone();
+    Ok(source)
+  })
 }
 
 pub async fn runtime_module_code_generation(
   module: &dyn RuntimeModule,
   common: &RuntimeModuleCommon,
   ctx: &mut ModuleCodeGenerationContext<'_>,
-) -> Result<CodeGenerationResult> {
-  let mut result = CodeGenerationResult::default();
+) -> Result<CodeGenerationResultBuilder> {
+  let mut result = CodeGenerationResultBuilder::default();
   let source = runtime_module_get_generated_code(module, common, ctx.compilation).await?;
   result.add(SourceType::Runtime, source);
   Ok(result)
@@ -203,7 +212,6 @@ pub async fn runtime_module_get_runtime_hash(
   module: &dyn RuntimeModule,
   common: &RuntimeModuleCommon,
   compilation: &Compilation,
-  _runtime: Option<&RuntimeSpec>,
 ) -> Result<RspackHashDigest> {
   let mut hasher = RspackHasher::from(&compilation.options.output);
   module.name().hash(&mut hasher);
@@ -259,6 +267,27 @@ pub trait RuntimeModule:
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String>;
+
+  /// Records built-in state independently of codegen caches and custom source overrides.
+  fn get_update_data(
+    &self,
+    _compilation: &Compilation,
+  ) -> Option<Arc<dyn RuntimeModuleUpdateData>> {
+    None
+  }
+
+  /// Generates code to migrate the previous runtime state during HMR apply.
+  /// `None` uses the ordinary full source; `Some("")` explicitly emits no update code.
+  /// This source uses the same scope and runtime requirements as `generate`, but
+  /// must never replace the full source in codegen caches or runtime hashes.
+  async fn generate_update(
+    &self,
+    _context: &RuntimeModuleGenerateContext<'_>,
+    _previous: &dyn RuntimeModuleUpdateData,
+  ) -> rspack_error::Result<Option<String>> {
+    Ok(None)
+  }
+
   async fn generate_with_custom(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,

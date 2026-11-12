@@ -2,22 +2,23 @@
 
 ```ts
 type Module = {
-  context?: string;
-  resource?: string;
-  request?: string;
-  userRequest?: string;
-  rawRequest?: string;
-  factoryMeta?: JsFactoryMeta;
-  buildInfo: Record<string, any>;
+  readonly type: string;
+  readonly context?: string;
+  readonly layer?: string;
+  factoryMeta: JsFactoryMeta;
+  readonly useSourceMap: boolean;
+  readonly useSimpleSourceMap: boolean;
+  buildInfo: BuildInfo;
   buildMeta: Record<string, any>;
-  originalSource(): {
-    isRaw: boolean;
-    isBuffer: boolean;
-    source: Buffer;
-    map?: Buffer;
-  } | null;
+  readonly blocks: AsyncDependenciesBlock[];
+  readonly dependencies: Dependency[];
   identifier(): string;
-  nameForCondition(): string | null;
+  readableIdentifier(): string;
+  originalSource(): Source | null;
+  nameForCondition(): string | undefined;
+  size(type?: string | null): number;
+  libIdent(options: JsLibIdentOptions): string | null;
+  emitFile(filename: string, source: Source, assetInfo?: AssetInfo): void;
 };
 ```
 

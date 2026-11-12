@@ -1,6 +1,6 @@
 ERROR in ./index.js
   × Module parse failed:
-  ╰─▶   × JavaScript parse error: Unexpected token `let`. Expected let is reserved in const, let, class declaration
+  ╰─▶   × JavaScript parse error: 'let' is reserved in strict mode and cannot be used as a binding identifier
          ╭────
        1 │ let let = let;
          ·     ───
@@ -9,4 +9,15 @@ ERROR in ./index.js
   help: 
         You may need an appropriate loader to handle this file type.
 
-Rspack compiled with 1 error
+ERROR in ./index.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parse error: 'let' is reserved in strict mode and cannot be used as an identifier
+         ╭────
+       1 │ let let = let;
+         ·           ───
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+Rspack compiled with 2 errors

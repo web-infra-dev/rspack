@@ -1,11 +1,12 @@
-use std::{collections::BTreeMap, hash::Hash, sync::atomic::Ordering::Relaxed};
+use std::{hash::Hash, sync::atomic::Ordering::Relaxed};
 
 use rspack_cacheable::cacheable;
-use rspack_util::{atom::Atom, ext::DynHash};
+use rspack_intern::Atom;
+use rspack_util::ext::DynHash;
 use rustc_hash::FxHashSet;
 use serde::Serialize;
 
-use super::{ExportInfoData, NEXT_EXPORTS_INFO_UKEY};
+use super::{ExportInfoData, NEXT_EXPORTS_INFO_UKEY, NamedExports};
 use crate::{ExportsInfoArtifact, RuntimeSpec};
 
 #[cacheable]
@@ -32,7 +33,7 @@ impl ExportsInfo {
 
 #[derive(Debug, Clone)]
 pub struct ExportsInfoData {
-  exports: BTreeMap<Atom, ExportInfoData>,
+  exports: NamedExports,
 
   /// other export info is a strange name and hard to understand
   /// it has 2 meanings:
@@ -51,7 +52,7 @@ impl Default for ExportsInfoData {
   fn default() -> Self {
     let id = ExportsInfo::new();
     Self {
-      exports: BTreeMap::default(),
+      exports: NamedExports::default(),
       other_exports_info: ExportInfoData::new(id, None, None),
       side_effects_only_info: ExportInfoData::new(id, Some("*side effects only*".into()), None),
       id,
@@ -60,12 +61,6 @@ impl Default for ExportsInfoData {
 }
 
 impl ExportsInfoData {
-  pub fn reset(&mut self) {
-    let id = self.id;
-    *self = ExportsInfoData::default();
-    self.id = id;
-  }
-
   pub fn id(&self) -> ExportsInfo {
     self.id
   }
@@ -94,11 +89,11 @@ impl ExportsInfoData {
     self.exports.get_mut(name)
   }
 
-  pub fn exports(&self) -> &BTreeMap<Atom, ExportInfoData> {
+  pub fn exports(&self) -> &NamedExports {
     &self.exports
   }
 
-  pub fn exports_mut(&mut self) -> &mut BTreeMap<Atom, ExportInfoData> {
+  pub fn exports_mut(&mut self) -> &mut NamedExports {
     &mut self.exports
   }
 
@@ -113,7 +108,8 @@ impl ExportsInfoData {
       exports_info_artifact: &ExportsInfoArtifact,
       hasher: &mut dyn std::hash::Hasher,
       runtime: Option<&RuntimeSpec>,
-      visited: &mut FxHashSet<ExportsInfo>,
+      root_exports_info: ExportsInfo,
+      visited: &mut Option<FxHashSet<ExportsInfo>>,
     ) {
       if let Some(used_name) = export_info.used_name() {
         used_name.dyn_hash(hasher);
@@ -124,16 +120,20 @@ impl ExportsInfoData {
       export_info.provided().dyn_hash(hasher);
       export_info.terminal_binding().dyn_hash(hasher);
       export_info.ns_access().dyn_hash(hasher);
-      if let Some(exports_info) = export_info.exports_info()
-        && !visited.contains(&exports_info)
-      {
-        exports_info_update_hash(
-          exports_info.as_data(exports_info_artifact),
-          exports_info_artifact,
-          hasher,
-          runtime,
-          visited,
-        );
+      if let Some(exports_info) = export_info.exports_info() {
+        let should_visit = visited
+          .get_or_insert_with(|| FxHashSet::from_iter([root_exports_info]))
+          .insert(exports_info);
+        if should_visit {
+          exports_info_update_hash(
+            exports_info.as_data(exports_info_artifact),
+            exports_info_artifact,
+            hasher,
+            runtime,
+            root_exports_info,
+            visited,
+          );
+        }
       }
     }
 
@@ -142,15 +142,22 @@ impl ExportsInfoData {
       exports_info_artifact: &ExportsInfoArtifact,
       hasher: &mut dyn std::hash::Hasher,
       runtime: Option<&RuntimeSpec>,
-      visited: &mut FxHashSet<ExportsInfo>,
+      root_exports_info: ExportsInfo,
+      visited: &mut Option<FxHashSet<ExportsInfo>>,
     ) {
-      visited.insert(exports_info.id());
       let other_export_info = exports_info.other_exports_info();
       let side_effects_only_info = exports_info.side_effects_only_info();
 
       for export_info in exports_info.exports().values() {
         if export_info.has_info(other_export_info, runtime) {
-          export_info_update_hash(export_info, exports_info_artifact, hasher, runtime, visited);
+          export_info_update_hash(
+            export_info,
+            exports_info_artifact,
+            hasher,
+            runtime,
+            root_exports_info,
+            visited,
+          );
         }
       }
 
@@ -159,6 +166,7 @@ impl ExportsInfoData {
         exports_info_artifact,
         hasher,
         runtime,
+        root_exports_info,
         visited,
       );
       export_info_update_hash(
@@ -166,11 +174,19 @@ impl ExportsInfoData {
         exports_info_artifact,
         hasher,
         runtime,
+        root_exports_info,
         visited,
       );
     }
 
-    let mut visited = FxHashSet::default();
-    exports_info_update_hash(self, exports_info_artifact, hasher, runtime, &mut visited);
+    let mut visited = None;
+    exports_info_update_hash(
+      self,
+      exports_info_artifact,
+      hasher,
+      runtime,
+      self.id(),
+      &mut visited,
+    );
   }
 }

@@ -22,8 +22,8 @@ use benchmark_repetitive_react_components::{
 use criterion::Bencher;
 use rspack_benchmark::Criterion;
 use rspack_sources::{
-  BoxSource, CachedSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, Source,
-  SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
+  BoxSource, CachedSource, ConcatSource, MapOptions, RawStringSource, Source, SourceExt, SourceMap,
+  SourceMapSource, SourceMapSourceOptions,
 };
 
 const HELLOWORLD_JS: &str = include_str!(concat!(
@@ -73,10 +73,7 @@ fn benchmark_concat_generate_string(b: &mut Bencher) {
   let concat = ConcatSource::new([sms_minify, sms_rollup]);
 
   b.iter(|| {
-    concat
-      .map(&ObjectPool::default(), &MapOptions::default())
-      .unwrap()
-      .to_json();
+    concat.map(&MapOptions::default()).unwrap().to_json();
   })
 }
 
@@ -101,10 +98,7 @@ fn benchmark_concat_generate_string_with_cache(b: &mut Bencher) {
   let cached = CachedSource::new(concat);
 
   b.iter(|| {
-    cached
-      .map(&ObjectPool::default(), &MapOptions::default())
-      .unwrap()
-      .to_json();
+    cached.map(&MapOptions::default()).unwrap().to_json();
   })
 }
 

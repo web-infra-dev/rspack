@@ -21,7 +21,7 @@ definePropertyGetters(duplicate_package_namespaceObject, {
 // ./src/rules/duplicate-package/index.js
 
 
-const { /* CheckVersionMap */J: CheckVersionMap } = types_namespaceObject;
+const { /* CheckVersionMap */"J": CheckVersionMap } = types_namespaceObject;
 
 const value = CheckVersionMap.major;
 

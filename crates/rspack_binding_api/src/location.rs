@@ -31,7 +31,7 @@ impl From<&SourcePosition> for rspack_core::SourcePosition {
   fn from(value: &SourcePosition) -> Self {
     Self {
       line: value.line,
-      column: value.column.map_or(value.line, |c| c),
+      column: value.column.unwrap_or_default(),
     }
   }
 }
@@ -79,21 +79,23 @@ pub struct SyntheticDependencyLocation {
 impl From<&rspack_core::SyntheticDependencyLocation> for SyntheticDependencyLocation {
   fn from(value: &rspack_core::SyntheticDependencyLocation) -> Self {
     Self {
-      name: value.name.clone(),
+      name: value.name.as_ref().to_owned(),
     }
   }
 }
 
 impl From<rspack_core::SyntheticDependencyLocation> for SyntheticDependencyLocation {
   fn from(value: rspack_core::SyntheticDependencyLocation) -> Self {
-    Self { name: value.name }
+    Self {
+      name: value.name.into_string(),
+    }
   }
 }
 
 impl From<&SyntheticDependencyLocation> for rspack_core::SyntheticDependencyLocation {
   fn from(value: &SyntheticDependencyLocation) -> Self {
     Self {
-      name: value.name.clone(),
+      name: value.name.as_str().into(),
     }
   }
 }

@@ -4,6 +4,7 @@ use napi::{
 };
 use napi_derive::napi;
 use rspack_core::{ModuleFactoryCreateData, NormalModuleCreateData, ResourceData, parse_resource};
+use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
 use crate::resource_data::JsResourceData;
@@ -55,7 +56,7 @@ impl From<&NormalModuleCreateData> for JsCreateData {
     Self {
       request: value.request.clone(),
       user_request: value.user_request.clone(),
-      resource: value.resource_resolve_data.resource().to_owned(),
+      resource: value.resource_resolve_data().resource().to_owned(),
     }
   }
 }
@@ -64,10 +65,8 @@ impl JsCreateData {
   pub fn update_nmf_data(self, create_data: &mut NormalModuleCreateData) {
     create_data.request = self.request;
     create_data.user_request = self.user_request;
-    if create_data.resource_resolve_data.resource() != self.resource {
-      create_data
-        .resource_resolve_data
-        .update_resource_data(self.resource);
+    if create_data.resource_resolve_data().resource() != self.resource {
+      create_data.update_resource_data(self.resource);
     }
   }
 }
@@ -79,9 +78,8 @@ pub struct JsResolveData {
   pub request: String,
   pub context: String,
   pub context_info: ContextInfo,
-  pub file_dependencies: Vec<String>,
-  pub context_dependencies: Vec<String>,
-  pub missing_dependencies: Vec<String>,
+  /// The import attributes of the dependency that triggered this resolution, read-only.
+  pub attributes: Option<HashMap<String, String>>,
   pub create_data: Option<JsCreateData>,
 }
 
@@ -101,25 +99,20 @@ impl JsResolveData {
           .unwrap_or_default(),
         issuer_layer: data.issuer_layer.clone(),
       },
-      file_dependencies: data
-        .file_dependencies
-        .iter()
-        .map(|item| item.to_string_lossy().into_owned())
-        .collect::<Vec<_>>(),
-      context_dependencies: data
-        .context_dependencies
-        .iter()
-        .map(|item| item.to_string_lossy().into_owned())
-        .collect::<Vec<_>>(),
-      missing_dependencies: data
-        .missing_dependencies
-        .iter()
-        .map(|item| item.to_string_lossy().into_owned())
-        .collect::<Vec<_>>(),
+      attributes: data
+        .dependencies
+        .first()
+        .and_then(|dependency| dependency.get_attributes())
+        .map(|attributes| {
+          attributes
+            .iter()
+            .map(|(key, value)| (key.to_owned(), value.to_owned()))
+            .collect()
+        }),
       create_data: create_data.map(|create_data| JsCreateData {
         request: create_data.request.clone(),
         user_request: create_data.user_request.clone(),
-        resource: create_data.resource_resolve_data.resource().to_owned(),
+        resource: create_data.resource_resolve_data().resource().to_owned(),
       }),
     }
   }
@@ -129,7 +122,7 @@ impl JsResolveData {
     data: &mut ModuleFactoryCreateData,
     create_data: Option<&mut NormalModuleCreateData>,
   ) {
-    // only supports update request for now
+    // only supports update request for now, `attributes` is read-only
     data.request = self.request;
     data.context = self.context.into();
     if let Some(new_data) = self.create_data

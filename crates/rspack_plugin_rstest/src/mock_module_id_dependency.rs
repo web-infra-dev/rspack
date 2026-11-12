@@ -2,24 +2,24 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
 };
 
 use crate::import_dependency::module_id_rstest;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct MockModuleIdDependency {
   pub id: DependencyId,
   pub request: String,
   pub weak: bool,
   range: DependencyRange,
   optional: bool,
-  factorize_info: FactorizeInfo,
   category: DependencyCategory,
   pub suffix: Option<String>,
   missing_module_fallback: Option<String>,
+  all_exports_referenced: bool,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -38,19 +38,34 @@ impl MockModuleIdDependency {
       weak,
       optional,
       id: DependencyId::new(),
-      factorize_info: Default::default(),
       category,
       suffix,
       missing_module_fallback: None,
+      all_exports_referenced: false,
     }
   }
 
-  pub fn set_request(&mut self, request: String) {
-    self.request = request;
+  pub fn with_request(&self, request: String) -> Self {
+    Self {
+      id: self.id,
+      request,
+      weak: self.weak,
+      range: self.range,
+      optional: self.optional,
+      category: self.category,
+      suffix: self.suffix.clone(),
+      missing_module_fallback: self.missing_module_fallback.clone(),
+      all_exports_referenced: self.all_exports_referenced,
+    }
   }
 
   pub fn with_missing_module_fallback(mut self, fallback: String) -> Self {
     self.missing_module_fallback = Some(fallback);
+    self
+  }
+
+  pub fn with_all_exports_referenced(mut self) -> Self {
+    self.all_exports_referenced = true;
     self
   }
 
@@ -84,7 +99,11 @@ impl Dependency for MockModuleIdDependency {
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {
-    vec![]
+    if self.all_exports_referenced {
+      create_exports_object_referenced()
+    } else {
+      vec![]
+    }
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
@@ -108,14 +127,6 @@ impl ModuleDependency for MockModuleIdDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

@@ -1,16 +1,19 @@
 use std::{borrow::Cow, sync::Arc};
 
+use bytes_str::BytesStr;
 use rspack_error::Result;
 use rspack_sources::{
-  MapOptions, Mapping, ObjectPool, OriginalLocation, Source, SourceMap, SourceMapSource,
-  SourceMapSourceOptions, encode_mappings, utf8_column_to_utf16_column,
+  MapOptions, Mapping, OriginalLocation, Source, SourceMap, SourceMapSource,
+  SourceMapSourceOptions, encode_mappings,
 };
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::{
   common::{
-    BytePos, FileName, LineCol, SourceFile, SourceMap as SwcSourceMap, comments::Comments,
-    source_map::SmallPos, sync::Lrc,
+    BytePos, FileName, LineCol, SourceFile, SourceMap as SwcSourceMap,
+    comments::Comments,
+    source_map::{MultiByteChar, SmallPos},
+    sync::Lrc,
   },
   ecma::{
     ast::{EsVersion, Ident, Program as SwcProgram},
@@ -74,7 +77,7 @@ pub struct PrintOptions<'a> {
   pub source_map: Arc<SwcSourceMap>,
   pub target: EsVersion,
   pub source_map_config: SourceMapConfig,
-  pub input_source_map: Option<SourceMap<'static>>,
+  pub input_source_map: Option<SourceMap>,
   pub minify: bool,
   pub comments: Option<&'a dyn Comments>,
   pub preamble: &'a str,
@@ -164,15 +167,16 @@ impl JavaScriptCompiler {
 fn build_rspack_source_map(
   swc_cm: &SwcSourceMap,
   mappings: &[(BytePos, LineCol)],
-  input_source_map: Option<SourceMap<'static>>,
+  input_source_map: Option<SourceMap>,
   config: &SourceMapConfig,
   generated_code: &str,
-) -> Option<SourceMap<'static>> {
+) -> Option<SourceMap> {
   let mut builder = RspackSourceMapBuilder::default();
 
   let mut cur_file: Option<Lrc<SourceFile>> = None;
   let mut cur_src_id = 0u32;
   let mut prev_dst_line = u32::MAX;
+  let mut position_converter = SourceMapPositionConverter::default();
 
   for (raw_pos, lc) in mappings {
     let pos = *raw_pos;
@@ -213,7 +217,7 @@ fn build_rspack_source_map(
           Cow::Owned(config.file_name_to_source(&file.name)),
           config
             .inline_sources_content(&file.name)
-            .then(|| Cow::Owned(file.src.to_string())),
+            .then(|| file.src.clone()),
         );
         if input_source_map.is_none() && config.ignore_list(&file.name) {
           builder.add_to_ignore_list(cur_src_id);
@@ -232,20 +236,7 @@ fn build_rspack_source_map(
       continue;
     }
 
-    let Some(line) = file.lookup_line(pos) else {
-      continue;
-    };
-    let line = line as u32;
-    let linebpos = file.analyze().lines[line as usize];
-    debug_assert!(
-      pos >= linebpos,
-      "{}: bpos = {:?}; linebpos = {:?};",
-      file.name,
-      pos,
-      linebpos,
-    );
-
-    let Some(original_column) = source_file_utf16_column(file, linebpos, pos) else {
+    let Some((original_line, original_column)) = position_converter.convert(file, pos) else {
       continue;
     };
 
@@ -258,7 +249,7 @@ fn build_rspack_source_map(
       generated_column: lc.col,
       original: Some(OriginalLocation {
         source_index: cur_src_id,
-        original_line: line + 1,
+        original_line,
         original_column,
         name_index,
       }),
@@ -272,18 +263,15 @@ fn build_rspack_source_map(
       .get_source(0)
       .map(ToString::to_string)
       .unwrap_or_default();
-    Arc::new(SourceMapSource::new(SourceMapSourceOptions {
+    SourceMapSource::new(SourceMapSourceOptions {
       value: generated_code.to_string(),
       name,
       source_map: intermediate_map,
       original_source: None,
       inner_source_map: Some(input_source_map),
       remove_original_source: true,
-    }))
-    .map_static(
-      &ObjectPool::default(),
-      &MapOptions::new(config.source_map_kind.emit_columns()),
-    )
+    })
+    .map(&MapOptions::new(config.source_map_kind.emit_columns()))
   } else {
     Some(intermediate_map)
   }
@@ -292,22 +280,20 @@ fn build_rspack_source_map(
 #[derive(Default)]
 struct RspackSourceMapBuilder<'a> {
   mappings: Vec<Mapping>,
-  sources_content: Vec<Cow<'a, str>>,
+  sources_content: Vec<Option<BytesStr>>,
   source_indices: FxHashMap<Cow<'a, str>, u32>,
   name_indices: FxHashMap<Cow<'a, str>, u32>,
   ignore_list: FxHashSet<u32>,
 }
 
 impl<'a> RspackSourceMapBuilder<'a> {
-  fn add_source(&mut self, source: Cow<'a, str>, source_content: Option<Cow<'a, str>>) -> u32 {
+  fn add_source(&mut self, source: Cow<'a, str>, source_content: Option<BytesStr>) -> u32 {
     if let Some(index) = self.source_indices.get(source.as_ref()) {
       return *index;
     }
 
     let index = self.source_indices.len() as u32;
-    self
-      .sources_content
-      .push(source_content.unwrap_or(Cow::Borrowed("")));
+    self.sources_content.push(source_content);
     self.source_indices.insert(source, index);
     index
   }
@@ -330,16 +316,12 @@ impl<'a> RspackSourceMapBuilder<'a> {
     self.mappings.push(mapping);
   }
 
-  fn into_source_map(self) -> SourceMap<'static> {
+  fn into_source_map(self) -> SourceMap {
     let mut source_map = SourceMap::new(
-      encode_mappings(self.mappings.into_iter()),
-      ordered_cows(self.source_indices),
-      self
-        .sources_content
-        .into_iter()
-        .map(|source_content| Cow::Owned(source_content.into_owned()))
-        .collect(),
-      ordered_cows(self.name_indices),
+      encode_mappings(self.mappings.into_iter()).into(),
+      ordered_texts(self.source_indices),
+      self.sources_content,
+      ordered_texts(self.name_indices),
     );
     if !self.ignore_list.is_empty() {
       let mut ignore_list = self.ignore_list.into_iter().collect::<Vec<_>>();
@@ -350,21 +332,158 @@ impl<'a> RspackSourceMapBuilder<'a> {
   }
 }
 
-fn ordered_cows(entries: FxHashMap<Cow<'_, str>, u32>) -> Vec<Cow<'static, str>> {
-  let mut ordered = vec![Cow::Borrowed(""); entries.len()];
+fn ordered_texts(entries: FxHashMap<Cow<'_, str>, u32>) -> Vec<BytesStr> {
+  let mut ordered = vec![BytesStr::new(); entries.len()];
   for (value, index) in entries {
-    ordered[index as usize] = Cow::Owned(value.into_owned());
+    ordered[index as usize] = value.into_owned().into();
   }
   ordered
 }
 
-fn source_file_utf16_column(file: &SourceFile, linebpos: BytePos, pos: BytePos) -> Option<u32> {
-  let line_start = linebpos.to_u32().checked_sub(file.start_pos.to_u32())? as usize;
-  let utf8_column = pos.to_u32().checked_sub(linebpos.to_u32())? as usize;
-  let line = file.src.get(line_start..)?;
-  utf8_column_to_utf16_column(line, utf8_column)?
-    .try_into()
-    .ok()
+#[derive(Default)]
+struct SourceMapPositionConverter {
+  state: Option<SourceMapPositionState>,
+}
+
+struct SourceMapPositionState {
+  file_start: BytePos,
+  line: u32,
+  line_start: BytePos,
+  line_end: BytePos,
+  pos: BytePos,
+  utf8_to_utf16_diff: u32,
+  line_utf8_to_utf16_diff: u32,
+  multibyte_index: usize,
+}
+
+impl SourceMapPositionConverter {
+  /// Converts SWC UTF-8 byte positions to source-map positions. The source map
+  /// specification requires columns to use zero-based UTF-16 code units.
+  fn convert(&mut self, file: &SourceFile, pos: BytePos) -> Option<(u32, u32)> {
+    let (line, line_start, line_end) = match &self.state {
+      Some(state)
+        if state.file_start == file.start_pos
+          && state.line_start <= pos
+          && pos < state.line_end =>
+      {
+        (state.line, state.line_start, state.line_end)
+      }
+      _ => {
+        let line = file.lookup_line(pos)?;
+        let (line_start, line_end) = file.line_bounds(line);
+        debug_assert!(
+          u32::try_from(line).is_ok(),
+          "{}: line index {line} exceeds u32::MAX",
+          file.name,
+        );
+        let line = line as u32;
+        (line, line_start, line_end)
+      }
+    };
+    debug_assert!(
+      line_start <= pos && pos <= line_end,
+      "{}: bpos = {:?}; line bounds = {:?}..{:?};",
+      file.name,
+      pos,
+      line_start,
+      line_end,
+    );
+
+    let source_pos = pos.to_u32().checked_sub(file.start_pos.to_u32())? as usize;
+    if !file.src.is_char_boundary(source_pos) {
+      return None;
+    }
+
+    let multibyte_chars = &file.analyze().multibyte_chars;
+    let (mut state_pos, mut utf8_to_utf16_diff, mut multibyte_index) = match &self.state {
+      Some(state) if state.file_start == file.start_pos => {
+        (state.pos, state.utf8_to_utf16_diff, state.multibyte_index)
+      }
+      _ => (file.start_pos, 0, 0),
+    };
+
+    let line_utf8_to_utf16_diff = match &self.state {
+      Some(state) if state.file_start == file.start_pos && state.line_start == line_start => {
+        state.line_utf8_to_utf16_diff
+      }
+      _ => {
+        Self::move_to(
+          multibyte_chars,
+          line_start,
+          &mut state_pos,
+          &mut utf8_to_utf16_diff,
+          &mut multibyte_index,
+        )?;
+        utf8_to_utf16_diff
+      }
+    };
+    Self::move_to(
+      multibyte_chars,
+      pos,
+      &mut state_pos,
+      &mut utf8_to_utf16_diff,
+      &mut multibyte_index,
+    )?;
+
+    let byte_column = pos.to_u32().checked_sub(line_start.to_u32())?;
+    let column =
+      byte_column.checked_sub(utf8_to_utf16_diff.checked_sub(line_utf8_to_utf16_diff)?)?;
+
+    self.state = Some(SourceMapPositionState {
+      file_start: file.start_pos,
+      line,
+      line_start,
+      line_end,
+      pos,
+      utf8_to_utf16_diff,
+      line_utf8_to_utf16_diff,
+      multibyte_index,
+    });
+    Some((line + 1, column))
+  }
+
+  fn move_to(
+    multibyte_chars: &[MultiByteChar],
+    target: BytePos,
+    pos: &mut BytePos,
+    utf8_to_utf16_diff: &mut u32,
+    multibyte_index: &mut usize,
+  ) -> Option<()> {
+    if *pos <= target {
+      while let Some(multibyte_char) = multibyte_chars.get(*multibyte_index) {
+        if multibyte_char.pos >= target {
+          break;
+        }
+        *utf8_to_utf16_diff =
+          utf8_to_utf16_diff.checked_add(multibyte_char.byte_to_char_diff() as u32)?;
+        *multibyte_index += 1;
+      }
+    } else {
+      while let Some(index) = multibyte_index.checked_sub(1) {
+        let multibyte_char = &multibyte_chars[index];
+        if multibyte_char.pos < target {
+          break;
+        }
+        *utf8_to_utf16_diff =
+          utf8_to_utf16_diff.checked_sub(multibyte_char.byte_to_char_diff() as u32)?;
+        *multibyte_index = index;
+      }
+    }
+    *pos = target;
+    Some(())
+  }
+}
+
+#[cfg(feature = "codspeed")]
+#[doc(hidden)]
+pub fn benchmark_source_map_position_conversion(file: &SourceFile, positions: &[BytePos]) -> u64 {
+  let mut converter = SourceMapPositionConverter::default();
+  positions.iter().fold(0, |checksum, &pos| {
+    let (line, column) = converter
+      .convert(file, pos)
+      .expect("benchmark positions should be valid");
+    checksum.wrapping_add((u64::from(line) << 32) | u64::from(column))
+  })
 }
 
 struct IdentCollector {
@@ -453,9 +572,10 @@ mod tests {
           }),
         }]
         .into_iter(),
-      ),
+      )
+      .into(),
       vec!["original.js".into()],
-      vec![source.into()],
+      vec![Some(source.into())],
       vec![],
     );
 
@@ -515,9 +635,10 @@ mod tests {
           },
         ]
         .into_iter(),
-      ),
+      )
+      .into(),
       vec!["original.js".into()],
-      vec![source.into()],
+      vec![Some(source.into())],
       vec![],
     );
 
@@ -583,11 +704,12 @@ mod tests {
           },
         ]
         .into_iter(),
-      ),
+      )
+      .into(),
       vec!["/src/app.js".into(), "https://example.com/vendor.js".into()],
       vec![
-        "const first = second;\n".into(),
-        "export const second = 1;\n".into(),
+        Some("const first = second;\n".into()),
+        Some("export const second = 1;\n".into()),
       ],
       vec![],
     );

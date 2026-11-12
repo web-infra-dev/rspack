@@ -28,7 +28,7 @@ export default cjs_default_0;
 
 ```mjs title=json.mjs
 // ./index.json
-var index_namespaceObject = {"foo":42}
+var index_namespaceObject = {"foo":42};
 var foo = index_namespaceObject.foo;
 export { foo };
 export default index_namespaceObject;
@@ -42,7 +42,7 @@ it('should have default export for json module', async () => {
   expect(json.foo).toBe(42)
   const { default: cjs } = await import(/* webpackIgnore: true */'./cjsBundle.mjs')
   expect(cjs.value).toBe(42)
-})
+});
 export {};
 
 ```

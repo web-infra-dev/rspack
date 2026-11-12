@@ -1,0 +1,4 @@
+Object {
+  simple: order_module_css-simple order-1_css-order-1 order-2_css-order-2 order-1_css-order-1-1 order-2_css-order-2-2,
+  simple-other: order_module_css-simple-other order-1_css-order-1,
+}

@@ -1,7 +1,7 @@
 use napi::{
   Env, JsValue, Unknown, ValueType,
   bindgen_prelude::{
-    FromNapiValue, Function, JsObjectValue, ToNapiValue, TypeName, ValidateNapiValue,
+    FnArgs, FromNapiValue, Function, JsObjectValue, ToNapiValue, TypeName, ValidateNapiValue,
   },
 };
 
@@ -58,11 +58,12 @@ impl ToNapiValue for RspackRegex {
     let env = Env::from(env);
 
     let global = env.get_global()?;
-    let regex = global.get_named_property::<Function<'_, _>>("RegExp")?;
+    let regex = global.get_named_property::<Function<'_, FnArgs<(String, String)>>>("RegExp")?;
 
-    let flags = env.create_string(&val.flags)?;
-    let source = env.create_string(&val.source)?;
-
-    Ok(regex.new_instance((source, flags))?.raw())
+    Ok(
+      regex
+        .new_instance(FnArgs::from((val.source, val.flags)))?
+        .raw(),
+    )
   }
 }

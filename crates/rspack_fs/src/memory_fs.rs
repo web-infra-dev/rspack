@@ -72,11 +72,6 @@ pub struct MemoryFileSystem {
 }
 
 impl MemoryFileSystem {
-  pub fn clear(&self) {
-    let mut files = self.files.lock().expect("should get lock");
-    files.clear();
-  }
-
   fn contains_dir(&self, dir: &Utf8Path) -> Result<bool> {
     let files = self.files.lock().expect("should get lock");
     if let Some(ft) = files.get(dir) {
@@ -314,6 +309,13 @@ impl ReadableFileSystem for MemoryFileSystem {
 
   async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
     self.metadata(path).await
+  }
+
+  async fn read_link(&self, _path: &Utf8Path) -> Result<Utf8PathBuf> {
+    Err(Error::new(
+      std::io::ErrorKind::Unsupported,
+      "read_link is not supported by this filesystem",
+    ))
   }
 
   async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {

@@ -11,13 +11,9 @@ exports.foo = 123
 
 },
 });
-// ./bar.js
+// ./index.js
 const foo_0 = rspackRequire("./foo.js");
 var foo_0_namespace = /*#__PURE__*/createFakeNamespaceObject(foo_0, 2);
-
-
-
-// ./index.js
 
 let foo = 234
 
@@ -25,7 +21,7 @@ it('should compile', () => {
 	expect(foo_0_namespace).toHaveProperty('foo')
 	expect(foo_0.foo).toBe(123)
 	expect(foo).toBe(234)
-})
+});
 
 
 export {};

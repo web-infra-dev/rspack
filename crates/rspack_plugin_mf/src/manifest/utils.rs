@@ -197,8 +197,8 @@ pub fn record_shared_usage(
     }
   }
   if let Some(mgm) = module_graph.module_graph_module_by_identifier(module_identifier) {
-    for dep_id in mgm.incoming_connections() {
-      let Some(connection) = module_graph.connection_by_dependency_id(dep_id) else {
+    for connection_id in mgm.incoming_connections() {
+      let Some(connection) = module_graph.connection_by_id(connection_id) else {
         continue;
       };
       let dependency = module_graph.dependency_by_id(&connection.dependency_id);
@@ -216,28 +216,6 @@ pub fn record_shared_usage(
       }
     }
   }
-}
-
-pub fn parse_provide_shared_identifier(identifier: &str) -> Option<(String, String)> {
-  let (before_request, _) = identifier.split_once(" = ")?;
-  let token = before_request.split_whitespace().last()?;
-  // For scoped packages like @scope/pkg@1.0.0, split at the LAST '@'
-  let (name, version) = token.rsplit_once('@')?;
-  Some((name.to_string(), version.to_string()))
-}
-
-pub fn parse_consume_shared_identifier(identifier: &str) -> Option<(String, Option<String>)> {
-  let (_, rest) = identifier.split_once(") ")?;
-  let token = rest.split_whitespace().next()?;
-  // For scoped packages like @scope/pkg@1.0.0, split at the LAST '@'
-  let (name, version) = token.rsplit_once('@')?;
-  let version = version.trim();
-  let required = if version.is_empty() || version == "*" {
-    None
-  } else {
-    Some(version.to_string())
-  };
-  Some((name.to_string(), required))
 }
 
 pub fn collect_expose_requirements(

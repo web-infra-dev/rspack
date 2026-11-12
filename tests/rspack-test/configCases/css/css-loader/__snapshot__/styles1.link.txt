@@ -1,0 +1,7 @@
+Object {
+  class: composes-multiple_module_css-class composes-multiple_module_css-other-class composes-multiple_module_css-class-1 composes-multiple_module_css-class-2 alias_css-imported-alias alias-1_css-imported-alias-2 alias-1_css-imported-alias-3 global-class global-class-1 global-class-2,
+  class-1: composes-multiple_module_css-class-1,
+  class-2: composes-multiple_module_css-class-2,
+  class-other: composes-multiple_module_css-class-other composes-multiple_module_css-other-class composes-multiple_module_css-class-1,
+  other-class: composes-multiple_module_css-other-class,
+}

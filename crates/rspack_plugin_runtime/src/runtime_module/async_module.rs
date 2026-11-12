@@ -2,7 +2,7 @@ use std::sync::LazyLock;
 
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeTemplate, RuntimeVariable, impl_runtime_module,
+  RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
 };
 
 use crate::extract_runtime_module_variables_from_ejs;
@@ -39,7 +39,6 @@ impl RuntimeModule for AsyncRuntimeModule {
     runtime_template.render(
       self.id(),
       Some(serde_json::json!({
-        "_module_cache": runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
         "_uses_lexical_runtime_globals": uses_lexical_runtime_globals,
       })),
     )

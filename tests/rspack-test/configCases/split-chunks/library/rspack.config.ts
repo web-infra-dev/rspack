@@ -1,0 +1,31 @@
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  entry: {
+    vendor: ['external0', './a'],
+    main: './index',
+  },
+  target: 'web',
+  output: {
+    filename: '[name].js',
+    library: {
+      type: 'umd',
+    },
+  },
+  externals: ['external0', 'external1', 'external2', 'fs', 'path'],
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        vendor: {
+          test: 'vendor',
+          name: 'vendor',
+          enforce: true,
+        },
+      },
+    },
+  },
+  node: {
+    __filename: false,
+    __dirname: false,
+  },
+});

@@ -1,0 +1,62 @@
+import { defineConfig } from '@rspack/cli';
+import { type Compiler, rspack } from '@rspack/core';
+
+class AddLinksPlugin {
+  apply(compiler: Compiler) {
+    compiler.hooks.compilation.tap('AddLinksPlugin', (compilation) => {
+      rspack.HtmlRspackPlugin.getCompilationHooks(
+        compilation,
+      ).alterAssetTagGroups.tapPromise('AddLinksPlugin', async (data) => {
+        data.headTags.push(
+          {
+            tagName: 'link',
+            attributes: {
+              href: 'https://example.com',
+              rel: 'dns-prefetch',
+            },
+            voidTag: true,
+          },
+          {
+            tagName: 'link',
+            attributes: {
+              href: 'https://example.com',
+              rel: 'preconnect',
+            },
+            voidTag: true,
+          },
+          {
+            tagName: 'link',
+            attributes: {
+              rel: 'prefetch',
+              href: 'https://example.com',
+            },
+            voidTag: true,
+          },
+        );
+        return data;
+      });
+    });
+  }
+}
+
+export default defineConfig({
+  target: 'web',
+  entry: {
+    main: './index.js',
+  },
+  externals: {
+    path: "require('path')",
+    fs: "require('fs')",
+  },
+  node: {
+    __dirname: false,
+  },
+  output: {
+    crossOriginLoading: 'anonymous',
+  },
+  plugins: [
+    new rspack.HtmlRspackPlugin(),
+    new rspack.SubresourceIntegrityPlugin(),
+    new AddLinksPlugin(),
+  ],
+});

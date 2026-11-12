@@ -1,0 +1,2 @@
+﻿hello
+//# sourceMappingURL=resource.map

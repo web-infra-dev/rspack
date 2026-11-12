@@ -1,0 +1,73 @@
+import { defineConfig, definePlugin } from '@rspack/cli';
+
+const PLUGIN_NAME = 'rspack.SourceMapDevToolPlugin';
+
+let updateIndex = 0;
+
+export default defineConfig({
+  context: import.meta.dirname,
+  devtool: 'source-map',
+  output: {
+    filename: 'bundle.js',
+    chunkFilename: '[name].chunk.js',
+  },
+  cache: {
+    type: 'persistent',
+  },
+  plugins: [
+    definePlugin({
+      apply(compiler) {
+        compiler.hooks.compilation.tap('CheckDevtoolSource', (compilation) => {
+          compilation.hooks.afterProcessAssets.tap('CheckDevtoolSource', () => {
+            for (const asset of compilation.getAssets()) {
+              if (!asset.name.endsWith('.js')) continue;
+              expect(asset.source.map()).toBeNull();
+              const text = asset.source.source().toString();
+              expect(text.match(/sourceMappingURL=/g)).toHaveLength(1);
+              expect(text).toContain(`sourceMappingURL=${asset.name}.map`);
+            }
+          });
+        });
+        compiler.hooks.done.tap('SourceMapPersistentCacheTest', (stats) => {
+          const s = stats.toJson({
+            all: false,
+            logging: 'verbose',
+          });
+
+          const logEntries = s.logging?.[PLUGIN_NAME]?.entries ?? [];
+          const cacheLogEntry = logEntries.find(
+            (e) =>
+              e.type === 'cache' &&
+              e.message &&
+              e.message.startsWith('source map persistent cache:'),
+          );
+          expect(cacheLogEntry).toBeTruthy();
+
+          const match = cacheLogEntry?.message.match(
+            /source map persistent cache: [\d.]+% \((\d+)\/(\d+)\)/,
+          );
+          expect(match).toBeTruthy();
+
+          const hits = parseInt(match![1], 10);
+          const total = parseInt(match![2], 10);
+          const misses = total - hits;
+
+          if (updateIndex === 0) {
+            expect(hits).toBe(0);
+            expect(misses).toBe(2);
+          }
+          if (updateIndex === 1) {
+            expect(hits).toBe(2);
+            expect(misses).toBe(0);
+          }
+          if (updateIndex === 2) {
+            expect(hits).toBe(1);
+            expect(misses).toBe(1);
+          }
+
+          updateIndex++;
+        });
+      },
+    }),
+  ],
+});

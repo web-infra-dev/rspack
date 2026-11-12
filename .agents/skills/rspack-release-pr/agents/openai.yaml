@@ -1,0 +1,7 @@
+interface:
+  display_name: 'Rspack Release PR'
+  short_description: 'Prepare and publish official Rspack release PRs'
+  default_prompt: 'Use $rspack-release-pr to prepare and publish the requested official Rspack release pull request.'
+
+policy:
+  allow_implicit_invocation: false

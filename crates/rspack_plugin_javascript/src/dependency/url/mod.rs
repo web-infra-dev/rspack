@@ -1,30 +1,28 @@
-use std::sync::LazyLock;
+use std::sync::Arc;
 
-use regex::Regex;
+use concat_string::concat_string;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, CodeGenerationPublicPathAutoReplace, ConnectionState, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, FactorizeInfo, JavascriptParserUrl, ModuleDependency, ModuleGraph,
+  ExportsInfoArtifact, JavascriptParserUrl, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeGlobals, RuntimeSpec,
   SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, URLStaticMode, UsedByExports,
 };
-use swc_atoms::Atom;
 
-use crate::{connection_active_used_by_exports, runtime::AUTO_PUBLIC_PATH_PLACEHOLDER};
+use crate::{Atom, connection_active_used_by_exports, runtime::AUTO_PUBLIC_PATH_PLACEHOLDER};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct URLDependency {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
   request: Atom,
   range: DependencyRange,
   range_url: DependencyRange,
-  used_by_exports: Option<UsedByExports>,
+  used_by_exports: Option<Arc<UsedByExports>>,
   mode: Option<JavascriptParserUrl>,
-  factorize_info: FactorizeInfo,
 }
 
 impl URLDependency {
@@ -41,16 +39,26 @@ impl URLDependency {
       range_url,
       used_by_exports: None,
       mode,
-      factorize_info: Default::default(),
     }
   }
 
-  pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
+  pub fn set_used_by_exports(&mut self, used_by_exports: Option<Arc<UsedByExports>>) {
     self.used_by_exports = used_by_exports;
   }
 
   pub fn used_by_exports(&self) -> Option<&UsedByExports> {
-    self.used_by_exports.as_ref()
+    self.used_by_exports.as_deref()
+  }
+
+  /// Replace the arguments of `new URL(request, import.meta.url)` with the given
+  /// request, keeping the `new URL(...)` call itself untouched.
+  pub fn replace_request(&self, source: &mut TemplateReplaceSource, request: String) {
+    source.replace(
+      self.range_url.start,
+      self.range_url.end,
+      concat_string!(request, ", import.meta.url"),
+      None,
+    );
   }
 }
 
@@ -94,14 +102,6 @@ impl ModuleDependency for URLDependency {
   fn get_condition(&self) -> Option<DependencyCondition> {
     Some(DependencyCondition::new(URLDependencyCondition))
   }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
-  }
 }
 
 #[cacheable_dyn]
@@ -118,9 +118,6 @@ impl AsContextDependency for URLDependency {}
 pub struct URLDependencyTemplate;
 
 pub static URL_STATIC_PLACEHOLDER: &str = "RSPACK_AUTO_URL_STATIC_PLACEHOLDER_";
-pub static URL_STATIC_PLACEHOLDER_RE: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(&format!(r#"{URL_STATIC_PLACEHOLDER}(?<dep>\d+)"#)).expect("should be valid regex")
-});
 
 impl URLDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {
@@ -215,7 +212,7 @@ impl DependencyConditionFn for URLDependencyCondition {
       runtime,
       module_graph,
       exports_info_artifact,
-      dependency.used_by_exports.as_ref(),
+      dependency.used_by_exports.as_deref(),
     ))
   }
 }

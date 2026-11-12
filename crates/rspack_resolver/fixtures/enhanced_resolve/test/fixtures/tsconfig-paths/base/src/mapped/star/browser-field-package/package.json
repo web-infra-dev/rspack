@@ -1,0 +1,5 @@
+{
+  "name": "browser-field",
+  "main": "node.ts",
+  "browser": "browser.ts"
+}

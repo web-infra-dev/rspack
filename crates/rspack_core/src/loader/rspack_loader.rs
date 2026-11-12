@@ -3,10 +3,14 @@ use std::sync::Arc;
 use rspack_error::{Diagnostic, Result};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::{Content, LoaderContext, LoaderRunnerPlugin, ResourceData};
+use rspack_paths::InternedPathSet;
 use rspack_sources::SourceMap;
-use rustc_hash::FxHashSet as HashSet;
 
-use crate::{RunnerContext, SharedPluginDriver, utils::extract_source_map};
+use crate::{
+  RunnerContext, SharedPluginDriver,
+  loader::loader_cache::{LoaderCacheAction, after_normal_chain, before_normal_chain},
+  utils::extract_source_map,
+};
 
 pub struct RspackLoaderRunnerPlugin {
   pub plugin_driver: SharedPluginDriver,
@@ -34,13 +38,7 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     &self,
     resource_data: &ResourceData,
     fs: Arc<dyn ReadableFileSystem>,
-  ) -> Result<
-    Option<(
-      Content,
-      Option<SourceMap<'static>>,
-      HashSet<std::path::PathBuf>,
-    )>,
-  > {
+  ) -> Result<Option<(Content, Option<SourceMap>, InternedPathSet)>> {
     // First try the plugin's read_resource hook
     let result = self
       .plugin_driver
@@ -64,18 +62,20 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
 
         match extract_result {
           Ok(extract_result) => {
-            // Convert file dependencies to FxHashSet for consistency
+            // Convert file dependencies to interned paths for reuse across cache contexts.
             let file_deps = extract_result
               .file_dependencies
-              .map(|deps| deps.into_iter().collect::<HashSet<_>>())
+              .map(|deps| deps.into_iter().map(Into::into).collect())
               .unwrap_or_default();
 
-            // Return the content with source map extracted and file dependencies
-            return Ok(Some((
-              Content::String(extract_result.source),
-              extract_result.source_map,
-              file_deps,
-            )));
+            // Preserve the input type: non-raw JS loaders strip a BOM only from buffers.
+            let content = if content.is_buffer() {
+              Content::Buffer(extract_result.source.into_bytes())
+            } else {
+              Content::String(extract_result.source)
+            };
+
+            return Ok(Some((content, extract_result.source_map, file_deps)));
           }
           Err(e) => {
             // If extraction fails, return original content with empty dependencies
@@ -86,31 +86,16 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
               .lock()
               .expect("should get lock")
               .push(Diagnostic::warn("extractSourceMap".into(), e));
-            return Ok(Some((content, None, HashSet::default())));
+            return Ok(Some((content, None, InternedPathSet::default())));
           }
         }
       }
       // Return original content with empty dependencies when extract_source_map is disabled
-      return Ok(Some((content, None, HashSet::default())));
+      return Ok(Some((content, None, InternedPathSet::default())));
     }
 
     // If no plugin handled it, return None so the default logic can handle it
     Ok(None)
-  }
-
-  async fn should_yield(&self, context: &LoaderContext<Self::Context>) -> Result<bool> {
-    let res = self
-      .plugin_driver
-      .normal_module_hooks
-      .loader_should_yield
-      .call(context)
-      .await?;
-
-    if let Some(res) = res {
-      return Ok(res);
-    }
-
-    Ok(false)
   }
 
   async fn start_yielding(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
@@ -120,5 +105,43 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
       .loader_yield
       .call(context)
       .await
+  }
+
+  async fn run_normal_chain(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
+    let chain = context
+      .current_root_chain()
+      .expect("normal execution requires a current root chain");
+    let range = chain.range();
+    if chain.is_cache() && context.loader_index == chain.end() as i32 - 1 {
+      let loader_index = context.loader_index as usize;
+      if context.loader_items[loader_index].filter().is_some()
+        && context.loader_items[loader_index].should_skip_normal(context.content())
+      {
+        context.loader_items[loader_index].set_normal_executed();
+        context.loader_index -= 1;
+        return Ok(());
+      }
+    }
+    let cache_action = if chain.is_cache() && context.loader_index == chain.end() as i32 - 1 {
+      before_normal_chain(context).await?
+    } else {
+      LoaderCacheAction::Disabled
+    };
+    if matches!(cache_action, LoaderCacheAction::Hit) {
+      for loader_index in range.clone() {
+        let state = &context.loader_items[usize::from(loader_index)];
+        state.set_normal_executed();
+        state.set_finish_called();
+      }
+      context.loader_index = i32::from(range.start) - 1;
+      context.merge_dependency_changes();
+      return Ok(());
+    }
+
+    context.run_normal_chain().await?;
+    if let LoaderCacheAction::Miss(state) = cache_action {
+      after_normal_chain(context, &state).await;
+    }
+    Ok(())
   }
 }

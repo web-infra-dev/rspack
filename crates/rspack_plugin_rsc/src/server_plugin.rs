@@ -20,7 +20,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use crate::{
   component_info::{
     ClientComponentImports, ClientComponentImportsByServerEntry, ImportMetaRscImporters,
-    collect_component_info_from_entry_dependency,
+    collect_component_info_from_entry_dependencies,
   },
   constants::{CSS_REGEX, LAYERS_NAMES},
   coordinator::Coordinator,
@@ -210,7 +210,10 @@ async fn this_compilation(
     .or_default()
     .css_link_props = self.css_link_props.clone();
 
-  self.coordinator.start_server_entries_compilation().await?;
+  self
+    .coordinator
+    .start_server_entries_compilation(compilation.compiler_id())
+    .await?;
 
   Ok(())
 }
@@ -344,11 +347,11 @@ impl RscServerPlugin {
       let mut action_entry_imports: FxHashMap<String, Vec<ActionIdNamePair>> = Default::default();
       let mut client_entries_to_inject = Vec::new();
 
-      let Some(entry_dependency) = entry_data.dependencies.first() else {
-        continue;
-      };
-      let component_info =
-        collect_component_info_from_entry_dependency(compilation, &runtime, entry_dependency);
+      let component_info = collect_component_info_from_entry_dependencies(
+        compilation,
+        &runtime,
+        &entry_data.dependencies,
+      );
       for (dep, actions) in component_info.action_imports {
         action_entry_imports.insert(dep, actions);
       }
@@ -640,7 +643,7 @@ impl RscServerPlugin {
     Some(InjectedSsrEntry {
       runtime,
       add_entry: (
-        Box::new(ssr_entry_dependency),
+        BoxDependency::new(ssr_entry_dependency),
         EntryOptions {
           name: Some(entry_name.to_string()),
           layer: Some(LAYERS_NAMES.server_side_rendering.to_string()),
@@ -696,7 +699,7 @@ impl RscServerPlugin {
     Some(InjectedActionEntry {
       runtime,
       add_entry: (
-        Box::new(action_entry_dep),
+        BoxDependency::new(action_entry_dep),
         EntryOptions {
           name: Some(entry_name.to_string()),
           layer: Some(layer),

@@ -1,4 +1,7 @@
-use std::{cmp::Ordering, sync::Arc};
+use std::{
+  cmp::Ordering,
+  sync::{Arc, LazyLock},
+};
 
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rspack_core::{
@@ -10,15 +13,20 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::plugin_hook;
 use rspack_plugin_real_content_hash::RealContentHashPluginUpdateHash;
+use rspack_util::placeholder::PlaceholderFinder;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::RwLock;
 
 use crate::{
-  IntegrityCallbackData, SubresourceIntegrityPlugin, SubresourceIntegrityPluginInner,
+  IntegrityCallbackData, IntegrityHashLoading, SubresourceIntegrityPlugin,
+  SubresourceIntegrityPluginInner,
   config::IntegrityHtmlPlugin,
-  integrity::{SubresourceIntegrityHashFunction, compute_integrity},
-  util::{PLACEHOLDER_PREFIX, PLACEHOLDER_REGEX, make_placeholder, use_any_hash},
+  integrity::{SubresourceIntegrityHashFunction, compute_source_integrity},
+  util::{PLACEHOLDER_PREFIX, make_placeholder, placeholder_len, use_any_hash},
 };
+
+static SRI_PLACEHOLDER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new(PLACEHOLDER_PREFIX));
 
 #[derive(Debug, Clone)]
 struct ProcessChunkResult {
@@ -31,11 +39,11 @@ struct ProcessChunkResult {
 
 fn process_chunks(
   hash_funcs: &Vec<SubresourceIntegrityHashFunction>,
+  batches: Vec<Vec<ChunkUkey>>,
   compilation: &mut Compilation,
 ) -> HashMap<String, String> {
   let mut hash_by_placeholders = HashMap::default();
   let mut integrities = HashMap::default();
-  let batches = digest_chunks(compilation);
 
   if matches!(
     compilation.options.output.cross_origin_loading,
@@ -173,18 +181,17 @@ fn process_chunk_source(
   }
 
   // replace placeholders with integrity hash
-  for caps in PLACEHOLDER_REGEX.captures_iter(&source_content) {
-    if let Some(m) = caps.get(0) {
-      let replacement = hash_by_placeholders
-        .get(m.as_str())
-        .map_or(m.as_str(), |i| i.as_str())
-        .to_string();
-      new_source.replace(m.start() as u32, m.end() as u32, replacement, None);
-    }
+  for (range, ()) in SRI_PLACEHOLDER.find_all(&source_content, placeholder_len) {
+    let placeholder = &source_content[range.clone()];
+    let replacement = hash_by_placeholders
+      .get(placeholder)
+      .map_or(placeholder, |i| i.as_str())
+      .to_string();
+    new_source.replace(range.start as u32, range.end as u32, replacement, None);
   }
 
   // compute self integrity and placeholder
-  let integrity = compute_integrity(hash_funcs, new_source.source().into_string_lossy().as_ref());
+  let integrity = compute_source_integrity(hash_funcs, &new_source);
   let placeholder = chunk_id.map(|id| make_placeholder(asset_type, hash_funcs, id.as_str()));
 
   ProcessChunkResult {
@@ -258,8 +265,7 @@ async fn add_minssing_integrities(
           return None;
         }
         asset.source.as_ref().map(|s| {
-          let content = s.source().into_string_lossy();
-          let integrity = compute_integrity(hash_func_names, &content);
+          let integrity = compute_source_integrity(hash_func_names, s.as_ref());
           (src.clone(), integrity)
         })
       })
@@ -271,7 +277,15 @@ async fn add_minssing_integrities(
 
 #[plugin_hook(CompilationProcessAssets for SubresourceIntegrityPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE - 1)]
 pub async fn handle_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  let integrities = process_chunks(&self.options.hash_func_names, compilation);
+  // Lazy loading puts placeholders in every chunk with async children, so each chunk
+  // must be digested after all the chunks it holds hashes for.
+  let batches = match self.options.hash_loading {
+    IntegrityHashLoading::Eager => digest_chunks(compilation),
+    IntegrityHashLoading::Lazy => SubresourceIntegrityPlugin::get_compilation_manifest(compilation)
+      .digest_batches
+      .clone(),
+  };
+  let integrities = process_chunks(&self.options.hash_func_names, batches, compilation);
   let compilation_integrities =
     SubresourceIntegrityPlugin::get_compilation_integrities_mut(compilation.id());
   compilation_integrities.write().await.extend(integrities);
@@ -350,8 +364,7 @@ pub async fn update_hash(
     .iter()
     .find_map(|(k, v)| if v == old_hash { Some(k.clone()) } else { None });
   if let (Some(key), Some(asset)) = (key, assets.first()) {
-    let content = asset.source().into_string_lossy();
-    let new_integrity = compute_integrity(&self.options.hash_func_names, content.as_ref());
+    let new_integrity = compute_source_integrity(&self.options.hash_func_names, asset.as_ref());
     compilation_integrities
       .write()
       .await

@@ -1,0 +1,69 @@
+---
+description: 'Adds an entry chunk on compilation. The chunk is named options.name and contains only one module (plus dependencies)'
+---
+
+# EntryPlugin
+
+Adds an entry chunk on compilation. The chunk is named `options.name` and contains only one module (plus dependencies). The module is resolved from `entry` in `context` (absolute path).
+
+## Examples
+
+Register an entry from a plugin:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.EntryPlugin(process.cwd(), './src/index.js', { name: 'main' }),
+  ],
+};
+```
+
+## Options
+
+### context
+
+The module is resolved from `entry` in `context` (absolute path).
+
+- **Type:** `string`
+
+### entry
+
+The module path for the entry module.
+
+- **Type:** `string`
+
+### options
+
+To adjust settings related to the entry module.
+
+- **Type:**
+
+```ts
+type EntryOptions =
+  | string
+  | (Omit<EntryDescriptionNormalized, 'import'> & {
+      /**
+       * The name of the entry chunk.
+       */
+      name?: string;
+    });
+```
+
+If `options` is a string, its value will be used as `name`.
+
+Refer to [Entry description object](/config/entry#entry-description-object) for all available options.
+
+## Global entry
+
+When the plugin's `name` option is set to `undefined`, the entry is treated as a global entry. It's automatically injected into:
+
+1. All regular entry chunks
+2. All asynchronous entries (for example, worker chunks created with `new Worker()`)
+
+This allows you to inject global runtime code, such as the dev server's HMR runtime or the initialization logic for module federation.
+
+```js
+new rspack.EntryPlugin(context, './global-runtime.js', { name: undefined });
+```

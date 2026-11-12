@@ -7,16 +7,16 @@
 ## Asset Files
 - Bundle: 1e1.chunk.CURRENT_HASH.js
 - Bundle: bundle.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 46
+- Manifest: main.LAST_HASH.hot-update.json, size: 78
 - Update: 10.LAST_HASH.hot-update.js, size: 264
-- Update: main.LAST_HASH.hot-update.js, size: 586
+- Update: main.LAST_HASH.hot-update.js, size: 747
 
 ## Manifest
 
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":[10,"main"],"r":[10],"m":["./chunk2.js"]}
+{"c":[10,"main"],"r":[10],"m":["./chunk2.js"],"changed":{"./file.js":["1e1"]}}
 ```
 
 
@@ -57,6 +57,7 @@ var value = 3;
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
 
 #### Changed Content
 ```js
@@ -76,6 +77,12 @@ __webpack_require__.d(__webpack_exports__, {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV["1e1"] = "CHUNK_VERSION";
+delete __webpack_require__.hmrV[10];
+
 })();
 
 }

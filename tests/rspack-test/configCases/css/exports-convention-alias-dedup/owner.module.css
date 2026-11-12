@@ -1,0 +1,6 @@
+.target { composes: fooBar; }
+.base { color: red; }
+.foo-bar { color: blue; }
+.fooBar { composes: base; color: green; }
+@value selected: fooBar;
+.valueTarget { composes: selected; }

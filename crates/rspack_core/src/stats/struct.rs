@@ -1,8 +1,8 @@
 use std::{borrow::Cow, fmt::Debug};
 
+use rspack_intern::Atom;
 use rspack_paths::Utf8Path;
 use rspack_sources::BoxSource;
-use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{ChunkGroupOrderKey, ModuleId, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType};
@@ -14,6 +14,7 @@ pub enum EntrypointsStatsOption {
 
 pub struct ExtendedStatsOptions {
   pub assets: bool,
+  pub cache_info: bool,
   pub cached_modules: bool,
   pub chunks: bool,
   pub chunk_group_auxiliary: bool,
@@ -48,6 +49,7 @@ impl Default for ExtendedStatsOptions {
       hash: true,
 
       cached_modules: false,
+      cache_info: false,
       chunk_group_auxiliary: false,
       chunk_group_children: false,
       chunk_groups: false,
@@ -167,7 +169,7 @@ pub struct StatsModule<'a> {
   pub issuer_id: Option<ModuleId>,
   pub issuer_path: Option<Vec<StatsModuleIssuer<'a>>>,
   pub reasons: Option<Vec<StatsModuleReason<'a>>>,
-  pub assets: Option<Vec<&'a str>>,
+  pub assets: Option<Vec<String>>,
   pub modules: Option<Vec<StatsModule<'a>>>,
   pub source: Option<&'a BoxSource>,
   pub orphan: Option<bool>,
@@ -273,7 +275,7 @@ pub struct StatsModuleIssuer<'s> {
   pub id: Option<ModuleId>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct StatsModuleReason<'s> {
   pub module_identifier: Option<ModuleIdentifier>,
   pub module_name: Option<Cow<'s, str>>,

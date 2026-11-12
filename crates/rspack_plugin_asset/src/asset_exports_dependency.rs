@@ -6,7 +6,7 @@ use rspack_core::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct AssetExportsDependency {
   id: DependencyId,
 }

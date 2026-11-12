@@ -1,0 +1,32 @@
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  mode: 'production',
+  entry: './index',
+  stats: {
+    entrypoints: true,
+    assets: true,
+    chunkGroups: true,
+    chunkGroupAuxiliary: true,
+    chunks: true,
+    chunkModules: true,
+    dependentModules: true,
+    modules: true,
+    moduleAssets: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /\.png$/,
+        use: [
+          {
+            loader: 'file-loader',
+            options: {
+              name: '[name].[ext]',
+            },
+          },
+        ],
+      },
+    ],
+  },
+});

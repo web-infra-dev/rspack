@@ -1,0 +1,5 @@
+@value danger: #123456;
+
+.tone {
+	color: danger;
+}

@@ -3,12 +3,12 @@ use std::{borrow::Cow, sync::Arc};
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsVec};
 use rspack_collections::Identifiable;
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, Context,
-  DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions,
-  Module, ModuleArgument, ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, OutputOptions, RuntimeGlobals, RuntimeSpec,
-  SourceType, ValueCacheVersions, impl_module_meta_info, module_update_hash,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
+  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
+  DependencyRange, FactoryMetaStore, FreezeLock, ImportPhase, LibIdentOptions, Module,
+  ModuleArgument, ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph,
+  ModuleIdentifier, ModuleLayer, ModuleType, NeedBuildContext, OutputOptions, RuntimeGlobals,
+  RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -20,17 +20,25 @@ use rspack_util::{
 };
 
 use crate::{
-  dependency::{DependencyOptions, LazyCompilationDependency},
+  dependency::{DependencyOptions, LazyCompilationDependency, ReservedExternalDependency},
   utils::calc_value_dependency_key,
 };
 
 static MODULE_TYPE: ModuleType = ModuleType::JsAuto;
 static SOURCE_TYPE: [SourceType; 1] = [SourceType::JavaScript];
 
+#[cacheable]
+#[derive(Debug)]
+pub(crate) struct ReservedLayerExternals {
+  pub layer: ModuleLayer,
+  #[cacheable(with=AsVec)]
+  pub requests: Arc<[String]>,
+}
+
 // Library types whose wrappers pass externals as closure arguments baked into the entry chunk.
 const CLOSURE_LIBRARY_TYPES: [&str; 5] = ["umd", "umd2", "amd", "amd-require", "system"];
 
-fn has_closure_library(output: &OutputOptions) -> bool {
+pub(crate) fn has_closure_library(output: &OutputOptions) -> bool {
   if let Some(enabled) = &output.enabled_library_types
     && enabled
       .iter()
@@ -47,16 +55,15 @@ fn has_closure_library(output: &OutputOptions) -> bool {
 #[cacheable]
 #[derive(Debug)]
 pub(crate) struct LazyCompilationProxyModule {
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
-  factory_meta: Option<FactoryMeta>,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
+  factory_meta: FactoryMetaStore,
 
   readable_identifier: String,
   identifier: ModuleIdentifier,
   lib_ident: Option<String>,
 
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  dependencies: Vec<DependencyId>,
+  dependencies_block: DependenciesBlockData,
 
   source_map_kind: SourceMapKind,
 
@@ -66,11 +73,14 @@ pub(crate) struct LazyCompilationProxyModule {
   resource: String,
   active: bool,
   client: String,
-  // Immutable once collected from config; shared across every proxy module as a
+  // Immutable once collected for a layer; shared across its proxy modules as a
   // slice so each clones the `Arc`, not the whole list.
   #[cacheable(with=AsVec)]
   reserved_externals: Arc<[String]>,
-  need_build: bool,
+  #[cacheable(with=AsVec)]
+  reserved_layer_externals: Arc<[ReservedLayerExternals]>,
+  #[cacheable(with=rspack_cacheable::rkyv::with::AtomicLoad<rspack_cacheable::rkyv::with::Relaxed>)]
+  need_build: std::sync::atomic::AtomicBool,
 }
 
 impl ModuleSourceMapConfig for LazyCompilationProxyModule {
@@ -93,12 +103,20 @@ impl LazyCompilationProxyModule {
     resource: String,
     active: bool,
     client: String,
+    layer: Option<ModuleLayer>,
     reserved_externals: Arc<[String]>,
+    reserved_layer_externals: Arc<[ReservedLayerExternals]>,
   ) -> Self {
     let lib_ident = lib_ident.map(|s| format!("{s}!lazy-compilation-proxy"));
 
+    let original_dependency = &create_data.dependencies[0];
     let dep_options = DependencyOptions {
       request: create_data.request.clone(),
+      phase: original_dependency.get_phase(),
+      attributes: original_dependency.get_attributes().cloned(),
+      issuer: create_data.issuer.clone(),
+      issuer_layer: create_data.issuer_layer.clone(),
+      resolve_options: create_data.resolve_options.clone(),
       file_dependencies: create_data.file_dependencies.clone(),
       context_dependencies: create_data.context_dependencies.clone(),
       missing_dependencies: create_data.missing_dependencies.clone(),
@@ -108,26 +126,32 @@ impl LazyCompilationProxyModule {
     Self {
       build_info: Default::default(),
       build_meta: Default::default(),
-      factory_meta: None,
+      factory_meta: Default::default(),
       readable_identifier,
       lib_ident,
       identifier,
       source_map_kind: SourceMapKind::empty(),
-      blocks: vec![],
-      dependencies: vec![],
+      dependencies_block: Default::default(),
       context: Box::new(create_data.context.clone()),
-      layer: create_data.issuer_layer.clone(),
+      layer,
       dep_options,
       resource,
       active,
       client,
       reserved_externals,
-      need_build: false,
+      reserved_layer_externals,
+      need_build: false.into(),
     }
   }
 
-  pub fn invalid(&mut self) {
-    self.need_build = true;
+  pub fn invalid(&self) {
+    self
+      .need_build
+      .store(true, std::sync::atomic::Ordering::Relaxed);
+  }
+
+  pub fn is_active(&self) -> bool {
+    self.active
   }
 }
 
@@ -154,7 +178,7 @@ impl Module for LazyCompilationProxyModule {
     self.layer.as_ref()
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>) -> f64 {
     200f64
   }
 
@@ -170,8 +194,8 @@ impl Module for LazyCompilationProxyModule {
     self.lib_ident.as_ref().map(|s| Cow::Borrowed(s.as_str()))
   }
 
-  fn need_build(&self, value_cache_versions: &ValueCacheVersions) -> bool {
-    if self.need_build {
+  fn need_build_for_incremental(&self, value_cache_versions: &ValueCacheVersions) -> bool {
+    if self.need_build.load(std::sync::atomic::Ordering::Relaxed) {
       return true;
     }
     // check client changes
@@ -185,11 +209,15 @@ impl Module for LazyCompilationProxyModule {
     }
   }
 
+  async fn need_build(&self, context: &NeedBuildContext<'_>) -> Result<bool> {
+    Ok(self.need_build_for_incremental(context.value_cache_versions))
+  }
+
   async fn build(
     mut self: Box<Self>,
-    build_context: BuildContext,
+    build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<BoxModule> {
     let client_dep = CommonJsRequireDependency::new(
       self.client.clone(),
       DependencyRange::new(0, 0),
@@ -200,7 +228,7 @@ impl Module for LazyCompilationProxyModule {
     let mut dependencies = vec![];
     let mut blocks = vec![];
 
-    dependencies.push(Box::new(client_dep) as BoxDependency);
+    dependencies.push(BoxDependency::new(client_dep));
 
     if self.active {
       let dep = LazyCompilationDependency::new(self.dep_options.clone());
@@ -209,7 +237,7 @@ impl Module for LazyCompilationProxyModule {
         self.identifier,
         None,
         None,
-        vec![Box::new(dep)],
+        vec![BoxDependency::new(dep)],
         None,
       )));
     } else if has_closure_library(&build_context.compiler_options.output) {
@@ -218,43 +246,52 @@ impl Module for LazyCompilationProxyModule {
       // identifiers. Once the proxy activates and the lazily-built module
       // references those externals, the identifiers resolve instead of throwing.
       for request in self.reserved_externals.iter() {
-        dependencies.push(Box::new(CommonJsRequireDependency::new(
+        dependencies.push(BoxDependency::new(ReservedExternalDependency::new(
           request.clone(),
-          DependencyRange::new(0, 0),
-          None,
-          false,
-          None,
-        )) as BoxDependency);
+          self.layer.clone(),
+        )));
+      }
+      for externals in self.reserved_layer_externals.iter() {
+        if self.layer.as_ref() == Some(&externals.layer) {
+          continue;
+        }
+        for request in externals.requests.iter() {
+          dependencies.push(BoxDependency::new(ReservedExternalDependency::new(
+            request.clone(),
+            Some(externals.layer.clone()),
+          )));
+        }
       }
     }
 
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies,
-      blocks,
-      optimization_bailouts: vec![],
-    })
+    Ok(BoxModule::new(self).with_dependencies(
+      dependencies.into_iter().map(Into::into).collect(),
+      blocks.into_iter().map(Into::into).collect(),
+    ))
   }
 
   // #[tracing::instrument("LazyCompilationProxyModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime_template,
       ..
     } = code_generation_context;
 
-    let client_dep_id = self.dependencies[0];
+    let client_dep_id = self
+      .get_dependency_ids()
+      .next()
+      .expect("should have client dependency");
     let module_graph = &compilation.get_module_graph();
 
     let client_module = module_graph
-      .module_identifier_by_dependency_id(&client_dep_id)
+      .module_identifier_by_dependency_id(client_dep_id)
       .expect("should have module");
 
-    let block = self.blocks.first();
+    let block = self.get_blocks().first();
 
     let client = format!(
       "var client = {}(\"{}\");\nvar data = {};",
@@ -276,9 +313,12 @@ impl Module for LazyCompilationProxyModule {
         .block_by_id(block_id)
         .expect("should have block");
 
-      let dep_id = block.get_dependencies()[0];
+      let dep_id = block
+        .get_dependency_ids()
+        .next()
+        .expect("should have dependency");
       let module = module_graph
-        .module_identifier_by_dependency_id(&dep_id)
+        .module_identifier_by_dependency_id(dep_id)
         .expect("should have module");
 
       RawStringSource::from(format!(
@@ -295,7 +335,7 @@ impl Module for LazyCompilationProxyModule {
         runtime_template.module_namespace_promise(
           compilation,
           *module,
-          &dep_id,
+          dep_id,
           Some(block_id),
           &self.resource,
           "import()",
@@ -308,6 +348,8 @@ impl Module for LazyCompilationProxyModule {
         ),
       ))
     } else {
+      // This promise can only settle through a hot update. Reject it if HMR
+      // reaches a terminal status before the proxy is activated.
       RawStringSource::from(format!(
         "{client}
         var resolveSelf, onError;
@@ -315,14 +357,21 @@ impl Module for LazyCompilationProxyModule {
         if ({module_argument}.hot) {{
           {module_argument}.hot.accept();
           if ({module_argument}.hot.data && {module_argument}.hot.data.resolveSelf) {module_argument}.hot.data.resolveSelf({module_argument}.exports);
-          {module_argument}.hot.dispose(function(data) {{ data.resolveSelf = resolveSelf; dispose(data); }});
+          var onStatus = function(status) {{
+            if (status === \"abort\" || status === \"fail\") onError(new Error(\"Lazy compilation of \" + data + \" cannot finish because hot module replacement is in \" + status + \" status. Reload the page.\"));
+          }};
+          onStatus({module_argument}.hot.status());
+          {module_argument}.hot.addStatusHandler(onStatus);
+          {module_argument}.hot.dispose(function(data) {{ {module_argument}.hot.removeStatusHandler(onStatus); data.resolveSelf = resolveSelf; dispose(data); }});
         }}
         {keep_active}
       "
       ))
     };
 
-    Ok(CodeGenerationResult::default().with_javascript(Arc::new(source)))
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
+    code_generation_result.add(SourceType::JavaScript, Arc::new(source));
+    Ok(code_generation_result)
   }
 
   async fn get_runtime_hash(
@@ -345,23 +394,11 @@ impl Identifiable for LazyCompilationProxyModule {
 }
 
 impl DependenciesBlock for LazyCompilationProxyModule {
-  fn add_block_id(&mut self, block: rspack_core::AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block);
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[rspack_core::AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: rspack_core::DependencyId) {
-    self.dependencies.push(dependency);
-  }
-
-  fn remove_dependency_id(&mut self, dependency: rspack_core::DependencyId) {
-    self.dependencies.retain(|d| d != &dependency);
-  }
-
-  fn get_dependencies(&self) -> &[rspack_core::DependencyId] {
-    &self.dependencies
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }

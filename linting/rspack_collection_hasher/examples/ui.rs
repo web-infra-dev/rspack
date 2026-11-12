@@ -55,4 +55,9 @@ fn main() {
   let _: Option<BadIdentifierFxDashSet> = None;
   let _: Option<BadIdentifierFxLinkedHashMap> = None;
   let _: Option<BadIdentifierFxLinkedHashSet> = None;
+
+  let _ = DashMap::<String, usize, BuildHasherDefault<FxHasher>>::with_capacity_and_hasher(
+    1024,
+    BuildHasherDefault::default(),
+  );
 }

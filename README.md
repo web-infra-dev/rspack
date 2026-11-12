@@ -42,6 +42,7 @@ Rspack is part of Rstack, the fast, unified JavaScript toolchain for developers 
 | [Rsdoctor](https://github.com/web-infra-dev/rsdoctor) | Build analyzer           | <a href="https://npmjs.com/package/@rsdoctor/core"><img src="https://img.shields.io/npm/v/@rsdoctor/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" /></a> |
 | [Rstest](https://github.com/web-infra-dev/rstest)     | Testing framework        | <a href="https://npmjs.com/package/@rstest/core"><img src="https://img.shields.io/npm/v/@rstest/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" /></a>     |
 | [Rslint](https://github.com/web-infra-dev/rslint)     | Linter                   | <a href="https://npmjs.com/package/@rslint/core"><img src="https://img.shields.io/npm/v/@rslint/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" /></a>     |
+| [Rstack CLI](https://github.com/rstackjs/rstack-cli)  | Unified CLI              | <a href="https://npmjs.com/package/rstack"><img src="https://img.shields.io/npm/v/rstack?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" /></a>                 |
 
 ## Getting started
 
@@ -113,6 +114,7 @@ Thanks to:
 - The [webpack-subresource-integrity](https://github.com/waysact/webpack-subresource-integrity) project created by [@jscheid](https://github.com/jscheid), which inspires implement subresource integrity rspack plugin.
 - The [circular-dependency-plugin](https://github.com/aackerman/circular-dependency-plugin) project created by [@aackerman](https://github.com/aackerman), which inspres implement circular dependency rspack plugin.
 - The [tracing-chrome](https://github.com/thoren-d/tracing-chrome) project created by [thoren-d](https://github.com/thoren-d), which inspires the implementation of Rspack tracing.
+- The [allocative](https://github.com/facebookexperimental/allocative) project from [Buck2](https://github.com/facebook/buck2), which provides the foundation for Rspack's Rust memory profiling.
 
 ## License
 

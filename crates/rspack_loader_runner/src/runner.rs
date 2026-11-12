@@ -1,29 +1,140 @@
-use std::{fmt::Debug, path::PathBuf, sync::Arc};
+use std::{fmt::Debug, sync::Arc};
 
 use rspack_error::{Diagnostic, Error, Result, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::Utf8PathBuf;
 use rspack_sources::SourceMap;
-use rustc_hash::FxHashSet as HashSet;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  ParseMeta,
+  LoaderExecutionKind, LoaderFilter, LoaderRunnerOptions, ParseMeta,
+  chain::LoaderChains,
   content::{AdditionalData, Content, ResourceData},
-  context::{LoaderContext, State},
+  context::{LoaderContext, LoaderDependencies, State},
   loader::{Loader, LoaderItem},
   plugin::LoaderRunnerPlugin,
 };
 
+/// Normal-stage preconditions aligned with the loaders in the chain.
+pub type LoaderFilters = Box<[Option<Arc<LoaderFilter>>]>;
+
 impl<Context: Send> LoaderContext<Context> {
   async fn start_yielding(&mut self) -> Result<bool> {
-    if let Some(plugin) = &self.plugin
-      && plugin.should_yield(self).await?
+    if self.current_loader().execution_kind() == LoaderExecutionKind::JavaScript
+      && let Some(plugin) = &self.plugin
     {
       plugin.clone().start_yielding(self).await?;
       return Ok(true);
     }
     Ok(false)
+  }
+}
+
+async fn run_pitch_chain<Context: Send>(
+  cx: &mut LoaderContext<Context>,
+  resource: &str,
+) -> Result<()> {
+  let chain = cx
+    .current_chain()
+    .expect("pitching requires a current loader chain");
+  let chain_end = chain.end() as i32;
+  let span = info_span!(
+    "run_loader_chain:pitch",
+    resource,
+    chain_len = chain.len(),
+    chain_start = chain.start(),
+    chain_end = chain.end(),
+    execution_kind = ?chain.execution_kind(),
+  );
+
+  async {
+    while cx.loader_index < chain_end {
+      let yield_span = info_span!("run_loader:pitch:yield_to_js", resource);
+      if cx.start_yielding().instrument(yield_span).await? {
+        if cx.content.is_some() {
+          break;
+        }
+        continue;
+      }
+
+      if cx.current_loader().pitch_executed() {
+        cx.loader_index += 1;
+        continue;
+      }
+
+      cx.current_loader().set_pitch_executed();
+      let loader = cx.current_loader().loader().clone();
+      let loader_span = info_span!("run_loader:pitch", resource);
+      cx.reset_dependency_changes();
+      let result = loader.pitch(cx).instrument(loader_span).await;
+      cx.merge_dependency_changes();
+      result?;
+      if cx.content.is_some() {
+        break;
+      }
+    }
+    Ok::<(), Error>(())
+  }
+  .instrument(span)
+  .await
+}
+
+impl<Context: Send> LoaderContext<Context> {
+  /// Execute the current root chain's normal loaders without consulting the loader cache.
+  pub async fn run_normal_chain(&mut self) -> Result<()> {
+    let cx = self;
+    let chain = cx
+      .current_root_chain()
+      .expect("normal execution requires a current root chain");
+    let chain_start = chain.start() as i32;
+    let span = info_span!(
+      "run_loader_chain:normal",
+      resource = cx.resource(),
+      chain_len = chain.len(),
+      chain_start = chain.start(),
+      chain_end = chain.end(),
+      execution_kind = ?chain.execution_kind(),
+    );
+
+    async {
+      while cx.loader_index >= chain_start {
+        if cx.current_loader().normal_executed() {
+          cx.loader_index -= 1;
+          continue;
+        }
+
+        if cx.current_loader().should_skip_normal(cx.content.as_ref()) {
+          cx.current_loader().set_normal_executed();
+          cx.loader_index -= 1;
+          continue;
+        }
+
+        let yield_span = info_span!("run_loader:yield_to_js", resource = cx.resource());
+        if cx.start_yielding().instrument(yield_span).await? {
+          continue;
+        }
+
+        if cx.current_loader().normal_executed() {
+          cx.loader_index -= 1;
+          continue;
+        }
+
+        cx.current_loader().set_normal_executed();
+        let loader = cx.current_loader().loader().clone();
+        let loader_span = info_span!("run_loader:normal", resource = cx.resource());
+        let result = loader.run(cx).instrument(loader_span).await;
+        if result.is_ok() && !cx.current_loader().finish_called() {
+          // If nothing is returned from this loader, set every output to None
+          // to match webpack loader-runner behavior.
+          cx.finish_with_empty();
+        }
+        cx.merge_dependency_changes();
+        result?;
+      }
+      Ok::<(), Error>(())
+    }
+    .instrument(span)
+    .await
   }
 }
 
@@ -42,7 +153,10 @@ async fn process_resource<Context: Send>(
   {
     loader_context.content = Some(content);
     loader_context.source_map = source_map.map(Box::new);
-    loader_context.file_dependencies.extend(file_dependencies);
+    for dependency in file_dependencies {
+      loader_context.add_file_dependency(dependency);
+    }
+    loader_context.merge_dependency_changes();
     return Ok(());
   }
 
@@ -67,27 +181,27 @@ fn create_loader_context<Context: Send>(
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
 ) -> LoaderContext<Context> {
-  let mut file_dependencies: HashSet<PathBuf> = Default::default();
+  let mut dependencies = LoaderDependencies::default();
   if let Some(resource_path) = resource_data.path()
     && resource_path.is_absolute()
   {
-    file_dependencies.insert(resource_path.to_owned().into_std_path_buf());
+    dependencies.file.insert(resource_path.into());
   }
 
   LoaderContext {
     hot: false,
     cacheable: true,
     parse_meta: Default::default(),
-    file_dependencies,
-    context_dependencies: Default::default(),
-    missing_dependencies: Default::default(),
-    build_dependencies: Default::default(),
+    dependencies,
+    added_dependencies: Default::default(),
+    removed_dependencies: Default::default(),
     content: None,
     context,
     source_map: None,
     additional_data: None,
     state: State::Init,
     loader_index: 0,
+    loader_chains: LoaderChains::new(&loader_items),
     loader_items,
     plugin,
     resource_data,
@@ -98,14 +212,42 @@ fn create_loader_context<Context: Send>(
 #[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
 pub async fn run_loaders<Context: Send>(
   loaders: Vec<Arc<dyn Loader<Context>>>,
+  loader_options: Option<Vec<LoaderRunnerOptions>>,
+  loader_filters: Option<LoaderFilters>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> (LoaderResult<Context>, Option<Error>) {
+  if let Some(loader_options) = &loader_options {
+    assert_eq!(
+      loaders.len(),
+      loader_options.len(),
+      "loader options must stay aligned with loaders"
+    );
+  }
+  if let Some(loader_filters) = &loader_filters {
+    assert_eq!(
+      loaders.len(),
+      loader_filters.len(),
+      "loader filters must stay aligned with loaders"
+    );
+  }
+  let mut loader_options = loader_options.map(Vec::into_iter);
+  let mut loader_filters = loader_filters.map(|filters| filters.into_vec().into_iter());
   let loaders = loaders
     .into_iter()
-    .map(|i| i.into())
+    .map(|loader| {
+      let options = loader_options
+        .as_mut()
+        .map_or_else(LoaderRunnerOptions::default, |options| {
+          options
+            .next()
+            .expect("loader options must stay aligned with loaders")
+        });
+      let filter = loader_filters.as_mut().and_then(Iterator::next).flatten();
+      LoaderItem::new(loader, options, filter)
+    })
     .collect::<Vec<LoaderItem<Context>>>();
   let mut cx = create_loader_context(loaders, resource_data, plugin, context);
   let result = run_loaders_impl(&mut cx, fs).await;
@@ -131,24 +273,7 @@ async fn run_loaders_impl<Context: Send>(
           cx.state.transition(State::ProcessResource);
           continue;
         }
-        let span = info_span!("run_loader:pitch:yield_to_js", resource);
-        if cx.start_yielding().instrument(span).await? {
-          if cx.content.is_some() {
-            cx.state.transition(State::Normal);
-            cx.loader_index -= 1;
-          }
-          continue;
-        }
-
-        if cx.current_loader().pitch_executed() {
-          cx.loader_index += 1;
-          continue;
-        }
-
-        cx.current_loader().set_pitch_executed();
-        let loader = cx.current_loader().loader().clone();
-        let span = info_span!("run_loader:pitch", resource);
-        loader.pitch(cx).instrument(span).await?;
+        run_pitch_chain(cx, resource).await?;
         if cx.content.is_some() {
           cx.state.transition(State::Normal);
           cx.loader_index -= 1;
@@ -166,31 +291,13 @@ async fn run_loaders_impl<Context: Send>(
           continue;
         }
 
-        if cx.loader_index == 0 && cx.current_loader().normal_executed() {
-          cx.state.transition(State::Finished);
-          continue;
+        cx.reset_dependency_changes();
+        if let Some(plugin) = cx.plugin.clone() {
+          plugin.run_normal_chain(cx).await?;
+        } else {
+          cx.run_normal_chain().await?;
         }
-        let span = info_span!("run_loader:yield_to_js", resource);
-        if cx.start_yielding().instrument(span).await? {
-          continue;
-        }
-
-        if cx.current_loader().normal_executed() {
-          cx.loader_index -= 1;
-          continue;
-        }
-
-        cx.current_loader().set_normal_executed();
-        let loader = cx.current_loader().loader().clone();
-
-        let span = info_span!("run_loader:normal", resource);
-        loader.run(cx).instrument(span).await?;
-        if !cx.current_loader().finish_called() {
-          // If nothing is returned from this loader,
-          // we set everything to [None] and move to the next loader.
-          // This mocks the behavior of webpack loader-runner.
-          cx.finish_with_empty();
-        }
+        cx.reset_dependency_changes();
       }
       State::Finished => break,
     }
@@ -214,13 +321,10 @@ async fn run_loaders_impl<Context: Send>(
 pub struct LoaderResult<Context> {
   pub context: Context,
   pub cacheable: bool,
-  pub file_dependencies: HashSet<PathBuf>,
-  pub context_dependencies: HashSet<PathBuf>,
-  pub missing_dependencies: HashSet<PathBuf>,
-  pub build_dependencies: HashSet<PathBuf>,
+  pub dependencies: LoaderDependencies,
   pub diagnostics: Vec<Diagnostic>,
   pub content: Content,
-  pub source_map: Option<Box<SourceMap<'static>>>,
+  pub source_map: Option<Box<SourceMap>>,
   pub additional_data: Option<AdditionalData>,
   pub parse_meta: ParseMeta,
   pub current_loader: Option<Utf8PathBuf>,
@@ -231,10 +335,7 @@ impl<Context: Send> LoaderResult<Context> {
     LoaderResult {
       context: loader_context.context,
       cacheable: loader_context.cacheable,
-      file_dependencies: loader_context.file_dependencies,
-      context_dependencies: loader_context.context_dependencies,
-      missing_dependencies: loader_context.missing_dependencies,
-      build_dependencies: loader_context.build_dependencies,
+      dependencies: loader_context.dependencies,
       diagnostics: loader_context.diagnostics,
       content: loader_context
         .content
@@ -262,8 +363,8 @@ mod test {
   use rspack_collections::Identifier;
   use rspack_error::Result;
   use rspack_fs::{NativeFileSystem, ReadableFileSystem};
+  use rspack_paths::InternedPathSet;
   use rspack_sources::SourceMap;
-  use rustc_hash::FxHashSet as HashSet;
 
   use super::{Loader, LoaderContext, ResourceData, run_loaders};
   use crate::{AdditionalData, content::Content, plugin::LoaderRunnerPlugin};
@@ -286,13 +387,7 @@ mod test {
       &self,
       _resource_data: &ResourceData,
       _fs: Arc<dyn ReadableFileSystem>,
-    ) -> Result<
-      Option<(
-        Content,
-        Option<SourceMap<'static>>,
-        HashSet<std::path::PathBuf>,
-      )>,
-    > {
+    ) -> Result<Option<(Content, Option<SourceMap>, InternedPathSet)>> {
       Ok(Some((Content::Buffer(vec![]), None, Default::default())))
     }
   }
@@ -445,6 +540,8 @@ mod test {
     assert!(
       run_loaders(
         vec![p1, p2, c1, c2],
+        None,
+        None,
         rs.clone(),
         Some(Arc::new(TestContentPlugin)),
         (),
@@ -465,6 +562,8 @@ mod test {
     assert!(
       run_loaders(
         vec![p1, p2, p3],
+        None,
+        None,
         rs.clone(),
         Some(Arc::new(TestContentPlugin)),
         (),
@@ -538,6 +637,8 @@ mod test {
     assert!(
       run_loaders(
         vec![Arc::new(Normal) as Arc<dyn Loader>, Arc::new(Normal2)],
+        None,
+        None,
         rs,
         Some(Arc::new(TestContentPlugin)),
         (),
@@ -595,6 +696,8 @@ mod test {
     assert!(
       run_loaders(
         vec![Arc::new(Normal2), Arc::new(Normal)],
+        None,
+        None,
         rs,
         Some(Arc::new(TestContentPlugin)),
         (),

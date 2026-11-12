@@ -1,4 +1,4 @@
-import ok from "./loader!";
+import ok from "./loader.mjs!";
 
 it("should handle chunks", () => import("./chunk"));
 it("should handle loaders", () => {

@@ -1,1 +1,1 @@
-require("./emit-error-loader.js!./file");
+require("./emit-error-loader.mjs!./file");

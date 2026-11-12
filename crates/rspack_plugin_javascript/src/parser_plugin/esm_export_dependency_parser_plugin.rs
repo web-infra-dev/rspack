@@ -1,10 +1,14 @@
+use std::sync::Arc;
+
 use itertools::Itertools;
 use rspack_core::{
   BoxDependency, ConstDependency, Dependency, DependencyRange, DependencyType, ImportPhase,
 };
-use rspack_util::SpanExt;
-use swc_atoms::Atom;
-use swc_experimental_ecma_ast::{CommentKind, Expr, GetSpan, Span};
+use rspack_util::{SpanExt, swc::AstSubRangeExt};
+use swc_next_ecma_ast::{
+  CommentKind, ExportDefaultDeclarationKind, ExportDefaultDeclarationKindData, ExprData, GetSpan,
+  Span,
+};
 
 use super::{
   DEFAULT_STAR_JS_WORD, JS_DEFAULT_KEYWORD, JavascriptParserPlugin,
@@ -13,16 +17,16 @@ use super::{
   inner_graph::state::InnerGraphMapUsage,
 };
 use crate::{
-  ConstValue, InnerGraphParserPlugin,
+  Atom, ConstValue, InnerGraphParserPlugin,
   dependency::{
     DeclarationId, DeclarationInfo, ESMExportExpressionDependency, ESMExportHeaderDependency,
     ESMExportImportedSpecifierDependency, ESMExportSpecifierDependency,
-    ESMImportSideEffectDependency,
+    ESMImportSideEffectDependency, create_resource_identifier_for_esm_dependency,
   },
-  parser_plugin::compatibility_plugin::{NESTED_IDENTIFIER_TAG, NestedRequireData},
-  utils::object_properties::get_attributes,
+  parser_plugin::compatibility_plugin::CompatibilityPlugin,
+  utils::object_properties::get_import_attributes,
   visitors::{
-    ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal, JavascriptParser,
+    BindingState, ExportDefaultDeclaration, ExportImport, ExportLocal, JavascriptParser,
     create_traceable_error,
   },
 };
@@ -32,17 +36,15 @@ pub struct ESMExportDependencyParserPlugin;
 fn create_default_exported_namespace_dependency(
   parser: &mut JavascriptParser,
   statement: ExportDefaultDeclaration,
-  expr: ExportDefaultExpression,
+  state: Option<BindingState>,
 ) -> Option<ESMExportImportedSpecifierDependency> {
-  let ExportDefaultExpression::Expr(Expr::Ident(ident)) = expr else {
-    return None;
-  };
+  let ast = parser.ast.ast;
   let settings = parser
-    .get_tag_data::<ESMSpecifierData>(&Atom::from(ident.sym.as_str()), ESM_SPECIFIER_TAG)
+    .get_variable_tag_data::<ESMSpecifierData>(state?, ESM_SPECIFIER_TAG)
     .filter(|settings| settings.namespace_import && settings.ids.is_empty())?
     .clone();
-  let statement_span = statement.span();
-  let mut dep = ESMExportImportedSpecifierDependency::new(
+  let statement_span = statement.span(ast);
+  let dep = ESMExportImportedSpecifierDependency::new(
     settings.source,
     settings.source_order,
     vec![],
@@ -52,6 +54,7 @@ fn create_default_exported_namespace_dependency(
     ESMExportImportedSpecifierDependency::create_export_presence_mode(parser.javascript_options),
     settings.phase,
     settings.attributes,
+    settings.resource_identifier,
     parser.to_dependency_location(DependencyRange::from(statement_span)),
   );
   if parser
@@ -67,14 +70,16 @@ fn create_default_exported_namespace_dependency(
 #[rspack_macros::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin {
   fn export(&self, parser: &mut JavascriptParser<'p>, statement: ExportLocal) -> Option<bool> {
-    let range = DependencyRange::from(statement.span());
+    let ast = parser.ast.ast;
+    let statement_span = statement.span(ast);
+    let range = DependencyRange::from(statement_span);
     let loc = parser.to_dependency_location(range);
     let dep = ESMExportHeaderDependency::new(
-      statement.span().into(),
-      statement.declaration_span().map(|span| span.into()),
+      statement_span.into(),
+      statement.declaration_span(ast).map(|span| span.into()),
       loc,
     );
-    parser.add_presentational_dependency(Box::new(dep));
+    parser.add_presentational_dependency(Arc::new(dep));
     Some(true)
   }
 
@@ -84,20 +89,29 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     statement: ExportImport,
     source: &Atom,
   ) -> Option<bool> {
+    let ast = parser.ast.ast;
+    let statement_span = statement.span(ast);
     parser.last_esm_import_order += 1;
-    let clean_dep = ConstDependency::new(statement.span().into(), "".into());
-    parser.add_presentational_dependency(Box::new(clean_dep));
-    let range = DependencyRange::from(statement.span());
+    let clean_dep = ConstDependency::new(statement_span.into(), "".into());
+    parser.add_presentational_dependency(Arc::new(clean_dep));
+    let range = DependencyRange::from(statement_span);
     let loc = parser.to_dependency_location(range);
-    let mut side_effect_dep = ESMImportSideEffectDependency::new(
+    let attributes = get_import_attributes(ast, statement.attributes(ast));
+    let resource_identifier = create_resource_identifier_for_esm_dependency(
+      source,
+      ImportPhase::Evaluation,
+      attributes.as_ref(),
+    );
+    let side_effect_dep = ESMImportSideEffectDependency::new(
       source.clone(),
       parser.last_esm_import_order,
-      statement.span().into(),
+      statement_span.into(),
       DependencyType::EsmExportImport,
       ImportPhase::Evaluation,
-      statement.get_with_obj().map(get_attributes),
+      attributes,
+      resource_identifier,
       loc,
-      statement.is_star_export(),
+      statement.is_star_export(ast),
     );
     if parser
       .factory_meta
@@ -106,7 +120,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     {
       side_effect_dep.set_lazy();
     }
-    parser.add_dependency(Box::new(side_effect_dep));
+    parser.add_dependency(BoxDependency::new(side_effect_dep));
     Some(true)
   }
 
@@ -118,6 +132,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     export_name: &Atom,
     export_name_span: Span,
   ) -> Option<bool> {
+    let ast = parser.ast.ast;
+    let statement_span = statement.span(ast);
+    if let Some(binding) = parser.definitions_db.resolve_with_symbol(local_id).1 {
+      parser
+        .dynamic_import_references
+        .record_exported_binding(binding);
+    }
     if parser.javascript_options.is_create_require_enabled() {
       parser
         .created_require_references
@@ -143,31 +164,34 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
         .into(),
       );
     }
-    let dep = if let Some((source, source_order, ids, phase, attributes)) = parser
-      .get_tag_data::<ESMSpecifierData>(local_id, ESM_SPECIFIER_TAG)
-      .map(|settings| {
-        (
-          settings.source.clone(),
-          settings.source_order,
-          settings.ids.clone(),
-          settings.phase,
-          settings.attributes.clone(),
-        )
-      }) {
-      let range = DependencyRange::from(statement.span());
+    let dep = if let Some((source, source_order, ids, phase, attributes, resource_identifier)) =
+      parser
+        .get_tag_data::<ESMSpecifierData>(local_id, ESM_SPECIFIER_TAG)
+        .map(|settings| {
+          (
+            settings.source.clone(),
+            settings.source_order,
+            settings.ids.clone(),
+            settings.phase,
+            settings.attributes.clone(),
+            settings.resource_identifier,
+          )
+        }) {
+      let range = DependencyRange::from(statement_span);
       let loc = parser.to_dependency_location(range);
-      let mut dep = ESMExportImportedSpecifierDependency::new(
+      let dep = ESMExportImportedSpecifierDependency::new(
         source,
         source_order,
         ids.into_vec(),
         Some(export_name.clone()),
         None,
-        statement.span().into(),
+        statement_span.into(),
         ESMExportImportedSpecifierDependency::create_export_presence_mode(
           parser.javascript_options,
         ),
         phase,
         attributes,
+        resource_identifier,
         loc,
       );
       if parser
@@ -177,7 +201,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       {
         dep.set_lazy();
       }
-      Box::new(dep) as BoxDependency
+      BoxDependency::new(dep)
     } else {
       let const_value = parser
         .get_tag_data::<ConstValueData>(local_id, INLINABLE_CONST_TAG)
@@ -187,28 +211,26 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
         .collected_typescript_info
         .as_ref()
         .and_then(|info| info.exported_enums.get(local_id).cloned());
-      let variable = parser
-        .get_tag_data::<NestedRequireData>(local_id, NESTED_IDENTIFIER_TAG)
-        .map(|data| data.name.clone());
+      let variable = CompatibilityPlugin::update_nested_binding_declaration(parser, local_id);
 
-      let range = DependencyRange::from(statement.span());
+      let range = DependencyRange::from(statement_span);
       let loc = parser.to_dependency_location(range);
-      Box::new(ESMExportSpecifierDependency::new(
+      BoxDependency::new(ESMExportSpecifierDependency::new(
         export_name.clone(),
         if let Some(variable) = variable {
-          variable.into()
+          variable
         } else {
           local_id.clone()
         },
         const_value,
         enum_value,
-        statement.span().into(),
+        statement_span.into(),
         loc,
       ))
     };
-    let is_asi_safe = !parser.is_asi_position(statement.span().start);
+    let is_asi_safe = !parser.is_asi_position(statement_span.start);
     if !is_asi_safe {
-      parser.set_asi_position(statement.span().end);
+      parser.set_asi_position(statement_span.end);
     }
     parser.add_dependency(dep);
     Some(true)
@@ -223,6 +245,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     export_name: Option<&Atom>,
     export_name_span: Option<Span>,
   ) -> Option<bool> {
+    let ast = parser.ast.ast;
+    let statement_span = statement.span(ast);
     let star_exports = if let Some(export_name) = export_name {
       if !parser
         .build_info
@@ -243,24 +267,31 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     } else {
       Some(parser.build_info.all_star_exports.clone())
     };
-    let mut dep = ESMExportImportedSpecifierDependency::new(
+    let attributes = get_import_attributes(ast, statement.attributes(ast));
+    let resource_identifier = create_resource_identifier_for_esm_dependency(
+      source,
+      ImportPhase::Evaluation,
+      attributes.as_ref(),
+    );
+    let dep = ESMExportImportedSpecifierDependency::new(
       source.clone(),
       parser.last_esm_import_order,
       local_id.map(|id| vec![id.clone()]).unwrap_or_default(),
       export_name.cloned(),
       star_exports,
-      statement.span().into(),
+      statement_span.into(),
       ESMExportImportedSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       ImportPhase::Evaluation,
-      statement.get_with_obj().map(get_attributes),
-      parser.to_dependency_location(DependencyRange::from(statement.span())),
+      attributes,
+      resource_identifier,
+      parser.to_dependency_location(DependencyRange::from(statement_span)),
     );
     if export_name.is_none() {
       parser.build_info.all_star_exports.push(dep.id);
     }
-    let is_asi_safe = !parser.is_asi_position(statement.span().start);
+    let is_asi_safe = !parser.is_asi_position(statement_span.start);
     if !is_asi_safe {
-      parser.set_asi_position(statement.span().end);
+      parser.set_asi_position(statement_span.end);
     }
     if parser
       .factory_meta
@@ -269,7 +300,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     {
       dep.set_lazy();
     }
-    parser.add_dependency(Box::new(dep));
+    parser.add_dependency(BoxDependency::new(dep));
     Some(true)
   }
 
@@ -277,16 +308,34 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     &self,
     parser: &mut JavascriptParser<'p>,
     statement: ExportDefaultDeclaration,
-    expr: ExportDefaultExpression,
+    expr: ExportDefaultDeclarationKind,
   ) -> Option<bool> {
-    let expr_span = expr.span();
-    let statement_span = statement.span();
-    if let Some(dep) = create_default_exported_namespace_dependency(parser, statement, expr) {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+    let ast = parser.ast.ast;
+    let expr_data = ast.export_default_declaration_kind_data(expr);
+    let expr_span = expr.span(ast);
+    let statement_span = statement.span(ast);
+    // Both tag checks refer to the same binding; no hook mutates it between them.
+    let identifier_state = if let ExportDefaultDeclarationKindData::Expr(expression) = expr_data
+      && let ExprData::IdentifierReference(identifier) = ast.expr_data(expression)
+    {
+      let resolution = parser
+        .definitions_db
+        .semantic_context
+        .identifier_resolution(parser.ast, identifier);
+      parser
+        .definitions_db
+        .resolve_identifier(parser.ast, identifier, resolution)
+    } else {
+      None
+    };
+    if let Some(dep) =
+      create_default_exported_namespace_dependency(parser, statement, identifier_state)
+    {
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         DependencyRange::new(statement_span.real_lo(), expr_span.real_lo()),
         "".into(),
       )));
-      parser.add_dependency(Box::new(dep));
+      parser.add_dependency(BoxDependency::new(dep));
       return Some(true);
     }
 
@@ -306,24 +355,27 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
           .join("")
       })
       .unwrap_or_default();
-    let declaration = match expr {
-      ExportDefaultExpression::FnDecl(f) => {
-        let start = f.span().real_lo();
-        let end = if let Some(first_arg) = f.function.params.first() {
-          first_arg.span().real_lo()
+    let declaration = match expr_data {
+      ExportDefaultDeclarationKindData::Function(f) => {
+        let start = f.span(ast).real_lo();
+        let params = f.params(ast);
+        let end = if let Some(first_arg) = ast.first(params.items(ast)) {
+          first_arg.span(ast).real_lo()
+        } else if let Some(rest) = params.rest(ast) {
+          rest.span(ast).real_lo()
         } else {
-          f.function.body.span().real_lo()
+          f.body(ast).span(ast).real_lo()
         };
         Some(DeclarationId::Func(DeclarationInfo::new(
           DependencyRange::new(start, end),
           format!(
             "{}function{} ",
-            if f.function.is_async { "async " } else { "" },
-            if f.function.is_generator { "*" } else { "" },
+            if f.r#async(ast) { "async " } else { "" },
+            if f.generator(ast) { "*" } else { "" },
           ),
           format!(
             r#"({}"#,
-            if f.function.params.is_empty() {
+            if params.items(ast).is_empty() && params.rest(ast).is_none() {
               ") "
             } else {
               ""
@@ -331,18 +383,23 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
           ),
         )))
       }
-      ExportDefaultExpression::ClassDecl(c) => c
-        .ident
-        .as_ref()
-        .map(|ident| DeclarationId::Id(ident.sym.to_string())),
-      ExportDefaultExpression::Expr(_) => None,
+      ExportDefaultDeclarationKindData::Class(c) => c
+        .id(ast)
+        .map(|identifier| DeclarationId::Id(ast.get_utf8(identifier.name(ast)).to_string())),
+      _ => None,
     };
-    let const_value = match expr {
-      ExportDefaultExpression::Expr(Expr::Ident(ident)) => parser
-        .get_tag_data::<ConstValueData>(&Atom::from(ident.sym.as_str()), INLINABLE_CONST_TAG)
-        .map(|data| data.value.clone()),
-      ExportDefaultExpression::Expr(expr) => {
-        to_evaluated_inlinable_value(&parser.evaluate_expression(expr)).map(ConstValue::Inlinable)
+    let const_value = match expr_data {
+      ExportDefaultDeclarationKindData::Expr(expression) => {
+        if let ExprData::IdentifierReference(_) = ast.expr_data(expression) {
+          identifier_state
+            .and_then(|state| {
+              parser.get_variable_tag_data::<ConstValueData>(state, INLINABLE_CONST_TAG)
+            })
+            .map(|data| data.value.clone())
+        } else {
+          to_evaluated_inlinable_value(&parser.evaluate_expression(expression))
+            .map(ConstValue::Inlinable)
+        }
       }
       _ => None,
     };
@@ -354,10 +411,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       const_value,
       parser.to_dependency_location(DependencyRange::from(expr_span)),
     );
-    parser.add_dependency(Box::new(dep));
-    let name = expr.ident().map_or_else(
+    parser.add_dependency(BoxDependency::new(dep));
+    let name = match expr_data {
+      ExportDefaultDeclarationKindData::Function(function) => function.id(ast),
+      ExportDefaultDeclarationKindData::Class(class) => class.id(ast),
+      _ => None,
+    }
+    .map_or_else(
       || DEFAULT_STAR_JS_WORD.clone(),
-      |ident| Atom::from(ident.as_str()),
+      |identifier| Atom::from(ast.get_utf8(identifier.name(ast))),
     );
     InnerGraphParserPlugin::add_variable_usage(
       parser,

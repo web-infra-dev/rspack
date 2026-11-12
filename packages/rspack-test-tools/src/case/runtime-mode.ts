@@ -1,4 +1,4 @@
-import rspack, { type RspackOptions } from '@rspack/core';
+import { rspack, type RspackOptions } from '@rspack/core';
 
 const runtimeModeDefine = {
   'globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK': JSON.stringify(true),

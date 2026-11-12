@@ -1,12 +1,10 @@
 ---
-description: '顶级的 output 包含一组选项，指导 Rspack 如何以及在哪里输出 bundles、assets，以及使用 Rspack 打包或加载的任何其他内容。'
+description: '配置产物路径、文件名、公共 URL、模块与库的输出格式、chunk 加载方式和哈希。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import { Tabs, Tab } from '@theme';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/output/" />
 
 # Output
 
@@ -19,18 +17,45 @@ import { Tabs, Tab } from '@theme';
 - **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **默认值：** `'[hash][ext][query]'`
 
-与 [`output.filename`](#outputfilename) 类似，但适用于[资源模块](/guide/features/asset-module)。
+指定[资源模块](/guide/features/asset-module)输出为独立文件时的文件名，支持与 [`output.filename`](#outputfilename) 相同的占位符。
 
-`[name]`、`[file]`、`[query]`、`[fragment]`、`[base]` 和 `[path]` 在使用数据 URI 替换构建的资源中被设置为空字符串。
+此选项适用于：
 
-Asset module 输出的文件名称。这个值可以被 [rules[].generator.filename](/config/module-rules#rulesgenerator) 覆盖。
+- 类型为 `'asset/resource'` 的模块。
+- 类型为 `'asset'` 且不满足 [rules[].parser.dataUrlCondition](/config/module-parser#assetdataurlcondition) 条件的模块。满足条件的资源会被内联。
 
-:::info Asset module 作为一个单独的文件输出的情况
+例如，将资源文件输出到 `assets` 目录，并保留原始文件名：`logo.png` 会输出为 `assets/logo.png`。
 
-- 模块类型为 `'asset'` 且 asset 满足 [`rules[].parser.dataUrlCondition`](/config/module-parser#assetdataurlcondition) 设定值
-- 模块类型为 `'asset/resource'`
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    assetModuleFilename: 'assets/[name][ext]',
+  },
+};
+```
 
-:::
+对于通过 data URI 导入的资源，`[name]` 和 `[base]` 会被替换为内容哈希，`[file]`、`[query]`、`[fragment]` 和 `[path]` 为空字符串。
+
+可以通过 [rules[].generator.filename](/config/module-rules#rulesgenerator) 为某条规则单独设置文件名。下面的 PNG 规则使用 `images/[name][ext]` 覆盖全局设置，因此 `logo.png` 会输出为 `images/logo.png`：
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    assetModuleFilename: 'assets/[name][ext]',
+  },
+  module: {
+    rules: [
+      {
+        test: /\.png$/i,
+        type: 'asset/resource',
+        generator: {
+          filename: 'images/[name][ext]',
+        },
+      },
+    ],
+  },
+};
+```
 
 ## output.asyncChunks
 
@@ -60,9 +85,9 @@ export default {
 
   ```ts
   type BundlerInfo = {
-    version?: string,
-    bundler?: string,
-    force?: ('version' | 'uniqueId')[] ｜ boolean;
+    version?: string;
+    bundler?: string;
+    force?: boolean | ('version' | 'uniqueId')[];
   };
   ```
 
@@ -70,7 +95,7 @@ export default {
 
 - `version`：用于指定 Rspack 版本，默认读取 `@rspack/core/package.json` 中的 `version` 字段。
 - `bundler`：用于指定打包工具名称，默认为 `rspack`
-- `force`：是否强制注入 Rspack 信息，会以运行时模块的形式加入到产物中，默认为 `false`，可通过数组选择强制注入的项目。
+- `force`：是否强制注入 Rspack 信息，会以 [Rspack 运行时模块](/misc/glossary#rspack-runtime-module)的形式加入到产物中，默认为 `false`，可通过数组选择强制注入的项目。
 
 默认情况下，在检测到代码中使用了 `import.meta.rspackVersion` 或 `import.meta.rspackUniqueId` 时，会按需注入对应信息。可将 `force` 设定为 `true` 始终注入：
 
@@ -87,14 +112,27 @@ export default {
 
 ## output.chunkFilename
 
-- **类型：** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
-- **默认值：** 当 [`output.filename`](/config/output#outputfilename) 不为函数时，推断 [`output.filename`](/config/output#outputfilename) 推断；否则为 `'[id].js'`。
+- **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
+- **默认值：** 当 [`output.filename`](#outputfilename) 为字符串时，根据其推断；否则为 `'[id].js'`。
 
 这个选项决定了非初始块文件的名称。有关可能值的详细信息，请参见 [`output.filename`](/config/output#outputfilename) 选项。
 
-注意，这些文件名需要在运行时生成，以便发送 chunk 的请求。因此，像 `[name]` 和 `[chunkhash]` 这样的占位符需要在 Rspack 运行时将 chunk id 映射到占位符值添加到输出 bundle 中。这会增加大小，并且可能会在任何 chunk 的占位符值更改时使 bundle 的缓存失效。
+这些文件名需要在运行时生成，以便请求对应的 chunk。因此，使用 `[name]` 和 `[chunkhash]` 等占位符时，需要在构建产物中加入 chunk ID 到占位符值的映射，供 Rspack 运行时使用。这会增加产物体积，且任一 chunk 的占位符值变化都可能使包含该映射的 bundle 缓存失效。
 
-默认情况下，使用 `[id].js` 或从 [`output.filename`](/config/output#outputfilename) 推断出的值（`[name]` 被替换为 `[id]` 或在前面加上 `[id].`）。
+未配置此选项时，Rspack 根据 [`output.filename`](#outputfilename) 推断默认值：
+
+- 如果 `output.filename` 是包含 `[name]`、`[id]`、`[chunkhash]` 或 `[contenthash]` 的字符串，则直接复用该字符串。其中 `[name]` 不会被替换成 `[id]`。
+- 否则，Rspack 会在文件名前添加 `[id].`，保留目录和查询字符串。
+- 如果 `output.filename` 是函数，则默认为 `'[id].js'`。Rspack 不会调用该函数来推断 `output.chunkFilename`。
+
+| `output.filename`     | 默认的 `output.chunkFilename` |
+| --------------------- | ----------------------------- |
+| `'[name].js'`         | `'[name].js'`                 |
+| `'[name].mjs'`        | `'[name].mjs'`                |
+| `'scripts/bundle.js'` | `'scripts/[id].bundle.js'`    |
+| 函数                  | `'[id].js'`                   |
+
+你也可以显式指定其他文件名模板：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -192,29 +230,44 @@ export default {
 - **类型：** `boolean | { keep?: string | RegExp | ((path: string) => boolean) }`
 - **默认值：** `false`
 
-在生成产物前，删除输出目录下的所有文件。
+在输出产物之前清理输出目录中的文件。将 `clean` 设为 `true` 可启用清理：
 
 ```js title="rspack.config.mjs"
 export default {
   output: {
     clean: true, // Clean the output directory before emit.
   },
+};
+```
 
-  // or
+通过 `clean.keep` 保留指定路径：
+
+```js title="rspack.config.mjs"
+export default {
   output: {
     clean: {
       keep: 'ignored/dir', // keep these assets under 'dist/ignored/dir'.
     },
   },
+};
+```
 
-  // or
+也可以使用正则表达式匹配要保留的路径：
+
+```js title="rspack.config.mjs"
+export default {
   output: {
     clean: {
       keep: /ignored\/dir/, // keep these assets under 'dist/ignored/dir'.
     },
   },
+};
+```
 
-  // or
+如需自定义匹配逻辑，可以通过函数返回 `true` 来保留文件：
+
+```js title="rspack.config.mjs"
+export default {
   output: {
     clean: {
       keep: (path) => path.includes('ignored/dir'), // keep these assets under 'dist/ignored/dir'.
@@ -224,8 +277,6 @@ export default {
 ```
 
 ## output.compareBeforeEmit
-
-<ApiMeta addedVersion={'1.1.0'} />
 
 - **类型：** `boolean`
 - **默认值：** `true`
@@ -284,19 +335,40 @@ export default {
 
 ## output.cssChunkFilename
 
-- **类型：** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
+- **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **默认值：** 当 [`output.chunkFilename`](/config/output#outputchunkfilename) 不为函数时，根据 [`output.chunkFilename`](/config/output#outputchunkfilename) 推断；否则为 `'[id].css'`。
 
 此选项决定了非初始（non-initial）CSS chunk 文件的名称，参阅 [`output.filename`](/config/output#outputfilename)，了解可能的值。
+
+当 `output.chunkFilename` 为字符串时，Rspack 会将其中的 `.js`、`.mjs` 或 `.cjs` 扩展名替换为 `.css`，并保留查询字符串。当其为函数时，默认值为 `'[id].css'`，不会调用该函数来推断 CSS 文件名。
 
 在这里不能指定绝对路径。不过，可以随意包括用 `'/'` 分隔的文件夹。这个指定的路径将与 [`output.path`](#outputpath) 值结合，以精确定位磁盘上的位置。
 
 ## output.cssFilename
 
-- **类型：** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
-- **默认值：** 根据 [`output.filename`](/config/output#outputfilename) 推断
+- **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
+- **默认值：** 当 [`output.filename`](#outputfilename) 为字符串时，根据其推断；否则为 `'[id].css'`。
 
 此选项决定了 CSS 文件的名称，参阅 [`output.filename`](/config/output#outputfilename)，了解可能的值。
+
+当 `output.filename` 为字符串时，Rspack 会将其中的 `.js`、`.mjs` 或 `.cjs` 扩展名替换为 `.css`，并保留查询字符串。如果不包含这些扩展名，则保持字符串不变。
+
+| `output.filename`        | 默认的 `output.cssFilename` |
+| ------------------------ | --------------------------- |
+| `'scripts/[name].js'`    | `'scripts/[name].css'`      |
+| `'[name].mjs?version=1'` | `'[name].css?version=1'`    |
+| 函数                     | `'[id].css'`                |
+
+使用函数配置 JavaScript 文件名时，如果需要按名称输出 CSS 产物，可以单独配置 CSS 文件名：
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    filename: () => 'scripts/[name].js',
+    cssFilename: 'styles/[name].css',
+  },
+};
+```
 
 在这里**不能**指定绝对路径。不过，可以随意包括用 `'/'` 分隔的文件夹。这个指定的路径将与 [`output.path`](#outputpath) 值结合，以精确定位磁盘上的位置。
 
@@ -370,7 +442,7 @@ export default {
 ## output.devtoolNamespace
 
 - **类型：** `string`
-- **默认值：** `undefined`
+- **默认值：** [`output.uniqueName`](#outputuniquename)
 
 此选项确定 [`output.devtoolModuleFilenameTemplate`](/config/output#outputdevtoolmodulefilenametemplate) 使用的模块名称空间。未指定时的默认值为：[`output.uniqueName`](/config/output#outputuniquename)。在加载多个通过 Rspack 构建的 library 时，用于防止 source map 中源文件路径冲突。
 
@@ -411,7 +483,7 @@ export default {
 - **类型：** `('...' | 'fetch' | 'async-node' | 'universal')[]`
 - **默认值：** 根据 [`output.wasmLoading`](#outputwasmloading) 及 [`output.workerWasmLoading`](#outputworkerwasmloading) 的配置推断
 
-开启可用的 Wasm 加载类型的运行时模块打包。
+为启用的 Wasm 加载类型包含相应的 Rspack 运行时模块。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -466,12 +538,14 @@ type Environment = {
   logicalAssignment?: boolean;
   /** The environment supports template literals. */
   templateLiteral?: boolean;
+  /** The environment supports top-level await ('await x' at the top level of a module). */
+  topLevelAwait?: boolean;
 };
 ```
 
-`output.environment` 定义 Rspack 在生成运行时代码时可以使用的 ECMAScript 语言特性和宿主环境特性。
+`output.environment` 定义生成的 Rspack 运行时代码可以使用的 ECMAScript 语言特性和宿主环境特性。
 
-该选项仅影响 Rspack 生成的 runtime 代码和辅助函数，不会影响源代码的语法降级。
+该选项仅影响生成的 Rspack 运行时代码和辅助函数，不会影响源代码的语法降级。
 
 ### 默认值
 
@@ -479,14 +553,14 @@ type Environment = {
 
 Rspack 会基于 `target` 识别目标环境支持的语言能力，例如：
 
-- 若目标浏览器已支持箭头函数，Rspack 会默认使用箭头函数以缩短 runtime 代码
+- 若目标浏览器已支持箭头函数，Rspack 会默认使用箭头函数以缩短 Rspack 运行时代码
 - 若 `target` 指向特定 Node 版本，Rspack 会根据该版本的语法能力推断对应字段
 
-通常你无需手动设置此选项，除非你希望强制启用或禁用某些语法。当你手动配置此选项时，可以覆盖 Rspack 自动推断的结果，显式声明目标环境是否支持某些语法特性，从而影响 runtime 代码的输出形式。
+通常你无需手动设置此选项，除非你希望强制启用或禁用某些语法。当你手动配置此选项时，可以覆盖 Rspack 自动推断的结果，显式声明目标环境是否支持某些语法特性，从而影响 Rspack 运行时代码的输出形式。
 
 ### 示例
 
-例如，当 `target` 为 `['web', 'es2018']` 时，Rspack 会默认启用 `const` 语法，你可以通过手动配置 `output.environment.const: false` 来禁用它。此时 Rspack 会生成使用 `var` 声明变量的 runtime 代码。
+例如，当 `target` 为 `['web', 'es2018']` 时，Rspack 会默认启用 `const` 语法，你可以通过手动配置 `output.environment.const: false` 来禁用它。此时 Rspack 会生成使用 `var` 声明变量的 Rspack 运行时代码。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -501,7 +575,7 @@ export default {
 
 ## output.filename
 
-- **类型：** `string | (pathData: PathData, assetInfo?: AssetInfo) => string`
+- **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **默认值：** [output.module](#outputmodule) 为 `true` 时为 `'[name].mjs'`，否则为 `'[name].js'`
 
 这个选项决定了输出的 JavaScript bundle 文件名称。这些 bundle 将会被写入 [`output.path`](#outputpath) 指定的目录下。
@@ -588,9 +662,17 @@ export default {
 ## output.globalObject
 
 - **类型：** `string`
-- **默认值：** `'self'`
+- **默认值：** 根据 [`target`](/config/target) 推断：目标环境提供 `global` 时为 `'global'`，否则在支持 `globalThis` 时为 `'globalThis'`，其余情况为 `'self'`。
 
-当输出为 library 时，尤其是当 `library.type` 为 `'umd'`时，此选项将决定使用哪个全局对象来挂载 library。为了使 UMD 构建在浏览器和 Node.js 上均可用，应将 `output.globalObject` 选项设置为 `'this'`。对于类似 web 的目标，默认为 `self`。
+当输出为 library 时，尤其是当 `library.type` 为 `'umd'` 时，此选项将决定使用哪个全局对象来挂载 library。为了使 UMD 构建在浏览器和 Node.js 上均可用，应将 `output.globalObject` 设置为 `'this'`。
+
+例如，未配置 `output.globalObject` 时：
+
+| `target`            | 默认的 `output.globalObject` |
+| ------------------- | ---------------------------- |
+| `'web'`             | `'self'`                     |
+| `['web', 'es2020']` | `'globalThis'`               |
+| `'node'`            | `'global'`                   |
 
 入口点的返回值将会使用 `output.library.name` 赋值给全局对象。依赖于 `target` 配置项，全局对象将会发生对应的改变，例如：`self`, `global` 或者 `globalThis`。
 
@@ -646,10 +728,6 @@ export default {
 };
 ```
 
-:::tip
-Rspack 从 1.1 版本开始默认使用更快的 `xxhash64` 算法。
-:::
-
 ## output.hashSalt
 
 - **类型：** `string`
@@ -660,7 +738,7 @@ Rspack 从 1.1 版本开始默认使用更快的 `xxhash64` 算法。
 ## output.hotUpdateChunkFilename
 
 - **类型：** `string`
-- **默认值：** `"[id].[fullhash].hot-update.js"`
+- **默认值：** 当 [`output.module`](#outputmodule) 为 `true` 时，为 `'[id].[fullhash].hot-update.mjs'`，否则为 `'[id].[fullhash].hot-update.js'`。
 
 自定义热更新文件的文件名，参阅 [`output.filename`](#outputfilename)，了解可能的值。只有 `[fullhash]` 和 `[id]` 可用作占位符。
 
@@ -690,7 +768,7 @@ JSONP 函数用于异步加载热更新块。
 ## output.hotUpdateMainFilename
 
 - **类型：** `string`
-- **默认值：** `"[runtime].[fullhash].hot-update.json"`
+- **默认值：** 当 [`output.module`](#outputmodule) 为 `true` 时，为 `'[runtime].[fullhash].hot-update.json.mjs'`，否则为 `'[runtime].[fullhash].hot-update.json'`。
 
 自定义热更新清单文件的文件名。只有 `[fullhash]` 和 `[runtime]` 可用作占位符。
 
@@ -701,7 +779,7 @@ JSONP 函数用于异步加载热更新块。
 ## output.iife
 
 - **类型：** `boolean`
-- **默认值：** `true`
+- **默认值：** 当 [`output.module`](#outputmodule) 为 `true` 时为 `false`，否则为 `true`。
 
 让 Rspack 为生成的代码添加 [IIFE](https://developer.mozilla.org/en-US/docs/Glossary/IIFE) 包装器。
 
@@ -1060,7 +1138,7 @@ export default {
 
 输出 ESM 模块。
 
-这是一条更偏向兼容性的 ESM library 路径：Rspack 仍沿用常规的 chunk / runtime 渲染流程，再把入口导出转换成 `export` 语句。它更适合较简单的 ESM 库输出，或者你只需要 webpack 风格 `module` 语义的场景。
+这是一条更偏向兼容性的 ESM library 路径：Rspack 仍沿用常规的 chunk 和 Rspack 运行时的渲染流程，再把入口导出转换成 `export` 语句。它更适合较简单的 ESM 库输出，或者你只需要 webpack 风格 `module` 语义的场景。
 
 ##### type: 'modern-module'
 
@@ -1079,7 +1157,7 @@ export default {
 
 :::tip `module` 和 `modern-module` 的区别
 
-- `module` 仍走常规的 chunk / runtime 渲染流程，属于更接近 webpack 兼容语义的 ESM 输出。
+- `module` 仍走常规的 chunk 和 Rspack 运行时的渲染流程，属于更接近 webpack 兼容语义的 ESM 输出。
 - `modern-module` 会由专用的 ESM library 插件接管 chunk 渲染、链接、scope hoisting 和 splitChunks，更适合发布可 tree-shake、可 code-split 的 ESM 库。
 - `modern-module` 当前是为补齐库场景 ESM 能力而单独引入的类型；等能力进一步稳定后，计划与 `module` 收敛为同一个 `library.type`。
 - `preserveModules` 仅在 `modern-module` 下可用。
@@ -1550,7 +1628,7 @@ export default {
 
 是否以 ESM 模块的形式输出 JavaScript 文件。
 
-当启用时，Rspack 会将 [`output.iife`](#outputiife) 设置为 `false`， [`output.scriptType`](#outputscripttype) 设置为 `'module'`。
+当启用时，[`output.iife`](#outputiife) 默认为 `false`，[`output.scriptType`](#outputscripttype) 默认为 `'module'`。显式配置的值优先于这些默认值。
 
 配置 [`output.library.type`](#outputlibrarytype) 为 'module' 或 'modern-module' 会自动将 `output.module` 设为 `true`。
 
@@ -1574,13 +1652,10 @@ export default {
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   output: {
-    path: path.resolve(__dirname, 'dist/assets'),
+    path: path.resolve(import.meta.dirname, 'dist/assets'),
   },
 };
 ```
@@ -1619,7 +1694,7 @@ module.exports = {
 
 - `true`: 启用基础的注释输出，包括模块路径信息。
 - `false`: 不输出任何注释，这是默认行为。
-- `'verbose'`：输出更详细的信息，例如模块导出、运行时信息、tree shaking 信息和 `bailout` 原因。适合排查构建问题或深入分析构建结果。
+- `'verbose'`：输出更详细的信息，例如模块导出、Rspack 运行时信息、tree shaking 信息和 `bailout` 原因。适合排查构建问题或深入分析构建结果。
 
 例如将 `pathinfo` 设置为 `true`：
 
@@ -1646,9 +1721,11 @@ pathinfo 主要用于开发调试。这些注释会增加 bundle 体积，同时
 ## output.publicPath
 
 - **类型：** `'auto' | string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
-- **默认值：** [target](/config/target) 为 `'web'` 或 `'webworker'` 时为 `'auto'`，否则为 `undefined`
+- **默认值：** 当 [target](/config/target) 支持 `document` 或 `importScripts` 时为 `'auto'`，否则为 `''`。
 
 用于设置打包后的静态资源文件（如 JS、CSS、图片等）的 URL 路径前缀。
+
+例如，`'web'` 和 `'webworker'` 目标默认为 `'auto'`，而 `'node'` 默认为空字符串。使用空字符串时，资源 URL 不会添加额外前缀。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1747,8 +1824,6 @@ export default {
 
 ### output.trustedTypes.onPolicyCreationFailure
 
-<ApiMeta addedVersion={'1.1.6'} />
-
 - **类型：** `"stop" | "continue"`
 - **默认值：** `"stop"`
 
@@ -1773,7 +1848,7 @@ export default {
   2. `context` 目录下 `package.json` 的 `name`
   3. `''`（空字符串）
 
-该选项用于标识当前构建的唯一名称，主要用于避免多个 Rspack 应用在同一全局环境中运行时，其运行时代码发生冲突。
+该选项用于标识当前构建的唯一名称，主要用于避免多个 Rspack 应用在同一全局环境中运行时，其 Rspack 运行时代码发生冲突。
 
 `output.uniqueName` 会影响以下配置项的默认值：
 
@@ -1795,19 +1870,45 @@ export default {
 ## output.wasmLoading
 
 - **类型：** `false | 'fetch' | 'async-node' | 'universal'`
-- **默认值：** `'fetch'`
+- **默认值：** 根据 [`target`](/config/target)、[`output.module`](#outputmodule) 和 [`output.environment`](#outputenvironment) 推断。
 
-用于设置加载 WebAssembly 模块的方式。支持的方式包括 `'fetch'`（web/webworker）、`'async-node'`（Node.js）和 `'universal'`。
+用于设置加载 WebAssembly 模块的方式。设为 `false` 可以禁用 WebAssembly 加载。
 
-默认值会受不同 [`target`](/config/target) 的影响：
+目标环境支持通过 fetch 加载 WebAssembly 时，Rspack 选择 `'fetch'`；否则，提供 Node.js 内置模块时选择 `'async-node'`。当混合目标对这些能力的支持不一致时，支持动态导入的 ESM 输出可以使用 `'universal'`。如果无法选择加载方式，则默认为 `false`。
 
-- 如果目标设置为 `'web'`、`'webworker'`、`'electron-renderer'` 或 `'node-webkit'`，默认值为 `'fetch'`。
-- 如果目标设置为 `'node'`、`'async-node'`、`'electron-main'` 或 `'electron-preload'`，则默认为 `'async-node'`。
+其他输出配置保持默认时，示例如下：
+
+| `target`                                                   | `output.module` | 默认的 `output.wasmLoading` |
+| ---------------------------------------------------------- | --------------- | --------------------------- |
+| `'web'` 或 `'webworker'`                                   | `false`         | `'fetch'`                   |
+| `'electron-renderer'`                                      | `false`         | `'fetch'`                   |
+| `'node'` 或 `'async-node'`                                 | `false`         | `'async-node'`              |
+| `'electron-main'`、`'electron-preload'` 或 `'node-webkit'` | `false`         | `'async-node'`              |
+| `['web', 'node']`                                          | `true`          | `'universal'`               |
+
+你也可以覆盖推断出的加载方式：
 
 ```js title="rspack.config.mjs"
 export default {
   output: {
     wasmLoading: 'fetch',
+  },
+};
+```
+
+## output.wasmStreamingFallback
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+控制 Rspack 运行时中的 WebAssembly 加载代码是否在 `WebAssembly.compileStreaming` 或 `WebAssembly.instantiateStreaming` 因响应未使用 `application/wasm` MIME 类型而失败时，回退到非流式 API。
+
+如果服务器始终以正确的 MIME 类型提供 WebAssembly 文件，可以将此选项设置为 `false`，从而省略 Rspack 运行时中相关的回退代码。
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    wasmStreamingFallback: false,
   },
 };
 ```
@@ -1833,14 +1934,23 @@ export default {
 
 ## output.workerChunkLoading
 
-- **类型：** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import' | string`
-- **默认值：** `false`
+- **类型：** `false | 'import-scripts' | 'require' | 'async-node' | 'import' | 'universal' | string`
+- **默认值：** 根据 [`target`](/config/target)、[`output.chunkFormat`](#outputchunkformat) 和 [`output.environment`](#outputenvironment) 推断。
 
-`workerChunkLoading` 控制 chunk 加载方式。
+控制 Worker 加载其他 JavaScript chunk 的方式，与控制 Worker 外部 chunk 加载方式的 [`output.chunkLoading`](#outputchunkloading) 分开配置。
 
-:::tip
-此选项的默认值取决于目标设置。要获取更多信息，请在 Rspack [默认设置中](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack/src/config/defaults.ts)搜索 `"workerChunkLoading"`。
-:::
+例如，其他输出配置保持默认时：
+
+| `target`                 | `output.module` | 默认的 `output.workerChunkLoading` |
+| ------------------------ | --------------- | ---------------------------------- |
+| `'web'` 或 `'webworker'` | `false`         | `'import-scripts'`                 |
+| `'node'`                 | `false`         | `'require'`                        |
+| `'async-node'`           | `false`         | `'async-node'`                     |
+| `'web'`                  | `true`          | `'import'`                         |
+
+对于 module 格式的 chunk，启用 `output.environment.dynamicImportInWorker` 时，Rspack 使用 `'import'`。支持动态导入的 ESM 输出可以为混合目标选择 `'universal'`。如果无法选择加载方式，则默认为 `false`。
+
+可以显式禁用 Worker 的 chunk 加载：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1857,6 +1967,8 @@ export default {
 
 为 Worker 设置一个公共路径，默认为 [output.publicPath](#outputpublicpath) 的值。只有在 Worker 脚本位于与其他脚本不同的路径时才使用此选项。
 
+使用默认的 Worker URL 处理方式时，Worker 的相对 URL 会基于 Rspack 运行时的 [Base URI](/guide/features/asset-base-path#base-uri) 解析。
+
 ```js title="rspack.config.mjs"
 export default {
   output: {
@@ -1868,14 +1980,18 @@ export default {
 ## output.workerWasmLoading
 
 - **类型：** `false | 'fetch' | 'async-node' | 'universal'`
-- **默认值：** `false`
+- **默认值：** [`output.wasmLoading`](#outputwasmloading)
 
-用来设置在 Worker 中加载 WebAssembly 模块的方式，默认为 [`output.wasmLoading`](#outputwasmloading) 的值。
+设置 Worker 内部的 WebAssembly 加载方式，默认继承 `output.wasmLoading`。
+
+设为 `false` 可禁用 Worker 内部的 WebAssembly 加载：
 
 ```js title="rspack.config.mjs"
 export default {
   output: {
-    workerWasmLoading: 'fetch',
+    workerWasmLoading: false,
   },
 };
 ```
+
+<Attribution url="https://webpack.docschina.org/configuration/output/" />

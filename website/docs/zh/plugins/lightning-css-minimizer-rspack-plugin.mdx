@@ -1,0 +1,192 @@
+---
+description: '此插件使用 lightningcss 来压缩 CSS 产物。参见 optimization.minimizer。'
+---
+
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# LightningCssMinimizerRspackPlugin
+
+<ApiMeta specific={['Rspack']} />
+
+此插件使用 [lightningcss](https://lightningcss.dev/) 来压缩 CSS 产物。参见 [optimization.minimizer](/config/optimization#optimizationminimizer)。
+
+## 示例
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  optimization: {
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin(),
+      new rspack.LightningCssMinimizerRspackPlugin(),
+    ],
+  },
+};
+```
+
+压缩器在 [optimization.minimize](/config/optimization#optimizationminimize) 开启时执行，生产构建默认开启此选项。设置 `optimization.minimizer` 会替换默认的压缩器，因此需要同时添加 `SwcJsMinimizerRspackPlugin`，以保留 JavaScript 压缩。
+
+## 选项
+
+### include
+
+- **Type:** `string | RegExp | (string | RegExp)[]`
+- **Default:** `undefined`
+
+使用此选项来指定应该被压缩的文件，匹配产物文件的路径。
+
+### exclude
+
+- **Type:** `string | RegExp | (string | RegExp)[]`
+- **Default:** `undefined`
+
+使用此选项来指定应该排除在压缩之外的文件，匹配产物文件的路径。
+
+例如，跳过名为 `vendor.css` 的产物，同时继续压缩其他 CSS 产物：
+
+```js
+new rspack.LightningCssMinimizerRspackPlugin({
+  exclude: /vendor\.css$/,
+});
+```
+
+此选项匹配产物文件名，而不是 `src/vendor.css` 这样的源文件路径。要控制 CSS 语法转换，请使用 `minimizerOptions.exclude`。
+
+### test
+
+- **Type:** `string | RegExp | (string | RegExp)[]`
+- **Default:** `undefined`
+
+使用此选项设置一个模式来匹配 CSS 文件。如果产物文件的路径能匹配给定模式，它将被压缩，否则将不会被压缩。
+
+### removeUnusedLocalIdents
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+是否自动移除未使用的 CSS Modules 的本地标识符，包括未使用的 CSS 类名、id 和 @keyframe 名称。这些声明将被移除。
+
+比如以下 CSS Modules，导出了类名 a 和类名 b，但只在 js 文件中使用了类名 a：
+
+```css title=index.module.css
+.a {
+  color: red;
+}
+
+.b {
+  color: blue;
+}
+```
+
+```js title=index.js
+import * as styles from './index.module.css';
+document.body.className = styles.a;
+```
+
+此时会通过 Rspack 的 tree shaking 功能获取类名 b 未被使用这一信息，提供给 lightningcss，在 minimize 时会将 CSS 产物中类名 b 的声明一并删除，得到以下最终产物：
+
+{/* prettier-ignore */}
+```css
+.a{color: red}
+```
+
+### minimizerOptions
+
+传给 Lightning CSS 的配置，用于控制浏览器兼容性、语法转换和代码压缩。
+
+#### 浏览器目标 \{#browser-targets}
+
+`minimizerOptions.targets` 指定输出 CSS 需要支持的浏览器，可以使用以下形式：
+
+- Browserslist 查询字符串，例如 `'chrome >= 100'`。
+- 查询字符串数组，例如 `['chrome >= 100', 'safari >= 15']`。
+- 指定浏览器最低版本的对象，例如 `{ chrome: '100', safari: '15' }`。支持的键为 `android`、`chrome`、`edge`、`firefox`、`ie`、`ios_saf`、`opera`、`safari` 和 `samsung`。
+
+未配置 `minimizerOptions.targets` 时，插件会尝试从 Rspack 的 `target` 中继承浏览器目标。Rspack 如何选择目标环境，请参阅 [`target` 的默认行为](/config/target#default-behavior)。
+
+Lightning CSS 根据这些目标转换浏览器不支持的语法，也会在压缩时选择更短的语法。请根据应用实际需要支持的浏览器，通过 Rspack 的 `target` 或 `minimizerOptions.targets` 配置目标。
+
+#### 示例 \{#example}
+
+以下示例以 Chrome 100 及更高版本为目标，使用[内置 CSS 支持](/guide/languages/css#built-in-css-support)，并同时配置 JavaScript 和 CSS 压缩器：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  module: {
+    rules: [{ test: /\.css$/i, type: 'css' }],
+  },
+  optimization: {
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin(),
+      new rspack.LightningCssMinimizerRspackPlugin({
+        minimizerOptions: {
+          targets: ['chrome >= 100'],
+        },
+      }),
+    ],
+  },
+};
+```
+
+```js title="src/index.js"
+import './style.css';
+console.log('Hello');
+```
+
+```css title="src/style.css"
+.card {
+  color: red;
+
+  &:hover {
+    color: blue;
+  }
+}
+```
+
+由于 Chrome 100 不支持 CSS 嵌套语法，生产构建会将嵌套规则展开：
+
+{/* prettier-ignore */}
+```css title="dist/main.css"
+.card{color:red}.card:hover{color:#00f}
+```
+
+#### 语法转换 \{#syntax-transforms}
+
+默认情况下，Lightning CSS 根据 `targets` 决定执行哪些语法转换。可以通过特性对象覆盖这些默认行为：
+
+- `minimizerOptions.include` 强制执行指定转换，即使目标浏览器已经支持原始语法。
+- `minimizerOptions.exclude` 禁用指定转换，即使目标浏览器需要该转换才能兼容。
+
+例如，保留上例中的嵌套规则：
+
+```js
+new rspack.LightningCssMinimizerRspackPlugin({
+  minimizerOptions: {
+    targets: ['chrome >= 100'],
+    exclude: { nesting: true },
+  },
+});
+```
+
+此时，即使配置的目标是 Chrome 100，产物仍需要在支持 CSS 嵌套语法的浏览器中运行。相反，设置 `include: { nesting: true }` 则会强制转换嵌套语法，即使目标浏览器已经支持它。
+
+其他特性键包括 `vendorPrefixes`、`logicalProperties` 和 `color`。完整列表见 [Lightning CSS loader 选项类型](/guide/builtin-loaders/lightningcss-loader#选项)中的 `LightningcssFeatureOptions`；各项转换的行为说明见 [Lightning CSS 语法转换文档](https://lightningcss.dev/transpilation.html)。
+
+这些特性选项作用于 CSS 语法。插件顶层的 `include` 和 `exclude` 则用于选择要压缩的产物文件。
+
+#### 其他选项 \{#other-options}
+
+`minimizerOptions` 还支持以下选项：
+
+| 选项            | 类型                                   | 说明                                                                                       |
+| --------------- | -------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `errorRecovery` | `boolean`                              | 解析遇到无效的 CSS 规则或声明时，尽可能恢复并继续处理，而不是直接报错。默认为 `true`。     |
+| `drafts`        | `{ customMedia?: boolean }`            | 启用对草案语法 `@custom-media` 的解析。                                                    |
+| `nonStandard`   | `{ deepSelectorCombinator?: boolean }` | 启用非标准的 `>>>` 和 `/deep/` 选择器组合符。                                              |
+| `pseudoClasses` | 属性可选、值为字符串的对象             | 将伪类替换为类名，支持的键为 `hover`、`active`、`focus`、`focusVisible` 和 `focusWithin`。 |
+| `unusedSymbols` | `string[]`                             | 指定已知未使用的符号，供 Lightning CSS 移除。默认为 `[]`。                                 |
+
+草案语法、非标准语法及伪类替换的详细说明见 [Lightning CSS 语法转换文档](https://lightningcss.dev/transpilation.html#draft-syntax)。`unusedSymbols` 的使用方式见[移除未使用的符号](https://lightningcss.dev/minification.html#unused-symbols)。

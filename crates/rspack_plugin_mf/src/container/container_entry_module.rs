@@ -1,24 +1,23 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions, CodeGenerationResult,
-  CodeGenerationRuntimeRequirementsWrite, Compilation, Context, DependenciesBlock, Dependency,
-  DependencyId, DependencyType, ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions,
-  Module, ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec, impl_module_meta_info, impl_source_map_config,
-  module_update_hash,
+  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  BuildMetaExportsType, ChunkGroupOptions, CodeGenerationDataItem, CodeGenerationResultBuilder,
+  CodeGenerationRuntimeRequirementsWrite, Compilation, Context, DependenciesBlock,
+  DependenciesBlockData, Dependency, DependencyType, ExportsArgument, FactoryMetaStore, FreezeLock,
+  GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleCodeTemplate,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, NeedBuildContext, RuntimeGlobals,
+  RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_util::{json_stringify_str, source_map::SourceMapKind};
-use rustc_hash::FxHashSet;
 
 use super::{
   container_exposed_dependency::ContainerExposedDependency, container_plugin::ExposeOptions,
@@ -32,15 +31,14 @@ use crate::{
 #[cacheable]
 #[derive(Debug)]
 pub struct ContainerEntryModule {
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  dependencies: Vec<DependencyId>,
+  dependencies_block: DependenciesBlockData,
   identifier: ModuleIdentifier,
   lib_ident: String,
   exposes: Vec<(String, ExposeOptions)>,
   share_scope: ShareScope,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  factory_meta: FactoryMetaStore,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
   enhanced: bool,
   request: Option<String>,
   version: Option<String>,
@@ -59,8 +57,7 @@ impl ContainerEntryModule {
     let namespace = module_identifier_namespace(runtime_mode);
     let lib_ident = format!("{namespace}/container/entry/{name}");
     Self {
-      blocks: Vec::new(),
-      dependencies: Vec::new(),
+      dependencies_block: Default::default(),
       identifier: ModuleIdentifier::from(format!(
         "container entry ({}) {}",
         share_scope.key(),
@@ -69,13 +66,16 @@ impl ContainerEntryModule {
       lib_ident,
       exposes,
       share_scope,
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         strict: true,
-        top_level_declarations: Some(FxHashSet::default()),
+        top_level_declarations: Some(Default::default()),
         ..Default::default()
-      },
-      build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
+      }
+      .into(),
+      build_meta: BuildMeta::default()
+        .with_exports_type(BuildMetaExportsType::Namespace)
+        .into(),
       enhanced,
       request: None,
       version: None,
@@ -94,19 +94,21 @@ impl ContainerEntryModule {
     let namespace = module_identifier_namespace(runtime_mode);
     let lib_ident = format!("{namespace}/share/container/{name}");
     Self {
-      blocks: Vec::new(),
-      dependencies: Vec::new(),
+      dependencies_block: Default::default(),
       identifier: ModuleIdentifier::from(format!("share container entry {}@{}", &name, &version,)),
       lib_ident,
       exposes: vec![],
       share_scope: ShareScope::Multiple(vec![]),
-      factory_meta: None,
+      factory_meta: Default::default(),
       build_info: BuildInfo {
         strict: true,
-        top_level_declarations: Some(FxHashSet::default()),
+        top_level_declarations: Some(Default::default()),
         ..Default::default()
-      },
-      build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
+      }
+      .into(),
+      build_meta: BuildMeta::default()
+        .with_exports_type(BuildMetaExportsType::Namespace)
+        .into(),
       enhanced: false,
       request: Some(request),
       version: Some(version),
@@ -132,24 +134,12 @@ impl Identifiable for ContainerEntryModule {
 }
 
 impl DependenciesBlock for ContainerEntryModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency)
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }
 
@@ -158,7 +148,7 @@ impl DependenciesBlock for ContainerEntryModule {
 impl Module for ContainerEntryModule {
   impl_module_meta_info!();
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(&self, _source_type: Option<&SourceType>) -> f64 {
     42.0
   }
 
@@ -190,23 +180,27 @@ impl Module for ContainerEntryModule {
     Some(self.lib_ident.as_str().into())
   }
 
+  async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+    Ok(self.build_meta.frozen().is_none())
+  }
+
   async fn build(
     mut self: Box<Self>,
-    _build_context: BuildContext,
+    _build_context: Arc<BuildContext>,
     _: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<BoxModule> {
     let mut blocks = vec![];
     let mut dependencies: Vec<BoxDependency> = vec![];
 
     if self.dependency_type == DependencyType::ShareContainerEntry {
       // Shared Container logic
-      dependencies.push(Box::new(StaticExportsDependency::new(
+      dependencies.push(BoxDependency::new(StaticExportsDependency::new(
         StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
         false,
       )));
       if let Some(request) = &self.request {
         let dep = ContainerExposedDependency::new_shared_fallback(request.clone());
-        dependencies.push(Box::new(dep));
+        dependencies.push(BoxDependency::new(dep));
       }
     } else {
       // Container logic
@@ -219,10 +213,10 @@ impl Module for ContainerEntryModule {
             .import
             .iter()
             .map(|request| {
-              Box::new(ContainerExposedDependency::new(
+              BoxDependency::new(ContainerExposedDependency::new(
                 name.clone(),
                 request.clone(),
-              )) as Box<dyn Dependency>
+              ))
             })
             .collect(),
           None,
@@ -232,7 +226,7 @@ impl Module for ContainerEntryModule {
         ));
         blocks.push(Box::new(block));
       }
-      dependencies.push(Box::new(StaticExportsDependency::new(
+      dependencies.push(BoxDependency::new(StaticExportsDependency::new(
         StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
         false,
       )));
@@ -241,41 +235,38 @@ impl Module for ContainerEntryModule {
     // I need `name` for SharedContainer logic.
     // I will add `name` field to struct.
 
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies,
-      blocks,
-      optimization_bailouts: vec![],
-    })
+    Ok(BoxModule::new(self).with_dependencies(
+      dependencies.into_iter().map(Into::into).collect(),
+      blocks.into_iter().map(Into::into).collect(),
+    ))
   }
 
   // #[tracing::instrument("ContainerEntryModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime_template,
       ..
     } = code_generation_context;
 
-    let mut code_generation_result = CodeGenerationResult::default();
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
     let require_name = module_require_scope_name(compilation, runtime_template);
     let runtime_argument = require_name.clone();
 
     if self.dependency_type == DependencyType::ShareContainerEntry {
-      let module_graph = compilation.get_module_graph();
       let mut factory = String::new();
-      for dependency_id in self.get_dependencies() {
-        let dependency = module_graph.dependency_by_id(dependency_id);
+      for dependency in self.get_dependencies() {
         if let Some(dependency) = dependency
           .as_any()
           .downcast_ref::<ContainerExposedDependency>()
           && *dependency.dependency_type() == DependencyType::ShareContainerFallback
         {
           let request: &str = dependency.user_request();
-          let module_expr = runtime_template.module_raw(compilation, dependency_id, request, false);
+          let module_expr =
+            runtime_template.module_raw(compilation, dependency.id(), request, false);
           factory = runtime_template.returning_function(&module_expr, "");
         }
       }
@@ -334,8 +325,10 @@ impl Module for ContainerEntryModule {
       );
 
       // Update the code generation result with the generated source
-      code_generation_result =
-        code_generation_result.with_javascript(RawStringSource::from(source).boxed());
+      code_generation_result.add(
+        SourceType::JavaScript,
+        RawStringSource::from(source).boxed(),
+      );
       code_generation_result.add(SourceType::Expose, RawStringSource::from_static("").boxed());
       return Ok(code_generation_result);
     }
@@ -431,19 +424,21 @@ var init = function(shareScope, initScope) {{
         export_init = runtime_template.returning_function("init", ""),
       )
     };
-    code_generation_result =
-      code_generation_result.with_javascript(RawStringSource::from(source).boxed());
+    code_generation_result.add(
+      SourceType::JavaScript,
+      RawStringSource::from(source).boxed(),
+    );
     code_generation_result.add(SourceType::Expose, RawStringSource::from_static("").boxed());
     if !self.enhanced {
       code_generation_result
-        .data
+        .data_mut()
         .insert(CodeGenerationRuntimeRequirementsWrite {
           runtime_requirements: RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
         });
     }
     if self.enhanced {
       code_generation_result
-        .data
+        .data_mut()
         .insert(CodeGenerationDataExpose {
           module_map,
           module_map_runtime_requirements,
@@ -466,6 +461,7 @@ var init = function(shareScope, initScope) {{
 
 impl_empty_diagnosable_trait!(ContainerEntryModule);
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ExposeModuleMap(Vec<(String, String)>);
 
@@ -481,15 +477,14 @@ impl ExposeModuleMap {
       let block = module_graph
         .block_by_id(block_id)
         .expect("should have block");
-      let modules_iter = block.get_dependencies().iter().map(|dependency_id| {
-        let dep = module_graph.dependency_by_id(dependency_id);
+      let modules_iter = block.get_dependencies().iter().map(|dep| {
         let dep = dep
           .downcast_ref::<ContainerExposedDependency>()
           .expect("dependencies of ContainerEntryModule should be ContainerExposedDependency");
         let name = dep.exposed_name.as_str();
-        let module = module_graph.get_module_by_dependency_id(dependency_id);
+        let module = module_graph.get_module_by_dependency_id(dep.id());
         let user_request = dep.user_request();
-        (name, module, user_request, dependency_id)
+        (name, module, user_request, dep.id())
       });
       let name = modules_iter.clone().next().expect("should have item").0;
       let str = if modules_iter
@@ -540,9 +535,13 @@ impl ExposeModuleMap {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataExpose {
   pub module_map: ExposeModuleMap,
   pub module_map_runtime_requirements: RuntimeGlobals,
   pub share_scope: ShareScope,
 }
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataExpose {}

@@ -1,21 +1,10 @@
 import { define } from 'rstack';
+import { e2eConfig } from '../e2e/config.ts';
+import { appConfig } from './app.config.ts';
 
-define.app({
-  source: {
-    entry: {
-      'basic-react': './cases/basic-react/index.js',
-    },
-  },
-  html: {
-    template({ entryName }) {
-      return `./cases/${entryName}/index.html`;
-    },
-  },
-  server: {
-    port: 8900,
-    headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-    },
-  },
+define.app(appConfig);
+
+define.test({
+  ...e2eConfig(120_000, 2),
+  globalSetup: ['./globalSetup.ts'],
 });

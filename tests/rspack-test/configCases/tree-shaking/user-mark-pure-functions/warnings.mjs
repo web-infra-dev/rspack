@@ -1,0 +1,3 @@
+export default [
+  /Following pure functions are not found[\s\S]*module\.rules\[\*\]\.parser\.pureFunctions/
+];

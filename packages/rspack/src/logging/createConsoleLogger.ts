@@ -103,6 +103,7 @@ const createConsoleLogger = ({
           console.log(...labeledArgs());
         }
         break;
+      case LogType.cache:
       case LogType.log:
         if (!debug && loglevel > LogLevel.log) return;
         console.log(...labeledArgs());

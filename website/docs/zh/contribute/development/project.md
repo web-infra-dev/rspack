@@ -1,5 +1,5 @@
 ---
-description: 'Rspack 项目结构指南，介绍 monorepo 中的 Rust crates、JavaScript packages、测试目录与核心组件分布。'
+description: '了解 Rspack monorepo 的目录结构，查找 Rust crate、JavaScript 包、测试套件和基准测试。'
 ---
 
 # 项目结构
@@ -38,7 +38,7 @@ description: 'Rspack 项目结构指南，介绍 monorepo 中的 Rust crates、J
 - **`rspack_ids`**: ID 生成和管理，用于为模块、chunk 等创建唯一标识符
 - **`rspack_collections`**: 集合数据结构，提供优化的 HashMap、HashSet 等
 - **`rspack_util`**: 工具函数集合，包含各种辅助函数
-- **`rspack_futures`**: 异步工具，提供异步编程支持
+- **`rspack_parallel`**: 并行执行工具，支持通过 Rayon 或异步任务处理迭代器，以及在作用域内执行异步任务
 - **`rspack_workspace`**: 工作区支持，用于处理单体仓库场景
 
 ### 缓存与存储
@@ -69,7 +69,7 @@ description: 'Rspack 项目结构指南，介绍 monorepo 中的 Rust crates、J
 #### 核心插件
 
 - **`rspack_plugin_javascript`**: JavaScript 插件，用于解析、转换和生成 JS/TS 模块代码
-- **`rspack_plugin_runtime`**: Runtime 插件，生成 webpack 兼容的运行时代码
+- **`rspack_plugin_runtime`**: 生成兼容 webpack 的 Rspack 运行时代码的插件
 - **`rspack_plugin_entry`**: Entry 插件，用于处理入口点配置
 - **`rspack_plugin_dynamic_entry`**: 动态入口插件，支持动态入口点
 
@@ -119,7 +119,7 @@ description: 'Rspack 项目结构指南，介绍 monorepo 中的 Rust crates、J
 - **`rspack_plugin_dll`**: DLL 插件，实现动态链接库功能
 - **`rspack_plugin_worker`**: Web Worker 插件，用于处理 Worker 文件
 - **`rspack_plugin_schemes`**: 自定义 scheme 插件，支持自定义资源协议
-- **`rspack_plugin_runtime_chunk`**: Runtime chunk 插件，用于分离运行时代码
+- **`rspack_plugin_runtime_chunk`**: 将 Rspack 运行时代码提取为独立 chunk 的插件
 
 #### 工具插件
 
@@ -130,7 +130,7 @@ description: 'Rspack 项目结构指南，介绍 monorepo 中的 Rust crates、J
 - **`rspack_plugin_size_limits`**: 大小限制插件，用于检查 bundle 大小
 - **`rspack_plugin_sri`**: 子资源完整性 (SRI) 插件
 - **`rspack_plugin_module_info_header`**: 模块信息头部插件
-- **`rspack_plugin_warn_sensitive_module`**: 警告敏感模块插件
+- **`rspack_plugin_case_sensitive`**: 检查模块名称和输出文件名中仅大小写不同的冲突并发出警告
 
 #### 调试与测试插件
 

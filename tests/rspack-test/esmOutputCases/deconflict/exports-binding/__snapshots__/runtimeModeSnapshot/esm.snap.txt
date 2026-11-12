@@ -13,7 +13,8 @@ const __nested_rspack_exports__ = 44;
 console.log.bind(module);
 
 definePropertyGetters(exports, {
-  A: () => (__nested_rspack_exports__)
+}, {
+  A: __nested_rspack_exports__
 });
 
 

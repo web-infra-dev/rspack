@@ -2,15 +2,15 @@
 description: 'Inline matchResource allows you to dynamically change the matching rules when loading resources'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.js.org/api/loaders/#inline-matchresource" />
+import Attribution from '@components/Attribution';
 
 # Inline matchResource
 
 Inline matchResource allows you to dynamically change the matching rules when loading resources. You can set the `matchResource` for a module specifier by prefixing `<match-resource>!=!` to the module specifier.
 
 When a `matchResource` is set, it will be used to match with the `module.rules` instead of the original resource. This can be useful if further loaders should be applied to the resource, or if the module type needs to be changed.
+
+Add `.rspack[type]` or `.webpack[type]` at the end of the match resource to set the module type explicitly. For example, `foo.webpack.bar.webpack[json]` uses `foo.webpack.bar` as the match resource and `json` as the module type.
 
 :::tip
 It is not recommended to use this syntax in source code. Inline request syntax is intended to only be used by loader generated code. Not following this recommendation will make your code Rspack-specific and non-standard.
@@ -58,3 +58,5 @@ module.exports = function (source) {
   return match[0];
 };
 ```
+
+<Attribution url="https://webpack.js.org/api/loaders/#inline-matchresource" />

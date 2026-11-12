@@ -2,10 +2,8 @@
 description: '配置 @rspack/dev-server 的本地开发和预览行为。'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import { Tabs, Tab } from '@theme';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/dev-server/" />
 
 # DevServer
 
@@ -828,9 +826,6 @@ export default {
 ```js title="rspack.config.mjs"
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   devServer: {
@@ -838,10 +833,10 @@ export default {
       type: 'https',
       options: {
         minVersion: 'TLSv1.1',
-        key: fs.readFileSync(path.join(__dirname, './server.key')),
-        pfx: fs.readFileSync(path.join(__dirname, './server.pfx')),
-        cert: fs.readFileSync(path.join(__dirname, './server.crt')),
-        ca: fs.readFileSync(path.join(__dirname, './ca.pem')),
+        key: fs.readFileSync(path.join(import.meta.dirname, './server.key')),
+        pfx: fs.readFileSync(path.join(import.meta.dirname, './server.pfx')),
+        cert: fs.readFileSync(path.join(import.meta.dirname, './server.crt')),
+        ca: fs.readFileSync(path.join(import.meta.dirname, './ca.pem')),
         passphrase: '@rspack/dev-server',
         requestCert: true,
       },
@@ -1225,3 +1220,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.docschina.org/configuration/dev-server/" />

@@ -1,4 +1,4 @@
-import url from "./loader!!";
+import url from "./loader.mjs!!";
 import {url as url2} from "./module1";
 
 it("should compile and run", () => {

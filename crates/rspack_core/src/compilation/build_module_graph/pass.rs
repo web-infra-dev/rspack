@@ -1,14 +1,14 @@
 use async_trait::async_trait;
 use rspack_error::Result;
 
-use super::build_module_graph_pass;
+use super::{build_module_graph_pass, module_build_cache::ModuleBuildCache};
 use crate::{
   Compilation,
-  cache::Cache,
   compilation::{
     finish_make::finish_make_pass, finish_module_graph::finish_module_graph_pass,
     make::make_hook_pass, pass::PassExt,
   },
+  legacy_cache::Cache,
   logger::Logger,
 };
 
@@ -27,20 +27,24 @@ impl PassExt for BuildModuleGraphPhasePass {
     "build module graph"
   }
 
+  fn incremental_passes(&self) -> crate::incremental::IncrementalPasses {
+    crate::incremental::IncrementalPasses::BUILD_MODULE_GRAPH
+  }
+
   async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
     cache.before_build_module_graph(compilation).await;
+    // Initialize after recovery and before make can build modules.
+    // Rebuilds publish modules but handle invalidation without cache restoration.
+    compilation.build_module_graph_artifact.module_build_cache =
+      compilation.options.experiments.new_cache.module.then(|| {
+        ModuleBuildCache::new(
+          compilation.cache.facade("Compilation/modules"),
+          !compilation.is_rebuild,
+        )
+      });
   }
 
-  async fn run_pass(&self, _compilation: &mut Compilation) -> Result<()> {
-    // This method is not used; we override run_pass_with_cache instead
-    unreachable!("BuildModuleGraphPhasePass uses run_pass_with_cache")
-  }
-
-  async fn run_pass_with_cache(
-    &self,
-    compilation: &mut Compilation,
-    _cache: &mut dyn Cache,
-  ) -> Result<()> {
+  async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     let plugin_driver = compilation.plugin_driver.clone();
     let logger = compilation.get_logger("rspack.Compiler");
     // align with webpack, make hook include build_module_graph phase in webpack
@@ -65,7 +69,19 @@ impl PassExt for BuildModuleGraphPhasePass {
     Ok(())
   }
 
-  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
+  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) -> Result<()> {
+    if let Some(module_build_cache) = &compilation.build_module_graph_artifact.module_build_cache {
+      module_build_cache
+        .store_pending(
+          &compilation.build_module_graph_artifact,
+          &compilation.file_system_info,
+        )
+        .await?;
+    }
+    for (_, module) in compilation.get_module_graph().modules() {
+      module.freeze_build_info();
+    }
     cache.after_build_module_graph(compilation).await;
+    Ok(())
   }
 }

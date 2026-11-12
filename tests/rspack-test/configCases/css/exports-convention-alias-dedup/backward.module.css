@@ -1,0 +1,4 @@
+.foo-bar { color: red; }
+.fooBar { color: blue; }
+.target { composes: fooBar; }
+.dashedTarget { composes: foo-bar; }

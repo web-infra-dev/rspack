@@ -1,0 +1,120 @@
+use derive_more::Debug;
+use rayon::prelude::*;
+use rspack_core::{
+  ChunkGraph, Compilation, CompilationModuleIds, ModuleIdsArtifact, Plugin,
+  incremental::IncrementalPasses,
+};
+use rspack_error::{Diagnostic, Result, error};
+use rspack_hook::{plugin, plugin_hook};
+
+use crate::{
+  compact_hashed_id::{
+    CompactHashedIdAssigner, FULL_IDENTIFIER_LENGTH, MAX_REHASH_ATTEMPTS, hash_identifier,
+    normalize_min_length, validate_min_length,
+  },
+  id_helpers::{
+    compare_modules_by_pre_order_index_or_identifier, get_full_module_name,
+    get_used_module_ids_and_modules_with_artifact,
+  },
+};
+
+#[derive(Debug, Clone, Default)]
+pub struct CompactHashedModuleIdsPluginOptions {
+  pub min_length: Option<usize>,
+  pub salt: Option<u32>,
+}
+
+#[plugin]
+#[derive(Debug)]
+pub struct CompactHashedModuleIdsPlugin {
+  min_length: usize,
+  salt: u32,
+}
+
+impl Default for CompactHashedModuleIdsPlugin {
+  fn default() -> Self {
+    Self::new(Default::default())
+  }
+}
+
+impl CompactHashedModuleIdsPlugin {
+  pub fn new(options: CompactHashedModuleIdsPluginOptions) -> Self {
+    Self::new_inner(
+      normalize_min_length(options.min_length),
+      options.salt.unwrap_or_default(),
+    )
+  }
+}
+
+#[plugin_hook(CompilationModuleIds for CompactHashedModuleIdsPlugin)]
+async fn module_ids(
+  &self,
+  compilation: &Compilation,
+  module_ids: &mut ModuleIdsArtifact,
+  preserved_module_ids: &ModuleIdsArtifact,
+  diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
+  if let Some(diagnostic) = compilation.incremental.disable_passes(
+    IncrementalPasses::MODULE_IDS | IncrementalPasses::MODULES_HASHES,
+    "CompactHashedModuleIdsPlugin (optimization.moduleIds = \"compact-hashed\")",
+    "it requires calculating the id of all the modules, which is a global effect",
+  ) {
+    if let Some(diagnostic) = diagnostic {
+      diagnostics.push(diagnostic);
+    }
+    module_ids.retain(|module, _| preserved_module_ids.contains_key(module));
+  }
+
+  validate_min_length(
+    self.min_length,
+    FULL_IDENTIFIER_LENGTH,
+    "CompactHashedModuleIdsPlugin",
+  )?;
+
+  let (used_ids, modules) =
+    get_used_module_ids_and_modules_with_artifact(compilation, module_ids, None);
+
+  let mut module_ids_map = std::mem::take(module_ids);
+  let context = compilation.options.context.as_ref();
+  let module_graph = compilation.get_module_graph();
+  let modules = modules
+    .into_iter()
+    .filter_map(|identifier| module_graph.module_by_identifier(&identifier))
+    .collect::<Vec<_>>();
+
+  let hash_name = |name: &str| hash_identifier(name, self.salt);
+  let mut modules_with_hashes = modules
+    .into_par_iter()
+    .map(|module| {
+      let name = get_full_module_name(module, context);
+      let hash = hash_name(&name);
+      (module, hash, name)
+    })
+    .collect::<Vec<_>>();
+
+  modules_with_hashes.sort_unstable_by(|(a, _, _), (b, _, _)| {
+    compare_modules_by_pre_order_index_or_identifier(module_graph, &a.identifier(), &b.identifier())
+  });
+
+  let mut id_assigner = CompactHashedIdAssigner::new(self.min_length, used_ids);
+  for (module, hash, name) in modules_with_hashes {
+    let Some(module_id) = id_assigner.assign(&name, hash, hash_name) else {
+      return Err(error!(
+        "Unable to assign a unique compact-hashed id to module '{}' after {MAX_REHASH_ATTEMPTS} rehash attempts",
+        module.identifier()
+      ));
+    };
+
+    ChunkGraph::set_module_id(&mut module_ids_map, module.identifier(), module_id.into());
+  }
+
+  *module_ids = module_ids_map;
+  Ok(())
+}
+
+impl Plugin for CompactHashedModuleIdsPlugin {
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compilation_hooks.module_ids.tap(module_ids::new(self));
+    Ok(())
+  }
+}

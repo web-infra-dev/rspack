@@ -6,7 +6,7 @@ use rspack_core::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct RequireHeaderDependency {
   id: DependencyId,
   range: DependencyRange,
@@ -20,6 +20,10 @@ impl RequireHeaderDependency {
       range,
       loc,
     }
+  }
+
+  pub fn range(&self) -> DependencyRange {
+    self.range
   }
 }
 

@@ -147,6 +147,16 @@ export async function version_handler(version, options) {
       };
     }
 
+    if (
+      packageJson.name === '@rspack/cli' &&
+      ['major', 'minor'].includes(version)
+    ) {
+      newPackageJson.peerDependencies = {
+        ...packageJson.peerDependencies,
+        '@rspack/core': `^${nextVersion.split('-')[0]}-0`,
+      };
+    }
+
     await fs.writeFile(
       packageFile,
       `${JSON.stringify(newPackageJson, null, 2)}\n`,

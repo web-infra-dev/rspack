@@ -1,51 +1,45 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
-use dyn_clone::{DynClone, clone_trait_object};
 use rspack_cacheable::cacheable_dyn;
 use rspack_hash::RspackHasher;
 use rspack_sources::ReplaceSource;
 use rspack_util::ext::AsAny;
 
 use crate::{
-  ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope, DependencyType, Module,
-  ModuleCodeTemplate, ModuleInitFragments, RuntimeSpec,
+  ChunkInitFragments, CodeGenerationData, CodeGenerationDataChunkInitFragments, Compilation,
+  ConcatenationScope, DependencyType, Module, ModuleCodeTemplate, ModuleInitFragments, RuntimeSpec,
 };
 
-pub struct TemplateContext<'a, 'b, 'c> {
+pub struct TemplateContext<'a, 'b> {
   pub compilation: &'a Compilation,
   pub module: &'a dyn Module,
-  pub init_fragments: &'a mut ModuleInitFragments<'b>,
+  pub init_fragments: &'a mut ModuleInitFragments,
   pub runtime: Option<&'a RuntimeSpec>,
-  pub concatenation_scope: Option<&'c mut ConcatenationScope>,
+  pub concatenation_scope: Option<&'b mut ConcatenationScope>,
   pub data: &'a mut CodeGenerationData,
   pub runtime_template: &'a mut ModuleCodeTemplate,
 }
 
-impl TemplateContext<'_, '_, '_> {
+impl TemplateContext<'_, '_> {
   pub fn chunk_init_fragments(&mut self) -> &mut ChunkInitFragments {
-    let data_fragments = self.data.get::<ChunkInitFragments>();
-    if data_fragments.is_some() {
+    if !self.data.contains::<CodeGenerationDataChunkInitFragments>() {
       self
         .data
-        .get_mut::<ChunkInitFragments>()
-        .expect("should have chunk_init_fragments")
-    } else {
-      self.data.insert(ChunkInitFragments::default());
-      self
-        .data
-        .get_mut::<ChunkInitFragments>()
-        .expect("should have chunk_init_fragments")
+        .insert(CodeGenerationDataChunkInitFragments::default());
     }
+    self
+      .data
+      .get_mut::<CodeGenerationDataChunkInitFragments>()
+      .expect("chunk init fragments should exist")
+      .inner_mut()
   }
 }
 
 pub type TemplateReplaceSource = ReplaceSource;
 
-clone_trait_object!(DependencyCodeGeneration);
-
 // Align with https://github.com/webpack/webpack/blob/671ac29d462e75a10c3fdfc785a4c153e41e749e/lib/DependencyCodeGeneration.js
 #[cacheable_dyn]
-pub trait DependencyCodeGeneration: Debug + DynClone + Sync + Send + AsAny {
+pub trait DependencyCodeGeneration: Debug + Sync + Send + AsAny {
   fn update_hash(
     &self,
     _hasher: &mut RspackHasher,
@@ -59,7 +53,7 @@ pub trait DependencyCodeGeneration: Debug + DynClone + Sync + Send + AsAny {
   }
 }
 
-pub type BoxDependencyTemplate = Box<dyn DependencyCodeGeneration>;
+pub type DependencyCodeGenerationRef = Arc<dyn DependencyCodeGeneration>;
 
 pub trait AsDependencyCodeGeneration {
   fn as_dependency_code_generation(&self) -> Option<&dyn DependencyCodeGeneration> {

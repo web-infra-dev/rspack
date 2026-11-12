@@ -1,0 +1,60 @@
+---
+description: 'Generate HTML with Rspack using the built-in Rust plugin or a JavaScript plugin compatible with html-webpack-plugin.'
+---
+
+import { PackageManagerTabs } from '@theme';
+
+# HTML
+
+Rspack can generate HTML through plugins and automatically inject emitted JavaScript and CSS assets. This guide covers two plugin options and how they differ in performance, features, and `html-webpack-plugin` compatibility.
+
+## Choose a plugin
+
+Rspack provides two plugin options for generating HTML:
+
+- The built-in [`rspack.HtmlRspackPlugin`](/plugins/html-rspack-plugin) is implemented in Rust and focuses on performance and common HTML generation needs.
+- The standalone [`html-rspack-plugin`](https://github.com/rstackjs/html-rspack-plugin) is a JavaScript fork of `html-webpack-plugin` that prioritizes compatibility with its behavior.
+
+### Performance
+
+The built-in Rust implementation provides better build performance, especially when generating many HTML files. The JavaScript plugin also includes Rspack-specific optimizations but prioritizes compatibility.
+
+### Features
+
+`rspack.HtmlRspackPlugin` supports most `html-webpack-plugin` features, but cannot fully match all behaviors of the JavaScript implementation because its core logic runs in Rust. Use it when its features meet your needs and performance is the priority. Use `html-rspack-plugin` when migrating an existing `html-webpack-plugin` setup or when you need an unsupported option, capability, or behavior.
+
+:::tip
+`rspack.HtmlRspackPlugin` supports only a subset of EJS-style syntax and does not execute arbitrary JavaScript. For compatibility with `html-webpack-plugin` template processing behavior, use `html-rspack-plugin` and see its [template documentation](https://github.com/rstackjs/html-rspack-plugin#writing-your-own-templates).
+:::
+
+## Built-in HtmlRspackPlugin
+
+`rspack.HtmlRspackPlugin` is included in `@rspack/core`, so no additional package is required.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.HtmlRspackPlugin()],
+};
+```
+
+For all configuration options, see the [plugin documentation](/plugins/html-rspack-plugin).
+
+## html-rspack-plugin
+
+Install `html-rspack-plugin` separately:
+
+<PackageManagerTabs command="add html-rspack-plugin -D" />
+
+```js title="rspack.config.mjs"
+import HtmlRspackPlugin from 'html-rspack-plugin';
+
+export default {
+  plugins: [new HtmlRspackPlugin()],
+};
+```
+
+For configuration options, see [Options](https://github.com/rstackjs/html-rspack-plugin#options).
+
+If you are migrating from `html-webpack-plugin`, see the [webpack migration guide](/guide/migration/webpack#html-webpack-plugin).

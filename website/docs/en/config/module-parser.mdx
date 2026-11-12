@@ -1,12 +1,10 @@
 ---
-description: 'Configure parser options by module type.'
+description: 'Configure module.parser for JavaScript, CSS, JSON, and assets to control dependency collection and syntax handling.'
 ---
 
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import PropertyType from '@components/PropertyType';
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
+import Attribution from '@components/Attribution';
 
 # Module parser
 
@@ -210,8 +208,6 @@ export default {
 
 ### javascript.dynamicImportFetchPriority
 
-<ApiMeta addedVersion="1.0.0" />
-
 <PropertyType
   type="'low' | 'high' | 'auto'"
   defaultValueList={[{ defaultValue: "'auto'" }]}
@@ -230,6 +226,14 @@ export default {
   },
 };
 ```
+
+### javascript.dynamicUrl
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+
+Enable context dependencies for dynamic `new URL()` requests, such as ``new URL(`./assets/${name}.png`, import.meta.url)``.
+
+When set to `false`, dynamic requests are evaluated at runtime. Static requests such as `new URL('./icon.png', import.meta.url)` are still bundled. To disable all URL parsing, set [`javascript.url`](#javascripturl) to `false`.
 
 ### javascript.url
 
@@ -265,7 +269,7 @@ new URL('./icon.svg', import.meta.url);
 new URL('./icon[hash].svg', import.meta.url);
 ```
 
-When using `'relative'`, Rspack generates runtime code to calculate relative URLs for `new URL()` syntax, i.e., there's no base URL included in the result URL:
+When using `'relative'`, the Rspack runtime calculates relative URLs for `new URL()`, without including a base URL:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -372,8 +376,6 @@ export default {
 ```
 
 ### javascript.importMeta
-
-<ApiMeta addedVersion="1.0.0-alpha.6" />
 
 - **Type:** `boolean | 'preserve-unknown' | ImportMetaParserOptions`
 - **Default:** When using [ESM output](/guide/features/esm), the default value is `'preserve-unknown'`; otherwise, it is `true`
@@ -520,11 +522,11 @@ WARNING in ./re-exports.ts
 ```
 
 :::info Recommended with isolatedModules
-When using Rspack to bundle TypeScript, we strongly recommend enabling [isolatedModules](https://www.typescriptlang.org/tsconfig/#isolatedModules) in tsconfig.json (also recommended with other bundlers as it matches how bundlers compile TypeScript: [.ts files are independent and compiled separately](/guide/tech/typescript#enable-isolatedmodules)). This will give TypeScript's own warning for type re-exports: `Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.`
+When using Rspack to bundle TypeScript, we strongly recommend enabling [isolatedModules](https://www.typescriptlang.org/tsconfig/#isolatedModules) in tsconfig.json (also recommended with other bundlers as it matches how bundlers compile TypeScript: [.ts files are independent and compiled separately](/guide/languages/typescript#enable-isolatedmodules)). This will give TypeScript's own warning for type re-exports: `Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.`
 :::
 
 - `'no-tolerant'`: Default behavior, shows errors for type re-exports.
-- `'tolerant'`: Tolerates type re-exports while verifying the existence of corresponding type exports in child modules. Requires coordination with [`collectTypeScriptInfo.typeExports`](/guide/features/builtin-swc-loader#collecttypescriptinfotypeexports) from builtin:swc-loader to collect type export information.
+- `'tolerant'`: Tolerates type re-exports while verifying the existence of corresponding type exports in child modules. Requires coordination with [`collectTypeScriptInfo.typeExports`](/guide/builtin-loaders/swc-loader#collecttypescriptinfotypeexports) from builtin:swc-loader to collect type export information.
 - `'tolerant-no-check'`: Tolerates type re-exports without checking child modules (may incorrectly tolerate some invalid cases, though IDEs usually provide warnings). Better performance as it skeps child module checks.
 
 ```js title="rspack.config.mjs"
@@ -558,8 +560,6 @@ export default {
 Please refer to [type reexports presence example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/type-reexports-presence) for more details.
 
 ### javascript.worker
-
-<ApiMeta addedVersion="1.0.0-alpha.0" />
 
 <PropertyType type="string[] | boolean | { alias?: string[], url?: 'new-url-relative' }" />
 
@@ -621,8 +621,6 @@ new Worker(new URL('./worker.bundle.js', import.meta.url));
 > See [Web Workers](/guide/features/web-workers) for more details.
 
 ### javascript.overrideStrict
-
-<ApiMeta addedVersion="1.0.0-alpha.4" />
 
 <PropertyType type="'strict' | 'non-strict'" />
 
@@ -1027,8 +1025,6 @@ export default {
 
 ### json
 
-<ApiMeta addedVersion="1.2.0" />
-
 Parser options for `json` modules.
 
 ```js title="rspack.config.mjs"
@@ -1044,8 +1040,6 @@ export default {
 ```
 
 ### json.exportsDepth
-
-<ApiMeta addedVersion="1.2.0" />
 
 - **Type:** `number`
 - **Default:** production mode is `Number.MAX_SAFE_INTEGER`, development mode is `1`
@@ -1140,7 +1134,7 @@ export default {
 
 Configure how CSS content is exported to JavaScript.
 
-By default, `exportType` is `'link'`, which emits CSS as stylesheet output and loads it with the built-in CSS loading runtime.
+By default, `exportType` is `'link'`, which emits CSS as stylesheet output and loads it with the built-in CSS loading code in the Rspack runtime.
 
 - `'link'`: emit the CSS as stylesheet output and keep CSS module exports available.
 - `'text'`: export the generated CSS text as the default export.
@@ -1345,7 +1339,7 @@ export default {
 ### ["css/auto"].dashedIdents
 
 - **Type:** `boolean`
-- **Default:** `false`
+- **Default:** `true`
 
 Enable or disable renaming dashed identifiers, such as CSS custom properties and `@property` declarations.
 
@@ -1921,3 +1915,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.js.org/configuration/module/" />

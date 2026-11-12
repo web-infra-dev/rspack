@@ -43,7 +43,7 @@ impl ExposeRuntimeModule {
         let code_gen = compilation
           .code_generation_results
           .get(&m, Some(chunk.runtime()));
-        if let Some(data) = code_gen.data.get::<CodeGenerationDataExpose>() {
+        if let Some(data) = code_gen.data().get::<CodeGenerationDataExpose>() {
           return Some(data);
         };
       }

@@ -15,7 +15,7 @@ use regex::Regex;
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorDataUrlOptions,
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
-  AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions,
+  AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions, CodeFilter,
   CssAutoOrModuleParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, CssParserImport, CssParserImportContext, CssParserOptions,
   DescriptionData, DynamicImportFetchPriority, DynamicImportMode, ExportPresenceMode, FuncUseCtx,
@@ -23,7 +23,7 @@ use rspack_core::{
   JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
   JavascriptParserCreateRequire, JavascriptParserOptions, JavascriptParserOrder,
   JavascriptParserUrl, JavascriptParserWorkerOptions, JavascriptParserWorkerUrl,
-  JsonGeneratorOptions, JsonParserOptions, ModuleNoParseRule, ModuleNoParseRules,
+  JsonGeneratorOptions, JsonParserOptions, LoaderFilter, ModuleNoParseRule, ModuleNoParseRules,
   ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleEnforce,
   ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParseOption, ParserOptions, ParserOptionsMap,
   TypeReexportPresenceMode,
@@ -49,6 +49,18 @@ use crate::{
 pub struct RawModuleRuleUse {
   pub loader: String,
   pub options: Option<String>,
+  pub cache: bool,
+  pub options_cache_key: String,
+  #[napi(ts_type = "string | RegExp")]
+  pub code_filter: Option<Either<String, RspackRegex>>,
+}
+
+fn into_loader_filter(value: Either<String, RspackRegex>) -> Arc<LoaderFilter> {
+  let code = match value {
+    Either::A(value) => CodeFilter::String(value),
+    Either::B(value) => CodeFilter::Regexp(value),
+  };
+  Arc::new(LoaderFilter::new(Some(code)))
 }
 
 #[rspack_napi_macros::tagged_union]
@@ -152,6 +164,7 @@ type ThreadsafeUse = ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>>;
 #[derive(Debug, Default)]
 #[napi(object, object_to_js = false)]
 pub struct RawModuleRule {
+  pub r#as: Option<String>,
   /// A conditional match matching an absolute path + query + fragment.
   /// Note:
   ///   This is a custom matching rule not initially designed by webpack.
@@ -284,6 +297,7 @@ impl From<RawParserOptions> for ParserOptions {
 #[napi(object)]
 pub struct RawJavascriptParserOptions {
   pub dynamic_import_mode: Option<String>,
+  pub dynamic_url: Option<bool>,
   pub dynamic_import_preload: Option<String>,
   pub dynamic_import_prefetch: Option<String>,
   pub dynamic_import_fetch_priority: Option<String>,
@@ -380,6 +394,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
         .dynamic_import_fetch_priority
         .map(|x| DynamicImportFetchPriority::from(x.as_str())),
       url: value.url.map(|v| JavascriptParserUrl::from(v.as_str())),
+      dynamic_url: value.dynamic_url,
       expr_context_critical: value.expr_context_critical,
       unknown_context_critical: value.unknown_context_critical,
       wrapped_context_reg_exp: value.wrapped_context_reg_exp,
@@ -932,6 +947,7 @@ impl From<RawAssetGeneratorDataUrlOptions> for AssetGeneratorDataUrlOptions {
 #[napi(object)]
 pub struct RawCssGeneratorOptions {
   pub exports_only: Option<bool>,
+  pub runtime_public_path: Option<bool>,
   pub es_module: Option<bool>,
 }
 
@@ -939,6 +955,7 @@ impl From<RawCssGeneratorOptions> for CssGeneratorOptions {
   fn from(value: RawCssGeneratorOptions) -> Self {
     Self {
       exports_only: value.exports_only,
+      runtime_public_path: value.runtime_public_path,
       es_module: value.es_module,
     }
   }
@@ -950,6 +967,7 @@ pub struct RawCssModuleGeneratorOptions {
   #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
   pub exports_convention: Option<String>,
   pub exports_only: Option<bool>,
+  pub runtime_public_path: Option<bool>,
   pub local_ident_hash_digest: Option<String>,
   pub local_ident_hash_digest_length: Option<u32>,
   pub local_ident_hash_function: Option<String>,
@@ -963,6 +981,7 @@ impl From<RawCssModuleGeneratorOptions> for CssModuleGeneratorOptions {
     Self {
       exports_convention: value.exports_convention.map(|s| s.into()),
       exports_only: value.exports_only,
+      runtime_public_path: value.runtime_public_path,
       local_ident_hash_digest: value.local_ident_hash_digest.map(|s| s.as_str().into()),
       local_ident_hash_digest_length: value.local_ident_hash_digest_length,
       local_ident_hash_function: value.local_ident_hash_function.map(|s| s.as_str().into()),
@@ -1021,6 +1040,9 @@ impl TryFrom<RawModuleRule> for ModuleRule {
           .map(|rule_use| ModuleRuleUseLoader {
             loader: rule_use.loader,
             options: rule_use.options,
+            cache: rule_use.cache,
+            options_cache_key: rule_use.options_cache_key,
+            filter: rule_use.code_filter.map(into_loader_filter),
           })
           .collect::<Vec<_>>();
         Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(uses))
@@ -1035,6 +1057,9 @@ impl TryFrom<RawModuleRule> for ModuleRule {
                 .map(|rule_use| ModuleRuleUseLoader {
                   loader: rule_use.loader,
                   options: rule_use.options,
+                  cache: rule_use.cache,
+                  options_cache_key: rule_use.options_cache_key,
+                  filter: rule_use.code_filter.map(into_loader_filter),
                 })
                 .collect::<Vec<_>>()
             })
@@ -1098,6 +1123,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       .unwrap_or_default();
 
     Ok(ModuleRule {
+      r#as: value.r#as.map(Into::into),
       rspack_resource: value
         .rspack_resource
         .map(|raw| raw.try_into())

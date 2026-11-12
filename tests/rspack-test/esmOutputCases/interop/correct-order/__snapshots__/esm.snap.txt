@@ -35,7 +35,7 @@ it('should have correct order', () => {
 	expect((bar_default())).toBe('bar');
 	expect((foo_default())).toBe('foo');
 	expect(globalThis.testValue).toBe('bar')
-})
+});
 
 export {};
 

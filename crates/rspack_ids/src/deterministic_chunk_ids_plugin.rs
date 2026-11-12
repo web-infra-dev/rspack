@@ -16,11 +16,12 @@ use crate::id_helpers::{
 pub struct DeterministicChunkIdsPlugin {
   pub delimiter: String,
   pub context: Option<String>,
+  salt: Option<usize>,
 }
 
 impl DeterministicChunkIdsPlugin {
-  pub fn new(delimiter: Option<String>, context: Option<String>) -> Self {
-    Self::new_inner(delimiter.unwrap_or_else(|| "~".to_string()), context)
+  pub fn new(salt: Option<usize>) -> Self {
+    Self::new_inner(String::new(), None, salt)
   }
 }
 
@@ -54,7 +55,6 @@ async fn chunk_ids(
 
   let max_length = 3;
   let expand_factor = 10;
-  let salt = 10;
 
   let chunks = chunk_by_ukey
     .values()
@@ -65,12 +65,13 @@ async fn chunk_ids(
 
   let chunk_names = chunks
     .par_iter()
-    .map(|chunk| {
-      (
+    .map(|chunk| -> Result<_> {
+      Ok((
         chunk.ukey(),
         get_full_chunk_name(
           chunk,
           chunk_graph,
+          &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
           module_graph,
           module_graph_cache,
           &compilation
@@ -78,10 +79,10 @@ async fn chunk_ids(
             .side_effects_state_artifact,
           &context,
           &compilation.exports_info_artifact,
-        ),
-      )
+        )?,
+      ))
     })
-    .collect::<FxHashMap<_, _>>();
+    .collect::<Result<FxHashMap<_, _>>>()?;
 
   let mut chunk_compare_cache = NaturalChunkCompareCache::default();
 
@@ -116,7 +117,7 @@ async fn chunk_ids(
     &[usize::pow(10, max_length)],
     expand_factor,
     used_ids_len,
-    salt,
+    self.salt.unwrap_or(10),
   );
 
   for (chunk_ukey, id) in chunk_key_to_id {

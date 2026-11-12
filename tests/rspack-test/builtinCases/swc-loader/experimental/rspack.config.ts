@@ -1,0 +1,39 @@
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  entry: './index.js',
+  output: {
+    module: true,
+    library: {
+      type: 'module',
+    },
+  },
+  target: ['web', 'es2020'],
+  optimization: {
+    minimize: false,
+    concatenateModules: true,
+  },
+  devtool: false,
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            detectSyntax: 'auto',
+            jsc: {
+              experimental: {
+                keepImportAttributes: true,
+                emitAssertForImportAttributes: true,
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+  externals: {
+    './static-package.json': 'module ./static-package.json',
+  },
+});

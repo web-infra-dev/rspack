@@ -8,6 +8,7 @@ version.workspace = true
 
 [dependencies]
 anymap                     = { workspace = true }
+arc-swap                   = { workspace = true }
 async-recursion            = { workspace = true }
 async-trait                = { workspace = true }
 bitflags                   = { workspace = true }
@@ -18,6 +19,7 @@ derive_more                = { workspace = true, features = ["debug"] }
 dyn-clone                  = { workspace = true }
 either                     = { workspace = true }
 fast-glob                  = { workspace = true }
+fixedbitset                = { workspace = true }
 futures                    = { workspace = true }
 hashlink                   = { workspace = true }
 heck                       = { workspace = true }
@@ -27,14 +29,16 @@ indoc                      = { workspace = true }
 inventory                  = { workspace = true }
 itertools                  = { workspace = true }
 json                       = { workspace = true }
+memchr                     = { workspace = true }
 mime_guess                 = { workspace = true }
 napi                       = { workspace = true, optional = true }
-num-bigint                 = { workspace = true }
 once_cell                  = { workspace = true }
+parking_lot                = { workspace = true }
 paste                      = { workspace = true }
 rayon                      = { workspace = true }
 regex                      = { workspace = true }
 rkyv                       = { workspace = true, optional = true }
+rspack-allocative          = { workspace = true, optional = true }
 rspack_cacheable           = { workspace = true }
 rspack_collections         = { workspace = true }
 rspack_dojang              = { workspace = true }
@@ -42,13 +46,14 @@ rspack_error               = { workspace = true }
 rspack_fs                  = { workspace = true }
 rspack_hash                = { workspace = true }
 rspack_hook                = { workspace = true }
+rspack_intern              = { workspace = true, features = ["swc"] }
 rspack_javascript_compiler = { workspace = true }
 rspack_loader_runner       = { workspace = true }
 rspack_location            = { workspace = true }
 rspack_macros              = { workspace = true }
 rspack_napi                = { workspace = true, optional = true }
 rspack_parallel            = { workspace = true }
-rspack_paths               = { workspace = true }
+rspack_paths               = { workspace = true, features = ["cacheable"] }
 rspack_regex               = { workspace = true }
 rspack_resolver            = { workspace = true }
 rspack_sources             = { workspace = true }
@@ -66,16 +71,20 @@ smallvec                   = { workspace = true }
 smol_str                   = { workspace = true }
 sugar_path                 = { workspace = true }
 swc_core                   = { workspace = true, features = ["__ecma", "__visit", "__utils", "__ecma_transforms", "ecma_ast", "ecma_parser", "ecma_codegen", "ecma_quote", "common_concurrent", "swc_ecma_ast", "ecma_transforms_react", "ecma_transforms_module", "swc_ecma_codegen", "swc_ecma_visit"] }
-tokio                      = { workspace = true, features = ["rt", "macros"] }
+tokio                      = { workspace = true, features = ["rt", "macros", "sync", "time"] }
 tracing                    = { workspace = true }
+triomphe                   = { workspace = true }
+unsize                     = { workspace = true }
 urlencoding                = { workspace = true }
 ustr                       = { workspace = true }
-winnow                     = { workspace = true }
 
-swc_experimental_allocator     = { workspace = true }
-swc_experimental_ecma_ast      = { workspace = true }
-swc_experimental_ecma_parser   = { workspace = true }
-swc_experimental_ecma_semantic = { workspace = true }
+swc_next_allocator     = { workspace = true }
+swc_next_ecma_ast      = { workspace = true }
+swc_next_ecma_parser   = { workspace = true }
+swc_next_ecma_semantic = { workspace = true }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+turbo-persistence = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }
@@ -84,6 +93,7 @@ pretty_assertions = { workspace = true }
 workspace = true
 
 [features]
+allocative = ["dep:rspack-allocative", "rspack_napi?/allocative", "rspack_util/allocative", "rspack_sources/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_paths/allocative", "rspack_resolver/allocative", "rspack_storage/allocative", "rspack_regex/allocative", "rspack_location/allocative", "rspack_error/allocative", "rspack_dojang/allocative"]
 codspeed   = ["rspack_parallel/codspeed"]
 debug_tool = ["rspack_util/debug_tool"]
 default    = []

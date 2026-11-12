@@ -1,14 +1,14 @@
 use std::fmt::Debug;
 
 use rspack_core::{
-  ChunkGraph, ChunkUkey, Compilation, CompilationParams, CompilationRenderManifest,
-  CompilerCompilation, DependencyType, ManifestAssetType, ModuleType, ParserAndGenerator, PathData,
-  Plugin, RenderManifestEntry, SourceType,
+  ChunkUkey, Compilation, CompilationParams, CompilationRenderManifest, CompilerCompilation,
+  DependencyType, ManifestAssetType, ModuleType, ParserAndGenerator, Plugin, RenderManifestEntry,
+  SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 
-use crate::parser_and_generator::AsyncWasmParserAndGenerator;
+use crate::parser_and_generator::{AsyncWasmParserAndGenerator, CodeGenerationDataWasmFilename};
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -39,7 +39,6 @@ async fn render_manifest(
   manifest: &mut Vec<RenderManifestEntry>,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
-  let wasm_filename_template = &compilation.options.output.webassembly_module_filename;
   let chunk = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
@@ -63,21 +62,19 @@ async fn render_manifest(
       continue;
     };
 
-    let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, m.identifier())
-      .map(|s| PathData::prepare_id(s.as_str()));
-    let mut path_data = PathData::default().module_id_optional(module_id.as_deref());
-    if let Some(hash) = &m.build_info().hash {
-      let hash = hash.rendered(16);
-      path_data = path_data.content_hash(hash).hash(hash);
-    }
-    let (output_path, asset_info) = compilation
-      .get_asset_path_with_info(wasm_filename_template, path_data)
-      .await?;
-
-    let asset_info = asset_info.with_asset_type(ManifestAssetType::Wasm);
+    let filename_data = compilation
+      .code_generation_results
+      .get(&m.identifier(), Some(chunk.runtime()))
+      .data()
+      .get::<CodeGenerationDataWasmFilename>()
+      .expect("should have filename for async wasm module");
+    let asset_info = filename_data
+      .asset_info
+      .clone()
+      .with_asset_type(ManifestAssetType::Wasm);
     manifest.push(RenderManifestEntry {
       source: source.clone(),
-      filename: output_path,
+      filename: filename_data.filename.clone(),
       has_filename: true,
       info: asset_info,
       auxiliary: false,

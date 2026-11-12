@@ -53,8 +53,8 @@ buildCommand
       if (b === undefined && j === undefined) {
         b = j = true;
       }
-      b && (await $`pnpm --filter @rspack/binding build:${mode}`);
-      j && (await $`pnpm --filter "@rspack/*" build ${f ? '--force' : ''}`);
+      if (b) await $`pnpm --filter @rspack/binding build:${mode}`;
+      if (j) await $`pnpm --filter "@rspack/*" build ${f ? '--force' : ''}`;
     } catch (e) {
       process.exit(e.exitCode);
     }
@@ -173,12 +173,10 @@ program
       'workspaces',
       'version',
       '--exact', // Use exact version `=`
-      '--allow-branch',
-      '{release*,chore/release*}', // Specify which branches to allow from
-      '--no-git-push', // Do not push generated commit and tags to git remote
-      '--no-git-tag', // Do not tag versions in git, we will tag them in `crate-publish`
+      '--all', // Keep private workspace crates and their dependency pins in sync
+      '--no-git-commit', // Commit Rust and JS version changes together after confirmation
       '--force',
-      'rspack*', // Always include targeted crates matched by glob even when there are no changes
+      '*', // Include every crate sharing the workspace version so exact dependency pins stay in sync
       '--yes', // Skip confirmation prompt
       bump, // Bump type
     ];
@@ -205,7 +203,7 @@ program
       'publish',
       '--publish-as-is', // Publish crates from the current commit without versioning
       '--no-remove-dev-deps', // Do not remove dev-dependencies from `Cargo.lock`, otherwise the `Cargo.toml` will be updated and dirty check will fail
-      '--no-verify', // Skip verification of the workspace. This was pre-checked by `release-crates.yml` with `cargo check` with `separated` strategy
+      '--no-verify', // Standalone crate checks run in CI on main.
       // Commented `--locked` flag
       // because some dev-deps refer to workspace members with versions rspack_swc_plugin_ts_collector
       // and these workspace members are to be removed in release. This would cause `Cargo.lock` to be updated.

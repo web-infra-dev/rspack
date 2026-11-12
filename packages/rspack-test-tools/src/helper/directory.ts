@@ -27,7 +27,7 @@ export function describeByWalk(
   const describeFn = options.describe || describe;
   const testBasename = path
     .basename(testFile)
-    .replace(/(\.part\d+)?\.(diff|hot)?test\.(j|t)s/, '');
+    .replace(/(\.part\d+)?\.(diff|hot)?test\.m?[jt]s$/, '');
   const testId = testBasename.charAt(0).toLowerCase() + testBasename.slice(1);
   const sourceBase =
     options.source || path.join(path.dirname(testFile), `${testId}Cases`);

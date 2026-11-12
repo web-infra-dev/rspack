@@ -1,5 +1,6 @@
 mod graph_updater;
 mod lazy_barrel_artifact;
+pub(crate) mod module_build_cache;
 mod module_executor;
 pub mod pass;
 

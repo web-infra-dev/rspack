@@ -1,0 +1,25 @@
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  target: 'web',
+  entry: {
+    basic: './basic.js',
+    one: './one.css',
+    two: './two.css',
+    three: './three.css',
+    four: './four.css',
+    five: './five.css',
+    common: './commonjs.js',
+    six: { import: './six.js', dependOn: 'common' },
+  },
+  output: {
+    filename: '[name].js',
+    chunkFilename: '[name].chunk.js',
+  },
+  optimization: {
+    chunkIds: 'named',
+  },
+  module: {
+    rules: [{ test: /\.css$/, type: 'css/auto' }],
+  },
+});

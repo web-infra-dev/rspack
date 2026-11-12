@@ -1,79 +1,88 @@
-use swc_core::ecma::{
-  ast::{ClassExpr, Ident, ObjectPatProp, Prop},
-  visit::{Visit, VisitWith, noop_visit_type},
-};
+use std::ops::Range;
 
-#[derive(Clone, Debug)]
+use rspack_intern::Atom;
+use rspack_sources::ReplaceSource;
+use rspack_util::{SpanExt, fx_hash::FxIndexMap};
+use smallvec::SmallVec;
+use swc_next_ecma_ast::{Span, SymbolId};
+
+/// An owned declaration or reference position retained after dropping the AST.
+#[derive(Debug)]
 pub struct ConcatenatedModuleIdent {
-  pub id: Ident,
+  pub name: Atom,
+  pub span: Span,
   pub shorthand: bool,
-  pub is_class_expr_with_ident: bool,
 }
 
-#[derive(Default)]
-pub struct IdentCollector {
-  pub ids: Vec<ConcatenatedModuleIdent>,
+/// A declaration or reference of a resolved symbol; its name is held by the group.
+#[derive(Debug)]
+pub struct ConcatenatedModuleReference {
+  pub span: Span,
+  pub shorthand: bool,
 }
 
-impl IdentCollector {
-  pub fn new(ids: Vec<ConcatenatedModuleIdent>) -> Self {
-    Self { ids }
-  }
+/// The symbols whose names semantic requires us to rename together.
+#[derive(Debug)]
+pub struct ConcatenatedModuleSymbol {
+  pub name: Atom,
+  pub symbols: SmallVec<[SymbolId; 1]>,
+  pub top_level: bool,
+  /// Occurrences in the analysis's shared reference buffer.
+  pub references: Range<usize>,
 }
 
-impl Visit for IdentCollector {
-  noop_visit_type!();
+/// Owned renaming facts extracted from semantic for module rendering and caches.
+/// Each key is a representative SymbolId; linked symbols and their occurrences
+/// are collected once per rename group, including declarations without uses.
+#[derive(Debug, Default)]
+pub struct ConcatenatedModuleAnalysis {
+  pub binding_to_ref: FxIndexMap<SymbolId, ConcatenatedModuleSymbol>,
+  pub references: Vec<ConcatenatedModuleReference>,
+  pub global_scope_ident: Vec<ConcatenatedModuleIdent>,
+}
 
-  fn visit_ident(&mut self, node: &Ident) {
-    self.ids.push(ConcatenatedModuleIdent {
-      id: node.clone(),
-      shorthand: false,
-      is_class_expr_with_ident: false,
-    });
+impl ConcatenatedModuleAnalysis {
+  pub fn used_names(&self) -> impl Iterator<Item = &Atom> {
+    self
+      .binding_to_ref
+      .values()
+      .map(|symbol| &symbol.name)
+      .chain(
+        self
+          .global_scope_ident
+          .iter()
+          .map(|reference| &reference.name),
+      )
   }
 
-  fn visit_object_pat_prop(&mut self, n: &ObjectPatProp) {
-    match n {
-      ObjectPatProp::Assign(assign) => {
-        self.ids.push(ConcatenatedModuleIdent {
-          id: assign.key.clone().into(),
-          shorthand: true,
-          is_class_expr_with_ident: false,
-        });
-        assign.value.visit_with(self);
-      }
-      ObjectPatProp::KeyValue(_) | ObjectPatProp::Rest(_) => {
-        n.visit_children_with(self);
-      }
-    }
+  pub fn symbol_groups(&self) -> impl Iterator<Item = SymbolId> + '_ {
+    self.binding_to_ref.keys().copied()
   }
 
-  fn visit_prop(&mut self, node: &Prop) {
-    match node {
-      Prop::Shorthand(node) => {
-        self.ids.push(ConcatenatedModuleIdent {
-          id: node.clone(),
-          shorthand: true,
-          is_class_expr_with_ident: false,
-        });
-      }
-      _ => {
-        node.visit_children_with(self);
-      }
-    }
+  pub fn symbol_name(&self, symbol: SymbolId) -> &Atom {
+    &self.binding_to_ref[&symbol].name
   }
 
-  /// https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L1173-L1197
-  fn visit_class_expr(&mut self, node: &ClassExpr) {
-    if let Some(ref ident) = node.ident
-      && node.class.super_class.is_some()
-    {
-      self.ids.push(ConcatenatedModuleIdent {
-        id: ident.clone(),
-        shorthand: false,
-        is_class_expr_with_ident: true,
-      });
+  pub fn is_top_level(&self, symbol: SymbolId) -> bool {
+    self.binding_to_ref[&symbol].top_level
+  }
+
+  pub fn unresolved_references(&self) -> impl Iterator<Item = &ConcatenatedModuleIdent> {
+    self.global_scope_ident.iter()
+  }
+
+  pub fn rename_symbol(&self, symbol: SymbolId, name: &str, source: &mut ReplaceSource) {
+    for ident in &self.references[self.binding_to_ref[&symbol].references.clone()] {
+      if ident.shorthand {
+        source.insert(ident.span.real_hi(), format!(": {name}"), None);
+      } else {
+        source.replace(
+          ident.span.real_lo(),
+          ident.span.real_hi(),
+          name.to_owned(),
+          None,
+        );
+      }
     }
-    node.class.visit_with(self);
   }
 }

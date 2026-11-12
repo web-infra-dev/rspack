@@ -6,7 +6,7 @@ import type {
   StatsCompilation,
 } from '@rspack/core';
 import fs from 'fs-extra';
-import { escapeSep } from '../helper';
+import { escapeSep, isJavaScript } from '../helper';
 import { normalizePlaceholder } from '../helper/expect/placeholder';
 import { BasicCaseCreator } from '../test/creator';
 import type { ITestContext, ITestEnv } from '../type';
@@ -137,6 +137,10 @@ function createHotStepProcessor(
             return str.split(raw).join(replacement);
           }, str)
           .replaceAll('rspack/runtime/', 'webpack/runtime/')
+          .replace(
+            /((?:\.hmrV|hmrChunkVersions)\[[^\n]*\] = )"[^"\n]*";/g,
+            '$1"CHUNK_VERSION";',
+          )
           .replace(/\/\/ (\d+)\s+(?=var cssReload)/, '')
           .replaceAll(/var data = "(?:.*)"/g, (match) => {
             return normalizeRuntimeModulePrefix(
@@ -163,8 +167,19 @@ function createHotStepProcessor(
         const content = replaceContent(
           fs.readFileSync(context.getDist(fileName), 'utf-8'),
         );
-        if (fileName.endsWith('hot-update.js')) {
-          const modules = getModuleHandler(context.getDist(fileName), options);
+        const completeUpdate =
+          fileName.endsWith('hot-update.js.full.js') ||
+          fileName.endsWith('hot-update.mjs.full.mjs');
+        if (
+          fileName.endsWith('hot-update.js') ||
+          fileName.endsWith('hot-update.mjs') ||
+          completeUpdate
+        ) {
+          const modules = fileName.endsWith('.mjs')
+            ? Object.keys(
+                require(context.getDist(fileName)).__webpack_modules__,
+              )
+            : getModuleHandler(context.getDist(fileName), options);
           const runtime: string[] = [];
           for (const i of content.matchAll(
             /\/\/ ((?:webpack|rspack)\/runtime\/[\w_-]+)\s*\n/g,
@@ -173,6 +188,12 @@ function createHotStepProcessor(
           }
           modules.sort();
           runtime.sort();
+          if (completeUpdate) {
+            return [
+              `- Complete update: ${renderName}, size: ${content.length}`,
+              ...[...modules, ...runtime].map((id) => `  - ${id}`),
+            ].join('\n');
+          }
           hotUpdateFile.push({
             name: renderName,
             content,
@@ -181,18 +202,27 @@ function createHotStepProcessor(
           });
           return `- Update: ${renderName}, size: ${content.length}`;
         }
-        if (fileName.endsWith('hot-update.json')) {
-          const manifest = JSON.parse(content);
+        if (
+          fileName.endsWith('hot-update.json') ||
+          fileName.endsWith('hot-update.json.mjs')
+        ) {
+          const manifest = fileName.endsWith('.mjs')
+            ? require(context.getDist(fileName)).default
+            : JSON.parse(content);
           manifest.c?.sort();
           manifest.r?.sort();
           manifest.m?.sort();
+          manifest.css?.c?.sort();
+          manifest.css?.r?.sort();
+          manifest.miniCss?.c?.sort();
+          manifest.miniCss?.r?.sort();
           hotUpdateManifest.push({
             name: renderName,
             content: JSON.stringify(manifest),
           });
           return `- Manifest: ${renderName}, size: ${i.size}`;
         }
-        if (fileName.endsWith('.js')) {
+        if (isJavaScript(fileName)) {
           return `- Bundle: ${renderName}`;
         }
       })

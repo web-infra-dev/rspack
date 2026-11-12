@@ -31,8 +31,10 @@ use napi::{
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
 use raw_ids::{
-  RawDeterministicModuleIdsPluginOptions, RawHashedModuleIdsPluginOptions,
-  RawOccurrenceChunkIdsPluginOptions, RawSyncModuleIdsPluginOptions,
+  RawCompactHashedChunkIdsPluginOptions, RawCompactHashedModuleIdsPluginOptions,
+  RawDeterministicChunkIdsPluginOptions, RawDeterministicModuleIdsPluginOptions,
+  RawHashedModuleIdsPluginOptions, RawOccurrenceChunkIdsPluginOptions,
+  RawSyncModuleIdsPluginOptions,
 };
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use raw_mf::{
@@ -44,9 +46,9 @@ use raw_sri::RawSubresourceIntegrityPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_ids::{
-  DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, HashedModuleIdsPlugin,
-  NamedChunkIdsPlugin, NamedModuleIdsPlugin, NaturalChunkIdsPlugin, NaturalModuleIdsPlugin,
-  OccurrenceChunkIdsPlugin, SyncModuleIdsPlugin,
+  CompactHashedChunkIdsPlugin, CompactHashedModuleIdsPlugin, DeterministicChunkIdsPlugin,
+  DeterministicModuleIdsPlugin, HashedModuleIdsPlugin, NamedChunkIdsPlugin, NamedModuleIdsPlugin,
+  NaturalChunkIdsPlugin, NaturalModuleIdsPlugin, OccurrenceChunkIdsPlugin, SyncModuleIdsPlugin,
 };
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
@@ -76,10 +78,10 @@ use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_ignore::IgnorePlugin;
 use rspack_plugin_javascript::{
-  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, InferAsyncModulesPlugin,
-  InlineExportsPlugin, JsPlugin, MangleExportsPlugin, ModuleConcatenationPlugin,
-  SideEffectsFlagPlugin, api_plugin::APIPlugin, define_plugin::DefinePlugin,
-  provide_plugin::ProvidePlugin, url_plugin::URLPlugin,
+  FlagDependencyExportsPlugin, FlagDependencyUsagePlugin, ImportedByDeferModulesPlugin,
+  InferAsyncModulesPlugin, InlineExportsPlugin, JsPlugin, MangleExportsPlugin,
+  ModuleConcatenationPlugin, SideEffectsFlagPlugin, api_plugin::APIPlugin,
+  define_plugin::DefinePlugin, provide_plugin::ProvidePlugin, url_plugin::URLPlugin,
 };
 use rspack_plugin_json::JsonPlugin;
 use rspack_plugin_library::enable_library_plugin;
@@ -197,11 +199,13 @@ pub enum BuiltinPluginName {
   NamedModuleIdsPlugin,
   NaturalModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
+  CompactHashedModuleIdsPlugin,
   SyncModuleIdsPlugin,
   HashedModuleIdsPlugin,
   NaturalChunkIdsPlugin,
   NamedChunkIdsPlugin,
   DeterministicChunkIdsPlugin,
+  CompactHashedChunkIdsPlugin,
   OccurrenceChunkIdsPlugin,
   RealContentHashPlugin,
   RemoveEmptyChunksPlugin,
@@ -212,6 +216,7 @@ pub enum BuiltinPluginName {
   RuntimePlugin,
   JsonModulesPlugin,
   InferAsyncModulesPlugin,
+  ImportedByDeferModulesPlugin,
   JavascriptModulesPlugin,
   AsyncWebAssemblyModulesPlugin,
   AssetModulesPlugin,
@@ -491,10 +496,17 @@ impl<'a> BuiltinPlugin<'a> {
       }
       BuiltinPluginName::SplitChunksPlugin => {
         use rspack_plugin_split_chunks::SplitChunksPlugin;
-        let options = downcast_into::<RawSplitChunksOptions>(self.options)
-          .map_err(|report| napi::Error::from_reason(report.to_string()))?
-          .into();
-        plugins.push(SplitChunksPlugin::new(options).boxed());
+        let options = RawSplitChunksOptions::normalize(
+          downcast_into::<RawSplitChunksOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?,
+        );
+        plugins.push(
+          SplitChunksPlugin::new_with_name_batch_getters(
+            options.options,
+            options.name_batch_getters,
+          )
+          .boxed(),
+        );
       }
       BuiltinPluginName::RemoveDuplicateModulesPlugin => {
         plugins.push(RemoveDuplicateModulesPlugin::default().boxed());
@@ -585,6 +597,14 @@ impl<'a> BuiltinPlugin<'a> {
         )
         .boxed(),
       ),
+      BuiltinPluginName::CompactHashedModuleIdsPlugin => plugins.push(
+        CompactHashedModuleIdsPlugin::new(
+          downcast_into::<RawCompactHashedModuleIdsPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
+        )
+        .boxed(),
+      ),
       BuiltinPluginName::SyncModuleIdsPlugin => plugins.push(
         SyncModuleIdsPlugin::new(
           downcast_into::<RawSyncModuleIdsPluginOptions>(self.options)
@@ -608,8 +628,18 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(NamedChunkIdsPlugin::new(None, None).boxed())
       }
       BuiltinPluginName::DeterministicChunkIdsPlugin => {
-        plugins.push(DeterministicChunkIdsPlugin::default().boxed())
+        let options = downcast_into::<RawDeterministicChunkIdsPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+        plugins.push(DeterministicChunkIdsPlugin::new(options.salt.map(|n| n as usize)).boxed())
       }
+      BuiltinPluginName::CompactHashedChunkIdsPlugin => plugins.push(
+        CompactHashedChunkIdsPlugin::new(
+          downcast_into::<RawCompactHashedChunkIdsPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
+        )
+        .boxed(),
+      ),
       BuiltinPluginName::OccurrenceChunkIdsPlugin => plugins.push(
         OccurrenceChunkIdsPlugin::new(
           downcast_into::<RawOccurrenceChunkIdsPluginOptions>(self.options)
@@ -642,6 +672,9 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::JsonModulesPlugin => plugins.push(JsonPlugin.boxed()),
       BuiltinPluginName::InferAsyncModulesPlugin => {
         plugins.push(InferAsyncModulesPlugin::default().boxed())
+      }
+      BuiltinPluginName::ImportedByDeferModulesPlugin => {
+        plugins.push(ImportedByDeferModulesPlugin::default().boxed())
       }
       BuiltinPluginName::JavascriptModulesPlugin => plugins.push(JsPlugin::default().boxed()),
       BuiltinPluginName::AsyncWebAssemblyModulesPlugin => {
@@ -843,7 +876,6 @@ impl<'a> BuiltinPlugin<'a> {
             options.entries,
             options.imports,
             options.client,
-            options.reserved_externals,
           )) as Box<dyn Plugin>,
         )
       }

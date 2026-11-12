@@ -74,6 +74,9 @@ export type WasmLoadingType = 'fetch' | 'async-node' | 'universal';
 /** Option to set the method of loading WebAssembly Modules. */
 export type WasmLoading = false | WasmLoadingType;
 
+/** Whether to fall back to non-streaming WebAssembly loading when streaming fails due to an incorrect MIME type. */
+export type WasmStreamingFallback = boolean;
+
 export type ScriptType = false | 'text/javascript' | 'module';
 
 export type LibraryCustomUmdObject = {
@@ -446,6 +449,8 @@ export type Environment = {
 
   /** The environment supports template literals. */
   templateLiteral?: boolean;
+  /** The environment supports top-level await ('await x' at the top level of a module). */
+  topLevelAwait?: boolean;
 };
 
 export type Output = {
@@ -579,6 +584,13 @@ export type Output = {
    * */
   wasmLoading?: WasmLoading;
 
+  /**
+   * Fall back to non-streaming WebAssembly instantiation or compilation when the server
+   * does not serve WebAssembly with the `application/wasm` MIME type.
+   * @default true
+   */
+  wasmStreamingFallback?: WasmStreamingFallback;
+
   /** List of wasm loading types enabled for use by entry points. */
   enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
 
@@ -691,18 +703,34 @@ export type Output = {
 
 //#region Resolve
 /**
- * Path alias
+ * Redirect module requests to other paths.
+ *
  * @example
+ * A regular alias also matches subpath requests:
+ *
  * ```js
  * {
- * 	"@": path.resolve(__dirname, './src'),
- * 	"abc$": path.resolve(__dirname, './node_modules/abc/index.js'),
+ *   '@': path.resolve(import.meta.dirname, './src'),
  * }
- * // - require("@/a") will attempt to resolve <root>/src/a.
- * // - require("abc") will attempt to resolve <root>/src/abc.
- * // - require("abc/file.js") will not match, and it will attempt to resolve node_modules/abc/file.js.
  * ```
- * */
+ *
+ * `import '@/a'` will attempt to resolve `<root>/src/a`.
+ *
+ * @example
+ * Add `$` to the end of an alias key to match only the complete module request.
+ * The `$` is a special `resolve.alias` marker and is not part of the module request:
+ *
+ * ```js
+ * {
+ *   abc$: path.resolve(import.meta.dirname, './src/abc'),
+ * }
+ * ```
+ *
+ * - `import 'abc'` will attempt to resolve `<root>/src/abc`.
+ * - `import 'abc/file.js'` will not match the alias and will continue through normal module resolution, which typically attempts to resolve `node_modules/abc/file.js`.
+ *
+ * Without the `$`, an `abc` alias would also match subpath requests such as `import 'abc/file.js'`.
+ */
 export type ResolveAlias =
   | {
       [x: string]: string | false | (string | false)[];
@@ -816,7 +844,7 @@ export type ResolveOptions = {
    * A list of resolve restrictions to restrict the paths that a request can be resolved on.
    * @default []
    * */
-  restrictions?: string[];
+  restrictions?: (string | RegExp)[];
 
   /**
    * A list of directories where server-relative URLs (beginning with '/') are resolved.
@@ -855,6 +883,8 @@ export type RuleSetLoader = string;
 
 export type RuleSetLoaderOptions = string | Record<string, any>;
 
+export type RuleSetLoaderCodeFilter = string | RegExp;
+
 export type RuleSetLoaderWithOptions = {
   /**
    * Stable identifier used to reference object-form loader options.
@@ -875,15 +905,28 @@ export type RuleSetLoaderWithOptions = {
    */
   parallel?: boolean | { maxWorkers?: number };
 
+  /**
+   * Cache this loader in `experiments.newCache`.
+   * This is an experimental API and may change or be removed in the future.
+   * @experimental
+   */
+  cache?: boolean;
+
+  /**
+   * Filters the current input before calling the normal loader handler.
+   * The loader pitch function is not filtered.
+   */
+  codeFilter?: RuleSetLoaderCodeFilter;
+
   options?: RuleSetLoaderOptions;
 };
 
-export type RuleSetUseItem = RuleSetLoader | RuleSetLoaderWithOptions;
+export type RuleSetUseItem = RuleSetLoader | RuleSetLoaderWithOptions | Falsy;
 
 export type RuleSetUse =
   | RuleSetUseItem
   | RuleSetUseItem[]
-  | ((data: RawFuncUseCtx) => RuleSetUseItem[]);
+  | ((data: RawFuncUseCtx) => RuleSetUseItem | RuleSetUseItem[]);
 
 export type RuleSetRuleUseAndLoader =
   | {
@@ -919,6 +962,14 @@ export type RuleSetRuleUseAndLoader =
 
 /** Rule defines the conditions for matching a module and the behavior of handling those modules. */
 export type RuleSetRule = RuleSetRuleUseAndLoader & {
+  /**
+   * Create a resource for matching subsequent rules from a path template.
+   * `[resource-path]` expands to the current matching path, including its extension.
+   * Query and fragment are preserved. The original resource is used by loaders.
+   * @experimental
+   */
+  as?: string;
+
   /** Matches all modules that match this resource, and will match against Resource. */
   test?: RuleSetCondition;
 
@@ -1312,6 +1363,12 @@ export type JavascriptParserOptions = {
   url?: 'relative' | 'new-url-relative' | boolean;
 
   /**
+   * Enable parsing of dynamic requests in new URL().
+   * @default true
+   */
+  dynamicUrl?: boolean;
+
+  /**
    * Enable warnings for full dynamic dependencies
    * @default true
    * */
@@ -1585,6 +1642,15 @@ export type CssGeneratorOptions = {
    */
   exportsOnly?: CssGeneratorExportsOnly;
 
+  /**
+   * Resolve asset URLs in injected styles against the runtime public path
+   * (`import.meta.rspackPublicPath`) instead of the build-time `output.publicPath`.
+   * Only applies when `parser.exportType` is "style". Assets with their own
+   * `generator.publicPath` keep that value.
+   * @default false
+   */
+  runtimePublicPath?: boolean;
+
   /** This configuration is available for improved ESM-CJS interoperability purposes. */
   esModule?: CssGeneratorEsModule;
 };
@@ -1602,6 +1668,15 @@ export type CssModuleGeneratorOptions = {
    * If false, generate stylesheets and embed them in the template.
    */
   exportsOnly?: CssGeneratorExportsOnly;
+
+  /**
+   * Resolve asset URLs in injected styles against the runtime public path
+   * (`import.meta.rspackPublicPath`) instead of the build-time `output.publicPath`.
+   * Only applies when `parser.exportType` is "style". Assets with their own
+   * `generator.publicPath` keep that value.
+   * @default false
+   */
+  runtimePublicPath?: boolean;
 
   /**
    * Digest types used for the hash.
@@ -1721,6 +1796,7 @@ type AllowTarget =
   | 'es2023'
   | 'es2024'
   | 'es2025'
+  | 'es2026'
   | 'node'
   | 'async-node'
   | `node${number}`
@@ -1779,7 +1855,10 @@ export type ExternalsType =
   | 'modern-module'
   | 'script'
   | 'node-commonjs'
-  | 'commonjs-import';
+  | 'commonjs-import'
+  | 'asset'
+  | 'asset-url'
+  | 'css-import';
 //#endregion
 
 //#region Externals
@@ -1819,6 +1898,13 @@ export type ExternalItemObjectUnknown = {
   [x: string]: ExternalItemValue;
 };
 
+export type ExternalItemObjectKnown = {
+  /** Specify externals depending on the importing module's layer. */
+  byLayer?:
+    | Record<string, ExternalItem>
+    | ((layer: string | null) => ExternalItem | undefined);
+};
+
 /**
  * Data object passed as argument when a function is set for 'externals'.
  */
@@ -1832,12 +1918,12 @@ export type ExternalItemFunctionData = {
   };
   /**
    * Get a resolve function with the current resolver options.
+   * The returned function accepts a callback or returns a Promise when called without one.
    */
   getResolve?: (
     options?: ResolveOptions,
-  ) =>
-    | ((context: string, request: string, callback: ResolveCallback) => void)
-    | ((context: string, request: string) => Promise<string>);
+  ) => ((context: string, request: string, callback: ResolveCallback) => void) &
+    ((context: string, request: string) => Promise<string | undefined>);
 };
 
 /**
@@ -1856,17 +1942,16 @@ export type ExternalItemFunctionData = {
 export type ExternalItem =
   | string
   | RegExp
+  | ExternalItemObjectKnown
   | ExternalItemObjectUnknown
-  | ((data: ExternalItemFunctionData) => ExternalItemValue)
   | ((
       data: ExternalItemFunctionData,
       callback: (
-        err?: Error,
+        err?: Error | null,
         result?: ExternalItemValue,
         type?: ExternalsType,
       ) => void,
-    ) => void)
-  | ((data: ExternalItemFunctionData) => Promise<ExternalItemValue>);
+    ) => ExternalItemValue | void | Promise<ExternalItemValue | void>);
 
 /**
  * Prevent bundling of certain imported packages and instead retrieve these external dependencies at runtime.
@@ -2036,7 +2121,7 @@ export type Loader = Record<string, any>;
 /**
  * Snapshot options for determining which files have been modified.
  */
-export type CacheSnapshotOptions = {
+export type SnapshotOptions = {
   /**
    * An array of paths to immutable files, changes to these paths will be ignored during hot restart.
    */
@@ -2050,7 +2135,27 @@ export type CacheSnapshotOptions = {
    * @default [/[\\/]node_modules[\\/][^.]/]
    */
   managedPaths?: (string | RegExp)[];
+  /** Snapshot strategy for build dependencies. */
+  buildDependencies?: SnapshotStrategyOptions;
+  /** Snapshot strategy for resolving build dependencies. */
+  resolveBuildDependencies?: SnapshotStrategyOptions;
+  /** Snapshot strategy for module dependencies. */
+  module?: SnapshotStrategyOptions;
+  /** Snapshot strategy for context modules. */
+  contextModule?: SnapshotStrategyOptions;
+  /** Snapshot strategy for resolving requests. */
+  resolve?: SnapshotStrategyOptions;
 };
+
+export type SnapshotStrategyOptions = {
+  /** Use content hashes to detect changes. */
+  hash?: boolean;
+  /** Use timestamps to detect changes. */
+  timestamp?: boolean;
+};
+
+/** @deprecated Use `SnapshotOptions` and the top-level `snapshot` option. */
+export type CacheSnapshotOptions = SnapshotOptions;
 
 /**
  * Storage options for persistent cache.
@@ -2061,10 +2166,15 @@ export type CacheStorageOptions = {
    */
   type: 'filesystem';
   /**
-   * Cache directory path.
-   * @default 'node_modules/.cache/rspack/<name>-<mode>-<compilerIndex>'
+   * Base directory for the cache.
+   * @default 'node_modules/.cache/rspack'
    */
   directory?: string;
+  /**
+   * Location of the cache data.
+   * @default '<directory>/<cache.name>'
+   */
+  location?: string;
 };
 
 /**
@@ -2076,12 +2186,18 @@ export type PersistentCacheOptions = {
    */
   type: 'persistent';
   /**
+   * Name for the cache. Different names create coexisting caches.
+   * @default '<config.name>-<mode>' when config.name is set, otherwise '<mode>'
+   */
+  name?: string;
+  /**
    * An array of files containing build dependencies, Rspack will use the hash of each of these files to invalidate the persistent cache.
    * @default []
    */
   buildDependencies?: string[];
   /**
-   * Cache version, different versions of caches are isolated from each other.
+   * Version of the cache data. Changing the version invalidates the existing
+   * cache and causes its content to be overwritten.
    * @default ""
    */
   version?: string;
@@ -2092,15 +2208,18 @@ export type PersistentCacheOptions = {
    */
   maxAge?: number;
   /**
-   * Maximum number of filesystem cache versions to retain in the cache
-   * directory. Must be an integer between 1 and 4294967295, or Infinity to
-   * disable version-based cleanup.
-   * @default 3
+   * Number of generations that unused cache entries stay in the additional
+   * memory cache. Set to 0 to disable the memory cache, or Infinity to keep
+   * entries forever.
+   * @default 5 in development mode, Infinity otherwise
+   */
+  maxMemoryGenerations?: number;
+  /**
+   * @deprecated This option has no effect. Rspack keeps only one persistent
+   * cache per compiler path.
    */
   maxVersions?: number;
-  /**
-   * Snapshot options for determining which files have been modified.
-   */
+  /** @deprecated Use the top-level `snapshot` option instead. */
   snapshot?: CacheSnapshotOptions;
   /**
    * Storage options for cache.
@@ -2210,6 +2329,10 @@ export type StatsOptions = {
    * @default true
    */
   assets?: boolean;
+  /**
+   * Includes cache hit, miss, reuse, and store counts by cache name.
+   */
+  cacheInfo?: boolean;
   /**
    * Enables or disables the display of chunk stats.
    * @default true
@@ -2679,6 +2802,12 @@ type SharedOptimizationSplitChunksCacheGroup = {
   minSizeReduction?: OptimizationSplitChunksSizes;
 
   /**
+   * Minimum size of the chunk remaining after splitting from a single chunk.
+   * Defaults to 0 in development mode and minSize otherwise.
+   */
+  minRemainingSize?: OptimizationSplitChunksSizes;
+
+  /**
    * Size threshold at which splitting is enforced and other restrictions
    * (minRemainingSize, maxAsyncRequests, maxInitialRequests) are ignored.
    * The value is `50000` in production mode.
@@ -2760,6 +2889,14 @@ export type OptimizationSplitChunksCacheGroup = {
 /** Tell Rspack how to splitting chunks. */
 export type OptimizationSplitChunksOptions = {
   /**
+   * Maximum rounds of intersection discovery for additional shared-module groups.
+   * Defaults to `1` (pairwise intersections) in production and `0` otherwise.
+   * Set `0` to disable discovery.
+   * Higher depths allow newly discovered intersections to participate in the next round.
+   */
+  dedupDepth?: number;
+
+  /**
    * Options for module cache group
    * */
   cacheGroups?: Record<string, false | OptimizationSplitChunksCacheGroup>;
@@ -2785,18 +2922,39 @@ export type OptimizationSplitChunksOptions = {
   hidePathInfo?: boolean;
 } & SharedOptimizationSplitChunksCacheGroup;
 
+/** @deprecated Use `'compact-hashed'` instead. */
+type CompatHashedIds = 'compat-hashed';
+
 export type Optimization = {
   /**
    * Which algorithm to use when choosing module ids.
    * Setting to `false` disables the built-in algorithm, allowing a custom plugin
    * (e.g. HashedModuleIdsPlugin) to provide module ids instead.
    */
-  moduleIds?: false | 'named' | 'natural' | 'deterministic' | 'hashed';
+  moduleIds?:
+    | false
+    | 'named'
+    | 'natural'
+    | 'deterministic'
+    | 'compact-hashed'
+    | CompatHashedIds
+    | 'hashed';
 
   /**
    * Which algorithm to use when choosing chunk ids.
+   * Setting this to `false` disables automatic chunk ID assignment. Add a chunk ID
+   * plugin from `rspack.ids`, such as `new rspack.ids.CompactHashedChunkIdsPlugin()`,
+   * to `plugins`. Custom JavaScript plugins cannot currently assign chunk IDs.
    */
-  chunkIds?: 'natural' | 'named' | 'deterministic' | 'size' | 'total-size';
+  chunkIds?:
+    | false
+    | 'natural'
+    | 'named'
+    | 'deterministic'
+    | 'compact-hashed'
+    | CompatHashedIds
+    | 'size'
+    | 'total-size';
 
   /**
    * Whether to minimize the bundle.
@@ -2979,7 +3137,7 @@ export type LazyCompilationOptions = {
 };
 
 /**
- * Options for incremental builds.
+ * Options for reusing prior pass artifacts during same-compiler rebuilds.
  */
 export type Incremental = {
   /**
@@ -3073,6 +3231,24 @@ export type HttpUriOptions = HttpUriPluginOptions;
  */
 export type UseInputFileSystem = false | RegExp[];
 
+/** Fine-grained switches for the experimental new cache implementation. */
+export type NewCache = {
+  /** Enable the module code generation cache. @default true */
+  codeGeneration?: boolean;
+  /** Enable the module build cache. @default true */
+  module?: boolean;
+  /** Enable the devtool asset cache. @default true */
+  devtool?: boolean;
+  /** Enable the per-loader cache. @default true */
+  loader?: boolean;
+  /** Enable the asset minimization cache. @default true */
+  minimize?: boolean;
+  /** Enable the module and loader resolution cache. @default false */
+  resolver?: boolean;
+};
+
+export type NewCachePresets = boolean;
+
 /**
  * Experimental features configuration.
  */
@@ -3109,6 +3285,11 @@ export type Experiments = {
    * @default false
    */
   futureDefaults?: boolean;
+  /**
+   * Enable the experimental new cache implementation.
+   * @default false
+   */
+  newCache?: NewCachePresets | NewCache;
   /**
    * Enable loading of modules via HTTP/HTTPS requests.
    * @default false
@@ -3171,8 +3352,11 @@ export type WatchOptions = {
 
   /**
    * Ignore some files from being watched.
+   * A function receives each entry and must return `true` to ignore it; unlike
+   * the other forms, its path keeps the platform separators.
    */
-  ignored?: string | RegExp | string[];
+  ignored?:
+    string | RegExp | (string | RegExp)[] | ((entry: string) => boolean);
 
   /**
    * Turn on polling by passing true, or specifying a poll interval in milliseconds.
@@ -3328,6 +3512,8 @@ export type RspackOptions = {
    * Options for caching.
    */
   cache?: CacheOptions;
+  /** Options for detecting changes to dependencies. */
+  snapshot?: SnapshotOptions;
   /**
    * The context in which the compilation should occur.
    */
@@ -3416,7 +3602,9 @@ export type RspackOptions = {
   lazyCompilation?: boolean | LazyCompilationOptions;
 
   /**
-   * Enable incremental builds.
+   * Control artifact reuse during same-compiler rebuilds such as watch and HMR.
+   * Effective only when `mode` is set to `'development'`.
+   * This does not make standalone one-shot builds incremental.
    */
   incremental?: IncrementalPresets | Incremental;
 };

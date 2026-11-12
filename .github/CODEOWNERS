@@ -4,10 +4,6 @@
 
 # Rspack Project Owner is @hardfist
 
-# Default to no one
-
-# *
-
 # Ignore lock files
 
 Cargo.lock
@@ -20,33 +16,29 @@ Cargo.toml
 /.github/actions @stormslowly
 /.github/ISSUE_TEMPLATE @chenjiahan
 /scripts @stormslowly
-/tasks @stormslowly
+/xtask @stormslowly
 
 # Crates in alphabetical order
 
 /crates/node_binding
 /crates/rspack
-/crates/rspack_base64
 /crates/rspack_binding_api
 /crates/rspack_binding_build
 /crates/rspack_binding_builder
 /crates/rspack_binding_builder_macros
 /crates/rspack_binding_builder_testing
 /crates/rspack_browserslist @hardfist
-/crates/rspack_cacheable @jerrykingxyz
-/crates/rspack_cacheable_test @jerrykingxyz
+/crates/rspack_cacheable @ahabhgk
+/crates/rspack_cacheable_test @ahabhgk
 /crates/rspack_core
-/crates/rspack_core/src/compiler/make @jerrykingxyz
 /crates/rspack_error
 /crates/rspack_fs
-/crates/rspack_fs_node
-/crates/rspack_futures
 /crates/rspack_collections
 /crates/rspack_ids
 
 # Loaders
 
-/crates/rspack_loader_lightningcss @JSerFeng
+/crates/rspack_loader_lightningcss @intellild
 /crates/rspack_loader_swc
 /crates/rspack_loader_preact_refresh @LingyuCoder
 /crates/rspack_loader_react_refresh @ahabhgk

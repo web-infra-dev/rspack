@@ -1,4 +1,7 @@
 // @ts-nocheck
+import path from 'node:path';
+import sourceMap from 'source-map';
+
 // Check the mapping of various key locations back to the original source
 export default async function checkSourceMap(
   out,
@@ -13,9 +16,6 @@ export default async function checkSourceMap(
       console.error(`❌ ${message}`);
     }
   };
-
-  const sourceMap = require('source-map');
-  const path = require('node:path');
 
   const sources = JSON.parse(outCodeMap).sources;
   for (const source of sources) {

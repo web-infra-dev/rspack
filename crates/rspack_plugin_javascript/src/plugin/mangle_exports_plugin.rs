@@ -10,7 +10,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_ids::id_helpers::assign_deterministic_ids;
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::utils::mangle_exports::{

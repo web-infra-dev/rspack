@@ -1,13 +1,4 @@
 <%- var("cssLoadingUniqueName") %> = "<%- _unique_name %>";
-<%- fn("handleCssComposes") %>(exports, composes) {
-	for (var i = 0; i < composes.length; i += 3) {
-		var moduleId = composes[i];
-		var composeFrom = composes[i + 1];
-		var composeVar = composes[i + 2];
-		var composedId = <%- REQUIRE %>(composeFrom)[composeVar];
-		exports[moduleId] = exports[moduleId] + " " + composedId
-	}
-}
 <%- var("loadingAttribute") %> = "data-rspack-loading";
 <%- var("cssLoadStylesheet") %> = <%- basicFunction("chunkId, url, done, hmr, fetchPriority") %> {
 	var link,
@@ -53,7 +44,6 @@
 		link.onerror = onLinkComplete.bind(null, link.onerror);
 		link.onload = onLinkComplete.bind(null, link.onload);
 	} else onLinkComplete(undefined, { type: "load", target: link });
-	if (hmr && hmr.getAttribute("fetchpriority")) link.setAttribute("fetchpriority", hmr.getAttribute("fetchpriority"));
 	hmr ? document.head.insertBefore(link, hmr) : needAttach && document.head.appendChild(link);
 	return link;
 };

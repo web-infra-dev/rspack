@@ -15,15 +15,13 @@ use rspack_core::{
   ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
   diagnostics::MinifyError,
   rspack_sources::{
-    MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMap, SourceMapSource,
-    SourceMapSourceOptions,
+    MapOptions, RawStringSource, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
   },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHasher;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::{AssetConditions, AssetConditionsObject, match_object};
-use thread_local::ThreadLocal;
 
 static CSS_ASSET_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\.css(\?.*)?$").expect("Invalid RegExp"));
@@ -102,7 +100,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     exclude: options.exclude.as_ref(),
   };
 
-  let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
   compilation
     .assets_mut()
     .par_iter_mut()
@@ -126,9 +123,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       if let Some(original_source) = original.get_source() {
         let input = original_source.source().into_string_lossy().into_owned();
-        let object_pool = tls.get_or(ObjectPool::default);
-        let input_source_map =
-          Source::map_static(original_source.clone(), object_pool, &MapOptions::default());
+        let input_source_map = original_source.map(&MapOptions::default());
 
         let mut parser_flags = ParserFlags::empty();
         parser_flags.set(

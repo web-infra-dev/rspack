@@ -9,6 +9,7 @@ on:
   push:
     branches:
       - main
+      - release/2.3.0
       - v1.x
     tags-ignore:
       - '**'
@@ -25,16 +26,13 @@ jobs:
       - name: Pnpm Install
         run: pnpm i
 
-      - name: Lint js
-        run: pnpm run lint-ci:js
-
-      - name: Prettier
-        run: pnpm run format-ci:js
+      - name: Run Rstack checks
+        run: pnpm run lint:js
 
       - name: Website Spell Check
         run: pnpm --dir website run check:spell
 
       - name: Typos Check
-        uses: crate-ci/typos@bee27e3a4fd1ea2111cf90ab89cd076c870fce14 # v1.48.0
+        uses: crate-ci/typos@7f9d0819ca1c008ade73f4b41fa9d258d48f605b # v1.51.1
         with:
           files: .

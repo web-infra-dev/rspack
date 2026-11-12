@@ -3,9 +3,13 @@ import {
   BuiltinPluginName,
   type RawCssExtractPluginOption,
 } from '@rspack/binding';
-import type { Compiler, LiteralUnion } from '../..';
+import type { Compilation, Compiler, LiteralUnion } from '../..';
 import { MODULE_TYPE } from './loader';
-import { PLUGIN_NAME } from './utils';
+import {
+  type CssExtractPluginContext,
+  PLUGIN_NAME,
+  pluginSymbol,
+} from './utils';
 
 export * from './loader';
 
@@ -40,6 +44,13 @@ export class CssExtractRspackPlugin {
   }
 
   apply(compiler: Compiler) {
+    compiler.hooks.thisCompilation.tap(PLUGIN_NAME, (compilation) => {
+      // Share options without copying them into every JS loader context.
+      (compilation as Compilation & CssExtractPluginContext)[pluginSymbol] = {
+        runtime: this.options.runtime !== false,
+      };
+    });
+
     const { splitChunks } = compiler.options.optimization;
 
     if (splitChunks) {

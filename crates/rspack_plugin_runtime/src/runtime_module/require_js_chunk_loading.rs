@@ -316,7 +316,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
       source.push_str(&source_with_on_chunk_load);
     }
 
-    if with_loading || with_external_install_chunk {
+    if with_loading || with_external_install_chunk || with_hmr {
       let raw_source = runtime_template.render(
         &self.template_id(TemplateId::Raw),
         Some(serde_json::json!({
@@ -325,6 +325,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
                 .render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)),
             false => String::new(),
           },
+          "_with_hmr": with_hmr,
         })),
       )?;
 
@@ -342,6 +343,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
           &self.template_id(TemplateId::WithLoadingMatcher),
           Some(serde_json::json!({
             "_js_matcher": &has_js_matcher.render("chunkId"),
+            "_with_hmr": with_hmr,
             "_output_dir": &root_output_dir,
           })),
         )?;
@@ -360,8 +362,12 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     }
 
     if with_hmr {
-      let source_with_hmr =
-        runtime_template.render(&self.template_id(TemplateId::WithHmr), None)?;
+      let source_with_hmr = runtime_template.render(
+        &self.template_id(TemplateId::WithHmr),
+        Some(serde_json::json!({
+          "_output_dir": &root_output_dir,
+        })),
+      )?;
 
       source.push_str(&source_with_hmr);
       let hmr_runtime = generate_javascript_hmr_runtime(
@@ -373,8 +379,12 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     }
 
     if with_hmr_manifest {
-      let source_with_hmr_manifest =
-        runtime_template.render(&self.template_id(TemplateId::WithHmrManifest), None)?;
+      let source_with_hmr_manifest = runtime_template.render(
+        &self.template_id(TemplateId::WithHmrManifest),
+        Some(serde_json::json!({
+          "_output_dir": &root_output_dir,
+        })),
+      )?;
 
       source.push_str(&source_with_hmr_manifest);
     }

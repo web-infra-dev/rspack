@@ -12,7 +12,17 @@ import type { Callback } from '@rspack/lite-tapable';
 import type { Compilation, Compiler } from '.';
 import { Stats } from '.';
 import type { WatchOptions } from './config';
-import type { FileSystemInfoEntry, Watcher } from './util/fs';
+import type {
+  ExistenceOnlyTimeEntry,
+  FileSystemInfoEntry,
+  TimeInfoEntries,
+  Watcher,
+} from './util/fs';
+import {
+  type ConsumableWatcher,
+  consumeWatcherInfo,
+  markInternalCallback,
+} from './util/watchTimeInfo';
 
 type PendingWatchDelta = { added: Set<string>; removed: Set<string> };
 
@@ -117,28 +127,30 @@ export class Watching {
       missing,
       this.lastWatcherStartTime,
       this.watchOptions,
-      (
-        err,
-        fileTimeInfoEntries,
-        contextTimeInfoEntries,
-        changedFiles,
-        removedFiles,
-      ) => {
-        if (err) {
-          this.compiler.fileTimestamps = undefined;
-          this.compiler.contextTimestamps = undefined;
-          this.compiler.modifiedFiles = undefined;
-          this.compiler.removedFiles = undefined;
-          return this.handler(err);
-        }
-        this.#invalidate(
+      markInternalCallback(
+        (
+          err,
           fileTimeInfoEntries,
           contextTimeInfoEntries,
           changedFiles,
           removedFiles,
-        );
-        this.onChange();
-      },
+        ) => {
+          if (err) {
+            this.compiler.fileTimestamps = undefined;
+            this.compiler.contextTimestamps = undefined;
+            this.compiler.modifiedFiles = undefined;
+            this.compiler.removedFiles = undefined;
+            return this.handler(err);
+          }
+          this.#invalidate(
+            fileTimeInfoEntries,
+            contextTimeInfoEntries,
+            changedFiles,
+            removedFiles,
+          );
+          this.onChange();
+        },
+      ),
       (fileName, changeTime) => {
         if (!this.#invalidReported) {
           this.#invalidReported = true;
@@ -246,8 +258,8 @@ export class Watching {
   }
 
   #invalidate(
-    fileTimeInfoEntries?: Map<string, FileSystemInfoEntry | 'ignore'>,
-    contextTimeInfoEntries?: Map<string, FileSystemInfoEntry | 'ignore'>,
+    fileTimeInfoEntries?: TimeInfoEntries,
+    contextTimeInfoEntries?: TimeInfoEntries,
     changedFiles?: Set<string>,
     removedFiles?: Set<string>,
   ) {
@@ -270,10 +282,13 @@ export class Watching {
   }
 
   #go(
-    fileTimeInfoEntries?: ReadonlyMap<string, FileSystemInfoEntry | 'ignore'>,
+    fileTimeInfoEntries?: ReadonlyMap<
+      string,
+      FileSystemInfoEntry | ExistenceOnlyTimeEntry | 'ignore' | null
+    >,
     contextTimeInfoEntries?: ReadonlyMap<
       string,
-      FileSystemInfoEntry | 'ignore'
+      FileSystemInfoEntry | ExistenceOnlyTimeEntry | 'ignore' | null
     >,
     changedFiles?: ReadonlySet<string>,
     removedFiles?: ReadonlySet<string>,
@@ -300,8 +315,9 @@ export class Watching {
       this.compiler.fileTimestamps = fileTimeInfoEntries;
       this.compiler.contextTimestamps = contextTimeInfoEntries;
     } else if (this.pausedWatcher) {
+      const watcher: ConsumableWatcher = this.pausedWatcher;
       const { changes, removals, fileTimeInfoEntries, contextTimeInfoEntries } =
-        this.pausedWatcher.getInfo();
+        watcher[consumeWatcherInfo]?.() ?? watcher.getInfo();
       this.#mergeWithCollected(changes, removals);
       this.compiler.fileTimestamps = fileTimeInfoEntries;
       this.compiler.contextTimestamps = contextTimeInfoEntries;
@@ -311,41 +327,52 @@ export class Watching {
     this.compiler.removedFiles = this.#collectedRemovedFiles;
     this.#collectedChangedFiles = undefined;
     this.#collectedRemovedFiles = undefined;
-    this.invalid = false;
-    this.#invalidReported = false;
-    this.compiler.hooks.watchRun.callAsync(this.compiler, (err) => {
-      if (err) return this._done(err);
-
-      const onCompiled = (
-        err: Error | null,
-        _compilation: Compilation | undefined,
-      ) => {
+    const run = () => {
+      if (this.compiler.idle) {
+        return this.compiler.cache.endIdle((err) => {
+          if (err) return this._done(err);
+          this.compiler.idle = false;
+          run();
+        });
+      }
+      this.invalid = false;
+      this.#invalidReported = false;
+      this.compiler.hooks.watchRun.callAsync(this.compiler, (err) => {
         if (err) return this._done(err);
 
-        const compilation = _compilation!;
+        const onCompiled = (
+          err: Error | null,
+          _compilation: Compilation | undefined,
+        ) => {
+          if (err) return this._done(err);
 
-        const needAdditionalPass = compilation.hooks.needAdditionalPass.call();
-        if (needAdditionalPass) {
-          compilation.needAdditionalPass = true;
+          const compilation = _compilation!;
 
-          compilation.startTime = this.startTime;
-          compilation.endTime = Date.now();
-          const stats = new Stats(compilation);
-          this.compiler.hooks.done.callAsync(stats, (err) => {
-            if (err) return this._done(err, compilation);
+          const needAdditionalPass =
+            compilation.hooks.needAdditionalPass.call();
+          if (needAdditionalPass) {
+            compilation.needAdditionalPass = true;
 
-            this.compiler.hooks.additionalPass.callAsync((err) => {
+            compilation.startTime = this.startTime;
+            compilation.endTime = Date.now();
+            const stats = new Stats(compilation);
+            this.compiler.hooks.done.callAsync(stats, (err) => {
               if (err) return this._done(err, compilation);
-              this.compiler.compile(onCompiled);
-            });
-          });
-          return;
-        }
-        this._done(null, this.compiler._lastCompilation);
-      };
 
-      this.compiler.compile(onCompiled);
-    });
+              this.compiler.hooks.additionalPass.callAsync((err) => {
+                if (err) return this._done(err, compilation);
+                this.compiler.compile(onCompiled);
+              });
+            });
+            return;
+          }
+          this._done(null, this.compiler._lastCompilation);
+        };
+
+        this.compiler.compile(onCompiled);
+      });
+    };
+    run();
   }
 
   // Fold a finished compilation's file/context/missing deltas into the accumulator.
@@ -383,8 +410,8 @@ export class Watching {
 
     const handleError = (err: Error, cbs?: Callback<Error, void>[]) => {
       this.compiler.hooks.failed.call(err);
-      // this.compiler.cache.beginIdle();
-      // this.compiler.idle = true;
+      this.compiler.cache.beginIdle();
+      this.compiler.idle = true;
       this.handler(err, stats);
 
       const callbacksToExecute = cbs || this.callbacks.splice(0);
@@ -428,6 +455,8 @@ export class Watching {
       if (err) return handleError(err, cbs);
       this.handler(null, stats);
 
+      this.compiler.cache.beginIdle();
+      this.compiler.idle = true;
       process.nextTick(() => {
         if (!this.#closed) {
           // Deliver this build's deltas merged with any carried from skipped

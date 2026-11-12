@@ -4,8 +4,12 @@ mod executor;
 mod ignored;
 mod paths;
 mod scanner;
-mod time_info;
+mod time;
 mod trigger;
+
+#[cfg(feature = "testing")]
+#[doc(hidden)]
+pub mod testing;
 
 use std::{
   future::Future,
@@ -19,19 +23,19 @@ use std::{
 
 use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
-use executor::Executor;
-pub use ignored::FsWatcherIgnored;
+use executor::{Aggregated, Executor};
+pub use ignored::{FsWatcherIgnored, FsWatcherIgnoredItem, IgnoredFn};
 use paths::PathManager;
 use rspack_error::Result;
-use rspack_paths::ArcPath;
+use rspack_paths::InternedPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 use scanner::Scanner;
 use tokio::sync::{mpsc, oneshot};
 use trigger::Trigger;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct WatchPattern {
-  path: ArcPath,
+  path: InternedPath,
   mode: notify::RecursiveMode,
 }
 
@@ -44,11 +48,39 @@ pub enum FsEventKind {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct FsEvent {
-  pub path: ArcPath,
+  pub path: InternedPath,
   pub kind: FsEventKind,
 }
 
+/// One value of watchpack's `TimeInfoEntries` map (`types/index.d.ts`):
+/// `Entry | OnlySafeTimeEntry | ExistenceOnlyTimeEntry | null`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TimeInfoEntry {
+  Entry {
+    safe_time: u64,
+    timestamp: u64,
+    accuracy: u64,
+  },
+  OnlySafeTimeEntry {
+    safe_time: u64,
+  },
+  /// Known to exist, with no time info (`{}`).
+  ExistenceOnlyTimeEntry,
+  /// A watched path absent on disk.
+  Null,
+}
+
+/// watchpack's `TimeInfoEntries`, as `(path, entry)` rows.
+pub type TimeInfoEntries = Vec<(String, TimeInfoEntry)>;
+
 pub(crate) type EventBatch = Vec<FsEvent>;
+
+pub(crate) struct ResolvedEvents {
+  pub dependencies: EventBatch,
+  pub raw: Option<FsEvent>,
+  pub recovered: EventBatch,
+  pub context_removal: Option<InternedPath>,
+}
 
 /// `EventAggregateHandler` is a trait for handling aggregated file system events.
 /// It provides methods to handle changes and deletions of files, as well as errors.
@@ -78,6 +110,11 @@ pub trait EventHandler {
   fn on_delete(&self, _deleted_file: String) -> rspack_error::Result<()> {
     Ok(())
   }
+
+  /// A removed context entry changes its parent directory's contents.
+  fn on_context_remove(&self, removed_file: String) -> rspack_error::Result<()> {
+    self.on_change(removed_file)
+  }
 }
 
 /// `FsWatcherOptions` contains options for configuring the file system watcher.
@@ -98,9 +135,9 @@ const WATCHER_UNAVAILABLE: &str =
 
 enum WatcherOp {
   Watch {
-    files: (Vec<ArcPath>, Vec<ArcPath>),
-    directories: (Vec<ArcPath>, Vec<ArcPath>),
-    missing: (Vec<ArcPath>, Vec<ArcPath>),
+    files: (Vec<InternedPath>, Vec<InternedPath>),
+    directories: (Vec<InternedPath>, Vec<InternedPath>),
+    missing: (Vec<InternedPath>, Vec<InternedPath>),
     start_time: SystemTime,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
@@ -115,6 +152,13 @@ pub struct FsWatcher {
   paused: Arc<AtomicBool>,
   trigger: Arc<Mutex<Option<Arc<Trigger>>>>,
   op_tx: mpsc::UnboundedSender<WatcherOp>,
+  /// Shared with the owner thread's [`FsWatcherInner`], so the synchronous
+  /// napi getter can read time info without awaiting the op channel.
+  path_manager: Arc<PathManager>,
+  /// Shared with the executor for the same reason: `getInfo()` drains it.
+  aggregated: Aggregated,
+  #[cfg(feature = "testing")]
+  executor_trace: testing::ExecutorTrace,
 }
 
 struct FsWatcherInner {
@@ -122,7 +166,7 @@ struct FsWatcherInner {
   disk_watcher: DiskWatcher,
   executor: Executor,
   scanner: Scanner,
-  analyzer: RecommendedAnalyzer,
+  analyzer: Arc<RecommendedAnalyzer>,
   trigger: Arc<Mutex<Option<Arc<Trigger>>>>,
 }
 
@@ -131,8 +175,10 @@ impl FsWatcher {
   pub fn new(options: FsWatcherOptions, ignored: FsWatcherIgnored) -> Self {
     let (tx, rx) = mpsc::unbounded_channel();
 
-    let path_manager = Arc::new(PathManager::new(ignored));
-    let trigger = Arc::new(Trigger::new(Arc::clone(&path_manager), tx.clone()));
+    let path_manager =
+      Arc::new(PathManager::new(ignored).with_follow_symlinks(options.follow_symlinks));
+    let trigger = Arc::new(Trigger::new(Arc::clone(&path_manager), tx));
+    let analyzer = Arc::clone(&trigger.analyzer);
     let disk_watcher = DiskWatcher::new(
       options.follow_symlinks,
       options.poll_interval,
@@ -140,15 +186,18 @@ impl FsWatcher {
     );
     let paused = Arc::new(AtomicBool::new(false));
     let executor = Executor::new(rx, options.aggregate_timeout, Arc::clone(&paused));
-    let scanner = Scanner::new(tx, Arc::clone(&path_manager));
+    let aggregated = executor.aggregated();
+    #[cfg(feature = "testing")]
+    let executor_trace = executor.trace();
+    let scanner = Scanner::new(trigger.backfill_sender(), Arc::clone(&path_manager));
     let trigger = Arc::new(Mutex::new(Some(trigger)));
 
     let inner = FsWatcherInner {
-      path_manager,
+      path_manager: Arc::clone(&path_manager),
       disk_watcher,
       executor,
       scanner,
-      analyzer: RecommendedAnalyzer::default(),
+      analyzer,
       trigger: Arc::clone(&trigger),
     };
 
@@ -156,7 +205,40 @@ impl FsWatcher {
       paused,
       trigger,
       op_tx: spawn_owner_thread(inner),
+      path_manager,
+      aggregated,
+      #[cfg(feature = "testing")]
+      executor_trace,
     }
+  }
+
+  /// watchpack's `aggregatedChanges` / `aggregatedRemovals`: the events that
+  /// arrived since the last aggregated batch, typically while paused. Read,
+  /// not drained, so a caller peeking at them cannot swallow the batch they
+  /// are about to be delivered in.
+  pub fn peek_aggregated(&self) -> (HashSet<String>, HashSet<String>) {
+    let files = self.aggregated.lock().expect("aggregated sets poisoned");
+    (files.changed.clone(), files.deleted.clone())
+  }
+
+  /// [`Self::peek_aggregated`], drained: for the build that folds these events in,
+  /// so they are not delivered again as a batch of their own on resume.
+  /// Events arriving afterwards are kept.
+  pub fn take_aggregated(&self) -> (HashSet<String>, HashSet<String>) {
+    let files = std::mem::take(&mut *self.aggregated.lock().expect("aggregated sets poisoned"));
+    (files.changed, files.deleted)
+  }
+
+  /// watchpack's `collectTimeInfoEntries`, as `(fileTimestamps, directoryTimestamps)`.
+  pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
+    self.path_manager.collect_time_info_entries()
+  }
+
+  /// How many directories index recorded paths (with their entries), and how
+  /// many index registered ones, so tests can check they are reclaimed.
+  #[doc(hidden)]
+  pub fn index_sizes(&self) -> (usize, usize) {
+    self.path_manager.index_sizes()
   }
 
   /// Starts the file system watcher.
@@ -169,9 +251,18 @@ impl FsWatcher {
   /// * `event_handler` - A boxed trait object for handling individual events.
   pub fn watch(
     &self,
-    files: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
-    directories: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
-    missing: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
+    files: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
+    directories: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
+    missing: (
+      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = InternedPath>,
+    ),
     start_time: SystemTime,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
@@ -219,7 +310,7 @@ impl FsWatcher {
     })
   }
 
-  pub fn trigger_event(&self, path: &ArcPath, kind: FsEventKind) {
+  pub fn trigger_event(&self, path: &InternedPath, kind: FsEventKind) {
     let trigger = self.trigger.lock().expect("should lock trigger").clone();
     if let Some(trigger) = trigger {
       trigger.on_event(path, kind);
@@ -299,16 +390,19 @@ fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<Watche
 impl FsWatcherInner {
   async fn watch(
     &mut self,
-    files: (Vec<ArcPath>, Vec<ArcPath>),
-    directories: (Vec<ArcPath>, Vec<ArcPath>),
-    missing: (Vec<ArcPath>, Vec<ArcPath>),
+    files: (Vec<InternedPath>, Vec<InternedPath>),
+    directories: (Vec<InternedPath>, Vec<InternedPath>),
+    missing: (Vec<InternedPath>, Vec<InternedPath>),
     start_time: SystemTime,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
   ) {
     self.path_manager.reset();
 
-    if let Err(e) = self.wait_for_event(files, directories, missing, start_time) {
+    if let Err(e) = self
+      .wait_for_event(files, directories, missing, start_time)
+      .await
+    {
       event_aggregate_handler.on_error(e);
       return;
     };
@@ -328,18 +422,21 @@ impl FsWatcherInner {
     Ok(())
   }
 
-  fn wait_for_event(
+  async fn wait_for_event(
     &mut self,
-    files: (Vec<ArcPath>, Vec<ArcPath>),
-    directories: (Vec<ArcPath>, Vec<ArcPath>),
-    missing: (Vec<ArcPath>, Vec<ArcPath>),
+    files: (Vec<InternedPath>, Vec<InternedPath>),
+    directories: (Vec<InternedPath>, Vec<InternedPath>),
+    missing: (Vec<InternedPath>, Vec<InternedPath>),
     start_time: SystemTime,
   ) -> Result<()> {
-    self.path_manager.update(
-      (files.0.into_iter(), files.1.into_iter()),
-      (directories.0.into_iter(), directories.1.into_iter()),
-      (missing.0.into_iter(), missing.1.into_iter()),
-    )?;
+    self
+      .path_manager
+      .update(
+        (files.0.into_iter(), files.1.into_iter()),
+        (directories.0.into_iter(), directories.1.into_iter()),
+        (missing.0.into_iter(), missing.1.into_iter()),
+      )
+      .await?;
 
     // Record baseline mtimes for files added in this watch() cycle, BEFORE
     // starting the disk watcher. Synchronous so a stale FSEvent delivered
@@ -357,7 +454,16 @@ impl FsWatcherInner {
     self.record_initial_file_mtimes();
 
     let watch_patterns = self.analyzer.analyze(self.path_manager.access());
-    self.disk_watcher.watch(watch_patterns.into_iter())?;
+    if let Err(error) = self.disk_watcher.watch(watch_patterns.into_iter()) {
+      self.analyzer.invalidate_all();
+      return Err(error);
+    }
+    let changed_in_contexts = self.path_manager.scan_contexts(start_time).await;
+    if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
+      for path in &changed_in_contexts {
+        trigger.on_scanned_change(path);
+      }
+    }
 
     // Scan AFTER the disk watcher is registered, not before. notify's `watch()`
     // registers the underlying inotify/FSEvents watch synchronously, so once it
@@ -385,7 +491,7 @@ impl FsWatcherInner {
         .metadata()
         .and_then(|m| m.modified().or_else(|_| m.created()))
       {
-        self.path_manager.set_file_mtime_if_absent(path, mtime);
+        self.path_manager.set_file_time_if_absent(path, mtime);
       }
     }
   }

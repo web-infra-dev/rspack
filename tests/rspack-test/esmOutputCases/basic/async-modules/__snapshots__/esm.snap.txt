@@ -1,12 +1,12 @@
 ```mjs title=main.mjs
 // ./lib-defer.js
-const v = await (() => 42)()
+const v = await (() => 42)();
 
 
 
 // ./lib.js
 await 42
-const lib = 42
+const lib = 42;
 
 
 // ./index.js
@@ -18,7 +18,7 @@ it('should has correct exec order and export value', async () => {
 	expect(demo).toBe(84)
 })
 
-const index_demo = (/* inlined export .lib */42) + v
+const index_demo = (/* inlined export .lib */42) + v;
 
 
 export { index_demo as demo };

@@ -3,41 +3,37 @@
 use std::sync::{Arc, LazyLock};
 
 use atomic_refcell::AtomicRefCell;
+use rspack_collections::IdentifierMap;
 use rspack_core::{
-  AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey,
-  Compilation, CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
+  AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
+  CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CssBuildInfo, CssModuleRenderCondition,
-  DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData, ModuleGraph,
-  ModuleIdentifier, ModuleType, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
-  NormalModuleFactoryModule, ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, SelfModuleFactory, SourceType,
-  css_module_render_conditions_identifier, get_css_chunk_filename_template, is_source_equal,
+  DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData, ModuleGraph, ModuleRule,
+  ModuleType, NormalModuleCreateData, NormalModuleFactoryAfterResolve, NormalModuleFactoryModule,
+  ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleExt, SourceType, css_module_render_conditions_identifier,
+  get_css_chunk_filename_template, is_source_equal,
   rspack_sources::{BoxSource, CachedSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::plugin_hook;
-use rspack_plugin_runtime::is_enabled_for_chunk;
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use smol_str::SmolStr;
 
 use crate::{
   CssPlugin,
-  dependency::{
-    CssIcssSymbolDependencyTemplate, CssImportDependency, CssImportDependencyTemplate,
-    CssLocalIdentDependencyTemplate, CssSelfReferenceLocalIdentDependencyTemplate,
-    CssUrlDependencyTemplate,
-  },
+  dependency::{CssImportDependencyTemplate, CssUrlDependencyTemplate},
   parser_and_generator::{
     CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator, CssSourceBuilder,
   },
   plugin::{CssModulesPluginHooks, CssModulesRenderSource, CssPluginInner},
   runtime::CssLoadingRuntimeModule,
   utils::{
-    AUTO_PUBLIC_PATH_PLACEHOLDER, append_css_export_type_key, css_attribute_export_type,
-    css_dependency_export_type, css_dependency_meta, css_module_has_charset,
-    css_module_is_import_dependency, css_module_resource, css_render_conditions_from_module,
+    AUTO_PUBLIC_PATH_MATCHER, append_css_export_type_key, css_dependency_meta,
+    css_module_has_charset, css_module_is_import_dependency, css_module_resource,
+    css_render_conditions_from_module,
   },
 };
 
@@ -82,7 +78,7 @@ impl CssPlugin {
           .code_generation_results
           .get(module_id, Some(chunk.runtime()));
         code_gen_result
-          .data
+          .data()
           .get::<CodeGenerationDataUnusedLocalIdent>()
           .map(|data| &data.idents)
       })
@@ -107,16 +103,12 @@ impl CssPlugin {
       Self::render_chunk_to_source(compilation, chunk, &ordered_css_modules, &hooks).await?;
 
     let content = source.source().into_string_lossy();
-    let len = AUTO_PUBLIC_PATH_PLACEHOLDER.len();
-    let auto_public_path_matches: Vec<_> = content
-      .match_indices(AUTO_PUBLIC_PATH_PLACEHOLDER)
-      .map(|(index, _)| (index, index + len))
-      .collect();
+    let auto_public_path_matches: Vec<_> = AUTO_PUBLIC_PATH_MATCHER.find_iter(&content).collect();
     let source = if !auto_public_path_matches.is_empty() {
       let mut replace = ReplaceSource::new(source);
-      for (start, end) in auto_public_path_matches {
-        let relative = PublicPath::render_auto_public_path(compilation, output_path);
-        replace.replace(start as u32, end as u32, relative, None);
+      let relative = PublicPath::render_auto_public_path(compilation, output_path);
+      for range in auto_public_path_matches {
+        replace.replace(range.start as u32, range.end as u32, relative.clone(), None);
       }
       replace.boxed()
     } else {
@@ -239,7 +231,7 @@ impl CssPlugin {
       .into_iter()
       .collect::<Result<Vec<_>>>()?
       .into_iter()
-      .collect::<HashMap<_, _>>();
+      .collect::<IdentifierMap<_>>();
     Ok(Self::render_ordered_css_sources(
       ordered_css_modules,
       &module_sources,
@@ -248,7 +240,7 @@ impl CssPlugin {
 
   fn render_ordered_css_sources(
     ordered_css_modules: &[&dyn Module],
-    module_sources: &HashMap<ModuleIdentifier, CssModuleRenderSources>,
+    module_sources: &IdentifierMap<CssModuleRenderSources>,
   ) -> BoxSource {
     let mut non_import_css_sources = HashMap::<_, Vec<_>>::default();
     for module in ordered_css_modules
@@ -304,19 +296,16 @@ async fn normal_module_factory_after_resolve(
   data: &mut ModuleFactoryCreateData,
   create_data: &mut NormalModuleCreateData,
 ) -> Result<Option<bool>> {
-  let css_attribute_export_type = data
-    .dependencies
-    .iter()
-    .find_map(|dependency| css_attribute_export_type(dependency.get_attributes()));
+  let Some(dependency) = data.dependencies.first() else {
+    return Ok(None);
+  };
+  // Use the same dependency metadata as the module hook when constructing
+  // module identity.
+  let css_dependency_meta = css_dependency_meta(dependency.as_ref());
 
-  let css_import_dep = data
-    .dependencies
-    .first()
-    .and_then(|dependency| dependency.downcast_ref::<CssImportDependency>());
-
-  if let Some(css_import_dep) = css_import_dep {
+  if css_dependency_meta.is_css_import_dependency {
     let conditions_key =
-      css_module_render_conditions_identifier(css_import_dep.render_conditions())
+      css_module_render_conditions_identifier(css_dependency_meta.render_conditions.iter())
         .unwrap_or_default();
     if !conditions_key.is_empty() {
       create_data.request.push_str("|css-render-conditions|");
@@ -324,12 +313,14 @@ async fn normal_module_factory_after_resolve(
     }
   }
 
-  let css_dependency_export_type = data
-    .dependencies
-    .first()
-    .and_then(css_dependency_export_type);
-
-  if let Some(export_type) = css_dependency_export_type.or(css_attribute_export_type) {
+  let configured_export_type = create_data
+    .module_options
+    .parser_options()
+    .and_then(|options| options.get_css_module())
+    .and_then(|options| options.export_type);
+  // Match the module's effective export type for every incoming dependency so
+  // unconditional CSS imports, compositions and JS imports share an instance.
+  if let Some(export_type) = css_dependency_meta.export_type.or(configured_export_type) {
     append_css_export_type_key(create_data, export_type);
   }
 
@@ -347,7 +338,7 @@ async fn normal_module_factory_module(
     return Ok(());
   };
 
-  let css_dependency_meta = css_dependency_meta(dependency);
+  let css_dependency_meta = css_dependency_meta(dependency.as_ref());
   if css_dependency_meta.render_conditions.is_empty()
     && css_dependency_meta.export_type.is_none()
     && !css_dependency_meta.is_css_dependency
@@ -379,34 +370,32 @@ async fn compilation(
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
-    DependencyType::CssCompose,
+    DependencyType::CssIcssImport,
     params.normal_module_factory.clone(),
-  );
-  compilation.set_dependency_factory(
-    DependencyType::CssSelfReferenceLocalIdent,
-    Arc::new(SelfModuleFactory {}),
   );
   compilation.set_dependency_template(
     CssImportDependencyTemplate::template_type(),
     Arc::new(CssImportDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
-    CssLocalIdentDependencyTemplate::template_type(),
-    Arc::new(CssLocalIdentDependencyTemplate::default()),
-  );
-  compilation.set_dependency_template(
-    CssIcssSymbolDependencyTemplate::template_type(),
-    Arc::new(CssIcssSymbolDependencyTemplate),
-  );
-  compilation.set_dependency_template(
-    CssSelfReferenceLocalIdentDependencyTemplate::template_type(),
-    Arc::new(CssSelfReferenceLocalIdentDependencyTemplate::default()),
-  );
-  compilation.set_dependency_template(
     CssUrlDependencyTemplate::template_type(),
     Arc::new(CssUrlDependencyTemplate::default()),
   );
   Ok(())
+}
+
+// Native CSS is configured through module rules (`type: "css*"`), so the runtime
+// chunk must carry the css hmr handler whenever such a rule exists, even before any
+// stylesheet is imported. Otherwise the first stylesheet added via HMR is emitted but
+// never requested, because the runtime baked at the initial build lacks `hmrC.css`.
+fn has_css_module_rule(rules: &[ModuleRule]) -> bool {
+  rules.iter().any(|rule| {
+    matches!(
+      rule.effect.r#type,
+      Some(ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto | ModuleType::CssGlobal)
+    ) || rule.one_of.as_deref().is_some_and(has_css_module_rule)
+      || rule.rules.as_deref().is_some_and(has_css_module_rule)
+  })
 }
 
 #[plugin_hook(CompilationRuntimeRequirementInTree for CssPlugin)]
@@ -419,22 +408,26 @@ async fn runtime_requirements_in_tree(
   runtime_requirements_mut: &mut RuntimeGlobals,
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
-  let is_enabled_for_chunk = is_enabled_for_chunk(
-    chunk_ukey,
-    &ChunkLoading::Enable(ChunkLoadingType::Jsonp),
-    compilation,
-  ) || is_enabled_for_chunk(
-    chunk_ukey,
-    &ChunkLoading::Enable(ChunkLoadingType::Import),
-    compilation,
-  );
+  let link_runtime_enabled = CssLoadingRuntimeModule::link_runtime_enabled(compilation, chunk_ukey);
+  // A compilation configured for native css (via a `type: "css*"` module rule) but
+  // without any css module yet still needs the css hmr runtime baked into the initial
+  // chunk, so a stylesheet added by a later hot update can be requested. Once a css
+  // module exists the regular `HAS_CSS_MODULES` gating already covers this. The rule
+  // scan is only reached under HMR, so non-watch builds pay nothing.
+  let has_css_rule = all_runtime_requirements
+    .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+    && has_css_module_rule(&compilation.options.module.rules);
+  let hmr_needs_css_runtime =
+    has_css_rule && !all_runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES);
   let needs_css_loading_runtime = runtime_requirements.intersects(
     RuntimeGlobals::HAS_CSS_MODULES
       | RuntimeGlobals::CSS_INJECT_STYLE
       | RuntimeGlobals::CSS_STYLE_SHEET,
-  );
+  ) || (runtime_requirements
+    .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+    && has_css_rule);
 
-  if !is_enabled_for_chunk
+  if !link_runtime_enabled
     && !runtime_requirements
       .intersects(RuntimeGlobals::CSS_INJECT_STYLE | RuntimeGlobals::CSS_STYLE_SHEET)
   {
@@ -448,12 +441,39 @@ async fn runtime_requirements_in_tree(
     ));
   }
 
-  if all_runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
-    && all_runtime_requirements.intersects(
-      RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS | RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
-    )
-  {
-    runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements_basic());
+  // The link runtime is only used by the jsonp and import chunk loading
+  // runtimes; other runtimes only get the style-sheet/inject runtimes below.
+  if link_runtime_enabled {
+    if all_runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES)
+      && all_runtime_requirements.intersects(
+        RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS | RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
+      )
+      || hmr_needs_css_runtime
+    {
+      runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements_basic());
+    }
+
+    if all_runtime_requirements
+      .contains(RuntimeGlobals::HAS_CSS_MODULES | RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+    {
+      runtime_requirements_mut
+        .extend(CssLoadingRuntimeModule::get_runtime_requirements_with_loading());
+      if all_runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS) {
+        runtime_requirements_mut
+          .extend(CssLoadingRuntimeModule::get_runtime_requirements_with_prefetch());
+      }
+      if all_runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS) {
+        runtime_requirements_mut
+          .extend(CssLoadingRuntimeModule::get_runtime_requirements_with_preload());
+      }
+    }
+
+    if all_runtime_requirements
+      .contains(RuntimeGlobals::HAS_CSS_MODULES | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+      || hmr_needs_css_runtime
+    {
+      runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements_with_hmr());
+    }
   }
 
   if all_runtime_requirements.contains(RuntimeGlobals::CSS_INJECT_STYLE) {
@@ -463,27 +483,6 @@ async fn runtime_requirements_in_tree(
   if all_runtime_requirements.contains(RuntimeGlobals::CSS_STYLE_SHEET) {
     let requirements = CssLoadingRuntimeModule::get_runtime_requirements_with_style_sheet();
     runtime_requirements_mut.extend(requirements.dependencies | requirements.define);
-  }
-
-  if all_runtime_requirements
-    .contains(RuntimeGlobals::HAS_CSS_MODULES | RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
-  {
-    runtime_requirements_mut
-      .extend(CssLoadingRuntimeModule::get_runtime_requirements_with_loading());
-    if all_runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS) {
-      runtime_requirements_mut
-        .extend(CssLoadingRuntimeModule::get_runtime_requirements_with_prefetch());
-    }
-    if all_runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS) {
-      runtime_requirements_mut
-        .extend(CssLoadingRuntimeModule::get_runtime_requirements_with_preload());
-    }
-  }
-
-  if all_runtime_requirements
-    .contains(RuntimeGlobals::HAS_CSS_MODULES | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
-  {
-    runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements_with_hmr());
   }
 
   Ok(None)
@@ -547,9 +546,6 @@ async fn render_manifest(
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .expect_get(chunk_ukey);
-  let _runtime_template = compilation
-    .runtime_template
-    .create_runtime_module_code_template();
   if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     return Ok(());
   }

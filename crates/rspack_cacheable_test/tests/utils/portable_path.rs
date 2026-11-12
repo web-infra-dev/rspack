@@ -1,7 +1,8 @@
 use std::path::{Path, PathBuf};
 
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use rspack_cacheable::{CacheableContext, cacheable, utils::PortablePath, with::As};
+use rspack_loader_runner::ResourceData;
 
 /// Test context with project_root
 struct TestContext(Option<PathBuf>);
@@ -20,6 +21,38 @@ struct PathData {
   path1: PathBuf,
   #[cacheable(with=As<PortablePath>)]
   path2: Utf8PathBuf,
+}
+
+#[test]
+fn resource_uses_the_restored_portable_path() {
+  let (old_root, new_root) = if cfg!(windows) {
+    ("C:\\checkout-a", "D:\\checkout-b")
+  } else {
+    ("/checkout-a", "/checkout-b")
+  };
+  let old_root = Utf8PathBuf::from(old_root);
+  let new_root = Utf8PathBuf::from(new_root);
+  let old_path = old_root.join("src#icons").join("icon.svg");
+  let new_path = new_root.join("src#icons").join("icon.svg");
+  let request = |root: &Utf8Path| {
+    let path = root.join("src\u{200b}#icons").join("icon.svg");
+    format!("{path}?raw#preview")
+  };
+  let old_request = request(&old_root);
+  let new_request = request(&new_root);
+  let resource =
+    ResourceData::new_with_resolved_path(old_path, "?raw".to_string(), "#preview".to_string());
+  assert_eq!(resource.resource(), old_request);
+
+  let bytes =
+    rspack_cacheable::to_bytes(&resource, &TestContext(Some(old_root.into_std_path_buf())))
+      .unwrap();
+  let restored: ResourceData =
+    rspack_cacheable::from_bytes(&bytes, &TestContext(Some(new_root.into_std_path_buf()))).unwrap();
+  assert_eq!(restored.path(), Some(new_path.as_path()));
+  assert_eq!(restored.resource(), new_request);
+  assert_eq!(restored.query(), Some("?raw"));
+  assert_eq!(restored.fragment(), Some("#preview"));
 }
 
 #[test]
@@ -99,4 +132,42 @@ fn test_windows_path() {
   // Path separators should be normalized
   assert_eq!(new_data.path1, PathBuf::from("D:\\workspace\\src\\main.rs"));
   assert_eq!(new_data.path2, PathBuf::from("D:\\workspace\\src\\lib.rs"));
+}
+
+#[test]
+#[cfg(windows)]
+fn test_windows_path_without_context_uses_native_separators() {
+  let context = TestContext(None);
+  let data = PathData {
+    path1: PathBuf::from("C:\\Users\\test\\project\\src\\main.rs"),
+    path2: Utf8PathBuf::from("C:\\Users\\test\\project\\src\\lib.rs"),
+  };
+
+  let bytes = rspack_cacheable::to_bytes(&data, &context).unwrap();
+  let new_data: PathData = rspack_cacheable::from_bytes(&bytes, &context).unwrap();
+
+  assert_eq!(
+    new_data.path1.to_string_lossy(),
+    "C:\\Users\\test\\project\\src\\main.rs"
+  );
+  assert_eq!(
+    new_data.path2.as_str(),
+    "C:\\Users\\test\\project\\src\\lib.rs"
+  );
+}
+
+#[test]
+#[cfg(windows)]
+fn test_windows_relative_paths_preserve_their_representation() {
+  let context = TestContext(None);
+  let data = PathData {
+    path1: PathBuf::from("./build.txt"),
+    path2: Utf8PathBuf::from("node_modules/"),
+  };
+
+  let bytes = rspack_cacheable::to_bytes(&data, &context).unwrap();
+  let new_data: PathData = rspack_cacheable::from_bytes(&bytes, &context).unwrap();
+
+  assert_eq!(new_data.path1.to_string_lossy(), "./build.txt");
+  assert_eq!(new_data.path2.as_str(), "node_modules/");
 }

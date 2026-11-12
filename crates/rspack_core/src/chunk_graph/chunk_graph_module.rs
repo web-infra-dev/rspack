@@ -6,7 +6,7 @@ use std::{
 };
 
 use rspack_cacheable::{cacheable, with::AsPreset};
-use rspack_collections::{IdentifierHasher, IdentifierSet};
+use rspack_collections::{IdentifierHasher, IdentifierSet, SsoHashSet};
 use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_util::ext::DynHash;
 use rustc_hash::{FxHashSet, FxHasher};
@@ -66,11 +66,15 @@ impl Serialize for ModuleId {
 
 impl ModuleId {
   pub fn as_number(&self) -> Option<u32> {
-    self.0.as_str().parse::<u32>().ok()
+    rspack_util::numeric_id_value(self.0.as_str())
   }
 
   pub fn as_str(&self) -> &str {
     self.0.as_str()
+  }
+
+  pub fn precomputed_hash(&self) -> u64 {
+    self.0.precomputed_hash()
   }
 }
 
@@ -83,7 +87,7 @@ impl rspack_hash::RspackHash for ModuleId {
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraphModule {
   pub(super) entry_in_chunks: FxHashSet<ChunkUkey>,
-  pub chunks: FxHashSet<ChunkUkey>,
+  pub chunks: SsoHashSet<ChunkUkey>,
   pub(super) runtime_in_chunks: FxHashSet<ChunkUkey>,
 }
 
@@ -98,6 +102,13 @@ impl ChunkGraphModule {
 }
 
 impl ChunkGraph {
+  pub(crate) fn reserve_modules(&mut self, total: usize) {
+    let additional = total.saturating_sub(self.chunk_graph_module_by_module_identifier.len());
+    self
+      .chunk_graph_module_by_module_identifier
+      .reserve(additional);
+  }
+
   pub fn modules(&self) -> IdentifierSet {
     self
       .chunk_graph_module_by_module_identifier
@@ -142,16 +153,6 @@ impl ChunkGraph {
     chunk_graph_chunk.modules.contains(module_identifier)
   }
 
-  pub fn is_any_module_in_chunk<'a>(
-    &self,
-    mut module_identifiers: impl Iterator<Item = &'a ModuleIdentifier>,
-    chunk_ukey: ChunkUkey,
-  ) -> bool {
-    let chunk_graph_chunk = self.expect_chunk_graph_chunk(&chunk_ukey);
-    module_identifiers
-      .any(|module_identifier| chunk_graph_chunk.modules.contains(module_identifier))
-  }
-
   pub(crate) fn expect_chunk_graph_module_mut(
     &mut self,
     module_identifier: ModuleIdentifier,
@@ -191,7 +192,7 @@ impl ChunkGraph {
       .get_mut(&module_identifier)
   }
 
-  pub fn get_module_chunks(&self, module_identifier: ModuleIdentifier) -> &FxHashSet<ChunkUkey> {
+  pub fn get_module_chunks(&self, module_identifier: ModuleIdentifier) -> &SsoHashSet<ChunkUkey> {
     let chunk_graph_module = self
       .chunk_graph_module_by_module_identifier
       .get(&module_identifier)
@@ -313,7 +314,7 @@ impl ChunkGraph {
   pub fn try_get_module_chunks(
     &self,
     module_identifier: &ModuleIdentifier,
-  ) -> Option<&FxHashSet<ChunkUkey>> {
+  ) -> Option<&SsoHashSet<ChunkUkey>> {
     self
       .chunk_graph_module_by_module_identifier
       .get(module_identifier)
@@ -357,8 +358,21 @@ impl ChunkGraph {
           side_effects_state_artifact,
           &compilation.exports_info_artifact,
         );
-        if active_state.is_false() {
+        let is_commonjs_external = mg
+          .module_by_identifier(module_identifier)
+          .and_then(|module| module.as_external_module())
+          .is_some_and(|external| {
+            crate::CommonJsExternalRequireKind::from_external_type(external.resolve_external_type())
+              .is_some()
+          });
+        if active_state.is_false() && !is_commonjs_external {
           return None;
+        }
+        // Direct CommonJS external templates still read the request/type
+        // after the placement connection is cut out. Such modules may
+        // have no chunk module id, so also hash their semantic identity.
+        if is_commonjs_external {
+          module_identifier.hash(&mut hasher);
         }
         visited_modules.insert(*module_identifier);
         for_each_runtime(

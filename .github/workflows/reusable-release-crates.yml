@@ -18,9 +18,6 @@ jobs:
   rust_tests:
     name: Run Rust Tests
     uses: ./.github/workflows/reusable-rust-test.yml
-    with:
-      # Use separated strategy to check all crates
-      cargo-check-strategy: 'separated'
 
   release_crates:
     environment: crate
@@ -43,7 +40,7 @@ jobs:
           save-if: true
           key: release
 
-      - uses: cargo-bins/cargo-binstall@ead08b90bd7b2e6d81963fb9cf0b7239f66d5db4 # v1.21.0
+      - uses: cargo-bins/cargo-binstall@81df5c23b0dc775b009efdfc9895c5965b7a4e40 # v1.26.1
 
       - name: Install cargo-workspaces
         run: cargo binstall --no-confirm cargo-workspaces@0.4.0 --force
@@ -57,7 +54,7 @@ jobs:
       - name: Run Cargo codegen
         run: cargo codegen
 
-      - uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
+      - uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9 # v1.0.6
         id: auth
 
       - name: Publish Crates

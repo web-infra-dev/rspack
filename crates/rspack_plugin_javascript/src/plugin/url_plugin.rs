@@ -1,25 +1,30 @@
 #![allow(clippy::too_many_arguments)]
 
+use std::sync::LazyLock;
+
 use concat_string::concat_string;
 use rspack_core::{
   ChunkInitFragments, ChunkUkey, CodeGenerationDataFilename, Compilation, CompilationParams,
-  CompilerCompilation, DependencyId, JavascriptParserUrl, Module, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin, PublicPath,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, SourceType, URLStaticMode,
+  CompilerCompilation, DependencyId, ImportMetaKnownProperties, JavascriptParserUrl, Module,
+  ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin,
+  PublicPath, RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, SourceType, URLStaticMode,
   get_js_chunk_filename_template, get_undo_path,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_util::placeholder::PlaceholderFinder;
 
 use crate::{
   JavascriptModulesRenderModuleContent, JsPlugin, RenderSource,
-  dependency::{
-    URL_STATIC_PLACEHOLDER, URL_STATIC_PLACEHOLDER_RE, WORKER_STATIC_URL_PLACEHOLDER,
-    WORKER_STATIC_URL_PLACEHOLDER_RE, WorkerDependency,
-  },
+  dependency::{URL_STATIC_PLACEHOLDER, WORKER_STATIC_URL_PLACEHOLDER, WorkerDependency},
   parser_and_generator::JavaScriptParserAndGenerator,
 };
+
+static URL_STATIC_MATCHER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new(URL_STATIC_PLACEHOLDER));
+static WORKER_STATIC_URL_MATCHER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new(WORKER_STATIC_URL_PLACEHOLDER));
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -70,12 +75,7 @@ pub async fn replace_static_url_placeholders(
   let content = source.source().into_string_lossy().into_owned();
   let mut replace_source = ReplaceSource::new(source);
   let module_graph = compilation.get_module_graph();
-  let replacements = URL_STATIC_PLACEHOLDER_RE
-    .find_iter(&content)
-    .map(|cap| (cap.start(), cap.end()));
-
-  for (start, end) in replacements {
-    let dep_id = &content[start + URL_STATIC_PLACEHOLDER.len()..end];
+  for (range, dep_id) in URL_STATIC_MATCHER.find_numeric(&content) {
     let dep_id: DependencyId = dep_id
       .parse::<u32>()
       .unwrap_or_else(|_| panic!("should be valid dependency id \"{dep_id}\""))
@@ -83,25 +83,26 @@ pub async fn replace_static_url_placeholders(
     let Some(module) = module_graph.module_identifier_by_dependency_id(&dep_id) else {
       continue;
     };
-    let codegen_result = compilation.code_generation_results.get(module, runtime);
-    let Some(filename) = codegen_result.data.get::<CodeGenerationDataFilename>() else {
+    // The asset may be extracted into a shared chunk whose runtime is the union
+    // of the referencing chunks' runtimes. Fall back to the unique code generation
+    // result when the referencing runtime has no exact entry.
+    let codegen_result = compilation
+      .code_generation_results
+      .try_get(module, runtime)
+      .or_else(|_| compilation.code_generation_results.try_get(module, None))?;
+    let Some(filename) = codegen_result.data().get::<CodeGenerationDataFilename>() else {
       unreachable!()
     };
 
     replace_source.replace(
-      start as u32,
-      end as u32,
+      range.start as u32,
+      range.end as u32,
       filename.filename().to_string(),
       None,
     );
   }
 
-  let worker_replacements = WORKER_STATIC_URL_PLACEHOLDER_RE
-    .find_iter(&content)
-    .map(|cap| (cap.start(), cap.end()));
-
-  for (start, end) in worker_replacements {
-    let dep_id = &content[start + WORKER_STATIC_URL_PLACEHOLDER.len()..end];
+  for (range, dep_id) in WORKER_STATIC_URL_MATCHER.find_numeric(&content) {
     let dep_id: DependencyId = dep_id
       .parse::<u32>()
       .unwrap_or_else(|_| panic!("should be valid dependency id \"{dep_id}\""))
@@ -145,8 +146,8 @@ pub async fn replace_static_url_placeholders(
     };
 
     replace_source.replace(
-      start as u32,
-      end as u32,
+      range.start as u32,
+      range.end as u32,
       concat_string!(undo_path, public_path, filename),
       None,
     );
@@ -184,6 +185,9 @@ async fn normal_module_factory_parser(
     if !matches!(options.url, Some(JavascriptParserUrl::Disable)) {
       parser.add_parser_plugin(Box::new(crate::parser_plugin::URLPlugin {
         mode: options.url,
+        import_meta_url_enabled: options
+          .import_meta()
+          .is_known_property_enabled(ImportMetaKnownProperties::URL),
       }));
     }
   }
@@ -210,7 +214,7 @@ async fn render_module_content(
   let codegen_result = compilation
     .code_generation_results
     .get(&module.identifier(), Some(runtime));
-  if codegen_result.data.contains::<URLStaticMode>() {
+  if codegen_result.data().contains::<URLStaticMode>() {
     let output_path = get_chunk_output_path(compilation, *chunk_ukey).await?;
     render_source.source = replace_static_url_placeholders(
       compilation,

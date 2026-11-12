@@ -1,7 +1,4 @@
-use std::{
-  cmp::Ordering,
-  fmt::{self, Display},
-};
+use std::fmt::{self, Display};
 
 use itertools::Itertools;
 use rspack_cacheable::cacheable;
@@ -9,12 +6,12 @@ use rspack_collections::IdentifierMap;
 use rspack_error::{Result, error};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_util::fx_hash::FxIndexSet;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 
 use crate::{
   Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
   DependencyLocation, DynamicImportFetchPriority, Filename, LibraryOptions, ModuleIdentifier,
-  ModuleLayer, PublicPath, WasmLoading, compare_chunk_group,
+  ModuleLayer, PublicPath, WasmLoading,
 };
 
 #[derive(Debug, Clone)]
@@ -47,6 +44,11 @@ pub struct ChunkGroup {
   pub(crate) is_over_size_limit: Option<bool>,
 }
 
+/// Chunk groups usually hold a handful of modules, so reserving a small amount of
+/// space up front avoids repeated rehashing for the many small groups while the
+/// extra memory stays bounded for large ones.
+const MODULE_ORDER_INDEX_CAPACITY: usize = 16;
+
 impl Default for ChunkGroup {
   fn default() -> Self {
     Self::new(ChunkGroupKind::Normal {
@@ -64,8 +66,14 @@ impl ChunkGroup {
     Self {
       ukey: ChunkGroupUkey::new(),
       chunks: vec![],
-      module_post_order_indices: Default::default(),
-      module_pre_order_indices: Default::default(),
+      module_post_order_indices: IdentifierMap::with_capacity_and_hasher(
+        MODULE_ORDER_INDEX_CAPACITY,
+        Default::default(),
+      ),
+      module_pre_order_indices: IdentifierMap::with_capacity_and_hasher(
+        MODULE_ORDER_INDEX_CAPACITY,
+        Default::default(),
+      ),
       parents: Default::default(),
       children: Default::default(),
       async_entrypoints: Default::default(),
@@ -132,6 +140,45 @@ impl ChunkGroup {
 
   pub fn is_initial(&self) -> bool {
     matches!(self.kind, ChunkGroupKind::Entrypoint { initial, .. } if initial)
+  }
+
+  /// Chunks requested by an import, in loading order.
+  pub fn get_loading_chunks<'a>(
+    &'a self,
+    compilation: &'a Compilation,
+  ) -> impl DoubleEndedIterator<Item = &'a Chunk> {
+    let graph = &compilation.build_chunk_graph_artifact;
+    self
+      .chunks
+      .iter()
+      .map(|key| graph.chunk_by_ukey.expect_get(key))
+      .filter(|chunk| !chunk.has_runtime(&graph.chunk_group_by_ukey) && chunk.id().is_some())
+  }
+
+  /// The last chunk can represent the group unless it also represents a different
+  /// loading plan. Ambiguous groups keep their explicit chunk lists in codegen.
+  pub fn get_hmr_loading_chunk<'a>(&'a self, compilation: &'a Compilation) -> Option<&'a Chunk> {
+    self.kind.get_normal_options()?;
+    let last = self.get_loading_chunks(compilation).next_back()?;
+    let graph = &compilation.build_chunk_graph_artifact;
+    for key in last.groups() {
+      let other = graph.chunk_group_by_ukey.expect_get(key);
+      if other.ukey != self.ukey
+        && other.kind.get_normal_options().is_some()
+        && other
+          .get_loading_chunks(compilation)
+          .next_back()
+          .map(Chunk::ukey)
+          == Some(last.ukey())
+        && !self
+          .get_loading_chunks(compilation)
+          .map(Chunk::ukey)
+          .eq(other.get_loading_chunks(compilation).map(Chunk::ukey))
+      {
+        return None;
+      }
+    }
+    Some(last)
   }
 
   pub fn set_runtime_chunk(&mut self, chunk_ukey: ChunkUkey) {
@@ -322,50 +369,6 @@ impl ChunkGroup {
     &self.origins
   }
 
-  pub fn get_children_by_orders(
-    &self,
-    compilation: &Compilation,
-  ) -> HashMap<ChunkGroupOrderKey, Vec<ChunkGroupUkey>> {
-    let mut children_by_orders = HashMap::<ChunkGroupOrderKey, Vec<ChunkGroupUkey>>::default();
-
-    let orders = vec![ChunkGroupOrderKey::Preload, ChunkGroupOrderKey::Prefetch];
-
-    for order_key in orders {
-      let mut list = vec![];
-      for child_ukey in &self.children {
-        let Some(child_group) = compilation
-          .build_chunk_graph_artifact
-          .chunk_group_by_ukey
-          .get(child_ukey)
-        else {
-          continue;
-        };
-        if let Some(order) = child_group
-          .kind
-          .get_normal_options()
-          .and_then(|o| match order_key {
-            ChunkGroupOrderKey::Prefetch => o.prefetch_order,
-            ChunkGroupOrderKey::Preload => o.preload_order,
-          })
-        {
-          list.push((order, child_group.ukey));
-        }
-      }
-
-      list.sort_by(|a, b| {
-        let cmp = b.0.cmp(&a.0);
-        match cmp {
-          Ordering::Equal => compare_chunk_group(&a.1, &b.1, compilation),
-          _ => cmp,
-        }
-      });
-
-      children_by_orders.insert(order_key, list.iter().map(|i| i.1).collect_vec());
-    }
-
-    children_by_orders
-  }
-
   pub fn set_is_over_size_limit(&mut self, v: bool) {
     self.is_over_size_limit = Some(v);
   }
@@ -433,14 +436,7 @@ impl From<String> for EntryRuntime {
   }
 }
 
-impl EntryRuntime {
-  pub fn as_string(&self) -> Option<&str> {
-    match self {
-      EntryRuntime::String(s) => Some(s),
-      EntryRuntime::False => None,
-    }
-  }
-}
+impl EntryRuntime {}
 
 impl RspackHash for EntryRuntime {
   fn hash(&self, state: &mut RspackHasher) {

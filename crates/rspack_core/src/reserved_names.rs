@@ -1,11 +1,16 @@
 use std::sync::LazyLock;
 
+use rspack_intern::Atom;
 use rustc_hash::FxHashSet;
-use swc_core::atoms::Atom;
 
-pub const RESERVED_NAMES: [&str; 188] = [
+pub const RESERVED_NAMES: [&str; 192] = [
   "__rspack_default_export",
   "__rspack_ns_object",
+  // Chunk bootstrap declarations must not be captured by concatenated modules.
+  "__webpack_modules__",
+  "__webpack_module_cache__",
+  "__rspack_modules",
+  "__rspack_module_cache",
   "abstract",
   "arguments",
   "async",
@@ -199,7 +204,7 @@ pub static RESERVED_NAMES_ATOM_SET: LazyLock<FxHashSet<Atom>> =
 
 #[cfg(test)]
 mod tests {
-  use swc_core::atoms::Atom;
+  use rspack_intern::Atom;
 
   use super::{RESERVED_NAMES, RESERVED_NAMES_ATOM_SET};
 

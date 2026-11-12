@@ -1,13 +1,12 @@
 import "./style.css";
 
 it(`should work with URLs in CSS`, () => {
-  const links = document.getElementsByTagName("link");
-  const css = [];
+	const links = Array.from(document.getElementsByTagName("link"));
+	const css = [];
 
-  // Skip first because import it by default
-  for (const link of links.slice(1)) {
-    css.push(link.sheet.css);
-  }
+	for (const link of links) {
+		css.push(getLinkSheet(link));
+	}
 
-  expect(css).toMatchSnapshot();
+	expect(css).toMatchFileSnapshotSync(`${__SNAPSHOT__}/css.${__STATS_I__}.txt`);
 });

@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ConstDependency {
   pub range: DependencyRange,
   #[cacheable(with=AsRefStr)]
@@ -46,7 +46,7 @@ impl DependencyCodeGeneration for ConstDependency {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct ConstDependencyTemplate;
 
 impl ConstDependencyTemplate {

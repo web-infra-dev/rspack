@@ -4,13 +4,14 @@ use atomic_refcell::AtomicRefCell;
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  ChunkGroupUkey, ChunkUkey, Compilation, DependenciesBlock, DependencyType, ExportProvided,
-  ModuleIdentifier, UsageState, find_new_name, get_cached_readable_identifier,
+  ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation, ConcatenationNameAllocator, DependenciesBlock,
+  DependencyType, ExportProvided, ModuleIdentifier, UsageState, get_cached_readable_identifier,
   incremental::Mutation, split_readable_identifier,
 };
+use rspack_intern::Atom;
 use rspack_util::{
-  atom::Atom,
   fx_hash::{FxDashSet, FxHashMap, FxHashSet},
+  identifier::split_at_query_mark,
 };
 
 use crate::EsmLibraryPlugin;
@@ -30,7 +31,7 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
 
   // Phase 1: Detect at-risk async chunks.
   // Source: modules with `has_top_level_await`.
-  // We iterate `module.get_blocks()` (blocks attached directly to the module).
+  // We recursively visit async blocks, including imports nested in require.ensure.
   // This is conservative: a function-scoped `import()` also shows up here when
   // the parser attaches its block to the module. We accept that over-inclusion
   // — extraction only actually happens in later phases when there's a real
@@ -43,16 +44,17 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
     if !module.build_meta().has_top_level_await() {
       continue;
     }
-    for block_id in module.get_blocks() {
-      let Some(block) = module_graph.block_by_id(block_id) else {
+    let mut blocks = module.get_blocks().to_vec();
+    while let Some(block_id) = blocks.pop() {
+      let Some(block) = module_graph.block_by_id(&block_id) else {
         continue;
       };
-      for dep_id in block.get_dependencies() {
-        let dep = module_graph.dependency_by_id(dep_id);
+      blocks.extend_from_slice(block.get_blocks());
+      for dep in block.get_dependencies() {
         if dep.dependency_type() != &DependencyType::DynamicImport {
           continue;
         }
-        let Some(target) = module_graph.module_identifier_by_dependency_id(dep_id) else {
+        let Some(target) = module_graph.module_identifier_by_dependency_id(dep.id()) else {
           continue;
         };
         if target == module_id {
@@ -516,6 +518,42 @@ pub(crate) fn optimize_runtime_chunks(compilation: &mut Compilation) {
   }
 }
 
+/// Mark module-less entrypoint chunks as facades after modern-module chunk
+/// optimizations have finished.
+pub(crate) fn mark_facade_chunks(compilation: &mut Compilation) {
+  let artifact = &mut compilation.build_chunk_graph_artifact;
+  for chunk in artifact.chunk_by_ukey.values_mut() {
+    if chunk.kind() == ChunkKind::Facade {
+      chunk.set_kind(ChunkKind::Normal);
+    }
+  }
+
+  let entrypoint_chunks = artifact
+    .entrypoints
+    .values()
+    .chain(artifact.async_entrypoints.iter())
+    .map(|entrypoint_ukey| {
+      artifact
+        .chunk_group_by_ukey
+        .expect_get(entrypoint_ukey)
+        .get_entrypoint_chunk()
+    })
+    .collect::<Vec<_>>();
+
+  for chunk_ukey in entrypoint_chunks {
+    if artifact
+      .chunk_graph
+      .get_number_of_chunk_modules(&chunk_ukey)
+      == 0
+    {
+      artifact
+        .chunk_by_ukey
+        .expect_get_mut(&chunk_ukey)
+        .set_kind(ChunkKind::Facade);
+    }
+  }
+}
+
 /// Analyze dynamic import targets to identify:
 /// - all_dyn_targets: all scope-hoisted modules that are dynamically imported
 /// - namespace_targets: subset that are imported as namespace
@@ -537,52 +575,53 @@ pub(crate) fn analyze_dyn_import_targets(
     if !concatenated_modules.contains(module_id) {
       continue;
     }
-    for dep_id in module
-      .get_blocks()
-      .iter()
-      .filter_map(|block| module_graph.block_by_id(block))
-      .flat_map(|block| block.get_dependencies())
-    {
-      let dep = module_graph.dependency_by_id(dep_id);
-      if dep.dependency_type() != &DependencyType::DynamicImport {
-        continue;
-      }
-      let exports_info_artifact = &compilation.exports_info_artifact;
-
-      let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
+    let mut blocks = module.get_blocks().to_vec();
+    while let Some(block_id) = blocks.pop() {
+      let Some(block) = module_graph.block_by_id(&block_id) else {
         continue;
       };
-      if !conn.is_target_active(
-        module_graph,
-        None,
-        &compilation.module_graph_cache_artifact,
-        &compilation
-          .build_module_graph_artifact
-          .side_effects_state_artifact,
-        exports_info_artifact,
-      ) {
-        continue;
-      }
-      let target = conn.module_identifier();
-      // Skip orphan modules — they are not in any chunk (e.g. tree-shaken or worker entries)
-      if compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_module_chunks(*target)
-        .is_empty()
-      {
-        continue;
-      }
-      all_dyn_targets.insert(*target);
+      blocks.extend_from_slice(block.get_blocks());
+      for dep in block.get_dependencies() {
+        if dep.dependency_type() != &DependencyType::DynamicImport {
+          continue;
+        }
+        let exports_info_artifact = &compilation.exports_info_artifact;
 
-      if !concatenated_modules.contains(target) {
-        continue;
-      }
+        let Some(conn) = module_graph.connection_by_dependency_id(dep.id()) else {
+          continue;
+        };
+        if !conn.is_target_active(
+          module_graph,
+          None,
+          &compilation.module_graph_cache_artifact,
+          &compilation
+            .build_module_graph_artifact
+            .side_effects_state_artifact,
+          exports_info_artifact,
+        ) {
+          continue;
+        }
+        let target = conn.module_identifier();
+        // Skip orphan modules — they are not in any chunk (e.g. tree-shaken or worker entries)
+        if compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_module_chunks(*target)
+          .is_empty()
+        {
+          continue;
+        }
+        all_dyn_targets.insert(*target);
 
-      let exports_info = exports_info_artifact.get_exports_info_data(target);
+        if !concatenated_modules.contains(target) {
+          continue;
+        }
 
-      if exports_info.other_exports_info().is_used(None) {
-        namespace_targets.insert(*target);
+        let exports_info = exports_info_artifact.get_exports_info_data(target);
+
+        if exports_info.other_exports_info().is_used(None) {
+          namespace_targets.insert(*target);
+        }
       }
     }
   }
@@ -641,7 +680,7 @@ pub(crate) fn analyze_dyn_import_targets(
   }
 
   // Pre-assign namespace object names for scope-hoisted dyn targets in non-strict chunks.
-  // Use the same naming scheme as regular namespace objects (find_new_name("namespaceObject", ...))
+  // Use the same naming scheme as regular namespace objects.
   // so the name matches what deconflict_symbols would produce.
   // These names must be determined before code generation so the dynamic import template
   // can emit `.then(m => m.<ns_name>)`.
@@ -716,7 +755,8 @@ pub(crate) fn analyze_dyn_import_targets(
 
     // Step 3: Only assign namespace names when needed (namespace used as a whole or has conflicts)
     // Track used names per chunk to avoid collisions between multiple dyn targets
-    let mut chunk_used_names: FxHashMap<ChunkUkey, FxHashSet<Atom>> = FxHashMap::default();
+    let mut chunk_name_allocators: FxHashMap<ChunkUkey, ConcatenationNameAllocator> =
+      FxHashMap::default();
 
     for module_id in &sorted_targets {
       if !concatenated_modules.contains(module_id) {
@@ -751,9 +791,8 @@ pub(crate) fn analyze_dyn_import_targets(
         &compilation.options.context,
       );
       let escaped_idents = split_readable_identifier(&readable_identifier);
-      let used_names = chunk_used_names.entry(chunk_ukey).or_default();
-      let ns_name = find_new_name("namespaceObject", used_names, &escaped_idents);
-      used_names.insert(ns_name.clone());
+      let name_allocator = chunk_name_allocators.entry(chunk_ukey).or_default();
+      let ns_name = name_allocator.find_new_name("namespaceObject", &escaped_idents);
       ns_map.insert(*module_id, ns_name);
     }
   }
@@ -781,18 +820,22 @@ pub(crate) fn analyze_dyn_import_targets(
 /// - `css|./node_modules/lib/dist/index.css|0||||}` → `lib`
 /// - `/path/to/src/index.js?query=1` → `src`
 fn short_name_from_identifier(identifier: &str) -> Option<String> {
-  // Strip ?query suffix.
-  let s = identifier
-    .split_once('?')
-    .map_or(identifier, |(path, _)| path);
-
   // Strip module-type prefix and trailing metadata.
   // e.g. "css|./path/to/file.css|0||||}" → "./path/to/file.css"
-  let s = if let Some((_, rest)) = s.split_once('|') {
+  // A `|` after a `?` is part of the resource/query, not metadata. This also
+  // keeps a DOS path without a module-type prefix intact while still allowing
+  // `css|\\?\C:\...`.
+  let s = if let Some((prefix, rest)) = identifier.split_once('|')
+    && !prefix.contains('?')
+  {
     rest.split('|').next().unwrap_or(rest)
   } else {
-    s
+    identifier
   };
+
+  // Strip ?query suffix after the module-type prefix so a DOS device path at
+  // the start of the resource is recognized correctly.
+  let s = split_at_query_mark(s).0;
 
   // Normalize Windows backslashes to forward slashes so that all subsequent
   // string operations work uniformly regardless of platform.

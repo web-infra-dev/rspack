@@ -17,14 +17,6 @@ impl From<&str> for SideEffectOption {
 }
 
 impl SideEffectOption {
-  /// Returns `true` if the side effect option is [`False`].
-  ///
-  /// [`False`]: SideEffectOption::False
-  #[must_use]
-  pub fn is_false(&self) -> bool {
-    matches!(self, Self::False)
-  }
-
   /// Returns `true` if the side effect option is [`True`].
   ///
   /// [`True`]: SideEffectOption::True
@@ -59,22 +51,6 @@ impl From<&str> for UsedExportsOption {
 impl UsedExportsOption {
   pub fn is_enable(&self) -> bool {
     matches!(self, Self::Global | Self::True)
-  }
-
-  /// Returns `true` if the used exports is [`False`].
-  ///
-  /// [`False`]: UsedExports::False
-  #[must_use]
-  pub fn is_false(&self) -> bool {
-    matches!(self, Self::False)
-  }
-
-  /// Returns `true` if the used exports is [`True`].
-  ///
-  /// [`True`]: UsedExports::True
-  #[must_use]
-  pub fn is_true(&self) -> bool {
-    matches!(self, Self::True)
   }
 
   /// Returns `true` if the used exports is [`Global`].

@@ -40,7 +40,7 @@ function isEnvColorSupported(): boolean {
       p.platform === 'win32' ||
       ((p.stdout as typeof process.stdout | undefined)?.isTTY &&
         env.TERM !== 'dumb') ||
-      'CI' in env)
+      (Boolean(env.CI) && env.CI !== 'false'))
   );
 }
 
@@ -97,13 +97,15 @@ export class RspackCLI {
     rspackCommand: Command,
   ) {
     const { config: rawConfig, pathMap } = await this.loadConfig(options);
-    const config = await this.buildConfig(
-      rawConfig,
-      pathMap,
-      options,
-      rspackCommand,
-    );
-    return config;
+    if (process.env.RSPACK_PROFILE) {
+      const { applyProfile } = await import('./utils/profile.js');
+      await applyProfile(
+        process.env.RSPACK_PROFILE,
+        process.env.RSPACK_TRACE_LAYER,
+        process.env.RSPACK_TRACE_OUTPUT,
+      );
+    }
+    return this.buildConfig(rawConfig, pathMap, options, rspackCommand);
   }
 
   createCompiler(
@@ -198,16 +200,16 @@ export class RspackCLI {
       await command.apply(this);
     }
   }
-  private async buildConfig(
+  private buildConfig(
     item: RspackOptions | MultiRspackOptions,
     pathMap: WeakMap<RspackOptions, string[]>,
     options: CommonOptionsForBuildAndServe,
     command: Command,
-  ): Promise<RspackOptions | MultiRspackOptions> {
+  ): RspackOptions | MultiRspackOptions {
     const isBuild = command === 'build';
     const isServe = command === 'serve';
 
-    const internalBuildConfig = async (item: RspackOptions) => {
+    const internalBuildConfig = (item: RspackOptions) => {
       if (options.entry) {
         item.entry = {
           main: options.entry.map((x) => path.resolve(process.cwd(), x))[0], // Fix me when entry supports array
@@ -217,14 +219,6 @@ export class RspackCLI {
       item.output = item.output || {};
       if (options.outputPath) {
         item.output.path = path.resolve(process.cwd(), options.outputPath);
-      }
-      if (process.env.RSPACK_PROFILE) {
-        const { applyProfile } = await import('./utils/profile.js');
-        await applyProfile(
-          process.env.RSPACK_PROFILE,
-          process.env.RSPACK_TRACE_LAYER,
-          process.env.RSPACK_TRACE_OUTPUT,
-        );
       }
       // cli --watch overrides the watch config
       if (options.watch) {
@@ -257,7 +251,7 @@ export class RspackCLI {
         }
       }
 
-      // set configPaths to persistent cache build dependencies
+      // Track loaded config files as persistent cache build dependencies.
       const cacheOptions = item.cache;
       if (
         typeof cacheOptions === 'object' &&
@@ -265,7 +259,6 @@ export class RspackCLI {
       ) {
         const configPaths = pathMap.get(item);
         if (configPaths) {
-          // for persistent cache
           cacheOptions.buildDependencies = [
             ...configPaths,
             ...(cacheOptions.buildDependencies || []),
@@ -274,7 +267,11 @@ export class RspackCLI {
       }
 
       if (typeof item.stats === 'undefined') {
-        item.stats = { preset: 'errors-warnings', timings: true };
+        item.stats = {
+          preset: 'errors-warnings',
+          timings: true,
+          logging: false,
+        };
       } else if (typeof item.stats === 'boolean') {
         item.stats = item.stats ? { preset: 'normal' } : { preset: 'none' };
       } else if (typeof item.stats === 'string') {
@@ -282,12 +279,18 @@ export class RspackCLI {
           preset: item.stats as
             'normal' | 'none' | 'verbose' | 'errors-only' | 'errors-warnings',
         };
+      } else if (
+        typeof item.stats.preset === 'undefined' &&
+        item.stats.all !== true
+      ) {
+        item.stats.logging ??= false;
       }
+
       return item;
     };
 
     if (Array.isArray(item)) {
-      return Promise.all(item.map(internalBuildConfig));
+      return item.map(internalBuildConfig);
     }
     return internalBuildConfig(item as RspackOptions);
   }
@@ -396,15 +399,19 @@ export type RspackConfigExport =
  */
 export function defineConfig<
   const Config extends RspackOptions | MultiRspackOptions,
->(config: (...args: Parameters<RspackConfigFn>) => Config): RspackConfigFn;
-export function defineConfig<
-  const Config extends RspackOptions | MultiRspackOptions,
+  const Definition extends
+    | Config
+    | ((...args: Parameters<RspackConfigFn>) => Config)
+    | ((...args: Parameters<RspackConfigFn>) => Promise<Config>),
 >(
-  config: (...args: Parameters<RspackConfigFn>) => Promise<Config>,
-): RspackConfigAsyncFn;
-export function defineConfig(config: RspackOptions): RspackOptions;
-export function defineConfig(config: MultiRspackOptions): MultiRspackOptions;
-export function defineConfig(config: RspackConfigExport): RspackConfigExport;
+  config: Definition,
+): Definition extends (...args: Parameters<RspackConfigFn>) => Promise<unknown>
+  ? RspackConfigAsyncFn
+  : Definition extends (...args: Parameters<RspackConfigFn>) => unknown
+    ? RspackConfigFn
+    : Definition extends readonly unknown[]
+      ? MultiRspackOptions
+      : RspackOptions;
 export function defineConfig(config: RspackConfigExport) {
   return config;
 }

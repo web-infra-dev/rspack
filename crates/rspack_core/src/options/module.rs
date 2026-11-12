@@ -18,7 +18,7 @@ use rustc_hash::FxHashMap as HashMap;
 use smallvec::SmallVec;
 use tokio::sync::OnceCell;
 
-use crate::{Compilation, Filename, Module, ModuleType, PublicPath, Resolve};
+use crate::{Compilation, Filename, Module, ModuleType, PublicPath, Resolve, ResourceData};
 
 #[derive(Debug, Default)]
 pub struct ParserOptionsMap(HashMap<String, ParserOptions>);
@@ -110,7 +110,8 @@ impl From<&str> for DynamicImportMode {
       "lazy" => DynamicImportMode::Lazy,
       "lazy-once" => DynamicImportMode::LazyOnce,
       _ => {
-        // TODO: warning
+        // Unknown values are diagnosed where they enter the compiler (e.g. when
+        // parsing `webpackMode` magic comments), fall back to `lazy` like webpack.
         DynamicImportMode::Lazy
       }
     }
@@ -461,7 +462,12 @@ impl ImportMetaOptions {
 
 impl MergeFrom for ImportMetaOptions {
   fn merge_from(mut self, other: &Self) -> Self {
-    self.properties.extend(other.properties.clone());
+    self.properties.extend(
+      other
+        .properties
+        .iter()
+        .map(|(name, enabled)| (name.clone(), *enabled)),
+    );
     self.enabled_known_properties = Self::enabled_known_properties(&self.properties);
     self
   }
@@ -481,10 +487,6 @@ impl ImportMeta {
     !matches!(self, Self::Disabled)
   }
 
-  pub fn preserve_unknown(&self) -> bool {
-    matches!(self, Self::PreserveUnknown | Self::Granular(_))
-  }
-
   pub fn is_known_property_enabled(&self, property: ImportMetaKnownProperties) -> bool {
     match self {
       Self::Disabled => false,
@@ -502,6 +504,7 @@ pub struct JavascriptParserOptions {
   pub dynamic_import_prefetch: Option<JavascriptParserOrder>,
   pub dynamic_import_fetch_priority: Option<DynamicImportFetchPriority>,
   pub url: Option<JavascriptParserUrl>,
+  pub dynamic_url: Option<bool>,
   pub unknown_context_critical: Option<bool>,
   pub expr_context_critical: Option<bool>,
   pub wrapped_context_critical: Option<bool>,
@@ -962,9 +965,6 @@ bitflags! {
 pub struct AssetGeneratorImportMode(AssetGeneratorImportModeFlags);
 
 impl AssetGeneratorImportMode {
-  pub fn is_url(&self) -> bool {
-    self.0.contains(AssetGeneratorImportModeFlags::URL)
-  }
   pub fn is_preserve(&self) -> bool {
     self.0.contains(AssetGeneratorImportModeFlags::PRESERVE)
   }
@@ -1126,6 +1126,7 @@ impl From<String> for DataUrlEncoding {
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssGeneratorOptions {
   pub exports_only: Option<bool>,
+  pub runtime_public_path: Option<bool>,
   pub es_module: Option<bool>,
 }
 
@@ -1134,6 +1135,7 @@ pub struct CssGeneratorOptions {
 pub struct CssModuleGeneratorOptions {
   pub exports_convention: Option<CssExportsConvention>,
   pub exports_only: Option<bool>,
+  pub runtime_public_path: Option<bool>,
   pub local_ident_hash_digest: Option<HashDigest>,
   pub local_ident_hash_digest_length: Option<u32>,
   pub local_ident_hash_function: Option<HashFunction>,
@@ -1150,6 +1152,7 @@ impl CssModuleGeneratorOptions {
       local_ident_hash_digest_length: Some(6),
       local_ident_hash_function: Some(HashFunction::Xxhash64),
       local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
+      runtime_public_path: Some(false),
       es_module: Some(true),
       ..Default::default()
     }
@@ -1160,6 +1163,7 @@ impl From<&CssGeneratorOptions> for CssModuleGeneratorOptions {
   fn from(value: &CssGeneratorOptions) -> Self {
     Self {
       exports_only: value.exports_only,
+      runtime_public_path: value.runtime_public_path,
       es_module: value.es_module,
       ..Default::default()
     }
@@ -1281,6 +1285,7 @@ impl fmt::Debug for RuleSetCondition {
 pub enum DataRef<'a> {
   Str(&'a str),
   Value(&'a serde_json::Value),
+  Resource(&'a ResourceData),
 }
 
 impl<'s> From<&'s str> for DataRef<'s> {
@@ -1300,6 +1305,7 @@ impl DataRef<'_> {
     match self {
       Self::Str(s) => Some(s),
       Self::Value(v) => v.as_str(),
+      Self::Resource(resource) => Some(resource.resource()),
     }
   }
 
@@ -1307,6 +1313,11 @@ impl DataRef<'_> {
     match self {
       Self::Str(s) => serde_json::Value::String((*s).to_owned()),
       Self::Value(v) => (*v).to_owned(),
+      Self::Resource(resource) => serde_json::json!({
+        "path": resource.path().map(|path| path.as_str()).unwrap_or_default(),
+        "query": resource.query().unwrap_or_default(),
+        "fragment": resource.fragment().unwrap_or_default(),
+      }),
     }
   }
 }
@@ -1557,13 +1568,6 @@ impl RuleSetLogicalConditions {
     Some(Ok(true))
   }
 
-  pub async fn try_match(&self, data: DataRef<'_>) -> Result<bool> {
-    if let Some(result) = self.try_match_sync(data) {
-      return result;
-    }
-    self.try_match_async(data).await
-  }
-
   fn try_match_async<'a>(&'a self, data: DataRef<'a>) -> BoxFuture<'a, Result<bool>> {
     Box::pin(async move {
       if let Some(and) = &self.and
@@ -1616,13 +1620,6 @@ impl RuleSetLogicalConditions {
       }
     }
     Some(Ok(has_condition && match_when_empty))
-  }
-
-  pub async fn match_when_empty(&self) -> Result<bool> {
-    if let Some(result) = self.match_when_empty_sync() {
-      return result;
-    }
-    self.match_when_empty_async().await
   }
 
   fn match_when_empty_async(&self) -> BoxFuture<'_, Result<bool>> {
@@ -1693,6 +1690,12 @@ pub struct ModuleRuleUseLoader {
   /// Loader options
   /// This only exists if the loader is a built-in loader.
   pub options: Option<String>,
+  /// Cache this loader.
+  pub cache: bool,
+  /// Stable serialization of the public loader options.
+  pub options_cache_key: String,
+  /// Preconditions for running the normal loader handler.
+  pub filter: Option<Arc<rspack_loader_runner::LoaderFilter>>,
 }
 
 pub type FnUse =
@@ -1700,6 +1703,7 @@ pub type FnUse =
 
 #[derive(Debug, Default)]
 pub struct ModuleRule {
+  pub r#as: Option<Filename>,
   /// A conditional match matching an absolute path + query + fragment.
   /// Note:
   ///   This is a custom matching rule not initially designed by webpack.

@@ -1,23 +1,21 @@
 mod create_script_url_dependency;
-use std::sync::LazyLock;
 
 use concat_string::concat_string;
 pub use create_script_url_dependency::{
   CreateScriptUrlDependency, CreateScriptUrlDependencyTemplate,
 };
-use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, FactorizeInfo, JavascriptParserWorkerUrl, ModuleDependency, ModuleGraph,
+  ExportsInfoArtifact, JavascriptParserWorkerUrl, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext,
   TemplateReplaceSource, URLStaticMode,
 };
 use rspack_hash::{RspackHash, RspackHasher};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct WorkerDependency {
   id: DependencyId,
   request: String,
@@ -25,7 +23,6 @@ pub struct WorkerDependency {
   range: DependencyRange,
   range_path: DependencyRange,
   range_request: Option<DependencyRange>,
-  factorize_info: FactorizeInfo,
   need_new_url: bool,
   url_mode: Option<JavascriptParserWorkerUrl>,
 }
@@ -47,7 +44,6 @@ impl WorkerDependency {
       range,
       range_path,
       range_request,
-      factorize_info: Default::default(),
       need_new_url,
       url_mode,
     }
@@ -125,14 +121,6 @@ impl ModuleDependency for WorkerDependency {
   fn user_request(&self) -> &str {
     &self.request
   }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
-  }
 }
 
 #[cacheable_dyn]
@@ -158,13 +146,6 @@ impl AsContextDependency for WorkerDependency {}
 pub struct WorkerDependencyTemplate;
 
 pub static WORKER_STATIC_URL_PLACEHOLDER: &str = "RSPACK_AUTO_WORKER_STATIC_URL_PLACEHOLDER_";
-pub static WORKER_STATIC_URL_PLACEHOLDER_RE: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(&concat_string!(
-    WORKER_STATIC_URL_PLACEHOLDER,
-    r#"(?<dep>\d+)"#
-  ))
-  .expect("should be valid regex")
-});
 
 impl WorkerDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {

@@ -1,8 +1,9 @@
 use std::{
   borrow::Cow,
   hash::{Hash, Hasher},
-  sync::Arc,
 };
+
+use bytes_str::BytesStr;
 
 use crate::{
   MapOptions, Source, SourceMap, SourceValue,
@@ -10,7 +11,6 @@ use crate::{
     Chunks, GeneratedInfo, StreamChunks, TextSpan, get_generated_source_info, get_map,
     split_into_lines, split_into_potential_tokens,
   },
-  object_pool::ObjectPool,
   source::{Mapping, OriginalLocation},
 };
 
@@ -21,32 +21,32 @@ use crate::{
 /// - [webpack-sources docs](https://github.com/webpack/webpack-sources/#originalsource).
 ///
 /// ```
-/// use rspack_sources::{OriginalSource, MapOptions, Source, SourceExt, ObjectPool};
+/// use rspack_sources::{OriginalSource, MapOptions, Source, SourceExt};
 ///
 /// let input = "if (hello()) { world(); hi(); there(); } done();\nif (hello()) { world(); hi(); there(); } done();";
 /// let source = OriginalSource::new(input, "file.js");
 /// assert_eq!(source.source().into_string_lossy(), input);
 /// assert_eq!(
-///   source.map(&ObjectPool::default(), &MapOptions::default()).unwrap().mappings(),
+///   source.map(&MapOptions::default()).unwrap().mappings(),
 ///   "AAAA,eAAe,SAAS,MAAM,WAAW;AACzC,eAAe,SAAS,MAAM,WAAW",
 /// );
 /// assert_eq!(
-///   source.map(&ObjectPool::default(), &MapOptions::new(false)).unwrap().mappings(),
+///   source.map(&MapOptions::new(false)).unwrap().mappings(),
 ///   "AAAA;AACA",
 /// );
 /// ```
 #[derive(Clone, Eq)]
 pub struct OriginalSource {
-  value: Box<str>,
-  name: Box<str>,
+  pub(crate) value: BytesStr,
+  name: BytesStr,
 }
 
 impl OriginalSource {
   /// Create a [OriginalSource].
-  pub fn new(value: impl Into<Box<str>>, name: impl Into<Box<str>>) -> Self {
+  pub fn new(value: impl Into<String>, name: impl Into<String>) -> Self {
     Self {
-      value: value.into(),
-      name: name.into(),
+      value: BytesStr::from_string(value.into()),
+      name: BytesStr::from_string(name.into()),
     }
   }
 
@@ -78,21 +78,9 @@ impl Source for OriginalSource {
     self.value.len()
   }
 
-  fn map<'a>(&'a self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap<'a>> {
+  fn map(&self, options: &MapOptions) -> Option<SourceMap> {
     let chunks = self.stream_chunks();
-    get_map(object_pool, chunks.as_ref(), options).map(SourceMap::from_fields)
-  }
-
-  fn map_static(
-    self: Arc<Self>,
-    object_pool: &ObjectPool,
-    options: &MapOptions,
-  ) -> Option<SourceMap<'static>> {
-    let owner = self.clone();
-    self
-      .as_ref()
-      .map(object_pool, options)
-      .map(|map| map.into_static(owner))
+    get_map(chunks.as_ref(), options)
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -137,13 +125,12 @@ impl<'source> OriginalSourceChunks<'source> {
 impl<'source> Chunks<'source> for OriginalSourceChunks<'source> {
   fn stream<'chunk>(
     &'chunk self,
-    _object_pool: &ObjectPool,
     options: &MapOptions,
     on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
-    on_source: crate::helpers::OnSource<'_, 'source>,
-    _on_name: crate::helpers::OnName<'_, 'source>,
+    on_source: crate::helpers::OnSource<'_>,
+    _on_name: crate::helpers::OnName<'_>,
   ) -> GeneratedInfo {
-    on_source(0, Cow::Borrowed(&self.0.name), Some(self.0.value.as_ref()));
+    on_source(0, &self.0.name, Some(&self.0.value));
     let source = TextSpan::new(self.0.value.as_ref());
     if options.columns {
       // With column info we need to read all lines and split them
@@ -278,12 +265,8 @@ mod tests {
   fn should_handle_multiline_string() {
     let source = OriginalSource::new("Line1\n\nLine3\n", "file.js");
     let result_text = source.source();
-    let result_map = source
-      .map(&ObjectPool::default(), &MapOptions::default())
-      .unwrap();
-    let result_list_map = source
-      .map(&ObjectPool::default(), &MapOptions::new(false))
-      .unwrap();
+    let result_map = source.map(&MapOptions::default()).unwrap();
+    let result_list_map = source.map(&MapOptions::new(false)).unwrap();
 
     assert_eq!(result_text.into_string_lossy(), "Line1\n\nLine3\n");
     assert_eq!(result_map.get_source(0), Some("file.js"));
@@ -304,8 +287,8 @@ mod tests {
   fn should_handle_empty_string() {
     let source = OriginalSource::new("", "file.js");
     let result_text = source.source();
-    let result_map = source.map(&ObjectPool::default(), &MapOptions::default());
-    let result_list_map = source.map(&ObjectPool::default(), &MapOptions::new(false));
+    let result_map = source.map(&MapOptions::default());
+    let result_list_map = source.map(&MapOptions::new(false));
 
     assert_eq!(result_text.into_string_lossy(), "");
     assert!(result_map.is_none());
@@ -315,9 +298,7 @@ mod tests {
   #[test]
   fn should_omit_mappings_for_columns_with_node() {
     let source = OriginalSource::new("Line1\n\nLine3\n", "file.js");
-    let result_map = source
-      .map(&ObjectPool::default(), &MapOptions::new(false))
-      .unwrap();
+    let result_map = source.map(&MapOptions::new(false)).unwrap();
     assert_eq!(result_map.mappings(), "AAAA;AACA;AACA");
   }
 
@@ -339,17 +320,11 @@ mod tests {
     let source = OriginalSource::new(input, "file.js");
     assert_eq!(source.source().into_string_lossy(), input);
     assert_eq!(
-      source
-        .map(&ObjectPool::default(), &MapOptions::default())
-        .unwrap()
-        .mappings(),
+      source.map(&MapOptions::default()).unwrap().mappings(),
       "AAAA,eAAe,SAAS,MAAM,WAAW;AACzC,eAAe,SAAS,MAAM,WAAW",
     );
     assert_eq!(
-      source
-        .map(&ObjectPool::default(), &MapOptions::new(false))
-        .unwrap()
-        .mappings(),
+      source.map(&MapOptions::new(false)).unwrap().mappings(),
       "AAAA;AACA",
     );
   }
@@ -365,9 +340,7 @@ mod tests {
     let source2 = OriginalSource::new(code2, "world.txt");
 
     let concat = ConcatSource::new([source1.boxed(), source2.boxed()]);
-    let map = concat
-      .map(&ObjectPool::default(), &MapOptions::new(false))
-      .unwrap();
+    let map = concat.map(&MapOptions::new(false)).unwrap();
     assert_eq!(map.mappings(), "AAAA;AACA;ACDA",);
   }
 
@@ -376,10 +349,8 @@ mod tests {
     let code = "var i18n = JSON.parse('{\"魑魅魍魉\":{\"en-US\":\"Evil spirits\",\"zh-CN\":\"魑魅魍魉\"}}');\nvar __webpack_exports___ = i18n[\"魑魅魍魉\"];\nexport { __webpack_exports___ as 魑魅魍魉 };";
     let source = OriginalSource::new(code, "test.js");
     let mut chunks = vec![];
-    let object_pool = ObjectPool::default();
     let handle = source.stream_chunks();
     let generated_info = handle.stream(
-      &object_pool,
       &MapOptions::default(),
       &mut |chunk, mapping| {
         chunks.push((chunk.unwrap().as_str(), mapping));

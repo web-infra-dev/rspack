@@ -4,11 +4,11 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency, DependencyId,
-  EntryDependency, FactoryMeta, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info,
-  impl_source_map_config, module_update_hash,
+  BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder,
+  Compilation, Context, DependenciesBlock, DependenciesBlockData, EntryDependency,
+  FactoryMetaStore, FreezeLock, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
+  ModuleType, NeedBuildContext, RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -23,19 +23,17 @@ pub struct DllModule {
   // TODO: it should be set to EntryDependency.loc
   name: String,
 
-  factory_meta: Option<FactoryMeta>,
+  factory_meta: FactoryMetaStore,
 
-  build_info: BuildInfo,
+  build_info: FreezeLock<BuildInfo>,
 
-  build_meta: BuildMeta,
+  build_meta: FreezeLock<BuildMeta>,
 
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  dependencies_block: DependenciesBlockData,
 
   entries: Vec<String>,
 
   context: Context,
-
-  dependencies: Vec<DependencyId>,
 }
 
 impl DllModule {
@@ -45,12 +43,12 @@ impl DllModule {
       context,
       name,
       ..
-    } = dep.clone();
+    } = dep;
 
     Self {
-      name,
-      entries,
-      context,
+      name: name.clone(),
+      entries: entries.clone(),
+      context: context.clone(),
       ..Default::default()
     }
   }
@@ -79,50 +77,54 @@ impl Module for DllModule {
 
   async fn build(
     mut self: Box<Self>,
-    _build_context: BuildContext,
+    _build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<BoxModule> {
     let dependencies = self
       .entries
       .clone()
       .into_iter()
       .map(|entry| EntryDependency::new(entry, self.context.clone(), None, false))
-      .map(|dependency| Box::new(dependency) as Box<dyn Dependency>)
+      .map(BoxDependency::new)
       .collect::<Vec<_>>();
 
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies,
-      blocks: vec![],
-      optimization_bailouts: vec![],
-    })
+    Ok(
+      BoxModule::new(self)
+        .with_dependencies(dependencies.into_iter().map(Into::into).collect(), vec![]),
+    )
   }
 
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       runtime_template, ..
     } = code_generation_context;
 
-    let mut code_generation_result = CodeGenerationResult::default();
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
 
-    code_generation_result =
-      code_generation_result.with_javascript(Arc::new(RawStringSource::from(format!(
+    code_generation_result.add(
+      SourceType::JavaScript,
+      Arc::new(RawStringSource::from(format!(
         "{}.exports = {}",
         runtime_template.render_module_argument(ModuleArgument::Module),
         runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-      ))));
+      ))),
+    );
 
     Ok(code_generation_result)
   }
 
-  fn need_build(&self, _value_cache_versions: &ValueCacheVersions) -> bool {
+  fn need_build_for_incremental(&self, _value_cache_versions: &ValueCacheVersions) -> bool {
     false
   }
 
-  fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+    Ok(self.build_meta.frozen().is_none())
+  }
+
+  fn size(&self, _source_type: Option<&SourceType>) -> f64 {
     12.0
   }
 
@@ -147,24 +149,11 @@ impl Identifiable for DllModule {
 }
 
 impl DependenciesBlock for DllModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block);
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
-
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency);
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }
 

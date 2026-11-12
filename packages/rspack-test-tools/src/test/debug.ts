@@ -2,6 +2,7 @@ import path from 'node:path';
 import type { RspackOptions } from '@rspack/core';
 import fs from 'fs-extra';
 import { stringify } from 'javascript-stringify';
+import { findTestFile } from '../helper/read-test-file';
 import stringifyConfig from '../helper/stringify-config';
 import type { ITestContext } from '../type';
 
@@ -65,7 +66,7 @@ function generateCaseMetaTestConfigReport(context: ITestContext) {
 ### Test Config
 
 \`\`\`js
-// ${path.resolve(context.getSource(), './test.config.js')}
+// ${findTestFile(context.getSource(), 'test.config') ?? 'No test.config file'}
 ${stringify(context.getTestConfig(), null, 2)}
 \`\`\`
   `;

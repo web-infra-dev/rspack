@@ -10,6 +10,11 @@ const RSPACK_BENCH_CASES = path.join(BENCH_DIR, 'rspack-benchcases');
 const THREEJS_SCALE = 10;
 const THREEJS_PROJECT = 'threejs';
 const THREEJS_SCALED_PROJECT = `${THREEJS_PROJECT}-${THREEJS_SCALE}x`;
+const CSS_PROJECT = 'css';
+const CSS_FIXTURES = path.resolve(
+  __dirname,
+  '../../xtask/benchmark/benches/fixtures/css',
+);
 
 async function pathExists(target) {
   try {
@@ -113,5 +118,18 @@ async function scaledThreejsBenchcase() {
   );
 }
 
+async function cssBenchcase() {
+  console.log(`preparing ${CSS_PROJECT} benchmark case`);
+
+  if (!(await pathExists(CSS_FIXTURES))) {
+    throw new Error(`CSS benchmark fixtures not found: ${CSS_FIXTURES}`);
+  }
+
+  const targetProject = path.join(RSPACK_BENCH_CASES, CSS_PROJECT);
+  await rm(targetProject, { force: true, recursive: true });
+  await cp(CSS_FIXTURES, targetProject, { recursive: true });
+}
+
 await rspackBenchcases();
 await scaledThreejsBenchcase();
+await cssBenchcase();

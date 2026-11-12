@@ -44,7 +44,7 @@ impl JsModuleGraph {
 #[napi]
 impl JsModuleGraph {
   #[napi(
-    ts_args_type = "dependency: Dependency",
+    ts_args_type = "dependency: Dependency | EntryDependency",
     ts_return_type = "Module | null"
   )]
   pub fn get_module(&self, js_dependency: DependencyObject) -> napi::Result<Option<ModuleObject>> {
@@ -61,7 +61,7 @@ impl JsModuleGraph {
   }
 
   #[napi(
-    ts_args_type = "dependency: Dependency",
+    ts_args_type = "dependency: Dependency | EntryDependency",
     ts_return_type = "Module | null"
   )]
   pub fn get_resolved_module(
@@ -164,7 +164,7 @@ impl JsModuleGraph {
   }
 
   #[napi(
-    ts_args_type = "dependency: Dependency",
+    ts_args_type = "dependency: Dependency | EntryDependency",
     ts_return_type = "ModuleGraphConnection | null"
   )]
   pub fn get_connection(
@@ -179,9 +179,7 @@ impl JsModuleGraph {
       Ok(
         module_graph
           .connection_by_dependency_id(&dependency_id)
-          .map(|connection| {
-            ModuleGraphConnectionWrapper::new(connection.dependency_id, compilation)
-          }),
+          .map(|connection| ModuleGraphConnectionWrapper::new(connection, compilation)),
       )
     })
   }
@@ -205,10 +203,7 @@ impl JsModuleGraph {
       }
       let module_graph = compilation.get_module_graph();
       for connection in module_graph.get_outgoing_connections(&module.identifier) {
-        vec.push(ModuleGraphConnectionWrapper::new(
-          connection.dependency_id,
-          compilation,
-        ));
+        vec.push(ModuleGraphConnectionWrapper::new(connection, compilation));
       }
       let mut arr = env.create_array(vec.len() as u32)?;
       for (i, v) in vec.drain(..).enumerate() {
@@ -236,11 +231,8 @@ impl JsModuleGraph {
         ));
       }
       let module_graph = compilation.get_module_graph();
-      for dependency_id in module_graph.get_outgoing_deps_in_order(&module.identifier) {
-        vec.push(ModuleGraphConnectionWrapper::new(
-          *dependency_id,
-          compilation,
-        ));
+      for connection in module_graph.get_ordered_outgoing_connections(&module.identifier) {
+        vec.push(ModuleGraphConnectionWrapper::new(connection, compilation));
       }
       let mut arr = env.create_array(vec.len() as u32)?;
       for (i, v) in vec.drain(..).enumerate() {
@@ -269,10 +261,7 @@ impl JsModuleGraph {
       }
       let module_graph = compilation.get_module_graph();
       for connection in module_graph.get_incoming_connections(&module.identifier) {
-        vec.push(ModuleGraphConnectionWrapper::new(
-          connection.dependency_id,
-          compilation,
-        ));
+        vec.push(ModuleGraphConnectionWrapper::new(connection, compilation));
       }
       let mut arr = env.create_array(vec.len() as u32)?;
       for (i, v) in vec.drain(..).enumerate() {
@@ -283,7 +272,7 @@ impl JsModuleGraph {
   }
 
   #[napi(
-    ts_args_type = "dependency: Dependency",
+    ts_args_type = "dependency: Dependency | EntryDependency",
     ts_return_type = "Module | null"
   )]
   pub fn get_parent_module(
@@ -304,7 +293,7 @@ impl JsModuleGraph {
     })
   }
 
-  #[napi(ts_args_type = "dependency: Dependency")]
+  #[napi(ts_args_type = "dependency: Dependency | EntryDependency")]
   pub fn get_parent_block_index(&self, js_dependency: DependencyObject) -> napi::Result<i64> {
     let Some(dependency_id) = js_dependency.dependency_id() else {
       return Ok(-1);

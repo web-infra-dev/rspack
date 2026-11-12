@@ -1,5 +1,6 @@
 mod boxfs;
 mod factory;
+mod resolver_cache;
 mod resolver_impl;
 use std::{
   borrow::Borrow,
@@ -8,18 +9,18 @@ use std::{
 };
 
 use regex::Regex;
+use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_error::Error;
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::{DescriptionData, ResourceData};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
-use rspack_util::identifier::insert_zero_width_space_for_fragment;
+use rspack_util::identifier::format_resolved_resource;
 use sugar_path::SugarPath;
 
 pub use self::{
   factory::{ResolveOptionsWithDependencyType, ResolverFactory},
-  resolver_impl::{
-    ResolveContext, ResolveDependencies, ResolveInnerError, ResolveInnerOptions, Resolver,
-  },
+  resolver_cache::ResolverCache,
+  resolver_impl::{ResolveDependencies, ResolveInnerError, ResolveInnerOptions, Resolver},
 };
 use crate::{
   Context, DependencyCategory, DependencyRange, DependencyType, ModuleIdentifier, Resolve,
@@ -47,6 +48,7 @@ pub struct ResolveArgs<'a> {
 }
 
 /// A successful path resolution or an ignored path.
+#[cacheable]
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ResolveResult {
   Resource(Resource),
@@ -56,8 +58,10 @@ pub enum ResolveResult {
 /// A successful path resolution.
 ///
 /// Contains the raw `package.json` value if there is one.
+#[cacheable]
 #[derive(Clone)]
 pub struct Resource {
+  #[cacheable(with=AsPreset)]
   pub path: Utf8PathBuf,
   pub query: String,
   pub fragment: String,
@@ -80,21 +84,14 @@ impl Eq for Resource {}
 impl Resource {
   /// Get the full path with query and fragment attached.
   pub fn full_path(&self) -> String {
-    let mut buf = insert_zero_width_space_for_fragment(self.path.as_str()).into_owned();
-    buf.push_str(&insert_zero_width_space_for_fragment(&self.query));
-    buf.push_str(&self.fragment);
-    buf
+    format_resolved_resource(self.path.as_str(), &self.query, &self.fragment)
   }
 }
 
 impl From<Resource> for ResourceData {
   fn from(resource: Resource) -> Self {
-    let mut resource_data = Self::new_with_path(
-      resource.full_path(),
-      resource.path,
-      Some(resource.query),
-      Some(resource.fragment),
-    );
+    let mut resource_data =
+      Self::new_with_resolved_path(resource.path, resource.query, resource.fragment);
     resource_data.set_description_optional(resource.description_data);
     resource_data
   }

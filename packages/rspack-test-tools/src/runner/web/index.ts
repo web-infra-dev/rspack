@@ -2,7 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Script } from 'node:vm';
-import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
+import iconv from 'iconv-lite';
+import {
+  JSDOM,
+  requestInterceptor,
+  type ResourcesOptions,
+  VirtualConsole,
+} from 'jsdom';
 import { escapeSep } from '../../helper';
 import { EventSource } from '../../helper/legacy/EventSourceForNode';
 import { urlToRelativePath } from '../../helper/legacy/urlToRelativePath';
@@ -14,7 +20,7 @@ export interface IWebRunnerOptions extends INodeRunnerOptions {
 }
 
 // Compatibility code to suppress iconv-lite warnings
-require('iconv-lite').skipDecodeWarning = true;
+iconv.skipDecodeWarning = true;
 
 const FAKE_HOSTS = [
   'https://example.com/public/path',
@@ -31,9 +37,9 @@ export class WebRunner extends NodeRunner {
   constructor(protected _webOptions: IWebRunnerOptions) {
     super(_webOptions);
 
-    const virtualConsole = new VirtualConsole({});
-    virtualConsole.sendTo(console, {
-      omitJSDOMErrors: true,
+    const virtualConsole = new VirtualConsole();
+    virtualConsole.forwardTo(console, {
+      jsdomErrors: 'none',
     });
     this.dom = new JSDOM(
       `
@@ -45,7 +51,7 @@ export class WebRunner extends NodeRunner {
     `,
       {
         url: this._webOptions.location,
-        resources: this.createResourceLoader(),
+        resources: this.createResourcesOptions(),
         runScripts: 'dangerously',
         virtualConsole,
       },
@@ -80,18 +86,18 @@ export class WebRunner extends NodeRunner {
       Object.defineProperty(document.head, "_children", {
         get: function() {
           return Array.from(document.head.children).map(function(ele) {
-            var type = ele.tagName.toLowerCase();
-            return new Proxy(ele, {
-              get(target, prop, receiver) {
-                if (prop === "_type") {
-                  return target.tagName.toLowerCase();
-                }
-                if (prop === "_href") {
-                  return Reflect.get(target, "href", receiver);
-                }
-                return Reflect.get(target, prop, receiver);
+            // Keep real DOM nodes so they also work as DOM API arguments.
+            Object.defineProperties(ele, {
+              _type: {
+                configurable: true,
+                get() { return this.tagName.toLowerCase(); },
+              },
+              _href: {
+                configurable: true,
+                get() { return this.href; },
               },
             });
+            return ele;
           });
         }
       });
@@ -109,8 +115,10 @@ export class WebRunner extends NodeRunner {
       const cssElement = this.dom.window.document.createElement('link');
       cssElement.href = file;
       cssElement.rel = 'stylesheet';
-      this.dom.window.document.head.appendChild(cssElement);
-      return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        cssElement.onload = cssElement.onerror = () => resolve();
+        this.dom.window.document.head.appendChild(cssElement);
+      });
     }
     return super.run(file);
   }
@@ -123,56 +131,62 @@ export class WebRunner extends NodeRunner {
     this._options.logs?.push(`[WebRunner] ${message}`);
   }
 
-  protected createResourceLoader() {
-    const that = this;
-    class CustomResourceLoader extends ResourceLoader {
-      fetch(url: string, options: { element: HTMLScriptElement }) {
-        if (that._options.testConfig.resourceLoader) {
-          that.log(`resource custom loader: start ${url}`);
-          const content = that._options.testConfig.resourceLoader(
-            url,
-            options.element,
-          );
-          if (content !== undefined) {
-            that.log(`resource custom loader: accepted`);
-            return Promise.resolve(content) as any;
+  protected createResourcesOptions(): ResourcesOptions {
+    return {
+      interceptors: [
+        requestInterceptor((request, { element }) => {
+          // ResourceLoader only handled DOM subresources. Let requests from
+          // XMLHttpRequest and WebSocket continue through jsdom's dispatcher.
+          if (element === null) {
+            return;
+          }
+
+          const url = request.url;
+          if (this._options.testConfig.resourceLoader) {
+            this.log(`resource custom loader: start ${url}`);
+            const content = this._options.testConfig.resourceLoader(
+              url,
+              element as HTMLScriptElement,
+            );
+            if (content !== undefined) {
+              this.log(`resource custom loader: accepted`);
+              if (content === null) {
+                throw new Error(`Resource was not loaded: ${url}`);
+              }
+              return new Response(new Uint8Array(content));
+            } else {
+              this.log(`resource custom loader: not found`);
+            }
+          }
+
+          const filePath = this.urlToPath(url);
+          this.log(`resource loader: ${url} -> ${filePath}`);
+          let finalCode: string | Buffer;
+
+          if (path.extname(filePath) === '.js') {
+            // A script request must read current assets, even after an HMR rebuild.
+            const [_m, code] = this.getModuleContent({
+              path: filePath,
+              content: fs.readFileSync(filePath, 'utf-8'),
+              subPath: 'absolute_path',
+            });
+            finalCode = code;
           } else {
-            that.log(`resource custom loader: not found`);
-          }
-        }
-
-        const filePath = that.urlToPath(url);
-        that.log(`resource loader: ${url} -> ${filePath}`);
-        let finalCode: string | Buffer | void;
-
-        if (path.extname(filePath) === '.js') {
-          const currentDirectory = path.dirname(filePath);
-          const file = that.getFile(filePath, currentDirectory);
-          if (!file) {
-            throw new Error(`File not found: ${filePath}`);
+            finalCode = fs.readFileSync(filePath);
           }
 
-          const [_m, code] = that.getModuleContent(file);
-          finalCode = code;
-        } else {
-          finalCode = fs.readFileSync(filePath);
-        }
-
-        try {
-          that.dom.window.__LINK_SHEET__ ??= {};
-          that.dom.window.__LINK_SHEET__[url] = finalCode!.toString();
-          return Promise.resolve(finalCode!) as any;
-        } catch (err) {
-          console.error(err);
-          if ((err as { code: string }).code === 'ENOENT') {
-            return null;
-          }
-          throw err;
-        }
-      }
-    }
-
-    return new CustomResourceLoader();
+          this.dom.window.__LINK_SHEET__ ??= {};
+          this.dom.window.__LINK_SHEET__[url] = finalCode.toString();
+          return new Response(
+            new Uint8Array(
+              typeof finalCode === 'string'
+                ? Buffer.from(finalCode)
+                : finalCode,
+            ),
+          );
+        }),
+      ],
+    };
   }
 
   private urlToPath(url: string) {
@@ -289,15 +303,25 @@ export class WebRunner extends NodeRunner {
 			var $$g$$ = new Proxy(window, {
 				get(target, prop, receiver) {
 					if (prop === "document") {
+						var boundMethods = new WeakMap();
 						return new Proxy(window.document, {
-							get(target, prop, receiver) {
+							get(target, prop) {
 								if (prop === "currentScript") {
 									var script = target.createElement("script");
 									script.src = "https://test.cases/path/${escapeSep(file.subPath)}index.js";
 									return script;
 								}
-								return Reflect.get(target, prop, receiver);
-							}
+								// DOM getters and methods require the real document as their receiver.
+								var value = Reflect.get(target, prop, target);
+								if (typeof value === "function" && prop !== "constructor") {
+									if (!boundMethods.has(value)) boundMethods.set(value, value.bind(target));
+									return boundMethods.get(value);
+								}
+									return value;
+							},
+							set(target, prop, value) {
+								return Reflect.set(target, prop, value, target);
+							},
 						});
 					}
 					return Reflect.get(target, prop, receiver);

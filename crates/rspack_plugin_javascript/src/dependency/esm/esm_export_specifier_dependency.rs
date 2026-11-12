@@ -8,13 +8,12 @@ use rspack_core::{
   ModuleGraph, ModuleGraphCacheArtifact, SideEffectsStateArtifact, TSEnumValue, TemplateContext,
   TemplateReplaceSource, UsedName,
 };
-use swc_atoms::Atom;
 
-use crate::{ConstValue, is_export_inlined};
+use crate::{Atom, ConstValue, is_export_inlined};
 
 // Create __rspack_context.d(__rspack_exports, {}) for each export.
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ESMExportSpecifierDependency {
   id: DependencyId,
   range: DependencyRange,
@@ -45,14 +44,6 @@ impl ESMExportSpecifierDependency {
       loc,
       id: DependencyId::new(),
     }
-  }
-
-  pub fn name(&self) -> &Atom {
-    &self.name
-  }
-
-  pub fn value(&self) -> &Atom {
-    &self.value
   }
 }
 
@@ -178,11 +169,6 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       scope.register_export(dep.name.clone(), dep.value.to_string());
       return;
     }
-    let module_graph = compilation.get_module_graph();
-    let module = module_graph
-      .module_by_identifier(&module.identifier())
-      .expect("should have module graph module");
-
     // remove the enum decl export if all the enum members are inlined
     if let Some(enum_value) = &dep.enum_value {
       let all_enum_member_inlined = enum_value.iter().all(|(enum_key, enum_member)| {
@@ -223,7 +209,17 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
     let is_circular_module = compilation
       .circular_modules
       .is_circular_module(&module.identifier());
-    let binding = if matches!(is_circular_module, Some(false)) && dep.const_value.is_some() {
+    let is_mutated = module.build_info().mutated_bindings.contains(&dep.value);
+    let is_deferred = compilation.get_module_graph().is_deferred(
+      &compilation.imported_by_defer_modules_artifact,
+      &module.identifier(),
+    );
+    let has_direct_eval = module.build_info().has_direct_eval;
+    let binding = if matches!(is_circular_module, Some(false))
+      && !is_mutated
+      && !is_deferred
+      && !has_direct_eval
+    {
       ESMExportBinding::Value(dep.value.clone())
     } else {
       ESMExportBinding::Getter(dep.value.clone())

@@ -1,7 +1,7 @@
 <%- define(HMR_DOWNLOAD_MANIFEST) %> = <%- basicFunction("") %> {
 	return Promise.resolve()
 		.then(<%- basicFunction("") %> {
-			return require("./" + <%- GET_UPDATE_MANIFEST_FILENAME %>());
+			return require("<%- _output_dir %>" + <%- GET_UPDATE_MANIFEST_FILENAME %>());
 		})['catch'](<%- basicFunction("err") %> {
 			if (err.code !== 'MODULE_NOT_FOUND') throw err;
 		});

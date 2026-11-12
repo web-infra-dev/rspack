@@ -28,25 +28,24 @@ pub fn track_server_component_changes(
       .entry(entry_name.clone())
       .or_default();
 
-    let Some(entry_dependency_id) = entry_data.dependencies.first() else {
-      continue;
-    };
-    let Some(resolved_module) = module_graph
-      .get_resolved_module(entry_dependency_id)
-      .and_then(|identifier| compilation.module_by_identifier(identifier))
-    else {
-      continue;
-    };
+    for entry_dependency_id in &entry_data.dependencies {
+      let Some(resolved_module) = module_graph
+        .get_resolved_module(entry_dependency_id)
+        .and_then(|identifier| compilation.module_by_identifier(identifier))
+      else {
+        continue;
+      };
 
-    collect_changed_server_components(
-      compilation,
-      module_graph,
-      resolved_module.as_ref(),
-      prev_server_component_hashes,
-      &mut visited_modules,
-      &mut cur_server_component_hashes,
-      changed_server_components,
-    )
+      collect_changed_server_components(
+        compilation,
+        module_graph,
+        resolved_module.as_ref(),
+        prev_server_component_hashes,
+        &mut visited_modules,
+        &mut cur_server_component_hashes,
+        changed_server_components,
+      )
+    }
   }
 
   *prev_server_component_hashes = cur_server_component_hashes;

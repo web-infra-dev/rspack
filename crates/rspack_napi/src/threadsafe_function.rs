@@ -1,12 +1,10 @@
-use std::{
-  fmt::Debug,
-  marker::PhantomData,
-  sync::{Arc, OnceLock},
-};
+use std::{cell::OnceCell, fmt::Debug, marker::PhantomData, sync::Arc};
 
 use napi::{
   Env, JsValue, Status, Unknown, ValueType,
-  bindgen_prelude::{FromNapiValue, JsValuesTupleIntoVec, Promise, TypeName, ValidateNapiValue},
+  bindgen_prelude::{
+    FromNapiValue, Function, JsValuesTupleIntoVec, Promise, TypeName, ValidateNapiValue,
+  },
   sys::{self, napi_env, napi_value},
   threadsafe_function::{ThreadsafeFunction as RawThreadsafeFunction, ThreadsafeFunctionCallMode},
 };
@@ -17,16 +15,22 @@ use crate::{JsCallback, NapiErrorToRspackErrorExt};
 
 type ErrorResolver = dyn FnOnce(Env);
 
-static ERROR_RESOLVER: OnceLock<JsCallback<Box<ErrorResolver>>> = OnceLock::new();
+thread_local! {
+  // Each Node worker has its own JS thread and env. Capture its resolver when
+  // constructing a TSFN; error resolution itself can run on a Rust worker.
+  static ERROR_RESOLVER: OnceCell<JsCallback<Box<ErrorResolver>>> = const { OnceCell::new() };
+}
 
 pub struct ThreadsafeFunction<T: 'static + JsValuesTupleIntoVec, R> {
   inner: Arc<RawThreadsafeFunction<T, Unknown<'static>, T, Status, false, true>>,
+  error_resolver: JsCallback<Box<ErrorResolver>>,
   env: napi_env,
   _data: PhantomData<R>,
 }
 
 pub struct DynThreadsafeFunction {
   inner: Arc<RawThreadsafeFunction<DynJsArgs, Unknown<'static>, DynJsArgs, Status, false, true>>,
+  error_resolver: JsCallback<Box<ErrorResolver>>,
   env: napi_env,
 }
 
@@ -58,6 +62,7 @@ impl<T: 'static + JsValuesTupleIntoVec, R> Clone for ThreadsafeFunction<T, R> {
   fn clone(&self) -> Self {
     Self {
       inner: self.inner.clone(),
+      error_resolver: self.error_resolver.clone(),
       env: self.env,
       _data: self._data,
     }
@@ -75,6 +80,7 @@ impl Clone for DynThreadsafeFunction {
   fn clone(&self) -> Self {
     Self {
       inner: self.inner.clone(),
+      error_resolver: self.error_resolver.clone(),
       env: self.env,
     }
   }
@@ -87,15 +93,43 @@ unsafe impl Send for DynThreadsafeFunction {}
 
 impl<T: 'static + JsValuesTupleIntoVec, R> FromNapiValue for ThreadsafeFunction<T, R> {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> napi::Result<Self> {
-    let inner = unsafe {
-      <RawThreadsafeFunction<T, Unknown, T, Status, false, true> as FromNapiValue>::from_napi_value(
-        env, napi_val,
-      )
-    }?;
-    let _ = ERROR_RESOLVER
-      .get_or_init(|| unsafe { JsCallback::new(env).expect("should initialize error resolver") });
+    unsafe { Self::from_napi_value_with_finalize(env, napi_val, || {}) }
+  }
+}
+
+impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
+  /// Runs `finalize` on the owning JS thread when N-API finalizes the TSFN, or
+  /// during construction if it fails. The callback may own thread-local data;
+  /// it must not retain the TSFN itself and prevent its finalization.
+  /// The callback must not panic, since finalization runs through N-API.
+  ///
+  /// # Safety
+  /// `env` and `napi_val` must be valid on the calling JS thread.
+  pub unsafe fn from_napi_value_with_finalize(
+    env: sys::napi_env,
+    napi_val: sys::napi_value,
+    finalize: impl FnOnce() + 'static,
+  ) -> napi::Result<Self> {
+    let finalize = scopeguard::guard(finalize, |finalize| finalize());
+    let function = unsafe { Function::<T, Unknown>::from_napi_value(env, napi_val) }?;
+    let inner = function
+      .build_threadsafe_function::<T>()
+      .callee_handled::<false>()
+      .weak::<true>()
+      .build_callback(move |ctx| {
+        // napi-rs owns this closure until its TSFN finalizer drops it on the
+        // JS thread. Dropping a Rust TSFN handle on a worker does not drop it.
+        let _keep_finalize = &finalize;
+        Ok(ctx.value)
+      })?;
+    let error_resolver = ERROR_RESOLVER.with(|resolver| {
+      resolver
+        .get_or_init(|| unsafe { JsCallback::new(env).expect("should initialize error resolver") })
+        .clone()
+    });
     Ok(Self {
       inner: Arc::new(inner),
+      error_resolver,
       env,
       _data: PhantomData,
     })
@@ -109,10 +143,14 @@ impl FromNapiValue for DynThreadsafeFunction {
         env, napi_val,
       )
     }?;
-    let _ = ERROR_RESOLVER
-      .get_or_init(|| unsafe { JsCallback::new(env).expect("should initialize error resolver") });
+    let error_resolver = ERROR_RESOLVER.with(|resolver| {
+      resolver
+        .get_or_init(|| unsafe { JsCallback::new(env).expect("should initialize error resolver") })
+        .clone()
+    });
     Ok(Self {
       inner: Arc::new(inner),
+      error_resolver,
       env,
     })
   }
@@ -121,14 +159,10 @@ impl FromNapiValue for DynThreadsafeFunction {
 impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
   async fn resolve_error(&self, err: napi::Error) -> Error {
     let (tx, rx) = tokio::sync::oneshot::channel::<rspack_error::Error>();
-    ERROR_RESOLVER
-      .get()
-      // SAFETY: The error resolver is initialized in `FromNapiValue::from_napi_value` and it's the only way to create a tsfn.
-      .expect("should have error resolver initialized")
-      .call(Box::new(move |env| {
-        let err = err.to_rspack_error(&env);
-        tx.send(err).expect("failed to resolve js error");
-      }));
+    self.error_resolver.call(Box::new(move |env| {
+      let err = err.to_rspack_error(&env);
+      tx.send(err).expect("failed to resolve js error");
+    }));
     rx.await.expect("failed to resolve js error")
   }
 
@@ -164,14 +198,10 @@ impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
 impl DynThreadsafeFunction {
   async fn resolve_error(&self, err: napi::Error) -> Error {
     let (tx, rx) = tokio::sync::oneshot::channel::<rspack_error::Error>();
-    ERROR_RESOLVER
-      .get()
-      // SAFETY: The error resolver is initialized in `FromNapiValue::from_napi_value` and it's the only way to create a tsfn.
-      .expect("should have error resolver initialized")
-      .call(Box::new(move |env| {
-        let err = err.to_rspack_error(&env);
-        tx.send(err).expect("failed to resolve js error");
-      }));
+    self.error_resolver.call(Box::new(move |env| {
+      let err = err.to_rspack_error(&env);
+      tx.send(err).expect("failed to resolve js error");
+    }));
     rx.await.expect("failed to resolve js error")
   }
 
@@ -326,4 +356,24 @@ fn pretty_type_error(return_value: Unknown, error: napi::Error) -> rspack_error:
     Err(_) => format!("TypeError: Expected return a '{expected_type}' value"),
   };
   rspack_error::error!(reason)
+}
+
+#[cfg(allocative)]
+impl<T: 'static + JsValuesTupleIntoVec, R> rspack_allocative::Allocative
+  for ThreadsafeFunction<T, R>
+{
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut rspack_allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(rspack_allocative::Key::new("inner"), &self.inner);
+    // env is borrowed from Node; PhantomData owns no T/R values.
+    visitor.exit();
+  }
+}
+#[cfg(allocative)]
+impl rspack_allocative::Allocative for DynThreadsafeFunction {
+  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut rspack_allocative::Visitor<'b>) {
+    let mut visitor = visitor.enter_self(self);
+    visitor.visit_field(rspack_allocative::Key::new("inner"), &self.inner);
+    visitor.exit();
+  }
 }

@@ -16,7 +16,9 @@ use rspack_error::{Diagnosable, Diagnostic, Result, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
-use rspack_loader_runner::{AdditionalData, Content, LoaderContext, ResourceData, run_loaders};
+use rspack_loader_runner::{
+  Content, LoaderContext, LoaderFilters, LoaderRunnerOptions, ResourceData, run_loaders,
+};
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
@@ -26,17 +28,20 @@ use serde_json::json;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxDependencyTemplate, BoxLoader, BoxModule,
-  BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph,
-  CodeGenerationResult, Compilation, ConnectionState, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
+  BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
+  CodeGenerationResultBuilder, Compilation, ConnectionState, Context, DependenciesBlock,
+  DependenciesBlockData, DependencyCodeGenerationRef, DependencyId, FactoryMeta, FactoryMetaStore,
+  FreezeLock, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin,
-  RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, contextify,
+  ModuleLayer, ModuleType, NeedBuildContext, OptimizationBailoutItem, OutputOptions, ParseContext,
+  ParseResult, ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions,
+  RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
+  SnapshotValidationResult, SourceType, ValueCacheVersions, contextify, contextify_source_map,
+  contextify_source_url,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
+  new_cache::{FileSystemInfo, Snapshot},
   utils::{SourceSizeCache, SourceSizeCacheSerde},
 };
 
@@ -63,7 +68,7 @@ impl ModuleIssuer {
     }
   }
 
-  pub fn get_module<'a>(&self, module_graph: &'a ModuleGraph) -> Option<&'a BoxModule> {
+  pub fn get_module<'a>(&self, module_graph: &'a ModuleGraph) -> Option<&'a crate::ModuleRef> {
     if let Some(id) = self.identifier()
       && let Some(module) = module_graph.module_by_identifier(id)
     {
@@ -76,36 +81,31 @@ impl ModuleIssuer {
 
 define_hook!(NormalModuleReadResource: SeriesBail(resource_data: &ResourceData, fs: &Arc<dyn ReadableFileSystem>) -> Content,tracing=false);
 define_hook!(NormalModuleLoader: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
-define_hook!(NormalModuleLoaderShouldYield: SeriesBail(loader_context: &LoaderContext<RunnerContext>) -> bool,tracing=false);
 define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
 define_hook!(NormalModuleBeforeLoaders: Series(module: &mut NormalModule),tracing=false);
-define_hook!(NormalModuleAdditionalData: Series(additional_data: &mut Option<&mut AdditionalData>),tracing=false);
 
 #[derive(Debug, Default)]
 pub struct NormalModuleHooks {
   pub read_resource: NormalModuleReadResourceHook,
   pub loader: NormalModuleLoaderHook,
-  pub loader_should_yield: NormalModuleLoaderShouldYieldHook,
   pub loader_yield: NormalModuleLoaderStartYieldingHook,
   pub before_loaders: NormalModuleBeforeLoadersHook,
-  pub additional_data: NormalModuleAdditionalDataHook,
 }
 
 #[cacheable]
 #[derive(Debug)]
 pub struct NormalModule {
-  blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  dependencies: Vec<DependencyId>,
-
   id: ModuleIdentifier,
   /// Context of this module
   context: Box<Context>,
   /// Request with loaders from config
-  request: String,
+  /// Omitted when identical to the interned module identifier.
+  request: Option<Box<str>>,
   /// Request intended by user (without loaders from config)
-  user_request: String,
+  /// Omitted when identical to the resolved resource.
+  user_request: Option<Box<str>>,
   /// Request without resolving
-  raw_request: String,
+  raw_request: Box<str>,
   /// The resolved module type of a module
   module_type: ModuleType,
   /// Layer of the module
@@ -113,16 +113,14 @@ pub struct NormalModule {
   /// Affiliated parser and generator to the module type
   parser_and_generator: Box<dyn ParserAndGenerator>,
   /// Resource matched with inline match resource, (`!=!` syntax)
-  match_resource: Option<ResourceData>,
+  match_resource: Option<Box<ResourceData>>,
   /// Resource data (path, query, fragment etc.)
   resource_data: Arc<ResourceData>,
   /// Loaders for the module
   #[debug(skip)]
   loaders: Vec<BoxLoader>,
-
-  /// Built source of this module (passed with loaders)
-  #[cacheable(with=AsOption<AsPreset>)]
-  source: Option<BoxSource>,
+  loader_options: Option<Vec<LoaderRunnerOptions>>,
+  loader_filters: Option<LoaderFilters>,
 
   /// Resolve options derived from [Rule.resolve]
   resolve_options: Option<Arc<Resolve>>,
@@ -136,22 +134,33 @@ pub struct NormalModule {
   debug_id: usize,
   #[cacheable(with=As<SourceSizeCacheSerde>)]
   cached_source_sizes: SourceSizeCache,
+
+  dependencies_block: DependenciesBlockData,
+  factory_meta: FactoryMetaStore,
+  #[cacheable(with=AsOption<AsPreset>)]
+  source: Option<BoxSource>,
   diagnostics: Vec<Diagnostic>,
-
-  code_generation_dependencies: Option<Vec<BoxModuleDependency>>,
-  presentational_dependencies: Option<Vec<BoxDependencyTemplate>>,
-
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  /// Index of the first diagnostic that prevented the module from building.
+  error: Option<usize>,
+  code_generation_dependencies: Option<Vec<DependencyId>>,
+  presentational_dependencies: Option<Vec<DependencyCodeGenerationRef>>,
+  build_info: FreezeLock<BuildInfo>,
+  build_meta: FreezeLock<BuildMeta>,
   parsed: bool,
-
+  force_build: bool,
   source_map_kind: SourceMapKind,
+  /// A seal-stage override, excluded from reusable build state.
+  #[cacheable(with=rspack_cacheable::with::Skip)]
+  asset_filename_override: std::sync::RwLock<Option<crate::Filename>>,
 }
 
 static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
+  pub(crate) fn restore_build_meta(&self, build_meta: crate::SharedBuildMeta) {
+    self.build_meta.freeze_with(build_meta);
+  }
+
   fn create_id<'request>(
     module_type: &ModuleType,
     layer: Option<&ModuleLayer>,
@@ -187,44 +196,57 @@ impl NormalModule {
     resource_data: Arc<ResourceData>,
     resolve_options: Option<Arc<Resolve>>,
     loaders: Vec<BoxLoader>,
+    loader_options: Option<Vec<LoaderRunnerOptions>>,
+    loader_filters: Option<LoaderFilters>,
     context: Option<Context>,
     extract_source_map: Option<bool>,
     import_phase: ImportPhase,
   ) -> Self {
     let module_type = module_type.into();
-    let id = Self::create_id(&module_type, layer.as_ref(), &request, import_phase);
+    let id = ModuleIdentifier::from(
+      Self::create_id(&module_type, layer.as_ref(), &request, import_phase).as_ref(),
+    );
+    let request = (request != id.as_str()).then(|| request.into_boxed_str());
+    let user_request =
+      (user_request != resource_data.resource()).then(|| user_request.into_boxed_str());
     let build_info = BuildInfo {
       import_phase,
       ..Default::default()
     };
     Self {
-      blocks: Vec::new(),
-      dependencies: Vec::new(),
-      id: ModuleIdentifier::from(id.as_ref()),
+      id,
       context: Box::new(context.unwrap_or_else(|| get_context(&resource_data))),
       request,
       user_request,
-      raw_request,
+      raw_request: raw_request.into_boxed_str(),
       module_type,
       layer,
       parser_and_generator,
       parser_and_generator_options,
-      match_resource,
+      match_resource: match_resource.map(Box::new),
       resource_data,
       resolve_options,
       loaders,
-      source: None,
+      loader_options,
+      loader_filters,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
       extract_source_map,
 
       cached_source_sizes: SourceSizeCache::default(),
+      dependencies_block: Default::default(),
+      factory_meta: Default::default(),
+      asset_filename_override: Default::default(),
+      source: None,
       diagnostics: Default::default(),
+      error: None,
       code_generation_dependencies: None,
       presentational_dependencies: None,
-      factory_meta: None,
-      build_info,
+      build_info: build_info.into(),
       build_meta: Default::default(),
       parsed: false,
+      // Mirrors webpack's `_forceBuild`: a new module has no reusable build
+      // until its first build starts.
+      force_build: true,
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -234,10 +256,10 @@ impl NormalModule {
   }
 
   pub fn match_resource(&self) -> Option<&ResourceData> {
-    self.match_resource.as_ref()
+    self.match_resource.as_deref()
   }
 
-  pub fn match_resource_mut(&mut self) -> &mut Option<ResourceData> {
+  pub fn match_resource_mut(&mut self) -> &mut Option<Box<ResourceData>> {
     &mut self.match_resource
   }
 
@@ -246,15 +268,14 @@ impl NormalModule {
   }
 
   pub fn request(&self) -> &str {
-    &self.request
+    self.request.as_deref().unwrap_or_else(|| self.id.as_str())
   }
 
   pub fn user_request(&self) -> &str {
-    &self.user_request
-  }
-
-  pub fn user_request_mut(&mut self) -> &mut String {
-    &mut self.user_request
+    self
+      .user_request
+      .as_deref()
+      .unwrap_or_else(|| self.resource_data.resource())
   }
 
   pub fn raw_request(&self) -> &str {
@@ -265,20 +286,17 @@ impl NormalModule {
     &self.loaders
   }
 
+  pub fn error(&self) -> Option<&Diagnostic> {
+    self.error.map(|index| &self.diagnostics[index])
+  }
+
+  pub fn mark_module_as_errored(&mut self, error_index: usize) {
+    self.build_meta = Default::default();
+    self.error = Some(error_index);
+  }
+
   pub fn parser_and_generator(&self) -> &dyn ParserAndGenerator {
     &*self.parser_and_generator
-  }
-
-  pub fn parser_and_generator_mut(&mut self) -> &mut dyn ParserAndGenerator {
-    &mut *self.parser_and_generator
-  }
-
-  pub fn code_generation_dependencies(&self) -> &Option<Vec<BoxModuleDependency>> {
-    &self.code_generation_dependencies
-  }
-
-  pub fn presentational_dependencies(&self) -> &Option<Vec<BoxDependencyTemplate>> {
-    &self.presentational_dependencies
   }
 
   #[tracing::instrument(
@@ -293,7 +311,7 @@ impl NormalModule {
   ) -> RspackHashDigest {
     let mut hasher = RspackHasher::from(output_options);
     "source".hash(&mut hasher);
-    if let Some(error) = self.first_error() {
+    if let Some(error) = self.error() {
       error.message.hash(&mut hasher);
     } else if let Some(s) = &self.source {
       std::hash::Hash::hash(s, &mut hasher);
@@ -310,6 +328,44 @@ impl NormalModule {
   pub fn get_generator_options(&self) -> Option<&GeneratorOptions> {
     self.parser_and_generator_options.generator_options()
   }
+
+  pub fn asset_filename_override(&self) -> Option<crate::Filename> {
+    self
+      .asset_filename_override
+      .read()
+      .expect("asset filename lock poisoned")
+      .clone()
+  }
+
+  pub fn set_asset_filename_override(&self, filename: crate::Filename) {
+    *self
+      .asset_filename_override
+      .write()
+      .expect("asset filename lock poisoned") = Some(filename);
+  }
+
+  async fn create_cache_snapshot(
+    &self,
+    file_system_info: &FileSystemInfo,
+    build_start_time: u64,
+  ) -> Result<Option<Snapshot>> {
+    if !self.build_info.read().cacheable || self.error.is_some() {
+      return Ok(None);
+    }
+
+    let build_info = self.build_info.read();
+    Ok(Some(
+      file_system_info
+        .create_snapshot(
+          Some(build_start_time),
+          &build_info.dependencies.file,
+          &build_info.dependencies.context,
+          &build_info.dependencies.missing,
+          file_system_info.module_strategy(),
+        )
+        .await?,
+    ))
+  }
 }
 
 impl Identifiable for NormalModule {
@@ -320,24 +376,12 @@ impl Identifiable for NormalModule {
 }
 
 impl DependenciesBlock for NormalModule {
-  fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
-    self.blocks.push(block)
+  fn dependencies_block(&self) -> &DependenciesBlockData {
+    &self.dependencies_block
   }
 
-  fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
-    &self.blocks
-  }
-
-  fn add_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.push(dependency)
-  }
-
-  fn remove_dependency_id(&mut self, dependency: DependencyId) {
-    self.dependencies.retain(|d| d != &dependency)
-  }
-
-  fn get_dependencies(&self) -> &[DependencyId] {
-    &self.dependencies
+  fn dependencies_block_mut(&mut self) -> &mut DependenciesBlockData {
+    &mut self.dependencies_block
   }
 }
 
@@ -357,10 +401,10 @@ impl Module for NormalModule {
   }
 
   fn readable_identifier(&self, context: &Context) -> Cow<'_, str> {
-    Cow::Owned(context.shorten(&self.user_request))
+    Cow::Owned(context.shorten(self.user_request()))
   }
 
-  fn size(&self, source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(&self, source_type: Option<&SourceType>) -> f64 {
     if let Some(source_type) = source_type {
       // Fast-path: lock-free builtin slots / tiny fallback map for custom source types.
       if let Some(size) = self.cached_source_sizes.get(source_type) {
@@ -374,6 +418,59 @@ impl Module for NormalModule {
     }
   }
 
+  fn need_build_for_incremental(&self, value_cache_version: &ValueCacheVersions) -> bool {
+    let build_info = self.build_info.read();
+    !build_info.cacheable
+      || value_cache_version.has_diff(&build_info.value_dependencies)
+      || self.error.is_some()
+  }
+
+  async fn need_build(&self, context: &NeedBuildContext<'_>) -> Result<bool> {
+    if self.force_build || self.error.is_some() {
+      return Ok(true);
+    }
+
+    let Some(build_info) = self.build_info.frozen() else {
+      return Ok(true);
+    };
+    if !build_info.cacheable {
+      return Ok(true);
+    }
+
+    let Some(snapshot) = &build_info.snapshot else {
+      return Ok(true);
+    };
+
+    if context
+      .value_cache_versions
+      .has_diff(&build_info.value_dependencies)
+    {
+      return Ok(true);
+    }
+
+    Ok(matches!(
+      context
+        .file_system_info
+        .check_snapshot_valid(snapshot)
+        .await?,
+      SnapshotValidationResult::Invalid { .. }
+    ))
+  }
+
+  async fn prepare_for_cache(
+    &self,
+    file_system_info: &FileSystemInfo,
+    build_start_time: u64,
+  ) -> Result<()> {
+    let snapshot = self
+      .create_cache_snapshot(file_system_info, build_start_time)
+      .await?;
+    self
+      .build_info
+      .update(|build_info| build_info.snapshot = snapshot);
+    Ok(())
+  }
+
   #[tracing::instrument("NormalModule:build", skip_all, fields(
     perfetto.track_name = format!("Module Build"),
     perfetto.process_name = format!("Rspack Build Detail"),
@@ -383,14 +480,21 @@ impl Module for NormalModule {
   )]
   async fn build(
     mut self: Box<Self>,
-    build_context: BuildContext,
+    build_context: Arc<BuildContext>,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<BoxModule> {
+    self.dependencies_block = Default::default();
+    self.force_build = false;
+    self.error = None;
+    self.diagnostics.clear();
+    self.build_info.get_mut().snapshot = None;
+    self.build_info.get_mut().optimization_bailouts.clear();
+
     // so does webpack
     self.parsed = true;
 
     let no_parse = if let Some(no_parse) = build_context.compiler_options.module.no_parse.as_ref() {
-      no_parse.try_match(self.request.as_str()).await?
+      no_parse.try_match(self.request()).await?
     } else {
       false
     };
@@ -412,14 +516,19 @@ impl Module for NormalModule {
     let compiler_options = build_context.compiler_options.clone();
     let resolver_factory = build_context.resolver_factory.clone();
     let fs = build_context.fs.clone();
-    let (mut loader_result, err) = run_loaders(
+    let (loader_result, err) = run_loaders(
       self.loaders.clone(),
+      self.loader_options.clone(),
+      self.loader_filters.clone(),
       self.resource_data.clone(),
       Some(plugin.clone()),
       RunnerContext {
         compiler_id,
         compilation_id,
         options: compiler_options,
+        fs: fs.clone(),
+        loader_cache: build_context.loader_cache.clone(),
+        file_system_info: build_context.file_system_info.clone(),
         resolver_factory,
         source_map_kind: self.source_map_kind,
         module: self,
@@ -429,29 +538,11 @@ impl Module for NormalModule {
     .instrument(info_span!("NormalModule:run_loaders",))
     .await;
     self = loader_result.context.module;
+    self.add_diagnostics(loader_result.diagnostics);
 
     if let Some(err) = err {
-      self.build_info.cacheable = loader_result.cacheable;
-      self.build_info.file_dependencies = loader_result
-        .file_dependencies
-        .into_iter()
-        .map(Into::into)
-        .collect();
-      self.build_info.context_dependencies = loader_result
-        .context_dependencies
-        .into_iter()
-        .map(Into::into)
-        .collect();
-      self.build_info.missing_dependencies = loader_result
-        .missing_dependencies
-        .into_iter()
-        .map(Into::into)
-        .collect();
-      self.build_info.build_dependencies = loader_result
-        .build_dependencies
-        .into_iter()
-        .map(Into::into)
-        .collect();
+      self.build_info.get_mut().cacheable = loader_result.cacheable;
+      self.build_info.get_mut().dependencies = loader_result.dependencies;
 
       self.source = None;
 
@@ -465,25 +556,15 @@ impl Module for NormalModule {
         err,
         current_loader,
       )));
-      self.diagnostics.push(diagnostic);
+      self.mark_module_as_errored(self.diagnostics.len());
+      self.add_diagnostic(diagnostic);
 
-      self.build_info.hash =
-        Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
-      return Ok(BuildResult {
-        module: BoxModule::new(self),
-        dependencies: Vec::new(),
-        blocks: Vec::new(),
-        optimization_bailouts: vec![],
-      });
+      self.build_info.get_mut().hash = Some(self.init_build_hash(
+        &build_context.compiler_options.output,
+        &self.build_meta.read(),
+      ));
+      return Ok(BoxModule::new(self));
     };
-
-    build_context
-      .plugin_driver
-      .normal_module_hooks
-      .additional_data
-      .call(&mut loader_result.additional_data.as_mut())
-      .await?;
-    self.add_diagnostics(loader_result.diagnostics);
 
     let is_binary = self
       .get_generator_options()
@@ -501,31 +582,13 @@ impl Module for NormalModule {
       Content::String(loader_result.content.into_string_lossy())
     };
     let source = self.create_source(
+      build_context.compiler_options.context.as_str(),
       content,
       loader_result.source_map.map(|source_map| *source_map),
     )?;
 
-    self.build_info.cacheable = loader_result.cacheable;
-    self.build_info.file_dependencies = loader_result
-      .file_dependencies
-      .into_iter()
-      .map(Into::into)
-      .collect();
-    self.build_info.context_dependencies = loader_result
-      .context_dependencies
-      .into_iter()
-      .map(Into::into)
-      .collect();
-    self.build_info.missing_dependencies = loader_result
-      .missing_dependencies
-      .into_iter()
-      .map(Into::into)
-      .collect();
-    self.build_info.build_dependencies = loader_result
-      .build_dependencies
-      .into_iter()
-      .map(Into::into)
-      .collect();
+    self.build_info.get_mut().cacheable = loader_result.cacheable;
+    self.build_info.get_mut().dependencies = loader_result.dependencies;
 
     if no_parse {
       self.parsed = false;
@@ -533,23 +596,21 @@ impl Module for NormalModule {
       self.code_generation_dependencies = Some(Vec::new());
       self.presentational_dependencies = Some(Vec::new());
 
-      self.build_info.hash =
-        Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
+      self.build_info.get_mut().hash = Some(self.init_build_hash(
+        &build_context.compiler_options.output,
+        &self.build_meta.read(),
+      ));
 
-      return Ok(BuildResult {
-        module: BoxModule::new(self),
-        dependencies: vec![],
-        blocks: vec![],
-        optimization_bailouts: vec![],
-      });
+      return Ok(BoxModule::new(self));
     }
 
+    let factory_meta = self.factory_meta.get();
     let (
       ParseResult {
         source,
         dependencies,
         blocks,
-        presentational_dependencies,
+        mut presentational_dependencies,
         code_generation_dependencies,
         side_effects_bailout,
       },
@@ -564,59 +625,73 @@ impl Module for NormalModule {
         module_generator_options: self.parser_and_generator_options.generator_options(),
         module_type: &self.module_type,
         module_layer: self.layer.as_ref(),
-        module_user_request: &self.user_request,
-        module_match_resource: self.match_resource.as_ref(),
+        module_user_request: self
+          .user_request
+          .as_deref()
+          .unwrap_or_else(|| self.resource_data.resource()),
+        module_match_resource: self.match_resource.as_deref(),
         module_source_map_kind: self.source_map_kind,
         loaders: &self.loaders,
         resource_data: &self.resource_data,
         compiler_options: &build_context.compiler_options,
         additional_data: loader_result.additional_data,
-        factory_meta: self.factory_meta.as_ref(),
-        build_info: &mut self.build_info,
-        build_meta: &mut self.build_meta,
+        factory_meta: factory_meta.as_deref(),
+        build_info: self.build_info.get_mut(),
+        build_meta: self.build_meta.get_mut(),
         parse_meta: loader_result.parse_meta,
         runtime_template: &build_context.runtime_template,
       })
       .await?
       .split_into_parts();
-    if diagnostics.iter().any(|d| d.is_error()) {
-      self.build_meta = Default::default();
+    self.source = Some(source);
+    let diagnostics_start = self.diagnostics.len();
+    self.add_diagnostics(diagnostics);
+    for i in diagnostics_start..self.diagnostics.len() {
+      if self.diagnostics[i].is_error() {
+        self.mark_module_as_errored(i);
+        self.build_info.get_mut().hash = Some(self.init_build_hash(
+          &build_context.compiler_options.output,
+          &self.build_meta.read(),
+        ));
+        return Ok(BoxModule::new(self));
+      }
     }
-    if !diagnostics.is_empty() {
-      self.add_diagnostics(diagnostics);
+    if let Some(side_effects_bailout) = side_effects_bailout {
+      let short_id = self
+        .readable_identifier(&build_context.compiler_options.context)
+        .to_string();
+      self
+        .build_info
+        .get_mut()
+        .optimization_bailouts
+        .push(OptimizationBailoutItem::SideEffects {
+          node_type: side_effects_bailout.ty,
+          loc: side_effects_bailout.msg,
+          short_id,
+        });
     }
-    let optimization_bailouts = if let Some(side_effects_bailout) = side_effects_bailout {
-      let short_id = self.readable_identifier(&build_context.compiler_options.context);
-      vec![OptimizationBailoutItem::SideEffects {
-        node_type: side_effects_bailout.ty,
-        loc: side_effects_bailout.msg,
-        short_id: short_id.to_string(),
-      }]
-    } else {
-      vec![]
-    };
     // Only side effects used in code_generate can stay here
     // Other side effects should be set outside use_cache
-    self.source = Some(source);
     self.code_generation_dependencies = Some(code_generation_dependencies);
+    presentational_dependencies.shrink_to_fit();
     self.presentational_dependencies = Some(presentational_dependencies);
 
-    self.build_info.hash =
-      Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
+    self.build_info.get_mut().hash = Some(self.init_build_hash(
+      &build_context.compiler_options.output,
+      &self.build_meta.read(),
+    ));
 
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies,
-      blocks,
-      optimization_bailouts,
-    })
+    Ok(BoxModule::new(self).with_dependencies(
+      dependencies.into_iter().map(Into::into).collect(),
+      blocks.into_iter().map(Into::into).collect(),
+    ))
   }
 
   // #[tracing::instrument("NormalModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<CodeGenerationResultBuilder> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime,
@@ -624,8 +699,8 @@ impl Module for NormalModule {
       runtime_template,
     } = code_generation_context;
 
-    if let Some(error) = self.first_error() {
-      let mut code_generation_result = CodeGenerationResult::default();
+    if let Some(error) = self.error() {
+      let mut code_generation_result = CodeGenerationResultBuilder::default();
       let module_graph = compilation.get_module_graph();
 
       // If the module build failed and the module is able to emit JavaScript source,
@@ -639,18 +714,17 @@ impl Module for NormalModule {
           SourceType::JavaScript,
           RawStringSource::from(format!("throw new Error({});\n", json!(error))).boxed(),
         );
-        code_generation_result.concatenation_scope = std::mem::take(concatenation_scope);
       }
       return Ok(code_generation_result);
     }
     let Some(source) = &self.source else {
       return Err(error!(
         "Failed to generate code because ast or source is not set for module {}",
-        self.request
+        self.request()
       ));
     };
 
-    let mut code_generation_result = CodeGenerationResult::default();
+    let mut code_generation_result = CodeGenerationResultBuilder::default();
     if !self.parsed {
       runtime_template
         .runtime_requirements_mut()
@@ -668,7 +742,7 @@ impl Module for NormalModule {
           &mut GenerateContext {
             compilation,
             runtime_template,
-            data: &mut code_generation_result.data,
+            data: code_generation_result.data_mut(),
             requested_source_type: *source_type,
             module_parser_options: self.parser_and_generator_options.parser_options(),
             module_generator_options: self.parser_and_generator_options.generator_options(),
@@ -683,7 +757,6 @@ impl Module for NormalModule {
         code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
       }
     }
-    code_generation_result.concatenation_scope = std::mem::take(concatenation_scope);
     Ok(code_generation_result)
   }
 
@@ -693,7 +766,7 @@ impl Module for NormalModule {
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHasher::from(&compilation.options.output);
-    self.build_info.hash.hash(&mut hasher);
+    self.build_info.read().hash.hash(&mut hasher);
     // For built failed NormalModule, hash will be calculated by build_info.hash, which contains error message
     if self.source.is_some() && self.parser_and_generator.has_runtime_hash() {
       let runtime_hash = self
@@ -712,12 +785,11 @@ impl Module for NormalModule {
       .match_resource()
       .unwrap_or_else(|| &self.resource_data)
       .resource();
-    let idx = resource.find('?');
-    if let Some(idx) = idx {
-      Some(resource[..idx].into())
-    } else {
-      Some(resource.into())
-    }
+    Some(
+      rspack_util::identifier::split_at_query_mark(resource)
+        .0
+        .into(),
+    )
   }
 
   fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<'_, str>> {
@@ -735,7 +807,7 @@ impl Module for NormalModule {
     self.resolve_options.clone()
   }
 
-  fn get_code_generation_dependencies(&self) -> Option<&[BoxModuleDependency]> {
+  fn get_code_generation_dependencies(&self) -> Option<&[DependencyId]> {
     if let Some(deps) = self.code_generation_dependencies.as_deref()
       && !deps.is_empty()
     {
@@ -745,7 +817,7 @@ impl Module for NormalModule {
     }
   }
 
-  fn get_presentational_dependencies(&self) -> Option<&[BoxDependencyTemplate]> {
+  fn get_presentational_dependencies(&self) -> Option<&[DependencyCodeGenerationRef]> {
     if let Some(deps) = self.presentational_dependencies.as_deref()
       && !deps.is_empty()
     {
@@ -788,8 +860,7 @@ impl Module for NormalModule {
         }
         module_chain.insert(self.identifier());
         let mut current = ConnectionState::Active(false);
-        for dependency_id in self.get_dependencies().iter() {
-          let dependency = module_graph.dependency_by_id(dependency_id);
+        for dependency in self.get_dependencies() {
           let state = dependency.get_module_evaluation_side_effects_state(
             module_graph,
             module_graph_cache,
@@ -824,28 +895,44 @@ impl Module for NormalModule {
       .get_concatenation_bailout_reason(self, mg, cg)
   }
 
-  fn factory_meta(&self) -> Option<&FactoryMeta> {
-    self.factory_meta.as_ref()
+  fn factory_meta(&self) -> Option<Arc<FactoryMeta>> {
+    self.factory_meta.get()
   }
 
-  fn set_factory_meta(&mut self, factory_meta: FactoryMeta) {
-    self.factory_meta = Some(factory_meta);
+  fn set_factory_meta(&self, factory_meta: FactoryMeta) {
+    self.factory_meta.set(Some(Arc::new(factory_meta)));
   }
 
-  fn build_info(&self) -> &BuildInfo {
-    &self.build_info
+  fn reset_for_compilation(&self, factory_meta: Option<Arc<FactoryMeta>>) {
+    self.factory_meta.set(factory_meta);
+    *self
+      .asset_filename_override
+      .write()
+      .expect("asset filename lock poisoned") = None;
+  }
+
+  fn build_info(&self) -> crate::FreezeReadGuard<'_, BuildInfo> {
+    self.build_info.read()
+  }
+
+  fn freeze_build_info(&self) {
+    self.build_info.freeze();
+  }
+
+  fn extend_build_assets(&self, assets: crate::CompilationAssets) {
+    self.build_info.extend_assets(assets);
   }
 
   fn build_info_mut(&mut self) -> &mut BuildInfo {
-    &mut self.build_info
+    self.build_info.get_mut()
   }
 
-  fn build_meta(&self) -> &BuildMeta {
-    &self.build_meta
+  fn build_meta(&self) -> crate::FreezeReadGuard<'_, BuildMeta> {
+    self.build_meta.read()
   }
 
-  fn build_meta_mut(&mut self) -> &mut BuildMeta {
-    &mut self.build_meta
+  fn freeze_build_meta(&self) -> &triomphe::Arc<BuildMeta> {
+    self.build_meta.freeze()
   }
 }
 
@@ -876,21 +963,23 @@ impl Diagnosable for NormalModule {
 impl NormalModule {
   fn create_source(
     &self,
+    context: &str,
     content: Content,
-    source_map: Option<SourceMap<'static>>,
+    source_map: Option<SourceMap>,
   ) -> Result<BoxSource> {
     if content.is_buffer() {
       return Ok(RawBufferSource::from(content.into_bytes()).boxed());
     }
     let source_map_kind = self.get_source_map_kind();
     if source_map_kind.enabled()
-      && let Some(source_map) = source_map
+      && let Some(mut source_map) = source_map
     {
+      contextify_source_map(context, &mut source_map);
       let content = content.into_string_lossy();
       return Ok(
         SourceMapSource::new(WithoutOriginalOptions {
           value: content,
-          name: self.request(),
+          name: contextify_source_url(context, self.request()),
           source_map,
         })
         .boxed(),
@@ -899,7 +988,9 @@ impl NormalModule {
     if source_map_kind.enabled()
       && let Content::String(content) = content
     {
-      return Ok(OriginalSource::new(content, self.request()).boxed());
+      return Ok(
+        OriginalSource::new(content, contextify_source_url(context, self.request())).boxed(),
+      );
     }
     Ok(RawStringSource::from(content.into_string_lossy()).boxed())
   }

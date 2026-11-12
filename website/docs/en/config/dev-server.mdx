@@ -2,10 +2,8 @@
 description: 'Configure @rspack/dev-server for local development and preview.'
 ---
 
-import WebpackLicense from '@components/WebpackLicense';
+import Attribution from '@components/Attribution';
 import { Tabs, Tab } from '@theme';
-
-<WebpackLicense from="https://webpack.js.org/configuration/dev-server/" />
 
 # DevServer
 
@@ -838,9 +836,6 @@ It also allows you to set additional [TLS options](https://nodejs.org/api/tls.ht
 ```js title="rspack.config.mjs"
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
   devServer: {
@@ -848,10 +843,10 @@ export default {
       type: 'https',
       options: {
         minVersion: 'TLSv1.1',
-        key: fs.readFileSync(path.join(__dirname, './server.key')),
-        pfx: fs.readFileSync(path.join(__dirname, './server.pfx')),
-        cert: fs.readFileSync(path.join(__dirname, './server.crt')),
-        ca: fs.readFileSync(path.join(__dirname, './ca.pem')),
+        key: fs.readFileSync(path.join(import.meta.dirname, './server.key')),
+        pfx: fs.readFileSync(path.join(import.meta.dirname, './server.pfx')),
+        cert: fs.readFileSync(path.join(import.meta.dirname, './server.crt')),
+        ca: fs.readFileSync(path.join(import.meta.dirname, './ca.pem')),
         passphrase: '@rspack/dev-server',
         requestCert: true,
       },
@@ -1237,3 +1232,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.js.org/configuration/dev-server/" />

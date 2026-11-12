@@ -14,6 +14,45 @@ on:
         type: string
 
 jobs:
+  watcher-rename-windows:
+    name: Native watcher rename regression (Windows)
+    if: inputs.target == 'x86_64-pc-windows-msvc'
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
+      PUPPETEER_SKIP_DOWNLOAD: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref }}
+          clean: ${{ runner.environment == 'github-hosted' }}
+
+      - name: Download bindings
+        uses: ./.github/actions/artifact/download
+        with:
+          name: bindings-${{ inputs.target }}
+          path: crates/node_binding/
+
+      - name: Setup Pnpm
+        timeout-minutes: 5
+        uses: ./.github/actions/pnpm/setup
+        with:
+          node-version: 22
+
+      - name: Pnpm Install
+        run: pnpm i
+
+      - name: Build JavaScript packages
+        run: pnpm run build:js
+
+      - name: Verify rename aggregation and replacement
+        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t "native-watcher-rename"
+
   e2e:
     name: E2E Testing
     if: inputs.target == 'x86_64-unknown-linux-gnu' || inputs.target == 'wasm32-wasip1-threads'
@@ -52,11 +91,11 @@ jobs:
       - name: Pnpm Install
         run: pnpm i
 
-      - name: Calculate Node Bin Path
-        id: calculate-node-bin-path
+      - name: Calculate Node.js and pnpm Bin Paths
+        id: calculate-bin-paths
         run: |
-          NODE_BIN_PATH=$(dirname $(which node))
-          echo "path=$NODE_BIN_PATH" >> $GITHUB_OUTPUT
+          echo "node=$(dirname "$(command -v node)")" >> "$GITHUB_OUTPUT"
+          echo "pnpm=$(dirname "$(command -v pnpm)")" >> "$GITHUB_OUTPUT"
 
       - name: Run e2e
         uses: ./.github/actions/docker/run
@@ -64,12 +103,12 @@ jobs:
         with:
           # Jammy uses ubuntu 22.04
           # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
-          image: mcr.microsoft.com/playwright:v1.60.0-jammy
+          image: mcr.microsoft.com/playwright:v1.65.0-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker/run
-          # .tool_cache is required by pnpm
+          # The tool cache contains both Node.js and pnpm.
           options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
           script: |
-            export PATH=${{ steps.calculate-node-bin-path.outputs.path }}:$PATH
+            export PATH="${{ steps.calculate-bin-paths.outputs.node }}:${{ steps.calculate-bin-paths.outputs.pnpm }}:$PATH"
             pnpm run build:js
             pnpm run test:e2e
 
@@ -79,12 +118,12 @@ jobs:
         with:
           # Jammy uses ubuntu 22.04
           # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
-          image: mcr.microsoft.com/playwright:v1.60.0-jammy
+          image: mcr.microsoft.com/playwright:v1.65.0-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker/run
-          # .tool_cache is required by pnpm
+          # The tool cache contains both Node.js and pnpm.
           options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
           script: |
-            export PATH=${{ steps.calculate-node-bin-path.outputs.path }}:$PATH
+            export PATH="${{ steps.calculate-bin-paths.outputs.node }}:${{ steps.calculate-bin-paths.outputs.pnpm }}:$PATH"
             export WASM=1
             pnpm run build:js
             pnpm run test:e2e-browser
@@ -97,6 +136,8 @@ jobs:
         node: ${{ fromJSON(
           inputs.target == 'wasm32-wasip1-threads'&& '[24]'
           || inputs.target == 'riscv64gc-unknown-linux-gnu' && '[22]'
+          || inputs.target == 'powerpc64le-unknown-linux-gnu' && '[22]'
+          || inputs.target == 's390x-unknown-linux-gnu' && '[22]'
           || contains(inputs.target, 'linux') && '[22, 24]'
           || '[22]') }}
     name: Test Node ${{ matrix.node }}

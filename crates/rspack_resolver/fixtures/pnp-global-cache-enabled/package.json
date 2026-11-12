@@ -1,0 +1,8 @@
+{
+  "name": "pnp",
+  "packageManager": "yarn@4.3.1",
+  "dependencies": {
+    "is-odd": "^1.0.0",
+    "path-to-regexp": "1.9.0"
+  }
+}

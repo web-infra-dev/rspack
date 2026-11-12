@@ -1,0 +1,48 @@
+import type { HttpUriOptions } from '@rspack/core';
+
+type MockFile = {
+  status: number;
+  headers: Record<string, string>;
+  content: string;
+};
+
+const mockFiles: Partial<Record<string, MockFile>> = {
+  '/allowed-module.js': {
+    status: 200,
+    headers: { 'content-type': 'application/javascript' },
+    content: 'module.exports = "This module is from an allowed URI";',
+  },
+  '/regex-module.js': {
+    status: 200,
+    headers: { 'content-type': 'application/javascript' },
+    content: 'module.exports = "This module is from a regex-matched URI";',
+  },
+  '/restricted-module.js': {
+    status: 200,
+    headers: { 'content-type': 'application/javascript' },
+    content: 'module.exports = "This module is from a restricted URI";',
+  },
+};
+
+const httpClient: NonNullable<HttpUriOptions['httpClient']> = async (url) => {
+  const parsedUrl = new URL(url);
+  const pathname = parsedUrl.pathname;
+
+  if (mockFiles[pathname]) {
+    const mockFile = mockFiles[pathname];
+
+    return {
+      status: mockFile.status,
+      headers: mockFile.headers,
+      body: Buffer.from(mockFile.content),
+    };
+  }
+
+  return {
+    status: 404,
+    headers: { 'content-type': 'text/plain' },
+    body: Buffer.from(`Not found: ${pathname}`),
+  };
+};
+
+export default httpClient;

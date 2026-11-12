@@ -11,7 +11,7 @@ it("should work with css", async () => {
 
 	const computedStyle = getComputedStyle(document.body);
 
-	expect(computedStyle.getPropertyValue("background")).toBe("green");
+	expect(computedStyle.getPropertyValue("background-color")).toBe("rgb(0, 128, 0)");
 	expect(computedStyle.getPropertyValue("color")).toBe("rgb(255, 255, 0)");
 
 	await import("./async.css").then(x => {
@@ -19,7 +19,7 @@ it("should work with css", async () => {
 
 		const style = getComputedStyle(document.body);
 
-		expect(style.getPropertyValue("background")).toBe("yellow");
+		expect(style.getPropertyValue("background-color")).toBe("rgb(255, 255, 0)");
 		expect(style.getPropertyValue("color")).toBe("rgb(0, 128, 0)");
 	});
 });

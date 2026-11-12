@@ -1,22 +1,33 @@
-use cow_utils::CowUtils;
+use std::sync::LazyLock;
+
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency,
-  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleDependency, ModuleIdentifier,
-  TemplateContext, TemplateReplaceSource,
+  AsContextDependency, CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation,
+  CssExportType, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ModuleDependency,
+  ModuleIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+};
+use rspack_hash::{RspackHasher, rspack_hash_object};
+use rspack_util::placeholder::PlaceholderFinder;
+
+use crate::{
+  css_syntax::serialize_url_value,
+  parser_and_generator::CssParserAndGenerator,
+  utils::{AUTO_PUBLIC_PATH_PLACEHOLDER, RUNTIME_PUBLIC_PATH_PLACEHOLDER, css_module_export_type},
 };
 
-use crate::utils::{AUTO_PUBLIC_PATH_PLACEHOLDER, css_escape_string};
+static ASSET_AUTO_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new("__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__"));
 
+/// An asset reference, for example `background: url("./logo.png")`.
+/// Resolves the asset module and replaces only the URL with its emitted URL.
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CssUrlDependency {
   id: DependencyId,
   request: String,
   range: DependencyRange,
   replace_function: bool,
-  factorize_info: FactorizeInfo,
 }
 
 impl CssUrlDependency {
@@ -26,7 +37,6 @@ impl CssUrlDependency {
       range,
       id: DependencyId::new(),
       replace_function,
-      factorize_info: Default::default(),
     }
   }
 
@@ -34,18 +44,42 @@ impl CssUrlDependency {
     &self,
     identifier: &ModuleIdentifier,
     compilation: &Compilation,
+    runtime_public_path: bool,
   ) -> Option<String> {
     // url points to asset modules, and asset modules should have same codegen results for all runtimes
     let code_gen_result = compilation.code_generation_results.get_one(identifier);
 
-    if let Some(url) = code_gen_result.data.get::<CodeGenerationDataUrl>() {
-      Some(url.inner().to_string())
-    } else if let Some(data) = code_gen_result.data.get::<CodeGenerationDataFilename>() {
+    // When enabled, injected asset URLs use import.meta.rspackPublicPath.
+    // An explicit asset generator publicPath still takes precedence.
+    if runtime_public_path
+      && let Some(data) = code_gen_result.data().get::<CodeGenerationDataFilename>()
+      && let Some(module) = compilation
+        .get_module_graph()
+        .module_by_identifier(identifier)
+      && module
+        .as_normal_module()
+        .and_then(|module| module.get_generator_options())
+        .and_then(|options| options.asset_public_path())
+        .is_none()
+    {
+      let filename = code_gen_result
+        .data()
+        .get::<CodeGenerationDataUrl>()
+        .and_then(|url| url.inner().strip_prefix(data.public_path()))
+        .unwrap_or_else(|| data.filename());
+      return Some(format!("{RUNTIME_PUBLIC_PATH_PLACEHOLDER}{filename}"));
+    }
+
+    if let Some(url) = code_gen_result.data().get::<CodeGenerationDataUrl>() {
+      Some(
+        ASSET_AUTO_PUBLIC_PATH_MATCHER
+          .replace(url.inner(), AUTO_PUBLIC_PATH_PLACEHOLDER)
+          .into_owned(),
+      )
+    } else if let Some(data) = code_gen_result.data().get::<CodeGenerationDataFilename>() {
       let filename = data.filename();
-      let public_path = data.public_path().cow_replace(
-        "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__",
-        AUTO_PUBLIC_PATH_PLACEHOLDER,
-      );
+      let public_path =
+        ASSET_AUTO_PUBLIC_PATH_MATCHER.replace(data.public_path(), AUTO_PUBLIC_PATH_PLACEHOLDER);
       Some(format!("{public_path}{filename}"))
     } else {
       None
@@ -72,7 +106,8 @@ impl Dependency for CssUrlDependency {
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
-    rspack_core::AffectType::True
+    // A changed URL can also affect parents embedding this stylesheet.
+    rspack_core::AffectType::Transitive
   }
 }
 
@@ -85,18 +120,33 @@ impl ModuleDependency for CssUrlDependency {
   fn user_request(&self) -> &str {
     &self.request
   }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
-  }
 }
 
 #[cacheable_dyn]
 impl DependencyCodeGeneration for CssUrlDependency {
+  fn update_hash(
+    &self,
+    hasher: &mut RspackHasher,
+    compilation: &Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+    rspack_hash_object!(hasher, {
+      "request" => &self.request,
+      "range" => (self.range.start, self.range.end),
+      "replaceFunction" => self.replace_function,
+    });
+    // The emitted URL can contain the asset's content hash. Its build hash is
+    // available before codegen, unlike the generated filename or runtime hash.
+    if let Some(module) = compilation
+      .get_module_graph()
+      .get_module_by_dependency_id(&self.id)
+    {
+      rspack_hash_object!(hasher, {
+        "buildHash" => &module.build_info().hash,
+      });
+    }
+  }
+
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(CssUrlDependencyTemplate::template_type())
   }
@@ -126,13 +176,25 @@ impl DependencyTemplate for CssUrlDependencyTemplate {
       .downcast_ref::<CssUrlDependency>()
       .expect("CssUrlDependencyTemplate should be used for CssUrlDependency");
 
+    let module = code_generatable_context.module;
+    let runtime_public_path = css_module_export_type(module) == Some(CssExportType::Style)
+      && module
+        .as_normal_module()
+        .and_then(|module| {
+          module
+            .parser_and_generator()
+            .downcast_ref::<CssParserAndGenerator>()
+        })
+        .is_some_and(|parser_and_generator| parser_and_generator.runtime_public_path);
+
     let TemplateContext { compilation, .. } = code_generatable_context;
     if let Some(mgm) = compilation
       .get_module_graph()
       .module_graph_module_by_dependency_id(dep.id())
-      && let Some(target_url) = dep.get_target_url(&mgm.module_identifier, compilation)
+      && let Some(target_url) =
+        dep.get_target_url(&mgm.module_identifier, compilation, runtime_public_path)
     {
-      let target_url = css_escape_string(&target_url);
+      let target_url = serialize_url_value(&target_url);
       let content = if dep.replace_function {
         format!("url({target_url})")
       } else {

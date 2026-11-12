@@ -1,5 +1,5 @@
 use rspack_cacheable::{cacheable, with::AsPreset};
-use rspack_util::atom::Atom;
+use rspack_intern::Atom;
 
 #[cacheable]
 #[derive(Debug, Clone)]

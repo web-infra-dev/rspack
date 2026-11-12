@@ -1,75 +1,184 @@
 import path from 'node:path';
-import rspack, {
+import {
+  rspack,
+  type MultiStats,
   type RspackOptions,
   type Stats,
   type StatsCompilation,
 } from '@rspack/core';
-import { isJavaScript } from '../helper';
+import fs from 'fs-extra';
+import { isJavaScript, RSPACK_CONFIG_FILES } from '../helper';
+import { getCacheStats } from '../helper/cache';
 import { normalizePlaceholder } from '../helper/expect/placeholder';
 import { HotUpdatePlugin } from '../helper/hot-update';
 import { checkArrayExpectation } from '../helper/legacy/checkArrayExpectation';
 import { NodeRunner } from '../runner';
 import { BasicCaseCreator } from '../test/creator';
-import type {
-  IModuleScope,
-  ITestContext,
-  ITestEnv,
-  ITestProcessor,
-} from '../type';
+import type { ITestContext, ITestEnv, ITestProcessor } from '../type';
 import { afterExecute, build, check, compiler, config, run } from './common';
 import { cachedStats } from './runner';
 
 type TTarget = RspackOptions['target'];
+
+export type TCacheCaseOptions = {
+  /** Enable persistent newCache, restart unchanged cases, and check cache hits. */
+  newCache?: boolean;
+};
+
+interface CacheState {
+  compilerIndex: number;
+  nextStart: (advance?: boolean) => Promise<StatsCompilation>;
+  nextHmr: (module: any, options?: any) => Promise<StatsCompilation>;
+}
 
 function createCacheProcessor(
   name: string,
   src: string,
   temp: string,
   target: TTarget,
+  caseOptions: TCacheCaseOptions,
 ): ITestProcessor {
-  const updatePlugin = new HotUpdatePlugin(src, temp);
-  return {
-    before: async (context: ITestContext) => {
-      await updatePlugin.initialize();
-      context.setValue('hotUpdateContext', updatePlugin);
+  const compileTemp = caseOptions.newCache ? path.join(temp, 'src') : temp;
+  const updatePlugin = new HotUpdatePlugin(src, compileTemp);
+  const base: ITestProcessor = {
+    config: async (context) => {
+      context
+        .getCompiler()
+        .setOptions(
+          await generateOptions(
+            context,
+            compileTemp,
+            target,
+            updatePlugin,
+            !!caseOptions.newCache,
+          ),
+        );
     },
-    config: async (context: ITestContext) => {
-      const compiler = context.getCompiler();
-      const options = await generateOptions(
-        context,
-        temp,
-        target,
-        updatePlugin,
-      );
-      compiler.setOptions(options);
-    },
-    compiler: async (context: ITestContext) => {
+    compiler: async (context) => {
       await compiler(context, name);
     },
-    build: async (context: ITestContext) => {
+    build: async (context) => {
       await build(context, name);
     },
-    run: async (env: ITestEnv, context: ITestContext) => {
+    run: async (env, context) => {
       await run(env, context, name, (context) =>
         findBundle(name, target, context),
       );
     },
-    check: async (env: ITestEnv, context: ITestContext) => {
+    check: async (env, context) => {
       await check(env, context, name);
-      const stats = context.getCompiler().getStats();
-      if (stats) {
-        matchStatsSnapshot(
-          env,
-          context.getSource(),
-          updatePlugin.getUpdateIndex(),
-          stats as Stats,
-        );
-      }
     },
-    after: async (context: ITestContext) => {
+    after: async (context) => {
       await afterExecute(context, name);
     },
-    afterAll: (context: ITestContext) => {
+  };
+  let buildIndex = 0;
+  let testEnv: ITestEnv;
+
+  const checkCache = (
+    env: ITestEnv,
+    context: ITestContext,
+    unchanged = false,
+  ) => {
+    const stats = context.getCompiler().getStats()!;
+    if (!caseOptions.newCache) {
+      if (!unchanged)
+        matchStatsSnapshot(env, src, updatePlugin.getUpdateIndex(), stats);
+      return;
+    }
+    const cacheStats = getCacheStats(stats);
+    fs.outputJsonSync(
+      context.getTemp(`cache-stats/${buildIndex}.json`)!,
+      cacheStats,
+      { spaces: 2 },
+    );
+    env
+      .expect(JSON.stringify(cacheStats, null, 2))
+      .toMatchFileSnapshotSync(
+        path.join(src, '__snapshots__', `cache-stats-${buildIndex}.txt`),
+      );
+  };
+
+  return {
+    before: async (context) => {
+      await updatePlugin.initialize();
+      const state: CacheState = {
+        compilerIndex: 0,
+        nextStart: async (advance = true) => {
+          const env = testEnv;
+          if (state.compilerIndex >= 100) {
+            throw new Error('NEXT_START has been called more than 100 times');
+          }
+          const manager = context.getCompiler();
+          // close() flushes the filesystem cache before a fresh compiler reads it.
+          await manager.close();
+          const advanceUpdate = !!(
+            advance &&
+            (!caseOptions.newCache ||
+              updatePlugin.getUpdateIndex() + 1 <
+                updatePlugin.getTotalUpdates())
+          );
+          if (advanceUpdate) await updatePlugin.goNext();
+          state.compilerIndex++;
+          buildIndex++;
+          manager.createCompiler();
+          await manager.build();
+          const jsonStats = await checkRestart(env, context, advanceUpdate);
+          checkCache(env, context, !advanceUpdate);
+
+          // Every restart needs fresh runners, including every child of a MultiCompiler.
+          context.setValue('modules', []);
+          context.setValue('runned', new Set<string>());
+          context.setValue('multiFileIndexMap', {});
+          env.it(
+            `NEXT_START run with compilerIndex==${state.compilerIndex}`,
+            async () => {
+              await base.run(createRuntimeEnv(env), context);
+            },
+          );
+          return jsonStats;
+        },
+        nextHmr: async (module, options) => {
+          const env = testEnv;
+          await updatePlugin.goNext();
+          buildIndex++;
+          await context.getCompiler().build();
+          const jsonStats = await checkRestart(env, context, true);
+          checkCache(env, context);
+          const updatedModules = await module.hot.check(options || true);
+          if (!updatedModules) throw new Error('No update available');
+          return jsonStats;
+        },
+      };
+      context.setValue('cacheState', state);
+      await base.before?.(context);
+    },
+    config: async (context) => {
+      await base.config(context);
+      if (caseOptions.newCache) enableNewCache(context, temp);
+    },
+    compiler: base.compiler,
+    build: base.build,
+    run: async (env, context) => {
+      testEnv = env;
+      await base.run(createRuntimeEnv(env), context);
+    },
+    check: async (env, context) => {
+      await base.check(env, context);
+      testEnv = env;
+      if (!context.getCompiler().getStats()) return;
+      checkCache(env, context);
+      if (caseOptions.newCache) {
+        // Bundle tests run after processor.check(). Queue this after their tests
+        // so explicit NEXT_START calls take precedence over the automatic restart.
+        env.it('should restore the persistent cache on restart', async () => {
+          const state = context.getValue<CacheState>('cacheState')!;
+          if (state.compilerIndex === 0) await state.nextStart(false);
+        });
+      }
+    },
+    after: base.after,
+    afterAll: () => {
       const updateIndex = updatePlugin.getUpdateIndex();
       const totalUpdates = updatePlugin.getTotalUpdates();
       if (updateIndex + 1 !== totalUpdates) {
@@ -78,49 +187,123 @@ function createCacheProcessor(
         );
       }
     },
-  } as ITestProcessor;
+  };
+
+  async function checkRestart(
+    env: ITestEnv,
+    context: ITestContext,
+    advance: boolean,
+  ) {
+    const manager = context.getCompiler();
+    const stats = manager.getStats()!;
+    if (!advance) {
+      await base.check(env, context);
+    }
+    const jsonStats = stats.toJson({
+      assets: true,
+      chunks: true,
+      chunkModules: true,
+      modules: true,
+      entrypoints: true,
+      chunkGroups: true,
+    });
+    if (advance) {
+      const updateIndex = updatePlugin.getUpdateIndex();
+      for (const kind of ['error', 'warning'] as const) {
+        await checkArrayExpectation(
+          src,
+          jsonStats,
+          kind,
+          `${kind}s${updateIndex}`,
+          kind === 'error' ? 'Error' : 'Warning',
+          manager.getOptions(),
+        );
+      }
+    }
+    return jsonStats;
+  }
 }
 
-function getCreator(target: TTarget) {
-  if (!creators.has(target)) {
-    creators.set(
-      target,
-      new BasicCaseCreator({
-        clean: true,
-        describe: true,
-        target,
-        steps: ({ name, src, target, temp }) => [
-          createCacheProcessor(name, src, temp!, target as TTarget),
-        ],
-        runner: {
-          key: (context: ITestContext, name: string, file: string) => name,
-          runner: createRunner,
-        },
-        concurrent: true,
-      }),
-    );
-  }
-  return creators.get(target)!;
-}
+const creators = new Map<string, BasicCaseCreator>();
 
 export function createCacheCase(
   name: string,
   src: string,
   dist: string,
-  target: RspackOptions['target'],
+  target: TTarget,
   temp: string,
+  options: TCacheCaseOptions = {},
 ) {
-  const creator = getCreator(target);
+  const key = JSON.stringify([target, options]);
+  let creator = creators.get(key);
+  if (!creator) {
+    creator = new BasicCaseCreator({
+      clean: true,
+      describe: true,
+      target,
+      newCache: options.newCache,
+      steps: ({ name, src, temp }) => [
+        createCacheProcessor(name, src, temp!, target, options),
+      ],
+      runner: {
+        key: (context, name, file) => {
+          const index =
+            context.getValue<CacheState>('cacheState')!.compilerIndex;
+          return `${name}:${index}`;
+        },
+        runner: (context, name, file, env) =>
+          createRunner(context, name, file, env),
+      },
+      concurrent: true,
+    });
+    creators.set(key, creator);
+  }
   creator.create(name, src, dist, temp);
 }
 
-const creators: Map<TTarget, BasicCaseCreator> = new Map();
+function enableNewCache(context: ITestContext, temp: string) {
+  const options = context.getCompiler().getOptions();
+  const defaultNewCache = {
+    codeGeneration: true,
+    module: true,
+    devtool: true,
+    loader: true,
+    minimize: true,
+    resolver: true,
+  };
+  for (const [index, config] of (Array.isArray(options)
+    ? options
+    : [options]
+  ).entries()) {
+    config.experiments = {
+      ...config.experiments,
+      newCache: config.experiments?.newCache ?? defaultNewCache,
+    };
+    const cache = config.cache;
+    const storage = {
+      type: 'filesystem' as const,
+      directory: path.join(temp, '.cache', String(index)),
+    };
+    if (cache === undefined) {
+      // NewCache cases need filesystem storage to verify cache restoration.
+      config.cache = { type: 'persistent', storage };
+    } else if (
+      typeof cache === 'object' &&
+      cache?.type === 'persistent' &&
+      cache.storage?.directory === undefined &&
+      cache.storage?.location === undefined
+    ) {
+      // Keep the user's persistent cache options, but isolate its storage.
+      config.cache = { ...cache, storage };
+    }
+  }
+}
 
 function matchStatsSnapshot(
   env: ITestEnv,
   source: string,
   updateIndex: number,
-  stats: Stats,
+  stats: Stats | MultiStats,
 ) {
   const content = normalizePlaceholder(
     stats
@@ -149,10 +332,13 @@ async function generateOptions(
   temp: string,
   target: TTarget,
   updatePlugin: HotUpdatePlugin,
+  newCache: boolean,
 ): Promise<RspackOptions> {
   let options = {
     context: temp,
-    cache: true,
+    // Legacy cache cases default to memory cache. NewCache cases leave it
+    // unset so an explicit user configuration can take precedence.
+    ...(newCache ? {} : { cache: true }),
     devtool: false,
     output: {
       path: context.getDist(),
@@ -177,7 +363,7 @@ async function generateOptions(
   options = await config(
     context,
     'cacheCase',
-    ['rspack.config.js', 'webpack.config.js'].map((i) => path.resolve(temp, i)),
+    RSPACK_CONFIG_FILES.map((i) => path.resolve(temp, i)),
     options,
   );
 
@@ -244,132 +430,66 @@ function createRunner(
   file: string,
   env: ITestEnv,
 ) {
-  const compiler = context.getCompiler();
-  const options = compiler.getOptions() as RspackOptions;
-  let compilerIndex = 0;
+  const state = context.getValue<CacheState>('cacheState')!;
   const testConfig = context.getTestConfig();
-  const source = context.getSource();
-  const dist = context.getDist();
-  const updatePlugin = context.getValue<HotUpdatePlugin>('hotUpdateContext')!;
-  const getWebRunner = () => {
-    return new NodeRunner({
-      env,
-      stats: cachedStats(context, name),
-      cachable: false,
-      name: name,
-      runInNewContext: false,
-      testConfig: {
-        ...testConfig,
-        moduleScope(
-          ms: IModuleScope,
-          stats?: StatsCompilation,
-          options?: RspackOptions,
-        ) {
-          const moduleScope =
-            typeof testConfig.moduleScope === 'function'
-              ? testConfig.moduleScope(ms, stats, options)
-              : ms;
-
-          moduleScope.COMPILER_INDEX = compilerIndex;
-          moduleScope.NEXT_HMR = nextHmr;
-          moduleScope.NEXT_START = nextStart;
-          moduleScope.NEXT_MOVE_DIR_START = nextMoveDirStart;
-          return moduleScope;
-        },
-      },
-      source,
-      dist,
-      compilerOptions: options,
-    });
+  // Capture the generation for this runner; an old bundle may still finish
+  // its assertions after awaiting NEXT_START.
+  const compilerIndex = state.compilerIndex;
+  const scopedConfig: typeof testConfig = {
+    ...testConfig,
+    moduleScope(ms, stats, options) {
+      const scope = testConfig.moduleScope?.(ms, stats, options) || ms;
+      scope.COMPILER_INDEX = compilerIndex;
+      scope.NEXT_HMR = state.nextHmr;
+      scope.NEXT_START = () => state.nextStart();
+      return scope;
+    },
   };
+  return new NodeRunner({
+    env,
+    stats: cachedStats(context, name),
+    cachable: false,
+    name,
+    runInNewContext: false,
+    testConfig: scopedConfig,
+    source: context.getSource(),
+    dist: context.getDist(),
+    compilerOptions: context.getCompiler().getOptions(),
+  });
+}
 
-  const checkStats = async (stats: Stats) => {
-    matchStatsSnapshot(env, source, updatePlugin.getUpdateIndex(), stats);
-    const jsonStats = stats.toJson({
-      assets: true,
-      chunks: true,
-      chunkModules: true,
-      modules: true,
-      entrypoints: true,
-      chunkGroups: true,
-      // errorDetails: true
-    }) as StatsCompilation;
-    const compilerOptions = compiler.getOptions();
-    const updateIndex = updatePlugin.getUpdateIndex();
-    await checkArrayExpectation(
-      source,
-      jsonStats,
-      'error',
-      `errors${updateIndex}`,
-      'Error',
-      compilerOptions,
-    );
-    await checkArrayExpectation(
-      source,
-      jsonStats,
-      'warning',
-      `warnings${updateIndex}`,
-      'Warning',
-      compilerOptions,
-    );
-    return jsonStats;
-  };
-
-  const nextHmr = async (m: any, options?: any): Promise<StatsCompilation> => {
-    await updatePlugin.goNext();
-    const stats = await compiler.build();
-    const jsonStats = await checkStats(stats);
-
-    const updatedModules = await m.hot.check(options || true);
-    if (!updatedModules) {
-      throw new Error('No update available');
+// Keep bundle hooks local to one compiler generation. Orchestration tests must
+// not execute a case's beforeEach/afterEach, or accumulate hooks after a restart.
+function createRuntimeEnv(env: ITestEnv): ITestEnv {
+  type TestFn = (done?: (error?: Error) => void) => unknown;
+  const before: TestFn[] = [];
+  const after: TestFn[] = [];
+  const execute = async (fn: TestFn) => {
+    if (fn.length) {
+      await new Promise<void>((resolve, reject) => {
+        fn((error) => (error ? reject(error) : resolve()));
+      });
+    } else {
+      await fn();
     }
-
-    return jsonStats as StatsCompilation;
   };
-
-  const nextStart = async (): Promise<StatsCompilation> => {
-    await compiler.close();
-
-    await updatePlugin.goNext();
-    compilerIndex++;
-
-    compiler.createCompiler();
-    const stats = await compiler.build();
-    const jsonStats = await checkStats(stats);
-
-    env.it(`NEXT_START run with compilerIndex==${compilerIndex}`, async () => {
-      return getWebRunner().run(file);
-    });
-    return jsonStats;
+  return {
+    ...env,
+    beforeEach: (fn: TestFn) => {
+      before.push(fn);
+    },
+    afterEach: (fn: TestFn) => {
+      after.push(fn);
+    },
+    it: (name: string, fn: TestFn) => {
+      env.it(name, async () => {
+        for (const hook of before) await execute(hook);
+        try {
+          await execute(fn);
+        } finally {
+          for (const hook of after) await execute(hook);
+        }
+      });
+    },
   };
-
-  const nextMoveDirStart = async (): Promise<StatsCompilation> => {
-    await compiler.close();
-
-    const tempDir = await updatePlugin.moveTempDir();
-    const options = await generateOptions(
-      context,
-      tempDir,
-      compiler.getOptions().target,
-      updatePlugin,
-    );
-    compiler.setOptions(options);
-    await updatePlugin.goNext();
-    compilerIndex++;
-
-    compiler.createCompiler();
-    const stats = await compiler.build();
-    const jsonStats = await checkStats(stats);
-
-    env.it(
-      `NEXT_MOVE_DIR_START run with compilerIndex==${compilerIndex}`,
-      async () => {
-        return getWebRunner().run(file);
-      },
-    );
-    return jsonStats;
-  };
-
-  return getWebRunner();
 }

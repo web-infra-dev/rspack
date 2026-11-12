@@ -14,7 +14,7 @@ it("basic", () => {
 	expect(map.file).toEqual("bundle0.css");
 	expect(map.sourcesContent).toEqual([
 		fs.readFileSync(
-			__dirname + "/" + require("!!./index.less?resource"),
+			__dirname + "/" + require("!./index.less?resource"),
 			"utf-8"
 		)
 	]);

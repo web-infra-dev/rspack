@@ -1,4 +1,4 @@
-# Compilation Passes Architecture
+# Compilation passes architecture
 
 This document describes the modular architecture of the compilation process in rspack.
 
@@ -6,7 +6,7 @@ This document describes the modular architecture of the compilation process in r
 
 The compilation process is organized into independent modules, each responsible for a specific phase or pass. This modular design improves code maintainability, testability, and allows for better separation of concerns.
 
-## Module Structure
+## Module structure
 
 ```
 compilation/
@@ -38,12 +38,12 @@ compilation/
 └── after_seal/                   # afterSeal hook
 ```
 
-## Pass Entry
+## Pass entry
 
 - `Compiler::compile` builds `CompilationParams`, fires `thisCompilation` then `compilation` compiler hooks (binding safety for JS), and delegates to `Compilation::run_passes`.
 - `Compilation::run_passes` performs the make and seal stages using the order below.
 
-## Pass Order (Compilation::run_passes)
+## Pass order (Compilation::run_passes)
 
 `run_passes` orchestrates the full pipeline (make + seal) in this order:
 

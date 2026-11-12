@@ -4,7 +4,9 @@
 
 
 ## Asset Files
-
+- Bundle: async-shared_js.chunk.mjs
+- Bundle: main.mjs
+- Bundle: runtime.mjs
 
 ## Manifest
 

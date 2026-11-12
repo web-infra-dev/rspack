@@ -28,3 +28,19 @@ it('resolves import.meta.rstest with the source module path', () => {
 		),
 	);
 });
+
+it('returns undefined when the runtime resolver is unavailable', () => {
+	const resolver = globalThis['@rstest/core/import-meta'];
+	delete globalThis['@rstest/core/import-meta'];
+	try {
+		const bundlePath = path.resolve(__dirname, 'withoutResolver.js');
+		const result = eval('require')(bundlePath);
+
+		expect(result.direct).toBeUndefined();
+		expect(result.optional).toBeUndefined();
+		expect(result.type).toBe('undefined');
+		expect(result.branch).toBe(false);
+	} finally {
+		globalThis['@rstest/core/import-meta'] = resolver;
+	}
+});

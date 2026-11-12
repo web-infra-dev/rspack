@@ -6,7 +6,7 @@ use rspack_core::{
 use rspack_hash::{RspackHash, RspackHasher};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ModuleArgumentDependency {
   id: Option<String>,
   range: DependencyRange,
@@ -16,10 +16,6 @@ pub struct ModuleArgumentDependency {
 impl ModuleArgumentDependency {
   pub fn new(id: Option<String>, range: DependencyRange, loc: Option<DependencyLocation>) -> Self {
     Self { id, range, loc }
-  }
-
-  pub fn loc(&self) -> Option<DependencyLocation> {
-    self.loc.clone()
   }
 }
 
@@ -89,19 +85,12 @@ impl DependencyTemplate for ModuleArgumentDependencyTemplate {
       .expect("ModuleArgumentDependencyTemplate should be used for ModuleArgumentDependency");
 
     let TemplateContext {
-      compilation,
       module,
       runtime_template,
       ..
     } = code_generatable_context;
 
-    let module_argument = runtime_template.render_module_argument(
-      compilation
-        .get_module_graph()
-        .module_by_identifier(&module.identifier())
-        .expect("should have mgm")
-        .get_module_argument(),
-    );
+    let module_argument = runtime_template.render_module_argument(module.get_module_argument());
 
     let content = if let Some(id) = &dep.id {
       match id.as_str() {

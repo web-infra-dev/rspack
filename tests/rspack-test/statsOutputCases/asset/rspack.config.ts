@@ -1,0 +1,43 @@
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  mode: 'production',
+  entry: './index.js',
+  module: {
+    rules: [
+      {
+        test: /\.(png|jpg|svg)$/,
+        type: 'asset',
+      },
+      {
+        test: /\.html$/,
+        type: 'asset/resource',
+        generator: {
+          filename: 'static/[name][ext]',
+        },
+      },
+      {
+        test: /\.css$/,
+        type: 'asset/inline',
+      },
+      {
+        test: /\.source\.js$/,
+        type: 'asset/source',
+      },
+      {
+        mimetype: 'text/plain',
+        type: 'asset',
+      },
+    ],
+  },
+  optimization: {
+    concatenateModules: false,
+  },
+  output: {
+    filename: 'bundle.js',
+  },
+  stats: {
+    assets: true,
+    modules: true,
+  },
+});

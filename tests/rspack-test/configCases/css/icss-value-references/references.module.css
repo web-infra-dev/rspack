@@ -1,0 +1,40 @@
+@value mq: (max-width: 599px);
+@value selector: .globalThing;
+@value supportsCondition: (display: grid);
+@value other-selector, reexport-selector from "./selectors.module.css";
+
+@media mq {
+	.inMedia { color: red; }
+}
+
+selector { color: blue; }
+
+article selector, section > selector {
+	color: blue;
+}
+
+:is(selector) {
+	color: blue;
+}
+
+.container {
+	& selector {
+		color: blue;
+	}
+	@media screen and mq {
+		color: red;
+	}
+}
+
+@supports supportsCondition {
+	.supported { display: grid; }
+}
+
+article other-selector, section > reexport-selector {
+	color: blue;
+}
+
+.unchanged {
+	selector: blue;
+	content: "selector mq";
+}

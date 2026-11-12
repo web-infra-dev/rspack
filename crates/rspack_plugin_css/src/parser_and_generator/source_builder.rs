@@ -1,9 +1,7 @@
-use cow_utils::CowUtils;
 use rspack_core::{
   Context, CssLayer, CssModuleRenderCondition,
   rspack_sources::{
-    BoxSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, ReplaceSource, Source,
-    SourceExt,
+    BoxSource, ConcatSource, MapOptions, RawStringSource, ReplaceSource, Source, SourceExt,
   },
 };
 use rspack_util::{base64::encode_to_string, identifier::make_paths_relative};
@@ -114,13 +112,11 @@ impl CssSourceBuilder {
     let include_sources_content = self.include_sources_content;
     let source_map_context = self.source_map_context.clone();
     let source = self.into_source();
-    let mut css_text = source
-      .source()
-      .into_string_lossy()
-      .cow_replace(crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER, "")
+    let mut css_text = crate::utils::AUTO_PUBLIC_PATH_MATCHER
+      .replace(&source.source().into_string_lossy(), "")
       .into_owned();
 
-    if let Some(mut source_map) = source.map(&ObjectPool::default(), &MapOptions::default()) {
+    if let Some(mut source_map) = source.map(&MapOptions::default()) {
       if !source_map_context.as_str().is_empty() {
         source_map.set_sources(
           source_map
@@ -198,25 +194,23 @@ mod tests {
     assert!(warnings.is_empty());
 
     deps
-      .into_iter()
+      .iter()
       .filter_map(|dep| match dep {
-        css_module_lexer::Dependency::Import {
-          media,
-          supports,
-          layer,
-          ..
-        } => Some(CssModuleRenderCondition::new(
-          media.map(|media| media.trim().into()),
-          supports.map(|supports| supports.trim().into()),
-          layer.map(|layer| {
-            let layer = layer.trim();
-            if layer.is_empty() {
-              CssLayer::Anonymous
-            } else {
-              CssLayer::Named(layer.into())
-            }
-          }),
-        )),
+        css_module_lexer::Dependency::Import { attributes, .. } => {
+          let attributes = deps.import_attributes(*attributes);
+          Some(CssModuleRenderCondition::new(
+            attributes.media().map(|media| media.trim().into()),
+            attributes.supports().map(|supports| supports.trim().into()),
+            attributes.layer().map(|layer| {
+              let layer = layer.trim();
+              if layer.is_empty() {
+                CssLayer::Anonymous
+              } else {
+                CssLayer::Named(layer.into())
+              }
+            }),
+          ))
+        }
         _ => None,
       })
       .collect()

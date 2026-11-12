@@ -1,0 +1,221 @@
+# Case defer-import: Step 1
+
+## Changed Files
+- consumer.js
+- deferred.js
+
+## Asset Files
+- Bundle: bundle.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: main.LAST_HASH.hot-update.js, size: 6075
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./consumer.js
+- ./deferred.js
+- ./pending.js
+
+#### Changed Runtime Modules
+- webpack/runtime/create_fake_namespace_object
+- webpack/runtime/get_full_hash
+- webpack/runtime/make_deferred_namespace_object
+- webpack/runtime/make_optimized_deferred_namespace_object
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {
+"./consumer.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+var _deferred__rspack_DEFERRED_import_0_deferred_namespace_cache;
+var _pending__rspack_DEFERRED_import_1_deferred_namespace_cache;
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  getNamespaces: () => (getNamespaces)
+});
+/* deferred import */var _deferred__rspack_DEFERRED_import_0 = __webpack_require__.zO("./deferred.js", 8);
+/* deferred import */var _pending__rspack_DEFERRED_import_1 = __webpack_require__.zO("./pending.js", 8);
+
+
+
+const getNamespaces = () => [/*#__PURE__*/ (_deferred__rspack_DEFERRED_import_0_deferred_namespace_cache || (_deferred__rspack_DEFERRED_import_0_deferred_namespace_cache = __webpack_require__.z("./deferred.js", 8))), /*#__PURE__*/ (_pending__rspack_DEFERRED_import_1_deferred_namespace_cache || (_pending__rspack_DEFERRED_import_1_deferred_namespace_cache = __webpack_require__.z("./pending.js", 8)))];
+
+
+},
+"./deferred.js"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  increment: () => (increment),
+  value: () => (value)
+});
+/* import */ var _state__rspack_import_0 = __webpack_require__("./state.js");
+
+
+_state__rspack_import_0.evaluations.push("deferred 1");
+let value = 1;
+const increment = () => value++;
+module.hot.accept();
+
+
+},
+"./pending.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
+/* import */ var _state__rspack_import_0 = __webpack_require__("./state.js");
+
+
+_state__rspack_import_0.evaluations.push("pending");
+const value = 42;
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/create_fake_namespace_object
+(() => {
+var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
+var leafPrototypes;
+// create a fake namespace object
+// mode & 1: value is a module id, require it
+// mode & 2: merge all properties of value into the ns
+// mode & 4: return value when already ns object
+// mode & 16: return value when it's Promise-like
+// mode & 8|1: behave like require
+__webpack_require__.t = function(value, mode) {
+	if(mode & 1) value = this(value);
+	if(mode & 8) return value;
+	if(typeof value === 'object' && value) {
+		if((mode & 4) && value.__esModule) return value;
+		if((mode & 16) && typeof value.then === 'function') return value;
+	}
+	var ns = Object.create(null);
+  __webpack_require__.r(ns);
+	var def = {};
+	leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];
+	for(var current = mode & 2 && value; (typeof current == 'object' || typeof current == 'function') && !~leafPrototypes.indexOf(current); current = getProto(current)) {
+		Object.getOwnPropertyNames(current).forEach((key) => { def[key] = () => (value[key]) });
+	}
+	def['default'] = () => (value);
+	__webpack_require__.d(ns, def);
+	return ns;
+};
+})();
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/make_deferred_namespace_object
+(() => {
+__webpack_require__.z = (moduleId, mode) => {
+  var cachedModule = __webpack_require__.c[moduleId];
+  if (cachedModule && cachedModule.error === undefined) {
+    var exports = cachedModule.exports;
+    
+    if (mode & 8) return exports;
+    return __webpack_require__.t(exports, mode);
+  }
+  var init = () => {
+    ns = __webpack_require__(moduleId);
+    
+    init = null;
+    if (mode & 8 || mode & 4 && ns.__esModule && typeof ns === 'object') {
+      delete handler.defineProperty;
+      delete handler.deleteProperty;
+      delete handler.set;
+      delete handler.get;
+      delete handler.has;
+      delete handler.ownKeys;
+      delete handler.getOwnPropertyDescriptor;
+    } else {
+      ns = __webpack_require__.t(ns, mode);
+    }
+  };
+  var ns = __webpack_require__.zD[moduleId] || (__webpack_require__.zD[moduleId] = { __proto__: null });
+  var handler = {
+    __proto__: null,
+    get: (_, name) => {
+      switch (name) {
+        case "__esModule": return true;
+        case Symbol.toStringTag: return "Deferred Module";
+        case "then": return undefined;
+      }
+      if (init) init();
+      return ns[name];
+    },
+    has: (_, name) => {
+    	switch (name) {
+    		case "__esModule":
+    		case Symbol.toStringTag: return true;
+    		case "then": return false;
+    	}
+    	if (init) init();
+    	return name in ns;
+    },
+    ownKeys: (_) => {
+    	if (init) init();
+    	var keys = Reflect.ownKeys(ns).filter((x) => (x !== "then" && x !== Symbol.toStringTag)).concat([Symbol.toStringTag]);
+    	return keys;
+    },
+    getOwnPropertyDescriptor: (_, name) => {
+    	switch (name) {
+    		case "__esModule": return { value: true, configurable: !(mode & 8) };
+    		case Symbol.toStringTag: return { value: "Deferred Module", configurable: !(mode & 8) };
+    		case "then": return undefined;
+    	}
+    	if (init) init();
+    	var desc = Reflect.getOwnPropertyDescriptor(ns, name);
+    	if (mode & 2 && name == "default" && !desc) {
+    		desc = { value: ns, configurable: true };
+    	}
+    	return desc;
+    },
+    defineProperty: (_, name) => {
+    	if (init) init();
+    	return false;
+    },
+    deleteProperty: () => (false),
+    set: () => (false),
+  };
+  return new Proxy(ns, handler);
+}
+
+})();
+// webpack/runtime/make_optimized_deferred_namespace_object
+(() => {
+__webpack_require__.zO = function(moduleId, mode, asyncDeps) {
+	var r = __webpack_require__;
+	
+	var obj = {
+		get a() {
+			var exports = r(moduleId);
+			
+			// if exportsType is "namespace" we can generate the most optimized code,
+			// on the second access, we can avoid trigger the getter.
+			// we can also do this if exportsType is "dynamic" and there is a "__esModule" property on it.
+			if (mode & 8 || (mode & 4 && exports.__esModule)) Object.defineProperty(this, "a", { value: exports });
+			return exports;
+		}
+	};
+	
+	return obj;
+};
+
+})();
+
+}
+);
+```

@@ -3,8 +3,8 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::*;
 use crate::{
-  CodeGenerationRuntimeRequirementsWrite, RuntimeProxyMetadata, cache::Cache,
-  compilation::pass::PassExt, logger::Logger, runtime_globals::BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS,
+  CodeGenerationRuntimeRequirementsWrite, RuntimeProxyMetadata, compilation::pass::PassExt,
+  logger::Logger, runtime_globals::BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS,
   runtime_mode::RuntimeMode as ExperimentRuntimeMode,
 };
 
@@ -16,18 +16,12 @@ impl PassExt for RuntimeRequirementsPass {
     "runtime requirements"
   }
 
-  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.before_modules_runtime_requirements(compilation).await;
-    cache.before_chunks_runtime_requirements(compilation).await;
+  fn incremental_passes(&self) -> IncrementalPasses {
+    IncrementalPasses::MODULES_RUNTIME_REQUIREMENTS | IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     runtime_requirements_pass_impl(compilation).await
-  }
-
-  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
-    cache.after_modules_runtime_requirements(compilation).await;
-    cache.after_chunks_runtime_requirements(compilation).await;
   }
 }
 
@@ -586,7 +580,7 @@ pub async fn process_chunks_runtime_requirements(
           && let Some(write_requirements) = compilation
             .code_generation_results
             .get(mid, Some(referenced_chunk.runtime()))
-            .data
+            .data()
             .get::<CodeGenerationRuntimeRequirementsWrite>()
         {
           metadata

@@ -3,15 +3,24 @@ import querystring from 'node:querystring';
 import { promisify } from 'node:util';
 import { type MessagePort, receiveMessageOnPort } from 'node:worker_threads';
 
-import { JsLoaderState, type NormalModule } from '@rspack/binding';
+import { JsLoaderState } from '@rspack/binding';
+import type { NormalModule } from '../NormalModule';
 import type { LoaderContext } from '../config';
+import type { ResolveCallback } from '../config/adapterRuleUse';
+import type { ResolveRequest } from '../Resolver';
 import * as swc from '../swc';
 import { cleverMerge } from '../util/cleverMerge';
 import { createHash } from '../util/createHash';
 import { absolutify, contextify } from '../util/identifier';
 import { memoize } from '../util/memoize';
+import {
+  createCodeFilterTextCache,
+  invalidateCodeFilterTextCache,
+  matchesCodeFilter,
+} from './codeFilter';
 import loadLoader from './loadLoader';
 import {
+  deserializeError,
   isWorkerResponseErrorMessage,
   isWorkerResponseMessage,
   RequestSyncType,
@@ -26,10 +35,11 @@ import {
 } from './service';
 import { convertArgs, runSyncOrAsync } from './utils';
 
-const BUILTIN_LOADER_PREFIX = 'builtin:';
-
 interface WorkerOptions {
-  loaderContext: LoaderContext;
+  loaderContext: LoaderContext & {
+    loaderChainStart: number;
+    loaderChainEnd: number;
+  };
   loaderState: JsLoaderState;
   args: any[];
 
@@ -81,6 +91,11 @@ async function loaderImpl(
       sendRequest(RequestType.AddContextDependency, context),
     );
   };
+  loaderContext.addMissingDependency = function addMissingDependency(missing) {
+    pendingDependencyRequest.push(
+      sendRequest(RequestType.AddMissingDependency, missing),
+    );
+  };
   loaderContext.addBuildDependency = function addBuildDependency(file) {
     pendingDependencyRequest.push(
       sendRequest(RequestType.AddBuildDependency, file),
@@ -101,10 +116,11 @@ async function loaderImpl(
   loaderContext.clearDependencies = function clearDependencies() {
     pendingDependencyRequest.push(sendRequest(RequestType.ClearDependencies));
   };
+
   loaderContext.resolve = function resolve(context, request, callback) {
     sendRequest(RequestType.Resolve, context, request).then(
-      (result) => {
-        callback(null, result);
+      ([result, resolveRequest]) => {
+        callback(null, result, resolveRequest);
       },
       (err) => {
         callback(err);
@@ -112,11 +128,29 @@ async function loaderImpl(
     );
   };
   loaderContext.getResolve = function getResolve(options) {
-    return (context, request, callback) => {
+    function resolveWithOptions(
+      context: string,
+      request: string,
+      callback: ResolveCallback,
+    ): void;
+    function resolveWithOptions(
+      context: string,
+      request: string,
+    ): Promise<string | false | undefined>;
+    function resolveWithOptions(
+      context: string,
+      request: string,
+      callback?: ResolveCallback,
+    ) {
       if (!callback) {
-        return new Promise((resolve, reject) => {
-          sendRequest(RequestType.GetResolve, options, context, request).then(
-            (result) => {
+        return new Promise<string | false | undefined>((resolve, reject) => {
+          sendRequest<[string | false | undefined, ResolveRequest | undefined]>(
+            RequestType.GetResolve,
+            options,
+            context,
+            request,
+          ).then(
+            ([result]) => {
               resolve(result);
             },
             (err) => {
@@ -126,14 +160,16 @@ async function loaderImpl(
         });
       }
       sendRequest(RequestType.GetResolve, options, context, request).then(
-        (result) => {
-          callback(null, result);
+        ([result, resolveRequest]) => {
+          callback(null, result, resolveRequest);
         },
         (err) => {
           callback(err);
         },
       );
-    };
+    }
+
+    return resolveWithOptions;
   };
   loaderContext.getLogger = function getLogger(name) {
     return {
@@ -161,7 +197,7 @@ async function loaderImpl(
         sendRequest(RequestType.GetLogger, 'trace', name, ['Trace']);
       },
       clear() {
-        sendRequest(RequestType.GetLogger, 'clear', name);
+        sendRequest(RequestType.GetLogger, 'clear', name, []);
       },
       status(...args) {
         sendRequest(RequestType.GetLogger, 'status', name, args);
@@ -265,33 +301,62 @@ async function loaderImpl(
 
   loaderContext._compilation = {
     ...loaderContext._compilation,
-    getPath(filename, data) {
-      return sendRequest(RequestType.CompilationGetPath, filename, data).wait();
+    getPath(filename, data = {}) {
+      if (!data.hash) {
+        data = {
+          hash: loaderContext._compilation.hash ?? undefined,
+          ...data,
+        };
+      }
+      const template =
+        typeof filename === 'function' ? filename(data) : filename;
+      return sendRequest(RequestType.CompilationGetPath, template, data).wait();
     },
-    getPathWithInfo(filename, data) {
-      return sendRequest(
+    getPathWithInfo(filename, data = {}) {
+      if (!data.hash) {
+        data = {
+          hash: loaderContext._compilation.hash ?? undefined,
+          ...data,
+        };
+      }
+      const info = {};
+      const template =
+        typeof filename === 'function' ? filename(data, info) : filename;
+      const result = sendRequest(
         RequestType.CompilationGetPathWithInfo,
-        filename,
+        template,
         data,
+        info,
       ).wait();
+      Object.assign(info, result.info);
+      return { path: result.path, info };
     },
-    getAssetPath(filename, data) {
+    getAssetPath(filename, data = {}) {
+      const template =
+        typeof filename === 'function' ? filename(data) : filename;
       return sendRequest(
         RequestType.CompilationGetAssetPath,
-        filename,
+        template,
         data,
       ).wait();
     },
-    getAssetPathWithInfo(filename, data) {
-      return sendRequest(
+    getAssetPathWithInfo(filename, data = {}) {
+      const info = {};
+      const template =
+        typeof filename === 'function' ? filename(data, info) : filename;
+      const result = sendRequest(
         RequestType.CompilationGetAssetPathWithInfo,
-        filename,
+        template,
         data,
+        info,
       ).wait();
+      Object.assign(info, result.info);
+      return { path: result.path, info };
     },
   } as LoaderContext['_compilation'];
 
   const _module = loaderContext._module as any;
+  const buildInfo: Record<string, unknown> = { ...(_module.buildInfo ?? {}) };
   loaderContext._module = {
     type: _module.type,
     identifier() {
@@ -301,7 +366,8 @@ async function loaderImpl(
     request: _module.request,
     userRequest: _module.userRequest,
     rawRequest: _module.rawRequest,
-  } as NormalModule;
+    buildInfo,
+  } as unknown as NormalModule;
 
   // @ts-expect-error
   loaderContext.importModule = function importModule(
@@ -426,18 +492,16 @@ async function loaderImpl(
     if (!currentLoaderObject?.parallel) {
       return true;
     }
-    if (currentLoaderObject?.request.startsWith(BUILTIN_LOADER_PREFIX)) {
-      return true;
-    }
     return false;
   };
 
   // Execute loader list until the current loader object is to yield to the main
-  // thread.  This happens if the loader is marked as non-parallel or if it is a
-  // builtin loader which belongs to the rust side.
+  // thread. This happens when the loader is marked as non-parallel. The
+  // factory-prepared execution chain guarantees that this range contains only
+  // JavaScript loaders.
   switch (loaderState) {
     case JsLoaderState.Pitching: {
-      while (loaderContext.loaderIndex < loaderContext.loaders.length) {
+      while (loaderContext.loaderIndex < loaderContext.loaderChainEnd) {
         const currentLoaderObject =
           loaderContext.loaders[loaderContext.loaderIndex];
         if (shouldYieldToMainThread(currentLoaderObject)) break;
@@ -466,15 +530,32 @@ async function loaderImpl(
       break;
     }
     case JsLoaderState.Normal: {
-      while (loaderContext.loaderIndex >= 0) {
+      const codeFilterTextCache = createCodeFilterTextCache();
+      while (loaderContext.loaderIndex >= loaderContext.loaderChainStart) {
         const currentLoaderObject =
           loaderContext.loaders[loaderContext.loaderIndex];
 
-        if (shouldYieldToMainThread(currentLoaderObject)) break;
         if (currentLoaderObject.normalExecuted) {
           loaderContext.loaderIndex--;
           continue;
         }
+        const { loaderItem } = currentLoaderObject;
+        const codeFilter = loaderItem.codeFilter;
+        if (codeFilter && !loaderItem.filterMatched) {
+          const matched = matchesCodeFilter(
+            codeFilter,
+            args[0],
+            codeFilterTextCache,
+          );
+          if (matched === false) {
+            currentLoaderObject.normalExecuted = true;
+            loaderContext.loaderIndex--;
+            continue;
+          }
+          if (matched) loaderItem.filterMatched = true;
+        }
+
+        if (shouldYieldToMainThread(currentLoaderObject)) break;
 
         await loadLoaderAsync(currentLoaderObject, loaderContext._compiler);
         const fn = currentLoaderObject.normal;
@@ -482,6 +563,7 @@ async function loaderImpl(
         if (!fn) continue;
         convertArgs(args, !!currentLoaderObject.raw);
         args = (await runSyncOrAsync(fn, loaderContext, args)) || [];
+        invalidateCodeFilterTextCache(codeFilterTextCache);
       }
     }
   }
@@ -493,9 +575,12 @@ async function loaderImpl(
         data: item.loaderItem.data,
         normalExecuted: item.normalExecuted,
         pitchExecuted: item.pitchExecuted,
+        filterMatched: item.loaderItem.filterMatched,
       };
     }),
   );
+
+  sendRequest(RequestType.UpdateBuildInfo, buildInfo);
 
   return args;
 }
@@ -521,7 +606,7 @@ function handleIncomingResponses(workerMessage: WorkerMessage) {
     const callback = responseCallbacks[id];
     if (callback) {
       delete responseCallbacks[id];
-      callback(error, undefined);
+      callback(deserializeError(error), undefined);
     } else {
       throw new Error(`No callback found for response with id ${id}`);
     }
@@ -591,11 +676,14 @@ function createSendRequest(
     result.id = id;
     return result;
   }) as SendRequestFunction;
-  sendRequest.sync = createSendRequestSync(workerSyncPort);
+  sendRequest.sync = createSendRequestSync(workerPort, workerSyncPort);
   return sendRequest;
 }
 
-function createSendRequestSync(workerSyncPort: MessagePort) {
+function createSendRequestSync(
+  workerPort: MessagePort,
+  workerSyncPort: MessagePort,
+) {
   return (requestType: RequestSyncType, ...args: any[]) => {
     const id = nextId++;
 
@@ -604,7 +692,7 @@ function createSendRequestSync(workerSyncPort: MessagePort) {
     const sharedBuffer = new SharedArrayBuffer(8);
     const sharedBufferView = new Int32Array(sharedBuffer);
 
-    workerSyncPort.postMessage({
+    workerPort.postMessage({
       type: 'request-sync',
       id,
       requestType,
@@ -634,7 +722,7 @@ function createSendRequestSync(workerSyncPort: MessagePort) {
       return message.data;
     }
 
-    throw message.error;
+    throw deserializeError(message.error);
   };
 }
 

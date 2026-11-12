@@ -10,14 +10,13 @@ use once_cell::sync::OnceCell;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
-  AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
-  CompilerCompilation, Logger, Plugin,
-  cache::persistent::occasion::minimize::{
-    CachedExtractedComments, CachedMinimizeEntry, MinimizeCacheKey,
-  },
+  AssetInfo, CacheValue, ChunkUkey, Compilation, CompilationAsset, CompilationParams,
+  CompilationProcessAssets, CompilerCompilation, Etag, Logger, Plugin,
+  cache::{CachedExtractedComments, CachedMinimizeEntry},
   diagnostics::MinifyError,
+  legacy_cache::persistent::occasion::minimize::MinimizeCacheKey,
   rspack_sources::{
-    ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMapSource,
+    BoxSource, ConcatSource, MapOptions, RawStringSource, SourceExt, SourceMapSource,
     SourceMapSourceOptions,
   },
 };
@@ -29,7 +28,7 @@ use rspack_plugin_javascript::{ExtractedCommentsInfo, JavascriptModulesChunkHash
 use rspack_regex::RspackRegex;
 use rspack_util::{
   asset_condition::AssetConditions,
-  fx_hash::{FxHashMap, FxHasher},
+  fx_hash::{FxHashMap, FxHashSet, FxHasher},
 };
 use swc_config::types::BoolOrDataConfig;
 use swc_core::{
@@ -40,7 +39,6 @@ pub use swc_ecma_minifier::option::{
   MangleOptions,
   terser::{TerserCompressorOptions, TerserEcmaVersion},
 };
-use thread_local::ThreadLocal;
 
 const PLUGIN_NAME: &str = "rspack.SwcJsMinimizerRspackPlugin";
 
@@ -226,15 +224,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
 
-  // Take persistent cache out if enabled. When Some, we compute cache keys and
-  // do lookups; when None, we skip all cache overhead entirely.
-  let minimize_persistent_cache = compilation.minimize_persistent_cache_artifact.take();
-  let new_persistent_cache_entries: Mutex<Vec<(MinimizeCacheKey, CachedMinimizeEntry)>> =
+  let new_cache = compilation
+    .options
+    .experiments
+    .new_cache
+    .minimize
+    .then(|| compilation.get_cache(PLUGIN_NAME));
+  let minimize_persistent_cache = compilation.minimize_persistent_cache.take();
+  let legacy_cache_entries: Mutex<Vec<(MinimizeCacheKey, CachedMinimizeEntry)>> =
     Mutex::new(Vec::new());
   let logger = compilation.get_logger(PLUGIN_NAME);
-  let minimize_cache_counter = minimize_persistent_cache
-    .as_ref()
-    .map(|_| logger.cache("minimize persistent cache"));
+  let minimize_cache_counter = (new_cache.is_none() && minimize_persistent_cache.is_some())
+    .then(|| logger.cache("minimize persistent cache"));
 
   let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
   // collect all extracted comments info
@@ -253,7 +254,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   });
   let enter_span = tracing::Span::current();
 
-  let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
   compilation
     .assets_mut()
     .par_iter_mut()
@@ -267,68 +267,65 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       true
     })
-    .try_for_each_with(tx,|tx, (filename, original)| -> Result<()>  {
+    .try_for_each_with(tx,|tx, (asset_filename, original)| -> Result<()>  {
       let _guard = enter_span.enter();
-      let filename = filename.split('?').next().expect("Should have filename");
+      let filename = asset_filename.split('?').next().expect("Should have filename");
       if let Some(original_source) = original.get_source() {
-        let is_module = if let Some(module) = minimizer_options.module {
-          Some(module)
-        } else if let Some(module) = original.info.javascript_module {
-          Some(module)
-        } else if filename.ends_with(".mjs") {
-          Some(true)
-        } else if filename.ends_with(".cjs") {
-          Some(false)
+        let is_module = get_is_module(minimizer_options, original, filename);
+
+        let new_cache_entry = if let Some(cache) = &new_cache {
+          let etag = Etag::from(format!(
+            "{:016x}",
+            minimize_cache_hash(original_source, self.options_hash, filename, is_module)
+          ));
+          let value = cache.get::<CachedMinimizeEntry>(asset_filename, Some(etag.clone()));
+          Some((cache, etag, value))
         } else {
           None
         };
 
-        // Compute cache key and check persistent cache (only when enabled)
-        let cache_key = if let Some(cache) = &minimize_persistent_cache {
-          let key = {
-            use std::hash::Hash;
-
-            let mut hasher = FxHasher::default();
-            original_source.buffer().hash(&mut hasher);
-            self.options_hash.hash(&mut hasher);
-            filename.hash(&mut hasher);
-            is_module.hash(&mut hasher);
-            MinimizeCacheKey::new(hasher.finish())
-          };
-
-          // Check persistent cache
-          if let Some(cached) = cache.get(key) {
-            if let Some(counter) = &minimize_cache_counter {
-              counter.hit();
-            }
-            original.set_source(Some(cached.source.clone()));
-            original.get_info_mut().minimized.replace(true);
-            if let Some(ec) = &cached.extracted_comments {
-              all_extracted_comments
-                .lock()
-                .expect("all_extract_comments lock failed")
-                .insert(
-                  filename.to_string(),
-                  ExtractedCommentsInfo {
-                    source: ec.source.clone(),
-                    comments_file_name: ec.comments_file_name.clone(),
-                  },
-                );
-            }
-            return Ok(());
-          }
-
-          if let Some(counter) = &minimize_cache_counter {
-            counter.miss();
-          }
-          Some(key)
+        let mut cache_key = None;
+        let cached = if let Some((_, _, cached)) = &new_cache_entry {
+          cached.as_deref()
+        } else if let Some(cache) = &minimize_persistent_cache {
+          let key = MinimizeCacheKey::new(minimize_cache_hash(
+            original_source,
+            self.options_hash,
+            filename,
+            is_module,
+          ));
+          cache_key = Some(key);
+          cache.get(key)
         } else {
           None
         };
+        if let Some(cached) = cached {
+          if let Some(cache) = &new_cache {
+            cache.record_reuse();
+          } else if let Some(counter) = &minimize_cache_counter {
+            counter.hit();
+          }
+          original.set_source(Some(cached.source.clone()));
+          original.get_info_mut().minimized.replace(true);
+          if let Some(ec) = &cached.extracted_comments {
+            all_extracted_comments
+              .lock()
+              .expect("all_extract_comments lock failed")
+              .insert(
+                filename.to_string(),
+                ExtractedCommentsInfo {
+                  source: ec.source.clone(),
+                  comments_file_name: ec.comments_file_name.clone(),
+                },
+              );
+          }
+          return Ok(());
+        }
+        if cache_key.is_some() && let Some(counter) = &minimize_cache_counter {
+          counter.miss();
+        }
         let input = original_source.source().into_string_lossy().into_owned();
-        let object_pool = tls.get_or(ObjectPool::default);
-        let input_source_map =
-          Source::map_static(original_source.clone(), object_pool, &MapOptions::default());
+        let input_source_map = original_source.map(&MapOptions::default());
 
         let js_minify_options = rspack_javascript_compiler::minify::JsMinifyOptions {
           minify: minimizer_options.minify.unwrap_or(true),
@@ -363,7 +360,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let javascript_compiler = JavaScriptCompiler::new();
         let comments_op = |comments: &SingleThreadedComments| {
           if let Some(ref extract_comments) = extract_comments_option {
-            let mut extracted_comments = vec![];
+            let mut extracted_comments = FxHashSet::default();
             // add all matched comments to source
 
             let (leading_trivial, trailing_trivial) = comments.borrow_all();
@@ -379,9 +376,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                       format!("/*{}*/", c.text)
                     }
                   };
-                  if !extracted_comments.contains(&comment) {
-                    extracted_comments.push(comment);
-                  }
+                  extracted_comments.insert(comment);
                 }
               });
             });
@@ -396,15 +391,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                       format!("/*{}*/", c.text)
                     }
                   };
-                  if !extracted_comments.contains(&comment) {
-                    extracted_comments.push(comment);
-                  }
+                  extracted_comments.insert(comment);
                 }
               });
             });
 
             // if not matched comments, we don't need to emit .License.txt file
             if !extracted_comments.is_empty() {
+              let mut extracted_comments = extracted_comments.into_iter().collect::<Vec<_>>();
               extracted_comments.sort();
               all_extracted_comments
                 .lock()
@@ -512,8 +506,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             },
         };
 
-        // Store result in persistent cache (only when enabled)
-        if let Some(cache_key) = cache_key {
+        if new_cache_entry.is_some() || cache_key.is_some() {
           let extracted_comments_for_cache = all_extracted_comments
             .lock()
             .expect("all_extract_comments lock failed")
@@ -522,17 +515,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               source: ec.source.clone(),
               comments_file_name: ec.comments_file_name.clone(),
             });
-
-          new_persistent_cache_entries
-            .lock()
-            .expect("new_cache_entries lock failed")
-            .push((
-              cache_key,
-              CachedMinimizeEntry {
-                source: source.clone(),
-                extracted_comments: extracted_comments_for_cache,
-              },
-            ));
+          let entry = CachedMinimizeEntry {
+            source: source.clone(),
+            extracted_comments: extracted_comments_for_cache,
+          };
+          if let Some((cache, etag, _)) = &new_cache_entry {
+            cache.store(asset_filename, Some(etag.clone()), CacheValue::new(entry));
+          } else if let Some(cache_key) = cache_key {
+            legacy_cache_entries
+              .lock()
+              .expect("legacy_cache_entries lock failed")
+              .push((cache_key, entry));
+          }
         }
 
         original.set_source(Some(source));
@@ -542,19 +536,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       Ok(())
   })?;
 
-  // Restore persistent cache with new entries (only when enabled)
   if let Some(mut cache) = minimize_persistent_cache {
-    for (key, entry) in new_persistent_cache_entries
+    for (key, entry) in legacy_cache_entries
       .into_inner()
-      .expect("new_persistent_cache_entries lock failed")
+      .expect("legacy_cache_entries lock failed")
     {
       cache.insert(key, entry);
     }
-    compilation.minimize_persistent_cache_artifact = Some(cache);
+    compilation.minimize_persistent_cache = Some(cache);
+  }
 
-    if let Some(counter) = minimize_cache_counter {
-      logger.cache_end(counter);
-    }
+  if let Some(counter) = minimize_cache_counter {
+    logger.cache_end(counter);
   }
 
   compilation.extend_diagnostics(rx.into_iter().flatten().collect::<Vec<_>>());
@@ -579,6 +572,38 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     });
 
   Ok(())
+}
+
+fn minimize_cache_hash(
+  source: &BoxSource,
+  options_hash: u64,
+  filename: &str,
+  is_module: Option<bool>,
+) -> u64 {
+  use std::hash::Hash;
+
+  let mut hasher = FxHasher::default();
+  source.buffer().hash(&mut hasher);
+  options_hash.hash(&mut hasher);
+  filename.hash(&mut hasher);
+  is_module.hash(&mut hasher);
+  hasher.finish()
+}
+
+fn get_is_module(
+  minimizer_options: &MinimizerOptions,
+  asset: &CompilationAsset,
+  filename: &str,
+) -> Option<bool> {
+  minimizer_options
+    .module
+    .or(asset.info.javascript_module)
+    .or_else(|| {
+      filename
+        .ends_with(".mjs")
+        .then_some(true)
+        .or_else(|| filename.ends_with(".cjs").then_some(false))
+    })
 }
 
 pub fn match_object(obj: &PluginOptions, str: &str) -> bool {

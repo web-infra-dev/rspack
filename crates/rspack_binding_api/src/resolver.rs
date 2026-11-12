@@ -101,7 +101,7 @@ impl JsResolver {
           )),
         }
       },
-      None::<fn()>,
+      None::<fn(&napi::Env, &mut _)>,
     )
   }
 }

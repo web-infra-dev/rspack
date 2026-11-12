@@ -35,6 +35,13 @@ export class TreeShakingSharedPlugin {
   apply(compiler: Compiler) {
     const { mfConfig, outputDir, secondary } = this;
     const { name, shared, library, treeShakingSharedPlugins } = mfConfig;
+
+    if (!name) {
+      throw new Error(
+        '[TreeShakingSharedPlugin] Shared dependency tree shaking requires a non-empty "name" in the Module Federation configuration. Set it to a unique name for this application.',
+      );
+    }
+
     if (!shared) {
       return;
     }

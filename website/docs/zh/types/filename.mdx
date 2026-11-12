@@ -1,7 +1,10 @@
 <>
 
 ```ts
-type Filename = string | (data: PathData, info: AssetInfo) => string;
+type FilenameTemplate = string;
+
+type Filename =
+  FilenameTemplate | ((pathData: PathData, assetInfo?: AssetInfo) => string);
 ```
 
 </>

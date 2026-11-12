@@ -1,16 +1,12 @@
-mod raw_snapshot;
 mod raw_storage;
-
-use core::panic;
 
 use napi::{
   Either,
   bindgen_prelude::{FromNapiValue, JsObjectValue, Object, TypeName, ValidateNapiValue},
 };
 use napi_derive::napi;
-use raw_snapshot::RawSnapshotOptions;
 use raw_storage::RawStorageOptions;
-use rspack_core::{CacheOptions, cache::persistent::PersistentCacheOptions};
+use rspack_core::{CacheOptions, PersistentCacheOptions};
 
 #[derive(Debug)]
 #[napi(object)]
@@ -18,8 +14,7 @@ pub struct RawCacheOptionsPersistent {
   pub build_dependencies: Option<Vec<String>>,
   pub version: Option<String>,
   pub max_age: u32,
-  pub max_versions: u32,
-  pub snapshot: Option<RawSnapshotOptions>,
+  pub max_memory_generations: Option<u32>,
   pub storage: Option<RawStorageOptions>,
   pub portable: Option<bool>,
   pub readonly: Option<bool>,
@@ -38,12 +33,11 @@ impl TryFrom<RawCacheOptionsPersistent> for PersistentCacheOptions {
         .map(Into::into)
         .collect(),
       version: value.version.unwrap_or_default(),
-      snapshot: value.snapshot.unwrap_or_default().into(),
       storage,
       portable: value.portable.unwrap_or_default(),
       readonly: value.readonly.unwrap_or_default(),
       max_age: value.max_age.into(),
-      max_versions: value.max_versions,
+      max_memory_generations: value.max_memory_generations.into(),
     })
   }
 }
@@ -90,7 +84,11 @@ impl FromNapiValue for InnerCacheOptions {
           let o = RawCacheOptionsMemory::from_napi_value(env, napi_val)?;
           Self::Memory(o)
         }
-        _ => panic!("Unexpected cache type: {t}, expected 'persistent' or 'memory'"),
+        _ => {
+          return Err(napi::Error::from_reason(format!(
+            "Unexpected cache type: {t}, expected 'persistent' or 'memory'"
+          )));
+        }
       };
 
       Ok(v)

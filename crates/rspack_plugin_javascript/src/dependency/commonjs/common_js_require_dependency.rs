@@ -5,9 +5,9 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Context, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleDependency,
-  ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, ReferencedSpecifier, ResourceIdentifier,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ReferencedExport, ReferencedSpecifier, ResourceIdentifier, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
   create_referenced_exports_by_referenced_specifiers,
 };
 
@@ -15,7 +15,7 @@ use super::create_resource_identifier_for_contextual_commonjs_dependency;
 use crate::dependency::{DependencyBranchGuard, compose_dependency_condition};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CommonJsRequireDependency {
   id: DependencyId,
   request: String,
@@ -29,7 +29,6 @@ pub struct CommonJsRequireDependency {
   branch_guard: Option<DependencyBranchGuard>,
   context: Option<Context>,
   resource_identifier: ResourceIdentifier,
-  factorize_info: FactorizeInfo,
 }
 
 impl CommonJsRequireDependency {
@@ -51,7 +50,6 @@ impl CommonJsRequireDependency {
       branch_guard: None,
       context: None,
       resource_identifier: Default::default(),
-      factorize_info: Default::default(),
     }
   }
 
@@ -91,6 +89,10 @@ impl CommonJsRequireDependency {
       Some(old_guard) => old_guard.and(guard),
       None => guard,
     });
+  }
+
+  pub fn request_range(&self) -> DependencyRange {
+    self.range
   }
 }
 
@@ -147,7 +149,8 @@ impl Dependency for CommonJsRequireDependency {
       create_referenced_exports_by_referenced_specifiers(
         referenced_specifiers,
         exports_type,
-        module.build_info().json_data.is_some(),
+        exports_info_artifact,
+        exports_info_artifact.get_exports_info_data(&module.identifier()),
       )
     } else {
       create_exports_object_referenced()
@@ -175,14 +178,6 @@ impl ModuleDependency for CommonJsRequireDependency {
 
   fn get_condition(&self) -> Option<DependencyCondition> {
     compose_dependency_condition(None, self.branch_guard.as_ref())
-  }
-
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
-  }
-
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
   }
 }
 

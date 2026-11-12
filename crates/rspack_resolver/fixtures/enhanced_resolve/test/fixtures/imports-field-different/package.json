@@ -1,0 +1,42 @@
+{
+  "name": "@exports-field/bad-specifier",
+  "version": "1.0.0",
+  "imports": {
+    "/utils/": "./a/",
+    "/utils1/": {
+      "browser": "./a/",
+      "default": "./b/"
+    },
+    "a": "a.js",
+    "#": "a.js",
+    "#/dep": "a.js",
+    "#dep/": "a.js",
+    "#dep": [
+      "./a/../b/../../pack1/index.js",
+      "././-bad-specifier-",
+      "./a.js?foo=../"
+    ],
+
+    "#dep/foo/*": [
+      "./a/../b/../../pack1/index.js",
+      "././-bad-specifier-",
+      "./a.js?foo=../#../"
+    ],
+    "#dep/bar": "-bad-specifier-",
+    "#dep/baz": ["-bad-specifier-"],
+    "#dep/baz-multi": ["-bad-specifier-", "not-found"],
+    "#dep/pattern/*.js": {
+      "default": ["-bad-specifier-", "./*.js"]
+    },
+    "#dep/array": ["./a.js", "-bad-specifier-"],
+    "#dep/array2": ["-bad-specifier-", "./a.js"],
+    "#dep/array3": ["./a.js"],
+    "#dep/empty": "",
+    "#dep/with-bad": ["../foo", "./a.js"],
+    "#dep/with-bad2": ["./a.js", "../foo"],
+    "#timezones/": "./data/timezones",
+    "#dep/multi": ["../../test", "./a.js"],
+    "#dep/multi1": ["../../test", "../../test/foo"],
+    "#dep/multi2": ["../../test"]
+  }
+}

@@ -1,4 +1,4 @@
-use std::{borrow::Cow, sync::LazyLock};
+use std::borrow::Cow;
 
 use cow_utils::CowUtils;
 use rspack_core::{
@@ -10,13 +10,41 @@ use crate::{SubresourceIntegrityHashFunction, integrity::compute_integrity};
 
 pub const PLACEHOLDER_PREFIX: &str = "*-*-*-CHUNK-SRI-HASH-";
 
-pub static PLACEHOLDER_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
-  let escaped_prefix = regex::escape(PLACEHOLDER_PREFIX);
-  regex::Regex::new(&format!(
-    r"{escaped_prefix}[a-zA-Z0-9=/+]+(\s+sha\d{{3}}-[a-zA-Z0-9=/+]+)*"
-  ))
-  .expect("should initialize `Regex`")
-});
+// A placeholder has the same shape and length as its integrity value, including
+// any additional hashes when more than one algorithm is enabled.
+pub fn placeholder_len(rest: &str) -> Option<(usize, ())> {
+  fn hash_len(value: &str) -> usize {
+    value
+      .bytes()
+      .take_while(|b| b.is_ascii_alphanumeric() || matches!(b, b'=' | b'/' | b'+'))
+      .count()
+  }
+
+  let mut end = hash_len(rest);
+  if end == 0 {
+    return None;
+  }
+  loop {
+    let remaining = &rest[end..];
+    let next = remaining.trim_start_matches(char::is_whitespace);
+    if next.len() == remaining.len() {
+      break;
+    }
+    let Some(hash) = next.strip_prefix("sha") else {
+      break;
+    };
+    let bytes = hash.as_bytes();
+    if bytes.len() < 4 || !bytes[..3].iter().all(u8::is_ascii_digit) || bytes[3] != b'-' {
+      break;
+    }
+    let len = hash_len(&hash[4..]);
+    if len == 0 {
+      break;
+    }
+    end += remaining.len() - next.len() + 7 + len;
+  }
+  Some((end, ()))
+}
 
 pub fn get_hash_variable(runtime_require_name: &str, source_type: SourceType) -> String {
   match source_type {

@@ -4,9 +4,7 @@ description: '它是一个规则数组。每条规则都会在模块被解析和
 
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import PropertyType from '@components/PropertyType';
-import WebpackLicense from '@components/WebpackLicense';
-
-<WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
+import Attribution from '@components/Attribution';
 
 # Module rules
 
@@ -21,7 +19,7 @@ import WebpackLicense from '@components/WebpackLicense';
 
 通过组合不同的匹配条件和处理逻辑，`module.rules` 可以精细地控制各类模块的构建行为。
 
-例如，使用 [内置 swc-loader](/guide/features/builtin-swc-loader) 处理以 `.ts` 结尾的文件：
+例如，使用 [内置 swc-loader](/guide/builtin-loaders/swc-loader) 处理以 `.ts` 结尾的文件：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -90,11 +88,13 @@ Condition 代表了匹配一个给定输入的形式，它支持的类型为：
 - `String`：给定一个输入，当输入的字符串满足 `startsWith` 时，则匹配成功。注：你可以认为是 `input.startsWith(condition)`。
 - `RegExp`：给定一个输入，当输入的字符串满足正则表达式时，则匹配成功。注：你可以认为是 `condition.test(input)`。
 - `Condition[]`：一系列条件，当有一个条件匹配上时，则匹配成功。
-- `LogicalConditions`：所有属性都匹配上时，则匹配成功。
+- `LogicalConditions`：设置的 `and`、`or` 和 `not` 检查需要全部通过。
   - `{ and: Condition[] }`：所有条件都匹配，则匹配成功。
   - `{ or: Condition[] }`：其中一个条件匹配，则匹配成功。
-  - `{ not: Condition }`：所有条件都不匹配时，则匹配成功。
+  - `{ not: Condition }`：条件不匹配时才通过。如果传入数组，则其中所有条件都不能匹配。
 - `(value: string) => boolean`：当输入的字符串经函数调用后返回 true 时，则匹配成功。
+
+一条规则同时设置 `test`、`include`、`resourceQuery` 等条件时，需要全部匹配才会生效。`exclude` 则相反：匹配它的模块会被跳过，即使该模块也匹配 `include`。
 
 ### Nested rule
 
@@ -243,14 +243,12 @@ export default {
 
 ## rules[].issuerLayer
 
-<ApiMeta addedVersion="1.0.0-beta.1" />
-
 - **类型：** [`Condition`](#condition)
 - **默认值：** `undefined`
 
 匹配所有符合这个资源的模块，会与"引入当前模块"的模块的 layer 进行匹配。
 
-更多关于 layer 的信息，请参考 [Layer 指南](/guide/features/layer)。
+更多关于 layer 的信息，请参考[模块分层指南](/guide/advanced/layer)。
 
 一个基础示例：
 
@@ -421,23 +419,51 @@ export default {
 - **类型：** `{ [key: string]: Condition }`
 - **默认值：** `undefined`
 
-`descriptionData` 选项允许你通过匹配描述文件（通常是 `package.json`）中的属性值，来决定某个 rule 应该应用于哪些模块。这是一个基于 `package.json` 来应用 rule 的实用方法。
+`descriptionData` 用于匹配模块描述文件（通常是 `package.json`）中的属性值，从而决定规则适用于哪些模块。你可以根据包名、版本等信息，为特定包中的模块配置规则。
 
-`descriptionData` 对象中的 key 对应模块的 `package.json` 中的键，例如 `name`、`version` 等。每个 key 与一个用于匹配 `package.json` 数据的 [`Condition`](#condition) 进行关联。
+`descriptionData` 对象的每个键指定要匹配的属性（如 `name`、`version`），对应的值则是用于检查该属性值的 [`Condition`](#condition)。如果指定了多个属性，它们必须同时满足各自的条件，模块才能通过 `descriptionData` 的匹配。
 
-例如，下面的配置会将 rule 应用于 `package.json` 的 `name` 中包含 `'rspack'` 字符串的 JavaScript 资源。
+字符串条件检查属性值是否以给定字符串开头，下面会匹配 `react`、`react-dom` 等包中的模块：
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     rules: [
       {
-        test: /\.js$/,
-        include: /node_modules/,
+        descriptionData: { name: 'react' },
+        // 其他规则选项...
+      },
+    ],
+  },
+};
+```
+
+正则表达式条件检查属性值是否符合给定模式，下面使用 `^` 和 `$` 仅匹配包名为 `react` 的模块：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        descriptionData: { name: /^react$/ },
+        // 其他规则选项...
+      },
+    ],
+  },
+};
+```
+
+函数条件可自定义匹配逻辑，下面匹配包名中包含 `rspack` 的模块：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
         descriptionData: {
-          name: (packageJsonName) => packageJsonName.includes('rspack'),
+          name: (name) => name.includes('rspack'),
         },
-        // 其他 rule options...
+        // 其他规则选项...
       },
     ],
   },
@@ -445,8 +471,6 @@ export default {
 ```
 
 ## rules[].with
-
-<ApiMeta addedVersion="1.0.0-beta.1" />
 
 - **类型：** `{ [key: string]: Condition }`
 - **默认值：** `undefined`
@@ -475,7 +499,7 @@ import url from './data' with { type: 'url' };
 import('./data', { with: { type: 'url' } });
 ```
 
-需要注意的是，为了让 Rspack 能够正常匹配 `with` 语法，当你在使用 [builtin:swc-loader](/guide/features/builtin-swc-loader) 时，需要手动开启 `keepImportAttributes` 配置以保留 `import attributes`：
+需要注意的是，为了让 Rspack 能够正常匹配 `with` 语法，当你在使用 [builtin:swc-loader](/guide/builtin-loaders/swc-loader) 时，需要手动开启 `keepImportAttributes` 配置以保留 `import attributes`：
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -656,6 +680,112 @@ export default {
 - **Pitching 阶段:** loader 导出的 `pitch` 方法在 `post, inline, normal, pre` 顺序下被调用。详见 [Pitching Loader](/api/loader-api/writing-loaders#pitching-loader)。
 - **Normal 阶段:** loader 导出的默认方法在 `pre, normal, inline, post` 顺序下被执行。模块的源码转换发生在该阶段。
 
+## rules[].as
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.3.2" />
+
+- **类型：** `string`
+
+`as` 可以改变后续规则用于匹配当前文件的路径，从而让文件命中或跳过某些规则。它只影响规则匹配，文件读取和 loader 处理仍使用原始资源。
+
+### 示例 \{#examples}
+
+#### 复用编译规则 \{#reusing-compilation-rules}
+
+通过 `as`，不同扩展名的文件可以匹配同一条编译规则，复用已有的 loader 及其配置。
+
+例如，安装 [`@mdx-js/loader`](https://mdxjs.com/packages/loader/) 后，可以将 Markdown 和 MDX 文件转换为 JavaScript，并通过以下配置复用处理 `.js` 文件的 SWC 规则：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.mdx?$/,
+        // 在 SWC 编译之前，将 Markdown / MDX 转换为 JavaScript
+        enforce: 'pre',
+        loader: '@mdx-js/loader',
+        // 匹配下面的 JavaScript 规则
+        as: '[resource-path].js',
+      },
+      {
+        test: /\.js$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: { target: 'es2017' },
+        },
+      },
+    ],
+  },
+};
+```
+
+导入 `./content.mdx` 时，它的匹配路径会变为以 `content.mdx.js` 结尾，因此也会命中 SWC 规则。MDX loader 先将内容转换为 JavaScript，再由 SWC 编译为配置的目标版本。普通 `.js` 文件则继续使用同一条 SWC 规则。
+
+`as` 只改变规则匹配，内容转换仍由 MDX loader 完成。[`enforce: 'pre'`](#rulesenforce) 用于保证 MDX 转换先于 SWC 执行，因为规则的匹配顺序并不决定 loader 的执行顺序。
+
+#### 跳过编译规则 \{#skipping-compilation-rules}
+
+当具有相同扩展名的文件需要不同的处理方式时，可以通过 `as` 让其中一部分文件跳过后续的通用编译规则。
+
+例如，你可能希望对同一个 JavaScript 文件采用两种导入方式：普通导入时使用 SWC 编译；带有 `type: 'url'` 导入属性时，则将文件作为资源输出并返回它的 URL：
+
+```js
+import example from './example.js';
+import exampleUrl from './example.js' with { type: 'url' };
+```
+
+可以通过以下配置实现：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        // 匹配带有 type: 'url' 导入属性的文件
+        with: { type: 'url' },
+        // 输出文件，并将其 URL 作为默认导出
+        type: 'asset/resource',
+        // 将匹配路径改为以 .asset 结尾，跳过后面的 SWC 规则
+        as: '[resource-path].asset',
+      },
+      {
+        test: /\.js$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          // 编译包含导入语句的模块时保留导入属性，供 Rspack 匹配
+          jsc: { experimental: { keepImportAttributes: true } },
+        },
+      },
+    ],
+  },
+};
+```
+
+在这个配置中：
+
+- 普通导入不满足第一条规则的条件，匹配路径仍以 `.js` 结尾，因此会命中第二条规则，由 SWC 编译。
+- URL 导入命中第一条规则，模块类型被设为 [`asset/resource`](/guide/features/asset-module)，匹配路径则变为以 `example.js.asset` 结尾。它不再满足 SWC 规则的条件，因此 Rspack 会将文件作为资源输出，不经过 `builtin:swc-loader` 处理。
+
+跳过 `builtin:swc-loader` 不会禁用产物压缩。在生产构建中，输出的 `.js` 资源仍可能被压缩。如果需要保留文件的原始内容，可以通过 [`generator.filename`](/config/module-generator#assetfilename) 将这类资源输出到单独的目录，再通过 [`SwcJsMinimizerRspackPlugin.exclude`](/plugins/swc-js-minimizer-rspack-plugin#exclude) 排除该目录。
+
+### 规则匹配顺序 \{#rule-matching-order}
+
+规则按顺序匹配。`as` 生成的新路径会用于当前规则下的 `rules`、`oneOf` 嵌套规则，以及后续规则。
+
+`as` 不会让之前的规则重新匹配，也不会撤销已匹配规则的 loader 和其他设置。因此，上例中处理 URL 导入的规则必须放在 SWC 规则之前。
+
+如果后续命中的规则也配置了 `as`，其中的 `[resource-path]` 会使用前一次 `as` 生成的路径。
+
+### 路径模板 \{#path-template}
+
+`as` 的值是一个路径模板，目前仅支持 `[resource-path]` 占位符，代表当前用于匹配的完整文件路径，包含扩展名。模板中的其他内容会按原样保留，例如 `[resource-path].asset` 会在当前匹配路径末尾追加 `.asset`。
+
+`[resource-path]` 不包含查询参数和片段，`as` 也不会修改它们。[`resourceQuery`](#rulesresourcequery) 和 [`resourceFragment`](#rulesresourcefragment) 仍分别匹配原有的查询参数和片段。
+
+模板生成的路径只用于规则匹配，不会改变实际读取的文件、loader 处理的资源或输出文件名。因此，上例中的两种导入都读取 `example.js`，不需要实际创建 `example.js.asset` 文件。
+
 ## rules[].type
 
 - **类型：** `string`
@@ -709,20 +839,18 @@ export default {
 - `'javascript/auto'`：JavaScript 模块，Rspack 会根据文件内容自动判断模块类型，兼容性最佳。
 - `'javascript/esm'`：JavaScript 模块，当作严格 ES modules 处理。
 - `'javascript/dynamic'`：JavaScript 模块，当作 Script 处理。
-- `'json'`：JSON data 模块，参考 [JSON](/guide/tech/json)。
-- `'css' | 'css/auto' | 'css/global' | 'css/module'`：CSS 模块，参考 [内置 CSS 支持](/guide/tech/css#内置-css-支持)。
+- `'json'`：JSON data 模块，参考 [JSON](/guide/languages/json)。
+- `'css' | 'css/auto' | 'css/global' | 'css/module'`：CSS 模块，参考 [内置 CSS 支持](/guide/languages/css#built-in-css-support)。
 - `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline' | 'asset/bytes'`：资源模块，参考 [资源模块](/guide/features/asset-module)。
 
 ## rules[].layer
-
-<ApiMeta addedVersion="1.0.0-beta.1" />
 
 - **类型：** `string`
 - **默认值：** `undefined`
 
 用于标识匹配的模块的 layer。可以将一组模块聚合到一个 layer 中，该 layer 随后可以在 split chunks, stats 或 [entry options](/config/entry#entrydescriptionlayer) 中使用。
 
-更多关于 layer 的信息，请参考 [Layer 指南](/guide/features/layer)。
+更多关于 layer 的信息，请参考[模块分层指南](/guide/advanced/layer)。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -745,15 +873,19 @@ export default {
 type RuleSetUse =
   | RuleSetUseItem
   | RuleSetUseItem[]
-  | ((ctx: RawFuncUseCtx) => RuleSetUseItem[]);
+  | ((ctx: RawFuncUseCtx) => RuleSetUseItem | RuleSetUseItem[]);
 
-type RuleSetUseItem = string | RuleSetLoaderWithOptions;
+type RuleSetUseItem = string | RuleSetLoaderWithOptions | Falsy;
+
+type RuleSetLoaderCodeFilter = string | RegExp;
 
 type RuleSetLoaderWithOptions = {
   ident?: string;
   loader: string;
   options?: string | Record<string, any>;
   parallel?: boolean | { maxWorkers?: number };
+  cache?: boolean;
+  codeFilter?: RuleSetLoaderCodeFilter;
 };
 ```
 
@@ -779,9 +911,11 @@ export default {
 };
 ```
 
-也可以使用一个函数：
+也可以使用函数为每个模块选择 loader，返回 loader 名称、loader 配置对象或由它们组成的数组：
 
 ```js title="rspack.config.mjs"
+import { basename } from 'node:path';
+
 export default {
   module: {
     rules: [
@@ -799,6 +933,90 @@ export default {
               ],
             },
           },
+        ],
+      },
+    ],
+  },
+};
+```
+
+## rules[].use.codeFilter
+
+- **类型：**
+
+```ts
+type RuleSetLoaderCodeFilter = string | RegExp;
+```
+
+- **默认值：** `undefined`
+
+根据 loader 的当前输入代码决定是否执行该 loader。如果代码不匹配过滤条件，Rspack 会跳过该 loader 的代码转换，并将输入原样传递给下一个 loader。对于仅需处理特定语法的 loader，可以用此选项跳过不包含相关语法的模块，减少不必要的转换。
+
+- `string`：代码包含指定子串时匹配。
+- `RegExp`：代码满足正则表达式时匹配。
+
+Rspack 会在 loader 转换代码前检查过滤条件。由于 loader 按从右到左的顺序执行，如果右侧还有其他 loader，过滤条件匹配的是它们处理后的代码。此选项不影响 loader 的 pitch 函数。
+
+**字符串匹配**
+
+假设自定义 loader `remove-console-loader.js` 用于移除控制台日志，仅当输入代码包含 `console.log` 时才执行它：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?[jt]sx?$/,
+        use: [
+          {
+            loader: './remove-console-loader.js',
+            codeFilter: 'console.log',
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+**正则表达式匹配**
+
+仅当输入代码包含 `console.log` 或 `console.debug` 时，才执行 `remove-console-loader.js`：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?[jt]sx?$/,
+        use: [
+          {
+            loader: './remove-console-loader.js',
+            codeFilter: /\bconsole\.(log|debug)\b/,
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+**匹配其他 loader 的输出**
+
+以下配置会先执行 `generate-loader.js`。只有生成的代码包含 `generated:marker` 时，Rspack 才会执行 `transform-loader.js`，即使原始源码中没有这个子串：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: './transform-loader.js',
+            codeFilter: 'generated:marker',
+          },
+          './generate-loader.js',
         ],
       },
     ],
@@ -849,46 +1067,18 @@ export default {
 - 设置为 `{ maxWorkers }` 时，可以手动控制最大 worker 的数量。
 - 设置为 `false` 或省略时，该 loader 默认会在主线程中执行。
 
-例如，将 `less-loader` 配置为并行执行：
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.less$/,
-        use: [
-          {
-            loader: 'less-loader',
-            parallel: true,
-            options: {
-              // loader options
-            },
-          },
-        ],
-      },
-    ],
-  },
-};
-```
-
-当同一条 Rule 下有多个 loader 开启了 `parallel` 选项，Rspack 会在同一个 worker 中按顺序依次运行这些 loader，直到遇到未启用 parallel 的 loader 或 Rust 实现的 builtin loader。这样可以在保证 loader 顺序的前提下最大化并行效率。
-
-:::tip
-
-- loader 的选项需要满足 [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist)，否则会发送失败。
-- 目前 loader 在 worker 中不支持 `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module` 上的大多数方法。
-
-:::
+使用示例和限制请参考 [并行 Loader](/guide/features/loader#parallel-loader)。
 
 ## rules[].use.parallel.maxWorkers
 
 - **类型：** `number`
-- **默认值：** `undefined`
+- **默认值：** `Math.max(os.cpus().length - 1, 1)`
 
 当 `parallel` 配置为对象时，限制共享 loader worker pool 使用的最大 worker 线程数。请使用正整数。
 
-如果省略 `maxWorkers`，Rspack 会自动选择 worker 数量。loader worker pool 在当前进程内共享；如果多个 loader 都配置 `parallel`，建议使用一致的 `maxWorkers` 值。
+默认情况下，Rspack 使用 `os.cpus()` 返回的逻辑 CPU 数量减一，最少为一个 worker。
+
+loader worker pool 在当前进程内共享；如果多个 loader 都配置 `parallel`，建议使用一致的 `maxWorkers` 值。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1015,3 +1205,5 @@ export default {
   },
 };
 ```
+
+<Attribution url="https://webpack.docschina.org/configuration/module/" />

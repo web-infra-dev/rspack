@@ -4,27 +4,27 @@ use std::{borrow::Cow, sync::Arc};
 
 use rspack_collections::IdentifierIndexSet;
 use rspack_core::{
-  AssetInfo, Chunk, ChunkGraph, ChunkGroup, ChunkRenderContext, ChunkUkey, Compilation,
-  ConcatenatedModuleInfo, InitFragment, ModuleIdentifier, PathData, PathInfo, RuntimeCodeTemplate,
-  RuntimeGlobals, RuntimeVariable, SourceType, export_name, get_js_chunk_filename_template,
-  get_undo_path, render_init_fragments,
-  rspack_sources::{ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
+  AssetInfo, Chunk, ChunkGraph, ChunkGroup, ChunkRenderContext, ChunkUkey,
+  CodeGenerationDataPreservedAssetImport, Compilation, ConcatenatedModuleInfo, InitFragment,
+  ModuleIdentifier, PathData, PathInfo, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable,
+  SourceType, export_name, get_js_chunk_filename_template, get_undo_path, render_init_fragments,
+  rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
+use rspack_intern::Atom;
 use rspack_plugin_javascript::{
   JsPlugin, RenderSource,
-  runtime::{AUTO_PUBLIC_PATH_PLACEHOLDER, render_module, render_runtime_modules},
+  runtime::{AUTO_PUBLIC_PATH_MATCHER, render_module, render_runtime_modules},
   url_plugin::replace_static_url_placeholders,
 };
 use rspack_util::{
   SpanExt,
-  atom::Atom,
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
 };
 
 use self::runtime_mode::{RuntimeImportRenderContext, RuntimeRenderContext, renderer_for};
 use crate::{
-  chunk_link::{ChunkLinkContext, ReExportFrom, Ref},
+  chunk_link::{ChunkLinkContext, RawImportSource, ReExportFrom, Ref},
   plugin::RSPACK_ESM_RUNTIME_CHUNK,
 };
 
@@ -46,6 +46,31 @@ fn is_css_only_module(
       .iter()
       .all(|t| matches!(t, SourceType::Css | SourceType::CssImport))
     || module.identifier().starts_with("css|")
+}
+
+fn replace_preserved_asset_import_binding(
+  source: BoxSource,
+  original_binding: &str,
+  final_binding: &str,
+) -> BoxSource {
+  if original_binding == final_binding {
+    return source;
+  }
+
+  let content = source.source().into_string_lossy();
+  let matches = content
+    .match_indices(original_binding)
+    .map(|(start, _)| (start as u32, (start + original_binding.len()) as u32))
+    .collect::<Vec<_>>();
+  if matches.is_empty() {
+    return source;
+  }
+
+  let mut source = ReplaceSource::new(source);
+  for (start, end) in matches {
+    source.replace(start, end, final_binding.to_string(), None);
+  }
+  source.boxed()
 }
 
 #[inline]
@@ -117,7 +142,7 @@ impl EsmLibraryPlugin {
     let chunk_link_guard = self.links.borrow();
     let chunk_link = &chunk_link_guard[chunk_ukey];
 
-    let mut chunk_init_fragments: Vec<Box<dyn InitFragment<ChunkRenderContext> + 'static>> =
+    let mut chunk_init_fragments: Vec<Box<dyn InitFragment + 'static>> =
       chunk_link.init_fragments.clone();
 
     let mut replace_auto_public_path = false;
@@ -167,23 +192,35 @@ impl EsmLibraryPlugin {
 
     if !chunk_link.decl_modules.is_empty() {
       let hooks = JsPlugin::get_compilation_hooks(compilation.id());
+      let module_runtime_scope = compilation
+        .runtime_template
+        .create_module_code_template()
+        .render_runtime_scope();
 
       let mut decl_inner = ConcatSource::default();
       for m in chunk_link.decl_modules.iter() {
         let module = module_graph
           .module_by_identifier(m)
           .expect("should have module");
+        let preserved_asset_import = compilation
+          .code_generation_results
+          .get(m, Some(chunk.runtime()))
+          .data()
+          .get::<CodeGenerationDataPreservedAssetImport>()
+          .cloned();
 
         let hooks = hooks.read().await;
-        let Some((module_source, init_frags, init_frags2)) = render_module(
+        let Some((module_source, init_fragments)) = render_module(
           compilation,
           chunk_ukey,
           module.as_ref(),
           true,
           true,
+          false,
           &output_path,
           &hooks,
           module_runtime_template,
+          Some(&module_runtime_scope),
         )
         .await?
         else {
@@ -191,8 +228,26 @@ impl EsmLibraryPlugin {
         };
         drop(hooks);
 
-        chunk_init_fragments.extend(init_frags);
-        chunk_init_fragments.extend(init_frags2);
+        let module_source = if let Some(asset_import) = preserved_asset_import {
+          replace_auto_public_path = true;
+          let source = RawImportSource::Source((asset_import.request().to_string(), None));
+          let binding = chunk_link
+            .raw_import_stmts
+            .get(&source)
+            .and_then(|import_spec| import_spec.default_import.as_ref())
+            .ok_or_else(|| {
+              rspack_error::error!("missing preserved asset import binding for module {m}")
+            })?;
+          replace_preserved_asset_import_binding(
+            module_source,
+            asset_import.binding().as_str(),
+            binding.as_str(),
+          )
+        } else {
+          module_source
+        };
+
+        chunk_init_fragments.extend(init_fragments);
         decl_inner.add(module_source.clone());
       }
 
@@ -558,7 +613,7 @@ var {} = {{}};
       let mut exports = exports.iter().collect::<Vec<_>>();
       exports.sort_unstable();
       for exported_name in exports {
-        let is_default = exported_name.as_str() == "default";
+        let is_default = exported_name == "default";
 
         if is_default {
           if export_default.is_none() {
@@ -680,24 +735,18 @@ var {} = {{}};
 
     let final_source = if replace_auto_public_path {
       let mut replace_source = ReplaceSource::new(final_source);
-      let mut replacement = vec![];
-      for (start, matched) in replace_source
-        .source()
-        .into_string_lossy()
-        .match_indices(AUTO_PUBLIC_PATH_PLACEHOLDER)
-      {
-        let start = start as u32;
-        let end = (start as usize + matched.len()) as u32;
+      let replacements: Vec<_> = AUTO_PUBLIC_PATH_MATCHER
+        .find_iter(&replace_source.source().into_string_lossy())
+        .collect();
+      if !replacements.is_empty() {
         let relative = get_undo_path(
           &output_path,
           compilation.options.output.path.to_string(),
           true,
         );
-        replacement.push((start, end, relative));
-      }
-
-      for (start, end, relative) in replacement {
-        replace_source.replace(start, end, relative, None);
+        for range in replacements {
+          replace_source.replace(range.start as u32, range.end as u32, relative.clone(), None);
+        }
       }
 
       // concate module does this by render_module()
@@ -732,44 +781,35 @@ var {} = {{}};
       )));
     };
 
-    for ((atom, ctxt), refs) in &info.binding_to_ref {
-      if ctxt == &info.global_ctxt
-        && let Some(binding_ref) = chunk_link.refs.get(atom.as_str())
-      {
-        let final_name = match binding_ref {
-          Ref::Symbol(symbol_ref) => Cow::Owned(symbol_ref.render()),
-          Ref::Inline(inline) => Cow::Borrowed(inline),
-        };
-
-        for ident in refs {
-          let name = if ident.shorthand {
-            Cow::Owned(format!("{}: {}", &ident.id.sym, &final_name))
-          } else {
-            final_name.clone()
+    if let Some(analysis) = &info.analysis {
+      for ident in analysis.unresolved_references() {
+        if let Some(binding_ref) = chunk_link.refs.get(ident.name.as_str()) {
+          let final_name = match binding_ref {
+            Ref::Symbol(symbol_ref) => Cow::Owned(symbol_ref.render()),
+            Ref::Inline(inline) => Cow::Borrowed(inline),
           };
-          source.replace(
-            ident.id.span.real_lo(),
-            ident.id.span.real_hi() + 2,
-            name.into_owned(),
-            None,
-          );
+          let name = if ident.shorthand {
+            format!("{}: {}", ident.name, final_name)
+          } else {
+            final_name.into_owned()
+          };
+          source.replace(ident.span.real_lo(), ident.span.real_hi() + 2, name, None);
+        }
+      }
+      for symbol in analysis
+        .symbol_groups()
+        .filter(|&symbol| analysis.is_top_level(symbol))
+      {
+        if let Some(internal_name) = info.get_internal_name(analysis.symbol_name(symbol))
+          && internal_name != analysis.symbol_name(symbol)
+        {
+          analysis.rename_symbol(symbol, internal_name, &mut source);
         }
       }
     }
 
-    for ident in &info.idents {
-      if ident.id.ctxt != info.module_ctxt {
-        continue;
-      }
-
-      if let Some(internal_name) = info.get_internal_name(&ident.id.sym) {
-        let name = if ident.shorthand {
-          format!("{}: {}", &ident.id.sym, &internal_name)
-        } else {
-          internal_name.to_string()
-        };
-        source.replace(ident.id.span.real_lo(), ident.id.span.real_hi(), name, None);
-      }
+    if let Some(pos) = info.trailing_semicolon_position {
+      source.insert_static(pos, ";", None);
     }
 
     Ok(source)
