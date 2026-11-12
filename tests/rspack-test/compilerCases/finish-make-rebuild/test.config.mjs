@@ -147,12 +147,17 @@ for (const kind of ['rule-gained', 'rule-lost', 'removed', 'added']) {
 
 for (const hook of ['make', 'finishMake', 'rebuildModule']) {
   for (const failFirst of [true, false]) {
-    for (const cache of [true, false]) {
+    for (const [cache, buildModuleGraph] of [
+      [true, true],
+      [false, true],
+      [true, false],
+      [false, false],
+    ]) {
       let fail = false;
       let throwBuild = false;
       cases.push({
-        description: `finishMake recovers after ${hook} fails on ${failFirst ? 'cold' : 'hot'} build, cache=${cache}`,
-        options: (context) => options(context, cache),
+        description: `finishMake recovers after ${hook} fails on ${failFirst ? 'cold' : 'hot'} build, cache=${cache}, buildModuleGraph=${buildModuleGraph}`,
+        options: (context) => options(context, cache, { buildModuleGraph }),
         async compiler(context, compiler) {
           compiler.hooks.thisCompilation.tap('Test', (compilation) => {
             compilation.hooks.buildModule.tap('Test', () => {
@@ -198,6 +203,41 @@ for (const hook of ['make', 'finishMake', 'rebuildModule']) {
       });
     }
   }
+}
+
+for (const cache of [true, false]) {
+  cases.push({
+    description: `finishMake preserves codegen reuse with buildModuleGraph disabled, cache=${cache}`,
+    options: (context) => options(context, cache, { buildModuleGraph: false }),
+    async build(context, compiler) {
+      const initial = await run(compiler);
+      expect(initial.error).toBeNull();
+      expect(value(initial.compilation)).toEqual(['h', 'k']);
+      const modules = (compilation) =>
+        compilation
+          .getStats()
+          .toJson({
+            all: false,
+            modules: true,
+            cachedModules: true,
+          })
+          .modules.filter((module) => module.name?.endsWith('.js'));
+      const initialModules = modules(initial.compilation);
+      expect(initialModules.length).toBeGreaterThan(0);
+      expect(initialModules.every((module) => module.codeGenerated)).toBe(true);
+
+      for (let i = 0; i < 2; i++) {
+        const rebuilt = await rebuild(compiler);
+        expect(rebuilt.error).toBeFalsy();
+        expect(value(rebuilt.compilation)).toEqual(['h', 'k']);
+        const rebuiltModules = modules(rebuilt.compilation);
+        expect(rebuiltModules).toHaveLength(initialModules.length);
+        expect(
+          rebuiltModules.filter((module) => module.codeGenerated),
+        ).toHaveLength(0);
+      }
+    },
+  });
 }
 
 cases.push({

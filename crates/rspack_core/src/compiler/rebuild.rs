@@ -86,11 +86,17 @@ impl Compiler {
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         records,
-        if self.compilation.exports_info_artifact.has_checkpoint() {
+        if !self
+          .options
+          .incremental
+          .passes
+          .contains(IncrementalPasses::BUILD_MODULE_GRAPH)
+          || self.compilation.exports_info_artifact.has_checkpoint()
+        {
           Incremental::new_hot(self.options.incremental)
         } else {
-          // A fatal make/finishMake error can stop before the incremental
-          // baseline exists. Ordinary module diagnostics still reach it.
+          // Module graph recovery needs the checkpoint created after finishModules.
+          // A fatal make/finishMake error can stop before it, unlike module diagnostics.
           self.incremental_artifacts.reset();
           Incremental::new_cold(self.options.incremental)
         },
