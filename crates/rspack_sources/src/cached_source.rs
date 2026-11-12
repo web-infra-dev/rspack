@@ -128,6 +128,10 @@ impl CachedSource {
 }
 
 impl Source for CachedSource {
+  fn mapped(&self) -> bool {
+    self.inner.mapped()
+  }
+
   fn source(&self) -> SourceValue<'_> {
     // Check if it's a RawBufferSource containing a CachedSource
     if let Some(buffer_source) = self

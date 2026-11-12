@@ -32,7 +32,7 @@ impl AsRef<str> for ErrorCode {
   }
 }
 
-#[napi(object, object_to_js = false)]
+#[napi(object)]
 pub struct JsRspackDiagnostic {
   pub severity: JsRspackSeverity,
   pub error: RspackError,

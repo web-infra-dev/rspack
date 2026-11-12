@@ -39,6 +39,8 @@ pub(crate) type Aggregated = Arc<std::sync::Mutex<FilesData>>;
 struct AggregateTime {
   base: Instant,
   last_unpaused_event: AtomicU64,
+  #[cfg(feature = "testing")]
+  trace: crate::testing::ExecutorTrace,
 }
 
 /// `WatcherExecutor` is responsible for managing the execution of file system event handlers,
@@ -98,6 +100,8 @@ impl Executor {
       aggregate_time: Arc::new(AggregateTime {
         base: Instant::now(),
         last_unpaused_event: AtomicU64::new(0),
+        #[cfg(feature = "testing")]
+        trace: Default::default(),
       }),
       paused,
       rx: Arc::new(Mutex::new(rx)),
@@ -115,6 +119,11 @@ impl Executor {
   /// The pending aggregated sets, shared with [`crate::FsWatcher`].
   pub fn aggregated(&self) -> Aggregated {
     Arc::clone(&self.files_data)
+  }
+
+  #[cfg(feature = "testing")]
+  pub(crate) fn trace(&self) -> crate::testing::ExecutorTrace {
+    Arc::clone(&self.aggregate_time.trace)
   }
 
   /// Abort all executor.
@@ -181,10 +190,24 @@ impl Executor {
             // wait. An empty batch (e.g. an unwatched path removed under the
             // watch root) must not delay a pending batch.
             if !events.dependencies.is_empty() && !paused.load(Ordering::Relaxed) {
+              let at = Instant::now();
               aggregate_time.last_unpaused_event.store(
-                aggregate_time.base.elapsed().as_nanos() as u64,
+                at.duration_since(aggregate_time.base).as_nanos() as u64,
                 Ordering::Relaxed,
               );
+              #[cfg(feature = "testing")]
+              aggregate_time
+                .trace
+                .lock()
+                .expect("executor trace poisoned")
+                .push(crate::testing::ExecutorEvent::Accepted {
+                  at: at.into_std(),
+                  events: events
+                    .dependencies
+                    .iter()
+                    .map(|event| (event.path.to_string_lossy().into_owned(), event.kind))
+                    .collect(),
+                });
             }
             let _ = exec_tx.send(ExecEvent::Execute(
               events.raw,
@@ -325,6 +348,18 @@ fn create_execute_aggregate_task(
           if candidate > deadline {
             deadline = candidate;
             continue;
+          }
+          #[cfg(feature = "testing")]
+          if !files.is_empty() {
+            aggregate_time
+              .trace
+              .lock()
+              .expect("executor trace poisoned")
+              .push(crate::testing::ExecutorEvent::Aggregated {
+                at: Instant::now().into_std(),
+                changed_files: files.changed.clone(),
+                deleted_files: files.deleted.clone(),
+              });
           }
           break std::mem::take(&mut *files);
         };

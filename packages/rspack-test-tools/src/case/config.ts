@@ -71,8 +71,14 @@ export function createConfigProcessor(
       await check(env, context, name);
     },
     after: async (context: ITestContext) => {
-      await afterExecute(context, name);
-      if (cache) await checkPersistentCache(context, cache);
+      const manager = context.getCompiler();
+      const options = manager.getOptions();
+      try {
+        if (cache) await checkPersistentCache(context, cache);
+      } finally {
+        if (cache) manager.setOptions(options);
+        await afterExecute(context, name);
+      }
     },
   };
 }

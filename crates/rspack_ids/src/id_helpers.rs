@@ -241,16 +241,17 @@ pub(crate) fn assign_deterministic_ids_with_hash<T>(
   mut items: Vec<T>,
   comparator: impl FnMut(&T, &T) -> Ordering,
   mut assign_id: impl FnMut(&T, usize) -> bool,
-  mut get_id: impl FnMut(&T, usize) -> usize,
+  mut get_id: impl FnMut(&T, u64) -> usize,
   salt: usize,
 ) {
   items.sort_unstable_by(comparator);
 
   for item in items {
-    let mut i = salt;
+    // A retry after u32::MAX must also work on 32-bit targets.
+    let mut i = salt as u64;
     let mut id = get_id(&item, i);
     while !assign_id(&item, id) {
-      i += 1;
+      i = i.wrapping_add(1);
       id = get_id(&item, i);
     }
   }

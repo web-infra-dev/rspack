@@ -85,6 +85,7 @@ impl SourceMapDevToolPluginCache {
     asset: &CompilationAsset,
     version: &str,
     name_version: &str,
+    detach_source: bool,
   ) -> Option<(
     CompilationAsset,
     Option<(String, CompilationAsset)>,
@@ -94,7 +95,7 @@ impl SourceMapDevToolPluginCache {
     if entry.name_version != name_version {
       return None;
     }
-    entry.restore(asset)
+    entry.restore(asset, detach_source)
   }
 
   /// Reuse the existing entries after validating the complete map input set.

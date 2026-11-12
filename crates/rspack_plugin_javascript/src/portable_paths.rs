@@ -136,7 +136,8 @@ pub(crate) fn prepare(
     // The ordinary parse reports the diagnostics.
     return Prepared::Unchanged;
   }
-  let ast = &parsed.ast;
+  // SAFETY: This AST is only read, and every handle below was taken from it.
+  let ast = unsafe { parsed.ast.ast() };
   let mut not_relocatable = FxHashSet::default();
   let mut candidates = Vec::new();
   let mut unsupported = false;

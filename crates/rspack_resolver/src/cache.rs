@@ -58,14 +58,15 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
     data
   }
 
-  pub async fn tsconfig<F, Fut>(
+  pub async fn tsconfig<'a, F, Fut>(
     &self,
     root: bool,
     path: &Utf8Path,
+    ctx: &'a mut Ctx,
     callback: F, // callback for modifying tsconfig with `extends`
   ) -> Result<Arc<TsConfig>, ResolveError>
   where
-    F: FnOnce(TsConfig) -> Fut + Send,
+    F: FnOnce(TsConfig, &'a mut Ctx) -> Fut + Send,
     Fut: Send + Future<Output = Result<TsConfig, ResolveError>>,
   {
     // Like TypeScript, resolve the config file against cwd before deriving
@@ -77,6 +78,11 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
     };
     let path = path.as_ref();
     if let Some(tsconfig_ref) = self.tsconfigs.get(path.as_std_path()) {
+      if ctx.file_dependencies.is_some() {
+        for dependency in &tsconfig_ref.file_dependencies {
+          ctx.add_file_dependency(dependency.as_path());
+        }
+      }
       return Ok(Arc::clone(tsconfig_ref.value()));
     }
     let meta = self.fs.metadata(path.as_std_path()).await.ok();
@@ -94,6 +100,7 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
       .read_to_string(tsconfig_path.as_std_path())
       .await
       .map_err(|_| ResolveError::TsconfigNotFound(path.as_std_path().to_path_buf()))?;
+    ctx.add_file_dependency(tsconfig_path.as_std_path());
     let mut tsconfig =
       TsConfig::parse(root, &tsconfig_path, &mut tsconfig_string).map_err(|error| {
         ResolveError::from_serde_json_error(
@@ -102,7 +109,7 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
           Some(tsconfig_string),
         )
       })?;
-    tsconfig = callback(tsconfig).await?;
+    tsconfig = callback(tsconfig, ctx).await?;
     let tsconfig = Arc::new(tsconfig.build());
     self
       .tsconfigs

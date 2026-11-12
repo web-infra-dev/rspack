@@ -598,13 +598,10 @@ export async function runLoaders(
         loaderContext.loaders[loaderContext.loaderIndex],
       ),
     });
-    error.module = loaderContext._module;
-    context.moduleBuildDiagnostics.push(
-      compiler._lastCompilation!.__internal__pushModuleBuildDiagnostic({
-        error,
-        severity: JsRspackSeverity.Error,
-      }),
-    );
+    (context.__internal__diagnostics ??= []).push({
+      error,
+      severity: JsRspackSeverity.Error,
+    });
   };
   loaderContext.emitWarning = function emitWarning(e) {
     if (!(e instanceof Error)) {
@@ -615,13 +612,10 @@ export async function runLoaders(
         loaderContext.loaders[loaderContext.loaderIndex],
       ),
     });
-    warning.module = loaderContext._module;
-    context.moduleBuildDiagnostics.push(
-      compiler._lastCompilation!.__internal__pushModuleBuildDiagnostic({
-        error: warning,
-        severity: JsRspackSeverity.Warn,
-      }),
-    );
+    (context.__internal__diagnostics ??= []).push({
+      error: warning,
+      severity: JsRspackSeverity.Warn,
+    });
   };
   loaderContext.emitFile = function emitFile(
     name,

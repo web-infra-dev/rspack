@@ -7,8 +7,10 @@ use rustc_hash::FxHashSet;
 use crate::{
   ArtifactExt, BuildDependency, DependencyId, DependencyRef, FactorizationArtifact, FactorizeInfo,
   ModuleGraph, ModuleIdentifier, SideEffectsStateArtifact,
-  compilation::build_module_graph::ModuleToLazyMake, incremental::IncrementalPasses,
-  incremental_info::IncrementalInfo, utils::FileCounter,
+  compilation::build_module_graph::{ModuleToLazyMake, module_build_cache::ModuleBuildCache},
+  incremental::IncrementalPasses,
+  incremental_info::IncrementalInfo,
+  utils::FileCounter,
 };
 
 /// Make Artifact, including all side effects of the make stage.
@@ -36,6 +38,8 @@ pub struct BuildModuleGraphArtifact {
   /// these dependencies, then clears this set. `reset_temporary_data` keeps it, because recovery
   /// runs before the reset of the first build.
   pub(crate) refactorize_dependencies: FxHashSet<DependencyId>,
+  /// Main-graph cache session for the current build; never recovered or persisted.
+  pub(crate) module_build_cache: Option<ModuleBuildCache>,
 
   // data
   /// Module graph data
@@ -71,6 +75,7 @@ impl BuildModuleGraphArtifact {
       issuer_update_modules: Default::default(),
       check_issuer_cycles: false,
       refactorize_dependencies: Default::default(),
+      module_build_cache: None,
       module_graph: Default::default(),
       factorization_artifact: Default::default(),
       side_effects_state_artifact: Default::default(),
@@ -348,6 +353,7 @@ impl ArtifactExt for BuildModuleGraphArtifact {
   fn recover(incremental: &crate::incremental::Incremental, new: &mut Self, old: &mut Self) {
     if incremental.mutations_readable(Self::PASS) {
       std::mem::swap(new, old);
+      new.module_build_cache = None;
       new.get_module_graph_mut().reset();
       new.side_effects_state_artifact = Default::default();
     }
