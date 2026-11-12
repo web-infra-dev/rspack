@@ -42,14 +42,17 @@ impl ModulesContainer for ModuleGroup {
   }
 }
 
-/// Return `true` if the `ModuleGroup` become empty.
+/// Remove source types that fail either size threshold, as a whole module set.
+/// Return `true` if the `ModuleGroup` becomes empty.
 pub(crate) fn remove_min_size_violating_modules<T: std::fmt::Display>(
   module_group_key: &T,
   module_group: &mut ModuleGroup,
   cache_group: &CacheGroup,
   module_sizes: &ModuleSizes,
 ) -> bool {
-  // Find out what `SourceType`'s size is not fit the min_size
+  module_group.rebuild_chunks();
+  let chunk_count = module_group.chunks.len() as f64;
+  // Apply minSizeReduction to the same source-type pruning path as minSize.
   let violating_source_types: Box<[SourceType]> = module_group
   .get_sizes(module_sizes)
   .iter()
@@ -60,14 +63,23 @@ pub(crate) fn remove_min_size_violating_modules<T: std::fmt::Display>(
       .copied()
       .unwrap_or_default();
 
-    if *module_group_ty_size < cache_group_ty_min_size {
+    let min_reduction = cache_group
+      .min_size_reduction
+      .get(module_group_ty)
+      .copied()
+      .unwrap_or_default();
+    if *module_group_ty_size < cache_group_ty_min_size
+      || (*module_group_ty_size != 0.0 && *module_group_ty_size * chunk_count < min_reduction)
+    {
       tracing::trace!(
-        "ModuleGroup({}) have violating SourceType({:?}). Reason: module_group_ty_size({:?}) < CacheGroup({}).min_size({:?})",
+        "ModuleGroup({}) has violating SourceType({:?}): size({:?}), minSize({:?}), sizeReduction({:?}), minSizeReduction({:?}), CacheGroup({})",
         module_group_key,
         module_group_ty,
         module_group_ty_size,
-        cache_group.key,
         cache_group_ty_min_size,
+        module_group_ty_size * chunk_count,
+        min_reduction,
+        cache_group.key,
       );
       Some(*module_group_ty)
     } else {
@@ -230,7 +242,7 @@ impl SplitChunksPlugin {
       .filter_map(|(module_group_key, module_group)| {
         let cache_group = module_group.get_cache_group(&self.cache_groups);
         // Fast path
-        if cache_group.min_size.is_empty() {
+        if cache_group.min_size.is_empty() && cache_group.min_size_reduction.is_empty() {
           let _ = module_group.get_sizes(module_sizes);
           tracing::debug!(
             "ModuleGroup({}) skips `minSize` checking. Reason: min_size of CacheGroup({}) is empty",

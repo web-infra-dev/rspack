@@ -57,7 +57,7 @@ impl TaskContext {
       dependency_templates: compilation.dependency_templates.clone(),
       intermediate_fs: compilation.intermediate_filesystem.clone(),
       output_fs: compilation.output_filesystem.clone(),
-      module_build_cache: compilation.module_build_cache.clone(),
+      module_build_cache: artifact.module_build_cache.clone(),
       cache: compilation.cache.clone(),
       value_cache_versions: Arc::new(compilation.value_cache_versions.clone()),
       artifact,
@@ -93,12 +93,9 @@ impl TaskContext {
       self.build_context.fs.clone(),
       self.intermediate_fs.clone(),
       self.output_fs.clone(),
-      // Preserve the module executor's initial-compilation behavior. Its module
-      // cache is disabled explicitly below.
       false,
       compiler_context,
     );
-    compilation.module_build_cache = None;
     compilation.runtime_template =
       RuntimeTemplate::for_module_execution(self.build_context.compiler_options.clone());
     compilation.dependency_factories = self.dependency_factories.clone();

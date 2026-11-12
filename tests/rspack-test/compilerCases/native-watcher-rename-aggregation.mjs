@@ -21,8 +21,10 @@ async function run(operation) {
 	const dir = fs.mkdtempSync(
 		path.join(fs.realpathSync(os.tmpdir()), "rename-parity-")
 	);
-	const file = path.join(dir, "index.js");
-	const backup = path.join(dir, "index.js.map");
+	const filename = "index.js";
+	const backupName = `${filename}.map`;
+	const file = path.join(dir, filename);
+	const backup = path.join(dir, backupName);
 	const replacement = path.join(dir, "replacement.js");
 	fs.writeFileSync(file, "old");
 	fs.writeFileSync(replacement, "new");
@@ -61,11 +63,13 @@ async function run(operation) {
 			removed: normalize(removed)
 		})
 	);
+	// Start at the epoch so both initial scans deliver a batch, even for past mtimes.
+	const startTime = 0;
 	native.watch(
 		[files, []],
 		[[], []],
 		[missing, []],
-		BigInt(Date.now()),
+		BigInt(startTime),
 		(err, batch) => {
 			if (err) throw err;
 			data.native.batches.push({
@@ -75,16 +79,11 @@ async function run(operation) {
 		},
 		event => data.native.raw.push([event.kind, path.relative(dir, event.path)])
 	);
-	wp.watch({ files, missing, startTime: Date.now() });
+	wp.watch({ files, missing, startTime });
 	try {
-		await until(
-			() =>
-				wp.getTimeInfoEntries().get(file)?.timestamp &&
-				native
-					.collectTimeInfoEntries()
-					.fileTimestamps.entries.some(e => e.path === file)
+		await until(() =>
+			Object.values(data).every(({ batches }) => batches.length > 0)
 		);
-		await sleep(600);
 		for (const value of Object.values(data)) {
 			value.raw.length = 0;
 			value.batches.length = 0;
@@ -107,7 +106,7 @@ async function run(operation) {
 		await sleep(1500);
 		const expected =
 			operation === "rename"
-				? [{ changed: ["index.js.map"], removed: ["index.js"] }]
+				? [{ changed: [backupName], removed: [filename] }]
 				: operation === "directory"
 					? [
 							{
@@ -118,7 +117,7 @@ async function run(operation) {
 					: operation === "replace-same-immediate" ||
 						  operation === "roundtrip-immediate"
 						? []
-						: [{ changed: ["index.js"], removed: [] }];
+						: [{ changed: [filename], removed: [] }];
 		expect(data.watchpack.batches).toEqual(expected);
 		expect(data.native.batches).toEqual(expected);
 	} finally {

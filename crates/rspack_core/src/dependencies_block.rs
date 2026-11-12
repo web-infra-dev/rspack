@@ -298,7 +298,13 @@ impl AsyncDependenciesBlock {
         &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
       )
     {
-      chunk_group.id(compilation).hash(hasher);
+      if compilation.hot
+        && let Some(chunk) = chunk_group.get_hmr_loading_chunk(compilation)
+      {
+        chunk.expect_id().hash(hasher);
+      } else {
+        chunk_group.id(compilation).hash(hasher);
+      }
     }
     dependencies_block_update_hash(
       self.get_dependencies(),
