@@ -42,7 +42,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction, filename::JsFilename,
-  module::ModuleObject, options::raw_resolve::RawResolveOptions,
+  module::ModuleObject, options::raw_resolve::RuleResolveOptions,
 };
 
 /// `loader` is for both JS and Rust loaders.
@@ -194,11 +194,12 @@ pub struct RawModuleRule {
   pub r#use: Option<Either<Vec<RawModuleRuleUse>, ThreadsafeUse>>,
   pub r#type: Option<String>,
   pub layer: Option<String>,
-  #[napi(ts_type = "Record<string, unknown>")]
+  #[napi(ts_type = "RawConfigValue")]
   pub parser: Option<RawParserOptionObject>,
-  #[napi(ts_type = "Record<string, unknown>")]
+  #[napi(ts_type = "RawConfigValue")]
   pub generator: Option<RawGeneratorOptionObject>,
-  pub resolve: Option<RawResolveOptions>,
+  #[napi(ts_type = "RawConfigValue")]
+  pub resolve: Option<RuleResolveOptions>,
   pub issuer: Option<RawRuleSetCondition>,
   pub issuer_layer: Option<RawRuleSetCondition>,
   pub dependency: Option<RawRuleSetCondition>,
@@ -763,13 +764,18 @@ impl From<RawCssModuleGeneratorOptions> for CssModuleGeneratorOptions {
   }
 }
 
+#[napi]
+pub fn get_config_dom_fields() -> HashMap<String, Vec<String>> {
+  deferred::config_dom_fields()
+}
+
 #[napi(object, object_from_js = false, object_to_js = false)]
 #[derive(Debug)]
 pub struct RawModuleOptions {
   pub rules: Vec<RawModuleRule>,
-  #[napi(ts_type = "Record<string, Record<string, unknown>>")]
+  #[napi(ts_type = "Record<string, RawConfigValue>")]
   pub parser: Option<HashMap<String, RawParserOptions>>,
-  #[napi(ts_type = "Record<string, Record<string, unknown>>")]
+  #[napi(ts_type = "Record<string, RawConfigValue>")]
   pub generator: Option<HashMap<String, RawGeneratorOptions>>,
   #[napi(
     ts_type = "string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]"
@@ -953,7 +959,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
         r#type: module_type,
         layer: value.layer,
         deferred_options: RuleOptions::deferred(value.parser, value.generator),
-        resolve: value.resolve.map(|raw| raw.try_into()).transpose()?,
+        resolve: value.resolve.map(|raw| raw.0.try_into()).transpose()?,
         side_effects: value.side_effects,
         enforce,
         extract_source_map: value.extract_source_map,

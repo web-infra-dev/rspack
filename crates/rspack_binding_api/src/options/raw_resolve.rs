@@ -1,24 +1,28 @@
-use napi::Either;
+use napi::{
+  Either,
+  bindgen_prelude::{FromNapiValue, Object},
+  sys,
+};
 use napi_derive::napi;
 use rspack_core::{
   Alias, AliasMap, ByDependency, DependencyCategory, Resolve, ResolveOptionsWithDependencyType,
   Restriction, TsconfigOptions, TsconfigReferences,
 };
 use rspack_error::error;
+use rspack_napi::owned_value::{FromObject, FromValue, Value, ValueGraph, ValueRef};
+use rspack_napi_macros::FromJsObject;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
-pub type AliasValue = serde_json::Value;
-
-#[derive(Debug)]
+#[derive(Debug, FromJsObject)]
 #[napi(object)]
 pub struct RawAliasOptionItem {
   pub path: String,
   #[napi(ts_type = "Array<string | false>")]
-  pub redirect: Vec<AliasValue>,
+  pub redirect: Vec<Either<String, bool>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, FromJsObject)]
 #[napi(object)]
 pub struct RawResolveTsconfigOptions {
   pub config_file: String,
@@ -27,8 +31,8 @@ pub struct RawResolveTsconfigOptions {
   pub references: Option<Vec<String>>,
 }
 
-#[derive(Debug)]
-#[napi(object)]
+#[derive(Debug, FromJsObject)]
+#[napi(object, object_to_js = false)]
 pub struct RawResolveOptions {
   pub prefer_relative: Option<bool>,
   pub prefer_absolute: Option<bool>,
@@ -43,7 +47,8 @@ pub struct RawResolveOptions {
   pub symlinks: Option<bool>,
   pub tsconfig: Option<RawResolveTsconfigOptions>,
   pub modules: Option<Vec<String>>,
-  pub by_dependency: Option<HashMap<String, RawResolveOptions>>,
+  #[napi(ts_type = "Record<string, RawConfigValue>")]
+  pub by_dependency: Option<HashMap<String, RawConfigValue>>,
   pub fully_specified: Option<bool>,
   pub exports_fields: Option<Vec<String>>,
   pub description_files: Option<Vec<String>>,
@@ -53,9 +58,104 @@ pub struct RawResolveOptions {
   pub extension_alias: Option<HashMap<String, Vec<String>>>,
   pub alias_fields: Option<Vec<String>>,
   #[napi(ts_type = "(string | RegExp)[]")]
+  #[js_value(with = decode_restrictions)]
   pub restrictions: Option<Vec<Either<String, RspackRegex>>>,
   pub roots: Option<Vec<String>>,
   pub pnp: Option<bool>,
+}
+
+#[derive(Debug)]
+pub struct RuleResolveOptions(pub RawResolveOptions);
+
+impl FromNapiValue for RuleResolveOptions {
+  unsafe fn from_napi_value(env: sys::napi_env, value: sys::napi_value) -> napi::Result<Self> {
+    let object = unsafe { Object::from_napi_value(env, value)? };
+    let graph = ValueGraph::capture(object, |_| Ok(Value::Unsupported))?;
+    let fields = graph
+      .root()
+      .object()
+      .ok_or_else(|| napi::Error::from_reason("Expected resolve options to be an object"))?;
+    RawResolveOptions::from_object(fields)
+      .map(Self)
+      .map_err(|error| napi::Error::from_reason(error.to_string()))
+  }
+}
+
+#[derive(Debug)]
+pub struct RawConfigValue(ValueGraph);
+
+impl FromNapiValue for RawConfigValue {
+  unsafe fn from_napi_value(env: sys::napi_env, value: sys::napi_value) -> napi::Result<Self> {
+    let object = unsafe { Object::from_napi_value(env, value)? };
+    ValueGraph::capture(object, |_| Ok(Value::Unsupported)).map(Self)
+  }
+}
+
+impl FromValue for RawConfigValue {
+  fn from_value(value: ValueRef<'_>) -> Option<Self> {
+    value.subgraph().map(Self)
+  }
+}
+
+fn normalize_by_dependency(
+  by_dependency: Option<HashMap<String, RawConfigValue>>,
+) -> rspack_error::Result<Option<ByDependency>> {
+  by_dependency
+    .map(|options| {
+      options
+        .into_iter()
+        .map(|(key, value)| {
+          let fields = value
+            .0
+            .root()
+            .object()
+            .ok_or_else(|| error!("Expected resolve options to be an object for '{key}'"))?;
+          Ok((
+            key.into(),
+            RawResolveOptions::from_object(fields)?.try_into()?,
+          ))
+        })
+        .collect()
+    })
+    .transpose()
+}
+
+pub(crate) fn add_dom_fields(fields: &mut HashMap<String, Vec<String>>) {
+  for (name, keys) in [
+    ("resolve", RawResolveOptions::FIELDS),
+    ("alias", RawAliasOptionItem::FIELDS),
+    ("tsconfig", RawResolveTsconfigOptions::FIELDS),
+  ] {
+    fields.insert(
+      name.into(),
+      keys.iter().map(|key| (*key).to_owned()).collect(),
+    );
+  }
+}
+
+fn decode_restrictions(value: ValueRef<'_>) -> Option<Vec<Either<String, RspackRegex>>> {
+  let Value::Array(values) = value.value() else {
+    return None;
+  };
+  values
+    .iter()
+    .map(|item| {
+      let item = value.child(item);
+      match item.value() {
+        Value::String(path) => Some(Either::A(path.clone())),
+        Value::Object(_) => {
+          let fields = item.object()?;
+          let (Value::String(source), Value::String(flags)) =
+            (fields.get("source")?.value(), fields.get("flags")?.value())
+          else {
+            return None;
+          };
+          RspackRegex::with_flags(source, flags).ok().map(Either::B)
+        }
+        _ => None,
+      }
+    })
+    .collect()
 }
 
 fn normalize_alias(
@@ -70,21 +170,10 @@ fn normalize_alias(
             alias_item
               .redirect
               .into_iter()
-              .map(|value| {
-                if let Some(s) = value.as_str() {
-                  Ok(AliasMap::Path(s.to_string()))
-                } else if let Some(b) = value.as_bool() {
-                  if b {
-                    Err(error!("Alias should not be true in {}", alias_item.path))
-                  } else {
-                    Ok(AliasMap::Ignore)
-                  }
-                } else {
-                  Err(error!(
-                    "Alias should be false or string in {}",
-                    alias_item.path
-                  ))
-                }
+              .map(|value| match value {
+                Either::A(path) => Ok(AliasMap::Path(path)),
+                Either::B(false) => Ok(AliasMap::Ignore),
+                Either::B(true) => Err(error!("Alias should not be true in {}", alias_item.path)),
               })
               .collect::<rspack_error::Result<Vec<_>>>()
               .map(|value| (alias_item.path, value))
@@ -120,14 +209,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
       Some(config) => Some(TsconfigOptions::try_from(config)?),
       None => None,
     };
-    let by_dependency = value
-      .by_dependency
-      .map(|i| {
-        i.into_iter()
-          .map(|(k, v)| Ok((k.into(), v.try_into()?)))
-          .collect::<Result<ByDependency, Self::Error>>()
-      })
-      .transpose()?;
+    let by_dependency = normalize_by_dependency(value.by_dependency)?;
     let exports_fields = value
       .exports_fields
       .map(|v| v.into_iter().map(|s| vec![s]).collect());
@@ -221,7 +303,8 @@ pub struct RawResolveOptionsWithDependencyType {
   pub symlinks: Option<bool>,
   pub tsconfig: Option<RawResolveTsconfigOptions>,
   pub modules: Option<Vec<String>>,
-  pub by_dependency: Option<HashMap<String, RawResolveOptions>>,
+  #[napi(ts_type = "Record<string, RawConfigValue>")]
+  pub by_dependency: Option<HashMap<String, RawConfigValue>>,
   pub fully_specified: Option<bool>,
   pub exports_fields: Option<Vec<String>>,
   pub description_files: Option<Vec<String>>,
@@ -264,14 +347,7 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         .imports_fields
         .map(|v| v.into_iter().map(|s| vec![s]).collect());
 
-      let by_dependency = raw
-        .by_dependency
-        .map(|i| {
-          i.into_iter()
-            .map(|(k, v)| Ok((k.into(), v.try_into()?)))
-            .collect::<rspack_error::Result<ByDependency>>()
-        })
-        .transpose()?;
+      let by_dependency = normalize_by_dependency(raw.by_dependency)?;
 
       let restrictions = raw.restrictions.map(|restrictions| {
         restrictions
