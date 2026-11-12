@@ -9,14 +9,9 @@ const ENV = {
 };
 
 export default defineConfig({
-  context: import.meta.dirname,
   entry: './entry.js',
-  incremental: false,
   optimization: {
     minimize: false,
-  },
-  cache: {
-    type: 'persistent',
   },
   plugins: [
     definePlugin({
