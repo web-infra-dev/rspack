@@ -76,7 +76,7 @@ $rspack-allocative 使用 hotCases/source-map/disable 测试用例抓取内存�
 限制：
 
 - 快照不测量 RSS、峰值内存或累计分配。
-- JavaScript 和 V8 堆对象、回调捕获、部分外部状态、分配器元数据和容器的私有开销无法完整计入。非阻塞锁和不支持的嵌套类型也可能造成覆盖缺口。
+- Rust 快照无法完整涵盖 JavaScript 和 V8 堆对象、回调捕获、部分外部状态、分配器元数据和容器的私有开销。非阻塞锁和不支持的嵌套类型也可能造成覆盖缺口。
 
 ## 进阶 \{#advanced}
 
@@ -145,23 +145,37 @@ ALLOCATIVE=1 pnpm run build:binding:dev
 | `ALLOCATIVE=1`          | 构建默认不包含该支持的 binding 时 | 将 allocative 采集能力编译进 binding。 |
 | `RSPACK_ALLOCATIVE_DIR` | 运行本地构建或测试时              | 开启快照采集并指定输出目录。           |
 
+如果使用自定义 release 构建，运行 `pnpm run build:binding:release` 和 `pnpm run build:js:release` 时都要设置 `ALLOCATIVE=1`。
+
 仅在运行时设置 `ALLOCATIVE=1`，无法为已有的 binding 增加采集能力。debug 和 profiling 构建也只有在设置 `RSPACK_ALLOCATIVE_DIR` 后，才会输出快照。
 
 ### 分析本地构建或测试 \{#profile-a-local-build-or-test}
 
-在目标项目的工作目录中运行构建后的 CLI：
+在项目目录中，用 `--expose-gc` 运行本地 CLI，并为每次运行将 `RSPACK_ALLOCATIVE_DIR` 设为新目录。将示例中的路径替换为实际路径。
 
-```sh
-RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/local-build-1 \
-  node /path/to/rspack/packages/rspack-cli/bin/rspack.js build \
-  --config ./rspack.config.mjs
+```bash
+rspack_root=/path/to/rspack
+profile_dir=/absolute/path/profiles/local-build-1
+RSPACK_ALLOCATIVE_DIR="$profile_dir" \
+  node --expose-gc "$rspack_root/packages/rspack-cli/bin/rspack.js" \
+  build --config ./rspack.config.mjs
 ```
+
+V8 快照保存在采集目录的 `v8/` 子目录中。转换快照时，请将配套的 Rust `.allocative` 和 `.objects.json` 文件保留在采集目录中。
+
+```bash
+node "$rspack_root/scripts/v8-to-allocative.mjs" "$profile_dir/v8/0-build.heapsnapshot"
+```
+
+在 Speedscope 中打开 `reports/0-build.js.allocative` 或 `reports/0-build.combined.allocative`，分别查看 JavaScript 内存和 Rust 与 JavaScript 合并后的内存报告。打开 `reports/0-build.links.json` 可以查找与 JavaScript 对象关联的 Rust 对象。有关报告的查看方法，请参阅[查看快照](#view-snapshots)。
+
+V8 对象名称、字符串和源码位置默认会被脱敏。如果需要保留这些信息，采集时设置 `RSPACK_ALLOCATIVE_INCLUDE_CONTENT=1`，转换时传入 `--include-content`。使用 `--out-dir` 可以将报告写入另一个已有的目录。
 
 使用本地 binding 的测试，也可以通过 `RSPACK_ALLOCATIVE_DIR` 采集快照。每次构建或重建都会自动输出快照，测试框架无需额外接入采集逻辑。构建好 binding 和 JavaScript 包后，可以运行单个 HMR 用例：
 
 ```sh
 cd /path/to/rspack/tests/rspack-test
-RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/hmr-test-1 \
+NODE_OPTIONS=--expose-gc RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/hmr-test-1 \
   pnpm test "\"$PWD/HotNode.test.mjs\"" --project base \
   -t hotCases/source-map/disable --maxWorkers 1
 ```
