@@ -117,7 +117,7 @@ export const getRawOptions = (
     optimization: options.optimization as Required<Optimization>,
     stats: getRawStats(options.stats),
     cache: getRawCache(cache),
-    loaderOptionsCacheKey:
+    loaderOptionsFingerprint:
       cache !== false && experiments.newCache && experiments.newCache.loader
         ? serializeLoaderOptionsForCache(options.loader)
         : undefined,

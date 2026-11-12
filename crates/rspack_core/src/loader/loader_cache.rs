@@ -45,7 +45,7 @@ fn loader_cache_etag<'a>(
   content: &Content,
   existing: &LoaderDependencies,
   source_map: bool,
-  loader_options_cache_key: Option<&str>,
+  loader_options_fingerprint: Option<&str>,
   rule_loaders: impl Iterator<Item = (&'a str, &'a str)>,
 ) -> Etag {
   let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
@@ -61,9 +61,9 @@ fn loader_cache_etag<'a>(
     "build_dependencies" => sorted_dependency_paths(&existing.build),
     "rspack_version" => rspack_workspace::rspack_pkg_version!(),
   });
-  if let Some(loader_options_cache_key) = loader_options_cache_key {
+  if let Some(loader_options_fingerprint) = loader_options_fingerprint {
     rspack_hash::rspack_hash_object!(&mut hasher, {
-      "loader_options" => loader_options_cache_key,
+      "loader_options" => loader_options_fingerprint,
     });
   }
   for (options, version) in rule_loaders {
@@ -215,11 +215,16 @@ pub(crate) async fn before_normal_chain(
   };
   let range = chain.range();
   let loaders = &context.loader_items[usize::from(range.start)..usize::from(range.end)];
-  let loader_options_cache_key = if loaders
+  let loader_options_fingerprint = if loaders
     .iter()
     .any(|loader| loader.execution_kind() == LoaderExecutionKind::JavaScript)
   {
-    let Some(options) = context.context.options.loader_options_cache_key.as_deref() else {
+    let Some(options) = context
+      .context
+      .options
+      .loader_options_fingerprint
+      .as_deref()
+    else {
       return Ok(LoaderCacheAction::Disabled);
     };
     Some(options)
@@ -237,7 +242,7 @@ pub(crate) async fn before_normal_chain(
     content,
     existing_dependencies,
     context.context.source_map_kind.source_map(),
-    loader_options_cache_key,
+    loader_options_fingerprint,
     loaders
       .iter()
       .map(|loader| (loader.options_cache_key(), loader.loader_version())),

@@ -15,7 +15,7 @@ pub struct CompilerOptions {
   pub stats: StatsOptions,
   pub cache: CacheOptions,
   /// Serialized JS loader config for the loader etag. None skips JS loader caching.
-  pub loader_options_cache_key: Option<String>,
+  pub loader_options_fingerprint: Option<String>,
   pub snapshot: SnapshotOptions,
   pub experiments: Experiments,
   pub incremental: IncrementalOptions,
