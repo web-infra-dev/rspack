@@ -157,7 +157,7 @@ impl FromNapiValue for DynThreadsafeFunction {
 }
 
 impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
-  pub(crate) async fn resolve_error(&self, err: napi::Error) -> Error {
+  async fn resolve_error(&self, err: napi::Error) -> Error {
     let (tx, rx) = tokio::sync::oneshot::channel::<rspack_error::Error>();
     self.error_resolver.call(Box::new(move |env| {
       let err = err.to_rspack_error(&env);

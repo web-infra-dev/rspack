@@ -164,7 +164,8 @@ RSPACK_ALLOCATIVE_DIR="$profile_dir" \
 V8 快照保存在采集目录的 `v8/` 子目录中。转换快照时，请将配套的 Rust `.allocative` 和 `.objects.json` 文件保留在采集目录中。
 
 ```bash
-node "$rspack_root/scripts/v8-to-allocative.mjs" "$profile_dir/v8/0-build.heapsnapshot"
+node "$rspack_root/.agents/skills/rspack-allocative/scripts/v8-to-allocative.mjs" \
+  "$profile_dir/v8/0-build.heapsnapshot"
 ```
 
 在 Speedscope 中打开 `reports/0-build.js.allocative` 或 `reports/0-build.combined.allocative`，分别查看 JavaScript 内存和 Rust 与 JavaScript 合并后的内存报告。打开 `reports/0-build.links.json` 可以查找与 JavaScript 对象关联的 Rust 对象。有关报告的查看方法，请参阅[查看快照](#view-snapshots)。
