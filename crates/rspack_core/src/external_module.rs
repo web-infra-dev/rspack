@@ -611,6 +611,23 @@ impl ExternalModule {
     }
   }
 
+  /// What the factory decided for this module, which a relocated build compares with a fresh
+  /// decision.
+  pub(crate) fn factory_decision(&self) -> Option<Vec<u8>> {
+    let mut decision = Vec::new();
+    for field in [
+      rspack_cacheable::to_bytes(&self.request, &()).ok()?,
+      rspack_cacheable::to_bytes(&self.external_type, &()).ok()?,
+      rspack_cacheable::to_bytes(&self.user_request, &()).ok()?,
+      rspack_cacheable::to_bytes(&self.dependency_meta, &()).ok()?,
+    ] {
+      decision.extend(field.len().to_le_bytes());
+      decision.extend(field);
+    }
+    decision.push(u8::from(self.place_in_initial));
+    Some(decision)
+  }
+
   pub fn user_request(&self) -> &str {
     &self.user_request
   }

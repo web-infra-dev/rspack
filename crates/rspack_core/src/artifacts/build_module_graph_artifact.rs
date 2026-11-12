@@ -5,13 +5,21 @@ use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet;
 
 use crate::{
-  ArtifactExt, BuildDependency, DependencyId, DependencyRef, FactorizationArtifact, FactorizeInfo,
-  ModuleGraph, ModuleIdentifier, SideEffectsStateArtifact,
+  ArtifactExt, BoxModule, BuildDependency, DependencyId, DependencyRef, FactorizationArtifact,
+  FactorizeInfo, ModuleGraph, ModuleIdentifier, ProducerGroup, SideEffectsStateArtifact,
   compilation::build_module_graph::{ModuleToLazyMake, module_build_cache::ModuleBuildCache},
   incremental::IncrementalPasses,
   incremental_info::IncrementalInfo,
   utils::FileCounter,
 };
+
+/// A freshly factorized module and the group that decided it.
+#[derive(Debug)]
+pub(crate) struct FactoryChoice {
+  pub(crate) module: BoxModule,
+  /// The group, in the form of `ModuleGraphModule::producer`. A rebuild of its parent replaces it.
+  pub(crate) producer: Option<ProducerGroup>,
+}
 
 /// Make Artifact, including all side effects of the make stage.
 #[derive(Debug)]
@@ -40,6 +48,11 @@ pub struct BuildModuleGraphArtifact {
   pub(crate) refactorize_dependencies: FxHashSet<DependencyId>,
   /// Main-graph cache session for the current build; never recovered or persisted.
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
+
+  pub(crate) verify_factory_decisions: Option<FxHashSet<DependencyId>>,
+  /// The modules that verification chose for the rebuilds it forces. The groups refactorized by a
+  /// rebuild race to `AddTask`, which takes the module from here instead of the first arrival's.
+  pub(crate) factory_choices: IdentifierMap<FactoryChoice>,
 
   // data
   /// Module graph data
@@ -74,6 +87,8 @@ impl BuildModuleGraphArtifact {
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
       check_issuer_cycles: false,
+      verify_factory_decisions: None,
+      factory_choices: Default::default(),
       refactorize_dependencies: Default::default(),
       module_build_cache: None,
       module_graph: Default::default(),

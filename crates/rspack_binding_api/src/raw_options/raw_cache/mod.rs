@@ -8,6 +8,15 @@ use napi_derive::napi;
 use raw_storage::RawStorageOptions;
 use rspack_core::{CacheOptions, PersistentCacheOptions, PortableRoot};
 use rspack_paths::Utf8PathBuf;
+use rspack_regex::RspackRegex;
+
+/// The source and flags of a JavaScript `RegExp`.
+#[derive(Debug)]
+#[napi(object)]
+pub struct RawRequestPattern {
+  pub source: String,
+  pub flags: String,
+}
 
 #[derive(Debug)]
 #[napi(object)]
@@ -19,6 +28,9 @@ pub struct RawCacheOptionsPersistent {
   pub storage: Option<RawStorageOptions>,
   pub seed_donors: Option<Vec<String>>,
   pub portable_root: Option<String>,
+  pub rebase_loader_requests: Option<bool>,
+  pub warn_loader_requests: Option<bool>,
+  pub ignored_requests: Option<Vec<RawRequestPattern>>,
   pub readonly: Option<bool>,
 }
 
@@ -43,6 +55,14 @@ impl TryFrom<RawCacheOptionsPersistent> for PersistentCacheOptions {
         .map(Into::into)
         .collect(),
       portable_root: value.portable_root.map(portable_root),
+      rebase_loader_requests: value.rebase_loader_requests.unwrap_or_default(),
+      warn_loader_requests: value.warn_loader_requests.unwrap_or_default(),
+      ignored_requests: value
+        .ignored_requests
+        .unwrap_or_default()
+        .iter()
+        .map(|pattern| RspackRegex::with_flags(&pattern.source, &pattern.flags))
+        .collect::<Result<_, _>>()?,
       readonly: value.readonly.unwrap_or_default(),
       max_age: value.max_age.into(),
       max_memory_generations: value.max_memory_generations.into(),

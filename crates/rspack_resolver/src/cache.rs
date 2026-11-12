@@ -5,7 +5,7 @@ use std::{
   hash::{BuildHasherDefault, Hash, Hasher},
   io,
   ops::Deref,
-  path::{Path, PathBuf},
+  path::PathBuf,
   sync::Arc,
 };
 
@@ -168,6 +168,27 @@ impl CacheKey for CachedPath {
   }
 }
 
+/// Whether `path` is below `root`. A resolution asks this for every directory above the path it
+/// resolved, and comparing components parses both paths each time. So a path that continues
+/// `root` with a separator and an ordinary name is found by its bytes, and any other spelling is
+/// compared by components.
+fn is_below(path: &Utf8Path, root: &Utf8Path) -> bool {
+  let continues_root = path
+    .as_str()
+    .strip_prefix(root.as_str())
+    .is_some_and(|rest| {
+      matches!(
+        rest.as_bytes(),
+        [separator, name, ..]
+          if std::path::is_separator(char::from(*separator))
+            && !std::path::is_separator(char::from(*name))
+            && *name != b'.'
+      )
+    });
+  (continues_root && !root.as_str().ends_with(std::path::is_separator))
+    || (path != root && path.starts_with(root))
+}
+
 pub struct CachedPathImpl {
   hash: u64,
   path: Box<Utf8Path>,
@@ -260,17 +281,26 @@ impl CachedPathImpl {
     )
   }
 
-  /// The filesystem abstraction exposes canonicalization, not link text. A link below the
-  /// issuer's ancestry may be absolute, so its target cannot be granted relocation authority.
-  /// Ancestor links (including the checkout's own spelling) do not change this derivation.
-  pub async fn has_symlink_below<Fs: FileSystem + Send + Sync>(
+  /// A followed link decides where a relocated path leads, so it is validated like any other
+  /// file the resolver read. Its snapshot holds the target relative to the portable root: a
+  /// relative link still matches after a move, and one into another checkout does not.
+  /// Links outside the root, including the checkout's own spelling, do not change this derivation.
+  pub async fn track_symlinks<Fs: FileSystem + Send + Sync>(
     &self,
     fs: &Fs,
-    issuer: &Path,
-  ) -> bool {
+    options: &ResolveOptions,
+    ctx: &mut Ctx,
+  ) {
+    if options.relocatable_roots.is_empty() || ctx.file_dependencies.is_none() {
+      return;
+    }
     let mut current = Some(self);
     while let Some(path) = current {
-      if issuer.starts_with(path.path().as_std_path()) {
+      let below_root = options
+        .relocatable_roots
+        .iter()
+        .any(|root| is_below(path.path(), root));
+      if !below_root {
         break;
       }
       if *path
@@ -285,11 +315,10 @@ impl CachedPathImpl {
         })
         .await
       {
-        return true;
+        ctx.add_file_dependency(path.path().as_std_path());
       }
       current = path.parent().map(|parent| parent.as_ref());
     }
-    false
   }
 
   pub async fn realpath<Fs: FileSystem + Send + Sync>(&self, fs: &Fs) -> io::Result<Utf8PathBuf> {
@@ -417,11 +446,7 @@ impl CachedPathImpl {
     options: &ResolveOptions,
     ctx: &mut Ctx,
   ) -> Result<Option<Arc<PackageJson>>, ResolveError> {
-    if options.symlinks && ctx.file_dependencies.is_some() && !options.relocatable_roots.is_empty()
-    {
-      let fixed = self.has_symlink_below(fs, &ctx.issuer).await;
-      ctx.fixed_dependencies |= fixed;
-    }
+    self.track_symlinks(fs, options, ctx).await;
     if let Some(pkg) = self.package_json.get() {
       // Preserve ctx dependency tracking on cache hit.
       match pkg {

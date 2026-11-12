@@ -152,6 +152,7 @@ impl Resolver {
     options: Resolve,
     options_with_dependency_type: &ResolveOptionsWithDependencyType,
     relocatable_roots: Vec<Utf8PathBuf>,
+    relocatable_specifiers: bool,
   ) -> Self {
     let mut hasher = FxHasher::default();
     options.hash(&mut hasher);
@@ -169,6 +170,7 @@ impl Resolver {
       options_with_dependency_type.dependency_category,
     );
     options.relocatable_roots = relocatable_roots;
+    options.relocatable_specifiers = relocatable_specifiers;
 
     let resolver = resolver.clone_with_options(options);
     Self {
@@ -404,6 +406,7 @@ fn to_rspack_resolver_options(
     enable_pnp: options.pnp.unwrap_or(false),
     node_path: false,
     relocatable_roots: vec![],
+    relocatable_specifiers: false,
   }
 }
 

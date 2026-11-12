@@ -13,6 +13,9 @@ use crate::{
 };
 
 /// Snapshot check strategy
+///
+/// `Clone` copies a package version string at most. Recovery clones a record's strategy to
+/// re-store it when validation found the content unchanged under another root.
 #[cacheable]
 #[derive(Debug, Clone)]
 pub enum Strategy {
@@ -277,6 +280,67 @@ impl StrategyHelper {
       current = parent;
     }
     true
+  }
+
+  /// Validates a record written under another root.
+  ///
+  /// Timestamps at different roots do not establish content identity: a copy can preserve
+  /// them while its content, or what a path resolves to, differs. Content hashes decide, and
+  /// a record that only holds timestamps declines reuse. An unchanged record is refreshed with
+  /// the timestamps observed here, so later same-root builds take the timestamp shortcut
+  /// against this root's times.
+  pub async fn validate_relocated(
+    &self,
+    path: &InternedPath,
+    strategy: &Strategy,
+  ) -> ValidateResult {
+    match strategy {
+      Strategy::FileTimestampAndHash { hash, .. } => {
+        let Some(ContentHash {
+          hash: cur_hash,
+          mtime: cur_mtime,
+        }) = self.hash_helper.file_hash(path).await
+        else {
+          return ValidateResult::Deleted;
+        };
+        if &cur_hash == hash {
+          ValidateResult::NoChangedRefresh(Strategy::FileTimestampAndHash {
+            mtime: cur_mtime,
+            hash: cur_hash,
+          })
+        } else {
+          ValidateResult::Modified
+        }
+      }
+      Strategy::DirTimestampAndHash { hash, .. } => {
+        let Some(TimestampHash {
+          hash: cur_timestamp_hash,
+          ..
+        }) = self.hash_helper.dir_timestamp_hash(path).await
+        else {
+          return ValidateResult::Deleted;
+        };
+        let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.dir_hash(path).await else {
+          return ValidateResult::Deleted;
+        };
+        if &cur_hash == hash {
+          ValidateResult::NoChangedRefresh(Strategy::DirTimestampAndHash {
+            timestamp_hash: cur_timestamp_hash,
+            hash: cur_hash,
+          })
+        } else {
+          ValidateResult::Modified
+        }
+      }
+      Strategy::FileTimestamp { .. } | Strategy::DirTimestamp { .. } => {
+        if self.modified_time(path).await.is_some() {
+          ValidateResult::Modified
+        } else {
+          ValidateResult::Deleted
+        }
+      }
+      _ => self.validate(path, strategy).await.0,
+    }
   }
 
   /// validate path file by target strategy

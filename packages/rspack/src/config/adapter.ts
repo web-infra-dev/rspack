@@ -1,6 +1,7 @@
 import { findSeedDonors } from './portableCache';
 import path from 'node:path';
 import {
+  BuiltinPluginName,
   type RawAssetGeneratorDataUrlFnCtx,
   type RawAssetGeneratorOptions,
   type RawAssetInlineGeneratorOptions,
@@ -9,6 +10,7 @@ import {
   type RawAssetResourceGeneratorOptions,
   type RawCssAutoOrModuleParserOptions,
   type RawCssGeneratorOptions,
+  type RawIgnorePluginOptions,
   type RawCssModuleGeneratorOptions,
   type RawCssModuleParserOptions,
   type RawCssParserOptions,
@@ -176,6 +178,37 @@ function getRawCache(
     }
     return value;
   };
+  const rebaseLoaderRequests =
+    typeof cache.portable === 'object' &&
+    cache.portable.rebaseLoaderRequests === true;
+  const ignorePlugins = compiler.__internal__builtinPlugins.flatMap(
+    ({ name, options }) =>
+      name === BuiltinPluginName.IgnorePlugin
+        ? [options as RawIgnorePluginOptions]
+        : [],
+  );
+  // An `ExternalsPlugin` applied by another plugin reads requests just like configured externals
+  // do. So does `checkResource`, a function whose answers for two spellings Rspack can't compare.
+  const requestPlugin =
+    (rebaseLoaderRequests || compiler.options.experiments.portableCache) &&
+    (compiler.__internal__builtinPlugins.find(
+      ({ name }) => name === BuiltinPluginName.ExternalsPlugin,
+    ) ??
+      (ignorePlugins.some(({ checkResource }) => checkResource)
+        ? { name: BuiltinPluginName.IgnorePlugin }
+        : undefined));
+  if (rebaseLoaderRequests && requestPlugin) {
+    compiler.hooks.thisCompilation.tap(
+      'rspack.persistentCache',
+      (compilation) => {
+        compilation
+          .getLogger('rspack.persistentCache')
+          .warn(
+            `cache.portable.rebaseLoaderRequests is disabled because ${requestPlugin.name} reads module requests. Absolute loader requests will be kept.`,
+          );
+      },
+    );
+  }
   return {
     type: cache.type,
     buildDependencies: cache.buildDependencies,
@@ -189,6 +222,17 @@ function getRawCache(
     },
     portableRoot:
       typeof cache.portable === 'object' ? cache.portable.root : undefined,
+    rebaseLoaderRequests: !requestPlugin && rebaseLoaderRequests,
+    // A request that a resource pattern matches in one spelling only keeps the loader's spelling.
+    ignoredRequests: ignorePlugins.flatMap(({ resourceRegExp }) =>
+      resourceRegExp
+        ? [{ source: resourceRegExp.source, flags: resourceRegExp.flags }]
+        : [],
+    ),
+    warnLoaderRequests:
+      !requestPlugin &&
+      !rebaseLoaderRequests &&
+      Boolean(compiler.options.experiments.portableCache),
     seedDonors: findSeedDonors(cache, compiler),
     readonly: cache.readonly,
   };
@@ -371,6 +415,10 @@ const getRawModuleRule = (
         },
       ]
     : rule.use;
+  const cache = options.compiler.options.cache;
+  const fingerprint = Boolean(
+    cache && cache.type === 'persistent' && cache.portable,
+  );
   let funcUse: undefined | ((rawContext: RawFuncUseCtx) => RawModuleRuleUse[]);
   if (typeof normalizedUse === 'function') {
     const use = normalizedUse;
@@ -381,7 +429,13 @@ const getRawModuleRule = (
       };
       const uses = use(context);
 
-      return createRawModuleRuleUses(uses ?? [], `${path}.use`, options);
+      return createRawModuleRuleUses(
+        uses ?? [],
+        `${path}.use`,
+        options,
+        fingerprint,
+        true,
+      );
     };
   }
 
@@ -427,7 +481,12 @@ const getRawModuleRule = (
     use:
       typeof normalizedUse === 'function'
         ? funcUse
-        : createRawModuleRuleUses(normalizedUse ?? [], `${path}.use`, options),
+        : createRawModuleRuleUses(
+            normalizedUse ?? [],
+            `${path}.use`,
+            options,
+            fingerprint,
+          ),
     type: rule.type,
     layer: rule.layer,
     parser: rule.parser

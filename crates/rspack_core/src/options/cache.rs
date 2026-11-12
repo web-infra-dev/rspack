@@ -2,7 +2,10 @@ use std::path::PathBuf;
 
 use rspack_cacheable::{cacheable, utils::PortablePath, with::As};
 use rspack_paths::Utf8PathBuf;
+use rspack_regex::RspackRegex;
 
+// A compiler holds one value, so boxing the persistent options would save nothing.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone)]
 pub enum CacheOptions {
   Disabled,
@@ -51,6 +54,13 @@ pub struct PersistentCacheOptions {
   pub storage: StorageOptions,
   pub seed_donors: Vec<Utf8PathBuf>,
   pub portable_root: Option<PortableRoot>,
+  /// Whether absolute requests that loaders generate are spelled relative to their module.
+  pub rebase_loader_requests: bool,
+  /// Whether to warn about modules that `rebase_loader_requests` would rewrite.
+  pub warn_loader_requests: bool,
+  /// The resource patterns of every applied `IgnorePlugin`. A loader request that one of them
+  /// tells apart from its relative spelling is kept as written.
+  pub ignored_requests: Vec<RspackRegex>,
   pub readonly: bool,
   /// Filesystem cache max age in seconds.
   pub max_age: u64,

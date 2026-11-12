@@ -3,7 +3,7 @@ use rspack_cacheable::cacheable;
 use rspack_regex::RspackRegex;
 
 #[cacheable]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum CodeFilter {
   String(String),
   Regexp(RspackRegex),

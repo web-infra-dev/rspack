@@ -330,6 +330,7 @@ export async function runLoaders(
     context.cacheable = true;
   };
 
+  let importedModule = false;
   loaderContext.importModule = function importModule(
     request,
     userOptions,
@@ -345,6 +346,7 @@ export async function runLoaders(
     }
     const options = userOptions ? userOptions : {};
     const context = loaderContext;
+    importedModule = true;
     function finalCallback(
       onError: (err: Error) => void,
       onDone: (res: any) => void,
@@ -1268,6 +1270,7 @@ export async function runLoaders(
   }
 
   context.portableOutput = portableOutput.result();
+  context.rootSensitive = importedModule;
   context.addedDependencies = dependencies.added;
   context.removedDependencies = dependencies.removed;
   return context;

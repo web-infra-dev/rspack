@@ -83,6 +83,7 @@ pub(crate) fn merge_loader_context(
     .module
     .add_module_build_diagnostics(from.module_build_diagnostics.0, to.context.compilation_id);
   to.cacheable = from.cacheable;
+  to.root_sensitive |= from.root_sensitive;
   to.merge_portable_output(
     from
       .portable_output

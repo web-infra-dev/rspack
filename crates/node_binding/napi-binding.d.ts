@@ -934,6 +934,8 @@ export interface JsLoaderContext {
   moduleBuildDiagnostics: ExternalObject<'Diagnostic'>[]
   /** Contribution of this JS execution span only; absence means uncertified. */
   portableOutput?: Array<string>
+  /** This JS span called `importModule`, whose decisions a relocated build can't verify. */
+  rootSensitive: boolean
   dependencies: JsLoaderDependencies
   addedDependencies: JsLoaderDependencies
   removedDependencies: JsLoaderDependencies
@@ -2010,6 +2012,9 @@ export interface RawCacheOptionsPersistent {
   storage?: RawStorageOptions
   seedDonors?: Array<string>
   portableRoot?: string
+  rebaseLoaderRequests?: boolean
+  warnLoaderRequests?: boolean
+  ignoredRequests?: Array<RawRequestPattern>
   readonly?: boolean
 }
 
@@ -2846,6 +2851,8 @@ export interface RawModuleRuleUse {
   options?: string
   cache: boolean
   optionsCacheKey: string
+  /** Typed serialization of the options, set on portable builds. Absent when they can't be compared. */
+  comparableOptions?: string
   codeFilter?: string | RegExp
 }
 
@@ -3021,6 +3028,12 @@ export interface RawRemoteOptions {
   key: string
   external: Array<string>
   shareScope: string | Array<string>
+}
+
+/** The source and flags of a JavaScript `RegExp`. */
+export interface RawRequestPattern {
+  source: string
+  flags: string
 }
 
 export interface RawResolveOptions {

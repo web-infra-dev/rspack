@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import value from "./resource";
 
-it("should reuse a loader with an absolute in-root option", async () => {
+it("should keep a loader whose function use returns an in-root option after a move", async () => {
 	expect(value).toBe("portable value");
 	if (COMPILER_INDEX < 2) {
 		expect(fs.readFileSync(path.join(CURRENT_CONTEXT, "build-counts"), "utf8")).toBe("built\n");

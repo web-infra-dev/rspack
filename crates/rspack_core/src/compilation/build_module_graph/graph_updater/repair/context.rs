@@ -32,24 +32,28 @@ pub struct TaskContext {
 }
 
 impl TaskContext {
+  pub(in super::super) fn build_context(compilation: &Compilation) -> Arc<BuildContext> {
+    Arc::new(BuildContext {
+      compiler_id: compilation.compiler_id(),
+      compilation_id: compilation.id(),
+      compiler_options: compilation.options.clone(),
+      loader_cache: compilation.get_cache("loader"),
+      file_system_info: compilation.file_system_info.clone(),
+      resolver_factory: compilation.resolver_factory.clone(),
+      runtime_template: RuntimeTemplate::new(compilation.options.clone())
+        .create_module_code_template(),
+      plugin_driver: compilation.plugin_driver.clone(),
+      fs: compilation.input_filesystem.clone(),
+    })
+  }
+
   pub fn new(
     compilation: &Compilation,
     artifact: BuildModuleGraphArtifact,
     exports_info_artifact: ExportsInfoArtifact,
   ) -> Self {
     Self {
-      build_context: Arc::new(BuildContext {
-        compiler_id: compilation.compiler_id(),
-        compilation_id: compilation.id(),
-        compiler_options: compilation.options.clone(),
-        loader_cache: compilation.get_cache("loader"),
-        file_system_info: compilation.file_system_info.clone(),
-        resolver_factory: compilation.resolver_factory.clone(),
-        runtime_template: RuntimeTemplate::new(compilation.options.clone())
-          .create_module_code_template(),
-        plugin_driver: compilation.plugin_driver.clone(),
-        fs: compilation.input_filesystem.clone(),
-      }),
+      build_context: Self::build_context(compilation),
       buildtime_plugin_driver: compilation.buildtime_plugin_driver.clone(),
       platform: compilation.platform.clone(),
       loader_resolver_factory: compilation.loader_resolver_factory.clone(),

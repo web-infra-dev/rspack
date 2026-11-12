@@ -39,7 +39,7 @@ pub trait CacheableContext: Any {
 }
 
 /// Spans of a typed context identifier that portable conversion cannot infer from the text.
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct ContextIdentifierLayout {
   /// Regex sources, kept verbatim.
   pub regexes: Vec<Range<usize>>,

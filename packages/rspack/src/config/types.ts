@@ -2230,9 +2230,12 @@ export type PersistentCacheOptions = {
    * Other absolute paths remain unchanged.
    * The root defaults to the nearest ancestor of context containing .git, or context.
    * An explicit root is resolved against context and keeps the spelling of context.
+   * `rebaseLoaderRequests` spells absolute requests that loaders generate below the root relative
+   * to their module, so those modules are reused after a move. It assumes that such a path was
+   * computed for the current checkout.
    * @default false
    */
-  portable?: boolean | { root?: string };
+  portable?: boolean | { root?: string; rebaseLoaderRequests?: boolean };
   /**
    * Enable read-only mode. When enabled, the cache will only be read from disk and never written to.
    * @description This is useful for CI environments where you want to use a pre-warmed cache without modifying it.

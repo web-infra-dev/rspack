@@ -275,7 +275,6 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   ) -> Result<Resolution, ResolveError> {
     let mut ctx = Ctx::default();
     ctx.init_file_dependencies();
-    ctx.issuer = directory.as_ref().to_path_buf();
     let result = self
       .resolve_tracing(directory.as_ref(), specifier, &mut ctx)
       .await;
@@ -355,6 +354,19 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     })
   }
 
+  /// Whether a configured path stays put when the checkout moves.
+  fn is_fixed_path(&self, path: &str) -> bool {
+    if !has_root_or_prefix(path) {
+      return false;
+    }
+    let path = Utf8Path::new(path).normalize();
+    !self
+      .options
+      .relocatable_roots
+      .iter()
+      .any(|root| path.starts_with(root))
+  }
+
   /// require(X) from module at path Y
   ///
   /// X: specifier
@@ -370,7 +382,14 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     let fut = async move {
       ctx.test_for_infinite_recursion()?;
 
-      ctx.fixed_dependencies |= has_root_or_prefix(specifier);
+      // An absolute specifier from a module stays fixed, one from the configuration may move.
+      let configured =
+        std::mem::take(&mut ctx.relocatable_specifier) || self.options.relocatable_specifiers;
+      ctx.fixed_dependencies |= if configured {
+        self.is_fixed_path(specifier)
+      } else {
+        has_root_or_prefix(specifier)
+      };
       // enhanced-resolve: parse
       let (parsed, try_fragment_as_path) = self.load_parse(cached_path, specifier, ctx).await?;
       if let Some(path) = try_fragment_as_path {
@@ -809,13 +828,10 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     cached_path: &CachedPath,
     ctx: &mut Ctx,
   ) -> Result<Utf8PathBuf, ResolveError> {
+    cached_path
+      .track_symlinks(&self.cache.fs, &self.options, ctx)
+      .await;
     if self.options.symlinks {
-      if ctx.file_dependencies.is_some() && !self.options.relocatable_roots.is_empty() {
-        let fixed = cached_path
-          .has_symlink_below(&self.cache.fs, &ctx.issuer)
-          .await;
-        ctx.fixed_dependencies |= fixed;
-      }
       cached_path
         .realpath(&self.cache.fs)
         .await
@@ -1193,7 +1209,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     module_name: &str,
     ctx: &mut Ctx,
   ) -> Option<CachedPath> {
-    ctx.fixed_dependencies |= has_root_or_prefix(module_name);
+    ctx.fixed_dependencies |= self.is_fixed_path(module_name);
     if module_name == "node_modules" {
       cached_path.cached_node_modules(&self.cache, ctx).await
     } else if cached_path.path().components().next_back()
@@ -1447,7 +1463,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         .strip_prefix(alias_value)
         .is_some_and(|prefix| prefix.starts_with('/'))
     {
-      ctx.fixed_dependencies |= has_root_or_prefix(alias_value);
+      ctx.fixed_dependencies |= self.is_fixed_path(alias_value);
       let tail = &request[alias_key.len()..];
 
       let new_specifier = if tail.is_empty() {
@@ -1472,6 +1488,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
 
       *should_stop = true;
       ctx.with_fully_specified(false);
+      ctx.relocatable_specifier = true;
       return match self.require(cached_path, new_specifier.as_ref(), ctx).await {
         Err(ResolveError::NotFound(_) | ResolveError::MatchedAliasNotFound(_, _)) => Ok(None),
         Ok(path) => return Ok(Some(path)),

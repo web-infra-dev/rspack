@@ -8,6 +8,11 @@ use self::{fix_build_meta::FixBuildMeta, fix_issuers::FixIssuers};
 use super::{BuildModuleGraphArtifact, UpdateParam};
 use crate::{BuildDependency, Compilation, internal};
 
+/// Gives every module on an issuer cycle an issuer whose chain reaches an entry, or none.
+pub(super) fn repair_issuer_cycles(artifact: &mut BuildModuleGraphArtifact) {
+  FixIssuers::repair_issuer_cycles(artifact);
+}
+
 /// Cutout module graph.
 ///
 /// This toolkit can remove useless module and dependency through `UpdateParam` and

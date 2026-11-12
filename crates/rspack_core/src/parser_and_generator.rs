@@ -10,6 +10,7 @@ use rspack_hash::RspackHashDigest;
 use rspack_intern::Atom;
 use rspack_loader_runner::{AdditionalData, ParseMeta, ParseMetaValue, ResourceData};
 use rspack_paths::Utf8PathBuf;
+use rspack_regex::RspackRegex;
 use rspack_sources::BoxSource;
 use rspack_util::{ext::AsAny, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -19,7 +20,8 @@ use crate::{
   CodeGenerationData, Compilation, CompilerOptions, ConcatenationScope, Context,
   DependencyCodeGenerationRef, DependencyId, DependencyLocation, DependencyRange,
   EvaluatedInlinableValue, FactoryMeta, GeneratorOptions, Module, ModuleCodeTemplate, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeSpec, SourceType,
+  ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, PortableRoot,
+  RuntimeSpec, SourceType,
 };
 
 /// A public source and the byte replacements that relate it to the stored parser source.
@@ -67,6 +69,17 @@ impl SourceView {
   }
 }
 
+/// Absolute module requests that loaders generated below the portable root, which move with the
+/// checkout.
+#[derive(Debug, Clone, Copy)]
+pub struct PortableRequests<'a> {
+  pub root: &'a PortableRoot,
+  /// Whether parsers rewrite the requests or only record them in `BuildInfo`.
+  pub rebase: bool,
+  /// `IgnorePlugin` resource patterns, which read the request as it is spelled.
+  pub ignored: &'a [RspackRegex],
+}
+
 #[derive(Debug)]
 pub struct ParseContext<'a> {
   pub source: BoxSource,
@@ -90,6 +103,8 @@ pub struct ParseContext<'a> {
   /// project paths, or `None` when the certification chain is broken. Only parsers that can
   /// relocate whole literals read it; the loader output itself still holds the real paths.
   pub portable_output: Option<&'a [Utf8PathBuf]>,
+  /// Set when the loader chain generated the root paths in `source`.
+  pub portable_requests: Option<PortableRequests<'a>>,
   pub build_info: &'a mut BuildInfo,
   pub build_meta: &'a mut BuildMeta,
   pub runtime_template: &'a ModuleCodeTemplate,

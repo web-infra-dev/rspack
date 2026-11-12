@@ -228,6 +228,7 @@ impl ResolverFactory {
       enable_pnp: op.enable_pnp.unwrap_or_default(),
       node_path: false,
       relocatable_roots: vec![],
+      relocatable_specifiers: false,
     }
   }
 }
