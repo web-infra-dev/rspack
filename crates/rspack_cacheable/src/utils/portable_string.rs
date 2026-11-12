@@ -9,8 +9,14 @@ use crate::{ContextGuard, Result, RootSpelling, cacheable, with::AsConverter};
 const ESCAPE: &str = "\0escape";
 
 /// Characters that end a path inside an identifier. A root only matches right after one of them
-/// or at the start, so a root that occurs inside a longer path is never rewritten.
-const DELIMITERS: [char; 8] = ['|', '!', '?', '=', ' ', '\t', '\n', '\r'];
+/// or at the start, so a root that occurs inside a longer path is never rewritten. All of them are
+/// ASCII, so they are searched for as bytes.
+const DELIMITERS: [u8; 8] = *b"|!?= \t\n\r";
+
+/// The offset of the first delimiter in `text`.
+fn find_delimiter(text: &str) -> Option<usize> {
+  text.bytes().position(|byte| DELIMITERS.contains(&byte))
+}
 
 #[cfg(not(windows))]
 const ROOT_SEPARATORS: [char; 1] = ['/'];
@@ -62,23 +68,30 @@ const ROOT_FORMS: [RootForm; 3] = [
 /// Returns the rest of `text` after `root` spelled with `separator`, including the separator that
 /// follows the root.
 fn strip_root<'a>(text: &'a str, root: &str, separator: &str) -> Option<&'a str> {
-  let mut rest = text;
-  for (index, component) in root.split(ROOT_SEPARATORS).enumerate() {
-    if index > 0 {
-      rest = rest.strip_prefix(separator)?;
+  // With one separator form the root is spelled as it is.
+  #[cfg(not(windows))]
+  let rest = text.strip_prefix(root)?;
+  #[cfg(windows)]
+  let rest = {
+    let mut rest = text;
+    for (index, component) in root.split(ROOT_SEPARATORS).enumerate() {
+      if index > 0 {
+        rest = rest.strip_prefix(separator)?;
+      }
+      rest = rest.strip_prefix(component)?;
     }
-    rest = rest.strip_prefix(component)?;
-  }
+    rest
+  };
   rest.strip_prefix(separator)
 }
 
 /// Returns the marker for the first root form `text` starts with, and the rest of `text`.
 fn strip_any_root<'a>(
   text: &'a str,
-  roots: &[(RootSpelling, Cow<'_, str>)],
+  roots: &[Option<(RootSpelling, Cow<'_, str>)>; 2],
 ) -> Option<(&'static str, &'a str)> {
   ROOT_FORMS.iter().find_map(|form| {
-    roots.iter().find_map(|(spelling, root)| {
+    roots.iter().flatten().find_map(|(spelling, root)| {
       strip_root(text, root, form.separator).map(|rest| (form.marker(*spelling), rest))
     })
   })
@@ -156,11 +169,13 @@ impl PortableString {
   }
 
   pub fn new(content: &str, guard: &ContextGuard) -> Self {
-    let roots = guard
+    // The context spelling and the realpath at most. This runs for every identifier a build
+    // stores, so the roots stay off the heap.
+    let mut spellings = guard
       .root_spellings()
-      .map(|(spelling, root)| (spelling, trimmed_root(root)))
-      .collect::<Vec<_>>();
-    if roots.is_empty() {
+      .map(|(spelling, root)| (spelling, trimmed_root(root)));
+    let roots = [spellings.next(), spellings.next()];
+    if roots[0].is_none() {
       return Self {
         content: content.cow_replace('\0', ESCAPE).into_owned(),
       };
@@ -168,26 +183,23 @@ impl PortableString {
     let mut converted = String::with_capacity(content.len());
     let mut rest = content;
     loop {
-      let path = match strip_any_root(rest, &roots) {
+      let (path, below_root) = match strip_any_root(rest, &roots) {
         Some((marker, suffix)) => {
           converted.push_str(marker);
-          suffix
+          (suffix, true)
         }
-        None => {
-          let token = rest.split(DELIMITERS).next().unwrap_or_default();
-          if Path::new(token).is_absolute() {
-            guard.mark_outside_root();
-          }
-          rest
-        }
+        None => (rest, false),
       };
-      let end = path.find(DELIMITERS).unwrap_or(path.len());
+      let end = find_delimiter(path).unwrap_or(path.len());
+      if !below_root && Path::new(&path[..end]).is_absolute() {
+        guard.mark_outside_root();
+      }
       converted.push_str(&path[..end].cow_replace('\0', ESCAPE));
-      let Some(delimiter) = path[end..].chars().next() else {
+      let Some(delimiter) = path.as_bytes().get(end) else {
         break;
       };
-      converted.push(delimiter);
-      rest = &path[end + delimiter.len_utf8()..];
+      converted.push(char::from(*delimiter));
+      rest = &path[end + 1..];
     }
     Self { content: converted }
   }
