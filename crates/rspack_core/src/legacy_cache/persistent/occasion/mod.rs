@@ -32,11 +32,16 @@ impl BoundEntry {
   where
     T: for<'a> Serialize<Serializer<'a>>,
   {
-    let Some(root_hash) = codec.root_hash() else {
+    if !codec.is_portable() {
       return codec.encode(value);
-    };
+    }
     let (bytes, binding) = codec.encode_with_binding(value)?;
-    let bound_root = (root_sensitive || matches!(binding, RootBinding::Bound)).then_some(root_hash);
+    let binding = if root_sensitive {
+      RootBinding::Bound
+    } else {
+      binding
+    };
+    let bound_root = codec.bound_root(binding);
     codec.encode(&Self { bound_root, bytes })
   }
 
@@ -46,14 +51,11 @@ impl BoundEntry {
     T: Archive,
     T::Archived: for<'a> CheckBytes<Validator<'a>> + Deserialize<T, Deserializer>,
   {
-    let Some(root_hash) = codec.root_hash() else {
+    if !codec.is_portable() {
       return codec.decode(bytes).map(Some);
-    };
+    }
     let entry: Self = codec.decode(bytes)?;
-    if entry
-      .bound_root
-      .is_some_and(|bound_root| bound_root != root_hash)
-    {
+    if !codec.accepts_bound_root(entry.bound_root) {
       return Ok(None);
     }
     codec.decode(&entry.bytes).map(Some)

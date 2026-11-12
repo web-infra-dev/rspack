@@ -1,4 +1,7 @@
-use rspack_core::cache::{CacheCodec, RootBinding};
+use rspack_core::{
+  PortableRoot,
+  cache::{CacheCodec, RootBinding},
+};
 
 const ROOT_DIR: &str = "lönger-读者-😀";
 
@@ -25,7 +28,10 @@ const ESCAPED_ROOT_DIRS: [&str; 11] = [
 ];
 
 fn is_bound(root: &str, value: &str) -> bool {
-  let codec = CacheCodec::new(Some(root.into()));
+  let codec = CacheCodec::new(Some(PortableRoot {
+    root: root.into(),
+    canonical_root: root.into(),
+  }));
   let (_, binding) = codec
     .encode_with_binding(&value.to_string())
     .expect("a string encodes");

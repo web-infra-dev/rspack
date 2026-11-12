@@ -50,6 +50,7 @@ rspack_workspace          = { workspace = true }
 
 async-trait             = { workspace = true }
 cow-utils               = { workspace = true }
+dunce                   = { workspace = true }
 rspack_tracing          = { workspace = true }
 rspack_tracing_perfetto = { workspace = true, optional = true }
 tracing                 = { workspace = true }

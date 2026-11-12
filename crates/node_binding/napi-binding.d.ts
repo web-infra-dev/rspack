@@ -2004,7 +2004,7 @@ export interface RawCacheOptionsPersistent {
   maxAge: number
   maxMemoryGenerations?: number
   storage?: RawStorageOptions
-  portable?: boolean
+  portableRoot?: string
   readonly?: boolean
 }
 

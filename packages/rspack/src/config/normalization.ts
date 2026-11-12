@@ -304,7 +304,10 @@ export const getNormalizedRspackOptions = (
             maxAge: cache.maxAge,
             maxMemoryGenerations: cache.maxMemoryGenerations,
             ...(hasMaxVersions ? { maxVersions: cache.maxVersions } : {}),
-            portable: cache.portable,
+            portable:
+              typeof cache.portable === 'object'
+                ? { ...cache.portable }
+                : cache.portable,
             readonly: cache.readonly,
             buildDependencies: nestedArray(cache.buildDependencies, (deps) =>
               deps.map((d) => path.resolve(context, d)),
@@ -668,7 +671,7 @@ export type CacheNormalized =
         directory?: string;
         location?: string;
       };
-      portable?: boolean;
+      portable?: boolean | { root?: string };
       readonly?: boolean;
     };
 
