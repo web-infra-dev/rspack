@@ -90,7 +90,7 @@ enum BindingTarget {
 }
 
 /// A symbol's override slot and default owner scope, both mapped across retained ASTs.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct SymbolBinding {
   index: NonZeroU32,
   scope: SemanticScopeId,
