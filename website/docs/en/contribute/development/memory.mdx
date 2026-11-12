@@ -76,7 +76,7 @@ Compare matching snapshots from the same phase and with the same workload. For e
 Limitation:
 
 - Snapshots do not measure RSS, peak memory, or cumulative allocations.
-- JavaScript and V8 heap objects, callback captures, some external state, allocator metadata, and private container overhead are not fully represented. Nonblocking locks and unsupported nested types can also limit coverage.
+- Rust snapshots do not fully represent JavaScript and V8 heap objects, callback captures, some external state, allocator metadata, and private container overhead. Nonblocking locks and unsupported nested types can also limit coverage.
 
 ## Advanced
 
@@ -145,23 +145,37 @@ ALLOCATIVE=1 pnpm run build:binding:dev
 | `ALLOCATIVE=1`          | Building a binding that does not include it by default | Include allocative instrumentation in the binding.         |
 | `RSPACK_ALLOCATIVE_DIR` | Running a local build or test                          | Enable snapshot collection and select an output directory. |
 
+For a custom release build, set `ALLOCATIVE=1` when running both `pnpm run build:binding:release` and `pnpm run build:js:release`.
+
 Setting `ALLOCATIVE=1` at runtime alone does not add instrumentation to an existing binding. Debug and profiling builds do not collect snapshots unless `RSPACK_ALLOCATIVE_DIR` is set.
 
 ### Profile a local build or test
 
-Run the built CLI from the target project's working directory:
+From your project's directory, run the local CLI with `--expose-gc` and set `RSPACK_ALLOCATIVE_DIR` to a fresh directory for each run. Replace the example paths with your own.
 
-```sh
-RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/local-build-1 \
-  node /path/to/rspack/packages/rspack-cli/bin/rspack.js build \
-  --config ./rspack.config.mjs
+```bash
+rspack_root=/path/to/rspack
+profile_dir=/absolute/path/profiles/local-build-1
+RSPACK_ALLOCATIVE_DIR="$profile_dir" \
+  node --expose-gc "$rspack_root/packages/rspack-cli/bin/rspack.js" \
+  build --config ./rspack.config.mjs
 ```
+
+The V8 snapshot is saved in `v8/` under the profile directory. Keep the matching Rust `.allocative` and `.objects.json` files in the profile directory when converting the capture.
+
+```bash
+node "$rspack_root/scripts/v8-to-allocative.mjs" "$profile_dir/v8/0-build.heapsnapshot"
+```
+
+Open `reports/0-build.js.allocative` or `reports/0-build.combined.allocative` in Speedscope to inspect the JavaScript or combined Rust and JavaScript profile. Open `reports/0-build.links.json` to look up the Rust targets associated with JavaScript objects. See [View snapshots](#view-snapshots) for tips on exploring a profile.
+
+V8 object names, strings, and source locations are redacted by default. If you need them, set `RSPACK_ALLOCATIVE_INCLUDE_CONTENT=1` when capturing and pass `--include-content` when converting. Use `--out-dir` to write the reports to another existing directory.
 
 Tests using the local binding can also collect snapshots via `RSPACK_ALLOCATIVE_DIR`. Each build or rebuild produces a snapshot automatically; the test framework does not need a separate capture integration. After building the binding and JavaScript packages, run a focused HMR case:
 
 ```sh
 cd /path/to/rspack/tests/rspack-test
-RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/hmr-test-1 \
+NODE_OPTIONS=--expose-gc RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/hmr-test-1 \
   pnpm test "\"$PWD/HotNode.test.mjs\"" --project base \
   -t hotCases/source-map/disable --maxWorkers 1
 ```
