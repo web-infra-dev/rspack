@@ -29,8 +29,7 @@ use super::{
 };
 use crate::{
   Compilation, CompilationAsset, Context, DependencyId, ExportsInfoArtifact, PublicPath, StealCell,
-  build_module_graph::module_executor::execute::ExecuteResult,
-  task_loop::run_task_loop_with_error_handler,
+  build_module_graph::module_executor::execute::ExecuteResult, task_loop::run_task_loop,
 };
 
 #[derive(Debug)]
@@ -121,7 +120,7 @@ impl ModuleExecutor {
     // avoid coop budget consumed to zero cause hang risk
     // related to https://tokio.rs/blog/2020-04-preemption
     rspack_tasks::spawn_in_compiler_context(task::unconstrained(async move {
-      let result = run_task_loop_with_error_handler(
+      let result = run_task_loop(
         &mut ctx,
         vec![Box::new(CtrlTask { event_receiver })],
         |ctx| {

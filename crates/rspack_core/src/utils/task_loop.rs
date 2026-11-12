@@ -157,13 +157,6 @@ impl<Ctx: 'static> TaskLoop<Ctx> {
 pub async fn run_task_loop<Ctx: 'static>(
   ctx: &mut Ctx,
   init_tasks: Vec<Box<dyn Task<Ctx>>>,
-) -> Result<()> {
-  run_task_loop_with_error_handler(ctx, init_tasks, |_| {}).await
-}
-
-pub async fn run_task_loop_with_error_handler<Ctx: 'static>(
-  ctx: &mut Ctx,
-  init_tasks: Vec<Box<dyn Task<Ctx>>>,
   on_error: impl FnOnce(&mut Ctx),
 ) -> Result<()> {
   let (background_tasks, main_tasks) = init_tasks
@@ -260,6 +253,7 @@ mod test {
         vec![Box::new(AsyncTask {
           async_return_error: false,
         })],
+        |_| {},
       )
       .await;
       assert!(res.is_ok(), "task loop should be run success");
@@ -276,6 +270,7 @@ mod test {
         vec![Box::new(AsyncTask {
           async_return_error: false,
         })],
+        |_| {},
       )
       .await;
       assert!(
@@ -295,6 +290,7 @@ mod test {
         vec![Box::new(AsyncTask {
           async_return_error: false,
         })],
+        |_| {},
       )
       .await;
       assert!(

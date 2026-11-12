@@ -64,6 +64,6 @@ pub async fn repair(
     })
     .collect::<Vec<_>>();
 
-  let result = run_task_loop(&mut ctx, init_tasks).await;
+  let result = run_task_loop(&mut ctx, init_tasks, |_| {}).await;
   (ctx.artifact, ctx.exports_info_artifact, result)
 }
