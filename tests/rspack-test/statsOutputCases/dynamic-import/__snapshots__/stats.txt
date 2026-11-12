@@ -7,6 +7,6 @@ cacheable modules xx bytes
   modules by path ./src/*.js xx bytes
     ./src/index.js xx bytes [built] [code generated]
     ./src/shared.js xx bytes [built] [code generated]
-  ./src/pages|lazy|/^\.\/.*$/|referencedExports: default|chunkName: pages/[request]|groupOptions: {}|namespace object|importPhase: evaluation xx bytes [built] [code generated]
+  ./src/pages|lazy|/^\.\/.*$/|referencedExports: default()|chunkName: pages/[request]|groupOptions: {}|namespace object|importPhase: evaluation xx bytes [built] [code generated]
   ./src/pages/home.js xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
