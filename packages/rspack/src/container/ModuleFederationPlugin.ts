@@ -47,11 +47,18 @@ export class ModuleFederationPlugin {
   apply(compiler: Compiler) {
     const { rspack } = compiler;
     const paths = getPaths(this._options, compiler);
-    compiler.options.resolve.alias = {
-      '@module-federation/runtime-tools': paths.runtimeTools,
-      '@module-federation/runtime': paths.runtime,
-      ...compiler.options.resolve.alias,
-    };
+    const aliases = { ...compiler.options.resolve.alias };
+    for (const [name, entry] of [
+      ['@module-federation/runtime-tools', paths.runtimeTools],
+      ['@module-federation/runtime', paths.runtime],
+    ]) {
+      // Runtime helper subpaths must resolve through their package exports.
+      // Preserve either form of an explicit user alias.
+      if (!(name in aliases) && !(`${name}$` in aliases)) {
+        aliases[`${name}$`] = entry;
+      }
+    }
+    compiler.options.resolve.alias = aliases;
 
     const sharedOptions = getSharedOptions(this._options);
     const treeShakingEntries = sharedOptions.filter(
