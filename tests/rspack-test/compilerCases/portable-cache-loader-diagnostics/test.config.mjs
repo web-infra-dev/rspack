@@ -96,12 +96,15 @@ function expectDiagnostics(actual, expected) {
 	expect(actual.warnings).toEqual(expected.warnings);
 }
 
+// `emitDiagnostic` publishes to the compilation while the module builds, and the cache keeps a
+// copy to publish again. `emitWarning` is stored on the module and reported in set order.
 const CHAIN_LOADER = String.raw`
 const path = require("node:path");
 module.exports = function (source) {
-	const warning = new Error("warning " + path.basename(this.resourcePath));
-	warning.stack = "";
-	this.emitWarning(warning);
+	this.experiments.emitDiagnostic({
+		message: "warning " + path.basename(this.resourcePath),
+		severity: "warning"
+	});
 	return source;
 };
 `;
