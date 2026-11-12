@@ -12,16 +12,18 @@ version.workspace = true
 # `rspack_resolver` cannot afford: it has to keep building for wasm32-unknown-unknown.
 [features]
 allocative = ["rspack_intern/allocative"]
-cacheable  = ["dep:rspack_cacheable"]
+cacheable  = ["dep:rspack_cacheable", "dep:smallvec", "dep:memchr"]
 default    = ["cacheable"]
 
 [dependencies]
 camino           = { workspace = true }
 dashmap          = { workspace = true, features = ["raw-api"] }
 indexmap         = { workspace = true }
+memchr           = { workspace = true, optional = true }
 rspack_cacheable = { workspace = true, optional = true }
 rspack_intern    = { workspace = true }
 rustc-hash       = { workspace = true }
+smallvec         = { workspace = true, optional = true }
 ustr             = { workspace = true }
 
 [lints]
