@@ -189,12 +189,11 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
     // Finalize build module graph (clean entry deps, finalize artifacts)
     let make_artifact = compiler.compilation.build_module_graph_artifact.steal();
     let exports_info_artifact = compiler.compilation.exports_info_artifact.steal();
-    let (make_artifact, exports_info_artifact) =
-      finish_build_module_graph(&compiler.compilation, make_artifact, exports_info_artifact)
-        .await
-        .unwrap();
-    compiler.compilation.build_module_graph_artifact = make_artifact.into();
-    compiler.compilation.exports_info_artifact = exports_info_artifact.into();
+    let update =
+      finish_build_module_graph(&compiler.compilation, make_artifact, exports_info_artifact).await;
+    compiler.compilation.build_module_graph_artifact = update.artifact.into();
+    compiler.compilation.exports_info_artifact = update.exports_info_artifact.into();
+    update.result.unwrap();
   });
 
   assert_no_compilation_errors(&compiler.compilation, "build_chunk_graph benchmark setup");
