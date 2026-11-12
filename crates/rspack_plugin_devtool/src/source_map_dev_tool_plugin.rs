@@ -16,8 +16,8 @@ use rspack_core::{
   cache::CachedSourceMapDevToolPluginEntry,
   legacy_cache::persistent::occasion::SourceMapDevToolPluginCache,
   rspack_sources::{
-    BoxSource, ConcatSource, MapOptions, MappingSource, RawBufferSource, RawStringSource, Source,
-    SourceExt, SourceMap, SourceValue,
+    BoxSource, DevToolCodeSource, DevToolMapSource, MapOptions, RawStringSource, Source, SourceExt,
+    SourceMap, update_content_hash,
   },
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
@@ -437,6 +437,12 @@ impl SourceMapDevToolPlugin {
       .await
   }
 
+  fn should_detach_source(&self, info: &AssetInfo) -> bool {
+    // Keeping the code's input graph would retain inlined maps, omitted source contents,
+    // or the minimizer's unminified input.
+    self.source_map_filename.is_none() || self.no_sources || info.minimized == Some(true)
+  }
+
   async fn use_new_cache(
     &self,
     compilation: &Compilation,
@@ -461,7 +467,8 @@ impl SourceMapDevToolPlugin {
       };
 
       if let Some(cached) = cached
-        && let Some((source_asset, source_map, asset_append)) = cached.restore(asset)
+        && let Some((source_asset, source_map, asset_append)) =
+          cached.restore(asset, self.should_detach_source(&asset.info))
       {
         cache.record_reuse();
         mapped_assets.push(MappedAsset {
@@ -530,7 +537,9 @@ impl SourceMapDevToolPlugin {
     let mut vanilla_assets = Vec::new();
 
     for (index, (filename, asset)) in compilation_assets.into_iter().enumerate() {
-      if let Some((source_asset, source_map, asset_append)) = cache.take(&filename, asset) {
+      if let Some((source_asset, source_map, asset_append)) =
+        cache.take(&filename, asset, self.should_detach_source(&asset.info))
+      {
         if let Some(counter) = cache_counter {
           counter.hit();
         }
@@ -584,12 +593,6 @@ impl SourceMapDevToolPlugin {
     compilation_assets: Vec<(String, &CompilationAsset)>,
     map_options: &MapOptions,
   ) -> Result<(Vec<SourceMapTask>, ReferenceToSourceNameMapping)> {
-    let need_match = self.test.is_some() || self.include.is_some() || self.exclude.is_some();
-    let condition_object = AssetConditionsObject {
-      test: self.test.as_ref(),
-      include: self.include.as_ref(),
-      exclude: self.exclude.as_ref(),
-    };
     let default_module_filename_template =
       default_source_map_module_filename_template(compilation.options.experiments.runtime_mode);
     let module_filename_template = self
@@ -603,14 +606,6 @@ impl SourceMapDevToolPlugin {
         Result<Option<TaskAndSourceNames>>,
       >(|token| {
         for (asset_filename, asset) in compilation_assets {
-          let is_match = if need_match {
-            match_object(&condition_object, &asset_filename)
-          } else {
-            true
-          };
-          if !is_match {
-            continue;
-          }
           let source = match asset.get_source() {
             Some(s) => s.clone(),
             None => continue,
@@ -676,13 +671,9 @@ impl SourceMapDevToolPlugin {
                 ));
               }
 
-              let raw_source = match source.source() {
-                SourceValue::String(cow) => RawStringSource::from(cow.into_owned()).boxed(),
-                SourceValue::Buffer(cow) => RawBufferSource::from(cow.into_owned()).boxed(),
-              };
               let task = SourceMapTask {
                 asset_filename,
-                source: raw_source,
+                source,
                 source_map,
                 unresolved_source_map_path,
                 source_references,
@@ -702,14 +693,6 @@ impl SourceMapDevToolPlugin {
         Result<Option<TaskAndSourceNames>>,
       >(|token| {
         for (asset_filename, asset) in compilation_assets {
-          let is_match = if need_match {
-            match_object(&condition_object, &asset_filename)
-          } else {
-            true
-          };
-          if !is_match {
-            continue;
-          }
           let source = match asset.get_source() {
             Some(s) => s.clone(),
             None => continue,
@@ -760,13 +743,9 @@ impl SourceMapDevToolPlugin {
                 ));
               }
 
-              let raw_source = match source.source() {
-                SourceValue::String(cow) => RawStringSource::from(cow.into_owned()).boxed(),
-                SourceValue::Buffer(cow) => RawBufferSource::from(cow.into_owned()).boxed(),
-              };
               let task = SourceMapTask {
                 asset_filename,
-                source: raw_source,
+                source,
                 source_map,
                 unresolved_source_map_path,
                 source_references,
@@ -1006,6 +985,11 @@ impl SourceMapDevToolPlugin {
 
     if self.no_sources {
       source_map.set_sources_content(vec![]);
+      if self.source_map_filename.is_some() {
+        // External maps retain their metadata in MappingSource. Inline maps
+        // are serialized and dropped immediately, so they need no compaction.
+        source_map.shrink_to_fit();
+      }
     }
   }
 
@@ -1048,6 +1032,12 @@ impl SourceMapDevToolPlugin {
       })
       .clone();
 
+    let source = if plugin.should_detach_source(&asset.info) {
+      RawStringSource::from(source.source().into_string_lossy().into_owned()).boxed()
+    } else {
+      source
+    };
+
     let css_extension_detected = has_css_extension(&asset_filename);
     let current_source_mapping_url_comment = match &plugin.source_mapping_url_comment {
       Some(SourceMappingUrlComment::String(s)) => {
@@ -1063,7 +1053,7 @@ impl SourceMapDevToolPlugin {
     };
 
     if let Some(source_map_filename_config) = &plugin.source_map_filename {
-      let mapping_source = MappingSource::new(source_map);
+      let dev_tool_map_source = DevToolMapSource::new(source_map);
       let chunk = file_to_chunk.get(asset_filename.as_ref());
       let filename = match &plugin.file_context {
         Some(file_context) => Cow::Owned(
@@ -1078,7 +1068,7 @@ impl SourceMapDevToolPlugin {
       let content_hash_digest =
         if chunk.is_some() && source_map_filename_config.has_content_hash_placeholder() {
           let mut hasher = RspackHasher::from(&compilation.options.output);
-          mapping_source.update_content_hash(&mut hasher);
+          update_content_hash(&dev_tool_map_source, &mut hasher);
           let digest = hasher.digest(&compilation.options.output.hash_digest);
           Some(digest)
         } else {
@@ -1102,74 +1092,66 @@ impl SourceMapDevToolPlugin {
         .get_asset_path(source_map_filename_config, data)
         .await?;
 
-      let asset_append =
-        if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
-          let source_map_url = if let Some(public_path) = &plugin.public_path {
-            format!("{public_path}{source_map_filename}")
-          } else {
-            let mut file_path = PathBuf::new();
-            file_path.push(Component::RootDir);
-            file_path.extend(Path::new(filename.as_ref()).components());
-
-            let mut source_map_path = PathBuf::new();
-            source_map_path.push(Component::RootDir);
-            source_map_path.extend(Path::new(&source_map_filename).components());
-
-            source_map_path
-              .relative(
-                #[allow(clippy::unwrap_used)]
-                file_path.parent().unwrap(),
-              )
-              .to_string_lossy()
-              .to_string()
-          };
-          let data = data.url(&source_map_url);
-          let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
-            SourceMappingUrlCommentRef::String(s) => {
-              compilation
-                .get_asset_path(&Filename::from(s.as_ref()), data)
-                .await?
-            }
-            SourceMappingUrlCommentRef::Fn(f) => {
-              let comment = f(data).await?;
-              Filename::from(comment).render(data, None).await?
-            }
-          };
-          let current_source_mapping_url_comment = current_source_mapping_url_comment
-            .cow_replace("[url]", &source_map_url)
-            .into_owned();
-
-          let debug_id_comment = debug_id
-            .map(|id| format!("\n//# debugId={id}"))
-            .map(|comment| RawStringSource::from(comment).boxed());
-          let current_source_mapping_url_comment =
-            RawStringSource::from(current_source_mapping_url_comment).boxed();
-          let mut asset_append = Vec::with_capacity(usize::from(debug_id_comment.is_some()) + 1);
-          if let Some(debug_id_comment) = &debug_id_comment {
-            asset_append.push(debug_id_comment.clone());
-          }
-          asset_append.push(current_source_mapping_url_comment.clone());
-
-          let mut children = Vec::with_capacity(usize::from(debug_id_comment.is_some()) + 2);
-          children.push(source.clone());
-          if let Some(debug_id_comment) = debug_id_comment {
-            children.push(debug_id_comment);
-          }
-          children.push(current_source_mapping_url_comment);
-          asset.source = Some(ConcatSource::new(children).boxed());
-          asset.info.related.source_map = Some(source_map_filename.clone());
-          asset_append
+      let asset_append = if let Some(current_source_mapping_url_comment) =
+        current_source_mapping_url_comment
+      {
+        let source_map_url = if let Some(public_path) = &plugin.public_path {
+          format!("{public_path}{source_map_filename}")
         } else {
-          asset.source = Some(source.clone());
-          Vec::new()
+          let mut file_path = PathBuf::new();
+          file_path.push(Component::RootDir);
+          file_path.extend(Path::new(filename.as_ref()).components());
+
+          let mut source_map_path = PathBuf::new();
+          source_map_path.push(Component::RootDir);
+          source_map_path.extend(Path::new(&source_map_filename).components());
+
+          source_map_path
+            .relative(
+              #[allow(clippy::unwrap_used)]
+              file_path.parent().unwrap(),
+            )
+            .to_string_lossy()
+            .to_string()
         };
+        let data = data.url(&source_map_url);
+        let current_source_mapping_url_comment = match &current_source_mapping_url_comment {
+          SourceMappingUrlCommentRef::String(s) => {
+            compilation
+              .get_asset_path(&Filename::from(s.as_ref()), data)
+              .await?
+          }
+          SourceMappingUrlCommentRef::Fn(f) => {
+            let comment = f(data).await?;
+            Filename::from(comment).render(data, None).await?
+          }
+        };
+        let current_source_mapping_url_comment = current_source_mapping_url_comment
+          .cow_replace("[url]", &source_map_url)
+          .into_owned();
+
+        let mut suffix = debug_id
+          .map(|id| format!("\n//# debugId={id}"))
+          .unwrap_or_default();
+        suffix.push_str(&current_source_mapping_url_comment);
+        let suffix = RawStringSource::from(suffix).boxed();
+        let asset_append = vec![suffix.clone()];
+        asset.source = Some(DevToolCodeSource::new(source.clone(), suffix).boxed());
+        asset.info.related.source_map = Some(source_map_filename.clone());
+        asset_append
+      } else {
+        asset.source = Some(
+          DevToolCodeSource::new(source.clone(), RawStringSource::from_static("").boxed()).boxed(),
+        );
+        Vec::new()
+      };
       let mut source_map_asset_info = AssetInfo::default().with_development(Some(true));
       if let Some(asset) = compilation.assets().get(asset_filename.as_ref()) {
         // set source map asset version to be the same as the target asset
         source_map_asset_info.version = asset.info.version.clone();
       }
       let source_map_asset =
-        CompilationAsset::new(Some(mapping_source.boxed()), source_map_asset_info);
+        CompilationAsset::new(Some(dev_tool_map_source.boxed()), source_map_asset_info);
       Ok(MappedAsset {
         asset: (asset_filename, asset),
         source_map: Some((source_map_filename.clone(), source_map_asset)),
@@ -1194,9 +1176,9 @@ impl SourceMapDevToolPlugin {
           &format!("data:application/json;charset=utf-8;base64,{base64}"),
         )
         .into_owned();
-      let append = RawStringSource::from(append).boxed();
-      let asset_append = vec![append.clone()];
-      asset.source = Some(ConcatSource::new([source.clone(), append]).boxed());
+      let suffix = RawStringSource::from(append).boxed();
+      let asset_append = vec![suffix.clone()];
+      asset.source = Some(DevToolCodeSource::new(source.clone(), suffix).boxed());
       Ok(MappedAsset {
         asset: (asset_filename, asset),
         asset_append,
@@ -1268,10 +1250,21 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .then(|| logger.cache("source map persistent cache"));
 
   let start = logger.time("collect source maps");
+  let condition_object = (self.test.is_some() || self.include.is_some() || self.exclude.is_some())
+    .then(|| AssetConditionsObject {
+      test: self.test.as_ref(),
+      include: self.include.as_ref(),
+      exclude: self.exclude.as_ref(),
+    });
   let compilation_assets = compilation
     .assets()
     .iter()
     .filter(|(_filename, asset)| asset.info.related.source_map.is_none())
+    .filter(|(filename, _asset)| {
+      condition_object
+        .as_ref()
+        .is_none_or(|condition| match_object(condition, filename))
+    })
     .map(|(filename, asset)| (filename.clone(), asset))
     .collect();
   let mapped_assets = if let Some(cache) = &new_cache {

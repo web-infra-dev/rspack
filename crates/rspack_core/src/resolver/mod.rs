@@ -14,7 +14,7 @@ use rspack_error::Error;
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::{DescriptionData, ResourceData};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
-use rspack_util::identifier::insert_zero_width_space_for_fragment;
+use rspack_util::identifier::format_resolved_resource;
 use sugar_path::SugarPath;
 
 pub use self::{
@@ -84,29 +84,14 @@ impl Eq for Resource {}
 impl Resource {
   /// Get the full path with query and fragment attached.
   pub fn full_path(&self) -> String {
-    let mut buf = String::with_capacity(
-      self
-        .path
-        .as_str()
-        .len()
-        .saturating_add(self.query.len())
-        .saturating_add(self.fragment.len()),
-    );
-    buf.push_str(&insert_zero_width_space_for_fragment(self.path.as_str()));
-    buf.push_str(&insert_zero_width_space_for_fragment(&self.query));
-    buf.push_str(&self.fragment);
-    buf
+    format_resolved_resource(self.path.as_str(), &self.query, &self.fragment)
   }
 }
 
 impl From<Resource> for ResourceData {
   fn from(resource: Resource) -> Self {
-    let mut resource_data = Self::new_with_path(
-      resource.full_path(),
-      resource.path,
-      Some(resource.query),
-      Some(resource.fragment),
-    );
+    let mut resource_data =
+      Self::new_with_resolved_path(resource.path, resource.query, resource.fragment);
     resource_data.set_description_optional(resource.description_data);
     resource_data
   }

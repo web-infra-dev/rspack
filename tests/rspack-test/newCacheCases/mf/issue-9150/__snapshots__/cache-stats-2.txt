@@ -7,10 +7,10 @@
       "stores": 1
     },
     "|Compilation/modules": {
-      "hits": 84,
-      "misses": 1,
-      "reused": 83,
-      "stores": 2
+      "hits": 85,
+      "misses": 0,
+      "reused": 84,
+      "stores": 1
     },
     "|meta": {
       "hits": 1,
