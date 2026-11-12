@@ -59,10 +59,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
       .value_cache_versions
       .get(VALUE_DEP_MAIN)
       .expect("DefinePlugin should register its key hash");
-    parser
-      .build_info
-      .value_dependencies
-      .insert(VALUE_DEP_MAIN.to_string(), value.clone());
+    if parser.build_info.value_dependencies.get(VALUE_DEP_MAIN) != Some(value) {
+      parser
+        .build_info
+        .value_dependencies
+        .insert(VALUE_DEP_MAIN.to_string(), value.clone());
+    }
     None
   }
 
