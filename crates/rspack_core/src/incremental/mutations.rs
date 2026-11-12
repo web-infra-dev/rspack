@@ -79,6 +79,42 @@ impl Mutations {
   pub fn len(&self) -> usize {
     self.inner.len()
   }
+
+  /// Drop mutations whose target no longer resolves in `module_graph`, and
+  /// reset the affected-set caches derived from the log.
+  ///
+  /// The build-module-graph phase records a mutation for every module and
+  /// dependency it touched. A later `Compilation::rebuild_module` call may
+  /// revoke some of those targets again: rebuilding a module replaces its
+  /// whole dependency set and may orphan away modules that lost their last
+  /// importer. The underlying tables are not rollback-capable, so the
+  /// recorded ids can outlive the objects they point to, while later passes
+  /// walk the mutation log against the live graph. Fold the rebuild into
+  /// the record by discarding entries whose target is gone.
+  ///
+  /// `ModuleRemove` entries are kept: they carry no live object and are
+  /// consumed to purge caches of the removed module.
+  ///
+  /// If an affected-set cache was already computed before this call (e.g. by
+  /// an earlier `finishModules` tap in the same compilation), it may still
+  /// contain the revoked targets, so the caches are reset to force a
+  /// recompute from the filtered log.
+  pub fn retain_alive(&mut self, module_graph: &ModuleGraph) {
+    self.inner.retain(|mutation| match mutation {
+      Mutation::DependencyUpdate { dependency } => {
+        crate::module_graph::internal::try_dependency_by_id(module_graph, dependency).is_some()
+      }
+      Mutation::ModuleAdd { module }
+      | Mutation::ModuleUpdate { module }
+      | Mutation::ModuleSetAsync { module }
+      | Mutation::ModuleSetId { module }
+      | Mutation::ModuleSetHashes { module } => module_graph.module_by_identifier(module).is_some(),
+      _ => true,
+    });
+    self.affected_modules_with_module_graph = OnceCell::new();
+    self.affected_modules_with_chunk_graph = OnceCell::new();
+    self.affected_chunks_with_chunk_graph = OnceCell::new();
+  }
 }
 
 impl Mutations {
@@ -352,4 +388,113 @@ fn compute_affected_modules_with_module_graph(
     transitive_affected_modules.extend(new_transitive_affected_modules);
   }
   all_affected_modules
+}
+
+#[cfg(test)]
+mod tests {
+  use super::{Mutation, Mutations};
+  use crate::{
+    Context, Dependency, ModuleExt, ModuleGraph, ModuleIdentifier, RawModule, RuntimeGlobals,
+    dependency::{LoaderImportDependency, UniqueDependency},
+  };
+
+  fn add_module(module_graph: &mut ModuleGraph, identifier: &str) {
+    let module_identifier = ModuleIdentifier::from(identifier);
+    module_graph.add_module(
+      RawModule::new(
+        String::new(),
+        module_identifier,
+        identifier.to_owned(),
+        RuntimeGlobals::default(),
+      )
+      .boxed(),
+    );
+    module_graph.add_module_graph_module(crate::ModuleGraphModule::new(module_identifier));
+  }
+
+  #[test]
+  fn retain_alive_drops_mutations_for_removed_targets_and_keeps_module_remove() {
+    // Allocating dependency ids requires a compiler context on the thread.
+    rspack_tasks::within_compiler_context_for_testing_sync(|| {
+      retain_alive_drops_mutations_for_removed_targets_and_keeps_module_remove_inner()
+    })
+  }
+
+  fn retain_alive_drops_mutations_for_removed_targets_and_keeps_module_remove_inner() {
+    let mut module_graph = ModuleGraph::default();
+    add_module(&mut module_graph, "alive");
+
+    let alive_dependency = LoaderImportDependency::new("alive".to_owned(), Context::from(""));
+    let alive_dependency_id = *alive_dependency.id();
+    module_graph.add_dependency(UniqueDependency::new(alive_dependency));
+
+    // Simulate a dependency revoked by a later `rebuild_module`: it is gone
+    // from the dependency table while a recorded mutation may still point to it.
+    let revoked_dependency = LoaderImportDependency::new("revoked".to_owned(), Context::from(""));
+    let revoked_dependency_id = *revoked_dependency.id();
+    module_graph.add_dependency(UniqueDependency::new(revoked_dependency));
+    module_graph.revoke_dependency(&revoked_dependency_id, true);
+
+    let mut mutations = Mutations::default();
+    mutations.add(Mutation::DependencyUpdate {
+      dependency: alive_dependency_id,
+    });
+    mutations.add(Mutation::DependencyUpdate {
+      dependency: revoked_dependency_id,
+    });
+    mutations.add(Mutation::ModuleUpdate {
+      module: ModuleIdentifier::from("alive"),
+    });
+    mutations.add(Mutation::ModuleUpdate {
+      module: ModuleIdentifier::from("revoked"),
+    });
+    mutations.add(Mutation::ModuleAdd {
+      module: ModuleIdentifier::from("revoked"),
+    });
+    mutations.add(Mutation::ModuleSetAsync {
+      module: ModuleIdentifier::from("revoked"),
+    });
+    mutations.add(Mutation::ModuleSetId {
+      module: ModuleIdentifier::from("revoked"),
+    });
+    mutations.add(Mutation::ModuleSetHashes {
+      module: ModuleIdentifier::from("revoked"),
+    });
+    mutations.add(Mutation::ModuleRemove {
+      module: ModuleIdentifier::from("revoked"),
+    });
+
+    // Simulate a consumer that derived the affected set before the rebuild:
+    // the caches must be invalidated so they recompute from the filtered log.
+    mutations
+      .affected_modules_with_module_graph
+      .set([ModuleIdentifier::from("revoked")].into_iter().collect())
+      .ok()
+      .expect("cache should be unset before retain_alive");
+
+    mutations.retain_alive(&module_graph);
+
+    // `ModuleRemove` carries no live object and must survive; everything
+    // pointing at a revoked dependency or module must be dropped.
+    assert_eq!(mutations.len(), 3);
+    assert!(mutations.iter().any(
+      |mutation| matches!(mutation, Mutation::DependencyUpdate { dependency } if *dependency == alive_dependency_id),
+    ));
+    assert!(!mutations.iter().any(
+      |mutation| matches!(mutation, Mutation::DependencyUpdate { dependency } if *dependency == revoked_dependency_id),
+    ));
+    assert!(!mutations.iter().any(
+      |mutation| matches!(mutation, Mutation::ModuleAdd { module } | Mutation::ModuleUpdate { module }
+        | Mutation::ModuleSetAsync { module } | Mutation::ModuleSetId { module } | Mutation::ModuleSetHashes { module }
+        if *module == ModuleIdentifier::from("revoked")),
+    ));
+    assert!(mutations.iter().any(
+      |mutation| matches!(mutation, Mutation::ModuleRemove { module } if *module == ModuleIdentifier::from("revoked")),
+    ));
+    // The pre-computed affected set contained the revoked module; after the
+    // rebuild reconciliation it must recompute without it.
+    let affected = mutations.get_affected_modules_with_module_graph(&module_graph);
+    assert!(!affected.contains(&ModuleIdentifier::from("revoked")));
+    assert!(affected.contains(&ModuleIdentifier::from("alive")));
+  }
 }
