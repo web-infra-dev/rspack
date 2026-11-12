@@ -38,6 +38,7 @@ pub struct ModuleExecutor {
   pub make_artifact: StealCell<BuildModuleGraphArtifact>,
   pub entries: HashMap<ImportModuleMeta, DependencyId>,
   pub exports_info_artifact: StealCell<ExportsInfoArtifact>,
+  pub has_build_cycle: bool,
 
   // temporary data, used by hook_after_finish_modules
   event_sender: Option<UnboundedSender<Event>>,
@@ -53,6 +54,7 @@ impl Default for ModuleExecutor {
       make_artifact: StealCell::new(BuildModuleGraphArtifact::new()),
       entries: Default::default(),
       exports_info_artifact: StealCell::new(Default::default()),
+      has_build_cycle: false,
       event_sender: Default::default(),
       stop_receiver: Default::default(),
       module_assets: Default::default(),
@@ -86,6 +88,7 @@ impl ModuleExecutor {
       tracker: Default::default(),
       entries: std::mem::take(&mut self.entries),
       executed_entry_deps: Default::default(),
+      has_build_cycle: false,
     };
     let (event_sender, event_receiver) = unbounded_channel();
     let (stop_sender, stop_receiver) = oneshot::channel();
@@ -161,6 +164,7 @@ impl ModuleExecutor {
     self.make_artifact = make_artifact.into();
     self.exports_info_artifact = exports_info_artifact.into();
     self.entries = entries;
+    self.has_build_cycle = ctx.has_build_cycle;
     Ok(())
   }
 
@@ -173,7 +177,7 @@ impl ModuleExecutor {
     base_uri: Option<String>,
     origin_module_context: Option<Context>,
     origin_module_identifier: Identifier,
-  ) -> ExecuteModuleResult {
+  ) -> Result<ExecuteModuleResult> {
     let sender = self
       .event_sender
       .as_ref()
@@ -202,9 +206,9 @@ impl ModuleExecutor {
       assets,
       code_generated_modules,
       executed_runtime_modules,
-    } = rx.await.expect("should receiver success");
+    } = rx.await.expect("should receiver success")?;
 
-    if execute_result.errors.is_empty() {
+    if execute_result.errors.is_empty() && !assets.is_empty() {
       self
         .module_assets
         .entry(origin_module_identifier)
@@ -222,6 +226,6 @@ impl ModuleExecutor {
         .insert(runtime_module.identifier, runtime_module);
     }
 
-    execute_result
+    Ok(execute_result)
   }
 }

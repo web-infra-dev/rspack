@@ -100,11 +100,17 @@ impl Compiler {
       );
       next_compilation.hot_index = self.compilation.hot_index;
 
+      // Cycle errors have incomplete dependencies, so keep the fresh executor
+      // when the previous compilation encountered a cycle.
       if next_compilation
         .incremental
         .mutations_readable(IncrementalPasses::BUILD_MODULE_GRAPH)
+        && self
+          .compilation
+          .module_executor
+          .as_ref()
+          .is_some_and(|executor| !executor.has_build_cycle)
       {
-        // reuse module executor
         next_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
       }
 
