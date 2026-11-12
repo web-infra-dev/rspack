@@ -29,7 +29,8 @@ use super::{
 };
 use crate::{
   Compilation, CompilationAsset, Context, DependencyId, ExportsInfoArtifact, PublicPath, StealCell,
-  build_module_graph::module_executor::execute::ExecuteResult, task_loop::run_task_loop,
+  build_module_graph::module_executor::execute::ExecuteResult,
+  task_loop::run_task_loop_with_error_handler,
 };
 
 #[derive(Debug)]
@@ -114,17 +115,25 @@ impl ModuleExecutor {
     };
     let (event_sender, event_receiver) = unbounded_channel();
     let (stop_sender, stop_receiver) = oneshot::channel();
+    let shutdown_sender = event_sender.downgrade();
     self.event_sender = Some(event_sender);
     self.stop_receiver = Some(stop_receiver);
     // avoid coop budget consumed to zero cause hang risk
     // related to https://tokio.rs/blog/2020-04-preemption
     rspack_tasks::spawn_in_compiler_context(task::unconstrained(async move {
-      let result = run_task_loop(&mut ctx, vec![Box::new(CtrlTask { event_receiver })]).await;
-      if result.is_err() {
-        // Drop pending execute callbacks now. Their loaders must be released
-        // before make can finish and receive the failed executor context.
-        ctx.tracker = Default::default();
-      }
+      let result = run_task_loop_with_error_handler(
+        &mut ctx,
+        vec![Box::new(CtrlTask { event_receiver })],
+        |ctx| {
+          // Pending imports must reject before draining their loaders. Wake the
+          // control task too, so its receiver closes and rejects later imports.
+          ctx.tracker = Default::default();
+          if let Some(sender) = shutdown_sender.upgrade() {
+            let _ = sender.send(Event::Stop);
+          }
+        },
+      )
+      .await;
       let _ = stop_sender.send((ctx, result));
     }));
   }
