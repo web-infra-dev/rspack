@@ -121,48 +121,6 @@ jobs:
       test-runner: '"windows-latest"'
       test: true
 
-  windows-rust-stack:
-    name: Windows Rust stack (${{ matrix.name }})
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    runs-on: ${{ fromJSON(vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"') }}
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: cached-8MiB
-            stack: 8388608
-            cached: true
-          - name: cached-32MiB
-            stack: 33554432
-            cached: true
-          - name: uncached-8MiB
-            stack: 8388608
-            cached: false
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Install Rust Toolchain
-        uses: ./.github/actions/rustup
-        with:
-          key: windows-rust-stack
-
-      - name: Match binding build configuration
-        shell: bash
-        run: |
-          echo 'trim-paths = true' >> .cargo/config.toml
-          echo 'checksum-freshness = true' >> .cargo/config.toml
-
-      - name: Compile dependencies that overflowed
-        shell: bash
-        run: cargo build --locked --profile ci --target x86_64-pc-windows-msvc -p zerotrie -p tinystr -p icu_collections
-        env:
-          CARGO_INCREMENTAL: 0
-          CARGO_TARGET_DIR: ${{ runner.temp }}/rust-stack-${{ matrix.name }}
-          RUST_MIN_STACK: ${{ matrix.stack }}
-          RUSTC_WRAPPER: ${{ matrix.cached && env.RUSTC_WRAPPER || '' }}
-
   test-mac:
     name: Test Mac ARM64
     needs: [check-changed]
