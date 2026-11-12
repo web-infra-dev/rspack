@@ -2956,55 +2956,65 @@ var {} = {{}};
         .build_chunk_graph_artifact
         .chunk_graph
         .get_chunk_entry_modules_with_chunk_group_iterable(&chunk_link.chunk);
+      let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+      let mut record_split_entry_chunks = false;
       let start_modules = if chunk_entry_modules.is_empty() {
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_chunk_root_modules(
-            &chunk_link.chunk,
-            module_graph,
-            binding_resolver.context.module_graph_cache,
-            &compilation
-              .build_module_graph_artifact
-              .side_effects_state_artifact,
-            binding_resolver.context.exports_info_artifact,
-          )
+        chunk_graph.get_chunk_root_modules(
+          &chunk_link.chunk,
+          module_graph,
+          binding_resolver.context.module_graph_cache,
+          &compilation
+            .build_module_graph_artifact
+            .side_effects_state_artifact,
+          binding_resolver.context.exports_info_artifact,
+        )
       } else {
         let chunk_entry_ids: IdentifierSet = chunk_entry_modules.keys().copied().collect();
         let compilation_entry_modules = entry_modules(compilation);
-        let mut from_entry_config = Vec::new();
+        let mut from_entry_config = IdentifierIndexSet::default();
+        let mut use_expanded_entry_modules = false;
         for modules in compilation_entry_modules.values() {
+          if modules.len() <= 1 {
+            continue;
+          }
           if !modules.iter().any(|m| chunk_entry_ids.contains(m)) {
             continue;
           }
+          let has_sibling_in_other_chunk = modules.iter().any(|m| {
+            !chunk_graph
+              .get_module_chunks(*m)
+              .contains(&chunk_link.chunk)
+          });
+          if !has_sibling_in_other_chunk {
+            continue;
+          }
+          use_expanded_entry_modules = true;
           for module in modules {
-            if !from_entry_config.contains(module) {
-              from_entry_config.push(*module);
-            }
+            from_entry_config.insert(*module);
           }
         }
-        if from_entry_config.is_empty() {
-          chunk_entry_modules.keys().copied().collect()
+        if use_expanded_entry_modules {
+          record_split_entry_chunks = true;
+          from_entry_config.into_iter().collect()
         } else {
-          from_entry_config
+          chunk_entry_modules.keys().copied().collect()
         }
       };
 
-      for entry_module in &start_modules {
-        let ref_chunks = compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_module_chunks(*entry_module);
-        if !ref_chunks.contains(&chunk_link.chunk) {
-          for &ref_chunk in ref_chunks {
-            if compilation
-              .build_chunk_graph_artifact
-              .chunk_graph
-              .has_chunk_module_by_source_type(&ref_chunk, SourceType::JavaScript, module_graph)
-            {
-              let item = OrderedImportItem::Chunk(ref_chunk);
-              if seen_items.insert(item.clone()) {
-                ordered_items.push(item);
+      if record_split_entry_chunks {
+        for entry_module in &start_modules {
+          let ref_chunks = chunk_graph.get_module_chunks(*entry_module);
+          if !ref_chunks.contains(&chunk_link.chunk) {
+            for &ref_chunk in ref_chunks {
+              if chunk_graph.has_chunk_module_by_source_type(
+                &ref_chunk,
+                SourceType::JavaScript,
+                module_graph,
+              ) {
+                let item = OrderedImportItem::Chunk(ref_chunk);
+                if seen_items.insert(item.clone()) {
+                  ordered_items.push(item);
+                }
               }
             }
           }
