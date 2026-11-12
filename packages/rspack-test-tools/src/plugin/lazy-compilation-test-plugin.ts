@@ -7,7 +7,26 @@ import {
 } from '@rspack/core';
 
 export class LazyCompilationTestPlugin {
+  lastActivation: number | undefined;
+
   apply(compiler: Compiler | MultiCompiler) {
+    const compilers =
+      compiler instanceof MultiCompiler ? compiler.compilers : [compiler];
+    for (const c of compilers) {
+      c.hooks.infrastructureLog.tap(
+        'LazyCompilationTestPlugin',
+        (name, _type, args) => {
+          if (
+            name === 'LazyCompilation' &&
+            / is now in use /.test(String(args?.[0]))
+          ) {
+            this.lastActivation = Date.now();
+          }
+          return undefined;
+        },
+      );
+    }
+
     let middleware: any;
     const server = createServer();
     const sockets = new Set<Socket>();
