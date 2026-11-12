@@ -9,7 +9,8 @@ import { StringDecoder } from 'node:string_decoder';
  *   edge_fields: string[], edge_types: (string | string[])[]
  * }} HeapMeta
  * @typedef {{
- *   snapshot: { meta: HeapMeta }, nodes: number[], edges: number[],
+ *   snapshot: { meta: HeapMeta, node_count?: number, edge_count?: number },
+ *   nodes: number[] | Float64Array, edges: number[] | Float64Array,
  *   strings: string[], rspack_binding_nodes?: number[],
  *   rspack_v8_source_nodes?: number[], rspack_js_roots?: RspackRoot[],
  *   rspack_js_bindings?: [number, number][]
@@ -55,6 +56,9 @@ export function parseHeapSnapshot(readChunk) {
     );
   const decoder = new StringDecoder();
   const assembler = new Assembler();
+  /** @type {{ key: 'nodes' | 'edges', values: Float64Array, index: number } | undefined} */
+  let numericArray;
+
   /** @type {string[]} */
   const stringChunks = [];
 
@@ -63,6 +67,48 @@ export function parseHeapSnapshot(readChunk) {
     const batch = parse(input);
     if (batch === chain.none) return;
     for (const token of batch.values) {
+      if (numericArray) {
+        if (token.name === 'numberValue') {
+          if (numericArray.index >= numericArray.values.length) {
+            throw new Error(`Too many V8 ${numericArray.key} values`);
+          }
+          numericArray.values[numericArray.index++] = Number(token.value);
+        } else if (token.name === 'endArray') {
+          if (numericArray.index !== numericArray.values.length) {
+            throw new Error(`Missing V8 ${numericArray.key} values`);
+          }
+          const heap = /** @type {HeapSnapshot} */ (assembler.current);
+          heap[numericArray.key] = numericArray.values;
+          assembler.key = null;
+          numericArray = undefined;
+        } else if (
+          !['startNumber', 'numberChunk', 'endNumber'].includes(token.name)
+        ) {
+          throw new Error('Invalid V8 numeric array');
+        }
+        continue;
+      }
+      if (
+        token.name === 'startArray' &&
+        assembler.depth === 1 &&
+        (assembler.key === 'nodes' || assembler.key === 'edges')
+      ) {
+        const key = assembler.key;
+        const header = /** @type {HeapSnapshot} */ (assembler.current).snapshot;
+        const count = key === 'nodes' ? header?.node_count : header?.edge_count;
+        const fields =
+          key === 'nodes' ? header?.meta.node_fields : header?.meta.edge_fields;
+        if (count !== undefined && fields) {
+          const length = count * fields.length;
+          if (!Number.isSafeInteger(length) || length < 0) {
+            throw new Error(`Invalid V8 ${key} length`);
+          }
+          // Ordinary growing arrays hit V8's backing-store limit on large heaps.
+          // Keep exact integer values (including IDs and sizes) in bounded storage.
+          numericArray = { key, values: new Float64Array(length), index: 0 };
+          continue;
+        }
+      }
       if (token.name === 'stringChunk') {
         stringChunks.push(token.value);
       } else if (token.name === 'endString') {
@@ -83,7 +129,7 @@ export function parseHeapSnapshot(readChunk) {
   }
   consume(decoder.end());
   consume(chain.none);
-  if (!assembler.done || !assembler.current) {
+  if (numericArray || !assembler.done || !assembler.current) {
     throw new Error('Invalid V8 heap snapshot');
   }
   return /** @type {HeapSnapshot} */ (assembler.current);
@@ -129,11 +175,8 @@ export function readHeapGraph(snapshot) {
 
   return {
     count,
-    nodeWidth,
     edgeWidth,
     offsets,
-    nodeColumns: [nt, ni, ns, nc],
-    edgeColumns: [et, to],
     nodeName: (/** @type {number} */ i) => strings[nodes[i * nodeWidth + nn]],
     nodeType: (/** @type {number} */ i) => nodeTypes[nodes[i * nodeWidth + nt]],
     nodeId: (/** @type {number} */ i) => nodes[i * nodeWidth + ni],
@@ -260,74 +303,4 @@ export function readHeapCategories(graph) {
     rspackRoots,
     rspackBindings,
   };
-}
-
-/** @param {number[]} values @param {number} width @param {number[]} columns */
-function redactColumns(values, width, columns) {
-  for (let col = 0; col < width; col++) {
-    if (columns.includes(col)) continue;
-    for (let i = col; i < values.length; i += width) values[i] = 0;
-  }
-}
-
-/** @param {HeapSnapshot} heap */
-export function redactHeapSnapshot(heap) {
-  const graph = readHeapGraph(heap);
-  const { sourceNodeIds, rspackRoots, rspackBindings } =
-    readHeapCategories(graph);
-  const markers = [];
-  for (let i = 0; i < graph.count; i++) {
-    const marker = readBindingMarker(graph, i);
-    if (marker) markers.push(marker);
-  }
-
-  // Keep only the V8 graph schema, sizes, and reference topology. The marker
-  // values are returned to Rust for in-memory matching and are never serialized.
-  redactColumns(heap.nodes, graph.nodeWidth, graph.nodeColumns);
-  redactColumns(heap.edges, graph.edgeWidth, graph.edgeColumns);
-  const redacted = {
-    snapshot: {
-      meta: heap.snapshot.meta,
-      node_count: graph.count,
-      edge_count: heap.edges.length / graph.edgeWidth,
-      trace_function_count: 0,
-    },
-    nodes: heap.nodes,
-    edges: heap.edges,
-    trace_function_infos: [],
-    trace_tree: [],
-    samples: [],
-    locations: [],
-    strings: [''],
-    rspack_binding_nodes: markers.map(([id]) => id),
-    rspack_v8_source_nodes: sourceNodeIds,
-    rspack_js_roots: rspackRoots,
-    rspack_js_bindings: rspackBindings,
-  };
-  return { redacted, markers };
-}
-
-/** @param {ReturnType<typeof redactHeapSnapshot>['redacted']} snapshot */
-export function* stringifyRedactedHeapSnapshot(snapshot) {
-  yield '{';
-  let separator = '';
-  for (const [key, value] of Object.entries(snapshot)) {
-    yield `${separator}${JSON.stringify(key)}:`;
-    separator = ',';
-    if (!Array.isArray(value)) {
-      yield JSON.stringify(value);
-      continue;
-    }
-
-    // Redacted arrays contain numbers and short tuples or strings. Bound the
-    // number of elements passed to JSON.stringify, even for very large graphs.
-    const batchSize = 4096;
-    yield '[';
-    for (let start = 0; start < value.length; start += batchSize) {
-      const batch = JSON.stringify(value.slice(start, start + batchSize));
-      yield start === 0 ? batch.slice(1, -1) : `,${batch.slice(1, -1)}`;
-    }
-    yield ']';
-  }
-  yield '}';
 }
