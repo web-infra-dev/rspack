@@ -14,8 +14,8 @@ on:
         type: string
 
 jobs:
-  watcher-path-identity-windows:
-    name: Native watcher path identity (Windows)
+  compiler-windows:
+    name: Compiler cases (Windows)
     if: inputs.target == 'x86_64-pc-windows-msvc'
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 15
@@ -25,7 +25,6 @@ jobs:
     env:
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
       PUPPETEER_SKIP_DOWNLOAD: true
-      RSPACK_WATCHER_TRACE: '1'
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -44,43 +43,17 @@ jobs:
       - name: Install dependencies
         run: pnpm i --frozen-lockfile
       - name: Build JavaScript packages
-        id: build-js
         run: pnpm run build:js
-      - name: Verify original, canonical, and lowercase paths
-        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-path-identity
-      - name: Verify watch path preparation and recursive coverage
-        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-watch-plan
-      - name: Verify synchronous symlink target renames
-        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-follow-symlinks/target-roundtrip
-      - name: Verify directory link discovery after watching starts
-        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-symlink-discovery
-      - name: Verify retained recursive directory coverage
-        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-symlink-retained-context
-      - name: Verify ignored real directory roots
-        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-symlink-ignored-root
-      - name: Verify ignored targets during startup backfill
-        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-ignored-startup
-      - name: Verify link replacements before startup
-        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-link-startup
-      - name: Verify newly subscribed file targets
-        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-target-startup
-      - name: Verify dangling link retargeting
-        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-dangling-retarget
-      - name: Verify dangling link startup changes
-        if: ${{ !cancelled() && steps.build-js.outcome == 'success' }}
-        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-dangling-startup
-      - name: Verify ordinary paths containing parent components
-        if: ${{ !cancelled() && steps.build-js.outcome == 'success' }}
-        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-parent-components
-      - name: Verify intermediate link parents and subscription gaps
-        if: ${{ !cancelled() && steps.build-js.outcome == 'success' }}
-        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-symlink-subscription-gaps
-      - name: Verify directory junction creation
-        if: ${{ !cancelled() && steps.build-js.outcome == 'success' }}
-        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-junction-creation
-      - name: Verify directory junction transition
-        if: ${{ !cancelled() && steps.build-js.outcome == 'success' }}
-        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-junction-transition
+      - name: Test compiler cases
+        timeout-minutes: 10
+        run: pnpm --dir tests/rspack-test run test --project 'compiler-*'
+      - name: Upload compiler test report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: rstest-event-reports-compiler-windows
+          path: '*-report.txt'
+          if-no-files-found: ignore
 
   watcher-rename-windows:
     name: Native watcher rename regression (Windows)
@@ -277,7 +250,10 @@ jobs:
       - name: Test x86_64-pc-windows-msvc
         timeout-minutes: 10
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
-        run: pnpm run test:ci
+        run: |
+          pnpm run test:ci:prepare
+          pnpm --parallel --filter '@rspack/*' --filter '!@rspack/tests' test
+          pnpm --dir tests/rspack-test run test --project '!compiler-*'
 
       - name: Upload windows test cache
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' && matrix.node == '22' }}
