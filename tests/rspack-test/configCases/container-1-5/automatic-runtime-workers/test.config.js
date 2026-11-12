@@ -1,5 +1,7 @@
 module.exports = {
   findBundle(index, options) {
-    return `./${options.name}/main.js`;
+    return ['main', 'local-a', 'local-b', 'remote', 'consume'].map(
+      (entry) => `./${options.name}/${entry}.js`,
+    );
   },
 };
