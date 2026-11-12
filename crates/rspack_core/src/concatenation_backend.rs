@@ -612,9 +612,11 @@ fn analyze_identifiers<T>(
     ));
   }
 
-  let ast = parse_return.ast;
-  let semantic = analyze(&ast, AnalyzeOptions::default()).semantic;
-  Ok(analyze_program(&ast, &semantic))
+  let (ast, semantic) = analyze(parse_return.ast, AnalyzeOptions::default())
+    .semantic
+    .into_parts();
+  // SAFETY: Analysis only reads handles from this AST, which is never mutated.
+  Ok(analyze_program(unsafe { ast.ast() }, &semantic))
 }
 
 /// Copy only the facts needed after the arena-backed AST and semantic are dropped.

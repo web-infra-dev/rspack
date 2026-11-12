@@ -220,10 +220,6 @@ impl LocalCssIdentDeclarations {
   fn has_function(&self, name: &str) -> bool {
     self.functions.contains(&normalize_ident_name(name))
   }
-
-  fn has_grid(&self, name: &str) -> bool {
-    self.grids.contains(&normalize_ident_name(name))
-  }
 }
 
 fn is_custom_property_name(value: &str) -> bool {
@@ -651,12 +647,9 @@ impl<'context> CssModuleParser<'context> {
       css_module_lexer::Dependency::LocalFunctionDecl { name, range, .. } => {
         self.handle_optional_local_dashed_ident_declaration(self.function(), name, *range)
       }
-      css_module_lexer::Dependency::LocalGrid { name, range, .. } => self
-        .handle_optional_local_ident_usage(
-          self.grid() && local_css_ident_declarations.has_grid(name),
-          name,
-          *range,
-        ),
+      css_module_lexer::Dependency::LocalGrid { name, range, .. } => {
+        self.handle_local_grid_usage(name, *range, &local_css_ident_declarations.grids)
+      }
       css_module_lexer::Dependency::LocalGridDecl { name, range, .. } => {
         self.handle_optional_local_ident_declaration(self.grid(), name, *range)
       }
@@ -924,6 +917,38 @@ impl<'context> CssModuleParser<'context> {
   fn handle_local_ident_usage(&mut self, name: &str, range: css_module_lexer::Range) -> Result<()> {
     let name = unescape_identifier(name);
     self.add_local_symbol(name.as_ref(), range, LocalCssIdentKind::Ident)
+  }
+
+  fn handle_local_grid_usage(
+    &mut self,
+    name: &str,
+    range: css_module_lexer::Range,
+    areas: &FxHashSet<SmolStr>,
+  ) -> Result<()> {
+    if !self.grid() {
+      return Ok(());
+    }
+    let name = unescape_identifier(name);
+    if areas.contains(name.as_ref()) {
+      return self.add_local_symbol(name.as_ref(), range, LocalCssIdentKind::Ident);
+    }
+    let Some((area, suffix)) = name.rsplit_once('-') else {
+      return Ok(());
+    };
+    let kind = match suffix {
+      "start" => CssIcssSymbolKind::LocalGridStart,
+      "end" => CssIcssSymbolKind::LocalGridEnd,
+      _ => return Ok(()),
+    };
+    if areas.contains(area) {
+      let target = self.ensure_local_definition(area, LocalCssIdentKind::Ident, false);
+      self.add_dependency(CssIcssSymbolDependency::new(
+        target,
+        (range.start, range.end).into(),
+        kind,
+      ));
+    }
+    Ok(())
   }
 
   fn handle_optional_local_ident_usage(

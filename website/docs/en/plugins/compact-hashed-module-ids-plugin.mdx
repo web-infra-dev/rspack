@@ -18,7 +18,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 The generated module ids are case-sensitive and may contain uppercase letters. On case-insensitive file systems, avoid using `[id]` as the only distinguishing placeholder in [Asset module filenames](/config/output#outputassetmodulefilename) or [WebAssembly module filenames](/config/output#outputwebassemblymodulefilename). Prefer `[contenthash]`, or include it alongside `[id]`.
 :::
 
-[`optimization.moduleIds: 'compact-hashed'`](/config/optimization#optimizationmoduleids) uses this plugin internally. Use the plugin directly when you need to customize the minimum encoded id length.
+[`optimization.moduleIds: 'compact-hashed'`](/config/optimization#optimizationmoduleids) uses this plugin internally. Add the plugin manually when you need to customize its options.
 
 ## Examples
 
@@ -32,6 +32,7 @@ export default {
   plugins: [
     new rspack.ids.CompactHashedModuleIdsPlugin({
       minLength: 1,
+      salt: 42,
     }),
   ],
 };
@@ -46,3 +47,10 @@ export default {
 - **Range:** Integer from `1` to `11`
 
 The minimum encoded id length. Rspack extends an id one character at a time when its hash prefix is already used. Increasing `minLength` expands the initial id space, reducing prefix collisions and making generated output and caching more stable. The tradeoff is that module ids become longer.
+
+### salt
+
+- **Type:** `number`
+- **Default:** `0`
+
+The hash salt used when generating ids. Change this value to try a different hash starting value in the same id space.

@@ -48,23 +48,32 @@ pub fn eval_source<'parser>(
     }
     Ok(mut ast) => {
       let expression = ast.root_expression();
-      let expression_span = expression.span(&ast);
 
       // ParsedJavaScriptAst represents programs in the main scan path. Build a
       // minimal valid program root around the fragment so any evaluation hook
       // consulting parser.ast observes a self-consistent AST.
-      let statement = ast.expression_statement(expression_span, expression);
-      let directives = ast.add_sub_range(std::iter::empty::<Directive>());
-      let body = ast.add_sub_range([Stmt::ExpressionStatement(statement)]);
-      let program = ast.program(expression_span, directives, body, None);
-      ast.set_root_program(program);
+      let program = {
+        // SAFETY: All handles belong to this fragment. Adding its program root
+        // only appends storage, preserving existing nodes and handles.
+        let ast = unsafe { ast.ast_mut() };
+        let expression_span = expression.span(ast);
+        let statement = ast.expression_statement(expression_span, expression);
+        let directives = ast.add_sub_range(std::iter::empty::<Directive>());
+        let body = ast.add_sub_range([Stmt::ExpressionStatement(statement)]);
+        let program = ast.program(expression_span, directives, body, None);
+        ast.set_root_program(program);
+        program
+      };
 
-      let ast = &*allocator.alloc(ast);
-      let comments = &*allocator.alloc(RspackComments::from_ast(ast));
       let SemanticReturn {
         semantic,
         diagnostics: _,
       } = analyze(ast, AnalyzeOptions::default());
+      let (ast, semantic) = semantic.into_parts();
+      let ast = &*allocator.alloc(ast);
+      // SAFETY: Fragment evaluation retains its owning AST and never mutates it.
+      let ast = unsafe { ast.ast() };
+      let comments = &*allocator.alloc(RspackComments::from_ast(ast));
       let semantic = &*allocator.alloc(semantic);
       let fragment_ast = &*allocator.alloc(ParsedJavaScriptAst {
         ast,
