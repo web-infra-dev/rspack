@@ -20,6 +20,7 @@
 		queue.d = 1;
     	queue.forEach(<%- expressionFunction("fn.r--", "fn") %>);
 		queue.forEach(<%- expressionFunction("fn.r-- ? fn.r++ : fn()", "fn") %>);
+		queue.length = 0;
 	}
 }
 <%- var("wrapDeps") %> = <%- basicFunction("deps") %> {
@@ -64,7 +65,6 @@
 	hasAwait && ((queue = []).d = -1);
 	var depQueues = new Set();
 	var exports = module.exports;
-	var currentDeps;
 	var outerResolve;
 	var reject;
 	var promise = new Promise(<%- basicFunction("resolve, rej") %> {
@@ -80,9 +80,13 @@
 		asyncModule.exports = exports;
 	}
 	var handle = <%- basicFunction("deps") %> {
-		currentDeps = wrapDeps(deps);
+		var currentDeps = wrapDeps(deps);
+		var currentDepQueues = new Set();
 		var fn;
 		var getResult = <%- basicFunction("") %> {
+			currentDepQueues.forEach(<%- basicFunction("depQueue") %> {
+				if (depQueue.d === 1) depQueues.delete(depQueue);
+			});
 			return currentDeps.map(<%- basicFunction("d") %> {
 				if(d[rspackDefer]) return d;
 				if (d[rspackError]) throw d[rspackError];
@@ -92,7 +96,7 @@
 		var promise = new Promise(<%- basicFunction("resolve") %> {
 			fn = <%- expressionFunction("resolve(getResult)", "") %>;
 			fn.r = 0;
-			var fnQueue = <%- expressionFunction("q !== queue && !depQueues.has(q) && (depQueues.add(q), q && !q.d && (fn.r++, q.push(fn)))", "q") %>;
+			var fnQueue = <%- expressionFunction("q !== queue && !currentDepQueues.has(q) && (currentDepQueues.add(q), depQueues.add(q), q && !q.d && (fn.r++, q.push(fn)))", "q") %>;
 			currentDeps.map(<%- expressionFunction("dep[rspackDefer] || dep[rspackQueues](fnQueue)", "dep") %>);
 		});
 		return fn.r ? promise : getResult();

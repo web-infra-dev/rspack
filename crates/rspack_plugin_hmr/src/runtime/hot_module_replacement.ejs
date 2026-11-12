@@ -14,6 +14,8 @@
 <%- var("blockingPromisesWaiting") %> = [];
 <%- var("blockingStatusPromises") %> = [];
 <%- var("currentCheckPromise") %>;
+<%- var("currentApply") %>;
+<%- var("currentCatchUp") %>;
 
 // The update info
 <%- var("currentUpdateApplyHandlers") %>;
@@ -290,12 +292,19 @@
 		return Promise.reject(new Error("Chunk loading failed because the update failed (" + currentStatus + ")"));
 	}
 	var waiting = currentStatus !== "idle";
-	if (!waiting && hash !== <%- GET_FULL_HASH %>()) return Promise.resolve();
+	var canCatchUp = currentStatus === "apply" && currentApply;
+	if ((!waiting || canCatchUp) && hash !== <%- GET_FULL_HASH %>()) return Promise.resolve();
 	var onStatus, timeout, promise;
-	if (waiting) {
+	if (currentCatchUp) {
+		promise = currentCatchUp.ready;
+		waiting = false;
+	} else if (canCatchUp) {
+		promise = catchUpDuringApply();
+		waiting = false;
+	} else if (waiting) {
 		promise = new Promise(function (resolve, reject) {
 			onStatus = function (status) {
-				if (status === "idle" || status === "abort" || status === "fail") resolve();
+				if (status === "apply" || status === "idle" || status === "abort" || status === "fail") resolve();
 			};
 			registeredStatusHandlers.push(onStatus);
 			// Download failures can reject check() without changing its status.
@@ -330,10 +339,44 @@
 	});
 }
 
+<%- fn("catchUpDuringApply") %>() {
+	var apply = currentApply;
+	var previousCheck = currentCheckPromise;
+	var resolve, reject;
+	var catchUp = {
+		ready: new Promise(function (res, rej) { resolve = res; reject = rej; })
+	};
+	currentCatchUp = catchUp;
+	var check = internalCheck(apply.options, function () {
+		// Factories and runtime are installed. Retry imports before awaiting
+		// accept callbacks, which may themselves await these imports.
+		if (currentCatchUp === catchUp) currentCatchUp = undefined;
+		resolve();
+	}, apply);
+	apply.catchUps.push(check);
+	var cleanup = function () {
+		if (currentCatchUp === catchUp) currentCatchUp = undefined;
+		if (currentCheckPromise === check) currentCheckPromise = previousCheck;
+	};
+	check.then(function (modules) {
+		cleanup();
+		if (modules === null) reject(new Error("Chunk is from another build, and no update leads to it"));
+		else resolve();
+	}, function (error) {
+		cleanup();
+		reject(error);
+	});
+	return catchUp.ready;
+}
+
 <%- fn("hotCheck") %>(applyOnUpdate) {
 	if (currentStatus !== "idle") {
 		throw new Error("check() is only allowed in idle status");
 	}
+	return internalCheck(applyOnUpdate);
+}
+
+<%- fn("internalCheck") %>(applyOnUpdate, onApplied, parentApply) {
 	<% if (_is_hot_test) { %>
 	self.__HMR_UPDATED_RUNTIME__ = {
 		javascript: {
@@ -352,7 +395,7 @@
 		.then(<%- HMR_DOWNLOAD_MANIFEST %>)
 		.then(function (update) {
 			if (!update) {
-				return setStatus(applyInvalidatedModules() ? "ready" : "idle").then(
+				return setStatus(parentApply || currentApply ? "apply" : applyInvalidatedModules() ? "ready" : "idle").then(
 					function () {
 						return null;
 					}
@@ -387,7 +430,7 @@
 				).then(function () {
 					return waitForBlockingPromises(function () {
 						if (applyOnUpdate) {
-							return internalApply(applyOnUpdate);
+							return internalApply(applyOnUpdate, onApplied, parentApply);
 						}
 						return setStatus("ready").then(function () {
 							return updatedModules;
@@ -409,7 +452,7 @@
 	return internalApply(options);
 }
 
-<%- fn("internalApply") %>(options) {
+<%- fn("internalApply") %>(options, onApplied, parentApply) {
 	options = options || {};
 	applyInvalidatedModules();
 	var results = currentUpdateApplyHandlers.map(function (handler) {
@@ -428,6 +471,16 @@
 		});
 	}
 
+	var apply = { parent: parentApply || currentApply, options: options, catchUps: [], finished: false, failed: false };
+	var finish = function () {
+		apply.finished = true;
+		var failed = false;
+		while (currentApply && currentApply.finished) {
+			failed = failed || currentApply.failed;
+			currentApply = currentApply.parent;
+		}
+		return failed;
+	};
 	var disposePromise = setStatus("dispose");
 
 	results.forEach(function (result) {
@@ -438,22 +491,30 @@
 
 	var error;
 	var reportError = function (err) {
-		if (!error) error = err;
+		if (!error) error = err || new Error("Update failed with " + err);
 	};
 
 	var outdatedModules = [];
-	results.forEach(function (result) {
-		if (result.apply) {
-			var modules = result.apply(reportError);
-			if (modules) {
-				for (var i = 0; i < modules.length; i++) {
-					outdatedModules.push(modules[i]);
-				}
-			}
-		}
+	var applyResults = results.map(function (result) {
+		return result.apply ? result.apply(reportError) : undefined;
 	});
-
-	return Promise.all([disposePromise, applyPromise]).then(function () {
+	currentApply = apply;
+	if (onApplied) onApplied();
+	return Promise.all([
+		disposePromise,
+		applyPromise,
+		Promise.all(applyResults).then(function (applyResults) {
+			applyResults.forEach(function (modules) {
+				if (modules) {
+					for (var i = 0; i < modules.length; i++) {
+						outdatedModules.push(modules[i]);
+					}
+				}
+			});
+		})
+	]).then(function () {
+		return Promise.all(apply.catchUps);
+	}).then(function () {
 		if (error) {
 			return setStatus("fail").then(function () {
 				throw error;
@@ -469,9 +530,14 @@
 			});
 		}
 
-		return setStatus("idle").then(function () {
-			return outdatedModules;
-		});
+		return outdatedModules;
+	}).then(function (modules) {
+		if (finish() || currentApply) return modules;
+		return setStatus("idle").then(function () { return modules; });
+	}, function (error) {
+		apply.failed = true;
+		finish();
+		throw error;
 	});
 }
 

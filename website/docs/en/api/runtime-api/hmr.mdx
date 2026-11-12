@@ -75,13 +75,17 @@ import.meta.webpackHot.accept(
 
 When using ESM `import`, all imported symbols from `dependencies` are automatically updated. Note: The dependency string must exactly match the `from` string in the `import`. In some cases, `callback` can be omitted. Using `require()` in the `callback` isn't useful here.
 
+If an ESM dependency uses top-level await, Rspack waits for it to finish during the update, even when `callback` is omitted. Imported values retain their previous versions until the updated dependencies finish executing. When provided, the callback runs after the dependencies finish executing.
+
 When using CommonJS, update dependencies manually using `require()` in the `callback`. Omitting the `callback` isn't useful here.
+
+The `callback` can return a Promise. HMR waits for it before re-executing self-accepted modules and completing the update. As in webpack, rejections use the same `errorHandler`, `onErrored`, and `ignoreErrored` handling as synchronous exceptions. An error that is neither handled nor ignored rejects the Promise returned by `module.hot.check(true)` or `module.hot.apply()` and leaves HMR in the `fail` status. If the callback awaits a dynamic import from a newer build, Rspack applies the updates needed to load that chunk before completing the callback. If those updates replace an awaited ESM dependency again, pending accept callbacks wait for the current dependency versions; results and errors from superseded evaluations are discarded.
 
 #### errorHandler for accept
 
 `(err, {moduleId, dependencyId}) => {}`
 
-- `err`: The error thrown by the callback in the second argument or during dependency execution when using ESM dependencies.
+- `err`: The error thrown by the callback in the second argument or while evaluating an ESM dependency, including Promise rejections.
 - `moduleId`: The current module ID.
 - `dependencyId`: The module ID of the (first) changed dependency.
 
