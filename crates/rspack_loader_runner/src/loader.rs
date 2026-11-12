@@ -315,6 +315,11 @@ where
     None
   }
 
+  /// Adds a loader-specific fingerprint to the cache etag before the chain runs.
+  fn additional_cache_etag(&self, _context: &Context) -> Option<u64> {
+    None
+  }
+
   /// Selects the runtime responsible for executing this loader.
   fn execution_kind(&self) -> LoaderExecutionKind {
     LoaderExecutionKind::Native

@@ -26,6 +26,7 @@ import type {
 export const BUILTIN_LOADER_PREFIX = 'builtin:';
 
 export interface ComposeJsUseOptions {
+  loaderOptionsFingerprint: string | undefined;
   context: RawOptions['context'];
   mode: RawOptions['mode'];
   experiments: RawOptions['experiments'];
@@ -592,9 +593,17 @@ function createRawModuleRuleUsesImpl(
       isBuiltin = true;
     }
 
-    const optionsCacheKey = use.cache
+    let optionsCacheKey = use.cache
       ? serializeLoaderOptionsForCache(fingerprintOptions)
       : undefined;
+    if (!isBuiltin && optionsCacheKey !== undefined) {
+      const { loaderOptionsFingerprint } = options;
+      // Rule options and loader-context options are independently observable.
+      optionsCacheKey =
+        loaderOptionsFingerprint === undefined
+          ? undefined
+          : JSON.stringify([optionsCacheKey, loaderOptionsFingerprint]);
+    }
     return {
       loader: resolveStringifyLoaders(
         use,

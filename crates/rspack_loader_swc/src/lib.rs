@@ -310,6 +310,10 @@ impl Loader<RunnerContext> for SwcLoader {
     self.identifier
   }
 
+  fn additional_cache_etag(&self, context: &RunnerContext) -> Option<u64> {
+    Some(u64::from(context.source_map_kind.bits()))
+  }
+
   #[tracing::instrument("loader:builtin-swc", skip_all, fields(
     perfetto.track_name = "loader:builtin-swc",
     perfetto.process_name = "Loader Analysis",

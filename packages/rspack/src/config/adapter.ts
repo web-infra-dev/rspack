@@ -113,14 +113,14 @@ export const getRawOptions = (
       mode,
       context: options.context!,
       experiments,
+      loaderOptionsFingerprint:
+        cache !== false && experiments.newCache && experiments.newCache.loader
+          ? serializeLoaderOptionsForCache(options.loader)
+          : '',
     }),
     optimization: options.optimization as Required<Optimization>,
     stats: getRawStats(options.stats),
     cache: getRawCache(cache),
-    loaderOptionsFingerprint:
-      cache !== false && experiments.newCache && experiments.newCache.loader
-        ? serializeLoaderOptionsForCache(options.loader)
-        : undefined,
     snapshot: getRawSnapshot(options.snapshot),
     experiments,
     incremental: mode === 'development' && options.incremental,
