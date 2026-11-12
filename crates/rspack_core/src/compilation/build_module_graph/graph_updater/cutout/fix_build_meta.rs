@@ -20,10 +20,9 @@ impl FixBuildMeta {
   ) {
     let module_graph = artifact.get_module_graph();
     for module_identifier in ids {
-      let Some(module) = module_graph.module_by_identifier(module_identifier) else {
-        // An interrupted build can leave the graph node without a built module.
-        continue;
-      };
+      let module = module_graph
+        .module_by_identifier(module_identifier)
+        .expect("should have module");
       self
         .origin_module_build_meta
         .insert(*module_identifier, module.freeze_build_meta().clone());

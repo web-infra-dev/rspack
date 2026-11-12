@@ -51,10 +51,6 @@ impl Task<ExecutorTaskContext> for EntryTask {
         ));
         let dep_id = *dep.id();
         origin_context.artifact.entry_dependencies.insert(dep_id);
-        origin_context
-          .artifact
-          .pending_dependencies
-          .insert((dep_id, None));
 
         let mg = TaskContext::get_module_graph_mut(&mut origin_context.artifact);
         mg.add_dependency_ref(dep.clone());

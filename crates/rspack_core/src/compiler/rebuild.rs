@@ -86,10 +86,14 @@ impl Compiler {
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         records,
-        Incremental::new_hot_with_passes(
-          self.options.incremental,
-          self.compilation.recoverable_artifacts,
-        ),
+        if self.compilation.exports_info_artifact.has_checkpoint() {
+          Incremental::new_hot(self.options.incremental)
+        } else {
+          // A fatal make/finishMake error can stop before the incremental
+          // baseline exists. Ordinary module diagnostics still reach it.
+          self.incremental_artifacts.reset();
+          Incremental::new_cold(self.options.incremental)
+        },
         Some(ModuleExecutor::default()),
         compilation_logging,
         self.new_cache.clone(),

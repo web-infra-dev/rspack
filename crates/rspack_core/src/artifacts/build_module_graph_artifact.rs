@@ -2,15 +2,12 @@ use std::hash::BuildHasherDefault;
 
 use rspack_collections::{IdentifierHasher, IdentifierSet};
 use rspack_error::Diagnostic;
-use rspack_paths::InternedPathSet;
 use rustc_hash::FxHashSet;
 
 use crate::{
   ArtifactExt, BuildDependency, DependencyId, DependencyRef, FactorizationArtifact, FactorizeInfo,
   ModuleGraph, ModuleIdentifier, SideEffectsStateArtifact,
-  compilation::build_module_graph::{
-    Cutout, ModuleToLazyMake, module_build_cache::ModuleBuildCache,
-  },
+  compilation::build_module_graph::{ModuleToLazyMake, module_build_cache::ModuleBuildCache},
   incremental::IncrementalPasses,
   incremental_info::IncrementalInfo,
   utils::FileCounter,
@@ -34,12 +31,6 @@ pub struct BuildModuleGraphArtifact {
   pub issuer_update_modules: IdentifierSet,
   /// Main-graph cache session for the current build; never recovered or persisted.
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
-  /// Work not yet committed by the graph task loop. Keep it across fatal errors
-  /// so the next make retries this work without rebuilding unaffected modules.
-  pub(crate) pending_dependencies: FxHashSet<BuildDependency>,
-  pub(crate) pending_modules: IdentifierSet,
-  pub(crate) pending_files: InternedPathSet,
-  pub(crate) pending_cutout: Option<Cutout>,
 
   // data
   /// Module graph data
@@ -74,10 +65,6 @@ impl BuildModuleGraphArtifact {
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
       module_build_cache: None,
-      pending_dependencies: Default::default(),
-      pending_modules: Default::default(),
-      pending_files: Default::default(),
-      pending_cutout: None,
       module_graph: Default::default(),
       factorization_artifact: Default::default(),
       side_effects_state_artifact: Default::default(),
@@ -165,23 +152,25 @@ impl BuildModuleGraphArtifact {
   ///
   /// This function will update index on MakeArtifact.
   pub fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<BuildDependency> {
-    if let Some(module) = self.module_graph.module_by_identifier(module_identifier) {
-      // clean module build info
-      let build_info = module.build_info();
-      self
-        .file_dependencies
-        .remove_module_files(*module_identifier, &build_info.dependencies.file);
-      self
-        .context_dependencies
-        .remove_module_files(*module_identifier, &build_info.dependencies.context);
-      self
-        .missing_dependencies
-        .remove_module_files(*module_identifier, &build_info.dependencies.missing);
-      self
-        .build_dependencies
-        .remove_module_files(*module_identifier, &build_info.dependencies.build);
-      drop(build_info);
-    }
+    let module = self
+      .module_graph
+      .module_by_identifier(module_identifier)
+      .expect("should have module");
+    // clean module build info
+    let build_info = module.build_info();
+    self
+      .file_dependencies
+      .remove_module_files(*module_identifier, &build_info.dependencies.file);
+    self
+      .context_dependencies
+      .remove_module_files(*module_identifier, &build_info.dependencies.context);
+    self
+      .missing_dependencies
+      .remove_module_files(*module_identifier, &build_info.dependencies.missing);
+    self
+      .build_dependencies
+      .remove_module_files(*module_identifier, &build_info.dependencies.build);
+    drop(build_info);
     self.make_failed_module.remove(module_identifier);
 
     // clean incoming & all_dependencies(outgoing) factorize info

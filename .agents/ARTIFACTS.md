@@ -108,7 +108,7 @@ Wrapper types that delegate to the inner type's `PASS`:
 
 ## Usage in rebuild
 
-During rebuild, `Compiler` moves the previous compilation into its independent
+During rebuild, `Compiler` moves the completed compilation into its independent
 `IncrementalArtifacts` holder:
 
 ```rust
@@ -127,22 +127,10 @@ incremental_artifacts.recover(incremental_passes, compilation);
 pass.before_pass(compilation, cache).await;
 let result = pass.run_pass_with_cache(compilation, cache).await;
 if result.is_ok() {
-  pass.after_pass(compilation, cache).await?;
-  compilation.recoverable_artifacts.insert(incremental_passes);
   incremental_artifacts.capture(incremental_passes, compilation);
+  pass.after_pass(compilation, cache).await;
 }
 ```
-
-Recovery is tracked per artifact group. A failure in a later pass does not invalidate completed
-upstream groups. Groups that did not complete are recomputed, and their mutations are not readable
-until the next compilation has a valid previous result.
-
-Module graph updates additionally preserve completed modules when a fatal error interrupts the
-task loop. Pending modules, dependencies, file changes, and cutout bookkeeping remain with the graph
-so the next update retries unfinished work. Both normal make and `finishMake` rebuilds use this
-recovery path. Ordinary module diagnostics do not interrupt the pass or invalidate its artifacts.
-If the module graph is recoverable but `finishModules` did not complete, exports analysis is rebuilt
-without discarding the module graph.
 
 Artifact recovery and Cache hooks are deliberately separate operations. `cache: false` changes the
 Cache hooks but must not prevent `IncrementalArtifacts::recover` from running.

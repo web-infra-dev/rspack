@@ -6,7 +6,6 @@ pub mod pass;
 
 use std::sync::atomic::Ordering;
 
-pub(crate) use graph_updater::Cutout;
 use rspack_error::Result;
 use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
 use tracing::instrument;
@@ -33,19 +32,7 @@ pub async fn do_build_module_graph(compilation: &mut Compilation) -> Result<()> 
   // run module_executor
   if let Some(module_executor) = &mut compilation.module_executor {
     let mut module_executor = std::mem::take(module_executor);
-    let result: Result<()> = async {
-      module_executor
-        .before_build_module_graph(compilation)
-        .await?;
-      let pending_modules = &compilation.build_module_graph_artifact.pending_modules;
-      if !pending_modules.is_empty() {
-        module_executor
-          .prepare_rebuild(compilation, pending_modules)
-          .await?;
-      }
-      Ok(())
-    }
-    .await;
+    let result = module_executor.before_build_module_graph(compilation).await;
     compilation.module_executor = Some(module_executor);
     result?;
   }

@@ -127,15 +127,13 @@ impl Task<TaskContext> for FactorizeResultTask {
       artifact.affected_dependencies.mark_as_add(dep.id());
     }
 
+    let module_graph = artifact.get_module_graph_mut();
     let Some(factory_result) = factory_result else {
       let dep = &dependencies[0];
       tracing::trace!("Module created with failure, but without bailout: {dep:?}");
       // sync dependencies to mg
       for dep in dependencies {
-        artifact
-          .pending_dependencies
-          .remove(&(*dep.id(), original_module_identifier));
-        artifact.module_graph.add_dependency_ref(dep);
+        module_graph.add_dependency_ref(dep)
       }
       return Ok(vec![]);
     };
@@ -146,10 +144,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       let dep = &dependencies[0];
       tracing::trace!("Module make-skipped as side-effect-only import: {dep:?}");
       for dep in dependencies {
-        artifact
-          .pending_dependencies
-          .remove(&(*dep.id(), original_module_identifier));
-        artifact.module_graph.add_dependency_ref(dep);
+        module_graph.add_dependency_ref(dep)
       }
       return Ok(vec![]);
     }
@@ -159,10 +154,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       tracing::trace!("Module ignored: {dep:?}");
       // sync dependencies to mg
       for dep in dependencies {
-        artifact
-          .pending_dependencies
-          .remove(&(*dep.id(), original_module_identifier));
-        artifact.module_graph.add_dependency_ref(dep);
+        module_graph.add_dependency_ref(dep)
       }
       return Ok(vec![]);
     };

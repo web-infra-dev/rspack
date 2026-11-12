@@ -145,7 +145,7 @@ for (const kind of ['rule-gained', 'rule-lost', 'removed', 'added']) {
   }
 }
 
-for (const hook of ['make', 'finishMake', 'finishModules', 'rebuildModule']) {
+for (const hook of ['make', 'finishMake', 'rebuildModule']) {
   for (const failFirst of [true, false]) {
     for (const cache of [true, false]) {
       let fail = false;
@@ -160,10 +160,6 @@ for (const hook of ['make', 'finishMake', 'finishModules', 'rebuildModule']) {
                 throwBuild = false;
                 throw new Error('rebuild failed');
               }
-            });
-            compilation.hooks.finishModules.tap('Test', () => {
-              if (fail && hook === 'finishModules')
-                throw new Error('finishModules failed');
             });
           });
           compiler.hooks.make.tap('Test', () => {

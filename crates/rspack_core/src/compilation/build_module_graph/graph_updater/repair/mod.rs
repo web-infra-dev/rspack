@@ -6,12 +6,12 @@ pub mod lazy;
 pub mod process_dependencies;
 
 use rspack_error::Result;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use self::context::TaskContext;
 use super::BuildModuleGraphArtifact;
 use crate::{
-  Compilation, ExportsInfoArtifact,
+  BuildDependency, Compilation, ExportsInfoArtifact,
   utils::task_loop::{Task, run_task_loop},
 };
 
@@ -19,11 +19,12 @@ pub async fn repair(
   compilation: &Compilation,
   artifact: BuildModuleGraphArtifact,
   exports_info_artifact: ExportsInfoArtifact,
+  build_dependencies: HashSet<BuildDependency>,
 ) -> (BuildModuleGraphArtifact, ExportsInfoArtifact, Result<()>) {
   let mut ctx = TaskContext::new(compilation, artifact, exports_info_artifact);
   let module_graph = &ctx.artifact.module_graph;
   let mut grouped_deps = HashMap::default();
-  for &(dep_id, parent_module_identifier) in &ctx.artifact.pending_dependencies {
+  for (dep_id, parent_module_identifier) in build_dependencies {
     grouped_deps
       .entry(parent_module_identifier)
       .or_insert(vec![])

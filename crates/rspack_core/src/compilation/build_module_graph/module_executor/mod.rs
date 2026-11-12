@@ -73,18 +73,6 @@ impl ModuleExecutor {
     let mut exports_info_artifact = self.exports_info_artifact.steal();
     let mut params = Vec::with_capacity(5);
     params.push(UpdateParam::CheckNeedBuild);
-    if !compilation
-      .build_module_graph_artifact
-      .pending_files
-      .is_empty()
-    {
-      params.push(UpdateParam::ModifiedFiles(
-        compilation
-          .build_module_graph_artifact
-          .pending_files
-          .clone(),
-      ));
-    }
     if !compilation.modified_files.is_empty() {
       params.push(UpdateParam::ModifiedFiles(
         compilation.modified_files.clone(),
@@ -273,13 +261,8 @@ impl ModuleExecutor {
     }
   }
 
-  pub async fn stop_after_failure(&mut self) {
-    if let Ok(Some((ctx, _))) = self.stop().await {
-      self.make_artifact = ctx.origin_context.artifact.into();
-      self.exports_info_artifact = ctx.origin_context.exports_info_artifact.into();
-      self.entries = ctx.entries;
-      self.executed_entry_deps = ctx.executed_entry_deps;
-    }
+  pub async fn abort(mut self) {
+    let _ = self.stop().await;
   }
 
   #[allow(clippy::too_many_arguments)]

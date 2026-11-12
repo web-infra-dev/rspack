@@ -82,7 +82,6 @@ async fn run<P: PassExt + ?Sized>(
   let result = match pass.run_pass_with_cache(compilation, cache).await {
     Ok(()) => match pass.after_pass(compilation, cache).await {
       Ok(()) => {
-        compilation.recoverable_artifacts.insert(incremental_passes);
         if let Some(incremental_artifacts) = incremental_artifacts {
           incremental_artifacts.capture(incremental_passes, compilation);
         }

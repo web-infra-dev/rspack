@@ -68,11 +68,6 @@ impl Task<TaskContext> for ProcessDependenciesTask {
           .entry(resource_identifier)
           .or_insert(vec![])
           .push(dependency);
-      } else {
-        context
-          .artifact
-          .pending_dependencies
-          .remove(&(dependency_id, Some(original_module_identifier)));
       }
     }
 

@@ -500,7 +500,7 @@ Triggers a re-build of the module.
 
 Call this method from [`compiler.hooks.finishMake`](/api/plugin-api/compiler-hooks#finishmake), and wait for its callback before completing the hook. Calls from `finishModules` or later hooks return an error through the callback because those phases require a fixed module graph.
 
-Each call completes its callback once, including repeated requests for the same module. If another rebuild removes the module, the callback receives an error. Module build errors follow the same incremental behavior as normal module builds. A fatal graph update failure can also fail the compilation even when the plugin handles the callback error; the next build retries unfinished work while preserving unaffected modules and completed incremental artifacts.
+Each call completes its callback once, including repeated requests for the same module. If another rebuild removes the module, the callback receives an error. Loader and parser errors are reported as compilation diagnostics, as in normal module builds. A fatal error that interrupts graph building also fails the compilation, even when the plugin handles the callback error.
 
 Rebuilding a module also refreshes its extracted CSS and replaces its loader import contributions. Assets, diagnostics, and watch dependencies are collected after `finishMake` completes.
 

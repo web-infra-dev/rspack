@@ -15,7 +15,7 @@ impl PassExt for OptimizeCodeGenerationPass {
     let mut build_module_graph_artifact = compilation.build_module_graph_artifact.steal();
     let mut exports_info_artifact = compilation.exports_info_artifact.steal();
     let mut diagnostics = vec![];
-    let result = compilation
+    compilation
       .plugin_driver
       .clone()
       .compilation_hooks
@@ -27,12 +27,12 @@ impl PassExt for OptimizeCodeGenerationPass {
         &mut diagnostics,
       )
       .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"));
+      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
 
     compilation.build_module_graph_artifact = build_module_graph_artifact.into();
     compilation.exports_info_artifact = exports_info_artifact.into();
     compilation.extend_diagnostics(diagnostics);
 
-    result
+    Ok(())
   }
 }

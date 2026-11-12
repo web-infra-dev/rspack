@@ -51,27 +51,12 @@ impl PassExt for BuildModuleGraphPhasePass {
       .loader_cache()
       .upgrade()
       .map(|cache| cache.begin_build());
-    compilation
-      .build_module_graph_artifact
-      .pending_files
-      .extend(
-        compilation
-          .modified_files
-          .iter()
-          .chain(&compilation.removed_files)
-          .cloned(),
-      );
     let result = run_build_module_graph_phase(compilation).await;
     compilation.in_finish_make.store(false, Ordering::Release);
-    if result.is_err() {
-      if let Some(executor) = &mut compilation.module_executor {
-        executor.stop_after_failure().await;
-      }
-      // The task loop has returned its graph and drained all active loaders.
-      // Preserve completed modules and retry the interrupted work next time.
-      compilation
-        .recoverable_artifacts
-        .insert(crate::incremental::IncrementalPasses::BUILD_MODULE_GRAPH);
+    if result.is_err()
+      && let Some(executor) = compilation.module_executor.take()
+    {
+      executor.abort().await;
     }
     result
   }
