@@ -4,12 +4,14 @@ mod walk_data;
 
 use std::sync::Arc;
 
+use itertools::Itertools;
 use parser::DefineParserPlugin;
 use rspack_core::{
   Compilation, CompilationParams, CompilerCompilation, ModuleType, NormalModuleFactoryParser,
   ParserAndGenerator, ParserOptions, Plugin,
 };
 use rspack_error::{Diagnostic, Error, Result};
+use rspack_hash::{HashDigest, RspackHasher, hash_by_json};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap;
 use serde_json::Value;
@@ -18,6 +20,7 @@ use self::walk_data::WalkData;
 use crate::parser_and_generator::JavaScriptParserAndGenerator;
 
 const VALUE_DEP_PREFIX: &str = "rspack/DefinePlugin ";
+const VALUE_DEP_MAIN: &str = "rspack/DefinePlugin_hash";
 
 #[derive(Debug)]
 struct ConflictingValuesError(String, String, String);
@@ -53,6 +56,24 @@ async fn compilation(
   _params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.extend_diagnostics(self.walk_data.diagnostics.clone());
+  let mut hasher = RspackHasher::new(&compilation.options.output.hash_function);
+  // Include earlier plugin instances, and sort keys for a stable hash across processes.
+  hash_by_json(
+    &(
+      compilation.value_cache_versions.get(VALUE_DEP_MAIN),
+      self
+        .walk_data
+        .tiling_definitions
+        .keys()
+        .sorted_unstable()
+        .collect_vec(),
+    ),
+    &mut hasher,
+  );
+  compilation.value_cache_versions.insert(
+    VALUE_DEP_MAIN.to_string(),
+    hasher.digest(&HashDigest::Hex).encoded().to_string(),
+  );
   for (key, value) in self.walk_data.tiling_definitions.iter() {
     let cache_key = format!("{VALUE_DEP_PREFIX}{key}");
     if let Some(prev) = compilation.value_cache_versions.get(&cache_key)

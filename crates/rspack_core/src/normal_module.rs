@@ -634,6 +634,7 @@ impl Module for NormalModule {
         loaders: &self.loaders,
         resource_data: &self.resource_data,
         compiler_options: &build_context.compiler_options,
+        value_cache_versions: &build_context.value_cache_versions,
         additional_data: loader_result.additional_data,
         factory_meta: factory_meta.as_deref(),
         build_info: self.build_info.get_mut(),

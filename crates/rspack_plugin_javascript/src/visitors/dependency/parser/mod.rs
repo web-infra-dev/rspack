@@ -26,7 +26,7 @@ use rspack_core::{
   DependencyId, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
   ImportMetaKnownProperties, JavascriptParserCommonjsExportsOption, JavascriptParserOptions,
   ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData,
-  ResourceIdentifier, SideEffectsBailoutItemWithSpan,
+  ResourceIdentifier, SideEffectsBailoutItemWithSpan, ValueCacheVersions,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::fx_hash::FxIndexSet;
@@ -490,6 +490,7 @@ pub struct JavascriptParser<'parser> {
   pub factory_meta: Option<&'parser FactoryMeta>,
   pub build_meta: &'parser mut BuildMeta,
   pub build_info: &'parser mut BuildInfo,
+  pub value_cache_versions: &'parser ValueCacheVersions,
   pub resource_data: &'parser ResourceData,
   pub(crate) compiler_options: &'parser CompilerOptions,
   pub(crate) javascript_options: &'parser JavascriptParserOptions,
@@ -672,6 +673,7 @@ impl<'parser> JavascriptParser<'parser> {
     source: &'parser str,
     ast: &'parser ParsedJavaScriptAst<'parser>,
     compiler_options: &'parser CompilerOptions,
+    value_cache_versions: &'parser ValueCacheVersions,
     javascript_options: &'parser JavascriptParserOptions,
     plugin_drive: &'parser JavaScriptParserPluginDrive,
     module_identifier: &'parser ModuleIdentifier,
@@ -726,6 +728,7 @@ impl<'parser> JavascriptParser<'parser> {
       factory_meta,
       build_meta,
       build_info,
+      value_cache_versions,
       compiler_options,
       module_type,
       module_layer,
