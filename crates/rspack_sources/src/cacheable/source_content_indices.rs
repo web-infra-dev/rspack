@@ -63,7 +63,7 @@ fn visit_contents<'a>(source: &'a dyn Source, visit: &mut impl FnMut(&'a BytesSt
           visit(content);
         }
       }
-      if let Some(content) = &source.original_source {
+      if let Some(content) = source.original_source() {
         visit(content);
       }
     }

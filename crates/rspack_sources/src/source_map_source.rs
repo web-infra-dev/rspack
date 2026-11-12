@@ -64,7 +64,7 @@ pub struct SourceMapSource {
   value: Box<str>,
   name: BytesStr,
   source_map: SourceMap,
-  pub(crate) original_source: Option<BytesStr>,
+  original_source: Option<BytesStr>,
   inner_source_map: Option<SourceMap>,
   remove_original_source: bool,
 }
@@ -105,9 +105,9 @@ impl SourceMapSource {
     &self.source_map
   }
 
-  /// Get the original source code.
-  pub fn original_source(&self) -> Option<&str> {
-    self.original_source.as_deref()
+  /// Borrow the original source text. Cloning the returned `BytesStr` shares its storage.
+  pub fn original_source(&self) -> Option<&BytesStr> {
+    self.original_source.as_ref()
   }
 
   /// Get the inner source map.
@@ -228,7 +228,7 @@ impl<'source, 'value> SourceMapSourceChunks<'source, 'value> {
       value,
       name: &source.name,
       source_map: &source.source_map,
-      original_source: source.original_source.as_ref(),
+      original_source: source.original_source(),
       inner_source_map: source.inner_source_map.as_ref(),
       remove_original_source: source.remove_original_source,
     }
