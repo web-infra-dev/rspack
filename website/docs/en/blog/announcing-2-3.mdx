@@ -40,7 +40,7 @@ authors:
 
 import { BlogAuthors } from '@rstackjs/doc-ui/blog-authors';
 
-import { PackageManagerTabs } from '@theme';
+import { PackageManagerTabs, Prompt } from '@theme';
 
 # Announcing Rspack 2.3
 
@@ -431,14 +431,19 @@ When a comparison fails, Rstest saves the actual screenshot and a diff image for
 
 Rspress 2.1.0 supports [WebMCP](https://developer.chrome.com/docs/ai/webmcp) by default. Its built-in tools for querying site information, searching documentation, and navigating pages let agents in the browser interact directly with documentation sites.
 
-To try it, run the following code in a browser that supports WebMCP:
+<Prompt
+  title="Try WebMCP with your agent"
+  description="Send this prompt to your agent to discover the WebMCP tools on the Rspress site."
+  prompt={`Open https://rspress.rs in a browser. Use the browser's WebMCP tool registry to list the tools available on the page and briefly explain what each one does.
 
-```js
-const tools = await document.modelContext.getTools();
-const tool = tools.find(({ name }) => name === 'rspress_get_current_page');
-const page = JSON.parse(await document.modelContext.executeTool(tool, {}));
-console.log(page.markdown);
-```
+If you don't have a native WebMCP browser connection, use agent-browser:
+
+npx -y agent-browser@latest --session rspress-webmcp --args "--enable-features=WebMCP" --json batch "open https://rspress.rs" "wait --load networkidle" "webmcp list" "close"
+
+If Chrome is missing, run npx -y agent-browser@latest install and retry. See https://agent-browser.dev/webmcp for details.
+
+Use the names and descriptions returned by the browser. If discovery fails, report the error separately from a successful lookup that finds no tools.`}
+/>
 
 You can also register custom tools with the `useWebMcp` hook to give agents more ways to interact with your site.
 

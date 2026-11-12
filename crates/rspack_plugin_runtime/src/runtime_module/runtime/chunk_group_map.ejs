@@ -1,0 +1,21 @@
+(<%- basicFunction("groups") %> {
+	var map = <%- REQUIRE_SCOPE %>.hmrS_chunkGroups = <%- REQUIRE_SCOPE %>.hmrS_chunkGroups || Object.create(null);
+	<% if (_full) { %>Object.keys(map).forEach(<%- basicFunction("id") %> {
+		delete map[id];
+	});
+	<% } %>
+	Object.keys(groups).forEach(<%- basicFunction("chunkId") %> {
+		if (groups[chunkId] === null) delete map[chunkId];
+		else map[chunkId] = groups[chunkId];
+	});
+})(<%- _groups %>);
+<% if (_full) { %><%- ENSURE_CHUNK_HANDLERS %>.group = <%- basicFunction("chunkId, promises, fetchPriority") %> {
+	var siblings = <%- REQUIRE_SCOPE %>.hmrS_chunkGroups[chunkId];
+	if (!siblings) return;
+	var keys = Object.keys(<%- ENSURE_CHUNK_HANDLERS %>).filter(<%- returningFunction('key !== "group"', 'key') %>);
+	siblings.forEach(<%- basicFunction("id") %> {
+		keys.forEach(<%- basicFunction("key") %> {
+			<%- ENSURE_CHUNK_HANDLERS %>[key](id, promises, fetchPriority);
+		});
+	});
+};<% } %>

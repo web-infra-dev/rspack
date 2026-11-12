@@ -686,33 +686,105 @@ export default {
 
 - **类型：** `string`
 
-使用路径模板创建独立的规则匹配资源。目前只支持 `[resource-path]` 占位符，它会展开为当前匹配路径，包含扩展名，但不包含查询参数和片段。其他内容（包括 `*`）均作为字面量使用。
+`as` 可以改变后续规则用于匹配当前文件的路径，从而让文件命中或跳过某些规则。它只影响规则匹配，文件读取和 loader 处理仍使用原始资源。
 
-规则按顺序执行。命中的规则包含 `as` 时，会用模板生成新的匹配路径，并加上原有查询参数和片段组成完整的匹配资源，然后继续匹配嵌套规则和后续规则，不会重新匹配之前的规则。后续 `as` 中的 `[resource-path]` 会使用前一次 `as` 生成的路径。
+### 示例 \{#examples}
 
-文件读取和 loader 仍使用原始资源。如果请求包含 [inline match resource](/api/loader-api/inline-match-resource)，`as` 会以该匹配路径为起点。
+#### 复用编译规则 \{#reusing-compilation-rules}
 
-例如，`example.source.js` 会以 `example.source.js.txt` 匹配后续的 `.txt` 规则，再以 `example.source.js.txt.processed` 匹配 `.processed` 规则：
+通过 `as`，不同扩展名的文件可以匹配同一条编译规则，复用已有的 loader 及其配置。
+
+例如，安装 [`@mdx-js/loader`](https://mdxjs.com/packages/loader/) 后，可以将 Markdown 和 MDX 文件转换为 JavaScript，并通过以下配置复用处理 `.js` 文件的 SWC 规则：
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     rules: [
       {
-        test: /\.source\.js$/,
-        type: 'asset/source',
-        as: '[resource-path].txt',
+        test: /\.mdx?$/,
+        // 在 SWC 编译之前，将 Markdown / MDX 转换为 JavaScript
+        enforce: 'pre',
+        loader: '@mdx-js/loader',
+        // 匹配下面的 JavaScript 规则
+        as: '[resource-path].js',
       },
       {
-        test: /\.txt$/,
-        use: './text-loader.js',
-        as: '[resource-path].processed',
+        test: /\.js$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: { target: 'es2017' },
+        },
       },
-      { test: /\.processed$/, use: './processed-loader.js' },
     ],
   },
 };
 ```
+
+导入 `./content.mdx` 时，它的匹配路径会变为以 `content.mdx.js` 结尾，因此也会命中 SWC 规则。MDX loader 先将内容转换为 JavaScript，再由 SWC 编译为配置的目标版本。普通 `.js` 文件则继续使用同一条 SWC 规则。
+
+`as` 只改变规则匹配，内容转换仍由 MDX loader 完成。[`enforce: 'pre'`](#rulesenforce) 用于保证 MDX 转换先于 SWC 执行，因为规则的匹配顺序并不决定 loader 的执行顺序。
+
+#### 跳过编译规则 \{#skipping-compilation-rules}
+
+当具有相同扩展名的文件需要不同的处理方式时，可以通过 `as` 让其中一部分文件跳过后续的通用编译规则。
+
+例如，你可能希望对同一个 JavaScript 文件采用两种导入方式：普通导入时使用 SWC 编译；带有 `type: 'url'` 导入属性时，则将文件作为资源输出并返回它的 URL：
+
+```js
+import example from './example.js';
+import exampleUrl from './example.js' with { type: 'url' };
+```
+
+可以通过以下配置实现：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        // 匹配带有 type: 'url' 导入属性的文件
+        with: { type: 'url' },
+        // 输出文件，并将其 URL 作为默认导出
+        type: 'asset/resource',
+        // 将匹配路径改为以 .asset 结尾，跳过后面的 SWC 规则
+        as: '[resource-path].asset',
+      },
+      {
+        test: /\.js$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          // 编译包含导入语句的模块时保留导入属性，供 Rspack 匹配
+          jsc: { experimental: { keepImportAttributes: true } },
+        },
+      },
+    ],
+  },
+};
+```
+
+在这个配置中：
+
+- 普通导入不满足第一条规则的条件，匹配路径仍以 `.js` 结尾，因此会命中第二条规则，由 SWC 编译。
+- URL 导入命中第一条规则，模块类型被设为 [`asset/resource`](/guide/features/asset-module)，匹配路径则变为以 `example.js.asset` 结尾。它不再满足 SWC 规则的条件，因此 Rspack 会将文件作为资源输出，不经过 `builtin:swc-loader` 处理。
+
+跳过 `builtin:swc-loader` 不会禁用产物压缩。在生产构建中，输出的 `.js` 资源仍可能被压缩。如果需要保留文件的原始内容，可以通过 [`generator.filename`](/config/module-generator#assetfilename) 将这类资源输出到单独的目录，再通过 [`SwcJsMinimizerRspackPlugin.exclude`](/plugins/swc-js-minimizer-rspack-plugin#exclude) 排除该目录。
+
+### 规则匹配顺序 \{#rule-matching-order}
+
+规则按顺序匹配。`as` 生成的新路径会用于当前规则下的 `rules`、`oneOf` 嵌套规则，以及后续规则。
+
+`as` 不会让之前的规则重新匹配，也不会撤销已匹配规则的 loader 和其他设置。因此，上例中处理 URL 导入的规则必须放在 SWC 规则之前。
+
+如果后续命中的规则也配置了 `as`，其中的 `[resource-path]` 会使用前一次 `as` 生成的路径。
+
+### 路径模板 \{#path-template}
+
+`as` 的值是一个路径模板，目前仅支持 `[resource-path]` 占位符，代表当前用于匹配的完整文件路径，包含扩展名。模板中的其他内容会按原样保留，例如 `[resource-path].asset` 会在当前匹配路径末尾追加 `.asset`。
+
+`[resource-path]` 不包含查询参数和片段，`as` 也不会修改它们。[`resourceQuery`](#rulesresourcequery) 和 [`resourceFragment`](#rulesresourcefragment) 仍分别匹配原有的查询参数和片段。
+
+模板生成的路径只用于规则匹配，不会改变实际读取的文件、loader 处理的资源或输出文件名。因此，上例中的两种导入都读取 `example.js`，不需要实际创建 `example.js.asset` 文件。
 
 ## rules[].type
 

@@ -3,6 +3,7 @@ import { createBuiltinPlugin, RspackBuiltinPlugin } from './base';
 
 export interface CompactHashedChunkIdsPluginOptions {
   minLength?: number;
+  salt?: number;
 }
 
 export class CompactHashedChunkIdsPlugin extends RspackBuiltinPlugin {
