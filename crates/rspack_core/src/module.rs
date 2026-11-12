@@ -272,6 +272,8 @@ pub struct AssetBuildInfo {
 pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
   pub cacheable: bool,
+  /// Whether parsing derived a value from the module's absolute resource path.
+  pub root_sensitive: bool,
   pub hash: Option<RspackHashDigest>,
   pub strict: bool,
   pub module_argument: ModuleArgument,
@@ -324,6 +326,7 @@ impl Default for BuildInfo {
   fn default() -> Self {
     Self {
       cacheable: true,
+      root_sensitive: false,
       hash: None,
       strict: false,
       module_argument: Default::default(),

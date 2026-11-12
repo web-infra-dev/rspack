@@ -30,15 +30,17 @@ pub struct PortablePath {
 impl PortablePath {
   /// Create a portable path. Passing a root enables portable conversion; otherwise the native
   /// path representation is preserved.
-  pub fn new(path: &Path, portable_project_root: Option<&Path>) -> Self {
+  pub fn new(path: &Path, guard: &ContextGuard) -> Self {
+    let portable_project_root = guard.project_root();
     if path.is_absolute()
       && let Some(portable_project_root) = portable_project_root
     {
+      let relative = path.relative(portable_project_root);
+      if !path.starts_with(portable_project_root) || relative.starts_with("..") {
+        guard.mark_outside_root();
+      }
       return Self {
-        path: path
-          .relative(portable_project_root)
-          .to_slash_lossy()
-          .into_owned(),
+        path: relative.to_slash_lossy().into_owned(),
         transformed: true,
       };
     }
@@ -76,7 +78,7 @@ where
   where
     Self: Sized,
   {
-    Ok(Self::new(data.as_ref(), guard.project_root()))
+    Ok(Self::new(data.as_ref(), guard))
   }
 
   fn deserialize(self, guard: &ContextGuard) -> Result<T> {

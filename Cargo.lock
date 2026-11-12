@@ -4269,6 +4269,7 @@ name = "rspack_cacheable"
 version = "0.103.2"
 dependencies = [
  "arc-swap",
+ "base64-simd 0.8.0",
  "camino",
  "dashmap",
  "hashlink",
@@ -4277,6 +4278,7 @@ dependencies = [
  "json",
  "lightningcss",
  "once_cell",
+ "percent-encoding",
  "regex",
  "rkyv 0.8.18",
  "rspack-allocative",
@@ -4289,6 +4291,7 @@ dependencies = [
  "smol_str",
  "sugar_path",
  "swc_core",
+ "url",
  "ustr-fxhash",
  "xxhash-rust",
 ]
@@ -4311,6 +4314,7 @@ dependencies = [
  "lightningcss",
  "once_cell",
  "rspack_cacheable",
+ "rspack_core",
  "rspack_intern",
  "rspack_loader_runner",
  "rspack_resolver",
@@ -4319,6 +4323,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "tokio",
+ "url",
  "ustr-fxhash",
  "xxhash-rust",
 ]
@@ -4343,6 +4348,7 @@ dependencies = [
 name = "rspack_core"
 version = "0.103.2"
 dependencies = [
+ "aho-corasick",
  "anymap3",
  "arc-swap",
  "async-recursion",

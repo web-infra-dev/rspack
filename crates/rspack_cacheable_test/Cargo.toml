@@ -17,6 +17,7 @@ json                 = { workspace = true }
 lightningcss         = { workspace = true }
 once_cell            = { workspace = true }
 rspack_cacheable     = { workspace = true }
+rspack_core          = { workspace = true }
 rspack_intern        = { workspace = true, features = ["atom"] }
 rspack_loader_runner = { workspace = true }
 rspack_resolver      = { workspace = true }
@@ -25,5 +26,6 @@ rustc-hash           = { workspace = true }
 serde_json           = { workspace = true }
 tempfile             = { workspace = true }
 tokio                = { workspace = true, features = ["macros", "rt-multi-thread"] }
+url                  = { workspace = true, features = ["std"] }
 ustr                 = { workspace = true }
 xxhash-rust          = { workspace = true, features = ["const_xxh64"] }
