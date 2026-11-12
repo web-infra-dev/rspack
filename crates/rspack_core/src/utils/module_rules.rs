@@ -236,11 +236,10 @@ fn module_rule_matcher_sync<'rule, 'ctx>(
   if let Some(description_data) = &module_rule.description_data {
     if let Some(resource_description) = resource_data.description() {
       for (k, matcher) in description_data {
+        let value = resource_description.get(k.split('.'));
         ensure_sync_matched!(check_optional_sync(
           matcher,
-          k.split('.')
-            .try_fold(resource_description.json(), |acc, key| acc.get(key))
-            .map(Into::into),
+          value.as_deref().map(Into::into),
         ));
       }
     } else {
@@ -308,10 +307,15 @@ async fn module_rule_matcher_async<'rule, 'ctx>(
   resource_data: &mut Cow<'ctx, ResourceData>,
   matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
 ) -> Result<bool> {
-  if let Some(test_rule) = &module_rule.rspack_resource
-    && !test_rule.try_match(resource_data.resource().into()).await?
-  {
-    return Ok(false);
+  if let Some(test_rule) = &module_rule.rspack_resource {
+    let input = match &*resource_data {
+      Cow::Borrowed(resource_data) => resource_data.resource().into(),
+      // A virtual path can contain delimiters. Pass its known parts directly.
+      Cow::Owned(resource_data) => DataRef::Resource(resource_data),
+    };
+    if !test_rule.try_match(input).await? {
+      return Ok(false);
+    }
   }
 
   // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
@@ -404,14 +408,8 @@ async fn module_rule_matcher_async<'rule, 'ctx>(
   if let Some(description_data) = &module_rule.description_data {
     if let Some(resource_description) = resource_data.description() {
       for (k, matcher) in description_data {
-        if !check_optional_async(
-          matcher,
-          k.split('.')
-            .try_fold(resource_description.json(), |acc, key| acc.get(key))
-            .map(Into::into),
-        )
-        .await?
-        {
+        let value = resource_description.get(k.split('.'));
+        if !check_optional_async(matcher, value.as_deref().map(Into::into)).await? {
           return Ok(false);
         }
       }

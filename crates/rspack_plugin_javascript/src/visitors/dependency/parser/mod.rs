@@ -760,6 +760,7 @@ impl<'parser> JavascriptParser<'parser> {
       InnerGraphParserPlugin::finalize_dependency_usage(
         &mut self.inner_graph,
         &mut self.dependencies,
+        &mut self.blocks,
       );
       // Keep flat indices stable for dependency analysis, then assemble the tree
       // from children to parents while preserving each block's insertion order.
@@ -1821,11 +1822,6 @@ impl<'parser> JavascriptParser<'parser> {
       ExprData::IdentifierReference(ident) => {
         let span = ident.span(ast);
         let name = ast.get_utf8(ident.name(ast));
-        if name == "undefined" {
-          let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
-          eval.set_undefined();
-          return Some(eval);
-        }
         let drive = self.plugin_drive();
         let resolution = self
           .definitions_db
@@ -1839,6 +1835,8 @@ impl<'parser> JavascriptParser<'parser> {
           .resolve_identifier(self.ast, ident, resolution)
         {
           call_hooks_name::call_hooks_info(state, self, evaluate)
+        } else if name == "undefined" {
+          Some(eval::evaluate_to_undefined(span.real_lo(), span.real_hi()))
         } else {
           evaluate(self, name)
         };

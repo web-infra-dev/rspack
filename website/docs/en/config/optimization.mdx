@@ -43,7 +43,7 @@ The `⁠optimization.avoidEntryIife` option can negatively affect build performa
 
 Tells Rspack which algorithm to use when generating chunk ids.
 
-The following string values are supported:
+The following values are supported:
 
 | option             | description                                                                                                                                    |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -53,13 +53,26 @@ The following string values are supported:
 | `'compact-hashed'` | Use the shortest available prefix of a stable lowercase alphanumeric hash.                                                                     |
 | `'size'`           | Use numeric ids to make the initial download package smaller.                                                                                  |
 | `'total-size'`     | Use numeric ids to make the overall download package smaller.                                                                                  |
-| `false`            | Disable Rspack's built-in chunk id algorithm, allowing a custom plugin to provide chunk ids.                                                   |
+| `false`            | Disable Rspack's built-in chunk id algorithm.                                                                                                  |
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
     chunkIds: 'deterministic',
   },
+};
+```
+
+Custom JavaScript plugins cannot currently assign chunk IDs. When you set `chunkIds` to `false`, add a chunk ID plugin from `rspack.ids` to `plugins`:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  optimization: {
+    chunkIds: false,
+  },
+  plugins: [new rspack.ids.CompactHashedChunkIdsPlugin()],
 };
 ```
 

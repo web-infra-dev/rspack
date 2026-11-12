@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: hi_txt.chunk.CURRENT_HASH.js
 - Bundle: stylesheet_css.chunk.CURRENT_HASH.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 45
+- Manifest: main.LAST_HASH.hot-update.json, size: 136
 - Update: main.LAST_HASH.hot-update.js, size: 898
 - Update: stylesheet_css.LAST_HASH.hot-update.js, size: 799
 
@@ -16,7 +16,7 @@
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["main","stylesheet_css"],"r":[],"m":[]}
+{"c":["main","stylesheet_css"],"r":[],"m":[],"changed":{"./imported.css?4c2a":["stylesheet_css"],"./stylesheet.css":["stylesheet_css"]}}
 ```
 
 

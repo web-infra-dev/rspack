@@ -10,16 +10,16 @@
 - Bundle: parent.chunk.CURRENT_HASH.js
 - Bundle: q.chunk.CURRENT_HASH.js
 - Bundle: r.chunk.CURRENT_HASH.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 37
+- Manifest: main.LAST_HASH.hot-update.json, size: 76
 - Update: main.LAST_HASH.hot-update.js, size: 410
-- Update: parent.LAST_HASH.hot-update.js, size: 593
+- Update: parent.LAST_HASH.hot-update.js, size: 376
 
 ## Manifest
 
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["main","parent"],"r":[],"m":[]}
+{"c":["main","parent"],"r":[],"m":[],"changed":{"./parent-b.js":["parent"]}}
 ```
 
 
@@ -60,7 +60,6 @@ __webpack_require__.hmrV["r"] = "CHUNK_VERSION";
 ### parent.LAST_HASH.hot-update.js
 
 #### Changed Modules
-- ./m.js
 - ./parent-b.js
 
 #### Changed Runtime Modules
@@ -70,16 +69,6 @@ __webpack_require__.hmrV["r"] = "CHUNK_VERSION";
 ```js
 "use strict";
 self["rspackHotUpdate"]("parent", {
-"./m.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  value: () => (value)
-});
-const value = 42;
-
-
-
-},
 "./parent-b.js"(module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
@@ -113,8 +102,6 @@ check => prepare => dispose => apply => idle
 #### Outdated
 
 Outdated Modules:
-- ./child.js
-- ./m.js
 - ./parent-b.js
 
 
@@ -126,7 +113,6 @@ Outdated Dependencies:
 #### Updated
 
 Updated Modules:
-- ./m.js
 - ./parent-b.js
 
 Updated Runtime:
