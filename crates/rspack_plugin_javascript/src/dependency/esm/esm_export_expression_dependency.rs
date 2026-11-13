@@ -128,7 +128,7 @@ impl Dependency for ESMExportExpressionDependency {
     ForwardId::Id(JS_DEFAULT_KEYWORD.clone())
   }
 
-  fn lazy(&self) -> Option<LazyUntil> {
+  fn lazy_until(&self) -> Option<LazyUntil> {
     Some(LazyUntil::Local(JS_DEFAULT_KEYWORD.clone()))
   }
 }

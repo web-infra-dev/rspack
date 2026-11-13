@@ -1,10 +1,7 @@
 import path from "node:path";
 
 const excludes = {
-	normal: [
-		// Code generation cache misses after restarting the compiler.
-		/^optimize\/side-effects-simple-unused$/,
-	],
+	normal: [],
 	config: [
 		// These cases expect stateful loaders to build again on every compiler.
 		/^compilation\/rebuild-module$/,
