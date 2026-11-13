@@ -166,8 +166,6 @@ impl Task<TaskContext> for BuildResultTask {
     drop(build_info);
 
     let module_graph = &mut context.artifact.module_graph;
-    // Cached dependencies retain their static classification. Decide whether to
-    // defer them using this compilation's factory metadata.
     let side_effect_free =
       module.factory_meta().and_then(|meta| meta.side_effect_free) == Some(true);
     let mut lazy_dependencies = LazyDependencies::default();
