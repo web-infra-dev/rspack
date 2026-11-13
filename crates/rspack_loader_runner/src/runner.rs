@@ -31,7 +31,7 @@ async fn start_yielding<Context: Send + Sync>(
       content: cx.take_content(),
       additional_data: cx.take_additional_data(),
     };
-    let update = plugin.start_yielding(Arc::clone(context), input).await?;
+    let update = plugin.start_yielding(context, input).await?;
     // TODO: Use Arc::into_unique when available to express the exclusive ownership.
     let cx = Arc::get_mut(context).expect("loader worker released its context");
     update.merge(cx)?;

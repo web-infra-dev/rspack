@@ -26,7 +26,7 @@ impl JsLoaderRspackPlugin {
 #[plugin_hook(NormalModuleLoaderStartYielding for JsLoaderRspackPlugin,tracing=false)]
 pub(crate) async fn loader_yield(
   &self,
-  loader_context: Arc<LoaderContext<RunnerContext>>,
+  loader_context: &Arc<LoaderContext<RunnerContext>>,
   input: &mut Option<LoaderYieldInput>,
 ) -> Result<Option<LoaderYieldResult>> {
   let input = input.take().expect("loader input is available");
@@ -82,7 +82,7 @@ pub(crate) async fn loader_yield(
     let (sender, receiver) = tokio::sync::oneshot::channel();
     super::worker::dispatch(Task::new(
       StrictLoaderTask::new(
-        loader_context,
+        Arc::clone(loader_context),
         input.content,
         self.owner,
         start as u32,
@@ -104,7 +104,7 @@ pub(crate) async fn loader_yield(
     .additional_data
     .and_then(|mut data| data.remove::<rspack_napi::ThreadsafeOneShotRef>());
   let mut context =
-    JsLoaderContext::from_loader_context(&loader_context, input.content, additional_data);
+    JsLoaderContext::from_loader_context(loader_context, input.content, additional_data);
   context.loader_chain_start = start as u32;
   context.loader_chain_end = end as u32;
 
@@ -126,7 +126,7 @@ pub(crate) async fn loader_yield(
     .to_rspack_result()?;
 
   if loader_context.state() == LoaderState::Pitching {
-    let list = collect_loaders_without_pitch(&loader_context, &new_cx);
+    let list = collect_loaders_without_pitch(loader_context, &new_cx);
     if !list.is_empty() {
       self.update_loaders_without_pitch(list).await;
     }

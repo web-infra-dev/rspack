@@ -102,15 +102,20 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
 
   async fn start_yielding(
     &self,
-    context: Arc<LoaderContext<Self::Context>>,
+    context: &Arc<LoaderContext<Self::Context>>,
     input: LoaderYieldInput,
   ) -> Result<LoaderYieldResult> {
-    self
+    let mut input = Some(input);
+    let result = self
       .plugin_driver
       .normal_module_hooks
       .loader_yield
-      .call(context, input)
-      .await
+      .call(context, &mut input)
+      .await?;
+    Ok(
+      result
+        .unwrap_or_else(|| LoaderYieldResult::Unhandled(input.expect("unhandled loader input"))),
+    )
   }
 
   async fn run_normal_chain(

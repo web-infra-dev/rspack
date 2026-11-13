@@ -17,7 +17,8 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{
-  Content, LoaderContext, LoaderFilters, LoaderRunnerOptions, ResourceData, run_loaders,
+  Content, LoaderContext, LoaderFilters, LoaderRunnerOptions, LoaderYieldInput, LoaderYieldResult,
+  ResourceData, run_loaders,
 };
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, SourceExt, SourceMap,
@@ -33,11 +34,10 @@ use crate::{
   DependenciesBlockData, DependencyCodeGenerationRef, DependencyId, FactoryMeta, FactoryMetaStore,
   FreezeLock, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleLayer, ModuleType, NeedBuildContext, NormalModuleLoaderStartYieldingHook,
-  OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult, ParserAndGenerator,
-  ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext,
-  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SnapshotValidationResult, SourceType,
-  contextify, contextify_source_map, contextify_source_url,
+  ModuleLayer, ModuleType, NeedBuildContext, OptimizationBailoutItem, OutputOptions, ParseContext,
+  ParseResult, ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions,
+  RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
+  SnapshotValidationResult, SourceType, contextify, contextify_source_map, contextify_source_url,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -81,7 +81,7 @@ impl ModuleIssuer {
 
 define_hook!(NormalModuleReadResource: SeriesBail(resource_data: &ResourceData, fs: &Arc<dyn ReadableFileSystem>) -> Content,tracing=false);
 define_hook!(NormalModuleLoader: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
-
+define_hook!(NormalModuleLoaderStartYielding: SeriesBail(loader_context: &Arc<LoaderContext<RunnerContext>>, input: &mut Option<LoaderYieldInput>) -> LoaderYieldResult,tracing=false);
 define_hook!(NormalModuleBeforeLoaders: Series(module: &mut NormalModule),tracing=false);
 
 #[derive(Debug, Default)]

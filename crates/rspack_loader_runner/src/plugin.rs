@@ -36,7 +36,7 @@ pub trait LoaderRunnerPlugin: Send + Sync {
 
   async fn start_yielding(
     &self,
-    _context: Arc<LoaderContext<Self::Context>>,
+    _context: &Arc<LoaderContext<Self::Context>>,
     input: LoaderYieldInput,
   ) -> Result<LoaderYieldResult> {
     Ok(LoaderYieldResult::Unhandled(input))
