@@ -166,6 +166,10 @@ impl Task<TaskContext> for BuildResultTask {
     drop(build_info);
 
     let module_graph = &mut context.artifact.module_graph;
+    // Cached dependencies retain their static classification. Decide whether to
+    // defer them using this compilation's factory metadata.
+    let side_effect_free =
+      module.factory_meta().and_then(|meta| meta.side_effect_free) == Some(true);
     let mut lazy_dependencies = LazyDependencies::default();
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
@@ -173,7 +177,7 @@ impl Task<TaskContext> for BuildResultTask {
       |dependencies: &[DependencyRef], current_block: Option<&AsyncDependenciesBlockRef>| {
         for (index_in_block, dependency) in dependencies.iter().enumerate() {
           let dependency_id = *dependency.id();
-          if let Some(until) = dependency.lazy() {
+          if side_effect_free && let Some(until) = dependency.lazy_until() {
             lazy_dependencies.insert(dependency, until);
           }
           all_dependencies.push(dependency_id);
@@ -215,6 +219,9 @@ impl Task<TaskContext> for BuildResultTask {
         .all_lazy_dependencies()
         .collect::<FxHashSet<_>>();
       all_dependencies.retain(|dep| !lazy_dependency_ids.contains(dep));
+      for dependency_id in lazy_dependency_ids {
+        module_graph.add_lazy_dependency(dependency_id);
+      }
 
       if let Some(HasLazyDependencies::Pending(pending_forwarded_ids)) = context
         .artifact
