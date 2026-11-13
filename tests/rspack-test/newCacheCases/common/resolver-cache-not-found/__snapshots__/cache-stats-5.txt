@@ -1,5 +1,17 @@
 [
   {
+    "|Compilation/codeGeneration": {
+      "hits": 1,
+      "misses": 0,
+      "reused": 1,
+      "stores": 0
+    },
+    "|Compilation/modules": {
+      "hits": 1,
+      "misses": 0,
+      "reused": 1,
+      "stores": 0
+    },
     "|meta": {
       "hits": 1,
       "misses": 0,
@@ -16,6 +28,12 @@
       "hits": 2,
       "misses": 0,
       "reused": 2,
+      "stores": 0
+    },
+    "|rspack.SwcJsMinimizerRspackPlugin": {
+      "hits": 1,
+      "misses": 0,
+      "reused": 1,
       "stores": 0
     }
   }

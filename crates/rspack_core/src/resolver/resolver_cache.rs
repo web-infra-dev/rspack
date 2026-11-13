@@ -101,10 +101,9 @@ impl ResolverCache {
 
     let start_time = current_time();
     let (result, dependencies) = generator().await;
-    // Like webpack's empty resolve result, NotFound is reusable while its dependencies are valid.
-    // Keep diagnostics outside the cache so each caller supplies its own location and severity.
     let cached_result = match &result {
       Ok(result) => Some(CachedResolutionResult::Resolved(result.clone())),
+      // NotFound is reusable while its dependencies are valid.
       Err(ResolveInnerError::RspackResolver(rspack_resolver::ResolveError::NotFound(request))) => {
         Some(CachedResolutionResult::NotFound(request.clone()))
       }
