@@ -58,12 +58,12 @@ fn loader_cache_etag(
     "file_dependencies" => sorted_dependency_paths(&existing.file),
     "build_dependencies" => sorted_dependency_paths(&existing.build),
     "rspack_version" => rspack_workspace::rspack_pkg_version!(),
+    "source_map" => context.source_map_kind.source_map(),
   });
   for loader in loaders {
     rspack_hash::rspack_hash_object!(&mut hasher, {
       "rule_loader_options" => loader.options_cache_key(),
       "loader_version" => loader.loader_version(),
-      "source_map" => context.source_map_kind.source_map(),
     });
     loader.loader().etag(context, &mut hasher);
   }
