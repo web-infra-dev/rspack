@@ -1,12 +1,8 @@
-use std::{
-  hash::BuildHasherDefault,
-  sync::atomic::{AtomicBool, Ordering},
-};
+use std::hash::BuildHasherDefault;
 
 use indexmap::IndexMap;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  rkyv::with::{AtomicLoad, Relaxed},
   with::{AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
@@ -65,8 +61,6 @@ pub struct ESMExportImportedSpecifierDependency {
   resource_identifier: ResourceIdentifier,
   export_presence_mode: ExportPresenceMode,
   loc: Option<DependencyLocation>,
-  #[cacheable(with=AtomicLoad<Relaxed>)]
-  lazy_make: AtomicBool,
 }
 
 impl ESMExportImportedSpecifierDependency {
@@ -97,7 +91,6 @@ impl ESMExportImportedSpecifierDependency {
       phase,
       attributes,
       loc,
-      lazy_make: AtomicBool::new(false),
     }
   }
 
@@ -172,7 +165,7 @@ impl ESMExportImportedSpecifierDependency {
     let Some(imported_module_identifier) = module_graph.module_identifier_by_dependency_id(id)
     else {
       // if it's not exists in module graph and has the lazy mark, then it's never picked up to make the module
-      return if self.lazy_make.load(Ordering::Relaxed) {
+      return if module_graph.is_lazy_dependency(&self.id) {
         ExportMode::LazyMake
       } else {
         ExportMode::Missing
@@ -742,7 +735,7 @@ impl ESMExportImportedSpecifierDependency {
 
           if checked {
             let key = InitFragmentKey::ESMImport(format!("reexport (checked) {import_var} {name}"));
-            let runtime_condition = if self.weak() {
+            let runtime_condition = if self.weak() || mg.is_lazy_dependency(&self.id) {
               RuntimeCondition::Boolean(false)
             } else if let Some(connection) = mg.connection_by_dependency_id(self.id()) {
               filter_runtime(ctxt.runtime, |r| {
@@ -1229,6 +1222,9 @@ impl DependencyCodeGeneration for ESMExportImportedSpecifierDependency {
     // module's exports_info, so hash the inline value here to invalidate stale
     // generated reexport code when the target const changes.
     let module_graph = compilation.get_module_graph();
+    if module_graph.is_lazy_dependency(&self.id) {
+      "lazy".hash(hasher);
+    }
     let ExportMode::NormalReexport(mode) = self.get_mode(
       module_graph,
       runtime,
@@ -1600,22 +1596,12 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     }
   }
 
-  fn lazy(&self) -> Option<LazyUntil> {
-    self.lazy_make.load(Ordering::Relaxed).then(|| {
-      if let Some(name) = &self.name {
-        LazyUntil::Id(name.clone())
-      } else {
-        LazyUntil::Fallback
-      }
+  fn lazy_until(&self) -> Option<LazyUntil> {
+    Some(if let Some(name) = &self.name {
+      LazyUntil::Id(name.clone())
+    } else {
+      LazyUntil::Fallback
     })
-  }
-
-  fn set_lazy(&self) {
-    self.lazy_make.store(true, Ordering::Relaxed);
-  }
-
-  fn unset_lazy(&self) -> bool {
-    self.lazy_make.swap(false, Ordering::Relaxed)
   }
 }
 

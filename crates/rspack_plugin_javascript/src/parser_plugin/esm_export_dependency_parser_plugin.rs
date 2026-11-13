@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
 use itertools::Itertools;
-use rspack_core::{
-  BoxDependency, ConstDependency, Dependency, DependencyRange, DependencyType, ImportPhase,
-};
+use rspack_core::{BoxDependency, ConstDependency, DependencyRange, DependencyType, ImportPhase};
 use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{
   CommentKind, ExportDefaultDeclarationKind, ExportDefaultDeclarationKindData, ExprData, GetSpan,
@@ -57,13 +55,6 @@ fn create_default_exported_namespace_dependency(
     settings.resource_identifier,
     parser.to_dependency_location(DependencyRange::from(statement_span)),
   );
-  if parser
-    .factory_meta
-    .and_then(|meta| meta.side_effect_free)
-    .unwrap_or_default()
-  {
-    dep.set_lazy();
-  }
   Some(dep)
 }
 
@@ -113,13 +104,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       loc,
       statement.is_star_export(ast),
     );
-    if parser
-      .factory_meta
-      .and_then(|meta| meta.side_effect_free)
-      .unwrap_or_default()
-    {
-      side_effect_dep.set_lazy();
-    }
     parser.add_dependency(BoxDependency::new(side_effect_dep));
     Some(true)
   }
@@ -194,13 +178,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
         resource_identifier,
         loc,
       );
-      if parser
-        .factory_meta
-        .and_then(|meta| meta.side_effect_free)
-        .unwrap_or_default()
-      {
-        dep.set_lazy();
-      }
       BoxDependency::new(dep)
     } else {
       let const_value = parser
@@ -292,13 +269,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     let is_asi_safe = !parser.is_asi_position(statement_span.start);
     if !is_asi_safe {
       parser.set_asi_position(statement_span.end);
-    }
-    if parser
-      .factory_meta
-      .and_then(|meta| meta.side_effect_free)
-      .unwrap_or_default()
-    {
-      dep.set_lazy();
     }
     parser.add_dependency(BoxDependency::new(dep));
     Some(true)
