@@ -68,6 +68,10 @@ definePropertyGetters(exports, {
 
 ```mjs title=main.mjs
 import { rspackRequire, ensureChunk, hasOwnProperty, onChunksLoaded, moduleFactories, prefetchChunk } from "./runtime.mjs";
+// rspack/runtime/chunk_prefetch_startup
+onChunksLoaded(0, ["main"], () => {
+  ["a","b","c"].map(prefetchChunk);
+}, 5);;
 moduleFactories.add({
 "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?32bc"
 /*!*******************************************************************************************************************************************!*\

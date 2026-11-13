@@ -193,51 +193,54 @@ impl RuntimeModuleCommon {
     Ok(())
   }
 
-  pub async fn generate_with_custom(
-    &self,
-    module: &dyn RuntimeModule,
-    context: &RuntimeModuleGenerateContext<'_>,
-  ) -> Result<String> {
-    let custom_source = &self.custom_source;
-    // Hot updates access the owning runtime instead of closing over copied bindings.
-    let render_mode = if module.is_custom()
-      && self.render_mode == RuntimeGlobalsRenderMode::RspackLexical
-      && context.runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackContext
-    {
-      RuntimeGlobalsRenderMode::RspackContext
-    } else {
-      self.render_mode
-    };
-    if let Some(source) = &custom_source.source
-      && (custom_source.has_override() || (!module.full_hash() && !module.dependent_hash()))
-    {
-      if render_mode != self.render_mode {
+  pub fn generate_with_custom<'a>(
+    &'a self,
+    module: &'a dyn RuntimeModule,
+    context: &'a RuntimeModuleGenerateContext<'a>,
+  ) -> BoxFuture<'a, Result<String>> {
+    // Share one future implementation across all runtime module types.
+    Box::pin(async move {
+      let custom_source = &self.custom_source;
+      // Hot updates access the owning runtime instead of closing over copied bindings.
+      let render_mode = if module.is_custom()
+        && self.render_mode == RuntimeGlobalsRenderMode::RspackLexical
+        && context.runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackContext
+      {
+        RuntimeGlobalsRenderMode::RspackContext
+      } else {
+        self.render_mode
+      };
+      if let Some(source) = &custom_source.source
+        && (custom_source.has_override() || (!module.full_hash() && !module.dependent_hash()))
+      {
+        if render_mode != self.render_mode {
+          return Ok(
+            RuntimeModuleCustomSource::new(source.clone(), render_mode)
+              .map_err(|error| error.wrap_err(format!("in runtime module {}", self.id)))?
+              .transformed_source
+              .expect("transformed custom runtime source"),
+          );
+        }
         return Ok(
-          RuntimeModuleCustomSource::new(source.clone(), render_mode)
-            .map_err(|error| error.wrap_err(format!("in runtime module {}", self.id)))?
+          custom_source
+            .transformed_source
+            .as_ref()
+            .unwrap_or(source)
+            .clone(),
+        );
+      }
+      let source = module.generate(context).await?;
+      if module.is_custom() && !render_mode.is_legacy() {
+        let source = RuntimeModuleCustomSource::new(source, render_mode)
+          .map_err(|error| error.wrap_err(format!("in runtime module {}", self.id)))?;
+        return Ok(
+          source
             .transformed_source
             .expect("transformed custom runtime source"),
         );
       }
-      return Ok(
-        custom_source
-          .transformed_source
-          .as_ref()
-          .unwrap_or(source)
-          .clone(),
-      );
-    }
-    let source = module.generate(context).await?;
-    if module.is_custom() && !render_mode.is_legacy() {
-      let source = RuntimeModuleCustomSource::new(source, render_mode)
-        .map_err(|error| error.wrap_err(format!("in runtime module {}", self.id)))?;
-      return Ok(
-        source
-          .transformed_source
-          .expect("transformed custom runtime source"),
-      );
-    }
-    Ok(source)
+      Ok(source)
+    })
   }
 
   pub fn get_source_map_kind(&self) -> &SourceMapKind {
@@ -408,16 +411,15 @@ pub trait NamedRuntimeModule {
   fn name(&self) -> Identifier;
 }
 
-#[async_trait]
 pub trait CustomSourceRuntimeModule {
   /// Replace hook source, transforming and collecting its requirements atomically.
   fn set_custom_source(&mut self, source: String) -> Result<()>;
   /// Analyze the initial JS-generated source while preserving later hash regeneration.
   fn set_generated_source(&mut self, source: String) -> Result<()>;
-  async fn generate_with_custom(
-    &self,
-    context: &RuntimeModuleGenerateContext<'_>,
-  ) -> Result<String>;
+  fn generate_with_custom<'a>(
+    &'a self,
+    context: &'a RuntimeModuleGenerateContext<'a>,
+  ) -> BoxFuture<'a, Result<String>>;
   fn get_custom_source(&self) -> &RuntimeModuleCustomSource;
   fn get_constructor_name(&self) -> String;
 }
