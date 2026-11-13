@@ -71,13 +71,12 @@ var moduleFactories = modules;
 
 var entryModuleId;
 // rspack/runtime/async_module
-var hasSymbol = typeof Symbol === "function";
-var rspackQueues = hasSymbol ? Symbol("rspack queues") : "__rspack_queues";
-var asyncModuleExportSymbol = hasSymbol ? Symbol("rspack exports") : "exports";
+var rspackQueues = Symbol("rspack queues");
+var asyncModuleExportSymbol = Symbol("rspack exports");
 var rspackExports = asyncModuleExportSymbol;
-var rspackError = hasSymbol ? Symbol("rspack error") : "__rspack_error";
-var rspackDone = hasSymbol ? Symbol("rspack done") : "__rspack_done";
-var deferredModulesAsyncTransitiveDependenciesSymbol = hasSymbol ? Symbol("rspack defer") : "__rspack_defer";
+var rspackError = Symbol("rspack error");
+var rspackDone = Symbol("rspack done");
+var deferredModulesAsyncTransitiveDependenciesSymbol = Symbol("rspack defer");
 var rspackDefer = deferredModulesAsyncTransitiveDependenciesSymbol;
 var deferredModulesAsyncTransitiveDependencies = (asyncDeps) => {
 	var hasUnresolvedAsyncSubgraph = asyncDeps.some((id) => {
@@ -195,10 +194,7 @@ var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, p
 // rspack/runtime/make_namespace_object
 // define __esModule on exports
 var makeNamespaceObject = (exports) => {
-	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-	}
-	Object.defineProperty(exports, '__esModule', { value: true });
+	Object.defineProperties(exports, { [Symbol.toStringTag]: { value: 'Module' }, __esModule: { value: true } });
 };;
 
 moduleFactories.add({

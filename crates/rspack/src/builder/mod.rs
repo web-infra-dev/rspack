@@ -3182,6 +3182,7 @@ impl OutputOptionsBuilder {
       .map(|t| optimistic!(t.optional_chaining))
       .unwrap_or_default();
     environment.spread = tp.map(|t| optimistic!(t.spread)).unwrap_or_default();
+    environment.symbol = tp.map(|t| optimistic!(t.symbol)).unwrap_or_default();
     environment.node_prefix_for_core_modules = tp
       .map(|t| optimistic!(t.node_prefix_for_core_modules))
       .unwrap_or_default();
