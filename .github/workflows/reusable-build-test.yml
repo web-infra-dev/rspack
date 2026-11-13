@@ -14,47 +14,6 @@ on:
         type: string
 
 jobs:
-  compiler-windows:
-    name: Compiler cases (Windows)
-    if: inputs.target == 'x86_64-pc-windows-msvc'
-    runs-on: ${{ fromJSON(inputs.runner) }}
-    timeout-minutes: 15
-    defaults:
-      run:
-        shell: bash
-    env:
-      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
-      PUPPETEER_SKIP_DOWNLOAD: true
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ inputs.ref }}
-          clean: ${{ runner.environment == 'github-hosted' }}
-      - name: Download bindings
-        uses: ./.github/actions/artifact/download
-        with:
-          name: bindings-${{ inputs.target }}
-          path: crates/node_binding/
-      - name: Setup Pnpm
-        uses: ./.github/actions/pnpm/setup
-        with:
-          node-version: 22
-      - name: Install dependencies
-        run: pnpm i --frozen-lockfile
-      - name: Build JavaScript packages
-        run: pnpm run build:js
-      - name: Test compiler cases
-        timeout-minutes: 10
-        run: pnpm --dir tests/rspack-test run test --project 'compiler-*'
-      - name: Upload compiler test report
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: rstest-event-reports-compiler-windows
-          path: '*-report.txt'
-          if-no-files-found: ignore
-
   watcher-rename-windows:
     name: Native watcher rename regression (Windows)
     if: inputs.target == 'x86_64-pc-windows-msvc'
@@ -248,12 +207,9 @@ jobs:
 
       ### x86_64-pc-windows-msvc
       - name: Test x86_64-pc-windows-msvc
-        timeout-minutes: 10
+        timeout-minutes: 15
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
-        run: |
-          pnpm run test:ci:prepare
-          pnpm --parallel --filter '@rspack/*' --filter '!@rspack/tests' test
-          pnpm --dir tests/rspack-test run test --project '!compiler-*'
+        run: pnpm run test:ci
 
       - name: Upload windows test cache
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' && matrix.node == '22' }}
