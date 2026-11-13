@@ -10,9 +10,8 @@ for (const name of ["demo", "module"]) {
 			.then(r => (resolved = r));
 		const start = generation;
 		expect(resolved).toBe(undefined);
-		await new Promise(resolve => setTimeout(resolve, 1000));
 		expect(generation).toBe(start);
-		await NEXT_HMR();
+		await NEXT_HMR_DEFERRED();
 		const result = await promise;
 		expect(result).toHaveProperty("default", name);
 		expect(generation).toBe(start + 1);

@@ -7,9 +7,8 @@ it("should compile to lazy imported module", async () => {
 		generation++;
 	});
 	expect(resolved).toBe(undefined);
-	await new Promise(resolve => setTimeout(resolve, 1000));
 	expect(generation).toBe(0);
-	await NEXT_HMR();
+	await NEXT_HMR_DEFERRED();
 	let result = await promise;
 	expect(result).toHaveProperty("default", 42);
 	expect(generation).toBe(0);

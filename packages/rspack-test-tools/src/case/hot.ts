@@ -276,7 +276,31 @@ export function createHotRunner(
   const dist = context.getDist();
   const updatePlugin = context.getValue<HotUpdatePlugin>('hotUpdatePlugin')!;
 
+  const lazyPlugin = compilerOptions.plugins?.find(
+    (plugin): plugin is LazyCompilationTestPlugin =>
+      plugin instanceof LazyCompilationTestPlugin,
+  );
+
+  // A build that starts before the activation request reaches the server
+  // leaves the module as an inactive proxy, so wait for the server to log it.
+  const nextHMRDeferred = async (m: any, options?: any) => {
+    const start = Date.now();
+    for (;;) {
+      const now = Date.now();
+      const lastActivation = lazyPlugin?.lastActivation;
+      if (
+        now - start >= 1000 ||
+        (lastActivation !== undefined && now - lastActivation >= 100)
+      ) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    return nextHMR(m, options);
+  };
+
   const nextHMR = async (m: any, options?: any) => {
+    if (lazyPlugin) lazyPlugin.lastActivation = undefined;
     await updatePlugin.goNext();
     const stats = await compiler.build();
     if (!stats) {
@@ -349,6 +373,7 @@ export function createHotRunner(
           testConfig.moduleScope(moduleScope, stats, compilerOptions);
         }
         moduleScope.NEXT_HMR = nextHMR;
+        moduleScope.NEXT_HMR_DEFERRED = nextHMRDeferred;
         return moduleScope;
       },
     },
