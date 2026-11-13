@@ -1585,7 +1585,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b5c95b673b8f6f7235229ae11c5642d81b04c2e64c1e2fb417bc0cf73ca45f29"
 dependencies = [
  "autocfg",
- "tokio",
 ]
 
 [[package]]
@@ -4456,7 +4455,6 @@ dependencies = [
  "async-trait",
  "cfg-if",
  "dunce",
- "fs-err",
  "pnp",
  "rspack_error",
  "rspack_paths",
