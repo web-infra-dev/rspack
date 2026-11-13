@@ -735,7 +735,7 @@ impl ESMExportImportedSpecifierDependency {
 
           if checked {
             let key = InitFragmentKey::ESMImport(format!("reexport (checked) {import_var} {name}"));
-            let runtime_condition = if self.weak() || mg.is_lazy_dependency(&self.id) {
+            let runtime_condition = if mg.is_lazy_dependency(&self.id) {
               RuntimeCondition::Boolean(false)
             } else if let Some(connection) = mg.connection_by_dependency_id(self.id()) {
               filter_runtime(ctxt.runtime, |r| {
