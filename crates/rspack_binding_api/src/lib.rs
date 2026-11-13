@@ -259,7 +259,13 @@ fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
 }
 
 #[napi(custom_finalize)]
+#[cfg_attr(allocative, derive(rspack_util::rspack_allocative::Allocative))]
+#[cfg_attr(allocative, allocative(crate_path = "rspack_util::rspack_allocative"))]
 struct JsCompiler {
+  // Drop manually to avoid unnecessary drop overhead in CLI builds.
+  // Visit first so shared allocations are attributed to the core compiler.
+  #[cfg_attr(allocative, allocative(visit = visit_live_compiler))]
+  compiler: ManuallyDrop<Compiler>,
   // whether to skip drop compiler in finalize
   unsafe_fast_drop: bool,
   file_system_dependency_string_pool: RefCell<FileSystemDependencyStringPool>,
@@ -267,8 +273,6 @@ struct JsCompiler {
   infrastructure_log_dispatcher: Arc<InfrastructureLogDispatcher>,
   compiler_scoped_tsfn_manager: CompilerScopedTsFnManager,
   js_hooks_plugin: JsHooksAdapterPlugin,
-  // call drop manually to avoid unnecessary drop overhead in cli build
-  compiler: ManuallyDrop<Compiler>,
   state: CompilerState,
   include_dependencies_map: FxHashMap<EntryDependencyCacheKey, DependencyRef>,
   entry_dependencies_map: FxHashMap<EntryDependencyCacheKey, DependencyRef>,
@@ -697,42 +701,14 @@ impl JsCompiler {
 }
 
 #[cfg(allocative)]
-impl rspack_util::rspack_allocative::Allocative for JsCompiler {
-  fn visit<'a, 'b: 'a>(&self, visitor: &'a mut rspack_util::rspack_allocative::Visitor<'b>) {
-    use rspack_util::rspack_allocative::ident_key;
-    let mut visitor = visitor.enter_self(self);
-    // ManuallyDrop is opaque by default. Here the core is initialized until
-    // finalization; RunGuard holds the live wrapper throughout this traversal.
-    // Visit the core first so shared payloads retain their compiler ownership.
-    visitor.visit_field(ident_key!(compiler), &*self.compiler);
-    visitor.visit_field(ident_key!(unsafe_fast_drop), &self.unsafe_fast_drop);
-    visitor.visit_field(
-      ident_key!(file_system_dependency_string_pool),
-      &self.file_system_dependency_string_pool,
-    );
-    visitor.visit_field(ident_key!(js_helpers), &self.js_helpers);
-    visitor.visit_field(
-      ident_key!(infrastructure_log_dispatcher),
-      &self.infrastructure_log_dispatcher,
-    );
-    visitor.visit_field(
-      ident_key!(compiler_scoped_tsfn_manager),
-      &self.compiler_scoped_tsfn_manager,
-    );
-    visitor.visit_field(ident_key!(js_hooks_plugin), &self.js_hooks_plugin);
-    visitor.visit_field(ident_key!(state), &self.state);
-    visitor.visit_field(
-      ident_key!(include_dependencies_map),
-      &self.include_dependencies_map,
-    );
-    visitor.visit_field(
-      ident_key!(entry_dependencies_map),
-      &self.entry_dependencies_map,
-    );
-    visitor.visit_field(ident_key!(compiler_context), &self.compiler_context);
-    visitor.visit_field(ident_key!(virtual_file_store), &self.virtual_file_store);
-    visitor.exit();
-  }
+fn visit_live_compiler(
+  compiler: &ManuallyDrop<Compiler>,
+  visitor: &mut rspack_util::rspack_allocative::Visitor<'_>,
+) {
+  use rspack_util::rspack_allocative::Visit;
+
+  // RunGuard pins JsCompiler and its initialized core until capture finishes.
+  (**compiler).visit_memory(visitor);
 }
 
 impl ObjectFinalize for JsCompiler {
