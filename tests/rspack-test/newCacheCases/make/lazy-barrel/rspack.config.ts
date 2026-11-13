@@ -18,7 +18,7 @@ export default defineConfig({
   plugins: [
     definePlugin((compiler) => {
       const run = compilerIndex++;
-      // Keep the original HMR/restart steps, then change only factory metadata.
+      // The last two restarts change sideEffects without changing source files.
       const sideEffects = run === 3;
       compiler.options.module.rules = [
         { test: /[\\/]lib[\\/]index\.js$/, sideEffects },
