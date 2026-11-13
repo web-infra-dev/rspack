@@ -100,7 +100,6 @@ pub(crate) struct ModuleGraphData {
   /// Dependencies indexed by `DependencyId`.
   dependencies: rollback::DenseDependencyIdMap<DependencyRef>,
   /// Current make-stage deferrals, kept with the graph across incremental rebuilds.
-  /// Module cache entries only contain the dependencies' static classification.
   lazy_dependencies: FxHashSet<DependencyId>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: AsyncDependenciesBlockIdentifierMap<AsyncDependenciesBlockRef>,
