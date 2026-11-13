@@ -20,7 +20,7 @@ pub async fn repair(
   artifact: BuildModuleGraphArtifact,
   exports_info_artifact: ExportsInfoArtifact,
   build_dependencies: HashSet<BuildDependency>,
-) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+) -> (BuildModuleGraphArtifact, ExportsInfoArtifact, Result<()>) {
   let mut ctx = TaskContext::new(compilation, artifact, exports_info_artifact);
   let module_graph = &ctx.artifact.module_graph;
   let mut grouped_deps = HashMap::default();
@@ -64,6 +64,6 @@ pub async fn repair(
     })
     .collect::<Vec<_>>();
 
-  run_task_loop(&mut ctx, init_tasks).await?;
-  Ok((ctx.artifact, ctx.exports_info_artifact))
+  let result = run_task_loop(&mut ctx, init_tasks, |_| {}).await;
+  (ctx.artifact, ctx.exports_info_artifact, result)
 }

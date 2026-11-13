@@ -1,12 +1,4 @@
-use std::{
-  any::Any,
-  collections::VecDeque,
-  fmt::Debug,
-  sync::{
-    Arc,
-    atomic::{AtomicBool, Ordering},
-  },
-};
+use std::{any::Any, collections::VecDeque, fmt::Debug};
 
 use rspack_error::Result;
 use rspack_util::ext::AsAny;
@@ -56,9 +48,6 @@ struct TaskLoop<Ctx> {
   main_task_queue: VecDeque<Box<dyn Task<Ctx>>>,
   /// The count of the running background tasks which run immediately in tokio thread workers when they are returned
   background_task_count: u32,
-  /// Mark whether the task loop has been returned.
-  /// The async task should not call `tx.send` after this mark to true
-  is_expected_shutdown: Arc<AtomicBool>,
   /// Used for sending async task results in background tasks
   task_result_sender: UnboundedSender<TaskResult<Ctx>>,
   /// Used for receiving async task results
@@ -70,7 +59,6 @@ impl<Ctx: 'static> TaskLoop<Ctx> {
     let (tx, rx) = mpsc::unbounded_channel::<TaskResult<Ctx>>();
     Self {
       main_task_queue: VecDeque::from(init_main_tasks),
-      is_expected_shutdown: Arc::new(AtomicBool::new(false)),
       background_task_count: 0,
       task_result_sender: tx,
       task_result_receiver: rx,
@@ -147,23 +135,19 @@ impl<Ctx: 'static> TaskLoop<Ctx> {
         }
         Ok(())
       }
-      Err(e) => {
-        self.is_expected_shutdown.store(true, Ordering::Relaxed);
-        Err(e)
-      }
+      Err(e) => Err(e),
     }
   }
 
   fn spawn_background(&mut self, task: Box<dyn Task<Ctx>>) {
     let tx = self.task_result_sender.clone();
-    let is_expected_shutdown = self.is_expected_shutdown.clone();
     self.background_task_count += 1;
     rspack_tasks::spawn_in_compiler_context(task::unconstrained(
       async move {
         let r = task.background_run().await;
-        if !is_expected_shutdown.load(Ordering::Relaxed) {
-          tx.send(r).expect("failed to send task result");
-        }
+        // Error cleanup still receives every running task's completion. The
+        // receiver can be gone only if the task loop itself was cancelled.
+        let _ = tx.send(r);
       }
       .in_current_span(),
     ));
@@ -173,12 +157,28 @@ impl<Ctx: 'static> TaskLoop<Ctx> {
 pub async fn run_task_loop<Ctx: 'static>(
   ctx: &mut Ctx,
   init_tasks: Vec<Box<dyn Task<Ctx>>>,
+  on_error: impl FnOnce(&mut Ctx),
 ) -> Result<()> {
   let (background_tasks, main_tasks) = init_tasks
     .into_iter()
     .partition(|task| matches!(task.get_task_type(), TaskType::Background));
   let mut task_loop = TaskLoop::new(main_tasks);
-  task_loop.run_task_loop(ctx, background_tasks).await
+  let result = task_loop.run_task_loop(ctx, background_tasks).await;
+  if result.is_err() {
+    // Release tasks waiting on the failed graph before waiting for loaders.
+    // Do not schedule any further graph work from their completion results.
+    task_loop.main_task_queue.clear();
+    on_error(ctx);
+    while task_loop.background_task_count > 0 {
+      let _ = task_loop
+        .task_result_receiver
+        .recv()
+        .await
+        .expect("should receive running task result during cleanup");
+      task_loop.background_task_count -= 1;
+    }
+  }
+  result
 }
 
 #[cfg(test)]
@@ -253,6 +253,7 @@ mod test {
         vec![Box::new(AsyncTask {
           async_return_error: false,
         })],
+        |_| {},
       )
       .await;
       assert!(res.is_ok(), "task loop should be run success");
@@ -269,6 +270,7 @@ mod test {
         vec![Box::new(AsyncTask {
           async_return_error: false,
         })],
+        |_| {},
       )
       .await;
       assert!(
@@ -288,6 +290,7 @@ mod test {
         vec![Box::new(AsyncTask {
           async_return_error: false,
         })],
+        |_| {},
       )
       .await;
       assert!(

@@ -456,6 +456,8 @@ Executed when a module has been built successfully.
 
 Called when all modules have been built without errors.
 
+The module graph structure is fixed in this hook. To rewrite module content and call `compilation.rebuildModule`, use [`compiler.hooks.finishMake`](/api/plugin-api/compiler-hooks#finishmake).
+
 - **Type:** `AsyncSeriesHook<[Iterable<Module>]>`
 - **Arguments:**
   - `Iterable<Module>`: iterable of module instances
