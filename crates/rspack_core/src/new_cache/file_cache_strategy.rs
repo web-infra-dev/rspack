@@ -256,9 +256,12 @@ impl FileCacheStrategy {
   }
 
   pub fn store_build_dependencies(&self, dependencies: InternedPathSet) {
-    if self.readonly || self.validator.is_version_only() {
+    if self.readonly {
       return;
     }
+    let Some(dependencies) = self.validator.build_dependencies_to_track(dependencies) else {
+      return;
+    };
     let state = self.read_state();
     let Some(state) = state.as_ref() else {
       return;
@@ -344,17 +347,7 @@ impl FileCacheStrategy {
         )
       };
 
-      let new_build_dependencies = new_build_dependencies.or_else(|| {
-        self
-          .validator
-          .is_version_only()
-          .then(InternedPathSet::default)
-      });
-      let validator = if let Some(dependencies) = new_build_dependencies {
-        self.validator.update(dependencies).await?
-      } else {
-        None
-      };
+      let validator = self.validator.update(new_build_dependencies).await?;
 
       let writes = entries
         .into_par_iter()

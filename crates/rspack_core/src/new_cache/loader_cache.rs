@@ -146,6 +146,7 @@ pub(crate) fn create_loader_cache(
     rspack_workspace::rspack_pkg_version!().to_string(),
     options.version.clone(),
     Arc::new(CacheCodec::new(None)),
+    // Omit FileSystemInfo to skip database-wide build dependency tracking.
     None,
     Arc::clone(&logger),
   );

@@ -67,8 +67,11 @@ impl CacheValidator {
     }
   }
 
-  pub(super) fn is_version_only(&self) -> bool {
-    self.file_system_info.is_none()
+  pub(super) fn build_dependencies_to_track(
+    &self,
+    dependencies: InternedPathSet,
+  ) -> Option<InternedPathSet> {
+    self.file_system_info.as_ref().map(|_| dependencies)
   }
 
   pub(super) fn matches_cache_version(&self, version: &str) -> bool {
@@ -120,10 +123,13 @@ impl CacheValidator {
   /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/cache/PackFileCacheStrategy.js#L1510-L1625
   pub(super) async fn update(
     &self,
-    mut new_build_dependencies: InternedPathSet,
+    new_build_dependencies: Option<InternedPathSet>,
   ) -> Result<Option<Vec<u8>>> {
     let Some(file_system_info) = &self.file_system_info else {
       return Ok(Some(self.codec.encode(&*self.data())?));
+    };
+    let Some(mut new_build_dependencies) = new_build_dependencies else {
+      return Ok(None);
     };
     {
       let data = self.data();
