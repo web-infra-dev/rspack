@@ -15,7 +15,7 @@ let fields: Record<string, string[]> | undefined;
 const shapes = new Map<string, Shape>();
 
 function getFields() {
-  return (fields ??= binding.getConfigDomFields());
+  return (fields ??= binding.getConfigValueFields());
 }
 
 function getShape(name: string): Shape {

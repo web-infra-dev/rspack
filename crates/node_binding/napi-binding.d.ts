@@ -614,7 +614,7 @@ export declare function externalModuleGetUserRequest(module: Module): string
 
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
 
-export declare function getConfigDomFields(): Record<string, Array<string>>
+export declare function getConfigValueFields(): Record<string, Array<string>>
 
 export interface JsAddingRuntimeModule {
   name: string
