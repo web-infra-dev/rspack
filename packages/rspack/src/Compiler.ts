@@ -72,6 +72,7 @@ import { unsupported } from './util';
 import {
   installAllocativeSnapshotHook,
   linkAllocativeBinding,
+  markAllocativeObject,
   markAllocativeRoot,
 } from './util/allocative';
 import { assertNotNill } from './util/assertNotNil';
@@ -281,6 +282,9 @@ class Compiler {
     // Wrap hooks with a Proxy to provide helpful error messages when
     // webpack plugins try to access hooks that don't exist in rspack
     const availableCompilerHooks = Object.keys(this.hooks);
+    if (SUPPORTS_ALLOCATIVE) {
+      markAllocativeObject(this.hooks, 'CompilerHooks');
+    }
     this.hooks = new Proxy(this.hooks, {
       get(target, prop, receiver) {
         const value = Reflect.get(target, prop, receiver);

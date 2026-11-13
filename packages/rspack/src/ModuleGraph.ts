@@ -6,6 +6,7 @@ import type {
 import { ExportsInfo } from './ExportsInfo';
 import type { ModuleGraphConnection } from './ModuleGraphConnection';
 import type { Module } from './Module';
+import { markAllocativeObject } from './util/allocative';
 
 export default class ModuleGraph {
   static __from_binding(binding: JsModuleGraph) {
@@ -16,6 +17,9 @@ export default class ModuleGraph {
 
   constructor(binding: JsModuleGraph) {
     this.#inner = binding;
+    if (SUPPORTS_ALLOCATIVE) {
+      markAllocativeObject(this, 'ModuleGraph');
+    }
   }
 
   getModule(dependency: Dependency | EntryDependency): Module | null {

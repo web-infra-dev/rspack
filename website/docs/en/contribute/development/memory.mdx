@@ -170,6 +170,8 @@ node "$rspack_root/.agents/skills/rspack-allocative/scripts/v8-to-allocative.mjs
 
 Open `reports/0-build.js.allocative` or `reports/0-build.combined.allocative` in Speedscope to inspect the JavaScript or combined Rust and JavaScript profile. Open `reports/0-build.links.json` to look up the Rust targets associated with JavaScript objects. See [View snapshots](#view-snapshots) for tips on exploring a profile.
 
+Use `marked_objects` in the links report to see the count and shallow bytes of marked Rspack objects by type, including asset records and arrays.
+
 The raw snapshot can contain source code and other project data. Share the converted reports if you need to omit V8 object names, strings, and source locations. Pass `--include-content` to include V8 names and binding addresses in the reports. Use `--out-dir` to write the reports to another existing directory.
 
 Tests using the local binding can also collect snapshots via `RSPACK_ALLOCATIVE_DIR`. Each build or rebuild produces a snapshot automatically; the test framework does not need a separate capture integration. After building the binding and JavaScript packages, run a focused HMR case:
