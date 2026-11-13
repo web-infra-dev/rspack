@@ -112,6 +112,7 @@ CompilerOptions {
             module: false,
             optional_chaining: false,
             logical_assignment: false,
+            spread: false,
             template_literal: false,
             dynamic_import_in_worker: false,
             import_meta_dirname_and_filename: false,
