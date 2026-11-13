@@ -40,7 +40,6 @@ import {
   type LoaderDefinition,
   type LoaderDefinitionFunction,
   type PitchLoaderDefinitionFunction,
-  serializeLoaderOptionsForCache,
 } from './adapterRuleUse';
 import type {
   CacheNormalized,
@@ -113,10 +112,13 @@ export const getRawOptions = (
       mode,
       context: options.context!,
       experiments,
-      loaderOptionsFingerprint:
-        cache !== false && experiments.newCache && experiments.newCache.loader
-          ? serializeLoaderOptionsForCache(options.loader)
-          : '',
+      loaderSourceMap:
+        options.loader &&
+        Object.prototype.propertyIsEnumerable.call(options.loader, 'sourceMap')
+          ? typeof options.loader.sourceMap === 'boolean'
+            ? options.loader.sourceMap
+            : undefined
+          : null,
     }),
     optimization: options.optimization as Required<Optimization>,
     stats: getRawStats(options.stats),

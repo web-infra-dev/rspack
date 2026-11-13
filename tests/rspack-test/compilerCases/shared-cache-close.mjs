@@ -208,7 +208,7 @@ function createSourceMapOptions(context, name, devtool) {
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 const loaderOptionsCase = {
   name: 'loader-options',
-  description: 'should reuse loader results only for serializable loader options',
+  description: 'should compute loader etags from rule options and effective sourceMap',
   options(context) {
     return createSourceMapOptions(context, 'first', 'source-map');
   },
@@ -229,8 +229,10 @@ const loaderOptionsCase = {
     const cyclic = {};
     cyclic.self = cyclic;
     const cases = [
+      ['explicit-default', { sourceMap: true }, undefined, true, hit],
       ['override', { sourceMap: false }, undefined, false, miss],
       ['reuse-override', { sourceMap: false }, undefined, false, hit],
+      ['reuse-without-devtool', { sourceMap: false }, undefined, false, hit],
       [
         'undefined-override',
         { sourceMap: undefined },
@@ -238,13 +240,14 @@ const loaderOptionsCase = {
         undefined,
         undefined,
       ],
-      ['global-function', { nested: [() => {}] }, undefined, true, undefined],
+      ['global-function', { nested: [() => {}] }, undefined, true, miss],
       ['rule-function', undefined, { nested: [() => {}] }, true, undefined],
-      ['global-cycle', cyclic, undefined, true, undefined],
+      ['global-cycle', cyclic, undefined, true, hit],
       ['rule-bigint', undefined, { value: 1n }, true, undefined],
     ];
     for (const [name, loader, ruleOptions, sourceMap, expected] of cases) {
       const options = createSourceMapOptions(context, name, 'source-map');
+      if (name === 'reuse-without-devtool') options.devtool = false;
       options.loader = loader;
       const rule = options.module.rules[0];
       rule.use[0].options = ruleOptions;

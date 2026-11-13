@@ -44,8 +44,7 @@ fn sorted_dependency_paths(paths: &InternedPathSet) -> Vec<&Path> {
 fn loader_cache_etag<'a>(
   content: &Content,
   existing: &LoaderDependencies,
-  source_map: bool,
-  rule_loaders: impl Iterator<Item = (&'a str, &'a str, Option<u64>)>,
+  rule_loaders: impl Iterator<Item = (&'a str, &'a str, bool, Option<u64>)>,
 ) -> Etag {
   let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
   // Context and missing dependencies intentionally invalidate the minimal cache: inherited values
@@ -55,15 +54,15 @@ fn loader_cache_etag<'a>(
   rspack_hash::rspack_hash_object!(&mut hasher, {
     "content_is_string" => !content.is_buffer(),
     "content" => content,
-    "source_map" => source_map,
     "file_dependencies" => sorted_dependency_paths(&existing.file),
     "build_dependencies" => sorted_dependency_paths(&existing.build),
     "rspack_version" => rspack_workspace::rspack_pkg_version!(),
   });
-  for (options, version, additional_etag) in rule_loaders {
+  for (options, version, source_map, additional_etag) in rule_loaders {
     rspack_hash::rspack_hash_object!(&mut hasher, {
       "rule_loader_options" => options,
       "loader_version" => version,
+      "source_map" => source_map,
     });
     if let Some(additional_etag) = additional_etag {
       rspack_hash::rspack_hash_object!(&mut hasher, {
@@ -224,11 +223,14 @@ pub(crate) async fn before_normal_chain(
   let etag = loader_cache_etag(
     content,
     existing_dependencies,
-    context.context.source_map_kind.source_map(),
     loaders.iter().map(|loader| {
       (
         loader.options_cache_key(),
         loader.loader_version(),
+        loader
+          .cache_options()
+          .and_then(|options| options.source_map)
+          .unwrap_or_else(|| context.context.source_map_kind.source_map()),
         loader.loader().additional_cache_etag(&context.context),
       )
     }),

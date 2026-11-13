@@ -789,6 +789,7 @@ impl NormalModuleFactory {
             }),
             cache: false,
             options_cache_key: String::new(),
+            source_map: None,
             filter: None,
           }
         }));
@@ -1380,6 +1381,7 @@ async fn resolve_each_with_options(
       cache: true,
       loader_name,
       options_cache_key: loader.options_cache_key.clone(),
+      source_map: loader.source_map,
       loader_version,
     },
     filter: loader.filter.clone(),

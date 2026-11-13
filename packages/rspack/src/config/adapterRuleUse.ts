@@ -26,7 +26,8 @@ import type {
 export const BUILTIN_LOADER_PREFIX = 'builtin:';
 
 export interface ComposeJsUseOptions {
-  loaderOptionsFingerprint: string | undefined;
+  // null: use the module default; undefined: unsupported non-boolean override.
+  loaderSourceMap: boolean | null | undefined;
   context: RawOptions['context'];
   mode: RawOptions['mode'];
   experiments: RawOptions['experiments'];
@@ -596,13 +597,9 @@ function createRawModuleRuleUsesImpl(
     let optionsCacheKey = use.cache
       ? serializeLoaderOptionsForCache(fingerprintOptions)
       : undefined;
-    if (!isBuiltin && optionsCacheKey !== undefined) {
-      const { loaderOptionsFingerprint } = options;
-      // Rule options and loader-context options are independently observable.
-      optionsCacheKey =
-        loaderOptionsFingerprint === undefined
-          ? undefined
-          : JSON.stringify([optionsCacheKey, loaderOptionsFingerprint]);
+    if (!isBuiltin && options.loaderSourceMap === undefined) {
+      // Non-boolean overrides cannot be represented by the Rust sourceMap option.
+      optionsCacheKey = undefined;
     }
     return {
       loader: resolveStringifyLoaders(
@@ -615,6 +612,7 @@ function createRawModuleRuleUsesImpl(
       options: o,
       cache: optionsCacheKey !== undefined,
       optionsCacheKey: optionsCacheKey ?? '',
+      sourceMap: isBuiltin ? undefined : (options.loaderSourceMap ?? undefined),
       codeFilter: createRawLoaderCodeFilter(
         use.codeFilter,
         `${path}[${index}].codeFilter`,
