@@ -13,9 +13,9 @@ use rspack_sources::SourceMap;
 use rspack_util::time::current_time;
 
 use crate::{
-  CacheFacade, CacheValue, Etag, FileSystemInfo, IsolatedDts, ItemCacheFacade, Module, RscMeta,
+  CacheOptions, CacheRecord, CacheValue, Etag, FileSystemInfo, IsolatedDts, Module, RscMeta,
   RunnerContext,
-  new_cache::{Snapshot, SnapshotValidationResult},
+  new_cache::{CacheKey, Snapshot, SnapshotValidationResult},
 };
 
 fn loader_cache_key<'a>(
@@ -43,7 +43,7 @@ fn sorted_dependency_paths(paths: &InternedPathSet) -> Vec<&Path> {
   paths
 }
 
-fn loader_cache_etag(content: &Content, existing: &LoaderDependencies) -> Etag {
+fn loader_cache_etag(content: &Content, existing: &LoaderDependencies, source_map: bool) -> Etag {
   let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
   // Context and missing dependencies intentionally invalidate the minimal cache: inherited values
   // disable lookup, and entries that add either kind are skipped at store time. This trade-off lets
@@ -52,6 +52,7 @@ fn loader_cache_etag(content: &Content, existing: &LoaderDependencies) -> Etag {
   rspack_hash::rspack_hash_object!(&mut hasher, {
     "content_is_string" => !content.is_buffer(),
     "content" => content,
+    "source_map" => source_map,
     "file_dependencies" => sorted_dependency_paths(&existing.file),
     "build_dependencies" => sorted_dependency_paths(&existing.build),
     "rspack_version" => rspack_workspace::rspack_pkg_version!(),
@@ -145,10 +146,6 @@ fn restore_loader_cache_dependencies(
   }
 }
 
-fn loader_cache_item(storage: &CacheFacade, key: &str, etag: Etag) -> ItemCacheFacade {
-  storage.get_item_cache(key, Some(etag))
-}
-
 #[cacheable]
 struct LoaderCacheEntry {
   content: Option<Vec<u8>>,
@@ -162,7 +159,7 @@ struct LoaderCacheEntry {
 }
 
 pub(crate) struct LoaderCacheMissState {
-  cache_key: String,
+  cache_key: CacheKey,
   etag: Etag,
   diagnostics_len: usize,
 }
@@ -177,12 +174,16 @@ fn input_etag(context: &LoaderContext<RunnerContext>) -> Option<Etag> {
   Some(loader_cache_etag(
     context.content()?,
     context.existing_dependencies(),
+    context.context.source_map_kind.source_map(),
   ))
 }
 
 pub(crate) async fn before_normal_chain(
   context: &mut LoaderContext<RunnerContext>,
 ) -> Result<LoaderCacheAction> {
+  let Some(loader_cache) = &context.context.loader_cache else {
+    return Ok(LoaderCacheAction::Disabled);
+  };
   let chain = context
     .current_root_chain()
     .expect("normal execution requires a current root chain");
@@ -216,10 +217,17 @@ pub(crate) async fn before_normal_chain(
   ) else {
     return Ok(LoaderCacheAction::Disabled);
   };
-  let loader_cache = &context.context.loader_cache;
-  let item_cache = loader_cache_item(loader_cache, &cache_key, etag.clone());
-
-  if let Some(entry) = item_cache.get::<LoaderCacheEntry>()
+  let cache_key = CacheKey::from(cache_key);
+  let entry = loader_cache.get::<LoaderCacheEntry>(cache_key.clone(), Some(etag.clone()));
+  context
+    .context
+    .loader_cache_counters
+    .record(if entry.is_some() {
+      CacheRecord::Hit
+    } else {
+      CacheRecord::Miss
+    });
+  if let Some(entry) = entry
     && loader_cache_dependency_snapshot_is_valid(
       &context.context.file_system_info,
       &entry.dependency_snapshot,
@@ -241,7 +249,10 @@ pub(crate) async fn before_normal_chain(
       .and_then(|source_map| SourceMap::from_json(source_map).ok());
     let mut dependencies = LoaderDependencies::default();
     restore_loader_cache_dependencies(&entry.dependency_snapshot, &mut dependencies);
-    loader_cache.record_reuse();
+    context
+      .context
+      .loader_cache_counters
+      .record(CacheRecord::Reuse);
     context.add_dependencies(&dependencies);
     context.parse_meta = entry.parse_meta.clone();
     let build_info = context.context.module.build_info_mut();
@@ -262,7 +273,11 @@ pub(crate) async fn after_normal_chain(
   context: &LoaderContext<RunnerContext>,
   state: &LoaderCacheMissState,
 ) {
-  if !context.cacheable
+  let Some(loader_cache) = &context.context.loader_cache else {
+    return;
+  };
+  if matches!(&context.context.options.cache, CacheOptions::Persistent(options) if options.readonly)
+    || !context.cacheable
     || context.diagnostics.len() != state.diagnostics_len
     || !context.context.module.build_info().assets.is_empty()
     || !context.context.module.build_info().extras.is_empty()
@@ -297,10 +312,13 @@ pub(crate) async fn after_normal_chain(
     isolated_dts: context.context.module.build_info().isolated_dts.clone(),
     rsc: context.context.module.build_info().rsc.clone(),
   };
-  let item_cache = loader_cache_item(
-    &context.context.loader_cache,
-    &state.cache_key,
-    state.etag.clone(),
+  context
+    .context
+    .loader_cache_counters
+    .record(CacheRecord::Store);
+  loader_cache.store(
+    state.cache_key.clone(),
+    Some(state.etag.clone()),
+    CacheValue::new(entry),
   );
-  item_cache.store(CacheValue::new(entry));
 }

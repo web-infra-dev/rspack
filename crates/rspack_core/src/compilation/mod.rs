@@ -32,7 +32,7 @@ use std::{
   hash::{BuildHasherDefault, Hash},
   mem,
   sync::{
-    Arc,
+    Arc, Weak,
     atomic::{AtomicBool, AtomicU32, Ordering},
   },
 };
@@ -94,7 +94,7 @@ use crate::{
   legacy_cache::persistent::occasion::{
     devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
   },
-  new_cache::{CacheFacade, CompilerCache},
+  new_cache::{CacheFacade, CompilerCache, LoaderCache},
   to_identifier,
 };
 
@@ -236,6 +236,8 @@ pub struct Compilation {
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   pub cache: CompilerCache,
+  // Compilations and retained incremental artifacts must not keep loader storage open.
+  loader_cache: Weak<LoaderCache>,
   pub resolver_cache: Option<crate::ResolverCache>,
   pub file_system_info: FileSystemInfo,
   pub plugin_driver: SharedPluginDriver,
@@ -349,6 +351,7 @@ impl Compilation {
     module_executor: Option<ModuleExecutor>,
     logging: CompilationLogging,
     cache: CompilerCache,
+    loader_cache: Weak<LoaderCache>,
     modified_files: InternedPathSet,
     removed_files: InternedPathSet,
     input_filesystem: Arc<dyn ReadableFileSystem>,
@@ -389,6 +392,7 @@ impl Compilation {
       diagnostics: Default::default(),
       logging,
       cache,
+      loader_cache,
       resolver_cache,
       file_system_info,
       plugin_driver,
@@ -459,6 +463,14 @@ impl Compilation {
 
   pub fn get_cache(&self, name: &str) -> CacheFacade {
     self.cache.facade(name)
+  }
+
+  pub fn loader_cache_counters(&self) -> Arc<crate::CacheCounters> {
+    self.cache.counters("loader")
+  }
+
+  pub fn loader_cache(&self) -> Weak<LoaderCache> {
+    self.loader_cache.clone()
   }
 
   pub fn id(&self) -> CompilationId {

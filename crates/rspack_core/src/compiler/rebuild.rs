@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{path::Path, sync::Arc};
 
 use rspack_collections::IdentifierMap;
 use rspack_error::Result;
@@ -90,6 +90,12 @@ impl Compiler {
         Some(ModuleExecutor::default()),
         compilation_logging,
         self.new_cache.clone(),
+        self
+          .loader_cache
+          .load()
+          .as_ref()
+          .map(Arc::downgrade)
+          .unwrap_or_default(),
         modified_files,
         removed_files,
         self.input_filesystem.clone(),

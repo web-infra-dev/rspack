@@ -1,5 +1,4 @@
 import { defineConfig } from '@rspack/cli';
-import { rspack } from '@rspack/core';
 import { fileURLToPath } from 'node:url';
 
 export default defineConfig(
@@ -45,7 +44,6 @@ export default defineConfig(
             },
           ],
         },
-        plugins: [new rspack.DefinePlugin({ LOADER_CACHE_ENABLED: cache })],
       })),
     ),
   ),

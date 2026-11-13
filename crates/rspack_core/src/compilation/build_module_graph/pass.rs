@@ -45,6 +45,10 @@ impl PassExt for BuildModuleGraphPhasePass {
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
+    let _loader_cache_guard = compilation
+      .loader_cache()
+      .upgrade()
+      .map(|cache| cache.begin_build());
     let plugin_driver = compilation.plugin_driver.clone();
     let logger = compilation.get_logger("rspack.Compiler");
     // align with webpack, make hook include build_module_graph phase in webpack

@@ -395,6 +395,7 @@ fn reset_compilation_state(compiler: &mut Compiler) {
       cache,
       Default::default(),
       Default::default(),
+      Default::default(),
       compiler.input_filesystem.clone(),
       compiler.intermediate_filesystem.clone(),
       compiler.output_filesystem.clone(),

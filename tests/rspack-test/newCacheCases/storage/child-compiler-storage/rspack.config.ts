@@ -71,11 +71,14 @@ export default defineConfig({
             Object.keys(cacheInfo).some((key) => key.includes('|child')),
           ).toBe(true);
           if (buildIndex === 1) {
-            // Parent and children share one storage directory.
+            // Parent and children share one active compiler cache directory.
             const entries = fs
               .readdirSync(storageDirectory)
-              .filter((name) =>
-                fs.statSync(path.join(storageDirectory, name)).isDirectory(),
+              .filter(
+                (name) =>
+                  name !== 'loader' &&
+                  name !== '_stale' &&
+                  fs.statSync(path.join(storageDirectory, name)).isDirectory(),
               );
             expect(entries).toHaveLength(1);
           }
