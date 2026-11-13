@@ -324,13 +324,12 @@ impl Module for LazyCompilationProxyModule {
       RawStringSource::from(format!(
         "{client}
         var load = function() {{ return {}; }};
-        var first = load(), awaited = false;
-        first.then(function() {{ first = undefined; }}, function(error) {{ first = undefined; if (!awaited) throw error; }});
+        var pending = load().then(
+          function(namespace) {{ pending = undefined; return namespace; }},
+          function(error) {{ pending = undefined; throw error; }}
+        );
         {module_argument}.exports = {{
-          then: function(onFulfilled, onRejected) {{
-            awaited = true;
-            return (first || load()).then(onFulfilled, onRejected);
-          }}
+          then: function(onFulfilled, onRejected) {{ return (pending || load()).then(onFulfilled, onRejected); }}
         }};
         if ({module_argument}.hot) {{
           {module_argument}.hot.accept();

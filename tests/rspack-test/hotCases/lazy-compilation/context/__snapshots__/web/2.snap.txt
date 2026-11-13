@@ -11,7 +11,7 @@
 - Bundle: modules_module_js_lazy-compilation-proxy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 173
 - Update: main.LAST_HASH.hot-update.js, size: 696
-- Update: modules_module_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1436
+- Update: modules_module_js_lazy-compilation-proxy.LAST_HASH.hot-update.js, size: 1405
 
 ## Manifest
 
@@ -81,13 +81,12 @@ self["rspackHotUpdate"]("modules_module_js_lazy-compilation-proxy", {
 var client = __webpack_require__("../../../../../../../../packages/rspack/hot/lazy-compilation-web.js?http%3A%2F%2Flocalhost%3APORT%2F_rspack%2Flazy%2Ftrigger");
 var data = "lazy-compilation-proxy|<TEST_TOOLS_ROOT>/dist/helper/hot-update/loader.js!<TEST_ROOT>/js/temp/hot-snapshot/hotSnapshotCases-hotCases/lazy-compilation/context/modules/module.js";
         var load = function() { return __webpack_require__.e(/* import() */ "modules_module_js").then(__webpack_require__.bind(__webpack_require__, "./modules/module.js")); };
-        var first = load(), awaited = false;
-        first.then(function() { first = undefined; }, function(error) { first = undefined; if (!awaited) throw error; });
+        var pending = load().then(
+          function(namespace) { pending = undefined; return namespace; },
+          function(error) { pending = undefined; throw error; }
+        );
         module.exports = {
-          then: function(onFulfilled, onRejected) {
-            awaited = true;
-            return (first || load()).then(onFulfilled, onRejected);
-          }
+          then: function(onFulfilled, onRejected) { return (pending || load()).then(onFulfilled, onRejected); }
         };
         if (module.hot) {
           module.hot.accept();
