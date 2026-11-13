@@ -429,7 +429,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         };
         let chunk_runtime = chunk.runtime().as_str();
 
-        let filename = compiled.render_with_path_data(
+        let mut filename = compiled.render_with_path_data(
           PathData::default()
             .chunk_id_optional(chunk_id.as_deref())
             .chunk_name_optional(chunk_name.as_deref())
@@ -455,6 +455,11 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
             _ => None,
           },
         );
+
+        // A string immediately after chunkId already ensures string concatenation.
+        if filename.starts_with("\"\" + chunkId + \"") {
+          filename.replace_range(..5, "");
+        }
 
         if let Some(chunk_id) = chunk.id() {
           static_urls
