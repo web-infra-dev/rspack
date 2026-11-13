@@ -48,6 +48,15 @@
 #[macro_use]
 extern crate napi_derive;
 extern crate rspack_allocator;
+// Resolve napi-derive's generated paths to the local prelude in profiling builds.
+#[cfg(allocative)]
+extern crate self as napi;
+// Generated registration macros need an explicit ctor re-export during expansion.
+#[cfg(allocative)]
+pub(crate) use rspack_napi::napi::{ctor, *};
+#[cfg(allocative)]
+#[path = "napi_shim.rs"]
+mod bindgen_prelude;
 
 mod allocator;
 mod asset;
@@ -114,7 +123,6 @@ use std::{
   sync::{Arc, RwLock},
 };
 
-use napi::{CallContext, bindgen_prelude::*};
 pub use raw_options::{CustomPluginBuilder, register_custom_plugin};
 use rspack_core::{
   Compilation, CompilationId, CompilerId, CompilerPlatform, DependencyRef, EntryOptions,
@@ -122,6 +130,7 @@ use rspack_core::{
 };
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
+use rspack_napi::napi::{CallContext, bindgen_prelude::*};
 use rspack_tasks::{CURRENT_COMPILER_CONTEXT, CompilerContext, within_compiler_context_sync};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::common::util::take::Take;
@@ -250,7 +259,13 @@ fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
 }
 
 #[napi(custom_finalize)]
+#[cfg_attr(allocative, derive(rspack_util::rspack_allocative::Allocative))]
+#[cfg_attr(allocative, allocative(crate_path = "rspack_util::rspack_allocative"))]
 struct JsCompiler {
+  // Drop manually to avoid unnecessary drop overhead in CLI builds.
+  // Visit first so shared allocations are attributed to the core compiler.
+  #[cfg_attr(allocative, allocative(visit = visit_live_compiler))]
+  compiler: ManuallyDrop<Compiler>,
   // whether to skip drop compiler in finalize
   unsafe_fast_drop: bool,
   file_system_dependency_string_pool: RefCell<FileSystemDependencyStringPool>,
@@ -258,8 +273,6 @@ struct JsCompiler {
   infrastructure_log_dispatcher: Arc<InfrastructureLogDispatcher>,
   compiler_scoped_tsfn_manager: CompilerScopedTsFnManager,
   js_hooks_plugin: JsHooksAdapterPlugin,
-  // call drop manually to avoid unnecessary drop overhead in cli build
-  compiler: ManuallyDrop<Compiler>,
   state: CompilerState,
   include_dependencies_map: FxHashMap<EntryDependencyCacheKey, DependencyRef>,
   entry_dependencies_map: FxHashMap<EntryDependencyCacheKey, DependencyRef>,
@@ -476,7 +489,7 @@ impl JsCompiler {
             tracing::debug!("build ok");
             Ok(())
           },
-          Some(move |env: &Env, result: &mut _| guard.finish(env, result)),
+          Some(move |env: &Env, result: &mut _| guard.finish(env, result, "build")),
         )
       })
     }
@@ -512,7 +525,7 @@ impl JsCompiler {
             tracing::debug!("rebuild ok");
             Ok(())
           },
-          Some(move |env: &Env, result: &mut _| guard.finish(env, result)),
+          Some(move |env: &Env, result: &mut _| guard.finish(env, result, "rebuild")),
         )
       })
     }
@@ -583,12 +596,19 @@ struct RunGuard {
 }
 
 impl RunGuard {
-  fn finish(self, env: &Env, result: &mut Result<(), ErrorCode>) {
+  fn finish(self, env: &Env, result: &mut Result<(), ErrorCode>, phase: &str) {
     if result.is_ok() {
       *result = self
         ._reference
         .prune_file_system_dependency_strings(env)
         .map_err(|error| napi::Error::new(ErrorCode::Napi(error.status), error.reason));
+    }
+    #[cfg(allocative)]
+    if result.is_ok() {
+      // callbackify has dropped the build/rebuild future before scheduling this
+      // JS-thread finalizer. Keep both the running guard and strong reference
+      // until capture finishes: close/rebuild and GC cannot invalidate the owner.
+      *result = self._reference.snapshot_allocative(env, phase);
     }
     if result.is_err() {
       // Preserve the original error even if clearing the string pool fails.
@@ -614,6 +634,16 @@ impl JsCompiler {
   ) -> Result<R, ErrorCode> {
     if self.state.running() {
       return Err(concurrent_compiler_error());
+    }
+
+    #[cfg(allocative)]
+    {
+      self.compiler.allocative_snapshot_deferred = true;
+      rspack_napi::allocative::link_target(
+        self,
+        &**self.compiler as *const rspack_core::Compiler,
+        Some(self.compiler.id().as_u32()),
+      );
     }
 
     let compiler_state_guard = self.state.enter();
@@ -654,6 +684,31 @@ impl JsCompiler {
     AsyncDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
     ModuleGraphConnectionWrapper::cleanup_last_compilation(compilation_id);
   }
+}
+
+#[cfg(allocative)]
+impl JsCompiler {
+  fn snapshot_allocative(&self, env: &Env, phase: &str) -> Result<(), ErrorCode> {
+    let Some(snapshot) = rspack_core::AllocativeSnapshot::new(phase).to_napi_result()? else {
+      return Ok(());
+    };
+    let mut builder =
+      rspack_napi::allocative::capture(env, &snapshot.heap_path(), self.compiler.id().as_u32())
+        .map_err(|error| napi::Error::new(ErrorCode::Napi(error.status), error.reason))?;
+    builder.visit_root(self);
+    snapshot.write(&self.compiler, builder).to_napi_result()
+  }
+}
+
+#[cfg(allocative)]
+fn visit_live_compiler(
+  compiler: &ManuallyDrop<Compiler>,
+  visitor: &mut rspack_util::rspack_allocative::Visitor<'_>,
+) {
+  use rspack_util::rspack_allocative::Visit;
+
+  // RunGuard pins JsCompiler and its initialized core until capture finishes.
+  (**compiler).visit_memory(visitor);
 }
 
 impl ObjectFinalize for JsCompiler {

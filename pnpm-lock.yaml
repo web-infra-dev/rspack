@@ -379,6 +379,12 @@ catalogs:
     source-map-loader:
       specifier: ^5.0.0
       version: 5.0.0
+    stream-chain:
+      specifier: ^4.4.1
+      version: 4.4.1
+    stream-json:
+      specifier: ^3.8.0
+      version: 3.8.0
     style-loader:
       specifier: ^4.0.0
       version: 4.0.0
@@ -749,6 +755,12 @@ importers:
       rstack:
         specifier: 'catalog:'
         version: 0.9.0(@microsoft/api-extractor@7.60.1)(@module-federation/runtime-tools@2.9.3)(@rspress/core@2.1.1)(core-js@3.51.0)(jiti@2.7.0)(jsdom@31.0.0)(typescript@6.0.3)
+      stream-chain:
+        specifier: 'catalog:'
+        version: 4.4.1
+      stream-json:
+        specifier: 'catalog:'
+        version: 3.8.0
       tinypool:
         specifier: 'catalog:'
         version: 2.2.0
@@ -7408,8 +7420,14 @@ packages:
   stream-browserify@3.0.0:
     resolution: {integrity: sha512-H73RAHsVBapbim0tU2JwwOiXUj+fikfiaoYAKHF3VJfA0pe2BCzkhAHBlLG6REzE+2WNZcxOXjK7lkso+9euLA==}
 
+  stream-chain@4.4.1:
+    resolution: {integrity: sha512-4MWXw+Si0RW3HAYQN3MdxpgTJA6Te9StiLtdkZO248DLPsRipqBbuiQSkyYLpCDEuvqGfqb2B5dEGxiEfHYkNQ==}
+
   stream-http@3.2.0:
     resolution: {integrity: sha512-Oq1bLqisTyK3TSCXpPbT4sdeYNdmyZJv1LxpEm2vu1ZhK89kSE5YXwZc3cWk0MagGaKriBh9mCFbVGtO+vY29A==}
+
+  stream-json@3.8.0:
+    resolution: {integrity: sha512-xD0bPEoPgaaEpEu2HSq1spYAs5LSJrLAlo44SHycE+aI8W0IrU2cklY7fiQKhRTVbuvxNUij06vIiz1NBT+AZA==}
 
   stream-parser@0.3.1:
     resolution: {integrity: sha512-bJ/HgKq41nlKvlhccD5kaCr/P+Hu0wPNKPJOH7en+YrJu/9EgqUF+88w5Jb6KNcjOFMhfX4B2asfeAtIGuHObQ==}
@@ -14238,12 +14256,18 @@ snapshots:
       inherits: 2.0.4
       readable-stream: 3.6.2
 
+  stream-chain@4.4.1: {}
+
   stream-http@3.2.0:
     dependencies:
       builtin-status-codes: 3.0.0
       inherits: 2.0.4
       readable-stream: 3.6.2
       xtend: 4.0.2
+
+  stream-json@3.8.0:
+    dependencies:
+      stream-chain: 4.4.1
 
   stream-parser@0.3.1(supports-color@8.1.1):
     dependencies:

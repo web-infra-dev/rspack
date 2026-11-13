@@ -144,6 +144,8 @@ catalog:
   'semver': '^7.8.6'
   'source-map': '^0.8.0'
   'source-map-loader': '^5.0.0'
+  'stream-chain': '^4.4.1'
+  'stream-json': '^3.8.0'
   'style-loader': '^4.0.0'
   'tailwindcss': '^4.3.4'
   'terser': '5.51.2'

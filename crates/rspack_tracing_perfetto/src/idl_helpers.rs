@@ -6,9 +6,13 @@ use std::sync::{
 use micromegas_perfetto::protos::{self as idl, TracePacket};
 use rustc_hash::FxHashMap;
 
-#[cfg_attr(allocative, rspack_allocative::root)]
-static CUSTOM_SCOPE_NAMES: LazyLock<Mutex<FxHashMap<String, u64>>> =
-  LazyLock::new(|| Mutex::new(FxHashMap::default()));
+static CUSTOM_SCOPE_NAMES: LazyLock<Mutex<FxHashMap<String, u64>>> = LazyLock::new(|| {
+  // Register when initialized: ctor startup hooks require unsafe code, which
+  // this crate forbids. An unused scope map owns no heap allocations.
+  #[cfg(allocative)]
+  rspack_allocative::register_root(&CUSTOM_SCOPE_NAMES);
+  Mutex::new(FxHashMap::default())
+});
 
 #[derive(Default)]
 pub struct DebugAnnotations {
