@@ -1,5 +1,5 @@
 ```mjs title=main.mjs
-import ext, { named, 你好 as external_ext_mjs__ } from "./ext.mjs";
+import ext, { café as external_ext_mjs_caf_, named, 你好 as external_ext_mjs__ } from "./ext.mjs";
 import "./side.mjs";
 
 
@@ -20,6 +20,6 @@ import "./side.mjs";
 
 expect(globalThis.__order).toEqual(['ext', 'side']);
 
-export { ext as extDefault, ext as reservedDefault, external_ext_mjs__ as nihao, named, named as nested };
+export { ext as extDefault, ext as reservedDefault, external_ext_mjs__ as nihao, external_ext_mjs_caf_ as cafe, named, named as nested };
 
 ```

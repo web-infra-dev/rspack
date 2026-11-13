@@ -38,6 +38,7 @@ export default {
     expect(extImportIdx).toBeGreaterThanOrEqual(0);
     expect(extImportIdx).toBeLessThan(sideImportIdx);
     expect(ordered.some((line) => line.includes('你好'))).toBe(true);
+    expect(ordered.some((line) => line.includes('café'))).toBe(true);
     expect(
       ordered.some(
         (line) =>
