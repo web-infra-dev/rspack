@@ -16,6 +16,7 @@ pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RscMeta, RunnerContext};
 use rspack_error::{Diagnostic, Error, Result, SerdeResultToRspackResultExt};
+use rspack_hash::RspackHasher;
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifier, Loader, LoaderContext};
 pub use rspack_workspace::rspack_swc_core_version;
@@ -310,8 +311,10 @@ impl Loader<RunnerContext> for SwcLoader {
     self.identifier
   }
 
-  fn additional_cache_etag(&self, context: &RunnerContext) -> Option<u64> {
-    Some(u64::from(context.source_map_kind.bits()))
+  fn etag(&self, context: &RunnerContext, hasher: &mut RspackHasher) {
+    rspack_hash::rspack_hash_object!(hasher, {
+      "source_map_kind" => context.source_map_kind.bits(),
+    });
   }
 
   #[tracing::instrument("loader:builtin-swc", skip_all, fields(
