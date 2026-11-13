@@ -22,9 +22,9 @@ test-loader      = ["dep:rspack_loader_testing"]
 tracy-client     = ["dep:tracy-client", "rspack_allocator/tracy-client"]
 
 [dependencies]
+async-channel             = { workspace = true }
 anyhow                    = { workspace = true }
 atomic_refcell            = { workspace = true }
-dashmap                   = { workspace = true }
 rspack_allocator          = { workspace = true }
 rspack_browserslist       = { workspace = true }
 rspack_collections        = { workspace = true }

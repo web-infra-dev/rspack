@@ -901,12 +901,12 @@ export type RuleSetLoaderWithOptions = {
    * - When set to `true`, the loader runs in a worker. Rspack automatically selects an appropriate number of
    * worker threads.
    * - When set to `{ maxWorkers }`, you can explicitly define the maximum number of workers to use.
-   * - When set to `'pure'`, the loader runs without access to the main-thread compiler or compilation.
+   * - When set to `'strict'`, the loader runs without access to the main-thread compiler or compilation.
    * - When set to `false` or omitted, the loader runs on the main thread.
    * - Worker execution skips `NormalModule`'s `loader` hook, so properties added by that hook
    * are unavailable to parallel loaders.
    */
-  parallel?: boolean | 'pure' | { maxWorkers?: number };
+  parallel?: boolean | 'strict' | { maxWorkers?: number };
 
   /**
    * Cache this loader in `experiments.newCache`.

@@ -22,7 +22,11 @@ import {
   SourceMapSource,
 } from 'webpack-sources';
 
-import { commitCustomFieldsToRust } from '../BuildInfo';
+import {
+  commitCustomFieldsToRust,
+  pickCustomBuildInfoFields,
+  replaceCustomBuildInfoFields,
+} from '../BuildInfo';
 import type { Compilation } from '../Compilation';
 import type { Compiler } from '../Compiler';
 import {
@@ -61,28 +65,25 @@ import {
   matchesCodeFilter,
 } from './codeFilter';
 import { LoaderDependenciesState } from './dependencies';
-import {
-  beginWorkerImport,
-  deserializeAdditionalData,
-  type PureLoaderCompiler,
-  serializeAdditionalData,
-  registerLoaderContext,
-} from './service';
+import * as pool from './service';
+import { type HandleIncomingRequest, RequestType } from './service';
+import type { StrictLoaderCompiler } from './strictOptions';
 import {
   convertArgs,
   extractLoaderName,
   loadLoader,
-  pureLoaderError,
+  strictLoaderError,
   runSyncOrAsync,
 } from './utils';
 import { MODULE_BUILD_INFO_SYMBOL } from '../util/symbols';
 
 const LOADER_PROCESS_NAME = 'Loader Analysis';
+const IS_WASM = Boolean(process.env.WASM);
 
-type LoaderCompiler = Compiler | PureLoaderCompiler;
+type LoaderCompiler = Compiler | StrictLoaderCompiler;
 
-function createPureLogger(): Logger {
-  return new Logger(() => {}, createPureLogger);
+function createStrictLogger(): Logger {
+  return new Logger(() => {}, createStrictLogger);
 }
 
 type LoaderObjectOptions = string | (object & { ident?: unknown }) | null;
@@ -281,12 +282,11 @@ export async function runLoaders(
   context: JsLoaderContext,
   worker?: {
     module: NonNullable<JsLoaderContext['_module']>;
-    extensions?: Record<string, unknown>;
-    pureCompiler?: PureLoaderCompiler;
+    strictCompiler?: StrictLoaderCompiler;
   },
 ): Promise<JsLoaderContext> {
-  const pureCompiler = worker?.pureCompiler;
-  const loaderCompiler = pureCompiler ?? compiler!;
+  const strictCompiler = worker?.strictCompiler;
+  const loaderCompiler = strictCompiler ?? compiler!;
   const module = worker?.module ?? context._module!;
   const loaderState = context.loaderState;
   const loaderChainStart = context.loaderChainStart;
@@ -294,16 +294,15 @@ export async function runLoaders(
   const pitch = loaderState === JsLoaderState.Pitching;
 
   const { resource } = context;
-  const traceData =
-    !context.hooksOnly && JavaScriptTracer.isEnabled()
-      ? {
-          uuid: JavaScriptTracer.uuid(),
-          args: {
-            is_pitch: pitch,
-            resource: resource,
-          },
-        }
-      : undefined;
+  const traceData = JavaScriptTracer.isEnabled()
+    ? {
+        uuid: JavaScriptTracer.uuid(),
+        args: {
+          is_pitch: pitch,
+          resource: resource,
+        },
+      }
+    : undefined;
 
   if (traceData) {
     JavaScriptTracer.startAsync({
@@ -337,7 +336,7 @@ export async function runLoaders(
     LoaderObject.__from_binding(
       item,
       loaderCompiler,
-      !!pureCompiler && (index < loaderChainStart || index >= loaderChainEnd),
+      !!strictCompiler && (index < loaderChainStart || index >= loaderChainEnd),
     ),
   );
 
@@ -378,7 +377,7 @@ export async function runLoaders(
     userOptions,
     callback,
   ) {
-    if (pureCompiler) throw pureLoaderError('importModule');
+    if (strictCompiler) throw strictLoaderError('importModule');
     if (traceData) {
       JavaScriptTracer.startAsync({
         name: 'importModule',
@@ -479,24 +478,6 @@ export async function runLoaders(
       ),
     );
   } as LoaderContext['importModule'];
-  if (worker && !pureCompiler) {
-    const importModule = loaderContext.importModule;
-    loaderContext.importModule = ((request, options, callback) => {
-      const stop = beginWorkerImport();
-      try {
-        if (callback) {
-          return importModule(request, options, (error, result) => {
-            stop();
-            callback(error, result);
-          });
-        }
-        return importModule(request, options).finally(stop);
-      } catch (error) {
-        stop();
-        throw error;
-      }
-    }) as LoaderContext['importModule'];
-  }
   Object.defineProperty(loaderContext, 'resource', {
     enumerable: true,
     get: () => {
@@ -597,7 +578,7 @@ export async function runLoaders(
   };
 
   const getResolver = memoize(() => {
-    if (pureCompiler) throw pureLoaderError('resolve and getResolve');
+    if (strictCompiler) throw strictLoaderError('resolve and getResolve');
     return compiler!._lastCompilation!.resolverFactory.get('normal');
   });
 
@@ -645,7 +626,7 @@ export async function runLoaders(
     return resolveWithOptions;
   };
   loaderContext.getLogger = function getLogger(name) {
-    if (pureCompiler) return createPureLogger();
+    if (strictCompiler) return createStrictLogger();
     return compiler!._lastCompilation!.getLogger(
       [name, resource].filter(Boolean).join('|'),
     );
@@ -654,7 +635,7 @@ export async function runLoaders(
   // The public API intentionally accepts only Error instances. Keep these runtime checks for
   // untyped JavaScript loaders that pass strings or other non-Error values.
   loaderContext.emitError = function emitError(e) {
-    if (pureCompiler) throw pureLoaderError('emitError');
+    if (strictCompiler) throw strictLoaderError('emitError');
     if (!(e instanceof Error)) {
       e = new NonErrorEmittedError(e);
     }
@@ -670,7 +651,7 @@ export async function runLoaders(
     });
   };
   loaderContext.emitWarning = function emitWarning(e) {
-    if (pureCompiler) throw pureLoaderError('emitWarning');
+    if (strictCompiler) throw strictLoaderError('emitWarning');
     if (!(e instanceof Error)) {
       e = new NonErrorEmittedError(e);
     }
@@ -719,7 +700,7 @@ export async function runLoaders(
   };
   loaderContext.experiments = {
     emitDiagnostic: (diagnostic: Diagnostic) => {
-      if (pureCompiler) throw pureLoaderError('experiments.emitDiagnostic');
+      if (strictCompiler) throw strictLoaderError('experiments.emitDiagnostic');
       const d = Object.assign({}, diagnostic, {
         message:
           diagnostic.severity === 'warning'
@@ -760,18 +741,18 @@ export async function runLoaders(
     createHash: (type) => {
       return createHash(
         type ||
-          (pureCompiler
-            ? pureCompiler.hashFunction!
+          (strictCompiler
+            ? strictCompiler.hashFunction!
             : compiler!._lastCompilation!.outputOptions.hashFunction!),
       );
     },
   };
 
-  if (pureCompiler) {
+  if (strictCompiler) {
     for (const key of ['_compiler', '_compilation', 'fs']) {
       Object.defineProperty(loaderContext, key, {
         get: () => {
-          throw pureLoaderError(key);
+          throw strictLoaderError(key);
         },
       });
     }
@@ -833,12 +814,7 @@ export async function runLoaders(
     context.__internal__parseMeta[key] = value;
   };
 
-  const original = context.hooksOnly
-    ? Object.getOwnPropertyDescriptors(loaderContext)
-    : undefined;
-  let compilation: Compilation | undefined = worker
-    ? undefined
-    : compiler!._lastCompilation;
+  let compilation: Compilation | undefined = compiler?._lastCompilation;
   let step = 0;
   while (compilation) {
     NormalModule.getCompilationHooks(compilation).loader.call(
@@ -846,37 +822,311 @@ export async function runLoaders(
       loaderContext._module,
     );
     compilation = compilation.compiler.parentCompilation;
-    if (++step > 1000) throw new Error('Too many nested child compilers');
+    step++;
+    if (step > 1000) {
+      throw Error(
+        'Too many nested child compiler, exceeded max limitation 1000',
+      );
+    }
   }
   dependencies.mergeChanges();
-  if (context.hooksOnly) {
-    const custom: Record<string, unknown> = {};
-    for (const [key, descriptor] of Object.entries(
-      Object.getOwnPropertyDescriptors(loaderContext),
-    )) {
-      if (
-        'value' in descriptor &&
-        (!original![key] || descriptor.value !== original![key].value)
-      )
-        custom[key] = descriptor.value;
+
+  const getWorkerLoaderSpan = () => {
+    let start = loaderContext.loaderIndex;
+    let end = start + 1;
+
+    if (loaderState === JsLoaderState.Pitching) {
+      while (end < loaderChainEnd && loaderContext.loaders[end]?.parallel) {
+        end++;
+      }
+    } else {
+      while (
+        start > loaderChainStart &&
+        loaderContext.loaders[start - 1]?.parallel
+      ) {
+        start--;
+      }
     }
-    context.bridgeHandle = registerLoaderContext(
-      compiler!,
-      module.buildInfo,
-      custom,
+
+    return { start, end };
+  };
+
+  const getWorkerLoaderContext = () => {
+    const normalModule =
+      loaderContext._module instanceof NormalModule
+        ? loaderContext._module
+        : undefined;
+    const workerLoaderSpan = getWorkerLoaderSpan();
+    const workerLoaderContext = {
+      version: loaderContext.version,
+      hot: loaderContext.hot,
+      context: loaderContext.context,
+      resourcePath: loaderContext.resourcePath,
+      resourceQuery: loaderContext.resourceQuery,
+      resourceFragment: loaderContext.resourceFragment,
+      resource: loaderContext.resource,
+      mode: loaderContext.mode,
+      sourceMap: loaderContext.sourceMap,
+      rootContext: loaderContext.rootContext,
+      loaderIndex: loaderContext.loaderIndex,
+      loaderChainStart: workerLoaderSpan.start,
+      loaderChainEnd: workerLoaderSpan.end,
+      loaders: loaderContext.loaders.map((item, index) => {
+        let options = item.options;
+        // Do not pass options into worker, if it's not prepared to be executed
+        // in the worker thread.
+        //
+        // Aligns yielding strategy within the worker.
+        if (
+          !item.parallel ||
+          index < workerLoaderSpan.start ||
+          index >= workerLoaderSpan.end
+        ) {
+          options = undefined;
+        }
+        return {
+          ...item,
+          options,
+          pitch: undefined,
+          normal: undefined,
+          normalExecuted: item.normalExecuted,
+          pitchExecuted: item.pitchExecuted,
+        };
+      }),
+
+      __internal__workerInfo: {
+        hashFunction: compiler!._lastCompilation!.outputOptions.hashFunction!,
+      },
+      _compiler: {
+        options: {
+          experiments: {
+            css: true,
+          },
+        },
+      },
+      _compilation: {
+        hash: compiler!._lastCompilation!.hash,
+        options: {
+          output: {
+            // css-loader
+            environment: compiler!._lastCompilation!.outputOptions.environment,
+          },
+        },
+        // css-loader
+        outputOptions: {
+          hashSalt: compiler!._lastCompilation!.outputOptions.hashSalt,
+          hashFunction: compiler!._lastCompilation!.outputOptions.hashFunction,
+          hashDigest: compiler!._lastCompilation!.outputOptions.hashDigest,
+          hashDigestLength:
+            compiler!._lastCompilation!.outputOptions.hashDigestLength,
+        },
+      },
+      _module: {
+        type: loaderContext._module.type,
+        identifier: loaderContext._module.identifier(),
+        matchResource: normalModule?.matchResource,
+        request: normalModule?.request,
+        userRequest: normalModule?.userRequest,
+        rawRequest: normalModule?.rawRequest,
+        buildInfo: pickCustomBuildInfoFields(normalModule?.buildInfo),
+      },
+    } as any;
+    Object.assign(workerLoaderContext, compiler!.options.loader);
+    return workerLoaderContext;
+  };
+
+  const getWorkerLoaderHandlers = function (): {
+    handleIncomingRequest: HandleIncomingRequest;
+  } {
+    return {
+      handleIncomingRequest(requestType, ...args) {
+        switch (requestType) {
+          case RequestType.AddDependency: {
+            loaderContext.addDependency(args[0]);
+            break;
+          }
+          case RequestType.AddContextDependency: {
+            loaderContext.addContextDependency(args[0]);
+            break;
+          }
+          case RequestType.AddMissingDependency: {
+            loaderContext.addMissingDependency(args[0]);
+            break;
+          }
+          case RequestType.AddBuildDependency: {
+            loaderContext.addBuildDependency(args[0]);
+            break;
+          }
+          case RequestType.GetDependencies: {
+            return loaderContext.getDependencies();
+          }
+          case RequestType.GetContextDependencies: {
+            return loaderContext.getContextDependencies();
+          }
+          case RequestType.GetMissingDependencies: {
+            return loaderContext.getMissingDependencies();
+          }
+          case RequestType.ClearDependencies: {
+            loaderContext.clearDependencies();
+            break;
+          }
+          case RequestType.Resolve: {
+            return new Promise((resolve, reject) => {
+              loaderContext.resolve(
+                args[0],
+                args[1],
+                (err, result, resolveRequest) => {
+                  if (err) reject(err);
+                  else resolve([result, resolveRequest]);
+                },
+              );
+            });
+          }
+          case RequestType.GetResolve: {
+            return new Promise((resolve, reject) => {
+              loaderContext.getResolve(args[0])(
+                args[1],
+                args[2],
+                (err, result, resolveRequest) => {
+                  if (err) reject(err);
+                  else resolve([result, resolveRequest]);
+                },
+              );
+            });
+          }
+          case RequestType.GetLogger: {
+            const [type, name, arg] = args;
+            (loaderContext.getLogger(name) as any)[type](...arg);
+            break;
+          }
+          case RequestType.EmitError: {
+            const workerError = args[0];
+            const error = new Error(workerError.message);
+            error.stack = workerError.stack;
+            error.name = workerError.name;
+            loaderContext.emitError(error);
+            break;
+          }
+          case RequestType.EmitWarning: {
+            const workerError = args[0];
+            const error = new Error(workerError.message);
+            error.stack = workerError.stack;
+            error.name = workerError.name;
+            loaderContext.emitWarning(error);
+            break;
+          }
+          case RequestType.EmitFile: {
+            const [name, content, sourceMap, assetInfo] = args;
+            loaderContext.emitFile(name, content, sourceMap, assetInfo);
+            break;
+          }
+          case RequestType.EmitDiagnostic: {
+            const diagnostic = args[0];
+            loaderContext.experiments.emitDiagnostic(diagnostic);
+            break;
+          }
+          case RequestType.SetCacheable: {
+            const cacheable = args[0];
+            loaderContext.cacheable(cacheable);
+            break;
+          }
+          case RequestType.ImportModule: {
+            return loaderContext.importModule(args[0], args[1]);
+          }
+          case RequestType.UpdateLoaderObjects: {
+            const updates = args[0];
+            loaderContext.loaders = loaderContext.loaders.map((item, index) => {
+              const update = updates[index];
+              item.loaderItem.data = update.data;
+              if (update.pitchExecuted) {
+                item.pitchExecuted = true;
+              }
+              if (update.normalExecuted) {
+                item.normalExecuted = true;
+              }
+              if (update.filterMatched) {
+                item.loaderItem.filterMatched = true;
+              }
+              return item;
+            });
+            break;
+          }
+          case RequestType.UpdateBuildInfo: {
+            const buildInfo = loaderContext._module?.buildInfo as
+              Record<string, unknown> | undefined;
+            if (buildInfo) {
+              replaceCustomBuildInfoFields(
+                buildInfo,
+                pickCustomBuildInfoFields(args[0]),
+              );
+            }
+            break;
+          }
+          case RequestType.CompilationGetPath: {
+            const filename = args[0];
+            const data = args[1];
+            return compiler!._lastCompilation!.getPath(filename, data);
+          }
+          case RequestType.CompilationGetPathWithInfo: {
+            const filename = args[0];
+            const data = args[1];
+            const initialInfo = args[2];
+            return compiler!._lastCompilation!.getPathWithInfo(
+              initialInfo
+                ? (_pathData, info) => {
+                    Object.assign(info!, initialInfo);
+                    return filename;
+                  }
+                : filename,
+              data,
+            );
+          }
+          case RequestType.CompilationGetAssetPath: {
+            const filename = args[0];
+            const data = args[1];
+            return compiler!._lastCompilation!.getAssetPath(filename, data);
+          }
+          case RequestType.CompilationGetAssetPathWithInfo: {
+            const filename = args[0];
+            const data = args[1];
+            const initialInfo = args[2];
+            return compiler!._lastCompilation!.getAssetPathWithInfo(
+              initialInfo
+                ? (_pathData, info) => {
+                    Object.assign(info!, initialInfo);
+                    return filename;
+                  }
+                : filename,
+              data,
+            );
+          }
+          default: {
+            throw new Error(`Unknown request type: ${requestType}`);
+          }
+        }
+      },
+    };
+  };
+
+  const enableParallelism = (currentLoaderObject: any) => {
+    // A buffer backed by WASM linear memory retains the entire backing store
+    // after crossing the worker boundary, so a cached loader must stay on the
+    // main thread to avoid copying the whole WASM memory through N-API.
+    if (IS_WASM && currentLoaderObject?.loaderItem.cache) return false;
+
+    return (
+      !strictCompiler &&
+      currentLoaderObject?.parallel !== 'strict' &&
+      currentLoaderObject?.parallel
     );
-    context.addedDependencies = dependencies.added;
-    context.removedDependencies = dependencies.removed;
-    return context;
-  }
-  if (worker?.extensions) Object.assign(loaderContext, worker.extensions);
-  if (worker) loaderContext._module = worker.module;
+  };
 
   const isomorphoicRun = async (fn: Function, args: any[]) => {
     const currentLoaderObject = getCurrentLoader(loaderContext);
+    const parallelism = enableParallelism(currentLoaderObject);
     let loaderName: string | undefined;
 
-    if (traceData) {
+    if (traceData || parallelism) {
       loaderName = extractLoaderName(currentLoaderObject!.request);
     }
 
@@ -890,9 +1140,27 @@ export async function runLoaders(
       });
     }
 
-    if (loaderState === JsLoaderState.Normal)
-      convertArgs(args, !!currentLoaderObject?.raw);
-    const result = (await runSyncOrAsync(fn, loaderContext, args)) || [];
+    let result: any;
+    if (parallelism) {
+      result =
+        (await pool.run(
+          loaderName!,
+          {
+            loaderContext: getWorkerLoaderContext(),
+            loaderState,
+            args,
+          },
+          getWorkerLoaderHandlers(),
+          typeof currentLoaderObject?.parallel === 'object'
+            ? currentLoaderObject.parallel
+            : undefined,
+        )) || [];
+    } else {
+      if (loaderState === JsLoaderState.Normal)
+        convertArgs(args, !!currentLoaderObject?.raw);
+      result =
+        (await runSyncOrAsync(fn, loaderContext, args, !strictCompiler)) || [];
+    }
 
     if (traceData) {
       JavaScriptTracer.endAsync({
@@ -921,7 +1189,9 @@ export async function runLoaders(
 
           await loadLoader(currentLoaderObject, compiler);
           const fn = currentLoaderObject.pitch;
-          currentLoaderObject.pitchExecuted = true;
+          if (!enableParallelism(currentLoaderObject) || !fn) {
+            currentLoaderObject.pitchExecuted = true;
+          }
           if (!fn) continue;
 
           dependencies.resetChanges();
@@ -946,9 +1216,10 @@ export async function runLoaders(
                 ? content
                 : toBuffer(content);
             context.sourceMap = serializeObject(sourceMap);
-            context.additionalData = isNil(additionalData)
+            // A pitch result starts normal execution at the preceding loader.
+            context.additionalData = strictCompiler
               ? undefined
-              : serializeAdditionalData(additionalData, !!pureCompiler);
+              : additionalData || undefined;
             break;
           }
         }
@@ -962,9 +1233,9 @@ export async function runLoaders(
         let sourceMap: string | object | undefined;
         let sourceMapParsed = false;
         const codeFilterTextCache = createCodeFilterTextCache();
-        let additionalData = isNil(context.additionalData)
+        let additionalData = strictCompiler
           ? undefined
-          : deserializeAdditionalData(context.additionalData, !!pureCompiler);
+          : context.additionalData;
 
         while (loaderContext.loaderIndex >= loaderChainStart) {
           const currentLoaderObject =
@@ -985,7 +1256,9 @@ export async function runLoaders(
           try {
             await loadLoader(currentLoaderObject, compiler);
             const fn = currentLoaderObject.normal;
-            currentLoaderObject.normalExecuted = true;
+            if (!enableParallelism(currentLoaderObject) || !fn) {
+              currentLoaderObject.normalExecuted = true;
+            }
             if (!fn) continue;
 
             // Parse source map lazily only when a JavaScript loader consumes it.
@@ -1013,13 +1286,10 @@ export async function runLoaders(
         context.sourceMap = sourceMapParsed
           ? JsSourceMap.__to_binding(sourceMap)
           : rawSourceMap;
-        // Rust has no consumer after the chain finishes; avoid creating an unused JS reference.
         context.additionalData =
-          loaderContext.loaderIndex < 0
+          strictCompiler || loaderContext.loaderIndex < 0
             ? undefined
-            : isNil(additionalData)
-              ? undefined
-              : serializeAdditionalData(additionalData, !!pureCompiler);
+            : additionalData || undefined;
 
         break;
       }

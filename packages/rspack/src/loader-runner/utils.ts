@@ -10,8 +10,8 @@ import loadLoaderRaw from './loadLoader';
 
 const decoder = new TextDecoder();
 
-export function pureLoaderError(feature: string): Error {
-  return new Error(`${feature} is unavailable with \`parallel: 'pure'\`.`);
+export function strictLoaderError(feature: string): Error {
+  return new Error(`${feature} is unavailable with \`parallel: 'strict'\`.`);
 }
 
 function utf8BufferToString(buf: Uint8Array) {
@@ -54,6 +54,7 @@ export const runSyncOrAsync = promisify(function runSyncOrAsync(
   fn: Function,
   context: LoaderContext,
   args: any[],
+  allowAdditionalData: boolean,
   callback: (err: Error | null | undefined, args: any[]) => void,
 ) {
   let isSync = true;
@@ -76,6 +77,7 @@ export const runSyncOrAsync = promisify(function runSyncOrAsync(
     isDone = true;
     isSync = false;
     try {
+      if (!allowAdditionalData && args.length > 2) args.length = 2;
       callback(err, args);
     } catch (e) {
       isError = true;

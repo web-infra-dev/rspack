@@ -36,6 +36,10 @@ const externalAlias: Rspack.Externals = ({ request }, callback) => {
     }
   }
 
+  if (new RegExp(/^tinypool$/).test(request!)) {
+    return callback(undefined, '../compiled/tinypool/dist/index.js');
+  }
+
   return callback();
 };
 

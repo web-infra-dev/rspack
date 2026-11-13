@@ -284,7 +284,7 @@ export declare class JsCompilation {
 }
 
 export declare class JsCompiler {
-  constructor(compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache, jsHelpers: JsHelpers, taskSubscription: ExternalObject<'JsTaskSubscription'>)
+  constructor(compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache, jsHelpers: JsHelpers)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -342,15 +342,6 @@ export declare class JsExportsInfo {
   getUsed(name: string | string[], runtime: string | string[] | undefined):  0 | 1 | 2 | 3 | 4
 }
 
-export declare class JsLoaderTask {
-  get id(): number
-  get pure(): boolean
-  get mainObjectHandle(): number
-  takeContext(): JsLoaderContext
-  complete(context: JsLoaderContext): void
-  fail(error: string): void
-}
-
 export declare class JsModuleGraph {
   getModule(dependency: Dependency | EntryDependency): Module | null
   getResolvedModule(dependency: Dependency | EntryDependency): Module | null
@@ -389,6 +380,13 @@ export declare class JsResolverFactory {
 export declare class JsStats {
   toJson(jsOptions: JsStatsOptions): JsStatsCompilation
   getLogging(acceptedTypes: number): Array<JsLog>
+}
+
+export declare class JsStrictLoaderTask {
+  get owner(): number
+  takeContext(): JsLoaderContext
+  complete(context: JsLoaderContext): void
+  fail(reason: string): void
 }
 
 export declare class KnownBuildInfo {}
@@ -478,8 +476,6 @@ export interface AssetInfoRelated {
 }
 
 export declare function async(path: string, request: string): Promise<ResolveResult>
-
-export declare function beginJsTaskImport(): ExternalObject<'JsTaskImport'>
 
 export interface BuiltinPlugin {
   name: BuiltinPluginName | CustomPluginName
@@ -595,8 +591,6 @@ export declare enum BuiltinPluginName {
 
 export declare function cleanupGlobalTrace(): void
 
-export declare function completeLoaderTaskHooks(id: number, context: JsLoaderContext): void
-
 export declare function concatenatedModuleGetModules(module: Module): Module[]
 
 export declare function concatenatedModuleGetRootModule(module: Module): Module
@@ -605,8 +599,6 @@ export interface ContextInfo {
   issuer: string
   issuerLayer?: string
 }
-
-export declare function endJsTaskImport(permit: ExternalObject<'JsTaskImport'>): void
 
 export declare enum EnforceExtension {
   Auto = 0,
@@ -624,13 +616,6 @@ export declare function externalModuleGetUserRequest(module: Module): string
 
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
 
-/**
- * The returned holder transfers its strong reference to a JsCompiler. Worker
- * registration is owned by the main subscription and returns an empty holder.
- */
-export declare function getJsTaskSubscription(isWorker: boolean): ExternalObject<'JsTaskSubscription'>
-
-/** Read cached V8 bytes in the calling worker env, without a main-thread RPC. */
 export declare function getSerializedLoaderOptions(owner: number, ident?: string | undefined | null): Buffer | null
 
 export interface JsAddingRuntimeModule {
@@ -946,13 +931,11 @@ export interface JsLinkPreloadData {
 
 export interface JsLoaderContext {
   resource: string
-  _module?: Module
+  _module: Module
   hot: Readonly<boolean>
   /** Content maybe empty in pitching stage */
   content: string | Buffer | null
-  additionalData?: number | Buffer
-  hooksOnly: boolean
-  bridgeHandle?: number
+  additionalData?: any
   __internal__parseMeta: Record<string, string>
   sourceMap?: Buffer
   cacheable: boolean
@@ -1923,9 +1906,6 @@ export interface PathWithInfo {
   path: string
   info: AssetInfo
 }
-
-/** Main-isolate hook view. Called through RPC after a worker receives native work. */
-export declare function prepareLoaderTask(id: number): JsLoaderContext
 
 export interface RawAliasOptionItem {
   path: string
@@ -3473,14 +3453,9 @@ export interface RegisterJsTaps {
   registerRsdoctorPluginAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>
 }
 
-/** Register one compiler-independent entry point in the current JS env. */
-export declare function registerJsTaskRunner(runner: (arg0: unknown, arg1: unknown) => void, workerId?: number | undefined | null): void
+export declare function registerStrictLoader(owner: number, ident: string, options: Buffer, compilerOptions?: Buffer | undefined | null): void
 
-export declare function registerLoaderReference(owner: number, ident: string, parallel: boolean, serialized?: Buffer | undefined | null, pure?: boolean | undefined | null, pureCompilerOptions?: Buffer | undefined | null): boolean
-
-export declare function registerLoaderWorker(id: number): void
-
-export declare function registerMainObjectRelease(release: (value: number) => void): void
+export declare function registerStrictLoaderWorker(id: number): void
 
 export declare function releaseLoaderReferences(owner: number): void
 
@@ -3524,8 +3499,9 @@ export interface SourcePosition {
   column?: number
 }
 
-/** Called only after Node reports worker exit: no JS can still access its context. */
-export declare function stopLoaderWorker(id: number): void
+export declare function stopStrictLoaderWorker(id: number): void
+
+export declare function subscribeStrictLoaderWorker(worker: number, callback: (arg: JsStrictLoaderTask) => void): void
 
 export declare function sync(path: string, request: string): ResolveResult
 

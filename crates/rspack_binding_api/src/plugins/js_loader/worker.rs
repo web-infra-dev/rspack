@@ -1,384 +1,362 @@
-//! Native loader work is moved between the loader runner and JS isolates. No N-API
-//! value is constructed until a worker takes a task's context.
-use std::sync::{
-  Arc, LazyLock, Mutex,
-  atomic::{AtomicBool, AtomicU32, Ordering},
+use std::{
+  ptr,
+  sync::{
+    Arc, LazyLock, Mutex,
+    atomic::{AtomicU32, Ordering},
+  },
 };
 
-use napi::bindgen_prelude::*;
-use napi_derive::napi;
-use rspack_core::{LoaderContext, RunnerContext};
-use rspack_napi::js_tasks::{
-  LoaderTask as NativeLoaderTask, LoaderTaskMode, TimingPoint, js_task_dispatcher,
-};
+use napi::{bindgen_prelude::*, sys};
+use rspack_core::StrictLoaderTask;
 use rustc_hash::FxHashMap;
+use tokio_util::sync::CancellationToken;
 
 use super::{
   JsLoaderContext,
-  bridge::MainObjectHandle,
-  result::{merge_loader_context, merge_loader_hooks},
+  scheduler::{collect_loaders_without_pitch, merge_loader_context},
 };
 use crate::module::WorkerModuleScope;
 
-// Resources acquired in a JS environment stay in binding, outside the queue's
-// native task protocol. Revoke the module scope before returning native state.
-pub(crate) struct ActiveLoaderTask {
-  native: Option<NativeLoaderTask>,
-  _permit: Option<crate::js_tasks::TaskPermit>,
-  module_scope: Option<Arc<WorkerModuleScope>>,
-  bridge_handle: Option<MainObjectHandle>,
+type ActiveTask = Arc<Mutex<Option<(StrictLoaderTask, Option<Arc<WorkerModuleScope>>)>>>;
+type WorkerTasks = FxHashMap<u32, ActiveTask>;
+
+struct Queue {
+  sender: async_channel::Sender<StrictLoaderTask>,
+  receiver: async_channel::Receiver<StrictLoaderTask>,
+  workers: Mutex<FxHashMap<u32, WorkerTasks>>,
 }
 
-impl ActiveLoaderTask {
-  fn native(&self) -> &NativeLoaderTask {
-    self
-      .native
-      .as_ref()
-      .expect("unfinished task owns native state")
+static QUEUE: LazyLock<Queue> = LazyLock::new(|| {
+  let (sender, receiver) = async_channel::unbounded();
+  Queue {
+    sender,
+    receiver,
+    workers: Mutex::default(),
   }
+});
+static NEXT_TASK: AtomicU32 = AtomicU32::new(0);
 
-  fn context(&self) -> &LoaderContext<RunnerContext> {
-    self.native().context()
-  }
-
-  fn context_mut(&mut self) -> &mut LoaderContext<RunnerContext> {
-    self
-      .native
-      .as_mut()
-      .expect("unfinished task owns native state")
-      .context_mut()
-  }
-
-  fn revoke(&self) {
-    if let Some(scope) = &self.module_scope {
-      scope.revoke();
-    }
-  }
-
-  fn finish(mut self, pitches: Vec<String>, result: rspack_error::Result<()>) {
-    self.revoke();
-    if let Some(timing) = &self.native().timing {
-      timing.mark(TimingPoint::Returned);
-    }
-    self
-      .native
-      .take()
-      .expect("unfinished task owns native state")
-      .finish(pitches, result);
+pub(super) fn dispatch(task: StrictLoaderTask) {
+  let workers = QUEUE
+    .workers
+    .lock()
+    .expect("strict loader workers lock poisoned");
+  if workers.is_empty() {
+    task.finish(
+      Vec::new(),
+      Err(rspack_error::error!(
+        "No strict loader workers are available"
+      )),
+    );
+  } else if let Err(error) = QUEUE.sender.try_send(task) {
+    error.into_inner().finish(
+      Vec::new(),
+      Err(rspack_error::error!("Strict loader queue is closed")),
+    );
   }
 }
-
-impl Drop for ActiveLoaderTask {
-  fn drop(&mut self) {
-    self.revoke();
-    // NativeLoaderTask::drop returns the context after this revoke.
-  }
-}
-
-#[derive(Default)]
-struct WorkerSlot {
-  stopped: AtomicBool,
-  tasks: Mutex<FxHashMap<u32, TaskCell>>,
-}
-
-static NEXT_TASK: AtomicU32 = AtomicU32::new(1);
-pub(crate) type TaskCell = Arc<Mutex<Option<ActiveLoaderTask>>>;
-static TASKS: LazyLock<Mutex<FxHashMap<u32, TaskCell>>> = LazyLock::new(Default::default);
-static WORKERS: LazyLock<Mutex<FxHashMap<u32, Arc<WorkerSlot>>>> = LazyLock::new(Default::default);
 
 #[napi]
-pub fn register_loader_worker(id: u32) -> napi::Result<()> {
-  // The WASI binding instantiates its own memory in each Node worker. Those
-  // workers cannot consume this instance's native task queue.
-  if cfg!(target_family = "wasm") {
-    return Err(napi::Error::from_reason(
-      "Rule.use.parallel requires the native Rspack binding; separate WASI instances do not share the JS task queue",
-    ));
-  }
-  WORKERS
+pub fn register_strict_loader_worker(id: u32) {
+  QUEUE
+    .workers
     .lock()
-    .expect("loader workers lock poisoned")
+    .expect("strict loader workers lock poisoned")
     .entry(id)
     .or_default();
-  js_task_dispatcher().register_worker(id);
-  Ok(())
 }
 
-/// Called only after Node reports worker exit: no JS can still access its context.
+// The parent calls this after Node reports exit, when JS can no longer access a module.
 #[napi]
-pub fn stop_loader_worker(id: u32) {
-  js_task_dispatcher().stop_worker(id);
-  let slot = WORKERS
-    .lock()
-    .expect("loader workers lock poisoned")
-    .remove(&id);
-  if let Some(slot) = slot {
-    slot.stopped.store(true, Ordering::Release);
-    let tasks = std::mem::take(&mut *slot.tasks.lock().expect("loader tasks lock poisoned"));
-    for (id, cell) in tasks {
-      TASKS
-        .lock()
-        .expect("loader tasks lock poisoned")
-        .remove(&id);
-      if let Some(task) = cell.lock().expect("loader task lock poisoned").take() {
+pub fn stop_strict_loader_worker(id: u32) {
+  let tasks = {
+    let mut workers = QUEUE
+      .workers
+      .lock()
+      .expect("strict loader workers lock poisoned");
+    let tasks = workers.remove(&id);
+    if workers.is_empty() {
+      while let Ok(task) = QUEUE.receiver.try_recv() {
         task.finish(
           Vec::new(),
           Err(rspack_error::error!(
-            "Parallel loader worker exited before completing its task"
+            "No strict loader workers are available"
           )),
         );
       }
     }
+    tasks
+  };
+  for (_, task) in tasks.into_iter().flatten() {
+    finish_failed(&task, "Strict loader worker exited");
+  }
+}
+
+fn finish_failed(cell: &ActiveTask, reason: &str) {
+  if let Some((task, scope)) = cell
+    .lock()
+    .expect("strict loader task lock poisoned")
+    .take()
+  {
+    if let Some(scope) = scope {
+      scope.revoke();
+    }
+    task.finish(Vec::new(), Err(rspack_error::error!("{reason}")));
   }
 }
 
 #[napi]
-pub struct JsLoaderTask {
-  slot: Arc<WorkerSlot>,
+pub struct JsStrictLoaderTask {
+  worker: u32,
   id: u32,
-  task: TaskCell,
-  context_taken: bool,
-  worker: bool,
-  pure: bool,
-  finished: bool,
+  task: ActiveTask,
+  ready: Mutex<Option<tokio::sync::oneshot::Sender<()>>>,
 }
 
 #[napi]
-impl JsLoaderTask {
+impl JsStrictLoaderTask {
   #[napi(getter)]
-  pub fn id(&self) -> u32 {
-    self.id
-  }
-  #[napi(getter)]
-  pub fn pure(&self) -> bool {
-    self.pure
-  }
-
-  #[napi(getter)]
-  pub fn main_object_handle(&self) -> napi::Result<u32> {
-    let guard = self.task.lock().expect("loader task lock poisoned");
-    Ok(
-      guard
-        .as_ref()
-        .ok_or_else(|| napi::Error::from_reason("Loader task has finished"))?
-        .native()
-        .main_object_handle,
-    )
+  pub fn owner(&self) -> napi::Result<u32> {
+    self
+      .task
+      .lock()
+      .expect("strict loader task lock poisoned")
+      .as_ref()
+      .map(|(task, _)| task.owner)
+      .ok_or_else(|| napi::Error::from_reason("Strict loader task has finished"))
   }
 
   #[napi]
-  pub fn take_context(&mut self) -> napi::Result<JsLoaderContext> {
-    if self.context_taken {
+  pub fn take_context(&self) -> napi::Result<JsLoaderContext> {
+    let mut active = self.task.lock().expect("strict loader task lock poisoned");
+    let (task, scope) = active
+      .as_mut()
+      .ok_or_else(|| napi::Error::from_reason("Strict loader task has finished"))?;
+    if scope.is_some() {
       return Err(napi::Error::from_reason(
-        "Loader task context has already been taken",
+        "Strict loader context has already been taken",
       ));
     }
-    let mut guard = self.task.lock().expect("loader task lock poisoned");
-    let task = guard
-      .as_mut()
-      .ok_or_else(|| napi::Error::from_reason("Loader task has finished"))?;
-    if let Some(timing) = &task.native().timing {
-      timing.mark(TimingPoint::ContextStarted);
-    }
-    let mut context = JsLoaderContext::try_from(task.context_mut())
+    let (start, end) = (task.start, task.end);
+    let native = task.context_mut();
+    let worker_scope = WorkerModuleScope::new(native.context.options.context.clone());
+    let mut context = JsLoaderContext::try_from(native)
       .map_err(|error| napi::Error::from_reason(error.to_string()))?;
-    if self.worker {
-      let native = &task.context().context;
-      let scope = WorkerModuleScope::new(native.options.context.clone());
-      context.module = context
-        .module
-        .map(|module| module.with_worker_scope(scope.clone()));
-      task.module_scope = Some(scope);
-    }
-    context.loader_chain_start = task.native().start;
-    context.loader_chain_end = task.native().end;
-    context.bridge_handle = task.bridge_handle.as_ref().map(MainObjectHandle::handle);
-    self.context_taken = true;
-    if let Some(timing) = &task.native().timing {
-      timing.mark(TimingPoint::ContextPrepared);
-    }
+    context.module = context.module.with_worker_scope(worker_scope.clone());
+    *scope = Some(worker_scope);
+    context.loader_chain_start = start;
+    context.loader_chain_end = end;
     Ok(context)
   }
 
   #[napi]
-  pub fn complete(&mut self, context: JsLoaderContext) -> napi::Result<()> {
-    let mut task = self
+  pub fn complete(&self, mut context: JsLoaderContext) -> napi::Result<()> {
+    let (mut task, scope) = self
       .task
       .lock()
-      .expect("loader task lock poisoned")
+      .expect("strict loader task lock poisoned")
       .take()
-      .ok_or_else(|| napi::Error::from_reason("Loader task has finished"))?;
-    if let Some(timing) = &task.native().timing {
-      timing.mark(TimingPoint::CompleteEntered);
+      .ok_or_else(|| napi::Error::from_reason("Strict loader task has finished"))?;
+    if let Some(scope) = scope {
+      scope.revoke();
     }
-    let pitches = context
-      .loader_items
-      .iter()
-      .zip(task.context().loader_items.iter())
-      .filter(|(js, _)| js.no_pitch)
-      .map(|(_, native)| native.path().to_string())
-      .collect();
-    let result = merge_loader_context(task.context_mut(), context);
-    self.finished = true;
-    self.unregister();
+    context.additional_data = None;
+    let native = task.context_mut();
+    let pitches = collect_loaders_without_pitch(native, &context);
+    let result = merge_loader_context(native, context);
     task.finish(pitches, result);
+    self.unregister();
     Ok(())
   }
 
   #[napi]
-  pub fn fail(&mut self, error: String) -> napi::Result<()> {
-    let task = self
-      .task
-      .lock()
-      .expect("loader task lock poisoned")
-      .take()
-      .ok_or_else(|| napi::Error::from_reason("Loader task has finished"))?;
-    self.finished = true;
+  pub fn fail(&self, reason: String) {
+    finish_failed(&self.task, &reason);
     self.unregister();
-    task.finish(Vec::new(), Err(rspack_error::error!(error)));
-    Ok(())
   }
 }
 
-impl JsLoaderTask {
-  pub(crate) fn from_task(
-    task: NativeLoaderTask,
-    worker: Option<u32>,
-    permit: Option<crate::js_tasks::TaskPermit>,
-  ) -> Option<Self> {
-    let pure = task.mode == LoaderTaskMode::Pure;
-    let task = ActiveLoaderTask {
-      native: Some(task),
-      _permit: permit,
-      module_scope: None,
-      bridge_handle: None,
-    };
-    let slot = match worker {
-      Some(id) => WORKERS
-        .lock()
-        .expect("loader workers lock poisoned")
-        .get(&id)
-        .cloned(),
-      None => Some(Arc::default()),
-    };
-    let Some(slot) = slot else {
-      task.finish(
-        Vec::new(),
-        Err(rspack_error::error!("Loader worker is unavailable")),
-      );
-      return None;
-    };
-    let mut active = slot.tasks.lock().expect("loader tasks lock poisoned");
-    if slot.stopped.load(Ordering::Acquire) {
-      task.finish(
-        Vec::new(),
-        Err(rspack_error::error!("Loader worker has exited")),
-      );
-      return None;
-    }
-    let id = NEXT_TASK.fetch_add(1, Ordering::Relaxed);
-    if let Some(timing) = &task.native().timing {
-      timing.identify(id, worker);
-    }
-    let task = Arc::new(Mutex::new(Some(task)));
-    active.insert(id, task.clone());
-    // Only bridged workers need to look up an active task from the main env.
-    if worker.is_some() && !pure {
-      TASKS
-        .lock()
-        .expect("loader tasks lock poisoned")
-        .insert(id, task.clone());
-    }
-    drop(active);
-    Some(Self {
-      slot,
-      id,
-      task,
-      context_taken: false,
-      worker: worker.is_some(),
-      pure,
-      finished: false,
-    })
-  }
-
-  pub(crate) fn failure_handle(&self) -> TaskCell {
-    self.task.clone()
-  }
-
-  pub(crate) fn fail_handle(cell: TaskCell, error: String) {
-    if let Some(task) = cell.lock().expect("loader task lock poisoned").take() {
-      task.finish(Vec::new(), Err(rspack_error::error!(error)));
-    }
-  }
-
-  fn unregister(&mut self) {
+impl JsStrictLoaderTask {
+  fn unregister(&self) {
     self
-      .slot
-      .tasks
+      .ready
       .lock()
-      .expect("loader tasks lock poisoned")
-      .remove(&self.id);
-    if self.worker && !self.pure {
-      TASKS
-        .lock()
-        .expect("loader tasks lock poisoned")
-        .remove(&self.id);
-    }
-  }
-}
-
-impl Drop for JsLoaderTask {
-  fn drop(&mut self) {
-    self.unregister();
-    if !self.finished
-      && let Some(task) = self.task.lock().expect("loader task lock poisoned").take()
+      .expect("strict loader permit lock poisoned")
+      .take();
+    if let Some(tasks) = QUEUE
+      .workers
+      .lock()
+      .expect("strict loader workers lock poisoned")
+      .get_mut(&self.worker)
     {
-      task.finish(
-        Vec::new(),
-        Err(rspack_error::error!("Parallel loader task was abandoned")),
-      );
+      tasks.remove(&self.id);
     }
   }
 }
 
-/// Main-isolate hook view. Called through RPC after a worker receives native work.
-#[napi]
-pub fn prepare_loader_task(id: u32) -> napi::Result<JsLoaderContext> {
-  let cell = TASKS
-    .lock()
-    .expect("loader tasks lock poisoned")
-    .get(&id)
-    .cloned()
-    .ok_or_else(|| napi::Error::from_reason("Loader task has finished"))?;
-  let mut guard = cell.lock().expect("loader task lock poisoned");
-  let task = guard
-    .as_mut()
-    .ok_or_else(|| napi::Error::from_reason("Loader task has finished"))?;
-  let mut context = JsLoaderContext::from_native(task.context_mut(), true)
-    .map_err(|error| napi::Error::from_reason(error.to_string()))?;
-  context.loader_chain_start = task.native().start;
-  context.loader_chain_end = task.native().end;
-  Ok(context)
+impl Drop for JsStrictLoaderTask {
+  fn drop(&mut self) {
+    finish_failed(&self.task, "Strict loader task was abandoned");
+    self.unregister();
+  }
+}
+
+struct Delivery {
+  worker: u32,
+  task: StrictLoaderTask,
+  ready: tokio::sync::oneshot::Sender<()>,
+}
+
+struct WorkerCallback(Mutex<sys::napi_threadsafe_function>);
+
+// Node-API allows calling and releasing a TSFN from any native thread.
+// The lock serializes posting with environment teardown.
+unsafe impl Send for WorkerCallback {}
+unsafe impl Sync for WorkerCallback {}
+
+impl WorkerCallback {
+  fn post(&self, delivery: Delivery) {
+    let callback = self.0.lock().expect("strict loader callback lock poisoned");
+    if callback.is_null() {
+      return;
+    }
+    let data = Box::into_raw(Box::new(delivery));
+    let status = unsafe {
+      sys::napi_call_threadsafe_function(
+        *callback,
+        data.cast(),
+        sys::ThreadsafeFunctionCallMode::nonblocking,
+      )
+    };
+    if status != sys::Status::napi_ok {
+      drop(unsafe { Box::from_raw(data) });
+    }
+  }
+
+  fn abort(&self) {
+    let mut callback = self.0.lock().expect("strict loader callback lock poisoned");
+    if !callback.is_null() {
+      unsafe {
+        sys::napi_release_threadsafe_function(*callback, sys::ThreadsafeFunctionReleaseMode::abort)
+      };
+      *callback = ptr::null_mut();
+    }
+  }
+}
+
+impl Drop for WorkerCallback {
+  fn drop(&mut self) {
+    self.abort();
+  }
 }
 
 #[napi]
-pub fn complete_loader_task_hooks(id: u32, context: JsLoaderContext) -> napi::Result<()> {
-  let handle = MainObjectHandle::new(
-    context
-      .bridge_handle
-      .ok_or_else(|| napi::Error::from_reason("Loader hooks did not register their context"))?,
-  );
-  let cell = TASKS
-    .lock()
-    .expect("loader tasks lock poisoned")
-    .get(&id)
-    .cloned()
-    .ok_or_else(|| napi::Error::from_reason("Loader task has finished"))?;
-  let mut guard = cell.lock().expect("loader task lock poisoned");
-  let task = guard
-    .as_mut()
-    .ok_or_else(|| napi::Error::from_reason("Loader task has finished"))?;
-  merge_loader_hooks(task.context_mut(), context);
-  task.bridge_handle = Some(handle);
+pub fn subscribe_strict_loader_worker(
+  env: Env,
+  worker: u32,
+  callback: Function<JsStrictLoaderTask, ()>,
+) -> napi::Result<()> {
+  if cfg!(target_family = "wasm") {
+    return Err(napi::Error::from_reason(
+      "Strict loader workers require the native binding",
+    ));
+  }
+  rspack_napi::runtime::ensure_runtime(&env)?;
+  let mut tsfn = ptr::null_mut();
+  let name = env.create_string("rspack:strict-loader")?;
+  check_status!(unsafe {
+    sys::napi_create_threadsafe_function(
+      env.raw(),
+      callback.raw(),
+      ptr::null_mut(),
+      name.raw(),
+      0,
+      1,
+      ptr::null_mut(),
+      None,
+      ptr::null_mut(),
+      Some(call_js),
+      &mut tsfn,
+    )
+  })?;
+  let callback = Arc::new(WorkerCallback(Mutex::new(tsfn)));
+  check_status!(unsafe { sys::napi_unref_threadsafe_function(env.raw(), tsfn) })?;
+  let cancel = CancellationToken::new();
+  let cleanup = callback.clone();
+  let cleanup_cancel = cancel.clone();
+  env.add_env_cleanup_hook((), move |_| {
+    cleanup_cancel.cancel();
+    cleanup.abort();
+    stop_strict_loader_worker(worker);
+  })?;
+  register_strict_loader_worker(worker);
+  rspack_napi::runtime::spawn(async move {
+    loop {
+      let task = tokio::select! {
+        biased;
+        _ = cancel.cancelled() => break,
+        task = QUEUE.receiver.recv() => task.expect("strict loader queue remains open"),
+      };
+      let (ready, done) = tokio::sync::oneshot::channel();
+      callback.post(Delivery {
+        worker,
+        task,
+        ready,
+      });
+      tokio::select! {
+        biased;
+        _ = cancel.cancelled() => break,
+        _ = done => {},
+      }
+    }
+  });
   Ok(())
+}
+
+extern "C" fn call_js(
+  env: sys::napi_env,
+  callback: sys::napi_value,
+  _context: *mut std::ffi::c_void,
+  data: *mut std::ffi::c_void,
+) {
+  let Delivery {
+    worker,
+    task,
+    ready,
+  } = *unsafe { Box::<Delivery>::from_raw(data.cast()) };
+  if env.is_null() {
+    return;
+  }
+  let id = NEXT_TASK.fetch_add(1, Ordering::Relaxed);
+  let cell = Arc::new(Mutex::new(Some((task, None))));
+  {
+    let mut workers = QUEUE
+      .workers
+      .lock()
+      .expect("strict loader workers lock poisoned");
+    let Some(tasks) = workers.get_mut(&worker) else {
+      return;
+    };
+    tasks.insert(id, cell.clone());
+  }
+  let task = JsStrictLoaderTask {
+    worker,
+    id,
+    task: cell.clone(),
+    ready: Mutex::new(Some(ready)),
+  };
+  let result = (|| {
+    let task = unsafe { ToNapiValue::to_napi_value(env, task) }?;
+    let mut receiver = ptr::null_mut();
+    check_status!(unsafe { sys::napi_get_undefined(env, &mut receiver) })?;
+    let mut ignored = ptr::null_mut();
+    check_status!(unsafe {
+      sys::napi_call_function(env, receiver, callback, 1, &task, &mut ignored)
+    })
+  })();
+  if let Err(error) = result {
+    finish_failed(&cell, &error.to_string());
+    let mut exception = ptr::null_mut();
+    unsafe { sys::napi_get_and_clear_last_exception(env, &mut exception) };
+  }
 }

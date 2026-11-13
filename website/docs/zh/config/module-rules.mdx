@@ -811,7 +811,7 @@ type RuleSetLoaderWithOptions = {
   ident?: string;
   loader: string;
   options?: string | Record<string, any>;
-  parallel?: boolean | 'pure' | { maxWorkers?: number };
+  parallel?: boolean | 'strict' | { maxWorkers?: number };
   cache?: boolean;
   codeFilter?: RuleSetLoaderCodeFilter;
 };
@@ -986,56 +986,24 @@ export default {
 
 <ApiMeta addedVersion="1.3.1" />
 
-- **类型**: `boolean | 'pure' | { maxWorkers?: number }`
+- **类型**: `boolean | 'strict' | { maxWorkers?: number }`
 - **默认值:** `false`
 
-用于将指定 loader 放入 worker threads 中并行执行，被标记为 `parallel` 的 loader 会通过多线程调度运行，从而减少主线程的负担并提升构建性能。
+控制 JavaScript loader 的执行方式。
 
-- 设置为 `true` 时，loader 会在 worker 中执行，并由 Rspack 自动选择合适的线程数量。
-- 设置为 `{ maxWorkers }` 时，可以手动控制最大 worker 的数量。
-- 设置为 `'pure'` 时，pitch 和 normal 阶段均在 worker 中执行，不调用主线程对象桥。
-- 设置为 `false` 或省略时，该 loader 默认会在主线程中执行。
+- `true` 在共享 worker 池中运行 loader。
+- `{ maxWorkers }` 在 worker 中运行 loader，并设置 worker 数量上限。
+- `'strict'` 在 worker 中运行 loader，绕过主线程对象桥。请参考[严格模式](/guide/features/loader#strict-execution)。
+- `false` 在主线程中运行 loader。
 
 使用示例和限制请参考 [并行 Loader](/guide/features/loader#parallel-loader)。
-
-### 纯模式
-
-使用 native binding 时，可以为能完全在 worker 内运行的 loader 设置 `parallel: 'pure'`。例如，Babel 可以在设置 `cacheDirectory: false` 时使用纯模式转换源码。
-
-- 纯模式跳过 loader hook。loader options、顶层 `loader` 配置和跨 loader 段传递的 `additionalData` 必须可序列化。选项中不能包含函数。
-- loader 可以通过 `this._module` 访问当前模块自身的数据，包括 `resourceResolveData`、`loaders`、`blocks`、`dependencies`、`error` 和 `buildInfo`。纯模式 loader 写入的 `buildInfo` 自定义字段必须可序列化为 JSON，后续 loader 段才能读取这些字段。
-- 无法访问 `_compiler`、`_compilation`、`fs`、`resolve`、`getResolve`、`importModule` 和 compilation diagnostics 等依赖主线程的 API。`getLogger()` 返回丢弃消息的 worker 本地 logger。
-- 通过 `this.emitFile()` 或 `this._module.emitFile()` 写入资产。无法通过 `this._module.buildInfo.assets` 读取资产。
 
 ## rules[].use.parallel.maxWorkers
 
 - **类型：** `number`
 - **默认值：** `Math.max(os.cpus().length - 1, 1)`
 
-当 `parallel` 配置为对象时，限制共享 loader worker pool 使用的最大 worker 线程数。请使用正整数。
-
-如果省略 `maxWorkers`，Rspack 默认使用 CPU 数量减二，且至少启动一个 worker。注册并行 loader 规则时会异步初始化 worker，编译会在构建模块前等待初始化完成。loader worker pool 在当前进程内共享；如果多个 loader 都配置 `parallel`，建议使用一致的 `maxWorkers` 值。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.less$/,
-        use: [
-          {
-            loader: 'less-loader',
-            parallel: {
-              maxWorkers: 4,
-            },
-            options: {},
-          },
-        ],
-      },
-    ],
-  },
-};
-```
+设置共享 loader 池的 worker 数量上限。请使用正整数，详见 [Worker 数量](/guide/features/loader#worker-pool-size)。
 
 ## rules[].resolve
 

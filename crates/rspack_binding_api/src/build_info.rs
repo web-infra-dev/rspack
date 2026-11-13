@@ -138,7 +138,7 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
         let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
         if matches!(wrapped_value.target, BuildInfoTarget::Worker(_)) {
           return Err(napi::Error::from_reason(
-            "Reading Module buildInfo.assets is unavailable with `parallel: 'pure'`.",
+            "Reading Module buildInfo.assets is unavailable with `parallel: 'strict'`.",
           ));
         }
         wrapped_value.with_ref(|module| Ok(module.build_info().assets.reflector()))

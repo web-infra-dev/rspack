@@ -10,7 +10,6 @@ pub use errors::NapiErrorToRspackErrorExt;
 mod callback;
 pub use callback::JsCallback;
 
-pub mod js_tasks;
 pub mod runtime;
 pub mod threadsafe_function;
 

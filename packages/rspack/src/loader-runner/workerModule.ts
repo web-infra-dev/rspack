@@ -4,7 +4,7 @@ import type { NormalModule } from '../NormalModule';
 import { SourceAdapter } from '../util/source';
 
 /** The worker API deliberately excludes compilation graph access. */
-export function createWorkerModule(native: Module, buildInfo?: BuildInfo) {
+export function createWorkerModule(native: Module) {
   let active = true;
   let localBuildInfo: BuildInfo | undefined;
   const getNative = () => {
@@ -56,9 +56,7 @@ export function createWorkerModule(native: Module, buildInfo?: BuildInfo) {
     },
     get buildInfo() {
       const handle = getNative();
-      return (
-        buildInfo ?? (localBuildInfo ??= binding.moduleGetBuildInfo(handle))
-      );
+      return (localBuildInfo ??= binding.moduleGetBuildInfo(handle));
     },
     identifier() {
       return binding.moduleGetIdentifier(getNative());
@@ -88,32 +86,30 @@ export function createWorkerModule(native: Module, buildInfo?: BuildInfo) {
       );
     },
   };
-  if (!buildInfo) {
-    Object.defineProperties(module, {
-      resourceResolveData: {
-        get: () => binding.normalModuleGetResourceResolveData(getNative()),
-      },
-      loaders: {
-        get: () => binding.normalModuleGetLoaders(getNative()),
-      },
-      blocks: {
-        get: () => binding.moduleGetBlocks(getNative()),
-      },
-      dependencies: {
-        get: () => binding.moduleGetDependencies(getNative()),
-      },
-      error: {
-        get: () => binding.normalModuleGetError(getNative()),
-      },
-    });
-    Object.defineProperty(module, 'buildInfo', {
-      set(value: BuildInfo) {
-        const handle = getNative();
-        binding.moduleSetBuildInfo(handle, value);
-        localBuildInfo = binding.moduleGetBuildInfo(handle);
-      },
-    });
-  }
+  Object.defineProperties(module, {
+    resourceResolveData: {
+      get: () => binding.normalModuleGetResourceResolveData(getNative()),
+    },
+    loaders: {
+      get: () => binding.normalModuleGetLoaders(getNative()),
+    },
+    blocks: {
+      get: () => binding.moduleGetBlocks(getNative()),
+    },
+    dependencies: {
+      get: () => binding.moduleGetDependencies(getNative()),
+    },
+    error: {
+      get: () => binding.normalModuleGetError(getNative()),
+    },
+  });
+  Object.defineProperty(module, 'buildInfo', {
+    set(value: BuildInfo) {
+      const handle = getNative();
+      binding.moduleSetBuildInfo(handle, value);
+      localBuildInfo = binding.moduleGetBuildInfo(handle);
+    },
+  });
   return {
     module: module as unknown as NormalModule,
     commitBuildInfo() {

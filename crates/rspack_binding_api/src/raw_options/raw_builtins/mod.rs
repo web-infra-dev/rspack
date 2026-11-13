@@ -142,7 +142,8 @@ use self::{
 use crate::{
   options::entry::JsEntryPluginOptions,
   plugins::{
-    JsCoordinator, JsLoaderRspackPlugin, JsRscClientPluginOptions, JsRscServerPluginOptions,
+    JsCoordinator, JsLoaderRspackPlugin, JsLoaderRunnerGetter, JsRscClientPluginOptions,
+    JsRscServerPluginOptions,
   },
   raw_options::{
     RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
@@ -304,7 +305,12 @@ pub struct BuiltinPlugin<'a> {
 }
 
 impl<'a> BuiltinPlugin<'a> {
-  pub fn append_to(self, env: Env, plugins: &mut Vec<BoxPlugin>) -> napi::Result<()> {
+  pub fn append_to(
+    self,
+    env: Env,
+    compiler_object: &mut Object,
+    plugins: &mut Vec<BoxPlugin>,
+  ) -> napi::Result<()> {
     let name = match self.name {
       Either::A(name) => name,
       Either::B(name) => {
@@ -850,11 +856,14 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(CircularModulesInfoPlugin::default().boxed())
       }
       BuiltinPluginName::JsLoaderRspackPlugin => {
-        let main_object_handle = self
-          .options
-          .coerce_to_object()?
-          .get_named_property::<u32>("mainObjectHandle")?;
-        plugins.push(JsLoaderRspackPlugin::new(main_object_handle).boxed());
+        // Set the compiler._runLoader property on the JsObject to ensure that the runLoader
+        // is not garbage collected by JS while the stats Object holds a reference to JsLoaderPlugin.
+        let options = self.options.coerce_to_object()?;
+        let owner = options.get_named_property::<u32>("owner")?;
+        let runner = options.get_named_property::<Unknown>("runner")?;
+        compiler_object.set_named_property("_runLoader", runner)?;
+        let loader_runner_getter = JsLoaderRunnerGetter::new(&env)?;
+        plugins.push(JsLoaderRspackPlugin::new(loader_runner_getter, owner).boxed());
       }
       BuiltinPluginName::LazyCompilationPlugin => {
         let options = downcast_into::<RawLazyCompilationOption>(self.options)

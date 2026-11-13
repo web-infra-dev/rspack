@@ -19,7 +19,6 @@ rspack_collections = { workspace = true }
 rspack_error       = { workspace = true }
 rspack_fs          = { workspace = true }
 rspack_hash        = { workspace = true }
-rspack_napi        = { workspace = true }
 rspack_paths       = { workspace = true, features = ["cacheable"] }
 rspack_regex       = { workspace = true }
 rspack_resolver    = { workspace = true }

@@ -4192,6 +4192,7 @@ name = "rspack_binding_api"
 version = "0.103.1"
 dependencies = [
  "anyhow",
+ "async-channel",
  "async-trait",
  "atomic_refcell",
  "cow-utils",
@@ -4695,7 +4696,6 @@ dependencies = [
  "rspack_error",
  "rspack_fs",
  "rspack_hash",
- "rspack_napi",
  "rspack_paths",
  "rspack_regex",
  "rspack_resolver",
@@ -4800,7 +4800,6 @@ dependencies = [
 name = "rspack_napi"
 version = "0.103.1"
 dependencies = [
- "async-channel",
  "napi",
  "oneshot",
  "rspack-allocative",
@@ -4808,7 +4807,6 @@ dependencies = [
  "scopeguard",
  "serde_json",
  "tokio",
- "tokio-util",
 ]
 
 [[package]]

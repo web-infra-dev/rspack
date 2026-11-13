@@ -187,9 +187,25 @@ When multiple loaders within the same rule use the same parallel execution mode,
 :::tip
 
 - When parallel execution is enabled, `options` must be an object. Even if the loader has no options, you must explicitly set `options: {}`. Omitting `options` causes a configuration error.
-- Regular parallel loaders use the main-thread bridge for compiler and compilation APIs and non-serializable options. Worker segments skip the loader hook.
-- Use [`parallel: 'pure'`](/config/module-rules#pure-execution) for loaders that can run entirely in a worker.
+- Regular parallel loaders use the main thread for the loader hook and compiler and compilation APIs. Loader options and custom module build info must be structured-cloneable.
+- Use [`parallel: 'strict'`](#strict-execution) for loaders that can run entirely in a worker.
 
 :::
 
-For more details, see [rules[].use.parallel](/config/module-rules#rulesuseparallel).
+See [rules[].use.parallel](/config/module-rules#rulesuseparallel) for the option reference.
+
+### Worker pool size
+
+Set `parallel: { maxWorkers: 4 }` to limit the loader pool to four workers. By default, Rspack uses the number of logical CPUs minus one, with a minimum of one worker. Regular and strict parallel loaders share one pool per process. The first rule to initialize the pool determines its size.
+
+Rspack initializes workers asynchronously when registering parallel loader rules. Compilation waits for them before building modules.
+
+### Strict execution
+
+Use `parallel: 'strict'` with the native binding for loaders that can run entirely in a worker. Both pitch and normal execution bypass the main-thread bridge. For example, `babel-loader` can use strict mode with `cacheDirectory: false`.
+
+- Strict loaders skip the loader hook. Loader options and the top-level `loader` settings must be serializable. Options cannot contain functions.
+- Strict loaders receive `undefined` for `additionalData`. Rspack ignores `additionalData` passed to `this.callback()` or to the callback returned by `this.async()`.
+- Through `this._module`, loaders can access the current module's data, including `resourceResolveData`, `loaders`, `blocks`, `dependencies`, `error`, and `buildInfo`. Custom `buildInfo` fields must be JSON-serializable to be available to later loader segments.
+- Main-thread APIs such as `_compiler`, `_compilation`, `fs`, `resolve`, `getResolve`, `importModule`, and compilation diagnostics are unavailable. `getLogger()` returns a worker-local logger that discards messages.
+- Use `this.emitFile()` or `this._module.emitFile()` to write assets. Reading assets through `this._module.buildInfo.assets` is unavailable.

@@ -315,11 +315,6 @@ where
     None
   }
 
-  /// Supplies per-compiler JS execution metadata without running a hook.
-  fn js_runtime(&self, _context: &Context) -> Option<Arc<crate::JsLoaderRuntime>> {
-    None
-  }
-
   /// Selects the runtime responsible for executing this loader.
   fn execution_kind(&self) -> LoaderExecutionKind {
     LoaderExecutionKind::Native

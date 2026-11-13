@@ -4,8 +4,8 @@ import { getSwcLoaderOptions } from '../builtin-loader/swc';
 import type { Compilation } from '../Compilation';
 import type { Compiler } from '../Compiler';
 import type { LoaderObject } from '../loader-runner';
-import { registerParallelLoader } from '../loader-runner/service';
-import { pureLoaderError } from '../loader-runner/utils';
+import { registerStrictLoader } from '../loader-runner/strictOptions';
+import { strictLoaderError } from '../loader-runner/utils';
 import type { Logger } from '../logging/Logger';
 import type { Module } from '../Module';
 import type { ResolveRequest } from '../Resolver';
@@ -609,13 +609,19 @@ function resolveStringifyLoaders(
 
   const parallelism = use.parallel;
 
-  if (parallelism === 'pure' && (IS_BROWSER || process.env.WASM)) {
-    throw pureLoaderError('The WASI binding');
+  if (typeof parallelism === 'string' && parallelism !== 'strict') {
+    throw new Error(
+      `Invalid \`Rule.use.parallel\` value ${JSON.stringify(parallelism)}. Expected a boolean, an object with \`maxWorkers\`, or 'strict'.`,
+    );
   }
 
-  if (parallelism === 'pure' && isBuiltin) {
+  if (parallelism === 'strict' && (IS_BROWSER || process.env.WASM)) {
+    throw strictLoaderError('The WASI binding');
+  }
+
+  if (parallelism === 'strict' && isBuiltin) {
     throw new Error(
-      "`Rule.use.parallel: 'pure'` requires a JavaScript loader.",
+      "`Rule.use.parallel: 'strict'` requires a JavaScript loader.",
     );
   }
 
@@ -631,14 +637,16 @@ function resolveStringifyLoaders(
     const parallelIdent = `${ident}$$parallelism`;
     if (
       references.has(parallelIdent) &&
-      (references.get(parallelIdent) === 'pure') !== (parallelism === 'pure')
+      (references.get(parallelIdent) === 'strict') !==
+        (parallelism === 'strict')
     ) {
       throw new Error(
-        `Use distinct loader idents for pure and other loaders. Ident '${ident}' is already registered with a different execution mode.`,
+        `Use distinct loader idents for strict and other loaders. Ident '${ident}' is already registered with a different execution mode.`,
       );
     }
     references.set(ident, use.options);
-    registerParallelLoader(compiler, ident, parallelism);
+    if (parallelism === 'strict')
+      registerStrictLoader(compiler, ident, use.options);
     references.set(parallelIdent, parallelism);
     if (isBuiltin) {
       // Inline builtin loaders resolve their options from this native map.

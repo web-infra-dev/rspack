@@ -145,7 +145,7 @@ pub fn module_get_build_info<'env>(
       .map(|cached| {
         let object = cached.object.as_object(env)?;
         let changed = if reference.worker_scope.is_none() {
-          // A pure task may have changed native fields while the main JS object
+          // A strict task may have changed native fields while the main JS object
           // was retained. Keep its identity and apply only the native changes.
           reference
             .with_local_ref(|module| {
