@@ -164,7 +164,7 @@ __webpack_require__.u = (chunkId) => {
   // return url for filenames not based on template
 
   // return url for filenames based on template
-  return "" + chunkId + ".mjs"
+  return chunkId + ".mjs"
 }
 })();
 // webpack/runtime/get mini-css chunk filename
@@ -174,7 +174,7 @@ __webpack_require__.miniCssF = (chunkId) => {
   // return url for filenames not based on template
 
   // return url for filenames based on template
-  return "" + chunkId + ".css"
+  return chunkId + ".css"
 }
 })();
 // webpack/runtime/has_own_property

@@ -160,7 +160,7 @@ var getChunkScriptFilename = (chunkId) => {
   // return url for filenames not based on template
 
   // return url for filenames based on template
-  return "" + chunkId + ".mjs"
+  return chunkId + ".mjs"
 };
 // rspack/runtime/get mini-css chunk filename
 // This function allow to reference chunks
@@ -168,7 +168,7 @@ var __rspack_get_mini_css_chunk_filename = (chunkId) => {
   // return url for filenames not based on template
 
   // return url for filenames based on template
-  return "" + chunkId + ".css"
+  return chunkId + ".css"
 };
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
