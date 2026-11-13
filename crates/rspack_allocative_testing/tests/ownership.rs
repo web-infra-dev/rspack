@@ -1790,23 +1790,19 @@ fn global_root_registration_uses_the_reexported_constructor() {
 
 #[test]
 fn measured_binding_owner_includes_fields_and_shared_core_payload_once() {
-  use rspack_allocative::{TargetIdentity, ident_key};
+  use rspack_allocative::TargetIdentity;
   struct Core {
     shared: Arc<String>,
   }
+  #[derive(Allocative)]
   struct Wrapper {
-    core: std::mem::ManuallyDrop<Core>,
+    #[allocative(visit = visit_core)]
+    core: ManuallyDrop<Core>,
     shared: Arc<String>,
     own: Vec<u8>,
   }
-  impl rspack_allocative::Allocative for Wrapper {
-    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut rspack_allocative::Visitor<'b>) {
-      let mut visitor = visitor.enter_self(self);
-      visitor.visit_field(ident_key!(core), &*self.core);
-      visitor.visit_field(ident_key!(shared), &self.shared);
-      visitor.visit_field(ident_key!(own), &self.own);
-      visitor.exit();
-    }
+  fn visit_core(core: &ManuallyDrop<Core>, visitor: &mut Visitor<'_>) {
+    (**core).visit_memory(visitor);
   }
   let shared = Arc::new(String::from("one shared payload"));
   let mut wrapper = Wrapper {
@@ -1835,6 +1831,20 @@ fn measured_binding_owner_includes_fields_and_shared_core_payload_once() {
     let output = builder.finish();
     assert_eq!(output.flamegraph().total_size(), expected);
     assert!(output.warnings().is_empty(), "{}", output.warnings());
+    let folded = output.flamegraph().write();
+    let payload_path = format!("{ty};core;{};shared;", std::any::type_name::<Core>());
+    assert!(
+      folded
+        .lines()
+        .any(|line| { line.starts_with(&payload_path) && line.contains(";ArcInner;") }),
+      "{folded}"
+    );
+    assert!(
+      !folded
+        .lines()
+        .any(|line| { line.starts_with(&format!("{ty};shared;")) && line.contains(";ArcInner;") }),
+      "{folded}"
+    );
     let object = &output.objects()[0];
     assert!(object.measured);
     assert_eq!(object.path, [ty]);
