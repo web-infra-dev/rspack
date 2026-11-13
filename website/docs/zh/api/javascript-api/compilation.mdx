@@ -498,11 +498,7 @@ export default {
 
 重新构建指定模块。
 
-请在 [`compiler.hooks.finishMake`](/api/plugin-api/compiler-hooks#finishmake) 中调用，并等待回调完成后再结束 hook。`finishModules` 及后续阶段需要固定的模块图，在这些阶段调用会通过回调返回错误。
-
-每次调用都会完成一次回调，包括对同一模块的重复请求。如果模块被另一次重建移除，回调会收到错误。loader 和 parser 错误与正常模块构建一样，记录为编译诊断信息。如果严重错误中断了模块图构建，即使插件处理了回调错误，本轮编译仍会失败。
-
-重建模块也会更新其提取的 CSS，并替换其 loader 导入产生的结果。资源、诊断信息和监听依赖会在 `finishMake` 完成后统一收集。
+此方法只能在 [`compiler.hooks.finishMake`](/api/plugin-api/compiler-hooks#finishmake) 中调用，不能在 `compilation.hooks.finishModules` 中调用。
 
 ```ts
 rebuildModule(m: Module, f: (err: Error | null, m: Module | null) => void): void;
