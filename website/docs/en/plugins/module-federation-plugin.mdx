@@ -37,12 +37,12 @@ export default {
 
 ## Options
 
-### excludeBundlerRuntime
+### removeUnusedRuntime
 
 - Type: `boolean | RegExp`
 - Default: `false`
 
-Omit the federation bundler runtime from entries that do not need it. By default, the plugin keeps injecting the runtime into application entries and Workers.
+Remove the federation bundler runtime from entries that do not need it. By default, the plugin keeps injecting the runtime into application entries and Workers.
 
 Set `true` to enable automatic filtering for all entries, including unnamed Workers. Set a `RegExp` to enable filtering only for matching **entry names**, including named Workers; unmatched entries and unnamed Workers retain the runtime. For a Worker, Rspack uses a static `name` in its constructor options or a `webpackChunkName` comment, with the comment taking precedence. The expression does not match source paths, output filenames, or generated Worker runtime identifiers.
 
@@ -53,13 +53,13 @@ Local dependencies, configured but unused remotes, shared providers without cons
 ```js
 new rspack.container.ModuleFederationPlugin({
   name: 'app',
-  excludeBundlerRuntime: true,
+  removeUnusedRuntime: true,
 });
 
 // Filter unused runtime code only from entries and Workers named "local-*".
 new rspack.container.ModuleFederationPlugin({
   name: 'app',
-  excludeBundlerRuntime: /^local-/,
+  removeUnusedRuntime: /^local-/,
 });
 ```
 

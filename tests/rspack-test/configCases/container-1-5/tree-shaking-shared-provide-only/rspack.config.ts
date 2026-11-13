@@ -19,7 +19,7 @@ export default defineConfig({
   target: 'async-node',
   plugins: [
     new ModuleFederationPlugin({
-      excludeBundlerRuntime: true,
+      removeUnusedRuntime: true,
       name: 'tree_shaking_shared_provide_only',
       filename: 'remoteEntry.js',
       library: {

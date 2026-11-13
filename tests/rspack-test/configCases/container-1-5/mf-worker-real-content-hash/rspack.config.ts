@@ -73,7 +73,7 @@ export default defineConfig({
   plugins: [
     new ModuleFederationPlugin({
       name: 'host',
-      excludeBundlerRuntime: true,
+      removeUnusedRuntime: true,
       filename: 'remoteEntry.js',
       exposes: {
         './shared': './shared.js',

@@ -54,7 +54,7 @@ export default defineConfig([
     },
     plugins: [
       new ModuleFederationPlugin({
-        excludeBundlerRuntime: true,
+        removeUnusedRuntime: true,
         name: 'container',
         library: { type: 'commonjs-module' },
         filename: 'container.js',

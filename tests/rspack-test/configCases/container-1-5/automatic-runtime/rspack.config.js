@@ -8,7 +8,7 @@ module.exports = ['independent', 'shared', 'depend-on'].flatMap((layout) =>
     true,
     /^(plain|remote|consume|container_)/g,
     /remote|consume/,
-  ].flatMap((excludeBundlerRuntime, optionIndex) =>
+  ].flatMap((removeUnusedRuntime, optionIndex) =>
     [false, true].map((asyncStartup) => {
       const name = `${layout}-${optionIndex}-${asyncStartup ? 'async' : 'sync'}`;
       const sharedRuntime = layout !== 'independent';
@@ -46,7 +46,7 @@ module.exports = ['independent', 'shared', 'depend-on'].flatMap((layout) =>
           }),
           new rspack.container.ModuleFederationPlugin({
             name: `container_${name.replaceAll('-', '_')}`,
-            excludeBundlerRuntime,
+            removeUnusedRuntime,
             filename: `${name}/container.js`,
             library: { type: 'commonjs-module' },
             exposes: { './exposed': './exposed.js' },

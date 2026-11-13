@@ -3,7 +3,7 @@ const rspack = require('@rspack/core');
 
 module.exports = ['independent', 'shared', 'depend-on'].flatMap((layout) =>
   [undefined, false, true, /^filtered$/g, /^(filtered|untouched)$/g].map(
-    (excludeBundlerRuntime, optionIndex) => {
+    (removeUnusedRuntime, optionIndex) => {
       const name = `${layout}-${optionIndex}`;
       const sharedRuntime = layout !== 'independent';
       const filtered = optionIndex < 2 || (sharedRuntime && optionIndex === 3);
@@ -37,7 +37,7 @@ module.exports = ['independent', 'shared', 'depend-on'].flatMap((layout) =>
           }),
           new rspack.container.ModuleFederationPlugin({
             name: `provider_${name.replaceAll('-', '_')}`,
-            excludeBundlerRuntime,
+            removeUnusedRuntime,
             runtimePlugins: [require.resolve('./runtime-plugin.js')],
             remotes: {
               unused:

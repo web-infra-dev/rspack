@@ -2756,7 +2756,7 @@ export interface RawModuleFederationRuntimeExperimentsOptions {
 
 export interface RawModuleFederationRuntimePluginOptions {
   entryRuntime?: string | undefined
-  excludeBundlerRuntime?: boolean | RegExp
+  removeUnusedRuntime?: boolean | RegExp
   experiments?: RawModuleFederationRuntimeExperimentsOptions
 }
 

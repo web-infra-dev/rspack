@@ -37,7 +37,7 @@ export default {
 
 ## 选项
 
-### excludeBundlerRuntime
+### removeUnusedRuntime
 
 - 类型：`boolean | RegExp`
 - 默认值：`false`
@@ -53,13 +53,13 @@ export default {
 ```js
 new rspack.container.ModuleFederationPlugin({
   name: 'app',
-  excludeBundlerRuntime: true,
+  removeUnusedRuntime: true,
 });
 
 // 仅过滤名称以 local- 开头的入口和 Worker 中未使用的运行时。
 new rspack.container.ModuleFederationPlugin({
   name: 'app',
-  excludeBundlerRuntime: /^local-/,
+  removeUnusedRuntime: /^local-/,
 });
 ```
 

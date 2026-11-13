@@ -8,7 +8,7 @@ module.exports = {
   plugins: [
     new rspack.container.ModuleFederationPlugin({
       name: 'watch_host',
-      excludeBundlerRuntime: true,
+      removeUnusedRuntime: true,
       shared: {
         'shared-lib': {
           import: './shared.js',

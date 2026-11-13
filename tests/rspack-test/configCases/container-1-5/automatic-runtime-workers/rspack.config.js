@@ -8,7 +8,7 @@ module.exports = [
   false,
   true,
   /^(plain-worker|remote-worker|shared-worker|comment-worker|remote-entry-local-worker)$/gi,
-].map((excludeBundlerRuntime, index) => ({
+].map((removeUnusedRuntime, index) => ({
   name: `worker-option-${index}`,
   target: 'async-node',
   mode: 'development',
@@ -34,7 +34,7 @@ module.exports = [
     }),
     new rspack.container.ModuleFederationPlugin({
       name: 'worker_host',
-      excludeBundlerRuntime,
+      removeUnusedRuntime,
       shareStrategy: 'loaded-first',
       remotes: {
         remote:

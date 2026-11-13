@@ -29,7 +29,7 @@ use super::{
 pub struct ModuleFederationRuntimePluginOptions {
   pub entry_runtime: Option<String>,
   #[serde(skip)]
-  pub exclude_bundler_runtime: Arc<BundlerRuntimeExclusion>,
+  pub remove_unused_runtime: Arc<BundlerRuntimeExclusion>,
   #[serde(default)]
   pub experiments: ModuleFederationRuntimeExperimentsOptions,
 }
@@ -90,7 +90,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   if let Some(entry_request) = self.options.entry_runtime.clone() {
     let federation_runtime_dep = FederationRuntimeDependency::new(
       entry_request.clone(),
-      Arc::clone(&self.options.exclude_bundler_runtime),
+      Arc::clone(&self.options.remove_unused_runtime),
     );
 
     let hooks = FederationModulesPlugin::get_compilation_hooks(compilation);
