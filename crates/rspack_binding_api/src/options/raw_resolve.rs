@@ -47,7 +47,6 @@ pub struct RawResolveOptions {
   pub symlinks: Option<bool>,
   pub tsconfig: Option<RawResolveTsconfigOptions>,
   pub modules: Option<Vec<String>>,
-  #[napi(ts_type = "Record<string, RawConfigValue>")]
   pub by_dependency: Option<HashMap<String, RawConfigValue>>,
   pub fully_specified: Option<bool>,
   pub exports_fields: Option<Vec<String>>,
@@ -293,7 +292,6 @@ pub struct RawResolveOptionsWithDependencyType {
   pub symlinks: Option<bool>,
   pub tsconfig: Option<RawResolveTsconfigOptions>,
   pub modules: Option<Vec<String>>,
-  #[napi(ts_type = "Record<string, RawConfigValue>")]
   pub by_dependency: Option<HashMap<String, RawConfigValue>>,
   pub fully_specified: Option<bool>,
   pub exports_fields: Option<Vec<String>>,
