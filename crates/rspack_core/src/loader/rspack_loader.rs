@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use rspack_error::{Diagnostic, Result};
 use rspack_fs::ReadableFileSystem;
-use rspack_loader_runner::{Content, LoaderContext, LoaderRunnerPlugin, ResourceData};
+use rspack_loader_runner::{
+  Content, LoaderContext, LoaderRunnerPlugin, LoaderYieldInput, LoaderYieldResult, ResourceData,
+};
 use rspack_paths::InternedPathSet;
 use rspack_sources::SourceMap;
 
@@ -98,12 +100,16 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     Ok(None)
   }
 
-  async fn start_yielding(&self, context: &mut Arc<LoaderContext<Self::Context>>) -> Result<()> {
+  async fn start_yielding(
+    &self,
+    context: Arc<LoaderContext<Self::Context>>,
+    input: LoaderYieldInput,
+  ) -> Result<LoaderYieldResult> {
     self
       .plugin_driver
       .normal_module_hooks
       .loader_yield
-      .call(context)
+      .call(context, input)
       .await
   }
 

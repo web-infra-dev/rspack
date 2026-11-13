@@ -33,10 +33,11 @@ use crate::{
   DependenciesBlockData, DependencyCodeGenerationRef, DependencyId, FactoryMeta, FactoryMetaStore,
   FreezeLock, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleLayer, ModuleType, NeedBuildContext, OptimizationBailoutItem, OutputOptions, ParseContext,
-  ParseResult, ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions,
-  RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  SnapshotValidationResult, SourceType, contextify, contextify_source_map, contextify_source_url,
+  ModuleLayer, ModuleType, NeedBuildContext, NormalModuleLoaderStartYieldingHook,
+  OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult, ParserAndGenerator,
+  ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SnapshotValidationResult, SourceType,
+  contextify, contextify_source_map, contextify_source_url,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -80,7 +81,7 @@ impl ModuleIssuer {
 
 define_hook!(NormalModuleReadResource: SeriesBail(resource_data: &ResourceData, fs: &Arc<dyn ReadableFileSystem>) -> Content,tracing=false);
 define_hook!(NormalModuleLoader: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
-define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut Arc<LoaderContext<RunnerContext>>),tracing=false);
+
 define_hook!(NormalModuleBeforeLoaders: Series(module: &mut NormalModule),tracing=false);
 
 #[derive(Debug, Default)]

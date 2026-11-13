@@ -6,7 +6,10 @@ use rspack_core::{
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
-use rspack_loader_runner::State as LoaderState;
+use rspack_loader_runner::{
+  LoaderExecutionResult, LoaderItemUpdate, LoaderOutput, LoaderYieldInput, LoaderYieldResult,
+  State as LoaderState,
+};
 use rspack_napi::js_tasks::Task;
 
 use super::{JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
@@ -23,9 +26,10 @@ impl JsLoaderRspackPlugin {
 #[plugin_hook(NormalModuleLoaderStartYielding for JsLoaderRspackPlugin,tracing=false)]
 pub(crate) async fn loader_yield(
   &self,
-  context: &mut Arc<LoaderContext<RunnerContext>>,
-) -> Result<()> {
-  let loader_context = context.as_ref();
+  loader_context: Arc<LoaderContext<RunnerContext>>,
+  input: &mut Option<LoaderYieldInput>,
+) -> Result<Option<LoaderYieldResult>> {
+  let input = input.take().expect("loader input is available");
   let chain = loader_context
     .current_chain()
     .expect("yield requires a loader chain");
@@ -66,25 +70,20 @@ pub(crate) async fn loader_yield(
           && !loaders_without_pitch.contains(loader.path().as_str())
       });
     if !needs_pitch {
-      for index in start..end {
-        loader_context.loader_items[index].set_pitch_executed();
-      }
-      Arc::get_mut(context)
-        .expect("loader context must be exclusive")
-        .loader_index = end as i32;
-      return Ok(());
+      return Ok(Some(LoaderYieldResult::SkipPitch {
+        input,
+        range: start..end,
+      }));
     }
   }
 
   if strict {
-    let loader_context = Arc::get_mut(context).expect("loader context must be exclusive");
-    drop(loader_context.take_additional_data());
-    let content = loader_context.take_content();
+    drop(input.additional_data);
     let (sender, receiver) = tokio::sync::oneshot::channel();
     super::worker::dispatch(Task::new(
       StrictLoaderTask::new(
-        Arc::clone(context),
-        content,
+        loader_context,
+        input.content,
         self.owner,
         start as u32,
         end as u32,
@@ -92,24 +91,23 @@ pub(crate) async fn loader_yield(
       sender,
       "Strict loader task was cancelled",
     ));
-    let new_cx = receiver
+    let (new_cx, pitches) = receiver
       .await
       .expect("strict loader task returns its result")?;
-    // TODO: Use Arc::into_unique when available to express the exclusive ownership.
-    let loader_context = Arc::get_mut(context).expect("strict loader released its context");
-    if loader_context.state() == LoaderState::Pitching {
-      let pitches = collect_loaders_without_pitch(loader_context, &new_cx);
-      if !pitches.is_empty() {
-        self.update_loaders_without_pitch(pitches).await;
-      }
+    if !pitches.is_empty() {
+      self.update_loaders_without_pitch(pitches).await;
     }
-    return merge_loader_context(loader_context, new_cx);
+    return Ok(Some(convert_loader_result(new_cx)));
   }
 
-  let loader_context = Arc::get_mut(context).expect("loader context must be exclusive");
-  let mut context = JsLoaderContext::try_from(&mut *loader_context)?;
+  let additional_data = input
+    .additional_data
+    .and_then(|mut data| data.remove::<rspack_napi::ThreadsafeOneShotRef>());
+  let mut context =
+    JsLoaderContext::from_loader_context(&loader_context, input.content, additional_data);
   context.loader_chain_start = start as u32;
   context.loader_chain_end = end as u32;
+
   let runner = self.runner.lock().expect("should get lock").clone();
   let runner = runner
     .get_or_try_init(|| async {
@@ -128,82 +126,67 @@ pub(crate) async fn loader_yield(
     .to_rspack_result()?;
 
   if loader_context.state() == LoaderState::Pitching {
-    let list = collect_loaders_without_pitch(loader_context, &new_cx);
+    let list = collect_loaders_without_pitch(&loader_context, &new_cx);
     if !list.is_empty() {
       self.update_loaders_without_pitch(list).await;
     }
   }
 
-  merge_loader_context(loader_context, new_cx)?;
-
-  Ok(())
+  Ok(Some(convert_loader_result(new_cx)))
 }
 
-pub(crate) fn merge_loader_context(
-  to: &mut LoaderContext<RunnerContext>,
-  mut from: JsLoaderContext,
-) -> Result<()> {
-  to.cacheable = from.cacheable;
-  to.replace_dependencies(
-    from.dependencies.into(),
-    from.added_dependencies.into(),
-    from.removed_dependencies.into(),
-  );
-
-  if let Some(error) = from.error {
-    if let Some(diagnostic) = error.rust_diagnostic.as_ref() {
-      return Err(diagnostic.error.clone());
+fn convert_loader_result(mut from: JsLoaderContext) -> LoaderYieldResult {
+  let output = (|| {
+    if let Some(error) = from.error {
+      if let Some(diagnostic) = error.rust_diagnostic.as_ref() {
+        return Err(diagnostic.error.clone());
+      }
+      return Err(error.with_parent_error_name("ModuleBuildError").into());
     }
-    return Err(error.with_parent_error_name("ModuleBuildError").into());
-  }
-
-  let content = match from.content {
-    Either3::A(content) => Some(rspack_core::Content::String(content)),
-    Either3::B(content) => Some(rspack_core::Content::Buffer(content.into())),
-    Either3::C(_) => None,
-  };
-  let source_map = from
-    .source_map
-    .map(|buffer| rspack_core::rspack_sources::SourceMap::from_bytes(buffer.into()))
-    .transpose()
-    .to_rspack_result()?;
-  let additional_data = from.additional_data.take().map(|data| {
-    let mut additional = AdditionalData::default();
-    additional.insert(data);
-    additional
-  });
-  to.__finish_with((content, source_map, additional_data));
-
-  // update loader status
-  to.loader_items = to
-    .loader_items
-    .drain(..)
-    .zip(from.loader_items.drain(..))
-    .map(|(mut to, from)| {
-      if from.normal_executed {
-        to.set_normal_executed()
-      }
-      if from.pitch_executed {
-        to.set_pitch_executed()
-      }
-      if from.filter_matched {
-        to.set_filter_matched();
-      }
-      to.set_data(from.data);
-      // JS loader should always be considered as finished
-      to.set_finish_called();
-      to
+    let content = match from.content {
+      Either3::A(content) => Some(rspack_core::Content::String(content)),
+      Either3::B(content) => Some(rspack_core::Content::Buffer(content.into())),
+      Either3::C(_) => None,
+    };
+    let source_map = from
+      .source_map
+      .map(|buffer| rspack_core::rspack_sources::SourceMap::from_bytes(buffer.into()))
+      .transpose()
+      .to_rspack_result()?;
+    let additional_data = from.additional_data.take().map(|data| {
+      let mut additional = AdditionalData::default();
+      additional.insert(data);
+      additional
+    });
+    Ok(LoaderOutput {
+      content,
+      source_map,
+      additional_data,
+      loader_items: from
+        .loader_items
+        .into_iter()
+        .map(|item| LoaderItemUpdate {
+          normal_executed: item.normal_executed,
+          pitch_executed: item.pitch_executed,
+          filter_matched: item.filter_matched,
+          data: item.data,
+        })
+        .collect(),
+      loader_index: from.loader_index,
+      parse_meta: from
+        .parse_meta
+        .into_iter()
+        .map(|(key, value)| (key, Box::new(value) as _))
+        .collect(),
     })
-    .collect();
-  to.loader_index = from.loader_index;
-  to.parse_meta.extend(
-    from
-      .parse_meta
-      .into_iter()
-      .map(|(k, v)| (k, Box::new(v) as _)),
-  );
-
-  Ok(())
+  })();
+  LoaderYieldResult::Executed(LoaderExecutionResult {
+    cacheable: from.cacheable,
+    dependencies: from.dependencies.into(),
+    added_dependencies: from.added_dependencies.into(),
+    removed_dependencies: from.removed_dependencies.into(),
+    output,
+  })
 }
 
 pub(super) fn collect_loaders_without_pitch(

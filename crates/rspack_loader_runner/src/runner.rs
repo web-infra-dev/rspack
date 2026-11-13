@@ -25,7 +25,16 @@ async fn start_yielding<Context: Send + Sync>(
   if cx.current_loader().execution_kind() == LoaderExecutionKind::JavaScript
     && let Some(plugin) = &cx.plugin
   {
-    plugin.clone().start_yielding(context).await?;
+    let plugin = plugin.clone();
+    let cx = Arc::get_mut(context).expect("loader context must be exclusive");
+    let input = crate::LoaderYieldInput {
+      content: cx.take_content(),
+      additional_data: cx.take_additional_data(),
+    };
+    let update = plugin.start_yielding(Arc::clone(context), input).await?;
+    // TODO: Use Arc::into_unique when available to express the exclusive ownership.
+    let cx = Arc::get_mut(context).expect("loader worker released its context");
+    update.merge(cx)?;
     return Ok(true);
   }
   Ok(false)

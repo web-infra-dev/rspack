@@ -11,10 +11,10 @@ use rspack_napi::js_tasks::Task;
 use rustc_hash::FxHashMap;
 use tokio_util::sync::CancellationToken;
 
-use super::JsLoaderContext;
+use super::{JsLoaderContext, scheduler::collect_loaders_without_pitch};
 use crate::module::WorkerModuleScope;
 
-type LoaderTask = Task<rspack_core::StrictLoaderTask, JsLoaderContext>;
+type LoaderTask = Task<rspack_core::StrictLoaderTask, (JsLoaderContext, Vec<String>)>;
 type ActiveTask = Arc<Mutex<Option<(LoaderTask, Option<Arc<WorkerModuleScope>>)>>>;
 type WorkerTasks = FxHashMap<u32, ActiveTask>;
 
@@ -156,7 +156,16 @@ impl JsStrictLoaderTask {
       scope.revoke();
     }
     context.additional_data = None;
-    task.finish(Ok(context));
+    let pitches = task
+      .payload()
+      .context
+      .as_ref()
+      .and_then(std::sync::Weak::upgrade)
+      .filter(|native| native.state() == rspack_loader_runner::State::Pitching)
+      .map_or_else(Vec::new, |native| {
+        collect_loaders_without_pitch(&native, &context)
+      });
+    task.finish(Ok((context, pitches)));
     self.unregister();
     Ok(())
   }

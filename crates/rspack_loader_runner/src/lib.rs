@@ -20,10 +20,12 @@ pub use filter::LoaderFilter;
 pub use loader::{
   DisplayWithSuffix, Loader, LoaderExecutionKind, LoaderItem, ResourceParsedData, parse_resource,
 };
-pub use plugin::LoaderRunnerPlugin;
+pub use plugin::{LoaderRunnerPlugin, LoaderYieldInput};
+mod yield_result;
 pub use rspack_collections::{Identifiable, Identifier};
 pub use runner::{LoaderFilters, LoaderResult, run_loaders};
 pub use scheme::{Scheme, get_scheme};
+pub use yield_result::{LoaderExecutionResult, LoaderItemUpdate, LoaderOutput, LoaderYieldResult};
 
 pub const BUILTIN_LOADER_PREFIX: &str = "builtin:";
 pub use cache::LoaderRunnerOptions;

@@ -5,3 +5,6 @@ mod rspack_loader;
 pub use rspack_loader::*;
 mod strict_loader_task;
 pub use strict_loader_task::*;
+
+mod loader_yield;
+pub use loader_yield::*;
