@@ -447,6 +447,9 @@ export type Environment = {
   /** The environment supports logical assignment ('a ||= b'). */
   logicalAssignment?: boolean;
 
+  /** The environment supports spread and rest in array/object literals and calls ('{ ...obj }'). */
+  spread?: boolean;
+
   /** The environment supports template literals. */
   templateLiteral?: boolean;
   /** The environment supports top-level await ('await x' at the top level of a module). */
