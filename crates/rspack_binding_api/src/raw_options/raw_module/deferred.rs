@@ -40,7 +40,7 @@ fn capture_options(object: Object<'_>) -> napi::Result<ValueGraph> {
   })
 }
 
-pub(super) fn config_dom_fields() -> HashMap<String, Vec<String>> {
+pub(super) fn config_value_fields() -> HashMap<String, Vec<String>> {
   let mut fields = HashMap::default();
   RawParserOptionObject::add_fields("parser", &mut fields);
   RawGeneratorOptionObject::add_fields("generator", &mut fields);

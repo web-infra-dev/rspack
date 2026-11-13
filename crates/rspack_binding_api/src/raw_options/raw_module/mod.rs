@@ -765,8 +765,8 @@ impl From<RawCssModuleGeneratorOptions> for CssModuleGeneratorOptions {
 }
 
 #[napi]
-pub fn get_config_dom_fields() -> HashMap<String, Vec<String>> {
-  deferred::config_dom_fields()
+pub fn get_config_value_fields() -> HashMap<String, Vec<String>> {
+  deferred::config_value_fields()
 }
 
 #[napi(object, object_from_js = false, object_to_js = false)]
