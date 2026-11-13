@@ -1,6 +1,9 @@
 const { ModuleFederationPlugin } = require('@rspack/core').container;
 
 const mfImplementation = process.env.RSPACK_MF_RUNTIME_TOOLS_IMPLEMENTATION;
+const nodeRuntimePlugin =
+  process.env.RSPACK_MF_NODE_RUNTIME_PLUGIN ||
+  require.resolve('@module-federation/node/runtimePlugin');
 const remoteVersions = ['v1', 'v2', 'v3', 'v4'];
 
 /** @type {import("@rspack/core").Configuration} */
@@ -43,7 +46,10 @@ function createRemoteConfig(version) {
           './A': `./remote-projects/${version}/remoteA.js`,
           './B': `./remote-projects/${version}/remoteB.js`,
         },
-        runtimePlugins: [require.resolve('./provider-runtime-plugin.js')],
+        runtimePlugins: [
+          nodeRuntimePlugin,
+          require.resolve('./provider-runtime-plugin.js'),
+        ],
       }),
     ],
   };
@@ -69,7 +75,10 @@ module.exports = [
               'mf_ssr_clear_cache_remote@http://localhost:3001/remote-project-v1/remoteEntry.js',
           },
         },
-        runtimePlugins: [require.resolve('./runtime-plugin.js')],
+        runtimePlugins: [
+          nodeRuntimePlugin,
+          require.resolve('./runtime-plugin.js'),
+        ],
       }),
     ],
   },

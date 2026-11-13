@@ -283,6 +283,40 @@ export default {
 };
 ```
 
+## Node remote cache invalidation
+
+Node builds with compiled remotes expose `__webpack_require__.remoteCache`.
+Rspack owns the emitted dependency graph, remote factories, consumer module
+caches, chunk state and generation checks. Web builds omit this API and the
+reverse graph used for invalidation.
+
+Server integrations should install `@module-federation/node/runtimePlugin` and
+use the MF instance's asynchronous remote replacement API after draining
+application work. The MF bundler adapter translates remote names and its own
+loading records into the native cache API. The Node plugin manages MF container,
+shared-provider and instance ownership.
+
+The native API is intended for bundler adapters:
+
+- `clear(remoteKeys, { pending, reset })` invalidates the compiled remote keys.
+  `pending` contains adapter loading promises and `reset` clears adapter-owned
+  loader records. Native cache state is restored if cleanup rejects.
+- `wait(remoteKeys)` and `waitForChunk(chunkId)` return a pending clear barrier,
+  or `undefined` when loading may proceed.
+- `hasPending()` reports active cleanup or a timed-out load awaiting final cleanup.
+
+The default pending-load timeout is 30 seconds. The internal
+`globalThis.__rspack_clear_cache_wait_timeout__` override accepts a nonnegative
+millisecond value, or `Infinity` to wait without a timeout. Invalidation does not
+replace values retained by application code and can reject undrained chunk loads
+as stale.
+
+Node chunk loaders expose `__webpack_require__.nodeChunkLoader.readFile` as an
+optional transport hook with arguments `(filename, chunkId, callback)`.
+The callback receives `(error, source)`. With no hook, Rspack uses the filesystem.
+The Node runtime plugin supplies local or network source through this hook,
+while Rspack keeps chunk evaluation, installation and generation checks.
+
 ## FAQ
 
 - Found non-downgraded syntax in the build output?

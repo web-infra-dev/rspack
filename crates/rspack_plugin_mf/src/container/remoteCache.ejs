@@ -1,0 +1,142 @@
+// Node remote invalidation owns the emitted module graph and chunk state.
+var remoteCacheBarriers = new Map();
+var remoteCacheStale = new Map();
+var remoteCacheUnique = function(values) { return Array.from(new Set(values)); };
+var remoteCacheSafeId = function(id) {
+	return ["__proto__", "constructor", "prototype"].indexOf(String(id)) < 0;
+};
+var remoteCacheCapture = function(table, keys) {
+	var entries = keys.map(function(key) {
+		return [key, Object.getOwnPropertyDescriptor(table, key)];
+	});
+	return function() {
+		entries.forEach(function(entry) {
+			if (entry[1]) Object.defineProperty(table, entry[0], entry[1]);
+			else delete table[entry[0]];
+		});
+	};
+};
+var remoteCacheWait = function(keys) {
+	remoteCacheUnique(keys.map(function(key) { return remoteCacheStale.get(key); }))
+		.forEach(function(clean) { if (clean) clean(); });
+	var waits = remoteCacheUnique(keys.map(function(key) {
+		var barrier = remoteCacheBarriers.get(key);
+		return barrier && barrier.promise;
+	}).filter(Boolean));
+	return waits.length ? Promise.all(waits) : undefined;
+};
+<%- REQUIRE_SCOPE %>.remoteCache = {
+	wait: remoteCacheWait,
+	waitForChunk: function(chunkId) {
+		var data = <%- REQUIRE_SCOPE %>.remotesLoadingData;
+		return remoteCacheWait((data.chunkMapping[chunkId] || []).map(function(id) {
+			return data.moduleIdToRemoteDataMapping[id].remoteName;
+		}));
+	},
+	hasPending: function() {
+		return remoteCacheBarriers.size > 0 || remoteCacheStale.size > 0;
+	},
+	// The adapter supplies pending loads and resets its own loader records.
+	// It never supplies or mutates native module/chunk tables.
+	clear: async function(keys, loading) {
+		keys = remoteCacheUnique(keys);
+		loading = loading || {};
+		var data = <%- REQUIRE_SCOPE %>.remotesLoadingData;
+		var remoteIds = remoteCacheUnique(keys.flatMap(function(key) {
+			return data.remoteKeyToRemoteModuleIds[key] || [];
+		})).filter(remoteCacheSafeId);
+		var externalIds = keys.flatMap(function(key) {
+			return data.remoteKeyToExternalModuleIds[key] || [];
+		}).filter(remoteCacheSafeId);
+		var consumers = new Set();
+		var queue = remoteIds.flatMap(function(id) {
+			return data.remoteModuleIdToConsumerModuleIds[id] || [];
+		});
+		for (var i = 0; i < queue.length; i++) {
+			var id = queue[i];
+			if (consumers.has(id) || !remoteCacheSafeId(id)) continue;
+			consumers.add(id);
+			queue.push.apply(queue, data.consumerModuleIdToParentModuleIds[id] || []);
+		}
+		var moduleIds = remoteCacheUnique(remoteIds.concat(externalIds, Array.from(consumers)));
+		var chunks = remoteCacheUnique(keys.flatMap(function(key) {
+			return data.remoteKeyToChunkIds[key] || [];
+		}));
+		var records = remoteIds.map(function(id) { return data.moduleIdToRemoteDataMapping[id]; });
+		var pending = (loading.pending || []).concat(records.map(function(record) {
+			return record.p;
+		}).filter(function(p) { return p && typeof p.then === "function"; }));
+		var controls = chunks.length ? Object.values(<%- REQUIRE_SCOPE %>.chunkCacheControls || {}) : [];
+		var restore = [];
+		keys.forEach(function(key) {
+			if (!remoteCacheBarriers.has(key)) {
+				var resolve;
+				var promise = new Promise(function(done) { resolve = done; });
+				remoteCacheBarriers.set(key, { promise: promise, resolve: resolve, count: 0 });
+			}
+			remoteCacheBarriers.get(key).count++;
+		});
+		var clean = function() {
+			controls.forEach(function(control) { if (control.clear) control.clear(chunks); });
+			records.forEach(function(record) { delete record.p; });
+			if (loading.reset) loading.reset();
+			remoteIds.forEach(function(id) { delete <%- MODULE_FACTORIES %>[id]; });
+			moduleIds.forEach(function(id) { delete <%- MODULE_CACHE %>[id]; });
+		};
+		var timer;
+		try {
+			restore.push(remoteCacheCapture(<%- MODULE_FACTORIES %>, remoteIds));
+			restore.push(remoteCacheCapture(<%- MODULE_CACHE %>, moduleIds));
+			records.forEach(function(record) { restore.push(remoteCacheCapture(record, ["p"])); });
+			controls.forEach(function(control) {
+				var snapshot = control.snapshot && control.snapshot(chunks);
+				var generations = control.getGeneration && Object.fromEntries(chunks.map(function(id) {
+					return [id, control.getGeneration(id)];
+				}));
+				restore.push(function() {
+					if (snapshot !== undefined && control.restore) control.restore(snapshot);
+					if (generations && control.restoreGenerations) control.restoreGenerations(generations);
+				});
+			});
+			controls.forEach(function(control) { if (control.invalidate) control.invalidate(chunks); });
+			clean();
+			var settled = Promise.allSettled(pending);
+			var configured = globalThis.__rspack_clear_cache_wait_timeout__;
+			var timeout = typeof configured === "number" && configured >= 0 ? configured : 30000;
+			var timedOut = timeout !== Infinity && await Promise.race([
+				settled.then(function() { return false; }),
+				new Promise(function(resolve) {
+					timer = setTimeout(function() { resolve(true); }, timeout);
+				})
+			]);
+			if (timeout === Infinity) await settled;
+			clearTimeout(timer);
+			// Loader consumers may install a factory after their promise settles.
+			await new Promise(function(resolve) { setTimeout(resolve, 0); });
+			clean();
+			if (timedOut) {
+				keys.forEach(function(key) { remoteCacheStale.set(key, clean); });
+				settled.then(function() {
+					try { clean(); }
+					finally {
+						keys.forEach(function(key) {
+							if (remoteCacheStale.get(key) === clean) remoteCacheStale.delete(key);
+						});
+					}
+				}).catch(function() {});
+			}
+		} catch (error) {
+			restore.reverse().forEach(function(undo) { undo(); });
+			throw error;
+		} finally {
+			clearTimeout(timer);
+			keys.forEach(function(key) {
+				var barrier = remoteCacheBarriers.get(key);
+				if (--barrier.count === 0) {
+					remoteCacheBarriers.delete(key);
+					barrier.resolve();
+				}
+			});
+		}
+	}
+};

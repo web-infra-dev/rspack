@@ -1,4 +1,15 @@
 <%- ENSURE_CHUNK_HANDLERS %>.remotes = function (chunkId, promises) {
+	<% if (_with_cache) { %>
+	var wait = <%- REQUIRE_SCOPE %>.remoteCache.waitForChunk(chunkId);
+	if (wait) {
+		promises.push(wait.then(function() {
+			var pending = [];
+			<%- ENSURE_CHUNK_HANDLERS %>.remotes(chunkId, pending);
+			return Promise.all(pending);
+		}));
+		return;
+	}
+	<% } %>
 	var chunkMapping = <%- REQUIRE_SCOPE %>.remotesLoadingData.chunkMapping;
 	var moduleIdToRemoteDataMapping = <%- REQUIRE_SCOPE %>.remotesLoadingData.moduleIdToRemoteDataMapping;
 	if (<%- HAS_OWN_PROPERTY %>(chunkMapping, chunkId)) {

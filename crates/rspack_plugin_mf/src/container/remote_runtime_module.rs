@@ -17,6 +17,9 @@ use crate::{
 };
 
 static REMOTES_LOADING_TEMPLATE: &str = include_str!("./remotesLoading.ejs");
+static REMOTE_CACHE_TEMPLATE: &str = include_str!("./remoteCache.ejs");
+static REMOTE_CACHE_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(REMOTE_CACHE_TEMPLATE));
 static REMOTES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| RuntimeModuleRuntimeRequirements {
     force_context: RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
@@ -45,8 +48,11 @@ impl RuntimeModule for RemoteRuntimeModule {
     &self,
     compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
-    let dependencies = REMOTES_LOADING_RUNTIME_REQUIREMENTS.dependencies
+    let mut dependencies = REMOTES_LOADING_RUNTIME_REQUIREMENTS.dependencies
       | runtime_require_scope_requirement(compilation);
+    if compilation.platform.is_node() {
+      dependencies |= REMOTE_CACHE_RUNTIME_REQUIREMENTS.dependencies;
+    }
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies,
       force_context: RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
@@ -59,7 +65,13 @@ impl RuntimeModule for RemoteRuntimeModule {
   }
 
   fn template(&self) -> Vec<(String, String)> {
-    vec![(self.id().to_string(), REMOTES_LOADING_TEMPLATE.to_string())]
+    vec![
+      (self.id().to_string(), REMOTES_LOADING_TEMPLATE.to_string()),
+      (
+        format!("{}_cache", self.id()),
+        REMOTE_CACHE_TEMPLATE.to_string(),
+      ),
+    ]
   }
 
   async fn generate(
@@ -83,7 +95,12 @@ impl RuntimeModule for RemoteRuntimeModule {
     let mut consumer_module_id_to_parent_module_ids = FxHashMap::default();
     let mut remote_key_to_chunk_ids = FxHashMap::default();
     let module_graph = compilation.get_module_graph();
-    let consumers = collect_consumers(compilation, module_graph);
+    let node = compilation.platform.is_node();
+    let consumers = if node {
+      collect_consumers(compilation, module_graph)
+    } else {
+      IdentifierMap::default()
+    };
     // Match enhanced/webpack behavior: include all referenced chunks so async ones are mapped too
     for chunk in
       chunk.get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
@@ -199,23 +216,37 @@ impl RuntimeModule for RemoteRuntimeModule {
           runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS),
       )
     } else {
-      runtime_template.render(self.id().as_str(), None)?
+      runtime_template.render(
+        self.id().as_str(),
+        Some(serde_json::json!({ "_with_cache": node })),
+      )?
+    };
+    let cache_data = if node {
+      format!(
+        ", remoteKeyToRemoteModuleIds: {}, remoteKeyToExternalModuleIds: {}, remoteModuleIdToConsumerModuleIds: {}, consumerModuleIdToParentModuleIds: {}, remoteKeyToChunkIds: {}",
+        json_stringify(&remote_key_to_remote_module_ids),
+        json_stringify(&remote_key_to_external_module_ids),
+        json_stringify(&remote_module_id_to_consumer_module_ids),
+        json_stringify(&consumer_module_id_to_parent_module_ids),
+        json_stringify(&remote_key_to_chunk_ids),
+      )
+    } else {
+      String::new()
+    };
+    let cache_impl = if node {
+      runtime_template.render(&format!("{}_cache", self.id()), None)?
+    } else {
+      String::new()
     };
     Ok(format!(
       r#"
-{require_name}.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToRemoteDataMapping: {id_to_remote_data_mapping}, remoteKeyToRemoteModuleIds: {remote_key_to_remote_module_ids}, remoteKeyToExternalModuleIds: {remote_key_to_external_module_ids}, remoteModuleIdToConsumerModuleIds: {remote_module_id_to_consumer_module_ids}, consumerModuleIdToParentModuleIds: {consumer_module_id_to_parent_module_ids}, remoteKeyToChunkIds: {remote_key_to_chunk_ids} }};
+{require_name}.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToRemoteDataMapping: {id_to_remote_data_mapping}{cache_data} }};
+{cache_impl}
 {remotes_loading_impl}
 "#,
       require_name = runtime_require_scope_name(runtime_template),
       chunk_mapping = json_stringify(&chunk_to_remotes_mapping),
       id_to_remote_data_mapping = json_stringify(&id_to_remote_data_mapping),
-      remote_key_to_remote_module_ids = json_stringify(&remote_key_to_remote_module_ids),
-      remote_key_to_external_module_ids = json_stringify(&remote_key_to_external_module_ids),
-      remote_module_id_to_consumer_module_ids =
-        json_stringify(&remote_module_id_to_consumer_module_ids),
-      consumer_module_id_to_parent_module_ids =
-        json_stringify(&consumer_module_id_to_parent_module_ids),
-      remote_key_to_chunk_ids = json_stringify(&remote_key_to_chunk_ids),
       remotes_loading_impl = remotes_loading_impl,
     ))
   }

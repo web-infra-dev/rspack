@@ -42,7 +42,7 @@ export function createRemoteServer() {
 			};
 		}
 	};
-	globalThis.__mfSsrClearCacheAsyncChunkRemoteServer = remoteServer;
+	globalThis[__TEST_REMOTE_SERVER_KEY__] = remoteServer;
 	return remoteServer;
 }
 
