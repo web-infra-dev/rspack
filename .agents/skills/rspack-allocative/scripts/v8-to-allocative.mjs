@@ -74,11 +74,12 @@ export function convert(
   }
   const graph = readHeapGraph(snapshot);
   const { count, nodeType, nodeName, nodeSize, nodeId } = graph;
-  const { sourceNodeIds, rspackRoots, rspackBindings } = redacted
+  const { sourceNodeIds, rspackRoots, rspackBindings, rspackObjects } = redacted
     ? {
         sourceNodeIds: snapshot.rspack_v8_source_nodes ?? [],
         rspackRoots: snapshot.rspack_js_roots ?? [],
         rspackBindings: snapshot.rspack_js_bindings ?? [],
+        rspackObjects: new Map(),
       }
     : readHeapCategories(graph);
   const v8Sources = new Set(sourceNodeIds);
@@ -190,6 +191,7 @@ export function convert(
   };
   const categoryBytes = { v8_code: 0, rspack: 0, shared_or_unknown: 0 };
   const combinedRspack = new Map();
+  const markedObjects = new Map();
   let totalBytes = 0;
   let unreachableBytes = 0;
   for (let i = 0; i < count; i++) {
@@ -197,12 +199,26 @@ export function convert(
     if (!Number.isSafeInteger(size) || size < 0)
       throw new Error('Invalid V8 self_size');
     totalBytes += size;
+    const id = nodeId(i);
+    const kind = rspackObjects.get(id);
+    if (kind) {
+      const entry = markedObjects.get(kind) ?? {
+        kind,
+        object_count: 0,
+        shallow_bytes: 0,
+      };
+      entry.object_count++;
+      entry.shallow_bytes += size;
+      markedObjects.set(kind, entry);
+    }
     if (!size) continue;
     if (parents[i] === -1) unreachableBytes += size;
     const category =
-      nodeType(i) === 'code' || v8Sources.has(nodeId(i))
+      nodeType(i) === 'code' || v8Sources.has(id)
         ? 'v8_code'
-        : rspackAnchors.has(i) || (parents[i] !== -1 && outside[i] === -1)
+        : kind ||
+            rspackAnchors.has(i) ||
+            (parents[i] !== -1 && outside[i] === -1)
           ? 'rspack'
           : 'shared_or_unknown';
     categoryBytes[category] += size;
@@ -213,10 +229,12 @@ export function convert(
     let remaining = maxDepth;
     while (true) {
       const type = nodeType(cursor);
-      const jsRoot =
-        category === 'rspack' ? jsRoots.get(nodeId(cursor)) : undefined;
+      const id = nodeId(cursor);
+      const jsRoot = category === 'rspack' ? jsRoots.get(id) : undefined;
       frames.push(
-        includeContent ? `${type}: ${nodeName(cursor)}` : (jsRoot ?? type),
+        includeContent
+          ? `${type}: ${nodeName(cursor)}`
+          : (jsRoot ?? rspackObjects.get(id) ?? type),
       );
       if (category === 'rspack') {
         const binding = bindings.get(cursor);
@@ -274,13 +292,16 @@ export function convert(
       unit: 'bytes',
       includes_content: includeContent,
       attribution:
-        'code and script source first; marked Rspack roots and nodes reachable only through them; all other nodes shared or unknown; shallow self_size once per node',
+        'code and script source first; marked Rspack objects and roots, plus nodes reachable only through Rspack roots or matched bindings; all other nodes shared or unknown; shallow self_size once per node',
       max_depth: maxDepth,
       represented_bytes: totalBytes,
       node_count: count,
       strong_reachable_nodes: reachable,
       unreachable_bytes: unreachableBytes,
       category_bytes: categoryBytes,
+      marked_objects: [...markedObjects.values()].sort((a, b) =>
+        a.kind.localeCompare(b.kind),
+      ),
       matched_bindings: links.filter((link) => link.rust_objects.length).length,
       unmatched_bindings: links.filter((link) => !link.rust_objects.length)
         .length,

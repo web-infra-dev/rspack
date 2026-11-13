@@ -170,6 +170,8 @@ node "$rspack_root/.agents/skills/rspack-allocative/scripts/v8-to-allocative.mjs
 
 在 Speedscope 中打开 `reports/0-build.js.allocative` 或 `reports/0-build.combined.allocative`，分别查看 JavaScript 内存和 Rust 与 JavaScript 合并后的内存报告。打开 `reports/0-build.links.json` 可以查找与 JavaScript 对象关联的 Rust 对象。有关报告的查看方法，请参阅[查看快照](#view-snapshots)。
 
+关联报告的 `marked_objects` 按类型列出带标记的 Rspack 对象数量和浅层字节数，包括资产记录和数组。
+
 原始快照可能包含源码和其他项目数据。如果需要隐去 V8 对象名称、字符串和源码位置，请分享转换后的报告。转换时传入 `--include-content` 可以在报告中包含 V8 名称和 binding 地址。使用 `--out-dir` 可以将报告写入另一个已有的目录。
 
 使用本地 binding 的测试，也可以通过 `RSPACK_ALLOCATIVE_DIR` 采集快照。每次构建或重建都会自动输出快照，测试框架无需额外接入采集逻辑。构建好 binding 和 JavaScript 包后，可以运行单个 HMR 用例：

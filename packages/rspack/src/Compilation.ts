@@ -59,7 +59,11 @@ import {
 } from './Stats';
 import { StatsFactory } from './stats/StatsFactory';
 import { StatsPrinter } from './stats/StatsPrinter';
-import { linkAllocativeBinding, markAllocativeRoot } from './util/allocative';
+import {
+  linkAllocativeBinding,
+  markAllocativeObject,
+  markAllocativeRoot,
+} from './util/allocative';
 import { AsyncTask } from './util/AsyncTask';
 import { createReadonlyMap } from './util/createReadonlyMap';
 import { createModules } from './Modules';
@@ -504,6 +508,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     // Wrap hooks with a Proxy to provide helpful error messages when
     // webpack plugins try to access hooks that don't exist in rspack
     const availableHooks = Object.keys(this.hooks);
+    if (SUPPORTS_ALLOCATIVE) {
+      markAllocativeObject(this.hooks, 'CompilationHooks');
+    }
     this.hooks = new Proxy(this.hooks, {
       get(target, prop, receiver) {
         const value = Reflect.get(target, prop, receiver);
@@ -783,9 +790,13 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
    * Get an array of Asset
    */
   getAssets(): readonly Asset[] {
-    const assets = this.#inner.getAssets();
-
-    return assets.map((asset) => this.#createAsset(asset));
+    const assets = this.#inner
+      .getAssets()
+      .map((asset) => this.#createAsset(asset));
+    if (SUPPORTS_ALLOCATIVE) {
+      markAllocativeObject(assets, 'Assets');
+    }
+    return assets;
   }
 
   getAsset(name: string): Readonly<Asset> | undefined {
@@ -797,6 +808,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   #createAsset(asset: JsAsset): Asset {
+    if (SUPPORTS_ALLOCATIVE) {
+      markAllocativeObject(asset, 'Asset');
+    }
     Object.defineProperty(asset, 'source', {
       get: () => this.__internal__getAssetSource(asset.name),
     });

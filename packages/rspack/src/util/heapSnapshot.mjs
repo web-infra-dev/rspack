@@ -18,10 +18,21 @@ import { StringDecoder } from 'node:string_decoder';
  * @typedef {[nodeId: number, address: string, type: string]} BindingMarker
  * @typedef {'Compiler' | 'Compilation' | 'Cache'} RspackRootKind
  * @typedef {[nodeId: number, kind: RspackRootKind]} RspackRoot
+ * @typedef {(typeof rspackObjectKinds)[number]} RspackObjectKind
  */
 
 export const allocativeRootMarker = '__rspack_internal_allocativeRoot';
 export const allocativeBindingMarker = '__rspack_internal_allocativeBinding';
+export const allocativeObjectMarker = '__rspack_internal_allocativeObject';
+const rspackObjectKinds = /** @type {const} */ ([
+  'Asset',
+  'Assets',
+  'CompilationHooks',
+  'CompilerHooks',
+  'Module',
+  'ModuleGraph',
+  'Stats',
+]);
 
 function loadStreamJson() {
   // The standalone converter runs this module directly, without Rslib's define.
@@ -232,6 +243,8 @@ export function readHeapCategories(graph) {
   const rspackRoots = [];
   /** @type {[number, number][]} */
   const rspackBindings = [];
+  /** @type {Map<number, RspackObjectKind>} */
+  const rspackObjects = new Map();
   for (let i = 0; i < graph.count; i++) {
     const type = graph.nodeType(i);
     if (type !== 'code' && type !== 'object') continue;
@@ -249,13 +262,16 @@ export function readHeapCategories(graph) {
       } else if (
         type === 'object' &&
         edgeType === 'property' &&
-        name === allocativeRootMarker
+        (name === allocativeRootMarker || name === allocativeObjectMarker)
       ) {
         const target = graph.target(edge);
         if (graph.nodeType(target) !== 'string') continue;
         const kind = graph.nodeName(target);
-        if (isRspackRootKind(kind)) {
-          rspackRoots.push([graph.nodeId(i), kind]);
+        if (name === allocativeRootMarker) {
+          if (isRspackRootKind(kind)) rspackRoots.push([graph.nodeId(i), kind]);
+        } else {
+          const objectKind = rspackObjectKinds.find((value) => value === kind);
+          if (objectKind) rspackObjects.set(graph.nodeId(i), objectKind);
         }
       } else if (
         type === 'object' &&
@@ -302,5 +318,6 @@ export function readHeapCategories(graph) {
     sourceNodeIds: Array.from(sourceNodes, graph.nodeId),
     rspackRoots,
     rspackBindings,
+    rspackObjects,
   };
 }

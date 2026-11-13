@@ -1,6 +1,8 @@
 import {
   allocativeBindingMarker,
+  allocativeObjectMarker,
   allocativeRootMarker,
+  type RspackObjectKind,
   type RspackRootKind,
 } from './heapSnapshot.mjs';
 
@@ -14,6 +16,15 @@ function isSnapshotEnabled(): boolean {
 export function markAllocativeRoot(value: object, kind: RspackRootKind): void {
   if (isSnapshotEnabled()) {
     Object.defineProperty(value, allocativeRootMarker, { value: kind });
+  }
+}
+
+export function markAllocativeObject(
+  value: object,
+  kind: RspackObjectKind,
+): void {
+  if (isSnapshotEnabled()) {
+    Object.defineProperty(value, allocativeObjectMarker, { value: kind });
   }
 }
 
