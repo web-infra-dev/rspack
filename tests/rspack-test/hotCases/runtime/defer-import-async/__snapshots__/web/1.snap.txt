@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: consumer_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 33329
+- Update: main.LAST_HASH.hot-update.js, size: 33123
 
 ## Manifest
 
@@ -54,12 +54,11 @@ __webpack_require__.d(__webpack_exports__, {
 },function(__webpack_require__) {
 // webpack/runtime/async_module
 (() => {
-var hasSymbol = typeof Symbol === "function";
-var rspackQueues = hasSymbol ? Symbol("rspack queues") : "__rspack_queues";
-var rspackExports = __webpack_require__.aE = hasSymbol ? Symbol("rspack exports") : "__webpack_exports__";
-var rspackError = hasSymbol ? Symbol("rspack error") : "__rspack_error";
-var rspackDone = hasSymbol ? Symbol("rspack done") : "__rspack_done";
-var rspackDefer = __webpack_require__.zS = hasSymbol ? Symbol("rspack defer") : "__rspack_defer";
+var rspackQueues = Symbol("rspack queues");
+var rspackExports = __webpack_require__.aE = Symbol("rspack exports");
+var rspackError = Symbol("rspack error");
+var rspackDone = Symbol("rspack done");
+var rspackDefer = __webpack_require__.zS = Symbol("rspack defer");
 __webpack_require__.zT = (asyncDeps) => {
 	var hasUnresolvedAsyncSubgraph = asyncDeps.some((id) => {
 		var cache = __webpack_require__.c[id];

@@ -809,6 +809,7 @@ const applyOutputDefaults = (
     () => tp && tp.logicalAssignment === true,
   );
   F(environment, 'spread', () => tp && optimistic(tp.spread));
+  F(environment, 'symbol', () => tp && optimistic(tp.symbol));
   F(
     environment,
     'nodePrefixForCoreModules',

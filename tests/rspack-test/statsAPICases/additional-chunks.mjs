@@ -61,10 +61,10 @@ export default {
 			      assets: Array [
 			        Object {
 			          name: entryB.js,
-			          size: 3210,
+			          size: 3150,
 			        },
 			      ],
-			      assetsSize: 3210,
+			      assetsSize: 3150,
 			      auxiliaryAssets: undefined,
 			      auxiliaryAssetsSize: undefined,
 			      childAssets: undefined,

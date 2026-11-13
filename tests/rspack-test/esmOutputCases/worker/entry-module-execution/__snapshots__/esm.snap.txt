@@ -78,12 +78,11 @@ __webpack_require__.c = __webpack_module_cache__;
 
 // webpack/runtime/async_module
 (() => {
-var hasSymbol = typeof Symbol === "function";
-var rspackQueues = hasSymbol ? Symbol("rspack queues") : "__rspack_queues";
-var rspackExports = __webpack_require__.aE = hasSymbol ? Symbol("rspack exports") : "__webpack_exports__";
-var rspackError = hasSymbol ? Symbol("rspack error") : "__rspack_error";
-var rspackDone = hasSymbol ? Symbol("rspack done") : "__rspack_done";
-var rspackDefer = __webpack_require__.zS = hasSymbol ? Symbol("rspack defer") : "__rspack_defer";
+var rspackQueues = Symbol("rspack queues");
+var rspackExports = __webpack_require__.aE = Symbol("rspack exports");
+var rspackError = Symbol("rspack error");
+var rspackDone = Symbol("rspack done");
+var rspackDefer = __webpack_require__.zS = Symbol("rspack defer");
 __webpack_require__.zT = (asyncDeps) => {
 	var hasUnresolvedAsyncSubgraph = asyncDeps.some((id) => {
 		var cache = __webpack_require__.c[id];
@@ -208,10 +207,7 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 (() => {
 // define __esModule on exports
 __webpack_require__.r = (exports) => {
-	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-	}
-	Object.defineProperty(exports, '__esModule', { value: true });
+	Object.defineProperties(exports, { [Symbol.toStringTag]: { value: 'Module' }, __esModule: { value: true } });
 };
 })();
 

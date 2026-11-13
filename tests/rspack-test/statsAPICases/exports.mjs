@@ -59,7 +59,7 @@ export default {
 			      isOverSizeLimit: false,
 			      name: main.js,
 			      related: Array [],
-			      size: 444,
+			      size: 384,
 			      type: asset,
 			    },
 			  ],
@@ -79,7 +79,7 @@ export default {
 			        main.js,
 			      ],
 			      filteredModules: undefined,
-			      hash: af0de16351aeb883,
+			      hash: 7c9acb0aba7b8ac8,
 			      id: 889,
 			      idHints: Array [],
 			      initial: true,
@@ -437,7 +437,7 @@ export default {
 			      size: 192,
 			      sizes: Object {
 			        javascript: 192,
-			        runtime: 705,
+			        runtime: 615,
 			      },
 			      type: chunk,
 			    },
@@ -447,10 +447,10 @@ export default {
 			      assets: Array [
 			        Object {
 			          name: main.js,
-			          size: 444,
+			          size: 384,
 			        },
 			      ],
-			      assetsSize: 444,
+			      assetsSize: 384,
 			      auxiliaryAssets: Array [],
 			      auxiliaryAssetsSize: 0,
 			      childAssets: Object {},
@@ -467,7 +467,7 @@ export default {
 			  errorsCount: 0,
 			  filteredAssets: undefined,
 			  filteredModules: undefined,
-			  hash: 276d92f5e4d84b06,
+			  hash: f9a377d6e19eacc1,
 			  modules: Array [
 			    Object {
 			      assets: Array [],
@@ -1190,9 +1190,9 @@ export default {
 			      preOrderIndex: undefined,
 			      providedExports: Array [],
 			      reasons: Array [],
-			      size: 274,
+			      size: 184,
 			      sizes: Object {
-			        runtime: 274,
+			        runtime: 184,
 			      },
 			      type: module,
 			      usedExports: null,
@@ -1204,10 +1204,10 @@ export default {
 			      assets: Array [
 			        Object {
 			          name: main.js,
-			          size: 444,
+			          size: 384,
 			        },
 			      ],
-			      assetsSize: 444,
+			      assetsSize: 384,
 			      auxiliaryAssets: Array [],
 			      auxiliaryAssetsSize: 0,
 			      childAssets: Object {},
@@ -1235,9 +1235,9 @@ export default {
 			builtAt: false,
 			version: false
 		})).toMatchInlineSnapshot(`
-			asset main.js 444 bytes [emitted] (name: main)
+			asset main.js 384 bytes [emitted] (name: main)
 			orphan modules 192 bytes [orphan] 4 modules
-			runtime modules 705 bytes 3 modules
+			runtime modules 615 bytes 3 modules
 			./fixtures/esm/abc.js + 3 modules 192 bytes [code generated]
 			  [no exports]
 			  [no exports used]

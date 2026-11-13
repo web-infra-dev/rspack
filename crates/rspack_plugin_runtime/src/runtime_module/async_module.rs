@@ -36,10 +36,30 @@ impl RuntimeModule for AsyncRuntimeModule {
       RuntimeGlobalsRenderMode::RspackLexical | RuntimeGlobalsRenderMode::RspackExport => true,
       RuntimeGlobalsRenderMode::Webpack | RuntimeGlobalsRenderMode::RspackContext => false,
     };
+    let supports_symbol = context
+      .compilation
+      .options
+      .output
+      .environment
+      .supports_symbol();
+    let render_symbol = |name: &str, fallback: &str| {
+      if supports_symbol {
+        format!(r#"Symbol("{name}")"#)
+      } else {
+        format!(r#"hasSymbol ? Symbol("{name}") : "{fallback}""#)
+      }
+    };
+    let exports_fallback = runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS);
     runtime_template.render(
       self.id(),
       Some(serde_json::json!({
         "_uses_lexical_runtime_globals": uses_lexical_runtime_globals,
+        "_supports_symbol": supports_symbol,
+        "_queues_symbol": render_symbol("rspack queues", "__rspack_queues"),
+        "_exports_symbol": render_symbol("rspack exports", &exports_fallback),
+        "_error_symbol": render_symbol("rspack error", "__rspack_error"),
+        "_done_symbol": render_symbol("rspack done", "__rspack_done"),
+        "_defer_symbol": render_symbol("rspack defer", "__rspack_defer"),
       })),
     )
   }

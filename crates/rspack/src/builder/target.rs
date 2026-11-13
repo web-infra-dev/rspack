@@ -39,6 +39,7 @@ pub struct TargetProperties {
   pub module: Option<bool>,
   pub optional_chaining: Option<bool>,
   pub spread: Option<bool>,
+  pub symbol: Option<bool>,
   pub template_literal: Option<bool>,
   pub async_function: Option<bool>,
   pub import_meta_dirname_and_filename: Option<bool>,
@@ -133,6 +134,9 @@ impl TargetProperties {
   }
   pub fn spread(&self) -> bool {
     self.spread.unwrap_or(false)
+  }
+  pub fn symbol(&self) -> bool {
+    self.symbol.unwrap_or(false)
   }
   pub fn template_literal(&self) -> bool {
     self.template_literal.unwrap_or(false)
@@ -245,6 +249,7 @@ fn merge_target_properties(target_properties: &[TargetProperties]) -> TargetProp
   merge_field!(module);
   merge_field!(optional_chaining);
   merge_field!(spread);
+  merge_field!(symbol);
   merge_field!(template_literal);
   merge_field!(async_function);
   merge_field!(top_level_await);
@@ -293,6 +298,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       template_literal: Some(version_dependent(4, None, major, minor)),
       optional_chaining: Some(version_dependent(14, None, major, minor)),
       spread: Some(version_dependent(8, Some(3), major, minor)),
+      symbol: Some(version_dependent(0, Some(12), major, minor)),
       arrow_function: Some(version_dependent(6, None, major, minor)),
       async_function: Some(version_dependent(7, Some(6), major, minor)),
       top_level_await: Some(version_dependent(14, Some(8), major, minor)),
@@ -400,6 +406,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       template_literal: Some(version_dependent(1, Some(1), major, minor)),
       optional_chaining: Some(version_dependent(8, None, major, minor)),
       spread: Some(version_dependent(2, None, major, minor)),
+      symbol: Some(version_dependent(0, Some(24), major, minor)),
       arrow_function: Some(version_dependent(1, Some(1), major, minor)),
       async_function: Some(version_dependent(1, Some(7), major, minor)),
       // 12.0.0 - Chromium 89
@@ -448,6 +455,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       template_literal: Some(version_dependent(0, Some(13), major, minor)),
       optional_chaining: Some(version_dependent(0, Some(44), major, minor)),
       spread: Some(version_dependent(0, Some(23), major, minor)),
+      symbol: Some(version_dependent(0, Some(12), major, minor)),
       arrow_function: Some(version_dependent(0, Some(15), major, minor)),
       async_function: Some(version_dependent(0, Some(21), major, minor)),
       // 0.52.0 - Chromium 89
@@ -480,6 +488,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       template_literal: Some(version >= 2015),
       optional_chaining: Some(version >= 2020),
       spread: Some(version >= 2018),
+      symbol: Some(version >= 2015),
       method_shorthand: Some(version >= 2015),
       arrow_function: Some(version >= 2015),
       for_of: Some(version >= 2015),
