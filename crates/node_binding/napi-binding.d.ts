@@ -375,7 +375,6 @@ export declare class JsResolver {
 export declare class JsResolverFactory {
   constructor(pnp: boolean, jsResolveOptions: RawResolveOptions, jsLoaderResolveOptions: RawResolveOptions)
   get(type: string, options?: RawResolveOptionsWithDependencyType): JsResolver
-
 }
 
 export declare class JsStats {
