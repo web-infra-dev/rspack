@@ -382,6 +382,13 @@ export declare class JsStats {
   getLogging(acceptedTypes: number): Array<JsLog>
 }
 
+export declare class JsStrictLoaderTask {
+  get owner(): number
+  takeContext(): JsLoaderContext
+  complete(context: JsLoaderContext): void
+  fail(reason: string): void
+}
+
 export declare class KnownBuildInfo {}
 
 export declare class ModuleGraphConnection {
@@ -608,6 +615,8 @@ export declare const EXPECTED_RSPACK_CORE_VERSION: string
 export declare function externalModuleGetUserRequest(module: Module): string
 
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
+
+export declare function getSerializedLoaderOptions(owner: number, ident?: string | undefined | null): Buffer | null
 
 export interface JsAddingRuntimeModule {
   name: string
@@ -3449,6 +3458,12 @@ export interface RegisterJsTaps {
   registerRsdoctorPluginAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>
 }
 
+export declare function registerStrictLoader(owner: number, ident: string, options: Buffer, compilerOptions?: Buffer | undefined | null): void
+
+export declare function registerStrictLoaderWorker(id: number): void
+
+export declare function releaseLoaderReferences(owner: number): void
+
 export interface ResolveResult {
   path?: string
   error?: string
@@ -3488,6 +3503,10 @@ export interface SourcePosition {
   line: number
   column?: number
 }
+
+export declare function stopStrictLoaderWorker(id: number): void
+
+export declare function subscribeStrictLoaderWorker(worker: number, callback: (arg: JsStrictLoaderTask) => void): void
 
 export declare function sync(path: string, request: string): ResolveResult
 

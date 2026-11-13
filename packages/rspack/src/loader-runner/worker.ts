@@ -1,9 +1,20 @@
 import fs from 'node:fs';
 import querystring from 'node:querystring';
 import { promisify } from 'node:util';
-import { type MessagePort, receiveMessageOnPort } from 'node:worker_threads';
+import {
+  type MessagePort,
+  receiveMessageOnPort,
+  threadId,
+} from 'node:worker_threads';
 
-import { JsLoaderState } from '@rspack/binding';
+import {
+  JsLoaderState,
+  subscribeStrictLoaderWorker,
+  type JsStrictLoaderTask,
+} from '@rspack/binding';
+import { runLoaders } from './index';
+import { createStrictLoaderCompiler } from './strictOptions';
+import { createWorkerModule } from './workerModule';
 import type { NormalModule } from '../NormalModule';
 import type { LoaderContext } from '../config';
 import type { ResolveCallback } from '../config/adapterRuleUse';
@@ -516,11 +527,16 @@ async function loaderImpl(
         if (!fn) continue;
 
         args =
-          (await runSyncOrAsync(fn, loaderContext, [
-            loaderContext.remainingRequest,
-            loaderContext.previousRequest,
-            currentLoaderObject.loaderItem.data,
-          ])) || [];
+          (await runSyncOrAsync(
+            fn,
+            loaderContext,
+            [
+              loaderContext.remainingRequest,
+              loaderContext.previousRequest,
+              currentLoaderObject.loaderItem.data,
+            ],
+            true,
+          )) || [];
 
         const hasArg = args.some((value) => value !== undefined);
         if (hasArg) {
@@ -562,7 +578,7 @@ async function loaderImpl(
         currentLoaderObject.normalExecuted = true;
         if (!fn) continue;
         convertArgs(args, !!currentLoaderObject.raw);
-        args = (await runSyncOrAsync(fn, loaderContext, args)) || [];
+        args = (await runSyncOrAsync(fn, loaderContext, args, true)) || [];
         invalidateCodeFilterTextCache(codeFilterTextCache);
       }
     }
@@ -762,6 +778,31 @@ function getCurrentLoader(
     return loaderContext.loaders[index];
   }
   return null;
+}
+
+async function executeStrictLoader(task: JsStrictLoaderTask): Promise<void> {
+  let module: ReturnType<typeof createWorkerModule> | undefined;
+  try {
+    const context = task.takeContext();
+    module = createWorkerModule(context._module);
+    const result = await runLoaders(undefined, context, {
+      module: module.module,
+      strictCompiler: createStrictLoaderCompiler(task.owner),
+    });
+    task.complete(result);
+  } catch (error) {
+    task.fail(
+      error instanceof Error ? (error.stack ?? error.message) : String(error),
+    );
+  } finally {
+    module?.dispose();
+  }
+}
+
+if (!process.env.WASM && threadId !== 0) {
+  subscribeStrictLoaderWorker(threadId, (task) => {
+    void executeStrictLoader(task);
+  });
 }
 
 export default worker;

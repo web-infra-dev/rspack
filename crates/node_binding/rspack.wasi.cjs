@@ -2389,3 +2389,9 @@ module.exports.sync = __napiModule.exports.sync
 module.exports.syncTraceEvent = __napiModule.exports.syncTraceEvent
 module.exports.transform = __napiModule.exports.transform
 module.exports.transformSync = __napiModule.exports.transformSync
+
+module.exports.getSerializedLoaderOptions = __napiModule.exports.getSerializedLoaderOptions
+module.exports.registerStrictLoader = __napiModule.exports.registerStrictLoader
+module.exports.registerStrictLoaderWorker = __napiModule.exports.registerStrictLoaderWorker
+module.exports.stopStrictLoaderWorker = __napiModule.exports.stopStrictLoaderWorker
+module.exports.subscribeStrictLoaderWorker = __napiModule.exports.subscribeStrictLoaderWorker

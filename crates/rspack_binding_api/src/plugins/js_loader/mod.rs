@@ -1,6 +1,8 @@
+mod bridge;
 mod context;
 mod resolver;
 mod scheduler;
+mod worker;
 
 use std::{
   fmt::Debug,
@@ -109,6 +111,7 @@ impl JsLoaderRunnerGetter {
 
 #[plugin]
 pub(crate) struct JsLoaderRspackPlugin {
+  owner: u32,
   compiler_id: once_cell::sync::OnceCell<CompilerId>,
   pub(crate) runner_getter: JsLoaderRunnerGetter,
   /// This complex data structure is used to avoid deadlock when running loaders which contain `importModule`
@@ -118,13 +121,20 @@ pub(crate) struct JsLoaderRspackPlugin {
 }
 
 impl JsLoaderRspackPlugin {
-  pub fn new(runner_getter: JsLoaderRunnerGetter) -> Self {
+  pub fn new(runner_getter: JsLoaderRunnerGetter, owner: u32) -> Self {
     Self::new_inner(
+      owner,
       Default::default(),
       runner_getter,
       Mutex::default(),
       RwLock::new(FxHashSet::default()),
     )
+  }
+}
+
+impl Drop for JsLoaderRspackPluginInner {
+  fn drop(&mut self) {
+    bridge::release_loader_references(self.owner);
   }
 }
 
@@ -158,6 +168,7 @@ async fn close(&self, _compilation: &Compilation) -> Result<()> {
   // Emit normally clears the runner, but builds that skip emit still own it.
   *self.runner.lock().expect("should get lock") = Arc::new(OnceCell::new());
   self.runner_getter.close();
+  bridge::release_loader_references(self.owner);
   Ok(())
 }
 

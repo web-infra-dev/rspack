@@ -883,7 +883,7 @@ type RuleSetLoaderWithOptions = {
   ident?: string;
   loader: string;
   options?: string | Record<string, any>;
-  parallel?: boolean | { maxWorkers?: number };
+  parallel?: boolean | 'strict' | { maxWorkers?: number };
   cache?: boolean;
   codeFilter?: RuleSetLoaderCodeFilter;
 };
@@ -1058,14 +1058,15 @@ export default {
 
 <ApiMeta addedVersion="1.3.1" />
 
-- **类型**: `boolean | { maxWorkers?: number }`
+- **类型**: `boolean | 'strict' | { maxWorkers?: number }`
 - **默认值:** `false`
 
-用于将指定 loader 放入 worker threads 中并行执行，被标记为 `parallel` 的 loader 会通过多线程调度运行，从而减少主线程的负担并提升构建性能。
+控制 JavaScript loader 的执行方式。
 
-- 设置为 `true` 时，loader 会在 worker 中执行，并由 Rspack 自动选择合适的线程数量。
-- 设置为 `{ maxWorkers }` 时，可以手动控制最大 worker 的数量。
-- 设置为 `false` 或省略时，该 loader 默认会在主线程中执行。
+- `true` 在共享 worker 池中运行 loader。
+- `{ maxWorkers }` 在 worker 中运行 loader，并设置 worker 数量上限。
+- `'strict'` 在 worker 中运行 loader，绕过主线程对象桥。请参考[严格模式](/guide/features/loader#strict-execution)。
+- `false` 在主线程中运行 loader。
 
 使用示例和限制请参考 [并行 Loader](/guide/features/loader#parallel-loader)。
 
@@ -1074,32 +1075,7 @@ export default {
 - **类型：** `number`
 - **默认值：** `Math.max(os.cpus().length - 1, 1)`
 
-当 `parallel` 配置为对象时，限制共享 loader worker pool 使用的最大 worker 线程数。请使用正整数。
-
-默认情况下，Rspack 使用 `os.cpus()` 返回的逻辑 CPU 数量减一，最少为一个 worker。
-
-loader worker pool 在当前进程内共享；如果多个 loader 都配置 `parallel`，建议使用一致的 `maxWorkers` 值。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.less$/,
-        use: [
-          {
-            loader: 'less-loader',
-            parallel: {
-              maxWorkers: 4,
-            },
-            options: {},
-          },
-        ],
-      },
-    ],
-  },
-};
-```
+设置共享 loader 池的 worker 数量上限。请使用正整数，详见 [Worker 数量](/guide/features/loader#worker-pool-size)。
 
 ## rules[].resolve
 
