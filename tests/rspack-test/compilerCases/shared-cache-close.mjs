@@ -208,7 +208,7 @@ function createSourceMapOptions(context, name, devtool) {
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 const loaderOptionsCase = {
   name: 'loader-options',
-  description: 'should compute loader etags from rule options and effective sourceMap',
+  description: 'should compute loader etags from rule options and sourceMap overrides',
   options(context) {
     return createSourceMapOptions(context, 'first', 'source-map');
   },
@@ -229,10 +229,10 @@ const loaderOptionsCase = {
     const cyclic = {};
     cyclic.self = cyclic;
     const cases = [
-      ['explicit-default', { sourceMap: true }, undefined, true, hit],
+      ['explicit-default', { sourceMap: true }, undefined, true, miss],
       ['override', { sourceMap: false }, undefined, false, miss],
       ['reuse-override', { sourceMap: false }, undefined, false, hit],
-      ['reuse-without-devtool', { sourceMap: false }, undefined, false, hit],
+      ['reuse-without-devtool', { sourceMap: false }, undefined, false, miss],
       [
         'undefined-override',
         { sourceMap: undefined },

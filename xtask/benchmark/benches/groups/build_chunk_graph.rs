@@ -345,6 +345,7 @@ fn configure_swc_loader(builder: &mut CompilerBuilder) {
           ),
           cache: false,
           options_cache_key: String::new(),
+          source_map: None,
           filter: None,
         }]),
         ..Default::default()
