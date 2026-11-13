@@ -789,7 +789,6 @@ async function executeStrictLoader(task: JsStrictLoaderTask): Promise<void> {
       module: module.module,
       strictCompiler: createStrictLoaderCompiler(task.owner),
     });
-    if (!result.__internal__error) module.commitBuildInfo();
     task.complete(result);
   } catch (error) {
     task.fail(

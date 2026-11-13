@@ -35,13 +35,14 @@ module.exports = function (content, map, data) {
   assertStrict(this);
   assert.equal(data, undefined);
   if (this.getOptions().consume) {
+    assert.equal(this._module.buildInfo.strictMetadata(), 'normal');
     const callback = this.async();
     queueMicrotask(() => callback(null, content, map, () => 'async data'));
     return;
   }
   assert.equal(this.data.pitched, true);
-  assert.deepEqual(this._module.buildInfo.strictMetadata, { phase: 'pitch' });
-  this._module.buildInfo.strictMetadata.phase = 'normal';
+  assert.equal(this._module.buildInfo.strictMetadata, undefined);
+  this._module.buildInfo.strictMetadata = () => 'normal';
   this.emitFile('strict.txt', Buffer.from('worker asset'), undefined, {
     immutable: true,
   });

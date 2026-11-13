@@ -15,7 +15,7 @@ module.exports = function (content, map, data) {
     return;
   }
   assert.equal(buildInfo.additionalDataSerialized, undefined);
-  assert.deepEqual(buildInfo.strictMetadata, { phase: 'normal' });
+  assert.equal(buildInfo.strictMetadata, undefined);
   assert.equal(buildInfo.mainOnly, 'main');
   return `${content}\nmodule.exports += ':${data.suffix}:${this.getOptions().callback()}';`;
 };

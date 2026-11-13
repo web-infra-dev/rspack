@@ -1,7 +1,21 @@
 import binding, { type BuildInfo, type Module } from '@rspack/binding';
-import { pickCustomBuildInfoFields } from '../BuildInfo';
 import type { NormalModule } from '../NormalModule';
 import { SourceAdapter } from '../util/source';
+import { BUILD_INFO_ASSETS_SYMBOL } from '../util/symbols';
+import { strictLoaderError } from './utils';
+
+function restrictBuildInfo(buildInfo: BuildInfo): BuildInfo {
+  const assets = {
+    configurable: false,
+    get() {
+      throw strictLoaderError('Reading Module buildInfo.assets');
+    },
+  };
+  return Object.defineProperties(buildInfo, {
+    assets,
+    [BUILD_INFO_ASSETS_SYMBOL]: assets,
+  });
+}
 
 /** The worker API deliberately excludes compilation graph access. */
 export function createWorkerModule(native: Module) {
@@ -56,7 +70,9 @@ export function createWorkerModule(native: Module) {
     },
     get buildInfo() {
       const handle = getNative();
-      return (localBuildInfo ??= binding.moduleGetBuildInfo(handle));
+      return (localBuildInfo ??= restrictBuildInfo(
+        binding.moduleGetBuildInfo(handle),
+      ));
     },
     identifier() {
       return binding.moduleGetIdentifier(getNative());
@@ -107,19 +123,11 @@ export function createWorkerModule(native: Module) {
     set(value: BuildInfo) {
       const handle = getNative();
       binding.moduleSetBuildInfo(handle, value);
-      localBuildInfo = binding.moduleGetBuildInfo(handle);
+      localBuildInfo = restrictBuildInfo(binding.moduleGetBuildInfo(handle));
     },
   });
   return {
     module: module as unknown as NormalModule,
-    commitBuildInfo() {
-      if (localBuildInfo) {
-        binding.moduleSetWorkerBuildInfoExtras(
-          getNative(),
-          JSON.stringify(pickCustomBuildInfoFields(localBuildInfo)),
-        );
-      }
-    },
     dispose() {
       active = false;
     },

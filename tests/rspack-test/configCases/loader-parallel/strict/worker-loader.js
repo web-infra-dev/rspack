@@ -7,6 +7,6 @@ module.exports = function (content, map, data) {
   assert.equal(this.getOptions().fromRegularParallelHook, true);
   assert.equal(this._compilation.outputOptions.hashFunction, 'sha256');
   assert.equal(data, undefined);
-  assert.equal(this._module.buildInfo.strictMetadata.phase, 'normal');
+  assert.equal(this._module.buildInfo.strictMetadata, undefined);
   this.callback(null, content, map, { suffix: 'worker' });
 };
