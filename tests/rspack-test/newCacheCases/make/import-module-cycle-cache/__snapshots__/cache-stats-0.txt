@@ -19,15 +19,15 @@
       "stores": 1
     },
     "|ResolverCache|loader": {
-      "hits": 9,
+      "hits": 5,
       "misses": 2,
-      "reused": 9,
+      "reused": 5,
       "stores": 2
     },
     "|ResolverCache|normal": {
-      "hits": 2,
+      "hits": 0,
       "misses": 4,
-      "reused": 2,
+      "reused": 0,
       "stores": 4
     }
   }
