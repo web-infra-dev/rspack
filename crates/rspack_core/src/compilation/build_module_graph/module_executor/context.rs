@@ -29,4 +29,6 @@ pub struct ExecutorTaskContext {
   /// When Module Executor stops, entries that are not in use
   /// and whose origin_module_identifier has been revoked are removed.
   pub executed_entry_deps: FxHashSet<DependencyId>,
+  /// Whether a circular build dependency was detected during this compilation.
+  pub has_build_cycle: bool,
 }

@@ -39,6 +39,7 @@ use crate::{
   module_graph::JsModuleGraph,
   options::entry::JsEntryOptions,
   path_data::{JsPathData, PathWithInfo},
+  print_error_diagnostic,
   source::{JsSourceFromJs, JsSourceToJs},
   stats::{JsStats, JsStatsOptimizationBailout, create_stats_warnings},
   utils::callbackify,
@@ -795,7 +796,7 @@ impl JsCompilation {
           .module_executor
           .as_ref()
           .expect("should have module executor");
-        let res = module_executor
+        let res: Result<_, ErrorCode> = module_executor
           .import_module(
             request,
             layer,
@@ -804,7 +805,9 @@ impl JsCompilation {
             original_module_context.map(rspack_core::Context::from),
             ModuleIdentifier::from(original_module),
           )
-          .await;
+          .await
+          .to_napi_result_with_message(|error| print_error_diagnostic(error, false));
+        let res = res?;
 
         let js_result = JsExecuteModuleResult {
           cacheable: res.cacheable,
