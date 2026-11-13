@@ -57,7 +57,7 @@ hashlink            = { version = "0.12.2", default-features = false }
 heck                = { version = "0.5.0", default-features = false }
 hex                 = { version = "0.4.3", default-features = false, features = ["std"] }
 hstr                = { version = "4.0.3", default-features = false }
-html-escape         = { version = "0.2.15", default-features = false }
+html-escape         = { version = "0.3.1", default-features = false }
 indexmap            = { version = "2.14.2", default-features = false }
 indicatif           = { version = "0.18.6", default-features = false }
 indoc               = { version = "2.0.8", default-features = false }

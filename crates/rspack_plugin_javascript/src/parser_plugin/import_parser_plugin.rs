@@ -378,7 +378,8 @@ fn add_import_member_reference(
   let references = parser
     .dynamic_import_references
     .get_import_mut_expect(&data.import_span);
-  if is_call {
+  // A destructured binding called directly has no namespace receiver.
+  if is_call && !members.is_empty() {
     references.add_call_reference(names, namespace_object_as_context);
   } else {
     references.add_reference(names);

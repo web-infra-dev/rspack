@@ -7,9 +7,9 @@ use std::{
 };
 
 use rspack_util::SpanExt;
-use swc_next_ecma_ast::{Expr, GetSpan, Span, UnaryExpression};
+use swc_next_ecma_ast::{Expr, GetSpan, Program, Span, UnaryExpression};
 
-use super::{VALUE_DEP_PREFIX, utils::gen_const_dep, walk_data::WalkData};
+use super::{VALUE_DEP_MAIN, VALUE_DEP_PREFIX, utils::gen_const_dep, walk_data::WalkData};
 use crate::{
   JavascriptParserPlugin,
   define_plugin::walk_data::DefineRecord,
@@ -53,6 +53,21 @@ impl DefineParserPlugin {
 
 #[rspack_macros::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
+  fn program(&self, parser: &mut JavascriptParser<'p>, _ast: Program) -> Option<bool> {
+    // Track the key set even when this module did not use any existing definition.
+    let value = parser
+      .value_cache_versions
+      .get(VALUE_DEP_MAIN)
+      .expect("DefinePlugin should register its key hash");
+    if parser.build_info.value_dependencies.get(VALUE_DEP_MAIN) != Some(value) {
+      parser
+        .build_info
+        .value_dependencies
+        .insert(VALUE_DEP_MAIN.to_string(), value.clone());
+    }
+    None
+  }
+
   fn can_rename(&self, parser: &mut JavascriptParser<'p>, str: &str) -> Option<bool> {
     if let Some(first_key) = self.walk_data.can_rename.get(str) {
       self.add_value_dependency(parser, str);

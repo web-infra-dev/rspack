@@ -164,8 +164,9 @@ function createHotStepProcessor(
       .map((i) => {
         const fileName = i.name;
         const renderName = replaceFileName(fileName);
+        // Assets are emitted without the query a filename template may add.
         const content = replaceContent(
-          fs.readFileSync(context.getDist(fileName), 'utf-8'),
+          fs.readFileSync(context.getDist(fileName.split('?')[0]), 'utf-8'),
         );
         const completeUpdate =
           fileName.endsWith('hot-update.js.full.js') ||

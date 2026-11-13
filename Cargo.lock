@@ -1931,9 +1931,9 @@ dependencies = [
 
 [[package]]
 name = "html-escape"
-version = "0.2.15"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9356095b4b41197bba32173600e1582792cda618f65d12f68e2e77d273413c5"
+checksum = "d45ed4d99334da2a2f221504e8ffc8ad09baf2a452b154465a976bfde697b004"
 
 [[package]]
 name = "iana-time-zone"
