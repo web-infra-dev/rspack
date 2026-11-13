@@ -17,6 +17,11 @@ use crate::{get_chunk_runtime_requirements, runtime_module::unquoted_stringify};
 type GetChunkFilenameAllChunks = Box<dyn Fn(&RuntimeGlobals) -> bool + Sync + Send>;
 type GetFilenameForChunk = Box<dyn Fn(&Chunk, &Compilation) -> Option<Filename> + Sync + Send>;
 
+fn has_redundant_chunk_id_prefix(filename: &str) -> bool {
+  // The string literal after chunkId already ensures string concatenation.
+  filename.starts_with("\"\" + chunkId + \"")
+}
+
 // Collect chunks reachable through async chunk groups without excluding chunks that are also
 // present in an initial group. CSS loading can receive these shared chunk ids from import().
 fn get_chunks_in_async_groups(
@@ -398,6 +403,14 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       None
     };
 
+    let dynamic_url =
+      dynamic_url.unwrap_or_else(|| format!("chunkId + \".{}\"", self.content_type));
+    let dynamic_url = if has_redundant_chunk_id_prefix(&dynamic_url) {
+      &dynamic_url[5..]
+    } else {
+      &dynamic_url
+    };
+
     let mut static_urls = FxIndexMap::default();
     for (filename_template, chunk_ukey) in
       chunk_filenames
@@ -456,8 +469,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           },
         );
 
-        // A string immediately after chunkId already ensures string concatenation.
-        if filename.starts_with("\"\" + chunkId + \"") {
+        if has_redundant_chunk_id_prefix(&filename) {
           filename.replace_range(..5, "");
         }
 
@@ -493,7 +505,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                         .iter()
                         .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))
                         .join("\n"),
-      "_dynamic_url": dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type))
+      "_dynamic_url": dynamic_url
     })))?;
 
     Ok(source)
