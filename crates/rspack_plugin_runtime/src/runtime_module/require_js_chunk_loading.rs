@@ -12,8 +12,8 @@ use crate::{
   extract_runtime_globals_from_ejs, extract_runtime_module_variables_from_ejs,
   get_chunk_runtime_requirements,
   runtime_module::utils::{
-    generate_chunk_cache_controls, get_initial_chunk_ids, render_hmr_runtime_state_expression,
-    stringify_chunks,
+    generate_chunk_cache_controls, generate_node_chunk_loader, get_initial_chunk_ids,
+    render_hmr_runtime_state_expression, stringify_chunks,
   },
 };
 
@@ -348,6 +348,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
         &stringify_chunks(&initial_chunks, 1)
       ));
     }
+    source.push_str(&generate_node_chunk_loader(runtime_template));
     source.push_str(&generate_chunk_cache_controls(
       runtime_template,
       "require",

@@ -467,7 +467,7 @@ it("should continue clear after pending old remote load timeout", async () => {
 	}
 });
 
-it("should avoid broad consumer cache cleanup in browser runtime", async () => {
+it("should keep explicit Node invalidation active with browser-like globals", async () => {
 	await clearAndRegisterRemoteA("v2");
 	expect(await renderPageA()).toBe("pageA:./A:v2");
 
@@ -478,19 +478,20 @@ it("should avoid broad consumer cache cleanup in browser runtime", async () => {
 		remoteServer.snapshot(),
 		beforeClear
 	);
-	expect(await renderPageA()).toBe("pageA:./A:v2");
+	expect(await renderPageA()).toBe("pageA:./A:v3");
 	expect(remoteServer.snapshot().routeExecutions.pageA).toBe(
-		beforeClear.routeExecutions.pageA
+		beforeClear.routeExecutions.pageA + 1
 	);
 });
 
 it("should remove unloaded shared records while preserving loaded and pending shared identity", async () => {
 	const shareMap = globalThis.__FEDERATION__.__SHARE__;
+	const providerName = getRemoteATemplate().name;
 	const instanceId = "__rspack_clear_cache_shared_test__";
 	const previous = shareMap[instanceId];
 	const loadingDeferred = createDeferred();
 	const loadingShared = {
-		from: "remoteA",
+		from: providerName,
 		useIn: []
 	};
 	const staleLoading = loadingDeferred.promise.then(factory => {
@@ -500,7 +501,7 @@ it("should remove unloaded shared records while preserving loaded and pending sh
 	});
 	loadingShared.loading = staleLoading;
 	const loadedShared = {
-		from: "remoteA",
+		from: providerName,
 		loaded: true,
 		lib: () => "loaded",
 		useIn: ["host"]
@@ -515,7 +516,7 @@ it("should remove unloaded shared records while preserving loaded and pending sh
 		default: {
 			unloaded: {
 				"1.0.0": {
-					from: "remoteA",
+					from: providerName,
 					get: () => Promise.resolve(() => "unloaded"),
 					useIn: []
 				}

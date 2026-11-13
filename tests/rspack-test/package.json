@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@babel/core": "catalog:",
+    "@module-federation/node": "catalog:",
     "@module-federation/runtime-tools": "catalog:",
     "@prefresh/core": "catalog:",
     "@prefresh/utils": "catalog:",

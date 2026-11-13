@@ -36,7 +36,7 @@ async function renderPageA() {
 }
 
 function getChunkCacheControl() {
-	const control = __webpack_require__.chunkCacheControls?.readFileVm;
+	const control = __webpack_require__.chunkCacheControls?.readFileVm || __webpack_require__.chunkCacheControls?.require;
 	expect(control).toBeTruthy();
 	return control;
 }
@@ -48,8 +48,11 @@ function getRemoteChunkIds() {
 function blockNextAsyncChunkRead() {
 	const deferred = createDeferred();
 	const originalReadFile = fs.readFile;
+	const originalExistsSync = fs.existsSync;
 	let blockedCall;
 
+	// Exercise the require loader's asynchronous transport for an absent local chunk.
+	fs.existsSync = filename => /\.node\.js$/.test(String(filename)) ? false : originalExistsSync(filename);
 	fs.readFile = function (filename, ...args) {
 		if (!blockedCall && /\.js$/.test(String(filename))) {
 			blockedCall = { filename, args };
@@ -68,9 +71,11 @@ function blockNextAsyncChunkRead() {
 				originalReadFile.call(fs, blockedCall.filename, ...blockedCall.args);
 			}
 			fs.readFile = originalReadFile;
+			fs.existsSync = originalExistsSync;
 		},
 		restore() {
 			fs.readFile = originalReadFile;
+			fs.existsSync = originalExistsSync;
 		}
 	};
 }

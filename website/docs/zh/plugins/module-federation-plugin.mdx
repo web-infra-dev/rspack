@@ -281,6 +281,36 @@ export default {
 };
 ```
 
+## Node 远端缓存失效
+
+包含编译远端的 Node 产物提供 `__webpack_require__.remoteCache`。
+Rspack 负责产物依赖图、远端模块工厂、消费者模块缓存、chunk 状态和过期加载判断。
+Web 产物不包含该 API 及清理使用的反向依赖图。
+
+服务端集成应安装 `@module-federation/node/runtimePlugin`，排空应用工作后调用
+MF 实例的异步远端更新 API。MF bundler adapter 将远端名称和自身的加载记录
+转换为原生缓存操作。Node 插件负责 MF 容器、共享生产者和实例的生命周期。
+
+原生 API 供 bundler adapter 使用：
+
+- `clear(remoteKeys, { pending, reset })` 使指定编译远端失效。
+  `pending` 是 adapter 的加载 Promise，`reset` 清理 adapter 自有的加载记录。
+  清理失败时恢复原生缓存状态。
+- `wait(remoteKeys)` 和 `waitForChunk(chunkId)` 返回当前清理的等待 Promise，
+  可以继续加载时返回 `undefined`。
+- `hasPending()` 表示是否仍有清理操作或超时后尚未完成的旧加载。
+
+等待旧加载的默认超时为 30 秒。内部调试变量
+`globalThis.__rspack_clear_cache_wait_timeout__` 接受非负毫秒数，
+设为 `Infinity` 时一直等待。失效操作不会替换应用代码已经保留的值，
+也可能将未排空的 chunk 加载作为过期请求拒绝。
+
+Node chunk loader 提供可选的 `__webpack_require__.nodeChunkLoader.readFile`
+传输 hook，参数为 `(filename, chunkId, callback)`，
+回调参数为 `(error, source)`。没有 hook 时使用本地文件系统。
+Node runtime 插件通过该 hook 提供本地或网络源码，
+chunk 求值、安装和过期判断仍由 Rspack 执行。
+
 ## 常见问题
 
 - 构建产物中存在未降级语法？

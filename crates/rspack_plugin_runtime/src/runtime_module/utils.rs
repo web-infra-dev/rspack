@@ -99,6 +99,24 @@ pub fn render_chunk_loading_hmr_state_expression(
   render_hmr_runtime_state_expression(runtime_template, key)
 }
 
+pub fn generate_node_chunk_loader(runtime_template: &RuntimeCodeTemplate) -> String {
+  let scope = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE_SCOPE);
+  format!(
+    r#"
+{scope}.nodeChunkLoader = {scope}.nodeChunkLoader || {{
+  evaluate: function(filename, content) {{
+    var chunk = {{}};
+    require("vm").runInThisContext(
+      "(function(exports, require, __dirname, __filename) {{" + content + "\n}})",
+      filename
+    )(chunk, require, require("path").dirname(filename), filename);
+    return chunk;
+  }}
+}};
+"#
+  )
+}
+
 pub fn generate_chunk_cache_controls(
   runtime_template: &RuntimeCodeTemplate,
   loading_type: &str,

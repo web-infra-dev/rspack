@@ -1,7 +1,7 @@
 const { ModuleFederationPlugin } = require('@rspack/core').container;
 
 /** @type {import("@rspack/core").Configuration} */
-module.exports = {
+const config = {
   target: 'node',
   entry: './index.js',
   output: {
@@ -22,3 +22,14 @@ module.exports = {
     }),
   ],
 };
+
+module.exports = [
+  config,
+  {
+    ...config,
+    target: 'web',
+    entry: './browser.js',
+    performance: false,
+    output: { ...config.output, filename: 'browser.js' },
+  },
+];

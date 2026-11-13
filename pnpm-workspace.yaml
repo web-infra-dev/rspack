@@ -29,6 +29,7 @@ catalog:
   '@emnapi/runtime': '2.0.0-beta.3'
   '@iarna/toml': '^3.0.0'
   '@microsoft/api-extractor': '^7.60.1'
+  '@module-federation/node': 2.7.52
   '@module-federation/runtime-tools': '2.9.3'
   '@napi-rs/cli': '3.10.12'
   '@napi-rs/wasm-runtime': '1.2.7'
