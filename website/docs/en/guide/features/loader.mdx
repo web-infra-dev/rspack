@@ -206,6 +206,6 @@ Use `parallel: 'strict'` with the native binding for loaders that can run entire
 
 - Strict loaders skip the loader hook. Loader options and the top-level `loader` settings must be serializable. Options cannot contain functions.
 - Strict loaders receive `undefined` for `additionalData`. Rspack ignores `additionalData` passed to `this.callback()` or to the callback returned by `this.async()`.
-- Through `this._module`, loaders can access the current module's data, including `resourceResolveData`, `loaders`, `blocks`, `dependencies`, `error`, and `buildInfo`. Changes to custom `buildInfo` fields are local to the current strict loader segment.
+- Through `this._module`, loaders can access the current module's data, including `resourceResolveData`, `loaders`, `blocks`, `dependencies`, `error`, and `buildInfo`. Each strict loader segment starts with no custom `buildInfo` fields. Fields added during the segment are only visible within that segment.
 - Main-thread APIs such as `_compiler`, `_compilation`, `fs`, `resolve`, `getResolve`, `importModule`, and compilation diagnostics are unavailable. `getLogger()` returns a worker-local logger that discards messages.
 - Use `this.emitFile()` or `this._module.emitFile()` to write assets. Reading assets through `this._module.buildInfo.assets` is unavailable.

@@ -208,6 +208,6 @@ Rspack 注册并行 loader 规则时会异步初始化 worker，并在构建模�
 
 - 严格模式跳过 loader hook。loader options 和顶层 `loader` 配置必须可序列化，选项中不能包含函数。
 - 严格模式 loader 收到的 `additionalData` 为 `undefined`。Rspack 会忽略通过 `this.callback()` 或 `this.async()` 返回的回调传入的 `additionalData`。
-- loader 可以通过 `this._module` 访问当前模块的数据，包括 `resourceResolveData`、`loaders`、`blocks`、`dependencies`、`error` 和 `buildInfo`。自定义 `buildInfo` 字段的改动仅在当前 strict loader 执行段内可见。
+- loader 可以通过 `this._module` 访问当前模块的数据，包括 `resourceResolveData`、`loaders`、`blocks`、`dependencies`、`error` 和 `buildInfo`。每个 strict loader 执行段开始时，自定义 `buildInfo` 字段为空。执行段内添加的字段仅在该段内可见。
 - 严格模式下，`_compiler`、`_compilation`、`fs`、`resolve`、`getResolve`、`importModule` 和 compilation diagnostics 等主线程 API 不可用。`getLogger()` 返回丢弃消息的 worker 本地 logger。
 - 可以通过 `this.emitFile()` 或 `this._module.emitFile()` 写入资产。通过 `this._module.buildInfo.assets` 读取资产会报错。

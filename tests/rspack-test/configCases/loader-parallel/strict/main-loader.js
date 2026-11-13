@@ -6,6 +6,7 @@ module.exports = function (content, map, data) {
   assert.equal(this.fromLoaderHook, true);
   const buildInfo = this._module.buildInfo;
   if (this.getOptions().seed) {
+    buildInfo[Symbol.for('rspack.buildInfo.commitCustomFields')]();
     this.callback(null, content, map, {
       get probe() {
         buildInfo.additionalDataSerialized = true;

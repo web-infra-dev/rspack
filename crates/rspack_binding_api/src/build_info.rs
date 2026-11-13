@@ -304,18 +304,24 @@ impl ToNapiValue for BuildInfo<'_> {
           Ok(properties)
         })?;
 
-        val.0.with_local_ref(|module| {
-          let extras = &module.build_info().extras;
-          properties.reserve(extras.len() + 1);
-          for (key, value) in extras {
-            let napi_val = ToNapiValue::to_napi_value(env, value)?;
-            properties.push(
-              Property::new()
-                .with_utf8_name(key)?
-                .with_value(&Object::from_raw(env, napi_val)),
-            );
-          }
-          Ok(())
+        if val.0.worker_scope.is_some() {
+          return Ok(());
+        }
+
+        with_module_instance(val.0.compiler_id, val.0.identifier, |reference| {
+          reference.with_ref(|_, module| {
+            let extras = &module.build_info().extras;
+            properties.reserve(extras.len() + 1);
+            for (key, value) in extras {
+              let napi_val = ToNapiValue::to_napi_value(env, value)?;
+              properties.push(
+                Property::new()
+                  .with_utf8_name(key)?
+                  .with_value(&Object::from_raw(env, napi_val)),
+              );
+            }
+            Ok(())
+          })
         })?;
         object.define_properties(&properties)
       })?;

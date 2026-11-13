@@ -15,6 +15,7 @@ function assertStrict(context) {
   assert.deepEqual(context._module.dependencies, []);
   assert.equal(context._module.error, undefined);
   assert.ok(context._module.buildInfo.fileDependencies instanceof Set);
+  assert.equal(context._module.buildInfo.mainOnly, undefined);
   for (const access of [
     () => context._compiler,
     () => context._compilation,
