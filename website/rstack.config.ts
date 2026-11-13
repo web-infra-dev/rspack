@@ -132,6 +132,9 @@ define.doc({
     },
   ],
   builderConfig: {
+    output: {
+      module: true,
+    },
     plugins: [
       pluginSass(),
       pluginTailwindcss(),
