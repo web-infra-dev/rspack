@@ -65,23 +65,6 @@ pub struct RawResolveOptions {
 }
 
 #[derive(Debug)]
-pub struct RuleResolveOptions(pub RawResolveOptions);
-
-impl FromNapiValue for RuleResolveOptions {
-  unsafe fn from_napi_value(env: sys::napi_env, value: sys::napi_value) -> napi::Result<Self> {
-    let object = unsafe { Object::from_napi_value(env, value)? };
-    let graph = ValueGraph::capture(object, |_| Ok(Value::Unsupported))?;
-    let fields = graph
-      .root()
-      .object()
-      .ok_or_else(|| napi::Error::from_reason("Expected resolve options to be an object"))?;
-    RawResolveOptions::from_object(fields)
-      .map(Self)
-      .map_err(|error| napi::Error::from_reason(error.to_string()))
-  }
-}
-
-#[derive(Debug)]
 pub struct RawConfigValue(ValueGraph);
 
 impl FromNapiValue for RawConfigValue {
@@ -97,6 +80,19 @@ impl FromValue for RawConfigValue {
   }
 }
 
+impl TryFrom<RawConfigValue> for Resolve {
+  type Error = rspack_error::Error;
+
+  fn try_from(value: RawConfigValue) -> Result<Self, Self::Error> {
+    let fields = value
+      .0
+      .root()
+      .object()
+      .ok_or_else(|| error!("Expected resolve options to be an object"))?;
+    RawResolveOptions::from_object(fields)?.try_into()
+  }
+}
+
 fn normalize_by_dependency(
   by_dependency: Option<HashMap<String, RawConfigValue>>,
 ) -> rspack_error::Result<Option<ByDependency>> {
@@ -105,15 +101,9 @@ fn normalize_by_dependency(
       options
         .into_iter()
         .map(|(key, value)| {
-          let fields = value
-            .0
-            .root()
-            .object()
-            .ok_or_else(|| error!("Expected resolve options to be an object for '{key}'"))?;
-          Ok((
-            key.into(),
-            RawResolveOptions::from_object(fields)?.try_into()?,
-          ))
+          let resolve = Resolve::try_from(value)
+            .map_err(|error| error!("Invalid resolve.byDependency['{key}']: {error}"))?;
+          Ok((key.into(), resolve))
         })
         .collect()
     })

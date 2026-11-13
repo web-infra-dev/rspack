@@ -187,9 +187,10 @@ macro_rules! module_options {
       }
 
       fn add_fields(prefix: &str, fields: &mut HashMap<String, Vec<String>>) {
-        fields.insert(format!("{prefix}:rule"), field_names(
-          Self::rule_fields().iter().copied().collect::<Vec<_>>().as_slice(),
-        ));
+        fields.insert(
+          format!("{prefix}:rule"),
+          Self::rule_fields().iter().map(|field| (*field).to_owned()).collect(),
+        );
         $(
           for kind in [$($kind),+] {
             fields.insert(format!("{prefix}:{kind}"), field_names($raw::FIELDS));
