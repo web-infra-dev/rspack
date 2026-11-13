@@ -7,7 +7,7 @@ use super::{FsEvent, FsEventKind};
 use crate::{
   EventBatch, ResolvedEvents,
   analyzer::{Analyzer, RecommendedAnalyzer},
-  paths::PathManager,
+  paths::{ContextPath, PathManager},
   symlinks::SymlinkAlias,
 };
 /// `DependencyFinder` provides references to sets of files, directories, and missing paths,
@@ -133,6 +133,8 @@ enum Origin {
   /// registered path the scanner backfills. Already judged a change, it is
   /// never dropped as a duplicate or as attribute-only.
   Scan,
+  // Keep scan ownership without enlarging every queued disk event.
+  ContextScan(Box<ContextPath>),
   LinkScan(InternedPath),
   Symlink {
     link_changed: bool,
@@ -143,7 +145,7 @@ enum Origin {
 
 impl Origin {
   fn is_scan(&self) -> bool {
-    matches!(self, Self::Scan | Self::LinkScan(_))
+    matches!(self, Self::Scan | Self::ContextScan(_) | Self::LinkScan(_))
   }
 
   fn link_changed(&self) -> bool {
@@ -184,6 +186,13 @@ impl Trigger {
 
         runtime.block_on(async move {
           while let Some((path, kind, origin)) = incoming.recv().await {
+            if let Origin::ContextScan(context) = &origin {
+              let resolved_path = context.resolved_entry(&path);
+              processor
+                .process(&path, &path, kind, origin, resolved_path.as_ref())
+                .await;
+              continue;
+            }
             if let Origin::LinkScan(source_path) = &origin {
               let source_path = source_path.clone();
               processor
@@ -265,6 +274,18 @@ impl Trigger {
     let _ = self
       .pending
       .send((path.clone(), FsEventKind::Change, Origin::Scan));
+  }
+
+  pub(crate) fn on_scanned_context_change(&self, path: InternedPath, context: ContextPath) {
+    if context.dependency.is_none() {
+      self.on_scanned_change(&path);
+    } else {
+      let _ = self.pending.send((
+        path,
+        FsEventKind::Change,
+        Origin::ContextScan(Box::new(context)),
+      ));
+    }
   }
 
   pub(crate) fn on_scanned_link(
@@ -467,6 +488,18 @@ impl EventProcessor {
 
     let finder = self.finder();
     let mut associated_event = finder.find_associated_event(path, kind);
+    if let Origin::ContextScan(context) = &origin {
+      associated_event.retain(|(dependency, _)| Some(dependency) == context.dependency.as_ref());
+    } else if resolved_path.is_some() && !origin.link_changed() {
+      let contexts = self.path_manager.context_paths(path).await;
+      associated_event.retain(|(dependency, _)| {
+        dependency == path
+          || !finder.directories.contains(dependency)
+          || contexts
+            .iter()
+            .any(|context| context.dependency.as_ref() == Some(dependency))
+      });
+    }
     if origin.link_changed()
       && finder.contains_path(path)
       && !associated_event

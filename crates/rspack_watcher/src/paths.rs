@@ -23,6 +23,24 @@ use crate::{
   time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
 };
 
+/// A context keeps its own path spelling even when it contains another
+/// registered context. Clones share interned paths.
+#[derive(Clone, Default)]
+pub(crate) struct ContextPath {
+  pub dependency: Option<InternedPath>,
+  resolved: Option<InternedPath>,
+}
+
+impl ContextPath {
+  pub(crate) fn resolved_entry(&self, path: &InternedPath) -> Option<InternedPath> {
+    let dependency = self.dependency.as_ref()?;
+    let resolved = self.resolved.as_ref()?;
+    Some(InternedPath::from(resolved.join(
+      path.strip_prefix(dependency).expect("context descendant"),
+    )))
+  }
+}
+
 /// An iterator that chains together references to all files, directories, and missing paths
 /// stored in the [`PathTracker`]. This allows iteration over all registered paths as a single sequence.
 pub(crate) struct All<'a> {
@@ -696,7 +714,7 @@ impl PathManager {
     &self,
     start_time: SystemTime,
     retargeted: Vec<InternedPath>,
-  ) -> Vec<InternedPath> {
+  ) -> Vec<(InternedPath, ContextPath)> {
     let mut contexts: Vec<InternedPath> =
       self.directories.added.iter().map(|p| p.clone()).collect();
     for path in retargeted {
@@ -717,7 +735,10 @@ impl PathManager {
 
   /// Discovered targets are subscribed after the context scan. Recheck those
   /// links once the watches are active to cover changes during that gap.
-  pub(crate) async fn scan_linked_contexts(&self, start_time: SystemTime) -> Vec<InternedPath> {
+  pub(crate) async fn scan_linked_contexts(
+    &self,
+    start_time: SystemTime,
+  ) -> Vec<(InternedPath, ContextPath)> {
     let Some(symlinks) = &self.symlinks else {
       return Vec::new();
     };
@@ -742,14 +763,18 @@ impl PathManager {
           && mtime_safe_time(mtime) >= since
         {
           self.set_file_time(&path, mtime, true, true);
-          changed.push(path);
+          for context in self.context_paths(&path).await {
+            changed.push((path.clone(), context));
+          }
         }
       } else if path
         .ancestors()
         .any(|ancestor| directories.contains(&InternedPath::from(ancestor)))
         && !path.exists()
       {
-        changed.push(path);
+        for context in self.context_paths(&path).await {
+          changed.push((path.clone(), context));
+        }
       }
     }
     changed.extend(
@@ -758,6 +783,47 @@ impl PathManager {
         .await,
     );
     changed
+  }
+
+  pub(crate) async fn context_paths(&self, root: &InternedPath) -> Vec<ContextPath> {
+    let Some(symlinks) = &self.symlinks else {
+      return Vec::new();
+    };
+    let mut contexts = Vec::new();
+    for dependency in root.ancestors().map(InternedPath::from) {
+      if !self.directories.all.contains(&dependency) {
+        continue;
+      }
+      let resolved = symlinks.resolved_directory(&dependency);
+      if let Some(resolved) = &resolved
+        && self.is_ignored_path(resolved).await
+      {
+        continue;
+      }
+      let context = ContextPath {
+        dependency: Some(dependency.clone()),
+        resolved,
+      };
+      let mut ignored = false;
+      for entry in root
+        .ancestors()
+        .take_while(|entry| *entry != dependency.as_ref())
+      {
+        let entry = InternedPath::from(entry);
+        let resolved_entry = context.resolved_entry(&entry);
+        if self
+          .is_ignored_path(resolved_entry.as_ref().unwrap_or(&entry))
+          .await
+        {
+          ignored = true;
+          break;
+        }
+      }
+      if !ignored {
+        contexts.push(context);
+      }
+    }
+    contexts
   }
 
   /// Index every file and subdirectory below `roots`, minus what `ignored`
@@ -771,22 +837,23 @@ impl PathManager {
     roots: Vec<InternedPath>,
     recovered: bool,
     changed_since: Option<u64>,
-  ) -> Vec<InternedPath> {
+  ) -> Vec<(InternedPath, ContextPath)> {
     let mut changed = Vec::new();
     // Each directory carries the real paths of the directories above it: with
     // `followSymlinks`, a link back into its own ancestry is a loop, while two
     // links to one directory are two aliases, each scanned.
-    let mut pending: Vec<(InternedPath, Vec<PathBuf>, bool)> = roots
-      .into_iter()
-      .map(|root| (root, Vec::new(), recovered))
-      .collect();
-    while let Some((dir, mut ancestry, observed)) = pending.pop() {
-      if let Some(symlinks) = &self.symlinks {
-        if let Some(resolved) = symlinks.resolved_directory(&dir)
-          && self.is_ignored_path(&resolved).await
-        {
-          continue;
+    let mut pending = Vec::with_capacity(roots.len());
+    for root in roots {
+      if self.follows_symlinks() {
+        for context in self.context_paths(&root).await {
+          pending.push((root.clone(), Vec::new(), recovered, context));
         }
+      } else {
+        pending.push((root, Vec::new(), recovered, ContextPath::default()));
+      }
+    }
+    while let Some((dir, mut ancestry, observed, context)) = pending.pop() {
+      if self.follows_symlinks() {
         let Ok(real) = std::fs::canonicalize(&dir) else {
           continue;
         };
@@ -800,7 +867,7 @@ impl PathManager {
       };
       for entry in entries.flatten() {
         let path = InternedPath::from(entry.path());
-        let resolved_path = self.resolved_directory_entry(&path);
+        let resolved_path = context.resolved_entry(&path);
         if self
           .is_ignored_path(resolved_path.as_ref().unwrap_or(&path))
           .await
@@ -825,9 +892,9 @@ impl PathManager {
               .or_else(|_| metadata.modified())
               .is_ok_and(|birthtime| mtime_safe_time(birthtime) >= since)
           }) {
-            changed.push(path.clone());
+            changed.push((path.clone(), context.clone()));
           }
-          pending.push((path, ancestry.clone(), false));
+          pending.push((path, ancestry.clone(), false, context.clone()));
         } else if let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
           self.record(&path, || {
             self.context_files.insert(path.clone());
@@ -838,7 +905,7 @@ impl PathManager {
             break;
           }
           if !registered && changed_since.is_some_and(|since| mtime_safe_time(mtime) >= since) {
-            changed.push(path);
+            changed.push((path, context.clone()));
           }
         }
       }
