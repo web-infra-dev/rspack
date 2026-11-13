@@ -5,7 +5,9 @@ import {
   __from_binding_runtime_globals,
   __to_binding_runtime_globals,
   isReservedRuntimeGlobal,
+  renderRuntimeGlobalProperty,
   renderRuntimeVariables,
+  RuntimeGlobal,
   RuntimeVariable,
 } from '../RuntimeGlobals';
 import { createRenderedRuntimeModule } from '../RuntimeModule';
@@ -224,11 +226,6 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
         }: binding.JsExecuteModuleArg) {
           try {
             const RuntimeGlobals = getCompiler().rspack.RuntimeGlobals;
-            const isRspackRuntimeMode =
-              getCompiler().options.experiments.runtimeMode === 'rspack';
-            const runtimeScope = isRspackRuntimeMode
-              ? RuntimeGlobals.requireScope
-              : RuntimeGlobals.require;
             const runtimeContext: any = {};
             const moduleRequireFn: any = (id: string) => {
               const cached = moduleCache[id];
@@ -283,30 +280,38 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
               return moduleObject.exports;
             };
 
-            const moduleCache: Record<string, any> = (moduleRequireFn[
-              RuntimeGlobals.moduleCache.replace(`${runtimeScope}.`, '')
-            ] = {});
-            const interceptModuleExecution: ((execOptions: any) => void)[] =
-              (moduleRequireFn[
-                RuntimeGlobals.interceptModuleExecution.replace(
-                  `${runtimeScope}.`,
-                  '',
-                )
-              ] = []);
-            moduleRequireFn.r = moduleRequireFn;
-            runtimeContext.r = moduleRequireFn;
+            // Initialize globals on the scope used by generated build-time code
+            // before executing runtime modules, which may access them as well.
+            const moduleCache: Record<string, any> = {};
+            const interceptModuleExecution: ((execOptions: any) => void)[] = [];
+            const compilerOptions = getCompiler().options;
+            const isRspackRuntimeMode =
+              compilerOptions.experiments.runtimeMode === 'rspack';
+            const runtimeScope = isRspackRuntimeMode
+              ? runtimeContext
+              : moduleRequireFn;
+            runtimeScope[
+              renderRuntimeGlobalProperty(
+                RuntimeGlobal.moduleCache,
+                compilerOptions,
+              )
+            ] = moduleCache;
+            runtimeScope[
+              renderRuntimeGlobalProperty(
+                RuntimeGlobal.interceptModuleExecution,
+                compilerOptions,
+              )
+            ] = interceptModuleExecution;
             if (isRspackRuntimeMode) {
-              // Runtime modules can execute ordinary modules during initialization.
-              Object.assign(runtimeContext, moduleRequireFn);
+              runtimeContext[
+                renderRuntimeGlobalProperty(
+                  RuntimeGlobal.require,
+                  compilerOptions,
+                )
+              ] = moduleRequireFn;
             }
             for (const runtimeModule of runtimeModules) {
               moduleRequireFn(runtimeModule);
-            }
-            if (!isRspackRuntimeMode) {
-              for (const key of Reflect.ownKeys(moduleRequireFn)) {
-                runtimeContext[key] =
-                  moduleRequireFn[key as keyof typeof moduleRequireFn];
-              }
             }
 
             const executeResult = moduleRequireFn(entry);

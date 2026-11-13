@@ -4,7 +4,7 @@ use napi_derive::napi;
 use rspack_core::rspack_sources::{
   BoxSource, CachedSource, ConcatSource, MapOptions, OriginalSource, RawBufferSource,
   RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource, SourceValue,
-  WithoutOriginalOptions, utf16_len,
+  WithoutOriginalOptions, is_buffer_source, utf16_len,
 };
 use rspack_napi::napi::bindgen_prelude::*;
 
@@ -71,25 +71,6 @@ impl FromNapiValue for JsSourceFromJs<'_> {
       ))),
     }
   }
-}
-
-// Match the built-in sources' return types without materializing their content.
-fn is_buffer_source(source: &dyn Source) -> bool {
-  let source = source.as_any();
-  if source.is::<RawBufferSource>() {
-    return true;
-  }
-  if let Some(source) = source.downcast_ref::<CachedSource>() {
-    // CachedSource only preserves Buffer output for a directly wrapped RawBufferSource.
-    return source.inner().as_ref().as_any().is::<RawBufferSource>();
-  }
-  if let Some(source) = source.downcast_ref::<ConcatSource>() {
-    return matches!(source.children(), [child] if is_buffer_source(child.as_ref()));
-  }
-  if let Some(source) = source.downcast_ref::<ReplaceSource>() {
-    return source.replacements().is_empty() && is_buffer_source(source.inner().as_ref());
-  }
-  false
 }
 
 impl<'jsobject> TryFrom<JsSourceFromJs<'jsobject>> for BoxSource {
@@ -239,22 +220,19 @@ impl JsSourceWithLazyMap<'_> {
 // Preserve map()'s Some/None result without generating a map for the common module sources.
 // Composite or custom sources can discard all mappings, so their presence is left unknown.
 fn has_map_without_generation(source: &dyn Source) -> Option<bool> {
-  let source = source.as_any();
-  if source.is::<RawStringSource>() || source.is::<RawBufferSource>() {
-    return Some(false);
-  }
-  if let Some(source) = source.downcast_ref::<OriginalSource>() {
+  let any = source.as_any();
+  if let Some(source) = any.downcast_ref::<OriginalSource>() {
     // With columns enabled, OriginalSource maps every token except standalone newlines.
     return Some(source.value().bytes().any(|byte| byte != b'\n'));
   }
-  if let Some(source) = source.downcast_ref::<SourceMapSource>() {
+  if let Some(source) = any.downcast_ref::<SourceMapSource>() {
     // A directly supplied map is present even when its mappings are empty.
     return source.inner_source_map().is_none().then_some(true);
   }
-  if let Some(source) = source.downcast_ref::<CachedSource>() {
+  if let Some(source) = any.downcast_ref::<CachedSource>() {
     return has_map_without_generation(source.inner().as_ref());
   }
-  None
+  (!source.mapped()).then_some(false)
 }
 
 /// An owned source snapshot that defers map generation until JavaScript reads its serialized map.

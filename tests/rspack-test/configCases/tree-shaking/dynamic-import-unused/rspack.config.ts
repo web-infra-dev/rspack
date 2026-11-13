@@ -5,6 +5,9 @@ export default defineConfig({
   output: {
     chunkFilename: 'chunk.js',
   },
+  module: {
+    parser: { javascript: { strictThisContextOnImports: true } },
+  },
   optimization: {
     minimize: true,
     providedExports: true,

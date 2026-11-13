@@ -147,7 +147,7 @@ export default {
 ### object
 
 :::warning
-An object with `{ root, commonjs, commonjs2, amd, ... }` is only allowed for [`library.type: 'umd'`](/config/output#outputlibrarytype) and [`externalsType: 'umd'`](#externalstype). It's not allowed for other library targets.
+An object with `{ root, commonjs, commonjs2, amd, ... }` maps external types to their targets. A [`library.type: 'umd'`](/config/output#outputlibrarytype) library requires `root`, `commonjs`, `commonjs2`, and `amd`. Other external types use the matching entry.
 :::
 
 ```js title="rspack.config.mjs"
@@ -165,6 +165,50 @@ export default {
 ```
 
 This syntax is used to describe all the possible ways that an external library can be made available. `lodash` here is available as `lodash` under AMD and CommonJS module systems but available as `_` in a global variable form. `subtract` here is available via the property `subtract` under the global `math` object (e.g. `window['math']['subtract']`).
+
+#### interop
+
+**Type:** `'default' | 'esModule'`
+
+Non-ESM externals such as `commonjs`, `amd`, and `umd` normally determine default-export interop from the importer. Strict ES modules (`.mjs` or a package with `"type": "module"`) receive the whole exports object as the default import; other importers use the runtime `__esModule` check.
+
+The optional `interop` field on an object external overrides this behavior independently of the importer:
+
+- `'esModule'`: treat the external as an ES module namespace; a default import reads `.default`.
+- `'default'`: treat the external as CommonJS; a default import receives the whole exports object, while named imports remain available.
+
+```js title="rspack.config.mjs"
+export default {
+  externalsType: 'commonjs',
+  externals: {
+    dep: { commonjs: 'dep', interop: 'esModule' },
+  },
+};
+```
+
+Omitting `interop` preserves the default behavior. The hint also works on object values returned by an externals function.
+
+`interop` only applies when the configuration references the whole external module. A configuration such as `commonjs: ['dep', 'named']` reads the `require('dep').named` property. In this case, Rspack ignores `interop` and uses the default import rules described above.
+
+For `umd` and `umd2`, `root`, `commonjs`, `commonjs2`, and `amd` describe how the same external is loaded in different environments. They share one `interop` setting. For example:
+
+```js title="rspack.config.mjs"
+export default {
+  output: { library: { type: 'umd' } },
+  externalsType: 'umd',
+  externals: {
+    dep: {
+      root: 'dep',
+      commonjs: 'dep',
+      commonjs2: ['dep', 'nested'], // Reads require('dep').nested
+      amd: 'dep',
+      interop: 'esModule', // Ignored because commonjs2 reads the nested property
+    },
+  },
+};
+```
+
+Although only `commonjs2` reads a property here, the `interop` setting is ignored for the entire `dep` external. The other three branches also use the default import rules. When loaded through CommonJS2, a default import from a strict ES module receives `require('dep').nested`; other importers still use the `__esModule` check to decide whether to read its `.default`.
 
 ### Function
 

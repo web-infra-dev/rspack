@@ -1,12 +1,12 @@
 use std::{fmt::Debug, sync::Arc};
 
 use rspack_core::{
-  BoxModule, ContextInfo, DependencyMeta, DependencyType, ExternalItem, ExternalItemFnCtx,
-  ExternalItemValue, ExternalModule, ExternalRequest, ExternalRequestValue, ExternalType,
-  ExternalTypeEnum, ModuleDependency, ModuleExt, ModuleFactoryCreateData,
+  BoxModule, ContextInfo, DependencyMeta, DependencyType, ExternalInterop, ExternalItem,
+  ExternalItemFnCtx, ExternalItemValue, ExternalModule, ExternalRequest, ExternalRequestValue,
+  ExternalType, ExternalTypeEnum, ModuleDependency, ModuleExt, ModuleFactoryCreateData,
   NormalModuleFactoryFactorize, Plugin, ResolveOptionsWithDependencyType, SourceType,
 };
-use rspack_error::Result;
+use rspack_error::{Result, error};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_css::dependency::CssImportDependency;
 use rspack_plugin_javascript::dependency::{ESMImportSideEffectDependency, ImportDependency};
@@ -39,7 +39,23 @@ impl ExternalsPlugin {
     config: &ExternalItemValue,
     r#type: Option<String>,
     dependency: &dyn ModuleDependency,
-  ) -> Option<ExternalModule> {
+  ) -> Result<Option<ExternalModule>> {
+    let interop = if let ExternalItemValue::Object(map) = config
+      && let Some(value) = map.get("interop")
+    {
+      match value.as_slice() {
+        [value] if value == "default" => Some(ExternalInterop::Default),
+        [value] if value == "esModule" => Some(ExternalInterop::EsModule),
+        _ => {
+          return Err(error!(
+            "Invalid interop for external '{}': expected 'default' or 'esModule'",
+            dependency.request()
+          ));
+        }
+      }
+    } else {
+      None
+    };
     let (external_module_config, external_module_type) = match config {
       ExternalItemValue::String(config) => {
         let (external_type, config) =
@@ -55,7 +71,9 @@ impl ExternalsPlugin {
       }
       ExternalItemValue::Array(arr) => {
         let mut iter = arr.iter().peekable();
-        let primary = iter.next()?;
+        let Some(primary) = iter.next() else {
+          return Ok(None);
+        };
         let (external_type, primary) =
           if let Some((external_type, new_primary)) = parse_external_type_from_str(primary) {
             (external_type, new_primary)
@@ -78,13 +96,14 @@ impl ExternalsPlugin {
             self.r#type.clone(),
           )
         } else {
-          return None;
+          return Ok(None);
         }
       }
       ExternalItemValue::Object(map) => (
         ExternalRequest::Map(
           map
             .iter()
+            .filter(|(key, _)| key.as_str() != "interop")
             .map(|(k, v)| {
               let mut iter = v.iter().peekable();
               let primary = iter.next().expect("should have at least one value");
@@ -169,13 +188,14 @@ impl ExternalsPlugin {
       dependency_meta.external_type = Some(ExternalTypeEnum::CommonJs(self.fallback_type.clone()));
     }
 
-    Some(ExternalModule::new(
+    Ok(Some(ExternalModule::new(
       external_module_config,
       external_module_type,
       dependency.request().to_owned(),
       dependency_meta,
       self.place_in_initial,
-    ))
+      interop,
+    )))
   }
 }
 
@@ -191,7 +211,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
         let request = dependency.request();
 
         if let Some(value) = eh.get(request) {
-          let maybe_module = self.handle_external(value, None, dependency);
+          let maybe_module = self.handle_external(value, None, dependency)?;
           return Ok(maybe_module.map(|i| i.boxed()));
         }
       }
@@ -202,7 +222,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
         if let Some(value) = externals.and_then(|externals| externals.get(dependency.request())) {
           return Ok(
             self
-              .handle_external(value, None, dependency)
+              .handle_external(value, None, dependency)?
               .map(|i| i.boxed()),
           );
         }
@@ -214,7 +234,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
             &ExternalItemValue::String(request.to_string()),
             None,
             dependency,
-          );
+          )?;
           return Ok(maybe_module.map(|i| i.boxed()));
         }
       }
@@ -225,13 +245,14 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
             &ExternalItemValue::String(request.to_string()),
             None,
             dependency,
-          );
+          )?;
           return Ok(maybe_module.map(|i| i.boxed()));
         }
       }
       ExternalItem::RequestPredicate(predicate) => {
         if predicate(dependency.request()) {
-          let maybe_module = self.handle_external(&ExternalItemValue::Bool(true), None, dependency);
+          let maybe_module =
+            self.handle_external(&ExternalItemValue::Bool(true), None, dependency)?;
           return Ok(maybe_module.map(|i| i.boxed()));
         }
       }
@@ -265,7 +286,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
         })
         .await?;
         if let Some(r) = result.result {
-          let maybe_module = self.handle_external(&r, result.external_type, dependency);
+          let maybe_module = self.handle_external(&r, result.external_type, dependency)?;
           return Ok(maybe_module.map(|i| i.boxed()));
         }
       }

@@ -20,6 +20,7 @@
   "compact-hashed-chunk-ids-plugin",
   "compact-hashed-module-ids-plugin",
   "css-chunking-plugin",
+  "deterministic-chunk-ids-plugin",
   "deterministic-module-ids-plugin",
   "dll-plugin",
   "dll-reference-plugin",
