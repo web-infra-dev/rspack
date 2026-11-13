@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const sourceDir = import.meta.dirname;
 
@@ -19,7 +20,21 @@ export default {
   async afterExecute(options) {
     const config = Array.isArray(options) ? options[0] : options;
     const mainUrl = path.join(config.output.path, 'main.mjs');
-    await import(mainUrl);
+    const spaceDir = path.join(config.output.path, 'out frag');
+    fs.mkdirSync(spaceDir, { recursive: true });
+    for (const name of [
+      'main.mjs',
+      'ext.mjs',
+      'tail.mjs',
+      'setup.mjs',
+      'runtime.mjs',
+    ]) {
+      const from = path.join(config.output.path, name);
+      if (fs.existsSync(from)) {
+        fs.copyFileSync(from, path.join(spaceDir, name));
+      }
+    }
+    await import(pathToFileURL(path.join(spaceDir, 'main.mjs')).href);
 
     const source = fs.readFileSync(mainUrl, 'utf-8');
     const ordered = source
