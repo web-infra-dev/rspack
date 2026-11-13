@@ -498,7 +498,7 @@ When implementing a custom Rspack runtime module, you can override the following
 
 Triggers a re-build of the module.
 
-This method can only be called in [`compiler.hooks.finishMake`](/api/plugin-api/compiler-hooks#finishmake), not in `compilation.hooks.finishModules`.
+This method can only be called in [`compiler.hooks.finishMake`](/api/plugin-api/compiler-hooks#finishmake), not in `compilation.hooks.finishModules`. Due to current architectural limitations, rebuilding modules in `finishModules` can cause incorrect incremental builds.
 
 ```ts
 rebuildModule(

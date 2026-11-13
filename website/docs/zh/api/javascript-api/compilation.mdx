@@ -498,7 +498,7 @@ export default {
 
 重新构建指定模块。
 
-此方法只能在 [`compiler.hooks.finishMake`](/api/plugin-api/compiler-hooks#finishmake) 中调用，不能在 `compilation.hooks.finishModules` 中调用。
+此方法只能在 [`compiler.hooks.finishMake`](/api/plugin-api/compiler-hooks#finishmake) 中调用，不能在 `compilation.hooks.finishModules` 中调用。受当前架构限制，在 `finishModules` 中重建模块会导致增量构建异常。
 
 ```ts
 rebuildModule(m: Module, f: (err: Error | null, m: Module | null) => void): void;
