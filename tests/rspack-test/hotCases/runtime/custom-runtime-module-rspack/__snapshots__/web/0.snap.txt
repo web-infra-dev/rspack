@@ -1,0 +1,12 @@
+# Case custom-runtime-module-rspack: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: bundle.js
+
+## Manifest
+
+
+## Update

@@ -210,7 +210,7 @@ impl CompilationRecords {
               .clone(),
             update_data: module.get_update_data(compilation),
             // Retain loading metadata, but custom sources still need a full update.
-            has_custom_source: module.get_custom_source().is_some(),
+            has_custom_source: module.get_custom_source().has_override(),
           },
         )
       })

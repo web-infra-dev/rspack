@@ -381,7 +381,13 @@ function getDefaultEntryRuntimeSource(
     return ${compilerRuntimeGlobals.requireScope}[key];
   },
   set(_target, key, value) {
-    ${compilerRuntimeGlobals.requireScope}[key] = value;
+    // HMR gives modules a context inheriting the shared runtime context.
+    // Update the owner of an existing field instead of shadowing it locally.
+    var owner = ${compilerRuntimeGlobals.requireScope};
+    while (owner && owner !== Object.prototype && !Object.prototype.hasOwnProperty.call(owner, key)) {
+      owner = Object.getPrototypeOf(owner);
+    }
+    (owner && owner !== Object.prototype ? owner : ${compilerRuntimeGlobals.requireScope})[key] = value;
     return true;
   }
 })`

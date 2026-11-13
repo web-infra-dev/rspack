@@ -490,7 +490,7 @@ pub async fn render_runtime_modules(
   if compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
     render_rspack_runtime_modules(compilation, chunk_ukey, runtime_template).await
   } else {
-    render_webpack_runtime_modules(compilation, chunk_ukey).await
+    render_runtime_modules_in_order(compilation, chunk_ukey).await
   }
 }
 
@@ -499,15 +499,15 @@ pub(crate) type RuntimeModuleSourceItem = (BoxSource, RuntimeGlobals, RuntimeGlo
 pub(crate) async fn render_runtime_module_sources(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  reject_custom_runtime_modules: bool,
 ) -> Result<Vec<RuntimeModuleSourceItem>> {
   let runtime_mode = compilation.options.experiments.runtime_mode;
-  let is_hot_update = compilation
+  let chunk = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
-    .expect_get(chunk_ukey)
-    .kind()
-    == ChunkKind::HotUpdate;
+    .expect_get(chunk_ukey);
+  let is_hot_update = chunk.kind() == ChunkKind::HotUpdate;
+  let owns_runtime = chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+    && !is_hot_update;
   let runtime_module_sources = rspack_parallel::scope::<_, Result<_>>(|token| {
     compilation
       .build_chunk_graph_artifact
@@ -534,91 +534,105 @@ pub(crate) async fn render_runtime_module_sources(
       })
       .for_each(|(source, module, previous)| {
         let s = unsafe { token.used((compilation, source, module, previous)) };
-        s.spawn(
-          move |(compilation, source, module, previous)| async move {
-            if source.size() == 0 && previous.is_none() {
-              return Ok((
-                ConcatSource::default().boxed(),
-                RuntimeGlobals::default(),
-                RuntimeGlobals::default(),
-                false,
-              ));
+        s.spawn(move |(compilation, source, module, previous)| async move {
+          if source.size() == 0 && previous.is_none() {
+            return Ok((
+              ConcatSource::default().boxed(),
+              RuntimeGlobals::default(),
+              RuntimeGlobals::default(),
+              false,
+            ));
+          }
+          let runtime_requirements = module.runtime_requirements(compilation);
+          let custom_source = module.get_custom_source();
+          // Extensions in other chunks access shared bindings rather than defining new ones.
+          let source_requirements = if owns_runtime || !module.is_custom() {
+            custom_source.runtime_requirements
+          } else {
+            RuntimeGlobals::default()
+          };
+          let generated_requirements =
+            runtime_requirements.lexical_requirements() | source_requirements;
+          let context_requirements =
+            runtime_requirements.define | runtime_requirements.force_context | source_requirements;
+          let supports_arrow_function = compilation
+            .options
+            .output
+            .environment
+            .supports_arrow_function();
+          let is_custom_update =
+            is_hot_update && module.is_custom() && runtime_mode == RuntimeMode::Rspack;
+          let source = if custom_source.has_override() && !is_custom_update {
+            if runtime_mode == RuntimeMode::Webpack {
+              RawStringSource::from(custom_source.source.clone().expect("custom source")).boxed()
+            } else {
+              source.clone()
             }
-            let runtime_requirements = module.runtime_requirements(compilation);
-            let generated_requirements = runtime_requirements.lexical_requirements();
-            let context_requirements =
-              runtime_requirements.define | runtime_requirements.force_context;
-            if reject_custom_runtime_modules
-              && module.get_constructor_name() == "RuntimeModuleFromJs"
-            {
-              return Err(rspack_error::error!(
-                "Custom runtime modules are not supported when `experiments.runtimeMode` is \"rspack\" (runtime module: {}).",
-                module.identifier()
-              ));
-            }
-            let supports_arrow_function = compilation
-              .options
-              .output
-              .environment
-              .supports_arrow_function();
-            let source = if let Some(custom_source) = module.get_custom_source() {
-              RawStringSource::from(custom_source).boxed()
-            } else if previous.is_some() || module.full_hash() || module.dependent_hash() {
-              let runtime_template = compilation.runtime_template.create_runtime_module_code_template();
-              let context = RuntimeModuleGenerateContext {
-                compilation,
-                runtime_template: &runtime_template,
-              };
-              let update = if let Some(previous) = previous {
-                module.generate_update(&context, previous).await?
+          } else if previous.is_some()
+            || module.full_hash()
+            || module.dependent_hash()
+            || is_custom_update
+          {
+            let runtime_template = if is_custom_update {
+              compilation.runtime_template.create_chunk_code_template()
+            } else {
+              compilation
+                .runtime_template
+                .create_runtime_module_code_template()
+            };
+            let context = RuntimeModuleGenerateContext {
+              compilation,
+              runtime_template: &runtime_template,
+            };
+            let update = if let Some(previous) = previous {
+              module.generate_update(&context, previous).await?
+            } else {
+              None
+            };
+            let generated = match update {
+              Some(source) => Some(source),
+              None if module.full_hash() || module.dependent_hash() || is_custom_update => {
+                Some(module.generate_with_custom(&context).await?)
+              }
+              None => None,
+            };
+            if let Some(generated) = generated {
+              if module.get_source_map_kind().enabled() {
+                OriginalSource::new(generated, module.identifier().as_str()).boxed()
               } else {
-                None
-              };
-              let generated = match update {
-                Some(source) => Some(source),
-                None if module.full_hash() || module.dependent_hash() => {
-                  Some(module.generate(&context).await?)
-                }
-                None => None,
-              };
-              if let Some(generated) = generated {
-                if module.get_source_map_kind().enabled() {
-                  OriginalSource::new(generated, module.identifier().as_str()).boxed()
-                } else {
-                  RawStringSource::from(generated).boxed()
-                }
-              } else {
-                source.clone()
+                RawStringSource::from(generated).boxed()
               }
             } else {
               source.clone()
-            };
-            if source.size() == 0 {
-              return Ok((
-                ConcatSource::default().boxed(),
-                RuntimeGlobals::default(),
-                RuntimeGlobals::default(),
-                false,
-              ));
             }
-            let should_isolate = module.should_isolate(runtime_mode);
-            let needs_top_level = matches!(runtime_mode, RuntimeMode::Rspack)
-              && module.get_constructor_name() == "ExportRequireRuntimeModule";
-            let sources = render_runtime_module_source(
-              module.identifier(),
-              source,
-              should_isolate,
-              supports_arrow_function,
-              matches!(runtime_mode, RuntimeMode::Rspack) && !should_isolate,
-            );
-            Ok((
-              sources,
-              generated_requirements,
-              context_requirements,
-              needs_top_level,
-            ))
-          },
-        );
+          } else {
+            source.clone()
+          };
+          if source.size() == 0 {
+            return Ok((
+              ConcatSource::default().boxed(),
+              RuntimeGlobals::default(),
+              RuntimeGlobals::default(),
+              false,
+            ));
+          }
+          let should_isolate = module.should_isolate(runtime_mode);
+          let needs_top_level = matches!(runtime_mode, RuntimeMode::Rspack)
+            && module.get_constructor_name() == "ExportRequireRuntimeModule";
+          let sources = render_runtime_module_source(
+            module.identifier(),
+            source,
+            should_isolate,
+            supports_arrow_function,
+            matches!(runtime_mode, RuntimeMode::Rspack) && !should_isolate,
+          );
+          Ok((
+            sources,
+            generated_requirements,
+            context_requirements,
+            needs_top_level,
+          ))
+        });
       })
   })
   .await
@@ -629,12 +643,11 @@ pub(crate) async fn render_runtime_module_sources(
   Ok(runtime_module_sources)
 }
 
-async fn render_webpack_runtime_modules(
+pub async fn render_runtime_modules_in_order(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
 ) -> Result<BoxSource> {
-  let runtime_module_sources =
-    render_runtime_module_sources(compilation, chunk_ukey, false).await?;
+  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey).await?;
   let mut sources = ConcatSource::default();
 
   for (runtime_module_source, _, _, _) in runtime_module_sources {

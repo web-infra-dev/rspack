@@ -3,7 +3,7 @@ use std::sync::Arc;
 use camino::Utf8PathBuf;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, ConstDependency, DependencyRange, ImportAttributes,
-  ImportPhase,
+  ImportPhase, RuntimeGlobals, RuntimeRequirementsDependency,
 };
 use rspack_intern::Atom;
 use rspack_plugin_javascript::{
@@ -264,16 +264,7 @@ impl RstestParserPlugin {
           parser.add_dependency(BoxDependency::new(dep));
 
           let callee_range = call_expr.callee(ast).span(ast).into();
-          let loc = parser.to_dependency_location(callee_range);
-          parser.add_presentational_dependency(Arc::new(RequireHeaderDependency::new(
-            callee_range,
-            loc,
-          )));
-
-          parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-            callee_range,
-            ".rstest_require_actual".into(),
-          )));
+          Self::replace_runtime_helper(parser, callee_range, "rstest_require_actual");
 
           return Some(true);
         }
@@ -588,6 +579,25 @@ impl RstestParserPlugin {
     }
   }
 
+  fn replace_runtime_helper(parser: &mut JavascriptParser, range: DependencyRange, name: &str) {
+    let replacement = if parser.parser_runtime_requirements.render_mode.is_legacy() {
+      if name == "rstest_require_actual" {
+        let loc = parser.to_dependency_location(range);
+        parser.add_presentational_dependency(Arc::new(RequireHeaderDependency::new(range, loc)));
+        format!(".{name}")
+      } else {
+        format!("{}.{name}", parser.parser_runtime_requirements.require)
+      }
+    } else {
+      parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
+        range,
+        RuntimeGlobals::REQUIRE_SCOPE,
+      )));
+      format!(".{name}")
+    };
+    parser.add_presentational_dependency(Arc::new(ConstDependency::new(range, replacement.into())));
+  }
+
   fn reset_modules(
     &self,
     parser: &mut JavascriptParser,
@@ -596,14 +606,11 @@ impl RstestParserPlugin {
     let ast = parser.ast.ast;
     match call_expr.arguments(ast).len() {
       0 => {
-        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+        Self::replace_runtime_helper(
+          parser,
           call_expr.callee(ast).span(ast).into(),
-          format!(
-            "{}.rstest_reset_modules",
-            parser.parser_runtime_requirements.require
-          )
-          .into(),
-        )));
+          "rstest_reset_modules",
+        );
         Some(true)
       }
       _ => {
@@ -685,14 +692,11 @@ impl RstestParserPlugin {
               .with_all_exports_referenced()
               .with_missing_module_fallback("null".to_string());
               parser.add_dependency(BoxDependency::new(dep));
-              parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+              Self::replace_runtime_helper(
+                parser,
                 call_expr.callee(ast).span(ast).into(),
-                format!(
-                  "{}.rstest_require_mock",
-                  parser.parser_runtime_requirements.require
-                )
-                .into(),
-              )));
+                "rstest_require_mock",
+              );
               return Some(true);
             }
 

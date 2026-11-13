@@ -3,7 +3,7 @@ import path from "node:path";
 /** @type {import('@rspack/test-tools').TErrorCaseConfig} */
 export default {
 	description:
-		"should reject runtime module source changes from JS hooks in rspack mode",
+		"should report invalid JavaScript in modified runtime module sources",
 	options() {
 		let modified = false;
 		class Plugin {
@@ -14,7 +14,7 @@ export default {
 							modified = true;
 							const originSource = module.source.source.toString("utf-8");
 							module.source.source = Buffer.from(
-								`${originSource}\n__webpack_require__.test = true;\n`,
+								`${originSource}\n__webpack_require__.test = ;\n`,
 								"utf-8"
 							);
 						}
@@ -38,7 +38,7 @@ export default {
 	async check(diagnostics) {
 		expect(diagnostics.errors).toHaveLength(1);
 		expect(diagnostics.errors[0].message).toContain(
-			'Compilation.hooks.runtimeModule source modifications are not supported when experiments.runtimeMode is "rspack"'
+			'Cannot parse runtime module'
 		);
 		expect(diagnostics.warnings).toHaveLength(0);
 	}

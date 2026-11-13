@@ -78,11 +78,27 @@ pub fn impl_runtime_module(
       }
     }
 
+    #[async_trait::async_trait]
     impl #impl_generics ::rspack_core::CustomSourceRuntimeModule for #name #ty_generics #where_clause {
-      fn set_custom_source(&mut self, source: String) -> () {
-        self.common.set_custom_source(source);
+      fn set_custom_source(
+        &mut self,
+        source: String,
+      ) -> ::rspack_error::Result<()> {
+        self.common.set_custom_source(source)
       }
-      fn get_custom_source(&self) -> Option<String> {
+      fn set_generated_source(
+        &mut self,
+        source: String,
+      ) -> ::rspack_error::Result<()> {
+        self.common.set_generated_source(source)
+      }
+      async fn generate_with_custom(
+        &self,
+        context: &::rspack_core::RuntimeModuleGenerateContext<'_>,
+      ) -> ::rspack_error::Result<String> {
+        self.common.generate_with_custom(self, context).await
+      }
+      fn get_custom_source(&self) -> &::rspack_core::RuntimeModuleCustomSource {
         self.common.get_custom_source()
       }
       fn get_constructor_name(&self) -> String {

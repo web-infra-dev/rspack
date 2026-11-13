@@ -42,9 +42,9 @@ pub fn render_lexical_declarations(
 #[derive(Debug, Default, Clone)]
 pub struct RuntimeProxyMetadata {
   pub tree_runtime_requirements: RuntimeGlobals,
-  pub module_proxy_requirements: RuntimeGlobals,
-  pub bootstrap_proxy_requirements: RuntimeGlobals,
-  pub runtime_module_requirements: RuntimeGlobals,
+  pub collected_runtime_requirements_for_modules: RuntimeGlobals,
+  pub collected_runtime_requirements_for_bootstrap: RuntimeGlobals,
+  pub collected_runtime_requirements_for_runtime_modules: RuntimeGlobals,
   pub context_setter_fields: RuntimeGlobals,
   pub force_context_fields: RuntimeGlobals,
   pub hook_exposed_requirements: RuntimeGlobals,
@@ -62,15 +62,18 @@ impl RuntimeProxyMetadata {
   }
 
   pub fn context_fields(&self) -> RuntimeGlobals {
-    let mut fields = self.module_proxy_requirements;
-    fields.insert(self.bootstrap_proxy_requirements);
+    let mut fields = self.collected_runtime_requirements_for_modules;
+    fields.insert(self.collected_runtime_requirements_for_bootstrap);
     fields.insert(self.force_context_fields);
     fields.insert(self.hook_exposed_requirements);
     Self::renderable_fields(fields)
   }
 
   pub fn context_setter_fields(&self) -> RuntimeGlobals {
-    Self::renderable_fields(self.context_setter_fields)
+    self
+      .context_setter_fields
+      .renderable_require_scope()
+      .difference(RuntimeGlobals::REQUIRE_SCOPE)
   }
 
   pub fn render_context_setter_assignments(&self, runtime_context: &str) -> String {

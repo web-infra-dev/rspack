@@ -139,15 +139,29 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
           const runtimeModule = createRenderedRuntimeModule(module);
           const compilation = getCompiler().__internal__get_compilation()!;
           runtimeModule.attach(compilation, chunk, compilation.chunkGraph);
-          const originSource = module.source?.source;
-          queried.call(runtimeModule, chunk);
-          const newSource = module.source?.source;
-          if (newSource && newSource !== originSource) {
-            if (getCompiler().options.experiments?.runtimeMode === 'rspack') {
-              throw new Error(
-                'Compilation.hooks.runtimeModule source modifications are not supported when experiments.runtimeMode is "rspack".',
-              );
+          if (compilation.options.experiments.runtimeMode !== 'rspack') {
+            const originSource = module.source?.source;
+            queried.call(runtimeModule, chunk);
+            const newSource = module.source?.source;
+            if (newSource && newSource !== originSource) {
+              return module;
             }
+            return;
+          }
+          // Copy the bytes: taps can mutate a Buffer in place or replace it with an empty source.
+          const originSource = module.source
+            ? Buffer.from(module.source.source)
+            : undefined;
+          const originGenerate = runtimeModule.generate;
+          queried.call(runtimeModule, chunk);
+          if (runtimeModule.generate !== originGenerate && module.source) {
+            module.source.source = runtimeModule.generate();
+          }
+          const newSource = module.source?.source;
+          if (
+            newSource !== undefined &&
+            !originSource?.equals(Buffer.from(newSource))
+          ) {
             return module;
           }
           return;
@@ -210,6 +224,11 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
         }: binding.JsExecuteModuleArg) {
           try {
             const RuntimeGlobals = getCompiler().rspack.RuntimeGlobals;
+            const isRspackRuntimeMode =
+              getCompiler().options.experiments.runtimeMode === 'rspack';
+            const runtimeScope = isRspackRuntimeMode
+              ? RuntimeGlobals.requireScope
+              : RuntimeGlobals.require;
             const runtimeContext: any = {};
             const moduleRequireFn: any = (id: string) => {
               const cached = moduleCache[id];
@@ -265,26 +284,29 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
             };
 
             const moduleCache: Record<string, any> = (moduleRequireFn[
-              RuntimeGlobals.moduleCache.replace(
-                `${RuntimeGlobals.require}.`,
-                '',
-              )
+              RuntimeGlobals.moduleCache.replace(`${runtimeScope}.`, '')
             ] = {});
             const interceptModuleExecution: ((execOptions: any) => void)[] =
               (moduleRequireFn[
                 RuntimeGlobals.interceptModuleExecution.replace(
-                  `${RuntimeGlobals.require}.`,
+                  `${runtimeScope}.`,
                   '',
                 )
               ] = []);
             moduleRequireFn.r = moduleRequireFn;
             runtimeContext.r = moduleRequireFn;
+            if (isRspackRuntimeMode) {
+              // Runtime modules can execute ordinary modules during initialization.
+              Object.assign(runtimeContext, moduleRequireFn);
+            }
             for (const runtimeModule of runtimeModules) {
               moduleRequireFn(runtimeModule);
             }
-            for (const key of Reflect.ownKeys(moduleRequireFn)) {
-              runtimeContext[key] =
-                moduleRequireFn[key as keyof typeof moduleRequireFn];
+            if (!isRspackRuntimeMode) {
+              for (const key of Reflect.ownKeys(moduleRequireFn)) {
+                runtimeContext[key] =
+                  moduleRequireFn[key as keyof typeof moduleRequireFn];
+              }
             }
 
             const executeResult = moduleRequireFn(entry);

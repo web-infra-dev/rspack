@@ -41,6 +41,13 @@ fn render_runtime_global_specifiers(context: RuntimeImportRenderContext<'_>) -> 
 
   let chunk = get_chunk(context.compilation, *context.chunk_ukey);
   let module_graph = context.compilation.get_module_graph();
+  let source_requirements = context
+    .compilation
+    .runtime_proxy_metadata_artifact
+    .get(context.chunk_ukey)
+    .map_or(RuntimeGlobals::default(), |metadata| {
+      metadata.context_setter_fields()
+    });
   let write_requirements = context
     .compilation
     .build_chunk_graph_artifact
@@ -56,7 +63,7 @@ fn render_runtime_global_specifiers(context: RuntimeImportRenderContext<'_>) -> 
         .data()
         .get::<CodeGenerationRuntimeRequirementsWrite>()
     })
-    .fold(RuntimeGlobals::default(), |mut requirements, write| {
+    .fold(source_requirements, |mut requirements, write| {
       requirements.insert(write.runtime_requirements);
       requirements
     });

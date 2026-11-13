@@ -570,7 +570,7 @@ pub async fn process_chunks_runtime_requirements(
           ChunkGraph::get_module_runtime_requirements(compilation, *mid, referenced_chunk.runtime())
         {
           metadata
-            .module_proxy_requirements
+            .collected_runtime_requirements_for_modules
             .insert(*runtime_requirements);
         }
         if compilation
@@ -599,15 +599,26 @@ pub async fn process_chunks_runtime_requirements(
           .get(runtime_module_id)
           .expect("should have runtime module");
         let runtime_requirements = runtime_module.runtime_requirements(compilation);
+        let source_requirements = runtime_module.get_custom_source().runtime_requirements;
+        compilation
+          .cgc_runtime_requirements_artifact
+          .entry(chunk_ukey)
+          .or_default()
+          .insert(source_requirements);
+        // Opaque runtime source may both read and replace every referenced global.
+        metadata.context_setter_fields.insert(source_requirements);
         metadata
-          .runtime_module_requirements
+          .tree_runtime_requirements
+          .insert(source_requirements);
+        metadata
+          .collected_runtime_requirements_for_runtime_modules
           .insert(runtime_requirements.dependencies);
         metadata
           .tree_runtime_requirements
           .insert(runtime_requirements.lexical_requirements());
         metadata
           .force_context_fields
-          .insert(runtime_requirements.force_context);
+          .insert(runtime_requirements.force_context | source_requirements);
       }
     }
 
@@ -642,11 +653,13 @@ pub async fn process_chunks_runtime_requirements(
         .force_context_fields
         .insert(metadata.tree_runtime_requirements);
     }
-    metadata.bootstrap_proxy_requirements.insert(
-      metadata
-        .tree_runtime_requirements
-        .intersection(*BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS),
-    );
+    metadata
+      .collected_runtime_requirements_for_bootstrap
+      .insert(
+        metadata
+          .tree_runtime_requirements
+          .intersection(*BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS),
+      );
 
     compilation
       .runtime_proxy_metadata_artifact

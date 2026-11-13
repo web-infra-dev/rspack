@@ -6,9 +6,13 @@ class Plugin {
     compiler.hooks.compilation.tap('TestFakePlugin', (compilation) => {
       compilation.hooks.runtimeModule.tap('TestFakePlugin', (module) => {
         if (module.constructor.name === 'CssLoadingRuntimeModule') {
-          expect(module.identifier()).toBe('webpack/runtime/css loading');
+          const prefix =
+            compiler.options.experiments.runtimeMode === 'rspack'
+              ? 'rspack'
+              : 'webpack';
+          expect(module.identifier()).toBe(`${prefix}/runtime/css loading`);
           expect(module.readableIdentifier()).toBe(
-            'webpack/runtime/css loading',
+            `${prefix}/runtime/css loading`,
           );
           const source = module.source!;
           const originSource = source.source.toString('utf-8');

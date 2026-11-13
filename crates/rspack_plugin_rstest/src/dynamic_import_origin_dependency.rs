@@ -102,9 +102,18 @@ impl DependencyTemplate for RstestDynamicImportOriginDependencyTemplate {
       );
 
     if dep.import_mock || dep.require_mock {
+      let runtime_global = if code_generatable_context
+        .runtime_template
+        .render_mode()
+        .is_legacy()
+      {
+        rspack_core::RuntimeGlobals::REQUIRE
+      } else {
+        rspack_core::RuntimeGlobals::REQUIRE_SCOPE
+      };
       let require = code_generatable_context
         .runtime_template
-        .render_runtime_globals(&rspack_core::RuntimeGlobals::REQUIRE);
+        .render_runtime_globals(&runtime_global);
       source.replace(
         dep.callee_range.start,
         dep.callee_range.end,

@@ -115,19 +115,23 @@ async fn runtime_module(
   let runtime_template = compilation
     .runtime_template
     .create_runtime_module_code_template();
+  let context = rspack_core::RuntimeModuleGenerateContext {
+    compilation,
+    runtime_template: &runtime_template,
+  };
   match runtime_module.get_constructor_name().as_str() {
     "DefinePropertyGettersRuntimeModule" => {
       runtime_module.set_custom_source(
         RstestPlugin::generate_define_property_getters_runtime_source(compilation),
-      );
+      )?;
     }
     "RequireChunkLoadingRuntimeModule" | "ModuleChunkLoadingRuntimeModule" => {
-      let context = rspack_core::RuntimeModuleGenerateContext {
-        compilation,
-        runtime_template: &runtime_template,
+      let source = if let Some(source) = &runtime_module.get_custom_source().source {
+        source.clone()
+      } else {
+        runtime_module.generate(&context).await?
       };
-      let source = runtime_module.generate_with_custom(&context).await?;
-      let runtime_scope = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
+      let runtime_scope = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE_SCOPE);
       let legacy_runtime_scope = runtime_variable_name(&RuntimeVariable::Require);
       let module_factories = runtime_template.render_runtime_variable(&RuntimeVariable::Modules);
       runtime_module.set_custom_source(RstestPlugin::add_rstest_mock_chunk_loading_guard(
@@ -135,7 +139,7 @@ async fn runtime_module(
         &runtime_scope,
         legacy_runtime_scope,
         &module_factories,
-      ));
+      ))?;
     }
     _ => {}
   }

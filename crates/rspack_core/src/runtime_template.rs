@@ -8,6 +8,7 @@ use cow_utils::CowUtils;
 use heck::ToSnakeCase;
 use itertools::Itertools;
 use memchr::memmem;
+use rspack_cacheable::cacheable;
 use rspack_collections::{Identifier, IdentifierSet};
 use rspack_dojang::{Context, Dojang, FunctionContainer, Operand};
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt, error};
@@ -68,6 +69,7 @@ static RSPACK_EXPORT_RUNTIME_GLOBALS: LazyLock<Arc<RuntimeGlobalsRenderMap>> =
   });
 
 /// Controls how a single runtime global is rendered into its final JavaScript identifier.
+#[cacheable]
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
 pub enum RuntimeGlobalsRenderMode {
   /// Renders webpack-compatible identifiers such as `__webpack_require__.d`.
@@ -88,7 +90,13 @@ impl RuntimeGlobalsRenderMode {
     matches!(self, Self::Webpack)
   }
 
-  fn render_runtime_variable(self, runtime_variable: &RuntimeVariable) -> &'static str {
+  pub(crate) fn render_runtime_globals(self, runtime_globals: &RuntimeGlobals) -> String {
+    get_runtime_globals_render_map(self)
+      .render(runtime_globals)
+      .to_string()
+  }
+
+  pub(crate) fn render_runtime_variable(self, runtime_variable: &RuntimeVariable) -> &'static str {
     match self {
       Self::Webpack => runtime_variable_name(runtime_variable),
       Self::RspackContext | Self::RspackLexical => rspack_runtime_variable_name(runtime_variable),

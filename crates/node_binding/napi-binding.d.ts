@@ -611,6 +611,7 @@ export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObje
 
 export interface JsAddingRuntimeModule {
   name: string
+  source?: string
   generator: () => String
   dependentHash: boolean
   fullHash: boolean

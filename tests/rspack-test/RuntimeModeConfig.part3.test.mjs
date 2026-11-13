@@ -20,13 +20,6 @@ describeByWalk(
 		exclude: [
 			// Exclude a-o
 			/^[a-o]/,
-			// Custom runtime sources are not supported in rspack runtime mode.
-			/^builtin-swc-loader\/preact-refresh$/,
-			/^container-1-5\/tree-shaking-shared-(infer|server)-mode$/,
-			/^hooks\/(modify-extract-css-loading-runtime|rspack-issue-5571|runtime-module|runtime-requirement-in-tree)$/,
-			/^rstest\/(dynamic-import-origin|mock|mock-dynamic-import-external|mock-shared-runtime|module-path-names|new-url-wasm)$/,
-			/^runtime\/add-runtime-module/,
-			/^sharing\/tree-shaking-shared$/
 		]
 	}
 );
