@@ -656,11 +656,7 @@ impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
         &mut IdentifierMap::default(),
       )
     } else {
-      let dependency = module_graph.dependency_by_id(&conn.dependency_id);
-      let dependency = dependency
-        .downcast_ref::<ESMImportSideEffectDependency>()
-        .expect("should be ESMImportSideEffectDependency");
-      ConnectionState::Active(dependency.missing_module_active(module_graph))
+      ConnectionState::Active(!module_graph.is_lazy_dependency(&conn.dependency_id))
     }
   }
 }
