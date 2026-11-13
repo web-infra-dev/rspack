@@ -16,8 +16,14 @@ use crate::new_cache::{
 };
 
 #[cacheable]
+enum CachedResolutionResult {
+  Resolved(ResolveResult),
+  NotFound(String),
+}
+
+#[cacheable]
 struct CachedResolution {
-  result: ResolveResult,
+  result: CachedResolutionResult,
   dependencies: ResolveDependencies,
   snapshot: Snapshot,
 }
@@ -83,13 +89,27 @@ impl ResolverCache {
         Ok(SnapshotValidationResult::Valid)
       )
     {
+      let result = match &cached.result {
+        CachedResolutionResult::Resolved(result) => Ok(result.clone()),
+        CachedResolutionResult::NotFound(request) => Err(ResolveInnerError::RspackResolver(
+          rspack_resolver::ResolveError::NotFound(request.clone()),
+        )),
+      };
       self.cache.record_reuse();
-      return (Ok(cached.result.clone()), cached.dependencies.clone());
+      return (result, cached.dependencies.clone());
     }
 
     let start_time = current_time();
     let (result, dependencies) = generator().await;
-    if let Ok(result) = &result
+    let cached_result = match &result {
+      Ok(result) => Some(CachedResolutionResult::Resolved(result.clone())),
+      // NotFound is reusable while its dependencies are valid.
+      Err(ResolveInnerError::RspackResolver(rspack_resolver::ResolveError::NotFound(request))) => {
+        Some(CachedResolutionResult::NotFound(request.clone()))
+      }
+      _ => None,
+    };
+    if let Some(result) = cached_result
       && let Ok(snapshot) = self
         .file_system_info
         .create_snapshot(
@@ -102,7 +122,7 @@ impl ResolverCache {
         .await
     {
       item.store(CacheValue::new(CachedResolution {
-        result: result.clone(),
+        result,
         dependencies: dependencies.clone(),
         snapshot,
       }));
