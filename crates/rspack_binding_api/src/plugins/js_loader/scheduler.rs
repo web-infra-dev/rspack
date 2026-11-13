@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use napi::bindgen_prelude::{Either3, JsValuesTupleIntoVec};
 use rspack_core::{
   AdditionalData, LoaderContext, NormalModuleLoaderStartYielding, RunnerContext, StrictLoaderTask,
@@ -5,6 +7,7 @@ use rspack_core::{
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
+use rspack_napi::js_tasks::Task;
 
 use super::{JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
@@ -20,8 +23,9 @@ impl JsLoaderRspackPlugin {
 #[plugin_hook(NormalModuleLoaderStartYielding for JsLoaderRspackPlugin,tracing=false)]
 pub(crate) async fn loader_yield(
   &self,
-  loader_context: &mut LoaderContext<RunnerContext>,
+  context: &mut Arc<LoaderContext<RunnerContext>>,
 ) -> Result<()> {
+  let loader_context = context.as_ref();
   let chain = loader_context
     .current_chain()
     .expect("yield requires a loader chain");
@@ -65,31 +69,44 @@ pub(crate) async fn loader_yield(
       for index in start..end {
         loader_context.loader_items[index].set_pitch_executed();
       }
-      loader_context.loader_index = end as i32;
+      Arc::get_mut(context)
+        .expect("loader context must be exclusive")
+        .loader_index = end as i32;
       return Ok(());
     }
   }
 
   if strict {
+    let loader_context = Arc::get_mut(context).expect("loader context must be exclusive");
     drop(loader_context.take_additional_data());
+    let content = loader_context.take_content();
     let (sender, receiver) = tokio::sync::oneshot::channel();
-    super::worker::dispatch(StrictLoaderTask::new(
-      loader_context.take_owned(),
-      self.owner,
-      start as u32,
-      end as u32,
+    super::worker::dispatch(Task::new(
+      StrictLoaderTask::new(
+        Arc::clone(context),
+        content,
+        self.owner,
+        start as u32,
+        end as u32,
+      ),
       sender,
+      "Strict loader task was cancelled",
     ));
-    let (context, pitches, result) = receiver
+    let new_cx = receiver
       .await
-      .expect("strict loader task returns its context");
-    loader_context.restore_owned(*context);
-    if !pitches.is_empty() {
-      self.update_loaders_without_pitch(pitches).await;
+      .expect("strict loader task returns its result")?;
+    // TODO: Use Arc::into_unique when available to express the exclusive ownership.
+    let loader_context = Arc::get_mut(context).expect("strict loader released its context");
+    if loader_context.state() == LoaderState::Pitching {
+      let pitches = collect_loaders_without_pitch(loader_context, &new_cx);
+      if !pitches.is_empty() {
+        self.update_loaders_without_pitch(pitches).await;
+      }
     }
-    return result;
+    return merge_loader_context(loader_context, new_cx);
   }
 
+  let loader_context = Arc::get_mut(context).expect("loader context must be exclusive");
   let mut context = JsLoaderContext::try_from(&mut *loader_context)?;
   context.loader_chain_start = start as u32;
   context.loader_chain_end = end as u32;

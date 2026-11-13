@@ -12,7 +12,7 @@ use crate::{
 
 #[async_trait::async_trait]
 pub trait LoaderRunnerPlugin: Send + Sync {
-  type Context: Send;
+  type Context: Send + Sync;
 
   fn name(&self) -> &'static str {
     "unknown"
@@ -22,12 +22,13 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     Ok(())
   }
 
-  async fn start_yielding(&self, _context: &mut LoaderContext<Self::Context>) -> Result<()> {
+  /// A yield adapter must release any shared and weak references before returning.
+  async fn start_yielding(&self, _context: &mut Arc<LoaderContext<Self::Context>>) -> Result<()> {
     Ok(())
   }
 
-  async fn run_normal_chain(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
-    context.run_normal_chain().await
+  async fn run_normal_chain(&self, context: &mut Arc<LoaderContext<Self::Context>>) -> Result<()> {
+    LoaderContext::run_normal_chain(context).await
   }
 
   async fn process_resource(

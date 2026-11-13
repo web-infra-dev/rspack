@@ -7,22 +7,20 @@ use std::{
 };
 
 use napi::{bindgen_prelude::*, sys};
-use rspack_core::StrictLoaderTask;
+use rspack_napi::js_tasks::Task;
 use rustc_hash::FxHashMap;
 use tokio_util::sync::CancellationToken;
 
-use super::{
-  JsLoaderContext,
-  scheduler::{collect_loaders_without_pitch, merge_loader_context},
-};
+use super::JsLoaderContext;
 use crate::module::WorkerModuleScope;
 
-type ActiveTask = Arc<Mutex<Option<(StrictLoaderTask, Option<Arc<WorkerModuleScope>>)>>>;
+type LoaderTask = Task<rspack_core::StrictLoaderTask, JsLoaderContext>;
+type ActiveTask = Arc<Mutex<Option<(LoaderTask, Option<Arc<WorkerModuleScope>>)>>>;
 type WorkerTasks = FxHashMap<u32, ActiveTask>;
 
 struct Queue {
-  sender: async_channel::Sender<StrictLoaderTask>,
-  receiver: async_channel::Receiver<StrictLoaderTask>,
+  sender: async_channel::Sender<LoaderTask>,
+  receiver: async_channel::Receiver<LoaderTask>,
   workers: Mutex<FxHashMap<u32, WorkerTasks>>,
 }
 
@@ -36,23 +34,19 @@ static QUEUE: LazyLock<Queue> = LazyLock::new(|| {
 });
 static NEXT_TASK: AtomicU32 = AtomicU32::new(0);
 
-pub(super) fn dispatch(task: StrictLoaderTask) {
+pub(super) fn dispatch(task: LoaderTask) {
   let workers = QUEUE
     .workers
     .lock()
     .expect("strict loader workers lock poisoned");
   if workers.is_empty() {
-    task.finish(
-      Vec::new(),
-      Err(rspack_error::error!(
-        "No strict loader workers are available"
-      )),
-    );
+    task.finish(Err(rspack_error::error!(
+      "No strict loader workers are available"
+    )));
   } else if let Err(error) = QUEUE.sender.try_send(task) {
-    error.into_inner().finish(
-      Vec::new(),
-      Err(rspack_error::error!("Strict loader queue is closed")),
-    );
+    error
+      .into_inner()
+      .finish(Err(rspack_error::error!("Strict loader queue is closed")));
   }
 }
 
@@ -77,12 +71,9 @@ pub fn stop_strict_loader_worker(id: u32) {
     let tasks = workers.remove(&id);
     if workers.is_empty() {
       while let Ok(task) = QUEUE.receiver.try_recv() {
-        task.finish(
-          Vec::new(),
-          Err(rspack_error::error!(
-            "No strict loader workers are available"
-          )),
-        );
+        task.finish(Err(rspack_error::error!(
+          "No strict loader workers are available"
+        )));
       }
     }
     tasks
@@ -101,7 +92,7 @@ fn finish_failed(cell: &ActiveTask, reason: &str) {
     if let Some(scope) = scope {
       scope.revoke();
     }
-    task.finish(Vec::new(), Err(rspack_error::error!("{reason}")));
+    task.finish(Err(rspack_error::error!("{reason}")));
   }
 }
 
@@ -122,7 +113,7 @@ impl JsStrictLoaderTask {
       .lock()
       .expect("strict loader task lock poisoned")
       .as_ref()
-      .map(|(task, _)| task.owner)
+      .map(|(task, _)| task.payload().owner)
       .ok_or_else(|| napi::Error::from_reason("Strict loader task has finished"))
   }
 
@@ -137,11 +128,15 @@ impl JsStrictLoaderTask {
         "Strict loader context has already been taken",
       ));
     }
+    let task = task.payload_mut();
     let (start, end) = (task.start, task.end);
-    let native = task.context_mut();
+    let native = task
+      .context
+      .as_ref()
+      .and_then(std::sync::Weak::upgrade)
+      .ok_or_else(|| napi::Error::from_reason("Strict loader context has expired"))?;
     let worker_scope = WorkerModuleScope::new(native.context.options.context.clone());
-    let mut context = JsLoaderContext::try_from(native)
-      .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+    let mut context = JsLoaderContext::from_loader_context(&native, task.content.take(), None);
     context.module = context.module.with_worker_scope(worker_scope.clone());
     *scope = Some(worker_scope);
     context.loader_chain_start = start;
@@ -151,7 +146,7 @@ impl JsStrictLoaderTask {
 
   #[napi]
   pub fn complete(&self, mut context: JsLoaderContext) -> napi::Result<()> {
-    let (mut task, scope) = self
+    let (task, scope) = self
       .task
       .lock()
       .expect("strict loader task lock poisoned")
@@ -161,10 +156,7 @@ impl JsStrictLoaderTask {
       scope.revoke();
     }
     context.additional_data = None;
-    let native = task.context_mut();
-    let pitches = collect_loaders_without_pitch(native, &context);
-    let result = merge_loader_context(native, context);
-    task.finish(pitches, result);
+    task.finish(Ok(context));
     self.unregister();
     Ok(())
   }
@@ -203,7 +195,7 @@ impl Drop for JsStrictLoaderTask {
 
 struct Delivery {
   worker: u32,
-  task: StrictLoaderTask,
+  task: LoaderTask,
   ready: tokio::sync::oneshot::Sender<()>,
 }
 

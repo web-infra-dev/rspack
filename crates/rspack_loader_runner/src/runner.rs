@@ -10,7 +10,7 @@ use crate::{
   LoaderExecutionKind, LoaderFilter, LoaderRunnerOptions, ParseMeta,
   chain::LoaderChains,
   content::{AdditionalData, Content, ResourceData},
-  context::{LoaderContext, LoaderContextData, LoaderDependencies, State},
+  context::{LoaderContext, LoaderDependencies, State},
   loader::{Loader, LoaderItem},
   plugin::LoaderRunnerPlugin,
 };
@@ -18,23 +18,24 @@ use crate::{
 /// Normal-stage preconditions aligned with the loaders in the chain.
 pub type LoaderFilters = Box<[Option<Arc<LoaderFilter>>]>;
 
-impl<Context: Send> LoaderContext<Context> {
-  async fn start_yielding(&mut self) -> Result<bool> {
-    if self.current_loader().execution_kind() == LoaderExecutionKind::JavaScript
-      && let Some(plugin) = &self.plugin
-    {
-      plugin.clone().start_yielding(self).await?;
-      return Ok(true);
-    }
-    Ok(false)
+async fn start_yielding<Context: Send + Sync>(
+  context: &mut Arc<LoaderContext<Context>>,
+) -> Result<bool> {
+  let cx = context.as_ref();
+  if cx.current_loader().execution_kind() == LoaderExecutionKind::JavaScript
+    && let Some(plugin) = &cx.plugin
+  {
+    plugin.clone().start_yielding(context).await?;
+    return Ok(true);
   }
+  Ok(false)
 }
 
-async fn run_pitch_chain<Context: Send>(
-  cx: &mut LoaderContext<Context>,
+async fn run_pitch_chain<Context: Send + Sync>(
+  context: &mut Arc<LoaderContext<Context>>,
   resource: &str,
 ) -> Result<()> {
-  let chain = cx
+  let chain = context
     .current_chain()
     .expect("pitching requires a current loader chain");
   let chain_end = chain.end() as i32;
@@ -48,9 +49,11 @@ async fn run_pitch_chain<Context: Send>(
   );
 
   async {
-    while cx.loader_index < chain_end {
+    while context.loader_index < chain_end {
       let yield_span = info_span!("run_loader:pitch:yield_to_js", resource);
-      if cx.start_yielding().instrument(yield_span).await? {
+      let yielded = start_yielding(context).instrument(yield_span).await?;
+      let cx = Arc::get_mut(context).expect("loader context must be exclusive");
+      if yielded {
         if cx.content.is_some() {
           break;
         }
@@ -79,10 +82,10 @@ async fn run_pitch_chain<Context: Send>(
   .await
 }
 
-impl<Context: Send> LoaderContext<Context> {
+impl<Context: Send + Sync> LoaderContext<Context> {
   /// Execute the current root chain's normal loaders without consulting the loader cache.
-  pub async fn run_normal_chain(&mut self) -> Result<()> {
-    let cx = self;
+  pub async fn run_normal_chain(context: &mut Arc<Self>) -> Result<()> {
+    let cx = context.as_ref();
     let chain = cx
       .current_root_chain()
       .expect("normal execution requires a current root chain");
@@ -97,7 +100,11 @@ impl<Context: Send> LoaderContext<Context> {
     );
 
     async {
-      while cx.loader_index >= chain_start {
+      loop {
+        let cx = Arc::get_mut(context).expect("loader context must be exclusive");
+        if cx.loader_index < chain_start {
+          break;
+        }
         if cx.current_loader().normal_executed() {
           cx.loader_index -= 1;
           continue;
@@ -110,10 +117,11 @@ impl<Context: Send> LoaderContext<Context> {
         }
 
         let yield_span = info_span!("run_loader:yield_to_js", resource = cx.resource());
-        if cx.start_yielding().instrument(yield_span).await? {
+        if start_yielding(context).instrument(yield_span).await? {
           continue;
         }
 
+        let cx = Arc::get_mut(context).expect("loader context must be exclusive");
         if cx.current_loader().normal_executed() {
           cx.loader_index -= 1;
           continue;
@@ -142,7 +150,7 @@ impl<Context: Send> LoaderContext<Context> {
   skip_all,
   fields(resource = loader_context.resource_data.resource())
 )]
-async fn process_resource<Context: Send>(
+async fn process_resource<Context: Send + Sync>(
   loader_context: &mut LoaderContext<Context>,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
@@ -175,7 +183,7 @@ You may need an additional plugin to handle "{scheme}:" URIs."#
   ))
 }
 
-fn create_loader_context<Context: Send>(
+fn create_loader_context<Context: Send + Sync>(
   loader_items: Vec<LoaderItem<Context>>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
@@ -189,30 +197,28 @@ fn create_loader_context<Context: Send>(
   }
 
   LoaderContext {
-    data: Some(Box::new(LoaderContextData {
-      hot: false,
-      cacheable: true,
-      parse_meta: Default::default(),
-      dependencies,
-      added_dependencies: Default::default(),
-      removed_dependencies: Default::default(),
-      content: None,
-      context,
-      source_map: None,
-      additional_data: None,
-      state: State::Init,
-      loader_index: 0,
-      loader_chains: LoaderChains::new(&loader_items),
-      loader_items,
-      plugin,
-      resource_data,
-      diagnostics: vec![],
-    })),
+    hot: false,
+    cacheable: true,
+    parse_meta: Default::default(),
+    dependencies,
+    added_dependencies: Default::default(),
+    removed_dependencies: Default::default(),
+    content: None,
+    context,
+    source_map: None,
+    additional_data: None,
+    state: State::Init,
+    loader_index: 0,
+    loader_chains: LoaderChains::new(&loader_items),
+    loader_items,
+    plugin,
+    resource_data,
+    diagnostics: vec![],
   }
 }
 
 #[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
-pub async fn run_loaders<Context: Send>(
+pub async fn run_loaders<Context: Send + Sync>(
   loaders: Vec<Arc<dyn Loader<Context>>>,
   loader_options: Option<Vec<LoaderRunnerOptions>>,
   loader_filters: Option<LoaderFilters>,
@@ -251,21 +257,31 @@ pub async fn run_loaders<Context: Send>(
       LoaderItem::new(loader, options, filter)
     })
     .collect::<Vec<LoaderItem<Context>>>();
-  let mut cx = create_loader_context(loaders, resource_data, plugin, context);
+  let mut cx = Arc::new(create_loader_context(
+    loaders,
+    resource_data,
+    plugin,
+    context,
+  ));
   let result = run_loaders_impl(&mut cx, fs).await;
-  (LoaderResult::new(cx), result.err())
+  (
+    LoaderResult::new(Arc::into_inner(cx).expect("finished loader context must be exclusive")),
+    result.err(),
+  )
 }
 
-async fn run_loaders_impl<Context: Send>(
-  cx: &mut LoaderContext<Context>,
+async fn run_loaders_impl<Context: Send + Sync>(
+  context: &mut Arc<LoaderContext<Context>>,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
+  let cx = Arc::get_mut(context).expect("loader context must be exclusive");
   if let Some(plugin) = cx.plugin.clone() {
     plugin.before_all(cx).await?;
   }
   let resource = cx.resource().to_owned();
   let resource = resource.as_str();
   loop {
+    let cx = Arc::get_mut(context).expect("loader context must be exclusive");
     match cx.state {
       State::Init => {
         cx.state.transition(State::Pitching);
@@ -275,7 +291,8 @@ async fn run_loaders_impl<Context: Send>(
           cx.state.transition(State::ProcessResource);
           continue;
         }
-        run_pitch_chain(cx, resource).await?;
+        run_pitch_chain(context, resource).await?;
+        let cx = Arc::get_mut(context).expect("loader context must be exclusive");
         if cx.content.is_some() {
           cx.state.transition(State::Normal);
           cx.loader_index -= 1;
@@ -295,16 +312,19 @@ async fn run_loaders_impl<Context: Send>(
 
         cx.reset_dependency_changes();
         if let Some(plugin) = cx.plugin.clone() {
-          plugin.run_normal_chain(cx).await?;
+          plugin.run_normal_chain(context).await?;
         } else {
-          cx.run_normal_chain().await?;
+          LoaderContext::run_normal_chain(context).await?;
         }
-        cx.reset_dependency_changes();
+        Arc::get_mut(context)
+          .expect("loader context must be exclusive")
+          .reset_dependency_changes();
       }
       State::Finished => break,
     }
   }
 
+  let cx = context.as_ref();
   if cx.content.is_none() {
     if !cx.loader_items.is_empty() {
       let loader = cx.loader_items[0].to_string();
@@ -334,9 +354,6 @@ pub struct LoaderResult<Context> {
 
 impl<Context: Send> LoaderResult<Context> {
   pub fn new(loader_context: LoaderContext<Context>) -> Self {
-    let loader_context = *loader_context
-      .data
-      .expect("yield adapter must restore loader context");
     LoaderResult {
       context: loader_context.context,
       cacheable: loader_context.cacheable,

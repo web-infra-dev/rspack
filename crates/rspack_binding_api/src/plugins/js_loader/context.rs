@@ -213,21 +213,31 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
   fn try_from(
     cx: &mut rspack_core::LoaderContext<RunnerContext>,
   ) -> std::result::Result<Self, Self::Error> {
-    let content = match cx.take_content() {
+    let content = cx.take_content();
+    let additional_data = cx
+      .take_additional_data()
+      .and_then(|mut data| data.remove::<ThreadsafeOneShotRef>());
+    Ok(Self::from_loader_context(cx, content, additional_data))
+  }
+}
+
+impl JsLoaderContext {
+  pub(super) fn from_loader_context(
+    cx: &LoaderContext<RunnerContext>,
+    content: Option<Content>,
+    additional_data: Option<ThreadsafeOneShotRef>,
+  ) -> Self {
+    let content = match content {
       Some(Content::String(content)) => Either3::A(content),
       Some(Content::Buffer(content)) => Either3::B(content.into()),
       None => Either3::C(Null),
     };
-    let additional_data = cx
-      .take_additional_data()
-      .and_then(|mut data| data.remove::<ThreadsafeOneShotRef>());
-
     let module = &cx.context.module;
 
     let execution_span = cx
       .current_chain()
       .map_or(0..cx.loader_items.len(), |chain| chain.start()..chain.end());
-    Ok(JsLoaderContext {
+    Self {
       resource: cx.resource_data.resource().to_owned(),
       module: ModuleObject::with_ptr(
         NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module)
@@ -255,6 +265,6 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       error: None,
       loader_chain_start: execution_span.start as u32,
       loader_chain_end: execution_span.end as u32,
-    })
+    }
   }
 }

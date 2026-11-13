@@ -98,7 +98,7 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     Ok(None)
   }
 
-  async fn start_yielding(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
+  async fn start_yielding(&self, context: &mut Arc<LoaderContext<Self::Context>>) -> Result<()> {
     self
       .plugin_driver
       .normal_module_hooks
@@ -107,7 +107,11 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
       .await
   }
 
-  async fn run_normal_chain(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
+  async fn run_normal_chain(
+    &self,
+    loader_context: &mut Arc<LoaderContext<Self::Context>>,
+  ) -> Result<()> {
+    let context = Arc::get_mut(loader_context).expect("loader context must be exclusive");
     let chain = context
       .current_root_chain()
       .expect("normal execution requires a current root chain");
@@ -138,8 +142,9 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
       return Ok(());
     }
 
-    context.run_normal_chain().await?;
+    LoaderContext::run_normal_chain(loader_context).await?;
     if let LoaderCacheAction::Miss(state) = cache_action {
+      let context = Arc::get_mut(loader_context).expect("loader context must be exclusive");
       after_normal_chain(context, &state).await;
     }
     Ok(())
