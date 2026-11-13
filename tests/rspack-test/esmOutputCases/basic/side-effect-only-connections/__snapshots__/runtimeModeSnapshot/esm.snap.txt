@@ -7,7 +7,7 @@ moduleFactories.add({
   \******************/
 () {
 it('should has connection to lib only in closure', () => {
-	const { foo } = rspackRequire(/*! ./lib */ "./lib.js")
+	const { foo } = (0, /*#__PURE__*/ rspackRequire(/*! ./lib */ "./lib.js"))
 	expect(foo()).toBe(42)
 })
 

@@ -15,7 +15,7 @@ export default {
 			version: false
 		}))
 			.toMatchInlineSnapshot(`
-				asset main.js 317 bytes [emitted] (name: main)
+				asset main.js 302 bytes [emitted] (name: main)
 				./fixtures/abc.js 83 bytes [built] [code generated]
 				./fixtures/a.js 55 bytes [built] [code generated]
 				./fixtures/b.js 94 bytes [built] [code generated]

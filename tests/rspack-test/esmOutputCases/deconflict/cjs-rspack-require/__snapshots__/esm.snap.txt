@@ -7,7 +7,7 @@ __webpack_require__.add({
   !*** ./require.cjs ***!
   \*********************/
 (module, __unused_rspack_exports, __webpack_require__) {
-const rspackRequire = __webpack_require__(/*! ./value.cjs */ "./value.cjs");
+const rspackRequire = (0, /*#__PURE__*/ __webpack_require__(/*! ./value.cjs */ "./value.cjs"));
 
 module.exports = rspackRequire;
 

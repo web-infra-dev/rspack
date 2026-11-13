@@ -34,7 +34,7 @@ module.exports = 42;
 
 
 // Keep a CommonJS module in the runtime chunk used by require.ensure.
-const runtimeValue = rspackRequire(/*! ./runtime.cjs */ "./runtime.cjs");
+const runtimeValue = (0, /*#__PURE__*/ rspackRequire(/*! ./runtime.cjs */ "./runtime.cjs"));
 
 const index_asyncModule = await new Promise((resolve, reject) => {
 	Promise.resolve(/*! require.ensure */).then((() => {
