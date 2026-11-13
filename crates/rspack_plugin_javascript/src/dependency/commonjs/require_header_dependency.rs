@@ -11,6 +11,7 @@ pub struct RequireHeaderDependency {
   id: DependencyId,
   range: DependencyRange,
   loc: Option<DependencyLocation>,
+  module_dependencies: Option<(DependencyRange, Vec<DependencyId>)>,
 }
 
 impl RequireHeaderDependency {
@@ -19,11 +20,21 @@ impl RequireHeaderDependency {
       id: DependencyId::new(),
       range,
       loc,
+      module_dependencies: None,
     }
   }
 
   pub fn range(&self) -> DependencyRange {
     self.range
+  }
+
+  pub fn with_module_dependencies(
+    mut self,
+    range: DependencyRange,
+    dependencies: Vec<DependencyId>,
+  ) -> Self {
+    self.module_dependencies = Some((range, dependencies));
+    self
   }
 }
 
@@ -75,8 +86,19 @@ impl DependencyTemplate for RequireHeaderDependencyTemplate {
       .expect("RequireHeaderDependencyTemplate should only be used for RequireHeaderDependency");
 
     let TemplateContext {
-      runtime_template, ..
+      compilation,
+      runtime_template,
+      ..
     } = code_generatable_context;
+    if let Some((range, dependencies)) = &dep.module_dependencies
+      && !dependencies.is_empty()
+      && dependencies
+        .iter()
+        .all(|id| runtime_template.is_module_side_effect_free(compilation, id))
+    {
+      source.insert_static(range.start, "(0, /*#__PURE__*/ ", None);
+      source.insert_static(range.end, ")", None);
+    }
     source.replace(
       dep.range.start,
       dep.range.end,

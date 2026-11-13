@@ -79,7 +79,7 @@ __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export),
   exportDefaultUsed: () => (exportDefaultUsed)
 });
-/* import */ var _script1__rspack_import_0 = __webpack_require__("./package2/script1.js");
+/* import */ var _script1__rspack_import_0 = (0, /*#__PURE__*/ __webpack_require__("./package2/script1.js"));
 
 /* export default */ const __rspack_default_export = (_script1__rspack_import_0["default"]);
 

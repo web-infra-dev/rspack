@@ -17,12 +17,13 @@ use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 use serde_json::{Value, json};
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
-  DependencyId, DependencyType, ExportsArgument, ExportsInfoArtifact, ExportsType,
-  FakeNamespaceObjectMode, ImportPhase, InitFragment, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, Module, ModuleArgument, ModuleGraph, ModuleGraphCacheArtifact, ModuleId,
-  ModuleIdentifier, NormalInitFragment, PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  UsedName, compile_boolean_matcher_from_lists, contextify, property_access,
+  AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, ConnectionState,
+  DependenciesBlock, DependencyId, DependencyType, ExportsArgument, ExportsInfoArtifact,
+  ExportsType, FakeNamespaceObjectMode, ImportPhase, InitFragment, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, Module, ModuleArgument, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment, PathInfo,
+  RuntimeCondition, RuntimeGlobals, RuntimeSpec, UsedName, compile_boolean_matcher_from_lists,
+  contextify, property_access,
   runtime_globals::{
     RuntimeVariable, rspack_export_runtime_variable_name, rspack_runtime_variable_name,
     runtime_globals_to_string, runtime_variable_name,
@@ -1204,6 +1205,28 @@ impl ModuleCodeTemplate {
     }
   }
 
+  pub fn is_module_side_effect_free(&self, compilation: &Compilation, id: &DependencyId) -> bool {
+    let module_graph = compilation.get_module_graph();
+    let Some(module) = module_graph.get_module_by_dependency_id(id) else {
+      return false;
+    };
+    let side_effects_state_artifact = &compilation
+      .build_module_graph_artifact
+      .side_effects_state_artifact;
+    let state = side_effects_state_artifact
+      .module_evaluation_side_effects_state(&module.identifier())
+      .unwrap_or_else(|| {
+        module.get_side_effects_connection_state(
+          module_graph,
+          &compilation.module_graph_cache_artifact,
+          side_effects_state_artifact,
+          &mut Default::default(),
+          &mut Default::default(),
+        )
+      });
+    state == ConnectionState::Active(false)
+  }
+
   pub fn module_raw(
     &mut self,
     compilation: &Compilation,
@@ -1217,11 +1240,17 @@ impl ModuleCodeTemplate {
       && let Some(module_id) =
         ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
     {
-      format!(
+      let require = format!(
         "{}({})",
         self.render_runtime_globals(&RuntimeGlobals::REQUIRE),
         self.module_id_expr(request, module_id)
-      )
+      );
+      if self.is_module_side_effect_free(compilation, id) {
+        // A sequence keeps minifiers from applying the annotation to calls of the result.
+        format!("(0, /*#__PURE__*/ {require})")
+      } else {
+        require
+      }
     } else if weak {
       self.weak_error_expression(request)
     } else {
@@ -1329,8 +1358,6 @@ impl ModuleCodeTemplate {
       return (self.missing_module_statement(request), String::new());
     };
 
-    let module_id_expr = self.module_id(compilation, id, request, false);
-
     let opt_declaration = if update { "" } else { "var " };
 
     let exports_type = target_module.get_exports_type(
@@ -1341,6 +1368,7 @@ impl ModuleCodeTemplate {
     );
 
     if phase.is_defer() && !target_module.build_meta().has_top_level_await() {
+      let module_id_expr = self.module_id(compilation, id, request, false);
       let async_deps = get_outgoing_async_modules(compilation, target_module.as_ref());
       let import_content = format!(
         "/* deferred import */{opt_declaration}{import_var} = {};\n",
@@ -1350,8 +1378,8 @@ impl ModuleCodeTemplate {
     }
 
     let import_content = format!(
-      "/* import */ {opt_declaration}{import_var} = {}({module_id_expr});\n",
-      self.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+      "/* import */ {opt_declaration}{import_var} = {};\n",
+      self.module_raw(compilation, id, request, false)
     );
     if matches!(exports_type, ExportsType::Dynamic) {
       return (

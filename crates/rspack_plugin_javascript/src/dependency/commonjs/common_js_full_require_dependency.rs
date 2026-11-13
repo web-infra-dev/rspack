@@ -6,7 +6,7 @@ use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportsInfoArtifact, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport,
-  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, property_access,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, property_access,
   should_reference_call_receiver, to_normal_comment,
 };
 
@@ -190,9 +190,8 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
       let mut require_expr = match used {
         UsedName::Normal(used) => {
           format!(
-            "{}({}){}{}",
-            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-            runtime_template.module_id(compilation, &dep.id, &dep.request, false),
+            "{}{}{}",
+            runtime_template.module_raw(compilation, &dep.id, &dep.request, false),
             to_normal_comment(&property_access(&dep.names, 0)),
             property_access(used, 0)
           )
@@ -207,11 +206,7 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
       }
       require_expr
     } else {
-      format!(
-        r#"{}({})"#,
-        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        runtime_template.module_id(compilation, &dep.id, &dep.request, false)
-      )
+      runtime_template.module_raw(compilation, &dep.id, &dep.request, false)
     };
 
     source.replace(dep.range.start, dep.range.end, require_expr, None);
