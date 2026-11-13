@@ -42,7 +42,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction, filename::JsFilename,
-  module::ModuleObject, options::raw_resolve::RuleResolveOptions,
+  module::ModuleObject, options::raw_resolve::RawConfigValue,
 };
 
 /// `loader` is for both JS and Rust loaders.
@@ -199,7 +199,7 @@ pub struct RawModuleRule {
   #[napi(ts_type = "RawConfigValue")]
   pub generator: Option<RawGeneratorOptionObject>,
   #[napi(ts_type = "RawConfigValue")]
-  pub resolve: Option<RuleResolveOptions>,
+  pub resolve: Option<RawConfigValue>,
   pub issuer: Option<RawRuleSetCondition>,
   pub issuer_layer: Option<RawRuleSetCondition>,
   pub dependency: Option<RawRuleSetCondition>,
@@ -959,7 +959,14 @@ impl TryFrom<RawModuleRule> for ModuleRule {
         r#type: module_type,
         layer: value.layer,
         deferred_options: RuleOptions::deferred(value.parser, value.generator),
-        resolve: value.resolve.map(|raw| raw.0.try_into()).transpose()?,
+        resolve: value
+          .resolve
+          .map(|raw| {
+            raw.try_into().map_err(|error: rspack_error::Error| {
+              rspack_error::error!("Invalid rule.resolve: {error}")
+            })
+          })
+          .transpose()?,
         side_effects: value.side_effects,
         enforce,
         extract_source_map: value.extract_source_map,
