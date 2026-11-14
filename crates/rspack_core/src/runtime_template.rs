@@ -1228,27 +1228,40 @@ impl ModuleCodeTemplate {
     request: &str,
     weak: bool,
   ) -> String {
+    let mut out = String::new();
+    self.write_module_raw(&mut out, compilation, id, request, weak);
+    out
+  }
+
+  /// Appends the expression produced by [`Self::module_raw`] to `out`, without
+  /// allocating an intermediate string for the require call.
+  fn write_module_raw(
+    &mut self,
+    out: &mut String,
+    compilation: &Compilation,
+    id: &DependencyId,
+    request: &str,
+    weak: bool,
+  ) {
     if let Some(module_identifier) = compilation
       .get_module_graph()
       .module_identifier_by_dependency_id(id)
       && let Some(module_id) =
         ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
     {
-      let require = format!(
-        "{}({})",
-        self.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        self.module_id_expr(request, module_id)
-      );
+      let require = self.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+      let module_id_expr = self.module_id_expr(request, module_id);
       if self.is_module_side_effect_free(compilation, id) {
         // A sequence keeps minifiers from applying the annotation to calls of the result.
-        format!("(0, /*#__PURE__*/ {require})")
+        write!(out, "(0, /*#__PURE__*/ {require}({module_id_expr}))")
+          .expect("failed to write module raw");
       } else {
-        require
+        write!(out, "{require}({module_id_expr})").expect("failed to write module raw");
       }
     } else if weak {
-      self.weak_error_expression(request)
+      out.push_str(&self.weak_error_expression(request));
     } else {
-      self.missing_module(request)
+      out.push_str(&self.missing_module(request));
     }
   }
 
@@ -1371,10 +1384,9 @@ impl ModuleCodeTemplate {
       return (import_content, String::new());
     }
 
-    let import_content = format!(
-      "/* import */ {opt_declaration}{import_var} = {};\n",
-      self.module_raw(compilation, id, request, false)
-    );
+    let mut import_content = format!("/* import */ {opt_declaration}{import_var} = ");
+    self.write_module_raw(&mut import_content, compilation, id, request, false);
+    import_content.push_str(";\n");
     if matches!(exports_type, ExportsType::Dynamic) {
       return (
         import_content,
