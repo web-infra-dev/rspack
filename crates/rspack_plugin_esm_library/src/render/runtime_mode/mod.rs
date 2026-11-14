@@ -19,6 +19,8 @@ use self::{
 };
 use crate::chunk_link::{ChunkLinkContext, RawImportSource};
 
+pub(super) type ImportSources = Vec<(RawImportSource, String)>;
+
 static WEBPACK_RENDERER: WebpackRuntimeRenderer = WebpackRuntimeRenderer;
 static RSPACK_CONTEXT_RENDERER: RspackContextRuntimeRenderer = RspackContextRuntimeRenderer;
 static RSPACK_EXPORT_RENDERER: RspackExportRuntimeRenderer = RspackExportRuntimeRenderer;
@@ -58,7 +60,11 @@ pub(super) struct RuntimeRenderContext<'a> {
 pub(super) trait RuntimeModeRenderer: Sync {
   fn render_module_registration_ident(&self, runtime_template: &RuntimeCodeTemplate) -> String;
 
-  fn render_runtime_imports(&self, context: RuntimeImportRenderContext<'_>) -> ConcatSource;
+  fn render_runtime_imports(
+    &self,
+    context: RuntimeImportRenderContext<'_>,
+    imports: &mut ImportSources,
+  ) -> ConcatSource;
 
   fn render_direct_runtime_export(
     &self,
@@ -173,6 +179,7 @@ fn render_single_runtime_import(
   context: RuntimeImportRenderContext<'_>,
   runtime_import_ident: String,
   extra_match_ident: Option<String>,
+  imports: &mut ImportSources,
 ) -> ConcatSource {
   let runtime_import_idents = FxIndexSet::from_iter([runtime_import_ident]);
   let mut runtime_import_match_idents = runtime_import_idents.clone();
@@ -192,13 +199,14 @@ fn render_single_runtime_import(
       &runtime_import_idents,
     ));
   }
-  source.add(render_raw_import_stmts(
+  render_raw_import_stmts(
     context.compilation,
     context.chunk_link,
     None,
     &runtime_import_match_idents,
     None,
-  ));
+    imports,
+  );
   source
 }
 
@@ -208,8 +216,8 @@ fn render_raw_import_stmts(
   runtime_chunk_ukey: Option<&ChunkUkey>,
   runtime_import_match_idents: &FxIndexSet<String>,
   legacy_context_idents: Option<&FxIndexSet<String>>,
-) -> ConcatSource {
-  let mut source = ConcatSource::default();
+  imports: &mut ImportSources,
+) {
   for (raw_import_source, import_spec) in &chunk_link.raw_import_stmts {
     let should_skip = match raw_import_source {
       RawImportSource::Chunk(import_chunk) => {
@@ -242,13 +250,11 @@ fn render_raw_import_stmts(
       ),
     };
 
-    source.add(RawStringSource::from(render_imports(
-      &request,
-      attr,
-      import_spec,
-    )));
+    imports.push((
+      raw_import_source.clone(),
+      render_imports(&request, attr, import_spec),
+    ));
   }
-  source
 }
 
 fn render_runtime_prelude(context: RuntimeRenderContext<'_>) -> ConcatSource {

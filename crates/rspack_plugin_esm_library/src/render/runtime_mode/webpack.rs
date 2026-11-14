@@ -1,7 +1,7 @@
 use rspack_core::{RuntimeCodeTemplate, RuntimeGlobals, rspack_sources::ConcatSource};
 
 use super::{
-  RuntimeImportRenderContext, RuntimeModeRenderer, RuntimeRenderContext,
+  ImportSources, RuntimeImportRenderContext, RuntimeModeRenderer, RuntimeRenderContext,
   render_runtime_global_definitions, render_runtime_prelude, render_single_runtime_import,
 };
 
@@ -12,13 +12,18 @@ impl RuntimeModeRenderer for WebpackRuntimeRenderer {
     runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
   }
 
-  fn render_runtime_imports(&self, context: RuntimeImportRenderContext<'_>) -> ConcatSource {
+  fn render_runtime_imports(
+    &self,
+    context: RuntimeImportRenderContext<'_>,
+    imports: &mut ImportSources,
+  ) -> ConcatSource {
     render_single_runtime_import(
       context,
       context
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::REQUIRE),
       None,
+      imports,
     )
   }
 

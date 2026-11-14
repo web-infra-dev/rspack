@@ -1,7 +1,7 @@
 ```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
 import { resolve } from "node:path";
 import { parse } from "node:url";
-import { __webpack_require__ } from "./runtime.mjs";
 
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);

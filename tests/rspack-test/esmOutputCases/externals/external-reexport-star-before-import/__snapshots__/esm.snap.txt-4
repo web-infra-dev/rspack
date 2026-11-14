@@ -1,0 +1,17 @@
+```mjs title=namespace/main.mjs
+import * as __rspack_external__middle_side_mjs_2b4f739f from "./middle-side.mjs";
+export * from "./ext.mjs";
+export * from "./other.mjs";
+
+
+// ./middle-side.mjs
+
+// ./namespace.mjs
+
+
+
+const middle = __rspack_external__middle_side_mjs_2b4f739f.middle;
+
+export { middle };
+
+```

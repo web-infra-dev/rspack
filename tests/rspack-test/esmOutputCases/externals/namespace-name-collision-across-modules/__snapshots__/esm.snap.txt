@@ -1,4 +1,5 @@
 ```mjs title=main.mjs
+export { readFile, readFileSync } from "fs";
 import * as __rspack_external_path from "path";
 
 // fs
@@ -32,6 +33,5 @@ it("should deconflict concatenated namespace imports that match generated module
 });
 
 export { __rspack_external_path as pathNs, joinFn };
-export { readFile, readFileSync } from "fs";
 
 ```

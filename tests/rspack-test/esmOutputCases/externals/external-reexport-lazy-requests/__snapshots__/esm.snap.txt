@@ -1,0 +1,14 @@
+```mjs title=child.mjs
+export { value } from "./first.mjs";
+import "./second.mjs";
+
+// ./first.mjs?ef05
+
+// ./second.mjs?1fb1
+
+// ./child.mjs
+
+
+
+
+```

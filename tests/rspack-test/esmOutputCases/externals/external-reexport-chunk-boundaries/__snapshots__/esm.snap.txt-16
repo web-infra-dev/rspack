@@ -1,0 +1,19 @@
+```mjs title=repeated-external-split-readable/a.mjs
+import "./tail.mjs";
+export { update, value } from "./ext.mjs";
+import "./b.mjs";
+
+// ../tail.mjs
+
+// ../ext.mjs
+
+// ./repeated-external/inner.mjs
+
+
+
+
+// ./repeated-external/a.mjs
+
+
+
+```

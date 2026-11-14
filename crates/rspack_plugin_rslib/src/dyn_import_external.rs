@@ -266,6 +266,15 @@ impl DependencyTemplate for ImportDependencyTemplate {
   }
 }
 
+const EXTERNAL_STAR_PREFIX: &str = "esm_module_reexport_star_";
+
+pub fn external_star_re_export_request(key: &InitFragmentKey) -> Option<&str> {
+  let InitFragmentKey::Const(key) = key else {
+    return None;
+  };
+  key.strip_prefix(EXTERNAL_STAR_PREFIX)
+}
+
 #[derive(Debug)]
 pub(crate) struct ExportImportedDependencyTemplate {
   pub(crate) template: Option<Arc<dyn DependencyTemplate>>,
@@ -309,7 +318,7 @@ impl DependencyTemplate for ExportImportedDependencyTemplate {
           ),
           InitFragmentStage::StageESMImports,
           0,
-          InitFragmentKey::Const(format!("esm_module_reexport_star_{}", dep.request)),
+          InitFragmentKey::Const(format!("{EXTERNAL_STAR_PREFIX}{}", request.primary())),
           None,
         )
         .boxed(),

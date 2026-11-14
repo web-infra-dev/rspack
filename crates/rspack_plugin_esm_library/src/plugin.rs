@@ -1,4 +1,5 @@
 use std::{
+  hash::Hash,
   path::PathBuf,
   sync::{Arc, LazyLock},
 };
@@ -23,10 +24,11 @@ use rspack_core::{
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
+use rspack_hash::RspackHasher;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_intern::Atom;
 use rspack_plugin_javascript::{
-  JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
+  JavascriptModulesChunkHash, JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
   dependency::{
     CommonJsExportRequireDependencyTemplate, CommonJsFullRequireDependencyTemplate,
     CommonJsRequireDependencyTemplate, ImportDependencyTemplate, RequireHeaderDependencyTemplate,
@@ -46,7 +48,7 @@ use sugar_path::SugarPath;
 use tokio::sync::RwLock;
 
 use crate::{
-  chunk_link::ChunkLinkContext,
+  chunk_link::{ChunkLinkContext, RawImportSource},
   dependency::{
     ExternalBindingBailout,
     commonjs_external::{
@@ -314,6 +316,7 @@ async fn compilation(
   hooks
     .render_chunk_content
     .tap(render_chunk_content::new(self));
+  hooks.chunk_hash.tap(js_chunk_hash::new(self));
   drop(hooks);
 
   compilation.set_dependency_template(
@@ -368,6 +371,31 @@ async fn render_chunk_content(
   self
     .render_chunk(compilation, chunk_ukey, asset_info, runtime_template)
     .await
+}
+
+#[plugin_hook(JavascriptModulesChunkHash for EsmLibraryPlugin)]
+async fn js_chunk_hash(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  hasher: &mut RspackHasher,
+) -> Result<()> {
+  let links = self.links.borrow();
+  if let Some(link) = links.get(chunk_ukey)
+    && link.request_order.len() > 1
+  {
+    // An edit to an entry can reorder requests in an otherwise unchanged split chunk.
+    let chunks = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
+    "esm library request order".hash(hasher);
+    for request in &link.request_order {
+      std::mem::discriminant(request).hash(hasher);
+      match request {
+        RawImportSource::Chunk(key) => chunks.expect_get(key).expect_id().as_str().hash(hasher),
+        RawImportSource::Source(source) => source.hash(hasher),
+      }
+    }
+  }
+  Ok(())
 }
 
 #[plugin_hook(CompilationFinishModules for EsmLibraryPlugin, stage = 100)]
