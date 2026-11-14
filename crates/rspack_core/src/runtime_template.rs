@@ -17,13 +17,13 @@ use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 use serde_json::{Value, json};
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, ConnectionState,
-  DependenciesBlock, DependencyId, DependencyType, ExportsArgument, ExportsInfoArtifact,
-  ExportsType, FakeNamespaceObjectMode, ImportPhase, InitFragment, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, Module, ModuleArgument, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment, PathInfo,
-  RuntimeCondition, RuntimeGlobals, RuntimeSpec, UsedName, compile_boolean_matcher_from_lists,
-  contextify, property_access,
+  AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
+  DependencyId, DependencyType, ExportsArgument, ExportsInfoArtifact, ExportsType,
+  FakeNamespaceObjectMode, ImportPhase, InitFragment, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, Module, ModuleArgument, ModuleGraph, ModuleGraphCacheArtifact, ModuleId,
+  ModuleIdentifier, NormalInitFragment, PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  UsedName, compile_boolean_matcher_from_lists, contextify, module_evaluation_side_effect_free,
+  property_access,
   runtime_globals::{
     RuntimeVariable, rspack_export_runtime_variable_name, rspack_runtime_variable_name,
     runtime_globals_to_string, runtime_variable_name,
@@ -1213,18 +1213,12 @@ impl ModuleCodeTemplate {
     let side_effects_state_artifact = &compilation
       .build_module_graph_artifact
       .side_effects_state_artifact;
-    let state = side_effects_state_artifact
-      .module_evaluation_side_effects_state(&module.identifier())
-      .unwrap_or_else(|| {
-        module.get_side_effects_connection_state(
-          module_graph,
-          &compilation.module_graph_cache_artifact,
-          side_effects_state_artifact,
-          &mut Default::default(),
-          &mut Default::default(),
-        )
-      });
-    state == ConnectionState::Active(false)
+    module_evaluation_side_effect_free(
+      module.as_ref(),
+      module_graph,
+      &compilation.module_graph_cache_artifact,
+      side_effects_state_artifact,
+    )
   }
 
   pub fn module_raw(

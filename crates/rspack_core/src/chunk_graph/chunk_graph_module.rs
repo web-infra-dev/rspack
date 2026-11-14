@@ -17,6 +17,7 @@ use crate::{
   AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey,
   ChunkGroupUkey, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier, ModuleIdsArtifact,
   RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, for_each_runtime, get_runtime_key,
+  module_evaluation_side_effect_free,
 };
 
 pub type ModuleIdMap<V> =
@@ -406,6 +407,9 @@ impl ChunkGraph {
           &compilation.exports_info_artifact,
           strict,
         )
+        .hash(&mut hasher);
+      // PURE require annotations depend on the target's evaluation side effects.
+      module_evaluation_side_effect_free(module, mg, mg_cache, side_effects_state_artifact)
         .hash(&mut hasher);
       self
         .get_module_graph_hash_without_connections(module, compilation, runtime)
