@@ -22,7 +22,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_paths::{Utf8Path, Utf8PathBuf, normalize_native_path_separators};
 use rspack_util::fx_hash::FxDashSet;
 use sugar_path::SugarPath;
 
@@ -147,14 +147,6 @@ struct PendingPattern<'a> {
 
 static TEMPLATE_RE: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\[\\*([\w:]+)\\*\]").expect("This never fail"));
-
-fn normalize_glob_path_separators(path: &str) -> Cow<'_, str> {
-  if cfg!(windows) {
-    path.cow_replace('\\', "/")
-  } else {
-    Cow::Borrowed(path)
-  }
-}
 
 fn order_pattern_results<T>(
   results_by_pattern: Vec<Option<Vec<T>>>,
@@ -377,7 +369,7 @@ impl CopyRspackPlugin {
     } else {
       filename.as_str().normalize().to_string_lossy().to_string()
     };
-    let filename = normalize_glob_path_separators(&filename).into_owned();
+    let filename = normalize_native_path_separators(&filename).into_owned();
 
     Ok(Some(RunPatternResult {
       source_filename,
@@ -468,7 +460,7 @@ impl CopyRspackPlugin {
         if dot_enable.is_none() {
           dot_enable = Some(true);
         }
-        let from = normalize_glob_path_separators(abs_from.as_str());
+        let from = normalize_native_path_separators(abs_from.as_str());
         let escaped = escape_glob_pattern(&from);
         format!("{}/**/*", escaped.trim_end_matches('/'))
       }
@@ -487,7 +479,7 @@ impl CopyRspackPlugin {
           dot_enable = Some(true);
         }
 
-        let from = normalize_glob_path_separators(abs_from.as_str());
+        let from = normalize_native_path_separators(abs_from.as_str());
         escape_glob_pattern(&from)
       }
       FromType::Glob => {
