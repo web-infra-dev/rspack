@@ -4,8 +4,9 @@ import { type Compiler, type Module, NormalModule } from '@rspack/core';
 const pluginName = 'plugin';
 
 class Plugin {
+  initial = true;
+
   apply(compiler: Compiler) {
-    let initial = true;
     compiler.hooks.finishMake.tapPromise(pluginName, async (compilation) => {
       const modules = compilation.modules;
       const oldModule = [...modules].find(
@@ -15,8 +16,8 @@ class Plugin {
       if (!oldModule) {
         throw new Error('module not found');
       }
-      if (initial) {
-        initial = false;
+      if (this.initial) {
+        this.initial = false;
 
         const oldSource = oldModule.originalSource();
         expect(oldModule.originalSource()?.source().includes('a = 1')).toBe(
