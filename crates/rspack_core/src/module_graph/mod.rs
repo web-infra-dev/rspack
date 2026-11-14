@@ -177,6 +177,7 @@ impl ModuleGraph {
 }
 
 impl ModuleGraph {
+  #[inline]
   pub fn is_lazy_dependency(&self, dependency: &DependencyId) -> bool {
     self.inner.lazy_dependencies.contains(dependency)
   }
