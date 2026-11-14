@@ -1222,9 +1222,7 @@ impl DependencyCodeGeneration for ESMExportImportedSpecifierDependency {
     // module's exports_info, so hash the inline value here to invalidate stale
     // generated reexport code when the target const changes.
     let module_graph = compilation.get_module_graph();
-    if module_graph.is_lazy_dependency(&self.id) {
-      "lazy".hash(hasher);
-    }
+    module_graph.is_lazy_dependency(&self.id).hash(hasher);
     let ExportMode::NormalReexport(mode) = self.get_mode(
       module_graph,
       runtime,
