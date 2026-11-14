@@ -185,14 +185,10 @@ pub trait Dependency:
     ForwardId::All
   }
 
-  fn lazy(&self) -> Option<LazyUntil> {
+  /// Static classification used when collecting a side-effect-free module's reexports.
+  /// Whether the dependency is currently deferred belongs to the module graph.
+  fn lazy_until(&self) -> Option<LazyUntil> {
     None
-  }
-
-  fn set_lazy(&self) {}
-
-  fn unset_lazy(&self) -> bool {
-    false
   }
 }
 

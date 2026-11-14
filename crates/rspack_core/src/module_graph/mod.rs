@@ -8,7 +8,7 @@ use rayon::prelude::*;
 use rspack_collections::{IdentifierHasher, IdentifierMap};
 use rspack_error::Result;
 use rspack_intern::Atom;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
@@ -99,6 +99,8 @@ pub(crate) struct ModuleGraphData {
 
   /// Dependencies indexed by `DependencyId`.
   dependencies: rollback::DenseDependencyIdMap<DependencyRef>,
+  /// Current make-stage deferrals, kept with the graph across incremental rebuilds.
+  lazy_dependencies: FxHashSet<DependencyId>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: AsyncDependenciesBlockIdentifierMap<AsyncDependenciesBlockRef>,
 
@@ -175,6 +177,18 @@ impl ModuleGraph {
 }
 
 impl ModuleGraph {
+  pub fn is_lazy_dependency(&self, dependency: &DependencyId) -> bool {
+    self.inner.lazy_dependencies.contains(dependency)
+  }
+
+  pub fn add_lazy_dependency(&mut self, dependency: DependencyId) {
+    self.inner.lazy_dependencies.insert(dependency);
+  }
+
+  pub fn remove_lazy_dependency(&mut self, dependency: &DependencyId) -> bool {
+    self.inner.lazy_dependencies.remove(dependency)
+  }
+
   #[inline]
   pub fn modules_len(&self) -> usize {
     self.inner.modules.len()
@@ -308,6 +322,7 @@ impl ModuleGraph {
       self.inner.dependency_id_to_connection_id.remove(dep_id);
     }
     if force {
+      self.inner.lazy_dependencies.remove(dep_id);
       self.inner.dependencies.remove(dep_id);
       self.inner.dependency_id_to_parents.remove(dep_id);
       self.inner.connection_to_condition.remove(dep_id);

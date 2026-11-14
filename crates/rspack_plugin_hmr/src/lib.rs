@@ -503,6 +503,7 @@ async fn generate_hot_update(
       if module_graph
         .get_parent_block(&connection.dependency_id)
         .is_some()
+        || module_graph.is_lazy_dependency(&connection.dependency_id)
         || module_graph
           .dependency_by_id(&connection.dependency_id)
           .as_module_dependency()
