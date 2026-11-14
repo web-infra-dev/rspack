@@ -43,7 +43,7 @@ export default {
 			      isOverSizeLimit: false,
 			      name: main.js,
 			      related: Array [],
-			      size: 310,
+			      size: 295,
 			      type: asset,
 			    },
 			  ],
@@ -63,7 +63,7 @@ export default {
 			        main.js,
 			      ],
 			      filteredModules: undefined,
-			      hash: 715bdc7b1b98dbe2,
+			      hash: 0de588852e90993e,
 			      id: 889,
 			      idHints: Array [],
 			      initial: true,
@@ -408,10 +408,10 @@ export default {
 			      assets: Array [
 			        Object {
 			          name: main.js,
-			          size: 310,
+			          size: 295,
 			        },
 			      ],
-			      assetsSize: 310,
+			      assetsSize: 295,
 			      auxiliaryAssets: Array [],
 			      auxiliaryAssetsSize: 0,
 			      childAssets: Object {},
@@ -429,7 +429,7 @@ export default {
 			  errorsCount: 0,
 			  filteredAssets: undefined,
 			  filteredModules: undefined,
-			  hash: 8b2bf5496d38de7d,
+			  hash: 9366956560abeeb8,
 			  modules: Array [
 			    Object {
 			      assets: Array [],
@@ -744,10 +744,10 @@ export default {
 			      assets: Array [
 			        Object {
 			          name: main.js,
-			          size: 310,
+			          size: 295,
 			        },
 			      ],
-			      assetsSize: 310,
+			      assetsSize: 295,
 			      auxiliaryAssets: Array [],
 			      auxiliaryAssetsSize: 0,
 			      childAssets: Object {},

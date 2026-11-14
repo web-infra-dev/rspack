@@ -52,13 +52,13 @@ const external_module_namespaceObject = require("module");
 
 it("should parse createRequire import.meta.url in CJS output", () => {
 	const requireFromAlias = /* createRequire() */ undefined;
-	expect(__webpack_require__(/*! ./a */ "./a.js")).toBe("root");
+	expect((0, /*#__PURE__*/ __webpack_require__(/*! ./a */ "./a.js"))).toBe("root");
 
 	const requireFromNamespace = /* createRequire() */ undefined;
-	expect(__webpack_require__(/*! ./a */ "./a.js")).toBe("root");
+	expect((0, /*#__PURE__*/ __webpack_require__(/*! ./a */ "./a.js"))).toBe("root");
 
 	const requireFromDefault = /* createRequire() */ undefined;
-	expect(__webpack_require__(/*! ./a */ "./a.js")).toBe("root");
+	expect((0, /*#__PURE__*/ __webpack_require__(/*! ./a */ "./a.js"))).toBe("root");
 });
 
 })();

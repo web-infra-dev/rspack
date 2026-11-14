@@ -39,7 +39,7 @@ impl Plugin for FlagAllModulesAsUsedPlugin {
   }
 }
 
-#[plugin_hook(CompilationOptimizeDependencies for FlagAllModulesAsUsedPlugin)]
+#[plugin_hook(CompilationOptimizeDependencies for FlagAllModulesAsUsedPlugin, stage = -100)]
 async fn optimize_dependencies(
   &self,
   compilation: &Compilation,
@@ -64,6 +64,13 @@ async fn optimize_dependencies(
   let module_id_list: IdentifierSet = mg.modules_keys().copied().collect();
 
   for module_id in module_id_list {
+    // Cache recovery resets factory metadata. Restore the DLL override before
+    // side-effects analysis so cold and restored modules have the same state.
+    mg.module_by_identifier(&module_id)
+      .expect("should have module")
+      .set_factory_meta(FactoryMeta {
+        side_effect_free: Some(false),
+      });
     exports_info_artifact
       .get_exports_info_data_mut(&module_id)
       .set_used_in_unknown_way(Some(&runtime));

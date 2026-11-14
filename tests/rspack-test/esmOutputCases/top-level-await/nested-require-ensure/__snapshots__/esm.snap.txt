@@ -34,7 +34,7 @@ module.exports = 42;
 
 
 // Keep a CommonJS module in the runtime chunk used by require.ensure.
-const runtimeValue = __webpack_require__(/*! ./runtime.cjs */ "./runtime.cjs");
+const runtimeValue = (0, /*#__PURE__*/ __webpack_require__(/*! ./runtime.cjs */ "./runtime.cjs"));
 
 const asyncModule = await new Promise((resolve, reject) => {
 	Promise.resolve(/*! require.ensure */).then((() => {

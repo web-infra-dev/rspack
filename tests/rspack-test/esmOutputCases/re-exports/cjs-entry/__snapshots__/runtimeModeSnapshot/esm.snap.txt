@@ -16,7 +16,7 @@ exports.bar = 2
   \****************/
 (__unused_rspack_module, exports) {
 makeNamespaceObject(exports);
-/* import */ var _bar__rspack_import_0 = rspackRequire(/*! ./bar */ "./bar.js");
+/* import */ var _bar__rspack_import_0 = (0, /*#__PURE__*/ rspackRequire(/*! ./bar */ "./bar.js"));
 const foo = 1
 
 
@@ -33,7 +33,7 @@ definePropertyGetters(exports, {
   !*** ./index.js ***!
   \******************/
 (module) {
-module.exports = rspackRequire(/*! ./foo */ "./foo.js")
+module.exports = (0, /*#__PURE__*/ rspackRequire(/*! ./foo */ "./foo.js"))
 
 it('should have correct output for entry re-exports', async () => {
 	const { foo, bar } = await import(/* webpackIgnore: true */ './main.mjs');

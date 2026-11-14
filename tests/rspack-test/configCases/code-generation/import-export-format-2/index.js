@@ -37,10 +37,10 @@ it("should use the same accessor syntax for import and export", function () {
 
 	// Checking formation of imports
 	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
-		expectSourceToMatch(source, `${regexEscape("const { harmonyexport_cjsimport } = (__rspack_context.r(")}\\d+${regexEscape(")/* .bar */.bar);")}`);
+		expectSourceToMatch(source, `${regexEscape("const { harmonyexport_cjsimport } = ((0, /*#__PURE__*/ __rspack_context.r(")}\\d+${regexEscape("))/* .bar */.bar);")}`);
 		expectSourceToMatch(source, `${regexEscape("const harmonyexport_cjsimportdefault = (__rspack_context.r(")}\\d+${regexEscape(")/* [\"default\"] */[\"default\"]);")}`);
 	} else {
-		expectSourceToMatch(source, `${regexEscape("const { harmonyexport_cjsimport } = (__webpack_require__(")}\\d+${regexEscape(")/* .bar */.bar);")}`);
+		expectSourceToMatch(source, `${regexEscape("const { harmonyexport_cjsimport } = ((0, /*#__PURE__*/ __webpack_require__(")}\\d+${regexEscape("))/* .bar */.bar);")}`);
 		expectSourceToMatch(source, `${regexEscape("const harmonyexport_cjsimportdefault = (__webpack_require__(")}\\d+${regexEscape(")/* [\"default\"] */[\"default\"]);")}`);
 	}
 

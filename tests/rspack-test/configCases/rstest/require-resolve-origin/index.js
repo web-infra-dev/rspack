@@ -29,11 +29,11 @@ it('rewrites require.resolve calls with source module origin', () => {
 	// enabled, and shadowed require must not be rewritten.
 	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
 		expect(content).toContain(
-			`${helper}((__rspack_context.r(161)/* .name */.name), ${originLiteral})`,
+			`${helper}(((0, /*#__PURE__*/ __rspack_context.r(161))/* .name */.name), ${originLiteral})`,
 		);
 	} else {
 		expect(content).toContain(
-			`${helper}((__webpack_require__(161)/* .name */.name), ${originLiteral})`,
+			`${helper}(((0, /*#__PURE__*/ __webpack_require__(161))/* .name */.name), ${originLiteral})`,
 		);
 	}
 	expect(content).toContain(

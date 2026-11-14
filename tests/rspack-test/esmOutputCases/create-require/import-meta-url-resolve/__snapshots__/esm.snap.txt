@@ -63,7 +63,7 @@ function getNestedRequire() {
 
 
 function load() {
-	return __webpack_require__(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js");
+	return (0, /*#__PURE__*/ __webpack_require__(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js"));
 }
 
 const pre_declared_require_call_req = /* createRequire() */ undefined;
@@ -90,7 +90,7 @@ const requireAsValue = (0,external_node_module_namespaceObject.createRequire)('<
 
 const identity = value => value;
 
-const index_value = __webpack_require__(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js");
+const index_value = (0, /*#__PURE__*/ __webpack_require__(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js"));
 const loader = /*require.resolve*/(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js");
 const unknownMember = requireWithUnknownMember.unknown;
 const requireAsValueType = typeof identity(requireAsValue);

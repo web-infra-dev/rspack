@@ -6,7 +6,7 @@ moduleFactories.add({
   !*** ./require.cjs ***!
   \*********************/
 (module) {
-const __nested_rspack_require_6_19__ = rspackRequire(/*! ./value.cjs */ "./value.cjs");
+const __nested_rspack_require_6_19__ = (0, /*#__PURE__*/ rspackRequire(/*! ./value.cjs */ "./value.cjs"));
 
 module.exports = __nested_rspack_require_6_19__;
 

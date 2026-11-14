@@ -4,8 +4,9 @@ use std::sync::Arc;
 
 use rspack_core::{
   BoxDependency, ConstDependency, Context, ContextDependency, ContextMode, ContextModulePattern,
-  ContextOptions, DependencyCategory, DependencyRange, DependencyType, ImportMetaKnownProperties,
-  ModuleType, ReferencedSpecifier, RuntimeGlobals, RuntimeRequirementsDependency, get_context,
+  ContextOptions, DependencyCategory, DependencyId, DependencyRange, DependencyType,
+  ImportMetaKnownProperties, ModuleType, ReferencedSpecifier, RuntimeGlobals,
+  RuntimeRequirementsDependency, get_context,
 };
 use rspack_error::{Diagnostic, Severity};
 use rspack_intern::AtomRef;
@@ -1812,7 +1813,7 @@ impl CommonJsImportsParserPlugin {
     span: Span,
     param: &BasicEvaluatedExpression,
     request_context: Option<Context>,
-  ) -> Option<bool> {
+  ) -> Option<DependencyId> {
     param.is_string().then(|| {
       let (start, end) = param.range();
       let range_expr = DependencyRange::new(start, end);
@@ -1858,8 +1859,10 @@ impl CommonJsImportsParserPlugin {
           dep_type: DependencyType::CjsRequire,
         });
       }
-      parser.add_dependency(BoxDependency::new(dep));
-      true
+      let dep = BoxDependency::new(dep);
+      let id = *dep.id();
+      parser.add_dependency(dep);
+      id
     })
   }
 
@@ -1920,6 +1923,7 @@ impl CommonJsImportsParserPlugin {
     let callee = expr.callee(ast);
     let args = expr.args(ast);
     let expr_span = expr.span(ast);
+    let asi_safe = !parser.is_asi_position(expr_span.start);
 
     if args.len() != 1 {
       return None;
@@ -1942,20 +1946,26 @@ impl CommonJsImportsParserPlugin {
     }
 
     let param = parser.evaluate_expression(argument_expr);
+    let mut module_dependencies = Vec::new();
     if param.is_conditional() {
       let mut is_expression = false;
       for p in param.options() {
-        if self
-          .process_require_item(parser, expr_span, p, request_context.clone())
-          .is_none()
-        {
+        if let Some(id) = self.process_require_item(parser, expr_span, p, request_context.clone()) {
+          module_dependencies.push(id);
+        } else {
           is_expression = true;
         }
       }
       if !is_expression {
         let range: DependencyRange = callee.span(parser.ast.ast).into();
         let loc = parser.to_dependency_location(range);
-        parser.add_presentational_dependency(Arc::new(RequireHeaderDependency::new(range, loc)));
+        parser.add_presentational_dependency(Arc::new(
+          RequireHeaderDependency::new(range, loc).with_module_dependencies(
+            expr_span.into(),
+            module_dependencies,
+            asi_safe,
+          ),
+        ));
         return Some(true);
       }
     }
@@ -1977,16 +1987,22 @@ impl CommonJsImportsParserPlugin {
       return None;
     }
 
-    if self
-      .process_require_item(parser, expr_span, &param, request_context.clone())
-      .is_none()
+    let module_dependency =
+      self.process_require_item(parser, expr_span, &param, request_context.clone());
+    if module_dependency.is_none()
       && let CallOrNewExpression::Call(call_expr) = expr
     {
       self.process_require_context(parser, call_expr, &param, request_context);
     } else {
       let range: DependencyRange = callee.span(parser.ast.ast).into();
       let loc = parser.to_dependency_location(range);
-      parser.add_presentational_dependency(Arc::new(RequireHeaderDependency::new(range, loc)));
+      parser.add_presentational_dependency(Arc::new(
+        RequireHeaderDependency::new(range, loc).with_module_dependencies(
+          expr_span.into(),
+          module_dependency.into_iter().collect(),
+          asi_safe,
+        ),
+      ));
     }
     Some(true)
   }

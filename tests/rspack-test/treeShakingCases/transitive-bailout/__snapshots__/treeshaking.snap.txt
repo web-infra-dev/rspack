@@ -12,7 +12,7 @@ const b = 3;
 
 },
 "./answer.js"(__unused_rspack_module, exports, __webpack_require__) {
-const res = __webpack_require__("./lib.js");
+const res = (0, /*#__PURE__*/ __webpack_require__("./lib.js"));
 exports.test = function () {
 	res;
 };
@@ -34,7 +34,7 @@ __webpack_require__.d(__webpack_exports__, {
   a: () => (/* reexport safe */ _a_js__rspack_import_0.a),
   b: () => (/* reexport safe */ _a_js__rspack_import_0.b)
 });
-/* import */ var _a_js__rspack_import_0 = __webpack_require__("./a.js");
+/* import */ var _a_js__rspack_import_0 = (0, /*#__PURE__*/ __webpack_require__("./a.js"));
 
 
 

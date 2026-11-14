@@ -18,7 +18,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   test: () => (test)
 });
-/* import */ var _module__rspack_import_0 = __webpack_require__("./module.js");
+/* import */ var _module__rspack_import_0 = (0, /*#__PURE__*/ __webpack_require__("./module.js"));
 
 
 function test() {
@@ -31,7 +31,7 @@ function test() {
 },
 "./index.js"(__unused_rspack_module, __unused_rspack_exports, __webpack_require__) {
 it("should generate correct code when pure expressions are in dead branches", () => {
-	(__webpack_require__("./import-module.js")/* .test */.test)();
+	((0, /*#__PURE__*/ __webpack_require__("./import-module.js"))/* .test */.test)();
 	return Promise.all([Promise.resolve(/* import() */).then(__webpack_require__.bind(__webpack_require__, "./some-module.js")), __webpack_require__.e(/* import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js"))]);
 });
 
@@ -42,7 +42,7 @@ it("should generate correct code when pure expressions are in dead branches", ()
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
-/* import */ var _some_module__rspack_import_0 = __webpack_require__("./some-module.js");
+/* import */ var _some_module__rspack_import_0 = (0, /*#__PURE__*/ __webpack_require__("./some-module.js"));
 
 
 function getType(obj) {
