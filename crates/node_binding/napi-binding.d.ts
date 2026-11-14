@@ -2362,6 +2362,7 @@ export interface RawEnvironment {
   module: boolean
   optionalChaining: boolean
   logicalAssignment: boolean
+  spread: boolean
   templateLiteral: boolean
   dynamicImportInWorker: boolean
   importMetaDirnameAndFilename: boolean

@@ -286,6 +286,26 @@ pub fn resolve(browsers: Vec<String>) -> TargetProperties {
           "node" => VersionRequirement::Major(14),
       },
     )),
+    spread: Some(raw_checker(
+      &browsers,
+      &hashmap! {
+          "chrome" => VersionRequirement::Major(60),
+          "and_chr" => VersionRequirement::Major(60),
+          "edge" => VersionRequirement::Major(79),
+          "firefox" => VersionRequirement::Major(55),
+          "and_ff" => VersionRequirement::Major(55),
+          "opera" => VersionRequirement::Major(47),
+          "op_mob" => VersionRequirement::Major(44),
+          "safari" => VersionRequirement::MajorMinor(11, 1),
+          "ios_saf" => VersionRequirement::MajorMinor(11, 3),
+          "samsung" => VersionRequirement::MajorMinor(8, 2),
+          "android" => VersionRequirement::Major(60),
+          "and_qq" => VersionRequirement::MajorMinor(13, 1),
+          "and_uc" => VersionRequirement::MajorMinor(15, 5),
+          "kaios" => VersionRequirement::MajorMinor(3, 0),
+          "node" => VersionRequirement::MajorMinor(8, 3),
+      },
+    )),
     template_literal: Some(raw_checker(
       &browsers,
       &hashmap! {
