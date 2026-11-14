@@ -1,4 +1,5 @@
 use std::{
+  borrow::Cow,
   ffi::OsStr,
   fmt::Debug,
   ops::Deref,
@@ -8,14 +9,37 @@ use std::{
 
 use dashmap::setref::multiple::RefMulti;
 use rspack_error::Result;
-use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
+use rspack_paths::{
+  InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathMap, InternedPathSet,
+};
 use rspack_util::{
   fx_hash::FxHashMap,
   time::{current_time, system_time_to_millis},
 };
 
 use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher};
-use crate::time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis};
+use crate::{
+  symlinks::{LinkResolver, LinkScan, LinkSubscriptions, SymlinkAlias, SymlinkUpdate, Symlinks},
+  time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
+};
+
+/// A context keeps its own path spelling even when it contains another
+/// registered context. Clones share interned paths.
+#[derive(Clone, Default)]
+pub(crate) struct ContextPath {
+  pub dependency: Option<InternedPath>,
+  resolved: Option<InternedPath>,
+}
+
+impl ContextPath {
+  pub(crate) fn resolved_entry(&self, path: &InternedPath) -> Option<InternedPath> {
+    let dependency = self.dependency.as_ref()?;
+    let resolved = self.resolved.as_ref()?;
+    Some(InternedPath::from(resolved.join(
+      path.strip_prefix(dependency).expect("context descendant"),
+    )))
+  }
+}
 
 /// An iterator that chains together references to all files, directories, and missing paths
 /// stored in the [`PathTracker`]. This allows iteration over all registered paths as a single sequence.
@@ -328,7 +352,7 @@ pub(crate) struct PathManager {
   absent_directories: InternedPathDashSet,
   /// The `followSymlinks` watch option: the context scan descends into
   /// symlinked directories, as watchpack does.
-  follow_symlinks: bool,
+  symlinks: Option<Box<Symlinks>>,
 }
 
 impl PathManager {
@@ -348,13 +372,126 @@ impl PathManager {
       absent_directories: InternedPathDashSet::default(),
       recorded_children: InternedPathDashMap::default(),
       index_lock: std::sync::Mutex::default(),
-      follow_symlinks: false,
+      symlinks: None,
     }
   }
 
   pub fn with_follow_symlinks(mut self, follow_symlinks: bool) -> Self {
-    self.follow_symlinks = follow_symlinks;
+    self.symlinks = follow_symlinks.then(Box::default);
     self
+  }
+
+  pub(crate) fn follows_symlinks(&self) -> bool {
+    self.symlinks.is_some()
+  }
+
+  pub(crate) fn is_context_symlink_file(&self, path: &InternedPath) -> bool {
+    self.context_files.contains(path)
+      && !self.context_directories.contains(path)
+      && path.is_symlink()
+  }
+
+  pub(crate) fn is_followed_context_file(&self, path: &InternedPath) -> bool {
+    self
+      .symlinks
+      .as_ref()
+      .is_some_and(|symlinks| symlinks.is_context_file(path))
+  }
+
+  pub(crate) async fn refresh_symlinks(&self) -> SymlinkUpdate {
+    let Some(symlinks) = &self.symlinks else {
+      return SymlinkUpdate::default();
+    };
+    let mut resolver = LinkResolver::default();
+    let mut subscriptions = LinkSubscriptions::default();
+    let registered: Vec<_> = self.access().all().collect();
+    for path in registered {
+      let directory = self.directories.all.contains(&path);
+      subscriptions
+        .add(&mut resolver, path, directory, false, self)
+        .await;
+    }
+    let mut context_links: InternedPathMap<bool> = self
+      .context_files
+      .iter()
+      .map(|entry| (entry.key().clone(), false))
+      .collect();
+    // A missing target loses its time records, but its link still needs a
+    // subscription until the owning context or the link itself is removed.
+    for path in symlinks.context_directories() {
+      context_links.insert(path, true);
+    }
+    for entry in self.context_directories.iter() {
+      context_links.insert(entry.key().clone(), true);
+    }
+    for (path, directory) in context_links {
+      if self.is_below_context(&path)
+        && path.is_symlink()
+        && !self.files.all.contains(&path)
+        && !self.directories.all.contains(&path)
+      {
+        subscriptions
+          .add(&mut resolver, path, directory, true, self)
+          .await;
+      }
+    }
+    let update = symlinks.replace(subscriptions);
+    for path in &update.new_context_files {
+      self.baselines.insert(path.clone(), disk_mtime(path));
+    }
+    update
+  }
+
+  pub(crate) fn resolved_directory_entry(&self, path: &InternedPath) -> Option<InternedPath> {
+    self
+      .symlinks
+      .as_ref()
+      .and_then(|symlinks| symlinks.resolved_directory_entry(path))
+  }
+
+  pub(crate) fn link_scan(&self, path: &InternedPath) -> Option<LinkScan> {
+    self
+      .symlinks
+      .as_ref()
+      .and_then(|symlinks| symlinks.link_scan(path))
+  }
+
+  pub(crate) fn is_file_present(&self, path: &InternedPath) -> bool {
+    if self
+      .symlinks
+      .as_ref()
+      .is_some_and(|symlinks| symlinks.has_target_subscription(path))
+    {
+      path.exists()
+    } else {
+      std::fs::symlink_metadata(path).is_ok()
+    }
+  }
+
+  pub(crate) fn has_file_time(&self, path: &InternedPath) -> bool {
+    self.file_times.contains_key(path)
+  }
+
+  pub(crate) fn clear_file_baseline(&self, path: &InternedPath) {
+    self.baselines.remove(path);
+  }
+
+  pub(crate) fn symlink_aliases(
+    &self,
+    path: &InternedPath,
+    include_descendants: bool,
+    injected: bool,
+  ) -> Vec<SymlinkAlias> {
+    self.symlinks.as_ref().map_or_else(Vec::new, |symlinks| {
+      symlinks.aliases(path, include_descendants, injected)
+    })
+  }
+
+  pub(crate) fn is_unchanged_link_event(&self, path: &InternedPath) -> bool {
+    self
+      .symlinks
+      .as_ref()
+      .is_some_and(|symlinks| symlinks.is_unchanged_link_event(path))
   }
 
   /// Reset the per-`watch()`-call diff state (added / removed sets) without
@@ -417,7 +554,7 @@ impl PathManager {
   pub fn set_reported_file_removal(&self, path: &InternedPath) {
     self.baselines.insert(path.clone(), None);
     if (!self.files.all.contains(path) && !self.missing.all.contains(path))
-      || std::fs::symlink_metadata(path).is_ok()
+      || self.is_file_present(path)
     {
       self.baselines.remove_if(path, |_, time| time.is_none());
     }
@@ -573,11 +710,120 @@ impl PathManager {
   /// Returns the files that changed since `start_time` (watchpack's
   /// `checkStartTime`): they changed before the watch was active, so no event
   /// will come for them.
-  pub async fn scan_contexts(&self, start_time: SystemTime) -> Vec<InternedPath> {
-    let contexts: Vec<InternedPath> = self.directories.added.iter().map(|p| p.clone()).collect();
+  pub async fn scan_contexts(
+    &self,
+    start_time: SystemTime,
+    retargeted: Vec<InternedPath>,
+  ) -> Vec<(InternedPath, ContextPath)> {
+    let mut contexts: Vec<InternedPath> =
+      self.directories.added.iter().map(|p| p.clone()).collect();
+    for path in retargeted {
+      self.remove_file_times_under(&path);
+      if path.is_dir() {
+        if self.directories.all.contains(&path) {
+          self.absent_directories.remove(&path);
+        } else if self.is_below_context(&path) {
+          self.record(&path, || self.context_directories.insert(path.clone()));
+        }
+        contexts.push(path);
+      }
+    }
     self
       .scan_below(contexts, false, Some(system_time_to_millis(start_time)))
       .await
+  }
+
+  /// Discovered targets are subscribed after the context scan. Recheck those
+  /// links once the watches are active to cover changes during that gap.
+  pub(crate) async fn scan_linked_contexts(
+    &self,
+    start_time: SystemTime,
+  ) -> Vec<(InternedPath, ContextPath)> {
+    let Some(symlinks) = &self.symlinks else {
+      return Vec::new();
+    };
+    let followed_files = symlinks.context_files();
+    let directories: InternedPathSet = self
+      .context_directories
+      .iter()
+      .filter(|path| path.is_symlink())
+      .map(|path| path.key().clone())
+      .collect();
+    let entries: Vec<_> = self
+      .context_files
+      .iter()
+      .chain(self.context_directories.iter())
+      .map(|path| path.key().clone())
+      .collect();
+    let since = system_time_to_millis(start_time);
+    let mut changed = Vec::new();
+    for path in entries {
+      if followed_files.contains(&path) {
+        if let Some(mtime) = disk_mtime(&path)
+          && mtime_safe_time(mtime) >= since
+        {
+          self.set_file_time(&path, mtime, true, true);
+          for context in self.context_paths(&path).await {
+            changed.push((path.clone(), context));
+          }
+        }
+      } else if path
+        .ancestors()
+        .any(|ancestor| directories.contains(&InternedPath::from(ancestor)))
+        && !path.exists()
+      {
+        for context in self.context_paths(&path).await {
+          changed.push((path.clone(), context));
+        }
+      }
+    }
+    changed.extend(
+      self
+        .scan_below(directories.into_iter().collect(), false, Some(since))
+        .await,
+    );
+    changed
+  }
+
+  pub(crate) async fn context_paths(&self, root: &InternedPath) -> Vec<ContextPath> {
+    let Some(symlinks) = &self.symlinks else {
+      return Vec::new();
+    };
+    let mut contexts = Vec::new();
+    for dependency in root.ancestors().map(InternedPath::from) {
+      if !self.directories.all.contains(&dependency) {
+        continue;
+      }
+      let resolved = symlinks.resolved_directory(&dependency);
+      if let Some(resolved) = &resolved
+        && self.is_ignored_path(resolved).await
+      {
+        continue;
+      }
+      let context = ContextPath {
+        dependency: Some(dependency.clone()),
+        resolved,
+      };
+      let mut ignored = false;
+      for entry in root
+        .ancestors()
+        .take_while(|entry| *entry != dependency.as_ref())
+      {
+        let entry = InternedPath::from(entry);
+        let resolved_entry = context.resolved_entry(&entry);
+        if self
+          .is_ignored_path(resolved_entry.as_ref().unwrap_or(&entry))
+          .await
+        {
+          ignored = true;
+          break;
+        }
+      }
+      if !ignored {
+        contexts.push(context);
+      }
+    }
+    contexts
   }
 
   /// Index every file and subdirectory below `roots`, minus what `ignored`
@@ -591,17 +837,23 @@ impl PathManager {
     roots: Vec<InternedPath>,
     recovered: bool,
     changed_since: Option<u64>,
-  ) -> Vec<InternedPath> {
+  ) -> Vec<(InternedPath, ContextPath)> {
     let mut changed = Vec::new();
     // Each directory carries the real paths of the directories above it: with
     // `followSymlinks`, a link back into its own ancestry is a loop, while two
     // links to one directory are two aliases, each scanned.
-    let mut pending: Vec<(InternedPath, Vec<PathBuf>, bool)> = roots
-      .into_iter()
-      .map(|root| (root, Vec::new(), recovered))
-      .collect();
-    while let Some((dir, mut ancestry, observed)) = pending.pop() {
-      if self.follow_symlinks {
+    let mut pending = Vec::with_capacity(roots.len());
+    for root in roots {
+      if self.follows_symlinks() {
+        for context in self.context_paths(&root).await {
+          pending.push((root.clone(), Vec::new(), recovered, context));
+        }
+      } else {
+        pending.push((root, Vec::new(), recovered, ContextPath::default()));
+      }
+    }
+    while let Some((dir, mut ancestry, observed, context)) = pending.pop() {
+      if self.follows_symlinks() {
         let Ok(real) = std::fs::canonicalize(&dir) else {
           continue;
         };
@@ -615,10 +867,14 @@ impl PathManager {
       };
       for entry in entries.flatten() {
         let path = InternedPath::from(entry.path());
-        if self.is_ignored_path(path.as_ref()).await {
+        let resolved_path = context.resolved_entry(&path);
+        if self
+          .is_ignored_path(resolved_path.as_ref().unwrap_or(&path))
+          .await
+        {
           continue;
         }
-        let Ok(metadata) = Self::scan_metadata(ancestry.last(), &path) else {
+        let Ok(metadata) = self.context_metadata(ancestry.last(), &path) else {
           continue;
         };
         if metadata.is_dir() {
@@ -636,9 +892,9 @@ impl PathManager {
               .or_else(|_| metadata.modified())
               .is_ok_and(|birthtime| mtime_safe_time(birthtime) >= since)
           }) {
-            changed.push(path.clone());
+            changed.push((path.clone(), context.clone()));
           }
-          pending.push((path, ancestry.clone(), false));
+          pending.push((path, ancestry.clone(), false, context.clone()));
         } else if let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
           self.record(&path, || {
             self.context_files.insert(path.clone());
@@ -649,7 +905,7 @@ impl PathManager {
             break;
           }
           if !registered && changed_since.is_some_and(|since| mtime_safe_time(mtime) >= since) {
-            changed.push(path);
+            changed.push((path, context.clone()));
           }
         }
       }
@@ -670,6 +926,7 @@ impl PathManager {
     self.context_directories.remove(path);
     if !self.files.all.contains(path) && !self.missing.all.contains(path) {
       self.file_times.remove(path);
+      self.baselines.remove(path);
     }
     if !self.directories.all.contains(path) {
       self.last_watch_events.remove(path);
@@ -708,9 +965,7 @@ impl PathManager {
     if !registered_directory && !self.is_below_context(path) {
       return true;
     }
-    // Like watchpack's live events, `lstat`: a link is a file entry here even
-    // with `followSymlinks`; only the scan descends into links.
-    let Ok(metadata) = std::fs::symlink_metadata(path) else {
+    let Ok(metadata) = self.context_metadata(None, path) else {
       return true;
     };
     if metadata.is_dir()
@@ -722,9 +977,10 @@ impl PathManager {
       return true;
     }
     if metadata.is_dir() {
-      // Like watchpack's `setDirectory`, only a directory not known before is
-      // scanned: an event on a known one, e.g. a `chmod`, changes nothing below.
-      if self.record(path, || self.context_directories.insert(path.clone())) {
+      // Windows creates a junction as an empty directory before setting its target.
+      if self.record(path, || self.context_directories.insert(path.clone()))
+        || (self.follows_symlinks() && path.is_symlink())
+      {
         self.scan_below(vec![path.clone()], false, None).await;
       }
       return true;
@@ -749,17 +1005,24 @@ impl PathManager {
     true
   }
 
-  /// A scanned entry's metadata. `real_dir`, the real path of the directory
-  /// being scanned, is known only with `followSymlinks`; a link is then
+  /// A context entry's metadata. Scans reuse their directory's real path;
+  /// live events resolve it only for links with `followSymlinks`. A link is
   /// followed like watchpack's scan does, except a dangling link, one into its
   /// own directory, or one back above itself: those are recorded as
   /// themselves (`lstat`).
-  fn scan_metadata(
+  fn context_metadata(
+    &self,
     real_dir: Option<&PathBuf>,
     path: &InternedPath,
   ) -> std::io::Result<std::fs::Metadata> {
     let own = std::fs::symlink_metadata(path)?;
-    let Some(real_dir) = real_dir.filter(|_| own.file_type().is_symlink()) else {
+    if !self.follows_symlinks() || !own.file_type().is_symlink() {
+      return Ok(own);
+    }
+    let real_dir = real_dir
+      .map(Cow::Borrowed)
+      .or_else(|| std::fs::canonicalize(path.parent()?).ok().map(Cow::Owned));
+    let Some(real_dir) = real_dir else {
       return Ok(own);
     };
     let Ok(target) = std::fs::canonicalize(path) else {
@@ -857,12 +1120,14 @@ impl PathManager {
 
   /// Check whether a watched path's mtime can represent a change,
   /// advancing the baseline when it does. Covers registered files and
-  /// registered-missing paths (on disk by the time an event names them);
-  /// other paths, files found below a context included, pass through
-  /// unfiltered.
+  /// registered-missing paths and file targets followed from a context.
+  /// Ordinary context files are filtered by `set_context_entry` instead.
   /// Equal mtimes are only stale once they are past the filesystem accuracy window.
   pub fn has_mtime_changed(&self, path: &InternedPath) -> bool {
-    if !self.files.all.contains(path) && !self.missing.all.contains(path) {
+    if !self.files.all.contains(path)
+      && !self.missing.all.contains(path)
+      && !self.is_followed_context_file(path)
+    {
       return true;
     }
 
@@ -992,6 +1257,7 @@ impl PathManager {
         && !self.missing.all.contains(path)
       {
         self.file_times.remove(path);
+        self.baselines.remove(path);
         self.unlink_unrecorded(path);
       }
       if self.context_directories.remove(path).is_some() {

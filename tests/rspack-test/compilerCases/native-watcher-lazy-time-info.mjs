@@ -25,7 +25,11 @@ const cases = [false, true].map(compact => ({
 		try {
 			for (let i = 0; i < 100; i++) {
 				const entries = fs.getTimeInfoEntries();
-				if (entries.has(missing) && entries.get(file)?.timestamp) break;
+				if (
+					entries.has(missing) &&
+					entries.get(file)?.timestamp &&
+					entries.get(missingDirectory) === null
+				) break;
 				await new Promise(resolve => setTimeout(resolve, 20));
 			}
 			if (compact) {

@@ -9,7 +9,7 @@
   "scripts": {
     "test": "rs test",
     "testu": "rs test -u",
-    "test:base": "rs test --project base",
+    "test:base": "rs test --project base --project \"compiler-*\"",
     "test:configs": "tsc -p tsconfig.configs.json",
     "test:hot": "rs test --project hottest"
   },

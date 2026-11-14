@@ -1,3 +1,7 @@
+#[cfg(target_os = "linux")]
+use std::os::unix::fs::MetadataExt;
+#[cfg(target_os = "windows")]
+use std::os::windows::fs::MetadataExt;
 use std::{sync::Arc, time::Duration};
 
 use notify::{
@@ -5,17 +9,21 @@ use notify::{
   event::{ModifyKind, RenameMode},
 };
 use rspack_paths::InternedPath;
+#[cfg(any(target_os = "linux", target_os = "windows"))]
+use rspack_paths::InternedPathMap;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
-use crate::{FsEventKind, WatchPattern, analyzer::Analyzer, trigger};
+use crate::{FsEventKind, WatchPattern, analyzer::Analyzer, trigger, watch_plan::WatchPlan};
 
 /// `DiskWatcher` is responsible for managing the underlying file system watcher
 /// and keeping track of the currently watched paths.
 pub struct DiskWatcher {
   /// The actual file system watcher from the `notify` crate.
   inner: Option<RecommendedWatcher>,
-  /// A set of pattern that are currently being watched.
+  /// The patterns currently registered with the backend.
   watch_patterns: HashSet<WatchPattern>,
+  #[cfg(any(target_os = "linux", target_os = "windows"))]
+  directory_identities: Option<InternedPathMap<(u64, u64)>>,
 }
 
 impl DiskWatcher {
@@ -25,11 +33,13 @@ impl DiskWatcher {
     poll_interval: Option<u32>,
     trigger: Arc<trigger::Trigger>,
   ) -> Self {
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    let _ = follow_symlinks;
     let config = match poll_interval {
       Some(poll) => notify::Config::default()
-        .with_follow_symlinks(follow_symlinks)
+        .with_follow_symlinks(false)
         .with_poll_interval(Duration::from_millis(u64::from(poll))),
-      None => notify::Config::default().with_follow_symlinks(follow_symlinks),
+      None => notify::Config::default().with_follow_symlinks(false),
     };
 
     let inner = RecommendedWatcher::new(
@@ -48,29 +58,76 @@ impl DiskWatcher {
     DiskWatcher {
       inner: Some(inner),
       watch_patterns: HashSet::default(),
+      #[cfg(any(target_os = "linux", target_os = "windows"))]
+      directory_identities: follow_symlinks.then(InternedPathMap::default),
     }
   }
 
-  /// Watches the given path with the specified recursive mode.
+  /// Applies prepared backend paths without changing their spelling or modes.
   ///
   /// # Returns
   ///
   /// * `rspack_error::Result<()>` - Ok if successful, otherwise an error.
-  pub fn watch(
-    &mut self,
-    patterns: impl Iterator<Item = WatchPattern>,
-  ) -> rspack_error::Result<()> {
-    let new_patterns: HashSet<WatchPattern> = patterns.collect();
-
-    let new_paths = new_patterns.iter().map(|p| &p.path).collect::<HashSet<_>>();
+  pub(crate) fn apply_plan(&mut self, plan: WatchPlan) -> rspack_error::Result<()> {
+    let new_patterns = plan.into_patterns();
 
     // Collect stale paths that are no longer needed, then unwatch and remove them.
     let stale_paths: HashSet<InternedPath> = self
       .watch_patterns
       .iter()
-      .filter(|p| !new_paths.contains(&p.path))
-      .map(|p| p.path.clone())
+      .filter(|pattern| new_patterns.get(&pattern.path) != Some(&pattern.mode))
+      .map(|pattern| pattern.path.clone())
       .collect();
+
+    #[cfg(any(target_os = "linux", target_os = "windows"))]
+    let identities: Option<InternedPathMap<_>> = self.directory_identities.as_ref().map(|_| {
+      new_patterns
+        .keys()
+        .filter_map(|path| directory_identity(path).map(|identity| (path.clone(), identity)))
+        .collect()
+    });
+    #[cfg(any(target_os = "linux", target_os = "windows"))]
+    let stale_paths = {
+      let mut stale_paths = stale_paths;
+      if let (Some(previous), Some(current)) = (&self.directory_identities, &identities) {
+        stale_paths.extend(
+          previous
+            .iter()
+            .filter(|(path, identity)| current.get(*path) != Some(*identity))
+            .map(|(path, _)| path.clone()),
+        );
+      }
+      stale_paths
+    };
+
+    // Removing a recursive inotify watch also removes its descendants, even
+    // when a descendant is still requested by another symbolic link.
+    let stale_recursive_paths: HashSet<_> = stale_paths
+      .iter()
+      .filter(|path| {
+        self.watch_patterns.contains(&WatchPattern {
+          path: (*path).clone(),
+          mode: notify::RecursiveMode::Recursive,
+        })
+      })
+      .cloned()
+      .collect();
+    let mut stale_paths = stale_paths;
+    if !stale_recursive_paths.is_empty() {
+      stale_paths.extend(
+        self
+          .watch_patterns
+          .iter()
+          .filter(|pattern| {
+            pattern
+              .path
+              .ancestors()
+              .skip(1)
+              .any(|ancestor| stale_recursive_paths.contains(&InternedPath::from(ancestor)))
+          })
+          .map(|pattern| pattern.path.clone()),
+      );
+    }
 
     for path in &stale_paths {
       // A failed unwatch must not stop the new patterns from being watched. For example, on
@@ -90,9 +147,10 @@ impl DiskWatcher {
 
     self
       .watch_patterns
-      .retain(|p| !stale_paths.contains(&p.path));
+      .retain(|pattern| !stale_paths.contains(&pattern.path));
 
-    for pattern in new_patterns {
+    for (path, mode) in new_patterns {
+      let pattern = WatchPattern { path, mode };
       if self.watch_patterns.contains(&pattern) {
         continue;
       }
@@ -106,6 +164,11 @@ impl DiskWatcher {
       self.watch_patterns.insert(pattern);
     }
 
+    #[cfg(any(target_os = "linux", target_os = "windows"))]
+    {
+      self.directory_identities = identities;
+    }
+
     Ok(())
   }
 
@@ -113,6 +176,23 @@ impl DiskWatcher {
     // the trigger.tx is dropped in the FsWatcher
     std::mem::drop(self.inner.take());
   }
+
+  #[cfg(test)]
+  fn watch(&mut self, patterns: impl Iterator<Item = WatchPattern>) -> rspack_error::Result<()> {
+    self.apply_plan(WatchPlan::new(patterns, false))
+  }
+}
+
+#[cfg(any(target_os = "linux", target_os = "windows"))]
+fn directory_identity(path: &InternedPath) -> Option<(u64, u64)> {
+  let metadata = path.metadata().ok()?;
+  #[cfg(target_os = "linux")]
+  return Some((metadata.dev(), metadata.ino()));
+  #[cfg(target_os = "windows")]
+  return Some((
+    metadata.volume_serial_number()?.into(),
+    metadata.file_index()?,
+  ));
 }
 
 pub(crate) fn handle_event(event: Event, trigger: &trigger::Trigger) {

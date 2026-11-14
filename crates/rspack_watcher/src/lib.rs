@@ -1,11 +1,15 @@
+#![cfg_attr(target_os = "windows", feature(windows_by_handle))]
+
 mod analyzer;
 mod disk_watcher;
 mod executor;
 mod ignored;
 mod paths;
 mod scanner;
+mod symlinks;
 mod time;
 mod trigger;
+mod watch_plan;
 
 #[cfg(feature = "testing")]
 #[doc(hidden)]
@@ -32,6 +36,7 @@ use rspack_util::fx_hash::FxHashSet as HashSet;
 use scanner::Scanner;
 use tokio::sync::{mpsc, oneshot};
 use trigger::Trigger;
+use watch_plan::WatchPlan;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct WatchPattern {
@@ -189,7 +194,8 @@ impl FsWatcher {
     let aggregated = executor.aggregated();
     #[cfg(feature = "testing")]
     let executor_trace = executor.trace();
-    let scanner = Scanner::new(trigger.backfill_sender(), Arc::clone(&path_manager));
+    let scanner = Scanner::new(trigger.backfill_sender(), Arc::clone(&path_manager))
+      .with_symlink_trigger(&trigger);
     let trigger = Arc::new(Mutex::new(Some(trigger)));
 
     let inner = FsWatcherInner {
@@ -453,15 +459,34 @@ impl FsWatcherInner {
     //     in flight for that write would then be suppressed as a duplicate.
     self.record_initial_file_mtimes();
 
-    let watch_patterns = self.analyzer.analyze(self.path_manager.access());
-    if let Err(error) = self.disk_watcher.watch(watch_patterns.into_iter()) {
+    let mut watch_patterns = self.analyzer.analyze(self.path_manager.access());
+    let symlink_update = self.path_manager.refresh_symlinks().await;
+    watch_patterns.extend(symlink_update.patterns);
+    let rescan_patterns = (self.path_manager.follows_symlinks()
+      && (symlink_update.needs_context_scan
+        || !self.path_manager.access().directories().1.is_empty()))
+    .then(|| watch_patterns.clone());
+    let plan = WatchPlan::new(watch_patterns, self.path_manager.follows_symlinks());
+    if let Err(error) = self.disk_watcher.apply_plan(plan) {
       self.analyzer.invalidate_all();
       return Err(error);
     }
-    let changed_in_contexts = self.path_manager.scan_contexts(start_time).await;
+    let mut changed_in_contexts = self
+      .path_manager
+      .scan_contexts(start_time, symlink_update.retargeted_directories)
+      .await;
+    if let Some(mut watch_patterns) = rescan_patterns {
+      watch_patterns.extend(self.path_manager.refresh_symlinks().await.patterns);
+      let plan = WatchPlan::new(watch_patterns, self.path_manager.follows_symlinks());
+      if let Err(error) = self.disk_watcher.apply_plan(plan) {
+        self.analyzer.invalidate_all();
+        return Err(error);
+      }
+      changed_in_contexts.extend(self.path_manager.scan_linked_contexts(start_time).await);
+    }
     if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
-      for path in &changed_in_contexts {
-        trigger.on_scanned_change(path);
+      for (path, context) in changed_in_contexts {
+        trigger.on_scanned_context_change(path, context);
       }
     }
 
@@ -469,13 +494,15 @@ impl FsWatcherInner {
     // registers the underlying inotify/FSEvents watch synchronously, so once it
     // returns every later change is delivered as a live event. Scanning here
     // closes a startup race: previously the scan ran (in spawned tasks) before
-    // `disk_watcher.watch()`, so it could snapshot a file's mtime before the
+    // applying the watch plan, so it could snapshot a file's mtime before the
     // watch was active. A change landing in that gap was seen by neither path —
     // the scan read the pre-change mtime, and the watch was not yet active to
     // deliver the event — so no rebuild was triggered. With this order, a change
     // before the watch is active is on disk by scan time (caught by
     // `mtime > start_time`), and a change after it is active is delivered live.
-    self.scanner.scan(start_time);
+    self
+      .scanner
+      .scan_subscriptions(start_time, symlink_update.newly_subscribed);
 
     Ok(())
   }
