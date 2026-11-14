@@ -15,7 +15,7 @@ use crate::{
   visitors::{
     DestructuringAssignmentProperty, ExportDefaultDeclaration, ExportImport, ExportLocal,
     ExportedVariableInfo, ExpressionExpressionInfo, HookMemberExpression, JavascriptParser,
-    PatternIdentifier,
+    PatternIdentifier, WriteExpression,
   },
 };
 
@@ -338,6 +338,42 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::AssignMemberChain) {
       let res = plugin.assign_member_chain(parser, expr, members, member_ranges, for_name);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn write(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    expr: WriteExpression,
+    span: Span,
+    for_name: &str,
+  ) -> Option<bool> {
+    for plugin in self.plugins_for(JavascriptParserPluginHook::Write) {
+      let res = plugin.write(parser, expr, span, for_name);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn write_member_chain(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    expr: WriteExpression,
+    span: Span,
+    members: &[Atom],
+    member_ranges: &[Span],
+    for_name: &str,
+  ) -> Option<bool> {
+    for plugin in self.plugins_for(JavascriptParserPluginHook::WriteMemberChain) {
+      let res = plugin.write_member_chain(parser, expr, span, members, member_ranges, for_name);
       // `SyncBailHook`
       if res.is_some() {
         return res;

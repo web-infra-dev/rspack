@@ -25,6 +25,7 @@ use crate::{
   utils::eval::{BasicEvaluatedExpression, eval_member_expression_with_info},
   visitors::{
     AtomMembers, ExportedVariableInfo, PatternIdentifier, VariableInfo, VariableInfoFlags,
+    WriteExpression,
   },
 };
 
@@ -466,7 +467,7 @@ impl JavascriptParser<'_> {
       this.definitions_db.initialize_scope_bindings();
       let ast = this.ast.ast;
       let left = stmt.left(ast);
-      this.walk_for_head(left);
+      this.walk_for_head(left, WriteExpression::ForOf(stmt));
       this.walk_expression(stmt.right(ast));
       if this.javascript_options.is_create_require_enabled() {
         this.clear_created_require_tags_in_for_head(left);
@@ -480,7 +481,7 @@ impl JavascriptParser<'_> {
       this.definitions_db.initialize_scope_bindings();
       let ast = this.ast.ast;
       let left = stmt.left(ast);
-      this.walk_for_head(left);
+      this.walk_for_head(left, WriteExpression::ForIn(stmt));
       this.walk_expression(stmt.right(ast));
       if this.javascript_options.is_create_require_enabled() {
         this.clear_created_require_tags_in_for_head(left);
@@ -507,7 +508,7 @@ impl JavascriptParser<'_> {
     }
   }
 
-  fn walk_for_head(&mut self, for_head: ForStatementLeft) {
+  fn walk_for_head(&mut self, for_head: ForStatementLeft, write: WriteExpression) {
     match self.ast.ast.for_statement_left_data(for_head) {
       ForStatementLeftData::VariableDeclaration(decl) => {
         self.block_pre_walk_variable_declaration(decl);
@@ -516,8 +517,7 @@ impl JavascriptParser<'_> {
       ForStatementLeftData::AssignmentTarget(target) => {
         // `for (x of …)` / `for (x in …)` assign into the left-hand target;
         // enter_assignment_target records mutated_bindings for value-binding emit.
-        self.enter_assignment_target(target, |_, _| {});
-        self.walk_assignment_target(target);
+        self.walk_assignment_target(target, write);
       }
     }
   }
@@ -680,14 +680,15 @@ impl JavascriptParser<'_> {
     if let Some(name) = updated_ident {
       self.mark_mutated_binding(Atom::from(name));
     }
+    let write = WriteExpression::Update(expr);
     if !self.javascript_options.is_create_require_enabled() {
-      self.walk_simple_assign_target(argument);
+      self.walk_simple_assign_target(argument, write);
       return;
     }
     if let Some(name) = updated_ident {
       self.clear_create_require_tag(name);
     }
-    self.walk_simple_assign_target(argument);
+    self.walk_simple_assign_target(argument, write);
     if let Some(name) = updated_ident {
       self.clear_create_require_tag(name);
     }
@@ -1949,6 +1950,7 @@ impl JavascriptParser<'_> {
     let left = expr.left(ast);
     let right = expr.right(ast);
     let drive = self.plugin_drive();
+    let write = WriteExpression::Assign(expr);
     if let Some(simple) = left.as_simple_assignment_target(ast)
       && let Some(ident) = simple_assignment_target_identifier(ast, simple)
     {
@@ -2001,6 +2003,7 @@ impl JavascriptParser<'_> {
             drive.assign(this, expr, identifier.span(ast), for_name)
           })
           .unwrap_or_default()
+          && !this.call_write_hook(identifier, write)
         {
           this.walk_identifier(ident);
         }
@@ -2018,12 +2021,13 @@ impl JavascriptParser<'_> {
             drive.assign(this, expr, ident.span(ast), for_name)
           })
           .unwrap_or_default()
+          && !this.call_write_hook(ident, write)
         {
           this.definitions_db.define(Atom::from(name));
         }
       });
       // Pattern hooks already visited the assignment identifiers.
-      self.walk_array_pattern(array, false);
+      self.walk_array_pattern(array, Some(write));
     } else if let Some(object) = left.as_object_assignment_target(ast) {
       self.walk_expression(right);
       if self.javascript_options.is_create_require_enabled() {
@@ -2037,38 +2041,41 @@ impl JavascriptParser<'_> {
             drive.assign(this, expr, ident.span(ast), for_name)
           })
           .unwrap_or_default()
+          && !this.call_write_hook(ident, write)
         {
           this.definitions_db.define(Atom::from(name));
         }
       });
-      self.walk_object_pattern(object, false);
+      self.walk_object_pattern(object, Some(write));
     } else if let Some(member) = left
       .as_simple_assignment_target(ast)
       .and_then(|target| target.as_member_expression(ast))
     {
-      if let Some(MemberExpressionInfo::Expression(expr_name)) = self.get_member_expression_info(
+      let info = self.get_member_expression_info(
         Expr::MemberExpression(member),
         AllowedMemberTypes::Expression,
-      ) && expr_name
-        .root_info
-        .call_hooks_name(self, |parser, for_name| {
-          drive.assign_member_chain(
-            parser,
-            expr,
-            &expr_name.members,
-            &expr_name.member_ranges,
-            for_name,
-          )
-        })
-        .unwrap_or_default()
+      );
+      if let Some(MemberExpressionInfo::Expression(expr_name)) = &info
+        && expr_name
+          .root_info
+          .call_hooks_name(self, |parser, for_name| {
+            drive.assign_member_chain(
+              parser,
+              expr,
+              &expr_name.members,
+              &expr_name.member_ranges,
+              for_name,
+            )
+          })
+          .unwrap_or_default()
       {
         return;
       }
       self.walk_expression(right);
-      self.walk_assignment_target(left);
+      self.walk_member_write_target(member, info, write);
     } else {
       self.walk_expression(right);
-      self.walk_assignment_target(left);
+      self.walk_assignment_target(left, write);
     }
   }
 
@@ -2184,38 +2191,57 @@ impl JavascriptParser<'_> {
   }
 
   pub fn walk_pattern(&mut self, pattern: BindingPattern) {
-    self.walk_pattern_with_identifiers(pattern, true);
+    self.walk_pattern_with_write(pattern, None);
   }
 
-  fn walk_pattern_with_identifiers(&mut self, pattern: BindingPattern, walk_identifiers: bool) {
+  /// `write` is the construct assigning into a destructuring target, whose
+  /// identifiers `enter_assignment_target` has already visited. A binding
+  /// pattern has none.
+  fn walk_pattern_with_write(&mut self, pattern: BindingPattern, write: Option<WriteExpression>) {
     let ast = self.ast.ast;
     match ast.binding_pattern_data(pattern) {
-      BindingPatternData::ArrayPattern(array) => self.walk_array_pattern(array, walk_identifiers),
+      BindingPatternData::ArrayPattern(array) => self.walk_array_pattern(array, write),
       BindingPatternData::AssignmentPattern(assignment) => {
-        self.walk_assignment_pattern(assignment, walk_identifiers);
+        self.walk_assignment_pattern(assignment, write);
       }
-      BindingPatternData::ObjectPattern(object) => {
-        self.walk_object_pattern(object, walk_identifiers)
-      }
-      BindingPatternData::BindingRestElement(rest) => {
-        self.walk_rest_element(rest, walk_identifiers)
-      }
+      BindingPatternData::ObjectPattern(object) => self.walk_object_pattern(object, write),
+      BindingPatternData::BindingRestElement(rest) => self.walk_rest_element(rest, write),
       BindingPatternData::SimpleAssignmentTarget(target) => {
-        if walk_identifiers || !target.is_identifier_reference(ast) {
-          self.walk_simple_assign_target(target);
+        if let Some(write) = write
+          && !target.is_identifier_reference(ast)
+        {
+          self.walk_simple_assign_target(target, write);
         }
       }
       BindingPatternData::BindingIdentifier(_) => (),
     }
   }
 
-  fn walk_simple_assign_target(&mut self, target: SimpleAssignmentTarget) {
+  fn call_write_hook(&mut self, identifier: PatternIdentifier, write: WriteExpression) -> bool {
+    let span = identifier.span(self.ast.ast);
+    let drive = self.plugin_drive();
+    identifier
+      .call_hooks_name(self, |this, for_name| {
+        drive.write(this, write, span, for_name)
+      })
+      .unwrap_or_default()
+  }
+
+  fn walk_simple_assign_target(&mut self, target: SimpleAssignmentTarget, write: WriteExpression) {
     let ast = self.ast.ast;
     match ast.simple_assignment_target_data(target) {
       SimpleAssignmentTargetData::IdentifierReference(identifier) => {
-        self.walk_identifier(identifier);
+        if !self.call_write_hook(PatternIdentifier::Reference(identifier), write) {
+          self.walk_identifier(identifier);
+        }
       }
-      SimpleAssignmentTargetData::MemberExpression(member) => self.walk_member_expression(member),
+      SimpleAssignmentTargetData::MemberExpression(member) => {
+        let info = self.get_member_expression_info(
+          Expr::MemberExpression(member),
+          AllowedMemberTypes::Expression,
+        );
+        self.walk_member_write_target(member, info, write);
+      }
       SimpleAssignmentTargetData::TsAsExpression(expression) => {
         self.walk_expression(expression.expression(ast));
       }
@@ -2231,48 +2257,92 @@ impl JavascriptParser<'_> {
     }
   }
 
-  fn walk_assignment_target(&mut self, target: AssignmentTarget) {
-    match self.ast.ast.assignment_target_data(target) {
-      AssignmentTargetData::SimpleAssignmentTarget(target) => {
-        self.walk_simple_assign_target(target);
+  fn walk_member_write_target(
+    &mut self,
+    member: MemberExpression,
+    info: Option<MemberExpressionInfo>,
+    write: WriteExpression,
+  ) {
+    let span = member.span(self.ast.ast);
+    let drive = self.plugin_drive();
+    if let Some(MemberExpressionInfo::Expression(info)) = info
+      && info
+        .root_info
+        .call_hooks_name(self, |this, for_name| {
+          drive.write_member_chain(
+            this,
+            write,
+            span,
+            &info.members,
+            &info.member_ranges,
+            for_name,
+          )
+        })
+        .unwrap_or_default()
+    {
+      return;
+    }
+    self.walk_member_expression(member);
+  }
+
+  fn walk_assignment_target(&mut self, target: AssignmentTarget, write: WriteExpression) {
+    let ast = self.ast.ast;
+    self.enter_assignment_target(target, |this, identifier| {
+      if let PatternIdentifier::Reference(reference) = identifier
+        && !this.call_write_hook(identifier, write)
+      {
+        this.walk_identifier(reference);
       }
-      AssignmentTargetData::ArrayAssignmentTarget(array) => self.walk_array_pattern(array, true),
+    });
+    match ast.assignment_target_data(target) {
+      AssignmentTargetData::SimpleAssignmentTarget(target) => {
+        if !target.is_identifier_reference(ast) {
+          self.walk_simple_assign_target(target, write);
+        }
+      }
+      AssignmentTargetData::ArrayAssignmentTarget(array) => {
+        self.walk_array_pattern(array, Some(write))
+      }
       AssignmentTargetData::ObjectAssignmentTarget(object) => {
-        self.walk_object_pattern(object, true)
+        self.walk_object_pattern(object, Some(write))
       }
     }
   }
 
-  fn walk_rest_element(&mut self, rest: BindingRestElement, walk_identifiers: bool) {
-    self.walk_pattern_with_identifiers(rest.argument(self.ast.ast), walk_identifiers);
+  fn walk_rest_element(&mut self, rest: BindingRestElement, write: Option<WriteExpression>) {
+    self.walk_pattern_with_write(rest.argument(self.ast.ast), write);
   }
 
-  fn walk_object_pattern(&mut self, object: ObjectPattern, walk_identifiers: bool) {
+  fn walk_object_pattern(&mut self, object: ObjectPattern, write: Option<WriteExpression>) {
     let ast = self.ast.ast;
     for property in ast.nodes(object.properties(ast)) {
       if property.computed(ast) {
         self.walk_property_key(property.key(ast));
       }
-      self.walk_pattern_with_identifiers(property.value(ast), walk_identifiers);
+      self.walk_pattern_with_write(property.value(ast), write);
     }
     if let Some(rest) = object.rest(ast) {
-      self.walk_rest_element(rest, walk_identifiers);
+      self.walk_rest_element(rest, write);
     }
   }
 
-  fn walk_assignment_pattern(&mut self, pattern: AssignmentPattern, walk_identifiers: bool) {
+  fn walk_assignment_pattern(
+    &mut self,
+    pattern: AssignmentPattern,
+    write: Option<WriteExpression>,
+  ) {
     let ast = self.ast.ast;
     self.walk_expression(pattern.right(ast));
-    self.walk_pattern_with_identifiers(pattern.left(ast), walk_identifiers);
+    self.walk_pattern_with_write(pattern.left(ast), write);
   }
 
-  fn walk_array_pattern(&mut self, pattern: ArrayPattern, walk_identifiers: bool) {
+  fn walk_array_pattern(&mut self, pattern: ArrayPattern, write: Option<WriteExpression>) {
     let ast = self.ast.ast;
     for element in ast.nodes(pattern.elements(ast)).flatten() {
-      self.walk_pattern_with_identifiers(element, walk_identifiers);
+      self.walk_pattern_with_write(element, write);
     }
     if let Some(rest) = pattern.rest(ast) {
-      self.walk_rest_element(rest, walk_identifiers);
+      self.walk_rest_element(rest, write);
     }
   }
 
