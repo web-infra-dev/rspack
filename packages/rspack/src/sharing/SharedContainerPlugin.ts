@@ -58,7 +58,11 @@ export class SharedContainerPlugin extends RspackBuiltinPlugin {
     };
   }
   getData(): [string, string, string] {
-    return [this._options.fileName!, this._globalName, this._options.version];
+    return [
+      this.filename || this._options.fileName!,
+      this._globalName,
+      this._options.version,
+    ];
   }
 
   raw(compiler: Compiler): BuiltinPlugin {
@@ -78,6 +82,8 @@ export class SharedContainerPlugin extends RspackBuiltinPlugin {
         compilation.hooks.processAssets.tap(
           {
             name: 'getShareContainerFile',
+            stage:
+              compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER,
           },
           () => {
             const remoteEntryPoint = compilation.entrypoints.get(shareName);
