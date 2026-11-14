@@ -167,8 +167,8 @@ catalogs:
       specifier: ^2.7.1
       version: 2.7.1
     commander:
-      specifier: 15.0.0
-      version: 15.0.0
+      specifier: 15.1.0
+      version: 15.1.0
     concat-stream:
       specifier: ^2.0.0
       version: 2.0.0
@@ -457,7 +457,7 @@ importers:
         version: typescript@7.0.2
       commander:
         specifier: 'catalog:'
-        version: 15.0.0
+        version: 15.1.0
       cross-env:
         specifier: 'catalog:'
         version: 10.1.0
@@ -4671,8 +4671,8 @@ packages:
     resolution: {integrity: sha512-y4Mg2tXshplEbSGzx7amzPwKKOCGuoSRP/CjEdwwk0FOGlUbq6lKuoyDZTNZkmxHdJtp54hdfY/JUrdL7Xfdug==}
     engines: {node: '>=14'}
 
-  commander@15.0.0:
-    resolution: {integrity: sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg==}
+  commander@15.1.0:
+    resolution: {integrity: sha512-cgnQ88TRrWcC7pVq46RzJVRMktu3W2RcbnoidnfBsl1bmDCBwJS/udcIZpKoCrbAYYaCqsz1yZCVIgbIaU3ddQ==}
     engines: {node: '>=22.12.0'}
 
   commander@2.20.3:
@@ -11079,7 +11079,7 @@ snapshots:
 
   commander@10.0.1: {}
 
-  commander@15.0.0: {}
+  commander@15.1.0: {}
 
   commander@2.20.3: {}
 
@@ -11280,7 +11280,7 @@ snapshots:
       ansi-regex: 6.6.0
       chalk: 6.0.1
       chalk-template: 1.1.3
-      commander: 15.0.0
+      commander: 15.1.0
       cspell-config-lib: 10.4.1
       cspell-dictionary: 10.4.1
       cspell-gitignore: 10.4.1
@@ -12467,7 +12467,7 @@ snapshots:
 
   katex@0.18.10:
     dependencies:
-      commander: 15.0.0
+      commander: 15.1.0
 
   khroma@2.1.0: {}
 
