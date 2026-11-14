@@ -114,6 +114,12 @@
       "enabled": false
     },
     {
+      "description": "Keep pnp at 0.12.11 until swc_config supports regress 0.12 to avoid duplicate regress versions and binary size growth.",
+      "matchManagers": ["cargo"],
+      "matchPackageNames": ["pnp"],
+      "enabled": false
+    },
+    {
       "groupName": "ignored indexmap",
       "matchManagers": ["cargo"],
       "matchFileNames": ["crates/rspack_plugin_css/Cargo.toml"],

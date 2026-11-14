@@ -147,7 +147,7 @@ rkyv      = { version = "=0.8.18", default-features = false, features = ["std", 
 
 # Must be pinned with the same swc versions
 # pnp 0.12.12 requires regress 0.12, while swc_config still requires regress 0.11.
-pnp                 = { version = "=0.12.12", default-features = false }
+pnp                 = { version = "=0.12.11", default-features = false }
 swc                 = { version = "=82.0.1", default-features = false }
 swc_config          = { version = "6.0.1", default-features = false }
 swc_core            = { version = "=84.0.2", default-features = false, features = ["parallel_rayon"] }
