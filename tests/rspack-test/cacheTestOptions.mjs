@@ -43,19 +43,12 @@ const excludes = {
 		/^source-map\/extract-source-map$/,
 
 		// Existing bundle/compiler assertions fail in the compatibility suite.
-		/^builtin-lightningcss-loader\/custom-media$/,
 		/^context\/import-meta-glob-case-insensitive-pruning$/,
 		/^css-chunking-plugin\/base-global-css-chunking$/,
 		/^filename-template\/filename-function-entry-chunk$/,
-		/^hooks\/build-module$/,
-		/^hooks\/original-source$/,
-		/^hooks\/original-source-map-presence$/,
-		/^hooks\/still-valid-module$/,
-		/^hooks\/succeed-module$/,
 		/^loader\/context-module$/,
 		/^module\/shared-accessors$/,
 		/^plugins\/circular-check-rspack-plugin$/,
-		/^plugins\/progress-plugin$/,
 		/^split-chunks\/batch-functions$/,
 		/^split-chunks\/callback-order$/,
 

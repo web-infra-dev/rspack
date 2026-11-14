@@ -1,9 +1,8 @@
 import type { Compiler } from '@rspack/core';
 
-const mockFn = rstest.fn();
-
 class MyStillValidModulePlugin {
   apply(compiler: Compiler) {
+    const mockFn = rstest.fn();
     compiler.hooks.compilation.tap(
       'MyStillValidModulePlugin',
       (compilation) => {
@@ -15,8 +14,10 @@ class MyStillValidModulePlugin {
         );
       },
     );
-    compiler.hooks.done.tap('MyStillValidModulePlugin', () => {
-      expect(mockFn).toBeCalledTimes(0);
+    compiler.hooks.done.tap('MyStillValidModulePlugin', (stats) => {
+      const cacheInfo = stats.toJson({ all: false, cacheInfo: true }).cacheInfo;
+      const reused = cacheInfo?.['|Compilation/modules']?.reused ?? 0;
+      expect(mockFn).toBeCalledTimes(reused);
     });
   }
 }
