@@ -798,6 +798,8 @@ impl ESMExportImportedSpecifierDependency {
         if let Some(hidden) = mode.hidden {
           ignored.extend(hidden);
         }
+        let mut ignored = ignored.into_iter().collect::<Vec<_>>();
+        ignored.sort_unstable();
 
         let use_runtime =
           self.has_repeated_dynamic_reexports(mg, runtime, mg_cache, exports_info_artifact);
@@ -827,7 +829,7 @@ impl ESMExportImportedSpecifierDependency {
               "if({}.indexOf(__rspack_import_key) < 0) ",
               json_stringify(&ignored)
             );
-          } else if let Some(item) = ignored.iter().next() {
+          } else if let Some(item) = ignored.first() {
             content += &format!(
               "if(__rspack_import_key !== {}) ",
               rspack_util::json_stringify_str(item)
@@ -1835,7 +1837,7 @@ fn render_used_name(used: Option<&UsedName>) -> String {
   }
 }
 
-fn render_dynamic_reexport_excluded(values: &HashSet<Atom>) -> String {
+fn render_dynamic_reexport_excluded(values: &[Atom]) -> String {
   match values.len() {
     0 => "0".to_string(),
     1 => rspack_util::json_stringify_str(
