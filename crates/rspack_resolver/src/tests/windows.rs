@@ -18,8 +18,8 @@ mod tests {
   async fn require_absolution_path_in_windows() {
     let resolver = ResolverGeneric::<FileSystemOs>::new(Default::default());
 
-    let file = fixture().join("foo/index.js");
-    let pkg_json = fixture().join("foo/package.json");
+    let file = fixture().join("foo").join("index.js");
+    let pkg_json = fixture().join("foo").join("package.json");
     let file_path_string = to_string(&file);
     let pkg_json_path_string = to_string(pkg_json);
 
