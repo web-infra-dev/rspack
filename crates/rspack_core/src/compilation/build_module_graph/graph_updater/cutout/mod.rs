@@ -5,7 +5,7 @@ use rspack_collections::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{fix_build_meta::FixBuildMeta, fix_issuers::FixIssuers};
-use super::{BuildModuleGraphArtifact, UpdateParam};
+use super::{BuildModuleGraphArtifact, UpdateParam, expand_rebuild_modules};
 use crate::{BuildDependency, Compilation, internal};
 
 /// Cutout module graph.
@@ -79,6 +79,8 @@ impl Cutout {
         }
       };
     }
+
+    expand_rebuild_modules(module_graph, &mut force_build_modules);
 
     // analyze force_build_module and force_build_deps
     self

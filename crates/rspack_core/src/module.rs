@@ -54,20 +54,21 @@ pub struct BuildContext {
 }
 
 /// Context used to decide whether a previously built module is still valid.
-///
-/// This follows webpack's `NeedBuildContext` shape and provides the shared
-/// filesystem snapshot service used to validate a previous module build.
 pub struct NeedBuildContext<'a> {
+  /// The module created by the factory for this compilation, before building.
+  pub fresh_module: &'a dyn Module,
   pub file_system_info: &'a FileSystemInfo,
   pub value_cache_versions: &'a ValueCacheVersions,
 }
 
 impl<'a> NeedBuildContext<'a> {
   pub fn new(
+    fresh_module: &'a dyn Module,
     file_system_info: &'a FileSystemInfo,
     value_cache_versions: &'a ValueCacheVersions,
   ) -> Self {
     Self {
+      fresh_module,
       file_system_info,
       value_cache_versions,
     }
@@ -886,12 +887,8 @@ pub trait Module:
     ConnectionState::Active(true)
   }
 
-  /// Determines whether a module needs to be rebuilt using the complete build
-  /// context.
-  ///
-  /// Implementations inspect reusable build state and may perform asynchronous
-  /// work. As in webpack's base `Module`, the default is conservative: module
-  /// types that can prove an existing build is valid should override this.
+  /// Checks build state and fresh factory inputs without updating the cached module.
+  /// Returning true rejects the cached build and builds the factory-created module instead.
   async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
     Ok(true)
   }

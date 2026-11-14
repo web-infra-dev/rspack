@@ -70,7 +70,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for PluginCssExtractParserPlugin {
                 *identifier_index,
                 DependencyRange::new(index as u32, (index + 1) as u32),
                 parser.build_info.cacheable,
-                parser.build_info.dependencies.clone(),
               ))
             },
           )
