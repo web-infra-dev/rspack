@@ -44,7 +44,6 @@ const excludes = {
 
 		// Existing bundle/compiler assertions fail in the compatibility suite.
 		/^context\/import-meta-glob-case-insensitive-pruning$/,
-		/^filename-template\/filename-function-entry-chunk$/,
 		/^loader\/context-module$/,
 		/^module\/shared-accessors$/,
 		/^plugins\/circular-check-rspack-plugin$/,
