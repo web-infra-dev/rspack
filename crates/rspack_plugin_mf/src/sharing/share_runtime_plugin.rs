@@ -30,9 +30,11 @@ async fn runtime_requirements_in_tree(
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   if runtime_requirements.contains(RuntimeGlobals::SHARE_SCOPE_MAP) {
+    // Explicit sharing helpers still work in entries without the enhanced runtime.
+    let enhanced = self.enhanced && crate::utils::has_federation_runtime(compilation, chunk_ukey);
     runtime_modules_to_add.push((
       *chunk_ukey,
-      ShareRuntimeModule::new(&compilation.runtime_template, self.enhanced).boxed(),
+      ShareRuntimeModule::new(&compilation.runtime_template, enhanced).boxed(),
     ));
   }
   Ok(None)

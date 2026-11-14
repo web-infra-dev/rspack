@@ -37,6 +37,34 @@ export default {
 
 ## 选项
 
+### removeUnusedRuntime
+
+- 类型：`boolean | RegExp`
+- 默认值：`false`
+
+从不需要联邦能力的入口中移除联邦构建运行时。默认情况下，插件继续向应用入口和 Worker 注入运行时。
+
+设为 `true` 时，对所有入口启用自动过滤，包括未命名的 Worker。设为 `RegExp` 时，仅对匹配的 **entry name** 启用过滤，包括命名 Worker；未匹配的入口和未命名 Worker 会保留运行时。Worker 名称取自构造选项中的静态 `name` 或 `webpackChunkName` 注释，注释优先。正则不匹配源码路径、输出文件名或内部生成的 Worker runtime 标识。
+
+在过滤范围内，暴露模块的容器入口，以及访问远程模块或消费共享模块的入口会保留运行时，包括通过普通异步导入访问的依赖。每个 Worker 都独立于父入口判断。多个入口通过 `runtimeChunk` 或 `dependOn` 共享运行时时，只要其中任意入口需要联邦能力，**或未进入过滤范围**，就会保留整个共享运行时的联邦支持。
+
+仅有本地依赖、已配置但未使用的远程模块、没有消费者的共享提供方，以及单独配置的 `runtimePlugins`，都不会在自动过滤时要求保留运行时。动态联邦 API 调用和运行时插件副作用不会被这项构建期分析识别。如果入口依赖这些初始化行为，请保留默认值 `false`，或让该入口不匹配正则。
+
+```js
+new rspack.container.ModuleFederationPlugin({
+  name: 'app',
+  removeUnusedRuntime: true,
+});
+
+// 仅过滤名称以 local- 开头的入口和 Worker 中未使用的运行时。
+new rspack.container.ModuleFederationPlugin({
+  name: 'app',
+  removeUnusedRuntime: /^local-/,
+});
+```
+
+即使正则匹配，具有静态联邦依赖的入口也不会被强制移除运行时。Watch 构建会在依赖变化后重新判断。此选项适用于 Module Federation 1.5。
+
 ### implementation
 
 - 类型：`string`

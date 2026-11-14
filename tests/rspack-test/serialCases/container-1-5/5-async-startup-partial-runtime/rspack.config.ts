@@ -54,6 +54,7 @@ export default defineConfig([
     },
     plugins: [
       new ModuleFederationPlugin({
+        removeUnusedRuntime: true,
         name: 'container',
         library: { type: 'commonjs-module' },
         filename: 'container.js',

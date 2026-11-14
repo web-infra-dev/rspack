@@ -9,7 +9,7 @@ use tracing::instrument;
 
 use crate::{
   ArtifactExt, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation,
-  Logger, ModuleIdentifier,
+  Logger, ModuleIdentifier, RuntimeSpec,
   build_chunk_graph::code_splitter::{CodeSplitter, ModuleReuseInfo},
   fast_set,
   incremental::{IncrementalPasses, Mutation},
@@ -26,6 +26,9 @@ pub struct BuildChunkGraphArtifact {
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) code_splitter: CodeSplitter,
   pub module_idx: IdentifierMap<(u32, u32)>,
+  /// Runtimes selected for the automatically included federation entry. `None` means
+  /// filtering is disabled or no federation runtime include was registered (including v1).
+  pub federation_runtimes: Option<RuntimeSpec>,
 }
 
 impl BuildChunkGraphArtifact {
@@ -132,6 +135,7 @@ impl BuildChunkGraphArtifact {
     self.named_chunks.clear();
     self.set_code_splitter(Default::default());
     self.module_idx.clear();
+    self.federation_runtimes = None;
   }
 }
 
@@ -209,6 +213,7 @@ impl ArtifactExt for BuildChunkGraphArtifact {
   }
   fn recover(_incremental: &crate::incremental::Incremental, new: &mut Self, old: &mut Self) {
     new.code_splitter = mem::take(&mut old.code_splitter);
+    new.federation_runtimes.clone_from(&old.federation_runtimes);
     rayon::scope(|s| {
       s.spawn(|_| new.chunk_by_ukey.clone_from(&old.chunk_by_ukey));
       s.spawn(|_| new.chunk_graph.clone_from(&old.chunk_graph));

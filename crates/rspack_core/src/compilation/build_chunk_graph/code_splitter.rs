@@ -19,12 +19,12 @@ use smallvec::{SmallVec, smallvec};
 use super::incremental::ChunkCreateData;
 use crate::{
   AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
-  AsyncDependenciesBlockIdentifierSet, ChunkGraph, ChunkGroup, ChunkGroupKind, ChunkGroupOptions,
-  ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, ConnectionState, DependenciesBlock,
-  DependencyId, DependencyLocation, DependencyType, EntryDependency, EntryRuntime,
-  ExportsInfoArtifact, GroupOptions, Logger, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, RuntimeSpec, SideEffectsStateArtifact,
-  SyntheticDependencyLocation, assign_depths,
+  AsyncDependenciesBlockIdentifierSet, BundlerRuntimeExclusion, ChunkGraph, ChunkGroup,
+  ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
+  ConnectionState, DependenciesBlock, DependencyId, DependencyLocation, DependencyType,
+  EntryDependency, EntryRuntime, ExportsInfoArtifact, GroupOptions, Logger, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, RuntimeSpec, SideEffectsStateArtifact,
+  SourceType, SyntheticDependencyLocation, assign_depths,
   dependencies_block::AsyncDependenciesToInitialChunkError,
   get_entry_runtime,
   incremental::{IncrementalPasses, Mutation},
@@ -374,6 +374,15 @@ pub(crate) type BlockModulesRuntimeMap = HashMap<Option<Arc<RuntimeSpec>>, Block
 // }
 
 #[derive(Debug, Default)]
+struct FederationIncludes {
+  runtime_dependencies: Vec<DependencyId>,
+  runtime_modules: Vec<ModuleIdentifier>,
+  provider_modules: Vec<ModuleIdentifier>,
+  required_modules: Vec<ModuleIdentifier>,
+  included_entrypoints: HashSet<ChunkGroupUkey>,
+}
+
+#[derive(Debug, Default)]
 pub(crate) struct CodeSplitter {
   pub(crate) chunk_group_info_map: HashMap<ChunkGroupUkey, CgiUkey>,
   pub(crate) chunk_group_infos: HashMap<CgiUkey, ChunkGroupInfo>,
@@ -434,6 +443,7 @@ pub(crate) struct CodeSplitter {
   // Conditions on async and eager dynamic imports can change with exports
   // usage even when their owning module is not part of the mutation set.
   conditional_modules: IdentifierSet,
+  federation_includes: Option<FederationIncludes>,
 }
 
 fn add_chunk_in_group(
@@ -830,6 +840,7 @@ impl CodeSplitter {
       .global_entry
       .include_dependencies
       .iter()
+      .filter(|dep| !self.is_deferred_federation_include(dep, compilation))
       .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
       .copied()
       .sorted_unstable();
@@ -1088,6 +1099,21 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .collect::<Vec<_>>()
     };
 
+    // Global federation includes share the same roots for every entry. Assign their
+    // depths once even when no runtime ultimately needs them.
+    let mut federation_depths = IdentifierMap::default();
+    if let Some(includes) = &self.federation_includes {
+      assign_depths(
+        &mut federation_depths,
+        includes
+          .runtime_modules
+          .iter()
+          .chain(&includes.provider_modules),
+        compilation.get_module_graph(),
+        initial_depth_capacity,
+      );
+    }
+
     for (entry_point, modules) in assign_tasks {
       input_entrypoints_and_modules.insert(entry_point, modules);
     }
@@ -1095,7 +1121,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     // Using this defer insertion strategies to workaround rustc borrow rules
     {
       let module_graph = compilation.get_module_graph_mut();
-      for assign_depths_map in assign_depths_maps {
+      for assign_depths_map in assign_depths_maps.into_iter().chain([federation_depths]) {
         for (k, v) in assign_depths_map {
           module_graph.set_depth_if_lower(&k, v);
         }
@@ -1245,6 +1271,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       || !self.chunk_groups_for_combining.is_empty()
       || !self.outdated_chunk_group_info.is_empty()
       || !self.chunk_groups_with_pending_additions.is_empty()
+      || self.enqueue_federation_includes(compilation)
     {
       if self.queue.is_empty()
         && self.queue_connect.is_empty()
@@ -1757,7 +1784,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
     }
     for dep in &compilation.global_entry.include_dependencies {
-      if module_graph.dependency_by_id(dep).skip_async_entrypoints() {
+      if module_graph.dependency_by_id(dep).skip_async_entrypoints()
+        || self.is_deferred_federation_include(dep, compilation)
+      {
         continue;
       }
       if let Some(module) = module_graph.module_identifier_by_dependency_id(dep) {
@@ -2878,6 +2907,48 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     compilation: &Compilation,
   ) -> Result<()> {
     let mg = compilation.get_module_graph();
+    let runtime_dependencies = compilation
+      .global_entry
+      .include_dependencies
+      .iter()
+      .filter(|dep| {
+        mg.dependency_by_id(dep).dependency_type() == &DependencyType::FederationRuntime
+      })
+      .copied()
+      .collect::<Vec<_>>();
+    let filtering_enabled = runtime_dependencies.iter().any(|dep| {
+      mg.dependency_by_id(dep)
+        .bundler_runtime_exclusion()
+        .is_some_and(|exclusion| !matches!(exclusion, BundlerRuntimeExclusion::Disabled))
+    });
+    let runtime_modules = runtime_dependencies
+      .iter()
+      .filter_map(|dep| mg.module_identifier_by_dependency_id(dep))
+      .copied()
+      .sorted_unstable()
+      .dedup()
+      .collect::<Vec<_>>();
+    self.federation_includes = if !filtering_enabled || runtime_modules.is_empty() {
+      None
+    } else {
+      Some(FederationIncludes {
+        runtime_dependencies,
+        runtime_modules,
+        provider_modules: compilation
+          .global_entry
+          .include_dependencies
+          .iter()
+          .filter(|dep| {
+            mg.dependency_by_id(dep).dependency_type() == &DependencyType::ProvideSharedModule
+          })
+          .filter_map(|dep| mg.module_identifier_by_dependency_id(dep))
+          .copied()
+          .sorted_unstable()
+          .dedup()
+          .collect(),
+        ..Default::default()
+      })
+    };
     self.prepared_connection_map = all_modules
       .par_iter()
       .map_init(PreparedConnectionScratch::default, |scratch, module| {
@@ -2905,11 +2976,19 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       AsyncDependenciesBlockIdentifierMap::<GroupOptions>::default();
 
     for module in all_modules {
-      let blocks = compilation
-        .get_module_graph()
-        .module_by_identifier(module)
-        .expect("should have module")
-        .get_blocks();
+      let module_data = mg.module_by_identifier(module).expect("should have module");
+      let blocks = module_data.get_blocks();
+
+      if let Some(includes) = &mut self.federation_includes
+        && module_data.source_types(mg).iter().any(|source_type| {
+          matches!(
+            source_type,
+            SourceType::Expose | SourceType::Remote | SourceType::ConsumeShared
+          )
+        })
+      {
+        includes.required_modules.push(*module);
+      }
 
       if !blocks.is_empty() {
         prepared_blocks_map.insert((*module).into(), blocks.to_vec());
@@ -2932,6 +3011,141 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     self.prepared_block_group_options = prepared_block_group_options;
 
     Ok(())
+  }
+
+  fn is_deferred_federation_include(&self, dep: &DependencyId, compilation: &Compilation) -> bool {
+    self.federation_includes.is_some()
+      && matches!(
+        compilation
+          .get_module_graph()
+          .dependency_by_id(dep)
+          .dependency_type(),
+        DependencyType::FederationRuntime | DependencyType::ProvideSharedModule
+      )
+  }
+
+  /// Resume the existing traversal with federation includes after runtime propagation
+  /// settles. Only federation modules and their chunk memberships are inspected:
+  /// there is no dependency graph traversal per entry or Worker.
+  fn enqueue_federation_includes(&mut self, compilation: &mut Compilation) -> bool {
+    let Some(includes) = &self.federation_includes else {
+      return false;
+    };
+    let artifact = &compilation.build_chunk_graph_artifact;
+    let module_graph = compilation.get_module_graph();
+    let retained_entry_runtimes = artifact
+      .entrypoints
+      .iter()
+      .map(|(name, group)| (Some(name.as_str()), group))
+      .chain(artifact.async_entrypoints.iter().map(|group| {
+        (
+          artifact
+            .chunk_group_by_ukey
+            .expect_get(group)
+            .kind
+            .get_entry_options()
+            .and_then(|options| options.name.as_deref()),
+          group,
+        )
+      }))
+      .filter(|(name, _)| {
+        // Every include must opt in before a shared runtime can be omitted.
+        includes.runtime_dependencies.iter().any(|dep| {
+          !module_graph
+            .dependency_by_id(dep)
+            .bundler_runtime_exclusion()
+            .is_some_and(|exclusion| exclusion.matches(*name))
+        })
+      })
+      .map(|(_, group)| {
+        self
+          .chunk_group_infos
+          .get(
+            self
+              .chunk_group_info_map
+              .get(group)
+              .expect("should have chunk group info"),
+          )
+          .expect("should have chunk group info")
+          .runtime
+          .as_ref()
+      });
+    let required_runtimes = RuntimeSpec::from_runtimes(
+      includes
+        .required_modules
+        .iter()
+        .flat_map(|module| artifact.chunk_graph.get_module_chunks(*module))
+        .flat_map(|chunk| artifact.chunk_by_ukey.expect_get(chunk).groups())
+        .map(|group| {
+          self
+            .chunk_group_infos
+            .get(
+              self
+                .chunk_group_info_map
+                .get(group)
+                .expect("should have chunk group info"),
+            )
+            .expect("should have chunk group info")
+            .runtime
+            .as_ref()
+        })
+        .chain(retained_entry_runtimes),
+    );
+    let artifact = &mut compilation.build_chunk_graph_artifact;
+    artifact.federation_runtimes = Some(required_runtimes);
+    let required_runtimes = artifact
+      .federation_runtimes
+      .as_ref()
+      .expect("should have federation runtimes");
+    let includes = self
+      .federation_includes
+      .as_mut()
+      .expect("should have federation includes");
+    let mut added = false;
+    for group in artifact
+      .entrypoints
+      .values()
+      .chain(&artifact.async_entrypoints)
+    {
+      let cgi = *self
+        .chunk_group_info_map
+        .get(group)
+        .expect("should have chunk group info");
+      let info = self
+        .chunk_group_infos
+        .get_mut(&cgi)
+        .expect("should have chunk group info");
+      if !info
+        .runtime
+        .iter()
+        .any(|runtime| required_runtimes.contains(runtime))
+        || !includes.included_entrypoints.insert(*group)
+      {
+        continue;
+      }
+      let group = artifact.chunk_group_by_ukey.expect_get(group);
+      let chunk = group.get_entrypoint_chunk();
+      // Providers remain local to initial entrypoints. Worker consumers use their
+      // own fallback graph, just as they did before conditional runtime inclusion.
+      let providers = if group.is_initial() {
+        includes.provider_modules.as_slice()
+      } else {
+        &[]
+      };
+      for module in includes.runtime_modules.iter().chain(providers) {
+        self
+          .queue
+          .push(QueueAction::AddAndEnterModule(AddAndEnterModule {
+            chunk,
+            chunk_group_info: cgi,
+            module: *module,
+          }));
+      }
+      info.invalidate_resulting_available_modules();
+      self.outdated_chunk_group_info.insert(cgi);
+      added = true;
+    }
+    added
   }
 }
 

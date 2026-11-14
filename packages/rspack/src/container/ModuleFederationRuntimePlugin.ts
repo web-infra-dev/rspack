@@ -8,6 +8,7 @@ export interface ModuleFederationRuntimeExperimentsOptions {
 
 export interface ModuleFederationRuntimeOptions {
   entryRuntime?: string;
+  removeUnusedRuntime?: boolean | RegExp;
   experiments?: ModuleFederationRuntimeExperimentsOptions;
 }
 

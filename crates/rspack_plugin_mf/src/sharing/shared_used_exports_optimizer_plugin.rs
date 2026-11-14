@@ -354,11 +354,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 async fn additional_tree_runtime_requirements(
   &self,
   compilation: &Compilation,
-  _chunk_ukey: &ChunkUkey,
+  chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
   runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
-  if self.shared_map.is_empty() {
+  if self.shared_map.is_empty() || !crate::utils::has_federation_runtime(compilation, chunk_ukey) {
     return Ok(());
   }
 

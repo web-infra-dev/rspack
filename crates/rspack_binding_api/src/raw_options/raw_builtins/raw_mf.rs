@@ -324,6 +324,8 @@ impl From<RawVersionWrapper> for ConsumeVersion {
 pub struct RawModuleFederationRuntimePluginOptions {
   #[napi(ts_type = "string | undefined")]
   pub entry_runtime: Option<String>,
+  #[napi(ts_type = "boolean | RegExp")]
+  pub remove_unused_runtime: Option<Either<bool, rspack_regex::RspackRegex>>,
   pub experiments: Option<RawModuleFederationRuntimeExperimentsOptions>,
 }
 
@@ -331,6 +333,11 @@ impl From<RawModuleFederationRuntimePluginOptions> for ModuleFederationRuntimePl
   fn from(value: RawModuleFederationRuntimePluginOptions) -> Self {
     Self {
       entry_runtime: value.entry_runtime,
+      remove_unused_runtime: std::sync::Arc::new(match value.remove_unused_runtime {
+        Some(Either::A(true)) => rspack_core::BundlerRuntimeExclusion::All,
+        Some(Either::B(regex)) => rspack_core::BundlerRuntimeExclusion::EntryName(regex),
+        _ => rspack_core::BundlerRuntimeExclusion::Disabled,
+      }),
       experiments: value.experiments.map(Into::into).unwrap_or_default(),
     }
   }
