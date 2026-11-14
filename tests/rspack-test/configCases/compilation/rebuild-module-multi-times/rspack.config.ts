@@ -4,13 +4,14 @@ import type { Compiler, Module } from '@rspack/core';
 const pluginName = 'plugin';
 
 class Plugin {
+  initial = true;
+
   apply(compiler: Compiler) {
-    let initial = true;
     compiler.hooks.finishMake.tapPromise(pluginName, async (compilation) => {
       const modules = compilation.modules;
       const modulesToRebuild = [...modules];
-      if (initial) {
-        initial = false;
+      if (this.initial) {
+        this.initial = false;
 
         const results = await Promise.all(
           modulesToRebuild.map((m) => {

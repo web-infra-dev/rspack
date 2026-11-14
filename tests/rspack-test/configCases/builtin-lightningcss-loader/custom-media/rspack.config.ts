@@ -1,6 +1,7 @@
 import {
   type Compiler,
   type LightningcssLoaderOptions,
+  type Module,
   NormalModule,
 } from '@rspack/core';
 import { defineConfig } from '@rspack/cli';
@@ -11,23 +12,27 @@ class AssertModuleSourcePlugin {
       'AssertModuleSourcePlugin',
       (compilation) => {
         let seen = false;
+        const checkModule = (module: Module) => {
+          if (
+            !(module instanceof NormalModule) ||
+            !module.resource.endsWith('index.module.css')
+          ) {
+            return;
+          }
+          seen = true;
+          // Module sizes, and therefore chunk splitting, are based on this source.
+          const source = module.originalSource()?.source().toString();
+          expect(source).toBeDefined();
+          expect(source).not.toContain('@custom-media');
+          expect(source).not.toContain('--wide');
+        };
         compilation.hooks.succeedModule.tap(
           'AssertModuleSourcePlugin',
-          (module) => {
-            if (
-              !(module instanceof NormalModule) ||
-              !module.resource.endsWith('index.module.css')
-            ) {
-              return;
-            }
-            seen = true;
-            // Module sizes, and therefore chunk splitting, are based on this source.
-            const source = module.originalSource()?.source().toString();
-            // A failed build has no source; the loader assertion reports why.
-            if (source === undefined) return;
-            expect(source).not.toContain('@custom-media');
-            expect(source).not.toContain('--wide');
-          },
+          checkModule,
+        );
+        compilation.hooks.stillValidModule.tap(
+          'AssertModuleSourcePlugin',
+          checkModule,
         );
         compilation.hooks.finishModules.tap('AssertModuleSourcePlugin', () => {
           expect(seen).toBe(true);

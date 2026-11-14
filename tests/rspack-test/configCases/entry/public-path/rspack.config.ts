@@ -26,17 +26,17 @@ const cases: { import: string; publicPath: EntryDescription['publicPath'] }[] =
       },
     },
   ];
-let bundleId = 1;
 
 export default defineConfig({
-  entry: cases.reduce<Record<string, EntryDescription>>((acc, c) => {
-    acc[`bundle${bundleId++}`] = { ...c };
+  entry: cases.reduce<Record<string, EntryDescription>>((acc, c, index) => {
+    acc[`bundle${index + 1}`] = { ...c };
     return acc;
   }, {}),
   plugins: [
     definePlugin({
       apply(compiler) {
         const { EntryPlugin } = compiler.rspack;
+        let bundleId = cases.length + 1;
         for (const c of cases) {
           new EntryPlugin(compiler.context, c.import, {
             name: `bundle${bundleId++}`,
