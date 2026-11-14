@@ -1,6 +1,10 @@
 //! Cacheable source types for serialization/deserialization.
 #![allow(missing_docs)]
 
+mod source_content_indices;
+
+use bytes_str::BytesStr;
+pub use source_content_indices::{SourceContentIndices, source_map_input_hash};
 use triomphe::ThinArc;
 
 use crate::{
@@ -158,6 +162,25 @@ pub enum CacheableSource {
   },
 }
 
+// The emitted JSON may omit an all-null array. Keep its length in the archive
+// so restoring a SourceMapSource preserves the input map and its hash.
+fn to_cache_json(map: &SourceMap) -> String {
+  #[derive(serde::Serialize)]
+  struct WithNullContents<'a> {
+    #[serde(flatten)]
+    map: &'a SourceMap,
+    #[serde(rename = "sourcesContent")]
+    contents: &'a [Option<BytesStr>],
+  }
+
+  let contents = map.sources_content();
+  if !contents.is_empty() && contents.iter().all(Option::is_none) {
+    simd_json::to_string(&WithNullContents { map, contents }).expect("serialize source map")
+  } else {
+    map.to_json()
+  }
+}
+
 /// Convert a [`Source`] trait object into a serializable [`CacheableSource`].
 pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
   if let Some(s) = source.as_any().downcast_ref::<DevToolMapSource>() {
@@ -200,9 +223,9 @@ pub fn to_cacheable(source: &dyn Source) -> CacheableSource {
     return CacheableSource::SourceMap {
       value: s.value().to_string(),
       name: s.name().to_string(),
-      source_map: s.source_map().to_json(),
+      source_map: to_cache_json(s.source_map()),
       original_source: s.original_source().map(|v| v.to_string()),
-      inner_source_map: s.inner_source_map().map(|m| m.to_json()),
+      inner_source_map: s.inner_source_map().map(to_cache_json),
       remove_original_source: s.remove_original_source(),
     };
   }

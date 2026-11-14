@@ -1,10 +1,11 @@
 use rspack_cacheable::{
   cacheable,
-  with::{AsCacheable, AsOption, AsPreset, AsTuple2, AsVec},
+  with::{As, AsPreset},
 };
-use rspack_sources::{BoxSource, DevToolCodeSource, RawStringSource, SourceExt, is_buffer_source};
-
-use crate::{AssetInfo, CompilationAsset};
+use rspack_sources::{
+  BoxSource, Source, SourceMap,
+  cacheable::{CacheableSourceMap, SourceContentIndices},
+};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -23,94 +24,42 @@ pub struct CachedExtractedComments {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CachedSourceMapDevToolPluginEntry {
-  #[cacheable(with=AsVec<AsPreset>)]
-  asset_append: Vec<BoxSource>,
-  #[cacheable(with=AsOption<AsTuple2<AsCacheable, AsPreset>>)]
-  source_map: Option<(String, BoxSource)>,
+  #[cacheable(with=As<CacheableSourceMap>)]
+  map: SourceMap,
+  content_indices: Option<SourceContentIndices>,
 }
 
 impl CachedSourceMapDevToolPluginEntry {
-  pub fn from_assets(
-    asset_append: &[BoxSource],
-    source_map: Option<(&str, &CompilationAsset)>,
+  pub fn new(
+    source: &dyn Source,
+    map: &SourceMap,
+    persistent: bool,
+    no_sources: bool,
   ) -> Option<Self> {
-    let source_map = match source_map {
-      Some((filename, asset)) => Some((filename.to_string(), asset.get_source()?.clone())),
-      None => None,
+    let mut map = map.clone();
+    let content_indices = if persistent && !no_sources && !map.sources_content().is_empty() {
+      Some(SourceContentIndices::new(source, &map)?)
+    } else {
+      None
     };
-
+    if persistent || no_sources {
+      map.set_sources_content(Vec::new());
+      // Metadata sliced from a parsed JSON buffer can otherwise retain all the omitted text.
+      map.shrink_to_fit();
+    }
     Some(Self {
-      asset_append: asset_append.to_vec(),
-      source_map,
+      map,
+      content_indices,
     })
   }
 
-  #[allow(clippy::type_complexity)]
-  pub fn restore(
-    &self,
-    asset: &CompilationAsset,
-    detach_source: bool,
-  ) -> Option<(
-    CompilationAsset,
-    Option<(String, CompilationAsset)>,
-    Vec<BoxSource>,
-  )> {
-    let source = asset.get_source()?;
-    // A cache hit skips map collection. Never apply cached DevTool output to a buffer.
-    if is_buffer_source(source.as_ref()) {
-      return None;
+  pub fn restore(&self, source: &dyn Source) -> Option<SourceMap> {
+    let mut map = self.map.clone();
+    if let Some(indices) = &self.content_indices {
+      map.set_sources_content(indices.restore(source)?);
     }
-    let suffix = match self.asset_append.as_slice() {
-      [] => RawStringSource::from_static("").boxed(),
-      [suffix] => suffix.clone(),
-      comments => {
-        let mut suffix = String::new();
-        for comment in comments {
-          suffix.push_str(&comment.source().into_string_lossy());
-        }
-        RawStringSource::from(suffix).boxed()
-      }
-    };
-    let code = if detach_source {
-      RawStringSource::from(source.source().into_string_lossy().into_owned()).boxed()
-    } else {
-      source.clone()
-    };
-    let source = DevToolCodeSource::new(code, suffix).boxed();
-
-    let source_asset = CompilationAsset::new(Some(source), (*asset.info).clone());
-    let source_map = self.source_map.as_ref().map(|(filename, source)| {
-      let mut source_map_asset_info = AssetInfo::default().with_development(Some(true));
-      source_map_asset_info.version = asset.info.version.clone();
-      (
-        filename.clone(),
-        CompilationAsset::new(Some(source.clone()), source_map_asset_info),
-      )
-    });
-
-    Some((source_asset, source_map, self.asset_append.clone()))
-  }
-
-  pub(crate) fn asset_append(&self) -> &[BoxSource] {
-    &self.asset_append
-  }
-
-  pub(crate) fn source_map(&self) -> Option<(&str, &BoxSource)> {
-    self
-      .source_map
-      .as_ref()
-      .map(|(filename, source)| (filename.as_str(), source))
-  }
-
-  pub(crate) fn from_parts(
-    asset_append: Vec<BoxSource>,
-    source_map: Option<(String, BoxSource)>,
-  ) -> Self {
-    Self {
-      asset_append,
-      source_map,
-    }
+    Some(map)
   }
 }

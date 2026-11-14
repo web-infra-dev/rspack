@@ -1,49 +1,18 @@
 use std::sync::Arc;
 
 use rayon::prelude::*;
-use rspack_cacheable::{
-  cacheable,
-  with::{AsPreset, AsVec},
-};
+use rspack_cacheable::cacheable;
 use rspack_error::Result;
-use rspack_sources::BoxSource;
-use rustc_hash::FxHashMap;
+use rspack_util::fx_hash::FxDashMap;
 
 use super::{super::storage::Storage, Occasion};
 use crate::{
-  CompilationAsset, RayonConsumer,
+  RayonConsumer,
   cache::{CacheCodec, CachedSourceMapDevToolPluginEntry},
 };
 
 pub const SCOPE: &str = "occasion_source_map_dev_tool_plugin";
 
-#[cacheable]
-struct Entry {
-  #[cacheable(with=AsVec<AsPreset>)]
-  pub append: Vec<BoxSource>,
-  pub source_map: Option<SourceMapAssetEntry>,
-}
-
-#[cacheable]
-struct SourceMapAssetEntry {
-  pub filename: String,
-  #[cacheable(with=AsPreset)]
-  pub source: BoxSource,
-}
-
-/// Per-asset cache key for `SourceMapDevToolPlugin`.
-///
-/// This key is only used to distinguish assets inside a valid persistent cache
-/// generation. It intentionally does not include `SourceMapDevToolPlugin` or
-/// `output` options, even though source map output is option-dependent.
-///
-/// Config or option changes should invalidate the whole persistent cache
-/// generation via `cache.buildDependencies` or `cache.version`. For
-/// CLI-loaded configs, rspack-cli injects the resolved config file paths into
-/// `cache.buildDependencies`, including files referenced by `extends`. For
-/// programmatic API usage, callers that want config-only changes to invalidate
-/// persistent cache are expected to provide equivalent build dependencies or
-/// a cache version.
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct CacheKey {
@@ -51,116 +20,72 @@ struct CacheKey {
   version: String,
 }
 
-impl CacheKey {
-  fn new(filename: &str, version: &str) -> Option<Self> {
-    if version.is_empty() {
-      return None;
-    }
-    Some(Self {
-      filename: filename.to_string(),
-      version: version.to_string(),
-    })
-  }
+#[derive(PartialEq, Eq, Debug)]
+enum EntryState {
+  Unused,
+  Reused,
+  Updated,
+}
+
+#[derive(Debug)]
+struct Entry {
+  value: Arc<CachedSourceMapDevToolPluginEntry>,
+  state: EntryState,
 }
 
 #[derive(Debug, Default)]
 pub struct SourceMapDevToolPluginCache {
-  entries: FxHashMap<CacheKey, Option<CachedSourceMapDevToolPluginEntry>>,
-  pending_writes: Vec<CacheKey>,
-  pending_removes: Vec<CacheKey>,
+  entries: FxDashMap<CacheKey, Entry>,
+  pending_invalid_entry_keys: Vec<Vec<u8>>,
 }
 
 impl SourceMapDevToolPluginCache {
-  fn cache_key(filename: &str, asset: &CompilationAsset) -> Option<CacheKey> {
-    asset.get_source()?;
-    CacheKey::new(filename, &asset.info.version)
-  }
-
-  #[allow(clippy::type_complexity)]
-  pub fn take(
-    &mut self,
-    filename: &str,
-    asset: &CompilationAsset,
-    detach_source: bool,
-  ) -> Option<(
-    CompilationAsset,
-    Option<(String, CompilationAsset)>,
-    Vec<BoxSource>,
-  )> {
-    let cache_key = Self::cache_key(filename, asset)?;
-
+  pub(crate) fn into_hot_cache(mut self) -> Self {
+    self.entries.retain(|_, entry| {
+      let keep = entry.state != EntryState::Unused;
+      entry.state = EntryState::Unused;
+      keep
+    });
+    self.pending_invalid_entry_keys.clear();
     self
-      .entries
-      .get_mut(&cache_key)
-      .and_then(Option::take)?
-      .restore(asset, detach_source)
   }
 
-  pub fn store<'a>(
-    &mut self,
-    items: impl IntoIterator<
-      Item = (
-        &'a str,
-        &'a CompilationAsset,
-        &'a [BoxSource],
-        Option<(&'a str, &'a CompilationAsset)>,
-      ),
-    >,
-  ) {
-    self.pending_writes.clear();
-    self.pending_removes.clear();
-
-    let pending_removes = &mut self.pending_removes;
-    self.entries.retain(|key, entry| {
-      if entry.is_some() {
-        pending_removes.push(key.clone());
-        false
-      } else {
-        true
-      }
-    });
-
-    for item in items {
-      let Some((cache_key, cache_entry)) = Self::cache_entry(item) else {
-        continue;
-      };
-
-      match self.entries.entry(cache_key) {
-        std::collections::hash_map::Entry::Occupied(mut occupied) => {
-          occupied.insert(Some(cache_entry));
-        }
-        std::collections::hash_map::Entry::Vacant(vacant) => {
-          let cache_key = vacant.key().clone();
-          vacant.insert(Some(cache_entry));
-          self.pending_writes.push(cache_key);
-        }
-      }
+  pub fn get(
+    &self,
+    filename: &str,
+    version: &str,
+  ) -> Option<Arc<CachedSourceMapDevToolPluginEntry>> {
+    let key = CacheKey {
+      filename: filename.into(),
+      version: version.into(),
+    };
+    let mut entry = self.entries.get_mut(&key)?;
+    if entry.state == EntryState::Unused {
+      entry.state = EntryState::Reused;
     }
-
-    let pending_removes = &mut self.pending_removes;
-    self.entries.retain(|key, entry| {
-      if entry.is_none() {
-        pending_removes.push(key.clone());
-        false
-      } else {
-        true
-      }
-    });
+    Some(Arc::clone(&entry.value))
   }
 
-  fn cache_entry(
-    item: (
-      &str,
-      &CompilationAsset,
-      &[BoxSource],
-      Option<(&str, &CompilationAsset)>,
-    ),
-  ) -> Option<(CacheKey, CachedSourceMapDevToolPluginEntry)> {
-    let (filename, asset, asset_append, source_map) = item;
-    let cache_key = Self::cache_key(filename, asset)?;
-    let cache_entry = CachedSourceMapDevToolPluginEntry::from_assets(asset_append, source_map)?;
+  pub fn store(&self, filename: &str, version: String, value: CachedSourceMapDevToolPluginEntry) {
+    self.entries.insert(
+      CacheKey {
+        filename: filename.into(),
+        version,
+      },
+      Entry {
+        value: Arc::new(value),
+        state: EntryState::Updated,
+      },
+    );
+  }
 
-    Some((cache_key, cache_entry))
+  pub fn invalidate(&self, filename: &str, version: &str) {
+    if let Some(mut entry) = self.entries.get_mut(&CacheKey {
+      filename: filename.into(),
+      version: version.into(),
+    }) {
+      entry.state = EntryState::Unused;
+    }
   }
 }
 
@@ -189,94 +114,83 @@ impl Occasion for SourceMapDevToolPluginOccasion {
 
   #[tracing::instrument(name = "Cache::Occasion::SourceMap::save", skip_all)]
   fn save(&self, storage: &mut dyn Storage, cache_item: &SourceMapDevToolPluginCache) {
-    for key in &cache_item.pending_removes {
-      match self.codec.encode(key) {
-        Ok(key) => storage.remove(SCOPE, &key),
-        Err(err) => {
-          tracing::warn!("source map persistent cache key encode failed: {:?}", err);
-        }
-      }
+    for key in &cache_item.pending_invalid_entry_keys {
+      storage.remove(SCOPE, key);
     }
 
-    cache_item
-      .pending_writes
-      .par_iter()
-      .filter_map(|key| {
-        let key_bytes = match self.codec.encode(key) {
-          Ok(bytes) => bytes,
-          Err(err) => {
-            tracing::warn!("source map persistent cache key encode failed: {:?}", err);
-            return None;
-          }
-        };
-        let entry = cache_item.entries.get(key)?.as_ref()?;
-        let storage_entry = Entry {
-          append: entry.asset_append().to_vec(),
-          source_map: entry
-            .source_map()
-            .map(|(filename, source)| SourceMapAssetEntry {
-              filename: filename.to_string(),
-              source: source.clone(),
-            }),
-        };
-        match self.codec.encode(&storage_entry) {
-          Ok(bytes) => Some((key_bytes, bytes)),
+    // Sweep once after every DevTool instance has processed its own asset selection.
+    let mut writes = Vec::new();
+    for entry in &cache_item.entries {
+      match entry.state {
+        EntryState::Unused => match self.codec.encode(entry.key()) {
+          Ok(key) => storage.remove(SCOPE, &key),
+          Err(err) => tracing::warn!("source map persistent cache key encode failed: {:?}", err),
+        },
+        EntryState::Updated => writes.push((entry.key().clone(), Arc::clone(&entry.value))),
+        EntryState::Reused => {}
+      }
+    }
+    writes
+      .into_par_iter()
+      .filter_map(|(key, value)| {
+        match self
+          .codec
+          .encode(&key)
+          .and_then(|key| self.codec.encode(value.as_ref()).map(|value| (key, value)))
+        {
+          Ok(pair) => Some(pair),
           Err(err) => {
             tracing::warn!("source map persistent cache encode failed: {:?}", err);
             None
           }
         }
       })
-      .consume(|(key, bytes)| {
-        storage.set(SCOPE, key, bytes);
-      });
-
-    tracing::debug!(
-      "saved {} and removed {} source map persistent cache entries",
-      cache_item.pending_writes.len(),
-      cache_item.pending_removes.len(),
-    );
+      .consume(|(key, value)| storage.set(SCOPE, key, value));
   }
 
   #[tracing::instrument(name = "Cache::Occasion::SourceMap::recovery", skip_all)]
   async fn recovery(&self, storage: &dyn Storage) -> Result<SourceMapDevToolPluginCache> {
     let items = storage.load(SCOPE).await?;
-    let entries = items
+    let (entries, pending_invalid_entry_keys) = items
       .into_par_iter()
-      .filter_map(|(key, value)| {
-        let key = match self.codec.decode::<CacheKey>(&key) {
+      .map(|(key_bytes, value)| {
+        let key = match self.codec.decode::<CacheKey>(&key_bytes) {
           Ok(key) => key,
           Err(err) => {
             tracing::warn!("source map persistent cache key decode failed: {:?}", err);
-            return None;
+            return Err(key_bytes);
           }
         };
-        match self.codec.decode::<Entry>(&value) {
-          Ok(entry) => Some((
+        match self
+          .codec
+          .decode::<CachedSourceMapDevToolPluginEntry>(&value)
+        {
+          Ok(value) => Ok((
             key,
-            Some(CachedSourceMapDevToolPluginEntry::from_parts(
-              entry.append,
-              entry
-                .source_map
-                .map(|source_map| (source_map.filename, source_map.source)),
-            )),
+            Entry {
+              value: Arc::new(value),
+              state: EntryState::Unused,
+            },
           )),
           Err(err) => {
             tracing::warn!("source map persistent cache decode failed: {:?}", err);
-            None
+            Err(key_bytes)
           }
         }
       })
-      .collect::<FxHashMap<CacheKey, Option<CachedSourceMapDevToolPluginEntry>>>();
+      .partition_map::<Vec<_>, Vec<_>, _, _, _>(|result| match result {
+        Ok(entry) => itertools::Either::Left(entry),
+        Err(raw_key) => itertools::Either::Right(raw_key),
+      });
 
     tracing::debug!(
-      "recovered {} source map persistent cache entries",
-      entries.len()
+      "recovered {} source map persistent cache entries and scheduled {} invalid entries for removal",
+      entries.len(),
+      pending_invalid_entry_keys.len(),
     );
     Ok(SourceMapDevToolPluginCache {
-      entries,
-      pending_writes: Vec::new(),
-      pending_removes: Vec::new(),
+      entries: entries.into_iter().collect(),
+      pending_invalid_entry_keys,
     })
   }
 }
