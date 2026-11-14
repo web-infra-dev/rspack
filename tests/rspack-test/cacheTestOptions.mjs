@@ -49,8 +49,6 @@ const excludes = {
 		/^loader\/context-module$/,
 		/^module\/shared-accessors$/,
 		/^plugins\/circular-check-rspack-plugin$/,
-		/^split-chunks\/batch-functions$/,
-		/^split-chunks\/callback-order$/,
 
 		// Module cache entries are not fully reused after restarting the compiler.
 		/^asset\/custom-encoder$/,
