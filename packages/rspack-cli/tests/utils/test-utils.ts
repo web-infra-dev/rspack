@@ -133,66 +133,55 @@ const runAndGetProcess = (cwd, args = [], options = {}, env = {}) => {
  * @param {string} cwd The path to folder that contains test
  * @param {Array<string>} args Array of arguments
  * @param {Object<string, any>} options Options for tests
- * @returns {Object} The rspack output or Promise when nodeOptions are present
+ * @returns {Promise} The result after the rspack process exits
  */
-const runWatch = (
+const runWatch = async (
   cwd,
   args: string[] = [],
   options: Record<string, any> = {},
   env: Record<string, any> = {},
 ): Promise<any> => {
-  return new Promise(async (resolve, reject) => {
-    // For serve commands, automatically add random port if no --port specified
-    if (
-      args.includes('serve') &&
-      !args.some((arg) => arg.startsWith('--port'))
-    ) {
-      const randomPort = await getRandomPort();
-      args.push(`--port=${randomPort}`);
-      console.log(
-        `[runWatch] Auto-assigned random port ${randomPort} for serve command`,
-      );
-    }
-
-    const process = createProcess(cwd, args, options, env);
-    const outputKillStr = options.killString || /rspack \d+\.\d+\.\d/;
-
-    process.stdout.pipe(
-      new Writable({
-        write(chunk, encoding, callback) {
-          const output = stripAnsi(chunk.toString('utf8'));
-
-          if (outputKillStr.test(output)) {
-            processKill(process);
-          }
-
-          callback();
-        },
-      }),
+  // For serve commands, automatically add random port if no --port specified
+  if (args.includes('serve') && !args.some((arg) => arg.startsWith('--port'))) {
+    const randomPort = await getRandomPort();
+    args.push(`--port=${randomPort}`);
+    console.log(
+      `[runWatch] Auto-assigned random port ${randomPort} for serve command`,
     );
+  }
 
-    process.stderr.pipe(
-      new Writable({
-        write(chunk, encoding, callback) {
-          const output = stripAnsi(chunk.toString('utf8'));
+  const process = createProcess(cwd, args, options, env);
+  const outputKillStr = options.killString || /rspack \d+\.\d+\.\d/;
 
-          if (outputKillStr.test(output)) {
-            processKill(process);
-          }
+  process.stdout.pipe(
+    new Writable({
+      write(chunk, encoding, callback) {
+        const output = stripAnsi(chunk.toString('utf8'));
 
-          callback();
-        },
-      }),
-    );
+        if (outputKillStr.test(output)) {
+          processKill(process);
+        }
 
-    process
-      .then((result) => {
-        resolve(result);
-      })
-      .catch((error) => {
-        reject(error);
-      });
-  });
+        callback();
+      },
+    }),
+  );
+
+  process.stderr.pipe(
+    new Writable({
+      write(chunk, encoding, callback) {
+        const output = stripAnsi(chunk.toString('utf8'));
+
+        if (outputKillStr.test(output)) {
+          processKill(process);
+        }
+
+        callback();
+      },
+    }),
+  );
+
+  return process;
 };
 
 /**
