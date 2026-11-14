@@ -669,12 +669,11 @@ impl DependencyCodeGeneration for ESMImportSideEffectDependency {
     compilation: &rspack_core::Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    if compilation.get_module_graph().is_lazy_dependency(&self.id) {
-      // A deferred target emits nothing; a missing target emits an error.
-      // Include source order so swapping lazy and missing imports changes the hash.
-      "lazy import".hash(hasher);
-      hasher.write(&self.source_order.to_le_bytes());
-    }
+    // A deferred target emits nothing; a missing target emits an error.
+    compilation
+      .get_module_graph()
+      .is_lazy_dependency(&self.id)
+      .hash(hasher);
   }
 
   fn dependency_template(&self) -> Option<DependencyTemplateType> {

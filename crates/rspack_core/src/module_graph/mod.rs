@@ -182,10 +182,12 @@ impl ModuleGraph {
     self.inner.lazy_dependencies.contains(dependency)
   }
 
+  #[inline]
   pub fn add_lazy_dependency(&mut self, dependency: DependencyId) {
     self.inner.lazy_dependencies.insert(dependency);
   }
 
+  #[inline]
   pub fn remove_lazy_dependency(&mut self, dependency: &DependencyId) -> bool {
     self.inner.lazy_dependencies.remove(dependency)
   }
