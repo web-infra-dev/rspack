@@ -137,6 +137,7 @@ class NativeWatcherShim extends EventEmitter {
 export default class NativeWatchFileSystem implements WatchFileSystem {
   #inner: binding.NativeWatcher | undefined;
   #isFirstWatch = true;
+  #contextDependencies = new Set<string>();
   #inputFileSystem: InputFileSystem;
   // Long-lived emitter backing the `on`/`once` API, so listeners registered
   // once keep receiving events across watch cycles.
@@ -216,9 +217,16 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
     const watcher = new NativeWatcherShim(this);
     this.#watcher = watcher;
 
+    // Plugin context removals can be absent from the dependency set's delta.
+    // Diff only contexts, leaving file and missing-path deltas unchanged.
+    const contexts = new Set(directories);
+
     nativeWatcher.watch(
       this.formatWatchDependencies(files),
-      this.formatWatchDependencies(directories),
+      [
+        [...contexts].filter((path) => !this.#contextDependencies.has(path)),
+        [...this.#contextDependencies].filter((path) => !contexts.has(path)),
+      ],
       this.formatWatchDependencies(missing),
       BigInt(startTime),
       (err: Error | null, result) => {
@@ -278,6 +286,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
       },
     );
 
+    this.#contextDependencies = contexts;
     this.#isFirstWatch = false;
 
     // Like watchpack after it emitted `aggregated`: what is pending here is
@@ -320,6 +329,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
         if (this.#inner === nativeWatcher) {
           this.#inner = undefined;
           this.#isFirstWatch = true;
+          this.#contextDependencies.clear();
         }
         nativeWatcher.close().catch((err: unknown) => {
           console.error('Error closing native watcher:', err);
@@ -432,6 +442,8 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
     };
     const nativeWatcher = new binding.NativeWatcher(nativeWatcherOptions);
     this.#inner = nativeWatcher;
+    this.#isFirstWatch = true;
+    this.#contextDependencies.clear();
 
     return nativeWatcher;
   }

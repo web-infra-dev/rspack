@@ -14,6 +14,7 @@ use crate::paths::PathAccessor;
 /// path to be watched.
 pub struct WatcherRootAnalyzer {
   path_tree: PathTree,
+  directory_analyzer: super::directories::WatcherDirectoriesAnalyzer,
 }
 
 impl Analyzer for WatcherRootAnalyzer {
@@ -37,13 +38,26 @@ impl Analyzer for WatcherRootAnalyzer {
 
     let common_root = self.path_tree.find_common_root();
 
-    match common_root {
-      Some(root) => vec![WatchPattern {
-        path: root,
-        mode: notify::RecursiveMode::Recursive,
-      }],
-      None => vec![],
+    let mut patterns = self.directory_analyzer.analyze(path_accessor);
+    if let Some(root) = common_root {
+      patterns.retain(|pattern| pattern.path != root);
+      patterns.insert(
+        0,
+        WatchPattern {
+          path: root,
+          mode: notify::RecursiveMode::Recursive,
+        },
+      );
     }
+    patterns
+  }
+
+  fn invalidate_path(&self, path: &InternedPath) {
+    self.directory_analyzer.invalidate_path(path);
+  }
+
+  fn invalidate_all(&self) {
+    self.directory_analyzer.invalidate_all();
   }
 }
 
@@ -212,7 +226,7 @@ mod tests {
     let analyzer = WatcherRootAnalyzer::default();
     let watch_patterns = analyzer.analyze(path_manager.access());
 
-    assert_eq!(watch_patterns.len(), 1);
+    assert_eq!(watch_patterns.len(), 2);
     assert_eq!(watch_patterns[0].path, InternedPath::from(current_dir));
     assert_eq!(watch_patterns[0].mode, notify::RecursiveMode::Recursive);
   }
