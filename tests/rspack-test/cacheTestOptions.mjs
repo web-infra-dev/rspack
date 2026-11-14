@@ -20,9 +20,6 @@ const excludes = {
 		/^loader-parallel-import-module\/execute-failed$/,
 		/^module\/rspack-issue-8785$/,
 
-		// Code generation cache misses after restarting the compiler.
-		/^entry\/public-path$/,
-
 		// Source map cache misses after restarting the compiler.
 		/^source-map\/empty-mapping$/,
 
