@@ -19,8 +19,6 @@ type BucketChangesMap = HashMap<Vec<u8>, Option<Vec<u8>>>;
 const STALE_DIR_NAME: &str = "_stale";
 
 async fn cleanup_stale_directories(stale_fs: ScopeFileSystem) -> Result<()> {
-  stale_fs.ensure_exist().await?;
-
   let stale_directories = stale_fs
     .list_child()
     .await
