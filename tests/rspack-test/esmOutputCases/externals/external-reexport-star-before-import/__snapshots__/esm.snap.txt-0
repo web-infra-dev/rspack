@@ -1,6 +1,5 @@
 ```mjs title=plain/main.mjs
 import * as __rspack_external__ext_mjs_0b85fae0 from "./ext.mjs";
-export * from "./ext.mjs";
 import "./side.mjs";
 
 
@@ -13,5 +12,6 @@ import "./side.mjs";
 
 
 
+export * from "./ext.mjs";
 
 ```

@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -17,7 +18,7 @@ export default {
   findBundle() {
     return ['main.mjs'];
   },
-  async afterExecute(options) {
+  afterExecute(options) {
     const config = Array.isArray(options) ? options[0] : options;
     const mainUrl = path.join(config.output.path, 'main.mjs');
     const spaceDir = path.join(config.output.path, 'out frag');
@@ -34,7 +35,12 @@ export default {
         fs.copyFileSync(from, path.join(spaceDir, name));
       }
     }
-    await import(pathToFileURL(path.join(spaceDir, 'main.mjs')).href);
+    const url = pathToFileURL(path.join(spaceDir, 'main.mjs')).href;
+    execFileSync(process.execPath, [
+      '--input-type=module',
+      '-e',
+      `await import(${JSON.stringify(url)})`,
+    ]);
 
     const source = fs.readFileSync(mainUrl, 'utf-8');
     const ordered = source

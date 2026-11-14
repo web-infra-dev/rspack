@@ -1,7 +1,7 @@
 ```mjs title=repeated-external-readable/a.mjs
-import "./side.mjs";
 import "./tail.mjs";
 export { update, value } from "./ext.mjs";
+import "./side.mjs";
 
 // ../tail.mjs
 

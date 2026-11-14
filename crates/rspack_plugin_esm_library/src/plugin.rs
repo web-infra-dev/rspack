@@ -381,38 +381,18 @@ async fn js_chunk_hash(
   hasher: &mut RspackHasher,
 ) -> Result<()> {
   let links = self.links.borrow();
-  let Some(order) = links
-    .get(chunk_ukey)
-    .and_then(|link| link.request_order.as_ref())
-    .filter(|order| order.len() > 1)
-  else {
-    return Ok(());
-  };
-
-  // An edit to an importing entry can change the order inside an otherwise
-  // unchanged split chunk. Hash the relative order (including ties), not the
-  // splitter's absolute visit indices or its process-local chunk keys.
-  let chunks = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
-  let mut requests = order
-    .iter()
-    .map(|(source, position)| {
-      let request = match source {
-        RawImportSource::Chunk(chunk) => {
-          (true, chunks.expect_get(chunk).expect_id().as_str(), None)
-        }
-        RawImportSource::Source((request, attributes)) => {
-          (false, request.as_str(), attributes.as_deref())
-        }
-      };
-      (*position, request)
-    })
-    .collect::<Vec<_>>();
-  requests.sort_unstable();
-  "esm library request order".hash(hasher);
-  for group in requests.chunk_by(|a, b| a.0 == b.0) {
-    group.len().hash(hasher);
-    for (_, request) in group {
-      request.hash(hasher);
+  if let Some(link) = links.get(chunk_ukey)
+    && link.request_order.len() > 1
+  {
+    // An edit to an entry can reorder requests in an otherwise unchanged split chunk.
+    let chunks = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
+    "esm library request order".hash(hasher);
+    for request in &link.request_order {
+      std::mem::discriminant(request).hash(hasher);
+      match request {
+        RawImportSource::Chunk(key) => chunks.expect_get(key).expect_id().as_str().hash(hasher),
+        RawImportSource::Source(source) => source.hash(hasher),
+      }
     }
   }
   Ok(())

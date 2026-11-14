@@ -1,6 +1,5 @@
 ```mjs title=main.mjs
 import * as __rspack_external_fs from "fs";
-export * from "fs";
 import * as __rspack_external_path from "path";
 
 // fs
@@ -40,5 +39,6 @@ it('should re-export esm correctly', async () => {
 });
 
 export { __rspack_external_path as path, lib2_v as lib2, lib_v as lib, v as lib3 };
+export * from "fs";
 
 ```

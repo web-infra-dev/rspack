@@ -1,8 +1,8 @@
 ```mjs title=wrapped/main.mjs
-import "./side.mjs";
-
 export * from "./ext.mjs";
+import "./side.mjs";
 export * from "./other.mjs";
+
 
 var modules = {};
 // The module cache

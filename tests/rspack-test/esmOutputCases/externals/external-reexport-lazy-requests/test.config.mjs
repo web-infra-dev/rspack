@@ -18,7 +18,7 @@ export default {
       );
     }
     const orders = {};
-    for (const name of ['lazy', 'asset', 'async']) {
+    for (const name of ['lazy', 'asset', 'async', 'shared']) {
       const entry = pathToFileURL(path.join(output.path, `${name}.mjs`)).href;
       // Each entry needs a fresh ESM module cache to observe its first request.
       orders[name] = JSON.parse(
@@ -30,7 +30,7 @@ export default {
             `const order = globalThis.order = [];
              const main = await import(${JSON.stringify(entry)});
              const startup = [...order];
-             const loaded = ${name === 'async' ? 'await main.load()' : 'main'};
+             const loaded = ${['async', 'shared'].includes(name) ? 'await main.load()' : 'main'};
              console.log(JSON.stringify([startup, order, loaded.value]));`,
           ],
           { encoding: 'utf-8' },
@@ -42,6 +42,7 @@ export default {
       lazy: [expected, expected, 42],
       asset: [expected, expected, 42],
       async: [[], expected, 42],
+      shared: [[], expected, 42],
     });
   },
 };

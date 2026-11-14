@@ -6,6 +6,7 @@ export default defineConfig({
     lazy: './index.js',
     asset: './asset.mjs',
     async: './async.mjs',
+    shared: './shared.mjs',
   },
   externalsType: 'module',
   externals: ['./first.mjs', './second.mjs'],

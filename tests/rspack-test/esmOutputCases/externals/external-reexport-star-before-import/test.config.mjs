@@ -8,6 +8,7 @@ const expectedOrder = {
   rslib: ['ext', 'middle', 'other', 'side'],
   wrapped: ['ext', 'other'],
   alias: ['ext', 'other', 'middle'],
+  namespace: ['middle', 'ext', 'other'],
 };
 
 export default {
@@ -58,7 +59,7 @@ export default {
         ownBefore: config.name === 'rslib' ? 1 : null,
         ownAfter: config.name === 'rslib' ? 2 : null,
         other: rslib ? 42 : null,
-        middle: config.name === 'alias' ? 7 : null,
+        middle: ['alias', 'namespace'].includes(config.name) ? 7 : null,
         hasDefault: false,
         hasShared: !rslib,
       });

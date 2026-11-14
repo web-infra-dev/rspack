@@ -16,8 +16,6 @@ export { join, readFile } from "./wrapper-chunk.mjs";
 ```
 
 ```mjs title=wrapper-chunk.mjs
-export { readFile } from "fs";
-export { join } from "path";
 // fs
 
 // path
@@ -26,5 +24,7 @@ export { join } from "path";
 
 
 
+export { readFile } from "fs";
+export { join } from "path";
 
 ```

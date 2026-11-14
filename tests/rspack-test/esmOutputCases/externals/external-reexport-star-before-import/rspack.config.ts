@@ -7,6 +7,7 @@ export default defineConfig(
     rslib: './index.js',
     wrapped: ['./wrapped.mjs', './hoisted.mjs'],
     alias: ['./first-alias.mjs', './second-alias.mjs'],
+    namespace: './namespace.mjs',
   }).map(([name, entry]) => {
     const rslib = name !== 'plain';
     return defineConfig({

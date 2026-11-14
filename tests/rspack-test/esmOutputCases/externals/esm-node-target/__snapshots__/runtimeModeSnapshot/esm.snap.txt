@@ -1,7 +1,6 @@
 ```mjs title=main.mjs
 import { rspackRequire, createFakeNamespaceObject } from "./runtime.mjs";
 import { resolve } from "path";
-export { readFileSync } from "fs";
 
 // path
 
@@ -26,6 +25,7 @@ it("should externalize node builtins with correct external types", async () => {
 	expect(dynamicOs.platform).toBeDefined();
 });
 
+export { readFileSync } from "fs";
 
 ```
 

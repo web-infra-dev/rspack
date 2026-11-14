@@ -1,3 +1,3 @@
 ```mjs title=repeated-external-min/a.mjs
-import"./side.mjs";import"./tail.mjs";export{update,value}from"./ext.mjs";if(!globalThis.order.includes("tail"))throw Error("tail must run before b");
+import"./tail.mjs";export{update,value}from"./ext.mjs";import"./side.mjs";if(!globalThis.order.includes("tail"))throw Error("tail must run before b");
 ```

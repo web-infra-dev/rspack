@@ -7,20 +7,19 @@ use std::{
 use rayon::iter::Either;
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, SsoHashSet};
 use rspack_core::{
-  Chunk, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
+  ChunkGraph, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataChunkInitFragments, CodeGenerationDataConcatenationScopeOutput,
   CodeGenerationDataPreservedAssetImport, CodeGenerationPublicPathAutoReplace, Compilation,
   ConcatenationBindingPlan, ConcatenationBindingResolver, ConcatenationBindingTarget,
   ConcatenationContext, ConcatenationInterop, ConcatenationNameAllocator, ConditionalInitFragment,
-  Dependency, DependencyType, ExportInfo, ExportMode, ExportProvided, ExportsInfoArtifact,
-  ExportsType, FindTargetResult, ImportPhase, ImportSpec, InitFragmentKey, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleInfo,
-  NAMESPACE_OBJECT_EXPORT, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeTemplateRenderMode,
-  RuntimeVariable, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName,
-  UsedNameItem, all_runtime_module_variables, analyze_module_scope, find_target,
-  get_cached_readable_identifier, get_module_directives, get_module_hashbang, property_access,
-  property_name, reserved_names::RESERVED_NAMES_ATOM_SET, rspack_sources::ReplaceSource,
-  to_normal_comment,
+  DependencyType, ExportInfo, ExportMode, ExportProvided, ExportsInfoArtifact, ExportsType,
+  FindTargetResult, ImportAttributes, ImportPhase, ImportSpec, InitFragmentKey, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, RuntimeGlobals,
+  RuntimeGlobalsRenderMode, RuntimeTemplateRenderMode, RuntimeVariable, SideEffectsStateArtifact,
+  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, all_runtime_module_variables,
+  analyze_module_scope, find_target, get_cached_readable_identifier, get_module_directives,
+  get_module_hashbang, property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
+  rspack_sources::ReplaceSource, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_intern::{Atom, AtomMap, IndexAtomSet};
@@ -33,68 +32,8 @@ use rspack_util::fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet};
 
 use crate::{
   EsmLibraryPlugin,
-  chunk_link::{
-    ChunkLinkContext, ExternalInterop, RawImportSource, ReExportFrom, Ref, RequestPosition,
-    SymbolRef,
-  },
+  chunk_link::{ChunkLinkContext, ExternalInterop, RawImportSource, ReExportFrom, Ref, SymbolRef},
 };
-
-fn static_module_request(dep: &dyn Dependency) -> bool {
-  matches!(
-    dep.dependency_type(),
-    DependencyType::EsmImport
-      | DependencyType::EsmImportSpecifier
-      | DependencyType::EsmExportImport
-      | DependencyType::EsmExportImportedSpecifier
-  ) && dep.get_phase() == ImportPhase::Evaluation
-}
-
-/// Positions of the declarations in one owner module that Rslib emits directly,
-/// outside the active module graph. The linker fills this in its normal dependency loop.
-#[derive(Default)]
-struct NativeStarSlots {
-  stars: Vec<(i32, RawImportSource)>,
-  children: Vec<(i32, RequestPosition)>,
-  missing_child: bool,
-}
-
-impl NativeStarSlots {
-  fn place(
-    mut self,
-    owner: Option<RequestPosition>,
-    order: &mut FxHashMap<RawImportSource, RequestPosition>,
-  ) -> Option<()> {
-    if self.stars.is_empty() {
-      return Some(());
-    }
-    let owner = owner?;
-    // A skipped barrel has no numbered subtree, so it cannot anchor a native star.
-    if self.missing_child {
-      return None;
-    }
-    self.children.sort_unstable_by_key(|(source, _)| *source);
-    let mut last = None;
-    self.children.retain(|(_, child)| {
-      let post = child.post();
-      // Ignore duplicate dependencies and edges into a previous sibling's subtree.
-      if last.is_some_and(|previous| previous >= post) {
-        return false;
-      }
-      last = Some(post);
-      true
-    });
-    for (source, request) in self.stars {
-      let after = self.children.partition_point(|(n, _)| *n <= source);
-      let next = self.children.get(after).map(|(_, p)| *p);
-      let pos = next.unwrap_or(owner).before(next.is_some(), source);
-      order
-        .entry(request)
-        .and_modify(|p| *p = (*p).min(pos))
-        .or_insert(pos);
-    }
-    Some(())
-  }
-}
 
 pub(crate) trait GetMut<K, V> {
   fn get_mut_unwrap(&mut self, key: &K) -> &mut V;
@@ -138,50 +77,30 @@ enum ExternalImportBinding {
 type AnalyzedModule = (ModuleInfo, Option<(ModuleIdentifier, ChunkInitFragments)>);
 
 impl EsmLibraryPlugin {
-  fn collect_init_fragments_in_render_order<'a>(
-    init_fragment_groups: impl IntoIterator<Item = &'a ChunkInitFragments>,
-  ) -> Vec<Box<dyn rspack_core::InitFragment>> {
-    let mut ordered_fragments = Vec::new();
-
-    for init_fragments in init_fragment_groups {
-      for init_fragment in init_fragments {
-        ordered_fragments.push((
-          init_fragment.stage(),
-          init_fragment.position(),
-          ordered_fragments.len(),
-          init_fragment.key().clone(),
-          init_fragment.clone(),
-        ));
-      }
+  pub(super) fn collect_init_fragments_in_render_order<'a>(
+    groups: impl IntoIterator<Item = &'a ChunkInitFragments>,
+    keep: impl Fn(&InitFragmentKey) -> bool,
+  ) -> ChunkInitFragments {
+    let mut ordered: Vec<_> = groups
+      .into_iter()
+      .flatten()
+      .filter(|fragment| keep(fragment.key()))
+      .collect();
+    ordered.sort_by_key(|fragment| (fragment.stage(), fragment.position()));
+    let mut by_key = FxIndexMap::<_, Vec<_>>::default();
+    for fragment in ordered {
+      by_key
+        .entry(fragment.key())
+        .or_default()
+        .push(fragment.clone());
     }
-
-    ordered_fragments.sort_by(|a, b| {
-      let stage = a.0.cmp(&b.0);
-      if !stage.is_eq() {
-        return stage;
-      }
-      let position = a.1.cmp(&b.1);
-      if !position.is_eq() {
-        return position;
-      }
-      a.2.cmp(&b.2)
-    });
-
-    let mut keyed_fragments = FxIndexMap::default();
-    for (_, _, _, key, init_fragment) in ordered_fragments {
-      keyed_fragments
-        .entry(key)
-        .or_insert_with(Vec::new)
-        .push(init_fragment);
-    }
-
-    keyed_fragments
+    by_key
       .into_iter()
       .map(|(key, fragments)| key.merge_fragments(fragments))
       .collect()
   }
 
-  pub(super) fn module_external_fragment_content(
+  fn module_external_fragment_content(
     init_fragment: Box<dyn rspack_core::InitFragment>,
   ) -> Option<String> {
     if !matches!(init_fragment.key(), InitFragmentKey::ModuleExternal(_)) {
@@ -201,50 +120,6 @@ impl EsmLibraryPlugin {
         .ok()
         .map(|contents| contents.start)
     }
-  }
-
-  pub(super) fn collect_module_external_fragments_in_render_order<'a>(
-    init_fragment_groups: impl IntoIterator<Item = &'a ChunkInitFragments>,
-  ) -> Vec<Box<dyn rspack_core::InitFragment>> {
-    let mut ordered_fragments = Vec::new();
-
-    for init_fragments in init_fragment_groups {
-      for init_fragment in init_fragments {
-        if !matches!(init_fragment.key(), InitFragmentKey::ModuleExternal(_)) {
-          continue;
-        }
-
-        ordered_fragments.push((
-          init_fragment.stage(),
-          init_fragment.position(),
-          ordered_fragments.len(),
-          init_fragment.key().clone(),
-          init_fragment.clone(),
-        ));
-      }
-    }
-
-    ordered_fragments.sort_by(|a, b| {
-      let stage = a.0.cmp(&b.0);
-      if !stage.is_eq() {
-        return stage;
-      }
-      let position = a.1.cmp(&b.1);
-      if !position.is_eq() {
-        return position;
-      }
-      a.2.cmp(&b.2)
-    });
-
-    let mut rendered_keys = FxHashSet::default();
-    let mut rendered_fragments = Vec::with_capacity(ordered_fragments.len());
-    for (_, _, _, key, init_fragment) in ordered_fragments {
-      if rendered_keys.insert(key) {
-        rendered_fragments.push(init_fragment);
-      }
-    }
-
-    rendered_fragments
   }
 
   pub(super) fn parse_module_external_namespace_import(
@@ -296,11 +171,13 @@ impl EsmLibraryPlugin {
   fn collect_module_external_namespace_imports_in_render_order<'a>(
     init_fragment_groups: impl IntoIterator<Item = &'a ChunkInitFragments>,
   ) -> Vec<(RawImportSource, Atom)> {
-    Self::collect_module_external_fragments_in_render_order(init_fragment_groups)
-      .into_iter()
-      .filter_map(Self::module_external_fragment_content)
-      .filter_map(|content| Self::parse_module_external_namespace_import(&content))
-      .collect()
+    Self::collect_init_fragments_in_render_order(init_fragment_groups, |key| {
+      matches!(key, InitFragmentKey::ModuleExternal(_))
+    })
+    .into_iter()
+    .filter_map(Self::module_external_fragment_content)
+    .filter_map(|content| Self::parse_module_external_namespace_import(&content))
+    .collect()
   }
 
   fn reserve_module_external_namespace_import_locals_in_render_order<'a>(
@@ -336,7 +213,9 @@ impl EsmLibraryPlugin {
     init_fragment_groups: impl IntoIterator<Item = &'a ChunkInitFragments>,
     used_names: &mut FxHashSet<Atom>,
   ) {
-    for init_fragment in Self::collect_init_fragments_in_render_order(init_fragment_groups) {
+    for init_fragment in
+      Self::collect_init_fragments_in_render_order(init_fragment_groups, |_| true)
+    {
       used_names.extend(init_fragment.top_level_decl_symbols().iter().cloned());
     }
   }
@@ -2173,136 +2052,132 @@ var {} = {{}};
     errors
   }
 
-  fn register_request_group<'a>(
+  // Visit static requests in source order before an import is rewritten into a
+  // re-export. On a chunk boundary, the issuer requests the chunk itself; the
+  // child chunk's declarations belong to that child, even for a repeated URL.
+  fn link_static_requests(
     compilation: &Compilation,
-    groups: &mut FxHashMap<ChunkUkey, &'a ChunkGroup>,
-    group: &'a ChunkGroup,
+    issuer: ChunkUkey,
+    roots: impl DoubleEndedIterator<Item = ModuleIdentifier>,
+    link: &mut FxHashMap<ChunkUkey, ChunkLinkContext>,
+    visited: &mut FxHashSet<(ChunkUkey, ModuleIdentifier)>,
   ) {
-    let chunks = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
-    for chunk in &group.chunks {
-      if chunks.expect_get(chunk).get_number_of_groups() == 1 {
-        groups.insert(*chunk, group);
-      }
-    }
-  }
-
-  // A shared chunk may be entered through different modules. Its group traversal
-  // describes this chunk's first requests only when there is one static entrance.
-  fn record_split_entry(
-    roots: &mut FxHashMap<ChunkUkey, Option<ModuleIdentifier>>,
-    chunk: ChunkUkey,
-    target: ModuleIdentifier,
-    is_static: bool,
-  ) {
-    let root = roots.entry(chunk).or_insert(Some(target));
-    if !is_static || *root != Some(target) {
-      *root = None;
-    }
-  }
-
-  #[allow(clippy::too_many_arguments)]
-  fn link_request(
-    compilation: &Compilation,
-    group: &ChunkGroup,
-    chunk: &Chunk,
-    dep: &dyn Dependency,
-    conn: &ModuleGraphConnection,
-    owner: Option<RequestPosition>,
-    native_stars: &FxHashSet<&str>,
-    slots: &mut NativeStarSlots,
-    positions: &mut FxHashMap<RawImportSource, RequestPosition>,
-  ) -> Option<()> {
     let mg = compilation.get_module_graph();
-    let id = *conn.module_identifier();
-    let target = mg.module_by_identifier(&id)?;
-    if !static_module_request(dep) {
-      // Asset URLs are evaluated by the owner's code, not as ESM requests.
-      return (dep.dependency_type() == &DependencyType::NewUrl
-        && target.module_type().is_asset_like())
-      .then_some(());
-    }
-    let source = dep.source_order()?;
-    let external = target.as_external_module();
-    let native_star = !native_stars.is_empty()
-      && dep
-        .as_any()
-        .downcast_ref::<ESMExportImportedSpecifierDependency>()
-        .is_some_and(|s| s.name.is_none() && s.other_star_exports.is_some())
-      && external
-        .and_then(|ext| ext.try_get_request())
-        .is_some_and(|request| native_stars.contains(request.primary()));
-    if !native_star
-      && !conn.is_active(
-        mg,
-        Some(chunk.runtime()),
-        &compilation.module_graph_cache_artifact,
-        &compilation
-          .build_module_graph_artifact
-          .side_effects_state_artifact,
-        &compilation.exports_info_artifact,
-      )
-    {
-      return Some(());
-    }
-    let pos = RequestPosition::of(group, id);
-    // A cut-out star is not a new DFS child. Its surviving side-effect import,
-    // when present, is handled by the ordinary active dependency at that site.
-    if !native_stars.is_empty()
-      && !native_star
-      && let Some(child) = pos
-      && owner.is_some_and(|owner| child != owner && owner.contains(child))
-    {
-      slots.children.push((source, child));
-    }
-    let (key, pos) = if let Some(ext) = external {
-      if ext.resolve_external_type() != "module"
-        || ext.get_import_phase() != ImportPhase::Evaluation
-      {
-        return None;
-      }
-      // Rslib emits these fragments without import attributes.
-      if native_star && dep.get_attributes().is_some() {
-        return None;
-      }
-      let attr = dep.get_attributes().map(|attrs| {
-        format!(
-          " with {}",
-          serde_json::to_string(attrs).expect("string import attributes")
-        )
-      });
-      let request = RawImportSource::Source((ext.try_get_request()?.primary().to_owned(), attr));
-      if native_star {
-        slots.stars.push((source, request.clone()));
-      }
-      (request, pos)
-    } else {
-      let chunks = compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_module_chunks(id);
-      if chunks.is_empty() || chunks.contains(&chunk.ukey()) {
-        if !native_stars.is_empty() && pos.is_none() {
-          slots.missing_child = true;
+    let graph = &compilation.build_chunk_graph_artifact;
+    let side_effects = &compilation
+      .build_module_graph_artifact
+      .side_effects_state_artifact;
+    let mut entrances = FxHashMap::default();
+    let mut interleaved = false;
+    let mut stack: Vec<(_, _, Option<&ImportAttributes>)> =
+      roots.rev().map(|id| (issuer, id, None)).collect();
+    while let Some((issuer, id, attributes)) = stack.pop() {
+      let Some(module) = mg.module_by_identifier(&id) else {
+        continue;
+      };
+      if let Some(ext) = module.as_external_module() {
+        if ext.resolve_external_type() == "module"
+          && ext.get_import_phase() == ImportPhase::Evaluation
+          && let Some(request) = ext.try_get_request()
+        {
+          let attrs = attributes.map(|a| {
+            format!(
+              " with {}",
+              serde_json::to_string(a).expect("string import attributes")
+            )
+          });
+          let source = RawImportSource::Source((request.primary().to_owned(), attrs));
+          link.get_mut_unwrap(&issuer).request_order.insert(source);
         }
-        return Some(());
+        continue;
       }
-      let pos = pos?;
-      if chunks.len() != 1 || pos.contains(owner?) {
-        return None;
+
+      let memberships = graph.chunk_graph.try_get_module_chunks(&id);
+      let chunk = memberships
+        .filter(|set| set.len() == 1)
+        .and_then(|set| set.iter().next())
+        .copied()
+        .unwrap_or(issuer);
+      if chunk != issuer {
+        let order = &mut link.get_mut_unwrap(&issuer).request_order;
+        let target = RawImportSource::Chunk(chunk);
+        // Loading one native chunk cannot interleave different entrances to it.
+        // Consecutive requests from the same issuer can share that one import.
+        if !visited.contains(&(chunk, id))
+          && let Some(previous_issuer) = entrances.insert(chunk, issuer)
+          && (previous_issuer != issuer || order.last() != Some(&target))
+        {
+          interleaved = true;
+        }
+        order.insert(target);
       }
-      // The parent requests the child before any of the child's dependencies run.
-      (
-        RawImportSource::Chunk(*chunks.iter().next()?),
-        Some(pos.before(true, i32::MAX)),
-      )
-    };
-    if let Some(pos) = pos {
-      positions
-        .entry(key)
-        .and_modify(|p| *p = (*p).min(pos))
-        .or_insert(pos);
+      let physical = graph.chunk_by_ukey.expect_get(&chunk);
+      if !visited.insert((chunk, id)) || physical.get_number_of_groups() != 1 {
+        continue;
+      }
+      // A native export-star emitted by Rslib still has its original dependency,
+      // even though the normal module graph connection was made inactive.
+      let native_stars = if memberships.is_some_and(|set| !set.is_empty())
+        && !module.build_info().all_star_exports.is_empty()
+      {
+        compilation
+          .code_generation_results
+          .get_one(&id)
+          .data()
+          .get::<CodeGenerationDataChunkInitFragments>()
+          .into_iter()
+          .flat_map(|fragments| fragments.inner())
+          .filter_map(|f| external_star_re_export_request(f.key()))
+          .collect::<FxHashSet<_>>()
+      } else {
+        FxHashSet::default()
+      };
+      let mut children = Vec::new();
+      for dep in module.get_dependencies() {
+        if !matches!(
+          dep.dependency_type(),
+          DependencyType::EsmImport
+            | DependencyType::EsmExportImport
+            | DependencyType::EsmImportSpecifier
+            | DependencyType::EsmExportImportedSpecifier
+        ) || dep.get_phase() != ImportPhase::Evaluation
+        {
+          continue;
+        }
+        let Some(order) = dep.source_order() else {
+          continue;
+        };
+        let Some(conn) = mg.connection_by_dependency_id(dep.id()) else {
+          continue;
+        };
+        if conn.is_active(
+          mg,
+          Some(physical.runtime()),
+          &compilation.module_graph_cache_artifact,
+          side_effects,
+          &compilation.exports_info_artifact,
+        ) || (!native_stars.is_empty()
+          && module.build_info().all_star_exports.contains(dep.id())
+          && mg
+            .module_by_identifier(conn.module_identifier())
+            .and_then(|m| m.as_external_module())
+            .and_then(|ext| ext.try_get_request())
+            .is_some_and(|req| native_stars.contains(req.primary())))
+        {
+          children.push((
+            order,
+            (chunk, *conn.module_identifier(), dep.get_attributes()),
+          ));
+        }
+      }
+      children.sort_by_key(|(order, _)| *order);
+      stack.extend(children.into_iter().rev().map(|(_, child)| child));
     }
-    Some(())
+    if interleaved {
+      for chunk in std::iter::once(issuer).chain(entrances.into_keys()) {
+        link.get_mut_unwrap(&chunk).request_order.clear();
+      }
+    }
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -2342,14 +2217,7 @@ var {} = {{}};
     // const symbol = __rspack_require(module);
     let mut required = FxHashMap::<ChunkUkey, IdentifierIndexMap<ExternalInterop>>::default();
 
-    // The chunk splitter has already assigned group-local visit indices in dependency order.
-    // Only use groups with a known entry and no competing execution contexts.
-    let mut request_groups = FxHashMap::default();
-    let mut split_entry_roots = FxHashMap::<ChunkUkey, Option<ModuleIdentifier>>::default();
-    let mut native_star_chunks = FxHashSet::default();
-    let mut closed_chunks = FxHashMap::default();
-    let mut first_requests =
-      FxHashMap::<ChunkGroupUkey, FxHashMap<RawImportSource, RequestPosition>>::default();
+    let mut visited_requests = FxHashSet::default();
     // link entry direct exports
     for (entry_name, entrypoint_ukey) in compilation.build_chunk_graph_artifact.entrypoints.iter() {
       let entrypoint = compilation
@@ -2368,16 +2236,27 @@ var {} = {{}};
       // the entry modules may be moved to other chunks, in that case, we should re-export the entry exports from
       // other chunks
       let entry_data = &compilation.entries[entry_name];
-      let chunk = compilation
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .expect_get(&entry_chunk_ukey);
-      if chunk.get_number_of_groups() == 1
+
+      if entry_data.options.depend_on.is_none()
         && entry_data.include_dependencies.is_empty()
         && compilation.global_entry.include_dependencies.is_empty()
-        && entry_data.options.depend_on.is_none()
       {
-        Self::register_request_group(compilation, &mut request_groups, entrypoint);
+        Self::link_static_requests(
+          compilation,
+          entry_chunk_ukey,
+          compilation
+            .global_entry
+            .dependencies
+            .iter()
+            .chain(&entry_data.dependencies)
+            .filter_map(|dep| {
+              module_graph
+                .module_identifier_by_dependency_id(dep)
+                .copied()
+            }),
+          link,
+          &mut visited_requests,
+        );
       }
 
       for entry_module in entry_data
@@ -2401,28 +2280,6 @@ var {} = {{}};
           }
         };
         entry_imports.entry(entry_module).or_default();
-        if entry_module_chunk != entry_chunk_ukey
-          && let Some(group) = request_groups.get(&entry_chunk_ukey)
-        {
-          Self::record_split_entry(
-            &mut split_entry_roots,
-            entry_module_chunk,
-            entry_module,
-            true,
-          );
-          if let Some(pos) = RequestPosition::of(group, entry_module) {
-            link
-              .get_mut_unwrap(&entry_chunk_ukey)
-              .request_order
-              .get_or_insert_default()
-              .insert(
-                RawImportSource::Chunk(entry_module_chunk),
-                pos.before(true, i32::MAX),
-              );
-          } else {
-            request_groups.remove(&entry_chunk_ukey);
-          }
-        }
 
         // NOTE: Similar hashbang and directives handling logic.
         // See rspack_plugin_rslib/src/plugin.rs render() for why this duplication is necessary.
@@ -2642,6 +2499,7 @@ var {} = {{}};
         targets
       };
 
+      let mut async_roots = FxIndexMap::default();
       for dyn_target in dyn_targets {
         // Skip orphan modules — they are not in any chunk (e.g. tree-shaken or worker entries)
         if compilation
@@ -2672,18 +2530,10 @@ var {} = {{}};
           continue;
         }
 
-        let artifact = &compilation.build_chunk_graph_artifact;
-        let target = artifact.chunk_by_ukey.expect_get(&source_chunk);
-        if target.get_number_of_groups() == 1
-          && let Some(group) = target.groups().iter().next()
-        {
-          let group = artifact.chunk_group_by_ukey.expect_get(group);
-          if !group.kind.is_entrypoint() && group.origins().len() == 1 {
-            Self::register_request_group(compilation, &mut request_groups, group);
-            Self::record_split_entry(&mut split_entry_roots, source_chunk, dyn_target, true);
-          }
-        }
-
+        async_roots
+          .entry(source_chunk)
+          .and_modify(|root| *root = None)
+          .or_insert(Some(dyn_target));
         // No facade chunk — exports go directly on source_chunk
         let target_chunk = source_chunk;
         let is_strict = self.strict_export_chunk(target_chunk);
@@ -2736,6 +2586,19 @@ var {} = {{}};
           ));
         }
       }
+      // Independent dynamic imports can share a named chunk. Either target can
+      // execute first, so only a unique target can supply its request order.
+      for (chunk, root) in async_roots {
+        if let Some(target) = root {
+          Self::link_static_requests(
+            compilation,
+            chunk,
+            std::iter::once(target),
+            link,
+            &mut visited_requests,
+          );
+        }
+      }
     }
 
     // calculate exports based on imports
@@ -2781,14 +2644,6 @@ var {} = {{}};
         }
       }
 
-      let graph = &compilation.build_chunk_graph_artifact.chunk_graph;
-      let group = request_groups.get(chunk).copied();
-      let current_chunk = compilation
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .expect_get(chunk);
-      let mut order = group.map(|_| chunk_link.request_order.take().unwrap_or_default());
-      let mut complete = true;
       // if one chunk has multiple modules that require the same
       // module, the first module require imported module, the
       // followings should not require the module again.
@@ -2802,19 +2657,7 @@ var {} = {{}};
         let module = module_graph
           .module_by_identifier(m)
           .expect("should have module");
-        let owner = group
-          .filter(|_| order.is_some())
-          .and_then(|g| RequestPosition::of(g, *m));
-        let native_stars = binding_resolver.module_to_info_map[m]
-          .as_concatenated()
-          .chunk_init_fragments
-          .iter()
-          .filter_map(|f| external_star_re_export_request(f.key()))
-          .collect::<FxHashSet<_>>();
-        if !native_stars.is_empty() {
-          native_star_chunks.insert(*chunk);
-        }
-        let mut slots = NativeStarSlots::default();
+
         // make sure all side-effect modules are rendered
         // eg.
         // import './foo.cjs'
@@ -2825,32 +2668,11 @@ var {} = {{}};
           };
 
           let ref_module = *conn.module_identifier();
-          let chunks = graph.get_module_chunks(ref_module);
-          for target in chunks.iter().filter(|c| *c != chunk) {
-            Self::record_split_entry(
-              &mut split_entry_roots,
-              *target,
-              ref_module,
-              static_module_request(&**dep),
-            );
-          }
-          let ref_in_same_chunk = chunks.contains(chunk);
-          if let (Some(group), Some(positions)) = (group, order.as_mut())
-            && Self::link_request(
-              compilation,
-              group,
-              current_chunk,
-              &**dep,
-              conn,
-              owner,
-              &native_stars,
-              &mut slots,
-              positions,
-            )
-            .is_none()
-          {
-            complete = false;
-          }
+          let ref_in_same_chunk = compilation
+            .build_chunk_graph_artifact
+            .chunk_graph
+            .get_module_chunks(ref_module)
+            .contains(chunk);
 
           // Fast path: for non-ESM imports to modules in the same chunk,
           // skip the expensive is_target_active check since chunk_imports
@@ -2908,12 +2730,6 @@ var {} = {{}};
               required,
             );
           }
-        }
-
-        if let Some(positions) = order.as_mut()
-          && slots.place(owner, positions).is_none()
-        {
-          complete = false;
         }
 
         let concatenation_scope_output = compilation
@@ -3045,31 +2861,11 @@ var {} = {{}};
         let module = module_graph
           .module_by_identifier(m)
           .expect("should have module");
-        // Wrapped user modules may execute at runtime or own a native star outside
-        // the hoisted module list. In either case do not partially reorder the chunk.
-        if module.as_external_module().is_none() && !module.module_type().is_asset_like() {
-          complete = false;
-        }
         for dep_id in module.get_dependency_ids() {
           let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
             continue;
           };
 
-          for target in graph
-            .get_module_chunks(*conn.module_identifier())
-            .iter()
-            .filter(|c| *c != chunk)
-          {
-            Self::record_split_entry(
-              &mut split_entry_roots,
-              *target,
-              *conn.module_identifier(),
-              static_module_request(module_graph.dependency_by_id(dep_id)),
-            );
-          }
-          if !static_module_request(module_graph.dependency_by_id(dep_id)) {
-            complete = false;
-          }
           if !conn.is_target_active(
             module_graph,
             None,
@@ -3086,51 +2882,6 @@ var {} = {{}};
           chunk_imports.entry(*ref_module).or_default();
         }
       }
-      if let (Some(group), Some(positions)) = (group, &order)
-        && group.chunks.len() > 1
-      {
-        let first_in_group = first_requests.entry(group.ukey()).or_default();
-        for (request, &position) in positions {
-          if matches!(request, RawImportSource::Source(_)) {
-            first_in_group
-              .entry(request.clone())
-              .and_modify(|first| *first = (*first).min(position))
-              .or_insert(position);
-          }
-        }
-      }
-      chunk_link.request_order = order.filter(|_| complete);
-      if let Some(order) = &chunk_link.request_order
-        && order
-          .keys()
-          .all(|r| matches!(r, RawImportSource::Source(_)))
-      {
-        closed_chunks.insert(*chunk, None);
-      }
-    }
-
-    // Mark closed chunks that repeat a request from before their entrance.
-    // Advancing the entire chunk to preload that URL could also advance its
-    // other externals or its module body.
-    for (chunk, preload) in &mut closed_chunks {
-      let group = request_groups[chunk];
-      let Some(root) = split_entry_roots
-        .get(chunk)
-        .copied()
-        .flatten()
-        .and_then(|id| RequestPosition::of(group, id))
-      else {
-        continue;
-      };
-      *preload = first_requests.get(&group.ukey()).and_then(|first| {
-        link[chunk]
-          .request_order
-          .as_ref()?
-          .keys()
-          .filter_map(|r| first.get(r).copied())
-          .filter(|p| *p < root.before(true, i32::MAX))
-          .min()
-      });
     }
 
     /*
@@ -3153,53 +2904,6 @@ var {} = {{}};
     ```
     */
     for chunk_link in link.values_mut() {
-      // A split chunk needs one known entrance. Its local request positions
-      // must belong to that entrance's subtree before we account for preloads.
-      let group = request_groups.get(&chunk_link.chunk).copied();
-      let root = group.and_then(|g| {
-        split_entry_roots
-          .get(&chunk_link.chunk)
-          .copied()
-          .flatten()
-          .and_then(|id| RequestPosition::of(g, id))
-      });
-      if let Some(group) = group
-        && (!group.kind.is_entrypoint() || group.get_entrypoint_chunk() != chunk_link.chunk)
-      {
-        if let (Some(root), Some(order)) = (root, &mut chunk_link.request_order)
-          && order.values().all(|&pos| root.contains(pos))
-        {
-          let enter = root.before(true, i32::MAX);
-          if let Some(first) = first_requests.get(&group.ukey()) {
-            for (request, pos) in order {
-              if let Some(&earlier) = first.get(request)
-                && earlier < enter
-              {
-                *pos = earlier;
-              }
-            }
-          }
-        } else {
-          chunk_link.request_order = None;
-        }
-      }
-      // A request cannot represent a chunk with multiple entrances or one
-      // that would move other side effects along with a preloaded external.
-      if let Some(order) = &chunk_link.request_order
-        && order.keys().any(|request| {
-          let RawImportSource::Chunk(target) = request else {
-            return false;
-          };
-          let Some(preload) = closed_chunks.get(target) else {
-            return true;
-          };
-          !matches!(split_entry_roots.get(target), Some(Some(_)))
-            || root
-              .is_some_and(|root| preload.is_some_and(|first| first < root.before(true, i32::MAX)))
-        })
-      {
-        chunk_link.request_order = None;
-      }
       let all_chunk_used_symbols = chunk_link
         .refs
         .values()
@@ -3301,12 +3005,6 @@ var {} = {{}};
     // put result into chunk_link context
     for (chunk, exports) in exports {
       let link = link.get_mut(&chunk).expect("should have chunk");
-      if exports.re_exports.is_empty()
-        && link.raw_star_exports.is_empty()
-        && !native_star_chunks.contains(&chunk)
-      {
-        link.request_order = None;
-      }
       *link.exports_mut() = exports.exports;
       *link.re_exports_mut() = exports.re_exports;
     }

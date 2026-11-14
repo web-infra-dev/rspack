@@ -13,8 +13,8 @@ export { EventEmitterHoisted, onceHoisted };
 
 ```mjs title=index.mjs
 import { __webpack_require__ } from "./runtime.mjs";
-import "./wrapped.mjs";
 import { EventEmitterHoisted, onceHoisted } from "./hoisted.mjs";
+import "./wrapped.mjs";
 
 // ./src/index.js
 const wrapped_0 = __webpack_require__("./src/wrapped.js");

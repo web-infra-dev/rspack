@@ -1,5 +1,6 @@
 ```mjs title=repeated-external-split-readable/a.mjs
 import "./tail.mjs";
+export { update, value } from "./ext.mjs";
 import "./b.mjs";
 
 // ../tail.mjs
@@ -14,6 +15,5 @@ import "./b.mjs";
 // ./repeated-external/a.mjs
 
 
-export { update, value } from "./ext.mjs";
 
 ```

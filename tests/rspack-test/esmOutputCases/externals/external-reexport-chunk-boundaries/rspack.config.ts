@@ -12,6 +12,8 @@ export default defineConfig(
     'array-stars',
     'repeated-external',
     'repeated-external-split',
+    'forwarded',
+    'reentered',
   ].flatMap((variant) =>
     [false, true].map((minimize) => {
       const name = `${variant}-${minimize ? 'min' : 'readable'}`;
@@ -22,6 +24,7 @@ export default defineConfig(
       const shared =
         variant === 'interleaved' ||
         variant === 'rootless' ||
+        variant === 'reentered' ||
         independentEntries;
       return defineConfig({
         name,
@@ -68,7 +71,10 @@ export default defineConfig(
                       enforce: true,
                     },
               setup: {
-                test: /[\\/]setup\.mjs$/,
+                test:
+                  variant === 'reentered'
+                    ? /[\\/]inner\.mjs$/
+                    : /[\\/]setup\.mjs$/,
                 name: 'setup',
                 enforce: true,
               },
