@@ -193,3 +193,40 @@ When multiple loaders within the same rule have `parallel` enabled, Rspack execu
 :::
 
 For more details, see [rules[].use.parallel](/config/module-rules#rulesuseparallel).
+
+## Loader cache
+
+Set `cache: true` on a loader in `module.rules[].use` to reuse its transformation results across builds when its input code, version, options, and tracked file and build dependencies are unchanged.
+
+:::info
+
+Loader caching requires top-level caching and `experiments.newCache.loader` to be enabled. Setting `experiments.newCache: true` enables loader caching by default. See [`experiments.newCache`](/config/experiments#experimentsnewcache).
+
+:::
+
+Memory caching reuses results within one process. This example uses persistent caching to reuse `less-loader` results across processes.
+
+```js title="rspack.config.mjs"
+export default {
+  cache: { type: 'persistent' },
+  experiments: { newCache: true },
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        use: [{ loader: 'less-loader', cache: true }],
+        type: 'css',
+      },
+    ],
+  },
+};
+```
+
+Rspack checks the cache after the pitch phase and skips the normal transformation on a hit. Rspack caches adjacent loaders with `cache: true` together and checks loaders configured with `codeFilter` separately.
+
+:::tip
+
+- Loader options must be JSON-serializable.
+- The loader cache becomes invalid if a loader calls `this.cacheable(false)`, adds a directory or missing dependency, or emits a warning or asset.
+
+:::

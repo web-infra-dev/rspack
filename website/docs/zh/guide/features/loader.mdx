@@ -195,3 +195,40 @@ export default {
 :::
 
 更多细节请参考 [rules[].use.parallel](/config/module-rules#rulesuseparallel)。
+
+## Loader 缓存 \{#loader-cache}
+
+在 `module.rules[].use` 中为 loader 设置 `cache: true` 后，当输入代码、loader 版本、选项以及追踪的文件依赖和构建依赖均未变化时，Rspack 可以在多次构建之间复用转换结果。
+
+:::info
+
+使用 loader 缓存需要开启顶层缓存，并启用 `experiments.newCache.loader`。设置 `experiments.newCache: true` 时，loader 缓存功能默认启用。详见 [`experiments.newCache`](/zh/config/experiments#experimentsnewcache)。
+
+:::
+
+内存缓存可在同一进程内复用结果。这里使用持久化缓存跨进程复用 `less-loader` 的转换结果。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: { type: 'persistent' },
+  experiments: { newCache: true },
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        use: [{ loader: 'less-loader', cache: true }],
+        type: 'css',
+      },
+    ],
+  },
+};
+```
+
+Rspack 在 pitch 阶段之后查询缓存，命中时跳过普通转换。相邻且都设置了 `cache: true` 的 loader 会一起缓存，配置了 `codeFilter` 的 loader 会单独查询缓存。
+
+:::tip
+
+- Loader 选项需要支持 JSON 序列化。
+- 如果 loader 调用 `this.cacheable(false)`、添加目录依赖或缺失依赖、发出警告或产出资源，缓存会失效。
+
+:::
