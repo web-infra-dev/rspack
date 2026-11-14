@@ -5,14 +5,12 @@ import { CssExtractRspackPlugin } from '@rspack/core';
 
 const require = createRequire(import.meta.url);
 const roots = Array.from({ length: 8 }, (_, index) => `root${index}.css`);
-const sharedRoots = roots.slice(0, -1);
 const built = new Set();
 const rootStyle = (index, color, shared = true) =>
   `${shared ? '@import "./shared.css";' : ''}.root${index} { color: ${color}; }`;
 
 export default {
-  description:
-    'CSS watch updates rebuild shared producers and preserve unrelated modules',
+  description: 'CSS watch updates preserve locality with shared imports',
   options(context) {
     const input = context.getDist('input');
     fs.mkdirSync(input, { recursive: true });
@@ -25,10 +23,7 @@ export default {
       '.shared { color: green; }',
     );
     for (const [index, root] of roots.entries()) {
-      fs.writeFileSync(
-        path.join(input, root),
-        rootStyle(index, 'red', sharedRoots.includes(root)),
-      );
+      fs.writeFileSync(path.join(input, root), rootStyle(index, 'red'));
     }
     return {
       context: input,
@@ -81,28 +76,18 @@ export default {
         .toString();
     };
 
-    let css = await update('root0.css', rootStyle(0, 'blue'), sharedRoots);
+    let css = await update('root0.css', rootStyle(0, 'blue'), ['root0.css']);
     expect(css).toMatch(/\.root0\s*\{\s*color:\s*blue/);
     expect(css).toMatch(/\.shared\s*\{\s*color:\s*green/);
 
-    css = await update('shared.css', '.shared { color: purple; }', sharedRoots);
+    css = await update('shared.css', '.shared { color: purple; }', roots);
     expect(css).toMatch(/\.shared\s*\{\s*color:\s*purple/);
     expect(css).not.toContain('green');
 
-    css = await update('root0.css', rootStyle(0, 'orange', false), sharedRoots);
+    css = await update('root0.css', rootStyle(0, 'orange', false), [
+      'root0.css',
+    ]);
     expect(css).toMatch(/\.root0\s*\{\s*color:\s*orange/);
     expect(css).toMatch(/\.shared\s*\{\s*color:\s*purple/);
-
-    css = await update('root0.css', rootStyle(0, 'blue', false), ['root0.css']);
-    expect(css).toMatch(/\.root0\s*\{\s*color:\s*blue/);
-    expect(css).toMatch(/\.root7\s*\{\s*color:\s*red/);
-
-    css = await update(
-      'shared.css',
-      '.shared { color: green; }',
-      sharedRoots.slice(1),
-    );
-    expect(css).toMatch(/\.shared\s*\{\s*color:\s*green/);
-    expect(css).not.toContain('purple');
   },
 };

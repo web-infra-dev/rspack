@@ -70,6 +70,7 @@ impl CssModule {
       build_info: BuildInfo {
         cacheable: dep.cacheable,
         strict: true,
+        dependencies: dep.dependencies.clone(),
         ..Default::default()
       }
       .into(),
@@ -181,7 +182,12 @@ impl Module for CssModule {
         || self.supports != fresh_module.supports
         || self.media != fresh_module.media
         || self.module_layer != fresh_module.module_layer
-        || self._context != fresh_module._context,
+        || self._context != fresh_module._context
+        // A cache hit must retain the dependencies used by later incremental builds.
+        || build_info.dependencies.file != fresh_build_info.dependencies.file
+        || build_info.dependencies.context != fresh_build_info.dependencies.context
+        || build_info.dependencies.missing != fresh_build_info.dependencies.missing
+        || build_info.dependencies.build != fresh_build_info.dependencies.build,
     )
   }
 
