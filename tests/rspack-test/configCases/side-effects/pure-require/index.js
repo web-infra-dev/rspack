@@ -61,3 +61,38 @@ it("should preserve calls to exports of pure modules when minimizing", () => {
 	expect(globalThis.pureRequireCalls).toBe(3);
 	delete globalThis.pureRequireCalls;
 });
+
+// Missing semicolons are intentional: PURE annotations introduce a leading `(`.
+it("should preserve ASI before static and conditional requires", () => {
+	const calls = [];
+	function before() {
+		calls.push("before");
+	}
+	before()
+	require("./declared")
+	for (const flag of [true, false]) {
+		before()
+		require(flag ? "./declared" : "./pure")
+	}
+	expect(calls).toEqual(["before", "before", "before"]);
+});
+
+it("should preserve ASI before require member access and calls", () => {
+	let calls = 0;
+	function before() {
+		calls++;
+	}
+	globalThis.pureRequireCalls = 0;
+	before()
+	require("./declared").value
+	before()
+	require("./declared").effect()
+	before()
+	require("./declared")()
+	before()
+	new (require("./declared"))()
+	if (calls < 0) require("./declared").effect();
+	expect(calls).toBe(4);
+	expect(globalThis.pureRequireCalls).toBe(3);
+	delete globalThis.pureRequireCalls;
+});

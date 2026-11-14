@@ -179,7 +179,7 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
     } = code_generatable_context;
     let module_graph = compilation.get_module_graph();
 
-    let require_expr = if let Some(imported_module) =
+    let mut require_expr = if let Some(imported_module) =
       module_graph.module_graph_module_by_dependency_id(&dep.id)
       && let Some(used) = {
         let exports_info = compilation
@@ -208,6 +208,10 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
     } else {
       runtime_template.module_raw(compilation, &dep.id, &dep.request, false)
     };
+
+    if !dep.asi_safe && require_expr.starts_with('(') {
+      require_expr.insert(0, ';');
+    }
 
     source.replace(dep.range.start, dep.range.end, require_expr, None);
   }

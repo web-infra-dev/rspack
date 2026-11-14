@@ -1923,6 +1923,7 @@ impl CommonJsImportsParserPlugin {
     let callee = expr.callee(ast);
     let args = expr.args(ast);
     let expr_span = expr.span(ast);
+    let asi_safe = !parser.is_asi_position(expr_span.start);
 
     if args.len() != 1 {
       return None;
@@ -1959,8 +1960,11 @@ impl CommonJsImportsParserPlugin {
         let range: DependencyRange = callee.span(parser.ast.ast).into();
         let loc = parser.to_dependency_location(range);
         parser.add_presentational_dependency(Arc::new(
-          RequireHeaderDependency::new(range, loc)
-            .with_module_dependencies(expr_span.into(), module_dependencies),
+          RequireHeaderDependency::new(range, loc).with_module_dependencies(
+            expr_span.into(),
+            module_dependencies,
+            asi_safe,
+          ),
         ));
         return Some(true);
       }
@@ -1993,8 +1997,11 @@ impl CommonJsImportsParserPlugin {
       let range: DependencyRange = callee.span(parser.ast.ast).into();
       let loc = parser.to_dependency_location(range);
       parser.add_presentational_dependency(Arc::new(
-        RequireHeaderDependency::new(range, loc)
-          .with_module_dependencies(expr_span.into(), module_dependency.into_iter().collect()),
+        RequireHeaderDependency::new(range, loc).with_module_dependencies(
+          expr_span.into(),
+          module_dependency.into_iter().collect(),
+          asi_safe,
+        ),
       ));
     }
     Some(true)

@@ -12,6 +12,7 @@ pub struct RequireHeaderDependency {
   range: DependencyRange,
   loc: Option<DependencyLocation>,
   module_dependencies: Option<(DependencyRange, Vec<DependencyId>)>,
+  asi_safe: bool,
 }
 
 impl RequireHeaderDependency {
@@ -21,6 +22,7 @@ impl RequireHeaderDependency {
       range,
       loc,
       module_dependencies: None,
+      asi_safe: true,
     }
   }
 
@@ -32,8 +34,10 @@ impl RequireHeaderDependency {
     mut self,
     range: DependencyRange,
     dependencies: Vec<DependencyId>,
+    asi_safe: bool,
   ) -> Self {
     self.module_dependencies = Some((range, dependencies));
+    self.asi_safe = asi_safe;
     self
   }
 }
@@ -96,7 +100,15 @@ impl DependencyTemplate for RequireHeaderDependencyTemplate {
         .iter()
         .all(|id| runtime_template.is_module_side_effect_free(compilation, id))
     {
-      source.insert_static(range.start, "(0, /*#__PURE__*/ ", None);
+      source.insert_static(
+        range.start,
+        if dep.asi_safe {
+          "(0, /*#__PURE__*/ "
+        } else {
+          ";(0, /*#__PURE__*/ "
+        },
+        None,
+      );
       source.insert_static(range.end, ")", None);
     }
     source.replace(
