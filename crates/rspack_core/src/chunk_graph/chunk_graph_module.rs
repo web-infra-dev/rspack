@@ -344,38 +344,41 @@ impl ChunkGraph {
     let mut visited_modules = IdentifierSet::default();
     visited_modules.insert(module.identifier());
 
-    let hash_modules = mg
-      .get_outgoing_deps_in_order(&module.identifier())
-      .filter_map(|c| {
-        let connection = mg.connection_by_dependency_id(c)?;
-        let module_identifier = connection.module_identifier();
-        if visited_modules.contains(module_identifier) {
-          return None;
-        }
-        let active_state = connection.active_state(
-          mg,
-          runtime,
-          mg_cache,
-          side_effects_state_artifact,
-          &compilation.exports_info_artifact,
-        );
-        let is_commonjs_external = mg
-          .module_by_identifier(module_identifier)
-          .and_then(|module| module.as_external_module())
-          .is_some_and(|external| {
-            crate::CommonJsExternalRequireKind::from_external_type(external.resolve_external_type())
-              .is_some()
-          });
-        if active_state.is_false() && !is_commonjs_external {
-          return None;
-        }
-        // Direct CommonJS external templates still read the request/type
-        // after the placement connection is cut out. Such modules may
-        // have no chunk module id, so also hash their semantic identity.
-        if is_commonjs_external {
-          module_identifier.hash(&mut hasher);
-        }
-        visited_modules.insert(*module_identifier);
+    for dependency_id in mg.get_outgoing_deps_in_order(&module.identifier()) {
+      let Some(connection) = mg.connection_by_dependency_id(dependency_id) else {
+        continue;
+      };
+      let module_identifier = connection.module_identifier();
+      if visited_modules.contains(module_identifier) {
+        continue;
+      }
+      let active_state = connection.active_state(
+        mg,
+        runtime,
+        mg_cache,
+        side_effects_state_artifact,
+        &compilation.exports_info_artifact,
+      );
+      let target_module = mg.module_by_identifier(module_identifier);
+      let is_commonjs_external = target_module
+        .and_then(|module| module.as_external_module())
+        .is_some_and(|external| {
+          crate::CommonJsExternalRequireKind::from_external_type(external.resolve_external_type())
+            .is_some()
+        });
+      if active_state.is_false() && !is_commonjs_external {
+        continue;
+      }
+      // Direct CommonJS external templates still read the request/type
+      // after the placement connection is cut out. Such modules may
+      // have no chunk module id, so also hash their semantic identity.
+      if is_commonjs_external {
+        module_identifier.hash(&mut hasher);
+      }
+      visited_modules.insert(*module_identifier);
+      if runtime.is_none_or(|runtime| runtime.len() == 1) {
+        active_state.hash(&mut hasher);
+      } else {
         for_each_runtime(
           runtime,
           |runtime| {
@@ -391,15 +394,8 @@ impl ChunkGraph {
           },
           true,
         );
-        Some(module_identifier)
-      })
-      .collect::<Vec<_>>();
-
-    for module_identifier in hash_modules {
-      let module = mg
-        .module_by_identifier(module_identifier)
-        .expect("should have module")
-        .as_ref();
+      }
+      let module = target_module.expect("should have module").as_ref();
       module
         .get_exports_type(
           mg,
