@@ -1,0 +1,23 @@
+```mjs title=main.mjs
+import "./tail.mjs";
+import "./setup.mjs";
+
+// ./ext.mjs
+
+// ./tail.mjs
+
+// ./entry.mjs
+
+
+
+export { value } from "./ext.mjs";
+
+```
+
+```mjs title=setup.mjs
+// ./setup.mjs
+globalThis.ready = true;
+
+export {};
+
+```

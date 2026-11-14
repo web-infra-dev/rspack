@@ -1,0 +1,28 @@
+```mjs title=main.mjs
+import "./side.mjs";
+import "./setup.mjs";
+
+// ./ext.mjs
+
+// ./side.mjs
+
+// ./index.js
+
+
+
+
+expect(globalThis.__order).toEqual(['side', 'setup', 'ext']);
+
+export { value } from "./ext.mjs";
+
+```
+
+```mjs title=setup.mjs
+// ./setup.mjs
+globalThis.__order = globalThis.__order || [];
+globalThis.__order.push('setup');
+globalThis.ready = true;
+
+export {};
+
+```

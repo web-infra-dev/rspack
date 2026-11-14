@@ -5,7 +5,9 @@ use std::{
 };
 
 use rayon::iter::Either;
-use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, SsoHashSet};
+use rspack_collections::{
+  IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, SsoHashSet,
+};
 use rspack_core::{
   ChunkGraph, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataChunkInitFragments, CodeGenerationDataConcatenationScopeOutput,
@@ -32,6 +34,7 @@ use rspack_util::fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet};
 use crate::{
   EsmLibraryPlugin,
   chunk_link::{ChunkLinkContext, ExternalInterop, RawImportSource, ReExportFrom, Ref, SymbolRef},
+  preserve_modules::entry_modules,
 };
 
 pub(crate) trait GetMut<K, V> {
@@ -2804,6 +2807,7 @@ var {} = {{}};
 
       let all_chunk_exported_symbols = &exports[&chunk_link.chunk].exports;
 
+      let mut star_removals = vec![];
       for (source, _) in &chunk_link.raw_star_exports {
         let key = (source.clone(), None);
         if let Some(import_spec) = chunk_link
@@ -2813,9 +2817,7 @@ var {} = {{}};
           && import_spec.default_import.is_none()
           && import_spec.ns_import.is_none()
         {
-          chunk_link
-            .raw_import_stmts
-            .swap_remove(&RawImportSource::Source(key));
+          star_removals.push(RawImportSource::Source(key));
         }
       }
 
@@ -2858,31 +2860,299 @@ var {} = {{}};
         }
       }
 
+      #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+      enum OrderedImportItem {
+        Raw(RawImportSource),
+        Chunk(ChunkUkey),
+      }
+
+      let mut ordered_items = Vec::new();
+      let mut seen_items = FxHashSet::default();
+      let mut visited_modules = IdentifierSet::default();
+
+      fn traverse_chunk_dependencies(
+        module_id: ModuleIdentifier,
+        chunk_link: &ChunkLinkContext,
+        compilation: &Compilation,
+        module_graph: &ModuleGraph,
+        binding_resolver: &ConcatenationBindingResolver,
+        visited_modules: &mut IdentifierSet,
+        seen_items: &mut FxHashSet<OrderedImportItem>,
+        ordered_items: &mut Vec<OrderedImportItem>,
+      ) {
+        if !visited_modules.insert(module_id) {
+          return;
+        }
+        let Some(module) = module_graph.module_by_identifier(&module_id) else {
+          return;
+        };
+        for dep in module.get_dependencies() {
+          let Some(conn) = module_graph.connection_by_dependency_id(dep.id()) else {
+            continue;
+          };
+          if !conn.is_active(
+            module_graph,
+            None,
+            binding_resolver.context.module_graph_cache,
+            &compilation
+              .build_module_graph_artifact
+              .side_effects_state_artifact,
+            binding_resolver.context.exports_info_artifact,
+          ) {
+            continue;
+          }
+          let ref_module = conn.module_identifier();
+          if let Some(ext) = module_graph
+            .module_by_identifier(ref_module)
+            .and_then(|m| m.as_external_module())
+          {
+            if ext.resolve_external_type() == "module" {
+              let key = (ext.get_request().primary().to_string(), None);
+              let raw_key = RawImportSource::Source(key);
+              if chunk_link.raw_import_stmts.contains_key(&raw_key) {
+                let item = OrderedImportItem::Raw(raw_key);
+                if seen_items.insert(item.clone()) {
+                  ordered_items.push(item);
+                }
+              }
+            }
+          } else {
+            let ref_chunks = compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .get_module_chunks(*ref_module);
+            if !ref_chunks.contains(&chunk_link.chunk) {
+              for &ref_chunk in ref_chunks {
+                if compilation
+                  .build_chunk_graph_artifact
+                  .chunk_graph
+                  .has_chunk_module_by_source_type(&ref_chunk, SourceType::JavaScript, module_graph)
+                {
+                  let item = OrderedImportItem::Chunk(ref_chunk);
+                  if seen_items.insert(item.clone()) {
+                    ordered_items.push(item);
+                  }
+                }
+              }
+            } else if chunk_link.hoisted_modules.contains(ref_module)
+              || chunk_link.decl_modules.contains(ref_module)
+            {
+              traverse_chunk_dependencies(
+                *ref_module,
+                chunk_link,
+                compilation,
+                module_graph,
+                binding_resolver,
+                visited_modules,
+                seen_items,
+                ordered_items,
+              );
+            }
+          }
+        }
+      }
+
+      let chunk_entry_modules = compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_entry_modules_with_chunk_group_iterable(&chunk_link.chunk);
+      let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+      let mut record_split_entry_chunks = false;
+      let start_modules = if chunk_entry_modules.is_empty() {
+        chunk_graph.get_chunk_root_modules(
+          &chunk_link.chunk,
+          module_graph,
+          binding_resolver.context.module_graph_cache,
+          &compilation
+            .build_module_graph_artifact
+            .side_effects_state_artifact,
+          binding_resolver.context.exports_info_artifact,
+        )
+      } else {
+        let chunk_entry_ids: IdentifierSet = chunk_entry_modules.keys().copied().collect();
+        let compilation_entry_modules = entry_modules(compilation);
+        let mut from_entry_config = IdentifierIndexSet::default();
+        let mut use_expanded_entry_modules = false;
+        for modules in compilation_entry_modules.values() {
+          if modules.len() <= 1 {
+            continue;
+          }
+          if !modules.iter().any(|m| chunk_entry_ids.contains(m)) {
+            continue;
+          }
+          let has_sibling_in_other_chunk = modules.iter().any(|m| {
+            !chunk_graph
+              .get_module_chunks(*m)
+              .contains(&chunk_link.chunk)
+          });
+          if !has_sibling_in_other_chunk {
+            continue;
+          }
+          use_expanded_entry_modules = true;
+          for module in modules {
+            from_entry_config.insert(*module);
+          }
+        }
+        if use_expanded_entry_modules {
+          record_split_entry_chunks = true;
+          from_entry_config.into_iter().collect()
+        } else {
+          chunk_entry_modules.keys().copied().collect()
+        }
+      };
+
+      if record_split_entry_chunks {
+        for entry_module in &start_modules {
+          let ref_chunks = chunk_graph.get_module_chunks(*entry_module);
+          if !ref_chunks.contains(&chunk_link.chunk) {
+            for &ref_chunk in ref_chunks {
+              if chunk_graph.has_chunk_module_by_source_type(
+                &ref_chunk,
+                SourceType::JavaScript,
+                module_graph,
+              ) {
+                let item = OrderedImportItem::Chunk(ref_chunk);
+                if seen_items.insert(item.clone()) {
+                  ordered_items.push(item);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      for m in start_modules {
+        traverse_chunk_dependencies(
+          m,
+          chunk_link,
+          compilation,
+          module_graph,
+          binding_resolver,
+          &mut visited_modules,
+          &mut seen_items,
+          &mut ordered_items,
+        );
+      }
+
+      for m in chunk_link
+        .hoisted_modules
+        .iter()
+        .chain(chunk_link.decl_modules.iter())
+      {
+        if !visited_modules.contains(m) {
+          traverse_chunk_dependencies(
+            *m,
+            chunk_link,
+            compilation,
+            module_graph,
+            binding_resolver,
+            &mut visited_modules,
+            &mut seen_items,
+            &mut ordered_items,
+          );
+        }
+      }
+
+      for raw_key in chunk_link.raw_import_stmts.keys() {
+        let item = OrderedImportItem::Raw(raw_key.clone());
+        if seen_items.insert(item.clone()) {
+          ordered_items.push(item);
+        }
+      }
+
+      let mut blocked_by_prior_chunk = FxHashSet::default();
+      let mut has_prior_chunk = false;
+      for item in &ordered_items {
+        match item {
+          OrderedImportItem::Chunk(_) => {
+            has_prior_chunk = true;
+          }
+          OrderedImportItem::Raw(raw_key) => {
+            if has_prior_chunk {
+              blocked_by_prior_chunk.insert(raw_key.clone());
+            }
+          }
+        }
+      }
+
+      // `export ... from` is rendered after all imports, so keep an import in
+      // place when a remaining user import follows it, unless a prior chunk
+      // import would be superseded.
+      let mut keep = FxHashSet::default();
+      let mut later_user_import = false;
+      for item in ordered_items.iter().rev() {
+        match item {
+          OrderedImportItem::Chunk(_) => {
+            later_user_import = true;
+          }
+          OrderedImportItem::Raw(raw_key) => {
+            let removable = star_removals.contains(raw_key)
+              || matches!(raw_key, RawImportSource::Source(key) if removed_import_stmts.iter().any(|(k, _)| k == key));
+            if !removable {
+              later_user_import |= matches!(raw_key, RawImportSource::Source((request, _)) if !request.contains("__RSPACK_ESM_CHUNK_"));
+            } else if later_user_import && !blocked_by_prior_chunk.contains(raw_key) {
+              keep.insert(raw_key.clone());
+            }
+          }
+        }
+      }
+
+      for raw_key in star_removals {
+        if !keep.contains(&raw_key) {
+          chunk_link.raw_import_stmts.swap_remove(&raw_key);
+        }
+      }
+
       for (key, locals) in removed_import_stmts {
-        chunk_link
-          .raw_import_stmts
-          .swap_remove(&RawImportSource::Source(key.clone()));
+        let raw_key = RawImportSource::Source(key.clone());
+        let kept = keep.contains(&raw_key);
+        if !kept {
+          chunk_link.raw_import_stmts.swap_remove(&raw_key);
+        }
 
         // change it from normal export to re-export
         for (local, imported) in locals {
-          let chunk_exports = exports
+          let Some(export_names) = exports
             .get_mut(&chunk_link.chunk)
-            .expect("should have exports");
-
-          // remove local from exported names
-          let Some(export_names) = chunk_exports.exports.remove(&local) else {
+            .expect("should have exports")
+            .exports
+            .remove(&local)
+          else {
             continue;
           };
 
-          // add local to re-export
-          for export_name in export_names {
-            Self::add_re_export_from_request(
-              chunk_link.chunk,
-              key.0.clone(),
-              imported.clone(),
-              export_name,
-              &mut exports,
-            );
+          if kept {
+            let mut kept_local_exports = IndexAtomSet::default();
+            for export_name in export_names {
+              if export_name == "default" {
+                Self::add_re_export_from_request(
+                  chunk_link.chunk,
+                  key.0.clone(),
+                  imported.clone(),
+                  export_name,
+                  &mut exports,
+                );
+              } else {
+                kept_local_exports.insert(export_name);
+              }
+            }
+            if !kept_local_exports.is_empty() {
+              exports
+                .get_mut(&chunk_link.chunk)
+                .expect("should have exports")
+                .exports
+                .insert(local.clone(), kept_local_exports);
+            }
+          } else {
+            for export_name in export_names {
+              Self::add_re_export_from_request(
+                chunk_link.chunk,
+                key.0.clone(),
+                imported.clone(),
+                export_name,
+                &mut exports,
+              );
+            }
           }
         }
       }

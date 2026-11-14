@@ -1,0 +1,19 @@
+```mjs title=main.mjs
+import { yv } from "./y.js";
+import "./x.js";
+
+
+
+// ./y.js
+
+// ./x.js
+
+// ./index.js
+
+
+
+expect(globalThis.__order).toEqual(['y', 'x']);
+
+export { yv };
+
+```
