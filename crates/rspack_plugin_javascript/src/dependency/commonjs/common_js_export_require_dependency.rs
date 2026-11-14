@@ -31,9 +31,11 @@ pub struct CommonJsExportRequireDependency {
   #[cacheable(with=AsVec<AsPreset>)]
   ids: Vec<Atom>,
   result_used: bool,
+  asi_safe: bool,
 }
 
 impl CommonJsExportRequireDependency {
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     request: String,
     optional: bool,
@@ -42,6 +44,7 @@ impl CommonJsExportRequireDependency {
     names: Vec<Atom>,
     ids: Vec<Atom>,
     result_used: bool,
+    asi_safe: bool,
   ) -> Self {
     Self {
       id: DependencyId::new(),
@@ -52,6 +55,7 @@ impl CommonJsExportRequireDependency {
       names,
       ids,
       result_used,
+      asi_safe,
     }
   }
 }
@@ -498,15 +502,16 @@ impl CommonJsExportRequireDependencyTemplate {
     };
 
     if dep.base.is_expression() {
+      let statement_prefix = if dep.asi_safe { "" } else { ";" };
       let expr = match used {
         Some(UsedName::Normal(used)) => {
           format!("{base}{} = {require_expr}", property_access(used, 0))
         }
         Some(UsedName::Inlined(_)) => {
           // Export a inlinable const from cjs is not possible for now but we compat it here
-          format!("/* inlined reexport */ {require_expr}")
+          format!("{statement_prefix}/* inlined reexport */ {require_expr}")
         }
-        None => format!("/* unused reexport */ {require_expr}"),
+        None => format!("{statement_prefix}/* unused reexport */ {require_expr}"),
       };
       source.replace(dep.range.start, dep.range.end, expr, None)
     } else if dep.base.is_define_property() {

@@ -62,6 +62,10 @@ it("should preserve calls to exports of pure modules when minimizing", () => {
 	delete globalThis.pureRequireCalls;
 });
 
+it("should preserve ASI when removing unused CommonJS reexport assignments", () => {
+	expect(require("./unused-reexports").used).toBe(3);
+});
+
 // Missing semicolons are intentional: PURE annotations introduce a leading `(`.
 it("should preserve ASI before static and conditional requires", () => {
 	const calls = [];

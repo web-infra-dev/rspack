@@ -199,6 +199,7 @@ fn handle_assign_export(
       remaining.to_vec(),
       ids,
       !parser.is_statement_level_expression(assign_span),
+      !parser.is_asi_position(assign_span.start),
     )));
     return Some(true);
   }
