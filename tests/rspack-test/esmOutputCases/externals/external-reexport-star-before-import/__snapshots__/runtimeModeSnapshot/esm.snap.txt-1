@@ -1,20 +1,37 @@
 ```mjs title=rslib/main.mjs
 export * from "./ext.mjs";
+import "./middle-side.mjs";
 export * from "./other.mjs";
 import "./side.mjs";
 
 
 
+// ./middle-side.mjs
+
+// ./middle.mjs
+
+
+function middle_next(value) {
+  return value + 1;
+}
+
 // ./side.mjs
+
+// ./last.mjs
+
+
+const initial = 1;
 
 // ./index.js
 
 
-let own = 1;
+
+
+
+let own = (/* inlined export .initial */1);
 function bump() {
-  own = 2;
+  own = middle_next(own);
 }
-;
 
 export { bump, own };
 

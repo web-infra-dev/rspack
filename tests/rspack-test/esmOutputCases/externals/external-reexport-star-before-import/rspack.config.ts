@@ -2,14 +2,31 @@ import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
 export default defineConfig(
-  [false, true].map((rslib) => {
-    const name = rslib ? 'rslib' : 'plain';
+  Object.entries({
+    plain: './plain.mjs',
+    rslib: './index.js',
+    wrapped: ['./wrapped.mjs', './hoisted.mjs'],
+    alias: ['./first-alias.mjs', './second-alias.mjs'],
+  }).map(([name, entry]) => {
+    const rslib = name !== 'plain';
     return defineConfig({
       name,
       target: 'node',
-      entry: rslib ? './index.js' : './plain.mjs',
+      entry,
       externalsType: 'module',
-      externals: ['./ext.mjs', './other.mjs', './side.mjs'],
+      externals: [
+        './ext.mjs',
+        './middle-side.mjs',
+        './other.mjs',
+        './side.mjs',
+        ({ request, contextInfo }, callback) => {
+          if (request !== 'alias') return callback();
+          const target = contextInfo?.issuer.endsWith('first-alias.mjs')
+            ? './ext.mjs'
+            : './middle-side.mjs';
+          callback(null, target);
+        },
+      ],
       output: {
         filename: `${name}/[name].mjs`,
         chunkFilename: `${name}/[name].mjs`,

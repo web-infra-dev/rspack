@@ -15,10 +15,14 @@ export default {
       const rootless = config.name.startsWith('rootless-');
       const nested = config.name.startsWith('nested-');
       const independentEntries = config.name.startsWith('independent-entries-');
+      const arrayStars = config.name.startsWith('array-stars-');
       const output = path.join(config.output.path, config.name);
-      for (const name of ['ext.mjs', 'side.mjs', 'tail.mjs']) {
+      const externals = arrayStars
+        ? ['shared.mjs', 'y.mjs', 'z.mjs']
+        : ['ext.mjs', 'side.mjs', 'tail.mjs'];
+      for (const name of externals) {
         fs.copyFileSync(
-          path.join(import.meta.dirname, name),
+          path.join(import.meta.dirname, arrayStars ? 'array-stars' : '', name),
           path.join(output, name),
         );
       }
@@ -57,9 +61,19 @@ export default {
         rootless ? 43 : null,
         nested ? 43 : null,
       ]);
-      const prerequisite = rootless || nested ? 'setup' : 'side';
-      expect(order.indexOf(prerequisite)).toBeGreaterThanOrEqual(0);
-      expect(order.indexOf('ext')).toBeGreaterThan(order.indexOf(prerequisite));
+      if (arrayStars) {
+        expect(order).toEqual(['shared', 'y', 'z']);
+      } else {
+        const prerequisite = rootless || nested ? 'setup' : 'side';
+        expect(order.indexOf(prerequisite)).toBeGreaterThanOrEqual(0);
+        expect(order.indexOf('ext')).toBeGreaterThan(order.indexOf(prerequisite));
+        if (rootless) {
+          const requests = order.filter((name) =>
+            ['setup', 'ext', 'side'].includes(name),
+          );
+          expect(requests).toEqual(['setup', 'ext', 'side']);
+        }
+      }
     }
   },
 };

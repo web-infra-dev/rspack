@@ -2,8 +2,8 @@ use std::{borrow::Cow, sync::Arc};
 
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
-  BoxChunkInitFragment, ChunkGraph, ChunkUkey, Compilation, ConcatenationNameAllocator, ImportSpec,
-  ModuleGraph, ModuleIdentifier, RuntimeCodeTemplate, RuntimeGlobals,
+  BoxChunkInitFragment, ChunkGraph, ChunkGroup, ChunkUkey, Compilation, ConcatenationNameAllocator,
+  ImportSpec, ModuleGraph, ModuleIdentifier, RuntimeCodeTemplate, RuntimeGlobals,
   rspack_sources::{ConcatSource, RawStringSource},
 };
 use rspack_intern::{Atom, AtomMap, IndexAtomMap, IndexAtomSet};
@@ -247,6 +247,59 @@ pub enum ReExportFrom {
   Request(String),
 }
 
+/// A module has already been visited by the chunk splitter. Disjoint subtrees have
+/// the same relative pre/post order; an ancestor's enter and leave surround its children.
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+pub struct RequestPosition {
+  pre: u32,
+  post: u32,
+  enter: bool,
+  source: i32,
+}
+
+impl RequestPosition {
+  pub fn of(group: &ChunkGroup, module: ModuleIdentifier) -> Option<Self> {
+    Some(Self {
+      pre: group.module_pre_order_index(&module)?,
+      post: group.module_post_order_index(&module)?,
+      enter: false,
+      source: i32::MAX,
+    })
+  }
+  pub fn contains(self, other: Self) -> bool {
+    self.pre <= other.pre && other.post <= self.post
+  }
+  pub fn before(self, enter: bool, source: i32) -> Self {
+    Self {
+      enter,
+      source,
+      ..self
+    }
+  }
+  pub fn post(self) -> u32 {
+    self.post
+  }
+}
+
+impl Ord for RequestPosition {
+  fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    use std::cmp::Ordering;
+    match (self.enter, other.enter) {
+      (true, true) => self.pre.cmp(&other.pre),
+      (false, false) => self.post.cmp(&other.post),
+      (true, false) if self.pre <= other.pre || self.post < other.post => Ordering::Less,
+      (true, false) => Ordering::Greater,
+      (false, true) => other.cmp(self).reverse(),
+    }
+    .then_with(|| self.source.cmp(&other.source))
+  }
+}
+impl PartialOrd for RequestPosition {
+  fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    Some(self.cmp(other))
+  }
+}
+
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub enum RawImportSource {
   Chunk(ChunkUkey),
@@ -290,6 +343,9 @@ pub struct ChunkLinkContext {
   raw import statements
    */
   pub raw_import_stmts: FxIndexMap<RawImportSource, ImportSpec>,
+
+  /// First evaluation of each emitted request in this entry's chunk group.
+  pub request_order: Option<FxHashMap<RawImportSource, RequestPosition>>,
 
   /**
   namespace imports already provided by module init fragments
@@ -359,6 +415,7 @@ impl ChunkLinkContext {
       name_allocator: Default::default(),
       exported_symbols: Default::default(),
       raw_import_stmts: Default::default(),
+      request_order: None,
       module_external_namespace_imports: Default::default(),
       raw_star_exports: Default::default(),
     }

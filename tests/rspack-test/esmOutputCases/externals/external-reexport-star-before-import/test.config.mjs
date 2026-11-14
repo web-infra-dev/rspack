@@ -3,15 +3,23 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+const expectedOrder = {
+  plain: ['ext', 'side'],
+  rslib: ['ext', 'middle', 'other', 'side'],
+  wrapped: ['ext', 'other'],
+  alias: ['ext', 'other', 'middle'],
+};
+
 export default {
   findBundle() {
     return [];
   },
   afterExecute(options) {
     for (const config of options) {
-      const rslib = config.name === 'rslib';
+      const rslib = config.name !== 'plain';
+      const wrapped = config.name === 'wrapped';
       const output = path.join(config.output.path, config.name);
-      for (const name of ['ext.mjs', 'other.mjs', 'side.mjs']) {
+      for (const name of ['ext.mjs', 'middle-side.mjs', 'other.mjs', 'side.mjs']) {
         fs.copyFileSync(
           path.join(import.meta.dirname, name),
           path.join(output, name),
@@ -30,12 +38,13 @@ export default {
            main.update();
            main.bump?.();
            console.log(JSON.stringify({
-             order: globalThis.__order,
+             order: ${wrapped} ? globalThis.__order.filter(x => x !== 'side') : globalThis.__order,
              before,
              after: main.value,
              ownBefore,
              ownAfter: main.own ?? null,
              other: main.other ?? null,
+             middle: main.middle ?? null,
              hasDefault: Object.hasOwn(main, 'default'),
              hasShared: Object.hasOwn(main, 'shared')
            }));`,
@@ -43,12 +52,13 @@ export default {
         { encoding: 'utf-8' },
       );
       expect(JSON.parse(result)).toEqual({
-        order: rslib ? ['ext', 'other', 'side'] : ['ext', 'side'],
+        order: expectedOrder[config.name],
         before: 1,
         after: 2,
-        ownBefore: rslib ? 1 : null,
-        ownAfter: rslib ? 2 : null,
+        ownBefore: config.name === 'rslib' ? 1 : null,
+        ownAfter: config.name === 'rslib' ? 2 : null,
         other: rslib ? 42 : null,
+        middle: config.name === 'alias' ? 7 : null,
         hasDefault: false,
         hasShared: !rslib,
       });

@@ -1,12 +1,10 @@
 use std::sync::Arc;
 
-use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BuildModuleGraphArtifact, Compilation, DependenciesBlock, Dependency, DependencyId,
-  DependencyTemplate, ExportsInfoArtifact, ExternalModule, ImportPhase, InitFragment,
-  InitFragmentContents, InitFragmentExt, InitFragmentKey, InitFragmentRenderContext,
-  InitFragmentStage, ModuleIdentifier, NormalInitFragment,
+  DependencyTemplate, ExportsInfoArtifact, ExternalModule, ImportPhase, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, NormalInitFragment,
 };
 use rspack_plugin_javascript::dependency::{
   ESMExportImportedSpecifierDependency, ESMImportSideEffectDependency, ImportDependency,
@@ -268,38 +266,13 @@ impl DependencyTemplate for ImportDependencyTemplate {
   }
 }
 
-/// Keeps the source request available when the ESM library renderer orders native re-exports.
-/// Cloning is required by `InitFragment` so cached fragments can be rendered independently.
-#[cacheable]
-#[derive(Debug, Clone, rspack_hash::RspackHash)]
-pub struct ExternalStarReExportInitFragment {
-  pub module: ModuleIdentifier,
-  pub source_order: i32,
-  pub request: String,
-  pub attributes: Option<String>,
-  inner: NormalInitFragment,
-}
+const EXTERNAL_STAR_PREFIX: &str = "esm_module_reexport_star_";
 
-#[cacheable_dyn]
-impl InitFragment for ExternalStarReExportInitFragment {
-  fn contents(
-    self: Box<Self>,
-    context: &mut dyn InitFragmentRenderContext,
-  ) -> rspack_error::Result<InitFragmentContents> {
-    Box::new(self.inner).contents(context)
-  }
-
-  fn stage(&self) -> InitFragmentStage {
-    self.inner.stage()
-  }
-
-  fn position(&self) -> i32 {
-    self.inner.position()
-  }
-
-  fn key(&self) -> &InitFragmentKey {
-    self.inner.key()
-  }
+pub fn external_star_re_export_request(key: &InitFragmentKey) -> Option<&str> {
+  let InitFragmentKey::Const(key) = key else {
+    return None;
+  };
+  key.strip_prefix(EXTERNAL_STAR_PREFIX)
 }
 
 #[derive(Debug)]
@@ -336,29 +309,20 @@ impl DependencyTemplate for ExportImportedDependencyTemplate {
         .contains(&code_generatable_context.module.identifier())
     {
       let request = module.get_request();
-      let fragment = ExternalStarReExportInitFragment {
-        module: code_generatable_context.module.identifier(),
-        source_order: dep
-          .source_order()
-          .expect("re-export should have source order"),
-        request: request.primary().to_string(),
-        attributes: dep
-          .get_attributes()
-          .map(|attributes| simd_json::to_string(attributes).expect("invalid json to_string")),
-        inner: NormalInitFragment::new(
+      let chunk_init_fragments = code_generatable_context.chunk_init_fragments();
+      chunk_init_fragments.push(
+        NormalInitFragment::new(
           format!(
             "export * from {};\n",
             rspack_util::json_stringify_str(request.primary())
           ),
           InitFragmentStage::StageESMImports,
           0,
-          InitFragmentKey::Const(format!("esm_module_reexport_star_{}", dep.request)),
+          InitFragmentKey::Const(format!("{EXTERNAL_STAR_PREFIX}{}", request.primary())),
           None,
-        ),
-      };
-      code_generatable_context
-        .chunk_init_fragments()
-        .push(fragment.boxed());
+        )
+        .boxed(),
+      );
       return;
     }
 

@@ -1,0 +1,16 @@
+```mjs title=alias/main.mjs
+export * from "./ext.mjs";
+export * from "./other.mjs";
+export * from "./middle-side.mjs";
+
+
+// ./first-alias.mjs
+
+
+
+// ./second-alias.mjs
+
+
+export {};
+
+```
