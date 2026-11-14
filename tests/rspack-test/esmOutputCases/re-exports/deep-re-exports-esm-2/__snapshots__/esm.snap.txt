@@ -1,8 +1,10 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
-
 import * as __rspack_external_fs from "fs";
+export * from "fs";
 import * as __rspack_external_path from "path";
+export * from "path";
+
 __webpack_require__.add({
 "./lib.js"
 /*!****************!*\
@@ -122,8 +124,6 @@ var lib3_0 = lib_0.lib3;
 var lib4_0 = lib_0.lib4;
 
 export { fs_0 as fs, lib2_0 as lib2, lib3_0 as lib3, lib4_0 as lib4, lib_1 as lib };
-export * from "fs";
-export * from "path";
 
 ```
 

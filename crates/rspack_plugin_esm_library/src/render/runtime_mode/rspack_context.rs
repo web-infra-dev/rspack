@@ -4,7 +4,7 @@ use rspack_core::{
 };
 
 use super::{
-  RuntimeImportRenderContext, RuntimeModeRenderer, RuntimeRenderContext,
+  ImportSources, RuntimeImportRenderContext, RuntimeModeRenderer, RuntimeRenderContext,
   render_runtime_global_definitions, render_runtime_prelude, render_single_runtime_import,
 };
 
@@ -15,7 +15,11 @@ impl RuntimeModeRenderer for RspackContextRuntimeRenderer {
     runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
   }
 
-  fn render_runtime_imports(&self, context: RuntimeImportRenderContext<'_>) -> ConcatSource {
+  fn render_runtime_imports(
+    &self,
+    context: RuntimeImportRenderContext<'_>,
+    imports: &mut ImportSources,
+  ) -> ConcatSource {
     render_single_runtime_import(
       context,
       context
@@ -26,6 +30,7 @@ impl RuntimeModeRenderer for RspackContextRuntimeRenderer {
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::REQUIRE),
       ),
+      imports,
     )
   }
 

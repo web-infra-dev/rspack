@@ -284,7 +284,7 @@ export function checkSnapshot(
   }
 }
 
-export function afterExecute(context: ITestContext, name: string) {
+export async function afterExecute(context: ITestContext, name: string) {
   const compiler = context.getCompiler();
   const testConfig = context.getTestConfig();
   if (typeof testConfig.afterExecute === 'function') {
@@ -292,7 +292,7 @@ export function afterExecute(context: ITestContext, name: string) {
     if (Array.isArray(options) && options.length === 1) {
       options = options[0];
     }
-    testConfig.afterExecute(options);
+    await testConfig.afterExecute(options);
   }
 }
 

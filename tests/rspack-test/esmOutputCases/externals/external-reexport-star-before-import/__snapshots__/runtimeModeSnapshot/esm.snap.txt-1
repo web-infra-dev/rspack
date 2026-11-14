@@ -1,0 +1,21 @@
+```mjs title=rslib/main.mjs
+export * from "./ext.mjs";
+export * from "./other.mjs";
+import "./side.mjs";
+
+
+
+// ./side.mjs
+
+// ./index.js
+
+
+let own = 1;
+function bump() {
+  own = 2;
+}
+;
+
+export { bump, own };
+
+```

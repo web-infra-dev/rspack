@@ -168,7 +168,7 @@ export type TTestConfig = {
   writeStatsOuptut?: boolean;
   writeStatsJson?: boolean;
   beforeExecute?: (options: RspackOptions) => void;
-  afterExecute?: (options: RspackOptions) => void;
+  afterExecute?: (options: RspackOptions) => MaybePromise<void>;
   moduleScope?: (
     ms: IModuleScope,
     stats?: StatsCompilation,

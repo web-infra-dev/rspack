@@ -119,7 +119,7 @@ impl EsmLibraryPlugin {
       .collect()
   }
 
-  fn module_external_fragment_content(
+  pub(super) fn module_external_fragment_content(
     init_fragment: Box<dyn rspack_core::InitFragment>,
   ) -> Option<String> {
     if !matches!(init_fragment.key(), InitFragmentKey::ModuleExternal(_)) {
@@ -141,7 +141,7 @@ impl EsmLibraryPlugin {
     }
   }
 
-  fn collect_module_external_fragments_in_render_order<'a>(
+  pub(super) fn collect_module_external_fragments_in_render_order<'a>(
     init_fragment_groups: impl IntoIterator<Item = &'a ChunkInitFragments>,
   ) -> Vec<Box<dyn rspack_core::InitFragment>> {
     let mut ordered_fragments = Vec::new();
@@ -185,7 +185,9 @@ impl EsmLibraryPlugin {
     rendered_fragments
   }
 
-  fn parse_module_external_namespace_import(content: &str) -> Option<(RawImportSource, Atom)> {
+  pub(super) fn parse_module_external_namespace_import(
+    content: &str,
+  ) -> Option<(RawImportSource, Atom)> {
     let content = content.trim_start();
     let content = content.strip_prefix("import * as ")?;
     let (local_name, source_clause) = content.split_once(" from ")?;
@@ -198,13 +200,15 @@ impl EsmLibraryPlugin {
       .next()
       .map(str::trim)
       .map(|line| line.trim_end_matches(';'))?;
-    let (source_literal, attr) =
-      if let Some((source_literal, attr)) = source_clause.split_once(" with ") {
-        (source_literal, Some(format!(" with {attr}")))
-      } else {
-        (source_clause, None)
-      };
-    let source = serde_json::from_str::<String>(source_literal).ok()?;
+    let mut source_literal =
+      serde_json::Deserializer::from_str(source_clause).into_iter::<String>();
+    let source = source_literal.next()?.ok()?;
+    let attributes = source_clause[source_literal.byte_offset()..].trim();
+    let attr = if attributes.is_empty() {
+      None
+    } else {
+      Some(format!(" with {}", attributes.strip_prefix("with ")?))
+    };
     Some((RawImportSource::Source((source, attr)), local_name.into()))
   }
 

@@ -1,7 +1,9 @@
 import { __webpack_require__ } from "./runtime~0.mjs";
-
 import * as __rspack_external_external1_alias_dd38afe7 from "external1-alias";
+export * from "external1-alias";
 import * as __rspack_external_external2_alias_d6100a5a from "external2-alias";
+export * from "external2-alias";
+
 __webpack_require__.add({
 42(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
@@ -34,6 +36,3 @@ module.exports = __rspack_external_external2_alias_d6100a5a;
 },
 });
 __webpack_require__("42");
-
-export * from "external1-alias";
-export * from "external2-alias";

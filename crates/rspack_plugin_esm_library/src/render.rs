@@ -2,7 +2,7 @@ mod runtime_mode;
 
 use std::{borrow::Cow, sync::Arc};
 
-use rspack_collections::IdentifierIndexSet;
+use rspack_collections::{IdentifierIndexSet, IdentifierMap};
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkGroup, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataPreservedAssetImport, Compilation, ConcatenatedModuleInfo, InitFragment,
@@ -17,6 +17,7 @@ use rspack_plugin_javascript::{
   runtime::{AUTO_PUBLIC_PATH_MATCHER, render_module, render_runtime_modules},
   url_plugin::replace_static_url_placeholders,
 };
+use rspack_plugin_rslib::dyn_import_external::ExternalStarReExportInitFragment;
 use rspack_util::{
   SpanExt,
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
@@ -25,8 +26,87 @@ use rspack_util::{
 use self::runtime_mode::{RuntimeImportRenderContext, RuntimeRenderContext, renderer_for};
 use crate::{
   chunk_link::{ChunkLinkContext, RawImportSource, ReExportFrom, Ref},
+  import_order::ordered_imports,
   plugin::RSPACK_ESM_RUNTIME_CHUNK,
 };
+
+fn render_re_exports(
+  compilation: &Compilation,
+  chunk_link: &ChunkLinkContext,
+) -> Vec<(RawImportSource, String)> {
+  let mut declarations = Vec::new();
+  // Render all declarations that request a module together with its imports.
+  // Their position affects evaluation even when they only provide exports.
+  // render star exports
+  for (source, export_names) in &chunk_link.raw_star_exports {
+    for name in export_names {
+      if name == "*" {
+        declarations.push((
+          RawImportSource::Source((source.clone(), None)),
+          format!(
+            "export * from {};\n",
+            rspack_util::json_stringify_str(source)
+          ),
+        ));
+      } else {
+        let name_str = export_name(name).expect("should have export_name");
+        declarations.push((
+          RawImportSource::Source((source.clone(), None)),
+          format!(
+            "export * as {name_str} from {};\n",
+            rspack_util::json_stringify_str(source)
+          ),
+        ));
+      }
+    }
+  }
+
+  // render re-exports
+  for (re_export_from, export_symbols) in chunk_link.re_exports() {
+    let mut export_symbols = export_symbols.iter().collect::<Vec<_>>();
+    export_symbols.sort_by(|a, b| a.0.cmp(b.0));
+
+    let from_str = match re_export_from {
+      crate::chunk_link::ReExportFrom::Chunk(chunk_ukey) => {
+        let chunk = compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get(chunk_ukey);
+        Cow::Owned(format!("__RSPACK_ESM_CHUNK_{}", chunk.expect_id().as_str()))
+      }
+      crate::chunk_link::ReExportFrom::Request(request) => Cow::Borrowed(request.as_str()),
+    };
+    let mut stmt = String::with_capacity(export_symbols.len() * 30 + from_str.len() + 30);
+    stmt.push_str("export { ");
+    let mut first = true;
+    for (imported, exports) in &export_symbols {
+      let mut sorted_exports = exports.iter().collect::<Vec<_>>();
+      sorted_exports.sort_unstable();
+      let imported_name = export_name(imported).expect("should have export_name");
+      for exported_name in sorted_exports {
+        if !first {
+          stmt.push_str(", ");
+        }
+        first = false;
+        stmt.push_str(&imported_name);
+        if *imported != exported_name {
+          let exported_name_str = export_name(exported_name).expect("should have export_name");
+          stmt.push_str(" as ");
+          stmt.push_str(&exported_name_str);
+        }
+      }
+    }
+    stmt.push_str(" } from ");
+    stmt.push_str(&rspack_util::json_stringify_str(&from_str));
+    stmt.push_str(";\n");
+    let request = match re_export_from {
+      ReExportFrom::Chunk(chunk) => RawImportSource::Chunk(*chunk),
+      ReExportFrom::Request(request) => RawImportSource::Source((request.clone(), None)),
+    };
+    declarations.push((request, stmt));
+  }
+  declarations
+}
 
 /// Returns `true` when the module produces only CSS output (native CSS via
 /// `experiments.css` or the synthetic `CssModule` from `CssExtractRspackPlugin`).
@@ -497,16 +577,53 @@ var {} = {{}};
       }
     }
 
-    import_source.add(
-      runtime_mode_renderer.render_runtime_imports(RuntimeImportRenderContext {
+    let mut import_sources = FxIndexMap::default();
+    let mut native_requests: IdentifierMap<Vec<(i32, RawImportSource)>> = IdentifierMap::default();
+    let mut native_exports = Vec::new();
+    for fragment in &chunk_init_fragments {
+      let Ok(re_export) = fragment
+        .clone()
+        .into_any()
+        .downcast::<ExternalStarReExportInitFragment>()
+      else {
+        continue;
+      };
+      let request =
+        RawImportSource::Source((re_export.request.clone(), re_export.attributes.clone()));
+      native_requests
+        .entry(re_export.module)
+        .or_default()
+        .push((re_export.source_order, request.clone()));
+      native_exports.push((request, fragment.clone()));
+    }
+    let order_user_imports = !chunk_link.re_exports().is_empty()
+      || !chunk_link.raw_star_exports.is_empty()
+      || !native_exports.is_empty();
+    let mut module_external_imports = Vec::new();
+    let mut relocated_fragments = FxHashSet::default();
+    if order_user_imports {
+      for fragment in
+        Self::collect_module_external_fragments_in_render_order([&chunk_init_fragments])
+      {
+        if let Some(content) = Self::module_external_fragment_content(fragment.clone())
+          && let Some((request, _)) = Self::parse_module_external_namespace_import(&content)
+        {
+          relocated_fragments.insert(fragment.key().clone());
+          module_external_imports.push((request, content));
+        }
+      }
+    }
+    import_source.add(runtime_mode_renderer.render_runtime_imports(
+      RuntimeImportRenderContext {
         compilation,
         chunk_ukey,
         runtime_chunk_ukey: &runtime_chunk_ukey,
         chunk_link,
         runtime_requirements,
         runtime_template: module_runtime_template,
-      }),
-    );
+      },
+      &mut import_sources,
+    ));
 
     for (id, imports) in &chunk_link.imports {
       let chunk = Self::get_module_chunk(*id, compilation)?;
@@ -551,10 +668,13 @@ var {} = {{}};
         .expect_get(chunk);
 
       if imported.is_empty() {
-        import_source.add(RawStringSource::from(format!(
-          "import \"__RSPACK_ESM_CHUNK_{}\";\n",
-          chunk.expect_id().as_str()
-        )));
+        import_sources
+          .entry(RawImportSource::Chunk(chunk.ukey()))
+          .or_default()
+          .push_str(&format!(
+            "import \"__RSPACK_ESM_CHUNK_{}\";\n",
+            chunk.expect_id().as_str()
+          ));
       } else {
         let mut stmt = String::with_capacity(imported.len() * 30 + 40);
         stmt.push_str("import { ");
@@ -575,7 +695,70 @@ var {} = {{}};
         stmt.push_str(" } from \"__RSPACK_ESM_CHUNK_");
         stmt.push_str(chunk.expect_id().as_str());
         stmt.push_str("\";\n");
-        import_source.add(RawStringSource::from(stmt));
+        import_sources
+          .entry(RawImportSource::Chunk(chunk.ukey()))
+          .or_default()
+          .push_str(&stmt);
+      }
+    }
+
+    let re_export_sources = render_re_exports(compilation, chunk_link);
+    let mut imports_reordered = false;
+    if order_user_imports {
+      let mut ordered_sources = import_sources.clone();
+      // Runtime initialization is independent of the user module graph. Move
+      // its injected import into the prelude only when applying a proven order.
+      let runtime_import = if runtime_chunk_ukey != *chunk_ukey {
+        ordered_sources.shift_remove(&RawImportSource::Chunk(runtime_chunk_ukey))
+      } else {
+        None
+      };
+      for (request, content) in module_external_imports {
+        ordered_sources
+          .entry(request)
+          .or_default()
+          .push_str(&content);
+      }
+      // Rslib preserves some star re-exports outside the active module graph.
+      // Their source positions are recorded without reviving tree-shaken edges.
+      let mut rendered_native_exports = FxHashSet::default();
+      for (request, fragment) in native_exports {
+        if rendered_native_exports.insert(fragment.key().clone()) {
+          relocated_fragments.insert(fragment.key().clone());
+          ordered_sources
+            .entry(request)
+            .or_default()
+            .push_str(&fragment.contents(&mut ChunkRenderContext {})?.start);
+        }
+      }
+      for (request, content) in &re_export_sources {
+        ordered_sources
+          .entry(request.clone())
+          .or_default()
+          .push_str(content);
+      }
+      if let Some(import_order) =
+        ordered_imports(compilation, chunk_link, &ordered_sources, &native_requests)
+      {
+        if let Some(runtime_import) = runtime_import {
+          import_source.add(RawStringSource::from(runtime_import));
+        }
+        for request in import_order {
+          let source = ordered_sources
+            .swap_remove(&request)
+            .expect("should have import source");
+          import_source.add(RawStringSource::from(source));
+        }
+        chunk_init_fragments.retain(|fragment| !relocated_fragments.contains(fragment.key()));
+        imports_reordered = true;
+      }
+    }
+    if !imports_reordered {
+      // Unmodeled dependencies can determine the first evaluation of a request
+      // that also has a static ESM origin. Preserve every original render phase
+      // instead of partially reordering around an unknown request.
+      for source in import_sources.into_values() {
+        import_source.add(RawStringSource::from(source));
       }
     }
 
@@ -664,63 +847,10 @@ var {} = {{}};
       final_source.add(RawStringSource::from(export_str));
     }
 
-    // render star exports
-    for (source, export_names) in &chunk_link.raw_star_exports {
-      for name in export_names {
-        if name == "*" {
-          final_source.add(RawStringSource::from(format!(
-            "export * from {};\n",
-            rspack_util::json_stringify_str(source)
-          )));
-        } else {
-          let name_str = export_name(name).expect("should have export_name");
-          final_source.add(RawStringSource::from(format!(
-            "export * as {name_str} from {};\n",
-            rspack_util::json_stringify_str(source)
-          )));
-        }
+    if !imports_reordered {
+      for (_, source) in re_export_sources {
+        final_source.add(RawStringSource::from(source));
       }
-    }
-
-    // render re-exports
-    for (re_export_from, export_symbols) in chunk_link.re_exports() {
-      let mut export_symbols = export_symbols.iter().collect::<Vec<_>>();
-      export_symbols.sort_by(|a, b| a.0.cmp(b.0));
-
-      let from_str = match re_export_from {
-        crate::chunk_link::ReExportFrom::Chunk(chunk_ukey) => {
-          let chunk = compilation
-            .build_chunk_graph_artifact
-            .chunk_by_ukey
-            .expect_get(chunk_ukey);
-          Cow::Owned(format!("__RSPACK_ESM_CHUNK_{}", chunk.expect_id().as_str()))
-        }
-        crate::chunk_link::ReExportFrom::Request(request) => Cow::Borrowed(request.as_str()),
-      };
-      let mut stmt = String::with_capacity(export_symbols.len() * 30 + from_str.len() + 30);
-      stmt.push_str("export { ");
-      let mut first = true;
-      for (imported, exports) in &export_symbols {
-        let mut sorted_exports = exports.iter().collect::<Vec<_>>();
-        sorted_exports.sort_unstable();
-        let imported_name = export_name(imported).expect("should have export_name");
-        for exported_name in sorted_exports {
-          if !first {
-            stmt.push_str(", ");
-          }
-          first = false;
-          stmt.push_str(&imported_name);
-          if *imported != exported_name {
-            let exported_name_str = export_name(exported_name).expect("should have export_name");
-            stmt.push_str(" as ");
-            stmt.push_str(&exported_name_str);
-          }
-        }
-      }
-      stmt.push_str(" } from \"");
-      stmt.push_str(&from_str);
-      stmt.push_str("\";\n");
-      final_source.add(RawStringSource::from(stmt));
     }
 
     if let Some(default_export) = export_default {
