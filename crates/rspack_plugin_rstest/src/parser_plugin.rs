@@ -7,7 +7,7 @@ use rspack_core::{
 };
 use rspack_intern::Atom;
 use rspack_plugin_javascript::{
-  JavascriptParserPlugin,
+  CREATED_REQUIRE_IDENTIFIER_TAG, JavascriptParserPlugin,
   dependency::{CommonJsRequireDependency, ImportDependency, RequireHeaderDependency},
   try_extract_magic_comment,
   utils::{
@@ -25,7 +25,7 @@ use rspack_util::{
 };
 use swc_next_ecma_ast::{
   Ast, CallExpression, ChainExpression, Expr, ExprData, GetSpan, IdentifierName,
-  IdentifierReference, ImportDeclaration, ImportExpression, PropertyKeyData, Span, Stmt,
+  IdentifierReference, ImportDeclaration, ImportExpression, Program, PropertyKeyData, Span, Stmt,
   UnaryExpression, VariableDeclaration, VariableDeclarator,
 };
 
@@ -39,6 +39,7 @@ use crate::{
   mock_module_id_dependency::MockModuleIdDependency,
   module_path_name_dependency::{ModulePathNameDependency, NameType},
   require_resolve_origin_dependency::RstestRequireResolveOriginDependency,
+  runtime_dependency_metadata,
 };
 
 const DIR_NAME: &str = "__dirname";
@@ -119,6 +120,9 @@ pub struct RstestParserPluginOptions {
   pub import_meta_resolve_factory: Option<String>,
   /// Whether to respect `/* webpackIgnore: true */` in CommonJS calls.
   pub commonjs_magic_comments: bool,
+  /// Effective per-module setting; requests owned by the normal parser must
+  /// not also be described as native runtime dependencies.
+  pub parse_dynamic_require: bool,
 }
 
 impl Default for RstestParserPluginOptions {
@@ -136,6 +140,7 @@ impl Default for RstestParserPluginOptions {
       inject_require_resolve_origin: false,
       import_meta_resolve_factory: None,
       commonjs_magic_comments: false,
+      parse_dynamic_require: true,
     }
   }
 }
@@ -182,6 +187,13 @@ impl RstestParserPlugin {
 
     let args = call_expr.arguments(ast);
     if !(1..=2).contains(&args.len()) {
+      runtime_dependency_metadata::record(
+        parser,
+        "resolve",
+        "entry",
+        ast.first(args).and_then(|argument| argument.as_expr(ast)),
+        Some("resolve-arguments"),
+      );
       return None;
     }
 
@@ -189,6 +201,17 @@ impl RstestParserPlugin {
     if first_arg.is_spread_element(ast)
       || self.has_ignore_comment(parser, call_expr.span(ast), first_arg.span(ast))
     {
+      runtime_dependency_metadata::record(
+        parser,
+        "resolve",
+        "entry",
+        first_arg.as_expr(ast),
+        Some(if first_arg.is_spread_element(ast) {
+          "spread-argument"
+        } else {
+          "ignored-call"
+        }),
+      );
       return None;
     }
 
@@ -196,11 +219,26 @@ impl RstestParserPlugin {
       .second(args)
       .is_some_and(|arg| arg.is_spread_element(ast))
     {
+      runtime_dependency_metadata::record(
+        parser,
+        "resolve",
+        "entry",
+        first_arg.as_expr(ast),
+        Some("spread-argument"),
+      );
       return None;
     }
 
     let resource_path = parser.resource_data.path()?;
     let origin_path = resource_path.as_str().to_string();
+
+    runtime_dependency_metadata::record(
+      parser,
+      "resolve",
+      "source",
+      first_arg.as_expr(ast),
+      (args.len() > 1).then_some("resolve-options"),
+    );
 
     let last_arg = ast
       .nodes(args)
@@ -943,6 +981,16 @@ fn is_non_hoisted_mock_api(name: &str) -> bool {
 
 #[rspack_plugin_javascript::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
+  fn program(&self, parser: &mut JavascriptParser<'p>, _program: Program) -> Option<bool> {
+    runtime_dependency_metadata::reset(parser);
+    None
+  }
+
+  fn finish(&self, parser: &mut JavascriptParser<'p>) -> Option<bool> {
+    runtime_dependency_metadata::record_native_module_capability(parser);
+    None
+  }
+
   fn import_specifier(
     &self,
     parser: &mut JavascriptParser<'p>,
@@ -1025,6 +1073,41 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     call_expr: CallExpression,
     for_name: &str,
   ) -> Option<bool> {
+    if for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE {
+      let ast = parser.ast.ast;
+      let args = call_expr.arguments(ast);
+      if let Some(first_arg) = ast.first(args) {
+        let expression = first_arg.as_expr(ast);
+        let ignored = self.options.commonjs_magic_comments
+          && runtime_dependency_metadata::has_ignore_comment(
+            parser,
+            call_expr.span(ast),
+            first_arg.span(ast),
+          );
+        let parses_commonjs = parser.module_type.is_js_auto() || parser.module_type.is_js_dynamic();
+        if ignored
+          || args.len() != 1
+          || !parses_commonjs
+          || (!self.options.parse_dynamic_require
+            && !expression
+              .is_some_and(|expr| runtime_dependency_metadata::is_static_request(ast, expr)))
+        {
+          let unsupported = if first_arg.is_spread_element(ast) {
+            Some("spread-argument")
+          } else if ignored {
+            Some("ignored-call")
+          } else if args.len() != 1 {
+            Some("require-arguments")
+          } else {
+            None
+          };
+          // Observe without claiming the call or walking its arguments. The
+          // ordinary parser still decides whether and how to handle it.
+          runtime_dependency_metadata::record(parser, "require", "entry", expression, unsupported);
+        }
+      }
+    }
+
     if for_name == expr_name::IMPORT_META_RESOLVE
       && let Some(expression) = self.import_meta_resolve_expression(parser)
     {
@@ -1066,6 +1149,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
       // does not implement, and the default `ImportParserPlugin` enforces
       // the `experiments.deferImport` gate which we must not bypass.
       if import_expr.phase(ast).is_some() {
+        runtime_dependency_metadata::record(
+          parser,
+          "import",
+          "entry",
+          Some(import_expr.source(ast)),
+          Some("import-phase"),
+        );
         return None;
       }
 
@@ -1075,6 +1165,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
       let source_span = source.span(ast);
       let magic = try_extract_magic_comment(parser, import_span, source_span);
       if magic.get_ignore().unwrap_or_default() {
+        runtime_dependency_metadata::record(
+          parser,
+          "import",
+          "entry",
+          Some(source),
+          Some("ignored-call"),
+        );
         return None;
       }
 
@@ -1085,6 +1182,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
 
       let resource_path = parser.resource_data.path()?;
       let origin_path = resource_path.as_str().to_string();
+
+      runtime_dependency_metadata::record(parser, "import", "source", Some(source), None);
 
       let options = import_expr.options(ast);
       let args_end = options.unwrap_or(source).span(ast).real_hi();
@@ -1126,6 +1225,26 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     _members_optionals: &[bool],
     _member_ranges: &[Span],
   ) -> Option<bool> {
+    if for_name == CREATED_REQUIRE_IDENTIFIER_TAG
+      && (members.is_empty() || (members.len() == 1 && members[0].as_str() == "resolve"))
+    {
+      let ast = parser.ast.ast;
+      runtime_dependency_metadata::record(
+        parser,
+        if members.is_empty() {
+          "require"
+        } else {
+          "resolve"
+        },
+        "entry",
+        ast
+          .first(call_expr.arguments(ast))
+          .and_then(|argument| argument.as_expr(ast)),
+        Some("create-require-origin"),
+      );
+      return None;
+    }
+
     // Handle rs.requireActual and rs.importActual calls
     // Extract the variable name from call_expr.callee to handle both:
     // 1. Global variables: rs.importActual() or rstest.importActual()
