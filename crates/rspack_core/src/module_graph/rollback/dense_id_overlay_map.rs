@@ -1,19 +1,23 @@
 use std::{marker::PhantomData, ops::Deref};
 
-use super::OverlayValue;
+use super::{DenseStorageStats, OverlayValue, PagedSlots};
 
 #[derive(Debug)]
 pub struct DenseIdOverlayMap<K, V> {
-  base: Vec<Option<V>>,
-  overlay: Option<Vec<Option<OverlayValue<V>>>>,
+  base: PagedSlots<V>,
+  /// Allocated on the first write after a checkpoint, so maps that seal never
+  /// writes skip the overlay lookup.
+  overlay: Option<PagedSlots<OverlayValue<V>>>,
+  checkpointed: bool,
   key: PhantomData<K>,
 }
 
 impl<K, V> Default for DenseIdOverlayMap<K, V> {
   fn default() -> Self {
     Self {
-      base: Vec::new(),
+      base: PagedSlots::default(),
       overlay: None,
+      checkpointed: false,
       key: PhantomData,
     }
   }
@@ -25,41 +29,38 @@ impl<K: Deref<Target = u32>, V> DenseIdOverlayMap<K, V> {
   pub fn next_index(&self) -> usize {
     self
       .base
-      .len()
-      .max(self.overlay.as_ref().map_or(0, Vec::len))
+      .end()
+      .max(self.overlay.as_ref().map_or(0, PagedSlots::end))
   }
 
   #[inline]
   pub fn checkpoint(&mut self) {
-    self.overlay.get_or_insert_with(Vec::new);
+    self.checkpointed = true;
   }
 
   #[inline]
   pub fn reset(&mut self) {
     self.overlay = None;
+    self.checkpointed = false;
   }
 
   #[inline]
   pub fn insert(&mut self, key: K, value: V) {
     let index = *key as usize;
-    if self.overlay.is_some() {
-      Self::ensure_len(self.overlay(), index);
-      self.overlay.as_mut().expect("overlay checked above")[index] =
-        Some(OverlayValue::Value(value));
+    if self.checkpointed {
+      self.overlay().insert(index, OverlayValue::Value(value));
     } else {
-      Self::ensure_len(&mut self.base, index);
-      self.base[index] = Some(value);
+      self.base.insert(index, value);
     }
   }
 
   #[inline]
   pub fn remove(&mut self, key: &K) {
     let index = **key as usize;
-    if self.overlay.is_some() {
-      Self::ensure_len(self.overlay(), index);
-      self.overlay.as_mut().expect("overlay checked above")[index] = Some(OverlayValue::Tombstone);
-    } else if let Some(value) = self.base.get_mut(index) {
-      *value = None;
+    if self.checkpointed {
+      self.overlay().insert(index, OverlayValue::Tombstone);
+    } else {
+      self.base.remove(index);
     }
   }
 
@@ -67,14 +68,14 @@ impl<K: Deref<Target = u32>, V> DenseIdOverlayMap<K, V> {
   pub fn get(&self, key: &K) -> Option<&V> {
     let index = **key as usize;
     if let Some(overlay) = &self.overlay
-      && let Some(Some(value)) = overlay.get(index)
+      && let Some(value) = overlay.get(index)
     {
       return match value {
         OverlayValue::Value(value) => Some(value),
         OverlayValue::Tombstone => None,
       };
     }
-    self.base.get(index).and_then(Option::as_ref)
+    self.base.get(index)
   }
 
   #[inline]
@@ -83,45 +84,38 @@ impl<K: Deref<Target = u32>, V> DenseIdOverlayMap<K, V> {
     V: Clone,
   {
     let index = **key as usize;
-    if self.overlay.is_some() {
-      self.materialize_overlay_value(index);
-      let overlay = self.overlay.as_mut().expect("overlay checked above");
-      match overlay.get_mut(index).and_then(Option::as_mut) {
-        Some(OverlayValue::Value(value)) => Some(value),
-        _ => None,
-      }
-    } else {
-      self.base.get_mut(index).and_then(Option::as_mut)
+    if !self.checkpointed {
+      return self.base.get_mut(index);
+    }
+    if !self
+      .overlay
+      .as_ref()
+      .is_some_and(|overlay| overlay.contains(index))
+    {
+      let value = self.base.get(index)?.clone();
+      self.overlay().insert(index, OverlayValue::Value(value));
+    }
+    match self.overlay.as_mut()?.get_mut(index) {
+      Some(OverlayValue::Value(value)) => Some(value),
+      _ => None,
     }
   }
 
-  #[inline]
-  fn materialize_overlay_value(&mut self, index: usize)
-  where
-    V: Clone,
-  {
-    let overlay = self.overlay.as_ref().expect("overlay checked above");
-    if matches!(overlay.get(index), Some(Some(_))) {
-      return;
-    }
-
-    if let Some(value) = self.base.get(index).and_then(Option::as_ref).cloned() {
-      Self::ensure_len(self.overlay(), index);
-      self.overlay.as_mut().expect("overlay checked above")[index] =
-        Some(OverlayValue::Value(value));
-    }
+  /// Returns base and overlay stats.
+  pub fn stats(&self) -> (DenseStorageStats, DenseStorageStats) {
+    (
+      self.base.stats(),
+      self
+        .overlay
+        .as_ref()
+        .map(PagedSlots::stats)
+        .unwrap_or_default(),
+    )
   }
 
   #[inline]
-  fn overlay(&mut self) -> &mut Vec<Option<OverlayValue<V>>> {
-    self.overlay.get_or_insert_with(Vec::new)
-  }
-
-  #[inline]
-  fn ensure_len<T>(values: &mut Vec<Option<T>>, index: usize) {
-    if values.len() <= index {
-      values.resize_with(index + 1, || None);
-    }
+  fn overlay(&mut self) -> &mut PagedSlots<OverlayValue<V>> {
+    self.overlay.get_or_insert_with(PagedSlots::default)
   }
 }
 

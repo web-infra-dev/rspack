@@ -699,7 +699,15 @@ impl ChunkGraph {
         side_effects_state_artifact: &SideEffectsStateArtifact,
         exports_info_artifact: &ExportsInfoArtifact,
       ) {
-        for connection in module_graph.get_outgoing_connections(&module) {
+        let Some(mgm) = module_graph.module_graph_module_by_identifier(&module) else {
+          return;
+        };
+        // A plain loop keeps this hot path independent of whether the
+        // `get_outgoing_connections` iterator adapters get inlined.
+        for connection_id in mgm.outgoing_connections() {
+          let Some(connection) = module_graph.connection_by_id(connection_id) else {
+            continue;
+          };
           // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ChunkGraph.js#L290
           let active_state = connection.active_state(
             module_graph,

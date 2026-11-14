@@ -820,16 +820,17 @@ impl Module for ConcatenatedModule {
           .module_by_identifier(&item.id)
           .expect("should have module");
 
-        module
-          .get_dependencies()
-          .iter()
-          .filter(|dep| {
-            let module_id_of_dep = module_graph.module_identifier_by_dependency_id(dep.id());
-            !is_esm_dep_like(dep.as_ref())
-              || module_id_of_dep.is_none_or(|module_id| !modules.contains(module_id))
-          })
-          .cloned()
-          .collect::<Vec<_>>()
+        let mut part = Vec::new();
+        for dep in module.get_dependencies() {
+          let inner = is_esm_dep_like(dep.as_ref())
+            && module_graph
+              .module_identifier_by_dependency_id(dep.id())
+              .is_some_and(|module_id| modules.contains(module_id));
+          if !inner {
+            part.push(dep.clone());
+          }
+        }
+        part
       })
       .collect::<Vec<_>>();
     for part in dependency_parts {
