@@ -789,6 +789,7 @@ impl NormalModuleFactory {
             }),
             cache: false,
             options_cache_key: String::new(),
+            source_map: None,
             filter: None,
           }
         }));

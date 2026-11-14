@@ -205,4 +205,114 @@ function createSourceMapOptions(context, name, devtool) {
   };
 }
 
-export default [...closeCases, readonlyCase, sourceMapCase];
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
+const loaderOptionsCase = {
+  name: 'loader-options',
+  description: 'should compute loader etags from rule options and sourceMap overrides',
+  options(context) {
+    return createSourceMapOptions(context, 'first', 'source-map');
+  },
+  async build(context, first) {
+    async function check(compiler, sourceMap, expected) {
+      const stats = await runCompiler(compiler);
+      expect(stats.hasErrors()).toBe(false);
+      const { cacheInfo } = stats.toJson({ all: false, cacheInfo: true });
+      expect(cacheInfo?.[`${compiler.compilerPath}|loader`]).toEqual(expected);
+      const bundle = stats.compilation.getAsset('main.js').source.source();
+      expect(bundle.toString()).toContain(`expect(${sourceMap}).toBe(true)`);
+    }
+
+    const miss = { hits: 0, misses: 1, reused: 0, stores: 1 };
+    const hit = { hits: 1, misses: 0, reused: 1, stores: 0 };
+    await check(first, true, miss);
+
+    const cyclic = {};
+    cyclic.self = cyclic;
+    const cases = [
+      ['explicit-default', { sourceMap: true }, undefined, true, miss],
+      ['override', { sourceMap: false }, undefined, false, miss],
+      ['reuse-override', { sourceMap: false }, undefined, false, hit],
+      ['reuse-without-devtool', { sourceMap: false }, undefined, false, miss],
+      [
+        'undefined-override',
+        { sourceMap: undefined },
+        undefined,
+        undefined,
+        undefined,
+      ],
+      ['global-function', { nested: [() => {}] }, undefined, true, miss],
+      ['rule-function', undefined, { nested: [() => {}] }, true, undefined],
+      ['global-cycle', cyclic, undefined, true, hit],
+      ['rule-bigint', undefined, { value: 1n }, true, undefined],
+    ];
+    for (const [name, loader, ruleOptions, sourceMap, expected] of cases) {
+      const options = createSourceMapOptions(context, name, 'source-map');
+      if (name === 'reuse-without-devtool') options.devtool = false;
+      options.loader = loader;
+      const rule = options.module.rules[0];
+      rule.use[0].options = ruleOptions;
+      if (name === 'reuse-override') {
+        const use = rule.use;
+        rule.use = () => use;
+      }
+      const compiler = rspack(options);
+      try {
+        await check(compiler, sourceMap, expected);
+      } finally {
+        await closeCompiler(compiler);
+      }
+    }
+  },
+};
+
+function createSwcSourceMapOptions(context, name, devtool) {
+  const options = createOptions(context, name, 'memory');
+  options.devtool = devtool;
+  options.module.rules[0].use = [{ loader: 'builtin:swc-loader', cache: true }];
+  return options;
+}
+
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
+const swcSourceMapCase = {
+  name: 'swc-source-map-columns',
+  description: 'should only reuse SWC results with matching column requirements',
+  options(context) {
+    return createSwcSourceMapOptions(context, 'cheap', 'cheap-module-source-map');
+  },
+  async build(context, cheap) {
+    async function check(compiler, hits) {
+      const stats = await runCompiler(compiler);
+      expect(stats.hasErrors()).toBe(false);
+      const { cacheInfo } = stats.toJson({ all: false, cacheInfo: true });
+      expect(cacheInfo?.[`${compiler.compilerPath}|loader`]).toEqual({
+        hits,
+        misses: 1 - hits,
+        reused: hits,
+        stores: 1 - hits,
+      });
+      const asset = stats.compilation.getAsset('main.js.map');
+      return JSON.parse(asset.source.source().toString()).mappings;
+    }
+
+    const cheapMappings = await check(cheap, 0);
+    const full = rspack(createSwcSourceMapOptions(context, 'full', 'source-map'));
+    const reusedOptions = createSwcSourceMapOptions(context, 'reused', 'source-map');
+    reusedOptions.loader = { sourceMap: false, nested: [() => {}] };
+    const reused = rspack(reusedOptions);
+    try {
+      const fullMappings = await check(full, 0);
+      expect(fullMappings).not.toBe(cheapMappings);
+      expect(await check(reused, 1)).toBe(fullMappings);
+    } finally {
+      await Promise.all([full, reused].map(closeCompiler));
+    }
+  },
+};
+
+export default [
+  ...closeCases,
+  readonlyCase,
+  sourceMapCase,
+  loaderOptionsCase,
+  swcSourceMapCase,
+];

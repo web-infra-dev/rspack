@@ -2841,6 +2841,8 @@ export interface RawModuleRuleUse {
   options?: string
   cache: boolean
   optionsCacheKey: string
+  /** JavaScript loader context source map override. */
+  sourceMap?: boolean
   codeFilter?: string | RegExp
 }
 

@@ -112,6 +112,13 @@ export const getRawOptions = (
       mode,
       context: options.context!,
       experiments,
+      loaderSourceMap:
+        options.loader &&
+        Object.prototype.propertyIsEnumerable.call(options.loader, 'sourceMap')
+          ? typeof options.loader.sourceMap === 'boolean'
+            ? options.loader.sourceMap
+            : undefined
+          : null,
     }),
     optimization: options.optimization as Required<Optimization>,
     stats: getRawStats(options.stats),

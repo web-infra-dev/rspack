@@ -4641,6 +4641,7 @@ dependencies = [
  "rspack_cacheable",
  "rspack_core",
  "rspack_error",
+ "rspack_hash",
  "rspack_hook",
  "rspack_intern",
  "rspack_javascript_compiler",

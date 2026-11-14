@@ -26,6 +26,8 @@ import type {
 export const BUILTIN_LOADER_PREFIX = 'builtin:';
 
 export interface ComposeJsUseOptions {
+  // null: use the module default; undefined: unsupported non-boolean override.
+  loaderSourceMap: boolean | null | undefined;
   context: RawOptions['context'];
   mode: RawOptions['mode'];
   experiments: RawOptions['experiments'];
@@ -526,6 +528,44 @@ function getBuiltinLoaderOptions(
   return o;
 }
 
+export function serializeLoaderOptionsForCache(
+  options: unknown,
+): string | undefined {
+  try {
+    return (
+      JSON.stringify(options, function (key, value: unknown) {
+        const original: unknown = this[key];
+        // JSON can omit or coerce values that a loader can still observe.
+        if (
+          typeof original === 'function' ||
+          typeof value === 'function' ||
+          typeof value === 'symbol' ||
+          (typeof value === 'number' &&
+            (!Number.isFinite(value) || Object.is(value, -0))) ||
+          // An explicit undefined can override a default, e.g. sourceMap.
+          (value === undefined && this === options) ||
+          !Object.is(original, value)
+        ) {
+          throw new TypeError('Loader options are not JSON serializable');
+        }
+        if (
+          value !== null &&
+          typeof value === 'object' &&
+          !Array.isArray(value)
+        ) {
+          const prototype = Object.getPrototypeOf(value);
+          if (prototype !== Object.prototype && prototype !== null) {
+            throw new TypeError('Loader options are not JSON serializable');
+          }
+        }
+        return value;
+      }) ?? ''
+    );
+  } catch {
+    return undefined;
+  }
+}
+
 function createRawModuleRuleUsesImpl(
   uses: (RuleSetLoaderWithOptions | Falsy)[],
   path: string,
@@ -554,6 +594,13 @@ function createRawModuleRuleUsesImpl(
       isBuiltin = true;
     }
 
+    let optionsCacheKey = use.cache
+      ? serializeLoaderOptionsForCache(fingerprintOptions)
+      : undefined;
+    if (!isBuiltin && options.loaderSourceMap === undefined) {
+      // Non-boolean overrides cannot be represented by the Rust sourceMap option.
+      optionsCacheKey = undefined;
+    }
     return {
       loader: resolveStringifyLoaders(
         use,
@@ -563,10 +610,9 @@ function createRawModuleRuleUsesImpl(
         fingerprintOptions,
       ),
       options: o,
-      cache: use.cache ?? false,
-      optionsCacheKey: use.cache
-        ? (JSON.stringify(fingerprintOptions) ?? '')
-        : '',
+      cache: optionsCacheKey !== undefined,
+      optionsCacheKey: optionsCacheKey ?? '',
+      sourceMap: isBuiltin ? undefined : (options.loaderSourceMap ?? undefined),
       codeFilter: createRawLoaderCodeFilter(
         use.codeFilter,
         `${path}[${index}].codeFilter`,

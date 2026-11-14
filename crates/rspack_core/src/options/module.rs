@@ -1694,6 +1694,8 @@ pub struct ModuleRuleUseLoader {
   pub cache: bool,
   /// Stable serialization of the public loader options.
   pub options_cache_key: String,
+  /// JavaScript loader context source map override.
+  pub source_map: Option<bool>,
   /// Preconditions for running the normal loader handler.
   pub filter: Option<Arc<rspack_loader_runner::LoaderFilter>>,
 }
