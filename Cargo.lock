@@ -4720,10 +4720,12 @@ dependencies = [
 name = "rspack_napi"
 version = "0.103.2"
 dependencies = [
+ "indexmap",
  "napi",
  "oneshot",
  "rspack-allocative",
  "rspack_error",
+ "rustc-hash",
  "scopeguard",
  "serde_json",
  "tokio",

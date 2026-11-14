@@ -1,5 +1,18 @@
 mod field_names;
+mod from_js_object;
 mod tagged_union;
+
+/// Decode a named Rust struct from an owned JS object.
+///
+/// Fields use camelCase by default. Use `#[js_value(rename = "...")]` to
+/// override the key and `#[js_value(with = path)]` to decode an optional field
+/// with a custom function.
+#[proc_macro_derive(FromJsObject, attributes(js_value))]
+pub fn from_js_object(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+  from_js_object::expand(syn::parse_macro_input!(tokens))
+    .unwrap_or_else(syn::Error::into_compile_error)
+    .into()
+}
 
 #[proc_macro_attribute]
 pub fn field_names(

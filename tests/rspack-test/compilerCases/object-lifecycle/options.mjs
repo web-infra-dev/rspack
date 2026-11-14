@@ -12,6 +12,8 @@ export default async function run() {
   const capturedCompilations = [];
   let filenameCalls = 0;
   let bannerCalls = 0;
+  let parserCalls = 0;
+  let generatorCalls = 0;
   let filenameUsedCompiler = false;
   let filenameUsedCompilation = false;
   let bannerUsedCompiler = false;
@@ -25,7 +27,39 @@ export default async function run() {
       return {
         context: fixtureDir,
         mode: "development",
-        entry: "./entry.js",
+        entry: [
+          "./entry.js",
+          "./import-module-asset.txt?asset",
+          "./import-module-asset.txt?json",
+        ],
+        module: {
+          rules: [
+            {
+              resourceQuery: /asset$/,
+              type: "asset/resource",
+              generator: {
+                filename: () => {
+                  generatorCalls += 1;
+                  compilerRef.outputFileSystem;
+                  latestCompilation.hash;
+                  return "asset.txt";
+                },
+              },
+            },
+            {
+              resourceQuery: /json$/,
+              parser: {
+                parse: (source) => {
+                  parserCalls += 1;
+                  compilerRef.outputFileSystem;
+                  latestCompilation.hash;
+                  return { source };
+                },
+              },
+            },
+            { resourceQuery: /json$/, type: "json" },
+          ],
+        },
         output: {
           path: "/",
           filename: () => {
@@ -84,7 +118,9 @@ export default async function run() {
       !filenameUsedCompiler ||
       !filenameUsedCompilation ||
       !bannerUsedCompiler ||
-      !bannerUsedCompilation
+      !bannerUsedCompilation ||
+      parserCalls === 0 ||
+      generatorCalls === 0
     ) {
       throw new Error(
         "option callbacks did not observe both compiler and compilation",

@@ -1,27 +1,11 @@
 import path from 'node:path';
 import {
-  type RawAssetGeneratorDataUrlFnCtx,
-  type RawAssetGeneratorOptions,
-  type RawAssetInlineGeneratorOptions,
-  type RawAssetParserDataUrl,
-  type RawAssetParserOptions,
-  type RawAssetResourceGeneratorOptions,
-  type RawCssAutoOrModuleParserOptions,
-  type RawCssGeneratorOptions,
-  type RawCssModuleGeneratorOptions,
-  type RawCssModuleParserOptions,
-  type RawCssParserOptions,
   type RawEnvironment,
   type RawFuncUseCtx,
-  type RawGeneratorOptions,
-  type RawJavascriptParserOptions,
-  type RawJsonGeneratorOptions,
-  type RawJsonParserOptions,
   type RawModuleRule,
   type RawModuleRuleUse,
   type RawOptions,
   type RawOutputOptions,
-  type RawParserOptions,
   type RawRuleSetCondition,
   RawRuleSetConditionType,
   type RawRuleSetLogicalConditions,
@@ -48,22 +32,8 @@ import type {
   OutputNormalized,
   RspackOptionsNormalized,
 } from './normalization';
+import { encodeConfigDom, encodeModuleOptions } from './optionGraph';
 import type {
-  AssetGeneratorDataUrl,
-  AssetGeneratorOptions,
-  AssetInlineGeneratorOptions,
-  AssetParserDataUrl,
-  AssetParserOptions,
-  AssetResourceGeneratorOptions,
-  CssGeneratorOptions,
-  CssAutoOrModuleParserOptions,
-  CssModuleGeneratorOptions,
-  CssModuleParserOptions,
-  CssParserOptions,
-  GeneratorOptionsByModuleType,
-  JavascriptParserOptions,
-  JsonGeneratorOptions,
-  JsonParserOptions,
   NewCache,
   Node,
   Optimization,
@@ -250,15 +220,6 @@ function getRawAlias(
   return false;
 }
 
-function getRawResolveByDependency(
-  byDependency: Resolve['byDependency'],
-): RawOptions['resolve']['byDependency'] {
-  if (byDependency === undefined) return byDependency;
-  return Object.fromEntries(
-    Object.entries(byDependency).map(([k, v]) => [k, getRawResolve(v)]),
-  );
-}
-
 function getRawTsConfig(
   tsConfig: Resolve['tsConfig'],
 ): RawOptions['resolve']['tsconfig'] {
@@ -277,8 +238,33 @@ function getRawTsConfig(
   };
 }
 
+type NormalizedResolve = Omit<RawOptions['resolve'], 'byDependency'> & {
+  byDependency?: Record<string, NormalizedResolve>;
+};
+
 export function getRawResolve(resolve: Resolve): RawOptions['resolve'] {
+  const raw = convertResolve(resolve, new WeakMap());
   return {
+    ...raw,
+    byDependency:
+      raw.byDependency &&
+      Object.fromEntries(
+        Object.entries(raw.byDependency).map(([key, options]) => [
+          key,
+          encodeConfigDom(options, 'resolve'),
+        ]),
+      ),
+  };
+}
+
+function convertResolve(
+  resolve: Resolve,
+  seen: WeakMap<Resolve, NormalizedResolve>,
+): NormalizedResolve {
+  const previous = seen.get(resolve);
+  if (previous !== undefined) return previous;
+
+  const raw: NormalizedResolve = {
     ...resolve,
     alias: getRawAlias(resolve.alias),
     fallback: getRawAlias(resolve.fallback),
@@ -287,8 +273,20 @@ export function getRawResolve(resolve: Resolve): RawOptions['resolve'] {
       string[]
     >,
     tsconfig: getRawTsConfig(resolve.tsConfig),
-    byDependency: getRawResolveByDependency(resolve.byDependency),
+    byDependency: undefined,
   };
+  // Preserve object identity across nested options, including back-references.
+  seen.set(resolve, raw);
+  const byDependency = resolve.byDependency;
+  if (byDependency !== undefined) {
+    raw.byDependency = Object.fromEntries(
+      Object.entries(byDependency).map(([key, options]) => [
+        key,
+        convertResolve(options, seen),
+      ]),
+    );
+  }
+  return raw;
 }
 
 function getRawModule(
@@ -305,12 +303,12 @@ function getRawModule(
     { rules: module.rules as RuleSetRule[] },
   ];
   const rules = ruleSet.map((rule, index) =>
-    getRawModuleRule(rule, `ruleSet[${index}]`, options, 'javascript/auto'),
+    getRawModuleRule(rule, `ruleSet[${index}]`, options),
   );
   return {
     rules,
     parser: getRawParserOptionsMap(module.parser),
-    generator: getRawGeneratorOptionsMap(module.generator),
+    generator: encodeModuleOptions('generator', module.generator),
     noParse: module.noParse,
   };
 }
@@ -353,7 +351,6 @@ const getRawModuleRule = (
   rule: RuleSetRule,
   path: string,
   options: ComposeJsUseOptions,
-  upperType: string,
 ): RawModuleRule => {
   // Rule.loader is a shortcut to Rule.use: [ { loader } ].
   // See: https://webpack.js.org/configuration/module/#ruleloader
@@ -424,13 +421,13 @@ const getRawModuleRule = (
         : createRawModuleRuleUses(normalizedUse ?? [], `${path}.use`, options),
     type: rule.type,
     layer: rule.layer,
-    parser: rule.parser
-      ? getRawParserOptions(rule.parser, rule.type ?? upperType)
-      : undefined,
-    generator: rule.generator
-      ? getRawGeneratorOptions(rule.generator, rule.type ?? upperType)
-      : undefined,
-    resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
+    parser:
+      rule.parser && encodeConfigDom(getRawParser(rule.parser), 'parser:rule'),
+    generator:
+      rule.generator && encodeConfigDom(rule.generator, 'generator:rule'),
+    resolve:
+      rule.resolve &&
+      encodeConfigDom(convertResolve(rule.resolve, new WeakMap()), 'resolve'),
     oneOf: rule.oneOf
       ? rule.oneOf
           .filter(Boolean)
@@ -439,7 +436,6 @@ const getRawModuleRule = (
               rule as RuleSetRule,
               `${path}.oneOf[${index}]`,
               options,
-              (rule as RuleSetRule).type ?? upperType,
             ),
           )
       : undefined,
@@ -451,7 +447,6 @@ const getRawModuleRule = (
               rule as RuleSetRule,
               `${path}.rules[${index}]`,
               options,
-              (rule as RuleSetRule).type ?? upperType,
             ),
           )
       : undefined,
@@ -556,404 +551,27 @@ function getRawRuleSetLogicalConditions(
   };
 }
 
-function getRawParserOptionsMap(
-  parser: ParserOptionsByModuleType,
-): Record<string, RawParserOptions> {
-  return Object.fromEntries(
-    Object.entries(parser)
-      .map(([k, v]) => [k, getRawParserOptions(v, k)])
-      .filter(([_, v]) => v !== undefined),
+function getRawParserOptionsMap(parser: ParserOptionsByModuleType) {
+  return encodeModuleOptions('parser', parser, (type, options) =>
+    type === 'json' ? getRawParser(options) : options,
   );
 }
 
-function getRawGeneratorOptionsMap(
-  generator: GeneratorOptionsByModuleType,
-): Record<string, RawGeneratorOptions> {
-  return Object.fromEntries(
-    Object.entries(generator)
-      .map(([k, v]) => [k, getRawGeneratorOptions(v, k)])
-      .filter(([_, v]) => v !== undefined),
+function getRawParser(
+  parser: NonNullable<RuleSetRule['parser']>,
+): Record<string, unknown> {
+  if (typeof parser.parse !== 'function') {
+    return parser;
+  }
+  const parse = (source: string) => JSON.stringify(parser.parse(source));
+  // Keep named property reads on the original object when adapting the callback.
+  return new Proxy(
+    {},
+    {
+      get: (_target, key) =>
+        key === 'parse' ? parse : Reflect.get(parser, key),
+    },
   );
-}
-
-function getRawParserOptions(
-  parser: { [k: string]: any },
-  type: string,
-): RawParserOptions | undefined {
-  if (type === 'asset') {
-    return {
-      type: 'asset',
-      asset: getRawAssetParserOptions(parser),
-    };
-  }
-  if (type === 'javascript') {
-    return {
-      type: 'javascript',
-      javascript: getRawJavascriptParserOptions(parser),
-    };
-  }
-  if (type === 'javascript/auto') {
-    return {
-      type: 'javascript/auto',
-      javascript: getRawJavascriptParserOptions(parser),
-    };
-  }
-  if (type === 'javascript/dynamic') {
-    return {
-      type: 'javascript/dynamic',
-      javascript: getRawJavascriptParserOptions(parser),
-    };
-  }
-  if (type === 'javascript/esm') {
-    return {
-      type: 'javascript/esm',
-      javascript: getRawJavascriptParserOptions(parser),
-    };
-  }
-  if (type === 'css') {
-    return {
-      type: 'css',
-      css: getRawCssParserOptionsForCss(parser),
-    };
-  }
-  if (type === 'css/auto') {
-    return {
-      type: 'css/auto',
-      cssAuto: getRawCssAutoOrModuleParserOptions(parser),
-    };
-  }
-  if (type === 'css/global') {
-    return {
-      type: 'css/global',
-      cssGlobal: getRawCssModuleParserOptions(parser),
-    };
-  }
-  if (type === 'css/module') {
-    return {
-      type: 'css/module',
-      cssModule: getRawCssAutoOrModuleParserOptions(parser),
-    };
-  }
-
-  if (type === 'json') {
-    return {
-      type: 'json',
-      json: getRawJsonParserOptions(parser),
-    };
-  }
-
-  // FIXME: shouldn't depend on module type, for example: `rules: [{ test: /\.css/, generator: {..} }]` will error
-  throw new Error(`unreachable: unknown module type: ${type}`);
-}
-
-function getRawJavascriptParserOptions(
-  parser: JavascriptParserOptions,
-): RawJavascriptParserOptions {
-  return {
-    dynamicImportMode: parser.dynamicImportMode,
-    dynamicImportPreload: parser.dynamicImportPreload?.toString(),
-    dynamicImportPrefetch: parser.dynamicImportPrefetch?.toString(),
-    dynamicImportFetchPriority: parser.dynamicImportFetchPriority,
-    importMeta: getRawImportMeta(parser.importMeta),
-    url: parser.url?.toString(),
-    dynamicUrl: parser.dynamicUrl,
-    exprContextCritical: parser.exprContextCritical,
-    unknownContextCritical: parser.unknownContextCritical,
-    wrappedContextCritical: parser.wrappedContextCritical,
-    strictThisContextOnImports: parser.strictThisContextOnImports,
-    wrappedContextRegExp: parser.wrappedContextRegExp,
-    exportsPresence:
-      parser.exportsPresence === false ? 'false' : parser.exportsPresence,
-    importExportsPresence:
-      parser.importExportsPresence === false
-        ? 'false'
-        : parser.importExportsPresence,
-    reexportExportsPresence:
-      parser.reexportExportsPresence === false
-        ? 'false'
-        : parser.reexportExportsPresence,
-    worker: getRawJavascriptParserWorkerOptions(parser.worker),
-    overrideStrict: parser.overrideStrict,
-    requireAsExpression: parser.requireAsExpression,
-    requireAlias: parser.requireAlias,
-    requireDynamic: parser.requireDynamic,
-    requireResolve: parser.requireResolve,
-    commonjs: parser.commonjs,
-    importDynamic: parser.importDynamic,
-    commonjsMagicComments: parser.commonjsMagicComments,
-    createRequire: parser.createRequire,
-    typeReexportsPresence: parser.typeReexportsPresence,
-    jsx: parser.jsx,
-    deferImport: parser.deferImport,
-    sourceImport: parser.sourceImport,
-    importMetaResolve: parser.importMetaResolve,
-    pureFunctions: parser.pureFunctions,
-  };
-}
-
-function getRawJavascriptParserWorkerOptions(
-  worker: JavascriptParserOptions['worker'],
-): RawJavascriptParserOptions['worker'] {
-  if (typeof worker === 'boolean') {
-    return worker;
-  }
-  if (Array.isArray(worker)) {
-    return { alias: worker };
-  }
-  return worker;
-}
-
-function getRawImportMeta(
-  importMeta: JavascriptParserOptions['importMeta'],
-): RawJavascriptParserOptions['importMeta'] {
-  if (typeof importMeta === 'boolean') {
-    return String(importMeta);
-  }
-  if (typeof importMeta === 'object' && importMeta !== null) {
-    const rawImportMeta: Record<string, boolean> = {};
-    for (const [property, value] of Object.entries(importMeta)) {
-      if (typeof value === 'boolean') {
-        rawImportMeta[property] = value;
-      }
-    }
-    return rawImportMeta;
-  }
-  return importMeta;
-}
-
-function getRawAssetParserOptions(
-  parser: AssetParserOptions,
-): RawAssetParserOptions {
-  return {
-    dataUrlCondition: parser.dataUrlCondition
-      ? getRawAssetParserDataUrl(parser.dataUrlCondition)
-      : undefined,
-  };
-}
-
-function getRawAssetParserDataUrl(
-  dataUrlCondition: AssetParserDataUrl,
-): RawAssetParserDataUrl {
-  if (typeof dataUrlCondition === 'object' && dataUrlCondition !== null) {
-    return {
-      type: 'options',
-      options: {
-        maxSize: dataUrlCondition.maxSize,
-      },
-    };
-  }
-  throw new Error(
-    `unreachable: AssetParserDataUrl type should be one of "options", but got ${dataUrlCondition}`,
-  );
-}
-
-function getRawCssModuleParserOptions(
-  parser: CssModuleParserOptions,
-): RawCssModuleParserOptions {
-  return {
-    exportType: parser.exportType,
-    namedExports: parser.namedExports,
-    url: parser.url,
-    import: parser.import,
-    resolveImport: parser.resolveImport as any,
-    animation: parser.animation,
-    container: parser.container,
-    customIdents: parser.customIdents,
-    dashedIdents: parser.dashedIdents,
-    function: parser.function,
-    grid: parser.grid,
-  };
-}
-
-function getRawCssAutoOrModuleParserOptions(
-  parser: CssAutoOrModuleParserOptions,
-): RawCssAutoOrModuleParserOptions {
-  return {
-    ...getRawCssModuleParserOptions(parser),
-    pure: parser.pure,
-  };
-}
-
-function getRawCssParserOptionsForCss(
-  parser: CssParserOptions,
-): RawCssParserOptions {
-  return {
-    exportType: parser.exportType,
-    namedExports: parser.namedExports,
-    url: parser.url,
-    import: parser.import,
-    resolveImport: parser.resolveImport as any,
-  };
-}
-
-function getRawJsonParserOptions(
-  parser: JsonParserOptions,
-): RawJsonParserOptions {
-  return {
-    exportsDepth: parser.exportsDepth,
-    parse:
-      typeof parser.parse === 'function'
-        ? (str) => JSON.stringify(parser.parse!(str))
-        : undefined,
-  };
-}
-
-function getRawGeneratorOptions(
-  generator: { [k: string]: any },
-  type: string,
-): RawGeneratorOptions | undefined {
-  if (type === 'asset') {
-    return {
-      type: 'asset',
-      asset: generator ? getRawAssetGeneratorOptions(generator) : undefined,
-    };
-  }
-  if (type === 'asset/inline') {
-    return {
-      type: 'asset/inline',
-      assetInline: generator
-        ? getRawAssetInlineGeneratorOptions(generator)
-        : undefined,
-    };
-  }
-  if (type === 'asset/resource') {
-    return {
-      type: 'asset/resource',
-      assetResource: generator
-        ? getRawAssetResourceGeneratorOptions(generator)
-        : undefined,
-    };
-  }
-  if (type === 'css') {
-    return {
-      type: 'css',
-      css: getRawCssGeneratorOptions(generator),
-    };
-  }
-  if (type === 'css/auto') {
-    return {
-      type: 'css/auto',
-      cssAuto: getRawCssAutoOrModuleGeneratorOptions(generator),
-    };
-  }
-  if (type === 'css/global') {
-    return {
-      type: 'css/global',
-      cssGlobal: getRawCssAutoOrModuleGeneratorOptions(generator),
-    };
-  }
-  if (type === 'css/module') {
-    return {
-      type: 'css/module',
-      cssModule: getRawCssAutoOrModuleGeneratorOptions(generator),
-    };
-  }
-  if (type === 'json') {
-    return {
-      type: 'json',
-      json: getRawJsonGeneratorOptions(generator),
-    };
-  }
-
-  if (
-    [
-      'asset/source',
-      'asset/bytes',
-      'javascript',
-      'javascript/auto',
-      'javascript/dynamic',
-      'javascript/esm',
-    ].includes(type)
-  ) {
-    return undefined;
-  }
-
-  throw new Error(`unreachable: unknown module type: ${type}`);
-}
-
-function getRawAssetGeneratorOptions(
-  options: AssetGeneratorOptions,
-): RawAssetGeneratorOptions {
-  return {
-    ...getRawAssetInlineGeneratorOptions(options),
-    ...getRawAssetResourceGeneratorOptions(options),
-  };
-}
-
-function getRawAssetInlineGeneratorOptions(
-  options: AssetInlineGeneratorOptions,
-): RawAssetInlineGeneratorOptions {
-  return {
-    dataUrl: options.dataUrl
-      ? getRawAssetGeneratorDataUrl(options.dataUrl)
-      : undefined,
-    binary: options.binary,
-  };
-}
-
-function getRawAssetResourceGeneratorOptions(
-  options: AssetResourceGeneratorOptions,
-): RawAssetResourceGeneratorOptions {
-  return {
-    emit: options.emit,
-    filename: options.filename,
-    outputPath: options.outputPath,
-    publicPath: options.publicPath,
-    importMode: options.importMode,
-    binary: options.binary,
-  };
-}
-
-function getRawAssetGeneratorDataUrl(dataUrl: AssetGeneratorDataUrl) {
-  if (typeof dataUrl === 'object' && dataUrl !== null) {
-    const encoding = dataUrl.encoding === false ? 'false' : dataUrl.encoding;
-    return {
-      encoding,
-      mimetype: dataUrl.mimetype,
-    } as const;
-  }
-  if (typeof dataUrl === 'function' && dataUrl !== null) {
-    return (source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => {
-      return dataUrl(source, context);
-    };
-  }
-  throw new Error(
-    `unreachable: AssetGeneratorDataUrl type should be one of "options", "function", but got ${dataUrl}`,
-  );
-}
-
-function getRawCssGeneratorOptions(
-  options: CssGeneratorOptions,
-): RawCssGeneratorOptions {
-  return {
-    exportsOnly: options.exportsOnly,
-    runtimePublicPath: options.runtimePublicPath,
-    esModule: options.esModule,
-  };
-}
-
-function getRawCssAutoOrModuleGeneratorOptions(
-  options: CssModuleGeneratorOptions,
-): RawCssModuleGeneratorOptions {
-  return {
-    localIdentName: options.localIdentName,
-    localIdentHashDigest: options.localIdentHashDigest,
-    localIdentHashDigestLength: options.localIdentHashDigestLength,
-    localIdentHashFunction: options.localIdentHashFunction,
-    localIdentHashSalt: options.localIdentHashSalt,
-    exportsConvention: options.exportsConvention,
-    exportsOnly: options.exportsOnly,
-    runtimePublicPath: options.runtimePublicPath,
-    esModule: options.esModule,
-  };
-}
-
-function getRawJsonGeneratorOptions(
-  options: JsonGeneratorOptions,
-): RawJsonGeneratorOptions {
-  return {
-    JSONParse: options.JSONParse,
-  };
 }
 
 function getRawNode(node: Node): RawOptions['node'] {

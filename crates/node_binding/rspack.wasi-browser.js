@@ -1504,6 +1504,7 @@ export const VirtualFileStore = __napiModule.exports.VirtualFileStore
 export const JsVirtualFileStore = __napiModule.exports.JsVirtualFileStore
 export const async = __napiModule.exports.async
 export const BuiltinPluginName = __napiModule.exports.BuiltinPluginName
+export const getConfigValueFields = __napiModule.exports.getConfigValueFields
 export const cleanupGlobalTrace = __napiModule.exports.cleanupGlobalTrace
 export const concatenatedModuleGetModules = __napiModule.exports.concatenatedModuleGetModules
 export const concatenatedModuleGetRootModule = __napiModule.exports.concatenatedModuleGetRootModule

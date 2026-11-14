@@ -64,6 +64,11 @@ export type CompilerId = void;
 
 /* -- napi-rs generated below -- */
 
+export interface RawConfigValue {
+	root: number;
+	nodes: unknown[];
+}
+
 export declare class ExternalObject<T> {
   readonly '': {
     readonly '': unique symbol
@@ -608,6 +613,8 @@ export declare const EXPECTED_RSPACK_CORE_VERSION: string
 export declare function externalModuleGetUserRequest(module: Module): string
 
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
+
+export declare function getConfigValueFields(): Record<string, Array<string>>
 
 export interface JsAddingRuntimeModule {
   name: string
@@ -1907,48 +1914,6 @@ export interface RawAssetGeneratorDataUrlFnCtx {
   module: Module
 }
 
-export interface RawAssetGeneratorDataUrlOptions {
-  encoding?: "base64" | "false" | undefined
-  mimetype?: string
-}
-
-export interface RawAssetGeneratorOptions {
-  emit?: boolean
-  filename?: JsFilename
-  outputPath?: JsFilename
-  publicPath?: "auto" | JsFilename
-  dataUrl?: RawAssetGeneratorDataUrlOptions | ((source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => string)
-  importMode?: "url" | "preserve"
-  binary?: boolean
-}
-
-export interface RawAssetInlineGeneratorOptions {
-  dataUrl?: RawAssetGeneratorDataUrlOptions | ((source: Buffer, context: RawAssetGeneratorDataUrlFnCtx) => string)
-  binary?: boolean
-}
-
-export interface RawAssetParserDataUrl {
-  type: "options"
-  options?: RawAssetParserDataUrlOptions
-}
-
-export interface RawAssetParserDataUrlOptions {
-  maxSize?: number
-}
-
-export interface RawAssetParserOptions {
-  dataUrlCondition?: RawAssetParserDataUrl
-}
-
-export interface RawAssetResourceGeneratorOptions {
-  emit?: boolean
-  filename?: JsFilename
-  outputPath?: JsFilename
-  publicPath?: "auto" | JsFilename
-  importMode?: "url" | "preserve"
-  binary?: boolean
-}
-
 export interface RawBannerPluginOptions {
   banner: string | ((args: { hash: string, chunk: Chunk, filename: string }) => string)
   entryOnly?: boolean
@@ -2202,21 +2167,6 @@ export interface RawCopyRspackPluginOptions {
   patterns: Array<RawCopyPattern>
 }
 
-export interface RawCssAutoOrModuleParserOptions {
-  exportType?: "link" | "text" | "css-style-sheet" | "style"
-  namedExports?: boolean
-  url?: boolean
-  import?: boolean
-  resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
-  animation?: boolean
-  container?: boolean
-  customIdents?: boolean
-  dashedIdents?: boolean
-  function?: boolean
-  grid?: boolean
-  pure?: boolean
-}
-
 export interface RawCssChunkingPluginOptions {
   strict?: boolean
   minSize?: number
@@ -2236,52 +2186,12 @@ export interface RawCssExtractPluginOption {
   enforceRelative: boolean
 }
 
-export interface RawCssGeneratorOptions {
-  exportsOnly?: boolean
-  runtimePublicPath?: boolean
-  esModule?: boolean
-}
-
 export interface RawCssImportContext {
   url: string
   media?: string
   resourcePath: string
   supports?: string
   layer?: string
-}
-
-export interface RawCssModuleGeneratorOptions {
-  exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
-  exportsOnly?: boolean
-  runtimePublicPath?: boolean
-  localIdentHashDigest?: string
-  localIdentHashDigestLength?: number
-  localIdentHashFunction?: string
-  localIdentHashSalt?: string
-  localIdentName?: string
-  esModule?: boolean
-}
-
-export interface RawCssModuleParserOptions {
-  exportType?: "link" | "text" | "css-style-sheet" | "style"
-  namedExports?: boolean
-  url?: boolean
-  import?: boolean
-  resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
-  animation?: boolean
-  container?: boolean
-  customIdents?: boolean
-  dashedIdents?: boolean
-  function?: boolean
-  grid?: boolean
-}
-
-export interface RawCssParserOptions {
-  exportType?: "link" | "text" | "css-style-sheet" | "style"
-  namedExports?: boolean
-  url?: boolean
-  import?: boolean
-  resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
 }
 
 export interface RawDeterministicChunkIdsPluginOptions {
@@ -2456,18 +2366,6 @@ export interface RawFuncUseCtx {
   issuerLayer: string
 }
 
-export interface RawGeneratorOptions {
-  type: "asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/global" | "css/module" | "json"
-  asset?: RawAssetGeneratorOptions
-  assetInline?: RawAssetInlineGeneratorOptions
-  assetResource?: RawAssetResourceGeneratorOptions
-  css?: RawCssGeneratorOptions
-  cssAuto?: RawCssModuleGeneratorOptions
-  cssGlobal?: RawCssModuleGeneratorOptions
-  cssModule?: RawCssModuleGeneratorOptions
-  json?: RawJsonGeneratorOptions
-}
-
 export interface RawHashedModuleIdsPluginOptions {
   context?: string
   hashFunction?: string
@@ -2566,99 +2464,6 @@ export interface RawIntegrityData {
 export interface RawIntegrityItem {
   asset: string
   integrity: string
-}
-
-export declare enum RawJavascriptParserCommonjsExports {
-  SkipInEsm = 'skipInEsm',
-}
-
-export interface RawJavascriptParserCommonjsOptions {
-  exports?: boolean | 'skipInEsm'
-}
-
-export interface RawJavascriptParserOptions {
-  dynamicImportMode?: string
-  dynamicUrl?: boolean
-  dynamicImportPreload?: string
-  dynamicImportPrefetch?: string
-  dynamicImportFetchPriority?: string
-  url?: string
-  exprContextCritical?: boolean
-  unknownContextCritical?: boolean
-  wrappedContextCritical?: boolean
-  strictThisContextOnImports?: boolean
-  wrappedContextRegExp?: RegExp
-  exportsPresence?: string
-  importExportsPresence?: string
-  reexportExportsPresence?: string
-  worker?: boolean | Array<string> | RawJavascriptParserWorkerOptions
-  overrideStrict?: string
-  importMeta?: string | Record<string, boolean>
-  commonjsMagicComments?: boolean
-  createRequire?: boolean | string
-  commonjs?: boolean | { exports?: boolean | 'skipInEsm' }
-  deferImport?: boolean
-  sourceImport?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  requireAlias?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  requireAsExpression?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  requireDynamic?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  requireResolve?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  importDynamic?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  typeReexportsPresence?: string
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  jsx?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  importMetaResolve?: boolean
-  /**
-   * Flag top-level exported functions as side-effect-free for pure-function-based tree shaking.
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  pureFunctions?: Array<string>
-}
-
-export interface RawJavascriptParserWorkerOptions {
-  alias?: Array<string>
-  url?: string
-}
-
-export interface RawJsonGeneratorOptions {
-  JSONParse?: boolean
-}
-
-export interface RawJsonParserOptions {
-  exportsDepth?: number
-  parse?: (source: string) => string
 }
 
 export interface RawLazyCompilationOption {
@@ -2781,8 +2586,8 @@ export interface RawModuleInfo {
 
 export interface RawModuleOptions {
   rules: Array<RawModuleRule>
-  parser?: Record<string, RawParserOptions>
-  generator?: Record<string, RawGeneratorOptions>
+  parser?: Record<string, RawConfigValue>
+  generator?: Record<string, RawConfigValue>
   noParse?: string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]
 }
 
@@ -2810,9 +2615,9 @@ export interface RawModuleRule {
   use?: RawModuleRuleUse[] | ((arg: RawFuncUseCtx) => RawModuleRuleUse[])
   type?: string
   layer?: string
-  parser?: RawParserOptions
-  generator?: RawGeneratorOptions
-  resolve?: RawResolveOptions
+  parser?: RawConfigValue
+  generator?: RawConfigValue
+  resolve?: RawConfigValue
   issuer?: RawRuleSetCondition
   issuerLayer?: RawRuleSetCondition
   dependency?: RawRuleSetCondition
@@ -2958,17 +2763,6 @@ export interface RawOutputOptions {
   compareBeforeEmit: boolean
 }
 
-export interface RawParserOptions {
-  type: "asset" | "css" | "css/auto" | "css/global" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm" | "json"
-  asset?: RawAssetParserOptions
-  css?: RawCssParserOptions
-  cssAuto?: RawCssAutoOrModuleParserOptions
-  cssGlobal?: RawCssModuleParserOptions
-  cssModule?: RawCssAutoOrModuleParserOptions
-  javascript?: RawJavascriptParserOptions
-  json?: RawJsonParserOptions
-}
-
 export interface RawPathData {
   filename?: string
   contentHash?: string
@@ -3030,7 +2824,7 @@ export interface RawResolveOptions {
   symlinks?: boolean
   tsconfig?: RawResolveTsconfigOptions
   modules?: Array<string>
-  byDependency?: Record<string, RawResolveOptions>
+  byDependency?: Record<string, RawConfigValue>
   fullySpecified?: boolean
   exportsFields?: Array<string>
   descriptionFiles?: Array<string>
@@ -3055,7 +2849,7 @@ export interface RawResolveOptionsWithDependencyType {
   symlinks?: boolean
   tsconfig?: RawResolveTsconfigOptions
   modules?: Array<string>
-  byDependency?: Record<string, RawResolveOptions>
+  byDependency?: Record<string, RawConfigValue>
   fullySpecified?: boolean
   exportsFields?: Array<string>
   descriptionFiles?: Array<string>
