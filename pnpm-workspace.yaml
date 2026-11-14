@@ -73,7 +73,7 @@ catalog:
   'chalk': '^6.0.1'
   'coffee-loader': '^5.0.4'
   'coffeescript': '^2.7.1'
-  'commander': '15.0.0'
+  'commander': '15.1.0'
   'concat-stream': '^2.0.0'
   'connect-next': '^5.0.0'
   'core-js': '3.51.0'
