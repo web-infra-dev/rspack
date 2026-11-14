@@ -22,8 +22,7 @@ class AssertModuleSourcePlugin {
           seen = true;
           // Module sizes, and therefore chunk splitting, are based on this source.
           const source = module.originalSource()?.source().toString();
-          // A failed build has no source; the loader assertion reports why.
-          if (source === undefined) return;
+          expect(source).toBeDefined();
           expect(source).not.toContain('@custom-media');
           expect(source).not.toContain('--wide');
         };
