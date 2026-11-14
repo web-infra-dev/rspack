@@ -63,9 +63,15 @@ impl Snapshot {
       }
       SnapshotScope::MISSING => Strategy::Missing,
       SnapshotScope::CONTEXT => {
-        helper
+        match helper
           .dir_strategy(path, SnapshotStrategyOptions::timestamp())
           .await
+        {
+          // A context directory that does not exist stays valid until it appears, like a missing
+          // file. Recording it as failed rebuilt its module on every start.
+          Strategy::Failed if helper.is_missing(path).await => Strategy::Missing,
+          strategy => strategy,
+        }
       }
       SnapshotScope::BUILD => {
         helper
