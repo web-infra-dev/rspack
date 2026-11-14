@@ -1,4 +1,5 @@
 import { read } from "./read"
+import validators from "./validators.cjs"
 
 // Missing semicolons and redundant parentheses are intentional: imported calls
 // can be rendered with a leading parenthesis.
@@ -39,4 +40,21 @@ it("preserves ASI inside parenthesized class field initializers", () => {
 	}
 
 	expect(new Value().next).toBe(3)
+})
+
+it("uses the outer statement boundary for assignments in a sequence", () => {
+	const first = 1
+	validators.a = function () { return first; },
+	validators.b = function () { return 2 }
+
+	expect([validators.a(), validators.b()]).toEqual([1, 2])
+})
+
+it("does not insert a semicolon after a comma when the RHS contains a static block", () => {
+	validators.a = 1,
+	validators.b = class {
+		static { this.value = 2 }
+	}
+
+	expect(validators.b.value).toBe(2)
 })
