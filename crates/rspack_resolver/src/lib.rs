@@ -403,7 +403,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     let result = match Utf8Path::new(specifier).components().next() {
       // 2. If X begins with '/'
       Some(Utf8Component::RootDir | Utf8Component::Prefix(_)) => {
-        self.require_absolute(cached_path, specifier, ctx).await
+        self.require_absolute(specifier, ctx).await
       }
       // 3. If X begins with './' or '/' or '../'
       Some(Utf8Component::CurDir | Utf8Component::ParentDir) => {
@@ -466,7 +466,6 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
 
   async fn require_absolute(
     &self,
-    cached_path: &CachedPath,
     specifier: &str,
     ctx: &mut Ctx,
   ) -> Result<CachedPath, ResolveError> {
@@ -477,19 +476,23 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         .next()
         .is_some_and(|c| matches!(c, Utf8Component::RootDir | Utf8Component::Prefix(_)))
     );
-    if !self.options.prefer_relative && self.options.prefer_absolute {
-      if let Ok(path) = self
-        .load_package_self_or_node_modules(cached_path, specifier, ctx)
-        .await
-      {
+    if self.options.prefer_absolute {
+      if let Ok(Some(path)) = self.load_absolute(specifier, ctx).await {
         return Ok(path);
       }
     }
     if let Some(path) = self.load_roots(specifier, ctx).await {
       return Ok(path);
     }
-    // 2. If X begins with '/'
-    //   a. set Y to be the file system root
+    if let Some(path) = self.load_absolute(specifier, ctx).await? {
+      return Ok(path);
+    }
+    Err(ResolveError::NotFound(specifier.to_string()))
+  }
+
+  // 2. If X begins with '/'
+  //   a. set Y to be the file system root
+  async fn load_absolute(&self, specifier: &str, ctx: &mut Ctx) -> ResolveResult {
     let path = self.cache.value(
       //
       #[cfg(windows)]
@@ -498,13 +501,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       Utf8Path::new(specifier),
     );
 
-    if let Some(path) = self
-      .load_as_file_or_directory(&path, specifier, ctx)
-      .await?
-    {
-      return Ok(path);
-    }
-    Err(ResolveError::NotFound(specifier.to_string()))
+    self.load_as_file_or_directory(&path, specifier, ctx).await
   }
 
   // 3. If X begins with './' or '/' or '../'
