@@ -10,9 +10,10 @@ use self::{cutout::Cutout, repair::repair};
 use super::BuildModuleGraphArtifact;
 use crate::{Compilation, DependencyId, ExportsInfoArtifact, ModuleGraph};
 
-/// Include modules generated from module executor results when rebuilding producers.
+/// Include modules generated from module executor results in an explicit rebuild.
 /// Rebuild every producer of a shared generated module so repair cannot recreate
-/// it from stale dependency data.
+/// it from stale dependency data. Ordinary file updates use their tracked
+/// dependencies instead, preserving rebuild locality.
 pub fn expand_rebuild_modules(module_graph: &ModuleGraph, modules: &mut IdentifierSet) {
   let mut queue = modules.iter().copied().collect::<Vec<_>>();
   let mut expanded_generated = IdentifierSet::default();

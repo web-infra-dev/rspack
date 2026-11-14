@@ -54,6 +54,8 @@ const excludes = {
 		/^builtins\/provide-issue-8553$/,
 		/^chunk-loading\/worker-loader$/,
 		/^loader\/hook-context-initialization$/,
+		// Shared extracted CSS can retain different producers' loader dependencies.
+		/^plugins\/mini-css-extract-plugin$/,
 		/^plugins\/virtual-modules-context$/,
 		/^rsc-plugin\/client-chunk-grouping$/,
 		/^rsc-plugin\/css-link-props$/,
