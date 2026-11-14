@@ -203,8 +203,8 @@ catalogs:
       specifier: 2.0.0-beta.3
       version: 2.0.0-beta.3
     enhanced-resolve:
-      specifier: 5.26.1
-      version: 5.26.1
+      specifier: 5.27.0
+      version: 5.27.0
     es5-ext:
       specifier: ^0.10.64
       version: 0.10.64
@@ -733,7 +733,7 @@ importers:
         version: 5.0.0
       enhanced-resolve:
         specifier: 'catalog:'
-        version: 5.26.1
+        version: 5.27.0
       http-proxy-middleware:
         specifier: 'catalog:'
         version: 4.2.1(supports-color@8.1.1)
@@ -1088,7 +1088,7 @@ importers:
         version: 0.2.34
       '@webdiscus/pug-loader':
         specifier: 'catalog:'
-        version: 2.11.1(enhanced-resolve@5.26.1)
+        version: 2.11.1(enhanced-resolve@5.27.0)
       babel-loader:
         specifier: 'catalog:'
         version: 10.1.1(@babel/core@7.29.13)(@rspack/core@packages+rspack)
@@ -5157,8 +5157,8 @@ packages:
     resolution: {integrity: sha512-/kyM18EfinwXZbno9FyUGeFh87KC8HRQBQGildHZbEuRyWFOmv1U10o9BBp8XVZDVNNuQKyIGIu5ZYAAXJ0V2Q==}
     engines: {node: '>= 4'}
 
-  enhanced-resolve@5.26.1:
-    resolution: {integrity: sha512-PPnnSJq3azKOIewXR/uppBV/6h98dprBJ/WaQ9Qgj10xX1lJLNfg+XShpbsrSqcDSy2yYYyhfXM1wWhftqgyzw==}
+  enhanced-resolve@5.27.0:
+    resolution: {integrity: sha512-Do6BB2xzlcc/odFg+XEYyneAx4T/WfywO71yw9ePS2tVfRsf7JVR4mUeELadIeHzixkzbG5DpluiEFPi2WGfYQ==}
     engines: {node: '>=10.13.0'}
 
   entities@4.5.0:
@@ -10252,7 +10252,7 @@ snapshots:
   '@tailwindcss/node@4.3.3':
     dependencies:
       '@jridgewell/remapping': 2.3.5
-      enhanced-resolve: 5.26.1
+      enhanced-resolve: 5.27.0
       jiti: 2.7.0
       lightningcss: 1.32.0
       magic-string: 0.30.21
@@ -10658,10 +10658,10 @@ snapshots:
 
   '@vue/shared@3.5.45': {}
 
-  '@webdiscus/pug-loader@2.11.1(enhanced-resolve@5.26.1)':
+  '@webdiscus/pug-loader@2.11.1(enhanced-resolve@5.27.0)':
     dependencies:
       ansis: 3.10.0
-      enhanced-resolve: 5.26.1
+      enhanced-resolve: 5.27.0
       parse5: 7.3.0
       pug: 3.0.4
       webpack-merge: 6.0.1
@@ -11639,7 +11639,7 @@ snapshots:
 
   emojis-list@3.0.0: {}
 
-  enhanced-resolve@5.26.1:
+  enhanced-resolve@5.27.0:
     dependencies:
       graceful-fs: 4.2.11
       tapable: 2.3.3
