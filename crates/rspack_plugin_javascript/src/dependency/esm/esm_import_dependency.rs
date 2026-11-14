@@ -670,9 +670,10 @@ impl DependencyCodeGeneration for ESMImportSideEffectDependency {
     _runtime: Option<&RuntimeSpec>,
   ) {
     // A deferred target emits nothing; a missing target emits an error.
-    if compilation.get_module_graph().is_lazy_dependency(&self.id) {
-      "lazy".hash(hasher);
-    }
+    compilation
+      .get_module_graph()
+      .is_lazy_dependency(&self.id)
+      .hash(hasher);
   }
 
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
