@@ -141,15 +141,29 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
           const runtimeModule = createRenderedRuntimeModule(module);
           const compilation = getCompiler().__internal__get_compilation()!;
           runtimeModule.attach(compilation, chunk, compilation.chunkGraph);
-          const originSource = module.source?.source;
-          queried.call(runtimeModule, chunk);
-          const newSource = module.source?.source;
-          if (newSource && newSource !== originSource) {
-            if (getCompiler().options.experiments?.runtimeMode === 'rspack') {
-              throw new Error(
-                'Compilation.hooks.runtimeModule source modifications are not supported when experiments.runtimeMode is "rspack".',
-              );
+          if (compilation.options.experiments.runtimeMode !== 'rspack') {
+            const originSource = module.source?.source;
+            queried.call(runtimeModule, chunk);
+            const newSource = module.source?.source;
+            if (newSource && newSource !== originSource) {
+              return module;
             }
+            return;
+          }
+          // Copy the bytes: taps can mutate a Buffer in place or replace it with an empty source.
+          const originSource = module.source
+            ? Buffer.from(module.source.source)
+            : undefined;
+          const originGenerate = runtimeModule.generate;
+          queried.call(runtimeModule, chunk);
+          if (runtimeModule.generate !== originGenerate && module.source) {
+            module.source.source = runtimeModule.generate();
+          }
+          const newSource = module.source?.source;
+          if (
+            newSource !== undefined &&
+            !originSource?.equals(Buffer.from(newSource))
+          ) {
             return module;
           }
           return;

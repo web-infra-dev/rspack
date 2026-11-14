@@ -1,0 +1,145 @@
+# Case preact-refresh-rspack: Step 1
+
+## Changed Files
+- app.js
+
+## Asset Files
+- Bundle: bundle.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: main.LAST_HASH.hot-update.js, size: 3935
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./app.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {
+"./app.js"(module, __rspack_exports, __rspack_context) {
+__rspack_context.N(__rspack_exports);
+__rspack_context.d(__rspack_exports, {
+  App: () => (App)
+});
+/* import */ var preact__rspack_import_0 = __rspack_context.r("<PNPM_INNER>/preact/dist/preact.module.js");
+/* import */ var preact_hooks__rspack_import_1 = __rspack_context.r("<PNPM_INNER>/preact/hooks/dist/hooks.module.js");
+/* module decorator */ module = __rspack_context.hmd(module);
+/* provided dependency */ var __prefresh_utils__ = __rspack_context.r("<PNPM_INNER>/@rspack/plugin-preact-refresh/client/prefresh.js")["default"];
+
+
+const signature = $RefreshSig$();
+function App() {
+  signature();
+  const [count, setCount] = (0,preact_hooks__rspack_import_1.useState)(1);
+  return (0,preact__rspack_import_0.h)("button", { onClick: () => setCount(count + 1) }, `after: ${count}`);
+}
+signature(App, "useState");
+$RefreshReg$(App, "App");
+
+/**
+ * The following code is modified based on
+ * //https://github.com/preactjs/prefresh/blob/018f5cc907629b82ffb201c32e948efe4b40098a/packages/webpack/src/loader/runtime.js
+ *
+ * MIT Licensed
+ * Author JoviDeCroock
+ * Copyright (c) 2021-Present Preact Team
+ * https://github.com/preactjs/prefresh/blob/018f5cc907629b82ffb201c32e948efe4b40098a/LICENSE
+ */
+
+const isPrefreshComponent = __prefresh_utils__.shouldBind(module);
+
+// `@vanilla-extract/webpack` does some custom preprocessing where
+// `module.hot` is partially replaced. This leads to our injected
+// code being executed although it shouldn't be:
+//
+// Intermediate result:
+//
+//   if (true) { // <- inlined by intermediate compile step
+//     const previousHotModuleExports = module.hot.data && ...
+//                    // Crash happens here ---^
+//
+// It crashes at that line because some intermediate compiler isn't
+// running in hot mode, but the overall guard condition was compiled
+// down to being truthy. By moving `module.hot` outside of the
+// condition of the if-statement, it will be left as is.
+const moduleHot = module.hot;
+
+if (moduleHot) {
+  const currentExports = __prefresh_utils__.getExports(module);
+  const previousHotModuleExports =
+    moduleHot.data && moduleHot.data.moduleExports;
+
+  __prefresh_utils__.registerExports(currentExports, module.id);
+
+  if (isPrefreshComponent) {
+    if (previousHotModuleExports) {
+      try {
+        __prefresh_utils__.flush();
+        if (
+          typeof __prefresh_errors__ !== 'undefined' &&
+          __prefresh_errors__ &&
+          __prefresh_errors__.clearRuntimeErrors
+        ) {
+          __prefresh_errors__.clearRuntimeErrors();
+        }
+      } catch (e) {
+        // Only available in newer webpack versions.
+        if (moduleHot.invalidate) {
+          moduleHot.invalidate();
+        } else {
+          self.location.reload();
+        }
+      }
+    }
+
+    moduleHot.dispose(data => {
+      data.moduleExports = __prefresh_utils__.getExports(module);
+    });
+
+    moduleHot.accept(function errorRecovery(error) {
+      if (
+        typeof __prefresh_errors__ !== 'undefined' &&
+        __prefresh_errors__ &&
+        __prefresh_errors__.handleRuntimeError
+      ) {
+        __prefresh_errors__.handleRuntimeError(error);
+      }
+
+      __rspack_context.c[module.id].hot.accept(errorRecovery);
+    });
+  }
+}
+
+
+},
+
+},function(__rspack_context) {
+var __rspack_require=__rspack_context.r,__rspack_modules=__rspack_context.m,__rspack_module_cache=__rspack_context.c;
+// webpack/runtime/get_full_hash
+var getFullHash = () => ("CURRENT_HASH");
+
+;(function() {
+var oldSetter = Object.getOwnPropertyDescriptor(__rspack_context, "h") && Object.getOwnPropertyDescriptor(__rspack_context, "h").set;
+Object.defineProperty(__rspack_context, "h", { configurable: true, get: function() { return getFullHash; }, set: function(value) { getFullHash = value; if (oldSetter) oldSetter.call(__rspack_context, value); } });
+__rspack_context.h = getFullHash;
+})();
+
+}
+);
+```

@@ -102,6 +102,7 @@ mod stats;
 pub use stats::*;
 mod runtime;
 mod runtime_module;
+mod runtime_module_transform;
 pub use runtime::*;
 pub use runtime_module::*;
 mod entrypoint;

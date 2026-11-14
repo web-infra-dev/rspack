@@ -11,8 +11,8 @@ use napi_derive::napi;
 use rspack_collections::Identifier;
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
-  FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleCommon,
-  RuntimeModuleStage, SourceType, internal, rspack_sources::Source,
+  FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeGlobalsRenderMode,
+  RuntimeModuleCommon, RuntimeModuleStage, SourceType, internal, rspack_sources::Source,
 };
 use rspack_napi::{OneShotRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
@@ -670,6 +670,7 @@ type GenerateFn = CompilerScopedTsFnHandle<(), String>;
 #[napi(object, object_to_js = false)]
 pub struct JsAddingRuntimeModule {
   pub name: String,
+  pub source: Option<String>,
   #[napi(ts_type = "() => String")]
   pub generator: GenerateFn,
   pub dependent_hash: bool,
@@ -678,11 +679,13 @@ pub struct JsAddingRuntimeModule {
   pub stage: u32,
 }
 
-impl From<JsAddingRuntimeModule> for RuntimeModuleFromJs {
-  fn from(value: JsAddingRuntimeModule) -> Self {
-    Self {
+impl JsAddingRuntimeModule {
+  pub fn into_runtime_module(self, render_mode: RuntimeGlobalsRenderMode) -> RuntimeModuleFromJs {
+    let value = self;
+    RuntimeModuleFromJs {
       common: RuntimeModuleCommon {
         id: Identifier::from(value.name),
+        render_mode,
         ..Default::default()
       },
       full_hash: value.full_hash,

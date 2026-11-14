@@ -85,7 +85,11 @@ __webpack_require__.rstest_require_actual = __webpack_require__.rstest_import_ac
   const originalFactory = __webpack_require__.rstest_original_module_factories[id];
   if (originalFactory) {
     const moduleInstance = { exports: {} };
-    originalFactory(moduleInstance, moduleInstance.exports, __webpack_require__);
+    originalFactory(moduleInstance, moduleInstance.exports, ${
+      globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK
+        ? '__rspack_context'
+        : '__webpack_require__'
+    });
     __webpack_require__.rstest_original_modules[id] = moduleInstance.exports;
     return moduleInstance.exports;
   }

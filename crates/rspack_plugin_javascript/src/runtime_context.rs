@@ -17,15 +17,6 @@ static HMR_RUNTIME_STATE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
     | RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX
 });
 
-static LIVE_BINDING_CONTEXT_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
-  RuntimeGlobals::PUBLIC_PATH
-    | RuntimeGlobals::SCRIPT_NONCE
-    | RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME
-    | RuntimeGlobals::SHARE_SCOPE_MAP
-    | RuntimeGlobals::INITIALIZE_SHARING
-    | RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE
-});
-
 static BOOTSTRAP_EXPORT_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
   RuntimeGlobals::REQUIRE
     | RuntimeGlobals::REQUIRE_SCOPE
@@ -185,7 +176,7 @@ pub async fn render_runtime_chunk_runtime_modules(
   chunk_ukey: &ChunkUkey,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
-  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey, true).await?;
+  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey).await?;
   Ok(render_runtime_chunk_runtime_modules_sync(
     compilation,
     chunk_ukey,
@@ -383,9 +374,7 @@ fn render_runtime_chunk_runtime_modules_sync(
       ) else {
         continue;
       };
-      if setters.contains(runtime_global)
-        && (is_hmr_runtime || LIVE_BINDING_CONTEXT_GLOBALS.contains(runtime_global))
-      {
+      if setters.contains(runtime_global) {
         wrapped_sources.add(RawStringSource::from(format!(
           "Object.defineProperty({}, {}, {{ configurable: true, get: function() {{ return {}; }}, set: function(value) {{ {} = value; }} }});\n",
           runtime_context,
@@ -421,7 +410,7 @@ pub async fn render_chunk_runtime_modules(
   chunk_ukey: &ChunkUkey,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
-  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey, true).await?;
+  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey).await?;
   let mut sources = ConcatSource::default();
   if runtime_module_sources.is_empty() {
     return Ok(sources.boxed());
@@ -475,9 +464,7 @@ pub async fn render_chunk_runtime_modules(
       ) else {
         continue;
       };
-      if setters.contains(runtime_global)
-        && (is_hmr_runtime || LIVE_BINDING_CONTEXT_GLOBALS.contains(runtime_global))
-      {
+      if setters.contains(runtime_global) {
         sources.add(RawStringSource::from(format!(
           "Object.defineProperty({}, {}, {{ configurable: true, get: function() {{ return {}; }}, set: function(value) {{ {} = value; }} }});\n",
           runtime_context,
@@ -508,7 +495,7 @@ pub async fn render_hot_update_chunk_runtime_modules(
   chunk_ukey: &ChunkUkey,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
-  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey, true).await?;
+  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey).await?;
   let mut sources = ConcatSource::default();
   if runtime_module_sources.is_empty() {
     return Ok(sources.boxed());
@@ -651,7 +638,7 @@ fn runtime_context_current_chunk_metadata(
       .tree_runtime_requirements
       .insert(*chunk_runtime_requirements);
     metadata
-      .runtime_module_requirements
+      .collected_runtime_requirements_for_runtime_modules
       .insert(*chunk_runtime_requirements);
   }
   for runtime_module_id in compilation
@@ -668,7 +655,7 @@ fn runtime_context_current_chunk_metadata(
       .tree_runtime_requirements
       .insert(module_runtime_requirements.lexical_requirements());
     metadata
-      .runtime_module_requirements
+      .collected_runtime_requirements_for_runtime_modules
       .insert(module_runtime_requirements.dependencies);
     metadata
       .force_context_fields

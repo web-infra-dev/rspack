@@ -160,7 +160,7 @@ var module = ({module_cache}[moduleId] = {{"#,
       .get_chunk_runtime_modules_iterable(chunk_ukey)
       .any(|runtime_module_identifier| {
         let runtime_module = &compilation.runtime_modules[runtime_module_identifier];
-        runtime_module.get_custom_source().is_some()
+        runtime_module.get_custom_source().has_override()
           || runtime_module.get_constructor_name() == "RuntimeModuleFromJs"
       });
     let require_scope_used = runtime_requirements.contains(RuntimeGlobals::REQUIRE_SCOPE)

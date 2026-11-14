@@ -35,7 +35,6 @@ __webpack_require__.rstest_mock = (id, modFactory) => {
   __webpack_modules__[id] = function(
     __unused_webpack_module,
     __webpack_exports__,
-    __webpack_require__,
   ) {
     __webpack_require__.r(__webpack_exports__);
     const res = modFactory();

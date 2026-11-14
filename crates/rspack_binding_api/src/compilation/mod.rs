@@ -15,12 +15,12 @@ use entries::JsEntries;
 use modules::Modules;
 use napi_derive::napi;
 use rspack_core::{
-  BindingCell, Compilation, CompilationId, DependencyRef, EntryOptions, ExportsInfoArtifact,
-  ModuleIdentifier, OptimizationBailoutItem, Reflector, rspack_sources::BoxSource,
+  BindingCell, Compilation, CompilationId, CustomSourceRuntimeModule, DependencyRef, EntryOptions,
+  ExportsInfoArtifact, ModuleIdentifier, OptimizationBailoutItem, Reflector,
+  rspack_sources::BoxSource,
 };
 use rspack_error::{Diagnostic, Severity, ToStringResultToRspackResultExt};
 use rspack_napi::napi::bindgen_prelude::*;
-use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_tasks::{within_compiler_context, within_compiler_context_sync};
 use rustc_hash::FxHashMap;
 
@@ -873,15 +873,30 @@ impl JsCompilation {
         "Unable to addRuntimeModule now. The Compiler has been garbage collected by JavaScript.",
       ));
     };
-    let runtime_module = js_compiler.compiler_scoped_tsfn_manager.scope(|| unsafe {
+    let mut runtime_module = js_compiler.compiler_scoped_tsfn_manager.scope(|| unsafe {
       JsAddingRuntimeModule::from_napi_value(env.raw(), runtime_module.raw())
     })?;
 
+    let source = runtime_module.source.take();
+    let graph = &compilation.build_chunk_graph_artifact;
+    let mode = compilation.runtime_template.render_mode();
+    let render_mode = if graph
+      .chunk_by_ukey
+      .expect_get(&chunk.chunk_ukey)
+      .has_runtime(&graph.chunk_group_by_ukey)
+    {
+      mode.runtime_module_render_mode()
+    } else {
+      mode.chunk_render_mode()
+    };
+    let mut runtime_module = runtime_module.into_runtime_module(render_mode);
+    if let Some(source) = source {
+      runtime_module
+        .set_generated_source(source)
+        .to_napi_result()?;
+    }
     compilation
-      .add_runtime_module(
-        &chunk.chunk_ukey,
-        Box::new(RuntimeModuleFromJs::from(runtime_module)),
-      )
+      .add_runtime_module(&chunk.chunk_ukey, Box::new(runtime_module))
       .to_napi_result()
   }
 

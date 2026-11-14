@@ -24,6 +24,10 @@ pub struct RuntimeModuleFromJs {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RuntimeModuleFromJs {
+  fn is_custom(&self) -> bool {
+    true
+  }
+
   fn runtime_module_variables() -> &'static [&'static str] {
     &[]
   }

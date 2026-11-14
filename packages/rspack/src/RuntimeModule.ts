@@ -25,6 +25,10 @@ export class RuntimeModule {
       name: module.name,
       stage: module.stage,
       generator: module.generate.bind(module),
+      source:
+        module.compilation?.options.experiments.runtimeMode === 'rspack'
+          ? module.generate()
+          : undefined,
       fullHash: module.fullHash,
       dependentHash: module.dependentHash,
       isolate: module.shouldIsolate(),

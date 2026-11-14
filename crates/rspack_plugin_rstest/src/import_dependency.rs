@@ -198,6 +198,12 @@ fn module_namespace_promise_rstest(
     module,
     ..
   } = code_generatable_context;
+  let runtime_global = if runtime_template.render_mode().is_legacy() {
+    RuntimeGlobals::REQUIRE
+  } else {
+    RuntimeGlobals::REQUIRE_SCOPE
+  };
+  let runtime_scope = runtime_template.render_runtime_globals(&runtime_global);
   if compilation
     .get_module_graph()
     .module_identifier_by_dependency_id(dep_id)
@@ -209,7 +215,7 @@ fn module_namespace_promise_rstest(
         "[Rstest] importMock({mock_request}) requires an Rstest runtime with rstest_import_mock when no manual mock is bundled"
       );
       format!(
-        "({require}.rstest_import_mock ? {require}.rstest_import_mock(undefined, {}, null) : Promise.reject(new Error({})))",
+        "({runtime_scope}.rstest_import_mock ? {runtime_scope}.rstest_import_mock(undefined, {}, null) : Promise.reject(new Error({})))",
         json_stringify_str(mock_request),
         json_stringify_str(&fallback_error),
       )
@@ -230,15 +236,9 @@ fn module_namespace_promise_rstest(
   let module_id_expr = module_id_rstest(compilation, runtime_template, dep_id, request, weak);
 
   let final_require = if is_import_actual {
-    format!(
-      "{}.rstest_import_actual",
-      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-    )
+    format!("{runtime_scope}.rstest_import_actual")
   } else if is_import_mock {
-    format!(
-      "{}.rstest_import_mock",
-      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-    )
+    format!("{runtime_scope}.rstest_import_mock")
   } else {
     runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
   };
@@ -274,7 +274,7 @@ fn module_namespace_promise_rstest(
       if is_import_mock {
         let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
         appending = format!(
-          ".then({require}.rstest_import_mock ? {require}.rstest_import_mock.bind({require}.rstest_import_mock, {module_id_expr}, {}, null) : {require}.bind({require}, {module_id_expr}))",
+          ".then({runtime_scope}.rstest_import_mock ? {runtime_scope}.rstest_import_mock.bind({runtime_scope}.rstest_import_mock, {module_id_expr}, {}, null) : {require}.bind({require}, {module_id_expr}))",
           json_stringify_str(mock_request)
         );
       } else if let Some(header) = header {
@@ -291,7 +291,7 @@ fn module_namespace_promise_rstest(
         // falls back to plain require for an older @rstest/core lacking the helper;
         // drop it once the minimum @rstest/core always ships it.
         appending = format!(
-          ".then({final_require}.rstest_dynamic_require ? {final_require}.rstest_dynamic_require.bind({final_require}.rstest_dynamic_require, {module_id_expr}, {}) : {final_require}.bind({final_require}, {module_id_expr}))",
+          ".then({runtime_scope}.rstest_dynamic_require ? {runtime_scope}.rstest_dynamic_require.bind({runtime_scope}.rstest_dynamic_require, {module_id_expr}, {}) : {final_require}.bind({final_require}, {module_id_expr}))",
           json_stringify_str(request)
         );
       } else {
@@ -318,7 +318,7 @@ fn module_namespace_promise_rstest(
         if is_import_mock {
           let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
           appending = format!(
-            ".then({require}.rstest_import_mock ? {require}.rstest_import_mock.bind({require}.rstest_import_mock, {module_id_expr}, {}, null) : {require}.bind({require}, {module_id_expr}))",
+            ".then({runtime_scope}.rstest_import_mock ? {runtime_scope}.rstest_import_mock.bind({runtime_scope}.rstest_import_mock, {module_id_expr}, {}, null) : {require}.bind({require}, {module_id_expr}))",
             json_stringify_str(mock_request)
           );
         } else if let Some(header) = header {
@@ -340,7 +340,7 @@ fn module_namespace_promise_rstest(
         if is_import_mock {
           let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
           appending = format!(
-            ".then({require}.rstest_import_mock ? {require}.rstest_import_mock.bind({require}.rstest_import_mock, {module_id_expr}, {}, null) : {require}.bind({require}, {module_id_expr})).then(function(m){{ return {}(m, {fake_type}) }})",
+            ".then({runtime_scope}.rstest_import_mock ? {runtime_scope}.rstest_import_mock.bind({runtime_scope}.rstest_import_mock, {module_id_expr}, {}, null) : {require}.bind({require}, {module_id_expr})).then(function(m){{ return {}(m, {fake_type}) }})",
             json_stringify_str(mock_request),
             runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
           );

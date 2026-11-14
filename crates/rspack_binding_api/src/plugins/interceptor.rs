@@ -1549,8 +1549,13 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
       compilation,
       runtime_template: &runtime_template,
     };
-    let source_string = module.generate(&context).await?;
-    let runtime_module_prefix = if compilation.runtime_template.render_mode().is_legacy() {
+    let is_legacy = compilation.runtime_template.render_mode().is_legacy();
+    let source_string = if !is_legacy && let Some(source) = &module.get_custom_source().source {
+      source.clone()
+    } else {
+      module.generate(&context).await?
+    };
+    let runtime_module_prefix = if is_legacy {
       "webpack/runtime/"
     } else {
       "rspack/runtime/"
@@ -1576,10 +1581,10 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
       let module = runtime_modules.get_mut(m).expect("should have module");
       match source.source {
         napi::Either::A(string) => {
-          module.set_custom_source(string);
+          module.set_custom_source(string)?;
         }
         napi::Either::B(buffer) => {
-          module.set_custom_source(String::from_utf8_lossy(&buffer).into_owned());
+          module.set_custom_source(String::from_utf8_lossy(&buffer).into_owned())?;
         }
       }
     }

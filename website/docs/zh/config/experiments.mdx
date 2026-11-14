@@ -351,6 +351,14 @@ export default {
 
 将 `experiments.runtimeMode` 设置为 `'rspack'` 会启用一种实验性的 Rspack 运行时产物格式。该产物模式仍在开发中，请谨慎使用。目前，它在 [`output.module`](/config/output#outputmodule) 为 `true`，且 [`output.library.type`](/config/output#outputlibrarytype) 为 `'modern-module'` 时能够精简产物。在这种情况下，Rspack 运行时不再只导出一个挂载了多个辅助函数的 `__webpack_require__`，而是将加载函数、模块工厂和辅助函数分别导出为具名 ESM 绑定，让每个产物 chunk 只需导入实际使用的绑定。
 
+支持通过 `compilation.addRuntimeModule` 添加自定义 runtime module，以及通过 `compilation.hooks.runtimeModule` 修改源码。Rspack 会解析扩展代码，适配对内置 `__webpack_require__` 和 `__rspack_context` 对象的引用。引用到的 runtime global 均可读写，ESM runtime chunk 会为可变绑定导出 setter。具有相同名称的局部变量会保持不变。插件仍需通过 `additionalTreeRuntimeRequirements` 或 `runtimeRequirementInTree` 声明依赖的内置 runtime 功能。
+
+在拥有 runtime 的 chunk 中，静态的 runtime global 访问使用与原生 runtime module 相同的 lexical binding。其他 chunk 中的自定义 runtime module 通过 runtime context 或 ESM 导入访问这些绑定，ESM 赋值调用导出的 setter。自定义属性使用当前输出模式对应的 runtime scope。通过别名或动态属性名进行的访问不参与分析。
+
+在此模式下，添加自定义 runtime module 时会立即调用其 `generate()` 方法并分析源码。runtime module hook 修改的源码会在 hook 返回时进行分析。标记为 `fullHash` 或 `dependentHash` 的模块仍会在相应 hash 可用时重新生成。
+
+不同 runtime 模式的源码文本和模块工厂调用约定存在差异。精确匹配生成源码字符串或直接调用模块工厂的插件需要适配这些差异。此转换仅作用于 runtime module，不包括运行时动态求值的字符串或注入普通模块的代码。
+
 ### 示例
 
 ```js title="rspack.config.mjs"

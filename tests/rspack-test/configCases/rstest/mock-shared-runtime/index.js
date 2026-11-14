@@ -10,7 +10,7 @@ it('keeps setup mocks when a later test chunk installs its module factories', ()
   );
 
   expect(runtimeSource).toContain(
-    '__webpack_require__.rstest_original_modules || {}',
+    `${globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK ? '__rspack_context' : '__webpack_require__'}.rstest_original_modules || {}`,
   );
   expect(runtimeSource).toContain('for (moduleId in moreModules) {');
 

@@ -351,6 +351,14 @@ This option depends on `optimization.sideEffects`. If you disable [`optimization
 
 Setting `experiments.runtimeMode` to `'rspack'` enables an experimental output format for the Rspack runtime. This output mode is still under development, so use it with caution. It currently generates cleaner output when [`output.module`](/config/output#outputmodule) is `true` and [`output.library.type`](/config/output#outputlibrarytype) is `'modern-module'`. In this case, instead of exporting one `__webpack_require__` function with helper functions attached as properties, the Rspack runtime exports the loader, module factories, and helpers as named ESM bindings. Each output chunk can import only the bindings it needs.
 
+Custom runtime modules added through `compilation.addRuntimeModule` and source changes made through `compilation.hooks.runtimeModule` are supported. Rspack parses extension code and adapts references to the built-in `__webpack_require__` and `__rspack_context` objects. Referenced runtime globals remain readable and writable; ESM runtime chunks export setters for mutable bindings. Locally declared variables with these names are preserved. Plugins must continue to declare built-in runtime dependencies through `additionalTreeRuntimeRequirements` or `runtimeRequirementInTree`.
+
+Static runtime-global accesses in the owning runtime chunk use the same lexical bindings as native runtime modules. Custom runtime modules in other chunks access those bindings through the runtime context or ESM imports; ESM assignments call the exported setters. Custom properties follow the runtime scope used by the selected output mode. Accesses through aliases or dynamic property names are not analyzed.
+
+In this mode, adding a custom runtime module calls its `generate()` method immediately to analyze the source. Changes made by runtime module hooks are analyzed when the hook returns. Modules marked `fullHash` or `dependentHash` are still regenerated when the relevant hashes become available.
+
+Runtime source text and the module factory calling convention differ between runtime modes. Plugins that match exact generated source strings or invoke module factories directly must account for those differences. This transformation applies to runtime modules, not to strings evaluated at runtime or code injected into ordinary modules.
+
 ### Example
 
 ```js title="rspack.config.mjs"
