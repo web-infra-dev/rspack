@@ -1,4 +1,4 @@
-pub(crate) const MAX_CSS_KEYWORD_LEN: usize = "-webkit-animation-name".len();
+pub(crate) const MAX_CSS_KEYWORD_LEN: usize = "view-transition-image-pair".len();
 
 #[inline]
 pub(crate) fn is_css_space_byte(byte: u8) -> bool {
