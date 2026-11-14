@@ -11,7 +11,7 @@ use rspack_core::{
 };
 use rspack_intern::Atom;
 use rspack_plugin_javascript::JsPlugin;
-use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
+use rspack_util::fx_hash::FxIndexSet;
 
 use self::{
   rspack_context::RspackContextRuntimeRenderer, rspack_export::RspackExportRuntimeRenderer,
@@ -19,7 +19,7 @@ use self::{
 };
 use crate::chunk_link::{ChunkLinkContext, RawImportSource};
 
-pub(super) type ImportSources = FxIndexMap<RawImportSource, String>;
+pub(super) type ImportSources = Vec<(RawImportSource, String)>;
 
 static WEBPACK_RENDERER: WebpackRuntimeRenderer = WebpackRuntimeRenderer;
 static RSPACK_CONTEXT_RENDERER: RspackContextRuntimeRenderer = RspackContextRuntimeRenderer;
@@ -250,10 +250,10 @@ fn render_raw_import_stmts(
       ),
     };
 
-    imports
-      .entry(raw_import_source.clone())
-      .or_default()
-      .push_str(&render_imports(&request, attr, import_spec));
+    imports.push((
+      raw_import_source.clone(),
+      render_imports(&request, attr, import_spec),
+    ));
   }
 }
 

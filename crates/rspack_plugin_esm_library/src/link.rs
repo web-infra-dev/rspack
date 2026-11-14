@@ -7,7 +7,7 @@ use std::{
 use rayon::iter::Either;
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, SsoHashSet};
 use rspack_core::{
-  Chunk, ChunkGraph, ChunkGroup, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
+  Chunk, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataChunkInitFragments, CodeGenerationDataConcatenationScopeOutput,
   CodeGenerationDataPreservedAssetImport, CodeGenerationPublicPathAutoReplace, Compilation,
   ConcatenationBindingPlan, ConcatenationBindingResolver, ConcatenationBindingTarget,
@@ -54,7 +54,8 @@ fn static_module_request(dep: &dyn Dependency) -> bool {
 #[derive(Default)]
 struct NativeStarSlots {
   stars: Vec<(i32, RawImportSource)>,
-  children: Vec<(i32, Option<RequestPosition>)>,
+  children: Vec<(i32, RequestPosition)>,
+  missing_child: bool,
 }
 
 impl NativeStarSlots {
@@ -68,13 +69,13 @@ impl NativeStarSlots {
     }
     let owner = owner?;
     // A skipped barrel has no numbered subtree, so it cannot anchor a native star.
-    if self.children.iter().any(|(_, p)| p.is_none()) {
+    if self.missing_child {
       return None;
     }
     self.children.sort_unstable_by_key(|(source, _)| *source);
     let mut last = None;
     self.children.retain(|(_, child)| {
-      let post = child.expect("known child").post();
+      let post = child.post();
       // Ignore duplicate dependencies and edges into a previous sibling's subtree.
       if last.is_some_and(|previous| previous >= post) {
         return false;
@@ -83,11 +84,8 @@ impl NativeStarSlots {
       true
     });
     for (source, request) in self.stars {
-      let next = self
-        .children
-        .iter()
-        .find(|(n, _)| *n > source)
-        .and_then(|(_, p)| *p);
+      let after = self.children.partition_point(|(n, _)| *n <= source);
+      let next = self.children.get(after).map(|(_, p)| *p);
       let pos = next.unwrap_or(owner).before(next.is_some(), source);
       order
         .entry(request)
@@ -2175,6 +2173,19 @@ var {} = {{}};
     errors
   }
 
+  fn register_request_group<'a>(
+    compilation: &Compilation,
+    groups: &mut FxHashMap<ChunkUkey, &'a ChunkGroup>,
+    group: &'a ChunkGroup,
+  ) {
+    let chunks = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
+    for chunk in &group.chunks {
+      if chunks.expect_get(chunk).get_number_of_groups() == 1 {
+        groups.insert(*chunk, group);
+      }
+    }
+  }
+
   // A shared chunk may be entered through different modules. Its group traversal
   // describes this chunk's first requests only when there is one static entrance.
   fn record_split_entry(
@@ -2189,27 +2200,6 @@ var {} = {{}};
     }
   }
 
-  /// Only a split leaf can be moved as one request without inspecting another chunk's graph.
-  fn split_leaf(
-    compilation: &Compilation,
-    target: ModuleIdentifier,
-    chunk: ChunkUkey,
-  ) -> Option<RawImportSource> {
-    let graph = &compilation.build_chunk_graph_artifact.chunk_graph;
-    let mg = compilation.get_module_graph();
-    (graph.get_number_of_module_chunks(target) == 1
-      && graph.get_number_of_chunk_modules(&chunk) == 1
-      && mg
-        .get_ordered_outgoing_connections(&target)
-        .next()
-        .is_none()
-      && mg
-        .module_by_identifier(&target)?
-        .as_external_module()
-        .is_none())
-    .then_some(RawImportSource::Chunk(chunk))
-  }
-
   #[allow(clippy::too_many_arguments)]
   fn link_request(
     compilation: &Compilation,
@@ -2218,30 +2208,29 @@ var {} = {{}};
     dep: &dyn Dependency,
     conn: &ModuleGraphConnection,
     owner: Option<RequestPosition>,
-    fragments: &ChunkInitFragments,
+    native_stars: &FxHashSet<&str>,
     slots: &mut NativeStarSlots,
     positions: &mut FxHashMap<RawImportSource, RequestPosition>,
   ) -> Option<()> {
-    if !static_module_request(dep) {
-      return None;
-    }
     let mg = compilation.get_module_graph();
     let id = *conn.module_identifier();
-    let source = dep.source_order()?;
     let target = mg.module_by_identifier(&id)?;
+    if !static_module_request(dep) {
+      // Asset URLs are evaluated by the owner's code, not as ESM requests.
+      return (dep.dependency_type() == &DependencyType::NewUrl
+        && target.module_type().is_asset_like())
+      .then_some(());
+    }
+    let source = dep.source_order()?;
     let external = target.as_external_module();
-    let native_star = !fragments.is_empty()
+    let native_star = !native_stars.is_empty()
       && dep
         .as_any()
         .downcast_ref::<ESMExportImportedSpecifierDependency>()
         .is_some_and(|s| s.name.is_none() && s.other_star_exports.is_some())
       && external
         .and_then(|ext| ext.try_get_request())
-        .is_some_and(|request| {
-          fragments
-            .iter()
-            .any(|f| external_star_re_export_request(f.key()) == Some(request.primary()))
-        });
+        .is_some_and(|request| native_stars.contains(request.primary()));
     if !native_star
       && !conn.is_active(
         mg,
@@ -2258,13 +2247,14 @@ var {} = {{}};
     let pos = RequestPosition::of(group, id);
     // A cut-out star is not a new DFS child. Its surviving side-effect import,
     // when present, is handled by the ordinary active dependency at that site.
-    if !fragments.is_empty()
+    if !native_stars.is_empty()
       && !native_star
-      && owner.is_some_and(|owner| pos.is_some_and(|p| p != owner && owner.contains(p)))
+      && let Some(child) = pos
+      && owner.is_some_and(|owner| child != owner && owner.contains(child))
     {
-      slots.children.push((source, pos));
+      slots.children.push((source, child));
     }
-    let key = if let Some(ext) = external {
+    let (key, pos) = if let Some(ext) = external {
       if ext.resolve_external_type() != "module"
         || ext.get_import_phase() != ImportPhase::Evaluation
       {
@@ -2284,19 +2274,27 @@ var {} = {{}};
       if native_star {
         slots.stars.push((source, request.clone()));
       }
-      request
+      (request, pos)
     } else {
       let chunks = compilation
         .build_chunk_graph_artifact
         .chunk_graph
         .get_module_chunks(id);
       if chunks.is_empty() || chunks.contains(&chunk.ukey()) {
-        if !fragments.is_empty() && pos.is_none() {
-          slots.children.push((source, None));
+        if !native_stars.is_empty() && pos.is_none() {
+          slots.missing_child = true;
         }
         return Some(());
       }
-      Self::split_leaf(compilation, id, *chunks.iter().next()?)?
+      let pos = pos?;
+      if chunks.len() != 1 || pos.contains(owner?) {
+        return None;
+      }
+      // The parent requests the child before any of the child's dependencies run.
+      (
+        RawImportSource::Chunk(*chunks.iter().next()?),
+        Some(pos.before(true, i32::MAX)),
+      )
     };
     if let Some(pos) = pos {
       positions
@@ -2345,9 +2343,13 @@ var {} = {{}};
     let mut required = FxHashMap::<ChunkUkey, IdentifierIndexMap<ExternalInterop>>::default();
 
     // The chunk splitter has already assigned group-local visit indices in dependency order.
-    // Only an ordinary entry supplies a single execution context for ordering its requests.
+    // Only use groups with a known entry and no competing execution contexts.
     let mut request_groups = FxHashMap::default();
     let mut split_entry_roots = FxHashMap::<ChunkUkey, Option<ModuleIdentifier>>::default();
+    let mut native_star_chunks = FxHashSet::default();
+    let mut closed_chunks = FxHashMap::default();
+    let mut first_requests =
+      FxHashMap::<ChunkGroupUkey, FxHashMap<RawImportSource, RequestPosition>>::default();
     // link entry direct exports
     for (entry_name, entrypoint_ukey) in compilation.build_chunk_graph_artifact.entrypoints.iter() {
       let entrypoint = compilation
@@ -2375,17 +2377,7 @@ var {} = {{}};
         && compilation.global_entry.include_dependencies.is_empty()
         && entry_data.options.depend_on.is_none()
       {
-        for chunk in &entrypoint.chunks {
-          if compilation
-            .build_chunk_graph_artifact
-            .chunk_by_ukey
-            .expect_get(chunk)
-            .get_number_of_groups()
-            == 1
-          {
-            request_groups.insert(*chunk, entrypoint);
-          }
-        }
+        Self::register_request_group(compilation, &mut request_groups, entrypoint);
       }
 
       for entry_module in entry_data
@@ -2418,14 +2410,15 @@ var {} = {{}};
             entry_module,
             true,
           );
-          if let Some(key) = Self::split_leaf(compilation, entry_module, entry_module_chunk)
-            && let Some(pos) = RequestPosition::of(group, entry_module)
-          {
+          if let Some(pos) = RequestPosition::of(group, entry_module) {
             link
               .get_mut_unwrap(&entry_chunk_ukey)
               .request_order
               .get_or_insert_default()
-              .insert(key, pos);
+              .insert(
+                RawImportSource::Chunk(entry_module_chunk),
+                pos.before(true, i32::MAX),
+              );
           } else {
             request_groups.remove(&entry_chunk_ukey);
           }
@@ -2679,6 +2672,18 @@ var {} = {{}};
           continue;
         }
 
+        let artifact = &compilation.build_chunk_graph_artifact;
+        let target = artifact.chunk_by_ukey.expect_get(&source_chunk);
+        if target.get_number_of_groups() == 1
+          && let Some(group) = target.groups().iter().next()
+        {
+          let group = artifact.chunk_group_by_ukey.expect_get(group);
+          if !group.kind.is_entrypoint() && group.origins().len() == 1 {
+            Self::register_request_group(compilation, &mut request_groups, group);
+            Self::record_split_entry(&mut split_entry_roots, source_chunk, dyn_target, true);
+          }
+        }
+
         // No facade chunk — exports go directly on source_chunk
         let target_chunk = source_chunk;
         let is_strict = self.strict_export_chunk(target_chunk);
@@ -2783,6 +2788,7 @@ var {} = {{}};
         .chunk_by_ukey
         .expect_get(chunk);
       let mut order = group.map(|_| chunk_link.request_order.take().unwrap_or_default());
+      let mut complete = true;
       // if one chunk has multiple modules that require the same
       // module, the first module require imported module, the
       // followings should not require the module again.
@@ -2796,16 +2802,18 @@ var {} = {{}};
         let module = module_graph
           .module_by_identifier(m)
           .expect("should have module");
-
-        if !module.get_blocks().is_empty() {
-          order = None;
-        }
         let owner = group
           .filter(|_| order.is_some())
           .and_then(|g| RequestPosition::of(g, *m));
-        let fragments = &binding_resolver.module_to_info_map[m]
+        let native_stars = binding_resolver.module_to_info_map[m]
           .as_concatenated()
-          .chunk_init_fragments;
+          .chunk_init_fragments
+          .iter()
+          .filter_map(|f| external_star_re_export_request(f.key()))
+          .collect::<FxHashSet<_>>();
+        if !native_stars.is_empty() {
+          native_star_chunks.insert(*chunk);
+        }
         let mut slots = NativeStarSlots::default();
         // make sure all side-effect modules are rendered
         // eg.
@@ -2835,13 +2843,13 @@ var {} = {{}};
               &**dep,
               conn,
               owner,
-              fragments,
+              &native_stars,
               &mut slots,
               positions,
             )
             .is_none()
           {
-            order = None;
+            complete = false;
           }
 
           // Fast path: for non-ESM imports to modules in the same chunk,
@@ -2905,7 +2913,7 @@ var {} = {{}};
         if let Some(positions) = order.as_mut()
           && slots.place(owner, positions).is_none()
         {
-          order = None;
+          complete = false;
         }
 
         let concatenation_scope_output = compilation
@@ -3039,8 +3047,8 @@ var {} = {{}};
           .expect("should have module");
         // Wrapped user modules may execute at runtime or own a native star outside
         // the hoisted module list. In either case do not partially reorder the chunk.
-        if module.as_external_module().is_none() {
-          order = None;
+        if module.as_external_module().is_none() && !module.module_type().is_asset_like() {
+          complete = false;
         }
         for dep_id in module.get_dependency_ids() {
           let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
@@ -3059,8 +3067,8 @@ var {} = {{}};
               static_module_request(module_graph.dependency_by_id(dep_id)),
             );
           }
-          if order.is_some() && !static_module_request(module_graph.dependency_by_id(dep_id)) {
-            order = None;
+          if !static_module_request(module_graph.dependency_by_id(dep_id)) {
+            complete = false;
           }
           if !conn.is_target_active(
             module_graph,
@@ -3078,7 +3086,51 @@ var {} = {{}};
           chunk_imports.entry(*ref_module).or_default();
         }
       }
-      chunk_link.request_order = order;
+      if let (Some(group), Some(positions)) = (group, &order)
+        && group.chunks.len() > 1
+      {
+        let first_in_group = first_requests.entry(group.ukey()).or_default();
+        for (request, &position) in positions {
+          if matches!(request, RawImportSource::Source(_)) {
+            first_in_group
+              .entry(request.clone())
+              .and_modify(|first| *first = (*first).min(position))
+              .or_insert(position);
+          }
+        }
+      }
+      chunk_link.request_order = order.filter(|_| complete);
+      if let Some(order) = &chunk_link.request_order
+        && order
+          .keys()
+          .all(|r| matches!(r, RawImportSource::Source(_)))
+      {
+        closed_chunks.insert(*chunk, None);
+      }
+    }
+
+    // Mark closed chunks that repeat a request from before their entrance.
+    // Advancing the entire chunk to preload that URL could also advance its
+    // other externals or its module body.
+    for (chunk, preload) in &mut closed_chunks {
+      let group = request_groups[chunk];
+      let Some(root) = split_entry_roots
+        .get(chunk)
+        .copied()
+        .flatten()
+        .and_then(|id| RequestPosition::of(group, id))
+      else {
+        continue;
+      };
+      *preload = first_requests.get(&group.ukey()).and_then(|first| {
+        link[chunk]
+          .request_order
+          .as_ref()?
+          .keys()
+          .filter_map(|r| first.get(r).copied())
+          .filter(|p| *p < root.before(true, i32::MAX))
+          .min()
+      });
     }
 
     /*
@@ -3101,24 +3153,52 @@ var {} = {{}};
     ```
     */
     for chunk_link in link.values_mut() {
-      // A shared chunk can reuse its group's positions only within one known
-      // entrance's subtree. A request first visited by a sibling is not evidence.
-      if let Some(group) = request_groups.get(&chunk_link.chunk)
-        && group.get_entrypoint_chunk() != chunk_link.chunk
-      {
-        let root = split_entry_roots
+      // A split chunk needs one known entrance. Its local request positions
+      // must belong to that entrance's subtree before we account for preloads.
+      let group = request_groups.get(&chunk_link.chunk).copied();
+      let root = group.and_then(|g| {
+        split_entry_roots
           .get(&chunk_link.chunk)
           .copied()
           .flatten()
-          .and_then(|r| RequestPosition::of(group, r));
-        if !root.is_some_and(|root| {
-          chunk_link
-            .request_order
-            .as_ref()
-            .is_some_and(|order| order.values().all(|p| root.contains(*p)))
-        }) {
+          .and_then(|id| RequestPosition::of(g, id))
+      });
+      if let Some(group) = group
+        && (!group.kind.is_entrypoint() || group.get_entrypoint_chunk() != chunk_link.chunk)
+      {
+        if let (Some(root), Some(order)) = (root, &mut chunk_link.request_order)
+          && order.values().all(|&pos| root.contains(pos))
+        {
+          let enter = root.before(true, i32::MAX);
+          if let Some(first) = first_requests.get(&group.ukey()) {
+            for (request, pos) in order {
+              if let Some(&earlier) = first.get(request)
+                && earlier < enter
+              {
+                *pos = earlier;
+              }
+            }
+          }
+        } else {
           chunk_link.request_order = None;
         }
+      }
+      // A request cannot represent a chunk with multiple entrances or one
+      // that would move other side effects along with a preloaded external.
+      if let Some(order) = &chunk_link.request_order
+        && order.keys().any(|request| {
+          let RawImportSource::Chunk(target) = request else {
+            return false;
+          };
+          let Some(preload) = closed_chunks.get(target) else {
+            return true;
+          };
+          !matches!(split_entry_roots.get(target), Some(Some(_)))
+            || root
+              .is_some_and(|root| preload.is_some_and(|first| first < root.before(true, i32::MAX)))
+        })
+      {
+        chunk_link.request_order = None;
       }
       let all_chunk_used_symbols = chunk_link
         .refs
@@ -3221,6 +3301,12 @@ var {} = {{}};
     // put result into chunk_link context
     for (chunk, exports) in exports {
       let link = link.get_mut(&chunk).expect("should have chunk");
+      if exports.re_exports.is_empty()
+        && link.raw_star_exports.is_empty()
+        && !native_star_chunks.contains(&chunk)
+      {
+        link.request_order = None;
+      }
       *link.exports_mut() = exports.exports;
       *link.re_exports_mut() = exports.re_exports;
     }

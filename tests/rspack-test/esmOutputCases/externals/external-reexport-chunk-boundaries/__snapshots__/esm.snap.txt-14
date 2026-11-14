@@ -1,0 +1,27 @@
+```mjs title=repeated-external-readable/a.mjs
+import "./side.mjs";
+import "./tail.mjs";
+export { update, value } from "./ext.mjs";
+
+// ../tail.mjs
+
+// ../ext.mjs
+
+// ../side.mjs?a472
+
+// ./repeated-external/b.mjs
+
+if (!globalThis.order.includes('tail')) {
+  throw new Error('tail must run before b');
+}
+
+// ./repeated-external/inner.mjs
+
+
+
+
+// ./repeated-external/a.mjs
+
+
+
+```

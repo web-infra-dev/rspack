@@ -4,8 +4,8 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 export default {
-  snapshotFileFilter() {
-    return false;
+  snapshotFileFilter(file) {
+    return file.startsWith('repeated-external-') && file.endsWith('/a.mjs');
   },
   findBundle() {
     return [];

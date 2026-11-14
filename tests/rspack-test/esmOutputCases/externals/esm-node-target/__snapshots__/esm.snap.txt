@@ -1,6 +1,7 @@
 ```mjs title=main.mjs
-import { resolve } from "path";
 import { __webpack_require__ } from "./runtime.mjs";
+import { resolve } from "path";
+export { readFileSync } from "fs";
 
 // path
 
@@ -25,7 +26,6 @@ it("should externalize node builtins with correct external types", async () => {
 	expect(dynamicOs.platform).toBeDefined();
 });
 
-export { readFileSync } from "fs";
 
 ```
 

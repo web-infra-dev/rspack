@@ -1,0 +1,3 @@
+```mjs title=repeated-external-split-min/a.mjs
+import"./tail.mjs";import"./b.mjs";export{update,value}from"./ext.mjs";
+```

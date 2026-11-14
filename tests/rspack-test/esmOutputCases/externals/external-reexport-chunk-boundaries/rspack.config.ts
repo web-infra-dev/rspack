@@ -10,11 +10,15 @@ export default defineConfig(
     'nested',
     'independent-entries',
     'array-stars',
+    'repeated-external',
+    'repeated-external-split',
   ].flatMap((variant) =>
     [false, true].map((minimize) => {
       const name = `${variant}-${minimize ? 'min' : 'readable'}`;
       const independentEntries = variant === 'independent-entries';
       const arrayStars = variant === 'array-stars';
+      const entryDir =
+        variant === 'repeated-external-split' ? 'repeated-external' : variant;
       const shared =
         variant === 'interleaved' ||
         variant === 'rootless' ||
@@ -26,7 +30,7 @@ export default defineConfig(
           ? { first: `./${variant}/a.mjs`, second: `./${variant}/b.mjs` }
           : arrayStars
             ? ['./array-stars/first.mjs', './array-stars/second.mjs']
-            : `./${variant}/index.js`,
+            : `./${entryDir}/index.js`,
         externalsType: 'module',
         externals: {
           '../ext.mjs': './ext.mjs',
@@ -55,13 +59,14 @@ export default defineConfig(
                 name: 'a',
                 enforce: true,
               },
-              b: shared
-                ? false
-                : {
-                    test: /[\\/]b\.mjs$/,
-                    name: 'b',
-                    enforce: true,
-                  },
+              b:
+                shared || variant === 'repeated-external'
+                  ? false
+                  : {
+                      test: /[\\/]b\.mjs$/,
+                      name: 'b',
+                      enforce: true,
+                    },
               setup: {
                 test: /[\\/]setup\.mjs$/,
                 name: 'setup',
