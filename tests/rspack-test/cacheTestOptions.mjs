@@ -34,8 +34,7 @@ const excludes = {
 		// Restored modules skip loader importModule(), but this case asserts both graphs.
 		/^stats\/issuer-information-cache$/,
 
-		// Loader-emitted errors or warnings are not fully restored.
-		/^loader\/emit-error$/,
+		// Source map warnings are not fully restored.
 		/^source-map\/extract-source-map$/,
 
 		// Existing bundle/compiler assertions fail in the compatibility suite.
