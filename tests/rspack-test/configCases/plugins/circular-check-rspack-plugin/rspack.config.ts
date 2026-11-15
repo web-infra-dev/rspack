@@ -92,6 +92,18 @@ export default defineConfig([
     },
   ),
   createCase(
+    'fail-on-error',
+    './deps/d.js',
+    [
+      new CircularCheckRspackPlugin({
+        failOnError: true,
+      }),
+    ],
+    (stats) => {
+      expectCircularDiagnostic(stats, 'errors', efgCycle);
+    },
+  ),
+  createCase(
     'exclude',
     './deps/d.js',
     [
