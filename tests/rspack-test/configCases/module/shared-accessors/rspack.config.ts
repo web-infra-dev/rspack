@@ -14,7 +14,12 @@ const commitKey = Symbol.for('rspack.buildInfo.commitCustomFields');
 export default defineConfig({
   module: {
     rules: [
-      { test: /\.js$/, use: path.join(import.meta.dirname, 'loader.cjs') },
+      {
+        test: /\.js$/,
+        use: path.join(import.meta.dirname, 'loader.cjs'),
+        // Cached modules get fresh factory metadata without running the loader.
+        sideEffects: true,
+      },
     ],
   },
   plugins: [
