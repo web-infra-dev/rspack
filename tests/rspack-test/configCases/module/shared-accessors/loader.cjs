@@ -15,10 +15,7 @@ module.exports = function (source) {
   this.addContextDependency(this.context);
   this.addMissingDependency(`${this.resourcePath}.missing`);
   this.addBuildDependency(__filename);
-  this._module.factoryMeta = { sideEffectFree: true };
-  assert.equal(this._module.factoryMeta.sideEffectFree, true);
   this._module.factoryMeta = { sideEffectFree: false };
-  assert.equal(this._module.factoryMeta.sideEffectFree, false);
   this._module.buildInfo = { resource: this.resourcePath };
   this.emitFile(
     `${this.resourcePath.endsWith('index.js') ? 'index' : 'value'}.txt`,

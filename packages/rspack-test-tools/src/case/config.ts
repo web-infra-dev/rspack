@@ -83,7 +83,28 @@ export function createConfigProcessor(
   };
 }
 
-const creator = new BasicCaseCreator({
+class ConfigCaseCreator extends BasicCaseCreator {
+  protected checkSkipped(
+    src: string,
+    testConfig: TTestConfig,
+    options: IBasicCaseCreatorOptions,
+  ): boolean | string {
+    // The normal run and the optional cache runs share one test case.
+    const skipped = super.checkSkipped(src, testConfig, {
+      ...options,
+      cache: undefined,
+    });
+    if (skipped) return skipped;
+
+    // A cache-only filter must not skip the normal run and its assertions.
+    if (options.cache && super.checkSkipped(src, testConfig, options)) {
+      options.cache = undefined;
+    }
+    return false;
+  }
+}
+
+const creator = new ConfigCaseCreator({
   clean: true,
   describe: false,
   testConfig: (testConfig) => {
