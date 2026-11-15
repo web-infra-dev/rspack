@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     definePlugin({
       apply(compiler) {
-        compiler.hooks.make.tap('child', (compilation) => {
+        compiler.hooks.make.tapAsync('child', (compilation, callback) => {
           const childCompiler = compilation.createChildCompiler(
             'child',
             {
@@ -21,13 +21,19 @@ export default defineConfig({
               ),
             ],
           );
-          childCompiler.compile((_err, result) => {
-            const assets = result!
-              .getAssets()
-              .filter((asset) => asset.name === 'child.js');
-            assert(assets.length === 1);
-            const asset = assets[0];
-            assert(asset.source.source().toString().includes('hello/1'));
+          childCompiler.compile((error, result) => {
+            if (error) return callback(error);
+            try {
+              const assets = result!
+                .getAssets()
+                .filter((asset) => asset.name === 'child.js');
+              assert(assets.length === 1);
+              const asset = assets[0];
+              assert(asset.source.source().toString().includes('hello/1'));
+            } catch (error) {
+              return callback(error as Error);
+            }
+            callback();
           });
         });
       },
