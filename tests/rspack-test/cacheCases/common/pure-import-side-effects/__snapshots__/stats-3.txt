@@ -7,8 +7,8 @@ DEBUG LOG from rspack.persistentCache
 <t> read snapshot from persistent cache: xx ms
 <i> snapshot restored with detected changed dependencies:
 <i> modified paths (2):
-<i>   - <TEST_ROOT>/js/temp/cacheCases-cacheCases/common/pure-require-side-effects/direct.js
-<i>   - <TEST_ROOT>/js/temp/cacheCases-cacheCases/common/pure-require-side-effects/transitive.js
+<i>   - <TEST_ROOT>/js/temp/cacheCases-cacheCases/common/pure-import-side-effects/direct.js
+<i>   - <TEST_ROOT>/js/temp/cacheCases-cacheCases/common/pure-import-side-effects/transitive.js
 <i> make persistent cache recovery succeeded
 <t> read make from persistent cache: xx ms
 <t> write make to persistent cache: xx ms

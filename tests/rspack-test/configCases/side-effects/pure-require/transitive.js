@@ -1,2 +1,2 @@
-import { value as initialized } from "./effectful";
-export const value = initialized + 1;
+import "./effectful";
+export const value = 45;

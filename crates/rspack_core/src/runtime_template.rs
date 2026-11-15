@@ -22,8 +22,7 @@ use crate::{
   FakeNamespaceObjectMode, ImportPhase, InitFragment, InitFragmentExt, InitFragmentKey,
   InitFragmentStage, Module, ModuleArgument, ModuleGraph, ModuleGraphCacheArtifact, ModuleId,
   ModuleIdentifier, NormalInitFragment, PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  UsedName, compile_boolean_matcher_from_lists, contextify, module_evaluation_side_effect_free,
-  property_access,
+  UsedName, compile_boolean_matcher_from_lists, contextify, property_access,
   runtime_globals::{
     RuntimeVariable, rspack_export_runtime_variable_name, rspack_runtime_variable_name,
     runtime_globals_to_string, runtime_variable_name,
@@ -1205,20 +1204,33 @@ impl ModuleCodeTemplate {
     }
   }
 
-  pub fn is_module_side_effect_free(&self, compilation: &Compilation, id: &DependencyId) -> bool {
-    let module_graph = compilation.get_module_graph();
-    let Some(module) = module_graph.get_module_by_dependency_id(id) else {
-      return false;
-    };
-    let side_effects_state_artifact = &compilation
+  pub fn module_side_effects_annotation(
+    &self,
+    compilation: &Compilation,
+    module: &dyn Module,
+  ) -> &'static str {
+    if !self.compiler_options.output.module {
+      return "";
+    }
+    let side_effects = &compilation
       .build_module_graph_artifact
       .side_effects_state_artifact;
-    module_evaluation_side_effect_free(
-      module.as_ref(),
-      module_graph,
-      &compilation.module_graph_cache_artifact,
-      side_effects_state_artifact,
-    )
+    let state = side_effects
+      .module_evaluation_side_effects_state(&module.identifier())
+      .unwrap_or_else(|| {
+        module.get_side_effects_connection_state(
+          compilation.get_module_graph(),
+          &compilation.module_graph_cache_artifact,
+          side_effects,
+          &mut Default::default(),
+          &mut Default::default(),
+        )
+      });
+    if state.is_false() {
+      "/*#__PURE__*/ "
+    } else {
+      ""
+    }
   }
 
   pub fn module_raw(
@@ -1228,40 +1240,21 @@ impl ModuleCodeTemplate {
     request: &str,
     weak: bool,
   ) -> String {
-    let mut out = String::new();
-    self.write_module_raw(&mut out, compilation, id, request, weak);
-    out
-  }
-
-  /// Appends the expression produced by [`Self::module_raw`] to `out`, without
-  /// allocating an intermediate string for the require call.
-  fn write_module_raw(
-    &mut self,
-    out: &mut String,
-    compilation: &Compilation,
-    id: &DependencyId,
-    request: &str,
-    weak: bool,
-  ) {
     if let Some(module_identifier) = compilation
       .get_module_graph()
       .module_identifier_by_dependency_id(id)
       && let Some(module_id) =
         ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
     {
-      let require = self.render_runtime_globals(&RuntimeGlobals::REQUIRE);
-      let module_id_expr = self.module_id_expr(request, module_id);
-      if self.is_module_side_effect_free(compilation, id) {
-        // A sequence keeps minifiers from applying the annotation to calls of the result.
-        write!(out, "(0, /*#__PURE__*/ {require}({module_id_expr}))")
-          .expect("failed to write module raw");
-      } else {
-        write!(out, "{require}({module_id_expr})").expect("failed to write module raw");
-      }
+      format!(
+        "{}({})",
+        self.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+        self.module_id_expr(request, module_id)
+      )
     } else if weak {
-      out.push_str(&self.weak_error_expression(request));
+      self.weak_error_expression(request)
     } else {
-      out.push_str(&self.missing_module(request));
+      self.missing_module(request)
     }
   }
 
@@ -1365,6 +1358,8 @@ impl ModuleCodeTemplate {
       return (self.missing_module_statement(request), String::new());
     };
 
+    let module_id_expr = self.module_id(compilation, id, request, false);
+
     let opt_declaration = if update { "" } else { "var " };
 
     let exports_type = target_module.get_exports_type(
@@ -1375,7 +1370,6 @@ impl ModuleCodeTemplate {
     );
 
     if phase.is_defer() && !target_module.build_meta().has_top_level_await() {
-      let module_id_expr = self.module_id(compilation, id, request, false);
       let async_deps = get_outgoing_async_modules(compilation, target_module.as_ref());
       let import_content = format!(
         "/* deferred import */{opt_declaration}{import_var} = {};\n",
@@ -1384,9 +1378,11 @@ impl ModuleCodeTemplate {
       return (import_content, String::new());
     }
 
-    let mut import_content = format!("/* import */ {opt_declaration}{import_var} = ");
-    self.write_module_raw(&mut import_content, compilation, id, request, false);
-    import_content.push_str(";\n");
+    let annotation = self.module_side_effects_annotation(compilation, target_module.as_ref());
+    let import_content = format!(
+      "/* import */ {opt_declaration}{import_var} = {annotation}{}({module_id_expr});\n",
+      self.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    );
     if matches!(exports_type, ExportsType::Dynamic) {
       return (
         import_content,

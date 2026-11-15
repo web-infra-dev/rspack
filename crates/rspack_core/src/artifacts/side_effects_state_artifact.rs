@@ -5,10 +5,7 @@ use std::{
 
 use rspack_collections::IdentifierMap;
 
-use crate::{
-  ConnectionState, Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  OptimizationBailoutItem,
-};
+use crate::{ConnectionState, Module, ModuleIdentifier, OptimizationBailoutItem};
 
 #[derive(Debug, Default, Clone)]
 pub struct SideEffectsState {
@@ -116,28 +113,6 @@ pub fn module_analyzed_side_effect_free(
   side_effects_state_artifact
     .analyzed_side_effect_free(&module.identifier())
     .or(module.build_meta().side_effect_free)
-}
-
-/// Returns the evaluation purity used by both PURE require rendering and its
-/// code-generation cache key, including transitive module side effects.
-pub fn module_evaluation_side_effect_free(
-  module: &dyn Module,
-  module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCacheArtifact,
-  side_effects_state_artifact: &SideEffectsStateArtifact,
-) -> bool {
-  side_effects_state_artifact
-    .module_evaluation_side_effects_state(&module.identifier())
-    .unwrap_or_else(|| {
-      module.get_side_effects_connection_state(
-        module_graph,
-        module_graph_cache,
-        side_effects_state_artifact,
-        &mut Default::default(),
-        &mut Default::default(),
-      )
-    })
-    == ConnectionState::Active(false)
 }
 
 #[cfg(test)]
