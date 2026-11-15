@@ -1169,7 +1169,7 @@ impl JavascriptParser<'_> {
     }
   }
 
-  fn walk_object_property(&mut self, property: ObjectProperty) {
+  pub(crate) fn walk_object_property(&mut self, property: ObjectProperty) {
     let ast = self.ast.ast;
     if property.computed(ast) {
       self.walk_property_key(property.key(ast));

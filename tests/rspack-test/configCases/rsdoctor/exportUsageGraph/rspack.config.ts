@@ -148,7 +148,7 @@ export default defineConfig({
                   targetModulePath: normalizeRequest(
                     path.join(import.meta.dirname, 'cjs.js'),
                   ),
-                  targetExport: null,
+                  targetExport: ['foo'],
                 });
                 expect(edges).toContainEqual({
                   originModulePath: normalizeRequest(

@@ -4,8 +4,8 @@ it("should add all modules headers info above modules", () => {
   const content = fs.readFileSync(path.join(__dirname, "sut.js"), "utf-8");
 
   const runtimeRequirements = content.includes("__rspack_context.r")
-    ? "__rspack_context.r, __rspack_context.n, __rspack_context"
-    : "__webpack_require__.n, __webpack_require__, __webpack_require__";
+    ? "__rspack_context.r, __rspack_context"
+    : "__webpack_require__, __webpack_require__";
   expect(content).toContain(`
 /*!****************!*\\
   !*** ./sut.js ***!
@@ -19,7 +19,8 @@ it("should add all modules headers info above modules", () => {
 /*!****************!*\\
   !*** ./cjs.js ***!
   \\****************/
-/*! unknown exports (runtime-defined) */
+/*! default exports */
+/*! export secret [provided] [used in sut] [renamed to r] */
 /*! runtime requirements: module */
     `.trim())
 })
