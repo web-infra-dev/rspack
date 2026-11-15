@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { defineConfig } from '@rspack/cli';
-import { CircularCheckRspackPlugin } from '@rspack/core';
+import { CircularCheckRspackPlugin, type Compiler } from '@rspack/core';
 
 // Keep the expected error separate so the other circular-check configurations
 // still receive the cache harness's error-free build reuse checks.
@@ -11,7 +11,7 @@ export default defineConfig({
   entry: './deps/d.js',
   plugins: [
     new CircularCheckRspackPlugin({ failOnError: true }),
-    (compiler) => {
+    (compiler: Compiler) => {
       compiler.hooks.done.tap(
         'CircularCheckRspackPluginConfigCase',
         (stats) => {
