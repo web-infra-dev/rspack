@@ -1,11 +1,6 @@
 import assert from 'node:assert/strict';
-import path from 'node:path';
-import type {
-  Compilation,
-  Compiler,
-  RspackOptions,
-  StatsOptions,
-} from '@rspack/core';
+import type { Compiler, RspackOptions, StatsOptions } from '@rspack/core';
+import { getCacheTestPhase } from '@rspack/test-tools/helper/cache';
 
 export default {
   context: import.meta.dirname,
@@ -16,23 +11,7 @@ export default {
   plugins: [
     {
       apply(compiler: Compiler) {
-        const restoredParents = new WeakSet<Compilation>();
-        compiler.hooks.thisCompilation.tap(
-          'IssuerInformationCacheContract',
-          (compilation) => {
-            compilation.hooks.stillValidModule.tap(
-              'IssuerInformationCacheContract',
-              (module) => {
-                if (
-                  module.nameForCondition() ===
-                  path.join(compiler.context, 'parent.js')
-                ) {
-                  restoredParents.add(compilation);
-                }
-              },
-            );
-          },
-        );
+        const isWarm = getCacheTestPhase(compiler) === 'warm';
         compiler.hooks.done.tap('IssuerInformationCacheContract', (stats) => {
           assert(
             !stats.hasErrors(),
@@ -59,7 +38,7 @@ export default {
           // fresh compiler only has the normal graph.
           assert.equal(
             firstModules.length,
-            restoredParents.has(stats.compilation) ? 1 : 2,
+            isWarm ? 1 : 2,
             'expected both graphs unless parent was restored from cache',
           );
           let sharedIssuerRecords = 0;

@@ -1,5 +1,5 @@
 import path from 'node:path';
-import type { MultiStats, RspackOptions, Stats } from '@rspack/core';
+import type { Compiler, MultiStats, RspackOptions, Stats } from '@rspack/core';
 import fs from 'fs-extra';
 import type { ITestContext } from '../type';
 import { checkArrayExpectation } from './legacy/checkArrayExpectation';
@@ -7,6 +7,17 @@ import { checkArrayExpectation } from './legacy/checkArrayExpectation';
 export type TCacheTestOptions = {
   directory: string;
 };
+
+// Share the marker between ESM and CommonJS imports of this helper.
+const CACHE_TEST_PHASE = Symbol.for('@rspack/test-tools/cache-test-phase');
+type CacheTestCompiler = Compiler & {
+  [CACHE_TEST_PHASE]?: 'cold' | 'warm';
+};
+
+/** The runner's cache round, or `normal` outside the persistent-cache check. */
+export function getCacheTestPhase(compiler: Compiler) {
+  return (compiler as CacheTestCompiler)[CACHE_TEST_PHASE] ?? 'normal';
+}
 
 export function getCacheStats(stats: Stats | MultiStats) {
   return ('stats' in stats ? stats.stats : [stats]).map(
@@ -27,8 +38,18 @@ export async function checkPersistentCache(
   const options = manager.getOptions();
   const cacheDirectory = cache.directory;
   fs.removeSync(cacheDirectory);
-  const withCache = (options: RspackOptions, index: number): RspackOptions => ({
+  const withCache = (
+    options: RspackOptions,
+    index: number,
+    phase: 'cold' | 'warm',
+  ): RspackOptions => ({
     ...options,
+    plugins: [
+      (compiler: Compiler) => {
+        (compiler as CacheTestCompiler)[CACHE_TEST_PHASE] = phase;
+      },
+      ...(options.plugins ?? []),
+    ],
     cache: {
       type: 'persistent',
       storage: {
@@ -48,17 +69,17 @@ export async function checkPersistentCache(
       },
     },
   });
-  manager.setOptions(
-    (Array.isArray(options)
-      ? options.map(withCache)
-      : withCache(options, 0)) as RspackOptions,
-  );
-
   let coldCacheStats: ReturnType<typeof getCacheStats> = [];
   for (let buildIndex = 0; buildIndex < 2; buildIndex++) {
     // close() must finish writing the disk cache before the next compiler.
     // The last compiler is closed by the harness teardown, including on failure.
     if (buildIndex > 0) await manager.close();
+    const phase = buildIndex === 0 ? 'cold' : 'warm';
+    manager.setOptions(
+      (Array.isArray(options)
+        ? options.map((options, index) => withCache(options, index, phase))
+        : withCache(options, 0, phase)) as RspackOptions,
+    );
     manager.createCompiler();
     await manager.build();
     const stats = manager.getStats()!;
