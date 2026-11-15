@@ -41,7 +41,6 @@ const excludes = {
 		// Existing bundle/compiler assertions fail in the compatibility suite.
 		/^context\/import-meta-glob-case-insensitive-pruning$/,
 		/^loader\/context-module$/,
-		/^plugins\/circular-check-rspack-plugin$/,
 
 		// Module cache entries are not fully reused after restarting the compiler.
 		/^builtin-swc-loader\/react-compiler-long-expressions$/,
