@@ -6,6 +6,10 @@ use rspack_paths::Utf8Path;
 pub trait VirtualFileStore: Send + Sync {
   fn write_file(&mut self, path: &Utf8Path, content: Vec<u8>);
 
+  fn snapshot_metadata(&self) -> Vec<u8>;
+
+  fn restore_metadata(&mut self, snapshot: Option<&[u8]>) -> rspack_fs::Result<()>;
+
   fn get_file_content(&self, path: &Utf8Path) -> Option<&Vec<u8>>;
 
   fn get_file_metadata(&self, path: &Utf8Path) -> Option<FileMetadata>;

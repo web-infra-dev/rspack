@@ -6,8 +6,6 @@ const {
 } = rspack;
 
 export default defineConfig({
-  // Virtual directory timestamps change when each compiler recreates its files.
-  snapshot: { contextModule: { hash: true } },
   entry: {
     main: './index.js',
   },

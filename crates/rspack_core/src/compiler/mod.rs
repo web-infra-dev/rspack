@@ -34,6 +34,7 @@ use crate::{
 #[derive(Debug)]
 struct Meta {
   pub max_dependency_id: u32,
+  pub file_system_metadata: Option<Vec<u8>>,
 }
 
 // should be SyncHook, but rspack need call js hook
@@ -243,6 +244,7 @@ impl Compiler {
         None,
         CacheValue::new(Meta {
           max_dependency_id: self.compiler_context.dependency_id(),
+          file_system_metadata: self.input_filesystem.snapshot_metadata(),
         }),
       );
     };
@@ -282,7 +284,15 @@ impl Compiler {
   async fn build_inner(&mut self) -> Result<()> {
     if self.new_cache.has_file_cache() {
       let meta_cache = self.get_cache("meta");
-      if let Some(restored) = meta_cache.get::<Meta>("state", None) {
+      let restored = meta_cache.get::<Meta>("state", None);
+      // Child compilers share the cache database, but have independent input
+      // filesystems. Their metadata belongs to this compiler's existing namespace.
+      self.input_filesystem.restore_metadata(
+        restored
+          .as_ref()
+          .and_then(|meta| meta.file_system_metadata.as_deref()),
+      )?;
+      if let Some(restored) = restored {
         let current = self.compiler_context.dependency_id();
         if current == 0 {
           self

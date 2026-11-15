@@ -42,6 +42,14 @@ export default {
 };
 ```
 
+### Timestamps and persistent caching
+
+Writing the same contents to an existing virtual file preserves its modification timestamp. Changing its contents advances the timestamp, including when the file is changed back to an earlier value. Adding a virtual file also updates its parent directory's timestamp.
+
+With `experiments.newCache` and [persistent caching](/config/cache) enabled, Rspack saves virtual filesystem metadata with the cache. When a later compiler supplies the same virtual file contents, Rspack restores their previous timestamps so the default snapshot strategies can reuse cached work. This also applies to files first supplied through `writeModule` in a compilation hook.
+
+Each compiler must still supply its virtual inputs. The cache does not recreate omitted files or restore their contents. Changed contents and changes to context directory membership invalidate the corresponding snapshots.
+
 ### Dynamic module creation
 
 You can dynamically create or modify virtual modules using the `writeModule` method.

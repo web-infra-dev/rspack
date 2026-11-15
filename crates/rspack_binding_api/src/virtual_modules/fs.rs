@@ -56,6 +56,41 @@ impl ReadableFileSystem for VirtualFileSystem {
     self.real_fs.read_sync(path)
   }
 
+  fn snapshot_metadata(&self) -> Option<Vec<u8>> {
+    Some(
+      self
+        .virtual_file_store
+        .read()
+        .expect("virtual file store should not be poisoned")
+        .snapshot_metadata(),
+    )
+  }
+
+  fn restore_metadata(&self, snapshot: Option<&[u8]>) -> Result<()> {
+    self
+      .virtual_file_store
+      .write()
+      .expect("virtual file store should not be poisoned")
+      .restore_metadata(snapshot)
+  }
+
+  fn mtime_accuracy(&self, path: &Utf8Path) -> Option<u64> {
+    if self
+      .virtual_file_store
+      .read()
+      .expect("virtual file store should not be poisoned")
+      .get_file_content(path)
+      .is_some()
+    {
+      // Virtual writes have millisecond precision, without the larger rounding
+      // window inferred for physical filesystems. Keep one millisecond of safety
+      // for writes that race a snapshot's start time.
+      Some(1)
+    } else {
+      self.real_fs.mtime_accuracy(path)
+    }
+  }
+
   async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
     if let Ok(store) = self.virtual_file_store.read()
       && let Some(metadata) = store.get_file_metadata(path)

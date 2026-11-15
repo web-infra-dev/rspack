@@ -241,6 +241,15 @@ impl FileSystemInfo {
     first
   }
 
+  pub(crate) fn snapshot_metadata(&self) -> Option<Vec<u8>> {
+    self.inner.fs.snapshot_metadata()
+  }
+
+  pub(crate) fn restore_metadata(&self, snapshot: Option<&[u8]>) -> Result<()> {
+    self.inner.fs.restore_metadata(snapshot)?;
+    Ok(())
+  }
+
   pub fn resolve_strategy(&self) -> SnapshotStrategyOptions {
     self.inner.snapshot_options.resolve
   }
@@ -557,7 +566,11 @@ impl FileSystemInfo {
         }
       } else {
         let timestamp = metadata.mtime_ms;
-        let accuracy = mtime_accuracy(timestamp);
+        let accuracy = self
+          .inner
+          .fs
+          .mtime_accuracy(path.assert_utf8())
+          .unwrap_or_else(|| mtime_accuracy(timestamp));
         FileSystemInfoEntry {
           safe_time: if timestamp == 0 {
             u64::MAX
