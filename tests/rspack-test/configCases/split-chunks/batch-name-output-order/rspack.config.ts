@@ -94,6 +94,8 @@ function createConfig(
   return {
     name: label,
     mode: 'development',
+    // Virtual modules are recreated for each compiler with new timestamps.
+    snapshot: { module: { hash: true }, resolve: { hash: true } },
     target: 'node',
     entry: Object.fromEntries(entryNames.map((entry) => [entry, `./${entry}`])),
     output: {

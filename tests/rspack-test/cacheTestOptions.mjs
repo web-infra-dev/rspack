@@ -40,13 +40,11 @@ const excludes = {
 		/^module\/shared-accessors$/,
 
 		// Module cache entries are not fully reused after restarting the compiler.
-		/^builtin-swc-loader\/react-compiler-long-expressions$/,
 		/^builtins\/provide-issue-8553$/,
 		/^chunk-loading\/worker-loader$/,
 		/^loader\/hook-context-initialization$/,
 		// Shared extracted CSS can retain different producers' loader dependencies.
 		/^plugins\/mini-css-extract-plugin$/,
-		/^plugins\/virtual-modules-context$/,
 		/^rsc-plugin\/client-chunk-grouping$/,
 		/^rsc-plugin\/css-link-props$/,
 		/^rsc-plugin\/entry-with-multiple-modules$/,
@@ -58,10 +56,7 @@ const excludes = {
 		/^rsc-plugin\/tree-shaking$/,
 		/^rsc-plugin\/tree-shaking-client-barrel$/,
 		/^rsc-plugin\/with-concatenated-module$/,
-		/^rsc-plugin\/worker$/,
-		/^split-chunks\/batch-name-output-order$/,
-		/^split-chunks\/dedup-depth-plugin$/,
-		/^split-chunks\/intersections-min-size$/
+		/^rsc-plugin\/worker$/
 	]
 };
 

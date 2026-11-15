@@ -12,6 +12,8 @@ const build = `export const build = function (f) {
 
 export default defineConfig({
   mode: 'development',
+  // Virtual modules are recreated for each compiler with new timestamps.
+  snapshot: { module: { hash: true }, resolve: { hash: true } },
   module: {
     rules: [
       {

@@ -39,6 +39,8 @@ export default [
   ) =>
     defineConfig({
       mode,
+      // Virtual modules are recreated for each compiler with new timestamps.
+      snapshot: { module: { hash: true }, resolve: { hash: true } },
       target: 'node',
       entry: {
         a: './a',
