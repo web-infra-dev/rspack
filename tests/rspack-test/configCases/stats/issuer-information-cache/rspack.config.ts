@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import type { Compiler, RspackOptions, StatsOptions } from '@rspack/core';
-import { getCacheTestPhase } from '@rspack/test-tools/helper/cache';
 
 export default {
   context: import.meta.dirname,
@@ -11,7 +11,24 @@ export default {
   plugins: [
     {
       apply(compiler: Compiler) {
-        const isWarm = getCacheTestPhase(compiler) === 'warm';
+        let isWarm = false;
+        compiler.hooks.thisCompilation.tap(
+          'IssuerInformationCacheContract',
+          (compilation) => {
+            isWarm = false;
+            compilation.hooks.stillValidModule.tap(
+              'IssuerInformationCacheContract',
+              (module) => {
+                if (
+                  module.nameForCondition() ===
+                  path.join(compiler.context, 'parent.js')
+                ) {
+                  isWarm = true;
+                }
+              },
+            );
+          },
+        );
         compiler.hooks.done.tap('IssuerInformationCacheContract', (stats) => {
           assert(
             !stats.hasErrors(),
