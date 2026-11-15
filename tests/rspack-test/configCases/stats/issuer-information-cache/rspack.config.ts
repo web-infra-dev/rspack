@@ -1,5 +1,13 @@
 import assert from 'node:assert/strict';
-import type { Compiler, RspackOptions, StatsOptions } from '@rspack/core';
+import path from 'node:path';
+import {
+  type Compilation,
+  type Compiler,
+  type LoaderContext,
+  NormalModule,
+  type RspackOptions,
+  type StatsOptions,
+} from '@rspack/core';
 
 export default {
   context: import.meta.dirname,
@@ -10,6 +18,38 @@ export default {
   plugins: [
     {
       apply(compiler: Compiler) {
+        const builds = new WeakMap<
+          Compilation,
+          { imports: number; restoredParent: boolean }
+        >();
+        compiler.hooks.thisCompilation.tap(
+          'IssuerInformationCacheContract',
+          (compilation) => {
+            const build = { imports: 0, restoredParent: false };
+            builds.set(compilation, build);
+            NormalModule.getCompilationHooks(compilation).loader.tap(
+              'IssuerInformationCacheContract',
+              (
+                loaderContext: LoaderContext & {
+                  onIssuerImport?: () => void;
+                },
+              ) => {
+                loaderContext.onIssuerImport = () => build.imports++;
+              },
+            );
+            compilation.hooks.stillValidModule.tap(
+              'IssuerInformationCacheContract',
+              (module) => {
+                if (
+                  module.nameForCondition() ===
+                  path.join(compiler.context, 'parent.js')
+                ) {
+                  build.restoredParent = true;
+                }
+              },
+            );
+          },
+        );
         compiler.hooks.done.tap('IssuerInformationCacheContract', (stats) => {
           assert(
             !stats.hasErrors(),
@@ -32,10 +72,40 @@ export default {
           const firstModules = defaultStats[0].modules!.filter(
             (module) => module.name === './first.js',
           );
-          assert(
-            firstModules.length >= 2,
-            'expected the same module identifier in normal and build-time graphs',
+          const build = builds.get(stats.compilation)!;
+          assert.equal(
+            build.imports,
+            build.restoredParent ? 0 : 1,
+            'only a restored parent may skip the loader importModule call',
           );
+          // Restoring parent skips its loader, so a fresh compiler has no
+          // build-time graph. Decide from execution, not missing stats entries.
+          assert.equal(
+            firstModules.length,
+            build.imports === 1 ? 2 : 1,
+            'expected a normal graph and a build-time graph only when imported',
+          );
+          for (const [name, issuerPath] of [
+            ['./parent.js', ['./index.js']],
+            ['./first.js', ['./index.js', './parent.js']],
+            ['./second.js', ['./index.js', './parent.js']],
+            ['./third.js', ['./index.js', './parent.js', './first.js']],
+          ] as const) {
+            const modules = defaultStats[0]
+              .chunks!.flatMap((chunk) => chunk.modules!)
+              .filter((module) => module.name === name);
+            assert.equal(
+              modules.length,
+              1,
+              `expected the normal graph ${name}`,
+            );
+            assert.equal(modules[0].issuerName, issuerPath.at(-1));
+            assert.deepEqual(
+              modules[0].issuerPath!.map((issuer) => issuer.name),
+              issuerPath,
+              `expected the normal issuer path for ${name}`,
+            );
+          }
           let sharedIssuerRecords = 0;
           stats.compilation.hooks.statsFactory.tap(
             'IssuerInformationCacheContract',
