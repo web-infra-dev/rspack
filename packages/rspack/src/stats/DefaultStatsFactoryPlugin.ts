@@ -1071,9 +1071,10 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
       );
       let filtered = 0;
       if (options.errorDetails === 'auto' && rawErrors.length >= 3) {
-        filtered = rawErrors
-          .map((e) => typeof e !== 'string' && e.details)
-          .filter(Boolean).length;
+        filtered = rawErrors.reduce(
+          (count, e) => count + (typeof e !== 'string' && e.details ? 1 : 0),
+          0,
+        );
       }
       if (
         options.errorDetails === true ||
@@ -1114,9 +1115,10 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
       );
       let filtered = 0;
       if (options.errorDetails === 'auto') {
-        filtered = cachedGetWarnings!(compilation)
-          .map((e) => typeof e !== 'string' && e.details)
-          .filter(Boolean).length;
+        filtered = cachedGetWarnings!(compilation).reduce(
+          (count, e) => count + (typeof e !== 'string' && e.details ? 1 : 0),
+          0,
+        );
       }
       if (
         options.errorDetails === true ||
