@@ -22,11 +22,12 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   ArcComputed, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, CompilerOptions,
-  DependenciesBlock, Dependency, DependencyCodeGeneration, DependencyCodeGenerationRef,
-  DependencyId, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
-  ImportMetaKnownProperties, JavascriptParserCommonjsExportsOption, JavascriptParserOptions,
-  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData,
-  ResourceIdentifier, SideEffectsBailoutItemWithSpan, ValueCacheVersions,
+  ConstDependency, DependenciesBlock, Dependency, DependencyCodeGeneration,
+  DependencyCodeGenerationRef, DependencyId, DependencyLocation, DependencyRange, FactoryMeta,
+  ImportMeta, ImportMetaKnownProperties, JavascriptParserCommonjsExportsOption,
+  JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta,
+  ResolvedModuleOptions, ResourceData, ResourceIdentifier, SideEffectsBailoutItemWithSpan,
+  ValueCacheVersions,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::fx_hash::FxIndexSet;
@@ -879,6 +880,19 @@ impl<'parser> JavascriptParser<'parser> {
     deps: impl IntoIterator<Item = DependencyCodeGenerationRef>,
   ) {
     self.presentational_dependencies.extend(deps);
+  }
+
+  pub(crate) fn preserve_shorthand_key(&mut self, ident_span: Span) {
+    if !self.in_short_hand {
+      return;
+    }
+    let ast = self.ast.ast;
+    let key = ast.get_utf8(ast.source_slice(ident_span.start, ident_span.end));
+    let start = ident_span.real_lo();
+    self.add_presentational_dependency(Arc::new(ConstDependency::new(
+      (start, start).into(),
+      format!("{key}: ").into(),
+    )));
   }
 
   pub fn next_presentational_dependency_idx(&self) -> usize {
