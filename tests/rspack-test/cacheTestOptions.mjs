@@ -70,12 +70,7 @@ const excludes = {
 		/^rsc-plugin\/worker$/,
 		/^split-chunks\/batch-name-output-order$/,
 		/^split-chunks\/dedup-depth-plugin$/,
-		/^split-chunks\/intersections-min-size$/,
-
-		// Child compilation metadata is not fully reused after restarting the compiler.
-		/^builtin-swc-loader\/issue-4597$/,
-		/^hooks\/rspack-issue-4395$/,
-		/^loaders-and-plugins-falsy\/basic$/
+		/^split-chunks\/intersections-min-size$/
 	]
 };
 
