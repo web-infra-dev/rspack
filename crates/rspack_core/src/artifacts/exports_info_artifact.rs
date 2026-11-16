@@ -101,6 +101,10 @@ impl ExportsInfoArtifact {
     self.exports_info_map.checkpoint();
   }
 
+  pub(crate) fn has_checkpoint(&self) -> bool {
+    self.exports_info_map.has_checkpoint()
+  }
+
   pub fn reset(&mut self) {
     self.exports_info_map.reset();
   }

@@ -18,7 +18,7 @@ pub fn process_unlazy_dependencies(
   let dependencies_to_process: Vec<DependencyId> = lazy_dependencies
     .requested_lazy_dependencies(&forwarded_ids, module_to_lazy_make.eager_on_local_reference)
     .into_iter()
-    .filter(|dep| module_graph.dependency_by_id(dep).unset_lazy())
+    .filter(|dep| module_graph.remove_lazy_dependency(dep))
     .collect();
 
   if dependencies_to_process.is_empty() {

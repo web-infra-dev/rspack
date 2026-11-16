@@ -1,11 +1,10 @@
-import type { Compiler } from '@rspack/core';
-
-const mockFn = rstest.fn();
+import type { Compiler, Module } from '@rspack/core';
 
 class MySucceedModulePlugin {
   apply(compiler: Compiler) {
+    const mockFn = rstest.fn();
     compiler.hooks.compilation.tap('MySucceedModulePlugin', (compilation) => {
-      compilation.hooks.succeedModule.tap('MySucceedModulePlugin', (module) => {
+      const checkModule = (module: Module) => {
         if ('resource' in module && module.resource) {
           const source = module.originalSource();
           expect(source).not.toBeNull();
@@ -20,7 +19,12 @@ class MySucceedModulePlugin {
           expect(source!.map()).toEqual(map);
         }
         mockFn();
-      });
+      };
+      compilation.hooks.succeedModule.tap('MySucceedModulePlugin', checkModule);
+      compilation.hooks.stillValidModule.tap(
+        'MySucceedModulePlugin',
+        checkModule,
+      );
     });
     compiler.hooks.done.tap('MySucceedModulePlugin', () => {
       expect(mockFn).toBeCalledTimes(4);

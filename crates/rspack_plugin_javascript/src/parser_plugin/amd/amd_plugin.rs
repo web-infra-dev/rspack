@@ -129,6 +129,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDParserPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == DEFINE {
+      parser.preserve_shorthand_key(span);
       parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
         span.into(),
         RuntimeGlobals::AMD_DEFINE,

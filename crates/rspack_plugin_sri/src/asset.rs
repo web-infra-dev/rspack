@@ -277,8 +277,8 @@ async fn add_minssing_integrities(
 
 #[plugin_hook(CompilationProcessAssets for SubresourceIntegrityPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE - 1)]
 pub async fn handle_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  // Lazy loading puts placeholders in every chunk with async children, so each chunk
-  // must be digested after all the chunks it holds hashes for.
+  // Lazy loading puts placeholders in every chunk whose import() calls load other
+  // chunks, so each chunk must be digested after all the chunks it holds hashes for.
   let batches = match self.options.hash_loading {
     IntegrityHashLoading::Eager => digest_chunks(compilation),
     IntegrityHashLoading::Lazy => SubresourceIntegrityPlugin::get_compilation_manifest(compilation)

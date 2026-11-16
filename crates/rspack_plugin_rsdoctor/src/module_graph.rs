@@ -425,7 +425,6 @@ fn get_esm_export_imported_specifier_target_exports(
           mode
             .partial_namespace_export_info
             .as_data(exports_info_artifact),
-          false,
         );
       }
       ExportMode::ReexportNamespaceObject(mode) => {
@@ -434,7 +433,6 @@ fn get_esm_export_imported_specifier_target_exports(
           mode
             .partial_namespace_export_info
             .as_data(exports_info_artifact),
-          false,
         );
       }
       ExportMode::ReexportFakeNamespaceObject(mode) => {
@@ -443,7 +441,6 @@ fn get_esm_export_imported_specifier_target_exports(
           mode
             .partial_namespace_export_info
             .as_data(exports_info_artifact),
-          true,
         );
       }
       ExportMode::NormalReexport(mode) => {
@@ -469,7 +466,6 @@ fn get_esm_export_imported_specifier_target_exports(
             &mut referenced_exports,
             item.ids.iter().collect(),
             Some(item.export_info.as_data(exports_info_artifact)),
-            false,
             &mut Default::default(),
           );
         }
@@ -487,7 +483,6 @@ fn get_esm_export_imported_specifier_target_exports(
 fn collect_referenced_target_exports(
   exports_info_artifact: &ExportsInfoArtifact,
   export_info: &ExportInfoData,
-  default_points_to_self: bool,
 ) -> Vec<Option<Vec<String>>> {
   let mut referenced_exports = Vec::new();
   collect_referenced_export_items(
@@ -496,7 +491,6 @@ fn collect_referenced_target_exports(
     &mut referenced_exports,
     vec![],
     Some(export_info),
-    default_points_to_self,
     &mut Default::default(),
   );
   map_referenced_target_exports(referenced_exports)
@@ -605,7 +599,6 @@ fn get_esm_export_imported_specifier_exports(
         &mut referenced_exports,
         vec![name],
         Some(export_info),
-        false,
         &mut Default::default(),
       );
       Some(map_referenced_target_exports(referenced_exports))
