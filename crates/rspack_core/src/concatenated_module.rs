@@ -1601,8 +1601,16 @@ impl Module for ConcatenatedModule {
               result.add(RawStringSource::from(format!("if ({condition}) {{\n")));
             }
 
+            let annotation = if compilation.options.output.module {
+              let target_module = module_graph
+                .module_by_identifier(&info.module)
+                .expect("should have module");
+              runtime_template.module_side_effects_annotation(compilation, target_module.as_ref())
+            } else {
+              ""
+            };
             result.add(RawStringSource::from(format!(
-              "var {} = {}({});",
+              "var {} = {annotation}{}({});",
               info.name.as_ref().expect("should have name"),
               runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
               json_stringify(
