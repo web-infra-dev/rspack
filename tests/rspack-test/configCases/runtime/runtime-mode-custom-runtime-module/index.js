@@ -1,3 +1,6 @@
-it("supports custom runtime modules", () => {
-  expect(__webpack_require__.custom).toBe(1);
+it("runs the module interceptor without enabling the optional startup helper", () => {
+  expect(__webpack_require__.custom).toEqual({
+    intercepted: true,
+    onChunksLoaded: "undefined"
+  });
 });

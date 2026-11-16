@@ -581,6 +581,14 @@ static RUNTIME_GLOBAL_MAP: LazyLock<RuntimeGlobalMap> = LazyLock::new(|| {
 });
 
 impl RuntimeGlobals {
+  /// Runtime bindings provided by the bootstrap itself, rather than by runtime modules.
+  pub const BOOTSTRAP_BINDINGS: Self = Self::REQUIRE
+    .union(Self::REQUIRE_SCOPE)
+    .union(Self::MODULE_FACTORIES)
+    .union(Self::MODULE_CACHE)
+    .union(Self::INTERCEPT_MODULE_EXECUTION)
+    .union(Self::DEFERRED_MODULE_EXPORTS);
+
   pub fn property_name(&self) -> Option<&'static str> {
     runtime_globals_property_name(self)
   }

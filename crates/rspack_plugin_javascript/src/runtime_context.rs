@@ -17,15 +17,6 @@ static HMR_RUNTIME_STATE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
     | RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX
 });
 
-static BOOTSTRAP_EXPORT_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
-  RuntimeGlobals::REQUIRE
-    | RuntimeGlobals::REQUIRE_SCOPE
-    | RuntimeGlobals::MODULE_FACTORIES
-    | RuntimeGlobals::MODULE_CACHE
-    | RuntimeGlobals::DEFERRED_MODULE_EXPORTS
-    | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
-});
-
 fn runtime_iife_end(runtime_requirements: RuntimeGlobals) -> &'static str {
   if runtime_requirements.contains(RuntimeGlobals::GLOBAL) {
     "\n}).call(this);\n"
@@ -107,7 +98,7 @@ fn render_rspack_runtime_exports(
   if should_export {
     for (_, runtime_global) in fields
       .renderable_require_scope()
-      .difference(*BOOTSTRAP_EXPORT_GLOBALS)
+      .difference(RuntimeGlobals::BOOTSTRAP_BINDINGS)
       .iter_names()
     {
       if emitted_fields.contains(runtime_global) {
@@ -272,7 +263,7 @@ fn render_runtime_chunk_runtime_modules_sync(
     sources.add(RawStringSource::from(render_lexical_declarations(
       lexical_fields
         .difference(runtime_module_owned_define_fields(compilation, chunk_ukey))
-        .difference(*BOOTSTRAP_EXPORT_GLOBALS),
+        .difference(RuntimeGlobals::BOOTSTRAP_BINDINGS),
       Some(&render_runtime_global),
     )));
     if is_hmr_runtime {

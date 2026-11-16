@@ -40,15 +40,9 @@ impl RuntimeModeRenderer for RspackContextRuntimeRenderer {
 
   fn render_runtime(&self, context: RuntimeRenderContext<'_>) -> ConcatSource {
     let mut source = render_runtime_prelude(context);
-    let should_render_runtime_context = context.runtime_requirements.intersects(
-      RuntimeGlobals::MODULE_FACTORIES
-        | RuntimeGlobals::MODULE_CACHE
-        | RuntimeGlobals::DEFERRED_MODULE_EXPORTS
-        | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
-        | RuntimeGlobals::REQUIRE
-        | RuntimeGlobals::REQUIRE_SCOPE
-        | RuntimeGlobals::MODULE,
-    );
+    let should_render_runtime_context = context
+      .runtime_requirements
+      .intersects(RuntimeGlobals::BOOTSTRAP_BINDINGS | RuntimeGlobals::MODULE);
     if should_render_runtime_context {
       let runtime_context = context
         .runtime_template

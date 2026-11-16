@@ -8,7 +8,10 @@ class CustomRuntimeModule extends RuntimeModule {
 
   generate() {
     // Lynx emits this optional callback even in builds without onChunksLoaded.
-    return `__webpack_require__.custom = 1;
+    return `var state = __webpack_require__.custom = {
+        intercepted: false, onChunksLoaded: typeof __webpack_require__.O
+      };
+      __webpack_require__.i.push(function () { state.intercepted = true; });
       if (false) __webpack_require__.O();`;
   }
 }
