@@ -443,9 +443,9 @@ dependencies = [
 
 [[package]]
 name = "bumpalo"
-version = "3.20.3"
+version = "3.20.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72f5acc6cb2ba439de613abc23857ec3d78374d8ed5ac84e9d11336e87da8649"
+checksum = "87a0cf66fd1eb2fb7b822cb78370d82303750809bc6ba855f3f58e517d3238db"
 dependencies = [
  "allocator-api2",
 ]
@@ -682,11 +682,11 @@ dependencies = [
 
 [[package]]
 name = "chumsky"
-version = "0.13.0"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0d2bfadce76f963d776feff99db6dc33783829539258314776383b33e2a00f8"
+checksum = "ed246b3ad9e6e691121c0b2f802fce56917f509a513b50522b11f9c243f1d9c1"
 dependencies = [
- "hashbrown 0.15.2",
+ "hashbrown 0.16.1",
  "unicode-ident",
  "unicode-segmentation",
 ]
@@ -1833,8 +1833,6 @@ version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf151400ff0baff5465007dd2f3e717f3fe502074ca563069ce3a6629d07b289"
 dependencies = [
- "allocator-api2",
- "equivalent",
  "foldhash 0.1.5",
  "serde",
 ]
@@ -7507,9 +7505,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_allocator"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf13be7e7e77e1c144d3958b2b35c2044efd511a1ee1e96dfdcbfd845c36d6a2"
+checksum = "59a699e0c22b1d9fc07c2cb16a5974a07122ad6e85ff59257869ee57e3395b88"
 dependencies = [
  "allocator-api2",
  "bumpalo",
@@ -7520,9 +7518,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_ast_macros"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "674a8ae8b8d35146ea349f88453569ed68d4e623cd593852f398d48fce85be4d"
+checksum = "050ac6fa5fc9dece03c3c8665fa4433afe2e905f0484db51ed6e10c455f81fee"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7531,9 +7529,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_ecma_ast"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1da310114b27e5fe42362adb0ceb8cac1ccde9b938d059482d946396315a950"
+checksum = "2c75b85b42bd0d014bca14223068837fe15ef4df29a66a48bff959eb5bba0bd5"
 dependencies = [
  "cow-utils",
  "num-bigint 0.5.1",
@@ -7544,9 +7542,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_ecma_parser"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "859436fad6928852c8d61c9c266198b2ec5e478deaa3085732e42c55f2a41289"
+checksum = "626309b3c4f6147ff57ce04b3965013283eef35475769b2e865b3f9a9b90febb"
 dependencies = [
  "bitflags 2.13.2",
  "indexmap",
@@ -7560,9 +7558,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_ecma_semantic"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78ae5160595c9cb34765117250b77fd389c7b1da7a9f6082611675d14650925c"
+checksum = "2f5171c18171a86af7abc9ad585004b90c6cfb653fdaf1f6f5cab523a0ea0c08"
 dependencies = [
  "bitflags 2.13.2",
  "chumsky",
@@ -7577,9 +7575,9 @@ dependencies = [
 
 [[package]]
 name = "swc_next_simd"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb6111263f5ea009594e065af19c6627fe988bd98786fc2dd93ebaf8e8aeec1d"
+checksum = "25203c7bff0a7983a22a223fe1ef106ea5d1a8fef073fb917c98e1ec42052c97"
 
 [[package]]
 name = "swc_node_comments"

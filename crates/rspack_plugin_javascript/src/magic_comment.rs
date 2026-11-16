@@ -509,7 +509,7 @@ fn expr_to_magic_comment_value_with_offset(
     return None;
   };
   let mut items = Vec::new();
-  for element in ast.nodes(array.elements(ast)) {
+  for element in ast.optional_nodes(array.elements(ast)) {
     let element = element?;
     let ArgumentData::Expr(element) = ast.argument_data(element) else {
       return None;
@@ -533,7 +533,7 @@ fn expr_to_exports(ast: &Ast<'_>, expr: Expr) -> Option<MagicCommentValue> {
   };
 
   let mut exports = Vec::new();
-  for element in ast.nodes(array.elements(ast)) {
+  for element in ast.optional_nodes(array.elements(ast)) {
     let element = element?;
     let ArgumentData::Expr(element) = ast.argument_data(element) else {
       return None;
