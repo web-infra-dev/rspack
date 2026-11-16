@@ -6,8 +6,8 @@ use rspack_plugin_javascript::runtime::should_export_rspack_runtime_globals;
 use rspack_util::fx_hash::FxIndexSet;
 
 use super::{
-  RuntimeImportRenderContext, RuntimeModeRenderer, RuntimeRenderContext, already_imports_runtime,
-  get_chunk, render_raw_import_stmts, render_runtime_chunk_import,
+  super::RequestSlots, RuntimeImportRenderContext, RuntimeModeRenderer, RuntimeRenderContext,
+  already_imports_runtime, get_chunk, render_raw_import_stmts, render_runtime_chunk_import,
   render_runtime_global_definitions, render_runtime_prelude,
 };
 
@@ -74,7 +74,11 @@ impl RuntimeModeRenderer for RspackExportRuntimeRenderer {
     runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
   }
 
-  fn render_runtime_imports(&self, context: RuntimeImportRenderContext<'_>) -> ConcatSource {
+  fn render_runtime_imports(
+    &self,
+    context: RuntimeImportRenderContext<'_>,
+    request_slots: &mut RequestSlots,
+  ) -> ConcatSource {
     let runtime_import_idents = render_runtime_global_specifiers(context);
     let mut runtime_import_match_idents = runtime_import_idents.clone();
     runtime_import_match_idents.insert(
@@ -106,6 +110,7 @@ impl RuntimeModeRenderer for RspackExportRuntimeRenderer {
       Some(context.runtime_chunk_ukey),
       &runtime_import_match_idents,
       Some(&legacy_context_idents),
+      request_slots,
     ));
     source
   }
