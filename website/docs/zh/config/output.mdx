@@ -381,7 +381,7 @@ type DevtoolFallbackModuleFilenameTemplate =
   string | ((context: ModuleFilenameTemplateContext) => string);
 ```
 
-- **默认值：** `undefined`
+- **默认值：** `'webpack://[namespace]/[resourcePath]?[hash]'`
 
 当模板字符串或函数产生重复时使用的备用内容。
 
@@ -396,7 +396,7 @@ type DevtoolModuleFilenameTemplate =
   string | ((context: ModuleFilenameTemplateContext) => string);
 ```
 
-- **默认值：** `webpack://[namespace]/[resource-path]?[loaders]'`
+- **默认值：** `source-map` 类 devtool 为 `'webpack://[namespace]/[resourcePath]'`，`eval` 类 devtool 为 `'webpack://[namespace]/[resourcePath]?[hash]'`
 
 此选项仅在 [`devtool`](/config/devtool) 使用了需要模块名称的选项时使用。
 

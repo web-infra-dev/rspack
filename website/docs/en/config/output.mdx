@@ -385,7 +385,7 @@ type DevtoolFallbackModuleFilenameTemplate =
   string | ((context: ModuleFilenameTemplateContext) => string);
 ```
 
-- **Default:** `undefined`
+- **Default:** `'webpack://[namespace]/[resourcePath]?[hash]'`
 
 A fallback is used when the template string or function above yields duplicates.
 
@@ -400,7 +400,7 @@ type DevtoolModuleFilenameTemplate =
   string | ((context: ModuleFilenameTemplateContext) => string);
 ```
 
-- **Default:** `webpack://[namespace]/[resource-path]?[loaders]'`
+- **Default:** `'webpack://[namespace]/[resourcePath]'` for `source-map` devtools, `'webpack://[namespace]/[resourcePath]?[hash]'` for `eval` devtools
 
 This option is only used when [`devtool`](/config/devtool) uses an option that requires module names.
 
