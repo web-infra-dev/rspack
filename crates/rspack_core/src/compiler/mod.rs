@@ -284,7 +284,7 @@ impl Compiler {
       let meta_cache = self.get_cache("meta");
       if let Some(restored) = meta_cache.get::<Meta>("state", None) {
         let current = self.compiler_context.dependency_id();
-        if current < restored.max_dependency_id {
+        if current == 0 {
           self
             .compiler_context
             .set_dependency_id(restored.max_dependency_id);
