@@ -1,5 +1,6 @@
 it('preserves the source hook behavior of each runtime mode', async () => {
   expect(__webpack_require__.compatEmpty).toBe(RSPACK_MODE ? undefined : 'original');
+  expect(__webpack_require__.compatEmptyBuffer).toBeUndefined();
   expect(__webpack_require__.compatGenerate).toBe(RSPACK_MODE ? 'overridden' : 'original');
   expect(__webpack_require__.compatStages).toBe(
     RSPACK_MODE ? 'original-first-second' : 'original-second',

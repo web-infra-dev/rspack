@@ -95,7 +95,9 @@ use crate::{
     JsAfterEmitData, JsAfterTemplateExecutionData, JsAlterAssetTagGroupsData, JsAlterAssetTagsData,
     JsBeforeAssetTagGenerationData, JsBeforeEmitData,
   },
-  module::{JsExecuteModuleArg, JsRuntimeModule, JsRuntimeModuleArg, ModuleObject},
+  module::{
+    JsExecuteModuleArg, JsRuntimeModule, JsRuntimeModuleArg, JsRuntimeModuleUpdate, ModuleObject,
+  },
   normal_module_factory::{
     JsCreateData, JsNormalModuleFactoryCreateModuleArgs, JsResolveData, JsResolveForSchemeArgs,
     JsResolveForSchemeOutput,
@@ -575,7 +577,7 @@ pub struct RegisterJsTaps {
   pub register_compilation_runtime_requirement_in_tree_taps: RegisterFunction,
 
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsRuntimeModuleArg) => JsRuntimeModule | undefined); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsRuntimeModuleArg) => JsRuntimeModuleUpdate | undefined); stage: number; }>"
   )]
   pub register_compilation_runtime_module_taps: RegisterFunction,
   #[napi(
@@ -886,7 +888,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationRuntimeModuleTaps,
-  tap = CompilationRuntimeModuleTap<JsRuntimeModuleArg, Option<JsRuntimeModule>> @ CompilationRuntimeModuleHook,
+  tap = CompilationRuntimeModuleTap<JsRuntimeModuleArg, Option<JsRuntimeModuleUpdate>> @ CompilationRuntimeModuleHook,
   cache = true,
   kind = RegisterJsTapKind::CompilationRuntimeModule,
   skip = true,
@@ -1560,6 +1562,7 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
     } else {
       "rspack/runtime/"
     };
+    let source_before_hook = (!is_legacy).then(|| source_string.clone());
     let arg = JsRuntimeModuleArg {
       module: JsRuntimeModule {
         source: Some(JsSourceToJs::from(source_string)),
@@ -1575,11 +1578,27 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
       },
       chunk: ChunkWrapper::new(*chunk_ukey, compilation),
     };
-    if let Some(module) = self.function.call_with_sync(arg).await?
-      && let Some(source) = module.source
-    {
+    let Some(update) = self.function.call_with_sync(arg).await? else {
+      return Ok(());
+    };
+    let source = if let Some(original) = source_before_hook {
+      let source = match update.generate {
+        Some(generate) => Some(Either::A(generate.call_with_sync(()).await?)),
+        None => update.source,
+      };
+      source.filter(|source| match source {
+        Either::A(string) => *string != original,
+        Either::B(buffer) => buffer.as_ref() != original.as_bytes(),
+      })
+    } else {
+      // The webpack hook only applies a replaced, truthy source; it never calls generate overrides.
+      update
+        .source
+        .filter(|source| !matches!(source, Either::A(string) if string.is_empty()))
+    };
+    if let Some(source) = source {
       let module = runtime_modules.get_mut(m).expect("should have module");
-      match source.source {
+      match source {
         napi::Either::A(string) => {
           module.set_custom_source(string)?;
         }

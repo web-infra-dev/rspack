@@ -61,6 +61,7 @@ export default [false, true].map((esm, index) =>
                 requirements.add(RuntimeGlobals.require);
                 for (const [name, property] of [
                   ['runtime-compat-empty', 'compatEmpty'],
+                  ['runtime-compat-empty-buffer', 'compatEmptyBuffer'],
                   ['runtime-compat-generate', 'compatGenerate'],
                   ['runtime-compat-stages', 'compatStages'],
                   ['runtime-compat-mapped', 'compatMapped'],
@@ -99,9 +100,17 @@ export default [false, true].map((esm, index) =>
               if (!module.source) return;
               if (module.name === 'runtime-compat-empty')
                 module.source.source = '';
+              if (module.name === 'runtime-compat-empty-buffer')
+                module.source.source = Buffer.alloc(0);
               if (module.name === 'runtime-compat-generate') {
-                module.generate = () =>
-                  '__webpack_require__.compatGenerate = "overridden";';
+                module.generate = function () {
+                  if (!rspackMode)
+                    throw new Error('webpack invoked a generate override');
+                  return this.source!.source.toString().replace(
+                    '"original"',
+                    '"overridden"',
+                  );
+                };
               }
               if (module.name === 'runtime-compat-stages') {
                 module.source.source +=

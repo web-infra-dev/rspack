@@ -14,7 +14,10 @@ use rspack_core::{
   FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeGlobalsRenderMode,
   RuntimeModuleCommon, RuntimeModuleStage, SourceType, internal, rspack_sources::Source,
 };
-use rspack_napi::{OneShotRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt};
+use rspack_napi::{
+  OneShotRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt,
+  threadsafe_function::ThreadsafeFunction,
+};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 
 use crate::{
@@ -665,22 +668,30 @@ pub struct JsRuntimeModuleArg {
   pub chunk: ChunkWrapper,
 }
 
-type GenerateFn = CompilerScopedTsFnHandle<(), String>;
+#[napi(object, object_to_js = false)]
+pub struct JsRuntimeModuleUpdate {
+  pub source: Option<Either<String, Buffer>>,
+  #[napi(ts_type = "() => string")]
+  pub generate: Option<ThreadsafeFunction<(), String>>,
+}
 
 #[napi(object, object_to_js = false)]
-pub struct JsAddingRuntimeModule {
+pub struct JsAddingRuntimeModule<'a> {
   pub name: String,
-  pub source: Option<String>,
   #[napi(ts_type = "() => String")]
-  pub generator: GenerateFn,
+  pub generator: Function<'a, (), String>,
   pub dependent_hash: bool,
   pub full_hash: bool,
   pub isolate: bool,
   pub stage: u32,
 }
 
-impl JsAddingRuntimeModule {
-  pub fn into_runtime_module(self, render_mode: RuntimeGlobalsRenderMode) -> RuntimeModuleFromJs {
+impl JsAddingRuntimeModule<'_> {
+  pub fn into_runtime_module(
+    self,
+    render_mode: RuntimeGlobalsRenderMode,
+    generator: CompilerScopedTsFnHandle<(), String>,
+  ) -> RuntimeModuleFromJs {
     let value = self;
     RuntimeModuleFromJs {
       common: RuntimeModuleCommon {
@@ -693,7 +704,7 @@ impl JsAddingRuntimeModule {
       isolate: value.isolate,
       stage: RuntimeModuleStage::from(value.stage),
       generator: Arc::new(move || {
-        let generator = value.generator.clone();
+        let generator = generator.clone();
         Box::pin(async move { generator.call_with_sync(()).await })
       }),
     }

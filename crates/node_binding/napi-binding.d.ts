@@ -611,7 +611,6 @@ export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObje
 
 export interface JsAddingRuntimeModule {
   name: string
-  source?: string
   generator: () => String
   dependentHash: boolean
   fullHash: boolean
@@ -1293,6 +1292,11 @@ export interface JsRuntimeModule {
 export interface JsRuntimeModuleArg {
   module: JsRuntimeModule
   chunk: Chunk
+}
+
+export interface JsRuntimeModuleUpdate {
+  source?: string | Buffer
+  generate?: () => string
 }
 
 export interface JsRuntimeRequirementInTreeArg {
@@ -3409,7 +3413,7 @@ export interface RegisterJsTaps {
   registerCompilationExecuteModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsExecuteModuleArg) => void); stage: number; }>
   registerCompilationAdditionalTreeRuntimeRequirementsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAdditionalTreeRuntimeRequirementsArg) => JsAdditionalTreeRuntimeRequirementsResult | undefined); stage: number; }>
   registerCompilationRuntimeRequirementInTreeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRuntimeRequirementInTreeArg) => JsRuntimeRequirementInTreeResult | undefined); stage: number; }>
-  registerCompilationRuntimeModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRuntimeModuleArg) => JsRuntimeModule | undefined); stage: number; }>
+  registerCompilationRuntimeModuleTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRuntimeModuleArg) => JsRuntimeModuleUpdate | undefined); stage: number; }>
   registerCompilationFinishModulesTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilationOptimizeModulesTaps: (stages: Array<number>) => Array<{ function: (() => boolean | undefined); stage: number; }>
   registerCompilationAfterOptimizeModulesTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>

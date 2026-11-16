@@ -31,6 +31,7 @@ use crate::{
   chunk::{Chunk, ChunkWrapper},
   chunk_graph::ChunkGraph,
   chunk_group::ChunkGroupWrapper,
+  compiler_scoped_tsfn::CompilerScopedTsFnHandle,
   dependencies::EntryDependency,
   error::{ErrorCode, JsRspackDiagnostic, RspackError, RspackResultToNapiResultExt},
   file_system_dependency_strings::intern_js_values,
@@ -41,6 +42,7 @@ use crate::{
   path_data::{JsPathData, PathWithInfo},
   source::{JsSourceFromJs, JsSourceToJs},
   stats::{JsStats, JsStatsOptimizationBailout, create_stats_warnings},
+  upgrade_compiler,
   utils::callbackify,
   with_compilation,
 };
@@ -850,53 +852,43 @@ impl JsCompilation {
     Ok(JsEntries::new(compilation))
   }
 
-  #[napi(ts_args_type = "chunk: Chunk, runtimeModule: JsAddingRuntimeModule")]
-  pub fn add_runtime_module<'a>(
-    &mut self,
-    env: &'a Env,
+  #[napi]
+  pub fn add_runtime_module(
+    &self,
+    env: &Env,
     chunk: &Chunk,
-    runtime_module: Unknown<'a>,
+    runtime_module: JsAddingRuntimeModule<'_>,
   ) -> napi::Result<()> {
-    let compilation = self.as_mut()?;
-    let Some(mut compiler_reference) = COMPILER_REFERENCES.with(|ref_cell| {
-      let references = ref_cell.borrow();
-      references.get(&compilation.compiler_id()).cloned()
-    }) else {
-      return Err(napi::Error::new(
-        napi::Status::GenericFailure,
-        "Unable to addRuntimeModule now. The Compiler has been garbage collected by JavaScript.",
-      ));
-    };
-    let Some(js_compiler) = compiler_reference.get_mut() else {
-      return Err(napi::Error::new(
-        napi::Status::GenericFailure,
-        "Unable to addRuntimeModule now. The Compiler has been garbage collected by JavaScript.",
-      ));
-    };
-    let mut runtime_module = js_compiler.compiler_scoped_tsfn_manager.scope(|| unsafe {
-      JsAddingRuntimeModule::from_napi_value(env.raw(), runtime_module.raw())
+    let chunk_ukey = chunk.chunk_ukey;
+    let mut js_compiler = upgrade_compiler(env, self.as_ref()?.compiler_id())?;
+    let generator = js_compiler.compiler_scoped_tsfn_manager.scope(|| unsafe {
+      CompilerScopedTsFnHandle::from_napi_value(env.raw(), runtime_module.generator.raw())
     })?;
 
-    let source = runtime_module.source.take();
+    let compilation = &js_compiler.compiler.compilation;
     let graph = &compilation.build_chunk_graph_artifact;
     let mode = compilation.runtime_template.render_mode();
     let render_mode = if graph
       .chunk_by_ukey
-      .expect_get(&chunk.chunk_ukey)
+      .expect_get(&chunk_ukey)
       .has_runtime(&graph.chunk_group_by_ukey)
     {
       mode.runtime_module_render_mode()
     } else {
       mode.chunk_render_mode()
     };
-    let mut runtime_module = runtime_module.into_runtime_module(render_mode);
+    // Collect source requirements before returning to the plugin on the JS thread.
+    let source = (!render_mode.is_legacy())
+      .then(|| runtime_module.generator.call(()))
+      .transpose()?;
+    let mut module = runtime_module.into_runtime_module(render_mode, generator);
     if let Some(source) = source {
-      runtime_module
-        .set_generated_source(source)
-        .to_napi_result()?;
+      module.set_generated_source(source).to_napi_result()?;
     }
-    compilation
-      .add_runtime_module(&chunk.chunk_ukey, Box::new(runtime_module))
+    js_compiler
+      .compiler
+      .compilation
+      .add_runtime_module(&chunk_ukey, Box::new(module))
       .to_napi_result()
   }
 
