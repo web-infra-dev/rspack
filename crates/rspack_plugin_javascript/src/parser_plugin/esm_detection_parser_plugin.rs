@@ -4,10 +4,10 @@ use rspack_core::{BuildMetaExportsType, ExportsArgument, ModuleArgument, ModuleT
 use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{
   AwaitExpression, CallExpression, ForOfStatement, GetSpan, Program, Span, StmtData,
-  UnaryExpression,
+  UnaryExpression, VariableDeclaration,
 };
 
-use super::JavascriptParserPlugin;
+use super::{JavascriptParserPlugin, javascript_meta_info_plugin::has_top_level_using_declaration};
 use crate::{
   dependency::ESMCompatibilityDependency,
   utils::eval::BasicEvaluatedExpression,
@@ -27,13 +27,13 @@ impl JavascriptParser<'_> {
     );
   }
 
-  fn handle_top_level_await(&mut self, span: Span) {
+  fn handle_top_level_await_at(&mut self, await_lo: u32) {
     if self.is_esm {
       self.build_meta.set_has_top_level_await(true);
     } else {
       self.throw_top_level_await_error(
         "Top-level-await is only supported in ECMAScript Modules".into(),
-        span,
+        Span::new(await_lo, await_lo + AWAIT_LEN),
       );
     }
   }
@@ -67,7 +67,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMDetectionParserPlugin {
     let is_esm = is_strict_esm || has_esm_declaration;
 
     if is_esm {
-      parser.add_presentational_dependency(Arc::new(ESMCompatibilityDependency));
+      parser.add_presentational_dependency(Arc::new(ESMCompatibilityDependency::new(
+        has_top_level_using_declaration(parser.ast.ast, _program),
+      )));
       parser.build_meta.set_esm(true);
       parser
         .build_meta
@@ -85,18 +87,19 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMDetectionParserPlugin {
   }
 
   fn top_level_await_expr(&self, parser: &mut JavascriptParser<'p>, expr: AwaitExpression) {
-    let lo = expr.span(parser.ast.ast).real_lo();
-    let hi = lo + AWAIT_LEN;
-    let span = Span::new(lo, hi);
-    parser.handle_top_level_await(span);
+    parser.handle_top_level_await_at(expr.span(parser.ast.ast).real_lo());
   }
 
   fn top_level_for_of_await_stmt(&self, parser: &mut JavascriptParser<'p>, stmt: ForOfStatement) {
-    let offset = 4; // "for ".len();
-    let lo = stmt.span(parser.ast.ast).real_lo() + offset;
-    let hi = lo + AWAIT_LEN;
-    let span = Span::new(lo, hi);
-    parser.handle_top_level_await(span);
+    parser.handle_top_level_await_at(stmt.span(parser.ast.ast).real_lo() + FOR_LEN);
+  }
+
+  fn top_level_await_using_declaration(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    decl: VariableDeclaration,
+  ) {
+    parser.handle_top_level_await_at(decl.span(parser.ast.ast).real_lo());
   }
 
   fn evaluate_typeof(
@@ -149,3 +152,5 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMDetectionParserPlugin {
 
 /// "await".len();
 const AWAIT_LEN: u32 = 5;
+/// "for ".len();
+const FOR_LEN: u32 = 4;

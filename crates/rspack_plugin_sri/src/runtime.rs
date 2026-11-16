@@ -160,7 +160,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
         .collect::<Vec<_>>();
 
       // Lazy loading leaves the variable in place, even when empty, so the chunks
-      // loaded later can add their children's hashes to it.
+      // loaded later can add the hashes of the chunks their calls load to it.
       if !chunk_with_source_type.is_empty() {
         if let Some(lazy_manifest) = &self.lazy_manifest
           && matches!(source_type, SourceType::JavaScript)
@@ -333,8 +333,8 @@ pub async fn handle_runtime(
   Ok(())
 }
 
-/// Adds the hashes of a chunk's direct async children when the chunk loads, for
-/// `hashLoading: "lazy"`.
+/// Adds the hashes of the chunks that a chunk's `import()` calls load when the chunk
+/// loads, for `hashLoading: "lazy"`.
 #[impl_runtime_module]
 #[derive(Debug)]
 struct SRILazyHashesRuntimeModule {

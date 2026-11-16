@@ -2041,6 +2041,7 @@ impl CommonJsImportsParserPlugin {
       error.severity = Severity::Warning;
       dep.set_critical(Some(Diagnostic::from(error)));
     }
+    parser.preserve_shorthand_key(span);
     parser.add_dependency(BoxDependency::new(dep));
     Some(true)
   }

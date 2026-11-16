@@ -174,13 +174,13 @@ export default ['web', 'node', 'module'].flatMap((target) =>
           const running = mode === 'hmr' ? await start() : undefined;
           const changed = await build(`${format}\nexport const added = 1;`);
           if (running) {
-            assert.notEqual(
+            assert.equal(
               changed.hash,
               initial.hash,
-              'the version tag must affect content hash',
+              'the version must follow the rendered chunk, not module hashes',
             );
-            assert.notEqual(changed.source, initial.source);
-            if (hashed) assert.notEqual(changed.filename, initial.filename);
+            assert.equal(changed.source, initial.source);
+            assert.equal(changed.filename, initial.filename);
           }
           assert.equal(
             await (await start()).load(),
