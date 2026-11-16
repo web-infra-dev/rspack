@@ -119,10 +119,29 @@ impl EsmLibraryPlugin {
       .collect()
   }
 
+  fn is_external_request_fragment(key: &InitFragmentKey) -> bool {
+    matches!(key, InitFragmentKey::ModuleExternal(_))
+      // Rslib preserves entry `export *` declarations as constant init fragments.
+      || matches!(key, InitFragmentKey::Const(key) if key.starts_with("esm_module_reexport_star_"))
+  }
+
+  pub(super) fn parse_external_request(content: &str) -> Option<RawImportSource> {
+    if let Some((source, _)) = Self::parse_module_external_namespace_import(content) {
+      return Some(source);
+    }
+    let source = content
+      .trim()
+      .strip_prefix("export * from ")?
+      .strip_suffix(';')?;
+    serde_json::from_str(source)
+      .ok()
+      .map(|source| RawImportSource::Source((source, None)))
+  }
+
   fn module_external_fragment_content(
     init_fragment: Box<dyn rspack_core::InitFragment>,
   ) -> Option<String> {
-    if !matches!(init_fragment.key(), InitFragmentKey::ModuleExternal(_)) {
+    if !Self::is_external_request_fragment(init_fragment.key()) {
       return None;
     }
 
@@ -141,14 +160,14 @@ impl EsmLibraryPlugin {
     }
   }
 
-  fn collect_module_external_fragments_in_render_order<'a>(
+  pub(super) fn collect_module_external_fragments_in_render_order<'a>(
     init_fragment_groups: impl IntoIterator<Item = &'a ChunkInitFragments>,
   ) -> Vec<Box<dyn rspack_core::InitFragment>> {
     let mut ordered_fragments = Vec::new();
 
     for init_fragments in init_fragment_groups {
       for init_fragment in init_fragments {
-        if !matches!(init_fragment.key(), InitFragmentKey::ModuleExternal(_)) {
+        if !Self::is_external_request_fragment(init_fragment.key()) {
           continue;
         }
 
@@ -511,6 +530,132 @@ impl EsmLibraryPlugin {
     None
   }
 
+  fn collect_request_order(
+    compilation: &Compilation,
+    chunk_link: &mut ChunkLinkContext,
+    module_infos: &IdentifierIndexMap<ModuleInfo>,
+    external_module_init_fragments: &IdentifierMap<ChunkInitFragments>,
+  ) {
+    let module_graph = compilation.get_module_graph();
+    // Keep the existing module traversal. Source order is only comparable within one module;
+    // shared chunks and requests shared by several modules retain their first request position.
+    for module_id in chunk_link
+      .hoisted_modules
+      .iter()
+      .chain(&chunk_link.decl_modules)
+    {
+      let module = module_graph
+        .module_by_identifier(module_id)
+        .expect("should have module");
+      if module.as_external_module().is_some() {
+        continue;
+      }
+      let preserved_requests = module_infos
+        .get(module_id)
+        .and_then(|info| {
+          if let ModuleInfo::Concatenated(info) = info {
+            Some(&info.chunk_init_fragments)
+          } else {
+            None
+          }
+        })
+        .into_iter()
+        .flatten()
+        .filter_map(|fragment| {
+          Self::module_external_fragment_content(fragment.clone())
+            .and_then(|content| Self::parse_external_request(&content))
+        })
+        .collect::<FxHashSet<_>>();
+      let mut dependencies = module_graph
+        .get_outgoing_deps_in_order(module_id)
+        .filter_map(|id| {
+          let dependency = module_graph.dependency_by_id(id);
+          Some((dependency.source_order()?, id))
+        })
+        .collect::<Vec<_>>();
+      dependencies.sort_by_key(|(order, _)| *order);
+      for (_, dependency_id) in dependencies {
+        let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
+          continue;
+        };
+        let target = connection.module_identifier();
+        let target_module = module_graph
+          .module_by_identifier(target)
+          .expect("should have module");
+        if let Some(external) = target_module.as_external_module() {
+          let source =
+            RawImportSource::Source((external.get_request().primary().to_string(), None));
+          if preserved_requests.contains(&source) {
+            // Rslib disables these graph edges, but the native request is still emitted.
+            chunk_link.request_order.insert(source);
+            continue;
+          }
+        }
+        if !connection.is_target_active(
+          module_graph,
+          None,
+          &compilation.module_graph_cache_artifact,
+          &compilation
+            .build_module_graph_artifact
+            .side_effects_state_artifact,
+          &compilation.exports_info_artifact,
+        ) {
+          continue;
+        }
+        if let Some(asset_import) = compilation
+          .code_generation_results
+          .get_one(target)
+          .data()
+          .get::<CodeGenerationDataPreservedAssetImport>()
+        {
+          chunk_link.request_order.insert(RawImportSource::Source((
+            asset_import.request().to_string(),
+            None,
+          )));
+          continue;
+        }
+        if let Some(target_chunks) = compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .try_get_module_chunks(target)
+          && target_chunks.len() == 1
+          && let Some(target_chunk) = target_chunks.iter().next()
+          && *target_chunk != chunk_link.chunk
+        {
+          // The importer requests the target chunk; native requests inside it belong to that chunk.
+          chunk_link
+            .request_order
+            .insert(RawImportSource::Chunk(*target_chunk));
+          continue;
+        }
+        if target_module
+          .as_external_module()
+          .is_some_and(|external| external.resolve_external_type() == "module")
+        {
+          let fragments = match module_infos.get(target) {
+            Some(ModuleInfo::Concatenated(info)) => {
+              if let Some(import_map) = &info.import_map {
+                chunk_link
+                  .request_order
+                  .extend(import_map.keys().cloned().map(RawImportSource::Source));
+              }
+              Some(&info.chunk_init_fragments)
+            }
+            Some(ModuleInfo::External(info)) => external_module_init_fragments.get(&info.module),
+            None => None,
+          };
+          if let Some(fragments) = fragments {
+            chunk_link.request_order.extend(
+              Self::collect_module_external_namespace_imports(fragments)
+                .into_iter()
+                .map(|(source, _)| source),
+            );
+          }
+        }
+      }
+    }
+  }
+
   pub(crate) async fn link(
     &self,
     compilation: &Compilation,
@@ -590,6 +735,15 @@ impl EsmLibraryPlugin {
         should_export_webpack_require_for_module_chunk_loading(chunk_ukey, compilation)
       })
       .collect::<FxHashSet<_>>();
+
+    for chunk_link in link.values_mut() {
+      Self::collect_request_order(
+        compilation,
+        chunk_link,
+        &concate_modules_map,
+        &external_module_init_fragments,
+      );
+    }
 
     let concatenation_context =
       ConcatenationContext::prepare(&concate_modules_map, compilation, None);
@@ -2818,7 +2972,7 @@ var {} = {{}};
         {
           chunk_link
             .raw_import_stmts
-            .swap_remove(&RawImportSource::Source(key));
+            .shift_remove(&RawImportSource::Source(key));
         }
       }
 
@@ -2864,7 +3018,7 @@ var {} = {{}};
       for (key, locals) in removed_import_stmts {
         chunk_link
           .raw_import_stmts
-          .swap_remove(&RawImportSource::Source(key.clone()));
+          .shift_remove(&RawImportSource::Source(key.clone()));
 
         // change it from normal export to re-export
         for (local, imported) in locals {
