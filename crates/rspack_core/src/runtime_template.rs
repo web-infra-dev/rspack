@@ -1204,6 +1204,35 @@ impl ModuleCodeTemplate {
     }
   }
 
+  pub fn module_side_effects_annotation(
+    &self,
+    compilation: &Compilation,
+    module: &dyn Module,
+  ) -> &'static str {
+    if !self.compiler_options.output.module {
+      return "";
+    }
+    let side_effects = &compilation
+      .build_module_graph_artifact
+      .side_effects_state_artifact;
+    let state = side_effects
+      .module_evaluation_side_effects_state(&module.identifier())
+      .unwrap_or_else(|| {
+        module.get_side_effects_connection_state(
+          compilation.get_module_graph(),
+          &compilation.module_graph_cache_artifact,
+          side_effects,
+          &mut Default::default(),
+          &mut Default::default(),
+        )
+      });
+    if state.is_false() {
+      "/*#__PURE__*/ "
+    } else {
+      ""
+    }
+  }
+
   pub fn module_raw(
     &mut self,
     compilation: &Compilation,
@@ -1349,8 +1378,9 @@ impl ModuleCodeTemplate {
       return (import_content, String::new());
     }
 
+    let annotation = self.module_side_effects_annotation(compilation, target_module.as_ref());
     let import_content = format!(
-      "/* import */ {opt_declaration}{import_var} = {}({module_id_expr});\n",
+      "/* import */ {opt_declaration}{import_var} = {annotation}{}({module_id_expr});\n",
       self.render_runtime_globals(&RuntimeGlobals::REQUIRE)
     );
     if matches!(exports_type, ExportsType::Dynamic) {

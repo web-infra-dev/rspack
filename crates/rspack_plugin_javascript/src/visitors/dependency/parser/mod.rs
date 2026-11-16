@@ -22,11 +22,12 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   ArcComputed, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, CompilerOptions,
-  DependenciesBlock, Dependency, DependencyCodeGeneration, DependencyCodeGenerationRef,
-  DependencyId, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
-  ImportMetaKnownProperties, JavascriptParserCommonjsExportsOption, JavascriptParserOptions,
-  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData,
-  ResourceIdentifier, SideEffectsBailoutItemWithSpan,
+  ConstDependency, DependenciesBlock, Dependency, DependencyCodeGeneration,
+  DependencyCodeGenerationRef, DependencyId, DependencyLocation, DependencyRange, FactoryMeta,
+  ImportMeta, ImportMetaKnownProperties, JavascriptParserCommonjsExportsOption,
+  JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta,
+  ResolvedModuleOptions, ResourceData, ResourceIdentifier, SideEffectsBailoutItemWithSpan,
+  ValueCacheVersions,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::fx_hash::FxIndexSet;
@@ -490,6 +491,7 @@ pub struct JavascriptParser<'parser> {
   pub factory_meta: Option<&'parser FactoryMeta>,
   pub build_meta: &'parser mut BuildMeta,
   pub build_info: &'parser mut BuildInfo,
+  pub value_cache_versions: &'parser ValueCacheVersions,
   pub resource_data: &'parser ResourceData,
   pub(crate) compiler_options: &'parser CompilerOptions,
   pub(crate) javascript_options: &'parser JavascriptParserOptions,
@@ -672,6 +674,7 @@ impl<'parser> JavascriptParser<'parser> {
     source: &'parser str,
     ast: &'parser ParsedJavaScriptAst<'parser>,
     compiler_options: &'parser CompilerOptions,
+    value_cache_versions: &'parser ValueCacheVersions,
     javascript_options: &'parser JavascriptParserOptions,
     plugin_drive: &'parser JavaScriptParserPluginDrive,
     module_identifier: &'parser ModuleIdentifier,
@@ -726,6 +729,7 @@ impl<'parser> JavascriptParser<'parser> {
       factory_meta,
       build_meta,
       build_info,
+      value_cache_versions,
       compiler_options,
       module_type,
       module_layer,
@@ -876,6 +880,19 @@ impl<'parser> JavascriptParser<'parser> {
     deps: impl IntoIterator<Item = DependencyCodeGenerationRef>,
   ) {
     self.presentational_dependencies.extend(deps);
+  }
+
+  pub(crate) fn preserve_shorthand_key(&mut self, ident_span: Span) {
+    if !self.in_short_hand {
+      return;
+    }
+    let ast = self.ast.ast;
+    let key = ast.get_utf8(ast.source_slice(ident_span.start, ident_span.end));
+    let start = ident_span.real_lo();
+    self.add_presentational_dependency(Arc::new(ConstDependency::new(
+      (start, start).into(),
+      format!("{key}: ").into(),
+    )));
   }
 
   pub fn next_presentational_dependency_idx(&self) -> usize {

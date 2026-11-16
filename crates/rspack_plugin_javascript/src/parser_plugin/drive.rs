@@ -101,6 +101,17 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
     }
   }
 
+  fn top_level_await_using_declaration(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    decl: VariableDeclaration,
+  ) {
+    for plugin in self.plugins_for(JavascriptParserPluginHook::TopLevelAwaitUsingDeclaration) {
+      // `SyncBailHook` but without return value
+      plugin.top_level_await_using_declaration(parser, decl);
+    }
+  }
+
   fn program(&self, parser: &mut JavascriptParser<'p>, ast: Program) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::Program) {
       let res = plugin.program(parser, ast);

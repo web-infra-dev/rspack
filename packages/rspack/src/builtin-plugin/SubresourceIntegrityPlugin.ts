@@ -142,11 +142,12 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
     }
 
     const normalizedSrc = normalizePath(src);
-    const normalizedKey = Array.from(this.integrities.keys()).find(
-      (assetKey) => normalizePath(assetKey) === normalizedSrc,
-    );
-
-    return normalizedKey ? this.integrities.get(normalizedKey) : undefined;
+    for (const assetKey of this.integrities.keys()) {
+      if (normalizePath(assetKey) === normalizedSrc) {
+        return assetKey ? this.integrities.get(assetKey) : undefined;
+      }
+    }
+    return undefined;
   }
 
   private handleHwpPluginArgs({ assets }: BeforeAssetTagGenerationData) {
@@ -270,7 +271,7 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
             if (contenthash) {
               const shaHashes = (
                 Array.isArray(contenthash) ? contenthash : [contenthash]
-              ).filter((hash: unknown) => String(hash).match(/^sha[0-9]+-/));
+              ).filter((hash: unknown) => /^sha[0-9]+-/.test(String(hash)));
               if (shaHashes.length > 0) {
                 (
                   object as unknown as {
@@ -407,5 +408,6 @@ function computeIntegrity(
 }
 
 function normalizePath(path: string): string {
-  return path.replace(/\?.*$/, '').split(sep).join('/');
+  const withoutQuery = path.replace(/\?.*$/, '');
+  return sep === '/' ? withoutQuery : withoutQuery.replaceAll(sep, '/');
 }

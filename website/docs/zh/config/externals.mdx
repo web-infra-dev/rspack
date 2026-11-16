@@ -147,7 +147,7 @@ export default {
 ### 对象
 
 :::warning
-带有 `{ root, commonjs, commonjs2, amd, ... }` 的对象只允许用于 [`library.type: 'umd'`](/config/output#outputlibrarytype) 和 [`externalsType: 'umd'`](#externalstype)。其他库的 target 不允许这样做。
+带有 `{ root, commonjs, commonjs2, amd, ... }` 的对象将外部类型映射到对应的目标。[`library.type: 'umd'`](/config/output#outputlibrarytype) 要求提供 `root`、`commonjs`、`commonjs2` 和 `amd`，其他外部类型使用与其类型匹配的字段。
 :::
 
 ```js title="rspack.config.mjs"
@@ -165,6 +165,50 @@ export default {
 ```
 
 此语法用于描述外部 library 所有可用的访问方式。这里 `lodash` 这个外部库可以在 AMD 和 CommonJS 模块系统中通过 `lodash` 访问，但在全局变量形式下用 `_` 访问。`subtract` 可以通过全局 `math` 对象下的属性 `subtract` 访问（例如 `window['math']['subtract']`）。
+
+#### interop
+
+**类型：** `'default' | 'esModule'`
+
+对于 `commonjs`、`amd`、`umd` 等非 ESM 外部模块，默认导入通常取决于导入方：严格 ES 模块（`.mjs` 或声明了 `"type": "module"` 的包）会将整个 exports 对象作为默认导入，其他模块则通过运行时的 `__esModule` 检查决定是否读取 `.default`。
+
+对象形式的 external 可以通过可选的 `interop` 字段覆盖此行为，不受导入方影响：
+
+- `'esModule'`：将外部模块视为 ES 模块命名空间，默认导入读取 `.default`。
+- `'default'`：将外部模块视为 CommonJS，默认导入取得整个 exports 对象，同时仍可使用具名导入。
+
+```js title="rspack.config.mjs"
+export default {
+  externalsType: 'commonjs',
+  externals: {
+    dep: { commonjs: 'dep', interop: 'esModule' },
+  },
+};
+```
+
+省略 `interop` 时保留默认行为。externals 函数返回的对象同样支持此字段。
+
+`interop` 只对直接引用整个外部模块的配置生效。如果配置为 `commonjs: ['dep', 'named']`，读取的是 `require('dep').named` 这个属性，此时 Rspack 会忽略 `interop`，继续按上文的默认规则处理导入。
+
+对于 `umd` 和 `umd2`，`root`、`commonjs`、`commonjs2`、`amd` 描述同一个外部模块在不同环境中的加载方式，共用一个 `interop` 设置。例如：
+
+```js title="rspack.config.mjs"
+export default {
+  output: { library: { type: 'umd' } },
+  externalsType: 'umd',
+  externals: {
+    dep: {
+      root: 'dep',
+      commonjs: 'dep',
+      commonjs2: ['dep', 'nested'], // 读取 require('dep').nested
+      amd: 'dep',
+      interop: 'esModule', // 因 commonjs2 读取了 nested 属性，此设置会被忽略
+    },
+  },
+};
+```
+
+这里虽然只有 `commonjs2` 读取了属性，但整个 `dep` 的 `interop` 设置都会被忽略，其他三个分支也会使用默认导入规则。通过 CommonJS2 加载时，严格 ES 模块的默认导入会得到 `require('dep').nested`；其他导入方仍通过 `__esModule` 检查决定是否读取它的 `.default`。
 
 ### 函数 \{#function}
 

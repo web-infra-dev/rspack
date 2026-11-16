@@ -39,11 +39,10 @@ impl HotModuleReplacementChunkVersionsRuntimeModule {
     let mut versions = BTreeMap::new();
     for key in root.get_all_referenced_chunks(&graph.chunk_group_by_ukey) {
       let chunk = graph.chunk_by_ukey.expect_get(&key);
-      if is_versioned(compilation, chunk) {
-        versions.insert(
-          chunk.expect_id().clone(),
-          get_hmr_chunk_version(compilation, chunk),
-        );
+      if is_versioned(compilation, chunk)
+        && let Some(version) = get_hmr_chunk_version(compilation, chunk)
+      {
+        versions.insert(chunk.expect_id().clone(), version.to_string());
       }
     }
     versions
@@ -54,6 +53,10 @@ impl HotModuleReplacementChunkVersionsRuntimeModule {
 impl RuntimeModule for HotModuleReplacementChunkVersionsRuntimeModule {
   fn runtime_module_variables() -> &'static [&'static str] {
     &[]
+  }
+
+  fn dependent_hash(&self) -> bool {
+    true
   }
 
   fn runtime_requirements(&self, _: &Compilation) -> RuntimeModuleRuntimeRequirements {
