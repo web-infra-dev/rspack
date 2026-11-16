@@ -182,6 +182,10 @@ export class RuntimeTemplate {
     return Boolean(this.#environment.destructuring);
   }
 
+  supportsSpread(): boolean {
+    return Boolean(this.#environment.spread);
+  }
+
   supportsBigIntLiteral(): boolean {
     return Boolean(this.#environment.bigIntLiteral);
   }
