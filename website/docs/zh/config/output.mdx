@@ -396,7 +396,7 @@ type DevtoolModuleFilenameTemplate =
   string | ((context: ModuleFilenameTemplateContext) => string);
 ```
 
-- **默认值：** `source-map` 类 devtool 为 `'webpack://[namespace]/[resourcePath]'`，`eval` 类 devtool 为 `'webpack://[namespace]/[resourcePath]?[hash]'`
+- **默认值：** 当 `devtool` 包含 `eval` 时，为 `'webpack://[namespace]/[resourcePath]?[hash]'`；否则为 `'webpack://[namespace]/[resourcePath]'`。
 
 此选项仅在 [`devtool`](/config/devtool) 使用了需要模块名称的选项时使用。
 

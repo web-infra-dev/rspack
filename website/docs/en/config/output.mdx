@@ -400,7 +400,7 @@ type DevtoolModuleFilenameTemplate =
   string | ((context: ModuleFilenameTemplateContext) => string);
 ```
 
-- **Default:** `'webpack://[namespace]/[resourcePath]'` for `source-map` devtools, `'webpack://[namespace]/[resourcePath]?[hash]'` for `eval` devtools
+- **Default:** When `devtool` includes `eval`, defaults to `'webpack://[namespace]/[resourcePath]?[hash]'`; otherwise, defaults to `'webpack://[namespace]/[resourcePath]'`.
 
 This option is only used when [`devtool`](/config/devtool) uses an option that requires module names.
 
