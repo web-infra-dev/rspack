@@ -33,9 +33,9 @@ export default defineConfig(
               test: /\.(css|less)$/,
               type: 'css/auto',
               parser: { exportType },
-              ...(useLess && {
-                use: [{ loader: 'less-loader', options: { sourceMap: true } }],
-              }),
+              use: useLess
+                ? [{ loader: 'less-loader', options: { sourceMap: true } }]
+                : [],
             },
           ],
         },
