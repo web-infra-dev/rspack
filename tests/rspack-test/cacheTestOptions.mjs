@@ -35,7 +35,6 @@ const excludes = {
 		/^stats\/issuer-information-cache$/,
 
 		// Loader-emitted errors or warnings are not fully restored.
-		/^loader\/emit-error$/,
 		/^source-map\/extract-source-map$/,
 
 		// Existing bundle/compiler assertions fail in the compatibility suite.
