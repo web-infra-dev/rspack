@@ -17,7 +17,7 @@ import {
   readBindingMarker,
   readHeapCategories,
   readHeapGraph,
-} from '../../../../packages/rspack/src/util/heapSnapshot.mjs';
+} from './heapSnapshot.mjs';
 
 // Match allocative's folded-stack escaping. Weights are shallow bytes, never
 // retained sizes: shared objects and cycles must contribute only once.

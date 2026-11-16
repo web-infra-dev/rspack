@@ -30,7 +30,7 @@ impl JsCache {
       ))
     });
     #[cfg(allocative)]
-    rspack_napi::allocative::link_target(self, Arc::as_ptr(cache), None);
+    rspack_allocative::napi_tracking::link_target(self, Arc::as_ptr(cache), None);
     Arc::clone(cache)
   }
 }

@@ -1209,7 +1209,7 @@ impl ToNapiValue for JsCompilationWrapper {
             let napi_value = ToNapiValue::to_napi_value(env, js_compilation)?;
             let reference: Reference<JsCompilation> = Reference::from_napi_value(env, napi_value)?;
             #[cfg(allocative)]
-            rspack_napi::allocative::link_target(
+            rspack_allocative::napi_tracking::link_target(
               &*reference,
               val.inner.as_ptr(),
               Some(val.compiler_id),

@@ -61,6 +61,8 @@
     "heading-case": "catalog:",
     "prettier-plugin-toml": "catalog:",
     "rstack": "catalog:",
+    "stream-chain": "catalog:",
+    "stream-json": "catalog:",
     "typescript": "catalog:",
     "zx": "catalog:"
   },

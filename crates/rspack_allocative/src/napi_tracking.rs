@@ -1,3 +1,5 @@
+#![forbid(unsafe_op_in_unsafe_fn)]
+
 //! Allocative-only class identity and weak roots. All N-API operations happen
 //! on the owning JavaScript thread; registration never dereferences a target.
 use std::{
@@ -14,7 +16,8 @@ use napi::{
   bindgen_prelude::{FromNapiValue, Function, JsObjectValue, Object},
   sys,
 };
-use rspack_allocative::{FlameGraphBuilder, TargetIdentity};
+
+use crate::{FlameGraphBuilder, TargetIdentity};
 
 static REGISTERED: AtomicBool = AtomicBool::new(false);
 

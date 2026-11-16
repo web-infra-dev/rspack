@@ -7,10 +7,10 @@ use std::{
   ops::{Deref, DerefMut},
 };
 
-pub use rspack_napi::napi::bindgen_prelude::*;
-use rspack_napi::{
-  allocative::attach, napi::bindgen_prelude::CallbackInfo as UpstreamCallbackInfo,
-};
+use napi::bindgen_prelude::CallbackInfo as UpstreamCallbackInfo;
+pub use napi::bindgen_prelude::*;
+
+use crate::napi_tracking::attach;
 
 /// # Safety
 /// Same requirements as napi-rs `new_instance`.
@@ -19,7 +19,7 @@ pub unsafe fn new_instance<T: ObjectFinalize + MaybeTypeTag + 'static>(
   pointer: *mut c_void,
   ctor: sys::napi_ref,
 ) -> Result<sys::napi_value> {
-  let value = unsafe { rspack_napi::napi::bindgen_prelude::new_instance::<T>(env, pointer, ctor)? };
+  let value = unsafe { napi::bindgen_prelude::new_instance::<T>(env, pointer, ctor)? };
   unsafe { attach::<T>(env, value)? };
   Ok(value)
 }

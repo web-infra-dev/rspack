@@ -11,7 +11,7 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
-allocative       = ["rspack_napi/allocative", "rspack_loader_swc/allocative", "rspack_core/allocative", "rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_tracing_perfetto?/allocative"]
+allocative       = ["dep:rspack-allocative", "dep:urlencoding", "rspack_napi/allocative", "rspack_loader_swc/allocative", "rspack_core/allocative", "rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_tracing_perfetto?/allocative"]
 browser          = []
 debug_tool       = ["rspack_core/debug_tool"]
 perfetto         = ["dep:rspack_tracing_perfetto", "rspack_tracing/perfetto"]
@@ -24,6 +24,7 @@ tracy-client     = ["dep:tracy-client", "rspack_allocator/tracy-client"]
 [dependencies]
 anyhow                    = { workspace = true }
 atomic_refcell            = { workspace = true }
+rspack-allocative         = { workspace = true, optional = true, features = ["napi-tracking", "snapshot"] }
 rspack_allocator          = { workspace = true }
 rspack_browserslist       = { workspace = true }
 rspack_collections        = { workspace = true }
@@ -122,6 +123,7 @@ simd-json                              = { workspace = true }
 slotmap                                = { workspace = true }
 swc_core                               = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
 tokio                                  = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "sync", "time", "test-util", "tracing", "parking_lot"] }
+urlencoding                            = { workspace = true, optional = true }
 ustr                                   = { workspace = true }
 
 [package.metadata.cargo-shear]

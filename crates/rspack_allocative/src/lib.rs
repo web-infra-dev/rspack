@@ -53,6 +53,18 @@ mod key;
 mod reflection;
 mod visitor;
 
+#[cfg(feature = "snapshot")]
+mod snapshot;
+#[cfg(feature = "snapshot")]
+pub use snapshot::AllocativeSnapshot;
+
+/// N-API class creation hooks for opt-in snapshot tracking.
+#[cfg(feature = "napi-tracking")]
+pub mod napi_shim;
+/// Weak wrapper registration and coordinated JavaScript/native snapshot capture.
+#[cfg(feature = "napi-tracking")]
+pub mod napi_tracking;
+
 pub use rspack_allocative_derive::{Allocative, root};
 
 pub use crate::{

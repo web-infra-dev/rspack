@@ -51,13 +51,14 @@ extern crate rspack_allocator;
 // Resolve napi-derive's generated paths to the local prelude in profiling builds.
 #[cfg(allocative)]
 extern crate self as napi;
-// Generated registration macros need an explicit ctor re-export during expansion.
+// Use the tracking prelude and preserve upstream exports required by generated macros.
+#[cfg(allocative)]
+pub(crate) use rspack_allocative::napi_shim as bindgen_prelude;
 #[cfg(allocative)]
 pub(crate) use rspack_napi::napi::{ctor, *};
-#[cfg(allocative)]
-#[path = "napi_shim.rs"]
-mod bindgen_prelude;
 
+#[cfg(allocative)]
+mod allocative;
 mod allocator;
 mod asset;
 mod asset_condition;
@@ -638,8 +639,7 @@ impl JsCompiler {
 
     #[cfg(allocative)]
     {
-      self.compiler.allocative_snapshot_deferred = true;
-      rspack_napi::allocative::link_target(
+      rspack_allocative::napi_tracking::link_target(
         self,
         &**self.compiler as *const rspack_core::Compiler,
         Some(self.compiler.id().as_u32()),
@@ -689,14 +689,26 @@ impl JsCompiler {
 #[cfg(allocative)]
 impl JsCompiler {
   fn snapshot_allocative(&self, env: &Env, phase: &str) -> Result<(), ErrorCode> {
-    let Some(snapshot) = rspack_core::AllocativeSnapshot::new(phase).to_napi_result()? else {
+    use rspack_error::ToStringResultToRspackResultExt;
+
+    let Some(snapshot) = rspack_allocative::AllocativeSnapshot::new(phase)
+      .to_rspack_result()
+      .to_napi_result()?
+    else {
       return Ok(());
     };
-    let mut builder =
-      rspack_napi::allocative::capture(env, &snapshot.heap_path(), self.compiler.id().as_u32())
-        .map_err(|error| napi::Error::new(ErrorCode::Napi(error.status), error.reason))?;
+    let mut builder = rspack_allocative::napi_tracking::capture(
+      env,
+      &snapshot.heap_path(),
+      self.compiler.id().as_u32(),
+    )
+    .map_err(|error| napi::Error::new(ErrorCode::Napi(error.status), error.reason))?;
     builder.visit_root(self);
-    snapshot.write(&self.compiler, builder).to_napi_result()
+    let counts = allocative::module_graph_counts(&self.compiler);
+    snapshot
+      .write(builder, counts)
+      .to_rspack_result()
+      .to_napi_result()
   }
 }
 

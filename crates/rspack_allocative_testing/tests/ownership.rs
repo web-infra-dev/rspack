@@ -22,7 +22,7 @@ use smallvec::SmallVec;
 use smol_str::SmolStr;
 use swc_core::base::config::{JscConfig, Options};
 
-#[path = "../../rspack_core/src/utils/allocative_count_labels.rs"]
+#[path = "../../rspack_binding_api/src/allocative/count_labels.rs"]
 mod count_labels;
 
 #[path = "support/driver_enums.rs"]

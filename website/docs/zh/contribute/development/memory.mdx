@@ -102,10 +102,10 @@ Rspack 在 [`crates/rspack_allocative`](https://github.com/web-infra-dev/rspack/
   包含 allocative feature、cfg 和编译器 driver
        ↓
 构建或重建完成
-  完成缓存处理，检查 RSPACK_ALLOCATIVE_DIR
+  原生编译结束后，由 binding 检查 RSPACK_ALLOCATIVE_DIR
        ↓
 遍历根对象
-  Compiler → Compilation 及其他拥有的字段
+  JsCompiler → Compiler → Compilation 及其他拥有的字段
   注册的全局根对象 + 进程全局 Ustr 字符串 arena
        ↓
 沿所有权遍历
@@ -116,7 +116,7 @@ Rspack 在 [`crates/rspack_allocative`](https://github.com/web-infra-dev/rspack/
   字节权重文件 + 条目计数 + metadata + warnings
 ```
 
-采集点位于 [`compiler/mod.rs`](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_core/src/compiler/mod.rs) 和 [`compiler/rebuild.rs`](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_core/src/compiler/rebuild.rs)。[`snapshot_allocative`](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_core/src/utils/mod.rs) 负责遍历根对象并写出文件。这些数据表示采集时刻所覆盖的内存，具体限制见[解读结果](#interpret-the-results)。
+快照通过 Node binding 在构建或重建成功后采集。直接运行独立的 Rust compiler 或 benchmark 不会自动生成快照。这些数据表示采集时刻所覆盖的内存，具体限制见[解读结果](#interpret-the-results)。
 
 ### 构建本地 binding \{#build-a-local-binding}
 
@@ -169,8 +169,6 @@ node "$rspack_root/.agents/skills/rspack-allocative/scripts/v8-to-allocative.mjs
 ```
 
 在 Speedscope 中打开 `reports/0-build.js.allocative` 或 `reports/0-build.combined.allocative`，分别查看 JavaScript 内存和 Rust 与 JavaScript 合并后的内存报告。打开 `reports/0-build.links.json` 可以查找与 JavaScript 对象关联的 Rust 对象。有关报告的查看方法，请参阅[查看快照](#view-snapshots)。
-
-关联报告的 `marked_objects` 按类型列出带标记的 Rspack 对象数量和浅层字节数，包括资产记录和数组。
 
 原始快照可能包含源码和其他项目数据。如果需要隐去 V8 对象名称、字符串和源码位置，请分享转换后的报告。转换时传入 `--include-content` 可以在报告中包含 V8 名称和 binding 地址。使用 `--out-dir` 可以将报告写入另一个已有的目录。
 

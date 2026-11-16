@@ -158,9 +158,6 @@ impl Compiler {
     self.compile_done().await?;
     self.cache.after_compile(&self.compilation).await;
 
-    #[cfg(allocative)]
-    crate::utils::snapshot_allocative("rebuild", self)?;
-
     Ok(())
   }
 }

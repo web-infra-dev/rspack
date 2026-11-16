@@ -102,10 +102,10 @@ Binding build
   Include the allocative feature, cfg, and compiler driver
        ↓
 Build or rebuild completes
-  Finish cache processing; check RSPACK_ALLOCATIVE_DIR
+  The binding checks RSPACK_ALLOCATIVE_DIR after native compilation finishes
        ↓
 Root traversal
-  Compiler → Compilation and other owned fields
+  JsCompiler → Compiler → Compilation and other owned fields
   Registered globals + process-global Ustr string arena
        ↓
 Ownership traversal
@@ -116,7 +116,7 @@ Snapshot output
   Byte profile + entry counts + metadata + warnings
 ```
 
-The capture points are in [`compiler/mod.rs`](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_core/src/compiler/mod.rs) and [`compiler/rebuild.rs`](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_core/src/compiler/rebuild.rs). [`snapshot_allocative`](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_core/src/utils/mod.rs) visits the roots and writes the files. This measures the represented memory at that point, with the limits described in [Interpret the results](#interpret-the-results).
+Snapshots are collected through the Node binding after a successful build or rebuild. Running a standalone Rust compiler or benchmark does not automatically produce snapshots. This measures the represented memory at that point, with the limits described in [Interpret the results](#interpret-the-results).
 
 ### Build a local binding
 

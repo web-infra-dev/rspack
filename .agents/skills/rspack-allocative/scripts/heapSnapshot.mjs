@@ -1,5 +1,3 @@
-/* global SUPPORTS_ALLOCATIVE: readonly */
-
 import { createRequire } from 'node:module';
 import { StringDecoder } from 'node:string_decoder';
 
@@ -35,23 +33,11 @@ const rspackObjectKinds = /** @type {const} */ ([
 ]);
 
 function loadStreamJson() {
-  // The standalone converter runs this module directly, without Rslib's define.
-  if (typeof SUPPORTS_ALLOCATIVE === 'undefined' || SUPPORTS_ALLOCATIVE) {
-    const require = createRequire(import.meta.url);
-    const { jsonParser } =
-      /** @type {typeof import('stream-json/core/parser.js')} */ (
-        require('stream-json/core/parser.js')
-      );
-    const { default: Assembler } =
-      /** @type {typeof import('stream-json/core/assembler.js')} */ (
-        require('stream-json/core/assembler.js')
-      );
-    const chain = /** @type {typeof import('stream-chain/defs.js')} */ (
-      require('stream-chain/defs.js')
-    );
-    return { jsonParser, Assembler, chain };
-  }
-  throw new Error('Allocative heap snapshots are disabled in this build');
+  const require = createRequire(import.meta.url);
+  const { jsonParser } = require('stream-json/core/parser.js');
+  const { default: Assembler } = require('stream-json/core/assembler.js');
+  const chain = require('stream-chain/defs.js');
+  return { jsonParser, Assembler, chain };
 }
 
 /**

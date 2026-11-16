@@ -14,6 +14,11 @@ version.workspace       = true
 # Workspace regression cases live in rspack_allocative_testing.
 test = false
 
+[features]
+snapshot = ["ustr"]
+# Keep runtime tracking separate from the napi type traversal adapters.
+napi-tracking = ["napi", "napi/napi9", "napi/compat-mode"]
+
 [dependencies]
 arc-swap                 = { workspace = true }
 atomic_refcell           = { workspace = true, optional = true }

@@ -1,8 +1,5 @@
 #![forbid(unsafe_op_in_unsafe_fn)]
 
-#[cfg(allocative)]
-pub mod allocative;
-
 mod ext;
 mod js_values;
 mod utils;

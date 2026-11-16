@@ -1,10 +1,16 @@
-import {
-  allocativeBindingMarker,
-  allocativeObjectMarker,
-  allocativeRootMarker,
-  type RspackObjectKind,
-  type RspackRootKind,
-} from './heapSnapshot.mjs';
+const allocativeRootMarker = '__rspack_internal_allocativeRoot';
+const allocativeBindingMarker = '__rspack_internal_allocativeBinding';
+const allocativeObjectMarker = '__rspack_internal_allocativeObject';
+
+type RspackRootKind = 'Compiler' | 'Compilation' | 'Cache';
+type RspackObjectKind =
+  | 'Asset'
+  | 'Assets'
+  | 'CompilationHooks'
+  | 'CompilerHooks'
+  | 'Module'
+  | 'ModuleGraph'
+  | 'Stats';
 
 const snapshotHook = '__rspack_internal_runJsSnapshot';
 let snapshotEnabled: boolean | undefined;
