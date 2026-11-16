@@ -3,8 +3,7 @@ import path from "node:path";
 const excludes = {
 	normal: [],
 	config: [
-		// These cases expect stateful loaders to build again on every compiler.
-		/^compilation\/rebuild-module$/,
+		// This case expects stateful loaders to build again on every compiler.
 		/^css-extract\/rebuild-module$/,
 
 		// Module cache misses after restarting the compiler.
@@ -13,17 +12,6 @@ const excludes = {
 		/^asset-modules\/query-and-custom-encoder$/,
 		/^asset-modules\/rule-generator-publicPath$/,
 		/^asset\/filename$/,
-		/^assets\/shared-by-mf$/,
-		/^chunk-ids\/stable-chunk-ids-with-duplicate-chunks$/,
-		/^container-1-5\/async-startup-static-import$/,
-		/^container-1-5\/manifest$/,
-		/^container-1-5\/manifest-disable-assets-analyze$/,
-		/^container-1-5\/manifest-entry-filter$/,
-		/^container-1-5\/manifest-file-name$/,
-		/^container-1-5\/remote-array-share-scope$/,
-		/^container-1-5\/tree-shaking-shared-infer-mode$/,
-		/^container-1-5\/tree-shaking-shared-pnpm-versions$/,
-		/^container-1-5\/tree-shaking-shared-server-mode$/,
 		/^contenthash\/assets$/,
 		/^css\/import-filter$/,
 		/^custom-modules\/json-custom$/,
@@ -31,22 +19,15 @@ const excludes = {
 		/^loader-import-module\/execute-failed$/,
 		/^loader-parallel-import-module\/execute-failed$/,
 		/^module\/rspack-issue-8785$/,
-		/^resolve\/mf-by-dependency-esm$/,
-		/^sri\/mf$/,
-
-		// Code generation cache misses after restarting the compiler.
-		/^entry\/public-path$/,
-
-		// Resolver cache misses, including unresolved requests.
-		/^css\/url$/,
-		/^rstest\/mock$/,
-		/^rstest\/mock-dynamic-import-external$/,
 
 		// Source map cache misses after restarting the compiler.
 		/^source-map\/empty-mapping$/,
 
 		// Independent shared fallback compilers write to the same cache database as their parent.
+		/^container-1-5\/tree-shaking-shared-infer-mode$/,
+		/^container-1-5\/tree-shaking-shared-pnpm-versions$/,
 		/^container-1-5\/tree-shaking-shared-provide-only$/,
+		/^container-1-5\/tree-shaking-shared-server-mode$/,
 		/^sharing\/reshake-share$/,
 		/^sharing\/tree-shaking-shared$/,
 
@@ -58,33 +39,16 @@ const excludes = {
 		/^stats\/issuer-information-cache$/,
 
 		// Loader-emitted errors or warnings are not fully restored.
-		/^compilation\/stats-artifact-fallback-warning$/,
 		/^loader\/emit-error$/,
 		/^source-map\/extract-source-map$/,
 
-		// afterExecute removes the temporary Browserslist packages before cache builds.
-		/^ecmaVersion\/browserslist-config-env-extends$/,
-		/^ecmaVersion\/browserslist-config-extends$/,
-		/^ecmaVersion\/browserslist-extends$/,
-
 		// Existing bundle/compiler assertions fail in the compatibility suite.
-		/^builtin-lightningcss-loader\/custom-media$/,
-		/^compilation\/errors$/,
 		/^context\/import-meta-glob-case-insensitive-pruning$/,
 		/^css-chunking-plugin\/base-global-css-chunking$/,
 		/^filename-template\/filename-function-entry-chunk$/,
-		/^hooks\/build-module$/,
-		/^hooks\/original-source$/,
-		/^hooks\/original-source-map-presence$/,
-		/^hooks\/still-valid-module$/,
-		/^hooks\/succeed-module$/,
-		/^lazy-barrel\/basic$/,
 		/^loader\/context-module$/,
 		/^module\/shared-accessors$/,
 		/^plugins\/circular-check-rspack-plugin$/,
-		/^plugins\/progress-plugin$/,
-		/^split-chunks\/batch-functions$/,
-		/^split-chunks\/callback-order$/,
 
 		// Module cache entries are not fully reused after restarting the compiler.
 		/^asset\/custom-encoder$/,
