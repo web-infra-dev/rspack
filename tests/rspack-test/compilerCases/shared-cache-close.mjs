@@ -205,4 +205,90 @@ function createSourceMapOptions(context, name, devtool) {
   };
 }
 
-export default [...closeCases, readonlyCase, sourceMapCase];
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
+const loaderOptionsCase = {
+  name: 'loader-options',
+  description: 'should disable loader caching for non-serializable rule options',
+  options(context) {
+    return createSourceMapOptions(context, 'first', 'source-map');
+  },
+  async build(context, first) {
+    async function check(compiler, sourceMap, expected) {
+      const stats = await runCompiler(compiler);
+      expect(stats.hasErrors()).toBe(false);
+      const { cacheInfo } = stats.toJson({ all: false, cacheInfo: true });
+      expect(cacheInfo?.[`${compiler.compilerPath}|loader`]).toEqual(expected);
+      const bundle = stats.compilation.getAsset('main.js').source.source();
+      expect(bundle.toString()).toContain(`expect(${sourceMap}).toBe(true)`);
+    }
+
+    const miss = { hits: 0, misses: 1, reused: 0, stores: 1 };
+    await check(first, true, miss);
+
+    const cases = [
+      ['rule-function', { nested: [() => {}] }],
+      ['rule-bigint', { value: 1n }],
+    ];
+    for (const [name, ruleOptions] of cases) {
+      const options = createSourceMapOptions(context, name, 'source-map');
+      options.module.rules[0].use[0].options = ruleOptions;
+      const compiler = rspack(options);
+      try {
+        await check(compiler, true, undefined);
+      } finally {
+        await closeCompiler(compiler);
+      }
+    }
+  },
+};
+
+function createSwcSourceMapOptions(context, name, devtool) {
+  const options = createOptions(context, name, 'memory');
+  options.devtool = devtool;
+  options.module.rules[0].use = [{ loader: 'builtin:swc-loader', cache: true }];
+  return options;
+}
+
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
+const swcSourceMapCase = {
+  name: 'swc-source-map-columns',
+  description: 'should only reuse SWC results with matching column requirements',
+  options(context) {
+    return createSwcSourceMapOptions(context, 'cheap', 'cheap-module-source-map');
+  },
+  async build(context, cheap) {
+    async function check(compiler, hits) {
+      const stats = await runCompiler(compiler);
+      expect(stats.hasErrors()).toBe(false);
+      const { cacheInfo } = stats.toJson({ all: false, cacheInfo: true });
+      expect(cacheInfo?.[`${compiler.compilerPath}|loader`]).toEqual({
+        hits,
+        misses: 1 - hits,
+        reused: hits,
+        stores: 1 - hits,
+      });
+      const asset = stats.compilation.getAsset('main.js.map');
+      return JSON.parse(asset.source.source().toString()).mappings;
+    }
+
+    const cheapMappings = await check(cheap, 0);
+    const full = rspack(createSwcSourceMapOptions(context, 'full', 'source-map'));
+    const reusedOptions = createSwcSourceMapOptions(context, 'reused', 'source-map');
+    const reused = rspack(reusedOptions);
+    try {
+      const fullMappings = await check(full, 0);
+      expect(fullMappings).not.toBe(cheapMappings);
+      expect(await check(reused, 1)).toBe(fullMappings);
+    } finally {
+      await Promise.all([full, reused].map(closeCompiler));
+    }
+  },
+};
+
+export default [
+  ...closeCases,
+  readonlyCase,
+  sourceMapCase,
+  loaderOptionsCase,
+  swcSourceMapCase,
+];

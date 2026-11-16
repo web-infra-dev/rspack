@@ -6,7 +6,7 @@ use rspack_collections::Identifiable;
 use rspack_error::Result;
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_loader_runner::{
-  Content, LoaderContext, LoaderDependencies, LoaderRunnerOptions, ParseMeta,
+  Content, LoaderContext, LoaderDependencies, LoaderItem, LoaderRunnerOptions, ParseMeta,
 };
 use rspack_paths::{InternedPath, InternedPathSet};
 use rspack_sources::SourceMap;
@@ -30,8 +30,6 @@ fn loader_cache_key<'a>(
     let options = options?;
     rspack_hash::rspack_hash_object!(&mut hasher, {
       "loader" => &options.loader_name,
-      "options" => &options.options_cache_key,
-      "loader_version" => &options.loader_version,
     });
   }
   Some(format!("{:016x}", hasher.finish()))
@@ -43,7 +41,12 @@ fn sorted_dependency_paths(paths: &InternedPathSet) -> Vec<&Path> {
   paths
 }
 
-fn loader_cache_etag(content: &Content, existing: &LoaderDependencies, source_map: bool) -> Etag {
+fn loader_cache_etag(
+  content: &Content,
+  existing: &LoaderDependencies,
+  loaders: &[LoaderItem<RunnerContext>],
+  context: &RunnerContext,
+) -> Etag {
   let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
   // Context and missing dependencies intentionally invalidate the minimal cache: inherited values
   // disable lookup, and entries that add either kind are skipped at store time. This trade-off lets
@@ -52,11 +55,18 @@ fn loader_cache_etag(content: &Content, existing: &LoaderDependencies, source_ma
   rspack_hash::rspack_hash_object!(&mut hasher, {
     "content_is_string" => !content.is_buffer(),
     "content" => content,
-    "source_map" => source_map,
     "file_dependencies" => sorted_dependency_paths(&existing.file),
     "build_dependencies" => sorted_dependency_paths(&existing.build),
     "rspack_version" => rspack_workspace::rspack_pkg_version!(),
+    "source_map" => context.source_map_kind.source_map(),
   });
+  for loader in loaders {
+    rspack_hash::rspack_hash_object!(&mut hasher, {
+      "rule_loader_options" => loader.options_cache_key(),
+      "loader_version" => loader.loader_version(),
+    });
+    loader.loader().etag(context, &mut hasher);
+  }
   Etag::from(format!("{:016x}", hasher.finish()))
 }
 
@@ -170,14 +180,6 @@ pub(crate) enum LoaderCacheAction {
   Miss(Box<LoaderCacheMissState>),
 }
 
-fn input_etag(context: &LoaderContext<RunnerContext>) -> Option<Etag> {
-  Some(loader_cache_etag(
-    context.content()?,
-    context.existing_dependencies(),
-    context.context.source_map_kind.source_map(),
-  ))
-}
-
 pub(crate) async fn before_normal_chain(
   context: &mut LoaderContext<RunnerContext>,
 ) -> Result<LoaderCacheAction> {
@@ -191,8 +193,6 @@ pub(crate) async fn before_normal_chain(
   if !context.cacheable {
     return Ok(LoaderCacheAction::Disabled);
   }
-  // Source maps are intentionally excluded from the etag as a performance trade-off. The minimal
-  // cache treats source-map-only changes as equivalent inputs.
   let existing_dependencies = context.existing_dependencies();
   if context.additional_data().is_some()
     || !context.parse_meta.is_empty()
@@ -205,18 +205,19 @@ pub(crate) async fn before_normal_chain(
   {
     return Ok(LoaderCacheAction::Disabled);
   }
-  let Some(etag) = input_etag(context) else {
+  let Some(content) = context.content() else {
     return Ok(LoaderCacheAction::Disabled);
   };
+  let range = chain.range();
+  let loaders = &context.loader_items[usize::from(range.start)..usize::from(range.end)];
   let module_identifier = context.context.module.identifier();
   let Some(cache_key) = loader_cache_key(
     module_identifier.as_str(),
-    chain
-      .range()
-      .map(|index| context.loader_items[usize::from(index)].cache_options()),
+    loaders.iter().map(|loader| loader.cache_options()),
   ) else {
     return Ok(LoaderCacheAction::Disabled);
   };
+  let etag = loader_cache_etag(content, existing_dependencies, loaders, &context.context);
   let cache_key = CacheKey::from(cache_key);
   let entry = loader_cache.get::<LoaderCacheEntry>(cache_key.clone(), Some(etag.clone()));
   context
