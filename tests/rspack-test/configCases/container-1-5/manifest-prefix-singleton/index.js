@@ -1,3 +1,5 @@
+const mfScope = typeof __rspack_context === 'undefined' ? __webpack_require__ : __rspack_context;
+
 const fs = require('fs');
 const path = require('path');
 
@@ -24,7 +26,7 @@ for (const suffix of ['', '-stats']) {
     // Overlapping prefixes must follow the actual consumer, even if a provider
     // matched a different prefix. Do not assume a longest-prefix rule here.
     const consumes = Object.values(
-      __webpack_require__.consumesLoadingData.moduleIdToConsumeDataMapping,
+      mfScope.consumesLoadingData.moduleIdToConsumeDataMapping,
     );
     expect(consumes).toHaveLength(7);
     expect(data.shared).toHaveLength(7);

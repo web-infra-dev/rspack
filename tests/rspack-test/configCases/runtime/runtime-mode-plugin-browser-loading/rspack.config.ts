@@ -18,6 +18,10 @@ export default defineConfig({
   plugins: [
     definePlugin((compiler) => {
       const { RuntimeGlobals, RuntimeModule, RuntimePlugin } = compiler.rspack;
+      const rstestScope =
+        compiler.options.experiments.runtimeMode === 'rspack'
+          ? RuntimeGlobals.requireScope
+          : RuntimeGlobals.require;
       class BrowserLoading extends RuntimeModule {
         constructor() {
           super('plugin browser loading', RuntimeModule.STAGE_TRIGGER);
@@ -136,7 +140,7 @@ export default defineConfig({
             mod.source.source =
               original().replace(
                 /for \((?:var )?moduleId in moreModules\) \{/g,
-                '$&\nif (__webpack_require__.rstest_original_module_factories[moduleId]) continue;',
+                `$&\nif (${rstestScope}.rstest_original_module_factories[moduleId]) continue;`,
               ) +
               `
             var loadJsonp = __webpack_require__.f.j;

@@ -17,6 +17,10 @@ export default [false, true].map((esm, index) =>
     plugins: [
       definePlugin((compiler) => {
         const { RuntimeGlobals: g, RuntimeModule } = compiler.rspack;
+        const rstestScope =
+          compiler.options.experiments.runtimeMode === 'rspack'
+            ? g.requireScope
+            : g.require;
         class ModuleExecutionRuntime extends RuntimeModule {
           constructor() {
             super('react refresh', RuntimeModule.STAGE_TRIGGER);
@@ -33,10 +37,10 @@ export default [false, true].map((esm, index) =>
             };
             __webpack_require__.$Refresh$.intercept = intercept;
             __webpack_require__.i.push(intercept);
-            __webpack_require__.rstest_register_setup_id = function (id) {
+            ${rstestScope}.rstest_register_setup_id = function (id) {
               return [__webpack_module_cache__[id], __webpack_require__.c[id], __webpack_modules__[id], __webpack_require__.m[id]];
             };
-            __webpack_require__.rstest_register_browser_test_entry = function (id) {
+            ${rstestScope}.rstest_register_browser_test_entry = function (id) {
               delete __webpack_module_cache__[id];
               return __webpack_require__(id);
             };

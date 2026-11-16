@@ -54,10 +54,10 @@ export default [false, true].map((esm, index) =>
               'RuntimeSourceUpdates',
               (chunk, requirements) => {
                 compilation.addRuntimeModule(chunk, new CustomRuntime());
-                requirements.add(rspack.RuntimeGlobals.ensureChunkHandlers);
-                if (generated !== 1) {
+                requirements.add(compiler.rspack.RuntimeGlobals.ensureChunkHandlers);
+                if (generated !== 0) {
                   throw new Error(
-                    'Custom source must be generated when it is added',
+                    'Custom runtime generation must wait for tree requirements',
                   );
                 }
               },
@@ -69,7 +69,7 @@ export default [false, true].map((esm, index) =>
                 if (module.name === 'source-updates') {
                   if (generated !== 1) {
                     throw new Error(
-                      'The hook must reuse the source analyzed during addRuntimeModule',
+                      'The hook must see the custom runtime generated once',
                     );
                   }
                   module.source.source = '__webpack_require__.nc = "removed";';

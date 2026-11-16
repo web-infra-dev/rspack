@@ -1,3 +1,5 @@
+const mfScope = typeof __rspack_context === 'undefined' ? __webpack_require__ : __rspack_context;
+
 const fs = require('fs');
 const path = require('path');
 
@@ -102,7 +104,7 @@ it('should not tree shaking ui-lib-side-effect if not set sideEffect:false ', as
 });
 
 it('should inject usedExports into entry chunk by default', async () => {
-  expect(__webpack_require__.federation.usedExports['ui-lib'].sort()).toEqual([
+  expect(mfScope.federation.usedExports['ui-lib'].sort()).toEqual([
     'Button',
     'default',
   ]);

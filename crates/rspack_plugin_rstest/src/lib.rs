@@ -10,3 +10,13 @@ mod require_resolve_origin_dependency;
 mod url_dependency;
 
 pub use plugin::*;
+
+fn render_mock_scope(template: &mut rspack_core::ModuleCodeTemplate) -> String {
+  use rspack_core::RuntimeGlobals;
+  let requirement = if template.render_mode().is_legacy() {
+    RuntimeGlobals::REQUIRE
+  } else {
+    RuntimeGlobals::REQUIRE_SCOPE
+  };
+  template.render_runtime_globals(&requirement)
+}

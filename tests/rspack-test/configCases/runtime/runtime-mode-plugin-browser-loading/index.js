@@ -1,7 +1,7 @@
 it('retries a failed chunk through the native loader and resolves JS and CSS via plugin filenames', async () => {
   const bridge = __webpack_require__.webExtRt;
   const mockId = './mocked.cjs';
-  __webpack_require__.rstest_original_module_factories = {
+  (typeof __rspack_context === 'undefined' ? __webpack_require__ : __rspack_context).rstest_original_module_factories = {
     [mockId]: __webpack_require__.m[mockId] = module => { module.exports = 'kept mock'; },
   };
   // Force only the first script request to fail. Let the runner fetch the

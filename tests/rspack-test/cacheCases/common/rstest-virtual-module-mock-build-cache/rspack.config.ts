@@ -39,15 +39,16 @@ Object.keys(originalRequire).forEach(key => {
   __webpack_require__[key] = originalRequire[key];
 });
 
-__webpack_require__.rstest_original_modules = {};
+const rstestScope = typeof __rspack_context === 'undefined' ? __webpack_require__ : __rspack_context;
+rstestScope.rstest_original_modules = {};
 
-__webpack_require__.rstest_mock = (id, modFactory) => {
+rstestScope.rstest_mock = (id, modFactory) => {
   let requiredModule = undefined;
   try {
     requiredModule = __webpack_require__(id);
   } catch {}
   finally {
-    __webpack_require__.rstest_original_modules[id] = requiredModule;
+    rstestScope.rstest_original_modules[id] = requiredModule;
   }
 
   if (typeof modFactory === 'string' || typeof modFactory === 'number') {
@@ -73,7 +74,7 @@ __webpack_require__.rstest_mock = (id, modFactory) => {
   }
 };
 
-__webpack_require__.rstest_hoisted = fn => fn();
+rstestScope.rstest_hoisted = fn => fn();
 `;
       }
     }

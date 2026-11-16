@@ -1,8 +1,6 @@
 it("global false", function () {
 	global;
-	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
-		expect(__rspack_context.g).toBe(undefined);
-	} else {
-		expect(__webpack_require__.g).toBe(undefined);
-	}
+	const scope = typeof __rspack_context === 'undefined' ? __webpack_require__ : __rspack_context;
+	// A static read of the global helper would request it and invalidate the test.
+	expect('g' in scope).toBe(false);
 });

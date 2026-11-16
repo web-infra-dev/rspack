@@ -131,13 +131,13 @@ async fn runtime_module(
       } else {
         runtime_module.generate(&context).await?
       };
-      let runtime_require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
-      let legacy_require = runtime_variable_name(&RuntimeVariable::Require);
+      let runtime_scope = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE_SCOPE);
+      let legacy_runtime_scope = runtime_variable_name(&RuntimeVariable::Require);
       let module_factories = runtime_template.render_runtime_variable(&RuntimeVariable::Modules);
       runtime_module.set_custom_source(RstestPlugin::add_rstest_mock_chunk_loading_guard(
         source,
-        &runtime_require,
-        legacy_require,
+        &runtime_scope,
+        legacy_runtime_scope,
         &module_factories,
       ))?;
     }
@@ -469,23 +469,23 @@ impl RstestPlugin {
 
   fn add_rstest_mock_chunk_loading_guard(
     source: String,
-    runtime_require: &str,
-    legacy_require: &str,
+    runtime_scope: &str,
+    legacy_runtime_scope: &str,
     module_factories: &str,
   ) -> String {
     // TODO: Remove this compatibility guard once the minimum supported Rstest version
     // no longer patches the old runtime template on the JavaScript side.
     let rstest_mock_chunk_loading_guard = format!(
-      "if (Object.keys({runtime_require}.rstest_original_modules || {{}}).includes(moduleId) || Object.keys({runtime_require}.rstest_original_module_factories || {{}}).includes(moduleId)) continue;"
+      "if (Object.keys({runtime_scope}.rstest_original_modules || {{}}).includes(moduleId) || Object.keys({runtime_scope}.rstest_original_module_factories || {{}}).includes(moduleId)) continue;"
     );
     let legacy_rstest_mock_chunk_loading_guard = format!(
-      "if (Object.keys({runtime_require}.rstest_original_modules).includes(moduleId) || Object.keys({runtime_require}.rstest_original_module_factories).includes(moduleId)) continue;"
+      "if (Object.keys({runtime_scope}.rstest_original_modules).includes(moduleId) || Object.keys({runtime_scope}.rstest_original_module_factories).includes(moduleId)) continue;"
     );
     let webpack_rstest_mock_chunk_loading_guard = format!(
-      "if (Object.keys({legacy_require}.rstest_original_modules || {{}}).includes(moduleId) || Object.keys({legacy_require}.rstest_original_module_factories || {{}}).includes(moduleId)) continue;"
+      "if (Object.keys({legacy_runtime_scope}.rstest_original_modules || {{}}).includes(moduleId) || Object.keys({legacy_runtime_scope}.rstest_original_module_factories || {{}}).includes(moduleId)) continue;"
     );
     let legacy_webpack_rstest_mock_chunk_loading_guard = format!(
-      "if (Object.keys({legacy_require}.rstest_original_modules).includes(moduleId) || Object.keys({legacy_require}.rstest_original_module_factories).includes(moduleId)) continue;"
+      "if (Object.keys({legacy_runtime_scope}.rstest_original_modules).includes(moduleId) || Object.keys({legacy_runtime_scope}.rstest_original_module_factories).includes(moduleId)) continue;"
     );
 
     let source = source

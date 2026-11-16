@@ -439,7 +439,11 @@ fn runtime_globals_to_render_map(render_mode: RuntimeGlobalsRenderMode) -> Runti
         if runtime_globals == RuntimeGlobals::REQUIRE_SCOPE {
           runtime_variable_name(&RuntimeVariable::Context).to_string()
         } else if runtime_globals == RuntimeGlobals::REQUIRE {
-          format!("{}.r", runtime_variable_name(&RuntimeVariable::Context))
+          format!(
+            "{}.{}",
+            runtime_variable_name(&RuntimeVariable::Context),
+            RuntimeGlobals::CONTEXT_REQUIRE_PROPERTY
+          )
         } else if runtime_globals == RuntimeGlobals::EXPORTS {
           rspack_runtime_variable_name(&RuntimeVariable::Exports).to_string()
         } else if runtime_globals.renderable_require_scope() == runtime_globals {

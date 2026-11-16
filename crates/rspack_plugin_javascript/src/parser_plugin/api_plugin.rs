@@ -53,6 +53,7 @@ const API_LAYER: &str = "__webpack_layer__";
 const API_MODULE: &str = "__webpack_module__";
 const API_NON_REQUIRE: &str = "__non_webpack_require__";
 const API_REQUIRE: &str = "__webpack_require__";
+const API_RUNTIME_CONTEXT: &str = "__rspack_context";
 
 #[derive(Clone, Copy)]
 enum RuntimeApiIdentifierMode {
@@ -473,56 +474,58 @@ fn runtime_requirements_write_assignment(
     .then(|| RuntimeRequirementsDependency::write(span.into(), runtime_global))
 }
 
+fn runtime_global_member(for_name: &str, members: &[Atom]) -> Option<(RuntimeGlobals, usize)> {
+  let first = members.first()?;
+  let global = match for_name {
+    API_REQUIRE => RuntimeGlobals::from_require_property_name(first),
+    API_RUNTIME_CONTEXT => RuntimeGlobals::from_rspack_context_property_name(first),
+    _ => None,
+  }?;
+  // A loader may append a webpack property to compiler.rspack.RuntimeGlobals.require.
+  if global == RuntimeGlobals::REQUIRE
+    && let Some(helper) = members
+      .get(1)
+      .and_then(|key| RuntimeGlobals::from_require_property_name(key))
+  {
+    return Some((helper, 2));
+  }
+  Some((global, 1))
+}
+
 fn static_require_member_chain(
   parser: &mut JavascriptParser,
-  for_name: &str,
+  (runtime_global, consumed): (RuntimeGlobals, usize),
   members: &[Atom],
-  member_ranges: Option<&[Span]>,
+  member_ranges: &[Span],
   expr_span: Span,
   assignment: Option<AssignmentExpression>,
 ) -> Option<bool> {
-  if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
-    return None;
-  }
-
-  if for_name == API_REQUIRE
-    && let Some(property) = members.first()
-  {
-    // Let the normal identifier visitor render the loader for custom properties.
-    let runtime_global = RuntimeGlobals::from_require_property_name(property.as_ref())?;
-    let dep_span = if members.len() > 1 {
-      member_ranges
-        .and_then(|ranges| ranges.get(1))
-        .map_or(expr_span, |range| Span::new(expr_span.start, range.end))
-    } else {
-      expr_span
-    };
-    let dep = if let Some(expr) = assignment {
-      let ast = parser.ast.ast;
-      if members.len() == 1 {
-        runtime_requirements_write_assignment(
-          parser.parser_runtime_requirements.render_mode,
-          dep_span,
-          expr.right(ast).span(ast),
-          expr.span(ast),
-          expr.operator(ast),
-          runtime_global,
-        )?
-      } else if parser.parser_runtime_requirements.render_mode
-        == RuntimeGlobalsRenderMode::RspackExport
-      {
-        RuntimeRequirementsDependency::new(dep_span.into(), runtime_global)
-      } else {
-        RuntimeRequirementsDependency::write(dep_span.into(), runtime_global)
-      }
-    } else {
+  let dep_span = member_ranges
+    .get(consumed)
+    .map_or(expr_span, |range| Span::new(expr_span.start, range.end));
+  let dep = if let Some(expr) = assignment {
+    let ast = parser.ast.ast;
+    if members.len() == consumed {
+      runtime_requirements_write_assignment(
+        parser.parser_runtime_requirements.render_mode,
+        dep_span,
+        expr.right(ast).span(ast),
+        expr.span(ast),
+        expr.operator(ast),
+        runtime_global,
+      )?
+    } else if parser.parser_runtime_requirements.render_mode
+      == RuntimeGlobalsRenderMode::RspackExport
+    {
       RuntimeRequirementsDependency::new(dep_span.into(), runtime_global)
-    };
-    parser.add_presentational_dependency(Arc::new(dep));
-    return Some(true);
-  }
-
-  None
+    } else {
+      RuntimeRequirementsDependency::write(dep_span.into(), runtime_global)
+    }
+  } else {
+    RuntimeRequirementsDependency::new(dep_span.into(), runtime_global)
+  };
+  parser.add_presentational_dependency(Arc::new(dep));
+  Some(true)
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
@@ -573,6 +576,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     span: Span,
     for_name: &str,
   ) -> Option<bool> {
+    if for_name == API_RUNTIME_CONTEXT
+      && parser.compiler_options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack
+    {
+      parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
+        span.into(),
+        RuntimeGlobals::REQUIRE_SCOPE,
+      )));
+      return Some(true);
+    }
     if for_name == API_LAYER {
       parser.add_presentational_dependency(Arc::new(ConstDependency::new(
         span.into(),
@@ -749,7 +761,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
       return None;
     }
-    static_require_member_chain(parser, for_name, members, Some(member_ranges), span, None)
+    static_require_member_chain(
+      parser,
+      runtime_global_member(for_name, members)?,
+      members,
+      member_ranges,
+      span,
+      None,
+    )
   }
 
   fn call_member_chain(
@@ -764,21 +783,17 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
       return None;
     }
+    let member = runtime_global_member(for_name, members)?;
     let preserve_require_receiver = parser.parser_runtime_requirements.render_mode
       == RuntimeGlobalsRenderMode::RspackExport
-      && for_name == API_REQUIRE
-      && members.len() == 1
-      && members
-        .first()
-        .and_then(|property| RuntimeGlobals::from_require_property_name(property.as_ref()))
-        == Some(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+      && member == (RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT, members.len());
     let ast = parser.ast.ast;
     let callee = expr.callee(ast);
     let handled = static_require_member_chain(
       parser,
-      for_name,
+      member,
       members,
-      Some(member_ranges),
+      member_ranges,
       callee.span(ast),
       None,
     );
@@ -817,9 +832,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     let ast = parser.ast.ast;
     let handled = static_require_member_chain(
       parser,
-      for_name,
+      runtime_global_member(for_name, members)?,
       members,
-      Some(member_ranges),
+      member_ranges,
       expr.left(ast).span(ast),
       Some(expr),
     );

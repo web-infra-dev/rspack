@@ -1,3 +1,5 @@
+const mfScope = typeof __rspack_context === 'undefined' ? __webpack_require__ : __rspack_context;
+
 export default function () {
-  __webpack_require__.federation.test = 1
+  mfScope.federation.test = 1
 }

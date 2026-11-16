@@ -8,9 +8,13 @@ it("keeps runtime extension globals writable and preserves runtime scope", async
   extension.writeField(key, 42);
   const fromLoader = require("!!./require-properties-loader.cjs!./async.js");
   expect(fromLoader.read()).toBe(42);
+  expect(fromLoader.readPath()).toBe(extension.getPath());
   fromLoader.increment(key);
   expect(extension.guardedRequire.pluginValue).toBe(43);
   if (!ESM_OUTPUT) expect(extension.readContextField(key)).toBeUndefined();
+  fromLoader.writeScope(91);
+  expect(extension.readContextField(key)).toBe(91);
+  expect(fromLoader.read()).toBe(ESM_OUTPUT ? 91 : 43);
   expect(extension.loaderMethods).toEqual([
     __webpack_require__.call, __webpack_require__.apply, __webpack_require__.bind,
   ]);
@@ -44,7 +48,8 @@ it("keeps runtime extension globals writable and preserves runtime scope", async
   expect(extension.getPath()).toBe("/initial/first/second/");
   extension.setPath("/changed/");
   expect(__webpack_public_path__).toBe("/changed/");
-  __webpack_public_path__ = "/module/";
+  fromLoader.writePath("/module/");
+  expect(__webpack_public_path__).toBe("/module/");
   expect(extension.getPath()).toBe("/module/");
   expect(__webpack_require__.e).toBe(extension.ensure);
   expect((await import(/* webpackChunkName: "extension-async" */ "./async.js")).value).toBe(123);

@@ -581,6 +581,8 @@ static RUNTIME_GLOBAL_MAP: LazyLock<RuntimeGlobalMap> = LazyLock::new(|| {
 });
 
 impl RuntimeGlobals {
+  pub(crate) const CONTEXT_REQUIRE_PROPERTY: &'static str = "r";
+
   /// Runtime bindings provided by the bootstrap itself, rather than by runtime modules.
   pub const BOOTSTRAP_BINDINGS: Self = Self::REQUIRE
     .union(Self::REQUIRE_SCOPE)
@@ -611,6 +613,9 @@ impl RuntimeGlobals {
   }
 
   pub fn from_rspack_context_property_name(property_name: &str) -> Option<Self> {
+    if property_name == Self::CONTEXT_REQUIRE_PROPERTY {
+      return Some(Self::REQUIRE);
+    }
     if property_name == "N" {
       return Some(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
     }

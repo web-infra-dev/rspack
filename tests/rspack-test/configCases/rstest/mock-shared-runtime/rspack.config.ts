@@ -25,12 +25,13 @@ Object.keys(originalRequire).forEach(key => {
   __webpack_require__[key] = originalRequire[key];
 });
 
-__webpack_require__.rstest_original_modules = {};
-__webpack_require__.rstest_original_module_factories = {};
+const rstestScope = typeof __rspack_context === 'undefined' ? __webpack_require__ : __rspack_context;
+rstestScope.rstest_original_modules = {};
+rstestScope.rstest_original_module_factories = {};
 
-__webpack_require__.rstest_mock = (id, modFactory) => {
-  __webpack_require__.rstest_original_modules[id] = __webpack_require__(id);
-  __webpack_require__.rstest_original_module_factories[id] = __webpack_modules__[id];
+rstestScope.rstest_mock = (id, modFactory) => {
+  rstestScope.rstest_original_modules[id] = __webpack_require__(id);
+  rstestScope.rstest_original_module_factories[id] = __webpack_modules__[id];
 
   __webpack_modules__[id] = function(
     __unused_webpack_module,

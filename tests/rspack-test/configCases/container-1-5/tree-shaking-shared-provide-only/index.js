@@ -1,6 +1,8 @@
+const mfScope = typeof __rspack_context === 'undefined' ? __webpack_require__ : __rspack_context;
+
 it("should generate tree shaking shared fallback for provide-only shared modules", () => {
 	const fallbacks =
-		__webpack_require__.federation.sharedFallback["provided-only"];
+		mfScope.federation.sharedFallback["provided-only"];
 
 	expect(fallbacks).toBeTruthy();
 	expect(fallbacks.map(([, version]) => version)).toEqual(["1.0.0"]);
@@ -12,7 +14,7 @@ it("should generate tree shaking shared fallback for provide-only shared modules
 
 it("should use configured version for local provide-only shared fallbacks", () => {
 	const fallbacks =
-		__webpack_require__.federation.sharedFallback["local-provided"];
+		mfScope.federation.sharedFallback["local-provided"];
 
 	expect(fallbacks).toBeTruthy();
 	expect(fallbacks.map(([, version]) => version)).toEqual(["2.3.4"]);

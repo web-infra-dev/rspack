@@ -102,14 +102,12 @@ impl DependencyTemplate for RstestDynamicImportOriginDependencyTemplate {
       );
 
     if dep.import_mock || dep.require_mock {
-      let require = code_generatable_context
-        .runtime_template
-        .render_runtime_globals(&rspack_core::RuntimeGlobals::REQUIRE);
+      let scope = crate::render_mock_scope(code_generatable_context.runtime_template);
       source.replace(
         dep.callee_range.start,
         dep.callee_range.end,
         format!(
-          "{require}.rstest_{}",
+          "{scope}.rstest_{}",
           if dep.import_mock {
             "import_mock"
           } else {

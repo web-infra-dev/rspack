@@ -15,10 +15,7 @@ use swc_core::{
   },
 };
 
-use crate::{
-  RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeModuleCustomSource, RuntimeVariable,
-  property_access,
-};
+use crate::{RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeModuleCustomSource};
 
 /// Runtime extensions use the same bindings as native runtime modules. Every
 /// referenced built-in global is collected as writable by the metadata pass.
@@ -56,8 +53,6 @@ pub(crate) fn transform_runtime_module_source(
       source_start: fm.start_pos.0,
       unresolved: SyntaxContext::empty().apply_mark(unresolved_mark),
       render_mode,
-      context_require: RuntimeGlobalsRenderMode::RspackContext
-        .render_runtime_globals(&RuntimeGlobals::REQUIRE),
       runtime_requirements: RuntimeGlobals::default(),
       rendered_names: FxHashSet::default(),
       original_ids: FxHashSet::default(),
@@ -107,7 +102,6 @@ struct RuntimeModuleVisitor {
   source_start: u32,
   unresolved: SyntaxContext,
   render_mode: RuntimeGlobalsRenderMode,
-  context_require: String,
   runtime_requirements: RuntimeGlobals,
   rendered_names: FxHashSet<Atom>,
   original_ids: FxHashSet<Id>,
@@ -191,12 +185,6 @@ impl RuntimeModuleVisitor {
     }
   }
 
-  fn is_context_require(&self, property: &str) -> bool {
-    let context =
-      RuntimeGlobalsRenderMode::RspackContext.render_runtime_variable(&RuntimeVariable::Context);
-    format!("{context}{}", property_access([property], 0)) == self.context_require
-  }
-
   fn runtime_member(&self, member: &MemberExpr) -> Option<bool> {
     match member.obj.as_ref() {
       Expr::Ident(ident) => match self.ident_global(ident)? {
@@ -214,8 +202,6 @@ impl RuntimeModuleVisitor {
     let property = static_property(&member.prop)?;
     if legacy {
       RuntimeGlobals::from_require_property_name(&property)
-    } else if self.is_context_require(&property) {
-      Some(RuntimeGlobals::REQUIRE)
     } else {
       RuntimeGlobals::from_rspack_context_property_name(&property)
     }
