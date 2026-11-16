@@ -488,65 +488,37 @@ fn static_require_member_chain(
   if for_name == API_REQUIRE
     && let Some(property) = members.first()
   {
-    if let Some(runtime_global) =
-      RuntimeGlobals::from_rspack_context_property_name(property.as_ref())
-    {
-      let dep_span = if members.len() > 1 {
-        member_ranges
-          .and_then(|ranges| ranges.get(1))
-          .map_or(expr_span, |range| Span::new(expr_span.start, range.end))
-      } else {
-        expr_span
-      };
-      let dep = if let Some(expr) = assignment {
-        let ast = parser.ast.ast;
-        if members.len() == 1 {
-          if parser.parser_runtime_requirements.render_mode
-            == RuntimeGlobalsRenderMode::RspackExport
-            && !is_writable_string_runtime_global(runtime_global)
-          {
-            return None;
-          }
-          runtime_requirements_write_assignment(
-            parser.parser_runtime_requirements.render_mode,
-            dep_span,
-            expr.right(ast).span(ast),
-            expr.span(ast),
-            expr.operator(ast),
-            runtime_global,
-          )?
-        } else if parser.parser_runtime_requirements.render_mode
-          == RuntimeGlobalsRenderMode::RspackExport
-        {
-          RuntimeRequirementsDependency::new(dep_span.into(), runtime_global)
-        } else {
-          RuntimeRequirementsDependency::write(dep_span.into(), runtime_global)
-        }
-      } else {
-        RuntimeRequirementsDependency::new(dep_span.into(), runtime_global)
-      };
-      parser.add_presentational_dependency(Arc::new(dep));
+    // Let the normal identifier visitor render the loader for custom properties.
+    let runtime_global = RuntimeGlobals::from_require_property_name(property.as_ref())?;
+    let dep_span = if members.len() > 1 {
+      member_ranges
+        .and_then(|ranges| ranges.get(1))
+        .map_or(expr_span, |range| Span::new(expr_span.start, range.end))
     } else {
-      let require_scope: &str = if parser.parser_runtime_requirements.render_mode
+      expr_span
+    };
+    let dep = if let Some(expr) = assignment {
+      let ast = parser.ast.ast;
+      if members.len() == 1 {
+        runtime_requirements_write_assignment(
+          parser.parser_runtime_requirements.render_mode,
+          dep_span,
+          expr.right(ast).span(ast),
+          expr.span(ast),
+          expr.operator(ast),
+          runtime_global,
+        )?
+      } else if parser.parser_runtime_requirements.render_mode
         == RuntimeGlobalsRenderMode::RspackExport
       {
-        parser.parser_runtime_requirements.require.as_ref()
+        RuntimeRequirementsDependency::new(dep_span.into(), runtime_global)
       } else {
-        parser.parser_runtime_requirements.context
-      };
-      let content = format!(
-        "{}{}",
-        require_scope,
-        property_access(members.iter().map(Atom::as_ref), 0)
-      );
-      parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
-        RuntimeGlobals::REQUIRE_SCOPE,
-      )));
-      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-        expr_span.into(),
-        content.into(),
-      )));
-    }
+        RuntimeRequirementsDependency::write(dep_span.into(), runtime_global)
+      }
+    } else {
+      RuntimeRequirementsDependency::new(dep_span.into(), runtime_global)
+    };
+    parser.add_presentational_dependency(Arc::new(dep));
     return Some(true);
   }
 
@@ -792,13 +764,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
       return None;
     }
-    let preserve_require_receiver =
-      parser.parser_runtime_requirements.render_mode == RuntimeGlobalsRenderMode::RspackExport
-        && for_name == API_REQUIRE
-        && members.len() == 1
-        && members.first().and_then(|property| {
-          RuntimeGlobals::from_rspack_context_property_name(property.as_ref())
-        }) == Some(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+    let preserve_require_receiver = parser.parser_runtime_requirements.render_mode
+      == RuntimeGlobalsRenderMode::RspackExport
+      && for_name == API_REQUIRE
+      && members.len() == 1
+      && members
+        .first()
+        .and_then(|property| RuntimeGlobals::from_require_property_name(property.as_ref()))
+        == Some(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
     let ast = parser.ast.ast;
     let callee = expr.callee(ast);
     let handled = static_require_member_chain(

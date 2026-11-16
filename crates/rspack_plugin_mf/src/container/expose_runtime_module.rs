@@ -1,11 +1,10 @@
 use rspack_core::{
-  ChunkGraph, ChunkUkey, Compilation, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, SourceType,
-  impl_runtime_module,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeModuleStage, RuntimeTemplate, SourceType, impl_runtime_module,
 };
 
 use super::container_entry_module::CodeGenerationDataExpose;
-use crate::utils::{json_stringify, module_require_scope_name, runtime_require_scope_requirement};
+use crate::utils::{federation_require_requirement, json_stringify};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -63,7 +62,7 @@ impl RuntimeModule for ExposeRuntimeModule {
     &self,
     compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
-    let mut dependencies = runtime_require_scope_requirement(compilation);
+    let mut dependencies = federation_require_requirement(compilation);
     if let Some(chunk_ukey) = self.chunk()
       && let Some(data) = self.find_expose_data(&chunk_ukey, compilation)
     {
@@ -92,7 +91,9 @@ impl RuntimeModule for ExposeRuntimeModule {
     };
     let mut runtime_template = compilation.runtime_template.create_module_code_template();
     let module_map = data.module_map.render(&mut runtime_template);
-    let require_name = module_require_scope_name(compilation, &mut runtime_template);
+    let require_name = context
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::REQUIRE);
     let mut source = format!(
       r#"
     {require_name}.initializeExposesData = {{
@@ -103,29 +104,10 @@ impl RuntimeModule for ExposeRuntimeModule {
       module_map,
       json_stringify(&data.share_scope)
     );
-    if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackContext
-      && ChunkGraph::get_tree_runtime_requirements(compilation, &chunk_ukey)
-        .contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
-    {
-      // Intercepted factories inherit the runtime context. Installing a container handler
-      // from the federation entry must update the handler read by the container entry.
+    for key in ["getContainer", "initContainer"] {
       source += &format!(
-        r#"
-["getContainer", "initContainer"].forEach(function(key) {{
-  var handler = {require_name}[key] || function() {{ throw new Error("should have {require_name}." + key); }};
-  Object.defineProperty({require_name}, key, {{
-    configurable: true, enumerable: true,
-    get: function() {{ return handler; }},
-    set: function(value) {{ handler = value; }}
-  }});
-}});"#
+        "{require_name}.{key} = {require_name}.{key} || function() {{ throw new Error(\"should have {require_name}.{key}\") }};",
       );
-    } else {
-      for key in ["getContainer", "initContainer"] {
-        source += &format!(
-          "{require_name}.{key} = {require_name}.{key} || function() {{ throw new Error(\"should have {require_name}.{key}\") }};",
-        );
-      }
     }
     Ok(source)
   }

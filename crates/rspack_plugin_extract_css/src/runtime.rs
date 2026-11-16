@@ -2,10 +2,9 @@ use std::sync::LazyLock;
 
 use itertools::Itertools;
 use rspack_core::{
-  BooleanMatcher, ChunkUkey, Compilation, RuntimeCodeTemplate, RuntimeGlobals,
-  RuntimeGlobalsRenderMode, RuntimeModule, RuntimeModuleGenerateContext,
-  RuntimeModuleRuntimeRequirements, RuntimeModuleStage, RuntimeTemplate,
-  chunk_graph_chunk::ChunkIdSet, compile_boolean_matcher, impl_runtime_module,
+  BooleanMatcher, ChunkUkey, Compilation, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements, RuntimeModuleStage,
+  RuntimeTemplate, chunk_graph_chunk::ChunkIdSet, compile_boolean_matcher, impl_runtime_module,
 };
 use rspack_error::Result;
 use rspack_plugin_runtime::{
@@ -15,14 +14,13 @@ use rspack_plugin_runtime::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::plugin::{InsertType, MINI_CSS_CHUNK_FILENAME_EXPORT_GLOBAL, SOURCE_TYPE};
+use crate::plugin::{InsertType, SOURCE_TYPE};
 
-fn render_mini_css_chunk_filename(runtime_template: &RuntimeCodeTemplate) -> String {
-  if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport {
-    MINI_CSS_CHUNK_FILENAME_EXPORT_GLOBAL.to_string()
-  } else {
-    format!("{}.miniCssF", runtime_template.render_runtime_argument())
-  }
+pub(crate) fn render_mini_css_chunk_filename(runtime_template: &RuntimeCodeTemplate) -> String {
+  format!(
+    "{}.miniCssF",
+    runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+  )
 }
 
 static CSS_LOADING_TEMPLATE: &str = include_str!("./runtime/css_loading.ejs");
@@ -40,7 +38,7 @@ static CSS_LOADING_WITH_PRELOAD_TEMPLATE: &str =
 static CSS_LOADING_WITH_PRELOAD_LINK_TEMPLATE: &str =
   include_str!("./runtime/css_loading_with_preload_link.ejs");
 static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| {
-  let mut variables = extract_runtime_module_variables_from_ejs(&[
+  extract_runtime_module_variables_from_ejs(&[
     CSS_LOADING_TEMPLATE,
     CSS_LOADING_CREATE_LINK_TEMPLATE,
     CSS_LOADING_WITH_HMR_TEMPLATE,
@@ -49,9 +47,7 @@ static RUNTIME_MODULE_VARIABLES: LazyLock<Vec<&'static str>> = LazyLock::new(|| 
     CSS_LOADING_WITH_PREFETCH_LINK_TEMPLATE,
     CSS_LOADING_WITH_PRELOAD_TEMPLATE,
     CSS_LOADING_WITH_PRELOAD_LINK_TEMPLATE,
-  ]);
-  variables.push(MINI_CSS_CHUNK_FILENAME_EXPORT_GLOBAL);
-  variables
+  ])
 });
 
 static CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =

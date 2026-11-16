@@ -605,11 +605,16 @@ impl RuntimeGlobals {
     RUNTIME_GLOBAL_MAP.2.get(property_name).copied()
   }
 
+  pub fn from_require_property_name(property_name: &str) -> Option<Self> {
+    Self::from_property_name(property_name)
+      .filter(|global| *global != Self::REQUIRE_SCOPE && REQUIRE_SCOPE_GLOBALS.contains(*global))
+  }
+
   pub fn from_rspack_context_property_name(property_name: &str) -> Option<Self> {
     if property_name == "N" {
       return Some(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
     }
-    let runtime_global = Self::from_property_name(property_name)?;
+    let runtime_global = Self::from_require_property_name(property_name)?;
     (runtime_global != RuntimeGlobals::MAKE_NAMESPACE_OBJECT).then_some(runtime_global)
   }
 

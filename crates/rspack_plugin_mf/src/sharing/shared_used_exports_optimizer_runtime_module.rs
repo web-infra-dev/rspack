@@ -2,13 +2,13 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use async_trait::async_trait;
 use rspack_core::{
-  Compilation, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
-  impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage,
+  RuntimeTemplate, impl_runtime_module,
 };
 use rspack_error::{Result, error};
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::utils::{runtime_require_scope_name, runtime_require_scope_requirement};
+use crate::utils::federation_require_requirement;
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -49,7 +49,7 @@ impl RuntimeModule for SharedUsedExportsOptimizerRuntimeModule {
     compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      dependencies: { runtime_require_scope_requirement(compilation) },
+      dependencies: { federation_require_requirement(compilation) },
       ..Default::default()
     }
   }
@@ -60,7 +60,9 @@ impl RuntimeModule for SharedUsedExportsOptimizerRuntimeModule {
     }
     let federation_global = format!(
       "{}.federation",
-      runtime_require_scope_name(context.runtime_template)
+      context
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
     );
     // Convert set to vec for JSON serialization stability
     let stable_map: BTreeMap<String, Vec<String>> = self

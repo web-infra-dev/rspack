@@ -24,7 +24,7 @@ use super::{
 };
 use crate::{
   ShareScope,
-  utils::{json_stringify, module_identifier_namespace, module_require_scope_name},
+  utils::{json_stringify, module_identifier_namespace},
 };
 
 #[impl_source_map_config]
@@ -253,8 +253,7 @@ impl Module for ContainerEntryModule {
     } = code_generation_context;
 
     let mut code_generation_result = CodeGenerationResultBuilder::default();
-    let require_name = module_require_scope_name(compilation, runtime_template);
-    let runtime_argument = require_name.clone();
+    let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
 
     if self.dependency_type == DependencyType::ShareContainerEntry {
       let mut factory = String::new();
@@ -273,6 +272,16 @@ impl Module for ContainerEntryModule {
 
       let federation_global = format!("{require_name}.federation");
 
+      let runtime_argument = match runtime_template.render_mode() {
+        RuntimeGlobalsRenderMode::Webpack => require_name.clone(),
+        RuntimeGlobalsRenderMode::RspackExport => {
+          format!("{require_name}.mfRuntimeRequire()")
+        }
+        _ => format!(
+          "{require_name}.mfRuntimeRequire({})",
+          runtime_template.render_runtime_scope()
+        ),
+      };
       // Generate installInitialConsumes function using returning_function
       let install_initial_consumes_call = format!(
         r#"localBundlerRuntime.installInitialConsumes({{

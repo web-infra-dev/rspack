@@ -80,10 +80,7 @@ pub use sharing::{
 mod utils {
   use std::fmt;
 
-  use rspack_core::{
-    Compilation, ModuleCodeTemplate, RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode,
-    RuntimeVariable, runtime_mode::RuntimeMode,
-  };
+  use rspack_core::{Compilation, RuntimeGlobals, runtime_mode::RuntimeMode};
   use serde::Serialize;
 
   pub fn json_stringify<T: ?Sized + Serialize + fmt::Debug>(v: &T) -> String {
@@ -97,35 +94,11 @@ mod utils {
     }
   }
 
-  pub fn runtime_require_scope_name(runtime_template: &RuntimeCodeTemplate) -> String {
-    runtime_template.render_runtime_argument()
-  }
-
-  pub fn runtime_require_scope_requirement(compilation: &Compilation) -> RuntimeGlobals {
+  pub fn federation_require_requirement(compilation: &Compilation) -> RuntimeGlobals {
     if compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
-      RuntimeGlobals::REQUIRE_SCOPE
+      RuntimeGlobals::REQUIRE
     } else {
       RuntimeGlobals::default()
-    }
-  }
-
-  pub fn module_require_scope_name(
-    compilation: &Compilation,
-    runtime_template: &mut ModuleCodeTemplate,
-  ) -> String {
-    if compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
-      runtime_template
-        .runtime_requirements_mut()
-        .insert(RuntimeGlobals::REQUIRE_SCOPE);
-      if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport {
-        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-      } else {
-        runtime_template
-          .render_runtime_variable(&RuntimeVariable::Context)
-          .to_string()
-      }
-    } else {
-      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
     }
   }
 }

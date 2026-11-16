@@ -33,7 +33,7 @@ use ustr::Ustr;
 use crate::{
   css_module::{CssModule, CssModuleFactory},
   parser_plugin::PluginCssExtractParserPlugin,
-  runtime::CssLoadingRuntimeModule,
+  runtime::{CssLoadingRuntimeModule, render_mini_css_chunk_filename},
 };
 pub static PLUGIN_NAME: &str = "css-extract-rspack-plugin";
 
@@ -50,8 +50,6 @@ pub static BASE_URI: &str = "rspack-css-extract://";
 pub static ABSOLUTE_PUBLIC_PATH: &str = "rspack-css-extract:///css-extract-plugin/";
 pub static AUTO_PUBLIC_PATH: &str = "__css_extract_public_path_auto__";
 pub static SINGLE_DOT_PATH_SEGMENT: &str = "__css_extract_single_dot_path_segment__";
-pub(crate) const MINI_CSS_CHUNK_FILENAME_EXPORT_GLOBAL: &str =
-  "__rspack_get_mini_css_chunk_filename";
 
 static ABSOLUTE_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
   LazyLock::new(|| PlaceholderFinder::new(ABSOLUTE_PUBLIC_PATH));
@@ -571,8 +569,13 @@ async fn runtime_requirement_in_tree(
       || self.options.chunk_filename.has_full_hash_digest();
     let filename = self.options.filename.clone();
     let chunk_filename = self.options.chunk_filename.clone();
-    let runtime_template = compilation.runtime_template.create_chunk_code_template();
-    let global = format!("{}.miniCssF", runtime_template.render_runtime_argument());
+    let runtime_template = compilation
+      .runtime_template
+      .create_runtime_module_code_template();
+    let global = render_mini_css_chunk_filename(&runtime_template);
+    if !runtime_template.render_mode().is_legacy() {
+      runtime_requirements_mut.insert(RuntimeGlobals::REQUIRE);
+    }
 
     runtime_modules_to_add.push((
       *chunk_ukey,
@@ -600,8 +603,7 @@ async fn runtime_requirement_in_tree(
           },
           *chunk_ukey,
         )
-        .with_full_hash(full_hash)
-        .with_rspack_export_global(MINI_CSS_CHUNK_FILENAME_EXPORT_GLOBAL),
+        .with_full_hash(full_hash),
       ),
     ));
 

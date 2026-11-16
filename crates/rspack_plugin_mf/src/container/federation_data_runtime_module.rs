@@ -4,16 +4,19 @@
 //! Generates federation configuration including chunk matchers and root output directory
 //! that federation runtime needs to operate correctly.
 
+use std::fmt::Write;
+
 use async_trait::async_trait;
 use rspack_core::{
-  BooleanMatcher, Chunk, Compilation, PathData, RuntimeCodeTemplate, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, SourceType,
-  compile_boolean_matcher, get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
+  BooleanMatcher, Chunk, ChunkGraph, ChunkUkey, Compilation, PathData, RuntimeCodeTemplate,
+  RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeModuleStage, RuntimeTemplate, RuntimeVariable, SourceType, compile_boolean_matcher,
+  get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
 };
 use rspack_error::Result;
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
-use crate::utils::{runtime_require_scope_name, runtime_require_scope_requirement};
+use crate::utils::{federation_require_requirement, json_stringify};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -48,7 +51,7 @@ impl RuntimeModule for FederationDataRuntimeModule {
     compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      dependencies: { runtime_require_scope_requirement(compilation) },
+      dependencies: { federation_require_requirement(compilation) },
       ..Default::default()
     }
   }
@@ -61,7 +64,7 @@ pub async fn federation_runtime_template(
 ) -> String {
   let federation_global = format!(
     "{}.federation",
-    runtime_require_scope_name(runtime_template)
+    runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
   );
 
   let condition_map = compilation
@@ -122,6 +125,7 @@ chunkMatcher: function(chunkId) {{
 "#
   );
 
+  let adapter = render_federation_require_factory(compilation, chunk.ukey(), runtime_template);
   format!(
     r#"
 if(!{federation_global}){{
@@ -129,6 +133,68 @@ if(!{federation_global}){{
         {chunk_matcher}{root_output_dir_str}
     }};
 }}
-"#
+{adapter}"#
+  )
+}
+
+/// Only the loader passed to an external federation runtime needs a webpack-style
+/// view of built-in helpers. Private fields stay on the per-module loader.
+pub fn render_federation_require_factory(
+  compilation: &Compilation,
+  chunk: ChunkUkey,
+  template: &RuntimeCodeTemplate,
+) -> String {
+  if template.render_mode().is_legacy() {
+    return String::new();
+  }
+  let loader = template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+  let mut fields = Vec::new();
+  let mut accessors = String::new();
+  let esm_globals = (template.render_mode() == RuntimeGlobalsRenderMode::RspackExport)
+    .then(|| ChunkGraph::get_tree_runtime_requirements(compilation, &chunk));
+  for (_, global) in RuntimeGlobals::all().iter_names() {
+    let Some(key) = global.property_name() else {
+      continue;
+    };
+    if RuntimeGlobals::from_require_property_name(key) != Some(global) {
+      continue;
+    }
+    let field = global
+      .rspack_context_property_name()
+      .expect("require property");
+    fields.push((key, field));
+    if esm_globals.is_some_and(|globals| globals.contains(global)) {
+      let binding = template.render_runtime_globals(&global);
+      write!(
+        accessors,
+        "get {field}() {{ return {binding}; }}, set {field}(v) {{ {binding} = v; }},"
+      )
+      .expect("write to string");
+    }
+  }
+  let scope = if esm_globals.is_some() {
+    format!("{{ __proto__: null, {accessors} }}")
+  } else {
+    template.render_runtime_variable(&RuntimeVariable::Context)
+  };
+  format!(
+    r#"
+{loader}.mfRuntimeRequire = function(scope) {{
+scope = scope || {scope};
+var fields = new Map({});
+return new Proxy(this, {{
+  get(target, key) {{
+    var field = fields.get(key);
+    return field === undefined ? target[key] : scope[field];
+  }},
+  set(target, key, value) {{
+    var field = fields.get(key);
+    if (field === undefined) target[key] = value;
+    else scope[field] = value;
+    return true;
+  }}
+}});
+}};"#,
+    json_stringify(&fields)
   )
 }

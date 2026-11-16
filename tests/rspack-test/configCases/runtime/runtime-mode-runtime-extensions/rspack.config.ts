@@ -60,6 +60,10 @@ export default [false, true].map((esm, index) =>
         __webpack_require__ = guardedRequire;
         ${RuntimeGlobals.require}.extension = {
           guardedRequire: guardedRequire,
+          readField: function(key) { return __webpack_require__[key]; },
+          writeField: function(key, value) { __webpack_require__[key] = value; },
+          readContextField: function(key) { return __rspack_context[key]; },
+          loaderMethods: [__webpack_require__.call, __webpack_require__['apply'], __webpack_require__.bind],
           shared: extensionSharedValue,
           namespace: namespace.__esModule && secondNamespace.__esModule,
           shadowed: shadowed,

@@ -12,10 +12,7 @@ use rspack_plugin_runtime::{
 use rspack_util::json_stringify_str;
 
 use super::consume_shared_plugin::ConsumeVersion;
-use crate::{
-  ShareScope,
-  utils::{json_stringify, runtime_require_scope_name, runtime_require_scope_requirement},
-};
+use crate::{ShareScope, utils::json_stringify};
 
 static CONSUMES_COMMON_TEMPLATE: &str = include_str!("./consumesCommon.ejs");
 static CONSUMES_INITIAL_TEMPLATE: &str = include_str!("./consumesInitial.ejs");
@@ -68,15 +65,11 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
 
   fn runtime_requirements(
     &self,
-    compilation: &Compilation,
+    _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
-    let mut requirements = *CONSUMES_RUNTIME_REQUIREMENTS
+    *CONSUMES_RUNTIME_REQUIREMENTS
       | *CONSUMES_INITIAL_RUNTIME_REQUIREMENTS
-      | *CONSUMES_LOADING_RUNTIME_REQUIREMENTS;
-    requirements
-      .dependencies
-      .insert(runtime_require_scope_requirement(compilation));
-    requirements
+      | *CONSUMES_LOADING_RUNTIME_REQUIREMENTS
   }
 
   fn stage(&self) -> RuntimeModuleStage {
@@ -226,7 +219,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     } else {
       json_stringify(&initial_consumes)
     };
-    let require_name = runtime_require_scope_name(runtime_template);
+    let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
     let mut source = format!(
       r#"
 {require_name}.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToConsumeDataMapping: {module_id_to_consume_data_mapping}, initialConsumes: {initial_consumes_json} }};

@@ -1,6 +1,26 @@
 it("keeps runtime extension globals writable and preserves runtime scope", async () => {
   const extension = __webpack_require__.extension;
   expect(__webpack_require__).toBe(extension.guardedRequire);
+  expect(extension.guardedRequire.extension).toBe(extension);
+  expect(extension.readField("extension")).toBe(extension);
+  expect(extension.readField("bufferValue")).toBe(3);
+  const key = ["plugin", "Value"].join("");
+  extension.writeField(key, 42);
+  const fromLoader = require("!!./require-properties-loader.cjs!./async.js");
+  expect(fromLoader.read()).toBe(42);
+  fromLoader.increment(key);
+  expect(extension.guardedRequire.pluginValue).toBe(43);
+  if (!ESM_OUTPUT) expect(extension.readContextField(key)).toBeUndefined();
+  expect(extension.loaderMethods).toEqual([
+    __webpack_require__.call, __webpack_require__.apply, __webpack_require__.bind,
+  ]);
+  const namespace = {};
+  __webpack_require__.r(namespace);
+  expect(namespace.__esModule).toBe(true);
+  expect(__webpack_require__.p).toBe(extension.getPath());
+  // module.id is a runtime global, but id is not a built-in property of require.
+  __webpack_require__.id = 42;
+  expect(extension.guardedRequire.id).toBe(42);
   expect(extension.shared).toBe(42);
   expect(extension.namespace).toBe(true);
   expect(extension.shadowed).toBe("local-context");
@@ -45,4 +65,6 @@ it("keeps runtime extension globals writable and preserves runtime scope", async
   const replacement = chunkId => extension.ensure(chunkId);
   extension.replaceEnsure(replacement);
   expect(__webpack_require__.e).toBe(replacement);
+  __webpack_require__.e = extension.ensure;
+  expect(__webpack_require__.e).toBe(extension.ensure);
 });

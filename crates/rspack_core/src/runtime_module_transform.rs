@@ -213,7 +213,7 @@ impl RuntimeModuleVisitor {
     let legacy = self.runtime_member(member)?;
     let property = static_property(&member.prop)?;
     if legacy {
-      RuntimeGlobals::from_property_name(&property)
+      RuntimeGlobals::from_require_property_name(&property)
     } else if self.is_context_require(&property) {
       Some(RuntimeGlobals::REQUIRE)
     } else {
@@ -270,12 +270,7 @@ impl Visit for RuntimeModuleVisitor {
       member.visit_children_with(self);
       return;
     };
-    let property = static_property(&member.prop);
-    let global = if legacy
-      && property
-        .as_deref()
-        .is_none_or(|property| matches!(property, "call" | "apply" | "bind"))
-    {
+    let global = if legacy {
       RuntimeGlobals::REQUIRE
     } else {
       RuntimeGlobals::REQUIRE_SCOPE

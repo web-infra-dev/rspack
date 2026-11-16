@@ -591,7 +591,7 @@ impl RstestParserPlugin {
     } else {
       parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
         range,
-        RuntimeGlobals::REQUIRE_SCOPE,
+        RuntimeGlobals::REQUIRE,
       )));
       format!(".{name}")
     };
