@@ -193,8 +193,7 @@ const SIMPLE_PRINTERS: Record<
       let chunkGroups = Object.values(namedChunkGroups);
       if (entrypoints) {
         chunkGroups = chunkGroups.filter(
-          (group) =>
-            !Object.prototype.hasOwnProperty.call(entrypoints, group.name),
+          (group) => !Object.hasOwn(entrypoints, group.name),
         );
       }
       return printer.print(context.type, chunkGroups, {
