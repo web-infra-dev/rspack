@@ -3,8 +3,8 @@ use rspack_util::fx_hash::FxLinkedHashMap;
 use super::{
   Alias, AliasFields, ByDependency, ConditionNames, DependencyCategoryStr, DescriptionFiles,
   EnforceExtension, ExportsFields, ExtensionAlias, Extensions, Fallback, FullySpecified,
-  ImportsFields, MainFields, MainFiles, Modules, PreferAbsolute, PreferRelative, Resolve,
-  Restrictions, Roots, Symlink, TsconfigOptions,
+  ImportsFields, MainFields, MainFiles, Modules, PackageMap, PreferAbsolute, PreferRelative,
+  Resolve, Restrictions, Roots, Symlink, TsconfigOptions,
   value_type::{GetValueType, ValueType},
 };
 
@@ -39,6 +39,7 @@ fn is_empty(resolve: &Resolve) -> bool {
     && is_none!(restrictions)
     && is_none!(roots)
     && is_none!(tsconfig)
+    && is_none!(package_map)
     && is_none!(by_dependency)
 }
 
@@ -71,6 +72,7 @@ struct ResolveWithEntry {
   restrictions: Entry<Restrictions>,
   roots: Entry<Roots>,
   pnp: Entry<bool>,
+  package_map: Entry<PackageMap>,
 }
 
 fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
@@ -104,6 +106,7 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
     restrictions: entry!(restrictions),
     roots: entry!(roots),
     pnp: entry!(pnp),
+    package_map: entry!(package_map),
   };
   let Some(by_dependency) = resolve.by_dependency else {
     return res;
@@ -162,6 +165,7 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
   update_by_value!(restrictions, |i: Option<&_>| i.is_some());
   update_by_value!(roots, |i: Option<&_>| i.is_some());
   update_by_value!(tsconfig, |i: Option<&_>| i.is_some());
+  update_by_value!(package_map, |i: Option<&_>| i.is_some());
 
   res
 }
@@ -356,6 +360,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
       |_, b| b
     ),
     tsconfig: merge!(tsconfig, ValueType::Other, |_| false, |_, b| b),
+    package_map: merge!(package_map, ValueType::Other, |_| false, |_, b| b),
     extension_alias: merge!(extension_alias, ValueType::Other, |_| false, |a, b| {
       extend_extension_alias(a, b)
     }),
@@ -388,6 +393,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   setup_by_values!(main_fields);
   setup_by_values!(condition_names);
   setup_by_values!(tsconfig);
+  setup_by_values!(package_map);
   setup_by_values!(modules);
   setup_by_values!(fallback);
   setup_by_values!(fully_specified);
@@ -421,6 +427,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   to_resolve!(main_fields);
   to_resolve!(condition_names);
   to_resolve!(tsconfig);
+  to_resolve!(package_map);
   to_resolve!(modules);
   to_resolve!(fallback);
   to_resolve!(fully_specified);
@@ -462,6 +469,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
     restrictions: result_entry.restrictions.base,
     roots: result_entry.roots.base,
     pnp: result_entry.pnp.base,
+    package_map: result_entry.package_map.base,
     builtin_modules: false,
   }
 }

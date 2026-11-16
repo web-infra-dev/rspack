@@ -99,6 +99,42 @@ pub enum ResolveError {
   /// Occurs when alias paths reference each other.
   #[error("Recursion in resolving")]
   Recursion,
+
+  /// The importing path is within multiple packages of a [package map](https://nodejs.org/api/packages.html#package-maps).
+  #[error(
+    "Cannot resolve {specifier:?} from {parent_path:?}: path is within multiple packages defined in {package_map_path:?}"
+  )]
+  PackageMapAmbiguousResolution {
+    specifier: String,
+    parent_path: PathBuf,
+    package_map_path: PathBuf,
+  },
+
+  /// The importing path is not within any package of a [package map](https://nodejs.org/api/packages.html#package-maps).
+  #[error(
+    "Cannot resolve {specifier:?} from {parent_path:?}: path is not within any package defined in {package_map_path:?}"
+  )]
+  PackageMapExternalFile {
+    specifier: String,
+    parent_path: PathBuf,
+    package_map_path: PathBuf,
+  },
+
+  /// The [package map](https://nodejs.org/api/packages.html#package-maps) cannot be read or does not follow the configuration file format.
+  #[error("Invalid package map {package_map_path:?}: {reason}")]
+  PackageMapInvalid {
+    package_map_path: PathBuf,
+    reason: String,
+  },
+
+  /// A dependency references a package ID that is absent from the [package map](https://nodejs.org/api/packages.html#package-maps).
+  #[error(
+    "Package ID {package_id:?} is referenced in \"dependencies\" but not defined in {package_map_path:?}"
+  )]
+  PackageMapKeyNotFound {
+    package_id: String,
+    package_map_path: PathBuf,
+  },
 }
 
 impl ResolveError {

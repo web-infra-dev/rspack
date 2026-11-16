@@ -226,6 +226,7 @@ impl ResolverFactory {
       symlinks: op.symlinks.unwrap_or(default.symlinks),
       builtin_modules: op.builtin_modules.unwrap_or(default.builtin_modules),
       enable_pnp: op.enable_pnp.unwrap_or_default(),
+      package_map: op.package_map.map(PathBuf::from),
       node_path: false,
     }
   }

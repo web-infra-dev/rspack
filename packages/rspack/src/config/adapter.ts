@@ -287,6 +287,11 @@ export function getRawResolve(resolve: Resolve): RawOptions['resolve'] {
       string[]
     >,
     tsconfig: getRawTsConfig(resolve.tsConfig),
+    // WASI's cwd can differ from the JavaScript host's working directory.
+    packageMap:
+      typeof resolve.packageMap === 'string'
+        ? path.resolve(resolve.packageMap)
+        : resolve.packageMap,
     byDependency: getRawResolveByDependency(resolve.byDependency),
   };
 }

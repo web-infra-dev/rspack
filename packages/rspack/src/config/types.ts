@@ -857,6 +857,13 @@ export type ResolveOptions = {
   byDependency?: Record<string, ResolveOptions>;
   /** enable Yarn PnP */
   pnp?: boolean;
+
+  /**
+   * Path to a [Node.js package map](https://nodejs.org/api/packages.html#package-maps), which is used to locate packages instead of the `node_modules` hierarchy.
+   * Set to `false` to ignore the package map that Node.js was started with.
+   * @default the path passed to Node.js through `--experimental-package-map`
+   */
+  packageMap?: string | false;
 };
 
 /** Used to configure the Rspack module resolution */

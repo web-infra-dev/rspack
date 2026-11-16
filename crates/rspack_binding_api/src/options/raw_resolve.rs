@@ -1,8 +1,8 @@
 use napi::Either;
 use napi_derive::napi;
 use rspack_core::{
-  Alias, AliasMap, ByDependency, DependencyCategory, Resolve, ResolveOptionsWithDependencyType,
-  Restriction, TsconfigOptions, TsconfigReferences,
+  Alias, AliasMap, ByDependency, DependencyCategory, PackageMap, Resolve,
+  ResolveOptionsWithDependencyType, Restriction, TsconfigOptions, TsconfigReferences,
 };
 use rspack_error::error;
 use rspack_regex::RspackRegex;
@@ -56,6 +56,18 @@ pub struct RawResolveOptions {
   pub restrictions: Option<Vec<Either<String, RspackRegex>>>,
   pub roots: Option<Vec<String>>,
   pub pnp: Option<bool>,
+  #[napi(ts_type = "string | false")]
+  pub package_map: Option<Either<String, bool>>,
+}
+
+fn normalize_package_map(package_map: Option<Either<String, bool>>) -> Option<PackageMap> {
+  package_map.map(|package_map| match package_map {
+    Either::A(path) => PackageMap::Path(path.into()),
+    Either::B(falsy) => {
+      assert!(!falsy, "Package map should not be true");
+      PackageMap::Disabled
+    }
+  })
 }
 
 fn normalize_alias(
@@ -105,6 +117,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
 
   fn try_from(value: RawResolveOptions) -> Result<Self, Self::Error> {
     let pnp = value.pnp;
+    let package_map = normalize_package_map(value.package_map);
     let prefer_relative = value.prefer_relative;
     let prefer_absolute = value.prefer_absolute;
     let extensions = value.extensions;
@@ -174,6 +187,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
       description_files,
       imports_fields,
       pnp,
+      package_map,
       builtin_modules: false,
     })
   }
@@ -237,6 +251,8 @@ pub struct RawResolveOptionsWithDependencyType {
   pub dependency_type: Option<String>,
   pub resolve_to_context: Option<bool>,
   pub pnp: Option<bool>,
+  #[napi(ts_type = "string | false")]
+  pub package_map: Option<Either<String, bool>>,
 }
 
 pub fn normalize_raw_resolve_options_with_dependency_type(
@@ -294,6 +310,7 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         condition_names: raw.condition_names,
         tsconfig,
         pnp: raw.pnp,
+        package_map: normalize_package_map(raw.package_map),
         modules: raw.modules,
         fallback: normalize_alias(raw.fallback)?,
         fully_specified: raw.fully_specified,

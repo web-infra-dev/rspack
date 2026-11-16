@@ -683,6 +683,40 @@ export default {
 
 显式设置 `resolve.modules` 会替换默认数组。如果仍需正常解析第三方依赖，应在数组中保留 `'node_modules'`。
 
+## resolve.packageMap
+
+- **类型：** `string | false`
+- **默认值：** 通过 `--experimental-package-map` 传递给 Node.js 的路径
+
+[Node.js package map](https://nodejs.org/api/packages.html#package-maps) 文件的路径。设置后，Rspack 会通过 package map 定位 package，而不再查找 `node_modules` 目录。
+
+package map 是一个 JSON 文件，其中列出了每个 package 的位置以及它可以引用的 package。包管理器可以生成该文件，例如通过 [pnpm](https://pnpm.io/settings#nodeexperimentalpackagemap) 或 [Yarn](https://yarnpkg.com/configuration/yarnrc#nodeExperimentalPackageMap) 的 `nodeExperimentalPackageMap` 设置。
+
+默认情况下，Rspack 使用与 Node.js 相同的 package map。当 Node.js 通过命令行或 `NODE_OPTIONS` 中的 `--experimental-package-map` 启动时，无需任何配置：
+
+```bash
+NODE_OPTIONS="--experimental-package-map=./node_modules/.package-map.json" rspack build
+```
+
+设置为路径可以使用指定的 package map，设置为 `false` 可以忽略 Node.js 的 package map：
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    packageMap: './node_modules/.package-map.json',
+  },
+};
+```
+
+相对路径会基于当前工作目录解析。
+
+使用 package map 时：
+
+- 只有当引用方文件所在的 package 在 package map 的 `dependencies` 中声明了 `lodash` 时，`lodash` 或 `lodash/merge` 这样的 package 请求才能被解析。其余的解析过程（如 `exports`、`resolve.mainFields` 和 `resolve.extensions`）会在该 package 的位置继续进行。
+- 如果引用方文件不在 package map 的任何 package 中，package 请求会解析失败。如果该文件所在的位置由 package map 中的多个 package 共享，解析同样会失败。
+- package map 会取代 [`resolve.modules`](#resolvemodules) 中的 `'node_modules'` 项。`resolve.modules` 中的其他目录仍会被查找，[`resolve.pnp`](#resolvepnp) 会被忽略。
+- 相对路径和绝对路径请求、[`resolve.alias`](#resolvealias)、[`resolve.fallback`](#resolvefallback) 和 [`resolve.tsConfig`](#resolvetsconfig) 照常生效。
+
 ## resolve.pnp
 
 - **类型:** `boolean`

@@ -17,8 +17,8 @@ use rustc_hash::FxHasher;
 
 use super::{ResolveResult, Resource, boxfs::BoxFS};
 use crate::{
-  Alias, AliasMap, DependencyCategory, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
-  ResolverCache,
+  Alias, AliasMap, DependencyCategory, PackageMap, Resolve, ResolveArgs,
+  ResolveOptionsWithDependencyType, ResolverCache,
 };
 
 /// Cloning returns independent dependency collections to each cache caller while sharing paths.
@@ -400,6 +400,10 @@ fn to_rspack_resolver_options(
     builtin_modules: options.builtin_modules,
     imports_fields,
     enable_pnp: options.pnp.unwrap_or(false),
+    package_map: match options.package_map {
+      Some(PackageMap::Path(path)) => Some(path.into()),
+      Some(PackageMap::Disabled) | None => None,
+    },
     node_path: false,
   }
 }
@@ -412,6 +416,28 @@ fn map_rspack_resolver_error(
     rspack_resolver::ResolveError::IOError(error) => rspack_error::error!(error.to_string()),
     rspack_resolver::ResolveError::Recursion => map_resolver_error(true, args),
     rspack_resolver::ResolveError::NotFound(_) => map_resolver_error(false, args),
+    rspack_resolver::ResolveError::PackageMapExternalFile {
+      package_map_path, ..
+    } => {
+      let mut error = map_resolver_error(false, args);
+      error.help = Some(format!(
+        "'{}' is not within any package defined in the package map '{}'",
+        args.context,
+        package_map_path.display()
+      ));
+      error
+    }
+    rspack_resolver::ResolveError::PackageMapAmbiguousResolution {
+      package_map_path, ..
+    } => {
+      let mut error = map_resolver_error(false, args);
+      error.help = Some(format!(
+        "'{}' is within multiple packages defined in the package map '{}'",
+        args.context,
+        package_map_path.display()
+      ));
+      error
+    }
     rspack_resolver::ResolveError::JSON(error) => {
       if let Some(content) = &error.content {
         let Some(offset) = byte_line_column_to_offset(content, error.line, error.column) else {

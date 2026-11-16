@@ -1,0 +1,6 @@
+{
+  "name": "app",
+  "imports": {
+    "#internal": "dep/sub"
+  }
+}

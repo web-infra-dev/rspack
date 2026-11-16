@@ -1,0 +1,16 @@
+{
+  "packages": {
+    "app": {
+      "url": ".",
+      "dependencies": {
+        "dep": "dep@1.0.0"
+      }
+    },
+    "dep@1.0.0": {
+      "url": "./store/dep-1.0.0"
+    },
+    "dep@2.0.0": {
+      "url": "./store/dep-2.0.0"
+    }
+  }
+}

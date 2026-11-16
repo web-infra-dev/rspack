@@ -1288,6 +1288,11 @@ const getResolveLoaderDefaults = () => {
     mainFiles: ['index'],
   };
 
+  const packageMap = getPackageMapDefault();
+  if (packageMap !== undefined) {
+    resolveOptions.packageMap = packageMap;
+  }
+
   return resolveOptions;
 };
 
@@ -1388,6 +1393,12 @@ const getResolveDefaults = ({
   resolveOptions.byDependency!['css-import-local-module'] = cssResolveOptions;
   resolveOptions.byDependency!['css-import-global-module'] = cssResolveOptions;
 
+  // use the package map only when Node.js itself uses one, see https://nodejs.org/api/packages.html#package-maps
+  const packageMap = getPackageMapDefault();
+  if (packageMap !== undefined) {
+    resolveOptions.packageMap = packageMap;
+  }
+
   return resolveOptions;
 };
 
@@ -1435,4 +1446,68 @@ const A = <T, P extends keyof T>(
 
 export const getPnpDefault = () => {
   return !!process.versions.pnp;
+};
+
+const PACKAGE_MAP_OPTION = '--experimental-package-map';
+
+/**
+ * Splits the value of `NODE_OPTIONS` into arguments, with the quoting and escaping rules of Node.js.
+ * Node.js refuses to start with a value it cannot split, so no arguments are returned for one.
+ */
+const parseNodeOptions = (nodeOptions: string): string[] => {
+  const args: string[] = [];
+  let isInString = false;
+  let willStartNewArg = true;
+
+  for (let index = 0; index < nodeOptions.length; index++) {
+    let char = nodeOptions[index];
+    if (char === '\\' && isInString) {
+      index++;
+      if (index === nodeOptions.length) {
+        return [];
+      }
+      char = nodeOptions[index];
+    } else if (char === ' ' && !isInString) {
+      willStartNewArg = true;
+      continue;
+    } else if (char === '"') {
+      isInString = !isInString;
+      continue;
+    }
+
+    if (willStartNewArg) {
+      args.push(char);
+      willStartNewArg = false;
+    } else {
+      args[args.length - 1] += char;
+    }
+  }
+
+  return isInString ? [] : args;
+};
+
+/** The path of the last `--experimental-package-map` option in `args`. */
+const findPackageMapOption = (args: string[]): string | undefined => {
+  for (let index = args.length - 1; index >= 0; index--) {
+    const arg = args[index];
+    if (arg.startsWith(`${PACKAGE_MAP_OPTION}=`)) {
+      return arg.slice(PACKAGE_MAP_OPTION.length + 1);
+    }
+    if (arg === PACKAGE_MAP_OPTION) {
+      return args[index + 1] ?? '';
+    }
+  }
+};
+
+/**
+ * The package map that Node.js was started with, which is selected by
+ * `--experimental-package-map` on the command line or in `NODE_OPTIONS`.
+ * The command line takes precedence.
+ */
+export const getPackageMapDefault = (): string | undefined => {
+  const packageMap =
+    findPackageMapOption(process.execArgv ?? []) ??
+    findPackageMapOption(parseNodeOptions(process.env.NODE_OPTIONS ?? ''));
+  // Node.js resolves the path from the working directory.
+  return packageMap ? path.resolve(packageMap) : undefined;
 };

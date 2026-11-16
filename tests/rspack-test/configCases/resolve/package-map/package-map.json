@@ -1,0 +1,35 @@
+{
+  "packages": {
+    "app": {
+      "url": ".",
+      "dependencies": {
+        "dep": "dep@1.0.0",
+        "@scope/pkg": "@scope/pkg@1.0.0",
+        "legacy": "legacy@1.0.0",
+        "shared": "shared@1.0.0",
+        "undefined-package": "undefined-package@1.0.0"
+      }
+    },
+    "dep@1.0.0": {
+      "url": "./store/dep-1.0.0",
+      "dependencies": {
+        "shared": "shared@2.0.0"
+      }
+    },
+    "@scope/pkg@1.0.0": {
+      "url": "file:./store/scope-pkg-1.0.0"
+    },
+    "legacy@1.0.0": {
+      "url": "./store/legacy-1.0.0?query#fragment"
+    },
+    "shared@1.0.0": {
+      "url": "./store/shared-1.0.0"
+    },
+    "shared@2.0.0": {
+      "url": "./store/shared%2D2.0.0"
+    },
+    "hidden@1.0.0": {
+      "url": "./store/hidden-1.0.0"
+    }
+  }
+}
