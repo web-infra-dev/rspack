@@ -108,7 +108,7 @@ impl CssSourceBuilder {
     }
   }
 
-  pub(crate) fn into_css_text(self) -> String {
+  pub(crate) fn into_css_text(self, inline_source_map: bool) -> String {
     let include_sources_content = self.include_sources_content;
     let source_map_context = self.source_map_context.clone();
     let source = self.into_source();
@@ -116,7 +116,8 @@ impl CssSourceBuilder {
       .replace(&source.source().into_string_lossy(), "")
       .into_owned();
 
-    if let Some(mut source_map) = source.map(&MapOptions::default()) {
+    // CSS embedded in JavaScript must not expose maps for external or hidden devtool modes.
+    if inline_source_map && let Some(mut source_map) = source.map(&MapOptions::default()) {
       if !source_map_context.as_str().is_empty() {
         source_map.set_sources(
           source_map
@@ -347,7 +348,7 @@ mod tests {
     );
 
     assert_eq!(
-      builder.into_css_text(),
+      builder.into_css_text(true),
       r#"@charset "UTF-8";
 .a{background:url();}"#
     );
