@@ -31,10 +31,6 @@ const excludes = {
 		/^sharing\/reshake-share$/,
 		/^sharing\/tree-shaking-shared$/,
 
-		// Unawaited child compilation races with closing/flushing the parent cache.
-		/^chunk-loading\/issue-4754$/,
-		/^plugins\/rspack-issue-4982$/,
-
 		// Restored modules skip loader importModule(), but this case asserts both graphs.
 		/^stats\/issuer-information-cache$/,
 
