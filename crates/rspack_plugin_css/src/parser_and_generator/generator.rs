@@ -479,7 +479,9 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       .cloned()
       .collect::<Vec<_>>();
     self.render_ordered_css_sources(&mut walker, &mut builder, &render_conditions)?;
-    Ok(json_stringify_str(&builder.into_css_text()))
+    Ok(json_stringify_str(
+      &builder.into_css_text(*self.module.get_source_map_kind()),
+    ))
   }
 
   fn render_ordered_css_sources(
@@ -530,7 +532,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       render_conditions,
       self.css_build_info.has_charset,
     );
-    let css_text = json_stringify_str(&builder.into_css_text());
+    let css_text = json_stringify_str(&builder.into_css_text(*self.module.get_source_map_kind()));
     let css_expression = RUNTIME_PUBLIC_PATH_MATCHER.replace_with(&css_text, || {
       let public_path = self
         .generate_context

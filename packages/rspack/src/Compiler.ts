@@ -849,7 +849,7 @@ class Compiler {
     };
 
     this.hooks.shutdown.callAsync((err) => {
-      if (err) return instanceCallback(err);
+      if (err || this.isChild()) return instanceCallback(err);
       this.cache.shutdown(instanceCallback);
     });
   }
@@ -1079,7 +1079,10 @@ class Compiler {
         kinds.push(registerKind);
       }
     }
-    if (this.#nonSkippableRegisters.join() !== kinds.join()) {
+    if (
+      this.#nonSkippableRegisters.length !== kinds.length ||
+      this.#nonSkippableRegisters.some((kind, index) => kind !== kinds[index])
+    ) {
       this.#getInstance((_error, instance) => {
         instance!.setNonSkippableRegisters(kinds);
         this.#nonSkippableRegisters = kinds;

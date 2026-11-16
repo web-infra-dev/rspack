@@ -7,7 +7,6 @@ import * as css from "STYLE_UNDER_TEST";
 globalThis.__keepCssAlive = css;
 const fs = __nodeFs;
 const path = __nodePath;
-const NodeBuffer = __NodeBuffer;
 
 const CASES = [
   { exportType: "link", useLess: false },
@@ -200,23 +199,6 @@ const expectExternalMappingURL = (relativeFile, mapFileName) => {
   );
 };
 
-// For text/style/css-style-sheet the CSS is embedded as a JS string literal
-// with an inline `sourceMappingURL=data:application/json;base64,...` comment
-// inside the CSS text itself. That comment is what DevTools uses to map
-// the applied stylesheet back to its original sources.
-const SOURCE_MAPPING_DATA_URI =
-  /sourceMappingURL=data:application\/json(?:;charset=[^;,]+)?;base64,([A-Za-z0-9+/=]+)/;
-
-const extractInlineCssMap = (relativeBundleFile) => {
-  const bundleFile = path.resolve(outputPath, relativeBundleFile);
-  expect(fs.existsSync(bundleFile)).toBe(true);
-  const bundle = fs.readFileSync(bundleFile, "utf-8");
-  const match = bundle.match(SOURCE_MAPPING_DATA_URI);
-  expect(match).not.toBeNull();
-  const decoded = NodeBuffer.from(match[1], "base64").toString("utf-8");
-  return JSON.parse(decoded);
-};
-
 const label = `exportType="${exportType}"${useLess ? " through less-loader" : ""}`;
 
 it(`should generate a valid source map for ${label}`, () => {
@@ -269,9 +251,7 @@ it(`should generate a valid source map for ${label}`, () => {
   // can search across module sources.
   expect(cssModuleSourcesContent).toContain(".source-map-test-class");
 
-  // And the CSS embedded in the JS string literal carries an inline
-  // data URI source map that DevTools can resolve.
-  const cssMap = extractInlineCssMap(`bundle${__STATS_I__}.js`);
-  validateMap(cssMap);
-  expectExpectedSourceInMap(cssMap);
+  // External devtool modes must not embed a second map inside the CSS string.
+  const bundle = fs.readFileSync(path.resolve(outputPath, `bundle${__STATS_I__}.js`), "utf-8");
+  expect(bundle).not.toMatch(/\/\*# sourceMappingURL=data:/);
 });

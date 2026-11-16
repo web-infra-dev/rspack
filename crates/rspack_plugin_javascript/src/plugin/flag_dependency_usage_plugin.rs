@@ -487,10 +487,11 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           let mut current_exports_info = mgm_exports_info;
           let len = used_exports.len();
 
-          for (i, used_export) in used_exports.into_iter().enumerate() {
+          let mut i = 0;
+          while i < len {
             let export_info = current_exports_info
               .as_data_mut(self.exports_info_artifact)
-              .ensure_export_info(&used_export)
+              .ensure_export_info(&used_exports[i])
               .as_data_mut(self.exports_info_artifact);
             if ns_access {
               export_info.set_ns_access(true);
@@ -508,8 +509,17 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               export_info.set_can_inline_use(Some(CanInlineUse::No));
             }
 
-            let last_one = i == len - 1;
-            if !last_one && let Some(nested_info) = export_info.exports_info() {
+            // `next == len` means the access ends at this export.
+            // - for a fake namespace object `ns`,
+            // the `default` after it is the exports object itself, so it is skipped:
+            //   [ns, data]       -> next = 1, continue with `data`
+            //   [ns, default, x] -> next = 2, continue with `x`
+            //   [ns, default]    -> next = 2 == len, `ns` is used as a whole
+            // - for any other export `next` is `i + 1`.
+            let next = len - export_info.strip_self_default(&used_exports[i + 1..]).len();
+            if next < len
+              && let Some(nested_info) = export_info.exports_info()
+            {
               let changed_flag = export_info.set_used_conditionally(
                 |used| used == &UsageState::Unused,
                 UsageState::OnlyPropertiesUsed,
@@ -533,6 +543,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
                 }
               }
               current_exports_info = nested_info;
+              i = next;
               continue;
             }
 

@@ -118,7 +118,7 @@ impl Dependency for ESMExportSpecifierDependency {
     rspack_core::AffectType::False
   }
 
-  fn lazy(&self) -> Option<LazyUntil> {
+  fn lazy_until(&self) -> Option<LazyUntil> {
     Some(LazyUntil::Local(self.name.clone()))
   }
 }

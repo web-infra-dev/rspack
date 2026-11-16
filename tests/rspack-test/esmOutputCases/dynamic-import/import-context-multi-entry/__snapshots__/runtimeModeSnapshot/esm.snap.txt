@@ -165,7 +165,7 @@ var getChunkScriptFilename = (chunkId) => {
   // return url for filenames not based on template
 
   // return url for filenames based on template
-  return "" + chunkId + ".mjs"
+  return chunkId + ".mjs"
 };
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
@@ -265,7 +265,7 @@ var getChunkScriptFilename = (chunkId) => {
   // return url for filenames not based on template
 
   // return url for filenames based on template
-  return "" + chunkId + ".mjs"
+  return chunkId + ".mjs"
 };
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
