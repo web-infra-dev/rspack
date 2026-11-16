@@ -1,7 +1,6 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use rspack_util::time::current_time;
-use rustc_hash::FxHashSet;
 
 use super::{
   TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
@@ -12,6 +11,7 @@ use crate::{
   compilation::build_module_graph::{
     ForwardedIdSet, HasLazyDependencies, LazyDependencies, module_build_cache::ModuleBuildCache,
   },
+  module_declared_side_effect_free,
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -166,6 +166,7 @@ impl Task<TaskContext> for BuildResultTask {
     drop(build_info);
 
     let module_graph = &mut context.artifact.module_graph;
+    let side_effect_free = module_declared_side_effect_free(module.as_ref()) == Some(true);
     let mut lazy_dependencies = LazyDependencies::default();
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
@@ -173,7 +174,7 @@ impl Task<TaskContext> for BuildResultTask {
       |dependencies: &[DependencyRef], current_block: Option<&AsyncDependenciesBlockRef>| {
         for (index_in_block, dependency) in dependencies.iter().enumerate() {
           let dependency_id = *dependency.id();
-          if let Some(until) = dependency.lazy() {
+          if side_effect_free && let Some(until) = dependency.lazy_until() {
             lazy_dependencies.insert(dependency, until);
           }
           all_dependencies.push(dependency_id);
@@ -211,10 +212,10 @@ impl Task<TaskContext> for BuildResultTask {
     let mut tasks: Vec<Box<dyn Task<TaskContext>>> = vec![];
 
     let dependencies_to_process = if !lazy_dependencies.is_empty() {
-      let lazy_dependency_ids = lazy_dependencies
-        .all_lazy_dependencies()
-        .collect::<FxHashSet<_>>();
-      all_dependencies.retain(|dep| !lazy_dependency_ids.contains(dep));
+      for dependency_id in lazy_dependencies.all_lazy_dependencies() {
+        module_graph.add_lazy_dependency(dependency_id);
+      }
+      all_dependencies.retain(|dep| !module_graph.is_lazy_dependency(dep));
 
       if let Some(HasLazyDependencies::Pending(pending_forwarded_ids)) = context
         .artifact
