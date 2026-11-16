@@ -326,6 +326,21 @@ impl Symlinks {
       .cloned()
   }
 
+  pub(crate) fn subscription_path(
+    &self,
+    path: &InternedPath,
+    changed_link: Option<&InternedPath>,
+  ) -> Option<InternedPath> {
+    let subscriptions = self.0.read().expect("symlink subscriptions lock poisoned");
+    let Some(scan) = subscriptions.link_scans.get(path) else {
+      return Some(path.clone());
+    };
+    match changed_link {
+      Some(link) => scan.links.contains(link).then(|| link.clone()),
+      None => scan.target.clone(),
+    }
+  }
+
   pub(crate) fn resolved_directory(&self, path: &InternedPath) -> Option<InternedPath> {
     self
       .0

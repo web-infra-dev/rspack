@@ -453,6 +453,17 @@ impl PathManager {
       .and_then(|symlinks| symlinks.link_scan(path))
   }
 
+  pub(crate) fn subscription_path(
+    &self,
+    path: &InternedPath,
+    changed_link: Option<&InternedPath>,
+  ) -> Option<InternedPath> {
+    self.symlinks.as_ref().map_or_else(
+      || Some(path.clone()),
+      |symlinks| symlinks.subscription_path(path, changed_link),
+    )
+  }
+
   pub(crate) fn is_file_present(&self, path: &InternedPath) -> bool {
     if self
       .symlinks
@@ -735,6 +746,8 @@ impl PathManager {
   pub(crate) async fn scan_linked_contexts(
     &self,
     start_time: SystemTime,
+    watch_start_time: SystemTime,
+    new_files: Vec<InternedPath>,
   ) -> Vec<(InternedPath, ContextPath)> {
     let Some(symlinks) = &self.symlinks else {
       return Vec::new();
@@ -753,9 +766,17 @@ impl PathManager {
       .map(|path| path.key().clone())
       .collect();
     let since = system_time_to_millis(start_time);
+    let new_files: InternedPathSet = new_files.into_iter().collect();
+    // Initial discoveries start watching now; known entries still cover the build interval.
+    let file_since = system_time_to_millis(watch_start_time);
     let mut changed = Vec::new();
     for path in entries {
       if followed_files.contains(&path) {
+        let since = if new_files.contains(&path) {
+          file_since
+        } else {
+          since
+        };
         if let Some(mtime) = disk_mtime(&path)
           && mtime_safe_time(mtime) >= since
         {

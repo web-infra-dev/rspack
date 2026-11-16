@@ -349,21 +349,41 @@ impl EventProcessor {
     // `find_associated_event` bubbles them to a registered parent and triggers
     // a spurious rebuild.
     // A scan's event was filtered when the scan found the path.
-    // Context scans carry their owner; file backfills still need context filtering.
-    let contexts = if resolved_path.is_some()
-      && !matches!(origin, Origin::ContextScan(_))
-      && !origin.link_changed()
-    {
-      Some(self.path_manager.context_paths(path).await)
-    } else {
-      None
-    };
+    // Context scans carry their owner; other events may reach independent subscriptions.
+    let contexts =
+      if self.path_manager.follows_symlinks() && !matches!(origin, Origin::ContextScan(_)) {
+        Some(self.path_manager.context_paths(path).await)
+      } else {
+        None
+      };
     let ignored = !origin.is_scan()
       && self
         .path_manager
         .is_ignored_path(resolved_path.unwrap_or(path))
         .await;
-    if ignored && contexts.as_ref().is_none_or(|contexts| contexts.is_empty()) {
+    let finder = self.finder();
+    let direct_subscription = if contexts.is_some() {
+      if finder.contains_path(path) {
+        match self
+          .path_manager
+          .subscription_path(path, origin.link_changed().then_some(source_path))
+        {
+          Some(_) if origin.is_scan() => true,
+          Some(subscription_path) if &subscription_path == resolved_path.unwrap_or(path) => {
+            !ignored
+          }
+          Some(subscription_path) => !self.path_manager.is_ignored_path(&subscription_path).await,
+          None => false,
+        }
+      } else {
+        false
+      }
+    } else {
+      !ignored && !matches!(origin, Origin::ContextScan(_))
+    };
+    if contexts.as_ref().map_or(ignored, |contexts| {
+      !direct_subscription && contexts.is_empty()
+    }) {
       return;
     }
     // An ignored physical subscription may still be visible through a parent context.
@@ -371,7 +391,7 @@ impl EventProcessor {
       .as_ref()
       .and_then(|contexts| contexts.first())
       .and_then(|context| context.resolved_entry(path));
-    let resolved_path = if ignored {
+    let resolved_path = if contexts.is_some() && (ignored || !direct_subscription) {
       context_resolved_path.as_ref()
     } else {
       resolved_path
@@ -505,22 +525,19 @@ impl EventProcessor {
     }
     self.path_manager.set_last_watch_events(path);
 
-    let finder = self.finder();
     let mut associated_event = finder.find_associated_event(path, kind);
     if let Origin::ContextScan(context) = &origin {
       associated_event.retain(|(dependency, _)| Some(dependency) == context.dependency.as_ref());
     } else if let Some(contexts) = &contexts {
       associated_event.retain(|(dependency, _)| {
-        if finder.directories.contains(dependency) {
-          contexts
+        (dependency == path && direct_subscription)
+          || contexts
             .iter()
             .any(|context| context.dependency.as_ref() == Some(dependency))
-        } else {
-          !ignored
-        }
       });
     }
     if origin.link_changed()
+      && direct_subscription
       && finder.contains_path(path)
       && !associated_event
         .iter()
@@ -552,10 +569,13 @@ impl EventProcessor {
         .iter()
         .any(|(associated, kind)| associated != path && *kind == FsEventKind::Change))
     .then(|| resolved_path.unwrap_or(path).clone());
-    let context_only_removal = context_removal.is_some() && !finder.contains_file(path);
+    let file_subscription = direct_subscription && finder.contains_file(path);
+    let context_only_removal = context_removal.is_some() && !file_subscription;
     if context_removal.is_some() {
       associated_event.retain_mut(|(associated, associated_kind)| {
-        if *associated_kind == FsEventKind::Remove && !finder.contains_file(associated) {
+        if *associated_kind == FsEventKind::Remove
+          && !(direct_subscription && finder.contains_file(associated))
+        {
           if associated == path {
             return false;
           }
@@ -570,7 +590,7 @@ impl EventProcessor {
     });
     let mut recovered = Vec::new();
     if let (Some(raw), Some(resolved_path)) = (&mut raw, resolved_path) {
-      if finder.contains_file(path) {
+      if file_subscription {
         recovered.push(FsEvent {
           path: resolved_path.clone(),
           kind,
@@ -620,7 +640,23 @@ impl EventProcessor {
             {
               continue;
             }
-            let associated = finder.find_associated_event(&entry_path, FsEventKind::Create);
+            let mut associated = finder.find_associated_event(&entry_path, FsEventKind::Create);
+            if self.path_manager.follows_symlinks() {
+              let direct_subscription = match self.path_manager.subscription_path(&entry_path, None)
+              {
+                Some(subscription_path) => {
+                  !self.path_manager.is_ignored_path(&subscription_path).await
+                }
+                None => false,
+              };
+              let contexts = self.path_manager.context_paths(&entry_path).await;
+              associated.retain(|(dependency, _)| {
+                (dependency == &entry_path && direct_subscription)
+                  || contexts
+                    .iter()
+                    .any(|context| context.dependency.as_ref() == Some(dependency))
+              });
+            }
             if !associated.is_empty() {
               recovered.push(FsEvent {
                 path: entry_path.clone(),

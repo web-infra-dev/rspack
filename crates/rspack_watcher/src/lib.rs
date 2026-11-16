@@ -435,6 +435,7 @@ impl FsWatcherInner {
     missing: (Vec<InternedPath>, Vec<InternedPath>),
     start_time: SystemTime,
   ) -> Result<()> {
+    let watch_start_time = SystemTime::now();
     self
       .path_manager
       .update(
@@ -476,13 +477,19 @@ impl FsWatcherInner {
       .scan_contexts(start_time, symlink_update.retargeted_directories)
       .await;
     if let Some(mut watch_patterns) = rescan_patterns {
-      watch_patterns.extend(self.path_manager.refresh_symlinks().await.patterns);
+      let discovered = self.path_manager.refresh_symlinks().await;
+      watch_patterns.extend(discovered.patterns);
       let plan = WatchPlan::new(watch_patterns, self.path_manager.follows_symlinks());
       if let Err(error) = self.disk_watcher.apply_plan(plan) {
         self.analyzer.invalidate_all();
         return Err(error);
       }
-      changed_in_contexts.extend(self.path_manager.scan_linked_contexts(start_time).await);
+      changed_in_contexts.extend(
+        self
+          .path_manager
+          .scan_linked_contexts(start_time, watch_start_time, discovered.new_context_files)
+          .await,
+      );
     }
     if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
       for (path, context) in changed_in_contexts {
