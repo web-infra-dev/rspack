@@ -381,9 +381,11 @@ impl EventProcessor {
     } else {
       !ignored && !matches!(origin, Origin::ContextScan(_))
     };
+    let recover_descendants = appeared && self.path_manager.may_contain_records(path);
     if contexts.as_ref().map_or(ignored, |contexts| {
       !direct_subscription && contexts.is_empty()
-    }) {
+    }) && !recover_descendants
+    {
       return;
     }
     // An ignored physical subscription may still be visible through a parent context.
