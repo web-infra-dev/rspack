@@ -7,6 +7,11 @@ import type { Compiler } from '../Compiler';
 import type { RuleSetLoaderWithOptions } from '../config/types';
 import { prepareStrictLoaderPool } from './service';
 import { strictLoaderError } from './utils';
+import {
+  getWorkerOptionsCache,
+  registerCompilerWorkerOptions,
+  releaseWorkerOptions,
+} from './workerOptions';
 
 const require = createRequire(import.meta.url);
 type LoaderParallel = RuleSetLoaderWithOptions['parallel'];
@@ -39,53 +44,53 @@ function deserializeLoaderValue(bytes: Buffer): unknown {
   return deserialize(bytes);
 }
 
-function getLoaderReference(
-  handle: number,
-  ident: string,
-): SerializedLoaderReference | undefined {
-  const bytes = getSerializedLoaderOptions(handle, ident);
-  return bytes
-    ? (deserializeLoaderValue(bytes) as SerializedLoaderReference)
-    : undefined;
-}
-
 const PARALLEL_SUFFIX = '$$parallelism';
 
 export function createStrictLoaderCompiler(
   handle: number,
 ): StrictLoaderCompiler {
   const bytes = getSerializedLoaderOptions(handle);
-  if (!bytes) throw strictLoaderError('Compiler options');
-  const compiler = deserializeLoaderValue(bytes) as StrictCompilerOptions;
-
-  const references = new Map<string, SerializedLoaderReference | undefined>();
-  return {
-    ...compiler,
-    root: compiler,
-    __internal__ruleSet: {
-      references: {
-        get(ident) {
-          const isParallel = ident.endsWith(PARALLEL_SUFFIX);
-          const optionsIdent = isParallel
-            ? ident.slice(0, -PARALLEL_SUFFIX.length)
-            : ident;
-          if (!references.has(optionsIdent)) {
-            references.set(
-              optionsIdent,
-              getLoaderReference(handle, optionsIdent),
-            );
-          }
-          const value = references.get(optionsIdent);
-          if (isParallel) return value?.parallel;
-          if (!value)
-            throw strictLoaderError(
-              `Non-serializable loader options for '${ident}'`,
-            );
-          return value.options;
+  if (!bytes) {
+    releaseWorkerOptions(handle);
+    throw strictLoaderError('Compiler options');
+  }
+  const cache = getWorkerOptionsCache(handle);
+  return cache.get('strict-compiler', bytes, () => {
+    const compiler = deserializeLoaderValue(bytes) as StrictCompilerOptions;
+    return {
+      ...compiler,
+      root: compiler,
+      __internal__ruleSet: {
+        references: {
+          get(ident: string) {
+            const isParallel = ident.endsWith(PARALLEL_SUFFIX);
+            const optionsIdent = isParallel
+              ? ident.slice(0, -PARALLEL_SUFFIX.length)
+              : ident;
+            const key = `strict-reference:${optionsIdent}`;
+            const bytes = getSerializedLoaderOptions(handle, optionsIdent);
+            let value: SerializedLoaderReference | undefined;
+            if (bytes) {
+              value = cache.get(
+                key,
+                bytes,
+                () =>
+                  deserializeLoaderValue(bytes) as SerializedLoaderReference,
+              );
+            } else {
+              cache.delete(key);
+            }
+            if (isParallel) return value?.parallel;
+            if (!value)
+              throw strictLoaderError(
+                `Non-serializable loader options for '${ident}'`,
+              );
+            return value.options;
+          },
         },
       },
-    },
-  };
+    };
+  });
 }
 
 const compilerHandles = new WeakMap<Compiler, number>();
@@ -98,6 +103,12 @@ export function getCompilerHandle(compiler: Compiler): number {
     owner = ++nextCompilerHandle;
     compilerHandles.set(compiler, owner);
   }
+  return owner;
+}
+
+export function getWorkerCompilerHandle(compiler: Compiler): number {
+  const owner = getCompilerHandle(compiler);
+  registerCompilerWorkerOptions(compiler, owner);
   return owner;
 }
 
@@ -123,7 +134,7 @@ export function registerStrictLoader(
       throw strictLoaderError('Non-serializable compiler loader options');
   }
   bindingRegisterStrictLoader(
-    getCompilerHandle(compiler),
+    getWorkerCompilerHandle(compiler),
     ident,
     serialized,
     compilerOptions,

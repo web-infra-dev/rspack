@@ -15,6 +15,7 @@ import {
 import { runLoaders } from './index';
 import { createStrictLoaderCompiler } from './strictOptions';
 import { createWorkerModule } from './workerModule';
+import { getWorkerOptionsCache, reuseWorkerOptions } from './workerOptions';
 import type { NormalModule } from '../NormalModule';
 import type { LoaderContext } from '../config';
 import type { ResolveCallback } from '../config/adapterRuleUse';
@@ -47,6 +48,7 @@ import {
 import { convertArgs, runSyncOrAsync } from './utils';
 
 interface WorkerOptions {
+  compilerHandle: number;
   loaderContext: LoaderContext & {
     loaderChainStart: number;
     loaderChainEnd: number;
@@ -79,11 +81,25 @@ function dirname(path: string) {
 }
 
 async function loaderImpl(
-  { args, loaderContext, loaderState }: WorkerOptions,
+  { args, loaderContext, loaderState, compilerHandle }: WorkerOptions,
   sendRequest: SendRequestFunction,
   waitForPendingRequest: WaitForPendingRequestFunction,
 ) {
-  //
+  const optionsCache = getWorkerOptionsCache(compilerHandle);
+  for (const loader of loaderContext.loaders) {
+    if (!loader.ident || !loader.options || typeof loader.options !== 'object')
+      continue;
+    loader.options = reuseWorkerOptions(
+      optionsCache,
+      `parallel-reference:${loader.ident}`,
+      loader.options,
+    );
+  }
+  loaderContext._compiler.options = reuseWorkerOptions(
+    optionsCache,
+    'parallel-compiler-options',
+    loaderContext._compiler.options,
+  );
   const resourcePath = loaderContext.resourcePath;
   const contextDirectory = resourcePath ? dirname(resourcePath) : null;
 

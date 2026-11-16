@@ -66,7 +66,10 @@ import {
 import { LoaderDependenciesState } from './dependencies';
 import * as pool from './service';
 import { type HandleIncomingRequest, RequestType } from './service';
-import type { StrictLoaderCompiler } from './strictOptions';
+import {
+  getWorkerCompilerHandle,
+  type StrictLoaderCompiler,
+} from './strictOptions';
 import {
   convertArgs,
   extractLoaderName,
@@ -1141,6 +1144,7 @@ export async function runLoaders(
         (await pool.run(
           loaderName!,
           {
+            compilerHandle: getWorkerCompilerHandle(compiler!),
             loaderContext: getWorkerLoaderContext(),
             loaderState,
             args,

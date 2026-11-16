@@ -1,0 +1,1 @@
+export { getWorkerOptionsCache, releaseWorkerOptions, reuseWorkerOptions, registerCompilerWorkerOptions, releaseCompilerWorkerOptions } from '../../../../../packages/rspack/src/loader-runner/workerOptions.ts';
