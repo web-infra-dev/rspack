@@ -42,7 +42,6 @@ const excludes = {
 		/^context\/import-meta-glob-case-insensitive-pruning$/,
 		/^loader\/context-module$/,
 		/^module\/shared-accessors$/,
-		/^plugins\/circular-check-rspack-plugin$/,
 
 		// Module cache entries are not fully reused after restarting the compiler.
 		/^builtin-swc-loader\/react-compiler-long-expressions$/,
