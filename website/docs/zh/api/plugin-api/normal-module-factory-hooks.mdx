@@ -145,6 +145,8 @@ compiler.hooks.compilation.tap(
 
 `afterResolve` 用于在模块解析完成之后，进一步处理或修改模块的解析结果。它在模块解析过程的末尾触发，意味着在这个阶段，模块的路径、请求信息等已经确定。
 
+设置 `resolveData.createData.context` 可以修改所创建模块解析依赖时使用的基准目录，包括 loader 生成的依赖。当该字段为 `undefined` 时，Rspack 会从解析后的 resource 推导 context。
+
 ```js
 compiler.hooks.compilation.tap(
   'MyPlugin',
