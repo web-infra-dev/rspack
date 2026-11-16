@@ -60,6 +60,7 @@ pub struct ESMImportSpecifierDependency {
   pub evaluated_in_operator: bool,
   loc: Option<DependencyLocation>,
   pub namespace_object_as_context: bool,
+  pub assignment: bool,
   ns_access: bool,
 }
 
@@ -99,6 +100,7 @@ impl ESMImportSpecifierDependency {
       branch_guard: None,
       evaluated_in_operator: false,
       namespace_object_as_context: false,
+      assignment: false,
       ns_access,
       referenced_properties_in_destructuring,
       phase,
@@ -145,8 +147,9 @@ impl ESMImportSpecifierDependency {
     } else if let Some(v) = ids {
       vec![
         ReferencedExport::from(v)
-          // Need access the export value to trigger side effects for deferred module
-          .with_can_inline(!self.phase.is_defer())
+          // Need access the export value to trigger side effects for deferred module.
+          // An inlined literal cannot be an assignment target at all.
+          .with_can_inline(!self.assignment && !self.phase.is_defer())
           .with_ns_access(self.ns_access),
       ]
     } else {
@@ -428,6 +431,76 @@ impl ESMImportSpecifierDependencyTemplate {
     connection: Option<&ModuleGraphConnection>,
     code_generatable_context: &mut TemplateContext,
   ) -> String {
+    if !Self::is_read_only_write(ids, dep, connection, code_generatable_context) {
+      return self.get_reference_for_ids(
+        ids,
+        dep,
+        connection,
+        dep.asi_safe,
+        code_generatable_context,
+      );
+    }
+    // Writing through a getter-only property throws the TypeError a live
+    // binding would, after any read a compound or logical assignment does first.
+    let reference =
+      self.get_reference_for_ids(ids, dep, connection, true, code_generatable_context);
+    let name = &dep.name;
+    let asi = if dep.asi_safe || dep.shorthand {
+      ""
+    } else {
+      ";"
+    };
+    format!("{asi}({{ get {name}() {{ return {reference}; }} }}).{name}")
+  }
+
+  // A binding imported from an ES module is read-only, but what it renders to may
+  // be a plain variable (concatenated) or, once the side effects optimization
+  // redirects it past a re-export, a CommonJS interop call. A CommonJS module's
+  // own exports stay writable as in webpack, so the module the import names
+  // decides, not the one the connection now points to.
+  fn is_read_only_write(
+    ids: &[Atom],
+    dep: &ESMImportSpecifierDependency,
+    connection: Option<&ModuleGraphConnection>,
+    code_generatable_context: &TemplateContext,
+  ) -> bool {
+    if !dep.assignment {
+      return false;
+    }
+    if ids.is_empty() {
+      return true;
+    }
+    let Some(con) = connection else {
+      return false;
+    };
+    let compilation = code_generatable_context.compilation;
+    let module_graph = compilation.get_module_graph();
+    module_graph
+      .module_by_identifier(&con.resolved_module)
+      .is_some_and(|module| {
+        matches!(
+          module.get_exports_type(
+            module_graph,
+            &compilation.module_graph_cache_artifact,
+            &compilation.exports_info_artifact,
+            code_generatable_context
+              .module
+              .build_meta()
+              .strict_esm_module(),
+          ),
+          ExportsType::Namespace
+        )
+      })
+  }
+
+  fn get_reference_for_ids(
+    &self,
+    ids: &[Atom],
+    dep: &ESMImportSpecifierDependency,
+    connection: Option<&ModuleGraphConnection>,
+    asi_safe: bool,
+    code_generatable_context: &mut TemplateContext,
+  ) -> String {
     let TemplateContext {
       compilation,
       concatenation_scope,
@@ -442,7 +515,7 @@ impl ESMImportSpecifierDependencyTemplate {
         scope.create_module_reference(
           con.module_identifier(),
           ModuleReferenceOptions {
-            asi_safe: Some(dep.asi_safe),
+            asi_safe: Some(asi_safe),
             deferred_import: dep.phase.is_defer(),
             ..Default::default()
           },
@@ -457,7 +530,7 @@ impl ESMImportSpecifierDependencyTemplate {
             scope.create_module_reference(
               con.module_identifier(),
               ModuleReferenceOptions {
-                asi_safe: Some(dep.asi_safe),
+                asi_safe: Some(asi_safe),
                 deferred_import: dep.phase.is_defer(),
                 ..Default::default()
               },
@@ -478,7 +551,7 @@ impl ESMImportSpecifierDependencyTemplate {
         scope.create_module_reference(
           con.module_identifier(),
           ModuleReferenceOptions {
-            asi_safe: Some(dep.asi_safe),
+            asi_safe: Some(asi_safe),
             ids: ids.to_vec(),
             call: dep.call,
             direct_import: dep.direct_import,
@@ -518,7 +591,7 @@ impl ESMImportSpecifierDependencyTemplate {
         &dep.id,
         dep.call,
         !dep.direct_import,
-        Some(dep.shorthand || dep.asi_safe),
+        Some(dep.shorthand || asi_safe),
         dep.phase,
       )
     }

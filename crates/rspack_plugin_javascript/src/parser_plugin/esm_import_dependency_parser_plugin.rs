@@ -27,7 +27,7 @@ use crate::{
   },
   visitors::{
     AllowedMemberTypes, AtomMembers, ExportedVariableInfo, ExpressionExpressionInfo,
-    HookMemberExpression, JavascriptParser, MemberExpressionInfo, TagInfoData,
+    HookMemberExpression, JavascriptParser, MemberExpressionInfo, TagInfoData, WriteExpression,
     get_non_optional_member_chain_from_expr, get_non_optional_member_chain_from_member,
     get_non_optional_part,
   },
@@ -299,48 +299,41 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
     if for_name != ESM_SPECIFIER_TAG {
       return None;
     }
-    let tag_info = parser
-      .definitions_db
-      .expect_get_tag_info(parser.current_tag_info?);
-    let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
-    let referenced_properties_in_destructuring = parser
-      .destructuring_assignment_properties
-      .get(&span)
-      .cloned();
-    let range = DependencyRange::from(span);
-    let loc = parser.to_dependency_location(range);
-    let dep = ESMImportSpecifierDependency::new(
-      settings.source,
-      settings.name,
-      settings.source_order,
-      parser.in_short_hand,
-      !parser.is_asi_position(span.real_lo()),
-      range,
-      settings.ids.into_vec(),
-      parser.in_tagged_template_tag,
-      true,
-      settings.namespace_import && referenced_properties_in_destructuring.is_some(),
-      ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
-      referenced_properties_in_destructuring,
-      settings.phase,
-      settings.attributes,
-      settings.resource_identifier,
-      loc,
-    );
-    let dep_id = *dep.id();
-    let dep_idx = parser.next_dependency_idx();
-    parser.add_dependency(BoxDependency::new(dep));
+    let settings = current_specifier_data(parser)?;
+    add_specifier_dependency(parser, settings, span, None, false)
+  }
 
-    if let Some(in_guard) = parser.dependencies_in_branch_guard.as_mut() {
-      in_guard.insert(range, dep_id);
+  fn write(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    _expr: WriteExpression,
+    span: Span,
+    for_name: &str,
+  ) -> Option<bool> {
+    if for_name != ESM_SPECIFIER_TAG {
+      return None;
     }
+    let settings = current_specifier_data(parser)?;
+    add_specifier_dependency(parser, settings, span, None, true)
+  }
 
-    InnerGraphParserPlugin::on_usage(
-      parser,
-      InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
-    );
-
-    Some(true)
+  fn write_member_chain(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    _expr: WriteExpression,
+    span: Span,
+    members: &[Atom],
+    _member_ranges: &[Span],
+    for_name: &str,
+  ) -> Option<bool> {
+    if for_name != ESM_SPECIFIER_TAG {
+      return None;
+    }
+    let settings = current_specifier_data(parser)?;
+    if !is_namespace_member_write(&settings, members) {
+      return None;
+    }
+    add_specifier_dependency(parser, settings, span, Some((members, span)), true)
   }
 
   fn call_member_chain(
@@ -433,12 +426,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
     if for_name != ESM_SPECIFIER_TAG {
       return None;
     }
-    let tag_info = parser
-      .definitions_db
-      .expect_get_tag_info(parser.current_tag_info?);
-    let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
-
+    let settings = current_specifier_data(parser)?;
     let non_optional_members = get_non_optional_part(members, members_optionals);
+    let member_span = member_expr.span(ast);
     let span = if members.len() > non_optional_members.len() {
       let expr = get_non_optional_member_chain_from_member(
         ast,
@@ -447,48 +437,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       );
       expr.span(ast)
     } else {
-      member_expr.span(ast)
+      member_span
     };
-    let mut ids = settings.ids;
-    ids.extend(non_optional_members.iter().cloned());
-    let range = DependencyRange::from(span);
-    let ns_access = settings.namespace_import && !ids.is_empty();
-    let referenced_properties_in_destructuring = parser
-      .destructuring_assignment_properties
-      .get(&member_expr.span(ast))
-      .cloned();
-    let dep = ESMImportSpecifierDependency::new(
-      settings.source,
-      settings.name,
-      settings.source_order,
-      false,
-      !parser.is_asi_position(member_expr.span(ast).real_lo()),
-      range,
-      ids.into_vec(),
-      false,
-      false, // x.xx()
-      ns_access,
-      ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
-      referenced_properties_in_destructuring,
-      settings.phase,
-      settings.attributes,
-      settings.resource_identifier,
-      parser.to_dependency_location(range),
-    );
-    let dep_id = *dep.id();
-    let dep_idx = parser.next_dependency_idx();
-    parser.add_dependency(BoxDependency::new(dep));
-
-    if let Some(in_guard) = parser.dependencies_in_branch_guard.as_mut() {
-      in_guard.insert(range, dep_id);
-    }
-
-    InnerGraphParserPlugin::on_usage(
+    add_specifier_dependency(
       parser,
-      InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
-    );
-
-    Some(true)
+      settings,
+      span,
+      Some((non_optional_members, member_span)),
+      false,
+    )
   }
 
   fn evaluate_identifier(
@@ -509,4 +466,83 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
     }
     None
   }
+}
+
+fn current_specifier_data(parser: &JavascriptParser) -> Option<ESMSpecifierData> {
+  let tag_info = parser
+    .definitions_db
+    .expect_get_tag_info(parser.current_tag_info?);
+  Some(ESMSpecifierData::downcast(tag_info.data.clone()?))
+}
+
+// Only a member of the namespace object itself is read-only: writing a property
+// of an imported object is an ordinary write.
+fn is_namespace_member_write(settings: &ESMSpecifierData, members: &[Atom]) -> bool {
+  settings.namespace_import && members.len() == 1
+}
+
+/// `member` is the accessed members with the whole member expression's span,
+/// which can be wider than `span` when an optional chain is cut off.
+fn add_specifier_dependency(
+  parser: &mut JavascriptParser,
+  settings: ESMSpecifierData,
+  span: Span,
+  member: Option<(&[Atom], Span)>,
+  assignment: bool,
+) -> Option<bool> {
+  let expr_span = member.map_or(span, |(_, expr_span)| expr_span);
+  let referenced_properties_in_destructuring = parser
+    .destructuring_assignment_properties
+    .get(&expr_span)
+    .cloned();
+  let mut ids = settings.ids;
+  let (shorthand, call, direct_import, ns_access) = if let Some((members, _)) = member {
+    ids.extend(members.iter().cloned());
+    (
+      false,
+      false,
+      false,
+      settings.namespace_import && !ids.is_empty(),
+    )
+  } else {
+    (
+      parser.in_short_hand,
+      parser.in_tagged_template_tag,
+      true,
+      settings.namespace_import && referenced_properties_in_destructuring.is_some(),
+    )
+  };
+  let range = DependencyRange::from(span);
+  let mut dep = ESMImportSpecifierDependency::new(
+    settings.source,
+    settings.name,
+    settings.source_order,
+    shorthand,
+    !parser.is_asi_position(expr_span.real_lo()),
+    range,
+    ids.into_vec(),
+    call,
+    direct_import,
+    ns_access,
+    ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
+    referenced_properties_in_destructuring,
+    settings.phase,
+    settings.attributes,
+    settings.resource_identifier,
+    parser.to_dependency_location(range),
+  );
+  dep.assignment = assignment;
+  let dep_id = *dep.id();
+  let dep_idx = parser.next_dependency_idx();
+  parser.add_dependency(BoxDependency::new(dep));
+
+  if let Some(in_guard) = parser.dependencies_in_branch_guard.as_mut() {
+    in_guard.insert(range, dep_id);
+  }
+
+  InnerGraphParserPlugin::on_usage(
+    parser,
+    InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
+  );
+  Some(true)
 }
