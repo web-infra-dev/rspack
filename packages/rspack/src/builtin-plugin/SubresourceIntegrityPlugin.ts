@@ -407,5 +407,6 @@ function computeIntegrity(
 }
 
 function normalizePath(path: string): string {
-  return path.replace(/\?.*$/, '').split(sep).join('/');
+  const withoutQuery = path.replace(/\?.*$/, '');
+  return sep === '/' ? withoutQuery : withoutQuery.replaceAll(sep, '/');
 }
