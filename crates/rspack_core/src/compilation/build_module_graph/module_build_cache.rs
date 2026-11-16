@@ -51,6 +51,7 @@ impl ModuleBuildCache {
     };
     if result
       .need_build(&NeedBuildContext::new(
+        module.as_ref(),
         file_system_info,
         value_cache_versions,
       ))

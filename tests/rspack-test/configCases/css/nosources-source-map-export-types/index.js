@@ -4,7 +4,6 @@ globalThis.__keepCssAlive = css;
 
 const fs = __nodeFs;
 const path = __nodePath;
-const NodeBuffer = __NodeBuffer;
 
 const EXPORT_TYPES = ["link", "text", "style", "css-style-sheet"];
 const exportType = EXPORT_TYPES[__STATS_I__];
@@ -22,9 +21,6 @@ const expectNoSourcesContent = (map) => {
     }
   }
 };
-
-const SOURCE_MAPPING_DATA_URI =
-  /sourceMappingURL=data:application\/json(?:;charset=[^;,]+)?;base64,([A-Za-z0-9+/=]+)/;
 
 it(`should not embed sourcesContent for nosources-source-map (exportType="${exportType}")`, () => {
   if (exportType === "link") {
@@ -47,15 +43,10 @@ it(`should not embed sourcesContent for nosources-source-map (exportType="${expo
   // `nosources` it must be gone.
   expect(jsMapRaw).not.toContain(".nosources-test-class");
 
-  // And — the actual regression — the inline data URI map embedded in
-  // the CSS string must also have its sourcesContent stripped.
+  // External maps must not be duplicated inside the embedded CSS text.
   const bundle = fs.readFileSync(
     path.resolve(outputPath, `bundle${__STATS_I__}.js`),
     "utf-8"
   );
-  const match = bundle.match(SOURCE_MAPPING_DATA_URI);
-  expect(match).not.toBeNull();
-  const decoded = NodeBuffer.from(match[1], "base64").toString("utf-8");
-  expectNoSourcesContent(JSON.parse(decoded));
-  expect(decoded).not.toContain(".nosources-test-class");
+  expect(bundle).not.toMatch(/\/\*# sourceMappingURL=data:/);
 });

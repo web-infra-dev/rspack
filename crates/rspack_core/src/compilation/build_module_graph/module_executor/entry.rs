@@ -38,6 +38,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
       origin_context,
       tracker,
       executed_entry_deps,
+      has_build_cycle,
     } = context;
 
     let mut res = vec![];
@@ -49,6 +50,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
           origin_module_context.unwrap_or_else(|| Context::from("")),
         ));
         let dep_id = *dep.id();
+        origin_context.artifact.entry_dependencies.insert(dep_id);
 
         let mg = TaskContext::get_module_graph_mut(&mut origin_context.artifact);
         mg.add_dependency_ref(dep.clone());
@@ -89,6 +91,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
         .module_graph_module_by_identifier(&meta.origin_module_identifier)
         .is_some()
       {
+        *has_build_cycle = true;
         execute_task.finish_with_error(rspack_error::error!(
           "The added task is running, maybe have a circular build dependency. MetaInfo: {:?}",
           meta

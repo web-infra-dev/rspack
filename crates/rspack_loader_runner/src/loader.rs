@@ -13,6 +13,7 @@ use memchr::{memchr2, memchr3};
 use rspack_cacheable::cacheable_dyn;
 use rspack_collections::Identifier;
 use rspack_error::Result;
+use rspack_hash::RspackHasher;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::identifier::strip_zero_width_space_for_fragment;
 
@@ -314,6 +315,9 @@ where
   fn cache_version(&self) -> Option<&str> {
     None
   }
+
+  /// Hashes loader-specific inputs into the cache etag before the chain runs.
+  fn etag(&self, _context: &Context, _hasher: &mut RspackHasher) {}
 
   /// Selects the runtime responsible for executing this loader.
   fn execution_kind(&self) -> LoaderExecutionKind {

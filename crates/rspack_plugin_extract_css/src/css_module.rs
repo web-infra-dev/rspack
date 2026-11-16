@@ -10,8 +10,8 @@ use rspack_core::{
   BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder, Compilation,
   CompilerOptions, DependenciesBlock, DependenciesBlockData, FactoryMetaStore, FreezeLock, Module,
   ModuleCodeGenerationContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleGraph, ModuleLayer, RuntimeSpec, SourceType, impl_module_meta_info,
-  impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
+  ModuleFactoryResult, ModuleGraph, ModuleLayer, NeedBuildContext, RuntimeSpec, SourceType,
+  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
@@ -166,6 +166,35 @@ impl Module for CssModule {
 
   fn need_id(&self) -> bool {
     false
+  }
+
+  async fn need_build(&self, context: &NeedBuildContext<'_>) -> Result<bool> {
+    let Some(fresh_module) = context.fresh_module.downcast_ref::<Self>() else {
+      return Ok(true);
+    };
+    let Some(build_info) = self.build_info.frozen() else {
+      return Ok(true);
+    };
+    let fresh_build_info = fresh_module.build_info.read();
+    if build_info.hash.is_none() || !build_info.cacheable || !fresh_build_info.cacheable {
+      return Ok(true);
+    }
+
+    // The parent module validates the loader inputs; compare its extracted result.
+    Ok(
+      self.content != fresh_module.content
+        || self.source_map != fresh_module.source_map
+        || self.css_layer != fresh_module.css_layer
+        || self.supports != fresh_module.supports
+        || self.media != fresh_module.media
+        || self.module_layer != fresh_module.module_layer
+        || self._context != fresh_module._context
+        // A cache hit must retain the dependencies used by later incremental builds.
+        || build_info.dependencies.file != fresh_build_info.dependencies.file
+        || build_info.dependencies.context != fresh_build_info.dependencies.context
+        || build_info.dependencies.missing != fresh_build_info.dependencies.missing
+        || build_info.dependencies.build != fresh_build_info.dependencies.build,
+    )
   }
 
   async fn build(

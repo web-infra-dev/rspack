@@ -520,6 +520,7 @@ impl Module for NormalModule {
     let compiler_options = build_context.compiler_options.clone();
     let resolver_factory = build_context.resolver_factory.clone();
     let fs = build_context.fs.clone();
+    let loader_cache = build_context.loader_cache.upgrade();
     let (loader_result, err) = run_loaders(
       self.loaders.clone(),
       self.loader_options.clone(),
@@ -531,7 +532,8 @@ impl Module for NormalModule {
         compilation_id,
         options: compiler_options,
         fs: fs.clone(),
-        loader_cache: build_context.loader_cache.clone(),
+        loader_cache,
+        loader_cache_counters: build_context.loader_cache_counters.clone(),
         file_system_info: build_context.file_system_info.clone(),
         resolver_factory,
         source_map_kind: self.source_map_kind,
@@ -638,6 +640,7 @@ impl Module for NormalModule {
         loaders: &self.loaders,
         resource_data: &self.resource_data,
         compiler_options: &build_context.compiler_options,
+        value_cache_versions: &build_context.value_cache_versions,
         additional_data: loader_result.additional_data,
         factory_meta: factory_meta.as_deref(),
         build_info: self.build_info.get_mut(),

@@ -760,6 +760,7 @@ export interface JsCodegenerationResults {
 }
 
 export interface JsCreateData {
+  context?: string
   request: string
   userRequest: string
   resource: string

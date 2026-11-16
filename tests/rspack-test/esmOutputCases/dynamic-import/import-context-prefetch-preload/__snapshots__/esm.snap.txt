@@ -261,7 +261,7 @@ __webpack_require__.u = (chunkId) => {
   // return url for filenames not based on template
 
   // return url for filenames based on template
-  return "" + chunkId + ".mjs"
+  return chunkId + ".mjs"
 }
 })();
 // webpack/runtime/has_own_property
