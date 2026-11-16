@@ -19,7 +19,7 @@ function cacheDirectory(projectRoot) {
 	return path.join(projectRoot, "node_modules", ".cache", "rspack");
 }
 
-async function build(projectRoot, { newCache, portable }) {
+async function build(projectRoot, { newCache, portable, rules = [] }) {
 	const compiler = rspack({
 		context: projectRoot,
 		mode: "development",
@@ -28,6 +28,7 @@ async function build(projectRoot, { newCache, portable }) {
 		entry: "./src/index.js",
 		experiments: { newCache },
 		cache: { type: "persistent", portable },
+		module: { rules },
 		infrastructureLogging: { level: "none" },
 		output: {
 			path: path.join(projectRoot, "dist"),
@@ -105,9 +106,58 @@ function createCase({ newCache, portable }) {
 	};
 }
 
+// The loader and the file it transforms sit outside both projects, so both projects give the
+// loader result the same cache key.
+function createSharedLoaderCase() {
+	return {
+		description:
+			"should run a cached loader again when a new persistent cache comes from another root",
+		async run() {
+			const tempRoot = fs.realpathSync(
+				fs.mkdtempSync(path.join(os.tmpdir(), "rspack-cache-other-root-"))
+			);
+			try {
+				const shared = path.join(tempRoot, "shared");
+				const loader = path.join(shared, "root-context-loader.cjs");
+				fs.mkdirSync(shared);
+				fs.writeFileSync(path.join(shared, "value.js"), "export default ROOT_CONTEXT;\n");
+				fs.writeFileSync(
+					loader,
+					'module.exports = function (source) {\n\treturn source.replace("ROOT_CONTEXT", JSON.stringify(this.rootContext));\n};\n'
+				);
+				const options = {
+					newCache: true,
+					portable: false,
+					rules: [{ test: /value\.js$/, use: [{ loader, cache: true }] }]
+				};
+				const roots = ["a", "b"].map(name => path.join(tempRoot, name));
+				for (const root of roots) {
+					fs.mkdirSync(path.join(root, "src"), { recursive: true });
+					fs.writeFileSync(
+						path.join(root, "src", "index.js"),
+						'import value from "../../shared/value.js";\nconsole.log(value);\n'
+					);
+				}
+				const [rootA, rootB] = roots;
+
+				const outputA = await build(rootA, options);
+				expect(outputA.code).toContain(JSON.stringify(rootA));
+
+				fs.cpSync(cacheDirectory(rootA), cacheDirectory(rootB), { recursive: true });
+				const outputB = await build(rootB, options);
+				expect(outputB.code).toContain(JSON.stringify(rootB));
+				expect(outputB.code).not.toContain(JSON.stringify(rootA));
+			} finally {
+				fs.rmSync(tempRoot, { recursive: true, force: true, maxRetries: 3 });
+			}
+		}
+	};
+}
+
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 export default [
 	createCase({ newCache: false, portable: false }),
 	createCase({ newCache: true, portable: false }),
-	createCase({ newCache: true, portable: true })
+	createCase({ newCache: true, portable: true }),
+	createSharedLoaderCase()
 ];
