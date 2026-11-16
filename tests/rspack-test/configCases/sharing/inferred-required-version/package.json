@@ -10,6 +10,7 @@
     "tag": "latest",
     "empty": "  ",
     "url-without-version": "https://github.com/example/lib.git",
+    "url-empty-fragment": "https://github.com/example/lib.git#",
     "optional-priority": "^1.2.0",
     "semver": "  ^1.2.0  ",
     "git-short": "github:example/lib#semver:^1.2.0",
@@ -25,6 +26,10 @@
     "gitlab": "https://gitlab.com/group/subgroup/lib.git#semver:^1.2.0",
     "bitbucket": "https://bitbucket.org/example/lib.git#semver:^1.2.0",
     "gist": "https://gist.github.com/example/1234#semver:^1.2.0",
+    "gist-without-user": "https://gist.github.com/0123456789abcdef0123456789abcdef#semver:^1.2.0",
+    "gist-trailing-slash": "https://gist.github.com/0123456789abcdef0123456789abcdef/#semver:^1.2.0",
+    "gist-without-user-mismatch": "https://gist.github.com/0123456789abcdef0123456789abcdef#semver:^1.2.0",
+    "gist-trailing-slash-mismatch": "https://gist.github.com/0123456789abcdef0123456789abcdef/#semver:^1.2.0",
     "invalid-url": "https://gitlab.com/example/%zz#semver:^1.2.0",
     "github-blob": "https://github.com/example/lib/blob/v1.2.3#semver:^1.2.0",
     "gist-raw": "https://gist.github.com/example/1234/raw#semver:^1.2.0"

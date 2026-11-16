@@ -84,6 +84,7 @@ pub(super) fn normalize_version(version: &str) -> String {
   let hostname = hostname.strip_prefix("www.").unwrap_or(hostname);
   let hash = parsed
     .fragment()
+    .filter(|hash| !hash.is_empty())
     .map_or(String::new(), |hash| format!("#{hash}"));
   let hash = decode_url_component(&hash).unwrap_or_else(|| hash.clone().into());
   let path = parsed.path();
@@ -133,7 +134,10 @@ pub(super) fn normalize_version(version: &str) -> String {
     "gist.github.com" => {
       let mut parts = path.split('/').skip(1);
       let user = parts.next().unwrap_or_default();
-      let project = parts.next().unwrap_or(user);
+      let project = parts
+        .next()
+        .filter(|project| !project.is_empty())
+        .unwrap_or(user);
       if project.trim_end_matches(".git").is_empty() || parts.next() == Some("raw") {
         return String::new();
       }
