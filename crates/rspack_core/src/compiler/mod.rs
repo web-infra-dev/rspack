@@ -288,8 +288,8 @@ impl Compiler {
           self
             .compiler_context
             .set_dependency_id(restored.max_dependency_id);
+          meta_cache.record_reuse();
         }
-        meta_cache.record_reuse();
       }
     }
     // TODO: clear the outdated cache entries in resolver,
