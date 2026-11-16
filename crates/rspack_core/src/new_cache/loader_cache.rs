@@ -97,6 +97,7 @@ pub(crate) fn create_loader_cache(
   if !options.experiments.new_cache.loader {
     return None;
   }
+  let context = options.context.as_path();
   let logger = || Arc::new(compiler_cache.logger().get_child("loader"));
   let options = match &options.cache {
     CacheOptions::Disabled => return None,
@@ -117,6 +118,9 @@ pub(crate) fn create_loader_cache(
   let StorageOptions::FileSystem { directory, .. } = &options.storage;
   let location = directory.join("loader");
   let key = InternedPath::from(location.as_path());
+  // Loader results are not rebased, so the database is bound to the project context.
+  let codec = Arc::new(CacheCodec::new(None));
+  let version = codec.validation_version(&options.version, context);
 
   let entry = loop {
     match PERSISTENT_LOADER_CACHES.entry(key.clone()) {
@@ -124,7 +128,7 @@ pub(crate) fn create_loader_cache(
       Entry::Occupied(mut entry) => {
         if let Some(cache) = entry.get().cache.upgrade() {
           drop(entry);
-          if cache.matches_file_cache_version(&options.version) {
+          if cache.matches_file_cache_version(&version) {
             return Some(cache);
           }
           return memory_cache(options.max_memory_generations)
@@ -144,8 +148,8 @@ pub(crate) fn create_loader_cache(
   let strategy = FileCacheStrategy::new(
     false,
     rspack_workspace::rspack_pkg_version!().to_string(),
-    options.version.clone(),
-    Arc::new(CacheCodec::new(None)),
+    version,
+    codec,
     // Omit FileSystemInfo to skip database-wide build dependency tracking.
     None,
     Arc::clone(&logger),
