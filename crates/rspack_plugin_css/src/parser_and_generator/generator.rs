@@ -11,9 +11,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_intern::Atom;
-use rspack_util::{
-  fx_hash::FxIndexMap, itoa, json_stringify, json_stringify_str, source_map::SourceMapKind,
-};
+use rspack_util::{fx_hash::FxIndexMap, itoa, json_stringify, json_stringify_str};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use smol_str::SmolStr;
 
@@ -482,12 +480,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       .collect::<Vec<_>>();
     self.render_ordered_css_sources(&mut walker, &mut builder, &render_conditions)?;
     Ok(json_stringify_str(
-      &builder.into_css_text(
-        self
-          .module
-          .get_source_map_kind()
-          .contains(SourceMapKind::Inline),
-      ),
+      &builder.into_css_text(*self.module.get_source_map_kind()),
     ))
   }
 
@@ -539,14 +532,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       render_conditions,
       self.css_build_info.has_charset,
     );
-    let css_text = json_stringify_str(
-      &builder.into_css_text(
-        self
-          .module
-          .get_source_map_kind()
-          .contains(SourceMapKind::Inline),
-      ),
-    );
+    let css_text = json_stringify_str(&builder.into_css_text(*self.module.get_source_map_kind()));
     let css_expression = RUNTIME_PUBLIC_PATH_MATCHER.replace_with(&css_text, || {
       let public_path = self
         .generate_context
