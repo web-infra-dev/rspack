@@ -18,8 +18,9 @@ import { createWorkerModule } from './workerModule';
 import { getWorkerOptionsCache, reuseWorkerOptions } from './workerOptions';
 import type { NormalModule } from '../NormalModule';
 import type { LoaderContext } from '../config';
+import { getRawResolve } from '../config/adapter';
 import type { ResolveCallback } from '../config/adapterRuleUse';
-import type { ResolveRequest } from '../Resolver';
+import { Resolver, type ResolveRequest } from '../Resolver';
 import * as swc from '../swc';
 import { cleverMerge } from '../util/cleverMerge';
 import { createHash } from '../util/createHash';
@@ -804,6 +805,16 @@ async function executeStrictLoader(task: JsStrictLoaderTask): Promise<void> {
     const result = await runLoaders(undefined, context, {
       module: module.module,
       strictCompiler: createStrictLoaderCompiler(task.owner),
+      getResolver(options = {}) {
+        const { dependencyType, resolveToContext, ...resolve } = options;
+        return new Resolver(
+          task.getResolver({
+            ...getRawResolve(resolve),
+            dependencyType,
+            resolveToContext,
+          }),
+        );
+      },
     });
     task.complete(result);
   } catch (error) {

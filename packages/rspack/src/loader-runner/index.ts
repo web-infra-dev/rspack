@@ -38,7 +38,8 @@ import {
 import type { RuleSetLoaderWithOptions } from '../config/types';
 import { Logger } from '../logging/Logger';
 import { NormalModule } from '../NormalModule';
-import type { ResolveContext } from '../Resolver';
+import type { ResolveContext, Resolver } from '../Resolver';
+import type { ResolveOptionsWithDependencyType } from '../ResolverFactory';
 import { NonErrorEmittedError, type RspackError } from '../RspackError';
 import { JavaScriptTracer } from '../trace';
 import {
@@ -285,6 +286,7 @@ export async function runLoaders(
   worker?: {
     module: NonNullable<JsLoaderContext['_module']>;
     strictCompiler?: StrictLoaderCompiler;
+    getResolver: (options?: ResolveOptionsWithDependencyType) => Resolver;
   },
 ): Promise<JsLoaderContext> {
   const strictCompiler = worker?.strictCompiler;
@@ -578,17 +580,25 @@ export async function runLoaders(
   };
 
   const getResolver = memoize(() => {
-    if (strictCompiler) throw strictLoaderError('resolve and getResolve');
     return compiler!._lastCompilation!.resolverFactory.get('normal');
   });
 
   loaderContext.resolve = function resolve(context, request, callback) {
-    getResolver().resolve({}, context, request, getResolveContext(), callback);
+    (worker ? worker.getResolver() : getResolver()).resolve(
+      {},
+      context,
+      request,
+      getResolveContext(),
+      callback,
+    );
   };
 
   loaderContext.getResolve = function getResolve(options) {
-    const resolver = getResolver();
-    const child = options ? resolver.withOptions(options) : resolver;
+    const child = worker
+      ? worker.getResolver(options)
+      : options
+        ? getResolver().withOptions(options)
+        : getResolver();
 
     function resolveWithOptions(
       context: string,

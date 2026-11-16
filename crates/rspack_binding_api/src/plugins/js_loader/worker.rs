@@ -12,7 +12,14 @@ use rustc_hash::FxHashMap;
 use tokio_util::sync::CancellationToken;
 
 use super::{JsLoaderContext, scheduler::collect_loaders_without_pitch};
-use crate::module::WorkerModuleScope;
+use crate::{
+  error::RspackResultToNapiResultExt,
+  module::WorkerModuleScope,
+  options::raw_resolve::{
+    RawResolveOptionsWithDependencyType, normalize_raw_resolve_options_with_dependency_type,
+  },
+  resolver::JsResolver,
+};
 
 type LoaderTask = Task<rspack_core::StrictLoaderTask, (JsLoaderContext, Vec<String>)>;
 type ActiveTask = Arc<Mutex<Option<(LoaderTask, Option<Arc<WorkerModuleScope>>)>>>;
@@ -106,6 +113,28 @@ pub struct JsStrictLoaderTask {
 
 #[napi]
 impl JsStrictLoaderTask {
+  #[napi]
+  pub fn get_resolver(
+    &self,
+    options: Option<RawResolveOptionsWithDependencyType>,
+  ) -> napi::Result<JsResolver> {
+    let active = self.task.lock().expect("strict loader task lock poisoned");
+    let (task, _) = active
+      .as_ref()
+      .ok_or_else(|| napi::Error::from_reason("Strict loader task has finished"))?;
+    let native = task
+      .payload()
+      .context
+      .as_ref()
+      .and_then(std::sync::Weak::upgrade)
+      .ok_or_else(|| napi::Error::from_reason("Strict loader context has expired"))?;
+    let options =
+      normalize_raw_resolve_options_with_dependency_type(options, false).to_napi_result()?;
+    Ok(JsResolver::new(
+      native.context.resolver_factory.get(options),
+    ))
+  }
+
   #[napi(getter)]
   pub fn owner(&self) -> napi::Result<u32> {
     self

@@ -23,7 +23,6 @@ function assertStrict(context) {
     () => context._module.buildInfo[Symbol.for('rspack.buildInfo.assets')],
     () => context.fs,
     () => context.loaders[0].options,
-    () => context.getResolve(),
     () => context.importModule('./value.js'),
     () => context.emitWarning(new Error('unavailable')),
   ]) {
@@ -33,6 +32,7 @@ function assertStrict(context) {
 }
 
 module.exports = function (content, map, data) {
+  assert.equal(typeof this.getResolve(), 'function');
   assertStrict(this);
   assert.equal(data, undefined);
   if (this.getOptions().consume) {

@@ -383,6 +383,7 @@ export declare class JsStats {
 }
 
 export declare class JsStrictLoaderTask {
+  getResolver(options?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
   get owner(): number
   takeContext(): JsLoaderContext
   complete(context: JsLoaderContext): void
