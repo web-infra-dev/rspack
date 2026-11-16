@@ -12,7 +12,7 @@ export function encodeVersion(version: string) {
 }
 
 export function decodeVersion(n: number) {
-  const major = (n >> 16) & 0xff;
+  const major = n >>> 16;
   const minor = (n >> 8) & 0xff;
   const patch = n & 0xff;
   return `${major}.${minor}.${patch}`;

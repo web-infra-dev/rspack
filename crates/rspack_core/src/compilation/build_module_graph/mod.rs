@@ -12,7 +12,9 @@ use rustc_hash::FxHashSet;
 use tracing::instrument;
 
 pub use self::{
-  graph_updater::{UpdateParam, update_module_graph},
+  graph_updater::{
+    ModuleGraphUpdateResult, UpdateParam, expand_rebuild_modules, update_module_graph,
+  },
   lazy_barrel_artifact::{
     ForwardId, ForwardedIdSet, HasLazyDependencies, LazyDependencies, LazyUntil, ModuleToLazyMake,
   },
@@ -31,18 +33,15 @@ pub async fn do_build_module_graph(compilation: &mut Compilation) -> Result<()> 
   // run module_executor
   if let Some(module_executor) = &mut compilation.module_executor {
     let mut module_executor = std::mem::take(module_executor);
-    module_executor
-      .before_build_module_graph(compilation)
-      .await?;
+    let result = module_executor.before_build_module_graph(compilation).await;
     compilation.module_executor = Some(module_executor);
+    result?;
   }
 
   let artifact = compilation.build_module_graph_artifact.steal();
   let exports_info_artifact = compilation.exports_info_artifact.steal();
-  let (artifact, exports_info_artifact) =
-    build_module_graph(compilation, artifact, exports_info_artifact).await?;
-  compilation.build_module_graph_artifact = artifact.into();
-  compilation.exports_info_artifact = exports_info_artifact.into();
+  let update = build_module_graph(compilation, artifact, exports_info_artifact).await;
+  compilation.apply_module_graph_update(update)?;
 
   compilation.in_finish_make.store(true, Ordering::Release);
 
@@ -57,7 +56,7 @@ pub async fn build_module_graph(
   compilation: &Compilation,
   mut artifact: BuildModuleGraphArtifact,
   exports_info_artifact: ExportsInfoArtifact,
-) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+) -> ModuleGraphUpdateResult {
   let mut params = Vec::with_capacity(6);
 
   if !compilation.entries.is_empty() {
@@ -75,9 +74,17 @@ pub async fn build_module_graph(
 
   // reset temporary data
   artifact.reset_temporary_data();
-  let artifacts = update_module_graph(compilation, artifact, exports_info_artifact, params).await?;
-  graph_updater::settle::settle_factory_decisions(compilation, artifacts.0, artifacts.1, false)
-    .await
+  let update = update_module_graph(compilation, artifact, exports_info_artifact, params).await;
+  if update.result.is_err() {
+    return update;
+  }
+  graph_updater::settle::settle_factory_decisions(
+    compilation,
+    update.artifact,
+    update.exports_info_artifact,
+    false,
+  )
+  .await
 }
 
 /// Clean up module graph when finish make.
@@ -91,8 +98,8 @@ pub async fn finish_build_module_graph(
   compilation: &Compilation,
   artifact: BuildModuleGraphArtifact,
   exports_info_artifact: ExportsInfoArtifact,
-) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
-  let (artifact, exports_info_artifact) = update_module_graph(
+) -> ModuleGraphUpdateResult {
+  let update = update_module_graph(
     compilation,
     artifact,
     exports_info_artifact,
@@ -100,11 +107,14 @@ pub async fn finish_build_module_graph(
       compilation,
     ))],
   )
-  .await?;
+  .await;
+  if update.result.is_err() {
+    return update;
+  }
   graph_updater::settle::settle_factory_decisions(
     compilation,
-    artifact,
-    exports_info_artifact,
+    update.artifact,
+    update.exports_info_artifact,
     true,
   )
   .await

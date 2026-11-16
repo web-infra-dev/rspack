@@ -60,6 +60,10 @@ function compatibleFetch(
     createGunzip,
     createInflate,
   } = require('node:zlib');
+  const {
+    pipeline,
+    Writable,
+  }: typeof import('node:stream') = require('node:stream');
 
   return new Promise<{ res: IncomingMessage; body: Buffer }>(
     (resolve, reject) => {
@@ -67,28 +71,37 @@ function compatibleFetch(
         .get(url, options, (res) => {
           // align with https://github.com/webpack/webpack/blob/dec18718be5dfba28f067fb3827dd620a1f33667/lib/schemes/HttpUriPlugin.js#L807
           const contentEncoding = res.headers['content-encoding'];
-          /** @type {Readable} */
-          let stream = res;
+          const streams: (NodeJS.ReadableStream | NodeJS.WritableStream)[] = [
+            res,
+          ];
           if (contentEncoding === 'gzip') {
-            stream = stream.pipe(createGunzip()) as IncomingMessage;
+            streams.push(createGunzip());
           } else if (contentEncoding === 'br') {
-            stream = stream.pipe(createBrotliDecompress()) as IncomingMessage;
+            streams.push(createBrotliDecompress());
           } else if (contentEncoding === 'deflate') {
-            stream = stream.pipe(createInflate()) as IncomingMessage;
+            streams.push(createInflate());
           }
           const chunks: Buffer[] = [];
-          stream.on('data', (chunk) => {
-            chunks.push(chunk);
-          });
-          stream.on('end', () => {
-            const bodyBuffer = Buffer.concat(chunks);
+          streams.push(
+            new Writable({
+              write(chunk, _encoding, callback) {
+                chunks.push(chunk);
+                callback();
+              },
+            }),
+          );
+          pipeline(streams, (error) => {
+            if (error) {
+              reject(error);
+              return;
+            }
             if (!res.complete) {
               reject(new Error(`${url} request was terminated early`));
               return;
             }
             resolve({
               res,
-              body: bodyBuffer,
+              body: Buffer.concat(chunks),
             });
           });
         })

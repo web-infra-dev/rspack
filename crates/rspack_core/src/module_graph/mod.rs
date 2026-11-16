@@ -8,7 +8,7 @@ use rayon::prelude::*;
 use rspack_collections::{IdentifierHasher, IdentifierMap};
 use rspack_error::Result;
 use rspack_intern::Atom;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
@@ -99,6 +99,8 @@ pub(crate) struct ModuleGraphData {
 
   /// Dependencies indexed by `DependencyId`.
   dependencies: rollback::DenseDependencyIdMap<DependencyRef>,
+  /// Current make-stage deferrals, kept with the graph across incremental rebuilds.
+  lazy_dependencies: FxHashSet<DependencyId>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: AsyncDependenciesBlockIdentifierMap<AsyncDependenciesBlockRef>,
 
@@ -175,6 +177,21 @@ impl ModuleGraph {
 }
 
 impl ModuleGraph {
+  #[inline]
+  pub fn is_lazy_dependency(&self, dependency: &DependencyId) -> bool {
+    self.inner.lazy_dependencies.contains(dependency)
+  }
+
+  #[inline]
+  pub fn add_lazy_dependency(&mut self, dependency: DependencyId) {
+    self.inner.lazy_dependencies.insert(dependency);
+  }
+
+  #[inline]
+  pub fn remove_lazy_dependency(&mut self, dependency: &DependencyId) -> bool {
+    self.inner.lazy_dependencies.remove(dependency)
+  }
+
   #[inline]
   pub fn modules_len(&self) -> usize {
     self.inner.modules.len()
@@ -308,6 +325,7 @@ impl ModuleGraph {
       self.inner.dependency_id_to_connection_id.remove(dep_id);
     }
     if force {
+      self.inner.lazy_dependencies.remove(dep_id);
       self.inner.dependencies.remove(dep_id);
       self.inner.dependency_id_to_parents.remove(dep_id);
       self.inner.connection_to_condition.remove(dep_id);
@@ -1233,13 +1251,13 @@ pub(crate) fn build_input_dependencies(
 pub(crate) fn can_refactorize_group<'a>(
   parent: &dyn crate::Module,
   lazy: Option<&crate::compilation::build_module_graph::LazyDependencies>,
-  mut group: impl Iterator<Item = (DependencyId, &'a DependencyRef, bool)>,
+  mut group: impl Iterator<Item = (DependencyId, &'a DependencyRef, bool, bool)>,
 ) -> bool {
   parent.as_normal_module().is_some()
-    && group.all(|(id, dep, is_build_input)| {
+    && group.all(|(id, dep, is_build_input, deferred)| {
       is_build_input
+        && !deferred
         && lazy.is_none_or(|lazy| !lazy.all_lazy_dependencies().any(|lazy_id| lazy_id == id))
-        && dep.lazy().is_none()
         && dep.as_module_dependency().is_some()
         && dep.as_context_dependency().is_none()
     })

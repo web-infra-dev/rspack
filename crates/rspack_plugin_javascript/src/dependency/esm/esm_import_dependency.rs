@@ -1,10 +1,4 @@
-use std::sync::atomic::{AtomicBool, Ordering};
-
-use rspack_cacheable::{
-  cacheable, cacheable_dyn,
-  rkyv::with::{AtomicLoad, Relaxed},
-  with::AsPreset,
-};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AwaitDependenciesInitFragment, BuildMetaDefaultObject, ChunkGraph,
@@ -19,6 +13,7 @@ use rspack_core::{
   TypeReexportPresenceMode, filter_runtime,
 };
 use rspack_error::{Diagnostic, Error, Severity};
+use rspack_hash::{RspackHash, RspackHasher};
 
 use crate::Atom;
 
@@ -74,8 +69,6 @@ pub struct ESMImportSideEffectDependency {
   attributes: Option<ImportAttributes>,
   resource_identifier: ResourceIdentifier,
   loc: Option<DependencyLocation>,
-  #[cacheable(with=AtomicLoad<Relaxed>)]
-  lazy_make: AtomicBool,
   star_export: bool,
 }
 
@@ -102,13 +95,12 @@ impl ESMImportSideEffectDependency {
       attributes,
       resource_identifier,
       loc,
-      lazy_make: AtomicBool::new(false),
       star_export,
     }
   }
 
-  fn missing_module_active(&self) -> bool {
-    !self.lazy_make.load(Ordering::Relaxed)
+  fn missing_module_active(&self, module_graph: &ModuleGraph) -> bool {
+    !module_graph.is_lazy_dependency(&self.id)
   }
 }
 
@@ -148,7 +140,8 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   }
 
   let target_module = module_graph.get_module_by_dependency_id(module_dependency.id());
-  if module_dependency.weak() {
+  let weak = module_dependency.weak() || module_graph.is_lazy_dependency(module_dependency.id());
+  if weak {
     // lazy
     if target_module.is_none() {
       return;
@@ -162,7 +155,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     }
   }
 
-  let runtime_condition = if module_dependency.weak() {
+  let runtime_condition = if weak {
     RuntimeCondition::Boolean(false)
   } else if let Some(connection) = connection {
     filter_runtime(*runtime, |r| {
@@ -394,17 +387,28 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
           return None;
         }
       }
-      let mut pos = 0;
+      let mut rest = ids;
+      let mut is_fake_namespace = false;
       let mut maybe_exports_info =
         Some(exports_info_artifact.get_exports_info_data(&imported_module_identifier));
-      while pos < ids.len()
+      while let Some((id, tail)) = rest.split_first()
         && let Some(exports_info) = &maybe_exports_info
       {
-        let id = &ids[pos];
-        pos += 1;
+        rest = tail;
+        if is_fake_namespace && id == "default" {
+          is_fake_namespace = false;
+          continue;
+        }
         let export_info = exports_info.get_read_only_export_info(id);
         if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
-          let provided_exports = exports_info.get_provided_exports();
+          let mut provided_exports = exports_info.get_provided_exports();
+          if is_fake_namespace
+            && let ProvidedExports::ProvidedNames(names) = &mut provided_exports
+            && !names.iter().any(|name| name == "default")
+          {
+            names.push("default".into());
+            names.sort_unstable();
+          }
           let more_info = if let ProvidedExports::ProvidedNames(exports) = &provided_exports {
             if exports.is_empty() {
               " (module has no exports)".to_string()
@@ -423,9 +427,8 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
           };
           let msg = format!(
             "export {} {} was not found in '{}'{more_info}",
-            ids
+            ids[..ids.len() - tail.len()]
               .iter()
-              .take(pos)
               .map(|id| format!("'{id}'"))
               .collect::<Vec<_>>()
               .join("."),
@@ -438,6 +441,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
           maybe_exports_info = None;
           continue;
         };
+        is_fake_namespace = export_info.default_points_to_self();
         maybe_exports_info = Some(nested_exports_info.as_data(exports_info_artifact));
       }
       let msg = format!(
@@ -585,7 +589,7 @@ impl Dependency for ESMImportSideEffectDependency {
         connection_state_cache,
       )
     } else {
-      ConnectionState::Active(self.missing_module_active())
+      ConnectionState::Active(self.missing_module_active(module_graph))
     }
   }
 
@@ -611,22 +615,12 @@ impl Dependency for ESMImportSideEffectDependency {
     ForwardId::Empty
   }
 
-  fn lazy(&self) -> Option<LazyUntil> {
-    self.lazy_make.load(Ordering::Relaxed).then(|| {
-      if self.star_export {
-        LazyUntil::Fallback
-      } else {
-        LazyUntil::NoUntil
-      }
+  fn lazy_until(&self) -> Option<LazyUntil> {
+    (self.dependency_type == DependencyType::EsmExportImport).then_some(if self.star_export {
+      LazyUntil::Fallback
+    } else {
+      LazyUntil::NoUntil
     })
-  }
-
-  fn set_lazy(&self) {
-    self.lazy_make.store(true, Ordering::Relaxed);
-  }
-
-  fn unset_lazy(&self) -> bool {
-    self.lazy_make.swap(false, Ordering::Relaxed)
   }
 }
 
@@ -674,17 +668,26 @@ impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
         &mut IdentifierMap::default(),
       )
     } else {
-      let dependency = module_graph.dependency_by_id(&conn.dependency_id);
-      let dependency = dependency
-        .downcast_ref::<ESMImportSideEffectDependency>()
-        .expect("should be ESMImportSideEffectDependency");
-      ConnectionState::Active(dependency.missing_module_active())
+      ConnectionState::Active(!module_graph.is_lazy_dependency(&conn.dependency_id))
     }
   }
 }
 
 #[cacheable_dyn]
 impl DependencyCodeGeneration for ESMImportSideEffectDependency {
+  fn update_hash(
+    &self,
+    hasher: &mut RspackHasher,
+    compilation: &rspack_core::Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+    // A deferred target emits nothing; a missing target emits an error.
+    compilation
+      .get_module_graph()
+      .is_lazy_dependency(&self.id)
+      .hash(hasher);
+  }
+
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ESMImportSideEffectDependencyTemplate::template_type())
   }
@@ -720,7 +723,7 @@ impl DependencyTemplate for ESMImportSideEffectDependencyTemplate {
 
     let module = module_graph.get_module_by_dependency_id(&dep.id);
 
-    if module.is_none() && !dep.missing_module_active() {
+    if module.is_none() && !dep.missing_module_active(module_graph) {
       return;
     }
 

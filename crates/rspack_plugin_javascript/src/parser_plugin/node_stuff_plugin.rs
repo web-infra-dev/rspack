@@ -6,7 +6,6 @@ use rspack_core::{
   parse_resource,
 };
 use rspack_error::{Diagnostic, cyan, yellow};
-use rspack_util::SpanExt;
 use sugar_path::SugarPath;
 use swc_next_ecma_ast::{Expr, GetSpan, Span, UnaryExpression};
 
@@ -109,6 +108,7 @@ impl NodeStuffPlugin {
     property: NodeMetaProperty,
   ) {
     Self::add_node_module_dependencies(parser, property);
+    parser.preserve_shorthand_key(ident_span);
     let place = if parser.compiler_options.output.module {
       CachedConstDependencyPlace::Chunk
     } else {
@@ -174,6 +174,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
         NodeDirnameOption::False => None,
       };
       if let Some(dirname) = dirname {
+        parser.preserve_shorthand_key(span);
         parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           span.into(),
           rspack_util::json_stringify_str(&dirname).into(),
@@ -208,6 +209,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
         NodeFilenameOption::False => None,
       };
       if let Some(filename) = filename {
+        parser.preserve_shorthand_key(span);
         parser.add_presentational_dependency(Arc::new(ConstDependency::new(
           span.into(),
           rspack_util::json_stringify_str(&filename).into(),
@@ -220,13 +222,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
         NodeGlobalOption::True | NodeGlobalOption::Warn
       )
     {
-      if parser.in_short_hand {
-        let start = span.real_lo();
-        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-          (start, start).into(),
-          format!("{for_name}: ").into(),
-        )));
-      }
+      parser.preserve_shorthand_key(span);
       parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
         span.into(),
         RuntimeGlobals::GLOBAL,

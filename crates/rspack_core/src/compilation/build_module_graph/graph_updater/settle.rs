@@ -5,7 +5,7 @@ use rspack_error::Result;
 use rustc_hash::FxHashSet;
 
 use super::{
-  UpdateParam,
+  ModuleGraphUpdateResult, UpdateParam,
   cutout::repair_issuer_cycles,
   repair::{
     context::TaskContext,
@@ -437,7 +437,10 @@ fn unverified_groups(
       let target = graph.get_module_by_dependency_id(&id);
       let recorded = if let Some(target) = target {
         GroupOutcome::Module(target.identifier())
-      } else if dependencies.iter().all(|dep| dep.lazy().is_some()) {
+      } else if dependencies
+        .iter()
+        .all(|dep| graph.is_lazy_dependency(dep.id()))
+      {
         GroupOutcome::SideEffectOnly
       } else {
         GroupOutcome::Ignored
@@ -448,9 +451,14 @@ fn unverified_groups(
           artifact
             .module_to_lazy_make
             .get_lazy_dependencies(&parent.identifier()),
-          dependencies
-            .iter()
-            .map(|dep| (*dep.id(), dep, inputs.contains_key(dep.id()))),
+          dependencies.iter().map(|dep| {
+            (
+              *dep.id(),
+              dep,
+              inputs.contains_key(dep.id()),
+              graph.is_lazy_dependency(dep.id()),
+            )
+          }),
         )
       });
       tasks.push(Box::new(VerifyTask {
@@ -484,9 +492,14 @@ pub(in super::super) async fn settle_factory_decisions(
   mut artifact: BuildModuleGraphArtifact,
   mut exports: ExportsInfoArtifact,
   complete: bool,
-) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+) -> ModuleGraphUpdateResult {
+  let settled = |artifact, exports_info_artifact, result| ModuleGraphUpdateResult {
+    artifact,
+    exports_info_artifact,
+    result,
+  };
   let Some(verified) = artifact.verify_factory_decisions.take() else {
-    return Ok((artifact, exports));
+    return settled(artifact, exports, Ok(()));
   };
   let start = Instant::now();
   let mut context = VerifyContext {
@@ -505,7 +518,9 @@ pub(in super::super) async fn settle_factory_decisions(
       &mut context,
       changed.take(),
     );
-    run_task_loop(&mut context, tasks).await?;
+    if let Err(error) = run_task_loop(&mut context, tasks, |_| {}).await {
+      return settled(artifact, exports, Err(error));
+    }
     rebuild_disagreeing_modules(&mut artifact, &mut context);
     if context.refactorize.is_empty() && context.rebuild.is_empty() {
       if !complete {
@@ -516,7 +531,7 @@ pub(in super::super) async fn settle_factory_decisions(
         artifact.verify_factory_decisions = Some(context.verified);
       }
       artifact.factory_choices.clear();
-      return Ok((artifact, exports));
+      return settled(artifact, exports, Ok(()));
     }
     // A rebuild replaces the groups of a module, and the new ones report their own decisions.
     let VerifyContext {
@@ -568,7 +583,7 @@ pub(in super::super) async fn settle_factory_decisions(
     changed_modules += context.rebuild.len();
     artifact.refactorize_dependencies = std::mem::take(&mut context.refactorize);
     context.refactorizing.clear();
-    (artifact, exports) = update_module_graph(
+    let update = update_module_graph(
       compilation,
       artifact,
       exports,
@@ -577,7 +592,11 @@ pub(in super::super) async fn settle_factory_decisions(
         UpdateParam::BuildEntryAndClean(super::super::entry_dependencies(compilation)),
       ],
     )
-    .await?;
+    .await;
+    if update.result.is_err() {
+      return update;
+    }
+    (artifact, exports) = (update.artifact, update.exports_info_artifact);
     // The targets whose groups changed decide again.
     let mut added = false;
     changed = before.and_then(|before| {

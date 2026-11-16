@@ -365,7 +365,6 @@ impl Dependency for CommonJsExportRequireDependency {
         &mut referenced_exports,
         prefix,
         Some(export_info),
-        false,
         &mut Default::default(),
       )
     }

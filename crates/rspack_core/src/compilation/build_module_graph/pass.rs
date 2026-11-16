@@ -1,3 +1,5 @@
+use std::sync::atomic::Ordering;
+
 use async_trait::async_trait;
 use rspack_error::Result;
 
@@ -45,28 +47,18 @@ impl PassExt for BuildModuleGraphPhasePass {
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
-    let plugin_driver = compilation.plugin_driver.clone();
-    let logger = compilation.get_logger("rspack.Compiler");
-    // align with webpack, make hook include build_module_graph phase in webpack
-    let start = logger.time("make hook");
-    make_hook_pass(compilation, plugin_driver.clone()).await?;
-    build_module_graph_pass(compilation).await?;
-    logger.time_end(start);
-
-    finish_make_pass(compilation, plugin_driver).await?;
-    finish_module_graph_pass(compilation).await?;
-
-    use crate::incremental::IncrementalPasses;
-    if compilation
-      .incremental
-      .passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH)
+    let _loader_cache_guard = compilation
+      .loader_cache()
+      .upgrade()
+      .map(|cache| cache.begin_build());
+    let result = run_build_module_graph_phase(compilation).await;
+    compilation.in_finish_make.store(false, Ordering::Release);
+    if result.is_err()
+      && let Some(executor) = compilation.module_executor.take()
     {
-      compilation
-        .build_module_graph_artifact
-        .module_graph
-        .checkpoint();
+      executor.abort().await;
     }
-    Ok(())
+    result
   }
 
   async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) -> Result<()> {
@@ -84,4 +76,35 @@ impl PassExt for BuildModuleGraphPhasePass {
     cache.after_build_module_graph(compilation).await;
     Ok(())
   }
+}
+
+async fn run_build_module_graph_phase(compilation: &mut Compilation) -> Result<()> {
+  let plugin_driver = compilation.plugin_driver.clone();
+  let logger = compilation.get_logger("rspack.Compiler");
+  // align with webpack, make hook include build_module_graph phase in webpack
+  let start = logger.time("make hook");
+  make_hook_pass(compilation, plugin_driver.clone()).await?;
+  if let Some(error) = compilation.build_module_graph_error.take() {
+    return Err(error);
+  }
+  build_module_graph_pass(compilation).await?;
+  logger.time_end(start);
+
+  finish_make_pass(compilation, plugin_driver).await?;
+  if let Some(error) = compilation.build_module_graph_error.take() {
+    return Err(error);
+  }
+  finish_module_graph_pass(compilation).await?;
+
+  use crate::incremental::IncrementalPasses;
+  if compilation
+    .incremental
+    .passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH)
+  {
+    compilation
+      .build_module_graph_artifact
+      .module_graph
+      .checkpoint();
+  }
+  Ok(())
 }

@@ -168,6 +168,11 @@ impl Task<TaskContext> for FactorizeResultTask {
       // Some dependencies do not come from the process_dependencies task,
       // so add all dependencies here.
       artifact.affected_dependencies.mark_as_add(dep.id());
+      // Clear any previous deferral before the failure path returns; otherwise
+      // code generation would suppress the runtime error for a now-missing target.
+      artifact
+        .get_module_graph_mut()
+        .remove_lazy_dependency(dep.id());
     }
 
     let module_graph = artifact.get_module_graph_mut();
@@ -187,6 +192,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       let dep = &dependencies[0];
       tracing::trace!("Module make-skipped as side-effect-only import: {dep:?}");
       for dep in dependencies {
+        module_graph.add_lazy_dependency(*dep.id());
         module_graph.add_dependency_ref(dep)
       }
       return Ok(vec![]);
@@ -227,17 +233,7 @@ fn skip_side_effect_free_esm_import_side_effect_dependencies(
   module: &crate::BoxModule,
   dependencies: &[DependencyRef],
 ) -> bool {
-  let should_skip = is_side_effect_only_import(module, dependencies);
-
-  for dep in dependencies {
-    if should_skip {
-      dep.set_lazy();
-    } else {
-      dep.unset_lazy();
-    }
-  }
-
-  should_skip
+  is_side_effect_only_import(module, dependencies)
 }
 
 pub(crate) fn is_side_effect_only_import(

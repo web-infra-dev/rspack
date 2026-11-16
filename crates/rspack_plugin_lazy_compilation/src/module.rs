@@ -330,7 +330,14 @@ impl Module for LazyCompilationProxyModule {
 
       RawStringSource::from(format!(
         "{client}
-        {module_argument}.exports = {};
+        var load = function() {{ return {}; }};
+        var pending = load().then(
+          function(namespace) {{ pending = undefined; return namespace; }},
+          function(error) {{ pending = undefined; throw error; }}
+        );
+        {module_argument}.exports = {{
+          then: function(onFulfilled, onRejected) {{ return (pending || load()).then(onFulfilled, onRejected); }}
+        }};
         if ({module_argument}.hot) {{
           {module_argument}.hot.accept();
           {module_argument}.hot.accept({}, function() {{ {module_argument}.hot.invalidate(); }});
@@ -355,6 +362,8 @@ impl Module for LazyCompilationProxyModule {
         ),
       ))
     } else {
+      // This promise can only settle through a hot update. Reject it if HMR
+      // reaches a terminal status before the proxy is activated.
       RawStringSource::from(format!(
         "{client}
         var resolveSelf, onError;
@@ -362,7 +371,12 @@ impl Module for LazyCompilationProxyModule {
         if ({module_argument}.hot) {{
           {module_argument}.hot.accept();
           if ({module_argument}.hot.data && {module_argument}.hot.data.resolveSelf) {module_argument}.hot.data.resolveSelf({module_argument}.exports);
-          {module_argument}.hot.dispose(function(data) {{ data.resolveSelf = resolveSelf; dispose(data); }});
+          var onStatus = function(status) {{
+            if (status === \"abort\" || status === \"fail\") onError(new Error(\"Lazy compilation of \" + data + \" cannot finish because hot module replacement is in \" + status + \" status. Reload the page.\"));
+          }};
+          onStatus({module_argument}.hot.status());
+          {module_argument}.hot.addStatusHandler(onStatus);
+          {module_argument}.hot.dispose(function(data) {{ {module_argument}.hot.removeStatusHandler(onStatus); data.resolveSelf = resolveSelf; dispose(data); }});
         }}
         {keep_active}
       "
