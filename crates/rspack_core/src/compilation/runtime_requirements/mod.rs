@@ -600,11 +600,21 @@ pub async fn process_chunks_runtime_requirements(
           .expect("should have runtime module");
         let runtime_requirements = runtime_module.runtime_requirements(compilation);
         let source_requirements = runtime_module.get_custom_source().runtime_requirements;
+        // Only the loader's own bindings need to be allocated here. Reading an
+        // optional helper in plugin code must not enable a bootstrap action such
+        // as calling onChunksLoaded when the plugin never requested its provider.
         compilation
           .cgc_runtime_requirements_artifact
           .entry(chunk_ukey)
           .or_default()
-          .insert(source_requirements);
+          .insert(source_requirements.intersection(
+            RuntimeGlobals::REQUIRE
+              | RuntimeGlobals::REQUIRE_SCOPE
+              | RuntimeGlobals::MODULE_FACTORIES
+              | RuntimeGlobals::MODULE_CACHE
+              | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
+              | RuntimeGlobals::DEFERRED_MODULE_EXPORTS,
+          ));
         // Opaque runtime source may both read and replace every referenced global.
         metadata.context_setter_fields.insert(source_requirements);
         metadata

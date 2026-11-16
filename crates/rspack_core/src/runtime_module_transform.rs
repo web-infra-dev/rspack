@@ -1,11 +1,13 @@
 use rspack_error::{Result, error};
 use rspack_sources::{RawStringSource, ReplaceSource, Source};
+use rustc_hash::FxHashSet;
 use swc_core::{
+  atoms::Atom,
   common::{FileName, GLOBALS, Globals, Mark, SourceMap, Span, Spanned, SyntaxContext},
   ecma::{
     ast::{
-      AssignExpr, AssignTarget, Expr, Ident, Lit, MemberExpr, MemberProp, Prop, SimpleAssignTarget,
-      UpdateExpr,
+      AssignExpr, AssignOp, AssignPatProp, AssignTarget, Expr, Id, Ident, Lit, MemberExpr,
+      MemberProp, Prop, SimpleAssignTarget, UpdateExpr,
     },
     parser::{EsSyntax, Syntax, parse_file_as_program},
     transforms::base::resolver,
@@ -23,6 +25,7 @@ use crate::{
 pub(crate) fn transform_runtime_module_source(
   source: String,
   render_mode: RuntimeGlobalsRenderMode,
+  is_custom: bool,
 ) -> Result<RuntimeModuleCustomSource> {
   GLOBALS.set(&Globals::new(), || {
     let cm = SourceMap::default();
@@ -46,7 +49,8 @@ pub(crate) fn transform_runtime_module_source(
       return Err(error!("Cannot parse runtime module: {:?}", e.kind()));
     }
     let unresolved_mark = Mark::new();
-    program.visit_mut_with(&mut resolver(unresolved_mark, Mark::new(), false));
+    let top_level_mark = Mark::new();
+    program.visit_mut_with(&mut resolver(unresolved_mark, top_level_mark, false));
     let mut visitor = RuntimeModuleVisitor {
       source: ReplaceSource::new(RawStringSource::from(source.clone())),
       source_start: fm.start_pos.0,
@@ -55,8 +59,40 @@ pub(crate) fn transform_runtime_module_source(
       context_require: RuntimeGlobalsRenderMode::RspackContext
         .render_runtime_globals(&RuntimeGlobals::REQUIRE),
       runtime_requirements: RuntimeGlobals::default(),
+      rendered_names: FxHashSet::default(),
+      original_ids: FxHashSet::default(),
     };
     program.visit_with(&mut visitor);
+    // A native hook can preserve its original top-level definitions (e.g.
+    // `var publicPath`). Plugin-local bindings must not capture a generated
+    // read, assignment or call to an ESM setter.
+    let top_level = SyntaxContext::empty().apply_mark(top_level_mark);
+    let conflicts = visitor
+      .original_ids
+      .iter()
+      .filter(|(sym, ctxt)| {
+        *ctxt != visitor.unresolved
+          && *ctxt != SyntaxContext::empty()
+          && visitor.rendered_names.contains(sym)
+          && (is_custom || *ctxt != top_level)
+      })
+      .cloned()
+      .collect::<FxHashSet<_>>();
+    if !conflicts.is_empty() {
+      let mut prefix = String::from("__rspack_local_");
+      while visitor
+        .original_ids
+        .iter()
+        .any(|(name, _)| name.starts_with(prefix.as_str()))
+      {
+        prefix.push('_');
+      }
+      program.visit_with(&mut LocalBindingRenamer {
+        conflicts,
+        prefix,
+        visitor: &mut visitor,
+      });
+    }
     Ok(RuntimeModuleCustomSource {
       source: Some(source),
       transformed_source: Some(visitor.source.source().into_string_lossy().into_owned()),
@@ -73,6 +109,48 @@ struct RuntimeModuleVisitor {
   render_mode: RuntimeGlobalsRenderMode,
   context_require: String,
   runtime_requirements: RuntimeGlobals,
+  rendered_names: FxHashSet<Atom>,
+  original_ids: FxHashSet<Id>,
+}
+
+struct LocalBindingRenamer<'a> {
+  conflicts: FxHashSet<Id>,
+  prefix: String,
+  visitor: &'a mut RuntimeModuleVisitor,
+}
+
+impl LocalBindingRenamer<'_> {
+  fn rename(&mut self, ident: &Ident, shorthand: bool) {
+    if self.conflicts.contains(&ident.to_id()) {
+      let key = if shorthand {
+        format!("{}: ", ident.sym)
+      } else {
+        String::new()
+      };
+      self
+        .visitor
+        .replace(ident.span, &format!("{key}{}{}", self.prefix, ident.sym));
+    }
+  }
+}
+
+impl Visit for LocalBindingRenamer<'_> {
+  fn visit_ident(&mut self, ident: &Ident) {
+    self.rename(ident, false);
+  }
+
+  fn visit_prop(&mut self, prop: &Prop) {
+    if let Prop::Shorthand(ident) = prop {
+      self.rename(ident, true);
+    } else {
+      prop.visit_children_with(self);
+    }
+  }
+
+  fn visit_assign_pat_prop(&mut self, prop: &AssignPatProp) {
+    self.rename(&prop.key.id, true);
+    prop.value.visit_with(self);
+  }
 }
 
 fn static_property(property: &MemberProp) -> Option<String> {
@@ -153,8 +231,19 @@ impl RuntimeModuleVisitor {
   }
 
   fn render_global(&mut self, global: RuntimeGlobals) -> String {
+    self.render_global_in(global, self.render_mode)
+  }
+
+  fn render_global_in(&mut self, global: RuntimeGlobals, mode: RuntimeGlobalsRenderMode) -> String {
     self.runtime_requirements.insert(global);
-    self.render_mode.render_runtime_globals(&global)
+    let rendered = mode.render_runtime_globals(&global);
+    self.rendered_names.insert(Atom::from(
+      rendered
+        .split(['.', '[', ' '])
+        .next()
+        .expect("runtime binding"),
+    ));
+    rendered
   }
 
   fn export_setter(&mut self, global: RuntimeGlobals) -> Option<String> {
@@ -164,7 +253,9 @@ impl RuntimeModuleVisitor {
       return None;
     }
     self.runtime_requirements.insert(global);
-    global.to_rspack_export_setter_name()
+    let setter = global.to_rspack_export_setter_name()?;
+    self.rendered_names.insert(Atom::from(setter.as_str()));
+    Some(setter)
   }
 }
 
@@ -198,6 +289,8 @@ impl Visit for RuntimeModuleVisitor {
     if let Some(global) = self.ident_global(ident) {
       let replacement = self.render_global(global);
       self.replace(ident.span, &replacement);
+    } else {
+      self.original_ids.insert(ident.to_id());
     }
   }
 
@@ -219,6 +312,21 @@ impl Visit for RuntimeModuleVisitor {
       AssignTarget::Simple(SimpleAssignTarget::Paren(paren)) => self.expr_global(&paren.expr),
       _ => None,
     };
+    if global == Some(RuntimeGlobals::REQUIRE)
+      && self.render_mode == RuntimeGlobalsRenderMode::RspackLexical
+      && assignment.op == AssignOp::Assign
+    {
+      // The bootstrap initially copies the loader into the module context.
+      // Keep module factories and lexical runtime calls on the same replacement.
+      let context = self.render_global_in(
+        RuntimeGlobals::REQUIRE,
+        RuntimeGlobalsRenderMode::RspackContext,
+      );
+      let lexical = self.render_global(RuntimeGlobals::REQUIRE);
+      self.replace(assignment.left.span(), &format!("{context} = {lexical}"));
+      assignment.right.visit_with(self);
+      return;
+    }
     let Some((global, setter)) =
       global.and_then(|global| self.export_setter(global).map(|setter| (global, setter)))
     else {

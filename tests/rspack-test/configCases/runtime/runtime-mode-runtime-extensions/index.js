@@ -1,5 +1,6 @@
 it("keeps runtime extension globals writable and preserves runtime scope", async () => {
   const extension = __webpack_require__.extension;
+  expect(__webpack_require__).toBe(extension.guardedRequire);
   expect(extension.shared).toBe(42);
   expect(extension.namespace).toBe(true);
   expect(extension.shadowed).toBe("local-context");

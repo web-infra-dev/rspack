@@ -51,20 +51,24 @@ export default [false, true].map((esm, index) =>
           return __webpack_require__.p + __rspack_context.p;
         })({ p: 'local' }, { p: '-context' });
         var originalEnsure = __webpack_require__.e;
-        __webpack_require__.e = function(chunkId) {
+        function ensureChunk(chunkId) {
           __webpack_require__.extension.calls++;
           return originalEnsure(chunkId);
-        };
+        }
+        __webpack_require__.e = ensureChunk;
+        var guardedRequire = new Proxy(__webpack_require__, {});
+        __webpack_require__ = guardedRequire;
         ${RuntimeGlobals.require}.extension = {
+          guardedRequire: guardedRequire,
           shared: extensionSharedValue,
           namespace: namespace.__esModule && secondNamespace.__esModule,
           shadowed: shadowed,
           literal: '中文😀__webpack_require__.p',
           strict: (function() { return this; })() === undefined,
           loadScriptType: typeof __webpack_require__.l,
-          scopedPath: (function(context, __rspack_context) {
-            return context + __rspack_context + __webpack_require__.p;
-          })('local-', 'context-'),
+          scopedPath: (function({ publicPath }, __rspack_context) {
+            return ({ publicPath }).publicPath + __rspack_context + __webpack_require__.p;
+          })({ publicPath: 'local-' }, 'context-'),
           calls: 0,
           ensure: __webpack_require__.e,
           replaceEnsure: function(value) { __webpack_require__.e = value; },
@@ -97,7 +101,7 @@ export default [false, true].map((esm, index) =>
           generate() {
             return `__webpack_require__.p += "async/";
             __webpack_require__.getAsyncPath = () => __webpack_require__.p;
-            __webpack_require__.setAsyncPath = value => { __webpack_require__.p = value; };`;
+            __webpack_require__.setAsyncPath = setPublicPath => { __webpack_require__.p = setPublicPath; };`;
           }
         }
         class GenerateOverrideRuntime extends RuntimeModule {

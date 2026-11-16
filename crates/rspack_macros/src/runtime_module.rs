@@ -83,7 +83,7 @@ pub fn impl_runtime_module(
         &mut self,
         source: String,
       ) -> ::rspack_error::Result<()> {
-        self.common.set_custom_source(source)
+        self.common.set_custom_source(source, ::rspack_core::RuntimeModule::is_custom(self))
       }
       fn set_generated_source(
         &mut self,

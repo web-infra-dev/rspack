@@ -124,6 +124,7 @@ const excludes = {
 		/^css-extract\/public-path-import-chunk-loading$/,
 		/^css-extract\/public-path-query$/,
 		/^css-extract\/with-contenthash$/,
+		/^runtime\/runtime-mode-plugin-extracted-styles$/,
 		/^css\/css-extract-with-bom$/,
 		/^css\/css-extract-with-bom-at-import$/,
 		/^css\/css-extract-with-bom-source-map$/,

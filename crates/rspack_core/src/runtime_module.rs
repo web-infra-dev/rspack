@@ -115,14 +115,14 @@ impl RuntimeModuleCustomSource {
     self.source.is_some() && !self.generated
   }
 
-  fn new(source: String, render_mode: RuntimeGlobalsRenderMode) -> Result<Self> {
+  fn new(source: String, render_mode: RuntimeGlobalsRenderMode, is_custom: bool) -> Result<Self> {
     if render_mode.is_legacy() {
       return Ok(Self {
         source: Some(source),
         ..Default::default()
       });
     }
-    transform_runtime_module_source(source, render_mode)
+    transform_runtime_module_source(source, render_mode, is_custom)
   }
 }
 
@@ -173,8 +173,8 @@ impl RuntimeModuleCommon {
     self.chunk
   }
 
-  pub fn set_custom_source(&mut self, source: String) -> Result<()> {
-    let source = RuntimeModuleCustomSource::new(source, self.render_mode)
+  pub fn set_custom_source(&mut self, source: String, is_custom: bool) -> Result<()> {
+    let source = RuntimeModuleCustomSource::new(source, self.render_mode, is_custom)
       .map_err(|error| error.wrap_err(format!("in runtime module {}", self.id)))?;
     self.custom_source = source;
     if !self.render_mode.is_legacy() {
@@ -188,7 +188,7 @@ impl RuntimeModuleCommon {
   }
 
   pub fn set_generated_source(&mut self, source: String) -> Result<()> {
-    self.set_custom_source(source)?;
+    self.set_custom_source(source, true)?;
     self.custom_source.generated = true;
     Ok(())
   }
@@ -215,7 +215,7 @@ impl RuntimeModuleCommon {
       {
         if render_mode != self.render_mode {
           return Ok(
-            RuntimeModuleCustomSource::new(source.clone(), render_mode)
+            RuntimeModuleCustomSource::new(source.clone(), render_mode, true)
               .map_err(|error| error.wrap_err(format!("in runtime module {}", self.id)))?
               .transformed_source
               .expect("transformed custom runtime source"),
@@ -231,7 +231,7 @@ impl RuntimeModuleCommon {
       }
       let source = module.generate(context).await?;
       if module.is_custom() && !render_mode.is_legacy() {
-        let source = RuntimeModuleCustomSource::new(source, render_mode)
+        let source = RuntimeModuleCustomSource::new(source, render_mode, true)
           .map_err(|error| error.wrap_err(format!("in runtime module {}", self.id)))?;
         return Ok(
           source

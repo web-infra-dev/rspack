@@ -15,10 +15,15 @@ pub(super) struct RspackExportRuntimeRenderer;
 
 fn render_runtime_global_specifiers(context: RuntimeImportRenderContext<'_>) -> FxIndexSet<String> {
   let mut specifiers = FxIndexSet::default();
-  if context
-    .runtime_requirements
-    .intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE)
-  {
+  let source_requirements = context
+    .compilation
+    .runtime_proxy_metadata_artifact
+    .get(context.chunk_ukey)
+    .map_or(RuntimeGlobals::default(), |metadata| {
+      metadata.context_setter_fields()
+    });
+  let read_requirements = context.runtime_requirements | source_requirements;
+  if read_requirements.intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE) {
     specifiers.insert(
       context
         .runtime_template
@@ -26,8 +31,7 @@ fn render_runtime_global_specifiers(context: RuntimeImportRenderContext<'_>) -> 
     );
   }
 
-  for (_, runtime_global) in context
-    .runtime_requirements
+  for (_, runtime_global) in read_requirements
     .renderable_require_scope()
     .difference(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE)
     .iter_names()
@@ -41,13 +45,6 @@ fn render_runtime_global_specifiers(context: RuntimeImportRenderContext<'_>) -> 
 
   let chunk = get_chunk(context.compilation, *context.chunk_ukey);
   let module_graph = context.compilation.get_module_graph();
-  let source_requirements = context
-    .compilation
-    .runtime_proxy_metadata_artifact
-    .get(context.chunk_ukey)
-    .map_or(RuntimeGlobals::default(), |metadata| {
-      metadata.context_setter_fields()
-    });
   let write_requirements = context
     .compilation
     .build_chunk_graph_artifact
