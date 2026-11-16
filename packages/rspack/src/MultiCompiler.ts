@@ -177,7 +177,7 @@ export class MultiCompiler {
     let commonPath = this.compilers[0].outputPath;
     for (const compiler of this.compilers) {
       while (
-        compiler.outputPath.indexOf(commonPath) !== 0 &&
+        !compiler.outputPath.startsWith(commonPath) &&
         /[/\\]/.test(commonPath)
       ) {
         commonPath = commonPath.replace(/[/\\][^/\\]*$/, '');

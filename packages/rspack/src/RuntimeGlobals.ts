@@ -40,7 +40,7 @@ export function __to_binding_runtime_globals(
     reversedCompilerRuntimeGlobals.set(value, key);
   }
 
-  for (const flag of Array.from(runtimeRequirements)) {
+  for (const flag of runtimeRequirements) {
     const item = reversedCompilerRuntimeGlobals.get(flag);
     if (typeof item === 'string') {
       res.value.push(item);
