@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 147
-- Update: main.LAST_HASH.hot-update.js, size: 27650
+- Update: main.LAST_HASH.hot-update.js, size: 28211
 
 ## Manifest
 
@@ -100,14 +100,20 @@ linkTag.href = fullhref;
 	return linkTag;
 }
 var extractCssFindStylesheet = function (href, fullhref) {
+	// HMR re-adds tags as `fullhref?<timestamp>`. Strip only that last query: one in the
+	// filename or the public path identifies the stylesheet.
+	var matches = function (dataHref) {
+		if (dataHref === href || dataHref === fullhref) return true;
+		var query = dataHref.lastIndexOf('?');
+		if (query < 0) return false;
+		dataHref = dataHref.slice(0, query);
+		return dataHref === href || dataHref === fullhref;
+	};
 	var existingLinkTags = document.getElementsByTagName("link");
 	for (var i = 0; i < existingLinkTags.length; i++) {
 		var tag = existingLinkTags[i];
 		var dataHref = tag.getAttribute("data-href") || tag.getAttribute("href");
-		if (dataHref) {
-			dataHref = dataHref.split('?')[0]
-		}
-		if (tag.rel === "stylesheet" && (dataHref === href || dataHref === fullhref)) return tag;
+		if (tag.rel === "stylesheet" && dataHref && matches(dataHref)) return tag;
 	}
 
 	var existingStyleTags = document.getElementsByTagName("style");
@@ -398,6 +404,7 @@ function hotApplyHandler(options) {
 		);
 		throw Error("RuntimeError: factory is undefined(" + module.id + ")");
 	};
+	warnUnexpectedRequire._hmrDisposed = true;
 
 	for (var moduleId in hotCurrentUpdate) {
 		if (__webpack_require__.o(hotCurrentUpdate, moduleId)) {
@@ -685,6 +692,9 @@ function hotApplyHandler(options) {
 				for (var o = 0; o < outdatedSelfAcceptedModules.length; o++) {
 					var item = outdatedSelfAcceptedModules[o];
 					var moduleId = item.module;
+					// A nested update may have removed a pending self-accepted module.
+					var factory = __webpack_require__.m[moduleId];
+					if (factory && factory._hmrDisposed) continue;
 					try {
 						item.require(moduleId);
 					} catch (err) {

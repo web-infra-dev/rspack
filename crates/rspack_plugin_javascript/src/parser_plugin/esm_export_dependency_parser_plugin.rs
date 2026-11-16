@@ -134,6 +134,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
   ) -> Option<bool> {
     let ast = parser.ast.ast;
     let statement_span = statement.span(ast);
+    if let Some(binding) = parser.definitions_db.resolve_with_symbol(local_id).1 {
+      parser
+        .dynamic_import_references
+        .record_exported_binding(binding);
+    }
     if parser.javascript_options.is_create_require_enabled() {
       parser
         .created_require_references

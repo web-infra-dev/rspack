@@ -77,6 +77,8 @@ import.meta.webpackHot.accept(
 
 如果 ESM 依赖使用了顶层 await，Rspack 会等它执行完成后再调用 `callback`。等待期间，导入值仍保留旧版本。省略回调时，更新过程同样会等待这些依赖。
 
+如果回调参数表达式本身包含 `await` 或 `yield`，例如 `accept('./library.js', await createCallback())`，该表达式会在注册时求值。后续更新会调用得到的回调函数，不会再次求值。
+
 在使用 CommonJS 时，你应该通过 `callback` 中的 `require()` 手动更新依赖模块。省略 `callback` 在这里没有任何意义。
 
 `callback` 可以返回 Promise。HMR 会等它完成后，再重新执行接受自身更新的模块并完成本次更新。与 webpack 一样，Promise 拒绝与同步异常使用相同的 `errorHandler`、`onErrored` 和 `ignoreErrored` 处理流程。既未被处理也未被忽略的错误，会使 `module.hot.check(true)` 或 `module.hot.apply()` 返回的 Promise 被拒绝，HMR 进入 `fail` 状态。如果回调等待的动态导入来自后续构建，Rspack 会先应用加载该 chunk 所需的更新，让回调能够继续执行。如果这些更新再次替换了正在等待的 ESM 依赖，尚未完成的 accept 回调会等待当前版本的依赖，不再采用已被替换版本的结果或错误。
@@ -107,6 +109,8 @@ import.meta.webpackHot.accept(
 在此模块或依赖模块更新时，可以在不通知父依赖的情况下，对此模块处理和重新取值。如果此模块没有导出（或以其他方式更新的导出），这是有意义的。
 
 当执行此模块（或依赖模块）抛出异常时，会触发 `errorHandler`。
+
+如果异步 accept 回调尚未完成，嵌套更新就删除了某个接受自身更新的模块，该模块不会被重新执行。
 
 #### 为 accept 自身设置错误处理器
 
@@ -318,6 +322,8 @@ import.meta.webpackHot
 - 传入选项对象：下载完成后立即应用更新，并将该对象作为 [`apply()` 的选项](#apply)。
 
 在 `.then()` 回调中可以获取本次更新涉及的模块 ID 数组；如果没有更新，则收到 `null`。下载或应用更新出错时，可以在 `.catch()` 中处理错误。
+
+如果应用更新时还需要执行嵌套更新，返回结果也会包含这些更新涉及的模块 ID，同一 ID 只出现一次。
 
 ### apply
 

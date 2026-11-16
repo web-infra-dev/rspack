@@ -498,6 +498,8 @@ When implementing a custom Rspack runtime module, you can override the following
 
 Triggers a re-build of the module.
 
+This method can only be called in [`compiler.hooks.finishMake`](/api/plugin-api/compiler-hooks#finishmake), not in `compilation.hooks.finishModules`. Due to current architectural limitations, rebuilding modules in `finishModules` can cause incorrect incremental builds.
+
 ```ts
 rebuildModule(
   m: Module, // module to be rebuilt
@@ -508,24 +510,22 @@ rebuildModule(
 The following code will rebuild the module ending with `a.js`:
 
 ```js
-compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
-  compilation.hooks.finishModules.tapPromise('MyPlugin', async (modules) => {
-    const oldModule = Array.from(modules).find((item) =>
-      item.resource?.endsWith('a.js'),
-    );
-    if (!oldModule) {
-      return;
-    }
+compiler.hooks.finishMake.tapPromise('MyPlugin', async (compilation) => {
+  const oldModule = Array.from(compilation.modules).find((item) =>
+    item.resource?.endsWith('a.js'),
+  );
+  if (!oldModule) {
+    return;
+  }
 
-    await new Promise((resolve, reject) => {
-      compilation.rebuildModule(oldModule, (err, rebuiltModule) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        console.log(`Rebuilt ${rebuiltModule.identifier()}.`);
-        resolve();
-      });
+  await new Promise((resolve, reject) => {
+    compilation.rebuildModule(oldModule, (err, rebuiltModule) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      console.log(`Rebuilt ${rebuiltModule.identifier()}.`);
+      resolve();
     });
   });
 });

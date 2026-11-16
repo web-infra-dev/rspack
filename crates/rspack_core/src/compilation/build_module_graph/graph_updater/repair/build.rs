@@ -8,7 +8,7 @@ use super::{
 };
 use crate::{
   AsyncDependenciesBlockRef, BoxModule, BuildContext, DependenciesBlock, DependencyParents,
-  DependencyRef, ModuleRef, SharedPluginDriver, ValueCacheVersions,
+  DependencyRef, ModuleRef, SharedPluginDriver,
   compilation::build_module_graph::{
     ForwardedIdSet, HasLazyDependencies, LazyDependencies, module_build_cache::ModuleBuildCache,
   },
@@ -21,7 +21,6 @@ pub struct BuildTask {
   pub module: BoxModule,
   pub forwarded_ids: ForwardedIdSet,
   pub module_build_cache: Option<ModuleBuildCache>,
-  pub value_cache_versions: Arc<ValueCacheVersions>,
 }
 
 #[async_trait::async_trait]
@@ -35,7 +34,6 @@ impl Task<TaskContext> for BuildTask {
       mut module,
       forwarded_ids,
       module_build_cache,
-      value_cache_versions,
     } = *self;
     let plugin_driver = build_context.plugin_driver.clone();
 
@@ -44,7 +42,7 @@ impl Task<TaskContext> for BuildTask {
         .restore(
           &module,
           &build_context.file_system_info,
-          &value_cache_versions,
+          &build_context.value_cache_versions,
         )
         .await?
     {

@@ -128,6 +128,7 @@
 		);
 		throw Error("RuntimeError: factory is undefined(" + <%- MODULE_ID %> + ")");
 	};
+	warnUnexpectedRequire._hmrDisposed = true;
 
 	for (var moduleId in hotCurrentUpdate) {
 		if (<%- HAS_OWN_PROPERTY %>(hotCurrentUpdate, moduleId)) {
@@ -417,6 +418,9 @@
 				for (var o = 0; o < outdatedSelfAcceptedModules.length; o++) {
 					var item = outdatedSelfAcceptedModules[o];
 					var moduleId = item.module;
+					// A nested update may have removed a pending self-accepted module.
+					var factory = <%- MODULE_FACTORIES %>[moduleId];
+					if (factory && factory._hmrDisposed) continue;
 					try {
 						item.require(moduleId);
 					} catch (err) {

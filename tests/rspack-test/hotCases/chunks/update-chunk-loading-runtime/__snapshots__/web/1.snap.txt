@@ -12,7 +12,7 @@
 - Bundle: vendors-node_modules_vendor_js.js
 - Manifest: runtime~main.LAST_HASH.hot-update.json, size: 172
 - Update: main.LAST_HASH.hot-update.js, size: 660
-- Update: runtime~main.LAST_HASH.hot-update.js, size: 25537
+- Update: runtime~main.LAST_HASH.hot-update.js, size: 25748
 - Update: vendors-node_modules_vendor_js.LAST_HASH.hot-update.js, size: 374
 
 ## Manifest
@@ -106,9 +106,9 @@ __webpack_require__.e = (chunkId) => {
 // This function allow to reference chunks
 __webpack_require__.u = (chunkId) => {
   // return url for filenames not based on template
-  if (chunkId === "chunk_js") return "" + chunkId + ".chunk." + __webpack_require__.h() + ".js";
+  if (chunkId === "chunk_js") return chunkId + ".chunk." + __webpack_require__.h() + ".js";
   // return url for filenames based on template
-  return "" + chunkId + ".js"
+  return chunkId + ".js"
 }
 })();
 // webpack/runtime/get_full_hash
@@ -388,6 +388,7 @@ function hotApplyHandler(options) {
 		);
 		throw Error("RuntimeError: factory is undefined(" + module.id + ")");
 	};
+	warnUnexpectedRequire._hmrDisposed = true;
 
 	for (var moduleId in hotCurrentUpdate) {
 		if (__webpack_require__.o(hotCurrentUpdate, moduleId)) {
@@ -675,6 +676,9 @@ function hotApplyHandler(options) {
 				for (var o = 0; o < outdatedSelfAcceptedModules.length; o++) {
 					var item = outdatedSelfAcceptedModules[o];
 					var moduleId = item.module;
+					// A nested update may have removed a pending self-accepted module.
+					var factory = __webpack_require__.m[moduleId];
+					if (factory && factory._hmrDisposed) continue;
 					try {
 						item.require(moduleId);
 					} catch (err) {

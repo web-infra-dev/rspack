@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use rspack_core::{BoxDependency, DependencyRange, ImportMetaKnownProperties};
 use rspack_util::{SpanExt, swc::AstSubRangeExt};
-use swc_next_ecma_ast::{ArgumentData, CallExpression, GetSpan, Span};
+use swc_next_ecma_ast::{
+  ArgumentData, Ast, CallExpression, Expr, ExprData, Function, GetSpan, Span, Visit, VisitWith,
+};
 
 use crate::{
   Atom,
@@ -17,6 +19,30 @@ use crate::{
 };
 
 type CreateDependency = fn(Atom, DependencyRange) -> BoxDependency;
+
+struct CallbackSuspensionVisitor<'a, 'ast> {
+  ast: &'a Ast<'ast>,
+  suspends: bool,
+}
+
+impl<'ast> Visit<'ast> for CallbackSuspensionVisitor<'_, 'ast> {
+  fn ast(&self) -> &Ast<'ast> {
+    self.ast
+  }
+
+  fn visit_expr(&mut self, expr: Expr) {
+    if self.suspends {
+      return;
+    }
+    match self.ast.expr_data(expr) {
+      ExprData::AwaitExpression(_) | ExprData::YieldExpression(_) => self.suspends = true,
+      ExprData::ArrowFunctionExpression(_) => {}
+      _ => expr.visit_children_with(self),
+    }
+  }
+
+  fn visit_function(&mut self, _function: Function) {}
+}
 
 fn extract_deps(
   parser: &mut JavascriptParser,
@@ -77,6 +103,13 @@ impl JavascriptParser<'_> {
     if !dependencies.is_empty() {
       let dependency_ids = dependencies.iter().map(|dep| *dep.id()).collect::<Vec<_>>();
       let callback_arg = ast.second(call_expr.arguments(ast));
+      let mut callback_suspension = CallbackSuspensionVisitor {
+        ast,
+        suspends: false,
+      };
+      if let Some(callback) = callback_arg {
+        callback.visit_with(&mut callback_suspension);
+      }
       let range = if let Some(callback) = callback_arg {
         Into::<DependencyRange>::into(callback.span(ast))
       } else {
@@ -87,6 +120,7 @@ impl JavascriptParser<'_> {
       self.add_presentational_dependency(Arc::new(ESMAcceptDependency::new(
         range,
         callback_arg.is_some(),
+        callback_suspension.suspends,
         dependency_ids,
         loc,
       )));

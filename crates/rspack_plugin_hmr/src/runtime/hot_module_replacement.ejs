@@ -514,7 +514,12 @@
 		})
 	]).then(function () {
 		return Promise.all(apply.catchUps);
-	}).then(function () {
+	}).then(function (catchUps) {
+		catchUps.forEach(function (modules) {
+			if (modules) modules.forEach(function (moduleId) {
+				if (outdatedModules.indexOf(moduleId) < 0) outdatedModules.push(moduleId);
+			});
+		});
 		if (error) {
 			return setStatus("fail").then(function () {
 				throw error;

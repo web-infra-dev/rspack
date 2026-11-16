@@ -12,6 +12,7 @@ use crate::dependency::import_emitted_runtime;
 pub struct ESMAcceptDependency {
   range: DependencyRange,
   has_callback: bool,
+  callback_suspends: bool,
   dependency_ids: Vec<DependencyId>,
   loc: Option<DependencyLocation>,
 }
@@ -20,12 +21,14 @@ impl ESMAcceptDependency {
   pub fn new(
     range: DependencyRange,
     has_callback: bool,
+    callback_suspends: bool,
     dependency_ids: Vec<DependencyId>,
     loc: Option<DependencyLocation>,
   ) -> Self {
     Self {
       range,
       has_callback,
+      callback_suspends,
       dependency_ids,
       loc,
     }
@@ -184,6 +187,25 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
     };
 
     if dep.has_callback {
+      if dep.callback_suspends {
+        let wrapper = if compilation
+          .options
+          .output
+          .environment
+          .supports_arrow_function()
+        {
+          format!(
+            "(__rspack_hmr_callback => {opt_async}__rspack_hmr_outdated => {{\n{content}return __rspack_hmr_callback(__rspack_hmr_outdated); }})(("
+          )
+        } else {
+          format!(
+            "(function(__rspack_hmr_callback) {{ return {opt_async}function(__rspack_hmr_outdated) {{\n{content}return __rspack_hmr_callback(__rspack_hmr_outdated); }}.bind(this); }}).call(this, ("
+          )
+        };
+        source.insert(dep.range.start, wrapper, None);
+        source.insert_static(dep.range.end, "))", None);
+        return;
+      }
       source.insert(
         dep.range.start,
         format!("{opt_async}function(__rspack_hmr_outdated) {{\n{content}return ("),
