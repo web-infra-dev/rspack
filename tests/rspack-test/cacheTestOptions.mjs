@@ -31,9 +31,6 @@ const excludes = {
 		/^sharing\/reshake-share$/,
 		/^sharing\/tree-shaking-shared$/,
 
-		// Restored modules skip loader importModule(), but this case asserts both graphs.
-		/^stats\/issuer-information-cache$/,
-
 		// Loader-emitted errors or warnings are not fully restored.
 		/^source-map\/extract-source-map$/,
 
