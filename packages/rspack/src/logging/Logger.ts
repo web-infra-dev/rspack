@@ -31,8 +31,17 @@ export const LogType = Object.freeze({
   cache: /** @type {"cache"} */ 'cache', // [hit, total]
 });
 
+let logTypeBitFlags: Map<LogTypeEnum, number> | undefined;
+
 export function getLogTypeBitFlag(type: LogTypeEnum) {
-  return 1 << Object.values(LogType).indexOf(type);
+  if (!logTypeBitFlags) {
+    logTypeBitFlags = new Map(
+      Object.values(LogType).map((type, index) => [type, 1 << index]),
+    );
+  }
+
+  // Preserve the flag produced by indexOf returning -1 for unknown types.
+  return logTypeBitFlags.get(type) ?? 1 << -1;
 }
 
 export function getLogTypesBitFlag(types: LogTypeEnum[]) {

@@ -35,12 +35,13 @@ export function __to_binding_runtime_globals(
   const res: JsRuntimeGlobals = {
     value: [],
   };
-  const reversedCompilerRuntimeGlobals = Object.fromEntries(
-    Object.entries(compilerRuntimeGlobals).map(([key, value]) => [value, key]),
-  );
+  const reversedCompilerRuntimeGlobals = new Map<string, string>();
+  for (const [key, value] of Object.entries(compilerRuntimeGlobals)) {
+    reversedCompilerRuntimeGlobals.set(value, key);
+  }
 
-  for (const flag of Array.from(runtimeRequirements)) {
-    const item = reversedCompilerRuntimeGlobals[flag];
+  for (const flag of runtimeRequirements) {
+    const item = reversedCompilerRuntimeGlobals.get(flag);
     if (typeof item === 'string') {
       res.value.push(item);
     } else {

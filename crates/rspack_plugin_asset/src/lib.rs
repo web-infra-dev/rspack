@@ -364,17 +364,19 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
     let mut source_types = FxHashSet::default();
     for connection in module_graph.get_incoming_connections(&module_id) {
-      if let Some(module) = connection
+      let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+      if matches!(dependency.dependency_type(), DependencyType::CssUrl) {
+        // Concatenation can replace the CSS origin with a JavaScript module,
+        // but url() still only consumes the asset URL, not a JavaScript export.
+        source_types.insert(SourceType::Css);
+      } else if let Some(module) = connection
         .original_module_identifier
         .and_then(|id| module_graph.module_by_identifier(&id))
       {
         let module_type = module.module_type();
         source_types.insert(SourceType::from(module_type));
-      } else {
-        let dependency = module_graph.dependency_by_id(&connection.dependency_id);
-        if matches!(dependency.dependency_type(), DependencyType::LoaderImport) {
-          source_types.insert(SourceType::JavaScript);
-        }
+      } else if matches!(dependency.dependency_type(), DependencyType::LoaderImport) {
+        source_types.insert(SourceType::JavaScript);
       }
     }
 
