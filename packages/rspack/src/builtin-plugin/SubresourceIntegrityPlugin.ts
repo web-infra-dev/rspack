@@ -270,7 +270,7 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
             if (contenthash) {
               const shaHashes = (
                 Array.isArray(contenthash) ? contenthash : [contenthash]
-              ).filter((hash: unknown) => String(hash).match(/^sha[0-9]+-/));
+              ).filter((hash: unknown) => /^sha[0-9]+-/.test(String(hash)));
               if (shaHashes.length > 0) {
                 (
                   object as unknown as {
