@@ -909,11 +909,14 @@ const SIMPLE_ITEMS_JOINER: Record<
     indent(items.filter(Boolean).join('\n'), '  ', false),
 };
 
-const joinOneLine = (items: any[]) =>
-  items
-    .map((item) => item.content)
-    .filter(Boolean)
-    .join(' ');
+const joinOneLine = (items: any[]) => {
+  const contents: unknown[] = [];
+  items.forEach((item) => {
+    const content = item.content;
+    if (content) contents.push(content);
+  });
+  return contents.join(' ');
+};
 
 const indent = (str: string, prefix: string, noPrefixInFirstLine?: boolean) => {
   const rem = str.replace(/\n([^\n])/g, `\n${prefix}$1`);
