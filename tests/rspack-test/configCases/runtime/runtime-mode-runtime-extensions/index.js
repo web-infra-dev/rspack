@@ -60,6 +60,16 @@ it("keeps runtime extension globals writable and preserves runtime scope", async
   __webpack_require__.setAsyncPath("/from-async/");
   expect(__webpack_public_path__).toBe("/from-async/");
   expect(extension.getPath()).toBe("/from-async/");
+  const config = {
+    path: "/first/",
+    __webpack_require__: extension.guardedRequire,
+    get "/first/"() {
+      expect(extension.getPath()).toBe("/first/");
+      return [];
+    },
+  };
+  expect(__webpack_require__.applyAsyncPaths(config, "fallback/")).toBe(config);
+  expect(extension.getPath()).toBe("/first/fallback/");
   // Modern-module output uses native import(); the context output calls ensureChunk.
   expect(extension.calls).toBe(ESM_OUTPUT ? 0 : 1);
   const replacement = chunkId => extension.ensure(chunkId);

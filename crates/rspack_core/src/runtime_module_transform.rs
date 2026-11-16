@@ -7,7 +7,7 @@ use swc_core::{
   ecma::{
     ast::{
       AssignExpr, AssignOp, AssignPatProp, AssignTarget, Expr, Id, Ident, Lit, MemberExpr,
-      MemberProp, Prop, SimpleAssignTarget, UpdateExpr,
+      MemberProp, Pat, Prop, SimpleAssignTarget, UpdateExpr,
     },
     parser::{EsSyntax, Syntax, parse_file_as_program},
     transforms::base::resolver,
@@ -257,6 +257,16 @@ impl RuntimeModuleVisitor {
     self.rendered_names.insert(Atom::from(setter.as_str()));
     Some(setter)
   }
+
+  fn render_pattern_target(&mut self, global: RuntimeGlobals) -> String {
+    if let Some(setter) = self.export_setter(global) {
+      // A call is not an assignment target. An accessor keeps the setter call
+      // at the original write, including between defaults and computed keys.
+      format!("({{ set value(v) {{ {setter}(v); }} }}).value")
+    } else {
+      self.render_global(global)
+    }
+  }
 }
 
 impl Visit for RuntimeModuleVisitor {
@@ -295,6 +305,31 @@ impl Visit for RuntimeModuleVisitor {
     {
       let replacement = self.render_global(global);
       self.replace(ident.span, &format!("{}: {replacement}", ident.sym));
+    } else {
+      prop.visit_children_with(self);
+    }
+  }
+
+  fn visit_pat(&mut self, pat: &Pat) {
+    let global = match pat {
+      Pat::Expr(expr) => self.expr_global(expr),
+      Pat::Ident(ident) => self.ident_global(&ident.id),
+      _ => None,
+    };
+    if let Some(global) = global {
+      let target = self.render_pattern_target(global);
+      self.replace(pat.span(), &target);
+    } else {
+      pat.visit_children_with(self);
+    }
+  }
+
+  fn visit_assign_pat_prop(&mut self, prop: &AssignPatProp) {
+    let ident = &prop.key.id;
+    if let Some(global) = self.ident_global(ident) {
+      let target = self.render_pattern_target(global);
+      self.replace(ident.span, &format!("{}: {target}", ident.sym));
+      prop.value.visit_with(self);
     } else {
       prop.visit_children_with(self);
     }

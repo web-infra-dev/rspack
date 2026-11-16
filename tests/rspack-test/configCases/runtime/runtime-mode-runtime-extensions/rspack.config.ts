@@ -105,7 +105,12 @@ export default [false, true].map((esm, index) =>
           generate() {
             return `__webpack_require__.p += "async/";
             __webpack_require__.getAsyncPath = () => __webpack_require__.p;
-            __webpack_require__.setAsyncPath = setPublicPath => { __webpack_require__.p = setPublicPath; };`;
+            __webpack_require__.setAsyncPath = setPublicPath => { __webpack_require__.p = setPublicPath; };
+            __webpack_require__.applyAsyncPaths = (config, setPublicPath) => ({
+              path: __webpack_require__.p,
+              __webpack_require__,
+              [__webpack_require__.p]: [__rspack_context.p = __webpack_require__.p + setPublicPath]
+            } = config);`;
           }
         }
         class GenerateOverrideRuntime extends RuntimeModule {
