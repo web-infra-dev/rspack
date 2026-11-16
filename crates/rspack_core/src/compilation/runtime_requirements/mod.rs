@@ -494,6 +494,7 @@ pub async fn process_chunks_runtime_requirements(
   // and overwrite the runtime_module.generate() to get new source in create_chunk_assets
   // this needs full runtime requirements, so run hooks.runtime_module after runtime_requirements_in_tree
   let mut runtime_modules = mem::take(&mut compilation.runtime_modules);
+  let is_rspack = compilation.options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack;
   for entry_ukey in &entries {
     let runtime_module_ids: Vec<_> = compilation
       .build_chunk_graph_artifact
@@ -502,6 +503,12 @@ pub async fn process_chunks_runtime_requirements(
       .copied()
       .collect();
     for runtime_module_id in runtime_module_ids {
+      if is_rspack
+        && let Some(module) = runtime_modules.get_mut(&runtime_module_id)
+        && module.is_custom()
+      {
+        module.prepare_custom_source(compilation).await?;
+      }
       plugin_driver
         .compilation_hooks
         .runtime_module
@@ -515,10 +522,18 @@ pub async fn process_chunks_runtime_requirements(
         .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.runtimeModule"))?;
     }
   }
+  if is_rspack {
+    // Modules attached to non-entry chunks don't pass through the hook above.
+    for module in runtime_modules.values_mut() {
+      if module.is_custom() && module.get_custom_source().source.is_none() {
+        module.prepare_custom_source(compilation).await?;
+      }
+    }
+  }
   compilation.runtime_modules = runtime_modules;
 
   compilation.runtime_proxy_metadata_artifact.clear();
-  if compilation.options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
+  if !is_rspack {
     logger.time_end(start);
     return Ok(());
   }

@@ -19,8 +19,6 @@ export default ['fixed', 'auto', 'worker'].map((kind, index) =>
         } = compiler.rspack;
         new DefinePlugin({ PATH_KIND: JSON.stringify(kind) }).apply(compiler);
         compiler.hooks.thisCompilation.tap('SourceHooks', (compilation) => {
-          // A JS generator can use the public graph and template before addRuntimeModule.
-          // It must not depend on a later runtimeModule tap to prepare that graph.
           const hasEntry = (
             chunk: Parameters<typeof compilation.chunkGraph.getChunkModules>[0],
           ) => compilation.chunkGraph.getChunkModules(chunk).length > 0;

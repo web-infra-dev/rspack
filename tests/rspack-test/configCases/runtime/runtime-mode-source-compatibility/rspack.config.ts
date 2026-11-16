@@ -39,18 +39,24 @@ export default [false, true].map((esm, index) =>
         compiler.hooks.thisCompilation.tap(
           'RuntimeSourceCompatibility',
           (compilation) => {
-            const generations = new Map<string, number>();
+            let treeReady = false;
             class CompatRuntime extends RuntimeModule {
               private code: string;
+              private generated = false;
               constructor(name: string, code: string) {
                 super(name, RuntimeModule.STAGE_TRIGGER);
                 this.code = code;
               }
               generate() {
-                generations.set(
-                  this.name,
-                  (generations.get(this.name) ?? 0) + 1,
-                );
+                if (!treeReady) {
+                  throw new Error(
+                    `${this.name} generated before tree requirements settled`,
+                  );
+                }
+                if (rspackMode && this.generated) {
+                  throw new Error(`${this.name} generated more than once`);
+                }
+                this.generated = true;
                 return this.code;
               }
             }
@@ -66,7 +72,6 @@ export default [false, true].map((esm, index) =>
                   ['runtime-compat-stages', 'compatStages'],
                   ['runtime-compat-mapped', 'compatMapped'],
                 ]) {
-                  const before = generations.get(name) ?? 0;
                   compilation.addRuntimeModule(
                     chunk,
                     new CompatRuntime(
@@ -74,14 +79,6 @@ export default [false, true].map((esm, index) =>
                       `__webpack_require__.${property} = "original";`,
                     ),
                   );
-                  if (
-                    (generations.get(name) ?? 0) - before !==
-                    Number(rspackMode)
-                  ) {
-                    throw new Error(
-                      `Unexpected addRuntimeModule generation count for ${name}`,
-                    );
-                  }
                 }
                 for (const asyncChunk of chunk.getAllAsyncChunks()) {
                   if (asyncChunk.name === 'compat-async') {
@@ -96,6 +93,11 @@ export default [false, true].map((esm, index) =>
                 }
               },
             );
+            compilation.hooks.runtimeRequirementInTree
+              .for(RuntimeGlobals.require)
+              .tap('FinishRuntimeSetup', () => {
+                treeReady = true;
+              });
             compilation.hooks.runtimeModule.tap('FirstSource', (module) => {
               if (!module.source) return;
               if (module.name === 'runtime-compat-empty')

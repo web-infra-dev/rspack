@@ -337,6 +337,11 @@ pub trait RuntimeModule:
     false
   }
 
+  /// Materialize a JS runtime module's source for hooks and runtime requirements.
+  async fn prepare_custom_source(&mut self, _compilation: &Compilation) -> Result<()> {
+    Ok(())
+  }
+
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Normal
   }
@@ -414,8 +419,6 @@ pub trait NamedRuntimeModule {
 pub trait CustomSourceRuntimeModule {
   /// Replace hook source, transforming and collecting its requirements atomically.
   fn set_custom_source(&mut self, source: String) -> Result<()>;
-  /// Analyze the initial JS-generated source while preserving later hash regeneration.
-  fn set_generated_source(&mut self, source: String) -> Result<()>;
   fn generate_with_custom<'a>(
     &'a self,
     context: &'a RuntimeModuleGenerateContext<'a>,
