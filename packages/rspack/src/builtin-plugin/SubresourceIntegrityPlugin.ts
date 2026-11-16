@@ -142,11 +142,12 @@ export class SubresourceIntegrityPlugin extends NativeSubresourceIntegrityPlugin
     }
 
     const normalizedSrc = normalizePath(src);
-    const normalizedKey = Array.from(this.integrities.keys()).find(
-      (assetKey) => normalizePath(assetKey) === normalizedSrc,
-    );
-
-    return normalizedKey ? this.integrities.get(normalizedKey) : undefined;
+    for (const assetKey of this.integrities.keys()) {
+      if (normalizePath(assetKey) === normalizedSrc) {
+        return assetKey ? this.integrities.get(assetKey) : undefined;
+      }
+    }
+    return undefined;
   }
 
   private handleHwpPluginArgs({ assets }: BeforeAssetTagGenerationData) {
