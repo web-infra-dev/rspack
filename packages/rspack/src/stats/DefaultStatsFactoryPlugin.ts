@@ -381,7 +381,9 @@ const MODULES_GROUPERS = (
       groupConfigs.push({
         getKeys: (module) => {
           if (!module.name) return;
-          const resource = parseResource(module.name.split('!').pop()).path;
+          const resource = parseResource(
+            module.name.slice(module.name.lastIndexOf('!') + 1),
+          ).path;
           const dataUrl = /^data:[^,;]+/.exec(resource);
           if (dataUrl) return [dataUrl[0]];
           const extensionMatch =
