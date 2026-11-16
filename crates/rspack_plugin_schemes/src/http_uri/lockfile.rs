@@ -8,16 +8,13 @@ use async_trait::async_trait;
 use rspack_fs::{FsResultToIoResultExt, WritableFileSystem};
 use rspack_paths::Utf8Path;
 use rspack_util::fx_hash::FxHashMap;
-use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub struct LockfileEntry {
   pub resolved: String,
   pub integrity: String,
   pub content_type: String,
-  pub valid_until: u64,
-  pub etag: Option<String>,
 }
 
 impl LockfileEntry {
@@ -29,8 +26,7 @@ impl LockfileEntry {
 }
 
 /// Cloning snapshots the locked metadata before asynchronous resource reads, releasing the lock.
-#[derive(Debug, Serialize, Clone)]
-#[serde(untagged)]
+#[derive(Debug, Clone)]
 pub enum LockfileValue {
   Content(LockfileEntry),
   Tag(String),
@@ -53,57 +49,43 @@ impl Lockfile {
   pub fn parse(content: &str) -> Result<Self, String> {
     let data: serde_json::Value = serde_json::from_str(content).map_err(|e| e.to_string())?;
 
-    let version = data.get("version").and_then(|v| v.as_u64()).unwrap_or(1);
-
-    if version != 1 {
+    let entries = data
+      .as_object()
+      .ok_or_else(|| "Invalid HTTP lockfile: expected an object".to_string())?;
+    let version = data.get("version").unwrap_or(&serde_json::Value::Null);
+    if version.as_u64() != Some(1) {
       return Err(format!("Unsupported lockfile version {version}"));
     }
 
     let mut lockfile = Lockfile::new();
 
-    let entries = data
-      .get("entries")
-      .and_then(|e| e.as_object())
-      .ok_or_else(|| "Invalid HTTP lockfile: expected an entries object".to_string())?;
     for (key, value) in entries {
+      if key == "version" {
+        continue;
+      }
       if let Some(tag @ ("ignore" | "no-cache")) = value.as_str() {
         lockfile
           .entries
           .insert(key.clone(), LockfileValue::Tag(tag.to_string()));
         continue;
       }
-      let entry = if value.is_string() {
-        LockfileEntry {
-          resolved: key.clone(),
-          integrity: value.as_str().expect("Expected string").to_string(),
-          content_type: String::new(),
-          valid_until: 0,
-          etag: None,
-        }
-      } else {
-        LockfileEntry {
-          resolved: value
-            .get("resolved")
-            .and_then(|v| v.as_str())
-            .unwrap_or(key)
-            .to_string(),
-          integrity: value
-            .get("integrity")
-            .and_then(|v| v.as_str())
-            .filter(|integrity| !integrity.is_empty())
-            .ok_or_else(|| format!("Invalid HTTP lockfile entry for {key}: missing integrity"))?
-            .to_string(),
-          content_type: value
-            .get("content_type")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string(),
-          valid_until: value
-            .get("valid_until")
-            .and_then(|v| v.as_u64())
-            .unwrap_or(0),
-          etag: value.get("etag").and_then(|v| v.as_str()).map(String::from),
-        }
+      let entry = LockfileEntry {
+        resolved: value
+          .get("resolved")
+          .and_then(|v| v.as_str())
+          .unwrap_or(key)
+          .to_string(),
+        integrity: value
+          .get("integrity")
+          .and_then(|v| v.as_str())
+          .filter(|integrity| !integrity.is_empty())
+          .ok_or_else(|| format!("Invalid HTTP lockfile entry for {key}: missing integrity"))?
+          .to_string(),
+        content_type: value
+          .get("contentType")
+          .and_then(|v| v.as_str())
+          .unwrap_or("")
+          .to_string(),
       };
       lockfile
         .entries
@@ -114,11 +96,34 @@ impl Lockfile {
   }
 
   pub fn to_json_string(&self) -> Result<String, serde_json::Error> {
-    let json = serde_json::json!({
-        "version": self.version,
-        "entries": self.entries
-    });
-    serde_json::to_string_pretty(&json)
+    // Match webpack's stable, URL-sorted lockfile representation.
+    let mut content = String::from("{\n");
+    let mut entries: Vec<_> = self.entries.iter().collect();
+    entries.sort_unstable_by_key(|(key, _)| *key);
+    for (key, value) in entries {
+      content.push_str("  ");
+      content.push_str(&serde_json::to_string(key)?);
+      content.push_str(": ");
+      match value {
+        LockfileValue::Tag(tag) => content.push_str(&serde_json::to_string(tag)?),
+        LockfileValue::Content(entry) => {
+          content.push_str("{ ");
+          if entry.resolved != *key {
+            content.push_str("\"resolved\": ");
+            content.push_str(&serde_json::to_string(&entry.resolved)?);
+            content.push_str(", ");
+          }
+          content.push_str("\"integrity\": ");
+          content.push_str(&serde_json::to_string(&entry.integrity)?);
+          content.push_str(", \"contentType\": ");
+          content.push_str(&serde_json::to_string(&entry.content_type)?);
+          content.push_str(" }");
+        }
+      }
+      content.push_str(",\n");
+    }
+    content.push_str(&format!("  \"version\": {}\n}}\n", self.version));
+    Ok(content)
   }
 
   pub fn get_entry(&self, resource: &str) -> Option<&LockfileValue> {

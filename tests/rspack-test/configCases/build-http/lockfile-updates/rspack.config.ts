@@ -26,7 +26,7 @@ export default defineConfig({
       compiler.hooks.done.tap('CheckHttpLockfileUpdates', () => {
         const lockfile = JSON.parse(fs.readFileSync(lockfileLocation, 'utf8'));
         assert.deepEqual(
-          Object.keys(lockfile.entries).sort(),
+          Object.keys(lockfile).filter((key) => key !== 'version'),
           Array.from({ length: 6 }, (_, i) => `http://updates.example/${i}.js`),
         );
       });

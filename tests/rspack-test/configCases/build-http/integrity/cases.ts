@@ -2,10 +2,15 @@ interface IntegrityCase {
   name: string;
   mode?: 'development' | 'production';
   frozen?: boolean;
-  fresh?: boolean;
   locked?: false | 'ignore' | 'no-cache';
   lockAt?: string;
-  invalidLockfile?: boolean;
+  invalidLockfile?:
+    | true
+    | 'legacy'
+    | 'missing-version'
+    | 'unsupported-version'
+    | 'invalid-entry'
+    | 'non-object';
   cache?: false;
   cached?: string | false;
   crlf?: boolean;
@@ -16,6 +21,7 @@ interface IntegrityCase {
   status?: number;
   contentType?: string;
   noCache?: boolean;
+  revalidate?: boolean;
   remote?: string;
   expected?: string;
   error?: string;
@@ -36,7 +42,6 @@ const cases: IntegrityCase[] = [
     mode: 'development',
     frozen: true,
     cached: 'changed',
-    fresh: true,
     error: 'integrity mismatch',
   },
   {
@@ -111,11 +116,16 @@ const cases: IntegrityCase[] = [
     name: 'frozen-not-modified',
     upgrade: true,
     status: 304,
-    requests: [['module.js', '"original"']],
+    requests: [['module.js', undefined]],
   },
   {
     name: 'frozen-metadata-refresh',
     upgrade: true,
+  },
+  {
+    name: 'frozen-transient-validators',
+    upgrade: true,
+    revalidate: true,
   },
   {
     name: 'frozen-cached-redirect',
@@ -169,7 +179,7 @@ const cases: IntegrityCase[] = [
     status: 304,
     requests: [
       ['module.js', undefined],
-      ['target.js', '"original"'],
+      ['target.js', undefined],
     ],
   },
   {
@@ -224,7 +234,7 @@ const cases: IntegrityCase[] = [
       ['two.js', undefined],
       ['three.js', undefined],
       ['four.js', undefined],
-      ['target.js', '"original"'],
+      ['target.js', undefined],
     ],
     error: 'Too many redirects',
   },
@@ -252,7 +262,7 @@ const cases: IntegrityCase[] = [
     status: 304,
     requests: [
       ['module.js', undefined],
-      ['target.js', '"original"'],
+      ['target.js', undefined],
     ],
   },
   {
@@ -264,7 +274,7 @@ const cases: IntegrityCase[] = [
     requests: [
       ['module.js', undefined],
       ['intermediate.js', undefined],
-      ['target.js', '"original"'],
+      ['target.js', undefined],
     ],
   },
   {
@@ -357,6 +367,31 @@ const cases: IntegrityCase[] = [
     frozen: false,
     invalidLockfile: true,
     error: 'EOF while parsing',
+  },
+  {
+    name: 'legacy-lockfile-format',
+    invalidLockfile: 'legacy',
+    error: 'Invalid HTTP lockfile entry for entries: missing integrity',
+  },
+  {
+    name: 'lockfile-without-version',
+    invalidLockfile: 'missing-version',
+    error: 'Unsupported lockfile version null',
+  },
+  {
+    name: 'unsupported-lockfile-version',
+    invalidLockfile: 'unsupported-version',
+    error: 'Unsupported lockfile version 2',
+  },
+  {
+    name: 'invalid-lockfile-entry',
+    invalidLockfile: 'invalid-entry',
+    error: 'missing integrity',
+  },
+  {
+    name: 'non-object-lockfile',
+    invalidLockfile: 'non-object',
+    error: 'Invalid HTTP lockfile: expected an object',
   },
 ];
 

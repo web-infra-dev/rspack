@@ -6,7 +6,10 @@ use napi::bindgen_prelude::Buffer;
 use rspack_error::{Result, error};
 use rspack_fs::{FsResultToIoResultExt, WritableFileSystem};
 use rspack_paths::Utf8Path;
-use rspack_util::{base64, current_time, fx_hash::FxHashMap};
+use rspack_util::{
+  base64, current_time,
+  fx_hash::{FxDashMap, FxHashMap},
+};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
 use url::Url;
@@ -80,6 +83,8 @@ pub struct HttpCache {
   lockfile_cache: LockfileCache,
   filesystem: Arc<dyn WritableFileSystem + Send + Sync>,
   http_client: Arc<dyn HttpClient>,
+  // HTTP validators are transient fetch metadata, not part of the committed lockfile.
+  fetch_metadata: FxDashMap<String, (String, FetchResultMeta)>,
 }
 
 impl HttpCache {
@@ -96,6 +101,7 @@ impl HttpCache {
       lockfile_cache: LockfileCache::new(lockfile_path, filesystem.clone()),
       filesystem: filesystem.clone(),
       http_client,
+      fetch_metadata: FxDashMap::default(),
     }
   }
 
@@ -216,6 +222,10 @@ impl HttpCache {
       _ => {}
     }
 
+    self.fetch_metadata.insert(
+      result.entry.resolved.clone(),
+      (result.entry.integrity.clone(), result.meta.clone()),
+    );
     if !options.frozen {
       self.store_result(url, &result).await?;
     }
@@ -332,8 +342,6 @@ impl HttpCache {
       resolved: url.to_string(),
       integrity,
       content_type,
-      valid_until,
-      etag: etag.clone(),
     };
 
     let result = ContentFetchResult {
@@ -373,13 +381,21 @@ impl HttpCache {
 
       match self.filesystem.read_file(cache_path).await.to_io_result() {
         Ok(content) => {
-          let meta = FetchResultMeta {
-            store_cache: true,
-            store_lock: true,
-            valid_until: entry.valid_until,
-            etag: entry.etag.clone(),
-            fresh: entry.valid_until >= current_time(),
-          };
+          let mut meta = self
+            .fetch_metadata
+            .get(&entry.resolved)
+            .filter(|cached| cached.0 == entry.integrity)
+            .map_or_else(
+              || FetchResultMeta {
+                store_cache: true,
+                store_lock: true,
+                valid_until: 0,
+                etag: None,
+                fresh: false,
+              },
+              |cached| cached.1.clone(),
+            );
+          meta.fresh = meta.valid_until >= current_time();
 
           let result = ContentFetchResult {
             entry: entry.clone(),
@@ -492,12 +508,19 @@ impl HttpCache {
 
   /// Convert a string to a safe path component (similar to webpack's toSafePath)
   fn to_safe_path(&self, input: &str) -> String {
-    input
-      .cow_replace(
-        &[':', '/', '\\', '<', '>', ':', '"', '|', '?', '*', '\0'] as &[char],
-        "_",
-      )
-      .into_owned()
+    let input = input.trim_matches(|c: char| !c.is_ascii_alphanumeric());
+    let mut result = String::with_capacity(input.len());
+    let mut separator = false;
+    for c in input.chars() {
+      if c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-') {
+        result.push(c);
+        separator = false;
+      } else if !separator {
+        result.push('_');
+        separator = true;
+      }
+    }
+    result
   }
 
   /// Convert a byte array to a hex string
