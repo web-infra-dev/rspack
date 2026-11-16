@@ -1,1 +1,1 @@
-module.exports = { value: 42, getLoader: () => __webpack_require__ };
+module.exports = 42;

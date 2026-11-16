@@ -1,6 +1,6 @@
 <%- ENSURE_CHUNK_HANDLERS %>.remotes = function (chunkId, promises) {
-	var chunkMapping = <%- REQUIRE %>.remotesLoadingData.chunkMapping;
-	var moduleIdToRemoteDataMapping = <%- REQUIRE %>.remotesLoadingData.moduleIdToRemoteDataMapping;
+	var chunkMapping = <%- REQUIRE_SCOPE %>.remotesLoadingData.chunkMapping;
+	var moduleIdToRemoteDataMapping = <%- REQUIRE_SCOPE %>.remotesLoadingData.moduleIdToRemoteDataMapping;
 	if (<%- HAS_OWN_PROPERTY %>(chunkMapping, chunkId)) {
 		chunkMapping[chunkId].forEach(function (id) {
 			var getScope = <%- CURRENT_REMOTE_GET_SCOPE %>;

@@ -17,7 +17,10 @@ use rspack_util::{
 use rustc_hash::FxHashMap;
 
 use super::provide_shared_plugin::ProvideVersion;
-use crate::{ConsumeVersion, ShareScope, utils::json_stringify};
+use crate::{
+  ConsumeVersion, ShareScope,
+  utils::{json_stringify, runtime_require_scope_name, runtime_require_scope_requirement},
+};
 
 static INITIALIZE_SHARING_TEMPLATE: &str = include_str!("./initializeSharing.ejs");
 static INITIALIZE_SHARING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
@@ -48,9 +51,17 @@ impl RuntimeModule for ShareRuntimeModule {
 
   fn runtime_requirements(
     &self,
-    _compilation: &Compilation,
+    compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
-    *INITIALIZE_SHARING_RUNTIME_REQUIREMENTS
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: {
+        INITIALIZE_SHARING_RUNTIME_REQUIREMENTS.dependencies
+          | runtime_require_scope_requirement(compilation)
+      },
+      define: INITIALIZE_SHARING_RUNTIME_REQUIREMENTS.define,
+      force_context: RuntimeGlobals::INITIALIZE_SHARING | RuntimeGlobals::SHARE_SCOPE_MAP,
+      ..Default::default()
+    }
   }
 
   fn template(&self) -> Vec<(String, String)> {
@@ -168,7 +179,7 @@ impl RuntimeModule for ShareRuntimeModule {
 {require_name}.initializeSharingData = {{ scopeToSharingDataMapping: {{ {scope_to_data_init} }}, uniqueName: {unique_name} }};
 {initialize_sharing_impl}
 "#,
-      require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+      require_name = runtime_require_scope_name(runtime_template),
       share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
       scope_to_data_init = scope_to_data_init,
       unique_name = json_stringify_str(&compilation.options.output.unique_name),
