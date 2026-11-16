@@ -1694,11 +1694,6 @@ pub struct ModuleRuleUseLoader {
   pub cache: bool,
   /// Stable serialization of the public loader options.
   pub options_cache_key: String,
-  /// Boolean override from `config.loader.sourceMap`, forwarded by the JS config adapter.
-  /// JavaScript loaders use it to include the `this.sourceMap` override in their cache etag.
-  /// `None` means no boolean override was forwarded, including for built-in loaders.
-  /// The JS adapter disables caching for JS loaders with a non-boolean override.
-  pub source_map: Option<bool>,
   /// Preconditions for running the normal loader handler.
   pub filter: Option<Arc<rspack_loader_runner::LoaderFilter>>,
 }

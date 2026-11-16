@@ -31,34 +31,24 @@ pub(crate) async fn loader_cache_version(
 
 #[cacheable]
 #[derive(Debug)]
-pub struct JsLoader {
-  identifier: Identifier,
-  #[cacheable(with=AsOption<AsRefStr>)]
-  r#type: Option<Cow<'static, str>>,
-  cache_version: Option<String>,
-  source_map: Option<bool>,
-}
+pub struct JsLoader(
+  pub Identifier,
+  /* LoaderType */ #[cacheable(with=AsOption<AsRefStr>)] pub Option<Cow<'static, str>>,
+  pub Option<String>,
+);
 
 #[cacheable_dyn]
 impl Loader<RunnerContext> for JsLoader {
   fn identifier(&self) -> Identifier {
-    self.identifier
+    self.0
   }
 
   fn r#type(&self) -> Option<&str> {
-    self.r#type.as_deref()
+    self.1.as_deref()
   }
 
   fn cache_version(&self) -> Option<&str> {
-    self.cache_version.as_deref()
-  }
-
-  fn etag(&self, _context: &RunnerContext, hasher: &mut RspackHasher) {
-    if let Some(source_map) = self.source_map {
-      rspack_hash::rspack_hash_object!(hasher, {
-        "source_map_override" => source_map,
-      });
-    }
+    self.2.as_deref()
   }
 
   fn execution_kind(&self) -> LoaderExecutionKind {
@@ -165,12 +155,11 @@ pub(crate) async fn resolve_loader(
       } else {
         format!("{path}{query}")
       };
-      Ok(Some(Arc::new(JsLoader {
-        identifier: resource.into(),
+      Ok(Some(Arc::new(JsLoader(
+        resource.into(),
         r#type,
         cache_version,
-        source_map: l.source_map,
-      })))
+      ))))
     }
     ResolveResult::Ignored => Ok(None),
   }

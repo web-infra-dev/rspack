@@ -30,7 +30,6 @@ async fn lightningcss() {
           }).to_string()),
           cache: false,
           options_cache_key: String::new(),
-            source_map: None,
           filter: None,
         }]),
           ..Default::default()
@@ -85,7 +84,6 @@ async fn swc() {
           }).to_string()),
           cache: false,
           options_cache_key: String::new(),
-            source_map: None,
           filter: None,
         }]),
           ..Default::default()
@@ -125,7 +123,6 @@ async fn react_refresh() {
             options: None,
             cache: false,
             options_cache_key: String::new(),
-            source_map: None,
             filter: None,
           },
           ModuleRuleUseLoader {
@@ -149,7 +146,6 @@ async fn react_refresh() {
           }).to_string()),
           cache: false,
           options_cache_key: String::new(),
-            source_map: None,
           filter: None,
         }]),
           ..Default::default()
@@ -190,7 +186,6 @@ async fn preact_refresh() {
             options: None,
             cache: false,
             options_cache_key: String::new(),
-            source_map: None,
             filter: None,
           },
           ModuleRuleUseLoader {
@@ -214,7 +209,6 @@ async fn preact_refresh() {
           }).to_string()),
           cache: false,
           options_cache_key: String::new(),
-            source_map: None,
             filter: None,
         }]),
           ..Default::default()

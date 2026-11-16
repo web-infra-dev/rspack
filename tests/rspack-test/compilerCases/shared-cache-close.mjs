@@ -208,7 +208,7 @@ function createSourceMapOptions(context, name, devtool) {
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 const loaderOptionsCase = {
   name: 'loader-options',
-  description: 'should compute loader etags from rule options and sourceMap overrides',
+  description: 'should disable loader caching for non-serializable rule options',
   options(context) {
     return createSourceMapOptions(context, 'first', 'source-map');
   },
@@ -223,41 +223,18 @@ const loaderOptionsCase = {
     }
 
     const miss = { hits: 0, misses: 1, reused: 0, stores: 1 };
-    const hit = { hits: 1, misses: 0, reused: 1, stores: 0 };
     await check(first, true, miss);
 
-    const cyclic = {};
-    cyclic.self = cyclic;
     const cases = [
-      ['explicit-default', { sourceMap: true }, undefined, true, miss],
-      ['override', { sourceMap: false }, undefined, false, miss],
-      ['reuse-override', { sourceMap: false }, undefined, false, hit],
-      ['reuse-without-devtool', { sourceMap: false }, undefined, false, miss],
-      [
-        'undefined-override',
-        { sourceMap: undefined },
-        undefined,
-        undefined,
-        undefined,
-      ],
-      ['global-function', { nested: [() => {}] }, undefined, true, miss],
-      ['rule-function', undefined, { nested: [() => {}] }, true, undefined],
-      ['global-cycle', cyclic, undefined, true, hit],
-      ['rule-bigint', undefined, { value: 1n }, true, undefined],
+      ['rule-function', { nested: [() => {}] }],
+      ['rule-bigint', { value: 1n }],
     ];
-    for (const [name, loader, ruleOptions, sourceMap, expected] of cases) {
+    for (const [name, ruleOptions] of cases) {
       const options = createSourceMapOptions(context, name, 'source-map');
-      if (name === 'reuse-without-devtool') options.devtool = false;
-      options.loader = loader;
-      const rule = options.module.rules[0];
-      rule.use[0].options = ruleOptions;
-      if (name === 'reuse-override') {
-        const use = rule.use;
-        rule.use = () => use;
-      }
+      options.module.rules[0].use[0].options = ruleOptions;
       const compiler = rspack(options);
       try {
-        await check(compiler, sourceMap, expected);
+        await check(compiler, true, undefined);
       } finally {
         await closeCompiler(compiler);
       }
@@ -297,7 +274,6 @@ const swcSourceMapCase = {
     const cheapMappings = await check(cheap, 0);
     const full = rspack(createSwcSourceMapOptions(context, 'full', 'source-map'));
     const reusedOptions = createSwcSourceMapOptions(context, 'reused', 'source-map');
-    reusedOptions.loader = { sourceMap: false, nested: [() => {}] };
     const reused = rspack(reusedOptions);
     try {
       const fullMappings = await check(full, 0);
