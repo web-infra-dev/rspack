@@ -51,7 +51,10 @@ jobs:
         run: pnpm run build:js
 
       - name: Verify ignored alias subscriptions
-        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t "native-watcher-(live-subscription-filtering|context-event-routing)"
+        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-live-subscription-filtering
+
+      - name: Verify context ownership and event routing
+        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-context-
 
   watcher-rename-windows:
     name: Native watcher rename regression (Windows)

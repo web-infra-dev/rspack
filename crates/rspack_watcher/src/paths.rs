@@ -908,6 +908,21 @@ impl PathManager {
       let Ok(entries) = std::fs::read_dir(&dir) else {
         continue;
       };
+      // A scan root can also belong to a parent context, even while it has
+      // its own registration. Retargeting must restore that ownership too.
+      if context
+        .dependency
+        .as_ref()
+        .is_some_and(|dependency| dependency != &dir)
+      {
+        self.record(&dir, || {
+          self.record_context_owners(&dir, std::slice::from_ref(&context));
+          self.context_directories.insert(dir.clone());
+        });
+        if self.forget_if_orphaned(&dir) {
+          continue;
+        }
+      }
       for entry in entries.flatten() {
         let path = InternedPath::from(entry.path());
         let resolved_path = context.resolved_entry(&path);
