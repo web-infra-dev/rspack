@@ -144,6 +144,13 @@ enum Origin {
 }
 
 impl Origin {
+  fn contexts<'a>(&'a self, contexts: Option<&'a [ContextPath]>) -> Option<&'a [ContextPath]> {
+    match self {
+      Self::ContextScan(context) => Some(std::slice::from_ref(context.as_ref())),
+      _ => contexts,
+    }
+  }
+
   fn is_scan(&self) -> bool {
     matches!(self, Self::Scan | Self::ContextScan(_) | Self::LinkScan(_))
   }
@@ -388,17 +395,6 @@ impl EventProcessor {
     {
       return;
     }
-    // An ignored physical subscription may still be visible through a parent context.
-    let context_resolved_path = contexts
-      .as_ref()
-      .and_then(|contexts| contexts.first())
-      .and_then(|context| context.resolved_entry(path));
-    let resolved_path = if contexts.is_some() && (ignored || !direct_subscription) {
-      context_resolved_path.as_ref()
-    } else {
-      resolved_path
-    };
-
     // A watched path that no longer exists on disk is a removal, regardless of
     // how the OS reported the event. macOS FSEvents reports an unlink as a
     // rename (`ModifyKind::Name` → `Change`), so normalize a `Change` whose
@@ -520,6 +516,7 @@ impl EventProcessor {
         .set_context_entry(
           path,
           origin.is_scan() || origin.link_changed() || is_watched_path || is_followed_context_file,
+          origin.contexts(contexts.as_deref()),
         )
         .await
     {
@@ -546,12 +543,13 @@ impl EventProcessor {
     {
       self.path_manager.set_file_time(path, mtime, false, false);
     }
-    self.path_manager.set_last_watch_events(path);
+    let visible_contexts = origin.contexts(contexts.as_deref());
+    self
+      .path_manager
+      .set_last_watch_events(path, visible_contexts);
 
     let mut associated_event = finder.find_associated_event(path, kind);
-    if let Origin::ContextScan(context) = &origin {
-      associated_event.retain(|(dependency, _)| Some(dependency) == context.dependency.as_ref());
-    } else if let Some(contexts) = &contexts {
+    if let Some(contexts) = visible_contexts {
       associated_event.retain(|(dependency, _)| {
         (dependency == path && direct_subscription)
           || contexts
@@ -586,15 +584,13 @@ impl EventProcessor {
       }
     }
 
-    let context_removal = (kind == FsEventKind::Remove
+    let context_removal = kind == FsEventKind::Remove
       && !initial_missing
       && associated_event
         .iter()
-        .any(|(associated, kind)| associated != path && *kind == FsEventKind::Change))
-    .then(|| resolved_path.unwrap_or(path).clone());
+        .any(|(associated, kind)| associated != path && *kind == FsEventKind::Change);
     let file_subscription = direct_subscription && finder.contains_file(path);
-    let context_only_removal = context_removal.is_some() && !file_subscription;
-    if context_removal.is_some() {
+    if context_removal {
       associated_event.retain_mut(|(associated, associated_kind)| {
         if *associated_kind == FsEventKind::Remove
           && !(direct_subscription && finder.contains_file(associated))
@@ -607,19 +603,42 @@ impl EventProcessor {
         true
       });
     }
-    let mut raw = (!associated_event.is_empty() && !context_only_removal).then(|| FsEvent {
-      path: path.clone(),
-      kind,
-    });
-    let mut recovered = Vec::new();
-    if let (Some(raw), Some(resolved_path)) = (&mut raw, resolved_path) {
-      if file_subscription {
-        recovered.push(FsEvent {
-          path: resolved_path.clone(),
-          kind,
-        });
+    let mut events = ResolvedEvents {
+      dependencies: associated_event
+        .into_iter()
+        .map(|(path, kind)| FsEvent { path, kind })
+        .collect(),
+      raw: None,
+      additional: Vec::new(),
+      context_removals: Vec::new(),
+    };
+    if !events.dependencies.is_empty() {
+      if let Some(contexts) = visible_contexts {
+        if direct_subscription && (!context_removal || file_subscription) {
+          events.push_raw(path.clone(), kind);
+        }
+        for context in contexts {
+          if !events
+            .dependencies
+            .iter()
+            .any(|event| Some(&event.path) == context.dependency.as_ref())
+          {
+            continue;
+          }
+          let event_path = context.event_path(path);
+          if context_removal {
+            events.push_context_removal(event_path);
+          } else {
+            events.push_raw(event_path, kind);
+          }
+        }
       } else {
-        raw.path = resolved_path.clone();
+        if !context_removal || file_subscription {
+          events.push_raw(path.clone(), kind);
+        }
+        if context_removal {
+          events.push_context_removal(path.clone());
+        }
       }
     }
     if appeared && path.is_dir() && !path.is_symlink() {
@@ -664,28 +683,42 @@ impl EventProcessor {
               continue;
             }
             let mut associated = finder.find_associated_event(&entry_path, FsEventKind::Create);
-            if self.path_manager.follows_symlinks() {
-              let direct_subscription = match self.path_manager.subscription_path(&entry_path, None)
-              {
+            let contexts = if self.path_manager.follows_symlinks() {
+              Some(self.path_manager.context_paths(&entry_path).await)
+            } else {
+              None
+            };
+            let direct_subscription = if let Some(contexts) = &contexts {
+              let direct = match self.path_manager.subscription_path(&entry_path, None) {
                 Some(subscription_path) => {
                   !self.path_manager.is_ignored_path(&subscription_path).await
                 }
                 None => false,
               };
-              let contexts = self.path_manager.context_paths(&entry_path).await;
               associated.retain(|(dependency, _)| {
-                (dependency == &entry_path && direct_subscription)
+                (dependency == &entry_path && direct)
                   || contexts
                     .iter()
                     .any(|context| context.dependency.as_ref() == Some(dependency))
               });
-            }
+              direct
+            } else {
+              true
+            };
             if !associated.is_empty() {
-              recovered.push(FsEvent {
-                path: entry_path.clone(),
-                kind: FsEventKind::Create,
-              });
-              associated_event.extend(associated);
+              if direct_subscription {
+                events.push_raw(entry_path.clone(), FsEventKind::Create);
+              }
+              if let Some(contexts) = &contexts {
+                for context in contexts {
+                  events.push_raw(context.event_path(&entry_path), FsEventKind::Create);
+                }
+              }
+              events.dependencies.extend(
+                associated
+                  .into_iter()
+                  .map(|(path, kind)| FsEvent { path, kind }),
+              );
             }
           }
           // DirEntry::file_type does not follow symlinks.
@@ -698,11 +731,11 @@ impl EventProcessor {
 
     if origin.is_scan() {
       self.analyzer.invalidate_path(path);
-      for (associated, _) in &associated_event {
-        self.analyzer.invalidate_path(associated);
+      for event in &events.dependencies {
+        self.analyzer.invalidate_path(&event.path);
       }
     }
-    self.trigger_events(associated_event, raw, recovered, context_removal);
+    let _ = self.tx.send(events);
   }
   /// Helper to construct a `DependencyFinder` for the current path register state.
   fn finder(&self) -> DependencyFinder<'_> {
@@ -717,29 +750,6 @@ impl EventProcessor {
       directories,
       missing,
     }
-  }
-
-  /// Sends a group of file system events for the given path and event kind.
-  /// If the event is successfully sent, it returns true; otherwise, it returns false.
-  fn trigger_events(
-    &self,
-    events: Vec<(InternedPath, FsEventKind)>,
-    raw: Option<FsEvent>,
-    recovered: EventBatch,
-    context_removal: Option<InternedPath>,
-  ) -> bool {
-    self
-      .tx
-      .send(ResolvedEvents {
-        dependencies: events
-          .into_iter()
-          .map(|(path, kind)| FsEvent { path, kind })
-          .collect(),
-        raw,
-        recovered,
-        context_removal,
-      })
-      .is_ok()
   }
 }
 #[cfg(test)]

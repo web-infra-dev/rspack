@@ -32,6 +32,21 @@ pub(crate) struct ContextPath {
 }
 
 impl ContextPath {
+  pub(crate) fn event_path(&self, path: &InternedPath) -> InternedPath {
+    if self.dependency.as_ref() == Some(path) {
+      path.clone()
+    } else {
+      self.resolved_entry(path).unwrap_or_else(|| path.clone())
+    }
+  }
+
+  pub(crate) fn contains(&self, directory: &Path) -> bool {
+    self
+      .dependency
+      .as_ref()
+      .is_some_and(|dependency| directory.starts_with(dependency.as_ref() as &Path))
+  }
+
   pub(crate) fn resolved_entry(&self, path: &InternedPath) -> Option<InternedPath> {
     let dependency = self.dependency.as_ref()?;
     let resolved = self.resolved.as_ref()?;
@@ -575,6 +590,9 @@ impl PathManager {
   /// Drop a removed path's time info and present baseline. A reported absence
   /// survives later removals until the path reappears or is unregistered.
   pub fn remove_file_time(&self, path: &InternedPath) {
+    if let Some(symlinks) = &self.symlinks {
+      symlinks.context_owners.remove(path);
+    }
     self.file_times.remove(path);
     self.baselines.remove_if(path, |_, time| time.is_some());
     self.context_files.remove(path);
@@ -594,6 +612,9 @@ impl PathManager {
         pending.extend(children);
       }
       self.file_times.remove(&path);
+      if let Some(symlinks) = &self.symlinks {
+        symlinks.context_owners.remove(&path);
+      }
       self.baselines.remove_if(&path, |_, time| time.is_some());
       self.context_files.remove(&path);
       self.context_directories.remove(&path);
@@ -900,7 +921,10 @@ impl PathManager {
           continue;
         };
         if metadata.is_dir() {
-          self.record(&path, || self.context_directories.insert(path.clone()));
+          self.record(&path, || {
+            self.record_context_owners(&path, std::slice::from_ref(&context));
+            self.context_directories.insert(path.clone());
+          });
           if self.forget_if_orphaned(&path) {
             break;
           }
@@ -919,6 +943,7 @@ impl PathManager {
           pending.push((path, ancestry.clone(), false, context.clone()));
         } else if let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
           self.record(&path, || {
+            self.record_context_owners(&path, std::slice::from_ref(&context));
             self.context_files.insert(path.clone());
             self.write_file_time(&path, mtime, !observed, true)
           });
@@ -943,8 +968,11 @@ impl PathManager {
   /// after, so it either sees the context gone here or is swept by the
   /// unregistering `update()`.
   fn forget_if_orphaned(&self, path: &InternedPath) -> bool {
-    if self.is_below_context(path) {
+    if self.has_context_owner(path) {
       return false;
+    }
+    if let Some(symlinks) = &self.symlinks {
+      symlinks.context_owners.remove(path);
     }
     self.context_files.remove(path);
     self.context_directories.remove(path);
@@ -971,7 +999,12 @@ impl PathManager {
   /// An event already `judged` a change — a file the scan found changed since
   /// the start time, or a registered path past its baseline check — skips the
   /// attribute-only check and keeps the record already written for it.
-  pub async fn set_context_entry(&self, path: &InternedPath, judged: bool) -> bool {
+  pub async fn set_context_entry(
+    &self,
+    path: &InternedPath,
+    judged: bool,
+    contexts: Option<&[ContextPath]>,
+  ) -> bool {
     let recovered: Vec<InternedPath> = self
       .absent_directories
       .iter()
@@ -986,7 +1019,16 @@ impl PathManager {
     }
 
     let registered_directory = self.directories.all.contains(path);
-    if !registered_directory && !self.is_below_context(path) {
+    if !registered_directory
+      && contexts.map_or_else(
+        || !self.is_below_context(path),
+        |contexts| {
+          !contexts
+            .iter()
+            .any(|context| self.is_active_context(context))
+        },
+      )
+    {
       return true;
     }
     let Ok(metadata) = self.context_metadata(None, path) else {
@@ -1002,14 +1044,25 @@ impl PathManager {
     }
     if metadata.is_dir() {
       // Windows creates a junction as an empty directory before setting its target.
-      if self.record(path, || self.context_directories.insert(path.clone()))
-        || (self.follows_symlinks() && path.is_symlink())
-      {
+      let discovered = self.record(path, || {
+        self.record_context_owners(path, contexts.unwrap_or_default());
+        self.context_directories.insert(path.clone())
+      });
+      if contexts.is_some() && self.forget_if_orphaned(path) {
+        return true;
+      }
+      if discovered || (self.follows_symlinks() && path.is_symlink()) {
         self.scan_below(vec![path.clone()], false, None).await;
       }
       return true;
     }
-    self.record(path, || self.context_files.insert(path.clone()));
+    self.record(path, || {
+      self.record_context_owners(path, contexts.unwrap_or_default());
+      self.context_files.insert(path.clone());
+    });
+    if contexts.is_some() && self.forget_if_orphaned(path) {
+      return true;
+    }
     let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
       return true;
     };
@@ -1083,6 +1136,42 @@ impl PathManager {
       .any(|ancestor| self.directories.all.contains(&InternedPath::from(ancestor)))
   }
 
+  fn record_context_owners(&self, path: &InternedPath, contexts: &[ContextPath]) {
+    let Some(symlinks) = &self.symlinks else {
+      return;
+    };
+    for context in contexts {
+      if let Some(dependency) = &context.dependency
+        && self.directories.all.contains(dependency)
+      {
+        let mut owners = symlinks.context_owners.entry(path.clone()).or_default();
+        if !owners.contains(dependency) {
+          owners.push(dependency.clone());
+        }
+      }
+    }
+  }
+
+  fn is_active_context(&self, context: &ContextPath) -> bool {
+    context
+      .dependency
+      .as_ref()
+      .is_some_and(|dependency| self.directories.all.contains(dependency))
+  }
+
+  fn has_context_owner(&self, path: &InternedPath) -> bool {
+    self.symlinks.as_ref().map_or_else(
+      || self.is_below_context(path),
+      |symlinks| {
+        symlinks.context_owners.get(path).is_some_and(|owners| {
+          owners
+            .iter()
+            .any(|owner| self.directories.all.contains(owner))
+        })
+      },
+    )
+  }
+
   /// watchpack's `setFileTime(filePath, mtime, initial, ignoreWhenEqual)`:
   /// record `path` as seen with `mtime` — from a scan (`initial`, safe time
   /// derived from the mtime) or from a live event (safe time = now). With
@@ -1129,12 +1218,17 @@ impl PathManager {
     true
   }
 
-  /// An event reached `path` or something below it: advance the
-  /// `lastWatchEvent` of `path` and of every registered or discovered
-  /// context above it.
-  pub fn set_last_watch_events(&self, path: &InternedPath) {
+  /// Advance the clocks of registered or discovered contexts that received the event.
+  pub fn set_last_watch_events(&self, path: &InternedPath, contexts: Option<&[ContextPath]>) {
     let now = current_time();
     for ancestor in path.ancestors() {
+      if contexts.is_some_and(|contexts| {
+        !contexts
+          .iter()
+          .any(|context| self.is_active_context(context) && context.contains(ancestor))
+      }) {
+        continue;
+      }
       let ancestor = InternedPath::from(ancestor);
       if self.directories.all.contains(&ancestor) || self.context_directories.contains(&ancestor) {
         self.last_watch_events.insert(ancestor, now);
@@ -1223,7 +1317,7 @@ impl PathManager {
       if !still_missing {
         self.baselines.remove(path);
       }
-      if !self.is_below_context(path) {
+      if !self.has_context_owner(path) {
         self.file_times.remove(path);
         if !still_missing {
           self.unindex_record(path);
@@ -1237,7 +1331,7 @@ impl PathManager {
         continue;
       }
       self.baselines.remove(path);
-      if !self.is_below_context(path) {
+      if !self.has_context_owner(path) {
         self.file_times.remove(path);
         self.unindex_record(path);
       }
@@ -1273,7 +1367,13 @@ impl PathManager {
       subtree.push(path);
     }
     for path in &subtree {
-      if self.is_below_context(path) || self.directories.all.contains(path) {
+      if let Some(symlinks) = &self.symlinks {
+        symlinks.context_owners.remove_if_mut(path, |_, owners| {
+          owners.retain(|owner| self.directories.all.contains(owner));
+          owners.is_empty()
+        });
+      }
+      if self.has_context_owner(path) || self.directories.all.contains(path) {
         continue;
       }
       if self.context_files.remove(path).is_some()
@@ -1414,7 +1514,38 @@ impl PathManager {
     // Raise each ancestor directory that exists by its descendant files' safe
     // times; a record cannot resurrect a directory gone from disk. Files are
     // folded into their parent first, so each ancestor chain is walked once.
-    if !dir_safe_times.is_empty() {
+    if let Some(symlinks) = &self.symlinks
+      && !dir_safe_times.is_empty()
+    {
+      let mut parent_safe_times: FxHashMap<(InternedPath, InternedPath), u64> =
+        FxHashMap::default();
+      for (file, safe_time) in &file_safe_times {
+        let Some(parent) = file.parent().map(InternedPath::from) else {
+          continue;
+        };
+        if let Some(owners) = symlinks.context_owners.get(file) {
+          for owner in owners
+            .iter()
+            .filter(|owner| self.directories.all.contains(*owner))
+          {
+            let latest = parent_safe_times
+              .entry((parent.clone(), owner.clone()))
+              .or_default();
+            *latest = (*latest).max(*safe_time);
+          }
+        }
+      }
+      for ((parent, owner), safe_time) in parent_safe_times {
+        for dir in parent
+          .ancestors()
+          .take_while(|dir| dir.starts_with(owner.as_ref() as &Path))
+        {
+          if let Some(Some(current)) = dir_safe_times.get_mut(&InternedPath::from(dir)) {
+            *current = (*current).max(safe_time);
+          }
+        }
+      }
+    } else if !dir_safe_times.is_empty() {
       let mut parent_indices: FxHashMap<&OsStr, usize> = FxHashMap::default();
       let mut raw_parent_safe_times: Vec<(&Path, u64)> = Vec::new();
       for (file, safe_time) in &file_safe_times {

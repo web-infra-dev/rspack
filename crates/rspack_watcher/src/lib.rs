@@ -83,8 +83,25 @@ pub(crate) type EventBatch = Vec<FsEvent>;
 pub(crate) struct ResolvedEvents {
   pub dependencies: EventBatch,
   pub raw: Option<FsEvent>,
-  pub recovered: EventBatch,
-  pub context_removal: Option<InternedPath>,
+  pub additional: EventBatch,
+  pub context_removals: Vec<InternedPath>,
+}
+
+impl ResolvedEvents {
+  pub(crate) fn push_raw(&mut self, path: InternedPath, kind: FsEventKind) {
+    let event = FsEvent { path, kind };
+    if self.raw.is_none() {
+      self.raw = Some(event);
+    } else if self.raw.as_ref() != Some(&event) && !self.additional.contains(&event) {
+      self.additional.push(event);
+    }
+  }
+
+  pub(crate) fn push_context_removal(&mut self, path: InternedPath) {
+    if !self.context_removals.contains(&path) {
+      self.context_removals.push(path);
+    }
+  }
 }
 
 /// `EventAggregateHandler` is a trait for handling aggregated file system events.

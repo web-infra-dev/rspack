@@ -4,7 +4,7 @@ use std::{
   time::SystemTime,
 };
 
-use rspack_paths::{InternedPath, InternedPathMap, InternedPathSet};
+use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathMap, InternedPathSet};
 use rspack_util::time::current_time;
 
 use crate::{
@@ -277,9 +277,13 @@ impl LinkSubscriptions {
   }
 }
 
-/// Published as a whole so event processing never observes a half-built index.
 #[derive(Default)]
-pub(crate) struct Symlinks(RwLock<LinkSubscriptions>);
+pub(crate) struct Symlinks {
+  // Published as a whole so event processing never observes a half-built index.
+  subscriptions: RwLock<LinkSubscriptions>,
+  // Synchronous time snapshots reuse the contexts that accepted each entry.
+  pub context_owners: InternedPathDashMap<Vec<InternedPath>>,
+}
 
 pub(crate) struct SymlinkAlias {
   pub path: InternedPath,
@@ -299,7 +303,10 @@ pub(crate) struct SymlinkUpdate {
 
 impl Symlinks {
   pub(crate) fn is_unchanged_link_event(&self, path: &InternedPath) -> bool {
-    let mut subscriptions = self.0.write().expect("symlink subscriptions lock poisoned");
+    let mut subscriptions = self
+      .subscriptions
+      .write()
+      .expect("symlink subscriptions lock poisoned");
     let Some(link) = subscriptions.links.get_mut(path) else {
       return false;
     };
@@ -308,7 +315,7 @@ impl Symlinks {
 
   pub(crate) fn has_target_subscription(&self, path: &InternedPath) -> bool {
     self
-      .0
+      .subscriptions
       .read()
       .expect("symlink subscriptions lock poisoned")
       .link_scans
@@ -318,7 +325,7 @@ impl Symlinks {
 
   pub(crate) fn link_scan(&self, path: &InternedPath) -> Option<LinkScan> {
     self
-      .0
+      .subscriptions
       .read()
       .expect("symlink subscriptions lock poisoned")
       .link_scans
@@ -331,7 +338,10 @@ impl Symlinks {
     path: &InternedPath,
     changed_link: Option<&InternedPath>,
   ) -> Option<InternedPath> {
-    let subscriptions = self.0.read().expect("symlink subscriptions lock poisoned");
+    let subscriptions = self
+      .subscriptions
+      .read()
+      .expect("symlink subscriptions lock poisoned");
     let Some(scan) = subscriptions.link_scans.get(path) else {
       return Some(path.clone());
     };
@@ -343,7 +353,7 @@ impl Symlinks {
 
   pub(crate) fn resolved_directory(&self, path: &InternedPath) -> Option<InternedPath> {
     self
-      .0
+      .subscriptions
       .read()
       .expect("symlink subscriptions lock poisoned")
       .resolved_directories
@@ -352,7 +362,10 @@ impl Symlinks {
   }
 
   pub(crate) fn context_directories(&self) -> InternedPathSet {
-    let subscriptions = self.0.read().expect("symlink subscriptions lock poisoned");
+    let subscriptions = self
+      .subscriptions
+      .read()
+      .expect("symlink subscriptions lock poisoned");
     subscriptions
       .directory_targets
       .keys()
@@ -363,7 +376,7 @@ impl Symlinks {
 
   pub(crate) fn resolved_directory_entry(&self, path: &InternedPath) -> Option<InternedPath> {
     self
-      .0
+      .subscriptions
       .read()
       .expect("symlink subscriptions lock poisoned")
       .resolved_directory_entry(path)
@@ -371,7 +384,7 @@ impl Symlinks {
 
   pub(crate) fn context_files(&self) -> InternedPathSet {
     self
-      .0
+      .subscriptions
       .read()
       .expect("symlink subscriptions lock poisoned")
       .context_files
@@ -380,7 +393,7 @@ impl Symlinks {
 
   pub(crate) fn is_context_file(&self, path: &InternedPath) -> bool {
     self
-      .0
+      .subscriptions
       .read()
       .expect("symlink subscriptions lock poisoned")
       .context_files
@@ -389,7 +402,10 @@ impl Symlinks {
 
   pub(crate) fn replace(&self, mut subscriptions: LinkSubscriptions) -> SymlinkUpdate {
     let patterns = std::mem::take(&mut subscriptions.patterns);
-    let mut previous = self.0.write().expect("symlink subscriptions lock poisoned");
+    let mut previous = self
+      .subscriptions
+      .write()
+      .expect("symlink subscriptions lock poisoned");
     for (path, link) in &mut subscriptions.links {
       link.mtime = match previous.links.get(path) {
         Some(old) => old.mtime,
@@ -452,7 +468,10 @@ impl Symlinks {
     include_descendants: bool,
     injected: bool,
   ) -> Vec<SymlinkAlias> {
-    let mut subscriptions = self.0.write().expect("symlink subscriptions lock poisoned");
+    let mut subscriptions = self
+      .subscriptions
+      .write()
+      .expect("symlink subscriptions lock poisoned");
     let include_descendants =
       include_descendants || (subscriptions.watched_children.contains_key(path) && !path.exists());
     let mut aliases = InternedPathMap::default();

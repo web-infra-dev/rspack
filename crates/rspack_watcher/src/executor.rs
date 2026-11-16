@@ -77,7 +77,7 @@ enum ExecAggregateEvent {
 }
 
 enum ExecEvent {
-  Execute(Option<FsEvent>, EventBatch, Option<InternedPath>),
+  Execute(Option<FsEvent>, EventBatch, Vec<InternedPath>),
   Aggregate(FilesData),
   Close,
 }
@@ -211,8 +211,8 @@ impl Executor {
             }
             let _ = exec_tx.send(ExecEvent::Execute(
               events.raw,
-              events.recovered,
-              events.context_removal,
+              events.additional,
+              events.context_removals,
             ));
           }
 
@@ -280,8 +280,8 @@ fn create_execute_task(
   let future = async move {
     'deliveries: while let Some(exec_event) = exec_rx.lock().await.recv().await {
       match exec_event {
-        ExecEvent::Execute(raw, recovered, context_removal) => {
-          for event in raw.into_iter().chain(recovered) {
+        ExecEvent::Execute(raw, additional, context_removals) => {
+          for event in raw.into_iter().chain(additional) {
             // Handle each event based on its kind
             let path = event.path.to_string_lossy().to_string();
             let result = match event.kind {
@@ -294,7 +294,7 @@ fn create_execute_task(
               continue 'deliveries;
             }
           }
-          if let Some(path) = context_removal {
+          for path in context_removals {
             let _ = event_handler.on_context_remove(path.to_string_lossy().to_string());
           }
         }
