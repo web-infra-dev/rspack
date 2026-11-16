@@ -4,7 +4,9 @@ use rspack_core::{
     BoxSource, ConcatSource, MapOptions, RawStringSource, ReplaceSource, Source, SourceExt,
   },
 };
-use rspack_util::{base64::encode_to_string, identifier::make_paths_relative};
+use rspack_util::{
+  base64::encode_to_string, identifier::make_paths_relative, source_map::SourceMapKind,
+};
 
 const CSS_UTF8_CHARSET: &str = r#"@charset "UTF-8";"#;
 
@@ -108,7 +110,7 @@ impl CssSourceBuilder {
     }
   }
 
-  pub(crate) fn into_css_text(self) -> String {
+  pub(crate) fn into_css_text(self, source_map_kind: SourceMapKind) -> String {
     let include_sources_content = self.include_sources_content;
     let source_map_context = self.source_map_context.clone();
     let source = self.into_source();
@@ -116,7 +118,10 @@ impl CssSourceBuilder {
       .replace(&source.source().into_string_lossy(), "")
       .into_owned();
 
-    if let Some(mut source_map) = source.map(&MapOptions::default()) {
+    // CSS embedded in JavaScript must not expose maps for external or hidden devtool modes.
+    if source_map_kind.contains(SourceMapKind::Inline)
+      && let Some(mut source_map) = source.map(&MapOptions::default())
+    {
       if !source_map_context.as_str().is_empty() {
         source_map.set_sources(
           source_map
@@ -347,7 +352,7 @@ mod tests {
     );
 
     assert_eq!(
-      builder.into_css_text(),
+      builder.into_css_text(SourceMapKind::SourceMap.with_inline(true)),
       r#"@charset "UTF-8";
 .a{background:url();}"#
     );
