@@ -350,7 +350,7 @@ impl EventProcessor {
     // a spurious rebuild.
     // A scan's event was filtered when the scan found the path.
     // Context scans carry their owner; other events may reach independent subscriptions.
-    let contexts =
+    let mut contexts =
       if self.path_manager.follows_symlinks() && !matches!(origin, Origin::ContextScan(_)) {
         Some(self.path_manager.context_paths(path).await)
       } else {
@@ -499,6 +499,21 @@ impl EventProcessor {
       return;
     }
 
+    // Metadata of a known directory does not change its entry in a parent context.
+    // Raw link events still need to handle a junction receiving its target.
+    let nested_directory_metadata = contexts.is_some()
+      && matches!(
+        origin,
+        Origin::Disk { appeared: false }
+          | Origin::Symlink {
+            link_changed: false,
+            appeared: false,
+            injected: false,
+          }
+      )
+      && self.path_manager.is_known_context_directory(path)
+      && path.is_dir()
+      && (!path.is_symlink() || matches!(origin, Origin::Symlink { .. }));
     if kind != FsEventKind::Remove
       && !self
         .path_manager
@@ -509,6 +524,12 @@ impl EventProcessor {
         .await
     {
       return;
+    }
+    if nested_directory_metadata && let Some(contexts) = &mut contexts {
+      contexts.retain(|context| context.dependency.as_ref() == Some(path));
+      if !direct_subscription && contexts.is_empty() {
+        return;
+      }
     }
     if matches!(origin, Origin::Symlink { .. })
       && kind != FsEventKind::Remove

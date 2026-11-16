@@ -398,6 +398,10 @@ impl PathManager {
       .is_some_and(|symlinks| symlinks.is_context_file(path))
   }
 
+  pub(crate) fn is_known_context_directory(&self, path: &InternedPath) -> bool {
+    self.context_directories.contains(path)
+  }
+
   pub(crate) async fn refresh_symlinks(&self) -> SymlinkUpdate {
     let Some(symlinks) = &self.symlinks else {
       return SymlinkUpdate::default();
