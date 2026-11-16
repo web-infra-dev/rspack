@@ -393,17 +393,28 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
           return None;
         }
       }
-      let mut pos = 0;
+      let mut rest = ids;
+      let mut is_fake_namespace = false;
       let mut maybe_exports_info =
         Some(exports_info_artifact.get_exports_info_data(&imported_module_identifier));
-      while pos < ids.len()
+      while let Some((id, tail)) = rest.split_first()
         && let Some(exports_info) = &maybe_exports_info
       {
-        let id = &ids[pos];
-        pos += 1;
+        rest = tail;
+        if is_fake_namespace && id == "default" {
+          is_fake_namespace = false;
+          continue;
+        }
         let export_info = exports_info.get_read_only_export_info(id);
         if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
-          let provided_exports = exports_info.get_provided_exports();
+          let mut provided_exports = exports_info.get_provided_exports();
+          if is_fake_namespace
+            && let ProvidedExports::ProvidedNames(names) = &mut provided_exports
+            && !names.iter().any(|name| name == "default")
+          {
+            names.push("default".into());
+            names.sort_unstable();
+          }
           let more_info = if let ProvidedExports::ProvidedNames(exports) = &provided_exports {
             if exports.is_empty() {
               " (module has no exports)".to_string()
@@ -422,9 +433,8 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
           };
           let msg = format!(
             "export {} {} was not found in '{}'{more_info}",
-            ids
+            ids[..ids.len() - tail.len()]
               .iter()
-              .take(pos)
               .map(|id| format!("'{id}'"))
               .collect::<Vec<_>>()
               .join("."),
@@ -437,6 +447,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
           maybe_exports_info = None;
           continue;
         };
+        is_fake_namespace = export_info.default_points_to_self();
         maybe_exports_info = Some(nested_exports_info.as_data(exports_info_artifact));
       }
       let msg = format!(

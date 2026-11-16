@@ -1364,13 +1364,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
           exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
             name: mode.name,
             export: Some(rspack_core::Nullable::Null),
-            exports: Some(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
-              name: "default".into(),
-              can_mangle: Some(false),
-              from: from.cloned(),
-              export: Some(rspack_core::Nullable::Null),
-              ..Default::default()
-            })]),
+            default_points_to_self: Some(true),
             from: from.cloned(),
             ..Default::default()
           })]),
@@ -1553,7 +1547,6 @@ impl Dependency for ESMExportImportedSpecifierDependency {
           &mut referenced_exports,
           vec![],
           Some(partial_namespace_export_info.as_data(exports_info_artifact)),
-          matches!(mode, ExportMode::ReexportFakeNamespaceObject(_)),
           &mut Default::default(),
         );
         referenced_exports
@@ -1573,7 +1566,6 @@ impl Dependency for ESMExportImportedSpecifierDependency {
             &mut referenced_exports,
             item.ids.iter().collect(),
             Some(item.export_info.as_data(exports_info_artifact)),
-            false,
             &mut Default::default(),
           );
         }
