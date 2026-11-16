@@ -904,7 +904,9 @@ impl PathManager {
           if self.forget_if_orphaned(&path) {
             break;
           }
-          if !registered && changed_since.is_some_and(|since| mtime_safe_time(mtime) >= since) {
+          if (!registered || context.dependency.is_some())
+            && changed_since.is_some_and(|since| mtime_safe_time(mtime) >= since)
+          {
             changed.push((path, context.clone()));
           }
         }

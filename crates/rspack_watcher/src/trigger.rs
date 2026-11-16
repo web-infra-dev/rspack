@@ -349,14 +349,29 @@ impl EventProcessor {
     // `find_associated_event` bubbles them to a registered parent and triggers
     // a spurious rebuild.
     // A scan's event was filtered when the scan found the path.
-    if !origin.is_scan()
+    let contexts = if resolved_path.is_some() && !origin.is_scan() && !origin.link_changed() {
+      Some(self.path_manager.context_paths(path).await)
+    } else {
+      None
+    };
+    let ignored = !origin.is_scan()
       && self
         .path_manager
         .is_ignored_path(resolved_path.unwrap_or(path))
-        .await
-    {
+        .await;
+    if ignored && contexts.as_ref().is_none_or(|contexts| contexts.is_empty()) {
       return;
     }
+    // An ignored physical subscription may still be visible through a parent context.
+    let context_resolved_path = contexts
+      .as_ref()
+      .and_then(|contexts| contexts.first())
+      .and_then(|context| context.resolved_entry(path));
+    let resolved_path = if ignored {
+      context_resolved_path.as_ref()
+    } else {
+      resolved_path
+    };
 
     // A watched path that no longer exists on disk is a removal, regardless of
     // how the OS reported the event. macOS FSEvents reports an unlink as a
@@ -490,14 +505,15 @@ impl EventProcessor {
     let mut associated_event = finder.find_associated_event(path, kind);
     if let Origin::ContextScan(context) = &origin {
       associated_event.retain(|(dependency, _)| Some(dependency) == context.dependency.as_ref());
-    } else if resolved_path.is_some() && !origin.link_changed() {
-      let contexts = self.path_manager.context_paths(path).await;
+    } else if let Some(contexts) = &contexts {
       associated_event.retain(|(dependency, _)| {
-        dependency == path
-          || !finder.directories.contains(dependency)
-          || contexts
+        if finder.directories.contains(dependency) {
+          contexts
             .iter()
             .any(|context| context.dependency.as_ref() == Some(dependency))
+        } else {
+          !ignored
+        }
       });
     }
     if origin.link_changed()
