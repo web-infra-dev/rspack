@@ -43,6 +43,9 @@ runs:
     - name: Setup sccache
       if: ${{ runner.environment == 'self-hosted' }}
       uses: rstackjs/sccache-action@8ece41fd13fd5d944a38144ac9eb98a7455fe438 # v0.1.0
+      with:
+        # Keep the cache stats out of the run summary and the annotations panel.
+        disable_annotations: 'true'
 
     - name: Reset sccache server
       if: ${{ runner.environment == 'self-hosted' }}
