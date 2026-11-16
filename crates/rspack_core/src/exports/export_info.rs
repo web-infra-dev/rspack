@@ -59,6 +59,7 @@ pub struct ExportInfoData {
   terminal_binding: bool,
   exports_info: Option<ExportsInfo>,
   exports_info_owned: bool,
+  default_points_to_self: bool,
   has_use_in_runtime_info: bool,
   global_used: Option<UsageState>,
   // Boxed for the same reason as the target map: the inline map costs ~40
@@ -124,6 +125,7 @@ impl ExportInfoData {
       target_is_set: init_from.map(|init| init.target_is_set).unwrap_or_default(),
       exports_info: None,
       exports_info_owned: false,
+      default_points_to_self: false,
       has_use_in_runtime_info,
       can_mangle_use,
       global_used,
@@ -217,6 +219,22 @@ impl ExportInfoData {
     self.exports_info_owned
   }
 
+  pub fn default_points_to_self(&self) -> bool {
+    self.default_points_to_self
+  }
+
+  /// The names to look up in the nested exports info for `names` accessed on this export.
+  ///
+  /// The `default` property of a fake namespace object is the exports object the nested exports
+  /// info already describes, so a leading `default` is dropped. An empty result means the access
+  /// ends at that exports object.
+  pub fn strip_self_default<'a>(&self, names: &'a [Atom]) -> &'a [Atom] {
+    match names.split_first() {
+      Some((first, rest)) if self.default_points_to_self && first == "default" => rest,
+      _ => names,
+    }
+  }
+
   pub fn has_use_in_runtime_info(&self) -> bool {
     self.has_use_in_runtime_info
   }
@@ -269,6 +287,10 @@ impl ExportInfoData {
 
   pub fn set_exports_info_owned(&mut self, value: bool) {
     self.exports_info_owned = value;
+  }
+
+  pub fn set_default_points_to_self(&mut self, value: bool) {
+    self.default_points_to_self = value;
   }
 
   pub fn set_used_name(&mut self, name: UsedNameItem) {

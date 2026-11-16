@@ -6,7 +6,7 @@ use rspack_core::{
   ArcComputed, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, CompilerOptions,
   DependencyCodeGenerationRef, DependencyRange, FactoryMeta, ImportMeta, ModuleIdentifier,
   ModuleLayer, ModuleType, ParseMeta, ParserOptions, PortableLocationShift, ResolvedModuleOptions,
-  ResourceData, SideEffectsBailoutItemWithSpan,
+  ResourceData, SideEffectsBailoutItemWithSpan, ValueCacheVersions,
 };
 use rspack_error::Diagnostic;
 use rspack_util::swc::RspackComments;
@@ -52,6 +52,7 @@ pub fn scan_dependencies(
   ast: &ParsedJavaScriptAst<'_>,
   resource_data: &ResourceData,
   compiler_options: &CompilerOptions,
+  value_cache_versions: &ValueCacheVersions,
   module_type: &ModuleType,
   module_layer: Option<&ModuleLayer>,
   factory_meta: Option<&FactoryMeta>,
@@ -86,6 +87,7 @@ pub fn scan_dependencies(
     source,
     ast,
     compiler_options,
+    value_cache_versions,
     javascript_options,
     &plugin_drive,
     &module_identifier,

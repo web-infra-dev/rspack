@@ -46,6 +46,7 @@ impl ToNapiValue for &ContextInfo {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct JsCreateData {
+  pub context: Option<String>,
   pub request: String,
   pub user_request: String,
   pub resource: String,
@@ -54,6 +55,7 @@ pub struct JsCreateData {
 impl From<&NormalModuleCreateData> for JsCreateData {
   fn from(value: &NormalModuleCreateData) -> Self {
     Self {
+      context: value.context.clone(),
       request: value.request.clone(),
       user_request: value.user_request.clone(),
       resource: value.resource_resolve_data().resource().to_owned(),
@@ -63,6 +65,7 @@ impl From<&NormalModuleCreateData> for JsCreateData {
 
 impl JsCreateData {
   pub fn update_nmf_data(self, create_data: &mut NormalModuleCreateData) {
+    create_data.context = self.context;
     create_data.request = self.request;
     create_data.user_request = self.user_request;
     if create_data.resource_resolve_data().resource() != self.resource {
@@ -109,11 +112,7 @@ impl JsResolveData {
             .map(|(key, value)| (key.to_owned(), value.to_owned()))
             .collect()
         }),
-      create_data: create_data.map(|create_data| JsCreateData {
-        request: create_data.request.clone(),
-        user_request: create_data.user_request.clone(),
-        resource: create_data.resource_resolve_data().resource().to_owned(),
-      }),
+      create_data: create_data.map(JsCreateData::from),
     }
   }
 

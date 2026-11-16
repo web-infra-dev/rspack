@@ -189,6 +189,9 @@ impl JavascriptParser<'_> {
 
   pub fn walk_statements(&mut self, statements: SubRange<Stmt>) {
     let ast = self.ast.ast;
+    // A nested statement list can be part of an expression (e.g. a function
+    // on the right of an assignment). Its last statement is only local to it.
+    let prev = self.prev_statement;
     let mut only_function_declaration = false;
     for statement in ast.nodes(statements) {
       if only_function_declaration
@@ -208,6 +211,7 @@ impl JavascriptParser<'_> {
         only_function_declaration = true;
       }
     }
+    self.prev_statement = prev;
   }
 
   pub(crate) fn walk_statement(&mut self, statement: Stmt) {

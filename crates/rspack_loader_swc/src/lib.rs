@@ -17,6 +17,7 @@ pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RscMeta, RunnerContext};
 use rspack_error::{Diagnostic, Error, Result, SerdeResultToRspackResultExt};
+use rspack_hash::RspackHasher;
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifier, Loader, LoaderContext, get_scheme};
 use rspack_paths::Utf8PathBuf;
@@ -362,6 +363,12 @@ impl Loader<RunnerContext> for SwcLoader {
 
   fn portable_output_es5_strings(&self) -> bool {
     self.options_with_additional.es5_strings
+  }
+
+  fn etag(&self, context: &RunnerContext, hasher: &mut RspackHasher) {
+    rspack_hash::rspack_hash_object!(hasher, {
+      "source_map_kind" => context.source_map_kind.bits(),
+    });
   }
 
   #[tracing::instrument("loader:builtin-swc", skip_all, fields(

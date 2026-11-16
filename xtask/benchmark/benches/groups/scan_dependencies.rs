@@ -262,6 +262,7 @@ impl PreparedScanDependenciesBenchmarkCase {
       &self.parsed_ast,
       &self.resource_data,
       self.compiler_options.as_ref(),
+      &Default::default(),
       &self.module_type,
       None,
       None,

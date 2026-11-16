@@ -9,7 +9,7 @@ export default defineConfig({
   plugins: [
     definePlugin({
       apply(compiler) {
-        compiler.hooks.make.tap('make', (compilation) => {
+        compiler.hooks.make.tapAsync('make', (compilation, callback) => {
           const childEntry = path.resolve(
             import.meta.dirname,
             './child-entry.js',
@@ -17,7 +17,7 @@ export default defineConfig({
           const childCompiler = compilation.createChildCompiler('name', {}, [
             new compiler.rspack.EntryPlugin(compiler.context, childEntry),
           ]);
-          childCompiler.compile(() => {});
+          childCompiler.compile((error) => callback(error));
         });
       },
     }),

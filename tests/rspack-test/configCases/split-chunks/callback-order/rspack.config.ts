@@ -7,13 +7,27 @@ const layerArgumentCounts = new Set<number>();
 const isSharedModule = (module: Module) =>
   /[\\/]shared\.js$/.test(module.nameForCondition() || '');
 
+function resetCallbackState() {
+  firstNameRan = false;
+  events.length = 0;
+  layerArgumentCounts.clear();
+}
+
 class AssertCallbackOrderPlugin {
   apply(compiler: Compiler) {
+    compiler.hooks.compilation.tap(
+      'AssertCallbackOrderPlugin',
+      resetCallbackState,
+    );
     compiler.hooks.done.tap('AssertCallbackOrderPlugin', (stats) => {
       expect(events).toEqual(['first:name', 'second:test:true']);
       expect([...layerArgumentCounts]).toEqual([1]);
 
-      const assets = stats.toJson({ all: false, assets: true }).assets;
+      const assets = stats.toJson({
+        all: false,
+        assets: true,
+        cachedAssets: true,
+      }).assets;
       expect(assets?.some((asset) => asset.name === 'second.js')).toBe(true);
       expect(assets?.some((asset) => asset.name === 'first.js')).toBe(false);
     });

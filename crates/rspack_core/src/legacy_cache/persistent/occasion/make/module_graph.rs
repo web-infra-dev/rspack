@@ -26,6 +26,7 @@ type CachedDependency<'a> = (
   OwnedOrRef<'a, DependencyRef>,
   Option<OwnedOrRef<'a, AsyncDependenciesBlockIdentifier>>,
   usize,
+  bool, // Deferred in the saved module graph.
 );
 
 /// Build-owned inputs, without factorization results or graph edges.
@@ -41,7 +42,7 @@ struct Node<'a> {
 #[cacheable]
 struct Resolution<'a> {
   /// Factory replacements only. Unchanged inputs must keep sharing the build's dependency
-  /// objects, including mutable lazy flags, after recovery.
+  /// objects after recovery.
   dependencies: Vec<OwnedOrRef<'a, DependencyRef>>,
   infos: Vec<OwnedOrRef<'a, FactorizeInfo>>,
   connections: Vec<OwnedOrRef<'a, ModuleGraphConnection>>,
@@ -199,6 +200,7 @@ pub fn save_module_graph(
               .into(),
             mg.get_parent_block(dep_id).map(Into::into),
             mg.get_parent_block_index(dep_id).unwrap_or_default(),
+            mg.is_lazy_dependency(dep_id),
           )
         })
         .collect::<Vec<_>>();
@@ -299,7 +301,7 @@ pub fn save_module_graph(
           node.dependencies = node
             .dependencies
             .into_iter()
-            .map(|(dep, _, index)| (TempDependency::transform_from(dep), None, index))
+            .map(|(dep, _, index, lazy)| (TempDependency::transform_from(dep), None, index, lazy))
             .collect();
           node.blocks = vec![];
           encode(&node)
@@ -452,9 +454,12 @@ pub async fn recovery_module_graph(
         .map(OwnedOrRef::into_owned)
         .map(|dep| (*dep.id(), dep))
         .collect::<FxHashMap<_, _>>();
-      for (dep, parent_block, index_in_block) in node.dependencies {
+      for (dep, parent_block, index_in_block, lazy) in node.dependencies {
         let input = dep.into_owned();
         let dep = replacements.remove(input.id()).unwrap_or(input);
+        if lazy {
+          mg.add_lazy_dependency(*dep.id());
+        }
         mg.set_parents(
           *dep.id(),
           DependencyParents {
@@ -493,13 +498,19 @@ pub async fn recovery_module_graph(
     let ids = node
       .dependencies
       .iter()
-      .map(|(dep, _, _)| *dep.as_ref().id())
+      .map(|(dep, ..)| *dep.as_ref().id())
       .collect::<Vec<_>>();
     let input_dependencies = node
       .dependencies
       .iter()
-      .map(|(dep, _, _)| (*dep.as_ref().id(), dep.as_ref()))
+      .map(|(dep, ..)| (*dep.as_ref().id(), dep.as_ref()))
       .collect::<FxHashMap<_, _>>();
+    let deferred = node
+      .dependencies
+      .iter()
+      .filter(|(.., lazy)| *lazy)
+      .map(|(dep, ..)| *dep.as_ref().id())
+      .collect::<FxHashSet<_>>();
     if ids != mgm.all_dependencies()
       || ids.iter().any(|id| !dependency_ids.insert(*id))
       || !mgm.outgoing_connections().is_empty()
@@ -554,7 +565,7 @@ pub async fn recovery_module_graph(
     {
       return Err(error!("missing make cache build dependency"));
     }
-    for (dep, block, index) in &node.dependencies {
+    for (dep, block, index, _) in &node.dependencies {
       if block
         .as_ref()
         .is_some_and(|block| !owned_blocks.contains_key(block.as_ref()))
@@ -656,15 +667,18 @@ pub async fn recovery_module_graph(
           // Context replacement mutates critical diagnostics in the dependency itself. Rebuild
           // those owners, and lazy/placeholder/injected inputs, rather than reuse resolved state.
           build_inputs.contains_key(id)
-            && dep.lazy().is_none()
+            && !deferred.contains(id)
             && dep.as_module_dependency().is_some()
             && dep.as_context_dependency().is_none()
         })
       });
     let rebuild = (expired || !refresh.is_empty()) && !can_refactorize;
     check_issuer_cycles |= expired || !refresh.is_empty();
-    for (dep, parent_block, index_in_block) in node.dependencies {
+    for (dep, parent_block, index_in_block, lazy) in node.dependencies {
       let input = dep.into_owned();
+      if lazy {
+        mg.add_lazy_dependency(*input.id());
+      }
       let resolved = resolved_dependencies.remove(input.id());
       let dep = if rebuild || refresh.contains(input.id()) {
         input

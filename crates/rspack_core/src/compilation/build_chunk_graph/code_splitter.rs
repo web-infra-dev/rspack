@@ -156,7 +156,9 @@ fn prepare_module_connection_map(
     if module_dependency.is_none() && dependency.as_context_dependency().is_none() {
       continue;
     }
-    if module_dependency.is_some_and(|dependency| dependency.weak()) {
+    if module_graph.is_lazy_dependency(dependency_id)
+      || module_dependency.is_some_and(|dependency| dependency.weak())
+    {
       continue;
     }
     let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
