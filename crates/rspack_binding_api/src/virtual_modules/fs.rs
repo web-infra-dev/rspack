@@ -40,7 +40,7 @@ impl ReadableFileSystem for VirtualFileSystem {
     if let Ok(store) = self.virtual_file_store.read()
       && let Some(content) = store.get_file_content(path)
     {
-      return Ok(content.clone());
+      return Ok(content);
     }
 
     self.real_fs.read(path).await
@@ -50,28 +50,10 @@ impl ReadableFileSystem for VirtualFileSystem {
     if let Ok(store) = self.virtual_file_store.read()
       && let Some(content) = store.get_file_content(path)
     {
-      return Ok(content.clone());
+      return Ok(content);
     }
 
     self.real_fs.read_sync(path)
-  }
-
-  fn snapshot_metadata(&self) -> Option<Vec<u8>> {
-    Some(
-      self
-        .virtual_file_store
-        .read()
-        .expect("virtual file store should not be poisoned")
-        .snapshot_metadata(),
-    )
-  }
-
-  fn restore_metadata(&self, snapshot: Option<&[u8]>) -> Result<()> {
-    self
-      .virtual_file_store
-      .write()
-      .expect("virtual file store should not be poisoned")
-      .restore_metadata(snapshot)
   }
 
   fn mtime_accuracy(&self, path: &Utf8Path) -> Option<u64> {
@@ -79,8 +61,8 @@ impl ReadableFileSystem for VirtualFileSystem {
       .virtual_file_store
       .read()
       .expect("virtual file store should not be poisoned")
-      .get_file_content(path)
-      .is_some()
+      .get_file_metadata(path)
+      .is_some_and(|metadata| metadata.is_file)
     {
       // Virtual writes have millisecond precision, without the larger rounding
       // window inferred for physical filesystems. Keep one millisecond of safety

@@ -81,6 +81,34 @@ const cases = ['development', 'none', 'production'].flatMap((mode) =>
 
 export default [
   ...cases,
+  {
+    name: 'virtual-module-timestamps-path-conflicts',
+    description:
+      'rejects file and directory conflicts without changing virtual inputs',
+    async run() {
+      const root = await fs.mkdtemp(
+        path.join(os.tmpdir(), 'rspack-virtual-paths-'),
+      );
+      try {
+        const result = await runNodeCase(
+          new URL('./build.mjs', import.meta.url),
+          [
+            root,
+            'development',
+            7,
+            { en: 'hello' },
+            { checkPathConflicts: true },
+          ],
+        );
+        assert.deepEqual(result.output, {
+          value: 7,
+          translations: { './en.js': 'hello' },
+        });
+      } finally {
+        await fs.rm(root, { recursive: true, force: true });
+      }
+    },
+  },
   ...['child', 'build-dependency'].map((kind) => ({
     name: `virtual-module-timestamps-${kind}`,
     description: `restores virtual metadata before validating ${kind} snapshots`,

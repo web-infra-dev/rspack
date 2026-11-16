@@ -150,9 +150,7 @@ use crate::{
   resolver_factory::JsResolverFactory,
   trace_event::RawTraceEvent,
   utils::callbackify,
-  virtual_modules::{
-    JsVirtualFileStore, TrieVirtualFileStore, VirtualFileStore, VirtualFileSystem,
-  },
+  virtual_modules::{JsVirtualFileStore, VfsVirtualFileStore, VirtualFileStore, VirtualFileSystem},
 };
 
 // Export expected @rspack/core version
@@ -378,9 +376,11 @@ impl JsCompiler {
       let mut virtual_file_store: Option<Arc<RwLock<dyn VirtualFileStore>>> = None;
       if let Some(list) = virtual_files {
         let store = {
-          let mut store = TrieVirtualFileStore::new();
+          let mut store = VfsVirtualFileStore::new();
           for f in list {
-            store.write_file(f.path.as_str().into(), f.content.into());
+            store
+              .write_file(f.path.as_str().into(), f.content.into())
+              .map_err(|error| napi::Error::from_reason(error.to_string()))?;
           }
           Arc::new(RwLock::new(store))
         };

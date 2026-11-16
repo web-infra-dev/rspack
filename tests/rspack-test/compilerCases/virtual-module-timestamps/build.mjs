@@ -20,6 +20,7 @@ export default async function build(
     buildDependency = null,
     child = false,
     childValue = value + 100,
+    checkPathConflicts = false,
   } = {},
 ) {
   const built = [];
@@ -122,6 +123,12 @@ export default async function build(
               if (dynamic) {
                 for (const [file, content] of Object.entries(inputs))
                   virtual.writeModule(file, content);
+              }
+              if (checkPathConflicts) {
+                assert.throws(() => virtual.writeModule('virtual', 'invalid'));
+                assert.throws(() =>
+                  virtual.writeModule('virtual/value.js/child.js', 'invalid'),
+                );
               }
               compilation.hooks.buildModule.tap(
                 'VirtualTimestampTest',

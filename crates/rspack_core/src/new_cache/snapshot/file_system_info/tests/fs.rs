@@ -1,15 +1,17 @@
 //! The equivalent of webpack's memfs fixture, with deterministic mtimes and fault injection.
-//! Kept local to these tests because rspack_fs::MemoryFileSystem has no symlink/utimes support.
+//! MemoryFS owns the entries and timestamps; only unsupported node kinds need side metadata.
 
 use std::{
   collections::BTreeMap,
-  io::{Error, ErrorKind},
+  io::{Error, ErrorKind, Read, Write},
   sync::Mutex,
+  time::{Duration, SystemTime},
 };
 
 use cow_utils::CowUtils;
 use rspack_fs::{FileMetadata, FilePermissions, ReadableFileSystem, Result};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+use vfs::{FileSystem, MemoryFS, VfsError, VfsFileType, error::VfsErrorKind};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub(super) enum Operation {
@@ -23,39 +25,16 @@ pub(super) enum Operation {
 
 #[derive(Debug)]
 enum Node {
-  Directory,
-  File(Vec<u8>),
   Symlink(String),
-  Special(Vec<u8>),
-}
-
-#[derive(Debug)]
-struct Entry {
-  node: Node,
-  mtime: u64,
-}
-
-impl Entry {
-  fn metadata(&self) -> FileMetadata {
-    FileMetadata {
-      is_file: matches!(self.node, Node::File(_)),
-      is_directory: matches!(self.node, Node::Directory),
-      is_symlink: matches!(self.node, Node::Symlink(_)),
-      atime_ms: self.mtime,
-      mtime_ms: self.mtime,
-      ctime_ms: self.mtime,
-      size: match &self.node {
-        Node::File(data) | Node::Special(data) => data.len() as u64,
-        Node::Symlink(target) => target.len() as u64,
-        Node::Directory => 0,
-      },
-    }
-  }
+  Special,
 }
 
 #[derive(Debug)]
 struct State {
-  entries: BTreeMap<String, Entry>,
+  fs: MemoryFS,
+  // These nodes have ordinary backing files so their existence and timestamps
+  // are owned by MemoryFS too.
+  nodes: BTreeMap<String, Node>,
   calls: BTreeMap<(Operation, String), usize>,
   errors: BTreeMap<(Operation, String), (ErrorKind, usize)>,
   clock: u64,
@@ -76,11 +55,72 @@ fn normalize(path: &str) -> String {
   format!("/{}", parts.join("/"))
 }
 
+fn backing_path(path: &str) -> String {
+  // Keep the fixture root replaceable like any other entry. MemoryFS's own
+  // root (the empty path) cannot be replaced with create_file.
+  format!("/fixture{}", path.trim_end_matches('/'))
+}
+
 fn error(kind: ErrorKind, path: &str) -> rspack_fs::Error {
   Error::new(kind, format!("{kind:?}: {path}")).into()
 }
 
+fn vfs_error(err: VfsError, path: &str) -> rspack_fs::Error {
+  let kind = match err.kind() {
+    VfsErrorKind::FileNotFound => ErrorKind::NotFound,
+    VfsErrorKind::IoError(err) => err.kind(),
+    _ => ErrorKind::Other,
+  };
+  error(kind, path)
+}
+
+fn milliseconds(time: Option<SystemTime>) -> u64 {
+  time
+    .expect("fixture timestamp")
+    .duration_since(SystemTime::UNIX_EPOCH)
+    .expect("fixture timestamp after epoch")
+    .as_millis() as u64
+}
+
 impl State {
+  fn set_timestamps(&self, path: &str, mtime: u64) {
+    let path = backing_path(path);
+    let time = SystemTime::UNIX_EPOCH + Duration::from_millis(mtime);
+    self.fs.set_creation_time(&path, time).expect("set ctime");
+    self
+      .fs
+      .set_modification_time(&path, time)
+      .expect("set mtime");
+    self.fs.set_access_time(&path, time).expect("set atime");
+  }
+
+  fn touch(&mut self, path: &str) {
+    // Mutations are separated by more than the maximum filesystem accuracy.
+    // No wall-clock sleeps are needed to distinguish two writes.
+    self.clock += 10_000;
+    self.set_timestamps(path, self.clock);
+  }
+
+  fn metadata(&self, path: &str) -> Result<FileMetadata> {
+    let metadata = self
+      .fs
+      .metadata(&backing_path(path))
+      .map_err(|err| vfs_error(err, path))?;
+    let node = self.nodes.get(path);
+    Ok(FileMetadata {
+      is_file: node.is_none() && metadata.file_type == VfsFileType::File,
+      is_directory: node.is_none() && metadata.file_type == VfsFileType::Directory,
+      is_symlink: matches!(node, Some(Node::Symlink(_))),
+      atime_ms: milliseconds(metadata.accessed),
+      mtime_ms: milliseconds(metadata.modified),
+      ctime_ms: milliseconds(metadata.created),
+      size: match node {
+        Some(Node::Symlink(target)) => target.len() as u64,
+        _ => metadata.len,
+      },
+    })
+  }
+
   fn record(&mut self, operation: Operation, path: &str) -> Result<()> {
     let key = (operation, normalize(path));
     *self.calls.entry(key.clone()).or_default() += 1;
@@ -104,12 +144,9 @@ impl State {
       for (index, part) in parts.iter().enumerate() {
         prefix.push('/');
         prefix.push_str(part);
-        let entry = self
-          .entries
-          .get(&prefix)
-          .ok_or_else(|| error(ErrorKind::NotFound, &prefix))?;
+        let metadata = self.metadata(&prefix)?;
         let last = index + 1 == parts.len();
-        if let Node::Symlink(target) = &entry.node {
+        if let Some(Node::Symlink(target)) = self.nodes.get(&prefix) {
           if !last || follow_final {
             let parent = prefix.rsplit_once('/').expect("absolute path").0;
             let target = if target.starts_with('/') {
@@ -123,7 +160,7 @@ impl State {
             )));
             break;
           }
-        } else if !last && !matches!(entry.node, Node::Directory) {
+        } else if !last && !metadata.is_directory {
           return Err(error(ErrorKind::NotADirectory, &prefix));
         }
       }
@@ -141,28 +178,19 @@ pub(super) struct TestFileSystem(Mutex<State>);
 
 impl TestFileSystem {
   pub(super) fn new() -> Self {
-    Self(Mutex::new(State {
-      entries: BTreeMap::from([(
-        "/".into(),
-        Entry {
-          node: Node::Directory,
-          mtime: 10_000,
-        },
-      )]),
+    let state = State {
+      fs: MemoryFS::new(),
+      nodes: BTreeMap::new(),
       calls: BTreeMap::new(),
       errors: BTreeMap::new(),
       clock: 10_000,
-    }))
-  }
-
-  fn insert(&self, path: &str, node: Node) {
-    let path = normalize(path);
-    let mut state = self.0.lock().expect("filesystem lock");
-    // Mutations are separated by more than the maximum filesystem accuracy.
-    // No wall-clock sleeps are needed to distinguish two writes.
-    state.clock += 10_000;
-    let mtime = state.clock;
-    state.entries.insert(path, Entry { node, mtime });
+    };
+    state
+      .fs
+      .create_dir(&backing_path("/"))
+      .expect("create fixture root");
+    state.set_timestamps("/", state.clock);
+    Self(Mutex::new(state))
   }
 
   pub(super) fn mkdir(&self, path: &str) {
@@ -171,40 +199,70 @@ impl TestFileSystem {
     for part in path.split('/').filter(|part| !part.is_empty()) {
       prefix.push('/');
       prefix.push_str(part);
-      if !self
-        .0
-        .lock()
-        .expect("filesystem lock")
-        .entries
-        .contains_key(&prefix)
-      {
-        self.insert(&prefix, Node::Directory);
+      let mut state = self.0.lock().expect("filesystem lock");
+      let backing = backing_path(&prefix);
+      if !state.fs.exists(&backing).expect("check directory") {
+        state.fs.create_dir(&backing).expect("create directory");
+        state.touch(&prefix);
       }
     }
+  }
+
+  fn insert_file(&self, path: &str, content: &[u8], node: Option<Node>) {
+    let path = normalize(path);
+    let mut state = self.0.lock().expect("filesystem lock");
+    {
+      let mut file = state
+        .fs
+        .create_file(&backing_path(&path))
+        .expect("create file");
+      file.write_all(content).expect("write file");
+    }
+    // MemoryFS flushes on drop and stamps the write with wall-clock time.
+    match node {
+      Some(node) => {
+        state.nodes.insert(path.clone(), node);
+      }
+      None => {
+        state.nodes.remove(&path);
+      }
+    }
+    state.touch(&path);
   }
 
   pub(super) fn write(&self, path: &str, content: impl AsRef<[u8]>) {
     let parent = path.rsplit_once('/').expect("absolute file path").0;
     self.mkdir(parent);
-    self.insert(path, Node::File(content.as_ref().to_vec()));
+    self.insert_file(path, content.as_ref(), None);
   }
 
   pub(super) fn symlink(&self, target: &str, path: &str) {
     let parent = path.rsplit_once('/').expect("absolute symlink path").0;
     self.mkdir(parent);
-    self.insert(path, Node::Symlink(target.into()));
+    self.insert_file(path, &[], Some(Node::Symlink(target.into())));
   }
 
   pub(super) fn special(&self, path: &str) {
     self.write(path, "");
-    self.insert(path, Node::Special(Vec::new()));
+    let path = normalize(path);
+    let mut state = self.0.lock().expect("filesystem lock");
+    state.nodes.insert(path.clone(), Node::Special);
+    state.touch(&path);
   }
 
   pub(super) fn advance_timestamps(&self, delta: u64) {
     let mut state = self.0.lock().expect("filesystem lock");
     state.clock += delta;
-    for entry in state.entries.values_mut() {
-      entry.mtime += delta;
+    let mut paths = vec!["/".to_string()];
+    while let Some(path) = paths.pop() {
+      let backing = backing_path(&path);
+      let metadata = state.fs.metadata(&backing).expect("fixture metadata");
+      state.set_timestamps(&path, milliseconds(metadata.modified) + delta);
+      // Enumerate backing entries without resolving symlinks, including any
+      // children retained when an existing directory was overwritten.
+      for child in state.fs.read_dir(&backing).expect("fixture entries") {
+        paths.push(format!("{}/{child}", path.trim_end_matches('/')));
+      }
     }
   }
 
@@ -232,13 +290,7 @@ impl TestFileSystem {
       path.as_str(),
     )?;
     let resolved = state.resolve(path.as_str(), follow_final)?;
-    Ok(
-      state
-        .entries
-        .get(&resolved)
-        .expect("resolved entry")
-        .metadata(),
-    )
+    state.metadata(&resolved)
   }
 }
 
@@ -253,11 +305,27 @@ impl ReadableFileSystem for TestFileSystem {
     let mut state = self.0.lock().expect("filesystem lock");
     state.record(Operation::Read, path.as_str())?;
     let resolved = state.resolve(path.as_str(), true)?;
-    match &state.entries.get(&resolved).expect("resolved entry").node {
-      Node::File(data) | Node::Special(data) => Ok(data.clone()),
-      Node::Directory => Err(error(ErrorKind::IsADirectory, path.as_str())),
-      Node::Symlink(_) => unreachable!("resolve follows the final link"),
+    let metadata = state.metadata(&resolved)?;
+    if metadata.is_directory {
+      return Err(error(ErrorKind::IsADirectory, path.as_str()));
     }
+    assert!(!metadata.is_symlink, "resolve follows the final link");
+    let backing = backing_path(&resolved);
+    let mut file = state
+      .fs
+      .open_file(&backing)
+      .map_err(|err| vfs_error(err, path.as_str()))?;
+    // Opening a MemoryFS file updates atime; reads in this fixture do not.
+    state
+      .fs
+      .set_access_time(
+        &backing,
+        SystemTime::UNIX_EPOCH + Duration::from_millis(metadata.atime_ms),
+      )
+      .expect("restore atime");
+    let mut content = Vec::new();
+    file.read_to_end(&mut content)?;
+    Ok(content)
   }
 
   async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
@@ -279,8 +347,8 @@ impl ReadableFileSystem for TestFileSystem {
     let mut state = self.0.lock().expect("filesystem lock");
     state.record(Operation::ReadLink, path.as_str())?;
     let resolved = state.resolve(path.as_str(), false)?;
-    match &state.entries.get(&resolved).expect("resolved entry").node {
-      Node::Symlink(target) => Ok(Utf8PathBuf::from(target)),
+    match state.nodes.get(&resolved) {
+      Some(Node::Symlink(target)) => Ok(Utf8PathBuf::from(target)),
       _ => Err(error(ErrorKind::InvalidInput, path.as_str())),
     }
   }
@@ -301,23 +369,16 @@ impl ReadableFileSystem for TestFileSystem {
     let mut state = self.0.lock().expect("filesystem lock");
     state.record(Operation::ReadDir, path.as_str())?;
     let resolved = state.resolve(path.as_str(), true)?;
-    if !matches!(
-      state.entries.get(&resolved).expect("resolved entry").node,
-      Node::Directory
-    ) {
+    if !state.metadata(&resolved)?.is_directory {
       return Err(error(ErrorKind::NotADirectory, path.as_str()));
     }
-    let prefix = format!("{}/", resolved.trim_end_matches('/'));
-    Ok(
-      state
-        .entries
-        .keys()
-        .filter_map(|entry| {
-          let rest = entry.strip_prefix(&prefix)?;
-          (!rest.is_empty() && !rest.contains('/')).then(|| rest.to_string())
-        })
-        .collect(),
-    )
+    let mut entries: Vec<_> = state
+      .fs
+      .read_dir(&backing_path(&resolved))
+      .map_err(|err| vfs_error(err, path.as_str()))?
+      .collect();
+    entries.sort();
+    Ok(entries)
   }
 
   async fn permissions(&self, _path: &Utf8Path) -> Result<Option<FilePermissions>> {

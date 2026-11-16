@@ -31,18 +31,6 @@ pub trait ReadableFileSystem: Debug + Send + Sync {
     })
   }
 
-  /// Metadata owned by an in-memory filesystem that must survive with cached
-  /// snapshots. This never includes files from the underlying physical filesystem.
-  fn snapshot_metadata(&self) -> Option<Vec<u8>> {
-    None
-  }
-
-  /// Reconcile saved metadata with the current inputs before their first use.
-  /// Implementations must not restore file contents or repeat this on live writes.
-  fn restore_metadata(&self, _snapshot: Option<&[u8]>) -> Result<()> {
-    Ok(())
-  }
-
   /// Known modification-time precision, in milliseconds. Physical filesystems
   /// normally leave this unspecified so consumers infer their timestamp accuracy.
   fn mtime_accuracy(&self, _path: &Utf8Path) -> Option<u64> {

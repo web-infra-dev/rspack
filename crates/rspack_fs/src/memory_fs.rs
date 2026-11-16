@@ -1,13 +1,12 @@
 use std::{
-  io::{BufRead, Cursor, Read, Seek},
+  borrow::Cow,
+  io::{BufRead, Cursor, ErrorKind, Read, Seek, Write},
   sync::{Arc, Mutex},
+  time::{SystemTime, UNIX_EPOCH},
 };
 
-use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
-use rspack_util::{
-  current_time,
-  fx_hash::{FxHashMap, FxHashSet},
-};
+use rspack_paths::{AssertUtf8, Utf8Component, Utf8Path, Utf8PathBuf, Utf8Prefix};
+use vfs::{FileSystem, MemoryFS, VfsError, VfsFileType, error::VfsErrorKind};
 
 use crate::{
   Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, IoResultToFsResultExt,
@@ -15,156 +14,230 @@ use crate::{
   file_metadata::FilePermissions,
 };
 
-fn new_error(msg: &str) -> Error {
-  Error::Io(std::io::Error::other(msg))
+fn vfs_error(path: &Utf8Path, error: VfsError) -> Error {
+  let kind = match error.kind() {
+    VfsErrorKind::FileNotFound => ErrorKind::NotFound,
+    VfsErrorKind::DirectoryExists | VfsErrorKind::FileExists => ErrorKind::AlreadyExists,
+    VfsErrorKind::InvalidPath => ErrorKind::InvalidInput,
+    VfsErrorKind::NotSupported => ErrorKind::Unsupported,
+    VfsErrorKind::IoError(error) => error.kind(),
+    _ => ErrorKind::Other,
+  };
+  Error::Io(std::io::Error::new(
+    kind,
+    format!("{path}: {}", error.kind()),
+  ))
 }
 
-#[derive(Debug)]
-enum FileType {
-  Dir(FileMetadata),
-  File {
-    content: Vec<u8>,
-    metadata: FileMetadata,
-  },
+// Keep native roots separate, including Windows drives/UNC roots and relative paths.
+// The backend's own empty root is private, so public roots can be created and removed.
+fn vfs_path(path: &Utf8Path) -> String {
+  let root = path.ancestors().last().expect("path has an ancestor");
+  let mut result = String::from("/root");
+  for component in root.components() {
+    // Prefix equality normalizes drive letters and UNC separators. Use the parsed
+    // prefix so equivalent native paths address the same backend entry.
+    let component = match component {
+      Utf8Component::Prefix(prefix) => Cow::Owned(match prefix.kind() {
+        Utf8Prefix::Disk(drive) => format!("{}:", char::from(drive)),
+        Utf8Prefix::VerbatimDisk(drive) => format!("\\\\?\\{}:", char::from(drive)),
+        Utf8Prefix::UNC(server, share) => format!("\\\\{server}\\{share}"),
+        Utf8Prefix::VerbatimUNC(server, share) => format!("\\\\?\\UNC\\{server}\\{share}"),
+        Utf8Prefix::DeviceNS(device) => format!("\\\\.\\{device}"),
+        Utf8Prefix::Verbatim(prefix) => format!("\\\\?\\{prefix}"),
+      }),
+      Utf8Component::RootDir => Cow::Borrowed("/"),
+      _ => Cow::Borrowed(component.as_str()),
+    };
+    for ch in component.chars() {
+      match ch {
+        '%' => result.push_str("%25"),
+        '/' => result.push_str("%2F"),
+        '\\' => result.push_str("%5C"),
+        _ => result.push(ch),
+      }
+    }
+  }
+  for component in path
+    .strip_prefix(root)
+    .expect("path starts with its root")
+    .iter()
+  {
+    result.push('/');
+    result.push_str(component);
+  }
+  result
 }
 
-impl FileType {
-  pub fn new_dir() -> FileType {
-    let now = current_time();
-    FileType::Dir(FileMetadata {
-      is_file: false,
-      is_directory: true,
-      is_symlink: false,
-      atime_ms: now,
-      mtime_ms: now,
-      ctime_ms: now,
-      size: 0,
-    })
-  }
-
-  pub fn new_file(content: Vec<u8>) -> FileType {
-    let now = current_time();
-    FileType::File {
-      metadata: FileMetadata {
-        is_file: true,
-        is_directory: false,
-        is_symlink: false,
-        atime_ms: now,
-        mtime_ms: now,
-        ctime_ms: now,
-        size: content.len() as u64,
-      },
-      content,
-    }
-  }
-
-  pub fn metadata(&self) -> &FileMetadata {
-    match self {
-      Self::Dir(metadata) => metadata,
-      Self::File { metadata, .. } => metadata,
-    }
-  }
+fn time_ms(time: Option<SystemTime>) -> u64 {
+  time
+    .and_then(|time| time.duration_since(UNIX_EPOCH).ok())
+    .map_or(0, |time| time.as_millis() as u64)
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct MemoryFileSystem {
-  files: Arc<Mutex<FxHashMap<Utf8PathBuf, FileType>>>,
+  // Serialize compound mutations so readers cannot see a partially copied rename.
+  fs: Arc<Mutex<MemoryFS>>,
 }
 
 impl MemoryFileSystem {
-  fn contains_dir(&self, dir: &Utf8Path) -> Result<bool> {
-    let files = self.files.lock().expect("should get lock");
-    if let Some(ft) = files.get(dir) {
-      if let FileType::Dir(_) = ft {
-        return Ok(true);
+  fn metadata_inner(fs: &MemoryFS, path: &Utf8Path) -> Result<FileMetadata> {
+    let metadata = fs
+      .metadata(&vfs_path(path))
+      .map_err(|err| vfs_error(path, err))?;
+    Ok(FileMetadata {
+      is_file: metadata.file_type == VfsFileType::File,
+      is_directory: metadata.file_type == VfsFileType::Directory,
+      is_symlink: false,
+      atime_ms: time_ms(metadata.accessed),
+      mtime_ms: time_ms(metadata.modified),
+      ctime_ms: time_ms(metadata.created),
+      size: metadata.len,
+    })
+  }
+
+  fn existing_metadata(fs: &MemoryFS, path: &Utf8Path) -> Result<Option<FileMetadata>> {
+    match Self::metadata_inner(fs, path) {
+      Ok(metadata) => Ok(Some(metadata)),
+      Err(Error::Io(error)) if error.kind() == ErrorKind::NotFound => Ok(None),
+      Err(error) => Err(error),
+    }
+  }
+
+  fn ensure_dir(fs: &MemoryFS, path: &Utf8Path) -> Result<()> {
+    if !Self::metadata_inner(fs, path)?.is_directory {
+      return Err(Error::new(
+        ErrorKind::NotADirectory,
+        &format!("{path}: not a directory"),
+      ));
+    }
+    Ok(())
+  }
+
+  fn create_dir_inner(fs: &MemoryFS, path: &Utf8Path, recursive: bool) -> Result<()> {
+    if let Some(metadata) = Self::existing_metadata(fs, path)? {
+      if metadata.is_directory {
+        return Ok(());
+      }
+      return Err(Error::new(
+        ErrorKind::NotADirectory,
+        &format!("{path}: not a directory"),
+      ));
+    }
+    if let Some(parent) = path.parent() {
+      if recursive {
+        Self::create_dir_inner(fs, parent, true)?;
       } else {
-        return Err(new_error("invalid dir path"));
+        Self::ensure_dir(fs, parent)?;
       }
     }
-    Ok(false)
+    fs.create_dir(&vfs_path(path))
+      .map_err(|err| vfs_error(path, err))
   }
 
-  fn contains_file(&self, file: &Utf8Path) -> Result<bool> {
-    let files = self.files.lock().expect("should get lock");
-    if let Some(ft) = files.get(file) {
-      if let FileType::File { .. } = ft {
-        return Ok(true);
+  /// Create a directory and any missing ancestors synchronously.
+  /// Returns an error if an existing ancestor is a file.
+  pub fn create_dir_all_sync(&self, path: &Utf8Path) -> Result<()> {
+    let fs = self.fs.lock().expect("should get lock");
+    Self::create_dir_inner(&fs, path, true)
+  }
+
+  fn write_contents(fs: &MemoryFS, path: &Utf8Path, data: &[u8]) -> Result<()> {
+    let mut writer = fs
+      .create_file(&vfs_path(path))
+      .map_err(|err| vfs_error(path, err))?;
+    writer.write_all(data).to_fs_result()?;
+    // MemoryFS commits the bytes and updates its timestamps when the writer drops.
+    drop(writer);
+    Ok(())
+  }
+
+  /// Write a file synchronously using the backend's native timestamps.
+  /// Returns an error if the parent is missing or the path is a directory.
+  pub fn write_sync(&self, path: &Utf8Path, data: &[u8]) -> Result<()> {
+    let fs = self.fs.lock().expect("should get lock");
+    let previous = Self::existing_metadata(&fs, path)?;
+    if previous
+      .as_ref()
+      .is_some_and(|metadata| metadata.is_directory)
+    {
+      return Err(Error::new(
+        ErrorKind::IsADirectory,
+        &format!("{path}: is a directory"),
+      ));
+    }
+    let parent = path
+      .parent()
+      .ok_or_else(|| Error::new(ErrorKind::InvalidInput, "file has no parent directory"))?;
+    Self::ensure_dir(&fs, parent)?;
+    Self::write_contents(&fs, path, data)
+  }
+
+  fn read_inner(fs: &MemoryFS, path: &Utf8Path) -> Result<Vec<u8>> {
+    let metadata = Self::metadata_inner(fs, path)?;
+    if !metadata.is_file {
+      return Err(Error::new(
+        ErrorKind::IsADirectory,
+        &format!("{path}: is a directory"),
+      ));
+    }
+    let backend_path = vfs_path(path);
+    let mut reader = fs
+      .open_file(&backend_path)
+      .map_err(|err| vfs_error(path, err))?;
+    let mut contents = Vec::new();
+    reader.read_to_end(&mut contents).to_fs_result()?;
+    Ok(contents)
+  }
+
+  fn read_dir_inner(fs: &MemoryFS, path: &Utf8Path) -> Result<Vec<String>> {
+    Self::ensure_dir(fs, path)?;
+    Ok(
+      fs.read_dir(&vfs_path(path))
+        .map_err(|err| vfs_error(path, err))?
+        .collect(),
+    )
+  }
+
+  fn remove_inner(fs: &MemoryFS, path: &Utf8Path, directory: bool) -> Result<()> {
+    let Some(metadata) = Self::existing_metadata(fs, path)? else {
+      return Ok(());
+    };
+    if directory != metadata.is_directory {
+      let kind = if directory {
+        ErrorKind::NotADirectory
       } else {
-        return Err(new_error("invalid file path"));
+        ErrorKind::IsADirectory
+      };
+      return Err(Error::new(kind, &format!("{path}: unexpected file type")));
+    }
+    if directory {
+      for name in Self::read_dir_inner(fs, path)? {
+        let child = path.join(name);
+        let child_metadata = Self::metadata_inner(fs, &child)?;
+        Self::remove_inner(fs, &child, child_metadata.is_directory)?;
       }
-    }
-    Ok(false)
-  }
-
-  fn _remove_file(&self, file: &Utf8Path) -> Result<()> {
-    if self.contains_file(file)? {
-      let mut files = self.files.lock().expect("should get lock");
-      files.remove(file);
+      fs.remove_dir(&vfs_path(path))
+        .map_err(|err| vfs_error(path, err))?;
+    } else {
+      fs.remove_file(&vfs_path(path))
+        .map_err(|err| vfs_error(path, err))?;
     }
     Ok(())
   }
 
-  async fn _remove_dir_all(&self, dir: &Utf8Path) -> Result<()> {
-    if self.contains_dir(dir)? {
-      let mut files = self.files.lock().expect("should get lock");
-      files.retain(|path, _| !path.starts_with(dir));
-    }
-    Ok(())
-  }
-
-  fn _read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
-    if !self.contains_dir(dir)? {
-      return Err(new_error("dir not exist"));
-    }
-
-    let files = self.files.lock().expect("should get lock");
-    let mut res: FxHashSet<String> = FxHashSet::default();
-    for path in files.keys() {
-      if let Ok(relative) = path.strip_prefix(dir)
-        && let Some(s) = relative.iter().next()
-      {
-        res.insert(s.to_string());
+  fn copy_inner(fs: &MemoryFS, from: &Utf8Path, to: &Utf8Path) -> Result<()> {
+    let metadata = Self::metadata_inner(fs, from)?;
+    if metadata.is_directory {
+      fs.create_dir(&vfs_path(to))
+        .map_err(|err| vfs_error(to, err))?;
+      for name in Self::read_dir_inner(fs, from)? {
+        Self::copy_inner(fs, &from.join(&name), &to.join(&name))?;
       }
+    } else {
+      Self::write_contents(fs, to, &Self::read_inner(fs, from)?)?;
     }
-    Ok(res.into_iter().collect())
-  }
-
-  fn _rename_file(&self, from: &Utf8Path, to: &Utf8Path) -> Result<()> {
-    if !self.contains_file(from)? {
-      return Err(new_error("from file not exist"));
-    }
-    self._remove_file(to)?;
-
-    let mut files = self.files.lock().expect("should get lock");
-    let file = files.remove(from).expect("should have file");
-    files.insert(to.into(), file);
-
-    Ok(())
-  }
-
-  fn _rename_dir(&self, from: &Utf8Path, to: &Utf8Path) -> Result<()> {
-    if to.starts_with(from) {
-      return Err(new_error("cannot rename into itself"));
-    }
-    if !self.contains_dir(from)? {
-      return Err(new_error("from dir not exist"));
-    }
-    if self.metadata_sync(to).is_ok() {
-      return Err(new_error("target path already exist"));
-    }
-
-    let mut files = self.files.lock().expect("should get lock");
-    let entries = files
-      .keys()
-      .filter(|path| path.starts_with(from))
-      .cloned()
-      .collect::<Vec<_>>();
-    for path in entries {
-      let file = files.remove(&path).expect("should have file");
-      let relative = path.strip_prefix(from).expect("should strip prefix");
-      files.insert(to.join(relative), file);
-    }
-
     Ok(())
   }
 
@@ -172,94 +245,68 @@ impl MemoryFileSystem {
     if from == to {
       return Ok(());
     }
-
-    let parent = to
-      .parent()
-      .ok_or_else(|| new_error("target parent dir not exist"))?;
-    if !self.contains_dir(parent)? {
-      return Err(new_error("target parent dir not exist"));
+    let fs = self.fs.lock().expect("should get lock");
+    let parent = to.parent().ok_or_else(|| {
+      Error::new(
+        ErrorKind::NotFound,
+        "target parent directory does not exist",
+      )
+    })?;
+    Self::ensure_dir(&fs, parent)?;
+    let metadata = Self::metadata_inner(&fs, from)?;
+    if metadata.is_directory && to.starts_with(from) {
+      return Err(Error::new(
+        ErrorKind::InvalidInput,
+        "cannot rename a directory into itself",
+      ));
     }
-
-    let metadata = self.metadata_sync(from)?;
-    if metadata.is_file {
-      self._rename_file(from, to)
-    } else if metadata.is_directory {
-      self._rename_dir(from, to)
-    } else {
-      Err(new_error("unsupported source path type"))
+    if let Some(target) = Self::existing_metadata(&fs, to)? {
+      if metadata.is_directory {
+        return Err(Error::new(
+          ErrorKind::AlreadyExists,
+          &format!("{to}: target already exists"),
+        ));
+      }
+      if target.is_directory {
+        return Err(Error::new(
+          ErrorKind::IsADirectory,
+          &format!("{to}: is a directory"),
+        ));
+      }
     }
+    // MemoryFS has no rename operation. Copy/remove under one lock so readers
+    // cannot observe a partially moved tree; the backend owns the new timestamps.
+    Self::copy_inner(&fs, from, to)?;
+    Self::remove_inner(&fs, from, metadata.is_directory)
   }
 }
 #[async_trait::async_trait]
 impl WritableFileSystem for MemoryFileSystem {
   async fn create_dir(&self, dir: &Utf8Path) -> Result<()> {
-    if self.contains_dir(dir)? {
-      return Ok(());
-    }
-
-    if let Some(p) = dir.parent()
-      && !self.contains_dir(p)?
-    {
-      return Err(new_error("parent directory not exist"));
-    }
-
-    let mut files = self.files.lock().expect("should get lock");
-    files.insert(dir.to_path_buf(), FileType::new_dir());
-    Ok(())
+    let fs = self.fs.lock().expect("should get lock");
+    Self::create_dir_inner(&fs, dir, false)
   }
 
   async fn create_dir_all(&self, dir: &Utf8Path) -> Result<()> {
-    if self.contains_dir(dir)? {
-      return Ok(());
-    }
-
-    if let Some(p) = dir.parent() {
-      WritableFileSystem::create_dir_all(self, p).await?;
-    }
-    let mut files = self.files.lock().expect("should get lock");
-    files.insert(dir.to_path_buf(), FileType::new_dir());
-    Ok(())
+    self.create_dir_all_sync(dir)
   }
 
   async fn write(&self, file: &Utf8Path, data: &[u8]) -> Result<()> {
-    {
-      // check file exist and update it
-      let mut files = self.files.lock().expect("should get lock");
-      if let Some(ft) = files.get_mut(file) {
-        if let FileType::File { content, metadata } = ft {
-          let now = current_time();
-          *content = data.to_vec();
-          metadata.mtime_ms = now;
-          metadata.atime_ms = now;
-          metadata.size = data.len() as u64;
-          return Ok(());
-        } else {
-          return Err(new_error("invalid file path"));
-        }
-      };
-    }
-
-    // create file
-    let p = file.parent().expect("should have parent dir");
-    if !self.contains_dir(p)? {
-      return Err(new_error("parent dir not exist"));
-    }
-
-    let mut files = self.files.lock().expect("should get lock");
-    files.insert(file.to_path_buf(), FileType::new_file(data.to_vec()));
-    Ok(())
+    self.write_sync(file, data)
   }
 
   async fn remove_file(&self, file: &Utf8Path) -> Result<()> {
-    self._remove_file(file)
+    let fs = self.fs.lock().expect("should get lock");
+    Self::remove_inner(&fs, file, false)
   }
 
   async fn remove_dir_all(&self, dir: &Utf8Path) -> Result<()> {
-    self._remove_dir_all(dir).await
+    let fs = self.fs.lock().expect("should get lock");
+    Self::remove_inner(&fs, dir, true)
   }
 
   async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
-    self._read_dir(dir)
+    self.read_dir_sync(dir)
   }
 
   async fn read_file(&self, file: &Utf8Path) -> Result<Vec<u8>> {
@@ -282,14 +329,8 @@ impl ReadableFileSystem for MemoryFileSystem {
   }
 
   fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
-    let files = self.files.lock().expect("should get lock");
-    match files.get(path) {
-      Some(FileType::File { content, .. }) => Ok(content.clone()),
-      _ => Err(Error::Io(std::io::Error::new(
-        std::io::ErrorKind::NotFound,
-        "file not exist",
-      ))),
-    }
+    let fs = self.fs.lock().expect("should get lock");
+    Self::read_inner(&fs, path)
   }
 
   async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
@@ -297,14 +338,8 @@ impl ReadableFileSystem for MemoryFileSystem {
   }
 
   fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    let files = self.files.lock().expect("should get lock");
-    match files.get(path) {
-      Some(ft) => Ok(ft.metadata().clone()),
-      None => Err(Error::Io(std::io::Error::new(
-        std::io::ErrorKind::NotFound,
-        "file not exist",
-      ))),
-    }
+    let fs = self.fs.lock().expect("should get lock");
+    Self::metadata_inner(&fs, path)
   }
 
   async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
@@ -324,11 +359,12 @@ impl ReadableFileSystem for MemoryFileSystem {
   }
 
   async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
-    self._read_dir(dir)
+    self.read_dir_sync(dir)
   }
 
   fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
-    self._read_dir(dir)
+    let fs = self.fs.lock().expect("should get lock");
+    Self::read_dir_inner(&fs, dir)
   }
 
   async fn permissions(&self, _path: &Utf8Path) -> Result<Option<FilePermissions>> {

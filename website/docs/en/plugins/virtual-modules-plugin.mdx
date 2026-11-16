@@ -44,15 +44,13 @@ export default {
 
 ### Timestamps and persistent caching
 
-Writing the same contents to an existing virtual file preserves its modification timestamp. Changing its contents advances the timestamp, including when the file is changed back to an earlier value. Adding a virtual file also updates its parent directory's timestamp.
+Virtual files use the native timestamps of `vfs::MemoryFS`. Writes update the file's modification time, including writes with identical contents. Timestamps are reported in milliseconds, so writes within the same millisecond can have the same reported timestamp. Creating or removing a child does not update its parent directory's modification time.
 
-With `experiments.newCache` and [persistent caching](/config/cache) enabled, Rspack saves virtual filesystem metadata with the cache. When a later compiler supplies the same virtual file contents, Rspack restores their previous timestamps so the default snapshot strategies can reuse cached work. This also applies to files first supplied through `writeModule` in a compilation hook.
-
-Each compiler must still supply its virtual inputs. The cache does not recreate omitted files or restore their contents. Changed contents and changes to context directory membership invalidate the corresponding snapshots.
+Each compiler must supply its virtual inputs. Recreating those inputs gives them new timestamps; Rspack does not restore virtual timestamps or contents from [persistent caching](/config/cache). Consequently, unchanged virtual inputs can cause timestamp-based snapshots to invalidate across compiler instances.
 
 ### Dynamic module creation
 
-You can dynamically create or modify virtual modules using the `writeModule` method.
+You can dynamically create or modify virtual modules using the `writeModule` method. It throws if the target is an existing virtual directory or an ancestor of the target is a virtual file.
 
 :::note
 Because the plugin's virtual modules are managed on the Rust side,

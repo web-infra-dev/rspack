@@ -16,7 +16,6 @@ struct CacheValidatorData {
   cache_version: String,
   build_dependencies: InternedPathSet,
   build_dependencies_snapshot: Option<Snapshot>,
-  file_system_metadata: Option<Vec<u8>>,
 }
 
 impl CacheValidatorData {
@@ -26,7 +25,6 @@ impl CacheValidatorData {
       cache_version,
       build_dependencies: Default::default(),
       build_dependencies_snapshot: None,
-      file_system_metadata: None,
     }
   }
 
@@ -97,8 +95,6 @@ impl CacheValidator {
     let Some(file_system_info) = &self.file_system_info else {
       return Ok(CacheValidatorResult::Valid);
     };
-    // Reconcile virtual timestamps before any build-dependency stat is cached.
-    file_system_info.restore_metadata(validator.file_system_metadata.as_deref())?;
     let Some(build_dependencies_snapshot) = &validator.build_dependencies_snapshot else {
       return Ok(CacheValidatorResult::InvalidError);
     };
@@ -132,30 +128,15 @@ impl CacheValidator {
     let Some(file_system_info) = &self.file_system_info else {
       return Ok(Some(self.codec.encode(&*self.data())?));
     };
-    let metadata = file_system_info.snapshot_metadata();
-    let metadata_changed = {
-      let mut data = self.data();
-      let changed = data.file_system_metadata != metadata;
-      data.file_system_metadata = metadata;
-      changed
-    };
-    let encode_metadata = || {
-      if metadata_changed {
-        Ok(Some(self.codec.encode(&*self.data())?))
-      } else {
-        Ok(None)
-      }
-    };
     let Some(mut new_build_dependencies) = new_build_dependencies else {
-      return encode_metadata();
+      return Ok(None);
     };
-    let unchanged_dependencies = {
+    {
       let data = self.data();
       new_build_dependencies.retain(|path| !data.build_dependencies.contains(path));
-      new_build_dependencies.is_empty() && data.build_dependencies_snapshot.is_some()
-    };
-    if unchanged_dependencies {
-      return encode_metadata();
+      if new_build_dependencies.is_empty() && data.build_dependencies_snapshot.is_some() {
+        return Ok(None);
+      }
     }
 
     self.logger.debug(format!(

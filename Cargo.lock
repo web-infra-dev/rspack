@@ -4418,6 +4418,7 @@ dependencies = [
  "unsize",
  "urlencoding",
  "ustr-fxhash",
+ "vfs",
 ]
 
 [[package]]
@@ -4462,6 +4463,7 @@ dependencies = [
  "tempfile",
  "tokio",
  "tracing",
+ "vfs",
 ]
 
 [[package]]
