@@ -150,7 +150,6 @@ impl LinkSubscriptions {
       {
         return;
       }
-      self.context_files.insert(path.clone());
     }
     for link in &resolution.links {
       if !nested && manager.is_ignored_path(link).await {
@@ -180,7 +179,9 @@ impl LinkSubscriptions {
         .directory_targets
         .insert(path.clone(), resolution.target.clone());
     }
-    let target_ignored = !nested && manager.is_ignored_path(&resolution.target).await;
+    // Watchpack watches nested directories by alias, but file targets by real path.
+    let target_ignored =
+      (!nested || !directory) && manager.is_ignored_path(&resolution.target).await;
     if !nested {
       let links = resolution
         .links
@@ -203,6 +204,9 @@ impl LinkSubscriptions {
     }
     if target_ignored {
       return;
+    }
+    if nested && !directory {
+      self.context_files.insert(path.clone());
     }
     self
       .targets

@@ -425,11 +425,8 @@ impl PathManager {
       context_links.insert(entry.key().clone(), true);
     }
     for (path, directory) in context_links {
-      if self.is_below_context(&path)
-        && path.is_symlink()
-        && !self.files.all.contains(&path)
-        && !self.directories.all.contains(&path)
-      {
+      // An explicit directory subscription does not replace its parent context's alias.
+      if self.is_below_context(&path) && path.is_symlink() && !self.files.all.contains(&path) {
         subscriptions
           .add(&mut resolver, path, directory, true, self)
           .await;

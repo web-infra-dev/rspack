@@ -349,7 +349,11 @@ impl EventProcessor {
     // `find_associated_event` bubbles them to a registered parent and triggers
     // a spurious rebuild.
     // A scan's event was filtered when the scan found the path.
-    let contexts = if resolved_path.is_some() && !origin.is_scan() && !origin.link_changed() {
+    // Context scans carry their owner; file backfills still need context filtering.
+    let contexts = if resolved_path.is_some()
+      && !matches!(origin, Origin::ContextScan(_))
+      && !origin.link_changed()
+    {
       Some(self.path_manager.context_paths(path).await)
     } else {
       None

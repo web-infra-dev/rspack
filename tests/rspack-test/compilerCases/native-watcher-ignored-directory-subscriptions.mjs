@@ -1,0 +1,164 @@
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
+import os from 'node:os';
+import path from 'node:path';
+import { setTimeout as sleep } from 'node:timers/promises';
+
+const require = createRequire(import.meta.url);
+const { NativeWatcher } = createRequire(require.resolve('@rspack/core'))(
+  '@rspack/binding',
+);
+const Watchpack = require(
+  path.join(
+    path.dirname(require.resolve('@rspack/core/package.json')),
+    'compiled/watchpack',
+  ),
+);
+
+/** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
+export default [false, true].flatMap((native) =>
+  ['live-context', 'startup-file'].flatMap((phase) =>
+    ['overlap', 'parent-only', 'explicit-only', 'no-ignore'].map(
+      (scenario) => ({
+        name: `${native ? 'native' : 'watchpack'}-${phase}-${scenario}`,
+        description:
+          'should filter ignored directory subscriptions independently of parent contexts and files',
+        async run() {
+          const root = fs.mkdtempSync(
+            path.join(
+              fs.realpathSync.native(os.tmpdir()),
+              'rspack-ignored-directory-subscriptions-',
+            ),
+          );
+          const app = path.join(root, 'app');
+          const target = path.join(root, 'target');
+          const link = path.join(app, 'link');
+          const real = path.join(target, 'value.js');
+          const alias = path.join(link, 'value.js');
+          const witness = path.join(app, 'witness.js');
+          const startup = phase === 'startup-file';
+          fs.mkdirSync(app);
+          fs.mkdirSync(target);
+          fs.writeFileSync(real, 'before');
+          fs.writeFileSync(witness, 'before');
+          const old = new Date(Date.now() - 60_000);
+          fs.utimesSync(real, old, old);
+          fs.utimesSync(witness, old, old);
+          fs.symlinkSync(target, link, 'junction');
+          await sleep(2200);
+          const startTime = Date.now();
+          if (startup) {
+            await sleep(50);
+            fs.writeFileSync(real, 'changed during build');
+            await sleep(500);
+          }
+          const files = startup ? [alias] : [];
+          const directories = scenario === 'explicit-only' ? [] : [app];
+          if (scenario !== 'parent-only') directories.push(link);
+          const options = {
+            followSymlinks: true,
+            aggregateTimeout: 50,
+            ignored: (entry) =>
+              scenario !== 'no-ignore' &&
+              (entry === target ||
+                (!startup && entry.startsWith(`${target}${path.sep}`))),
+          };
+          const watcher = native
+            ? new NativeWatcher(options)
+            : new Watchpack(options);
+          const changes = new Set();
+          const removals = new Set();
+          const events = new Set();
+          let failure;
+          const record = (changed, removed) => {
+            for (const entry of changed) changes.add(entry);
+            for (const entry of removed) removals.add(entry);
+          };
+          const callback = (error, batch) => {
+            if (error) failure = error;
+            else record(batch.changedFiles, batch.removedFiles);
+          };
+          const waitFor = async (predicate) => {
+            const deadline = Date.now() + 5000;
+            while (!predicate() && Date.now() < deadline) await sleep(10);
+            expect(predicate()).toBe(true);
+          };
+          try {
+            if (native)
+              watcher.watch(
+                [files, []],
+                [directories, []],
+                [[], []],
+                BigInt(startTime),
+                callback,
+                (event) => events.add(event.path),
+              );
+            else {
+              watcher.on('aggregated', record);
+              watcher.on('change', (file) => events.add(file));
+              watcher.watch({ files, directories, startTime });
+            }
+            if (!startup) {
+              if (directories.includes(app))
+                await waitFor(() => {
+                  const entries = native
+                    ? watcher
+                        .collectTimeInfoEntries()
+                        .fileTimestamps.entries.map((entry) => entry.path)
+                    : [...watcher.getTimeInfoEntries().keys()];
+                  return entries.includes(witness) && entries.includes(alias);
+                });
+              await sleep(500);
+              changes.clear();
+              removals.clear();
+              events.clear();
+              fs.writeFileSync(real, 'live edit');
+            }
+            const expected = [
+              ...files,
+              ...(scenario === 'explicit-only' ? [] : [app]),
+              ...(scenario === 'no-ignore' ? [link] : []),
+            ];
+            if (expected.length)
+              await waitFor(() =>
+                expected.every((entry) => changes.has(entry)),
+              );
+            await sleep(500);
+            expect([...changes].sort()).toEqual(expected.sort());
+            expect([...removals]).toEqual([]);
+            expect(failure).toBeUndefined();
+            if (!startup && scenario !== 'no-ignore' && expected.includes(app))
+              expect(events.has(alias)).toBe(true);
+            if (!startup && scenario === 'overlap') {
+              changes.clear();
+              fs.writeFileSync(witness, 'ordinary edit');
+              await waitFor(() => changes.has(app));
+              if (native)
+                watcher.watch(
+                  [[], []],
+                  [[], [app]],
+                  [[], []],
+                  BigInt(Date.now()),
+                  callback,
+                  (event) => events.add(event.path),
+                );
+              else
+                watcher.watch({ directories: [link], startTime: Date.now() });
+              await sleep(500);
+              changes.clear();
+              removals.clear();
+              fs.writeFileSync(real, 'edit after removing parent context');
+              await sleep(500);
+              expect([...changes]).toEqual([]);
+              expect([...removals]).toEqual([]);
+              expect(failure).toBeUndefined();
+            }
+          } finally {
+            await watcher.close();
+            fs.rmSync(root, { recursive: true, force: true });
+          }
+        },
+      }),
+    ),
+  ),
+);
