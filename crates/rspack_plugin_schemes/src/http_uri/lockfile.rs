@@ -1,4 +1,5 @@
 use std::{
+  collections::BTreeMap,
   io,
   path::{Path, PathBuf},
   sync::Arc,
@@ -7,17 +8,28 @@ use std::{
 use async_trait::async_trait;
 use rspack_fs::{FsResultToIoResultExt, WritableFileSystem};
 use rspack_paths::Utf8Path;
-use rspack_util::fx_hash::FxHashMap;
+use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LockfileEntry {
+  // An empty value represents the URL key itself in the stored lockfile.
+  #[serde(default, skip_serializing_if = "String::is_empty")]
   pub resolved: String,
+  #[serde(default)]
   pub integrity: String,
+  #[serde(default)]
   pub content_type: String,
 }
 
 impl LockfileEntry {
+  fn omit_default_resolved(&mut self, resource: &str) {
+    if self.resolved == resource {
+      self.resolved.clear();
+    }
+  }
+
   pub fn has_same_content(&self, other: &Self) -> bool {
     self.resolved == other.resolved
       && self.integrity == other.integrity
@@ -26,108 +38,123 @@ impl LockfileEntry {
 }
 
 /// Cloning snapshots the locked metadata before asynchronous resource reads, releasing the lock.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum LockfileValue {
   Content(LockfileEntry),
-  Tag(String),
+  Tag(LockfileTag),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum LockfileTag {
+  Ignore,
+  NoCache,
+}
+
+impl LockfileTag {
+  pub fn as_str(self) -> &'static str {
+    match self {
+      Self::Ignore => "ignore",
+      Self::NoCache => "no-cache",
+    }
+  }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Lockfile {
+  #[serde(flatten)]
+  entries: BTreeMap<String, LockfileValue>,
   version: u8,
-  entries: FxHashMap<String, LockfileValue>,
 }
 
 impl Lockfile {
   pub fn new() -> Self {
     Lockfile {
       version: 1,
-      entries: FxHashMap::default(),
+      entries: BTreeMap::default(),
     }
   }
 
   pub fn parse(content: &str) -> Result<Self, String> {
-    let data: serde_json::Value = serde_json::from_str(content).map_err(|e| e.to_string())?;
-
-    let entries = data
-      .as_object()
-      .ok_or_else(|| "Invalid HTTP lockfile: expected an object".to_string())?;
-    let version = data.get("version").unwrap_or(&serde_json::Value::Null);
-    if version.as_u64() != Some(1) {
-      return Err(format!("Unsupported lockfile version {version}"));
+    let mut lockfile: Self = serde_json::from_str(content).map_err(|e| e.to_string())?;
+    if lockfile.version != 1 {
+      return Err(format!("Unsupported lockfile version {}", lockfile.version));
     }
 
-    let mut lockfile = Lockfile::new();
-
-    for (key, value) in entries {
-      if key == "version" {
-        continue;
+    for (key, value) in &mut lockfile.entries {
+      if let LockfileValue::Content(entry) = value {
+        if entry.integrity.is_empty() {
+          return Err(format!(
+            "Invalid HTTP lockfile entry for {key}: missing integrity"
+          ));
+        }
+        entry.omit_default_resolved(key);
       }
-      if let Some(tag @ ("ignore" | "no-cache")) = value.as_str() {
-        lockfile
-          .entries
-          .insert(key.clone(), LockfileValue::Tag(tag.to_string()));
-        continue;
-      }
-      let entry = LockfileEntry {
-        resolved: value
-          .get("resolved")
-          .and_then(|v| v.as_str())
-          .unwrap_or(key)
-          .to_string(),
-        integrity: value
-          .get("integrity")
-          .and_then(|v| v.as_str())
-          .filter(|integrity| !integrity.is_empty())
-          .ok_or_else(|| format!("Invalid HTTP lockfile entry for {key}: missing integrity"))?
-          .to_string(),
-        content_type: value
-          .get("contentType")
-          .and_then(|v| v.as_str())
-          .unwrap_or("")
-          .to_string(),
-      };
-      lockfile
-        .entries
-        .insert(key.clone(), LockfileValue::Content(entry));
     }
 
     Ok(lockfile)
   }
 
   pub fn to_json_string(&self) -> Result<String, serde_json::Error> {
-    // Match webpack's stable, URL-sorted lockfile representation.
-    let mut content = String::from("{\n");
-    let mut entries: Vec<_> = self.entries.iter().collect();
-    entries.sort_unstable_by_key(|(key, _)| *key);
-    for (key, value) in entries {
-      content.push_str("  ");
-      content.push_str(&serde_json::to_string(key)?);
-      content.push_str(": ");
-      match value {
-        LockfileValue::Tag(tag) => content.push_str(&serde_json::to_string(tag)?),
-        LockfileValue::Content(entry) => {
-          content.push_str("{ ");
-          if entry.resolved != *key {
-            content.push_str("\"resolved\": ");
-            content.push_str(&serde_json::to_string(&entry.resolved)?);
-            content.push_str(", ");
-          }
-          content.push_str("\"integrity\": ");
-          content.push_str(&serde_json::to_string(&entry.integrity)?);
-          content.push_str(", \"contentType\": ");
-          content.push_str(&serde_json::to_string(&entry.content_type)?);
-          content.push_str(" }");
-        }
-      }
-      content.push_str(",\n");
-    }
-    content.push_str(&format!("  \"version\": {}\n}}\n", self.version));
-    Ok(content)
+    let mut content = Vec::new();
+    let mut serializer =
+      serde_json::Serializer::with_formatter(&mut content, LockfileFormatter::default());
+    self.serialize(&mut serializer)?;
+    Ok(String::from_utf8(content).expect("JSON serialization produces valid UTF-8"))
   }
 
-  pub fn get_entry(&self, resource: &str) -> Option<&LockfileValue> {
-    self.entries.get(resource)
+  pub fn get_entry(&self, resource: &str) -> Option<LockfileValue> {
+    let mut value = self.entries.get(resource)?.clone();
+    if let LockfileValue::Content(entry) = &mut value
+      && entry.resolved.is_empty()
+    {
+      entry.resolved = resource.to_string();
+    }
+    Some(value)
+  }
+
+  pub fn set_entry(&mut self, resource: &str, mut value: LockfileValue) {
+    if let LockfileValue::Content(entry) = &mut value {
+      entry.omit_default_resolved(resource);
+    }
+    self.entries.insert(resource.to_string(), value);
+  }
+}
+
+/// Webpack uses indented top-level keys and inline content entries.
+#[derive(Default)]
+struct LockfileFormatter {
+  depth: usize,
+}
+
+impl serde_json::ser::Formatter for LockfileFormatter {
+  fn begin_object<W: ?Sized + io::Write>(&mut self, writer: &mut W) -> io::Result<()> {
+    self.depth += 1;
+    writer.write_all(if self.depth == 1 { b"{" } else { b"{ " })
+  }
+
+  fn end_object<W: ?Sized + io::Write>(&mut self, writer: &mut W) -> io::Result<()> {
+    self.depth -= 1;
+    writer.write_all(if self.depth == 0 { b"\n}\n" } else { b" }" })
+  }
+
+  fn begin_object_key<W: ?Sized + io::Write>(
+    &mut self,
+    writer: &mut W,
+    first: bool,
+  ) -> io::Result<()> {
+    if self.depth == 1 {
+      writer.write_all(if first { b"\n  " } else { b",\n  " })
+    } else if !first {
+      writer.write_all(b", ")
+    } else {
+      Ok(())
+    }
+  }
+
+  fn begin_object_value<W: ?Sized + io::Write>(&mut self, writer: &mut W) -> io::Result<()> {
+    writer.write_all(b": ")
   }
 }
 
@@ -220,13 +247,13 @@ impl LockfileCache {
       }
     }
 
-    Ok(lockfile.get_entry(url).cloned())
+    Ok(lockfile.get_entry(url))
   }
 
   pub async fn store_entry(&self, url: &str, entry: LockfileValue) -> io::Result<()> {
     // Keep updates and writes under the same lock so concurrent module reads cannot lose entries.
     let mut lockfile = self.lockfile.lock().await;
-    lockfile.entries.insert(url.to_string(), entry);
+    lockfile.set_entry(url, entry);
 
     if let Some(lockfile_path) = &self.lockfile_path {
       if let Some(parent) = lockfile_path.parent() {

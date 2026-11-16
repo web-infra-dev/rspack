@@ -16,7 +16,7 @@ use url::Url;
 
 use super::{
   HttpUriPluginOptions, MAX_REDIRECTS,
-  lockfile::{LockfileCache, LockfileEntry, LockfileValue},
+  lockfile::{LockfileCache, LockfileEntry, LockfileTag, LockfileValue},
   validate_redirect_location,
 };
 
@@ -205,17 +205,19 @@ impl HttpCache {
         }
       }
       Some(LockfileValue::Tag(tag)) => {
-        if tag == "ignore" || !result.meta.store_lock {
+        if *tag == LockfileTag::Ignore || !result.meta.store_lock {
           return Ok(result);
         }
         if options.frozen {
           return Err(error!(
-            "{url} used to have {tag} lockfile entry and has content now, but lockfile is frozen"
+            "{url} used to have {} lockfile entry and has content now, but lockfile is frozen",
+            tag.as_str()
           ));
         }
         if !options.upgrade {
           return Err(error!(
-            "{url} used to have {tag} lockfile entry and has content now, but upgrading is not enabled"
+            "{url} used to have {} lockfile entry and has content now, but upgrading is not enabled",
+            tag.as_str()
           ));
         }
       }
@@ -367,7 +369,7 @@ impl HttpCache {
         .await?;
       LockfileValue::Content(result.entry.clone())
     } else {
-      LockfileValue::Tag("no-cache".to_string())
+      LockfileValue::Tag(LockfileTag::NoCache)
     };
     self.lockfile_cache.store_entry(url, entry).await?;
     Ok(())

@@ -376,7 +376,7 @@ const cases: IntegrityCase[] = [
   {
     name: 'lockfile-without-version',
     invalidLockfile: 'missing-version',
-    error: 'Unsupported lockfile version null',
+    error: 'missing field `version`',
   },
   {
     name: 'unsupported-lockfile-version',
@@ -391,7 +391,7 @@ const cases: IntegrityCase[] = [
   {
     name: 'non-object-lockfile',
     invalidLockfile: 'non-object',
-    error: 'Invalid HTTP lockfile: expected an object',
+    error: 'invalid type: sequence',
   },
 ];
 
