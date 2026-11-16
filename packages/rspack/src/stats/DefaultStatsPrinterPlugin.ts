@@ -909,10 +909,9 @@ const SIMPLE_ITEMS_JOINER: Record<
     indent(items.filter(Boolean).join('\n'), '  ', false),
 };
 
-const joinOneLine = (items: any[]) => {
-  const contents: unknown[] = [];
-  items.forEach((item) => {
-    const content = item.content;
+const joinOneLine = (items: { content?: string }[]) => {
+  const contents: string[] = [];
+  items.forEach(({ content }) => {
     if (content) contents.push(content);
   });
   return contents.join(' ');
