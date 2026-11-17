@@ -43,7 +43,7 @@ rustflags = [
 [target.'cfg(target_vendor = "apple")']
 rustflags = ["-C", "link-args=-Wl,-undefined,dynamic_lookup,-no_fixup_chains,-all_load"]
 
-# Like Turbopack, use LLD with identical code folding to reduce macOS binary size.
+# Use LLD with identical code folding to reduce macOS binary size.
 # Keep the clang driver for the -Wl arguments emitted by our NAPI build scripts.
 [target.'cfg(target_os = "macos")']
 linker    = "scripts/macos-linker.sh"
