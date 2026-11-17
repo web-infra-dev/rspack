@@ -1887,7 +1887,7 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
 
     if let (Some(JSXAttrValue::JSXExprContainer(container)), JSXAttrName::Ident(ident_name)) =
       (&attr.value, &attr.name)
-      && let JSXExpr::Expr(box (Expr::Arrow(_) | Expr::Fn(_))) = &container.expr
+      && let JSXExpr::Expr(Expr::Arrow(_) | Expr::Fn(_)) = &container.expr
     {
       self.arrow_or_fn_expr_ident = Some(ident_name.clone().into());
     }
@@ -1900,7 +1900,7 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
     let old_current_export_name = self.current_export_name.take();
     let old_arrow_or_fn_expr_ident = self.arrow_or_fn_expr_ident.take();
 
-    if let (Pat::Ident(ident), Some(box (Expr::Arrow(_) | Expr::Fn(_)))) =
+    if let (Pat::Ident(ident), Some(Expr::Arrow(_) | Expr::Fn(_))) =
       (&var_declarator.name, &var_declarator.init)
     {
       if self.in_module_level
@@ -2209,7 +2209,7 @@ fn is_action_fn(maybe_body: &Option<FunctionBody>) -> bool {
     for stmt in body.stmts.iter() {
       match stmt {
         Stmt::Expr(ExprStmt {
-          expr: box Expr::Lit(Lit::Str(Str { value, .. })),
+          expr: Expr::Lit(Lit::Str(Str { value, .. })),
           ..
         }) => {
           if value == "use server" {
@@ -2343,7 +2343,7 @@ impl DirectiveVisitor<'_> {
 
     match stmt {
       Stmt::Expr(ExprStmt {
-        expr: box Expr::Lit(Lit::Str(Str { value, span, .. })),
+        expr: Expr::Lit(Lit::Str(Str { value, span, .. })),
         ..
       }) => {
         // Match `use server`
@@ -2376,8 +2376,8 @@ impl DirectiveVisitor<'_> {
       }
       Stmt::Expr(ExprStmt {
         expr:
-          box Expr::Paren(ParenExpr {
-            expr: box Expr::Lit(Lit::Str(Str { value, .. })),
+          Expr::Paren(ParenExpr {
+            expr: Expr::Lit(Lit::Str(Str { value, .. })),
             ..
           }),
         span,
@@ -2437,7 +2437,7 @@ impl VisitMut for ClosureReplacer<'_> {
   fn visit_mut_prop_or_spread(&mut self, n: &mut PropOrSpread) {
     n.visit_mut_children_with(self);
 
-    if let PropOrSpread::Prop(box Prop::Shorthand(i)) = n {
+    if let PropOrSpread::Prop(Prop::Shorthand(i)) = n {
       let name = Name::from(&*i);
       if let Some(index) = self.used_ids.iter().position(|used_id| *used_id == name) {
         *n = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
