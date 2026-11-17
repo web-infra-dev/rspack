@@ -1,9 +1,9 @@
 // A data descriptor can replace a built-in accessor. Keep the native binding in sync.
-var __rspack_runtime_setters__ = Object.create(null);
+var __rspack_runtime_keys__ = Object.create(null);
 if (typeof Proxy === "function") __webpack_require__ = new Proxy(__webpack_require__, {
  defineProperty: function(target, key, descriptor) {
   if (!Reflect.defineProperty(target, key, descriptor)) return false;
-  if ("value" in descriptor && __rspack_runtime_setters__[key]) __rspack_runtime_setters__[key](descriptor.value);
+  if ("value" in descriptor && key in __rspack_runtime_keys__) __rspack_context[__rspack_runtime_keys__[key]] = descriptor.value;
   return true;
  }
 });
@@ -29,8 +29,12 @@ Object.setPrototypeOf(__rspack_context, typeof Proxy === "function" ? new Proxy(
  }
 }) : __webpack_require__);
 function __rspack_bind_runtime__(key, nativeKey, get, set) {
- __rspack_runtime_setters__[key] = set;
- var descriptor = { configurable: true, enumerable: true, get: get, set: set };
- Object.defineProperty(__webpack_require__, key, descriptor);
- Object.defineProperty(__rspack_context, nativeKey, descriptor);
+ __rspack_runtime_keys__[key] = nativeKey;
+ Object.defineProperty(__rspack_context, nativeKey, { configurable: true, enumerable: true, get: get, set: set });
+ // Hot updates replace the context accessor; a captured loader must always use the current one.
+ Object.defineProperty(__webpack_require__, key, {
+  configurable: true, enumerable: true,
+  get: function() { return __rspack_context[nativeKey]; },
+  set: function(value) { __rspack_context[nativeKey] = value; }
+ });
 }

@@ -19,7 +19,10 @@ export default defineConfig({
                   this.fullHash = true;
                 }
                 generate() {
-                  return `var loader = __webpack_require__; loader.pluginRevision = ${build}; loader.pluginHash = ${JSON.stringify(compilation.hash)};`;
+                  // Keep the loader captured before HMR so post-update writes exercise the original bridge.
+                  const captureLoader =
+                    build === 1 ? ' loader.initialPluginLoader = loader;' : '';
+                  return `var loader = __webpack_require__; loader.pluginRevision = ${build}; loader.pluginHash = ${JSON.stringify(compilation.hash)};${captureLoader}`;
                 }
               })(),
             );
