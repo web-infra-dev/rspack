@@ -1,9 +1,4 @@
-import {
-  threadId,
-  parentPort,
-  workerData,
-  type MessagePort,
-} from 'node:worker_threads';
+import { threadId, type MessagePort } from 'node:worker_threads';
 import {
   beginJsTaskImport,
   endJsTaskImport,
@@ -75,18 +70,44 @@ function beginImport(): () => void {
   return () => endJsTaskImport(permit);
 }
 
-const { port } = workerData as { port: MessagePort };
-setLoaderObjectBridge(port, threadId);
-setWorkerImportScheduler(beginImport);
-registerJsTaskRunner((_compiler, task) => {
-  void execute(task as JsLoaderTask);
-}, threadId);
-parentPort!.on('message', ({ id }: { id: number }) => {
-  try {
-    getJsTaskSubscription(true);
-    parentPort!.postMessage({ id });
-  } catch (error) {
-    parentPort!.postMessage({ id, error: String(error) });
+let initialized = false;
+
+// Tinypool runs only this startup handshake. Loader tasks arrive through MPMC.
+export default async function initialize({
+  port,
+  control,
+}: {
+  port: MessagePort;
+  control: MessagePort;
+}): Promise<void> {
+  const reused = initialized;
+  if (!reused) {
+    setLoaderObjectBridge(port, threadId);
+    setWorkerImportScheduler(beginImport);
+    registerJsTaskRunner((_compiler, task) => {
+      void execute(task as JsLoaderTask);
+    }, threadId);
+    initialized = true;
+  } else {
+    port.close();
   }
-});
-parentPort!.postMessage({ loaded: true });
+  await new Promise<void>((resolve) => {
+    control.on('message', ({ type, id }: { type: string; id?: number }) => {
+      if (type === 'initialized') {
+        if (reused) control.close();
+        else control.unref();
+        resolve();
+        return;
+      }
+      if (type === 'subscribe') {
+        try {
+          getJsTaskSubscription(true);
+          control.postMessage({ id });
+        } catch (error) {
+          control.postMessage({ id, error: String(error) });
+        }
+      }
+    });
+    control.postMessage({ threadId });
+  });
+}
