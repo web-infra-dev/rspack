@@ -4,7 +4,7 @@ use std::{
   time::SystemTime,
 };
 
-use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathMap, InternedPathSet};
+use rspack_paths::{InternedPath, InternedPathMap, InternedPathSet};
 use rspack_util::time::current_time;
 
 use crate::{
@@ -16,6 +16,7 @@ use crate::{
 struct Resolution {
   target: InternedPath,
   links: InternedPathSet,
+  is_link: bool,
 }
 
 /// A watch cycle shares parent resolutions, including parents of missing files.
@@ -27,6 +28,19 @@ pub(crate) struct LinkResolver {
 }
 
 impl LinkResolver {
+  pub(crate) fn directory_root(
+    &mut self,
+    path: &InternedPath,
+  ) -> Option<(InternedPath, Vec<InternedPath>)> {
+    let target = self.resolve(path)?.target.clone();
+    let links = path
+      .ancestors()
+      .map(InternedPath::from)
+      .filter(|path| self.cache.get(path).is_some_and(|entry| entry.is_link))
+      .collect();
+    Some((target, links))
+  }
+
   fn resolve(&mut self, path: &InternedPath) -> Option<Arc<Resolution>> {
     if let Some(resolution) = self.cache.get(path) {
       return Some(Arc::clone(resolution));
@@ -47,6 +61,7 @@ impl LinkResolver {
       return Some(Arc::new(Resolution {
         target: path.clone(),
         links: InternedPathSet::default(),
+        is_link: false,
       }));
     };
     let parent = self.resolve(&InternedPath::from(parent))?;
@@ -55,7 +70,9 @@ impl LinkResolver {
       _ => InternedPath::from(parent.target.join(path.file_name()?)),
     };
     let mut links = parent.links.clone();
-    let target = if let Ok(content) = std::fs::read_link(&real) {
+    let content = std::fs::read_link(&real);
+    let is_link = content.is_ok();
+    let target = if let Ok(content) = content {
       links.insert(real);
       let target = self.resolve(&InternedPath::from(
         parent.target.join(dunce::simplified(&content)),
@@ -65,7 +82,11 @@ impl LinkResolver {
     } else {
       real
     };
-    Some(Arc::new(Resolution { target, links }))
+    Some(Arc::new(Resolution {
+      target,
+      links,
+      is_link,
+    }))
   }
 }
 
@@ -317,8 +338,6 @@ impl LinkSubscriptions {
 pub(crate) struct Symlinks {
   // Published as a whole so event processing never observes a half-built index.
   subscriptions: RwLock<LinkSubscriptions>,
-  // Synchronous time snapshots reuse the contexts that accepted each entry.
-  pub context_owners: InternedPathDashMap<Vec<InternedPath>>,
 }
 
 pub(crate) struct SymlinkAlias {

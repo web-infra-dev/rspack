@@ -479,7 +479,12 @@ impl FsWatcherInner {
     self.record_initial_file_mtimes();
 
     let mut watch_patterns = self.analyzer.analyze(self.path_manager.access());
-    let symlink_update = self.path_manager.refresh_symlinks().await;
+    let roots = self.path_manager.refresh_directory_roots();
+    watch_patterns.extend(roots.patterns);
+    let mut symlink_update = self.path_manager.refresh_symlinks().await;
+    symlink_update
+      .retargeted_directories
+      .extend(roots.retargeted_directories);
     watch_patterns.extend(symlink_update.patterns);
     let rescan_patterns = (self.path_manager.follows_symlinks()
       && (symlink_update.needs_context_scan

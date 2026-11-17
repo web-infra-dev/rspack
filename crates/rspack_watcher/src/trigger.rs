@@ -162,14 +162,14 @@ impl Trigger {
             if let Origin::ContextScan(context) = &origin {
               let resolved_path = context.resolved_entry(&path);
               processor
-                .process(&path, &path, kind, origin, resolved_path.as_ref())
+                .process(&path, &path, kind, &origin, resolved_path.as_ref(), None)
                 .await;
               continue;
             }
             if let Origin::LinkScan(source_path) = &origin {
               let source_path = source_path.clone();
               processor
-                .process(&path, &source_path, kind, origin, None)
+                .process(&path, &source_path, kind, &origin, None, None)
                 .await;
               continue;
             }
@@ -177,6 +177,13 @@ impl Trigger {
               && processor.path_manager.is_unchanged_link_event(&path)
             {
               continue;
+            }
+            if matches!(origin, Origin::Disk { .. } | Origin::RecheckDirectory) {
+              for (alias, owners) in processor.path_manager.directory_root_aliases(&path) {
+                processor
+                  .process(&alias, &path, kind, &origin, None, Some(&owners))
+                  .await;
+              }
             }
             let mut mapped_original = false;
             if !origin.is_scan() {
@@ -207,7 +214,7 @@ impl Trigger {
                       &alias,
                       changed_link.as_ref().unwrap_or(&path),
                       kind,
-                      if matches!(origin, Origin::RecheckDirectory) && !link_changed {
+                      &if matches!(origin, Origin::RecheckDirectory) && !link_changed {
                         Origin::RecheckDirectory
                       } else {
                         Origin::Symlink {
@@ -218,6 +225,7 @@ impl Trigger {
                         }
                       },
                       resolved_path.as_ref(),
+                      None,
                     )
                     .await;
                 }
@@ -226,7 +234,7 @@ impl Trigger {
             if !mapped_original {
               let resolved_path = processor.path_manager.resolved_directory_entry(&path);
               processor
-                .process(&path, &path, kind, origin, resolved_path.as_ref())
+                .process(&path, &path, kind, &origin, resolved_path.as_ref(), None)
                 .await;
             }
           }
@@ -328,16 +336,25 @@ impl EventProcessor {
     path: &InternedPath,
     source_path: &InternedPath,
     kind: FsEventKind,
-    origin: Origin,
+    origin: &Origin,
     resolved_path: Option<&InternedPath>,
+    owners: Option<&[InternedPath]>,
   ) {
     let appeared = origin.appeared(kind);
-    let subscriptions = self
-      .subscriptions(path, source_path, &origin, resolved_path)
+    let mut subscriptions = self
+      .subscriptions(path, source_path, origin, resolved_path)
       .await;
+    if let Some(owners) = owners {
+      subscriptions.contexts.retain(|context| {
+        context
+          .dependency
+          .as_ref()
+          .is_some_and(|owner| owners.contains(owner))
+      });
+    }
     let Some((event, directory_changes)) = self
       .path_manager
-      .observe_entry(path, source_path, kind, &origin)
+      .observe_entry(path, source_path, kind, origin)
       .await
     else {
       return;
@@ -360,7 +377,7 @@ impl EventProcessor {
     }
     if appeared || event.directory_replaced {
       self
-        .recover_descendants(path, &origin, event.directory_replaced, &mut events)
+        .recover_descendants(path, origin, event.directory_replaced, &mut events)
         .await;
     }
     if origin.is_scan() {

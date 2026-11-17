@@ -257,6 +257,8 @@ impl PathManager {
     let initial_missing = removed && origin.is_scan();
     let exists = if origin.link_changed() {
       std::fs::symlink_metadata(source_path).is_ok()
+    } else if source_path != path && self.directories.all.contains(path) {
+      path.metadata().is_ok()
     } else if matches!(origin, EventOrigin::Symlink { .. }) {
       path.exists()
     } else if origin.is_scan() {
@@ -335,6 +337,7 @@ impl PathManager {
         || (kind == FsEventKind::Create && (is_watched_path || is_followed_context_file)))
       && !self.has_mtime_changed(path)
       && !origin.link_changed()
+      && !event.directory_replaced
     {
       return EntryChange::Unchanged;
     }
@@ -347,7 +350,7 @@ impl PathManager {
         )
         .await
       {
-        EntryChange::Unchanged => return EntryChange::Unchanged,
+        EntryChange::Unchanged if !event.directory_replaced => return EntryChange::Unchanged,
         EntryChange::ExistingDirectory if !event.directory_replaced && !origin.affects_parent() => {
           return if origin.is_directory_probe() {
             EntryChange::Unchanged
@@ -397,7 +400,9 @@ impl PathManager {
   ) -> EntryChange {
     let Some(metadata) = metadata else {
       let may_contain_records = self.may_contain_records(path);
-      self.remove_file_time(path);
+      if !self.keeps_link_entry(path) {
+        self.remove_file_time(path);
+      }
       if may_contain_records {
         self.remove_file_times_under(path);
       }
@@ -409,6 +414,10 @@ impl PathManager {
         self.remove_file_times_under(path);
       }
       let discovered = self.record(path, || {
+        self.context_files.remove(path);
+        if !self.files.all.contains(path) && !self.missing.all.contains(path) {
+          self.file_times.remove(path);
+        }
         self.record_context_owners(path, contexts);
         let known = self.context_directories.contains(path) || self.has_directory_identity(path);
         self.context_directories.insert(path.clone());
@@ -431,6 +440,9 @@ impl PathManager {
         EntryChange::ExistingDirectory
       }
     } else {
+      if self.context_directories.contains(path) {
+        self.remove_file_times_under(path);
+      }
       let modified = self.record(path, || {
         self.record_context_owners(path, contexts);
         self.context_files.insert(path.clone());

@@ -39,7 +39,7 @@ impl WatchPlan {
         plan.insert(parent, RecursiveMode::NonRecursive);
       }
     }
-    if follow_symlinks && !cfg!(target_os = "windows") {
+    if (follow_symlinks || cfg!(target_os = "macos")) && !cfg!(target_os = "windows") {
       // inotify shares descriptors for aliases. FSEvents keys its recursive
       // modes by canonical path. Both need physical roots merged before watch().
       // Windows prefixes events with the supplied root, so keep that spelling
