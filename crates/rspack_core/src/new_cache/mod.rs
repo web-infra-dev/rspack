@@ -25,6 +25,7 @@ pub use loader_cache::LoaderCache;
 pub(crate) use loader_cache::create_loader_cache;
 pub use memory_cache::{MemoryCache, MemoryCacheGetResult};
 use rspack_fs::ReadableFileSystem;
+use rspack_paths::InternedPath;
 pub use snapshot::{FileSystemInfo, Snapshot, SnapshotValidationResult};
 pub use statistics::{CacheCounters, CacheInfo, CacheRecord};
 
@@ -78,6 +79,11 @@ pub fn create_cache(
     options.readonly,
     rspack_workspace::rspack_pkg_version!().to_string(),
     codec.validation_version(&options.version, compiler_options.context.as_path()),
+    options
+      .build_dependencies
+      .iter()
+      .map(|path| InternedPath::from(path.as_path()))
+      .collect(),
     codec,
     Some(file_system_info),
     logger.clone(),

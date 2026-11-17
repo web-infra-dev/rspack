@@ -14,15 +14,21 @@ use crate::{
 struct CacheValidatorData {
   rspack_pkg_version: String,
   cache_version: String,
+  configured_build_dependencies: InternedPathSet,
   build_dependencies: InternedPathSet,
   build_dependencies_snapshot: Option<Snapshot>,
 }
 
 impl CacheValidatorData {
-  fn new(rspack_pkg_version: String, cache_version: String) -> Self {
+  fn new(
+    rspack_pkg_version: String,
+    cache_version: String,
+    configured_build_dependencies: InternedPathSet,
+  ) -> Self {
     Self {
       rspack_pkg_version,
       cache_version,
+      configured_build_dependencies,
       build_dependencies: Default::default(),
       build_dependencies_snapshot: None,
     }
@@ -36,10 +42,7 @@ impl CacheValidatorData {
 pub(super) enum CacheValidatorResult {
   Valid,
   InvalidVersion,
-  InvalidBuildDependencies {
-    modified_files: InternedPathSet,
-    removed_files: InternedPathSet,
-  },
+  InvalidBuildDependencies,
   InvalidError,
 }
 
@@ -55,12 +58,17 @@ impl CacheValidator {
   pub(super) fn new(
     rspack_pkg_version: String,
     cache_version: String,
+    configured_build_dependencies: InternedPathSet,
     codec: Arc<CacheCodec>,
     file_system_info: Option<FileSystemInfo>,
     logger: Arc<InfrastructureLogger>,
   ) -> Self {
     Self {
-      data: Mutex::new(CacheValidatorData::new(rspack_pkg_version, cache_version)),
+      data: Mutex::new(CacheValidatorData::new(
+        rspack_pkg_version,
+        cache_version,
+        configured_build_dependencies,
+      )),
       codec,
       file_system_info,
       logger,
@@ -98,6 +106,9 @@ impl CacheValidator {
     let Some(build_dependencies_snapshot) = &validator.build_dependencies_snapshot else {
       return Ok(CacheValidatorResult::InvalidError);
     };
+    if validator.configured_build_dependencies != self.data().configured_build_dependencies {
+      return Ok(CacheValidatorResult::InvalidBuildDependencies);
+    }
     let start = self.logger.time("check build dependencies");
     let validation = file_system_info
       .check_snapshot_valid(build_dependencies_snapshot)
@@ -109,13 +120,7 @@ impl CacheValidator {
         *self.data() = validator;
         CacheValidatorResult::Valid
       }
-      SnapshotValidationResult::Invalid {
-        modified_files,
-        removed_files,
-      } => CacheValidatorResult::InvalidBuildDependencies {
-        modified_files,
-        removed_files,
-      },
+      SnapshotValidationResult::Invalid { .. } => CacheValidatorResult::InvalidBuildDependencies,
     })
   }
 
