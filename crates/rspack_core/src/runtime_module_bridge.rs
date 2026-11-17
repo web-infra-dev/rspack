@@ -62,9 +62,9 @@ fn classify_runtime_module_source(source: &str) -> Result<RuntimeModuleSourceKin
       None,
       &mut errors,
     )
-    .map_err(|e| error!("Cannot parse runtime module: {:?}", e.kind()))?;
+    .map_err(|e| error!("Cannot parse runtime module: {}", e.kind().msg()))?;
     if let Some(e) = errors.first() {
-      return Err(error!("Cannot parse runtime module: {:?}", e.kind()));
+      return Err(error!("Cannot parse runtime module: {}", e.kind().msg()));
     }
     let unresolved = Mark::new();
     program.visit_mut_with(&mut resolver(unresolved, Mark::new(), false));
@@ -76,10 +76,7 @@ fn classify_runtime_module_source(source: &str) -> Result<RuntimeModuleSourceKin
       "__webpack_module_cache__",
     ]
     .into_iter()
-    .any(|name| {
-      (may_have_escaped_names || source.contains(name))
-        && IdentUsageFinder::find(&Ident::new(name.into(), DUMMY_SP, ctxt), &program)
-    });
+    .any(|name| IdentUsageFinder::find(&Ident::new(name.into(), DUMMY_SP, ctxt), &program));
     Ok(if uses_runtime {
       RuntimeModuleSourceKind::NeedsBridge
     } else {

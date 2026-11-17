@@ -500,7 +500,7 @@ pub async fn render_runtime_modules(
   if compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
     render_rspack_runtime_modules(compilation, chunk_ukey, runtime_template).await
   } else {
-    render_runtime_modules_in_order(compilation, chunk_ukey).await
+    render_runtime_modules_in_order(compilation, chunk_ukey, false).await
   }
 }
 
@@ -521,13 +521,6 @@ impl RuntimeModuleSourceItem {
 }
 
 pub(crate) async fn render_runtime_module_sources(
-  compilation: &Compilation,
-  chunk_ukey: &ChunkUkey,
-) -> Result<Vec<RuntimeModuleSourceItem>> {
-  collect_runtime_module_sources(compilation, chunk_ukey, false).await
-}
-
-async fn collect_runtime_module_sources(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   extensions_only: bool,
@@ -645,22 +638,20 @@ async fn collect_runtime_module_sources(
 
 /// Non-owning modern ESM chunks link native helpers as imports. Only extension
 /// code executes here; assignment through the loader reaches the owner's accessor.
-pub async fn render_custom_runtime_modules(
-  compilation: &Compilation,
-  chunk: &ChunkUkey,
-) -> Result<BoxSource> {
-  let mut sources = ConcatSource::default();
-  for item in collect_runtime_module_sources(compilation, chunk, true).await? {
-    sources.add(item.source);
-  }
-  Ok(sources.boxed())
+pub fn render_custom_runtime_modules<'a>(
+  compilation: &'a Compilation,
+  chunk: &'a ChunkUkey,
+) -> std::pin::Pin<Box<dyn Future<Output = Result<BoxSource>> + Send + 'a>> {
+  Box::pin(render_runtime_modules_in_order(compilation, chunk, true))
 }
 
 async fn render_runtime_modules_in_order(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
+  extensions_only: bool,
 ) -> Result<BoxSource> {
-  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey).await?;
+  let runtime_module_sources =
+    render_runtime_module_sources(compilation, chunk_ukey, extensions_only).await?;
   let mut sources = ConcatSource::default();
 
   for item in runtime_module_sources {

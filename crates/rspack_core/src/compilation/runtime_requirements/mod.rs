@@ -3,8 +3,9 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::*;
 use crate::{
-  CodeGenerationRuntimeRequirementsWrite, RuntimeProxyMetadata, compilation::pass::PassExt,
-  logger::Logger, runtime_globals::BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS,
+  CodeGenerationRuntimeRequirementsWrite, RuntimeModuleBridge, RuntimeModuleSourceKind,
+  RuntimeProxyMetadata, compilation::pass::PassExt, logger::Logger,
+  runtime_globals::BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS,
   runtime_mode::RuntimeMode as ExperimentRuntimeMode,
 };
 
@@ -293,8 +294,23 @@ pub async fn process_modules_runtime_requirements(
   Ok(())
 }
 
+// Keep the once-per-pass future out of each caller's (also large) compilation state machine.
+pub fn process_chunks_runtime_requirements(
+  compilation: &mut Compilation,
+  chunks: FxHashSet<ChunkUkey>,
+  entries: FxHashSet<ChunkUkey>,
+  plugin_driver: SharedPluginDriver,
+) -> futures::future::BoxFuture<'_, Result<()>> {
+  Box::pin(process_chunks_runtime_requirements_impl(
+    compilation,
+    chunks,
+    entries,
+    plugin_driver,
+  ))
+}
+
 #[instrument(name = "Compilation:process_chunks_runtime_requirements", target=TRACING_BENCH_TARGET skip_all)]
-pub async fn process_chunks_runtime_requirements(
+async fn process_chunks_runtime_requirements_impl(
   compilation: &mut Compilation,
   chunks: FxHashSet<ChunkUkey>,
   entries: FxHashSet<ChunkUkey>,
@@ -534,76 +550,7 @@ pub async fn process_chunks_runtime_requirements(
     return Ok(());
   }
 
-  // Generate late, after the tree requirements and JS hook overrides are final. The
-  // normal generated-source cache also supplies this exact source to code generation.
-  let mut custom_modules = FxHashMap::default();
-  for (id, module) in &compilation.runtime_modules {
-    let kind = module
-      .source_kind(compilation)
-      .await
-      .map_err(|e| e.wrap_err(format!("in runtime module {id}")))?;
-    if kind != crate::RuntimeModuleSourceKind::Native {
-      custom_modules.insert(*id, kind);
-    }
-  }
-  let graph = &compilation.build_chunk_graph_artifact;
-  let mut source_chunks = FxHashMap::default();
-  if !custom_modules.is_empty() {
-    for chunk in graph.chunk_by_ukey.keys() {
-      if let Some(kind) = graph
-        .chunk_graph
-        .get_chunk_runtime_modules_iterable(chunk)
-        .filter_map(|id| custom_modules.get(id))
-        .max()
-      {
-        source_chunks.insert(*chunk, *kind);
-      }
-    }
-  }
-  let mut bridge_owners = FxHashSet::default();
-  let mut intercepted_chunks = FxHashSet::default();
-  if source_chunks
-    .values()
-    .any(|kind| *kind == crate::RuntimeModuleSourceKind::NeedsBridge)
-  {
-    for owner in &entries {
-      let mut chunks = graph
-        .chunk_by_ukey
-        .expect_get(owner)
-        .get_all_referenced_chunks(&graph.chunk_group_by_ukey);
-      chunks.insert(*owner);
-      if !chunks
-        .iter()
-        .any(|chunk| source_chunks.get(chunk) == Some(&crate::RuntimeModuleSourceKind::NeedsBridge))
-      {
-        continue;
-      }
-      // Allocate the loader and its observable tables, not optional providers like require.O.
-      let requirements = compilation
-        .cgc_runtime_requirements_artifact
-        .entry(*owner)
-        .or_default();
-      requirements.insert(
-        RuntimeGlobals::REQUIRE
-          | RuntimeGlobals::REQUIRE_SCOPE
-          | RuntimeGlobals::MODULE_FACTORIES
-          | RuntimeGlobals::MODULE_CACHE,
-      );
-      bridge_owners.insert(*owner);
-      if requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION) {
-        intercepted_chunks.extend(chunks);
-      }
-    }
-    for (chunk, kind) in &source_chunks {
-      if *kind == crate::RuntimeModuleSourceKind::NeedsBridge {
-        compilation
-          .cgc_runtime_requirements_artifact
-          .entry(*chunk)
-          .or_default()
-          .insert(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE);
-      }
-    }
-  }
+  let bridges = collect_runtime_module_bridges(compilation, &entries).await?;
 
   let metadata_chunk_ukeys = compilation
     .build_chunk_graph_artifact
@@ -615,7 +562,9 @@ pub async fn process_chunks_runtime_requirements(
         .build_chunk_graph_artifact
         .chunk_by_ukey
         .expect_get(chunk_ukey);
-      intercepted_chunks.contains(chunk_ukey)
+      bridges
+        .get(chunk_ukey)
+        .is_some_and(|b| b.intercepted_factories)
         || chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         || compilation
           .build_chunk_graph_artifact
@@ -638,11 +587,7 @@ pub async fn process_chunks_runtime_requirements(
     };
     referenced_chunks.insert(chunk_ukey);
     let mut metadata = RuntimeProxyMetadata {
-      runtime_module_bridge: crate::RuntimeModuleBridge {
-        owner: bridge_owners.contains(&chunk_ukey),
-        intercepted_factories: intercepted_chunks.contains(&chunk_ukey),
-        source: source_chunks.get(&chunk_ukey).copied().unwrap_or_default(),
-      },
+      runtime_module_bridge: bridges.get(&chunk_ukey).copied().unwrap_or_default(),
       ..Default::default()
     };
 
@@ -758,3 +703,68 @@ process_runtime_requirement_hook_macro!(
   &mut Compilation,
   &'a mut Compilation
 );
+
+/// Inspect the final hook source once, then share its classification with every attached chunk.
+async fn collect_runtime_module_bridges(
+  compilation: &mut Compilation,
+  entries: &FxHashSet<ChunkUkey>,
+) -> Result<FxHashMap<ChunkUkey, RuntimeModuleBridge>> {
+  let graph = &compilation.build_chunk_graph_artifact;
+  let mut bridges = FxHashMap::<ChunkUkey, RuntimeModuleBridge>::default();
+  let mut needs_bridge = false;
+  for (id, module) in &compilation.runtime_modules {
+    let kind = module
+      .source_kind(compilation)
+      .await
+      .map_err(|e| e.wrap_err(format!("in runtime module {id}")))?;
+    if kind == RuntimeModuleSourceKind::Native {
+      continue;
+    }
+    for chunk in graph.chunk_graph.get_module_chunks(*id) {
+      let bridge = bridges.entry(*chunk).or_default();
+      bridge.source = bridge.source.max(kind);
+      if kind == RuntimeModuleSourceKind::NeedsBridge {
+        needs_bridge = true;
+        compilation
+          .cgc_runtime_requirements_artifact
+          .entry(*chunk)
+          .or_default()
+          .insert(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE);
+      }
+    }
+  }
+  if needs_bridge {
+    for owner in entries {
+      let mut chunks = graph
+        .chunk_by_ukey
+        .expect_get(owner)
+        .get_all_referenced_chunks(&graph.chunk_group_by_ukey);
+      chunks.insert(*owner);
+      if !chunks.iter().any(|chunk| {
+        bridges
+          .get(chunk)
+          .is_some_and(|b| b.source == RuntimeModuleSourceKind::NeedsBridge)
+      }) {
+        continue;
+      }
+      // Allocate the loader and its observable tables, not optional providers like require.O.
+      let requirements = compilation
+        .cgc_runtime_requirements_artifact
+        .entry(*owner)
+        .or_default();
+      requirements.insert(
+        RuntimeGlobals::REQUIRE
+          | RuntimeGlobals::REQUIRE_SCOPE
+          | RuntimeGlobals::MODULE_FACTORIES
+          | RuntimeGlobals::MODULE_CACHE,
+      );
+      bridges.entry(*owner).or_default().owner = true;
+      if requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION) {
+        for chunk in chunks {
+          bridges.entry(chunk).or_default().intercepted_factories = true;
+        }
+      }
+    }
+  }
+  Ok(bridges)
+}

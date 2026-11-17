@@ -190,7 +190,8 @@ pub async fn render_runtime_chunk_runtime_modules(
   chunk_ukey: &ChunkUkey,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
-  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey).await?;
+  let runtime_module_sources =
+    render_runtime_module_sources(compilation, chunk_ukey, false).await?;
   Ok(render_runtime_chunk_runtime_modules_sync(
     compilation,
     chunk_ukey,
@@ -402,6 +403,11 @@ fn render_runtime_chunk_runtime_modules_sync(
   )));
   if metadata.runtime_module_bridge.owner {
     wrapped_sources.add(RawStringSource::from(bridge_prelude));
+    if bootstrap_runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION) {
+      wrapped_sources.add(RawStringSource::from_static(include_str!(
+        "runtime/webpack_runtime_bridge_interceptors.js"
+      )));
+    }
   }
   if metadata
     .lexical_fields()
@@ -479,13 +485,6 @@ fn render_runtime_chunk_runtime_modules_sync(
       "{require} = __webpack_require__;\n"
     )));
   }
-  if metadata.runtime_module_bridge.owner
-    && bootstrap_runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
-  {
-    wrapped_sources.add(RawStringSource::from_static(include_str!(
-      "runtime/webpack_runtime_bridge_interceptors.js"
-    )));
-  }
   if isolate {
     sources.add(RawStringSource::from_static("(function() {\n"));
     sources.add(wrapped_sources);
@@ -504,7 +503,8 @@ pub async fn render_chunk_runtime_modules(
   chunk_ukey: &ChunkUkey,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
-  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey).await?;
+  let runtime_module_sources =
+    render_runtime_module_sources(compilation, chunk_ukey, false).await?;
   let mut sources = ConcatSource::default();
   if runtime_module_sources.is_empty() {
     return Ok(sources.boxed());
@@ -601,7 +601,8 @@ pub async fn render_hot_update_chunk_runtime_modules(
   chunk_ukey: &ChunkUkey,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
-  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey).await?;
+  let runtime_module_sources =
+    render_runtime_module_sources(compilation, chunk_ukey, false).await?;
   let mut sources = ConcatSource::default();
   if runtime_module_sources.is_empty() {
     return Ok(sources.boxed());

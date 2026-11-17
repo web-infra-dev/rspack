@@ -23,6 +23,7 @@ export default [false, true].map((esm, index) =>
         const hookSource =
           "/* plugin source */ __webpack_require__['fromHook'] = 42;";
         new compiler.rspack.DefinePlugin({
+          EXPECT_EARLY_RUNTIME: !esm,
           EXPECT_GENERATE_OVERRIDE:
             compiler.options.experiments.runtimeMode === 'rspack',
           EXPECT_ASYNC_RUNTIME:
@@ -36,6 +37,11 @@ export default [false, true].map((esm, index) =>
             if (adding) throw new Error('generate ran during addRuntimeModule');
             return `
             const external = __webpack_require__;
+            ${esm ? '' : "external.earlyResult = external('./early.cjs');"}
+            external.readPluginState = function () { return external.pluginState; };
+            external.definePublicPath = function () {
+              Object.defineProperty(external, 'p', { value: '/descriptor/', configurable: true, writable: true });
+            };
             const key = ['private', 'field'].join('_');
             Object.defineProperty(external, key, { value: 17, configurable: true });
             external.probe = function () {
