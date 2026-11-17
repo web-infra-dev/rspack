@@ -16,9 +16,24 @@ Object.defineProperties(__rspack_context, {
       if (require === this.r) return this;
       var context = Object.create(this);
       Object.defineProperty(context, "r", { configurable: true, value: require });
-      Object.keys(require).forEach(function(key) {
+      // The wrapper can define private fields after calling the factory. Resolve them
+      // against its actual loader when the module reads or writes them.
+      if (typeof Proxy === "function") return new Proxy(context, {
+        get: function(target, key, receiver) {
+          var prop = key === "N" ? "r" : key;
+          return key !== "r" && prop in require ? require[prop] : Reflect.get(target, key, receiver);
+        },
+        set: function(target, key, value, receiver) {
+          var prop = key === "N" ? "r" : key;
+          return key !== "r" && (prop in require || !(key in target)) ? Reflect.set(require, prop, value) : Reflect.set(target, key, value, receiver);
+        },
+        has: function(target, key) { return (key === "N" ? "r" : key) in require || key in target; }
+      });
+      var keys = Object.getOwnPropertyNames(require);
+      if (Object.getOwnPropertySymbols) keys = keys.concat(Object.getOwnPropertySymbols(require));
+      keys.forEach(function(key) {
         Object.defineProperty(context, key === "r" ? "N" : key, {
-          configurable: true, enumerable: true,
+          configurable: true, enumerable: Object.prototype.propertyIsEnumerable.call(require, key),
           get: function() { return require[key]; },
           set: function(value) { require[key] = value; }
         });

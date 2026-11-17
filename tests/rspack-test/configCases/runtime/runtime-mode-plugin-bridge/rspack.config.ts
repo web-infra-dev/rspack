@@ -50,8 +50,11 @@ export default [false, true].map((esm, index) =>
               const original = o.factory;
               o.factory = function (module, exports, incoming) {
                 function hotRequire(id) { return incoming(id); }
-                hotRequire.$Refresh$ = module.id;
-                return original.call(this, module, exports, hotRequire);
+                Object.defineProperty(hotRequire, '$Refresh$', { value: module.id });
+                var result = original.call(this, module, exports, hotRequire);
+                if (hotRequire.writtenByFactory !== 7) throw new Error('private factory write');
+                hotRequire.afterFactory = 42;
+                return result;
               };
             });
           `;
