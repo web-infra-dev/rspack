@@ -1,13 +1,13 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
-use rspack_paths::{InternedPath, InternedPathDashSet};
+use rspack_paths::{InternedPath, InternedPathDashSet, InternedPathSet};
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
 use super::{FsEvent, FsEventKind};
 use crate::{
   EventBatch, ResolvedEvents,
   analyzer::{Analyzer, RecommendedAnalyzer},
-  paths::{ContextPath, PathManager},
+  paths::{ContextPath, DirectoryChanges, PathManager},
   symlinks::SymlinkAlias,
 };
 /// `DependencyFinder` provides references to sets of files, directories, and missing paths,
@@ -108,6 +108,7 @@ struct EventProcessor {
   /// Sender for communicating file system events to the watcher executor.
   tx: UnboundedSender<ResolvedEvents>,
   analyzer: Arc<RecommendedAnalyzer>,
+  replaced_directories: Arc<Mutex<InternedPathSet>>,
 }
 
 struct EventSubscriptions {
@@ -120,6 +121,7 @@ struct ObservedEvent<'a> {
   kind: FsEventKind,
   origin: &'a Origin,
   initial_missing: bool,
+  directory_replaced: bool,
 }
 
 /// `Trigger` is responsible for sending file system events to the event channel
@@ -129,7 +131,9 @@ struct ObservedEvent<'a> {
 /// immediately, and a dedicated thread drains the buffer one event at a time.
 pub struct Trigger {
   pending: UnboundedSender<(InternedPath, FsEventKind, Origin)>,
-  pub(crate) analyzer: Arc<RecommendedAnalyzer>,
+  pub analyzer: Arc<RecommendedAnalyzer>,
+  /// Physical directories replaced since the last watch plan.
+  pub(crate) replaced_directories: Arc<Mutex<InternedPathSet>>,
 }
 
 /// Where an event comes from.
@@ -140,6 +144,7 @@ enum Origin {
   },
   /// An explicit event supplied through `FsWatcher::trigger_event`.
   Injected,
+  RecheckDirectory,
   /// A scan, for what changed while the watch was not active yet: a file a
   /// context's initial scan found changed since the start time, or a
   /// registered path the scanner backfills. Already judged a change, it is
@@ -184,10 +189,12 @@ impl Trigger {
   pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<ResolvedEvents>) -> Self {
     let (pending, mut incoming) = unbounded_channel::<(InternedPath, FsEventKind, Origin)>();
     let analyzer = Arc::default();
+    let replaced_directories = Arc::default();
     let processor = EventProcessor {
       path_manager,
       tx,
       analyzer: Arc::clone(&analyzer),
+      replaced_directories: Arc::clone(&replaced_directories),
     };
 
     // One event at a time, in arrival order: the JS `ignored` predicate is
@@ -227,7 +234,10 @@ impl Trigger {
             let mut mapped_original = false;
             if !origin.is_scan() {
               let include_descendants = kind != FsEventKind::Change
-                || matches!(origin, Origin::Disk { appeared: true } | Origin::Injected);
+                || matches!(
+                  origin,
+                  Origin::Disk { appeared: true } | Origin::Injected | Origin::RecheckDirectory
+                );
               for SymlinkAlias {
                 path: alias,
                 changed_link,
@@ -246,11 +256,15 @@ impl Trigger {
                       &alias,
                       changed_link.as_ref().unwrap_or(&path),
                       kind,
-                      Origin::Symlink {
-                        link_changed,
-                        injected: matches!(origin, Origin::Injected),
-                        appeared: matches!(origin, Origin::Disk { appeared: true })
-                          || kind == FsEventKind::Create,
+                      if matches!(origin, Origin::RecheckDirectory) && !link_changed {
+                        Origin::RecheckDirectory
+                      } else {
+                        Origin::Symlink {
+                          link_changed,
+                          injected: matches!(origin, Origin::Injected),
+                          appeared: matches!(origin, Origin::Disk { appeared: true })
+                            || kind == FsEventKind::Create,
+                        }
                       },
                       resolved_path.as_ref(),
                     )
@@ -269,7 +283,11 @@ impl Trigger {
       })
       .expect("spawn watcher event filter thread");
 
-    Self { pending, analyzer }
+    Self {
+      pending,
+      analyzer,
+      replaced_directories,
+    }
   }
 
   /// Queues an explicit event from `FsWatcher::trigger_event` without blocking.
@@ -305,6 +323,12 @@ impl Trigger {
         Origin::ContextScan(Box::new(context)),
       ));
     }
+  }
+
+  pub(crate) fn recheck_directory(&self, path: InternedPath) {
+    let _ = self
+      .pending
+      .send((path, FsEventKind::Change, Origin::RecheckDirectory));
   }
 
   pub(crate) fn on_scanned_link(
@@ -351,15 +375,43 @@ impl EventProcessor {
     let subscriptions = self
       .subscriptions(path, source_path, &origin, resolved_path)
       .await;
-    let Some(event) = self.observe(path, source_path, kind, &origin) else {
+    let directory_changes = if origin.link_changed() || origin.is_scan() {
+      None
+    } else {
+      self
+        .path_manager
+        .reconcile_directory(path, matches!(origin, Origin::RecheckDirectory))
+        .await
+    };
+    if matches!(origin, Origin::RecheckDirectory) && directory_changes.is_none() {
+      return;
+    }
+    let Some(mut event) = self.observe(path, source_path, kind, &origin) else {
       return;
     };
+    event.directory_replaced = directory_changes
+      .as_ref()
+      .is_some_and(|changes| changes.replaced);
     let mut events = ResolvedEvents::default();
-    self
-      .collect_changes(&event, subscriptions, &mut events)
-      .await;
-    if appeared {
-      self.recover_descendants(path, &origin, &mut events).await;
+    if let Some(changes) = directory_changes {
+      if !matches!(origin, Origin::RecheckDirectory) {
+        self
+          .replaced_directories
+          .lock()
+          .expect("directory replacements lock poisoned")
+          .insert(source_path.clone());
+      }
+      self.collect_directory_changes(changes, &mut events).await;
+    }
+    if !matches!(origin, Origin::RecheckDirectory) || event.directory_replaced {
+      self
+        .collect_changes(&event, subscriptions, &mut events)
+        .await;
+    }
+    if appeared || event.directory_replaced {
+      self
+        .recover_descendants(path, &origin, event.directory_replaced, &mut events)
+        .await;
     }
     if origin.is_scan() {
       self.analyzer.invalidate_path(path);
@@ -402,6 +454,31 @@ impl EventProcessor {
       false
     };
     EventSubscriptions { direct, contexts }
+  }
+
+  async fn collect_directory_changes(
+    &self,
+    changes: DirectoryChanges,
+    events: &mut ResolvedEvents,
+  ) {
+    for path in changes.files {
+      let origin = Origin::Disk { appeared: false };
+      let resolved_path = self.path_manager.resolved_directory_entry(&path);
+      let mut subscriptions = self
+        .subscriptions(&path, &path, &origin, resolved_path.as_ref())
+        .await;
+      subscriptions.contexts.clear();
+      if let Some(event) = self.observe(&path, &path, FsEventKind::Change, &origin) {
+        self.collect_changes(&event, subscriptions, events).await;
+      }
+    }
+    for (path, context) in changes.contexts {
+      let origin = Origin::ContextScan(Box::new(context));
+      let subscriptions = self.subscriptions(&path, &path, &origin, None).await;
+      if let Some(event) = self.observe(&path, &path, FsEventKind::Change, &origin) {
+        self.collect_changes(&event, subscriptions, events).await;
+      }
+    }
   }
 
   fn observe<'a>(
@@ -497,6 +574,7 @@ impl EventProcessor {
       kind,
       origin,
       initial_missing,
+      directory_replaced: false,
     })
   }
 
@@ -526,10 +604,10 @@ impl EventProcessor {
     // Apply the same suppression to Create for already-registered files, since
     // macOS may emit stale Create events for files that predate the watcher.
     // A registered-missing path takes its first record here, once it exists.
-    if (kind == FsEventKind::Change
-      || (kind == FsEventKind::Create && (is_watched_path || is_followed_context_file)))
+    if !origin.is_scan()
+      && (kind == FsEventKind::Change
+        || (kind == FsEventKind::Create && (is_watched_path || is_followed_context_file)))
       && !self.path_manager.has_mtime_changed(path)
-      && !origin.is_scan()
       && !origin.link_changed()
     {
       return;
@@ -537,15 +615,17 @@ impl EventProcessor {
 
     // Metadata of a known directory does not change its entry in a parent context.
     // Raw link events still need to handle a junction receiving its target.
-    let nested_directory_metadata = matches!(
-      origin,
-      Origin::Disk { appeared: false }
-        | Origin::Symlink {
-          link_changed: false,
-          appeared: false,
-          injected: false,
-        }
-    ) && self.path_manager.is_known_context_directory(path)
+    let nested_directory_metadata = !event.directory_replaced
+      && matches!(
+        origin,
+        Origin::Disk { appeared: false }
+          | Origin::Symlink {
+            link_changed: false,
+            appeared: false,
+            injected: false,
+          }
+      )
+      && self.path_manager.is_known_context_directory(path)
       && path.is_dir()
       && (!path.is_symlink() || matches!(origin, Origin::Symlink { .. }));
     if kind != FsEventKind::Remove
@@ -675,9 +755,13 @@ impl EventProcessor {
     &self,
     path: &InternedPath,
     origin: &Origin,
+    directory_replaced: bool,
     events: &mut ResolvedEvents,
   ) {
-    if path.is_symlink() || !path.is_dir() || !self.path_manager.may_contain_records(path) {
+    if (path.is_symlink() && !directory_replaced)
+      || !path.is_dir()
+      || !self.path_manager.may_contain_records(path)
+    {
       return;
     }
     // A directory can arrive with populated descendants before their OS watches exist.

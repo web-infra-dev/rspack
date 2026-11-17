@@ -34,6 +34,33 @@ pub(crate) struct ContextPath {
   resolved: Option<InternedPath>,
 }
 
+pub(crate) struct DirectoryChanges {
+  pub contexts: Vec<(InternedPath, ContextPath)>,
+  pub files: InternedPathSet,
+  pub replaced: bool,
+}
+
+pub(crate) fn directory_identity(metadata: &std::fs::Metadata) -> Option<(u64, u64)> {
+  #[cfg(unix)]
+  {
+    use std::os::unix::fs::MetadataExt;
+    Some((metadata.dev(), metadata.ino()))
+  }
+  #[cfg(windows)]
+  {
+    use std::os::windows::fs::MetadataExt;
+    Some((
+      metadata.volume_serial_number()?.into(),
+      metadata.file_index()?,
+    ))
+  }
+  #[cfg(not(any(unix, windows)))]
+  {
+    let _ = metadata;
+    None
+  }
+}
+
 impl ContextPath {
   pub(crate) fn event_path(&self, path: &InternedPath) -> InternedPath {
     if self.dependency.as_ref() == Some(path) {
@@ -349,6 +376,7 @@ pub(crate) struct PathManager {
   /// watchpack's nested `DirectoryWatcher.directories`: every subdirectory
   /// found below a registered context.
   context_directories: InternedPathDashSet,
+  directory_identities: InternedPathDashMap<(u64, u64)>,
   /// Every directory above a registered path: a removal of one of them may
   /// have taken registered records, or a registered context, with it. Each
   /// counts the registrations directly in it plus its subdirectories here,
@@ -386,6 +414,7 @@ impl PathManager {
       last_watch_events: InternedPathDashMap::default(),
       context_files: InternedPathDashSet::default(),
       context_directories: InternedPathDashSet::default(),
+      directory_identities: InternedPathDashMap::default(),
       registered_ancestors: InternedPathDashMap::default(),
       absent_directories: InternedPathDashSet::default(),
       recorded_children: InternedPathDashMap::default(),
@@ -612,6 +641,7 @@ impl PathManager {
     self.file_times.remove(path);
     self.baselines.remove_if(path, |_, time| time.is_some());
     self.context_files.remove(path);
+    self.directory_identities.remove(path);
     if self.context_directories.remove(path).is_some() {
       self.last_watch_events.remove(path);
     }
@@ -634,6 +664,7 @@ impl PathManager {
       self.baselines.remove_if(&path, |_, time| time.is_some());
       self.context_files.remove(&path);
       self.context_directories.remove(&path);
+      self.directory_identities.remove(&path);
       if !self.directories.all.contains(&path) {
         self.last_watch_events.remove(&path);
       }
@@ -713,6 +744,7 @@ impl PathManager {
       || self.context_files.contains(path)
       || self.context_directories.contains(path)
       || self.last_watch_events.contains_key(path)
+      || self.directory_identities.contains_key(path)
   }
 
   /// `path` was registered: count it in its directory, and each directory
@@ -751,14 +783,69 @@ impl PathManager {
     }
   }
 
-  /// watchpack's initial scan of a `DirectoryWatcher`, for this cycle's newly
-  /// registered contexts: index every file and subdirectory below them, so
-  /// `collect_time_info_entries` reports them like watchpack does. A path the
-  /// live watch already observed with the same mtime keeps its record.
-  ///
-  /// Returns the files that changed since `start_time` (watchpack's
-  /// `checkStartTime`): they changed before the watch was active, so no event
-  /// will come for them.
+  /// A directory can be replaced without ever being observed absent. Its old
+  /// entries then belong to another directory, even when all mtimes match.
+  /// Reattached watches also check for changes missed before reattachment.
+  pub(crate) async fn reconcile_directory(
+    &self,
+    path: &InternedPath,
+    reattached: bool,
+  ) -> Option<DirectoryChanges> {
+    let previous = *self.directory_identities.get(path)?;
+    let metadata = path.metadata().ok()?;
+    if !metadata.is_dir() {
+      return None;
+    }
+    let replaced = directory_identity(&metadata)? != previous;
+    if !replaced && !reattached {
+      return None;
+    }
+
+    let mut previous_paths = Vec::new();
+    {
+      let _index = self.lock_index();
+      let mut pending = vec![path.clone()];
+      while let Some(path) = pending.pop() {
+        if let Some(children) = self.recorded_children.get(&path) {
+          pending.extend(children.iter().cloned());
+        }
+        previous_paths.push(path);
+      }
+    }
+    if replaced {
+      self.remove_file_times_under(path);
+    }
+    let mut contexts = self.scan_below(vec![path.clone()], true, Some(0)).await;
+    let mut files: InternedPathSet = contexts
+      .iter()
+      .filter(|(path, _)| self.files.all.contains(path) || self.missing.all.contains(path))
+      .map(|(path, _)| path.clone())
+      .collect();
+    for entry in previous_paths {
+      if self.is_file_present(&entry) {
+        continue;
+      }
+      if self.files.all.contains(&entry) || self.missing.all.contains(&entry) {
+        files.insert(entry.clone());
+      }
+      let may_contain_records = self.may_contain_records(&entry);
+      self.remove_file_time(&entry);
+      if may_contain_records {
+        self.remove_file_times_under(&entry);
+      }
+      for context in self.context_paths(&entry).await {
+        contexts.push((entry.clone(), context));
+      }
+    }
+    (replaced || !contexts.is_empty() || !files.is_empty()).then_some(DirectoryChanges {
+      contexts,
+      files,
+      replaced,
+    })
+  }
+
+  /// Index newly registered and retargeted contexts, returning entries changed
+  /// since `start_time` to cover the interval before their watches were active.
   pub async fn scan_contexts(
     &self,
     start_time: SystemTime,
@@ -898,12 +985,23 @@ impl PathManager {
     changed_since: Option<u64>,
   ) -> Vec<(InternedPath, ContextPath)> {
     let mut changed = Vec::new();
+    // Multiple context owners must see the same pre-scan change decision.
+    let mut observed_changes = InternedPathSet::default();
     // Each directory carries the real paths of the directories above it: with
     // `followSymlinks`, a link back into its own ancestry is a loop, while two
     // links to one directory are two aliases, each scanned.
     let mut pending = Vec::with_capacity(roots.len());
     for root in roots {
+      let Ok(metadata) = root.metadata() else {
+        continue;
+      };
       for context in self.context_paths(&root).await {
+        if let Some(identity) = directory_identity(&metadata) {
+          self.record(&root, || {
+            self.directory_identities.insert(root.clone(), identity)
+          });
+        }
+        self.absent_directories.remove(&root);
         pending.push((root.clone(), Vec::new(), recovered, context));
       }
     }
@@ -948,10 +1046,29 @@ impl PathManager {
           continue;
         };
         if metadata.is_dir() {
-          self.record(&path, || {
+          let identity = directory_identity(&metadata);
+          if observed
+            && identity.is_some_and(|identity| {
+              self
+                .directory_identities
+                .get(&path)
+                .is_some_and(|old| *old != identity)
+            })
+          {
+            self.remove_file_times_under(&path);
+          }
+          let discovered = self.record(&path, || {
             self.record_context_owners(&path, std::slice::from_ref(&context));
-            self.context_directories.insert(path.clone());
+            let discovered = self.context_directories.insert(path.clone());
+            if let Some(identity) = identity {
+              self.directory_identities.insert(path.clone(), identity);
+            }
+            discovered
           });
+          if observed && discovered {
+            observed_changes.insert(path.clone());
+          }
+          self.absent_directories.remove(&path);
           if self.forget_if_orphaned(&path) {
             break;
           }
@@ -959,26 +1076,32 @@ impl PathManager {
             mtime_accuracy(mtime);
           }
           // watchpack's initial `setDirectory` checks the birthtime.
-          if changed_since.is_some_and(|since| {
-            metadata
-              .created()
-              .or_else(|_| metadata.modified())
-              .is_ok_and(|birthtime| mtime_safe_time(birthtime) >= since)
-          }) {
+          if (!observed || observed_changes.contains(&path))
+            && changed_since.is_some_and(|since| {
+              metadata
+                .created()
+                .or_else(|_| metadata.modified())
+                .is_ok_and(|birthtime| mtime_safe_time(birthtime) >= since)
+            })
+          {
             changed.push((path.clone(), context.clone()));
           }
-          pending.push((path, ancestry.clone(), false, context.clone()));
+          pending.push((path, ancestry.clone(), observed, context.clone()));
         } else if let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
-          self.record(&path, || {
+          let modified = self.record(&path, || {
             self.record_context_owners(&path, std::slice::from_ref(&context));
             self.context_files.insert(path.clone());
             self.write_file_time(&path, mtime, !observed, true)
           });
+          if observed && modified {
+            observed_changes.insert(path.clone());
+          }
           let registered = self.files.all.contains(&path) || self.missing.all.contains(&path);
           if self.forget_if_orphaned(&path) {
             break;
           }
           if (!registered || context.dependency.is_some())
+            && (!observed || observed_changes.contains(&path))
             && changed_since.is_some_and(|since| mtime_safe_time(mtime) >= since)
           {
             changed.push((path, context.clone()));
@@ -1003,6 +1126,7 @@ impl PathManager {
     }
     self.context_files.remove(path);
     self.context_directories.remove(path);
+    self.directory_identities.remove(path);
     if !self.files.all.contains(path) && !self.missing.all.contains(path) {
       self.file_times.remove(path);
       self.baselines.remove(path);
@@ -1073,6 +1197,12 @@ impl PathManager {
       // Windows creates a junction as an empty directory before setting its target.
       let discovered = self.record(path, || {
         self.record_context_owners(path, contexts.unwrap_or_default());
+        if let Some(identity) = directory_identity(&metadata) {
+          self
+            .directory_identities
+            .entry(path.clone())
+            .or_insert(identity);
+        }
         self.context_directories.insert(path.clone())
       });
       if contexts.is_some() && self.forget_if_orphaned(path) {
@@ -1411,7 +1541,9 @@ impl PathManager {
         self.baselines.remove(path);
         self.unlink_unrecorded(path);
       }
-      if self.context_directories.remove(path).is_some() {
+      let directory = self.context_directories.remove(path).is_some();
+      let identity = self.directory_identities.remove(path).is_some();
+      if directory || identity {
         self.last_watch_events.remove(path);
         self.unlink_unrecorded(path);
       }

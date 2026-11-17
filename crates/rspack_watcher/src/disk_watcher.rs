@@ -1,7 +1,3 @@
-#[cfg(target_os = "linux")]
-use std::os::unix::fs::MetadataExt;
-#[cfg(target_os = "windows")]
-use std::os::windows::fs::MetadataExt;
 use std::{sync::Arc, time::Duration};
 
 use notify::{
@@ -22,6 +18,7 @@ pub struct DiskWatcher {
   inner: Option<RecommendedWatcher>,
   /// The patterns currently registered with the backend.
   watch_patterns: HashSet<WatchPattern>,
+  trigger: Option<Arc<trigger::Trigger>>,
   #[cfg(any(target_os = "linux", target_os = "windows"))]
   directory_identities: Option<InternedPathMap<(u64, u64)>>,
 }
@@ -42,9 +39,10 @@ impl DiskWatcher {
       None => notify::Config::default().with_follow_symlinks(false),
     };
 
+    let event_trigger = Arc::clone(&trigger);
     let inner = RecommendedWatcher::new(
       move |result: notify::Result<Event>| match result {
-        Ok(event) => handle_event(event, &trigger),
+        Ok(event) => handle_event(event, &event_trigger),
 
         Err(e) => {
           tracing::error!(target: "rspack_watcher::fs_event", "file watcher error: {e:?}");
@@ -58,6 +56,7 @@ impl DiskWatcher {
     DiskWatcher {
       inner: Some(inner),
       watch_patterns: HashSet::default(),
+      trigger: Some(trigger),
       #[cfg(any(target_os = "linux", target_os = "windows"))]
       directory_identities: follow_symlinks.then(InternedPathMap::default),
     }
@@ -70,12 +69,26 @@ impl DiskWatcher {
   /// * `rspack_error::Result<()>` - Ok if successful, otherwise an error.
   pub(crate) fn apply_plan(&mut self, plan: WatchPlan) -> rspack_error::Result<()> {
     let new_patterns = plan.into_patterns();
+    let trigger = self.trigger.as_ref().expect("watcher is open");
+    let replaced = std::mem::take(
+      &mut *trigger
+        .replaced_directories
+        .lock()
+        .expect("directory replacements lock poisoned"),
+    );
 
     // Collect stale paths that are no longer needed, then unwatch and remove them.
     let stale_paths: HashSet<InternedPath> = self
       .watch_patterns
       .iter()
-      .filter(|pattern| new_patterns.get(&pattern.path) != Some(&pattern.mode))
+      .filter(|pattern| {
+        new_patterns.get(&pattern.path) != Some(&pattern.mode)
+          || replaced.iter().any(|path| {
+            pattern.path.starts_with(path.as_ref() as &std::path::Path)
+              || (pattern.mode == notify::RecursiveMode::Recursive
+                && path.starts_with(pattern.path.as_ref() as &std::path::Path))
+          })
+      })
       .map(|pattern| pattern.path.clone())
       .collect();
 
@@ -169,12 +182,22 @@ impl DiskWatcher {
       self.directory_identities = identities;
     }
 
+    let mut recheck_directories = replaced;
+    for pattern in &self.watch_patterns {
+      if stale_paths.contains(&pattern.path) {
+        recheck_directories.insert(pattern.path.clone());
+      }
+    }
+    for path in recheck_directories {
+      trigger.recheck_directory(path);
+    }
     Ok(())
   }
 
   pub fn close(&mut self) {
     // the trigger.tx is dropped in the FsWatcher
     std::mem::drop(self.inner.take());
+    self.trigger.take();
   }
 
   #[cfg(test)]
@@ -186,13 +209,7 @@ impl DiskWatcher {
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 fn directory_identity(path: &InternedPath) -> Option<(u64, u64)> {
   let metadata = path.metadata().ok()?;
-  #[cfg(target_os = "linux")]
-  return Some((metadata.dev(), metadata.ino()));
-  #[cfg(target_os = "windows")]
-  return Some((
-    metadata.volume_serial_number()?.into(),
-    metadata.file_index()?,
-  ));
+  crate::paths::directory_identity(&metadata)
 }
 
 pub(crate) fn handle_event(event: Event, trigger: &trigger::Trigger) {
