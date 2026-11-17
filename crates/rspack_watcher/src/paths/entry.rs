@@ -40,6 +40,7 @@ pub(crate) enum EventOrigin {
   /// The OS watcher; renames can replace a directory even when its inode is reused.
   Disk {
     renamed: bool,
+    directory_probe: bool,
   },
   /// An explicit event supplied through `FsWatcher::trigger_event`.
   Injected,
@@ -56,6 +57,7 @@ pub(crate) enum EventOrigin {
     link_changed: bool,
     renamed: bool,
     injected: bool,
+    directory_probe: bool,
   },
 }
 
@@ -67,7 +69,7 @@ impl EventOrigin {
         self,
         Self::Injected
           | Self::Symlink { injected: true, .. }
-          | Self::Disk { renamed: true }
+          | Self::Disk { renamed: true, .. }
           | Self::Symlink { renamed: true, .. }
       )
   }
@@ -75,12 +77,25 @@ impl EventOrigin {
   pub(crate) fn appeared(&self, kind: FsEventKind) -> bool {
     matches!(
       self,
-      Self::Disk { renamed: true } | Self::Symlink { renamed: true, .. }
+      Self::Disk { renamed: true, .. } | Self::Symlink { renamed: true, .. }
     ) || kind == FsEventKind::Create
   }
 
   pub(crate) fn is_scan(&self) -> bool {
     matches!(self, Self::Scan | Self::ContextScan(_) | Self::LinkScan(_))
+  }
+
+  pub(crate) fn is_directory_probe(&self) -> bool {
+    matches!(
+      self,
+      Self::Disk {
+        directory_probe: true,
+        ..
+      } | Self::Symlink {
+        directory_probe: true,
+        ..
+      }
+    )
   }
 
   pub(crate) fn link_changed(&self) -> bool {
@@ -334,7 +349,11 @@ impl PathManager {
       {
         EntryChange::Unchanged => return EntryChange::Unchanged,
         EntryChange::ExistingDirectory if !event.directory_replaced && !origin.affects_parent() => {
-          return EntryChange::ExistingDirectory;
+          return if origin.is_directory_probe() {
+            EntryChange::Unchanged
+          } else {
+            EntryChange::ExistingDirectory
+          };
         }
         _ => {}
       }
@@ -466,14 +485,23 @@ impl PathManager {
     if !parent_context && !registered_directory {
       return EntryChange::Changed;
     }
-    let Ok(metadata) = self.context_metadata(None, path) else {
+    let metadata = if registered_directory && !parent_context {
+      path.metadata()
+    } else {
+      self.context_metadata(None, path)
+    };
+    let Ok(metadata) = metadata else {
       return EntryChange::Changed;
     };
     if registered_directory && !parent_context {
       if let Ok(mtime) = metadata.modified() {
         mtime_accuracy(mtime);
       }
-      return EntryChange::ExistingDirectory;
+      return if metadata.is_dir() {
+        EntryChange::ExistingDirectory
+      } else {
+        EntryChange::Changed
+      };
     }
     let observation = if recorded {
       EntryObservation::Recorded

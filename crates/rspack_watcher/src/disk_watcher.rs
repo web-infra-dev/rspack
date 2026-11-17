@@ -248,12 +248,15 @@ pub(crate) fn handle_event(event: Event, trigger: &trigger::Trigger) {
       _ => return,
     };
     let renamed = matches!(event.kind, EventKind::Modify(ModifyKind::Name(_)));
+    // ReadDirectoryChangesW reports entries within the watched directory. A
+    // modification to a directory entry can reflect changes to its children.
+    let directory_probe = cfg!(windows) && matches!(event.kind, EventKind::Modify(ModifyKind::Any));
     // Content writes cannot change which ancestor directory exists.
     // Invalidate before filtering so suppressed events still refresh watch coverage.
     if !matches!(event.kind, EventKind::Modify(ModifyKind::Data(_))) {
       trigger.analyzer.invalidate_path(&path);
     }
-    trigger.on_disk_event(&path, kind, renamed);
+    trigger.on_disk_event(&path, kind, renamed, directory_probe);
   }
 }
 

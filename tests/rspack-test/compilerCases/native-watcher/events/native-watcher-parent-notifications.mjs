@@ -13,6 +13,7 @@ import {
 export default [
   { name: "direct", followSymlinks: false },
   { name: "direct-follow", followSymlinks: true },
+  { name: "link-no-follow", followSymlinks: false, link: true },
   { name: "link", followSymlinks: true, link: true },
 ].map((variant) => ({
   name: variant.name,

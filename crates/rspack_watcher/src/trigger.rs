@@ -183,7 +183,7 @@ impl Trigger {
               let include_descendants = kind != FsEventKind::Change
                 || matches!(
                   origin,
-                  Origin::Disk { renamed: true } | Origin::Injected | Origin::RecheckDirectory
+                  Origin::Disk { renamed: true, .. } | Origin::Injected | Origin::RecheckDirectory
                 );
               for SymlinkAlias {
                 path: alias,
@@ -213,7 +213,8 @@ impl Trigger {
                         Origin::Symlink {
                           link_changed,
                           injected: matches!(origin, Origin::Injected),
-                          renamed: matches!(origin, Origin::Disk { renamed: true }),
+                          renamed: matches!(origin, Origin::Disk { renamed: true, .. }),
+                          directory_probe: origin.is_directory_probe(),
                         }
                       },
                       resolved_path.as_ref(),
@@ -246,11 +247,21 @@ impl Trigger {
     let _ = self.pending.send((path.clone(), kind, Origin::Injected));
   }
 
-  /// Preserve a rename as evidence of replacement even if metadata is unchanged.
-  pub(crate) fn on_disk_event(&self, path: &InternedPath, kind: FsEventKind, renamed: bool) {
-    let _ = self
-      .pending
-      .send((path.clone(), kind, Origin::Disk { renamed }));
+  pub(crate) fn on_disk_event(
+    &self,
+    path: &InternedPath,
+    kind: FsEventKind,
+    renamed: bool,
+    directory_probe: bool,
+  ) {
+    let _ = self.pending.send((
+      path.clone(),
+      kind,
+      Origin::Disk {
+        renamed,
+        directory_probe,
+      },
+    ));
   }
 
   /// A context's initial scan found `path` changed since the start time, while
@@ -401,7 +412,10 @@ impl EventProcessor {
     events: &mut ResolvedEvents,
   ) {
     for path in changes.files {
-      let origin = Origin::Disk { renamed: false };
+      let origin = Origin::Disk {
+        renamed: false,
+        directory_probe: false,
+      };
       let resolved_path = self.path_manager.resolved_directory_entry(&path);
       let mut subscriptions = self
         .subscriptions(&path, &path, &origin, resolved_path.as_ref())
