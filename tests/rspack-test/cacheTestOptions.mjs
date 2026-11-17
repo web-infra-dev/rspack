@@ -20,9 +20,6 @@ const excludes = {
 		/^loader-parallel-import-module\/execute-failed$/,
 		/^module\/rspack-issue-8785$/,
 
-		// Source map cache misses after restarting the compiler.
-		/^source-map\/empty-mapping$/,
-
 		// Independent shared fallback compilers write to the same cache database as their parent.
 		/^container-1-5\/tree-shaking-shared-infer-mode$/,
 		/^container-1-5\/tree-shaking-shared-pnpm-versions$/,
@@ -37,14 +34,10 @@ const excludes = {
 		// Existing bundle/compiler assertions fail in the compatibility suite.
 		/^context\/import-meta-glob-case-insensitive-pruning$/,
 		/^loader\/context-module$/,
-		/^module\/shared-accessors$/,
 
-		// Module cache entries are not fully reused after restarting the compiler.
-		/^builtins\/provide-issue-8553$/,
-		/^chunk-loading\/worker-loader$/,
-		/^loader\/hook-context-initialization$/,
 		// Shared extracted CSS can retain different producers' loader dependencies.
 		/^plugins\/mini-css-extract-plugin$/,
+		// Module cache entries are not fully reused after restarting the compiler.
 		/^rsc-plugin\/client-chunk-grouping$/,
 		/^rsc-plugin\/css-link-props$/,
 		/^rsc-plugin\/entry-with-multiple-modules$/,
