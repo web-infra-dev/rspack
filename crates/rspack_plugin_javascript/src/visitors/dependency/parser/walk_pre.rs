@@ -289,7 +289,7 @@ impl JavascriptParser<'_> {
     }
     let mut keys = DestructuringAssignmentProperties::default();
     let mut buffer = rspack_util::itoa::Buffer::new();
-    for (index, element) in ast.nodes(array.elements(ast)).enumerate() {
+    for (index, element) in ast.optional_nodes(array.elements(ast)).enumerate() {
       let Some(element) = element else {
         continue;
       };

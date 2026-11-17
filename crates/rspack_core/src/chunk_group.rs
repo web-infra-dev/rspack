@@ -148,37 +148,30 @@ impl ChunkGroup {
     compilation: &'a Compilation,
   ) -> impl DoubleEndedIterator<Item = &'a Chunk> {
     let graph = &compilation.build_chunk_graph_artifact;
+    let runtime_chunks = compilation.runtime_chunks();
     self
       .chunks
       .iter()
       .map(|key| graph.chunk_by_ukey.expect_get(key))
-      .filter(|chunk| !chunk.has_runtime(&graph.chunk_group_by_ukey) && chunk.id().is_some())
+      .filter(|chunk| !runtime_chunks.contains(&chunk.ukey()) && chunk.id().is_some())
   }
 
   /// The last chunk can represent the group unless it also represents a different
   /// loading plan. Ambiguous groups keep their explicit chunk lists in codegen.
   pub fn get_hmr_loading_chunk<'a>(&'a self, compilation: &'a Compilation) -> Option<&'a Chunk> {
+    self
+      .get_hmr_loading_chunk_with_siblings(compilation)
+      .map(|(last, _)| last)
+  }
+
+  pub fn get_hmr_loading_chunk_with_siblings<'a>(
+    &'a self,
+    compilation: &'a Compilation,
+  ) -> Option<(&'a Chunk, &'a [ChunkUkey])> {
     self.kind.get_normal_options()?;
     let last = self.get_loading_chunks(compilation).next_back()?;
-    let graph = &compilation.build_chunk_graph_artifact;
-    for key in last.groups() {
-      let other = graph.chunk_group_by_ukey.expect_get(key);
-      if other.ukey != self.ukey
-        && other.kind.get_normal_options().is_some()
-        && other
-          .get_loading_chunks(compilation)
-          .next_back()
-          .map(Chunk::ukey)
-          == Some(last.ukey())
-        && !self
-          .get_loading_chunks(compilation)
-          .map(Chunk::ukey)
-          .eq(other.get_loading_chunks(compilation).map(Chunk::ukey))
-      {
-        return None;
-      }
-    }
-    Some(last)
+    let siblings = compilation.hmr_loading_siblings().get(&last.ukey())?;
+    Some((last, siblings))
   }
 
   pub fn set_runtime_chunk(&mut self, chunk_ukey: ChunkUkey) {

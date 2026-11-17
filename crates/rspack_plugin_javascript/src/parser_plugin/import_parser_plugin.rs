@@ -220,15 +220,15 @@ fn track_dynamic_imports_in_promise_all(
     return;
   };
   if ast
-    .nodes(imports.elements(ast))
+    .optional_nodes(imports.elements(ast))
     .any(|element| element.is_some_and(|argument| argument.is_spread_element(ast)))
   {
     return;
   }
 
   for (pattern, import) in ast
-    .nodes(pattern.elements(ast))
-    .zip(ast.nodes(imports.elements(ast)))
+    .optional_nodes(pattern.elements(ast))
+    .zip(ast.optional_nodes(imports.elements(ast)))
   {
     let (Some(pattern), Some(import)) = (pattern, import) else {
       continue;
