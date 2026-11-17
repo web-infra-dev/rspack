@@ -1,0 +1,28 @@
+{
+  "packages": {
+    "app": {
+      "url": ".",
+      "dependencies": {
+        "lib": "lib-old"
+      }
+    },
+    "lib-old": {
+      "url": "./lib",
+      "dependencies": {
+        "dep": "dep@1.0.0"
+      }
+    },
+    "lib-new": {
+      "url": "./lib",
+      "dependencies": {
+        "dep": "dep@2.0.0"
+      }
+    },
+    "dep@1.0.0": {
+      "url": "./store/dep-1.0.0"
+    },
+    "dep@2.0.0": {
+      "url": "./store/dep-2.0.0"
+    }
+  }
+}

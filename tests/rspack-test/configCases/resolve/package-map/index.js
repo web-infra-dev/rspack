@@ -6,6 +6,7 @@ import legacy from "legacy";
 import legacyFile from "legacy/lib/file";
 import shared from "shared";
 import internal from "#internal";
+import self from "app/self";
 
 it("should locate packages with the package map instead of node_modules", () => {
 	expect(dep).toBe("dep@1.0.0");
@@ -25,6 +26,10 @@ it("should resolve the dependencies of each package separately", () => {
 
 it("should resolve package targets of the imports field with the package map", () => {
 	expect(internal).toBe("dep@1.0.0/sub");
+});
+
+it("should resolve a package referencing itself without a dependency on itself", () => {
+	expect(self).toBe("app/self");
 });
 
 it("should not resolve a package that is not a dependency of the importer", () => {

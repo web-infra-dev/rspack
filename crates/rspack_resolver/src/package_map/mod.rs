@@ -11,7 +11,8 @@
 //! resumes; package-map dependency cycles are not detected, matching the specification's
 //! limitation.
 //!
-//! The map is loaded lazily, because constructing a resolver cannot fail, and it is reloaded after
+//! A map is loaded lazily, because constructing a resolver cannot fail. A resolver and the
+//! resolvers cloned from it share the loaded maps, which are reloaded after
 //! [`Resolver::clear_cache`](crate::Resolver::clear_cache).
 //!
 //! [Node.js package map]: https://nodejs.org/api/packages.html#package-maps
@@ -21,12 +22,16 @@ mod map;
 
 use std::{
   io,
-  path::Path,
-  sync::{Arc, RwLock},
+  path::{Path, PathBuf},
+  sync::{
+    Arc, RwLock,
+    atomic::{AtomicU64, Ordering},
+  },
 };
 
 use camino::{Utf8Path, Utf8PathBuf};
 use rspack_paths::InternedPath;
+use rustc_hash::FxHashMap;
 use tokio::sync::Mutex;
 
 pub(crate) use self::map::{FindPackageIdError, PackageMap};
@@ -42,11 +47,13 @@ struct LoadedPackageMap {
   missing: bool,
 }
 
-/// The package map of a resolver, shared by its clones that use the same map.
+/// The package maps of a resolver and of the resolvers cloned from it, by configured path.
 #[derive(Default)]
 pub(crate) struct PackageMapCache {
-  value: RwLock<Option<LoadedPackageMap>>,
-  /// Serializes loading so that concurrent resolutions read and parse the map once.
+  maps: RwLock<FxHashMap<PathBuf, LoadedPackageMap>>,
+  /// Incremented by [Self::clear], so that a map read before the cache was cleared is not kept.
+  generation: AtomicU64,
+  /// Serializes loading so that concurrent resolutions read and parse a map once.
   loading: Mutex<()>,
 }
 
@@ -57,15 +64,19 @@ impl PackageMapCache {
     fs: &Fs,
     ctx: &mut Ctx,
   ) -> Result<Arc<PackageMap>, ResolveError> {
-    let loaded = match self.get() {
+    let loaded = match self.get(path) {
       Some(loaded) => loaded,
       None => {
         let _guard = self.loading.lock().await;
-        match self.get() {
+        match self.get(path) {
           Some(loaded) => loaded,
           None => {
+            let generation = self.generation.load(Ordering::Acquire);
             let loaded = load(path, fs).await;
-            *self.value.write().expect("package map cache was poisoned") = Some(loaded.clone());
+            let mut maps = self.maps.write().expect("package map cache was poisoned");
+            if generation == self.generation.load(Ordering::Acquire) {
+              maps.insert(path.to_path_buf(), loaded.clone());
+            }
             loaded
           }
         }
@@ -80,28 +91,37 @@ impl PackageMapCache {
   }
 
   pub(crate) fn clear(&self) {
-    *self.value.write().expect("package map cache was poisoned") = None;
+    self.generation.fetch_add(1, Ordering::AcqRel);
+    self
+      .maps
+      .write()
+      .expect("package map cache was poisoned")
+      .clear();
   }
 
-  fn get(&self) -> Option<LoadedPackageMap> {
+  fn get(&self, path: &Path) -> Option<LoadedPackageMap> {
     self
-      .value
+      .maps
       .read()
       .expect("package map cache was poisoned")
-      .clone()
+      .get(path)
+      .cloned()
   }
 }
 
 async fn load<Fs: FileSystem>(path: &Path, fs: &Fs) -> LoadedPackageMap {
-  let Some(path) = absolute_path(path) else {
-    return LoadedPackageMap {
-      result: Err(ResolveError::PackageMapInvalid {
-        package_map_path: path.to_path_buf(),
-        reason: "the path must be valid UTF-8".to_string(),
-      }),
-      path: InternedPath::from(path),
-      missing: false,
-    };
+  let path = match absolute_path(path) {
+    Ok(path) => path,
+    Err(reason) => {
+      return LoadedPackageMap {
+        result: Err(ResolveError::PackageMapInvalid {
+          package_map_path: path.to_path_buf(),
+          reason: reason.to_string(),
+        }),
+        path: InternedPath::from(path),
+        missing: false,
+      };
+    }
   };
   tracing::debug!(path = ?path, "load_package_map");
   let (result, missing) = match fs.read_to_string(path.as_std_path()).await {
@@ -125,11 +145,14 @@ async fn load<Fs: FileSystem>(path: &Path, fs: &Fs) -> LoadedPackageMap {
 ///
 /// A relative path is resolved from the current working directory, like the path of Node's
 /// `--experimental-package-map` option.
-fn absolute_path(path: &Path) -> Option<Utf8PathBuf> {
-  let path = Utf8Path::from_path(path)?;
+fn absolute_path(path: &Path) -> Result<Utf8PathBuf, &'static str> {
+  let path = Utf8Path::from_path(path).ok_or("the path must be valid UTF-8")?;
   if path.is_absolute() {
-    return Some(path.normalize());
+    return Ok(path.normalize());
   }
-  let cwd = Utf8PathBuf::from_path_buf(std::env::current_dir().ok()?).ok()?;
-  Some(cwd.normalize_with(path))
+  let cwd = std::env::current_dir()
+    .ok()
+    .and_then(|cwd| Utf8PathBuf::from_path_buf(cwd).ok())
+    .ok_or("the path is relative and the working directory is not available")?;
+  Ok(cwd.normalize_with(path))
 }

@@ -63,17 +63,9 @@ pub(crate) struct PackageMap {
 
 impl PackageMap {
   pub(crate) fn parse(path: &Utf8Path, json: &str) -> Result<Self, ResolveError> {
-    let data = serde_json::from_str::<PackageMapData>(json).map_err(|error| {
-      if error.is_data() {
-        Self::invalid(path, error.to_string())
-      } else {
-        ResolveError::from_serde_json_error(
-          path.as_std_path().to_path_buf(),
-          &error,
-          Some(json.to_string()),
-        )
-      }
-    })?;
+    // The error is kept for every resolution that needs the map, so it does not hold the JSON.
+    let data = serde_json::from_str::<PackageMapData>(json)
+      .map_err(|error| Self::invalid(path, error.to_string()))?;
 
     let base = path
       .parent()

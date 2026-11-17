@@ -1,0 +1,9 @@
+{
+  "packages": {
+    "app": {
+      "dependencies": {
+        "dep": "dep"
+      }
+    }
+  }
+}

@@ -60,14 +60,18 @@ pub struct RawResolveOptions {
   pub package_map: Option<Either<String, bool>>,
 }
 
-fn normalize_package_map(package_map: Option<Either<String, bool>>) -> Option<PackageMap> {
-  package_map.map(|package_map| match package_map {
-    Either::A(path) => PackageMap::Path(path.into()),
-    Either::B(falsy) => {
-      assert!(!falsy, "Package map should not be true");
-      PackageMap::Disabled
-    }
-  })
+fn normalize_package_map(
+  package_map: Option<Either<String, bool>>,
+) -> rspack_error::Result<Option<PackageMap>> {
+  package_map
+    .map(|package_map| match package_map {
+      Either::A(path) => Ok(PackageMap::Path(path.into())),
+      Either::B(false) => Ok(PackageMap::Disabled),
+      Either::B(true) => Err(error!(
+        "resolve.packageMap should be the path to a package map or false"
+      )),
+    })
+    .transpose()
 }
 
 fn normalize_alias(
@@ -117,7 +121,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
 
   fn try_from(value: RawResolveOptions) -> Result<Self, Self::Error> {
     let pnp = value.pnp;
-    let package_map = normalize_package_map(value.package_map);
+    let package_map = normalize_package_map(value.package_map)?;
     let prefer_relative = value.prefer_relative;
     let prefer_absolute = value.prefer_absolute;
     let extensions = value.extensions;
@@ -310,7 +314,7 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         condition_names: raw.condition_names,
         tsconfig,
         pnp: raw.pnp,
-        package_map: normalize_package_map(raw.package_map),
+        package_map: normalize_package_map(raw.package_map)?,
         modules: raw.modules,
         fallback: normalize_alias(raw.fallback)?,
         fully_specified: raw.fully_specified,

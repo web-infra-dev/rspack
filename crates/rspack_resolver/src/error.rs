@@ -142,6 +142,18 @@ impl ResolveError {
     matches!(self, Self::Ignored(_))
   }
 
+  /// Whether a package map could not tell where a package is, as opposed to an error from
+  /// resolving inside the package that the map selected.
+  pub(crate) fn is_package_map_error(&self) -> bool {
+    matches!(
+      self,
+      Self::PackageMapAmbiguousResolution { .. }
+        | Self::PackageMapExternalFile { .. }
+        | Self::PackageMapInvalid { .. }
+        | Self::PackageMapKeyNotFound { .. }
+    )
+  }
+
   pub(crate) fn from_serde_json_error(
     path: PathBuf,
     error: &serde_json::Error,

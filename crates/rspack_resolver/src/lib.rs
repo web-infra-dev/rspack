@@ -151,7 +151,7 @@ pub struct ResolverGeneric<Fs> {
   pnp_no_manifest_cache: Arc<FxDashSet<CachedPath>>,
   /// Lazily parsed directories from `NODE_PATH` env var.
   node_path_dirs: OnceLock<Vec<PathBuf>>,
-  /// Lazily loaded `options.package_map`, shared with the clones that use the same map.
+  /// Lazily loaded package maps of `options.package_map`, shared with the clones.
   package_map: Arc<PackageMapCache>,
 }
 
@@ -216,11 +216,6 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     let options = options.sanitize();
     let alias_trie = AliasTrie::build(&options.alias);
     let fallback_trie = AliasTrie::build(&options.fallback);
-    let package_map = if options.package_map == self.options.package_map {
-      Arc::clone(&self.package_map)
-    } else {
-      Arc::default()
-    };
     Self {
       options,
       cache: Arc::clone(&self.cache),
@@ -233,7 +228,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       #[cfg(feature = "yarn_pnp")]
       pnp_no_manifest_cache: Arc::clone(&self.pnp_no_manifest_cache),
       node_path_dirs: self.node_path_dirs.clone(),
-      package_map,
+      package_map: Arc::clone(&self.package_map),
     }
   }
 
@@ -905,11 +900,9 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     specifier: &str,
     ctx: &mut Ctx,
   ) -> ResolveResult {
-    let package_map = self.package_map(ctx).await?;
-
     #[cfg(feature = "yarn_pnp")]
     {
-      if self.options.enable_pnp && package_map.is_none() {
+      if self.options.enable_pnp && self.options.package_map.is_none() {
         if let Some(resolved_path) = self.load_pnp(cached_path, specifier, ctx).await? {
           return Ok(Some(resolved_path));
         }
@@ -917,26 +910,23 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     }
 
     let (package_name, subpath) = Self::parse_package_specifier(specifier);
+    let mut package_map_error = None;
     // 1. let DIRS = NODE_MODULES_PATHS(START)
     // 2. for each DIR in DIRS:
     for module_name in &self.options.modules {
       // The package map takes the place of the `node_modules` hierarchy.
-      if let Some(package_map) = package_map
-        .as_deref()
-        .filter(|_| module_name == "node_modules")
-      {
-        if let Some(path) = self
-          .load_package_map(
-            package_map,
-            cached_path,
-            specifier,
-            package_name,
-            subpath,
-            ctx,
-          )
-          .await?
+      if module_name == "node_modules" && self.options.package_map.is_some() {
+        match self
+          .load_package_map(cached_path, specifier, package_name, subpath, ctx)
+          .await
         {
-          return Ok(Some(path));
+          Ok(Some(path)) => return Ok(Some(path)),
+          Ok(None) => {}
+          // The other module directories can still provide the module.
+          Err(error) if error.is_package_map_error() => {
+            package_map_error.get_or_insert(error);
+          }
+          Err(error) => return Err(error),
         }
         continue;
       }
@@ -960,7 +950,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         }
       }
     }
-    Ok(None)
+    package_map_error.map_or(Ok(None), Err)
   }
 
   /// Try resolving a specifier within a single module directory (e.g. a node_modules dir or a NODE_PATH dir).
@@ -1051,16 +1041,27 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       .await
   }
 
-  /// The package map of `options.package_map`, loaded on first use.
-  async fn package_map(&self, ctx: &mut Ctx) -> Result<Option<Arc<PackageMap>>, ResolveError> {
+  /// Finds the location of the package that `package_name` refers to in the package importing it,
+  /// with the package map of `options.package_map`, which is loaded on first use.
+  ///
+  /// Returns `None` without a package map and when the importing package does not depend on
+  /// `package_name`.
+  async fn load_package_map_target(
+    &self,
+    cached_path: &CachedPath,
+    specifier: &str,
+    package_name: &str,
+    ctx: &mut Ctx,
+  ) -> ResolveResult {
     let Some(path) = &self.options.package_map else {
       return Ok(None);
     };
-    self
+    let package_map = self
       .package_map
       .get_or_load(path, &self.cache.fs, ctx)
-      .await
-      .map(Some)
+      .await?;
+    let target = Self::package_map_target(&package_map, cached_path, specifier, package_name)?;
+    Ok(target.map(|package_path| self.cache.value(package_path)))
   }
 
   /// Finds the location of the package that `package_name` refers to in the package importing it.
@@ -1128,19 +1129,18 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   /// `@scope/` prefix and `subpath` is either empty or begins with `/`.
   async fn load_package_map(
     &self,
-    package_map: &PackageMap,
     cached_path: &CachedPath,
     specifier: &str,
     package_name: &str,
     subpath: &str,
     ctx: &mut Ctx,
   ) -> ResolveResult {
-    let Some(package_path) =
-      Self::package_map_target(package_map, cached_path, specifier, package_name)?
+    let Some(package_path) = self
+      .load_package_map_target(cached_path, specifier, package_name, ctx)
+      .await?
     else {
       return Ok(None);
     };
-    let package_path = self.cache.value(package_path);
     // 7. LOAD_PACKAGE_EXPORTS(SUBPATH, PACKAGE_PATH)
     if package_path.is_dir(&self.cache.fs, ctx).await {
       if let Some(path) = self
@@ -1178,7 +1178,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
 
   /// Lazily get NODE_PATH directories. Parsed once on first access.
   fn node_path_dirs(&self) -> &[PathBuf] {
-    // A package map defines every package that can be imported.
+    // Node.js does not search `NODE_PATH` when it uses a package map.
     if !self.options.node_path || self.options.package_map.is_some() {
       return &[];
     }
@@ -1948,6 +1948,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
             description_files: vec![],
             extensions: vec![".json".into()],
             main_files: vec!["tsconfig.json".into()],
+            package_map: self.options.package_map.clone(),
             ..ResolveOptions::default()
           })
           .load_package_self_or_node_modules(directory, specifier, &mut Ctx::default())
@@ -1980,24 +1981,28 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     //   1. Return the string "node:" concatenated with packageSpecifier.
     self.require_core(package_name)?;
 
-    let package_map = self.package_map(ctx).await?;
+    let mut package_map_error = None;
 
     // 11. While parentURL is not the file system root,
     for module_name in &self.options.modules {
       // The package map takes the place of the `node_modules` hierarchy.
-      if let Some(package_map) = package_map
-        .as_deref()
-        .filter(|_| module_name == "node_modules")
-      {
-        if let Some(package_path) =
-          Self::package_map_target(package_map, cached_path, specifier, package_name)?
+      if module_name == "node_modules" && self.options.package_map.is_some() {
+        match self
+          .load_package_map_target(cached_path, specifier, package_name, ctx)
+          .await
         {
-          let package_path = self.cache.value(package_path);
-          if let Some(path) = self
-            .package_resolve_in_package(&package_path, subpath, ctx)
-            .await?
-          {
-            return Ok(Some(path));
+          Ok(Some(package_path)) => {
+            if let Some(path) = self
+              .package_resolve_in_package(&package_path, subpath, ctx)
+              .await?
+            {
+              return Ok(Some(path));
+            }
+          }
+          Ok(None) => {}
+          // The other module directories can still provide the module.
+          Err(error) => {
+            package_map_error.get_or_insert(error);
           }
         }
         continue;
@@ -2035,7 +2040,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       }
     }
 
-    Err(ResolveError::NotFound(specifier.to_string()))
+    Err(package_map_error.unwrap_or_else(|| ResolveError::NotFound(specifier.to_string())))
   }
 
   /// Try ESM package resolution within a single module directory.

@@ -1490,12 +1490,15 @@ const parseNodeOptions = (nodeOptions: string): string[] => {
 const findPackageMapOption = (args: string[]): string | undefined => {
   for (let index = args.length - 1; index >= 0; index--) {
     const arg = args[index];
-    if (arg.startsWith(`${PACKAGE_MAP_OPTION}=`)) {
-      return arg.slice(PACKAGE_MAP_OPTION.length + 1);
+    const separator = arg.indexOf('=');
+    const name = separator === -1 ? arg : arg.slice(0, separator);
+    // Node.js accepts underscores in place of the dashes of an option name.
+    if (name.replaceAll('_', '-') !== PACKAGE_MAP_OPTION) {
+      continue;
     }
-    if (arg === PACKAGE_MAP_OPTION) {
-      return args[index + 1] ?? '';
-    }
+    return separator === -1
+      ? (args[index + 1] ?? '')
+      : arg.slice(separator + 1);
   }
 };
 
@@ -1507,7 +1510,7 @@ const findPackageMapOption = (args: string[]): string | undefined => {
 export const getPackageMapDefault = (): string | undefined => {
   const packageMap =
     findPackageMapOption(process.execArgv ?? []) ??
-    findPackageMapOption(parseNodeOptions(process.env.NODE_OPTIONS ?? ''));
+    findPackageMapOption(parseNodeOptions(process.env?.NODE_OPTIONS ?? ''));
   // Node.js resolves the path from the working directory.
   return packageMap ? path.resolve(packageMap) : undefined;
 };

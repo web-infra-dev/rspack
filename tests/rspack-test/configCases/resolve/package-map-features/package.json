@@ -1,0 +1,6 @@
+{
+  "name": "app",
+  "exports": {
+    "./self": "./self.js"
+  }
+}

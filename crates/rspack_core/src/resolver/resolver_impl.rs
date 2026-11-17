@@ -414,30 +414,28 @@ fn map_rspack_resolver_error(
 ) -> Error {
   match error {
     rspack_resolver::ResolveError::IOError(error) => rspack_error::error!(error.to_string()),
-    rspack_resolver::ResolveError::Recursion => map_resolver_error(true, args),
-    rspack_resolver::ResolveError::NotFound(_) => map_resolver_error(false, args),
+    rspack_resolver::ResolveError::Recursion => map_resolver_error(true, None, args),
+    rspack_resolver::ResolveError::NotFound(_) => map_resolver_error(false, None, args),
     rspack_resolver::ResolveError::PackageMapExternalFile {
-      package_map_path, ..
-    } => {
-      let mut error = map_resolver_error(false, args);
-      error.help = Some(format!(
-        "'{}' is not within any package defined in the package map '{}'",
-        args.context,
-        package_map_path.display()
-      ));
-      error
-    }
+      parent_path,
+      package_map_path,
+      ..
+    } => map_package_map_error(
+      "is not within any package",
+      &parent_path,
+      &package_map_path,
+      args,
+    ),
     rspack_resolver::ResolveError::PackageMapAmbiguousResolution {
-      package_map_path, ..
-    } => {
-      let mut error = map_resolver_error(false, args);
-      error.help = Some(format!(
-        "'{}' is within multiple packages defined in the package map '{}'",
-        args.context,
-        package_map_path.display()
-      ));
-      error
-    }
+      parent_path,
+      package_map_path,
+      ..
+    } => map_package_map_error(
+      "is within multiple packages",
+      &parent_path,
+      &package_map_path,
+      args,
+    ),
     rspack_resolver::ResolveError::JSON(error) => {
       if let Some(content) = &error.content {
         let Some(offset) = byte_line_column_to_offset(content, error.line, error.column) else {
@@ -494,21 +492,47 @@ fn map_rspack_resolver_error(
   }
 }
 
-fn map_resolver_error(is_recursion: bool, args: &ResolveArgs<'_>) -> Error {
+/// A package map cannot tell which package imports the request from `parent_path`.
+fn map_package_map_error(
+  problem: &str,
+  parent_path: &Path,
+  package_map_path: &Path,
+  args: &ResolveArgs<'_>,
+) -> Error {
+  // The importing directory is already part of the message, unless the request comes from the
+  // target of an "imports" or "exports" field.
+  let subject = if parent_path == Path::new(args.context.as_str()) {
+    "it".to_string()
+  } else {
+    format!("'{}'", parent_path.display())
+  };
+  map_resolver_error(
+    false,
+    Some(format!(
+      "{subject} {problem} defined in the package map '{}'",
+      package_map_path.display()
+    )),
+    args,
+  )
+}
+
+/// `reason` tells why the request cannot be resolved, when the files on disk do not explain it.
+fn map_resolver_error(is_recursion: bool, reason: Option<String>, args: &ResolveArgs<'_>) -> Error {
   let request = &args.specifier;
   let context = &args.context;
+  let reason = reason.map_or_else(String::new, |reason| format!(", because {reason}"));
 
   let importer = args.importer;
   if importer.is_none() {
     return rspack_error::error!(format!(
-      "Module not found: Can't resolve {} in {}",
+      "Module not found: Can't resolve {} in {}{reason}",
       yellow(&format!("'{request}'")),
       cyan(&format!("'{context}'")),
     ));
   }
 
   let message = format!(
-    "Can't resolve {} in {}",
+    "Can't resolve {} in {}{reason}",
     yellow(&format!("'{request}'")),
     cyan(&format!("'{context}'"))
   );

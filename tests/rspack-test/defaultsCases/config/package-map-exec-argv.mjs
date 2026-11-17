@@ -1,14 +1,17 @@
 const execArgv = process.execArgv;
+const nodeOptions = process.env.NODE_OPTIONS;
 
 /** @type {import('@rspack/test-tools').TDefaultsCaseConfig} */
 export default {
 	description: "package map of the Node.js command line",
 	options: () => {
-		// The last option wins, and the command line takes precedence over NODE_OPTIONS.
+		// The command line takes precedence over NODE_OPTIONS, and its last option wins.
+		process.env.NODE_OPTIONS = "--experimental-package-map=./env-package-map.json";
 		process.execArgv = [
 			...execArgv,
 			"--experimental-package-map=ignored.json",
-			"--experimental-package-map",
+			// Node.js accepts underscores in place of the dashes of an option name.
+			"--experimental_package_map",
 			"./package-map.json"
 		];
 		return {
@@ -19,6 +22,11 @@ export default {
 	},
 	diff: async (e, defaults) => {
 		process.execArgv = execArgv;
+		if (nodeOptions === undefined) {
+			delete process.env.NODE_OPTIONS;
+		} else {
+			process.env.NODE_OPTIONS = nodeOptions;
+		}
 		// The defaults use the package map that Node.js was started with.
 		await defaults.toMatchObject({
 			resolve: {

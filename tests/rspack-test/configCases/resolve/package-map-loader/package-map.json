@@ -1,0 +1,13 @@
+{
+  "packages": {
+    "app": {
+      "url": ".",
+      "dependencies": {
+        "value-loader": "value-loader@1.0.0"
+      }
+    },
+    "value-loader@1.0.0": {
+      "url": "./store/value-loader-1.0.0"
+    }
+  }
+}
