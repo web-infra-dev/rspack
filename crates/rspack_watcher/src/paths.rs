@@ -20,8 +20,8 @@ use rspack_util::{
 use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher};
 use crate::{
   symlinks::{
-    LinkResolver, LinkScan, LinkSubscriptionKind, LinkSubscriptions, SymlinkAlias, SymlinkUpdate,
-    Symlinks,
+    LinkEvent, LinkResolver, LinkScan, LinkSubscriptionKind, LinkSubscriptions, SymlinkAlias,
+    SymlinkUpdate, Symlinks,
   },
   time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
 };
@@ -38,6 +38,21 @@ pub(crate) struct DirectoryChanges {
   pub contexts: Vec<(InternedPath, ContextPath)>,
   pub files: InternedPathSet,
   pub replaced: bool,
+}
+
+pub(crate) enum EntryChange {
+  Unchanged,
+  Changed,
+  /// The directory still exists; only a subscription to itself needs the event.
+  ExistingDirectory,
+}
+
+enum EntryObservation {
+  Initial,
+  Rescan,
+  Event,
+  /// A scan or a file subscription has already recorded this change.
+  Recorded,
 }
 
 pub(crate) fn directory_identity(metadata: &std::fs::Metadata) -> Option<(u64, u64)> {
@@ -445,10 +460,6 @@ impl PathManager {
       .is_some_and(|symlinks| symlinks.is_context_file(path))
   }
 
-  pub(crate) fn is_known_context_directory(&self, path: &InternedPath) -> bool {
-    self.context_directories.contains(path)
-  }
-
   pub(crate) async fn refresh_symlinks(&self) -> SymlinkUpdate {
     let Some(symlinks) = &self.symlinks else {
       return SymlinkUpdate::default();
@@ -485,7 +496,7 @@ impl PathManager {
         if directory && path.metadata().is_ok_and(|metadata| !metadata.is_dir()) {
           self.remove_file_times_under(&path);
           let contexts = self.context_paths(&path).await;
-          self.set_context_entry(&path, false, Some(&contexts)).await;
+          self.observe_context_entry(&path, false, &contexts).await;
           directory = false;
         }
         let kind = if directory {
@@ -552,10 +563,10 @@ impl PathManager {
     &self,
     path: &InternedPath,
     include_descendants: bool,
-    injected: bool,
+    event: LinkEvent,
   ) -> Vec<SymlinkAlias> {
     self.symlinks.as_ref().map_or_else(Vec::new, |symlinks| {
-      symlinks.aliases(path, include_descendants, injected)
+      symlinks.aliases(path, include_descendants, event)
     })
   }
 
@@ -791,12 +802,14 @@ impl PathManager {
     path: &InternedPath,
     reattached: bool,
   ) -> Option<DirectoryChanges> {
-    let previous = *self.directory_identities.get(path)?;
+    if !self.directory_identities.contains_key(path) {
+      return None;
+    }
     let metadata = path.metadata().ok()?;
     if !metadata.is_dir() {
       return None;
     }
-    let replaced = directory_identity(&metadata)? != previous;
+    let replaced = self.directory_replaced(path, &metadata);
     if !replaced && !reattached {
       return None;
     }
@@ -842,6 +855,75 @@ impl PathManager {
       files,
       replaced,
     })
+  }
+
+  fn directory_replaced(&self, path: &InternedPath, metadata: &std::fs::Metadata) -> bool {
+    directory_identity(metadata).is_some_and(|identity| {
+      self
+        .directory_identities
+        .get(path)
+        .is_some_and(|old| *old != identity)
+    })
+  }
+
+  fn update_context_entry(
+    &self,
+    path: &InternedPath,
+    metadata: &std::fs::Metadata,
+    contexts: &[ContextPath],
+    observation: EntryObservation,
+  ) -> EntryChange {
+    let change = if metadata.is_dir() {
+      let replaced = self.directory_replaced(path, metadata);
+      if replaced {
+        self.remove_file_times_under(path);
+      }
+      let discovered = self.record(path, || {
+        self.record_context_owners(path, contexts);
+        let known =
+          self.context_directories.contains(path) || self.directory_identities.contains_key(path);
+        self.context_directories.insert(path.clone());
+        if let Some(identity) = directory_identity(metadata) {
+          self.directory_identities.insert(path.clone(), identity);
+        }
+        !known
+      });
+      self.absent_directories.remove(path);
+      if let Ok(mtime) = metadata.modified() {
+        mtime_accuracy(mtime);
+      }
+      if discovered || replaced {
+        EntryChange::Changed
+      } else {
+        EntryChange::ExistingDirectory
+      }
+    } else {
+      let modified = self.record(path, || {
+        self.record_context_owners(path, contexts);
+        self.context_files.insert(path.clone());
+        let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
+          return true;
+        };
+        if matches!(observation, EntryObservation::Recorded) {
+          return true;
+        }
+        let ignore_when_equal = !matches!(observation, EntryObservation::Event)
+          || mtime_to_millis(mtime).saturating_add(mtime_accuracy(mtime)) < current_time();
+        self.write_file_time(
+          path,
+          mtime,
+          matches!(observation, EntryObservation::Initial),
+          ignore_when_equal,
+        )
+      });
+      if modified {
+        EntryChange::Changed
+      } else {
+        EntryChange::Unchanged
+      }
+    };
+    self.forget_if_orphaned(path);
+    change
   }
 
   /// Index newly registered and retargeted contexts, returning entries changed
@@ -975,7 +1057,7 @@ impl PathManager {
   /// Index every file and subdirectory below `roots`, minus what `ignored`
   /// excludes (watchpack's `DirectoryWatcher` initial scan). Roots that are
   /// `recovered` contexts coming back are rescanned like watchpack's
-  /// `doScan(false)`: the files directly in them are stamped with the
+  /// `doScan(false)`: newly observed files below them are stamped with the
   /// observation time, since one changed while away may have kept its mtime.
   /// Returns the files whose safe time is at or after `changed_since`.
   async fn scan_below(
@@ -1045,67 +1127,36 @@ impl PathManager {
         let Ok(metadata) = self.context_metadata(ancestry.last(), &path) else {
           continue;
         };
-        if metadata.is_dir() {
-          let identity = directory_identity(&metadata);
-          if observed
-            && identity.is_some_and(|identity| {
-              self
-                .directory_identities
-                .get(&path)
-                .is_some_and(|old| *old != identity)
-            })
-          {
-            self.remove_file_times_under(&path);
-          }
-          let discovered = self.record(&path, || {
-            self.record_context_owners(&path, std::slice::from_ref(&context));
-            let discovered = self.context_directories.insert(path.clone());
-            if let Some(identity) = identity {
-              self.directory_identities.insert(path.clone(), identity);
-            }
-            discovered
-          });
-          if observed && discovered {
-            observed_changes.insert(path.clone());
-          }
-          self.absent_directories.remove(&path);
-          if self.forget_if_orphaned(&path) {
-            break;
-          }
-          if let Ok(mtime) = metadata.modified() {
-            mtime_accuracy(mtime);
-          }
+        let change = self.update_context_entry(
+          &path,
+          &metadata,
+          std::slice::from_ref(&context),
+          if observed {
+            EntryObservation::Rescan
+          } else {
+            EntryObservation::Initial
+          },
+        );
+        if !self.is_active_context(&context) {
+          break;
+        }
+        if observed && matches!(change, EntryChange::Changed) {
+          observed_changes.insert(path.clone());
+        }
+        let modified = if metadata.is_dir() {
           // watchpack's initial `setDirectory` checks the birthtime.
-          if (!observed || observed_changes.contains(&path))
-            && changed_since.is_some_and(|since| {
-              metadata
-                .created()
-                .or_else(|_| metadata.modified())
-                .is_ok_and(|birthtime| mtime_safe_time(birthtime) >= since)
-            })
-          {
-            changed.push((path.clone(), context.clone()));
-          }
+          metadata.created().or_else(|_| metadata.modified())
+        } else {
+          metadata.modified().or_else(|_| metadata.created())
+        };
+        if (!observed || observed_changes.contains(&path))
+          && changed_since
+            .is_some_and(|since| modified.is_ok_and(|time| mtime_safe_time(time) >= since))
+        {
+          changed.push((path.clone(), context.clone()));
+        }
+        if metadata.is_dir() {
           pending.push((path, ancestry.clone(), observed, context.clone()));
-        } else if let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
-          let modified = self.record(&path, || {
-            self.record_context_owners(&path, std::slice::from_ref(&context));
-            self.context_files.insert(path.clone());
-            self.write_file_time(&path, mtime, !observed, true)
-          });
-          if observed && modified {
-            observed_changes.insert(path.clone());
-          }
-          let registered = self.files.all.contains(&path) || self.missing.all.contains(&path);
-          if self.forget_if_orphaned(&path) {
-            break;
-          }
-          if (!registered || context.dependency.is_some())
-            && (!observed || observed_changes.contains(&path))
-            && changed_since.is_some_and(|since| mtime_safe_time(mtime) >= since)
-          {
-            changed.push((path, context.clone()));
-          }
         }
       }
     }
@@ -1138,24 +1189,15 @@ impl PathManager {
     true
   }
 
-  /// An event named `path` below a registered context: index it the way the
-  /// scan would have (watchpack's `DirectoryWatcher.setFileTime` /
-  /// `setDirectory` on a watch event). A file's record becomes the live
-  /// observation; returns false, so the event is dropped, when its mtime is
-  /// unchanged and older than the filesystem accuracy, like watchpack: only
-  /// its attributes changed (an xattr, a `chmod`). A directory is scanned,
-  /// since one moved in arrives as a single event with no events for what it
-  /// already contains. Registered contexts absent until now that came back at
-  /// or below `path` are rescanned, even when only an ancestor had the event.
-  /// An event already `judged` a change — a file the scan found changed since
-  /// the start time, or a registered path past its baseline check — skips the
-  /// attribute-only check and keeps the record already written for it.
-  pub async fn set_context_entry(
+  /// Apply a live observation through the same entry updates as a directory scan.
+  /// File subscriptions retain their own notification baseline: a context scan
+  /// may update time info before the file's subscription receives its event.
+  pub(crate) async fn observe_context_entry(
     &self,
     path: &InternedPath,
-    judged: bool,
-    contexts: Option<&[ContextPath]>,
-  ) -> bool {
+    recorded: bool,
+    contexts: &[ContextPath],
+  ) -> EntryChange {
     let recovered: Vec<InternedPath> = self
       .absent_directories
       .iter()
@@ -1163,80 +1205,39 @@ impl PathManager {
       .map(|context| context.clone())
       .collect();
     if !recovered.is_empty() {
-      for context in &recovered {
-        self.absent_directories.remove(context);
-      }
       self.scan_below(recovered, true, None).await;
     }
 
     let registered_directory = self.directories.all.contains(path);
-    if !registered_directory
-      && contexts.map_or_else(
-        || !self.is_below_context(path),
-        |contexts| {
-          !contexts
-            .iter()
-            .any(|context| self.is_active_context(context))
-        },
-      )
-    {
-      return true;
+    let parent_context = contexts
+      .iter()
+      .any(|context| context.dependency.as_ref() != Some(path) && self.is_active_context(context));
+    if !parent_context && !registered_directory {
+      return EntryChange::Changed;
     }
     let Ok(metadata) = self.context_metadata(None, path) else {
-      return true;
+      return EntryChange::Changed;
     };
-    if metadata.is_dir()
-      && let Ok(mtime) = metadata.modified()
+    if registered_directory && !parent_context {
+      if let Ok(mtime) = metadata.modified() {
+        mtime_accuracy(mtime);
+      }
+      return EntryChange::ExistingDirectory;
+    }
+    let observation = if recorded {
+      EntryObservation::Recorded
+    } else {
+      EntryObservation::Event
+    };
+    let change = self.update_context_entry(path, &metadata, contexts, observation);
+    // Windows creates a junction as an empty directory before setting its target.
+    if !registered_directory
+      && metadata.is_dir()
+      && (matches!(change, EntryChange::Changed) || (self.follows_symlinks() && path.is_symlink()))
     {
-      mtime_accuracy(mtime);
+      self.scan_below(vec![path.clone()], false, None).await;
     }
-    if registered_directory {
-      return true;
-    }
-    if metadata.is_dir() {
-      // Windows creates a junction as an empty directory before setting its target.
-      let discovered = self.record(path, || {
-        self.record_context_owners(path, contexts.unwrap_or_default());
-        if let Some(identity) = directory_identity(&metadata) {
-          self
-            .directory_identities
-            .entry(path.clone())
-            .or_insert(identity);
-        }
-        self.context_directories.insert(path.clone())
-      });
-      if contexts.is_some() && self.forget_if_orphaned(path) {
-        return true;
-      }
-      if discovered || (self.follows_symlinks() && path.is_symlink()) {
-        self.scan_below(vec![path.clone()], false, None).await;
-      }
-      return true;
-    }
-    self.record(path, || {
-      self.record_context_owners(path, contexts.unwrap_or_default());
-      self.context_files.insert(path.clone());
-    });
-    if contexts.is_some() && self.forget_if_orphaned(path) {
-      return true;
-    }
-    let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
-      return true;
-    };
-    if judged {
-      return true;
-    }
-    let mtime_ms = mtime_to_millis(mtime);
-    let accuracy = mtime_accuracy(mtime);
-    let untouched = self
-      .file_times
-      .get(path)
-      .is_some_and(|old| old.mtime == mtime && mtime_ms + accuracy < current_time());
-    if untouched {
-      return false;
-    }
-    self.set_file_time(path, mtime, false, false);
-    true
+    change
   }
 
   /// A context entry's metadata. Scans reuse their directory's real path;
@@ -1396,7 +1397,7 @@ impl PathManager {
   /// Check whether a watched path's mtime can represent a change,
   /// advancing the baseline when it does. Covers registered files and
   /// registered-missing paths and file targets followed from a context.
-  /// Ordinary context files are filtered by `set_context_entry` instead.
+  /// Ordinary context files are filtered by `observe_context_entry` instead.
   /// Equal mtimes are only stale once they are past the filesystem accuracy window.
   pub fn has_mtime_changed(&self, path: &InternedPath) -> bool {
     if !self.files.all.contains(path)

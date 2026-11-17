@@ -101,17 +101,23 @@ impl LinkState {
 }
 
 impl WatchedLink {
-  fn is_unchanged(&mut self, path: &InternedPath) -> bool {
+  fn is_unchanged(&mut self, path: &InternedPath, ignore_when_equal: bool) -> bool {
     let previous = std::mem::replace(&mut self.state, LinkState::read(path));
     let unchanged = previous == self.state;
     match self.state.mtime {
       Some(mtime) => {
         mtime_accuracy(mtime);
-        unchanged && mtime_safe_time(mtime) < current_time()
+        unchanged && (ignore_when_equal || mtime_safe_time(mtime) < current_time())
       }
       None => unchanged,
     }
   }
+}
+
+pub(crate) enum LinkEvent {
+  Disk,
+  Injected,
+  Recheck,
 }
 
 pub(crate) enum LinkSubscriptionKind {
@@ -340,7 +346,7 @@ impl Symlinks {
     let Some(link) = subscriptions.links.get_mut(path) else {
       return false;
     };
-    link.is_unchanged(path)
+    link.is_unchanged(path, false)
   }
 
   pub(crate) fn has_target_subscription(&self, path: &InternedPath) -> bool {
@@ -493,7 +499,7 @@ impl Symlinks {
     &self,
     path: &InternedPath,
     include_descendants: bool,
-    injected: bool,
+    event: LinkEvent,
   ) -> Vec<SymlinkAlias> {
     let mut subscriptions = self
       .subscriptions
@@ -510,7 +516,12 @@ impl Symlinks {
         }
       }
       if let Some(link) = subscriptions.links.get_mut(&watched)
-        && (watched == *path || injected || !link.is_unchanged(&watched))
+        && match event {
+          LinkEvent::Injected => true,
+          // Direct disk events already passed the link-state check at ingress.
+          LinkEvent::Disk => watched == *path || !link.is_unchanged(&watched, false),
+          LinkEvent::Recheck => !link.is_unchanged(&watched, true),
+        }
       {
         for target in &link.aliases {
           aliases.insert(target.clone(), Some(watched.clone()));

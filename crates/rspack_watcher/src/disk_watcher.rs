@@ -247,17 +247,13 @@ pub(crate) fn handle_event(event: Event, trigger: &trigger::Trigger) {
       ) => FsEventKind::Change,
       _ => return,
     };
-    let appeared = kind == FsEventKind::Create
-      || matches!(
-        event.kind,
-        EventKind::Modify(ModifyKind::Name(RenameMode::Any))
-      );
+    let renamed = matches!(event.kind, EventKind::Modify(ModifyKind::Name(_)));
     // Content writes cannot change which ancestor directory exists.
     // Invalidate before filtering so suppressed events still refresh watch coverage.
     if !matches!(event.kind, EventKind::Modify(ModifyKind::Data(_))) {
       trigger.analyzer.invalidate_path(&path);
     }
-    trigger.on_disk_event(&path, kind, appeared);
+    trigger.on_disk_event(&path, kind, renamed);
   }
 }
 

@@ -7,8 +7,8 @@ use super::{FsEvent, FsEventKind};
 use crate::{
   EventBatch, ResolvedEvents,
   analyzer::{Analyzer, RecommendedAnalyzer},
-  paths::{ContextPath, DirectoryChanges, PathManager},
-  symlinks::SymlinkAlias,
+  paths::{ContextPath, DirectoryChanges, EntryChange, PathManager},
+  symlinks::{LinkEvent, SymlinkAlias},
 };
 /// `DependencyFinder` provides references to sets of files, directories, and missing paths,
 /// allowing efficient lookup and dependency resolution for a given path.
@@ -138,9 +138,9 @@ pub struct Trigger {
 
 /// Where an event comes from.
 enum Origin {
-  /// The OS watcher; `appeared` when it created or renamed the path into place.
+  /// The OS watcher; renames can replace a directory even when its inode is reused.
   Disk {
-    appeared: bool,
+    renamed: bool,
   },
   /// An explicit event supplied through `FsWatcher::trigger_event`.
   Injected,
@@ -155,7 +155,7 @@ enum Origin {
   LinkScan(InternedPath),
   Symlink {
     link_changed: bool,
-    appeared: bool,
+    renamed: bool,
     injected: bool,
   },
 }
@@ -164,8 +164,8 @@ impl Origin {
   fn appeared(&self, kind: FsEventKind) -> bool {
     matches!(
       self,
-      Self::Disk { appeared: true } | Self::Symlink { appeared: true, .. }
-    ) || (matches!(self, Self::Injected) && kind == FsEventKind::Create)
+      Self::Disk { renamed: true } | Self::Symlink { renamed: true, .. }
+    ) || kind == FsEventKind::Create
   }
 
   fn is_scan(&self) -> bool {
@@ -236,7 +236,7 @@ impl Trigger {
               let include_descendants = kind != FsEventKind::Change
                 || matches!(
                   origin,
-                  Origin::Disk { appeared: true } | Origin::Injected | Origin::RecheckDirectory
+                  Origin::Disk { renamed: true } | Origin::Injected | Origin::RecheckDirectory
                 );
               for SymlinkAlias {
                 path: alias,
@@ -245,7 +245,11 @@ impl Trigger {
               } in processor.path_manager.symlink_aliases(
                 &path,
                 include_descendants,
-                matches!(origin, Origin::Injected),
+                match origin {
+                  Origin::Injected => LinkEvent::Injected,
+                  Origin::RecheckDirectory => LinkEvent::Recheck,
+                  _ => LinkEvent::Disk,
+                },
               ) {
                 let link_changed = changed_link.is_some();
                 if alias != path || link_changed {
@@ -262,8 +266,7 @@ impl Trigger {
                         Origin::Symlink {
                           link_changed,
                           injected: matches!(origin, Origin::Injected),
-                          appeared: matches!(origin, Origin::Disk { appeared: true })
-                            || kind == FsEventKind::Create,
+                          renamed: matches!(origin, Origin::Disk { renamed: true }),
                         }
                       },
                       resolved_path.as_ref(),
@@ -296,12 +299,11 @@ impl Trigger {
     let _ = self.pending.send((path.clone(), kind, Origin::Injected));
   }
 
-  /// Preserves whether an OS event created or renamed a path into place,
-  /// without treating ordinary directory changes as appearances.
-  pub(crate) fn on_disk_event(&self, path: &InternedPath, kind: FsEventKind, appeared: bool) {
+  /// Preserve a rename as evidence of replacement even if metadata is unchanged.
+  pub(crate) fn on_disk_event(&self, path: &InternedPath, kind: FsEventKind, renamed: bool) {
     let _ = self
       .pending
-      .send((path.clone(), kind, Origin::Disk { appeared }));
+      .send((path.clone(), kind, Origin::Disk { renamed }));
   }
 
   /// A context's initial scan found `path` changed since the start time, while
@@ -462,7 +464,7 @@ impl EventProcessor {
     events: &mut ResolvedEvents,
   ) {
     for path in changes.files {
-      let origin = Origin::Disk { appeared: false };
+      let origin = Origin::Disk { renamed: false };
       let resolved_path = self.path_manager.resolved_directory_entry(&path);
       let mut subscriptions = self
         .subscriptions(&path, &path, &origin, resolved_path.as_ref())
@@ -598,12 +600,7 @@ impl EventProcessor {
     let finder = self.finder();
     let is_watched_path = finder.contains_file(path);
     let is_followed_context_file = self.path_manager.is_followed_context_file(path);
-    // Filter stale FSEvents: on macOS, FSEvents can deliver events for files
-    // written before the watcher was created. Stat the file and compare mtime
-    // against the recorded baseline to suppress events where nothing changed.
-    // Apply the same suppression to Create for already-registered files, since
-    // macOS may emit stale Create events for files that predate the watcher.
-    // A registered-missing path takes its first record here, once it exists.
+    // A context scan updates time info without consuming a file subscription's baseline.
     if !origin.is_scan()
       && (kind == FsEventKind::Change
         || (kind == FsEventKind::Create && (is_watched_path || is_followed_context_file)))
@@ -612,38 +609,35 @@ impl EventProcessor {
     {
       return;
     }
-
-    // Metadata of a known directory does not change its entry in a parent context.
-    // Raw link events still need to handle a junction receiving its target.
-    let nested_directory_metadata = !event.directory_replaced
-      && matches!(
-        origin,
-        Origin::Disk { appeared: false }
-          | Origin::Symlink {
-            link_changed: false,
-            appeared: false,
-            injected: false,
-          }
-      )
-      && self.path_manager.is_known_context_directory(path)
-      && path.is_dir()
-      && (!path.is_symlink() || matches!(origin, Origin::Symlink { .. }));
-    if kind != FsEventKind::Remove
-      && !self
+    if kind != FsEventKind::Remove {
+      match self
         .path_manager
-        .set_context_entry(
+        .observe_context_entry(
           path,
           origin.is_scan() || origin.link_changed() || is_watched_path || is_followed_context_file,
-          Some(&contexts),
+          &contexts,
         )
         .await
-    {
-      return;
-    }
-    if nested_directory_metadata {
-      contexts.retain(|context| context.dependency.as_ref() == Some(path));
-      if !direct_subscription && contexts.is_empty() {
-        return;
+      {
+        EntryChange::Unchanged => return,
+        EntryChange::ExistingDirectory
+          if !event.directory_replaced
+            && !origin.is_scan()
+            && !origin.link_changed()
+            && !matches!(
+              origin,
+              Origin::Injected
+                | Origin::Symlink { injected: true, .. }
+                | Origin::Disk { renamed: true }
+                | Origin::Symlink { renamed: true, .. }
+            ) =>
+        {
+          contexts.retain(|context| context.dependency.as_ref() == Some(path));
+          if !direct_subscription && contexts.is_empty() {
+            return;
+          }
+        }
+        _ => {}
       }
     }
     if matches!(origin, Origin::Symlink { .. })

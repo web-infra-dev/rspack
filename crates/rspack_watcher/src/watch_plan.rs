@@ -22,6 +22,23 @@ impl WatchPlan {
     for pattern in patterns {
       plan.insert(pattern.path, pattern.mode);
     }
+    if cfg!(target_os = "windows") {
+      // ReadDirectoryChangesW reports children, not replacement of its own root.
+      let parents: Vec<_> = plan
+        .patterns
+        .iter()
+        .filter(|(_, mode)| **mode == RecursiveMode::Recursive)
+        .filter_map(|(path, _)| path.parent().map(InternedPath::from))
+        .filter(|parent| {
+          !parent.ancestors().any(|ancestor| {
+            plan.patterns.get(&InternedPath::from(ancestor)) == Some(&RecursiveMode::Recursive)
+          })
+        })
+        .collect();
+      for parent in parents {
+        plan.insert(parent, RecursiveMode::NonRecursive);
+      }
+    }
     if follow_symlinks && !cfg!(target_os = "windows") {
       // inotify shares descriptors for aliases. FSEvents keys its recursive
       // modes by canonical path. Both need physical roots merged before watch().
