@@ -258,22 +258,13 @@ impl JavascriptParser<'_> {
     for property in ast.nodes(object.properties(ast)) {
       let key = property.key(ast);
       let value = property.value(ast);
-      let (id, shorthand) = if property.shorthand(ast) {
-        let identifier = value.as_binding_identifier(ast).or_else(|| {
-          value
-            .as_assignment_pattern(ast)
-            .and_then(|assignment| assignment.left(ast).as_binding_identifier(ast))
-        })?;
-        (Atom::from(ast.get_utf8(identifier.name(ast))), true)
-      } else {
-        let evaluated = eval_property_key(self, key);
-        (Atom::from(evaluated.as_string()?), false)
-      };
+      let id = Atom::from(eval_property_key(self, key).as_string()?);
+
       keys.insert(DestructuringAssignmentProperty {
         id,
         range: key.span(ast).into(),
         pattern: self.collect_destructuring_assignment_properties(value),
-        shorthand,
+        shorthand: property.shorthand(ast),
       });
     }
     Some(keys)
