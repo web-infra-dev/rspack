@@ -1,6 +1,6 @@
 FROM rust:bookworm
 
-ARG RUST_TOOLCHAIN=nightly-2026-04-16
+ARG RUST_TOOLCHAIN=nightly-2026-11-13
 
 RUN apt-get update \
   && apt-get install --yes --no-install-recommends \
@@ -23,4 +23,4 @@ RUN rustup toolchain install "${RUST_TOOLCHAIN}" \
   && rustup default "${RUST_TOOLCHAIN}"
 
 ENV CARGO_INCREMENTAL=0 \
-    RUSTUP_TOOLCHAIN=nightly-2026-04-16
+    RUSTUP_TOOLCHAIN=nightly-2026-11-13

@@ -6,7 +6,7 @@
 
 use std::{
   any::TypeId,
-  mem::type_info::{Field, TypeKind},
+  mem::type_info::TypeKind,
   ptr::{self, DynMetadata, Pointee},
 };
 
@@ -35,14 +35,14 @@ trait RawPointer {}
 impl<T: ?Sized> RawPointer for *const T {}
 impl<T: ?Sized> RawPointer for *mut T {}
 
-// TypeId::trait_info_of calls id.info() before querying the vtable on our pinned
-// nightly. That crashes for arrays whose length is an unevaluated const expression.
+// Avoid a layout query for arrays whose length is an unevaluated const expression.
 // Our callers already know the source is sized (T, or a field of a sized T), and
 // the target is a dyn trait, so use the same intrinsic without that layout query.
-const fn vtable<T: ?Sized + Pointee<Metadata = DynMetadata<T>> + 'static>(
+#[rustc_comptime]
+fn vtable<T: ?Sized + Pointee<Metadata = DynMetadata<T>> + 'static>(
   id: TypeId,
 ) -> Option<DynMetadata<T>> {
-  match std::intrinsics::type_id_vtable(id, TypeId::of::<T>()) {
+  match std::intrinsics::reflection::type_id_vtable(id, TypeId::of::<T>()) {
     Some(metadata) => {
       // SAFETY: The intrinsic returned this vtable for precisely the target T.
       // Both metadata types have the same pointer representation, as in core's
@@ -80,7 +80,8 @@ enum Plan {
 }
 
 impl Plan {
-  const fn new<T: 'static>() -> Self {
+  #[rustc_comptime]
+  fn new<T: 'static>() -> Self {
     let id = TypeId::of::<T>();
     // Borrowed pointers do not imply ownership, even if their erased type has
     // an adapter for a longer lifetime.
@@ -94,39 +95,35 @@ impl Plan {
       return Self::Adapter(adapter);
     }
     match id.info().kind {
-      TypeKind::Struct(s) => Self::fields(s.fields),
-      TypeKind::Tuple(t) => Self::fields(t.fields),
-      TypeKind::Bool(_)
-      | TypeKind::Char(_)
-      | TypeKind::Int(_)
-      | TypeKind::Float(_)
-      | TypeKind::FnPtr(_) => Self::Leaf,
+      TypeKind::Struct | TypeKind::Tuple => Self::fields(id, 0),
+      TypeKind::Bool | TypeKind::Char | TypeKind::Int | TypeKind::Float | TypeKind::FnPtr => {
+        Self::Leaf
+      }
       // Enums need an active-variant accessor (derive or manual match). Unions
       // may contain uninitialized storage. Neither is guessed from layout.
       _ => Self::Opaque,
     }
   }
 
-  const fn fields(source: &[Field]) -> Self {
+  #[rustc_comptime]
+  fn fields(id: TypeId, variant: usize) -> Self {
+    let len = id.fields(variant);
     assert!(
-      source.len() <= 256,
+      len <= 256,
       "allocative reflection supports up to 256 fields per type; add an explicit adapter"
     );
     let mut fields = [EMPTY; 256];
     let mut i = 0;
-    while i < source.len() {
-      let field = &source[i];
+    while i < len {
+      let field = id.field(variant, i);
       fields[i] = FieldVisitor {
-        name: field.name,
-        offset: field.offset,
-        vtable: vtable::<dyn Visit>(field.ty),
+        name: field.name(),
+        offset: field.offset(),
+        vtable: vtable::<dyn Visit>(field.type_id()),
       };
       i += 1;
     }
-    Self::Fields {
-      fields,
-      len: source.len(),
-    }
+    Self::Fields { fields, len }
   }
 }
 
@@ -141,11 +138,11 @@ pub unsafe fn visit_enum_variant<T: 'static, const INDEX: usize>(
   visitor: &mut Visitor<'_>,
 ) {
   let (key, plan) = const {
-    let TypeKind::Enum(info) = TypeId::of::<T>().info().kind else {
+    let id = TypeId::of::<T>();
+    let TypeKind::Enum = id.info().kind else {
       panic!("enum traversal requires an enum type");
     };
-    let variant = &info.variants[INDEX];
-    (Key::new(variant.name), &Plan::fields(variant.fields))
+    (Key::new(id.variant(INDEX).name()), &Plan::fields(id, INDEX))
   };
   let mut visitor = visitor.enter(key, std::mem::size_of::<T>());
   if let Plan::Fields { fields, len } = plan {
