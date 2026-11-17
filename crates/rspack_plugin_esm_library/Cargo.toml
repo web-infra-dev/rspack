@@ -43,4 +43,4 @@ doctest = false
 
 
 [package.metadata.cargo-shear]
-ignored = ["rspack_hash", "rspack_cacheable"]
+ignored = ["rspack_hash"]

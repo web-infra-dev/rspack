@@ -19,3 +19,7 @@ serde_json = { workspace = true }
 
 [lints]
 workspace = true
+
+[package.metadata.cargo-shear]
+# Owned by rspack_benchmark and linked from its walltime bench via #[path].
+ignored-paths = ["benchmark/benches/groups/bundle/threejs_10x.rs"]

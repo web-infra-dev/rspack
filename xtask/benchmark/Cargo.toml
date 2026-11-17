@@ -63,7 +63,9 @@ harness = false
 name    = "walltime"
 
 [package.metadata.cargo-shear]
-ignored = ["rspack_cacheable"]
+# Linked from benches/walltime_groups/bundle.rs via #[path].
+ignored       = ["rspack_cacheable"]
+ignored-paths = ["benches/groups/bundle/threejs_10x.rs"]
 
 [lints]
 workspace = true
