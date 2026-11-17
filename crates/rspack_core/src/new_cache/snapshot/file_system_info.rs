@@ -392,57 +392,55 @@ impl FileSystemInfo {
     if paths.is_empty() {
       return Ok(());
     }
-    match mode {
-      SnapshotMode::Timestamp => {
-        let map = snapshot.file_timestamps.get_or_insert_default();
-        paths
-          .into_iter()
-          .map(|path| {
-            let this = self.clone();
-            async move {
-              let value = this.file_timestamp(&path).await?;
-              Ok::<_, rspack_error::Error>((path, value))
-            }
-          })
-          .try_fut_consume(|(path, value)| {
-            map.insert(path, value);
-          })
-          .await?;
-      }
-      SnapshotMode::Hash => {
-        let map = snapshot.file_hashes.get_or_insert_default();
-        paths
-          .into_iter()
-          .map(|path| {
-            let this = self.clone();
-            async move {
-              let value = this.file_hash(&path).await?;
-              Ok::<_, rspack_error::Error>((path, value))
-            }
-          })
-          .try_fut_consume(|(path, value)| {
-            map.insert(path, value);
-          })
-          .await?;
-      }
-      SnapshotMode::TimestampAndHash => {
-        let map = snapshot.file_timestamp_hashes.get_or_insert_default();
-        paths
-          .into_iter()
-          .map(|path| {
-            let this = self.clone();
-            async move {
-              let value = this.file_timestamp_and_hash(&path).await?;
-              Ok::<_, rspack_error::Error>((path, value))
-            }
-          })
-          .try_fut_consume(|(path, value)| {
-            map.insert(path, value);
-          })
-          .await?;
-      }
+
+    enum FileSnapshot {
+      Timestamp(Option<FileSystemInfoEntry>),
+      Hash(Option<FileHash>),
+      TimestampAndHash(Option<TimestampAndHash>),
     }
-    Ok(())
+
+    paths
+      .into_iter()
+      .map(|path| {
+        let this = self.clone();
+        async move {
+          // Force content validation: virtual timestamps change with each compiler.
+          let mode = if this.inner.fs.is_virtual(path.assert_utf8()) {
+            SnapshotMode::Hash
+          } else {
+            mode
+          };
+          let value = match mode {
+            SnapshotMode::Timestamp => FileSnapshot::Timestamp(this.file_timestamp(&path).await?),
+            SnapshotMode::Hash => FileSnapshot::Hash(this.file_hash(&path).await?),
+            SnapshotMode::TimestampAndHash => {
+              FileSnapshot::TimestampAndHash(this.file_timestamp_and_hash(&path).await?)
+            }
+          };
+          Ok::<_, rspack_error::Error>((path, value))
+        }
+      })
+      .try_fut_consume(|(path, value)| match value {
+        FileSnapshot::Timestamp(value) => {
+          snapshot
+            .file_timestamps
+            .get_or_insert_default()
+            .insert(path, value);
+        }
+        FileSnapshot::Hash(value) => {
+          snapshot
+            .file_hashes
+            .get_or_insert_default()
+            .insert(path, value);
+        }
+        FileSnapshot::TimestampAndHash(value) => {
+          snapshot
+            .file_timestamp_hashes
+            .get_or_insert_default()
+            .insert(path, value);
+        }
+      })
+      .await
   }
 
   /// Corresponds to `processCapturedDirectories` inside webpack's `FileSystemInfo.createSnapshot`.
@@ -835,12 +833,14 @@ impl FileSystemInfo {
     path: &InternedPath,
     mode: SnapshotMode,
   ) -> Result<Option<ContextValue>> {
-    let timestamp = if mode.uses_timestamp() {
+    let is_virtual = self.inner.fs.is_virtual(path.assert_utf8());
+    let file_mode = if is_virtual { SnapshotMode::Hash } else { mode };
+    let timestamp = if file_mode.uses_timestamp() {
       self.file_timestamp(path).await?
     } else {
       None
     };
-    let hash = if mode.uses_hash() {
+    let hash = if file_mode.uses_hash() {
       self.file_hash(path).await?
     } else {
       None
@@ -850,18 +850,29 @@ impl FileSystemInfo {
     }
 
     let safe_time = timestamp.as_ref().map_or(0, |entry| entry.safe_time);
-    let timestamp_hash = timestamp.map(|entry| {
-      let mut hasher = RspackHasher::new(&self.inner.hash_function);
-      if let Some(timestamp) = entry.timestamp {
-        hasher.write(b"f");
-        hasher.write(timestamp.to_string().as_bytes());
-      }
-      digest_hasher(hasher)
-    });
     let hash = hash.map(|hash| match hash {
       FileHash::Digest(hash) => hash,
       FileHash::Directory => self.digest(b"directory"),
     });
+    // Timestamp-based contexts include virtual content hashes with a distinct
+    // tag, so file contents cannot match a real file's timestamp encoding.
+    let timestamp_hash = if is_virtual && mode.uses_timestamp() {
+      hash.as_ref().map(|hash| {
+        let mut hasher = RspackHasher::new(&self.inner.hash_function);
+        hasher.write(b"h");
+        hasher.write(hash.encoded().as_bytes());
+        digest_hasher(hasher)
+      })
+    } else {
+      timestamp.map(|entry| {
+        let mut hasher = RspackHasher::new(&self.inner.hash_function);
+        if let Some(timestamp) = entry.timestamp {
+          hasher.write(b"f");
+          hasher.write(timestamp.to_string().as_bytes());
+        }
+        digest_hasher(hasher)
+      })
+    };
     Ok(Some(ContextValue {
       safe_time,
       timestamp_hash,
@@ -901,7 +912,11 @@ impl FileSystemInfo {
     if let Some(entries) = &snapshot.file_timestamps {
       for (path, expected) in entries {
         let current = self.file_timestamp(path).await?;
-        if !file_timestamp_matches(current.as_ref(), expected.as_ref(), snapshot.start_time) {
+        // A newly introduced virtual overlay cannot be validated using the
+        // timestamp of the real file that previously occupied this path.
+        if self.inner.fs.is_virtual(path.assert_utf8())
+          || !file_timestamp_matches(current.as_ref(), expected.as_ref(), snapshot.start_time)
+        {
           record_invalid(path, current.is_some(), modified_files, removed_files);
         }
       }
@@ -916,17 +931,19 @@ impl FileSystemInfo {
     }
     if let Some(entries) = &snapshot.file_timestamp_hashes {
       for (path, expected) in entries {
-        let current_timestamp = self.file_timestamp(path).await?;
-        let timestamp_matches = match expected {
-          Some(expected) => file_timestamp_matches(
-            current_timestamp.as_ref(),
-            Some(&FileSystemInfoEntry {
-              safe_time: expected.safe_time,
-              timestamp: expected.timestamp,
-            }),
-            snapshot.start_time,
-          ),
-          None => current_timestamp.is_none(),
+        let timestamp_matches = !self.inner.fs.is_virtual(path.assert_utf8()) && {
+          let current_timestamp = self.file_timestamp(path).await?;
+          match expected {
+            Some(expected) => file_timestamp_matches(
+              current_timestamp.as_ref(),
+              Some(&FileSystemInfoEntry {
+                safe_time: expected.safe_time,
+                timestamp: expected.timestamp,
+              }),
+              snapshot.start_time,
+            ),
+            None => current_timestamp.is_none(),
+          }
         };
         if timestamp_matches {
           continue;
