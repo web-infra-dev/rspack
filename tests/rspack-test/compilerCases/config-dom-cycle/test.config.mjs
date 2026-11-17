@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
 import binding from "@rspack/binding";
 import { rspack } from "@rspack/core";
 import {
@@ -17,14 +18,37 @@ function isCircularConfig(error) {
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 export default {
-  description: "reports circular DOM options and accepts shared options",
+  description:
+    "checks cycles through target option types and accepts shared references",
   async run() {
     const parser = {};
     parser.worker = parser;
+    const generator = {};
+    generator.dataUrl = generator;
+    // The source graph is cyclic, but the worker target only reads alias/url.
+    for (const module of [
+      { parser: { javascript: parser } },
+      { rules: [{ parser }] },
+      { rules: [{ type: "asset/inline", generator }] },
+      // This final type does not read worker at all.
+      { rules: [{ parser }, { type: "asset/source" }] },
+    ]) {
+      const compiler = rspack({
+        mode: "none",
+        entry: fileURLToPath(new URL("./index.js", import.meta.url)),
+        module,
+      });
+      try {
+        const stats = await runCompiler(compiler);
+        assert.equal(stats.hasErrors(), false, stats.toString());
+      } finally {
+        await closeCompiler(compiler);
+      }
+    }
+
     const resolve = {};
     resolve.byDependency = { esm: { byDependency: { commonjs: resolve } } };
     for (const options of [
-      { module: { rules: [{ parser }] } },
       { resolve },
       { module: { rules: [{ resolve }] } },
     ]) {
@@ -50,12 +74,14 @@ export default {
     );
     assert.throws(
       () => rawResolver([{ restrictions: [1] }, [[1]]]),
-      circularConfig,
+      /Invalid value for option 'restrictions'/,
     );
     assert.throws(
       () => rawResolver([{ extensions: [1] }]),
       /Configuration graph reference is out of bounds/,
     );
+    // An unused cycle is harmless even when supplied directly to the binding.
+    assert.doesNotThrow(() => rawResolver([{ unused: [0] }]));
     assert.doesNotThrow(
       () =>
         rawResolver([

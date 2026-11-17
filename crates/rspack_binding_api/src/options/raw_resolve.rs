@@ -88,7 +88,7 @@ impl TryFrom<RawConfigValue> for Resolve {
       .root()
       .object()
       .ok_or_else(|| error!("Expected resolve options to be an object"))?;
-    RawResolveOptions::from_object(fields)?.try_into()
+    fields.convert(|fields| RawResolveOptions::from_object(fields)?.try_into())
   }
 }
 

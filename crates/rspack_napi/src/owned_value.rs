@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{any::TypeId, cell::RefCell, sync::Arc};
 
 use indexmap::IndexMap;
 use napi::{
@@ -6,7 +6,7 @@ use napi::{
   bindgen_prelude::{Array, Either3, FromNapiValue, JsObjectValue, Object},
 };
 use rspack_error::{Result, error};
-use rustc_hash::{FxBuildHasher, FxHashMap};
+use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 
 use crate::threadsafe_function::DynThreadsafeFunction;
 
@@ -154,39 +154,26 @@ fn references(node: &Value) -> impl Iterator<Item = usize> + '_ {
     })
 }
 
-// Typed configuration is a tree. Detect back-edges once before decoding, while
-// allowing the same completed node to be used from multiple branches.
+// Capture preserves cycles and shared references. Only the target decoder knows
+// which edges it will follow and whether they form an unrepresentable recursion.
 fn validate_graph(root: usize, nodes: &[Value]) -> napi::Result<()> {
-  #[derive(Clone, Copy)]
-  enum Visit {
-    New,
-    Active,
-    Done,
-  }
-  let invalid_ref = || napi::Error::from_reason("Configuration graph reference is out of bounds");
-  let mut visits = vec![Visit::New; nodes.len()];
-  let mut stack = vec![(root, references(nodes.get(root).ok_or_else(invalid_ref)?))];
-  visits[root] = Visit::Active;
-  while let Some((id, children)) = stack.last_mut() {
-    if let Some(child) = children.next() {
-      match visits.get(child).ok_or_else(invalid_ref)? {
-        Visit::New => {
-          visits[child] = Visit::Active;
-          stack.push((child, references(&nodes[child])));
-        }
-        Visit::Active => {
-          return Err(napi::Error::from_reason(
-            "Circular reference in configuration object",
-          ));
-        }
-        Visit::Done => {}
-      }
-    } else {
-      visits[*id] = Visit::Done;
-      stack.pop();
-    }
+  if root >= nodes.len()
+    || nodes
+      .iter()
+      .flat_map(references)
+      .any(|id| id >= nodes.len())
+  {
+    return Err(napi::Error::from_reason(
+      "Configuration graph reference is out of bounds",
+    ));
   }
   Ok(())
+}
+
+thread_local! {
+  // Conversion is synchronous. Track only the active path, not completed nodes,
+  // so siblings can share an object and different target types can read it.
+  static ACTIVE_CONVERSIONS: RefCell<FxHashSet<(usize, TypeId)>> = RefCell::default();
 }
 
 #[derive(Clone, Copy)]
@@ -235,6 +222,23 @@ pub struct ObjectRef<'a> {
 }
 
 impl<'a> ObjectRef<'a> {
+  /// Decode this object as T, rejecting recursion only within that target type.
+  /// Keep final normalization inside the closure when it also decodes subgraphs.
+  pub fn convert<T: 'static>(self, decode: impl FnOnce(Self) -> Result<T>) -> Result<T> {
+    let key = (std::ptr::from_ref(self.fields).addr(), TypeId::of::<T>());
+    if !ACTIVE_CONVERSIONS.with(|active| active.borrow_mut().insert(key)) {
+      return Err(error!("Circular reference in configuration object"));
+    }
+    // Release the entry on success, error, and unwinding. No borrow is held while
+    // nested decoders run, and the borrowed object remains alive for this scope.
+    let _guard = scopeguard::guard(key, |key| {
+      ACTIVE_CONVERSIONS.with(|active| {
+        active.borrow_mut().remove(&key);
+      });
+    });
+    decode(self)
+  }
+
   pub fn get(self, key: &str) -> Option<ValueRef<'a>> {
     self.fields.get(key).map(|value| ValueRef {
       value,

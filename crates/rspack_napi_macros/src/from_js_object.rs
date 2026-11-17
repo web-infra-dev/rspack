@@ -52,7 +52,7 @@ pub(crate) fn expand(input: DeriveInput) -> syn::Result<TokenStream> {
       const FIELDS: &'static [&'static str] = &[#(#keys),*];
 
       fn from_object(fields: #value::ObjectRef<'_>) -> ::rspack_error::Result<Self> {
-        Ok(Self { #(#initializers),* })
+        fields.convert(|fields| Ok(Self { #(#initializers),* }))
       }
     }
 
