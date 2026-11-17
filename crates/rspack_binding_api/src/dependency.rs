@@ -2,7 +2,7 @@ use std::cell::RefCell;
 
 use napi::{
   Either, Env,
-  bindgen_prelude::{Array, Object, ToNapiValue},
+  bindgen_prelude::{Array, JavaScriptClassExt, Object, ToNapiValue},
 };
 use napi_derive::napi;
 use rspack_core::{Compilation, CompilationId, DependencyId, DependencyRef, ModuleGraph, internal};
@@ -238,7 +238,10 @@ impl ToNapiValue for DependencyWrapper {
               dependency_id: val.dependency_id,
               dependency: val.dependency,
             };
-            let r = vacant_entry.insert(OneShotInstanceRef::new(env, js_dependency)?);
+            let r = vacant_entry.insert(OneShotInstanceRef::from_instance(
+              env,
+              js_dependency.into_instance(&Env::from_raw(env))?,
+            )?);
             ToNapiValue::to_napi_value(env, r)
           }
         }

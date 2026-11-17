@@ -13,13 +13,13 @@ use dependencies::FileSystemDependencies;
 use diagnostics::Diagnostics;
 use entries::JsEntries;
 use modules::Modules;
+use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{
   BindingCell, Compilation, CompilationId, DependencyRef, EntryOptions, ExportsInfoArtifact,
   ModuleIdentifier, OptimizationBailoutItem, Reflector, rspack_sources::BoxSource,
 };
 use rspack_error::{Diagnostic, Severity, ToStringResultToRspackResultExt};
-use rspack_napi::napi::bindgen_prelude::*;
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_tasks::{within_compiler_context, within_compiler_context_sync};
 use rustc_hash::FxHashMap;

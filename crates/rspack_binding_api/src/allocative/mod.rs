@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 
 mod count_labels;
+#[cfg(feature = "test-loader")]
+mod testing;
 
 /// Count graph entries separately from the byte traversal, without retaining targets.
 pub(crate) fn module_graph_counts(

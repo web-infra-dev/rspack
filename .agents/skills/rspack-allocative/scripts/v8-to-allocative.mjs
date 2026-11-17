@@ -29,7 +29,6 @@ export function escapeFrame(value) {
 }
 
 const categoryLabels = {
-  v8_code: 'V8 source and code',
   rspack: 'Rspack',
   shared_or_unknown: 'Shared or unknown',
 };
@@ -166,6 +165,25 @@ function isPrimitive(type) {
   );
 }
 
+// These are storage for JS values, not engine metadata. Keep their weights
+// without exposing V8's implementation names as ownership frames.
+const storageNames = new Map([
+  ['system / PropertyArray', 'object properties'],
+  ['system / PropertyCell', 'property value'],
+  ['system / Cell', 'captured value'],
+  ['system / Context', 'closure context'],
+  ['system / JSArrayBufferData', 'ArrayBuffer data'],
+]);
+
+function isV8Internal(type, name) {
+  if (type === 'code' || type === 'synthetic' || type === 'object shape')
+    return true;
+  if (storageNames.has(name)) return false;
+  return (
+    type === 'hidden' || (type === 'object' && name.startsWith('system / '))
+  );
+}
+
 export function convert(
   snapshot,
   identities,
@@ -202,6 +220,11 @@ export function convert(
       }
     : readHeapCategories(graph);
   const v8Sources = new Set(sourceNodeIds);
+  const excluded = new Uint8Array(count);
+  for (let i = 0; i < count; i++) {
+    excluded[i] =
+      v8Sources.has(nodeId(i)) || isV8Internal(nodeType(i), nodeName(i));
+  }
   const jsRoots = new Map(
     rspackRoots.filter(([, kind]) => isRspackRootKind(kind)),
   );
@@ -299,19 +322,27 @@ export function convert(
     ? strongPaths(graph, rspackAnchors).parents
     : parents;
   const samples = {
-    v8_code: new Map(),
     rspack: new Map(),
     shared_or_unknown: new Map(),
   };
-  const categoryBytes = { v8_code: 0, rspack: 0, shared_or_unknown: 0 };
+  const categoryBytes = { rspack: 0, shared_or_unknown: 0 };
   const combinedRspack = new Map();
   const markedObjects = new Map();
   let totalBytes = 0;
+  let snapshotBytes = 0;
+  let excludedBytes = 0;
+  let excludedNodes = 0;
   let unreachableBytes = 0;
   for (let i = 0; i < count; i++) {
     const size = nodeSize(i);
     if (!Number.isSafeInteger(size) || size < 0)
       throw new Error('Invalid V8 self_size');
+    snapshotBytes += size;
+    if (excluded[i]) {
+      excludedBytes += size;
+      excludedNodes++;
+      continue;
+    }
     totalBytes += size;
     const id = nodeId(i);
     const kind = rspackObjects.get(id);
@@ -328,13 +359,9 @@ export function convert(
     if (!size) continue;
     if (parents[i] === -1) unreachableBytes += size;
     const category =
-      nodeType(i) === 'code' || v8Sources.has(id)
-        ? 'v8_code'
-        : kind ||
-            rspackAnchors.has(i) ||
-            (parents[i] !== -1 && outside[i] === -1)
-          ? 'rspack'
-          : 'shared_or_unknown';
+      kind || rspackAnchors.has(i) || (parents[i] !== -1 && outside[i] === -1)
+        ? 'rspack'
+        : 'shared_or_unknown';
     categoryBytes[category] += size;
     const frames = [];
     let cursor = i;
@@ -345,12 +372,23 @@ export function convert(
       const type = nodeType(cursor);
       const id = nodeId(cursor);
       const jsRoot = category === 'rspack' ? jsRoots.get(id) : undefined;
-      const name = displayName(cursor);
-      frames.push(
-        name ? `${type}: ${name}` : (jsRoot ?? rspackObjects.get(id) ?? type),
-      );
-      const markedKind = rspackObjects.get(id);
-      if (markedKind && name && markedKind !== name) frames.push(markedKind);
+      if (!excluded[cursor]) {
+        if (remaining-- === 0) {
+          prefix.push('[path truncated]');
+          break;
+        }
+        const name = displayName(cursor);
+        const storage = storageNames.get(nodeName(cursor));
+        frames.push(
+          storage
+            ? `storage: ${storage}`
+            : name
+              ? `${type}: ${name}`
+              : (jsRoot ?? rspackObjects.get(id) ?? type),
+        );
+        const markedKind = rspackObjects.get(id);
+        if (markedKind && name && markedKind !== name) frames.push(markedKind);
+      }
       if (category === 'rspack') {
         const binding = bindings.get(cursor);
         if (binding) {
@@ -372,10 +410,6 @@ export function convert(
       }
       if (cursor === 0) break;
       cursor = parents[cursor];
-      if (--remaining === 0) {
-        prefix.push('[path truncated]');
-        break;
-      }
     }
     const stack = [...prefix, ...frames.reverse()].map(escapeFrame).join(';');
     const categorySamples = samples[category];
@@ -391,16 +425,12 @@ export function convert(
     }
   }
   const categoryFolded = {
-    v8_code: fold(samples.v8_code),
     rspack: fold(samples.rspack),
     shared_or_unknown: fold(samples.shared_or_unknown),
   };
   return {
     folded: Object.values(categoryFolded).join(''),
-    combinedFolded:
-      categoryFolded.v8_code +
-      fold(combinedRspack) +
-      categoryFolded.shared_or_unknown,
+    combinedFolded: fold(combinedRspack) + categoryFolded.shared_or_unknown,
     categoryFolded,
     report: {
       snapshot: identities.snapshot,
@@ -415,9 +445,12 @@ export function convert(
         ? { string_preview: snapshot.rspack_string_preview }
         : {}),
       attribution:
-        'code and script source first; marked Rspack objects and roots, plus nodes reachable only through Rspack roots or matched bindings; all other nodes shared or unknown; shallow self_size once per node',
+        'V8 code, script source and engine metadata excluded; marked Rspack objects and roots, plus nodes reachable only through Rspack roots or matched bindings; all other included nodes shared or unknown; shallow self_size once per node',
       max_depth: maxDepth,
       represented_bytes: totalBytes,
+      snapshot_bytes: snapshotBytes,
+      excluded_v8_bytes: excludedBytes,
+      excluded_v8_nodes: excludedNodes,
       node_count: count,
       strong_reachable_nodes: reachable,
       unreachable_bytes: unreachableBytes,
@@ -547,7 +580,7 @@ export function main(args = process.argv.slice(2)) {
     throw error;
   }
   process.stdout.write(
-    `${JSON.stringify({ snapshot: result.report.snapshot, represented_js_bytes: result.report.represented_bytes, category_bytes: result.report.category_bytes, matched_bindings: result.report.matched_bindings, unmatched_bindings: result.report.unmatched_bindings, matched_roots: result.report.matched_roots, unmatched_roots: result.report.unmatched_roots })}\n`,
+    `${JSON.stringify({ snapshot: result.report.snapshot, represented_js_bytes: result.report.represented_bytes, excluded_v8_bytes: result.report.excluded_v8_bytes, category_bytes: result.report.category_bytes, matched_bindings: result.report.matched_bindings, unmatched_bindings: result.report.unmatched_bindings, matched_roots: result.report.matched_roots, unmatched_roots: result.report.unmatched_roots })}\n`,
   );
 }
 

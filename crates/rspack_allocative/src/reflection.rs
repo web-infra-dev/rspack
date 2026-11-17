@@ -39,7 +39,7 @@ impl<T: ?Sized> RawPointer for *mut T {}
 // nightly. That crashes for arrays whose length is an unevaluated const expression.
 // Our callers already know the source is sized (T, or a field of a sized T), and
 // the target is a dyn trait, so use the same intrinsic without that layout query.
-const fn vtable<T: ?Sized + Pointee<Metadata = DynMetadata<T>> + 'static>(
+pub(crate) const fn vtable<T: ?Sized + Pointee<Metadata = DynMetadata<T>> + 'static>(
   id: TypeId,
 ) -> Option<DynMetadata<T>> {
   match std::intrinsics::type_id_vtable(id, TypeId::of::<T>()) {

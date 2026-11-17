@@ -124,6 +124,7 @@ use std::{
   sync::{Arc, RwLock},
 };
 
+use napi::{CallContext, bindgen_prelude::*};
 pub use raw_options::{CustomPluginBuilder, register_custom_plugin};
 use rspack_core::{
   Compilation, CompilationId, CompilerId, CompilerPlatform, DependencyRef, EntryOptions,
@@ -131,7 +132,6 @@ use rspack_core::{
 };
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
-use rspack_napi::napi::{CallContext, bindgen_prelude::*};
 use rspack_tasks::{CURRENT_COMPILER_CONTEXT, CompilerContext, within_compiler_context_sync};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::common::util::take::Take;
@@ -280,6 +280,12 @@ struct JsCompiler {
   compiler_context: Arc<CompilerContext>,
   virtual_file_store: Option<Arc<RwLock<dyn VirtualFileStore>>>,
 }
+
+// Other compilers may still hold a mutable build borrow. Automatic registry
+// traversal must not even form &JsCompiler for them. RunGuard::finish explicitly
+// visits only its own compiler, after the future drops and while the owner is pinned.
+#[cfg(allocative)]
+impl rspack_allocative::napi_tracking::ExplicitSnapshot for JsCompiler {}
 
 #[napi]
 impl JsCompiler {
@@ -704,6 +710,13 @@ impl JsCompiler {
     )
     .map_err(|error| napi::Error::new(ErrorCode::Napi(error.status), error.reason))?;
     builder.visit_root(self);
+    // SAFETY: synchronous JS thread capture inside the current handle scope.
+    // Per-type policies exclude compilers requiring their own guarded capture.
+    unsafe { rspack_allocative::napi_tracking::visit_live(env, &mut builder) }
+      .map_err(|error| napi::Error::new(ErrorCode::Napi(error.status), error.reason))?;
+    // SAFETY: same JS thread and local handle scope as visit_live above.
+    unsafe { rspack_allocative::napi_tracking::visit_owned_payloads(env, &mut builder) }
+      .map_err(|error| napi::Error::new(ErrorCode::Napi(error.status), error.reason))?;
     let counts = allocative::module_graph_counts(&self.compiler);
     snapshot
       .write(builder, counts)

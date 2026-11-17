@@ -1,6 +1,9 @@
 #![forbid(unsafe_op_in_unsafe_fn)]
 
-//! Intercept napi-derive's class creation calls after napi-rs wraps the Rust value.
+//! Intercept napi-rs class creation and owner-managed allocations.
+//! Keep upstream finalizers and register weak roots only for requested snapshots.
+//! Classes with async mutable access must implement napi_tracking::ExplicitSnapshot;
+//! automatic visitors otherwise run between callbacks on the owning JS thread.
 
 use std::{
   ffi::c_void,
@@ -9,6 +12,11 @@ use std::{
 
 use napi::bindgen_prelude::CallbackInfo as UpstreamCallbackInfo;
 pub use napi::bindgen_prelude::*;
+
+mod external;
+pub use external::External;
+mod reference;
+pub use reference::{JavaScriptClassExt, Reference, SharedReference, WeakReference};
 
 use crate::napi_tracking::attach;
 

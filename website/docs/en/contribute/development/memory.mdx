@@ -53,7 +53,7 @@ You can use a separate output directory for each run to avoid overwriting data. 
 
 ## View snapshots
 
-A snapshot traces ownership paths from the compiler and registered global roots. Its weights are bytes, not execution time or allocation events.
+A snapshot shows memory held by the compiler, global objects, and Rust objects retained by JavaScript. Shared memory is counted only once. Its weights are bytes, not execution time or allocation events.
 
 Open [Speedscope](https://www.speedscope.app/) and drag in a `.allocative` file. Use search and zoom to find a data structure, and select **Left Heavy** to explore the largest ownership paths.
 
@@ -171,6 +171,8 @@ node "$rspack_root/.agents/skills/rspack-allocative/scripts/v8-to-allocative.mjs
 Open `reports/0-build.js.allocative` or `reports/0-build.combined.allocative` in Speedscope to inspect the JavaScript or combined Rust and JavaScript profile. Open `reports/0-build.links.json` to look up the Rust targets associated with JavaScript objects. See [View snapshots](#view-snapshots) for tips on exploring a profile.
 
 Use `marked_objects` in the links report to see the count and shallow bytes of marked Rspack objects by type, including asset records and arrays.
+
+Converted `.allocative` files always exclude V8 code, script source, and engine metadata. JavaScript objects and their container or Buffer storage remain included. To inspect V8 internals, open the original `.heapsnapshot` in Chrome DevTools. The links report records `snapshot_bytes`, `represented_bytes`, and `excluded_v8_bytes`; represented plus excluded bytes equals the original JS snapshot total.
 
 The raw snapshot can contain source code and other project data. Converted reports retain object names by default and omit string-node payloads. String nodes contribute only their original snapshot byte weights; string payloads are discarded during streaming parsing and never appear in frames. Pass `--clear-class-names` to remove custom constructor names (also from constructor function/code frames); common built-in names such as Object, Array, Map, Set and typed arrays remain. Rspack root/object markers and Rust type names are diagnostic metadata and remain available. Named edges and native identities are retained internally for classification and matching. The legacy `--include-content` flag is accepted but no longer emits string payloads or binding addresses. The links report records `clear_class_names`, `string_contents` and `string_storage`. Use `--out-dir` to write the reports to another existing directory.
 

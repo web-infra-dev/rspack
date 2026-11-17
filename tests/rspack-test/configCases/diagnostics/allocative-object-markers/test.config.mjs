@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { verifyV8Filter } from './verify-v8-filter.mjs';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -100,6 +101,8 @@ function verifyObjectNames() {
   const cleared = convert(heap, { objects: [] }, { clearClassNames: true });
   assert(named.folded.includes('object: SensitivePlugin'));
   assert(named.folded.includes('closure: SensitivePlugin'));
+  assert(!named.folded.includes('code: SensitivePlugin'));
+  assert.equal(named.report.snapshot_bytes, named.report.represented_bytes + named.report.excluded_v8_bytes);
   assert(!cleared.folded.includes('SensitivePlugin'));
   for (const name of builtins) {
     assert(named.folded.includes('object: ' + name));
@@ -116,6 +119,7 @@ function verifyObjectNames() {
 
 export default {
   afterExecute() {
+    verifyV8Filter();
     verifyStringPreviews();
     verifyObjectNames();
     if (process.env.RSPACK_BUILD_PROFILE === 'release') {
@@ -136,47 +140,16 @@ export default {
 
     const directory = mkdtempSync(join(tmpdir(), 'rspack-object-markers-'));
     try {
+      if (process.env.ALLOCATIVE) {
+        execFileSync(process.execPath, ['--expose-gc', join(import.meta.dirname, 'capture-owned.cjs')], {
+          cwd: import.meta.dirname,
+          env: { ...process.env, RSPACK_ALLOCATIVE_DIR: join(directory, 'owned') },
+          timeout: 60_000,
+          stdio: 'pipe',
+        });
+      }
       const path = join(directory, 'objects.heapsnapshot');
-      execFileSync(process.execPath, ['--expose-gc', '--input-type=module', '-e', `
-        import assert from 'node:assert/strict';
-        import { writeHeapSnapshot } from 'node:v8';
-        import { rspack } from '@rspack/core';
-        const compiler = rspack({
-          mode: 'development',
-          context: process.cwd(),
-          entry: './index.js',
-          output: { path: process.env.RSPACK_ALLOCATIVE_DIR },
-        });
-        compiler.hooks.afterCompile.tap('AllocativeObjects', compilation => {
-          const assets = compilation.getAssets();
-          const asset = assets[0];
-          assert.equal(Object.getPrototypeOf(asset), Object.prototype);
-          const pluginObject = { pluginPayload: true };
-          const marker = '__rspack_internal_allocativeObject';
-          assert.equal(Object.getOwnPropertyDescriptor(asset, marker)?.enumerable, false);
-          assert(!Object.hasOwn(pluginObject, marker));
-          asset.rspackAllocativeTestSharedPayload = pluginObject;
-          globalThis.allocativeObjects = {
-            asset, assets, pluginObject, module: [...compilation.modules][0],
-            stats: compilation.getStats(), moduleGraph: compilation.moduleGraph,
-          };
-          writeHeapSnapshot(process.env.ALLOCATIVE_TEST_SNAPSHOT);
-        });
-        try {
-          await new Promise((resolve, reject) => compiler.run((error, stats) => {
-            if (error) reject(error);
-            else if (stats.hasErrors()) reject(new Error(stats.toString()));
-            else resolve();
-          }));
-          if (process.env.ALLOCATIVE) {
-            await new Promise((resolve, reject) => compiler.__internal__rebuild(
-              new Set(), new Set(), error => error ? reject(error) : resolve(),
-            ));
-          }
-        } finally {
-          await new Promise((resolve, reject) => compiler.close(error => error ? reject(error) : resolve()));
-        }
-      `], {
+      execFileSync(process.execPath, ['--expose-gc', join(import.meta.dirname, 'capture-markers.mjs')], {
         cwd: import.meta.dirname,
         env: {
           ...process.env,
@@ -187,7 +160,7 @@ export default {
       });
       if (process.env.ALLOCATIVE) {
         const profiles = readdirSync(directory).filter(name => name.endsWith('.allocative'));
-        assert.deepEqual(profiles.sort(), ['0-build.allocative', '1-rebuild.allocative']);
+        assert.deepEqual(profiles.sort(), ['0-build.allocative', '1-rebuild.allocative', '2-rebuild.allocative', '3-build.allocative']);
         for (const profile of profiles) {
           const native = readFileSync(join(directory, profile), 'utf8');
           assert.match(native, /rspack_binding_api::JsCompiler;compiler;/);
@@ -200,6 +173,7 @@ export default {
           assert(metadata.ustr_arena_capacity_bytes >= metadata.ustr_arena_used_bytes);
           assert.match(native, /GlobalUstrStringArena;arena;/);
           assert(existsSync(join(directory, `${name}.warnings.txt`)));
+          assert.doesNotMatch(readFileSync(join(directory, `${name}.warnings.txt`), 'utf8'), /Incorrect size declaration/);
           const counts = JSON.parse(readFileSync(join(directory, `${name}.counts.json`), 'utf8'));
           assert.equal(counts.snapshot, name);
           assert.equal(counts.unit, 'entries');
@@ -213,12 +187,30 @@ export default {
             }
           }
           const identities = JSON.parse(readFileSync(join(directory, `${name}.objects.json`), 'utf8'));
+          const stats = identities.objects.filter(object => object.type_name.endsWith('::JsStats'));
+          if (name === '2-rebuild' || name === '3-build') {
+            assert.equal(stats.length, 0, 'released Stats wrappers survived GC');
+            assert.doesNotMatch(native, /rspack_binding_api::stats::JsStats/);
+            if (name === '2-rebuild') {
+              assert.match(native, /NapiOwnerAllocations;.*;payload;rspack_core::stats::Stats(?:<[^;]*>)?;/,
+                'owner-finalized Stats allocations disappeared with their wrappers');
+            } else {
+              assert.doesNotMatch(native, /rspack_core::stats::Stats(?:<[^;]*>)?;/,
+                'finalized owner left a tracked Stats allocation');
+            }
+          } else {
+            assert(stats.length >= (name === '0-build' ? 1 : 2));
+            assert(stats.every(object => object.measured), 'live Stats wrapper was not measured');
+            assert.match(native, /rspack_binding_api::stats::JsStats;inner;.*;payload;rspack_core::stats::Stats(?:<[^;]*>)?;/);
+            assert(!native.split('\n').some(line => line.includes('::JsStats;') && line.includes(';rspack_core::compilation::Compilation;')),
+              'Stats must not recount its borrowed Compilation');
+          }
           const heap = JSON.parse(readFileSync(join(directory, 'v8', `${name}.heapsnapshot`), 'utf8'));
           const linked = convert(heap, identities).report;
           assert.equal(linked.unmatched_bindings, 0);
           assert.equal(linked.native_owners.length, 1);
           for (const kind of ['Compiler', 'Compilation', 'Cache']) {
-            const root = linked.root_links.find(root => root.kind === kind);
+            const root = linked.root_links.find(root => root.kind === kind && root.rust_target?.path?.length);
             assert(root?.binding_node_id, `missing ${kind} binding`);
             assert(root.rust_target?.path?.length, `missing ${kind} target`);
           }

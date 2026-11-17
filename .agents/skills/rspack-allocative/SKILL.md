@@ -96,7 +96,7 @@ node "$RSPACK_ROOT/.agents/skills/rspack-allocative/scripts/v8-to-allocative.mjs
   "$PROFILE_DIR/v8/0-build.heapsnapshot"
 ```
 
-The converter writes `.js.allocative`, `.combined.allocative`, `.links.json`, and per-category `.js.<category>.allocative` files under `reports/`. It preserves object names by default and omits string-node contents while retaining their byte weights. Use `--clear-class-names` to remove custom constructor names.
+The converter writes `.js.allocative`, `.combined.allocative`, `.links.json`, and per-category `.js.<category>.allocative` files under `reports/`. All converted profiles exclude V8 code, script source, and engine metadata. JavaScript objects and container/Buffer storage remain included. Inspect engine internals in Chrome DevTools using the original `.heapsnapshot`. Object names are preserved by default; included string nodes retain byte weights without contents. Use `--clear-class-names` to remove custom constructor names.
 
 Prepare every captured snapshot, including HMR rebuilds, in a separate new report directory. The helper discovers matching counts automatically; if absent, produce a byte-only report and report counts as unmeasured.
 
@@ -114,7 +114,7 @@ The helper automatically discovers matching `.counts.json`, `.metadata.json`, an
 
 Check metadata and warnings before interpreting totals. A byte profile is not RSS, peak usage, cumulative allocations, or a complete heap census. Missing roots and inaccessible allocations limit coverage; freed objects do not appear in later snapshots. `Unobserved nested allocations` and unavailable nonblocking locks indicate missing coverage, not zero bytes. Children exceeding a parent's declared size indicate an accounting bug.
 
-For paired captures, validate that category totals equal the JS total and combined bytes equal Rust plus JS bytes. Identity matches alone do not prove native memory was measured: inspect `measured` and warnings. For ownership-link analysis or unmatched objects, read [references/cross-language.md](references/cross-language.md).
+For paired captures, validate that category totals equal `represented_bytes`, `represented_bytes + excluded_v8_bytes = snapshot_bytes`, and combined bytes equal Rust plus represented JS bytes. Identity matches alone do not prove native memory was measured: inspect `measured` and warnings. For ownership-link analysis or unmatched objects, read [references/cross-language.md](references/cross-language.md).
 
 The report helper rejects mismatched snapshot IDs, negative counts, duplicate populations, and ancestor/descendant count rows. Check that sibling populations do not overlap. Preserve zero-valued populations in tables; an empty folded file for all-zero counts has no chart.
 

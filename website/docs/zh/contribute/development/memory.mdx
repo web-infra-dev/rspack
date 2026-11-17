@@ -53,7 +53,7 @@ $rspack-allocative 使用 hotCases/source-map/disable 测试用例抓取内存�
 
 ## 查看快照 \{#view-snapshots}
 
-快照从 compiler 和注册的全局根对象出发，沿所有权路径遍历。权重表示字节数，而非执行时间或内存分配事件。
+快照展示 compiler、全局对象以及 JavaScript 保留的 Rust 对象所占用的内存。共享内存只计算一次。权重表示字节数，而非执行时间或内存分配事件。
 
 打开 [Speedscope](https://www.speedscope.app/)，将 `.allocative` 文件拖入页面。使用搜索和缩放定位数据结构，选择 **Left Heavy** 查看最大的所有权路径。
 
@@ -169,6 +169,8 @@ node "$rspack_root/.agents/skills/rspack-allocative/scripts/v8-to-allocative.mjs
 ```
 
 在 Speedscope 中打开 `reports/0-build.js.allocative` 或 `reports/0-build.combined.allocative`，分别查看 JavaScript 内存和 Rust 与 JavaScript 合并后的内存报告。打开 `reports/0-build.links.json` 可以查找与 JavaScript 对象关联的 Rust 对象。有关报告的查看方法，请参阅[查看快照](#view-snapshots)。
+
+转换后的 `.allocative` 文件始终排除 V8 代码、脚本源码和引擎元数据，保留 JavaScript 对象及其容器或 Buffer 存储。需要查看 V8 内部数据时，请在 Chrome DevTools 中打开原始 `.heapsnapshot`。链接报告中的 `snapshot_bytes`、`represented_bytes` 和 `excluded_v8_bytes` 分别记录原始、展示和排除的字节数；展示与排除字节之和等于原始 JS 快照总量。
 
 原始快照可能包含源码和其他项目数据。转换后的报告默认保留对象名称，省略字符串节点的正文。字符串节点仅计入原快照的字节大小，正文在流式解析时丢弃，任何字符串节点都不输出正文。使用 `--clear-class-names` 清除自定义构造器名称（构造器函数/code frame 中同名的名称也清除），Object、Array、Map、Set 和 typed array 等常见内置名称保留。Rspack 根/对象标记及 Rust 类型名属于诊断元数据，继续保留。命名引用边和 native 身份仅为分类、匹配在内部保留完整值。旧 `--include-content` 参数仍接受，但不再输出字符串正文或 binding 地址。链接报告记录 `clear_class_names`、`string_contents` 和 `string_storage`。使用 `--out-dir` 可以将报告写入另一个已有的目录。
 
