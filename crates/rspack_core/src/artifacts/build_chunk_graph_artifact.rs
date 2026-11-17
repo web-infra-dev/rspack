@@ -8,8 +8,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use tracing::instrument;
 
 use crate::{
-  ArtifactExt, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation,
-  Logger, ModuleIdentifier,
+  ArtifactExt, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey,
+  Compilation, Logger, ModuleIdentifier,
   build_chunk_graph::code_splitter::{CodeSplitter, ModuleReuseInfo},
   fast_set,
   incremental::{IncrementalPasses, Mutation},
@@ -30,6 +30,13 @@ pub struct BuildChunkGraphArtifact {
 }
 
 impl BuildChunkGraphArtifact {
+  pub fn is_runtime_chunk(&self, chunk: &Chunk) -> bool {
+    match &self.runtime_chunks {
+      Some(runtime_chunks) => runtime_chunks.contains(&chunk.ukey()),
+      None => chunk.has_runtime(&self.chunk_group_by_ukey),
+    }
+  }
+
   pub(crate) fn set_code_splitter(&mut self, code_splitter: CodeSplitter) {
     fast_set(&mut self.code_splitter, code_splitter);
   }

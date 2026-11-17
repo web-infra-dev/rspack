@@ -5063,6 +5063,7 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+ "smol_str",
  "tracing",
 ]
 
