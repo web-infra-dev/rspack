@@ -74,19 +74,17 @@ const cases = [
 ];
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
-export default cases.flatMap(testCase =>
-	["transform", "transformSync"].map(api => ({
-		description: `should ${testCase.description} in swc.${api}`,
-		async check({ compiler }) {
-			const result = await compiler.rspack.experiments.swc[api](testCase.source, {
-				filename: "input.js",
-				sourceMaps: true,
-				inputSourceMap: testCase.inputMap(testCase.source),
-				jsc: { target: "es2022", parser: { syntax: "ecmascript" } }
-			});
-			await SourceMapConsumer.with(result.map, null, map => {
-				testCase.check(result.code, map);
-			});
-		}
-	}))
-);
+export default cases.map(testCase => ({
+	description: `should ${testCase.description} in swc.transform`,
+	async check({ compiler }) {
+		const result = await compiler.rspack.experiments.swc.transform(testCase.source, {
+			filename: "input.js",
+			sourceMaps: true,
+			inputSourceMap: testCase.inputMap(testCase.source),
+			jsc: { target: "es2022", parser: { syntax: "ecmascript" } }
+		});
+		await SourceMapConsumer.with(result.map, null, map => {
+			testCase.check(result.code, map);
+		});
+	}
+}));

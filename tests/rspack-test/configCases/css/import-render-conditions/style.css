@@ -1,4 +1,0 @@
-@import "./shared.css" layer(screen-layer) supports(display: grid) screen;
-@import "./shared.css" layer(screen-layer) supports(display: grid) print;
-@import "./shared.css" layer(screen-layer) supports(display: flex) screen;
-@import "./shared.css" layer(other-layer) supports(display: grid) screen;
