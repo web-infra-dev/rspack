@@ -2,11 +2,12 @@ use std::{
   fmt::Write,
   hash::{Hash, Hasher},
   path::Path,
-  sync::Arc,
+  sync::{Arc, LazyLock},
 };
 
 use aho_corasick::AhoCorasick;
 use memchr::memmem;
+use parking_lot::Mutex;
 use rspack_cacheable::{
   __private::rkyv::{Archive, Deserialize, Serialize, bytecheck::CheckBytes},
   ContextIdentifierLayout, Deserializer, Serializer, Validator, from_bytes, to_bytes,
@@ -29,11 +30,60 @@ pub enum RootBinding {
   Bound,
 }
 
+/// The byte spellings of a portable root, both its context and realpath spellings.
 #[derive(Debug)]
-struct RootPatterns {
+pub(crate) struct RootPatterns {
   hash: u64,
   matcher: RootMatcher,
   bind_all: bool,
+}
+
+impl RootPatterns {
+  /// The patterns of `portable_root`. Building them escapes and encodes the root many ways, so
+  /// each root is built once per process.
+  pub(crate) fn of(portable_root: &PortableRoot) -> Arc<Self> {
+    /// Built patterns by the root and the realpath they spell.
+    type Built = FxHashMap<(String, String), Arc<RootPatterns>>;
+    static BUILT: LazyLock<Mutex<Built>> = LazyLock::new(Default::default);
+    let key = (
+      portable_root.root.to_string(),
+      portable_root.canonical_root.to_string(),
+    );
+    if let Some(patterns) = BUILT.lock().get(&key) {
+      return Arc::clone(patterns);
+    }
+    let mut hasher = FxHasher::default();
+    portable_root.canonical_root.as_str().hash(&mut hasher);
+    portable_root.root.as_str().hash(&mut hasher);
+    let mut bind_all = false;
+    let mut patterns: Vec<Vec<u8>> = [&portable_root.root, &portable_root.canonical_root]
+      .into_iter()
+      .flat_map(|root| {
+        let patterns = root_patterns(root.as_str());
+        bind_all |= patterns.bind_all;
+        patterns.patterns
+      })
+      .collect();
+    patterns.sort_unstable();
+    patterns.dedup();
+    let patterns = Arc::new(Self {
+      hash: hasher.finish(),
+      matcher: RootMatcher::new(&patterns),
+      bind_all,
+    });
+    Arc::clone(BUILT.lock().entry(key).or_insert(patterns))
+  }
+
+  /// Whether a root is too short to find at every base64 alignment, so bytes can't be checked
+  /// for it.
+  pub(crate) fn bind_all(&self) -> bool {
+    self.bind_all
+  }
+
+  /// Whether `bytes` spell either root in any of the ways a build stores or a loader writes it.
+  pub(crate) fn is_match(&self, bytes: &[u8]) -> bool {
+    self.matcher.is_match(bytes)
+  }
 }
 
 /// Finds any root pattern in encoded bytes. Every entry of a portable cache is searched, so this
@@ -170,27 +220,7 @@ pub struct CacheCodec {
 
 impl CacheCodec {
   pub fn new(portable_root: Option<PortableRoot>) -> Self {
-    let root_patterns = portable_root.as_ref().map(|portable_root| {
-      let mut hasher = FxHasher::default();
-      portable_root.canonical_root.as_str().hash(&mut hasher);
-      portable_root.root.as_str().hash(&mut hasher);
-      let mut bind_all = false;
-      let mut patterns: Vec<Vec<u8>> = [&portable_root.root, &portable_root.canonical_root]
-        .into_iter()
-        .flat_map(|root| {
-          let patterns = root_patterns(root.as_str());
-          bind_all |= patterns.bind_all;
-          patterns.patterns
-        })
-        .collect();
-      patterns.sort_unstable();
-      patterns.dedup();
-      Arc::new(RootPatterns {
-        hash: hasher.finish(),
-        matcher: RootMatcher::new(&patterns),
-        bind_all,
-      })
-    });
+    let root_patterns = portable_root.as_ref().map(RootPatterns::of);
     Self {
       root_patterns,
       context: Context {

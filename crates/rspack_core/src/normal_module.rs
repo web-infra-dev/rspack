@@ -9,7 +9,7 @@ use std::{
 use derive_more::Debug;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  utils::{PortableString, root_patterns},
+  utils::PortableString,
   with::{As, AsInner, AsOption, AsPreset},
 };
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
@@ -39,6 +39,7 @@ use crate::{
   OutputOptions, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, PortableRequests,
   Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals,
   RuntimeSpec, SideEffectsStateArtifact, SnapshotValidationResult, SourceType, ValueCacheVersions,
+  cache::RootPatterns,
   contextify, contextify_source_map, contextify_source_url,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
@@ -1151,20 +1152,12 @@ impl NormalModule {
       return None;
     }
     // Loaders write JSON-escaped paths, which on Windows differ from the root's own spelling.
-    let patterns = [&root.root, &root.canonical_root].map(|root| root_patterns(root.as_str()));
+    let patterns = RootPatterns::of(root);
     // A root too short to find at every base64 alignment can't be told apart from input data.
-    if patterns.iter().any(|patterns| patterns.bind_all) {
+    if patterns.bind_all() {
       return None;
     }
-    let patterns: Vec<_> = patterns
-      .into_iter()
-      .flat_map(|patterns| patterns.patterns)
-      .collect();
-    let holds_root = |bytes: &[u8]| {
-      patterns
-        .iter()
-        .any(|pattern| memchr::memmem::find(bytes, pattern).is_some())
-    };
+    let holds_root = |bytes: &[u8]| patterns.is_match(bytes);
     if !holds_root(source.source().into_string_lossy().as_bytes()) {
       return None;
     }
