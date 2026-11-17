@@ -944,8 +944,8 @@ impl ExternalModule {
                 let namespace_export_with_name = format!(
                   "{}{}{}",
                   NAMESPACE_OBJECT_EXPORT,
-                  &external_module_id,
-                  &property_access(request.iter(), 1)
+                  external_module_id,
+                  property_access(request.iter(), 1)
                 );
 
                 concatenation_scope.register_namespace_import(
@@ -1017,8 +1017,8 @@ impl ExternalModule {
                     let namespace_export_with_name = format!(
                       "{}{}{}",
                       NAMESPACE_OBJECT_EXPORT,
-                      &external_module_id,
-                      &property_access(request.iter(), 1)
+                      external_module_id,
+                      property_access(request.iter(), 1)
                     );
                     concatenation_scope.register_namespace_export(&namespace_export_with_name);
                     String::new()
@@ -1124,7 +1124,7 @@ if(typeof {global} !== "undefined") return resolve();
         ) {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
-            &external_variable,
+            external_variable,
             runtime_template.throw_missing_module_error_block(&external_variable)
           )
         } else {

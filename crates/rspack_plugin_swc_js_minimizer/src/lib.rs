@@ -261,11 +261,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       // propagate span in rayon to keep parent relation
       let is_matched = match_object(options, filename);
 
-      if !is_matched || original.get_info().minimized.unwrap_or(false) {
-        return false
-      }
-
-      true
+      !(!is_matched || original.get_info().minimized.unwrap_or(false))
     })
     .try_for_each_with(tx,|tx, (asset_filename, original)| -> Result<()>  {
       let _guard = enter_span.enter();

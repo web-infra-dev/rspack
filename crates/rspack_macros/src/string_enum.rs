@@ -50,10 +50,9 @@ impl RenameRule {
       Self::Pascal => value.to_string(),
       Self::Camel => {
         let mut chars = value.chars();
-        chars
-          .next()
-          .map(|first| first.to_lowercase().collect::<String>() + chars.as_str())
-          .unwrap_or_default()
+        chars.next().map_or_else(String::new, |first| {
+          first.to_lowercase().collect::<String>() + chars.as_str()
+        })
       }
       Self::Snake => snake_case(),
       Self::ScreamingSnake => snake_case().cow_to_ascii_uppercase().into_owned(),

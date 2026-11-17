@@ -18,7 +18,8 @@ impl ExportInfoData {
         if matches!(usage, UsageState::Unused) {
           return None;
         }
-      } else if let Some(used_in_runtime) = self.used_in_runtime() {
+      } else {
+        let used_in_runtime = self.used_in_runtime()?;
         if let Some(runtime) = runtime
           && runtime
             .iter()
@@ -26,8 +27,6 @@ impl ExportInfoData {
         {
           return None;
         }
-      } else {
-        return None;
       }
     }
     if let Some(used_name) = self.used_name() {

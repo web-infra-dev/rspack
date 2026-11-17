@@ -20,7 +20,7 @@ fn get_before<'a>(s: &'a str, token: &str) -> &'a str {
 }
 
 fn get_after<'a>(s: &'a str, token: &str) -> &'a str {
-  s.find(token).map(|idx| &s[idx..]).unwrap_or_default()
+  s.find(token).map_or_default(|idx| &s[idx..])
 }
 
 fn get_hash(text: &str, output_options: &OutputOptions) -> String {
@@ -124,8 +124,7 @@ impl ModuleFilenameHelpers {
         };
         let module_id =
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
-            .map(|s| s.to_string())
-            .unwrap_or_default();
+            .map_or_default(|s| s.to_string());
         let absolute_resource_path = match module.as_normal_module() {
           Some(normal_module) => normal_module.resource_resolved_data().path().map_or_else(
             || {
@@ -414,8 +413,7 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
     match &self.source_reference {
       SourceReference::Module(module_identifier) => {
         ChunkGraph::get_module_id(&self.compilation.module_ids_artifact, *module_identifier)
-          .map(|s| s.as_str())
-          .unwrap_or_default()
+          .map_or_default(|s| s.as_str())
       }
       SourceReference::Source(_) => "",
     }

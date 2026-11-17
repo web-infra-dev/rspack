@@ -107,8 +107,7 @@ impl Compiler {
           .loader_cache
           .load()
           .as_ref()
-          .map(Arc::downgrade)
-          .unwrap_or_default(),
+          .map_or_default(Arc::downgrade),
         modified_files,
         removed_files,
         self.input_filesystem.clone(),

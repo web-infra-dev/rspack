@@ -44,8 +44,22 @@ runs:
         fi
 
     - name: Setup sccache
-      if: ${{ runner.environment == 'self-hosted' }}
+      if: ${{ runner.environment == 'self-hosted' && runner.os != 'Windows' }}
       uses: rstackjs/sccache-action@8ece41fd13fd5d944a38144ac9eb98a7455fe438 # v0.1.0
+
+    # Since sccache 0.17.0 (mozilla/sccache#2782), Cargo's `@response-file`
+    # arguments are expanded before spawning rustc. On Windows the expanded
+    # command line can exceed CreateProcessW's 32,767-character limit and fail
+    # with `os error 206` (mozilla/sccache#2787). The `\\?\` verbatim prefix
+    # only lifts the MAX_PATH limit, not the command line limit, so it cannot
+    # fix this. Pin Windows to 0.16.0, the last release that passes the
+    # response file through unchanged, until a release containing
+    # mozilla/sccache#3026 (response-file respawn) is available.
+    - name: Setup sccache (Windows)
+      if: ${{ runner.environment == 'self-hosted' && runner.os == 'Windows' }}
+      uses: rstackjs/sccache-action@8ece41fd13fd5d944a38144ac9eb98a7455fe438 # v0.1.0
+      with:
+        version: v0.16.0
 
     # Workaround for a Windows race in which a freshly linked proc-macro DLL is
     # memory-mapped with zeroed pages when sccache's hashing read overlaps its

@@ -52,7 +52,7 @@ impl RemoteModule {
     remote_key: String,
     runtime_mode: RuntimeMode,
   ) -> Self {
-    let readable_identifier = format!("remote {}", &request);
+    let readable_identifier = format!("remote {request}");
     let namespace = module_identifier_namespace(runtime_mode);
     let lib_ident = format!("{namespace}/container/remote/{request}");
     Self {

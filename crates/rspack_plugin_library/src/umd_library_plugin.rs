@@ -415,7 +415,7 @@ fn externals_require_array(
         };
         let primary = rspack_util::json_stringify_str(request.primary());
         let mut expr = if let Some(rest) = request.rest() {
-          format!("require({}){}", primary, &accessor_to_object_access(rest))
+          format!("require({}){}", primary, accessor_to_object_access(rest))
         } else {
           format!("require({primary})")
         };

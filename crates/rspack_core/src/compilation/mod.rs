@@ -637,11 +637,7 @@ impl Compilation {
   ) -> String {
     let mut runtime_map = self.import_var_map.entry(module).or_default();
     let import_var_map_of_module = runtime_map
-      .entry(
-        runtime
-          .map(|r| get_runtime_key(r).clone())
-          .unwrap_or_default(),
-      )
+      .entry(runtime.map_or_default(|r| get_runtime_key(r).clone()))
       .or_default();
     let len = import_var_map_of_module.len();
     let is_deferred = phase.is_defer()
@@ -1004,8 +1000,7 @@ impl Compilation {
       d.labels
         .as_ref()
         .and_then(|l| l.first())
-        .map(|l| l.offset)
-        .unwrap_or_default()
+        .map_or_default(|l| l.offset)
     };
     self
       .get_errors()
@@ -1030,8 +1025,7 @@ impl Compilation {
       d.labels
         .as_ref()
         .and_then(|l| l.first())
-        .map(|l| l.offset)
-        .unwrap_or_default()
+        .map_or_default(|l| l.offset)
     };
     self
       .get_warnings()

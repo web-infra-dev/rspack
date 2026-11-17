@@ -109,13 +109,12 @@ pub fn collect_modules(
       let is_concatenated = module.as_concatenated_module().is_some();
       let chunks = chunk_graph
         .try_get_module_chunks(module_id)
-        .map(|chunks| {
+        .map_or_default(|chunks| {
           chunks
             .iter()
             .map(|i| i.as_u32() as ChunkUkey)
             .collect::<HashSet<_>>()
-        })
-        .unwrap_or_default();
+        });
 
       (
         module_id.to_owned(),
@@ -830,8 +829,7 @@ pub fn collect_connections_only_imports(
           let dependency_type = dep.dependency_type().to_string();
           let user_request = dep
             .as_module_dependency()
-            .map(|d| d.user_request().to_string())
-            .unwrap_or_default();
+            .map_or_default(|d| d.user_request().to_string());
 
           let origin_module = conn
             .original_module_identifier

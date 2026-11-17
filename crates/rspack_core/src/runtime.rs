@@ -277,7 +277,7 @@ pub fn merge_runtime_condition_non_false(
     }
     (RuntimeCondition::Spec(a), RuntimeCondition::Spec(b)) => merge_runtime(a, b),
   };
-  if runtime.map(|spec| spec.len()).unwrap_or_default() == merged.len() {
+  if runtime.map_or_default(|spec| spec.len()) == merged.len() {
     return RuntimeCondition::Boolean(true);
   }
   RuntimeCondition::Spec(merged)
@@ -296,7 +296,7 @@ pub fn merge_runtime_condition(
     }
     (RuntimeCondition::Spec(a), RuntimeCondition::Spec(b)) => merge_runtime(a, b),
   };
-  if runtime.map(|spec| spec.len()).unwrap_or_default() == merged.len() {
+  if runtime.map_or_default(|spec| spec.len()) == merged.len() {
     return RuntimeCondition::Boolean(true);
   }
   RuntimeCondition::Spec(merged)

@@ -1,4 +1,4 @@
-#![feature(rustc_private)]
+#![feature(rustc_private, default_field_values)]
 
 extern crate rustc_hir;
 extern crate rustc_hir_analysis;
@@ -304,8 +304,8 @@ fn collection_use_from_hir_ty<'tcx>(
   Some(collection)
 }
 
-fn type_arg<'tcx>(args: ty::GenericArgsRef<'tcx>, index: usize) -> Option<Ty<'tcx>> {
-  args.get(index).and_then(|arg| GenericArg::as_type(*arg))
+fn type_arg<'tcx>(args: &ty::GenericArgs<'tcx>, index: usize) -> Option<Ty<'tcx>> {
+  args.get(index).and_then(GenericArg::as_type)
 }
 
 fn find_violation(cx: &LateContext<'_>, collection: &CollectionUse<'_>) -> Option<Violation> {
@@ -564,10 +564,8 @@ fn hir_ty_has_placeholder<'tcx, A>(hir_ty: &rustc_hir::Ty<'tcx, A>) -> bool {
     rustc_hir::TyKind::Infer(_) => true,
     rustc_hir::TyKind::Slice(inner)
     | rustc_hir::TyKind::Array(inner, _)
-    | rustc_hir::TyKind::Ptr(rustc_hir::MutTy { ty: inner, .. })
-    | rustc_hir::TyKind::Ref(_, rustc_hir::MutTy { ty: inner, .. }) => {
-      hir_ty_has_placeholder(inner)
-    }
+    | rustc_hir::TyKind::Ptr(inner, _)
+    | rustc_hir::TyKind::Ref(_, inner, _) => hir_ty_has_placeholder(inner),
     rustc_hir::TyKind::Tup(tys) => tys.iter().any(hir_ty_has_placeholder),
     rustc_hir::TyKind::Path(qpath) => qpath_has_placeholder(qpath),
     _ => false,
@@ -692,9 +690,9 @@ fn hir_ty_uses_turbofish(cx: &LateContext<'_>, hir_ty: &rustc_hir::Ty<'_>) -> bo
 
 fn hir_ty_has_problematic_implicit_lifetime<'tcx, A>(hir_ty: &rustc_hir::Ty<'tcx, A>) -> bool {
   match hir_ty.kind {
-    // `&T` lowers to `TyKind::Ref(<lifetime>, <mut-ty>)`, where omitted lifetimes appear as
+    // `&T` lowers to `TyKind::Ref(<lifetime>, <ty>, <mutability>)`, where omitted lifetimes appear as
     // `LifetimeSource::Reference` plus `LifetimeSyntax::Implicit`.
-    rustc_hir::TyKind::Ref(lifetime, rustc_hir::MutTy { ty: inner, .. }) => {
+    rustc_hir::TyKind::Ref(lifetime, inner, _) => {
       lifetime_requires_skip(lifetime) || hir_ty_has_problematic_implicit_lifetime(inner)
     }
     // `dyn Trait` lowers to `TyKind::TraitObject(.., TaggedRef<Lifetime, TraitObjectSyntax>)`.
@@ -703,9 +701,7 @@ fn hir_ty_has_problematic_implicit_lifetime<'tcx, A>(hir_ty: &rustc_hir::Ty<'tcx
     rustc_hir::TyKind::Slice(inner)
     | rustc_hir::TyKind::Array(inner, _)
     | rustc_hir::TyKind::Pat(inner, _)
-    | rustc_hir::TyKind::Ptr(rustc_hir::MutTy { ty: inner, .. }) => {
-      hir_ty_has_problematic_implicit_lifetime(inner)
-    }
+    | rustc_hir::TyKind::Ptr(inner, _) => hir_ty_has_problematic_implicit_lifetime(inner),
     rustc_hir::TyKind::UnsafeBinder(binder) => {
       hir_ty_has_problematic_implicit_lifetime(binder.inner_ty)
     }

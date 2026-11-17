@@ -74,8 +74,7 @@ pub(crate) fn css_render_conditions_from_module(
     .build_info()
     .css
     .as_deref()
-    .map(|css| css.render_conditions().cloned().collect())
-    .unwrap_or_default()
+    .map_or_default(|css| css.render_conditions().cloned().collect())
 }
 
 pub(crate) fn css_module_has_charset(module: &dyn Module) -> bool {
@@ -141,8 +140,7 @@ pub(crate) fn css_dependency_meta(dependency: &dyn Dependency) -> CssDependencyM
     is_css_import_dependency,
     is_css_dependency,
     render_conditions: css_import_dependency
-      .map(|dep| dep.render_conditions().cloned().collect())
-      .unwrap_or_default(),
+      .map_or_default(|dep| dep.render_conditions().cloned().collect()),
     export_type: css_dependency_export_type(dependency)
       .or_else(|| css_attribute_export_type(dependency.get_attributes())),
   }
