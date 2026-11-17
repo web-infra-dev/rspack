@@ -70,7 +70,11 @@ When using [ts-checker-rspack-plugin](https://github.com/rspack-contrib/ts-check
 
 ### Stats generation
 
-Requesting detailed stats with `stats.toJson()` or `stats.toString()` can add noticeable overhead, especially with `all: true`. Check these calls in build scripts and plugins, and request only the information you need. See [Stats performance overhead](/api/javascript-api/stats#performance-overhead) for usage recommendations.
+Requesting detailed stats with [`stats.toJson()`](/api/javascript-api/stats#tojson) or [`stats.toString()`](/api/javascript-api/stats#tostring) can add noticeable overhead, especially with [`all: true`](/config/stats#statsall). Check these calls in build scripts and plugins, and request only the information you need. See [Stats performance overhead](/api/javascript-api/stats#performance-overhead) for usage recommendations.
+
+### SplitChunks
+
+Function options in [`splitChunks`](/plugins/split-chunks-plugin) and a higher [`dedupDepth`](/plugins/split-chunks-plugin#splitchunksdedupdepth) can increase build time. See [SplitChunks performance overhead](/plugins/split-chunks-plugin#performance-overhead) for the causes and configuration recommendations.
 
 ## Thread pool configuration
 

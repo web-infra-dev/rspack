@@ -72,7 +72,11 @@ Loader 的处理范围和转换方式都会影响构建性能。可以通过缩�
 
 ### Stats 生成 \{#stats-generation}
 
-通过 `stats.toJson()` 或 `stats.toString()` 获取详细统计信息可能带来明显的开销，尤其是开启 `all: true` 时。建议检查构建脚本和插件中的这些调用，只获取需要的信息。具体用法见 [Stats 性能开销](/api/javascript-api/stats#performance-overhead)。
+通过 [`stats.toJson()`](/api/javascript-api/stats#tojson) 或 [`stats.toString()`](/api/javascript-api/stats#tostring) 获取详细统计信息可能带来明显的开销，尤其是开启 [`all: true`](/config/stats#statsall) 时。建议检查构建脚本和插件中的这些调用，只获取需要的信息。具体用法见 [Stats 性能开销](/api/javascript-api/stats#performance-overhead)。
+
+### SplitChunks
+
+[`splitChunks`](/plugins/split-chunks-plugin) 中的函数选项和较大的 [`dedupDepth`](/plugins/split-chunks-plugin#splitchunksdedupdepth) 都可能增加构建耗时。具体原因和配置建议见 [SplitChunks 性能开销](/plugins/split-chunks-plugin#performance-overhead)。
 
 ## 线程池配置 \{#thread-pool-configuration}
 
