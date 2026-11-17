@@ -7,7 +7,10 @@ use super::{FsEvent, FsEventKind};
 use crate::{
   EventBatch, ResolvedEvents,
   analyzer::{Analyzer, RecommendedAnalyzer},
-  paths::{ContextPath, DirectoryChanges, EntryChange, PathManager},
+  paths::{
+    ContextPath, DirectoryChanges, EntryChange, EventOrigin as Origin,
+    ObservedEntry as ObservedEvent, PathManager,
+  },
   symlinks::{LinkEvent, SymlinkAlias},
 };
 /// `DependencyFinder` provides references to sets of files, directories, and missing paths,
@@ -93,7 +96,7 @@ impl<'a> DependencyFinder<'a> {
   }
 }
 
-/// Maintains observed state independently of which subscriptions accept a change.
+/// Routes observed changes to the subscriptions that accept them.
 /// Appearing directories recover their registered descendants through the same
 /// subscription selection and notification path as individual disk events.
 ///
@@ -116,14 +119,6 @@ struct EventSubscriptions {
   contexts: Vec<ContextPath>,
 }
 
-struct ObservedEvent<'a> {
-  path: &'a InternedPath,
-  kind: FsEventKind,
-  origin: &'a Origin,
-  initial_missing: bool,
-  directory_replaced: bool,
-}
-
 /// `Trigger` is responsible for sending file system events to the event channel
 /// when a relevant file or directory change is detected.
 ///
@@ -134,54 +129,6 @@ pub struct Trigger {
   pub analyzer: Arc<RecommendedAnalyzer>,
   /// Physical directories replaced since the last watch plan.
   pub(crate) replaced_directories: Arc<Mutex<InternedPathSet>>,
-}
-
-/// Where an event comes from.
-enum Origin {
-  /// The OS watcher; renames can replace a directory even when its inode is reused.
-  Disk {
-    renamed: bool,
-  },
-  /// An explicit event supplied through `FsWatcher::trigger_event`.
-  Injected,
-  RecheckDirectory,
-  /// A scan, for what changed while the watch was not active yet: a file a
-  /// context's initial scan found changed since the start time, or a
-  /// registered path the scanner backfills. Already judged a change, it is
-  /// never dropped as a duplicate or as attribute-only.
-  Scan,
-  // Keep scan ownership without enlarging every queued disk event.
-  ContextScan(Box<ContextPath>),
-  LinkScan(InternedPath),
-  Symlink {
-    link_changed: bool,
-    renamed: bool,
-    injected: bool,
-  },
-}
-
-impl Origin {
-  fn appeared(&self, kind: FsEventKind) -> bool {
-    matches!(
-      self,
-      Self::Disk { renamed: true } | Self::Symlink { renamed: true, .. }
-    ) || kind == FsEventKind::Create
-  }
-
-  fn is_scan(&self) -> bool {
-    matches!(self, Self::Scan | Self::ContextScan(_) | Self::LinkScan(_))
-  }
-
-  fn link_changed(&self) -> bool {
-    matches!(
-      self,
-      Self::LinkScan(_)
-        | Self::Symlink {
-          link_changed: true,
-          ..
-        }
-    )
-  }
 }
 
 impl Trigger {
@@ -377,23 +324,13 @@ impl EventProcessor {
     let subscriptions = self
       .subscriptions(path, source_path, &origin, resolved_path)
       .await;
-    let directory_changes = if origin.link_changed() || origin.is_scan() {
-      None
-    } else {
-      self
-        .path_manager
-        .reconcile_directory(path, matches!(origin, Origin::RecheckDirectory))
-        .await
-    };
-    if matches!(origin, Origin::RecheckDirectory) && directory_changes.is_none() {
-      return;
-    }
-    let Some(mut event) = self.observe(path, source_path, kind, &origin) else {
+    let Some((event, directory_changes)) = self
+      .path_manager
+      .observe_entry(path, source_path, kind, &origin)
+      .await
+    else {
       return;
     };
-    event.directory_replaced = directory_changes
-      .as_ref()
-      .is_some_and(|changes| changes.replaced);
     let mut events = ResolvedEvents::default();
     if let Some(changes) = directory_changes {
       if !matches!(origin, Origin::RecheckDirectory) {
@@ -470,114 +407,25 @@ impl EventProcessor {
         .subscriptions(&path, &path, &origin, resolved_path.as_ref())
         .await;
       subscriptions.contexts.clear();
-      if let Some(event) = self.observe(&path, &path, FsEventKind::Change, &origin) {
+      if let Some(event) =
+        self
+          .path_manager
+          .normalize_event(&path, &path, FsEventKind::Change, &origin)
+      {
         self.collect_changes(&event, subscriptions, events).await;
       }
     }
     for (path, context) in changes.contexts {
       let origin = Origin::ContextScan(Box::new(context));
       let subscriptions = self.subscriptions(&path, &path, &origin, None).await;
-      if let Some(event) = self.observe(&path, &path, FsEventKind::Change, &origin) {
+      if let Some(event) =
+        self
+          .path_manager
+          .normalize_event(&path, &path, FsEventKind::Change, &origin)
+      {
         self.collect_changes(&event, subscriptions, events).await;
       }
     }
-  }
-
-  fn observe<'a>(
-    &self,
-    path: &'a InternedPath,
-    source_path: &InternedPath,
-    kind: FsEventKind,
-    origin: &'a Origin,
-  ) -> Option<ObservedEvent<'a>> {
-    // A watched path that no longer exists on disk is a removal, regardless of
-    // how the OS reported the event. macOS FSEvents reports an unlink as a
-    // rename (`ModifyKind::Name` → `Change`), so normalize a `Change` whose
-    // path is gone into a `Remove`, keeping the event kind consistent with
-    // inotify (which already reports `Remove`). A delayed `Create` whose
-    // path has already disappeared is also a removal. Done before the stale-event
-    // filter below, which only applies to `Change`/`Create`.
-    // The reverse holds too: a removal of a path back on disk (unlinked and
-    // re-created) ends as the path's final state, like watchpack's lstat on
-    // each event. Keep its records unless the absence was observed, so an
-    // unchanged aged mtime is suppressed just as it is by watchpack. Explicit and
-    // scanned removals already declare the old record invalid.
-    let removed = kind == FsEventKind::Remove
-      && !matches!(
-        origin,
-        Origin::Disk { .. }
-          | Origin::Symlink {
-            injected: false,
-            ..
-          }
-      );
-    let initial_missing = removed && origin.is_scan();
-    let exists = if origin.link_changed() {
-      std::fs::symlink_metadata(source_path).is_ok()
-    } else if matches!(origin, Origin::Symlink { .. }) {
-      path.exists()
-    } else if origin.is_scan() {
-      self.path_manager.is_file_present(path)
-    } else {
-      std::fs::symlink_metadata(path).is_ok()
-    };
-    let kind = match kind {
-      FsEventKind::Change | FsEventKind::Create if !exists => FsEventKind::Remove,
-      FsEventKind::Remove if exists => FsEventKind::Change,
-      kind => kind,
-    };
-
-    let accessor = self.path_manager.access();
-    let is_watched_path = accessor.files().0.contains(path) || accessor.missing().0.contains(path);
-    if kind == FsEventKind::Remove
-      && matches!(
-        origin,
-        Origin::Symlink {
-          link_changed: false,
-          injected: false,
-          ..
-        }
-      )
-      && ((accessor.missing().0.contains(path) && !self.path_manager.has_file_time(path))
-        || self.path_manager.is_known_absent(path))
-    {
-      return None;
-    }
-    // Watchpack keeps a discovered file link as an entry when only its target
-    // disappears; the link itself is still present in the context.
-    if matches!(
-      origin,
-      Origin::Symlink {
-        link_changed: false,
-        ..
-      }
-    ) && !exists
-      && !is_watched_path
-      && self.path_manager.is_context_symlink_file(path)
-    {
-      self.path_manager.clear_file_baseline(path);
-      return None;
-    }
-
-    // Drop a removed path's record so it reads as `null`, like watchpack. A
-    // directory moved or deleted as a whole is one event with no per-file
-    // removals, so its descendants' records go with it. Only a path that can
-    // hold records is swept, so deleting many unrelated files stays cheap.
-    if removed || kind == FsEventKind::Remove {
-      let may_contain_records = self.path_manager.may_contain_records(path);
-      self.path_manager.remove_file_time(path);
-      if may_contain_records {
-        self.path_manager.remove_file_times_under(path);
-      }
-    }
-
-    Some(ObservedEvent {
-      path,
-      kind,
-      origin,
-      initial_missing,
-      directory_replaced: false,
-    })
   }
 
   async fn collect_changes(
@@ -598,66 +446,17 @@ impl EventProcessor {
     let origin = event.origin;
     let initial_missing = event.initial_missing;
     let finder = self.finder();
-    let is_watched_path = finder.contains_file(path);
-    let is_followed_context_file = self.path_manager.is_followed_context_file(path);
-    // A context scan updates time info without consuming a file subscription's baseline.
-    if !origin.is_scan()
-      && (kind == FsEventKind::Change
-        || (kind == FsEventKind::Create && (is_watched_path || is_followed_context_file)))
-      && !self.path_manager.has_mtime_changed(path)
-      && !origin.link_changed()
-    {
-      return;
-    }
-    if kind != FsEventKind::Remove {
-      match self
-        .path_manager
-        .observe_context_entry(
-          path,
-          origin.is_scan() || origin.link_changed() || is_watched_path || is_followed_context_file,
-          &contexts,
-        )
-        .await
-      {
-        EntryChange::Unchanged => return,
-        EntryChange::ExistingDirectory
-          if !event.directory_replaced
-            && !origin.is_scan()
-            && !origin.link_changed()
-            && !matches!(
-              origin,
-              Origin::Injected
-                | Origin::Symlink { injected: true, .. }
-                | Origin::Disk { renamed: true }
-                | Origin::Symlink { renamed: true, .. }
-            ) =>
-        {
-          contexts.retain(|context| context.dependency.as_ref() == Some(path));
-          if !direct_subscription && contexts.is_empty() {
-            return;
-          }
+    match self.path_manager.apply_entry(event, &contexts).await {
+      EntryChange::Unchanged => return,
+      EntryChange::ExistingDirectory => {
+        contexts.retain(|context| context.dependency.as_ref() == Some(path));
+        if !direct_subscription && contexts.is_empty() {
+          return;
         }
-        _ => {}
       }
+      EntryChange::Changed => {}
     }
-    if matches!(origin, Origin::Symlink { .. })
-      && kind != FsEventKind::Remove
-      && !path.is_dir()
-      && (!is_watched_path
-        || matches!(
-          origin,
-          Origin::Symlink {
-            link_changed: true,
-            ..
-          }
-        ))
-      && let Ok(mtime) = path.metadata().and_then(|metadata| metadata.modified())
-    {
-      self.path_manager.set_file_time(path, mtime, false, false);
-    }
-    self
-      .path_manager
-      .set_last_watch_events(path, Some(&contexts));
+    self.path_manager.record_event(event, &contexts);
 
     let mut associated_event = finder.find_associated_event(path, kind);
     associated_event.retain(|(dependency, _)| {
@@ -685,11 +484,7 @@ impl EventProcessor {
       {
         *associated_kind = FsEventKind::Remove;
         self.analyzer.invalidate_path(associated);
-        let may_contain_records = self.path_manager.may_contain_records(associated);
-        self.path_manager.remove_file_time(associated);
-        if may_contain_records {
-          self.path_manager.remove_file_times_under(associated);
-        }
+        self.path_manager.remove_entry(associated);
       }
     }
 
@@ -784,7 +579,11 @@ impl EventProcessor {
           let subscriptions = self
             .subscriptions(&entry_path, &entry_path, origin, resolved_path.as_ref())
             .await;
-          if let Some(event) = self.observe(&entry_path, &entry_path, FsEventKind::Create, origin) {
+          if let Some(event) =
+            self
+              .path_manager
+              .normalize_event(&entry_path, &entry_path, FsEventKind::Create, origin)
+          {
             self.collect_changes(&event, subscriptions, events).await;
           }
         }
