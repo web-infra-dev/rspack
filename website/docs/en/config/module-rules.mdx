@@ -788,6 +788,43 @@ The value of `as` is a path template. The only supported placeholder is `[resour
 
 The generated path is only used for rule matching; it does not change the file being read, the resource processed by loaders, or the output filename. Both imports in the example therefore read `example.js`; no `example.js.asset` file is needed.
 
+### Default rules
+
+Starting from Rspack 2.4, the built-in [`module.defaultRules`](/config/module#moduledefaultrules) for `with { type: 'text' }` and `with { type: 'bytes' }` append `.text` and `.bytes` to the matching path via `as`:
+
+```js
+const defaultRules = [
+  // ...
+  {
+    with: { type: 'text' },
+    type: 'asset/source',
+    as: '[resource-path].text',
+  },
+  {
+    with: { type: 'bytes' },
+    type: 'asset/bytes',
+    as: '[resource-path].bytes',
+  },
+];
+```
+
+Before Rspack 2.4, these rules only set `type` and kept the original file path for subsequent rule matching, so rules in `module.rules` matching the original extension (such as `test: /\.js$/` or `test: /\.css$/`) still matched text and bytes imports.
+
+With these suffixes, subsequent rules that match the original extension no longer apply to text or bytes imports. To keep a transformation on text or bytes imports, match the import attribute with [`with`](#ruleswith) instead of the original extension:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        with: { type: 'text' },
+        loader: './my-text-loader.js',
+      },
+    ],
+  },
+};
+```
+
 ## rules[].type
 
 - **Type:** `string`
