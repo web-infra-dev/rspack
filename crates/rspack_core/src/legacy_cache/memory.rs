@@ -17,7 +17,10 @@ impl Cache for MemoryCache {
   }
 
   fn store_hot_cache(&mut self, compilation: &mut Compilation) {
-    self.source_map_dev_tool_plugin_cache = compilation.source_map_dev_tool_plugin_cache.take();
+    self.source_map_dev_tool_plugin_cache = compilation
+      .source_map_dev_tool_plugin_cache
+      .take()
+      .map(SourceMapDevToolPluginCache::into_hot_cache);
   }
 
   async fn before_process_assets(&mut self, compilation: &mut Compilation) {

@@ -5,12 +5,12 @@ use rkyv::{
   with::{ArchiveWith, DeserializeWith, SerializeWith},
 };
 use rspack_sources::{
-  BoxSource,
-  cacheable::{CacheableSource, from_cacheable, to_cacheable},
+  BoxSource, SourceMap,
+  cacheable::{CacheableSource, CacheableSourceMap, from_cacheable, to_cacheable},
 };
 
 use super::AsPreset;
-use crate::{Error, Result};
+use crate::{ContextGuard, Error, Result, with::AsConverter};
 
 pub struct InnerResolver {
   source: CacheableSource,
@@ -51,5 +51,15 @@ where
   ) -> Result<BoxSource> {
     let cacheable: CacheableSource = field.deserialize(deserializer)?;
     Ok(from_cacheable(cacheable))
+  }
+}
+
+impl AsConverter<SourceMap> for CacheableSourceMap {
+  fn serialize(map: &SourceMap, _: &ContextGuard) -> Result<Self> {
+    Ok(map.into())
+  }
+
+  fn deserialize(self, _: &ContextGuard) -> Result<SourceMap> {
+    Ok(self.into())
   }
 }

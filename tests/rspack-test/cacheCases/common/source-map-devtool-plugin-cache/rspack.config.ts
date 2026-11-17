@@ -1,4 +1,5 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
+import { rspack } from '@rspack/core';
 
 const PLUGIN_NAME = 'rspack.SourceMapDevToolPlugin';
 
@@ -6,7 +7,7 @@ let updateIndex = 0;
 
 export default defineConfig({
   context: import.meta.dirname,
-  devtool: 'source-map',
+  devtool: false,
   output: {
     filename: 'bundle.js',
     chunkFilename: '[name].chunk.js',
@@ -15,6 +16,19 @@ export default defineConfig({
     type: 'persistent',
   },
   plugins: [
+    new rspack.SourceMapDevToolPlugin({
+      test: /\.chunk\.js$/,
+      filename: '[file].map',
+      append: () => `\n//# sourceMappingURL=[url]?build=${updateIndex}`,
+    }),
+    new rspack.SourceMapDevToolPlugin({
+      test: /^bundle\.js$/,
+      noSources: true,
+    }),
+    new rspack.SourceMapDevToolPlugin({
+      test: /^bundle\.js$/,
+      noSources: true,
+    }),
     definePlugin({
       apply(compiler) {
         compiler.hooks.compilation.tap('CheckDevtoolSource', (compilation) => {
@@ -24,7 +38,15 @@ export default defineConfig({
               expect(asset.source.map()).toBeNull();
               const text = asset.source.source().toString();
               expect(text.match(/sourceMappingURL=/g)).toHaveLength(1);
-              expect(text).toContain(`sourceMappingURL=${asset.name}.map`);
+              if (asset.name === 'bundle.js') {
+                expect(text).toContain(
+                  'sourceMappingURL=data:application/json',
+                );
+              } else {
+                expect(text).toContain(
+                  `sourceMappingURL=${asset.name}.map?build=${updateIndex}`,
+                );
+              }
             }
           });
         });
@@ -35,36 +57,16 @@ export default defineConfig({
           });
 
           const logEntries = s.logging?.[PLUGIN_NAME]?.entries ?? [];
-          const cacheLogEntry = logEntries.find(
-            (e) =>
-              e.type === 'cache' &&
-              e.message &&
-              e.message.startsWith('source map persistent cache:'),
-          );
-          expect(cacheLogEntry).toBeTruthy();
+          const counts = logEntries
+            .filter((entry) => entry.type === 'cache')
+            .map((entry) => entry.message?.match(/\((\d+)\/(\d+)\)$/)?.[0]);
 
-          const match = cacheLogEntry?.message.match(
-            /source map persistent cache: [\d.]+% \((\d+)\/(\d+)\)/,
-          );
-          expect(match).toBeTruthy();
-
-          const hits = parseInt(match![1], 10);
-          const total = parseInt(match![2], 10);
-          const misses = total - hits;
-
-          if (updateIndex === 0) {
-            expect(hits).toBe(0);
-            expect(misses).toBe(2);
-          }
-          if (updateIndex === 1) {
-            expect(hits).toBe(2);
-            expect(misses).toBe(0);
-          }
-          if (updateIndex === 2) {
-            expect(hits).toBe(1);
-            expect(misses).toBe(1);
-          }
-
+          // Each instance sees one asset. The last receives the already inlined bundle.
+          expect(counts).toEqual([
+            updateIndex === 0 ? '(0/1)' : '(1/1)',
+            updateIndex === 1 ? '(1/1)' : '(0/1)',
+            '(0/1)',
+          ]);
           updateIndex++;
         });
       },
