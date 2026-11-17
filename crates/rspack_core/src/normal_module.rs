@@ -17,7 +17,8 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{
-  Content, LoaderContext, LoaderFilters, LoaderRunnerOptions, ResourceData, run_loaders,
+  Content, LoaderContext, LoaderFilters, LoaderRunnerOptions, LoaderYieldInput, LoaderYieldResult,
+  ResourceData, run_loaders,
 };
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, SourceExt, SourceMap,
@@ -81,7 +82,7 @@ impl ModuleIssuer {
 
 define_hook!(NormalModuleReadResource: SeriesBail(resource_data: &ResourceData, fs: &Arc<dyn ReadableFileSystem>) -> Content,tracing=false);
 define_hook!(NormalModuleLoader: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
-define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut LoaderContext<RunnerContext>),tracing=false);
+define_hook!(NormalModuleLoaderStartYielding: SeriesBail(loader_context: &Arc<LoaderContext<RunnerContext>>, input: &mut Option<LoaderYieldInput>) -> LoaderYieldResult,tracing=false);
 define_hook!(NormalModuleBeforeLoaders: Series(module: &mut NormalModule),tracing=false);
 
 #[derive(Debug, Default)]

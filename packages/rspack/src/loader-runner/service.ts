@@ -1,6 +1,10 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { MessageChannel } from 'node:worker_threads';
+import {
+  registerStrictLoaderWorker,
+  stopStrictLoaderWorker,
+} from '@rspack/binding';
 import type { Tinypool } from 'tinypool' with { 'resolution-mode': 'import' };
 
 const require = createRequire(import.meta.url);
@@ -32,9 +36,34 @@ const ensureLoaderWorkerPool = async (workerOptions?: {
       concurrentTasksPerWorker: 1,
     });
 
+    pool.on('error', () => {});
     return pool;
   }));
 };
+
+let strictPoolReady: Promise<void> | undefined;
+const strictWorkers = new WeakSet<object>();
+
+export function prepareStrictLoaderPool(): void {
+  if (strictPoolReady) return;
+  // Reserve the queue while the pool is being created.
+  registerStrictLoaderWorker(0);
+  strictPoolReady = ensureLoaderWorkerPool()
+    .then((pool) => {
+      for (const worker of pool.threads) {
+        if (strictWorkers.has(worker)) continue;
+        strictWorkers.add(worker);
+        const id = worker.threadId;
+        registerStrictLoaderWorker(id);
+        worker.once('exit', () => {
+          stopStrictLoaderWorker(id);
+          strictPoolReady = undefined;
+        });
+      }
+    })
+    .finally(() => stopStrictLoaderWorker(0));
+  void strictPoolReady.catch(() => {});
+}
 
 type RunOptions = Parameters<Tinypool['run']>[1];
 

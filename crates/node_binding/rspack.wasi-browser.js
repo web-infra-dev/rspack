@@ -1553,3 +1553,9 @@ export const sync = __napiModule.exports.sync
 export const syncTraceEvent = __napiModule.exports.syncTraceEvent
 export const transform = __napiModule.exports.transform
 export const transformSync = __napiModule.exports.transformSync
+
+export const getSerializedLoaderOptions = __napiModule.exports.getSerializedLoaderOptions
+export const registerStrictLoader = __napiModule.exports.registerStrictLoader
+export const registerStrictLoaderWorker = __napiModule.exports.registerStrictLoaderWorker
+export const stopStrictLoaderWorker = __napiModule.exports.stopStrictLoaderWorker
+export const subscribeStrictLoaderWorker = __napiModule.exports.subscribeStrictLoaderWorker

@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use rspack_error::{Diagnostic, Result};
 use rspack_fs::ReadableFileSystem;
-use rspack_loader_runner::{Content, LoaderContext, LoaderRunnerPlugin, ResourceData};
+use rspack_loader_runner::{
+  Content, LoaderContext, LoaderRunnerPlugin, LoaderYieldInput, LoaderYieldResult, ResourceData,
+};
 use rspack_paths::InternedPathSet;
 use rspack_sources::SourceMap;
 
@@ -98,16 +100,29 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     Ok(None)
   }
 
-  async fn start_yielding(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
-    self
+  async fn start_yielding(
+    &self,
+    context: &Arc<LoaderContext<Self::Context>>,
+    input: LoaderYieldInput,
+  ) -> Result<LoaderYieldResult> {
+    let mut input = Some(input);
+    let result = self
       .plugin_driver
       .normal_module_hooks
       .loader_yield
-      .call(context)
-      .await
+      .call(context, &mut input)
+      .await?;
+    Ok(
+      result
+        .unwrap_or_else(|| LoaderYieldResult::Unhandled(input.expect("unhandled loader input"))),
+    )
   }
 
-  async fn run_normal_chain(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
+  async fn run_normal_chain(
+    &self,
+    loader_context: &mut Arc<LoaderContext<Self::Context>>,
+  ) -> Result<()> {
+    let context = Arc::get_mut(loader_context).expect("loader context must be exclusive");
     let chain = context
       .current_root_chain()
       .expect("normal execution requires a current root chain");
@@ -138,8 +153,9 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
       return Ok(());
     }
 
-    context.run_normal_chain().await?;
+    LoaderContext::run_normal_chain(loader_context).await?;
     if let LoaderCacheAction::Miss(state) = cache_action {
+      let context = Arc::get_mut(loader_context).expect("loader context must be exclusive");
       after_normal_chain(context, &state).await;
     }
     Ok(())

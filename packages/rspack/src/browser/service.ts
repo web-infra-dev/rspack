@@ -27,3 +27,7 @@ export enum RequestType {
 export function run(): Promise<never> {
   return Promise.reject(new Error('Not support browser'));
 }
+
+export function prepareStrictLoaderPool(): never {
+  throw new Error('Strict loader workers require the native binding');
+}

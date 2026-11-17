@@ -182,14 +182,31 @@ export default {
 
 Setting `parallel: true` enables parallel execution with an automatically chosen number of worker threads.
 
-When multiple loaders within the same rule have `parallel` enabled, Rspack executes them sequentially inside the same worker until it encounters a non-parallel loader or a Rust-implemented builtin loader. This preserves the loader execution order while maximizing parallel efficiency.
+When multiple loaders within the same rule use the same parallel execution mode, Rspack executes them sequentially inside the same worker. Switching modes or encountering a non-parallel or builtin loader starts a new segment. This preserves the loader execution order while maximizing parallel efficiency.
 
 :::tip
 
 - When parallel execution is enabled, `options` must be an object. Even if the loader has no options, you must explicitly set `options: {}`. Omitting `options` causes a configuration error.
-- The loader options must comply with the [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist), otherwise transmission will fail.
-- In worker mode, most methods on `LoaderContext._compilation`, `LoaderContext._compiler`, and `LoaderContext._module` are not supported.
+- Regular parallel loaders use the main thread for the loader hook and compiler and compilation APIs. Loader options and custom module build info must be structured-cloneable.
+- Use [`parallel: 'strict'`](#strict-execution) for loaders that can run entirely in a worker.
 
 :::
 
-For more details, see [rules[].use.parallel](/config/module-rules#rulesuseparallel).
+See [rules[].use.parallel](/config/module-rules#rulesuseparallel) for the option reference.
+
+### Worker pool size
+
+Set `parallel: { maxWorkers: 4 }` to limit the loader pool to four workers. By default, Rspack uses the number of logical CPUs minus one, with a minimum of one worker. Regular and strict parallel loaders share one pool per process. The first rule to initialize the pool determines its size.
+
+Rspack initializes workers asynchronously when registering parallel loader rules. Compilation waits for them before building modules.
+
+### Strict execution
+
+Use `parallel: 'strict'` with the native binding for loaders that can run entirely in a worker. Both pitch and normal execution bypass the main-thread bridge. For example, `babel-loader` can use strict mode with `cacheDirectory: false`.
+
+- Strict loaders skip the loader hook. Loader options and the top-level `loader` settings must be serializable. Options cannot contain functions.
+- Strict loaders receive `undefined` for `additionalData`. Rspack ignores `additionalData` passed to `this.callback()` or to the callback returned by `this.async()`.
+- Through `this._module`, loaders can access the current module's data, including `resourceResolveData`, `loaders`, `blocks`, `dependencies`, `error`, and `buildInfo`. Each strict loader segment starts with no custom `buildInfo` fields. Fields added during the segment are only visible within that segment.
+- `getResolve(options)` and `resolve` use the Rust resolver directly from the worker, preserving resolve options and dependency tracking.
+- Main-thread APIs such as `_compiler`, `_compilation`, `fs`, `importModule`, and compilation diagnostics are unavailable. `getLogger()` returns a worker-local logger that discards messages.
+- Use `this.emitFile()` or `this._module.emitFile()` to write assets. Reading assets through `this._module.buildInfo.assets` is unavailable.

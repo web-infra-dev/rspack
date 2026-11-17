@@ -50,6 +50,7 @@ import type { FileSystemInfoEntry } from './FileSystemInfo';
 import type { rspack } from './index';
 import Cache from './lib/Cache';
 import CacheFacade from './lib/CacheFacade';
+import { releaseCompilerWorkerOptions } from './loader-runner/workerOptions';
 import { Logger, type LogTypeEnum } from './logging/Logger';
 import { NormalModuleFactory } from './NormalModuleFactory';
 import { ResolverFactory } from './ResolverFactory';
@@ -836,15 +837,21 @@ class Compiler {
       return;
     }
 
+    const finalCallback = (error?: Error | null) => {
+      // Native close waits for in-flight loader tasks. Releasing on shutdown
+      // would let those tasks repopulate worker caches after the release.
+      releaseCompilerWorkerOptions(this);
+      callback(error);
+    };
     const instanceCallback = (error?: Error | null) => {
       const close = this.#instance?.close();
       if (close) {
         close.then(
-          () => callback(error),
-          (closeError) => callback(error || closeError),
+          () => finalCallback(error),
+          (closeError) => finalCallback(error || closeError),
         );
       } else {
-        callback(error);
+        finalCallback(error);
       }
     };
 

@@ -1,13 +1,26 @@
 import fs from 'node:fs';
 import querystring from 'node:querystring';
 import { promisify } from 'node:util';
-import { type MessagePort, receiveMessageOnPort } from 'node:worker_threads';
+import {
+  type MessagePort,
+  receiveMessageOnPort,
+  threadId,
+} from 'node:worker_threads';
 
-import { JsLoaderState } from '@rspack/binding';
+import {
+  JsLoaderState,
+  subscribeStrictLoaderWorker,
+  type JsStrictLoaderTask,
+} from '@rspack/binding';
+import { runLoaders } from './index';
+import { createStrictLoaderCompiler } from './strictOptions';
+import { createWorkerModule } from './workerModule';
+import { getWorkerOptionsCache, reuseWorkerOptions } from './workerOptions';
 import type { NormalModule } from '../NormalModule';
 import type { LoaderContext } from '../config';
+import { getRawResolve } from '../config/adapter';
 import type { ResolveCallback } from '../config/adapterRuleUse';
-import type { ResolveRequest } from '../Resolver';
+import { Resolver, type ResolveRequest } from '../Resolver';
 import * as swc from '../swc';
 import { cleverMerge } from '../util/cleverMerge';
 import { createHash } from '../util/createHash';
@@ -36,6 +49,7 @@ import {
 import { convertArgs, runSyncOrAsync } from './utils';
 
 interface WorkerOptions {
+  compilerHandle: number;
   loaderContext: LoaderContext & {
     loaderChainStart: number;
     loaderChainEnd: number;
@@ -68,11 +82,25 @@ function dirname(path: string) {
 }
 
 async function loaderImpl(
-  { args, loaderContext, loaderState }: WorkerOptions,
+  { args, loaderContext, loaderState, compilerHandle }: WorkerOptions,
   sendRequest: SendRequestFunction,
   waitForPendingRequest: WaitForPendingRequestFunction,
 ) {
-  //
+  const optionsCache = getWorkerOptionsCache(compilerHandle);
+  for (const loader of loaderContext.loaders) {
+    if (!loader.ident || !loader.options || typeof loader.options !== 'object')
+      continue;
+    loader.options = reuseWorkerOptions(
+      optionsCache,
+      `parallel-reference:${loader.ident}`,
+      loader.options,
+    );
+  }
+  loaderContext._compiler.options = reuseWorkerOptions(
+    optionsCache,
+    'parallel-compiler-options',
+    loaderContext._compiler.options,
+  );
   const resourcePath = loaderContext.resourcePath;
   const contextDirectory = resourcePath ? dirname(resourcePath) : null;
 
@@ -516,11 +544,16 @@ async function loaderImpl(
         if (!fn) continue;
 
         args =
-          (await runSyncOrAsync(fn, loaderContext, [
-            loaderContext.remainingRequest,
-            loaderContext.previousRequest,
-            currentLoaderObject.loaderItem.data,
-          ])) || [];
+          (await runSyncOrAsync(
+            fn,
+            loaderContext,
+            [
+              loaderContext.remainingRequest,
+              loaderContext.previousRequest,
+              currentLoaderObject.loaderItem.data,
+            ],
+            true,
+          )) || [];
 
         const hasArg = args.some((value) => value !== undefined);
         if (hasArg) {
@@ -562,7 +595,7 @@ async function loaderImpl(
         currentLoaderObject.normalExecuted = true;
         if (!fn) continue;
         convertArgs(args, !!currentLoaderObject.raw);
-        args = (await runSyncOrAsync(fn, loaderContext, args)) || [];
+        args = (await runSyncOrAsync(fn, loaderContext, args, true)) || [];
         invalidateCodeFilterTextCache(codeFilterTextCache);
       }
     }
@@ -762,6 +795,41 @@ function getCurrentLoader(
     return loaderContext.loaders[index];
   }
   return null;
+}
+
+async function executeStrictLoader(task: JsStrictLoaderTask): Promise<void> {
+  let module: ReturnType<typeof createWorkerModule> | undefined;
+  try {
+    const context = task.takeContext();
+    module = createWorkerModule(context._module);
+    const result = await runLoaders(undefined, context, {
+      module: module.module,
+      strictCompiler: createStrictLoaderCompiler(task.owner),
+      getResolver(options = {}) {
+        const { dependencyType, resolveToContext, ...resolve } = options;
+        return new Resolver(
+          task.getResolver({
+            ...getRawResolve(resolve),
+            dependencyType,
+            resolveToContext,
+          }),
+        );
+      },
+    });
+    task.complete(result);
+  } catch (error) {
+    task.fail(
+      error instanceof Error ? (error.stack ?? error.message) : String(error),
+    );
+  } finally {
+    module?.dispose();
+  }
+}
+
+if (!process.env.WASM && threadId !== 0) {
+  subscribeStrictLoaderWorker(threadId, (task) => {
+    void executeStrictLoader(task);
+  });
 }
 
 export default worker;

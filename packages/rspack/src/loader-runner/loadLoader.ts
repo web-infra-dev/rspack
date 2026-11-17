@@ -32,13 +32,15 @@ const loaderUrlCache = new Map<string, string>();
 
 export default function loadLoader(
   loader: LoaderObject,
-  compiler: Compiler,
+  compiler: Compiler | undefined,
   callback: (err: unknown) => void,
 ): void {
   if (IS_BROWSER) {
     let module: LoaderModule;
     try {
-      module = compiler.__internal_browser_require(loader.path) as LoaderModule;
+      module = compiler!.__internal_browser_require(
+        loader.path,
+      ) as LoaderModule;
     } catch (e) {
       return callback(e);
     }
@@ -97,6 +99,7 @@ export default function loadLoader(
       }
       return callback(e);
     }
+    moduleCache.set(cacheKey, module);
     return handleResult(loader, module, callback);
   }
 }
