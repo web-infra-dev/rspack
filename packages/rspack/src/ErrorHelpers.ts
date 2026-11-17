@@ -1,4 +1,4 @@
-const loaderFlag = 'LOADER_EXECUTION';
+const loaderFlag = 'at LOADER_EXECUTION';
 
 const cutOffByFlag = (stack: string, flag: string) => {
   const flagIndex = stack.indexOf(flag);
@@ -10,15 +10,8 @@ const cutOffByFlag = (stack: string, flag: string) => {
 export const cutOffLoaderExecution = (stack: string) =>
   cutOffByFlag(stack, loaderFlag);
 
-export const cleanUp = (
-  stack: string,
-  name: string,
-  message: string,
-): string => {
-  let details = cutOffLoaderExecution(stack);
-  details = cutOffMessage(stack, name, message);
-  return details;
-};
+export const cleanUp = (stack: string, name: string, message: string): string =>
+  cutOffMessage(cutOffLoaderExecution(stack), name, message);
 
 export const cutOffMessage = (
   stack: string,

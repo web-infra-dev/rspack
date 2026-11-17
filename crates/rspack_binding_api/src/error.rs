@@ -271,7 +271,14 @@ impl std::fmt::Display for RspackError {
 impl std::error::Error for RspackError {}
 
 impl From<RspackError> for rspack_error::Error {
-  fn from(value: RspackError) -> Error {
+  fn from(mut value: RspackError) -> Error {
+    // Clean the native copy for both the message and hideStack details, leaving the JS error intact.
+    if value.parent_error_name.as_deref() == Some("ModuleBuildError")
+      && let Some(stack) = &mut value.stack
+      && let Some(index) = stack.find("at LOADER_EXECUTION")
+    {
+      stack.truncate(stack[..index].rfind('\n').unwrap_or(0));
+    }
     let mut error = rspack_error::error!(format!("{}", value));
     error.code = Some(value.name);
     error.details = value.details;

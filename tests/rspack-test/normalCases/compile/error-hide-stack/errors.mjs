@@ -1,6 +1,6 @@
 export default [
 	[
 		/Message/,
-		{ details: /Stack/ }
+		{ details: /^Stack$/ }
 	]
 ];
