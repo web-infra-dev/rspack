@@ -48,12 +48,9 @@
 #[macro_use]
 extern crate napi_derive;
 extern crate rspack_allocator;
-// Resolve napi-derive's generated paths to the local prelude in profiling builds.
+// Route generated napi paths through rspack_napi in profiling builds.
 #[cfg(allocative)]
 extern crate self as napi;
-// Use the tracking prelude and preserve upstream exports required by generated macros.
-#[cfg(allocative)]
-pub(crate) use rspack_allocative::napi_shim as bindgen_prelude;
 #[cfg(allocative)]
 pub(crate) use rspack_napi::napi::{ctor, *};
 
@@ -124,7 +121,6 @@ use std::{
   sync::{Arc, RwLock},
 };
 
-use napi::{CallContext, bindgen_prelude::*};
 pub use raw_options::{CustomPluginBuilder, register_custom_plugin};
 use rspack_core::{
   Compilation, CompilationId, CompilerId, CompilerPlatform, DependencyRef, EntryOptions,
@@ -132,6 +128,7 @@ use rspack_core::{
 };
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
+use rspack_napi::napi::{CallContext, bindgen_prelude::*};
 use rspack_tasks::{CURRENT_COMPILER_CONTEXT, CompilerContext, within_compiler_context_sync};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::common::util::take::Take;

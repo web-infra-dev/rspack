@@ -57,13 +57,13 @@ A snapshot shows memory held by the compiler, global objects, and Rust objects r
 
 Open [Speedscope](https://www.speedscope.app/) and drag in a `.allocative` file. Use search and zoom to find a data structure, and select **Left Heavy** to explore the largest ownership paths.
 
-Wider frames represent more bytes. The paths describe ownership, not allocation call stacks. The folded format does not carry a unit, so treat the weights as bytes even if the viewer displays a different label. **Time Order** is not a timeline for these snapshots.
+Wider frames represent more bytes. The paths describe ownership, not allocation call stacks. Read the weights as bytes even if the viewer displays a different label. **Time Order** is not a timeline for these snapshots.
 
-Read the matching `.metadata.json` and `.warnings.txt` before interpreting the total. Metadata includes the represented byte total, shared-ownership policy, and global string arena usage. Warnings identify inaccessible nested allocations and other coverage gaps.
+Read the matching `.metadata.json` and `.warnings.txt` before interpreting the total. Use the metadata to check the capture phase and represented byte total. Warnings identify coverage gaps.
 
 ## Read entry counts
 
-The `.counts.json` sidecar records module and dependency entries in the current compilation's module graph, grouped by type. These are collection cardinalities — not a process-wide object count or allocation count. An empty graph produces explicit zero-valued module and dependency populations.
+The `.counts.json` file records module and dependency entry counts for the current compilation, grouped by type. These are not process-wide object counts or allocation counts. Zero counts are included in the report.
 
 Do not derive counts by dividing byte weights by a type's size or by counting lines in a `.allocative` file. A collection can reserve more storage than its length, and multiple references can share one allocation.
 
@@ -76,47 +76,9 @@ Compare matching snapshots from the same phase and with the same workload. For e
 Limitation:
 
 - Snapshots do not measure RSS, peak memory, or cumulative allocations.
-- Rust snapshots do not fully represent JavaScript and V8 heap objects, callback captures, some external state, allocator metadata, and private container overhead. Nonblocking locks and unsupported nested types can also limit coverage.
+- Snapshots may omit memory outside their coverage. Use the JavaScript or combined report when analyzing both languages, and check warnings before interpreting totals.
 
 ## Advanced
-
-### How memory collection works
-
-Rspack maintains a fork of [Buck2](https://github.com/facebook/buck2)'s allocative in [`crates/rspack_allocative`](https://github.com/web-infra-dev/rspack/tree/main/crates/rspack_allocative). The fork uses Rust's compile-time reflection and a compiler driver to collect memory data automatically in most cases, reducing the need for manual `Allocative` implementations.
-
-Borrowed references do not imply ownership; raw pointers and unsupported values are treated as opaque. Shared allocations are counted once under the first encountered owner. These policies avoid double-counting shared payloads, but inaccessible state still limits coverage.
-
-**When manual `Allocative` is needed.** Ordinary structs and most enums are instrumented automatically, but some cases require explicit adapters or annotations:
-
-- **Third-party types** require an `Allocative` implementation in `rspack_allocative`.
-- **Unions** aren't supported by the derive macro — implement `Allocative` by hand.
-- **Custom ownership** where memory layout doesn't match actual ownership, such as arena-allocated data, borrowed buffers, or shared pointers. Write a manual implementation to express the right traversal.
-- **Opaque or unsupported values** like raw pointers, callback captures, and V8 heap objects. Mark these fields with `#[allocative(skip)]` to exclude them.
-- **Incorrect generic bounds** from the default derive. Use `#[allocative(bound = "...")]` to supply your own constraints.
-- **Enum reflection edge cases.** The compiler driver's enum reflection needs `Self: 'static` and skips enums with lifetime parameters, const generics, or non-literal array types. These fall back to typed traversal and need explicit adapters.
-
-The capture flow is:
-
-```text
-Binding build
-  Include the allocative feature, cfg, and compiler driver
-       ↓
-Build or rebuild completes
-  The binding checks RSPACK_ALLOCATIVE_DIR after native compilation finishes
-       ↓
-Root traversal
-  JsCompiler → Compiler → Compilation and other owned fields
-  Registered globals + process-global Ustr string arena
-       ↓
-Ownership traversal
-  Custom Allocative::visit or reflected fields
-  Deduplicate shared payloads; record coverage warnings
-       ↓
-Snapshot output
-  Byte profile + entry counts + metadata + warnings
-```
-
-Snapshots are collected through the Node binding after a successful build or rebuild. Running a standalone Rust compiler or benchmark does not automatically produce snapshots. This measures the represented memory at that point, with the limits described in [Interpret the results](#interpret-the-results).
 
 ### Build a local binding
 
@@ -128,7 +90,7 @@ pnpm run build:binding:debug
 pnpm run build:js
 ```
 
-**The debug build includes allocative support by default; snapshot collection is still off by default.** The `build:binding:debug` command uses the `release-debug` Cargo profile. Standard release builds do not include allocative support. The profiling build also includes this support by default:
+**The debug build includes allocative support by default; snapshot collection is still off by default.** Standard release builds do not include allocative support. The profiling build also includes this support by default:
 
 ```sh
 pnpm run build:binding:profiling
@@ -170,13 +132,11 @@ node "$rspack_root/.agents/skills/rspack-allocative/scripts/v8-to-allocative.mjs
 
 Open `reports/0-build.js.allocative` or `reports/0-build.combined.allocative` in Speedscope to inspect the JavaScript or combined Rust and JavaScript profile. Open `reports/0-build.links.json` to look up the Rust targets associated with JavaScript objects. See [View snapshots](#view-snapshots) for tips on exploring a profile.
 
-Use `marked_objects` in the links report to see the count and shallow bytes of marked Rspack objects by type, including asset records and arrays.
+Converted `.allocative` files exclude V8 internals. To inspect those, open the original `.heapsnapshot` in Chrome DevTools.
 
-Converted `.allocative` files always exclude V8 code, script source, and engine metadata. JavaScript objects and their container or Buffer storage remain included. To inspect V8 internals, open the original `.heapsnapshot` in Chrome DevTools. The links report records `snapshot_bytes`, `represented_bytes`, and `excluded_v8_bytes`; represented plus excluded bytes equals the original JS snapshot total.
+The raw snapshot can contain source code and other project data. Converted reports omit string contents and retain object names by default. Use `--clear-class-names` to remove custom constructor names; built-in names and Rust type names remain. Inspect reports before sharing them. Use `--out-dir` to select another output directory.
 
-The raw snapshot can contain source code and other project data. Converted reports retain object names by default and omit string-node payloads. String nodes contribute only their original snapshot byte weights; string payloads are discarded during streaming parsing and never appear in frames. Pass `--clear-class-names` to remove custom constructor names (also from constructor function/code frames); common built-in names such as Object, Array, Map, Set and typed arrays remain. Rspack root/object markers and Rust type names are diagnostic metadata and remain available. Named edges and native identities are retained internally for classification and matching. The legacy `--include-content` flag is accepted but no longer emits string payloads or binding addresses. The links report records `clear_class_names`, `string_contents` and `string_storage`. Use `--out-dir` to write the reports to another existing directory.
-
-Tests using the local binding can also collect snapshots via `RSPACK_ALLOCATIVE_DIR`. Each build or rebuild produces a snapshot automatically; the test framework does not need a separate capture integration. After building the binding and JavaScript packages, run a focused HMR case:
+Tests using the local binding can also collect snapshots via `RSPACK_ALLOCATIVE_DIR`. Each build or rebuild produces a snapshot automatically. After building the binding and JavaScript packages, run a focused HMR case:
 
 ```sh
 cd /path/to/rspack/tests/rspack-test

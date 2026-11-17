@@ -57,13 +57,13 @@ $rspack-allocative 使用 hotCases/source-map/disable 测试用例抓取内存�
 
 打开 [Speedscope](https://www.speedscope.app/)，将 `.allocative` 文件拖入页面。使用搜索和缩放定位数据结构，选择 **Left Heavy** 查看最大的所有权路径。
 
-较宽的节点表示更多字节。路径描述所有权关系，而非内存分配时的调用栈。folded 格式不包含单位，因此即使查看器显示了其他标签，也应将权重理解为字节。对于这些快照，**Time Order** 不表示时间线。
+较宽的节点表示更多字节。路径描述所有权关系，而非内存分配时的调用栈。即使查看器显示了其他标签，也应将权重理解为字节。对于这些快照，**Time Order** 不表示时间线。
 
-解读总量前，请阅读对应的 `.metadata.json` 和 `.warnings.txt`。metadata 包含所表示的字节总量、共享所有权计量策略，以及全局字符串 arena 的使用情况。warnings 会指出无法访问的嵌套分配和其他覆盖缺口。
+解读总量前，请阅读对应的 `.metadata.json` 和 `.warnings.txt`。通过 metadata 确认采集阶段和所表示的字节总量，warnings 会指出覆盖缺口。
 
 ## 读取条目计数 \{#read-entry-counts}
 
-`.counts.json` 文件记录当前 compilation 模块图中的模块和依赖条目，并按类型分组。这些数值表示集合基数——而非整个进程的对象数或分配次数。空模块图会输出明确的模块和依赖零值。
+`.counts.json` 文件记录当前 compilation 的模块和依赖条目数，并按类型分组。这些数值不表示整个进程的对象数或分配次数。报告中也会保留零值。
 
 不要用字节权重除以类型大小，也不要统计 `.allocative` 文件的行数来推算对象数量。集合容量可能超过长度，多个引用也可能共享同一块内存。
 
@@ -76,47 +76,9 @@ $rspack-allocative 使用 hotCases/source-map/disable 测试用例抓取内存�
 限制：
 
 - 快照不测量 RSS、峰值内存或累计分配。
-- Rust 快照无法完整涵盖 JavaScript 和 V8 堆对象、回调捕获、部分外部状态、分配器元数据和容器的私有开销。非阻塞锁和不支持的嵌套类型也可能造成覆盖缺口。
+- 快照可能遗漏覆盖范围以外的内存。分析两种语言的内存时，请使用 JavaScript 或合并报告，并在解读总量前检查 warnings。
 
 ## 进阶 \{#advanced}
-
-### 内存采集的工作原理 \{#how-memory-collection-works}
-
-Rspack 在 [`crates/rspack_allocative`](https://github.com/web-infra-dev/rspack/tree/main/crates/rspack_allocative) 中维护了 [Buck2](https://github.com/facebook/buck2) 的 allocative fork。这个 fork 通过 Rust 的编译期反射和编译器 driver，在大部分场景下自动收集内存数据，减少手动实现 `Allocative` 的需要。
-
-借用引用不代表所有权，裸指针和不支持的值会作为不透明对象处理。共享分配只计入首次遇到的所有者路径。这些策略可以避免重复计入共享数据，但无法访问的状态仍会造成覆盖缺口。
-
-**需要手动实现 `Allocative` 的场景。** 普通结构体和大多数枚举可以自动实现，但以下几种情况需要手动实现适配器或添加属性注解：
-
-- **第三方类型**需要在 `rspack_allocative` 中补充对应的 `Allocative` 实现。
-- **Union** 不被 derive 宏支持，只能手写 `Allocative` 实现。
-- **自定义所有权**，即内存布局与实际所有权不一致的情况，比如 arena 分配的数据、借用缓冲区、共享指针等。需要手写实现来表达正确的遍历逻辑。
-- **不透明或无法遍历的值**，如裸指针、回调捕获、V8 堆对象。用 `#[allocative(skip)]` 标记这些字段，将它们排除在外。
-- **泛型约束不正确**时，用 `#[allocative(bound = "...")]` 自行指定约束。
-- **枚举反射的边界场景。** 编译器 driver 的枚举反射要求 `Self: 'static`，带生命周期参数、const 泛型或非字面量数组类型的枚举会跳过。这些枚举会回退到类型化遍历，需要显式的 `Allocative` 实现。
-
-采集流程如下：
-
-```text
-构建 binding
-  包含 allocative feature、cfg 和编译器 driver
-       ↓
-构建或重建完成
-  原生编译结束后，由 binding 检查 RSPACK_ALLOCATIVE_DIR
-       ↓
-遍历根对象
-  JsCompiler → Compiler → Compilation 及其他拥有的字段
-  注册的全局根对象 + 进程全局 Ustr 字符串 arena
-       ↓
-沿所有权遍历
-  自定义 Allocative::visit 或 reflection 字段
-  对共享数据去重，记录覆盖警告
-       ↓
-输出快照
-  字节权重文件 + 条目计数 + metadata + warnings
-```
-
-快照通过 Node binding 在构建或重建成功后采集。直接运行独立的 Rust compiler 或 benchmark 不会自动生成快照。这些数据表示采集时刻所覆盖的内存，具体限制见[解读结果](#interpret-the-results)。
 
 ### 构建本地 binding \{#build-a-local-binding}
 
@@ -128,7 +90,7 @@ pnpm run build:binding:debug
 pnpm run build:js
 ```
 
-**debug 构建默认包含 allocative 支持，快照采集仍默认关闭。** `build:binding:debug` 命令使用 `release-debug` Cargo profile。标准 release 构建不包含 allocative 支持。profiling 构建也默认包含该支持：
+**debug 构建默认包含 allocative 支持，快照采集仍默认关闭。** 标准 release 构建不包含 allocative 支持。profiling 构建也默认包含该支持：
 
 ```sh
 pnpm run build:binding:profiling
@@ -170,11 +132,11 @@ node "$rspack_root/.agents/skills/rspack-allocative/scripts/v8-to-allocative.mjs
 
 在 Speedscope 中打开 `reports/0-build.js.allocative` 或 `reports/0-build.combined.allocative`，分别查看 JavaScript 内存和 Rust 与 JavaScript 合并后的内存报告。打开 `reports/0-build.links.json` 可以查找与 JavaScript 对象关联的 Rust 对象。有关报告的查看方法，请参阅[查看快照](#view-snapshots)。
 
-转换后的 `.allocative` 文件始终排除 V8 代码、脚本源码和引擎元数据，保留 JavaScript 对象及其容器或 Buffer 存储。需要查看 V8 内部数据时，请在 Chrome DevTools 中打开原始 `.heapsnapshot`。链接报告中的 `snapshot_bytes`、`represented_bytes` 和 `excluded_v8_bytes` 分别记录原始、展示和排除的字节数；展示与排除字节之和等于原始 JS 快照总量。
+转换后的 `.allocative` 文件排除 V8 内部数据。如需查看这些数据，请在 Chrome DevTools 中打开原始 `.heapsnapshot`。
 
-原始快照可能包含源码和其他项目数据。转换后的报告默认保留对象名称，省略字符串节点的正文。字符串节点仅计入原快照的字节大小，正文在流式解析时丢弃，任何字符串节点都不输出正文。使用 `--clear-class-names` 清除自定义构造器名称（构造器函数/code frame 中同名的名称也清除），Object、Array、Map、Set 和 typed array 等常见内置名称保留。Rspack 根/对象标记及 Rust 类型名属于诊断元数据，继续保留。命名引用边和 native 身份仅为分类、匹配在内部保留完整值。旧 `--include-content` 参数仍接受，但不再输出字符串正文或 binding 地址。链接报告记录 `clear_class_names`、`string_contents` 和 `string_storage`。使用 `--out-dir` 可以将报告写入另一个已有的目录。
+原始快照可能包含源码和其他项目数据。转换后的报告省略字符串正文，默认保留对象名称。使用 `--clear-class-names` 可以清除自定义构造器名称；内置类型名称和 Rust 类型名仍会保留。分享前请检查报告内容。使用 `--out-dir` 可以指定其他输出目录。
 
-使用本地 binding 的测试，也可以通过 `RSPACK_ALLOCATIVE_DIR` 采集快照。每次构建或重建都会自动输出快照，测试框架无需额外接入采集逻辑。构建好 binding 和 JavaScript 包后，可以运行单个 HMR 用例：
+使用本地 binding 的测试，也可以通过 `RSPACK_ALLOCATIVE_DIR` 采集快照。每次构建或重建都会自动输出快照。构建好 binding 和 JavaScript 包后，可以运行单个 HMR 用例：
 
 ```sh
 cd /path/to/rspack/tests/rspack-test

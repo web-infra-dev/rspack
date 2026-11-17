@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { rspack } = require('@rspack/core');
 const binding = require('@rspack/binding');
+assert(binding.allocativeTestUsesTrackedPrelude(), 'rspack_napi must export the tracked prelude');
 const directory = process.env.RSPACK_ALLOCATIVE_DIR;
 const sourceBytes = 1024 * 1024;
 const requestBytes = 64 * 1024;

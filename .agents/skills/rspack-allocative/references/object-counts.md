@@ -2,41 +2,22 @@
 
 ## Distinguish metrics
 
-- **Byte weights:** allocative's visited object graph, including represented inline storage and owned allocations.
-- **Collection entries:** `len()` or iterator cardinality, not necessarily unique objects.
-- **Live objects:** unique instances within a stated scope at a capture point; shared references require deduplication.
+- **Byte weights:** memory represented in the snapshot.
+- **Collection entries:** the number of entries in a collection, not necessarily unique objects.
+- **Live objects:** unique instances within a stated scope at a capture point, counting shared objects once.
 - **Allocation events:** allocator calls over an interval, unavailable from byte snapshots or live-object counts alone.
 
-A `Vec<Node>` may hold 10,000 nodes in one allocation; capacity may exceed length. Many `Arc<Node>` references can point to one object. Arena blocks contain many objects. Do not infer populations from bytes, capacity, reference counts, or folded lines.
+A collection can contain many objects, and several entries can refer to the same object. Do not infer object counts from memory size or folded lines.
 
-## Extend coverage
+## Use measured counts
 
-Find current roots with `rg 'allocative::root|visit_root|visit_global_roots' crates`. Types reachable only from a local compiler need an explicitly visited root and `Visit` support. In this revision, `Compiler` and `Compilation` use automatic struct reflection; the compiler driver injects ordinary enum derives and `Visit` supertraits on selected owning interfaces. Inspect older revisions before assuming the same coverage.
+The native snapshot includes module and dependency entry counts for the current compilation. These are **entries**, not a process-wide object census. Keep the matching `.counts.json` beside its `.allocative` file when preparing reports.
 
-For a supported local root, pass a borrowed reference into a phase-local collector and call `FlameGraphBuilder::visit_root(&root)`. Ordinary owned structs need no derive. Add explicit `Allocative` adapters only for custom ownership or field policies, borrowed traversal, third-party enums, or compiler reflection limitations; audit skipped fields and opaque coverage. Custom traversal must deduplicate shared pointees. Gate instrumentation with `#[cfg(allocative)]` / `#[cfg_attr(allocative, ...)]`. Do not clone large structures for profiling.
+For additional populations, use measurements from the same workload and capture point as the byte snapshot. Record the population, phase, scope, unit, and measurement basis. Report missing populations as unmeasured, not zero. A post-build snapshot cannot describe objects already released before capture.
 
-The workspace maintains `rspack-allocative` in `crates/rspack_allocative`, with Rspack adapters, shared ownership traversal and coverage diagnostics. Its folded output still contains bytes only. Native module/dependency entry counters are separate from the visitor; extend explicit counters for new populations instead of interpreting byte frames as instances.
+Use `entries` for collection cardinalities. Use `objects` only for unique live instances within the stated scope, counting shared objects once. Do not add a population to another population that already includes it.
 
-## Capture counts beside a snapshot
-
-At the snapshot call site, borrow the compilation and collect counts before teardown at a stable boundary. Allocate **one snapshot ID** for both `N-phase.allocative` and `N-phase.counts.json`; do not increment separate counters. Compute diagnostic JSON outside byte traversal where possible so collector allocations do not pollute the workload view.
-
-These APIs existed in the inspected revision; verify them in the selected checkout:
-
-```rust
-let graph = compilation.get_module_graph();
-let module_entries = graph.modules_len();
-let dependency_entries = graph.dependencies().count();
-let module_graph_module_entries = graph.module_graph_modules().count();
-```
-
-These are measured **entries**, not proof of a process-wide object count. Use `unit: "entries"`. For concrete types, classify entries using an existing type discriminator into nonoverlapping buckets. To call them `objects`, establish one entry per owned object or deduplicate by stable ID within the scope. Do not add an overall module map's count to a cache holding references to the same modules.
-
-For AST nodes, use an AST visitor and count each node variant once at a phase where that AST exists. Post-build snapshots may miss discarded ASTs. Use a separately named phase snapshot if needed. Do not extend AST lifetimes for measurement without disclosing changed retention.
-
-When collection APIs lack the desired population, add a small cfg-gated counting method or traversal. Constructor/drop counters are a fallback: account for cloning and all construction paths, identify live/cumulative/peak values, and do not treat an atomic read during mutation as a stable census.
-
-## Sidecar contract
+## Custom count file
 
 The helper accepts the following JSON. Numbers here are **illustrative**, not Rspack observations:
 
@@ -49,12 +30,12 @@ The helper accepts the following JSON. Numbers here are **illustrative**, not Rs
     {
       "path": ["Compilation", "ModuleGraph", "module_entries"],
       "count": 120,
-      "basis": "compilation.get_module_graph().modules_len()"
+      "basis": "Measured module entries in this compilation"
     },
     {
       "path": ["Compilation", "ModuleGraph", "dependency_entries"],
       "count": 450,
-      "basis": "compilation.get_module_graph().dependencies().count()"
+      "basis": "Measured dependency entries in this compilation"
     }
   ]
 }
@@ -62,7 +43,7 @@ The helper accepts the following JSON. Numbers here are **illustrative**, not Rs
 
 - `snapshot` equals the byte file's stem, e.g. `0-build` for `0-build.allocative`.
 - `unit` is `objects` (measured unique live objects) or `entries` (collection cardinalities). Use separate reports for different units/scopes.
-- `scope` states population and phase; `basis` names the expression or deduplicated traversal that produced the number.
+- `scope` states population and phase; `basis` describes how the number was measured.
 - Each `path` consists of nonempty labels without semicolons or newlines; each leaf is a nonoverlapping population. Do not include both a total and its component buckets.
 - `count` is a nonnegative integer. Omitted populations are unmeasured. An empty array is not a measurement.
 

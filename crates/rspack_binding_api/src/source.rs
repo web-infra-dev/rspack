@@ -1,12 +1,12 @@
 use std::{cell::Cell, hash::Hash, sync::Arc};
 
-use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::rspack_sources::{
   BoxSource, CachedSource, ConcatSource, MapOptions, OriginalSource, RawBufferSource,
   RawStringSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource, SourceValue,
   WithoutOriginalOptions, is_buffer_source, utf16_len,
 };
+use rspack_napi::napi::bindgen_prelude::*;
 
 use crate::error::RspackResultToNapiResultExt;
 

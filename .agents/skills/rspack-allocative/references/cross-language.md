@@ -1,15 +1,19 @@
 # Cross-language report checks
 
-Read when analyzing JS/Rust ownership links or diagnosing unmatched objects.
+Read when interpreting combined Rust/JavaScript profiles or investigating unmatched objects.
 
-Inspect `root_links`, not just `matched_bindings`: each public root should identify its `binding_node_id` and, when measured in this Rust snapshot, `rust_target.type_name` and `rust_target.path`. Verify `native_owners` identifies the active public Compiler and its measured Rust wrapper. The combined profile must contain `JavaScript;Rspack;Compiler;rspack_binding_api::JsCompiler;compiler;…;rspack_core::compiler::Compiler`, plus the wrapper's other fields. The raw Rust profile starts at `rspack_binding_api::JsCompiler`; core Compiler must not also appear as a separate root. The converter moves each native sample once under its JS owner; Compilation views and Cache target links never copy native subtrees. A single ordinary compiler capture should match all three roots. A process-wide V8 heap can also contain other compilers or targets outside the Rust traversal; leave those roots unmatched rather than joining by type name. Retained Compilation objects may point to the current compilation slot after rebuild. Legacy captures without public-to-binding edges or native target metadata require recapture for these links.
+Use the `.js.allocative` file for JavaScript memory and `.combined.allocative` for the combined profile. The `.links.json` report helps locate Rust objects associated with JavaScript objects. A matched object is not necessarily measured: check `measured` and the accompanying warnings before drawing conclusions about native memory.
 
-Validate that category byte totals equal `represented_bytes` and that combined bytes equal Rust plus represented JS bytes. Verify `represented_bytes + excluded_v8_bytes = snapshot_bytes`; V8 code, source, and engine metadata are excluded from folded files, but remain in the raw snapshot for Chrome DevTools. Root-path subtotals describe representative attribution paths, not retained sizes or object counts. A zero `unmatched_bindings` count proves only wrapper identity matching, not complete native coverage. Inspect `measured`, wrapper field paths, warnings, and byte conservation; merely relabeling the old core-only tree cannot measure the wrapper. Only wrappers actually visited in the safe native traversal have `measured: true`. Opaque external handles remain coverage limits even when every wrapper field is represented.
+Unmatched objects may fall outside the capture's coverage. Report them as unmeasured rather than assuming zero bytes or a match based only on the type name. When a retained object appears after a rebuild, do not assume it represents the previous build's data.
 
-## Report details
+Validate these totals:
 
-`category_bytes` summarizes JS categories; `marked_objects` gives per-type marked-object counts and shallow bytes. Rspack bytes include marked objects, roots, binding wrappers, and nodes reachable only through Rspack roots or matched bindings.
+- JS category totals equal `represented_bytes`.
+- `represented_bytes + excluded_v8_bytes = snapshot_bytes`.
+- Combined bytes equal Rust bytes plus represented JS bytes.
 
-Public Compiler, Compilation, and Cache roots link to their N-API bindings. Target paths require a matching visited address and type. Compiler-scoped identities belong to the captured compiler; wrapper addresses and target addresses are not interchangeable. Identity metadata contributes no native byte weights.
+Converted profiles exclude V8 internals. To inspect those, open the original `.heapsnapshot` in Chrome DevTools.
 
-The converter preserves structural names and known native identities internally for matching. `--clear-class-names` also clears matching constructor function/code names; built-in names, Rspack markers, and Rust types remain. The legacy `--include-content` flag is accepted without exposing string payloads or binding addresses. Check `clear_class_names`, `string_contents`, and `string_storage` in the links report.
+Path subtotals describe attributed memory, not retained size or object counts. Shared memory is counted once; its attributed path can vary between captures. Compare matching workloads and phases, and do not add parent and child inclusive totals.
+
+Before sharing, remember that raw snapshots may contain source code and project data. Converted profiles omit string contents but retain object names by default. Use `--clear-class-names` to remove custom constructor names; built-in names and Rust type names remain. Inspect reports before sharing them.

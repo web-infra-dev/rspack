@@ -1,6 +1,6 @@
-use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{ChunkLoading, Compilation, EntryData, EntryOptions, EntryRuntime, internal};
+use rspack_napi::napi::bindgen_prelude::*;
 
 use crate::{
   dependency::{Dependency, DependencyWrapper},

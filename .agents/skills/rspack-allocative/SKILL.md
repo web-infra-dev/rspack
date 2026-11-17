@@ -7,7 +7,7 @@ description: Capture local Rspack Rust and JavaScript memory snapshots for Speed
 
 Workflow: **Select the workload → Build → Capture → Convert → Validate → Deliver**.
 
-Produce local memory snapshots and reports for Speedscope. Include counts reports whenever matching measured counts are available; additional populations may require instrumentation. Honor requests for raw captures only.
+Produce local memory snapshots and reports for Speedscope. Include count reports whenever matching measured counts are available. Honor requests for raw captures only.
 
 ## Select the workload
 
@@ -42,7 +42,7 @@ ALLOCATIVE=1 pnpm run build:binding:dev
 pnpm run build:js
 ```
 
-For large workloads, `pnpm run build:binding:profiling` is an alternative if appropriate for the installed toolchain. Both `build:binding:debug` (`release-debug`) and `build:binding:profiling` include allocative automatically. Confirm the build log enables **both** the Cargo feature and cfg. Dev, CI, and release binding builds remain opt-in through `ALLOCATIVE`. Do not use `ALLOCATIVE=0` to disable it: the existing JavaScript build script checks truthiness. Unset it for ordinary builds. In all profiles, leave `RSPACK_ALLOCATIVE_DIR` unset to disable snapshot collection.
+For large workloads, `pnpm run build:binding:profiling` is an alternative if appropriate for the installed toolchain. Both `build:binding:debug` (`release-debug`) and `build:binding:profiling` include allocative automatically. Dev, CI, and release binding builds remain opt-in through `ALLOCATIVE`. Do not use `ALLOCATIVE=0` to disable it: any nonempty value enables it. Unset it for ordinary builds. In all profiles, leave `RSPACK_ALLOCATIVE_DIR` unset to disable snapshot collection.
 
 ## Capture
 
@@ -55,9 +55,9 @@ RSPACK_ALLOCATIVE_DIR="$PROFILE_DIR" \
   build --config "$CONFIG_PATH"
 ```
 
-Verify the workload loads the matching JS package and native binding, including config/plugin imports that resolve their own `@rspack/core`. For paired captures, use the debug or profiling packages, or set `ALLOCATIVE=1` when building both the binding and JS for a custom release. The ordinary release JS build removes the snapshot code. Set `RSPACK_ALLOCATIVE_DIR` before creating the first compiler so the JS package caches the enabled state. See the debugging guide for `@rspack-debug/core` overrides.
+Verify the workload loads the matching JS package and native binding, including config/plugin imports that resolve their own `@rspack/core`. For paired captures, use the debug or profiling packages, or set `ALLOCATIVE=1` when building both the binding and JS for a custom release. Ordinary release builds do not support capture. Set `RSPACK_ALLOCATIVE_DIR` before starting the process.
 
-Captures run after build/rebuild and before the JS completion callback. Shared allocations are counted once; first-owner attribution can vary between runs. For missing captures, instrumentation changes, or cross-revision differences, consult [references/implementation.md](references/implementation.md).
+Captures describe memory after each build or rebuild. Shared memory is counted once, but its attributed path can vary between runs. If captures are missing, check the build variant, environment variables, loaded packages, and process exit status.
 
 Snapshots typically start at `0-build.allocative` and increment within a process. Check exit status, nonempty outputs, and capture phase. For watch/rebuild workloads, verify which updates produced snapshots. Raw V8 snapshots are written under `v8/`; keep them and Rust identity files local when sharing reports.
 
@@ -96,7 +96,7 @@ node "$RSPACK_ROOT/.agents/skills/rspack-allocative/scripts/v8-to-allocative.mjs
   "$PROFILE_DIR/v8/0-build.heapsnapshot"
 ```
 
-The converter writes `.js.allocative`, `.combined.allocative`, `.links.json`, and per-category `.js.<category>.allocative` files under `reports/`. All converted profiles exclude V8 code, script source, and engine metadata. JavaScript objects and container/Buffer storage remain included. Inspect engine internals in Chrome DevTools using the original `.heapsnapshot`. Object names are preserved by default; included string nodes retain byte weights without contents. Use `--clear-class-names` to remove custom constructor names.
+The converter writes `.js.allocative`, `.combined.allocative`, `.links.json`, and per-category `.js.<category>.allocative` files under `reports/`. Converted profiles exclude V8 internals. To inspect those, open the original `.heapsnapshot` in Chrome DevTools. Reports preserve object names by default and omit string contents. Use `--clear-class-names` to remove custom constructor names.
 
 Prepare every captured snapshot, including HMR rebuilds, in a separate new report directory. The helper discovers matching counts automatically; if absent, produce a byte-only report and report counts as unmeasured.
 
@@ -112,24 +112,24 @@ The helper automatically discovers matching `.counts.json`, `.metadata.json`, an
 
 ## Validate
 
-Check metadata and warnings before interpreting totals. A byte profile is not RSS, peak usage, cumulative allocations, or a complete heap census. Missing roots and inaccessible allocations limit coverage; freed objects do not appear in later snapshots. `Unobserved nested allocations` and unavailable nonblocking locks indicate missing coverage, not zero bytes. Children exceeding a parent's declared size indicate an accounting bug.
+Check metadata and warnings before interpreting totals. A byte profile is not RSS, peak usage, cumulative allocations, or a complete heap census. Coverage warnings indicate unmeasured memory, not zero bytes. A snapshot does not include objects released before capture. Children exceeding a parent's declared size indicate an accounting bug.
 
 For paired captures, validate that category totals equal `represented_bytes`, `represented_bytes + excluded_v8_bytes = snapshot_bytes`, and combined bytes equal Rust plus represented JS bytes. Identity matches alone do not prove native memory was measured: inspect `measured` and warnings. For ownership-link analysis or unmatched objects, read [references/cross-language.md](references/cross-language.md).
 
 The report helper rejects mismatched snapshot IDs, negative counts, duplicate populations, and ancestor/descendant count rows. Check that sibling populations do not overlap. Preserve zero-valued populations in tables; an empty folded file for all-zero counts has no chart.
 
-For comparisons, match workload, phase, build profile, roots, units, and counting methods. Do not sum parent and child inclusive sizes.
+For comparisons, match workload, phase, build profile, coverage, units, and counting methods. Do not sum parent and child inclusive sizes.
 
 ### Additional populations
 
-For counts or unobserved structures, read [references/object-counts.md](references/object-counts.md). Add focused, cfg-gated instrumentation in the selected checkout when necessary for the authorized profiling task. Keep it separate from unrelated optimization/CI work.
+For count definitions and custom count reports, read [references/object-counts.md](references/object-counts.md). Report unavailable populations as unmeasured.
 
-The native snapshot already emits module and dependency **entry counts grouped by type**, at the same point as the byte profile. These counts cover the current compilation module graph, not all allocations or retained cache entries. For additional populations, capture counts at the **same point** as the byte snapshot. Prefer authoritative collection cardinalities or traversal with stable-identity deduplication. Record each population, counting basis, unit, snapshot identity, and scope. Allocative's folded format stores byte weights, not instance counts: never derive counts by dividing weights by `size_of::<T>()` or counting folded lines.
+Each native snapshot includes module and dependency **entry counts grouped by type** for the current compilation. These are not process-wide object counts. Use additional measurements only when they match the workload and capture point. Record their population, unit, measurement basis, snapshot identity, and scope. Never estimate object counts from byte weights or folded lines.
 
-For a full census request, identify missing types and add counters where feasible. Do not silently substitute entries for unique objects. Missing populations mean unmeasured, not zero. Use separate byte and count artifacts.
+For a full census request, explain which requested populations are unavailable. Do not substitute entries for unique objects. Use separate byte and count artifacts.
 
 ## Deliver
 
-Return clickable absolute links to the snapshot/report directories, identify filenames, and summarize findings with units, capture phase, and coverage. Include counts tables and count-weighted profiles when available. State the workload, resolved configuration, selected local binding, and any instrumentation changes. Preserve artifacts. If collection failed, report the failure instead of linking expected files. Profiling does not authorize publishing data or updating a PR.
+Return clickable absolute links to the snapshot/report directories, identify filenames, and summarize findings with units, capture phase, and coverage. Include counts tables and count-weighted profiles when available. State the workload, resolved configuration, selected local binding, and build profile. Preserve artifacts. If collection failed, report the failure instead of linking expected files. Profiling does not authorize publishing data or updating a PR.
 
 Tell the user to open [Speedscope](https://www.speedscope.app/) and drag in a `.allocative` file or nonempty `counts.folded`. Use search, zoom, and **Left Heavy** to inspect large paths. State whether weights are bytes, objects, or entries: folded files do not carry units. Paths describe ownership, and **Time Order** is not a timeline.

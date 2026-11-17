@@ -31,7 +31,7 @@ impl AllocativeTestOwner {
   }
 }
 
-use napi::{
+use rspack_napi::napi::{
   Env,
   bindgen_prelude::{Reference, Result, SharedReference},
 };
@@ -96,4 +96,22 @@ impl AllocativeTestPayload {
       inner: owner.share_with(env, |_| Ok(TestPayload { bytes }))?,
     })
   }
+}
+
+// Both public import paths must select the same tracking types.
+#[napi(skip_typescript)]
+pub fn allocative_test_uses_tracked_prelude() -> bool {
+  use std::any::TypeId;
+
+  use napi::bindgen_prelude as local;
+  use rspack_napi::napi::bindgen_prelude as exported;
+
+  TypeId::of::<local::Reference<AllocativeTestOwner>>()
+    == TypeId::of::<exported::Reference<AllocativeTestOwner>>()
+    && TypeId::of::<local::SharedReference<AllocativeTestOwner, TestPayload>>()
+      == TypeId::of::<exported::SharedReference<AllocativeTestOwner, TestPayload>>()
+    && TypeId::of::<local::WeakReference<AllocativeTestOwner>>()
+      == TypeId::of::<exported::WeakReference<AllocativeTestOwner>>()
+    && TypeId::of::<local::External<TestPayload>>()
+      == TypeId::of::<exported::External<TestPayload>>()
 }
