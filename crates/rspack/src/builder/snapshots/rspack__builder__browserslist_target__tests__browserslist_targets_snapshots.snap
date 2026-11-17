@@ -87,6 +87,9 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
             template_literal: Some(
                 false,
             ),
@@ -181,6 +184,9 @@ expression: results
                 false,
             ),
             optional_chaining: Some(
+                false,
+            ),
+            spread: Some(
                 false,
             ),
             template_literal: Some(
@@ -279,6 +285,9 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -373,6 +382,9 @@ expression: results
                 false,
             ),
             optional_chaining: Some(
+                false,
+            ),
+            spread: Some(
                 false,
             ),
             template_literal: Some(
@@ -471,6 +483,9 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
             template_literal: Some(
                 false,
             ),
@@ -565,6 +580,9 @@ expression: results
                 false,
             ),
             optional_chaining: Some(
+                false,
+            ),
+            spread: Some(
                 false,
             ),
             template_literal: Some(
@@ -663,6 +681,9 @@ expression: results
             optional_chaining: Some(
                 true,
             ),
+            spread: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -757,6 +778,9 @@ expression: results
                 true,
             ),
             optional_chaining: Some(
+                true,
+            ),
+            spread: Some(
                 true,
             ),
             template_literal: Some(
@@ -855,6 +879,9 @@ expression: results
             optional_chaining: Some(
                 true,
             ),
+            spread: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -950,6 +977,9 @@ expression: results
             ),
             optional_chaining: Some(
                 false,
+            ),
+            spread: Some(
+                true,
             ),
             template_literal: Some(
                 true,
@@ -1047,6 +1077,9 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -1142,6 +1175,9 @@ expression: results
             ),
             optional_chaining: Some(
                 false,
+            ),
+            spread: Some(
+                true,
             ),
             template_literal: Some(
                 true,
@@ -1239,6 +1275,9 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
             template_literal: Some(
                 false,
             ),
@@ -1333,6 +1372,9 @@ expression: results
                 false,
             ),
             optional_chaining: Some(
+                false,
+            ),
+            spread: Some(
                 false,
             ),
             template_literal: Some(
@@ -1431,6 +1473,9 @@ expression: results
             optional_chaining: Some(
                 true,
             ),
+            spread: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -1525,6 +1570,9 @@ expression: results
                 true,
             ),
             optional_chaining: Some(
+                false,
+            ),
+            spread: Some(
                 false,
             ),
             template_literal: Some(
@@ -1623,6 +1671,9 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -1718,6 +1769,9 @@ expression: results
             ),
             optional_chaining: Some(
                 false,
+            ),
+            spread: Some(
+                true,
             ),
             template_literal: Some(
                 true,
@@ -1815,6 +1869,9 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -1911,6 +1968,9 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -2005,6 +2065,9 @@ expression: results
                 false,
             ),
             optional_chaining: Some(
+                false,
+            ),
+            spread: Some(
                 false,
             ),
             template_literal: Some(
@@ -2103,6 +2166,9 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -2199,6 +2265,9 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -2293,6 +2362,9 @@ expression: results
                 false,
             ),
             optional_chaining: Some(
+                false,
+            ),
+            spread: Some(
                 false,
             ),
             template_literal: Some(
@@ -2391,6 +2463,9 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
             template_literal: Some(
                 false,
             ),
@@ -2485,6 +2560,9 @@ expression: results
                 false,
             ),
             optional_chaining: Some(
+                false,
+            ),
+            spread: Some(
                 false,
             ),
             template_literal: Some(
@@ -2583,6 +2661,9 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
             template_literal: Some(
                 false,
             ),
@@ -2678,6 +2759,9 @@ expression: results
             ),
             optional_chaining: Some(
                 false,
+            ),
+            spread: Some(
+                true,
             ),
             template_literal: Some(
                 true,
@@ -2775,6 +2859,9 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -2871,6 +2958,9 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -2965,6 +3055,9 @@ expression: results
                 false,
             ),
             optional_chaining: Some(
+                false,
+            ),
+            spread: Some(
                 false,
             ),
             template_literal: Some(
@@ -3063,6 +3156,9 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -3159,6 +3255,9 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -3253,6 +3352,9 @@ expression: results
                 false,
             ),
             optional_chaining: Some(
+                false,
+            ),
+            spread: Some(
                 false,
             ),
             template_literal: Some(
@@ -3352,6 +3454,9 @@ expression: results
             optional_chaining: Some(
                 true,
             ),
+            spread: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -3432,6 +3537,9 @@ expression: results
             ),
             optional_chaining: Some(
                 false,
+            ),
+            spread: Some(
+                true,
             ),
             template_literal: Some(
                 true,
@@ -3527,6 +3635,9 @@ expression: results
                 false,
             ),
             optional_chaining: Some(
+                false,
+            ),
+            spread: Some(
                 false,
             ),
             template_literal: Some(
