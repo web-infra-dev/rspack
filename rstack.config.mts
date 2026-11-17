@@ -116,6 +116,17 @@ define.lint(({ js, ts, globals }) => [
     },
   },
   {
+    files: [
+      'crates/rspack_plugin_javascript/src/runtime/webpack_runtime_bridge*.js',
+    ],
+    languageOptions: {
+      globals: {
+        __rspack_context: 'readonly',
+        __webpack_require__: 'writable',
+      },
+    },
+  },
+  {
     files: ['**/*.d.ts'],
     rules: {
       'no-var': 'off',
