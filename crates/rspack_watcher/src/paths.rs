@@ -19,7 +19,10 @@ use rspack_util::{
 
 use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher};
 use crate::{
-  symlinks::{LinkResolver, LinkScan, LinkSubscriptions, SymlinkAlias, SymlinkUpdate, Symlinks},
+  symlinks::{
+    LinkResolver, LinkScan, LinkSubscriptionKind, LinkSubscriptions, SymlinkAlias, SymlinkUpdate,
+    Symlinks,
+  },
   time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
 };
 
@@ -425,10 +428,12 @@ impl PathManager {
     let mut subscriptions = LinkSubscriptions::default();
     let registered: Vec<_> = self.access().all().collect();
     for path in registered {
-      let directory = self.directories.all.contains(&path);
-      subscriptions
-        .add(&mut resolver, path, directory, false, self)
-        .await;
+      let kind = if self.directories.all.contains(&path) {
+        LinkSubscriptionKind::ExplicitDirectory
+      } else {
+        LinkSubscriptionKind::ExplicitEntry
+      };
+      subscriptions.add(&mut resolver, path, kind, self).await;
     }
     let mut context_links: InternedPathMap<bool> = self
       .context_files
@@ -444,8 +449,8 @@ impl PathManager {
       context_links.insert(entry.key().clone(), true);
     }
     for (path, mut directory) in context_links {
-      // An explicit directory subscription does not replace its parent context's alias.
-      if self.is_below_context(&path) && path.is_symlink() && !self.files.all.contains(&path) {
+      // Explicit dependencies do not replace their parent context's subscription.
+      if self.is_below_context(&path) && path.is_symlink() {
         // Missing directory targets keep their subscriptions for recovery. A
         // replacement file target must discard the old directory's entries.
         if directory && path.metadata().is_ok_and(|metadata| !metadata.is_dir()) {
@@ -454,9 +459,12 @@ impl PathManager {
           self.set_context_entry(&path, false, Some(&contexts)).await;
           directory = false;
         }
-        subscriptions
-          .add(&mut resolver, path, directory, true, self)
-          .await;
+        let kind = if directory {
+          LinkSubscriptionKind::ContextDirectory
+        } else {
+          LinkSubscriptionKind::ContextFile
+        };
+        subscriptions.add(&mut resolver, path, kind, self).await;
       }
     }
     let update = symlinks.replace(subscriptions);
@@ -837,15 +845,15 @@ impl PathManager {
   }
 
   pub(crate) async fn context_paths(&self, root: &InternedPath) -> Vec<ContextPath> {
-    let Some(symlinks) = &self.symlinks else {
-      return Vec::new();
-    };
     let mut contexts = Vec::new();
     for dependency in root.ancestors().map(InternedPath::from) {
       if !self.directories.all.contains(&dependency) {
         continue;
       }
-      let resolved = symlinks.resolved_directory(&dependency);
+      let resolved = self
+        .symlinks
+        .as_ref()
+        .and_then(|symlinks| symlinks.resolved_directory(&dependency));
       if let Some(resolved) = &resolved
         && self.is_ignored_path(resolved).await
       {
@@ -895,12 +903,8 @@ impl PathManager {
     // links to one directory are two aliases, each scanned.
     let mut pending = Vec::with_capacity(roots.len());
     for root in roots {
-      if self.follows_symlinks() {
-        for context in self.context_paths(&root).await {
-          pending.push((root.clone(), Vec::new(), recovered, context));
-        }
-      } else {
-        pending.push((root, Vec::new(), recovered, ContextPath::default()));
+      for context in self.context_paths(&root).await {
+        pending.push((root.clone(), Vec::new(), recovered, context));
       }
     }
     while let Some((dir, mut ancestry, observed, context)) = pending.pop() {

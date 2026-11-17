@@ -80,6 +80,7 @@ pub type TimeInfoEntries = Vec<(String, TimeInfoEntry)>;
 
 pub(crate) type EventBatch = Vec<FsEvent>;
 
+#[derive(Default)]
 pub(crate) struct ResolvedEvents {
   pub dependencies: EventBatch,
   pub raw: Option<FsEvent>,

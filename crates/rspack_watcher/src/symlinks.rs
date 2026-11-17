@@ -1,5 +1,5 @@
 use std::{
-  path::Component,
+  path::{Component, PathBuf},
   sync::{Arc, RwLock},
   time::SystemTime,
 };
@@ -79,24 +79,47 @@ pub(crate) struct LinkScan {
 #[derive(Default)]
 struct WatchedLink {
   aliases: InternedPathSet,
+  state: LinkState,
+}
+
+#[derive(Default, PartialEq)]
+struct LinkState {
   mtime: Option<SystemTime>,
+  target: Option<PathBuf>,
+}
+
+impl LinkState {
+  fn read(path: &InternedPath) -> Self {
+    Self {
+      mtime: path
+        .symlink_metadata()
+        .and_then(|metadata| metadata.modified())
+        .ok(),
+      target: std::fs::read_link(path).ok(),
+    }
+  }
 }
 
 impl WatchedLink {
   fn is_unchanged(&mut self, path: &InternedPath) -> bool {
-    let mtime = path
-      .symlink_metadata()
-      .and_then(|metadata| metadata.modified())
-      .ok();
-    let previous = std::mem::replace(&mut self.mtime, mtime);
-    match mtime {
+    let previous = std::mem::replace(&mut self.state, LinkState::read(path));
+    let unchanged = previous == self.state;
+    match self.state.mtime {
       Some(mtime) => {
         mtime_accuracy(mtime);
-        previous == Some(mtime) && mtime_safe_time(mtime) < current_time()
+        unchanged && mtime_safe_time(mtime) < current_time()
       }
-      None => previous.is_none(),
+      None => unchanged,
     }
   }
+}
+
+pub(crate) enum LinkSubscriptionKind {
+  // File and missing dependencies can also refer to directory links.
+  ExplicitEntry,
+  ExplicitDirectory,
+  ContextFile,
+  ContextDirectory,
 }
 
 #[derive(Default)]
@@ -128,10 +151,17 @@ impl LinkSubscriptions {
     &mut self,
     resolver: &mut LinkResolver,
     path: InternedPath,
-    directory: bool,
-    nested: bool,
+    kind: LinkSubscriptionKind,
     manager: &PathManager,
   ) {
+    let directory = matches!(
+      kind,
+      LinkSubscriptionKind::ExplicitDirectory | LinkSubscriptionKind::ContextDirectory
+    );
+    let nested = matches!(
+      kind,
+      LinkSubscriptionKind::ContextFile | LinkSubscriptionKind::ContextDirectory
+    );
     let Some(resolution) = resolver.resolve(&path) else {
       return;
     };
@@ -407,12 +437,9 @@ impl Symlinks {
       .write()
       .expect("symlink subscriptions lock poisoned");
     for (path, link) in &mut subscriptions.links {
-      link.mtime = match previous.links.get(path) {
-        Some(old) => old.mtime,
-        None => path
-          .symlink_metadata()
-          .and_then(|metadata| metadata.modified())
-          .ok(),
+      link.state = match previous.links.get_mut(path) {
+        Some(old) => std::mem::take(&mut old.state),
+        None => LinkState::read(path),
       };
     }
     let newly_subscribed = subscriptions
