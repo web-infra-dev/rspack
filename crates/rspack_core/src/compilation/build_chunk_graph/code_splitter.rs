@@ -544,8 +544,7 @@ impl CodeSplitter {
     let cached_blocks = self
       .prepared_blocks_map
       .get(&module_block)
-      .map(Vec::as_slice)
-      .unwrap_or_default();
+      .map_or_default(Vec::as_slice);
 
     if current_blocks != cached_blocks {
       return None;
@@ -624,8 +623,7 @@ impl CodeSplitter {
 
         let current_connections = current_connections_by_block
           .get(&block)
-          .map(Vec::as_slice)
-          .unwrap_or_default();
+          .map_or_default(Vec::as_slice);
         if current_connections.len() != cached_modules.len() {
           return None;
         }
@@ -670,10 +668,7 @@ impl CodeSplitter {
 
   pub fn get_module_ordinal(&self, module_id: ModuleIdentifier) -> u64 {
     *self.ordinal_by_module.get(&module_id).unwrap_or_else(|| {
-      panic!(
-        "expected a module ordinal for identifier '{}', but none was found.",
-        &module_id
-      )
+      panic!("expected a module ordinal for identifier '{module_id}', but none was found.")
     })
   }
 
@@ -1516,7 +1511,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let module_ordinal = *self.ordinal_by_module.get(&item.module).unwrap_or_else(|| {
       panic!(
         "expected a module ordinal for identifier '{}', but none was found.",
-        &item.module
+        item.module
       )
     });
 
@@ -1567,7 +1562,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let module_ordinal = *self.ordinal_by_module.get(&item.module).unwrap_or_else(|| {
       panic!(
         "expected a module ordinal for identifier '{}', but none was found.",
-        &item.module
+        item.module
       )
     });
     let cgi = self.chunk_group_info_mut(&item.chunk_group_info);
@@ -3039,8 +3034,7 @@ fn extract_block_modules(
   let block = module.into();
   let blocks = prepared_blocks_map
     .get(&block)
-    .map(|blocks| blocks.as_slice())
-    .unwrap_or_default();
+    .map_or_default(|blocks| blocks.as_slice());
   let connection_map = prepared_connection_map.get(&module);
 
   if blocks.is_empty() && connection_map.is_none() {
@@ -3078,7 +3072,7 @@ fn extract_block_modules(
   // Most roots have no async block or a single async block. Construct their results
   // directly, without a temporary hash map or repeatedly growing the output vectors.
   if blocks.len() <= 1 && !has_nested_async_blocks {
-    let connections = connection_map.map(Vec::as_slice).unwrap_or_default();
+    let connections = connection_map.map_or_default(Vec::as_slice);
     let root_cached = map.contains_key(&block);
     let async_block = blocks
       .first()

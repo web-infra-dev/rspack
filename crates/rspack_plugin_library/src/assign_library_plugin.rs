@@ -261,10 +261,7 @@ async fn render_startup(
   let full_name_resolved = self
     .get_resolved_full_name(&options, compilation, chunk)
     .await?;
-  let export_access = options
-    .export
-    .map(|e| property_access(e, 0))
-    .unwrap_or_default();
+  let export_access = options.export.map_or_default(|e| property_access(e, 0));
   let exports_name = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
   if matches!(self.options.unnamed, Unnamed::Static) {
     let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);

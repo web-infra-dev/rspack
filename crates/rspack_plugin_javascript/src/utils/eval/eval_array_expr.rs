@@ -11,7 +11,7 @@ pub fn eval_array_expression<'parser>(
 ) -> Option<BasicEvaluatedExpression<'parser>> {
   let ast = parser.ast.ast;
   let mut items = Vec::new();
-  for element in ast.nodes(expression.elements(ast)) {
+  for element in ast.optional_nodes(expression.elements(ast)) {
     let element = element?;
     let ArgumentData::Expr(element) = ast.argument_data(element) else {
       return None;

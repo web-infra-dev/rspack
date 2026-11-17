@@ -98,9 +98,7 @@ jobs:
         run: cargo codegen
 
       - name: Trim paths
-        run: |
-          echo $'\n' >> .cargo/config.toml
-          echo 'trim-paths = true' >> .cargo/config.toml
+        run: echo 'CARGO_PROFILE_RELEASE_TRIM_PATHS=object' >> "$GITHUB_ENV"
 
       - name: Enable checksum-freshness (CI profile only)
         if: ${{ inputs.profile == 'ci' }}

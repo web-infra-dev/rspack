@@ -669,9 +669,8 @@ impl FileReplacements {
         .filter(|hash| !hash.contains('X'))
         .unwrap_or("")
         .to_owned();
-      let ext = mime_guess::get_mime_extensions_str(caps)
-        .map(|exts| format!(".{}", exts[0]))
-        .unwrap_or_default();
+      let ext =
+        mime_guess::get_mime_extensions_str(caps).map_or_default(|exts| format!(".{}", exts[0]));
 
       return Self {
         file: Some(String::new()),
@@ -695,16 +694,14 @@ impl FileReplacements {
 
     let ext = file
       .extension()
-      .map(|extension| format!(".{extension}"))
-      .unwrap_or_default();
+      .map_or_default(|extension| format!(".{extension}"));
     let base = file.file_name().map(ToOwned::to_owned);
     let name = file.file_stem().map(ToOwned::to_owned);
     let path = file
       .parent()
       // "" -> "", "folder" -> "folder/"
       .filter(|path| !path.as_str().is_empty())
-      .map(|path| path.as_str().to_owned() + "/")
-      .unwrap_or_default();
+      .map_or_default(|path| path.as_str().to_owned() + "/");
 
     Self {
       file: Some(file.as_str().to_owned()),

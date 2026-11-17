@@ -59,7 +59,7 @@ impl RscEntryModule {
     css_imports_by_server_entry: CssImportsByServerEntry,
     is_server_side_rendering: bool,
   ) -> Self {
-    let lib_ident = format!("rspack/rsc-entry?name={}", &name);
+    let lib_ident = format!("rspack/rsc-entry?name={name}");
     let identifier = create_identifier(
       name.as_ref(),
       &client_modules,

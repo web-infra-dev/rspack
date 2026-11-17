@@ -37,8 +37,8 @@
 //! * Allocative allows profiling of memory for subset of the process data
 //!   (for example, measure the size of RPC response before serialization)
 
-#![feature(const_type_name, never_type)]
-#![feature(type_info, ptr_metadata, core_intrinsics, layout_for_ptr)]
+#![feature(const_type_name)]
+#![feature(type_info, ptr_metadata, core_intrinsics, rustc_attrs)]
 #![feature(specialization)]
 #![allow(incomplete_features)]
 #![allow(internal_features)]

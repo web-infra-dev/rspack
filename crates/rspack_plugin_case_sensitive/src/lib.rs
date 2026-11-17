@@ -119,7 +119,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   // Found conflict: multiple filenames with same lowercase representation but different casing
-  for (_lower_key, filenames) in case_map.iter() {
+  for filenames in case_map.values() {
     // Only report conflict if there are multiple unique filenames (different casing)
     if filenames.len() > 1 {
       diagnostics.push(Diagnostic::warn(

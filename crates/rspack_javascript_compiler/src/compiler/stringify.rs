@@ -223,7 +223,7 @@ fn build_rspack_source_map(
           builder.add_to_ignore_list(cur_src_id);
         }
 
-        cur_file = Some(file.clone());
+        cur_file = Some(file);
         cur_file.as_ref().expect("source file was just set")
       }
     };
@@ -261,8 +261,7 @@ fn build_rspack_source_map(
   if let Some(input_source_map) = input_source_map {
     let name = intermediate_map
       .get_source(0)
-      .map(ToString::to_string)
-      .unwrap_or_default();
+      .map_or_default(ToString::to_string);
     SourceMapSource::new(SourceMapSourceOptions {
       value: generated_code.to_string(),
       name,

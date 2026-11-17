@@ -26,4 +26,4 @@ pub struct RunnerContext {
   pub source_map_kind: SourceMapKind,
 }
 
-pub type BoxLoader = Arc<dyn for<'a> Loader<RunnerContext>>;
+pub type BoxLoader = Arc<dyn Loader<RunnerContext>>;

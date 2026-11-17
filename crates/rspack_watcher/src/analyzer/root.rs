@@ -95,7 +95,7 @@ impl PathTree {
     if let Some(child) = node
       .only_child()
       // Check if the child exists in the tree
-      .and_then(|child| if child.is_dir() { Some(child) } else { None })
+      .filter(|child| child.is_dir())
     {
       self.find_common_root_recursive(child)
     } else {

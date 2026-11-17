@@ -10,7 +10,6 @@
 
 use std::{
   collections::VecDeque,
-  convert::Infallible,
   ffi::OsStr,
   marker::PhantomData,
   mem,
@@ -214,12 +213,6 @@ impl Allocative for NonZeroIsize {
 impl<T: ?Sized> Allocative for PhantomData<T> {
   fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     let _ = visitor;
-  }
-}
-
-impl Allocative for Infallible {
-  fn visit<'a, 'b: 'a>(&self, _visitor: &'a mut Visitor<'b>) {
-    match *self {}
   }
 }
 

@@ -131,8 +131,8 @@ impl JsonpChunkLoadingRuntimeModule {
     let base_uri = chunk
       .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
       .and_then(|options| options.base_uri.as_ref())
-      .map_or_else(
-        || Cow::Borrowed("document.baseURI || self.location.href"),
+      .map_or(
+        Cow::Borrowed("document.baseURI || self.location.href"),
         |base_uri| Cow::Owned(rspack_util::json_stringify_str(base_uri)),
       );
     format!(
@@ -343,7 +343,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         }
         false => String::new(),
       },
-      &stringify_chunks(&initial_chunks, 0)
+      stringify_chunks(&initial_chunks, 0)
     ));
 
     if with_loading {

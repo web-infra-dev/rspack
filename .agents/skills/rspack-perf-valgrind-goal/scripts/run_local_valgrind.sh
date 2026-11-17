@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-readonly DEFAULT_IMAGE="rspack-perf-valgrind:nightly-2026-04-16"
+readonly DEFAULT_IMAGE="rspack-perf-valgrind:nightly-2026-11-13"
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly DOCKER_INSTALL_TASK="019f7e27-50ba-7ac1-8ab4-3cdc868818fe"
 
@@ -24,7 +24,7 @@ Commands:
   measure      Build and measure one benchmark target/filter, retaining logs.
 
 Defaults:
-  IMAGE     rspack-perf-valgrind:nightly-2026-04-16
+  IMAGE     rspack-perf-valgrind:nightly-2026-11-13
   PLATFORM  Native Docker architecture (`linux/arm64` or `linux/amd64`)
   REPEAT    2
 

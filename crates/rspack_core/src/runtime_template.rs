@@ -1135,9 +1135,7 @@ impl ModuleCodeTemplate {
       format!(
         "{}({comment}{chunk_id}{})",
         self.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
-        fetch_priority
-          .map(|x| format!(r#", "{x}""#))
-          .unwrap_or_default()
+        fetch_priority.map_or_default(|x| format!(r#", "{x}""#))
       )
     } else if !chunks.is_empty() {
       let fetch_priority = chunk_group
@@ -1160,9 +1158,7 @@ impl ModuleCodeTemplate {
             self.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
             simd_json::to_string(c.id().expect("should have chunk.id"))
               .expect("should able to json stringify"),
-            fetch_priority
-              .map(|x| format!(r#", "{x}""#))
-              .unwrap_or_default()
+            fetch_priority.map_or_default(|x| format!(r#", "{x}""#))
           ))
           .collect::<Vec<_>>()
           .join(", ")
@@ -1693,7 +1689,7 @@ impl ModuleCodeTemplate {
               "",
               &format!(
                 "{header}\nreturn {}({})",
-                &rendered_async_deps_fn,
+                rendered_async_deps_fn,
                 json_stringify(&async_deps)
               )
             )
@@ -1707,7 +1703,7 @@ impl ModuleCodeTemplate {
             self.returning_function(
               &format!(
                 "{}({})",
-                &rendered_async_deps_fn,
+                rendered_async_deps_fn,
                 json_stringify(&async_deps)
               ),
               ""
@@ -1728,10 +1724,7 @@ impl ModuleCodeTemplate {
           ".then({})",
           self.basic_function(
             "",
-            &format!(
-              "{header}\nreturn {}({module_id_expr}, {mode});",
-              &rendered_async_deps_fn
-            )
+            &format!("{header}\nreturn {rendered_async_deps_fn}({module_id_expr}, {mode});")
           )
         );
       } else {

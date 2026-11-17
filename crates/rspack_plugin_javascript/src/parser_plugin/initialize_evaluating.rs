@@ -248,7 +248,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
       } else if arg.is_regexp() {
         let raw = arg.regexp();
         let regex = eval_regexp_to_regexp(&raw.0, &raw.1);
-        param.string().split(&regex).map(|s| s.to_owned()).collect()
+        let text = param.string();
+        let mut parts = Vec::new();
+        let mut start = 0;
+        for found in regex.find_iter(text) {
+          parts.push(text[start..found.start()].to_owned());
+          start = found.end();
+        }
+        parts.push(text[start..].to_owned());
+        parts
       } else {
         return None;
       };

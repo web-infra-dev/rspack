@@ -167,8 +167,7 @@ impl ComposesOrderState {
     dependencies_in_source_order.sort_by_key(|(_, source_order)| *source_order);
     let base_source_order = dependencies_in_source_order
       .first()
-      .map(|(_, source_order)| *source_order)
-      .unwrap_or_default();
+      .map_or_default(|(_, source_order)| *source_order);
     let dependencies_in_source_order = dependencies_in_source_order
       .into_iter()
       .map(|(dependency_id, _)| dependency_id)
@@ -799,13 +798,12 @@ impl<'context> CssModuleParser<'context> {
       .build_info
       .css
       .as_deref()
-      .map(|css| {
+      .map_or_default(|css| {
         (
           css.inherited_render_conditions.clone(),
           css.render_condition.clone(),
         )
-      })
-      .unwrap_or_default();
+      });
 
     if render_condition.is_empty() {
       return inherited_render_conditions;
@@ -830,8 +828,7 @@ impl<'context> CssModuleParser<'context> {
           resource_path: self
             .resource_data()
             .path()
-            .map(|p| p.as_str().to_string())
-            .unwrap_or_default(),
+            .map_or_default(|p| p.as_str().to_string()),
           supports: supports.map(|s| s.to_string()),
           layer: layer.map(|s| s.to_string()),
         };

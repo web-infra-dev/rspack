@@ -84,6 +84,12 @@ type HttpUriOptions = {
 
 默认情况下，Rspack 会在 [context](/config/context) 文件夹下生成 `rspack.lock` 和 `rspack.lock.data` 分别作为 Lockfile 和缓存的位置，你也可以通过 `lockfileLocation` 和 `cacheLocation` 进行配置。
 
+lockfile 使用 webpack 的格式：URL 条目与 `version: 1` 同为顶层属性，条目包含 `integrity`、`contentType` 和可选的 `resolved` URL。内容缓存的文件名也与 webpack 一致，因此可以同时复用现有 webpack lockfile 及其缓存资源。
+
+:::warning 破坏性变更
+不再支持包含 `entries` 对象、`content_type`、`valid_until` 和 `etag` 的旧 Rspack 格式。请删除旧 lockfile 和内容缓存，使用 `frozen: false` 重新构建生成，再审查并提交生成的文件，最后启用冻结构建。HTTP 校验标识和过期时间保存在内存中，不再写入 lockfile。
+:::
+
 :::note
 你应该将 `lockfileLocation` 和 `cacheLocation` 的文件提交到版本控制系统中，以便生产构建使用缓存内容。
 :::

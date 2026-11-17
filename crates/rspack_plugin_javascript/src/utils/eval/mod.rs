@@ -326,10 +326,9 @@ impl<'a> BasicEvaluatedExpression<'a> {
     } else if self.is_template_string() {
       let mut s = String::new();
       for p in self.parts() {
-        if let Some(p) = p.as_string() {
+        {
+          let p = p.as_string()?;
           s += &p;
-        } else {
-          return None;
         }
       }
       Some(s)

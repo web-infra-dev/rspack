@@ -24,6 +24,8 @@ impl Display for ModuleType {
   }
 }
 
+// Preserve the existing conversion API.
+#[allow(clippy::try_from_instead_of_from_str)]
 impl TryFrom<&str> for ModuleType {
   type Error = &'static str;
   fn try_from(value: &str) -> Result<Self, Self::Error> {

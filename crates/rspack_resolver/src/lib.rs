@@ -403,7 +403,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     let result = match Utf8Path::new(specifier).components().next() {
       // 2. If X begins with '/'
       Some(Utf8Component::RootDir | Utf8Component::Prefix(_)) => {
-        self.require_absolute(cached_path, specifier, ctx).await
+        self.require_absolute(specifier, ctx).await
       }
       // 3. If X begins with './' or '/' or '../'
       Some(Utf8Component::CurDir | Utf8Component::ParentDir) => {
@@ -466,7 +466,6 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
 
   async fn require_absolute(
     &self,
-    cached_path: &CachedPath,
     specifier: &str,
     ctx: &mut Ctx,
   ) -> Result<CachedPath, ResolveError> {
@@ -477,19 +476,23 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         .next()
         .is_some_and(|c| matches!(c, Utf8Component::RootDir | Utf8Component::Prefix(_)))
     );
-    if !self.options.prefer_relative && self.options.prefer_absolute {
-      if let Ok(path) = self
-        .load_package_self_or_node_modules(cached_path, specifier, ctx)
-        .await
-      {
+    if self.options.prefer_absolute {
+      if let Ok(Some(path)) = self.load_absolute(specifier, ctx).await {
         return Ok(path);
       }
     }
     if let Some(path) = self.load_roots(specifier, ctx).await {
       return Ok(path);
     }
-    // 2. If X begins with '/'
-    //   a. set Y to be the file system root
+    if let Some(path) = self.load_absolute(specifier, ctx).await? {
+      return Ok(path);
+    }
+    Err(ResolveError::NotFound(specifier.to_string()))
+  }
+
+  // 2. If X begins with '/'
+  //   a. set Y to be the file system root
+  async fn load_absolute(&self, specifier: &str, ctx: &mut Ctx) -> ResolveResult {
     let path = self.cache.value(
       //
       #[cfg(windows)]
@@ -498,13 +501,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       Utf8Path::new(specifier),
     );
 
-    if let Some(path) = self
-      .load_as_file_or_directory(&path, specifier, ctx)
-      .await?
-    {
-      return Ok(path);
-    }
-    Err(ResolveError::NotFound(specifier.to_string()))
+    self.load_as_file_or_directory(&path, specifier, ctx).await
   }
 
   // 3. If X begins with './' or '/' or '../'
@@ -1002,13 +999,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
 
   /// Parse `NODE_PATH` env var into directory list. Uses `;` on Windows, `:` on POSIX.
   fn parse_node_path_env() -> Vec<PathBuf> {
-    std::env::var_os("NODE_PATH")
-      .map(|path| {
-        std::env::split_paths(&path)
-          .filter(|paths| paths.is_absolute())
-          .collect::<Vec<PathBuf>>()
-      })
-      .unwrap_or_default()
+    std::env::var_os("NODE_PATH").map_or_else(Vec::new, |path| {
+      std::env::split_paths(&path)
+        .filter(|paths| paths.is_absolute())
+        .collect::<Vec<PathBuf>>()
+    })
   }
 
   /// Lazily get NODE_PATH directories. Parsed once on first access.

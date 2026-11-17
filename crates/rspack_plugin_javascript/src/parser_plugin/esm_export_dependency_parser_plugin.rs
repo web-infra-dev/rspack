@@ -253,7 +253,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     let dep = ESMExportImportedSpecifierDependency::new(
       source.clone(),
       parser.last_esm_import_order,
-      local_id.map(|id| vec![id.clone()]).unwrap_or_default(),
+      local_id.map_or_default(|id| vec![id.clone()]),
       export_name.cloned(),
       star_exports,
       statement_span.into(),
@@ -314,7 +314,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       .comments
       .leading
       .get(&expr_span.start)
-      .map(|c| {
+      .map_or_default(|c| {
         c.iter()
           .dedup()
           .map(|c| match c.kind {
@@ -323,8 +323,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
           })
           .collect_vec()
           .join("")
-      })
-      .unwrap_or_default();
+      });
     let declaration = match expr_data {
       ExportDefaultDeclarationKindData::Function(f) => {
         let start = f.span(ast).real_lo();

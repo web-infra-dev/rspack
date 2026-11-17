@@ -932,13 +932,8 @@ impl ChunkGraph {
       }
     }
 
-    if self.get_number_of_entry_modules(&chunk_a.ukey()) > 0
-      || self.get_number_of_entry_modules(&chunk_b.ukey()) > 0
-    {
-      return false;
-    }
-
-    true
+    !(self.get_number_of_entry_modules(&chunk_a.ukey()) > 0
+      || self.get_number_of_entry_modules(&chunk_b.ukey()) > 0)
   }
 
   pub fn get_chunk_size(

@@ -23,7 +23,7 @@ pub fn collect_chunks(
   chunks
     .par_iter()
     .map(|(chunk_id, chunk)| {
-      let names = chunk.name().map(|n| vec![n.to_owned()]).unwrap_or_default();
+      let names = chunk.name().map_or_default(|n| vec![n.to_owned()]);
       let files: Vec<_> = {
         let mut vec = chunk.files().iter().cloned().collect::<Vec<_>>();
         vec.sort_unstable();
@@ -115,14 +115,12 @@ pub fn collect_entrypoints(
     .par_iter()
     .map(|(name, ukey)| {
       let cg = chunk_group_by_ukey.get(ukey);
-      let chunks = cg
-        .map(|cg| {
-          cg.chunks
-            .iter()
-            .filter_map(|c| rsd_chunks.get(c).map(|c| c.ukey))
-            .collect::<HashSet<_>>()
-        })
-        .unwrap_or_default();
+      let chunks = cg.map_or_default(|cg| {
+        cg.chunks
+          .iter()
+          .filter_map(|c| rsd_chunks.get(c).map(|c| c.ukey))
+          .collect::<HashSet<_>>()
+      });
 
       (
         ukey.to_owned(),
@@ -153,23 +151,19 @@ pub fn collect_assets(
     .map(|(path, asset)| {
       let chunks = compilation_file_to_chunks
         .get(path)
-        .map(|chunks| {
+        .map_or_default(|chunks| {
           chunks
             .iter()
             .map(|c| c.as_u32() as RsdoctorChunkUkey)
             .collect::<HashSet<_>>()
-        })
-        .unwrap_or_default();
+        });
       (
         path.clone(),
         RsdoctorAsset {
           ukey: asset_ukey_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
           path: path.clone(),
           chunks,
-          size: asset
-            .get_source()
-            .map(|source| source.size())
-            .unwrap_or_default() as i32,
+          size: asset.get_source().map_or_default(|source| source.size()) as i32,
         },
       )
     })

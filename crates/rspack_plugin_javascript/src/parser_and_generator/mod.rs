@@ -59,10 +59,10 @@ static LEGACY_REQUIRE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new("__webpack_require__\\s*(!?\\.)").expect("should init `REQUIRE_FUNCTION_REGEX`")
 });
 
-fn append_swc_next_diagnostics<'a>(
+fn append_swc_next_diagnostics(
   diagnostics: &mut Vec<Diagnostic>,
   source: &str,
-  errors: impl IntoIterator<Item = swc_next_ecma_ast::Diagnostic<'a>>,
+  errors: impl IntoIterator<Item = swc_next_ecma_ast::Diagnostic>,
 ) {
   let mut visited = FxHashSet::default();
   let mut shared_source = None;
@@ -573,7 +573,7 @@ impl<'view> AstScanner<'view> {
   }
 
   /// Requires successful parser output before transformations can detach nodes.
-  pub fn scan(&mut self, ast: &Ast<'_>) -> Vec<SwcDiagnostic<'static>> {
+  pub fn scan(&mut self, ast: &Ast<'_>) -> Vec<SwcDiagnostic> {
     let mut diagnostics = Vec::new();
     for index in 0..ast.node_count() {
       let node = NodeId::from_raw_unchecked(index as u32);

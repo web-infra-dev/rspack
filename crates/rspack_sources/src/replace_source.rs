@@ -508,7 +508,7 @@ impl std::fmt::Debug for ReplaceSource {
 
     writeln!(f, "{indent_str}{{")?;
     writeln!(f, "{indent_str}  let mut source = ReplaceSource::new(")?;
-    writeln!(f, "{:indent$?}", &self.inner, indent = indent + 4)?;
+    writeln!(f, "{:indent$?}", self.inner, indent = indent + 4)?;
     writeln!(f, "{indent_str}  );")?;
     for repl in self.replacements.iter() {
       match repl.enforce {

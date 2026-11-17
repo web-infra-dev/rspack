@@ -778,6 +778,8 @@ impl<'parser> JavascriptParser<'parser> {
         .rev()
       {
         let mut block = block.expect("reserved parser block should be initialized");
+        // Drain the indexed adjacency list without moving it out of its parent.
+        #[allow(clippy::iter_with_drain)]
         for child in nested_blocks[index].drain(..).rev() {
           block.add_block(child);
         }
@@ -1514,7 +1516,7 @@ impl<'parser> JavascriptParser<'parser> {
     F: FnOnce(&mut Self, BindingIdentifier, &str) + Copy,
   {
     let ast = self.ast.ast;
-    for element in ast.nodes(array_pat.elements(ast)).flatten() {
+    for element in ast.optional_nodes(array_pat.elements(ast)).flatten() {
       self.enter_pattern(PatRef::Borrowed(element), on_ident);
     }
     if let Some(rest) = array_pat.rest(ast) {
