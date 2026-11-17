@@ -70,7 +70,7 @@ enable_instrument = []
 
 [package.metadata.docs.rs]
 # Exclude allocative, which depends on version-specific nightly reflection APIs.
-features = ["document-features", "enable_instrument", "package_json_raw_json_api", "yarn_pnp"]
+features     = ["document-features", "enable_instrument", "package_json_raw_json_api", "yarn_pnp"]
 rustdoc-args = ["--cfg", "docsrs"]
 
 [package.metadata.cargo-shear]
