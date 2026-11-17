@@ -1887,7 +1887,8 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
 
     if let (Some(JSXAttrValue::JSXExprContainer(container)), JSXAttrName::Ident(ident_name)) =
       (&attr.value, &attr.name)
-      && let JSXExpr::Expr(box (Expr::Arrow(_) | Expr::Fn(_))) = &container.expr
+      && let JSXExpr::Expr(expr) = &container.expr
+      && matches!(expr.as_ref(), Expr::Arrow(_) | Expr::Fn(_))
     {
       self.arrow_or_fn_expr_ident = Some(ident_name.clone().into());
     }
@@ -1900,8 +1901,8 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
     let old_current_export_name = self.current_export_name.take();
     let old_arrow_or_fn_expr_ident = self.arrow_or_fn_expr_ident.take();
 
-    if let (Pat::Ident(ident), Some(box (Expr::Arrow(_) | Expr::Fn(_)))) =
-      (&var_declarator.name, &var_declarator.init)
+    if let (Pat::Ident(ident), Some(Expr::Arrow(_) | Expr::Fn(_))) =
+      (&var_declarator.name, var_declarator.init.as_deref())
     {
       if self.in_module_level
         && let Some(export_name) = self.export_name_by_local_id.get(&ident.to_id())
@@ -2207,17 +2208,15 @@ fn is_action_fn(maybe_body: &Option<FunctionBody>) -> bool {
   let mut result = false;
   if let Some(body) = maybe_body {
     for stmt in body.stmts.iter() {
-      match stmt {
-        Stmt::Expr(ExprStmt {
-          expr: box Expr::Lit(Lit::Str(Str { value, .. })),
-          ..
-        }) => {
-          if value == "use server" {
-            result = true;
-            break;
-          }
+      if let Stmt::Expr(ExprStmt { expr, .. }) = stmt
+        && let Expr::Lit(Lit::Str(Str { value, .. })) = expr.as_ref()
+      {
+        if value == "use server" {
+          result = true;
+          break;
         }
-        _ => break,
+      } else {
+        break;
       }
     }
   }
@@ -2341,68 +2340,59 @@ impl DirectiveVisitor<'_> {
     let in_fn_body = matches!(self.location, DirectiveLocation::FunctionBody);
     let allow_inline = self.config.is_react_server_layer || self.in_action_file;
 
-    match stmt {
-      Stmt::Expr(ExprStmt {
-        expr: box Expr::Lit(Lit::Str(Str { value, span, .. })),
-        ..
-      }) => {
-        // Match `use server`
-        if value == "use server" {
-          if in_fn_body && !allow_inline {
-            emit_error(ServerActionsErrorKind::InlineUseServerInClientComponent { span: *span })
-          } else if self.found_use_server {
-            emit_error(ServerActionsErrorKind::MultipleDirectives {
-              span: *span,
-              location: self.location.clone(),
-            });
-          } else if self.is_allowed_position {
-            self.found_use_server = true;
-            return true;
-          } else {
-            emit_error(ServerActionsErrorKind::MisplacedDirective {
-              span: *span,
-              directive: value.to_string_lossy().into_owned(),
-              location: self.location.clone(),
-            });
-          }
-        } else if detect_similar_strings(&value.to_string_lossy(), "use server") {
-          // Detect typo of "use server"
-          emit_error(ServerActionsErrorKind::MisspelledDirective {
+    if let Stmt::Expr(ExprStmt { expr, .. }) = stmt
+      && let Expr::Lit(Lit::Str(Str { value, span, .. })) = expr.as_ref()
+    {
+      // Match `use server`
+      if value == "use server" {
+        if in_fn_body && !allow_inline {
+          emit_error(ServerActionsErrorKind::InlineUseServerInClientComponent { span: *span })
+        } else if self.found_use_server {
+          emit_error(ServerActionsErrorKind::MultipleDirectives {
+            span: *span,
+            location: self.location.clone(),
+          });
+        } else if self.is_allowed_position {
+          self.found_use_server = true;
+          return true;
+        } else {
+          emit_error(ServerActionsErrorKind::MisplacedDirective {
             span: *span,
             directive: value.to_string_lossy().into_owned(),
-            expected_directive: "use server".to_string(),
+            location: self.location.clone(),
+          });
+        }
+      } else if detect_similar_strings(&value.to_string_lossy(), "use server") {
+        // Detect typo of "use server"
+        emit_error(ServerActionsErrorKind::MisspelledDirective {
+          span: *span,
+          directive: value.to_string_lossy().into_owned(),
+          expected_directive: "use server".to_string(),
+        });
+      }
+    } else if let Stmt::Expr(ExprStmt { expr, span }) = stmt
+      && let Expr::Paren(paren) = expr.as_ref()
+      && let Expr::Lit(Lit::Str(Str { value, .. })) = paren.expr.as_ref()
+    {
+      // Match `("use server")`.
+      if value == "use server" || detect_similar_strings(&value.to_string_lossy(), "use server") {
+        if self.is_allowed_position {
+          emit_error(ServerActionsErrorKind::WrappedDirective {
+            span: *span,
+            directive: "use server".to_string(),
+          });
+        } else {
+          emit_error(ServerActionsErrorKind::MisplacedWrappedDirective {
+            span: *span,
+            directive: "use server".to_string(),
+            location: self.location.clone(),
           });
         }
       }
-      Stmt::Expr(ExprStmt {
-        expr:
-          box Expr::Paren(ParenExpr {
-            expr: box Expr::Lit(Lit::Str(Str { value, .. })),
-            ..
-          }),
-        span,
-      }) => {
-        // Match `("use server")`.
-        if value == "use server" || detect_similar_strings(&value.to_string_lossy(), "use server") {
-          if self.is_allowed_position {
-            emit_error(ServerActionsErrorKind::WrappedDirective {
-              span: *span,
-              directive: "use server".to_string(),
-            });
-          } else {
-            emit_error(ServerActionsErrorKind::MisplacedWrappedDirective {
-              span: *span,
-              directive: "use server".to_string(),
-              location: self.location.clone(),
-            });
-          }
-        }
-      }
-      _ => {
-        // Directives must not be placed after other statements.
-        self.is_allowed_position = false;
-      }
-    };
+    } else {
+      // Directives must not be placed after other statements.
+      self.is_allowed_position = false;
+    }
 
     false
   }
@@ -2437,7 +2427,9 @@ impl VisitMut for ClosureReplacer<'_> {
   fn visit_mut_prop_or_spread(&mut self, n: &mut PropOrSpread) {
     n.visit_mut_children_with(self);
 
-    if let PropOrSpread::Prop(box Prop::Shorthand(i)) = n {
+    if let PropOrSpread::Prop(prop) = n
+      && let Prop::Shorthand(i) = prop.as_mut()
+    {
       let name = Name::from(&*i);
       if let Some(index) = self.used_ids.iter().position(|used_id| *used_id == name) {
         *n = PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
