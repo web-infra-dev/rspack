@@ -39,7 +39,6 @@ runs:
       run: |
         toolchain=$(grep -E "^channel\s*=" rust-toolchain.toml | sed -n -E 's/^[ \t]*channel[ \t]*=[ \t]*"([^"]*)"[^#]*.*$/\1/p' | tr -d '[:space:]')
         echo "toolchain=${toolchain}" >> $GITHUB_OUTPUT
-        echo "linker-cache-suffix=${{ runner.os == 'macOS' && format('-{0}', hashFiles('scripts/macos-linker.sh')) || '' }}" >> $GITHUB_OUTPUT
 
     - name: Restore rustup cache
       id: restore
@@ -47,7 +46,7 @@ runs:
       uses: ./.github/actions/cache/restore
       with:
         path: ~/.rustup/toolchains
-        key: rustup-cache-v4-${{ runner.os }}-${{ steps.get-toolchain.outputs.toolchain }}${{ steps.get-toolchain.outputs.linker-cache-suffix }}
+        key: rustup-cache-v4-${{ runner.os }}-${{ steps.get-toolchain.outputs.toolchain }}
 
     # install components for nightly toolchain
     - name: Install
@@ -61,23 +60,18 @@ runs:
           -c clippy \
           -c rustfmt
 
-    - name: Install macOS linker
-      if: runner.os == 'macOS'
-      shell: bash
-      run: ./scripts/macos-linker.sh --setup
-
     - name: Save rustup cache
       uses: ./.github/actions/cache/save
       if: ${{ inputs.use-cache == 'true' && inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' && runner.os != 'Windows' }}
       with:
         path: ~/.rustup/toolchains
-        key: rustup-cache-v4-${{ runner.os }}-${{ steps.get-toolchain.outputs.toolchain }}${{ steps.get-toolchain.outputs.linker-cache-suffix }}
+        key: rustup-cache-v4-${{ runner.os }}-${{ steps.get-toolchain.outputs.toolchain }}
 
     - name: Cargo cache
       if: ${{ inputs.use-cache == 'true' }}
       uses: ./.github/actions/rustup/cargo
       with:
-        key: ${{ inputs.key }}${{ steps.get-toolchain.outputs.linker-cache-suffix }}
+        key: ${{ inputs.key }}
         save-if: ${{ inputs.save-if == 'true' }}
 
     - name: Refresh rustup proxies on macOS
