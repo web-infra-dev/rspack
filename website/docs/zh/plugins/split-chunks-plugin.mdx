@@ -258,7 +258,7 @@ export default {
 
 示例中的 `minSize: 0` 让这个 layer 中体积较小的模块也能被抽离。
 
-如果字符串或正则表达式能满足匹配需求，应优先使用，详见[性能开销](#performance-overhead)。
+在满足匹配需求的前提下，建议优先使用字符串或正则表达式，详见[性能开销](#performance-overhead)。
 
 #### priority
 
@@ -368,7 +368,7 @@ export default {
 要按 chunk 名称筛选，请使用 `chunks`。
 
 :::warning
-如果字符串或正则表达式能够表达相同的 `test` 条件，应优先使用，详见[性能开销](#performance-overhead)。
+在匹配条件相同的情况下，建议优先使用字符串或正则表达式，详见[性能开销](#performance-overhead)。
 :::
 
 #### type
@@ -485,7 +485,7 @@ export default {
 ```
 
 :::warning
-如果内置的字符串选项或正则表达式能筛选出相同的 chunk，应优先使用，详见[性能开销](#performance-overhead)。
+在筛选结果相同的情况下，建议优先使用内置的字符串选项或正则表达式，详见[性能开销](#performance-overhead)。
 :::
 
 ### splitChunks.dedupDepth
