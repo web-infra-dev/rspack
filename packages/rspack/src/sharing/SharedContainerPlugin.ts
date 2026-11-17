@@ -83,7 +83,8 @@ export class SharedContainerPlugin extends RspackBuiltinPlugin {
           {
             name: 'getShareContainerFile',
             stage:
-              compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER,
+              compiler.rspack.Compilation
+                .PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER,
           },
           () => {
             const remoteEntryPoint = compilation.entrypoints.get(shareName);
