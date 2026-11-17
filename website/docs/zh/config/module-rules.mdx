@@ -92,7 +92,7 @@ Condition 代表了匹配一个给定输入的形式，它支持的类型为：
   - `{ and: Condition[] }`：所有条件都匹配，则匹配成功。
   - `{ or: Condition[] }`：其中一个条件匹配，则匹配成功。
   - `{ not: Condition }`：条件不匹配时才通过。如果传入数组，则其中所有条件都不能匹配。
-- `(value: string) => boolean`：当输入的字符串经函数调用后返回 true 时，则匹配成功。
+- `(value: string) => boolean`：当输入的字符串经函数调用后返回 true 时，则匹配成功。在匹配结果相同的情况下，建议优先使用非函数形式，以减少[性能开销](#performance-overhead)。
 
 一条规则同时设置 `test`、`include`、`resourceQuery` 等条件时，需要全部匹配才会生效。`exclude` 则相反：匹配它的模块会被跳过，即使该模块也匹配 `include`。
 
@@ -911,7 +911,7 @@ export default {
 };
 ```
 
-也可以使用函数为每个模块选择 loader，返回 loader 名称、loader 配置对象或由它们组成的数组：
+也可以使用函数为每个模块选择 loader，返回 loader 名称、loader 配置对象或由它们组成的数组，如下例所示。如果 loader 配置固定，建议使用非函数形式，以减少[性能开销](#performance-overhead)。
 
 ```js title="rspack.config.mjs"
 import { basename } from 'node:path';
@@ -1205,5 +1205,12 @@ export default {
   },
 };
 ```
+
+## 性能开销 \{#performance-overhead}
+
+当 [`test`](#rulestest)、[`include`](#rulesinclude)、[`exclude`](#rulesexclude) 等匹配选项或 [`rules[].use`](#rulesuse) 使用函数形式时，Rspack 需要在处理模块时调用 JavaScript 回调。这些跨语言调用会增加构建开销，在大型项目中可能显著延长构建时间。
+
+- **匹配条件**：在匹配逻辑相同的前提下，建议优先使用非函数形式，让 Rspack 直接在 Rust 中完成匹配，仅在需要自定义逻辑时使用函数。
+- **Loader 配置**：如果 loader 配置固定，建议将 [`use`](#rulesuse) 配置为非函数形式。仅在需要根据模块信息选择 loader 或生成选项时，才使用函数形式。
 
 <Attribution url="https://webpack.docschina.org/configuration/module/" />
