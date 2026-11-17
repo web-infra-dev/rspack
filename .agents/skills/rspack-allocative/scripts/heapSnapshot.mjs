@@ -9,7 +9,8 @@ import { StringDecoder } from 'node:string_decoder';
  * @typedef {{
  *   snapshot: { meta: HeapMeta, node_count?: number, edge_count?: number },
  *   nodes: number[] | Float64Array, edges: number[] | Float64Array,
- *   strings: string[], rspack_binding_nodes?: number[],
+ *   strings: string[], rspack_string_contents?: { omitted_strings: number }, rspack_string_preview?: { max_length: number, truncated_strings: number },
+ *   rspack_binding_nodes?: number[],
  *   rspack_v8_source_nodes?: number[], rspack_js_roots?: RspackRoot[],
  *   rspack_js_bindings?: [number, number][]
  * }} HeapSnapshot
@@ -42,9 +43,38 @@ function loadStreamJson() {
 
 /**
  * @param {() => Uint8Array | null} readChunk
+ * @param {{ maxStringLength?: number, omitStringContents?: boolean, preserveStrings?: Iterable<string> }} [options]
  * @returns {HeapSnapshot}
  */
-export function parseHeapSnapshot(readChunk) {
+export function parseHeapSnapshot(
+  readChunk,
+  {
+    maxStringLength = Infinity,
+    omitStringContents = false,
+    preserveStrings = [],
+  } = {},
+) {
+  if (
+    maxStringLength !== Infinity &&
+    (!Number.isSafeInteger(maxStringLength) || maxStringLength < 1)
+  ) {
+    throw new Error('maxStringLength must be a positive integer or Infinity');
+  }
+  // Binding identities must survive previews regardless of string-table order.
+  const preserved = new Set();
+  let retainedLimit = omitStringContents ? 0 : maxStringLength + 1;
+  for (const value of [
+    'Compiler',
+    'Compilation',
+    'Cache',
+    ...rspackObjectKinds,
+    ...preserveStrings,
+  ]) {
+    if (omitStringContents || value.length > maxStringLength) {
+      preserved.add(value);
+      retainedLimit = Math.max(retainedLimit, value.length);
+    }
+  }
   const { jsonParser, Assembler, chain } = loadStreamJson();
   // The tokenizer accepts the flush sentinel even though its input type only lists strings.
   const parse =
@@ -58,6 +88,48 @@ export function parseHeapSnapshot(readChunk) {
 
   /** @type {string[]} */
   const stringChunks = [];
+  let readingStrings = false;
+  let stringIndex = 0;
+  let stringLength = 0;
+  let retainedLength = 0;
+  let keepFullString = true;
+  let truncatedStrings = 0;
+  let omittedStrings = 0;
+  const protectedNames = new Set();
+
+  // V8 writes numeric graph tables before strings. Names used by objects,
+  // functions and non-indexed edges are structural, not payload previews.
+  function protectNames() {
+    const heap = /** @type {HeapSnapshot} */ (assembler.current);
+    if (!heap.nodes || !heap.edges) {
+      throw new Error('String previews require nodes and edges before strings');
+    }
+    const { meta } = heap.snapshot;
+    const width = meta.node_fields.length;
+    const typeField = meta.node_fields.indexOf('type');
+    const nameField = meta.node_fields.indexOf('name');
+    const types = meta.node_types[typeField];
+    for (let i = 0; i < heap.nodes.length; i += width) {
+      const type = types[heap.nodes[i + typeField]];
+      if (
+        type !== 'string' &&
+        type !== 'concatenated string' &&
+        type !== 'sliced string'
+      ) {
+        protectedNames.add(heap.nodes[i + nameField]);
+      }
+    }
+    const edgeWidth = meta.edge_fields.length;
+    const edgeTypeField = meta.edge_fields.indexOf('type');
+    const edgeNameField = meta.edge_fields.indexOf('name_or_index');
+    const edgeTypes = meta.edge_types[edgeTypeField];
+    for (let i = 0; i < heap.edges.length; i += edgeWidth) {
+      const type = edgeTypes[heap.edges[i + edgeTypeField]];
+      if (type !== 'element' && type !== 'hidden') {
+        protectedNames.add(heap.edges[i + edgeNameField]);
+      }
+    }
+  }
 
   /** @param {string | typeof chain.none} input */
   function consume(input) {
@@ -106,16 +178,63 @@ export function parseHeapSnapshot(readChunk) {
           continue;
         }
       }
+      if (
+        token.name === 'startArray' &&
+        assembler.depth === 1 &&
+        assembler.key === 'strings'
+      ) {
+        if (omitStringContents || maxStringLength !== Infinity) protectNames();
+        readingStrings = true;
+      }
+      if (token.name === 'startString') {
+        keepFullString =
+          !readingStrings ||
+          (!omitStringContents && maxStringLength === Infinity) ||
+          protectedNames.has(stringIndex);
+      }
       if (token.name === 'stringChunk') {
-        stringChunks.push(token.value);
+        stringLength += token.value.length;
+        const chunk = keepFullString
+          ? token.value
+          : token.value.slice(0, Math.max(0, retainedLimit - retainedLength));
+        if (chunk) stringChunks.push(chunk);
+        retainedLength += chunk.length;
       } else if (token.name === 'endString') {
-        assembler.consume({
-          name: 'stringValue',
-          value: stringChunks.join(''),
-        });
+        let value = stringChunks.join('');
+        if (
+          omitStringContents &&
+          !keepFullString &&
+          !(stringLength === retainedLength && preserved.has(value))
+        ) {
+          value = '';
+          omittedStrings++;
+        } else if (
+          !omitStringContents &&
+          !keepFullString &&
+          stringLength > maxStringLength &&
+          !(stringLength === retainedLength && preserved.has(value))
+        ) {
+          let end = maxStringLength;
+          const last = value.charCodeAt(end - 1);
+          const next = value.charCodeAt(end);
+          if (
+            last >= 0xd800 &&
+            last <= 0xdbff &&
+            next >= 0xdc00 &&
+            next <= 0xdfff
+          )
+            end--;
+          value = value.slice(0, end) + '…';
+          truncatedStrings++;
+        }
+        assembler.consume({ name: 'stringValue', value });
         stringChunks.length = 0;
+        stringLength = 0;
+        retainedLength = 0;
+        if (readingStrings) stringIndex++;
       } else {
         assembler.consume(token);
+        if (readingStrings && token.name === 'endArray') readingStrings = false;
       }
     }
   }
@@ -129,7 +248,16 @@ export function parseHeapSnapshot(readChunk) {
   if (numericArray || !assembler.done || !assembler.current) {
     throw new Error('Invalid V8 heap snapshot');
   }
-  return /** @type {HeapSnapshot} */ (assembler.current);
+  const heap = /** @type {HeapSnapshot} */ (assembler.current);
+  if (omitStringContents) {
+    heap.rspack_string_contents = { omitted_strings: omittedStrings };
+  } else if (maxStringLength !== Infinity) {
+    heap.rspack_string_preview = {
+      max_length: maxStringLength,
+      truncated_strings: truncatedStrings,
+    };
+  }
+  return heap;
 }
 
 /** @param {string} kind @returns {kind is RspackRootKind} */

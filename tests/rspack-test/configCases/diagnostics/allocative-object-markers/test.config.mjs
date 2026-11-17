@@ -4,10 +4,120 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { convert } from '../../../../../.agents/skills/rspack-allocative/scripts/v8-to-allocative.mjs';
-import { parseHeapSnapshot, readHeapGraph } from '../../../../../.agents/skills/rspack-allocative/scripts/heapSnapshot.mjs';
+import { parseHeapSnapshot, readHeapGraph, readBindingMarker } from '../../../../../.agents/skills/rspack-allocative/scripts/heapSnapshot.mjs';
+
+function verifyStringPreviews() {
+  const nativeType = 'foreign_binding_crate::' + 'LongNativeType'.repeat(12);
+  const pointer = '0x123456789abcdef0';
+  const original = {
+    snapshot: {
+      meta: {
+        node_fields: ['type', 'name', 'id', 'self_size', 'edge_count'],
+        node_types: [['synthetic', 'object', 'string'], 'string', 'number', 'number', 'number'],
+        edge_fields: ['type', 'name_or_index', 'to_node'],
+        edge_types: [['property', 'element', 'internal', 'hidden'], 'string_or_number', 'node'],
+      },
+      node_count: 7,
+      edge_count: 6,
+    },
+    nodes: [0, 0, 1, 0, 1, 1, 1, 3, 64, 5, 2, 7, 5, 10000, 0, 2, 3, 7, 200, 0, 2, 6, 9, 40, 0, 2, 8, 11, 50, 0, 2, 9, 13, 60, 0],
+    edges: [1, 8, 5, 0, 2, 10, 0, 5, 15, 0, 4, 20, 0, 10, 25, 0, 11, 30],
+    // Identity values intentionally precede their property-name entries.
+    strings: ['', 'Constructor' + 'Name'.repeat(20), 'property' + 'Key'.repeat(20), nativeType,
+      '__rspackRustPtr', '__rspackRustType', pointer,
+      'a'.repeat(31) + '😀' + 'x'.repeat(4096), 'b'.repeat(32) + 'left', 'b'.repeat(32) + 'right', 'left', 'right'],
+  };
+  function parse(options) {
+    const bytes = Buffer.from(JSON.stringify(original));
+    let offset = 0;
+    return parseHeapSnapshot(() => {
+      if (offset === bytes.length) return null;
+      const chunk = bytes.subarray(offset, offset + 7);
+      offset += chunk.length;
+      return chunk;
+    }, options);
+  }
+  const full = parse();
+  assert.deepEqual(full.strings, original.strings);
+  const preview = parse({ maxStringLength: 32, preserveStrings: [nativeType, pointer] });
+  const graph = readHeapGraph(preview);
+  assert.deepEqual(preview.rspack_string_preview, { max_length: 32, truncated_strings: 3 });
+  assert.equal(preview.strings[7], 'a'.repeat(31) + '…');
+  assert.equal(preview.strings[8], 'b'.repeat(32) + '…');
+  assert.equal(preview.strings[9], preview.strings[8]);
+  assert.equal(graph.nodeName(1), original.strings[1]);
+  assert.equal(graph.edgeName(3), original.strings[2]);
+  assert.deepEqual(readBindingMarker(graph, 1), [3, pointer, nativeType]);
+  assert.deepEqual(Array.from(preview.nodes), original.nodes);
+  assert.deepEqual(Array.from(preview.edges), original.edges);
+  const identities = { objects: [{ address: pointer, type_name: nativeType, path: ['wrapper'], measured: true }] };
+  const before = convert(full, identities);
+  const after = convert(preview, identities);
+  assert.equal(after.report.matched_bindings, 1);
+  assert.deepEqual(after.report.category_bytes, before.report.category_bytes);
+  assert.equal(after.report.represented_bytes, before.report.represented_bytes);
+  assert.equal(after.report.node_count, before.report.node_count);
+  assert.equal(after.folded, before.folded);
+  const named = convert(preview, identities);
+  assert(named.folded.includes(original.strings[1]));
+  assert(!named.folded.includes('b'.repeat(32)));
+  assert(!named.folded.includes(nativeType));
+  assert(!named.folded.includes(pointer));
+  assert(!named.folded.includes('x'.repeat(100)));
+  const omitted = parse({ omitStringContents: true, preserveStrings: [nativeType, pointer] });
+  assert.deepEqual(omitted.strings.slice(7, 10), ['', '', '']);
+  assert.deepEqual(omitted.rspack_string_contents, { omitted_strings: 3 });
+  assert.deepEqual(readBindingMarker(readHeapGraph(omitted), 1), [3, pointer, nativeType]);
+  const sized = convert(omitted, identities);
+  assert.equal(sized.folded, before.folded);
+  assert.deepEqual(sized.report.category_bytes, before.report.category_bytes);
+  assert.equal(sized.report.matched_bindings, 1);
+  const tiny = parse({ maxStringLength: 1, preserveStrings: [nativeType, pointer] });
+  assert.deepEqual(readBindingMarker(readHeapGraph(tiny), 1), [3, pointer, nativeType]);
+  assert.throws(() => parse({ maxStringLength: 0 }), /positive integer/);
+}
+
+function verifyObjectNames() {
+  const builtins = ['Object', 'Array', 'Map', 'Set', 'Promise', 'Uint8Array', 'Buffer'];
+  const strings = ['', 'SensitivePlugin', 'PRIVATE_STRING_BODY_DO_NOT_EMIT', ...builtins];
+  const objects = [{ type: 1, name: 1 }, ...builtins.map((_, i) => ({ type: 1, name: i + 3 })),
+    { type: 3, name: 1 }, { type: 4, name: 1 }, { type: 2, name: 2 }];
+  const heap = {
+    snapshot: { meta: {
+      node_fields: ['type', 'name', 'id', 'self_size', 'edge_count'],
+      node_types: [['synthetic', 'object', 'string', 'closure', 'code'], 'string', 'number', 'number', 'number'],
+      edge_fields: ['type', 'name_or_index', 'to_node'],
+      edge_types: [['element'], 'string_or_number', 'node'],
+    } },
+    nodes: [0, 0, 1, 0, objects.length],
+    edges: [], strings,
+  };
+  for (const [i, object] of objects.entries()) {
+    heap.nodes.push(object.type, object.name, i * 2 + 3, 64, 0);
+    heap.edges.push(0, i, (i + 1) * 5);
+  }
+  const named = convert(heap, { objects: [] });
+  const cleared = convert(heap, { objects: [] }, { clearClassNames: true });
+  assert(named.folded.includes('object: SensitivePlugin'));
+  assert(named.folded.includes('closure: SensitivePlugin'));
+  assert(!cleared.folded.includes('SensitivePlugin'));
+  for (const name of builtins) {
+    assert(named.folded.includes('object: ' + name));
+    assert(cleared.folded.includes('object: ' + name));
+  }
+  assert(!named.folded.includes('PRIVATE_STRING_BODY_DO_NOT_EMIT'));
+  assert(!cleared.folded.includes('PRIVATE_STRING_BODY_DO_NOT_EMIT'));
+  assert.deepEqual(named.report.category_bytes, cleared.report.category_bytes);
+  assert.equal(named.report.represented_bytes, cleared.report.represented_bytes);
+  assert.equal(named.report.node_count, cleared.report.node_count);
+  assert.equal(named.report.string_contents, 'omitted');
+  assert.equal(cleared.report.clear_class_names, true);
+}
 
 export default {
   afterExecute() {
+    verifyStringPreviews();
+    verifyObjectNames();
     if (process.env.RSPACK_BUILD_PROFILE === 'release') {
       const dist = new URL('../../../../../packages/rspack/dist/', import.meta.url);
       for (const file of readdirSync(dist, { recursive: true })) {
@@ -136,8 +246,8 @@ export default {
       ]) {
         assert(kinds.get(kind)?.shallow_bytes > 0, `missing ${kind} marker`);
       }
-      assert.match(categoryFolded.rspack, /;Asset \d+\n/);
-      assert.match(categoryFolded.rspack, /;Assets \d+\n/);
+      assert.match(categoryFolded.rspack, /;Asset;object: Object \d+\n/);
+      assert.match(categoryFolded.rspack, /;Assets;object: Array \d+\n/);
       assert.equal(
         Object.values(report.category_bytes).reduce((a, b) => a + b, 0),
         report.represented_bytes,

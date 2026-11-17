@@ -61,19 +61,138 @@ function fold(samples) {
     .join('');
 }
 
+// Constructor names recognized as JavaScript/Node built-ins are always kept.
+const builtinClassNames = new Set([
+  'Object',
+  'Array',
+  'Function',
+  'String',
+  'Number',
+  'Boolean',
+  'BigInt',
+  'Symbol',
+  'Map',
+  'Set',
+  'WeakMap',
+  'WeakSet',
+  'WeakRef',
+  'FinalizationRegistry',
+  'Promise',
+  'Date',
+  'RegExp',
+  'Error',
+  'EvalError',
+  'RangeError',
+  'ReferenceError',
+  'SyntaxError',
+  'TypeError',
+  'URIError',
+  'AggregateError',
+  'DOMException',
+  'ArrayBuffer',
+  'SharedArrayBuffer',
+  'DataView',
+  'Buffer',
+  'Int8Array',
+  'Uint8Array',
+  'Uint8ClampedArray',
+  'Int16Array',
+  'Uint16Array',
+  'Int32Array',
+  'Uint32Array',
+  'Float16Array',
+  'Float32Array',
+  'Float64Array',
+  'BigInt64Array',
+  'BigUint64Array',
+  'URL',
+  'URLSearchParams',
+  'TextEncoder',
+  'TextDecoder',
+  'AbortController',
+  'AbortSignal',
+  'Event',
+  'EventTarget',
+  'Iterator',
+  'AsyncIterator',
+  'AsyncFunction',
+  'GeneratorFunction',
+  'AsyncGeneratorFunction',
+  'Generator',
+  'AsyncGenerator',
+  'Arguments',
+  'Math',
+  'JSON',
+  'Reflect',
+  'Atomics',
+  'WebAssembly.Module',
+  'WebAssembly.Instance',
+  'WebAssembly.Memory',
+  'WebAssembly.Table',
+  'WebAssembly.Global',
+  'WebAssembly.Tag',
+  'WebAssembly.Exception',
+  'Array Iterator',
+  'String Iterator',
+  'Map Iterator',
+  'Set Iterator',
+  'Collator',
+  'DateTimeFormat',
+  'NumberFormat',
+  'PluralRules',
+  'RelativeTimeFormat',
+  'ListFormat',
+  'Locale',
+  'DisplayNames',
+  'Segmenter',
+]);
+
+function isBuiltinName(name) {
+  return (
+    builtinClassNames.has(name) ||
+    name.startsWith('system / ') ||
+    name.startsWith('Node / ')
+  );
+}
+
+function isPrimitive(type) {
+  return (
+    type === 'string' ||
+    type === 'concatenated string' ||
+    type === 'sliced string' ||
+    type === 'number' ||
+    type === 'bigint' ||
+    type === 'symbol'
+  );
+}
+
 export function convert(
   snapshot,
   identities,
-  { maxDepth = 32, includeContent = false } = {},
+  { maxDepth = 32, clearClassNames = false } = {},
 ) {
   const redacted = Array.isArray(snapshot.rspack_binding_nodes);
-  if (redacted && includeContent) {
-    throw new Error(
-      'This V8 snapshot is redacted. Use an original V8 snapshot to include content in reports.',
-    );
-  }
   const graph = readHeapGraph(snapshot);
   const { count, nodeType, nodeName, nodeSize, nodeId } = graph;
+  const customClasses = new Set();
+  if (clearClassNames) {
+    for (let i = 0; i < count; i++) {
+      if (
+        nodeType(i) === 'object' &&
+        nodeName(i) &&
+        !isBuiltinName(nodeName(i))
+      ) {
+        customClasses.add(nodeName(i));
+      }
+    }
+  }
+  const displayName = (i) => {
+    const type = nodeType(i);
+    if (isPrimitive(type)) return undefined;
+    const name = nodeName(i);
+    if (!name || (clearClassNames && customClasses.has(name))) return undefined;
+    return name;
+  };
   const { sourceNodeIds, rspackRoots, rspackBindings, rspackObjects } = redacted
     ? {
         sourceNodeIds: snapshot.rspack_v8_source_nodes ?? [],
@@ -111,20 +230,15 @@ export function convert(
       js_node_id: id,
       node_type: nodeType(i),
       self_size: nodeSize(i),
-      rust_objects: includeContent
-        ? matches
-        : matches.map(({ type_name, path, measured, target }) => ({
-            type_name,
-            path,
-            measured,
-            ...(target ? { target } : {}),
-          })),
+      rust_objects: matches.map(({ type_name, path, measured, target }) => ({
+        type_name,
+        path,
+        measured,
+        ...(target ? { target } : {}),
+      })),
     };
-    if (includeContent) {
-      link.js_name = nodeName(i);
-      link.rust_address = marker[1];
-      link.rust_type = marker[2];
-    }
+    const name = displayName(i);
+    if (name) link.js_name = name;
     links.push(link);
     if (matches.length) {
       bindings.set(i, link);
@@ -231,11 +345,12 @@ export function convert(
       const type = nodeType(cursor);
       const id = nodeId(cursor);
       const jsRoot = category === 'rspack' ? jsRoots.get(id) : undefined;
+      const name = displayName(cursor);
       frames.push(
-        includeContent
-          ? `${type}: ${nodeName(cursor)}`
-          : (jsRoot ?? rspackObjects.get(id) ?? type),
+        name ? `${type}: ${name}` : (jsRoot ?? rspackObjects.get(id) ?? type),
       );
+      const markedKind = rspackObjects.get(id);
+      if (markedKind && name && markedKind !== name) frames.push(markedKind);
       if (category === 'rspack') {
         const binding = bindings.get(cursor);
         if (binding) {
@@ -290,7 +405,15 @@ export function convert(
     report: {
       snapshot: identities.snapshot,
       unit: 'bytes',
-      includes_content: includeContent,
+      includes_content: false,
+      clear_class_names: clearClassNames,
+      string_contents: 'omitted',
+      ...(snapshot.rspack_string_contents
+        ? { string_storage: snapshot.rspack_string_contents }
+        : {}),
+      ...(snapshot.rspack_string_preview
+        ? { string_preview: snapshot.rspack_string_preview }
+        : {}),
       attribution:
         'code and script source first; marked Rspack objects and roots, plus nodes reachable only through Rspack roots or matched bindings; all other nodes shared or unknown; shallow self_size once per node',
       max_depth: maxDepth,
@@ -341,12 +464,14 @@ export function main(args = process.argv.slice(2)) {
     options: {
       'out-dir': { type: 'string' },
       'max-depth': { type: 'string', default: '32' },
+      // Accepted for older commands; string payloads are never emitted.
       'include-content': { type: 'boolean', default: false },
+      'clear-class-names': { type: 'boolean', default: false },
     },
   });
   if (positionals.length !== 1) {
     throw new Error(
-      'Usage: node .agents/skills/rspack-allocative/scripts/v8-to-allocative.mjs <prefix.heapsnapshot> [--out-dir <existing-dir>] [--max-depth 32] [--include-content]',
+      'Usage: node .agents/skills/rspack-allocative/scripts/v8-to-allocative.mjs <prefix.heapsnapshot> [--out-dir <existing-dir>] [--max-depth 32] [--clear-class-names]',
     );
   }
   const source = path.resolve(positionals[0]);
@@ -372,16 +497,24 @@ export function main(args = process.argv.slice(2)) {
   let snapshot;
   try {
     const buffer = Buffer.allocUnsafe(64 * 1024);
-    snapshot = parseHeapSnapshot(() => {
-      const length = readSync(input, buffer, 0, buffer.length, null);
-      return length === 0 ? null : buffer.subarray(0, length);
-    });
+    snapshot = parseHeapSnapshot(
+      () => {
+        const length = readSync(input, buffer, 0, buffer.length, null);
+        return length === 0 ? null : buffer.subarray(0, length);
+      },
+      {
+        omitStringContents: true,
+        preserveStrings: identities.objects.flatMap(({ address, type_name }) =>
+          [address, type_name].filter((value) => typeof value === 'string'),
+        ),
+      },
+    );
   } finally {
     closeSync(input);
   }
   const result = convert(snapshot, identities, {
     maxDepth,
-    includeContent: values['include-content'],
+    clearClassNames: values['clear-class-names'],
   });
   const rust = readFileSync(`${rustPrefix}.allocative`, 'utf8');
   const outDir = values['out-dir'] ?? path.join(profileDir, 'reports');

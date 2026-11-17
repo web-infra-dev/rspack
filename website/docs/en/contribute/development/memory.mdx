@@ -172,7 +172,7 @@ Open `reports/0-build.js.allocative` or `reports/0-build.combined.allocative` in
 
 Use `marked_objects` in the links report to see the count and shallow bytes of marked Rspack objects by type, including asset records and arrays.
 
-The raw snapshot can contain source code and other project data. Share the converted reports if you need to omit V8 object names, strings, and source locations. Pass `--include-content` to include V8 names and binding addresses in the reports. Use `--out-dir` to write the reports to another existing directory.
+The raw snapshot can contain source code and other project data. Converted reports retain object names by default and omit string-node payloads. String nodes contribute only their original snapshot byte weights; string payloads are discarded during streaming parsing and never appear in frames. Pass `--clear-class-names` to remove custom constructor names (also from constructor function/code frames); common built-in names such as Object, Array, Map, Set and typed arrays remain. Rspack root/object markers and Rust type names are diagnostic metadata and remain available. Named edges and native identities are retained internally for classification and matching. The legacy `--include-content` flag is accepted but no longer emits string payloads or binding addresses. The links report records `clear_class_names`, `string_contents` and `string_storage`. Use `--out-dir` to write the reports to another existing directory.
 
 Tests using the local binding can also collect snapshots via `RSPACK_ALLOCATIVE_DIR`. Each build or rebuild produces a snapshot automatically; the test framework does not need a separate capture integration. After building the binding and JavaScript packages, run a focused HMR case:
 
