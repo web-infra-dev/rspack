@@ -1,10 +1,9 @@
 use std::{
   collections::HashSet,
-  sync::{Arc, LazyLock, Mutex, Weak},
+  sync::{LazyLock, Mutex},
 };
 
 use async_channel::{Receiver, Sender};
-use tokio_util::sync::CancellationToken;
 
 use crate::{JsTask, TimingPoint};
 
@@ -54,100 +53,21 @@ impl JsTaskReceiver {
   }
 }
 
-/// The main subscription owns this registration. Dispatch borrows it only
-/// until enqueue; neither the global queue nor its receive loop keeps it alive.
-pub struct MainTaskRegistration {
-  active: Mutex<bool>,
-  ready: CancellationToken,
-  cancel: CancellationToken,
-}
-
-impl MainTaskRegistration {
-  pub fn stop(&self) {
-    *self
-      .active
-      .lock()
-      .expect("main task registration lock poisoned") = false;
-    self.cancel.cancel();
-  }
-}
-
-impl Drop for MainTaskRegistration {
-  fn drop(&mut self) {
-    self.stop();
-  }
-}
-
 pub struct JsTaskDispatcher {
-  main: TaskQueue,
   worker: TaskQueue,
-  main_registration: Mutex<Weak<MainTaskRegistration>>,
   workers: Mutex<HashSet<u32>>,
 }
 
 impl JsTaskDispatcher {
   fn new() -> Self {
     Self {
-      main: TaskQueue::new(),
       worker: TaskQueue::new(),
-      main_registration: Mutex::new(Weak::new()),
       workers: Mutex::new(HashSet::new()),
     }
   }
 
-  pub fn register_main(
-    &self,
-    ready: CancellationToken,
-    cancel: CancellationToken,
-  ) -> Arc<MainTaskRegistration> {
-    let registration = Arc::new(MainTaskRegistration {
-      active: Mutex::new(true),
-      ready,
-      cancel,
-    });
-    *self
-      .main_registration
-      .lock()
-      .expect("main task registration lock poisoned") = Arc::downgrade(&registration);
-    registration
-  }
-
-  pub fn subscribe_main(&self) -> JsTaskReceiver {
-    self.main.subscribe()
-  }
   pub fn subscribe_worker(&self) -> JsTaskReceiver {
     self.worker.subscribe()
-  }
-
-  pub async fn dispatch_main(&self, task: JsTask) {
-    let registration = self
-      .main_registration
-      .lock()
-      .expect("main task registration lock poisoned")
-      .upgrade();
-    let Some(registration) = registration else {
-      task.fail("Main JS task subscription is unavailable");
-      return;
-    };
-    tokio::select! {
-      biased;
-      _ = registration.cancel.cancelled() => {
-        task.fail("Main JS task subscription has closed");
-        return;
-      }
-      _ = registration.ready.cancelled() => {},
-    }
-    // Serialize cancellation with enqueue so a stopped loop cannot leave new
-    // work behind after draining its queue.
-    let active = registration
-      .active
-      .lock()
-      .expect("main task registration lock poisoned");
-    if *active {
-      self.main.dispatch(task);
-    } else {
-      task.fail("Main JS task subscription has closed");
-    }
   }
 
   pub fn dispatch_worker(&self, task: JsTask) {

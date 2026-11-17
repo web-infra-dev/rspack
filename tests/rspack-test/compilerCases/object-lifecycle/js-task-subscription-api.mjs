@@ -6,9 +6,7 @@ import { createGCTracker } from "@rspack/test-tools/helper/lifecycle";
 const binding = createRequire(import.meta.resolve("@rspack/core"))("@rspack/binding");
 
 if (isMainThread) {
-  assert.throws(() => binding.getJsTaskSubscription(false), /runner has not been registered/);
-  binding.registerJsTaskRunner(() => {});
-  assert.throws(() => binding.getJsTaskSubscription(true), /role does not match/);
+  assert.throws(() => binding.getJsTaskSubscription(true), /runner has not been registered/);
   const worker = new Worker(new URL(import.meta.url));
   const request = command => new Promise((resolve, reject) => {
     worker.once("message", message => message.error ? reject(new Error(message.error)) : resolve());

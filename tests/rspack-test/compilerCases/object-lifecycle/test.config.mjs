@@ -38,6 +38,13 @@ function runChild(script, args = []) {
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 export default [
   {
+    description: "should receive tasks serially and resume during recursive imports",
+    async run() {
+      await runChild(path.join(import.meta.dirname, "worker-receive.mjs"));
+      await runChild(path.join(import.meta.dirname, "worker-receive.mjs"), ["--main"]);
+    },
+  },
+  {
     description: "should finish queued loader tasks when dynamic worker startup fails",
     async run() {
       await runChild(path.join(import.meta.dirname, "worker-startup-failure.mjs"), ["--dynamic"]);

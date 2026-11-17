@@ -1,16 +1,15 @@
 use std::{ffi::c_void, ptr, sync::Mutex};
 
 use napi::{bindgen_prelude::*, sys};
-use rspack_core::{LoaderContext, RunnerContext};
 use rspack_js_tasks::{JsTask, TimingPoint};
 use tokio_util::sync::CancellationToken;
 
-use crate::{COMPILER_REFERENCES, plugins::js_loader::worker::JsLoaderTask};
+use crate::plugins::js_loader::worker::JsLoaderTask;
 
 pub(super) struct Delivery {
   pub task: JsTask,
-  pub permit: Option<super::TaskPermit>,
-  pub worker: Option<u32>,
+  pub completion: tokio_util::sync::DropGuard,
+  pub worker: u32,
   pub cancel: CancellationToken,
 }
 
@@ -101,7 +100,7 @@ extern "C" fn call_js(
 ) {
   let Delivery {
     task,
-    permit,
+    completion,
     worker,
     cancel,
   } = *unsafe { Box::<Delivery>::from_raw(data.cast()) };
@@ -113,28 +112,7 @@ extern "C" fn call_js(
   task.mark_timing(TimingPoint::JsEntered);
   match task {
     JsTask::Loader(task) => {
-      let compiler_id = task
-        .context::<LoaderContext<RunnerContext>>()
-        .context
-        .compiler_id;
-      let compiler = if worker.is_some() {
-        unsafe { ToNapiValue::to_napi_value(raw_env, ()) }
-      } else {
-        COMPILER_REFERENCES.with(|references| {
-          let reference = references
-            .borrow()
-            .get(&compiler_id)
-            .cloned()
-            .ok_or_else(|| napi::Error::from_reason("Loader compiler has been released"))?;
-          let object = unsafe {
-            Object::from_napi_value(raw_env, ToNapiValue::to_napi_value(raw_env, reference)?)?
-          };
-          object
-            .get_named_property::<Function<(), Unknown>>("_getCompiler")?
-            .call(())
-            .map(|value| value.raw())
-        })
-      };
+      let compiler = unsafe { ToNapiValue::to_napi_value(raw_env, ()) };
       let compiler = match compiler {
         Ok(compiler) => compiler,
         Err(error) => {
@@ -142,7 +120,7 @@ extern "C" fn call_js(
           return;
         }
       };
-      let task = match JsLoaderTask::from_task(task, worker, permit) {
+      let task = match JsLoaderTask::from_task(task, Some(worker), Some(completion)) {
         Some(task) => task,
         None => return,
       };

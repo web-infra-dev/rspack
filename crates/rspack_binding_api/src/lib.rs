@@ -667,7 +667,6 @@ impl JsCompiler {
 impl ObjectFinalize for JsCompiler {
   fn finalize(mut self, _env: Env) -> Result<()> {
     let compiler_id = self.compiler.id();
-    plugins::js_loader::release_runtime(compiler_id);
 
     COMPILER_REFERENCES.with(|ref_cell| {
       let mut references = ref_cell.borrow_mut();

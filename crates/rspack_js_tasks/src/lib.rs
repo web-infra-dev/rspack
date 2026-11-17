@@ -4,6 +4,6 @@ mod dispatcher;
 mod task;
 mod timing;
 
-pub use dispatcher::{JsTaskDispatcher, JsTaskReceiver, MainTaskRegistration, js_task_dispatcher};
+pub use dispatcher::{JsTaskDispatcher, JsTaskReceiver, js_task_dispatcher};
 pub use task::{JsTask, LoaderTask, LoaderTaskResult};
 pub use timing::{LoaderTaskTiming, TimingPoint};

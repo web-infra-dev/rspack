@@ -271,7 +271,7 @@ export async function runLoaders(
     getResolver(options?: ResolveOptionsWithDependencyType): Resolver;
   },
 ): Promise<JsLoaderContext> {
-  const module = strict ? workerModule! : context._module!;
+  const module = workerModule ?? context._module!;
   const loaderState = context.loaderState;
   const loaderChainStart = context.loaderChainStart;
   const loaderChainEnd = context.loaderChainEnd;

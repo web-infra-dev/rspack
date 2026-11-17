@@ -12,7 +12,7 @@ use crate::{
 
 #[async_trait::async_trait]
 pub trait LoaderRunnerPlugin: Send + Sync {
-  type Context: Send + 'static;
+  type Context: Send;
 
   fn name(&self) -> &'static str {
     "unknown"

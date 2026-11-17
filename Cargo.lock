@@ -4611,7 +4611,6 @@ dependencies = [
  "rspack_error",
  "serde_json",
  "tokio",
- "tokio-util",
 ]
 
 [[package]]
@@ -4675,7 +4674,6 @@ dependencies = [
  "rspack_error",
  "rspack_fs",
  "rspack_hash",
- "rspack_js_tasks",
  "rspack_paths",
  "rspack_regex",
  "rspack_resolver",

@@ -30,7 +30,7 @@ use crate::{
 // native task protocol. Revoke the module scope before returning native state.
 pub(crate) struct ActiveLoaderTask {
   native: Option<NativeLoaderTask>,
-  _permit: Option<crate::js_tasks::TaskPermit>,
+  _completion: Option<tokio_util::sync::DropGuard>,
   module_scope: Option<Arc<WorkerModuleScope>>,
   bridge_handle: Option<MainObjectHandle>,
 }
@@ -277,11 +277,11 @@ impl JsLoaderTask {
   pub(crate) fn from_task(
     task: NativeLoaderTask,
     worker: Option<u32>,
-    permit: Option<crate::js_tasks::TaskPermit>,
+    completion: Option<tokio_util::sync::DropGuard>,
   ) -> Option<Self> {
     let task = ActiveLoaderTask {
       native: Some(task),
-      _permit: permit,
+      _completion: completion,
       module_scope: None,
       bridge_handle: None,
     };

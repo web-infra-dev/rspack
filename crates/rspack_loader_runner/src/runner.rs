@@ -7,7 +7,7 @@ use rspack_sources::SourceMap;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  LoaderFilter, LoaderRunnerOptions, ParseMeta,
+  LoaderExecutionKind, LoaderFilter, LoaderRunnerOptions, ParseMeta,
   chain::LoaderChains,
   content::{AdditionalData, Content, ResourceData},
   context::{LoaderContext, LoaderContextData, LoaderDependencies, State},
@@ -18,7 +18,19 @@ use crate::{
 /// Normal-stage preconditions aligned with the loaders in the chain.
 pub type LoaderFilters = Box<[Option<Arc<LoaderFilter>>]>;
 
-async fn run_pitch_chain<Context: Send + 'static>(
+impl<Context: Send> LoaderContext<Context> {
+  async fn start_yielding(&mut self) -> Result<bool> {
+    if self.current_loader().execution_kind() == LoaderExecutionKind::JavaScript
+      && let Some(plugin) = &self.plugin
+    {
+      plugin.clone().start_yielding(self).await?;
+      return Ok(true);
+    }
+    Ok(false)
+  }
+}
+
+async fn run_pitch_chain<Context: Send>(
   cx: &mut LoaderContext<Context>,
   resource: &str,
 ) -> Result<()> {
@@ -38,7 +50,7 @@ async fn run_pitch_chain<Context: Send + 'static>(
   async {
     while cx.loader_index < chain_end {
       let yield_span = info_span!("run_loader:pitch:yield_to_js", resource);
-      if cx.loader_yield().instrument(yield_span).await? {
+      if cx.start_yielding().instrument(yield_span).await? {
         if cx.content.is_some() {
           break;
         }
@@ -67,7 +79,7 @@ async fn run_pitch_chain<Context: Send + 'static>(
   .await
 }
 
-impl<Context: Send + 'static> LoaderContext<Context> {
+impl<Context: Send> LoaderContext<Context> {
   /// Execute the current root chain's normal loaders without consulting the loader cache.
   pub async fn run_normal_chain(&mut self) -> Result<()> {
     let cx = self;
@@ -98,7 +110,7 @@ impl<Context: Send + 'static> LoaderContext<Context> {
         }
 
         let yield_span = info_span!("run_loader:yield_to_js", resource = cx.resource());
-        if cx.loader_yield().instrument(yield_span).await? {
+        if cx.start_yielding().instrument(yield_span).await? {
           continue;
         }
 
@@ -130,7 +142,7 @@ impl<Context: Send + 'static> LoaderContext<Context> {
   skip_all,
   fields(resource = loader_context.resource_data.resource())
 )]
-async fn process_resource<Context: Send + 'static>(
+async fn process_resource<Context: Send>(
   loader_context: &mut LoaderContext<Context>,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
@@ -163,7 +175,7 @@ You may need an additional plugin to handle "{scheme}:" URIs."#
   ))
 }
 
-fn create_loader_context<Context: Send + 'static>(
+fn create_loader_context<Context: Send>(
   loader_items: Vec<LoaderItem<Context>>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
@@ -200,7 +212,7 @@ fn create_loader_context<Context: Send + 'static>(
 }
 
 #[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
-pub async fn run_loaders<Context: Send + 'static>(
+pub async fn run_loaders<Context: Send>(
   loaders: Vec<Arc<dyn Loader<Context>>>,
   loader_options: Option<Vec<LoaderRunnerOptions>>,
   loader_filters: Option<LoaderFilters>,
@@ -244,7 +256,7 @@ pub async fn run_loaders<Context: Send + 'static>(
   (LoaderResult::new(cx), result.err())
 }
 
-async fn run_loaders_impl<Context: Send + 'static>(
+async fn run_loaders_impl<Context: Send>(
   cx: &mut LoaderContext<Context>,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
@@ -320,7 +332,7 @@ pub struct LoaderResult<Context> {
   pub current_loader: Option<Utf8PathBuf>,
 }
 
-impl<Context: Send + 'static> LoaderResult<Context> {
+impl<Context: Send> LoaderResult<Context> {
   pub fn new(loader_context: LoaderContext<Context>) -> Self {
     let loader_context = *loader_context
       .data

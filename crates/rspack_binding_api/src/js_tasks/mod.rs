@@ -1,4 +1,3 @@
-mod capacity;
 mod subscription;
 mod tsfn;
 
@@ -7,7 +6,6 @@ use std::{
   sync::{Arc, Weak},
 };
 
-pub(crate) use capacity::TaskPermit;
 use napi::bindgen_prelude::*;
 pub(crate) use subscription::{JsTaskSubscription, MAIN_TASK_SUBSCRIPTION};
 
@@ -49,15 +47,17 @@ pub fn get_js_task_subscription(
 ) -> napi::Result<External<Option<Arc<JsTaskSubscription>>>> {
   RUNNER.with(|slot| {
     let slot = slot.borrow();
-    let (runner, worker_id) = slot
-      .as_ref()
-      .ok_or_else(|| napi::Error::from_reason("JS task runner has not been registered"))?;
-    if is_worker != worker_id.is_some() {
+    let worker_id = slot.as_ref().and_then(|(_, id)| *id);
+    if !is_worker && worker_id.is_some() {
       return Err(napi::Error::from_reason(
         "JS task subscription role does not match its env",
       ));
     }
-    let callback = runner.borrow_back(&env)?.raw();
+    if is_worker && worker_id.is_none() {
+      return Err(napi::Error::from_reason(
+        "Worker JS task runner has not been registered",
+      ));
+    }
     let mut global = MAIN_TASK_SUBSCRIPTION
       .lock()
       .expect("main subscription lock poisoned");
@@ -65,11 +65,17 @@ pub fn get_js_task_subscription(
       let main = global
         .upgrade()
         .ok_or_else(|| napi::Error::from_reason("Main JS task subscription is unavailable"))?;
-      if !main.worker_subscriptions.contains_key(worker_id) {
-        let worker = JsTaskSubscription::new(&env, callback, Some(*worker_id))?;
+      if !main.worker_subscriptions.contains_key(&worker_id) {
+        let callback = slot
+          .as_ref()
+          .expect("worker runner is registered")
+          .0
+          .borrow_back(&env)?
+          .raw();
+        let worker = JsTaskSubscription::new_worker(&env, callback, worker_id)?;
         let weak_main = Arc::downgrade(&main);
         let weak_worker = Arc::downgrade(&worker);
-        let id = *worker_id;
+        let id = worker_id;
         env.add_env_cleanup_hook((), move |_| {
           if let Some(worker) = weak_worker.upgrade() {
             worker.cancel();
@@ -81,7 +87,7 @@ pub fn get_js_task_subscription(
           }
         })?;
         LOCAL_SUBSCRIPTION.with(|slot| slot.replace(Arc::downgrade(&worker)));
-        main.worker_subscriptions.insert(*worker_id, worker);
+        main.worker_subscriptions.insert(worker_id, worker);
       }
       Ok(External::new(None))
     } else {
@@ -97,7 +103,7 @@ pub fn get_js_task_subscription(
           main
         }
         None => {
-          let main = JsTaskSubscription::new(&env, callback, None)?;
+          let main = JsTaskSubscription::new(&env)?;
           *global = Arc::downgrade(&main);
           LOCAL_SUBSCRIPTION.with(|slot| slot.replace(Arc::downgrade(&main)));
           main
@@ -109,21 +115,17 @@ pub fn get_js_task_subscription(
 }
 
 #[napi(ts_return_type = "ExternalObject<'JsTaskImport'>")]
-pub fn begin_js_task_import() -> napi::Result<External<Option<capacity::ImportPermit>>> {
+pub fn begin_js_task_import() -> napi::Result<External<Option<tokio_util::sync::DropGuard>>> {
   LOCAL_SUBSCRIPTION.with(|slot| {
     let subscription = slot
       .borrow()
       .upgrade()
       .ok_or_else(|| napi::Error::from_reason("Worker JS task subscription has closed"))?;
-    let capacity = subscription
-      .capacity
-      .as_ref()
-      .ok_or_else(|| napi::Error::from_reason("Only worker tasks need import capacity"))?;
-    Ok(External::new(Some(capacity.begin_import())))
+    Ok(External::new(Some(subscription.begin_import()?)))
   })
 }
 
 #[napi(ts_args_type = "permit: ExternalObject<'JsTaskImport'>")]
-pub fn end_js_task_import(permit: &mut External<Option<capacity::ImportPermit>>) {
+pub fn end_js_task_import(permit: &mut External<Option<tokio_util::sync::DropGuard>>) {
   permit.take();
 }

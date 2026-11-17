@@ -143,7 +143,8 @@ use self::{
 use crate::{
   options::entry::JsEntryPluginOptions,
   plugins::{
-    JsCoordinator, JsLoaderRspackPlugin, JsRscClientPluginOptions, JsRscServerPluginOptions,
+    JsCoordinator, JsLoaderRspackPlugin, JsLoaderRunnerGetter, JsRscClientPluginOptions,
+    JsRscServerPluginOptions,
   },
   raw_options::{
     RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
@@ -858,11 +859,15 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(CircularModulesInfoPlugin::default().boxed())
       }
       BuiltinPluginName::JsLoaderRspackPlugin => {
-        let main_object_handle = self
-          .options
-          .coerce_to_object()?
-          .get_named_property::<u32>("mainObjectHandle")?;
-        plugins.push(JsLoaderRspackPlugin::new(main_object_handle).boxed());
+        let options = self.options.coerce_to_object()?;
+        let main_object_handle = options.get_named_property::<u32>("mainObjectHandle")?;
+        // Keep the runner owned by the JS compiler, as on main.
+        compiler_object.set_named_property(
+          "_runLoader",
+          options.get_named_property::<napi::Unknown>("runner")?,
+        )?;
+        let runner_getter = JsLoaderRunnerGetter::new(&env)?;
+        plugins.push(JsLoaderRspackPlugin::new(runner_getter, main_object_handle).boxed());
       }
       BuiltinPluginName::LazyCompilationPlugin => {
         let options = downcast_into::<RawLazyCompilationOption>(self.options)

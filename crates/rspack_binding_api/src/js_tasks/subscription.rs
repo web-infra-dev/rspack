@@ -1,128 +1,92 @@
-use std::{
-  cell::RefCell,
-  sync::{Arc, Mutex, Weak},
-};
+use std::sync::{Arc, Mutex, Weak};
 
 use dashmap::DashMap;
 use napi::{Env, sys};
-use rspack_js_tasks::{MainTaskRegistration, TimingPoint, js_task_dispatcher};
-use tokio_util::sync::CancellationToken;
+use rspack_js_tasks::{TimingPoint, js_task_dispatcher};
+use tokio_util::sync::{CancellationToken, DropGuard};
 
-use super::{
-  capacity::WorkerCapacity,
-  tsfn::{Delivery, JsTaskTsfn},
-};
+use super::tsfn::{Delivery, JsTaskTsfn};
 
 pub(crate) static MAIN_TASK_SUBSCRIPTION: Mutex<Weak<JsTaskSubscription>> = Mutex::new(Weak::new());
 
-thread_local! {
-  // A replacement cannot consume the permanent channel until the old loop exits.
-  static PREVIOUS_LOOP: RefCell<Option<CancellationToken>> = const { RefCell::new(None) };
+struct WorkerReceiver {
+  tsfn: Arc<JsTaskTsfn>,
+  id: u32,
 }
 
+/// The main owner manages worker lifetimes only; it never receives queue tasks.
 pub struct JsTaskSubscription {
-  pub(crate) capacity: Option<Arc<WorkerCapacity>>,
-  main_registration: Option<Arc<MainTaskRegistration>>,
+  worker: Option<WorkerReceiver>,
   cancel: CancellationToken,
   pub(crate) worker_subscriptions: DashMap<u32, Arc<JsTaskSubscription>>,
 }
 
 impl JsTaskSubscription {
-  pub(super) fn new(
+  pub(super) fn new(env: &Env) -> napi::Result<Arc<Self>> {
+    let subscription = Arc::new(Self {
+      worker: None,
+      cancel: CancellationToken::new(),
+      worker_subscriptions: DashMap::new(),
+    });
+    let weak = Arc::downgrade(&subscription);
+    env.add_env_cleanup_hook((), move |_| {
+      if let Some(subscription) = weak.upgrade() {
+        subscription.cancel();
+      }
+    })?;
+    Ok(subscription)
+  }
+
+  pub(super) fn new_worker(
     env: &Env,
     callback: sys::napi_value,
-    worker: Option<u32>,
+    id: u32,
   ) -> napi::Result<Arc<Self>> {
     rspack_napi::runtime::ensure_runtime(env)?;
     let tsfn = Arc::new(JsTaskTsfn::new(env, callback)?);
     let cancel = CancellationToken::new();
-    let ready = CancellationToken::new();
-    let main_registration = worker
-      .is_none()
-      .then(|| js_task_dispatcher().register_main(ready.clone(), cancel.clone()));
-    let cleanup_registration = main_registration.as_ref().map(Arc::downgrade);
     let cleanup_cancel = cancel.clone();
     let cleanup_tsfn = Arc::downgrade(&tsfn);
     env.add_env_cleanup_hook((), move |_| {
-      if let Some(registration) = cleanup_registration.and_then(|weak| weak.upgrade()) {
-        registration.stop();
-      }
       cleanup_cancel.cancel();
       if let Some(tsfn) = cleanup_tsfn.upgrade() {
         tsfn.abort();
       }
     })?;
-    let exited = CancellationToken::new();
-    let previous = PREVIOUS_LOOP.with(|slot| slot.replace(Some(exited.clone())));
-    let capacity = worker.map(|_| Arc::<WorkerCapacity>::default());
     let subscription = Arc::new(Self {
-      capacity: capacity.clone(),
-      main_registration,
+      worker: Some(WorkerReceiver {
+        tsfn: Arc::clone(&tsfn),
+        id,
+      }),
       cancel: cancel.clone(),
       worker_subscriptions: DashMap::new(),
     });
-    let receiver = if worker.is_some() {
-      js_task_dispatcher().subscribe_worker()
-    } else {
-      js_task_dispatcher().subscribe_main()
-    };
-    // Never capture subscription: its last owner's Drop must stop this loop.
-    let exit = exited.drop_guard();
+    // Never retain subscription: its last owner's Drop must stop the loop.
     rspack_napi::runtime::spawn(async move {
-      let _exit = exit;
-      if let Some(previous) = previous {
-        previous.cancelled().await;
-      }
-      ready.cancel();
-      loop {
-        let idle_notify = tokio::sync::Notify::new();
-        let changed = capacity
-          .as_ref()
-          .map_or(&idle_notify, |capacity| &capacity.changed)
-          .notified();
-        tokio::pin!(changed);
-        changed.as_mut().enable();
-        // Observe import end while waiting on recv, so a busy worker cannot
-        // keep an extra receive alive or prefetch the whole shared queue.
-        let permit = if let Some(capacity) = &capacity {
-          match capacity.acquire(&cancel).await {
-            Some(permit) => Some(permit),
-            None => break,
-          }
-        } else {
-          None
-        };
-        let task = tokio::select! {
-          biased;
-          _ = cancel.cancelled() => break,
-          _ = &mut changed => continue,
-          task = receiver.recv() => task,
-        };
-        task.mark_timing(TimingPoint::Received);
-        if cancel.is_cancelled() {
-          task.fail("JS task subscription has closed");
-          break;
-        }
-        tsfn.post(Delivery {
-          task,
-          permit,
-          worker,
-          cancel: cancel.clone(),
-        });
-      }
-      if worker.is_none() {
-        while let Some(task) = receiver.try_recv() {
-          task.fail("Main JS task subscription has closed");
-        }
-      }
+      receive_tasks(&tsfn, id, &cancel, &cancel).await;
     });
     Ok(subscription)
   }
 
+  /// While JS awaits a recursive build, consume tasks on a temporary serial
+  /// loop. Ending the scope cancels recv, not work already delivered to JS.
+  pub(crate) fn begin_import(&self) -> napi::Result<DropGuard> {
+    let worker = self
+      .worker
+      .as_ref()
+      .ok_or_else(|| napi::Error::from_reason("Only worker tasks need a recursive receive loop"))?;
+    let cancel = self.cancel.child_token();
+    let guard = cancel.clone().drop_guard();
+    let subscription_cancel = self.cancel.clone();
+    let tsfn = Arc::clone(&worker.tsfn);
+    let id = worker.id;
+    rspack_napi::runtime::spawn(async move {
+      receive_tasks(&tsfn, id, &cancel, &subscription_cancel).await;
+    });
+    Ok(guard)
+  }
+
   pub(crate) fn cancel(&self) {
-    if let Some(registration) = &self.main_registration {
-      registration.stop();
-    }
     self.cancel.cancel();
     for worker in &self.worker_subscriptions {
       worker.cancel();
@@ -133,5 +97,39 @@ impl JsTaskSubscription {
 impl Drop for JsTaskSubscription {
   fn drop(&mut self) {
     self.cancel();
+  }
+}
+
+/// Receive again only after asynchronous JS execution completes.
+async fn receive_tasks(
+  tsfn: &JsTaskTsfn,
+  worker: u32,
+  cancel: &CancellationToken,
+  subscription_cancel: &CancellationToken,
+) {
+  let receiver = js_task_dispatcher().subscribe_worker();
+  loop {
+    let task = tokio::select! {
+      biased;
+      _ = cancel.cancelled() => break,
+      task = receiver.recv() => task,
+    };
+    task.mark_timing(TimingPoint::Received);
+    if subscription_cancel.is_cancelled() {
+      task.fail("JS task subscription has closed");
+      break;
+    }
+    let completed = CancellationToken::new();
+    tsfn.post(Delivery {
+      task,
+      completion: completed.clone().drop_guard(),
+      worker,
+      cancel: subscription_cancel.clone(),
+    });
+    tokio::select! {
+      biased;
+      _ = cancel.cancelled() => break,
+      _ = completed.cancelled() => {},
+    }
   }
 }
