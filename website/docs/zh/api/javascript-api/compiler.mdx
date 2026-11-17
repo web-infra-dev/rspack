@@ -26,6 +26,8 @@ Compiler 是 Rspack 内部的核心对象，当你调用 Rspack 的 [JavaScript 
 
 启动一次编译流程，编译流程完成或因错误中止时触发回调。
 
+回调函数的第二个参数是 [Stats](/api/javascript-api/stats) 对象，可用于检查错误和警告、读取构建结果。
+
 ```ts
 function run(
   callback: (
@@ -73,6 +75,8 @@ compiler.run((err, stats) => {
 ### watch
 
 启动持续监听，在文件变化后自动启动一次编译流程，每次编译流程完成或因错误中止时触发回调。
+
+每次构建完成后，回调函数的第二个参数是本次构建的 [Stats](/api/javascript-api/stats) 对象，可用于检查错误和警告、读取构建结果。
 
 ```ts
 function watch(

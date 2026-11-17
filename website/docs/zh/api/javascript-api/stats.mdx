@@ -9,44 +9,46 @@ import { Badge } from '@theme';
 
 # Stats
 
-`Stats` 对象会作为 `rspack()` 回调函数的第二个参数，可以通过它获取到一次 Compilation 执行过程中的信息，包括：
+`Stats` 对象提供一次构建的统计信息，包括错误、警告、构建耗时，以及输出资源、模块和 chunk 的信息。你可以在构建脚本或插件中通过它判断构建是否成功、打印构建摘要，或为分析工具提供数据。
 
-- 错误和警告（如果存在）
-- 计时信息
-- 模块和 chunk 信息
+它提供了以下常用方法：
 
-`Stats` 对象提供了两个重要方法：
+- [`hasErrors()`](#haserrors) 和 [`hasWarnings()`](#haswarnings)：判断构建是否存在错误或警告。
+- [`toJson()`](#tojson)：以 JavaScript 对象的形式返回所需的构建信息，便于进一步处理或交给分析工具。
+- [`toString()`](#tostring)：将所需的构建信息格式化为文本，便于在控制台输出。
 
-- `toJson()`: 以 [Stats JSON](/api/javascript-api/stats-json) 对象的形式输出信息，常用于产物分析工具
-- `toString()`: 以字符串形式输出信息，常用于控制台输出
+## 获取 Stats \{#getting-stats}
 
-同时 Rspack 也提供了 `StatsFactory` 和 `StatsPrinter` 来更细粒度地控制输出的对象或字符串。
+调用 [`rspack()`](/api/javascript-api/#rspack) 执行构建时，可以通过回调函数的第二个参数获取 `Stats` 对象。下面的脚本会打印构建中的错误和警告，并在构建失败时设置非零退出码：
 
-```txt title=Stats 输出
-Compilation ===============> Stats JSON =================> Stats Output
-           ╰─ StatsFactory ─╯           ╰─ StatsPrinter ─╯
-╰─────────── stats.toJson() ───────────╯
-╰───────────────────────── stats.toString() ──────────────────────────╯
-```
+```js title="build.mjs"
+import { rspack } from '@rspack/core';
+import config from './rspack.config.mjs';
 
-通过 [`compilation.getStats()`](/api/javascript-api/compilation#getstats) 或 `new Stats(compilation)` 以创建一个 Compilation 关联的 Stats 对象。
+rspack(config, (err, stats) => {
+  if (err) {
+    console.error(err);
+    process.exitCode = 1;
+    return;
+  }
 
-:::warning 注意时机
+  console.log(stats.toString('errors-warnings'));
 
-`stats.toJson()` 和 `stats.toString()` 依赖在 `compiler.hooks.done` 阶段才最终稳定的编译产物。如果在其他时机调用（例如复用更早阶段拿到的旧 `Stats` 对象），部分 Stats 字段可能不完整。
-
-为了拿到完整且稳定的 Stats 输出，建议在 `compiler.hooks.done` 中调用这些方法：
-
-```js
-compiler.hooks.done.tap('MyPlugin', (stats) => {
-  const statsJson = stats.toJson({ all: false, errors: true, warnings: true });
-  const statsText = stats.toString({ preset: 'errors-warnings' });
-  console.log(statsJson.errors);
-  console.log(statsText);
+  if (stats.hasErrors()) {
+    process.exitCode = 1;
+  }
 });
 ```
 
-:::
+回调中的 `err` 用于报告导致 Rspack 无法完成构建的错误。找不到模块、语法错误等编译错误则记录在 `stats` 中，因此即使 `err` 为空，也需要通过 `stats.hasErrors()` 判断构建是否成功。
+
+你也可以通过以下方式获取 Stats：
+
+- **使用 Compiler 实例**：从 [`compiler.run()`](/api/javascript-api/compiler#run) 或 [`compiler.watch()`](/api/javascript-api/compiler#watch) 回调函数的第二个参数获取 Stats。watch 模式下，每次构建完成都会返回本次构建的结果。
+- **编写插件**：在 [`compiler.hooks.done`](/api/plugin-api/compiler-hooks#done) 的回调中获取编译完成后的 Stats。
+- **已有 Compilation 对象**：调用 [`compilation.getStats()`](/api/javascript-api/compilation#getstats) 获取对应的 Stats。生成输出前，请留意[调用时机](#call-timing)。
+
+如果向 `rspack()` 传入配置数组，回调接收到的则是 [`MultiStats`](#multistats) 对象，其中包含各个配置对应的构建结果。
 
 ## Stats 方法
 
@@ -90,6 +92,8 @@ if (stats.hasWarnings()) {
 
 以 [Stats JSON](/api/javascript-api/stats-json) 对象形式返回编译信息。可以传入[预设名称或配置对象](/config/stats)，选择要包含的信息。
 
+使用时请留意[调用时机](#call-timing)和[性能开销](#performance-overhead)。
+
 `assets` 数组中各对象的结构和字段说明见 [Asset 对象结构](/api/javascript-api/stats-json#asset-object)。
 
 **类型：**
@@ -109,7 +113,7 @@ console.log(statsJson.errorsCount);
 
 ```js
 const statsJson = stats.toJson({
-  assets: false,
+  all: false,
   hash: true,
 });
 console.log(statsJson.hash);
@@ -118,6 +122,8 @@ console.log(statsJson.hash);
 ### toString
 
 以格式化的字符串形式返回描述编译信息（类似 [CLI](/api/cli) 的输出）。
+
+使用时请留意[调用时机](#call-timing)和[性能开销](#performance-overhead)。
 
 **类型：**
 
@@ -186,6 +192,39 @@ if (stats.hash !== null) {
   console.log(stats.hash);
 }
 ```
+
+## 注意事项 \{#usage-notes}
+
+### 调用时机 \{#call-timing}
+
+`stats.toJson()` 和 `stats.toString()` 依赖在 `compiler.hooks.done` 阶段才最终稳定的编译产物。如果在其他时机调用（例如复用更早阶段拿到的旧 `Stats` 对象），部分 Stats 字段可能不完整。
+
+为了拿到完整且稳定的 Stats 输出，建议在 `compiler.hooks.done` 中调用这些方法：
+
+```js
+compiler.hooks.done.tap('MyPlugin', (stats) => {
+  const statsJson = stats.toJson({ all: false, errors: true, warnings: true });
+  const statsText = stats.toString({ preset: 'errors-warnings' });
+  console.log(statsJson.errors);
+  console.log(statsText);
+});
+```
+
+### 性能开销 \{#performance-overhead}
+
+`stats.toJson()` 和 `stats.toString()` 会从 Rust 收集编译数据，并在 JavaScript 中处理。开启 [`all: true`](/config/stats#statsall) 可能显著增加数据传输量和 Stats 生成耗时，尤其是在大型项目中。模块源码、模块引用原因和 chunk 中的模块等详细信息应按需开启。
+
+建议传入 `all: false`，只开启代码实际使用的字段。这些选项需要直接传给 `toJson()` 或 `toString()`，它们不会自动继承顶层 `stats` 配置。例如，读取错误和警告的详细信息：
+
+```js
+const statsJson = stats.toJson({
+  all: false,
+  errors: true,
+  warnings: true,
+});
+```
+
+同一次构建中，如果需要多次使用相同的统计信息，应复用生成的结果，避免重复调用带来的开销。
 
 ## MultiStats
 
@@ -289,7 +328,14 @@ console.log(statsText);
 
 ## Stats factory
 
-用于从 Compilation 生成 Stats JSON 对象，并且提供了钩子以在生成过程中进行细粒度的控制。
+`StatsFactory` 从 Compilation 生成 Stats JSON，并提供钩子来定制生成的内容。输出文本时，`StatsPrinter` 会进一步将 Stats JSON 格式化为字符串。它们与 `stats.toJson()`、`stats.toString()` 的关系如下：
+
+```txt title=Stats 输出
+Compilation ===============> Stats JSON =================> Stats Output
+           ╰─ StatsFactory ─╯           ╰─ StatsPrinter ─╯
+╰─────────── stats.toJson() ───────────╯
+╰───────────────────────── stats.toString() ──────────────────────────╯
+```
 
 可通过 [`compilation.hooks.statsFactory`](/api/plugin-api/compilation-hooks#statsfactory) 获取。或者通过 `new StatsFactory()` 创建新实例。
 
