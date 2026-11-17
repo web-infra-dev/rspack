@@ -1,19 +1,13 @@
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
-
-const require = createRequire(import.meta.url);
-const { NativeWatcher } = createRequire(require.resolve('@rspack/core'))(
-  '@rspack/binding',
-);
-const Watchpack = require(
-  path.join(
-    path.dirname(require.resolve('@rspack/core/package.json')),
-    'compiled/watchpack',
-  ),
-);
+import {
+  NativeWatcher,
+  Watchpack,
+  waitFor,
+  createEventCollector,
+} from '../_helpers/watcher.mjs';
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 export default [false, true].flatMap((native) =>
@@ -67,19 +61,9 @@ export default [false, true].flatMap((native) =>
           const watcher = native
             ? new NativeWatcher(options)
             : new Watchpack(options);
-          const changes = new Set();
-          const removals = new Set();
+          const collected = createEventCollector();
+          const { changes, removals, record, callback } = collected;
           const events = new Set();
-          let failure;
-          const record = (changed, removed) => {
-            for (const entry of changed) changes.add(entry);
-            for (const entry of removed) removals.add(entry);
-          };
-          const waitFor = async (predicate) => {
-            const deadline = Date.now() + 5000;
-            while (!predicate() && Date.now() < deadline) await sleep(10);
-            expect(predicate()).toBe(true);
-          };
           try {
             if (native)
               watcher.watch(
@@ -87,10 +71,7 @@ export default [false, true].flatMap((native) =>
                 [directories, []],
                 [[], []],
                 BigInt(startTime),
-                (error, batch) => {
-                  if (error) failure = error;
-                  else record(batch.changedFiles, batch.removedFiles);
-                },
+                callback,
                 (event) => events.add(event.path),
               );
             else {
@@ -127,7 +108,7 @@ export default [false, true].flatMap((native) =>
             await sleep(500);
             expect([...changes].sort()).toEqual(expected.sort());
             expect([...removals]).toEqual([]);
-            expect(failure).toBeUndefined();
+            expect(collected.error).toBeUndefined();
             if (scenario === 'overlap' || scenario === 'parent-only')
               expect(events.has(alias)).toBe(true);
             if (!startup && directories.includes(app)) {

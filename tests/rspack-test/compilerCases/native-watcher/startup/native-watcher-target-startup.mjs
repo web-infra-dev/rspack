@@ -1,19 +1,13 @@
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
-
-const require = createRequire(import.meta.url);
-const { NativeWatcher } = createRequire(require.resolve('@rspack/core'))(
-  '@rspack/binding',
-);
-const Watchpack = require(
-  path.join(
-    path.dirname(require.resolve('@rspack/core/package.json')),
-    'compiled/watchpack',
-  ),
-);
+import {
+  NativeWatcher,
+  Watchpack,
+  waitFor,
+  createEventCollector,
+} from '../_helpers/watcher.mjs';
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 export default [false, true].flatMap((native) =>
@@ -58,13 +52,8 @@ export default [false, true].flatMap((native) =>
       const watcher = native
         ? new NativeWatcher(options)
         : new Watchpack(options);
-      const changes = new Set();
-      const removals = new Set();
-      let error;
-      const record = (changed, removed) => {
-        for (const file of changed) changes.add(file);
-        for (const file of removed) removals.add(file);
-      };
+      const collected = createEventCollector();
+      const { changes, removals, record, callback } = collected;
       if (!native) watcher.on('aggregated', record);
       const watch = (initial, startTime) => {
         if (native)
@@ -73,10 +62,7 @@ export default [false, true].flatMap((native) =>
             [[], []],
             [initial && missing ? [link] : [], []],
             BigInt(startTime),
-            (err, batch) => {
-              if (err) error = err;
-              else record(batch.changedFiles, batch.removedFiles);
-            },
+            callback,
             () => {},
           );
         else
@@ -85,11 +71,6 @@ export default [false, true].flatMap((native) =>
             missing: missing ? [link] : [],
             startTime,
           });
-      };
-      const waitFor = async (predicate) => {
-        const deadline = Date.now() + 5000;
-        while (!predicate() && Date.now() < deadline) await sleep(10);
-        expect(predicate()).toBe(true);
       };
       try {
         if (scenario !== 'retained-retarget') {
@@ -121,7 +102,7 @@ export default [false, true].flatMap((native) =>
           await waitFor(() => changes.has(link));
           expect([...removals]).toEqual([]);
         }
-        expect(error).toBeUndefined();
+        expect(collected.error).toBeUndefined();
       } finally {
         await watcher.close();
         fs.rmSync(root, { recursive: true, force: true });

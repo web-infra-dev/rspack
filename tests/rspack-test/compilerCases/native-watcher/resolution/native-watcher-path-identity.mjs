@@ -3,17 +3,9 @@ import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { NativeWatcher, Watchpack } from '../_helpers/watcher.mjs';
 
 const require = createRequire(import.meta.url);
-const { NativeWatcher } = createRequire(require.resolve('@rspack/core'))(
-  '@rspack/binding',
-);
-const Watchpack = require(
-  path.join(
-    path.dirname(require.resolve('@rspack/core/package.json')),
-    'compiled/watchpack',
-  ),
-);
 let tracing = false;
 const spellings =
   process.platform === 'win32'

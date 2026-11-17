@@ -1,19 +1,13 @@
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
-
-const require = createRequire(import.meta.url);
-const { NativeWatcher } = createRequire(require.resolve('@rspack/core'))(
-  '@rspack/binding',
-);
-const Watchpack = require(
-  path.join(
-    path.dirname(require.resolve('@rspack/core/package.json')),
-    'compiled/watchpack',
-  ),
-);
+import {
+  NativeWatcher,
+  Watchpack,
+  createEventCollector,
+  watchInitial,
+} from '../_helpers/watcher.mjs';
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 export default [false, true].flatMap((native) =>
@@ -88,30 +82,10 @@ export default [false, true].flatMap((native) =>
       const watcher = native
         ? new NativeWatcher(options)
         : new Watchpack(options);
-      const changes = new Set();
-      const removals = new Set();
-      let failure;
-      const record = (changed, removed) => {
-        for (const entry of changed) changes.add(entry);
-        for (const entry of removed) removals.add(entry);
-      };
+      const collected = createEventCollector();
+      const { changes, removals } = collected;
       try {
-        if (native) {
-          watcher.watch(
-            [[], []],
-            [directories, []],
-            [[], []],
-            BigInt(startTime),
-            (error, batch) => {
-              if (error) failure = error;
-              else record(batch.changedFiles, batch.removedFiles);
-            },
-            () => {},
-          );
-        } else {
-          watcher.on('aggregated', record);
-          watcher.watch({ directories, startTime });
-        }
+        watchInitial(watcher, { directories, startTime }, collected);
         const expected =
           scenario === 'no-ignore'
             ? [app, link]
@@ -130,7 +104,7 @@ export default [false, true].flatMap((native) =>
             await sleep(10);
         }
         await sleep(500);
-        expect(failure).toBeUndefined();
+        expect(collected.error).toBeUndefined();
         expect([...changes].sort()).toEqual(expected);
         expect([...removals]).toEqual([]);
         const timestamps = native

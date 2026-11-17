@@ -1,19 +1,8 @@
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
-
-const require = createRequire(import.meta.url);
-const { NativeWatcher } = createRequire(require.resolve('@rspack/core'))(
-  '@rspack/binding',
-);
-
-async function waitFor(predicate) {
-  const deadline = Date.now() + 5000;
-  while (!predicate() && Date.now() < deadline) await sleep(10);
-  expect(predicate()).toBe(true);
-}
+import { NativeWatcher, waitFor } from '../_helpers/watcher.mjs';
 
 const spellings =
   process.platform === 'win32'

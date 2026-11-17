@@ -1,18 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { waitFor } from '../_helpers/watcher.mjs';
 
 function write(file, content) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, content);
   const past = new Date(Date.now() - 60_000);
   fs.utimesSync(file, past, past);
-}
-
-async function waitFor(predicate) {
-  const deadline = Date.now() + 5000;
-  while (!predicate() && Date.now() < deadline) await sleep(10);
-  expect(predicate()).toBe(true);
 }
 
 /** @type {import("@rspack/test-tools").TCompilerCaseConfig[]} */

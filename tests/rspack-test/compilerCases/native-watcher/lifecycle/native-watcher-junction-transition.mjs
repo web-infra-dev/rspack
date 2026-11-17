@@ -1,14 +1,9 @@
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
-
-const require = createRequire(import.meta.url);
-const { NativeWatcher } = createRequire(require.resolve('@rspack/core'))(
-  '@rspack/binding',
-);
+import { NativeWatcher, waitFor } from '../_helpers/watcher.mjs';
 
 // libuv creates an empty directory before setting its junction reparse point.
 const setJunction = String.raw`
@@ -79,11 +74,6 @@ export default process.platform === 'win32'
           });
           const changes = new Set();
           let error;
-          const waitFor = async (predicate) => {
-            const deadline = Date.now() + 5000;
-            while (!predicate() && Date.now() < deadline) await sleep(10);
-            expect(predicate()).toBe(true);
-          };
           try {
             watcher.watch(
               [[], []],

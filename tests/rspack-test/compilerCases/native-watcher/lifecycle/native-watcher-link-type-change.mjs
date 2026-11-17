@@ -1,19 +1,12 @@
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
-
-const require = createRequire(import.meta.url);
-const { NativeWatcher } = createRequire(require.resolve('@rspack/core'))(
-  '@rspack/binding',
-);
-const Watchpack = require(
-  path.join(
-    path.dirname(require.resolve('@rspack/core/package.json')),
-    'compiled/watchpack',
-  ),
-);
+import {
+  NativeWatcher,
+  Watchpack,
+  createEventCollector,
+} from '../_helpers/watcher.mjs';
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 export default process.platform === 'win32'
@@ -40,13 +33,8 @@ export default process.platform === 'win32'
           const watcher = native
             ? new NativeWatcher(options)
             : new Watchpack(options);
-          const changes = new Set();
-          const removals = new Set();
-          let error;
-          const record = (changed, removed) => {
-            for (const file of changed) changes.add(file);
-            for (const file of removed) removals.add(file);
-          };
+          const collected = createEventCollector();
+          const { changes, removals, record, callback } = collected;
           try {
             if (native)
               watcher.watch(
@@ -54,10 +42,7 @@ export default process.platform === 'win32'
                 [directory ? [link] : [], []],
                 [[], []],
                 BigInt(Date.now()),
-                (err, batch) => {
-                  if (err) error = err;
-                  else record(batch.changedFiles, batch.removedFiles);
-                },
+                callback,
                 () => {},
               );
             else {
@@ -81,7 +66,7 @@ export default process.platform === 'win32'
             while (!changes.has(link) && Date.now() < deadline) await sleep(10);
             expect([...changes]).toEqual([link]);
             expect([...removals]).toEqual([]);
-            expect(error).toBeUndefined();
+            expect(collected.error).toBeUndefined();
           } finally {
             await watcher.close();
             fs.rmSync(root, { recursive: true, force: true });

@@ -12,9 +12,9 @@ const [shardIndex, shardCount] = (
 const caseEntries = new Set(
   [
     ...fs.readdirSync(casesDir).filter((entry) => entry !== "native-watcher"),
-    ...fs.readdirSync(watcherCasesDir).flatMap((group) =>
-      fs.readdirSync(path.join(watcherCasesDir, group)),
-    ),
+    ...fs.readdirSync(watcherCasesDir)
+      .filter((group) => !group.startsWith("_"))
+      .flatMap((group) => fs.readdirSync(path.join(watcherCasesDir, group))),
   ]
     .sort()
     .filter((_, index) => index % shardCount === shardIndex),

@@ -1,19 +1,14 @@
 import fs from "node:fs";
-import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
-
-const require = createRequire(import.meta.url);
-const { NativeWatcher } = createRequire(require.resolve("@rspack/core"))(
-  "@rspack/binding",
-);
-const Watchpack = require(
-  path.join(
-    path.dirname(require.resolve("@rspack/core/package.json")),
-    "compiled/watchpack",
-  ),
-);
+import {
+  NativeWatcher,
+  Watchpack,
+  waitFor,
+  createEventCollector,
+  watchInitial,
+} from "../_helpers/watcher.mjs";
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 export default [false, true].map((native) => ({
@@ -44,35 +39,10 @@ export default [false, true].map((native) => ({
     const watcher = native
       ? new NativeWatcher(options)
       : new Watchpack(options);
-    const changes = new Set();
-    const removals = new Set();
-    let failure;
-    const record = (changed, removed) => {
-      for (const entry of changed) changes.add(entry);
-      for (const entry of removed) removals.add(entry);
-    };
-    const waitFor = async (predicate) => {
-      const deadline = Date.now() + 5000;
-      while (!predicate() && Date.now() < deadline) await sleep(10);
-      expect(predicate()).toBe(true);
-    };
+    const collected = createEventCollector();
+    const { changes, removals } = collected;
     try {
-      if (native)
-        watcher.watch(
-          [[], []],
-          [[app], []],
-          [[], []],
-          BigInt(startTime),
-          (error, batch) => {
-            if (error) failure = error;
-            else record(batch.changedFiles, batch.removedFiles);
-          },
-          () => {},
-        );
-      else {
-        watcher.on("aggregated", record);
-        watcher.watch({ directories: [app], startTime });
-      }
+      watchInitial(watcher, { directories: [app], startTime }, collected);
       await waitFor(() => {
         const entries = native
           ? watcher
@@ -87,7 +57,7 @@ export default [false, true].map((native) => ({
       fs.writeFileSync(target, "live edit");
       await waitFor(() => changes.has(app));
       expect([...changes]).toEqual([app]);
-      expect(failure).toBeUndefined();
+      expect(collected.error).toBeUndefined();
     } finally {
       await watcher.close();
       fs.rmSync(root, { recursive: true, force: true });

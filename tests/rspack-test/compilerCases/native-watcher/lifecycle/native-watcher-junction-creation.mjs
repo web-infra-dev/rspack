@@ -1,13 +1,9 @@
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { NativeWatcher } from '../_helpers/watcher.mjs';
 
-const require = createRequire(import.meta.url);
-const { NativeWatcher } = createRequire(require.resolve('@rspack/core'))(
-  '@rspack/binding',
-);
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 export default {
   description: 'should record files in newly created directory junctions',
