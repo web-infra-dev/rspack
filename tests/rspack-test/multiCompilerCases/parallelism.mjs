@@ -63,20 +63,20 @@ export default [
             0: {
               name: "a",
               mode: "development",
-              context: path.join(import.meta.dirname, "fixtures"),
+              context: path.join(import.meta.dirname, "../fixtures"),
               entry: "./a.js",
               dependencies: ["b", "c"]
             },
             1: {
               name: "b",
               mode: "development",
-              context: path.join(import.meta.dirname, "fixtures"),
+              context: path.join(import.meta.dirname, "../fixtures"),
               entry: "./b.js"
             },
             2: {
               name: "c",
               mode: "development",
-              context: path.join(import.meta.dirname, "fixtures"),
+              context: path.join(import.meta.dirname, "../fixtures"),
               entry: "./a.js"
             }
           },
@@ -121,13 +121,13 @@ export default [
               case 0:
                 expect(info()).toMatchInlineSnapshot(`
 					a:
-					  a compiled with 1 error
+					  a compiled successfully
 
 					b:
-					  b compiled with 1 error
+					  b compiled successfully
 
 					c:
-					  c compiled with 1 error
+					  c compiled successfully
 				`);
                 expect(compiler.compilers[0].modifiedFiles.size).toBe(0);
                 expect(compiler.compilers[0].removedFiles.size).toBe(0);
