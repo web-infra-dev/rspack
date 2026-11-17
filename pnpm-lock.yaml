@@ -912,9 +912,6 @@ importers:
       semver:
         specifier: 'catalog:'
         version: 7.8.6
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
       zx:
         specifier: 'catalog:'
         version: 8.8.5
