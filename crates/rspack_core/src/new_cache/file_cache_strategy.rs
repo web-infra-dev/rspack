@@ -73,6 +73,7 @@ impl FileCacheStrategy {
     readonly: bool,
     rspack_pkg_version: String,
     cache_version: String,
+    build_dependencies: InternedPathSet,
     codec: Arc<CacheCodec>,
     file_system_info: Option<FileSystemInfo>,
     logger: Arc<InfrastructureLogger>,
@@ -81,6 +82,7 @@ impl FileCacheStrategy {
       validator: CacheValidator::new(
         rspack_pkg_version,
         cache_version,
+        build_dependencies,
         codec.clone(),
         file_system_info,
         logger.clone(),
@@ -145,15 +147,10 @@ impl FileCacheStrategy {
           .log("Resetting cache, the cache version doesn't match");
         database.reset()?;
       }
-      CacheValidatorResult::InvalidBuildDependencies {
-        modified_files,
-        removed_files,
-      } => {
-        self.logger.log(format!(
-          "Resetting cache, build dependencies have changed ({} modified, {} removed)",
-          modified_files.len(),
-          removed_files.len()
-        ));
+      CacheValidatorResult::InvalidBuildDependencies => {
+        self
+          .logger
+          .log("Resetting cache, build dependencies have changed");
         database.reset()?;
       }
       CacheValidatorResult::InvalidError => {

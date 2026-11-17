@@ -24,7 +24,7 @@ fn collect_declaration_from_pattern<'a>(
       BindingPatternData::AssignmentPattern(assignment) => stack.push(assignment.left(ast)),
       BindingPatternData::BindingRestElement(rest) => stack.push(rest.argument(ast)),
       BindingPatternData::ArrayPattern(array) => {
-        stack.extend(ast.nodes(array.elements(ast)).flatten());
+        stack.extend(ast.optional_nodes(array.elements(ast)).flatten());
         if let Some(rest) = array.rest(ast) {
           stack.push(rest.argument(ast));
         }

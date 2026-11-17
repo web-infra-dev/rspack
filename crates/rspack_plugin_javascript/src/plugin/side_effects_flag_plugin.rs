@@ -73,10 +73,9 @@ impl SideEffects {
     } else if let Some(vec) = value.as_array() {
       let mut side_effects = vec![];
       for value in vec {
-        if let Some(str) = value.as_str() {
+        {
+          let str = value.as_str()?;
           side_effects.push(str.to_string());
-        } else {
-          return None;
         }
       }
       Some(SideEffects::Array(side_effects))

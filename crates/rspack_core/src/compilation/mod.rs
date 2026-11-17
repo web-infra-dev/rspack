@@ -32,7 +32,7 @@ use std::{
   hash::{BuildHasherDefault, Hash},
   mem,
   sync::{
-    Arc, Weak,
+    Arc, OnceLock, Weak,
     atomic::{AtomicBool, AtomicU32, Ordering},
   },
 };
@@ -325,6 +325,8 @@ pub struct Compilation {
   /// Rebuild will include previous compilation data, so persistent cache will not recovery anything
   pub is_rebuild: bool,
   pub compiler_context: Arc<CompilerContext>,
+  runtime_chunks_cache: OnceLock<HashSet<ChunkUkey>>,
+  hmr_loading_siblings_cache: OnceLock<HashMap<ChunkUkey, Box<[ChunkUkey]>>>,
 }
 
 impl Compilation {
@@ -461,6 +463,8 @@ impl Compilation {
       output_filesystem,
       is_rebuild,
       compiler_context,
+      runtime_chunks_cache: Default::default(),
+      hmr_loading_siblings_cache: Default::default(),
     }
   }
 
@@ -633,11 +637,7 @@ impl Compilation {
   ) -> String {
     let mut runtime_map = self.import_var_map.entry(module).or_default();
     let import_var_map_of_module = runtime_map
-      .entry(
-        runtime
-          .map(|r| get_runtime_key(r).clone())
-          .unwrap_or_default(),
-      )
+      .entry(runtime.map_or_default(|r| get_runtime_key(r).clone()))
       .or_default();
     let len = import_var_map_of_module.len();
     let is_deferred = phase.is_defer()
@@ -671,7 +671,8 @@ impl Compilation {
     let plugin_driver = self.plugin_driver.clone();
     self
       .build_module_graph_artifact
-      .add_unfactorized_dependency(entry);
+      .get_module_graph_mut()
+      .add_dependency_ref(entry);
     let entry_options = if let Some(name) = &entry_name {
       if let Some(data) = self.entries.get_mut(name) {
         data.dependencies.push(entry_id);
@@ -742,7 +743,8 @@ impl Compilation {
       let entry_id = *entry.id();
       self
         .build_module_graph_artifact
-        .add_unfactorized_dependency(entry);
+        .get_module_graph_mut()
+        .add_dependency_ref(entry);
       if let Some(name) = options.name.clone() {
         if let Some(data) = self.entries.get_mut(&name) {
           data.include_dependencies.push(entry_id);
@@ -998,8 +1000,7 @@ impl Compilation {
       d.labels
         .as_ref()
         .and_then(|l| l.first())
-        .map(|l| l.offset)
-        .unwrap_or_default()
+        .map_or_default(|l| l.offset)
     };
     self
       .get_errors()
@@ -1024,8 +1025,7 @@ impl Compilation {
       d.labels
         .as_ref()
         .and_then(|l| l.first())
-        .map(|l| l.offset)
-        .unwrap_or_default()
+        .map_or_default(|l| l.offset)
     };
     self
       .get_warnings()
@@ -1351,6 +1351,69 @@ impl Compilation {
     template_type: DependencyTemplateType,
   ) -> Option<Arc<dyn DependencyTemplate>> {
     self.dependency_templates.get(&template_type).cloned()
+  }
+
+  pub fn runtime_chunks(&self) -> &HashSet<ChunkUkey> {
+    self.runtime_chunks_cache.get_or_init(|| {
+      let graph = &self.build_chunk_graph_artifact;
+      graph
+        .chunk_group_by_ukey
+        .values()
+        .filter(|group| group.kind.is_entrypoint())
+        .filter_map(|group| {
+          let runtime_ukey = group.get_runtime_chunk(&graph.chunk_group_by_ukey);
+          graph
+            .chunk_by_ukey
+            .get(&runtime_ukey)
+            .is_some_and(|chunk| chunk.groups().contains(&group.ukey))
+            .then_some(runtime_ukey)
+        })
+        .collect()
+    })
+  }
+
+  /// Maps each normal chunk group's last loading chunk to its unique ordered list of
+  /// preceding sibling loading chunks. If two normal chunk groups share the same last
+  /// loading chunk with different preceding loading chunks, the chunk is omitted.
+  pub fn hmr_loading_siblings(&self) -> &HashMap<ChunkUkey, Box<[ChunkUkey]>> {
+    self.hmr_loading_siblings_cache.get_or_init(|| {
+      let graph = &self.build_chunk_graph_artifact;
+      let runtime_chunks = self.runtime_chunks();
+      let mut plans: HashMap<ChunkUkey, Option<Box<[ChunkUkey]>>> = HashMap::default();
+      let mut scratch: Vec<ChunkUkey> = Vec::new();
+      for group in graph.chunk_group_by_ukey.values() {
+        if group.kind.get_normal_options().is_none() {
+          continue;
+        }
+        scratch.clear();
+        scratch.extend(group.chunks.iter().copied().filter(|ukey| {
+          !runtime_chunks.contains(ukey)
+            && graph
+              .chunk_by_ukey
+              .get(ukey)
+              .is_some_and(|chunk| chunk.id().is_some())
+        }));
+        let Some(last) = scratch.pop() else {
+          continue;
+        };
+        match plans.entry(last) {
+          hash_map::Entry::Vacant(vacant) => {
+            vacant.insert(Some(scratch.as_slice().into()));
+          }
+          hash_map::Entry::Occupied(mut occupied) => {
+            if let Some(existing) = occupied.get()
+              && existing.as_ref() != scratch.as_slice()
+            {
+              occupied.insert(None);
+            }
+          }
+        }
+      }
+      plans
+        .into_iter()
+        .filter_map(|(last, siblings)| siblings.map(|s| (last, s)))
+        .collect()
+    })
   }
 }
 

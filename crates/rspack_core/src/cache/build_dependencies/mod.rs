@@ -189,15 +189,12 @@ mod test {
   }
 
   fn warn_count(logging: &CompilationLogging, name: &str) -> usize {
-    logging
-      .get(name)
-      .map(|entries| {
-        entries
-          .iter()
-          .filter(|entry| matches!(entry, LogType::Warn { .. }))
-          .count()
-      })
-      .unwrap_or_default()
+    logging.get(name).map_or_default(|entries| {
+      entries
+        .iter()
+        .filter(|entry| matches!(entry, LogType::Warn { .. }))
+        .count()
+    })
   }
 
   #[tokio::test]

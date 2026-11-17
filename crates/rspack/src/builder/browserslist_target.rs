@@ -444,7 +444,7 @@ mod tests {
     for test_case in tests {
       let input: Vec<String> = test_case.iter().map(|s| (*s).to_string()).collect();
 
-      let targets = resolve(input.clone());
+      let targets = resolve(input);
 
       results.push((test_case, targets));
     }

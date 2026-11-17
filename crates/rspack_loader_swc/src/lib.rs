@@ -1,4 +1,4 @@
-#![feature(box_patterns)]
+#![feature(deref_patterns)]
 
 mod collect_ts_info;
 mod isolated_dts;
@@ -59,8 +59,7 @@ impl SwcLoader {
   fn loader_impl(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
     let resource_path = loader_context
       .resource_path()
-      .map(|p| p.to_path_buf())
-      .unwrap_or_default();
+      .map_or_default(|p| p.to_path_buf());
     loader_context.context.module.build_info_mut().isolated_dts = None;
     let Some(content) = loader_context.take_content() else {
       return Ok(());

@@ -56,6 +56,8 @@ impl fmt::Display for RspackComment {
   }
 }
 
+// Preserve the existing conversion API.
+#[allow(clippy::try_from_instead_of_from_str)]
 impl TryFrom<&str> for RspackComment {
   type Error = ();
 
@@ -509,7 +511,7 @@ fn expr_to_magic_comment_value_with_offset(
     return None;
   };
   let mut items = Vec::new();
-  for element in ast.nodes(array.elements(ast)) {
+  for element in ast.optional_nodes(array.elements(ast)) {
     let element = element?;
     let ArgumentData::Expr(element) = ast.argument_data(element) else {
       return None;
@@ -533,7 +535,7 @@ fn expr_to_exports(ast: &Ast<'_>, expr: Expr) -> Option<MagicCommentValue> {
   };
 
   let mut exports = Vec::new();
-  for element in ast.nodes(array.elements(ast)) {
+  for element in ast.optional_nodes(array.elements(ast)) {
     let element = element?;
     let ArgumentData::Expr(element) = ast.argument_data(element) else {
       return None;
@@ -569,10 +571,9 @@ struct MagicCommentItem {
 fn parse_magic_comment_name(name: &str) -> Option<(RspackComment, MagicCommentPrefix)> {
   let (name, prefix) = if let Some(name) = name.strip_prefix("rspack") {
     (name, MagicCommentPrefix::Rspack)
-  } else if let Some(name) = name.strip_prefix("webpack") {
-    (name, MagicCommentPrefix::Webpack)
   } else {
-    return None;
+    let name = name.strip_prefix("webpack")?;
+    (name, MagicCommentPrefix::Webpack)
   };
 
   Some((RspackComment::try_from(name).ok()?, prefix))

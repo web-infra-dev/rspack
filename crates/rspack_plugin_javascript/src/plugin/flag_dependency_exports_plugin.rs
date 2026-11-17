@@ -100,12 +100,7 @@ impl<'a> FlagDependencyExportsState<'a> {
       // 2. exports from an esm reexport and the target is a commonjs module which should create a interop `default` export
       let (non_nested_specs, has_nested_specs): (Vec<_>, Vec<_>) = module_exports_specs
         .into_iter()
-        .partition(|(_mid, (_, has_nested_exports))| {
-          if *has_nested_exports {
-            return false;
-          }
-          true
-        });
+        .partition(|(_mid, (_, has_nested_exports))| !*has_nested_exports);
 
       // parallelize the merging of exports specs to exports info data
       let non_nested_tasks = non_nested_specs

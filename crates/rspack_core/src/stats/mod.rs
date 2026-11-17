@@ -713,15 +713,11 @@ impl Stats<'_> {
             chunk_group.origins().iter().map(|origin| {
               let module_identifier = origin.module;
 
-              let module_name = origin
-                .module
-                .map(|identifier| {
-                  module_graph
-                    .module_by_identifier(&identifier)
-                    .map(|module| module.readable_identifier(context))
-                    .unwrap_or_default()
-                })
-                .unwrap_or_default();
+              let module_name = origin.module.map_or_default(|identifier| {
+                module_graph
+                  .module_by_identifier(&identifier)
+                  .map_or_default(|module| module.readable_identifier(context))
+              });
 
               let module_id = origin.module.and_then(|identifier| {
                 ChunkGraph::get_module_id(module_ids_artifact, identifier).cloned()
@@ -732,11 +728,7 @@ impl Stats<'_> {
                 module_id,
                 module_identifier,
                 module_name,
-                loc: origin
-                  .loc
-                  .as_ref()
-                  .map(|loc| loc.to_string())
-                  .unwrap_or_default(),
+                loc: origin.loc.as_ref().map_or_default(|loc| loc.to_string()),
                 request: origin.request.as_deref().unwrap_or_default(),
               }
             })
@@ -752,7 +744,7 @@ impl Stats<'_> {
           auxiliary_files,
           id: c.id().map(|id| id.as_str()),
           id_hints,
-          names: c.name().map(|n| vec![n]).unwrap_or_default(),
+          names: c.name().map_or_default(|n| vec![n]),
           entry: c.has_entry_module(chunk_graph),
           initial: c.can_be_initial(&build_chunk_graph_artifact.chunk_group_by_ukey),
           size: get_chunk_modules_size(&c.ukey(), chunk_graph, module_graph),
@@ -976,8 +968,7 @@ impl Stats<'_> {
       d.labels
         .as_ref()
         .and_then(|l| l.first())
-        .map(|l| l.offset)
-        .unwrap_or_default()
+        .map_or_default(|l| l.offset)
     };
     let mut sorted_errors = self
       .diagnostics()
@@ -1059,8 +1050,7 @@ impl Stats<'_> {
       d.labels
         .as_ref()
         .and_then(|l| l.first())
-        .map(|l| l.offset)
-        .unwrap_or_default()
+        .map_or_default(|l| l.offset)
     };
     let mut sorted_warnings = self
       .diagnostics()
@@ -1367,7 +1357,7 @@ impl Stats<'_> {
           .build_chunk_graph_artifact()
           .chunk_graph
           .get_chunk_graph_module(mgm.module_identifier)
-          .map(|cgm| {
+          .map_or_default(|cgm| {
             cgm
               .chunks
               .iter()
@@ -1381,7 +1371,6 @@ impl Stats<'_> {
               })
               .collect::<Vec<_>>()
           })
-          .unwrap_or_default()
       };
       chunks.sort_unstable();
       stats.chunks = Some(chunks);

@@ -779,7 +779,7 @@ impl JavascriptParser<'_> {
         self.clear_created_require_tags_in_pattern(rest.argument(ast));
       }
       BindingPatternData::ArrayPattern(array) => {
-        for element in ast.nodes(array.elements(ast)).flatten() {
+        for element in ast.optional_nodes(array.elements(ast)).flatten() {
           self.clear_created_require_tags_in_pattern(element);
         }
         if let Some(rest) = array.rest(ast) {
@@ -1901,7 +1901,7 @@ impl JavascriptParser<'_> {
         simple_assignment_target_identifier(ast, target).map(PatternIdentifier::Reference)
       }
       BindingPatternData::ArrayPattern(array) => {
-        for element in ast.nodes(array.elements(ast)).flatten() {
+        for element in ast.optional_nodes(array.elements(ast)).flatten() {
           self.enter_assignment_target_pattern(element, on_ident);
         }
         if let Some(rest) = array.rest(ast) {
@@ -2117,7 +2117,7 @@ impl JavascriptParser<'_> {
 
   fn walk_array_expression(&mut self, expr: ArrayExpression) {
     let ast = self.ast.ast;
-    self.walk_arguments(ast.nodes(expr.elements(ast)).flatten());
+    self.walk_arguments(ast.optional_nodes(expr.elements(ast)).flatten());
   }
 
   fn walk_nested_statement(&mut self, stmt: Stmt) {
@@ -2272,7 +2272,7 @@ impl JavascriptParser<'_> {
 
   fn walk_array_pattern(&mut self, pattern: ArrayPattern, walk_identifiers: bool) {
     let ast = self.ast.ast;
-    for element in ast.nodes(pattern.elements(ast)).flatten() {
+    for element in ast.optional_nodes(pattern.elements(ast)).flatten() {
       self.walk_pattern_with_identifiers(element, walk_identifiers);
     }
     if let Some(rest) = pattern.rest(ast) {

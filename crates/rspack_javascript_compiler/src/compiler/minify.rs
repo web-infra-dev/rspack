@@ -189,9 +189,7 @@ impl JavaScriptCompiler {
             import_attributes: true,
             ..Default::default()
           }),
-          opts
-            .module
-            .map_or_else(|| IsModule::Unknown, IsModule::Bool),
+          opts.module.map_or(IsModule::Unknown, IsModule::Bool),
           Some(&comments),
         )?;
 

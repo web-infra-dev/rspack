@@ -30,13 +30,9 @@ RSPACK_PROFILE=ALL rspack build
 
 > 查看 [Tracing](/contribute/development/tracing) 了解更多。
 
-## 性能瓶颈
+## Loader 性能 \{#loader-performance}
 
-尽管 Rspack 本身提供的构建性能已经足够优秀，但在 Rspack 中使用一些 JavaScript 编写的 loaders 和 plugins 时，它们可能会导致整体的构建性能劣化，尤其是在大型项目中。
-
-对于这类问题，有一部分可以通过 Rspack 内置的高性能替代方案来解决，另一部分可以通过性能分析工具来定位，从而采取针对性的优化。
-
-下面是一些常见的案例：
+Loader 的处理范围和转换方式都会影响构建性能。可以通过缩小匹配范围，或使用 Rspack 内置的替代方案，减少转换开销。
 
 ### babel-loader
 
@@ -48,6 +44,14 @@ RSPACK_PROFILE=ALL rspack build
 
 [postcss-loader](https://github.com/postcss/postcss-loader) 基于 PostCSS 来编译 CSS 代码，通常会配合 PostCSS 插件进行 CSS 语法降级、添加浏览器前缀等，可以将 PostCSS 替换为更快的 Lightning CSS，使用 Rspack 内置的 [builtin:lightningcss-loader](/guide/builtin-loaders/lightningcss-loader) 即可。
 
+### less-loader
+
+[less-loader](https://github.com/webpack/less-loader) 基于 Less 来编译 `.less` 文件，由于 Less 目前没有官方实现的高性能替代方案，建议使用 [sass-loader](https://github.com/webpack/sass-loader) 和 [sass-embedded](https://www.npmjs.com/package/sass-embedded) 代替，sass-embedded 是 Sass 原生 Dart 可执行文件的 JavaScript wrapper，具备出色的性能。
+
+## 插件性能 \{#plugin-performance}
+
+插件会在构建的不同阶段执行任务。可以借助性能分析工具定位耗时较长的插件，再考虑调整配置或使用更快的替代方案。
+
 ### terser-webpack-plugin
 
 [terser-webpack-plugin](https://github.com/webpack/terser-webpack-plugin) 基于 Terser 来压缩 JavaScript 代码，可以将 Terser 替换为更快的 SWC minimizer，使用 Rspack 内置的 [SwcJsMinimizerRspackPlugin](/plugins/swc-js-minimizer-rspack-plugin) 即可。
@@ -55,10 +59,6 @@ RSPACK_PROFILE=ALL rspack build
 ### css-minimizer-webpack-plugin
 
 [css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin) 基于 cssnano 等压缩工具来压缩 CSS 代码，可以将 cssnano 替换为更快的 Lightning CSS minimizer，使用 Rspack 内置的 [LightningCssMinimizerRspackPlugin](/plugins/lightning-css-minimizer-rspack-plugin) 即可。
-
-### less-loader
-
-[less-loader](https://github.com/webpack/less-loader) 基于 Less 来编译 `.less` 文件，由于 Less 目前没有官方实现的高性能替代方案，建议使用 [sass-loader](https://github.com/webpack/sass-loader) 和 [sass-embedded](https://www.npmjs.com/package/sass-embedded) 代替，sass-embedded 是 Sass 原生 Dart 可执行文件的 JavaScript wrapper，具备出色的性能。
 
 ### html-webpack-plugin
 
@@ -68,7 +68,19 @@ RSPACK_PROFILE=ALL rspack build
 
 使用 [ts-checker-rspack-plugin](https://github.com/rspack-contrib/ts-checker-rspack-plugin) 时，推荐使用 TypeScript 7 或更高版本，以启用原生类型检查器并提升大型项目的类型检查性能，详见[插件 README](https://github.com/rspack-contrib/ts-checker-rspack-plugin#typescript-7-support)。
 
-## 阻塞线程池大小
+## 配置与 API \{#configuration-and-apis}
+
+### Stats 生成 \{#stats-generation}
+
+通过 [`stats.toJson()`](/api/javascript-api/stats#tojson) 或 [`stats.toString()`](/api/javascript-api/stats#tostring) 获取详细统计信息可能带来明显的开销，尤其是开启 [`all: true`](/config/stats#statsall) 时。建议检查构建脚本和插件中的这些调用，只获取需要的信息。具体用法见 [Stats 性能开销](/api/javascript-api/stats#performance-overhead)。
+
+### SplitChunks
+
+[`splitChunks`](/plugins/split-chunks-plugin) 中的函数选项和较大的 [`dedupDepth`](/plugins/split-chunks-plugin#splitchunksdedupdepth) 都可能增加构建耗时。具体原因和配置建议见 [SplitChunks 性能开销](/plugins/split-chunks-plugin#performance-overhead)。
+
+## 线程池配置 \{#thread-pool-configuration}
+
+### 阻塞线程池大小 \{#blocking-thread-pool-size}
 
 Rspack 在内部使用一个专门的线程池来执行文件系统读写等阻塞操作，以避免阻塞主线程。
 
@@ -85,7 +97,7 @@ cross-env RSPACK_BLOCKING_THREADS=8 rspack build
 
 在较慢或延迟较高的文件系统中，建议保留默认值甚至更低，以避免线程争用。
 
-## 工作线程池大小
+### 工作线程池大小 \{#working-thread-pool-size}
 
 Rspack 在内部使用 Tokio 线程池和 Rayon 线程池来处理 CPU 密集型任务（Tokio 用于异步任务，Rayon 用于同步任务）。默认情况下，Tokio 和 Rayon 会根据可用的 CPU 核心数自动确定工作线程的数量。
 

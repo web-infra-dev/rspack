@@ -15,6 +15,22 @@ it("should parse fancy function calls", function() {
 	expect(module.exports).toHaveProperty("value", 4231);
 });
 
+it("should evaluate Unicode regexp separators in AMD dependencies", () => new Promise(done => {
+	require("./constructor🦀./a".split(/🦀/u), function(constructor, a) {
+		expect(typeof constructor).toBe("function");
+		expect(a).toBe("a");
+		done();
+	});
+}));
+
+it("should evaluate zero-width regexp separators in AMD dependencies", () => new Promise(done => {
+	require("./constructor./a".split(/(?=\.\/a)/), function(constructor, a) {
+		expect(typeof constructor).toBe("function");
+		expect(a).toBe("a");
+		done();
+	});
+}));
+
 it("should parse fancy AMD calls", function() {
 	require("./constructor ./a".split(" "));
 	require("-> module module exports *constructor *a".replace("module", "require").slice(3).replace(/\*/g, "./").split(" "), function(require, module, exports, constructor, a) {

@@ -4,8 +4,8 @@ pub mod runtime;
 use rspack_intern::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_next_ecma_ast::{
-  Ast, BigIntLiteral, CommentKind as NextCommentKind, CommentPosition, Expr, ExprData,
-  ExtraDataValue, IdentifierName, NumericLiteral, PrivateIdentifier, PropertyKey, PropertyKeyData,
+  Ast, AstNode, BigIntLiteral, CommentKind as NextCommentKind, CommentPosition, Expr, ExprData,
+  IdentifierName, NumericLiteral, PrivateIdentifier, PropertyKey, PropertyKeyData,
   Span as NextAstSpan, StringLiteral, SubRange,
 };
 
@@ -40,22 +40,29 @@ pub fn classify_property_key(ast: &Ast<'_>, key: PropertyKey) -> PropertyKeyValu
 pub trait AstSubRangeExt {
   fn first<T>(&self, range: SubRange<T>) -> Option<T>
   where
-    T: ExtraDataValue;
+    T: AstNode;
 
   fn second<T>(&self, range: SubRange<T>) -> Option<T>
   where
-    T: ExtraDataValue;
+    T: AstNode;
 
   fn nodes<'a, T>(&'a self, range: SubRange<T>) -> impl DoubleEndedIterator<Item = T> + 'a
   where
-    T: ExtraDataValue + 'a;
+    T: AstNode + 'a;
+
+  fn optional_nodes<'a, T>(
+    &'a self,
+    range: SubRange<Option<T>>,
+  ) -> impl DoubleEndedIterator<Item = Option<T>> + 'a
+  where
+    T: AstNode + 'a;
 }
 
 impl AstSubRangeExt for Ast<'_> {
   #[inline]
   fn first<T>(&self, range: SubRange<T>) -> Option<T>
   where
-    T: ExtraDataValue,
+    T: AstNode,
   {
     range.get_node(self, 0)
   }
@@ -63,7 +70,7 @@ impl AstSubRangeExt for Ast<'_> {
   #[inline]
   fn second<T>(&self, range: SubRange<T>) -> Option<T>
   where
-    T: ExtraDataValue,
+    T: AstNode,
   {
     range.get_node(self, 1)
   }
@@ -71,7 +78,18 @@ impl AstSubRangeExt for Ast<'_> {
   #[inline]
   fn nodes<'a, T>(&'a self, range: SubRange<T>) -> impl DoubleEndedIterator<Item = T> + 'a
   where
-    T: ExtraDataValue + 'a,
+    T: AstNode + 'a,
+  {
+    range.iter().map(move |id| self.get_node_in_sub_range(id))
+  }
+
+  #[inline]
+  fn optional_nodes<'a, T>(
+    &'a self,
+    range: SubRange<Option<T>>,
+  ) -> impl DoubleEndedIterator<Item = Option<T>> + 'a
+  where
+    T: AstNode + 'a,
   {
     range.iter().map(move |id| self.get_node_in_sub_range(id))
   }

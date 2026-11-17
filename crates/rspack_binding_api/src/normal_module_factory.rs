@@ -98,8 +98,7 @@ impl JsResolveData {
         issuer: data
           .issuer
           .as_ref()
-          .map(|issuer| issuer.to_string())
-          .unwrap_or_default(),
+          .map_or_default(|issuer| issuer.to_string()),
         issuer_layer: data.issuer_layer.clone(),
       },
       attributes: data

@@ -199,7 +199,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       return None;
     }
     let left = left.as_string()?;
-    let members = right.members().map(|v| v.as_slice()).unwrap_or_default();
+    let members = right.members().map_or_default(|v| v.as_slice());
     let direct_import = members.is_empty();
     ids.extend(members.iter().cloned());
     ids.push(left.into());

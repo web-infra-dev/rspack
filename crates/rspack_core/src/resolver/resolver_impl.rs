@@ -541,13 +541,8 @@ fn map_resolver_error(is_recursion: bool, reason: Option<String>, args: &Resolve
     args
       .span
       .as_ref()
-      .map(|span| span.start as usize)
-      .unwrap_or_default(),
-    args
-      .span
-      .as_ref()
-      .map(|span| span.end as usize)
-      .unwrap_or_default(),
+      .map_or_default(|span| span.start as usize),
+    args.span.as_ref().map_or_default(|span| span.end as usize),
     "Module not found".to_string(),
     message,
   );

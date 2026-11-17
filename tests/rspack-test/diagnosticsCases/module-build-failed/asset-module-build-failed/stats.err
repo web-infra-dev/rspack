@@ -2,9 +2,3 @@ ERROR in ./logo.svg
   × Module build failed (from ./my-loader.mjs):
   ╰─▶   × Error: Failed to load
         │     at xxx
-        │     at xxx
-        │     at xxx
-        │     at xxx
-        │     at xxx
-        │     at xxx
-        │     at xxx

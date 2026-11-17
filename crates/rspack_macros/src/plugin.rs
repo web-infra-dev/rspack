@@ -201,8 +201,8 @@ pub fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream 
 
   let inner_ident = plugin_inner_ident(&name);
 
-  let tracing_name = syn::LitStr::new(&format!("{}:{}", &name, &fn_ident), name.span());
-  let plugin_name = syn::LitStr::new(&format!("{}", &name), name.span());
+  let tracing_name = syn::LitStr::new(&format!("{name}:{fn_ident}"), name.span());
+  let plugin_name = syn::LitStr::new(&format!("{name}"), name.span());
   let tracing_annotation = tracing.is_none_or(|bool_lit| bool_lit.value).then(|| {
     quote! {
       #[::rspack_hook::__macro_helper::tracing::instrument(name = #tracing_name, skip_all,fields(

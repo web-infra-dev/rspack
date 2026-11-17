@@ -443,7 +443,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   }
 
   // 5. Rsdoctor module add issuer_path
-  for (module_id, _) in modules.iter() {
+  for module_id in modules.keys() {
     let mut issuer_path = Vec::new();
     let mut current_issuer = module_graph.get_issuer(module_id);
 
@@ -504,8 +504,9 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   let export_usage_edges = if self.has_export_usage_graph_feature() {
     ACTIVE_EXPORT_USAGE_DEPENDENCY_MAP
       .remove(&compilation.id())
-      .map(|(_, dependencies)| collect_export_usage_edges(dependencies, &module_ukey_map))
-      .unwrap_or_default()
+      .map_or_default(|(_, dependencies)| {
+        collect_export_usage_edges(dependencies, &module_ukey_map)
+      })
   } else {
     Vec::new()
   };
@@ -593,8 +594,7 @@ async fn after_code_generation(
 
   let json_module_sizes = JSON_MODULE_SIZE_MAP
     .get(&compilation.id())
-    .map(|map| map.clone())
-    .unwrap_or_default();
+    .map_or_default(|map| map.clone());
 
   spawn_patch(compilation.id(), "module sources", async move {
     hooks

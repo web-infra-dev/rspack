@@ -140,7 +140,7 @@ fn tag_const_pattern(parser: &mut JavascriptParser, pattern: BindingPattern) {
       );
     }
     BindingPatternData::ArrayPattern(array) => {
-      for elem in ast.nodes(array.elements(ast)).flatten() {
+      for elem in ast.optional_nodes(array.elements(ast)).flatten() {
         tag_const_pattern(parser, elem);
       }
       if let Some(rest) = array.rest(ast) {

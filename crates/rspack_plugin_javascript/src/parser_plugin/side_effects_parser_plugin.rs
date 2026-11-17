@@ -810,7 +810,7 @@ pub fn is_pure_expression(
   let ast = parser.ast.ast;
   match ast.expr_data(expression) {
     ExprData::ArrayExpression(array) => {
-      for element in ast.nodes(array.elements(ast)).flatten() {
+      for element in ast.optional_nodes(array.elements(ast)).flatten() {
         let ArgumentData::Expr(element) = ast.argument_data(element) else {
           return false;
         };
@@ -915,7 +915,7 @@ pub fn is_pure_pat(parser: &mut JavascriptParser, pattern: BindingPattern) -> bo
   match ast.binding_pattern_data(pattern) {
     BindingPatternData::BindingIdentifier(_) | BindingPatternData::BindingRestElement(_) => true,
     BindingPatternData::ArrayPattern(array) => ast
-      .nodes(array.elements(ast))
+      .optional_nodes(array.elements(ast))
       .flatten()
       .all(|element| is_pure_pat(parser, element)),
     BindingPatternData::SimpleAssignmentTarget(target) => {
