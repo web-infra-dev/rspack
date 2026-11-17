@@ -1211,7 +1211,7 @@ export default {
 
 ### 函数选项 \{#function-options}
 
-当 [`chunks`](#splitchunkschunks)、[`name`](#splitchunksname) 或缓存组的 [`test`](#test)、[`layer`](#layer) 使用函数形式时，Rspack 需要在代码拆分过程中调用 JavaScript 回调。这些跨语言调用会增加构建开销。
+当 [`chunks`](#splitchunkschunks)、[`name`](#splitchunksname) 或缓存组的 [`test`](#test)、[`layer`](#layer) 使用函数形式时，Rspack 需要在代码拆分过程中调用 JavaScript 回调。这些跨语言调用会增加构建开销，在大型项目中可能显著延长构建时间。
 
 在满足相同需求的前提下，建议优先使用非函数形式，仅在需要自定义逻辑时使用函数。
 

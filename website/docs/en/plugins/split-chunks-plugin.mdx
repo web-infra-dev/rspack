@@ -1213,7 +1213,7 @@ This option controls grouping, not whether unused exports are removed. Removing 
 
 ### Function options
 
-When [`chunks`](#splitchunkschunks), [`name`](#splitchunksname), or a cache group’s [`test`](#test) or [`layer`](#layer) is a function, Rspack calls back into JavaScript during chunk splitting. These cross-language calls add build overhead.
+When [`chunks`](#splitchunkschunks), [`name`](#splitchunksname), or a cache group’s [`test`](#test) or [`layer`](#layer) is a function, Rspack calls back into JavaScript during chunk splitting. These cross-language calls add overhead and can significantly increase build time in large projects.
 
 Prefer non-function forms when they meet the same requirements, and use functions only when you need custom logic.
 
