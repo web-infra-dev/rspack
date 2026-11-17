@@ -173,6 +173,19 @@ impl CacheKey for CachedPath {
 /// `root` with a separator and an ordinary name is found by its bytes, and any other spelling is
 /// compared by components.
 fn is_below(path: &Utf8Path, root: &Utf8Path) -> bool {
+  // The walk up from a resolved path stops at the root or one of its ancestors, which spell a
+  // prefix of the root that ends at a separator.
+  if root
+    .as_str()
+    .strip_prefix(path.as_str())
+    .is_some_and(|rest| {
+      rest.is_empty()
+        || path.as_str().ends_with(std::path::is_separator)
+        || rest.starts_with(std::path::is_separator)
+    })
+  {
+    return false;
+  }
   let continues_root = path
     .as_str()
     .strip_prefix(root.as_str())
