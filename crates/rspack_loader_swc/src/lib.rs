@@ -1,3 +1,5 @@
+#![feature(deref_patterns)]
+
 mod collect_ts_info;
 mod isolated_dts;
 mod options;

@@ -667,7 +667,8 @@ impl Compilation {
     let plugin_driver = self.plugin_driver.clone();
     self
       .build_module_graph_artifact
-      .add_unfactorized_dependency(entry);
+      .get_module_graph_mut()
+      .add_dependency_ref(entry);
     let entry_options = if let Some(name) = &entry_name {
       if let Some(data) = self.entries.get_mut(name) {
         data.dependencies.push(entry_id);
@@ -738,7 +739,8 @@ impl Compilation {
       let entry_id = *entry.id();
       self
         .build_module_graph_artifact
-        .add_unfactorized_dependency(entry);
+        .get_module_graph_mut()
+        .add_dependency_ref(entry);
       if let Some(name) = options.name.clone() {
         if let Some(data) = self.entries.get_mut(&name) {
           data.include_dependencies.push(entry_id);
