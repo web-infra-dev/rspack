@@ -1004,7 +1004,11 @@ class Compiler {
         },
         Cache.__to_binding(this.cache),
         bindingHelpers,
+        instanceBinding.getJsTaskSubscription(false),
       );
+      Object.defineProperty(this.#instance, '_getCompiler', {
+        value: () => compilerRef.deref(),
+      });
 
       callback(null, this.#instance);
     } catch (err) {

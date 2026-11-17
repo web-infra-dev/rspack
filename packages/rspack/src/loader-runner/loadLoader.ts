@@ -97,6 +97,7 @@ export default function loadLoader(
       }
       return callback(e);
     }
+    moduleCache.set(cacheKey, module);
     return handleResult(loader, module, callback);
   }
 }

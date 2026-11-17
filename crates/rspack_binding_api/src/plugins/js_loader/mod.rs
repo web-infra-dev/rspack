@@ -1,6 +1,10 @@
+mod bridge;
 mod context;
 mod resolver;
+mod result;
+mod runtime;
 mod scheduler;
+pub(crate) mod worker;
 
 use std::{
   fmt::Debug,
@@ -18,8 +22,8 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rustc_hash::FxHashSet;
-use tokio::sync::{OnceCell, RwLock};
+use runtime::JsLoaderRuntime;
+use tokio::sync::OnceCell;
 
 use crate::{COMPILER_REFERENCES, error::RspackResultToNapiResultExt};
 
@@ -114,16 +118,18 @@ pub(crate) struct JsLoaderRspackPlugin {
   /// This complex data structure is used to avoid deadlock when running loaders which contain `importModule`
   /// See: https://github.com/web-infra-dev/rspack/pull/10632
   pub(crate) runner: Mutex<Arc<tokio::sync::OnceCell<JsLoaderRunner>>>,
-  pub(crate) loaders_without_pitch: RwLock<FxHashSet<String>>,
+  pub(crate) runtime: Arc<JsLoaderRuntime>,
+  pub(crate) resolved_loaders: resolver::LoaderResolveCache,
 }
 
 impl JsLoaderRspackPlugin {
-  pub fn new(runner_getter: JsLoaderRunnerGetter) -> Self {
+  pub fn new(runner_getter: JsLoaderRunnerGetter, main_object_handle: u32) -> Self {
     Self::new_inner(
       Default::default(),
       runner_getter,
       Mutex::default(),
-      RwLock::new(FxHashSet::default()),
+      bridge::loader_runtime(main_object_handle),
+      Default::default(),
     )
   }
 }
@@ -142,6 +148,11 @@ async fn this_compilation(
 ) -> Result<()> {
   let compiler_id = compilation.compiler_id();
   let _ = self.compiler_id.get_or_init(|| compiler_id);
+  self
+    .resolved_loaders
+    .lock()
+    .expect("loader resolution cache lock poisoned")
+    .clear();
   Ok(())
 }
 

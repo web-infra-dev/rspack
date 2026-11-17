@@ -1058,7 +1058,7 @@ export default {
 
 <ApiMeta addedVersion="1.3.1" />
 
-- **类型**: `boolean | { maxWorkers?: number }`
+- **类型**: `boolean | 'strict' | { maxWorkers?: number }`
 - **默认值:** `false`
 
 用于将指定 loader 放入 worker threads 中并行执行，被标记为 `parallel` 的 loader 会通过多线程调度运行，从而减少主线程的负担并提升构建性能。
@@ -1068,6 +1068,10 @@ export default {
 - 设置为 `false` 或省略时，该 loader 默认会在主线程中执行。
 
 使用示例和限制请参考 [并行 Loader](/guide/features/loader#parallel-loader)。
+
+使用 `parallel: 'strict'` 可以禁止 worker loader 访问主线程 API，限制详见[严格模式](/guide/features/loader#strict-execution)。
+
+`parallel: 'strict'` 的限制详见[严格模式](/guide/features/loader#strict-execution)。
 
 ## rules[].use.parallel.maxWorkers
 

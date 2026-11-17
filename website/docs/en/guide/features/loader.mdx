@@ -186,10 +186,26 @@ When multiple loaders within the same rule have `parallel` enabled, Rspack execu
 
 :::tip
 
-- When parallel execution is enabled, `options` must be an object. Even if the loader has no options, you must explicitly set `options: {}`. Omitting `options` causes a configuration error.
-- The loader options must comply with the [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist), otherwise transmission will fail.
-- In worker mode, most methods on `LoaderContext._compilation`, `LoaderContext._compiler`, and `LoaderContext._module` are not supported.
+- Loader options must be an object. Function-valued options are supported and execute on the main thread.
+- The native binding runs parallel loaders in workers. The WASI binding retains main-thread loader execution because separate WebAssembly instances cannot share the native task queue.
+- Compiler and compilation APIs use proxies to access their main-thread implementations. Worker loader execution skips `NormalModule.getCompilationHooks(compilation).loader`, including the pitch stage. Properties and methods added by this hook are unavailable to parallel loaders. Non-parallel loader segments still execute the hook on main.
+- Serializable loader options and `additionalData` use V8 serialization with bytes stored in Rust and deserialized in the consuming thread. This preserves cycles and shared references within a data graph, but not the original object's identity across threads. Options containing functions and non-serializable values retain the object bridge.
+- `_module` exposes a limited API backed by the worker's native module. It supports resource and request properties, `identifier()`, `readableIdentifier()`, `nameForCondition()`, `originalSource()`, `size()`, `libIdent()`, `factoryMeta`, `matchResource`, and `emitFile()`. Compilation graph APIs such as `blocks`, `dependencies`, and `error` are unavailable. Use this object only while the loader is executing.
+- `buildInfo`, including custom fields and assets queries, continues to use the main-thread object bridge. Files emitted by workers are stored in the native module and become available to the compilation.
 
 :::
 
 For more details, see [rules[].use.parallel](/config/module-rules#rulesuseparallel).
+
+### Strict execution
+
+With the native binding, `parallel: 'strict'` uses the same worker pool and MPMC queue as ordinary parallel loaders, but skips preparing the main-thread API bridge. Use it for loaders that only transform their input, such as `babel-loader` with `cacheDirectory: false`.
+
+- Loader options and top-level `loader` settings must be serializable.
+- `_compiler`, `_compilation`, `fs`, `importModule`, and compilation diagnostics are unavailable. `getLogger()` discards messages.
+- `getResolve(options)` and `resolve` call the Rust resolver directly and record dependencies.
+- Current module data remains accessible through `this._module`. Custom `buildInfo` fields are local to each strict execution segment.
+- Assets can be written with `emitFile`, but cannot be read through `buildInfo.assets`.
+- `additionalData` is received as `undefined`; values returned through loader callbacks are ignored.
+
+Ordinary parallel loaders retain their message port proxies for main-thread APIs. Both modes skip the loader hook; non-parallel loaders retain the hook.
