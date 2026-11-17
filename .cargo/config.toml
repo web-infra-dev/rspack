@@ -43,11 +43,11 @@ rustflags = [
 [target.'cfg(target_vendor = "apple")']
 rustflags = ["-C", "link-args=-Wl,-undefined,dynamic_lookup,-no_fixup_chains,-all_load"]
 
-# Use LLD with identical code folding to reduce macOS binary size.
+# Use LLD with conservative identical code folding to reduce macOS binary size.
 # Keep the clang driver for the -Wl arguments emitted by our NAPI build scripts.
 [target.'cfg(target_os = "macos")']
 linker    = "scripts/macos-linker.sh"
-rustflags = ["-C", "link-arg=-Wl,--icf=all"]
+rustflags = ["-C", "link-arg=-Wl,--icf=safe"]
 
 # To be able to run unit tests on Windows, support compilation to 'x86_64-pc-windows-msvc'.
 # Use Hybrid CRT to reduce the size of the binary (Coming by default with Windows 10 and later versions).
