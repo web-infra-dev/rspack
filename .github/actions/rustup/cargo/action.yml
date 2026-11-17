@@ -67,19 +67,24 @@ runs:
           cargo install --locked --version 0.1.0 read-after-link
         fi
 
-        # Point cargo straight at the wrapper; it delegates the actual rustc
-        # call to sccache through READ_AFTER_LINK_WRAPPER. SCCACHE_PATH is
-        # exported by the sccache action; normalize it to a native Windows path
-        # for the wrapper's child process.
-        #
-        # Trade-off: the `cc` crate only forwards RUSTC_WRAPPER to C/C++
-        # compiles when the wrapper's file name is sccache/cachepot/buildcache/
-        # kache. Because this wrapper is named `read-after-link`, C/C++ built
-        # via `cc` on this target (mimalloc and lz4) bypass sccache, while all
-        # Rust compiles keep full sccache coverage. Accepted to avoid a renamed
-        # wrapper shim; the two C libraries are small and rebuild without cache
-        # only on a clean target directory.
-        wrapper_path="$(cygpath -w "$(command -v read-after-link)")"
+        # The `cc` crate forwards RUSTC_WRAPPER to C/C++ compiles only when the
+        # wrapper's file name is sccache/cachepot/buildcache/kache (it compares
+        # the file name alone, ignoring case and extension, so sccache.exe
+        # counts). Install a copy of the read-after-link binary renamed to
+        # `sccache.exe` in a dedicated directory and point RUSTC_WRAPPER at it,
+        # so cc routes the mimalloc/lz4 C builds through the same shim. The
+        # shim passes C/C++ compiles straight to the real sccache unchanged
+        # (they link no Rust library, so it performs no read-after-link read),
+        # while retaining the proc-macro read-after-link behavior for rustc.
+        # See the "Keeping C and C++ on sccache" section of the read-after-link
+        # crate docs. SCCACHE_PATH is exported by the sccache action; normalize
+        # both paths to native Windows form for the wrapper's child process.
+        cargo_home_bin="$(dirname "$(command -v read-after-link)")"
+        shim_dir="${CARGO_HOME:-$HOME/.cargo}/read-after-link-shim"
+        mkdir -p "$shim_dir"
+        cp -f "$cargo_home_bin/read-after-link.exe" "$shim_dir/sccache.exe"
+
+        wrapper_path="$(cygpath -w "$shim_dir/sccache.exe")"
         real_sccache="$(cygpath -w "${SCCACHE_PATH:-sccache}")"
 
         echo "RUSTC_WRAPPER=$wrapper_path" >> "$GITHUB_ENV"
