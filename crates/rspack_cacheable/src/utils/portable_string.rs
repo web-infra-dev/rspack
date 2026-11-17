@@ -71,7 +71,8 @@ pub struct PortableString {
 
 impl PortableString {
   /// Create a portable string, converting absolute paths to use <project_root> placeholder
-  pub fn new(content: &str, project_root: Option<&Path>) -> Self {
+  pub fn new(content: &str, guard: &ContextGuard) -> Self {
+    let project_root = guard.project_root();
     let Some(project_root) = project_root else {
       return Self {
         content: content.to_string(),
@@ -83,6 +84,9 @@ impl PortableString {
 
     for cap in PATH_REGEX.captures_iter(content) {
       let path_match = cap.get(2).expect("PATH_REGEX should have capture group 2");
+      if !Path::new(path_match.as_str()).starts_with(project_root) {
+        guard.mark_outside_root();
+      }
 
       result.push_str(&content[last_end..path_match.start()]);
 
@@ -163,7 +167,7 @@ where
   where
     Self: Sized,
   {
-    Ok(Self::new(data.as_ref(), guard.project_root()))
+    Ok(Self::new(data.as_ref(), guard))
   }
 
   fn deserialize(self, guard: &ContextGuard) -> Result<T> {

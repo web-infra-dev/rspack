@@ -80,6 +80,10 @@ impl Cutout {
       };
     }
 
+    if artifact.check_issuer_cycles {
+      self.fix_issuers.check_issuer_cycles();
+    }
+
     // analyze force_build_module and force_build_deps
     self
       .fix_issuers
@@ -125,6 +129,8 @@ impl Cutout {
     let mut entry_dependencies = std::mem::take(&mut artifact.entry_dependencies);
     // remove useless entry dependencies
     if clean_entry_dependencies {
+      // Finishing make settles the graph that cache recovery left incomplete.
+      artifact.check_issuer_cycles = false;
       let module_graph = artifact.get_module_graph();
       let mut remove_entry_dependencies = vec![];
       for dep_id in entry_dependencies.difference(&next_entry_dependencies) {

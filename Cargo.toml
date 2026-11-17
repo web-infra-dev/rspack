@@ -85,6 +85,7 @@ parking_lot         = { version = "0.12.5", default-features = false, features =
 paste               = { version = "1.0.15", default-features = false }
 path-clean          = { version = "1.0.1", default-features = false }
 pathdiff            = { version = "0.2.3", default-features = false }
+percent-encoding    = { version = "2.3.2", default-features = false, features = ["std"] }
 pretty_assertions   = { version = "1.4.1", default-features = false, features = ["std"] }
 proc-macro2         = { version = "1.0.107", default-features = false }
 prost               = { version = "0.13", default-features = false }

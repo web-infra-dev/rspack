@@ -8,10 +8,10 @@ use rspack_sources::BoxSource;
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
-  BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder, Compilation, Context,
-  DependenciesBlock, DependenciesBlockData, FactoryMeta, FreezeLock, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
-  ValueCacheVersions,
+  AsyncDependenciesBlockRef, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
+  FactoryMeta, FreezeLock, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier,
+  ModuleType, RuntimeSpec, SourceType, ValueCacheVersions,
 };
 
 #[cacheable]
@@ -24,7 +24,12 @@ pub struct TempModule {
 }
 
 impl TempModule {
-  pub fn transform_from(module: OwnedOrRef<crate::ModuleRef>) -> OwnedOrRef<crate::ModuleRef> {
+  /// Replaces `module` with a placeholder that always rebuilds. `blocks` are the async blocks
+  /// the placeholder owns, so revoking it also removes them from the module graph.
+  pub fn transform_from(
+    module: OwnedOrRef<crate::ModuleRef>,
+    blocks: Vec<AsyncDependenciesBlockRef>,
+  ) -> OwnedOrRef<crate::ModuleRef> {
     let m = module.as_ref();
     let module = BoxModule::new(Box::new(Self {
       id: m.identifier(),
@@ -39,7 +44,7 @@ impl TempModule {
           .iter()
           .map(|dependency| super::TempDependency::transform_from(dependency.into()).into_owned())
           .collect(),
-        Vec::new(),
+        blocks,
       ),
     }));
     module.freeze_build_info();

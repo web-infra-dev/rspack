@@ -1,4 +1,4 @@
-use std::{any::Any, ops::Deref, path::Path};
+use std::{any::Any, cell::Cell, ops::Deref, path::Path};
 
 use rkyv::{
   de::{ErasedPtr, Pooling, PoolingState},
@@ -28,6 +28,7 @@ impl CacheableContext for () {
 /// A context wrapper that provides shared context methods
 pub struct ContextGuard<'a> {
   context: &'a dyn CacheableContext,
+  saw_outside_root: Cell<bool>,
 }
 
 impl<'a> Deref for ContextGuard<'a> {
@@ -39,7 +40,18 @@ impl<'a> Deref for ContextGuard<'a> {
 
 impl<'a> ContextGuard<'a> {
   pub fn new(context: &'a dyn CacheableContext) -> Self {
-    Self { context }
+    Self {
+      context,
+      saw_outside_root: Cell::new(false),
+    }
+  }
+
+  pub fn mark_outside_root(&self) {
+    self.saw_outside_root.set(true);
+  }
+
+  pub fn saw_outside_root(&self) -> bool {
+    self.saw_outside_root.get()
   }
 
   pub fn add_to_sharing<S: Sharing<Error> + ?Sized>(&self, sharing: &mut S) -> Result<()> {

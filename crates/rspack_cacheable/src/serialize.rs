@@ -24,11 +24,21 @@ pub fn to_bytes<T, C: CacheableContext>(value: &T, ctx: &C) -> Result<Vec<u8>>
 where
   T: for<'a> Serialize<Serializer<'a>>,
 {
+  to_bytes_with_binding(value, ctx).map(|(bytes, _)| bytes)
+}
+
+pub fn to_bytes_with_binding<T, C: CacheableContext>(value: &T, ctx: &C) -> Result<(Vec<u8>, bool)>
+where
+  T: for<'a> Serialize<Serializer<'a>>,
+{
   let guard = ContextGuard::new(ctx);
   let mut arena = Arena::new();
   let mut serializer = RkyvSerializer::new(AlignedVec::new(), arena.acquire(), Share::new());
   guard.add_to_sharing(&mut serializer)?;
 
   serialize_using(value, &mut serializer)?;
-  Ok(serializer.into_writer().into_vec())
+  Ok((
+    serializer.into_writer().into_vec(),
+    guard.saw_outside_root(),
+  ))
 }
