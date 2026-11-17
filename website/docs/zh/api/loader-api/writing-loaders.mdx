@@ -363,6 +363,16 @@ export default class MetadataPlugin {
 
 启用持久化缓存时，Rspack 会将这些数据以 JSON 格式保存。请使用 JSON 支持的值，例如字符串、数字、数组和普通对象。函数属性不会被保存，数组中的函数会变成 `null`，因此后续构建从磁盘缓存恢复模块时，插件将无法再调用这些函数。
 
+## 兼容 loader 缓存 \{#loader-cache-compatibility}
+
+用户启用 [loader 缓存](/zh/guide/features/loader#loader-cache)后，Rspack 可以直接复用 loader 的输出，而无需再次运行 loader。
+
+顶层 `cache.buildDependencies` 的变化不会自动使 loader 缓存失效。因此，loader 需要通过 [`this.addDependency()`](/zh/api/loader-api/context#thisadddependency) 或 [`this.addBuildDependency()`](/zh/api/loader-api/context#thisaddbuilddependency) 登记影响输出的文件。例如，`babel-loader` 会读取 `.babelrc`，因此需要将 `.babelrc` 添加到依赖中。
+
+请将影响输出的参数作为 loader 选项传入，并确保选项可以被无损地 JSON 序列化。
+
+如果 loader 的结果被标记为不可缓存、添加了目录依赖或缺失依赖、发出警告或产出资源，或者向下一个 loader 传递了额外数据，Rspack 会跳过缓存。这些行为也可能导致后续 loader 无法使用缓存。
+
 ## 发布 loader
 
 ### 声明 peer dependencies

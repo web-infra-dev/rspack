@@ -196,19 +196,15 @@ export default {
 
 更多细节请参考 [rules[].use.parallel](/config/module-rules#rulesuseparallel)。
 
-## Loader 缓存 \{#loader-cache}
+## 缓存 \{#loader-cache}
 
-模块构建缓存会复用执行完整 loader 链并解析模块后的结果。即使模块需要重新构建，loader 缓存仍可以复用其中的转换结果。
-
-在 `module.rules[].use` 中为单个 loader 设置 `cache: true`，即可缓存它的输出。Rspack 根据传给该 loader 的代码、loader 选项和版本查找缓存，并检查已追踪的文件依赖和构建依赖是否仍然有效。
+在 `module.rules[].use` 中为 loader 设置 `cache: true`，即可缓存其输出。
 
 :::info
 
-使用 loader 缓存需要开启顶层缓存，并启用 `experiments.newCache.loader`。设置 `experiments.newCache: true` 时，loader 缓存功能默认启用。详见 [`experiments.newCache`](/zh/config/experiments#experimentsnewcache)。
+使用 loader 缓存需要开启顶层 `cache` 和 `experiments.newCache.loader`。设置 `experiments.newCache: true` 时，loader 缓存默认启用。详见 [`experiments.newCache`](/zh/config/experiments#experimentsnewcache)。
 
 :::
-
-内存缓存可在同一进程内复用结果。这里使用持久化缓存跨进程复用 `less-loader` 的转换结果。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -226,9 +222,16 @@ export default {
 };
 ```
 
+同一进程内的 compiler 使用内存缓存或相同的持久化缓存目录时，可以共享 loader 的转换结果。例如，SSR 构建中的客户端和服务端 compiler 可以复用共享源文件的转换结果。
+
 :::tip
 
-- Loader 选项需要支持 JSON 序列化。
-- 如果 loader 调用 `this.cacheable(false)`、添加目录依赖或缺失依赖、发出警告或产出资源，缓存会失效。
+- 缓存命中要求输入、loader 版本和选项一致，且依赖仍然有效。确保 loader 选项包含影响 loader 输出结果的参数。
+- Loader 选项必须可以被无损地 JSON 序列化。例如，包含函数或 `Date` 对象的选项无法用于 loader 缓存。
+- Source map 设置可能影响缓存命中。开启和关闭 source map 会使用不同的缓存结果，部分 loader（如 `builtin:swc-loader`）还会受 source map 类型影响。
+- `cache.buildDependencies` 变化不会自动使 loader 缓存失效。
+- loader 之外的大部分配置变化不会使 loader 缓存失效。Source map 和缓存配置可能影响缓存命中。使用持久化缓存时，缓存命中还要求 `cache.version` 相同。
 
 :::
+
+Loader 作者请参见[兼容 loader 缓存](/zh/api/loader-api/writing-loaders#loader-cache-compatibility)。

@@ -362,6 +362,16 @@ Choose a distinct string property name, such as `metadataPlugin` in this example
 
 When persistent caching is enabled, Rspack saves this data as JSON. Use values that JSON supports, such as strings, numbers, arrays, and plain objects. Function properties are omitted, and functions in arrays become `null`, so the plugin cannot call them after a later build restores the module from the disk cache.
 
+## Loader cache compatibility
+
+When users enable [loader caching](/guide/features/loader#loader-cache), Rspack can reuse a loader's output without running it again.
+
+Changes to the top-level `cache.buildDependencies` do not automatically invalidate loader results. Loaders must register files that affect the output with [`this.addDependency()`](/api/loader-api/context#thisadddependency) or [`this.addBuildDependency()`](/api/loader-api/context#thisaddbuilddependency). For example, `babel-loader` reads `.babelrc`, so it needs to add `.babelrc` as a dependency.
+
+Pass settings that affect the output as loader options, and ensure the options are losslessly JSON-serializable.
+
+Rspack skips caching when the loader result is marked as non-cacheable, the loader adds a directory or missing dependency, emits a warning or an asset, or passes additional data to another loader. These behaviors may also prevent caching for subsequent loaders in the chain.
+
 ## Publishing loaders
 
 ### Declaring peer dependencies

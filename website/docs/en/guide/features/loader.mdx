@@ -194,19 +194,15 @@ When multiple loaders within the same rule have `parallel` enabled, Rspack execu
 
 For more details, see [rules[].use.parallel](/config/module-rules#rulesuseparallel).
 
-## Loader cache
+## Cache \{#loader-cache}
 
-The module build cache reuses the result of running the full loader chain and parsing the module. The loader cache can reuse a transformation even when the module needs to be rebuilt.
-
-Set `cache: true` on an individual loader in `module.rules[].use` to cache its output. Rspack uses the code passed to the loader, its options, and its version to look up the cached output. The tracked file and build dependencies must also remain valid.
+Set `cache: true` on a loader in `module.rules[].use` to cache its output.
 
 :::info
 
-Loader caching requires top-level caching and `experiments.newCache.loader` to be enabled. Setting `experiments.newCache: true` enables loader caching by default. See [`experiments.newCache`](/config/experiments#experimentsnewcache).
+Loader caching requires the top-level `cache` and `experiments.newCache.loader` to be enabled. Setting `experiments.newCache: true` enables loader caching by default. See [`experiments.newCache`](/config/experiments#experimentsnewcache).
 
 :::
-
-Memory caching reuses results within one process. This example uses persistent caching to reuse `less-loader` results across processes.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -224,9 +220,16 @@ export default {
 };
 ```
 
+Compilers in the same process can share loader results when they use memory cache or the same persistent cache directory. For example, the client and server compilers in an SSR build can reuse transformations for shared source files.
+
 :::tip
 
-- Loader options must be JSON-serializable.
-- The loader cache becomes invalid if a loader calls `this.cacheable(false)`, adds a directory or missing dependency, or emits a warning or asset.
+- A cache hit requires matching input, loader versions, and options, with valid dependencies. Ensure loader options include the settings that affect the loader output.
+- Loader options must be losslessly JSON-serializable. For example, options containing functions or `Date` objects cannot be used with loader caching.
+- Source map settings can affect cache hits. Enabling or disabling source maps uses separate results. Some loaders, such as `builtin:swc-loader`, also depend on the source map type.
+- Loader results do not automatically invalidate when `cache.buildDependencies` changes.
+- Most configuration changes outside loaders do not invalidate the loader cache. Source map and cache settings can affect cache hits. For persistent caches, a cache hit requires the same `cache.version`.
 
 :::
+
+For loader authors, see [loader cache compatibility](/api/loader-api/writing-loaders#loader-cache-compatibility).
