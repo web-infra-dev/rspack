@@ -177,7 +177,7 @@ fn static_glob_patterns_from_expr(ast: &Ast<'_>, expr: Expr) -> Option<Vec<Strin
 
   let array = expr.as_array_expression(ast)?;
   ast
-    .nodes(array.elements(ast))
+    .optional_nodes(array.elements(ast))
     .map(|element| {
       let element = element?;
       static_string_from_expr(ast, element.as_expr(ast)?)
