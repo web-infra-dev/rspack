@@ -1,6 +1,10 @@
 use std::sync::Arc;
 
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  utils::{PortablePath, PortableString},
+  with::As,
+};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   BoxModule, BuildContext, BuildInfo, BuildMeta, CodeGenerationResultBuilder, Compilation,
@@ -22,8 +26,10 @@ use crate::{
 #[cacheable]
 #[derive(Debug)]
 pub(crate) struct CssModule {
+  #[cacheable(with=As<PortableString>)]
   pub(crate) identifier: String,
   pub(crate) content: String,
+  #[cacheable(with=As<PortablePath>)]
   pub(crate) _context: String,
   pub(crate) module_layer: Option<ModuleLayer>,
   pub(crate) media: Option<String>,

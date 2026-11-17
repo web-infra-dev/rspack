@@ -4,18 +4,33 @@ use std::{
   path::{Path, PathBuf},
 };
 
-use rspack_cacheable::{cacheable, with::AsPreset};
+use rspack_cacheable::{
+  ContextGuard, Result as CacheableResult, cacheable,
+  utils::PortablePath,
+  with::{Custom, CustomConverter},
+};
 use rspack_intern::Atom;
 use rspack_loader_runner::ResourceData;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 
 use crate::{contextify, parse_resource};
 
-#[cacheable]
+#[cacheable(with=Custom)]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct Context {
-  #[cacheable(with=AsPreset)]
   inner: Atom,
+}
+
+impl CustomConverter for Context {
+  type Target = PortablePath;
+
+  fn serialize(&self, guard: &ContextGuard) -> CacheableResult<Self::Target> {
+    Ok(PortablePath::new(Path::new(self.as_str()), guard))
+  }
+
+  fn deserialize(data: Self::Target, guard: &ContextGuard) -> CacheableResult<Self> {
+    Ok(Self::from(data.into_path_string(guard)))
+  }
 }
 
 impl Context {

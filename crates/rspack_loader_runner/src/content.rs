@@ -11,7 +11,7 @@ use once_cell::sync::OnceCell;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   rkyv::string::ArchivedString,
-  utils::PortablePath,
+  utils::{PortablePath, PortableString},
   with::{As, AsInner, AsInnerConverter, AsOption, AsPreset, Skip},
 };
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
@@ -145,6 +145,7 @@ pub struct ResourceData {
   parameters: Option<String>,
   encoding: Option<String>,
   encoded_content: Option<String>,
+  #[cacheable(with=AsOption<As<PortablePath>>)]
   context: Option<String>,
   #[cacheable(with=AsInner)]
   scheme: OnceCell<Scheme>,
@@ -153,7 +154,7 @@ pub struct ResourceData {
 #[cacheable]
 #[derive(Debug, Clone)]
 enum ResourceString {
-  Explicit(String),
+  Explicit(#[cacheable(with=As<PortableString>)] String),
   // An initialized None lets resource() borrow the path directly.
   Derived(#[cacheable(with=Skip)] OnceCell<Option<String>>),
 }

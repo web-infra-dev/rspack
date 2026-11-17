@@ -113,6 +113,7 @@ impl PersistentCache {
 #[async_trait::async_trait]
 impl Cache for PersistentCache {
   async fn before_compile(&mut self, compilation: &mut Compilation) -> bool {
+    self.ctx.start_build();
     self.ctx.logger().info("persistent cache enabled");
     self.initialize().await;
 

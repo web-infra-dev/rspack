@@ -1,4 +1,9 @@
-use std::{any::Any, cell::Cell, ops::Deref, path::Path};
+use std::{
+  any::Any,
+  cell::Cell,
+  ops::{Deref, Range},
+  path::Path,
+};
 
 use rkyv::{
   de::{ErasedPtr, Pooling, PoolingState},
@@ -25,6 +30,22 @@ pub trait CacheableContext: Any {
   fn canonical_project_root(&self) -> Option<&Path> {
     self.project_root()
   }
+
+  /// Returns the layout of a known, typed context identifier.
+  /// Unknown strings must return `None`; their absolute path tokens remain root-bound.
+  fn context_identifier_layout(&self, _value: &str) -> Option<&ContextIdentifierLayout> {
+    None
+  }
+}
+
+/// Spans of a typed context identifier that portable conversion cannot infer from the text.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct ContextIdentifierLayout {
+  /// Regex sources, kept verbatim.
+  pub regexes: Vec<Range<usize>>,
+  /// Offsets where a context path starts right after a `context` prefix, as in
+  /// `context/project/dir|./a`. A root there is rebased as if a delimiter preceded it.
+  pub paths: Vec<usize>,
 }
 
 /// A spelling of the project root that a portable path is stored relative to.

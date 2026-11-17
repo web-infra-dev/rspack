@@ -5,8 +5,8 @@ use rspack_collections::{Identifier, IdentifierHasher};
 use rspack_hash::{RspackHash, RspackHasher};
 
 use crate::{
-  BoxDependency, Compilation, Dependency, DependencyId, DependencyLocation, DependencyRef,
-  GroupOptions, ModuleIdentifier, RuntimeSpec,
+  BoxDependency, Compilation, ContextElementDependency, Dependency, DependencyId,
+  DependencyLocation, DependencyRef, GroupOptions, ModuleIdentifier, RuntimeSpec,
 };
 
 pub trait DependenciesBlock {
@@ -138,6 +138,12 @@ pub fn dependencies_block_update_hash(
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct AsyncDependenciesBlockIdentifier(Identifier);
 
+impl AsyncDependenciesBlockIdentifier {
+  pub fn as_str(&self) -> &str {
+    self.0.as_str()
+  }
+}
+
 impl rspack_hash::RspackHash for AsyncDependenciesBlockIdentifier {
   fn hash(&self, state: &mut RspackHasher) {
     self.0.as_str().hash(state);
@@ -155,6 +161,8 @@ impl From<Identifier> for AsyncDependenciesBlockIdentifier {
     Self(value)
   }
 }
+
+const DEPENDENCIES_SEPARATOR: &str = "|dep=";
 
 #[cacheable]
 #[derive(Debug)]
@@ -183,10 +191,13 @@ impl AsyncDependenciesBlock {
       .sum::<usize>();
     let modifier_len = modifier.map_or(0, |modifier| "|modifier=".len() + modifier.len());
     let mut id = String::with_capacity(
-      parent.len() + "|dep=".len() + dependencies_resource_identifier_len + modifier_len,
+      parent.len()
+        + DEPENDENCIES_SEPARATOR.len()
+        + dependencies_resource_identifier_len
+        + modifier_len,
     );
     id.push_str(parent.as_str());
-    id.push_str("|dep=");
+    id.push_str(DEPENDENCIES_SEPARATOR);
 
     for dep in &dependencies {
       if let Some(resource_identifier) = dep.resource_identifier() {
@@ -261,6 +272,36 @@ impl AsyncDependenciesBlock {
 
   pub fn identifier(&self) -> AsyncDependenciesBlockIdentifier {
     self.id
+  }
+
+  /// Offsets in the identifier where the context directory of each context element dependency
+  /// starts. Stops at the first dependency the identifier no longer lists, as after
+  /// [`Self::without_dependency`].
+  pub(crate) fn context_element_offsets(&self) -> Vec<usize> {
+    let id = self.id.as_str();
+    let Some(mut rest) = id
+      .strip_prefix(self.parent.as_str())
+      .and_then(|rest| rest.strip_prefix(DEPENDENCIES_SEPARATOR))
+    else {
+      return Vec::new();
+    };
+    let mut offsets = Vec::new();
+    for dependency in self.get_dependencies() {
+      let Some(resource_identifier) = dependency.resource_identifier() else {
+        continue;
+      };
+      let Some(next) = rest.strip_prefix(resource_identifier) else {
+        break;
+      };
+      if let Some(context) = dependency
+        .downcast_ref::<ContextElementDependency>()
+        .and_then(ContextElementDependency::resource_identifier_context_offset)
+      {
+        offsets.push(id.len() - rest.len() + context);
+      }
+      rest = next;
+    }
+    offsets
   }
 
   pub fn set_group_options(&mut self, group_options: GroupOptions) {

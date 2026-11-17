@@ -1,6 +1,7 @@
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsCacheable, AsOption, AsVec},
+  utils::PortableString,
+  with::{As, AsCacheable, AsOption, AsVec},
 };
 use rspack_util::json_stringify;
 
@@ -18,6 +19,7 @@ use crate::{
 pub struct ContextElementDependency {
   pub id: DependencyId,
   pub weak: bool,
+  #[cacheable(with=As<PortableString>)]
   pub request: String,
   pub user_request: String,
   pub category: DependencyCategory,
@@ -30,17 +32,29 @@ pub struct ContextElementDependency {
   pub attributes: Option<ImportAttributes>,
 }
 
+const RESOURCE_IDENTIFIER_PREFIX: &str = "context";
+
 impl ContextElementDependency {
   pub fn create_resource_identifier(
     resource: &str,
     path: &str,
     attributes: Option<&ImportAttributes>,
   ) -> ResourceIdentifier {
-    let mut ident = format!("context{resource}|{path}");
+    let mut ident = format!("{RESOURCE_IDENTIFIER_PREFIX}{resource}|{path}");
     if let Some(attributes) = attributes {
       ident += &json_stringify(&attributes);
     }
     ident.into()
+  }
+
+  /// Offset of the context directory in the resource identifier, when the identifier was built
+  /// from it by [`Self::create_resource_identifier`].
+  pub(crate) fn resource_identifier_context_offset(&self) -> Option<usize> {
+    self
+      .resource_identifier
+      .strip_prefix(RESOURCE_IDENTIFIER_PREFIX)?
+      .starts_with(self.context.as_str())
+      .then_some(RESOURCE_IDENTIFIER_PREFIX.len())
   }
 }
 
