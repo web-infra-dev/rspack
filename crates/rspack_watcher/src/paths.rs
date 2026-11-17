@@ -443,9 +443,17 @@ impl PathManager {
     for entry in self.context_directories.iter() {
       context_links.insert(entry.key().clone(), true);
     }
-    for (path, directory) in context_links {
+    for (path, mut directory) in context_links {
       // An explicit directory subscription does not replace its parent context's alias.
       if self.is_below_context(&path) && path.is_symlink() && !self.files.all.contains(&path) {
+        // Missing directory targets keep their subscriptions for recovery. A
+        // replacement file target must discard the old directory's entries.
+        if directory && path.metadata().is_ok_and(|metadata| !metadata.is_dir()) {
+          self.remove_file_times_under(&path);
+          let contexts = self.context_paths(&path).await;
+          self.set_context_entry(&path, false, Some(&contexts)).await;
+          directory = false;
+        }
         subscriptions
           .add(&mut resolver, path, directory, true, self)
           .await;
