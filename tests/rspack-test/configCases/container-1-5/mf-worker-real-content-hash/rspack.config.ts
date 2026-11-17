@@ -41,10 +41,12 @@ class CheckWorkerSharingPlugin {
                 providerPattern,
                 'worker entrypoints should not contain the shared provider',
               );
-              assert.match(
+              (worker.includes('worker a')
+                ? assert.doesNotMatch
+                : assert.match)(
                 worker,
                 federationRuntimePattern,
-                'worker entrypoints should retain the federation runtime',
+                'only workers with federation dependencies should retain the federation runtime',
               );
             }
 
@@ -71,9 +73,14 @@ export default defineConfig({
   plugins: [
     new ModuleFederationPlugin({
       name: 'host',
+      removeUnusedRuntime: true,
       filename: 'remoteEntry.js',
       exposes: {
         './shared': './shared.js',
+      },
+      remotes: {
+        remote:
+          "promise Promise.resolve({ get: () => Promise.resolve(() => 'remote worker value'), init: () => {} })",
       },
       shared: {
         [sharedKey]: {

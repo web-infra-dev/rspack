@@ -8,6 +8,7 @@ it('should keep async startup safe in non-federation entry runtime', () => {
 	const runtime = fs.readFileSync(runtimeFile, 'utf-8');
 	const entry = fs.readFileSync(entryFile, 'utf-8');
 
-	expect(entry).toContain('__webpack_require__.X()');
-	expect(runtime).toContain('chunkIds === undefined && result === undefined');
+	expect(entry).not.toMatch(/= __webpack_require__\.X\(\);/);
+	expect(runtime).not.toContain('var prevStartup');
+	expect(__webpack_require__.federation).toBeUndefined();
 });

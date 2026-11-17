@@ -466,10 +466,13 @@ async fn create_module(
 async fn additional_tree_runtime_requirements(
   &self,
   compilation: &Compilation,
-  _chunk_ukey: &ChunkUkey,
+  chunk_ukey: &ChunkUkey,
   _runtime_requirements: &mut RuntimeGlobals,
   runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
+  if self.options.enhanced && !crate::utils::has_federation_runtime(compilation, chunk_ukey) {
+    return Ok(());
+  }
   runtime_modules.push(Box::new(ConsumeSharedRuntimeModule::new(
     &compilation.runtime_template,
     self.options.enhanced,

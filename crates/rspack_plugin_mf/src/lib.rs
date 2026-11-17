@@ -81,10 +81,25 @@ mod utils {
   use std::fmt;
 
   use rspack_core::{
-    Compilation, ModuleCodeTemplate, RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode,
-    RuntimeVariable, runtime_mode::RuntimeMode,
+    ChunkUkey, Compilation, ModuleCodeTemplate, RuntimeCodeTemplate, RuntimeGlobals,
+    RuntimeGlobalsRenderMode, RuntimeVariable, runtime_mode::RuntimeMode,
   };
   use serde::Serialize;
+
+  pub fn has_federation_runtime(compilation: &Compilation, chunk: &ChunkUkey) -> bool {
+    let artifact = &compilation.build_chunk_graph_artifact;
+    artifact
+      .federation_runtimes
+      .as_ref()
+      .is_none_or(|runtimes| {
+        artifact
+          .chunk_by_ukey
+          .expect_get(chunk)
+          .runtime()
+          .iter()
+          .any(|runtime| runtimes.contains(runtime))
+      })
+  }
 
   pub fn json_stringify<T: ?Sized + Serialize + fmt::Debug>(v: &T) -> String {
     simd_json::to_string(v).unwrap_or_else(|e| panic!("{e}: {v:?} should able to json stringify"))
