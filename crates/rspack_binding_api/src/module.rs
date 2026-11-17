@@ -534,39 +534,24 @@ impl ModuleHandle {
   }
 
   pub fn blocks(&self) -> napi::Result<Vec<AsyncDependenciesBlockWrapper>> {
-    if let Some(scope) = &self.worker_scope {
+    if self.worker_scope.is_some() {
       return self.with_local_ref(|module| {
         Ok(
           module
             .get_block_refs()
             .iter()
-            .map(|block| {
-              AsyncDependenciesBlockWrapper::from_worker(
-                block.clone(),
-                self.compiler_id,
-                scope.clone(),
-              )
-            })
+            .map(|block| AsyncDependenciesBlockWrapper::new(block.clone(), None))
             .collect(),
         )
       });
     }
     self.with_ref(|compilation, module| {
-      let Some(module_graph) = compilation.try_get_module_graph() else {
-        return Err(napi::Error::from_reason(
-          "Module.blocks is unavailable while the module graph is under construction (e.g. inside a loader during compilation.rebuildModule)",
-        ));
-      };
-      let blocks = module.get_blocks();
       Ok(
-        blocks
+        module
+          .get_block_refs()
           .iter()
-          .filter_map(|block_id| {
-            module_graph
-              .block_by_id(block_id)
-              .map(|block| AsyncDependenciesBlockWrapper::new(block, compilation))
-          })
-          .collect::<Vec<_>>(),
+          .map(|block| AsyncDependenciesBlockWrapper::new(block.clone(), Some(compilation.id())))
+          .collect(),
       )
     })
   }

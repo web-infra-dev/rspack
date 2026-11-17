@@ -1,66 +1,31 @@
-use std::{cell::RefCell, sync::Arc};
+use std::{
+  cell::RefCell,
+  sync::{Arc, Weak},
+};
 
 use napi_derive::napi;
-use rspack_core::{
-  AsyncDependenciesBlockRef, Compilation, CompilerId, DependenciesBlock as _, internal,
-};
-use rspack_napi::{OneShotRef, napi::bindgen_prelude::*};
+use rspack_core::{AsyncDependenciesBlockRef, CompilationId, DependenciesBlock as _};
+use rspack_napi::{OneShotInstanceRef, napi::bindgen_prelude::*};
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{COMPILER_REFERENCES, dependency::DependencyWrapper, module::WorkerModuleScope};
+use crate::dependency::DependencyWrapper;
 
+// The JS wrapper accesses the block directly without extending its lifetime.
 #[napi]
 pub struct AsyncDependenciesBlock {
   pub(crate) block_id: rspack_core::AsyncDependenciesBlockIdentifier,
-  compiler_id: CompilerId,
-  owned: Option<(AsyncDependenciesBlockRef, Arc<WorkerModuleScope>)>,
+  block: Weak<rspack_core::AsyncDependenciesBlock>,
+  // Used for dependency graph properties only; reading the block never looks up a compilation.
+  compilation_id: Option<CompilationId>,
 }
 
 impl AsyncDependenciesBlock {
-  fn compiler_garbage_collected_error(&self) -> napi::Error {
-    napi::Error::from_reason(format!(
-      "Unable to access async dependencies block with id = {:?} now. The Compiler has been garbage collected by JavaScript.",
-      self.block_id
-    ))
-  }
-
-  fn block_removed_error(&self) -> napi::Error {
-    napi::Error::from_reason(format!(
-      "Unable to access async dependencies block with id = {:?} now. The block has been removed on the Rust side.",
-      self.block_id
-    ))
-  }
-
-  fn with_compilation<R>(
-    &self,
-    f: impl FnOnce(&Compilation) -> napi::Result<R>,
-  ) -> napi::Result<R> {
-    let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
-      let references = ref_cell.borrow();
-      references.get(&self.compiler_id).cloned()
-    });
-
-    let Some(this) = compiler_reference
-      .as_ref()
-      .and_then(|compiler_reference| compiler_reference.get())
-    else {
-      return Err(self.compiler_garbage_collected_error());
-    };
-
-    f(&this.compiler.compilation)
-  }
-
-  fn with_ref<R>(
-    &self,
-    f: impl FnOnce(&Compilation, &rspack_core::AsyncDependenciesBlock) -> napi::Result<R>,
-  ) -> napi::Result<R> {
-    self.with_compilation(|compilation| {
-      let module_graph = compilation.get_module_graph();
-      if let Some(block) = module_graph.block_by_id(&self.block_id) {
-        f(compilation, block)
-      } else {
-        Err(self.block_removed_error())
-      }
+  fn upgrade(&self) -> napi::Result<AsyncDependenciesBlockRef> {
+    self.block.upgrade().ok_or_else(|| {
+      napi::Error::from_reason(format!(
+        "Unable to access async dependencies block with id = {:?} now. The block has been released on the Rust side.",
+        self.block_id
+      ))
     })
   }
 }
@@ -69,67 +34,34 @@ impl AsyncDependenciesBlock {
 impl AsyncDependenciesBlock {
   #[napi(getter, ts_return_type = "Dependency[]")]
   pub fn dependencies(&self) -> napi::Result<Vec<DependencyWrapper>> {
-    if let Some((block, scope)) = &self.owned {
-      scope.validate()?;
-      return Ok(
-        block
-          .get_dependencies()
-          .iter()
-          .map(|dep| DependencyWrapper::from_worker(dep.clone()))
-          .collect(),
-      );
-    }
-    self.with_ref(|compilation, block| {
-      let module_graph = compilation.get_module_graph();
-      // Only expose dependencies that are still present in the current graph.
-      Ok(
-        block
-          .get_dependency_ids()
-          .filter_map(|dependency_id| {
-            internal::try_dependency_ref_by_id(module_graph, dependency_id)
-              .map(|dep| DependencyWrapper::from_graph(dep, compilation.id()))
-          })
-          .collect::<Vec<_>>(),
-      )
-    })
+    Ok(
+      self
+        .upgrade()?
+        .get_dependencies()
+        .iter()
+        .map(|dep| match self.compilation_id {
+          Some(compilation_id) => DependencyWrapper::from_graph(dep.clone(), compilation_id),
+          None => DependencyWrapper::from_worker(dep.clone()),
+        })
+        .collect(),
+    )
   }
 
   #[napi(getter, ts_return_type = "AsyncDependenciesBlock[]")]
   pub fn blocks(&self) -> napi::Result<Vec<AsyncDependenciesBlockWrapper>> {
-    if let Some((block, scope)) = &self.owned {
-      scope.validate()?;
-      return Ok(
-        block
-          .get_block_refs()
-          .iter()
-          .map(|block| {
-            AsyncDependenciesBlockWrapper::from_worker(
-              block.clone(),
-              self.compiler_id,
-              scope.clone(),
-            )
-          })
-          .collect(),
-      );
-    }
-    self.with_ref(|compilation, block| {
-      let module_graph = compilation.get_module_graph();
-      Ok(
-        block
-          .get_blocks()
-          .iter()
-          .filter_map(|block_id| {
-            module_graph
-              .block_by_id(block_id)
-              .map(|block| AsyncDependenciesBlockWrapper::new(block, compilation))
-          })
-          .collect::<Vec<_>>(),
-      )
-    })
+    Ok(
+      self
+        .upgrade()?
+        .get_block_refs()
+        .iter()
+        .map(|block| AsyncDependenciesBlockWrapper::new(block.clone(), self.compilation_id))
+        .collect(),
+    )
   }
 }
 
-type BlockInstanceRefs = rspack_core::AsyncDependenciesBlockIdentifierMap<OneShotRef>;
+type BlockInstanceRefs =
+  rspack_core::AsyncDependenciesBlockIdentifierMap<OneShotInstanceRef<AsyncDependenciesBlock>>;
 
 type BlockInstanceRefsByCompilationId =
   RefCell<HashMap<rspack_core::CompilationId, BlockInstanceRefs>>;
@@ -139,37 +71,15 @@ thread_local! {
 }
 
 pub struct AsyncDependenciesBlockWrapper {
-  block_id: rspack_core::AsyncDependenciesBlockIdentifier,
-  compilation_id: Option<rspack_core::CompilationId>,
-  compiler_id: CompilerId,
-  owned: Option<(AsyncDependenciesBlockRef, Arc<WorkerModuleScope>)>,
+  block: AsyncDependenciesBlockRef,
+  compilation_id: Option<CompilationId>,
 }
 
 impl AsyncDependenciesBlockWrapper {
-  pub fn new(
-    block: &rspack_core::AsyncDependenciesBlock,
-    compilation: &rspack_core::Compilation,
-  ) -> Self {
-    let block_id = block.identifier();
-
+  pub fn new(block: AsyncDependenciesBlockRef, compilation_id: Option<CompilationId>) -> Self {
     Self {
-      block_id,
-      compilation_id: Some(compilation.id()),
-      compiler_id: compilation.compiler_id(),
-      owned: None,
-    }
-  }
-
-  pub(crate) fn from_worker(
-    block: AsyncDependenciesBlockRef,
-    compiler_id: CompilerId,
-    scope: Arc<WorkerModuleScope>,
-  ) -> Self {
-    Self {
-      block_id: block.identifier(),
-      compilation_id: None,
-      compiler_id,
-      owned: Some((block, scope)),
+      block,
+      compilation_id,
     }
   }
 
@@ -187,13 +97,14 @@ impl ToNapiValue for AsyncDependenciesBlockWrapper {
     val: Self,
   ) -> napi::Result<napi::sys::napi_value> {
     unsafe {
+      let block_id = val.block.identifier();
       let Some(compilation_id) = val.compilation_id else {
         return AsyncDependenciesBlock::to_napi_value(
           env,
           AsyncDependenciesBlock {
-            block_id: val.block_id,
-            compiler_id: val.compiler_id,
-            owned: val.owned,
+            block_id,
+            block: Arc::downgrade(&val.block),
+            compilation_id: None,
           },
         );
       };
@@ -208,18 +119,20 @@ impl ToNapiValue for AsyncDependenciesBlockWrapper {
           }
         };
 
-        match refs.entry(val.block_id) {
-          std::collections::hash_map::Entry::Occupied(occupied_entry) => {
-            let r = occupied_entry.get();
+        match refs.entry(block_id) {
+          std::collections::hash_map::Entry::Occupied(mut occupied_entry) => {
+            let r = occupied_entry.get_mut();
+            // A rebuild can create a new block with the same identifier.
+            r.block = Arc::downgrade(&val.block);
             ToNapiValue::to_napi_value(env, r)
           }
           std::collections::hash_map::Entry::Vacant(vacant_entry) => {
             let js_block = AsyncDependenciesBlock {
-              block_id: val.block_id,
-              compiler_id: val.compiler_id,
-              owned: None,
+              block_id,
+              block: Arc::downgrade(&val.block),
+              compilation_id: Some(compilation_id),
             };
-            let r = vacant_entry.insert(OneShotRef::new(env, js_block)?);
+            let r = vacant_entry.insert(OneShotInstanceRef::new(env, js_block)?);
             ToNapiValue::to_napi_value(env, r)
           }
         }
