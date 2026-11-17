@@ -77,6 +77,8 @@ When using ESM `import`, all imported symbols from `dependencies` are automatica
 
 If an ESM dependency uses top-level await, Rspack waits for it to finish during the update, even when `callback` is omitted. Imported values retain their previous versions until the updated dependencies finish executing. When provided, the callback runs after the dependencies finish executing.
 
+While Rspack is waiting for ESM dependencies, replacing or removing the accepting module cancels that pending refresh. Its old callback is not invoked, and the update does not wait for the obsolete dependencies.
+
 If the callback argument itself contains `await` or `yield`, such as `accept('./library.js', await createCallback())`, that expression is evaluated when registering the handler. Updates invoke the resulting callback without evaluating the expression again.
 
 When using CommonJS, update dependencies manually using `require()` in the `callback`. Omitting the `callback` isn't useful here.

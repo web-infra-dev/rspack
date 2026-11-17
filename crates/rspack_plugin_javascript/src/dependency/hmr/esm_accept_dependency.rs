@@ -155,6 +155,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
     let opt_async = if async_imports.is_empty() {
       ""
     } else {
+      let module_argument = runtime_template.render_module_argument(module.get_module_argument());
       let values = async_import_values.join(", ");
       let changed = async_import_values
         .iter()
@@ -163,7 +164,31 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
         .collect::<Vec<_>>()
         .join(" || ");
       content.push_str(&format!(
-        "for (;;) {{\nvar __rspack_async_imports = [{values}];\ntry {{\nvar __rspack_async_deps = __rspack_load_async_deps(__rspack_async_imports);\nvar __rspack_async_deps_result = __rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps;\n}} catch (__rspack_async_error) {{\nif ({changed}) continue;\nthrow __rspack_async_error;\n}}\nif ({changed}) continue;\n"
+        "for (;;) {{
+if (!{module_argument}.hot.active) return;
+var __rspack_async_imports = [{values}];
+try {{
+var __rspack_async_deps = __rspack_load_async_deps(__rspack_async_imports);
+var __rspack_async_deps_result = __rspack_async_deps;
+if (__rspack_async_deps.then) {{
+var __rspack_hmr_dispose;
+var __rspack_hmr_disposed = new Promise(function(resolve) {{ __rspack_hmr_dispose = resolve; }});
+{module_argument}.hot.addDisposeHandler(__rspack_hmr_dispose);
+try {{
+var __rspack_async_get_result = await Promise.race([__rspack_async_deps, __rspack_hmr_disposed]);
+if (!{module_argument}.hot.active) return;
+__rspack_async_deps_result = __rspack_async_get_result();
+}} finally {{
+{module_argument}.hot.removeDisposeHandler(__rspack_hmr_dispose);
+}}
+}}
+}} catch (__rspack_async_error) {{
+if (!{module_argument}.hot.active) return;
+if ({changed}) continue;
+throw __rspack_async_error;
+}}
+if ({changed}) continue;
+"
       ));
       if async_imports.len() == 1
         || !compilation
@@ -187,13 +212,13 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
     };
 
     if dep.has_callback {
+      let supports_arrow_function = compilation
+        .options
+        .output
+        .environment
+        .supports_arrow_function();
       if dep.callback_suspends {
-        let wrapper = if compilation
-          .options
-          .output
-          .environment
-          .supports_arrow_function()
-        {
+        let wrapper = if supports_arrow_function {
           format!(
             "(__rspack_hmr_callback => {opt_async}__rspack_hmr_outdated => {{\n{content}return __rspack_hmr_callback(__rspack_hmr_outdated); }})(("
           )
@@ -206,16 +231,25 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
         source.insert_static(dep.range.end, "))", None);
         return;
       }
-      source.insert(
-        dep.range.start,
-        format!("{opt_async}function(__rspack_hmr_outdated) {{\n{content}return ("),
-        None,
-      );
-      source.insert_static(
-        dep.range.end,
-        ")(__rspack_hmr_outdated); }.bind(this)",
-        None,
-      );
+      if supports_arrow_function {
+        source.insert(
+          dep.range.start,
+          format!("{opt_async}(__rspack_hmr_outdated) => {{\n{content}return ("),
+          None,
+        );
+        source.insert_static(dep.range.end, ")(__rspack_hmr_outdated); }", None);
+      } else {
+        source.insert(
+          dep.range.start,
+          format!("{opt_async}function(__rspack_hmr_outdated) {{\n{content}return ("),
+          None,
+        );
+        source.insert_static(
+          dep.range.end,
+          ")(__rspack_hmr_outdated); }.bind(this)",
+          None,
+        );
+      }
     } else {
       source.insert(
         dep.range.start,
