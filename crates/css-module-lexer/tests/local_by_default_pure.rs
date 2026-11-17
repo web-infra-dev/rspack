@@ -14,6 +14,11 @@ fn incorrectly_handle_nested_selectors() {
 #[test]
 fn compile_in_pure_mode() {
   test_with_options(
+    "button:where(:global(.bar), .foo) {}",
+    "button:where(.bar, :local(.foo)) {}",
+    LocalByDefault { mode: Mode::Pure },
+  );
+  test_with_options(
     ":global(.foo).bar, [type=\"radio\"] ~ .label, :not(.foo), #bar {}",
     ".foo:local(.bar), [type=\"radio\"] ~ :local(.label), :not(:local(.foo)), :local(#bar) {}",
     LocalByDefault { mode: Mode::Pure },
@@ -391,6 +396,38 @@ fn consider_nesting_statements_as_pure() {
 
 #[test]
 fn consider_selector_nesting_statements_as_pure() {
+  for (input, expected) in [
+    (
+      ".foo { color: red; button { color: blue; } }",
+      ":local(.foo) { color: red; button { color: blue; } }",
+    ),
+    (
+      ".foo { missingColon /* cssmodules-pure-ignore */; color:{.opaque; :global(.opaqueGlobal)} !important; button:where(:global(.bar), .baz) { color:red; } }",
+      ":local(.foo) { missingColon /* cssmodules-pure-ignore */; color:{.opaque; :global(.opaqueGlobal)} !important; button:where(.bar, :local(.baz)) { color:red; } }",
+    ),
+    (
+      ".foo { color: red; button, a { color: blue; } }",
+      ":local(.foo) { color: red; button, a { color: blue; } }",
+    ),
+    (
+      "@media screen { .foo { color: red; button {} } }",
+      "@media screen { :local(.foo) { color: red; button {} } }",
+    ),
+    (
+      ".foo { color: red; @media screen { button { color: blue; } } }",
+      ":local(.foo) { color: red; @media screen { button { color: blue; } } }",
+    ),
+    (
+      ".foo { color: red; button:where(:global(.bar), .baz) { color: blue; } }",
+      ":local(.foo) { color: red; button:where(.bar, :local(.baz)) { color: blue; } }",
+    ),
+    (
+      ".foo { color: red; button { color: blue; span { color: green; } } a {} }",
+      ":local(.foo) { color: red; button { color: blue; span { color: green; } } a {} }",
+    ),
+  ] {
+    test_with_options(input, expected, LocalByDefault { mode: Mode::Pure });
+  }
   test_with_options(
     ".foo { html &:hover { a_value: some-value; } }",
     ":local(.foo) { html &:hover { a_value: some-value; } }",
@@ -405,6 +442,36 @@ fn consider_selector_nesting_statements_as_pure() {
 
 #[test]
 fn throw_on_nested_nesting_selectors_without_a_local_selector() {
+  for (input, expected) in [
+    (
+      ".foo { color: red; button {} } body {}",
+      ":local(.foo) { color: red; button {} } body {}",
+    ),
+    (
+      "@media screen { .foo { color: red; button {} } body {} }",
+      "@media screen { :local(.foo) { color: red; button {} } body {} }",
+    ),
+    (
+      ".foo { color: red; } @media screen { body {} }",
+      ":local(.foo) { color: red; } @media screen { body {} }",
+    ),
+    ("@media screen { body {} }", "@media screen { body {} }"),
+    (
+      "button:where(:global(.bar), :global(.baz)) {}",
+      "button:where(.bar, .baz) {}",
+    ),
+    (
+      ".foo, button:where(:global(.bar), :global(.baz)) {}",
+      ":local(.foo), button:where(.bar, .baz) {}",
+    ),
+  ] {
+    test_with_options_warning(
+      input,
+      expected,
+      LocalByDefault { mode: Mode::Pure },
+      "Selector is not pure",
+    );
+  }
   test_with_options_warning(
     ":global(.foo) { &:hover { a_value: some-value; } }",
     ".foo { &:hover { a_value: some-value; } }",

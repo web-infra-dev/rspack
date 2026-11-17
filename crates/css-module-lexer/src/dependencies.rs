@@ -831,6 +831,8 @@ pub struct ModeData<'s> {
   property: Mode,
   resulting_global: Option<Pos>,
   pure_global: Option<Pos>,
+  // The outermost rule with a local selector also makes its nested rules pure.
+  pure_local_block_nesting_level: Option<u32>,
   pure_no_check: bool,
   pure_ignore_pending: bool,
   pure_ignored_block_nesting_level: Option<u32>,
@@ -847,6 +849,7 @@ impl ModeData<'_> {
       property: default,
       resulting_global: None,
       pure_global: Some(0),
+      pure_local_block_nesting_level: None,
       pure_no_check: false,
       pure_ignore_pending: false,
       pure_ignored_block_nesting_level: None,
@@ -892,6 +895,12 @@ impl ModeData<'_> {
   }
 
   pub fn exit_block(&mut self, block_nesting_level: u32) {
+    if self
+      .pure_local_block_nesting_level
+      .is_some_and(|level| block_nesting_level < level)
+    {
+      self.pure_local_block_nesting_level = None;
+    }
     if self
       .pure_ignored_block_nesting_level
       .is_some_and(|level| block_nesting_level < level)
@@ -4399,7 +4408,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     &mut self,
     stream: &mut DependencyTokenStream<'_, 's>,
     start: Pos,
-    _: Pos,
+    end: Pos,
   ) -> Option<()> {
     if matches!(self.scope, Scope::InBlock)
       && (self.selector_square_depth != 0
@@ -4441,7 +4450,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     let (pure_check_disabled_for_selector, enter_pure_ignored_block) =
       if let Some(mode_data) = &self.mode_data {
         (
-          mode_data.is_pure_check_disabled(),
+          mode_data.is_pure_check_disabled() || mode_data.pure_local_block_nesting_level.is_some(),
           mode_data.pure_ignore_pending,
         )
       } else {
@@ -4463,6 +4472,18 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
                     }
                 });
       }
+
+      if mode_data.is_pure_mode()
+        && self.scan_context == ScanContext::Selector
+        && mode_data.pure_global.is_none()
+        && mode_data.pure_local_block_nesting_level.is_none()
+      {
+        mode_data.pure_local_block_nesting_level = Some(self.block_nesting_level);
+      }
+
+      // Start child selectors independently; ancestor purity is kept above.
+      // In particular, an at-rule prelude does not make its children pure.
+      mode_data.pure_global = Some(end);
 
       if enter_pure_ignored_block {
         mode_data.enter_block(self.block_nesting_level);
@@ -4658,18 +4679,22 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       return Some(());
     };
 
-    if let Some(pure_global_start) = mode_data
-      .pure_global
-      .filter(|_| mode_data.is_pure_mode() && !mode_data.is_pure_check_disabled())
-    {
-      self.handle_warning.handle_warning(Warning {
-                range: Range::new(pure_global_start, start),
-                kind: WarningKind::NotPure {
-                    message: "Selector is not pure (pure selectors must contain at least one local class or id)",
-                }
-            });
+    // Commas inside selector functions do not end the outer selector.
+    if self.balanced.last_component().is_none() && self.selector_square_depth == 0 {
+      if let Some(pure_global_start) = mode_data.pure_global.filter(|_| {
+        mode_data.is_pure_mode()
+          && !mode_data.is_pure_check_disabled()
+          && mode_data.pure_local_block_nesting_level.is_none()
+      }) {
+        self.handle_warning.handle_warning(Warning {
+          range: Range::new(pure_global_start, start),
+          kind: WarningKind::NotPure {
+            message: "Selector is not pure (pure selectors must contain at least one local class or id)",
+          },
+        });
+      }
+      mode_data.pure_global = Some(end);
     }
-    mode_data.pure_global = Some(end);
 
     if self.block_nesting_level == 0 {
       mode_data.composes_local_classes.find_comma(lexer)?;
