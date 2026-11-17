@@ -970,6 +970,16 @@ var {} = {{}};
       return used_names;
     }
 
+    used_names.extend(
+      [
+        "__rspack_bind_runtime__",
+        "__webpack_require__",
+        "__webpack_modules__",
+        "__webpack_module_cache__",
+        "__rspack_context",
+      ]
+      .map(Atom::from),
+    );
     used_names.extend(all_runtime_module_variables().map(Atom::from));
 
     for (_, runtime_global) in RuntimeGlobals::all().iter_names() {

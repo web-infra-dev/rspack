@@ -90,16 +90,32 @@ impl RuntimeModeRenderer for RspackExportRuntimeRenderer {
     );
 
     let mut source = ConcatSource::default();
-    if !context.runtime_requirements.is_empty()
-      && context.runtime_chunk_ukey != context.chunk_ukey
+    if context.runtime_chunk_ukey != context.chunk_ukey
       && !already_imports_runtime(context.chunk_link, &runtime_import_match_idents)
     {
-      source.add(render_runtime_chunk_import(
-        context.compilation,
-        context.runtime_chunk_ukey,
-        &runtime_import_idents,
-      ));
+      if !runtime_import_idents.is_empty() {
+        source.add(render_runtime_chunk_import(
+          context.compilation,
+          context.runtime_chunk_ukey,
+          &runtime_import_idents,
+        ));
+      } else if context
+        .compilation
+        .runtime_proxy_metadata_artifact
+        .get(context.runtime_chunk_ukey)
+        .is_some_and(|m| {
+          m.runtime_module_bridge.source != rspack_core::RuntimeModuleSourceKind::Native
+        })
+      {
+        // Extension code can have side effects without exporting a helper.
+        let runtime = get_chunk(context.compilation, *context.runtime_chunk_ukey);
+        source.add(RawStringSource::from(format!(
+          "import \"__RSPACK_ESM_CHUNK_{}\";\n",
+          runtime.expect_id().as_str()
+        )));
+      }
     }
+
     source.add(render_raw_import_stmts(
       context.compilation,
       context.chunk_link,

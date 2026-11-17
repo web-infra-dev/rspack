@@ -6,7 +6,7 @@ use rspack_core::{
   CodeGenerationDataChunkInitFragments, CodeGenerationDataPreservedAssetImport,
   CodeGenerationPublicPathAutoReplace, Compilation, ExternalModuleInitFragment, InitFragmentExt,
   InitFragmentStage, Module, RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode,
-  RuntimeModuleGenerateContext, SourceType,
+  RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements, SourceType,
   chunk_graph_chunk::ChunkIdSet,
   get_undo_path, render_runtime_module_source,
   rspack_sources::{
@@ -17,14 +17,17 @@ use rspack_core::{
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_util::{identifier::make_paths_relative, placeholder::PlaceholderFinder};
 
-pub use crate::runtime_context::{
-  render_hot_update_chunk_runtime_modules as render_rspack_hot_update_chunk_runtime_modules,
-  render_rspack_runtime_modules,
-  render_runtime_chunk_runtime_modules as render_rspack_runtime_chunk_runtime_modules,
-  render_runtime_context_declaration, render_runtime_context_require_assignment,
-  should_export_rspack_runtime_globals,
-};
 use crate::{JavascriptModulesPluginHooks, RenderSource};
+pub use crate::{
+  runtime_bridge::render_runtime_bridge_aliases,
+  runtime_context::{
+    render_hot_update_chunk_runtime_modules as render_rspack_hot_update_chunk_runtime_modules,
+    render_rspack_runtime_modules,
+    render_runtime_chunk_runtime_modules as render_rspack_runtime_chunk_runtime_modules,
+    render_runtime_context_declaration, render_runtime_context_require_assignment,
+    should_export_rspack_runtime_globals,
+  },
+};
 
 pub fn startup_awaits_entries(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
   let output = &compilation.options.output;
@@ -305,12 +308,23 @@ pub async fn render_module(
 
       let need_module = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::MODULE));
       let need_exports = runtime_requirements.is_some_and(|r| r.contains(RuntimeGlobals::EXPORTS));
-      let need_require = runtime_template.render_mode() != RuntimeGlobalsRenderMode::RspackExport
-        && (render_runtime_requirements.contains(RuntimeGlobals::REQUIRE)
-          || render_runtime_requirements.contains(RuntimeGlobals::REQUIRE_SCOPE)
+      // The ESM bootstrap already passes the loader selected by factory interceptors.
+      // Bind it locally so callbacks keep their module's loader after execution returns.
+      let need_require = if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport
+      {
+        render_runtime_requirements
+          .intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE)
+          && compilation
+            .runtime_proxy_metadata_artifact
+            .get(chunk_ukey)
+            .is_some_and(|m| m.runtime_module_bridge.intercepted_factories)
+      } else {
+        render_runtime_requirements
+          .intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE)
           || !render_runtime_requirements
             .renderable_require_scope()
-            .is_empty());
+            .is_empty()
+      };
       let mut args = String::with_capacity(64);
       let mut push_argument = |argument: &str, used: bool| {
         if !args.is_empty() {
@@ -354,6 +368,20 @@ pub async fn render_module(
       container_sources.add(RawStringSource::from(container_prefix));
       if module.build_info().strict && !all_strict {
         container_sources.add(RawStringSource::from_static("\"use strict\";\n"));
+      }
+      if need_require
+        && runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackContext
+        && compilation
+          .runtime_proxy_metadata_artifact
+          .get(chunk_ukey)
+          .is_some_and(|m| m.runtime_module_bridge.intercepted_factories)
+      {
+        let scope = module_runtime_scope.expect("module factory scope");
+        // A webpack interceptor may call the original factory with its own loader.
+        // Keep the native context for this invocation, including after the factory returns.
+        container_sources.add(RawStringSource::from(format!(
+          "if (typeof {scope} === 'function') {scope} = arguments[0].__rspack_runtime_context__ ? arguments[0].__rspack_runtime_context__.__rspack_with_require__({scope}) : Object.create({scope}, {{r: {{value: {scope}}}, N: {{value: {scope}.r}}}});\n"
+        )));
       }
       container_sources.add(render_source.source);
 
@@ -473,16 +501,37 @@ pub async fn render_runtime_modules(
   if compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
     render_rspack_runtime_modules(compilation, chunk_ukey, runtime_template).await
   } else {
-    render_webpack_runtime_modules(compilation, chunk_ukey).await
+    render_runtime_modules_in_order(compilation, chunk_ukey).await
   }
 }
 
-pub(crate) type RuntimeModuleSourceItem = (BoxSource, RuntimeGlobals, RuntimeGlobals, bool);
+pub(crate) struct RuntimeModuleSourceItem {
+  pub source: BoxSource,
+  pub requirements: RuntimeModuleRuntimeRequirements,
+  pub needs_top_level: bool,
+}
+
+impl RuntimeModuleSourceItem {
+  fn empty() -> Self {
+    Self {
+      source: ConcatSource::default().boxed(),
+      requirements: Default::default(),
+      needs_top_level: false,
+    }
+  }
+}
 
 pub(crate) async fn render_runtime_module_sources(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  reject_custom_runtime_modules: bool,
+) -> Result<Vec<RuntimeModuleSourceItem>> {
+  collect_runtime_module_sources(compilation, chunk_ukey, false).await
+}
+
+async fn collect_runtime_module_sources(
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  extensions_only: bool,
 ) -> Result<Vec<RuntimeModuleSourceItem>> {
   let runtime_mode = compilation.options.experiments.runtime_mode;
   let is_hot_update = compilation
@@ -496,6 +545,11 @@ pub(crate) async fn render_runtime_module_sources(
       .build_chunk_graph_artifact
       .chunk_graph
       .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
+      .filter(|(_, module)| {
+        !extensions_only
+          || module.get_constructor_name() == "RuntimeModuleFromJs"
+          || module.get_custom_source().is_some()
+      })
       .map(|(identifier, runtime_module)| {
         (
           compilation
@@ -517,91 +571,69 @@ pub(crate) async fn render_runtime_module_sources(
       })
       .for_each(|(source, module, previous)| {
         let s = unsafe { token.used((compilation, source, module, previous)) };
-        s.spawn(
-          move |(compilation, source, module, previous)| async move {
-            if source.size() == 0 && previous.is_none() {
-              return Ok((
-                ConcatSource::default().boxed(),
-                RuntimeGlobals::default(),
-                RuntimeGlobals::default(),
-                false,
-              ));
-            }
-            let runtime_requirements = module.runtime_requirements(compilation);
-            let generated_requirements = runtime_requirements.lexical_requirements();
-            let context_requirements =
-              runtime_requirements.define | runtime_requirements.force_context;
-            if reject_custom_runtime_modules
-              && module.get_constructor_name() == "RuntimeModuleFromJs"
-            {
-              return Err(rspack_error::error!(
-                "Custom runtime modules are not supported when `experiments.runtimeMode` is \"rspack\" (runtime module: {}).",
-                module.identifier()
-              ));
-            }
-            let supports_arrow_function = compilation
-              .options
-              .output
-              .environment
-              .supports_arrow_function();
-            let source = if let Some(custom_source) = module.get_custom_source() {
-              RawStringSource::from(custom_source).boxed()
-            } else if previous.is_some() || module.full_hash() || module.dependent_hash() {
-              let runtime_template = compilation.runtime_template.create_runtime_module_code_template();
-              let context = RuntimeModuleGenerateContext {
-                compilation,
-                runtime_template: &runtime_template,
-              };
-              let update = if let Some(previous) = previous {
-                module.generate_update(&context, previous).await?
+        s.spawn(move |(compilation, source, module, previous)| async move {
+          if source.size() == 0 && previous.is_none() {
+            return Ok(RuntimeModuleSourceItem::empty());
+          }
+          let runtime_requirements = module.runtime_requirements(compilation);
+          let supports_arrow_function = compilation
+            .options
+            .output
+            .environment
+            .supports_arrow_function();
+          let source = if let Some(custom_source) = module.get_custom_source() {
+            RawStringSource::from(custom_source).boxed()
+          } else if previous.is_some() || module.full_hash() || module.dependent_hash() {
+            let runtime_template = compilation
+              .runtime_template
+              .create_runtime_module_code_template();
+            let context = RuntimeModuleGenerateContext {
+              compilation,
+              runtime_template: &runtime_template,
+            };
+            let update = if let Some(previous) = previous {
+              module.generate_update(&context, previous).await?
+            } else {
+              None
+            };
+            let generated = match update {
+              Some(source) => Some(source),
+              None if module.full_hash() || module.dependent_hash() => {
+                Some(module.generate(&context).await?)
+              }
+              None => None,
+            };
+            if let Some(generated) = generated {
+              if module.get_source_map_kind().enabled() {
+                OriginalSource::new(generated, module.identifier().as_str()).boxed()
               } else {
-                None
-              };
-              let generated = match update {
-                Some(source) => Some(source),
-                None if module.full_hash() || module.dependent_hash() => {
-                  Some(module.generate(&context).await?)
-                }
-                None => None,
-              };
-              if let Some(generated) = generated {
-                if module.get_source_map_kind().enabled() {
-                  OriginalSource::new(generated, module.identifier().as_str()).boxed()
-                } else {
-                  RawStringSource::from(generated).boxed()
-                }
-              } else {
-                source.clone()
+                RawStringSource::from(generated).boxed()
               }
             } else {
               source.clone()
-            };
-            if source.size() == 0 {
-              return Ok((
-                ConcatSource::default().boxed(),
-                RuntimeGlobals::default(),
-                RuntimeGlobals::default(),
-                false,
-              ));
             }
-            let should_isolate = module.should_isolate(runtime_mode);
-            let needs_top_level = matches!(runtime_mode, RuntimeMode::Rspack)
-              && module.get_constructor_name() == "ExportRequireRuntimeModule";
-            let sources = render_runtime_module_source(
-              module.identifier(),
-              source,
-              should_isolate,
-              supports_arrow_function,
-              matches!(runtime_mode, RuntimeMode::Rspack) && !should_isolate,
-            );
-            Ok((
-              sources,
-              generated_requirements,
-              context_requirements,
-              needs_top_level,
-            ))
-          },
-        );
+          } else {
+            source.clone()
+          };
+          if source.size() == 0 {
+            return Ok(RuntimeModuleSourceItem::empty());
+          }
+          let should_isolate = module.should_isolate(runtime_mode);
+          let needs_top_level = matches!(runtime_mode, RuntimeMode::Rspack)
+            && module.get_constructor_name() == "ExportRequireRuntimeModule";
+          let sources = render_runtime_module_source(
+            module.identifier(),
+            source,
+            should_isolate,
+            supports_arrow_function,
+            matches!(runtime_mode, RuntimeMode::Rspack) && !should_isolate,
+          );
+          Ok(RuntimeModuleSourceItem {
+            source: sources,
+            requirements: runtime_requirements,
+            needs_top_level,
+          })
+        });
       })
   })
   .await
@@ -612,16 +644,28 @@ pub(crate) async fn render_runtime_module_sources(
   Ok(runtime_module_sources)
 }
 
-async fn render_webpack_runtime_modules(
+/// Non-owning modern ESM chunks link native helpers as imports. Only extension
+/// code executes here; assignment through the loader reaches the owner's accessor.
+pub async fn render_custom_runtime_modules(
+  compilation: &Compilation,
+  chunk: &ChunkUkey,
+) -> Result<BoxSource> {
+  let mut sources = ConcatSource::default();
+  for item in collect_runtime_module_sources(compilation, chunk, true).await? {
+    sources.add(item.source);
+  }
+  Ok(sources.boxed())
+}
+
+async fn render_runtime_modules_in_order(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
 ) -> Result<BoxSource> {
-  let runtime_module_sources =
-    render_runtime_module_sources(compilation, chunk_ukey, false).await?;
+  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey).await?;
   let mut sources = ConcatSource::default();
 
-  for (runtime_module_source, _, _, _) in runtime_module_sources {
-    sources.add(runtime_module_source);
+  for item in runtime_module_sources {
+    sources.add(item.source);
   }
 
   Ok(sources.boxed())

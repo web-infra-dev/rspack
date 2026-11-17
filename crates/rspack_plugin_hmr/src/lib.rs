@@ -793,6 +793,19 @@ async fn generate_hot_update(
           .connect_chunk_and_runtime_module(ukey, *runtime_module);
       }
 
+      // Replacement factories and runtime modules have the same calling convention
+      // and bridge as the chunk that is already running.
+      if let Some(bridge) = current_chunk_ukey
+        .and_then(|original| compilation.runtime_proxy_metadata_artifact.get(&original))
+        .map(|metadata| metadata.runtime_module_bridge)
+        && bridge != Default::default()
+      {
+        compilation
+          .runtime_proxy_metadata_artifact
+          .entry(ukey)
+          .or_default()
+          .runtime_module_bridge = bridge;
+      }
       let mut manifest = Vec::new();
       let mut diagnostics = Vec::new();
       compilation
@@ -802,6 +815,7 @@ async fn generate_hot_update(
         .call(compilation, &ukey, &mut manifest, &mut diagnostics)
         .await?;
 
+      compilation.runtime_proxy_metadata_artifact.remove(&ukey);
       // Manually clean up ChunkGraph and chunks
       for module_identifier in new_modules {
         compilation

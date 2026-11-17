@@ -82,21 +82,39 @@ var module = ({module_cache}[moduleId] = {{"#,
     let module_execution = if runtime_requirements
       .contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
     {
-      let (factory_runtime_argument, context_prototype) =
-        if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackContext {
-          (
-            "execOptions.context",
-            runtime_template.render_runtime_variable(&RuntimeVariable::Context),
-          )
+      let context_mode = runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackContext;
+      let bridged = compilation
+        .runtime_proxy_metadata_artifact
+        .get(chunk_ukey)
+        .is_some_and(|m| m.runtime_module_bridge.owner);
+      let context_prototype = if context_mode {
+        runtime_template.render_runtime_variable(&RuntimeVariable::Context)
+      } else if bridged {
+        format!("{callable_require}.__rspack_compat_context__")
+      } else {
+        callable_require.clone()
+      };
+      let run_factory = if bridged && context_mode {
+        format!("{context_prototype}.__rspack_call_factory__(execOptions);")
+      } else {
+        let argument = if context_mode {
+          "execOptions.context"
         } else {
-          ("execOptions.require", callable_require.clone())
+          "execOptions.require"
         };
+        format!("execOptions.factory.call(module.exports, module, module.exports, {argument});")
+      };
+      let loader = if bridged {
+        format!("{context_prototype}.r")
+      } else {
+        callable_require
+      };
       format!(
         r#"
-        var execOptions = {{ id: moduleId, module: module, factory: {module_factories}[moduleId], require: {callable_require}, context: Object.create({context_prototype}) }};
+        var execOptions = {{ id: moduleId, module: module, factory: {module_factories}[moduleId], require: {loader}, context: Object.create({context_prototype}) }};
         {}.forEach(function(handler) {{ handler(execOptions); }});
         module = execOptions.module;
-        execOptions.factory.call(module.exports, module, module.exports, {factory_runtime_argument});
+        {run_factory}
       "#,
         runtime_template.render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
       )

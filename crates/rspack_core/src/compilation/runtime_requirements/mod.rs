@@ -494,7 +494,18 @@ pub async fn process_chunks_runtime_requirements(
   // and overwrite the runtime_module.generate() to get new source in create_chunk_assets
   // this needs full runtime requirements, so run hooks.runtime_module after runtime_requirements_in_tree
   let mut runtime_modules = mem::take(&mut compilation.runtime_modules);
-  for entry_ukey in &entries {
+  let rspack_mode = compilation.options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack;
+  let hook_chunks = if rspack_mode {
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .keys()
+      .copied()
+      .collect::<Vec<_>>()
+  } else {
+    entries.iter().copied().collect()
+  };
+  for entry_ukey in &hook_chunks {
     let runtime_module_ids: Vec<_> = compilation
       .build_chunk_graph_artifact
       .chunk_graph
@@ -523,6 +534,77 @@ pub async fn process_chunks_runtime_requirements(
     return Ok(());
   }
 
+  // Generate late, after the tree requirements and JS hook overrides are final. The
+  // normal generated-source cache also supplies this exact source to code generation.
+  let mut custom_modules = FxHashMap::default();
+  for (id, module) in &compilation.runtime_modules {
+    let kind = module
+      .source_kind(compilation)
+      .await
+      .map_err(|e| e.wrap_err(format!("in runtime module {id}")))?;
+    if kind != crate::RuntimeModuleSourceKind::Native {
+      custom_modules.insert(*id, kind);
+    }
+  }
+  let graph = &compilation.build_chunk_graph_artifact;
+  let mut source_chunks = FxHashMap::default();
+  if !custom_modules.is_empty() {
+    for chunk in graph.chunk_by_ukey.keys() {
+      if let Some(kind) = graph
+        .chunk_graph
+        .get_chunk_runtime_modules_iterable(chunk)
+        .filter_map(|id| custom_modules.get(id))
+        .max()
+      {
+        source_chunks.insert(*chunk, *kind);
+      }
+    }
+  }
+  let mut bridge_owners = FxHashSet::default();
+  let mut intercepted_chunks = FxHashSet::default();
+  if source_chunks
+    .values()
+    .any(|kind| *kind == crate::RuntimeModuleSourceKind::NeedsBridge)
+  {
+    for owner in &entries {
+      let mut chunks = graph
+        .chunk_by_ukey
+        .expect_get(owner)
+        .get_all_referenced_chunks(&graph.chunk_group_by_ukey);
+      chunks.insert(*owner);
+      if !chunks
+        .iter()
+        .any(|chunk| source_chunks.get(chunk) == Some(&crate::RuntimeModuleSourceKind::NeedsBridge))
+      {
+        continue;
+      }
+      // Allocate the loader and its observable tables, not optional providers like require.O.
+      let requirements = compilation
+        .cgc_runtime_requirements_artifact
+        .entry(*owner)
+        .or_default();
+      requirements.insert(
+        RuntimeGlobals::REQUIRE
+          | RuntimeGlobals::REQUIRE_SCOPE
+          | RuntimeGlobals::MODULE_FACTORIES
+          | RuntimeGlobals::MODULE_CACHE,
+      );
+      bridge_owners.insert(*owner);
+      if requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION) {
+        intercepted_chunks.extend(chunks);
+      }
+    }
+    for (chunk, kind) in &source_chunks {
+      if *kind == crate::RuntimeModuleSourceKind::NeedsBridge {
+        compilation
+          .cgc_runtime_requirements_artifact
+          .entry(*chunk)
+          .or_default()
+          .insert(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE);
+      }
+    }
+  }
+
   let metadata_chunk_ukeys = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
@@ -533,7 +615,8 @@ pub async fn process_chunks_runtime_requirements(
         .build_chunk_graph_artifact
         .chunk_by_ukey
         .expect_get(chunk_ukey);
-      chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+      intercepted_chunks.contains(chunk_ukey)
+        || chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         || compilation
           .build_chunk_graph_artifact
           .chunk_graph
@@ -554,7 +637,14 @@ pub async fn process_chunks_runtime_requirements(
       Default::default()
     };
     referenced_chunks.insert(chunk_ukey);
-    let mut metadata = RuntimeProxyMetadata::default();
+    let mut metadata = RuntimeProxyMetadata {
+      runtime_module_bridge: crate::RuntimeModuleBridge {
+        owner: bridge_owners.contains(&chunk_ukey),
+        intercepted_factories: intercepted_chunks.contains(&chunk_ukey),
+        source: source_chunks.get(&chunk_ukey).copied().unwrap_or_default(),
+      },
+      ..Default::default()
+    };
 
     for referenced_chunk_ukey in referenced_chunks.iter() {
       let referenced_chunk = compilation
@@ -631,9 +721,10 @@ pub async fn process_chunks_runtime_requirements(
           &chunk_ukey,
         ));
     }
-    if metadata
-      .tree_runtime_requirements
-      .contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST)
+    if metadata.runtime_module_bridge.owner
+      || metadata
+        .tree_runtime_requirements
+        .contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST)
     {
       metadata
         .context_setter_fields

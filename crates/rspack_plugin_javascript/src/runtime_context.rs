@@ -8,7 +8,12 @@ use rspack_core::{
 };
 use rspack_error::Result;
 
-use crate::runtime::{RuntimeModuleSourceItem, render_runtime_module_sources};
+use crate::{
+  runtime::{RuntimeModuleSourceItem, render_runtime_module_sources},
+  runtime_bridge::{
+    render_runtime_bridge, render_runtime_bridge_aliases, render_runtime_bridge_fields,
+  },
+};
 
 static HMR_RUNTIME_STATE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
   RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
@@ -185,7 +190,7 @@ pub async fn render_runtime_chunk_runtime_modules(
   chunk_ukey: &ChunkUkey,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
-  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey, true).await?;
+  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey).await?;
   Ok(render_runtime_chunk_runtime_modules_sync(
     compilation,
     chunk_ukey,
@@ -202,13 +207,13 @@ fn render_runtime_chunk_runtime_modules_sync(
   runtime_module_sources: Vec<RuntimeModuleSourceItem>,
 ) -> BoxSource {
   let mut sources = ConcatSource::default();
-  if runtime_module_sources.is_empty() {
-    return sources.boxed();
-  }
   let metadata = compilation
     .runtime_proxy_metadata_artifact
     .get(chunk_ukey)
     .expect("should generate runtime metadata");
+  if runtime_module_sources.is_empty() && !metadata.runtime_module_bridge.owner {
+    return sources.boxed();
+  }
   let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
   let module_graph = compilation.get_module_graph();
   let has_modules = !compilation
@@ -277,6 +282,22 @@ fn render_runtime_chunk_runtime_modules_sync(
     metadata.tree_runtime_requirements,
     bootstrap_runtime_requirements,
   );
+  let mut pending_bridge_fields = RuntimeGlobals::default();
+  let mut bridge_prelude = String::new();
+  if metadata.runtime_module_bridge.owner {
+    let provided = runtime_module_sources
+      .iter()
+      .fold(RuntimeGlobals::default(), |fields, item| {
+        fields | item.requirements.define
+      });
+    // Only publish installed helpers, never an optional weak dependency.
+    let initial = lexical_fields
+      .intersection(bootstrap_runtime_requirements)
+      .difference(provided.difference(*BOOTSTRAP_EXPORT_GLOBALS));
+    pending_bridge_fields = lexical_fields.intersection(provided).difference(initial);
+    bridge_prelude = render_runtime_bridge(runtime_template);
+    bridge_prelude.push_str(&render_runtime_bridge_fields(initial, runtime_template));
+  }
   if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport {
     sources.add(RawStringSource::from(render_lexical_declarations(
       lexical_fields
@@ -284,23 +305,32 @@ fn render_runtime_chunk_runtime_modules_sync(
         .difference(*BOOTSTRAP_EXPORT_GLOBALS),
       Some(&render_runtime_global),
     )));
+    if metadata.runtime_module_bridge.owner {
+      sources.add(RawStringSource::from(bridge_prelude));
+    }
     if is_hmr_runtime {
       let require = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
       let modules = runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES);
       let module_cache = runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache);
-      sources.add(RawStringSource::from(format!(
+      if metadata.runtime_module_bridge.owner {
+        sources.add(RawStringSource::from(format!(
+          "var {runtime_context}=__rspack_context;\n"
+        )));
+      } else {
+        sources.add(RawStringSource::from(format!(
         "var {runtime_context}={require};{runtime_context}.r={require};{runtime_context}.m={modules};{runtime_context}.c={module_cache};\n"
       )));
-      sources.add(RawStringSource::from(render_runtime_context_accessors(
-        (metadata.context_fields() | metadata.context_setter_fields()).difference(
-          RuntimeGlobals::REQUIRE
-            | RuntimeGlobals::REQUIRE_SCOPE
-            | RuntimeGlobals::MODULE_FACTORIES
-            | RuntimeGlobals::MODULE_CACHE,
-        ),
-        &runtime_context,
-        runtime_template,
-      )));
+        sources.add(RawStringSource::from(render_runtime_context_accessors(
+          (metadata.context_fields() | metadata.context_setter_fields()).difference(
+            RuntimeGlobals::REQUIRE
+              | RuntimeGlobals::REQUIRE_SCOPE
+              | RuntimeGlobals::MODULE_FACTORIES
+              | RuntimeGlobals::MODULE_CACHE,
+          ),
+          &runtime_context,
+          runtime_template,
+        )));
+      }
     }
     if metadata
       .lexical_fields()
@@ -316,13 +346,26 @@ fn render_runtime_chunk_runtime_modules_sync(
     let mut emitted_setters = RuntimeGlobals::default();
     let setters = metadata.context_setter_fields();
     let mut remaining_setters = setters;
-    for (runtime_module_source, generated_requirements, context_requirements, _) in
-      runtime_module_sources
-    {
-      sources.add(runtime_module_source);
-      let mut context_fields = metadata.context_fields().intersection(context_requirements);
+    for item in runtime_module_sources {
+      let install = pending_bridge_fields.intersection(item.requirements.define);
+      if !install.is_empty() {
+        sources.add(RawStringSource::from(render_runtime_bridge_fields(
+          install,
+          runtime_template,
+        )));
+        pending_bridge_fields.remove(install);
+      }
+      sources.add(item.source);
+      let mut context_fields = metadata
+        .context_fields()
+        .intersection(item.requirements.define | item.requirements.force_context);
       if is_hmr_runtime {
-        context_fields.insert(generated_requirements.renderable_require_scope());
+        context_fields.insert(
+          item
+            .requirements
+            .lexical_requirements()
+            .renderable_require_scope(),
+        );
         context_fields.remove(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE);
       }
       let context_setters = context_fields.intersection(setters);
@@ -345,12 +388,21 @@ fn render_runtime_chunk_runtime_modules_sync(
       &mut emitted_setters,
     )));
 
+    if metadata.runtime_module_bridge.owner {
+      let require = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
+      sources.add(RawStringSource::from(format!(
+        "if ({require} !== __webpack_require__) {{ {require} = __webpack_require__; if ({require}.__rspack_compat_context__ !== __rspack_context) Object.defineProperty({require}, '__rspack_compat_context__', {{value: __rspack_context}}); }}\n"
+      )));
+    }
     return sources.boxed();
   }
   wrapped_sources.add(RawStringSource::from(render_lexical_declarations(
     lexical_fields.difference(runtime_module_owned_define_fields(compilation, chunk_ukey)),
     Some(&render_runtime_global),
   )));
+  if metadata.runtime_module_bridge.owner {
+    wrapped_sources.add(RawStringSource::from(bridge_prelude));
+  }
   if metadata
     .lexical_fields()
     .intersects(*HMR_RUNTIME_STATE_GLOBALS)
@@ -359,20 +411,36 @@ fn render_runtime_chunk_runtime_modules_sync(
       wrapped_sources.add(RawStringSource::from(format!("var hmrS_{key};\n")));
     }
   }
-  for (runtime_module_source, generated_requirements, context_requirements, needs_top_level) in
-    runtime_module_sources
-  {
-    if isolate && needs_top_level {
-      sources.add(runtime_module_source);
-    } else {
-      wrapped_sources.add(runtime_module_source);
+  for item in runtime_module_sources {
+    let install = pending_bridge_fields.intersection(item.requirements.define);
+    if !install.is_empty() {
+      wrapped_sources.add(RawStringSource::from(render_runtime_bridge_fields(
+        install,
+        runtime_template,
+      )));
+      pending_bridge_fields.remove(install);
     }
-    let mut context_fields = metadata.context_fields().intersection(context_requirements);
+    if isolate && item.needs_top_level {
+      sources.add(item.source);
+    } else {
+      wrapped_sources.add(item.source);
+    }
+    let mut context_fields = metadata
+      .context_fields()
+      .intersection(item.requirements.define | item.requirements.force_context);
     if is_hmr_runtime {
-      context_fields.insert(generated_requirements.renderable_require_scope());
+      context_fields.insert(
+        item
+          .requirements
+          .lexical_requirements()
+          .renderable_require_scope(),
+      );
       context_fields.remove(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE);
     }
     let setters = metadata.context_setter_fields();
+    if metadata.runtime_module_bridge.owner {
+      continue;
+    }
     if context_fields.is_empty() {
       continue;
     }
@@ -403,6 +471,21 @@ fn render_runtime_chunk_runtime_modules_sync(
       }
     }
   }
+  // A runtime extension can wrap the loader itself. Native runtime modules and
+  // later chunks must observe the same callable as the extension after startup.
+  if metadata.runtime_module_bridge.owner {
+    let require = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
+    wrapped_sources.add(RawStringSource::from(format!(
+      "{require} = __webpack_require__;\n"
+    )));
+  }
+  if metadata.runtime_module_bridge.owner
+    && bootstrap_runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
+  {
+    wrapped_sources.add(RawStringSource::from_static(include_str!(
+      "runtime/webpack_runtime_bridge_interceptors.js"
+    )));
+  }
   if isolate {
     sources.add(RawStringSource::from_static("(function() {\n"));
     sources.add(wrapped_sources);
@@ -421,7 +504,7 @@ pub async fn render_chunk_runtime_modules(
   chunk_ukey: &ChunkUkey,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
-  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey, true).await?;
+  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey).await?;
   let mut sources = ConcatSource::default();
   if runtime_module_sources.is_empty() {
     return Ok(sources.boxed());
@@ -436,6 +519,11 @@ pub async fn render_chunk_runtime_modules(
     .contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
 
   sources.add(RawStringSource::from_static("(function() {\n"));
+  if metadata.runtime_module_bridge.source == rspack_core::RuntimeModuleSourceKind::NeedsBridge {
+    sources.add(RawStringSource::from(render_runtime_bridge_aliases(
+      runtime_template,
+    )));
+  }
   let render_context_field = |runtime_global: RuntimeGlobals| {
     runtime_global
       .rspack_context_property_name()
@@ -457,13 +545,18 @@ pub async fn render_chunk_runtime_modules(
     Some(&render_runtime_global),
   )));
 
-  for (runtime_module_source, generated_requirements, context_requirements, _) in
-    runtime_module_sources
-  {
-    sources.add(runtime_module_source);
-    let mut context_fields = metadata.context_fields().intersection(context_requirements);
+  for item in runtime_module_sources {
+    sources.add(item.source);
+    let mut context_fields = metadata
+      .context_fields()
+      .intersection(item.requirements.define | item.requirements.force_context);
     if is_hmr_runtime {
-      context_fields.insert(generated_requirements.renderable_require_scope());
+      context_fields.insert(
+        item
+          .requirements
+          .lexical_requirements()
+          .renderable_require_scope(),
+      );
       context_fields.remove(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE);
     }
 
@@ -508,7 +601,7 @@ pub async fn render_hot_update_chunk_runtime_modules(
   chunk_ukey: &ChunkUkey,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
-  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey, true).await?;
+  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey).await?;
   let mut sources = ConcatSource::default();
   if runtime_module_sources.is_empty() {
     return Ok(sources.boxed());
@@ -516,6 +609,11 @@ pub async fn render_hot_update_chunk_runtime_modules(
   let metadata = runtime_context_current_chunk_metadata(compilation, chunk_ukey);
 
   let runtime_context = runtime_template.render_runtime_argument();
+  if metadata.runtime_module_bridge.source == rspack_core::RuntimeModuleSourceKind::NeedsBridge {
+    sources.add(RawStringSource::from(render_runtime_bridge_aliases(
+      runtime_template,
+    )));
+  }
   let mut hmr_state_keys = Vec::new();
   for runtime_module_id in compilation
     .build_chunk_graph_artifact
@@ -580,12 +678,17 @@ pub async fn render_hot_update_chunk_runtime_modules(
     "var {require}={runtime_context}.r,{modules}={runtime_context}.m,{module_cache}={runtime_context}.c;\n"
   )));
 
-  for (runtime_module_source, generated_requirements, _, _) in runtime_module_sources {
-    sources.add(runtime_module_source);
+  for item in runtime_module_sources {
+    sources.add(item.source);
     let mut context_fields = metadata
       .context_fields()
-      .intersection(generated_requirements);
-    context_fields.insert(generated_requirements.renderable_require_scope());
+      .intersection(item.requirements.lexical_requirements());
+    context_fields.insert(
+      item
+        .requirements
+        .lexical_requirements()
+        .renderable_require_scope(),
+    );
     context_fields.remove(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE);
     if context_fields.is_empty() {
       continue;

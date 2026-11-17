@@ -239,6 +239,17 @@ pub async fn runtime_module_get_runtime_hash(
 pub trait RuntimeModule:
   Module + CustomSourceRuntimeModule + AttachableRuntimeModule + NamedRuntimeModule
 {
+  /// Only JavaScript generators and hook overrides can introduce free webpack runtime names.
+  async fn source_kind(
+    &self,
+    _compilation: &Compilation,
+  ) -> Result<crate::RuntimeModuleSourceKind> {
+    self
+      .get_custom_source()
+      .map_or(Ok(crate::RuntimeModuleSourceKind::Native), |source| {
+        crate::classify_runtime_module_source(&source)
+      })
+  }
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Normal
   }
