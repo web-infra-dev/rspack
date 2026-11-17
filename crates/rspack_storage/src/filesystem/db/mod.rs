@@ -13,6 +13,7 @@ use rspack_parallel::TryFutureConsumer;
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::Mutex;
 
+pub use self::transaction::StateLock;
 use self::{bucket::Bucket, transaction::Transaction};
 use super::ScopeFileSystem;
 use crate::{Error, Result};
@@ -34,6 +35,12 @@ pub struct DB {
   /// no-ops so a broken cache state cannot be made worse.  The current build
   /// continues unaffected; restarting the process clears this flag.
   readonly: Arc<AtomicBool>,
+}
+
+/// Reads every committed entry of one bucket without recovering transactions or
+/// creating directories.
+pub async fn read_committed_bucket(fs: ScopeFileSystem) -> Result<Vec<(Vec<u8>, Vec<u8>)>> {
+  Bucket::open(fs).await?.load_all().await
 }
 
 impl DB {
