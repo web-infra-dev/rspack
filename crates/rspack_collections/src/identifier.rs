@@ -108,6 +108,6 @@ impl CustomConverter for Identifier {
     Ok(PortableString::new(self.as_str(), guard))
   }
   fn deserialize(data: Self::Target, guard: &ContextGuard) -> Result<Self, CacheableError> {
-    Ok(Self::from(data.into_path_string(guard.project_root())))
+    Ok(Self::from(data.into_path_string(guard)))
   }
 }

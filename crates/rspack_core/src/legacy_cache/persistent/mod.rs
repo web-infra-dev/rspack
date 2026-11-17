@@ -52,12 +52,7 @@ impl PersistentCache {
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
     compilation_logging: CompilationLogging,
   ) -> Self {
-    let portable_project_root = if option.portable {
-      Some(compiler_options.context.as_path().to_path_buf())
-    } else {
-      None
-    };
-    let codec = Arc::new(CacheCodec::new(portable_project_root));
+    let codec = Arc::new(CacheCodec::new(option.portable_root.clone()));
     // Each compiler path owns exactly one storage directory.
     let cache_directory = {
       let mut hasher = DefaultHasher::new();

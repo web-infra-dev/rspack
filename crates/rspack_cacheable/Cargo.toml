@@ -14,6 +14,7 @@ noop       = []
 arc-swap                = { workspace = true }
 base64-simd             = { workspace = true }
 camino                  = { workspace = true }
+cow-utils               = { workspace = true }
 dashmap                 = { workspace = true }
 hashlink                = { workspace = true }
 indexmap                = { workspace = true }
@@ -22,7 +23,6 @@ json                    = { workspace = true }
 lightningcss            = { workspace = true }
 once_cell               = { workspace = true }
 percent-encoding        = { workspace = true }
-regex                   = { workspace = true }
 rkyv                    = { workspace = true, features = ["triomphe-0_1"] }
 rspack-allocative       = { workspace = true, optional = true }
 rspack_cacheable_macros = { workspace = true }

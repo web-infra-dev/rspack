@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 pub use rspack_core::legacy_cache::persistent::occasion::make::SCOPE;
 use rspack_core::{
-  BuildInfo, CompilationLogger, DependencyId,
+  BuildInfo, CompilationLogger, DependencyId, PortableRoot,
   build_module_graph::BuildModuleGraphArtifact,
   cache::CacheCodec,
   legacy_cache::persistent::{
@@ -35,7 +35,10 @@ pub async fn compare(
 
   // Convert stored data to BuildModuleGraphArtifact using MakeOccasion's recovery ability
   // Use a dummy path for codec since we're only deserializing
-  let codec = Arc::new(CacheCodec::new(Some(Utf8PathBuf::from("/"))));
+  let codec = Arc::new(CacheCodec::new(Some(PortableRoot {
+    root: Utf8PathBuf::from("/"),
+    canonical_root: Utf8PathBuf::from("/"),
+  })));
   let occasion1 = MakeOccasion::new(codec.clone());
   let occasion2 = MakeOccasion::new(codec.clone());
 
