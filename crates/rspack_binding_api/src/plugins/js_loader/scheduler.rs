@@ -1,7 +1,6 @@
 use rspack_core::{LoaderContext, NormalModuleLoaderStartYielding, RunnerContext};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
-use rspack_js_tasks::{JsTask, LoaderTask, LoaderTaskTiming, js_task_dispatcher};
 use rspack_loader_runner::State;
 use tokio::sync::oneshot;
 
@@ -9,6 +8,7 @@ use super::{
   JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRspackPluginInner, result::merge_loader_context,
   runtime::ExecutionMode,
 };
+use crate::js_tasks::{JsTask, LoaderTask, LoaderTaskTiming, js_task_dispatcher};
 
 #[plugin_hook(NormalModuleLoaderStartYielding for JsLoaderRspackPlugin, tracing=false)]
 pub(crate) async fn loader_yield(

@@ -1,10 +1,12 @@
 use std::{ffi::c_void, ptr, sync::Mutex};
 
 use napi::{bindgen_prelude::*, sys};
-use rspack_js_tasks::{JsTask, TimingPoint};
 use tokio_util::sync::CancellationToken;
 
-use crate::plugins::js_loader::worker::JsLoaderTask;
+use crate::{
+  js_tasks::{JsTask, TimingPoint},
+  plugins::js_loader::worker::JsLoaderTask,
+};
 
 pub(super) struct Delivery {
   pub task: JsTask,

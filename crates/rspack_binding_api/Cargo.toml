@@ -23,6 +23,7 @@ tracy-client     = ["dep:tracy-client", "rspack_allocator/tracy-client"]
 
 [dependencies]
 anyhow                    = { workspace = true }
+async-channel             = { workspace = true }
 atomic_refcell            = { workspace = true }
 dashmap                   = { workspace = true }
 rspack_allocator          = { workspace = true }
@@ -34,7 +35,6 @@ rspack_fs                 = { workspace = true }
 rspack_hash               = { workspace = true }
 rspack_hook               = { workspace = true }
 rspack_intern             = { workspace = true, features = ["atom"] }
-rspack_js_tasks           = { workspace = true }
 rspack_napi               = { workspace = true }
 rspack_paths              = { workspace = true }
 rspack_plugin_esm_library = { workspace = true }

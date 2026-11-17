@@ -4159,6 +4159,7 @@ name = "rspack_binding_api"
 version = "0.103.2"
 dependencies = [
  "anyhow",
+ "async-channel",
  "async-trait",
  "atomic_refcell",
  "cow-utils",
@@ -4185,7 +4186,6 @@ dependencies = [
  "rspack_ids",
  "rspack_intern",
  "rspack_javascript_compiler",
- "rspack_js_tasks",
  "rspack_loader_lightningcss",
  "rspack_loader_preact_refresh",
  "rspack_loader_react_refresh",
@@ -4601,16 +4601,6 @@ dependencies = [
  "swc_error_reporters",
  "swc_typescript",
  "url",
-]
-
-[[package]]
-name = "rspack_js_tasks"
-version = "0.103.2"
-dependencies = [
- "async-channel",
- "rspack_error",
- "serde_json",
- "tokio",
 ]
 
 [[package]]

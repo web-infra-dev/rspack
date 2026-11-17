@@ -1,4 +1,7 @@
+mod dispatcher;
 mod subscription;
+mod task;
+mod timing;
 mod tsfn;
 
 use std::{
@@ -6,8 +9,11 @@ use std::{
   sync::{Arc, Weak},
 };
 
+pub(crate) use dispatcher::js_task_dispatcher;
 use napi::bindgen_prelude::*;
 pub(crate) use subscription::{JsTaskSubscription, MAIN_TASK_SUBSCRIPTION};
+pub(crate) use task::{JsTask, LoaderTask};
+pub(crate) use timing::{LoaderTaskTiming, TimingPoint};
 
 type TaskRunner = FunctionRef<FnArgs<(Unknown<'static>, Unknown<'static>)>, ()>;
 

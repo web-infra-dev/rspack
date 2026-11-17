@@ -5,7 +5,7 @@ use std::{
 
 use async_channel::{Receiver, Sender};
 
-use crate::{JsTask, TimingPoint};
+use super::{JsTask, TimingPoint};
 
 static JS_TASK_DISPATCHER: LazyLock<JsTaskDispatcher> = LazyLock::new(JsTaskDispatcher::new);
 
@@ -46,10 +46,6 @@ impl JsTaskReceiver {
       .recv()
       .await
       .expect("global JS task queues remain open")
-  }
-
-  pub fn try_recv(&self) -> Option<JsTask> {
-    self.0.try_recv().ok()
   }
 }
 

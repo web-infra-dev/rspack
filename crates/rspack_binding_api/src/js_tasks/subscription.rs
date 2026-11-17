@@ -2,10 +2,10 @@ use std::sync::{Arc, Mutex, Weak};
 
 use dashmap::DashMap;
 use napi::{Env, sys};
-use rspack_js_tasks::{TimingPoint, js_task_dispatcher};
 use tokio_util::sync::{CancellationToken, DropGuard};
 
 use super::tsfn::{Delivery, JsTaskTsfn};
+use crate::js_tasks::{TimingPoint, js_task_dispatcher};
 
 pub(crate) static MAIN_TASK_SUBSCRIPTION: Mutex<Weak<JsTaskSubscription>> = Mutex::new(Weak::new());
 

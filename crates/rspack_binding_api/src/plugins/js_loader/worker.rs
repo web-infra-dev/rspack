@@ -9,7 +9,6 @@ use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_collections::Identifiable;
 use rspack_core::{CompilerId, LoaderContext, ModuleIdentifier, RunnerContext};
-use rspack_js_tasks::{LoaderTask as NativeLoaderTask, TimingPoint, js_task_dispatcher};
 use rustc_hash::FxHashMap;
 
 use super::{
@@ -19,6 +18,7 @@ use super::{
 };
 use crate::{
   error::RspackResultToNapiResultExt,
+  js_tasks::{LoaderTask as NativeLoaderTask, TimingPoint, js_task_dispatcher},
   module::{ModuleObject, WorkerModuleScope},
   options::raw_resolve::{
     RawResolveOptionsWithDependencyType, normalize_raw_resolve_options_with_dependency_type,
