@@ -367,7 +367,9 @@ impl EventProcessor {
         self.analyzer.invalidate_path(&event.path);
       }
     }
-    let _ = self.tx.send(events);
+    if !events.dependencies.is_empty() {
+      let _ = self.tx.send(events);
+    }
   }
 
   async fn subscriptions(

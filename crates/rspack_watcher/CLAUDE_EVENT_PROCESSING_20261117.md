@@ -9,7 +9,8 @@ by those subscriptions.
 
 Subscription selection may await a JavaScript `ignored` callback before observing
 the final filesystem state. An empty selection must not skip state maintenance
-or recovery of independently registered descendants.
+or recovery of independently registered descendants. After recovery, only
+nonempty change sets are delivered to the executor.
 
 ## Invariants
 
