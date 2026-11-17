@@ -614,6 +614,18 @@ function createRawModuleRuleUsesImpl(
     const optionsCacheKey = use.cache
       ? serializeLoaderOptionsForCache(fingerprintOptions)
       : undefined;
+    const comparableOptions = fingerprint
+      ? encodeComparableOptions(fingerprintOptions, strict)
+      : undefined;
+    // A portable build keys loader results by `comparableOptions`, which also tells apart values
+    // that JSON can't, such as `Set` contents. Only options that encode exactly qualify, so a
+    // function still keeps its loader result out of the cache.
+    const cache =
+      optionsCacheKey !== undefined ||
+      (Boolean(use.cache) &&
+        comparableOptions !== undefined &&
+        (strict ||
+          encodeComparableOptions(fingerprintOptions, true) !== undefined));
     return {
       loader: resolveStringifyLoaders(
         use,
@@ -623,11 +635,9 @@ function createRawModuleRuleUsesImpl(
         fingerprintOptions,
       ),
       options: o,
-      cache: optionsCacheKey !== undefined,
+      cache,
       optionsCacheKey: optionsCacheKey ?? '',
-      comparableOptions: fingerprint
-        ? encodeComparableOptions(fingerprintOptions, strict)
-        : undefined,
+      comparableOptions,
       codeFilter: createRawLoaderCodeFilter(
         use.codeFilter,
         `${path}[${index}].codeFilter`,

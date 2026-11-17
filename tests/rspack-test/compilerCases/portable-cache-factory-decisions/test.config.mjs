@@ -932,6 +932,18 @@ export default [
 			});
 		}
 	},
+	{
+		name: "loader-result-cache-skips-function-option-array-use",
+		description: "does not serve a loader result by a function in an array use on a portable build",
+		async run() {
+			await withProjects(observeLoader, async (writer) => {
+				const first = await build(writer, useLoaderResultCache("array", { value: () => "first" }));
+				expect(execute(first)).toBe("[object Function] first");
+				const second = await build(writer, useLoaderResultCache("array", { value: () => "second" }));
+				expect(execute(second)).toBe("[object Function] second");
+			});
+		}
+	},
 	...scenarios.map(({ name, files = {}, rules, plugins, noParse }) => ({
 		name,
 		description: `decides ${name} at the reader of a relocated cache`,
