@@ -6,9 +6,6 @@ export default defineConfig({
   output: {
     pathinfo: true,
   },
-  experiments: {
-    css: true,
-  },
   module: {
     rules: [
       {

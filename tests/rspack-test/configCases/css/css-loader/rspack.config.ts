@@ -180,9 +180,6 @@ const createConfig = (exportType: ExportType): rspack.Configuration => ({
       '~test': path.resolve(__dirname, 'node_modules/test'),
     },
   },
-  experiments: {
-    css: true,
-  },
   plugins: [
     new rspack.DefinePlugin({
       'process.env.EXPORT_TYPE': JSON.stringify(exportType),

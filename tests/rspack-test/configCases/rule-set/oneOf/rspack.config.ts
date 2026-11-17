@@ -5,9 +5,6 @@ export default defineConfig({
   output: {
     assetModuleFilename: '[name][ext]',
   },
-  experiments: {
-    css: false,
-  },
   module: {
     rules: [
       {

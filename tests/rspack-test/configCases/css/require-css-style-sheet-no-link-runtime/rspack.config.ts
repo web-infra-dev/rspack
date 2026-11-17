@@ -6,9 +6,6 @@ export default defineConfig({
   mode: 'development',
   devtool: false,
   plugins: [new rspack.HotModuleReplacementPlugin()],
-  experiments: {
-    css: true,
-  },
   output: {
     // The require chunk-loading runtime cannot load stylesheet links. Even
     // though the style-sheet export type asks for the css runtime, the link
