@@ -913,7 +913,7 @@ export default {
 };
 ```
 
-A function can also be used to select loaders for each module. It can return a loader name, a loader options object, or an array of these. If the loader configuration is fixed, prefer a non-function form to reduce [performance overhead](#performance-overhead). For example:
+A function can also be used to select loaders for each module, as shown below. It can return a loader name, a loader options object, or an array of these. If the loader configuration is fixed, prefer a non-function form to reduce [performance overhead](#performance-overhead).
 
 ```js title="rspack.config.mjs"
 import { basename } from 'node:path';

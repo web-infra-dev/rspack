@@ -911,7 +911,7 @@ export default {
 };
 ```
 
-也可以使用函数为每个模块选择 loader，返回 loader 名称、loader 配置对象或由它们组成的数组。如果 loader 配置固定，建议使用非函数形式，以减少[性能开销](#performance-overhead)。例如：
+也可以使用函数为每个模块选择 loader，返回 loader 名称、loader 配置对象或由它们组成的数组，如下例所示。如果 loader 配置固定，建议使用非函数形式，以减少[性能开销](#performance-overhead)。
 
 ```js title="rspack.config.mjs"
 import { basename } from 'node:path';
