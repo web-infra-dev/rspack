@@ -76,6 +76,10 @@ Requesting detailed stats with [`stats.toJson()`](/api/javascript-api/stats#tojs
 
 Function options in [`splitChunks`](/plugins/split-chunks-plugin) and a higher [`dedupDepth`](/plugins/split-chunks-plugin#splitchunksdedupdepth) can increase build time. See [SplitChunks performance overhead](/plugins/split-chunks-plugin#performance-overhead) for the causes and configuration recommendations.
 
+### Module rules
+
+Using functions for module rule options such as [`test`](/config/module-rules#rulestest), [`include`](/config/module-rules#rulesinclude), [`exclude`](/config/module-rules#rulesexclude), or [`use`](/config/module-rules#rulesuse) can add overhead during module processing. Prefer non-function forms when they meet your needs. See [Module rules performance overhead](/config/module-rules#performance-overhead) for details.
+
 ## Thread pool configuration
 
 ### Blocking thread pool size
