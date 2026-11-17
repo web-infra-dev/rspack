@@ -5,7 +5,9 @@ description: Capture local Rspack Rust and JavaScript memory snapshots for Speed
 
 # Rspack allocative
 
-Produce inspectable local artifacts: a raw `.allocative` snapshot and, when requested, measured population counts with a CSV table and a separate count-weighted folded file. Use Speedscope to view flamegraphs. Explain the capture phase and coverage with every result.
+Workflow: **Select the workload → Build → Capture → Convert → Validate → Deliver**.
+
+Produce local memory snapshots and reports for Speedscope. Include counts reports whenever matching measured counts are available; additional populations may require instrumentation. Honor requests for raw captures only.
 
 ## Select the workload
 
@@ -13,7 +15,7 @@ By default, use the repository's built-in benchmark projects. With no project, t
 
 An explicitly selected external project or repository test case takes precedence over this default. Do not use the initial working directory as the workload unless the user requests that project. Test cases use their existing harness; external projects use their actual configuration.
 
-## Project directory argument
+### Project directory argument
 
 Accept `--project-dir <path>` in the skill request, for example:
 
@@ -24,31 +26,13 @@ $rspack-allocative --project-dir "../my app" production build with sourcemap
 
 These are request arguments interpreted by the agent, not options passed to the Rspack CLI or the report helper. Also accept a project directory stated in natural language.
 
-For explicitly selected project workloads, resolve `PROJECT_DIR` from `--project-dir` first, then the project named in the request. Use the initial working directory when the user explicitly requests the current project. Resolve relative paths against that initial working directory, preserve paths containing spaces, and check that the directory exists before building. Use its configuration and requested build mode; do not substitute a built-in benchmark for an explicitly selected project.
+For explicitly selected project workloads, resolve `PROJECT_DIR` from `--project-dir` first, then the project named in the request. Use the initial working directory when the user explicitly requests the current project. Resolve relative paths against that initial working directory, preserve paths containing spaces, and check that the directory exists before building. Use its configuration and requested build mode.
 
 Keep `RSPACK_ROOT` separate: it is the selected Rspack checkout used to build the local binding and JS packages, and defaults to the current Rspack worktree when available. An external `PROJECT_DIR` does not change the checkout. If the request names a config, resolve a relative `CONFIG_PATH` against `PROJECT_DIR`; otherwise inspect that project's scripts and configuration to select its actual build configuration.
 
-When the user requests capture from a repository test case, accept the case directory alone; do not require `--project-dir tests/rspack-test`. Resolve and run it as described in [Capture a test case](#capture-a-test-case), rather than treating the fixture as a standalone project.
+When the user requests capture from a repository test case, accept the case directory alone; do not require `--project-dir tests/rspack-test`. Resolve and run it as described in [Test cases](#test-cases), rather than treating the fixture as a standalone project.
 
-## Establish coverage
-
-Use the user's selected checkout or current Rspack worktree. When invoked outside a checkout, locate the requested Rspack repository before building. Resolve paths; do not assume another checkout's binding matches the selected revision.
-
-Check these integration points in the selected revision:
-
-- `crates/node_binding/scripts/build.mjs`: debug (`release-debug`) and profiling builds enable the Cargo feature, `--cfg=allocative`, and the allocative compiler driver automatically; `ALLOCATIVE` opts other binding builds in.
-- `scripts/allocative-driver.mjs`: builds the host driver with the pinned nightly's `rustc-dev` and wraps Cargo for Rust-only profiling. Ordinary source enums are instrumented in memory; macro-generated and borrowed/const-array enums retain explicit adapters.
-- `crates/rspack_binding_api/src/lib.rs`: `RunGuard::finish` captures the live Rust `JsCompiler` on the JS thread after the build/rebuild future has ended, before releasing its running guard and strong reference.
-- `crates/rspack_allocative/src/napi_tracking.rs` and `napi_shim.rs`: the optional `napi-tracking` feature owns class interception, weak registrations, target links, and coordinated capture. The binding enables it only through its `allocative` feature; the separate `napi` feature only provides type traversal adapters.
-- `crates/rspack_allocative/src/snapshot.rs`: the optional `snapshot` feature owns output reservation, global-root/Ustr traversal, and file writing. `crates/rspack_binding_api/src/allocative/mod.rs` supplies module/dependency graph entry counts; core has no snapshot output logic.
-- `scripts/heapSnapshot.mjs` in this skill: offline streaming parsing and V8 graph helpers used by `v8-to-allocative.mjs`. Its `stream-json` and `stream-chain` dependencies are repository-root dev dependencies; install them from `RSPACK_ROOT`. The runtime package only marks objects and writes raw V8 snapshots.
-- Cargo manifests: the actual allocative package/version and feature propagation.
-
-Node captures visit **Rust JsCompiler → compiler → core Compiler → Compilation**, including the wrapper's other fields, registered global roots, and the process-global Ustr string arena. The capture runs after cache finalization and after the build future releases its mutable compiler borrow, before the JS completion callback and compiler destruction. GC and V8 serialization finish synchronously on the owning JS thread before native traversal. Core build/rebuild has no automatic capture entry point; all automatic captures start in the binding. Shared allocations are charged once, below their first encountered owner; later references and cycles do not add their payload again. Hash iteration can change the first-owner path between runs. Read the snapshot metadata and warnings before interpreting a total. Older revisions visited global roots only; inspect the checkout before comparing results.
-
-An object-tree byte profile is not RSS, peak heap usage, cumulative allocations, or a complete process heap census. Skipped fields, missing roots, and missing trait implementations limit coverage. Objects already freed will not appear in a later snapshot.
-
-## Build and capture
+## Build
 
 Follow the checkout's AGENTS instructions and development commands. Set `RSPACK_ROOT` to its absolute path. For project or test workloads, after installing dependencies, build the local Node binding and JS packages:
 
@@ -60,7 +44,9 @@ pnpm run build:js
 
 For large workloads, `pnpm run build:binding:profiling` is an alternative if appropriate for the installed toolchain. Both `build:binding:debug` (`release-debug`) and `build:binding:profiling` include allocative automatically. Confirm the build log enables **both** the Cargo feature and cfg. Dev, CI, and release binding builds remain opt-in through `ALLOCATIVE`. Do not use `ALLOCATIVE=0` to disable it: the existing JavaScript build script checks truthiness. Unset it for ordinary builds. In all profiles, leave `RSPACK_ALLOCATIVE_DIR` unset to disable snapshot collection.
 
-For project workloads, run from `PROJECT_DIR` with its real configuration. For test workloads, use the existing harness as described in [Capture a test case](#capture-a-test-case). Set `CONFIG_PATH` to the resolved absolute config path and `PROFILE_DIR` to an absolute, fresh directory for each process/run:
+## Capture
+
+For project workloads, run from `PROJECT_DIR` with its real configuration. For test workloads, use the existing harness as described in [Test cases](#test-cases). Set `CONFIG_PATH` to the resolved absolute config path and `PROFILE_DIR` to an absolute, fresh directory for each process/run:
 
 ```sh
 cd "$PROJECT_DIR"
@@ -71,19 +57,11 @@ RSPACK_ALLOCATIVE_DIR="$PROFILE_DIR" \
 
 Verify the workload loads the matching JS package and native binding, including config/plugin imports that resolve their own `@rspack/core`. For paired captures, use the debug or profiling packages, or set `ALLOCATIVE=1` when building both the binding and JS for a custom release. The ordinary release JS build removes the snapshot code. Set `RSPACK_ALLOCATIVE_DIR` before creating the first compiler so the JS package caches the enabled state. See the debugging guide for `@rspack-debug/core` overrides.
 
-When the selected checkout supports paired Rust and V8 captures, start the profiling Node process with `--expose-gc`. The snapshot hook runs GC before capturing the V8 heap. The raw V8 snapshot goes in `v8/`. Keep it and the Rust identity file local when sharing a report. Public `Compiler`, `Compilation`, and `Cache` objects carry an explicit edge to their own N-API binding. Rust records a target path only when its ordinary traversal visits that binding's target address and type. Compiler-scoped identities are restricted to the compiler being captured; wrapper addresses and core target addresses are not interchangeable. The identity metadata adds no native byte weights.
+Captures run after build/rebuild and before the JS completion callback. Shared allocations are counted once; first-owner attribution can vary between runs. For missing captures, instrumentation changes, or cross-revision differences, consult [references/implementation.md](references/implementation.md).
 
-Convert the pair with `node "$RSPACK_ROOT/.agents/skills/rspack-allocative/scripts/v8-to-allocative.mjs" "$PROFILE_DIR/v8/0-build.heapsnapshot"`. The converter writes `.js.allocative`, `.combined.allocative`, and `.links.json` under `reports/`. Read `category_bytes` in the links report and open `.js.allocative` for the grouped flamegraph or `.js.<category>.allocative` for an individual category. Rspack bytes include marked instances, roots, and binding wrappers, as well as nodes reachable only through Rspack roots or matched bindings. Read `marked_objects` in the links report for per-type object counts and shallow bytes, including plain records and arrays such as assets. The converter retains object names by default and never emits string-node payloads; strings contribute only their original snapshot byte weights. CLI streaming parsing discards payloads while retaining structural names and known native identities internally for matching. Pass `--clear-class-names` to remove custom constructor names, including matching constructor function/code names; common JavaScript/Node built-in class names always remain. Rspack markers and Rust types remain diagnostic metadata. The legacy `--include-content` flag is accepted without exposing string payloads or binding addresses. Read `clear_class_names`, `string_contents` and `string_storage` in the links report.
+Snapshots typically start at `0-build.allocative` and increment within a process. Check exit status, nonempty outputs, and capture phase. For watch/rebuild workloads, verify which updates produced snapshots. Raw V8 snapshots are written under `v8/`; keep them and Rust identity files local when sharing reports.
 
-Inspect `root_links`, not just `matched_bindings`: each public root should identify its `binding_node_id` and, when measured in this Rust snapshot, `rust_target.type_name` and `rust_target.path`. Verify `native_owners` identifies the active public Compiler and its measured Rust wrapper. The combined profile must contain `JavaScript;Rspack;Compiler;rspack_binding_api::JsCompiler;compiler;…;rspack_core::compiler::Compiler`, plus the wrapper's other fields. The raw Rust profile starts at `rspack_binding_api::JsCompiler`; core Compiler must not also appear as a separate root. The converter moves each native sample once under its JS owner; Compilation views and Cache target links never copy native subtrees. A single ordinary compiler capture should match all three roots. A process-wide V8 heap can also contain other compilers or targets outside the Rust traversal; leave those roots unmatched rather than joining by type name. Retained Compilation objects may point to the current compilation slot after rebuild. Legacy captures without public-to-binding edges or native target metadata require recapture for these links.
-
-Validate that category byte totals equal the JS total and that combined bytes equal Rust plus JS bytes. Root-path subtotals describe representative attribution paths, not retained sizes or object counts. A zero `unmatched_bindings` count proves only wrapper identity matching, not complete native coverage. Inspect `measured`, wrapper field paths, warnings, and byte conservation; merely relabeling the old core-only tree cannot measure the wrapper. Only wrappers actually visited in the safe native traversal have `measured: true`. Opaque external handles remain coverage limits even when every wrapper field is represented.
-
-Snapshots typically start at `0-build.allocative` and increment within a process. Separate processes can overwrite those names if they share a directory. Check exit status, nonempty outputs, and capture phase. For watch/rebuild workloads, inspect the rebuild path instead of assuming every rebuild emits a snapshot.
-
-For benchmark workloads, run the prepared fixture through the local Node binding and CLI as above. Setting `RSPACK_ALLOCATIVE_DIR` on a standalone Cargo benchmark does not produce snapshots. Profiling builds require the feature and cfg together; ordinary builds remain disabled.
-
-## Capture a test case
+### Test cases
 
 Accept requests such as:
 
@@ -107,9 +85,42 @@ RSPACK_ALLOCATIVE_DIR="$PROFILE_DIR" \
 
 The literal double quotes in the positional argument select exactly one runner; an ordinary fuzzy filter can also select another runner and overwrite captures. Pass `-t` through the CLI: the harness derives its case filter from the command arguments. Use the selected revision's actual runner and project, rather than assuming this example applies to every test family. For paired captures, expose GC in the Node process running the test. If that Node version accepts `--expose-gc` in `NODE_OPTIONS`, use it so the flag reaches the test process.
 
-Keep the fixture's mode, sourcemap settings, assertions, and update sequence. Verify that the selected case executed, rather than accepting a successful run containing only skipped or filtered tests. For HMR, retain the initial `build` snapshot and every `rebuild` snapshot with matching sidecars; prepare each snapshot in a separate report directory. Confirm the loaded binding belongs to the selected checkout. Report the case directory and runner alongside the capture artifacts.
+Keep the fixture's mode, sourcemap settings, assertions, and update sequence. Verify that the selected case executed, rather than accepting a successful run containing only skipped or filtered tests. For HMR, retain the initial `build` snapshot and every `rebuild` snapshot with matching sidecars. Confirm the loaded binding belongs to the selected checkout. Report the case directory and runner alongside the capture artifacts.
 
-## Object counts and missing roots
+## Convert
+
+For paired Rust/V8 captures:
+
+```sh
+node "$RSPACK_ROOT/.agents/skills/rspack-allocative/scripts/v8-to-allocative.mjs" \
+  "$PROFILE_DIR/v8/0-build.heapsnapshot"
+```
+
+The converter writes `.js.allocative`, `.combined.allocative`, `.links.json`, and per-category `.js.<category>.allocative` files under `reports/`. It preserves object names by default and omits string-node contents while retaining their byte weights. Use `--clear-class-names` to remove custom constructor names.
+
+Prepare every captured snapshot, including HMR rebuilds, in a separate new report directory. The helper discovers matching counts automatically; if absent, produce a byte-only report and report counts as unmeasured.
+
+Resolve `SKILL_DIR` to this installed skill directory. Prepare each native snapshot with:
+
+```sh
+pnpm --dir "$RSPACK_ROOT" exec zx "$SKILL_DIR/scripts/render-profile.mjs" \
+  "$PROFILE_DIR/0-build.allocative" \
+  --out-dir "$PROFILE_DIR/report-0"
+```
+
+The helper automatically discovers matching `.counts.json`, `.metadata.json`, and `.warnings.txt` sidecars; `--counts` overrides only the count path. Outputs: a copy of the byte snapshot, `summary.json`, and available metadata/warnings. With counts: also `counts.csv`, source JSON, and `counts.folded`. All-zero counts are reported in the table and summary; the empty folded file has no chart to view. The output directory must be new.
+
+## Validate
+
+Check metadata and warnings before interpreting totals. A byte profile is not RSS, peak usage, cumulative allocations, or a complete heap census. Missing roots and inaccessible allocations limit coverage; freed objects do not appear in later snapshots. `Unobserved nested allocations` and unavailable nonblocking locks indicate missing coverage, not zero bytes. Children exceeding a parent's declared size indicate an accounting bug.
+
+For paired captures, validate that category totals equal the JS total and combined bytes equal Rust plus JS bytes. Identity matches alone do not prove native memory was measured: inspect `measured` and warnings. For ownership-link analysis or unmatched objects, read [references/cross-language.md](references/cross-language.md).
+
+The report helper rejects mismatched snapshot IDs, negative counts, duplicate populations, and ancestor/descendant count rows. Check that sibling populations do not overlap. Preserve zero-valued populations in tables; an empty folded file for all-zero counts has no chart.
+
+For comparisons, match workload, phase, build profile, roots, units, and counting methods. Do not sum parent and child inclusive sizes.
+
+### Additional populations
 
 For counts or unobserved structures, read [references/object-counts.md](references/object-counts.md). Add focused, cfg-gated instrumentation in the selected checkout when necessary for the authorized profiling task. Keep it separate from unrelated optimization/CI work.
 
@@ -117,43 +128,8 @@ The native snapshot already emits module and dependency **entry counts grouped b
 
 For a full census request, identify missing types and add counters where feasible. Do not silently substitute entries for unique objects. Missing populations mean unmeasured, not zero. Use separate byte and count artifacts.
 
-## Prepare and inspect
+## Deliver
 
-The bundled zx helper uses the repository's installed dependencies to validate and prepare data for Speedscope. It does not generate SVGs or require a flamegraph renderer.
+Return clickable absolute links to the snapshot/report directories, identify filenames, and summarize findings with units, capture phase, and coverage. Include counts tables and count-weighted profiles when available. State the workload, resolved configuration, selected local binding, and any instrumentation changes. Preserve artifacts. If collection failed, report the failure instead of linking expected files. Profiling does not authorize publishing data or updating a PR.
 
-Run the helper as part of the capture workflow for every snapshot, using a new report directory for each. When a matching `.counts.json` exists, automatically prepare `summary.json`, `counts.csv`, and `counts.folded` alongside the byte snapshot; the user does not need to request or run the report command separately. For HMR, prepare the initial build and all captured rebuilds. Preserve zero-valued populations in the table and summary, and explain that count-profile weights are entries rather than bytes. If counts are missing, report them as unmeasured and prepare the byte-only report. Honor a request for raw captures only.
-
-Resolve `SKILL_DIR` to this installed skill directory. For byte-only data:
-
-```sh
-pnpm --dir "$RSPACK_ROOT" exec zx "$SKILL_DIR/scripts/render-profile.mjs" \
-  "$PROFILE_DIR/0-build.allocative" \
-  --out-dir "$PROFILE_DIR/report-0"
-```
-
-For matching measured counts:
-
-```sh
-pnpm --dir "$RSPACK_ROOT" exec zx "$SKILL_DIR/scripts/render-profile.mjs" \
-  "$PROFILE_DIR/0-build.allocative" \
-  --counts "$PROFILE_DIR/0-build.counts.json" \
-  --out-dir "$PROFILE_DIR/report-0"
-```
-
-The helper automatically discovers matching `.counts.json`, `.metadata.json`, and `.warnings.txt` sidecars; `--counts` overrides only the count path. Outputs: a copy of the byte snapshot, `summary.json`, and available metadata/warnings. With counts: also `counts.csv`, source JSON, and `counts.folded`. All-zero counts are reported in the table and summary; the empty folded file has no chart to view. The output directory must be new.
-
-The helper records units separately as bytes and objects/entries. It rejects mismatched snapshot IDs, negative counts, duplicate populations, and ancestor/descendant count rows that would double-count totals. Distinct sibling paths can still describe overlapping populations: check their semantics yourself.
-
-Open [Speedscope](https://www.speedscope.app/) and drag in the `.allocative` snapshot or a nonempty `counts.folded` file. Wider byte frames indicate more represented memory; wider count frames indicate larger measured populations. Folded files do not carry units, so state which metric each file contains. Count paths group by ownership scope, not allocation call stack. CSV rows retain the counting basis.
-
-Treat `Unobserved nested allocations` warnings as missing heap coverage, not zero bytes. Nonblocking locks can also make a snapshot incomplete. Unsupported nested types and raw pointers fall back to opaque automatically; ordinary SWC options and initialized configuration caches expose supported fields. Rust callback captures remain opaque to the Rust visitor; JavaScript objects are measured separately by the V8 capture. The persistence backend also remains opaque because creating its reflection vtable fails on the pinned compiler. Container private metadata and allocator overhead are not fully represented; see metadata limits. An accounting warning about children exceeding a parent is a profiler bug to investigate, not an ordinary coverage limitation.
-
-For comparisons, match input, phase, profile, roots, units, and counting methods. Keep separate run directories. Do not sum parent and child inclusive sizes. A stage-end snapshot is not evidence of maximum live size during that stage.
-
-## Validate and report
-
-Compile changed Rust instrumentation before executing it. Run the requested workload and prepare its artifacts for Speedscope. Explain unobserved populations and report collection/build failures. Synthetic helper tests are not Rspack measurements.
-
-Return raw snapshots, count-weighted folded files and the counts table when collected, and findings with units, phase, and coverage. Mention the workload project directory, resolved configuration, selected local binding, and any instrumentation changes. Preserve artifacts for inspection. Profiling does not imply permission to publish data or update a PR.
-
-After each run that produces snapshots, include a clickable absolute link to the directory containing the `.allocative` files and identify the snapshot filenames. Tell the user to open [Speedscope](https://www.speedscope.app/) and drag in a `.allocative` file to explore it with search, zoom, and the **Left Heavy** view. Explain that the weights are bytes and the paths represent ownership; the folded file does not carry a unit, and **Time Order** does not represent a timeline for these snapshots. If no snapshot was produced, report that explicitly instead of linking an expected output path.
+Tell the user to open [Speedscope](https://www.speedscope.app/) and drag in a `.allocative` file or nonempty `counts.folded`. Use search, zoom, and **Left Heavy** to inspect large paths. State whether weights are bytes, objects, or entries: folded files do not carry units. Paths describe ownership, and **Time Order** is not a timeline.

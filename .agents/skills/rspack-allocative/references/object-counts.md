@@ -15,7 +15,7 @@ Find current roots with `rg 'allocative::root|visit_root|visit_global_roots' cra
 
 For a supported local root, pass a borrowed reference into a phase-local collector and call `FlameGraphBuilder::visit_root(&root)`. Ordinary owned structs need no derive. Add explicit `Allocative` adapters only for custom ownership or field policies, borrowed traversal, third-party enums, or compiler reflection limitations; audit skipped fields and opaque coverage. Custom traversal must deduplicate shared pointees. Gate instrumentation with `#[cfg(allocative)]` / `#[cfg_attr(allocative, ...)]`. Do not clone large structures for profiling.
 
-The workspace vendors `rspack-allocative` 0.3.5 in `crates/rspack_allocative`, with Rspack adapters, shared ownership traversal and coverage diagnostics. Its folded output still contains bytes only. Native module/dependency entry counters are separate from the visitor; extend explicit counters for new populations instead of interpreting byte frames as instances.
+The workspace maintains `rspack-allocative` in `crates/rspack_allocative`, with Rspack adapters, shared ownership traversal and coverage diagnostics. Its folded output still contains bytes only. Native module/dependency entry counters are separate from the visitor; extend explicit counters for new populations instead of interpreting byte frames as instances.
 
 ## Capture counts beside a snapshot
 
