@@ -184,7 +184,7 @@ impl CommonJsExportRequireDependency {
 
   pub fn get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
     mg.get_dep_meta_if_existing(&self.id)
-      .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
+      .map_or(self.ids.as_slice(), |meta| meta.ids.as_slice())
   }
 
   fn is_all_exported_by_module_exports(&self) -> bool {

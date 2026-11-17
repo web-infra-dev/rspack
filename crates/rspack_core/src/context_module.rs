@@ -896,9 +896,7 @@ impl ContextModule {
       Some(GroupOptions::ChunkGroup(group)) => group.fetch_priority,
       _ => None,
     };
-    let fetch_priority_arg = fetch_priority
-      .map(|x| format!(r#", "{x}""#))
-      .unwrap_or_default();
+    let fetch_priority_arg = fetch_priority.map_or_default(|x| format!(r#", "{x}""#));
     if fetch_priority.is_some() {
       runtime_template
         .runtime_requirements_mut()

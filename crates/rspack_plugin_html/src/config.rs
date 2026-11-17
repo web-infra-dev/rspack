@@ -74,7 +74,7 @@ impl FromStr for HtmlScriptLoading {
 }
 
 type TemplateParameterTsfn =
-  Box<dyn for<'a> Fn(String) -> BoxFuture<'static, Result<String>> + Sync + Send>;
+  Box<dyn Fn(String) -> BoxFuture<'static, Result<String>> + Sync + Send>;
 
 pub struct TemplateParameterFn {
   pub inner: TemplateParameterTsfn,
@@ -100,8 +100,7 @@ pub struct HtmlRspackPluginBaseOptions {
   pub target: Option<String>,
 }
 
-type TemplateRenderTsfn =
-  Box<dyn for<'a> Fn(String) -> BoxFuture<'static, Result<String>> + Sync + Send>;
+type TemplateRenderTsfn = Box<dyn Fn(String) -> BoxFuture<'static, Result<String>> + Sync + Send>;
 
 pub struct TemplateRenderFn {
   pub inner: TemplateRenderTsfn,

@@ -181,10 +181,7 @@ impl Compiler {
         Some(module_executor),
         compilation_logging,
         new_cache.clone(),
-        loader_cache
-          .as_ref()
-          .map(Arc::downgrade)
-          .unwrap_or_default(),
+        loader_cache.as_ref().map_or_default(Arc::downgrade),
         Default::default(),
         Default::default(),
         input_filesystem.clone(),
@@ -326,8 +323,7 @@ impl Compiler {
           .loader_cache
           .load()
           .as_ref()
-          .map(Arc::downgrade)
-          .unwrap_or_default(),
+          .map_or_default(Arc::downgrade),
         Default::default(),
         Default::default(),
         self.input_filesystem.clone(),

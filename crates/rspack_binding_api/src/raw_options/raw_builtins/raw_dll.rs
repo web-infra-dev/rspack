@@ -105,7 +105,7 @@ impl From<RawDllManifestContentItem> for DllManifestContentItem {
     });
 
     Self {
-      build_meta: value.build_meta.map(|meta| meta.into()).unwrap_or_default(),
+      build_meta: value.build_meta.map_or_default(|meta| meta.into()),
       exports,
       id: value.id.map(|id| match id {
         Either::A(n) => ModuleId::from(n),

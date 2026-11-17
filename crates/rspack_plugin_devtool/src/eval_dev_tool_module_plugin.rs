@@ -154,7 +154,7 @@ async fn render_module_content(
     let source = &origin_source.source().into_string_lossy();
     let footer = format!(
       "\n{}",
-      &self.source_url_comment.cow_replace(
+      self.source_url_comment.cow_replace(
         "[url]",
         encode_uri(&str)
           .cow_replace("%2F", "/")

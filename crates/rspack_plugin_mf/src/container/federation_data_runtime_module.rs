@@ -79,7 +79,7 @@ chunkMatcher: function(chunkId) {{
     return {has_js_matcher};
 }},
 "#,
-      has_js_matcher = &has_js_matcher.render("chunkId")
+      has_js_matcher = has_js_matcher.render("chunkId")
     )
   };
 

@@ -276,7 +276,7 @@ impl SourceNameWithBaseUrl {
       SourceName::Verbatim(source_name) => Cow::Borrowed(source_name),
       SourceName::CanonicalResourceUrl(source_url) => {
         relative_source_name_from_url(source_url, source_map_path)
-          .map_or_else(|| Cow::Borrowed(source_url.as_str()), Cow::Owned)
+          .map_or(Cow::Borrowed(source_url.as_str()), Cow::Owned)
       }
     }
   }
@@ -309,7 +309,6 @@ pub struct SourceMapDevToolPlugin {
   columns: bool,
   no_sources: bool,
   public_path: Option<String>,
-  #[expect(dead_code)]
   module: bool,
   source_root: Option<Arc<str>>,
   test: Option<AssetConditions>,
@@ -1130,9 +1129,7 @@ impl SourceMapDevToolPlugin {
           .cow_replace("[url]", &source_map_url)
           .into_owned();
 
-        let mut suffix = debug_id
-          .map(|id| format!("\n//# debugId={id}"))
-          .unwrap_or_default();
+        let mut suffix = debug_id.map_or_default(|id| format!("\n//# debugId={id}"));
         suffix.push_str(&current_source_mapping_url_comment);
         let suffix = RawStringSource::from(suffix).boxed();
         let asset_append = vec![suffix.clone()];
@@ -1324,7 +1321,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .expect_get_mut(ukey)
       });
       if let Some(chunk) = chunk {
-        chunk.add_auxiliary_file(source_map_filename.clone());
+        chunk.add_auxiliary_file(source_map_filename);
       }
     }
   }

@@ -626,7 +626,7 @@ impl JsCompilation {
   ) -> Result<PathWithInfo> {
     let compilation = self.as_ref()?;
     let filename: rspack_core::Filename = filename.into();
-    let mut asset_info = asset_info.map(Into::into).unwrap_or_default();
+    let mut asset_info = asset_info.map_or_default(Into::into);
 
     #[allow(clippy::disallowed_methods)]
     let path = futures::executor::block_on(

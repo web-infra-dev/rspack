@@ -290,12 +290,12 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
         "var readFileVmInstalledChunks = {} = {} || {};\n",
         state_expression,
         state_expression,
-        &stringify_chunks(&initial_chunks, 0)
+        stringify_chunks(&initial_chunks, 0)
       ));
     } else {
       source.push_str(&format!(
         "var readFileVmInstalledChunks = {};\n",
-        &stringify_chunks(&initial_chunks, 0)
+        stringify_chunks(&initial_chunks, 0)
       ));
     }
 

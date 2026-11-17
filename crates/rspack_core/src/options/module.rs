@@ -1314,7 +1314,7 @@ impl DataRef<'_> {
       Self::Str(s) => serde_json::Value::String((*s).to_owned()),
       Self::Value(v) => (*v).to_owned(),
       Self::Resource(resource) => serde_json::json!({
-        "path": resource.path().map(|path| path.as_str()).unwrap_or_default(),
+        "path": resource.path().map_or_default(|path| path.as_str()),
         "query": resource.query().unwrap_or_default(),
         "fragment": resource.fragment().unwrap_or_default(),
       }),

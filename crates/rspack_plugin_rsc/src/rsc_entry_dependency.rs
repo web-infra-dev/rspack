@@ -41,7 +41,7 @@ impl RscEntryDependency {
     css_imports_by_server_entry: CssImportsByServerEntry,
     is_server_side_rendering: bool,
   ) -> Self {
-    let resource_identifier = format!("rsc-client-entry-{}", &name).into();
+    let resource_identifier = format!("rsc-client-entry-{name}").into();
     Self {
       id: DependencyId::new(),
       name,

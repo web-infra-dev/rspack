@@ -51,8 +51,7 @@ impl SplitChunksPlugin {
           .map(|g| chunk_group_db.expect_get(g))
           .map(|group| group.chunks.len())
           .reduce(usize::max)
-          .map(|requests| requests as u32)
-          .unwrap_or_default();
+          .map_or_default(|requests| requests as u32);
 
         if actually_requests as f64 >= allowed_max_request {
           Some(chunk.ukey())

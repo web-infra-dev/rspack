@@ -185,9 +185,7 @@ pub fn plugin_import(
         Err(e) => {
           HANDLER.with(|handler| {
             handler.err(&format!(
-              "[builtin:swc-loader] Failed to parse option \"transformImport[{}].customName\".\nReason: {}",
-              index,
-              &e.to_string()
+              "[builtin:swc-loader] Failed to parse option \"transformImport[{index}].customName\".\nReason: {e}"
             ))
           });
         }
@@ -202,9 +200,7 @@ pub fn plugin_import(
         Err(e) => {
           HANDLER.with(|handler| {
             handler.err(&format!(
-              "[builtin:swc-loader] Failed to parse option \"transformImport[{}].customStyleName\".\nReason: {}",
-              index,
-              &e.to_string()
+              "[builtin:swc-loader] Failed to parse option \"transformImport[{index}].customStyleName\".\nReason: {e}"
             ))
           });
         }
@@ -219,9 +215,7 @@ pub fn plugin_import(
         Err(e) => {
           HANDLER.with(|handler| {
             handler.err(&format!(
-              "[builtin:swc-loader] Failed to parse option \"transformImport[{}].style\".\nReason: {}",
-              index,
-              &e.to_string()
+              "[builtin:swc-loader] Failed to parse option \"transformImport[{index}].style\".\nReason: {e}"
             ))
           });
         }
@@ -275,7 +269,7 @@ impl ImportPlugin<'_> {
         CustomTransform::Tpl(_) => self
           .renderer
           .render(
-            format!("{}{}", &config.library_name, CUSTOM_JS).as_str(),
+            format!("{}{}", config.library_name, CUSTOM_JS).as_str(),
             &render_context(name.clone()),
           )
           .map(Some),
@@ -283,7 +277,7 @@ impl ImportPlugin<'_> {
     } else {
       Ok(Some(format!(
         "{}/{}/{}",
-        &config.library_name,
+        config.library_name,
         config.library_directory.as_deref().unwrap_or("lib"),
         transformed_name
       )))
@@ -311,7 +305,7 @@ impl ImportPlugin<'_> {
         CustomTransform::Tpl(_) => self
           .renderer
           .render(
-            &format!("{}{}", &config.library_name, CUSTOM_STYLE_NAME),
+            &format!("{}{}", config.library_name, CUSTOM_STYLE_NAME),
             &render_context(name),
           )
           .map_or_else(
@@ -331,7 +325,7 @@ impl ImportPlugin<'_> {
       match style {
         StyleConfig::StyleLibraryDirectory(lib) => Some(format!(
           "{}/{}/{}",
-          config.library_name, lib, &transformed_name
+          config.library_name, lib, transformed_name
         )),
         StyleConfig::Custom(custom) => match custom {
           CustomTransform::Fn(f) => f(js_source.clone()),
@@ -357,7 +351,7 @@ impl ImportPlugin<'_> {
         StyleConfig::Css => Some(format!("{js_source}/style/css")),
         StyleConfig::Bool(should_transform) => {
           if *should_transform {
-            Some(format!("{}/style", &js_source))
+            Some(format!("{js_source}/style"))
           } else {
             None
           }

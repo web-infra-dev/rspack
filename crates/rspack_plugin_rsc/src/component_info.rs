@@ -473,8 +473,7 @@ fn get_assumed_source_type<'a>(module: &dyn Module, source_type: &'a str) -> &'a
   let is_cjs = rsc.as_ref().is_some_and(|rsc| rsc.is_cjs);
   let client_refs: &[Wtf8Atom] = rsc
     .as_ref()
-    .map(|rsc| rsc.client_refs.as_slice())
-    .unwrap_or_default();
+    .map_or_default(|rsc| rsc.client_refs.as_slice());
 
   // It's tricky to detect the type of a client boundary, but we should always
   // use the `module` type when we can, to support `export *` and `export from`

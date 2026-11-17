@@ -124,14 +124,14 @@ impl RequireChunkLoadingRuntimeModule {
     let base_id = self.id().to_string();
 
     match id {
-      TemplateId::WithLoading => format!("{}_with_loading", &base_id),
-      TemplateId::WithLoadingMatcher => format!("{}_with_loading_matcher", &base_id),
-      TemplateId::WithOnChunkLoad => format!("{}_with_on_chunk_load", &base_id),
-      TemplateId::WithExternalInstallChunk => format!("{}_with_external_install_chunk", &base_id),
-      TemplateId::WithHmr => format!("{}_with_hmr", &base_id),
-      TemplateId::WithHmrManifest => format!("{}_with_hmr_manifest", &base_id),
+      TemplateId::WithLoading => format!("{base_id}_with_loading"),
+      TemplateId::WithLoadingMatcher => format!("{base_id}_with_loading_matcher"),
+      TemplateId::WithOnChunkLoad => format!("{base_id}_with_on_chunk_load"),
+      TemplateId::WithExternalInstallChunk => format!("{base_id}_with_external_install_chunk"),
+      TemplateId::WithHmr => format!("{base_id}_with_hmr"),
+      TemplateId::WithHmrManifest => format!("{base_id}_with_hmr_manifest"),
       TemplateId::Raw => base_id,
-      TemplateId::HmrRuntime => format!("{}_hmr_runtime", &base_id),
+      TemplateId::HmrRuntime => format!("{base_id}_hmr_runtime"),
     }
   }
 
@@ -301,12 +301,12 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
         "var requireInstalledChunks = {} = {} || {};\n",
         state_expression,
         state_expression,
-        &stringify_chunks(&initial_chunks, 1)
+        stringify_chunks(&initial_chunks, 1)
       ));
     } else {
       source.push_str(&format!(
         "var requireInstalledChunks = {};\n",
-        &stringify_chunks(&initial_chunks, 1)
+        stringify_chunks(&initial_chunks, 1)
       ));
     }
 
