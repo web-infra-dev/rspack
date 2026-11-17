@@ -12,9 +12,6 @@ readme               = "README.md"
 repository.workspace = true
 version.workspace    = true
 
-[lib]
-doctest = false
-
 [lints]
 workspace = true
 
