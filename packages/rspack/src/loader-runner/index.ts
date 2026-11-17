@@ -844,11 +844,7 @@ export async function runLoaders(
       )
         custom[key] = descriptor.value;
     }
-    context.bridgeHandle = registerLoaderContext(
-      compiler,
-      module.buildInfo,
-      custom,
-    );
+    context.bridgeHandle = registerLoaderContext(compiler, module, custom);
     context.addedDependencies = dependencies.added;
     context.removedDependencies = dependencies.removed;
     return context;

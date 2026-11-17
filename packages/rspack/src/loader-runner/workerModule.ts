@@ -1,7 +1,13 @@
-import binding, { type BuildInfo, type Module } from '@rspack/binding';
+import binding, {
+  type BuildInfo,
+  type Module,
+  type Dependency,
+  type AsyncDependenciesBlock,
+} from '@rspack/binding';
 import type { NormalModule } from '../NormalModule';
 import { SourceAdapter } from '../util/source';
 import { BUILD_INFO_ASSETS_SYMBOL } from '../util/symbols';
+import type { WorkerLoaderContext } from './service';
 import { strictLoaderError } from './utils';
 
 function restrictBuildInfo(buildInfo: BuildInfo): BuildInfo {
@@ -17,11 +23,12 @@ function restrictBuildInfo(buildInfo: BuildInfo): BuildInfo {
   });
 }
 
-/** The worker API deliberately excludes compilation graph access. */
+/** Local module data stays on the worker; graph access uses the main-thread bridge. */
 export function createWorkerModule(
   native: Module,
-  bridgeBuildInfo?: BuildInfo,
+  main?: Pick<WorkerLoaderContext, 'buildInfo' | 'getDependency'>,
 ) {
+  const bridgeBuildInfo = main?.buildInfo;
   let active = true;
   let localBuildInfo: BuildInfo | undefined;
   const getNative = () => {
@@ -31,6 +38,28 @@ export function createWorkerModule(
       );
     return native;
   };
+  const wrapDependency = (dependency: Dependency): Dependency => {
+    for (const key of ['ids', '_parentModule'] as const) {
+      Object.defineProperty(dependency, key, {
+        get() {
+          getNative();
+          if (!main) throw strictLoaderError(`Reading Dependency.${key}`);
+          return main.getDependency(dependency.__internal__id)[key];
+        },
+      });
+    }
+    return dependency;
+  };
+  const wrapBlock = (block: AsyncDependenciesBlock): AsyncDependenciesBlock =>
+    new Proxy(block, {
+      get(target, key) {
+        getNative();
+        if (key === 'dependencies')
+          return target.dependencies.map(wrapDependency);
+        if (key === 'blocks') return target.blocks.map(wrapBlock);
+        return Reflect.get(target, key, target);
+      },
+    });
   const module = {
     get type() {
       return binding.moduleGetType(getNative());
@@ -114,10 +143,10 @@ export function createWorkerModule(
       get: () => binding.normalModuleGetLoaders(getNative()),
     },
     blocks: {
-      get: () => binding.moduleGetBlocks(getNative()),
+      get: () => binding.moduleGetBlocks(getNative()).map(wrapBlock),
     },
     dependencies: {
-      get: () => binding.moduleGetDependencies(getNative()),
+      get: () => binding.moduleGetDependencies(getNative()).map(wrapDependency),
     },
     error: {
       get: () => binding.normalModuleGetError(getNative()),

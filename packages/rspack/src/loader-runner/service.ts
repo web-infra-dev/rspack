@@ -10,7 +10,7 @@ import {
   releaseLoaderReferences,
   stopLoaderWorker,
 } from '@rspack/binding';
-import type { BuildInfo } from '@rspack/binding';
+import type { BuildInfo, Dependency, Module } from '@rspack/binding';
 import type { Compiler } from '../Compiler';
 
 const require = createRequire(import.meta.url);
@@ -120,6 +120,7 @@ export interface WorkerLoaderContext {
   referenceVersion: number;
   compiler: Compiler;
   buildInfo: BuildInfo;
+  getDependency(id: number): Dependency;
   extensions: Record<string, unknown>;
 }
 
@@ -293,10 +294,11 @@ export function registerParallelLoader(
 /** A task-scoped bridge keeps native-backed objects on the compiler's JS thread. */
 export function registerLoaderContext(
   compiler: Compiler,
-  buildInfo: BuildInfo,
+  module: Module,
   extensions: object,
 ): number {
   const compilation = compiler._lastCompilation!;
+  const buildInfo = module.buildInfo;
   remoteRoots.add(compilation);
   remoteRoots.add(buildInfo);
   remoteRoots.add(compiler.inputFileSystem!);
@@ -325,6 +327,25 @@ export function registerLoaderContext(
         compilerRef.deref()!.__internal__takeModuleExecutionResult(id),
     },
     buildInfo,
+    getDependency(id: number): Dependency {
+      // Resolve by identity: main's graph view can filter removed dependencies.
+      const find = (
+        block: Pick<Module, 'dependencies' | 'blocks'>,
+      ): Dependency | undefined => {
+        const dependency = block.dependencies.find(
+          (dep) => dep.__internal__id === id,
+        );
+        if (dependency) return dependency;
+        for (const child of block.blocks) {
+          const dependency = find(child);
+          if (dependency) return dependency;
+        }
+      };
+      const dependency = find(module);
+      if (!dependency)
+        throw new Error(`Dependency ${id} is unavailable in the module graph`);
+      return dependency;
+    },
     extensions,
   });
   taskHandles.add(handle);
@@ -676,7 +697,7 @@ class ObjectBridge {
           const context = prepareLoaderTask(taskId);
           const handle = registerLoaderContext(
             lookup(message.target) as Compiler,
-            context._module!.buildInfo,
+            context._module!,
             {},
           );
           context.bridgeHandle = handle;

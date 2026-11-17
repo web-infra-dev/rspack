@@ -35,7 +35,7 @@ async function execute(task: JsLoaderTask): Promise<void> {
       ? undefined
       : await prepareWorkerTask(task.mainObjectHandle, task.id);
     const context = task.takeContext();
-    module = createWorkerModule(context._module!, main?.buildInfo);
+    module = createWorkerModule(context._module!, main);
     const result = await runLoaders(
       main
         ? createWorkerCompiler(main)

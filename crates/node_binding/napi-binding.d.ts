@@ -148,6 +148,7 @@ export declare class CodeGenerationResults {
 }
 
 export declare class Dependency {
+  get __internal__id(): number
   get _parentModule(): Module | undefined
   get type(): string
   get category(): string

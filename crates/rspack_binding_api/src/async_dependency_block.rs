@@ -75,7 +75,7 @@ impl AsyncDependenciesBlock {
         block
           .get_dependencies()
           .iter()
-          .map(|dep| DependencyWrapper::from_worker(dep.clone(), scope.clone()))
+          .map(|dep| DependencyWrapper::from_worker(dep.clone()))
           .collect(),
       );
     }

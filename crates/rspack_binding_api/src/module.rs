@@ -572,13 +572,13 @@ impl ModuleHandle {
   }
 
   pub fn dependencies(&self) -> napi::Result<Vec<DependencyWrapper>> {
-    if let Some(scope) = &self.worker_scope {
+    if self.worker_scope.is_some() {
       return self.with_local_ref(|module| {
         Ok(
           module
             .get_dependencies()
             .iter()
-            .map(|dep| DependencyWrapper::from_worker(dep.clone(), scope.clone()))
+            .map(|dep| DependencyWrapper::from_worker(dep.clone()))
             .collect(),
         )
       });
