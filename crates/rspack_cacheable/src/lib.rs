@@ -37,7 +37,13 @@ pub fn from_bytes<T, C: CacheableContext>(_bytes: &[u8], _context: &C) -> Result
 #[cfg(not(feature = "noop"))]
 pub use serialize::to_bytes;
 #[cfg(not(feature = "noop"))]
+pub use serialize::to_bytes_above_root;
+#[cfg(not(feature = "noop"))]
 pub use serialize::to_bytes_with_binding;
+#[cfg(feature = "noop")]
+pub fn to_bytes_above_root<T, C: CacheableContext>(_value: &T, _ctx: &C) -> Result<Vec<u8>> {
+  panic!("Cannot use to_bytes_above_root when noop feature is enabled")
+}
 #[cfg(feature = "noop")]
 pub fn to_bytes_with_binding<T, C: CacheableContext>(
   _value: &T,

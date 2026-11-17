@@ -221,11 +221,15 @@ impl CacheContext {
         SnapshotScope::MISSING,
       ] {
         match snapshot.calc_modified_paths(&*self.storage, scope).await {
-          Ok((a, b, c, _, observed, dropped)) => {
+          Ok((a, b, c, unchanged, observed, dropped)) => {
             if !self.readonly {
-              for key in dropped {
-                self.storage.remove(scope.name(), &key);
+              for key in &dropped {
+                self.storage.remove(scope.name(), key);
               }
+              // An independently validated layout record may have expired even though its
+              // owners reuse their builds. Keep its observation, including missing paths, so
+              // a later partial save cannot lose invalidation coverage for those owners.
+              snapshot.refresh_expired(&mut *self.storage, scope, &dropped, &unchanged, &observed);
             }
             match scope {
               SnapshotScope::FILE => self.refresh_file_snapshots = observed,

@@ -116,8 +116,8 @@ impl<'a> AssertUtf8 for &'a Path {
 /// The interning kind for paths: a header holding the precomputed [`hash_path`] of the path,
 /// plus the path's `OsStr` bytes, stored together in one allocation.
 ///
-/// This is what makes an [`InternedPath`] a thin pointer with a content hash attached and no second
-/// indirection to reach the bytes.
+/// An [`InternedPath`] handle shares this allocation and carries its own serialization policy;
+/// reaching the bytes and their content hash needs no second allocation.
 pub struct PreHashedPath;
 
 impl SliceInternable for PreHashedPath {
@@ -167,8 +167,18 @@ fn path_from_bytes(bytes: &[u8]) -> &Path {
 /// comparison and each path is stored once. Hashing still uses the precomputed content hash
 /// (see [`Hash`] below).
 #[cfg_attr(feature = "cacheable", cacheable(with=cacheable::AsInternedPath))]
-#[derive(Clone, PartialEq, Eq)]
-pub struct InternedPath(InternedSlice<PreHashedPath>);
+#[derive(Clone)]
+pub struct InternedPath(InternedSlice<PreHashedPath>, bool);
+
+// Filesystem identity does not depend on how a resolver reached the path. The flag belongs to
+// this handle, never the process-wide interned allocation.
+impl PartialEq for InternedPath {
+  fn eq(&self, other: &Self) -> bool {
+    self.0 == other.0
+  }
+}
+
+impl Eq for InternedPath {}
 
 impl Debug for InternedPath {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -185,7 +195,7 @@ impl InternedPath {
   /// Intern complete `OsStr::as_encoded_bytes` from the same Rust version and target platform.
   #[inline]
   pub(crate) fn from_bytes(bytes: &[u8]) -> Self {
-    Self(InternedSlice::new(hash_path_bytes(bytes), bytes))
+    Self(InternedSlice::new(hash_path_bytes(bytes), bytes), false)
   }
 
   /// Build an `InternedPath` from a precomputed hash without rehashing. The caller MUST guarantee
@@ -194,15 +204,30 @@ impl InternedPath {
   /// upstream.
   #[inline]
   pub fn from_parts(hash: u64, path: &Path) -> Self {
-    Self(InternedSlice::new(
-      hash,
-      path.as_os_str().as_encoded_bytes(),
-    ))
+    Self(
+      InternedSlice::new(hash, path.as_os_str().as_encoded_bytes()),
+      false,
+    )
   }
 
   #[inline]
   pub fn as_path(&self) -> &Path {
     path_from_bytes(self.0.items())
+  }
+
+  /// Keep this observation at its exact absolute location, including inside a portable root.
+  pub fn into_fixed(mut self) -> Self {
+    self.1 = true;
+    self
+  }
+
+  pub fn is_fixed(&self) -> bool {
+    self.1
+  }
+
+  /// The same filesystem identity with ordinary root-relative serialization.
+  pub fn without_fixed(&self) -> Self {
+    Self(self.0.clone(), false)
   }
 
   /// The `FxHash` of the path bytes, computed once when the path was first interned.

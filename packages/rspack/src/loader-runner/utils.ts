@@ -7,6 +7,7 @@ import type {
 import type { Compiler } from '../exports';
 import type { LoaderObject } from '.';
 import loadLoaderRaw from './loadLoader';
+import { closePortableOutputInvocation } from './portableOutput';
 
 const decoder = new TextDecoder();
 
@@ -50,8 +51,12 @@ export const runSyncOrAsync = promisify(function runSyncOrAsync(
   fn: Function,
   context: LoaderContext,
   args: any[],
-  callback: (err: Error | null | undefined, args: any[]) => void,
+  complete: (err: Error | null | undefined, args: any[]) => void,
 ) {
+  const callback = (err: Error | null | undefined, args: any[]) => {
+    closePortableOutputInvocation();
+    complete(err, args);
+  };
   let isSync = true;
   let isDone = false;
   let isError = false; // internal error

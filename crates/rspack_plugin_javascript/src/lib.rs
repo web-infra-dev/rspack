@@ -7,6 +7,7 @@ mod magic_comment;
 pub mod parser_and_generator;
 mod parser_plugin;
 mod plugin;
+mod portable_paths;
 pub mod runtime;
 mod runtime_context;
 pub mod utils;

@@ -50,6 +50,10 @@ impl<'a> Iterator for PluginBitmaskIter<'a> {
 }
 
 impl JavaScriptParserPluginDrive {
+  pub(crate) fn into_plugins(self) -> Vec<BoxJavascriptParserPlugin> {
+    self.plugins
+  }
+
   pub fn new(plugins: Vec<BoxJavascriptParserPlugin>) -> Self {
     assert!(
       plugins.len() <= PLUGIN_BITMASK_BITS,

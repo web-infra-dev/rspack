@@ -36,6 +36,12 @@ type SwcLoaderCommonOptions = Omit<Config, 'jsc'> & {
    */
   rspackExperiments?: {
     /**
+     * Certify supported SWC transforms for portable output normalization.
+     * Unsupported options withhold certification. Defaults to false.
+     * @experimental
+     */
+    portableOutput?: boolean;
+    /**
      * @deprecated Use top-level `transformImport` instead.
      */
     import?: PluginImportOptions;

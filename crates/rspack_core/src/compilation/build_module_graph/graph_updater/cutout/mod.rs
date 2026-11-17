@@ -36,7 +36,9 @@ impl Cutout {
     // whether to clean up useless entry dependencies
     let mut clean_entry_dependencies = false;
     let mut force_build_modules = IdentifierSet::default();
-    let mut force_build_deps = HashSet::default();
+    // Cache recovery dropped the targets of these dependencies. Refactorize them without
+    // rebuilding their cached parent modules.
+    let mut force_build_deps = std::mem::take(&mut artifact.refactorize_dependencies);
 
     let module_graph = artifact.get_module_graph();
 

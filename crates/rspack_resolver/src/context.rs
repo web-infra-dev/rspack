@@ -1,4 +1,7 @@
-use std::ops::{AsyncFnOnce, Deref, DerefMut};
+use std::{
+  ops::{AsyncFnOnce, Deref, DerefMut},
+  path::PathBuf,
+};
 
 use rspack_paths::InternedPath;
 
@@ -10,6 +13,11 @@ pub struct ResolveContext(ResolveContextImpl);
 #[derive(Debug, Default, Clone)]
 pub struct ResolveContextImpl {
   pub fully_specified: bool,
+
+  /// Sticky across failed alternatives: their misses also constrain the result. Until branches
+  /// carry individual origins, one fixed derivation conservatively fixes this whole resolution.
+  pub fixed_dependencies: bool,
+  pub issuer: PathBuf,
 
   pub query: Option<String>,
 
@@ -57,6 +65,7 @@ impl ResolveContext {
     if matches!(result, Ok(Some(_))) {
       *self = ctx;
     } else {
+      self.fixed_dependencies |= ctx.fixed_dependencies;
       self.file_dependencies = ctx.file_dependencies.take();
       self.missing_dependencies = ctx.missing_dependencies.take();
     }

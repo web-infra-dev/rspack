@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
 use rspack_error::Diagnostic;
-use rspack_sources::BoxSource;
 
 use super::{TaskContext, add::AddTask};
 use crate::{
   BuildContext, Context, DependencyRef, FactorizeInfo, ImportPhase, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, Resolve,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, Resolve, SourceView,
   dependency::DependencyType,
   module_graph::ModuleGraphModule,
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -17,7 +16,7 @@ pub struct FactorizeTask {
   pub build_context: Arc<BuildContext>,
   pub module_factory: Arc<dyn ModuleFactory>,
   pub original_module_identifier: Option<ModuleIdentifier>,
-  pub original_module_source: Option<BoxSource>,
+  pub original_module_source: Option<Arc<SourceView>>,
   pub original_module_context: Option<Box<Context>>,
   pub issuer: Option<Box<str>>,
   pub issuer_layer: Option<ModuleLayer>,
@@ -50,7 +49,14 @@ impl Task<TaskContext> for FactorizeTask {
         if let Some(s) = self.original_module_source {
           let has_source_code = e.src.is_some();
           if !has_source_code {
-            e.src = Some(s.source().into_string_lossy().into_owned().into());
+            if let Some(labels) = &mut e.labels {
+              for label in labels {
+                let (start, end) = s.range(label.offset, label.offset + label.len);
+                label.offset = start;
+                label.len = end - start;
+              }
+            }
+            e.src = Some(s.source.source().into_string_lossy().into_owned().into());
           }
         }
         // Bail out if `options.bail` set to `true`,

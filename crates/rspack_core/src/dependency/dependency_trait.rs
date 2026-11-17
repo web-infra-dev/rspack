@@ -63,6 +63,20 @@ impl DependencyDiagnosticsContext {
         .map(|source| source.source().into_string_lossy().into())
     })
   }
+
+  /// Pair a stored dependency range with the public source used by the codeframe.
+  pub fn module_source_range(
+    &self,
+    module: &dyn Module,
+    range: DependencyRange,
+  ) -> Option<(Arc<str>, DependencyRange)> {
+    let source = self.module_source(module)?;
+    let range = module
+      .as_normal_module()
+      .and_then(|module| module.source_view())
+      .map_or(range, |view| view.dependency_range(range));
+    Some((source, range))
+  }
 }
 
 #[cacheable_dyn]

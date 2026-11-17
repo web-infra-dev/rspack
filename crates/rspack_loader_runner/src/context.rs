@@ -2,8 +2,8 @@ use std::{borrow::Cow, sync::Arc};
 
 use derive_more::Debug;
 use rspack_cacheable::cacheable;
-use rspack_error::Diagnostic;
-use rspack_paths::{InternedPath, InternedPathSet, Utf8Path};
+use rspack_error::{Diagnostic, Result};
+use rspack_paths::{InternedPath, InternedPathSet, Utf8Path, Utf8PathBuf};
 use rspack_sources::SourceMap;
 
 use crate::{
@@ -64,6 +64,7 @@ pub struct LoaderContext<Context: Send> {
   pub(crate) additional_data: Option<AdditionalData>,
 
   pub cacheable: bool,
+  pub(crate) portable: crate::portable::PortableOutput,
   /// Dependencies committed by resource processing and preceding loaders.
   pub(crate) dependencies: LoaderDependencies,
   /// Dependencies added by the current loader (pitch) or root chain (normal).
@@ -86,6 +87,34 @@ pub struct LoaderContext<Context: Send> {
 }
 
 impl<Context: Send> LoaderContext<Context> {
+  /// Certify this invocation's output, maps and effects as translation-equivariant.
+  /// Every declared path must be absolute. Repeated calls union their paths.
+  pub fn portable_output(&mut self, paths: impl IntoIterator<Item = Utf8PathBuf>) -> Result<()> {
+    self.portable.certify(paths.into_iter().collect())
+  }
+
+  /// Record a JS execution span or restore a context-bound loader cache contribution.
+  #[doc(hidden)]
+  pub fn merge_portable_output(&mut self, paths: Option<Vec<Utf8PathBuf>>) -> Result<()> {
+    self.portable.merge(paths)
+  }
+
+  /// Withhold optimization when the host cannot establish exclusive path authority.
+  #[doc(hidden)]
+  pub fn break_portable_output(&mut self) {
+    self.portable.merge(None).expect("no paths to validate");
+  }
+
+  #[doc(hidden)]
+  pub fn portable_output_mark(&self) -> crate::PortableOutputMark {
+    self.portable.mark()
+  }
+
+  #[doc(hidden)]
+  pub fn portable_output_since(&self, mark: crate::PortableOutputMark) -> Option<Vec<Utf8PathBuf>> {
+    self.portable.since(mark)
+  }
+
   #[inline]
   pub fn current_root_chain(&self) -> Option<&LoaderChain> {
     self

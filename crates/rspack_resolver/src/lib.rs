@@ -99,7 +99,7 @@ use crate::{
   cache::{Cache, CachedPath},
   context::ResolveContext as Ctx,
   package_json::JSONMap,
-  path::{PathUtil, SLASH_START},
+  path::{PathUtil, SLASH_START, has_root_or_prefix},
   specifier::Specifier,
   tsconfig::{ExtendsField, ProjectReference, TsConfig, is_relative_specifier},
 };
@@ -275,15 +275,30 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   ) -> Result<Resolution, ResolveError> {
     let mut ctx = Ctx::default();
     ctx.init_file_dependencies();
+    ctx.issuer = directory.as_ref().to_path_buf();
     let result = self
       .resolve_tracing(directory.as_ref(), specifier, &mut ctx)
       .await;
-    if let Some(deps) = &mut ctx.file_dependencies {
-      resolve_context.file_dependencies.extend(deps.drain(..));
-    }
-    if let Some(deps) = &mut ctx.missing_dependencies {
-      resolve_context.missing_dependencies.extend(deps.drain(..));
-    }
+    let fixed = ctx.fixed_dependencies;
+    let extend = |target: &mut InternedPathSet, deps: &mut Option<Vec<InternedPath>>| {
+      if let Some(deps) = deps {
+        for dep in deps.drain(..) {
+          if fixed {
+            target.replace(dep.into_fixed());
+          } else {
+            target.insert(dep);
+          }
+        }
+      }
+    };
+    extend(
+      &mut resolve_context.file_dependencies,
+      &mut ctx.file_dependencies,
+    );
+    extend(
+      &mut resolve_context.missing_dependencies,
+      &mut ctx.missing_dependencies,
+    );
     result
   }
 
@@ -316,6 +331,8 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     ctx: &mut Ctx,
   ) -> Result<Resolution, ResolveError> {
     ctx.with_fully_specified(self.options.fully_specified);
+    // Restrictions are predicates over absolute paths, including user supplied functions.
+    ctx.fixed_dependencies |= !self.options.restrictions.is_empty();
     let cached_path = self
       .cache
       .value(Utf8Path::from_path(path).expect("path should be UTF-8"));
@@ -325,13 +342,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
       return Err(ResolveError::NotFound(specifier.to_string()));
     }
 
+    // Like enhanced-resolve, the description file comes from the requested path. A symlink below
+    // the package can resolve outside it, so the resolved path need not be inside the package.
     let package_json = cached_path
       .find_package_json(&self.cache.fs, &self.options, ctx)
       .await?;
-    if let Some(package_json) = &package_json {
-      // path must be inside the package.
-      debug_assert!(path.starts_with(package_json.directory()));
-    }
     Ok(Resolution {
       path,
       query: ctx.query.take(),
@@ -355,6 +370,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     let fut = async move {
       ctx.test_for_infinite_recursion()?;
 
+      ctx.fixed_dependencies |= has_root_or_prefix(specifier);
       // enhanced-resolve: parse
       let (parsed, try_fragment_as_path) = self.load_parse(cached_path, specifier, ctx).await?;
       if let Some(path) = try_fragment_as_path {
@@ -794,6 +810,12 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     ctx: &mut Ctx,
   ) -> Result<Utf8PathBuf, ResolveError> {
     if self.options.symlinks {
+      if ctx.file_dependencies.is_some() && !self.options.relocatable_roots.is_empty() {
+        let fixed = cached_path
+          .has_symlink_below(&self.cache.fs, &ctx.issuer)
+          .await;
+        ctx.fixed_dependencies |= fixed;
+      }
       cached_path
         .realpath(&self.cache.fs)
         .await
@@ -1033,6 +1055,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     if dirs.is_empty() {
       return Ok(None);
     }
+    ctx.fixed_dependencies = true;
     let (package_name, subpath) = Self::parse_package_specifier(specifier);
     for dir in dirs {
       let cached_path = self
@@ -1111,6 +1134,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     let Some(pnp_data) = self.find_pnp_manifest(cached_path) else {
       return Ok(None);
     };
+    ctx.fixed_dependencies = true;
     let (manifest_path, manifest) = pnp_data.as_ref();
     ctx.add_file_dependency(manifest_path);
 
@@ -1169,6 +1193,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     module_name: &str,
     ctx: &mut Ctx,
   ) -> Option<CachedPath> {
+    ctx.fixed_dependencies |= has_root_or_prefix(module_name);
     if module_name == "node_modules" {
       cached_path.cached_node_modules(&self.cache, ctx).await
     } else if cached_path.path().components().next_back()
@@ -1362,6 +1387,9 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     // The trie has already done all the prefix / `$`-exact / `SLASH_START`
     // bookkeeping that the previous strip_prefix loop hand-rolled; here we
     // only walk the matches in declared order and dispatch each one.
+    // Absolute keys can begin matching a candidate only after relocation, even when this
+    // invocation has no matching alias. The trie cannot certify that negative observation.
+    ctx.fixed_dependencies |= trie.has_absolute_keys;
     for m in trie.matches(specifier) {
       let (alias_key_raw, specifiers) = &aliases[m.index];
       // `key_len` is the byte length of the matching key after stripping
@@ -1419,6 +1447,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         .strip_prefix(alias_value)
         .is_some_and(|prefix| prefix.starts_with('/'))
     {
+      ctx.fixed_dependencies |= has_root_or_prefix(alias_value);
       let tail = &request[alias_key.len()..];
 
       let new_specifier = if tail.is_empty() {
@@ -1561,6 +1590,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     let Some(tsconfig_options) = &self.options.tsconfig else {
       return Ok(None);
     };
+    ctx.fixed_dependencies = true;
     let tsconfig = self
       .load_tsconfig(
         /* root */ true,

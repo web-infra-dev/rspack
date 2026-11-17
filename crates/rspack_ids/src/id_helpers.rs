@@ -629,6 +629,7 @@ pub fn get_full_chunk_name(
             .map(|module| make_paths_relative(context, module.as_str())),
           origin.loc.as_ref().map(|location| match location {
             DependencyLocation::Real(location) => format!("real:{location}"),
+            DependencyLocation::Portable(location) => format!("real:{}", location.resolve()),
             DependencyLocation::Synthetic(location) => format!("synthetic:{location}"),
           }),
           origin

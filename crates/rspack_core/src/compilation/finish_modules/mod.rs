@@ -135,7 +135,9 @@ pub async fn finish_modules_inner(
   compilation.module_graph_cache_artifact.unfreeze();
 
   // take make diagnostics
-  let diagnostics = compilation.build_module_graph_artifact.diagnostics();
+  let diagnostics = compilation
+    .build_module_graph_artifact
+    .diagnostics(compilation.id());
   all_diagnostics.extend(diagnostics);
   Ok(all_diagnostics)
 }

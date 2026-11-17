@@ -47,7 +47,27 @@ impl CacheFacade {
     identifier: &str,
     etag: Option<Etag>,
   ) -> Option<CacheValue<T>> {
-    let value = self.cache.get(self.key(identifier), etag);
+    self.get_validated(identifier, etag, |_| true)
+  }
+
+  /// Read metadata without counting a hit until the caller validates the complete value.
+  pub fn peek<T: CacheValueData>(
+    &self,
+    identifier: &str,
+    etag: Option<Etag>,
+  ) -> Option<CacheValue<T>> {
+    self.cache.get(self.key(identifier), etag)
+  }
+
+  pub fn get_validated<T: CacheValueData>(
+    &self,
+    identifier: &str,
+    etag: Option<Etag>,
+    validate: impl FnOnce(&T) -> bool,
+  ) -> Option<CacheValue<T>> {
+    let value = self
+      .peek::<T>(identifier, etag)
+      .filter(|value| validate(value));
     self.record(if value.is_some() {
       CacheRecord::Hit
     } else {

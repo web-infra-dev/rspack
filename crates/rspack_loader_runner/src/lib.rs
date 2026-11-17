@@ -8,6 +8,7 @@ mod context;
 mod filter;
 mod loader;
 mod plugin;
+mod portable;
 mod runner;
 mod scheme;
 
@@ -21,6 +22,7 @@ pub use loader::{
   DisplayWithSuffix, Loader, LoaderExecutionKind, LoaderItem, ResourceParsedData, parse_resource,
 };
 pub use plugin::LoaderRunnerPlugin;
+pub use portable::PortableOutputMark;
 pub use rspack_collections::{Identifiable, Identifier};
 pub use runner::{LoaderFilters, LoaderResult, run_loaders};
 pub use scheme::{Scheme, get_scheme};

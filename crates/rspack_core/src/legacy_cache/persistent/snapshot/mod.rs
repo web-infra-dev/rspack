@@ -11,7 +11,10 @@ use rspack_paths::{InternedPath, InternedPathMap, InternedPathSet};
 pub(crate) use self::strategy::{StrategyHelper, ValidateResult};
 pub use self::{scope::SnapshotScope, strategy::Strategy};
 use super::storage::Storage;
-use crate::{Context, FutureConsumer, SnapshotOptions, SnapshotStrategyOptions, cache::CacheCodec};
+use crate::{
+  Context, FutureConsumer, SnapshotOptions, SnapshotStrategyOptions,
+  cache::{CacheCodec, RootBinding},
+};
 
 /// Snapshot is used to check if files have been modified or deleted.
 ///
@@ -182,15 +185,12 @@ impl Snapshot {
           {
             strategy = Strategy::Failed;
           }
-          Some((
-            codec.encode(&path).expect("should encode success"),
-            codec.encode(&strategy).expect("should encode success"),
-          ))
+          Some((path, strategy))
         }
       })
       .fut_consume(|data| {
-        if let Some((key, value)) = data {
-          storage.set(scope.name(), key, value);
+        if let Some(data) = data {
+          self.refresh(storage, scope, std::iter::once(data));
         }
       })
       .await;
@@ -204,14 +204,36 @@ impl Snapshot {
     snapshots: impl Iterator<Item = (InternedPath, Strategy)>,
   ) {
     for (path, strategy) in snapshots {
-      storage.set(
-        scope.name(),
-        self.codec.encode(&path).expect("should encode path"),
+      let key = self
+        .codec
+        .encode_path_key(&path)
+        .expect("should encode path");
+      let layout_key = if path.is_fixed() && self.codec.is_portable() {
         self
           .codec
-          .encode(&strategy)
-          .expect("should encode strategy"),
-      );
+          .encode_path_key(&path.without_fixed())
+          .expect("should encode path")
+      } else {
+        key.clone()
+      };
+      // Fixed owners are discarded after relocation. Expire both snapshot encodings too:
+      // neither the original absolute key nor its layout counterpart has a surviving owner.
+      let bound_root = if path.is_fixed() {
+        self.codec.bound_root(RootBinding::Bound)
+      } else {
+        None
+      };
+      let value = self
+        .codec
+        .encode(&(bound_root, strategy))
+        .expect("should encode strategy");
+      self.remove(storage, scope, std::iter::once(path));
+      // Counters merge by filesystem identity. A fixed observation may share its key with an
+      // issuer-derived group; retain the layout validation too, whichever group arrived first.
+      if key != layout_key {
+        storage.set(scope.name(), layout_key, value.clone());
+      }
+      storage.set(scope.name(), key, value);
     }
   }
 
@@ -224,8 +246,41 @@ impl Snapshot {
     for item in paths {
       storage.remove(
         scope.name(),
-        &self.codec.encode(&item).expect("should encode path"),
+        &self
+          .codec
+          .encode_path_key(&item.clone().into_fixed())
+          .expect("should encode path"),
+      );
+      storage.remove(
+        scope.name(),
+        &self
+          .codec
+          .encode_path_key(&item.without_fixed())
+          .expect("should encode path"),
       )
+    }
+  }
+
+  /// Replace only expired records whose layout input independently validated as unchanged.
+  pub(crate) fn refresh_expired(
+    &self,
+    storage: &mut dyn Storage,
+    scope: SnapshotScope,
+    dropped: &[Vec<u8>],
+    unchanged: &InternedPathSet,
+    observed: &InternedPathMap<Strategy>,
+  ) {
+    for key in dropped {
+      let path = self
+        .codec
+        .decode::<InternedPath>(key)
+        .expect("expired snapshot keys were checked during validation");
+      if !path.is_fixed()
+        && unchanged.contains(&path)
+        && let Some(strategy) = observed.get(&path)
+      {
+        self.refresh(storage, scope, std::iter::once((path, strategy.clone())));
+      }
     }
   }
 
@@ -268,11 +323,38 @@ impl Snapshot {
           let path = codec.decode::<InternedPath>(&key)?;
           // Unix native path payloads round-trip verbatim. Other platforms may intern a
           // component-equivalent spelling, and portable decoding can rebase a key.
-          if (codec.is_portable() || !cfg!(unix)) && codec.encode(&path)? != key {
+          if (codec.is_portable() || !cfg!(unix)) && codec.encode_path_key(&path)? != key {
             return Ok((path, ValidateResult::Modified, None, Some(key)));
           }
-          let (validate, mut observed) = match codec.decode::<Strategy>(&value) {
-            Ok(strategy) => {
+          let (validate, mut observed) = match codec.decode::<(Option<u64>, Strategy)>(&value) {
+            Ok((bound_root, strategy)) => {
+              if !codec.accepts_bound_root(bound_root) {
+                // A fixed factory observation also writes a layout tombstone because path
+                // counters merge filesystem identities. Expire that record, but independently
+                // validate the input of any layout owner that survived segmented recovery.
+                // Fixed build inputs still bind the build segment; fixed factory groups still
+                // expire and refactorize. Global build dependencies have no such owner gate.
+                if !path.is_fixed() && !matches!(scope, SnapshotScope::BUILD) {
+                  // Timestamps at different roots do not establish content identity. Use
+                  // the stored hash even when times match, or decline timestamp-only reuse.
+                  let relocated = match &strategy {
+                    Strategy::FileTimestampAndHash { hash, .. } => {
+                      Strategy::FileHash { hash: *hash }
+                    }
+                    Strategy::DirTimestampAndHash { hash, .. } => Strategy::DirHash { hash: *hash },
+                    Strategy::FileTimestamp { .. } | Strategy::DirTimestamp { .. } => {
+                      Strategy::Failed
+                    }
+                    _ => strategy.clone(),
+                  };
+                  let validate = match helper.validate(&path, &relocated).await.0 {
+                    ValidateResult::NoChanged => ValidateResult::NoChangedRefresh(strategy),
+                    validate => validate,
+                  };
+                  return Ok((path, validate, None, Some(key)));
+                }
+                return Ok((path, ValidateResult::Modified, None, Some(key)));
+              }
               let (validate, observed) = helper.validate(&path, &strategy).await;
               let observed = observed
                 .or_else(|| matches!(validate, ValidateResult::NoChanged).then_some(strategy));

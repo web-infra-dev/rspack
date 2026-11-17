@@ -123,6 +123,14 @@ export interface Diagnostic {
 
 export interface LoaderExperiments {
   /**
+   * Certify this invocation's output, source map and effects under checkout relocation.
+   * Declare exclusive whole-literal absolute path values; all other output must be invariant.
+   * Each normal and invoked pitch must certify independently, before completion.
+   * @experimental
+   */
+  portableOutput(declaration?: { paths?: readonly string[] }): void;
+
+  /**
    * Emit an error or warning diagnostic without marking the current module as a compilation
    * failure.
    */

@@ -51,6 +51,7 @@ fn type_exports() {
         comments,
         options,
         None,
+        None,
         |program, _| {
           program.visit_with(&mut TypeExportsCollector::new(&mut type_exports_results));
         },
@@ -83,6 +84,7 @@ fn enums() {
         Some(Arc::new(FileName::Real(input))),
         comments,
         options,
+        None,
         None,
         |program, _| {
           program.visit_with(&mut ExportedEnumCollector::new(

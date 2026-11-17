@@ -32,6 +32,13 @@ pub async fn finish_build_module_graph_pass(compilation: &mut Compilation) -> Re
     compilation.module_executor = Some(module_executor);
     result?;
   }
+  // Retained loader emissions must be visible to finishModules hooks, just like
+  // their immediate publication on a fresh build. Late builds are collected by
+  // finish_modules; the build's publication stamp prevents a second append.
+  let diagnostics = compilation
+    .build_module_graph_artifact
+    .module_build_diagnostics(compilation.id());
+  compilation.extend_diagnostics(diagnostics);
   // make finished, make artifact should be readonly thereafter.
   Ok(())
 }

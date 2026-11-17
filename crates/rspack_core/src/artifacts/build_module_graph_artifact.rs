@@ -1,6 +1,6 @@
-use std::hash::BuildHasherDefault;
+use std::{collections::VecDeque, hash::BuildHasherDefault};
 
-use rspack_collections::{IdentifierHasher, IdentifierSet};
+use rspack_collections::{IdentifierHasher, IdentifierMap, IdentifierSet};
 use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet;
 
@@ -32,6 +32,12 @@ pub struct BuildModuleGraphArtifact {
   /// Set when cache recovery dropped modules. Their rebuild can take an issuer from a module
   /// below them, so the next update repairs issuer cycles.
   pub check_issuer_cycles: bool,
+  /// Dependencies whose cached target was dropped by cache recovery.
+  ///
+  /// Their parent module keeps its cached build. The next module graph update refactorizes only
+  /// these dependencies, then clears this set. `reset_temporary_data` keeps it, because recovery
+  /// runs before the reset of the first build.
+  pub(crate) refactorize_dependencies: FxHashSet<DependencyId>,
   /// Main-graph cache session for the current build; never recovered or persisted.
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
 
@@ -68,6 +74,7 @@ impl BuildModuleGraphArtifact {
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
       check_issuer_cycles: false,
+      refactorize_dependencies: Default::default(),
       module_build_cache: None,
       module_graph: Default::default(),
       factorization_artifact: Default::default(),
@@ -224,7 +231,7 @@ impl BuildModuleGraphArtifact {
       .collect()
   }
 
-  pub fn diagnostics(&self) -> Vec<Diagnostic> {
+  pub fn diagnostics(&self, compilation_id: crate::CompilationId) -> Vec<Diagnostic> {
     let mg = self.get_module_graph();
     let module_diagnostics = self
       .make_failed_module
@@ -256,7 +263,69 @@ impl BuildModuleGraphArtifact {
         })
         .collect::<Vec<_>>()
     });
-    module_diagnostics.chain(dep_diagnostics).collect()
+    module_diagnostics
+      .chain(dep_diagnostics)
+      .chain(self.module_build_diagnostics(compilation_id))
+      .collect()
+  }
+
+  pub(crate) fn module_build_diagnostics(
+    &self,
+    compilation_id: crate::CompilationId,
+  ) -> Vec<Diagnostic> {
+    let mut retained = self
+      .make_failed_module
+      .iter()
+      .filter_map(|identifier| {
+        let diagnostics = self
+          .module_graph
+          .module_by_identifier(identifier)
+          .expect("should have module")
+          .module_build_diagnostics()?
+          .for_compilation(compilation_id);
+        (!diagnostics.is_empty()).then_some((*identifier, diagnostics))
+      })
+      .collect::<Vec<_>>();
+    if retained.len() > 1 {
+      // A fresh build publishes loader emissions while it builds modules, in the order it finds
+      // them from the entries. Replay retained ones in that order rather than set order.
+      let order = self.discovery_order();
+      retained.sort_by_key(|(identifier, _)| {
+        (
+          order.get(identifier).copied().unwrap_or(usize::MAX),
+          *identifier,
+        )
+      });
+    }
+    retained
+      .into_iter()
+      .flat_map(|(_, diagnostics)| diagnostics.iter().cloned())
+      .collect()
+  }
+
+  /// Breadth-first order of modules from the entries, following dependencies in order.
+  fn discovery_order(&self) -> IdentifierMap<usize> {
+    let mg = &self.module_graph;
+    // Entry dependencies are created in entry order.
+    let mut entries = self.entry_dependencies.iter().collect::<Vec<_>>();
+    entries.sort_unstable();
+    let mut queue = entries
+      .into_iter()
+      .filter_map(|dependency_id| mg.module_identifier_by_dependency_id(dependency_id))
+      .copied()
+      .collect::<VecDeque<_>>();
+    let mut order = IdentifierMap::default();
+    while let Some(identifier) = queue.pop_front() {
+      if order.contains_key(&identifier) {
+        continue;
+      }
+      order.insert(identifier, order.len());
+      queue.extend(
+        mg.get_ordered_outgoing_connections(&identifier)
+          .map(|connection| *connection.module_identifier()),
+      );
+    }
+    order
   }
 
   pub fn reset_temporary_data(&mut self) {

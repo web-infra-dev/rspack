@@ -14,7 +14,7 @@ use crate::{
 
 /// Snapshot check strategy
 #[cacheable]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Strategy {
   /// Check by package version
   ///

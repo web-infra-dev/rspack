@@ -28,6 +28,8 @@ export default defineConfig({
           expect(sourceMap.sources).toEqual(
             expect.arrayContaining([
               sourceUrl('./node_modules/lib-with-source-map/main.js'),
+              // a source that already carries a scheme is kept, not resolved as a path
+              sourceUrl('lib-with-scheme-source-map/./src/index.ts'),
               sourceUrl('./index.js'),
             ]),
           );

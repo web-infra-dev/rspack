@@ -19,6 +19,7 @@ import {
   matchesCodeFilter,
 } from './codeFilter';
 import loadLoader from './loadLoader';
+import { PortableOutputState } from './portableOutput';
 import {
   deserializeError,
   isWorkerResponseErrorMessage,
@@ -249,7 +250,9 @@ async function loaderImpl(
   ) {
     sendRequest(RequestType.EmitFile, name, content, sourceMap, assetInfo);
   };
+  const portableOutput = new PortableOutputState();
   loaderContext.experiments = {
+    portableOutput: portableOutput.declare,
     emitDiagnostic(diagnostic) {
       sendRequest(RequestType.EmitDiagnostic, diagnostic);
     },
@@ -515,12 +518,17 @@ async function loaderImpl(
         currentLoaderObject.pitchExecuted = true;
         if (!fn) continue;
 
-        args =
-          (await runSyncOrAsync(fn, loaderContext, [
-            loaderContext.remainingRequest,
-            loaderContext.previousRequest,
-            currentLoaderObject.loaderItem.data,
-          ])) || [];
+        const endPitch = portableOutput.begin();
+        try {
+          args =
+            (await runSyncOrAsync(fn, loaderContext, [
+              loaderContext.remainingRequest,
+              loaderContext.previousRequest,
+              currentLoaderObject.loaderItem.data,
+            ])) || [];
+        } finally {
+          endPitch();
+        }
 
         const hasArg = args.some((value) => value !== undefined);
         if (hasArg) {
@@ -562,7 +570,12 @@ async function loaderImpl(
         currentLoaderObject.normalExecuted = true;
         if (!fn) continue;
         convertArgs(args, !!currentLoaderObject.raw);
-        args = (await runSyncOrAsync(fn, loaderContext, args)) || [];
+        const endNormal = portableOutput.begin();
+        try {
+          args = (await runSyncOrAsync(fn, loaderContext, args)) || [];
+        } finally {
+          endNormal();
+        }
         invalidateCodeFilterTextCache(codeFilterTextCache);
       }
     }
@@ -581,6 +594,8 @@ async function loaderImpl(
   );
 
   sendRequest(RequestType.UpdateBuildInfo, buildInfo);
+  // This task folds every worker invocation before crossing back to the main runner.
+  sendRequest(RequestType.PortableOutput, portableOutput.result());
 
   return args;
 }

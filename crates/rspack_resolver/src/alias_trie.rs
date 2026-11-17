@@ -5,7 +5,7 @@
 //! aliases along the way, and yield them in the order they were originally
 //! declared.
 
-use crate::Alias;
+use crate::{Alias, path::has_root_or_prefix};
 
 /// A successful alias-key match against a specifier.
 #[derive(Debug, PartialEq, Eq)]
@@ -62,16 +62,19 @@ impl Node {
 
 pub struct AliasTrie {
   root: Node,
+  pub(crate) has_absolute_keys: bool,
 }
 
 impl AliasTrie {
   pub(crate) fn build(aliases: &Alias) -> Self {
     let mut root = Node::default();
+    let mut has_absolute_keys = false;
     for (index, (key, _)) in aliases.iter().enumerate() {
       // `$`-suffixed keys are exact-match aliases — index by the stripped key.
       let (effective, is_exact) = key
         .strip_suffix('$')
         .map_or((key.as_str(), false), |stripped| (stripped, true));
+      has_absolute_keys |= has_root_or_prefix(effective);
       let mut node = &mut root;
       for byte in effective.as_bytes() {
         node = node.descend_mut_or_insert(*byte);
@@ -82,7 +85,10 @@ impl AliasTrie {
         is_exact,
       });
     }
-    Self { root }
+    Self {
+      root,
+      has_absolute_keys,
+    }
   }
 
   pub(crate) fn matches(&self, specifier: &str) -> Vec<AliasMatch> {

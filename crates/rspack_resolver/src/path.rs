@@ -7,6 +7,15 @@ use camino::{Utf8Component, Utf8Path, Utf8PathBuf};
 
 pub const SLASH_START: &[char; 2] = &['/', '\\'];
 
+/// Match the resolver's absolute-request branch, including drive-relative Windows prefixes.
+/// Such a prefix does not derive from the issuer even when `Path::is_absolute` is false.
+pub(crate) fn has_root_or_prefix(path: &str) -> bool {
+  matches!(
+    Utf8Path::new(path).components().next(),
+    Some(Utf8Component::RootDir | Utf8Component::Prefix(_))
+  )
+}
+
 /// Extension trait to add path normalization to camino's [`Utf8Path`].
 pub trait PathUtil {
   /// Normalize this path without performing I/O.

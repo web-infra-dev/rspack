@@ -3,7 +3,9 @@ use std::fmt;
 use rspack_cacheable::{cacheable, with::Skip};
 use rustc_hash::FxHashSet;
 
-use crate::{DependencyId, ModuleGraphConnectionId, ModuleIdentifier, ModuleIssuer};
+use crate::{
+  DependencyId, DependencyLocation, ModuleGraphConnectionId, ModuleIdentifier, ModuleIssuer,
+};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -11,7 +13,7 @@ pub enum OptimizationBailoutItem {
   Message(String),
   SideEffects {
     node_type: String,
-    loc: String,
+    loc: DependencyLocation,
     short_id: String,
   },
 }

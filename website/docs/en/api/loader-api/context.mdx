@@ -246,6 +246,42 @@ function emitWarning(warning: Error): void;
 
 Emit a warning.
 
+## this.experiments.portableOutput()
+
+<ApiMeta addedVersion="2.4.0" stability={Stability.Experimental} />
+
+```ts
+function portableOutput(declaration?: { paths?: readonly string[] }): void;
+```
+
+Certifies the current loader invocation for portable output normalization. Call it before returning, resolving the returned Promise, or calling the loader callback. Each executed normal function and each executed pitch function must certify independently, including pitches that return nothing: their mutations can affect later output. A missing declaration withholds this optimization and preserves existing loader behavior. Calls from detached work after completion are ignored.
+
+`paths` defaults to an empty array. Each value must be an absolute path; repeated calls union their values. With no paths, the invocation certifies a transform that preserves portable input and introduces no path-dependent output.
+
+The declaration is a producer contract, not a request to infer paths from arbitrary text:
+
+- Apart from declared whole JavaScript string-literal values, generated text must remain identical when the checkout moves relative to `compiler.context`.
+- Every occurrence equal to a declared value must represent that relocatable path. Do not declare a value also used as fixed application data, even if the fixed value happens to be inside the checkout.
+- Source maps must follow the same relocation: translating source paths and regenerating mappings for normalized literals must agree with a fresh build. Metadata and other effects must obey the same rule.
+- Hidden derivatives such as hashes, base64 data, partial paths, and embedded source text are not covered by declaring the original path. A loader producing them must withhold certification.
+
+```js title="loader.cjs"
+module.exports = function () {
+  this.experiments.portableOutput({ paths: [this.resourcePath] });
+  return `export default ${JSON.stringify(this.resourcePath)};`;
+};
+```
+
+An audited pass-through loader can call `this.experiments.portableOutput()` before returning its input. Certification is combined across native loaders, JavaScript loaders, workers, pitches, and loader-cache hits. One uncertified invocation withholds normalization for the entire chain. Certification does not enable caching or override `this.cacheable(false)`. Browser JavaScript loader invocations currently remain uncertified because async invocation isolation is unavailable there.
+
+For certified JavaScript builds, normalization uses `compiler.context`, including when `cache: false`. A declared literal written the way SWC prints a string keeps its quoting and escaping, so `builtin:swc-loader` output keeps its bytes. Other declared literals may acquire normalized quoting and escaping. Unsupported literal positions, non-JavaScript modules, and `noParse` do not gain this optimization. Native loaders use `LoaderContext::portable_output(paths)` with the same contract.
+
+`builtin:swc-loader` requires explicit `rspackExperiments.portableOutput: true` (default `false`). Its current allow-list accepts `detectSyntax`, boolean source-map settings and `inputSourceMap`, `isModule`, and `jsc` options limited to parser `syntax`/`jsx`/`tsx`/`decorators`, `target`, `externalHelpers`, `experimental.disableAllLints`, and React `development`/`runtime`/`refresh: false`. `decorators: true` requires explicit `syntax: "typescript"` and uses SWC’s TypeScript legacy decorator pass. Decorator metadata/version options and other transform fields remain excluded. Other fields, including config-file, plugin, minify, env, path, module-conversion, RSC, import-transform, and refresh-signature settings, decline certification. The native React refresh loader certifies only its fixed-code append transform.
+
+Automatic input-map lookup uses the loader’s input filesystem. With `rspackExperiments.portableOutput`, it records actual file and missing dependencies, including a missing indicated map before an adjacent fallback; without it, SWC records no map dependencies. It certifies only when there is no incoming map, no `sourceMappingURL=` marker, and the adjacent `<resource>.map` is definitely absent with a registered missing dependency. Found, inline, malformed, unreadable, ambiguous, and symlink map outcomes withhold certification while preserving map selection. Explicit JSON or `"inline"` options remain excluded. A filesystem error other than definite absence also disables caching for that invocation.
+
+Incoming maps and additional data require authority from their producers: every executed producer and consumer invocation must independently meet the contract. SWC preserves additional data. Maps acquired by resource hooks (including `extractSourceMap`) and opaque data supplied outside invocation authority withhold normalization for the aggregate chain. AST path checks and source-map path normalization do not establish producer authority. Absolute source URLs retain their fixed identity. These rules apply to generic loader composition, without framework-specific exceptions. Missing dependencies continue to prevent storage in the minimal loader cache; persistent module caching can still reuse certified output.
+
 ## this.experiments.emitDiagnostic()
 
 <ApiMeta stability={Stability.Experimental} />

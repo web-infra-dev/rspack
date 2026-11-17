@@ -69,6 +69,7 @@ impl CacheableContext for () {
 pub struct ContextGuard<'a> {
   context: &'a dyn CacheableContext,
   saw_outside_root: Cell<bool>,
+  allow_above_root: Cell<bool>,
 }
 
 impl<'a> Deref for ContextGuard<'a> {
@@ -83,7 +84,20 @@ impl<'a> ContextGuard<'a> {
     Self {
       context,
       saw_outside_root: Cell::new(false),
+      allow_above_root: Cell::new(false),
     }
+  }
+
+  /// Whether a path below a nearby ancestor of the root may be stored relative to the root.
+  /// Only a path the resolver derived from the root, such as an ancestor `node_modules` lookup,
+  /// can be: a fixed absolute path a loader registered must keep binding its entry.
+  pub fn allows_above_root(&self) -> bool {
+    self.allow_above_root.get()
+  }
+
+  /// Sets whether above-root paths are allowed and returns the previous setting.
+  pub fn set_allow_above_root(&self, allow: bool) -> bool {
+    self.allow_above_root.replace(allow)
   }
 
   pub fn mark_outside_root(&self) {
