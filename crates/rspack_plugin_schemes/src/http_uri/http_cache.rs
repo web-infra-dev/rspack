@@ -387,8 +387,8 @@ impl HttpCache {
             .fetch_metadata
             .get(&entry.resolved)
             .filter(|cached| cached.0 == entry.integrity)
-            .map_or_else(
-              || FetchResultMeta {
+            .map_or(
+              FetchResultMeta {
                 store_cache: true,
                 store_lock: true,
                 valid_until: 0,
