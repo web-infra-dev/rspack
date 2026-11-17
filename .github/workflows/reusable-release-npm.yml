@@ -149,7 +149,7 @@ jobs:
         run: find artifacts -type f -name '*.d.ts'  | xargs rm -f
 
       - name: Build node packages
-        run: pnpm run build:js
+        run: pnpm run build:js:release
 
       - name: Move artifacts
         run: |

@@ -13,13 +13,13 @@ use dependencies::FileSystemDependencies;
 use diagnostics::Diagnostics;
 use entries::JsEntries;
 use modules::Modules;
+use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{
   BindingCell, Compilation, CompilationId, DependencyRef, EntryOptions, ExportsInfoArtifact,
   ModuleIdentifier, OptimizationBailoutItem, Reflector, rspack_sources::BoxSource,
 };
 use rspack_error::{Diagnostic, Severity, ToStringResultToRspackResultExt};
-use rspack_napi::napi::bindgen_prelude::*;
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_tasks::{within_compiler_context, within_compiler_context_sync};
 use rustc_hash::FxHashMap;
@@ -1168,6 +1168,8 @@ thread_local! {
 pub struct JsCompilationWrapper {
   id: CompilationId,
   inner: NonNull<Compilation>,
+  #[cfg(allocative)]
+  compiler_id: u32,
 }
 
 unsafe impl Send for JsCompilationWrapper {}
@@ -1178,6 +1180,8 @@ impl JsCompilationWrapper {
     Self {
       id: compilation.id(),
       inner: NonNull::new(compilation as *const Compilation as *mut Compilation).unwrap(),
+      #[cfg(allocative)]
+      compiler_id: compilation.compiler_id().as_u32(),
     }
   }
 
@@ -1204,6 +1208,12 @@ impl ToNapiValue for JsCompilationWrapper {
             let js_compilation = JsCompilation::new(val.id, val.inner);
             let napi_value = ToNapiValue::to_napi_value(env, js_compilation)?;
             let reference: Reference<JsCompilation> = Reference::from_napi_value(env, napi_value)?;
+            #[cfg(allocative)]
+            rspack_allocative::napi_tracking::link_target(
+              &*reference,
+              val.inner.as_ptr(),
+              Some(val.compiler_id),
+            );
             let weak_reference = entry.insert(reference.downgrade());
             ToNapiValue::to_napi_value(env, weak_reference.clone())
           }

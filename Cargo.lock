@@ -3988,6 +3988,7 @@ dependencies = [
  "pnp",
  "rspack-allocative_derive",
  "rustc-hash",
+ "serde",
  "serde_json",
  "simd-json",
  "smallvec",
@@ -4124,6 +4125,7 @@ dependencies = [
  "parking_lot",
  "rayon",
  "regex",
+ "rspack-allocative",
  "rspack_allocator",
  "rspack_binding_build",
  "rspack_browserslist",
@@ -4211,6 +4213,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "tracy-client",
+ "urlencoding",
  "ustr-fxhash",
 ]
 

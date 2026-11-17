@@ -42,6 +42,11 @@ export async function prepareAllocativeDriver(environment = process.env) {
     await execute('rustc', ['--print', 'sysroot'], options)
   ).stdout.trim();
   const flags = ['-Crpath', `-Lnative=${path.join(sysroot, 'lib')}`];
+  if (process.platform === 'darwin') {
+    // The generated rpath points to the target's library directory. dyld
+    // needs the sysroot's lib directory to load librustc_driver.
+    flags.push(`-Clink-arg=-Wl,-rpath,${path.join(sysroot, 'lib')}`);
+  }
   const build = await execute(
     'cargo',
     [

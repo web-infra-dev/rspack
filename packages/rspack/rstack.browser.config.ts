@@ -124,6 +124,7 @@ define.lib({
       WEBPACK_VERSION: JSON.stringify(packageJson.webpackVersion),
       RSPACK_VERSION: JSON.stringify(packageJson.version),
       IS_BROWSER: JSON.stringify(true),
+      SUPPORTS_ALLOCATIVE: JSON.stringify(false),
       // emnapi probes this escape hatch for Node's native require.
       // Browser workers must not inject a node:module import into their IIFE.
       __non_webpack_require__: 'undefined',
@@ -141,6 +142,16 @@ define.lib({
           runtimeMode: 'rspack',
         },
         module: {
+          rules: [
+            {
+              // Drop the unused Node snapshot module and its process polyfill import.
+              include: path.resolve(
+                import.meta.dirname,
+                'src/util/allocative.ts',
+              ),
+              sideEffects: false,
+            },
+          ],
           parser: {
             javascript: {
               // TODO: Remove this override after upgrading Rslib, which enables the createRequire parser by default.

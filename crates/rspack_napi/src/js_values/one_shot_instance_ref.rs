@@ -29,7 +29,9 @@ impl<T: JavaScriptClassExt + 'static> OneShotInstanceRef<T> {
     let instance = val.into_instance(&env_wrapper)?;
     Self::from_instance(env, instance)
   }
+}
 
+impl<T: 'static> OneShotInstanceRef<T> {
   pub fn from_instance(env: napi_env, mut instance: ClassInstance<T>) -> Result<Self> {
     let mut napi_ref = ptr::null_mut();
     check_status!(unsafe { sys::napi_create_reference(env, instance.value, 1, &mut napi_ref) })?;

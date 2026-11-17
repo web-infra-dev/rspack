@@ -12,6 +12,7 @@ import type binding from '@rspack/binding';
 import type { Compilation } from './Compilation';
 import type { StatsOptions, StatsValue } from './config';
 import type { StatsCompilation } from './stats/statsFactoryUtils';
+import { markAllocativeObject } from './util/allocative';
 
 export type {
   StatsAsset,
@@ -31,6 +32,9 @@ export class Stats {
     this.#inner = compilation.__internal_getInner().getStats();
     this.#compilation = compilation;
     this.#innerMap = new WeakMap([[this.compilation, this.#inner]]);
+    if (SUPPORTS_ALLOCATIVE) {
+      markAllocativeObject(this, 'Stats');
+    }
   }
 
   // use correct JsStats for child compilation

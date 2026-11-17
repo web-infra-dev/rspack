@@ -14,6 +14,11 @@ version.workspace       = true
 # Workspace regression cases live in rspack_allocative_testing.
 test = false
 
+[features]
+snapshot = ["ustr"]
+# Keep runtime tracking separate from the napi type traversal adapters.
+napi-tracking = ["napi", "napi/napi9", "napi/compat-mode"]
+
 [dependencies]
 arc-swap                 = { workspace = true }
 atomic_refcell           = { workspace = true, optional = true }
@@ -33,6 +38,7 @@ parking_lot              = { workspace = true, optional = true }
 pnp                      = { workspace = true, optional = true }
 rspack-allocative_derive = { workspace = true }
 rustc-hash               = { workspace = true, features = ["std"] }
+serde                    = { workspace = true, features = ["derive"] }
 serde_json               = { workspace = true }
 simd-json                = { workspace = true }
 smallvec                 = { workspace = true, optional = true }

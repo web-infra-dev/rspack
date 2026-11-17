@@ -53,7 +53,7 @@ You can use a separate output directory for each run to avoid overwriting data. 
 
 ## View snapshots
 
-A snapshot traces ownership paths from the compiler and registered global roots. Its weights are bytes, not execution time or allocation events.
+A snapshot shows memory held by the compiler, global objects, and Rust objects retained by JavaScript. Shared memory is counted only once. Its weights are bytes, not execution time or allocation events.
 
 Open [Speedscope](https://www.speedscope.app/) and drag in a `.allocative` file. Use search and zoom to find a data structure, and select **Left Heavy** to explore the largest ownership paths.
 
@@ -76,7 +76,7 @@ Compare matching snapshots from the same phase and with the same workload. For e
 Limitation:
 
 - Snapshots do not measure RSS, peak memory, or cumulative allocations.
-- JavaScript and V8 heap objects, callback captures, some external state, allocator metadata, and private container overhead are not fully represented. Nonblocking locks and unsupported nested types can also limit coverage.
+- Rust snapshots do not fully represent JavaScript and V8 heap objects, callback captures, some external state, allocator metadata, and private container overhead. Nonblocking locks and unsupported nested types can also limit coverage.
 
 ## Advanced
 
@@ -102,10 +102,10 @@ Binding build
   Include the allocative feature, cfg, and compiler driver
        ↓
 Build or rebuild completes
-  Finish cache processing; check RSPACK_ALLOCATIVE_DIR
+  The binding checks RSPACK_ALLOCATIVE_DIR after native compilation finishes
        ↓
 Root traversal
-  Compiler → Compilation and other owned fields
+  JsCompiler → Compiler → Compilation and other owned fields
   Registered globals + process-global Ustr string arena
        ↓
 Ownership traversal
@@ -116,7 +116,7 @@ Snapshot output
   Byte profile + entry counts + metadata + warnings
 ```
 
-The capture points are in [`compiler/mod.rs`](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_core/src/compiler/mod.rs) and [`compiler/rebuild.rs`](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_core/src/compiler/rebuild.rs). [`snapshot_allocative`](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_core/src/utils/mod.rs) visits the roots and writes the files. This measures the represented memory at that point, with the limits described in [Interpret the results](#interpret-the-results).
+Snapshots are collected through the Node binding after a successful build or rebuild. Running a standalone Rust compiler or benchmark does not automatically produce snapshots. This measures the represented memory at that point, with the limits described in [Interpret the results](#interpret-the-results).
 
 ### Build a local binding
 
@@ -145,23 +145,42 @@ ALLOCATIVE=1 pnpm run build:binding:dev
 | `ALLOCATIVE=1`          | Building a binding that does not include it by default | Include allocative instrumentation in the binding.         |
 | `RSPACK_ALLOCATIVE_DIR` | Running a local build or test                          | Enable snapshot collection and select an output directory. |
 
+For a custom release build, set `ALLOCATIVE=1` when running both `pnpm run build:binding:release` and `pnpm run build:js:release`.
+
 Setting `ALLOCATIVE=1` at runtime alone does not add instrumentation to an existing binding. Debug and profiling builds do not collect snapshots unless `RSPACK_ALLOCATIVE_DIR` is set.
 
 ### Profile a local build or test
 
-Run the built CLI from the target project's working directory:
+From your project's directory, run the local CLI with `--expose-gc` and set `RSPACK_ALLOCATIVE_DIR` to a fresh directory for each run. Replace the example paths with your own.
 
-```sh
-RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/local-build-1 \
-  node /path/to/rspack/packages/rspack-cli/bin/rspack.js build \
-  --config ./rspack.config.mjs
+```bash
+rspack_root=/path/to/rspack
+profile_dir=/absolute/path/profiles/local-build-1
+RSPACK_ALLOCATIVE_DIR="$profile_dir" \
+  node --expose-gc "$rspack_root/packages/rspack-cli/bin/rspack.js" \
+  build --config ./rspack.config.mjs
 ```
+
+The raw V8 snapshot is saved in `v8/` under the profile directory. Keep the matching Rust `.allocative` and `.objects.json` files in the profile directory when converting the capture.
+
+```bash
+node "$rspack_root/.agents/skills/rspack-allocative/scripts/v8-to-allocative.mjs" \
+  "$profile_dir/v8/0-build.heapsnapshot"
+```
+
+Open `reports/0-build.js.allocative` or `reports/0-build.combined.allocative` in Speedscope to inspect the JavaScript or combined Rust and JavaScript profile. Open `reports/0-build.links.json` to look up the Rust targets associated with JavaScript objects. See [View snapshots](#view-snapshots) for tips on exploring a profile.
+
+Use `marked_objects` in the links report to see the count and shallow bytes of marked Rspack objects by type, including asset records and arrays.
+
+Converted `.allocative` files always exclude V8 code, script source, and engine metadata. JavaScript objects and their container or Buffer storage remain included. To inspect V8 internals, open the original `.heapsnapshot` in Chrome DevTools. The links report records `snapshot_bytes`, `represented_bytes`, and `excluded_v8_bytes`; represented plus excluded bytes equals the original JS snapshot total.
+
+The raw snapshot can contain source code and other project data. Converted reports retain object names by default and omit string-node payloads. String nodes contribute only their original snapshot byte weights; string payloads are discarded during streaming parsing and never appear in frames. Pass `--clear-class-names` to remove custom constructor names (also from constructor function/code frames); common built-in names such as Object, Array, Map, Set and typed arrays remain. Rspack root/object markers and Rust type names are diagnostic metadata and remain available. Named edges and native identities are retained internally for classification and matching. The legacy `--include-content` flag is accepted but no longer emits string payloads or binding addresses. The links report records `clear_class_names`, `string_contents` and `string_storage`. Use `--out-dir` to write the reports to another existing directory.
 
 Tests using the local binding can also collect snapshots via `RSPACK_ALLOCATIVE_DIR`. Each build or rebuild produces a snapshot automatically; the test framework does not need a separate capture integration. After building the binding and JavaScript packages, run a focused HMR case:
 
 ```sh
 cd /path/to/rspack/tests/rspack-test
-RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/hmr-test-1 \
+NODE_OPTIONS=--expose-gc RSPACK_ALLOCATIVE_DIR=/absolute/path/profiles/hmr-test-1 \
   pnpm test "\"$PWD/HotNode.test.mjs\"" --project base \
   -t hotCases/source-map/disable --maxWorkers 1
 ```

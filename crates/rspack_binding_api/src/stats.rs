@@ -1,8 +1,11 @@
 use std::{borrow::Cow, cell::RefCell, ptr, sync::Arc, thread::LocalKey};
 
 use napi::{
-  Env,
-  bindgen_prelude::{Array, FromNapiValue, Function, JsObjectValue, Object, check_status},
+  Either, Env,
+  bindgen_prelude::{
+    Array, Buffer, FromNapiValue, Function, JsObjectValue, Object, Result, SharedReference,
+    ToNapiValue, check_status,
+  },
   sys::{self, napi_env, napi_ref, napi_value},
 };
 use napi_derive::napi;
@@ -13,10 +16,6 @@ use rspack_core::{
 };
 use rspack_error::Severity;
 use rspack_intern::Atom;
-use rspack_napi::napi::{
-  Either,
-  bindgen_prelude::{Buffer, Result, SharedReference, ToNapiValue},
-};
 use rspack_util::numeric_id_value;
 use rustc_hash::FxHashMap as HashMap;
 

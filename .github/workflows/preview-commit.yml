@@ -107,6 +107,8 @@ jobs:
         run: find artifacts -type f -name '*.d.ts' -delete
 
       - name: Build node packages
+        env:
+          RSPACK_BUILD_PROFILE: ${{ inputs.profile }}
         run: pnpm run build:js
 
       - name: Move artifacts
