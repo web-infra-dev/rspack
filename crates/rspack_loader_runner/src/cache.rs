@@ -10,4 +10,6 @@ pub struct LoaderRunnerOptions {
   pub options_cache_key: String,
   /// Loader implementation version or file hash used as part of the etag.
   pub loader_version: String,
+  /// A portable build couldn't compare the options, so the chain skips the loader result cache.
+  pub incomparable_options: bool,
 }

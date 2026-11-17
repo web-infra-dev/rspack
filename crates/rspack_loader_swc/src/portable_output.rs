@@ -2,8 +2,10 @@
 //!
 //! The compiler uses only the resource extension for its fallback config, never a config-file
 //! search. The allowed parser/transpiler/React JSX passes have no filename-derived output
-//! except the JSX development filename literal. Plugins, env, module conversion, refresh
-//! signatures, import rewriting, and custom paths are intentionally excluded.
+//! except the JSX development filename literal. Explicit `env.targets` versions select passes
+//! without reading the filename or a browserslist config. Plugins, other env fields, module
+//! conversion, custom refresh options, import rewriting, and custom paths are intentionally
+//! excluded.
 
 use std::{io, path::Path, sync::Arc};
 
@@ -309,7 +311,8 @@ fn react(key: &str, value: &Value) -> bool {
   match key {
     "development" => value.is_boolean(),
     "runtime" => matches!(value.as_str(), Some("classic" | "automatic")),
-    "refresh" => value.as_bool() == Some(false),
+    // The refresh pass reads source text for its signatures, never the filename.
+    "refresh" => value.is_boolean(),
     _ => false,
   }
 }
@@ -334,6 +337,13 @@ fn jsc(key: &str, value: &Value) -> bool {
 pub(crate) fn supports_portable_output(options: &Map<String, Value>) -> bool {
   options.iter().all(|(key, value)| match key.as_str() {
     "jsc" => object(value, jsc),
+    // Omitted or query targets would read a browserslist config from the checkout.
+    "env" => {
+      value.get("targets").is_some()
+        && object(value, |key, value| {
+          key == "targets" && object(value, |_, version| version.is_string())
+        })
+    }
     "rspackExperiments" => object(value, |key, value| {
       key == "portableOutput" && value.as_bool() == Some(true)
     }),

@@ -175,11 +175,17 @@ pub struct ResolveOptions {
   /// Default `false`
   pub node_path: bool,
 
-  /// The roots of a portable persistent cache. The resolver looks for symlinks only when this is
-  /// set, because no other build reads which of its dependencies are fixed.
+  /// Directories that configured absolute paths move with. A path below one is computed for this
+  /// checkout, so what is resolved through it is not fixed.
   ///
   /// Default `[]`
   pub relocatable_roots: Vec<Utf8PathBuf>,
+
+  /// Whether absolute specifiers below [ResolveOptions::relocatable_roots] are configured paths too,
+  /// as loader paths in module rules are.
+  ///
+  /// Default `false`
+  pub relocatable_specifiers: bool,
 }
 
 impl ResolveOptions {
@@ -530,6 +536,7 @@ impl Default for ResolveOptions {
       builtin_modules: false,
       node_path: false,
       relocatable_roots: vec![],
+      relocatable_specifiers: false,
     }
   }
 }
@@ -685,6 +692,7 @@ mod test {
       tsconfig: None,
       node_path: false,
       relocatable_roots: vec![],
+      relocatable_specifiers: false,
     };
 
     assert_eq!(format!("{options}"), "");

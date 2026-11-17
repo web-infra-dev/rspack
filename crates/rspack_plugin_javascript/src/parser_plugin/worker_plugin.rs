@@ -2,8 +2,8 @@ use std::sync::{Arc, LazyLock};
 
 use itertools::Itertools;
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, ConstDependency, DependencyRange, EntryOptions,
-  GroupOptions, JavascriptParserWorkerOptions, JavascriptParserWorkerUrl,
+  AsyncDependenciesBlock, BoxDependency, CacheOptions, ConstDependency, DependencyRange,
+  EntryOptions, GroupOptions, JavascriptParserWorkerOptions, JavascriptParserWorkerUrl, contextify,
 };
 use rspack_error::Severity;
 use rspack_hash::{RspackHash, RspackHasher};
@@ -133,7 +133,19 @@ fn add_dependencies(
   let ast = parser.ast.ast;
   let output_options = &parser.compiler_options.output;
   let mut hasher = RspackHasher::from(output_options);
-  parser.module_identifier.hash(&mut hasher);
+  // Cached with the build, so with a portable cache the name must not depend on the checkout.
+  if matches!(
+    &parser.compiler_options.cache,
+    CacheOptions::Persistent(options) if options.portable_root.is_some()
+  ) {
+    contextify(
+      parser.compiler_options.context.as_path(),
+      parser.module_identifier.as_str(),
+    )
+    .hash(&mut hasher);
+  } else {
+    parser.module_identifier.hash(&mut hasher);
+  }
   parser.worker_index.hash(&mut hasher);
   parser.worker_index += 1;
   let digest = hasher.digest(&output_options.hash_digest);

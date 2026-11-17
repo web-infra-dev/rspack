@@ -532,7 +532,7 @@ Rspack 内置的实验性功能。
 <ApiMeta addedVersion="2.4.0" stability={Stability.Experimental} />
 
 - **类型：** `boolean`
-- **默认值：** `false`
+- **默认值：** 当 `cache.type` 为 `'persistent'` 且启用 [`cache.portable`](/config/cache#portable) 时为 `true`，否则为 `false`
 
 为受支持的 SWC 转换启用[可移植输出约定](/api/loader-api/context#thisexperimentsportableoutput)。Rspack 会一致地规范化已声明的文件名字面量，包括 `cache: false` 的构建。此选项不会启用持久化缓存。
 

@@ -247,6 +247,8 @@ pub struct JsLoaderContext {
   pub module_build_diagnostics: JsModuleBuildDiagnostics,
   /// Contribution of this JS execution span only; absence means uncertified.
   pub portable_output: Option<Vec<String>>,
+  /// This JS span called `importModule`, whose decisions a relocated build can't verify.
+  pub root_sensitive: bool,
   pub dependencies: JsLoaderDependencies,
   pub added_dependencies: JsLoaderDependencies,
   pub removed_dependencies: JsLoaderDependencies,
@@ -303,6 +305,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       cacheable: cx.cacheable,
       module_build_diagnostics: JsModuleBuildDiagnostics(Vec::new()),
       portable_output: Some(Vec::new()),
+      root_sensitive: false,
       dependencies: cx.dependencies().as_ref().into(),
       added_dependencies: cx.added_dependencies().into(),
       removed_dependencies: cx.removed_dependencies().into(),

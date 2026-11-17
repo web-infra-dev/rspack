@@ -14,6 +14,7 @@ export default {
 		+     "maxMemoryGenerations": Infinity,
 		+     "name": "none",
 		+     "portable": Object {
+		+       "rebaseLoaderRequests": false,
 		+       "root": "<cwd>",
 		+     },
 		+     "readonly": false,

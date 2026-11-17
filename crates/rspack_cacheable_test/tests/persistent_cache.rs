@@ -9,9 +9,11 @@ use rspack_core::{
   SnapshotStrategyOptions,
   cache::CacheCodec,
   legacy_cache::persistent::{
+    build_dependencies::BuildDeps,
     context::CacheContext,
     occasion::{MakeOccasion, Occasion},
     snapshot::{Snapshot, SnapshotScope, Strategy},
+    validation::CacheValidation,
   },
 };
 use rspack_fs::{MemoryFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -112,6 +114,162 @@ async fn expired_layout_files_compare_hashes_when_timestamps_match() {
     assert_eq!(unchanged.contains(&path), !changed);
     assert!(!deleted.contains(&path));
   }
+}
+
+/// Records the cache as written under `root`, so a reader elsewhere sees a relocated cache.
+fn save_meta(storage: &mut MemoryStorage, root: &str, codec: Arc<CacheCodec>) {
+  let filesystem: Arc<dyn ReadableFileSystem> = Arc::new(NativeFileSystem::new(false));
+  let snapshot = Snapshot::new(options(), root.into(), filesystem.clone(), codec.clone());
+  // Saving records the current dependency id counter of the compiler context.
+  rspack_tasks::within_compiler_context_for_testing_sync(|| {
+    CacheValidation::new(
+      codec,
+      "test".into(),
+      BuildDeps::new(&vec![], filesystem, Arc::new(snapshot)),
+    )
+    .save(storage);
+  });
+}
+
+/// Sets a future mtime, which dominates ctime on Unix: copies at other roots then share the
+/// snapshot's modified time while their content is free to differ.
+fn set_future_mtime(path: &std::path::Path, time: std::time::SystemTime) {
+  use std::fs;
+  fs::File::options()
+    .write(true)
+    .open(path)
+    .unwrap()
+    .set_times(fs::FileTimes::new().set_modified(time))
+    .unwrap();
+}
+
+#[tokio::test]
+async fn relocated_ordinary_files_compare_hashes_when_timestamps_match() {
+  use std::fs;
+
+  let temp = tempfile::tempdir().unwrap();
+  let base = fs::canonicalize(temp.path()).unwrap();
+  let time = std::time::SystemTime::now() + std::time::Duration::from_secs(3600);
+  for (name, contents) in [("writer", "OLD"), ("same", "OLD"), ("changed", "NEW")] {
+    let root = base.join(name);
+    fs::create_dir_all(&root).unwrap();
+    let path = root.join("dep.js");
+    fs::write(&path, contents).unwrap();
+    set_future_mtime(&path, time);
+  }
+  let writer = base.join("writer").assert_utf8();
+  let filesystem = Arc::new(NativeFileSystem::new(false));
+  let mut storage = MemoryStorage::default();
+  let writer_codec = codec_for_moved(writer.as_str());
+  let writer_snapshot = Snapshot::new(
+    options(),
+    writer.as_str().into(),
+    filesystem.clone(),
+    writer_codec.clone(),
+  );
+  // An ordinary input, as a module's own file is recorded: no root binding.
+  writer_snapshot
+    .add(
+      &mut storage,
+      SnapshotScope::FILE,
+      [InternedPath::from(writer.join("dep.js").as_std_path())].into_iter(),
+    )
+    .await;
+  save_meta(&mut storage, writer.as_str(), writer_codec.clone());
+  let entries = storage.load(SnapshotScope::FILE.name()).await.unwrap();
+  assert_eq!(entries.len(), 1);
+  let (bound_root, strategy) = writer_codec
+    .decode::<(Option<u64>, Strategy)>(&entries[0].1)
+    .unwrap();
+  assert!(bound_root.is_none());
+  let Strategy::FileTimestampAndHash { mtime, .. } = strategy else {
+    panic!("expected a timestamp and hash record");
+  };
+
+  for (name, changed) in [("same", false), ("changed", true)] {
+    let root = base.join(name).assert_utf8();
+    let path = root.join("dep.js");
+    let meta = filesystem.metadata(&path).await.unwrap();
+    assert_eq!(mtime, meta.mtime_ms.max(meta.ctime_ms));
+    let reader = Snapshot::new(
+      options(),
+      root.as_str().into(),
+      filesystem.clone(),
+      codec_for_moved(root.as_str()),
+    );
+    let (_, modified, deleted, unchanged, observed, _) = reader
+      .calc_modified_paths(&storage, SnapshotScope::FILE)
+      .await
+      .unwrap();
+    let path = InternedPath::from(path.as_std_path());
+    assert_eq!(modified.contains(&path), changed, "{name}");
+    assert_eq!(unchanged.contains(&path), !changed, "{name}");
+    assert!(!deleted.contains(&path));
+    // An unchanged record is re-stored with this root's observation.
+    assert_eq!(observed.contains_key(&path), !changed, "{name}");
+  }
+
+  // The same cache under its own root still takes the timestamp shortcut.
+  let (_, modified, _, unchanged, observed, _) = writer_snapshot
+    .calc_modified_paths(&storage, SnapshotScope::FILE)
+    .await
+    .unwrap();
+  let path = InternedPath::from(writer.join("dep.js").as_std_path());
+  assert!(modified.is_empty());
+  assert!(unchanged.contains(&path));
+  assert!(observed.is_empty());
+}
+
+#[tokio::test]
+async fn relocated_file_replaced_by_link_to_the_writer_file_is_modified() {
+  use std::{fs, os::unix::fs::symlink};
+
+  let temp = tempfile::tempdir().unwrap();
+  let base = fs::canonicalize(temp.path()).unwrap();
+  fs::create_dir_all(base.join("writer")).unwrap();
+  fs::create_dir_all(base.join("reader")).unwrap();
+  fs::write(
+    base.join("writer/bridge.js"),
+    "export { value } from './value';",
+  )
+  .unwrap();
+  let writer = base.join("writer").assert_utf8();
+  let filesystem = Arc::new(NativeFileSystem::new(false));
+  let mut storage = MemoryStorage::default();
+  let writer_codec = codec_for_moved(writer.as_str());
+  let writer_snapshot = Snapshot::new(
+    options(),
+    writer.as_str().into(),
+    filesystem.clone(),
+    writer_codec.clone(),
+  );
+  writer_snapshot
+    .add(
+      &mut storage,
+      SnapshotScope::FILE,
+      [InternedPath::from(writer.join("bridge.js").as_std_path())].into_iter(),
+    )
+    .await;
+  save_meta(&mut storage, writer.as_str(), writer_codec);
+
+  // The reader's file is a link into the writer checkout: following it reports the writer
+  // file's timestamps, yet imports now resolve relative to the writer.
+  symlink(base.join("writer/bridge.js"), base.join("reader/bridge.js")).unwrap();
+  let reader = base.join("reader").assert_utf8();
+  let reader_snapshot = Snapshot::new(
+    options(),
+    reader.as_str().into(),
+    filesystem.clone(),
+    codec_for_moved(reader.as_str()),
+  );
+  let (_, modified, deleted, unchanged, _, _) = reader_snapshot
+    .calc_modified_paths(&storage, SnapshotScope::FILE)
+    .await
+    .unwrap();
+  let path = InternedPath::from(reader.join("bridge.js").as_std_path());
+  assert!(modified.contains(&path));
+  assert!(!unchanged.contains(&path));
+  assert!(!deleted.contains(&path));
 }
 
 #[tokio::test]

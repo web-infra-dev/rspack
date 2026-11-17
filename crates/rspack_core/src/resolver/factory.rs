@@ -27,7 +27,7 @@ pub struct ResolverFactory {
   /// All resolvers share the same underlying cache.
   resolvers: DashMap<ResolveOptionsWithDependencyType, Arc<Resolver>, BuildHasherDefault<FxHasher>>,
   /// Set once by the compiler when its cache is portable.
-  relocatable_roots: OnceLock<Vec<Utf8PathBuf>>,
+  relocatable_roots: OnceLock<(Vec<Utf8PathBuf>, bool)>,
 }
 
 impl ResolverFactory {
@@ -48,8 +48,8 @@ impl ResolverFactory {
     }
   }
 
-  pub fn set_relocatable_roots(&self, roots: Vec<Utf8PathBuf>) {
-    let _ = self.relocatable_roots.set(roots);
+  pub fn set_relocatable_roots(&self, roots: Vec<Utf8PathBuf>, specifiers: bool) {
+    let _ = self.relocatable_roots.set((roots, specifiers));
     // A plugin can request a resolver before the compiler is created.
     self.resolvers.clear();
   }
@@ -63,12 +63,13 @@ impl ResolverFactory {
         Some(o) => base_options.merge(*o.clone()),
         None => base_options,
       };
-      let roots = self.relocatable_roots.get().cloned().unwrap_or_default();
-      let resolver = Arc::new(
-        self
-          .resolver
-          .clone_with_options(merged_options, &options, roots),
-      );
+      let (roots, specifiers) = self.relocatable_roots.get().cloned().unwrap_or_default();
+      let resolver = Arc::new(self.resolver.clone_with_options(
+        merged_options,
+        &options,
+        roots,
+        specifiers,
+      ));
       self.resolvers.insert(options, resolver.clone());
       resolver
     }

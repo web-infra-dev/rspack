@@ -8,6 +8,7 @@ use std::sync::atomic::Ordering;
 
 use rspack_error::Result;
 use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
+use rustc_hash::FxHashSet;
 use tracing::instrument;
 
 pub use self::{
@@ -20,7 +21,7 @@ pub use self::{
   module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor},
 };
 pub use crate::BuildModuleGraphArtifact;
-use crate::{Compilation, ExportsInfoArtifact};
+use crate::{Compilation, DependencyId, ExportsInfoArtifact};
 
 pub async fn build_module_graph_pass(compilation: &mut Compilation) -> Result<()> {
   do_build_module_graph(compilation).await?;
@@ -59,15 +60,7 @@ pub async fn build_module_graph(
   let mut params = Vec::with_capacity(6);
 
   if !compilation.entries.is_empty() {
-    params.push(UpdateParam::BuildEntry(
-      compilation
-        .entries
-        .values()
-        .flat_map(|item| item.all_dependencies())
-        .chain(compilation.global_entry.all_dependencies())
-        .copied()
-        .collect(),
-    ));
+    params.push(UpdateParam::BuildEntry(entry_dependencies(compilation)));
   }
   params.push(UpdateParam::CheckNeedBuild);
   if !compilation.modified_files.is_empty() {
@@ -81,7 +74,17 @@ pub async fn build_module_graph(
 
   // reset temporary data
   artifact.reset_temporary_data();
-  update_module_graph(compilation, artifact, exports_info_artifact, params).await
+  let update = update_module_graph(compilation, artifact, exports_info_artifact, params).await;
+  if update.result.is_err() {
+    return update;
+  }
+  graph_updater::settle::settle_factory_decisions(
+    compilation,
+    update.artifact,
+    update.exports_info_artifact,
+    false,
+  )
+  .await
 }
 
 /// Clean up module graph when finish make.
@@ -96,19 +99,33 @@ pub async fn finish_build_module_graph(
   artifact: BuildModuleGraphArtifact,
   exports_info_artifact: ExportsInfoArtifact,
 ) -> ModuleGraphUpdateResult {
-  update_module_graph(
+  let update = update_module_graph(
     compilation,
     artifact,
     exports_info_artifact,
-    vec![UpdateParam::BuildEntryAndClean(
-      compilation
-        .entries
-        .values()
-        .flat_map(|item| item.all_dependencies())
-        .chain(compilation.global_entry.all_dependencies())
-        .copied()
-        .collect(),
-    )],
+    vec![UpdateParam::BuildEntryAndClean(entry_dependencies(
+      compilation,
+    ))],
+  )
+  .await;
+  if update.result.is_err() {
+    return update;
+  }
+  graph_updater::settle::settle_factory_decisions(
+    compilation,
+    update.artifact,
+    update.exports_info_artifact,
+    true,
   )
   .await
+}
+
+fn entry_dependencies(compilation: &Compilation) -> FxHashSet<DependencyId> {
+  compilation
+    .entries
+    .values()
+    .flat_map(|entry| entry.all_dependencies())
+    .chain(compilation.global_entry.all_dependencies())
+    .copied()
+    .collect()
 }

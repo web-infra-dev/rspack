@@ -530,7 +530,7 @@ Experimental features provided by rspack.
 <ApiMeta addedVersion="2.4.0" stability={Stability.Experimental} />
 
 - **Type:** `boolean`
-- **Default:** `false`
+- **Default:** `true` when `cache.type` is `'persistent'` and [`cache.portable`](/config/cache#portable) is enabled; `false` otherwise
 
 Opt in to the [portable output contract](/api/loader-api/context#thisexperimentsportableoutput) for supported SWC transforms. This lets Rspack normalize declared filename literals consistently, including when `cache: false`. It does not enable persistent caching.
 

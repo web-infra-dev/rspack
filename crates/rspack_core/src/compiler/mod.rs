@@ -152,9 +152,13 @@ impl Compiler {
       ..
     }) = &options.cache
     {
-      let roots = vec![root.root.clone(), root.canonical_root.clone()];
-      resolver_factory.set_relocatable_roots(roots.clone());
-      loader_resolver_factory.set_relocatable_roots(roots);
+      let mut roots = vec![root.root.clone()];
+      if root.canonical_root != root.root {
+        roots.push(root.canonical_root.clone());
+      }
+      resolver_factory.set_relocatable_roots(roots.clone(), false);
+      // Loader paths in module rules are absolute and computed for this checkout.
+      loader_resolver_factory.set_relocatable_roots(roots, true);
     }
     let options = Arc::new(options);
     let compilation_logging: CompilationLogging = Default::default();

@@ -1,5 +1,6 @@
 mod cutout;
 pub mod repair;
+pub(super) mod settle;
 
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;

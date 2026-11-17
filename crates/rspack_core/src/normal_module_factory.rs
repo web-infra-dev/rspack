@@ -1,8 +1,10 @@
 use std::{
   borrow::Cow,
+  hash::{Hash, Hasher},
   sync::{Arc, LazyLock, UniqueArc},
 };
 
+use cow_utils::CowUtils;
 use memchr::{memchr, memmem, memrchr};
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
@@ -291,6 +293,7 @@ fn resolve_module_options(
   module_type: &ModuleType,
   global_parser: Option<&ParserOptions>,
   global_generator: Option<&GeneratorOptions>,
+  portable: bool,
 ) -> Arc<ResolvedModuleOptions> {
   let cache_key = ResolvedModuleOptionsCacheKey::new(module_rules, *module_type);
   if let Some(options) = options_cache.get(&cache_key) {
@@ -311,11 +314,15 @@ fn resolve_module_options(
       let parser = merge_parser_options_with_local(global_parser, local_parser.as_ref());
       let generator =
         merge_generator_options_with_local(global_generator, local_generator.as_ref());
-      let options = Arc::new(ResolvedModuleOptions::new(
+      let mut options = ResolvedModuleOptions::new(
         cache_key,
         normalize_css_parser_options(module_type, parser),
         normalize_css_generator_options(module_type, generator),
-      ));
+      );
+      if portable {
+        options.set_comparable_digest();
+      }
+      let options = Arc::new(options);
       entry.insert(Arc::clone(&options));
       options
     }
@@ -467,6 +474,7 @@ mod tests {
       &ModuleType::Asset,
       Some(&global_parser),
       Some(&global_generator),
+      false,
     );
     let second = resolve_module_options(
       &options_cache,
@@ -474,6 +482,7 @@ mod tests {
       &ModuleType::Asset,
       Some(&global_parser),
       Some(&global_generator),
+      false,
     );
 
     assert!(Arc::ptr_eq(&first, &second));
@@ -513,6 +522,7 @@ mod tests {
       &ModuleType::Asset,
       None,
       Some(&global_generator),
+      false,
     );
 
     assert_eq!(
@@ -551,6 +561,7 @@ mod tests {
           runtime_public_path: Some(false),
           es_module: Some(true),
         })),
+        false,
       );
 
       let parser_options = options
@@ -789,6 +800,7 @@ impl NormalModuleFactory {
             }),
             cache: false,
             options_cache_key: String::new(),
+            comparable_options: None,
             filter: None,
           }
         }));
@@ -969,7 +981,8 @@ module.exports = "data:,";
               issuer: data.issuer.clone(),
               issuer_layer: data.issuer_layer.clone(),
             };
-            Cow::Owned(func_use(context).await?)
+            let loaders = func_use(context).await?;
+            Cow::Owned(loaders)
           }
         };
 
@@ -1038,6 +1051,50 @@ module.exports = "data:,";
       }
 
       all_loaders
+    };
+
+    let loader_options_digest = match &self.options.cache {
+      crate::CacheOptions::Persistent(crate::PersistentCacheOptions {
+        portable_root: Some(root),
+        ..
+      }) => {
+        let mut root_spellings = Vec::new();
+        for root in [&root.root, &root.canonical_root] {
+          // The typed encoder JSON-quotes strings and object keys. Strip only the surrounding
+          // quotes, preserving escapes (especially doubled Windows path separators).
+          let quoted = serde_json::to_string(root.as_str()).expect("serialize portable root");
+          root_spellings.push(quoted[1..quoted.len() - 1].to_owned());
+          root_spellings.push(root.as_str().to_owned());
+        }
+        // Replace longer spellings first when the lexical and canonical roots overlap.
+        root_spellings.sort_by(|a, b| b.len().cmp(&a.len()).then_with(|| a.cmp(b)));
+        root_spellings.dedup();
+        let mut digest = rustc_hash::FxHasher::default();
+        let mut comparable = true;
+        for loader in &resolved_loaders {
+          if let Some(options) = &loader.comparable_options {
+            let mut normalized = Cow::Borrowed(options.as_str());
+            for root in &root_spellings {
+              // The encoder escapes control characters in every string it writes, so no option
+              // can spell this token, as a literal `<root>` could.
+              if let Cow::Owned(replaced) = normalized.cow_replace(root, "\0") {
+                normalized = Cow::Owned(replaced);
+              }
+            }
+            normalized.hash(&mut digest);
+          } else {
+            comparable = false;
+          }
+        }
+        comparable.then(|| {
+          if resolved_loaders.is_empty() {
+            0
+          } else {
+            digest.finish()
+          }
+        })
+      }
+      _ => Some(0),
     };
 
     let request = if !resolved_loaders.is_empty() {
@@ -1173,6 +1230,9 @@ module.exports = "data:,";
       .boxed()
     };
 
+    if let Some(normal) = module.as_normal_module_mut() {
+      normal.loader_options_digest = loader_options_digest;
+    }
     self
       .plugin_driver
       .normal_module_factory_hooks
@@ -1252,6 +1312,7 @@ module.exports = "data:,";
       module_type,
       global_parser,
       global_generator,
+      is_portable(&self.options),
     )
   }
 
@@ -1317,6 +1378,10 @@ module.exports = "data:,";
   }
 }
 
+pub(crate) fn is_portable(options: &CompilerOptions) -> bool {
+  matches!(&options.cache, crate::CacheOptions::Persistent(options) if options.portable_root.is_some())
+}
+
 async fn resolve_each(
   plugin_driver: &SharedPluginDriver,
   context: &Context,
@@ -1336,14 +1401,18 @@ struct ResolvedLoader {
   loader: BoxLoader,
   options: LoaderRunnerOptions,
   filter: Option<Arc<LoaderFilter>>,
+  comparable_options: Option<String>,
 }
 
 impl ResolvedLoader {
+  /// An inline loader. Its options live in the request, which the module identifier already
+  /// covers, so they compare equal whenever the identifier does.
   fn uncached(loader: BoxLoader) -> Self {
     Self {
       loader,
       options: LoaderRunnerOptions::default(),
       filter: None,
+      comparable_options: Some(String::new()),
     }
   }
 }
@@ -1373,11 +1442,17 @@ async fn resolve_each_with_options(
     data,
   )
   .await?;
+  let comparable_options = if is_portable(options) {
+    loader.comparable_options.clone()
+  } else {
+    None
+  };
   if !loader.cache {
     return Ok(ResolvedLoader {
       loader: resolved,
       options: LoaderRunnerOptions::default(),
       filter: loader.filter.clone(),
+      comparable_options,
     });
   }
   let loader_name = parse_resource(&loader.loader).map_or_else(
@@ -1393,10 +1468,16 @@ async fn resolve_each_with_options(
     options: LoaderRunnerOptions {
       cache: true,
       loader_name,
-      options_cache_key: loader.options_cache_key.clone(),
+      // `JSON.stringify` can't tell apart what a portable build compares, such as `Set` contents.
+      options_cache_key: comparable_options
+        .as_ref()
+        .unwrap_or(&loader.options_cache_key)
+        .clone(),
       loader_version,
+      incomparable_options: is_portable(options) && loader.comparable_options.is_none(),
     },
     filter: loader.filter.clone(),
+    comparable_options,
   })
 }
 

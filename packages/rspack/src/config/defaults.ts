@@ -266,8 +266,9 @@ const applyCacheDefaults = (
       F(cache, 'buildDependencies', () => []);
       D(cache, 'portable', false);
       if (cache.portable) {
-        let root =
-          typeof cache.portable === 'object' ? cache.portable.root : undefined;
+        const portable =
+          typeof cache.portable === 'object' ? cache.portable : {};
+        let root = portable.root;
         if (root === undefined) {
           root = path.resolve(context);
           while (!fs.existsSync(path.join(root, '.git'))) {
@@ -281,7 +282,10 @@ const applyCacheDefaults = (
         } else {
           root = path.resolve(context, root);
         }
-        cache.portable = { root };
+        cache.portable = {
+          root,
+          rebaseLoaderRequests: portable.rebaseLoaderRequests ?? false,
+        };
       }
       break;
   }

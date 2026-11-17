@@ -65,6 +65,7 @@ pub struct LoaderContext<Context: Send> {
 
   pub cacheable: bool,
   pub(crate) portable: crate::portable::PortableOutput,
+  pub root_sensitive: bool,
   /// Dependencies committed by resource processing and preceding loaders.
   pub(crate) dependencies: LoaderDependencies,
   /// Dependencies added by the current loader (pitch) or root chain (normal).

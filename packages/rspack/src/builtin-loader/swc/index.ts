@@ -61,6 +61,17 @@ export const getSwcLoaderOptions: GetLoaderOptions = (o, composeOptions) => {
       }
     }
 
+    // The allow-list decides whether a module is certified, so portable caches need no option.
+    const { cache } = composeOptions.compiler.options;
+    if (
+      typeof cache === 'object' &&
+      cache.type === 'persistent' &&
+      cache.portable
+    ) {
+      options.rspackExperiments ??= {};
+      options.rspackExperiments.portableOutput ??= true;
+    }
+
     // resolve top-level `collectTypeScriptInfo` options (stable API)
     if (options.collectTypeScriptInfo) {
       options.collectTypeScriptInfo = resolveCollectTypeScriptInfo(

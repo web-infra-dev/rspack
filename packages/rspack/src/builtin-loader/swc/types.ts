@@ -37,7 +37,8 @@ type SwcLoaderCommonOptions = Omit<Config, 'jsc'> & {
   rspackExperiments?: {
     /**
      * Certify supported SWC transforms for portable output normalization.
-     * Unsupported options withhold certification. Defaults to false.
+     * Unsupported options withhold certification. Defaults to true when persistent
+     * caching and cache.portable are enabled, and false otherwise.
      * @experimental
      */
     portableOutput?: boolean;

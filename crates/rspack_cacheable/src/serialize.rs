@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use rkyv::{
   Serialize,
   api::{high::HighSerializer, serialize_using},
@@ -46,17 +48,51 @@ where
   to_bytes_with_guard(value, ContextGuard::new(ctx))
 }
 
+/// A buffer above this size is not kept for the next value, so one large value doesn't hold its
+/// memory on every thread that serialized one.
+const MAX_KEPT_CAPACITY: usize = 1 << 20;
+
+thread_local! {
+  /// The arena and output buffer of the last value serialized on this thread. A persistent cache
+  /// stores many small values, and fresh ones would grow from nothing for each of them.
+  static SCRATCH: RefCell<(Arena, AlignedVec)> = RefCell::new((Arena::new(), AlignedVec::new()));
+}
+
 fn to_bytes_with_guard<T>(value: &T, guard: ContextGuard<'_>) -> Result<(Vec<u8>, bool)>
 where
   T: for<'a> Serialize<Serializer<'a>>,
 {
-  let mut arena = Arena::new();
-  let mut serializer = RkyvSerializer::new(AlignedVec::new(), arena.acquire(), Share::new());
-  guard.add_to_sharing(&mut serializer)?;
+  fn serialize<T>(
+    value: &T,
+    guard: &ContextGuard<'_>,
+    arena: &mut Arena,
+    writer: AlignedVec,
+  ) -> (AlignedVec, Result<()>)
+  where
+    T: for<'a> Serialize<Serializer<'a>>,
+  {
+    let mut serializer = RkyvSerializer::new(writer, arena.acquire(), Share::new());
+    let result = guard
+      .add_to_sharing(&mut serializer)
+      .and_then(|()| serialize_using(value, &mut serializer).map(|_| ()));
+    (serializer.into_writer(), result)
+  }
 
-  serialize_using(value, &mut serializer)?;
-  Ok((
-    serializer.into_writer().into_vec(),
-    guard.saw_outside_root(),
-  ))
+  SCRATCH.with(|scratch| {
+    // A value that serializes another while it is being serialized gets buffers of its own.
+    let Ok(mut scratch) = scratch.try_borrow_mut() else {
+      let (writer, result) = serialize(value, &guard, &mut Arena::new(), AlignedVec::new());
+      return result.map(|()| (writer.into_vec(), guard.saw_outside_root()));
+    };
+    let (arena, writer) = &mut *scratch;
+    let mut buffer = std::mem::take(writer);
+    buffer.clear();
+    let (buffer, result) = serialize(value, &guard, arena, buffer);
+    let bytes = result.map(|()| (buffer.as_slice().to_vec(), guard.saw_outside_root()));
+    arena.shrink();
+    if buffer.capacity() <= MAX_KEPT_CAPACITY {
+      *writer = buffer;
+    }
+    bytes
+  })
 }

@@ -249,6 +249,10 @@ impl FromIterator<(DependencyCategoryStr, Resolve)> for ByDependency {
 }
 
 impl ByDependency {
+  pub fn values(&self) -> impl Iterator<Item = &Resolve> {
+    self.0.values()
+  }
+
   pub fn get(&self, k: &DependencyCategory) -> Option<&Resolve> {
     self.0.get(k.as_str())
   }

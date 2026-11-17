@@ -7,5 +7,6 @@ pub(crate) use build_dependencies::{Helper as BuildDependencyHelper, is_node_pac
 pub use cache_entry::{
   CachedExtractedComments, CachedMinimizeEntry, CachedSourceMapDevToolPluginEntry,
 };
+pub(crate) use codec::RootPatterns;
 pub use codec::{CacheCodec, RootBinding};
 pub(crate) use package_helper::PackageHelper;
