@@ -146,3 +146,7 @@ export function extractLoaderName(loaderPath: string, cwd = ''): string {
 
   return res;
 }
+
+export function strictLoaderError(api: string): Error {
+  return new Error(`${api} is unavailable with \`parallel: 'strict'\`.`);
+}

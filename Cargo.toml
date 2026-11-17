@@ -21,6 +21,7 @@ aho-corasick    = { version = "1.1.5", default-features = false }
 anyhow          = { version = "1.0.104", default-features = false, features = ["backtrace", "std"] }
 anymap          = { package = "anymap3", version = "1.1.0", default-features = false, features = ["std"] }
 arc-swap        = { version = "1.9.5", default-features = false }
+async-channel   = "2.5.0"
 async-recursion = { version = "1.2.0", default-features = false }
 async-trait     = { version = "0.1.92", default-features = false }
 atomic_refcell  = { version = "0.1.14", default-features = false }
@@ -119,6 +120,7 @@ termcolor           = { version = "1.4.1", default-features = false }
 textwrap            = { version = "0.16.1", default-features = false }
 thiserror           = { version = "2.0.21", default-features = false, features = ["std"] }
 tokio               = { version = "1.54.1", default-features = false, features = ["rt"] }
+tokio-util          = { version = "0.7.19", features = ["rt"] }
 tracing             = { version = "0.1.44", default-features = false, features = ["max_level_trace", "release_max_level_trace"] }
 tracing-subscriber  = { version = "0.3.23", default-features = false, features = ["fmt", "registry"] }
 triomphe            = { version = "0.1.17", default-features = false, features = ["std", "unsize"] }
@@ -191,6 +193,7 @@ rspack_hook                            = { version = "=0.103.2", path = "crates/
 rspack_ids                             = { version = "=0.103.2", path = "crates/rspack_ids", default-features = false }
 rspack_intern                          = { version = "=0.103.2", path = "crates/rspack_intern", default-features = false }
 rspack_javascript_compiler             = { version = "=0.103.2", path = "crates/rspack_javascript_compiler", default-features = false }
+rspack_js_tasks                        = { version = "=0.103.2", path = "crates/rspack_js_tasks", default-features = false }
 rspack_loader_lightningcss             = { version = "=0.103.2", path = "crates/rspack_loader_lightningcss", default-features = false }
 rspack_loader_preact_refresh           = { version = "=0.103.2", path = "crates/rspack_loader_preact_refresh", default-features = false }
 rspack_loader_react_refresh            = { version = "=0.103.2", path = "crates/rspack_loader_react_refresh", default-features = false }

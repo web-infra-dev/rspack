@@ -98,15 +98,6 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     Ok(None)
   }
 
-  async fn start_yielding(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
-    self
-      .plugin_driver
-      .normal_module_hooks
-      .loader_yield
-      .call(context)
-      .await
-  }
-
   async fn run_normal_chain(&self, context: &mut LoaderContext<Self::Context>) -> Result<()> {
     let chain = context
       .current_root_chain()

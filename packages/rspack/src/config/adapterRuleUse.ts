@@ -4,6 +4,7 @@ import { getSwcLoaderOptions } from '../builtin-loader/swc';
 import type { Compilation } from '../Compilation';
 import type { Compiler } from '../Compiler';
 import type { LoaderObject } from '../loader-runner';
+import { registerParallelLoader } from '../loader-runner/service';
 import type { Logger } from '../logging/Logger';
 import type { Module } from '../Module';
 import type { ResolveRequest } from '../Resolver';
@@ -645,6 +646,11 @@ function resolveStringifyLoaders(
   else obj.query = `?${JSON.stringify(use.options)}`;
 
   const parallelism = use.parallel;
+  if (parallelism === 'strict' && isBuiltin) {
+    throw new Error(
+      "`Rule.use.parallel: 'strict'` requires a JavaScript loader.",
+    );
+  }
 
   if (!!parallelism && (!use.options || typeof use.options !== 'object')) {
     throw new Error(
@@ -655,6 +661,7 @@ function resolveStringifyLoaders(
   if (use.options && typeof use.options === 'object') {
     if (!ident) ident = '[[missing ident]]';
     compiler.__internal__ruleSet.references.set(ident, use.options);
+    registerParallelLoader(compiler, ident, parallelism);
     compiler.__internal__ruleSet.references.set(
       `${ident}$$parallelism`,
       parallelism,

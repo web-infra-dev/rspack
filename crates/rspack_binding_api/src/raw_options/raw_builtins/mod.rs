@@ -25,7 +25,7 @@ mod raw_swc_js_minimizer;
 use std::cell::RefCell;
 
 use napi::{
-  Either, Env, Unknown, ValueType,
+  Either, Env, JsValue, Unknown, ValueType,
   bindgen_prelude::{ClassInstance, FromNapiValue, JsObjectValue, Object},
 };
 use napi_derive::napi;
@@ -143,8 +143,7 @@ use self::{
 use crate::{
   options::entry::JsEntryPluginOptions,
   plugins::{
-    JsCoordinator, JsLoaderRspackPlugin, JsLoaderRunnerGetter, JsRscClientPluginOptions,
-    JsRscServerPluginOptions,
+    JsCoordinator, JsLoaderRspackPlugin, JsRscClientPluginOptions, JsRscServerPluginOptions,
   },
   raw_options::{
     RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
@@ -859,11 +858,11 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(CircularModulesInfoPlugin::default().boxed())
       }
       BuiltinPluginName::JsLoaderRspackPlugin => {
-        // Set the compiler._runLoader property on the JsObject to ensure that the runLoader
-        // is not garbage collected by JS while the stats Object holds a reference to JsLoaderPlugin.
-        compiler_object.set_named_property("_runLoader", self.options)?;
-        let loader_runner_getter = JsLoaderRunnerGetter::new(&env)?;
-        plugins.push(JsLoaderRspackPlugin::new(loader_runner_getter).boxed());
+        let main_object_handle = self
+          .options
+          .coerce_to_object()?
+          .get_named_property::<u32>("mainObjectHandle")?;
+        plugins.push(JsLoaderRspackPlugin::new(main_object_handle).boxed());
       }
       BuiltinPluginName::LazyCompilationPlugin => {
         let options = downcast_into::<RawLazyCompilationOption>(self.options)

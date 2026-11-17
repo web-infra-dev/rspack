@@ -188,10 +188,26 @@ export default {
 
 :::tip
 
-- 启用并行执行时，`options` 必须是对象。即使 loader 不需要配置项，也必须显式设置 `options: {}`，省略 `options` 会导致配置错误。
-- loader 的选项需要满足 [HTML structured clone algorithm](https://nodejs.org/api/worker_threads.html#portpostmessagevalue-transferlist)，否则会发送失败。
-- 在 worker 模式下，`LoaderContext._compilation`、`LoaderContext._compiler`、`LoaderContext._module` 上的大多数方法不被支持。
+- loader 选项必须是对象。选项可以包含函数，函数在主线程执行。
+- native binding 使用 worker 执行并行 loader。由于独立的 WebAssembly 实例无法共享 native task 队列，WASI binding 保留在主线程执行 loader 的兼容行为。
+- compiler 和 compilation API 通过代理访问主线程实现。worker 执行 loader 时跳过 `NormalModule.getCompilationHooks(compilation).loader`，pitch 阶段也会跳过。并行 loader 无法使用该 hook 添加的属性和方法。非并行 loader 段仍在主线程执行该 hook。
+- 可序列化的 loader options 和 `additionalData` 使用 V8 序列化，字节保存在 Rust 中，由消费数据的线程反序列化。数据图内部的循环引用和共享引用会保留，但不保留原对象跨线程的身份。含函数的 options 和不可序列化值仍使用对象桥。
+- `_module` 提供由 worker 本地 native module 支持的受限 API，包括 resource 和 request 属性、`identifier()`、`readableIdentifier()`、`nameForCondition()`、`originalSource()`、`size()`、`libIdent()`、`factoryMeta`、`matchResource` 和 `emitFile()`。不提供 `blocks`、`dependencies`、`error` 等依赖 compilation 的 API。仅在 loader 执行期间使用此对象。
+- `buildInfo`（包括自定义字段和 assets 查询）继续通过主线程对象桥访问。worker emit 的文件直接保存在 native module 中，供 compilation 后续使用。
 
 :::
 
 更多细节请参考 [rules[].use.parallel](/config/module-rules#rulesuseparallel)。
+
+### 严格模式 \{#strict-execution}
+
+使用 native binding 时，`parallel: 'strict'` 与普通 parallel loader 共用 worker 池和 MPMC 队列，但跳过主线程 API 桥接的准备。适用于仅转换输入的 loader，例如设置 `cacheDirectory: false` 的 `babel-loader`。
+
+- loader options 和顶层 `loader` 设置必须可序列化。
+- `_compiler`、`_compilation`、`fs`、`importModule` 和 compilation diagnostics 不可用。`getLogger()` 丢弃日志。
+- `getResolve(options)` 和 `resolve` 直接调用 Rust resolver，并记录依赖。
+- 可以通过 `this._module` 访问当前模块数据。自定义 `buildInfo` 字段仅在当前 strict 执行段内可见。
+- 可以通过 `emitFile` 写入 asset，但不能通过 `buildInfo.assets` 读取。
+- 收到的 `additionalData` 为 `undefined`，通过 loader 回调返回的值会被忽略。
+
+普通 parallel loader 保留通过 message port 代理访问主线程 API 的行为。两种模式均跳过 loader hook，非 parallel loader 保留该 hook。

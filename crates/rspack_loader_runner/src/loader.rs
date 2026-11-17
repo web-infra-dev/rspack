@@ -320,6 +320,10 @@ where
   fn etag(&self, _context: &Context, _hasher: &mut RspackHasher) {}
 
   /// Selects the runtime responsible for executing this loader.
+  fn js_runtime(&self, _context: &Context) -> Option<Arc<crate::JsLoaderRuntime>> {
+    None
+  }
+
   fn execution_kind(&self) -> LoaderExecutionKind {
     LoaderExecutionKind::Native
   }

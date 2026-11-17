@@ -1060,7 +1060,7 @@ export default {
 
 <ApiMeta addedVersion="1.3.1" />
 
-- **Type**: `boolean | { maxWorkers?: number }`
+- **Type**: `boolean | 'strict' | { maxWorkers?: number }`
 - **Default:** `false`
 
 Controls whether a given loader should run in worker threads for parallel execution. Loaders marked with `parallel` are scheduled across multiple threads, reducing pressure on the main thread and improving overall build performance.
@@ -1070,6 +1070,10 @@ Controls whether a given loader should run in worker threads for parallel execut
 - When set to `false` or omitted, the loader runs on the main thread.
 
 For usage examples and limitations, see [Parallel loader](/guide/features/loader#parallel-loader).
+
+Use `parallel: 'strict'` to disable main-thread API access for a worker loader. See [strict execution](/guide/features/loader#strict-execution) for the restrictions.
+
+See [strict execution](/guide/features/loader#strict-execution) for `parallel: 'strict'` restrictions.
 
 ## rules[].use.parallel.maxWorkers
 

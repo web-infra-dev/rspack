@@ -1,4 +1,7 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{
+  borrow::Cow,
+  sync::{Arc, Mutex},
+};
 
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
@@ -7,15 +10,22 @@ use rspack_cacheable::{
 use rspack_collections::Identifier;
 use rspack_core::{
   BoxLoader, Context, Loader, LoaderExecutionKind, ModuleFactoryCreateData, ModuleRuleUseLoader,
-  NormalModuleFactoryResolveLoader, ResolveResult, Resolver, Resource, RunnerContext,
+  NormalModuleFactoryResolveLoader, ResolveDependencies, ResolveResult, Resolver, Resource,
+  RunnerContext,
 };
 use rspack_error::Result;
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_hook::plugin_hook;
 use rspack_paths::Utf8Path;
 use rspack_util::identifier::split_at_query_mark;
+use rustc_hash::FxHashMap;
+use tokio::sync::OnceCell;
 
 use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
+
+type ResolveKey = (String, String, usize, bool);
+pub(super) type LoaderResolveCache =
+  Mutex<FxHashMap<ResolveKey, Arc<OnceCell<(Option<BoxLoader>, ResolveDependencies)>>>>;
 
 pub(crate) async fn loader_cache_version(
   resolver: &Resolver,
@@ -49,6 +59,13 @@ impl Loader<RunnerContext> for JsLoader {
 
   fn cache_version(&self) -> Option<&str> {
     self.2.as_deref()
+  }
+
+  fn js_runtime(
+    &self,
+    context: &RunnerContext,
+  ) -> Option<Arc<rspack_loader_runner::JsLoaderRuntime>> {
+    super::runtime(context.compiler_id)
   }
 
   fn execution_kind(&self) -> LoaderExecutionKind {
@@ -87,26 +104,50 @@ pub(crate) async fn resolve_loader(
   l: &ModuleRuleUseLoader,
   data: &mut ModuleFactoryCreateData,
 ) -> Result<Option<BoxLoader>> {
+  let key = (
+    context.to_string(),
+    l.loader.clone(),
+    resolver as *const Resolver as usize,
+    l.cache,
+  );
+  let cell = self
+    .resolved_loaders
+    .lock()
+    .expect("loader resolution cache lock poisoned")
+    .entry(key)
+    .or_default()
+    .clone();
+  let (loader, dependencies) = cell
+    .get_or_try_init(|| resolve_loader_uncached(context, resolver, l))
+    .await?;
+  data
+    .file_dependencies
+    .extend(dependencies.file_dependencies.iter().cloned());
+  data
+    .missing_dependencies
+    .extend(dependencies.missing_dependencies.iter().cloned());
+  Ok(loader.clone())
+}
+
+async fn resolve_loader_uncached(
+  context: &Context,
+  resolver: &Resolver,
+  l: &ModuleRuleUseLoader,
+) -> Result<(Option<BoxLoader>, ResolveDependencies)> {
   let context = context.as_path();
   let loader_request = &l.loader;
   let (loader_path, rest) = split_at_query_mark(loader_request);
   let prev = Utf8Path::new(loader_path);
   #[cfg(feature = "test-loader")]
   if loader_request.starts_with("builtin:test") {
-    return Ok(get_builtin_test_loader(loader_request));
+    return Ok((get_builtin_test_loader(loader_request), Default::default()));
   }
 
   let (result, dependencies) = resolver
     .resolve_with_context(context.as_std_path(), prev.as_str())
     .await;
-  data
-    .file_dependencies
-    .extend(dependencies.file_dependencies);
-  data
-    .missing_dependencies
-    .extend(dependencies.missing_dependencies);
   let Ok(resolve_result) = result else {
-    return Ok(None);
+    return Ok((None, dependencies));
   };
 
   match resolve_result {
@@ -155,12 +196,11 @@ pub(crate) async fn resolve_loader(
       } else {
         format!("{path}{query}")
       };
-      Ok(Some(Arc::new(JsLoader(
-        resource.into(),
-        r#type,
-        cache_version,
-      ))))
+      Ok((
+        Some(Arc::new(JsLoader(resource.into(), r#type, cache_version))),
+        dependencies,
+      ))
     }
-    ResolveResult::Ignored => Ok(None),
+    ResolveResult::Ignored => Ok((None, dependencies)),
   }
 }
