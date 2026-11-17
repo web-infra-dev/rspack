@@ -381,9 +381,16 @@ async fn render_startup(
           runtime_template.basic_function("", &format!("return {exports_name}{access};"))
         )));
       }
+      // Initial chunks can make startup asynchronous even for a synchronous
+      // entry module. Preserve that Promise contract, then let retained Node
+      // namespaces follow the resolved startup binding on later reloads.
       source.add(RawStringSource::from(format!(
-        "{} = {reference};\n",
-        access_with_init(&full_name_resolved, self.options.prefix.len(), false)
+        "{} = {exports_name} instanceof Promise ? {exports_name}.then({}) : {reference};\n",
+        access_with_init(&full_name_resolved, self.options.prefix.len(), false),
+        runtime_template.basic_function(
+          "exports",
+          &format!("{exports_name} = exports;\nreturn {reference};")
+        )
       )));
     } else {
       source.add(RawStringSource::from(format!(

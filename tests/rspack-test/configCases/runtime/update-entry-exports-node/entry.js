@@ -1,5 +1,5 @@
 export const generation = (globalThis.__entryGeneration = (globalThis.__entryGeneration || 0) + 1);
-export const state = { generation };
+export const state = { generation, shared };
 export function render() { return `generation:${generation}`; }
 export function reload() {
   const runtime = __TEST_RUNTIME__;
@@ -9,3 +9,4 @@ export function reload() {
 }
 
 export function supportsReload() { return typeof __TEST_RUNTIME__.updateEntryExports === "function"; }
+import shared from './shared';

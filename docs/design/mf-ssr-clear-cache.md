@@ -22,7 +22,9 @@ shared 清理和 remote 注册更新的描述以本节为准。
   返回值当作完成清理的 Promise。
 - Node entry namespace 通过 `RuntimeGlobals.updateEntryExports` 发布新的同步
   ESM 导出。保留 namespace 的调用方可见新值，已经单独保存的旧导出值保持
-  原值。没有受支持的 entry owner 时能力返回 `false`。
+  原值。入口依赖异步加载的初始公共 chunk 时，CommonJS 导出仍保留启动
+  Promise，完成后再返回可更新的 namespace。没有受支持的 entry owner 时
+  能力返回 `false`。
 
 主分支新增的 persistent-cache harness 要求模块缓存全部复用。其 `RemoteModule`
 和 `ConsumeSharedModule` 仍保守重建，现有 MF cases 已对这项额外检查做精确排除。
