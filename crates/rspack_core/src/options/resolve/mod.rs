@@ -141,6 +141,7 @@ pub struct Resolve {
   /// If set, Yarn PnP resolution will be supported.
   pub pnp: Option<bool>,
   /// The [Node.js package map](https://nodejs.org/api/packages.html#package-maps) to locate packages with.
+  /// It is not supported in `by_dependency`.
   pub package_map: Option<PackageMap>,
   /// Whether to parse [module.builtinModules](https://nodejs.org/api/module.html#modulebuiltinmodules) or not.
   pub builtin_modules: bool,

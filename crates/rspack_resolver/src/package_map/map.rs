@@ -1,99 +1,80 @@
-use std::{borrow::Cow, path::Path};
+use std::borrow::Cow;
 
-use camino::{Utf8Component, Utf8Path, Utf8PathBuf};
-use rustc_hash::FxHashMap;
-use serde::Deserialize;
+use camino::{Utf8Path, Utf8PathBuf};
+use serde_json::{Map, Value};
 
 use crate::{ResolveError, path::PathUtil};
 
-/// Error returned by the path-based fallback in Node's package-map resolution algorithm.
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub(crate) enum FindPackageIdError {
-  /// Multiple package IDs share the location that contains the importer.
-  AmbiguousResolution,
-  /// No mapped package contains the importer.
-  ExternalFile,
-}
-
-/// The package map as written on disk.
-///
-/// See [Configuration file format](https://nodejs.org/api/packages.html#configuration-file-format).
-#[derive(Deserialize)]
-struct PackageMapData {
-  packages: FxHashMap<String, PackageMapEntryData>,
-}
-
-#[derive(Deserialize)]
-struct PackageMapEntryData {
-  url: String,
-  #[serde(default)]
-  dependencies: FxHashMap<String, String>,
-}
-
-/// A package of a [PackageMap].
-pub(crate) struct PackageMapEntry {
-  /// The location decoded from the entry's `url`.
-  path: Utf8PathBuf,
-  /// Bare specifier package name -> package ID.
-  dependencies: FxHashMap<String, String>,
-}
-
-impl PackageMapEntry {
-  pub(crate) fn path(&self) -> &Utf8Path {
-    &self.path
-  }
-
-  pub(crate) fn dependency(&self, name: &str) -> Option<&str> {
-    self.dependencies.get(name).map(String::as_str)
-  }
-}
-
-enum PackageOwner {
-  Package(String),
-  Ambiguous,
-}
-
 /// Parsed Node.js package map and its package-location index.
+///
+/// The map stays in the JSON objects it was parsed into, which the resolver already uses for
+/// other files, rather than in dedicated collections that would add to the size of the binary.
 pub(crate) struct PackageMap {
   path: Utf8PathBuf,
-  packages: FxHashMap<String, PackageMapEntry>,
-  /// Package location -> the package ID that owns it.
-  owners: FxHashMap<Utf8PathBuf, PackageOwner>,
+  /// The `packages` object: package ID -> `{ "url", "dependencies" }`, where `dependencies` maps
+  /// the package name of a bare specifier to a package ID. Each `url` is replaced by the
+  /// location it resolves to.
+  packages: Map<String, Value>,
+  /// Package location -> the package ID that owns it, or `false` when several IDs share it.
+  owners: Map<String, Value>,
 }
 
 impl PackageMap {
-  pub(crate) fn parse(path: &Utf8Path, json: &str) -> Result<Self, ResolveError> {
-    // The error is kept for every resolution that needs the map, so it does not hold the JSON.
-    let data = serde_json::from_str::<PackageMapData>(json)
-      .map_err(|error| Self::invalid(path, error.to_string()))?;
-
+  /// Parses a package map, see
+  /// [Configuration file format](https://nodejs.org/api/packages.html#configuration-file-format).
+  ///
+  /// The error is the reason why the map is invalid.
+  pub(crate) fn parse(path: &Utf8Path, json: &str) -> Result<Self, String> {
+    let invalid_package =
+      |package_id: &str, problem: &str| format!("package {package_id:?} {problem}");
+    let mut data = serde_json::from_str::<Value>(json).map_err(|error| error.to_string())?;
+    let Some(Value::Object(mut packages)) = data.get_mut("packages").map(Value::take) else {
+      return Err("expected an object with a \"packages\" object".to_string());
+    };
     let base = path
       .parent()
-      .ok_or_else(|| Self::invalid(path, "an invalid configuration file path".to_string()))?;
-    let mut packages = FxHashMap::with_capacity_and_hasher(data.packages.len(), Default::default());
-    let mut owners = FxHashMap::with_capacity_and_hasher(data.packages.len(), Default::default());
+      .ok_or_else(|| "an invalid configuration file path".to_string())?;
+    let mut owners = Map::new();
 
-    for (package_id, entry) in data.packages {
-      if entry.url.is_empty() {
-        return Err(Self::invalid(
-          path,
-          format!("package {package_id:?} has an empty \"url\" field"),
+    for (package_id, entry) in &mut packages {
+      let mut location = None;
+      let mut has_valid_dependencies = true;
+      for (key, value) in entry.as_object_mut().into_iter().flatten() {
+        match (key.as_str(), value) {
+          ("url", Value::String(url)) => {
+            let resolved = resolve_url(base, url)
+              .map_err(|reason| invalid_package(package_id, &format!("has {reason}")))?
+              .into_string();
+            *url = resolved.clone();
+            location = Some(resolved);
+          }
+          ("dependencies", Value::Object(dependencies)) => {
+            has_valid_dependencies = dependencies.values().all(Value::is_string);
+          }
+          ("dependencies", _) => has_valid_dependencies = false,
+          _ => {}
+        }
+      }
+      let Some(location) = location else {
+        return Err(invalid_package(
+          package_id,
+          "must have a string \"url\" field",
+        ));
+      };
+      if !has_valid_dependencies {
+        return Err(invalid_package(
+          package_id,
+          "must have a \"dependencies\" object of package IDs",
         ));
       }
-      let package_path = resolve_url(base, &entry.url)
-        .map_err(|reason| Self::invalid(path, format!("package {package_id:?} has {reason}")))?;
 
-      owners
-        .entry(package_path.clone())
-        .and_modify(|owner| *owner = PackageOwner::Ambiguous)
-        .or_insert_with(|| PackageOwner::Package(package_id.clone()));
-      packages.insert(
-        package_id,
-        PackageMapEntry {
-          path: package_path,
-          dependencies: entry.dependencies,
-        },
-      );
+      // Several package IDs can share a location, which then has no single owner.
+      let owner = owners.entry(location).or_insert(Value::Null);
+      *owner = if owner.is_null() {
+        Value::String(package_id.clone())
+      } else {
+        Value::Bool(false)
+      };
     }
 
     Ok(Self {
@@ -103,172 +84,151 @@ impl PackageMap {
     })
   }
 
-  pub(crate) fn path(&self) -> &Path {
-    self.path.as_std_path()
-  }
-
-  pub(crate) fn package(&self, package_id: &str) -> Option<&PackageMapEntry> {
-    self.packages.get(package_id)
-  }
-
-  /// Implements the path-based fallback for determining which package owns an importer.
+  /// Finds the location of the package that `package_name` refers to in the package that contains
+  /// the directory `importer`.
   ///
-  /// The nearest ancestor that is a package location owns `path`. If multiple package IDs share
-  /// that location, this returns [FindPackageIdError::AmbiguousResolution]. If no mapped package
-  /// contains `path`, it returns [FindPackageIdError::ExternalFile].
+  /// Implements package-map dispatch from step 6 of Node's CommonJS resolution pseudocode and
+  /// steps 2 to 6 of `LOAD_PACKAGE_MAP(X, PARENT_PACKAGE_ID, PACKAGE_MAP)`. Node permits the
+  /// importing package ID to be propagated by the caller. The resolver returns paths rather than
+  /// package IDs, so the importing path is used to find it.
   ///
-  /// This corresponds to `FIND_PACKAGE_ID(PATH, PACKAGE_MAP)` in Node's
-  /// [CommonJS resolution pseudocode](https://nodejs.org/api/modules.html#all-together).
-  pub(crate) fn find_package_id(&self, path: &Utf8Path) -> Result<&str, FindPackageIdError> {
-    let normalized_path;
-    let path = if path
-      .components()
-      .any(|component| component == Utf8Component::ParentDir)
-    {
-      normalized_path = path.normalize();
-      normalized_path.as_path()
-    } else {
-      path
+  /// Returns `None` when the importing package does not depend on `package_name`.
+  ///
+  /// See <https://nodejs.org/api/modules.html#all-together>.
+  pub(crate) fn target(
+    &self,
+    importer: &Utf8Path,
+    specifier: &str,
+    package_name: &str,
+  ) -> Result<Option<&Utf8Path>, ResolveError> {
+    // 6.a. Let PARENT_PACKAGE_ID be FIND_PACKAGE_ID(dirname(Y), PACKAGE_MAP)
+    //
+    // The nearest ancestor that is a package location owns the importer. Locations are compared
+    // in their normalized form.
+    let importer = importer.normalize();
+    let owner = importer
+      .ancestors()
+      .find_map(|path| self.owners.get(path.as_str()));
+    let Some(Value::String(parent_package_id)) = owner else {
+      let specifier = specifier.to_string();
+      let parent_path = importer.into_std_path_buf();
+      let package_map_path = self.path.as_std_path().to_path_buf();
+      return Err(if owner.is_some() {
+        ResolveError::PackageMapAmbiguousResolution {
+          specifier,
+          parent_path,
+          package_map_path,
+        }
+      } else {
+        ResolveError::PackageMapExternalFile {
+          specifier,
+          parent_path,
+          package_map_path,
+        }
+      });
     };
-    match path.ancestors().find_map(|path| self.owners.get(path)) {
-      Some(PackageOwner::Package(package_id)) => Ok(package_id),
-      Some(PackageOwner::Ambiguous) => Err(FindPackageIdError::AmbiguousResolution),
-      None => Err(FindPackageIdError::ExternalFile),
-    }
-  }
 
-  pub(crate) fn invalid(path: &Utf8Path, reason: String) -> ResolveError {
-    ResolveError::PackageMapInvalid {
-      package_map_path: path.as_std_path().to_path_buf(),
-      reason,
-    }
+    // 2. Find the package map entry for key PARENT_PACKAGE_ID.
+    // 3. Look up NAME in the entry's "dependencies" map.
+    // 4. If NAME is not found, THROW "not found".
+    let Some(dependency_id) = self
+      .packages
+      .get(parent_package_id)
+      .and_then(|package| package.get("dependencies"))
+      .and_then(|dependencies| dependencies.get(package_name))
+      .and_then(Value::as_str)
+    else {
+      return Ok(None);
+    };
+    // 5. Let TARGET be PACKAGE_MAP.packages[dependencies[name]].
+    // 6. Let PACKAGE_PATH be the resolved path of TARGET.
+    let Some(package_path) = self
+      .packages
+      .get(dependency_id)
+      .and_then(|package| package.get("url"))
+      .and_then(Value::as_str)
+    else {
+      return Err(ResolveError::PackageMapInvalid {
+        package_map_path: self.path.as_std_path().to_path_buf(),
+        reason: format!("package ID {dependency_id:?} is a dependency but is not defined"),
+      });
+    };
+    tracing::debug!(
+      parent_package_id,
+      dependency_id,
+      package_path,
+      "resolve_package_map"
+    );
+    Ok(Some(Utf8Path::new(package_path)))
   }
 }
 
-/// Resolves an entry URL against the directory of the package map using WHATWG URL semantics.
+/// Resolves an entry URL against the directory of the package map.
 ///
-/// Only `file:` URLs and relative URLs are supported.
+/// Node.js parses these URLs with the WHATWG URL parser and only supports the `file:` protocol.
+/// Relative URLs and the forms of `file:` URLs are supported here, with percent-encoding, a query
+/// and a fragment.
 fn resolve_url(base: &Utf8Path, value: &str) -> Result<Utf8PathBuf, String> {
-  // WHATWG URL parsing trims leading and trailing C0 controls and spaces, and removes ASCII
-  // tabs and newlines anywhere in the input. Backslashes are path separators for `file:`
-  // URLs, including relative URLs resolved against a `file:` base.
-  let value = value.trim_matches(|character: char| character <= '\u{20}');
-  let value = if value.contains(['\\', '\t', '\n', '\r']) {
-    Cow::Owned(
-      value
-        .chars()
-        .filter_map(|character| match character {
-          '\t' | '\n' | '\r' => None,
-          '\\' => Some('/'),
-          character => Some(character),
-        })
-        .collect::<String>(),
-    )
-  } else {
-    Cow::Borrowed(value)
-  };
+  if value.is_empty() {
+    return Err("an empty \"url\" field".to_string());
+  }
   // The query and the fragment do not take part in the file path.
-  let value = value
-    .split_once(['?', '#'])
-    .map_or(value.as_ref(), |(path, _)| path);
+  let value = value.split(['?', '#']).next().unwrap_or_default().trim();
   let invalid = || format!("an invalid file URL {value:?}");
 
-  let scheme = split_url_scheme(value);
-  if scheme.is_some_and(|(scheme, _)| !scheme.eq_ignore_ascii_case("file")) {
-    return Err(format!(
-      "an unsupported URL scheme in {value:?}; only file URLs and relative URLs are supported"
-    ));
-  }
-  if has_invalid_percent_encoding(value) {
-    return Err(invalid());
-  }
-
-  let relative = match scheme {
-    // Protocol-relative URL, such as `//localhost/path`.
-    None if value.starts_with("//") => {
-      return file_url_to_path(&value[2..]).ok_or_else(invalid);
+  let path = match split_url_scheme(value) {
+    Some((scheme, path)) if scheme.eq_ignore_ascii_case("file") => path,
+    Some(_) => {
+      return Err(format!(
+        "an unsupported URL scheme in {value:?}; only file URLs and relative URLs are supported"
+      ));
     }
     None => value,
-    // `file://host/path` and `file:///path`.
-    Some((_, rest)) if rest.starts_with("//") => {
-      return file_url_to_path(&rest[2..]).ok_or_else(invalid);
-    }
-    // `file:C:/path`.
-    Some((_, rest)) if starts_with_drive_letter(rest) && rest.as_bytes().get(2) == Some(&b'/') => {
-      return file_url_to_path(rest).ok_or_else(invalid);
-    }
-    // `file:path` and `file:/path` are resolved from the package map like relative URLs.
-    Some((_, rest)) => rest,
   };
-
-  if has_encoded_separators(relative) {
+  // `//host/path` has an absolute path.
+  let (host, path) = match path.strip_prefix("//") {
+    Some(rest) => {
+      let host = rest.split('/').next().unwrap_or_default();
+      if matches!(host.as_bytes(), [drive, b':'] if drive.is_ascii_alphabetic()) {
+        // `file://C:/path` holds a drive letter where the host is expected.
+        ("", Cow::Owned(format!("/{rest}")))
+      } else if host.len() == rest.len() {
+        (host, Cow::Borrowed("/"))
+      } else {
+        (host, Cow::Borrowed(&rest[host.len()..]))
+      }
+    }
+    None => ("", Cow::Borrowed(path)),
+  };
+  // Like `fileURLToPath`, the only host of a path is the local one, except for the server of a
+  // UNC path on Windows.
+  let is_local = host.is_empty() || host.eq_ignore_ascii_case("localhost");
+  if !is_local && (cfg!(not(windows)) || host.contains(['@', ':', '%', '[', ' '])) {
     return Err(invalid());
   }
-  if relative.is_empty() {
+  let path = percent_decode(&path).ok_or_else(invalid)?;
+  if path.is_empty() {
     return Ok(base.to_path_buf());
   }
-  let decoded = percent_decode(relative).ok_or_else(invalid)?;
+
   #[cfg(windows)]
-  if decoded.starts_with('/') {
-    return windows_root_relative_path(base, &decoded);
-  }
-  Ok(base.normalize_with(decoded.as_ref()).normalize())
-}
+  if !is_local {
+    use cow_utils::CowUtils;
 
-/// Converts the part of a `file:` URL that follows `file://` to a path.
-///
-/// Follows Node's `fileURLToPath`: a host is only accepted on Windows, where it creates a UNC path.
-fn file_url_to_path(after_scheme: &str) -> Option<Utf8PathBuf> {
-  let authority = after_scheme.split('/').next().unwrap_or_default();
-  // `file://C:/path` holds a drive letter where the host is expected.
-  let (host, pathname) = if is_drive_authority(authority) {
-    ("", after_scheme)
-  } else {
-    (
-      authority,
-      after_scheme[authority.len()..]
-        .strip_prefix('/')
-        .unwrap_or_default(),
-    )
-  };
-
-  let host = percent_decode(host)?;
-  if has_invalid_host(&host) {
-    return None;
-  }
-  // The WHATWG URL parser normalizes the "localhost" host of a `file:` URL to the empty host.
-  let host = if host.eq_ignore_ascii_case("localhost") {
-    ""
-  } else {
-    host.as_ref()
-  };
-
-  if has_encoded_separators(pathname) {
-    return None;
-  }
-  let pathname = percent_decode(pathname)?;
-
-  #[cfg(not(windows))]
-  {
-    if !host.is_empty() {
-      return None;
-    }
-    Some(Utf8PathBuf::from(format!("/{pathname}")).normalize())
+    let path = path.cow_replace('/', "\\");
+    return Ok(Utf8PathBuf::from(format!(r"\\{host}{path}")).normalize());
   }
   #[cfg(windows)]
-  {
-    let pathname = pathname.replace('/', "\\");
-    if !host.is_empty() {
-      return Some(Utf8PathBuf::from(format!(r"\\{host}\{pathname}")).normalize());
-    }
-    starts_with_drive_letter(&pathname).then(|| Utf8PathBuf::from(pathname).normalize())
+  if path.starts_with('/') {
+    return windows_root_relative_path(base, &path);
   }
+  Ok(base.normalize_with(path.as_ref()).normalize())
 }
 
-/// Resolves a root-relative URL (`/path`) against the drive or the host of the package map.
+/// Resolves a root-relative URL (`/path`) against the drive or the server of the package map.
 #[cfg(windows)]
 fn windows_root_relative_path(base: &Utf8Path, relative: &str) -> Result<Utf8PathBuf, String> {
-  use camino::Utf8Prefix;
+  use camino::{Utf8Component, Utf8Prefix};
 
   let invalid_base = || "an invalid configuration file path".to_string();
   let Some(Utf8Component::Prefix(prefix)) = base.components().next() else {
@@ -277,12 +237,10 @@ fn windows_root_relative_path(base: &Utf8Path, relative: &str) -> Result<Utf8Pat
   match prefix.kind() {
     Utf8Prefix::Disk(drive) | Utf8Prefix::VerbatimDisk(drive) => {
       // `/C:/path` selects another drive.
-      let (drive, suffix) =
-        if starts_with_drive_letter(&relative[1..]) && relative.as_bytes().get(3) == Some(&b'/') {
-          (relative.as_bytes()[1], &relative[3..])
-        } else {
-          (drive, relative)
-        };
+      let (drive, suffix) = match relative.as_bytes() {
+        [b'/', drive, b':', b'/', ..] if drive.is_ascii_alphabetic() => (*drive, &relative[3..]),
+        _ => (drive, relative),
+      };
       let mut path = Utf8PathBuf::from(format!("{}:", char::from(drive)));
       path.push(suffix);
       Ok(path.normalize())
@@ -309,80 +267,28 @@ fn split_url_scheme(value: &str) -> Option<(&str, &str)> {
   None
 }
 
-/// Whether `value` starts with a Windows drive letter and its colon, e.g. `C:`.
-fn starts_with_drive_letter(value: &str) -> bool {
-  matches!(value.as_bytes(), [drive, b':', ..] if drive.is_ascii_alphabetic())
-}
-
-fn is_drive_authority(authority: &str) -> bool {
-  authority.len() == 2 && starts_with_drive_letter(authority)
-}
-
-fn has_invalid_host(host: &str) -> bool {
-  if host.is_empty() {
-    return false;
-  }
-  if host.contains(['@', '/', '\\']) || host.chars().any(|character| character <= '\u{20}') {
-    return true;
-  }
-  if let Some(ipv6) = host.strip_prefix('[') {
-    return ipv6
-      .strip_suffix(']')
-      .is_none_or(|address| address.parse::<std::net::Ipv6Addr>().is_err());
-  }
-  host.contains(':')
-}
-
-/// Whether `value` has a `%` that does not start a percent-encoded byte.
-fn has_invalid_percent_encoding(value: &str) -> bool {
-  let bytes = value.as_bytes();
-  let mut index = 0;
-  while index < bytes.len() {
-    if bytes[index] == b'%' {
-      if !(bytes.get(index + 1).is_some_and(u8::is_ascii_hexdigit)
-        && bytes.get(index + 2).is_some_and(u8::is_ascii_hexdigit))
-      {
-        return true;
-      }
-      index += 3;
-    } else {
-      index += 1;
-    }
-  }
-  false
-}
-
-/// Whether `pathname` has a percent-encoded path separator, which `fileURLToPath` rejects:
-/// `%2F` (`/`) and, on Windows, `%5C` (`\`).
-fn has_encoded_separators(pathname: &str) -> bool {
-  pathname.as_bytes().windows(3).any(|window| {
-    window[0] == b'%'
-      && ((window[1] == b'2' && window[2].eq_ignore_ascii_case(&b'f'))
-        || (cfg!(windows) && window[1] == b'5' && window[2].eq_ignore_ascii_case(&b'c')))
-  })
-}
-
-/// Decodes the percent-encoded bytes of `value`, which [has_invalid_percent_encoding] accepted.
+/// Decodes the percent-encoded bytes of a URL path.
 ///
-/// Returns `None` when the decoded bytes are not UTF-8.
+/// Returns `None` for an invalid escape, for bytes that are not UTF-8 and, like `fileURLToPath`,
+/// for an encoded path separator.
 fn percent_decode(value: &str) -> Option<Cow<'_, str>> {
   if !value.contains('%') {
     return Some(Cow::Borrowed(value));
   }
-  let hex = |byte: u8| char::from(byte).to_digit(16).map(|digit| digit as u8);
-  let bytes = value.as_bytes();
-  let mut decoded = Vec::with_capacity(bytes.len());
-  let mut index = 0;
-  while index < bytes.len() {
-    if bytes[index] == b'%' {
-      let high = hex(*bytes.get(index + 1)?)?;
-      let low = hex(*bytes.get(index + 2)?)?;
-      decoded.push(high << 4 | low);
-      index += 3;
-    } else {
-      decoded.push(bytes[index]);
-      index += 1;
+  let mut decoded = Vec::with_capacity(value.len());
+  let mut bytes = value.bytes();
+  while let Some(byte) = bytes.next() {
+    if byte != b'%' {
+      decoded.push(byte);
+      continue;
     }
+    let high = char::from(bytes.next()?).to_digit(16)?;
+    let low = char::from(bytes.next()?).to_digit(16)?;
+    let byte = (high << 4 | low) as u8;
+    if byte == b'/' || (cfg!(windows) && byte == b'\\') {
+      return None;
+    }
+    decoded.push(byte);
   }
   String::from_utf8(decoded).ok().map(Cow::Owned)
 }

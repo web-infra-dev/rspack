@@ -1,5 +1,8 @@
 {
   "packages": {
+    "app": {
+      "url": "."
+    },
     "lib": {
       "url": "./lib",
       "dependencies": {

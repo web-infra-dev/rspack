@@ -712,13 +712,13 @@ export default {
 
 相对路径会基于当前工作目录解析。
 
-`resolve.packageMap` 只作用于模块。loader 通过 [`resolveLoader.packageMap`](/config/resolve-loader) 解析，它具有相同的默认值，需要单独设置。
+`resolve.packageMap` 只作用于模块。loader 通过 [`resolveLoader.packageMap`](/config/resolve-loader) 解析，它具有相同的默认值，需要单独设置。该选项也可以在 [rule](/config/module-rules) 的 `resolve` 中设置，但不支持在 [`resolve.byDependency`](#resolvebydependency) 中使用。
 
 使用 package map 时：
 
 - 只有当引用方文件所在的 package 在 package map 的 `dependencies` 中声明了 `lodash` 时，`lodash` 或 `lodash/merge` 这样的 package 请求才能被解析。其余的解析过程（如 `exports`、`resolve.mainFields` 和 `resolve.extensions`）会在该 package 的位置继续进行。
 - 如果引用方文件不在 package map 的任何 package 中，package 请求会解析失败。如果该文件所在的位置由 package map 中的多个 package 共享，解析同样会失败。
-- package map 会取代 [`resolve.modules`](#resolvemodules) 中的 `'node_modules'` 项。`resolve.modules` 中的其他目录仍会被查找，[`resolve.pnp`](#resolvepnp) 会被忽略。
+- package map 会取代 [`resolve.modules`](#resolvemodules) 中的 `'node_modules'` 项。对于没有在 package map 中声明为依赖的 package，仍会在 `resolve.modules` 的其他目录中查找，[`resolve.pnp`](#resolvepnp) 会被忽略。
 - 相对路径和绝对路径请求、[`resolve.alias`](#resolvealias)、[`resolve.fallback`](#resolvefallback) 和 [`resolve.tsConfig`](#resolvetsconfig) 照常生效。
 
 在 watch 模式下，只有当 package map 文件被监听时，对它的修改才会触发重新构建。位于 `node_modules` 中的 package map 会被默认的 [`watchOptions.ignored`](/config/watch#watchoptionsignored) 忽略。

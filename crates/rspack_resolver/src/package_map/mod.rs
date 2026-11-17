@@ -30,27 +30,61 @@ use std::{
 };
 
 use camino::{Utf8Path, Utf8PathBuf};
+use futures::future::BoxFuture;
 use rspack_paths::InternedPath;
-use rustc_hash::FxHashMap;
 use tokio::sync::Mutex;
 
-pub(crate) use self::map::{FindPackageIdError, PackageMap};
+use self::map::PackageMap;
 use crate::{FileSystem, ResolveError, context::ResolveContext as Ctx, path::PathUtil};
 
 /// The outcome of loading a package map, kept until the cache is cleared.
-#[derive(Clone)]
-struct LoadedPackageMap {
-  result: Result<Arc<PackageMap>, ResolveError>,
+pub(crate) struct LoadedPackageMap {
+  /// The map, or the reason why it is invalid.
+  result: Result<PackageMap, String>,
   /// The map file, a dependency of every resolution that consults the map.
   path: InternedPath,
   /// Whether the map file was missing, so that creating it invalidates the failed resolutions.
   missing: bool,
 }
 
+impl LoadedPackageMap {
+  /// Finds the location of the package that `package_name` refers to in the package that contains
+  /// the directory `importer`, see [PackageMap::target].
+  ///
+  /// Returns `None` when the importing package does not depend on `package_name`.
+  pub(crate) fn target(
+    &self,
+    importer: &Utf8Path,
+    specifier: &str,
+    package_name: &str,
+    ctx: &mut Ctx,
+  ) -> Result<Option<&Utf8Path>, ResolveError> {
+    let dependencies = if self.missing {
+      &mut ctx.missing_dependencies
+    } else {
+      &mut ctx.file_dependencies
+    };
+    if let Some(dependencies) = dependencies {
+      dependencies.push(self.path.clone());
+    }
+    match &self.result {
+      Ok(package_map) => package_map.target(importer, specifier, package_name),
+      Err(reason) => Err(ResolveError::PackageMapInvalid {
+        package_map_path: self.path.to_path_buf(),
+        reason: reason.clone(),
+      }),
+    }
+  }
+}
+
 /// The package maps of a resolver and of the resolvers cloned from it, by configured path.
+///
+/// Nothing here depends on the type of the file system of the resolver, and the functions that
+/// resolvers call are not inlined, so that the code is not duplicated for each file system.
 #[derive(Default)]
 pub(crate) struct PackageMapCache {
-  maps: RwLock<FxHashMap<PathBuf, LoadedPackageMap>>,
+  /// Resolvers rarely use more than one map.
+  maps: RwLock<Vec<(PathBuf, Arc<LoadedPackageMap>)>>,
   /// Incremented by [Self::clear], so that a map read before the cache was cleared is not kept.
   generation: AtomicU64,
   /// Serializes loading so that concurrent resolutions read and parse a map once.
@@ -58,36 +92,59 @@ pub(crate) struct PackageMapCache {
 }
 
 impl PackageMapCache {
-  pub(crate) async fn get_or_load<Fs: FileSystem>(
-    &self,
-    path: &Path,
-    fs: &Fs,
-    ctx: &mut Ctx,
-  ) -> Result<Arc<PackageMap>, ResolveError> {
-    let loaded = match self.get(path) {
-      Some(loaded) => loaded,
-      None => {
-        let _guard = self.loading.lock().await;
-        match self.get(path) {
-          Some(loaded) => loaded,
-          None => {
-            let generation = self.generation.load(Ordering::Acquire);
-            let loaded = load(path, fs).await;
-            let mut maps = self.maps.write().expect("package map cache was poisoned");
-            if generation == self.generation.load(Ordering::Acquire) {
-              maps.insert(path.to_path_buf(), loaded.clone());
-            }
-            loaded
-          }
-        }
+  /// The map at `path`, if it is loaded.
+  #[inline(never)]
+  pub(crate) fn get(&self, path: &Path) -> Option<Arc<LoadedPackageMap>> {
+    self
+      .maps
+      .read()
+      .expect("package map cache was poisoned")
+      .iter()
+      .find(|(map_path, _)| map_path == path)
+      .map(|(_, loaded)| Arc::clone(loaded))
+  }
+
+  /// Reads and parses the map at the configured path `key`, and keeps it unless the cache is
+  /// cleared meanwhile.
+  #[inline(never)]
+  pub(crate) fn load<'a>(
+    &'a self,
+    key: &'a Path,
+    fs: &'a (dyn FileSystem + Send + Sync),
+  ) -> BoxFuture<'a, Arc<LoadedPackageMap>> {
+    Box::pin(async move {
+      let _guard = self.loading.lock().await;
+      if let Some(loaded) = self.get(key) {
+        return loaded;
       }
-    };
-    if loaded.missing {
-      ctx.add_missing_dependency(&loaded.path);
-    } else {
-      ctx.add_file_dependency(&loaded.path);
-    }
-    loaded.result
+      let generation = self.generation.load(Ordering::Acquire);
+      let mut missing = false;
+      let (path, result) = match absolute_path(key) {
+        Ok(location) => {
+          tracing::debug!(path = ?location, "load_package_map");
+          let result = match fs.read_to_string(location.as_std_path()).await {
+            Ok(json) => PackageMap::parse(&location, &json),
+            Err(error) => {
+              missing = error.kind() == io::ErrorKind::NotFound;
+              Err(format!("the file cannot be read: {error}"))
+            }
+          };
+          (location.into_std_path_buf(), result)
+        }
+        Err(reason) => (key.to_path_buf(), Err(reason.to_string())),
+      };
+      let loaded = LoadedPackageMap {
+        result,
+        path: InternedPath::from(path.as_path()),
+        missing,
+      };
+      let loaded = Arc::new(loaded);
+      let mut maps = self.maps.write().expect("package map cache was poisoned");
+      if generation == self.generation.load(Ordering::Acquire) {
+        maps.push((key.to_path_buf(), Arc::clone(&loaded)));
+      }
+      loaded
+    })
   }
 
   pub(crate) fn clear(&self) {
@@ -97,47 +154,6 @@ impl PackageMapCache {
       .write()
       .expect("package map cache was poisoned")
       .clear();
-  }
-
-  fn get(&self, path: &Path) -> Option<LoadedPackageMap> {
-    self
-      .maps
-      .read()
-      .expect("package map cache was poisoned")
-      .get(path)
-      .cloned()
-  }
-}
-
-async fn load<Fs: FileSystem>(path: &Path, fs: &Fs) -> LoadedPackageMap {
-  let path = match absolute_path(path) {
-    Ok(path) => path,
-    Err(reason) => {
-      return LoadedPackageMap {
-        result: Err(ResolveError::PackageMapInvalid {
-          package_map_path: path.to_path_buf(),
-          reason: reason.to_string(),
-        }),
-        path: InternedPath::from(path),
-        missing: false,
-      };
-    }
-  };
-  tracing::debug!(path = ?path, "load_package_map");
-  let (result, missing) = match fs.read_to_string(path.as_std_path()).await {
-    Ok(json) => (PackageMap::parse(&path, &json).map(Arc::new), false),
-    Err(error) => (
-      Err(PackageMap::invalid(
-        &path,
-        format!("the file cannot be read: {error}"),
-      )),
-      error.kind() == io::ErrorKind::NotFound,
-    ),
-  };
-  LoadedPackageMap {
-    result,
-    path: InternedPath::from(path.as_path()),
-    missing,
   }
 }
 
@@ -154,5 +170,5 @@ fn absolute_path(path: &Path) -> Result<Utf8PathBuf, &'static str> {
     .ok()
     .and_then(|cwd| Utf8PathBuf::from_path_buf(cwd).ok())
     .ok_or("the path is relative and the working directory is not available")?;
-  Ok(cwd.normalize_with(path))
+  Ok(cwd.normalize_with(path.as_str()))
 }

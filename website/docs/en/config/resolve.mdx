@@ -712,13 +712,13 @@ export default {
 
 A relative path is resolved from the current working directory.
 
-`resolve.packageMap` applies to modules only. Loaders are resolved with [`resolveLoader.packageMap`](/config/resolve-loader), which has the same default and is set separately.
+`resolve.packageMap` applies to modules only. Loaders are resolved with [`resolveLoader.packageMap`](/config/resolve-loader), which has the same default and is set separately. The option can also be set in the `resolve` of a [rule](/config/module-rules), but it is not supported in [`resolve.byDependency`](#resolvebydependency).
 
 When a package map is used:
 
 - A package request such as `lodash` or `lodash/merge` is resolved only when the package that contains the importing file lists `lodash` in its `dependencies` in the package map. The rest of the resolution, such as `exports`, `resolve.mainFields` and `resolve.extensions`, continues in the location of that package.
 - A package request from a file that is not within any package of the package map fails. It also fails when several packages of the package map share the location of the file.
-- The package map takes the place of the `'node_modules'` entry of [`resolve.modules`](#resolvemodules). The other directories of `resolve.modules` are still searched, and [`resolve.pnp`](#resolvepnp) is ignored.
+- The package map takes the place of the `'node_modules'` entry of [`resolve.modules`](#resolvemodules). A package that is not a dependency in the package map is still looked up in the other directories of `resolve.modules`, and [`resolve.pnp`](#resolvepnp) is ignored.
 - Relative and absolute requests, [`resolve.alias`](#resolvealias), [`resolve.fallback`](#resolvefallback) and [`resolve.tsConfig`](#resolvetsconfig) work as usual.
 
 In watch mode, a change to the package map triggers a rebuild only if the file is watched. A package map inside `node_modules` is ignored by the default [`watchOptions.ignored`](/config/watch#watchoptionsignored).

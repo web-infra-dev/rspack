@@ -120,38 +120,18 @@ pub enum ResolveError {
     package_map_path: PathBuf,
   },
 
-  /// The [package map](https://nodejs.org/api/packages.html#package-maps) cannot be read or does not follow the configuration file format.
+  /// The [package map](https://nodejs.org/api/packages.html#package-maps) cannot be read, does not follow the configuration file format,
+  /// or has a dependency on a package ID that it does not define.
   #[error("Invalid package map {package_map_path:?}: {reason}")]
   PackageMapInvalid {
     package_map_path: PathBuf,
     reason: String,
-  },
-
-  /// A dependency references a package ID that is absent from the [package map](https://nodejs.org/api/packages.html#package-maps).
-  #[error(
-    "Package ID {package_id:?} is referenced in \"dependencies\" but not defined in {package_map_path:?}"
-  )]
-  PackageMapKeyNotFound {
-    package_id: String,
-    package_map_path: PathBuf,
   },
 }
 
 impl ResolveError {
   pub fn is_ignore(&self) -> bool {
     matches!(self, Self::Ignored(_))
-  }
-
-  /// Whether a package map could not tell where a package is, as opposed to an error from
-  /// resolving inside the package that the map selected.
-  pub(crate) fn is_package_map_error(&self) -> bool {
-    matches!(
-      self,
-      Self::PackageMapAmbiguousResolution { .. }
-        | Self::PackageMapExternalFile { .. }
-        | Self::PackageMapInvalid { .. }
-        | Self::PackageMapKeyNotFound { .. }
-    )
   }
 
   pub(crate) fn from_serde_json_error(

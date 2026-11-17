@@ -499,17 +499,11 @@ fn map_package_map_error(
   package_map_path: &Path,
   args: &ResolveArgs<'_>,
 ) -> Error {
-  // The importing directory is already part of the message, unless the request comes from the
-  // target of an "imports" or "exports" field.
-  let subject = if parent_path == Path::new(args.context.as_str()) {
-    "it".to_string()
-  } else {
-    format!("'{}'", parent_path.display())
-  };
   map_resolver_error(
     false,
     Some(format!(
-      "{subject} {problem} defined in the package map '{}'",
+      "'{}' {problem} defined in the package map '{}'",
+      parent_path.display(),
       package_map_path.display()
     )),
     args,
