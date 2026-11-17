@@ -20,6 +20,8 @@ pub use ustr::IdentityHasher;
 
 #[cfg(feature = "cacheable")]
 mod cacheable;
+#[cfg(feature = "cacheable")]
+pub use cacheable::strip_root_prefix;
 mod path_list;
 pub use path_list::InternedPathList;
 

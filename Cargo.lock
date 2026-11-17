@@ -4317,6 +4317,7 @@ dependencies = [
  "rspack_core",
  "rspack_intern",
  "rspack_loader_runner",
+ "rspack_paths",
  "rspack_resolver",
  "rspack_sources",
  "rustc-hash",
@@ -4772,9 +4773,11 @@ dependencies = [
  "camino",
  "dashmap",
  "indexmap",
+ "memchr",
  "rspack_cacheable",
  "rspack_intern",
  "rustc-hash",
+ "smallvec",
  "ustr-fxhash",
 ]
 
