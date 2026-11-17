@@ -1,13 +1,16 @@
 use rspack_error::{Result, error};
 use swc_core::{
-  common::{FileName, GLOBALS, Globals, Mark, SourceMap, SyntaxContext},
+  common::{DUMMY_SP, FileName, GLOBALS, Globals, Mark, SourceMap, SyntaxContext},
   ecma::{
     ast::Ident,
     parser::{EsSyntax, Syntax, parse_file_as_program},
     transforms::base::resolver,
-    visit::{Visit, VisitMutWith, VisitWith},
+    utils::IdentUsageFinder,
+    visit::VisitMutWith,
   },
 };
+
+use crate::{Compilation, RuntimeModule};
 
 /// Whether a chunk has plugin-authored source and whether that source needs legacy names.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, rspack_hash::RspackHash)]
@@ -18,13 +21,30 @@ pub enum RuntimeModuleSourceKind {
   NeedsBridge,
 }
 
+impl dyn RuntimeModule + '_ {
+  pub(crate) async fn source_kind(
+    &self,
+    compilation: &Compilation,
+  ) -> Result<RuntimeModuleSourceKind> {
+    if let Some(source) = self.get_custom_source() {
+      return classify_runtime_module_source(&source);
+    }
+    if let Some(source) = self.generated_source_for_bridge(compilation) {
+      let source = source.await?;
+      return classify_runtime_module_source(&source.source().into_string_lossy());
+    }
+    Ok(RuntimeModuleSourceKind::Native)
+  }
+}
+
 /// Inspect extension code without rewriting it. Once a runtime object escapes, its keys
 /// can be computed anywhere (including in another module); a list of member expressions
 /// is not a sound description of the surface the plugin can observe.
-pub fn classify_runtime_module_source(source: &str) -> Result<RuntimeModuleSourceKind> {
+fn classify_runtime_module_source(source: &str) -> Result<RuntimeModuleSourceKind> {
+  let may_have_escaped_names = source.contains('\\');
   if !source.contains("__webpack_")
     && !source.contains("__rspack_context")
-    && !source.contains('\\')
+    && !may_have_escaped_names
   {
     return Ok(RuntimeModuleSourceKind::Custom);
   }
@@ -48,32 +68,22 @@ pub fn classify_runtime_module_source(source: &str) -> Result<RuntimeModuleSourc
     }
     let unresolved = Mark::new();
     program.visit_mut_with(&mut resolver(unresolved, Mark::new(), false));
-    let mut visitor = RuntimeReferences {
-      unresolved: SyntaxContext::empty().apply_mark(unresolved),
-      found: false,
-    };
-    program.visit_with(&mut visitor);
-    Ok(if visitor.found {
+    let ctxt = SyntaxContext::empty().apply_mark(unresolved);
+    let uses_runtime = [
+      "__webpack_require__",
+      "__rspack_context",
+      "__webpack_modules__",
+      "__webpack_module_cache__",
+    ]
+    .into_iter()
+    .any(|name| {
+      (may_have_escaped_names || source.contains(name))
+        && IdentUsageFinder::find(&Ident::new(name.into(), DUMMY_SP, ctxt), &program)
+    });
+    Ok(if uses_runtime {
       RuntimeModuleSourceKind::NeedsBridge
     } else {
       RuntimeModuleSourceKind::Custom
     })
   })
-}
-
-struct RuntimeReferences {
-  unresolved: SyntaxContext,
-  found: bool,
-}
-impl Visit for RuntimeReferences {
-  fn visit_ident(&mut self, ident: &Ident) {
-    self.found |= ident.ctxt == self.unresolved
-      && matches!(
-        ident.sym.as_ref(),
-        "__webpack_require__"
-          | "__rspack_context"
-          | "__webpack_modules__"
-          | "__webpack_module_cache__"
-      );
-  }
 }

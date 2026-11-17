@@ -105,7 +105,7 @@ mod runtime_module;
 mod runtime_module_bridge;
 pub use runtime::*;
 pub use runtime_module::*;
-pub use runtime_module_bridge::{RuntimeModuleSourceKind, classify_runtime_module_source};
+pub use runtime_module_bridge::RuntimeModuleSourceKind;
 mod entrypoint;
 pub use entrypoint::*;
 mod loader;

@@ -4,8 +4,9 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_cacheable::with::Unsupported;
 use rspack_core::{
-  CustomSourceRuntimeModule, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage,
-  impl_runtime_module, runtime_mode::RuntimeMode,
+  Compilation, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage,
+  impl_runtime_module, rspack_sources::BoxSource, runtime_mode::RuntimeMode,
+  runtime_module_get_generated_code,
 };
 
 type GenerateFn = Arc<dyn Fn() -> BoxFuture<'static, rspack_error::Result<String>> + Send + Sync>;
@@ -33,15 +34,15 @@ impl RuntimeModule for RuntimeModuleFromJs {
     Ok(res)
   }
 
-  async fn source_kind(
-    &self,
-    compilation: &rspack_core::Compilation,
-  ) -> rspack_error::Result<rspack_core::RuntimeModuleSourceKind> {
-    if let Some(source) = self.get_custom_source() {
-      return rspack_core::classify_runtime_module_source(&source);
-    }
-    let source = self.get_generated_code(compilation).await?;
-    rspack_core::classify_runtime_module_source(&source.source().into_string_lossy())
+  fn generated_source_for_bridge<'a>(
+    &'a self,
+    compilation: &'a Compilation,
+  ) -> Option<BoxFuture<'a, rspack_error::Result<BoxSource>>> {
+    Some(runtime_module_get_generated_code(
+      self,
+      &self.common,
+      compilation,
+    ))
   }
 
   fn full_hash(&self) -> bool {
