@@ -4880,7 +4880,6 @@ dependencies = [
  "rustc-hash",
  "serde_json",
  "smol_str",
- "tokio",
  "tracing",
  "urlencoding",
 ]
@@ -4897,7 +4896,6 @@ dependencies = [
  "rspack_plugin_css",
  "rspack_regex",
  "rustc-hash",
- "tokio",
  "tracing",
 ]
 
@@ -5005,7 +5003,6 @@ dependencies = [
  "rspack_plugin_runtime",
  "rspack_plugin_split_chunks",
  "rspack_util",
- "serde",
  "serde_json",
  "sugar_path",
  "tokio",
@@ -5044,7 +5041,6 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
- "tokio",
  "tracing",
  "ustr-fxhash",
 ]
@@ -5067,7 +5063,6 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
- "tokio",
  "tracing",
 ]
 
@@ -5504,7 +5499,6 @@ dependencies = [
  "rustc-hash",
  "serde_json",
  "simd-json",
- "tokio",
  "tracing",
 ]
 
@@ -5653,7 +5647,6 @@ dependencies = [
  "rspack_hook",
  "rspack_intern",
  "rspack_util",
- "tokio",
  "tracing",
  "wasmparser",
 ]
