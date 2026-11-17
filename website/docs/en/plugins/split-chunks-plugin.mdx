@@ -260,6 +260,8 @@ export default {
 
 The example sets `minSize: 0` so that even small modules in this layer can be extracted.
 
+Prefer a string or regular expression when it meets your matching needs; see [Performance overhead](#performance-overhead).
+
 #### priority
 
 - **Type:** `number`
@@ -368,7 +370,7 @@ Modules that match `test` must still meet other splitting conditions, such as si
 To filter by chunk name, use `chunks`.
 
 :::warning
-Using the function type of `test` will significantly reduce build performance, as the function needs to be called for each module, resulting in huge cross-language communication overhead between Rust and JavaScript. Therefore, we do not recommend using the function type.
+Prefer a string or regular expression when it can express the same `test` condition; see [Performance overhead](#performance-overhead).
 :::
 
 #### type
@@ -485,7 +487,7 @@ export default {
 ```
 
 :::warning
-Using the function type of `chunks` will significantly reduce build performance, as the function needs to be called for each module, resulting in huge cross-language communication overhead between Rust and JavaScript. Therefore, we do not recommend using the function type.
+Prefer a built-in string option or regular expression when it selects the same chunks; see [Performance overhead](#performance-overhead).
 :::
 
 ### splitChunks.dedupDepth
@@ -1083,6 +1085,8 @@ When `name` is a function, Rspack calls it with these parameters:
 
 The function should return the split chunk name. Return `undefined` to let Rspack fall back to automatic naming for that module group.
 
+Keep naming callbacks lightweight; see [Performance overhead](#performance-overhead).
+
 For example, you can name vendor chunks by the cache group key and by the selected chunk names:
 
 ```js title="rspack.config.mjs"
@@ -1204,6 +1208,18 @@ export default {
 In this example, `foo` and `bar` use the same exports, so they can share a chunk containing `shared.js`; `baz` uses a separate copy. Setting `splitChunks.usedExports` to `false` allows all three entries to share one chunk containing `shared.js`.
 
 This option controls grouping, not whether unused exports are removed. Removing unused code still depends on tree shaking and minification.
+
+## Performance overhead
+
+### Function options
+
+When [`chunks`](#splitchunkschunks), [`name`](#splitchunksname), or a cache group’s [`test`](#test) or [`layer`](#layer) is a function, Rspack calls back into JavaScript during chunk splitting. These cross-language calls add build overhead.
+
+Prefer non-function forms when they meet the same requirements, and use functions only when you need custom logic.
+
+### Search depth
+
+Increasing [`dedupDepth`](#splitchunksdedupdepth) expands the search for shared modules and can significantly increase computation time. Start with the default value and compare build time and bundle size when adjusting it.
 
 ## FAQ
 

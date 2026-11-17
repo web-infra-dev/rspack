@@ -258,6 +258,8 @@ export default {
 
 示例中的 `minSize: 0` 让这个 layer 中体积较小的模块也能被抽离。
 
+如果字符串或正则表达式能满足匹配需求，应优先使用，详见[性能开销](#performance-overhead)。
+
 #### priority
 
 - **类型：** `number`
@@ -366,7 +368,7 @@ export default {
 要按 chunk 名称筛选，请使用 `chunks`。
 
 :::warning
-使用函数形式的 `test` 会显著降低构建性能，因为该函数需要对每个模块进行调用，从而产生大量的 Rust 与 JavaScript 之间的跨语言通信开销。因此我们不推荐使用函数形式。
+如果字符串或正则表达式能够表达相同的 `test` 条件，应优先使用，详见[性能开销](#performance-overhead)。
 :::
 
 #### type
@@ -483,7 +485,7 @@ export default {
 ```
 
 :::warning
-使用函数形式的 `chunks` 会显著降低构建性能，因为该函数需要对每个模块进行调用，从而产生大量的 Rust 与 JavaScript 之间的跨语言通信开销。因此我们不推荐使用函数形式。
+如果内置的字符串选项或正则表达式能筛选出相同的 chunk，应优先使用，详见[性能开销](#performance-overhead)。
 :::
 
 ### splitChunks.dedupDepth
@@ -1081,6 +1083,8 @@ export default {
 
 函数应返回拆分 chunk 的名称。返回 `undefined` 时，Rspack 会对该模块组回退到自动命名。
 
+自定义命名函数应尽量保持轻量，详见[性能开销](#performance-overhead)。
+
 例如，你可以根据缓存组标识和选中的 chunk 名称，为第三方依赖生成 chunk 名称：
 
 ```js title="rspack.config.mjs"
@@ -1202,6 +1206,18 @@ export default {
 在这个示例中，`foo` 和 `bar` 使用相同的导出，因此可以共享一个包含 `shared.js` 的 chunk；`baz` 使用另一份副本。如果将 `splitChunks.usedExports` 改为 `false`，三个入口就可以共享同一个包含 `shared.js` 的 chunk。
 
 这个选项只控制模块的分组方式，不决定未使用的导出是否被删除。删除未使用的代码仍取决于 tree shaking 和代码压缩。
+
+## 性能开销 \{#performance-overhead}
+
+### 函数选项 \{#function-options}
+
+当 [`chunks`](#splitchunkschunks)、[`name`](#splitchunksname) 或缓存组的 [`test`](#test)、[`layer`](#layer) 使用函数形式时，Rspack 需要在代码拆分过程中调用 JavaScript 回调。这些跨语言调用会增加构建开销。
+
+在满足相同需求的前提下，建议优先使用非函数形式，仅在需要自定义逻辑时使用函数。
+
+### 搜索深度 \{#search-depth}
+
+提高 [`dedupDepth`](#splitchunksdedupdepth) 会扩大共享模块的搜索范围，可能显著增加计算耗时。建议从默认值开始，调整时同时比较构建耗时和产物体积。
 
 ## 常见问题 {#faq}
 
