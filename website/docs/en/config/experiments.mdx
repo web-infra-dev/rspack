@@ -83,6 +83,12 @@ String entries in `allowedUris` must be valid absolute URLs. Rspack normalizes b
 
 By default, Rspack will generate `rspack.lock` and `rspack.lock.data` in the [context](/config/context) folder as the locations of the Lockfile and the cache respectively. You can also configure them through `lockfileLocation` and `cacheLocation`.
 
+The lockfile uses webpack's format: URL entries are top-level properties alongside `version: 1`, with `integrity`, `contentType`, and an optional `resolved` URL. Content cache filenames also match webpack, so an existing webpack lockfile and its cached resources can be reused together.
+
+:::warning Breaking change
+The previous Rspack format with an `entries` object, `content_type`, `valid_until`, and `etag` is no longer supported. Delete the old lockfile and content cache, then run a build with `frozen: false` to regenerate them. Review and commit the regenerated files before enabling frozen builds. HTTP validators and expiration times are kept in memory instead of the committed lockfile.
+:::
+
 :::note
 You should commit the files at `lockfileLocation` and `cacheLocation` to the version control system so that production builds can use the cached content.
 :::
