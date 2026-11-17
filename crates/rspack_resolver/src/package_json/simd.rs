@@ -255,11 +255,7 @@ impl PackageJson {
 
     let mut value = fields.get(paths[0].as_str())?;
     for key in paths.iter().skip(1) {
-      if let Some(inner_value) = value.as_object().and_then(|o| o.get(key.as_str())) {
-        value = inner_value;
-      } else {
-        return None;
-      }
+      value = value.as_object().and_then(|o| o.get(key.as_str()))?;
     }
     Some(value)
   }

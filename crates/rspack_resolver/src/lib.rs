@@ -1002,13 +1002,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
 
   /// Parse `NODE_PATH` env var into directory list. Uses `;` on Windows, `:` on POSIX.
   fn parse_node_path_env() -> Vec<PathBuf> {
-    std::env::var_os("NODE_PATH")
-      .map(|path| {
-        std::env::split_paths(&path)
-          .filter(|paths| paths.is_absolute())
-          .collect::<Vec<PathBuf>>()
-      })
-      .unwrap_or_default()
+    std::env::var_os("NODE_PATH").map_or_else(Vec::new, |path| {
+      std::env::split_paths(&path)
+        .filter(|paths| paths.is_absolute())
+        .collect::<Vec<PathBuf>>()
+    })
   }
 
   /// Lazily get NODE_PATH directories. Parsed once on first access.

@@ -1023,7 +1023,7 @@ impl From<FuncUseCtx> for RawFuncUseCtx {
       real_resource: value.real_resource,
       resource_query: value.resource_query.unwrap_or_default(),
       resource_fragment: value.resource_fragment.unwrap_or_default(),
-      issuer: value.issuer.map(|s| s.to_string()).unwrap_or_default(),
+      issuer: value.issuer.map_or_default(|s| s.to_string()),
       issuer_layer: value.issuer_layer.unwrap_or_default(),
     }
   }

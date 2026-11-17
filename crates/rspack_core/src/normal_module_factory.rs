@@ -856,7 +856,7 @@ impl NormalModuleFactory {
         match resource_data {
           Ok(ResolveResult::Resource(resource)) => UniqueArc::new(resource.into()),
           Ok(ResolveResult::Ignored) => {
-            let ident = format!("{}/{}", &data.context, resource);
+            let ident = format!("{}/{}", data.context, resource);
 
             let raw_module = if matches!(
               dependency_type,

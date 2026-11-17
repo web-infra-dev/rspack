@@ -46,7 +46,7 @@ impl CssDependency {
     cacheable: bool,
     dependencies: LoaderDependencies,
   ) -> Self {
-    let resource_identifier = format!("css-module-{}-{}", &identifier, identifier_index).into();
+    let resource_identifier = format!("css-module-{identifier}-{identifier_index}").into();
     Self {
       id: DependencyId::new(),
       identifier,

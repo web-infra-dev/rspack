@@ -51,10 +51,8 @@ pub fn create_cache(
     crate::CacheOptions::Disabled => {
       return Cache::new_disabled(logger);
     }
-    crate::CacheOptions::Memory {
-      max_generations: _, /* TODO: old cache default to 1, change to 5 and pass to MemoryCache */
-      ..
-    } => {
+    crate::CacheOptions::Memory { .. } => {
+      // TODO: old cache defaults to 1; change to 5 and pass max_generations to MemoryCache.
       return Cache::new(Some(MemoryCache::new(5)), None, logger);
     }
     crate::CacheOptions::Persistent(options) => options,

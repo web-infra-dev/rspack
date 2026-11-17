@@ -110,7 +110,7 @@ impl ESMImportSpecifierDependency {
 
   pub fn get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
     mg.get_dep_meta_if_existing(&self.id)
-      .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
+      .map_or(self.ids.as_slice(), |meta| meta.ids.as_slice())
   }
 
   pub fn imported_name(&self) -> &Atom {

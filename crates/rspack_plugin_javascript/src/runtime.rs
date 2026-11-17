@@ -198,8 +198,7 @@ pub async fn render_module(
   let mut module_chunk_init_fragments = code_gen_result
     .data()
     .get::<CodeGenerationDataChunkInitFragments>()
-    .map(|fragments| fragments.inner().clone())
-    .unwrap_or_default();
+    .map_or_default(|fragments| fragments.inner().clone());
   if render_preserved_asset_import_fragment
     && let Some(asset_import) = code_gen_result
       .data()

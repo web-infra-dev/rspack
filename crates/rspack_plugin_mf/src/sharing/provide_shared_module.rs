@@ -62,10 +62,7 @@ impl ProvideSharedModule {
   ) -> Self {
     let scopes_key = share_scope.key();
     let namespace = module_identifier_namespace(runtime_mode);
-    let identifier = format!(
-      "provide shared module ({}) {}@{} = {}",
-      &scopes_key, &name, &version, &request
-    );
+    let identifier = format!("provide shared module ({scopes_key}) {name}@{version} = {request}");
     Self {
       dependencies_block: Default::default(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),

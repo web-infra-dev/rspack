@@ -1320,24 +1320,19 @@ async fn test_cases() {
       .map(|p| p.map(|p| p.to_path_buf()));
     if let Some(expect) = case.expect {
       if expect.is_empty() {
-        assert!(
-          matches!(resolved, Ok(None)),
-          "{} {:?}",
-          &case.name,
-          &resolved
-        );
+        assert!(matches!(resolved, Ok(None)), "{} {:?}", case.name, resolved);
       } else {
         for expect in expect {
           assert_eq!(
             resolved,
             Ok(Some(Utf8Path::new(expect).normalize())),
             "{}",
-            &case.name
+            case.name
           );
         }
       }
     } else {
-      assert!(resolved.is_err(), "{} {resolved:?}", &case.name);
+      assert!(resolved.is_err(), "{} {resolved:?}", case.name);
     }
   }
 }

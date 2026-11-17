@@ -27,7 +27,7 @@ impl ContainerEntryDependency {
     share_scope: ShareScope,
     enhanced: bool,
   ) -> Self {
-    let resource_identifier = format!("container-entry-{}", &name).into();
+    let resource_identifier = format!("container-entry-{name}").into();
     Self {
       id: DependencyId::new(),
       name,
@@ -42,7 +42,7 @@ impl ContainerEntryDependency {
   }
 
   pub fn new_share_container_entry(name: String, request: String, version: String) -> Self {
-    let resource_identifier = format!("share-container-entry-{}", &name).into();
+    let resource_identifier = format!("share-container-entry-{name}").into();
     Self {
       id: DependencyId::new(),
       name,

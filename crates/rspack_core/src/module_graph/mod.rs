@@ -367,12 +367,11 @@ impl ModuleGraph {
   pub fn revoke_module(&mut self, module_id: &ModuleIdentifier) -> Vec<BuildDependency> {
     let mut blocks = self
       .module_by_identifier(module_id)
-      .map(|m| Vec::from(m.get_blocks()))
-      .unwrap_or_default();
+      .map_or_default(|m| Vec::from(m.get_blocks()));
 
     let (incoming_connections, all_dependencies) = self
       .module_graph_module_by_identifier(module_id)
-      .map(|mgm| {
+      .map_or_default(|mgm| {
         (
           mgm
             .incoming_connections()
@@ -382,8 +381,7 @@ impl ModuleGraph {
             .collect::<Vec<_>>(),
           mgm.all_dependencies().to_vec(),
         )
-      })
-      .unwrap_or_default();
+      });
 
     self.inner.modules.remove(module_id);
     self.inner.module_graph_modules.remove(module_id);

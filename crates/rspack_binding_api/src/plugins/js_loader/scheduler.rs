@@ -36,8 +36,8 @@ pub(crate) async fn loader_yield(
           && !loaders_without_pitch.contains(loader.path().as_str())
       });
     if !needs_pitch {
-      for index in start..end {
-        loader_context.loader_items[index].set_pitch_executed();
+      for loader in &mut loader_context.loader_items[start..end] {
+        loader.set_pitch_executed();
       }
       loader_context.loader_index = end as i32;
       return Ok(());

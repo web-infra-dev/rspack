@@ -244,7 +244,7 @@ impl std::fmt::Debug for RawBufferSource {
     write!(
       f,
       "{indent_str}RawBufferSource::from({:?}).boxed()",
-      &self.value
+      self.value
     )
   }
 }

@@ -318,7 +318,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             let file_base = strip_ext(file_name);
             if !file_base.is_empty() {
               module_ids_by_name
-                .entry(file_base.clone())
+                .entry(file_base)
                 .or_insert(module_identifier);
             }
           }
@@ -701,7 +701,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           })
           .collect();
       remote_list.push(StatsRemote {
-        alias: alias.clone(),
+        alias,
         consumingFederationContainerName: container_name.clone(),
         federationContainerName: federation_container_name,
         moduleName: module_name,

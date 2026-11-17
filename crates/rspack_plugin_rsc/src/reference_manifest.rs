@@ -133,11 +133,9 @@ fn build_server_manifest_per_entry(
 
       let loader_query = request
         .split_once('?')
-        .map(|x| x.1)
-        .unwrap_or_default()
+        .map_or_default(|x| x.1)
         .rsplit_once('!')
-        .map(|x| x.0)
-        .unwrap_or_default();
+        .map_or_default(|x| x.0);
 
       let loader_options = form_urlencoded::parse(loader_query.as_bytes());
       for (k, v) in loader_options {
@@ -151,7 +149,7 @@ fn build_server_manifest_per_entry(
               action.id.clone(),
               ManifestExport {
                 id: module_id.to_string(),
-                name: action.id.clone(),
+                name: action.id,
                 // Server Action modules serve as endpoints rather than code splitting points,
                 // so ensuring chunk loading at runtime is unnecessary.
                 chunks: vec![],

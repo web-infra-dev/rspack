@@ -2824,7 +2824,7 @@ impl OutputOptionsBuilder {
         let library_name = match name {
           LibraryName::NonUmdObject(LibraryNonUmdObject::String(s)) => s.clone(),
           LibraryName::NonUmdObject(LibraryNonUmdObject::Array(arr)) => arr.join("."),
-          LibraryName::UmdObject(obj) => obj.root.as_ref().map(|r| r.join(".")).unwrap_or_default(),
+          LibraryName::UmdObject(obj) => obj.root.as_ref().map_or_default(|r| r.join(".")),
         };
 
         // Clean up library name using regex

@@ -732,8 +732,7 @@ impl From<JsBuildMeta> for BuildMeta {
 
     let exports_type = raw_exports_type
       .as_deref()
-      .map(BuildMetaExportsType::from)
-      .unwrap_or_default();
+      .map_or_default(BuildMetaExportsType::from);
 
     BuildMeta {
       strict_esm_module,

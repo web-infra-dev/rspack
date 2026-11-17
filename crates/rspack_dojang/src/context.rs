@@ -202,23 +202,13 @@ impl ComputeExpr for Eval {
 
             if num_operands == 1 {
               let op = operands.pop().unwrap();
-              match optr.compute_unary(context, op) {
-                Ok(operand) => {
-                  operands.push(operand);
-                }
-                Err(e) => return Err(e),
-              }
+              operands.push(optr.compute_unary(context, op)?);
             } else if num_operands == 2 {
               // Since we are iterating from back, left is the top most operand.
               let left = operands.pop().unwrap();
               let right = operands.pop().unwrap();
 
-              match optr.compute_binary(context, left, right) {
-                Ok(operand) => {
-                  operands.push(operand);
-                }
-                Err(e) => return Err(e),
-              }
+              operands.push(optr.compute_binary(context, left, right)?);
             }
           }
         },
@@ -461,7 +451,7 @@ impl Convert for Operand {
       Operand::Value(v) => value_to_boolean(v),
       Operand::Array(arr) => !arr.is_empty(),
       _ => {
-        panic!("Unconvertible object {:?}", &self)
+        panic!("Unconvertible object {self:?}")
       }
     }
   }
@@ -474,7 +464,7 @@ impl Convert for Operand {
       },
       Operand::Array(arr) => format!("{arr:?}"),
       _ => {
-        panic!("Unconvertible object {:?}", &self)
+        panic!("Unconvertible object {self:?}")
       }
     }
   }
@@ -545,10 +535,7 @@ fn get_value_from_operand<'a>(
   operand: &'a Operand,
 ) -> Result<&'a Value, String> {
   if let Operand::Object(obj) = operand {
-    match context.get_value(&obj.name.split(".").collect()) {
-      Ok(v) => Ok(v),
-      Err(e) => Err(e),
-    }
+    context.get_value(&obj.name.split(".").collect())
   } else if let Operand::Value(v) = operand {
     Ok(v)
   } else {

@@ -290,7 +290,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           exports_info,
           module_id,
           referenced_exports,
-          runtime.clone(),
+          runtime,
           force_side_effects,
           &side_effects_state_artifact,
         );
