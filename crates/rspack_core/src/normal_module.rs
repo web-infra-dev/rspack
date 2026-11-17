@@ -472,8 +472,8 @@ impl Module for NormalModule {
   }
 
   #[tracing::instrument("NormalModule:build", skip_all, fields(
-    perfetto.track_name = format!("Module Build"),
-    perfetto.process_name = format!("Rspack Build Detail"),
+    perfetto.track_name = "Module Build",
+    perfetto.process_name = "Rspack Build Detail",
     module.resource = self.resource_resolved_data().resource(),
     module.identifier = self.identifier().as_str(),
     module.loaders = ?self.loaders.iter().map(|l| l.identifier().as_str()).collect::<Vec<_>>())

@@ -778,6 +778,8 @@ impl<'parser> JavascriptParser<'parser> {
         .rev()
       {
         let mut block = block.expect("reserved parser block should be initialized");
+        // Drain the indexed adjacency list without moving it out of its parent.
+        #[allow(clippy::iter_with_drain)]
         for child in nested_blocks[index].drain(..).rev() {
           block.add_block(child);
         }

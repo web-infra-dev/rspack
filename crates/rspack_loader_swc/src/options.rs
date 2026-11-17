@@ -421,6 +421,8 @@ impl AsRefStrConverter for SwcCompilerOptionsWithAdditional {
 
 const SOURCE_MAP_INLINE: &str = "inline";
 
+// Preserve the existing conversion API.
+#[allow(clippy::try_from_instead_of_from_str)]
 impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
   type Error = serde_json::Error;
   fn try_from(value: &str) -> Result<Self, Self::Error> {

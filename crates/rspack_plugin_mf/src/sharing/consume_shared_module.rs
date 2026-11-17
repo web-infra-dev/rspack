@@ -63,8 +63,8 @@ impl ConsumeSharedModule {
     let namespace = module_identifier_namespace(runtime_mode);
     let identifier = format!(
       "consume shared module ({}) {}@{}{}{}{}{}",
-      &scopes_key,
-      &options.share_key,
+      scopes_key,
+      options.share_key,
       options
         .required_version
         .as_ref()
@@ -82,8 +82,7 @@ impl ConsumeSharedModule {
       options
         .import_resolved
         .as_ref()
-        .map(|f| format!(" (fallback: {f})"))
-        .unwrap_or_default(),
+        .map_or_default(|f| format!(" (fallback: {f})")),
       if options.eager {
         " (eager)"
       } else {
@@ -95,13 +94,9 @@ impl ConsumeSharedModule {
       identifier: ModuleIdentifier::from(identifier.as_ref()),
       lib_ident: format!(
         "{namespace}/sharing/consume/{}/{}{}",
-        &scopes_key,
-        &options.share_key,
-        options
-          .import
-          .as_ref()
-          .map(|r| format!("/{r}"))
-          .unwrap_or_default()
+        scopes_key,
+        options.share_key,
+        options.import.as_ref().map_or_default(|r| format!("/{r}"))
       ),
       readable_identifier: identifier,
       context,

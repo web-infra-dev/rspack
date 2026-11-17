@@ -373,7 +373,7 @@ fn create_module_layer_filter(
     Either3::B(js_str) => {
       let test = js_str.into_string();
       rspack_plugin_split_chunks::create_native_module_layer_filter(move |layer| {
-        layer.map_or_else(|| test.is_empty(), |layer| layer.starts_with(&test))
+        layer.map_or(test.is_empty(), |layer| layer.starts_with(&test))
       })
     }
     Either3::C(f) => Arc::new(

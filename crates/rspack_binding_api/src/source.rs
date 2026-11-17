@@ -425,7 +425,8 @@ fn apply_replacements(
   }
 
   let mut source = ReplaceSource::new(inner);
-  for ((_, _, content, name), byte_offsets) in edits.into_iter().zip(byte_endpoints.chunks_exact(2))
+  for ((_, _, content, name), byte_offsets) in
+    edits.into_iter().zip(byte_endpoints.as_chunks::<2>().0)
   {
     let start = u32::try_from(byte_offsets[0]).ok()?;
     let end = u32::try_from(byte_offsets[1]).ok()?;

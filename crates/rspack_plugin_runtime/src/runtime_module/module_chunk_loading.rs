@@ -343,7 +343,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         }
         false => String::new(),
       },
-      &stringify_chunks(&initial_chunks, 0)
+      stringify_chunks(&initial_chunks, 0)
     ));
 
     if with_loading || with_external_install_chunk || with_hmr {

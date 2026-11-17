@@ -262,7 +262,7 @@ impl std::fmt::Display for RspackError {
         write!(f, "{}", self.message)
       }
     } else {
-      write!(f, "{}", &self.message)?;
+      write!(f, "{}", self.message)?;
       Ok(())
     }
   }
@@ -407,10 +407,11 @@ impl<T> RspackResultToNapiResultExt<T, Error, ErrorCode> for Result<T, Error> {
   fn to_napi_result(self) -> napi::Result<T, ErrorCode> {
     self.map_err(|e| {
       napi::Error::new(
-        e.code.as_ref().map_or_else(
-          || ErrorCode::Napi(napi::Status::GenericFailure),
-          |code| ErrorCode::Custom(code.clone()),
-        ),
+        e.code
+          .as_ref()
+          .map_or(ErrorCode::Napi(napi::Status::GenericFailure), |code| {
+            ErrorCode::Custom(code.clone())
+          }),
         e.to_string(),
       )
     })
@@ -421,10 +422,11 @@ impl<T> RspackResultToNapiResultExt<T, Error, ErrorCode> for Result<T, Error> {
   ) -> napi::Result<T, ErrorCode> {
     self.map_err(|e| {
       napi::Error::new(
-        e.code.as_ref().map_or_else(
-          || ErrorCode::Napi(napi::Status::GenericFailure),
-          |code| ErrorCode::Custom(code.clone()),
-        ),
+        e.code
+          .as_ref()
+          .map_or(ErrorCode::Napi(napi::Status::GenericFailure), |code| {
+            ErrorCode::Custom(code.clone())
+          }),
         f(e),
       )
     })

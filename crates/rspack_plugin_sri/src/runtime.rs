@@ -319,8 +319,7 @@ pub async fn handle_runtime(
     SubresourceIntegrityPlugin::get_compilation_manifest(compilation)
       .manifest
       .get(chunk_ukey)
-      .map(|children| children.iter().copied().collect())
-      .unwrap_or_default()
+      .map_or_default(|children| children.iter().copied().collect())
   });
   runtime_modules.push(
     SRIHashVariableRuntimeModule::new(

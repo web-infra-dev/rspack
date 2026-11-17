@@ -390,17 +390,11 @@ despite it was not able to fulfill desired ordering with these modules:
                 format!(
                   " * {}\n  - couldn't fulfill desired order of chunk group(s) {}{}",
                   m.readable_identifier(&compilation.options.context),
-                  failed_reasons
-                    .as_ref()
-                    .map(|s| s.as_str())
-                    .unwrap_or_default(),
-                  good_reasons
-                    .as_ref()
-                    .map(|s| format!(
-                      "\n  - while fulfilling desired order of chunk group(s) {}",
-                      s.as_str()
-                    ))
-                    .unwrap_or_default(),
+                  failed_reasons.as_ref().map_or_default(|s| s.as_str()),
+                  good_reasons.as_ref().map_or_default(|s| format!(
+                    "\n  - while fulfilling desired order of chunk group(s) {}",
+                    s.as_str()
+                  )),
                 )
               })
               .collect::<Vec<_>>()

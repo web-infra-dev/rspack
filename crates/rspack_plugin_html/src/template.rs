@@ -71,7 +71,7 @@ impl HtmlTemplate {
           .map_err(|err| anyhow!(err))
           .context(format!(
             "HtmlRspackPlugin: could not load file `{}` from `{}`",
-            template, &compilation.options.context
+            template, compilation.options.context
           ))
           .map(|content| Self {
             render: TemplateRender::Template(content),

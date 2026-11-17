@@ -263,11 +263,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
           request: request.to_string(),
           dependency_type: dependency.category().to_string(),
           context_info: ContextInfo {
-            issuer: data
-              .issuer
-              .clone()
-              .map(|i| i.to_string())
-              .unwrap_or_default(),
+            issuer: data.issuer.clone().map_or_default(|i| i.to_string()),
             issuer_layer: data.issuer_layer.clone(),
           },
           resolve_options_with_dependency_type: ResolveOptionsWithDependencyType {

@@ -56,6 +56,8 @@ impl fmt::Display for RspackComment {
   }
 }
 
+// Preserve the existing conversion API.
+#[allow(clippy::try_from_instead_of_from_str)]
 impl TryFrom<&str> for RspackComment {
   type Error = ();
 
@@ -569,10 +571,9 @@ struct MagicCommentItem {
 fn parse_magic_comment_name(name: &str) -> Option<(RspackComment, MagicCommentPrefix)> {
   let (name, prefix) = if let Some(name) = name.strip_prefix("rspack") {
     (name, MagicCommentPrefix::Rspack)
-  } else if let Some(name) = name.strip_prefix("webpack") {
-    (name, MagicCommentPrefix::Webpack)
   } else {
-    return None;
+    let name = name.strip_prefix("webpack")?;
+    (name, MagicCommentPrefix::Webpack)
   };
 
   Some((RspackComment::try_from(name).ok()?, prefix))

@@ -33,8 +33,7 @@ pub fn eval_source<'parser>(
     Err(diagnostics) => {
       let span = diagnostics
         .first()
-        .map(|diagnostic| diagnostic.span)
-        .unwrap_or_default();
+        .map_or_default(|diagnostic| diagnostic.span);
       let mut error = Error::from_string(
         Some(source.clone()),
         span.start as usize,

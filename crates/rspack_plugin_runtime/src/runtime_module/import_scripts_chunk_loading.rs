@@ -252,12 +252,12 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
         "var importScriptsInstalledChunks = {} = {} || {};\n",
         state_expression,
         state_expression,
-        &stringify_chunks(&initial_chunks, 1)
+        stringify_chunks(&initial_chunks, 1)
       ));
     } else {
       source.push_str(&format!(
         "var importScriptsInstalledChunks = {};\n",
-        &stringify_chunks(&initial_chunks, 1)
+        stringify_chunks(&initial_chunks, 1)
       ));
     }
 

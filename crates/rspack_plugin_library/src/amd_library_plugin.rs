@@ -124,10 +124,7 @@ async fn render(
     fn_start.push_str(" return ");
   }
   let mut source = ConcatSource::default();
-  let amd_container_prefix = options
-    .amd_container
-    .map(|c| format!("{c}."))
-    .unwrap_or_default();
+  let amd_container_prefix = options.amd_container.map_or_default(|c| format!("{c}."));
   if self.require_as_wrapper {
     source.add(RawStringSource::from(format!(
       "{amd_container_prefix}require({externals_deps_array}, {fn_start}"

@@ -16,8 +16,7 @@ pub(super) fn add_async_module_boundary(
   uses_top_level_using_declaration: bool,
 ) {
   let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
-    .map(ToString::to_string)
-    .unwrap_or_default();
+    .map_or_default(ToString::to_string);
   let module_argument = runtime_template.render_module_argument(module.get_module_argument());
   let async_module_parameter = if use_module_exports {
     ", __rspack_async_module"
