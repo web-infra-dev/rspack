@@ -149,6 +149,7 @@ pub(crate) fn create_loader_cache(
     false,
     rspack_workspace::rspack_pkg_version!().to_string(),
     version,
+    Default::default(),
     codec,
     // Omit FileSystemInfo to skip database-wide build dependency tracking.
     None,
