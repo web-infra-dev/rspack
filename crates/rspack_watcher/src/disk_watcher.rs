@@ -63,11 +63,11 @@ impl DiskWatcher {
   }
 
   /// Applies prepared backend paths without changing their spelling or modes.
-  ///
-  /// # Returns
-  ///
-  /// * `rspack_error::Result<()>` - Ok if successful, otherwise an error.
-  pub(crate) fn apply_plan(&mut self, plan: WatchPlan) -> rspack_error::Result<()> {
+  /// Returns the new watch coverage, whose subscriptions need a gap scan.
+  pub(crate) fn apply_plan(
+    &mut self,
+    plan: WatchPlan,
+  ) -> rspack_error::Result<HashSet<WatchPattern>> {
     let new_patterns = plan.into_patterns();
     let trigger = self.trigger.as_ref().expect("watcher is open");
     let replaced = std::mem::take(
@@ -162,6 +162,7 @@ impl DiskWatcher {
       .watch_patterns
       .retain(|pattern| !stale_paths.contains(&pattern.path));
 
+    let mut attached = HashSet::default();
     for (path, mode) in new_patterns {
       let pattern = WatchPattern { path, mode };
       if self.watch_patterns.contains(&pattern) {
@@ -174,6 +175,7 @@ impl DiskWatcher {
           .map_err(|e| rspack_error::error!(e.to_string()))?;
       }
 
+      attached.insert(pattern.clone());
       self.watch_patterns.insert(pattern);
     }
 
@@ -191,7 +193,7 @@ impl DiskWatcher {
     for path in recheck_directories {
       trigger.recheck_directory(path);
     }
-    Ok(())
+    Ok(attached)
   }
 
   pub fn close(&mut self) {
@@ -202,7 +204,7 @@ impl DiskWatcher {
 
   #[cfg(test)]
   fn watch(&mut self, patterns: impl Iterator<Item = WatchPattern>) -> rspack_error::Result<()> {
-    self.apply_plan(WatchPlan::new(patterns, false))
+    self.apply_plan(WatchPlan::new(patterns, false)).map(|_| ())
   }
 }
 

@@ -17,12 +17,13 @@ use rspack_paths::{
   InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathMap, InternedPathSet,
 };
 use rspack_util::{
-  fx_hash::FxHashMap,
+  fx_hash::{FxHashMap, FxHashSet},
   time::{current_time, system_time_to_millis},
 };
 
 use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher};
 use crate::{
+  WatchPattern,
   symlinks::{
     LinkEvent, LinkResolver, LinkScan, LinkSubscriptionKind, LinkSubscriptions, SymlinkAlias,
     SymlinkUpdate, Symlinks,
@@ -548,6 +549,57 @@ impl PathManager {
       .symlinks
       .as_ref()
       .and_then(|symlinks| symlinks.link_scan(path))
+  }
+
+  /// Retained entries can miss changes before their directory watch is restored.
+  pub(crate) async fn subscriptions_to_rescan(
+    &self,
+    attached: &FxHashSet<WatchPattern>,
+  ) -> InternedPathSet {
+    let mut subscriptions = InternedPathSet::default();
+    if attached.is_empty() {
+      return subscriptions;
+    }
+    let covered = |path: &InternedPath| {
+      path.ancestors().enumerate().any(|(depth, parent)| {
+        let mut pattern = WatchPattern {
+          path: InternedPath::from(parent),
+          mode: notify::RecursiveMode::Recursive,
+        };
+        if attached.contains(&pattern) {
+          return true;
+        }
+        pattern.mode = notify::RecursiveMode::NonRecursive;
+        depth <= 1 && attached.contains(&pattern)
+      })
+    };
+    let candidates: InternedPathMap<bool> = self
+      .files
+      .all
+      .iter()
+      .filter(|path| !self.files.added.contains(path.key()))
+      .chain(
+        self
+          .missing
+          .all
+          .iter()
+          .filter(|path| !self.missing.added.contains(path.key())),
+      )
+      .filter_map(|path| {
+        let scan = self.link_scan(path.key());
+        let needs_scan = scan.as_ref().map_or_else(
+          || covered(path.key()),
+          |scan| scan.target.iter().chain(&scan.links).any(covered),
+        );
+        needs_scan.then(|| (path.key().clone(), scan.is_none()))
+      })
+      .collect();
+    for (path, direct) in candidates {
+      if !direct || !self.is_ignored_path(&path).await {
+        subscriptions.insert(path);
+      }
+    }
+    subscriptions
   }
 
   pub(crate) fn subscription_path(

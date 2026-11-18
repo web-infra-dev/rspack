@@ -95,6 +95,9 @@ jobs:
             pnpm --dir tests/rspack-test run test --project 'compiler-*' -t native-watcher-directory-replacement || exit $?
           done
 
+      - name: Verify file subscriptions after reattachment
+        run: pnpm --dir tests/rspack-test run test --project 'compiler-*' -t native-watcher-file-reattach
+
   watcher-rename-windows:
     name: Native watcher rename regression (Windows)
     if: inputs.target == 'x86_64-pc-windows-msvc'

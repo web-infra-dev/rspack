@@ -491,10 +491,9 @@ impl FsWatcherInner {
         || !self.path_manager.access().directories().1.is_empty()))
     .then(|| watch_patterns.clone());
     let plan = WatchPlan::new(watch_patterns, self.path_manager.follows_symlinks());
-    if let Err(error) = self.disk_watcher.apply_plan(plan) {
+    let mut attached = self.disk_watcher.apply_plan(plan).inspect_err(|_| {
       self.analyzer.invalidate_all();
-      return Err(error);
-    }
+    })?;
     let mut changed_in_contexts = self
       .path_manager
       .scan_contexts(start_time, symlink_update.retargeted_directories)
@@ -503,10 +502,9 @@ impl FsWatcherInner {
       let discovered = self.path_manager.refresh_symlinks().await;
       watch_patterns.extend(discovered.patterns);
       let plan = WatchPlan::new(watch_patterns, self.path_manager.follows_symlinks());
-      if let Err(error) = self.disk_watcher.apply_plan(plan) {
+      attached.extend(self.disk_watcher.apply_plan(plan).inspect_err(|_| {
         self.analyzer.invalidate_all();
-        return Err(error);
-      }
+      })?);
       changed_in_contexts.extend(
         self
           .path_manager
@@ -530,9 +528,11 @@ impl FsWatcherInner {
     // deliver the event — so no rebuild was triggered. With this order, a change
     // before the watch is active is on disk by scan time (caught by
     // `mtime > start_time`), and a change after it is active is delivered live.
+    let mut subscriptions = self.path_manager.subscriptions_to_rescan(&attached).await;
+    subscriptions.extend(symlink_update.newly_subscribed);
     self
       .scanner
-      .scan_subscriptions(start_time, symlink_update.newly_subscribed);
+      .scan_subscriptions(start_time, subscriptions.into_iter().collect());
 
     Ok(())
   }

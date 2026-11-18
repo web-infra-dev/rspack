@@ -43,12 +43,12 @@ impl Scanner {
   /// ([`changed_since`]) — the scan runs after the OS watch is active (#14210),
   /// so a change landing before the watch is on disk and caught here.
   /// align watchpack action: https://github.com/webpack/watchpack/blob/v2.4.4/lib/DirectoryWatcher.js#L565-L568
-  pub fn scan_subscriptions(&self, start_time: SystemTime, newly_subscribed: Vec<InternedPath>) {
+  pub fn scan_subscriptions(&self, start_time: SystemTime, rescan: Vec<InternedPath>) {
     let accessor = self.path_manager.access();
     let has_added_paths = !accessor.files().1.is_empty()
       || !accessor.directories().1.is_empty()
       || !accessor.missing().1.is_empty();
-    if !has_added_paths && newly_subscribed.is_empty() {
+    if !has_added_paths && rescan.is_empty() {
       return;
     }
 
@@ -58,7 +58,7 @@ impl Scanner {
       let mut collect_paths = |paths: &InternedPathDashSet, all: &InternedPathDashSet| {
         let mut retained = Vec::with_capacity(paths.len());
         let paths = paths.iter().map(|path| path.key().clone()).chain(
-          newly_subscribed
+          rescan
             .iter()
             .filter(|path| all.contains(*path) && !paths.contains(*path))
             .cloned(),
