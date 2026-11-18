@@ -147,15 +147,17 @@ async fn process_resource<Context: Send>(
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
   if let Some(plugin) = &loader_context.plugin
-    && let Some((content, source_map, file_dependencies)) = plugin
-      .process_resource(&loader_context.resource_data, fs)
+    && let Some((content, source_map)) = plugin
+      .process_resource(
+        &loader_context.resource_data,
+        &mut loader_context.diagnostics,
+        &mut loader_context.added_dependencies,
+        fs,
+      )
       .await?
   {
     loader_context.content = Some(content);
     loader_context.source_map = source_map.map(Box::new);
-    for dependency in file_dependencies {
-      loader_context.add_file_dependency(dependency);
-    }
     loader_context.merge_dependency_changes();
     return Ok(());
   }
@@ -361,13 +363,12 @@ mod test {
 
   use rspack_cacheable::{cacheable, cacheable_dyn};
   use rspack_collections::Identifier;
-  use rspack_error::Result;
+  use rspack_error::{Diagnostic, Result};
   use rspack_fs::{NativeFileSystem, ReadableFileSystem};
-  use rspack_paths::InternedPathSet;
   use rspack_sources::SourceMap;
 
   use super::{Loader, LoaderContext, ResourceData, run_loaders};
-  use crate::{AdditionalData, content::Content, plugin::LoaderRunnerPlugin};
+  use crate::{AdditionalData, LoaderDependencies, content::Content, plugin::LoaderRunnerPlugin};
 
   struct TestContentPlugin;
 
@@ -386,9 +387,11 @@ mod test {
     async fn process_resource(
       &self,
       _resource_data: &ResourceData,
+      _diagnostics: &mut Vec<Diagnostic>,
+      _dependencies: &mut LoaderDependencies,
       _fs: Arc<dyn ReadableFileSystem>,
-    ) -> Result<Option<(Content, Option<SourceMap>, InternedPathSet)>> {
-      Ok(Some((Content::Buffer(vec![]), None, Default::default())))
+    ) -> Result<Option<(Content, Option<SourceMap>)>> {
+      Ok(Some((Content::Buffer(vec![]), None)))
     }
   }
 

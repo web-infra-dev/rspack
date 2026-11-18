@@ -28,9 +28,6 @@ const excludes = {
 		/^sharing\/reshake-share$/,
 		/^sharing\/tree-shaking-shared$/,
 
-		// Loader-emitted errors or warnings are not fully restored.
-		/^source-map\/extract-source-map$/,
-
 		// Existing bundle/compiler assertions fail in the compatibility suite.
 		/^loader\/context-module$/,
 
