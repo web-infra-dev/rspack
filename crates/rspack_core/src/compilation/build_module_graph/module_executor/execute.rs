@@ -494,10 +494,9 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
           }
         }
       }
-      Err(e) => {
-        execute_result.cacheable = false;
-        execute_result.errors.push(e.into());
-      }
+      // A loader can catch the error and produce cacheable output. Keep the
+      // cacheability and dependencies collected from the executed modules.
+      Err(e) => execute_result.errors.push(e.into()),
     };
 
     assets.extend(std::mem::take(compilation.assets_mut()));

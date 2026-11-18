@@ -16,8 +16,6 @@ const excludes = {
 		/^css\/import-filter$/,
 		/^custom-modules\/json-custom$/,
 		/^json\/top-level-json-parser$/,
-		/^loader-import-module\/execute-failed$/,
-		/^loader-parallel-import-module\/execute-failed$/,
 		/^module\/rspack-issue-8785$/,
 
 		// Loader-emitted errors or warnings are not fully restored.
