@@ -1,3 +1,4 @@
+// Regression test for https://github.com/web-infra-dev/rspack/issues/16695
 it("should not shadow variables with preserved class names", () => {
 	const cache = new WeakMap();
 	class e {
