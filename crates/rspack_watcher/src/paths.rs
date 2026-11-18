@@ -1361,18 +1361,19 @@ mod tests {
     let accessor = path_manager.access();
     let mut all_paths = accessor
       .all()
-      .map(|p| p.to_string_lossy().to_string())
+      .map(|path| path.as_path().to_path_buf())
       .collect::<Vec<_>>();
+    all_paths.sort_unstable();
 
-    all_paths.sort();
-
-    assert_eq!(all_paths.len(), 3);
-
-    let should_exist_paths = vec!["src/", "src/index.js", "src/page/index.ts"];
-
-    for path in should_exist_paths {
-      assert!(all_paths.iter().any(|p| p.ends_with(path)));
-    }
+    let src = std::env::current_dir().unwrap().join("src");
+    assert_eq!(
+      all_paths,
+      [
+        src.clone(),
+        src.join("index.js"),
+        src.join("page").join("index.ts")
+      ]
+    );
   }
 
   /// Regression for the FSEvents stale-event race: simulate two consecutive
