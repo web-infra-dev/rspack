@@ -26,7 +26,10 @@ use crate::{
   parser_and_generator::{
     CodeGenerationDataUnusedLocalIdent, CssExportsRef, CssSourceBuilder, get_used_exports,
   },
-  utils::{css_generator_options, css_module_export_type, replace_css_module_id_placeholder},
+  utils::{
+    RUNTIME_PUBLIC_PATH_MATCHER, css_generator_options, css_module_export_type,
+    replace_css_module_id_placeholder,
+  },
 };
 
 fn css_javascript_source_map_module_name(module: &dyn Module, context: &Context) -> String {
@@ -398,7 +401,10 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     for dependency in self.module.get_dependencies() {
       if let Some(symbol) = dependency.downcast_ref::<CssIcssSymbolDependency>() {
         let value = match symbol.kind {
-          CssIcssSymbolKind::LocalDeclaration | CssIcssSymbolKind::LocalReference => {
+          CssIcssSymbolKind::LocalDeclaration
+          | CssIcssSymbolKind::LocalReference
+          | CssIcssSymbolKind::LocalGridStart
+          | CssIcssSymbolKind::LocalGridEnd => {
             let value = local_idents.entry(symbol.target).or_insert_with(|| {
               let definition =
                 css_export_dependency(context.compilation.get_module_graph(), &symbol.target);
@@ -411,12 +417,16 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
           }
         };
         if let Some(value) = value {
+          let mut value = value.to_owned();
+          match symbol.kind {
+            CssIcssSymbolKind::LocalGridStart => value.push_str("-start"),
+            CssIcssSymbolKind::LocalGridEnd => value.push_str("-end"),
+            _ => {}
+          }
           let range = symbol
             .range()
             .expect("CSS symbol should have a source range");
-          self
-            .css_output
-            .replace(range.start, range.end, value.to_owned(), None);
+          self.css_output.replace(range.start, range.end, value, None);
         }
       } else if dependency.dependency_type() != &DependencyType::CssIcssExport
         && let Some(dependency) = dependency.as_dependency_code_generation()
@@ -469,7 +479,9 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       .cloned()
       .collect::<Vec<_>>();
     self.render_ordered_css_sources(&mut walker, &mut builder, &render_conditions)?;
-    Ok(json_stringify_str(&builder.into_css_text()))
+    Ok(json_stringify_str(
+      &builder.into_css_text(*self.module.get_source_map_kind()),
+    ))
   }
 
   fn render_ordered_css_sources(
@@ -510,7 +522,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   }
 
   fn css_text_expr(
-    &self,
+    &mut self,
     css_source: BoxSource,
     render_conditions: &[CssModuleRenderCondition],
   ) -> String {
@@ -520,7 +532,18 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       render_conditions,
       self.css_build_info.has_charset,
     );
-    json_stringify_str(&builder.into_css_text())
+    let css_text = json_stringify_str(&builder.into_css_text(*self.module.get_source_map_kind()));
+    let css_expression = RUNTIME_PUBLIC_PATH_MATCHER.replace_with(&css_text, || {
+      let public_path = self
+        .generate_context
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH);
+      Cow::Owned(format!("\" + {public_path} + \""))
+    });
+    match css_expression {
+      Cow::Borrowed(_) => css_text,
+      Cow::Owned(expression) => expression,
+    }
   }
 
   fn css_source_builder(&self, with_charset: bool) -> CssSourceBuilder {

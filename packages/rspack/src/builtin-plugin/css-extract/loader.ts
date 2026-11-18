@@ -185,9 +185,7 @@ export const pitch: LoaderDefinition['pitch'] = function (request) {
       if (namedExport) {
         for (const key of Object.keys(originalExports)) {
           if (key !== 'default') {
-            if (!locals) {
-              locals = {};
-            }
+            locals ??= {};
 
             locals[key] = (originalExports as Record<string, string>)[key];
           }

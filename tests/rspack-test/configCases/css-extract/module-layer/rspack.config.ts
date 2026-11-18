@@ -44,7 +44,4 @@ export default defineConfig({
       chunkFilename: '[name].css',
     }),
   ],
-  experiments: {
-    css: false,
-  },
 });

@@ -18,6 +18,8 @@ codspeed         = []
 rspack_cacheable = ["dep:rkyv"]
 
 [dependencies]
+bytes             = { workspace = true }
+bytes-str         = { workspace = true }
 memchr            = { workspace = true, features = ["std"] }
 rkyv              = { workspace = true, optional = true }
 rspack-allocative = { workspace = true, optional = true }
@@ -26,6 +28,7 @@ serde             = { workspace = true, features = ["rc", "std"] }
 simd-json         = { workspace = true, features = ["runtime-detection", "serde_impl", "swar-number-parsing"] }
 simd-utf16-len    = { workspace = true }
 static_assertions = { workspace = true }
+triomphe          = { workspace = true }
 
 [dev-dependencies]
 regex     = { workspace = true }

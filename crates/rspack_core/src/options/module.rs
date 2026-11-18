@@ -18,7 +18,7 @@ use rustc_hash::FxHashMap as HashMap;
 use smallvec::SmallVec;
 use tokio::sync::OnceCell;
 
-use crate::{Compilation, Filename, Module, ModuleType, PublicPath, Resolve};
+use crate::{Compilation, Filename, Module, ModuleType, PublicPath, Resolve, ResourceData};
 
 #[derive(Debug, Default)]
 pub struct ParserOptionsMap(HashMap<String, ParserOptions>);
@@ -1126,6 +1126,7 @@ impl From<String> for DataUrlEncoding {
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssGeneratorOptions {
   pub exports_only: Option<bool>,
+  pub runtime_public_path: Option<bool>,
   pub es_module: Option<bool>,
 }
 
@@ -1134,6 +1135,7 @@ pub struct CssGeneratorOptions {
 pub struct CssModuleGeneratorOptions {
   pub exports_convention: Option<CssExportsConvention>,
   pub exports_only: Option<bool>,
+  pub runtime_public_path: Option<bool>,
   pub local_ident_hash_digest: Option<HashDigest>,
   pub local_ident_hash_digest_length: Option<u32>,
   pub local_ident_hash_function: Option<HashFunction>,
@@ -1150,6 +1152,7 @@ impl CssModuleGeneratorOptions {
       local_ident_hash_digest_length: Some(6),
       local_ident_hash_function: Some(HashFunction::Xxhash64),
       local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
+      runtime_public_path: Some(false),
       es_module: Some(true),
       ..Default::default()
     }
@@ -1160,6 +1163,7 @@ impl From<&CssGeneratorOptions> for CssModuleGeneratorOptions {
   fn from(value: &CssGeneratorOptions) -> Self {
     Self {
       exports_only: value.exports_only,
+      runtime_public_path: value.runtime_public_path,
       es_module: value.es_module,
       ..Default::default()
     }
@@ -1281,6 +1285,7 @@ impl fmt::Debug for RuleSetCondition {
 pub enum DataRef<'a> {
   Str(&'a str),
   Value(&'a serde_json::Value),
+  Resource(&'a ResourceData),
 }
 
 impl<'s> From<&'s str> for DataRef<'s> {
@@ -1300,6 +1305,7 @@ impl DataRef<'_> {
     match self {
       Self::Str(s) => Some(s),
       Self::Value(v) => v.as_str(),
+      Self::Resource(resource) => Some(resource.resource()),
     }
   }
 
@@ -1307,6 +1313,11 @@ impl DataRef<'_> {
     match self {
       Self::Str(s) => serde_json::Value::String((*s).to_owned()),
       Self::Value(v) => (*v).to_owned(),
+      Self::Resource(resource) => serde_json::json!({
+        "path": resource.path().map_or_default(|path| path.as_str()),
+        "query": resource.query().unwrap_or_default(),
+        "fragment": resource.fragment().unwrap_or_default(),
+      }),
     }
   }
 }
@@ -1692,6 +1703,7 @@ pub type FnUse =
 
 #[derive(Debug, Default)]
 pub struct ModuleRule {
+  pub r#as: Option<Filename>,
   /// A conditional match matching an absolute path + query + fragment.
   /// Note:
   ///   This is a custom matching rule not initially designed by webpack.

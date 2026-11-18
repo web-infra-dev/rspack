@@ -474,6 +474,10 @@ impl<'a> From<JsStatsModuleCommonAttributes<'a>> for JsStatsModuleCommonAttribut
 impl<'a> ToNapiValue for JsStatsModuleCommonAttributesWrapper<'a> {
   unsafe fn to_napi_value(env: napi::sys::napi_env, val: Self) -> Result<napi::sys::napi_value> {
     unsafe {
+      // Runtime instances share a descriptor identifier, but not their size or chunks.
+      if val.0.module_type == "runtime" {
+        return ToNapiValue::to_napi_value(env, val.0);
+      }
       match val
         .0
         .module_descriptor

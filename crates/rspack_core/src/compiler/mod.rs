@@ -1,6 +1,7 @@
 mod rebuild;
 use std::sync::{Arc, atomic::AtomicU32};
 
+use arc_swap::ArcSwapOption;
 use futures::future::join_all;
 use rspack_cacheable::cacheable;
 use rspack_error::Result;
@@ -25,7 +26,7 @@ use crate::{
   incremental::{Incremental, IncrementalPasses},
   legacy_cache::{Cache as LegacyCache, create_cache as create_legacy_cache},
   logger::Logger,
-  new_cache::{Cache, CacheFacade, CacheValue, CompilerCache},
+  new_cache::{Cache, CacheFacade, CacheValue, CompilerCache, LoaderCache, create_loader_cache},
   trim_dir,
 };
 
@@ -112,6 +113,7 @@ pub struct Compiler {
   pub cache: Box<dyn LegacyCache>,
   incremental_artifacts: IncrementalArtifacts,
   new_cache: CompilerCache,
+  loader_cache: ArcSwapOption<LoaderCache>,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
   pub emitted_asset_versions: HashMap<String, String>,
@@ -150,6 +152,7 @@ impl Compiler {
     let buildtime_plugin_driver =
       PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
     let new_cache = CompilerCache::new(cache, compiler_path.clone());
+    let loader_cache = create_loader_cache(&options, &new_cache);
     let cache = create_legacy_cache(
       &compiler_path,
       options.clone(),
@@ -178,6 +181,7 @@ impl Compiler {
         Some(module_executor),
         compilation_logging,
         new_cache.clone(),
+        loader_cache.as_ref().map_or_default(Arc::downgrade),
         Default::default(),
         Default::default(),
         input_filesystem.clone(),
@@ -196,6 +200,7 @@ impl Compiler {
       cache,
       incremental_artifacts: IncrementalArtifacts::default(),
       new_cache,
+      loader_cache: ArcSwapOption::new(loader_cache),
       emitted_asset_versions: Default::default(),
       input_filesystem,
       platform,
@@ -276,7 +281,7 @@ impl Compiler {
       let meta_cache = self.get_cache("meta");
       if let Some(restored) = meta_cache.get::<Meta>("state", None) {
         let current = self.compiler_context.dependency_id();
-        if current < restored.max_dependency_id {
+        if current == 0 {
           self
             .compiler_context
             .set_dependency_id(restored.max_dependency_id);
@@ -314,6 +319,11 @@ impl Compiler {
         Some(Default::default()),
         compilation_logging,
         self.new_cache.clone(),
+        self
+          .loader_cache
+          .load()
+          .as_ref()
+          .map_or_default(Arc::downgrade),
         Default::default(),
         Default::default(),
         self.input_filesystem.clone(),
@@ -356,6 +366,11 @@ impl Compiler {
       .this_compilation
       .call(&mut self.compilation, &mut compilation_params)
       .await?;
+    // The binding registers the JS `thisCompilation` taps with `cache = false,
+    // skip = false`, so this call always waits for the JS thread to answer. No
+    // JS read of the previous assets that started before the swap is still in
+    // progress, so they can be freed now.
+    self.incremental_artifacts.free_previous_assets();
     self
       .plugin_driver
       .compiler_hooks
@@ -648,15 +663,22 @@ impl Compiler {
   }
 
   pub async fn close(&self) -> Result<()> {
-    self
+    let result = self
       .plugin_driver
       .compiler_hooks
       .close
       .call(&self.compilation)
-      .await?;
+      .await;
 
     self.cache.close().await;
-    Ok(())
+    let loader_cache = self.loader_cache.swap(None);
+    if let Some(loader_cache) = loader_cache {
+      // The last owner's Drop flushes and joins the filesystem cache worker.
+      tokio::task::spawn_blocking(move || drop(loader_cache))
+        .await
+        .expect("loader cache drop should complete");
+    }
+    result
   }
 }
 

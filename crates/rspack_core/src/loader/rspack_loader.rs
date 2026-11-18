@@ -38,7 +38,7 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     &self,
     resource_data: &ResourceData,
     fs: Arc<dyn ReadableFileSystem>,
-  ) -> Result<Option<(Content, Option<SourceMap<'static>>, InternedPathSet)>> {
+  ) -> Result<Option<(Content, Option<SourceMap>, InternedPathSet)>> {
     // First try the plugin's read_resource hook
     let result = self
       .plugin_driver
@@ -65,8 +65,7 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
             // Convert file dependencies to interned paths for reuse across cache contexts.
             let file_deps = extract_result
               .file_dependencies
-              .map(|deps| deps.into_iter().map(Into::into).collect())
-              .unwrap_or_default();
+              .map_or_default(|deps| deps.into_iter().map(Into::into).collect());
 
             // Preserve the input type: non-raw JS loaders strip a BOM only from buffers.
             let content = if content.is_buffer() {

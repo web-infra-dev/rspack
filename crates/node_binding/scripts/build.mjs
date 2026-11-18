@@ -172,9 +172,7 @@ async function build() {
 					const dts = path.resolve(import.meta.dirname, "..", file);
 					if (!existsSync(dts)) continue;
 					let content = readFileSync(dts, "utf8")
-						.replaceAll("const enum", "enum")
-						// NormalModule is declared in banner.d.ts to allow type augmentation.
-						.replaceAll(/export\s+declare\s+class\s+NormalModule\s*\{([\s\S]*?)\}\s*(?=\n\s*(?:export|declare|class|$))/g, "");
+						.replaceAll("const enum", "enum");
 					if (file === NAPI_BINDING_DTS) {
 						// Our handwritten binding.js does not expose the generated loader marker.
 						content = content.replace(/\/\*\*\n \* Which binding artifact[\s\S]*?export declare const __napiBindingTarget:[^\n]*\n\n/, "");

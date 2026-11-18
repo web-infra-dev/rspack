@@ -21,9 +21,6 @@ export default {
 					filename: "[name].css"
 				})
 			],
-			experiments: {
-				css: false
-			}
 		};
 	},
 	async check(stats) {

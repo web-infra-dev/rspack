@@ -1,0 +1,7 @@
+{
+	"extends": ["./configs/first-base.json", "./configs/second-base.json"],
+	"compilerOptions": {
+		"baseUrl": "./own",
+		"paths": { "@/*": ["./*"] }
+	}
+}

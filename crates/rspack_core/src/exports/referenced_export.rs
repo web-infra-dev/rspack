@@ -154,7 +154,6 @@ pub fn collect_referenced_export_items<'a>(
   referenced_export: &mut Vec<Vec<&'a Atom>>,
   prefix: Vec<&'a Atom>,
   export_info: Option<&'a ExportInfoData>,
-  default_points_to_self: bool,
   already_visited: &mut FxHashSet<ExportInfo>,
 ) {
   if let Some(export_info) = export_info {
@@ -184,14 +183,7 @@ pub fn collect_referenced_export_items<'a>(
         exports_info_artifact,
         runtime,
         referenced_export,
-        if default_points_to_self
-          && export_info
-            .name()
-            .map(|name| name == "default")
-            .unwrap_or_default()
         {
-          prefix.clone()
-        } else {
           let mut value = prefix.clone();
           if let Some(name) = export_info.name() {
             value.push(name);
@@ -199,7 +191,6 @@ pub fn collect_referenced_export_items<'a>(
           value
         },
         Some(export_info),
-        false,
         already_visited,
       );
     }

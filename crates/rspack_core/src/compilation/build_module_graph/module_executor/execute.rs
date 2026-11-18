@@ -2,7 +2,7 @@ use std::{collections::VecDeque, fmt::Write, iter::once, sync::atomic::AtomicU32
 
 use itertools::Itertools;
 use rspack_collections::{Identifier, IdentifierSet};
-use rspack_error::{Diagnostic, Error};
+use rspack_error::{Diagnostic, Error, Result};
 use rspack_paths::InternedPathSet;
 use rspack_sources::{RawStringSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
@@ -157,7 +157,7 @@ pub struct ExecuteResult {
   pub executed_runtime_modules: Vec<ExecutedRuntimeModule>,
 }
 
-pub type ExecuteResultSender = Sender<ExecuteResult>;
+pub type ExecuteResultSender = Sender<Result<ExecuteResult>>;
 
 #[derive(Debug)]
 pub struct ExecuteTask {
@@ -169,19 +169,9 @@ pub struct ExecuteTask {
 
 impl ExecuteTask {
   pub fn finish_with_error(self, error: Error) {
-    let id = EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     self
       .result_sender
-      .send(ExecuteResult {
-        execute_result: ExecuteModuleResult {
-          id,
-          errors: vec![error.into()],
-          ..Default::default()
-        },
-        assets: Default::default(),
-        code_generated_modules: Default::default(),
-        executed_runtime_modules: Default::default(),
-      })
+      .send(Err(error))
       .expect("should send result success");
   }
 }
@@ -224,12 +214,12 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     else {
       // no entry module, entry dependency factorize failed.
       result_sender
-        .send(ExecuteResult {
+        .send(Ok(ExecuteResult {
           execute_result,
           assets: Default::default(),
           code_generated_modules: Default::default(),
           executed_runtime_modules: Default::default(),
-        })
+        }))
         .expect("should send result success");
 
       return Ok(vec![]);
@@ -266,7 +256,12 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       for (name, asset) in build_info.assets.as_ref() {
         assets.insert(name.clone(), asset.clone());
       }
-      if !has_error && make_failed_module.contains(&m) {
+      if !has_error
+        && make_failed_module.contains(&m)
+        && module
+          .as_normal_module()
+          .is_none_or(|module| module.error().is_some())
+      {
         let diagnostics = module
           .diagnostics()
           .iter()
@@ -312,12 +307,12 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
 
     if has_error {
       result_sender
-        .send(ExecuteResult {
+        .send(Ok(ExecuteResult {
           execute_result,
           assets: Default::default(),
           code_generated_modules: Default::default(),
           executed_runtime_modules: Default::default(),
-        })
+        }))
         .expect("should send result success");
 
       return Ok(vec![]);
@@ -532,12 +527,12 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       .collect_vec();
     origin_context.recovery_from_temp_compilation(compilation);
     result_sender
-      .send(ExecuteResult {
+      .send(Ok(ExecuteResult {
         execute_result,
         assets,
         code_generated_modules,
         executed_runtime_modules,
-      })
+      }))
       .expect("should send result success");
     Ok(vec![])
   }

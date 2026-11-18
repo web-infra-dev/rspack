@@ -2,6 +2,16 @@
 
 Rspack 通过 `@rspack/core` 提供兼容 webpack 的 JavaScript API，而大部分编译工作运行在 Rust 中，两层之间通过 Node-API binding 通信。
 
+`Module`、`NormalModule`、`ConcatenatedModule`、`ContextModule` 和 `ExternalModule` 是由 `@rspack/core` 导出的 JavaScript 类。后四个类继承 `Module`，因此它们的实例也满足 `instanceof Module`，并共享基类方法。原型上的方法和 getter 遵循 JavaScript 类的默认行为，不可枚举。Rspack 在编译期间创建这些对象，通过 Node-API 绑定原生 handle。自行构造类实例不会绑定原生模块；需要编译数据的方法必须使用 Rspack 提供的实例。
+
+各构造器负责初始化自身的属性。公共自有属性先安装，子类专属属性随后安装。
+
+`identifier()` 将结果缓存在私有字段中，不再创建自有 Symbol 属性。使用私有字段的访问器和方法要求接收者是同一份 core 创建的对应实例。
+
+`originalSource()` 和 `emitFile()` 负责 JavaScript Source 对象的转换，并直接调用原生 binding 函数。
+
+模块的 `type`、`resource`、`request`、`loaders` 等字段在首次成功读取时调用 Rust，并将结果缓存到私有字段。自有访问器保持不变，因此密封或冻结 Module 不会阻止这些惰性字段的读取。缓存值在原生模块被移除后仍可读取；尚未缓存的字段仍需要有效的原生模块。`context`、`matchResource`、`buildInfo` 等实时访问器和 `size()` 等方法则通过绑定的 handle 调用 Rust。binding 包独立声明结构化的 `Module` interface，不依赖 `@rspack/core`；core 补充仅在 JavaScript 侧实现的 source 方法类型。JavaScript 继承不会延长原生模块的生命周期，也不会放宽允许修改的阶段。
+
 ## 什么是 native-backed 对象
 
 普通 JavaScript 对象的数据直接保存在 JavaScript 引擎中。例如读取 `{ name: 'main' }` 的 `name` 属性时，JavaScript 可以直接得到结果，不需要调用 Rust。

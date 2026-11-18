@@ -271,7 +271,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 
   on(
     event: 'change',
-    listener: (filename: string, mtime: number) => void,
+    listener: (filename: string, mtime: number | null) => void,
   ): this;
   on(event: 'remove', listener: (filename: string) => void): this;
   on(
@@ -281,7 +281,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
   on(
     event: 'change' | 'remove' | 'aggregated',
     listener:
-      | ((filename: string, mtime: number) => void)
+      | ((filename: string, mtime: number | null) => void)
       | ((filename: string) => void)
       | ((changes: Set<string>, removals: Set<string>) => void),
   ): this {
@@ -291,7 +291,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 
   once(
     event: 'change',
-    listener: (filename: string, mtime: number) => void,
+    listener: (filename: string, mtime: number | null) => void,
   ): this;
   once(event: 'remove', listener: (filename: string) => void): this;
   once(
@@ -301,7 +301,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
   once(
     event: 'change' | 'remove' | 'aggregated',
     listener:
-      | ((filename: string, mtime: number) => void)
+      | ((filename: string, mtime: number | null) => void)
       | ((filename: string) => void)
       | ((changes: Set<string>, removals: Set<string>) => void),
   ): this {

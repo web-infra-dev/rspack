@@ -14,15 +14,21 @@ use crate::{
 struct CacheValidatorData {
   rspack_pkg_version: String,
   cache_version: String,
+  configured_build_dependencies: InternedPathSet,
   build_dependencies: InternedPathSet,
   build_dependencies_snapshot: Option<Snapshot>,
 }
 
 impl CacheValidatorData {
-  fn new(rspack_pkg_version: String, cache_version: String) -> Self {
+  fn new(
+    rspack_pkg_version: String,
+    cache_version: String,
+    configured_build_dependencies: InternedPathSet,
+  ) -> Self {
     Self {
       rspack_pkg_version,
       cache_version,
+      configured_build_dependencies,
       build_dependencies: Default::default(),
       build_dependencies_snapshot: None,
     }
@@ -36,10 +42,7 @@ impl CacheValidatorData {
 pub(super) enum CacheValidatorResult {
   Valid,
   InvalidVersion,
-  InvalidBuildDependencies {
-    modified_files: InternedPathSet,
-    removed_files: InternedPathSet,
-  },
+  InvalidBuildDependencies,
   InvalidError,
 }
 
@@ -47,7 +50,7 @@ pub(super) enum CacheValidatorResult {
 pub(super) struct CacheValidator {
   data: Mutex<CacheValidatorData>,
   codec: Arc<CacheCodec>,
-  file_system_info: FileSystemInfo,
+  file_system_info: Option<FileSystemInfo>,
   logger: Arc<InfrastructureLogger>,
 }
 
@@ -55,16 +58,32 @@ impl CacheValidator {
   pub(super) fn new(
     rspack_pkg_version: String,
     cache_version: String,
+    configured_build_dependencies: InternedPathSet,
     codec: Arc<CacheCodec>,
-    file_system_info: FileSystemInfo,
+    file_system_info: Option<FileSystemInfo>,
     logger: Arc<InfrastructureLogger>,
   ) -> Self {
     Self {
-      data: Mutex::new(CacheValidatorData::new(rspack_pkg_version, cache_version)),
+      data: Mutex::new(CacheValidatorData::new(
+        rspack_pkg_version,
+        cache_version,
+        configured_build_dependencies,
+      )),
       codec,
       file_system_info,
       logger,
     }
+  }
+
+  pub(super) fn build_dependencies_to_track(
+    &self,
+    dependencies: InternedPathSet,
+  ) -> Option<InternedPathSet> {
+    self.file_system_info.as_ref().map(|_| dependencies)
+  }
+
+  pub(super) fn matches_cache_version(&self, version: &str) -> bool {
+    self.data().cache_version == version
   }
 
   fn data(&self) -> MutexGuard<'_, CacheValidatorData> {
@@ -81,12 +100,17 @@ impl CacheValidator {
     if !validator.has_same_version(&self.data()) {
       return Ok(CacheValidatorResult::InvalidVersion);
     }
+    let Some(file_system_info) = &self.file_system_info else {
+      return Ok(CacheValidatorResult::Valid);
+    };
     let Some(build_dependencies_snapshot) = &validator.build_dependencies_snapshot else {
       return Ok(CacheValidatorResult::InvalidError);
     };
+    if validator.configured_build_dependencies != self.data().configured_build_dependencies {
+      return Ok(CacheValidatorResult::InvalidBuildDependencies);
+    }
     let start = self.logger.time("check build dependencies");
-    let validation = self
-      .file_system_info
+    let validation = file_system_info
       .check_snapshot_valid(build_dependencies_snapshot)
       .await;
     self.logger.time_end(start);
@@ -96,13 +120,7 @@ impl CacheValidator {
         *self.data() = validator;
         CacheValidatorResult::Valid
       }
-      SnapshotValidationResult::Invalid {
-        modified_files,
-        removed_files,
-      } => CacheValidatorResult::InvalidBuildDependencies {
-        modified_files,
-        removed_files,
-      },
+      SnapshotValidationResult::Invalid { .. } => CacheValidatorResult::InvalidBuildDependencies,
     })
   }
 
@@ -110,8 +128,14 @@ impl CacheValidator {
   /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/cache/PackFileCacheStrategy.js#L1510-L1625
   pub(super) async fn update(
     &self,
-    mut new_build_dependencies: InternedPathSet,
+    new_build_dependencies: Option<InternedPathSet>,
   ) -> Result<Option<Vec<u8>>> {
+    let Some(file_system_info) = &self.file_system_info else {
+      return Ok(Some(self.codec.encode(&*self.data())?));
+    };
+    let Some(mut new_build_dependencies) = new_build_dependencies else {
+      return Ok(None);
+    };
     {
       let data = self.data();
       new_build_dependencies.retain(|path| !data.build_dependencies.contains(path));
@@ -125,21 +149,19 @@ impl CacheValidator {
       new_build_dependencies.len()
     ));
     let start = self.logger.time("resolve build dependencies");
-    let resolved = self
-      .file_system_info
+    let resolved = file_system_info
       .resolve_build_dependencies(new_build_dependencies.iter().cloned())
       .await;
     self.logger.time_end(start);
 
     let start = self.logger.time("snapshot build dependencies");
-    let snapshot = self
-      .file_system_info
+    let snapshot = file_system_info
       .create_snapshot(
         None,
         &resolved.files,
         &resolved.contexts,
         &resolved.missing,
-        self.file_system_info.build_dependencies_strategy(),
+        file_system_info.build_dependencies_strategy(),
       )
       .await;
     self.logger.time_end(start);
@@ -147,7 +169,7 @@ impl CacheValidator {
     let mut data = self.data();
     data.build_dependencies_snapshot = Some(
       if let Some(current) = data.build_dependencies_snapshot.take() {
-        self.file_system_info.merge_snapshots(current, snapshot)
+        file_system_info.merge_snapshots(current, snapshot)
       } else {
         snapshot
       },

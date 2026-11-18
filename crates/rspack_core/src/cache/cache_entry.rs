@@ -2,7 +2,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsCacheable, AsOption, AsPreset, AsTuple2, AsVec},
 };
-use rspack_sources::{BoxSource, ConcatSource, SourceExt};
+use rspack_sources::{BoxSource, DevToolCodeSource, RawStringSource, SourceExt, is_buffer_source};
 
 use crate::{AssetInfo, CompilationAsset};
 
@@ -51,20 +51,34 @@ impl CachedSourceMapDevToolPluginEntry {
   pub fn restore(
     &self,
     asset: &CompilationAsset,
+    detach_source: bool,
   ) -> Option<(
     CompilationAsset,
     Option<(String, CompilationAsset)>,
     Vec<BoxSource>,
   )> {
-    let source = asset.get_source()?.clone();
-    let source = if self.asset_append.is_empty() {
-      source
-    } else {
-      let mut children = Vec::with_capacity(self.asset_append.len() + 1);
-      children.push(source);
-      children.extend(self.asset_append.iter().cloned());
-      ConcatSource::new(children).boxed()
+    let source = asset.get_source()?;
+    // A cache hit skips map collection. Never apply cached DevTool output to a buffer.
+    if is_buffer_source(source.as_ref()) {
+      return None;
+    }
+    let suffix = match self.asset_append.as_slice() {
+      [] => RawStringSource::from_static("").boxed(),
+      [suffix] => suffix.clone(),
+      comments => {
+        let mut suffix = String::new();
+        for comment in comments {
+          suffix.push_str(&comment.source().into_string_lossy());
+        }
+        RawStringSource::from(suffix).boxed()
+      }
     };
+    let code = if detach_source {
+      RawStringSource::from(source.source().into_string_lossy().into_owned()).boxed()
+    } else {
+      source.clone()
+    };
+    let source = DevToolCodeSource::new(code, suffix).boxed();
 
     let source_asset = CompilationAsset::new(Some(source), (*asset.info).clone());
     let source_map = self.source_map.as_ref().map(|(filename, source)| {

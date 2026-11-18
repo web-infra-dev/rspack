@@ -25,14 +25,15 @@ impl ExportsInfoData {
     }
 
     let export_info = self.get_read_only_export_info(&names[0]);
-    if names.len() == 1 {
+    let names = export_info.strip_self_default(&names[1..]);
+    if names.is_empty() {
       return Some(export_info);
     }
 
     export_info.exports_info().and_then(|nested_exports_info| {
       nested_exports_info
         .as_data(exports_info_artifact)
-        .get_read_only_export_info_recursive(exports_info_artifact, &names[1..])
+        .get_read_only_export_info_recursive(exports_info_artifact, names)
     })
   }
 
@@ -48,7 +49,10 @@ impl ExportsInfoData {
       if let Some(nested_exports_info) = info.exports_info() {
         return nested_exports_info
           .as_data(exports_info_artifact)
-          .get_nested_exports_info(exports_info_artifact, Some(&name[1..]));
+          .get_nested_exports_info(
+            exports_info_artifact,
+            Some(info.strip_self_default(&name[1..])),
+          );
       }
 
       return None;
@@ -184,9 +188,13 @@ impl ExportsInfoData {
     if let Some(nested_exports_info) = info_data.exports_info()
       && names.len() > 1
     {
+      let names = info_data.strip_self_default(&names[1..]);
+      if names.is_empty() {
+        return info_data.provided();
+      }
       return nested_exports_info
         .as_data(exports_info_artifact)
-        .is_export_provided(exports_info_artifact, &names[1..]);
+        .is_export_provided(exports_info_artifact, names);
     }
 
     let provided = info_data.provided()?;
@@ -219,9 +227,13 @@ impl ExportsInfoData {
     if let Some(nested_exports_info) = info_data.exports_info()
       && names.len() > 1
     {
+      let names = info_data.strip_self_default(&names[1..]);
+      if names.is_empty() {
+        return info_data.get_used(runtime);
+      }
       return nested_exports_info.as_data(exports_info_artifact).get_used(
         exports_info_artifact,
-        &names[1..],
+        names,
         runtime,
       );
     }
@@ -271,9 +283,16 @@ impl ExportsInfoData {
     if let Some(nested_exports_info) = export_info.exports_info()
       && export_info.get_used(runtime) == UsageState::OnlyPropertiesUsed
     {
+      let nested_names = export_info.strip_self_default(&names[1..]);
+      if nested_names.len() + 1 < names.len() {
+        arr.append([names[1].clone()]);
+      }
+      if nested_names.is_empty() {
+        return Some(arr);
+      }
       let nested = nested_exports_info
         .as_data(exports_info_artifact)
-        .get_used_name(exports_info_artifact, runtime, &names[1..])?;
+        .get_used_name(exports_info_artifact, runtime, nested_names)?;
       let nested = match nested {
         UsedName::Inlined(_) => return Some(nested),
         UsedName::Normal(names) => names,

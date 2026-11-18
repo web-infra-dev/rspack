@@ -32,7 +32,7 @@ impl AsRef<str> for ErrorCode {
   }
 }
 
-#[napi(object, object_to_js = false)]
+#[napi(object)]
 pub struct JsRspackDiagnostic {
   pub severity: JsRspackSeverity,
   pub error: RspackError,
@@ -262,7 +262,7 @@ impl std::fmt::Display for RspackError {
         write!(f, "{}", self.message)
       }
     } else {
-      write!(f, "{}", &self.message)?;
+      write!(f, "{}", self.message)?;
       Ok(())
     }
   }
@@ -271,7 +271,14 @@ impl std::fmt::Display for RspackError {
 impl std::error::Error for RspackError {}
 
 impl From<RspackError> for rspack_error::Error {
-  fn from(value: RspackError) -> Error {
+  fn from(mut value: RspackError) -> Error {
+    // Clean the native copy for both the message and hideStack details, leaving the JS error intact.
+    if value.parent_error_name.as_deref() == Some("ModuleBuildError")
+      && let Some(stack) = &mut value.stack
+      && let Some(index) = stack.find("at LOADER_EXECUTION")
+    {
+      stack.truncate(stack[..index].rfind('\n').unwrap_or(0));
+    }
     let mut error = rspack_error::error!(format!("{}", value));
     error.code = Some(value.name);
     error.details = value.details;
@@ -400,10 +407,11 @@ impl<T> RspackResultToNapiResultExt<T, Error, ErrorCode> for Result<T, Error> {
   fn to_napi_result(self) -> napi::Result<T, ErrorCode> {
     self.map_err(|e| {
       napi::Error::new(
-        e.code.as_ref().map_or_else(
-          || ErrorCode::Napi(napi::Status::GenericFailure),
-          |code| ErrorCode::Custom(code.clone()),
-        ),
+        e.code
+          .as_ref()
+          .map_or(ErrorCode::Napi(napi::Status::GenericFailure), |code| {
+            ErrorCode::Custom(code.clone())
+          }),
         e.to_string(),
       )
     })
@@ -414,10 +422,11 @@ impl<T> RspackResultToNapiResultExt<T, Error, ErrorCode> for Result<T, Error> {
   ) -> napi::Result<T, ErrorCode> {
     self.map_err(|e| {
       napi::Error::new(
-        e.code.as_ref().map_or_else(
-          || ErrorCode::Napi(napi::Status::GenericFailure),
-          |code| ErrorCode::Custom(code.clone()),
-        ),
+        e.code
+          .as_ref()
+          .map_or(ErrorCode::Napi(napi::Status::GenericFailure), |code| {
+            ErrorCode::Custom(code.clone())
+          }),
         f(e),
       )
     })

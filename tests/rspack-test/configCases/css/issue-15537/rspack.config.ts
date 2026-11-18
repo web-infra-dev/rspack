@@ -4,9 +4,6 @@ export default defineConfig({
   target: 'web',
   mode: 'production',
   devtool: false,
-  experiments: {
-    css: true,
-  },
   module: {
     rules: [
       {

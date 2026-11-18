@@ -7,9 +7,9 @@
       "stores": 1
     },
     "|Compilation/modules": {
-      "hits": 5,
+      "hits": 4,
       "misses": 0,
-      "reused": 4,
+      "reused": 3,
       "stores": 1
     },
     "|meta": {
@@ -19,15 +19,15 @@
       "stores": 1
     },
     "|ResolverCache|loader": {
-      "hits": 6,
+      "hits": 5,
       "misses": 0,
-      "reused": 6,
+      "reused": 5,
       "stores": 0
     },
     "|ResolverCache|normal": {
-      "hits": 6,
+      "hits": 5,
       "misses": 0,
-      "reused": 4,
+      "reused": 3,
       "stores": 2
     },
     "|rspack.SwcJsMinimizerRspackPlugin": {

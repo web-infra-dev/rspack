@@ -1,8 +1,9 @@
 use std::{
   borrow::Cow,
   hash::{Hash, Hasher},
-  sync::Arc,
 };
+
+use bytes_str::BytesStr;
 
 use crate::{
   MapOptions, Source, SourceMap, SourceValue,
@@ -36,16 +37,16 @@ use crate::{
 /// ```
 #[derive(Clone, Eq)]
 pub struct OriginalSource {
-  value: Box<str>,
-  name: Box<str>,
+  value: BytesStr,
+  name: BytesStr,
 }
 
 impl OriginalSource {
   /// Create a [OriginalSource].
-  pub fn new(value: impl Into<Box<str>>, name: impl Into<Box<str>>) -> Self {
+  pub fn new(value: impl Into<String>, name: impl Into<String>) -> Self {
     Self {
-      value: value.into(),
-      name: name.into(),
+      value: BytesStr::from_string(value.into()),
+      name: BytesStr::from_string(name.into()),
     }
   }
 
@@ -77,14 +78,9 @@ impl Source for OriginalSource {
     self.value.len()
   }
 
-  fn map<'a>(&'a self, options: &MapOptions) -> Option<SourceMap<'a>> {
+  fn map(&self, options: &MapOptions) -> Option<SourceMap> {
     let chunks = self.stream_chunks();
-    get_map(chunks.as_ref(), options).map(SourceMap::from_fields)
-  }
-
-  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap<'static>> {
-    let owner = self.clone();
-    self.as_ref().map(options).map(|map| map.into_static(owner))
+    get_map(chunks.as_ref(), options)
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -131,10 +127,10 @@ impl<'source> Chunks<'source> for OriginalSourceChunks<'source> {
     &'chunk self,
     options: &MapOptions,
     on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
-    on_source: crate::helpers::OnSource<'_, 'source>,
-    _on_name: crate::helpers::OnName<'_, 'source>,
+    on_source: crate::helpers::OnSource<'_>,
+    _on_name: crate::helpers::OnName<'_>,
   ) -> GeneratedInfo {
-    on_source(0, Cow::Borrowed(&self.0.name), Some(self.0.value.as_ref()));
+    on_source(0, &self.0.name, Some(&self.0.value));
     let source = TextSpan::new(self.0.value.as_ref());
     if options.columns {
       // With column info we need to read all lines and split them

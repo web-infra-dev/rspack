@@ -55,17 +55,19 @@ pub type CssExportsRef<'a> = FxIndexMap<&'a str, &'a CssIcssExportDependency>;
 pub struct CssParserAndGenerator {
   pub hot: bool,
   pub export_type: Option<CssExportType>,
+  pub runtime_public_path: bool,
   pub exports_only: bool,
   pub es_module: bool,
 }
 
 impl CssParserAndGenerator {
   pub fn new(module_options: Arc<ResolvedModuleOptions>) -> Self {
-    let export_type = module_options
+    let parser_options = module_options
       .parser_options()
-      .and_then(|options| options.get_css_module())
-      .and_then(|options| options.export_type);
+      .and_then(|options| options.get_css_module());
+    let export_type = parser_options.and_then(|options| options.export_type);
     let generator_options = css_generator_options(module_options.generator_options());
+    let runtime_public_path = generator_options.runtime_public_path.unwrap_or(false);
     let exports_only = generator_options
       .exports_only
       .expect("should have exports_only");
@@ -73,6 +75,7 @@ impl CssParserAndGenerator {
 
     Self {
       export_type,
+      runtime_public_path,
       exports_only,
       es_module,
       ..Default::default()
@@ -306,6 +309,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let mut hasher = RspackHasher::from(&compilation.options.output);
     self.es_module.hash(&mut hasher);
     self.exports_only.hash(&mut hasher);
+    self.runtime_public_path.hash(&mut hasher);
     self.effective_export_type(module).hash(&mut hasher);
     hash::hash_css_modules(module, compilation, &mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))

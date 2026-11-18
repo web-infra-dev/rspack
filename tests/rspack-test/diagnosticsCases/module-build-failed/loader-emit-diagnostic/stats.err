@@ -53,12 +53,6 @@ ERROR in (./with-multi-byte-char.mjs!)
   ╰─▶   × Error: Format diagnostic failed: Invalid char boundary. Did you pass the correct line, column and length?
         │     at xxx
         │     at xxx
-        │     at xxx
-        │     at xxx
-        │     at xxx
-        │     at xxx
-        │     at xxx
-        │     at xxx
 
 ERROR in (./with-multiple-line.mjs!) 1:1-2:5
   × ModuleError: Multiple line error
@@ -78,12 +72,6 @@ ERROR in (./with-multiple-line.mjs!) 1:1-2:5
 ERROR in (./with-multiple-line.mjs!)
   × Module build failed (from ./with-multiple-line.mjs):
   ╰─▶   × Error: Format diagnostic failed: Invalid `length` in location.
-        │     at xxx
-        │     at xxx
-        │     at xxx
-        │     at xxx
-        │     at xxx
-        │     at xxx
         │     at xxx
         │     at xxx
 

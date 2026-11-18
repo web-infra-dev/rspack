@@ -27,3 +27,10 @@ it("should not analyze destructuring member access", () => {
 	expect(a).toBe("a");
 	expect(usedExports).toEqual(true);
 });
+
+it("should static analyze shorthand require destructuring assignment expression", () => {
+	let a, usedExports;
+	({ a, usedExports } = require("./module?shorthand"));
+	expect(a).toBe("a");
+	expect(usedExports).toEqual(["a", "usedExports"]);
+});

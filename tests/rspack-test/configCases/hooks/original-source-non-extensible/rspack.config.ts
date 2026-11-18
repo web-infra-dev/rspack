@@ -36,7 +36,6 @@ export default ([false, 'source-map'] as const).flatMap((devtool) =>
             restrictModule(module);
             const moduleKeys = Reflect.ownKeys(module);
             const original = module.originalSource()!;
-            const pendingMap = module._originalSource()!.map;
             // Create every instance before consuming the shared map so each retains its getter.
             const pending = [true, false].flatMap((cacheBuffers) =>
               restrictions.map((restrictSource) => ({
@@ -49,7 +48,6 @@ export default ([false, 'source-map'] as const).flatMap((devtool) =>
             // Materialize the shared map through a restricted instance for the first time.
             restrictModule(original);
             original.clearCache();
-            expect(module._originalSource()!.map).toBe(pendingMap);
             const json =
               original instanceof sources.SourceMapSource
                 ? original._sourceMapAsString

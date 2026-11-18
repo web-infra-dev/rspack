@@ -16,9 +16,6 @@ const config = (i: number) =>
     output: {
       filename: `${i}_[name].js`,
     },
-    experiments: {
-      css: false,
-    },
     module: {
       rules: [
         {

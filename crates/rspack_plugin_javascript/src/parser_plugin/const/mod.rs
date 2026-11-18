@@ -106,8 +106,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ConstPlugin {
         parser
           .resource_data
           .query()
-          .map(ToOwned::to_owned)
-          .unwrap_or_default(),
+          .map_or_default(ToOwned::to_owned),
         start,
         end,
       )),
@@ -115,8 +114,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ConstPlugin {
         parser
           .resource_data
           .fragment()
-          .map(ToOwned::to_owned)
-          .unwrap_or_default(),
+          .map_or_default(ToOwned::to_owned),
         start,
         end,
       )),

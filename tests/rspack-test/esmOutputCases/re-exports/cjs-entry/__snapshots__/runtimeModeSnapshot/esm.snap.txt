@@ -16,7 +16,7 @@ exports.bar = 2
   \****************/
 (__unused_rspack_module, exports) {
 makeNamespaceObject(exports);
-/* import */ var _bar__rspack_import_0 = rspackRequire(/*! ./bar */ "./bar.js");
+/* import */ var _bar__rspack_import_0 = /*#__PURE__*/ rspackRequire(/*! ./bar */ "./bar.js");
 const foo = 1
 
 

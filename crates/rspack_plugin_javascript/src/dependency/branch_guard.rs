@@ -316,7 +316,9 @@ fn resolve_esm_imported_in_operator_guard(
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Option<bool> {
   let ids = dependency.get_ids(module_graph);
-  let first = ids.first()?;
+  let Some(first) = ids.first() else {
+    return Some(true);
+  };
   let module = module_graph.get_module_by_dependency_id(dependency_id)?;
   let parent_module_identifier = module_graph.get_parent_module(dependency_id)?;
   let parent_module = module_graph.module_by_identifier(parent_module_identifier)?;

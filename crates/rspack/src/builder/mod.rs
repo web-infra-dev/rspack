@@ -1857,6 +1857,7 @@ impl ModuleOptionsBuilder {
         "css".to_string(),
         GeneratorOptions::Css(CssGeneratorOptions {
           exports_only: Some(exports_only),
+          runtime_public_path: Some(false),
           es_module: Some(true),
         }),
       );
@@ -2823,7 +2824,7 @@ impl OutputOptionsBuilder {
         let library_name = match name {
           LibraryName::NonUmdObject(LibraryNonUmdObject::String(s)) => s.clone(),
           LibraryName::NonUmdObject(LibraryNonUmdObject::Array(arr)) => arr.join("."),
-          LibraryName::UmdObject(obj) => obj.root.as_ref().map(|r| r.join(".")).unwrap_or_default(),
+          LibraryName::UmdObject(obj) => obj.root.as_ref().map_or_default(|r| r.join(".")),
         };
 
         // Clean up library name using regex
@@ -3180,6 +3181,7 @@ impl OutputOptionsBuilder {
     environment.optional_chaining = tp
       .map(|t| optimistic!(t.optional_chaining))
       .unwrap_or_default();
+    environment.spread = tp.map(|t| optimistic!(t.spread)).unwrap_or_default();
     environment.node_prefix_for_core_modules = tp
       .map(|t| optimistic!(t.node_prefix_for_core_modules))
       .unwrap_or_default();

@@ -6,6 +6,21 @@ ERROR in ./index.js
        2 │
        3 │ for await (const _ of [Promise.resolve("bbbb")]) { }
          ·     ─────
+       4 │
+       5 │ await using resource = { [Symbol.dispose]() {} };
+         ╰────
+      
+  help: 
+        You may need an appropriate loader to handle this file type.
+
+ERROR in ./index.js
+  × Module parse failed:
+  ╰─▶   × JavaScript parse error: Top-level-await is only supported in ECMAScript Modules
+         ╭─[5:0]
+       3 │ for await (const _ of [Promise.resolve("bbbb")]) { }
+       4 │
+       5 │ await using resource = { [Symbol.dispose]() {} };
+         · ─────
          ╰────
       
   help: 

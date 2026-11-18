@@ -324,7 +324,7 @@ pub struct LoaderResult<Context> {
   pub dependencies: LoaderDependencies,
   pub diagnostics: Vec<Diagnostic>,
   pub content: Content,
-  pub source_map: Option<Box<SourceMap<'static>>>,
+  pub source_map: Option<Box<SourceMap>>,
   pub additional_data: Option<AdditionalData>,
   pub parse_meta: ParseMeta,
   pub current_loader: Option<Utf8PathBuf>,
@@ -387,7 +387,7 @@ mod test {
       &self,
       _resource_data: &ResourceData,
       _fs: Arc<dyn ReadableFileSystem>,
-    ) -> Result<Option<(Content, Option<SourceMap<'static>>, InternedPathSet)>> {
+    ) -> Result<Option<(Content, Option<SourceMap>, InternedPathSet)>> {
       Ok(Some((Content::Buffer(vec![]), None, Default::default())))
     }
   }

@@ -145,26 +145,20 @@ impl From<AssetInfo> for rspack_core::AssetInfo {
       asset_type,
     } = known;
 
-    let chunk_hash = chunkhash
-      .map(|either| match either {
-        Either::A(string) => FxHashSet::from_iter(vec![string]),
-        Either::B(vec) => FxHashSet::from_iter(vec),
-      })
-      .unwrap_or_default();
+    let chunk_hash = chunkhash.map_or_default(|either| match either {
+      Either::A(string) => FxHashSet::from_iter(vec![string]),
+      Either::B(vec) => FxHashSet::from_iter(vec),
+    });
 
-    let full_hash = fullhash
-      .map(|either| match either {
-        Either::A(string) => FxHashSet::from_iter(vec![string]),
-        Either::B(vec) => FxHashSet::from_iter(vec),
-      })
-      .unwrap_or_default();
+    let full_hash = fullhash.map_or_default(|either| match either {
+      Either::A(string) => FxHashSet::from_iter(vec![string]),
+      Either::B(vec) => FxHashSet::from_iter(vec),
+    });
 
-    let content_hash = contenthash
-      .map(|either| match either {
-        Either::A(string) => FxHashSet::from_iter(vec![string]),
-        Either::B(vec) => FxHashSet::from_iter(vec),
-      })
-      .unwrap_or_default();
+    let content_hash = contenthash.map_or_default(|either| match either {
+      Either::A(string) => FxHashSet::from_iter(vec![string]),
+      Either::B(vec) => FxHashSet::from_iter(vec),
+    });
 
     Self {
       immutable,
@@ -177,11 +171,11 @@ impl From<AssetInfo> for rspack_core::AssetInfo {
       development,
       hot_module_replacement,
       javascript_module,
-      related: related.map(Into::into).unwrap_or_default(),
+      related: related.map_or_default(Into::into),
       version: String::default(),
       css_unused_idents: css_unused_idents.map(|i| i.into_iter().map(Into::into).collect()),
       is_over_size_limit,
-      asset_type: asset_type.map(Into::into).unwrap_or_default(),
+      asset_type: asset_type.map_or_default(Into::into),
       extras,
     }
   }

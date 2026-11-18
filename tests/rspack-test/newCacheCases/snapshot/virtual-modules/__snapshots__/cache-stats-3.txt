@@ -1,0 +1,34 @@
+[
+  {
+    "|Compilation/codeGeneration": {
+      "hits": 11,
+      "misses": 0,
+      "reused": 11,
+      "stores": 0
+    },
+    "|Compilation/modules": {
+      "hits": 11,
+      "misses": 0,
+      "reused": 11,
+      "stores": 0
+    },
+    "|meta": {
+      "hits": 1,
+      "misses": 0,
+      "reused": 1,
+      "stores": 1
+    },
+    "|ResolverCache|loader": {
+      "hits": 9,
+      "misses": 0,
+      "reused": 9,
+      "stores": 0
+    },
+    "|ResolverCache|normal": {
+      "hits": 15,
+      "misses": 0,
+      "reused": 15,
+      "stores": 0
+    }
+  }
+]

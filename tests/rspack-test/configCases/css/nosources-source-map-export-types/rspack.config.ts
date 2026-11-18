@@ -20,9 +20,6 @@ const makeConfig = (exportType: CssParserExportType) =>
         },
       ],
     },
-    experiments: {
-      css: true,
-    },
   });
 
 export default defineConfig([

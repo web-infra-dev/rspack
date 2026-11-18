@@ -1,11 +1,11 @@
+import { execa, execaNode } from 'execa';
+
 const os = require('os');
 const { stripVTControlCharacters: stripAnsi } = require('node:util');
 const path = require('path');
 const net = require('node:net');
 const fs = require('fs');
-const execa = require('execa');
 const { exec } = require('child_process');
-const { node: execaNode } = execa;
 const { Writable } = require('node:stream');
 const concat = require('concat-stream');
 
@@ -64,7 +64,7 @@ const processKill = (process) => {
  * @returns {Promise}
  */
 const createProcess = (cwd, args, options, env) => {
-  const { nodeOptions = [] } = options;
+  const { nodeOptions = [], ...processOptions } = options;
   const processExecutor = nodeOptions.length ? execaNode : execa;
   return processExecutor(RSPACK_PATH, args, {
     cwd: path.resolve(cwd),
@@ -72,7 +72,8 @@ const createProcess = (cwd, args, options, env) => {
     stdio: ENABLE_LOG_COMPILATION ? 'inherit' : 'pipe',
     maxBuffer: Infinity,
     env: { RSPACK_CLI_HELP_WIDTH: 1024, ...env },
-    ...options,
+    ...processOptions,
+    ...(nodeOptions.length ? { nodeOptions } : {}),
   });
 };
 
@@ -132,66 +133,55 @@ const runAndGetProcess = (cwd, args = [], options = {}, env = {}) => {
  * @param {string} cwd The path to folder that contains test
  * @param {Array<string>} args Array of arguments
  * @param {Object<string, any>} options Options for tests
- * @returns {Object} The rspack output or Promise when nodeOptions are present
+ * @returns {Promise} The result after the rspack process exits
  */
-const runWatch = (
+const runWatch = async (
   cwd,
   args: string[] = [],
   options: Record<string, any> = {},
   env: Record<string, any> = {},
 ): Promise<any> => {
-  return new Promise(async (resolve, reject) => {
-    // For serve commands, automatically add random port if no --port specified
-    if (
-      args.includes('serve') &&
-      !args.some((arg) => arg.startsWith('--port'))
-    ) {
-      const randomPort = await getRandomPort();
-      args.push(`--port=${randomPort}`);
-      console.log(
-        `[runWatch] Auto-assigned random port ${randomPort} for serve command`,
-      );
-    }
-
-    const process = createProcess(cwd, args, options, env);
-    const outputKillStr = options.killString || /rspack \d+\.\d+\.\d/;
-
-    process.stdout.pipe(
-      new Writable({
-        write(chunk, encoding, callback) {
-          const output = stripAnsi(chunk.toString('utf8'));
-
-          if (outputKillStr.test(output)) {
-            processKill(process);
-          }
-
-          callback();
-        },
-      }),
+  // For serve commands, automatically add random port if no --port specified
+  if (args.includes('serve') && !args.some((arg) => arg.startsWith('--port'))) {
+    const randomPort = await getRandomPort();
+    args.push(`--port=${randomPort}`);
+    console.log(
+      `[runWatch] Auto-assigned random port ${randomPort} for serve command`,
     );
+  }
 
-    process.stderr.pipe(
-      new Writable({
-        write(chunk, encoding, callback) {
-          const output = stripAnsi(chunk.toString('utf8'));
+  const process = createProcess(cwd, args, options, env);
+  const outputKillStr = options.killString || /rspack \d+\.\d+\.\d/;
 
-          if (outputKillStr.test(output)) {
-            processKill(process);
-          }
+  process.stdout.pipe(
+    new Writable({
+      write(chunk, encoding, callback) {
+        const output = stripAnsi(chunk.toString('utf8'));
 
-          callback();
-        },
-      }),
-    );
+        if (outputKillStr.test(output)) {
+          processKill(process);
+        }
 
-    process
-      .then((result) => {
-        resolve(result);
-      })
-      .catch((error) => {
-        reject(error);
-      });
-  });
+        callback();
+      },
+    }),
+  );
+
+  process.stderr.pipe(
+    new Writable({
+      write(chunk, encoding, callback) {
+        const output = stripAnsi(chunk.toString('utf8'));
+
+        if (outputKillStr.test(output)) {
+          processKill(process);
+        }
+
+        callback();
+      },
+    }),
+  );
+
+  return process;
 };
 
 /**

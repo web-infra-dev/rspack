@@ -22,9 +22,6 @@ export default defineConfig({
       },
     ],
   },
-  experiments: {
-    css: false,
-  },
   plugins: [
     new CssExtractRspackPlugin({
       filename: '[name].css',

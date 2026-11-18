@@ -5,10 +5,12 @@ use rspack_error::Diagnostic;
 use rustc_hash::FxHashSet;
 
 use crate::{
-  ArtifactExt, BuildDependency, DependencyId, DependencyRef, FactorizationArtifact, FactorizeInfo,
-  ModuleGraph, ModuleIdentifier, SideEffectsStateArtifact,
-  compilation::build_module_graph::ModuleToLazyMake, incremental::IncrementalPasses,
-  incremental_info::IncrementalInfo, utils::FileCounter,
+  ArtifactExt, BuildDependency, DependencyId, FactorizationArtifact, FactorizeInfo, ModuleGraph,
+  ModuleIdentifier, SideEffectsStateArtifact,
+  compilation::build_module_graph::{ModuleToLazyMake, module_build_cache::ModuleBuildCache},
+  incremental::IncrementalPasses,
+  incremental_info::IncrementalInfo,
+  utils::FileCounter,
 };
 
 /// Make Artifact, including all side effects of the make stage.
@@ -27,6 +29,8 @@ pub struct BuildModuleGraphArtifact {
   ///
   /// This field is empty on the initial compilation.
   pub issuer_update_modules: IdentifierSet,
+  /// Main-graph cache session for the current build; never recovered or persisted.
+  pub(crate) module_build_cache: Option<ModuleBuildCache>,
 
   // data
   /// Module graph data
@@ -60,6 +64,7 @@ impl BuildModuleGraphArtifact {
       affected_modules: Default::default(),
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
+      module_build_cache: None,
       module_graph: Default::default(),
       factorization_artifact: Default::default(),
       side_effects_state_artifact: Default::default(),
@@ -79,15 +84,6 @@ impl BuildModuleGraphArtifact {
   }
   pub fn get_module_graph_mut(&mut self) -> &mut ModuleGraph {
     &mut self.module_graph
-  }
-
-  /// Add a dependency that has not been factorized in the current build.
-  ///
-  /// Replacing a dependency with the same id must also discard the previous
-  /// dependency's factorization result.
-  pub(crate) fn add_unfactorized_dependency(&mut self, dependency: DependencyRef) {
-    self.revoke_factorization(dependency.id());
-    self.module_graph.add_dependency_ref(dependency);
   }
 
   pub fn factorize_info(&self, dep_id: &DependencyId) -> Option<&FactorizeInfo> {
@@ -275,6 +271,7 @@ impl ArtifactExt for BuildModuleGraphArtifact {
   fn recover(incremental: &crate::incremental::Incremental, new: &mut Self, old: &mut Self) {
     if incremental.mutations_readable(Self::PASS) {
       std::mem::swap(new, old);
+      new.module_build_cache = None;
       new.get_module_graph_mut().reset();
       new.side_effects_state_artifact = Default::default();
     }

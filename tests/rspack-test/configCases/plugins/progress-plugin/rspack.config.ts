@@ -2,19 +2,30 @@ import type { ProgressPluginHandlerInfo } from '@rspack/core';
 import { defineConfig, definePlugin } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 
-const progressItems: {
-  value: number;
-  msg: string;
-  info: ProgressPluginHandlerInfo;
-}[] = [];
-
 export default defineConfig({
   plugins: [
-    new rspack.ProgressPlugin((value, msg, info) => {
-      progressItems.push({ value, msg, info });
-    }),
     definePlugin({
       apply: (compiler) => {
+        const progressItems: {
+          value: number;
+          msg: string;
+          info: ProgressPluginHandlerInfo;
+        }[] = [];
+        new rspack.ProgressPlugin((value, msg, info) => {
+          progressItems.push({ value, msg, info });
+        }).apply(compiler);
+        let builtModules = 0;
+        compiler.hooks.compilation.tap(
+          'AssertProgressInfoPlugin',
+          (compilation) => {
+            compilation.hooks.succeedModule.tap(
+              'AssertProgressInfoPlugin',
+              () => {
+                builtModules++;
+              },
+            );
+          },
+        );
         compiler.hooks.done.tap('AssertProgressInfoPlugin', () => {
           if (progressItems.length === 0) {
             throw new Error('ProgressPlugin handler should receive updates');
@@ -53,9 +64,13 @@ export default defineConfig({
           if (buildModuleItems.length === 0) {
             throw new Error('progress should include "build modules" stage');
           }
-          if (!buildModuleItems.some((item) => item.info.builtModules > 0)) {
+          if (
+            !buildModuleItems.some(
+              (item) => item.info.builtModules === builtModules,
+            )
+          ) {
             throw new Error(
-              '"build modules" progress should report builtModules > 0 at least once',
+              '"build modules" progress should report the actual built module count',
             );
           }
 
@@ -79,9 +94,9 @@ export default defineConfig({
               'final "done" stage should not include moduleIdentifier',
             );
           }
-          if (doneItem.info.builtModules <= 0) {
+          if (doneItem.info.builtModules !== builtModules) {
             throw new Error(
-              'final "done" stage should report builtModules > 0',
+              'final "done" stage should report the actual built module count',
             );
           }
         });

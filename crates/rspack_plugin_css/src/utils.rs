@@ -28,9 +28,12 @@ use crate::{
 };
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
+pub const RUNTIME_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_RUNTIME_PUBLIC_PATH__";
 pub const CSS_MODULE_ID_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_MODULE_ID__";
 pub(crate) static AUTO_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
   LazyLock::new(|| PlaceholderFinder::new(AUTO_PUBLIC_PATH_PLACEHOLDER));
+pub(crate) static RUNTIME_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new(RUNTIME_PUBLIC_PATH_PLACEHOLDER));
 static CSS_MODULE_ID_MATCHER: LazyLock<PlaceholderFinder> =
   LazyLock::new(|| PlaceholderFinder::new(CSS_MODULE_ID_PLACEHOLDER));
 pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =
@@ -71,8 +74,7 @@ pub(crate) fn css_render_conditions_from_module(
     .build_info()
     .css
     .as_deref()
-    .map(|css| css.render_conditions().cloned().collect())
-    .unwrap_or_default()
+    .map_or_default(|css| css.render_conditions().cloned().collect())
 }
 
 pub(crate) fn css_module_has_charset(module: &dyn Module) -> bool {
@@ -138,8 +140,7 @@ pub(crate) fn css_dependency_meta(dependency: &dyn Dependency) -> CssDependencyM
     is_css_import_dependency,
     is_css_dependency,
     render_conditions: css_import_dependency
-      .map(|dep| dep.render_conditions().cloned().collect())
-      .unwrap_or_default(),
+      .map_or_default(|dep| dep.render_conditions().cloned().collect()),
     export_type: css_dependency_export_type(dependency)
       .or_else(|| css_attribute_export_type(dependency.get_attributes())),
   }

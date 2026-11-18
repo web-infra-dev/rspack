@@ -5,7 +5,7 @@ use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
 use super::{FsEvent, FsEventKind};
 use crate::{
-  EventBatch,
+  EventBatch, ResolvedEvents,
   analyzer::{Analyzer, RecommendedAnalyzer},
   paths::PathManager,
 };
@@ -105,7 +105,7 @@ struct EventProcessor {
   /// Shared reference to the path register, which tracks watched files/directories/missing.
   path_manager: Arc<PathManager>,
   /// Sender for communicating file system events to the watcher executor.
-  tx: UnboundedSender<EventBatch>,
+  tx: UnboundedSender<ResolvedEvents>,
   analyzer: Arc<RecommendedAnalyzer>,
 }
 
@@ -124,6 +124,8 @@ pub struct Trigger {
 enum Origin {
   /// The OS watcher; `appeared` when it created or renamed the path into place.
   Disk { appeared: bool },
+  /// An explicit event supplied through `FsWatcher::trigger_event`.
+  Injected,
   /// A scan, for what changed while the watch was not active yet: a file a
   /// context's initial scan found changed since the start time, or a
   /// registered path the scanner backfills. Already judged a change, it is
@@ -133,7 +135,7 @@ enum Origin {
 
 impl Trigger {
   /// Create a new `Trigger` with the given path register and event sender.
-  pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<EventBatch>) -> Self {
+  pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<ResolvedEvents>) -> Self {
     let (pending, mut incoming) = unbounded_channel::<(InternedPath, FsEventKind, Origin)>();
     let analyzer = Arc::default();
     let processor = EventProcessor {
@@ -166,11 +168,10 @@ impl Trigger {
     Self { pending, analyzer }
   }
 
-  /// Hands a raw event to the filter thread. Never blocks — this runs straight
-  /// from the OS watcher callback.
+  /// Queues an explicit event from `FsWatcher::trigger_event` without blocking.
   pub fn on_event(&self, path: &InternedPath, kind: FsEventKind) {
     self.analyzer.invalidate_path(path);
-    self.on_disk_event(path, kind, kind == FsEventKind::Create);
+    let _ = self.pending.send((path.clone(), kind, Origin::Injected));
   }
 
   /// Preserves whether an OS event created or renamed a path into place,
@@ -225,7 +226,8 @@ impl EventProcessor {
   /// - `/path`
   /// - `/path/to`
   async fn process(&self, path: &InternedPath, kind: FsEventKind, origin: Origin) {
-    let appeared = matches!(origin, Origin::Disk { appeared: true });
+    let appeared = matches!(origin, Origin::Disk { appeared: true })
+      || (matches!(origin, Origin::Injected) && kind == FsEventKind::Create);
     // Drop events inside ignored subtrees. The recursive-root watch delivers
     // events for unregistered paths (e.g. the build-output dir); left through,
     // `find_associated_event` bubbles them to a registered parent and triggers
@@ -239,15 +241,19 @@ impl EventProcessor {
     // how the OS reported the event. macOS FSEvents reports an unlink as a
     // rename (`ModifyKind::Name` → `Change`), so normalize a `Change` whose
     // path is gone into a `Remove`, keeping the event kind consistent with
-    // inotify (which already reports `Remove`). Done before the stale-event
+    // inotify (which already reports `Remove`). A delayed `Create` whose
+    // path has already disappeared is also a removal. Done before the stale-event
     // filter below, which only applies to `Change`/`Create`.
     // The reverse holds too: a removal of a path back on disk (unlinked and
     // re-created) ends as the path's final state, like watchpack's lstat on
-    // each event. Its records still go, so it is taken as new.
-    let removed = kind == FsEventKind::Remove;
+    // each event. Keep its records unless the absence was observed, so an
+    // unchanged aged mtime is suppressed just as it is by watchpack. Explicit and
+    // scanned removals already declare the old record invalid.
+    let removed = kind == FsEventKind::Remove && !matches!(origin, Origin::Disk { .. });
+    let initial_missing = removed && matches!(origin, Origin::Scan);
     let exists = std::fs::symlink_metadata(path).is_ok();
     let kind = match kind {
-      FsEventKind::Change if !exists => FsEventKind::Remove,
+      FsEventKind::Change | FsEventKind::Create if !exists => FsEventKind::Remove,
       FsEventKind::Remove if exists => FsEventKind::Change,
       kind => kind,
     };
@@ -313,6 +319,29 @@ impl EventProcessor {
       }
     }
 
+    let context_removal = (kind == FsEventKind::Remove
+      && !initial_missing
+      && associated_event
+        .iter()
+        .any(|(associated, kind)| associated != path && *kind == FsEventKind::Change))
+    .then(|| path.clone());
+    let context_only_removal = context_removal.is_some() && !finder.contains_file(path);
+    if context_removal.is_some() {
+      associated_event.retain_mut(|(associated, associated_kind)| {
+        if *associated_kind == FsEventKind::Remove && !finder.contains_file(associated) {
+          if associated == path {
+            return false;
+          }
+          *associated_kind = FsEventKind::Change;
+        }
+        true
+      });
+    }
+    let raw = (!associated_event.is_empty() && !context_only_removal).then(|| FsEvent {
+      path: path.clone(),
+      kind,
+    });
+    let mut recovered = Vec::new();
     if appeared && path.is_dir() && !path.is_symlink() {
       // On Linux, inotify adds a new directory's watch before emitting its
       // Create event, so files written before that watch existed are already
@@ -345,7 +374,14 @@ impl EventProcessor {
             {
               continue;
             }
-            associated_event.extend(finder.find_associated_event(&entry_path, FsEventKind::Create));
+            let associated = finder.find_associated_event(&entry_path, FsEventKind::Create);
+            if !associated.is_empty() {
+              recovered.push(FsEvent {
+                path: entry_path.clone(),
+                kind: FsEventKind::Create,
+              });
+              associated_event.extend(associated);
+            }
           }
           // DirEntry::file_type does not follow symlinks.
           if file_type.is_dir() {
@@ -361,7 +397,7 @@ impl EventProcessor {
         self.analyzer.invalidate_path(associated);
       }
     }
-    self.trigger_events(associated_event);
+    self.trigger_events(associated_event, raw, recovered, context_removal);
   }
   /// Helper to construct a `DependencyFinder` for the current path register state.
   fn finder(&self) -> DependencyFinder<'_> {
@@ -380,15 +416,24 @@ impl EventProcessor {
 
   /// Sends a group of file system events for the given path and event kind.
   /// If the event is successfully sent, it returns true; otherwise, it returns false.
-  fn trigger_events(&self, events: Vec<(InternedPath, FsEventKind)>) -> bool {
+  fn trigger_events(
+    &self,
+    events: Vec<(InternedPath, FsEventKind)>,
+    raw: Option<FsEvent>,
+    recovered: EventBatch,
+    context_removal: Option<InternedPath>,
+  ) -> bool {
     self
       .tx
-      .send(
-        events
+      .send(ResolvedEvents {
+        dependencies: events
           .into_iter()
           .map(|(path, kind)| FsEvent { path, kind })
           .collect(),
-      )
+        raw,
+        recovered,
+        context_removal,
+      })
       .is_ok()
   }
 }

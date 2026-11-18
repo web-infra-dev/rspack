@@ -94,7 +94,7 @@ async fn build_module(
     // We can add a bail reason to avoid those modules be concatenated.
     build_info.module_concatenation_bailout = Some(format!(
       "Module {} is referenced by {}",
-      module_identifier, &self.explanation
+      module_identifier, self.explanation
     ));
   }
 

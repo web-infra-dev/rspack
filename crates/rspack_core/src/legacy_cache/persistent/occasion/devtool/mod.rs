@@ -81,6 +81,7 @@ impl SourceMapDevToolPluginCache {
     &mut self,
     filename: &str,
     asset: &CompilationAsset,
+    detach_source: bool,
   ) -> Option<(
     CompilationAsset,
     Option<(String, CompilationAsset)>,
@@ -92,7 +93,7 @@ impl SourceMapDevToolPluginCache {
       .entries
       .get_mut(&cache_key)
       .and_then(Option::take)?
-      .restore(asset)
+      .restore(asset, detach_source)
   }
 
   pub fn store<'a>(

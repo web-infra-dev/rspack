@@ -21,7 +21,11 @@ export default defineConfig({
     definePlugin({
       apply(compiler) {
         compiler.hooks.done.tap('PLUGIN', (stats) => {
-          const json = stats.toJson({ all: false, assets: true });
+          const json = stats.toJson({
+            all: false,
+            assets: true,
+            cachedAssets: true,
+          });
           // Test scenario:
           // - Two independent pages: `page1` and `page2`
           // - Each page has its own CSS dependencies that don't interfere with each other
@@ -36,7 +40,4 @@ export default defineConfig({
       },
     }),
   ],
-  experiments: {
-    css: false,
-  },
 });

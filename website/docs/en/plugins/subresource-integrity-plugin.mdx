@@ -189,7 +189,7 @@ The path to the HTML plugin, defaults to `"HtmlRspackPlugin"` which means the na
 Determines whether SRI hashes for async chunks are stored together in the Rspack runtime chunk or distributed across parent chunks.
 
 - `eager` puts the hash of every async chunk in the Rspack runtime chunk, so its size grows with the number of async chunks.
-- `lazy` puts the hashes of a chunk's direct async children in that chunk, and adds them to the Rspack runtime when the chunk loads. A hash that every parent of a chunk already provides is left out. This keeps the Rspack runtime chunk small in applications with many async chunks.
+- `lazy` puts the hashes of the async chunks that a chunk's `import()` calls request in that chunk, and adds them to the Rspack runtime when the chunk loads. A hash that every parent of a chunk already provides is left out. This keeps the Rspack runtime chunk small in applications with many async chunks. A chunk that `splitChunks` shares between chunk groups carries the hashes for the calls in its own modules, not for every group that includes it.
 
 Only JavaScript hashes are loaded lazily; CSS chunk hashes stay in the Rspack runtime chunk. This option matches the `hashLoading` option of [webpack-subresource-integrity](https://github.com/waysact/webpack-subresource-integrity/tree/main/webpack-subresource-integrity#hashloading).
 

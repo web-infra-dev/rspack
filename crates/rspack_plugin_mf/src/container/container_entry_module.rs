@@ -95,7 +95,7 @@ impl ContainerEntryModule {
     let lib_ident = format!("{namespace}/share/container/{name}");
     Self {
       dependencies_block: Default::default(),
-      identifier: ModuleIdentifier::from(format!("share container entry {}@{}", &name, &version,)),
+      identifier: ModuleIdentifier::from(format!("share container entry {name}@{version}",)),
       lib_ident,
       exposes: vec![],
       share_scope: ShareScope::Multiple(vec![]),

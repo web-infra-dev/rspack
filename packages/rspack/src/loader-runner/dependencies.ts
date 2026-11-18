@@ -36,7 +36,7 @@ const arraysFrom = (sets: DependencySets): LoaderDependencies => ({
 
 export class LoaderDependenciesState {
   readonly existing: LoaderDependencies;
-  readonly #existingSets: DependencySets;
+  readonly #existingSets: Partial<DependencySets> = {};
   readonly #addedSets: DependencySets;
   readonly #removedSets: DependencySets;
 
@@ -46,9 +46,13 @@ export class LoaderDependenciesState {
     removed?: LoaderDependencies,
   ) {
     this.existing = existing;
-    this.#existingSets = setsFrom(existing);
     this.#addedSets = added ? setsFrom(added) : createSets();
     this.#removedSets = removed ? setsFrom(removed) : createSets();
+  }
+
+  #getExisting(key: DependencyKey): Set<string> {
+    // Avoid copying existing dependencies into sets when they pass through unchanged.
+    return (this.#existingSets[key] ??= new Set(this.existing[key]));
   }
 
   get added(): LoaderDependencies {
@@ -74,7 +78,7 @@ export class LoaderDependenciesState {
       if (added.size === 0 && removed.size === 0) {
         continue;
       }
-      const existing = this.#existingSets[key];
+      const existing = this.#getExisting(key);
       for (const dependency of removed) {
         existing.delete(dependency);
       }
@@ -139,7 +143,7 @@ export class LoaderDependenciesState {
   private get(key: DependencyKey) {
     const removed = this.#removedSets[key];
     const dependencies = new Set<string>();
-    for (const dependency of this.#existingSets[key]) {
+    for (const dependency of this.#getExisting(key)) {
       if (!removed.has(dependency)) {
         dependencies.add(dependency);
       }
@@ -152,7 +156,7 @@ export class LoaderDependenciesState {
 
   private clear(key: DependencyKey) {
     const removed = this.#removedSets[key];
-    for (const dependency of this.#existingSets[key]) {
+    for (const dependency of this.#getExisting(key)) {
       removed.add(dependency);
     }
     this.#addedSets[key].clear();

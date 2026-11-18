@@ -32,8 +32,9 @@ use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
 use raw_ids::{
   RawCompactHashedChunkIdsPluginOptions, RawCompactHashedModuleIdsPluginOptions,
-  RawDeterministicModuleIdsPluginOptions, RawHashedModuleIdsPluginOptions,
-  RawOccurrenceChunkIdsPluginOptions, RawSyncModuleIdsPluginOptions,
+  RawDeterministicChunkIdsPluginOptions, RawDeterministicModuleIdsPluginOptions,
+  RawHashedModuleIdsPluginOptions, RawOccurrenceChunkIdsPluginOptions,
+  RawSyncModuleIdsPluginOptions,
 };
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use raw_mf::{
@@ -627,7 +628,9 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(NamedChunkIdsPlugin::new(None, None).boxed())
       }
       BuiltinPluginName::DeterministicChunkIdsPlugin => {
-        plugins.push(DeterministicChunkIdsPlugin::default().boxed())
+        let options = downcast_into::<RawDeterministicChunkIdsPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+        plugins.push(DeterministicChunkIdsPlugin::new(options.salt.map(|n| n as usize)).boxed())
       }
       BuiltinPluginName::CompactHashedChunkIdsPlugin => plugins.push(
         CompactHashedChunkIdsPlugin::new(

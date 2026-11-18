@@ -23,7 +23,7 @@ class Plugin {
   apply(compiler: Compiler) {
     compiler.hooks.done.tap('filename-function-entry-chunk', (stats) => {
       const assetNames = stats
-        .toJson({ all: false, assets: true })
+        .toJson({ all: false, assets: true, cachedAssets: true })
         .assets?.map((asset) => asset.name)
         .sort();
 
