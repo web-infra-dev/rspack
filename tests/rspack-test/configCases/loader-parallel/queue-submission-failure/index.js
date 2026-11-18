@@ -1,9 +1,7 @@
 it('should continue the bundled worker queue after consecutive submission failures', async () => {
-  // Load the published copy through Node, outside the test runner's VM.
-  const nativeRequire = require('node:module').createRequire(WORKER_FILENAME);
-  const { Tinypool } = nativeRequire(TINYPOOL_FILENAME);
+  const { Tinypool } = await loadTinypool();
   const pool = new Tinypool({
-    filename: WORKER_FILENAME,
+    filename: workerFilename,
     minThreads: 1,
     maxThreads: 1,
     useAtomics: false,
