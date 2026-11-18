@@ -43,16 +43,16 @@ impl ChunkGroupMapRuntimeModule {
         let group = graph.chunk_group_by_ukey.expect_get(&key);
         // Follow this runtime's groups, not every group of a shared chunk.
         queue.extend(group.children.iter().copied());
-        let Some((last, siblings)) = group.get_hmr_loading_chunk_with_siblings(compilation) else {
+        let Some(last) = group.get_hmr_loading_chunk(compilation) else {
           continue;
         };
+        let siblings = group
+          .get_loading_chunks(compilation)
+          .filter(|chunk| chunk.ukey() != last.ukey())
+          .map(|chunk| chunk.expect_id().clone())
+          .collect::<Vec<_>>();
         if !siblings.is_empty() {
-          groups.entry(last.expect_id().clone()).or_insert_with(|| {
-            siblings
-              .iter()
-              .map(|ukey| graph.chunk_by_ukey.expect_get(ukey).expect_id().clone())
-              .collect()
-          });
+          groups.insert(last.expect_id().clone(), siblings);
         }
       }
       Arc::new(ChunkGroupMapData(groups))
