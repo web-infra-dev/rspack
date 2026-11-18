@@ -1,6 +1,8 @@
 name: Linux LLD A/B experiment
 
 on:
+  push:
+    branches: [chenjiahan/linux-lld-ab]
   workflow_dispatch:
     inputs:
       commit:
