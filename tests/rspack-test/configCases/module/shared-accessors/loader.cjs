@@ -2,6 +2,8 @@ const assert = require('node:assert/strict');
 let setMatchResource;
 
 module.exports = function (source) {
+  // Exercise the setters on every build: cache reuse refreshes factoryMeta.
+  this.cacheable(false);
   const descriptor = Object.getOwnPropertyDescriptor(this._module, 'matchResource');
   setMatchResource ||= descriptor.set;
   assert.equal(descriptor.set, setMatchResource);
