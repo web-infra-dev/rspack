@@ -79,11 +79,13 @@
 		asyncModule = Object.create(module);
 		asyncModule.exports = exports;
 	}
-	var handle = <%- basicFunction("deps") %> {
-		var currentDeps = wrapDeps(deps);
+<% if (_hmr) { %>	var handle = <%- basicFunction("deps, hotDependencyIds") %> {
+<% } else { %>	var handle = <%- basicFunction("deps") %> {
+<% } %>		var currentDeps = wrapDeps(deps);
 		var currentDepQueues = new Set();
 		var fn;
-		var getResult = <%- basicFunction("") %> {
+<% if (_hmr) { %>		var unwatch;
+<% } %>		var getResult = <%- basicFunction("") %> {
 			currentDepQueues.forEach(<%- basicFunction("depQueue") %> {
 				if (depQueue.d === 1) depQueues.delete(depQueue);
 			});
@@ -96,10 +98,40 @@
 		var promise = new Promise(<%- basicFunction("resolve") %> {
 			fn = <%- expressionFunction("resolve(getResult)", "") %>;
 			fn.r = 0;
-			var fnQueue = <%- expressionFunction("q !== queue && !currentDepQueues.has(q) && (currentDepQueues.add(q), depQueues.add(q), q && !q.d && (fn.r++, q.push(fn)))", "q") %>;
-			currentDeps.map(<%- expressionFunction("dep[rspackDefer] || dep[rspackQueues](fnQueue)", "dep") %>);
-		});
-		return fn.r ? promise : getResult();
+<% if (_hmr) { %>			var fnQueue = <%- basicFunction("q") %> {
+				if (q === queue || currentDepQueues.has(q)) return;
+				currentDepQueues.add(q);
+				// A hot refresh must not make future importers wait on an old evaluation.
+				if (!hotDependencyIds) depQueues.add(q);
+				if (q && !q.d) {
+					fn.r++;
+					q.push(fn);
+				}
+			};
+<% } else { %>			var fnQueue = <%- expressionFunction("q !== queue && !currentDepQueues.has(q) && (currentDepQueues.add(q), depQueues.add(q), q && !q.d && (fn.r++, q.push(fn)))", "q") %>;
+<% } %>			currentDeps.map(<%- expressionFunction("dep[rspackDefer] || dep[rspackQueues](fnQueue)", "dep") %>);
+<% if (_hmr) { %>			if (hotDependencyIds && fn.r) {
+				var hotModules = [module.hot];
+				hotDependencyIds.forEach(function(id) {
+					var dependency = id !== null && <%- MODULE_CACHE %>[id];
+					if (dependency && dependency.hot) hotModules.push(dependency.hot);
+				});
+				var cancel = function() {
+					currentDepQueues.forEach(function(q) {
+						var index = q.indexOf(fn);
+						if (index >= 0) q.splice(index, 1);
+					});
+					resolve();
+				};
+				hotModules.forEach(function(hot) { hot.addDisposeHandler(cancel); });
+				unwatch = function() {
+					hotModules.forEach(function(hot) { hot.removeDisposeHandler(cancel); });
+				};
+			}
+<% } %>		});
+<% if (_hmr) { %>		// Removing handlers during disposal would skip other listeners in the same loop.
+		if (unwatch) return promise.then(function(result) { unwatch(); return result; });
+<% } %>		return fn.r ? promise : getResult();
 	};
 	var done = <%- expressionFunction("(err ? reject(promise[rspackError] = err) : (useModuleExports && (exports = promise[rspackExports] = asyncModule.exports), outerResolve(exports))), resolveQueue(queue), promise[rspackDone] = true", "err") %>;
 	body(handle, done, asyncModule);

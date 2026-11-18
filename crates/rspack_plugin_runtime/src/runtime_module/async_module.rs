@@ -40,6 +40,7 @@ impl RuntimeModule for AsyncRuntimeModule {
       self.id(),
       Some(serde_json::json!({
         "_uses_lexical_runtime_globals": uses_lexical_runtime_globals,
+        "_hmr": context.compilation.hot,
       })),
     )
   }

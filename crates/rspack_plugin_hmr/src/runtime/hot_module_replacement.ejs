@@ -438,6 +438,10 @@
 					});
 				});
 			});
+		}, function (error) {
+			// A nested check has already applied part of the parent's update.
+			if (!parentApply) throw error;
+			return setStatus("fail").then(function () { throw error; });
 		});
 }
 

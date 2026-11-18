@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: consumer_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 34078
+- Update: main.LAST_HASH.hot-update.js, size: 35058
 
 ## Manifest
 
@@ -133,10 +133,11 @@ __webpack_require__.a = (module, body, hasAwait, useModuleExports) => {
 		asyncModule = Object.create(module);
 		asyncModule.exports = exports;
 	}
-	var handle = (deps) => {
+	var handle = (deps, hotDependencyIds) => {
 		var currentDeps = wrapDeps(deps);
 		var currentDepQueues = new Set();
 		var fn;
+		var unwatch;
 		var getResult = () => {
 			currentDepQueues.forEach((depQueue) => {
 				if (depQueue.d === 1) depQueues.delete(depQueue);
@@ -150,9 +151,38 @@ __webpack_require__.a = (module, body, hasAwait, useModuleExports) => {
 		var promise = new Promise((resolve) => {
 			fn = () => (resolve(getResult));
 			fn.r = 0;
-			var fnQueue = (q) => (q !== queue && !currentDepQueues.has(q) && (currentDepQueues.add(q), depQueues.add(q), q && !q.d && (fn.r++, q.push(fn))));
+			var fnQueue = (q) => {
+				if (q === queue || currentDepQueues.has(q)) return;
+				currentDepQueues.add(q);
+				// A hot refresh must not make future importers wait on an old evaluation.
+				if (!hotDependencyIds) depQueues.add(q);
+				if (q && !q.d) {
+					fn.r++;
+					q.push(fn);
+				}
+			};
 			currentDeps.map((dep) => (dep[rspackDefer] || dep[rspackQueues](fnQueue)));
+			if (hotDependencyIds && fn.r) {
+				var hotModules = [module.hot];
+				hotDependencyIds.forEach(function(id) {
+					var dependency = id !== null && __webpack_require__.c[id];
+					if (dependency && dependency.hot) hotModules.push(dependency.hot);
+				});
+				var cancel = function() {
+					currentDepQueues.forEach(function(q) {
+						var index = q.indexOf(fn);
+						if (index >= 0) q.splice(index, 1);
+					});
+					resolve();
+				};
+				hotModules.forEach(function(hot) { hot.addDisposeHandler(cancel); });
+				unwatch = function() {
+					hotModules.forEach(function(hot) { hot.removeDisposeHandler(cancel); });
+				};
+			}
 		});
+		// Removing handlers during disposal would skip other listeners in the same loop.
+		if (unwatch) return promise.then(function(result) { unwatch(); return result; });
 		return fn.r ? promise : getResult();
 	};
 	var done = (err) => ((err ? reject(promise[rspackError] = err) : (useModuleExports && (exports = promise[rspackExports] = asyncModule.exports), outerResolve(exports))), resolveQueue(queue), promise[rspackDone] = true);

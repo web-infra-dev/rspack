@@ -75,6 +75,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
     let mut content = String::default();
     let mut async_imports = vec![];
     let mut async_import_values = vec![];
+    let mut async_dependency_ids = vec![];
     let mut async_compat = String::new();
     let module_graph = compilation.get_module_graph();
     let module_identifier = module.identifier();
@@ -129,17 +130,20 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
       if is_async {
         let import_value =
           runtime_template.module_raw(compilation, id, module_dependency.request(), false);
-        async_import_values.push(if condition == "true" {
-          import_value
-        } else {
-          format!("{condition} ? {import_value} : {import_var}")
-        });
-        async_imports.push(import_var);
+        let module_id =
+          runtime_template.module_id(compilation, id, module_dependency.request(), false);
         if condition == "true" {
+          async_dependency_ids.push(module_id);
+          async_import_values.push(import_value);
           async_compat.push_str(&stmts.1);
-        } else if !stmts.1.is_empty() {
-          async_compat.push_str(&format!("if ({condition}) {{\n{}\n}}\n", stmts.1));
+        } else {
+          async_dependency_ids.push(format!("{condition} ? {module_id} : null"));
+          async_import_values.push(format!("{condition} ? {import_value} : {import_var}"));
+          if !stmts.1.is_empty() {
+            async_compat.push_str(&format!("if ({condition}) {{\n{}\n}}\n", stmts.1));
+          }
         }
+        async_imports.push(import_var);
         return;
       }
       let import_content = format!("{}{}", stmts.0, stmts.1);
@@ -157,6 +161,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
     } else {
       let module_argument = runtime_template.render_module_argument(module.get_module_argument());
       let values = async_import_values.join(", ");
+      let ids = async_dependency_ids.join(", ");
       let changed = async_import_values
         .iter()
         .enumerate()
@@ -168,19 +173,13 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
 if (!{module_argument}.hot.active) return;
 var __rspack_async_imports = [{values}];
 try {{
-var __rspack_async_deps = __rspack_load_async_deps(__rspack_async_imports);
+var __rspack_async_deps = __rspack_load_async_deps(__rspack_async_imports, [{ids}]);
 var __rspack_async_deps_result = __rspack_async_deps;
 if (__rspack_async_deps.then) {{
-var __rspack_hmr_dispose;
-var __rspack_hmr_disposed = new Promise(function(resolve) {{ __rspack_hmr_dispose = resolve; }});
-{module_argument}.hot.addDisposeHandler(__rspack_hmr_dispose);
-try {{
-var __rspack_async_get_result = await Promise.race([__rspack_async_deps, __rspack_hmr_disposed]);
+var __rspack_async_get_result = await __rspack_async_deps;
 if (!{module_argument}.hot.active) return;
+if (!__rspack_async_get_result) continue;
 __rspack_async_deps_result = __rspack_async_get_result();
-}} finally {{
-{module_argument}.hot.removeDisposeHandler(__rspack_hmr_dispose);
-}}
 }}
 }} catch (__rspack_async_error) {{
 if (!{module_argument}.hot.active) return;
