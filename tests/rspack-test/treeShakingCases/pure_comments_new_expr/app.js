@@ -1,5 +1,5 @@
 function createSet() {
-	return new Set();
+	return new Set(globalThis.__items__);
 }
 
 export const marker = 1;
