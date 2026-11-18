@@ -35,6 +35,20 @@ export default function () {
       runtimeRequire.remotesLoadingData?.chunkMapping ?? {};
     const remotesLoadingModuleIdToRemoteDataMapping =
       runtimeRequire.remotesLoadingData?.moduleIdToRemoteDataMapping ?? {};
+    // Lower-level ContainerReferencePlugin remotes are not part of the
+    // high-level options. Register their script entries with the instance too.
+    const remoteInfos = Object.assign({}, __module_federation_remote_infos__);
+    for (const data of Object.values(
+      remotesLoadingModuleIdToRemoteDataMapping,
+    )) {
+      if (remoteInfos[data.remoteName]?.length) continue;
+      remoteInfos[data.remoteName] = (data.remoteInfos || []).map((info) =>
+        Object.assign({}, info, {
+          alias: data.remoteName,
+          shareScope: data.shareScope,
+        }),
+      );
+    }
     const initializeSharingScopeToInitDataMapping =
       runtimeRequire.initializeSharingData?.scopeToSharingDataMapping ?? {};
     const consumesLoadingChunkMapping =
@@ -43,6 +57,7 @@ export default function () {
       runtimeRequire.consumesLoadingData?.moduleIdToConsumeDataMapping ?? {};
     const consumesLoadinginstalledModules = {};
     const initializeSharingInitPromises = [];
+    const consumeSharingInitPromises = [];
     const initializeSharingInitTokens = {};
     const arrayInitializedExternals = new WeakMap();
     const containerShareScope =
@@ -50,9 +65,11 @@ export default function () {
     const additionalContainerInitScopes =
       runtimeRequire.initializeSharingData?.additionalInitScopes;
 
-    const createShareScopeRequire = (shareScopes) => {
+    const createShareScopeRequire = (shareScopes, initRemotes = true) => {
       const ordered = Array.isArray(shareScopes);
+      const scopes = ordered ? shareScopes : [shareScopes];
       if (
+        initRemotes &&
         !ordered &&
         Object.values(remotesLoadingModuleIdToRemoteDataMapping).every(
           (remote) =>
@@ -68,13 +85,27 @@ export default function () {
       const remotes = runtimeRequire.federation.bundlerRuntimeOptions.remotes;
       const externalRequests = new Map();
       const idToExternalAndNameMapping = {};
+      const idToRemoteMap = {};
       for (const [id, data] of Object.entries(
         remotes.idToExternalAndNameMapping,
       )) {
+        const remoteScopes = Array.isArray(data[0]) ? data[0] : [data[0]];
+        // Older bundler runtimes walk every external on each I() call. A
+        // call-local map prevents unrelated containers from being initialized
+        // with this scope and keeps loaded-first consumes lazy.
+        if (
+          !initRemotes ||
+          !remoteScopes.some((scope) => scopes.includes(scope))
+        ) {
+          continue;
+        }
         const request = {};
         externalRequests.set(request, { id: data[2], shareScope: data[0] });
         idToExternalAndNameMapping[id] = [...data];
         idToExternalAndNameMapping[id][2] = request;
+        if (remotes.idToRemoteMap[id]) {
+          idToRemoteMap[id] = remotes.idToRemoteMap[id];
+        }
       }
       // This function is serialized without its module scope. Avoid object
       // spread, which the package build lowers to out-of-function helpers.
@@ -83,16 +114,19 @@ export default function () {
           {},
           runtimeRequire.federation.bundlerRuntimeOptions,
           {
-            remotes: Object.assign({}, remotes, { idToExternalAndNameMapping }),
+            remotes: Object.assign({}, remotes, {
+              idToExternalAndNameMapping,
+              idToRemoteMap,
+            }),
           },
         ),
       });
       const wrapExternal = (external, remote) => {
+        if (!remote) return external;
         if (!ordered) {
           if (
-            !remote ||
-            (!Array.isArray(remote.shareScope) &&
-              (remote.shareScope || 'default') === shareScopes)
+            !Array.isArray(remote.shareScope) &&
+            (remote.shareScope || 'default') === shareScopes
           ) {
             return external;
           }
@@ -116,12 +150,20 @@ export default function () {
                     withShareScopeKeys(remoteEntryInitOptions, [shareScopes]),
                   );
             }
+            const remoteScopes = Array.isArray(remote.shareScope)
+              ? remote.shareScope
+              : [remote.shareScope || 'default'];
+            // The remote's primary scope may be later in the caller's list.
+            // Bind its own registries before the first namespace initializes it.
+            for (const scope of remoteScopes) {
+              runtimeRequire.S[scope] ||= {};
+            }
             let initializedScopes = arrayInitializedExternals.get(external);
             if (!initializedScopes) {
               initializedScopes = new Map();
               arrayInitializedExternals.set(external, initializedScopes);
             }
-            const scopesKey = JSON.stringify(shareScopes);
+            const scopesKey = JSON.stringify(remoteScopes);
             if (initializedScopes.has(scopesKey)) {
               return initializedScopes.get(scopesKey);
             }
@@ -130,14 +172,14 @@ export default function () {
               remoteEntryInitOptions === undefined
                 ? init.call(
                     external,
-                    runtimeRequire.S[shareScopes[0]],
+                    runtimeRequire.S[remoteScopes[0]],
                     initScope,
                   )
                 : init.call(
                     external,
-                    runtimeRequire.S[shareScopes[0]],
+                    runtimeRequire.S[remoteScopes[0]],
                     initScope,
-                    remoteEntryInitOptions,
+                    withShareScopeKeys(remoteEntryInitOptions, remoteScopes),
                   );
             initializedScopes.set(scopesKey, result);
             return result;
@@ -449,7 +491,7 @@ export default function () {
       return shared;
     });
     merge(runtimeRequire.federation.initOptions, 'remotes', () =>
-      Object.values(__module_federation_remote_infos__)
+      Object.values(remoteInfos)
         .flat()
         .filter((remote) => remote.externalType === 'script'),
     );
@@ -473,7 +515,7 @@ export default function () {
     early(
       runtimeRequire.federation.bundlerRuntimeOptions.remotes,
       'remoteInfos',
-      () => __module_federation_remote_infos__,
+      () => remoteInfos,
     );
     early(
       runtimeRequire.federation.bundlerRuntimeOptions.remotes,
@@ -506,12 +548,7 @@ export default function () {
         for (let [id, remoteData] of Object.entries(
           remotesLoadingModuleIdToRemoteDataMapping,
         )) {
-          const existingInfos =
-            __module_federation_remote_infos__[remoteData.remoteName] || [];
-          const info =
-            existingInfos.length > 0
-              ? existingInfos
-              : remoteData.remoteInfos || [];
+          const info = remoteInfos[remoteData.remoteName] || [];
           if (info.length > 0) idToRemoteMap[id] = info;
         }
         return idToRemoteMap;
@@ -536,11 +573,21 @@ export default function () {
         webpackRequire: runtimeRequire,
       }),
     );
-    // Chunk loading waits for version-first providers before selecting fallbacks.
-    // `includeScalar` includes scalar scopes here; loaded-first stays lazy.
-    // Startup initializes only ordered scopes and awaits `initialConsumesInit`.
-    // Scalar consume handlers initialize lazily so eager startup stays synchronous.
-    const initializeConsumeShareScopes = (moduleIds, includeScalar) => {
+    const initializeSharing = (name, initScope, initRemotes = true) =>
+      runtimeRequire.federation.bundlerRuntime.I({
+        shareScopeName: name,
+        initScope,
+        // A lazy consume must not mark the external initialization complete:
+        // importing that remote later still needs to call its container.init.
+        initPromises: initRemotes
+          ? initializeSharingInitPromises
+          : consumeSharingInitPromises,
+        initTokens: initializeSharingInitTokens,
+        webpackRequire: createShareScopeRequire(name, initRemotes),
+      });
+    // Only ordered consumes need bundler scope initialization. Scalar consumes
+    // retain the runtime loadShare path, including lazy non-script remotes.
+    const initializeConsumeShareScopes = (moduleIds) => {
       if (!moduleIds?.length) return [];
       const initPromises = [];
       const initializedScopes = new Set();
@@ -549,11 +596,16 @@ export default function () {
           consumesLoadingModuleToConsumeDataMapping[moduleId]?.shareScope ||
           'default';
         const ordered = Array.isArray(shareScope);
-        if (!ordered && !includeScalar) continue;
-        const scopeKey = JSON.stringify(ordered ? shareScope : [shareScope]);
+        if (!ordered) continue;
+        const scopeKey = JSON.stringify(shareScope);
         if (initializedScopes.has(scopeKey)) continue;
         initializedScopes.add(scopeKey);
-        const initialized = runtimeRequire.I(shareScope, []);
+        const initialized = initializeSharing(
+          shareScope,
+          [],
+          runtimeRequire.federation.instance.options.shareStrategy !==
+            'loaded-first',
+        );
         if (initialized?.then) initPromises.push(initialized);
       }
       return initPromises;
@@ -573,8 +625,6 @@ export default function () {
         });
       const initPromises = initializeConsumeShareScopes(
         consumesLoadingChunkMapping[chunkId],
-        runtimeRequire.federation.instance.options.shareStrategy !==
-          'loaded-first',
       );
       if (initPromises.length === 0) return consume(promises);
       promises.push(
@@ -585,15 +635,7 @@ export default function () {
         }),
       );
     });
-    override(runtimeRequire, 'I', (name, initScope) => {
-      return runtimeRequire.federation.bundlerRuntime.I({
-        shareScopeName: name,
-        initScope,
-        initPromises: initializeSharingInitPromises,
-        initTokens: initializeSharingInitTokens,
-        webpackRequire: createShareScopeRequire(name),
-      });
-    });
+    override(runtimeRequire, 'I', initializeSharing);
     // Returns `options` with `shareScopeKeys` replaced, preserving the
     // prototype and property descriptors of the host's object.
     const withShareScopeKeys = (options, shareScopeKeys) => {
@@ -702,7 +744,6 @@ export default function () {
         });
       const initPromises = initializeConsumeShareScopes(
         runtimeRequire.consumesLoadingData.initialConsumes,
-        false,
       );
       if (initPromises.length === 0) {
         installInitialConsumes();

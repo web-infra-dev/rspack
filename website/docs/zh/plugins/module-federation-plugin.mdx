@@ -99,6 +99,8 @@ export default {
 
 - `'loaded-first'`：复用优先。设置后，不会自动加载 _remotes_ 入口文件（仅在有需求时才会加载），优先复用已注册的共享依赖。当对版本没有严格要求且对性能有要求时，推荐使用此策略。
 
+对于非脚本远程模块（如 `commonjs-module` 或 `promise`），字符串共享作用域保持容器的懒加载。在 `'version-first'` 策略下，有序共享作用域会在选择共享版本前初始化作用域匹配的远程容器。在 `'loaded-first'` 策略下，消费共享模块不会提前加载这些远程容器，有序作用域也一样；导入远程模块时，容器会使用自身配置的作用域进行初始化。
+
 ### remoteType
 
 - 类型：[`ExternalsType`](/config/externals#externalstype)

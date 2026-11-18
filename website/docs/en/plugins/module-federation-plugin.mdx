@@ -99,6 +99,8 @@ Control the loading strategy of shared dependencies:
 
 - `'loaded-first'`: reuse first. After setting, the _remotes_ entry file will not be automatically loaded (it will only be loaded when needed), and registered shared dependencies will be reused first. This strategy is recommended when there are no strict requirements on the version and performance is required.
 
+For non-script remotes (such as `commonjs-module` or `promise`), scalar shared scopes retain lazy container loading. Ordered shared scopes initialize matching remote containers before selecting a shared version under `'version-first'`. Under `'loaded-first'`, consuming a share keeps those remote containers lazy, including with ordered scopes; importing a remote initializes it with its own configured scopes.
+
 ### remoteType
 
 - Type: [`ExternalsType`](/config/externals#externalstype)
