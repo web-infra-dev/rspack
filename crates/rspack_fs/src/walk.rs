@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_util::glob::GlobPattern;
 
 use crate::{ReadableFileSystem, Result};
 
@@ -89,5 +90,23 @@ async fn directory_entries(
   match matcher.literal_children() {
     Some(names) => Ok(names),
     None => fs.read_dir(path).await,
+  }
+}
+
+impl WalkMatcher for GlobPattern<'_> {
+  fn literal_children(&self) -> Option<Vec<String>> {
+    GlobPattern::literal_children(self)
+  }
+
+  fn prepare_child(&self, _dir: &Utf8Path, name: &str) -> Option<Self> {
+    self.match_prefix(name)
+  }
+
+  fn match_entry(self, _dir: &Utf8Path, _name: &str, is_directory: bool) -> Option<Self> {
+    if is_directory {
+      self.match_prefix("/")
+    } else {
+      self.is_match("").then_some(self)
+    }
   }
 }
