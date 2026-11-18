@@ -22,6 +22,31 @@ export default defineConfig({
 
   target: 'async-node',
   plugins: [
+    {
+      name: 'DeleteSharedOriginalAssetPlugin',
+      apply(compiler) {
+        compiler.hooks.thisCompilation.tap(
+          'DeleteSharedOriginalAssetPlugin',
+          (compilation) => {
+            compilation.hooks.processAssets.tap(
+              {
+                name: 'DeleteSharedOriginalAssetPlugin',
+                stage:
+                  compiler.rspack.Compilation
+                    .PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER,
+              },
+              (assets) => {
+                for (const name of Object.keys(assets)) {
+                  if (/^shared-deleted\.[a-f0-9]{8}\.js$/.test(name)) {
+                    compilation.deleteAsset(name);
+                  }
+                }
+              },
+            );
+          },
+        );
+      },
+    },
     new ModuleFederationPlugin({
       name: 'tree_shaking_share_server',
       manifest: true,
@@ -66,6 +91,7 @@ export default defineConfig({
           requiredVersion: '*',
           treeShaking: {
             mode: 'server-calc',
+            filename: 'shared-deleted.[contenthash:8].js',
           },
         },
       },
