@@ -32,7 +32,6 @@ const excludes = {
 		/^source-map\/extract-source-map$/,
 
 		// Existing bundle/compiler assertions fail in the compatibility suite.
-		/^context\/import-meta-glob-case-insensitive-pruning$/,
 		/^loader\/context-module$/,
 
 		// Shared extracted CSS can retain different producers' loader dependencies.
