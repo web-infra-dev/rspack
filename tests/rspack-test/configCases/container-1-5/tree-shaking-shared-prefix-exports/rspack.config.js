@@ -7,6 +7,8 @@ module.exports = {
   module: { rules: [{ test: /server\.js$/, layer: 'server' }] },
   plugins: [
     new ModuleFederationPlugin({
+      implementation:
+        require.resolve('@module-federation/runtime-tools-layers'),
       name: 'tree_shaking_shared_prefix_exports',
       manifest: true,
       shared: {

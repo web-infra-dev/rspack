@@ -119,6 +119,7 @@ impl RuntimeModule for RemoteRuntimeModule {
                     RemoteInfo {
                       external_type: "",
                       name: "",
+                      entry: None,
                     },
                     RemoteInfo::from,
                   )
@@ -200,22 +201,25 @@ struct RemoteData<'a> {
 struct RemoteInfo<'a> {
   external_type: &'a str,
   name: &'a str,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  entry: Option<&'a str>,
 }
 
 impl<'a> From<&'a ExternalModule> for RemoteInfo<'a> {
   fn from(external_module: &'a ExternalModule) -> Self {
     let external_type = external_module.get_external_type().as_str();
-    let name = if external_type == "script" {
+    let (name, entry) = if external_type == "script" {
       match extract_url_and_global(external_module.get_request().primary()) {
-        Ok(url_and_global) => url_and_global.global,
-        Err(_) => "",
+        Ok(url_and_global) => (url_and_global.global, Some(url_and_global.url)),
+        Err(_) => ("", None),
       }
     } else {
-      ""
+      ("", None)
     };
     Self {
       external_type,
       name,
+      entry,
     }
   }
 }

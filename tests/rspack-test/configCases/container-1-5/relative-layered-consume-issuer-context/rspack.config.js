@@ -15,6 +15,8 @@ module.exports = {
   },
   plugins: [
     new ModuleFederationPlugin({
+      implementation:
+        require.resolve('@module-federation/runtime-tools-layers'),
       name: 'relative_layered_host',
       manifest: true,
     }),

@@ -95,10 +95,7 @@ impl ProvideSharedModule {
     let namespace = module_identifier_namespace(runtime_mode);
     let readable_identifier = format!(
       "provide shared module ({scopes_key}){} {name}@{version} = {request}",
-      layer
-        .as_ref()
-        .map(|layer| format!(" ({layer})"))
-        .unwrap_or_default(),
+      layer.as_ref().map_or_default(|layer| format!(" ({layer})")),
     );
     let identity_key = SharedIdentity::new(&share_scope, &name, layer.as_deref()).identifier_key();
     // Same layout as webpack's ProvideSharedModule: `(scope)`, then ` (layer)`
