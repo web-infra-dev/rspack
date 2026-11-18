@@ -4,7 +4,6 @@ categories.workspace    = true
 description             = "Rusty webpack-sources port."
 documentation.workspace = true
 edition.workspace       = true
-homepage.workspace      = true
 keywords                = ["sources", "sourcemap"]
 license.workspace       = true
 name                    = "rspack_sources"

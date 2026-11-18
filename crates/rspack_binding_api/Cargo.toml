@@ -4,7 +4,6 @@ categories.workspace    = true
 description             = "Rspack shared binding API"
 documentation.workspace = true
 edition.workspace       = true
-homepage.workspace      = true
 license.workspace       = true
 name                    = "rspack_binding_api"
 repository.workspace    = true

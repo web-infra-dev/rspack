@@ -4,7 +4,6 @@ categories.workspace    = true
 description             = "ESM library plugin for Rspack"
 documentation.workspace = true
 edition                 = "2024"
-homepage.workspace      = true
 license.workspace       = true
 name                    = "rspack_plugin_esm_library"
 repository.workspace    = true
