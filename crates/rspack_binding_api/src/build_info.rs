@@ -1,4 +1,8 @@
-use std::{cell::RefCell, sync::LazyLock};
+use std::{
+  cell::RefCell,
+  rc::{Rc, Weak},
+  sync::LazyLock,
+};
 
 use napi::{
   Env, JsString, JsValue, Property, PropertyAttributes, Unknown,
@@ -6,36 +10,46 @@ use napi::{
     Array, FromNapiMutRef, FromNapiValue, JsObjectValue, Object, ToNapiValue, ValidateNapiValue,
   },
 };
-use rspack_core::{CompilerId, ModuleIdentifier, WeakBindingCell};
-use rspack_napi::unknown_to_json_value;
+use rspack_core::WeakBindingCell;
+use rspack_napi::{OneShotRef, unknown_to_json_value};
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::{
-  module::{ModuleHandle, with_module_instance},
-  shared_properties::define_shared_properties,
-  symbols,
-};
+use crate::{module::ModuleHandle, shared_properties::define_shared_properties, symbols};
+
+type AssetMap = FxHashMap<String, rspack_core::CompilationAsset>;
+
+enum AssetsOwner {
+  Map(WeakBindingCell<AssetMap>),
+  Module(Weak<ModuleHandle>),
+}
 
 // Record<string, Source>
 #[napi]
 pub struct Assets {
-  i: WeakBindingCell<FxHashMap<String, rspack_core::CompilationAsset>>,
+  owner: AssetsOwner,
 }
 
 impl Assets {
-  pub fn new(i: WeakBindingCell<FxHashMap<String, rspack_core::CompilationAsset>>) -> Self {
-    Self { i }
+  pub fn new(map: WeakBindingCell<AssetMap>) -> Self {
+    Self {
+      owner: AssetsOwner::Map(map),
+    }
   }
 
-  fn with_ref<T>(
-    &self,
-    f: impl FnOnce(&FxHashMap<String, rspack_core::CompilationAsset>) -> napi::Result<T>,
-  ) -> napi::Result<T> {
-    match self.i.upgrade() {
-      Some(reference) => f(reference.as_ref()),
-      None => Err(napi::Error::from_reason(
-        "Unable to access assets. The assets has been dropped by Rust.".to_string(),
-      )),
+  fn with_ref<T>(&self, f: impl FnOnce(&AssetMap) -> napi::Result<T>) -> napi::Result<T> {
+    match &self.owner {
+      AssetsOwner::Map(map) => {
+        let map = map.upgrade().ok_or_else(|| {
+          napi::Error::from_reason("Unable to access assets. The assets has been dropped by Rust.")
+        })?;
+        f(map.as_ref())
+      }
+      AssetsOwner::Module(module) => {
+        let module = module.upgrade().ok_or_else(|| {
+          napi::Error::from_reason("Unable to access assets after their Module has been released")
+        })?;
+        module.with_local_ref(|module| f(&module.build_info().assets))
+      }
     }
   }
 }
@@ -65,20 +79,15 @@ static KNOWN_BUILD_INFO_FIELD_NAMES: LazyLock<FxHashSet<&'static str>> = LazyLoc
 
 #[napi]
 pub struct KnownBuildInfo {
-  compiler_id: CompilerId,
-  module_identifier: ModuleIdentifier,
-  worker: Option<Box<ModuleHandle>>,
+  module: Weak<ModuleHandle>,
+  worker_assets: Option<OneShotRef>,
 }
 
 impl KnownBuildInfo {
-  fn new(module: &ModuleHandle) -> Self {
+  fn new(module: &Rc<ModuleHandle>) -> Self {
     Self {
-      compiler_id: module.compiler_id,
-      module_identifier: module.identifier,
-      worker: module
-        .worker_scope
-        .as_ref()
-        .map(|_| Box::new(ModuleHandle::new(&module.to_module_object()))),
+      module: Rc::downgrade(module),
+      worker_assets: None,
     }
   }
 
@@ -88,33 +97,56 @@ impl KnownBuildInfo {
     Ok(Object::from_raw(raw_env, napi_val))
   }
 
-  pub fn with_ref<T>(
-    &mut self,
-    f: impl FnOnce(&dyn rspack_core::Module) -> napi::Result<T>,
-  ) -> napi::Result<T> {
-    if let Some(worker) = &self.worker {
-      return worker.with_local_ref(f);
-    }
-    with_module_instance(self.compiler_id, self.module_identifier, |reference| {
-      reference.with_ref(|_, module| f(module))
+  fn module(&self) -> napi::Result<Rc<ModuleHandle>> {
+    self.module.upgrade().ok_or_else(|| {
+      napi::Error::from_reason("Unable to access BuildInfo after its Module has been released")
     })
   }
 
-  pub fn with_mut<T>(
-    &mut self,
+  fn with_ref<T>(
+    &self,
+    f: impl FnOnce(&dyn rspack_core::Module) -> napi::Result<T>,
+  ) -> napi::Result<T> {
+    self.module()?.with_local_ref(f)
+  }
+
+  fn with_mut<T>(
+    &self,
     f: impl FnOnce(&mut dyn rspack_core::Module) -> napi::Result<T>,
   ) -> napi::Result<T> {
-    with_module_instance(self.compiler_id, self.module_identifier, |reference| {
-      f(reference.as_mut()?)
-    })
+    self.module()?.with_mut(f)
+  }
+
+  fn assets(&mut self, env: &Env) -> napi::Result<Object<'_>> {
+    let handle = self.module()?;
+    let raw_env = env.raw();
+    let value = if handle.worker {
+      handle.with_local_ref(|_| Ok(()))?;
+      // Keep the asset view in this worker's JS environment. Its reads still
+      // resolve through the module handle and observe scope revocation.
+      let assets = match &self.worker_assets {
+        Some(assets) => assets,
+        None => self.worker_assets.insert(OneShotRef::new(
+          raw_env,
+          Assets {
+            owner: AssetsOwner::Module(Rc::downgrade(&handle)),
+          },
+        )?),
+      };
+      unsafe { ToNapiValue::to_napi_value(raw_env, assets)? }
+    } else {
+      let assets = handle.with_local_ref(|module| Ok(module.build_info().assets.reflector()))?;
+      unsafe { ToNapiValue::to_napi_value(raw_env, assets)? }
+    };
+    Ok(Object::from_raw(raw_env, value))
   }
 }
 
 // KnownBuildInfo & Record<string, any>
-pub struct BuildInfo<'a>(&'a ModuleHandle);
+pub struct BuildInfo<'a>(&'a Rc<ModuleHandle>);
 
 impl<'a> BuildInfo<'a> {
-  pub(crate) fn new(module: &'a ModuleHandle) -> Self {
+  pub(crate) fn new(module: &'a Rc<ModuleHandle>) -> Self {
     Self(module)
   }
 
@@ -133,7 +165,7 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
         // Native references do not escape this synchronous getter.
         let _borrow_scope = unsafe { napi::bindgen_prelude::NativeBorrowScope::new() };
         let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
-        wrapped_value.with_ref(|module| Ok(module.build_info().assets.reflector()))
+        wrapped_value.assets(&env)
       })
       .with_property_attributes(PropertyAttributes::Configurable),
   );
@@ -304,24 +336,18 @@ impl ToNapiValue for BuildInfo<'_> {
           Ok(properties)
         })?;
 
-        if val.0.worker_scope.is_some() {
-          return Ok(());
-        }
-
-        with_module_instance(val.0.compiler_id, val.0.identifier, |reference| {
-          reference.with_ref(|_, module| {
-            let extras = &module.build_info().extras;
-            properties.reserve(extras.len() + 1);
-            for (key, value) in extras {
-              let napi_val = ToNapiValue::to_napi_value(env, value)?;
-              properties.push(
-                Property::new()
-                  .with_utf8_name(key)?
-                  .with_value(&Object::from_raw(env, napi_val)),
-              );
-            }
-            Ok(())
-          })
+        val.0.with_local_ref(|module| {
+          let extras = &module.build_info().extras;
+          properties.reserve(extras.len());
+          for (key, value) in extras {
+            let napi_val = ToNapiValue::to_napi_value(env, value)?;
+            properties.push(
+              Property::new()
+                .with_utf8_name(key)?
+                .with_value(&Object::from_raw(env, napi_val)),
+            );
+          }
+          Ok(())
         })?;
         object.define_properties(&properties)
       })?;

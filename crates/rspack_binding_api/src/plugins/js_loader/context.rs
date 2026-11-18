@@ -1,9 +1,9 @@
-use std::{ptr::NonNull, sync::Arc};
+use std::sync::Arc;
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_collections::Identifiable;
-use rspack_core::{CodeFilter, Content, LoaderContext, LoaderDependencies, Module, RunnerContext};
+use rspack_core::{CodeFilter, Content, LoaderContext, LoaderDependencies, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
 use rustc_hash::FxHashMap as HashMap;
@@ -183,8 +183,6 @@ impl From<JsLoaderDependencies> for LoaderDependencies {
 #[napi(object)]
 pub struct JsLoaderContext {
   pub resource: String,
-  #[napi(js_name = "_module", ts_type = "Module")]
-  pub module: Option<ModuleObject>,
   #[napi(ts_type = "Readonly<boolean>")]
   pub hot: bool,
 
@@ -211,6 +209,8 @@ pub struct JsLoaderContext {
   pub error: Option<RspackError>,
   #[napi(js_name = "__internal__diagnostics")]
   pub diagnostics: Option<Vec<JsRspackDiagnostic>>,
+  #[napi(js_name = "_module", ts_type = "Module")]
+  pub module: Option<ModuleObject>,
 }
 
 impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
@@ -242,18 +242,11 @@ impl JsLoaderContext {
           })
       });
 
-    let module = &cx.context.module;
-
     let execution_span = cx
       .current_chain()
       .map_or(0..cx.loader_items.len(), |chain| chain.start()..chain.end());
     Ok(JsLoaderContext {
       resource: cx.resource_data.resource().to_owned(),
-      module: Some(ModuleObject::with_ptr(
-        NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module)
-          .expect("module reference should always produce a non-null pointer"),
-        cx.context.compiler_id,
-      )),
       hot: cx.hot,
       content: match if hooks_only { None } else { cx.content() } {
         Some(Content::String(content)) => Either3::A(content.clone()),
@@ -283,6 +276,13 @@ impl JsLoaderContext {
       diagnostics: None,
       loader_chain_start: execution_span.start as u32,
       loader_chain_end: execution_span.end as u32,
+      module: {
+        let native = &mut cx.context;
+        Some(
+          ModuleObject::with_mut(native.module.as_mut(), native.compiler_id)
+            .with_loader_context(native.options.context.clone(), native.compilation_id),
+        )
+      },
     })
   }
 }

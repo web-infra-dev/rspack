@@ -1,6 +1,5 @@
 use std::{
   fmt::Formatter,
-  ptr::NonNull,
   sync::{Arc, LazyLock},
 };
 
@@ -898,16 +897,9 @@ impl From<AssetGeneratorDataUrlFnCtx<'_>> for RawAssetGeneratorDataUrlFnCtx {
     // AssetGeneratorDataUrlFn may be called during the importModule process,
     // at which point the corresponding Module is not present in compilation.moduleGraph.
     // Therefore, we use a raw pointer to allow JavaScript to access the Module.
-    #[allow(clippy::unwrap_used)]
     Self {
       filename: value.filename,
-      module: ModuleObject::with_ptr(
-        NonNull::new(
-          value.module as *const dyn rspack_core::Module as *mut dyn rspack_core::Module,
-        )
-        .unwrap(),
-        value.compilation.compiler_id(),
-      ),
+      module: ModuleObject::with_ptr(value.module, value.compilation.compiler_id()),
     }
   }
 }
@@ -919,8 +911,14 @@ impl From<RawAssetGeneratorDataUrlWrapper> for AssetGeneratorDataUrl {
       Either::B(b) => Self::Func(Arc::new(move |source, ctx| {
         let b = b.clone();
         let source = source.into();
-        let ctx = ctx.into();
-        Box::pin(async move { b.call_with_sync((source, ctx).into()).await })
+        let RawAssetGeneratorDataUrlFnCtx { filename, module } = ctx.into();
+        Box::pin(async move {
+          module
+            .call_with_sync(&b, |module| {
+              (source, RawAssetGeneratorDataUrlFnCtx { filename, module }).into()
+            })
+            .await
+        })
       })),
     }
   }

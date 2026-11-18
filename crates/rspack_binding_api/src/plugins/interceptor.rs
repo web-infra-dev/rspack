@@ -2,7 +2,6 @@ use std::{
   ffi::c_void,
   hash::Hash,
   marker::PhantomData,
-  ptr::NonNull,
   sync::{Arc, RwLock},
 };
 
@@ -213,6 +212,16 @@ where
 {
   async fn call_with_sync(&self, value: T) -> rspack_error::Result<R> {
     self.inner.call_with_sync::<T, R>(value).await
+  }
+}
+
+impl ThreadsafeJsTapFunction<ModuleObject, ()> {
+  async fn call_with_module(&self, module: ModuleObject) -> rspack_error::Result<()> {
+    let (module, scope) = module.scoped();
+    self
+      .inner
+      .call_with_sync_cleanup(module, move || scope.revoke())
+      .await
   }
 }
 
@@ -1271,15 +1280,10 @@ impl CompilationBuildModule for CompilationBuildModuleTap {
     _compilation_id: CompilationId,
     module: &mut BoxModule,
   ) -> rspack_error::Result<()> {
-    #[allow(clippy::unwrap_used)]
-    let _ = self
+    self
       .function
-      .call_with_sync(ModuleObject::with_ptr(
-        NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
-        compiler_id,
-      ))
-      .await?;
-    Ok(())
+      .call_with_module(ModuleObject::with_mut(module.as_mut(), compiler_id))
+      .await
   }
 
   fn stage(&self) -> i32 {
@@ -1295,11 +1299,10 @@ impl CompilationStillValidModule for CompilationStillValidModuleTap {
     _compilation_id: CompilationId,
     module: &dyn Module,
   ) -> rspack_error::Result<()> {
-    let _ = self
+    self
       .function
-      .call_with_sync(ModuleObject::with_ptr(NonNull::from(module), compiler_id))
-      .await?;
-    Ok(())
+      .call_with_module(ModuleObject::with_ptr(module, compiler_id))
+      .await
   }
 
   fn stage(&self) -> i32 {
@@ -1315,15 +1318,10 @@ impl CompilationSucceedModule for CompilationSucceedModuleTap {
     _compilation_id: CompilationId,
     module: &mut BoxModule,
   ) -> rspack_error::Result<()> {
-    #[allow(clippy::unwrap_used)]
-    let _ = self
+    self
       .function
-      .call_with_sync(ModuleObject::with_ptr(
-        NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
-        compiler_id,
-      ))
-      .await?;
-    Ok(())
+      .call_with_module(ModuleObject::with_mut(module.as_mut(), compiler_id))
+      .await
   }
 
   fn stage(&self) -> i32 {

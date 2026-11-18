@@ -9,9 +9,14 @@ import {
   registerMainObjectRelease,
   releaseLoaderReferences,
   stopLoaderWorker,
+  moduleRevokeDirectAccess,
 } from '@rspack/binding';
-import type { BuildInfo, Dependency, Module } from '@rspack/binding';
+import type { Dependency, Module } from '@rspack/binding';
 import type { Tinypool } from 'tinypool';
+import {
+  pickCustomBuildInfoFields,
+  replaceCustomBuildInfoFields,
+} from '../BuildInfo';
 import type { Compiler } from '../Compiler';
 
 const require = createRequire(import.meta.url);
@@ -120,7 +125,9 @@ export interface WorkerLoaderContext {
   compilerHandle: number;
   referenceVersion: number;
   compiler: Compiler;
-  buildInfo: BuildInfo;
+  customBuildInfo: Record<string, unknown>;
+  cacheBuildInfo: boolean;
+  updateCustomBuildInfo(fields: Record<string, unknown>): void;
   getDependency(id: number): Dependency;
   extensions: Record<string, unknown>;
 }
@@ -300,8 +307,11 @@ export function registerLoaderContext(
 ): number {
   const compilation = compiler._lastCompilation!;
   const buildInfo = module.buildInfo;
+  const dependencyRoots = {
+    dependencies: module.dependencies,
+    blocks: module.blocks,
+  };
   remoteRoots.add(compilation);
-  remoteRoots.add(buildInfo);
   remoteRoots.add(compiler.inputFileSystem!);
   const compilerRef = new WeakRef(compiler);
   const handle = registerMainObject({
@@ -327,7 +337,11 @@ export function registerLoaderContext(
       __internal__takeModuleExecutionResult: (id: number) =>
         compilerRef.deref()!.__internal__takeModuleExecutionResult(id),
     },
-    buildInfo,
+    customBuildInfo: pickCustomBuildInfoFields(buildInfo),
+    cacheBuildInfo: Boolean(compiler.options.cache),
+    updateCustomBuildInfo(fields: Record<string, unknown>) {
+      replaceCustomBuildInfoFields(buildInfo, fields);
+    },
     getDependency(id: number): Dependency {
       // Resolve by identity: main's graph view can filter removed dependencies.
       const find = (
@@ -342,7 +356,7 @@ export function registerLoaderContext(
           if (dependency) return dependency;
         }
       };
-      const dependency = find(module);
+      const dependency = find(dependencyRoots);
       if (!dependency)
         throw new Error(`Dependency ${id} is unavailable in the module graph`);
       return dependency;
@@ -696,11 +710,17 @@ class ObjectBridge {
           // Parallel loaders skip NormalModule's loader hook. Only prepare the
           // main-owned API bridge; the worker constructs its loader context.
           const context = prepareLoaderTask(taskId);
-          const handle = registerLoaderContext(
-            lookup(message.target) as Compiler,
-            context._module!,
-            {},
-          );
+          const module = context._module!;
+          let handle: number;
+          try {
+            handle = registerLoaderContext(
+              lookup(message.target) as Compiler,
+              module,
+              {},
+            );
+          } finally {
+            moduleRevokeDirectAccess(module);
+          }
           context.bridgeHandle = handle;
           completeLoaderTaskHooks(taskId, context);
           this.activeTasks.add(handle);

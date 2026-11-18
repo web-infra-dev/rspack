@@ -1532,6 +1532,7 @@ export const moduleGetUseSimpleSourceMap = __napiModule.exports.moduleGetUseSimp
 export const moduleGetUseSourceMap = __napiModule.exports.moduleGetUseSourceMap
 export const ModuleKind = __napiModule.exports.ModuleKind
 export const moduleLibIdent = __napiModule.exports.moduleLibIdent
+export const moduleRevokeDirectAccess = __napiModule.exports.moduleRevokeDirectAccess
 export const moduleSetBuildInfo = __napiModule.exports.moduleSetBuildInfo
 export const moduleSetFactoryMeta = __napiModule.exports.moduleSetFactoryMeta
 export const moduleSize = __napiModule.exports.moduleSize

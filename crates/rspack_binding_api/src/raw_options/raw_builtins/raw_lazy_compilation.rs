@@ -1,4 +1,4 @@
-use std::{ptr::NonNull, sync::Arc};
+use std::sync::Arc;
 
 use napi::{
   Either,
@@ -50,13 +50,8 @@ impl LazyCompilationTestCheck for LazyCompilationTestFn {
     _compilation_id: CompilationId,
     m: &dyn rspack_core::Module,
   ) -> bool {
-    #[allow(clippy::unwrap_used)]
-    let res = self
-      .tsfn
-      .call_with_sync(ModuleObject::with_ptr(
-        NonNull::new(m as *const dyn Module as *mut dyn Module).unwrap(),
-        compiler_id,
-      ))
+    let res = ModuleObject::with_ptr(m, compiler_id)
+      .call_with_sync(&self.tsfn, |module| module)
       .await
       .expect("failed to invoke lazyCompilation.test");
 

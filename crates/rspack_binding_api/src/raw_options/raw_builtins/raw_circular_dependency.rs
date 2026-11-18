@@ -1,4 +1,4 @@
-use std::{ptr::NonNull, sync::Arc};
+use std::sync::Arc;
 
 use derive_more::Debug;
 use futures::future::BoxFuture;
@@ -153,14 +153,11 @@ impl From<RawCircularCheckRspackPluginOptions> for CircularCheckRspackPluginOpti
               paths: Vec<String>|
               -> BoxFuture<'_, rspack_error::Result<()>> {
           let callback = callback.clone();
-          let module = ModuleObject::with_ptr(
-            NonNull::new(module as *const dyn Module as *mut dyn Module)
-              .expect("module pointer should not be null"),
-            compiler_id,
-          );
+          let module = ModuleObject::with_ptr(module, compiler_id);
           Box::pin(async move {
-            callback.call_with_sync((module, paths).into()).await?;
-            Ok(())
+            module
+              .call_with_sync(&callback, |module| (module, paths).into())
+              .await
           })
         },
       )),

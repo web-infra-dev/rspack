@@ -203,6 +203,17 @@ impl<T: 'static + JsValuesTupleIntoVec, R: 'static + FromNapiValue> CompilerScop
   pub async fn call_with_sync(&self, value: T) -> rspack_error::Result<R> {
     self.expect_active_tsfn()?.call_with_sync(value).await
   }
+
+  pub(crate) async fn call_with_sync_cleanup(
+    &self,
+    value: T,
+    cleanup: impl FnOnce() + Send + 'static,
+  ) -> rspack_error::Result<R> {
+    self
+      .expect_active_tsfn()?
+      .call_with_sync_cleanup(value, cleanup)
+      .await
+  }
 }
 
 impl<T: 'static + JsValuesTupleIntoVec, R: 'static + FromNapiValue>

@@ -1,5 +1,12 @@
 //! JavaScript owns the Module classes; napi_wrap owns their shared native handle.
-use std::{any::TypeId, cell::RefCell, ffi::c_void, ptr, rc::Rc};
+use std::{
+  any::TypeId,
+  cell::RefCell,
+  ffi::c_void,
+  ptr::{self, NonNull},
+  rc::{Rc, Weak},
+  sync::atomic::{AtomicUsize, Ordering},
+};
 
 use napi::{Env, Result, bindgen_prelude::*, sys};
 use rspack_collections::IdentifierMap;
@@ -55,6 +62,35 @@ struct Instance {
 type Instances = FxHashMap<CompilerId, IdentifierMap<Instance>>;
 thread_local! {
   static MODULE_INSTANCE_REFS: RefCell<Instances> = RefCell::default();
+  static SCOPED_HANDLES: RefCell<FxHashMap<ModuleScope, Weak<ModuleHandle>>> = RefCell::default();
+}
+
+/// A callback or worker task can revoke its own handle on the JS thread.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct ModuleScope(usize);
+
+impl ModuleScope {
+  pub(crate) fn new() -> Self {
+    static NEXT_SCOPE: AtomicUsize = AtomicUsize::new(0);
+    Self(NEXT_SCOPE.fetch_add(1, Ordering::Relaxed))
+  }
+
+  fn bind(self, handle: &Rc<ModuleHandle>) {
+    SCOPED_HANDLES.with_borrow_mut(|handles| handles.insert(self, Rc::downgrade(handle)));
+  }
+
+  pub(crate) fn revoke(self) {
+    // Worker shutdown can finish a task after its JS thread has exited.
+    let _ = SCOPED_HANDLES.try_with(|handles| {
+      if let Some(handle) = handles
+        .borrow_mut()
+        .remove(&self)
+        .and_then(|handle| handle.upgrade())
+      {
+        handle.revoke_direct_access();
+      }
+    });
+  }
 }
 
 /// The caller must root `value` in the current handle scope for the entire borrow.
@@ -64,6 +100,23 @@ pub(crate) unsafe fn unwrap<'a>(
   env: sys::napi_env,
   value: sys::napi_value,
 ) -> Result<&'a ModuleHandle> {
+  Ok(unsafe { unwrap_ptr(env, value)?.as_ref() })
+}
+
+/// The caller must root `value` on the owning JS thread during this call.
+pub(crate) unsafe fn retain_handle(
+  env: sys::napi_env,
+  value: sys::napi_value,
+) -> Result<Rc<ModuleHandle>> {
+  let data = unwrap_ptr(env, value)?.as_ptr();
+  // SAFETY: napi_wrap owns an Rc for the lifetime of the JS receiver.
+  unsafe {
+    Rc::increment_strong_count(data);
+    Ok(Rc::from_raw(data))
+  }
+}
+
+fn unwrap_ptr(env: sys::napi_env, value: sys::napi_value) -> Result<NonNull<ModuleHandle>> {
   let mut matches = false;
   check_status!(unsafe {
     sys::napi_check_object_type_tag(env, value, &module_tag(), &mut matches)
@@ -73,10 +126,7 @@ pub(crate) unsafe fn unwrap<'a>(
   }
   let mut data = ptr::null_mut();
   check_status!(unsafe { sys::napi_unwrap(env, value, &mut data) })?;
-  if data.is_null() {
-    return Err(Error::from_reason("Invalid Module receiver"));
-  }
-  Ok(unsafe { &*data.cast::<ModuleHandle>() })
+  NonNull::new(data.cast()).ok_or_else(|| Error::from_reason("Invalid Module receiver"))
 }
 
 unsafe extern "C" fn finalize(_env: sys::napi_env, data: *mut c_void, _hint: *mut c_void) {
@@ -85,60 +135,68 @@ unsafe extern "C" fn finalize(_env: sys::napi_env, data: *mut c_void, _hint: *mu
   drop(unsafe { Rc::from_raw(data.cast::<ModuleHandle>()) });
 }
 
-// The callback must not invoke user JS while the identity cache is borrowed.
-pub(crate) fn with_module_instance<R>(
-  compiler_id: CompilerId,
-  identifier: ModuleIdentifier,
-  f: impl FnOnce(&ModuleHandle) -> Result<R>,
-) -> Result<R> {
-  MODULE_INSTANCE_REFS.with_borrow(|instances| {
-    let instance = instances.get(&compiler_id).and_then(|modules| modules.get(&identifier))
-      .ok_or_else(|| Error::from_reason(format!(
-        "Unable to access module with id = {identifier} now. The module has been removed on the Rust side or the Compiler has been garbage collected by JavaScript."
-      )))?;
-    f(&instance.handle)
-  })
-}
-
-pub(crate) fn to_jsobject(env: &Env, value: ModuleObject) -> Result<sys::napi_value> {
-  if value.worker_scope.is_some() {
+pub(crate) fn to_jsobject(env: &Env, mut value: ModuleObject) -> Result<sys::napi_value> {
+  let scope = value.scope;
+  if value.worker {
     // A worker has no JS Compiler. Its task-local facade calls the same native
     // getters on this tagged handle, without entering the main identity cache.
     let object = Object::new(env)?;
-    wrap(env, object, &Rc::new(ModuleHandle::new(&value)))?;
+    let handle = Rc::new(ModuleHandle::new(value));
+    wrap(env, object, &handle)?;
+    if let Some(scope) = scope {
+      scope.bind(&handle);
+    }
     return Ok(object.raw());
   }
-  let cached = MODULE_INSTANCE_REFS.with_borrow(|instances| {
-    instances
+  let mut cache = true;
+  let cached = MODULE_INSTANCE_REFS.with_borrow(|instances| -> Result<Option<_>> {
+    let Some(instance) = instances
       .get(&value.compiler_id)
       .and_then(|modules| modules.get(&value.identifier))
-      .map(|instance| {
-        instance.handle.ptr.set(value.ptr);
-        unsafe { ToNapiValue::to_napi_value(env.raw(), &instance.reference) }
-      })
-      .transpose()
+    else {
+      return Ok(None);
+    };
+    if value.has_ptr() && instance.handle.has_direct_access() {
+      // Nested builds can have the same identifier. Keep each callback's
+      // pointer and revocation independent.
+      cache = false;
+      return Ok(None);
+    }
+    let object = unsafe { ToNapiValue::to_napi_value(env.raw(), &instance.reference)? };
+    if value.has_ptr() {
+      instance.handle.set_direct_access(&mut value);
+      if let Some(scope) = scope {
+        scope.bind(&instance.handle);
+      }
+    }
+    Ok(Some(object))
   })?;
   if let Some(object) = cached {
     return Ok(object);
   }
   let kind = ModuleKind::from(value.type_id);
-  let handle = Rc::new(ModuleHandle::new(&value));
+  let compiler_id = value.compiler_id;
+  let identifier = value.identifier;
+  let handle = Rc::new(ModuleHandle::new(value));
   // Root the JS Compiler while calling its helper, and release every cache/core
   // borrow before entering JS. The helper captures no Compiler or Compilation.
-  let compiler = crate::upgrade_compiler(env, value.compiler_id)?;
+  let compiler = crate::upgrade_compiler(env, compiler_id)?;
   let object = compiler.js_helpers.create_module(env, kind)?;
   wrap(env, object, &handle)?;
-  let reference = OneShotRef::new(env.raw(), object).inspect_err(|_| {
-    // A helper may have retained this JS object. If cache insertion fails,
-    // there will be no revocation entry to clear its loader-scoped pointer.
-    handle.ptr.set(None);
-  })?;
-  MODULE_INSTANCE_REFS.with_borrow_mut(|instances| {
-    instances
-      .entry(value.compiler_id)
-      .or_default()
-      .insert(value.identifier, Instance { reference, handle });
-  });
+  if let Some(scope) = scope {
+    scope.bind(&handle);
+  }
+  if cache {
+    let reference = OneShotRef::new(env.raw(), object).inspect_err(|_| {
+      handle.revoke_direct_access();
+    })?;
+    MODULE_INSTANCE_REFS.with_borrow_mut(|instances| {
+      instances
+        .entry(compiler_id)
+        .or_default()
+        .insert(identifier, Instance { reference, handle });
+    });
+  }
   Ok(object.raw())
 }
 
@@ -161,7 +219,7 @@ fn wrap(env: &Env, object: Object<'_>, handle: &Rc<ModuleHandle>) -> Result<()> 
   if let Err(error) =
     check_status!(unsafe { sys::napi_type_tag_object(env.raw(), object.raw(), &module_tag()) })
   {
-    handle.ptr.set(None);
+    handle.revoke_direct_access();
     return Err(error);
   }
   Ok(())
@@ -171,7 +229,7 @@ pub(crate) fn cleanup_compiler(compiler_id: &CompilerId) {
   let removed = MODULE_INSTANCE_REFS.with_borrow_mut(|instances| instances.remove(compiler_id));
   if let Some(modules) = &removed {
     for instance in modules.values() {
-      instance.handle.ptr.set(None);
+      instance.handle.revoke_direct_access();
     }
   }
   drop(removed);
@@ -190,7 +248,7 @@ pub(crate) fn cleanup_modules(compiler_id: &CompilerId, identifiers: &[ModuleIde
     removed
   });
   for instance in &removed {
-    instance.handle.ptr.set(None);
+    instance.handle.revoke_direct_access();
   }
   drop(removed);
 }

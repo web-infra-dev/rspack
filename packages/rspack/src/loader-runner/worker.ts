@@ -30,14 +30,15 @@ async function execute(task: JsLoaderTask): Promise<void> {
       ? undefined
       : await prepareWorkerTask(task.mainObjectHandle, task.id);
     const context = task.takeContext();
-    module = createWorkerModule(context._module!, main);
+    const workerModule = createWorkerModule(context._module!, main);
+    module = workerModule;
     const result = await runLoaders(
       main
         ? createWorkerCompiler(main)
         : createStrictWorkerCompiler(task.mainObjectHandle),
       context,
       main?.extensions ?? {},
-      module.module,
+      workerModule.module,
       strict
         ? {
             getResolver(options = {}) {
@@ -52,7 +53,7 @@ async function execute(task: JsLoaderTask): Promise<void> {
             },
           }
         : undefined,
-    );
+    ).finally(workerModule.commitBuildInfo);
     task.complete(result);
   } catch (error) {
     task.fail(

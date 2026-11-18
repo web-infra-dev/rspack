@@ -1,4 +1,8 @@
-import { BuiltinPluginName } from '@rspack/binding';
+import {
+  BuiltinPluginName,
+  moduleRevokeDirectAccess,
+  type JsLoaderContext,
+} from '@rspack/binding';
 
 import type { Compiler } from '../Compiler';
 import { runLoaders } from '../loader-runner';
@@ -9,7 +13,14 @@ export const JsLoaderRspackPlugin = create(
   BuiltinPluginName.JsLoaderRspackPlugin,
   (compiler: Compiler) => ({
     mainObjectHandle: getCompilerHandle(compiler),
-    runner: runLoaders.bind(null, compiler),
+    runner: async (context: JsLoaderContext) => {
+      const module = context._module!;
+      try {
+        return await runLoaders(compiler, context);
+      } finally {
+        moduleRevokeDirectAccess(module);
+      }
+    },
   }),
   /* Not Inheretable */
   'thisCompilation',

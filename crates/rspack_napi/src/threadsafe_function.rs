@@ -156,6 +156,28 @@ impl FromNapiValue for DynThreadsafeFunction {
   }
 }
 
+fn result_callback<D: 'static + FromNapiValue>(
+  cleanup: impl FnOnce() + Send + 'static,
+) -> (
+  Receiver<Result<D>>,
+  impl FnOnce(napi::Result<Unknown<'static>>, Env) -> napi::Result<()>,
+) {
+  let (tx, rx) = channel::<Result<D>>();
+  let cleanup = scopeguard::guard(cleanup, |cleanup| cleanup());
+  (rx, move |result, env| {
+    // End callback-scoped access before processing the result or waking Rust.
+    drop(cleanup);
+    let result = match result {
+      Err(err) => Err(err.to_rspack_error(&env)),
+      Ok(value) => unsafe { D::from_napi_value(env.raw(), value.raw()) }
+        .map_err(|err| pretty_type_error(value, err)),
+    };
+    tx.send(result)
+      .unwrap_or_else(|_| panic!("failed to send tsfn value"));
+    Ok(())
+  })
+}
+
 impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
   async fn resolve_error(&self, err: napi::Error) -> Error {
     let (tx, rx) = tokio::sync::oneshot::channel::<rspack_error::Error>();
@@ -166,31 +188,20 @@ impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
     rx.await.expect("failed to resolve js error")
   }
 
-  fn call_with_return<D: 'static + FromNapiValue>(&self, value: T) -> Receiver<Result<D>> {
-    let (tx, rx) = channel::<Result<D>>();
+  fn call_with_return<D: 'static + FromNapiValue>(
+    &self,
+    value: T,
+    cleanup: impl FnOnce() + Send + 'static,
+  ) -> Receiver<Result<D>> {
+    let (rx, callback) = result_callback(cleanup);
     self
       .inner
-      .call_with_return_value(value, ThreadsafeFunctionCallMode::NonBlocking, {
-        move |r: napi::Result<Unknown>, env| {
-          let r = match r {
-            Err(err) => Err(err.to_rspack_error(&env)),
-            Ok(o) => {
-              let raw_env = env.raw();
-              let return_value = o.raw();
-              unsafe { D::from_napi_value(raw_env, return_value) }
-                .map_err(|e| pretty_type_error(o, e))
-            }
-          };
-          tx.send(r)
-            .unwrap_or_else(|_| panic!("failed to send tsfn value"));
-          Ok(())
-        }
-      });
+      .call_with_return_value(value, ThreadsafeFunctionCallMode::NonBlocking, callback);
     rx
   }
 
   async fn call_async<D: 'static + FromNapiValue>(&self, value: T) -> Result<D> {
-    let rx = self.call_with_return(value);
+    let rx = self.call_with_return(value, || {});
     rx.await.expect("failed to receive tsfn value")
   }
 }
@@ -205,31 +216,20 @@ impl DynThreadsafeFunction {
     rx.await.expect("failed to resolve js error")
   }
 
-  fn call_with_return<T, D>(&self, value: T) -> Receiver<Result<D>>
+  fn call_with_return<T, D>(
+    &self,
+    value: T,
+    cleanup: impl FnOnce() + Send + 'static,
+  ) -> Receiver<Result<D>>
   where
     T: 'static + JsValuesTupleIntoVec,
     D: 'static + FromNapiValue,
   {
-    let (tx, rx) = channel::<Result<D>>();
+    let (rx, callback) = result_callback(cleanup);
     self.inner.call_with_return_value(
       DynJsArgs(Box::new(value)),
       ThreadsafeFunctionCallMode::NonBlocking,
-      {
-        move |r: napi::Result<Unknown>, env| {
-          let r = match r {
-            Err(err) => Err(err.to_rspack_error(&env)),
-            Ok(o) => {
-              let raw_env = env.raw();
-              let return_value = o.raw();
-              unsafe { D::from_napi_value(raw_env, return_value) }
-                .map_err(|e| pretty_type_error(o, e))
-            }
-          };
-          tx.send(r)
-            .unwrap_or_else(|_| panic!("failed to send tsfn value"));
-          Ok(())
-        }
-      },
+      callback,
     );
     rx
   }
@@ -239,7 +239,7 @@ impl DynThreadsafeFunction {
     T: 'static + JsValuesTupleIntoVec,
     D: 'static + FromNapiValue,
   {
-    let rx = self.call_with_return(value);
+    let rx = self.call_with_return(value, || {});
     rx.await.expect("failed to receive tsfn value")
   }
 
@@ -250,6 +250,22 @@ impl DynThreadsafeFunction {
     R: 'static + FromNapiValue,
   {
     self.call_async::<T, R>(value).await
+  }
+
+  /// Runs cleanup on the JS thread when the callback returns or argument conversion fails.
+  pub async fn call_with_sync_cleanup<T, R>(
+    &self,
+    value: T,
+    cleanup: impl FnOnce() + Send + 'static,
+  ) -> Result<R>
+  where
+    T: 'static + JsValuesTupleIntoVec,
+    R: 'static + FromNapiValue,
+  {
+    self
+      .call_with_return(value, cleanup)
+      .await
+      .expect("failed to receive tsfn value")
   }
 
   /// Call the JS function.
@@ -274,6 +290,18 @@ impl<T: 'static + JsValuesTupleIntoVec, R: 'static + FromNapiValue> ThreadsafeFu
   /// Call the JS function.
   pub async fn call_with_sync(&self, value: T) -> Result<R> {
     self.call_async::<R>(value).await
+  }
+
+  /// Runs cleanup on the JS thread when the callback returns or argument conversion fails.
+  pub async fn call_with_sync_cleanup(
+    &self,
+    value: T,
+    cleanup: impl FnOnce() + Send + 'static,
+  ) -> Result<R> {
+    self
+      .call_with_return(value, cleanup)
+      .await
+      .expect("failed to receive tsfn value")
   }
 }
 

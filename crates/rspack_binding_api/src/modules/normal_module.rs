@@ -95,34 +95,31 @@ pub fn normal_module_set_match_resource(
       query,
       fragment,
     } = parse_resource(&value).expect("Should parse resource");
-    let module = handle
-      .as_mut()?
-      .as_normal_module_mut()
-      .ok_or_else(|| Error::from_reason("Module is not a NormalModule"))?;
-    *module.match_resource_mut() = Some(Box::new(ResourceData::new_with_path(
-      value, path, query, fragment,
-    )));
+    handle.with_mut(|module| {
+      let module = module
+        .as_normal_module_mut()
+        .ok_or_else(|| Error::from_reason("Module is not a NormalModule"))?;
+      *module.match_resource_mut() = Some(Box::new(ResourceData::new_with_path(
+        value, path, query, fragment,
+      )));
+      Ok(())
+    })?;
   }
   Ok(())
 }
 #[napi(ts_args_type = "module: Module")]
 pub fn normal_module_get_error(module: Object<'_>) -> Result<Either<RspackError, ()>> {
   let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
-  if module.worker_scope.is_some() {
-    return module.with_normal(|module| {
-      Ok(match module.error() {
-        Some(diagnostic) => Either::A(RspackError::from_module_diagnostic(diagnostic)?),
-        None => Either::B(()),
-      })
-    });
-  }
-  module.with_ref(|compilation, module| {
-    let module = module
-      .as_normal_module()
-      .ok_or_else(|| Error::from_reason("Module is not a NormalModule"))?;
-    Ok(match module.error() {
-      Some(diagnostic) => Either::A(RspackError::try_from_diagnostic(compilation, diagnostic)?),
-      None => Either::B(()),
-    })
+  module.with_normal(|normal| {
+    let Some(diagnostic) = normal.error() else {
+      return Ok(Either::B(()));
+    };
+    let error = if module.worker || diagnostic.module_identifier.is_none() {
+      RspackError::from_module_diagnostic(diagnostic)?
+    } else {
+      module
+        .with_compilation(|compilation| RspackError::try_from_diagnostic(compilation, diagnostic))?
+    };
+    Ok(Either::A(error))
   })
 }

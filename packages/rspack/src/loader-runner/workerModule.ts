@@ -5,8 +5,15 @@ import binding, {
   type AsyncDependenciesBlock,
 } from '@rspack/binding';
 import type { NormalModule } from '../NormalModule';
+import {
+  pickCustomBuildInfoFields,
+  replaceCustomBuildInfoFields,
+} from '../BuildInfo';
 import { SourceAdapter } from '../util/source';
-import { BUILD_INFO_ASSETS_SYMBOL } from '../util/symbols';
+import {
+  BUILD_INFO_ASSETS_SYMBOL,
+  COMMIT_CUSTOM_FIELDS_SYMBOL,
+} from '../util/symbols';
 import type { WorkerLoaderContext } from './service';
 import { strictLoaderError } from './utils';
 
@@ -26,9 +33,14 @@ function restrictBuildInfo(buildInfo: BuildInfo): BuildInfo {
 /** Local module data stays on the worker; graph access uses the main-thread bridge. */
 export function createWorkerModule(
   native: Module,
-  main?: Pick<WorkerLoaderContext, 'buildInfo' | 'getDependency'>,
+  main?: Pick<
+    WorkerLoaderContext,
+    | 'cacheBuildInfo'
+    | 'customBuildInfo'
+    | 'updateCustomBuildInfo'
+    | 'getDependency'
+  >,
 ) {
-  const bridgeBuildInfo = main?.buildInfo;
   let active = true;
   let localBuildInfo: BuildInfo | undefined;
   const getNative = () => {
@@ -37,6 +49,19 @@ export function createWorkerModule(
         'Worker Module is unavailable after its loader task has completed',
       );
     return native;
+  };
+  const getBuildInfo = () => {
+    const handle = getNative();
+    if (!localBuildInfo) {
+      const info = binding.moduleGetBuildInfo(handle);
+      if (main) {
+        replaceCustomBuildInfoFields(info, main.customBuildInfo);
+        localBuildInfo = info;
+      } else {
+        localBuildInfo = restrictBuildInfo(info);
+      }
+    }
+    return localBuildInfo;
   };
   const wrapDependency = (dependency: Dependency): Dependency => {
     for (const key of ['ids', '_parentModule'] as const) {
@@ -100,11 +125,7 @@ export function createWorkerModule(
       binding.moduleSetFactoryMeta(getNative(), value);
     },
     get buildInfo() {
-      const handle = getNative();
-      if (bridgeBuildInfo) return bridgeBuildInfo;
-      return (localBuildInfo ??= restrictBuildInfo(
-        binding.moduleGetBuildInfo(handle),
-      ));
+      return getBuildInfo();
     },
     identifier() {
       return binding.moduleGetIdentifier(getNative());
@@ -160,16 +181,30 @@ export function createWorkerModule(
   Object.defineProperty(module, 'buildInfo', {
     set(value: BuildInfo) {
       const handle = getNative();
-      if (bridgeBuildInfo) {
-        Object.assign(bridgeBuildInfo, value);
+      if (main) {
+        Object.assign(getBuildInfo(), value);
         return;
       }
       binding.moduleSetBuildInfo(handle, value);
-      localBuildInfo = restrictBuildInfo(binding.moduleGetBuildInfo(handle));
+      localBuildInfo = undefined;
     },
   });
   return {
     module: module as unknown as NormalModule,
+    commitBuildInfo() {
+      if (main && localBuildInfo) {
+        const fields = pickCustomBuildInfoFields(localBuildInfo);
+        if (
+          Object.keys(fields).length > 0 ||
+          Object.keys(main.customBuildInfo).length > 0
+        ) {
+          if (main.cacheBuildInfo) {
+            localBuildInfo[COMMIT_CUSTOM_FIELDS_SYMBOL]();
+          }
+          main.updateCustomBuildInfo(fields);
+        }
+      }
+    },
     dispose() {
       active = false;
     },

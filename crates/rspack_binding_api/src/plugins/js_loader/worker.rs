@@ -7,8 +7,7 @@ use std::sync::{
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
-use rspack_collections::Identifiable;
-use rspack_core::{CompilerId, LoaderContext, ModuleIdentifier, RunnerContext};
+use rspack_core::{LoaderContext, RunnerContext};
 use rustc_hash::FxHashMap;
 
 use super::{
@@ -19,7 +18,7 @@ use super::{
 use crate::{
   error::RspackResultToNapiResultExt,
   js_tasks::{LoaderTask as NativeLoaderTask, TimingPoint, js_task_dispatcher},
-  module::{ModuleObject, WorkerModuleScope},
+  module_bridge::ModuleScope,
   options::raw_resolve::{
     RawResolveOptionsWithDependencyType, normalize_raw_resolve_options_with_dependency_type,
   },
@@ -31,7 +30,7 @@ use crate::{
 pub(crate) struct ActiveLoaderTask {
   native: Option<NativeLoaderTask>,
   _completion: Option<tokio_util::sync::DropGuard>,
-  module_scope: Option<Arc<WorkerModuleScope>>,
+  module_scope: Option<ModuleScope>,
   bridge_handle: Option<MainObjectHandle>,
 }
 
@@ -55,8 +54,8 @@ impl ActiveLoaderTask {
       .context_mut()
   }
 
-  fn revoke(&self) {
-    if let Some(scope) = &self.module_scope {
+  fn revoke(&mut self) {
+    if let Some(scope) = self.module_scope.take() {
       scope.revoke();
     }
   }
@@ -145,7 +144,6 @@ pub struct JsLoaderTask {
   task: TaskCell,
   context_taken: bool,
   worker: bool,
-  module: Option<(CompilerId, ModuleIdentifier)>,
   finished: bool,
 }
 
@@ -214,13 +212,10 @@ impl JsLoaderTask {
     }
     let mut context = JsLoaderContext::try_from(task.context_mut())
       .map_err(|error| napi::Error::from_reason(error.to_string()))?;
-    if self.worker {
-      let native = &task.context().context;
-      let scope = WorkerModuleScope::new(native.options.context.clone());
-      self.module = Some((native.compiler_id, native.module.identifier()));
-      context.module = context
-        .module
-        .map(|module| module.with_worker_scope(scope.clone()));
+    if let Some(module) = context.module.as_mut() {
+      let scope = ModuleScope::new();
+      module.worker = self.worker;
+      module.scope = Some(scope);
       task.module_scope = Some(scope);
     }
     context.loader_chain_start = task.native().start;
@@ -325,7 +320,6 @@ impl JsLoaderTask {
       task,
       context_taken: false,
       worker: worker.is_some(),
-      module: None,
       finished: false,
     })
   }
@@ -341,9 +335,6 @@ impl JsLoaderTask {
   }
 
   fn unregister(&mut self) {
-    if let Some((compiler_id, module_id)) = self.module.take() {
-      ModuleObject::cleanup_by_module_identifiers(&compiler_id, &[module_id]);
-    }
     self
       .slot
       .tasks

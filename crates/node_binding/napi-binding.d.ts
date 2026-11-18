@@ -949,7 +949,6 @@ export interface JsLinkPreloadData {
 
 export interface JsLoaderContext {
   resource: string
-  _module?: Module
   hot: Readonly<boolean>
   /** Content maybe empty in pitching stage */
   content: string | Buffer | null
@@ -969,6 +968,7 @@ export interface JsLoaderContext {
   loaderChainEnd: number
   __internal__error?: RspackError
   __internal__diagnostics?: Array<JsRspackDiagnostic>
+  _module?: Module
 }
 
 export interface JsLoaderDependencies {
@@ -1671,6 +1671,8 @@ export declare enum ModuleKind {
 }
 
 export declare function moduleLibIdent(module: Module, options: JsLibIdentOptions): string | null
+
+export declare function moduleRevokeDirectAccess(module: Module): void
 
 export declare function moduleSetBuildInfo(module: Module, value: BuildInfo): void
 
