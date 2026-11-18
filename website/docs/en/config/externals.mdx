@@ -398,8 +398,8 @@ These externals can load before the lazy module activates, including externals f
 
 When [`externals`](#function) is a function, Rspack calls back into JavaScript while checking module requests, adding cross-language call overhead.
 
-- **Configuration form**: Prefer non-function forms when they meet the same needs, so Rspack can match directly in Rust.
-- **Function logic**: Use available information such as `request` to decide whether to externalize a dependency before [resolving requests](#resolving-requests) or reading files. Perform these operations only when needed, and skip them for unrelated requests.
+- Prefer non-function forms when they meet the same needs, so Rspack can match directly in Rust.
+- Use available information such as `request` to decide whether to externalize a dependency before [resolving requests](#resolving-requests) or reading files. Perform these operations only when needed, and skip them for unrelated requests.
 
 ## externalsType
 

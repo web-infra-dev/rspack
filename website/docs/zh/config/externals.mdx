@@ -398,8 +398,8 @@ externals: {
 
 使用函数形式的 [`externals`](#function) 时，Rspack 需要在检查模块请求时调用 JavaScript，产生额外的跨语言调用开销。
 
-- **配置形式**：在满足相同需求的情况下，建议使用非函数形式，让 Rspack 直接在 Rust 中完成匹配。
-- **函数逻辑**：尽量先根据 `request` 等已有信息判断是否需要外部化，仅在需要时[解析请求](#resolving-requests)或读取文件，避免对无关请求执行这些操作。
+- 在满足相同需求的情况下，建议使用非函数形式，让 Rspack 直接在 Rust 中完成匹配。
+- 尽量先根据 `request` 等已有信息判断是否需要外部化，仅在需要时[解析请求](#resolving-requests)或读取文件，避免对无关请求执行这些操作。
 
 ## externalsType
 
