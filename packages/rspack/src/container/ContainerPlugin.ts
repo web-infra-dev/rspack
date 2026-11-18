@@ -36,9 +36,7 @@ type ContainerPluginConstructorOptions<Enhanced extends boolean = boolean> = [
   ? EnhancedContainerPluginOptions
   : [Enhanced] extends [false]
     ? ContainerPluginBaseOptions<false> & { enhanced?: false }
-    : | (ContainerPluginBaseOptions<false> & { enhanced?: false })
-      | EnhancedContainerPluginOptions
-      | (ContainerPluginBaseOptions<false> & { enhanced: boolean });
+    : ContainerPluginOptions;
 export type Exposes<Enhanced extends boolean = false> =
   (ExposesItem | ExposesObject<Enhanced>)[] | ExposesObject<Enhanced>;
 export type ExposesItem = string;
@@ -46,8 +44,6 @@ export type ExposesItems = ExposesItem[];
 type ExposesObjectBase<Config> = {
   [k: string]: Config | ExposesItem | ExposesItems;
 };
-// Select concrete map shapes rather than nesting the conditional inside the
-// index signature: TypeScript otherwise treats the generic maps as assignable.
 export type ExposesObject<Enhanced extends boolean = false> = [
   Enhanced,
 ] extends [true]
@@ -59,12 +55,15 @@ type ExposesBaseConfig = {
   import: ExposesItem | ExposesItems;
   name?: string;
 };
+// Keep the legacy shape structurally compatible with reusable enhanced maps.
+// Literal options are checked by constructor overloads; runtime validation
+// handles enhanced fields on forwarded objects.
 export type ExposesConfig<Enhanced extends boolean = false> = [
   Enhanced,
 ] extends [true]
   ? ExposesBaseConfig & { layer?: string }
   : [Enhanced] extends [false]
-    ? ExposesBaseConfig & { layer?: never }
+    ? ExposesBaseConfig
     : ExposesBaseConfig & { layer?: string };
 
 export class ContainerPlugin<
@@ -73,7 +72,15 @@ export class ContainerPlugin<
   name = BuiltinPluginName.ContainerPlugin;
   _options;
 
-  constructor(options: ContainerPluginConstructorOptions<Enhanced>) {
+  constructor(
+    options: [Enhanced] extends [false]
+      ? never
+      : EnhancedContainerPluginOptions,
+  );
+  constructor(options: ContainerPluginConstructorOptions<Enhanced>);
+  constructor(
+    options: ContainerPluginOptions | EnhancedContainerPluginOptions,
+  ) {
     super();
 
     if (typeof options.name !== 'string') {
@@ -103,14 +110,15 @@ export class ContainerPlugin<
           layer: undefined,
         }),
         (item) => {
-          if (!enhanced && item.layer !== undefined) {
+          const enhancedItem = item as ExposesConfig<true>;
+          if (!enhanced && enhancedItem.layer !== undefined) {
             throw new Error('[ContainerPlugin] layer requires enhanced=true');
           }
-          validateLayer(item.layer, 'ContainerPlugin');
+          validateLayer(enhancedItem.layer, 'ContainerPlugin');
           return {
             import: Array.isArray(item.import) ? item.import : [item.import],
             name: item.name || undefined,
-            layer: item.layer,
+            layer: enhancedItem.layer,
           };
         },
       ),

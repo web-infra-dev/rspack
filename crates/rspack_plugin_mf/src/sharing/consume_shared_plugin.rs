@@ -404,7 +404,7 @@ impl ConsumeSharedPlugin {
       }
     }
     .and_then(|i| match i {
-      ResolveResult::Resource(r) => Some(r.path.as_str().to_string()),
+      ResolveResult::Resource(resource) => Some(resource.full_path()),
       ResolveResult::Ignored => None,
     });
     let required_version = self

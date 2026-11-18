@@ -99,6 +99,8 @@ Control the loading strategy of shared dependencies:
 
 - `'loaded-first'`: reuse first. After setting, the _remotes_ entry file will not be automatically loaded (it will only be loaded when needed), and registered shared dependencies will be reused first. This strategy is recommended when there are no strict requirements on the version and performance is required.
 
+For non-script remotes (such as `commonjs-module` or `promise`), scalar shared scopes retain lazy container loading. Ordered shared scopes initialize matching remote containers before selecting a shared version under `'version-first'`. Under `'loaded-first'`, consuming a share keeps those remote containers lazy, including with ordered scopes; importing a remote initializes it with its own configured scopes.
+
 ### remoteType
 
 - Type: [`ExternalsType`](/config/externals#externalstype)
@@ -161,6 +163,10 @@ new rspack.container.ModuleFederationPlugin({
 
 This option is available with Module Federation 1.5, which uses the enhanced runtime. When using `ContainerPlugin` directly, set `enhanced: true`; Module Federation 1.0 does not support this option. Omitting `layer` leaves it unspecified. A layer is a non-empty string; an empty string is rejected.
 
+Aliases that expose the same module request remain separate entries in `mf-stats.json` and `mf-manifest.json`, including when they specify different layers.
+
+The public TypeScript options remain structurally compatible when forwarding reusable options between plugins. Direct legacy option literals reject enhanced-only fields such as `layer`. Use `EnhancedContainerPluginOptions` or `EnhancedModuleFederationPluginV1Options` with `enhanced: true` for layered exposes; reusable objects are also validated at runtime, so forwarding an object does not enable enhanced features.
+
 ### shared
 
 - Type:
@@ -215,6 +221,14 @@ The SharedConfig can include the following sub-options:
     - `runtime-infer`: Infer based on the consumer's `usedExports`. If the provider's `usedExports` match the consumer's `usedExports`, the provider's `shared` will be used; otherwise, the consumer's own `shared` will be used. If neither condition is met, the full version is used.
     - `server-calc`: Decide whether to load shared dependencies based on the snapshot sent by the server.
   - filename: Customize the filename of the generated shared fallback entry.
+
+#### Runtime compatibility for shared identities
+
+A runtime-visible `shared.layer` requires a compatible implementation exposing `bundlerRuntime.supportsSharedIdentity === true`. This applies even when only one layered provider or consumer is present: an external unlayered host must not receive a layer-specific provider. Rspack reports an actionable runtime error before registration if the installed implementation lacks this capability. `issuerLayer` alone is a compiler-side filter and does not require the capability. Unused configurations do not trigger this check.
+
+Shared tree-shaking full fallbacks also require this capability when distinct fallbacks have the same share key and version, including across different scalar share scopes. Rspack passes their `shareScope` and `layer` metadata to the runtime so that provider getters select the correct full fallback. Different versions or one full fallback remain compatible with legacy runtimes such as `@module-federation/runtime-tools@2.9.3`; there is no blanket minimum-version check. Use `implementation` to select a compatible runtime, rather than assuming a particular version supports the contract.
+
+Independent fallback builds start from the fallback being built. Other shared modules are included only when reachable from its imports, preserving their actual issuer layer; unrelated `import: false` configurations are not resolved from a synthetic entry.
 
 ### manifest
 

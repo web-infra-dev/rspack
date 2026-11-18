@@ -37,9 +37,7 @@ type ConsumeSharedPluginConstructorOptions<Enhanced extends boolean = boolean> =
     ? EnhancedConsumeSharedPluginOptions
     : [Enhanced] extends [false]
       ? ConsumeSharedPluginBaseOptions<false> & { enhanced?: false }
-      : | (ConsumeSharedPluginBaseOptions<false> & { enhanced?: false })
-        | EnhancedConsumeSharedPluginOptions
-        | (ConsumeSharedPluginBaseOptions<false> & { enhanced: boolean });
+      : ConsumeSharedPluginOptions;
 export type Consumes<Enhanced extends boolean = boolean> =
   (ConsumesItem | ConsumesObject<Enhanced>)[] | ConsumesObject<Enhanced>;
 export type ConsumesItem = string;
@@ -171,7 +169,15 @@ export class ConsumeSharedPlugin<
   name = BuiltinPluginName.ConsumeSharedPlugin;
   _options;
 
-  constructor(options: ConsumeSharedPluginConstructorOptions<Enhanced>) {
+  constructor(
+    options: [Enhanced] extends [false]
+      ? never
+      : EnhancedConsumeSharedPluginOptions,
+  );
+  constructor(options: ConsumeSharedPluginConstructorOptions<Enhanced>);
+  constructor(
+    options: ConsumeSharedPluginOptions | EnhancedConsumeSharedPluginOptions,
+  ) {
     super();
     this._options = {
       consumes: normalizeConsumeShareOptions(

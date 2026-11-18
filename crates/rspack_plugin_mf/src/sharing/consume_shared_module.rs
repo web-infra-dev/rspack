@@ -90,13 +90,12 @@ impl ConsumeSharedModule {
     .identifier_key();
     let readable_identifier = format!(
       "consume shared module ({}){} {}@{}{}{}{}{}",
-      &scopes_key,
+      scopes_key,
       options
         .layer
         .as_ref()
-        .map(|layer| format!(" ({layer})"))
-        .unwrap_or_default(),
-      &options.share_key,
+        .map_or_default(|layer| format!(" ({layer})")),
+      options.share_key,
       options
         .required_version
         .as_ref()
@@ -132,22 +131,14 @@ impl ConsumeSharedModule {
       {
         format!(
           "{namespace}/sharing/consume/{}/{}{}",
-          &scopes_key,
-          &options.share_key,
-          options
-            .import
-            .as_ref()
-            .map(|r| format!("/{r}"))
-            .unwrap_or_default()
+          scopes_key,
+          options.share_key,
+          options.import.as_ref().map_or_default(|r| format!("/{r}"))
         )
       } else {
         format!(
           "{namespace}/sharing/consume/{identity_key}{}",
-          options
-            .import
-            .as_ref()
-            .map(|r| format!("/{r}"))
-            .unwrap_or_default()
+          options.import.as_ref().map_or_default(|r| format!("/{r}"))
         )
       },
       readable_identifier,
