@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use derive_more::Debug;
 use futures::future::BoxFuture;
-use napi::{Either, bindgen_prelude::FnArgs};
+use napi::{
+  Either,
+  bindgen_prelude::{FnArgs, JsValuesTupleIntoVec},
+};
 use napi_derive::napi;
 use rspack_core::{CompilerId, Module};
 use rspack_plugin_circular_dependencies::{
@@ -156,7 +159,9 @@ impl From<RawCircularCheckRspackPluginOptions> for CircularCheckRspackPluginOpti
           let module = ModuleObject::with_ptr(module, compiler_id);
           Box::pin(async move {
             module
-              .call_with_sync(&callback, |module| (module, paths).into())
+              .call_with_sync_args(&callback, move |env, module| {
+                FnArgs::from((module, paths)).into_vec(env.raw())
+              })
               .await
           })
         },

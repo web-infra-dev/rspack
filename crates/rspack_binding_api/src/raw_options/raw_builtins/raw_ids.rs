@@ -64,14 +64,7 @@ fn into_module_filter(test: RawModuleFilter) -> ModuleFilterFn {
           -> BoxFuture<'_, rspack_error::Result<bool>> {
       let test = test.clone();
       let module = ModuleObject::with_ptr(module, compiler_id);
-      Box::pin(async move {
-        Ok(
-          module
-            .call_with_sync(&test, |module| module)
-            .await?
-            .unwrap_or(false),
-        )
-      })
+      Box::pin(async move { Ok(module.call_with_sync(&test).await?.unwrap_or(false)) })
     },
   )
 }

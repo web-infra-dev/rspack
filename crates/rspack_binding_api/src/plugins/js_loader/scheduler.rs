@@ -1,3 +1,4 @@
+use napi::JsValue;
 use rspack_core::{LoaderContext, NormalModuleLoaderStartYielding, RunnerContext};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
@@ -70,11 +71,11 @@ pub(crate) async fn loader_yield(
     context.loader_chain_start = start as u32;
     context.loader_chain_end = end as u32;
     let context = runner
-      .call_async(context)
-      .await
-      .to_rspack_result()?
-      .await
-      .to_rspack_result()?;
+      .call_with_promise_prepared(move |env| {
+        let (context, access) = context.into_jsobject(env)?;
+        Ok((vec![context.raw()], access))
+      })
+      .await?;
     if loader_context.state() == State::Pitching {
       runtime
         .loaders_without_pitch

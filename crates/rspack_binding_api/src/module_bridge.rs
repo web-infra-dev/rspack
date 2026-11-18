@@ -4,8 +4,7 @@ use std::{
   cell::RefCell,
   ffi::c_void,
   ptr::{self, NonNull},
-  rc::{Rc, Weak},
-  sync::atomic::{AtomicUsize, Ordering},
+  rc::Rc,
 };
 
 use napi::{Env, Result, bindgen_prelude::*, sys};
@@ -62,34 +61,14 @@ struct Instance {
 type Instances = FxHashMap<CompilerId, IdentifierMap<Instance>>;
 thread_local! {
   static MODULE_INSTANCE_REFS: RefCell<Instances> = RefCell::default();
-  static SCOPED_HANDLES: RefCell<FxHashMap<ModuleScope, Weak<ModuleHandle>>> = RefCell::default();
 }
 
-/// A callback or worker task can revoke its own handle on the JS thread.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) struct ModuleScope(usize);
+/// Owns direct access to the module for one invocation on this JS thread.
+pub(crate) struct ModuleAccess(Rc<ModuleHandle>);
 
-impl ModuleScope {
-  pub(crate) fn new() -> Self {
-    static NEXT_SCOPE: AtomicUsize = AtomicUsize::new(0);
-    Self(NEXT_SCOPE.fetch_add(1, Ordering::Relaxed))
-  }
-
-  fn bind(self, handle: &Rc<ModuleHandle>) {
-    SCOPED_HANDLES.with_borrow_mut(|handles| handles.insert(self, Rc::downgrade(handle)));
-  }
-
-  pub(crate) fn revoke(self) {
-    // Worker shutdown can finish a task after its JS thread has exited.
-    let _ = SCOPED_HANDLES.try_with(|handles| {
-      if let Some(handle) = handles
-        .borrow_mut()
-        .remove(&self)
-        .and_then(|handle| handle.upgrade())
-      {
-        handle.revoke_direct_access();
-      }
-    });
+impl Drop for ModuleAccess {
+  fn drop(&mut self) {
+    self.0.revoke_direct_access();
   }
 }
 
@@ -135,18 +114,18 @@ unsafe extern "C" fn finalize(_env: sys::napi_env, data: *mut c_void, _hint: *mu
   drop(unsafe { Rc::from_raw(data.cast::<ModuleHandle>()) });
 }
 
-pub(crate) fn to_jsobject(env: &Env, mut value: ModuleObject) -> Result<sys::napi_value> {
-  let scope = value.scope;
+pub(crate) fn to_jsobject(
+  env: &Env,
+  mut value: ModuleObject,
+) -> Result<(Object<'_>, Option<ModuleAccess>)> {
+  let direct = value.has_ptr();
   if value.worker {
     // A worker has no JS Compiler. Its task-local facade calls the same native
     // getters on this tagged handle, without entering the main identity cache.
     let object = Object::new(env)?;
     let handle = Rc::new(ModuleHandle::new(value));
     wrap(env, object, &handle)?;
-    if let Some(scope) = scope {
-      scope.bind(&handle);
-    }
-    return Ok(object.raw());
+    return Ok((object, direct.then_some(ModuleAccess(handle))));
   }
   let mut cache = true;
   let cached = MODULE_INSTANCE_REFS.with_borrow(|instances| -> Result<Option<_>> {
@@ -156,20 +135,18 @@ pub(crate) fn to_jsobject(env: &Env, mut value: ModuleObject) -> Result<sys::nap
     else {
       return Ok(None);
     };
-    if value.has_ptr() && instance.handle.has_direct_access() {
+    if direct && instance.handle.has_direct_access() {
       // Nested builds can have the same identifier. Keep each callback's
       // pointer and revocation independent.
       cache = false;
       return Ok(None);
     }
     let object = unsafe { ToNapiValue::to_napi_value(env.raw(), &instance.reference)? };
-    if value.has_ptr() {
+    let access = direct.then(|| {
       instance.handle.set_direct_access(&mut value);
-      if let Some(scope) = scope {
-        scope.bind(&instance.handle);
-      }
-    }
-    Ok(Some(object))
+      ModuleAccess(Rc::clone(&instance.handle))
+    });
+    Ok(Some((Object::from_raw(env.raw(), object), access)))
   })?;
   if let Some(object) = cached {
     return Ok(object);
@@ -183,13 +160,9 @@ pub(crate) fn to_jsobject(env: &Env, mut value: ModuleObject) -> Result<sys::nap
   let compiler = crate::upgrade_compiler(env, compiler_id)?;
   let object = compiler.js_helpers.create_module(env, kind)?;
   wrap(env, object, &handle)?;
-  if let Some(scope) = scope {
-    scope.bind(&handle);
-  }
+  let access = direct.then(|| ModuleAccess(Rc::clone(&handle)));
   if cache {
-    let reference = OneShotRef::new(env.raw(), object).inspect_err(|_| {
-      handle.revoke_direct_access();
-    })?;
+    let reference = OneShotRef::new(env.raw(), object)?;
     MODULE_INSTANCE_REFS.with_borrow_mut(|instances| {
       instances
         .entry(compiler_id)
@@ -197,7 +170,7 @@ pub(crate) fn to_jsobject(env: &Env, mut value: ModuleObject) -> Result<sys::nap
         .insert(identifier, Instance { reference, handle });
     });
   }
-  Ok(object.raw())
+  Ok((object, access))
 }
 
 fn wrap(env: &Env, object: Object<'_>, handle: &Rc<ModuleHandle>) -> Result<()> {

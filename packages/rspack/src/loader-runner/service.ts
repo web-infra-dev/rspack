@@ -2,14 +2,12 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import {
   prepareLoaderTask,
-  completeLoaderTaskHooks,
   registerLoaderReference,
   getSerializedLoaderOptions,
   registerLoaderWorker,
   registerMainObjectRelease,
   releaseLoaderReferences,
   stopLoaderWorker,
-  moduleRevokeDirectAccess,
 } from '@rspack/binding';
 import type { Dependency, Module } from '@rspack/binding';
 import type { Tinypool } from 'tinypool';
@@ -709,20 +707,14 @@ class ObjectBridge {
         .then(() => {
           // Parallel loaders skip NormalModule's loader hook. Only prepare the
           // main-owned API bridge; the worker constructs its loader context.
-          const context = prepareLoaderTask(taskId);
-          const module = context._module!;
-          let handle: number;
-          try {
-            handle = registerLoaderContext(
+          const handle = prepareLoaderTask(taskId, (context) => {
+            context.bridgeHandle = registerLoaderContext(
               lookup(message.target) as Compiler,
-              module,
+              context._module!,
               {},
             );
-          } finally {
-            moduleRevokeDirectAccess(module);
-          }
-          context.bridgeHandle = handle;
-          completeLoaderTaskHooks(taskId, context);
+            return context;
+          });
           this.activeTasks.add(handle);
           this.port.postMessage({
             type: 'response',

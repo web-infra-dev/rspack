@@ -12,6 +12,7 @@ use super::bridge::{MainObjectHandle, SerializedLoaderData};
 use crate::{
   error::{JsRspackDiagnostic, RspackError},
   module::ModuleObject,
+  module_bridge::ModuleAccess,
 };
 
 #[napi(object)]
@@ -224,6 +225,20 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
 }
 
 impl JsLoaderContext {
+  pub(super) fn into_jsobject(
+    mut self,
+    env: &Env,
+  ) -> napi::Result<(Object<'_>, Option<ModuleAccess>)> {
+    let module = self
+      .module
+      .take()
+      .ok_or_else(|| Error::from_reason("Loader context has no Module"))?;
+    let mut context = Object::from_raw(env.raw(), unsafe { Self::to_napi_value(env.raw(), self)? });
+    let (module, access) = module.into_jsobject(env)?;
+    context.set_named_property("_module", module)?;
+    Ok((context, access))
+  }
+
   pub(super) fn from_native(
     cx: &mut LoaderContext<RunnerContext>,
     hooks_only: bool,

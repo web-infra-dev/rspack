@@ -127,8 +127,17 @@ extern "C" fn call_js(
         None => return,
       };
       let failure = task.failure_handle();
+      let mut task = match task.into_instance(&env) {
+        Ok(task) => task,
+        Err(error) => {
+          JsLoaderTask::fail_handle(failure, error.to_string());
+          let mut exception = ptr::null_mut();
+          unsafe { sys::napi_get_and_clear_last_exception(raw_env, &mut exception) };
+          return;
+        }
+      };
+      drop(failure);
       let result = (|| {
-        let task = unsafe { ToNapiValue::to_napi_value(raw_env, task) }?;
         let mut ignored = ptr::null_mut();
         let mut receiver = ptr::null_mut();
         check_status!(unsafe { sys::napi_get_undefined(raw_env, &mut receiver) })?;
@@ -138,15 +147,15 @@ extern "C" fn call_js(
             receiver,
             callback,
             2,
-            [compiler, task].as_ptr(),
+            [compiler, task.raw()].as_ptr(),
             &mut ignored,
           )
         })
       })();
       if let Err(error) = result {
-        JsLoaderTask::fail_handle(failure, error.to_string());
         let mut exception = ptr::null_mut();
         unsafe { sys::napi_get_and_clear_last_exception(raw_env, &mut exception) };
+        let _ = task.fail(error.to_string());
       }
     }
   }

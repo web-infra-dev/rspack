@@ -597,8 +597,6 @@ export declare enum BuiltinPluginName {
 
 export declare function cleanupGlobalTrace(): void
 
-export declare function completeLoaderTaskHooks(id: number, context: JsLoaderContext): void
-
 export declare function concatenatedModuleGetModules(module: Module): Module[]
 
 export declare function concatenatedModuleGetRootModule(module: Module): Module
@@ -1672,8 +1670,6 @@ export declare enum ModuleKind {
 
 export declare function moduleLibIdent(module: Module, options: JsLibIdentOptions): string | null
 
-export declare function moduleRevokeDirectAccess(module: Module): void
-
 export declare function moduleSetBuildInfo(module: Module, value: BuildInfo): void
 
 export declare function moduleSetFactoryMeta(module: Module, factoryMeta: JsFactoryMeta): void
@@ -1929,7 +1925,7 @@ export interface PathWithInfo {
 }
 
 /** Main-isolate hook view. Called through RPC after a worker receives native work. */
-export declare function prepareLoaderTask(id: number): JsLoaderContext
+export declare function prepareLoaderTask(id: number, prepare: (context: JsLoaderContext) => JsLoaderContext): number
 
 export interface RawAliasOptionItem {
   path: string

@@ -207,8 +207,8 @@ impl<T, R> ThreadsafeJsTapFunction<T, R> {
 
 impl<T, R> ThreadsafeJsTapFunction<T, R>
 where
-  T: 'static + JsValuesTupleIntoVec,
-  R: 'static + FromNapiValue,
+  T: 'static + JsValuesTupleIntoVec + Send,
+  R: 'static + FromNapiValue + Send,
 {
   async fn call_with_sync(&self, value: T) -> rspack_error::Result<R> {
     self.inner.call_with_sync::<T, R>(value).await
@@ -217,18 +217,20 @@ where
 
 impl ThreadsafeJsTapFunction<ModuleObject, ()> {
   async fn call_with_module(&self, module: ModuleObject) -> rspack_error::Result<()> {
-    let (module, scope) = module.scoped();
     self
       .inner
-      .call_with_sync_cleanup(module, move || scope.revoke())
+      .call_with_sync_prepared(move |env| {
+        let (module, access) = module.into_jsobject(env)?;
+        Ok((vec![module.raw()], access))
+      })
       .await
   }
 }
 
 impl<T, R> ThreadsafeJsTapFunction<T, Promise<R>>
 where
-  T: 'static + JsValuesTupleIntoVec,
-  R: 'static + FromNapiValue,
+  T: 'static + JsValuesTupleIntoVec + Send,
+  R: 'static + FromNapiValue + Send,
 {
   async fn call_with_promise(&self, value: T) -> rspack_error::Result<R> {
     self.inner.call_with_promise::<T, R>(value).await

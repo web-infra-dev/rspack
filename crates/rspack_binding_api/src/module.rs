@@ -262,14 +262,6 @@ pub fn module_emit_file(
   module.emit_file(env, filename, source, info)
 }
 
-#[doc(hidden)]
-#[napi(ts_args_type = "module: Module")]
-pub fn module_revoke_direct_access(module: Object<'_>) -> Result<()> {
-  let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
-  module.revoke_direct_access();
-  Ok(())
-}
-
 struct OriginalSourceNapiRef {
   // Only retain a weak pointer for identity comparison. Holding another BoxSource here would
   // increment its Arc strong count and keep the native source alive after the Module replaces it.
@@ -626,7 +618,6 @@ pub struct ModuleObject {
   pub(crate) compiler_id: CompilerId,
   pub(crate) worker: bool,
   loader_context: Option<LoaderModuleContext>,
-  pub(crate) scope: Option<module_bridge::ModuleScope>,
 }
 
 unsafe impl Send for ModuleObject {}
@@ -641,7 +632,6 @@ impl ModuleObject {
       compiler_id,
       worker: false,
       loader_context: None,
-      scope: None,
     }
   }
 
@@ -679,24 +669,39 @@ impl ModuleObject {
     self.pointer.is_some()
   }
 
-  pub(crate) fn scoped(mut self) -> (Self, module_bridge::ModuleScope) {
-    let scope = module_bridge::ModuleScope::new();
-    self.scope = Some(scope);
-    (self, scope)
+  pub(crate) fn into_jsobject(
+    self,
+    env: &Env,
+  ) -> Result<(Object<'_>, Option<module_bridge::ModuleAccess>)> {
+    module_bridge::to_jsobject(env, self)
   }
 
-  pub(crate) async fn call_with_sync<T, R>(
+  pub(crate) async fn call_with_sync<R>(
+    self,
+    callback: &CompilerScopedTsFnHandle<Self, R>,
+  ) -> rspack_error::Result<R>
+  where
+    R: 'static + FromNapiValue + Send,
+  {
+    self
+      .call_with_sync_args(callback, |_, module| Ok(vec![module.raw()]))
+      .await
+  }
+
+  pub(crate) async fn call_with_sync_args<T, R>(
     self,
     callback: &CompilerScopedTsFnHandle<T, R>,
-    args: impl FnOnce(Self) -> T,
+    args: impl FnOnce(&Env, Object<'_>) -> Result<Vec<sys::napi_value>> + Send + 'static,
   ) -> rspack_error::Result<R>
   where
     T: 'static + JsValuesTupleIntoVec,
-    R: 'static + FromNapiValue,
+    R: 'static + FromNapiValue + Send,
   {
-    let (module, scope) = self.scoped();
     callback
-      .call_with_sync_cleanup(args(module), move || scope.revoke())
+      .call_with_sync_prepared(move |env| {
+        let (module, access) = self.into_jsobject(env)?;
+        Ok((args(env, module)?, access))
+      })
       .await
   }
 
@@ -719,7 +724,12 @@ impl ModuleObject {
 impl ToNapiValue for ModuleObject {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     let env = unsafe { Env::from_raw(env) };
-    module_bridge::to_jsobject(&env, val)
+    if val.has_ptr() {
+      return Err(Error::from_reason(
+        "Direct Module access requires a scoped callback",
+      ));
+    }
+    val.into_jsobject(&env).map(|(object, _)| object.raw())
   }
 }
 
@@ -733,7 +743,6 @@ impl FromNapiValue for ModuleObject {
       compiler_id: handle.compiler_id,
       worker: handle.worker,
       loader_context: None,
-      scope: None,
     })
   }
 }

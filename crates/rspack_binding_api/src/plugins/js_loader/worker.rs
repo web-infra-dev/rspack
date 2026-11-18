@@ -18,65 +18,35 @@ use super::{
 use crate::{
   error::RspackResultToNapiResultExt,
   js_tasks::{LoaderTask as NativeLoaderTask, TimingPoint, js_task_dispatcher},
-  module_bridge::ModuleScope,
+  module_bridge::ModuleAccess,
   options::raw_resolve::{
     RawResolveOptionsWithDependencyType, normalize_raw_resolve_options_with_dependency_type,
   },
   resolver::JsResolver,
 };
 
-// Resources acquired in a JS environment stay in binding, outside the queue's
-// native task protocol. Revoke the module scope before returning native state.
+// The shared task contains the native context and is also used on worker exit.
+// The live ModuleHandle belongs to the JS-side JsLoaderTask.
 pub(crate) struct ActiveLoaderTask {
-  native: Option<NativeLoaderTask>,
+  native: NativeLoaderTask,
   _completion: Option<tokio_util::sync::DropGuard>,
-  module_scope: Option<ModuleScope>,
   bridge_handle: Option<MainObjectHandle>,
 }
 
 impl ActiveLoaderTask {
-  fn native(&self) -> &NativeLoaderTask {
-    self
-      .native
-      .as_ref()
-      .expect("unfinished task owns native state")
-  }
-
   fn context(&self) -> &LoaderContext<RunnerContext> {
-    self.native().context()
+    self.native.context()
   }
 
   fn context_mut(&mut self) -> &mut LoaderContext<RunnerContext> {
-    self
-      .native
-      .as_mut()
-      .expect("unfinished task owns native state")
-      .context_mut()
+    self.native.context_mut()
   }
 
-  fn revoke(&mut self) {
-    if let Some(scope) = self.module_scope.take() {
-      scope.revoke();
-    }
-  }
-
-  fn finish(mut self, pitches: Vec<String>, result: rspack_error::Result<()>) {
-    self.revoke();
-    if let Some(timing) = &self.native().timing {
+  fn finish(self, pitches: Vec<String>, result: rspack_error::Result<()>) {
+    if let Some(timing) = &self.native.timing {
       timing.mark(TimingPoint::Returned);
     }
-    self
-      .native
-      .take()
-      .expect("unfinished task owns native state")
-      .finish(pitches, result);
-  }
-}
-
-impl Drop for ActiveLoaderTask {
-  fn drop(&mut self) {
-    self.revoke();
-    // NativeLoaderTask::drop returns the context after this revoke.
+    self.native.finish(pitches, result);
   }
 }
 
@@ -143,6 +113,7 @@ pub struct JsLoaderTask {
   id: u32,
   task: TaskCell,
   context_taken: bool,
+  module_access: Option<ModuleAccess>,
   worker: bool,
   finished: bool,
 }
@@ -160,7 +131,7 @@ impl JsLoaderTask {
       guard
         .as_ref()
         .ok_or_else(|| napi::Error::from_reason("Loader task has finished"))?
-        .native()
+        .native
         .main_object_handle,
     )
   }
@@ -172,7 +143,7 @@ impl JsLoaderTask {
       guard
         .as_ref()
         .ok_or_else(|| napi::Error::from_reason("Loader task has finished"))?
-        .native()
+        .native
         .strict,
     )
   }
@@ -193,8 +164,8 @@ impl JsLoaderTask {
     ))
   }
 
-  #[napi]
-  pub fn take_context(&mut self) -> napi::Result<JsLoaderContext> {
+  #[napi(ts_return_type = "JsLoaderContext")]
+  pub fn take_context<'env>(&mut self, env: &'env Env) -> napi::Result<Object<'env>> {
     if self.context_taken {
       return Err(napi::Error::from_reason(
         "Loader task context has already been taken",
@@ -204,39 +175,40 @@ impl JsLoaderTask {
     let task = guard
       .as_mut()
       .ok_or_else(|| napi::Error::from_reason("Loader task has finished"))?;
-    if let Some(timing) = &task.native().timing {
+    if let Some(timing) = &task.native.timing {
       timing.mark(TimingPoint::ContextStarted);
     }
-    if task.native().strict {
+    if task.native.strict {
       task.context_mut().take_additional_data();
     }
     let mut context = JsLoaderContext::try_from(task.context_mut())
       .map_err(|error| napi::Error::from_reason(error.to_string()))?;
     if let Some(module) = context.module.as_mut() {
-      let scope = ModuleScope::new();
       module.worker = self.worker;
-      module.scope = Some(scope);
-      task.module_scope = Some(scope);
     }
-    context.loader_chain_start = task.native().start;
-    context.loader_chain_end = task.native().end;
+    context.loader_chain_start = task.native.start;
+    context.loader_chain_end = task.native.end;
     context.bridge_handle = task.bridge_handle.as_ref().map(MainObjectHandle::handle);
     self.context_taken = true;
-    if let Some(timing) = &task.native().timing {
+    if let Some(timing) = &task.native.timing {
       timing.mark(TimingPoint::ContextPrepared);
     }
+    drop(guard);
+    let (context, access) = context.into_jsobject(env)?;
+    self.module_access = access;
     Ok(context)
   }
 
   #[napi]
   pub fn complete(&mut self, context: JsLoaderContext) -> napi::Result<()> {
+    drop(self.module_access.take());
     let mut task = self
       .task
       .lock()
       .expect("loader task lock poisoned")
       .take()
       .ok_or_else(|| napi::Error::from_reason("Loader task has finished"))?;
-    if let Some(timing) = &task.native().timing {
+    if let Some(timing) = &task.native.timing {
       timing.mark(TimingPoint::CompleteEntered);
     }
     let pitches = context
@@ -255,6 +227,7 @@ impl JsLoaderTask {
 
   #[napi]
   pub fn fail(&mut self, error: String) -> napi::Result<()> {
+    drop(self.module_access.take());
     let task = self
       .task
       .lock()
@@ -275,9 +248,8 @@ impl JsLoaderTask {
     completion: Option<tokio_util::sync::DropGuard>,
   ) -> Option<Self> {
     let task = ActiveLoaderTask {
-      native: Some(task),
+      native: task,
       _completion: completion,
-      module_scope: None,
       bridge_handle: None,
     };
     let slot = match worker {
@@ -304,7 +276,7 @@ impl JsLoaderTask {
       return None;
     }
     let id = NEXT_TASK.fetch_add(1, Ordering::Relaxed);
-    if let Some(timing) = &task.native().timing {
+    if let Some(timing) = &task.native.timing {
       timing.identify(id, worker);
     }
     let task = Arc::new(Mutex::new(Some(task)));
@@ -319,6 +291,7 @@ impl JsLoaderTask {
       id,
       task,
       context_taken: false,
+      module_access: None,
       worker: worker.is_some(),
       finished: false,
     })
@@ -350,6 +323,7 @@ impl JsLoaderTask {
 
 impl Drop for JsLoaderTask {
   fn drop(&mut self) {
+    drop(self.module_access.take());
     self.unregister();
     if !self.finished
       && let Some(task) = self.task.lock().expect("loader task lock poisoned").take()
@@ -364,42 +338,44 @@ impl Drop for JsLoaderTask {
 
 /// Main-isolate hook view. Called through RPC after a worker receives native work.
 #[napi]
-pub fn prepare_loader_task(id: u32) -> napi::Result<JsLoaderContext> {
+pub fn prepare_loader_task<'env>(
+  env: &'env Env,
+  id: u32,
+  #[napi(ts_arg_type = "(context: JsLoaderContext) => JsLoaderContext")] prepare: Function<
+    'env,
+    Object<'env>,
+    Object<'env>,
+  >,
+) -> napi::Result<u32> {
   let cell = TASKS
     .lock()
     .expect("loader tasks lock poisoned")
     .get(&id)
     .cloned()
     .ok_or_else(|| napi::Error::from_reason("Loader task has finished"))?;
-  let mut guard = cell.lock().expect("loader task lock poisoned");
-  let task = guard
-    .as_mut()
+  // Keep the context alive without holding the task lock across JavaScript.
+  // The worker can release its JS task while this callback is running.
+  let mut task = cell
+    .lock()
+    .expect("loader task lock poisoned")
+    .take()
     .ok_or_else(|| napi::Error::from_reason("Loader task has finished"))?;
-  let mut context = JsLoaderContext::from_native(task.context_mut(), true)
-    .map_err(|error| napi::Error::from_reason(error.to_string()))?;
-  context.loader_chain_start = task.native().start;
-  context.loader_chain_end = task.native().end;
-  Ok(context)
-}
-
-#[napi]
-pub fn complete_loader_task_hooks(id: u32, context: JsLoaderContext) -> napi::Result<()> {
-  let handle = MainObjectHandle::new(
-    context
+  let result = (|| {
+    let mut context = JsLoaderContext::from_native(task.context_mut(), true)
+      .map_err(|error| napi::Error::from_reason(error.to_string()))?;
+    context.loader_chain_start = task.native.start;
+    context.loader_chain_end = task.native.end;
+    let (context, access) = context.into_jsobject(env)?;
+    let result = prepare.call(context);
+    drop(access);
+    let context = unsafe { JsLoaderContext::from_napi_value(env.raw(), result?.raw())? };
+    let handle = context
       .bridge_handle
-      .ok_or_else(|| napi::Error::from_reason("Loader hooks did not register their context"))?,
-  );
-  let cell = TASKS
-    .lock()
-    .expect("loader tasks lock poisoned")
-    .get(&id)
-    .cloned()
-    .ok_or_else(|| napi::Error::from_reason("Loader task has finished"))?;
-  let mut guard = cell.lock().expect("loader task lock poisoned");
-  let task = guard
-    .as_mut()
-    .ok_or_else(|| napi::Error::from_reason("Loader task has finished"))?;
-  merge_loader_hooks(task.context_mut(), context);
-  task.bridge_handle = Some(handle);
-  Ok(())
+      .ok_or_else(|| napi::Error::from_reason("Loader hooks did not register their context"))?;
+    merge_loader_hooks(task.context_mut(), context);
+    task.bridge_handle = Some(MainObjectHandle::new(handle));
+    Ok(handle)
+  })();
+  *cell.lock().expect("loader task lock poisoned") = Some(task);
+  result
 }

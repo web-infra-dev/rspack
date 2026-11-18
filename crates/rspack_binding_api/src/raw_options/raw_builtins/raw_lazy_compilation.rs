@@ -51,7 +51,7 @@ impl LazyCompilationTestCheck for LazyCompilationTestFn {
     m: &dyn rspack_core::Module,
   ) -> bool {
     let res = ModuleObject::with_ptr(m, compiler_id)
-      .call_with_sync(&self.tsfn, |module| module)
+      .call_with_sync(&self.tsfn)
       .await
       .expect("failed to invoke lazyCompilation.test");
 
