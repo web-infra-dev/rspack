@@ -9,22 +9,10 @@ const fs = require("fs");
 const path = require("path");
 __webpack_require__.p = 'PUBLIC_PATH';
 
-const treeShakingSharedDir = path.join(
-	__dirname,
-	"independent-packages"
-);
-
-const uiLibShareContainerPath = path.join(
-	treeShakingSharedDir,
-	"ui_lib/1.0.0",
-	"share-entry.js"
-);
-
-const uiLibDepShareContainerPath = path.join(
-	treeShakingSharedDir,
-	"ui_lib_dep/1.0.0",
-	"share-entry.js"
-);
+const [[uiLibEntry, , uiLibGlobal]] = sharedFallbacks['ui-lib'];
+const [[uiLibDepEntry, , uiLibDepGlobal]] = sharedFallbacks['ui-lib-dep'];
+const uiLibShareContainerPath = path.join(__dirname, uiLibEntry);
+const uiLibDepShareContainerPath = path.join(__dirname, uiLibDepEntry);
 
 const customPluginAssetPath = path.join(
 	uiLibDepShareContainerPath,
@@ -43,7 +31,7 @@ it("should build independent share file", () => {
 });
 
 it("secondary tree shaking shared container should only have specify usedExports", async () => {
-    const uiLibDepShareContainerModule = eval("require")(uiLibDepShareContainerPath).secondary_tree_shaking_share_t_ui_lib_dep_100;
+    const uiLibDepShareContainerModule = eval("require")(uiLibDepShareContainerPath)[uiLibDepGlobal];
 		await uiLibDepShareContainerModule.init({},{
 		installInitialConsumes: async ()=>{
 			return 'call init'
@@ -57,7 +45,7 @@ it("secondary tree shaking shared container should only have specify usedExports
 
 
 it("correct handle share dep while secondary tree shaking", async () => {
-    const uiLibShareContainerModule = eval("require")(uiLibShareContainerPath).secondary_tree_shaking_share_t_ui_lib_100;
+    const uiLibShareContainerModule = eval("require")(uiLibShareContainerPath)[uiLibGlobal];
 		await uiLibShareContainerModule.init({},{
 		installInitialConsumes: async ({webpackRequire})=>{
 			webpackRequire.m[`${bundlerName}/sharing/consume/default/ui-lib-dep`] = (m)=>{

@@ -12,8 +12,8 @@ use rspack_core::{
   BuildMetaExportsType, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock,
   DependenciesBlockData, DependencyRange, FactoryMetaStore, FreezeLock, ImportPhase,
   LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer,
-  ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
-  impl_source_map_config, module_update_hash,
+  ModuleType, NeedBuildContext, ReferencedSpecifier, RuntimeSpec, SourceType, contextify,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -232,6 +232,11 @@ impl Module for RscEntryModule {
 
   fn get_layer(&self) -> Option<&ModuleLayer> {
     self.layer.as_ref()
+  }
+
+  async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+    // The identifier includes all inputs used to build this generated entry.
+    Ok(self.build_meta.frozen().is_none())
   }
 
   async fn build(
