@@ -68,8 +68,6 @@ mod context_module;
 pub use context_module::*;
 mod context_module_factory;
 pub use context_module_factory::*;
-mod glob_utils;
-pub use glob_utils::*;
 mod init_fragment;
 pub use init_fragment::*;
 mod module_factory;
