@@ -494,8 +494,6 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
           }
         }
       }
-      // A loader can catch the error and produce cacheable output. Keep the
-      // cacheability and dependencies collected from the executed modules.
       Err(e) => execute_result.errors.push(e.into()),
     };
 
