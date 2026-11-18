@@ -1,3 +1,1 @@
-export default () => {
-	return "support NoEmitOnErrorsPlugin";
-};
+export default () => "TODO: prevent asset emission when a child compilation reports errors";
