@@ -20,14 +20,6 @@ const excludes = {
 		/^loader-parallel-import-module\/execute-failed$/,
 		/^module\/rspack-issue-8785$/,
 
-		// Independent shared fallback compilers write to the same cache database as their parent.
-		/^container-1-5\/tree-shaking-shared-infer-mode$/,
-		/^container-1-5\/tree-shaking-shared-pnpm-versions$/,
-		/^container-1-5\/tree-shaking-shared-provide-only$/,
-		/^container-1-5\/tree-shaking-shared-server-mode$/,
-		/^sharing\/reshake-share$/,
-		/^sharing\/tree-shaking-shared$/,
-
 		// Loader-emitted errors or warnings are not fully restored.
 		/^source-map\/extract-source-map$/,
 
