@@ -769,8 +769,7 @@ impl RstestParserPlugin {
         .resource_data
         .path()
         .and_then(|p| p.parent())
-        .map(|p| p.to_string())
-        .unwrap_or_default();
+        .map_or_default(|p| p.to_string());
       json_stringify_str(&resource_path)
     }
   }

@@ -1,0 +1,6 @@
+{
+	"extends": ["./configs/base.json", "./configs/paths.json"],
+	"compilerOptions": {
+		"baseUrl": "./own"
+	}
+}

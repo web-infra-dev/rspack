@@ -9,7 +9,7 @@ var getChunkScriptFilename = (chunkId) => {
   // return url for filenames not based on template
 
   // return url for filenames based on template
-  return "" + chunkId + ".mjs"
+  return chunkId + ".mjs"
 };
 // rspack/runtime/public_path
 var publicPath = "";;

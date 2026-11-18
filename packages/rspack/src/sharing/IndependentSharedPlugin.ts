@@ -6,6 +6,8 @@ import {
   getFileName,
   type ModuleFederationManifestPluginOptions,
 } from '../container/ModuleFederationManifestPlugin';
+import type { Logger } from '../logging/Logger';
+import type { Stats } from '../Stats';
 import { createHash } from '../util/createHash';
 import { absoluteToRequest } from '../util/identifier';
 import {
@@ -103,6 +105,12 @@ type SharedBuildAsset = SharedBuildRequest & {
   globalName: string;
 };
 
+type SharedFallbackBuild = {
+  request: SharedBuildRequest;
+  outputDir: string;
+  plugin: SharedContainerPlugin;
+};
+
 class VirtualEntryPlugin {
   requests: string[];
   collectShared = false;
@@ -148,8 +156,10 @@ class VirtualEntryPlugin {
               chunk?.files.forEach((f) => {
                 compilation.deleteAsset(f);
               });
-            } catch (_e) {
-              console.error('Failed to remove virtual entry file!');
+            } catch (error) {
+              compiler
+                .getInfrastructureLogger('VirtualEntryPlugin')
+                .error('Failed to remove virtual entry file!', error);
             }
           },
         );
@@ -381,8 +391,18 @@ export class IndependentSharedPlugin {
           shareRequestsMap,
           compiler.context,
         );
-        this.prepareBuildAssets(buildRequests, compiler.context);
-        await this.createIndependentCompilers(compiler, buildRequests);
+        const builds = this.prepareFallbackBuilds(
+          buildRequests,
+          compiler.context,
+        );
+        const logger = compiler.getInfrastructureLogger(this.name);
+        logger.log('Start building shared fallback resources ...');
+        await Promise.all(
+          builds.map((build) =>
+            this.createIndependentCompiler(compiler, logger, build),
+          ),
+        );
+        logger.log('All shared fallback have been compiled successfully!');
         this.onBuildAssets?.(this.buildAssets, this.buildAssetVariants);
       },
     );
@@ -528,7 +548,9 @@ export class IndependentSharedPlugin {
       ]);
     const emittedGlobal = (request: SharedBuildRequest) =>
       encodeName(
-        `${this.mfName}_${this.treeShaking ? 't' : 'f'}_${request.shareKey}_${request.version}`,
+        `${this.mfName}_${this.treeShaking ? 't' : 'f'}`,
+        request.shareKey,
+        request.version,
       );
     const pathCounts = new Map<string, number>();
     const globalCounts = new Map<string, number>();
@@ -572,7 +594,7 @@ export class IndependentSharedPlugin {
     return uniqueBuildRequests;
   }
 
-  private prepareBuildAssets(
+  private prepareFallbackBuilds(
     buildRequests: SharedBuildRequest[],
     context: string,
   ) {
@@ -580,6 +602,7 @@ export class IndependentSharedPlugin {
     const buildAssets: ShareFallback = {};
     const buildAssetRecords: SharedBuildAsset[] = [];
     const buildAssetVariants: ShareFallbackVariants = {};
+    const builds: SharedFallbackBuild[] = [];
 
     buildRequests.forEach((request) => {
       const sharedContainerPlugin = this.createSharedContainerPlugin(request);
@@ -607,11 +630,21 @@ export class IndependentSharedPlugin {
         resource: absoluteToRequest(context, request.request),
       });
       buildAssetRecords.push({ ...request, entry, globalName });
+      builds.push({
+        request,
+        outputDir: resolveOutputDir(
+          outputDir,
+          request.shareKey,
+          request.artifactIdentity,
+        ),
+        plugin: sharedContainerPlugin,
+      });
     });
 
     this.buildAssets = buildAssets;
     this.buildAssetRecords = buildAssetRecords;
     this.buildAssetVariants = buildAssetVariants;
+    return builds;
   }
 
   private createSharedContainerPlugin(request: SharedBuildRequest) {
@@ -629,43 +662,26 @@ export class IndependentSharedPlugin {
     });
   }
 
-  private async createIndependentCompilers(
-    parentCompiler: Compiler,
-    buildRequests: SharedBuildRequest[],
-  ) {
-    console.log('Start building shared fallback resources ...');
-
-    await Promise.all(
-      buildRequests.map((currentShare) =>
-        this.createIndependentCompiler(parentCompiler, currentShare),
-      ),
-    );
-
-    console.log('All shared fallback have been compiled successfully!');
-  }
-
   private async createIndependentCompiler(
     parentCompiler: Compiler,
-    currentShare: SharedBuildRequest,
+    logger: Logger,
+    {
+      request: currentShare,
+      outputDir,
+      plugin: sharedContainerPlugin,
+    }: SharedFallbackBuild,
   ) {
     const {
       plugins,
-      outputDir,
       sharedOptions,
       treeShaking,
       treeShakingSharedExcludePlugins,
     } = this;
 
-    const outputDirWithShareName = resolveOutputDir(
-      outputDir,
-      currentShare.shareKey,
-      currentShare.artifactIdentity,
-    );
     const parentConfig = parentCompiler.options;
 
     const finalPlugins = [];
     const rspack = parentCompiler.rspack;
-    const extraPlugin = this.createSharedContainerPlugin(currentShare);
     (parentConfig.plugins || []).forEach((plugin) => {
       if (
         plugin !== undefined &&
@@ -678,7 +694,7 @@ export class IndependentSharedPlugin {
     plugins.forEach((plugin) => {
       finalPlugins.push(plugin);
     });
-    finalPlugins.push(extraPlugin);
+    finalPlugins.push(sharedContainerPlugin);
 
     finalPlugins.push(
       new ConsumeSharedPlugin({
@@ -733,12 +749,11 @@ export class IndependentSharedPlugin {
         false,
       ),
     );
-    const fullOutputDir = resolve(
-      parentCompiler.outputPath,
-      outputDirWithShareName,
-    );
+    const fullOutputDir = resolve(parentCompiler.outputPath, outputDir);
     const compilerConfig: RspackOptions = {
       ...parentConfig,
+      // Fallback compilers run concurrently and must not write to the parent's cache database.
+      cache: { type: 'memory' },
       name: parentConfig.name || 'mf-shared-compiler',
       module: {
         ...parentConfig.module,
@@ -778,24 +793,19 @@ export class IndependentSharedPlugin {
     compiler.outputFileSystem = parentCompiler.outputFileSystem;
     compiler.intermediateFileSystem = parentCompiler.intermediateFileSystem;
 
-    return new Promise<any>((resolve, reject) => {
-      compiler.run((err: any, stats: any) => {
-        if (err || stats?.hasErrors()) {
-          console.error(
-            `${currentShare.shareKey} Compile failed:`,
-            err ||
-              stats
-                .toJson()
-                .errors.map((e: Error) => e.message)
-                .join('\n'),
-          );
-          reject(err || new Error(`${currentShare.shareKey} Compile failed`));
-          return;
-        }
-
-        console.log(`${currentShare.shareKey} Compile success`);
-        resolve(extraPlugin.getData());
-      });
-    });
+    const [error, stats] = await new Promise<[Error | null, Stats?]>(
+      (resolve) => {
+        compiler.run((error, stats) => resolve([error, stats]));
+      },
+    );
+    if (error || stats?.hasErrors()) {
+      const message = `${currentShare.shareKey} Compile failed`;
+      logger.error(
+        `${message}:`,
+        error || stats?.toString({ all: false, errors: true }),
+      );
+      throw error || new Error(message);
+    }
+    logger.log(`${currentShare.shareKey} Compile success`);
   }
 }

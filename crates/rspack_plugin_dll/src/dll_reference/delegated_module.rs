@@ -209,11 +209,7 @@ impl Identifiable for DelegatedModule {
   fn identifier(&self) -> Identifier {
     format!(
       "delegated {} from {}",
-      self
-        .request
-        .as_ref()
-        .map(|r| r.to_string())
-        .unwrap_or_default(),
+      self.request.as_ref().map_or_default(|r| r.to_string()),
       self.source_request
     )
     .into()

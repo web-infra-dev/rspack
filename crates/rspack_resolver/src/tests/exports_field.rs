@@ -2615,8 +2615,8 @@ async fn test_cases() {
         assert!(
           matches!(resolved, Err(ResolveError::PackagePathNotExported(_, _))),
           "{} {:?}",
-          &case.name,
-          &resolved
+          case.name,
+          resolved
         );
       } else {
         for expect in expect {
@@ -2624,12 +2624,12 @@ async fn test_cases() {
             resolved,
             Ok(Some(Utf8Path::new(expect).normalize())),
             "{}",
-            &case.name
+            case.name
           );
         }
       }
     } else {
-      assert!(resolved.is_err(), "{} {resolved:?}", &case.name);
+      assert!(resolved.is_err(), "{} {resolved:?}", case.name);
     }
   }
 }

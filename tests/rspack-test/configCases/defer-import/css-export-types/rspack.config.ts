@@ -28,6 +28,5 @@ export default defineConfig({
   },
   experiments: {
     deferImport: true,
-    css: true,
   },
 });

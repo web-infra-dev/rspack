@@ -1,6 +1,6 @@
 use rspack_error::{Result, error};
-use rspack_hash::{HashFunction, RspackHasher};
 use rustc_hash::FxHashSet;
+use xxhash_rust::xxh64::xxh64;
 
 pub(crate) const FULL_IDENTIFIER_LENGTH: usize = 11;
 pub(crate) const FULL_LOWERCASE_ALPHANUMERIC_LENGTH: usize = 13;
@@ -29,20 +29,15 @@ pub(crate) fn validate_min_length(
   Ok(())
 }
 
-pub(crate) fn hash_identifier(identifier: &str) -> [u8; FULL_IDENTIFIER_LENGTH] {
-  encode_identifier_hash(hash(identifier))
+pub(crate) fn hash_identifier(identifier: &str, salt: u32) -> [u8; FULL_IDENTIFIER_LENGTH] {
+  encode_identifier_hash(xxh64(identifier.as_bytes(), u64::from(salt)))
 }
 
 pub(crate) fn hash_lowercase_alphanumeric(
   identifier: &str,
+  salt: u32,
 ) -> [u8; FULL_LOWERCASE_ALPHANUMERIC_LENGTH] {
-  encode_lowercase_alphanumeric_hash(hash(identifier))
-}
-
-fn hash(identifier: &str) -> u64 {
-  let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
-  hasher.write(identifier.as_bytes());
-  hasher.finish()
+  encode_lowercase_alphanumeric_hash(xxh64(identifier.as_bytes(), u64::from(salt)))
 }
 
 fn encode_identifier_hash(mut hash: u64) -> [u8; FULL_IDENTIFIER_LENGTH] {

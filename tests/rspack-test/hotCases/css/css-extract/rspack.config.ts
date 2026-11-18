@@ -31,9 +31,6 @@ export default defineConfig({
       },
     ],
   },
-  experiments: {
-    css: false,
-  },
   plugins: [
     new rspack.CssExtractRspackPlugin({
       filename: '[name].css',

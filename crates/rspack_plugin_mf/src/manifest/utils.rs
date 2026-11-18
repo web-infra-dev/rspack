@@ -144,8 +144,7 @@ pub fn strip_ext(path: &str) -> String {
         Path::new(path)
           .extension()
           .and_then(|e| e.to_str())
-          .map(|e| format!(".{e}"))
-          .unwrap_or_default()
+          .map_or_default(|e| format!(".{e}"))
           .as_str(),
       )
       .to_string(),

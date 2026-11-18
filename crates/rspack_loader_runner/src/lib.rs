@@ -1,5 +1,3 @@
-#![feature(string_from_utf8_lossy_owned)]
-
 mod cache;
 mod chain;
 mod code_filter;

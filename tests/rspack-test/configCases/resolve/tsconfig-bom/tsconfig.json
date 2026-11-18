@@ -1,0 +1,8 @@
+﻿{
+  // Keep JSONC support when stripping the BOM.
+  "compilerOptions": {
+    "paths": {
+      "bom-value": ["./value.js"],
+    },
+  },
+}

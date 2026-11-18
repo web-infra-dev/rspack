@@ -24,7 +24,4 @@ export default defineConfig({
       filename: 'bundle.css',
     }),
   ],
-  experiments: {
-    css: false,
-  },
 });

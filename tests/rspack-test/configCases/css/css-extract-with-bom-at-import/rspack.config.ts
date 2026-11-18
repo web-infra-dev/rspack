@@ -42,7 +42,4 @@ export default defineConfig({
       filename: '[name].css',
     }),
   ],
-  experiments: {
-    css: false,
-  },
 });

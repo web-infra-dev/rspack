@@ -96,7 +96,7 @@ fn is_absolute_source(source: &str) -> bool {
 }
 
 /// Removes context-dependent paths from a loader-provided source map.
-pub fn contextify_source_map(context: &str, source_map: &mut SourceMap<'static>) {
+pub fn contextify_source_map(context: &str, source_map: &mut SourceMap) {
   let source_root = source_map
     .source_root()
     .filter(|source_root| !source_root.is_empty())
@@ -118,7 +118,7 @@ pub fn contextify_source_map(context: &str, source_map: &mut SourceMap<'static>)
       contextify_source_url(context, &source)
     })
     .collect();
-  source_map.set_file(Some(Cow::Borrowed("x")));
+  source_map.set_file(Some("x".into()));
   source_map.set_source_root(None);
   source_map.set_sources(sources);
 }

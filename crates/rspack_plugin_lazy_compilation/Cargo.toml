@@ -2,7 +2,6 @@
 description             = "rspack lazy compilation plugin"
 documentation.workspace = true
 edition.workspace       = true
-homepage.workspace      = true
 license                 = "MIT"
 name                    = "rspack_plugin_lazy_compilation"
 repository.workspace    = true

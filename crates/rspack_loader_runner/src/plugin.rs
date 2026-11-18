@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::InternedPathSet;
 use rspack_sources::SourceMap;
 
 use crate::{
-  LoaderContext,
+  LoaderContext, LoaderDependencies,
   content::{Content, ResourceData},
 };
 
@@ -33,6 +32,8 @@ pub trait LoaderRunnerPlugin: Send + Sync {
   async fn process_resource(
     &self,
     resource_data: &ResourceData,
+    diagnostics: &mut Vec<Diagnostic>,
+    dependencies: &mut LoaderDependencies,
     fs: Arc<dyn ReadableFileSystem>,
-  ) -> Result<Option<(Content, Option<SourceMap<'static>>, InternedPathSet)>>;
+  ) -> Result<Option<(Content, Option<SourceMap>)>>;
 }

@@ -14,7 +14,6 @@ export default defineConfig(
         rules: [{ test: /\.css$/, type: 'css/module' }],
       },
       optimization: { minimize: false },
-      experiments: { css: true },
     }),
   ),
 );

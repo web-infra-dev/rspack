@@ -244,7 +244,9 @@ function getRawExternalItemValue(
 ): RawExternalItemValue {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     return Object.fromEntries(
-      Object.entries(value).map(([k, v]) => [k, Array.isArray(v) ? v : [v]]),
+      Object.entries(value)
+        .filter(([, v]) => v !== undefined)
+        .map(([k, v]) => [k, Array.isArray(v) ? v : [v]]),
     );
   }
   return value;

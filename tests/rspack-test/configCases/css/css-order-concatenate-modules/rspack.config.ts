@@ -13,9 +13,6 @@ export default defineConfig({
   optimization: {
     concatenateModules: true,
   },
-  experiments: {
-    css: false,
-  },
   module: {
     rules: [
       {

@@ -7,8 +7,8 @@ use rspack_core::{
   BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta, ChunkGraph,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
   Dependency, ExportsType, FactoryMetaStore, FreezeLock, LibIdentOptions, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
-  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, NeedBuildContext,
+  RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
 };
@@ -52,7 +52,7 @@ impl RemoteModule {
     remote_key: String,
     runtime_mode: RuntimeMode,
   ) -> Self {
-    let readable_identifier = format!("remote {}", &request);
+    let readable_identifier = format!("remote {request}");
     let namespace = module_identifier_namespace(runtime_mode);
     let lib_ident = format!("{namespace}/container/remote/{request}");
     Self {
@@ -139,6 +139,10 @@ impl Module for RemoteModule {
     _strict: bool,
   ) -> ExportsType {
     ExportsType::Dynamic
+  }
+
+  async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+    Ok(self.build_info.frozen().is_none())
   }
 
   async fn build(

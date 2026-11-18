@@ -28,26 +28,10 @@ async fn resolve_for_scheme(
   if scheme.is_data()
     && let Some(captures) = URI_REGEX.captures(resource_data.resource())
   {
-    let mimetype = captures
-      .get(1)
-      .map(|i| i.as_str())
-      .unwrap_or_default()
-      .to_owned();
-    let parameters = captures
-      .get(2)
-      .map(|i| i.as_str())
-      .unwrap_or_default()
-      .to_owned();
-    let encoding = captures
-      .get(3)
-      .map(|i| i.as_str())
-      .unwrap_or_default()
-      .to_owned();
-    let encoded_content = captures
-      .get(4)
-      .map(|i| i.as_str())
-      .unwrap_or_default()
-      .to_owned();
+    let mimetype = captures.get(1).map_or_default(|i| i.as_str()).to_owned();
+    let parameters = captures.get(2).map_or_default(|i| i.as_str()).to_owned();
+    let encoding = captures.get(3).map_or_default(|i| i.as_str()).to_owned();
+    let encoded_content = captures.get(4).map_or_default(|i| i.as_str()).to_owned();
     resource_data.set_mimetype(mimetype);
     resource_data.set_parameters(parameters);
     resource_data.set_encoding(encoding);

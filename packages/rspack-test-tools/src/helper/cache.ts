@@ -20,6 +20,9 @@ export async function checkPersistentCache(
   context: ITestContext,
   cache: TCacheTestOptions,
 ) {
+  const testConfig = context.getTestConfig();
+  if (testConfig.checkCache === false) return;
+
   const manager = context.getCompiler();
   if (!manager.getStats()) return;
 
@@ -100,6 +103,16 @@ export async function checkPersistentCache(
         throw new Error(`Compiler ${index} did not report cacheInfo`);
       }
       for (const [namespace, counters] of Object.entries(info)) {
+        if (typeof testConfig.checkCache === 'function') {
+          const handled = await testConfig.checkCache({
+            compilerIndex: index,
+            namespace,
+            cold: coldCacheStats[index]?.[namespace],
+            restored: counters,
+          });
+          if (handled === true) continue;
+        }
+
         const lookups = counters.hits + counters.misses;
         if (lookups === 0) continue;
         if (counters.reused !== lookups) {

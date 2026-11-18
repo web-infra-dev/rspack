@@ -1,0 +1,4 @@
+.page-one {
+  color: red;
+  --rsc-css-order: theme;
+}

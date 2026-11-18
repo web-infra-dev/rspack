@@ -164,12 +164,17 @@ function createHotStepProcessor(
       .map((i) => {
         const fileName = i.name;
         const renderName = replaceFileName(fileName);
+        // Assets are emitted without the query a filename template may add.
         const content = replaceContent(
-          fs.readFileSync(context.getDist(fileName), 'utf-8'),
+          fs.readFileSync(context.getDist(fileName.split('?')[0]), 'utf-8'),
         );
+        const completeUpdate =
+          fileName.endsWith('hot-update.js.full.js') ||
+          fileName.endsWith('hot-update.mjs.full.mjs');
         if (
           fileName.endsWith('hot-update.js') ||
-          fileName.endsWith('hot-update.mjs')
+          fileName.endsWith('hot-update.mjs') ||
+          completeUpdate
         ) {
           const modules = fileName.endsWith('.mjs')
             ? Object.keys(
@@ -184,6 +189,12 @@ function createHotStepProcessor(
           }
           modules.sort();
           runtime.sort();
+          if (completeUpdate) {
+            return [
+              `- Complete update: ${renderName}, size: ${content.length}`,
+              ...[...modules, ...runtime].map((id) => `  - ${id}`),
+            ].join('\n');
+          }
           hotUpdateFile.push({
             name: renderName,
             content,

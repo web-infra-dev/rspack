@@ -61,10 +61,7 @@ impl RealDependencyLocation {
       0
     } else {
       let mut iter = memchr::memchr_iter(b'\n', bytes);
-      match iter.nth(target_line_idx - 1) {
-        Some(idx) => idx + 1,
-        None => return None, // Line number exceeds file lines
-      }
+      iter.nth(target_line_idx - 1)? + 1
     };
 
     // 2. Validate start position.

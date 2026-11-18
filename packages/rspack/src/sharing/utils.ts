@@ -1,3 +1,5 @@
+import { createHash } from '../util/createHash';
+
 const VERSION_PATTERN_REGEXP = /^([\d^=v<>~]|[*xX]$)/;
 
 export function validateLayer(
@@ -35,15 +37,6 @@ export function resolveShareScope(
   return shareScope || fallbackShareScope || 'default';
 }
 
-export const encodeName = function (
-  name: string,
-  prefix = '',
-  withExt = false,
-): string {
-  const ext = withExt ? '.js' : '';
-  return `${prefix}${name
-    .replace(/@/g, 'scope_')
-    .replace(/-/g, '_')
-    .replace(/\//g, '__')
-    .replace(/\./g, '')}${ext}`;
-};
+export function encodeName(...parts: string[]): string {
+  return `mf_${createHash('xxhash64').update(JSON.stringify(parts), 'utf8').digest('hex')}`;
+}

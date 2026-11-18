@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import type { Compiler, RspackOptions, StatsOptions } from '@rspack/core';
 
 export default {
@@ -10,6 +11,24 @@ export default {
   plugins: [
     {
       apply(compiler: Compiler) {
+        let isWarm = false;
+        compiler.hooks.thisCompilation.tap(
+          'IssuerInformationCacheContract',
+          (compilation) => {
+            isWarm = false;
+            compilation.hooks.stillValidModule.tap(
+              'IssuerInformationCacheContract',
+              (module) => {
+                if (
+                  module.nameForCondition() ===
+                  path.join(compiler.context, 'parent.js')
+                ) {
+                  isWarm = true;
+                }
+              },
+            );
+          },
+        );
         compiler.hooks.done.tap('IssuerInformationCacheContract', (stats) => {
           assert(
             !stats.hasErrors(),
@@ -32,9 +51,12 @@ export default {
           const firstModules = defaultStats[0].modules!.filter(
             (module) => module.name === './first.js',
           );
-          assert(
-            firstModules.length >= 2,
-            'expected the same module identifier in normal and build-time graphs',
+          // A restored parent skips its loader's importModule call, so the
+          // fresh compiler only has the normal graph.
+          assert.equal(
+            firstModules.length,
+            isWarm ? 1 : 2,
+            'expected both graphs unless parent was restored from cache',
           );
           let sharedIssuerRecords = 0;
           stats.compilation.hooks.statsFactory.tap(

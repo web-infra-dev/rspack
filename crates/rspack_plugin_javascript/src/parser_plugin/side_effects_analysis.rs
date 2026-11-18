@@ -118,7 +118,7 @@ pub(super) fn may_have_side_effects(expression: Expr, ctx: SideEffectsContext<'_
     ExprData::Class(class) => class_has_side_effects(ctx, class),
     ExprData::ArrayExpression(array) => {
       ast
-        .nodes(array.elements(ast))
+        .optional_nodes(array.elements(ast))
         .flatten()
         .any(|argument| match ast.argument_data(argument) {
           ArgumentData::Expr(expression) => may_have_side_effects(expression, ctx),

@@ -177,6 +177,6 @@ fn run() -> io::Result<ExitCode> {
     sources,
   };
   Ok(rustc_driver::catch_with_exit_code(|| {
-    rustc_driver::run_compiler(&args, &mut callbacks)
+    rustc_driver::compiler_entrypoint(&args, &mut callbacks)
   }))
 }

@@ -131,9 +131,6 @@ const getConfig = (
         },
       },
     },
-    experiments: {
-      css: true,
-    },
   });
 
 export default defineConfig([

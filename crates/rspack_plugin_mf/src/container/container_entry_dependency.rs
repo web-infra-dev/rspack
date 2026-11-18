@@ -29,7 +29,7 @@ impl ContainerEntryDependency {
     share_scope: ShareScope,
     enhanced: bool,
   ) -> Self {
-    let resource_identifier = format!("container-entry-{}", &name).into();
+    let resource_identifier = format!("container-entry-{name}").into();
     Self {
       id: DependencyId::new(),
       name,
@@ -54,12 +54,8 @@ impl ContainerEntryDependency {
     layer: Option<String>,
   ) -> Self {
     let shared_identity = SharedIdentity::new(&share_scope, &share_key, layer.as_deref());
-    let resource_identifier = format!(
-      "share-container-entry-{}-{}",
-      &name,
-      shared_identity.identifier_key()
-    )
-    .into();
+    let identity_key = shared_identity.identifier_key();
+    let resource_identifier = format!("share-container-entry-{name}-{identity_key}").into();
     Self {
       id: DependencyId::new(),
       name,

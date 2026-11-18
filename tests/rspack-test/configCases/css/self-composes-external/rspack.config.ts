@@ -8,7 +8,6 @@ export default defineConfig(
       mode: 'development',
       devtool: false,
       optimization: { concatenateModules },
-      experiments: { css: true },
       module: {
         rules: [
           {

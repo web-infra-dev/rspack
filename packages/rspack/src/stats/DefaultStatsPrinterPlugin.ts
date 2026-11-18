@@ -193,8 +193,7 @@ const SIMPLE_PRINTERS: Record<
       let chunkGroups = Object.values(namedChunkGroups);
       if (entrypoints) {
         chunkGroups = chunkGroups.filter(
-          (group) =>
-            !Object.prototype.hasOwnProperty.call(entrypoints, group.name),
+          (group) => !Object.hasOwn(entrypoints, group.name),
         );
       }
       return printer.print(context.type, chunkGroups, {
@@ -909,11 +908,13 @@ const SIMPLE_ITEMS_JOINER: Record<
     indent(items.filter(Boolean).join('\n'), '  ', false),
 };
 
-const joinOneLine = (items: any[]) =>
-  items
-    .map((item) => item.content)
-    .filter(Boolean)
-    .join(' ');
+const joinOneLine = (items: { content?: string }[]) => {
+  const contents: string[] = [];
+  items.forEach(({ content }) => {
+    if (content) contents.push(content);
+  });
+  return contents.join(' ');
+};
 
 const indent = (str: string, prefix: string, noPrefixInFirstLine?: boolean) => {
   const rem = str.replace(/\n([^\n])/g, `\n${prefix}$1`);

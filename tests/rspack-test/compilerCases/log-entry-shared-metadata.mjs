@@ -138,7 +138,7 @@ export default {
               try {
                 Error.prepareStackTrace = () => {
                   stackReads++;
-                  return 'Error: Trace\n getter\n reader\n kept\n LOADER_EXECUTION\n omitted';
+                  return 'Error: Trace\n getter\n reader\n kept\n at LOADER_EXECUTION\n omitted';
                 };
                 logger.warn('lazy');
                 expect(stackReads).toBe(0);

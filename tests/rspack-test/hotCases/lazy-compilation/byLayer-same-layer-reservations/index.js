@@ -2,7 +2,6 @@ it("should defer local modules excluded by an earlier external matcher", async (
   let resolved;
   const promise = import("./module").then(result => (resolved = result));
   expect(resolved).toBe(undefined);
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  await NEXT_HMR();
+  await NEXT_HMR_DEFERRED();
   expect((await promise).value).toBe(7);
 });
