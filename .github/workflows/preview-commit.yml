@@ -32,6 +32,7 @@ jobs:
     env:
       CARGO_INCREMENTAL: 0
       LLD_AB_PROFILE: ci
+      LLD_AB_REPEAT_FULL: 1
       PUPPETEER_SKIP_DOWNLOAD: 1
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
     steps:

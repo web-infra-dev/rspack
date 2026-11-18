@@ -33,6 +33,7 @@ def measured(args, name, **kwargs):
         p.returncode = os.waitstatus_to_exitcode(status)
     row = {'seconds': time.perf_counter() - start, 'exit': p.returncode}
     row['peak_rss_kib'] = usage.ru_maxrss
+    row['cpu_seconds'] = usage.ru_utime + usage.ru_stime
     if p.returncode:
         print((out / (name + '.log')).read_text()[-16000:], flush=True)
         raise RuntimeError(f'{name}: exit {p.returncode}')
@@ -104,11 +105,16 @@ def build_and_link():
         'benchmark': output(['git', '-C', str(repo / '.linux-lld-btp'), 'rev-parse', 'HEAD']),
     })
     full = {}
-    for mode in ['baseline', 'lld']:
+    repeats = []
+    modes = ['baseline', 'lld', 'lld', 'baseline', 'baseline', 'lld'] if os.environ.get('LLD_AB_REPEAT_FULL') else ['baseline', 'lld']
+    for iteration, mode in enumerate(modes):
+        shutil.rmtree(repo / ('.linux-lld-target-' + mode), ignore_errors=True)
         env = {**os.environ, 'RUST_TARGET': 'x86_64-unknown-linux-gnu', 'USE_NAPI_CROSS': '1', 'TARGET_CC': 'clang', 'RUSTC_WRAPPER': str(out / 'rustc-wrapper'), 'LLD_AB_MODE': mode, 'CARGO_TARGET_DIR': str(repo / ('.linux-lld-target-' + mode)), 'CARGO_INCREMENTAL': '0'}
         env.pop('RUSTC_WORKSPACE_WRAPPER', None)
-        full[mode] = measured(['pnpm', 'build:binding:' + profile], 'build-' + mode, env=env, cwd=repo)
+        full[mode] = measured(['pnpm', 'build:binding:' + profile], f'build-{mode}-{iteration}', env=env, cwd=repo)
+        repeats.append({**full[mode], 'variant': mode, 'iteration': iteration, 'warmup': iteration < 2})
         save('full-build.json', full)
+        save('full-build-repeats.json', repeats)
         print('FULL BUILD', mode, full[mode], flush=True)
     command = json.loads((out / 'command-baseline.json').read_text())
     driver = command['driver']
@@ -128,7 +134,7 @@ def build_and_link():
     for mode in ['baseline', 'lld']:
         binary = out / 'variants' / (mode + '.node')
         subprocess.run(['node', '-e', 'const b=require(process.argv[1]);if(!Object.keys(b).length)throw Error("empty binding");console.log(Object.keys(b).length)', str(binary)], check=True)
-        for label, args in [('comments', ['readelf', '-p', '.comment']), ('versions', ['readelf', '--version-info']), ('dependencies', ['readelf', '-d'])]:
+        for label, args in [('comments', ['readelf', '-p', '.comment']), ('versions', ['readelf', '--version-info']), ('dependencies', ['readelf', '-d']), ('sections', ['readelf', '-SW'])]:
             (out / f'{mode}-{label}.log').write_text(output([*args, str(binary)]))
     assert 'LLD' in (out / 'lld-comments.log').read_text()
     print('LINK COMPARISON COMPLETE', flush=True)
