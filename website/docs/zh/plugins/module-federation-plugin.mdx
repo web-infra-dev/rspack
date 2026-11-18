@@ -195,6 +195,14 @@ export default {
     - `server-calc`: 根据服务端下发的 snapshot 来决定是否加载共享依赖。
   - filename：自定义生成的 shared fallback 入口文件名。
 
+#### 共享标识的运行时兼容性
+
+运行时可见的 `shared.layer` 需要使用支持 `bundlerRuntime.supportsSharedIdentity === true` 的实现。即使只有一个带层的提供方或消费方，也需要此能力：外部无层的宿主不应获取特定层的提供模块。如果当前运行时不支持此能力，Rspack 会在注册之前报告包含解决方法的运行时错误。`issuerLayer` 本身只是编译器侧的过滤条件，不需要此能力；未使用的配置不会触发此检查。
+
+共享依赖摇树优化生成的完整回退模块中，如果不同回退模块具有相同的共享键和版本（包括位于不同的字符串共享作用域中），也需要此能力。Rspack 会将 `shareScope` 和 `layer` 元数据传递给运行时，使提供方获取正确的完整回退模块。不同版本或只有一个完整回退模块的配置仍可使用旧运行时，例如 `@module-federation/runtime-tools@2.9.3`；不会统一检查最低版本。请通过 `implementation` 选择支持此契约的运行时，而不要仅根据版本号推断支持情况。
+
+独立回退构建仅以当前回退模块作为入口。其他共享模块仅在其导入可达时才会被包含，并保留实际的引用层；不会从合成入口解析无关的 `import: false` 配置。
+
 ### manifest
 
 <ApiMeta addedVersion="1.6.1" />

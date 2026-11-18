@@ -70,7 +70,10 @@ export interface IndependentSharePluginOptions {
 }
 
 // { react: [  [ react/19.0.0/index.js , 19.0.0, react_global_name ]  ] }
-export type ShareFallback = Record<string, [string, string, string][]>;
+export type ShareFallback = Record<
+  string,
+  [string, string, string, { shareScope: ShareScope; layer?: string }?][]
+>;
 
 export type ShareFallbackVariant = {
   entry: string;
@@ -740,14 +743,9 @@ export class IndependentSharedPlugin {
       );
     }
     finalPlugins.push(
-      new VirtualEntryPlugin(
-        sharedOptions.map(([key, options], index) =>
-          currentShare.configIndices.includes(index)
-            ? currentShare.request
-            : resolveShareRequest(options.request, key),
-        ),
-        false,
-      ),
+      // Other shared dependencies are discovered from this fallback's imports,
+      // with their actual issuer layer, not from an unlayered synthetic issuer.
+      new VirtualEntryPlugin([currentShare.request], false),
     );
     const fullOutputDir = resolve(parentCompiler.outputPath, outputDir);
     const compilerConfig: RspackOptions = {
@@ -760,6 +758,7 @@ export class IndependentSharedPlugin {
         rules: [
           {
             test: /virtual-entry\.js$/,
+            layer: currentShare.layer,
             type: 'javascript/auto',
             resolve: { fullySpecified: false },
             use: {
