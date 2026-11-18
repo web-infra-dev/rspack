@@ -39,10 +39,7 @@ impl AsyncDependenciesBlock {
         .upgrade()?
         .get_dependencies()
         .iter()
-        .map(|dep| match self.compilation_id {
-          Some(compilation_id) => DependencyWrapper::from_graph(dep.clone(), compilation_id),
-          None => DependencyWrapper::from_worker(dep.clone()),
-        })
+        .map(|dep| DependencyWrapper::new(dep.clone(), self.compilation_id))
         .collect(),
     )
   }

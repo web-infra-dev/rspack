@@ -15,7 +15,7 @@ use rspack_collections::Identifier;
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
   Context, FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleCommon,
-  RuntimeModuleStage, SourceType, internal, rspack_sources::Source,
+  RuntimeModuleStage, SourceType, rspack_sources::Source,
 };
 use rspack_napi::{OneShotRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
@@ -563,26 +563,18 @@ impl ModuleHandle {
           module
             .get_dependencies()
             .iter()
-            .map(|dep| DependencyWrapper::from_worker(dep.clone()))
+            .map(|dep| DependencyWrapper::new(dep.clone(), None))
             .collect(),
         )
       });
     }
     self.with_ref(|compilation, module| {
-      let Some(module_graph) = compilation.try_get_module_graph() else {
-        return Err(napi::Error::from_reason(
-          "Module.dependencies is unavailable while the module graph is under construction (e.g. inside a loader during compilation.rebuildModule)",
-        ));
-      };
-      // Only expose dependencies that are still present in the current graph.
-      let dependencies = module.get_dependency_ids();
       Ok(
-        dependencies
-          .filter_map(|dependency_id| {
-            internal::try_dependency_ref_by_id(module_graph, dependency_id)
-              .map(|dep| DependencyWrapper::from_graph(dep, compilation.id()))
-          })
-          .collect::<Vec<_>>(),
+        module
+          .get_dependencies()
+          .iter()
+          .map(|dep| DependencyWrapper::new(dep.clone(), Some(compilation.id())))
+          .collect(),
       )
     })
   }

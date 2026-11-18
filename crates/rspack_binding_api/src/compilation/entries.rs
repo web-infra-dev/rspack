@@ -200,7 +200,7 @@ impl EntryDataDTO {
       .map(|dependency_id| {
         let dep = internal::try_dependency_ref_by_id(module_graph, dependency_id)
           .expect("entry dependency should exist in the module graph");
-        DependencyWrapper::from_graph(dep, self.compilation.id())
+        DependencyWrapper::new(dep, Some(self.compilation.id()))
       })
       .collect::<Vec<_>>()
   }
@@ -215,7 +215,7 @@ impl EntryDataDTO {
       .map(|dependency_id| {
         let dep = internal::try_dependency_ref_by_id(module_graph, dependency_id)
           .expect("entry dependency should exist in the module graph");
-        DependencyWrapper::from_graph(dep, self.compilation.id())
+        DependencyWrapper::new(dep, Some(self.compilation.id()))
       })
       .collect::<Vec<_>>()
   }

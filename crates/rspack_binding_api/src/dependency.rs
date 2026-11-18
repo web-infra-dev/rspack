@@ -184,32 +184,19 @@ pub struct DependencyWrapper {
 }
 
 impl DependencyWrapper {
-  pub fn from_graph(dependency: DependencyRef, compilation_id: CompilationId) -> Self {
-    let dependency_id = *dependency.id();
+  pub fn new(dependency: DependencyRef, compilation_id: Option<CompilationId>) -> Self {
     Self {
-      dependency_id,
+      dependency_id: *dependency.id(),
       dependency,
-      cache_compilation_id: Some(compilation_id),
-      compilation_id: Some(compilation_id),
+      cache_compilation_id: compilation_id,
+      compilation_id,
     }
   }
 
   pub fn from_hook(dependency: DependencyRef, compilation_id: CompilationId) -> Self {
-    let dependency_id = *dependency.id();
     Self {
-      dependency_id,
-      dependency,
       cache_compilation_id: Some(compilation_id),
-      compilation_id: None,
-    }
-  }
-
-  pub(crate) fn from_worker(dependency: DependencyRef) -> Self {
-    Self {
-      dependency_id: *dependency.id(),
-      dependency,
-      cache_compilation_id: None,
-      compilation_id: None,
+      ..Self::new(dependency, None)
     }
   }
 

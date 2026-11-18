@@ -43,8 +43,7 @@ export function createWorkerModule(
       Object.defineProperty(dependency, key, {
         get() {
           getNative();
-          if (!main) throw strictLoaderError(`Reading Dependency.${key}`);
-          return main.getDependency(dependency.__internal__id)[key];
+          return main!.getDependency(dependency.__internal__id)[key];
         },
       });
     }
@@ -143,10 +142,16 @@ export function createWorkerModule(
       get: () => binding.normalModuleGetLoaders(getNative()),
     },
     blocks: {
-      get: () => binding.moduleGetBlocks(getNative()).map(wrapBlock),
+      get: () => {
+        const blocks = binding.moduleGetBlocks(getNative());
+        return main ? blocks.map(wrapBlock) : blocks;
+      },
     },
     dependencies: {
-      get: () => binding.moduleGetDependencies(getNative()).map(wrapDependency),
+      get: () => {
+        const dependencies = binding.moduleGetDependencies(getNative());
+        return main ? dependencies.map(wrapDependency) : dependencies;
+      },
     },
     error: {
       get: () => binding.normalModuleGetError(getNative()),

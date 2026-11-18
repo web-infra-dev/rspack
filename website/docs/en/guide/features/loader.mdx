@@ -205,6 +205,7 @@ With the native binding, `parallel: 'strict'` uses the same worker pool and MPMC
 - `_compiler`, `_compilation`, `fs`, `importModule`, and compilation diagnostics are unavailable. `getLogger()` discards messages.
 - `getResolve(options)` and `resolve` call the Rust resolver directly and record dependencies.
 - Current module data remains accessible through `this._module`. Custom `buildInfo` fields are local to each strict execution segment.
+- Dependencies and async dependency blocks are accessible directly. Dependency graph properties `ids` and `_parentModule` return `undefined` in strict mode.
 - Assets can be written with `emitFile`, but cannot be read through `buildInfo.assets`.
 - `additionalData` is received as `undefined`; values returned through loader callbacks are ignored.
 

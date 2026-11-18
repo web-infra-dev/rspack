@@ -65,7 +65,7 @@ impl ModuleGraphConnection {
   pub fn dependency(&self) -> napi::Result<DependencyWrapper> {
     self.with_ref(|compilation, module_graph| {
       if let Some(dependency) = internal::try_dependency_ref_by_id(module_graph, &self.dependency_id) {
-        Ok(DependencyWrapper::from_graph(dependency, compilation.id()))
+        Ok(DependencyWrapper::new(dependency, Some(compilation.id())))
       } else {
         Err(napi::Error::from_reason(format!(
           "Unable to access Dependency with id = {:#?} now. The Dependency have been removed on the Rust side.",

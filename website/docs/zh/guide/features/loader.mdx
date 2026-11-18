@@ -207,6 +207,7 @@ export default {
 - `_compiler`、`_compilation`、`fs`、`importModule` 和 compilation diagnostics 不可用。`getLogger()` 丢弃日志。
 - `getResolve(options)` 和 `resolve` 直接调用 Rust resolver，并记录依赖。
 - 可以通过 `this._module` 访问当前模块数据。自定义 `buildInfo` 字段仅在当前 strict 执行段内可见。
+- 可以直接访问 dependency 和异步 dependency block。strict 模式下，依赖 graph 的 `ids` 和 `_parentModule` 属性返回 `undefined`。
 - 可以通过 `emitFile` 写入 asset，但不能通过 `buildInfo.assets` 读取。
 - 收到的 `additionalData` 为 `undefined`，通过 loader 回调返回的值会被忽略。
 
