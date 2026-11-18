@@ -36,6 +36,7 @@ impl ChunkGroupMapRuntimeModule {
       let mut groups = BTreeMap::new();
       let mut queue = chunk.groups().iter().copied().collect::<Vec<_>>();
       let mut visited = FxHashSet::default();
+      let mut visited_last = FxHashSet::default();
       while let Some(key) = queue.pop() {
         if !visited.insert(key) {
           continue;
@@ -46,6 +47,9 @@ impl ChunkGroupMapRuntimeModule {
         let Some(last) = group.get_hmr_loading_chunk(compilation) else {
           continue;
         };
+        if !visited_last.insert(last.ukey()) {
+          continue;
+        }
         let siblings = group
           .get_loading_chunks(compilation)
           .filter(|chunk| chunk.ukey() != last.ukey())

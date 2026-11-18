@@ -211,6 +211,7 @@ impl ArtifactExt for BuildChunkGraphArtifact {
   }
   fn recover(_incremental: &crate::incremental::Incremental, new: &mut Self, old: &mut Self) {
     new.code_splitter = mem::take(&mut old.code_splitter);
+    new.runtime_chunks = None;
     rayon::scope(|s| {
       s.spawn(|_| new.chunk_by_ukey.clone_from(&old.chunk_by_ukey));
       s.spawn(|_| new.chunk_graph.clone_from(&old.chunk_graph));
