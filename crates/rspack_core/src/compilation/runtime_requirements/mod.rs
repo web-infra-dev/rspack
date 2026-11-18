@@ -1,12 +1,15 @@
 use async_trait::async_trait;
+use rayon::prelude::*;
+use rspack_sources::{RawStringSource, SourceExt};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::*;
 use crate::{
   CodeGenerationRuntimeRequirementsWrite, RuntimeModuleBridge, RuntimeModuleSourceKind,
-  RuntimeProxyMetadata, compilation::pass::PassExt, logger::Logger,
+  RuntimeProxyMetadata, RuntimeTemplateRenderMode, compilation::pass::PassExt, logger::Logger,
   runtime_globals::BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS,
   runtime_mode::RuntimeMode as ExperimentRuntimeMode,
+  runtime_module_bridge::classify_runtime_module_source,
 };
 
 pub struct RuntimeRequirementsPass;
@@ -511,7 +514,9 @@ async fn process_chunks_runtime_requirements_impl(
   // this needs full runtime requirements, so run hooks.runtime_module after runtime_requirements_in_tree
   let mut runtime_modules = mem::take(&mut compilation.runtime_modules);
   let rspack_mode = compilation.options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack;
-  let hook_chunks = if rspack_mode {
+  let modern_module =
+    compilation.runtime_template.render_mode() == RuntimeTemplateRenderMode::RspackExport;
+  let hook_chunks = if rspack_mode && !modern_module {
     compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
@@ -710,17 +715,49 @@ async fn collect_runtime_module_bridges(
   entries: &FxHashSet<ChunkUkey>,
 ) -> Result<FxHashMap<ChunkUkey, RuntimeModuleBridge>> {
   let graph = &compilation.build_chunk_graph_artifact;
-  let mut bridges = FxHashMap::<ChunkUkey, RuntimeModuleBridge>::default();
-  let mut needs_bridge = false;
-  for (id, module) in &compilation.runtime_modules {
-    let kind = module
-      .source_kind(compilation)
-      .await
-      .map_err(|e| e.wrap_err(format!("in runtime module {id}")))?;
-    if kind == RuntimeModuleSourceKind::Native {
+  let modern_module =
+    compilation.runtime_template.render_mode() == RuntimeTemplateRenderMode::RspackExport;
+  let mut sources = Vec::new();
+  let mut generated = Vec::new();
+  for (&id, module) in &compilation.runtime_modules {
+    if modern_module
+      && !graph
+        .chunk_graph
+        .get_module_chunks(id)
+        .iter()
+        .any(|chunk| entries.contains(chunk))
+    {
       continue;
     }
-    for chunk in graph.chunk_graph.get_module_chunks(*id) {
+    if let Some(source) = module.get_custom_source() {
+      sources.push((id, RawStringSource::from(source).boxed()));
+    } else if let Some(source) = module.generated_source_for_bridge(compilation) {
+      generated.push(async move {
+        let source = source
+          .await
+          .map_err(|e| e.wrap_err(format!("in runtime module {id}")))?;
+        Ok::<_, rspack_error::Error>((id, source))
+      });
+    }
+  }
+  sources.extend(futures::future::try_join_all(generated).await?);
+
+  let source_kinds = sources
+    .into_par_iter()
+    .map(|(id, source)| {
+      let kind = classify_runtime_module_source(&source.source().into_string_lossy())
+        .map_err(|e| e.wrap_err(format!("in runtime module {id}")))?;
+      Ok((id, kind))
+    })
+    .collect::<Result<Vec<_>>>()?;
+
+  let mut bridges = FxHashMap::<ChunkUkey, RuntimeModuleBridge>::default();
+  let mut needs_bridge = false;
+  for (id, kind) in source_kinds {
+    for chunk in graph.chunk_graph.get_module_chunks(id) {
+      if modern_module && !entries.contains(chunk) {
+        continue;
+      }
       let bridge = bridges.entry(*chunk).or_default();
       bridge.source = bridge.source.max(kind);
       if kind == RuntimeModuleSourceKind::NeedsBridge {
@@ -733,36 +770,44 @@ async fn collect_runtime_module_bridges(
       }
     }
   }
-  if needs_bridge {
-    for owner in entries {
-      let mut chunks = graph
-        .chunk_by_ukey
-        .expect_get(owner)
-        .get_all_referenced_chunks(&graph.chunk_group_by_ukey);
-      chunks.insert(*owner);
-      if !chunks.iter().any(|chunk| {
+  for owner in entries {
+    // Hot updates run against the bootstrap and factories already loaded by the page.
+    let hmr = ChunkGraph::get_tree_runtime_requirements(compilation, owner).contains(
+      RuntimeGlobals::HMR_DOWNLOAD_MANIFEST | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS,
+    );
+    if !needs_bridge && !hmr {
+      continue;
+    }
+    let mut chunks = graph
+      .chunk_by_ukey
+      .expect_get(owner)
+      .get_all_referenced_chunks(&graph.chunk_group_by_ukey);
+    chunks.insert(*owner);
+    if !hmr
+      && !chunks.iter().any(|chunk| {
         bridges
           .get(chunk)
           .is_some_and(|b| b.source == RuntimeModuleSourceKind::NeedsBridge)
-      }) {
-        continue;
-      }
-      // Allocate the loader and its observable tables, not optional providers like require.O.
-      let requirements = compilation
-        .cgc_runtime_requirements_artifact
-        .entry(*owner)
-        .or_default();
-      requirements.insert(
-        RuntimeGlobals::REQUIRE
-          | RuntimeGlobals::REQUIRE_SCOPE
-          | RuntimeGlobals::MODULE_FACTORIES
-          | RuntimeGlobals::MODULE_CACHE,
-      );
-      bridges.entry(*owner).or_default().owner = true;
-      if requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION) {
-        for chunk in chunks {
-          bridges.entry(chunk).or_default().intercepted_factories = true;
-        }
+      })
+    {
+      continue;
+    }
+    // Expose the bootstrap's factory table and module cache as require.m and require.c.
+    let requirements = compilation
+      .cgc_runtime_requirements_artifact
+      .entry(*owner)
+      .or_default();
+    requirements.insert(
+      RuntimeGlobals::REQUIRE
+        | RuntimeGlobals::REQUIRE_SCOPE
+        | RuntimeGlobals::MODULE_FACTORIES
+        | RuntimeGlobals::MODULE_CACHE,
+    );
+    bridges.entry(*owner).or_default().owner = true;
+    if requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION) {
+      // The owner's interceptors can pass a replacement loader to factories in any of these chunks.
+      for chunk in chunks {
+        bridges.entry(chunk).or_default().intercepted_factories = true;
       }
     }
   }

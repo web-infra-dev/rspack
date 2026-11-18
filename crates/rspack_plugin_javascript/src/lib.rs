@@ -8,7 +8,6 @@ pub mod parser_and_generator;
 mod parser_plugin;
 mod plugin;
 pub mod runtime;
-mod runtime_bridge;
 mod runtime_context;
 pub mod utils;
 pub mod visitors;

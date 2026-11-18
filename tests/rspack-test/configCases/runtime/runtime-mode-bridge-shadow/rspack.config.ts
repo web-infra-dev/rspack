@@ -12,6 +12,12 @@ export default defineConfig({
     definePlugin((compiler) => {
       const { RuntimeModule } = compiler.rspack;
       compiler.hooks.thisCompilation.tap('shadow', (compilation) => {
+        let generateCalls = 0;
+        const observedSources: string[] = [];
+        // Analysis plugins such as Rsdoctor only read the generated source.
+        compilation.hooks.runtimeModule.tap('observe runtime', (mod) => {
+          observedSources.push(mod.generate());
+        });
         compilation.hooks.additionalTreeRuntimeRequirements.tap(
           'shadow',
           (chunk) => {
@@ -22,28 +28,25 @@ export default defineConfig({
                   super('shadowed require');
                 }
                 generate() {
+                  generateCalls++;
                   return `// __rspack_context is intentionally only in a comment.
             function read(__webpack_require__) { return __webpack_require__.p; }
-            globalThis.runtimeShadowProbe = [read({p: 7}), '__webpack_require__'];`;
+            globalThis.runtimeShadowProbe = [read({p: 7}), '__webpack_require__'];
+            // Lynx's runtime config module has only a host-side effect.
+            globalThis.lynx ||= {};
+            lynx.__runtime_configs__ = { audit: 42 };`;
                 }
               })(),
             );
-            for (const child of chunk.getAllAsyncChunks()) {
-              compilation.addRuntimeModule(
-                child,
-                new (class extends RuntimeModule {
-                  constructor() {
-                    super('no runtime globals');
-                  }
-                  generate() {
-                    return 'globalThis.shadowAsyncRan = true;';
-                  }
-                })(),
-              );
-            }
           },
         );
         compilation.hooks.processAssets.tap('shadow', (assets) => {
+          expect(generateCalls).toBe(1);
+          expect(
+            observedSources.some((source) =>
+              source.includes('lynx.__runtime_configs__'),
+            ),
+          ).toBe(true);
           for (const asset of Object.values(assets)) {
             if (
               asset

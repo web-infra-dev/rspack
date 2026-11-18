@@ -5,6 +5,7 @@ use rspack_core::{
   Module, ModuleGraph, RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode,
   RuntimeVariable, SourceType, property_access, render_init_fragments,
   rspack_sources::{BoxSource, ConcatSource, OriginalSource, RawStringSource, SourceExt},
+  runtime_variable_name,
 };
 use rspack_error::Result;
 
@@ -90,31 +91,31 @@ var module = ({module_cache}[moduleId] = {{"#,
       let context_prototype = if context_mode {
         runtime_template.render_runtime_variable(&RuntimeVariable::Context)
       } else if bridged {
-        format!("{callable_require}.__rspack_compat_context__")
+        runtime_variable_name(&RuntimeVariable::Context).to_owned()
       } else {
         callable_require.clone()
-      };
-      let run_factory = if bridged && context_mode {
-        format!("{context_prototype}.__rspack_call_factory__(execOptions);")
-      } else {
-        let argument = if context_mode {
-          "execOptions.context"
-        } else {
-          "execOptions.require"
-        };
-        format!("execOptions.factory.call(module.exports, module, module.exports, {argument});")
       };
       let loader = if bridged {
         format!("{context_prototype}.r")
       } else {
         callable_require
       };
+      let factory_runtime_argument = if bridged && context_mode {
+        // A webpack interceptor can replace the factory or the loader it receives.
+        format!(
+          "execOptions.factory === {module_factories}[execOptions.id] && execOptions.require === execOptions.context.r ? execOptions.context : execOptions.require"
+        )
+      } else if context_mode {
+        "execOptions.context".into()
+      } else {
+        "execOptions.require".into()
+      };
       format!(
         r#"
         var execOptions = {{ id: moduleId, module: module, factory: {module_factories}[moduleId], require: {loader}, context: Object.create({context_prototype}) }};
         {}.forEach(function(handler) {{ handler(execOptions); }});
         module = execOptions.module;
-        {run_factory}
+        execOptions.factory.call(module.exports, module, module.exports, {factory_runtime_argument});
       "#,
         runtime_template.render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
       )

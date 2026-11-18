@@ -143,6 +143,9 @@ impl RuntimeModuleCommon {
 
   pub fn set_custom_source(&mut self, source: String) {
     self.custom_source = Some(source);
+    if self.cached_generated_code.initialized() {
+      self.cached_generated_code = Default::default();
+    }
   }
 
   pub fn get_custom_source(&self) -> Option<String> {

@@ -14,10 +14,7 @@ use rspack_error::Result;
 use rspack_intern::Atom;
 use rspack_plugin_javascript::{
   JsPlugin, RenderSource,
-  runtime::{
-    AUTO_PUBLIC_PATH_MATCHER, render_custom_runtime_modules, render_module,
-    render_runtime_bridge_aliases, render_runtime_modules,
-  },
+  runtime::{AUTO_PUBLIC_PATH_MATCHER, render_module, render_runtime_modules},
   url_plugin::replace_static_url_placeholders,
 };
 use rspack_util::{
@@ -361,16 +358,6 @@ var {} = {{}};
       {
         export_specifiers.insert(Cow::Owned(runtime_export));
       }
-    } else if let Some(metadata) = compilation.runtime_proxy_metadata_artifact.get(chunk_ukey)
-      && metadata.runtime_module_bridge.source != rspack_core::RuntimeModuleSourceKind::Native
-    {
-      if metadata.runtime_module_bridge.source == rspack_core::RuntimeModuleSourceKind::NeedsBridge
-      {
-        runtime_source.add(RawStringSource::from(render_runtime_bridge_aliases(
-          runtime_template,
-        )));
-      }
-      runtime_source.add(render_custom_runtime_modules(compilation, chunk_ukey).await?);
     }
 
     // render namespace object before render module contents

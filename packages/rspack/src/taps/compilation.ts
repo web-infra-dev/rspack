@@ -144,10 +144,6 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
           const original = module.source?.source;
           const rspackMode =
             compilation.options.experiments.runtimeMode === 'rspack';
-          const bytes =
-            rspackMode && original !== undefined
-              ? Buffer.from(original)
-              : undefined;
           const generate = runtimeModule.generate;
           queried.call(runtimeModule, chunk);
           if (
@@ -158,10 +154,12 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
             module.source.source = runtimeModule.generate();
           }
           const updated = module.source?.source;
+          if (updated === original) return;
           if (
-            bytes
-              ? updated !== undefined && !bytes.equals(Buffer.from(updated))
-              : updated && updated !== original
+            rspackMode
+              ? updated !== undefined &&
+                updated.toString() !== original?.toString()
+              : updated
           ) {
             return module;
           }

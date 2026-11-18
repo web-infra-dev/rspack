@@ -17,17 +17,14 @@ use rspack_core::{
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_util::{identifier::make_paths_relative, placeholder::PlaceholderFinder};
 
-use crate::{JavascriptModulesPluginHooks, RenderSource};
-pub use crate::{
-  runtime_bridge::render_runtime_bridge_aliases,
-  runtime_context::{
-    render_hot_update_chunk_runtime_modules as render_rspack_hot_update_chunk_runtime_modules,
-    render_rspack_runtime_modules,
-    render_runtime_chunk_runtime_modules as render_rspack_runtime_chunk_runtime_modules,
-    render_runtime_context_declaration, render_runtime_context_require_assignment,
-    should_export_rspack_runtime_globals,
-  },
+pub use crate::runtime_context::{
+  render_hot_update_chunk_runtime_modules as render_rspack_hot_update_chunk_runtime_modules,
+  render_rspack_runtime_modules,
+  render_runtime_chunk_runtime_modules as render_rspack_runtime_chunk_runtime_modules,
+  render_runtime_context_declaration, render_runtime_context_require_assignment,
+  should_export_rspack_runtime_globals,
 };
+use crate::{JavascriptModulesPluginHooks, RenderSource};
 
 pub fn startup_awaits_entries(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
   let output = &compilation.options.output;
@@ -376,10 +373,25 @@ pub async fn render_module(
           .is_some_and(|m| m.runtime_module_bridge.intercepted_factories)
       {
         let scope = module_runtime_scope.expect("module factory scope");
-        // A webpack interceptor may call the original factory with its own loader.
-        // Keep the native context for this invocation, including after the factory returns.
+        let namespace = RuntimeGlobals::MAKE_NAMESPACE_OBJECT;
+        let webpack_namespace = namespace.property_name().expect("webpack namespace helper");
+        let rspack_namespace = namespace
+          .rspack_context_property_name()
+          .expect("Rspack namespace helper");
+        // A webpack interceptor can call the original factory with a replacement loader.
         container_sources.add(RawStringSource::from(format!(
-          "if (typeof {scope} === 'function') {scope} = arguments[0].__rspack_runtime_context__ ? arguments[0].__rspack_runtime_context__.__rspack_with_require__({scope}) : Object.create({scope}, {{r: {{value: {scope}}}, N: {{value: {scope}.r}}}});\n"
+          r#"if (typeof {scope} === "function") {scope} = (function(require) {{
+  var context = Object.create(require, {{
+    r: {{ configurable: true, value: require }},
+    {rspack_namespace}: {{ configurable: true, get: function() {{ return require.{webpack_namespace}; }}, set: function(value) {{ require.{webpack_namespace} = value; }} }}
+  }});
+  return typeof Proxy === "function" ? new Proxy(context, {{
+    set: function(target, key, value) {{
+      return Reflect.set(Object.prototype.hasOwnProperty.call(target, key) ? target : require, key, value);
+    }}
+  }}) : context;
+}})({scope});
+"#
         )));
       }
       container_sources.add(render_source.source);
@@ -500,7 +512,7 @@ pub async fn render_runtime_modules(
   if compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
     render_rspack_runtime_modules(compilation, chunk_ukey, runtime_template).await
   } else {
-    render_runtime_modules_in_order(compilation, chunk_ukey, false).await
+    render_webpack_runtime_modules(compilation, chunk_ukey).await
   }
 }
 
@@ -523,7 +535,6 @@ impl RuntimeModuleSourceItem {
 pub(crate) async fn render_runtime_module_sources(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  extensions_only: bool,
 ) -> Result<Vec<RuntimeModuleSourceItem>> {
   let runtime_mode = compilation.options.experiments.runtime_mode;
   let is_hot_update = compilation
@@ -537,11 +548,6 @@ pub(crate) async fn render_runtime_module_sources(
       .build_chunk_graph_artifact
       .chunk_graph
       .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
-      .filter(|(_, module)| {
-        !extensions_only
-          || module.get_constructor_name() == "RuntimeModuleFromJs"
-          || module.get_custom_source().is_some()
-      })
       .map(|(identifier, runtime_module)| {
         (
           compilation
@@ -636,22 +642,11 @@ pub(crate) async fn render_runtime_module_sources(
   Ok(runtime_module_sources)
 }
 
-/// Non-owning modern ESM chunks link native helpers as imports. Only extension
-/// code executes here; assignment through the loader reaches the owner's accessor.
-pub fn render_custom_runtime_modules<'a>(
-  compilation: &'a Compilation,
-  chunk: &'a ChunkUkey,
-) -> std::pin::Pin<Box<dyn Future<Output = Result<BoxSource>> + Send + 'a>> {
-  Box::pin(render_runtime_modules_in_order(compilation, chunk, true))
-}
-
-async fn render_runtime_modules_in_order(
+async fn render_webpack_runtime_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  extensions_only: bool,
 ) -> Result<BoxSource> {
-  let runtime_module_sources =
-    render_runtime_module_sources(compilation, chunk_ukey, extensions_only).await?;
+  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey).await?;
   let mut sources = ConcatSource::default();
 
   for item in runtime_module_sources {

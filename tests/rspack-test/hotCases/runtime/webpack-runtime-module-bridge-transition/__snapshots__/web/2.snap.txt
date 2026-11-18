@@ -1,0 +1,98 @@
+# Case webpack-runtime-module-bridge-transition: Step 2
+
+## Changed Files
+- value.js
+
+## Asset Files
+- Bundle: bundle.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: main.LAST_HASH.hot-update.js, size: 282
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./value.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+self["rspackHotUpdate"]("main", {
+"./value.js"(module) {
+module.exports = 3;
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// runtime upgrade
+(() => {
+globalThis.bridgeRevision = 3;
+})();
+
+}
+);
+```
+
+
+
+
+## Runtime
+### Status
+
+```txt
+check => prepare => dispose => apply => idle
+```
+
+
+
+### JavaScript
+
+#### Outdated
+
+Outdated Modules:
+- ./value.js
+
+
+Outdated Dependencies:
+```json
+{
+  "./index.js": [
+    "./value.js"
+  ]
+}
+```
+
+#### Updated
+
+Updated Modules:
+- ./value.js
+
+Updated Runtime:
+- `__webpack_require__.h`
+- `__webpack_require__.p`
+
+
+#### Callback
+
+Accepted Callback:
+- ./value.js
+
+Disposed Callback:

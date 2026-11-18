@@ -19,15 +19,15 @@ export default [false, true].map((esm, index) =>
     plugins: [
       definePlugin((compiler) => {
         const { RuntimeGlobals: g, RuntimeModule } = compiler.rspack;
+        const rspackMode =
+          compiler.options.experiments.runtimeMode === 'rspack';
         let adding = false;
         const hookSource =
           "/* plugin source */ __webpack_require__['fromHook'] = 42;";
         new compiler.rspack.DefinePlugin({
           EXPECT_EARLY_RUNTIME: !esm,
-          EXPECT_GENERATE_OVERRIDE:
-            compiler.options.experiments.runtimeMode === 'rspack',
-          EXPECT_ASYNC_RUNTIME:
-            !esm || compiler.options.experiments.runtimeMode === 'rspack',
+          EXPECT_GENERATE_OVERRIDE: rspackMode,
+          EXPECT_ASYNC_RUNTIME: !esm,
         }).apply(compiler);
         class Extension extends RuntimeModule {
           constructor() {
@@ -39,8 +39,9 @@ export default [false, true].map((esm, index) =>
             const external = __webpack_require__;
             ${esm ? '' : "external.earlyResult = external('./early.cjs');"}
             external.readPluginState = function () { return external.pluginState; };
-            external.definePublicPath = function () {
-              Object.defineProperty(external, 'p', { value: '/descriptor/', configurable: true, writable: true });
+            external.readPublicPath = function () {
+              var descriptor = Object.getOwnPropertyDescriptor(external, 'p');
+              return [external.p, descriptor.get ? descriptor.get.call(external) : descriptor.value];
             };
             const key = ['private', 'field'].join('_');
             Object.defineProperty(external, key, { value: 17, configurable: true });
@@ -56,6 +57,14 @@ export default [false, true].map((esm, index) =>
               const original = o.factory;
               o.factory = function (module, exports, incoming) {
                 function hotRequire(id) { return incoming(id); }
+                for (const key in incoming) {
+                  if (key === '$Refresh$' || !Object.prototype.hasOwnProperty.call(incoming, key)) continue;
+                  Object.defineProperty(hotRequire, key, {
+                    configurable: true, enumerable: true,
+                    get: function () { return incoming[key]; },
+                    set: function (value) { incoming[key] = value; }
+                  });
+                }
                 Object.defineProperty(hotRequire, '$Refresh$', { value: module.id });
                 var result = original.call(this, module, exports, hotRequire);
                 if (hotRequire.writtenByFactory !== 7) throw new Error('private factory write');
@@ -74,14 +83,17 @@ export default [false, true].map((esm, index) =>
                 g.publicPath,
                 g.moduleId,
                 g.require,
-                g.moduleFactories,
-                g.moduleCache,
                 g.interceptModuleExecution,
               ])
                 requirements.add(global);
+              if (!rspackMode) {
+                requirements.add(g.moduleFactories);
+                requirements.add(g.moduleCache);
+              }
               adding = true;
               compilation.addRuntimeModule(chunk, new Extension());
               adding = false;
+              if (esm) return;
               for (const child of chunk.getAllAsyncChunks()) {
                 if (child.name !== 'child') continue;
                 compilation.addRuntimeModule(
@@ -108,7 +120,9 @@ export default [false, true].map((esm, index) =>
                     super('public path hook');
                   }
                   generate() {
-                    return '__webpack_require__.fromRequirements = 1;';
+                    return rspackMode
+                      ? ''
+                      : '__webpack_require__.fromRequirements = 1;';
                   }
                 })(),
               );
@@ -121,13 +135,12 @@ export default [false, true].map((esm, index) =>
             ).toBe(true);
           });
           compilation.hooks.runtimeModule.tap('bridge', (mod) => {
-            if (
-              mod.name === 'public path hook' &&
-              compiler.options.experiments.runtimeMode === 'rspack'
-            ) {
+            if (mod.name === 'public path hook' && rspackMode) {
+              // Replacing an empty preview must also invalidate the generated source cache.
               const original = mod.generate.bind(mod);
               mod.generate = () =>
-                original() + '__webpack_require__.fromGenerate = 2;';
+                original() +
+                '__webpack_require__.fromRequirements = 1; __webpack_require__.fromGenerate = 2;';
             }
             if (
               mod.constructor.name !== 'PublicPathRuntimeModule' ||
