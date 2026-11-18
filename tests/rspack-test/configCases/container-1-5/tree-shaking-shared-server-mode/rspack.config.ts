@@ -1,5 +1,10 @@
 import { defineConfig } from '@rspack/cli';
-import { container } from '@rspack/core';
+import {
+  type Assets,
+  type Compilation,
+  type Compiler,
+  container,
+} from '@rspack/core';
 import { fileURLToPath } from 'node:url';
 // eslint-disable-next-line node/no-unpublished-require
 const { ModuleFederationPlugin } = container;
@@ -24,10 +29,10 @@ export default defineConfig({
   plugins: [
     {
       name: 'DeleteSharedOriginalAssetPlugin',
-      apply(compiler) {
+      apply(compiler: Compiler) {
         compiler.hooks.thisCompilation.tap(
           'DeleteSharedOriginalAssetPlugin',
-          (compilation) => {
+          (compilation: Compilation) => {
             compilation.hooks.processAssets.tap(
               {
                 name: 'DeleteSharedOriginalAssetPlugin',
@@ -35,7 +40,7 @@ export default defineConfig({
                   compiler.rspack.Compilation
                     .PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER,
               },
-              (assets) => {
+              (assets: Assets) => {
                 for (const name of Object.keys(assets)) {
                   if (/^shared-deleted\.[a-f0-9]{8}\.js$/.test(name)) {
                     compilation.deleteAsset(name);
