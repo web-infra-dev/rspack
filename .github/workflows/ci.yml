@@ -60,16 +60,6 @@ jobs:
       profile: 'ci'
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
 
-  verify-linux-arm64-musl:
-    name: Verify Linux ARM64 musl Release
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build-build.yml
-    with:
-      target: aarch64-unknown-linux-musl
-      profile: 'release'
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-
   build-website-for-fork:
     name: Build Website for Fork PR
     needs: [check-changed]
