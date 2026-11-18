@@ -308,6 +308,16 @@ export default {
 };
 ```
 
+Entry names are read from the object's own properties. To use `__proto__` as an entry name, write a computed property so JavaScript creates an ordinary own property:
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    ['__proto__']: './src/index.js',
+  },
+};
+```
+
 ## Dynamic entry
 
 If a function is passed then it will be invoked on every [make](/api/plugin-api/compiler-hooks#make) event.

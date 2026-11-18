@@ -414,37 +414,49 @@ const getNormalizedEntryStatic = (entry: EntryStatic) => {
       },
     };
   }
-  const result: EntryStaticNormalized = {};
-  for (const key of Object.keys(entry)) {
-    const value = entry[key];
-    if (typeof value === 'string') {
-      result[key] = {
-        import: [value],
-      };
-    } else if (Array.isArray(value)) {
-      result[key] = {
-        import: value,
-      };
-    } else {
-      result[key] = {
-        import: Array.isArray(value.import) ? value.import : [value.import],
-        runtime: value.runtime,
-        publicPath: value.publicPath,
-        baseUri: value.baseUri,
-        chunkLoading: value.chunkLoading,
-        asyncChunks: value.asyncChunks,
-        filename: value.filename,
-        library: value.library,
-        layer: value.layer,
-        dependOn: Array.isArray(value.dependOn)
-          ? value.dependOn
-          : value.dependOn
-            ? [value.dependOn]
-            : undefined,
-      };
-    }
-  }
-  return result;
+  return Object.fromEntries(
+    Object.entries(entry).map(
+      ([key, value]): [string, EntryDescriptionNormalized] => {
+        if (typeof value === 'string') {
+          return [
+            key,
+            {
+              import: [value],
+            },
+          ];
+        } else if (Array.isArray(value)) {
+          return [
+            key,
+            {
+              import: value,
+            },
+          ];
+        } else {
+          return [
+            key,
+            {
+              import: Array.isArray(value.import)
+                ? value.import
+                : [value.import],
+              runtime: value.runtime,
+              publicPath: value.publicPath,
+              baseUri: value.baseUri,
+              chunkLoading: value.chunkLoading,
+              asyncChunks: value.asyncChunks,
+              filename: value.filename,
+              library: value.library,
+              layer: value.layer,
+              dependOn: Array.isArray(value.dependOn)
+                ? value.dependOn
+                : value.dependOn
+                  ? [value.dependOn]
+                  : undefined,
+            },
+          ];
+        }
+      },
+    ),
+  );
 };
 
 const getNormalizedOptimizationRuntimeChunk = (

@@ -308,6 +308,16 @@ export default {
 };
 ```
 
+入口名称来自配置对象的自有属性。若要使用 `__proto__` 作为入口名称，请使用计算属性名，让 JavaScript 创建普通的自有属性：
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    ['__proto__']: './src/index.js',
+  },
+};
+```
+
 ## 动态入口
 
 如果传入一个函数，那么它将会在每次 [make](/api/plugin-api/compiler-hooks#make) 事件中被调用。
