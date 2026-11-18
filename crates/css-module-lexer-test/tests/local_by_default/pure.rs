@@ -1,7 +1,7 @@
-use css_module_lexer::Mode;
+use css_module_lexer::{Mode, WarningKind, collect_dependencies};
 use indoc::indoc;
 
-use crate::local_by_default::*;
+use super::*;
 
 #[test]
 fn incorrectly_handle_nested_selectors() {
@@ -146,6 +146,45 @@ fn throw_on_not_pure_keyframes() {
     LocalByDefault { mode: Mode::Pure },
     "'@keyframes :global' is not allowed in pure mode",
   );
+}
+
+#[test]
+fn keyframe_steps_are_exempt_from_selector_purity() {
+  for (input, expected) in [
+    (
+      "@keyframes fade { to { opacity: 0; } }",
+      "@keyframes :local(fade) { to { opacity: 0; } }",
+    ),
+    (
+      "@-webkit-keyframes fade { from, 25% { opacity: 1; } 50%, to { opacity: 0; } }",
+      "@-webkit-keyframes :local(fade) { from, 25% { opacity: 1; } 50%, to { opacity: 0; } }",
+    ),
+    (
+      ".foo { @keyframes :local(fade) { from {} to {} } button {} }",
+      ":local(.foo) { @keyframes :local(fade) { from {} to {} } button {} }",
+    ),
+  ] {
+    test_with_options(input, expected, LocalByDefault { mode: Mode::Pure });
+  }
+}
+
+#[test]
+fn keyframe_exemption_ends_with_the_block() {
+  for input in [
+    "@keyframes fade { to {} } body {}",
+    "@media screen { @keyframes fade { from {} to {} } body {} }",
+    "@keyframes fade {} body {}",
+  ] {
+    let (_, warnings) = collect_dependencies(input, Mode::Pure);
+    let [warning] = warnings.as_slice() else {
+      panic!("expected one warning for {input}, got {warnings:?}");
+    };
+    assert!(matches!(warning.kind(), WarningKind::NotPure { .. }));
+    assert_eq!(
+      Lexer::slice_range(input, warning.range()).map(str::trim),
+      Some("body")
+    );
+  }
 }
 
 #[test]

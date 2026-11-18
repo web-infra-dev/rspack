@@ -79,7 +79,7 @@ enum ScanContext {
   DeclarationName,
   GenericValue,
   SpecialValue(PropertyKind),
-  AtRule,
+  AtRule(AtRuleKind),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -831,8 +831,9 @@ pub struct ModeData<'s> {
   property: Mode,
   resulting_global: Option<Pos>,
   pure_global: Option<Pos>,
-  // The outermost rule with a local selector also makes its nested rules pure.
-  pure_local_block_nesting_level: Option<u32>,
+  // Count open braces from the outermost local style rule or @keyframes.
+  // The nesting level used for composes skips grouping at-rules.
+  pure_block_depth: u32,
   pure_no_check: bool,
   pure_ignore_pending: bool,
   pure_ignored_block_nesting_level: Option<u32>,
@@ -849,7 +850,7 @@ impl ModeData<'_> {
       property: default,
       resulting_global: None,
       pure_global: Some(0),
-      pure_local_block_nesting_level: None,
+      pure_block_depth: 0,
       pure_no_check: false,
       pure_ignore_pending: false,
       pure_ignored_block_nesting_level: None,
@@ -881,6 +882,10 @@ impl ModeData<'_> {
       || self.pure_ignored_block_nesting_level.is_some()
   }
 
+  fn should_check_selector_purity(&self) -> bool {
+    self.is_pure_mode() && self.pure_block_depth == 0 && !self.is_pure_check_disabled()
+  }
+
   pub fn enter_block(&mut self, block_nesting_level: u32) {
     if self.pure_ignore_pending {
       self.pure_ignore_pending = false;
@@ -895,12 +900,6 @@ impl ModeData<'_> {
   }
 
   pub fn exit_block(&mut self, block_nesting_level: u32) {
-    if self
-      .pure_local_block_nesting_level
-      .is_some_and(|level| block_nesting_level < level)
-    {
-      self.pure_local_block_nesting_level = None;
-    }
     if self
       .pure_ignored_block_nesting_level
       .is_some_and(|level| block_nesting_level < level)
@@ -1537,7 +1536,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     }
     match self.scan_context {
       ScanContext::Selector => self.selector_square_depth = 0,
-      ScanContext::AtRule => stream.reset_at_rule_scan_state(),
+      ScanContext::AtRule(_) => stream.reset_at_rule_scan_state(),
       ScanContext::GenericValue | ScanContext::SpecialValue(_) => stream.reset_value_scan_states(),
       _ => {}
     }
@@ -1915,7 +1914,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         ScanContext::Selector if self.selector_fast_forward_enabled => {
           self.fast_forward_selector(stream, keep_comments, has_mode);
         }
-        ScanContext::AtRule
+        ScanContext::AtRule(_)
           if !matches!(self.scope, Scope::InAtImport(_) | Scope::AtImportInvalid) =>
         {
           self.fast_forward_at_rule(stream, keep_comments);
@@ -3643,7 +3642,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
   ) -> Option<()> {
     let name = stream.slice_trusted(start, end);
     let kind = Self::classify_at_rule(name, flags);
-    self.set_scan_context(stream, ScanContext::AtRule);
+    self.set_scan_context(stream, ScanContext::AtRule(kind));
     if kind == AtRuleKind::Namespace {
       self.scope = Scope::AtNamespaceInvalid;
       self.handle_warning.handle_warning(Warning {
@@ -4152,7 +4151,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
         ScanContext::Selector
           | ScanContext::GenericValue
           | ScanContext::SpecialValue(_)
-          | ScanContext::AtRule
+          | ScanContext::AtRule(_)
       )
       && (self.scan_context != ScanContext::Selector || self.selector_square_depth == 0)
       && self.contains_icss_symbol(ident)
@@ -4447,15 +4446,6 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       }
       _ => return Some(()),
     }
-    let (pure_check_disabled_for_selector, enter_pure_ignored_block) =
-      if let Some(mode_data) = &self.mode_data {
-        (
-          mode_data.is_pure_check_disabled() || mode_data.pure_local_block_nesting_level.is_some(),
-          mode_data.pure_ignore_pending,
-        )
-      } else {
-        (false, false)
-      };
     if self.mode_data.is_none() {
       self.set_scan_context(stream, ScanContext::BlockItem);
       return Some(());
@@ -4463,7 +4453,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     if let Some(mode_data) = &mut self.mode_data {
       if let Some(pure_global_start) = mode_data
         .pure_global
-        .filter(|_| mode_data.is_pure_mode() && !pure_check_disabled_for_selector)
+        .filter(|_| mode_data.should_check_selector_purity())
       {
         self.handle_warning.handle_warning(Warning {
                     range: Range::new(pure_global_start, start),
@@ -4474,20 +4464,17 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       }
 
       if mode_data.is_pure_mode()
-        && self.scan_context == ScanContext::Selector
-        && mode_data.pure_global.is_none()
-        && mode_data.pure_local_block_nesting_level.is_none()
+        && (mode_data.pure_block_depth > 0
+          || self.scan_context == ScanContext::AtRule(AtRuleKind::Keyframes)
+          || (self.scan_context == ScanContext::Selector && mode_data.pure_global.is_none()))
       {
-        mode_data.pure_local_block_nesting_level = Some(self.block_nesting_level);
+        mode_data.pure_block_depth += 1;
       }
 
-      // Start child selectors independently; ancestor purity is kept above.
-      // In particular, an at-rule prelude does not make its children pure.
+      // A grouping at-rule starts its child selectors with a fresh purity check.
       mode_data.pure_global = Some(end);
 
-      if enter_pure_ignored_block {
-        mode_data.enter_block(self.block_nesting_level);
-      }
+      mode_data.enter_block(self.block_nesting_level);
 
       if let Some(resulting_global_start) = mode_data
         .resulting_global
@@ -4530,6 +4517,12 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     _: Pos,
     end: Pos,
   ) -> Option<()> {
+    if let Some(mode_data) = &mut self.mode_data
+      && mode_data.pure_block_depth > 0
+    {
+      mode_data.pure_block_depth -= 1;
+      mode_data.pure_global = Some(end);
+    }
     if matches!(self.scope, Scope::InBlock) {
       self.finish_property_value(stream.lexer_mut(), end)?;
       if self.block_nesting_level > 0 {
@@ -4681,11 +4674,10 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
 
     // Commas inside selector functions do not end the outer selector.
     if self.balanced.last_component().is_none() && self.selector_square_depth == 0 {
-      if let Some(pure_global_start) = mode_data.pure_global.filter(|_| {
-        mode_data.is_pure_mode()
-          && !mode_data.is_pure_check_disabled()
-          && mode_data.pure_local_block_nesting_level.is_none()
-      }) {
+      if let Some(pure_global_start) = mode_data
+        .pure_global
+        .filter(|_| mode_data.should_check_selector_purity())
+      {
         self.handle_warning.handle_warning(Warning {
           range: Range::new(pure_global_start, start),
           kind: WarningKind::NotPure {

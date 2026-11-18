@@ -1,0 +1,14 @@
+[package]
+edition.workspace = true
+license.workspace = true
+name              = "css-module-lexer-test"
+publish           = false
+version.workspace = true
+
+[dev-dependencies]
+css-module-lexer = { workspace = true }
+indoc            = { workspace = true }
+similar-asserts  = { workspace = true, features = ["unicode"] }
+
+[lints]
+workspace = true

@@ -1,7 +1,7 @@
 use css_module_lexer::Mode;
 use indoc::indoc;
 
-use crate::local_by_default::*;
+use super::*;
 
 #[test]
 fn css_nesting() {
