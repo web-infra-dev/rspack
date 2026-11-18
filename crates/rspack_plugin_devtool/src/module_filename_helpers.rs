@@ -49,6 +49,72 @@ fn default_resource_path_template_scheme(module_filename_template: &str) -> Opti
     .and_then(|captures| captures.get(1).map(|scheme| scheme.as_str()))
 }
 
+fn is_windows_path(path: &str) -> bool {
+  let bytes = path.as_bytes();
+  path.starts_with(r"\\")
+    || (bytes.len() >= 3
+      && bytes[0].is_ascii_alphabetic()
+      && bytes[1] == b':'
+      && matches!(bytes[2], b'/' | b'\\'))
+}
+
+fn has_url_scheme(resource: &str) -> bool {
+  let Some((scheme, _)) = resource.split_once(':') else {
+    return false;
+  };
+  let mut chars = scheme.chars();
+  !is_windows_path(resource)
+    && matches!(chars.next(), Some(ch) if ch.is_ascii_alphabetic())
+    && chars.all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '+' | '-' | '.'))
+}
+
+fn resource_path_end(resource: &str) -> usize {
+  // The question mark in a DOS device prefix is part of the path.
+  let prefix_len = if resource.starts_with(r"\\?\") || resource.starts_with(r"\\.\") {
+    4
+  } else {
+    0
+  };
+  let mut escaped = false;
+  for (offset, ch) in resource[prefix_len..].char_indices() {
+    if escaped {
+      escaped = false;
+    } else if ch == '\u{200b}' {
+      escaped = true;
+    } else if matches!(ch, '?' | '#') {
+      return prefix_len + offset;
+    }
+  }
+  resource.len()
+}
+
+fn push_normalized_resource(buf: &mut String, resource: &str) {
+  if !resource.contains('\\')
+    || (!cfg!(windows) && !is_windows_path(resource))
+    || has_url_scheme(resource)
+  {
+    buf.push_str(resource);
+    return;
+  }
+
+  let path_end = resource_path_end(resource);
+  buf.push_str(&resource[..path_end].cow_replace('\\', "/"));
+  buf.push_str(&resource[path_end..]);
+}
+
+fn push_normalized_request(buf: &mut String, request: &str) {
+  if !request.contains('\\') {
+    buf.push_str(request);
+    return;
+  }
+  for (index, resource) in request.split('!').enumerate() {
+    if index != 0 {
+      buf.push('!');
+    }
+    push_normalized_resource(buf, resource);
+  }
+}
+
 // sources in a source map should be relative/URL-style (not absolute filesystem paths)
 fn resolve_relative_resource_path(
   absolute_resource_path: &str,
@@ -70,29 +136,30 @@ fn resolve_relative_resource_path(
     return Some(format!("{scheme}://{absolute_resource_path}"));
   }
 
+  if has_url_scheme(absolute_resource_path) {
+    return Some(absolute_resource_path.to_string());
+  }
+
   let Some(source_map_path) = source_map_path else {
     // During the inline source map stage, the asset filename may not be available yet.
     // In that case we cannot compute a relative path and must return None.
     return None;
   };
 
-  let Some(parent) = source_map_path.parent() else {
-    return Some(
-      absolute_resource_path
-        .normalize()
-        .to_string_lossy()
-        .cow_replace("\\", "/")
-        .to_string(),
-    );
+  let (resource_path, suffix) =
+    absolute_resource_path.split_at(resource_path_end(absolute_resource_path));
+  let path = match source_map_path.parent() {
+    Some(parent) => Cow::Owned(Path::new(resource_path).relative(parent)),
+    None => resource_path.normalize(),
   };
-
-  Some(
-    Path::new(absolute_resource_path)
-      .relative(parent)
-      .to_string_lossy()
-      .cow_replace("\\", "/")
-      .to_string(),
-  )
+  let path = path.to_string_lossy();
+  let mut result = if cfg!(windows) || is_windows_path(resource_path) {
+    path.cow_replace('\\', "/").into_owned()
+  } else {
+    path.into_owned()
+  };
+  result.push_str(suffix);
+  Some(result)
 }
 
 impl ModuleFilenameHelpers {
@@ -356,7 +423,7 @@ fn create_default_module_filename(
   result.push_str(scheme);
   result.push_str(namespace);
   result.push('/');
-  result.push_str(resource_path);
+  push_normalized_resource(&mut result, resource_path);
   result
 }
 
@@ -566,10 +633,10 @@ fn template_replace<'a>(s: &str, ctx: &ModuleFilenameTemplateStringCtx<'a>) -> S
       b']' if state => {
         let mut next_pos = i + 1;
         match_ignore_case!(&s[pos..next_pos];
-            b"[identifier]" => buf.push_str(ctx.identifier().as_ref()),
-            b"[short-identifier]" => buf.push_str(ctx.short_identifier().as_ref()),
-            b"[resource]" => buf.push_str(ctx.resource()),
-            b"[resource-path]" |  b"[resourcepath]" => buf.push_str(ctx.resource_path()),
+            b"[identifier]" => push_normalized_request(&mut buf, ctx.identifier()),
+            b"[short-identifier]" => push_normalized_request(&mut buf, ctx.short_identifier()),
+            b"[resource]" => push_normalized_resource(&mut buf, ctx.resource()),
+            b"[resource-path]" |  b"[resourcepath]" => push_normalized_resource(&mut buf, ctx.resource_path()),
 
             b"[absolute-resource-path]" |
             b"[abs-resource-path]" |
@@ -578,14 +645,14 @@ fn template_replace<'a>(s: &str, ctx: &ModuleFilenameTemplateStringCtx<'a>) -> S
             b"[absolute-resourcepath]" |
             b"[abs-resourcepath]" |
             b"[absoluteresourcepath]" |
-            b"[absresourcepath]" => buf.push_str(ctx.absolute_resource_path()),
+            b"[absresourcepath]" => push_normalized_resource(&mut buf, ctx.absolute_resource_path()),
 
             b"[relative-resource-path]" |
             b"[relativeresource-path]" |
             b"[relative-resourcepath]" |
             b"[relativeresourcepath]" => {
               if let Some(relative_resource_path) = ctx.relative_resource_path() {
-                buf.push_str(relative_resource_path.as_ref())
+                push_normalized_resource(&mut buf, relative_resource_path.as_ref())
               } else {
                 buf.push_str(&sstr[pos..next_pos]);
               }
@@ -593,15 +660,15 @@ fn template_replace<'a>(s: &str, ctx: &ModuleFilenameTemplateStringCtx<'a>) -> S
 
             b"[all-loaders]" | b"[allloaders]" => if starts_with_ignore_ascii_case(&s[next_pos..], resource_tag) {
                 next_pos += resource_tag.len();
-                buf.push_str(ctx.identifier().as_ref());
+                push_normalized_request(&mut buf, ctx.identifier());
             } else {
-                buf.push_str(ctx.all_loaders());
+                push_normalized_request(&mut buf, ctx.all_loaders());
             },
             b"[loaders]" => if starts_with_ignore_ascii_case(&s[next_pos..], resource_tag) {
                 next_pos += resource_tag.len();
-                buf.push_str(ctx.short_identifier().as_ref());
+                push_normalized_request(&mut buf, ctx.short_identifier());
             } else {
-                buf.push_str(ctx.loaders());
+                push_normalized_request(&mut buf, ctx.loaders());
             },
 
             b"[query]" => buf.push_str(ctx.query()),
