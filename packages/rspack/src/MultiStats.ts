@@ -44,9 +44,17 @@ export default class MultiStats {
         : (options ?? {});
 
     const children = this.stats.map((stat, idx) => {
+      if (typeof options === 'boolean') {
+        return stat.compilation.createStatsOptions(options, context);
+      }
+
       const childOptions = Array.isArray(childrenOptions)
         ? childrenOptions[idx]
         : childrenOptions;
+
+      if (typeof childOptions === 'boolean') {
+        return stat.compilation.createStatsOptions(childOptions, context);
+      }
 
       return stat.compilation.createStatsOptions(
         {
@@ -68,7 +76,7 @@ export default class MultiStats {
       warnings: children.every((o) => o.warnings),
       children,
       context: '',
-      version: '',
+      version: children.every((o) => o.version),
     };
   }
 
