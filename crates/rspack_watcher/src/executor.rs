@@ -14,7 +14,7 @@ use tokio::{
 };
 
 use super::{EventAggregateHandler, EventHandler, FsEventKind};
-use crate::{EventBatch, FsEvent, ResolvedEvents};
+use crate::{ImmediateEvents, ResolvedEvents};
 
 type ThreadSafetyReceiver<T> = ThreadSafety<UnboundedReceiver<T>>;
 type ThreadSafety<T> = Arc<Mutex<T>>;
@@ -77,7 +77,7 @@ enum ExecAggregateEvent {
 }
 
 enum ExecEvent {
-  Execute(Option<FsEvent>, EventBatch, Option<InternedPath>),
+  Execute(ImmediateEvents, Option<InternedPath>),
   Aggregate(FilesData),
   Close,
 }
@@ -209,11 +209,7 @@ impl Executor {
                     .collect(),
                 });
             }
-            let _ = exec_tx.send(ExecEvent::Execute(
-              events.raw,
-              events.recovered,
-              events.context_removal,
-            ));
+            let _ = exec_tx.send(ExecEvent::Execute(events.immediate, events.context_removal));
           }
 
           if !paused.load(Ordering::Relaxed) && !aggregate_running.load(Ordering::Relaxed) {
@@ -280,8 +276,8 @@ fn create_execute_task(
   let future = async move {
     'deliveries: while let Some(exec_event) = exec_rx.lock().await.recv().await {
       match exec_event {
-        ExecEvent::Execute(raw, recovered, context_removal) => {
-          for event in raw.into_iter().chain(recovered) {
+        ExecEvent::Execute(immediate, context_removal) => {
+          for event in immediate {
             // Handle each event based on its kind
             let path = event.path.to_string_lossy().to_string();
             let result = match event.kind {

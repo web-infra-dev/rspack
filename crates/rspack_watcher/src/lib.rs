@@ -4,6 +4,7 @@ mod executor;
 mod ignored;
 mod paths;
 mod scanner;
+mod subscriptions;
 mod time;
 mod trigger;
 
@@ -30,6 +31,7 @@ use rspack_error::Result;
 use rspack_paths::InternedPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 use scanner::Scanner;
+use subscriptions::FileSubscription;
 use tokio::sync::{mpsc, oneshot};
 use trigger::Trigger;
 
@@ -75,10 +77,12 @@ pub type TimeInfoEntries = Vec<(String, TimeInfoEntry)>;
 
 pub(crate) type EventBatch = Vec<FsEvent>;
 
+pub(crate) type ImmediateEvents = smallvec::SmallVec<[FsEvent; 1]>;
+
+#[derive(Default)]
 pub(crate) struct ResolvedEvents {
   pub dependencies: EventBatch,
-  pub raw: Option<FsEvent>,
-  pub recovered: EventBatch,
+  pub immediate: ImmediateEvents,
   pub context_removal: Option<InternedPath>,
 }
 
@@ -135,7 +139,7 @@ const WATCHER_UNAVAILABLE: &str =
 
 enum WatcherOp {
   Watch {
-    files: (Vec<InternedPath>, Vec<InternedPath>),
+    files: (Vec<FileSubscription>, Vec<FileSubscription>),
     directories: (Vec<InternedPath>, Vec<InternedPath>),
     missing: (Vec<InternedPath>, Vec<InternedPath>),
     start_time: SystemTime,
@@ -173,13 +177,21 @@ struct FsWatcherInner {
 impl FsWatcher {
   /// Creates a new [`FsWatcher`] instance with the specified options and ignored paths.
   pub fn new(options: FsWatcherOptions, ignored: FsWatcherIgnored) -> Self {
+    Self::with_backend(options, ignored, DiskWatcher::new)
+  }
+
+  fn with_backend(
+    options: FsWatcherOptions,
+    ignored: FsWatcherIgnored,
+    backend: impl FnOnce(bool, Option<u32>, Arc<Trigger>) -> DiskWatcher,
+  ) -> Self {
     let (tx, rx) = mpsc::unbounded_channel();
 
     let path_manager =
       Arc::new(PathManager::new(ignored).with_follow_symlinks(options.follow_symlinks));
     let trigger = Arc::new(Trigger::new(Arc::clone(&path_manager), tx));
     let analyzer = Arc::clone(&trigger.analyzer);
-    let disk_watcher = DiskWatcher::new(
+    let disk_watcher = backend(
       options.follow_symlinks,
       options.poll_interval,
       trigger.clone(),
@@ -267,12 +279,34 @@ impl FsWatcher {
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
   ) -> Pin<Box<dyn Future<Output = ()> + Send>> {
+    self.watch_subscriptions(
+      (
+        files.0.map(FileSubscription::from).collect(),
+        files.1.map(FileSubscription::from).collect(),
+      ),
+      (directories.0.collect(), directories.1.collect()),
+      (missing.0.collect(), missing.1.collect()),
+      start_time,
+      event_aggregate_handler,
+      event_handler,
+    )
+  }
+
+  fn watch_subscriptions(
+    &self,
+    files: (Vec<FileSubscription>, Vec<FileSubscription>),
+    directories: (Vec<InternedPath>, Vec<InternedPath>),
+    missing: (Vec<InternedPath>, Vec<InternedPath>),
+    start_time: SystemTime,
+    event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
+    event_handler: Box<dyn EventHandler + Send>,
+  ) -> Pin<Box<dyn Future<Output = ()> + Send>> {
     let (done_tx, done_rx) = oneshot::channel();
 
     let send_result = self.op_tx.send(WatcherOp::Watch {
-      files: (files.0.collect(), files.1.collect()),
-      directories: (directories.0.collect(), directories.1.collect()),
-      missing: (missing.0.collect(), missing.1.collect()),
+      files,
+      directories,
+      missing,
       start_time,
       event_aggregate_handler,
       event_handler,
@@ -390,7 +424,7 @@ fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<Watche
 impl FsWatcherInner {
   async fn watch(
     &mut self,
-    files: (Vec<InternedPath>, Vec<InternedPath>),
+    files: (Vec<FileSubscription>, Vec<FileSubscription>),
     directories: (Vec<InternedPath>, Vec<InternedPath>),
     missing: (Vec<InternedPath>, Vec<InternedPath>),
     start_time: SystemTime,
@@ -424,14 +458,14 @@ impl FsWatcherInner {
 
   async fn wait_for_event(
     &mut self,
-    files: (Vec<InternedPath>, Vec<InternedPath>),
+    files: (Vec<FileSubscription>, Vec<FileSubscription>),
     directories: (Vec<InternedPath>, Vec<InternedPath>),
     missing: (Vec<InternedPath>, Vec<InternedPath>),
     start_time: SystemTime,
   ) -> Result<()> {
     self
       .path_manager
-      .update(
+      .update_subscriptions(
         (files.0.into_iter(), files.1.into_iter()),
         (directories.0.into_iter(), directories.1.into_iter()),
         (missing.0.into_iter(), missing.1.into_iter()),
@@ -444,7 +478,7 @@ impl FsWatcherInner {
     // against.
     //
     // Only newly-added files are stat'd here. Files carried across cycles
-    // already have a baseline that `has_mtime_changed` advanced atomically
+    // already have a baseline that `observe_file_mtime` advanced atomically
     // on the previous event; re-stat'ing them on every rewatch would
     // (a) cost O(N) syscalls per rebuild on large projects, and
     // (b) re-introduce the race fixed by this PR — a user write that

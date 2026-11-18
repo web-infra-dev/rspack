@@ -19,6 +19,14 @@ pub struct DiskWatcher {
 }
 
 impl DiskWatcher {
+  #[cfg(feature = "testing")]
+  pub(crate) fn manual() -> Self {
+    Self {
+      inner: None,
+      watch_patterns: HashSet::default(),
+    }
+  }
+
   /// Creates a new `DiskWatcher` with the given configuration and trigger.
   pub fn new(
     follow_symlinks: bool,
@@ -125,6 +133,7 @@ pub(crate) fn handle_event(event: Event, trigger: &trigger::Trigger) {
 
   if event.need_rescan() {
     trigger.analyzer.invalidate_all();
+    drop(trigger.check_subscriptions());
   }
   if event.paths.is_empty() {
     return;

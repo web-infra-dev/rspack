@@ -119,3 +119,63 @@ impl DirectoryAnalyzer {
       .collect()
   }
 }
+
+/// A full watcher whose disk events are supplied by the test.
+pub fn manual_watcher() -> FsWatcher {
+  FsWatcher::with_backend(Default::default(), Default::default(), |_, _, _| {
+    crate::DiskWatcher::manual()
+  })
+}
+
+pub async fn watch_file_subscriptions(
+  watcher: &FsWatcher,
+  added: &[(InternedPath, InternedPath)],
+  removed: &[(InternedPath, InternedPath)],
+  aggregate: impl crate::EventAggregateHandler + Send + 'static,
+  raw: impl crate::EventHandler + Send + 'static,
+) {
+  let bindings = |files: &[(InternedPath, InternedPath)]| {
+    files
+      .iter()
+      .map(
+        |(observed, logical)| crate::subscriptions::FileSubscription {
+          observed: observed.clone(),
+          logical: logical.clone(),
+        },
+      )
+      .collect()
+  };
+  watcher
+    .watch_subscriptions(
+      (bindings(added), bindings(removed)),
+      (vec![], vec![]),
+      (vec![], vec![]),
+      SystemTime::now(),
+      Box::new(aggregate),
+      Box::new(raw),
+    )
+    .await;
+}
+
+pub fn disk_event(watcher: &FsWatcher, path: &InternedPath, kind: FsEventKind) {
+  if let Some(trigger) = watcher
+    .trigger
+    .lock()
+    .expect("should lock trigger")
+    .as_ref()
+  {
+    trigger.on_disk_event(path, kind, kind == FsEventKind::Create);
+  }
+}
+
+pub async fn check_subscriptions(watcher: &FsWatcher) {
+  let done = watcher
+    .trigger
+    .lock()
+    .expect("should lock trigger")
+    .as_ref()
+    .map(|trigger| trigger.check_subscriptions());
+  if let Some(done) = done {
+    done.await.expect("complete subscription check");
+  }
+}
