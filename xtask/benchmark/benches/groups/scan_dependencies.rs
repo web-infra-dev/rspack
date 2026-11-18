@@ -208,10 +208,8 @@ fn parse_benchmark_program(
     parse_return.diagnostics
   );
   let tokens = parse_return.tokens;
-  let ast = Box::leak(Box::new(parse_return.ast));
-  let comments = Box::leak(Box::new(RspackComments::from_ast(ast)));
   let semantic_return = analyze(
-    ast,
+    parse_return.ast,
     AnalyzeOptions {
       check_syntax: SyntaxChecks::all(),
     },
@@ -221,7 +219,12 @@ fn parse_benchmark_program(
     "scan_dependencies benchmark source should pass semantic analysis: {:#?}",
     semantic_return.diagnostics
   );
-  let semantic = Box::leak(Box::new(semantic_return.semantic));
+  let (ast, semantic) = semantic_return.semantic.into_parts();
+  let ast = Box::leak(Box::new(ast));
+  // SAFETY: Benchmark iterations only read handles from this retained AST and never mutate it.
+  let ast = unsafe { ast.ast() };
+  let comments = Box::leak(Box::new(RspackComments::from_ast(ast)));
+  let semantic = Box::leak(Box::new(semantic));
   let program = ast.root_program();
 
   let mut semicolons = FxHashSet::default();
@@ -259,6 +262,7 @@ impl PreparedScanDependenciesBenchmarkCase {
       &self.parsed_ast,
       &self.resource_data,
       self.compiler_options.as_ref(),
+      &Default::default(),
       &self.module_type,
       None,
       None,

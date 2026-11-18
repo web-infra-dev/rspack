@@ -1,20 +1,16 @@
-<%- fn("importScriptsLoadUpdateChunk") %>(chunkId, updatedModulesList) {
+<%- fn("importScriptsLoadUpdateChunk") %>(chunkId, updatedModulesList, full) {
   var success = false;
-  <%- _global_object %>[<%- _hot_update_global %>] = <%- basicFunction("_, moreModules, runtime") %> {
-      for (var moduleId in moreModules) {
-          if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
-              hotCurrentUpdate[moduleId] = moreModules[moduleId];
-              if (updatedModulesList) updatedModulesList.push(moduleId);
-          }
-      }
-      if (runtime) hotCurrentUpdateRuntime.push(runtime);
+  <%- _global_object %>[<%- _hot_update_global %>] = <%- basicFunction("chunkId, moreModules, runtime") %> {
+      hotAddUpdateChunk(chunkId, moreModules, runtime, updatedModulesList, full);
       success = true;
   };
   // start update chunk loading
+  var filename = <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId);
+  var url = <%- PUBLIC_PATH %> + filename + (full ? (/\.mjs$/.test(filename) ? ".full.mjs" : ".full.js") : "");
   <% if (_with_create_script_url) { %>
-  importScripts(<%- weak(CREATE_SCRIPT_URL) %>(<%- PUBLIC_PATH %> + <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId)));
+  importScripts(<%- weak(CREATE_SCRIPT_URL) %>(url));
   <% } else { %>
-  importScripts(<%- PUBLIC_PATH %> + <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId));
+  importScripts(url);
   <% } %>
   if (!success) throw new Error("Loading update chunk failed for unknown reason");
 }

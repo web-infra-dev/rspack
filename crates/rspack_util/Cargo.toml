@@ -20,7 +20,7 @@ indexmap          = { workspace = true }
 itoa              = { workspace = true }
 json-escape-simd  = { workspace = true }
 memchr            = { workspace = true }
-regex             = { workspace = true, features = ["pattern"] }
+regex             = { workspace = true }
 rspack-allocative = { workspace = true, optional = true }
 rspack_cacheable  = { workspace = true }
 rspack_intern     = { workspace = true, features = ["atom"] }

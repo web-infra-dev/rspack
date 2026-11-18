@@ -1,15 +1,17 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  ChunkGraph, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
-  CodeGenerationDataTopLevelDeclarations, Compilation, ExportsArgument, Module, ModuleGraph,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable, SourceType,
-  property_access, render_init_fragments,
+  ChunkGraph, ChunkInitFragments, ChunkRenderContext, ChunkUkey, Compilation, ExportsArgument,
+  Module, ModuleGraph, RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode,
+  RuntimeVariable, SourceType, property_access, render_init_fragments,
   rspack_sources::{BoxSource, ConcatSource, OriginalSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
 
-use super::{JsPlugin, RenderBootstrapResult, get_js_entry_modules_with_chunk_group};
+use super::{
+  JsPlugin, RenderBootstrapResult, entry_top_level_declarations_bailout,
+  get_js_entry_modules_with_chunk_group,
+};
 use crate::{
   RenderSource,
   runtime::{
@@ -396,23 +398,15 @@ function {}(moduleId) {{
             );
             allow_inline_startup = false;
           }
-          if allow_inline_startup && {
-            let codegen = compilation
-              .code_generation_results
-              .get(module, Some(chunk.runtime()));
-            let module_graph = compilation.get_module_graph();
-            let top_level_decls = codegen
-              .data()
-              .get::<CodeGenerationDataTopLevelDeclarations>()
-              .map(|_| ())
-              .or_else(|| {
-                module_graph
-                  .module_by_identifier(module)
-                  .and_then(|m| m.build_info().top_level_declarations.as_ref().map(|_| ()))
-              });
-            top_level_decls.is_none()
-          } {
-            buf2.push("// This entry module doesn't tell about it's top-level declarations so it can't be inlined".into());
+          if allow_inline_startup
+            && let Some(bailout) = entry_top_level_declarations_bailout(
+              compilation,
+              module,
+              chunk.runtime(),
+              runtime_template,
+            )
+          {
+            buf2.push(bailout.into());
             allow_inline_startup = false;
           }
           let hooks = JsPlugin::get_compilation_hooks(compilation.id());

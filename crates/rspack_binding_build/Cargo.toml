@@ -4,7 +4,6 @@ categories.workspace    = true
 description             = "Binding build script for Rspack"
 documentation.workspace = true
 edition.workspace       = true
-homepage.workspace      = true
 license.workspace       = true
 name                    = "rspack_binding_build"
 repository.workspace    = true

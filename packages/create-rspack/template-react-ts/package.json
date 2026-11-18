@@ -16,7 +16,7 @@
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "^2.2.2",
-    "@rspack/plugin-react-refresh": "^2.0.2",
+    "@rspack/plugin-react-refresh": "^2.0.3",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "react-refresh": "^0.19.0",

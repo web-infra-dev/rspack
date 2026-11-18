@@ -101,6 +101,8 @@ export type EcmaTargetProperties = {
   optionalChaining: boolean | null;
   /**  logical assignment is available */
   logicalAssignment: boolean | null;
+  /**  spread and rest in array/object literals and calls is available */
+  spread: boolean | null;
   /**  template literal is available */
   templateLiteral: boolean | null;
   /**  async functions and await are available */
@@ -302,6 +304,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         computedProperty: v(4),
         templateLiteral: v(4),
         optionalChaining: v(14),
+        spread: v(8, 3),
         logicalAssignment: v(15),
         methodShorthand: v(4),
         arrowFunction: v(6),
@@ -379,6 +382,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         computedProperty: v(1, 1),
         templateLiteral: v(1, 1),
         optionalChaining: v(8),
+        spread: v(2),
         logicalAssignment: v(10),
         methodShorthand: v(1, 1),
         arrowFunction: v(1, 1),
@@ -446,6 +450,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         computedProperty: v(0, 15),
         templateLiteral: v(0, 13),
         optionalChaining: v(0, 44),
+        spread: v(0, 23),
         methodShorthand: v(0, 15),
         arrowFunction: v(0, 15),
         asyncFunction: v(0, 21),
@@ -474,6 +479,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         computedProperty: v >= 2015,
         templateLiteral: v >= 2015,
         optionalChaining: v >= 2020,
+        spread: v >= 2018,
         logicalAssignment: v >= 2021,
         methodShorthand: v >= 2015,
         arrowFunction: v >= 2015,

@@ -2503,30 +2503,30 @@ p:not(#Gonxc7) {
 
 .mL4yxz {
 	display: grid;
-	grid-template-columns: [main-start] 1fr [content-start] 1fr [content-end] 1fr [main-end];
-	grid-template-rows: [main-start] 100px [content-start] 100px [content-end] 100px [main-end];
+	grid-template-columns: [qEBS78-start] 1fr [content-start] 1fr [content-end] 1fr [qEBS78-end];
+	grid-template-rows: [qEBS78-start] 100px [content-start] 100px [content-end] 100px [qEBS78-end];
 }
 
 .YP0k5x {
-	grid-column-start: main-start;
-	grid-row-start: main-start;
-	grid-row-end: main-end;
+	grid-column-start: qEBS78-start;
+	grid-row-start: qEBS78-start;
+	grid-row-end: qEBS78-end;
 }
 
 .sqoegN {
 	grid-column-start: content-end;
-	grid-row-start: main-start;
+	grid-row-start: qEBS78-start;
 	grid-row-end: content-end;
 }
 
 .t-e5Mr {
 	grid-column-start: content-start;
-	grid-row-start: main-start;
+	grid-row-start: qEBS78-start;
 }
 
 ._b50ah {
 	grid-column-start: content-start;
-	grid-column-end: main-end;
+	grid-column-end: qEBS78-end;
 	grid-row-start: content-end;
 }
 
@@ -2558,8 +2558,8 @@ p:not(#Gonxc7) {
 
 .mL4yxz > div._BKX_s {
 	z-index: 10;
-	grid-column: main-start / main-end;
-	grid-row: hd-start / ft-end;
+	grid-column: qEBS78-start / qEBS78-end;
+	grid-row: _6dL-oG-start / _8C1F5q-end;
 	border: 4px solid rgb(92 148 13);
 	background-color: rgb(92 148 13 / 40%);
 	color: rgb(92 148 13);

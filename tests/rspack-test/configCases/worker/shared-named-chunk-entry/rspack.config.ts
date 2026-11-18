@@ -18,6 +18,11 @@ export default [false, true].flatMap((usedExports, exportIndex) =>
       incremental: false,
       entry: './index.js',
       output: {
+        // Keep the exported loaders reachable when usedExports is enabled.
+        library: {
+          type: 'var',
+          name: 'sharedNamedChunkEntry',
+        },
         filename: `main-${index}.js`,
         chunkFilename: `[name]-${index}.js`,
         publicPath: '/path/',

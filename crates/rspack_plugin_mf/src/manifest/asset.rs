@@ -90,7 +90,7 @@ pub fn collect_assets_from_chunk(
       if !skip {
         for file in group.get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey) {
           if file.ends_with(".css") {
-            css_async.insert(file.clone());
+            css_async.insert(file);
           } else if !is_hot_file(&file) {
             js_async.insert(file);
           }

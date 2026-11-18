@@ -9,7 +9,6 @@ export default defineConfig(
           target: 'web',
           mode: 'development',
           devtool: false,
-          experiments: { css: true },
           optimization: { concatenateModules, minimize: false },
           module: {
             parser: { css: { exportType } },

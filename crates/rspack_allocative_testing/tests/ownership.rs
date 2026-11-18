@@ -240,6 +240,35 @@ fn locked_values_report_missing_coverage_without_blocking() {
 }
 
 #[test]
+fn reflected_fields_preserve_static_only_adapter_policies() {
+  struct Cached<'a> {
+    label: &'a str,
+    cache: String,
+  }
+  impl Allocative for Cached<'static> {
+    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+      // This adapter deliberately excludes the cache's heap allocation.
+      visitor.enter_self(self).exit();
+    }
+  }
+  struct Root {
+    cached: Cached<'static>,
+  }
+  let value = Root {
+    cached: Cached {
+      label: "static",
+      cache: String::with_capacity(4096),
+    },
+  };
+  assert_eq!(value.cached.label, "static");
+  assert!(value.cached.cache.capacity() >= 4096);
+  let (total, folded, warnings) = capture(&value);
+  assert_eq!(total, size_of_val(&value));
+  assert!(folded.contains(";cached;"), "{folded}");
+  assert!(warnings.is_empty(), "{warnings}");
+}
+
+#[test]
 fn ordinary_nested_fields_arrays_and_static_references_need_no_derive() {
   struct Leaf {
     text: String,

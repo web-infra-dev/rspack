@@ -46,6 +46,14 @@ export const loadLoader: (
   compiler: Compiler,
 ) => Promise<void> = promisify(loadLoaderRaw);
 
+function LOADER_EXECUTION(
+  fn: Function,
+  context: LoaderContext,
+  args: unknown[],
+) {
+  return fn.apply(context, args);
+}
+
 export const runSyncOrAsync = promisify(function runSyncOrAsync(
   fn: Function,
   context: LoaderContext,
@@ -81,9 +89,8 @@ export const runSyncOrAsync = promisify(function runSyncOrAsync(
   context.callback = innerCallback;
 
   try {
-    const result = (function LOADER_EXECUTION() {
-      return fn.apply(context, args);
-    })();
+    // Keep this frame so error details can exclude loader-runner internals.
+    const result = /*#__NOINLINE__*/ LOADER_EXECUTION(fn, context, args);
     if (isSync) {
       isDone = true;
       if (result === undefined) {

@@ -49,7 +49,4 @@ export default defineConfig({
       }),
     ],
   },
-  experiments: {
-    css: false,
-  },
 });

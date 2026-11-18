@@ -318,7 +318,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             let file_base = strip_ext(file_name);
             if !file_base.is_empty() {
               module_ids_by_name
-                .entry(file_base.clone())
+                .entry(file_base)
                 .or_insert(module_identifier);
             }
           }
@@ -409,55 +409,50 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         remote_module_ids.push(module_identifier);
       }
 
-      if matches!(module_type, ModuleType::ProvideShared) {
-        if let Some(provide_shared) = module
-          .as_ref()
-          .as_any()
-          .downcast_ref::<ProvideSharedModule>()
-        {
-          let pkg = provide_shared.share_key().to_string();
-          let entry = ensure_shared_entry(&mut shared_map, &container_name, &pkg);
-          if entry.version.is_empty() {
-            entry.version = provide_shared.manifest_version().to_string();
-          }
-          entry.singleton = Some(provide_shared.singleton().unwrap_or(true));
-          // overlay user-configured shared version options
-          if let Some(opt) = self.options.shared.iter().find(|s| s.name == pkg) {
-            if entry.requiredVersion.is_none() {
-              entry.requiredVersion = opt.required_version.clone();
-            }
-            if let Some(cfg_ver) = opt.version.clone().filter(|_| entry.version.is_empty()) {
-              entry.version = cfg_ver;
-            }
-          }
-          let targets = shared_module_targets.entry(pkg.clone()).or_default();
-          for connection in module_graph.get_outgoing_connections(&module_identifier) {
-            let referenced = *connection.module_identifier();
-            if should_collect_module(&referenced) {
-              targets.insert(referenced);
-            }
-            let resolved = connection.resolved_module;
-            if should_collect_module(&resolved) {
-              targets.insert(resolved);
-            }
-          }
-          record_shared_usage(
-            &mut shared_usage_links,
-            &pkg,
-            &module_identifier,
-            module_graph,
-            compilation,
-          );
+      if let Some(provide_shared) = module.as_any().downcast_ref::<ProvideSharedModule>() {
+        let pkg = provide_shared.share_key().to_owned();
+        let entry = ensure_shared_entry(&mut shared_map, &container_name, &pkg);
+        if entry.version.is_empty() {
+          entry.version = provide_shared.manifest_version().to_owned();
         }
+        entry.singleton = Some(provide_shared.singleton().unwrap_or(true));
+        // overlay user-configured shared version options
+        if let Some(opt) = self.options.shared.iter().find(|s| s.name == pkg) {
+          if entry.requiredVersion.is_none() {
+            entry.requiredVersion = opt.required_version.clone();
+          }
+          if let Some(cfg_ver) = opt.version.clone().filter(|_| entry.version.is_empty()) {
+            entry.version = cfg_ver;
+          }
+        }
+        let targets = shared_module_targets.entry(pkg.clone()).or_default();
+        for connection in module_graph.get_outgoing_connections(&module_identifier) {
+          let referenced = *connection.module_identifier();
+          if should_collect_module(&referenced) {
+            targets.insert(referenced);
+          }
+          let resolved = connection.resolved_module;
+          if should_collect_module(&resolved) {
+            targets.insert(resolved);
+          }
+        }
+        record_shared_usage(
+          &mut shared_usage_links,
+          &pkg,
+          &module_identifier,
+          module_graph,
+          compilation,
+        );
         continue;
       }
 
-      if matches!(module_type, ModuleType::ConsumeShared)
-        && let Some(consume_shared) = module.as_any().downcast_ref::<ConsumeSharedModule>()
-      {
+      if let Some(consume_shared) = module.as_any().downcast_ref::<ConsumeSharedModule>() {
         let pkg = consume_shared.shared_identity().share_key;
         let required = match consume_shared.required_version() {
-          Some(ConsumeVersion::Version(version)) => Some(version.clone()),
+          Some(ConsumeVersion::Version(version)) => {
+            let version = version.trim();
+            (!version.is_empty() && version != "*").then(|| version.to_owned())
+          }
           Some(ConsumeVersion::False) | None => None,
         };
         let mut target_ids: IdentifierSet = IdentifierSet::default();
@@ -481,7 +476,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
         // overlay user-configured shared options
         if let Some(opt) = self.options.shared.iter().find(|s| s.name == pkg) {
-          // prefer parsed requiredVersion but fill from config if still None
+          // Prefer the module requiredVersion but fill from config if still None.
           if entry.requiredVersion.is_none() {
             entry.requiredVersion = opt.required_version.clone();
           }
@@ -704,7 +699,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           })
           .collect();
       remote_list.push(StatsRemote {
-        alias: alias.clone(),
+        alias,
         consumingFederationContainerName: container_name.clone(),
         federationContainerName: federation_container_name,
         moduleName: module_name,

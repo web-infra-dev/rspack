@@ -452,8 +452,9 @@ impl ModuleGroup {
     keep_chunks > keep_modules
   }
 
-  /// Subtract committed placements from this candidate in the existing cleanup
-  /// traversal. Keep one remaining rectangle; never fork or rebuild a candidate.
+  /// Keep main's narrowed named group when at least max(minChunks, 1) chunks remain.
+  /// Otherwise drop affected modules, preserving the other modules' own chunks.
+  /// Subtract committed placements in place; never fork a candidate.
   pub fn update_candidate(
     &mut self,
     placed: &ModuleChunkMap,
@@ -463,6 +464,57 @@ impl ModuleGroup {
   ) -> CandidateUpdate {
     let minimum = (cache.min_chunks as usize).max(1);
     if let ModuleGroupChunks::ByModule(sources) = &mut self.module_chunks {
+      let mut affected = false;
+      let mut dropped_by_min = 0;
+      // Partition the reusable scratch vector into dropped and kept modules.
+      for module in self.modules.iter().copied() {
+        scratch.push(module);
+        let chunks = &sources[&module];
+        if let Some(removed) = placed.get(&module)
+          && !chunks.is_disjoint(removed)
+        {
+          affected = true;
+          if chunks.difference(removed).count() < minimum {
+            let last = scratch.len() - 1;
+            scratch.swap(dropped_by_min, last);
+            dropped_by_min += 1;
+          }
+        }
+      }
+      if !affected {
+        scratch.clear();
+        return CandidateUpdate::Unchanged;
+      }
+      if dropped_by_min == scratch.len() {
+        self.remove_modules(scratch.drain(..));
+        return CandidateUpdate::Discard;
+      }
+      let remaining_chunks = self
+        .chunks
+        .iter()
+        .filter(|chunk| {
+          scratch[dropped_by_min..].iter().all(|module| {
+            sources[module].contains(chunk)
+              && !placed
+                .get(module)
+                .is_some_and(|removed| removed.contains(chunk))
+          })
+        })
+        .count();
+      if remaining_chunks < minimum {
+        scratch.retain(|module| {
+          placed
+            .get(module)
+            .is_some_and(|removed| !sources[module].is_disjoint(removed))
+        });
+        self.remove_modules(scratch.drain(..));
+        return if self.modules.is_empty() {
+          CandidateUpdate::Discard
+        } else {
+          CandidateUpdate::Updated
+        };
+      }
+      scratch.clear();
       let mut changed = false;
       sources.retain(|module, chunks| {
         let Some(removed) = placed.get(module) else {

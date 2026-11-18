@@ -69,7 +69,7 @@ async fn test() {
           .missing_dependencies
           .contains(&InternedPath::from(&path)),
         "{specifier}: {path:?} not in {:?}",
-        &ctx.missing_dependencies
+        ctx.missing_dependencies
       );
     }
   }

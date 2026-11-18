@@ -3,6 +3,7 @@ import { createBuiltinPlugin, RspackBuiltinPlugin } from './base';
 
 export interface CompactHashedModuleIdsPluginOptions {
   minLength?: number;
+  salt?: number;
 }
 
 export class CompactHashedModuleIdsPlugin extends RspackBuiltinPlugin {

@@ -1,11 +1,14 @@
 use std::{ops::Deref, sync::Arc, time::SystemTime};
 
 use rspack_paths::{InternedPath, InternedPathDashSet};
-use rspack_util::time::{mtime_safe_time, system_time_to_millis};
+use rspack_util::time::system_time_to_millis;
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{EventBatch, FsEvent, FsEventKind, PathManager};
-use crate::paths::disk_mtime;
+use crate::{
+  paths::disk_mtime,
+  time::{mtime_accuracy, mtime_safe_time},
+};
 
 // Scanner will scann the path whether it is exist or not in disk on initialization
 pub struct Scanner {
@@ -166,13 +169,17 @@ fn send_events(
 /// coarse mtime granularity is still caught. A failed stat (missing/unreadable)
 /// counts as unchanged.
 fn changed_since(path: &InternedPath, start_time: SystemTime) -> bool {
-  let Ok(mtime) = path
-    .metadata()
-    .and_then(|m| m.modified().or_else(|_| m.created()))
-  else {
+  let Ok(metadata) = path.metadata() else {
     return false;
   };
-  mtime_safe_time(system_time_to_millis(mtime)) >= system_time_to_millis(start_time)
+  let mtime = metadata.modified();
+  if let Ok(mtime) = &mtime {
+    mtime_accuracy(*mtime);
+  }
+  let Ok(mtime) = mtime.or_else(|_| metadata.created()) else {
+    return false;
+  };
+  mtime_safe_time(mtime) >= system_time_to_millis(start_time)
 }
 
 #[cfg(test)]

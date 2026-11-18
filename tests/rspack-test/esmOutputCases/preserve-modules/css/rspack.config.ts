@@ -4,9 +4,6 @@ import path from 'node:path';
 export default defineConfig({
   target: 'web',
   entry: './src/index.js',
-  experiments: {
-    css: true,
-  },
   module: {
     generator: {
       'css/auto': {

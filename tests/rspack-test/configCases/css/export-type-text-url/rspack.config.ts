@@ -38,9 +38,6 @@ export default defineConfig([
         },
       ],
     },
-    experiments: {
-      css: true,
-    },
   },
   {
     name: 'js-in-subdir',
@@ -78,9 +75,6 @@ export default defineConfig([
           },
         },
       ],
-    },
-    experiments: {
-      css: true,
     },
   },
 ]);

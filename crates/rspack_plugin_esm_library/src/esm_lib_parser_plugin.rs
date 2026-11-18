@@ -50,7 +50,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for EsmLibParserPlugin {
       parser
         .build_meta
         .set_exports_type(rspack_core::BuildMetaExportsType::Namespace);
-      parser.add_presentational_dependency(Arc::new(ESMCompatibilityDependency));
+      parser.add_presentational_dependency(Arc::new(ESMCompatibilityDependency::default()));
     }
 
     None

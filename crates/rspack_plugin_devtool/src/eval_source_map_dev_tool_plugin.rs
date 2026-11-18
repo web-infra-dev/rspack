@@ -240,7 +240,7 @@ async fn render_module_content(
         map.set_sources_content(vec![]);
       }
 
-      map.set_source_root(self.source_root.as_ref().map(|s| Cow::Borrowed(s.as_str())));
+      map.set_source_root(self.source_root.as_ref().map(|s| s.clone().into()));
 
       let module_ids = &compilation.module_ids_artifact;
       // align with https://github.com/webpack/webpack/blob/3919c844eca394d73ca930e4fc5506fb86e2b094/lib/EvalSourceMapDevToolPlugin.js#L171
@@ -255,13 +255,10 @@ async fn render_module_content(
       } else {
         module_id.to_owned()
       };
-      map.set_file(Some(Cow::Owned(map_file.clone())));
+      map.set_file(Some(map_file.clone().into()));
 
       if self.debug_ids {
-        map.set_debug_id(Some(Cow::Owned(generate_debug_id(
-          &map_file,
-          source.as_bytes(),
-        ))));
+        map.set_debug_id(Some(generate_debug_id(&map_file, source.as_bytes()).into()));
       }
       let source_map = map.to_json();
       let base64 = base64::encode_to_string(&source_map);

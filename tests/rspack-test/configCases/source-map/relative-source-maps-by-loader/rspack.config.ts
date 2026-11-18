@@ -1,4 +1,5 @@
 import { defineConfig } from '@rspack/cli';
+import { DefinePlugin } from '@rspack/core';
 
 export default defineConfig({
   mode: 'development',
@@ -7,4 +8,7 @@ export default defineConfig({
     __filename: false,
   },
   devtool: 'source-map',
+  plugins: [
+    new DefinePlugin({ TEST_CONTEXT: JSON.stringify(import.meta.dirname) }),
+  ],
 });

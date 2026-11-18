@@ -9,7 +9,7 @@
 - Bundle: main.js
 - Bundle: main_async_js.chunk.CURRENT_HASH.js
 - Bundle: runtime.js
-- Manifest: runtime.LAST_HASH.hot-update.json, size: 46
+- Manifest: runtime.LAST_HASH.hot-update.json, size: 87
 - Update: a.LAST_HASH.hot-update.js, size: 82
 - Update: b.LAST_HASH.hot-update.js, size: 82
 - Update: main.LAST_HASH.hot-update.js, size: 85
@@ -20,7 +20,7 @@
 ### runtime.LAST_HASH.hot-update.json
 
 ```json
-{"c":["a","b","main","runtime"],"r":[],"m":[]}
+{"c":["a","b","main","runtime"],"r":[],"m":[],"changed":{"./file.js":["a","b","main"]}}
 ```
 
 

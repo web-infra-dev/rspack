@@ -23,14 +23,13 @@ rspack_hook              = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_util              = { workspace = true }
 simd-json                = { workspace = true }
-tokio                    = { workspace = true }
 
 rustc-hash = { workspace = true }
 serde_json = { workspace = true }
 tracing    = { workspace = true }
 
 [package.metadata.cargo-shear]
-ignored = ["tracing", "tokio"]
+ignored = ["tracing"]
 
 [lints]
 workspace = true

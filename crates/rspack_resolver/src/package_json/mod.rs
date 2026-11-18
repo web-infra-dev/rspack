@@ -1,7 +1,11 @@
+#[cfg(feature = "package_json_raw_json_api")]
+mod data;
 mod simd;
 
 use std::fmt::Display;
 
+#[cfg(feature = "package_json_raw_json_api")]
+pub use data::PackageJsonData;
 pub use simd::*;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -20,6 +24,8 @@ impl Display for ModuleType {
   }
 }
 
+// Preserve the existing conversion API.
+#[allow(clippy::try_from_instead_of_from_str)]
 impl TryFrom<&str> for ModuleType {
   type Error = &'static str;
   fn try_from(value: &str) -> Result<Self, Self::Error> {

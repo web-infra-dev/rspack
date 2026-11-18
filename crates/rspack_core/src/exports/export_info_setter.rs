@@ -12,6 +12,7 @@ impl ExportInfoData {
     self.set_can_inline_provide(None);
     self.set_exports_info(None);
     self.set_exports_info_owned(false);
+    self.set_default_points_to_self(false);
     self.set_target_is_set(false);
     self.reset_target();
     self.set_terminal_binding(false);

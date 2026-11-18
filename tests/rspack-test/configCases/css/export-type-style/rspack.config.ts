@@ -13,9 +13,6 @@ function createConfig(target: 'node' | 'web', concatenateModules: boolean) {
     devtool: false,
     target,
     mode: 'development',
-    experiments: {
-      css: true,
-    },
     optimization: {
       chunkIds: 'named',
       concatenateModules,

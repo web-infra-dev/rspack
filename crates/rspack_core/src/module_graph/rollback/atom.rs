@@ -40,6 +40,10 @@ where
     self.backup = Some(self.current.clone());
   }
 
+  pub(crate) fn has_checkpoint(&self) -> bool {
+    self.backup.is_some()
+  }
+
   pub fn reset(&mut self) {
     assert!(self.backup.is_some());
     if let Some(backup) = self.backup.take() {

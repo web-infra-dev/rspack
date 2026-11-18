@@ -13,10 +13,10 @@ pub(super) fn add_async_module_boundary(
   module: &dyn rspack_core::Module,
   runtime_template: &mut ModuleCodeTemplate,
   use_module_exports: bool,
+  uses_top_level_using_declaration: bool,
 ) {
   let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
-    .map(ToString::to_string)
-    .unwrap_or_default();
+    .map_or_default(ToString::to_string);
   let module_argument = runtime_template.render_module_argument(module.get_module_argument());
   let async_module_parameter = if use_module_exports {
     ", __rspack_async_module"
@@ -37,9 +37,14 @@ pub(super) fn add_async_module_boundary(
     (false, true) => ", 0, 1",
     (true, true) => ", 1, 1",
   };
+  let (block_start, block_end) = if uses_top_level_using_declaration {
+    (" {", "\n}")
+  } else {
+    ("", "")
+  };
   init_fragments.push(Box::new(NormalInitFragment::new(
     format!(
-      "{}({}, async function (__rspack_load_async_deps, __rspack_async_done{async_module_parameter}) {{ try {{\n{module_argument_assignment}",
+      "{}({}, async function (__rspack_load_async_deps, __rspack_async_done{async_module_parameter}) {{ try {{{block_start}\n{module_argument_assignment}",
       runtime_template.render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE),
       module_argument,
     ),
@@ -47,7 +52,7 @@ pub(super) fn add_async_module_boundary(
     0,
     InitFragmentKey::AsyncBoundary(module_id),
     Some(format!(
-      "\n__rspack_async_done();\n}} catch(e) {{ __rspack_async_done(e); }} }}{async_module_arguments});",
+      "{block_end}\n__rspack_async_done();\n}} catch(e) {{ __rspack_async_done(e); }} }}{async_module_arguments});",
     )),
   )));
 }
@@ -55,8 +60,18 @@ pub(super) fn add_async_module_boundary(
 // Mark module `__esModule`.
 // Add `__rspack_require.r(__rspack_exports);`.
 #[cacheable]
-#[derive(Debug)]
-pub struct ESMCompatibilityDependency;
+#[derive(Debug, Default)]
+pub struct ESMCompatibilityDependency {
+  uses_top_level_using_declaration: bool,
+}
+
+impl ESMCompatibilityDependency {
+  pub fn new(uses_top_level_using_declaration: bool) -> Self {
+    Self {
+      uses_top_level_using_declaration,
+    }
+  }
+}
 
 #[cacheable_dyn]
 impl DependencyCodeGeneration for ESMCompatibilityDependency {
@@ -78,7 +93,7 @@ impl ESMCompatibilityDependencyTemplate {
 impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
   fn render(
     &self,
-    _dep: &dyn DependencyCodeGeneration,
+    dep: &dyn DependencyCodeGeneration,
     _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
@@ -91,6 +106,12 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       runtime_template,
       ..
     } = code_generatable_context;
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ESMCompatibilityDependency>()
+      .expect(
+        "ESMCompatibilityDependencyTemplate should only be used for ESMCompatibilityDependency",
+      );
     if concatenation_scope.is_some() {
       return;
     }
@@ -122,6 +143,7 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
         *module,
         runtime_template,
         false,
+        dep.uses_top_level_using_declaration,
       );
     }
   }

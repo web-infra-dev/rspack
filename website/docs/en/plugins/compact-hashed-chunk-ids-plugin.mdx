@@ -14,7 +14,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 `CompatHashedChunkIdsPlugin` was available in Rspack 2.2.0. It is deprecated and was renamed to `CompactHashedChunkIdsPlugin` in Rspack 2.2.1. The old name remains available as a compatibility alias.
 :::
 
-`optimization.chunkIds: 'compact-hashed'` uses this plugin internally. Use the plugin directly when you need to customize the minimum encoded id length.
+`optimization.chunkIds: 'compact-hashed'` uses this plugin internally. Add the plugin manually when you need to customize its options.
 
 ## Examples
 
@@ -28,6 +28,7 @@ export default {
   plugins: [
     new rspack.ids.CompactHashedChunkIdsPlugin({
       minLength: 1,
+      salt: 42,
     }),
   ],
 };
@@ -42,3 +43,10 @@ export default {
 - **Range:** Integer from `1` to `13`
 
 The minimum encoded id length. Rspack extends an id one character at a time when its hash prefix is already used. Increasing `minLength` expands the initial id space, reducing prefix collisions and making generated output and caching more stable. The tradeoff is that chunk ids become longer.
+
+### salt
+
+- **Type:** `number`
+- **Default:** `0`
+
+The hash salt used when generating ids. Change this value to try a different hash starting value in the same id space.

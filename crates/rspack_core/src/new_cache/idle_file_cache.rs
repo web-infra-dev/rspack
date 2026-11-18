@@ -19,7 +19,7 @@ use super::{
 };
 use crate::{InfrastructureLogger, Logger};
 
-const DEFAULT_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
+pub(super) const DEFAULT_IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 const DEFAULT_IDLE_TIMEOUT_FOR_INITIAL_STORE: Duration = Duration::from_secs(5);
 const DEFAULT_IDLE_TIMEOUT_AFTER_LARGE_CHANGES: Duration = Duration::from_secs(1);
 const MAX_IDLE_COMPACTION_PASSES: usize = 10;
@@ -148,6 +148,7 @@ impl BackgroundJob {
 /// Runs filesystem cache operations in one persistent background job.
 #[derive(Debug)]
 pub struct IdleFileCache {
+  worker: thread::JoinHandle<()>,
   strategy: Arc<FileCacheStrategy>,
   logger: Arc<InfrastructureLogger>,
   command_sender: mpsc::UnboundedSender<Command>,
@@ -183,7 +184,7 @@ impl IdleFileCache {
       time_spent_in_build: Duration::ZERO,
       avg_time_spent_in_store: None,
     };
-    let _ = thread::Builder::new()
+    let worker = thread::Builder::new()
       .name("rspack-idle-file-cache".to_string())
       .spawn(move || {
         let runtime = tokio::runtime::Builder::new_current_thread()
@@ -195,11 +196,16 @@ impl IdleFileCache {
       .expect("failed to spawn idle file cache background thread");
 
     Self {
+      worker,
       strategy,
       logger,
       command_sender,
       idle_epoch,
     }
+  }
+
+  pub(super) fn matches_cache_version(&self, version: &str) -> bool {
+    self.strategy.matches_cache_version(version)
   }
 
   fn send(&self, command: Command) {
@@ -249,5 +255,15 @@ impl IdleFileCache {
     self.idle_epoch.fetch_add(1, Ordering::Release);
     self.send(Command::Shutdown);
     self.command_sender.closed().await;
+  }
+
+  pub(super) fn shutdown_blocking(self) {
+    self.idle_epoch.fetch_add(1, Ordering::Release);
+    let _ = self.command_sender.send(Command::Shutdown);
+    if self.worker.join().is_err() {
+      self
+        .logger
+        .warn("Filesystem cache background job panicked during shutdown");
+    }
   }
 }
