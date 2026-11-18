@@ -298,7 +298,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       template_literal: Some(version_dependent(4, None, major, minor)),
       optional_chaining: Some(version_dependent(14, None, major, minor)),
       spread: Some(version_dependent(8, Some(3), major, minor)),
-      symbol: Some(version_dependent(0, Some(12), major, minor)),
+      symbol: Some(version_dependent(6, None, major, minor)),
       arrow_function: Some(version_dependent(6, None, major, minor)),
       async_function: Some(version_dependent(7, Some(6), major, minor)),
       top_level_await: Some(version_dependent(14, Some(8), major, minor)),
@@ -406,7 +406,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       template_literal: Some(version_dependent(1, Some(1), major, minor)),
       optional_chaining: Some(version_dependent(8, None, major, minor)),
       spread: Some(version_dependent(2, None, major, minor)),
-      symbol: Some(version_dependent(0, Some(24), major, minor)),
+      symbol: Some(version_dependent(0, Some(37), major, minor)),
       arrow_function: Some(version_dependent(1, Some(1), major, minor)),
       async_function: Some(version_dependent(1, Some(7), major, minor)),
       // 12.0.0 - Chromium 89
@@ -455,7 +455,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
       template_literal: Some(version_dependent(0, Some(13), major, minor)),
       optional_chaining: Some(version_dependent(0, Some(44), major, minor)),
       spread: Some(version_dependent(0, Some(23), major, minor)),
-      symbol: Some(version_dependent(0, Some(12), major, minor)),
+      symbol: Some(version_dependent(0, Some(13), major, minor)),
       arrow_function: Some(version_dependent(0, Some(15), major, minor)),
       async_function: Some(version_dependent(0, Some(21), major, minor)),
       // 0.52.0 - Chromium 89

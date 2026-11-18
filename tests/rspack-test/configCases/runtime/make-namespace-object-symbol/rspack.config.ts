@@ -1,20 +1,33 @@
 import { defineConfig } from '@rspack/cli';
-import { rspack } from '@rspack/core';
+import { type Configuration, rspack } from '@rspack/core';
 
-const cases = [
-  { symbol: false, computedProperty: false, shape: 'feature-test' },
-  { symbol: true, computedProperty: false, shape: 'define-property' },
-  { symbol: true, computedProperty: true, shape: 'define-properties' },
+const cases: {
+  target?: Configuration['target'];
+  environment?: NonNullable<Configuration['output']>['environment'];
+  shape: string;
+}[] = [
+  {
+    environment: { symbol: false, computedProperty: false },
+    shape: 'feature-test',
+  },
+  {
+    environment: { symbol: true, computedProperty: false },
+    shape: 'define-property',
+  },
+  {
+    environment: { symbol: true, computedProperty: true },
+    shape: 'define-properties',
+  },
+  { target: 'node5', shape: 'feature-test' },
+  { target: 'node6', shape: 'define-properties' },
 ];
 
-export default cases.map(({ symbol, computedProperty, shape }, i) =>
+export default cases.map(({ target, environment, shape }, i) =>
   defineConfig({
+    target,
     output: {
       filename: `bundle${i}.js`,
-      environment: {
-        symbol,
-        computedProperty,
-      },
+      environment,
     },
     plugins: [
       new rspack.DefinePlugin({

@@ -2131,7 +2131,7 @@ expression: results
                 false,
             ),
             symbol: Some(
-                true,
+                false,
             ),
             template_literal: Some(
                 true,
@@ -2743,7 +2743,7 @@ expression: results
                 false,
             ),
             symbol: Some(
-                true,
+                false,
             ),
             template_literal: Some(
                 false,
@@ -3151,7 +3151,7 @@ expression: results
                 false,
             ),
             symbol: Some(
-                true,
+                false,
             ),
             template_literal: Some(
                 true,
@@ -3253,7 +3253,7 @@ expression: results
                 false,
             ),
             symbol: Some(
-                true,
+                false,
             ),
             template_literal: Some(
                 true,
@@ -3355,7 +3355,7 @@ expression: results
                 false,
             ),
             symbol: Some(
-                true,
+                false,
             ),
             template_literal: Some(
                 true,
