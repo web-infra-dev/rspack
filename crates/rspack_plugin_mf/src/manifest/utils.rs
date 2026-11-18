@@ -1,7 +1,7 @@
 use std::path::Path;
 
-use rspack_collections::IdentifierMap;
-use rspack_core::{Compilation, ModuleGraph, ModuleIdentifier};
+use rspack_collections::{IdentifierMap, IdentifierSet};
+use rspack_core::{Compilation, ModuleGraph, ModuleIdentifier, ModuleType};
 use rspack_util::fx_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{
@@ -238,28 +238,70 @@ pub fn collect_expose_requirements(
   links: Vec<(SharedIdentity, ModuleIdentifier)>,
   expose_identities_by_module: &IdentifierMap<Vec<ExposeIdentity>>,
   expose_module_paths: &IdentifierMap<String>,
+  module_graph: &ModuleGraph,
 ) {
+  // Attribute indirect imports to every expose that reaches them, without walking
+  // through a shared/remote implementation boundary. A visited set handles cycles.
+  let mut reachable_exposes: IdentifierMap<Vec<&ExposeIdentity>> = Default::default();
+  for (root, identities) in expose_identities_by_module {
+    let mut pending = vec![*root];
+    let mut visited = IdentifierSet::default();
+    while let Some(module_id) = pending.pop() {
+      if !visited.insert(module_id) {
+        continue;
+      }
+      reachable_exposes
+        .entry(module_id)
+        .or_default()
+        .extend(identities);
+      let Some(module) = module_graph.module_by_identifier(&module_id) else {
+        continue;
+      };
+      if matches!(
+        module.module_type(),
+        ModuleType::ConsumeShared
+          | ModuleType::ProvideShared
+          | ModuleType::Remote
+          | ModuleType::Runtime
+      ) {
+        continue;
+      }
+      pending.extend(
+        module_graph
+          .get_outgoing_connections(&module_id)
+          .map(|connection| *connection.module_identifier()),
+      );
+    }
+  }
   for (identity, module_id) in links {
     let identity_count = shared_map
       .keys()
       .filter(|candidate| candidate.share_key == identity.share_key)
       .count();
-    let Some(shared) = shared_map.get_mut(&identity) else {
-      continue;
-    };
-    let Some(expose_identities) = expose_identities_by_module.get(&module_id) else {
-      continue;
-    };
     let required_shared = StatsSharedRequirement {
       name: identity.share_key.clone(),
       layer: identity.layer.clone(),
-      share_scope: manifest_share_scope(&identity),
+      share_scope: if shared_map.keys().any(|candidate| {
+        candidate.share_key == identity.share_key
+          && candidate.layer == identity.layer
+          && candidate.share_scope != identity.share_scope
+      }) {
+        Some(identity.share_scope.clone())
+      } else {
+        manifest_share_scope(&identity)
+      },
+    };
+    let Some(shared) = shared_map.get_mut(&identity) else {
+      continue;
+    };
+    let Some(expose_identities) = reachable_exposes.get(&module_id) else {
+      continue;
     };
     let emit_structured_requirement = identity_count > 1
       || required_shared.layer.is_some()
       || required_shared.share_scope.is_some();
     for expose_identity in expose_identities {
-      let Some(expose) = exposes_map.get_mut(expose_identity) else {
+      let Some(expose) = exposes_map.get_mut(*expose_identity) else {
         continue;
       };
       if !expose.requires.contains(&shared.name) {
@@ -271,7 +313,13 @@ pub fn collect_expose_requirements(
       let target = expose_module_paths
         .get(&module_id)
         .cloned()
-        .unwrap_or_else(|| expose.path.clone());
+        .unwrap_or_else(|| {
+          if expose.file.is_empty() {
+            expose.path.clone()
+          } else {
+            expose.file.clone()
+          }
+        });
       shared.usedIn.push(target);
     }
   }

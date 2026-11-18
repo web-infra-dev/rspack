@@ -64,7 +64,7 @@ it('does not copy custom-scope exports into an unoptimized default share', () =>
   );
   const shares = manifest.shared.filter(({ name }) => name === 'unoptimized-collision');
   expect(shares).toHaveLength(2);
-  expect(shares.find(({ shareScope }) => shareScope === undefined)).not.toHaveProperty('usedExports');
+  expect(shares.find(({ shareScope }) => shareScope === 'default')).not.toHaveProperty('usedExports');
   expect(shares.find(({ shareScope }) => shareScope === 'custom').usedExports).toContain('value');
 });
 

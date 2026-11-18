@@ -444,16 +444,25 @@ export class IndependentSharedPlugin {
                 };
 
                 statsContent.shared.forEach((targetShared) => {
-                  const candidates = this.buildAssetRecords.filter(
-                    ({ shareKey, version, layer, shareScope }) =>
+                  const scope = targetShared.shareScope ?? 'default';
+                  const identityCandidates = this.buildAssetRecords.filter(
+                    ({ shareKey, version, layer }) =>
                       shareKey === targetShared.name &&
                       version === targetShared.version &&
-                      layer === targetShared.layer &&
-                      shareScopesEqual(
-                        shareScope,
-                        targetShared.shareScope ?? 'default',
-                      ),
+                      layer === targetShared.layer,
                   );
+                  const exactCandidates = identityCandidates.filter(
+                    ({ shareScope }) =>
+                      Array.isArray(shareScope) === Array.isArray(scope) &&
+                      shareScopesEqual(shareScope, scope),
+                  );
+                  // Scope normalization is only a compatibility fallback. Do not
+                  // collapse scalar and array identities, or guess between builds.
+                  const candidates = exactCandidates.length
+                    ? exactCandidates
+                    : identityCandidates.filter(({ shareScope }) =>
+                        shareScopesEqual(shareScope, scope),
+                      );
                   if (candidates.length === 1) {
                     targetShared.fallback = candidates[0].entry;
                     targetShared.fallbackName = candidates[0].globalName;

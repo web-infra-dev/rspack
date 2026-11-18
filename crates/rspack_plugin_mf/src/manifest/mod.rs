@@ -241,23 +241,39 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
       })
       .collect::<Vec<_>>();
-    let mut shared_map: HashMap<SharedIdentity, StatsShared> = HashMap::default();
+    // An identity may have several explicit provider versions. Unknown consumer
+    // versions can coalesce only when there is one known version for that identity.
+    let mut versions_by_identity: HashMap<SharedIdentity, HashSet<String>> = HashMap::default();
+    for shared in &self.options.shared {
+      if let Some(version) = &shared.version {
+        versions_by_identity
+          .entry(SharedIdentity::new(
+            &shared.share_scope,
+            &shared.name,
+            shared.layer.as_deref(),
+          ))
+          .or_default()
+          .insert(version.clone());
+      }
+    }
+    let mut shared_map: HashMap<(SharedIdentity, String), StatsShared> = HashMap::default();
     for shared in &self.options.shared {
       let identity =
         SharedIdentity::new(&shared.share_scope, &shared.name, shared.layer.as_deref());
+      let version = shared.version.clone().unwrap_or_else(|| {
+        versions_by_identity
+          .get(&identity)
+          .filter(|versions| versions.len() == 1)
+          .and_then(|versions| versions.iter().next())
+          .cloned()
+          .unwrap_or_default()
+      });
       shared_map
-        .entry(identity)
-        .and_modify(|entry| {
-          if entry.version.is_empty()
-            && let Some(version) = &shared.version
-          {
-            entry.version = version.clone();
-          }
-        })
-        .or_insert_with_key(|identity| StatsShared {
+        .entry((identity, version))
+        .or_insert_with_key(|(identity, version)| StatsShared {
           id: compose_shared_id(&container_name, identity),
           name: shared.name.clone(),
-          version: shared.version.clone().unwrap_or_default(),
+          version: version.clone(),
           requiredVersion: shared.required_version.clone(),
           layer: shared.layer.clone(),
           share_scope: manifest_share_scope(identity),
@@ -378,7 +394,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           let expose_file_key = strip_ext(import);
           let expose_layer = options.layer.clone();
           let expose_identity = ExposeIdentity::new(expose_key, expose_layer.as_deref());
-          expose_imports.insert(expose_identity.clone(), expose_file_key.clone());
+          expose_imports.insert(expose_identity.clone(), expose_file_key);
           let expose_block = blocks
             .get(index)
             .and_then(|block_id| module_graph.block_by_id(block_id));
@@ -585,6 +601,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       shared_usage_links,
       &expose_identities_by_module,
       &expose_module_paths,
+      module_graph,
     );
     let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
     let mut shared_chunk_map: HashMap<SharedIdentity, HashSet<rspack_core::ChunkUkey>> =
@@ -808,11 +825,33 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .collect::<Vec<_>>();
     (exposes, shared, remote_list)
   };
+  // Omitted default scopes are legacy-compatible only while the other identity
+  // fields uniquely identify the row. Emit the scalar scope for cross-scope siblings.
+  let mut scopes_by_version: HashMap<_, HashSet<_>> = HashMap::default();
+  for entry in &shared {
+    scopes_by_version
+      .entry((&entry.name, &entry.version, &entry.layer))
+      .or_default()
+      .insert(&entry.share_scope);
+  }
+  let explicit_default_rows = shared
+    .iter()
+    .map(|entry| {
+      entry.share_scope.is_none()
+        && scopes_by_version[&(&entry.name, &entry.version, &entry.layer)].len() > 1
+    })
+    .collect::<Vec<_>>();
+  for (entry, explicit_default) in shared.iter_mut().zip(explicit_default_rows) {
+    if explicit_default {
+      entry.share_scope = Some(ShareScope::Single("default".to_string()));
+    }
+  }
   exposes.sort_by(|a, b| a.id.cmp(&b.id).then_with(|| a.layer.cmp(&b.layer)));
   shared.sort_by(|a, b| {
     a.id
       .cmp(&b.id)
       .then_with(|| a.name.cmp(&b.name))
+      .then_with(|| a.version.cmp(&b.version))
       .then_with(|| a.layer.cmp(&b.layer))
       .then_with(|| {
         a.share_scope
