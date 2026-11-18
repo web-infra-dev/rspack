@@ -225,7 +225,7 @@ type ExternalFunction = (
 ) => ExternalItemValue | void | Promise<ExternalItemValue | void>;
 ```
 
-Use a function when the decision to externalize a dependency depends on its request or other module information. The function can return a result directly, return a Promise, or call a callback.
+Use a function when the decision to externalize a dependency depends on its request or other module information. The function can return a result directly, return a Promise, or call a callback. Prefer non-function forms when they meet your needs to reduce [performance overhead](#performance-overhead).
 
 For example, this configuration keeps `react` and its subpaths as ES module imports:
 
@@ -393,6 +393,13 @@ With lazy compilation and `umd`, `umd2`, `amd`, `amd-require`, or `system` libra
 
 These externals can load before the lazy module activates, including externals from rules that never match a reachable module. They must therefore be available when the library loads. External matcher functions and `RegExp` branches cannot be enumerated for reservation; a function-form `byLayer` selector returning an object or string can be enumerated.
 :::
+
+## Performance overhead
+
+Function-based [`externals`](#function) adds cross-language call overhead when checking module requests.
+
+- Prefer non-function forms when they meet your needs, so Rspack can match directly in Rust.
+- When using a function, use available information such as `request` where possible to decide whether to externalize a dependency, avoiding unnecessary [request resolution](#resolving-requests) and file reads.
 
 ## externalsType
 

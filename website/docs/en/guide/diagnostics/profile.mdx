@@ -80,6 +80,10 @@ Function options in [`splitChunks`](/plugins/split-chunks-plugin) and a higher [
 
 Using functions for module rule options such as [`test`](/config/module-rules#rulestest), [`include`](/config/module-rules#rulesinclude), [`exclude`](/config/module-rules#rulesexclude), or [`use`](/config/module-rules#rulesuse) can add overhead during module processing. Prefer non-function forms when they meet your needs. See [Module rules performance overhead](/config/module-rules#performance-overhead) for details.
 
+### Externals
+
+Function-based [`externals`](/config/externals#function) adds cross-language call overhead when checking module requests. Resolving requests and reading files within the function can also increase build time. See [Externals performance overhead](/config/externals#performance-overhead) for configuration recommendations.
+
 ## Thread pool configuration
 
 ### Blocking thread pool size
