@@ -15,7 +15,7 @@ export default {
       const { ServerPlugin, ClientPlugin } = createPlugins();
       new ClientPlugin().apply(compiler);
 
-      // The client compiler gets its entry dependencies from the server build.
+      // Both RSC compilers must run concurrently.
       let serverBuild;
       compiler.hooks.beforeRun.tap('RscEntryTest', () => {
         serverBuild = promisify(rspack)({
