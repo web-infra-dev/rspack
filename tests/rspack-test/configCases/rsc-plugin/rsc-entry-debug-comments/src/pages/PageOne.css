@@ -1,3 +1,4 @@
 .page-one {
   color: seagreen;
+  --rsc-css-order: page;
 }

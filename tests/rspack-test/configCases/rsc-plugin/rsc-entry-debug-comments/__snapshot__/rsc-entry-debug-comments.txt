@@ -29,16 +29,17 @@ client
 /*!
  * chunk group: server-entry
  * chunking: one async block per server-entry
- * server-entry: ./src/pages/PageOne.js
- * modules:
- * - ./src/pages/PageOne.css (exports: side-effect)
- * - ./src/clients/PageOneClient.js (exports: PageOneClient)
- */
-/*!
- * chunk group: server-entry
- * chunking: one async block per server-entry
  * server-entry: ./src/pages/PageTwo.js
  * modules:
  * - ./src/pages/PageTwo.css (exports: side-effect)
  * - ./src/clients/PageTwoClient.js (exports: PageTwoClient)
+ */
+/*!
+ * chunk group: server-entry
+ * chunking: one async block per server-entry
+ * server-entry: ./src/pages/PageOne.js
+ * modules:
+ * - ./src/pages/PageOne.theme.css (exports: side-effect)
+ * - ./src/pages/PageOne.css (exports: side-effect)
+ * - ./src/clients/PageOneClient.js (exports: PageOneClient)
  */

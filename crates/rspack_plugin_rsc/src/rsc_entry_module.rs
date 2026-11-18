@@ -138,7 +138,7 @@ impl RscEntryModule {
       &self.client_modules,
     );
 
-    for server_entry in self.debug_server_entries() {
+    for server_entry in self.server_entries() {
       append_server_entry_debug_section(
         &mut source,
         compilation,
@@ -160,7 +160,7 @@ impl RscEntryModule {
     }
   }
 
-  fn debug_server_entries(&self) -> Vec<String> {
+  fn server_entries(&self) -> Vec<String> {
     let mut server_entries = self
       .css_imports_by_server_entry
       .keys()
@@ -171,7 +171,6 @@ impl RscEntryModule {
         server_entries.push(server_entry.clone());
       }
     }
-    server_entries.sort_unstable();
     server_entries
   }
 
@@ -271,19 +270,7 @@ impl Module for RscEntryModule {
       );
       let dependencies: Vec<BoxDependency> = vec![];
 
-      let mut server_entries = self
-        .css_imports_by_server_entry
-        .keys()
-        .cloned()
-        .collect::<Vec<_>>();
-      for server_entry in self.client_modules_by_server_entry.keys() {
-        if !server_entries.contains(server_entry) {
-          server_entries.push(server_entry.clone());
-        }
-      }
-      server_entries.sort_unstable();
-
-      for server_entry in server_entries {
+      for server_entry in self.server_entries() {
         let mut block_dependencies: Vec<BoxDependency> = Vec::new();
 
         if let Some(css_imports) = self.css_imports_by_server_entry.get(&server_entry) {
@@ -418,9 +405,6 @@ fn create_identifier(
   identifier.push_str("]|root[");
   push_client_modules(&mut identifier, root_client_modules);
   identifier.push_str("]|server[");
-  let mut client_modules_by_server_entry =
-    client_modules_by_server_entry.iter().collect::<Vec<_>>();
-  client_modules_by_server_entry.sort_unstable_by_key(|(server_entry, _)| *server_entry);
   for (server_entry, client_modules) in client_modules_by_server_entry {
     push_value(&mut identifier, server_entry);
     identifier.push('[');
@@ -430,13 +414,11 @@ fn create_identifier(
   identifier.push(']');
 
   identifier.push('|');
-  let mut css_imports_by_server_entry = css_imports_by_server_entry.iter().collect::<Vec<_>>();
-  css_imports_by_server_entry.sort_unstable_by_key(|(a, _)| *a);
   for (server_entry, css_imports) in css_imports_by_server_entry {
     push_value(&mut identifier, server_entry);
     identifier.push('[');
 
-    let css_imports = sorted_strs(css_imports.iter().map(String::as_str));
+    // CSS order affects the cascade, so it must also affect the module identity.
     for css_import in css_imports {
       push_value(&mut identifier, css_import);
     }
@@ -542,7 +524,7 @@ fn append_server_entry_debug_section(
   );
 
   if let Some(css_imports) = css_imports {
-    for css_import in sorted_strs(css_imports.iter().map(String::as_str)) {
+    for css_import in css_imports {
       let request = contextify(compilation.options.context.as_path(), css_import);
       append_debug_module_line(source, &request, "side-effect");
     }

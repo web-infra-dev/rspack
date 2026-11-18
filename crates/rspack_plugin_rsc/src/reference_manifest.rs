@@ -68,7 +68,7 @@ where
 }
 
 fn serialize_server_entries_css_files<S>(
-  server_entries: &FxHashMap<String, ServerEntryState>,
+  server_entries: &FxIndexMap<String, ServerEntryState>,
   serializer: S,
 ) -> Result<S::Ok, S::Error>
 where
@@ -101,7 +101,7 @@ pub struct RscEntryManifest<'a> {
     rename = "entryCssFiles",
     serialize_with = "serialize_server_entries_css_files"
   )]
-  pub server_entries: &'a FxHashMap<String, ServerEntryState>,
+  pub server_entries: &'a FxIndexMap<String, ServerEntryState>,
   #[serde(rename = "entryJsFiles")]
   pub bootstrap_scripts: &'a FxIndexSet<String>,
   pub css_link_props: &'a RscCssLinkProps,
