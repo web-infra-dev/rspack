@@ -19,7 +19,9 @@ pub use rspack_loader_lightningcss::rspack_lightningcss::targets::Browsers;
 use rspack_loader_lightningcss::{
   RspackSourceMap,
   rspack_lightningcss::{
-    printer::{PrinterOptions, SourceMap as LightningSourceMap},
+    printer::{
+      PrinterOptions, PseudoClasses as LightningPseudoClasses, SourceMap as LightningSourceMap,
+    },
     stylesheet::{MinifyOptions, ParserFlags, ParserOptions, StyleSheet},
     targets::{Features, Targets},
   },
@@ -202,19 +204,20 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           stylesheet
             .to_css(PrinterOptions {
               minify: true,
+              source_map: source_map.as_mut(),
               project_root: None,
               targets,
               analyze_dependencies: None,
-              pseudo_classes: minimizer_options.pseudo_classes
-              .as_ref()
-              .map(|pseudo_classes| rspack_loader_lightningcss::rspack_lightningcss::stylesheet::PseudoClasses {
-                hover: pseudo_classes.hover.as_deref(),
-                active: pseudo_classes.active.as_deref(),
-                focus: pseudo_classes.focus.as_deref(),
-                focus_visible: pseudo_classes.focus_visible.as_deref(),
-                focus_within: pseudo_classes.focus_within.as_deref(),
+              pseudo_classes: minimizer_options.pseudo_classes.as_ref().map(|pseudo_classes| {
+                LightningPseudoClasses {
+                  hover: pseudo_classes.hover.as_deref(),
+                  active: pseudo_classes.active.as_deref(),
+                  focus: pseudo_classes.focus.as_deref(),
+                  focus_visible: pseudo_classes.focus_visible.as_deref(),
+                  focus_within: pseudo_classes.focus_within.as_deref(),
+                }
               }),
-            }, source_map.as_mut())
+            })
             .to_rspack_result()?
         };
 

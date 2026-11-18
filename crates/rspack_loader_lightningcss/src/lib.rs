@@ -249,27 +249,26 @@ impl LightningCssLoader {
       None
     };
 
-    let content =
-      stylesheet
-        .to_css(
-          PrinterOptions {
-            minify: self.config.minify.unwrap_or(false),
-            project_root: None,
-            targets,
-            analyze_dependencies: None,
-            pseudo_classes: self.config.pseudo_classes.as_ref().map(|pseudo_classes| {
-              PseudoClasses {
-                hover: pseudo_classes.hover.as_deref(),
-                active: pseudo_classes.active.as_deref(),
-                focus: pseudo_classes.focus.as_deref(),
-                focus_visible: pseudo_classes.focus_visible.as_deref(),
-                focus_within: pseudo_classes.focus_within.as_deref(),
-              }
-            }),
-          },
-          source_map.as_mut(),
-        )
-        .to_rspack_result_with_message(|e| format!("failed to generate css: {e}"))?;
+    let content = stylesheet
+      .to_css(PrinterOptions {
+        minify: self.config.minify.unwrap_or(false),
+        source_map: source_map.as_mut(),
+        project_root: None,
+        targets,
+        analyze_dependencies: None,
+        pseudo_classes: self
+          .config
+          .pseudo_classes
+          .as_ref()
+          .map(|pseudo_classes| PseudoClasses {
+            hover: pseudo_classes.hover.as_deref(),
+            active: pseudo_classes.active.as_deref(),
+            focus: pseudo_classes.focus.as_deref(),
+            focus_visible: pseudo_classes.focus_visible.as_deref(),
+            focus_within: pseudo_classes.focus_within.as_deref(),
+          }),
+      })
+      .to_rspack_result_with_message(|e| format!("failed to generate css: {e}"))?;
 
     if let Some(source_map) = source_map {
       let rspack_source_map = source_map.finish();

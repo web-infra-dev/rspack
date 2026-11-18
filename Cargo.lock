@@ -3811,9 +3811,8 @@ dependencies = [
 
 [[package]]
 name = "rspack-lightningcss"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c22e9eb41454bd92a7cbc544ba3d369d4ffdb91fa7db640ba94dd40930d433a"
+version = "0.1.2"
+source = "git+https://github.com/rstackjs/lightningcss.git?rev=a002b2f38c1ff4472bcc9e8e91cc4bec705613ca#a002b2f38c1ff4472bcc9e8e91cc4bec705613ca"
 dependencies = [
  "ahash",
  "bitflags 2.13.2",
@@ -3838,9 +3837,8 @@ dependencies = [
 
 [[package]]
 name = "rspack-lightningcss-derive"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cdc5767202d5aab30d89daac7727abfb1af52058c83bbc8cab69e86404756735"
+version = "0.1.2"
+source = "git+https://github.com/rstackjs/lightningcss.git?rev=a002b2f38c1ff4472bcc9e8e91cc4bec705613ca#a002b2f38c1ff4472bcc9e8e91cc4bec705613ca"
 dependencies = [
  "convert_case 0.6.0",
  "proc-macro2",
@@ -3850,9 +3848,8 @@ dependencies = [
 
 [[package]]
 name = "rspack-lightningcss-selectors"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24c0f74b440ca6d3a5b667562c7b0cbabd48d82b73a23617ff30a94369bb38a1"
+version = "0.1.2"
+source = "git+https://github.com/rstackjs/lightningcss.git?rev=a002b2f38c1ff4472bcc9e8e91cc4bec705613ca#a002b2f38c1ff4472bcc9e8e91cc4bec705613ca"
 dependencies = [
  "bitflags 2.13.2",
  "cssparser",
@@ -3868,9 +3865,8 @@ dependencies = [
 
 [[package]]
 name = "rspack-lightningcss-static-self"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b9db2fff83810976166879dcf39580165df96def00c84ed0e2887ede920e292"
+version = "0.1.2"
+source = "git+https://github.com/rstackjs/lightningcss.git?rev=a002b2f38c1ff4472bcc9e8e91cc4bec705613ca#a002b2f38c1ff4472bcc9e8e91cc4bec705613ca"
 dependencies = [
  "indexmap",
  "rspack-lightningcss-static-self-derive",
@@ -3879,9 +3875,8 @@ dependencies = [
 
 [[package]]
 name = "rspack-lightningcss-static-self-derive"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1abe45f6f1aad3c9848deda8685c447c270329d88b5d1be615a0ecc5080edb42"
+version = "0.1.2"
+source = "git+https://github.com/rstackjs/lightningcss.git?rev=a002b2f38c1ff4472bcc9e8e91cc4bec705613ca#a002b2f38c1ff4472bcc9e8e91cc4bec705613ca"
 dependencies = [
  "proc-macro2",
  "quote",
