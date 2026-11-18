@@ -1,19 +1,24 @@
 ---
-description: 'Build Solid applications with Rsbuild or configure babel-loader and the Solid Babel preset directly in Rspack.'
+description: 'Build Solid v2 applications with Rsbuild, or configure existing Solid v1 projects with Rsbuild or Rspack.'
 ---
 
 # Solid
 
 ## How to use
 
-Rspack provides two solutions to support Solid:
+We recommend [Rsbuild](https://rsbuild.rs/) for Solid applications. It provides JSX compilation and hot module replacement out of the box. See [Rsbuild - Solid](https://rsbuild.rs/guide/framework/solid) to create a project.
 
-- **Use Rsbuild**: Rsbuild provides out-of-the-box support for Solid, allowing you to quickly create a Solid project. See [Rsbuild - Solid](https://rsbuild.rs/guide/framework/solid) for details.
-- **Manually configure Rspack**: You can refer to the current document to manually add configurations for Solid.
+## Solid v2
 
-## Configure Solid
+For Solid v2, use `@rsbuild/plugin-solid` v2 with Rsbuild. The plugin uses Solid's native JSX compiler by default, so no additional Babel plugin is needed. See [Rsbuild - Solid v2 setup](https://rsbuild.rs/plugins/list/plugin-solid#solid-v2) for installation and configuration.
 
-Thanks to the good compatibility of Rspack with the babel-loader, it is very easy to use Solid in Rspack. All you need is babel-loader and Solid babel preset. Rspack provides Solid [example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/solid) for reference.
+## Solid v1
+
+For existing Solid v1 projects, use `@rsbuild/plugin-solid@1` with `@rsbuild/plugin-babel`. See [Rsbuild - Solid v1 setup](https://rsbuild.rs/plugins/list/plugin-solid#solid-v1) for configuration.
+
+### Configure Rspack manually \{#configure-solid}
+
+If you use Rspack directly, the following configuration is for **Solid v1**. It uses `babel-loader`, `babel-preset-solid`, and `solid-refresh`.
 
 ```js title="rspack.config.mjs"
 import { defineConfig } from '@rspack/cli';
