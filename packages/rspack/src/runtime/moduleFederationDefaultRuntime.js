@@ -220,6 +220,58 @@ export default function () {
         __module_federation_bundler_runtime__[key];
     }
 
+    // Check emitted runtime data, not configuration: issuerLayer is only a
+    // compiler filter, and unused configurations do not need a new runtime.
+    if (
+      runtimeRequire.federation.bundlerRuntime.supportsSharedIdentity !== true
+    ) {
+      const unsupportedIdentity = (shareKey, reason) => {
+        throw new Error(
+          `Module Federation shared "${shareKey}" ${reason}. Use an implementation whose bundlerRuntime.supportsSharedIdentity is true; the installed runtime cannot preserve this shared identity.`,
+        );
+      };
+      for (const stages of Object.values(
+        initializeSharingScopeToInitDataMapping,
+      )) {
+        for (const stage of stages) {
+          if (stage && typeof stage === 'object' && stage.layer != null) {
+            unsupportedIdentity(
+              stage.name,
+              `uses provider layer "${stage.layer}"`,
+            );
+          }
+        }
+      }
+      for (const data of Object.values(
+        consumesLoadingModuleToConsumeDataMapping,
+      )) {
+        if (data.layer != null) {
+          unsupportedIdentity(
+            data.shareKey,
+            `uses consumer layer "${data.layer}"`,
+          );
+        }
+      }
+      for (const [shareKey, entries] of Object.entries(
+        __module_federation_share_fallbacks__ || {},
+      )) {
+        const versions = new Map();
+        for (const [entry, version, globalName] of entries) {
+          const previous = versions.get(version);
+          if (
+            previous &&
+            (previous[0] !== entry || previous[1] !== globalName)
+          ) {
+            unsupportedIdentity(
+              shareKey,
+              `has distinct full fallbacks for version "${version}"`,
+            );
+          }
+          versions.set(version, [entry, globalName]);
+        }
+      }
+    }
+
     early(
       runtimeRequire.federation,
       'libraryType',
@@ -267,7 +319,12 @@ export default function () {
       if (matches.length === 0) return;
       const fallbackKey = `${data.shareKey}\0${moduleId}`;
       sharedFallback[fallbackKey] = matches.map(
-        ({ entry, version, globalName }) => [entry, version, globalName],
+        ({ entry, version, globalName, shareScope, layer }) => [
+          entry,
+          version,
+          globalName,
+          { shareScope, layer },
+        ],
       );
       return fallbackKey;
     };
@@ -286,6 +343,10 @@ export default function () {
                 ? runtimeRequire.federation.bundlerRuntime?.getSharedFallbackGetter(
                     {
                       shareKey: fallbackKey,
+                      scope: Array.isArray(data.shareScope)
+                        ? data.shareScope
+                        : [data.shareScope || 'default'],
+                      layer: data.layer,
                       factory: data.fallback,
                       webpackRequire: runtimeRequire,
                       libraryType: runtimeRequire.federation.libraryType,

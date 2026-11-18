@@ -7,6 +7,8 @@ module.exports = {
   optimization: { concatenateModules: false },
   plugins: [
     new ModuleFederationPlugin({
+      implementation:
+        require.resolve('@module-federation/runtime-tools-layers'),
       name: 'shared_module_id_collisions',
       shared: {
         first: {
