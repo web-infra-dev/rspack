@@ -188,6 +188,27 @@ fn keyframe_exemption_ends_with_the_block() {
 }
 
 #[test]
+fn scope_preludes_do_not_exempt_nested_selectors() {
+  for input in [
+    "@scope (:global(body)) { .local {} h1 {} }",
+    "@scope (:global(body)) to (.limit) { .local {} h1 {} }",
+    "@scope (.root) { .local {} h1 {} }",
+    "@scope { h1 {} }",
+  ] {
+    let (_, warnings) = collect_dependencies(input, Mode::Pure);
+    let [warning] = warnings.as_slice() else {
+      panic!("expected one warning for {input}, got {warnings:?}");
+    };
+    assert!(matches!(warning.kind(), WarningKind::NotPure { .. }));
+    assert_eq!(
+      Lexer::slice_range(input, warning.range()).map(str::trim),
+      Some("h1"),
+      "{input}"
+    );
+  }
+}
+
+#[test]
 fn pass_through_global_element() {
   test("input {}", "input {}");
 }
@@ -455,6 +476,10 @@ fn consider_selector_nesting_statements_as_pure() {
     (
       ".foo { color: red; @media screen { button { color: blue; } } }",
       ":local(.foo) { color: red; @media screen { button { color: blue; } } }",
+    ),
+    (
+      ".foo { color: red; @scope (:global(section)) { button { color: blue; } } }",
+      ":local(.foo) { color: red; @scope (section) { button { color: blue; } } }",
     ),
     (
       ".foo { color: red; button:where(:global(.bar), .baz) { color: blue; } }",
