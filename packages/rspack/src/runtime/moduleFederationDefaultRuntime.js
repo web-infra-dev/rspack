@@ -175,9 +175,7 @@ export default function () {
                 ? runtimeRequire.federation.bundlerRuntime?.getSharedFallbackGetter(
                     {
                       shareKey: fallbackKey,
-                      scope: Array.isArray(data.shareScope)
-                        ? data.shareScope
-                        : [data.shareScope || 'default'],
+                      scope: data.shareScope ?? 'default',
                       layer: data.layer,
                       factory: data.fallback,
                       webpackRequire: runtimeRequire,
