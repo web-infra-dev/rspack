@@ -98,11 +98,16 @@ export default async function run(scenario) {
       } else if (scenario === 'paired-isolated-provider') {
         await result.instance.initializeSharing('default');
         // An external unlayered host must not receive a server-only provider.
-        const host = result.runtime.init({ name: 'unlayered_external_host', shared: {} });
+        const host = result.runtime.init({
+          name: 'unlayered_external_host',
+          shared: { one: {
+            version: '1.0.0', scope: ['default'],
+            shareConfig: { requiredVersion: false },
+            get: () => () => 'unlayered',
+          } },
+        });
         host.initShareScopeMap('default', result.instance.shareScopeMap.default);
-        assert.equal(await host.loadShare('one', { customShareInfo: {
-          scope: ['default'], shareConfig: { requiredVersion: false },
-        } }), false);
+        assert.equal((await host.loadShare('one'))(), 'unlayered');
       } else {
         assert.deepEqual(await result.load(), ['one', 'two']);
         // Full getters are observable by external hosts using the registration.
