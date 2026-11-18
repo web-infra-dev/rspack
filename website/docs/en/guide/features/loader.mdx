@@ -196,7 +196,7 @@ For more details, see [rules[].use.parallel](/config/module-rules#rulesuseparall
 
 ## Cache \{#loader-cache}
 
-Set `cache: true` on a loader in `module.rules[].use` to cache its normal-phase output. Loader caching requires the top-level [`cache`](/config/cache) and the `loader` stage of [`experiments.newCache`](/config/experiments#experimentsnewcache). Setting `experiments.newCache: true` enables that stage by default.
+Set `cache: true` on a loader in `module.rules[].use` to cache its transform results. Loader caching requires the top-level [`cache`](/config/cache) and the `loader` stage of [`experiments.newCache`](/config/experiments#experimentsnewcache). Setting `experiments.newCache: true` enables that stage by default.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -218,11 +218,9 @@ Compilers using the memory cache can share loader results within the same proces
 
 :::tip
 
-- To reuse a result, Rspack checks the input to the loader, its options, and its registered file dependencies. For JavaScript loaders, Rspack fingerprints the contents of the resolved entry file. The loader must register any imported files that affect its output.
-- Include build settings that affect the output in `use.options`, such as the build mode for a loader that uses `this.mode`.
-- Make sure loader options can be serialized to JSON without losing information. Serialization can omit functions or lose information about some objects. For example, a `Date` object is serialized as a string.
-- Changing whether a loader should generate source maps can cause a cache miss. Some loaders, such as `builtin:swc-loader`, also distinguish between source map types.
-- Changes to files listed in `cache.buildDependencies` invalidate the compiler's persistent cache. Loader caching tracks files that the loader registers in its normal phase.
+- Include build settings that affect the transform in `use.options`. For example, if a loader's output depends on `this.mode`, pass the build mode as a loader option.
+- Use loader options that retain their values after JSON serialization and parsing. For example, Rspack skips caching when the options contain a function because JSON cannot preserve function values.
+- Changing source map settings can invalidate cached loader results. For example, the loader cache checks whether Rspack asks the loader to generate source maps. Some loaders, such as `builtin:swc-loader`, also distinguish between source map types.
 
 :::
 
@@ -232,7 +230,7 @@ For loader authors, see [loader cache compatibility](/api/loader-api/writing-loa
 
 On a persistent module cache hit, Rspack reuses the module's full build result and skips loader transforms and module parsing. Rspack CLI adds the configuration file to [`cache.buildDependencies`](/config/cache#builddependencies), so even changing only `output.filename` in that file invalidates the module cache.
 
-The loader cache stores the output of a loader or a group of loaders. When a configuration change forces a module rebuild, Rspack checks factors such as loader inputs, options, and registered file dependencies and can reuse cached results that still match.
+When a configuration change forces a module rebuild, Rspack can still reuse cached loader transforms.
 
 For example, if an SSR setup builds the client first, the server build can reuse cached transforms for shared source files.
 

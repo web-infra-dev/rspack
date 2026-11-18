@@ -367,9 +367,11 @@ export default class MetadataPlugin {
 
 [Loader 缓存](/zh/guide/features/loader#loader-cache)保存 normal 阶段的输出。相邻的 loader 都启用缓存时，可以将整组的转换结果保存到同一条缓存记录中。Rspack 在 pitch 阶段结束后查询缓存，命中时跳过相应 loader 的 normal 阶段。
 
-顶层 `cache.buildDependencies` 用于跟踪编译器持久化缓存的文件依赖。对于 loader 缓存，请在 normal 阶段通过 [`this.addDependency()`](/zh/api/loader-api/context#thisadddependency) 或 [`this.addBuildDependency()`](/zh/api/loader-api/context#thisaddbuilddependency) 登记影响输出的文件，即使 pitch 函数已经登记过。例如，`babel-loader` 会用 `this.addDependency()` 登记它读取的 Babel 配置文件。
+复用缓存前，Rspack 会检查 loader 的输入、选项和已登记的文件依赖。对于 JavaScript loader，Rspack 还会根据解析到的入口文件内容计算指纹。
 
-将影响输出的设置作为 loader 选项，并确保选项经过 JSON 序列化和解析后保持原值。
+顶层 `cache.buildDependencies` 用于跟踪编译器持久化缓存的文件依赖。对于 loader 缓存，请在 normal 阶段通过 [`this.addDependency()`](/zh/api/loader-api/context#thisadddependency) 或 [`this.addBuildDependency()`](/zh/api/loader-api/context#thisaddbuilddependency) 登记影响输出的文件，包括 loader 导入的文件，即使 pitch 函数已经登记过。例如，`babel-loader` 会用 `this.addDependency()` 登记它读取的 Babel 配置文件。
+
+将影响输出的设置作为 loader 选项，例如通过 `this.mode` 获取的构建模式。确保选项经过 JSON 序列化和解析后保持原值。序列化会丢失函数值，并将 `Date` 对象转换为字符串。
 
 以下行为可能让 Rspack 跳过单个或一组 loader 的缓存，其中一些也会让后续的 loader 无法使用缓存。
 

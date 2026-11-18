@@ -198,7 +198,7 @@ export default {
 
 ## 缓存 \{#loader-cache}
 
-在 `module.rules[].use` 中为 loader 设置 `cache: true`，即可缓存其 normal 阶段的输出。使用 loader 缓存需要开启顶层 [`cache`](/zh/config/cache) 和 [`experiments.newCache`](/zh/config/experiments#experimentsnewcache) 的 `loader` 阶段。设置 `experiments.newCache: true` 时会默认开启该阶段。
+在 `module.rules[].use` 中为 loader 设置 `cache: true`，即可缓存其转换结果。使用 loader 缓存需要开启顶层 [`cache`](/zh/config/cache) 和 [`experiments.newCache`](/zh/config/experiments#experimentsnewcache) 的 `loader` 阶段。设置 `experiments.newCache: true` 时会默认开启该阶段。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -220,9 +220,9 @@ export default {
 
 :::tip
 
-- 将影响输出的构建设置传入 `use.options`。例如，loader 的输出取决于 `this.mode` 时，应将构建模式作为选项传入。
-- 确保 Loader 选项可以序列化为 JSON。例如，函数不能被 JSON 序列化，它会导致缓存指纹计算错误。
-- 更改 loader 是否生成 source map 的设置，可能导致缓存失效。`builtin:swc-loader` 等 loader 还会区分 source map 类型，修改 source map 类型会导致`builtin:swc-loader`缓存失效。
+- 将影响转换结果的构建设置传入 `use.options`。例如，loader 的输出取决于 `this.mode` 时，应将构建模式作为选项传入。
+- 确保 loader 选项经过 JSON 序列化和解析后保持原值。例如，选项包含函数时，Rspack 会跳过该 loader 的缓存，因为 JSON 无法保留函数值。
+- 更改 source map 设置可能导致缓存失效。例如，loader 缓存会检查 Rspack 是否要求 loader 生成 source map。`builtin:swc-loader` 等 loader 还会区分 source map 类型。
 
 :::
 
@@ -232,7 +232,7 @@ export default {
 
 持久化模块缓存命中时，Rspack 可以直接复用模块的完整构建结果，跳过 loader 转换和模块解析。Rspack CLI 会将配置文件加入 [`cache.buildDependencies`](/zh/config/cache#builddependencies)，因此即使只修改其中的 `output.filename`，也会使模块缓存失效。
 
-Loader 缓存保存单个 loader 或一组 loader 的转换结果。模块因配置变更而重建时，Rspack 会检查 loader 的输入、选项和已登记的文件依赖等，仍然匹配的转换结果可以继续复用。
+模块因配置变更而重建时，Rspack 仍可复用已缓存的 loader 转换结果。
 
 例如，SSR 项目先完成客户端构建后，服务端构建可以复用共享源文件的转换结果。
 
