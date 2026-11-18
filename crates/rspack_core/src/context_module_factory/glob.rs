@@ -1,4 +1,5 @@
 use cow_utils::CowUtils;
+use rspack_hash::{HashDigest, HashFunction, RspackHasher, hash_by_json};
 use rspack_loader_runner::parse_resource;
 use rspack_paths::{Utf8Path, Utf8PathBuf, normalize_path_separators};
 use rspack_util::{
@@ -6,6 +7,7 @@ use rspack_util::{
   identifier::relative_path_to_request,
   node_path::NodePath,
 };
+use rustc_hash::FxHashMap;
 use sugar_path::SugarPath;
 
 use crate::{ContextModuleOptions, ResolveInnerOptions};
@@ -80,58 +82,207 @@ pub fn compile_context_module_glob_request(
   CompiledContextModuleGlobRequest { request, recursive }
 }
 
-/// Bare globs such as `@/dir/*.js` compile to `./@/dir/` so that they match
-/// relative to the importer. Returns the request without `./` when its prefix
-/// names a `resolve.alias` key, so the resolver can apply the alias.
-pub(super) fn bare_context_module_glob_alias_request<'a>(
-  patterns: &[String],
-  request: &'a str,
-  resolve_options: &ResolveInnerOptions,
-) -> Option<&'a str> {
-  let bare = patterns
-    .iter()
-    .filter(|pattern| !pattern.starts_with('!'))
-    .all(|pattern| !pattern.starts_with('.') && !pattern.starts_with('/'));
-  if !bare {
-    return None;
-  }
-  let request = request.strip_prefix("./")?;
-  let path = parse_resource(request)?.path;
-  (!path.as_str().is_empty() && resolve_options.has_alias_for(path.as_str())).then_some(request)
+pub(super) struct ContextModuleGlobAliasRequest {
+  pub request: String,
+  pub prefix: String,
+  pub directory_suffix: String,
+  pub resolves_directory: bool,
+  pub recursive: bool,
 }
 
-pub(super) fn resolve_context_module_glob_alias(
-  patterns: &[String],
+/// Find aliases before common-directory calculations discard literal prefixes.
+pub(super) fn context_module_glob_alias_request(
+  pattern: &str,
+  resolve_options: &ResolveInnerOptions,
+  case_sensitive: bool,
+) -> Option<ContextModuleGlobAliasRequest> {
+  let path = pattern.strip_prefix('!').unwrap_or(pattern);
+  if path.starts_with('.') || path.starts_with('/') {
+    return None;
+  }
+  let source = parse_context_module_glob_pattern(pattern);
+  let matcher = GlobPattern::new(source.pattern.as_bytes()).ok()?;
+  let directory_prefix = matcher.directory_prefix();
+  let base = std::str::from_utf8(directory_prefix)
+    .ok()?
+    .strip_prefix("./")?;
+  let allow_exact =
+    matcher.literal_prefix() == directory_prefix && matcher.is_match(directory_prefix);
+  let (key, exact) = resolve_options.alias_prefix(base, allow_exact)?;
+  let key_path = key.trim_end_matches('/');
+  let mut prefix = format!("./{key_path}/");
+  let mut directory_suffix = base
+    .strip_prefix(key_path)
+    .and_then(|suffix| suffix.strip_prefix('/'))
+    .unwrap_or_default()
+    .to_string();
+  // The resolver probes exact filesystem spellings and treats '?' as a query.
+  // Keep those components in the matcher when they cannot be resolved literally.
+  let resolves_directory =
+    !exact && case_sensitive && !directory_suffix.is_empty() && !directory_suffix.contains('?');
+  let request = if exact {
+    key.to_string()
+  } else if resolves_directory {
+    // Resolve the directory inside the alias so the resolver can try each target.
+    prefix.push_str(&directory_suffix);
+    let request = format!(
+      "{}/{}.",
+      key.cow_replace('#', "\0#"),
+      directory_suffix.cow_replace('#', "\0#")
+    );
+    directory_suffix.clear();
+    request
+  } else {
+    // /., unlike a trailing /, cannot trigger an exact key such as dir/$.
+    format!("{key}/.")
+  };
+  let recursive = matcher
+    .match_prefix(&prefix)
+    .is_some_and(|remaining| remaining.is_recursive());
+  Some(ContextModuleGlobAliasRequest {
+    request,
+    prefix,
+    directory_suffix,
+    resolves_directory,
+    recursive,
+  })
+}
+
+pub(super) struct ResolvedGlobAlias {
+  pub prefix: String,
+  pub directory_suffix: String,
+  pub recursive: bool,
+  pub resource: Utf8PathBuf,
+  pub query: String,
+  pub fragment: String,
+}
+
+pub(super) struct ResolvedGlobScan {
+  root: Utf8PathBuf,
+  aliases: FxHashMap<String, ResolvedGlobAlias>,
+}
+
+pub(super) fn prepare_context_module_glob_matches(
+  options: &mut ContextModuleOptions,
+  scan: Option<ResolvedGlobScan>,
+) {
+  let context = &options.context_options;
+  let Some(patterns) = context.pattern.glob_patterns() else {
+    return;
+  };
+  let glob_options = GlobOptions {
+    case_sensitive: context.glob_case_sensitive,
+    require_literal_leading_dot: !context.glob_exhaustive,
+    ..Default::default()
+  };
+  let mut key = None;
+  let matches: Vec<_> = patterns
+    .iter()
+    .enumerate()
+    .filter_map(|(index, raw)| {
+      let source = parse_context_module_glob_pattern(raw);
+      let matcher = GlobPattern::new_with_options(source.pattern.as_bytes(), glob_options).ok()?;
+      let compute_base = !source.negative && !glob_options.case_sensitive;
+      if let Some((scan, alias)) = scan
+        .as_ref()
+        .and_then(|scan| scan.aliases.get(raw).map(|alias| (scan, alias)))
+      {
+        // Preserve the offset within the scan tree if afterResolve moved its root.
+        let matcher = matcher.match_prefix(&alias.prefix)?.into_owned();
+        let offset = alias.resource.as_std_path().relative(&scan.root);
+        let offset = normalize_path_separators(&offset.to_string_lossy()).into_owned();
+        let root = options.resource.node_join(&offset).node_normalize();
+        let case_insensitive_base = compute_base.then(|| {
+          normalize_case_insensitive_path(root.node_join(&alias.directory_suffix).as_str())
+        });
+        let root_relative = root.starts_with(context.compiler_context.as_path());
+        let query = nonempty_suffix(&alias.query);
+        let fragment = nonempty_suffix(&alias.fragment);
+        hash_by_json(
+          &(
+            index,
+            &offset,
+            &alias.prefix,
+            &alias.directory_suffix,
+            root_relative,
+            query.unwrap_or(&options.resource_query),
+            fragment.unwrap_or(&options.resource_fragment),
+          ),
+          key.get_or_insert_with(|| RspackHasher::new(&HashFunction::SHA256)),
+        );
+        return Some(ContextGlobMatch {
+          matcher,
+          match_root: Some(root),
+          case_insensitive_base,
+          negative: source.negative,
+          root_relative,
+          query: query.map(str::to_owned),
+          fragment: fragment.map(str::to_owned),
+        });
+      }
+      Some(ContextGlobMatch {
+        match_root: None,
+        case_insensitive_base: compute_base.then(|| {
+          let base = source.base(&context.context, &context.compiler_context);
+          let base = resolve_pattern_base(base, matcher.directory_prefix());
+          normalize_case_insensitive_path(base.as_str())
+        }),
+        matcher: matcher.into_owned(),
+        negative: source.negative,
+        root_relative: source.root_relative,
+        query: None,
+        fragment: None,
+      })
+    })
+    .collect();
+  options.glob_matches = Some(matches.into());
+  options.glob_matches_key = key.map(|hasher| hasher.digest(&HashDigest::Hex));
+}
+
+fn nonempty_suffix(suffix: &str) -> Option<&str> {
+  (!suffix.is_empty()).then_some(suffix)
+}
+
+/// Compute physical scan roots while preserving raw pattern syntax.
+pub(super) fn compile_aliased_glob_request(
   request: &str,
-  resolved_base: &str,
+  patterns: &[String],
+  aliases: FxHashMap<String, ResolvedGlobAlias>,
   context: &str,
   compiler_context: &str,
-) -> Vec<String> {
-  let request = request.trim_end_matches('/');
-  patterns
+  resolve_context: &str,
+  case_sensitive: bool,
+) -> Option<(CompiledContextModuleGlobRequest, ResolvedGlobScan)> {
+  let resolved_patterns = patterns
     .iter()
-    .map(|pattern| {
-      let (negative, path) = pattern
-        .strip_prefix('!')
-        .map_or(("", pattern.as_str()), |path| ("!", path));
-      let Some(suffix) = path
-        .strip_prefix(request)
-        .and_then(|path| path.strip_prefix('/'))
-      else {
-        return pattern.clone();
-      };
-      let resolved_pattern = Utf8Path::new(resolved_base)
-        .node_join_posix(suffix)
-        .node_normalize_posix();
-      let resolved_pattern = resolved_pattern.as_str();
-      let rewritten = if Utf8Path::new(resolved_pattern).starts_with(compiler_context) {
-        context_relative_glob_request(resolved_pattern, compiler_context, true)
-      } else {
-        context_relative_glob_request(resolved_pattern, context, false)
-      };
-      format!("{negative}{rewritten}")
+    .filter_map(|raw| match aliases.get(raw) {
+      Some(alias) => Some(ResolvedContextModuleGlobPattern {
+        absolute_base: alias.resource.clone(),
+        scan_base: alias.resource.clone(),
+        recursive: alias.recursive,
+        negative: raw.starts_with('!'),
+      }),
+      None => resolve_context_module_glob_pattern(raw, context, compiler_context, case_sensitive),
     })
-    .collect()
+    .collect::<Vec<_>>();
+  let root = common_context_module_glob_base(&resolved_patterns)?;
+  let recursive = glob_patterns_are_recursive(&resolved_patterns, &root);
+  let mut scan_request = context_relative_glob_request(root.as_str(), resolve_context, false);
+  if let Some(parsed) = parse_resource(request) {
+    if let Some(query) = parsed.query {
+      scan_request.push_str(&query);
+    }
+    if let Some(fragment) = parsed.fragment {
+      scan_request.push_str(&fragment);
+    }
+  }
+  Some((
+    CompiledContextModuleGlobRequest {
+      request: scan_request,
+      recursive,
+    },
+    ResolvedGlobScan { root, aliases },
+  ))
 }
 
 fn common_path_base<'a>(mut paths: impl Iterator<Item = &'a Utf8Path>) -> Option<Utf8PathBuf> {
@@ -225,55 +376,38 @@ fn parse_context_module_glob_pattern(pattern: &str) -> ContextModuleGlobPattern 
   }
 }
 
-struct ContextGlobMatch {
+/// An owned matcher and its coordinates after the factory hooks.
+#[derive(Debug)]
+pub(crate) struct ContextGlobMatch {
   matcher: GlobPattern<'static>,
+  match_root: Option<Utf8PathBuf>,
+  case_insensitive_base: Option<String>,
   negative: bool,
   root_relative: bool,
+  query: Option<String>,
+  fragment: Option<String>,
 }
 
+#[derive(Clone, Copy)]
 pub(super) struct ContextModuleGlobMatcher<'a> {
-  patterns: Vec<ContextGlobMatch>,
-  positive_pattern_bases: Vec<String>,
+  patterns: &'a [ContextGlobMatch],
   context: &'a str,
   compiler_context: &'a str,
   case_sensitive: bool,
+  query: &'a str,
+  fragment: &'a str,
 }
 
 impl<'a> ContextModuleGlobMatcher<'a> {
   pub(super) fn new(options: &'a ContextModuleOptions) -> Option<Self> {
     let context_options = &options.context_options;
-    let glob_options = GlobOptions {
-      case_sensitive: context_options.glob_case_sensitive,
-      require_literal_leading_dot: !context_options.glob_exhaustive,
-      ..Default::default()
-    };
-    let mut positive_pattern_bases = Vec::new();
-    let patterns = context_options
-      .pattern
-      .glob_patterns()?
-      .iter()
-      .filter_map(|pattern| {
-        let source = parse_context_module_glob_pattern(pattern);
-        let matcher =
-          GlobPattern::new_with_options(source.pattern.as_bytes(), glob_options).ok()?;
-        if !glob_options.case_sensitive && !source.negative {
-          let context = source.base(&context_options.context, &context_options.compiler_context);
-          let base = resolve_pattern_base(context, matcher.directory_prefix());
-          positive_pattern_bases.push(normalize_case_insensitive_path(base.as_str()));
-        }
-        Some(ContextGlobMatch {
-          matcher: matcher.into_owned(),
-          negative: source.negative,
-          root_relative: source.root_relative,
-        })
-      })
-      .collect();
     Some(Self {
-      patterns,
-      positive_pattern_bases,
+      patterns: options.glob_matches.as_deref()?,
       context: &context_options.context,
       compiler_context: &context_options.compiler_context,
       case_sensitive: context_options.glob_case_sensitive,
+      query: &options.resource_query,
+      fragment: &options.resource_fragment,
     })
   }
 
@@ -281,68 +415,105 @@ impl<'a> ContextModuleGlobMatcher<'a> {
     self.patterns.is_empty()
   }
 
-  pub(super) fn match_request(&self, path: &str) -> Option<String> {
-    let user_request = self
+  fn request(&self, pattern: &ContextGlobMatch, path: &str) -> String {
+    context_relative_glob_request(
+      path,
+      if pattern.root_relative {
+        self.compiler_context
+      } else {
+        self.context
+      },
+      pattern.root_relative,
+    )
+  }
+
+  fn matching_path(&self, pattern: &ContextGlobMatch, path: &str) -> Option<String> {
+    if let Some(root) = &pattern.match_root {
+      let path = Utf8Path::new(path);
+      if !path.starts_with(root) {
+        return None;
+      }
+      let relative = path.as_std_path().relative(root);
+      Some(normalize_path_separators(&relative.to_string_lossy()).into_owned())
+    } else {
+      Some(self.request(pattern, path))
+    }
+  }
+
+  fn matches(&self, pattern: &ContextGlobMatch, path: &str) -> bool {
+    self
+      .matching_path(pattern, path)
+      .is_some_and(|path| pattern.matcher.is_match(path))
+  }
+
+  pub(super) fn match_request(
+    &self,
+    path: &str,
+    resource_request: String,
+  ) -> Option<super::ContextModuleMatchedRequest<'a>> {
+    let pattern = self
       .patterns
       .iter()
       .filter(|pattern| !pattern.negative)
-      .find_map(|pattern| {
-        let request = context_relative_glob_request(
-          path,
-          if pattern.root_relative {
-            self.compiler_context
-          } else {
-            self.context
-          },
-          pattern.root_relative,
-        );
-        pattern.matcher.is_match(&request).then_some(request)
-      })?;
-
+      .find(|pattern| self.matches(pattern, path))?;
     if self
       .patterns
       .iter()
       .filter(|pattern| pattern.negative)
-      .any(|pattern| {
-        let request = context_relative_glob_request(
-          path,
-          if pattern.root_relative {
-            self.compiler_context
-          } else {
-            self.context
-          },
-          pattern.root_relative,
-        );
-        pattern.matcher.is_match(&request)
-      })
+      .any(|pattern| self.matches(pattern, path))
     {
       return None;
     }
-
-    Some(user_request)
-  }
-
-  pub(super) fn should_visit_dir(&self, path: &str) -> bool {
-    if self.case_sensitive {
-      return true;
-    }
-
-    let path = normalize_case_insensitive_path(path);
-    self.positive_pattern_bases.iter().any(|pattern_base| {
-      is_same_or_descendant(pattern_base, &path) || is_same_or_descendant(&path, pattern_base)
+    Some(super::ContextModuleMatchedRequest {
+      request: self.request(pattern, path),
+      resource_request: Some(resource_request),
+      query: pattern.query.as_deref().unwrap_or(self.query),
+      fragment: pattern.fragment.as_deref().unwrap_or(self.fragment),
     })
   }
 
-  pub(super) fn should_visit_skipped_dir(&self, path: &str) -> bool {
-    if self.case_sensitive {
-      return false;
-    }
-
-    let path = normalize_case_insensitive_path(path);
+  pub(super) fn should_visit_dir(&self, path: &str) -> bool {
+    let normalized = (!self.case_sensitive).then(|| normalize_case_insensitive_path(path));
     self
-      .positive_pattern_bases
+      .patterns
       .iter()
-      .any(|pattern_base| is_same_or_descendant(pattern_base, &path))
+      .filter(|pattern| !pattern.negative)
+      .any(|pattern| {
+        if let Some(root) = &pattern.match_root {
+          if root.starts_with(path) {
+            return true;
+          }
+          if !Utf8Path::new(path).starts_with(root) {
+            return false;
+          }
+        }
+        pattern
+          .case_insensitive_base
+          .as_deref()
+          .zip(normalized.as_deref())
+          .is_none_or(|(base, path)| {
+            is_same_or_descendant(base, path) || is_same_or_descendant(path, base)
+          })
+      })
+  }
+
+  pub(super) fn should_visit_skipped_dir(&self, path: &str) -> bool {
+    let normalized = (!self.case_sensitive).then(|| normalize_case_insensitive_path(path));
+    self
+      .patterns
+      .iter()
+      .filter(|pattern| !pattern.negative)
+      .any(|pattern| {
+        pattern
+          .match_root
+          .as_ref()
+          .is_some_and(|root| root.starts_with(path))
+          || pattern
+            .case_insensitive_base
+            .as_deref()
+            .zip(normalized.as_deref())
+            .is_some_and(|(base, path)| is_same_or_descendant(base, path))
+      })
   }
 }
 
