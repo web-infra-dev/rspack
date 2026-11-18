@@ -866,7 +866,7 @@ impl PathManager {
       return true;
     }
 
-    let Some(current_mtime) = disk_mtime(path) else {
+    let Some(current_mtime) = self.file_mtime(path) else {
       return true;
     };
     let mtime_ms = mtime_to_millis(current_mtime);
@@ -1014,6 +1014,18 @@ impl PathManager {
       None => false,
     }
   }
+
+  /// File subscriptions observe the link entry unless its target is followed.
+  pub(crate) fn file_mtime(&self, path: &InternedPath) -> Option<SystemTime> {
+    let metadata = if self.follow_symlinks {
+      path.metadata()
+    } else {
+      path.symlink_metadata()
+    };
+    metadata
+      .and_then(|metadata| metadata.modified().or_else(|_| metadata.created()))
+      .ok()
+  }
 }
 
 impl PathManager {
@@ -1024,7 +1036,7 @@ impl PathManager {
     if let Some(time) = self.file_times.get(path) {
       return Some(*time);
     }
-    disk_mtime(path).map(FileTime::initial)
+    self.file_mtime(path).map(FileTime::initial)
   }
 
   fn entry(time: FileTime) -> TimeInfoEntry {
