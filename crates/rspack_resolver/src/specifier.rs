@@ -59,17 +59,21 @@ impl<'a> Specifier<'a> {
     specifier: &'a str,
     skip: usize,
   ) -> (Cow<'a, str>, Option<&'a str>, Option<&'a str>) {
+    let bytes = specifier.as_bytes();
+    let Some(first) = memchr::memchr2(b'?', b'#', &bytes[skip..]) else {
+      return (Cow::Borrowed(specifier), None, None);
+    };
+    let start = skip + first;
     let mut query_start: Option<usize> = None;
     let mut fragment_start: Option<usize> = None;
     let mut escaped_indexes: Vec<usize> = Vec::new();
 
     // Scan as bytes: `?`, `#`, and `\0` are single-byte ASCII (< 0x80), so their
-    // byte positions coincide with char positions in any UTF-8 input. This skips
-    // the per-step UTF-8 decode that `char_indices()` performs, which dominated
-    // the callgrind baseline.
-    let bytes = specifier.as_bytes();
-    let mut prev = bytes[0];
-    for (i, &b) in bytes.iter().enumerate().skip(skip) {
+    // byte positions are valid char boundaries in any UTF-8 input. Start at the
+    // first delimiter to avoid scanning the path prefix twice, retaining the
+    // preceding byte for NUL-escaped hashes.
+    let mut prev = bytes[start.saturating_sub(1)];
+    for (i, &b) in bytes.iter().enumerate().skip(start) {
       if b == b'?' && query_start.is_none() {
         query_start = Some(i);
       }
