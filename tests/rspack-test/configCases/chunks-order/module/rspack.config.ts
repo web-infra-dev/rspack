@@ -46,10 +46,6 @@ export default defineConfig(() => [
         },
       ],
     },
-    experiments: {
-      css: true,
-      outputModule: true,
-    },
     optimization: {
       chunkIds: 'named',
       splitChunks: {

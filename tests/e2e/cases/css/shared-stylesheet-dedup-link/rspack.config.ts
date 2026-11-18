@@ -13,9 +13,6 @@ export default defineConfig({
   devServer: {
     hot: true,
   },
-  experiments: {
-    css: true,
-  },
   plugins: [
     new rspack.HtmlRspackPlugin({
       template: './src/index.html',

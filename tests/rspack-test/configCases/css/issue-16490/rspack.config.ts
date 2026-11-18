@@ -6,7 +6,6 @@ export default defineConfig({
     path: 'node-commonjs path',
   },
   target: 'web',
-  experiments: { css: true },
   node: {
     __dirname: false,
     __filename: false,

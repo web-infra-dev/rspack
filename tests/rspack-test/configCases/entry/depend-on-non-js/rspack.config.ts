@@ -32,7 +32,4 @@ export default defineConfig({
 
   target: 'web',
   plugins: [new CssExtractRspackPlugin()],
-  experiments: {
-    css: false,
-  },
 });

@@ -8,9 +8,6 @@ export default defineConfig({
     main: './index.js',
     other: './feature.js',
   },
-  experiments: {
-    css: true,
-  },
   module: {
     rules: [
       {

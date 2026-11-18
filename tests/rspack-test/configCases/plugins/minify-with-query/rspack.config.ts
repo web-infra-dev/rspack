@@ -20,7 +20,6 @@ export default defineConfig({
       },
     ],
   },
-  // experiments: { css: true },
   output: {
     filename: 'bundle0.js?hash=[contenthash]',
     cssFilename: 'bundle0.css?hash=[contenthash]',

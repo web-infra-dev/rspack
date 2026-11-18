@@ -3,9 +3,6 @@ import { CssExtractRspackPlugin } from '@rspack/core';
 
 export default defineConfig({
   target: 'web',
-  experiments: {
-    css: false,
-  },
   optimization: {
     chunkIds: 'named',
     moduleIds: 'named',

@@ -4,9 +4,6 @@ import { CssExtractRspackPlugin } from '@rspack/core';
 export default defineConfig({
   mode: 'production',
   devtool: false,
-  experiments: {
-    css: false,
-  },
   output: {
     publicPath: '/',
     filename: '[name].mjs',

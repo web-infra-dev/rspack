@@ -7,9 +7,6 @@ export default defineConfig({
   },
   mode: 'development',
   target: 'web',
-  experiments: {
-    css: false,
-  },
   output: {
     publicPath: '/',
     chunkLoading: 'import',
