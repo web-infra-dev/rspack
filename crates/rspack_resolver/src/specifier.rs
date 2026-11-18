@@ -23,8 +23,12 @@ impl<'a> Specifier<'a> {
   ///
   /// * See [SpecifierError]
   pub fn parse(specifier: &'a str) -> Result<Self, SpecifierError> {
+    #[cold]
+    fn empty_error(specifier: &str) -> SpecifierError {
+      SpecifierError::Empty(specifier.to_string())
+    }
     if specifier.is_empty() {
-      return Err(SpecifierError::Empty(specifier.to_string()));
+      return Err(empty_error(specifier));
     }
     #[cfg(windows)]
     let offset = {
@@ -44,9 +48,9 @@ impl<'a> Specifier<'a> {
       _ => 0,
     };
 
-    let (path, query, fragment) = Self::parse_query_framgment(specifier, offset);
+    let (path, query, fragment) = Self::parse_query_fragment(specifier, offset);
     if path.is_empty() {
-      return Err(SpecifierError::Empty(specifier.to_string()));
+      return Err(empty_error(specifier));
     }
     Ok(Self {
       path,
@@ -55,34 +59,36 @@ impl<'a> Specifier<'a> {
     })
   }
 
-  fn parse_query_framgment(
+  fn parse_query_fragment(
     specifier: &'a str,
     skip: usize,
   ) -> (Cow<'a, str>, Option<&'a str>, Option<&'a str>) {
+    // Most specifiers carry no query or fragment. Resume at the first delimiter
+    // when present so the stateful parser does not scan the path prefix again.
     let bytes = specifier.as_bytes();
     let Some(first) = memchr::memchr2(b'?', b'#', &bytes[skip..]) else {
       return (Cow::Borrowed(specifier), None, None);
     };
     let start = skip + first;
+
     let mut query_start: Option<usize> = None;
     let mut fragment_start: Option<usize> = None;
-    let mut escaped_indexes: Vec<usize> = Vec::new();
 
-    // Scan as bytes: `?`, `#`, and `\0` are single-byte ASCII (< 0x80), so their
-    // byte positions are valid char boundaries in any UTF-8 input. Start at the
-    // first delimiter to avoid scanning the path prefix twice, retaining the
-    // preceding byte for NUL-escaped hashes.
     let mut prev = bytes[start.saturating_sub(1)];
+    // Optimize for the common case: most specifiers don't have escaped characters
+    let mut escaped_indexes: Option<Vec<usize>> = None;
     for (i, &b) in bytes.iter().enumerate().skip(start) {
       if b == b'?' && query_start.is_none() {
         query_start = Some(i);
       }
       if b == b'#' {
-        if prev == 0 {
-          escaped_indexes.push(i - 1);
-        } else {
+        if prev != b'\0' {
           fragment_start = Some(i);
           break;
+        }
+        // Query escapes remain in the query; only path escapes need copying.
+        if query_start.is_none() {
+          escaped_indexes.get_or_insert_with(Vec::new).push(i - 1);
         }
       }
       prev = b;
@@ -102,22 +108,18 @@ impl<'a> Specifier<'a> {
       _ => (specifier, None, None),
     };
 
-    let path = if escaped_indexes.is_empty() {
-      Cow::Borrowed(path)
-    } else {
-      // Each escaped index points at a `\0` byte that we need to drop. Copy the
-      // surrounding slices in one pass — O(n) — instead of re-decoding chars and
-      // calling `escaped_indexes.contains(&i)` per char, which was O(n*k).
-      // The slice indices land on char boundaries because `\0` is ASCII.
+    let path = escaped_indexes.map_or(Cow::Borrowed(path), |escaped_indexes| {
+      // NUL is ASCII, so each escaped index is a UTF-8 boundary. Copy the
+      // surrounding slices once rather than searching the indexes per character.
       let mut s = String::with_capacity(path.len() - escaped_indexes.len());
       let mut last = 0;
-      for &esc in &escaped_indexes {
+      for esc in escaped_indexes {
         s.push_str(&path[last..esc]);
         last = esc + 1;
       }
       s.push_str(&path[last..]);
       Cow::Owned(s)
-    };
+    });
 
     (path, query, fragment)
   }
