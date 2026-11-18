@@ -165,8 +165,14 @@ def benchmark():
             cwd = btp / 'cases' / case
             for label in orders[iteration % len(orders)]:
                 mode = variants[label]
-                native = str(out / 'variants' / (mode + '.node'))
-                env = {**os.environ, 'NODE_ENV': 'production', 'NO_COLOR': '1', 'NAPI_RS_NATIVE_LIBRARY_PATH': native, 'NODE_DISABLE_COMPILE_CACHE': '1'}
+                source = out / 'variants' / (mode + '.node')
+                binding = repo / 'crates/node_binding/rspack.linux-x64-gnu.node'
+                shutil.copy2(source, binding)
+                assert hashlib.sha256(source.read_bytes()).digest() == hashlib.sha256(binding.read_bytes()).digest()
+                native = str(binding)
+                env = {**os.environ, 'NODE_ENV': 'production', 'NO_COLOR': '1', 'NODE_DISABLE_COMPILE_CACHE': '1'}
+                # NAPI_RS_NATIVE_LIBRARY_PATH also overrides Tailwind's native addon.
+                env.pop('NAPI_RS_NATIVE_LIBRARY_PATH', None)
                 env.pop('NODE_OPTIONS', None)
                 if iteration == 0: env['NODE_OPTIONS'] = '--require ' + str(observer)
                 for base in [btp, cwd]: shutil.rmtree(base / 'node_modules/.cache', ignore_errors=True)
