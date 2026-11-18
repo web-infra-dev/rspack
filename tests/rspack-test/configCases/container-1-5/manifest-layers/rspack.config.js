@@ -41,6 +41,7 @@ module.exports = [
     },
     plugins: [
       new ModuleFederationPlugin({
+        implementation: require.resolve('@module-federation/runtime-tools-layers'),
         name: 'manifest_layers_provider',
         filename: 'provider/container.js',
         library: {
@@ -85,6 +86,7 @@ module.exports = [
     },
     plugins: [
       new ModuleFederationPlugin({
+        implementation: require.resolve('@module-federation/runtime-tools-layers'),
         name: 'manifest_layers_host',
         filename: 'container.js',
         library: { type: 'commonjs-module' },

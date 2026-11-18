@@ -6,6 +6,7 @@ module.exports = {
   optimization: { concatenateModules: false },
   plugins: [
     new ModuleFederationPlugin({
+      implementation: require.resolve('@module-federation/runtime-tools-layers'),
       name: 'transitive_requirements',
       manifest: true,
       exposes: {

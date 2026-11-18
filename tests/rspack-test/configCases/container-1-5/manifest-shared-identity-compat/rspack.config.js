@@ -17,6 +17,7 @@ const createConfig = (fileName, disableAssetsAnalyze) => ({
   },
   plugins: [
     new ModuleFederationPlugin({
+      implementation: require.resolve('@module-federation/runtime-tools-layers'),
       name: 'container',
       manifest: {
         fileName: `${fileName}.json`,

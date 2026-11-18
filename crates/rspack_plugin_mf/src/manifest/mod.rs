@@ -825,24 +825,17 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .collect::<Vec<_>>();
     (exposes, shared, remote_list)
   };
-  // Omitted default scopes are legacy-compatible only while the other identity
-  // fields uniquely identify the row. Emit the scalar scope for cross-scope siblings.
-  let mut scopes_by_version: HashMap<_, HashSet<_>> = HashMap::default();
-  for entry in &shared {
-    scopes_by_version
-      .entry((&entry.name, &entry.version, &entry.layer))
-      .or_default()
-      .insert(&entry.share_scope);
+  let mut scoped_identities = HashSet::default();
+  let mut default_rows = Vec::new();
+  for entry in &mut shared {
+    if entry.share_scope.is_some() {
+      scoped_identities.insert((&entry.name, &entry.version, &entry.layer));
+    } else {
+      default_rows.push(entry);
+    }
   }
-  let explicit_default_rows = shared
-    .iter()
-    .map(|entry| {
-      entry.share_scope.is_none()
-        && scopes_by_version[&(&entry.name, &entry.version, &entry.layer)].len() > 1
-    })
-    .collect::<Vec<_>>();
-  for (entry, explicit_default) in shared.iter_mut().zip(explicit_default_rows) {
-    if explicit_default {
+  for entry in default_rows {
+    if scoped_identities.contains(&(&entry.name, &entry.version, &entry.layer)) {
       entry.share_scope = Some(ShareScope::Single("default".to_string()));
     }
   }

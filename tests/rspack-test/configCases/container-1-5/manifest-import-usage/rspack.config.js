@@ -15,6 +15,7 @@ module.exports = {
   optimization: { concatenateModules: false },
   plugins: [
     new ModuleFederationPlugin({
+      implementation: require.resolve('@module-federation/runtime-tools-layers'),
       name: 'manifest_import_usage',
       filename: 'container.js',
       manifest: true,
