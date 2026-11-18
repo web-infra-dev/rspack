@@ -211,8 +211,8 @@ impl Executor {
             }
             let _ = exec_tx.send(ExecEvent::Execute(
               events.raw,
-              events.additional,
-              events.context_removals,
+              events.additional.into_iter().collect(),
+              events.context_removals.into_iter().collect(),
             ));
           }
 

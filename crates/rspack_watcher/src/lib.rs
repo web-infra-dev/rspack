@@ -17,6 +17,7 @@ pub mod testing;
 
 use std::{
   future::Future,
+  hash::{Hash, Hasher},
   pin::Pin,
   sync::{
     Arc, Mutex,
@@ -32,7 +33,7 @@ pub use ignored::{FsWatcherIgnored, FsWatcherIgnoredItem, IgnoredFn};
 use paths::PathManager;
 use rspack_error::Result;
 use rspack_paths::InternedPath;
-use rspack_util::fx_hash::FxHashSet as HashSet;
+use rspack_util::fx_hash::{FxHashSet as HashSet, FxIndexSet};
 use scanner::Scanner;
 use tokio::sync::{mpsc, oneshot};
 use trigger::Trigger;
@@ -55,6 +56,13 @@ pub enum FsEventKind {
 pub(crate) struct FsEvent {
   pub path: InternedPath,
   pub kind: FsEventKind,
+}
+
+impl Hash for FsEvent {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    self.path.hash(state);
+    std::mem::discriminant(&self.kind).hash(state);
+  }
 }
 
 /// One value of watchpack's `TimeInfoEntries` map (`types/index.d.ts`):
@@ -84,8 +92,8 @@ pub(crate) type EventBatch = Vec<FsEvent>;
 pub(crate) struct ResolvedEvents {
   pub dependencies: EventBatch,
   pub raw: Option<FsEvent>,
-  pub additional: EventBatch,
-  pub context_removals: Vec<InternedPath>,
+  pub additional: FxIndexSet<FsEvent>,
+  pub context_removals: FxIndexSet<InternedPath>,
 }
 
 impl ResolvedEvents {
@@ -93,15 +101,13 @@ impl ResolvedEvents {
     let event = FsEvent { path, kind };
     if self.raw.is_none() {
       self.raw = Some(event);
-    } else if self.raw.as_ref() != Some(&event) && !self.additional.contains(&event) {
-      self.additional.push(event);
+    } else if self.raw.as_ref() != Some(&event) {
+      self.additional.insert(event);
     }
   }
 
   pub(crate) fn push_context_removal(&mut self, path: InternedPath) {
-    if !self.context_removals.contains(&path) {
-      self.context_removals.push(path);
-    }
+    self.context_removals.insert(path);
   }
 }
 
@@ -485,11 +491,11 @@ impl FsWatcherInner {
     symlink_update
       .retargeted_directories
       .extend(roots.retargeted_directories);
-    watch_patterns.extend(symlink_update.patterns);
     let rescan_patterns = (self.path_manager.follows_symlinks()
       && (symlink_update.needs_context_scan
         || !self.path_manager.access().directories().1.is_empty()))
     .then(|| watch_patterns.clone());
+    watch_patterns.extend(symlink_update.patterns);
     let plan = WatchPlan::new(watch_patterns, self.path_manager.follows_symlinks());
     let mut attached = self.disk_watcher.apply_plan(plan).inspect_err(|_| {
       self.analyzer.invalidate_all();
@@ -505,6 +511,14 @@ impl FsWatcherInner {
       attached.extend(self.disk_watcher.apply_plan(plan).inspect_err(|_| {
         self.analyzer.invalidate_all();
       })?);
+      if !discovered.retargeted_directories.is_empty() {
+        changed_in_contexts.extend(
+          self
+            .path_manager
+            .scan_contexts(start_time, discovered.retargeted_directories)
+            .await,
+        );
+      }
       changed_in_contexts.extend(
         self
           .path_manager

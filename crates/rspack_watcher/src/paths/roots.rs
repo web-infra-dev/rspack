@@ -96,8 +96,12 @@ impl DirectoryRoots {
       for parent in path.ancestors() {
         if let Some(aliases) = paths.aliases.get(&InternedPath::from(parent)) {
           for root in aliases {
-            let alias =
-              InternedPath::from(root.join(path.strip_prefix(parent).expect("path ancestor")));
+            let relative = path.strip_prefix(parent).expect("path ancestor");
+            let alias = if relative.as_os_str().is_empty() {
+              root.clone()
+            } else {
+              InternedPath::from(root.join(relative))
+            };
             if alias != *path {
               events.entry(alias).or_default().push(root.clone());
             }

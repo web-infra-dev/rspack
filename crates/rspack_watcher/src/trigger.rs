@@ -578,13 +578,14 @@ impl EventProcessor {
     directory_replaced: bool,
     events: &mut ResolvedEvents,
   ) {
-    if (path.is_symlink() && !directory_replaced)
+    if (path.is_symlink() && !directory_replaced && !self.path_manager.follows_symlinks())
       || !path.is_dir()
       || !self.path_manager.may_contain_records(path)
     {
       return;
     }
     // A directory can arrive with populated descendants before their OS watches exist.
+    // Recorded directory paths bound traversal through link cycles.
     let finder = self.finder();
     let mut directories = vec![path.clone()];
     while let Some(directory) = directories.pop() {
@@ -618,7 +619,12 @@ impl EventProcessor {
             self.collect_changes(&event, subscriptions, events).await;
           }
         }
-        if file_type.is_dir() && self.path_manager.may_contain_records(&entry_path) {
+        if self.path_manager.may_contain_records(&entry_path)
+          && (file_type.is_dir()
+            || (self.path_manager.follows_symlinks()
+              && file_type.is_symlink()
+              && entry_path.is_dir()))
+        {
           directories.push(entry_path);
         }
       }
