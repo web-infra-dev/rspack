@@ -80,6 +80,7 @@ def capture_link():
 
 
 def build_and_link():
+    profile = os.environ.get('LLD_AB_PROFILE', 'release')
     for folder in ['capture', 'lld-bin', 'variants']:
         (out / folder).mkdir(exist_ok=True)
     script = shlex.quote(str(Path(__file__).resolve()))
@@ -105,7 +106,7 @@ def build_and_link():
     for mode in ['baseline', 'lld']:
         env = {**os.environ, 'RUST_TARGET': 'x86_64-unknown-linux-gnu', 'USE_NAPI_CROSS': '1', 'TARGET_CC': 'clang', 'RUSTC_WRAPPER': str(out / 'rustc-wrapper'), 'LLD_AB_MODE': mode, 'CARGO_TARGET_DIR': str(repo / ('.linux-lld-target-' + mode)), 'CARGO_INCREMENTAL': '0'}
         env.pop('RUSTC_WORKSPACE_WRAPPER', None)
-        full[mode] = measured(['pnpm', 'build:binding:release'], 'build-' + mode, env=env, cwd=repo)
+        full[mode] = measured(['pnpm', 'build:binding:' + profile], 'build-' + mode, env=env, cwd=repo)
         save('full-build.json', full)
         print('FULL BUILD', mode, full[mode], flush=True)
     command = json.loads((out / 'command-baseline.json').read_text())

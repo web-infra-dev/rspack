@@ -1,4 +1,4 @@
-name: Linux LLD A/B experiment
+name: Linux LLD CI profile experiment
 
 on:
   push:
@@ -26,14 +26,12 @@ permissions:
   contents: read
 
 jobs:
-  runners:
-    uses: ./.github/workflows/get-runner-labels.yml
   benchmark:
-    needs: runners
-    runs-on: ${{ fromJSON(needs.runners.outputs.LINUX_RUNNER_LABELS) }}
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     timeout-minutes: 120
     env:
       CARGO_INCREMENTAL: 0
+      LLD_AB_PROFILE: ci
       PUPPETEER_SKIP_DOWNLOAD: 1
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
     steps:
@@ -54,26 +52,15 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Generate Rust sources
         run: cargo codegen
-      - name: Build release variants and compare identical LTO outputs
+      - name: Build CI variants and compare identical objects
         run: python3 scripts/experiments/linux-lld.py build
-      - name: Build matching JavaScript packages
-        run: pnpm build:js
-      - name: Install benchmark dependencies
-        working-directory: .linux-lld-btp
-        run: pnpm install --frozen-lockfile
-      - name: Generate dashboard
-        working-directory: .linux-lld-btp/cases/react-dashboard
-        run: node generate.mjs
-      - name: Run build-tools-performance A/A/B
-        run: python3 scripts/experiments/linux-lld.py bench
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: linux-lld-results
+          name: linux-lld-ci-results
           include-hidden-files: true
           path: |
             .linux-lld-results/*.json
             .linux-lld-results/*.log
             .linux-lld-results/*.time
-            .linux-lld-results/variants/*.node
