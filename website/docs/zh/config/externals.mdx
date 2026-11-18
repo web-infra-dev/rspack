@@ -225,7 +225,7 @@ type ExternalFunction = (
 ) => ExternalItemValue | void | Promise<ExternalItemValue | void>;
 ```
 
-如果需要根据模块请求或其他模块信息决定是否将依赖外部化，可以使用函数。函数可以直接返回结果、返回 Promise，或调用回调。
+如果需要根据模块请求或其他模块信息决定是否将依赖外部化，可以使用函数。函数可以直接返回结果、返回 Promise，或调用回调。在满足相同需求的情况下，建议使用非函数形式，以减少[性能开销](#performance-overhead)。
 
 例如，下面的配置将 `react` 及其子路径保留为 ES 模块导入：
 
@@ -393,6 +393,13 @@ externals: {
 
 这些 external 可能在懒模块激活前加载，包括来自从未命中可达模块的规则的 external，因此必须在库加载时就可用。用于匹配请求的 externals 函数和 `RegExp` 分支无法枚举，不能提前预留；函数形式的 `byLayer` 选择器返回对象或字符串时可以枚举。
 :::
+
+## 性能开销 \{#performance-overhead}
+
+使用函数形式的 [`externals`](#function) 时，Rspack 需要在检查模块请求时调用 JavaScript，产生额外的跨语言调用开销。
+
+- **配置形式**：在满足相同需求的情况下，建议使用非函数形式，让 Rspack 直接在 Rust 中完成匹配。
+- **函数逻辑**：尽量先根据 `request` 等已有信息判断是否需要外部化，仅在需要时[解析请求](#resolving-requests)或读取文件，避免对无关请求执行这些操作。
 
 ## externalsType
 

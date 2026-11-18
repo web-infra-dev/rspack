@@ -82,6 +82,10 @@ Loader 的处理范围和转换方式都会影响构建性能。可以通过缩�
 
 在模块规则中，将 [`test`](/config/module-rules#rulestest)、[`include`](/config/module-rules#rulesinclude)、[`exclude`](/config/module-rules#rulesexclude) 或 [`use`](/config/module-rules#rulesuse) 等选项配置为函数会增加模块处理的开销。建议在满足需求的前提下使用非函数形式，具体说明见[模块规则的性能开销](/config/module-rules#performance-overhead)。
 
+### Externals
+
+函数形式的 [`externals`](/config/externals#function) 会在检查模块请求时引入跨语言调用开销，函数中的请求解析和文件读取也可能增加构建耗时。具体配置建议见 [Externals 性能开销](/config/externals#performance-overhead)。
+
 ## 线程池配置 \{#thread-pool-configuration}
 
 ### 阻塞线程池大小 \{#blocking-thread-pool-size}
