@@ -1164,15 +1164,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "css-module-lexer-test"
-version = "0.103.2"
-dependencies = [
- "css-module-lexer",
- "indoc",
- "similar-asserts",
-]
-
-[[package]]
 name = "cssparser"
 version = "0.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

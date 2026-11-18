@@ -1,7 +1,7 @@
-use css_module_lexer::{Mode, WarningKind, collect_dependencies};
+use css_module_lexer::{Lexer, Mode, WarningKind, collect_dependencies};
 use indoc::indoc;
 
-use super::*;
+use crate::local_by_default::*;
 
 #[test]
 fn incorrectly_handle_nested_selectors() {

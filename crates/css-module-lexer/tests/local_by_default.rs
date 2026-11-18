@@ -1,6 +1,3 @@
-mod nesting;
-mod pure;
-
 use std::collections::HashSet;
 
 use css_module_lexer::{Dependency, Lexer, Mode, Range, Warning, collect_dependencies};
