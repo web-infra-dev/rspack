@@ -4,7 +4,6 @@ categories.workspace    = true
 description             = "Rspack javascript compiler"
 documentation.workspace = true
 edition.workspace       = true
-homepage.workspace      = true
 license.workspace       = true
 name                    = "rspack_javascript_compiler"
 repository.workspace    = true
@@ -15,6 +14,7 @@ codspeed = []
 
 [dependencies]
 anyhow              = { workspace = true }
+bytes-str           = { workspace = true }
 indoc               = { workspace = true }
 rustc-hash          = { workspace = true }
 serde               = { workspace = true, features = ["derive"] }

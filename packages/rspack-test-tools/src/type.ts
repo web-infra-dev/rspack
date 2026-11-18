@@ -6,6 +6,7 @@ import type {
   MultiStats,
   RspackOptions,
   Stats,
+  StatsCacheInfo,
   StatsCompilation,
 } from '@rspack/core';
 
@@ -174,6 +175,19 @@ export type TTestConfig = {
     stats?: StatsCompilation,
     options?: RspackOptions,
   ) => IModuleScope;
+  /**
+   * Set to false to skip the extra persistent-cache builds in Normal/Config cases.
+   * A callback can return true after custom assertions for one cache namespace.
+   * Otherwise the default 100% reuse check applies to that namespace.
+   */
+  checkCache?:
+    | boolean
+    | ((info: {
+        compilerIndex: number;
+        namespace: string;
+        cold: StatsCacheInfo | undefined;
+        restored: StatsCacheInfo;
+      }) => MaybePromise<boolean | void>);
   checkStats?: (
     stepName: string,
     jsonStats: StatsCompilation | undefined,

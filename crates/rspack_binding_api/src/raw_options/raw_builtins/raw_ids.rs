@@ -77,12 +77,14 @@ fn into_module_filter(test: RawModuleFilter) -> ModuleFilterFn {
 #[napi(object, object_to_js = false)]
 pub struct RawCompactHashedModuleIdsPluginOptions {
   pub min_length: Option<u32>,
+  pub salt: Option<u32>,
 }
 
 impl From<RawCompactHashedModuleIdsPluginOptions> for CompactHashedModuleIdsPluginOptions {
   fn from(value: RawCompactHashedModuleIdsPluginOptions) -> Self {
     Self {
       min_length: value.min_length.map(|n| n as usize),
+      salt: value.salt,
     }
   }
 }
@@ -91,14 +93,22 @@ impl From<RawCompactHashedModuleIdsPluginOptions> for CompactHashedModuleIdsPlug
 #[napi(object, object_to_js = false)]
 pub struct RawCompactHashedChunkIdsPluginOptions {
   pub min_length: Option<u32>,
+  pub salt: Option<u32>,
 }
 
 impl From<RawCompactHashedChunkIdsPluginOptions> for CompactHashedChunkIdsPluginOptions {
   fn from(value: RawCompactHashedChunkIdsPluginOptions) -> Self {
     Self {
       min_length: value.min_length.map(|n| n as usize),
+      salt: value.salt,
     }
   }
+}
+
+#[derive(Debug)]
+#[napi(object, object_to_js = false)]
+pub struct RawDeterministicChunkIdsPluginOptions {
+  pub salt: Option<u32>,
 }
 
 #[derive(Debug)]

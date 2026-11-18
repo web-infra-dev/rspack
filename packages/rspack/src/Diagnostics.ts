@@ -186,7 +186,7 @@ export function createDiagnosticArray(adm: Diagnostics): RspackError[] {
       ) {
         return adm.get(Number.parseInt(name, 10));
       }
-      if (Object.prototype.hasOwnProperty.call(arrayExtensions, name)) {
+      if (Object.hasOwn(arrayExtensions, name)) {
         return arrayExtensions[name];
       }
       return target[name];

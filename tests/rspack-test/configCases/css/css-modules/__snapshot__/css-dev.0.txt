@@ -2503,30 +2503,30 @@ p:not(#my-app-style_module_css-main-paragraph) {
 
 .my-app-style_module_css-wrapper {
 	display: grid;
-	grid-template-columns: [main-start] 1fr [content-start] 1fr [content-end] 1fr [main-end];
-	grid-template-rows: [main-start] 100px [content-start] 100px [content-end] 100px [main-end];
+	grid-template-columns: [my-app-style_module_css-main-start] 1fr [content-start] 1fr [content-end] 1fr [my-app-style_module_css-main-end];
+	grid-template-rows: [my-app-style_module_css-main-start] 100px [content-start] 100px [content-end] 100px [my-app-style_module_css-main-end];
 }
 
 .my-app-style_module_css-box1 {
-	grid-column-start: main-start;
-	grid-row-start: main-start;
-	grid-row-end: main-end;
+	grid-column-start: my-app-style_module_css-main-start;
+	grid-row-start: my-app-style_module_css-main-start;
+	grid-row-end: my-app-style_module_css-main-end;
 }
 
 .my-app-style_module_css-box2 {
 	grid-column-start: content-end;
-	grid-row-start: main-start;
+	grid-row-start: my-app-style_module_css-main-start;
 	grid-row-end: content-end;
 }
 
 .my-app-style_module_css-box3 {
 	grid-column-start: content-start;
-	grid-row-start: main-start;
+	grid-row-start: my-app-style_module_css-main-start;
 }
 
 .my-app-style_module_css-box4 {
 	grid-column-start: content-start;
-	grid-column-end: main-end;
+	grid-column-end: my-app-style_module_css-main-end;
 	grid-row-start: content-end;
 }
 
@@ -2558,8 +2558,8 @@ p:not(#my-app-style_module_css-main-paragraph) {
 
 .my-app-style_module_css-wrapper > div.my-app-style_module_css-overlay {
 	z-index: 10;
-	grid-column: main-start / main-end;
-	grid-row: hd-start / ft-end;
+	grid-column: my-app-style_module_css-main-start / my-app-style_module_css-main-end;
+	grid-row: my-app-style_module_css-hd-start / my-app-style_module_css-ft-end;
 	border: 4px solid rgb(92 148 13);
 	background-color: rgb(92 148 13 / 40%);
 	color: rgb(92 148 13);

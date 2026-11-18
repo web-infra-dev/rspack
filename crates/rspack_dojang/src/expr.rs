@@ -195,14 +195,9 @@ impl Parser {
 
       // Check string literal.
       if current_char == '"' || current_char == '\'' {
-        match Parser::handle_string_literal(template, current, parse_tree) {
-          Ok(end_of_literal) => {
-            current = end_of_literal;
-            token_begin = current;
-            continue;
-          }
-          Err(e) => return Err(e),
-        }
+        current = Parser::handle_string_literal(template, current, parse_tree)?;
+        token_begin = current;
+        continue;
       }
 
       // Handle Operators.
@@ -216,14 +211,9 @@ impl Parser {
       {
         Parser::handle_operand(&template[token_begin..current], parse_tree);
 
-        match Parser::handle_operator(template, current, parse_tree.last_mut().unwrap()) {
-          Ok(end_of_op) => {
-            current = end_of_op;
-            token_begin = current;
-            continue;
-          }
-          Err(e) => return Err(e),
-        }
+        current = Parser::handle_operator(template, current, parse_tree.last_mut().unwrap())?;
+        token_begin = current;
+        continue;
       }
 
       if current_char == ' ' {

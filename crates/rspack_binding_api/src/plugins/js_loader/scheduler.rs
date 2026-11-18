@@ -36,8 +36,8 @@ pub(crate) async fn loader_yield(
           && !loaders_without_pitch.contains(loader.path().as_str())
       });
     if !needs_pitch {
-      for index in start..end {
-        loader_context.loader_items[index].set_pitch_executed();
+      for loader in &mut loader_context.loader_items[start..end] {
+        loader.set_pitch_executed();
       }
       loader_context.loader_index = end as i32;
       return Ok(());
@@ -83,6 +83,9 @@ pub(crate) fn merge_loader_context(
     from.added_dependencies.into(),
     from.removed_dependencies.into(),
   );
+  for diagnostic in from.diagnostics.into_iter().flatten() {
+    to.emit_diagnostic(diagnostic.into());
+  }
 
   if let Some(error) = from.error {
     if let Some(diagnostic) = error.rust_diagnostic.as_ref() {

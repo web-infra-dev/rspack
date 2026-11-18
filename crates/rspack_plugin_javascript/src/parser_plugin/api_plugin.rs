@@ -268,6 +268,95 @@ impl APIPlugin {
     let options = APIPluginOptions { module };
     Self { options }
   }
+
+  fn replace_identifier(
+    &self,
+    parser: &mut JavascriptParser,
+    span: Span,
+    for_name: &str,
+  ) -> Option<bool> {
+    if for_name == API_LAYER {
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+        span.into(),
+        serde_json::to_string(&parser.module_layer)
+          .expect("should stringify JSON")
+          .into(),
+      )));
+      return Some(true);
+    }
+
+    if for_name == API_MODULE {
+      let range = span.into();
+      let loc = parser.to_dependency_location(range);
+      parser
+        .add_presentational_dependency(Arc::new(ModuleArgumentDependency::new(None, range, loc)));
+      return Some(true);
+    }
+
+    if for_name == API_NON_REQUIRE {
+      let content = if self.options.module {
+        parser.build_info.need_create_require = true;
+        "__rspack_createRequire_require".into()
+      } else {
+        "require".into()
+      };
+      parser.add_presentational_dependency(Arc::new(ConstDependency::new(span.into(), content)));
+      return Some(true);
+    }
+
+    if for_name == API_EXPORTS_INFO {
+      let dep = Arc::new(ConstDependency::new(span.into(), "true".into()));
+      parser.add_presentational_dependency(dep);
+      return Some(true);
+    }
+
+    let api = runtime_api_from_name(for_name)?;
+    let runtime_global = api
+      .runtime_global
+      .expect("runtime api identifier should have runtime global");
+    match for_name {
+      _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Require))
+        && parser.compiler_options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack =>
+      {
+        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
+          span.into(),
+          runtime_global,
+        )));
+        Some(true)
+      }
+      _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Require)) => {
+        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
+          runtime_global,
+        )));
+        None
+      }
+      _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Call)) => {
+        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::call(
+          span.into(),
+          runtime_global,
+        )));
+        Some(true)
+      }
+      API_LAYER => {
+        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
+          span.into(),
+          parser
+            .module_layer
+            .map_or_else(|| "null".to_string(), |layer| json_stringify_str(layer))
+            .into(),
+        )));
+        Some(true)
+      }
+      _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Normal)) => {
+        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
+          span.into(),
+          runtime_global,
+        )));
+        Some(true)
+      }
+      _ => None,
+    }
+  }
 }
 
 fn runtime_api_from_name(name: &str) -> Option<&'static RuntimeApi> {
@@ -601,87 +690,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     span: Span,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == API_LAYER {
-      parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-        span.into(),
-        serde_json::to_string(&parser.module_layer)
-          .expect("should stringify JSON")
-          .into(),
-      )));
-      return Some(true);
+    let replaced = self.replace_identifier(parser, span, for_name);
+    if replaced == Some(true) {
+      parser.preserve_shorthand_key(span);
     }
-
-    if for_name == API_MODULE {
-      let range = span.into();
-      let loc = parser.to_dependency_location(range);
-      parser
-        .add_presentational_dependency(Arc::new(ModuleArgumentDependency::new(None, range, loc)));
-      return Some(true);
-    }
-
-    if for_name == API_NON_REQUIRE {
-      let content = if self.options.module {
-        parser.build_info.need_create_require = true;
-        "__rspack_createRequire_require".into()
-      } else {
-        "require".into()
-      };
-      parser.add_presentational_dependency(Arc::new(ConstDependency::new(span.into(), content)));
-      return Some(true);
-    }
-
-    if for_name == API_EXPORTS_INFO {
-      let dep = Arc::new(ConstDependency::new(span.into(), "true".into()));
-      parser.add_presentational_dependency(dep);
-      return Some(true);
-    }
-
-    let api = runtime_api_from_name(for_name)?;
-    let runtime_global = api
-      .runtime_global
-      .expect("runtime api identifier should have runtime global");
-    match for_name {
-      _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Require))
-        && parser.compiler_options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack =>
-      {
-        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
-          span.into(),
-          runtime_global,
-        )));
-        Some(true)
-      }
-      _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Require)) => {
-        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
-          runtime_global,
-        )));
-        None
-      }
-      _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Call)) => {
-        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::call(
-          span.into(),
-          runtime_global,
-        )));
-        Some(true)
-      }
-      API_LAYER => {
-        parser.add_presentational_dependency(Arc::new(ConstDependency::new(
-          span.into(),
-          parser
-            .module_layer
-            .map_or_else(|| "null".to_string(), |layer| json_stringify_str(layer))
-            .into(),
-        )));
-        Some(true)
-      }
-      _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Normal)) => {
-        parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::new(
-          span.into(),
-          runtime_global,
-        )));
-        Some(true)
-      }
-      _ => None,
-    }
+    replaced
   }
 
   fn evaluate_identifier(

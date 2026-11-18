@@ -59,10 +59,10 @@ static LEGACY_REQUIRE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new("__webpack_require__\\s*(!?\\.)").expect("should init `REQUIRE_FUNCTION_REGEX`")
 });
 
-fn append_swc_next_diagnostics<'a>(
+fn append_swc_next_diagnostics(
   diagnostics: &mut Vec<Diagnostic>,
   source: &str,
-  errors: impl IntoIterator<Item = swc_next_ecma_ast::Diagnostic<'a>>,
+  errors: impl IntoIterator<Item = swc_next_ecma_ast::Diagnostic>,
 ) {
   let mut visited = FxHashSet::default();
   let mut shared_source = None;
@@ -256,6 +256,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_layer,
       resource_data,
       compiler_options,
+      value_cache_versions,
       runtime_template,
       factory_meta,
       build_info,
@@ -330,7 +331,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     }
 
     let mut semicolons = Default::default();
-    let scan_diagnostics = AstScanner::new(&mut semicolons, &tokens).scan(&ast);
+    // SAFETY: The scanner only reads nodes and tokens from this parsed AST.
+    let scan_diagnostics = AstScanner::new(&mut semicolons, &tokens).scan(unsafe { ast.ast() });
     if !scan_diagnostics.is_empty() {
       append_swc_next_diagnostics(&mut diagnostics, &source_string, scan_diagnostics);
       return default_with_diagnostics(source, diagnostics);
@@ -358,16 +360,19 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let SemanticReturn {
       semantic,
       diagnostics: semantic_diagnostics,
-    } = analyze(&ast, AnalyzeOptions { check_syntax });
+    } = analyze(ast, AnalyzeOptions { check_syntax });
     if !semantic_diagnostics.is_empty() {
       append_swc_next_diagnostics(&mut diagnostics, &source_string, semantic_diagnostics);
       return default_with_diagnostics(source, diagnostics);
     }
 
+    let (ast, semantic) = semantic.into_parts();
+    // SAFETY: The dependency scan keeps handles with their owning AST and does not mutate it.
+    let ast = unsafe { ast.ast() };
     let program = ast.root_program();
-    let comments = RspackComments::from_ast(&ast);
+    let comments = RspackComments::from_ast(ast);
     let parsed_ast = ParsedJavaScriptAst {
-      ast: &ast,
+      ast,
       comments: &comments,
       semantic: &semantic,
       program,
@@ -385,6 +390,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       &parsed_ast,
       resource_data,
       compiler_options,
+      value_cache_versions,
       module_type,
       module_layer,
       factory_meta,
@@ -567,7 +573,7 @@ impl<'view> AstScanner<'view> {
   }
 
   /// Requires successful parser output before transformations can detach nodes.
-  pub fn scan(&mut self, ast: &Ast<'_>) -> Vec<SwcDiagnostic<'static>> {
+  pub fn scan(&mut self, ast: &Ast<'_>) -> Vec<SwcDiagnostic> {
     let mut diagnostics = Vec::new();
     for index in 0..ast.node_count() {
       let node = NodeId::from_raw_unchecked(index as u32);

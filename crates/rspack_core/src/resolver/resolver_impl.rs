@@ -199,7 +199,7 @@ impl Resolver {
         fragment: r.fragment().unwrap_or_default().to_string(),
         description_data: r
           .package_json()
-          .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),
+          .map(|d| DescriptionData::from_package_json(d)),
       })),
       Err(rspack_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
       Err(error) => Err(ResolveInnerError::RspackResolver(error)),
@@ -230,7 +230,7 @@ impl Resolver {
         fragment: r.fragment().unwrap_or_default().to_string(),
         description_data: r
           .package_json()
-          .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),
+          .map(|d| DescriptionData::from_package_json(d)),
       })),
       Err(rspack_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
       Err(error) => Err(ResolveInnerError::RspackResolver(error)),
@@ -491,13 +491,8 @@ fn map_resolver_error(is_recursion: bool, args: &ResolveArgs<'_>) -> Error {
     args
       .span
       .as_ref()
-      .map(|span| span.start as usize)
-      .unwrap_or_default(),
-    args
-      .span
-      .as_ref()
-      .map(|span| span.end as usize)
-      .unwrap_or_default(),
+      .map_or_default(|span| span.start as usize),
+    args.span.as_ref().map_or_default(|span| span.end as usize),
     "Module not found".to_string(),
     message,
   );

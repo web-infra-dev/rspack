@@ -73,14 +73,16 @@ impl FileCacheStrategy {
     readonly: bool,
     rspack_pkg_version: String,
     cache_version: String,
+    build_dependencies: InternedPathSet,
     codec: Arc<CacheCodec>,
-    file_system_info: FileSystemInfo,
+    file_system_info: Option<FileSystemInfo>,
     logger: Arc<InfrastructureLogger>,
   ) -> Self {
     Self {
       validator: CacheValidator::new(
         rspack_pkg_version,
         cache_version,
+        build_dependencies,
         codec.clone(),
         file_system_info,
         logger.clone(),
@@ -91,6 +93,10 @@ impl FileCacheStrategy {
       readonly,
       logger,
     }
+  }
+
+  pub(super) fn matches_cache_version(&self, version: &str) -> bool {
+    self.validator.matches_cache_version(version)
   }
 
   pub async fn db_init(&self, (base_path, path): (Utf8PathBuf, Utf8PathBuf)) {
@@ -141,15 +147,10 @@ impl FileCacheStrategy {
           .log("Resetting cache, the cache version doesn't match");
         database.reset()?;
       }
-      CacheValidatorResult::InvalidBuildDependencies {
-        modified_files,
-        removed_files,
-      } => {
-        self.logger.log(format!(
-          "Resetting cache, build dependencies have changed ({} modified, {} removed)",
-          modified_files.len(),
-          removed_files.len()
-        ));
+      CacheValidatorResult::InvalidBuildDependencies => {
+        self
+          .logger
+          .log("Resetting cache, build dependencies have changed");
         database.reset()?;
       }
       CacheValidatorResult::InvalidError => {
@@ -255,6 +256,9 @@ impl FileCacheStrategy {
     if self.readonly {
       return;
     }
+    let Some(dependencies) = self.validator.build_dependencies_to_track(dependencies) else {
+      return;
+    };
     let state = self.read_state();
     let Some(state) = state.as_ref() else {
       return;
@@ -340,11 +344,7 @@ impl FileCacheStrategy {
         )
       };
 
-      let validator = if let Some(dependencies) = new_build_dependencies {
-        self.validator.update(dependencies).await?
-      } else {
-        None
-      };
+      let validator = self.validator.update(new_build_dependencies).await?;
 
       let writes = entries
         .into_par_iter()

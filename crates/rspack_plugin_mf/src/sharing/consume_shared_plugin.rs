@@ -538,7 +538,7 @@ async fn create_module(
   ) {
     return Ok(None);
   }
-  let resource = create_data.resource_resolve_data.resource();
+  let resource = create_data.resource_resolve_data().resource();
   let consumes = self.get_matched_consumes();
   if let Some(options) =
     find_exact_match(&consumes.resolved, resource, data.issuer_layer.as_deref())

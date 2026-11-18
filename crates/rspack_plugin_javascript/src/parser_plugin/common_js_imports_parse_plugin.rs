@@ -1029,8 +1029,7 @@ fn current_created_require_side_effects(parser: &mut JavascriptParser) -> String
         .clone()
     })
     .map(CreatedRequireTagData::downcast)
-    .map(|data| data.side_effects)
-    .unwrap_or_default()
+    .map_or_default(|data| data.side_effects)
 }
 
 #[inline(never)]
@@ -1624,17 +1623,13 @@ impl CommonJsImportsParserPlugin {
     let ident_name = ast.get_utf8(ident.name(ast));
     // A tag on an otherwise free name is not shadowing. Keep local bindings and aliases on
     // their existing path, but allow observers to attach metadata to the original `require`.
-    if parser.get_variable_info(ident_name).is_some_and(|info| {
+    !parser.get_variable_info(ident_name).is_some_and(|info| {
       !info.is_free()
         || info
           .name
           .as_ref()
           .is_none_or(|name| name.as_str() != ident_name)
-    }) {
-      return false;
-    }
-
-    true
+    })
   }
 
   fn process_resolve(
@@ -2041,6 +2036,7 @@ impl CommonJsImportsParserPlugin {
       error.severity = Severity::Warning;
       dep.set_critical(Some(Diagnostic::from(error)));
     }
+    parser.preserve_shorthand_key(span);
     parser.add_dependency(BoxDependency::new(dep));
     Some(true)
   }

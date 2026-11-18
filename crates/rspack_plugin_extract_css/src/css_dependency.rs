@@ -46,7 +46,7 @@ impl CssDependency {
     cacheable: bool,
     dependencies: LoaderDependencies,
   ) -> Self {
-    let resource_identifier = format!("css-module-{}-{}", &identifier, identifier_index).into();
+    let resource_identifier = format!("css-module-{identifier}-{identifier_index}").into();
     Self {
       id: DependencyId::new(),
       identifier,
@@ -113,6 +113,10 @@ impl Dependency for CssDependency {
 
   fn could_affect_referencing_module(&self) -> AffectType {
     AffectType::Transitive
+  }
+
+  fn is_module_executor_result(&self) -> bool {
+    true
   }
 }
 

@@ -43,7 +43,7 @@ export default {
 
 设置 Rspack 在生成 Chunk id 时使用的算法。
 
-支持以下字符串值：
+支持以下值：
 
 | 选项               | 描述                                                                                     |
 | ------------------ | ---------------------------------------------------------------------------------------- |
@@ -53,13 +53,26 @@ export default {
 | `'compact-hashed'` | 使用稳定小写字母数字 hash 的最短可用前缀。                                               |
 | `'size'`           | 使用让初始下载包大小更小的数字 id。                                                      |
 | `'total-size'`     | 使用让总下载包大小更小的数字 id。                                                        |
-| `false`            | 禁用 Rspack 内置的 Chunk id 算法，允许自定义插件提供 Chunk id。                          |
+| `false`            | 禁用 Rspack 内置的 Chunk id 算法。                                                       |
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
     chunkIds: 'deterministic',
   },
+};
+```
+
+Rspack 目前不支持通过自定义 JavaScript 插件分配 Chunk ID。将 `chunkIds` 设为 `false` 时，应在 `plugins` 中显式添加 `rspack.ids` 提供的 Chunk ID 插件：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  optimization: {
+    chunkIds: false,
+  },
+  plugins: [new rspack.ids.CompactHashedChunkIdsPlugin()],
 };
 ```
 

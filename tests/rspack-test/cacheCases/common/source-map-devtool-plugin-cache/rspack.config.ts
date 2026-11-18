@@ -17,6 +17,17 @@ export default defineConfig({
   plugins: [
     definePlugin({
       apply(compiler) {
+        compiler.hooks.compilation.tap('CheckDevtoolSource', (compilation) => {
+          compilation.hooks.afterProcessAssets.tap('CheckDevtoolSource', () => {
+            for (const asset of compilation.getAssets()) {
+              if (!asset.name.endsWith('.js')) continue;
+              expect(asset.source.map()).toBeNull();
+              const text = asset.source.source().toString();
+              expect(text.match(/sourceMappingURL=/g)).toHaveLength(1);
+              expect(text).toContain(`sourceMappingURL=${asset.name}.map`);
+            }
+          });
+        });
         compiler.hooks.done.tap('SourceMapPersistentCacheTest', (stats) => {
           const s = stats.toJson({
             all: false,

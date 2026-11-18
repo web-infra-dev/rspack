@@ -19,12 +19,12 @@ macro_rules! error {
 #[macro_export]
 macro_rules! error_bail {
   ($str:literal $(,)?) => {
-    return Err($crate::error!($str));
+    return Err($crate::error!($str))
   };
   ($expr:expr $(,)?) => {
-    return Err($crate::error!($expr));
+    return Err($crate::error!($expr))
   };
   ($fmt:expr, $($arg:tt)*) => {
-    return Err($crate::error!($fmt, $($arg)*));
+    return Err($crate::error!($fmt, $($arg)*))
   };
 }

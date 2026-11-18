@@ -11,13 +11,21 @@ const url = 'http://integrity.example/module.js';
 const source = (value: string) => `export default ${JSON.stringify(value)};\n`;
 const integrity = (content: string) =>
   `sha512-${createHash('sha512').update(content).digest('base64')}`;
+const invalidLockfiles: Record<string, string> = {
+  true: '{',
+  legacy: '{"version":1,"entries":{}}',
+  'missing-version': '{}',
+  'unsupported-version': '{"version":2}',
+  'invalid-entry': JSON.stringify({ version: 1, [url]: {} }),
+  'non-object': '[]',
+};
 
-// These fixtures use the existing Rspack lockfile format and cache filenames.
+// Use webpack-compatible lockfiles and committed content cache filenames.
 const cachePath = (directory: string, resolved: string) =>
   path.join(
     directory,
-    'http___integrity.example',
-    `_${path.basename(new URL(resolved).pathname, '.js')}_${createHash('sha512').update(resolved).digest('hex').slice(0, 20)}.js`,
+    'http_integrity.example',
+    `${path.basename(new URL(resolved).pathname, '.js')}_${createHash('sha512').update(resolved).digest('hex').slice(0, 20)}.js`,
   );
 
 export default cases.map((test) => {
@@ -36,22 +44,17 @@ export default cases.map((test) => {
   const entry = {
     resolved,
     integrity: integrity(source('trusted')),
-    content_type: 'application/javascript',
-    valid_until: test.fresh ? 8_000_000_000_000 : 0,
-    etag: '"original"',
+    contentType: 'application/javascript',
   };
   fs.mkdirSync(directory, { recursive: true });
   const beforeLock =
     test.locked === false
       ? undefined
       : test.invalidLockfile
-        ? '{'
+        ? invalidLockfiles[String(test.invalidLockfile)]
         : JSON.stringify({
             version: 1,
-            entries: {
-              [lockedUrl]:
-                typeof test.locked === 'string' ? test.locked : entry,
-            },
+            [lockedUrl]: typeof test.locked === 'string' ? test.locked : entry,
           });
   if (beforeLock !== undefined) fs.writeFileSync(lockfileLocation, beforeLock);
   const beforeCache =
@@ -96,11 +99,18 @@ export default cases.map((test) => {
               body: Buffer.from(''),
             };
           }
+          if (test.revalidate && headers['if-none-match'] === '"refreshed"') {
+            return { status: 304, headers: {}, body: Buffer.from('') };
+          }
           return {
             status: test.status || 200,
             headers: {
               'content-type': test.contentType || 'application/javascript',
-              'cache-control': test.noCache ? 'no-cache' : 'max-age=3600',
+              'cache-control': test.noCache
+                ? 'no-cache'
+                : test.revalidate
+                  ? 'must-revalidate'
+                  : 'max-age=3600',
               etag: '"refreshed"',
             },
             body: Buffer.from(
@@ -133,17 +143,19 @@ export default cases.map((test) => {
               `${test.name}: cache must remain unchanged`,
             ).toBe(beforeCache);
           } else {
-            const updated = JSON.parse(afterLock!).entries[url];
+            const updated = JSON.parse(afterLock!)[url];
             if (test.noCache) {
               expect(updated).toBe('no-cache');
             } else {
               expect(updated.integrity).toBe(
                 integrity(source(test.expected || 'trusted')),
               );
-              expect(updated.resolved).toBe(redirects.at(-1) || resolved);
+              expect(updated.resolved || url).toBe(
+                redirects.at(-1) || resolved,
+              );
               expect(
                 fs.readFileSync(
-                  cachePath(cacheLocation, updated.resolved),
+                  cachePath(cacheLocation, updated.resolved || url),
                   'utf8',
                 ),
               ).toBe(source(test.expected || 'trusted'));
@@ -174,6 +186,11 @@ export default cases.map((test) => {
                   new Set([etag]),
                 ]),
               ),
+            );
+          }
+          if (test.revalidate) {
+            expect(requests.get(url)).toEqual(
+              new Set([undefined, '"refreshed"']),
             );
           }
         });

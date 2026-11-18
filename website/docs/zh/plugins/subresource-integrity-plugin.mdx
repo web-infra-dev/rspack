@@ -185,7 +185,7 @@ HTML 插件的路径，默认为 `"HtmlRspackPlugin"`，表示 Rspack 的原生 
 决定将异步 chunk 的 SRI 哈希值集中写入 Rspack 运行时 chunk，还是分散写入父 chunk。
 
 - `eager` 会将所有异步 chunk 的哈希值都放在 Rspack 运行时 chunk 中，因此其体积会随异步 chunk 的数量增长。
-- `lazy` 会将一个 chunk 的直接异步子 chunk 的哈希值放在该 chunk 中，并在该 chunk 加载时将其添加到 Rspack 运行时。所有父 chunk 都已提供的哈希值会被省略。在异步 chunk 较多的应用中，这可以让 Rspack 运行时 chunk 保持较小的体积。
+- `lazy` 会将一个 chunk 中的 `import()` 调用所请求的异步 chunk 的哈希值放在该 chunk 中，并在该 chunk 加载时将其添加到 Rspack 运行时。所有父 chunk 都已提供的哈希值会被省略。在异步 chunk 较多的应用中，这可以让 Rspack 运行时 chunk 保持较小的体积。被 `splitChunks` 在多个 chunk 组之间共享的 chunk 只携带其自身模块中调用所需的哈希值，而不是包含它的每个 chunk 组所需的哈希值。
 
 只有 JavaScript chunk 的哈希值会按需加载，CSS chunk 的哈希值仍保留在 Rspack 运行时 chunk 中。此选项与 [webpack-subresource-integrity](https://github.com/waysact/webpack-subresource-integrity/tree/main/webpack-subresource-integrity#hashloading) 的 `hashLoading` 选项一致。
 

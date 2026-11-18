@@ -1,0 +1,35 @@
+---
+description: '分配较短且在多次编译间保持稳定的数字 Chunk id'
+---
+
+# DeterministicChunkIdsPlugin
+
+`DeterministicChunkIdsPlugin` 为 Chunk 分配较短且在多次构建间保持稳定的数字 id，有助于长期缓存。
+
+`optimization.chunkIds: 'deterministic'` 内部会使用该插件。需要自定义插件配置时，可以手动添加该插件。
+
+## 示例 \{#examples}
+
+```js title="rspack.config.mjs"
+import rspack from '@rspack/core';
+
+export default {
+  optimization: {
+    chunkIds: false,
+  },
+  plugins: [
+    new rspack.ids.DeterministicChunkIdsPlugin({
+      salt: 42,
+    }),
+  ],
+};
+```
+
+## 选项 \{#options}
+
+### salt
+
+- **类型：** `number`
+- **默认值：** `10`
+
+生成 id 时使用的哈希盐值。调整该值可以在相同 id 空间中尝试不同的哈希起始值。

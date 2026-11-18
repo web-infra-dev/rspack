@@ -130,22 +130,31 @@ pub(crate) fn handle_event(event: Event, trigger: &trigger::Trigger) {
     return;
   }
 
-  let appeared = matches!(
-    event.kind,
-    EventKind::Create(_) | EventKind::Modify(ModifyKind::Name(RenameMode::To | RenameMode::Any))
-  );
-  let kind = match event.kind {
-    EventKind::Create(_) => FsEventKind::Create,
-    EventKind::Modify(
-      ModifyKind::Data(_) | ModifyKind::Any | ModifyKind::Name(_) | ModifyKind::Metadata(_),
-    ) => FsEventKind::Change,
-    EventKind::Remove(_) => FsEventKind::Remove,
-    // TODO: handle this case /path/to/index.js -> /path/to/index.js.map
-    // path/to/index.js should be removed, and path/to/index.js.map should be changed
-    // Now /path/to/index.js and /path/to/index.js.map will both be changed
-    _ => return,
-  };
-  for path in event.paths.into_iter().map(InternedPath::from) {
+  for (index, path) in event.paths.into_iter().map(InternedPath::from).enumerate() {
+    let kind = match event.kind {
+      EventKind::Create(_) | EventKind::Modify(ModifyKind::Name(RenameMode::To)) => {
+        FsEventKind::Create
+      }
+      EventKind::Remove(_) | EventKind::Modify(ModifyKind::Name(RenameMode::From)) => {
+        FsEventKind::Remove
+      }
+      EventKind::Modify(ModifyKind::Name(RenameMode::Both)) => {
+        if index == 0 {
+          FsEventKind::Remove
+        } else {
+          FsEventKind::Create
+        }
+      }
+      EventKind::Modify(
+        ModifyKind::Data(_) | ModifyKind::Any | ModifyKind::Name(_) | ModifyKind::Metadata(_),
+      ) => FsEventKind::Change,
+      _ => return,
+    };
+    let appeared = kind == FsEventKind::Create
+      || matches!(
+        event.kind,
+        EventKind::Modify(ModifyKind::Name(RenameMode::Any))
+      );
     // Content writes cannot change which ancestor directory exists.
     // Invalidate before filtering so suppressed events still refresh watch coverage.
     if !matches!(event.kind, EventKind::Modify(ModifyKind::Data(_))) {

@@ -7,15 +7,16 @@
 - Bundle: css-entry.js
 - Bundle: main.js
 - Bundle: runtime.js
-- Manifest: runtime.LAST_HASH.hot-update.json, size: 68
+- Manifest: runtime.LAST_HASH.hot-update.json, size: 87
 - Update: runtime.LAST_HASH.hot-update.js, size: 184
+- Update: styles-entry_css.LAST_HASH.hot-update.js, size: 62
 
 ## Manifest
 
 ### runtime.LAST_HASH.hot-update.json
 
 ```json
-{"c":["runtime"],"r":[],"m":[],"miniCss":{"c":["styles-entry_css"]}}
+{"c":["runtime","styles-entry_css"],"r":[],"m":[],"miniCss":{"c":["styles-entry_css"]}}
 ```
 
 
@@ -41,6 +42,22 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 
 }
 );
+```
+
+
+
+### styles-entry_css.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("styles-entry_css", {});
 ```
 
 

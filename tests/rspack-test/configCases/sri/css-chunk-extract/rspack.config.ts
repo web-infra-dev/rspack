@@ -11,9 +11,6 @@ export default defineConfig((_, { testPath }) => ({
   output: {
     crossOriginLoading: 'anonymous',
   },
-  experiments: {
-    css: false,
-  },
   plugins: [
     new CssExtractRspackPlugin(),
     new SubresourceIntegrityPlugin({

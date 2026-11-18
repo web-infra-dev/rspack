@@ -65,6 +65,9 @@ pub struct ExportSpec {
   pub from: Option<ModuleGraphConnection>,
   pub from_export: Option<ModuleGraphConnection>,
   pub inlinable: Option<EvaluatedInlinableValue>,
+  /// The export is a fake namespace object of a non-ESM module, whose `default` property is the
+  /// exports object of that module itself.
+  pub default_points_to_self: Option<bool>,
 }
 
 #[derive(Debug)]

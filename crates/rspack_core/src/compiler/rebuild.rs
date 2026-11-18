@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{path::Path, sync::Arc};
 
 use rspack_collections::IdentifierMap;
 use rspack_error::Result;
@@ -86,10 +86,28 @@ impl Compiler {
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
         records,
-        Incremental::new_hot(self.options.incremental),
+        if !self
+          .options
+          .incremental
+          .passes
+          .contains(IncrementalPasses::BUILD_MODULE_GRAPH)
+          || self.compilation.exports_info_artifact.has_checkpoint()
+        {
+          Incremental::new_hot(self.options.incremental)
+        } else {
+          // Module graph recovery needs the checkpoint created after finishModules.
+          // A fatal make/finishMake error can stop before it, unlike module diagnostics.
+          self.incremental_artifacts.reset();
+          Incremental::new_cold(self.options.incremental)
+        },
         Some(ModuleExecutor::default()),
         compilation_logging,
         self.new_cache.clone(),
+        self
+          .loader_cache
+          .load()
+          .as_ref()
+          .map_or_default(Arc::downgrade),
         modified_files,
         removed_files,
         self.input_filesystem.clone(),
@@ -100,11 +118,17 @@ impl Compiler {
       );
       next_compilation.hot_index = self.compilation.hot_index;
 
+      // Cycle errors have incomplete dependencies, so keep the fresh executor
+      // when the previous compilation encountered a cycle.
       if next_compilation
         .incremental
         .mutations_readable(IncrementalPasses::BUILD_MODULE_GRAPH)
+        && self
+          .compilation
+          .module_executor
+          .as_ref()
+          .is_some_and(|executor| !executor.has_build_cycle)
       {
-        // reuse module executor
         next_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
       }
 

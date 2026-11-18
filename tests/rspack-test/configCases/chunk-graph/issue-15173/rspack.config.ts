@@ -8,4 +8,8 @@ export default defineConfig({
   output: {
     filename: '[name].js',
   },
+  // Keep otherwise-unused entry exports in the chunk graph for this topology assertion.
+  optimization: {
+    innerGraph: false,
+  },
 });

@@ -1,0 +1,76 @@
+@counter-style thumbs {
+	system: cyclic;
+	symbols: "\1F44D";
+	suffix: " ";
+}
+
+ul {
+	list-style: thumbs;
+}
+
+.wrapper {
+	display: grid;
+	grid-template-columns: repeat(9, 1fr);
+	grid-auto-rows: minmax(100px, auto);
+	grid-template-areas:
+    "hd hd hd hd   hd   hd   hd   hd   hd"
+    "sd sd sd main main main main main main"
+    "ft ft ft ft   ft   ft   ft   ft   ft";
+}
+
+.header {
+	grid-area: hd;
+}
+
+.footer {
+	grid-area: ft;
+}
+
+.content {
+	grid-area: main;
+}
+
+.sidebar {
+	grid-area: sd;
+}
+
+.wrapper > div.overlay {
+	z-index: 10;
+	grid-column: main-start / main-end;
+	grid-row: hd-start / ft-end;
+	border: 4px solid rgb(92 148 13);
+	background-color: rgb(92 148 13 / 40%);
+	color: rgb(92 148 13);
+	font-size: 150%;
+}
+
+.list {
+	list-style: thumbs inside;
+	list-style: inside thumbs;
+	list-style: thumbs outside;
+	list-style: outside thumbs;
+	list-style-type: thumbs;
+}
+
+@counter-style inside {
+	system: cyclic;
+	symbols: "x";
+}
+
+.inside-type {
+	list-style-type: inside;
+	list-style: outside inside;
+	list-style: inside;
+}
+
+.explicit-grid {
+	grid-template-columns: repeat(2, [main-start] 1fr) [main-end other-end];
+}
+
+.explicit-item {
+	grid-column: main-start / other-end;
+}
+
+.escaped-item {
+	grid-column: main\-start / m\61 in-end;
+}

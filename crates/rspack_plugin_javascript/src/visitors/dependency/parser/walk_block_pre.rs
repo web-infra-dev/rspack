@@ -93,9 +93,16 @@ impl JavascriptParser<'_> {
   }
 
   pub(super) fn block_pre_walk_variable_declaration(&mut self, declaration: VariableDeclaration) {
-    if declaration.kind(self.ast.ast) != VariableKind::Var {
-      self._pre_walk_variable_declaration(declaration);
+    let kind = declaration.kind(self.ast.ast);
+    if kind == VariableKind::Var {
+      return;
     }
+    if kind == VariableKind::AwaitUsing && self.is_top_level_scope() {
+      self
+        .plugin_drive()
+        .top_level_await_using_declaration(self, declaration);
+    }
+    self._pre_walk_variable_declaration(declaration);
   }
 
   fn block_pre_walk_export_named_declaration(&mut self, export: ExportNamedDeclaration) {
