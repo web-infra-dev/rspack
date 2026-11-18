@@ -28,10 +28,11 @@ def output(args, **kwargs):
 def measured(args, name, **kwargs):
     start = time.perf_counter()
     with (out / (name + '.log')).open('w') as log:
-        p = subprocess.run(['/usr/bin/time', '-f', '%e %M', '-o', str(out / (name + '.time')), *map(str, args)], stdout=log, stderr=subprocess.STDOUT, **kwargs)
+        p = subprocess.Popen(list(map(str, args)), stdout=log, stderr=subprocess.STDOUT, **kwargs)
+        _, status, usage = os.wait4(p.pid, 0)
+        p.returncode = os.waitstatus_to_exitcode(status)
     row = {'seconds': time.perf_counter() - start, 'exit': p.returncode}
-    timing = (out / (name + '.time')).read_text().splitlines()[-1].split()
-    row['peak_rss_kib'] = int(timing[-1])
+    row['peak_rss_kib'] = usage.ru_maxrss
     if p.returncode:
         print((out / (name + '.log')).read_text()[-16000:], flush=True)
         raise RuntimeError(f'{name}: exit {p.returncode}')
