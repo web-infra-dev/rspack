@@ -1,1 +1,1 @@
-module.exports = "lib";
+export default "lib";
