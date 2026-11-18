@@ -1,4 +1,4 @@
-name: Linux LLD CI profile experiment
+name: Linux LLD runtime benchmark
 
 on:
   push:
@@ -24,15 +24,14 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   benchmark:
-    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    runs-on: ubuntu-22.04
     timeout-minutes: 120
     env:
       CARGO_INCREMENTAL: 0
-      LLD_AB_PROFILE: ci
-      LLD_AB_REPEAT_FULL: 1
       PUPPETEER_SKIP_DOWNLOAD: 1
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
     steps:
@@ -45,21 +44,32 @@ jobs:
       - uses: ./.github/actions/pnpm/setup
         with:
           node-version: '24'
-      - uses: ./.github/actions/rustup
+      - name: Download the measured release bindings
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
         with:
-          key: linux-lld-experiment
-          use-cache: false
+          name: linux-lld-results
+          run-id: 44226295064
+          github-token: ${{ github.token }}
+          path: .linux-lld-results
+      - name: Install baseline binding
+        run: cp .linux-lld-results/variants/baseline.node crates/node_binding/rspack.linux-x64-gnu.node
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Generate Rust sources
-        run: cargo codegen
-      - name: Build CI variants and compare identical objects
-        run: python3 scripts/experiments/linux-lld.py build
+      - name: Build matching JavaScript packages
+        run: pnpm build:js
+      - name: Install benchmark dependencies
+        working-directory: .linux-lld-btp
+        run: pnpm install --frozen-lockfile
+      - name: Generate dashboard
+        working-directory: .linux-lld-btp/cases/react-dashboard
+        run: node generate.mjs
+      - name: Run build-tools-performance A/A/B
+        run: python3 scripts/experiments/linux-lld.py bench
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: linux-lld-ci-results
+          name: linux-lld-runtime-results
           include-hidden-files: true
           path: |
             .linux-lld-results/*.json

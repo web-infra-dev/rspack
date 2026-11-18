@@ -147,6 +147,13 @@ def benchmark():
         if p.is_symlink(): p.unlink()
         elif p.exists(): shutil.rmtree(p)
         p.symlink_to(repo / source, target_is_directory=True)
+    # pnpm's .bin shims point into its store, not through the package symlinks above.
+    for base in [btp, btp / 'cases/react-dashboard', btp / 'cases/react-10k']:
+        p = base / 'node_modules/.bin/rspack'
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.unlink(missing_ok=True)
+        p.write_text('#!/bin/sh\nexec node ' + shlex.quote(str(repo / 'packages/rspack-cli/bin/rspack.js')) + ' "$@"\n')
+        p.chmod(0o755)
     observer = out / 'observe.cjs'
     observer.write_text('const old=process.dlopen;process.dlopen=function(m,f,...a){console.error("NATIVE="+f);return old.call(this,m,f,...a)};')
     variants = {'baseline-a': 'baseline', 'baseline-b': 'baseline', 'lld': 'lld'}
