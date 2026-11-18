@@ -198,13 +198,7 @@ export default {
 
 ## 缓存 \{#loader-cache}
 
-在 `module.rules[].use` 中为 loader 设置 `cache: true`，即可缓存其输出。
-
-:::info
-
-使用 loader 缓存需要开启顶层 `cache` 和 `experiments.newCache.loader`。设置 `experiments.newCache: true` 时，loader 缓存默认启用。详见 [`experiments.newCache`](/zh/config/experiments#experimentsnewcache)。
-
-:::
+在 `module.rules[].use` 中为 loader 设置 `cache: true`，即可缓存其 normal 阶段的输出。使用 loader 缓存需要开启顶层 [`cache`](/zh/config/cache) 和 [`experiments.newCache`](/zh/config/experiments#experimentsnewcache) 的 `loader` 阶段。设置 `experiments.newCache: true` 时会默认开启该阶段。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -222,16 +216,59 @@ export default {
 };
 ```
 
-同一进程内的 compiler 使用内存缓存或相同的持久化缓存目录时，可以共享 loader 的转换结果。例如，SSR 构建中的客户端和服务端 compiler 可以复用共享源文件的转换结果。
+使用内存缓存时，同一进程内的编译器可以共享 loader 转换结果。使用持久化缓存时，如果 [`cache.storage.directory`](/zh/config/cache#storagedirectory) 和 [`cache.version`](/zh/config/cache#version) 一致，后续构建可以跨进程复用这些结果。
 
 :::tip
 
-- 缓存命中要求输入、loader 版本和选项一致，且依赖仍然有效。确保 loader 选项包含影响 loader 输出结果的参数。
-- Loader 选项必须可以被无损地 JSON 序列化。例如，包含函数或 `Date` 对象的选项无法用于 loader 缓存。
-- Source map 设置可能影响缓存命中。开启和关闭 source map 会使用不同的缓存结果，部分 loader（如 `builtin:swc-loader`）还会受 source map 类型影响。
-- `cache.buildDependencies` 变化不会自动使 loader 缓存失效。
-- loader 之外的大部分配置变化不会使 loader 缓存失效。Source map 和缓存配置可能影响缓存命中。使用持久化缓存时，缓存命中还要求 `cache.version` 相同。
+- 将影响输出的构建设置传入 `use.options`。例如，loader 的输出取决于 `this.mode` 时，应将构建模式作为选项传入。
+- 确保 Loader 选项可以序列化为 JSON。例如，函数不能被 JSON 序列化，它会导致缓存指纹计算错误。
+- 更改 loader 是否生成 source map 的设置，可能导致缓存失效。`builtin:swc-loader` 等 loader 还会区分 source map 类型，修改 source map 类型会导致`builtin:swc-loader`缓存失效。
 
 :::
 
-Loader 作者请参见[兼容 loader 缓存](/zh/api/loader-api/writing-loaders#loader-cache-compatibility)。
+如果你在编写 loader，请参见 [让 loader 支持缓存](/zh/api/loader-api/writing-loaders#loader-cache-compatibility)。
+
+### 何时使用 loader 缓存 \{#when-to-use-loader-caching}
+
+持久化模块缓存可以复用模块的完整构建结果，包括 loader 转换和模块解析。模块需要重新构建时，loader 缓存仍可复用耗时的转换结果。例如，SSR 项目先完成客户端构建后，服务端构建可以复用共享源文件的转换结果。
+
+```js title="rspack.config.mjs"
+const shared = {
+  mode: 'development',
+  cache: { type: 'memory' },
+  experiments: { newCache: true },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: 'babel-loader',
+            options: { plugins: ['./your-custom-babel-plugin.cjs'] },
+            cache: true,
+          },
+        ],
+      },
+    ],
+  },
+};
+
+export default [
+  {
+    ...shared,
+    name: 'client',
+    target: 'web',
+    entry: { client: './src/client.js' },
+  },
+  {
+    ...shared,
+    name: 'server',
+    target: 'node',
+    entry: { server: './src/server.js' },
+    // 两端入口都导入 './render.js'，并使用相同的 Babel 选项。
+    // 输入一致且依赖未变化时，服务端可复用客户端为 render.js 缓存的
+    // babel-loader 输出，跳过自定义插件对该文件的转换。
+    dependencies: ['client'],
+  },
+];
+```

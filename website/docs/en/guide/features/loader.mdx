@@ -196,13 +196,7 @@ For more details, see [rules[].use.parallel](/config/module-rules#rulesuseparall
 
 ## Cache \{#loader-cache}
 
-Set `cache: true` on a loader in `module.rules[].use` to cache its output.
-
-:::info
-
-Loader caching requires the top-level `cache` and `experiments.newCache.loader` to be enabled. Setting `experiments.newCache: true` enables loader caching by default. See [`experiments.newCache`](/config/experiments#experimentsnewcache).
-
-:::
+Set `cache: true` on a loader in `module.rules[].use` to cache its normal-phase output. Loader caching requires the top-level [`cache`](/config/cache) and the `loader` stage of [`experiments.newCache`](/config/experiments#experimentsnewcache). Setting `experiments.newCache: true` enables that stage by default.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -220,16 +214,62 @@ export default {
 };
 ```
 
-Compilers in the same process can share loader results when they use memory cache or the same persistent cache directory. For example, the client and server compilers in an SSR build can reuse transformations for shared source files.
+Compilers using the memory cache can share loader results within the same process. With persistent caching, later builds can reuse results across processes when [`cache.storage.directory`](/config/cache#storagedirectory) and [`cache.version`](/config/cache#version) match.
 
 :::tip
 
-- A cache hit requires matching input, loader versions, and options, with valid dependencies. Ensure loader options include the settings that affect the loader output.
-- Loader options must be losslessly JSON-serializable. For example, options containing functions or `Date` objects cannot be used with loader caching.
-- Source map settings can affect cache hits. Enabling or disabling source maps uses separate results. Some loaders, such as `builtin:swc-loader`, also depend on the source map type.
-- Loader results do not automatically invalidate when `cache.buildDependencies` changes.
-- Most configuration changes outside loaders do not invalidate the loader cache. Source map and cache settings can affect cache hits. For persistent caches, a cache hit requires the same `cache.version`.
+- To reuse a result, Rspack checks the input to the loader, its options, and its registered file dependencies. For JavaScript loaders, Rspack fingerprints the contents of the resolved entry file. The loader must register any imported files that affect its output.
+- Include build settings that affect the output in `use.options`, such as the build mode for a loader that uses `this.mode`.
+- Make sure loader options can be serialized to JSON without losing information. Serialization can omit functions or lose information about some objects. For example, a `Date` object is serialized as a string.
+- Changing whether a loader should generate source maps can cause a cache miss. Some loaders, such as `builtin:swc-loader`, also distinguish between source map types.
+- Changes to files listed in `cache.buildDependencies` invalidate the compiler's persistent cache. Loader caching tracks files that the loader registers in its normal phase.
 
 :::
 
 For loader authors, see [loader cache compatibility](/api/loader-api/writing-loaders#loader-cache-compatibility).
+
+### When to use loader caching
+
+The persistent module cache can reuse a module's full build result, including loader transforms and parsing. When a module needs to be rebuilt, loader caching can still reuse expensive transforms. For example, if an SSR setup builds the client first, the server build can reuse cached transforms for shared source files.
+
+```js title="rspack.config.mjs"
+const shared = {
+  mode: 'development',
+  cache: { type: 'memory' },
+  experiments: { newCache: true },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: 'babel-loader',
+            options: { plugins: ['./your-custom-babel-plugin.cjs'] },
+            cache: true,
+          },
+        ],
+      },
+    ],
+  },
+};
+
+export default [
+  {
+    ...shared,
+    name: 'client',
+    target: 'web',
+    entry: { client: './src/client.js' },
+  },
+  {
+    ...shared,
+    name: 'server',
+    target: 'node',
+    entry: { server: './src/server.js' },
+    // Both entries import './render.js' and use the same Babel options.
+    // With matching input and unchanged dependencies, the server can reuse
+    // the client's babel-loader output for render.js, skipping the custom
+    // plugin's transform for that file.
+    dependencies: ['client'],
+  },
+];
+```
