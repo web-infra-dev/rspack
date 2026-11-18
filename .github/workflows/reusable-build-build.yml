@@ -82,9 +82,10 @@ jobs:
 
       - name: Install cargo-zigbuild for musl build
         if: ${{ contains(inputs.target, 'musl') }}
-        uses: taiki-e/install-action@16b05812d776ae1dfaabc8277e421fb6d2506419 # v2
-        with:
-          tool: cargo-zigbuild
+        run: |
+          cargo install cargo-zigbuild --locked \
+            --git https://github.com/rust-cross/cargo-zigbuild \
+            --rev 875d3aa050975e468e4771686f1cdbf35adaeccb
 
       - name: Install clang with PowerPC and SystemZ backends
         if: ${{ inputs.target == 'powerpc64le-unknown-linux-gnu' || inputs.target == 's390x-unknown-linux-gnu' }}
