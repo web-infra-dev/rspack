@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-it('keeps independent shared identities distinct and legacy names stable', async () => {
+it('keeps distinct shared identities in separate fallback variants', async () => {
   const [{ value: valueA }, { value: valueB }, { value: legacyValue }] =
     await Promise.all([
       import('variant-a'),
@@ -28,7 +28,7 @@ it('keeps independent shared identities distinct and legacy names stable', async
   );
   for (const variant of variants) {
     expect(variant.fallback).toMatch(
-      /^independent-packages\/shared_variant\/variant-[a-f0-9]{12}\/1\.0\.0\/share-entry\.js$/,
+      /^independent-packages\/mf_[a-f0-9]{16}\/variant-[a-f0-9]{12}\/1\.0\.0\/share-entry\.js$/,
     );
     expect(fs.existsSync(path.join(__dirname, variant.fallback))).toBe(true);
   }
@@ -37,8 +37,8 @@ it('keeps independent shared identities distinct and legacy names stable', async
     ({ name, version }) => name === 'legacy-shared' && version === '1.0.0',
   );
   expect(legacy.shareScope).toEqual(['root', 'default']);
-  expect(legacy.fallback).toBe(
-    'independent-packages/legacy_shared/1.0.0/share-entry.js',
+  expect(legacy.fallback).toMatch(
+    /^independent-packages\/mf_[a-f0-9]{16}\/1\.0\.0\/share-entry\.js$/,
   );
   expect(fs.existsSync(path.join(__dirname, legacy.fallback))).toBe(true);
 
@@ -52,7 +52,7 @@ it('keeps independent shared identities distinct and legacy names stable', async
   );
   for (const collision of collisions) {
     expect(collision.fallback).toMatch(
-      /^independent-packages\/default_collision\/variant-[a-f0-9]{12}\/1\.0\.0\/share-entry\.js$/,
+      /^independent-packages\/mf_[a-f0-9]{16}\/variant-[a-f0-9]{12}\/1\.0\.0\/share-entry\.js$/,
     );
     expect(fs.existsSync(path.join(__dirname, collision.fallback))).toBe(true);
   }
