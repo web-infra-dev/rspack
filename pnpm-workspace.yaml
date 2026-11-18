@@ -203,10 +203,6 @@ minimumReleaseAgeExclude:
   - 'heading-case'
   - '@rstackjs/*'
   - 'react-server-dom-rspack'
-  # Renovate security update: mermaid@11.16.1
-  - mermaid@11.16.1
-  # Renovate security update: glob@14.0.2
-  - glob@14.0.2
 
 patchedDependencies:
   # Remove after https://github.com/tinylibs/tinypool/pull/145 is released.
