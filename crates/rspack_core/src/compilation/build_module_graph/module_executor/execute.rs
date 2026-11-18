@@ -494,10 +494,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
           }
         }
       }
-      Err(e) => {
-        execute_result.cacheable = false;
-        execute_result.errors.push(e.into());
-      }
+      Err(e) => execute_result.errors.push(e.into()),
     };
 
     assets.extend(std::mem::take(compilation.assets_mut()));
