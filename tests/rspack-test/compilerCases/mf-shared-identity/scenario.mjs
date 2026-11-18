@@ -69,7 +69,7 @@ export default async function run(scenario) {
         layer: layers ? name : undefined,
       };
     }
-    put('index.js', "const imports = [() => import('one'), () => import('two')]; module.exports = __webpack_require__.federation;");
+    put('index.js', "const federation = __webpack_require__.federation; federation.load = () => Promise.all([import('one'), import('two')]).then(values => values.map(value => value.default)); module.exports = federation;");
     if (!paired && !differentVersions) {
       expectedError = layers ? /provider layer/ : /distinct full fallbacks for version "1.0.0"/;
     }
@@ -104,6 +104,7 @@ export default async function run(scenario) {
           scope: ['default'], shareConfig: { requiredVersion: false },
         } }), false);
       } else {
+        assert.deepEqual(await result.load(), ['one', 'two']);
         // Full getters are observable by external hosts using the registration.
         for (const arg of result.initOptions.shared.key) {
           const name = scenario.endsWith('layers') ? arg.shareConfig.layer : arg.scope[0];
