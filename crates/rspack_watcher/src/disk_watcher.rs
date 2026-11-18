@@ -4,7 +4,7 @@ use notify::{
   Event, EventKind, RecommendedWatcher, Watcher,
   event::{ModifyKind, RenameMode},
 };
-use rspack_paths::InternedPath;
+use rspack_paths::{InternedPath, InternedPathMap};
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
 use crate::{FsEventKind, WatchPattern, analyzer::Analyzer, trigger};
@@ -59,68 +59,82 @@ impl DiskWatcher {
     }
   }
 
-  /// Watches the given path with the specified recursive mode.
-  ///
-  /// # Returns
-  ///
-  /// * `rspack_error::Result<()>` - Ok if successful, otherwise an error.
   pub fn watch(
     &mut self,
     patterns: impl Iterator<Item = WatchPattern>,
-  ) -> rspack_error::Result<()> {
-    let new_patterns: HashSet<WatchPattern> = patterns.collect();
-
-    let new_paths = new_patterns.iter().map(|p| &p.path).collect::<HashSet<_>>();
-
-    // Collect stale paths that are no longer needed, then unwatch and remove them.
-    let stale_paths: HashSet<InternedPath> = self
-      .watch_patterns
-      .iter()
-      .filter(|p| !new_paths.contains(&p.path))
-      .map(|p| p.path.clone())
-      .collect();
-
-    for path in &stale_paths {
-      // A failed unwatch must not stop the new patterns from being watched. For example, on
-      // Linux `notify` can return `EINVAL` for a subdirectory that was deleted while its parent
-      // was watched recursively (https://github.com/notify-rs/notify/issues/709).
-      if let Some(watcher) = &mut self.inner
-        && let Err(e) = watcher.unwatch(path)
-        && !matches!(e.kind, notify::ErrorKind::WatchNotFound)
-      {
-        tracing::warn!(
-          target: "rspack_watcher::disk_watcher",
-          path = ?path,
-          "failed to unwatch stale path: {e:?}",
-        );
+  ) -> rspack_error::Result<bool> {
+    reconcile_patterns(&mut self.watch_patterns, patterns, |path, mode| {
+      let Some(watcher) = &mut self.inner else {
+        return Ok(());
+      };
+      match mode {
+        Some(mode) => watcher.watch(path, mode),
+        None => watcher.unwatch(path),
       }
-    }
-
-    self
-      .watch_patterns
-      .retain(|p| !stale_paths.contains(&p.path));
-
-    for pattern in new_patterns {
-      if self.watch_patterns.contains(&pattern) {
-        continue;
-      }
-
-      if let Some(watcher) = &mut self.inner {
-        watcher
-          .watch(&pattern.path, pattern.mode)
-          .map_err(|e| rspack_error::error!(e.to_string()))?;
-      }
-
-      self.watch_patterns.insert(pattern);
-    }
-
-    Ok(())
+    })
   }
 
   pub fn close(&mut self) {
     // the trigger.tx is dropped in the FsWatcher
     std::mem::drop(self.inner.take());
   }
+}
+
+/// Keep one installed mode per root. A recursive requirement covers a shallow one.
+pub(super) fn reconcile_patterns(
+  installed: &mut HashSet<WatchPattern>,
+  patterns: impl Iterator<Item = WatchPattern>,
+  mut apply: impl FnMut(&InternedPath, Option<notify::RecursiveMode>) -> notify::Result<()>,
+) -> rspack_error::Result<bool> {
+  use notify::RecursiveMode::{NonRecursive, Recursive};
+  let mut desired = InternedPathMap::default();
+  for WatchPattern { path, mode } in patterns {
+    let current = desired.entry(path).or_insert(mode);
+    if mode == Recursive {
+      *current = Recursive;
+    }
+  }
+  installed.retain(|pattern| {
+    if desired.contains_key(&pattern.path) { return true; }
+    // Linux can report EINVAL when a recursive parent already dropped its child.
+    if let Err(error) = apply(&pattern.path, None) && !matches!(error.kind, notify::ErrorKind::WatchNotFound) {
+      tracing::warn!(target: "rspack_watcher::disk_watcher", path = ?pattern.path, "failed to unwatch stale path: {error:?}");
+    }
+    false
+  });
+  let mut reattached = false;
+  for (path, mode) in desired {
+    let pattern = WatchPattern { path, mode };
+    if installed.contains(&pattern) {
+      continue;
+    }
+    let previous = WatchPattern {
+      path: pattern.path.clone(),
+      mode: if mode == Recursive {
+        NonRecursive
+      } else {
+        Recursive
+      },
+    };
+    let replace = installed.contains(&previous);
+    if replace {
+      match apply(&pattern.path, None) {
+        Ok(()) => {}
+        Err(e) if matches!(e.kind, notify::ErrorKind::WatchNotFound) => {}
+        Err(e) => return Err(rspack_error::error!(e.to_string())),
+      }
+      installed.remove(&previous);
+      reattached = true;
+    }
+    if let Err(e) = apply(&pattern.path, Some(mode)) {
+      if replace && apply(&previous.path, Some(previous.mode)).is_ok() {
+        installed.insert(previous);
+      }
+      return Err(rspack_error::error!(e.to_string()));
+    }
+    installed.insert(pattern);
+  }
+  Ok(reattached)
 }
 
 pub(crate) fn handle_event(event: Event, trigger: &trigger::Trigger) {

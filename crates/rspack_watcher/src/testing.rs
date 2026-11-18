@@ -179,3 +179,23 @@ pub async fn check_subscriptions(watcher: &FsWatcher) {
     done.await.expect("complete subscription check");
   }
 }
+
+#[derive(Default)]
+pub struct WatchInstallations(FxHashSet<crate::WatchPattern>);
+
+impl WatchInstallations {
+  pub fn update(
+    &mut self,
+    patterns: &[(InternedPath, RecursiveMode)],
+    apply: impl FnMut(&InternedPath, Option<RecursiveMode>) -> notify::Result<()>,
+  ) -> rspack_error::Result<bool> {
+    crate::disk_watcher::reconcile_patterns(
+      &mut self.0,
+      patterns.iter().map(|(path, mode)| crate::WatchPattern {
+        path: path.clone(),
+        mode: *mode,
+      }),
+      apply,
+    )
+  }
+}
