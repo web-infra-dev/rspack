@@ -429,8 +429,7 @@ fn create_identifier(
 }
 
 fn push_client_modules(identifier: &mut String, client_modules: &[ClientModuleImport]) {
-  let mut client_modules = client_modules.iter().collect::<Vec<_>>();
-  client_modules.sort_unstable_by(|a, b| a.request.cmp(&b.request));
+  // Module order can affect side effects, so it must also affect the identity.
   for client_module in client_modules {
     push_value(identifier, &client_module.request);
     identifier.push('[');
@@ -480,8 +479,6 @@ fn append_client_modules_debug_section(
     return;
   }
 
-  let mut client_modules = client_modules.iter().collect::<Vec<_>>();
-  client_modules.sort_unstable_by(|a, b| a.request.cmp(&b.request));
   append_debug_section_header(
     source,
     chunk_group,
@@ -531,8 +528,6 @@ fn append_server_entry_debug_section(
   }
 
   if let Some(client_modules) = client_modules {
-    let mut client_modules = client_modules.iter().collect::<Vec<_>>();
-    client_modules.sort_unstable_by(|a, b| a.request.cmp(&b.request));
     for client_module in client_modules {
       let request = contextify(
         compilation.options.context.as_path(),
