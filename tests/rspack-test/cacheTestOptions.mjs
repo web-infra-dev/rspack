@@ -20,9 +20,6 @@ const excludes = {
 		/^loader-parallel-import-module\/execute-failed$/,
 		/^module\/rspack-issue-8785$/,
 
-		// Loader-emitted errors or warnings are not fully restored.
-		/^source-map\/extract-source-map$/,
-
 		// Existing bundle/compiler assertions fail in the compatibility suite.
 		/^loader\/context-module$/,
 
