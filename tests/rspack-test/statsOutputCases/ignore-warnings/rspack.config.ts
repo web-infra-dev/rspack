@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { defineConfig } from '@rspack/cli';
-import { config, WebpackError, type Compilation } from '@rspack/core';
+import {
+  config,
+  WebpackError,
+  type Compilation,
+  type Module,
+} from '@rspack/core';
 
 const compilation = {} as Compilation;
 
@@ -14,7 +19,7 @@ for (const flags of ['', 'g', 'y', 'gy']) {
     }).ignoreWarnings!;
     const warning = Object.assign(new WebpackError('warning'), {
       file: 'warning',
-      module: { readableIdentifier: () => 'warning' },
+      module: { readableIdentifier: () => 'warning' } as Module,
     });
     for (let i = 0; i < 3; i++) {
       assert.equal(filter(warning, compilation), true);
