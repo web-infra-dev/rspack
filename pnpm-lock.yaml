@@ -449,6 +449,7 @@ catalogs:
       version: 7.0.2
 
 patchedDependencies:
+  tinypool@2.2.0: 548080e713f33357aa1db59dbc9b75996510a09716c1f650ef4341711dbfa0d2
   webpack-sources@3.6.0: 15bf81e827f2fd8c3e411c5d75b3e27b3ad7aff67e7bdee559e6253e9bf6b5d7
 
 importers:
@@ -757,7 +758,7 @@ importers:
         version: 0.9.0(@microsoft/api-extractor@7.60.1)(@module-federation/runtime-tools@2.9.2)(@rspress/core@2.1.0-beta.2)(core-js@3.51.0)(jiti@2.7.0)(jsdom@30.1.3)(typescript@6.0.3)
       tinypool:
         specifier: 'catalog:'
-        version: 2.2.0
+        version: 2.2.0(patch_hash=548080e713f33357aa1db59dbc9b75996510a09716c1f650ef4341711dbfa0d2)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -13813,7 +13814,7 @@ snapshots:
       '@rstest/core': 0.12.5(@module-federation/runtime-tools@2.9.2)(core-js@3.51.0)(jsdom@30.1.3)
       '@swc-next/parser': 0.4.1
       prettier: 3.9.10
-      tinypool: 2.2.0
+      tinypool: 2.2.0(patch_hash=548080e713f33357aa1db59dbc9b75996510a09716c1f650ef4341711dbfa0d2)
     optionalDependencies:
       '@rspress/core': 2.1.0-beta.2(@module-federation/runtime-tools@2.9.2)(@rspack/core@2.3.0)(core-js@3.51.0)(micromark-util-types@2.0.2)(micromark@4.0.2)(supports-color@8.1.1)
       '@rstackjs/cli-darwin-arm64': 0.9.0
@@ -14270,7 +14271,7 @@ snapshots:
       fdir: 6.5.0(picomatch@4.0.7)
       picomatch: 4.0.7
 
-  tinypool@2.2.0: {}
+  tinypool@2.2.0(patch_hash=548080e713f33357aa1db59dbc9b75996510a09716c1f650ef4341711dbfa0d2): {}
 
   tldts-core@7.4.10: {}
 
