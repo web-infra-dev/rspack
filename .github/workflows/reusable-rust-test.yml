@@ -129,6 +129,23 @@ jobs:
             --exclude rspack_resolver \
             -- --nocapture
 
+  windows_watcher_paths:
+    name: Windows watcher path registration
+    if: ${{ github.head_ref == 'refactor/watcher-directory-subscriptions' }}
+    runs-on: windows-latest
+    env:
+      CARGO_PROFILE_TEST_DEBUG: 0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/rustup
+        with:
+          key: test-os-"windows-latest"
+      - name: Check subscriptions
+        run: cargo test --locked -p rspack_watcher_testing --test file_subscriptions
+      - name: Check path registration in isolation
+        if: ${{ !cancelled() }}
+        run: cargo test --locked -p rspack_watcher --lib paths::tests::test_manager -- --exact
+
   rust_watcher_test:
     name: Rust watcher test - ${{ matrix.array.runner }}
     runs-on: ${{ fromJSON(matrix.array.runner) }}
