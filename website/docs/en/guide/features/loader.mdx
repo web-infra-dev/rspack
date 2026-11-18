@@ -230,12 +230,16 @@ For loader authors, see [loader cache compatibility](/api/loader-api/writing-loa
 
 ### When to use loader caching
 
-The persistent module cache can reuse a module's full build result, including loader transforms and parsing. When a module needs to be rebuilt, loader caching can still reuse expensive transforms. For example, if an SSR setup builds the client first, the server build can reuse cached transforms for shared source files.
+On a persistent module cache hit, Rspack reuses the module's full build result and skips loader transforms and module parsing. Rspack CLI adds the configuration file to [`cache.buildDependencies`](/config/cache#builddependencies), so even changing only `output.filename` in that file invalidates the module cache.
+
+The loader cache stores the output of a loader or a group of loaders. When a configuration change forces a module rebuild, Rspack checks factors such as loader inputs, options, and registered file dependencies and can reuse cached results that still match.
+
+For example, if an SSR setup builds the client first, the server build can reuse cached transforms for shared source files.
 
 ```js title="rspack.config.mjs"
 const shared = {
   mode: 'development',
-  cache: { type: 'memory' },
+  cache: { type: 'persistent' },
   experiments: { newCache: true },
   module: {
     rules: [
