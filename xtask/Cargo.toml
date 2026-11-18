@@ -4,7 +4,6 @@ categories.workspace    = true
 description             = "cargo extension workflow to manage rspack tasks"
 documentation.workspace = true
 edition.workspace       = true
-homepage.workspace      = true
 license.workspace       = true
 name                    = "xtask"
 publish                 = false

@@ -4,7 +4,6 @@ categories.workspace    = true
 description             = "EJS-like HTML template engine for Rspack"
 documentation.workspace = true
 edition.workspace       = true
-homepage.workspace      = true
 license.workspace       = true
 name                    = "rspack_dojang"
 repository.workspace    = true
