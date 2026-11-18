@@ -25,6 +25,16 @@ export const renderRscStream = () => {
   return renderToReadableStream(<App />);
 };
 
+it('should preserve CSS import order in the emitted styles', () => {
+  const css = fs.readdirSync(__dirname)
+    .filter((filename) => filename.endsWith('.css'))
+    .map(readBundle)
+    .find((source) => source.includes('--rsc-css-order'));
+
+  expect(css).toBeDefined();
+  expect(css).toMatch(/--rsc-css-order:\s*theme[\s\S]*--rsc-css-order:\s*page/);
+});
+
 it('should emit readable RSC entry debug comments by default', () => {
   const snapshot = `${[
     'server',

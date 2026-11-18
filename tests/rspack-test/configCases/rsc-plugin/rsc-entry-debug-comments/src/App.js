@@ -1,15 +1,15 @@
 import { RootClient } from './clients/RootClient';
 import { SharedRootAndPage } from './clients/SharedRootAndPage';
-import { PageOne } from './pages/PageOne';
 import { PageTwo } from './pages/PageTwo';
+import { PageOne } from './pages/PageOne';
 
 export const App = () => {
   return (
     <>
       <RootClient />
       <SharedRootAndPage />
-      <PageOne />
       <PageTwo />
+      <PageOne />
     </>
   );
 };
