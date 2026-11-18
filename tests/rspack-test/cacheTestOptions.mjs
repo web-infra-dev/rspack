@@ -36,20 +36,7 @@ const excludes = {
 		/^loader\/context-module$/,
 
 		// Shared extracted CSS can retain different producers' loader dependencies.
-		/^plugins\/mini-css-extract-plugin$/,
-		// Module cache entries are not fully reused after restarting the compiler.
-		/^rsc-plugin\/client-chunk-grouping$/,
-		/^rsc-plugin\/css-link-props$/,
-		/^rsc-plugin\/entry-with-multiple-modules$/,
-		/^rsc-plugin\/on-manifest$/,
-		/^rsc-plugin\/rsc-entry-debug-comments$/,
-		/^rsc-plugin\/server-css$/,
-		/^rsc-plugin\/server-css-async-chunks-false$/,
-		/^rsc-plugin\/server-entry$/,
-		/^rsc-plugin\/tree-shaking$/,
-		/^rsc-plugin\/tree-shaking-client-barrel$/,
-		/^rsc-plugin\/with-concatenated-module$/,
-		/^rsc-plugin\/worker$/
+		/^plugins\/mini-css-extract-plugin$/
 	]
 };
 
