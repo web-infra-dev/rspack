@@ -127,7 +127,7 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
             .map(|item| item
               .strip_prefix(prefix)
               .expect("should strip prefix")
-              .strip_suffix(&suffix)
+              .strip_suffix(suffix)
               .expect("should strip suffix")
               .to_string())
             .collect::<Vec<_>>()
@@ -251,7 +251,7 @@ pub(crate) fn items_to_regexp(items_arr: Vec<String>) -> String {
         suffixed_items
           .iter()
           .map(|item| item
-            .strip_suffix(&suffix)
+            .strip_suffix(suffix)
             .expect("should strip suffix")
             .to_string())
           .collect::<Vec<_>>()

@@ -35,12 +35,13 @@ export function __to_binding_runtime_globals(
   const res: JsRuntimeGlobals = {
     value: [],
   };
-  const reversedCompilerRuntimeGlobals = Object.fromEntries(
-    Object.entries(compilerRuntimeGlobals).map(([key, value]) => [value, key]),
-  );
+  const reversedCompilerRuntimeGlobals = new Map<string, string>();
+  for (const [key, value] of Object.entries(compilerRuntimeGlobals)) {
+    reversedCompilerRuntimeGlobals.set(value, key);
+  }
 
-  for (const flag of Array.from(runtimeRequirements)) {
-    const item = reversedCompilerRuntimeGlobals[flag];
+  for (const flag of runtimeRequirements) {
+    const item = reversedCompilerRuntimeGlobals.get(flag);
     if (typeof item === 'string') {
       res.value.push(item);
     } else {
@@ -703,6 +704,26 @@ function renderRuntimeGlobals(
   }
 }
 
+export function renderRuntimeGlobalProperty(
+  runtimeGlobal: RuntimeGlobals,
+  compilerOptions?: RspackOptionsNormalized,
+): string {
+  const rendered = renderRuntimeGlobals(runtimeGlobal, compilerOptions);
+  const scope = renderRuntimeVariables(
+    compilerOptions?.experiments.runtimeMode === 'rspack'
+      ? RuntimeVariable.Context
+      : RuntimeVariable.Require,
+    compilerOptions,
+  );
+  const prefix = `${scope}.`;
+  if (!rendered.startsWith(prefix)) {
+    throw new Error(
+      `Runtime global "${RuntimeGlobals[runtimeGlobal]}" is not a property of "${scope}".`,
+    );
+  }
+  return rendered.slice(prefix.length);
+}
+
 export function createCompilerRuntimeGlobals(
   compilerOptions?: RspackOptionsNormalized,
 ): Record<keyof typeof RuntimeGlobals, string> {
@@ -718,4 +739,7 @@ export function createCompilerRuntimeGlobals(
 
 const DefaultRuntimeGlobals = createCompilerRuntimeGlobals();
 
-export { DefaultRuntimeGlobals as RuntimeGlobals };
+export {
+  RuntimeGlobals as RuntimeGlobal,
+  DefaultRuntimeGlobals as RuntimeGlobals,
+};

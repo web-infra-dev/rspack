@@ -38,7 +38,4 @@ export default defineConfig({
     }),
     new Plugin(),
   ],
-  experiments: {
-    css: false,
-  },
 });

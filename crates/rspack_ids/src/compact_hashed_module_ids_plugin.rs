@@ -21,12 +21,14 @@ use crate::{
 #[derive(Debug, Clone, Default)]
 pub struct CompactHashedModuleIdsPluginOptions {
   pub min_length: Option<usize>,
+  pub salt: Option<u32>,
 }
 
 #[plugin]
 #[derive(Debug)]
 pub struct CompactHashedModuleIdsPlugin {
   min_length: usize,
+  salt: u32,
 }
 
 impl Default for CompactHashedModuleIdsPlugin {
@@ -37,7 +39,10 @@ impl Default for CompactHashedModuleIdsPlugin {
 
 impl CompactHashedModuleIdsPlugin {
   pub fn new(options: CompactHashedModuleIdsPluginOptions) -> Self {
-    Self::new_inner(normalize_min_length(options.min_length))
+    Self::new_inner(
+      normalize_min_length(options.min_length),
+      options.salt.unwrap_or_default(),
+    )
   }
 }
 
@@ -77,11 +82,12 @@ async fn module_ids(
     .filter_map(|identifier| module_graph.module_by_identifier(&identifier))
     .collect::<Vec<_>>();
 
+  let hash_name = |name: &str| hash_identifier(name, self.salt);
   let mut modules_with_hashes = modules
     .into_par_iter()
     .map(|module| {
       let name = get_full_module_name(module, context);
-      let hash = hash_identifier(&name);
+      let hash = hash_name(&name);
       (module, hash, name)
     })
     .collect::<Vec<_>>();
@@ -92,7 +98,7 @@ async fn module_ids(
 
   let mut id_assigner = CompactHashedIdAssigner::new(self.min_length, used_ids);
   for (module, hash, name) in modules_with_hashes {
-    let Some(module_id) = id_assigner.assign(&name, hash, hash_identifier) else {
+    let Some(module_id) = id_assigner.assign(&name, hash, hash_name) else {
       return Err(error!(
         "Unable to assign a unique compact-hashed id to module '{}' after {MAX_REHASH_ATTEMPTS} rehash attempts",
         module.identifier()

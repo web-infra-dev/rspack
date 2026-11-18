@@ -183,11 +183,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
           inner_exprs.push(arg_expr);
           continue;
         }
-        let value = if arg_expr.is_string() {
-          arg_expr.string().to_owned()
-        } else {
-          format!("{}", arg_expr.number())
-        };
+        let value = arg_expr.as_string()?;
         let range = arg_expr.range();
         suffix_range = Some((range.0, suffix_range.map_or(range.1, |range| range.1)));
         suffix_side_effects.get_or_insert_with(|| arg_expr.could_have_side_effects());
@@ -252,7 +248,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
       } else if arg.is_regexp() {
         let raw = arg.regexp();
         let regex = eval_regexp_to_regexp(&raw.0, &raw.1);
-        param.string().split(&regex).map(|s| s.to_owned()).collect()
+        let text = param.string();
+        let mut parts = Vec::new();
+        let mut start = 0;
+        for found in regex.find_iter(text) {
+          parts.push(text[start..found.start()].to_owned());
+          start = found.end();
+        }
+        parts.push(text[start..].to_owned());
+        parts
       } else {
         return None;
       };

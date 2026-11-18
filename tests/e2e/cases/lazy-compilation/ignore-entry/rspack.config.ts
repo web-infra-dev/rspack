@@ -23,9 +23,6 @@ export default defineConfig({
     ],
   },
   plugins: [new rspack.HtmlRspackPlugin(), new rspack.CssExtractRspackPlugin()],
-  experiments: {
-    css: false,
-  },
   lazyCompilation: true,
   devServer: {
     hot: true,

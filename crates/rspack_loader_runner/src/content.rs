@@ -1,5 +1,6 @@
 use std::{
   any::Any,
+  borrow::Cow,
   fmt::Debug,
   path::{Path, PathBuf},
   sync::Arc,
@@ -11,11 +12,13 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   rkyv::string::ArchivedString,
   utils::PortablePath,
-  with::{As, AsInner, AsOption, AsPreset},
+  with::{As, AsInner, AsInnerConverter, AsOption, AsPreset, Skip},
 };
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_resolver::{PackageJson, PackageJsonData};
+use rspack_util::identifier::format_resolved_resource;
 use rustc_hash::FxHashMap;
 
 use crate::{Scheme, get_scheme, parse_resource};
@@ -129,8 +132,7 @@ impl Debug for Content {
 #[cacheable]
 #[derive(Debug, Clone, Default)]
 pub struct ResourceData {
-  /// Resource with absolute path, query and fragment
-  resource: String,
+  resource: ResourceString,
   /// Absolute resource path only
   #[cacheable(with=AsOption<AsPreset>)]
   resource_path: Option<Utf8PathBuf>,
@@ -148,23 +150,38 @@ pub struct ResourceData {
   scheme: OnceCell<Scheme>,
 }
 
+#[cacheable]
+#[derive(Debug, Clone)]
+enum ResourceString {
+  Explicit(String),
+  // An initialized None lets resource() borrow the path directly.
+  Derived(#[cacheable(with=Skip)] OnceCell<Option<String>>),
+}
+
+impl Default for ResourceString {
+  fn default() -> Self {
+    Self::Explicit(String::new())
+  }
+}
+
 impl ResourceData {
   pub fn new_with_resource(resource: String) -> Self {
     if let Some(parsed) = parse_resource(&resource) {
       return Self::new_with_path(resource, parsed.path, parsed.query, parsed.fragment);
     };
     Self {
-      resource,
-      resource_path: None,
-      resource_query: None,
-      resource_fragment: None,
-      resource_description: None,
-      mimetype: None,
-      parameters: None,
-      encoding: None,
-      encoded_content: None,
-      scheme: OnceCell::new(),
-      context: None,
+      resource: ResourceString::Explicit(resource),
+      ..Default::default()
+    }
+  }
+
+  pub fn new_with_resolved_path(path: Utf8PathBuf, query: String, fragment: String) -> Self {
+    Self {
+      resource: ResourceString::Derived(OnceCell::new()),
+      resource_path: Some(path),
+      resource_query: Some(query),
+      resource_fragment: Some(fragment),
+      ..Default::default()
     }
   }
 
@@ -175,17 +192,11 @@ impl ResourceData {
     fragment: Option<String>,
   ) -> Self {
     Self {
-      resource,
+      resource: ResourceString::Explicit(resource),
       resource_path: Some(path),
       resource_query: query,
       resource_fragment: fragment,
-      resource_description: None,
-      mimetype: None,
-      parameters: None,
-      encoding: None,
-      encoded_content: None,
-      scheme: OnceCell::new(),
-      context: None,
+      ..Default::default()
     }
   }
 
@@ -208,11 +219,33 @@ impl ResourceData {
   }
 
   pub fn resource(&self) -> &str {
-    &self.resource
+    let derived = match &self.resource {
+      ResourceString::Explicit(resource) => return resource,
+      ResourceString::Derived(derived) => derived,
+    };
+    let path = self.path().map_or("", Utf8Path::as_str);
+    derived
+      .get_or_init(|| {
+        let query = self.query().unwrap_or_default();
+        let fragment = self.fragment().unwrap_or_default();
+        if query.is_empty() && fragment.is_empty() && !path.contains('#') {
+          None
+        } else {
+          Some(format_resolved_resource(path, query, fragment))
+        }
+      })
+      .as_deref()
+      .unwrap_or(path)
   }
 
   pub fn set_resource(&mut self, v: String) {
-    self.resource = v;
+    self.resource = ResourceString::Explicit(v);
+  }
+
+  fn invalidate_derived_resource(&mut self) {
+    if let ResourceString::Derived(derived) = &mut self.resource {
+      derived.take();
+    }
   }
 
   pub fn path(&self) -> Option<&Utf8Path> {
@@ -226,6 +259,7 @@ impl ResourceData {
     {
       self.scheme.take();
       self.resource_path = Some(new_path);
+      self.invalidate_derived_resource();
     }
   }
 
@@ -240,11 +274,12 @@ impl ResourceData {
   }
 
   pub fn set_query(&mut self, v: String) {
-    self.resource_query = Some(v);
+    self.set_query_optional(Some(v));
   }
 
   pub fn set_query_optional(&mut self, v: Option<String>) {
     self.resource_query = v;
+    self.invalidate_derived_resource();
   }
 
   pub fn fragment(&self) -> Option<&str> {
@@ -252,11 +287,12 @@ impl ResourceData {
   }
 
   pub fn set_fragment(&mut self, v: String) {
-    self.resource_fragment = Some(v);
+    self.set_fragment_optional(Some(v));
   }
 
   pub fn set_fragment_optional(&mut self, v: Option<String>) {
     self.resource_fragment = v;
+    self.invalidate_derived_resource();
   }
 
   pub fn description(&self) -> Option<&DescriptionData> {
@@ -322,12 +358,45 @@ pub struct DescriptionData {
 
   /// Raw package.json
   #[cacheable(with=AsInner<AsPreset>)]
-  json: Arc<serde_json::Value>,
+  json: DescriptionJson,
+}
+
+/// Compact metadata outlives the resolver without retaining its original input.
+/// Cache serialization materializes that object; cache reads use the owned variant.
+#[derive(Debug, Clone)]
+enum DescriptionJson {
+  Package(Arc<PackageJsonData>),
+  Owned(Arc<serde_json::Value>),
+}
+
+impl AsInnerConverter for DescriptionJson {
+  type Inner = serde_json::Value;
+
+  fn to_inner(&self) -> &Self::Inner {
+    match self {
+      Self::Package(package) => package.json(),
+      Self::Owned(json) => json,
+    }
+  }
+
+  fn from_inner(json: Self::Inner) -> Self {
+    Self::Owned(Arc::new(json))
+  }
 }
 
 impl DescriptionData {
   pub fn new(path: PathBuf, json: Arc<serde_json::Value>) -> Self {
-    Self { path, json }
+    Self {
+      path,
+      json: DescriptionJson::Owned(json),
+    }
+  }
+
+  pub fn from_package_json(package: &PackageJson) -> Self {
+    Self {
+      path: package.directory().to_path_buf(),
+      json: DescriptionJson::Package(Arc::clone(package.description_data())),
+    }
   }
 
   pub fn path(&self) -> &Path {
@@ -335,11 +404,29 @@ impl DescriptionData {
   }
 
   pub fn json(&self) -> &serde_json::Value {
-    self.json.as_ref()
+    self.json.to_inner()
+  }
+
+  /// Reads only the requested property, leaving unrelated fields unmaterialized.
+  pub fn get<'a>(
+    &self,
+    path: impl IntoIterator<Item = &'a str>,
+  ) -> Option<Cow<'_, serde_json::Value>> {
+    match &self.json {
+      DescriptionJson::Package(package) => package.get(path).map(Cow::Borrowed),
+      DescriptionJson::Owned(json) => path
+        .into_iter()
+        .try_fold(json.as_ref(), |value, key| value.get(key))
+        .map(Cow::Borrowed),
+    }
   }
 
   pub fn into_parts(self) -> (PathBuf, Arc<serde_json::Value>) {
-    (self.path, self.json)
+    let json = match self.json {
+      DescriptionJson::Package(package) => Arc::clone(package.json()),
+      DescriptionJson::Owned(json) => json,
+    };
+    (self.path, json)
   }
 }
 

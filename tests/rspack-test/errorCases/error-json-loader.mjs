@@ -12,7 +12,7 @@ export default {
 			  "errors": Array [
 			    Object {
 			      "code": "ModuleBuildError",
-			      "message": "  × Module build failed (from <PNPM_INNER>/json-loader/index.js):  ╰─▶   × SyntaxError: Unexpected end of JSON input        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx        │     at xxx      ",
+			      "message": "  × Module build failed (from <PNPM_INNER>/json-loader/index.js):  ╰─▶   × SyntaxError: Unexpected end of JSON input        │     at xxx        │     at xxx      ",
 			      "moduleId": "<PNPM_INNER>/json-loader/index.js!./not-a-json.js",
 			      "moduleIdentifier": "<PNPM_INNER>/json-loader/index.js!<TEST_ROOT>/fixtures/errors/not-a-json.js",
 			      "moduleName": "<PNPM_INNER>/json-loader/index.js!./not-a-json.js",

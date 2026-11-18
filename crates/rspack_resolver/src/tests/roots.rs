@@ -95,3 +95,44 @@ async fn roots_fall_through() {
     Ok(absolute_path)
   );
 }
+
+#[tokio::test]
+#[cfg(not(target_os = "windows"))] // MemoryFS's path separator is always `/` so the test will not pass in windows.
+async fn prefer_absolute_order() {
+  use super::memory_fs::MemoryFS;
+  use crate::ResolverGeneric;
+
+  let resolve = |prefer_absolute: bool, specifier: &'static str| async move {
+    ResolverGeneric::<MemoryFS>::new_with_file_system(
+      MemoryFS::new(&[
+        ("/project/src/a.js", ""),
+        ("/project/src/b.js", ""),
+        ("/project/project/src/a.js", ""),
+      ]),
+      ResolveOptions {
+        roots: vec![PathBuf::from("/project")],
+        prefer_absolute,
+        ..ResolveOptions::default()
+      },
+    )
+    .resolve("/project", specifier)
+    .await
+    .map(|r| r.full_path())
+  };
+
+  #[rustfmt::skip]
+  let pass = [
+    ("should try roots first by default", false, "/project/src/a.js", "/project/project/src/a.js"),
+    ("should try the absolute path first", true, "/project/src/a.js", "/project/src/a.js"),
+    ("should still fall back to roots", true, "/src/b.js", "/project/src/b.js"),
+  ];
+
+  for (comment, prefer_absolute, specifier, expected) in pass {
+    let resolved_path = resolve(prefer_absolute, specifier).await;
+    assert_eq!(
+      resolved_path,
+      Ok(PathBuf::from(expected)),
+      "{comment} {specifier}"
+    );
+  }
+}

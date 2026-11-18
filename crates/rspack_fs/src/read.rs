@@ -31,6 +31,12 @@ pub trait ReadableFileSystem: Debug + Send + Sync {
     })
   }
 
+  /// Whether this path is supplied by a virtual overlay, including directories
+  /// containing virtual files.
+  fn is_virtual(&self, _path: &Utf8Path) -> bool {
+    false
+  }
+
   /// See [std::fs::metadata]
   async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata>;
   fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata>;

@@ -457,6 +457,8 @@ type ExecuteModuleContext = {
 
 当所有模块都没有错误地构建完成时调用。
 
+此 hook 中的模块图结构已固定。如需重写模块内容并调用 `compilation.rebuildModule`，请使用 [`compiler.hooks.finishMake`](/api/plugin-api/compiler-hooks#finishmake)。
+
 - **类型：** `AsyncSeriesHook<[Iterable<Module>]>`
 - **参数：**
   - `Iterable<Module>`：模块实例的可迭代对象

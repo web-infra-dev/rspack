@@ -11,6 +11,19 @@ const plugin = definePlugin({
 
 const config: RspackOptions = {
   entry: './src/index.js',
+  externals: [
+    {
+      dep: { commonjs: 'dep', interop: 'esModule' },
+      umdDep: {
+        root: 'dep',
+        commonjs: 'dep',
+        commonjs2: 'dep',
+        amd: 'dep',
+        interop: 'default',
+      },
+    },
+    async () => ({ commonjs: 'dep', interop: 'default' }),
+  ],
   plugins: [
     plugin,
     new rspack.DefinePlugin({
@@ -26,6 +39,14 @@ const config: RspackOptions = {
     ],
   },
 };
+
+const invalidInterop: RspackOptions = {
+  // @ts-expect-error interop only accepts 'default' or 'esModule'.
+  externals: {
+    dep: { commonjs: 'dep', interop: 'auto' },
+  },
+};
+void invalidInterop;
 
 type GlobModule = {
   default: string;

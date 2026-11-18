@@ -1,3 +1,4 @@
+use rspack_core::DependencyId;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_next_ecma_ast::{NodeId, Span};
 
@@ -201,4 +202,5 @@ pub(crate) enum InnerGraphUsageOperation {
   PureExpression(usize),
   ESMImportSpecifier(usize),
   URLDependency(usize),
+  ImportDependency(DependencyId),
 }

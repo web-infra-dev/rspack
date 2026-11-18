@@ -281,12 +281,8 @@ impl From<RawSharedUsedExportsOptimizerPluginOptions>
         .map(|config| config.into())
         .collect(),
       inject_tree_shaking_used_exports: value.inject_tree_shaking_used_exports.unwrap_or(true),
-      manifest_file_name: value
-        .manifest_file_name
-        .and_then(|s| if s.trim().is_empty() { None } else { Some(s) }),
-      stats_file_name: value
-        .stats_file_name
-        .and_then(|s| if s.trim().is_empty() { None } else { Some(s) }),
+      manifest_file_name: value.manifest_file_name.filter(|s| !s.trim().is_empty()),
+      stats_file_name: value.stats_file_name.filter(|s| !s.trim().is_empty()),
     }
   }
 }
@@ -368,7 +364,7 @@ impl From<RawModuleFederationRuntimePluginOptions> for ModuleFederationRuntimePl
   fn from(value: RawModuleFederationRuntimePluginOptions) -> Self {
     Self {
       entry_runtime: value.entry_runtime,
-      experiments: value.experiments.map(Into::into).unwrap_or_default(),
+      experiments: value.experiments.map_or_default(Into::into),
     }
   }
 }

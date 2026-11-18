@@ -74,8 +74,7 @@ pub(crate) fn css_render_conditions_from_module(
     .build_info()
     .css
     .as_deref()
-    .map(|css| css.render_conditions().cloned().collect())
-    .unwrap_or_default()
+    .map_or_default(|css| css.render_conditions().cloned().collect())
 }
 
 pub(crate) fn css_module_has_charset(module: &dyn Module) -> bool {
@@ -141,8 +140,7 @@ pub(crate) fn css_dependency_meta(dependency: &dyn Dependency) -> CssDependencyM
     is_css_import_dependency,
     is_css_dependency,
     render_conditions: css_import_dependency
-      .map(|dep| dep.render_conditions().cloned().collect())
-      .unwrap_or_default(),
+      .map_or_default(|dep| dep.render_conditions().cloned().collect()),
     export_type: css_dependency_export_type(dependency)
       .or_else(|| css_attribute_export_type(dependency.get_attributes())),
   }
@@ -192,8 +190,11 @@ impl LocalIdentRenderCache {
     let content_hash = if compiled_template.has_placeholder(PlaceholderKind::ContentHash) {
       let mut hasher = RspackHasher::new(&output.hash_function);
       hasher.write(options.source.as_bytes());
-      let hash = hasher.digest(&output.hash_digest);
-      non_numeric_only_hash(hash.encoded(), output.hash_digest_length)
+      hasher
+        .digest(&output.hash_digest)
+        .non_numeric_only(output.hash_digest_length)
+        .rendered(output.hash_digest_length)
+        .to_string()
     } else {
       String::new()
     };
@@ -439,24 +440,6 @@ struct LocalIdentNameRenderOptions<'a> {
   local_ident_hash: &'a str,
   unique_name: &'a str,
   folder: &'a str,
-}
-
-fn non_numeric_only_hash(hash: &str, hash_length: usize) -> String {
-  if hash_length < 1 {
-    return String::new();
-  }
-  let len = hash_length.min(hash.len());
-  let slice = &hash[..len];
-  if slice.bytes().any(|b| !b.is_ascii_digit()) {
-    return slice.to_string();
-  }
-  let first = hash
-    .as_bytes()
-    .first()
-    .copied()
-    .filter(u8::is_ascii_digit)
-    .map_or(0, |b| b - b'0');
-  format!("{}{}", char::from(b'a' + (first % 6)), &slice[1..])
 }
 
 impl LocalIdentNameRenderOptions<'_> {

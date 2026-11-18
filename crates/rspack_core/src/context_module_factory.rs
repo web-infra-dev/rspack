@@ -457,19 +457,19 @@ impl ContextModuleFactory {
         // The dependencies can be modified  in the after resolve hook
         data.dependencies = after_resolve_data.dependencies.take();
 
-        let parsed_resource = parse_resource(after_resolve_data.resource.as_str());
-        if let Some(parsed_resource) = parsed_resource {
-          if let Some(query) = &parsed_resource.query {
-            context_module_options.resource_query.clone_from(query);
-          }
-          if let Some(fragment) = &parsed_resource.fragment {
-            context_module_options
-              .resource_fragment
-              .clone_from(fragment);
+        if after_resolve_data.resource != context_module_options.resource {
+          if let Some(parsed_resource) = parse_resource(after_resolve_data.resource.as_str()) {
+            if let Some(query) = parsed_resource.query {
+              context_module_options.resource_query = query;
+            }
+            if let Some(fragment) = parsed_resource.fragment {
+              context_module_options.resource_fragment = fragment;
+            }
+            context_module_options.resource = parsed_resource.path;
+          } else {
+            context_module_options.resource = after_resolve_data.resource;
           }
         }
-
-        context_module_options.resource = after_resolve_data.resource;
         if !matches!(&after_resolve_data.pattern, ContextModulePattern::Glob(_)) {
           context_module_options.context_options.context = after_resolve_data.context;
         }

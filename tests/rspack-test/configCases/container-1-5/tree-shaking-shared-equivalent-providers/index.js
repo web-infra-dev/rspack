@@ -10,8 +10,11 @@ it('emits one artifact per resolved build configuration', () => {
   expect(new Set(fallbacks.map(([entry]) => entry)).size).toBe(EXPECTED_ARTIFACTS);
   expect(new Set(fallbacks.map(([, , globalName]) => globalName)).size).toBe(EXPECTED_ARTIFACTS);
   if (EXPECTED_ARTIFACTS === 1) {
-    expect(fallbacks[0][0]).toBe(`independent-${CASE_NAME}/same_key/1.0.0/share-entry.js`);
-    expect(fallbacks[0][2]).toBe(`equivalent_${CASE_NAME.replaceAll('-', '_')}_f_same_key_100`);
+    const [outputDir, shareDir, ...file] = fallbacks[0][0].split('/');
+    expect(outputDir).toBe(`independent-${CASE_NAME}`);
+    expect(shareDir).toMatch(/^mf_[0-9a-f]{16}$/);
+    expect(file.join('/')).toBe('1.0.0/share-entry.js');
+    expect(fallbacks[0][2]).toMatch(/^mf_[0-9a-f]{16}$/);
   }
   for (const [entry, version, globalName] of fallbacks) {
     expect(CASE_NAME.startsWith('provider-') ? ['1.0.0', '2.0.0'] : ['1.0.0']).toContain(version);

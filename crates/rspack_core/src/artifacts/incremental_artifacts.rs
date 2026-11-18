@@ -27,6 +27,18 @@ impl IncrementalArtifacts {
     self.previous_compilation = Some(compilation);
   }
 
+  /// Frees the previous compilation's assets. Recovery never reads them.
+  ///
+  /// JS getters copy an asset out of the compilation the compiler holds. A copy
+  /// that started before the rebuild swapped compilations still points into the
+  /// previous compilation's assets, so call this only after the new compilation's
+  /// `thisCompilation` hook has run on the JS thread.
+  pub(crate) fn free_previous_assets(&mut self) {
+    if let Some(compilation) = &mut self.previous_compilation {
+      *compilation.assets_mut() = Default::default();
+    }
+  }
+
   pub(crate) fn recover(&mut self, passes: IncrementalPasses, compilation: &mut Compilation) {
     if passes.contains(IncrementalPasses::BUILD_CHUNK_GRAPH)
       && BuildChunkGraphArtifact::should_recover(&compilation.incremental)

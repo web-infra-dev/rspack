@@ -81,10 +81,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
     let scope_prefix = format!("{scope}/");
     let request = dependency.request();
     if request.starts_with(&scope_prefix) {
-      let inner_request = format!(
-        ".{}",
-        &request.chars().skip(scope.len()).collect::<String>()
-      );
+      let inner_request = format!(".{}", request.chars().skip(scope.len()).collect::<String>());
 
       if let Some(resolved) = self.options.content.get(&inner_request) {
         return Ok(Some(

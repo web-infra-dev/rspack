@@ -11,15 +11,19 @@ version.workspace = true
 workspace = true
 
 [dev-dependencies]
-camino           = { workspace = true }
-dashmap          = { workspace = true }
-json             = { workspace = true }
-lightningcss     = { workspace = true }
-once_cell        = { workspace = true }
-rspack_cacheable = { workspace = true }
-rspack_intern    = { workspace = true, features = ["atom"] }
-rspack_sources   = { workspace = true }
-rustc-hash       = { workspace = true }
-serde_json       = { workspace = true }
-ustr             = { workspace = true }
-xxhash-rust      = { workspace = true, features = ["const_xxh64"] }
+camino               = { workspace = true }
+dashmap              = { workspace = true }
+json                 = { workspace = true }
+lightningcss         = { workspace = true }
+once_cell            = { workspace = true }
+rspack_cacheable     = { workspace = true }
+rspack_intern        = { workspace = true, features = ["atom"] }
+rspack_loader_runner = { workspace = true }
+rspack_resolver      = { workspace = true }
+rspack_sources       = { workspace = true }
+rustc-hash           = { workspace = true }
+serde_json           = { workspace = true }
+tempfile             = { workspace = true }
+tokio                = { workspace = true, features = ["macros", "rt-multi-thread"] }
+ustr                 = { workspace = true }
+xxhash-rust          = { workspace = true, features = ["const_xxh64"] }

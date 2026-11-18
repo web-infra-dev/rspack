@@ -17,9 +17,6 @@ export default defineConfig({
       },
     ],
   },
-  experiments: {
-    css: false,
-  },
   plugins: [
     new CssExtractRspackPlugin(),
     new HtmlRspackPlugin({

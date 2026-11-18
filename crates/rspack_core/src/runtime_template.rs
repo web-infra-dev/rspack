@@ -1107,20 +1107,15 @@ impl ModuleCodeTemplate {
       chunk_name: block.get_group_options().and_then(|o| o.name()),
       message: Some(message),
     });
-    let chunks = chunk_group
-      .chunks
-      .iter()
-      .map(|c| {
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_by_ukey
-          .expect_get(c)
-      })
-      .filter(|c| {
-        !c.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
-          && c.id().is_some()
-      })
-      .collect::<Vec<_>>();
+    let chunks = if compilation.hot
+      && let Some(chunk) = chunk_group.get_hmr_loading_chunk(compilation)
+    {
+      vec![chunk]
+    } else {
+      chunk_group
+        .get_loading_chunks(compilation)
+        .collect::<Vec<_>>()
+    };
 
     if chunks.len() == 1 {
       let chunk_id = simd_json::to_string(chunks[0].id().expect("should have chunk.id"))
@@ -1140,9 +1135,7 @@ impl ModuleCodeTemplate {
       format!(
         "{}({comment}{chunk_id}{})",
         self.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
-        fetch_priority
-          .map(|x| format!(r#", "{x}""#))
-          .unwrap_or_default()
+        fetch_priority.map_or_default(|x| format!(r#", "{x}""#))
       )
     } else if !chunks.is_empty() {
       let fetch_priority = chunk_group
@@ -1165,9 +1158,7 @@ impl ModuleCodeTemplate {
             self.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
             simd_json::to_string(c.id().expect("should have chunk.id"))
               .expect("should able to json stringify"),
-            fetch_priority
-              .map(|x| format!(r#", "{x}""#))
-              .unwrap_or_default()
+            fetch_priority.map_or_default(|x| format!(r#", "{x}""#))
           ))
           .collect::<Vec<_>>()
           .join(", ")
@@ -1206,6 +1197,35 @@ impl ModuleCodeTemplate {
       format!("{} ", to_comment(&content))
     } else {
       format!("{} ", to_normal_comment(&content))
+    }
+  }
+
+  pub fn module_side_effects_annotation(
+    &self,
+    compilation: &Compilation,
+    module: &dyn Module,
+  ) -> &'static str {
+    if !self.compiler_options.output.module {
+      return "";
+    }
+    let side_effects = &compilation
+      .build_module_graph_artifact
+      .side_effects_state_artifact;
+    let state = side_effects
+      .module_evaluation_side_effects_state(&module.identifier())
+      .unwrap_or_else(|| {
+        module.get_side_effects_connection_state(
+          compilation.get_module_graph(),
+          &compilation.module_graph_cache_artifact,
+          side_effects,
+          &mut Default::default(),
+          &mut Default::default(),
+        )
+      });
+    if state.is_false() {
+      "/*#__PURE__*/ "
+    } else {
+      ""
     }
   }
 
@@ -1354,8 +1374,9 @@ impl ModuleCodeTemplate {
       return (import_content, String::new());
     }
 
+    let annotation = self.module_side_effects_annotation(compilation, target_module.as_ref());
     let import_content = format!(
-      "/* import */ {opt_declaration}{import_var} = {}({module_id_expr});\n",
+      "/* import */ {opt_declaration}{import_var} = {annotation}{}({module_id_expr});\n",
       self.render_runtime_globals(&RuntimeGlobals::REQUIRE)
     );
     if matches!(exports_type, ExportsType::Dynamic) {
@@ -1668,7 +1689,7 @@ impl ModuleCodeTemplate {
               "",
               &format!(
                 "{header}\nreturn {}({})",
-                &rendered_async_deps_fn,
+                rendered_async_deps_fn,
                 json_stringify(&async_deps)
               )
             )
@@ -1682,7 +1703,7 @@ impl ModuleCodeTemplate {
             self.returning_function(
               &format!(
                 "{}({})",
-                &rendered_async_deps_fn,
+                rendered_async_deps_fn,
                 json_stringify(&async_deps)
               ),
               ""
@@ -1703,10 +1724,7 @@ impl ModuleCodeTemplate {
           ".then({})",
           self.basic_function(
             "",
-            &format!(
-              "{header}\nreturn {}({module_id_expr}, {mode});",
-              &rendered_async_deps_fn
-            )
+            &format!("{header}\nreturn {rendered_async_deps_fn}({module_id_expr}, {mode});")
           )
         );
       } else {

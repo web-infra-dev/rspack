@@ -41,9 +41,6 @@ const makeConfig = (exportType: (typeof exportTypes)[number]) =>
         },
       ],
     },
-    experiments: {
-      css: true,
-    },
   });
 
 export default defineConfig(exportTypes.map(makeConfig));

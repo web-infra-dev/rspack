@@ -364,6 +364,22 @@ impl RspackHashDigest {
     let len = self.encoded.len().min(length);
     &self.encoded[..len]
   }
+
+  pub fn non_numeric_only(self, length: usize) -> Self {
+    let rendered = self.rendered(length);
+    let Some(&first) = rendered.as_bytes().first() else {
+      return self;
+    };
+    if !rendered.bytes().all(|b| b.is_ascii_digit()) {
+      return self;
+    }
+    let mut encoded = String::with_capacity(self.encoded.len());
+    encoded.push(char::from(b'a' + (first - b'0') % 6));
+    encoded.push_str(&self.encoded[1..]);
+    Self {
+      encoded: encoded.into(),
+    }
+  }
 }
 
 impl RspackHash for RspackHashDigest {

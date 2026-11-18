@@ -49,11 +49,7 @@ fn is_bound_function_expression(ast: &Ast<'_>, expr: Expr) -> bool {
   else {
     return false;
   };
-  if ast.get_utf8(property.name(ast)) != "bind" {
-    return false;
-  }
-
-  true
+  ast.get_utf8(property.name(ast)) == "bind"
 }
 
 fn is_callable(ast: &Ast<'_>, expr: Expr) -> bool {

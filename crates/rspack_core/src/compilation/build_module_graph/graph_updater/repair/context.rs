@@ -8,9 +8,8 @@ use super::BuildModuleGraphArtifact;
 use crate::{
   BuildContext, Compilation, CompilerPlatform, DependencyTemplate, DependencyTemplateType,
   DependencyType, ExportsInfoArtifact, ModuleFactory, ResolverFactory, RuntimeTemplate,
-  SharedPluginDriver, ValueCacheVersions,
-  compilation::build_module_graph::module_build_cache::ModuleBuildCache, incremental::Incremental,
-  module_graph::ModuleGraph, new_cache::CompilerCache,
+  SharedPluginDriver, compilation::build_module_graph::module_build_cache::ModuleBuildCache,
+  incremental::Incremental, module_graph::ModuleGraph, new_cache::CompilerCache,
 };
 
 #[derive(Debug)]
@@ -25,7 +24,6 @@ pub struct TaskContext {
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub(crate) cache: CompilerCache,
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
-  pub value_cache_versions: Arc<ValueCacheVersions>,
 
   pub artifact: BuildModuleGraphArtifact,
   pub exports_info_artifact: ExportsInfoArtifact,
@@ -42,7 +40,9 @@ impl TaskContext {
         compiler_id: compilation.compiler_id(),
         compilation_id: compilation.id(),
         compiler_options: compilation.options.clone(),
-        loader_cache: compilation.get_cache("loader"),
+        loader_cache: compilation.loader_cache(),
+        loader_cache_counters: compilation.loader_cache_counters(),
+        value_cache_versions: compilation.value_cache_versions.clone(),
         file_system_info: compilation.file_system_info.clone(),
         resolver_factory: compilation.resolver_factory.clone(),
         runtime_template: RuntimeTemplate::new(compilation.options.clone())
@@ -57,9 +57,8 @@ impl TaskContext {
       dependency_templates: compilation.dependency_templates.clone(),
       intermediate_fs: compilation.intermediate_filesystem.clone(),
       output_fs: compilation.output_filesystem.clone(),
-      module_build_cache: compilation.module_build_cache.clone(),
+      module_build_cache: artifact.module_build_cache.clone(),
       cache: compilation.cache.clone(),
-      value_cache_versions: Arc::new(compilation.value_cache_versions.clone()),
       artifact,
       exports_info_artifact,
     }
@@ -88,17 +87,15 @@ impl TaskContext {
       None,
       Default::default(),
       self.cache.clone(),
+      self.build_context.loader_cache.clone(),
       Default::default(),
       Default::default(),
       self.build_context.fs.clone(),
       self.intermediate_fs.clone(),
       self.output_fs.clone(),
-      // Preserve the module executor's initial-compilation behavior. Its module
-      // cache is disabled explicitly below.
       false,
       compiler_context,
     );
-    compilation.module_build_cache = None;
     compilation.runtime_template =
       RuntimeTemplate::for_module_execution(self.build_context.compiler_options.clone());
     compilation.dependency_factories = self.dependency_factories.clone();

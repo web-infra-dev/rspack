@@ -17,13 +17,15 @@
 
 mod cached_source;
 mod concat_source;
+mod content;
 mod decoder;
+mod dev_tool_code_source;
+mod dev_tool_map_source;
 mod encoder;
 mod error;
 mod helpers;
 mod line_index;
 mod linear_map;
-mod mapping_source;
 mod original_source;
 mod raw_source;
 mod replace_source;
@@ -37,14 +39,16 @@ pub mod cacheable;
 
 pub use cached_source::CachedSource;
 pub use concat_source::ConcatSource;
+pub use content::{source_content_eq, update_content_hash};
+pub use dev_tool_code_source::DevToolCodeSource;
+pub use dev_tool_map_source::DevToolMapSource;
 pub use error::{Error, Result};
-pub use mapping_source::MappingSource;
 pub use original_source::OriginalSource;
 pub use raw_source::{RawBufferSource, RawStringSource};
 pub use replace_source::{ReplaceSource, Replacement, ReplacementEnforce};
-pub(crate) use source::SourceMapFields;
 pub use source::{
   BoxSource, MapOptions, Mapping, OriginalLocation, Source, SourceExt, SourceMap, SourceValue,
+  is_buffer_source,
 };
 pub use source_map_source::{SourceMapSource, SourceMapSourceOptions, WithoutOriginalOptions};
 

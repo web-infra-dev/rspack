@@ -7,9 +7,6 @@ export default defineConfig({
   output: {
     filename: '[name].js',
   },
-  experiments: {
-    css: false,
-  },
   module: {
     rules: [
       {

@@ -14,6 +14,9 @@ pub enum CssIcssSymbolKind {
   LocalReference,
   /// An ICSS value is substituted into the source without identifier escaping.
   IcssReference,
+  /// An implicit grid line uses the generated area name with its original suffix.
+  LocalGridStart,
+  LocalGridEnd,
 }
 
 /// One source occurrence of a CSS symbol, pointing to its shared definition.

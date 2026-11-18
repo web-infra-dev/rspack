@@ -30,7 +30,6 @@ export default defineConfig(
           },
         ],
       },
-      experiments: { css: true },
       plugins: [
         new HtmlRspackPlugin({
           template: './template.html',

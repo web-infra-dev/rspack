@@ -36,7 +36,8 @@ use crate::{
   ModuleLayer, ModuleType, NeedBuildContext, OptimizationBailoutItem, OutputOptions, ParseContext,
   ParseResult, ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions,
   RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  SnapshotValidationResult, SourceType, contextify, contextify_source_map, contextify_source_url,
+  SnapshotValidationResult, SourceType, ValueCacheVersions, contextify, contextify_source_map,
+  contextify_source_url,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -139,6 +140,8 @@ pub struct NormalModule {
   #[cacheable(with=AsOption<AsPreset>)]
   source: Option<BoxSource>,
   diagnostics: Vec<Diagnostic>,
+  /// Index of the first diagnostic that prevented the module from building.
+  error: Option<usize>,
   code_generation_dependencies: Option<Vec<DependencyId>>,
   presentational_dependencies: Option<Vec<DependencyCodeGenerationRef>>,
   build_info: FreezeLock<BuildInfo>,
@@ -235,6 +238,7 @@ impl NormalModule {
       asset_filename_override: Default::default(),
       source: None,
       diagnostics: Default::default(),
+      error: None,
       code_generation_dependencies: None,
       presentational_dependencies: None,
       build_info: build_info.into(),
@@ -282,6 +286,15 @@ impl NormalModule {
     &self.loaders
   }
 
+  pub fn error(&self) -> Option<&Diagnostic> {
+    self.error.map(|index| &self.diagnostics[index])
+  }
+
+  pub fn mark_module_as_errored(&mut self, error_index: usize) {
+    self.build_meta = Default::default();
+    self.error = Some(error_index);
+  }
+
   pub fn parser_and_generator(&self) -> &dyn ParserAndGenerator {
     &*self.parser_and_generator
   }
@@ -298,7 +311,7 @@ impl NormalModule {
   ) -> RspackHashDigest {
     let mut hasher = RspackHasher::from(output_options);
     "source".hash(&mut hasher);
-    if let Some(error) = self.first_error() {
+    if let Some(error) = self.error() {
       error.message.hash(&mut hasher);
     } else if let Some(s) = &self.source {
       std::hash::Hash::hash(s, &mut hasher);
@@ -336,12 +349,7 @@ impl NormalModule {
     file_system_info: &FileSystemInfo,
     build_start_time: u64,
   ) -> Result<Option<Snapshot>> {
-    if !self.build_info.read().cacheable
-      || self
-        .diagnostics
-        .iter()
-        .any(|diagnostic| diagnostic.is_error())
-    {
+    if !self.build_info.read().cacheable || self.error.is_some() {
       return Ok(None);
     }
 
@@ -410,16 +418,15 @@ impl Module for NormalModule {
     }
   }
 
-  async fn need_build(&self, context: &NeedBuildContext<'_>) -> Result<bool> {
-    if self.force_build {
-      return Ok(true);
-    }
+  fn need_build_for_incremental(&self, value_cache_version: &ValueCacheVersions) -> bool {
+    let build_info = self.build_info.read();
+    !build_info.cacheable
+      || value_cache_version.has_diff(&build_info.value_dependencies)
+      || self.error.is_some()
+  }
 
-    if self
-      .diagnostics
-      .iter()
-      .any(|diagnostic| diagnostic.is_error())
-    {
+  async fn need_build(&self, context: &NeedBuildContext<'_>) -> Result<bool> {
+    if self.force_build || self.error.is_some() {
       return Ok(true);
     }
 
@@ -465,8 +472,8 @@ impl Module for NormalModule {
   }
 
   #[tracing::instrument("NormalModule:build", skip_all, fields(
-    perfetto.track_name = format!("Module Build"),
-    perfetto.process_name = format!("Rspack Build Detail"),
+    perfetto.track_name = "Module Build",
+    perfetto.process_name = "Rspack Build Detail",
     module.resource = self.resource_resolved_data().resource(),
     module.identifier = self.identifier().as_str(),
     module.loaders = ?self.loaders.iter().map(|l| l.identifier().as_str()).collect::<Vec<_>>())
@@ -478,6 +485,8 @@ impl Module for NormalModule {
   ) -> Result<BoxModule> {
     self.dependencies_block = Default::default();
     self.force_build = false;
+    self.error = None;
+    self.diagnostics.clear();
     self.build_info.get_mut().snapshot = None;
     self.build_info.get_mut().optimization_bailouts.clear();
 
@@ -507,6 +516,7 @@ impl Module for NormalModule {
     let compiler_options = build_context.compiler_options.clone();
     let resolver_factory = build_context.resolver_factory.clone();
     let fs = build_context.fs.clone();
+    let loader_cache = build_context.loader_cache.upgrade();
     let (loader_result, err) = run_loaders(
       self.loaders.clone(),
       self.loader_options.clone(),
@@ -518,7 +528,8 @@ impl Module for NormalModule {
         compilation_id,
         options: compiler_options,
         fs: fs.clone(),
-        loader_cache: build_context.loader_cache.clone(),
+        loader_cache,
+        loader_cache_counters: build_context.loader_cache_counters.clone(),
         file_system_info: build_context.file_system_info.clone(),
         resolver_factory,
         source_map_kind: self.source_map_kind,
@@ -529,6 +540,7 @@ impl Module for NormalModule {
     .instrument(info_span!("NormalModule:run_loaders",))
     .await;
     self = loader_result.context.module;
+    self.add_diagnostics(loader_result.diagnostics);
 
     if let Some(err) = err {
       self.build_info.get_mut().cacheable = loader_result.cacheable;
@@ -546,7 +558,8 @@ impl Module for NormalModule {
         err,
         current_loader,
       )));
-      self.diagnostics.push(diagnostic);
+      self.mark_module_as_errored(self.diagnostics.len());
+      self.add_diagnostic(diagnostic);
 
       self.build_info.get_mut().hash = Some(self.init_build_hash(
         &build_context.compiler_options.output,
@@ -554,8 +567,6 @@ impl Module for NormalModule {
       ));
       return Ok(BoxModule::new(self));
     };
-
-    self.add_diagnostics(loader_result.diagnostics);
 
     let is_binary = self
       .get_generator_options()
@@ -625,6 +636,7 @@ impl Module for NormalModule {
         loaders: &self.loaders,
         resource_data: &self.resource_data,
         compiler_options: &build_context.compiler_options,
+        value_cache_versions: &build_context.value_cache_versions,
         additional_data: loader_result.additional_data,
         factory_meta: factory_meta.as_deref(),
         build_info: self.build_info.get_mut(),
@@ -634,11 +646,18 @@ impl Module for NormalModule {
       })
       .await?
       .split_into_parts();
-    if diagnostics.iter().any(|d| d.is_error()) {
-      self.build_meta = Default::default();
-    }
-    if !diagnostics.is_empty() {
-      self.add_diagnostics(diagnostics);
+    self.source = Some(source);
+    let diagnostics_start = self.diagnostics.len();
+    self.add_diagnostics(diagnostics);
+    for i in diagnostics_start..self.diagnostics.len() {
+      if self.diagnostics[i].is_error() {
+        self.mark_module_as_errored(i);
+        self.build_info.get_mut().hash = Some(self.init_build_hash(
+          &build_context.compiler_options.output,
+          &self.build_meta.read(),
+        ));
+        return Ok(BoxModule::new(self));
+      }
     }
     if let Some(side_effects_bailout) = side_effects_bailout {
       let short_id = self
@@ -656,7 +675,6 @@ impl Module for NormalModule {
     }
     // Only side effects used in code_generate can stay here
     // Other side effects should be set outside use_cache
-    self.source = Some(source);
     self.code_generation_dependencies = Some(code_generation_dependencies);
     presentational_dependencies.shrink_to_fit();
     self.presentational_dependencies = Some(presentational_dependencies);
@@ -684,7 +702,7 @@ impl Module for NormalModule {
       runtime_template,
     } = code_generation_context;
 
-    if let Some(error) = self.first_error() {
+    if let Some(error) = self.error() {
       let mut code_generation_result = CodeGenerationResultBuilder::default();
       let module_graph = compilation.get_module_graph();
 
@@ -950,7 +968,7 @@ impl NormalModule {
     &self,
     context: &str,
     content: Content,
-    source_map: Option<SourceMap<'static>>,
+    source_map: Option<SourceMap>,
   ) -> Result<BoxSource> {
     if content.is_buffer() {
       return Ok(RawBufferSource::from(content.into_bytes()).boxed());

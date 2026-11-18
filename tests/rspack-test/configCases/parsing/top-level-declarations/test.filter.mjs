@@ -1,1 +1,1 @@
-export default () => "TODO: support module.parser.javascript.createRequire";
+export default () => "TODO: fix the fixture bundle lookup and expose module.buildInfo.topLevelDeclarations";

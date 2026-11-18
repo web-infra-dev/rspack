@@ -1,0 +1,6 @@
+{
+	"extends": ["./configs/first.json", "./configs/second.json"],
+	"compilerOptions": {
+		"paths": { "@/*": ["./own/*"] }
+	}
+}

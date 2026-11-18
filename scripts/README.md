@@ -1,27 +1,23 @@
-## JavaScript related workflow
+## Development scripts
 
-Scripts here are related to development workflow of Rspack.
+This directory contains scripts for developing, benchmarking, and releasing Rspack.
 
-## Usages
+## Usage
+
+Run JavaScript scripts from the repository root with Node.js:
 
 ```bash
-node ./scripts/xxxx.js
+node ./scripts/x.mjs --help
 ```
 
-- Some scripts require executing under the folder of workspace root. Don't worries, they would validate the environment while executing.
+The development CLI is also available through `./x` or `pnpm x`. See the [development commands](../.agents/DEVELOPMENT.md) for common build and test workflows.
 
-## Guidance
+Declare script dependencies in [package.json](./package.json).
 
-Scripts in `meta` folder are self-contained and shouldn't rely on denpendencis outside the `meta` folder(especially modules in `node_modules`). Built-in modules of `node` are ok to use.
+## Writing scripts with zx
 
-### Writing scripts with zx
-
-[zx](https://github.com/google/zx) is a wonderful tool for Writing scripts using JavaScript.
-
-There are many [ways](https://github.com/google/zx#documentation) to use zx. The way we recommended is import globals explicitly.
+When using [zx](https://github.com/google/zx), import its globals explicitly so the script can run with Node.js:
 
 ```js
 import 'zx/globals';
 ```
-
-This allow us to execute every script(some of them might not use zx) in this folder by using the same way: `node ./scripts/xxxx.js`

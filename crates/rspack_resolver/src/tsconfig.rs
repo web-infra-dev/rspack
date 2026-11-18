@@ -92,6 +92,11 @@ pub(crate) fn is_relative_specifier(specifier: &str) -> bool {
 impl TsConfig {
   #[cfg_attr(feature="enable_instrument", tracing::instrument(level=tracing::Level::DEBUG, skip_all, fields(path = path.as_str())))]
   pub fn parse(root: bool, path: &Utf8Path, json: &mut str) -> Result<Self, serde_json::Error> {
+    let json = if json.starts_with('\u{feff}') {
+      &mut json['\u{feff}'.len_utf8()..]
+    } else {
+      json
+    };
     _ = json_strip_comments::strip(json);
     if json.trim().is_empty() {
       let mut tsconfig: Self = serde_json::from_str("{}")?;
@@ -246,9 +251,14 @@ impl TsConfig {
       Clone::clone,
     );
 
+    let paths_base = self
+      .compiler_options
+      .base_url
+      .as_ref()
+      .unwrap_or(&self.compiler_options.paths_base);
     paths
       .into_iter()
-      .map(|p| self.compiler_options.paths_base.normalize_with(p))
+      .map(|p| paths_base.normalize_with(p))
       .chain(base_url_iter)
       .collect()
   }

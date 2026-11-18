@@ -4,9 +4,6 @@ import { CssExtractRspackPlugin } from '@rspack/core';
 
 export default defineConfig({
   entry: './src/index.js',
-  experiments: {
-    css: false,
-  },
   module: {
     rules: [
       {
