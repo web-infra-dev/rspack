@@ -17,15 +17,6 @@ const blue = "blue";
 
 
 },
-"./colors/c.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  result: () => (/* reexport safe */ _result__rspack_import_0.result)
-});
-/* import */ var _result__rspack_import_0 = __webpack_require__("./colors/result.js");
-
-
-
-},
 "./colors/index.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
@@ -35,7 +26,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 /* import */ var _a__rspack_import_0 = __webpack_require__("./colors/a.js");
 /* import */ var _b__rspack_import_1 = __webpack_require__("./colors/b.js");
-/* import */ var _c__rspack_import_2 = __webpack_require__("./colors/c.js");
+/* import */ var _c__rspack_import_2 = __webpack_require__("./colors/result.js");
 
 
 

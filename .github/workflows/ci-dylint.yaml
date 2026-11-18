@@ -36,11 +36,20 @@ jobs:
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     env:
       DYLINT_RUSTFLAGS: '-D warnings'
-      # SWC Next 0.1.3 uses `std::hint::cold_path`, which requires a newer nightly.
-      DYLINT_TOOLCHAIN: nightly-2026-05-28
-      DYLINT_VERSION: 6.3.0
+      # Keep the lint driver aligned with the workspace compiler APIs.
+      DYLINT_TOOLCHAIN: nightly-2026-11-13
+      DYLINT_VERSION: 6.4.0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Restore Dylint tool cache
+        id: dylint-tool-cache
+        uses: ./.github/actions/cache/restore
+        with:
+          path: |
+            ~/.cargo/bin/cargo-dylint
+            ~/.cargo/bin/dylint-link
+          key: dylint-tool-cache-v1-${{ runner.os }}-${{ runner.arch }}-${{ env.DYLINT_VERSION }}-${{ env.DYLINT_TOOLCHAIN }}
 
       - name: Restore Dylint cache
         id: dylint-cache
@@ -73,8 +82,29 @@ jobs:
 
       - name: Install cargo-dylint
         run: |
-          cargo binstall --no-confirm --force "cargo-dylint@${DYLINT_VERSION}"
-          cargo binstall --no-confirm --force "dylint-link@${DYLINT_VERSION}"
+          # Build from source: the Linux prebuilt binaries require GLIBC 2.38+,
+          # which is newer than the glibc available on older CI runners.
+          # The binaries are restored from the tool cache above, so this only
+          # compiles on a cache miss.
+          install_dylint_tool() {
+            local tool="$1"
+            if command -v "$tool" >/dev/null 2>&1 && "$tool" --version 2>/dev/null | grep -Eq " ${DYLINT_VERSION}$"; then
+              echo "$tool $DYLINT_VERSION is already installed"
+            else
+              cargo binstall --no-confirm --force --strategies compile "$tool@$DYLINT_VERSION"
+            fi
+          }
+          install_dylint_tool cargo-dylint
+          install_dylint_tool dylint-link
+
+      - name: Save Dylint tool cache
+        if: ${{ success() && steps.dylint-tool-cache.outputs.cache-hit != 'true' }}
+        uses: ./.github/actions/cache/save
+        with:
+          path: |
+            ~/.cargo/bin/cargo-dylint
+            ~/.cargo/bin/dylint-link
+          key: dylint-tool-cache-v1-${{ runner.os }}-${{ runner.arch }}-${{ env.DYLINT_VERSION }}-${{ env.DYLINT_TOOLCHAIN }}
 
       - name: Run dylint
         run: cargo dylint --all

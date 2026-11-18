@@ -4,7 +4,6 @@ categories.workspace    = true
 description             = "ESM library plugin for Rspack"
 documentation.workspace = true
 edition                 = "2024"
-homepage.workspace      = true
 license.workspace       = true
 name                    = "rspack_plugin_esm_library"
 repository.workspace    = true
@@ -30,7 +29,6 @@ atomic_refcell = { workspace = true }
 cow-utils      = { workspace = true }
 rayon          = { workspace = true }
 regex          = { workspace = true }
-serde          = { workspace = true }
 serde_json     = { workspace = true }
 sugar_path     = { workspace = true }
 tokio          = { workspace = true }
@@ -44,4 +42,4 @@ doctest = false
 
 
 [package.metadata.cargo-shear]
-ignored = ["serde", "rspack_hash", "rspack_cacheable"]
+ignored = ["rspack_hash"]

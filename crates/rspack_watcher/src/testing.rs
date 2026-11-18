@@ -1,15 +1,45 @@
-//! Internal test support using the directory analyzer on every platform.
+//! Internal test support for the watcher.
 
-use std::{sync::Arc, time::SystemTime};
+use std::{
+  sync::{Arc, Mutex},
+  time::{Instant, SystemTime},
+};
 
 use notify::{Event, RecursiveMode};
 use rspack_paths::InternedPath;
+use rspack_util::fx_hash::FxHashSet;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 
 use crate::{
-  EventBatch, FsEventKind, ResolvedEvents, analyzer::Analyzer, disk_watcher::handle_event,
-  paths::PathManager, scanner::Scanner, trigger::Trigger,
+  EventBatch, FsEventKind, FsWatcher, ResolvedEvents, analyzer::Analyzer,
+  disk_watcher::handle_event, paths::PathManager, scanner::Scanner, trigger::Trigger,
 };
+
+/// Recorded under the aggregate-set lock to preserve acceptance and snapshot order.
+#[derive(Debug)]
+pub enum ExecutorEvent {
+  Accepted {
+    at: Instant,
+    events: Vec<(String, FsEventKind)>,
+  },
+  Aggregated {
+    at: Instant,
+    changed_files: FxHashSet<String>,
+    deleted_files: FxHashSet<String>,
+  },
+}
+
+pub(crate) type ExecutorTrace = Arc<Mutex<Vec<ExecutorEvent>>>;
+
+/// Read after closing the watcher to inspect its complete executor timeline.
+pub fn take_executor_events(watcher: &FsWatcher) -> Vec<ExecutorEvent> {
+  std::mem::take(
+    &mut *watcher
+      .executor_trace
+      .lock()
+      .expect("executor trace poisoned"),
+  )
+}
 
 pub struct DirectoryAnalyzer {
   paths: Arc<PathManager>,

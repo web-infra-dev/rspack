@@ -447,6 +447,9 @@ export type Environment = {
   /** The environment supports logical assignment ('a ||= b'). */
   logicalAssignment?: boolean;
 
+  /** The environment supports spread and rest in array/object literals and calls ('{ ...obj }'). */
+  spread?: boolean;
+
   /** The environment supports template literals. */
   templateLiteral?: boolean;
   /** The environment supports top-level await ('await x' at the top level of a module). */
@@ -1863,6 +1866,9 @@ export type ExternalsType =
 
 //#region Externals
 
+/** How an external's exports interoperate with ES module imports. */
+export type ExternalItemInterop = 'default' | 'esModule';
+
 /**
  * External item object when both library.type and externalsType is 'umd'
  */
@@ -1871,12 +1877,17 @@ export type ExternalItemUmdValue = {
   commonjs: string | string[];
   commonjs2: string | string[];
   amd: string | string[];
+  /** Overrides default-export interop independently of the importing module. */
+  interop?: ExternalItemInterop;
 };
 
 /**
  * External item object when not umd
  */
-export type ExternalItemObjectValue = Record<string, string | string[]>;
+export type ExternalItemObjectValue = Record<string, string | string[]> & {
+  /** Overrides default-export interop independently of the importing module. */
+  interop?: ExternalItemInterop;
+};
 
 /**
  * The dependency used for the external.
@@ -2942,8 +2953,9 @@ export type Optimization = {
 
   /**
    * Which algorithm to use when choosing chunk ids.
-   * Setting to `false` disables the built-in algorithm, allowing a custom plugin
-   * to provide chunk ids instead.
+   * Setting this to `false` disables automatic chunk ID assignment. Add a chunk ID
+   * plugin from `rspack.ids`, such as `new rspack.ids.CompactHashedChunkIdsPlugin()`,
+   * to `plugins`. Custom JavaScript plugins cannot currently assign chunk IDs.
    */
   chunkIds?:
     | false

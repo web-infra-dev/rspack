@@ -26,6 +26,8 @@ It provides methods like [run](#run) and [watch](#watch) to start builds, and ex
 
 Starts a compilation and calls the callback when compilation completes or fails with an error.
 
+The callback receives a [Stats](/api/javascript-api/stats) object as its second argument. Use it to check errors and warnings and read build results.
+
 ```ts
 function run(
   callback: (
@@ -73,6 +75,8 @@ compiler.run((err, stats) => {
 ### watch
 
 Watches files and directories, starting a compilation after they change. Calls the handler after each compilation completes or fails.
+
+After each build completes, the handler receives a [Stats](/api/javascript-api/stats) object for that build as its second argument. Use it to check errors and warnings and read build results.
 
 ```ts
 function watch(

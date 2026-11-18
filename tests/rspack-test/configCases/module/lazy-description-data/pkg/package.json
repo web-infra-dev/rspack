@@ -1,0 +1,6 @@
+{
+  "name": "lazy-description-data",
+  "sideEffects": false,
+  "component": { "scope": "react", "nullable": null, "list": ["a", "b"] },
+  "unread": { "nested": { "value": "must remain available to full JSON readers" } }
+}

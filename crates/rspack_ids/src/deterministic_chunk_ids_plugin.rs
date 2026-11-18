@@ -16,9 +16,14 @@ use crate::id_helpers::{
 pub struct DeterministicChunkIdsPlugin {
   pub delimiter: String,
   pub context: Option<String>,
+  salt: Option<usize>,
 }
 
-impl DeterministicChunkIdsPlugin {}
+impl DeterministicChunkIdsPlugin {
+  pub fn new(salt: Option<usize>) -> Self {
+    Self::new_inner(String::new(), None, salt)
+  }
+}
 
 #[plugin_hook(CompilationChunkIds for DeterministicChunkIdsPlugin)]
 async fn chunk_ids(
@@ -50,7 +55,6 @@ async fn chunk_ids(
 
   let max_length = 3;
   let expand_factor = 10;
-  let salt = 10;
 
   let chunks = chunk_by_ukey
     .values()
@@ -113,7 +117,7 @@ async fn chunk_ids(
     &[usize::pow(10, max_length)],
     expand_factor,
     used_ids_len,
-    salt,
+    self.salt.unwrap_or(10),
   );
 
   for (chunk_ukey, id) in chunk_key_to_id {

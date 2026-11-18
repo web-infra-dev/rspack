@@ -760,6 +760,7 @@ export interface JsCodegenerationResults {
 }
 
 export interface JsCreateData {
+  context?: string
   request: string
   userRequest: string
   resource: string
@@ -939,6 +940,7 @@ export interface JsLoaderContext {
   loaderChainStart: number
   loaderChainEnd: number
   __internal__error?: RspackError
+  __internal__diagnostics?: Array<JsRspackDiagnostic>
 }
 
 export interface JsLoaderDependencies {
@@ -2032,10 +2034,12 @@ export interface RawCollectShareEntryPluginOptions {
 
 export interface RawCompactHashedChunkIdsPluginOptions {
   minLength?: number
+  salt?: number
 }
 
 export interface RawCompactHashedModuleIdsPluginOptions {
   minLength?: number
+  salt?: number
 }
 
 export interface RawCompilerPlatform {
@@ -2281,6 +2285,10 @@ export interface RawCssParserOptions {
   resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
 }
 
+export interface RawDeterministicChunkIdsPluginOptions {
+  salt?: number
+}
+
 export interface RawDeterministicModuleIdsPluginOptions {
   context?: string
   test?: (module: Module) => boolean
@@ -2355,6 +2363,7 @@ export interface RawEnvironment {
   module: boolean
   optionalChaining: boolean
   logicalAssignment: boolean
+  spread: boolean
   templateLiteral: boolean
   dynamicImportInWorker: boolean
   importMetaDirnameAndFilename: boolean

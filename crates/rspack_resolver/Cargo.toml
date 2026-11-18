@@ -12,9 +12,6 @@ readme               = "README.md"
 repository.workspace = true
 version.workspace    = true
 
-[lib]
-doctest = false
-
 [lints]
 workspace = true
 
@@ -54,6 +51,7 @@ tokio = { workspace = true, features = ["sync", "macros"] }
 [dev-dependencies]
 normalize-path = { workspace = true }
 regex          = { workspace = true }
+tempfile       = { workspace = true }
 vfs            = { workspace = true } # for testing with in memory file system
 
 [features]
@@ -68,7 +66,8 @@ yarn_pnp = ["pnp", "arc-swap"]
 enable_instrument = []
 
 [package.metadata.docs.rs]
-all-features = true
+# Exclude allocative, which depends on version-specific nightly reflection APIs.
+features     = ["document-features", "enable_instrument", "package_json_raw_json_api", "yarn_pnp"]
 rustdoc-args = ["--cfg", "docsrs"]
 
 [package.metadata.cargo-shear]

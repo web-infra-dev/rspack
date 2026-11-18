@@ -324,7 +324,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         let imports_obj = if !import_obj_request_items.is_empty() {
           Some(format!(
             ", {{\n{}\n}}",
-            &import_obj_request_items.join(",\n")
+            import_obj_request_items.join(",\n")
           ))
         } else {
           None

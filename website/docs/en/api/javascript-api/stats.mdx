@@ -9,44 +9,46 @@ import { Badge } from '@theme';
 
 # Stats
 
-The `stats` object that is passed as a second argument of the [`rspack()`](/api/javascript-api/#rspack) callback, is a good source of information about the code compilation process. It includes:
+The `Stats` object provides information about a single build, including errors, warnings, build duration, output assets, modules, and chunks. Use it in build scripts or plugins to check whether a build succeeded, print a summary, or provide data to an analysis tool.
 
-- Errors and Warnings (if any)
-- Timings
-- Module and Chunk information
+Its main methods are:
 
-The `Stats` object provides two important methods:
+- [`hasErrors()`](#haserrors) and [`hasWarnings()`](#haswarnings): Check whether the build has errors or warnings.
+- [`toJson()`](#tojson): Return the build information you need as a JavaScript object for further processing or analysis.
+- [`toString()`](#tostring): Format the build information you need as text for console output.
 
-- `toJson()`: Output information in the form of a [Stats JSON](/api/javascript-api/stats-json) object, which is often used in analysis tools.
-- `toString()`: Output information in the form of a string, which is often used in the CLI tools.
+## Getting stats
 
-Rspack also provides `StatsFactory` and `StatsPrinter` to fine-grained control the output object or string.
+When you call [`rspack()`](/api/javascript-api/#rspack) to run a build, its callback receives a `Stats` object as the second argument. The following script prints build errors and warnings and sets a nonzero exit code if the build fails:
 
-```txt title=Stats Output
-Compilation ===============> Stats JSON =================> Stats Output
-           ╰─ StatsFactory ─╯           ╰─ StatsPrinter ─╯
-╰─────────── stats.toJson() ───────────╯
-╰───────────────────────── stats.toString() ──────────────────────────╯
-```
+```js title="build.mjs"
+import { rspack } from '@rspack/core';
+import config from './rspack.config.mjs';
 
-Create a stats object related to a compilation through [`compilation.getStats()`](/api/javascript-api/compilation#getstats) or `new Stats(compilation)`.
+rspack(config, (err, stats) => {
+  if (err) {
+    console.error(err);
+    process.exitCode = 1;
+    return;
+  }
 
-:::warning Timing matters
+  console.log(stats.toString('errors-warnings'));
 
-`stats.toJson()` and `stats.toString()` rely on compilation artifacts that are finalized in `compiler.hooks.done`. If they are called at other times (for example, on stale `Stats` objects captured earlier), some stats fields can be incomplete.
-
-For complete and stable stats output, call these methods in `compiler.hooks.done`:
-
-```js
-compiler.hooks.done.tap('MyPlugin', (stats) => {
-  const statsJson = stats.toJson({ all: false, errors: true, warnings: true });
-  const statsText = stats.toString({ preset: 'errors-warnings' });
-  console.log(statsJson.errors);
-  console.log(statsText);
+  if (stats.hasErrors()) {
+    process.exitCode = 1;
+  }
 });
 ```
 
-:::
+The callback's `err` argument reports errors that prevent Rspack from completing the build. Compilation errors, such as missing modules or syntax errors, are recorded in `stats`. Even when `err` is absent, check `stats.hasErrors()` to determine whether the build succeeded.
+
+You can also get stats in the following ways:
+
+- **With a Compiler instance:** Read the second callback argument of [`compiler.run()`](/api/javascript-api/compiler#run) or [`compiler.watch()`](/api/javascript-api/compiler#watch). In watch mode, the callback receives the result of each completed build.
+- **In a plugin:** Read the stats passed to the [`compiler.hooks.done`](/api/plugin-api/compiler-hooks#done) callback when compilation finishes.
+- **With a Compilation object:** Call [`compilation.getStats()`](/api/javascript-api/compilation#getstats) to get its stats. See [Call timing](#call-timing) before generating output.
+
+If you pass an array of configurations to `rspack()`, the callback receives a [`MultiStats`](#multistats) object containing the build result for each configuration.
 
 ## Stats methods
 
@@ -90,6 +92,8 @@ if (stats.hasWarnings()) {
 
 Return compilation information as a [Stats JSON](/api/javascript-api/stats-json) object. Pass a [stats preset or options object](/config/stats) to choose what to include.
 
+For usage guidance, see [Call timing](#call-timing) and [Performance overhead](#performance-overhead).
+
 For the structure and field descriptions of objects in `assets`, see [Asset object](/api/javascript-api/stats-json#asset-object).
 
 **Type:**
@@ -109,7 +113,7 @@ Use an options object to select the fields to include, then print the compilatio
 
 ```js
 const statsJson = stats.toJson({
-  assets: false,
+  all: false,
   hash: true,
 });
 console.log(statsJson.hash);
@@ -118,6 +122,8 @@ console.log(statsJson.hash);
 ### toString
 
 Return the compilation information in the form of a formatted string (similar to the output of [CLI](/api/cli)).
+
+For usage guidance, see [Call timing](#call-timing) and [Performance overhead](#performance-overhead).
 
 **Type:**
 
@@ -186,6 +192,39 @@ if (stats.hash !== null) {
   console.log(stats.hash);
 }
 ```
+
+## Usage notes
+
+### Call timing
+
+`stats.toJson()` and `stats.toString()` rely on compilation artifacts that are finalized in `compiler.hooks.done`. If they are called at other times (for example, on stale `Stats` objects captured earlier), some stats fields can be incomplete.
+
+For complete and stable stats output, call these methods in `compiler.hooks.done`:
+
+```js
+compiler.hooks.done.tap('MyPlugin', (stats) => {
+  const statsJson = stats.toJson({ all: false, errors: true, warnings: true });
+  const statsText = stats.toString({ preset: 'errors-warnings' });
+  console.log(statsJson.errors);
+  console.log(statsText);
+});
+```
+
+### Performance overhead
+
+`stats.toJson()` and `stats.toString()` collect compilation data from Rust and process it in JavaScript. Enabling [`all: true`](/config/stats#statsall) can significantly increase the amount of data transferred and the time spent generating stats, especially in large projects. Detailed fields such as module sources, reasons, and chunk modules should only be enabled when needed.
+
+Pass `all: false` and enable only the fields your code uses. These options must be passed directly to `toJson()` or `toString()`, which do not automatically inherit the top-level `stats` configuration. For example, to read error and warning details:
+
+```js
+const statsJson = stats.toJson({
+  all: false,
+  errors: true,
+  warnings: true,
+});
+```
+
+If you need the same information more than once within a build, reuse the generated result to avoid the overhead of repeated calls.
 
 ## MultiStats
 
@@ -289,7 +328,14 @@ console.log(statsText);
 
 ## Stats factory
 
-Used to generate the stats json object from the Compilation, and provides hooks for fine-grained control during the generation process.
+`StatsFactory` generates Stats JSON from a Compilation and provides hooks to customize the result. When generating text output, `StatsPrinter` formats that JSON as a string. The following diagram shows how they work together in `stats.toJson()` and `stats.toString()`:
+
+```txt title=Stats Output
+Compilation ===============> Stats JSON =================> Stats Output
+           ╰─ StatsFactory ─╯           ╰─ StatsPrinter ─╯
+╰─────────── stats.toJson() ───────────╯
+╰───────────────────────── stats.toString() ──────────────────────────╯
+```
 
 It can be got through [`compilation.hooks.statsFactory`](/api/plugin-api/compilation-hooks#statsfactory). Or create a new one by `new StatsFactory()`.
 

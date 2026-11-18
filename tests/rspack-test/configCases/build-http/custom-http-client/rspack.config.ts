@@ -24,6 +24,5 @@ export default defineConfig({
       ),
       httpClient: customHttpClient,
     },
-    css: false,
   },
 });

@@ -102,12 +102,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockPa
       .get_node(ast, 3)
       .or_else(|| if error_expr.is_some() { None } else { arguments.get_node(ast, 2) }) // !errorExpression
     {
-      Some(arg) => match arg
+      Some(arg) => {
+          let chunk_name = arg
         .as_expr(ast)
-        .and_then(|expr| parser.evaluate_expression(expr).as_string())
-      {
-        Some(chunk_name) => Some(chunk_name),
-        None => return None,
+        .and_then(|expr| parser.evaluate_expression(expr).as_string())?;
+          Some(chunk_name)
       },
       None => None,
     };

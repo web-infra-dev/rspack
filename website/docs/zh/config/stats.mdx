@@ -64,7 +64,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 控制所有 stats options 是否输出。
 
 :::warning 警告
-开启 `stats.all` 会导致大量的 Rust 与 JavaScript 的数据传输，这将显著提高 Stats 生成耗时，请谨慎使用。
+开启 `stats.all` 可能显著增加 Rust 与 JavaScript 之间的数据传输量和 Stats 生成耗时。建议设置 `all: false`，只开启需要的字段。这也适用于传给 `stats.toJson()` 和 `stats.toString()` 的选项，示例见[性能开销](/api/javascript-api/stats#performance-overhead)。
 :::
 
 ### stats.preset

@@ -43,7 +43,4 @@ export default defineConfig({
   watchOptions: {
     poll: 1000,
   },
-  experiments: {
-    css: false,
-  },
 });

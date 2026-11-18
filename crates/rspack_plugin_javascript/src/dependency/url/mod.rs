@@ -168,7 +168,7 @@ impl DependencyTemplate for URLDependencyTemplate {
             "new URL({}, import.meta.url)",
             rspack_util::json_stringify_str(&format!(
               "{AUTO_PUBLIC_PATH_PLACEHOLDER}{URL_STATIC_PLACEHOLDER}{}",
-              &dep.id.as_u32()
+              dep.id.as_u32()
             )),
           ),
           None,

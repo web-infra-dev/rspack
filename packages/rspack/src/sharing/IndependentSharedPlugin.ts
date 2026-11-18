@@ -7,15 +7,14 @@ import {
   type ModuleFederationManifestPluginOptions,
 } from '../container/ModuleFederationManifestPlugin';
 import { parseOptions } from '../container/options';
+import type { Logger } from '../logging/Logger';
+import type { Stats } from '../Stats';
 import {
   CollectSharedEntryPlugin,
   type ShareRequestsMap,
 } from './CollectSharedEntryPlugin';
 import { ConsumeSharedPlugin } from './ConsumeSharedPlugin';
-import {
-  SharedContainerPlugin,
-  type SharedContainerPluginOptions,
-} from './SharedContainerPlugin';
+import { SharedContainerPlugin } from './SharedContainerPlugin';
 import { SharedUsedExportsOptimizerPlugin } from './SharedUsedExportsOptimizerPlugin';
 import type { Shared, SharedConfig } from './SharePlugin';
 import { encodeName, isRequiredVersion } from './utils';
@@ -102,8 +101,10 @@ class VirtualEntryPlugin {
               chunk?.files.forEach((f) => {
                 compilation.deleteAsset(f);
               });
-            } catch (_e) {
-              console.error('Failed to remove virtual entry file!');
+            } catch (error) {
+              compiler
+                .getInfrastructureLogger('VirtualEntryPlugin')
+                .error('Failed to remove virtual entry file!', error);
             }
           },
         );
@@ -111,6 +112,13 @@ class VirtualEntryPlugin {
     );
   }
 }
+
+type SharedFallbackBuild = {
+  shareName: string;
+  outputDir: string;
+  plugin: SharedContainerPlugin;
+  buildAsset: [string, string, string];
+};
 
 const resolveOutputDir = (outputDir: string, shareName?: string) => {
   return shareName ? join(outputDir, encodeName(shareName)) : outputDir;
@@ -207,9 +215,17 @@ export class IndependentSharedPlugin {
         stage: BUILD_SHARED_FALLBACK_STAGE,
       },
       async () => {
-        const shareRequestsMap = collectSharedEntryPlugin.getData();
-        this.prepareBuildAssets(shareRequestsMap);
-        await this.createIndependentCompilers(compiler, shareRequestsMap);
+        const builds = this.prepareFallbackBuilds(
+          collectSharedEntryPlugin.getData(),
+        );
+        const logger = compiler.getInfrastructureLogger(this.name);
+        logger.log('Start building shared fallback resources ...');
+        await Promise.all(
+          builds.map((build) =>
+            this.createIndependentCompiler(compiler, logger, build),
+          ),
+        );
+        logger.log('All shared fallback have been compiled successfully!');
         this.onBuildAssets?.(this.buildAssets);
       },
     );
@@ -276,120 +292,64 @@ export class IndependentSharedPlugin {
     }
   }
 
-  private prepareBuildAssets(shareRequestsMap: ShareRequestsMap) {
-    const { sharedOptions, outputDir, mfName, treeShaking, library } = this;
+  private prepareFallbackBuilds(shareRequestsMap: ShareRequestsMap) {
+    const { sharedOptions, mfName, treeShaking, library } = this;
     const buildAssets: ShareFallback = {};
+    const builds: SharedFallbackBuild[] = [];
 
-    sharedOptions.forEach(([shareName, shareConfig]) => {
+    for (const [key, shareConfig] of sharedOptions) {
       if (!shareConfig.treeShaking || shareConfig.import === false) {
-        return;
+        continue;
       }
-      const sharedConfig = sharedOptions.find(
-        ([name]) => name === shareName,
-      )?.[1];
-      const shareRequests = getShareRequests(shareRequestsMap, shareName);
-
-      shareRequests.forEach(([request, version]) => {
-        const sharedContainerPlugin = new SharedContainerPlugin({
+      const shareName = shareConfig.shareKey || key;
+      const outputDir = resolveOutputDir(this.outputDir, shareName);
+      for (const [request, version] of getShareRequests(
+        shareRequestsMap,
+        shareName,
+      )) {
+        const plugin = new SharedContainerPlugin({
           mfName: `${mfName}_${treeShaking ? 't' : 'f'}`,
           library,
           shareName,
           version,
           request,
-          independentShareFileName: sharedConfig?.treeShaking?.filename,
+          independentShareFileName: shareConfig.treeShaking.filename,
         });
-        const [shareFileName, globalName, sharedVersion] =
-          sharedContainerPlugin.getData();
-        if (typeof shareFileName === 'string') {
-          buildAssets[shareName] ||= [];
-          buildAssets[shareName].push([
-            join(resolveOutputDir(outputDir, shareName), shareFileName),
-            sharedVersion,
-            globalName,
-          ]);
-        }
-      });
-    });
+        const [shareFileName, globalName, sharedVersion] = plugin.getData();
+        const buildAsset: [string, string, string] = [
+          join(outputDir, shareFileName),
+          sharedVersion,
+          globalName,
+        ];
+        (buildAssets[shareName] ||= []).push(buildAsset);
+        builds.push({ shareName, outputDir, plugin, buildAsset });
+      }
+    }
 
     this.buildAssets = buildAssets;
-  }
-
-  private async createIndependentCompilers(
-    parentCompiler: Compiler,
-    shareRequestsMap: ShareRequestsMap,
-  ) {
-    const { sharedOptions, outputDir } = this;
-    console.log('Start building shared fallback resources ...');
-
-    await Promise.all(
-      sharedOptions.map(async ([shareName, shareConfig]) => {
-        if (!shareConfig.treeShaking || shareConfig.import === false) {
-          return;
-        }
-        const shareRequests = getShareRequests(shareRequestsMap, shareName);
-        await Promise.all(
-          shareRequests.map(async ([request, version], index) => {
-            const sharedConfig = sharedOptions.find(
-              ([name]) => name === shareName,
-            )?.[1];
-            const [shareFileName, globalName, sharedVersion] =
-              await this.createIndependentCompiler(parentCompiler, {
-                shareRequestsMap,
-                currentShare: {
-                  shareName,
-                  version,
-                  request,
-                  independentShareFileName: sharedConfig?.treeShaking?.filename,
-                },
-              });
-            if (
-              typeof shareFileName === 'string' &&
-              this.buildAssets[shareName]?.[index]
-            ) {
-              this.buildAssets[shareName][index] = [
-                join(resolveOutputDir(outputDir, shareName), shareFileName),
-                sharedVersion,
-                globalName,
-              ];
-            }
-          }),
-        );
-      }),
-    );
-
-    console.log('All shared fallback have been compiled successfully!');
+    return builds;
   }
 
   private async createIndependentCompiler(
     parentCompiler: Compiler,
-    extraOptions: {
-      currentShare: Omit<SharedContainerPluginOptions, 'mfName'>;
-      shareRequestsMap: ShareRequestsMap;
-    },
+    logger: Logger,
+    {
+      shareName,
+      outputDir,
+      plugin: sharedContainerPlugin,
+      buildAsset,
+    }: SharedFallbackBuild,
   ) {
     const {
-      mfName,
       plugins,
-      outputDir,
       sharedOptions,
       treeShaking,
-      library,
       treeShakingSharedExcludePlugins,
     } = this;
-
-    const outputDirWithShareName = resolveOutputDir(
-      outputDir,
-      extraOptions.currentShare.shareName,
-    );
     const parentConfig = parentCompiler.options;
 
     const finalPlugins = [];
     const rspack = parentCompiler.rspack;
-    const extraPlugin = new SharedContainerPlugin({
-      mfName: `${mfName}_${treeShaking ? 't' : 'f'}`,
-      library,
-      ...extraOptions.currentShare,
-    });
     (parentConfig.plugins || []).forEach((plugin) => {
       if (
         plugin !== undefined &&
@@ -402,15 +362,12 @@ export class IndependentSharedPlugin {
     plugins.forEach((plugin) => {
       finalPlugins.push(plugin);
     });
-    finalPlugins.push(extraPlugin);
+    finalPlugins.push(sharedContainerPlugin);
 
     finalPlugins.push(
       new ConsumeSharedPlugin({
         consumes: sharedOptions
-          .filter(
-            ([key, options]) =>
-              extraOptions.currentShare.shareName !== (options.shareKey || key),
-          )
+          .filter(([key, options]) => shareName !== (options.shareKey || key))
           .map(([key, options]) => ({
             [key]: {
               import: false,
@@ -436,12 +393,11 @@ export class IndependentSharedPlugin {
       );
     }
     finalPlugins.push(new VirtualEntryPlugin(sharedOptions, false));
-    const fullOutputDir = resolve(
-      parentCompiler.outputPath,
-      outputDirWithShareName,
-    );
+    const fullOutputDir = resolve(parentCompiler.outputPath, outputDir);
     const compilerConfig: RspackOptions = {
       ...parentConfig,
+      // Fallback compilers run concurrently and must not write to the parent's cache database.
+      cache: { type: 'memory' },
       name: parentConfig.name || 'mf-shared-compiler',
       module: {
         ...parentConfig.module,
@@ -481,26 +437,24 @@ export class IndependentSharedPlugin {
     compiler.outputFileSystem = parentCompiler.outputFileSystem;
     compiler.intermediateFileSystem = parentCompiler.intermediateFileSystem;
 
-    const { currentShare } = extraOptions;
-
-    return new Promise<any>((resolve, reject) => {
-      compiler.run((err: any, stats: any) => {
-        if (err || stats?.hasErrors()) {
-          console.error(
-            `${currentShare.shareName} Compile failed:`,
-            err ||
-              stats
-                .toJson()
-                .errors.map((e: Error) => e.message)
-                .join('\n'),
-          );
-          reject(err || new Error(`${currentShare.shareName} Compile failed`));
-          return;
-        }
-
-        console.log(`${currentShare.shareName} Compile success`);
-        resolve(extraPlugin.getData());
-      });
-    });
+    const [error, stats] = await new Promise<[Error | null, Stats?]>(
+      (resolve) => {
+        compiler.run((error, stats) => resolve([error, stats]));
+      },
+    );
+    if (error || stats?.hasErrors()) {
+      const message = `${shareName} Compile failed`;
+      logger.error(
+        `${message}:`,
+        error || stats?.toString({ all: false, errors: true }),
+      );
+      throw error || new Error(message);
+    }
+    const [shareFileName, globalName, sharedVersion] =
+      sharedContainerPlugin.getData();
+    buildAsset[0] = join(outputDir, shareFileName);
+    buildAsset[1] = sharedVersion;
+    buildAsset[2] = globalName;
+    logger.log(`${shareName} Compile success`);
   }
 }

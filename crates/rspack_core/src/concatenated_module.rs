@@ -658,12 +658,10 @@ pub fn render_imports(source: &str, attr: Option<&str>, import_spec: &ImportSpec
     render_ns = true;
     format!(
       "import {}* as {ns_import} from {source_str};\n",
-      default_import
-        .map(|default_import| {
-          render_default = true;
-          format!("{default_import}, ")
-        })
-        .unwrap_or_default()
+      default_import.map_or_default(|default_import| {
+        render_default = true;
+        format!("{default_import}, ")
+      })
     )
   } else {
     Default::default()
@@ -676,10 +674,8 @@ pub fn render_imports(source: &str, attr: Option<&str>, import_spec: &ImportSpec
     } else {
       format!(
         "import {}{};\n",
-        default_import
-          .map(|default_atom| { format!("{default_atom} from ") })
-          .unwrap_or_default(),
-        &source_str
+        default_import.map_or_default(|default_atom| { format!("{default_atom} from ") }),
+        source_str
       )
     }
   } else {
@@ -688,9 +684,7 @@ pub fn render_imports(source: &str, attr: Option<&str>, import_spec: &ImportSpec
       if render_default {
         Default::default()
       } else {
-        default_import
-          .map(|default_atom| format!("{default_atom}, "))
-          .unwrap_or_default()
+        default_import.map_or_default(|default_atom| format!("{default_atom}, "))
       },
       atoms
         .iter()
@@ -1098,7 +1092,7 @@ impl Module for ConcatenatedModule {
             info
               .internal_names
               .insert(namespace_export_symbol.clone(), name.clone());
-            top_level_declarations.insert(name.clone());
+            top_level_declarations.insert(name);
           }
 
           // Handle namespaceObjectName for concatenated type
@@ -1133,17 +1127,17 @@ impl Module for ConcatenatedModule {
           let module_identifier = concatenation_context.module_identifier(&info.module);
           let external_name: Atom = name_allocator.find_new_name("", module_identifier);
           info.name = Some(external_name.clone());
-          top_level_declarations.insert(external_name.clone());
+          top_level_declarations.insert(external_name);
 
           if info.deferred {
             let external_name = name_allocator.find_new_name("deferred", module_identifier);
             info.deferred_name = Some(external_name.clone());
-            top_level_declarations.insert(external_name.clone());
+            top_level_declarations.insert(external_name);
 
             let external_name_interop =
               name_allocator.find_new_name("deferredNamespaceObject", module_identifier);
             info.deferred_namespace_object_name = Some(external_name_interop.clone());
-            top_level_declarations.insert(external_name_interop.clone());
+            top_level_declarations.insert(external_name_interop);
           }
         }
       }
@@ -1295,11 +1289,11 @@ impl Module for ConcatenatedModule {
       ) {
         continue;
       }
-      exports_map.insert(used_name.clone(), {
+      exports_map.insert(used_name, {
         let final_name = self.get_final_name(
           &binding_resolver,
           &root_module_id,
-          [name.clone()].to_vec(),
+          [name].to_vec(),
           false,
           false,
           false,
@@ -1601,8 +1595,16 @@ impl Module for ConcatenatedModule {
               result.add(RawStringSource::from(format!("if ({condition}) {{\n")));
             }
 
+            let annotation = if compilation.options.output.module {
+              let target_module = module_graph
+                .module_by_identifier(&info.module)
+                .expect("should have module");
+              runtime_template.module_side_effects_annotation(compilation, target_module.as_ref())
+            } else {
+              ""
+            };
             result.add(RawStringSource::from(format!(
-              "var {} = {}({});",
+              "var {} = {annotation}{}({});",
               info.name.as_ref().expect("should have name"),
               runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
               json_stringify(
@@ -2263,8 +2265,7 @@ impl ConcatenatedModule {
       let chunk_init_fragments = codegen_res
         .data()
         .get::<CodeGenerationDataChunkInitFragments>()
-        .map(|fragments| fragments.inner().clone())
-        .unwrap_or_default();
+        .map_or_default(|fragments| fragments.inner().clone());
       let mut runtime_requirements = *codegen_res.runtime_requirements();
 
       runtime_requirements.extend(*runtime_template.runtime_requirements());

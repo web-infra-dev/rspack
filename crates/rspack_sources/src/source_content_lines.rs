@@ -1,16 +1,16 @@
-use std::borrow::Cow;
+use bytes_str::BytesStr;
 
 use crate::line_index::{IndexedLine, LineIndex};
 
 #[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
-pub struct SourceContentLines<'source> {
-  text: Cow<'source, str>,
+pub struct SourceContentLines {
+  text: BytesStr,
   // Self-referential data structure: the index borrows from the text.
   index: LineIndex<'static>,
 }
 
-impl<'source> SourceContentLines<'source> {
-  pub fn new(text: Cow<'source, str>) -> Self {
+impl SourceContentLines {
+  pub fn new(text: BytesStr) -> Self {
     // SAFETY: We extend the lifetime of the &str to 'static because the text is held by this struct,
     // and all &'static str references are only used within the lifetime of this struct.
     #[allow(unsafe_code)]

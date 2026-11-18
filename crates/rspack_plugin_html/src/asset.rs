@@ -311,7 +311,7 @@ pub async fn create_favicon_asset(
     .map_err(|err| anyhow!(err))
     .context(format!(
       "HtmlRspackPlugin: could not load file `{}` from `{}`",
-      favicon, &compilation.options.context
+      favicon, compilation.options.context
     ))
     .map(|content| {
       (

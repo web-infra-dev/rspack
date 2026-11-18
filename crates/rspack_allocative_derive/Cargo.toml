@@ -4,7 +4,6 @@ categories.workspace    = true
 description             = "rspack allocative derive"
 documentation.workspace = true
 edition.workspace       = true
-homepage.workspace      = true
 license.workspace       = true
 name                    = "rspack-allocative_derive"
 repository.workspace    = true

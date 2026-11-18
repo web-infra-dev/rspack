@@ -1,4 +1,4 @@
-#![feature(box_patterns)]
+#![feature(deref_patterns)]
 
 mod collect_ts_info;
 mod isolated_dts;
@@ -16,6 +16,7 @@ pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RscMeta, RunnerContext};
 use rspack_error::{Diagnostic, Error, Result, SerdeResultToRspackResultExt};
+use rspack_hash::RspackHasher;
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifier, Loader, LoaderContext};
 pub use rspack_workspace::rspack_swc_core_version;
@@ -58,8 +59,7 @@ impl SwcLoader {
   fn loader_impl(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
     let resource_path = loader_context
       .resource_path()
-      .map(|p| p.to_path_buf())
-      .unwrap_or_default();
+      .map_or_default(|p| p.to_path_buf());
     loader_context.context.module.build_info_mut().isolated_dts = None;
     let Some(content) = loader_context.take_content() else {
       return Ok(());
@@ -275,7 +275,7 @@ impl SwcLoader {
           .sources()
           .iter()
           .map(|source| {
-            let source_path = Path::new(source.as_ref());
+            let source_path = Path::new(source.as_str());
             if source_path.is_relative() {
               source_path
                 .absolutize_with(resource_dir.as_std_path())
@@ -308,6 +308,12 @@ pub const SWC_LOADER_IDENTIFIER: &str = "builtin:swc-loader";
 impl Loader<RunnerContext> for SwcLoader {
   fn identifier(&self) -> Identifier {
     self.identifier
+  }
+
+  fn etag(&self, context: &RunnerContext, hasher: &mut RspackHasher) {
+    rspack_hash::rspack_hash_object!(hasher, {
+      "source_map_kind" => context.source_map_kind.bits(),
+    });
   }
 
   #[tracing::instrument("loader:builtin-swc", skip_all, fields(

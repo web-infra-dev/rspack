@@ -6,7 +6,7 @@
 
 use std::{
   any::TypeId,
-  mem::type_info::{Field, TypeKind},
+  mem::type_info::TypeKind,
   ptr::{self, DynMetadata, Pointee},
 };
 
@@ -18,6 +18,16 @@ use crate::{Allocative, Key, Visitor};
 /// use this as a supertrait so their concrete values retain reflection support.
 pub trait Visit {
   fn visit_memory<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>);
+}
+
+// Reflection rejects impls with lifetime constraints, including `T: 'static`.
+// Keep that constraint on the public Visit API and use this private bridge only
+// for fields of an already-static owner. Typed specialization preserves adapters
+// whose bounds cannot be rediscovered through lifetime-erased reflection.
+trait FieldVisit {
+  /// # Safety
+  /// The concrete value must have a sized, `'static` type. Its borrow may be shorter.
+  unsafe fn visit_field<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>);
 }
 
 /// Owned pointer traversal: forward visitable payloads through their actual trait
@@ -35,14 +45,14 @@ trait RawPointer {}
 impl<T: ?Sized> RawPointer for *const T {}
 impl<T: ?Sized> RawPointer for *mut T {}
 
-// TypeId::trait_info_of calls id.info() before querying the vtable on our pinned
-// nightly. That crashes for arrays whose length is an unevaluated const expression.
+// Avoid a layout query for arrays whose length is an unevaluated const expression.
 // Our callers already know the source is sized (T, or a field of a sized T), and
 // the target is a dyn trait, so use the same intrinsic without that layout query.
-const fn vtable<T: ?Sized + Pointee<Metadata = DynMetadata<T>> + 'static>(
+#[rustc_comptime]
+fn vtable<T: ?Sized + Pointee<Metadata = DynMetadata<T>> + 'static>(
   id: TypeId,
 ) -> Option<DynMetadata<T>> {
-  match std::intrinsics::type_id_vtable(id, TypeId::of::<T>()) {
+  match std::intrinsics::reflection::type_id_vtable(id, TypeId::of::<T>()) {
     Some(metadata) => {
       // SAFETY: The intrinsic returned this vtable for precisely the target T.
       // Both metadata types have the same pointer representation, as in core's
@@ -57,7 +67,7 @@ const fn vtable<T: ?Sized + Pointee<Metadata = DynMetadata<T>> + 'static>(
 struct FieldVisitor {
   name: &'static str,
   offset: usize,
-  vtable: Option<DynMetadata<dyn Visit>>,
+  vtable: Option<DynMetadata<dyn FieldVisit>>,
 }
 
 const EMPTY: FieldVisitor = FieldVisitor {
@@ -80,8 +90,9 @@ enum Plan {
 }
 
 impl Plan {
-  const fn new<T: 'static>() -> Self {
-    let id = TypeId::of::<T>();
+  #[rustc_comptime]
+  fn new<T: ?Sized>() -> Self {
+    let id = std::intrinsics::reflection::type_id::<T>();
     // Borrowed pointers do not imply ownership, even if their erased type has
     // an adapter for a longer lifetime.
     if vtable::<dyn BorrowedReference>(id).is_some() {
@@ -94,39 +105,35 @@ impl Plan {
       return Self::Adapter(adapter);
     }
     match id.info().kind {
-      TypeKind::Struct(s) => Self::fields(s.fields),
-      TypeKind::Tuple(t) => Self::fields(t.fields),
-      TypeKind::Bool(_)
-      | TypeKind::Char(_)
-      | TypeKind::Int(_)
-      | TypeKind::Float(_)
-      | TypeKind::FnPtr(_) => Self::Leaf,
+      TypeKind::Struct | TypeKind::Tuple => Self::fields(id, 0),
+      TypeKind::Bool | TypeKind::Char | TypeKind::Int | TypeKind::Float | TypeKind::FnPtr => {
+        Self::Leaf
+      }
       // Enums need an active-variant accessor (derive or manual match). Unions
       // may contain uninitialized storage. Neither is guessed from layout.
       _ => Self::Opaque,
     }
   }
 
-  const fn fields(source: &[Field]) -> Self {
+  #[rustc_comptime]
+  fn fields(id: TypeId, variant: usize) -> Self {
+    let len = id.fields(variant);
     assert!(
-      source.len() <= 256,
+      len <= 256,
       "allocative reflection supports up to 256 fields per type; add an explicit adapter"
     );
     let mut fields = [EMPTY; 256];
     let mut i = 0;
-    while i < source.len() {
-      let field = &source[i];
+    while i < len {
+      let field = id.field(variant, i);
       fields[i] = FieldVisitor {
-        name: field.name,
-        offset: field.offset,
-        vtable: vtable::<dyn Visit>(field.ty),
+        name: field.name(),
+        offset: field.offset(),
+        vtable: vtable::<dyn FieldVisit>(field.type_id()),
       };
       i += 1;
     }
-    Self::Fields {
-      fields,
-      len: source.len(),
-    }
+    Self::Fields { fields, len }
   }
 }
 
@@ -141,21 +148,23 @@ pub unsafe fn visit_enum_variant<T: 'static, const INDEX: usize>(
   visitor: &mut Visitor<'_>,
 ) {
   let (key, plan) = const {
-    let TypeKind::Enum(info) = TypeId::of::<T>().info().kind else {
+    let id = TypeId::of::<T>();
+    let TypeKind::Enum = id.info().kind else {
       panic!("enum traversal requires an enum type");
     };
-    let variant = &info.variants[INDEX];
-    (Key::new(variant.name), &Plan::fields(variant.fields))
+    (Key::new(id.variant(INDEX).name()), &Plan::fields(id, INDEX))
   };
   let mut visitor = visitor.enter(key, std::mem::size_of::<T>());
   if let Plan::Fields { fields, len } = plan {
-    visit_fields(value, &fields[..*len], &mut visitor);
+    // SAFETY: T is static and the caller guarantees the active enum variant.
+    unsafe { visit_fields(value, &fields[..*len], &mut visitor) };
   }
   visitor.exit();
 }
 
-// The fields must belong to this live T (and its active variant for enums).
-fn visit_fields<T>(value: &T, fields: &[FieldVisitor], visitor: &mut Visitor<'_>) {
+// SAFETY: T must be sized and static. The fields must belong to this live value
+// (and its active variant for enums).
+unsafe fn visit_fields<T: ?Sized>(value: &T, fields: &[FieldVisitor], visitor: &mut Visitor<'_>) {
   for field in fields {
     let Some(vtable) = field.vtable else {
       visitor.report_opaque::<T>();
@@ -169,17 +178,27 @@ fn visit_fields<T>(value: &T, fields: &[FieldVisitor], visitor: &mut Visitor<'_>
       continue;
     }
     let mut field_visitor = visitor.enter(Key::new(field.name), vtable.size_of());
-    let field_value = ptr::from_raw_parts::<dyn Visit>(pointer.cast::<()>(), vtable);
+    let field_value = ptr::from_raw_parts::<dyn FieldVisit>(pointer.cast::<()>(), vtable);
     // SAFETY: Metadata belongs to this field's type, alignment was checked,
-    // and the borrow does not outlive value. UnsafeCell has an explicit opaque
+    // and the borrow does not outlive value. The enclosing static type ensures
+    // its owned fields are static too. UnsafeCell has an explicit opaque
     // adapter: reflection never reads unsynchronized inner storage.
-    unsafe { (&*field_value).visit_memory(&mut field_visitor) };
+    unsafe { (&*field_value).visit_field(&mut field_visitor) };
     field_visitor.exit();
   }
 }
 
 impl<T: 'static> Visit for T {
   default fn visit_memory<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+    // SAFETY: The public entry point retains the concrete type's static bound.
+    unsafe { self.visit_field(visitor) };
+  }
+}
+
+// Avoid even an implicit Sized bound: reflection cannot prove it for types
+// whose layout depends on associated types, such as the generic Atomic<T>.
+impl<T: ?Sized> FieldVisit for T {
+  default unsafe fn visit_field<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
     // Borrow promoted metadata rather than copying a descriptor onto the stack
     // for every live object. Only immediate fields are stored, not the graph.
     let plan = const { &Plan::new::<T>() };
@@ -193,12 +212,19 @@ impl<T: 'static> Visit for T {
       }
       Plan::Fields { fields, len } => {
         let mut visitor = visitor.enter_self(self);
-        visit_fields(self, &fields[..*len], &mut visitor);
+        // SAFETY: visit_field requires a static value, and the plan describes its fields.
+        unsafe { visit_fields(self, &fields[..*len], &mut visitor) };
         visitor.exit();
       }
       Plan::Leaf => visitor.enter_self(self).exit(),
       Plan::Opaque => visitor.visit_opaque(self),
     }
+  }
+}
+
+impl<T: Allocative> FieldVisit for T {
+  unsafe fn visit_field<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+    self.visit(visitor);
   }
 }
 

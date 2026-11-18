@@ -21,6 +21,5 @@ export default defineConfig({
       ),
       cacheLocation: path.resolve(import.meta.dirname, './lock-files/test'),
     },
-    css: false,
   },
 });

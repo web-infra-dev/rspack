@@ -56,6 +56,14 @@ impl ReadableFileSystem for VirtualFileSystem {
     self.real_fs.read_sync(path)
   }
 
+  fn is_virtual(&self, path: &Utf8Path) -> bool {
+    self
+      .virtual_file_store
+      .read()
+      .is_ok_and(|store| store.contains(path))
+      || self.real_fs.is_virtual(path)
+  }
+
   async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
     if let Ok(store) = self.virtual_file_store.read()
       && let Some(metadata) = store.get_file_metadata(path)

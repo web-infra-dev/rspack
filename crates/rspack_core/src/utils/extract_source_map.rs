@@ -18,7 +18,7 @@ use rustc_hash::FxHashSet;
 #[derive(Debug)]
 pub struct ExtractSourceMapResult {
   pub source: String,
-  pub source_map: Option<SourceMap<'static>>,
+  pub source_map: Option<SourceMap>,
   pub file_dependencies: Option<FxHashSet<PathBuf>>,
 }
 
@@ -401,9 +401,9 @@ pub async fn extract_source_map(
   let source_root = source_map.source_root().map(|s| s.to_string());
 
   // Pre-collect all source content to avoid borrowing issues
-  let source_contents: Vec<Option<String>> = (0..sources.len())
-    .map(|i| source_map.get_source_content(i).map(|s| s.to_string()))
-    .collect();
+  let source_contents = (0..sources.len())
+    .map(|i| source_map.get_source_content(i).cloned())
+    .collect::<Vec<_>>();
 
   // Process sources in parallel using FuturesOrdered to maintain order
   let mut futures = FuturesOrdered::new();
@@ -429,7 +429,7 @@ pub async fn extract_source_map(
     let final_content = if skip_reading {
       original_content
     } else {
-      source_content_result
+      source_content_result.map(Into::into)
     };
 
     if !skip_reading && !source_url_result.is_empty() && !is_url(&source_url_result) {
@@ -446,11 +446,8 @@ pub async fn extract_source_map(
   }
 
   // Build the final SourceMap using setter methods - consume resolved_sources to avoid cloning
-  let (sources_vec, sources_content_vec): (Vec<String>, Vec<Option<Cow<'_, str>>>) =
-    resolved_sources
-      .into_iter()
-      .map(|(url, content)| (url, content.map(Cow::Owned)))
-      .unzip();
+  let (sources_vec, sources_content_vec): (Vec<String>, Vec<_>) =
+    resolved_sources.into_iter().unzip();
 
   source_map.set_sources(sources_vec);
   source_map.set_sources_content(sources_content_vec);
