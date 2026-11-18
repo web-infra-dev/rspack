@@ -288,6 +288,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     };
 
     let mut exposes_map: HashMap<String, StatsExpose> = HashMap::default();
+    let mut expose_imports: HashMap<String, String> = HashMap::default();
     let mut expose_chunk_keys: HashMap<String, rspack_core::ChunkUkey> = HashMap::default();
     let mut expose_fallback_chunk_keys: HashMap<String, rspack_core::ChunkUkey> =
       HashMap::default();
@@ -339,8 +340,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           };
           let id_comp = compose_id_with_separator(&container_name, &expose_name);
           let expose_file_key = strip_ext(import);
+          expose_imports.insert(expose_key.clone(), expose_file_key);
           exposes_map
-            .entry(expose_file_key.clone())
+            .entry(expose_key.clone())
             .or_insert(StatsExpose {
               path: expose_key.clone(),
               file: String::new(),
@@ -385,7 +387,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                 })
               })
             {
-              expose_chunk_keys.insert(expose_file_key.clone(), *chunk_key);
+              expose_chunk_keys.insert(expose_key.clone(), *chunk_key);
             }
 
             if let Some(chunk_key) = chunk_group.chunks.iter().find(|chunk_key| {
@@ -396,7 +398,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                 .and_then(|chunk| chunk.name())
                 .is_some()
             }) {
-              expose_fallback_chunk_keys.insert(expose_file_key, *chunk_key);
+              expose_fallback_chunk_keys.insert(expose_key.clone(), *chunk_key);
             }
           }
         }
@@ -504,8 +506,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     let mut expose_module_paths: HashMap<String, String> = HashMap::default();
-    for expose_key in exposes_map.keys() {
-      if let Some(module_id) = module_ids_by_name.get(expose_key)
+    for (expose_key, import) in &expose_imports {
+      if let Some(module_id) = module_ids_by_name.get(import)
         && let Some(module) = module_graph.module_by_identifier(module_id)
         && let Some(path) = module_source_path(module, compilation)
       {
@@ -518,6 +520,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       &mut shared_map,
       &mut exposes_map,
       shared_usage_links_for_requirements,
+      &expose_imports,
       &expose_module_paths,
     );
     let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
@@ -572,9 +575,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
 
-    for (expose_file_key, expose) in exposes_map.iter_mut() {
+    for (expose_key, expose) in exposes_map.iter_mut() {
+      let expose_file_key = &expose_imports[expose_key];
       let chunk_keys = expose_chunk_keys
-        .get(expose_file_key)
+        .get(expose_key)
         .or_else(|| {
           compilation
             .build_chunk_graph_artifact
@@ -592,7 +596,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         })
         .or_else(|| {
           expose_fallback_chunk_keys
-            .get(expose_file_key)
+            .get(expose_key)
             .map(|chunk_key| vec![*chunk_key])
         })
         .unwrap_or_default();
@@ -613,7 +617,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           collect_assets_from_chunk(compilation, &chunk_key, &entry_files),
         );
       }
-      if let Some(path) = expose_module_paths.get(expose_file_key) {
+      if let Some(path) = expose_module_paths.get(expose_key) {
         expose.file = path.clone();
       }
       expose.assets = assets;

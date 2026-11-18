@@ -221,16 +221,20 @@ pub fn collect_expose_requirements(
   shared_map: &mut HashMap<String, StatsShared>,
   exposes_map: &mut HashMap<String, StatsExpose>,
   links: Vec<(String, String)>,
+  expose_imports: &HashMap<String, String>,
   expose_module_paths: &HashMap<String, String>,
 ) {
-  for (pkg, expose_key) in links {
-    if let Some(expose) = exposes_map.get_mut(&expose_key) {
+  for (pkg, import) in links {
+    for (expose_key, expose) in exposes_map.iter_mut() {
+      if expose_imports.get(expose_key) != Some(&import) {
+        continue;
+      }
       if !expose.requires.contains(&pkg) {
         expose.requires.push(pkg.clone());
       }
       if let Some(shared) = shared_map.get_mut(&pkg) {
         let target = expose_module_paths
-          .get(&expose_key)
+          .get(expose_key)
           .cloned()
           .unwrap_or_else(|| expose.path.clone());
         shared.usedIn.push(target);

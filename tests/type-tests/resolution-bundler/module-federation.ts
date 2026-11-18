@@ -64,9 +64,9 @@ new rspack.sharing.ConsumeSharedPlugin<true>({
   },
 });
 
-// @ts-expect-error Enhanced consume fields require enhanced: true.
 new rspack.sharing.ConsumeSharedPlugin({
   consumes: {
+    // @ts-expect-error Enhanced consume fields require enhanced: true.
     react: { request: 'react-server' },
   },
 });
@@ -99,6 +99,12 @@ const extendedContainer: ExtendedContainerOptions = {
 new rspack.container.ContainerPlugin(extendedContainer);
 
 const reusableLegacyExpose: ExposesConfig = { import: './index' };
+const legacyLayerLiteral: ExposesConfig = {
+  import: './index',
+  // @ts-expect-error Legacy expose literals do not support layers.
+  layer: 'server',
+};
+void legacyLayerLiteral;
 const reusableLayeredExposes: ExposesObject<true> = {
   './entry': { import: './index', layer: 'server' },
 };
@@ -107,16 +113,15 @@ new rspack.container.ContainerPlugin({
   enhanced: true,
   exposes: reusableLayeredExposes,
 });
-// @ts-expect-error A reusable enhanced map must not bypass the legacy gate.
+// Public legacy shapes remain structurally compatible for forwarding.
+// Runtime validation still rejects layers when enhanced is not enabled.
 export const legacyExposeMap: ExposesObject<false> = reusableLayeredExposes;
-// @ts-expect-error A reusable enhanced map requires enhanced: true.
 new rspack.container.ContainerPlugin({
   name: 'legacy-map',
   exposes: reusableLayeredExposes,
 });
 new rspack.container.ModuleFederationPluginV1({
   name: 'legacy-map',
-  // @ts-expect-error V1 also requires the enhanced gate for a reusable layered map.
   exposes: reusableLayeredExposes,
 });
 new rspack.container.ContainerPlugin({
@@ -125,10 +130,18 @@ new rspack.container.ContainerPlugin({
   exposes: { './entry': reusableLegacyExpose },
 });
 
-// @ts-expect-error Expose layers require the enhanced runtime gate.
 new rspack.container.ContainerPlugin({
   name: 'legacy',
   exposes: {
+    // @ts-expect-error Expose layers require the enhanced runtime gate.
+    './entry': { import: './index', layer: 'server' },
+  },
+});
+
+new rspack.container.ContainerPlugin<false>({
+  name: 'explicit-legacy',
+  exposes: {
+    // @ts-expect-error Explicit legacy mode also rejects layer literals.
     './entry': { import: './index', layer: 'server' },
   },
 });
@@ -144,8 +157,8 @@ new rspack.container.ModuleFederationPluginV1(enhancedV1Options);
 
 const legacyV1Options: ModuleFederationPluginV1Options = {
   name: 'legacy-v1',
-  // @ts-expect-error Expose layers require the enhanced runtime gate.
   exposes: {
+    // @ts-expect-error Expose layers require the enhanced runtime gate.
     './entry': { import: './index', layer: 'server' },
   },
 };
@@ -163,8 +176,8 @@ new rspack.container.ModuleFederationPluginV1(extendedV1Options);
 new rspack.container.ModuleFederationPluginV1({
   name: 'legacy-v1-inferred',
   enhanced: false,
-  // @ts-expect-error Expose layers require enhanced: true.
   exposes: {
+    // @ts-expect-error Expose layers require enhanced: true.
     './entry': { import: './index', layer: 'server' },
   },
 });
