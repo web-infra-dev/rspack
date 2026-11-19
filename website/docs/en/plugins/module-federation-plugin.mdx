@@ -201,7 +201,7 @@ The SharedConfig can include the following sub-options:
 
 #### Runtime compatibility for shared identities
 
-A runtime-visible `shared.layer` requires a compatible implementation exposing `bundlerRuntime.supportsSharedIdentity === true`. This applies even when only one layered provider or consumer is present: an external unlayered host must not receive a layer-specific provider. Rspack reports an actionable runtime error before registration if the installed implementation lacks this capability. `issuerLayer` alone is a compiler-side filter and does not require the capability. Unused configurations do not trigger this check.
+A runtime-visible `shared.layer` requires an implementation exposing `bundlerRuntime.supportsSharedIdentity === true`. Even one layered provider needs this capability: a host that requests the dependency without a layer must not receive a layer-specific implementation. Rspack reports an error before registration if the runtime lacks this capability. `issuerLayer` alone is a compiler-side filter. Unused configurations do not trigger the check.
 
 Shared tree-shaking full fallbacks also require this capability when distinct fallbacks have the same share key and version, including across different scalar share scopes. Rspack passes their `shareScope` and `layer` metadata to the runtime so that provider getters select the correct full fallback. Different versions or one full fallback remain compatible with legacy runtimes such as `@module-federation/runtime-tools@2.9.3`; there is no blanket minimum-version check. Use `implementation` to select a compatible runtime, rather than assuming a particular version supports the contract.
 
