@@ -39,6 +39,23 @@ String.fromCharCode(97);
 String.fromCodePoint(97);
 Symbol.for("a");
 Symbol.keyFor(Symbol.for("a"));
+Object.entries({ a: 1 });
+Object.values({ a: 1 });
+Array.from([1]);
+Array.from([1], (item) => item * 2);
+Array.from([1], function (item) {
+	return item;
+});
+Array.from([1], noop);
+Array.from([[1, 2]], ([key, value]) => key + value);
+Array.from([{ id: 1 }], ({ id, ...rest }) => id);
+Array.from([1], (item = 0, ...items) => item);
+Object.values({
+	get a() {
+		return 1;
+	}
+});
+Math.max(1, 2);
 
 new Object();
 new Boolean(1);
@@ -67,9 +84,20 @@ new WeakMap();
 new Uint8Array();
 new Uint8Array(2);
 new Float64Array([1, 2]);
+new Promise(() => {});
+new Promise(function () {});
+new Promise(noop);
+new Error("a", {
+	get cause() {
+		return 1;
+	}
+});
+
+function noop() {}
 
 const local = Object({});
 
+export const tau = Math.PI * 2;
 export const boxed = Object(1);
 export const nested = Object(Boolean(String(1)));
 export const keys = Object.keys({ a: 1 });
