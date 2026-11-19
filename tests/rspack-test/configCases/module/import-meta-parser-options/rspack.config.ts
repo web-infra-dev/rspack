@@ -1,5 +1,20 @@
 import { defineConfig } from '@rspack/cli';
 
+const importMeta = Object.assign(
+  Object.create({
+    get url() {
+      throw new Error('Inherited importMeta properties must not be read');
+    },
+  }),
+  {
+    ignored: Object.defineProperty([], 0, {
+      get() {
+        throw new Error('Non-boolean importMeta values must not be traversed');
+      },
+    }),
+  },
+);
+
 export default defineConfig({
   mode: 'development',
   devtool: false,
@@ -9,11 +24,14 @@ export default defineConfig({
     chunkFormat: 'module',
   },
   module: {
+    parser: {
+      javascript: { importMeta },
+    },
     rules: [
       {
         test: /empty-options\.js$/,
         parser: {
-          importMeta: {},
+          importMeta,
         },
       },
       {

@@ -7,14 +7,14 @@ use std::{
 
 use atomic_refcell::AtomicRefCell;
 use napi::{
-  Env, JsValue, Status, ValueType,
+  Env, JsValue, Status, Unknown, ValueType,
   bindgen_prelude::{
     FromNapiValue, JsObjectValue, JsValuesTupleIntoVec, Promise, TypeName, ValidateNapiValue,
   },
   sys,
 };
 use rspack_error::error;
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
+use rspack_napi::threadsafe_function::{DynThreadsafeFunction, ThreadsafeFunction};
 use slotmap::{DefaultKey, SlotMap};
 
 const COMPILER_CLOSED_MESSAGE: &str = "Rspack compiler has already been closed by `compiler.close()`. Do not call Rspack compiler APIs after close; create a new compiler instead.";
@@ -100,7 +100,7 @@ impl CompilerScopedTsFnManager {
       .and_then(|context| context.manager.upgrade().map(|inner| Self { inner }))
   }
 
-  fn register_releaser(&self, releaser: Releaser) -> napi::Result<impl FnOnce() + 'static> {
+  fn register_releaser(&self, releaser: Releaser) -> napi::Result<impl FnOnce() + 'static + use<>> {
     if self.inner.closed.get() {
       return Err(napi::Error::new(
         Status::GenericFailure,
@@ -121,7 +121,12 @@ impl CompilerScopedTsFnManager {
   }
 }
 
-type SharedThreadsafeFunction<T, R> = Arc<AtomicRefCell<Option<ThreadsafeFunction<T, R>>>>;
+type TsFnSlot<F> = Arc<AtomicRefCell<Option<F>>>;
+
+enum ScopedThreadsafeFunction<T: 'static + JsValuesTupleIntoVec, R> {
+  Typed(TsFnSlot<ThreadsafeFunction<T, R>>),
+  Dynamic(DynThreadsafeFunction),
+}
 
 #[cfg(debug_assertions)]
 const CALLBACK_SOURCE_PREVIEW_LIMIT: usize = 160;
@@ -171,13 +176,24 @@ fn format_js_function(env: sys::napi_env, napi_val: sys::napi_value) -> String {
 // Consumers own the TSFN slot; the compiler only weakly registers it for close/drop
 // cleanup. The last consumer can release its callback before the compiler closes.
 pub struct CompilerScopedTsFnHandle<T: 'static + JsValuesTupleIntoVec, R> {
-  active_tsfn: SharedThreadsafeFunction<T, R>,
+  active_tsfn: ScopedThreadsafeFunction<T, R>,
 }
 
 impl<T: 'static + JsValuesTupleIntoVec, R> Clone for CompilerScopedTsFnHandle<T, R> {
   fn clone(&self) -> Self {
     Self {
-      active_tsfn: self.active_tsfn.clone(),
+      active_tsfn: match &self.active_tsfn {
+        ScopedThreadsafeFunction::Typed(tsfn) => ScopedThreadsafeFunction::Typed(Arc::clone(tsfn)),
+        ScopedThreadsafeFunction::Dynamic(tsfn) => ScopedThreadsafeFunction::Dynamic(tsfn.clone()),
+      },
+    }
+  }
+}
+
+impl<T: 'static + JsValuesTupleIntoVec, R> CompilerScopedTsFnHandle<T, R> {
+  pub(crate) fn from_dynamic(tsfn: DynThreadsafeFunction) -> Self {
+    Self {
+      active_tsfn: ScopedThreadsafeFunction::Dynamic(tsfn),
     }
   }
 }
@@ -189,19 +205,21 @@ impl<T: 'static + JsValuesTupleIntoVec, R> fmt::Debug for CompilerScopedTsFnHand
   }
 }
 
-impl<T: 'static + JsValuesTupleIntoVec, R> CompilerScopedTsFnHandle<T, R> {
-  fn expect_active_tsfn(&self) -> rspack_error::Result<ThreadsafeFunction<T, R>> {
-    self
-      .active_tsfn
-      .borrow()
-      .clone()
-      .ok_or_else(|| error!("{COMPILER_CLOSED_MESSAGE}"))
-  }
+fn expect_active_tsfn<F: Clone>(active_tsfn: &TsFnSlot<F>) -> rspack_error::Result<F> {
+  active_tsfn
+    .borrow()
+    .clone()
+    .ok_or_else(|| error!("{COMPILER_CLOSED_MESSAGE}"))
 }
 
 impl<T: 'static + JsValuesTupleIntoVec, R: 'static + FromNapiValue> CompilerScopedTsFnHandle<T, R> {
   pub async fn call_with_sync(&self, value: T) -> rspack_error::Result<R> {
-    self.expect_active_tsfn()?.call_with_sync(value).await
+    match &self.active_tsfn {
+      ScopedThreadsafeFunction::Typed(tsfn) => {
+        expect_active_tsfn(tsfn)?.call_with_sync(value).await
+      }
+      ScopedThreadsafeFunction::Dynamic(tsfn) => tsfn.call_with_sync(value).await,
+    }
   }
 }
 
@@ -209,7 +227,12 @@ impl<T: 'static + JsValuesTupleIntoVec, R: 'static + FromNapiValue>
   CompilerScopedTsFnHandle<T, Promise<R>>
 {
   pub async fn call_with_promise(&self, value: T) -> rspack_error::Result<R> {
-    self.expect_active_tsfn()?.call_with_promise(value).await
+    match &self.active_tsfn {
+      ScopedThreadsafeFunction::Typed(tsfn) => {
+        expect_active_tsfn(tsfn)?.call_with_promise(value).await
+      }
+      ScopedThreadsafeFunction::Dynamic(tsfn) => tsfn.call_with_promise(value).await,
+    }
   }
 }
 
@@ -218,40 +241,69 @@ impl<T: 'static + JsValuesTupleIntoVec, R: 'static> FromNapiValue
 {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> napi::Result<Self> {
     let active_tsfn = Arc::new(AtomicRefCell::new(None));
-
-    if let Some(manager) = CompilerScopedTsFnManager::current_context() {
-      let active_tsfn_for_releaser = Arc::downgrade(&active_tsfn);
-      let finalize = manager.register_releaser(Box::new(move || {
-        if let Some(active_tsfn) = active_tsfn_for_releaser.upgrade() {
+    let weak = Arc::downgrade(&active_tsfn);
+    let finalize = register_tsfn(
+      env,
+      napi_val,
+      Box::new(move || {
+        if let Some(active_tsfn) = weak.upgrade() {
           let tsfn = active_tsfn.borrow_mut().take();
           drop(tsfn);
         }
-      }))?;
-      let tsfn =
-        unsafe { ThreadsafeFunction::from_napi_value_with_finalize(env, napi_val, finalize) }?;
-      *active_tsfn.borrow_mut() = Some(tsfn);
-    } else {
-      // Callbacks parsed outside a compiler construction scope fall back to eager TSFN behavior.
-      // This should not happen in normal usage - report an error in debug builds to catch issues early.
-      #[cfg(debug_assertions)]
-      {
-        let function_desc = format_js_function(env, napi_val);
-        return Err(napi::Error::new(
-          Status::GenericFailure,
-          format!(
-            "Compiler-scoped callback {function_desc} was parsed outside a compiler construction scope",
-          ),
-        ));
-      }
-      #[cfg(not(debug_assertions))]
-      {
-        let tsfn = unsafe { ThreadsafeFunction::from_napi_value(env, napi_val) }?;
-        *active_tsfn.borrow_mut() = Some(tsfn);
-      }
-    }
-
-    Ok(Self { active_tsfn })
+      }),
+    )?;
+    let tsfn =
+      unsafe { ThreadsafeFunction::from_napi_value_with_finalize(env, napi_val, finalize) }?;
+    *active_tsfn.borrow_mut() = Some(tsfn);
+    Ok(Self {
+      active_tsfn: ScopedThreadsafeFunction::Typed(active_tsfn),
+    })
   }
+}
+
+pub(crate) fn capture_scoped_function(value: Unknown<'_>) -> napi::Result<DynThreadsafeFunction> {
+  let value = value.value();
+  // The function value and its environment come from the current JS thread.
+  unsafe {
+    DynThreadsafeFunction::from_napi_value_with_release(
+      value.env,
+      value.value,
+      |release| register_tsfn(value.env, value.value, release),
+      COMPILER_CLOSED_MESSAGE,
+    )
+  }
+}
+
+fn register_tsfn(
+  env: sys::napi_env,
+  napi_val: sys::napi_value,
+  release: Releaser,
+) -> napi::Result<impl FnOnce() + 'static> {
+  let finalize = if let Some(manager) = CompilerScopedTsFnManager::current_context() {
+    Some(manager.register_releaser(release)?)
+  } else {
+    // Callbacks outside compiler construction retain the release-build fallback.
+    #[cfg(debug_assertions)]
+    {
+      let function_desc = format_js_function(env, napi_val);
+      return Err(napi::Error::new(
+        Status::GenericFailure,
+        format!(
+          "Compiler-scoped callback {function_desc} was parsed outside a compiler construction scope",
+        ),
+      ));
+    }
+    #[cfg(not(debug_assertions))]
+    {
+      let _ = (env, napi_val);
+      None
+    }
+  };
+  Ok(move || {
+    if let Some(finalize) = finalize {
+      finalize();
+    }
+  })
 }
 
 impl<T: 'static + JsValuesTupleIntoVec, R> ValidateNapiValue for CompilerScopedTsFnHandle<T, R> {}

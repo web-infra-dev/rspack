@@ -38,7 +38,7 @@ pub fn field_names(
   expanded.into()
 }
 
-fn snake_to_camel(s: &str) -> String {
+pub(crate) fn snake_to_camel(s: &str) -> String {
   let mut out = String::new();
   let mut uppercase_next = false;
   for c in s.chars() {
