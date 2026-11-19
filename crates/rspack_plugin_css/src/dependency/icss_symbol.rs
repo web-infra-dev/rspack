@@ -13,6 +13,9 @@ pub enum CssIcssSymbolKind {
   /// A local reference also keeps its definition alive, such as `animation: spin`.
   LocalReference,
   /// An ICSS value is substituted into the source without identifier escaping.
+  /// `fallback` is set for class/id selector positions: when the import resolves
+  /// to a local identifier its scoped name is used, otherwise the fallback local
+  /// identifier is used.
   IcssReference,
   /// An implicit grid line uses the generated area name with its original suffix.
   LocalGridStart,
@@ -31,6 +34,9 @@ pub struct CssIcssSymbolDependency {
   pub target: DependencyId,
   range: DependencyRange,
   pub kind: CssIcssSymbolKind,
+  /// Local definition used when `target` is an imported ICSS value that does
+  /// not resolve to a local identifier (for example a plain `@value` string).
+  pub fallback: Option<DependencyId>,
 }
 impl CssIcssSymbolDependency {
   pub fn new(target: DependencyId, range: DependencyRange, kind: CssIcssSymbolKind) -> Self {
@@ -39,6 +45,21 @@ impl CssIcssSymbolDependency {
       target,
       range,
       kind,
+      fallback: None,
+    }
+  }
+
+  pub fn new_icss_reference(
+    target: DependencyId,
+    range: DependencyRange,
+    fallback: Option<DependencyId>,
+  ) -> Self {
+    Self {
+      id: DependencyId::new(),
+      target,
+      range,
+      kind: CssIcssSymbolKind::IcssReference,
+      fallback,
     }
   }
 }
@@ -72,6 +93,8 @@ impl DependencyCodeGeneration for CssIcssSymbolDependency {
       "range" => &self.range,
       "kind" => &self.kind,
     });
+    // `fallback` is a dependency ID, which is allocated per compilation and
+    // must not affect the content hash; the symbol kind and range already do.
   }
 }
 impl AsContextDependency for CssIcssSymbolDependency {}
