@@ -193,19 +193,14 @@ impl EventProcessor {
       kind => kind,
     };
 
-    let accessor = self.path_manager.access();
-    let is_watched_path = accessor.files().0.contains(path) || accessor.missing().0.contains(path);
+    let is_watched_path = self.path_manager.has_file_or_missing_subscription(path);
 
     // Drop a removed path's record so it reads as `null`, like watchpack. A
     // directory moved or deleted as a whole is one event with no per-file
     // removals, so its descendants' records go with it. Only a path that can
     // hold records is swept, so deleting many unrelated files stays cheap.
     if removed || kind == FsEventKind::Remove {
-      let may_contain_records = self.path_manager.may_contain_records(path);
-      self.path_manager.remove_file_time(path);
-      if may_contain_records {
-        self.path_manager.remove_file_times_under(path);
-      }
+      self.path_manager.remove_path_records(path);
       if kind == FsEventKind::Remove && is_watched_path {
         self.path_manager.set_reported_file_removal(path);
       }
@@ -259,8 +254,8 @@ impl EventProcessor {
         if metadata.is_dir() {
           pending.extend(self.path_manager.subscriptions.registered_children(&child));
         }
-        let file = accessor.files().0.contains(&child) || accessor.missing().0.contains(&child);
-        if !(file || accessor.directories().0.contains(&child)) {
+        let file = self.path_manager.has_file_or_missing_subscription(&child);
+        if !(file || self.path_manager.access().directories().0.contains(&child)) {
           continue;
         }
         let target = followed_metadata(&child, &metadata);
@@ -355,11 +350,7 @@ impl EventProcessor {
       let path = &context.watched;
       if kind == FsEventKind::Remove && std::fs::symlink_metadata(path).is_err() {
         self.analyzer.invalidate_path(path);
-        let descendants = self.path_manager.may_contain_records(path);
-        self.path_manager.remove_file_time(path);
-        if descendants {
-          self.path_manager.remove_file_times_under(path);
-        }
+        self.path_manager.remove_path_records(path);
         removed.push(path.clone());
       } else if scanned {
         self.analyzer.invalidate_path(path);

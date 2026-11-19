@@ -104,9 +104,10 @@ impl PathManager {
         continue;
       };
       let mut previous = self
-        .recorded_children
+        .lock_recorded_children()
         .get(&dir)
-        .map_or_default(|children| children.clone());
+        .cloned()
+        .unwrap_or_default();
       let mut complete = true;
       for entry in entries {
         let Ok(entry) = entry else {

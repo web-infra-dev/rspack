@@ -299,7 +299,6 @@ impl DirectorySubscriptions {
       .map_or_default(select)
   }
 
-  /// The hot path reads the parent once for both the named entry and its contexts.
   pub fn subscribers(
     &self,
     path: &InternedPath,
@@ -309,48 +308,61 @@ impl DirectorySubscriptions {
       .directories
       .read()
       .expect("directory subscriptions poisoned");
-    let context_subscribers = |contexts: &SubscriberPaths| {
-      contexts
-        .iter()
-        .filter_map(|watched| {
-          let entry = dirs.get(&parent(watched))?.entries.get(watched)?;
-          Some(ContextSubscribers {
-            watched: watched.clone(),
-            requested: entry.subscribers(false, true),
-          })
-        })
-        .collect()
-    };
-    let dir = parent(path);
-    if let Some(state) = dirs.get(&dir) {
-      let direct = state.entries.get(path).map_or_default(|entry| {
-        entry.subscribers(
-          metadata.is_none_or(std::fs::Metadata::is_file),
-          metadata.is_none_or(std::fs::Metadata::is_dir),
-        )
-      });
-      let contexts = if dir == *path {
-        SmallVec::new()
-      } else {
-        context_subscribers(&state.contexts)
-      };
-      return (direct, contexts);
-    }
-    // An event may name an as-yet unregistered directory inside a context.
-    for child in dir.ancestors().map(InternedPath::from) {
-      if let Some(state) = dirs.get(&parent(&child)) {
-        let mut contexts = state.contexts.clone();
-        if state
-          .entries
-          .get(&child)
-          .is_some_and(EntrySubscriptions::recursive)
-        {
-          contexts.push(child);
+    let (entry, contexts) = Self::entry_and_contexts(&dirs, path);
+    let direct = entry.map_or_default(|entry| {
+      entry.subscribers(
+        metadata.is_none_or(std::fs::Metadata::is_file),
+        metadata.is_none_or(std::fs::Metadata::is_dir),
+      )
+    });
+    let contexts = contexts
+      .map(|(watched, entry)| ContextSubscribers {
+        watched: watched.clone(),
+        requested: entry.subscribers(false, true),
+      })
+      .collect();
+    (direct, contexts)
+  }
+
+  pub fn is_below_context(&self, path: &InternedPath) -> bool {
+    let dirs = self
+      .directories
+      .read()
+      .expect("directory subscriptions poisoned");
+    let (_, mut contexts) = Self::entry_and_contexts(&dirs, path);
+    contexts.any(|(_, entry)| !entry.directories.is_empty())
+  }
+
+  fn entry_and_contexts<'a>(
+    dirs: &'a InternedPathMap<DirectoryState>,
+    path: &InternedPath,
+  ) -> (
+    Option<&'a EntrySubscriptions>,
+    impl Iterator<Item = (&'a InternedPath, &'a EntrySubscriptions)> + 'a,
+  ) {
+    let mut child = path.clone();
+    let (direct, contexts, child_context) = loop {
+      let dir = parent(&child);
+      if let Some(state) = dirs.get(&dir) {
+        let entry = state.entries.get_key_value(&child);
+        let contexts: &[_] = if dir == *path { &[] } else { &state.contexts };
+        if child == *path {
+          break (entry.map(|(_, entry)| entry), contexts, None);
         }
-        return (Subscribers::new(), context_subscribers(&contexts));
+        // A hint below an unscanned directory belongs to the nearest known
+        // parent's contexts and to the named child if it has recursive subscribers.
+        break (None, contexts, entry.filter(|(_, entry)| entry.recursive()));
       }
-    }
-    Default::default()
+      if dir == child {
+        break (None, &[][..], None);
+      }
+      child = dir;
+    };
+    let ancestors = contexts.iter().filter_map(|context| {
+      let entry = dirs.get(&parent(context))?.entries.get(context)?;
+      Some((context, entry))
+    });
+    (direct, ancestors.chain(child_context))
   }
 
   pub fn registered_children(&self, path: &InternedPath) -> Vec<InternedPath> {

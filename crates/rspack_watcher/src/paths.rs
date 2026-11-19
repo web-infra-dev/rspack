@@ -3,12 +3,15 @@ use std::{
   fmt::Debug,
   ops::Deref,
   path::{Path, PathBuf},
+  sync::{Mutex, MutexGuard},
   time::SystemTime,
 };
 
 use dashmap::setref::multiple::RefMulti;
 use rspack_error::Result;
-use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
+use rspack_paths::{
+  InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathMap, InternedPathSet,
+};
 use rspack_util::{
   fx_hash::FxHashMap,
   time::{current_time, system_time_to_millis},
@@ -213,17 +216,14 @@ impl PathTracker {
     self.removed.clear();
   }
 
-  /// Adds a path to the tracker; whether it was not tracked before.
-  fn add(&self, path: InternedPath) -> bool {
+  fn add(&self, path: InternedPath) {
     self.added.insert(path.clone());
-    self.all.insert(path)
+    self.all.insert(path);
   }
 
-  /// Removes a path from the tracker; whether it was tracked.
-  fn remove(&self, path: InternedPath) -> bool {
-    let tracked = self.all.remove(&path).is_some();
+  fn remove(&self, path: InternedPath) {
+    self.all.remove(&path);
     self.removed.insert(path);
-    tracked
   }
 }
 
@@ -317,11 +317,7 @@ pub(crate) struct PathManager {
   /// to the first one already indexed: a removed directory's records are
   /// found by walking its subtree, not by scanning every map. A directory
   /// left with no children and no record of its own is dropped.
-  recorded_children: InternedPathDashMap<InternedPathSet>,
-  /// Serializes changes to `recorded_children`'s links: a walk taking a
-  /// directory out on one thread must not interleave with a walk linking it
-  /// in on another, or a linked subtree is left cut off from its parent.
-  index_lock: std::sync::Mutex<()>,
+  recorded_children: Mutex<InternedPathMap<InternedPathSet>>,
   /// Registered contexts known to be absent from disk: absent when registered,
   /// or removed since. The only directories `collect_time_info_entries`
   /// stats, to see one that came back without an event of its own.
@@ -335,20 +331,8 @@ impl PathManager {
   /// Create a new `PathManager` with an optional ignored paths filter.
   pub fn new(ignored: FsWatcherIgnored) -> Self {
     Self {
-      files: PathTracker::default(),
-      directories: PathTracker::default(),
-      missing: PathTracker::default(),
       ignored: IgnoredMatcher::new(ignored),
-      file_times: InternedPathDashMap::default(),
-      baselines: InternedPathDashMap::default(),
-      last_watch_events: InternedPathDashMap::default(),
-      context_files: InternedPathDashSet::default(),
-      context_directories: InternedPathDashSet::default(),
-      subscriptions: DirectorySubscriptions::default(),
-      absent_directories: InternedPathDashSet::default(),
-      recorded_children: InternedPathDashMap::default(),
-      index_lock: std::sync::Mutex::default(),
-      follow_symlinks: false,
+      ..Default::default()
     }
   }
 
@@ -416,65 +400,61 @@ impl PathManager {
   /// this marker to mean the build was told about the absence.
   pub fn set_reported_file_removal(&self, path: &InternedPath) {
     self.baselines.insert(path.clone(), None);
-    if (!self.files.all.contains(path) && !self.missing.all.contains(path))
-      || std::fs::symlink_metadata(path).is_ok()
-    {
+    if !self.has_file_or_missing_subscription(path) || std::fs::symlink_metadata(path).is_ok() {
       self.baselines.remove_if(path, |_, time| time.is_none());
     }
   }
 
-  /// Drop a removed path's time info and present baseline. A reported absence
-  /// survives later removals until the path reappears or is unregistered.
-  pub fn remove_file_time(&self, path: &InternedPath) {
+  /// Forget the removed path and any records below it. A reported absence
+  /// remains the baseline until the path reappears or is unregistered.
+  pub fn remove_path_records(&self, path: &InternedPath) {
+    let mut index = self.lock_recorded_children();
+    let discovered_dir = self.context_directories.contains(path);
+    if discovered_dir {
+      self.last_watch_events.remove(path);
+    }
+    if discovered_dir
+      || self.directories.all.contains(path)
+      || self.subscriptions.contains_directory(path)
+    {
+      self.subscriptions.forget_scanned_subtree(path);
+      let mut pending = vec![path.clone()];
+      while let Some(child) = pending.pop() {
+        if let Some(children) = index.remove(&child) {
+          pending.extend(children);
+        }
+        self.clear_time_record(&child);
+        if !self.directories.all.contains(&child) {
+          self.last_watch_events.remove(&child);
+        }
+      }
+      for context in self.directories.all.iter() {
+        if context.starts_with(path.as_path()) {
+          self.absent_directories.insert(context.clone());
+        }
+      }
+    } else {
+      self.clear_time_record(path);
+    }
+    self.unlink_unrecorded(&mut index, path);
+  }
+
+  fn clear_time_record(&self, path: &InternedPath) {
     self.file_times.remove(path);
     self.baselines.remove_if(path, |_, time| time.is_some());
     self.context_files.remove(path);
-    if self.context_directories.remove(path).is_some() {
-      self.last_watch_events.remove(path);
-    }
-    self.unindex_record(path);
-  }
-
-  /// Drop the records of every path inside the directory `dir` (watchpack's
-  /// `onDirectoryRemoved` marks them all missing), walking only its subtree.
-  pub fn remove_file_times_under(&self, dir: &InternedPath) {
-    let _index = self.lock_index();
-    self.subscriptions.forget_scanned_subtree(dir);
-    let mut pending = vec![dir.clone()];
-    while let Some(path) = pending.pop() {
-      if let Some((_, children)) = self.recorded_children.remove(&path) {
-        pending.extend(children);
-      }
-      self.file_times.remove(&path);
-      self.baselines.remove_if(&path, |_, time| time.is_some());
-      self.context_files.remove(&path);
-      self.context_directories.remove(&path);
-      if !self.directories.all.contains(&path) {
-        self.last_watch_events.remove(&path);
-      }
-    }
-    self.unlink_unrecorded(dir);
-    for context in self.directories.all.iter() {
-      if context.starts_with(dir.as_ref() as &Path) {
-        self.absent_directories.insert(context.clone());
-      }
-    }
+    self.context_directories.remove(path);
   }
 
   /// Writes a record for `path` with `write` and indexes it, and its ancestors
   /// not indexed yet, under the index lock: a sweep of an ancestor sees the
   /// record either both written and indexed, or not at all.
   fn record<R>(&self, path: &InternedPath, write: impl FnOnce() -> R) -> R {
-    let _index = self.lock_index();
+    let mut index = self.lock_recorded_children();
     let written = write();
     let mut child = path.clone();
     while let Some(parent) = child.parent().map(InternedPath::from) {
-      let indexed = !self
-        .recorded_children
-        .entry(parent.clone())
-        .or_default()
-        .insert(child);
-      if indexed {
+      if !index.entry(parent.clone()).or_default().insert(child) {
         break;
       }
       child = parent;
@@ -485,42 +465,41 @@ impl PathManager {
   /// `path` may no longer hold a record of its own: once it holds none and
   /// has nothing indexed below it, it leaves its parent, and so on up.
   fn unindex_record(&self, path: &InternedPath) {
-    let _index = self.lock_index();
-    self.unlink_unrecorded(path);
+    self.unlink_unrecorded(&mut self.lock_recorded_children(), path);
   }
 
   /// [`Self::unindex_record`] under the index lock already held.
-  fn unlink_unrecorded(&self, path: &InternedPath) {
+  fn unlink_unrecorded(&self, index: &mut InternedPathMap<InternedPathSet>, path: &InternedPath) {
     let mut child = path.clone();
-    while !self.holds_record(&child) && !self.recorded_children.contains_key(&child) {
+    while !self.holds_record(&child) && !index.contains_key(&child) {
       let Some(parent) = child.parent().map(InternedPath::from) else {
         return;
       };
-      let emptied = match self.recorded_children.get_mut(&parent) {
-        Some(mut siblings) => siblings.remove(&child) && siblings.is_empty(),
-        None => false,
+      let Some(siblings) = index.get_mut(&parent) else {
+        return;
       };
-      if !emptied {
+      if !siblings.remove(&child) || !siblings.is_empty() {
         return;
       }
-      self
-        .recorded_children
-        .remove_if(&parent, |_, siblings| siblings.is_empty());
+      index.remove(&parent);
       child = parent;
     }
   }
 
   pub fn index_sizes(&self) -> (usize, usize) {
     let recorded = self
-      .recorded_children
-      .iter()
+      .lock_recorded_children()
+      .values()
       .map(|children| 1 + children.len())
       .sum();
     (recorded, self.subscriptions.directory_count())
   }
 
-  fn lock_index(&self) -> std::sync::MutexGuard<'_, ()> {
-    self.index_lock.lock().expect("record index lock poisoned")
+  fn lock_recorded_children(&self) -> MutexGuard<'_, InternedPathMap<InternedPathSet>> {
+    self
+      .recorded_children
+      .lock()
+      .expect("record index lock poisoned")
   }
 
   fn holds_record(&self, path: &InternedPath) -> bool {
@@ -597,7 +576,7 @@ impl PathManager {
             self.context_files.insert(path.clone());
             self.write_file_time(&path, mtime, !observed, true)
           });
-          let registered = self.files.all.contains(&path) || self.missing.all.contains(&path);
+          let registered = self.has_file_or_missing_subscription(&path);
           if self.forget_if_orphaned(&path) {
             break;
           }
@@ -616,12 +595,12 @@ impl PathManager {
   /// after, so it either sees the context gone here or is swept by the
   /// unregistering `update()`.
   fn forget_if_orphaned(&self, path: &InternedPath) -> bool {
-    if self.is_below_context(path) {
+    if self.subscriptions.is_below_context(path) {
       return false;
     }
     self.context_files.remove(path);
     self.context_directories.remove(path);
-    if !self.files.all.contains(path) && !self.missing.all.contains(path) {
+    if !self.has_file_or_missing_subscription(path) {
       self.file_times.remove(path);
     }
     if !self.directories.all.contains(path) {
@@ -665,7 +644,7 @@ impl PathManager {
     }
 
     let registered_directory = self.directories.all.contains(path);
-    if !registered_directory && !self.is_below_context(path) {
+    if !registered_directory && !self.subscriptions.is_below_context(path) {
       return true;
     }
     // Like watchpack's live events, `lstat`: a link is a file entry here even
@@ -773,20 +752,8 @@ impl PathManager {
     }
   }
 
-  /// Whether removing `path` can take recorded paths below it along: it is a
-  /// registered or discovered context, or a directory above a registered
-  /// path.
-  pub fn may_contain_records(&self, path: &InternedPath) -> bool {
-    self.directories.all.contains(path)
-      || self.context_directories.contains(path)
-      || self.subscriptions.contains_directory(path)
-  }
-
-  fn is_below_context(&self, path: &InternedPath) -> bool {
-    path
-      .ancestors()
-      .skip(1)
-      .any(|ancestor| self.directories.all.contains(&InternedPath::from(ancestor)))
+  pub fn has_file_or_missing_subscription(&self, path: &InternedPath) -> bool {
+    self.files.all.contains(path) || self.missing.all.contains(path)
   }
 
   /// watchpack's `setFileTime(filePath, mtime, initial, ignoreWhenEqual)`:
@@ -856,7 +823,7 @@ impl PathManager {
   /// Equal mtimes are only stale once they are past the filesystem accuracy window.
   #[cfg(test)]
   pub fn has_mtime_changed(&self, path: &InternedPath) -> bool {
-    if !self.files.all.contains(path) && !self.missing.all.contains(path) {
+    if !self.has_file_or_missing_subscription(path) {
       return true;
     }
 
@@ -966,25 +933,13 @@ impl PathManager {
     // fresh stat would reopen the rewatch-gap race `set_file_time_if_absent`
     // guards against. A path still below a registered context keeps its
     // record: the context reports it.
-    let removed_files: Vec<InternedPath> = self.files.removed.iter().map(|p| p.clone()).collect();
-    for path in &removed_files {
-      let still_missing = self.missing.all.contains(path);
-      if !still_missing {
-        self.baselines.remove(path);
-      }
-      if !still_missing && !self.is_below_context(path) {
-        self.file_times.remove(path);
-        self.unindex_record(path);
-      }
-    }
-    let removed_missing: Vec<InternedPath> =
-      self.missing.removed.iter().map(|p| p.clone()).collect();
-    for path in &removed_missing {
-      if self.files.all.contains(path) {
+    for path in self.files.removed.iter().chain(self.missing.removed.iter()) {
+      let path = path.key();
+      if self.has_file_or_missing_subscription(path) {
         continue;
       }
       self.baselines.remove(path);
-      if !self.is_below_context(path) {
+      if !self.subscriptions.is_below_context(path) {
         self.file_times.remove(path);
         self.unindex_record(path);
       }
@@ -996,12 +951,15 @@ impl PathManager {
       // directory found there, and keeps its event clock. Absent, it is
       // forgotten, so it is scanned as a new directory when it comes back.
       let absent = self.absent_directories.remove(dir).is_some();
-      if !absent && self.is_below_context(dir) {
+      let covered = self.subscriptions.is_below_context(dir);
+      if !absent && covered {
         self.record(dir, || self.context_directories.insert(dir.clone()));
       } else {
         self.last_watch_events.remove(dir);
       }
-      self.forget_context_entries_under(dir);
+      if !covered {
+        self.forget_context_entries_under(dir);
+      }
     }
 
     Ok(())
@@ -1010,29 +968,23 @@ impl PathManager {
   /// A context was unregistered: forget what its scan found below it, except
   /// what another still-registered context also covers.
   fn forget_context_entries_under(&self, dir: &InternedPath) {
-    let _index = self.lock_index();
-    let mut subtree = Vec::new();
+    let mut index = self.lock_recorded_children();
     let mut pending = vec![dir.clone()];
     while let Some(path) = pending.pop() {
-      if let Some(children) = self.recorded_children.get(&path) {
-        pending.extend(children.iter().cloned());
-      }
-      subtree.push(path);
-    }
-    for path in &subtree {
-      if self.is_below_context(path) || self.directories.all.contains(path) {
+      if self.directories.all.contains(&path) {
         continue;
       }
-      if self.context_files.remove(path).is_some()
-        && !self.files.all.contains(path)
-        && !self.missing.all.contains(path)
-      {
-        self.file_times.remove(path);
-        self.unlink_unrecorded(path);
+      if let Some(children) = index.get(&path) {
+        pending.extend(children.iter().cloned());
       }
-      if self.context_directories.remove(path).is_some() {
-        self.last_watch_events.remove(path);
-        self.unlink_unrecorded(path);
+      if self.context_files.remove(&path).is_some() && !self.has_file_or_missing_subscription(&path)
+      {
+        self.file_times.remove(&path);
+        self.unlink_unrecorded(&mut index, &path);
+      }
+      if self.context_directories.remove(&path).is_some() {
+        self.last_watch_events.remove(&path);
+        self.unlink_unrecorded(&mut index, &path);
       }
     }
   }

@@ -589,3 +589,62 @@ async fn scanned_directories_route_descendants_and_release_their_state() {
   assert_eq!(watcher.index_sizes().1, 0);
   watcher.close().await.expect("close watcher");
 }
+
+#[tokio::test]
+async fn missing_subscription_keeps_child_events_after_directory_times_are_released() {
+  use std::iter::{empty, once};
+
+  let temp = tempfile::tempdir().expect("create fixture");
+  let dir = InternedPath::from(temp.path().canonicalize().expect("resolve fixture"));
+  let child = InternedPath::from(dir.join("child.js"));
+  write_version(&child, 0);
+  let watcher = manual_watcher();
+  let (batch_tx, mut batches) = unbounded_channel();
+  let (raw_tx, _raw) = unbounded_channel();
+  let start = SystemTime::now() + Duration::from_secs(60);
+  let has_child_time = || {
+    watcher
+      .collect_time_info_entries()
+      .0
+      .iter()
+      .any(|(path, _)| path == &child.to_string_lossy())
+  };
+  watcher
+    .watch(
+      (empty(), empty()),
+      (once(dir.clone()), empty()),
+      (once(dir.clone()), empty()),
+      start,
+      Box::new(Batches(batch_tx.clone())),
+      Box::new(Changes(raw_tx.clone())),
+    )
+    .await;
+  assert!(has_child_time());
+
+  watcher
+    .watch(
+      (empty(), empty()),
+      (empty(), once(dir.clone())),
+      (empty(), empty()),
+      start,
+      Box::new(Batches(batch_tx)),
+      Box::new(Changes(raw_tx)),
+    )
+    .await;
+  assert!(!has_child_time());
+  write_version(&child, 1);
+  disk_event(&watcher, &child, FsEventKind::Change);
+  let (changed, removed) = tokio::time::timeout(Duration::from_secs(5), batches.recv())
+    .await
+    .expect("child change")
+    .expect("active handler");
+  assert_eq!(
+    changed,
+    [dir.to_string_lossy().into_owned()]
+      .into_iter()
+      .collect::<FxHashSet<_>>()
+  );
+  assert!(removed.is_empty());
+  assert!(!has_child_time());
+  watcher.close().await.expect("close watcher");
+}
