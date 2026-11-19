@@ -24,6 +24,7 @@ function createRuntime({
   hasContainer = true,
   sharedFallback,
   sharedFallbackVariants,
+  supportsSharedIdentity = false,
   consumeData,
   initialConsumes,
   chunkMapping = {},
@@ -130,6 +131,7 @@ function createRuntime({
   instance.sharedHandler.host = instance;
   const localBundlerRuntime = {
     ...bundlerRuntime,
+    supportsSharedIdentity,
     I: (options) => {
       initializationRequires.push(options.webpackRequire);
       return bundlerRuntime.I(options);
@@ -863,6 +865,7 @@ module.exports = [
       };
       const { runtimeRequire } = createRuntime({
         sharedFallback,
+        supportsSharedIdentity: true,
         sharedFallbackVariants: {
           react: [
             {
@@ -895,7 +898,7 @@ module.exports = [
           .getter;
       expect(fallbackKey).toBe('react\0consume');
       expect(runtimeRequire.federation.sharedFallback[fallbackKey]).toEqual([
-        ['server.js', '1.0.0', 'server'],
+        ['server.js', '1.0.0', 'server', { shareScope: 'primary', layer: 'server' }],
       ]);
       expect(sharedFallback.react).toHaveLength(2);
     },
