@@ -13,11 +13,13 @@ import { PackageManagerTabs } from '@theme';
 - **使用 Rsbuild**：Rsbuild 为 Solid 项目预设了 JSX 编译和模块热替换（HMR）。创建项目请参考 [Rsbuild 的 Solid 指南](https://rsbuild.rs/zh/guide/framework/solid)。
 - **手动配置 Rspack**：按照下文配置 `solid-loader`，也可以参考完整的 [Rspack + Solid 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/solid)。
 
-## 配置 Solid 2 \{#configure-solid}
+## 配置 Solid \{#configure-solid}
+
+使用 `solid-loader` 时，Rspack 和 Solid 的最低版本均为 2.0.0。
 
 ### 编译 JSX 和 TSX \{#compile-jsx-and-tsx}
 
-要用 Rspack 2 编译 Solid 2 组件，先安装开发依赖 [solid-loader](https://github.com/rstackjs/solid-loader)。
+将 [solid-loader](https://github.com/rstackjs/solid-loader) 安装为开发依赖。
 
 <PackageManagerTabs command="add solid-loader -D" />
 
