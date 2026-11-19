@@ -318,49 +318,58 @@ impl EventProcessor {
     let (direct, contexts) = paths.subscriptions.subscribers(path, target);
     let mut events = ResolvedEvents::default();
     let mut has_live_context = false;
+    let mut context_events = smallvec::SmallVec::<[(_, _); 1]>::with_capacity(contexts.len());
     for context in contexts {
-      let context_kind = if std::fs::symlink_metadata(&context).is_ok() {
+      let watched = &context.watched;
+      let context_kind = if std::fs::symlink_metadata(watched).is_ok() {
         has_live_context = true;
         FsEventKind::Change
       } else {
-        self.analyzer.invalidate_path(&context);
-        let descendants = paths.may_contain_records(&context);
-        paths.remove_file_time(&context);
+        self.analyzer.invalidate_path(watched);
+        let descendants = paths.may_contain_records(watched);
+        paths.remove_file_time(watched);
         if descendants {
-          paths.remove_file_times_under(&context);
+          paths.remove_file_times_under(watched);
         }
         FsEventKind::Remove
       };
-      events.dependencies.push(FsEvent {
-        path: context,
-        kind: context_kind,
-      });
+      context_events.push((context, context_kind));
     }
-    let mut report_entry = true;
-    if kind == FsEventKind::Remove && !initial_missing && has_live_context {
+    let context_removal = kind == FsEventKind::Remove && !initial_missing && has_live_context;
+    if context_removal {
       events.context_removal = Some(path.clone());
-      let file_or_missing = |p: &InternedPath| {
-        paths.access().files().0.contains(p) || paths.access().missing().0.contains(p)
-      };
-      report_entry = file_or_missing(path);
-      for event in &mut events.dependencies {
-        if event.kind == FsEventKind::Remove && !file_or_missing(&event.path) {
-          event.kind = FsEventKind::Change;
-        }
-      }
     }
-    if report_entry {
-      if !events.dependencies.is_empty()
-        && events.context_removal.is_none()
-        && !direct.contains(path)
-      {
-        events.immediate.push(FsEvent {
-          path: path.clone(),
+    for (context, context_kind) in context_events {
+      for subscriber in context.requested {
+        let kind = if context_removal
+          && context_kind == FsEventKind::Remove
+          && !subscriber.file_or_missing
+        {
+          FsEventKind::Change
+        } else {
+          context_kind
+        };
+        events.dependencies.push(FsEvent {
+          path: subscriber.path,
           kind,
         });
       }
-      for path in direct {
-        let event = FsEvent { path, kind };
+    }
+    if !events.dependencies.is_empty()
+      && !context_removal
+      && !direct.iter().any(|s| s.path == *path)
+    {
+      events.immediate.push(FsEvent {
+        path: path.clone(),
+        kind,
+      });
+    }
+    for subscriber in direct {
+      if !context_removal || subscriber.file_or_missing {
+        let event = FsEvent {
+          path: subscriber.path,
+          kind,
+        };
         events.immediate.push(event.clone());
         events.dependencies.push(event);
       }
@@ -393,16 +402,20 @@ impl DependencyFinder<'_> {
       subscriptions.update(&f, Subscription::File(f.clone()), true);
     }
     for d in self.directories.iter() {
-      subscriptions.update(&d, Subscription::Directory, true);
+      subscriptions.update(&d, Subscription::Directory(d.clone()), true);
     }
     for m in self.missing.iter() {
-      subscriptions.update(&m, Subscription::Missing, true);
+      subscriptions.update(&m, Subscription::Missing(m.clone()), true);
     }
     let (direct, contexts) = subscriptions.subscribers(path, std::fs::metadata(path).ok().as_ref());
     direct
       .into_iter()
-      .map(|p| (p, kind))
-      .chain(contexts.into_iter().map(|p| (p, FsEventKind::Change)))
+      .map(|s| (s.path, kind))
+      .chain(
+        contexts
+          .into_iter()
+          .map(|context| (context.watched, FsEventKind::Change)),
+      )
       .collect()
   }
 }

@@ -31,7 +31,7 @@ use rspack_error::Result;
 use rspack_paths::InternedPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 use scanner::Scanner;
-use subscriptions::FileSubscription;
+use subscriptions::PathSubscription;
 use tokio::sync::{mpsc, oneshot};
 use trigger::Trigger;
 
@@ -139,9 +139,9 @@ const WATCHER_UNAVAILABLE: &str =
 
 enum WatcherOp {
   Watch {
-    files: (Vec<FileSubscription>, Vec<FileSubscription>),
-    directories: (Vec<InternedPath>, Vec<InternedPath>),
-    missing: (Vec<InternedPath>, Vec<InternedPath>),
+    files: (Vec<PathSubscription>, Vec<PathSubscription>),
+    directories: (Vec<PathSubscription>, Vec<PathSubscription>),
+    missing: (Vec<PathSubscription>, Vec<PathSubscription>),
     start_time: SystemTime,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
@@ -283,11 +283,17 @@ impl FsWatcher {
   ) -> Pin<Box<dyn Future<Output = ()> + Send>> {
     self.watch_subscriptions(
       (
-        files.0.map(FileSubscription::from).collect(),
-        files.1.map(FileSubscription::from).collect(),
+        files.0.map(PathSubscription::from).collect(),
+        files.1.map(PathSubscription::from).collect(),
       ),
-      (directories.0.collect(), directories.1.collect()),
-      (missing.0.collect(), missing.1.collect()),
+      (
+        directories.0.map(PathSubscription::from).collect(),
+        directories.1.map(PathSubscription::from).collect(),
+      ),
+      (
+        missing.0.map(PathSubscription::from).collect(),
+        missing.1.map(PathSubscription::from).collect(),
+      ),
       start_time,
       event_aggregate_handler,
       event_handler,
@@ -296,9 +302,9 @@ impl FsWatcher {
 
   fn watch_subscriptions(
     &self,
-    files: (Vec<FileSubscription>, Vec<FileSubscription>),
-    directories: (Vec<InternedPath>, Vec<InternedPath>),
-    missing: (Vec<InternedPath>, Vec<InternedPath>),
+    files: (Vec<PathSubscription>, Vec<PathSubscription>),
+    directories: (Vec<PathSubscription>, Vec<PathSubscription>),
+    missing: (Vec<PathSubscription>, Vec<PathSubscription>),
     start_time: SystemTime,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
@@ -426,9 +432,9 @@ fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<Watche
 impl FsWatcherInner {
   async fn watch(
     &mut self,
-    files: (Vec<FileSubscription>, Vec<FileSubscription>),
-    directories: (Vec<InternedPath>, Vec<InternedPath>),
-    missing: (Vec<InternedPath>, Vec<InternedPath>),
+    files: (Vec<PathSubscription>, Vec<PathSubscription>),
+    directories: (Vec<PathSubscription>, Vec<PathSubscription>),
+    missing: (Vec<PathSubscription>, Vec<PathSubscription>),
     start_time: SystemTime,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
@@ -460,9 +466,9 @@ impl FsWatcherInner {
 
   async fn wait_for_event(
     &mut self,
-    files: (Vec<FileSubscription>, Vec<FileSubscription>),
-    directories: (Vec<InternedPath>, Vec<InternedPath>),
-    missing: (Vec<InternedPath>, Vec<InternedPath>),
+    files: (Vec<PathSubscription>, Vec<PathSubscription>),
+    directories: (Vec<PathSubscription>, Vec<PathSubscription>),
+    missing: (Vec<PathSubscription>, Vec<PathSubscription>),
     start_time: SystemTime,
   ) -> Result<()> {
     self

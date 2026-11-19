@@ -5,56 +5,76 @@ use smallvec::SmallVec;
 
 pub(crate) type SubscriberPaths = SmallVec<[InternedPath; 1]>;
 
-pub(crate) struct FileSubscription {
-  pub observed: InternedPath,
-  pub logical: InternedPath,
+pub(crate) struct PathSubscription {
+  pub watched_path: InternedPath,
+  pub requested_path: InternedPath,
 }
 
-impl From<InternedPath> for FileSubscription {
+impl From<InternedPath> for PathSubscription {
   fn from(path: InternedPath) -> Self {
     Self {
-      observed: path.clone(),
-      logical: path,
+      watched_path: path.clone(),
+      requested_path: path,
     }
   }
 }
 
 pub(crate) enum Subscription {
   File(InternedPath),
-  Directory,
-  Missing,
+  Directory(InternedPath),
+  Missing(InternedPath),
 }
 
 #[derive(Default)]
 struct EntrySubscriptions {
   files: SubscriberPaths,
-  directory: bool,
-  missing: bool,
+  directories: SubscriberPaths,
+  missing: SubscriberPaths,
+}
+
+pub(crate) struct Subscriber {
+  pub path: InternedPath,
+  pub file_or_missing: bool,
+}
+
+pub(crate) type Subscribers = SmallVec<[Subscriber; 1]>;
+
+pub(crate) struct ContextSubscribers {
+  pub watched: InternedPath,
+  pub requested: Subscribers,
 }
 
 impl EntrySubscriptions {
-  fn direct_paths(
-    &self,
-    path: &InternedPath,
-    metadata: Option<&std::fs::Metadata>,
-  ) -> SubscriberPaths {
-    let file = metadata.is_none_or(std::fs::Metadata::is_file);
-    let directory = metadata.is_none_or(std::fs::Metadata::is_dir);
-    let mut paths = if file {
-      self.files.clone()
-    } else {
-      SubscriberPaths::new()
+  fn subscribers(&self, file: bool, directory: bool) -> Subscribers {
+    let mut requested = Subscribers::new();
+    let mut add = |path: &InternedPath, file_or_missing| {
+      if !requested.iter().any(|subscriber| subscriber.path == *path) {
+        requested.push(Subscriber {
+          path: path.clone(),
+          file_or_missing,
+        });
+      }
     };
-    if ((directory && self.directory) || ((file || directory) && self.missing))
-      && !paths.contains(path)
-    {
-      paths.push(path.clone());
+    if file {
+      for path in &self.files {
+        add(path, true);
+      }
     }
-    paths
+    if directory || file {
+      for path in &self.missing {
+        add(path, true);
+      }
+    }
+    if directory {
+      for path in &self.directories {
+        add(path, self.files.contains(path));
+      }
+    }
+    requested
   }
 
   fn recursive(&self) -> bool {
-    self.directory || self.missing
+    !self.directories.is_empty() || !self.missing.is_empty()
   }
 
   fn is_empty(&self) -> bool {
@@ -80,8 +100,23 @@ fn parent(path: &InternedPath) -> InternedPath {
     .map_or_else(|| path.clone(), InternedPath::from)
 }
 
+fn update_paths(paths: &mut SubscriberPaths, requested: InternedPath, add: bool) -> bool {
+  if add {
+    if paths.contains(&requested) {
+      return false;
+    }
+    paths.push(requested);
+    true
+  } else if let Some(index) = paths.iter().position(|p| p == &requested) {
+    paths.swap_remove(index);
+    paths.is_empty()
+  } else {
+    false
+  }
+}
+
 impl DirectorySubscriptions {
-  /// Returns whether the first subscription of this kind was added or the last removed.
+  /// A new request needs an initial scan. Release the watched path after the last request.
   pub fn update(&self, path: &InternedPath, subscription: Subscription, add: bool) -> bool {
     let mut dirs = self
       .directories
@@ -103,22 +138,9 @@ impl DirectorySubscriptions {
     };
     let recursive = entry.recursive();
     let changed = match subscription {
-      Subscription::File(logical) if add => {
-        let first = entry.files.is_empty();
-        if !entry.files.contains(&logical) {
-          entry.files.push(logical);
-        }
-        first
-      }
-      Subscription::File(logical) => {
-        let Some(index) = entry.files.iter().position(|file| file == &logical) else {
-          return false;
-        };
-        entry.files.swap_remove(index);
-        entry.files.is_empty()
-      }
-      Subscription::Directory => std::mem::replace(&mut entry.directory, add) != add,
-      Subscription::Missing => std::mem::replace(&mut entry.missing, add) != add,
+      Subscription::File(requested) => update_paths(&mut entry.files, requested, add),
+      Subscription::Missing(requested) => update_paths(&mut entry.missing, requested, add),
+      Subscription::Directory(requested) => update_paths(&mut entry.directories, requested, add),
     };
     if recursive != entry.recursive() {
       let mut pending = vec![path.clone()];
@@ -190,6 +212,22 @@ impl DirectorySubscriptions {
   }
 
   pub fn files(&self, path: &InternedPath) -> SubscriberPaths {
+    self.entry_paths(path, |entry| entry.files.clone())
+  }
+
+  pub fn missing(&self, path: &InternedPath) -> SubscriberPaths {
+    self.entry_paths(path, |entry| entry.missing.clone())
+  }
+
+  pub fn directories(&self, path: &InternedPath) -> SubscriberPaths {
+    self.entry_paths(path, |entry| entry.directories.clone())
+  }
+
+  fn entry_paths(
+    &self,
+    path: &InternedPath,
+    select: impl FnOnce(&EntrySubscriptions) -> SubscriberPaths,
+  ) -> SubscriberPaths {
     let dirs = self
       .directories
       .read()
@@ -197,7 +235,7 @@ impl DirectorySubscriptions {
     dirs
       .get(&parent(path))
       .and_then(|dir| dir.entries.get(path))
-      .map_or_default(|entry| entry.files.clone())
+      .map_or_default(select)
   }
 
   /// The hot path reads the parent once for both the named entry and its contexts.
@@ -205,21 +243,35 @@ impl DirectorySubscriptions {
     &self,
     path: &InternedPath,
     metadata: Option<&std::fs::Metadata>,
-  ) -> (SubscriberPaths, SubscriberPaths) {
+  ) -> (Subscribers, SmallVec<[ContextSubscribers; 1]>) {
     let dirs = self
       .directories
       .read()
       .expect("directory subscriptions poisoned");
+    let context_subscribers = |contexts: &SubscriberPaths| {
+      contexts
+        .iter()
+        .filter_map(|watched| {
+          let entry = dirs.get(&parent(watched))?.entries.get(watched)?;
+          Some(ContextSubscribers {
+            watched: watched.clone(),
+            requested: entry.subscribers(false, true),
+          })
+        })
+        .collect()
+    };
     let dir = parent(path);
     if let Some(state) = dirs.get(&dir) {
-      let direct = state
-        .entries
-        .get(path)
-        .map_or_default(|entry| entry.direct_paths(path, metadata));
+      let direct = state.entries.get(path).map_or_default(|entry| {
+        entry.subscribers(
+          metadata.is_none_or(std::fs::Metadata::is_file),
+          metadata.is_none_or(std::fs::Metadata::is_dir),
+        )
+      });
       let contexts = if dir == *path {
-        SubscriberPaths::new()
+        SmallVec::new()
       } else {
-        state.contexts.clone()
+        context_subscribers(&state.contexts)
       };
       return (direct, contexts);
     }
@@ -234,7 +286,7 @@ impl DirectorySubscriptions {
         {
           contexts.push(child);
         }
-        return (SubscriberPaths::new(), contexts);
+        return (Subscribers::new(), context_subscribers(&contexts));
       }
     }
     Default::default()

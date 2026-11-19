@@ -277,3 +277,216 @@ async fn removing_the_file_subscription_leaves_its_context_active() {
   }
   watcher.close().await.expect("close watcher");
 }
+
+#[tokio::test]
+async fn missing_subscribers_share_a_watched_path() {
+  use rspack_watcher::testing::watch_missing_subscriptions;
+
+  let temp = tempfile::tempdir().expect("create fixture");
+  let root = temp.path().canonicalize().expect("resolve fixture");
+  let parent = InternedPath::from(root.join("not_exist"));
+  let watched = InternedPath::from(parent.join("index.js"));
+  let a = InternedPath::from(root.join("link-a/not_exist/index.js"));
+  let b = InternedPath::from(root.join("link-b/not_exist/index.js"));
+  let watcher = manual_watcher();
+  let (raw_tx, mut raw) = unbounded_channel();
+  let (batch_tx, mut batches) = unbounded_channel();
+  let subscribe = |added, removed| {
+    watch_missing_subscriptions(
+      &watcher,
+      added,
+      removed,
+      Batches(batch_tx.clone()),
+      Changes(raw_tx.clone()),
+    )
+  };
+  let bindings = [(watched.clone(), a.clone()), (watched.clone(), b.clone())];
+  subscribe(&bindings, &[]).await;
+  let (times, _) = watcher.collect_time_info_entries();
+  assert_eq!(times.len(), 2);
+  for path in [&a, &b] {
+    assert!(times.contains(&(path.to_string_lossy().into_owned(), TimeInfoEntry::Null)));
+  }
+
+  fs::create_dir(&parent).expect("create missing parent");
+  write_version(&watched, 1);
+  disk_event(&watcher, &parent, FsEventKind::Create);
+  let (changed, removed) = tokio::time::timeout(Duration::from_secs(5), batches.recv())
+    .await
+    .expect("appearance event")
+    .expect("batch handler active");
+  let names = [
+    a.to_string_lossy().into_owned(),
+    b.to_string_lossy().into_owned(),
+  ];
+  assert_eq!(changed, names.iter().cloned().collect::<FxHashSet<_>>());
+  assert!(removed.is_empty());
+  let immediate = [
+    raw.try_recv().expect("first subscriber"),
+    raw.try_recv().expect("second subscriber"),
+  ];
+  assert_eq!(immediate.into_iter().collect::<FxHashSet<_>>(), changed);
+  assert!(raw.try_recv().is_err());
+
+  subscribe(&[], &bindings[..1]).await;
+  let (times, _) = watcher.collect_time_info_entries();
+  assert!(matches!(times.as_slice(), [(path, TimeInfoEntry::Entry { .. })] if path == &names[1]));
+  fs::remove_file(&watched).expect("remove watched file");
+  check_subscriptions(&watcher).await;
+  let (changed, removed) = tokio::time::timeout(Duration::from_secs(5), batches.recv())
+    .await
+    .expect("removal event")
+    .expect("batch handler active");
+  assert!(changed.is_empty());
+  assert_eq!(
+    removed,
+    [names[1].clone()].into_iter().collect::<FxHashSet<_>>()
+  );
+  subscribe(&[], &bindings[1..]).await;
+  assert!(watcher.collect_time_info_entries().0.is_empty());
+  watcher.close().await.expect("close watcher");
+}
+
+#[tokio::test]
+async fn child_event_notifies_the_requested_missing_directory() {
+  let temp = tempfile::tempdir().expect("create fixture");
+  let root = temp.path().canonicalize().expect("resolve fixture");
+  let watched = InternedPath::from(root.join("disk"));
+  let requested = InternedPath::from(root.join("link"));
+  let watcher = manual_watcher();
+  let (batch_tx, mut batches) = unbounded_channel();
+  let (raw_tx, _raw) = unbounded_channel();
+  rspack_watcher::testing::watch_missing_subscriptions(
+    &watcher,
+    &[(watched.clone(), requested.clone())],
+    &[],
+    Batches(batch_tx),
+    Changes(raw_tx),
+  )
+  .await;
+
+  fs::create_dir(&watched).expect("create watched directory");
+  let child = InternedPath::from(watched.join("index.js"));
+  write_version(&child, 1);
+  disk_event(&watcher, &child, FsEventKind::Create);
+  let (changed, removed) = tokio::time::timeout(Duration::from_secs(5), batches.recv())
+    .await
+    .expect("child event")
+    .expect("batch handler active");
+  assert_eq!(
+    changed,
+    [requested.to_string_lossy().into_owned()]
+      .into_iter()
+      .collect::<FxHashSet<_>>()
+  );
+  assert!(removed.is_empty());
+  watcher.close().await.expect("close watcher");
+}
+
+#[tokio::test]
+async fn directory_subscribers_share_a_watched_directory() {
+  use rspack_watcher::testing::watch_directory_subscriptions;
+
+  let temp = tempfile::tempdir().expect("create fixture");
+  let root = temp.path().canonicalize().expect("resolve fixture");
+  let disk = InternedPath::from(root.join("disk"));
+  let a = InternedPath::from(root.join("a"));
+  let b = InternedPath::from(root.join("b"));
+  let child = InternedPath::from(disk.join("child.js"));
+  let bindings = [(disk.clone(), a.clone()), (disk.clone(), b.clone())];
+  let watcher = manual_watcher();
+  let (raw_tx, mut raw) = unbounded_channel();
+  let (batch_tx, mut batches) = unbounded_channel();
+  let watch = |added, removed| {
+    watch_directory_subscriptions(
+      &watcher,
+      added,
+      removed,
+      SystemTime::now() + Duration::from_secs(30),
+      Batches(batch_tx.clone()),
+      Changes(raw_tx.clone()),
+    )
+  };
+  fs::create_dir(&disk).expect("create watched directory");
+  write_version(&child, 0);
+  watch(&bindings, &[]).await;
+
+  disk_event(&watcher, &disk, FsEventKind::Change);
+  let (changed, removed) = tokio::time::timeout(Duration::from_secs(5), batches.recv())
+    .await
+    .expect("receive directory change")
+    .expect("active handler");
+  let names: FxHashSet<_> = [&a, &b]
+    .into_iter()
+    .map(|p| p.to_string_lossy().into_owned())
+    .collect();
+  assert_eq!(changed, names);
+  assert!(removed.is_empty());
+  let immediate = [
+    raw.try_recv().expect("first request"),
+    raw.try_recv().expect("second request"),
+  ];
+  assert_eq!(immediate.into_iter().collect::<FxHashSet<_>>(), names);
+  assert!(raw.try_recv().is_err());
+
+  for version in 1..=2 {
+    if version == 2 {
+      watch(&[], &bindings[..1]).await;
+    }
+    let requested: FxHashSet<_> = bindings[(version - 1) as usize..]
+      .iter()
+      .map(|(_, p)| p.to_string_lossy().into_owned())
+      .collect();
+    write_version(&child, version);
+    if version == 1 {
+      disk_event(&watcher, &child, FsEventKind::Change);
+    } else {
+      check_subscriptions(&watcher).await;
+    }
+    let (changed, removed) = tokio::time::timeout(Duration::from_secs(5), batches.recv())
+      .await
+      .expect("receive child change")
+      .expect("active handler");
+    assert_eq!(changed, requested);
+    assert!(removed.is_empty());
+    assert_eq!(
+      raw.try_recv().expect("concrete child"),
+      child.to_string_lossy()
+    );
+    assert!(raw.try_recv().is_err());
+    let (files, dirs) = watcher.collect_time_info_entries();
+    assert_eq!(
+      dirs
+        .iter()
+        .map(|(p, _)| p.clone())
+        .collect::<FxHashSet<_>>(),
+      requested
+    );
+    for (p, entry) in dirs {
+      assert!(matches!(entry, TimeInfoEntry::OnlySafeTimeEntry { safe_time } if safe_time > 0));
+      assert!(files.contains(&(p, TimeInfoEntry::ExistenceOnlyTimeEntry)));
+    }
+    assert!(
+      !files
+        .iter()
+        .any(|(p, _)| p == disk.to_str().unwrap() || (version == 2 && p == a.to_str().unwrap()))
+    );
+  }
+  fs::remove_dir_all(&disk).expect("remove watched directory");
+  disk_event(&watcher, &disk, FsEventKind::Remove);
+  let (changed, removed) = tokio::time::timeout(Duration::from_secs(5), batches.recv())
+    .await
+    .expect("receive directory removal")
+    .expect("active handler");
+  assert!(changed.is_empty());
+  assert_eq!(
+    removed,
+    [b.to_string_lossy().into_owned()]
+      .into_iter()
+      .collect::<FxHashSet<_>>()
+  );
+  assert_eq!(raw.try_recv().unwrap(), format!("removed {}", b.display()));
+  watch(&[], &bindings[1..]).await;
+  assert!(watcher.collect_time_info_entries().1.is_empty());
+  watcher.close().await.expect("close watcher");
+}

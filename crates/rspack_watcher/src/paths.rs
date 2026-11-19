@@ -16,7 +16,7 @@ use rspack_util::{
 
 use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher};
 use crate::{
-  subscriptions::{DirectorySubscriptions, FileSubscription, Subscription},
+  subscriptions::{DirectorySubscriptions, PathSubscription, Subscription},
   time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
 };
 
@@ -118,77 +118,76 @@ impl<'a> PathAccessor<'a> {
   }
 }
 
-/// `PathUpdater` is used to update collections of registered paths (files, directories, and missing paths)
-/// by specifying which paths have been added and which have been removed. It holds vectors of paths to be
-/// added and removed, and provides functionality to apply these changes to a path tracker. This struct
-/// facilitates batch updates to the path sets, ensuring that additions and removals are processed efficiently.
-#[derive(Debug)]
-struct PathUpdater {
-  pub added: Vec<InternedPath>,
-  pub removed: Vec<InternedPath>,
-  base_dir: PathBuf,
+struct PathUpdater<Added, Removed> {
+  added: Added,
+  removed: Removed,
 }
 
-impl<Added, Removed> From<(Added, Removed)> for PathUpdater
-where
-  Added: Iterator<Item = InternedPath>,
-  Removed: Iterator<Item = InternedPath>,
-{
+impl<Added, Removed> From<(Added, Removed)> for PathUpdater<Added, Removed> {
   fn from((added, removed): (Added, Removed)) -> Self {
-    Self {
-      added: added.collect(),
-      removed: removed.collect(),
-      base_dir: std::env::current_dir().unwrap_or_default(),
-    }
+    Self { added, removed }
   }
 }
 
-impl PathUpdater {
-  /// Update the paths in the given set. Returns the paths it newly holds and
-  /// those it no longer does.
-  async fn update(
+impl<Added, Removed, P> PathUpdater<Added, Removed>
+where
+  Added: Iterator<Item = P>,
+  Removed: Iterator<Item = P>,
+  P: Into<PathSubscription>,
+{
+  #[cfg(test)]
+  async fn update(self, tracker: &PathTracker, ignored: &IgnoredMatcher) -> Result<()> {
+    self
+      .update_subscriptions(
+        tracker,
+        ignored,
+        &DirectorySubscriptions::default(),
+        Subscription::File,
+      )
+      .await;
+    Ok(())
+  }
+
+  async fn update_subscriptions(
     self,
-    watch_tracker: &PathTracker,
+    tracker: &PathTracker,
     ignored: &IgnoredMatcher,
-  ) -> Result<(Vec<InternedPath>, Vec<InternedPath>)> {
-    let added_paths = self.added;
-    let removed_paths = self.removed;
-    let mut registered = Vec::new();
-    let mut unregistered = Vec::new();
-
-    for added in added_paths {
-      // Absolutize before the ignored check so registration filters on the
-      // same absolute path the watcher reports for events.
-      let added = if added.is_absolute() {
-        added
+    subscriptions: &DirectorySubscriptions,
+    subscription: fn(InternedPath) -> Subscription,
+  ) {
+    let base = std::env::current_dir().unwrap_or_default();
+    let absolute = |path: InternedPath| {
+      if path.is_absolute() {
+        path
       } else {
-        InternedPath::from(self.base_dir.join(added.as_ref()))
-      };
-
-      // Skip ignored paths AND anything inside an ignored directory.
-      if ignored
-        .is_ignored(added.to_str().expect("Path should be valid UTF-8"))
-        .await
+        base.join(path.as_path()).into()
+      }
+    };
+    for binding in self.added {
+      let binding: PathSubscription = binding.into();
+      let watched_path = absolute(binding.watched_path);
+      let requested_path = absolute(binding.requested_path);
+      if let Some(path) = requested_path.to_str()
+        && ignored.is_ignored(path).await
       {
         continue;
       }
-
-      if watch_tracker.add(added.clone()) {
-        registered.push(added);
+      let identity = requested_path == watched_path;
+      if subscriptions.update(&watched_path, subscription(requested_path), true) || identity {
+        tracker.add(watched_path);
       }
     }
-
-    for removed in removed_paths {
-      let removed = if removed.is_absolute() {
-        removed
-      } else {
-        InternedPath::from(self.base_dir.join(removed.as_ref()))
-      };
-      if watch_tracker.remove(removed.clone()) {
-        unregistered.push(removed);
+    for binding in self.removed {
+      let binding: PathSubscription = binding.into();
+      let watched_path = absolute(binding.watched_path);
+      if subscriptions.update(
+        &watched_path,
+        subscription(absolute(binding.requested_path)),
+        false,
+      ) {
+        tracker.remove(watched_path);
       }
     }
-    Ok((registered, unregistered))
   }
 }
 
@@ -889,11 +888,17 @@ impl PathManager {
     self
       .update_subscriptions(
         (
-          files.0.map(FileSubscription::from),
-          files.1.map(FileSubscription::from),
+          files.0.map(PathSubscription::from),
+          files.1.map(PathSubscription::from),
         ),
-        directories,
-        missing,
+        (
+          directories.0.map(PathSubscription::from),
+          directories.1.map(PathSubscription::from),
+        ),
+        (
+          missing.0.map(PathSubscription::from),
+          missing.1.map(PathSubscription::from),
+        ),
       )
       .await
   }
@@ -901,76 +906,42 @@ impl PathManager {
   pub async fn update_subscriptions(
     &self,
     files: (
-      impl Iterator<Item = FileSubscription>,
-      impl Iterator<Item = FileSubscription>,
+      impl Iterator<Item = PathSubscription>,
+      impl Iterator<Item = PathSubscription>,
     ),
     directories: (
-      impl Iterator<Item = InternedPath>,
-      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = PathSubscription>,
+      impl Iterator<Item = PathSubscription>,
     ),
     missing: (
-      impl Iterator<Item = InternedPath>,
-      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = PathSubscription>,
+      impl Iterator<Item = PathSubscription>,
     ),
   ) -> Result<()> {
-    let base = std::env::current_dir().unwrap_or_default();
-    let absolute = |path: InternedPath| {
-      if path.is_absolute() {
-        path
-      } else {
-        base.join(path.as_path()).into()
-      }
-    };
-    for FileSubscription { observed, logical } in files.0 {
-      let observed = absolute(observed);
-      let logical = absolute(logical);
-      if self.is_ignored_path(&logical).await {
-        continue;
-      }
-      let identity = logical == observed;
-      if self
-        .subscriptions
-        .update(&observed, Subscription::File(logical), true)
-        || identity
-      {
-        self.files.add(observed);
-      }
-    }
-    for FileSubscription { observed, logical } in files.1 {
-      let observed = absolute(observed);
-      if self
-        .subscriptions
-        .update(&observed, Subscription::File(absolute(logical)), false)
-      {
-        self.files.remove(observed);
-      }
-    }
-    let (added, removed) = PathUpdater::from(directories)
-      .update(&self.directories, &self.ignored)
-      .await?;
-    for path in added {
-      self
-        .subscriptions
-        .update(&path, Subscription::Directory, true);
-    }
-    for path in removed {
-      self
-        .subscriptions
-        .update(&path, Subscription::Directory, false);
-    }
-    let (added, removed) = PathUpdater::from(missing)
-      .update(&self.missing, &self.ignored)
-      .await?;
-    for path in added {
-      self
-        .subscriptions
-        .update(&path, Subscription::Missing, true);
-    }
-    for path in removed {
-      self
-        .subscriptions
-        .update(&path, Subscription::Missing, false);
-    }
+    PathUpdater::from(files)
+      .update_subscriptions(
+        &self.files,
+        &self.ignored,
+        &self.subscriptions,
+        Subscription::File,
+      )
+      .await;
+    PathUpdater::from(directories)
+      .update_subscriptions(
+        &self.directories,
+        &self.ignored,
+        &self.subscriptions,
+        Subscription::Directory,
+      )
+      .await;
+    PathUpdater::from(missing)
+      .update_subscriptions(
+        &self.missing,
+        &self.ignored,
+        &self.subscriptions,
+        Subscription::Missing,
+      )
+      .await;
 
     for dir in self.directories.added.iter() {
       if dir.exists() {
@@ -993,11 +964,9 @@ impl PathManager {
       if !still_missing {
         self.baselines.remove(path);
       }
-      if !self.is_below_context(path) {
+      if !still_missing && !self.is_below_context(path) {
         self.file_times.remove(path);
-        if !still_missing {
-          self.unindex_record(path);
-        }
+        self.unindex_record(path);
       }
     }
     let removed_missing: Vec<InternedPath> =
@@ -1140,10 +1109,12 @@ impl PathManager {
         .file_times
         .get(&path)
         .map_or(TimeInfoEntry::Null, |time| Self::entry(*time));
-      if let TimeInfoEntry::Entry { safe_time, .. } = entry {
-        file_safe_times.push((path.clone(), safe_time));
+      for requested in self.subscriptions.missing(&path) {
+        if let TimeInfoEntry::Entry { safe_time, .. } = entry {
+          file_safe_times.push((requested.clone(), safe_time));
+        }
+        file_timestamps.push((path_to_string(&requested), entry.clone()));
       }
-      file_timestamps.push((path_to_string(path.as_path()), entry));
     }
     // Files found below contexts, like watchpack's `DirectoryWatcher.files`.
     for path in self.context_files.iter() {
@@ -1214,16 +1185,21 @@ impl PathManager {
     }
     let mut directory_timestamps = TimeInfoEntries::with_capacity(dir_paths.len());
     for dir in &dir_paths {
-      let path = path_to_string(dir.as_path());
-      match dir_safe_times.get(dir).copied().flatten() {
-        Some(safe_time) => {
-          file_timestamps.push((path.clone(), TimeInfoEntry::ExistenceOnlyTimeEntry));
-          directory_timestamps.push((path, TimeInfoEntry::OnlySafeTimeEntry { safe_time }));
-        }
-        None => {
-          file_timestamps.push((path.clone(), TimeInfoEntry::Null));
-          directory_timestamps.push((path, TimeInfoEntry::Null));
-        }
+      let mut requested = self.subscriptions.directories(dir);
+      if self.context_directories.contains(dir) && !requested.contains(dir) {
+        requested.push(dir.clone());
+      }
+      let (file_entry, directory_entry) = match dir_safe_times.get(dir).copied().flatten() {
+        Some(safe_time) => (
+          TimeInfoEntry::ExistenceOnlyTimeEntry,
+          TimeInfoEntry::OnlySafeTimeEntry { safe_time },
+        ),
+        None => (TimeInfoEntry::Null, TimeInfoEntry::Null),
+      };
+      for path in requested {
+        let path = path_to_string(&path);
+        file_timestamps.push((path.clone(), file_entry.clone()));
+        directory_timestamps.push((path, directory_entry.clone()));
       }
     }
 

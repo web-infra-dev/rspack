@@ -127,6 +127,18 @@ pub fn manual_watcher() -> FsWatcher {
   })
 }
 
+fn bindings(paths: &[(InternedPath, InternedPath)]) -> Vec<crate::subscriptions::PathSubscription> {
+  paths
+    .iter()
+    .map(
+      |(watched_path, requested_path)| crate::subscriptions::PathSubscription {
+        watched_path: watched_path.clone(),
+        requested_path: requested_path.clone(),
+      },
+    )
+    .collect()
+}
+
 pub async fn watch_file_subscriptions(
   watcher: &FsWatcher,
   added: &[(InternedPath, InternedPath)],
@@ -134,22 +146,50 @@ pub async fn watch_file_subscriptions(
   aggregate: impl crate::EventAggregateHandler + Send + 'static,
   raw: impl crate::EventHandler + Send + 'static,
 ) {
-  let bindings = |files: &[(InternedPath, InternedPath)]| {
-    files
-      .iter()
-      .map(
-        |(observed, logical)| crate::subscriptions::FileSubscription {
-          observed: observed.clone(),
-          logical: logical.clone(),
-        },
-      )
-      .collect()
-  };
   watcher
     .watch_subscriptions(
       (bindings(added), bindings(removed)),
       (vec![], vec![]),
       (vec![], vec![]),
+      SystemTime::now(),
+      Box::new(aggregate),
+      Box::new(raw),
+    )
+    .await;
+}
+
+pub async fn watch_directory_subscriptions(
+  watcher: &FsWatcher,
+  added: &[(InternedPath, InternedPath)],
+  removed: &[(InternedPath, InternedPath)],
+  start_time: SystemTime,
+  aggregate: impl crate::EventAggregateHandler + Send + 'static,
+  raw: impl crate::EventHandler + Send + 'static,
+) {
+  watcher
+    .watch_subscriptions(
+      (vec![], vec![]),
+      (bindings(added), bindings(removed)),
+      (vec![], vec![]),
+      start_time,
+      Box::new(aggregate),
+      Box::new(raw),
+    )
+    .await;
+}
+
+pub async fn watch_missing_subscriptions(
+  watcher: &FsWatcher,
+  added: &[(InternedPath, InternedPath)],
+  removed: &[(InternedPath, InternedPath)],
+  aggregate: impl crate::EventAggregateHandler + Send + 'static,
+  raw: impl crate::EventHandler + Send + 'static,
+) {
+  watcher
+    .watch_subscriptions(
+      (vec![], vec![]),
+      (vec![], vec![]),
+      (bindings(added), bindings(removed)),
       SystemTime::now(),
       Box::new(aggregate),
       Box::new(raw),
