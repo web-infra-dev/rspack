@@ -89,16 +89,27 @@ fn resource_path_end(resource: &str) -> usize {
 }
 
 fn push_normalized_resource(buf: &mut String, resource: &str) {
-  if !resource.contains('\\')
-    || (!cfg!(windows) && !is_windows_path(resource))
-    || has_url_scheme(resource)
-  {
+  if !resource.contains('\\') || has_url_scheme(resource) {
     buf.push_str(resource);
     return;
   }
 
   let path_end = resource_path_end(resource);
-  buf.push_str(&resource[..path_end].cow_replace('\\', "/"));
+  // Like make_paths_relative, process identifier segments separately. Context modules
+  // include regular expressions between `|` delimiters, not just file paths.
+  for (index, segment) in resource[..path_end].split('|').enumerate() {
+    if index != 0 {
+      buf.push('|');
+    }
+    if (!cfg!(windows) && !is_windows_path(segment))
+      || has_url_scheme(segment)
+      || (segment.starts_with('/') && segment.len() > 1 && segment.ends_with('/'))
+    {
+      buf.push_str(segment);
+    } else {
+      buf.push_str(&segment.cow_replace('\\', "/"));
+    }
+  }
   buf.push_str(&resource[path_end..]);
 }
 
@@ -146,8 +157,14 @@ fn resolve_relative_resource_path(
     return None;
   };
 
-  let (resource_path, suffix) =
-    absolute_resource_path.split_at(resource_path_end(absolute_resource_path));
+  // Only resolve the filesystem part of a context-module identifier. Its
+  // remaining segments contain metadata, including regular expressions.
+  let path_end = resource_path_end(absolute_resource_path).min(
+    absolute_resource_path
+      .find('|')
+      .unwrap_or(absolute_resource_path.len()),
+  );
+  let (resource_path, suffix) = absolute_resource_path.split_at(path_end);
   let path = match source_map_path.parent() {
     Some(parent) => Cow::Owned(Path::new(resource_path).relative(parent)),
     None => resource_path.normalize(),

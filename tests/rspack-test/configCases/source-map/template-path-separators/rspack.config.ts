@@ -39,7 +39,7 @@ export default defineConfig(
                     : variant === 'literal'
                       ? 'literal://prefix\\value/[absolute-resource-path]'
                       : variant === 'fields'
-                        ? 'fields:///[resource]|[resource-path]|[identifier]|[short-identifier]|[all-loaders]|[loaders]|[all-loaders][resource]|[loaders][resource]|[relative-resource-path]'
+                        ? 'fields:///[resource]:::[resource-path]:::[identifier]:::[short-identifier]:::[all-loaders]:::[loaders]:::[all-loaders][resource]:::[loaders][resource]:::[relative-resource-path]'
                         : '[absolute-resource-path]',
             devtoolFallbackModuleFilenameTemplate:
               variant === 'fallback-callback'
@@ -102,7 +102,7 @@ export default defineConfig(
                       } else if (variant === 'fields') {
                         const fields = actual
                           .slice('fields:///'.length)
-                          .split('|');
+                          .split(':::');
                         if (fixture.source.startsWith('builtin:')) {
                           expect(fields[4]).toBe(
                             String.raw`builtin:swc-loader?option=\loader\value`,
@@ -110,6 +110,24 @@ export default defineConfig(
                           expect(fields[2]).not.toContain(
                             String.raw`Z:\project`,
                           );
+                        }
+                        if (fixture.source.includes('|sync|')) {
+                          const pathFields = [
+                            fields[0],
+                            fields[1],
+                            fields[2],
+                            fields[3],
+                            fields[6],
+                            fields[7],
+                          ];
+                          if (devtool !== 'eval-source-map') {
+                            pathFields.push(fields[8]);
+                          }
+                          for (const field of pathFields) {
+                            expect(field).toContain(
+                              String.raw`|sync|/^\.\/.*\.js$/`,
+                            );
+                          }
                         }
                         if (fixture.source === fixtures[0].source) {
                           for (const field of [

@@ -42,5 +42,9 @@ export const fixtures = [
 		source: String.raw`builtin:swc-loader?option=\loader\value!Z:\project\src\builtin.ts?query=\query\value`,
 		absolute: String.raw`Z:\project\src\builtin.ts?query=\query\value`,
 		normalized: String.raw`Z:/project/src/builtin.ts?query=\query\value`
+	},
+	{
+		source: String.raw`\\server\share\context|sync|/^\.\/.*\.js$/`,
+		normalized: String.raw`//server/share/context|sync|/^\.\/.*\.js$/`
 	}
 ];
