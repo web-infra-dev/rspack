@@ -129,7 +129,7 @@ impl PathManager {
             });
           }
         } else if !registered.contains(&path)
-          && let Ok(mtime) = metadata.modified().or_else(|_| metadata.created())
+          && let Some(mtime) = modification_time(&metadata)
         {
           let kind = match self.file_times.get(&path) {
             Some(old) if old.mtime == mtime => continue,

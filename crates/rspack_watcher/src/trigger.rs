@@ -156,128 +156,118 @@ impl Trigger {
 }
 
 impl EventProcessor {
-  async fn process(&self, path: &InternedPath, kind: FsEventKind, origin: Origin) {
-    let appeared = matches!(origin, Origin::Disk { appeared: true })
-      || (matches!(origin, Origin::Injected) && kind == FsEventKind::Create);
-    // Drop events inside ignored subtrees. The recursive-root watch delivers
-    // events for unregistered paths (e.g. the build-output dir); left through,
-    // they reach a registered parent and trigger
-    // a spurious rebuild.
-    // A scan's event was filtered when the scan found the path.
-    if !matches!(origin, Origin::Scan) && self.path_manager.is_ignored_path(path.as_ref()).await {
+  async fn process(&self, path: &InternedPath, hint: FsEventKind, origin: Origin) {
+    let scanned = matches!(origin, Origin::Scan);
+    if !scanned && self.path_manager.is_ignored_path(path).await {
       return;
     }
 
-    // A watched path that no longer exists on disk is a removal, regardless of
-    // how the OS reported the event. macOS FSEvents reports an unlink as a
-    // rename (`ModifyKind::Name` → `Change`), so normalize a `Change` whose
-    // path is gone into a `Remove`, keeping the event kind consistent with
-    // inotify (which already reports `Remove`). A delayed `Create` whose
-    // path has already disappeared is also a removal. Done before the stale-event
-    // filter below, which only applies to `Change`/`Create`.
-    // The reverse holds too: a removal of a path back on disk (unlinked and
-    // re-created) ends as the path's final state, like watchpack's lstat on
-    // each event. Keep its records unless the absence was observed, so an
-    // unchanged aged mtime is suppressed just as it is by watchpack. Explicit and
-    // scanned removals already declare the old record invalid.
-    let removed = kind == FsEventKind::Remove && matches!(origin, Origin::Injected | Origin::Scan);
-    let scanned_kind = matches!(origin, Origin::Scan).then_some(kind);
-    let own = std::fs::symlink_metadata(path).ok();
-    let target = own
+    let entry = std::fs::symlink_metadata(path).ok();
+    let target = entry
       .as_ref()
       .and_then(|entry| followed_metadata(path, entry));
-    let exists = own.is_some();
-    let kind = match kind {
-      FsEventKind::Change | FsEventKind::Create if !exists => FsEventKind::Remove,
-      FsEventKind::Remove if exists => FsEventKind::Change,
-      kind => kind,
-    };
-
-    let is_watched_path = self.path_manager.has_file_or_missing_subscription(path);
-
-    // Drop a removed path's record so it reads as `null`, like watchpack. A
-    // directory moved or deleted as a whole is one event with no per-file
-    // removals, so its descendants' records go with it. Only a path that can
-    // hold records is swept, so deleting many unrelated files stays cheap.
-    if removed || kind == FsEventKind::Remove {
+    let file_dependency = self.path_manager.has_file_or_missing_subscription(path);
+    // An explicit or scanned removal invalidates the baseline even if the path is back.
+    if entry.is_none()
+      || (hint == FsEventKind::Remove && matches!(origin, Origin::Injected | Origin::Scan))
+    {
       self.path_manager.remove_path_records(path);
-      if kind == FsEventKind::Remove && is_watched_path {
+    }
+
+    let kind = if let Some(entry) = &entry {
+      // Scans already found a change. They still advance the file's baseline.
+      if file_dependency
+        && !self
+          .path_manager
+          .observe_file_mtime(path, target.as_deref().and_then(modification_time))
+        && !scanned
+      {
+        return;
+      }
+      if !self
+        .path_manager
+        .observe_context_entry(path, entry, scanned || file_dependency)
+        .await
+      {
+        return;
+      }
+      // An unlink followed by a recreate can deliver a late removal.
+      if hint == FsEventKind::Remove {
+        FsEventKind::Change
+      } else {
+        hint
+      }
+    } else {
+      if file_dependency {
         self.path_manager.set_reported_file_removal(path);
       }
-    }
-
-    // Filter stale FSEvents: on macOS, FSEvents can deliver events for files
-    // written before the watcher was created. Stat the file and compare mtime
-    // against the recorded baseline to suppress events where nothing changed.
-    // Apply the same suppression to Create for already-registered files, since
-    // macOS may emit stale Create events for files that predate the watcher.
-    // A registered-missing path takes its first record here, once it exists.
-    if is_watched_path
-      && matches!(kind, FsEventKind::Change | FsEventKind::Create)
-      && !self
-        .path_manager
-        .observe_file_mtime(path, target.as_deref().and_then(modification_time))
-      && !matches!(origin, Origin::Scan)
-    {
-      return;
-    }
-
-    if kind != FsEventKind::Remove
-      && !self
-        .path_manager
-        .set_context_entry(
-          path,
-          matches!(origin, Origin::Scan) || is_watched_path,
-          own.as_ref(),
-        )
-        .await
-    {
-      return;
-    }
+      FsEventKind::Remove
+    };
     self.path_manager.set_last_watch_events(path);
 
     let mut events = ResolvedEvents::default();
-    self.resolve_into(&mut events, path, kind, target.as_deref(), scanned_kind);
-    let directory_hint =
-      appeared || (matches!(origin, Origin::Disk { .. }) && kind == FsEventKind::Change);
-    if directory_hint && own.as_ref().is_some_and(std::fs::Metadata::is_dir) {
-      // A directory moved into place can have just one OS event. Follow only
-      // registered child names, even when their on-disk mtimes are old.
-      let mut pending = self.path_manager.subscriptions.registered_children(path);
-      while let Some(child) = pending.pop() {
-        let Ok(metadata) = std::fs::symlink_metadata(&child) else {
-          continue;
-        };
-        if self.path_manager.is_ignored_path(child.as_ref()).await {
-          continue;
-        }
-        if metadata.is_dir() {
-          pending.extend(self.path_manager.subscriptions.registered_children(&child));
-        }
-        let file = self.path_manager.has_file_or_missing_subscription(&child);
-        if !(file || self.path_manager.access().directories().0.contains(&child)) {
-          continue;
-        }
-        let target = followed_metadata(&child, &metadata);
-        let mtime = target.as_deref().and_then(modification_time);
-        let recovered_kind = if appeared {
-          FsEventKind::Create
-        } else {
-          if !file || mtime.is_none() {
-            continue;
-          }
-          let Some(kind) = self.path_manager.file_difference(&child, mtime) else {
-            continue;
-          };
-          kind
-        };
-        if file && !self.path_manager.observe_file_mtime(&child, mtime) {
-          continue;
-        }
-        self.resolve_into(&mut events, &child, recovered_kind, target.as_deref(), None);
-      }
+    self.resolve_into(
+      &mut events,
+      path,
+      kind,
+      target.as_deref(),
+      scanned.then_some(hint),
+    );
+    let appeared = matches!(origin, Origin::Disk { appeared: true })
+      || (matches!(origin, Origin::Injected) && hint == FsEventKind::Create);
+    if entry.as_ref().is_some_and(std::fs::Metadata::is_dir)
+      && (appeared || (matches!(origin, Origin::Disk { .. }) && kind == FsEventKind::Change))
+    {
+      self
+        .resolve_registered_children(&mut events, path, appeared)
+        .await;
     }
     let _ = self.tx.send(events);
+  }
+
+  /// A moved or changed directory can be the only OS event for its children.
+  async fn resolve_registered_children(
+    &self,
+    events: &mut ResolvedEvents,
+    directory: &InternedPath,
+    appeared: bool,
+  ) {
+    let mut pending = self
+      .path_manager
+      .subscriptions
+      .registered_children(directory);
+    while let Some(child) = pending.pop() {
+      let Ok(entry) = std::fs::symlink_metadata(&child) else {
+        continue;
+      };
+      if self.path_manager.is_ignored_path(&child).await {
+        continue;
+      }
+      if entry.is_dir() {
+        pending.extend(self.path_manager.subscriptions.registered_children(&child));
+      }
+      let file_dependency = self.path_manager.has_file_or_missing_subscription(&child);
+      if !file_dependency && !self.path_manager.access().directories.all.contains(&child) {
+        continue;
+      }
+      let target = followed_metadata(&child, &entry);
+      let mtime = target.as_deref().and_then(modification_time);
+      let kind = if appeared {
+        FsEventKind::Create
+      } else {
+        if !file_dependency || mtime.is_none() {
+          continue;
+        }
+        let Some(kind) = self.path_manager.file_difference(&child, mtime) else {
+          continue;
+        };
+        kind
+      };
+      if file_dependency && !self.path_manager.observe_file_mtime(&child, mtime) {
+        continue;
+      }
+      self.resolve_into(events, &child, kind, target.as_deref(), None);
+    }
   }
 
   fn resolve_into(

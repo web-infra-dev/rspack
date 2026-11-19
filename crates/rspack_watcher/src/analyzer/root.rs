@@ -18,9 +18,11 @@ pub struct WatcherRootAnalyzer {
 
 impl Analyzer for WatcherRootAnalyzer {
   fn analyze<'a>(&self, path_accessor: PathAccessor<'a>) -> Vec<WatchPattern> {
-    let (_, added_files, removed_files) = path_accessor.files();
-    let (_, added_directories, removed_directories) = path_accessor.directories();
-    let (_, added_missing, removed_missing) = path_accessor.missing();
+    let PathAccessor {
+      files,
+      directories,
+      missing,
+    } = path_accessor;
 
     // files / directories / missing share one `path_tree`. On recovery a path
     // can migrate between sets within a single cycle (e.g. the unresolved
@@ -29,8 +31,8 @@ impl Analyzer for WatcherRootAnalyzer {
     // set's delta independently lets the stray `removed` delete a node the other
     // set still references — orphaning its children and disconnecting the tree.
     // Merge the three sets first, then cancel migrating paths out of both nets.
-    let adds = union3(added_files, added_directories, added_missing);
-    let removes = union3(removed_files, removed_directories, removed_missing);
+    let adds = union3(&files.added, &directories.added, &missing.added);
+    let removes = union3(&files.removed, &directories.removed, &missing.removed);
     let added = difference(&adds, &removes);
     let removed = difference(&removes, &adds);
     self.path_tree.update_paths(&added, &removed);

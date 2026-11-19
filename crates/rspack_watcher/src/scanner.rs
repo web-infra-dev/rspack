@@ -34,9 +34,9 @@ impl Scanner {
   /// align watchpack action: https://github.com/webpack/watchpack/blob/v2.4.4/lib/DirectoryWatcher.js#L565-L568
   pub fn scan(&self, start_time: SystemTime) {
     let accessor = self.path_manager.access();
-    let has_added_paths = !accessor.files().1.is_empty()
-      || !accessor.directories().1.is_empty()
-      || !accessor.missing().1.is_empty();
+    let has_added_paths = !accessor.files.added.is_empty()
+      || !accessor.directories.added.is_empty()
+      || !accessor.missing.added.is_empty();
     if !has_added_paths {
       return;
     }
@@ -44,12 +44,12 @@ impl Scanner {
     if let Some(tx) = self.tx.clone() {
       // only apply for added files
       let files = accessor
-        .files()
-        .1
+        .files
+        .added
         .iter()
         .map(|file| file.deref().clone())
         .collect::<Vec<_>>();
-      let missing = accessor.missing().0.clone();
+      let missing = accessor.missing.all.clone();
       let files_tx = tx.clone();
       let files_path_manager = Arc::clone(&self.path_manager);
       tokio::spawn(async move {
@@ -76,12 +76,12 @@ impl Scanner {
       });
 
       let directories = accessor
-        .directories()
-        .1
+        .directories
+        .added
         .iter()
         .map(|file| file.deref().clone())
         .collect::<Vec<_>>();
-      let missing = accessor.missing().0.clone();
+      let missing = accessor.missing.all.clone();
       let dirs_tx = tx.clone();
       tokio::spawn(async move {
         _ = send_events(
@@ -101,8 +101,8 @@ impl Scanner {
       // Backfill registered-missing dependencies created in the gap before this
       // `watch()` registration: a `Create` once the file appears on disk.
       let missing_added = accessor
-        .missing()
-        .1
+        .missing
+        .added
         .iter()
         .map(|p| p.deref().clone())
         .collect::<Vec<_>>();

@@ -41,16 +41,16 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
         .expect("directory invalidation lock poisoned"),
     );
     let subscriptions = [
-      path_accessor.files(),
-      path_accessor.directories(),
-      path_accessor.missing(),
+      path_accessor.files,
+      path_accessor.directories,
+      path_accessor.missing,
     ];
     let is_registered =
-      |path: &InternedPath| subscriptions.iter().any(|(all, _, _)| all.contains(path));
+      |path: &InternedPath| subscriptions.iter().any(|paths| paths.all.contains(path));
     let mut dirty = state.symlink_dependent_paths.clone();
-    for (_, added, removed) in subscriptions {
-      dirty.extend(added.iter().map(|path| path.clone()));
-      for path in removed.iter() {
+    for paths in subscriptions {
+      dirty.extend(paths.added.iter().map(|path| path.clone()));
+      for path in paths.removed.iter() {
         if !is_registered(&path) && state.paths.contains_key(&*path) {
           dirty.insert(path.clone());
         }
@@ -85,8 +85,8 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
             |(dir, depth, recheck, non_directory_symlink)| {
               if recheck
                 || (non_directory_symlink
-                  && (path_accessor.directories().0.contains(&path)
-                    || path_accessor.missing().0.contains(&path)))
+                  && (path_accessor.directories.all.contains(&path)
+                    || path_accessor.missing.all.contains(&path)))
               {
                 state.symlink_dependent_paths.insert(path.clone());
               }
