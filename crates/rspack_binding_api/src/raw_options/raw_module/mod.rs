@@ -24,8 +24,8 @@ use rspack_core::{
   JavascriptParserCreateRequire, JavascriptParserOptions, JavascriptParserOrder,
   JavascriptParserUrl, JavascriptParserWorkerOptions, JavascriptParserWorkerUrl,
   JsonGeneratorOptions, JsonParserOptions, LoaderFilter, ModuleNoParseRule, ModuleNoParseRules,
-  ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleEnforce,
-  ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParseOption, ParserOptions, ParserOptionsMap,
+  ModuleNoParseTestFn, ModuleOptions, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader,
+  OverrideStrict, ParseOption, ParserOptions, ParserOptionsMap, Rule, RuleEffect, RuleMatcher,
   TypeReexportPresenceMode,
 };
 use rspack_error::error;
@@ -1029,11 +1029,19 @@ impl From<FuncUseCtx> for RawFuncUseCtx {
   }
 }
 
-impl TryFrom<RawModuleRule> for ModuleRule {
-  type Error = rspack_error::Error;
+impl RawModuleRule {
+  fn into_rules(
+    rules: Vec<Self>,
+    effects: &mut Vec<RuleEffect>,
+  ) -> rspack_error::Result<Vec<Rule>> {
+    rules
+      .into_iter()
+      .map(|rule| rule.into_rule(effects))
+      .collect()
+  }
 
-  fn try_from(value: RawModuleRule) -> rspack_error::Result<Self> {
-    let uses = value.r#use.map(|raw| match raw {
+  fn into_rule(self, effects: &mut Vec<RuleEffect>) -> rspack_error::Result<Rule> {
+    let uses = self.r#use.map(|raw| match raw {
       Either::A(array) => {
         let uses = array
           .into_iter()
@@ -1068,29 +1076,9 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       ))),
     });
 
-    let module_type = value.r#type.map(|t| (&*t).into());
+    let module_type = self.r#type.map(|t| (&*t).into());
 
-    let one_of = value
-      .one_of
-      .map(|one_of| {
-        one_of
-          .into_iter()
-          .map(|raw| raw.try_into())
-          .collect::<rspack_error::Result<Vec<_>>>()
-      })
-      .transpose()?;
-
-    let rules = value
-      .rules
-      .map(|rule| {
-        rule
-          .into_iter()
-          .map(|raw| raw.try_into())
-          .collect::<rspack_error::Result<Vec<_>>>()
-      })
-      .transpose()?;
-
-    let description_data = value
+    let description_data = self
       .description_data
       .map(|data| {
         data
@@ -1100,7 +1088,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       })
       .transpose()?;
 
-    let with = value
+    let with = self
       .with
       .map(|data| {
         data
@@ -1110,7 +1098,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       })
       .transpose()?;
 
-    let enforce = value
+    let enforce = self
       .enforce
       .map(|enforce| match &*enforce {
         "pre" => Ok(ModuleRuleEnforce::Pre),
@@ -1122,43 +1110,52 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       .transpose()?
       .unwrap_or_default();
 
-    Ok(ModuleRule {
-      r#as: value.r#as.map(Into::into),
-      rspack_resource: value
-        .rspack_resource
-        .map(|raw| raw.try_into())
-        .transpose()?,
-      test: value.test.map(|raw| raw.try_into()).transpose()?,
-      include: value.include.map(|raw| raw.try_into()).transpose()?,
-      exclude: value.exclude.map(|raw| raw.try_into()).transpose()?,
-      resource_query: value.resource_query.map(|raw| raw.try_into()).transpose()?,
-      resource_fragment: value
-        .resource_fragment
-        .map(|raw| raw.try_into())
-        .transpose()?,
-      resource: value.resource.map(|raw| raw.try_into()).transpose()?,
-      description_data,
-      with,
-      issuer: value.issuer.map(|raw| raw.try_into()).transpose()?,
-      issuer_layer: value.issuer_layer.map(|raw| raw.try_into()).transpose()?,
-      dependency: value.dependency.map(|raw| raw.try_into()).transpose()?,
-      phase: value.phase.map(|raw| raw.try_into()).transpose()?,
-      scheme: value.scheme.map(|raw| raw.try_into()).transpose()?,
-      mimetype: value.mimetype.map(|raw| raw.try_into()).transpose()?,
+    let effect = RuleEffect {
+      r#use: uses.transpose()?.unwrap_or_default(),
+      r#type: module_type,
+      layer: self.layer,
+      parser: self.parser.map(|raw| raw.into()),
+      generator: self.generator.map(|raw| raw.into()),
+      resolve: self.resolve.map(|raw| raw.try_into()).transpose()?,
+      side_effects: self.side_effects,
+      enforce,
+      extract_source_map: self.extract_source_map,
+    }
+    .push(effects);
+    let rules = self
+      .rules
+      .map(|rules| Self::into_rules(rules, effects))
+      .transpose()?;
+    let one_of = self
+      .one_of
+      .map(|rules| Self::into_rules(rules, effects))
+      .transpose()?;
+
+    Ok(Rule {
+      r#as: self.r#as.map(Into::into),
+      matcher: RuleMatcher {
+        rspack_resource: self.rspack_resource.map(|raw| raw.try_into()).transpose()?,
+        test: self.test.map(|raw| raw.try_into()).transpose()?,
+        include: self.include.map(|raw| raw.try_into()).transpose()?,
+        exclude: self.exclude.map(|raw| raw.try_into()).transpose()?,
+        resource_query: self.resource_query.map(|raw| raw.try_into()).transpose()?,
+        resource_fragment: self
+          .resource_fragment
+          .map(|raw| raw.try_into())
+          .transpose()?,
+        resource: self.resource.map(|raw| raw.try_into()).transpose()?,
+        description_data,
+        with,
+        issuer: self.issuer.map(|raw| raw.try_into()).transpose()?,
+        issuer_layer: self.issuer_layer.map(|raw| raw.try_into()).transpose()?,
+        dependency: self.dependency.map(|raw| raw.try_into()).transpose()?,
+        phase: self.phase.map(|raw| raw.try_into()).transpose()?,
+        scheme: self.scheme.map(|raw| raw.try_into()).transpose()?,
+        mimetype: self.mimetype.map(|raw| raw.try_into()).transpose()?,
+      },
       one_of,
       rules,
-      effect: ModuleRuleEffect {
-        r#use: uses.transpose()?.unwrap_or_default(),
-        r#type: module_type,
-        layer: value.layer,
-        parser: value.parser.map(|raw| raw.into()),
-        generator: value.generator.map(|raw| raw.into()),
-        resolve: value.resolve.map(|raw| raw.try_into()).transpose()?,
-        side_effects: value.side_effects,
-        enforce,
-        extract_source_map: value.extract_source_map,
-        ..Default::default()
-      },
+      effect,
     })
   }
 }
@@ -1167,14 +1164,11 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
   type Error = rspack_error::Error;
 
   fn try_from(value: RawModuleOptions) -> rspack_error::Result<Self> {
-    let rules = value
-      .rules
-      .into_iter()
-      .map(|rule| rule.try_into())
-      .collect::<rspack_error::Result<Vec<ModuleRule>>>()?;
-
-    let mut module_options = ModuleOptions {
+    let mut effects = Vec::with_capacity(value.rules.len());
+    let rules = RawModuleRule::into_rules(value.rules, &mut effects)?;
+    Ok(ModuleOptions {
       rules,
+      effects,
       parser: value
         .parser
         .map(|x| {
@@ -1194,9 +1188,7 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
       no_parse: value
         .no_parse
         .map(|x| RawModuleNoParseRulesWrapper(x).into()),
-    };
-    module_options.assign_rule_ids()?;
-    Ok(module_options)
+    })
   }
 }
 

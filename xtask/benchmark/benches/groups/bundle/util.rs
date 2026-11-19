@@ -1,9 +1,9 @@
 use std::{path::PathBuf, sync::Arc};
 
-use rspack::builder::{Builder, CompilerBuilder};
+use rspack::builder::{Builder, CompilerBuilder, RuleBuilder};
 use rspack_core::{
-  Compiler, Experiments, Mode, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleUse,
-  ModuleRuleUseLoader, Optimization, OutputOptions, Resolve, RuleSetCondition,
+  Compiler, Experiments, Mode, ModuleOptions, ModuleRuleUse, ModuleRuleUseLoader, Optimization,
+  OutputOptions, Resolve, RuleEffect, RuleMatcher, RuleSetCondition,
 };
 use rspack_fs::{MemoryFileSystem, NativeFileSystem, WritableFileSystem};
 use rspack_regex::RspackRegex;
@@ -54,11 +54,14 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
 
   if options.swc_loader {
     builder
-      .module(ModuleOptions::builder().rule(ModuleRule {
-        test: Some(RuleSetCondition::Regexp(
-          RspackRegex::new("\\.(j|t)s(x)?$").unwrap(),
-        )),
-        effect: ModuleRuleEffect {
+      .module(ModuleOptions::builder().rule(RuleBuilder {
+        matcher: RuleMatcher {
+          test: Some(RuleSetCondition::Regexp(
+            RspackRegex::new("\\.(j|t)s(x)?$").unwrap(),
+          )),
+          ..Default::default()
+        },
+        effect: RuleEffect {
           r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
             loader: "builtin:swc-loader".to_string(),
             options: Some(

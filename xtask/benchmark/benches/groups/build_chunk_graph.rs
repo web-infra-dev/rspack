@@ -2,11 +2,11 @@
 use std::{cell::RefCell, sync::Arc};
 
 use criterion::BatchSize;
-use rspack::builder::{Builder as _, CompilerBuilder};
+use rspack::builder::{Builder as _, CompilerBuilder, RuleBuilder};
 use rspack_benchmark::Criterion;
 use rspack_core::{
-  Cache, Compilation, Compiler, CompilerCache, InfrastructureLogger, ModuleOptions, ModuleRule,
-  ModuleRuleEffect, ModuleRuleUse, ModuleRuleUseLoader, Optimization, PrintlnInfrastructureLogSink,
+  Cache, Compilation, Compiler, CompilerCache, InfrastructureLogger, ModuleOptions, ModuleRuleUse,
+  ModuleRuleUseLoader, Optimization, PrintlnInfrastructureLogSink, RuleEffect, RuleMatcher,
   RuleSetCondition, build_chunk_graph,
   build_module_graph::{build_module_graph_pass, finish_build_module_graph},
   fast_set,
@@ -325,11 +325,14 @@ fn create_build_module_graph_compiler(fs: Arc<MemoryFileSystem>, swc_loader: boo
 
 fn configure_swc_loader(builder: &mut CompilerBuilder) {
   builder
-    .module(ModuleOptions::builder().rule(ModuleRule {
-      test: Some(RuleSetCondition::Regexp(
-        RspackRegex::new("\\.js$").unwrap(),
-      )),
-      effect: ModuleRuleEffect {
+    .module(ModuleOptions::builder().rule(RuleBuilder {
+      matcher: RuleMatcher {
+        test: Some(RuleSetCondition::Regexp(
+          RspackRegex::new("\\.js$").unwrap(),
+        )),
+        ..Default::default()
+      },
+      effect: RuleEffect {
         r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
           loader: "builtin:swc-loader".to_string(),
           options: Some(

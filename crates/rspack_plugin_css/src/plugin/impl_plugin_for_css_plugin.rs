@@ -8,11 +8,11 @@ use rspack_core::{
   AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CssBuildInfo, CssModuleRenderCondition,
-  DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData, ModuleGraph, ModuleRule,
-  ModuleType, NormalModuleCreateData, NormalModuleFactoryAfterResolve, NormalModuleFactoryModule,
-  ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleExt, SourceType, css_module_render_conditions_identifier,
-  get_css_chunk_filename_template, is_source_equal,
+  DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData, ModuleGraph, ModuleType,
+  NormalModuleCreateData, NormalModuleFactoryAfterResolve, NormalModuleFactoryModule,
+  ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, Rule, RuleEffect,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, SourceType,
+  css_module_render_conditions_identifier, get_css_chunk_filename_template, is_source_equal,
   rspack_sources::{BoxSource, CachedSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
@@ -388,13 +388,16 @@ async fn compilation(
 // chunk must carry the css hmr handler whenever such a rule exists, even before any
 // stylesheet is imported. Otherwise the first stylesheet added via HMR is emitted but
 // never requested, because the runtime baked at the initial build lacks `hmrC.css`.
-fn has_css_module_rule(rules: &[ModuleRule]) -> bool {
+fn has_css_module_rule(rules: &[Rule], effects: &[RuleEffect]) -> bool {
   rules.iter().any(|rule| {
     matches!(
-      rule.effect.r#type,
+      effects[rule.effect].r#type,
       Some(ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto | ModuleType::CssGlobal)
-    ) || rule.one_of.as_deref().is_some_and(has_css_module_rule)
-      || rule.rules.as_deref().is_some_and(has_css_module_rule)
+    ) || rule
+      .one_of
+      .iter()
+      .chain(&rule.rules)
+      .any(|nested| has_css_module_rule(nested, effects))
   })
 }
 
@@ -416,7 +419,10 @@ async fn runtime_requirements_in_tree(
   // scan is only reached under HMR, so non-watch builds pay nothing.
   let has_css_rule = all_runtime_requirements
     .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
-    && has_css_module_rule(&compilation.options.module.rules);
+    && has_css_module_rule(
+      &compilation.options.module.rules,
+      &compilation.options.module.effects,
+    );
   let hmr_needs_css_runtime =
     has_css_rule && !all_runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES);
   let needs_css_loading_runtime = runtime_requirements.intersects(

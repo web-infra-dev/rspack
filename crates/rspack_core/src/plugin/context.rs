@@ -9,9 +9,9 @@ use crate::{
   AssetGeneratorOptions, AssetParserOptions, AssetResourceGeneratorOptions, CompilationHooks,
   CompilerHooks, CompilerOptions, ConcatenatedModuleHooks, ContextModuleFactoryHooks,
   CssAutoOrModuleParserOptions, CssModuleGeneratorOptions, GeneratorOptions, ImportMeta,
-  JavascriptParserOptions, JsonGeneratorOptions, JsonParserOptions, MODULE_RULE_ID_UNASSIGNED,
-  ModuleRuleEffect, ModuleRuleIds, ModuleType, NormalModuleFactoryHooks, NormalModuleHooks,
-  ParserAndGenerator, ParserOptions,
+  JavascriptParserOptions, JsonGeneratorOptions, JsonParserOptions, ModuleType,
+  NormalModuleFactoryHooks, NormalModuleHooks, ParserAndGenerator, ParserOptions,
+  RuleEffectIndices,
 };
 
 pub type BoxedParserAndGenerator = Box<dyn ParserAndGenerator>;
@@ -179,28 +179,8 @@ impl<'a> From<&'a ResolvedModuleOptions> for &'a JsonGeneratorOptions {
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct ResolvedModuleOptionsCacheKey {
-  pub rule_ids: ModuleRuleIds,
+  pub effect_indices: RuleEffectIndices,
   pub module_type: ModuleType,
-}
-
-impl ResolvedModuleOptionsCacheKey {
-  pub fn new(module_rules: &[&ModuleRuleEffect], module_type: ModuleType) -> Self {
-    let rule_ids = module_rules
-      .iter()
-      .map(|rule| {
-        debug_assert_ne!(
-          rule.id, MODULE_RULE_ID_UNASSIGNED,
-          "module rule id has not been assigned"
-        );
-        rule.id
-      })
-      .collect::<ModuleRuleIds>();
-
-    Self {
-      rule_ids,
-      module_type,
-    }
-  }
 }
 
 #[cacheable]

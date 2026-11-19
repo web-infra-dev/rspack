@@ -153,7 +153,10 @@ fn prepare_scan_dependencies_benchmark_case(
     .cloned()
     .expect("scan_dependencies benchmark compiler should include javascript parser options");
   let module_options = Arc::new(ResolvedModuleOptions::new(
-    ResolvedModuleOptionsCacheKey::new(&[], module_type),
+    ResolvedModuleOptionsCacheKey {
+      effect_indices: Default::default(),
+      module_type,
+    },
     Some(parser_options),
     None,
   ));

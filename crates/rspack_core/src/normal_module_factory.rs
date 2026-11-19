@@ -18,11 +18,11 @@ use crate::{
   CompilerOptions, Context, CssAutoOrModuleParserOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, Dependency, DependencyCategory, DependencyType, FactoryMeta, FuncUseCtx,
   GeneratorOptions, MatchContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect, ModuleRuleEnforce,
-  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
-  ParserOptionsMap, RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
-  ResolveResult, ResolvedModuleOptions, ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory,
-  ResourceData, ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
+  ModuleFactoryResult, ModuleIdentifier, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader,
+  ModuleType, NormalModule, ParserAndGenerator, ParserOptions, ParserOptionsMap, RawModule,
+  Resolve, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, ResolvedModuleOptions,
+  ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory, ResourceData, ResourceParsedData,
+  RuleEffect, RuleEffectIndices, RunnerContext, RuntimeGlobals, SharedPluginDriver,
   diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
   stringify_loaders_and_resource,
 };
@@ -287,12 +287,16 @@ fn normalize_css_generator_options(
 
 fn resolve_module_options(
   options_cache: &FxDashMap<ResolvedModuleOptionsCacheKey, Arc<ResolvedModuleOptions>>,
-  module_rules: &[&ModuleRuleEffect],
+  effects: &[RuleEffect],
+  effect_indices: RuleEffectIndices,
   module_type: &ModuleType,
   global_parser: Option<&ParserOptions>,
   global_generator: Option<&GeneratorOptions>,
 ) -> Arc<ResolvedModuleOptions> {
-  let cache_key = ResolvedModuleOptionsCacheKey::new(module_rules, *module_type);
+  let cache_key = ResolvedModuleOptionsCacheKey {
+    effect_indices,
+    module_type: *module_type,
+  };
   if let Some(options) = options_cache.get(&cache_key) {
     return Arc::clone(&options);
   }
@@ -303,9 +307,10 @@ fn resolve_module_options(
       let mut local_parser = None;
       let mut local_generator = None;
 
-      for rule in module_rules {
-        local_parser = local_parser.merge_from(&rule.parser);
-        local_generator = local_generator.merge_from(&rule.generator);
+      for &idx in &cache_key.effect_indices {
+        let effect = &effects[idx];
+        local_parser = local_parser.merge_from(&effect.parser);
+        local_generator = local_generator.merge_from(&effect.generator);
       }
 
       let parser = merge_parser_options_with_local(global_parser, local_parser.as_ref());
@@ -675,17 +680,17 @@ module.exports = "data:,";
       }
     };
 
-    let matched_module_rules = if let Some(match_resource_data) = &mut match_resource_data
+    let effect_indices = if let Some(match_resource_data) = &mut match_resource_data
       && let Some((module, module_type)) = match_ext(match_resource_data.resource())
     {
       match_module_type = Some(module_type.into());
       match_resource_data.set_resource(module.into());
 
-      vec![]
+      RuleEffectIndices::new()
     } else {
       //TODO: with contextScheme
       self
-        .calculate_module_rules(
+        .match_rule_effects(
           if let Some(match_resource_data) = match_resource_data.as_ref() {
             match_resource_data
           } else {
@@ -721,8 +726,9 @@ module.exports = "data:,";
       let mut post_loaders: Vec<ModuleRuleUseLoader> = vec![];
       let mut normal_loaders: Vec<ModuleRuleUseLoader> = vec![];
 
-      for rule in &matched_module_rules {
-        let rule_use = match &rule.r#use {
+      for &idx in &effect_indices {
+        let effect = &self.options.module.effects[idx];
+        let rule_use = match &effect.r#use {
           ModuleRuleUse::Array(array_use) => Cow::Borrowed(array_use),
           ModuleRuleUse::Func(func_use) => {
             let resource_data_for_rules = match_resource_data.as_ref().unwrap_or(&resource_data);
@@ -739,7 +745,7 @@ module.exports = "data:,";
           }
         };
 
-        match rule.enforce {
+        match effect.enforce {
           ModuleRuleEnforce::Pre => {
             if !no_pre_auto_loaders && !no_pre_post_auto_loaders {
               pre_loaders.extend_from_slice(&rule_use);
@@ -845,20 +851,34 @@ module.exports = "data:,";
       )
     };
 
+    let mut rule_module_type = None;
+    let mut resolved_module_layer = data.issuer_layer.as_ref();
+    let mut resolved_resolve_options: Option<Resolve> = None;
+    let mut resolved_side_effects = None;
+    let mut resolved_extract_source_map = None;
+    for &idx in &effect_indices {
+      let effect = &self.options.module.effects[idx];
+      rule_module_type = effect.r#type.or(rule_module_type);
+      resolved_module_layer = effect.layer.as_ref().or(resolved_module_layer);
+      resolved_side_effects = effect.side_effects.or(resolved_side_effects);
+      resolved_extract_source_map = effect.extract_source_map.or(resolved_extract_source_map);
+      if let Some(resolve) = &effect.resolve {
+        resolved_resolve_options = Some(match resolved_resolve_options {
+          Some(previous) => previous.merge(resolve.clone()),
+          None => resolve.clone(),
+        });
+      }
+    }
+    // Like webpack, `!!` also disables Rule.type, but preserves an explicit matchResource type.
     let resolved_module_type = if no_pre_post_auto_loaders {
-      // Like webpack, `!!` also disables Rule.type, but preserves an explicit matchResource type.
-      match_module_type.unwrap_or(ModuleType::JsAuto)
+      match_module_type
     } else {
-      self.calculate_module_type(match_module_type, &matched_module_rules)
-    };
-    let resolved_module_layer =
-      self.calculate_module_layer(data.issuer_layer.as_ref(), &matched_module_rules);
-
-    let resolved_resolve_options = self.calculate_resolve_options(&matched_module_rules);
-    let resolved_options =
-      self.resolve_module_options(&resolved_module_type, &matched_module_rules);
-    let resolved_side_effects = self.calculate_side_effects(&matched_module_rules);
-    let resolved_extract_source_map = self.calculate_extract_source_map(&matched_module_rules);
+      rule_module_type.or(match_module_type)
+    }
+    .unwrap_or(ModuleType::JsAuto);
+    let resolved_module_layer = resolved_module_layer.cloned();
+    let resolved_resolve_options = resolved_resolve_options.map(Arc::new);
+    let resolved_options = self.resolve_module_options(&resolved_module_type, effect_indices);
     let mut resolved_parser_and_generator = self
       .plugin_driver
       .registered_parser_and_generator_builder
@@ -949,14 +969,14 @@ module.exports = "data:,";
     Ok(Some(ModuleFactoryResult::new_with_module(module)))
   }
 
-  async fn calculate_module_rules<'a>(
-    &'a self,
+  async fn match_rule_effects(
+    &self,
     resource_data: &ResourceData,
     dependency: &dyn Dependency,
     issuer: Option<&str>,
     issuer_layer: Option<&str>,
-  ) -> Result<Vec<&'a ModuleRuleEffect>> {
-    let mut rules = Vec::new();
+  ) -> Result<RuleEffectIndices> {
+    let mut effect_indices = RuleEffectIndices::new();
     let match_ctx = MatchContext {
       resource_data,
       issuer,
@@ -965,90 +985,25 @@ module.exports = "data:,";
       phase: dependency.get_phase(),
       attributes: dependency.get_attributes(),
     };
-    module_rules_matcher(&self.options.module.rules, &match_ctx, &mut rules).await?;
-    Ok(rules)
-  }
-
-  fn calculate_resolve_options(&self, module_rules: &[&ModuleRuleEffect]) -> Option<Arc<Resolve>> {
-    let mut resolved: Option<Resolve> = None;
-    for rule in module_rules {
-      if let Some(rule_resolve) = &rule.resolve {
-        if let Some(r) = resolved {
-          resolved = Some(r.merge(rule_resolve.to_owned()));
-        } else {
-          resolved = Some(rule_resolve.to_owned());
-        }
-      }
-    }
-    resolved.map(Arc::new)
-  }
-
-  fn calculate_side_effects(&self, module_rules: &[&ModuleRuleEffect]) -> Option<bool> {
-    let mut side_effect_res = None;
-    // side_effects from module rule has higher priority
-    for rule in module_rules {
-      if rule.side_effects.is_some() {
-        side_effect_res = rule.side_effects;
-      }
-    }
-    side_effect_res
-  }
-
-  fn calculate_extract_source_map(&self, module_rules: &[&ModuleRuleEffect]) -> Option<bool> {
-    let mut extract_source_map_res = None;
-    // extract_source_map from module rule has higher priority
-    for rule in module_rules {
-      if rule.extract_source_map.is_some() {
-        extract_source_map_res = rule.extract_source_map;
-      }
-    }
-    extract_source_map_res
+    module_rules_matcher(&self.options.module.rules, &match_ctx, &mut effect_indices).await?;
+    Ok(effect_indices)
   }
 
   fn resolve_module_options(
     &self,
     module_type: &ModuleType,
-    module_rules: &[&ModuleRuleEffect],
+    effect_indices: RuleEffectIndices,
   ) -> Arc<ResolvedModuleOptions> {
     let global_parser = self.global_parser_options.get(module_type.as_str());
     let global_generator = self.global_generator_options.get(module_type.as_str());
     resolve_module_options(
       &self.resolved_module_options,
-      module_rules,
+      &self.options.module.effects,
+      effect_indices,
       module_type,
       global_parser,
       global_generator,
     )
-  }
-
-  fn calculate_module_type(
-    &self,
-    matched_module_type: Option<ModuleType>,
-    module_rules: &[&ModuleRuleEffect],
-  ) -> ModuleType {
-    let mut resolved_module_type = matched_module_type.unwrap_or(ModuleType::JsAuto);
-    for module_rule in module_rules {
-      if let Some(module_type) = module_rule.r#type {
-        resolved_module_type = module_type;
-      };
-    }
-
-    resolved_module_type
-  }
-
-  fn calculate_module_layer(
-    &self,
-    issuer_layer: Option<&ModuleLayer>,
-    module_rules: &[&ModuleRuleEffect],
-  ) -> Option<ModuleLayer> {
-    let mut resolved_module_layer = issuer_layer;
-    for module_rule in module_rules {
-      if let Some(module_layer) = &module_rule.layer {
-        resolved_module_layer = Some(module_layer);
-      };
-    }
-
-    resolved_module_layer.cloned()
   }
 
   async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
@@ -1320,8 +1275,8 @@ mod tests {
     assert_eq!(options.require_dynamic, Some(true));
   }
 
-  fn asset_rule_effect(max_size: f64, emit: bool) -> ModuleRuleEffect {
-    ModuleRuleEffect {
+  fn asset_rule_effect(max_size: f64, emit: bool) -> RuleEffect {
+    RuleEffect {
       parser: Some(ParserOptions::Asset(AssetParserOptions {
         data_url_condition: Some(AssetParserDataUrl::Options(AssetParserDataUrlOptions {
           max_size: Some(max_size),
@@ -1336,20 +1291,12 @@ mod tests {
   }
 
   #[test]
-  fn lazily_reuse_parser_and_generator_options_for_rule_ids() {
-    let mut module_options = crate::ModuleOptions {
-      rules: vec![crate::ModuleRule {
-        effect: asset_rule_effect(200.0, false),
-        ..Default::default()
-      }],
-      ..Default::default()
-    };
-    module_options
-      .assign_rule_ids()
-      .expect("should assign rule ids");
-    let rule = &module_options.rules[0].effect;
+  fn lazily_reuse_parser_and_generator_options_for_effect_indices() {
+    let effects = [
+      asset_rule_effect(300.0, true),
+      asset_rule_effect(200.0, false),
+    ];
     let options_cache = FxDashMap::default();
-    let module_rules = [rule];
     let global_parser = ParserOptions::Asset(AssetParserOptions {
       data_url_condition: Some(AssetParserDataUrl::Options(AssetParserDataUrlOptions {
         max_size: Some(100.0),
@@ -1362,14 +1309,16 @@ mod tests {
 
     let first = resolve_module_options(
       &options_cache,
-      &module_rules,
+      &effects,
+      smallvec::smallvec![1],
       &ModuleType::Asset,
       Some(&global_parser),
       Some(&global_generator),
     );
     let second = resolve_module_options(
       &options_cache,
-      &module_rules,
+      &effects,
+      smallvec::smallvec![1],
       &ModuleType::Asset,
       Some(&global_parser),
       Some(&global_generator),
@@ -1377,7 +1326,7 @@ mod tests {
 
     assert!(Arc::ptr_eq(&first, &second));
     assert_eq!(options_cache.len(), 1);
-    assert_eq!(first.cache_key().rule_ids.as_slice(), &[rule.id]);
+    assert_eq!(first.cache_key().effect_indices.as_slice(), &[1]);
     assert_eq!(first.cache_key().module_type, ModuleType::Asset);
 
     let parser_options = first
@@ -1400,7 +1349,6 @@ mod tests {
   #[test]
   fn reuse_global_generator_options_when_local_options_are_empty() {
     let options_cache = FxDashMap::default();
-    let module_rules: [&ModuleRuleEffect; 0] = [];
     let global_generator = GeneratorOptions::Asset(AssetGeneratorOptions {
       emit: Some(true),
       ..Default::default()
@@ -1408,7 +1356,8 @@ mod tests {
 
     let options = resolve_module_options(
       &options_cache,
-      &module_rules,
+      &[],
+      RuleEffectIndices::new(),
       &ModuleType::Asset,
       None,
       Some(&global_generator),
@@ -1427,7 +1376,6 @@ mod tests {
   #[test]
   fn normalize_css_options_for_parser_and_generator_builder() {
     let options_cache = FxDashMap::default();
-    let module_rules: [&ModuleRuleEffect; 0] = [];
     for module_type in [
       ModuleType::Css,
       ModuleType::CssAuto,
@@ -1436,7 +1384,8 @@ mod tests {
     ] {
       let options = resolve_module_options(
         &options_cache,
-        &module_rules,
+        &[],
+        RuleEffectIndices::new(),
         &module_type,
         Some(&ParserOptions::Css(CssParserOptions {
           export_type: None,

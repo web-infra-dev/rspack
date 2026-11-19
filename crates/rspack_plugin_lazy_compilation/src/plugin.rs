@@ -8,8 +8,8 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation, CompilerId,
   CompilerMake, DependencyId, DependencyType, EntryDependency, LibIdentOptions, Module, ModuleExt,
-  ModuleFactory, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleRule,
-  NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
+  ModuleFactory, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, NormalModuleCreateData,
+  NormalModuleFactoryModule, Plugin, Rule, RuleEffect,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -250,15 +250,12 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
         self
           .reserved_layer_externals
           .get_or_try_init(|| async {
+            let module_options = &module_factory_create_data
+              .build_context
+              .compiler_options
+              .module;
             let mut layers = FxHashSet::default();
-            collect_rule_layers(
-              &module_factory_create_data
-                .build_context
-                .compiler_options
-                .module
-                .rules,
-              &mut layers,
-            );
+            collect_rule_layers(&module_options.rules, &module_options.effects, &mut layers);
             let mut backend = self.backend.lock().await;
             let mut reserved = Vec::new();
             for layer in layers {
@@ -306,13 +303,17 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
   }
 }
 
-fn collect_rule_layers(rules: &[ModuleRule], layers: &mut FxHashSet<ModuleLayer>) {
+fn collect_rule_layers(
+  rules: &[Rule],
+  effects: &[RuleEffect],
+  layers: &mut FxHashSet<ModuleLayer>,
+) {
   for rule in rules {
-    if let Some(layer) = &rule.effect.layer {
+    if let Some(layer) = &effects[rule.effect].layer {
       layers.insert(layer.clone());
     }
-    for nested in rule.rules.iter().chain(rule.one_of.iter()) {
-      collect_rule_layers(nested, layers);
+    for nested in rule.rules.iter().chain(&rule.one_of) {
+      collect_rule_layers(nested, effects, layers);
     }
   }
 }
