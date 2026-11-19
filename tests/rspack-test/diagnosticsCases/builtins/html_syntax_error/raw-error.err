@@ -1,3 +1,11 @@
 Array [
-  Object {},
+  Object {
+    file: src/index.ejs,
+  },
+  Object {
+    file: index.html,
+  },
+  Object {
+    file: inline.html,
+  },
 ]
