@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { defineConfig, definePlugin } from '@rspack/cli';
 import type { Configuration } from '@rspack/core';
 import { fixtures } from './fixtures.mjs';
@@ -24,7 +25,13 @@ export default defineConfig(
           mode: 'development',
           devtool,
           module: {
-            rules: [{ test: /module\.js$/, use: ['./loader.mjs'] }],
+            rules: [
+              {
+                test: /module\.js$/,
+                use: ['./loader.mjs'],
+                layer: String.raw`layer\value`,
+              },
+            ],
           },
           output: {
             filename: 'main.js',
@@ -81,6 +88,20 @@ export default defineConfig(
                   let checked = 0;
                   for (const map of maps) {
                     map.sourcesContent.forEach((content, index) => {
+                      if (content === 'module-identifier') {
+                        const actual = map.sources[index];
+                        if (variant === 'fields') {
+                          expect(
+                            actual.slice('fields:///'.length).split(':::')[2],
+                          ).toContain(String.raw`|layer\value`);
+                        } else if (variant === 'absolute') {
+                          expect(actual).toBe(
+                            path
+                              .join(import.meta.dirname, 'module.js')
+                              .replaceAll('\\', '/'),
+                          );
+                        }
+                      }
                       if (!content?.startsWith('fixture:')) return;
                       const fixture =
                         fixtures[Number(content.slice('fixture:'.length))];
@@ -107,9 +128,6 @@ export default defineConfig(
                           expect(fields[4]).toBe(
                             String.raw`builtin:swc-loader?option=\loader\value`,
                           );
-                          expect(fields[2]).not.toContain(
-                            String.raw`Z:\project`,
-                          );
                         }
                         if (fixture.source.includes('|sync|')) {
                           const pathFields = [
@@ -120,13 +138,8 @@ export default defineConfig(
                             fields[6],
                             fields[7],
                           ];
-                          if (devtool !== 'eval-source-map') {
-                            pathFields.push(fields[8]);
-                          }
                           for (const field of pathFields) {
-                            expect(field).toContain(
-                              String.raw`|sync|/^\.\/.*\.js$/`,
-                            );
+                            expect(field).toBe(fixture.source);
                           }
                         }
                         if (fixture.source === fixtures[0].source) {
@@ -158,12 +171,15 @@ export default defineConfig(
                           );
                         }
                       } else {
+                        const source = fixture.opaque
+                          ? raw
+                          : fixture.normalized;
                         const expected =
                           variant === 'literal'
-                            ? `literal://prefix\\value/${fixture.normalized}`
+                            ? `literal://prefix\\value/${source}`
                             : variant === 'fallback'
-                              ? `fallback:///${fixture.normalized}`
-                              : fixture.normalized;
+                              ? `fallback:///${source}`
+                              : source;
                         expect(
                           variant === 'fallback'
                             ? actual.replace(/\?[a-f0-9]{4}$/, '')

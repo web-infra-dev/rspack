@@ -31,6 +31,7 @@ export const fixtures = [
 	},
 	{
 		source: String.raw`C:\loader\index.js?option=\loader\value!C:\project\src\loaded.ts?query=\query\value`,
+		opaque: true,
 		absolute: String.raw`C:\project\src\loaded.ts?query=\query\value`,
 		normalized: String.raw`C:/project/src/loaded.ts?query=\query\value`
 	},
@@ -40,11 +41,13 @@ export const fixtures = [
 	},
 	{
 		source: String.raw`builtin:swc-loader?option=\loader\value!Z:\project\src\builtin.ts?query=\query\value`,
+		opaque: true,
 		absolute: String.raw`Z:\project\src\builtin.ts?query=\query\value`,
 		normalized: String.raw`Z:/project/src/builtin.ts?query=\query\value`
 	},
 	{
 		source: String.raw`\\server\share\context|sync|/^\.\/.*\.js$/`,
+		opaque: true,
 		normalized: String.raw`//server/share/context|sync|/^\.\/.*\.js$/`
 	}
 ];

@@ -88,42 +88,34 @@ fn resource_path_end(resource: &str) -> usize {
   resource.len()
 }
 
+fn should_normalize_source_path(
+  source_reference: &SourceReference,
+  compilation: &Compilation,
+) -> bool {
+  match source_reference {
+    SourceReference::Module(identifier) => compilation
+      .get_module_graph()
+      .module_by_identifier(identifier)
+      .and_then(|module| module.as_normal_module())
+      .and_then(|module| module.resource_resolved_data().path())
+      .is_some(),
+    // Composite identifiers are opaque, even when they contain filesystem paths.
+    SourceReference::Source(source) => !source.contains(['|', '!']),
+  }
+}
+
 fn push_normalized_resource(buf: &mut String, resource: &str) {
-  if !resource.contains('\\') || has_url_scheme(resource) {
+  if !resource.contains('\\')
+    || (!cfg!(windows) && !is_windows_path(resource))
+    || has_url_scheme(resource)
+  {
     buf.push_str(resource);
     return;
   }
 
   let path_end = resource_path_end(resource);
-  // Like make_paths_relative, process identifier segments separately. Context modules
-  // include regular expressions between `|` delimiters, not just file paths.
-  for (index, segment) in resource[..path_end].split('|').enumerate() {
-    if index != 0 {
-      buf.push('|');
-    }
-    if (!cfg!(windows) && !is_windows_path(segment))
-      || has_url_scheme(segment)
-      || (segment.starts_with('/') && segment.len() > 1 && segment.ends_with('/'))
-    {
-      buf.push_str(segment);
-    } else {
-      buf.push_str(&segment.cow_replace('\\', "/"));
-    }
-  }
+  buf.push_str(&resource[..path_end].cow_replace('\\', "/"));
   buf.push_str(&resource[path_end..]);
-}
-
-fn push_normalized_request(buf: &mut String, request: &str) {
-  if !request.contains('\\') {
-    buf.push_str(request);
-    return;
-  }
-  for (index, resource) in request.split('!').enumerate() {
-    if index != 0 {
-      buf.push('!');
-    }
-    push_normalized_resource(buf, resource);
-  }
 }
 
 // sources in a source map should be relative/URL-style (not absolute filesystem paths)
@@ -131,6 +123,8 @@ fn resolve_relative_resource_path(
   absolute_resource_path: &str,
   source_map_path: Option<&Utf8Path>,
   runtime_mode: RuntimeMode,
+  normalize_path: bool,
+  has_suffix: bool,
 ) -> Option<String> {
   if absolute_resource_path.starts_with("webpack/runtime")
     || absolute_resource_path.starts_with("rspack/runtime")
@@ -157,20 +151,20 @@ fn resolve_relative_resource_path(
     return None;
   };
 
-  // Only resolve the filesystem part of a context-module identifier. Its
-  // remaining segments contain metadata, including regular expressions.
-  let path_end = resource_path_end(absolute_resource_path).min(
-    absolute_resource_path
-      .find('|')
-      .unwrap_or(absolute_resource_path.len()),
-  );
+  // Keep existing identifier expansion; only resource paths opt into
+  // component-aware normalization.
+  let path_end = if normalize_path && has_suffix {
+    resource_path_end(absolute_resource_path)
+  } else {
+    absolute_resource_path.len()
+  };
   let (resource_path, suffix) = absolute_resource_path.split_at(path_end);
   let path = match source_map_path.parent() {
     Some(parent) => Cow::Owned(Path::new(resource_path).relative(parent)),
     None => resource_path.normalize(),
   };
   let path = path.to_string_lossy();
-  let mut result = if cfg!(windows) || is_windows_path(resource_path) {
+  let mut result = if !normalize_path || cfg!(windows) || is_windows_path(resource_path) {
     path.cow_replace('\\', "/").into_owned()
   } else {
     path.into_owned()
@@ -240,6 +234,8 @@ impl ModuleFilenameHelpers {
           &absolute_resource_path,
           unresolved_source_map_path,
           options.experiments.runtime_mode,
+          should_normalize_source_path(source_reference, compilation),
+          false,
         );
 
         let loaders = get_before(&resource_identifier, "!").to_string();
@@ -296,6 +292,8 @@ impl ModuleFilenameHelpers {
           &absolute_resource_path,
           unresolved_source_map_path,
           options.experiments.runtime_mode,
+          should_normalize_source_path(source_reference, compilation),
+          true,
         );
 
         ModuleFilenameTemplateFnCtx {
@@ -407,6 +405,7 @@ impl ModuleFilenameHelpers {
       short_identifier: Default::default(),
       identifier: Default::default(),
       resource_identifier: Default::default(),
+      normalize_path: Default::default(),
     }
   }
 }
@@ -440,7 +439,11 @@ fn create_default_module_filename(
   result.push_str(scheme);
   result.push_str(namespace);
   result.push('/');
-  push_normalized_resource(&mut result, resource_path);
+  if should_normalize_source_path(source_reference, compilation) {
+    push_normalized_resource(&mut result, resource_path);
+  } else {
+    result.push_str(resource_path);
+  }
   result
 }
 
@@ -455,9 +458,38 @@ struct ModuleFilenameTemplateStringCtx<'a> {
   short_identifier: OnceCell<Cow<'a, str>>,
   identifier: OnceCell<Cow<'a, str>>,
   resource_identifier: OnceCell<Cow<'a, str>>,
+  normalize_path: OnceCell<bool>,
 }
 
 impl<'a> ModuleFilenameTemplateStringCtx<'a> {
+  fn should_normalize_path(&self) -> bool {
+    *self
+      .normalize_path
+      .get_or_init(|| should_normalize_source_path(self.source_reference, self.compilation))
+  }
+
+  fn push_resource_path(&self, buf: &mut String, resource: &str) {
+    if self.should_normalize_path() {
+      push_normalized_resource(buf, resource);
+    } else {
+      buf.push_str(resource);
+    }
+  }
+
+  fn push_absolute_resource_path(&self, buf: &mut String) {
+    let path = self.absolute_resource_path();
+    if self.should_normalize_path() && matches!(self.source_reference, SourceReference::Module(_)) {
+      // NormalModule stores a filesystem path separately from query/fragment.
+      if cfg!(windows) || is_windows_path(path) {
+        buf.push_str(&path.cow_replace('\\', "/"));
+      } else {
+        buf.push_str(path);
+      }
+    } else {
+      self.push_resource_path(buf, path);
+    }
+  }
+
   pub fn short_identifier(&self) -> &str {
     self.short_identifier.get_or_init(|| {
       let Compilation { options, .. } = self.compilation;
@@ -506,6 +538,14 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
   pub fn absolute_resource_path(&self) -> &str {
     match &self.source_reference {
       SourceReference::Module(module_identifier) => {
+        let module_graph = self.compilation.get_module_graph();
+        if let Some(path) = module_graph
+          .module_by_identifier(module_identifier)
+          .and_then(|module| module.as_normal_module())
+          .and_then(|module| module.resource_resolved_data().path())
+        {
+          return path.as_str();
+        }
         module_identifier.split('!').next_back().unwrap_or("")
       }
       SourceReference::Source(source) => source.split('!').next_back().unwrap_or(""),
@@ -518,6 +558,8 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
       absolute_resource_path,
       self.unresolved_source_map_path,
       self.compilation.options.experiments.runtime_mode,
+      self.should_normalize_path(),
+      matches!(self.source_reference, SourceReference::Source(_)),
     );
 
     match (resolved, &self.source_reference) {
@@ -650,10 +692,10 @@ fn template_replace<'a>(s: &str, ctx: &ModuleFilenameTemplateStringCtx<'a>) -> S
       b']' if state => {
         let mut next_pos = i + 1;
         match_ignore_case!(&s[pos..next_pos];
-            b"[identifier]" => push_normalized_request(&mut buf, ctx.identifier()),
-            b"[short-identifier]" => push_normalized_request(&mut buf, ctx.short_identifier()),
-            b"[resource]" => push_normalized_resource(&mut buf, ctx.resource()),
-            b"[resource-path]" |  b"[resourcepath]" => push_normalized_resource(&mut buf, ctx.resource_path()),
+            b"[identifier]" => buf.push_str(ctx.identifier()),
+            b"[short-identifier]" => buf.push_str(ctx.short_identifier()),
+            b"[resource]" => ctx.push_resource_path(&mut buf, ctx.resource()),
+            b"[resource-path]" |  b"[resourcepath]" => ctx.push_resource_path(&mut buf, ctx.resource_path()),
 
             b"[absolute-resource-path]" |
             b"[abs-resource-path]" |
@@ -662,14 +704,14 @@ fn template_replace<'a>(s: &str, ctx: &ModuleFilenameTemplateStringCtx<'a>) -> S
             b"[absolute-resourcepath]" |
             b"[abs-resourcepath]" |
             b"[absoluteresourcepath]" |
-            b"[absresourcepath]" => push_normalized_resource(&mut buf, ctx.absolute_resource_path()),
+            b"[absresourcepath]" => ctx.push_absolute_resource_path(&mut buf),
 
             b"[relative-resource-path]" |
             b"[relativeresource-path]" |
             b"[relative-resourcepath]" |
             b"[relativeresourcepath]" => {
               if let Some(relative_resource_path) = ctx.relative_resource_path() {
-                push_normalized_resource(&mut buf, relative_resource_path.as_ref())
+                ctx.push_resource_path(&mut buf, relative_resource_path.as_ref())
               } else {
                 buf.push_str(&sstr[pos..next_pos]);
               }
@@ -677,15 +719,15 @@ fn template_replace<'a>(s: &str, ctx: &ModuleFilenameTemplateStringCtx<'a>) -> S
 
             b"[all-loaders]" | b"[allloaders]" => if starts_with_ignore_ascii_case(&s[next_pos..], resource_tag) {
                 next_pos += resource_tag.len();
-                push_normalized_request(&mut buf, ctx.identifier());
+                buf.push_str(ctx.identifier());
             } else {
-                push_normalized_request(&mut buf, ctx.all_loaders());
+                buf.push_str(ctx.all_loaders());
             },
             b"[loaders]" => if starts_with_ignore_ascii_case(&s[next_pos..], resource_tag) {
                 next_pos += resource_tag.len();
-                push_normalized_request(&mut buf, ctx.short_identifier());
+                buf.push_str(ctx.short_identifier());
             } else {
-                push_normalized_request(&mut buf, ctx.loaders());
+                buf.push_str(ctx.loaders());
             },
 
             b"[query]" => buf.push_str(ctx.query()),
