@@ -14,14 +14,14 @@ use swc_next_ecma_ast::{
   AssignmentOperator, AssignmentTargetData, Ast, BindingPattern, BindingPatternData,
   CallExpression, Class, ClassElement, ClassElementData, CommentKind, Decl, DeclData,
   ExportDefaultDeclarationKindData, Expr, ExprData, ForStatementInitData, FormalParameterItemData,
-  FormalParameterPatternData, Function, GetSpan, MethodDefinitionKind, ModuleExportName,
-  ModuleExportNameData, NodeKindData, Program, PropertyKey, PropertyKeyData, ScopeId,
-  SimpleAssignmentTargetData, SourceType, Span, Stmt, StmtData,
-  VariableDeclaration as AstVariableDeclaration, VariableKind,
+  FormalParameterPatternData, Function, GetSpan, MemberExpression, MethodDefinitionKind,
+  ModuleExportName, ModuleExportNameData, NodeKindData, ObjectPropertyKindData, Program,
+  PropertyKey, PropertyKeyData, PropertyKind, ScopeId, SimpleAssignmentTargetData, SourceType,
+  Span, Stmt, StmtData, VariableDeclaration as AstVariableDeclaration, VariableKind,
 };
 use swc_next_ecma_semantic::Semantic;
 
-use super::side_effects_analysis::{SideEffectsContext, may_have_side_effects};
+use super::side_effects_analysis::{SideEffectsContext, may_have_side_effects, property_key_is};
 use crate::{
   Atom, JavascriptParserPlugin,
   dependency::ESMImportSideEffectDependency,
@@ -1139,12 +1139,47 @@ fn is_common_js_export_assignment(
   else {
     return false;
   };
-  let Some(identifier) = member.object(ast).as_identifier_reference(ast) else {
+  let Some(property) = static_member_property(ast, member) else {
     return false;
   };
-  let name = ast.get_utf8(identifier.name(ast));
+  let object = member.object(ast);
 
-  let property_name = match classify_property_key(ast, member.property(ast)) {
+  if let Some(identifier) = object.as_identifier_reference(ast) {
+    let name = ast.get_utf8(identifier.name(ast));
+    let property_is_side_effect_free = match name {
+      "exports" => property != "__proto__",
+      "module" => property == "exports",
+      _ => false,
+    };
+    if !property_is_side_effect_free || !is_free_variable(parser, name) {
+      return false;
+    }
+    if name == "module" && !is_plain_object_literal(ast, assignment.right(ast)) {
+      parser.module_exports_is_plain_object = false;
+    }
+    return true;
+  }
+
+  property != "__proto__"
+    && parser.module_exports_is_plain_object
+    && object.as_member_expression(ast).is_some_and(|object| {
+      static_member_property(ast, object) == Some("exports")
+        && object
+          .object(ast)
+          .as_identifier_reference(ast)
+          .is_some_and(|identifier| ast.get_utf8(identifier.name(ast)) == "module")
+    })
+    && is_free_variable(parser, "module")
+}
+
+fn is_free_variable(parser: &mut JavascriptParser, name: &str) -> bool {
+  parser
+    .get_variable_info(name)
+    .is_none_or(|info| info.is_free())
+}
+
+fn static_member_property<'a>(ast: &Ast<'a>, member: MemberExpression) -> Option<&'a str> {
+  match classify_property_key(ast, member.property(ast)) {
     PropertyKeyValue::IdentifierName(property) if !member.computed(ast) => {
       Some(ast.get_utf8(property.name(ast)))
     }
@@ -1152,18 +1187,32 @@ fn is_common_js_export_assignment(
       ast.get_wtf8(property.value(ast)).as_str()
     }
     _ => None,
-  };
+  }
+}
 
-  let property_is_side_effect_free = match name {
-    "exports" => property_name.is_some_and(|property| property != "__proto__"),
-    "module" => property_name == Some("exports"),
-    _ => false,
+fn is_plain_object_literal(ast: &Ast<'_>, expression: Expr) -> bool {
+  let ExprData::ObjectExpression(object) = ast.expr_data(expression) else {
+    return false;
   };
-
-  property_is_side_effect_free
-    && parser
-      .get_variable_info(name)
-      .is_none_or(|info| info.is_free())
+  ast.nodes(object.properties(ast)).all(|property| {
+    let ObjectPropertyKindData::ObjectProperty(property) = ast.object_property_kind_data(property)
+    else {
+      return true;
+    };
+    if property.kind(ast) != PropertyKind::Init {
+      return false;
+    }
+    if property.computed(ast)
+      || property.shorthand(ast)
+      || property.method(ast)
+      || !property_key_is(ast, property.key(ast), "__proto__")
+    {
+      return true;
+    }
+    let prototype = property.value(ast);
+    matches!(ast.expr_data(prototype), ExprData::NullLiteral(_))
+      || is_plain_object_literal(ast, prototype)
+  })
 }
 
 /// Keep the CommonJS export-write exception out of `is_pure_expression`,
