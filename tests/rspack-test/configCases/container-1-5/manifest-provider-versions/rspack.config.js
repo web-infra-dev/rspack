@@ -32,7 +32,8 @@ module.exports = ['forward', 'reverse'].map((name, index) => ({
   output: { filename: name + '/[name].js', chunkFilename: name + '/[id].js' },
   plugins: [
     new ModuleFederationPlugin({
-      implementation: require.resolve('@module-federation/runtime-tools-layers'),
+      implementation:
+        require.resolve('@module-federation/runtime-tools-layers'),
       name: 'provider_versions',
       manifest: { fileName: name + '.json', disableAssetsAnalyze: true },
       shared: Object.fromEntries(

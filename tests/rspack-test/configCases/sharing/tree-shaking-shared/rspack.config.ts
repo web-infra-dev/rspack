@@ -21,7 +21,9 @@ export default defineConfig({
   },
   plugins: [
     new ModuleFederationPlugin({
-      implementation: fileURLToPath(import.meta.resolve('@module-federation/runtime-tools-layers')),
+      implementation: fileURLToPath(
+        import.meta.resolve('@module-federation/runtime-tools-layers'),
+      ),
       name: 'tree_shaking_share',
       manifest: true,
       runtimePlugins: [

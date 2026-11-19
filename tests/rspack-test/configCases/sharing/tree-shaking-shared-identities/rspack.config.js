@@ -14,7 +14,8 @@ module.exports = {
   },
   plugins: [
     new ModuleFederationPlugin({
-      implementation: require.resolve('@module-federation/runtime-tools-layers'),
+      implementation:
+        require.resolve('@module-federation/runtime-tools-layers'),
       name: 'shared_identities',
       enhanced: true,
       manifest: true,

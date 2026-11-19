@@ -6,7 +6,8 @@ module.exports = {
   optimization: { minimize: false },
   plugins: [
     new ModuleFederationPlugin({
-      implementation: require.resolve('@module-federation/runtime-tools-layers'),
+      implementation:
+        require.resolve('@module-federation/runtime-tools-layers'),
       name: 'fallback_scope_shapes',
       manifest: true,
       library: { type: 'commonjs-module' },
