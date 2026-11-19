@@ -77,7 +77,7 @@ pub trait WalkMatcher: Clone + Send + Sync {
   }
 }
 
-impl WalkMatcher for GlobPattern<'_> {
+impl WalkMatcher for GlobPattern {
   const VISIT_ON_METADATA_ERROR: bool = true;
 
   fn prepare_child(&self, _dir: &Utf8Path, name: &str) -> Option<Self> {

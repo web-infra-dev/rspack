@@ -22,7 +22,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{Utf8Path, Utf8PathBuf, normalize_native_path_separators};
 use rspack_util::{
   fx_hash::FxDashSet,
-  glob::{GlobOptions, GlobPattern, literal_directory_prefix, normalize_glob_path},
+  glob::{BackslashMode, GlobOptions, GlobPattern, literal_directory_prefix, normalize_glob_path},
 };
 use sugar_path::SugarPath;
 
@@ -486,51 +486,64 @@ impl CopyRspackPlugin {
     let mut glob_match_options = GlobOptions {
       case_sensitive: pattern.glob_options.case_sensitive_match.unwrap_or(true),
       require_literal_leading_dot: !dot_enable.unwrap_or(false),
-      windows_paths: true,
-      // `from` accepts native paths such as path.join(context, "src", "*.txt").
-      backslash_escape: !cfg!(windows),
+      ..Default::default()
     };
     logger.log(format!("begin globbing '{orig_from}'..."));
     let glob_entries: Result<Vec<Utf8PathBuf>> = async {
-      let source = match from_type {
-        FromType::Dir => Cow::Borrowed("**/*"),
+      let (root, matcher) = match from_type {
+        FromType::Dir => (
+          Cow::Borrowed(context.as_ref()),
+          Some(
+            GlobPattern::new_with_options(b"**/*", glob_match_options)
+              .map_err(|err| error!("Invalid glob pattern {orig_from:?}: {err}"))?,
+          ),
+        ),
         FromType::File if glob_match_options.case_sensitive => return Ok(vec![abs_from.clone()]),
         FromType::File => {
-          glob_match_options.windows_paths = false;
-          glob_match_options.backslash_escape = true;
           let filename = abs_from.file_name().expect("file path has a filename");
-          Cow::Owned(escape_glob_filename(filename))
+          let escaped = escape_glob_filename(filename);
+          (
+            Cow::Borrowed(context.as_ref()),
+            Some(
+              GlobPattern::new_with_options(escaped.as_bytes(), glob_match_options)
+                .map_err(|err| error!("Invalid glob pattern {orig_from:?}: {err}"))?,
+            ),
+          )
         }
-        // Copy's `from` is a path. In a relative path its leading bang is literal.
-        FromType::Glob if orig_from.starts_with('!') => Cow::Owned(format!("./{orig_from}")),
-        FromType::Glob => Cow::Borrowed(orig_from.as_str()),
-      };
-      let matcher = GlobPattern::new_with_options(source.as_bytes(), glob_match_options)
-        .map_err(|err| error!("Invalid glob pattern {orig_from:?}: {err}"))?;
-
-      let (root, matcher) = if matches!(from_type, FromType::Glob) {
-        let normalized = if cfg!(windows) {
-          normalize_native_path_separators(&source)
-        } else {
-          normalize_glob_path(&source)
-        };
-        // Use the configured directory spelling for the physical scan and watch root.
-        // Keep `..` in the I/O path so the filesystem resolves symlinks first.
-        let prefix = literal_directory_prefix(&normalized);
-        let root = context.join(prefix.as_ref());
-        let root_exists = compilation.input_filesystem.metadata(&root).await.is_ok();
-        let dependency = root.clone().into_std_path_buf().normalize().into_owned();
-        // Missing roots must be registered as missing dependencies rather than
-        // context dependencies, otherwise the watcher forces another compilation.
-        // https://github.com/webpack/copy-webpack-plugin/issues/806
-        if root_exists {
-          context_dependencies.insert(dependency);
-        } else {
-          missing_dependencies.insert(dependency);
+        FromType::Glob => {
+          // Copy's `from` is a path. In a relative path its leading bang is literal.
+          let source = if orig_from.starts_with('!') {
+            Cow::Owned(format!("./{orig_from}"))
+          } else {
+            Cow::Borrowed(orig_from.as_str())
+          };
+          let (normalized, matcher) = if cfg!(windows) {
+            glob_match_options.backslash = BackslashMode::Separator;
+            let matcher = GlobPattern::new_with_options(source.as_bytes(), glob_match_options)
+              .map_err(|err| error!("Invalid glob pattern {orig_from:?}: {err}"))?;
+            (normalize_native_path_separators(&source), matcher)
+          } else {
+            let normalized = normalize_glob_path(&source);
+            let matcher = GlobPattern::new_with_options(normalized.as_bytes(), glob_match_options)
+              .map_err(|err| error!("Invalid glob pattern {orig_from:?}: {err}"))?;
+            (normalized, matcher)
+          };
+          // Use the configured directory spelling for the physical scan and watch root.
+          // Keep `..` in the I/O path so the filesystem resolves symlinks first.
+          let prefix = literal_directory_prefix(&normalized);
+          let root = context.join(prefix.as_ref());
+          let root_exists = compilation.input_filesystem.metadata(&root).await.is_ok();
+          let dependency = root.clone().into_std_path_buf().normalize().into_owned();
+          // Missing roots must be registered as missing dependencies rather than
+          // context dependencies, otherwise the watcher forces another compilation.
+          // https://github.com/webpack/copy-webpack-plugin/issues/806
+          if root_exists {
+            context_dependencies.insert(dependency);
+          } else {
+            missing_dependencies.insert(dependency);
+          }
+          (Cow::Owned(root), matcher.match_prefix(prefix.as_bytes()))
         }
-        (Cow::Owned(root), matcher.match_prefix(prefix.as_bytes()))
-      } else {
-        (Cow::Borrowed(context.as_ref()), Some(matcher))
       };
       let mut entries = Vec::new();
       if let Some(matcher) = matcher {

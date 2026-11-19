@@ -1,7 +1,10 @@
 mod reference;
 
+use std::borrow::Cow;
+
+use rspack_paths::{normalize_native_path_separators, normalize_path_separators};
 use rspack_util::glob::{
-  Error, ErrorKind, GlobOptions, GlobPattern, normalize_glob_path, validate,
+  BackslashMode, Error, ErrorKind, GlobOptions, GlobPattern, normalize_glob_path, validate,
 };
 
 #[test]
@@ -51,38 +54,9 @@ fn test_literal_prefix_is_derived_from_compiled_branches() {
 }
 
 #[test]
-fn test_literal_prefix_borrows_input_and_remaining_source() {
-  let source = String::from("src/components/*.js");
-  let pattern = GlobPattern::new(source.as_bytes()).expect("valid borrowed glob");
-  let prefix: &[u8] = pattern.literal_prefix();
-  assert_eq!(prefix, b"src/components/");
-  assert!(std::ptr::eq(prefix.as_ptr(), source.as_bytes().as_ptr()));
-  let remaining = pattern.match_prefix("src/").expect("matching prefix");
-  assert_eq!(remaining.literal_prefix(), b"components/");
-  assert!(std::ptr::eq(
-    remaining.literal_prefix().as_ptr(),
-    source.as_bytes()[4..].as_ptr()
-  ));
-  // The remaining pattern borrows the source independently of the original
-  // matcher and shares its instruction graph.
-  drop(pattern);
-  assert!(remaining.is_match("components/index.js"));
-}
-
-#[test]
-fn test_decoded_joined_and_folded_prefixes_are_shared_by_clones() {
+fn test_decoded_joined_and_folded_prefixes() {
   let joined = GlobPattern::new(br"a{b,b}c/\[x\]/*.js").expect("valid escaped glob");
-  let prefix = joined.literal_prefix();
-  assert_eq!(prefix, b"abc/[x]/");
-  let clone = joined.clone();
-  assert!(std::ptr::eq(
-    prefix.as_ptr(),
-    clone.literal_prefix().as_ptr()
-  ));
-  assert!(std::ptr::eq(
-    prefix.as_ptr(),
-    joined.literal_prefix().as_ptr()
-  ));
+  assert_eq!(joined.literal_prefix(), b"abc/[x]/");
 
   let source = String::from("Ü/SRC/*.JS");
   let folded = GlobPattern::new_with_options(
@@ -94,11 +68,6 @@ fn test_decoded_joined_and_folded_prefixes_are_shared_by_clones() {
   )
   .expect("valid case-insensitive glob");
   assert_eq!(folded.literal_prefix(), "ü/src/".as_bytes());
-  let clone = folded.clone();
-  assert!(std::ptr::eq(
-    folded.literal_prefix().as_ptr(),
-    clone.literal_prefix().as_ptr()
-  ));
   let remaining = folded.match_prefix("Ü/").expect("folded prefix");
   drop(folded);
   assert_eq!(remaining.literal_prefix(), b"src/");
@@ -214,7 +183,7 @@ fn test_validation_preserves_fast_glob_errors() {
 #[test]
 fn test_path_parser_preserves_class_escapes_and_error_offsets() {
   let options = GlobOptions {
-    windows_paths: true,
+    backslash: BackslashMode::WindowsPath,
     ..Default::default()
   };
   let source = br"C:\repo/[\a\]]/*.js";
@@ -439,19 +408,33 @@ fn test_options_apply_to_every_prefix_continuation() {
     let pattern = GlobPattern::new_with_options(pattern.as_bytes(), options).expect("valid glob");
     assert_eq!(pattern.is_match(path), expected);
     let path_bytes = path.as_bytes();
-    for split in 0..=path_bytes.len() {
+    for boundary in std::iter::once(0).chain(
+      path_bytes
+        .iter()
+        .enumerate()
+        .filter_map(|(index, &byte)| (byte == b'/').then_some(index + 1)),
+    ) {
       assert_eq!(
         pattern
-          .match_prefix(&path_bytes[..split])
-          .is_some_and(|rest| rest.is_match(&path_bytes[split..])),
+          .match_prefix(&path_bytes[..boundary])
+          .is_some_and(|rest| rest.is_match(&path_bytes[boundary..])),
         expected,
-        "{path:?} split at byte {split}"
+        "{path:?} split at byte {boundary}"
       );
     }
-    let remaining = path_bytes
-      .chunks(1)
-      .try_fold(pattern, |matcher, byte| matcher.match_prefix(byte));
-    assert_eq!(remaining.is_some_and(|rest| rest.is_match("")), expected);
+    let mut parts = path.split('/').peekable();
+    let mut current = Some(pattern);
+    while let Some(part) = parts.next() {
+      current = current.and_then(|matcher| {
+        let next = matcher.match_component(part)?;
+        if parts.peek().is_some() {
+          next.match_prefix("/")
+        } else {
+          Some(next)
+        }
+      });
+    }
+    assert_eq!(current.is_some_and(|rest| rest.is_match("")), expected);
   }
   let negated =
     GlobPattern::new_with_options("!**".as_bytes(), options).expect("valid negated glob");
@@ -461,4 +444,364 @@ fn test_options_apply_to_every_prefix_continuation() {
       .expect("hidden paths are in the complement")
       .is_match("value.js")
   );
+}
+
+#[test]
+fn test_case_insensitive_uppercase_escapes_stay_literal() {
+  let options = GlobOptions {
+    case_sensitive: false,
+    ..Default::default()
+  };
+  for (pattern, literal_upper, literal_lower, control) in [
+    (br"\B".as_slice(), "B", "b", "\x08"),
+    (br"\N".as_slice(), "N", "n", "\n"),
+    (br"\R".as_slice(), "R", "r", "\r"),
+    (br"\T".as_slice(), "T", "t", "\t"),
+    (br"[\N]".as_slice(), "N", "n", "\n"),
+  ] {
+    let compiled = GlobPattern::new_with_options(pattern, options).expect("valid glob");
+    assert!(compiled.is_match(literal_upper), "{pattern:?}");
+    assert!(compiled.is_match(literal_lower), "{pattern:?}");
+    assert!(!compiled.is_match(control), "{pattern:?}");
+  }
+
+  let range = GlobPattern::new_with_options(br"[\B-\T]", options).expect("valid range");
+  assert!(range.is_match("n"));
+  assert!(range.is_match("N"));
+  assert!(!range.is_match("\n"));
+
+  let escaped_slash = GlobPattern::new_with_options(br"\\N", options).expect("valid glob");
+  assert!(escaped_slash.is_match(r"\n"));
+  assert!(escaped_slash.is_match(r"\N"));
+  assert!(!escaped_slash.is_match("\\\n"));
+
+  for (pattern, control, letter) in [
+    (br"\b".as_slice(), "\x08", "b"),
+    (br"\n".as_slice(), "\n", "n"),
+    (br"\r".as_slice(), "\r", "r"),
+    (br"\t".as_slice(), "\t", "t"),
+  ] {
+    let compiled = GlobPattern::new_with_options(pattern, options).expect("valid glob");
+    assert!(compiled.is_match(control), "{pattern:?}");
+    assert!(!compiled.is_match(letter), "{pattern:?}");
+  }
+}
+
+#[test]
+fn test_match_component_prunes_non_matching_wildcard_entries() {
+  let star_js = GlobPattern::new(b"*.js").expect("valid glob");
+  for skipped in ["README.md", "index", "node_modules"] {
+    assert!(star_js.match_component(skipped).is_none(), "{skipped}");
+  }
+  assert!(star_js.match_component("index.js").is_some());
+
+  let exact = GlobPattern::new(b"index.js").expect("valid glob");
+  for skipped in ["README.md", "index", "node_modules"] {
+    assert!(exact.match_component(skipped).is_none(), "{skipped}");
+  }
+  assert!(exact.match_component("index.js").is_some());
+
+  let nested = GlobPattern::new(b"*/*.js").expect("valid glob");
+  assert!(nested.match_component("src").is_some());
+  assert!(nested.match_component("src").unwrap().is_match("/index.js"));
+
+  let globstar = GlobPattern::new(b"**/*.js").expect("valid glob");
+  assert!(globstar.match_component("nested").is_some());
+  assert!(globstar.match_component(".git").is_some());
+
+  let explicit_dot = GlobPattern::new_with_options(
+    b"**/*.js",
+    GlobOptions {
+      require_literal_leading_dot: true,
+      ..Default::default()
+    },
+  )
+  .expect("valid glob");
+  assert!(explicit_dot.match_component(".git").is_none());
+  assert!(explicit_dot.match_component("nested").is_some());
+}
+
+#[test]
+fn test_brace_branches_merge_shared_suffix_and_preserve_globstar_parity() {
+  let branches = (0..200)
+    .map(|index| format!("a{index}"))
+    .collect::<Vec<_>>()
+    .join(",");
+  let suffix = "seg/".repeat(200);
+  let pattern = format!("{{{branches}}}/{suffix}*.js");
+  let compiled = GlobPattern::new(pattern.as_bytes()).expect("valid brace glob");
+  assert!(compiled.is_match(format!("a0/{suffix}index.js")));
+  assert!(compiled.is_match(format!("a199/{suffix}index.js")));
+  assert!(!compiled.is_match(format!("a200/{suffix}index.js")));
+
+  let parity_paths: &[&[u8]] = &[
+    b"", b"a", b"aa", b"a/b", b"a/b/c", b"b", b"a/", b"/a", b"a/a", b"x/y",
+  ];
+  for pattern in [
+    "{a,}**",
+    "{,a}**",
+    "{a,}**/**",
+    "{,a}**/**",
+    "a**/**",
+    "{a,}{**}",
+    "{a,}/**",
+  ] {
+    check_pattern(pattern.as_bytes(), parity_paths);
+  }
+}
+
+#[test]
+fn directory_prefix_decodes_escapes_and_shared_branches() {
+  for (source, expected) in [
+    (r"./fixtures/a\[b\]/file", "./fixtures/a[b]/"),
+    (r"./fixtures/a\[b\]/**/*.js", "./fixtures/a[b]/"),
+    (r"./fixtures/file\*.js", "./fixtures/"),
+    (
+      r"./fixtures/directory\?1/**/*.js",
+      "./fixtures/directory?1/",
+    ),
+    ("{src/a,src/b}/*.js", "src/"),
+    ("./{src,src}/components/*.js", "./src/components/"),
+    ("{src,lib}/*.js", ""),
+    ("*.js", ""),
+    ("!src/**/*.js", ""),
+  ] {
+    let pattern = GlobPattern::new(source.as_bytes()).unwrap();
+    let prefix = pattern.directory_prefix();
+    assert_eq!(prefix, expected.as_bytes(), "{source}");
+    assert!(pattern.match_prefix(&prefix).is_some(), "{source}");
+  }
+}
+
+#[test]
+fn glob_parser_handles_windows_separators_and_glob_escapes() {
+  for (source, expected, path) in [
+    (
+      r"./fixtures/a\[b\]/*.js",
+      r"./fixtures/a\[b\]/*.js",
+      "./fixtures/a[b]/value.js",
+    ),
+    (
+      r"./fixtures/file\*.js",
+      r"./fixtures/file\*.js",
+      "./fixtures/file*.js",
+    ),
+    (
+      r"./fixtures/file\?.js",
+      r"./fixtures/file\?.js",
+      "./fixtures/file?.js",
+    ),
+    (
+      r"C:\fixtures\a\[b\]\file.js",
+      r"C:/fixtures/a\[b\]/file.js",
+      "C:/fixtures/a[b]/file.js",
+    ),
+    (
+      r"C:\repo\src/*.js",
+      "C:/repo/src/*.js",
+      "C:/repo/src/value.js",
+    ),
+    (
+      r"C:\目录\文件\[name\]/*.js",
+      r"C:/目录/文件\[name\]/*.js",
+      "C:/目录/文件[name]/value.js",
+    ),
+  ] {
+    let pattern = GlobPattern::new_with_options(
+      source.as_bytes(),
+      GlobOptions {
+        backslash: BackslashMode::WindowsPath,
+        ..Default::default()
+      },
+    )
+    .unwrap();
+    assert_eq!(normalize_glob_path(source), expected, "{source}");
+    assert!(pattern.is_match(path), "{source}");
+    let prefix = pattern.directory_prefix();
+    let remaining = pattern.match_prefix(&prefix).unwrap();
+    let suffix = path.as_bytes().strip_prefix(prefix.as_slice()).unwrap();
+    assert!(remaining.is_match(suffix), "{source}");
+  }
+}
+
+#[test]
+fn native_windows_patterns_keep_wildcards_after_backslash_separators() {
+  let options = GlobOptions {
+    backslash: BackslashMode::Separator,
+    ..Default::default()
+  };
+  for (source, parsed, path) in [
+    (
+      r"C:\repo\src\*.txt",
+      "C:/repo/src/*.txt",
+      "C:/repo/src/value.txt",
+    ),
+    (r"src\?\*.txt", "src/?/*.txt", "src/a/value.txt"),
+    (r"src\{a,b}\*.txt", "src/{a,b}/*.txt", "src/b/value.txt"),
+    (r"src\[ab]\*.txt", "src/[ab]/*.txt", "src/a/value.txt"),
+    (r"src\[\a\]]\*.txt", r"src/[\a\]]/*.txt", "src/]/value.txt"),
+    (
+      r"\\server\share\src\*.txt",
+      "//server/share/src/*.txt",
+      "//server/share/src/value.txt",
+    ),
+  ] {
+    let pattern = GlobPattern::new_with_options(source.as_bytes(), options).unwrap();
+    let normalized = GlobPattern::new(parsed.as_bytes()).expect("valid normalized glob");
+    assert_eq!(
+      pattern.directory_prefix(),
+      normalized.directory_prefix(),
+      "{source}"
+    );
+    assert!(pattern.is_match(path), "{source}");
+    let prefix = pattern.directory_prefix();
+    assert!(
+      pattern
+        .match_prefix(&prefix)
+        .unwrap()
+        .is_match(path.as_bytes().strip_prefix(prefix.as_slice()).unwrap())
+    );
+  }
+}
+
+#[test]
+fn normalize_path_separators_treats_glob_chars_as_literals() {
+  assert_eq!(
+    normalize_path_separators("C:\\fixtures\\a\\[b]\\file.js"),
+    "C:/fixtures/a/[b]/file.js"
+  );
+  assert_eq!(
+    normalize_path_separators("C:\\fixtures\\a\\{b}\\file.js"),
+    "C:/fixtures/a/{b}/file.js"
+  );
+}
+
+#[test]
+fn separator_normalization_borrows_unchanged_inputs() {
+  let path = "./src/目录/index.js";
+  let normalized = normalize_path_separators(path);
+  assert!(matches!(normalized, Cow::Borrowed(_)));
+  assert_eq!(normalized.as_ptr(), path.as_ptr());
+
+  let pattern = r"./src/目录/\[literal\]/file\*.js";
+  let normalized = normalize_glob_path(pattern);
+  assert!(matches!(normalized, Cow::Borrowed(_)));
+  assert_eq!(normalized.as_ptr(), pattern.as_ptr());
+}
+
+#[test]
+fn native_separator_normalization_preserves_unix_filename_backslashes() {
+  let path = r"src\literal\*.js";
+  let normalized = normalize_native_path_separators(path);
+  if cfg!(windows) {
+    assert_eq!(normalized, "src/literal/*.js");
+  } else {
+    assert_eq!(normalized, path);
+    assert!(matches!(normalized, Cow::Borrowed(_)));
+  }
+}
+
+#[test]
+fn recursive_matching_uses_remaining_states() {
+  for (source, expected) in [
+    ("./src/*.js", false),
+    ("./src/value.js", false),
+    (r"./src/file\*\*.js", false),
+    ("./src/{a,b}.js", false),
+    ("./{src,src}/*.js", false),
+    ("./src/**/*.js", true),
+    ("./src/{a,b/nested}.js", true),
+    ("{src/a,src/b}/*.js", true),
+    ("!*.js", true),
+  ] {
+    let pattern = GlobPattern::new(source.as_bytes()).unwrap();
+    let remaining = pattern.match_prefix(pattern.directory_prefix()).unwrap();
+    assert_eq!(remaining.is_recursive(), expected, "{source}");
+  }
+
+  let pattern = GlobPattern::new(b"src/{a,b/nested}.js").unwrap();
+  let remaining = pattern.match_prefix(b"src/b/").unwrap();
+  assert!(!remaining.is_recursive());
+  assert!(remaining.is_match(b"nested.js"));
+}
+
+#[test]
+fn explicit_dot_and_escaped_matching() {
+  let explicit_dot = GlobOptions {
+    require_literal_leading_dot: true,
+    ..Default::default()
+  };
+  for (pattern, path, expected) in [
+    ("./fixtures/file\\*.js", "./fixtures/file*.js", true),
+    ("./fixtures/file\\*.js", "./fixtures/file-a.js", false),
+    (
+      "./fixtures/directory\\?1/**/*.js",
+      "./fixtures/directory?1/index.js",
+      true,
+    ),
+    (
+      "./fixtures/directory\\?1/**/*.js",
+      "./fixtures/directory-a1/index.js",
+      false,
+    ),
+    ("./fixtures/**/.*", "./fixtures/.env", true),
+    (
+      "./fixtures/**/.*/index.js",
+      "./fixtures/.cache/index.js",
+      true,
+    ),
+    (
+      "./fixtures/**/index.js",
+      "./fixtures/.cache/index.js",
+      false,
+    ),
+  ] {
+    assert_eq!(
+      GlobPattern::new_with_options(pattern.as_bytes(), explicit_dot)
+        .expect("valid glob")
+        .is_match(path),
+      expected,
+      "{pattern} vs {path}"
+    );
+  }
+
+  assert!(
+    GlobPattern::new_with_options(
+      b"./fixtures/**/.ENV",
+      GlobOptions {
+        case_sensitive: false,
+        ..Default::default()
+      },
+    )
+    .expect("valid glob")
+    .is_match("./fixtures/.env")
+  );
+
+  let windows_explicit_dot = GlobOptions {
+    require_literal_leading_dot: true,
+    backslash: BackslashMode::WindowsPath,
+    ..Default::default()
+  };
+  for (pattern, path, expected) in [
+    (
+      "C:/repo/escape/**/glob.js",
+      r"C:\repo\escape\[brackets]\glob.js",
+      true,
+    ),
+    (
+      "C:/repo/escape/**/glob.js",
+      r"C:\repo\escape\{curlies}\glob.js",
+      true,
+    ),
+    ("./fixtures/.*.js", "./fixtures/.hidden.js", true),
+    ("./fixtures/*.js", "./fixtures/.hidden.js", false),
+  ] {
+    assert_eq!(
+      GlobPattern::new_with_options(pattern.as_bytes(), windows_explicit_dot)
+        .expect("valid path glob")
+        .is_match(normalize_path_separators(path).as_bytes()),
+      expected,
+      "{pattern} vs {path}"
+    );
+  }
 }

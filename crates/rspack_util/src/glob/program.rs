@@ -1,4 +1,4 @@
-use std::{borrow::Cow, path::is_separator};
+use std::path::is_separator;
 
 use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
@@ -10,8 +10,8 @@ pub(super) type States = SmallVec<[usize; 8]>;
 #[derive(Debug)]
 pub(super) enum Instruction {
   Accept,
-  // Byte, continuation, explicit leading dot, source byte offset.
-  Literal(u8, usize, bool, usize),
+  // Byte, continuation, explicit leading dot.
+  Literal(u8, usize, bool),
   Any(usize),
   Class {
     ranges: SmallVec<[(u8, u8); 4]>,
@@ -53,7 +53,7 @@ impl Program<'_> {
     let start = compiler.intern(Position {
       index,
       brace_depth: 0,
-      match_start: index,
+      at_match_start: true,
       component_start: true,
     });
     // A worklist avoids recursion proportional to the pattern length. Only
@@ -88,6 +88,23 @@ impl Program<'_> {
     }
   }
 
+  pub(super) fn can_match_component(&self, states: &States) -> bool {
+    if self.negated {
+      self.can_match(states)
+    } else {
+      self.is_match(states)
+        || states.iter().any(|&id| {
+          matches!(
+            self.instructions[id],
+            Instruction::Literal(b'/', ..)
+              | Instruction::GlobStar
+              | Instruction::GlobStarDirectory { .. }
+              | Instruction::InsideGlobStar(_)
+          )
+        })
+    }
+  }
+
   pub(super) fn is_recursive(&self, states: &States) -> bool {
     if self.negated {
       return true;
@@ -100,11 +117,11 @@ impl Program<'_> {
       }
       seen[id] = true;
       match &self.instructions[id] {
-        Instruction::Literal(byte, _, _, _) if is_separator(*byte as char) => return true,
+        Instruction::Literal(byte, _, _) if is_separator(*byte as char) => return true,
         Instruction::GlobStar
         | Instruction::GlobStarDirectory { .. }
         | Instruction::InsideGlobStar(_) => return true,
-        Instruction::Literal(_, next, _, _)
+        Instruction::Literal(_, next, _)
         | Instruction::Any(next)
         | Instruction::Star(next)
         | Instruction::Class { next, .. } => pending.push(*next),
@@ -116,56 +133,32 @@ impl Program<'_> {
   }
 
   /// The common literal prefix of every active branch, already unescaped.
-  pub(super) fn literal_prefix<'a>(
-    &self,
-    initial: &States,
-    source: &Cow<'a, [u8]>,
-  ) -> Cow<'a, [u8]> {
+  pub(super) fn literal_prefix(&self, initial: &States) -> Vec<u8> {
     if self.negated {
-      return Cow::Borrowed(&[]);
+      return Vec::new();
     }
     let mut states = initial.clone();
     let mut scratch = Scratch::new(self.instructions.len());
-    let mut range = 0..0;
-    let mut decoded = None::<Vec<u8>>;
+    let mut prefix = Vec::new();
     // Literal edges are acyclic. Stop at acceptance or any dynamic transition.
     while let Some(&first) = states.first() {
-      let Instruction::Literal(byte, _, _, offset) = self.instructions[first] else {
+      let Instruction::Literal(byte, _, _) = self.instructions[first] else {
         break;
       };
       if !states.iter().all(
-        |&id| matches!(self.instructions[id], Instruction::Literal(value, _, _, _) if value == byte),
+        |&id| matches!(self.instructions[id], Instruction::Literal(value, _, _) if value == byte),
       ) {
         break;
       }
-      if let Some(decoded) = &mut decoded {
-        decoded.push(byte);
-      } else {
-        if range.is_empty() {
-          range = offset..offset;
-        }
-        if source.get(range.end) == Some(&byte) {
-          range.end += 1;
-        } else {
-          let mut bytes = source[range.clone()].to_vec();
-          bytes.push(byte);
-          decoded = Some(bytes);
-        }
-      }
+      prefix.push(byte);
       for &id in &states {
-        if let Instruction::Literal(_, next, _, _) = self.instructions[id] {
+        if let Instruction::Literal(_, next, _) = self.instructions[id] {
           scratch.stack.push(next);
         }
       }
       self.close(&mut scratch, &mut states);
     }
-    match decoded {
-      Some(bytes) => Cow::Owned(bytes),
-      None => match source {
-        Cow::Borrowed(bytes) => Cow::Borrowed(&bytes[range]),
-        Cow::Owned(bytes) => Cow::Owned(bytes[range].to_vec()),
-      },
-    }
+    prefix
   }
 
   pub(super) fn consume(
@@ -185,7 +178,7 @@ impl Program<'_> {
       let hidden = self.options.require_literal_leading_dot && component_start && byte == b'.';
       for &id in &states {
         let next = match &self.instructions[id] {
-          Instruction::Literal(literal, next, explicit_dot, _)
+          Instruction::Literal(literal, next, explicit_dot)
             if if *literal == b'/' {
               separator
             } else {
@@ -277,12 +270,12 @@ impl Scratch {
   }
 }
 
-/// Copying these three offsets lets brace alternatives compile independently.
+/// State keys for interning compiled instruction positions across brace branches.
 #[derive(Clone, Copy, Hash, PartialEq, Eq)]
 struct Position {
   index: usize,
   brace_depth: usize,
-  match_start: usize,
+  at_match_start: bool,
   component_start: bool,
 }
 
@@ -313,6 +306,8 @@ impl Compiler<'_> {
     match self.glob[position.index] {
       b'*' => {
         let is_globstar = self.glob.get(position.index + 1) == Some(&b'*');
+        let at_match_start = position.at_match_start;
+        position.at_match_start = false;
         if is_globstar {
           // Port of State::skip_globstars: collapse repeated /** segments.
           let mut index = position.index + 2;
@@ -326,9 +321,8 @@ impl Compiler<'_> {
           let mut after = position;
           self.skip_branch_ends(&mut after);
           // As in fast-glob, brace branch ends are transparent when deciding
-          // whether ** ends a segment. match_start is the selected branch start.
-          if (position.index.saturating_sub(position.match_start) < 3
-            || self.glob[position.index - 3] == b'/')
+          // whether ** ends a segment. at_match_start tracks the selected branch start.
+          if (at_match_start || self.glob[position.index - 3] == b'/')
             && (after.index == self.glob.len() || self.glob[after.index] == b'/')
           {
             if after.index == self.glob.len() {
@@ -349,6 +343,7 @@ impl Compiler<'_> {
       }
       b'?' => {
         position.index += 1;
+        position.at_match_start = false;
         position.component_start = false;
         Instruction::Any(self.intern(position))
       }
@@ -372,6 +367,7 @@ impl Compiler<'_> {
           first = false;
         }
         position.index += 1;
+        position.at_match_start = false;
         position.component_start = false;
         Instruction::Class {
           ranges,
@@ -391,7 +387,7 @@ impl Compiler<'_> {
               branches.push(self.intern(Position {
                 index: branch,
                 brace_depth: position.brace_depth + 1,
-                match_start: branch,
+                at_match_start: true,
                 component_start: position.component_start,
               }));
               if self.glob[index] == b'}' {
@@ -412,17 +408,18 @@ impl Compiler<'_> {
         Instruction::Split(branches)
       }
       _ => {
-        let offset = position.index + usize::from(self.glob[position.index] == b'\\');
         let literal = self.unescape(&mut position.index);
         let explicit_dot = position.component_start && literal == b'.';
+        position.at_match_start = false;
         position.component_start = literal == b'/';
-        Instruction::Literal(literal, self.intern(position), explicit_dot, offset)
+        Instruction::Literal(literal, self.intern(position), explicit_dot)
       }
     }
   }
 
   fn skip_branch_ends(&self, position: &mut Position) {
     while position.brace_depth > 0 && matches!(self.glob.get(position.index), Some(b',' | b'}')) {
+      position.at_match_start = false;
       let end_depth = position.brace_depth - 1;
       while position.index < self.glob.len() {
         match self.glob[position.index] {

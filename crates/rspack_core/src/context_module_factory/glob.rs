@@ -30,7 +30,6 @@ struct ResolvedContextModuleGlobPattern {
   absolute_base: Utf8PathBuf,
   scan_base: Utf8PathBuf,
   recursive: bool,
-  negative: bool,
 }
 
 #[derive(Debug)]
@@ -55,6 +54,7 @@ pub fn compile_context_module_glob_request(
   };
   let resolved_patterns = patterns
     .iter()
+    .filter(|pattern| !pattern.starts_with('!'))
     .filter_map(|pattern| {
       resolve_context_module_glob_pattern(pattern, context, compiler_context, case_sensitive)
     })
@@ -147,12 +147,16 @@ fn common_path_base<'a>(mut paths: impl Iterator<Item = &'a Utf8Path>) -> Option
 fn common_context_module_glob_base(
   patterns: &[ResolvedContextModuleGlobPattern],
 ) -> Option<Utf8PathBuf> {
-  common_path_base(
-    patterns
-      .iter()
-      .filter(|pattern| !pattern.negative)
-      .map(|pattern| pattern.scan_base.as_path()),
-  )
+  common_path_base(patterns.iter().map(|pattern| pattern.scan_base.as_path()))
+}
+
+fn structural_directory_prefix(prefix: &[u8]) -> &[u8] {
+  let end = prefix
+    .split_inclusive(|&byte| byte == b'/')
+    .take_while(|&segment| matches!(segment, b"/" | b"./" | b"../"))
+    .map(<[u8]>::len)
+    .sum();
+  &prefix[..end]
 }
 
 fn resolve_context_module_glob_pattern(
@@ -172,23 +176,22 @@ fn resolve_context_module_glob_pattern(
   .ok()?;
   let context = source.base(context, compiler_context);
   let prefix = matcher.directory_prefix();
-  let absolute_base = resolve_pattern_base(context, prefix);
+  let absolute_base = resolve_pattern_base(context, &prefix);
   // Resolution needs a directory spelled out in the request. A directory shared
   // by brace alternatives may be absent or have no equivalent raw alias prefix.
-  let scan_prefix = if case_sensitive {
-    literal_directory_prefix(&source.pattern)
+  let scan_base = if case_sensitive {
+    let scan_prefix = literal_directory_prefix(&source.pattern);
+    resolve_pattern_base(context, scan_prefix.as_bytes())
   } else {
-    matcher.scan_directory_prefix()
+    resolve_pattern_base(context, structural_directory_prefix(&prefix))
   };
-  let scan_base = resolve_pattern_base(context, scan_prefix.as_bytes());
   let recursive = matcher
-    .match_prefix(prefix)
+    .match_prefix(&prefix)
     .is_some_and(|remaining| remaining.is_recursive());
   Some(ResolvedContextModuleGlobPattern {
     absolute_base,
     scan_base,
     recursive,
-    negative: source.negative,
   })
 }
 
@@ -205,7 +208,6 @@ fn glob_patterns_are_recursive(
 ) -> bool {
   patterns
     .iter()
-    .filter(|pattern| !pattern.negative)
     .any(|pattern| pattern.recursive || pattern.absolute_base != common_base)
 }
 
@@ -229,7 +231,7 @@ fn parse_context_module_glob_pattern(pattern: &str) -> ContextModuleGlobPattern 
 }
 
 struct ContextGlobMatch {
-  matcher: GlobPattern<'static>,
+  matcher: GlobPattern,
   negative: bool,
   root_relative: bool,
 }
@@ -261,11 +263,11 @@ impl<'a> ContextModuleGlobMatcher<'a> {
           GlobPattern::new_with_options(source.pattern.as_bytes(), glob_options).ok()?;
         if !glob_options.case_sensitive && !source.negative {
           let context = source.base(&context_options.context, &context_options.compiler_context);
-          let base = resolve_pattern_base(context, matcher.directory_prefix());
+          let base = resolve_pattern_base(context, &matcher.directory_prefix());
           positive_pattern_bases.push(normalize_case_insensitive_path(base.as_str()));
         }
         Some(ContextGlobMatch {
-          matcher: matcher.into_owned(),
+          matcher,
           negative: source.negative,
           root_relative: source.root_relative,
         })

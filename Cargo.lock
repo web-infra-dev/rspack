@@ -5819,7 +5819,6 @@ version = "0.103.3"
 dependencies = [
  "aho-corasick",
  "anyhow",
- "async-trait",
  "base64-simd 0.8.0",
  "bitflags 2.13.2",
  "concat-string",
@@ -5834,7 +5833,6 @@ dependencies = [
  "regex",
  "rspack-allocative",
  "rspack_cacheable",
- "rspack_fs",
  "rspack_intern",
  "rspack_paths",
  "rspack_regex",
@@ -5849,7 +5847,6 @@ dependencies = [
  "swc_core",
  "swc_next_ecma_ast",
  "swc_plugin_runner",
- "tokio",
  "unicase",
  "wasi-common",
  "wasmtime",

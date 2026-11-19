@@ -5,15 +5,23 @@ use smallvec::SmallVec;
 const MAX_BRACE_NESTING: usize = 10;
 const MAX_BRACE_GROUPS: usize = 10;
 
+/// How backslashes outside character classes are interpreted when parsing a glob.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum BackslashMode {
+  /// Interpret backslashes as standard glob escapes (`\n`, `\,`, `\\`, `\*`, ...).
+  #[default]
+  Escape,
+  /// Treat backslashes as path separators unless they escape `*`, `?`, `[`, `]`, `{`, or `}`.
+  WindowsPath,
+  /// Treat every backslash outside character classes as a path separator (native Windows paths).
+  Separator,
+}
+
 /// Parse path separators in their glob context before validating the syntax.
 /// Replacement keeps byte offsets intact; unchanged sources remain borrowed.
-pub(super) fn parse(
-  glob: &[u8],
-  windows_paths: bool,
-  backslash_escape: bool,
-) -> Result<Cow<'_, [u8]>, Error> {
+pub(super) fn parse(glob: &[u8], backslash: BackslashMode) -> Result<Cow<'_, [u8]>, Error> {
   let mut source = Cow::Borrowed(glob);
-  if windows_paths || !backslash_escape {
+  if backslash != BackslashMode::Escape {
     let mut index = 0;
     while index < glob.len() {
       match glob[index] {
@@ -25,7 +33,7 @@ pub(super) fn parse(
           continue;
         }
         b'\\' => {
-          if backslash_escape
+          if backslash == BackslashMode::WindowsPath
             && matches!(
               glob.get(index + 1),
               Some(b'*' | b'?' | b'[' | b']' | b'{' | b'}')
