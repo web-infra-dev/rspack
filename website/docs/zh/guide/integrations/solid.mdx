@@ -8,7 +8,10 @@ import { PackageManagerTabs } from '@theme';
 
 ## 如何使用 \{#how-to-use}
 
-[Rsbuild](https://rsbuild.rs/zh/guide/framework/solid) 为 Solid 项目提供了开箱即用的 JSX 编译和模块热替换（HMR）支持。如果直接使用 Rspack，可以按下文配置，也可以从 [Rspack + Solid 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/solid) 开始。
+在 Rspack 中使用 Solid 有两种方式：
+
+- **使用 Rsbuild**：Rsbuild 为 Solid 项目预设了 JSX 编译和模块热替换（HMR）。创建项目请参考 [Rsbuild 的 Solid 指南](https://rsbuild.rs/zh/guide/framework/solid)。
+- **手动配置 Rspack**：按照下文配置 `solid-loader`，也可以参考完整的 [Rspack + Solid 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/solid)。
 
 ## 配置 JSX/TSX \{#configure-solid}
 
@@ -16,7 +19,7 @@ import { PackageManagerTabs } from '@theme';
 
 <PackageManagerTabs command="add solid-loader -D" />
 
-在 `use` 数组中，将 `solid-loader` 放在 [builtin:swc-loader](/guide/builtin-loaders/swc-loader) 后面。Rspack 从右到左执行 loader，因此 Solid 原生编译器会先转换 JSX，再由 SWC 移除代码中的 TypeScript 类型。普通的 JavaScript 和 TypeScript 文件直接由 SWC 处理。
+使用 `solid-loader` 编译 JSX 和 TSX，并用 [builtin:swc-loader](/guide/builtin-loaders/swc-loader) 移除 TypeScript 类型。
 
 ```ts title="rspack.config.ts"
 import { defineConfig } from '@rspack/cli';
@@ -50,15 +53,15 @@ export default defineConfig({
 });
 ```
 
-有些组件库在 `package.json` 中通过 `solid` 导出条件提供 JSX 源码。将 `'solid'` 加入 [resolve.conditionNames](/config/resolve#resolveconditionnames)，Rspack 就能用应用的编译配置处理这些源码。`'...'` 表示保留 Rspack 的默认条件，例如浏览器构建中的 `browser` 和开发模式下的 `development`。
+有些组件库通过 `solid` 导出条件提供 JSX 源码。在 [resolve.conditionNames](/config/resolve#resolveconditionnames) 中加入 `'solid'`，Rspack 就能编译这些源码。保留 `'...'` 可以沿用 Rspack 的默认条件。
 
-水合时，`@solidjs/web` 会通过 `import(url)` 加载模块，具体的 URL 在运行时才能确定。示例中的第二条规则只匹配 `@solidjs/web`。将它的 [parser.importDynamic](/config/module-parser#javascriptimportdynamic) 设为 `false` 后，Rspack 会保留原生的 `import()` 调用，由浏览器直接加载模块。
+水合时，`@solidjs/web` 加载模块所用的 URL 在运行时才能确定。仅对这个包将 [parser.importDynamic](/config/module-parser#javascriptimportdynamic) 设为 `false`，让浏览器通过原生 `import()` 加载模块。
 
 如果项目使用 TypeScript，请在 `tsconfig.json` 中将 `jsx` 设为 `"preserve"`，将 `jsxImportSource` 设为 `"@solidjs/web"`。
 
 ## 模块热替换 \{#hot-module-replacement}
 
-运行 `rspack dev` 启动开发服务器。在开发模式下，如果浏览器构建启用了 HMR，`solid-loader` 就会自动开启 Solid Refresh。修改子组件时，可以直接在浏览器中看到变化，父组件也会保留原有状态。
+在开发模式下，如果浏览器构建启用了 HMR，`solid-loader` 会自动开启 Solid Refresh。修改子组件时，父组件的状态会保留。
 
 ## Solid v1
 
