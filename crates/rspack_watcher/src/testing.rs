@@ -11,8 +11,9 @@ use rspack_util::fx_hash::FxHashSet;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 
 use crate::{
-  EventBatch, FsEventKind, FsWatcher, ResolvedEvents, analyzer::Analyzer,
-  disk_watcher::handle_event, paths::PathManager, scanner::Scanner, trigger::Trigger,
+  EventBatch, FsEventKind, FsWatcher, ObservedBatch, analyzer::Analyzer,
+  disk_watcher::handle_event, executor::ResolvedEvents, paths::PathManager, scanner::Scanner,
+  trigger::Trigger,
 };
 
 /// Recorded under the aggregate-set lock to preserve acceptance and snapshot order.
@@ -45,7 +46,7 @@ pub struct DirectoryAnalyzer {
   paths: Arc<PathManager>,
   trigger: Arc<Trigger>,
   scan_tx: UnboundedSender<EventBatch>,
-  events: UnboundedReceiver<ResolvedEvents>,
+  events: UnboundedReceiver<ObservedBatch>,
 }
 
 impl Default for DirectoryAnalyzer {
@@ -107,12 +108,21 @@ impl DirectoryAnalyzer {
     Scanner::new(self.scan_tx.clone(), Arc::clone(&self.paths)).scan(start_time);
   }
 
-  pub async fn next_events(&mut self) -> Vec<(InternedPath, FsEventKind)> {
+  pub async fn check_subscriptions(&self) {
     self
+      .trigger
+      .check_subscriptions()
+      .await
+      .expect("event processor should finish checking subscriptions");
+  }
+
+  pub async fn next_events(&mut self) -> Vec<(InternedPath, FsEventKind)> {
+    let observed = self
       .events
       .recv()
       .await
-      .expect("event processor should remain active")
+      .expect("event processor should remain active");
+    ResolvedEvents::from_observed(observed)
       .dependencies
       .into_iter()
       .map(|event| (event.path, event.kind))

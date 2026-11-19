@@ -77,14 +77,16 @@ pub type TimeInfoEntries = Vec<(String, TimeInfoEntry)>;
 
 pub(crate) type EventBatch = Vec<FsEvent>;
 
-pub(crate) type ImmediateEvents = smallvec::SmallVec<[FsEvent; 1]>;
-
-#[derive(Default)]
-pub(crate) struct ResolvedEvents {
-  pub dependencies: EventBatch,
-  pub immediate: ImmediateEvents,
-  pub context_removal: Option<InternedPath>,
+/// One disk observation, including the watched ancestor directories checked with it.
+pub(crate) struct ObservedEvent {
+  pub watched: subscriptions::ObservedPath,
+  pub kind: FsEventKind,
+  pub file_type: Option<std::fs::FileType>,
+  pub initial_missing: bool,
+  pub contexts: smallvec::SmallVec<[(subscriptions::ObservedPath, FsEventKind); 1]>,
 }
+
+pub(crate) type ObservedBatch = smallvec::SmallVec<[ObservedEvent; 1]>;
 
 /// `EventAggregateHandler` is a trait for handling aggregated file system events.
 /// It provides methods to handle changes and deletions of files, as well as errors.

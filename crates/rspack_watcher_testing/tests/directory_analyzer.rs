@@ -291,6 +291,35 @@ async fn test_rescan_invalidates_before_empty_paths_and_unsupported_kind_returns
   }
 }
 
+#[tokio::test]
+async fn test_queued_change_keeps_its_file_and_directory_subscribers() {
+  let temp = TempDir::new().expect("create fixture");
+  let outer = InternedPath::from(temp.path().canonicalize().expect("resolve fixture"));
+  let inner = InternedPath::from(outer.join("nested"));
+  let file = InternedPath::from(inner.join("a.js"));
+  fs::create_dir(&inner).expect("create nested directory");
+  fs::write(&file, "hello").expect("create file");
+
+  let mut analyzer = DirectoryAnalyzer::default();
+  analyzer
+    .update(added(&file), added(&outer), empty())
+    .await
+    .expect("watch file and outer directory");
+  analyzer.on_scanned_change(&file);
+  analyzer.check_subscriptions().await;
+  analyzer
+    .update(removed(&file), (vec![inner], vec![outer.clone()]), empty())
+    .await
+    .expect("watch inner directory");
+
+  let mut queued = next_events(&mut analyzer).await;
+  queued.sort_by(|a, b| a.0.cmp(&b.0));
+  assert_eq!(
+    queued,
+    vec![(outer, FsEventKind::Change), (file, FsEventKind::Change)]
+  );
+}
+
 #[cfg(unix)]
 mod symlinks {
   use std::path::PathBuf;

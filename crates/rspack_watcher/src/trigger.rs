@@ -3,15 +3,14 @@ use std::sync::Arc;
 use rspack_paths::InternedPath;
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
-use super::{FsEvent, FsEventKind};
+use super::FsEventKind;
 use crate::{
-  EventBatch, ResolvedEvents,
+  EventBatch, ObservedBatch, ObservedEvent,
   analyzer::{Analyzer, RecommendedAnalyzer},
   paths::{PathManager, followed_metadata, modification_time},
 };
 /// Classifies one raw file system event: drops what the `ignored` filter
-/// rejects, normalizes the kind against the disk, and resolves which registered
-/// dependencies the event should wake up.
+/// rejects, normalizes the kind against the disk, and records changes to watched paths.
 ///
 /// Deliberately NOT run on the thread that reads events from the OS. One event
 /// costs several `stat` calls, and a JS-backed `ignored` predicate costs a full
@@ -21,8 +20,7 @@ use crate::{
 struct EventProcessor {
   /// Shared reference to the path register, which tracks watched files/directories/missing.
   path_manager: Arc<PathManager>,
-  /// Sender for communicating file system events to the watcher executor.
-  tx: UnboundedSender<ResolvedEvents>,
+  tx: UnboundedSender<ObservedBatch>,
   analyzer: Arc<RecommendedAnalyzer>,
 }
 
@@ -58,8 +56,7 @@ enum Origin {
 }
 
 impl Trigger {
-  /// Create a new `Trigger` with the given path register and event sender.
-  pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<ResolvedEvents>) -> Self {
+  pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<ObservedBatch>) -> Self {
     let (pending, mut incoming) = unbounded_channel::<Pending>();
     let analyzer = Arc::default();
     let processor = EventProcessor {
@@ -158,19 +155,6 @@ impl Trigger {
 }
 
 impl EventProcessor {
-  /// Called when a file system event occurs.
-  /// Finds all dependencies related to the given path and triggers events for each.
-  /// # Example
-  /// Consider the following path register:
-  ///
-  /// ```bash
-  /// - /path
-  /// - /path/to
-  /// - /path/to/file.js
-  /// ```
-  /// If the file `/path/to/file.js` is changed, the trigger will send an event for the following paths:
-  /// - `/path`
-  /// - `/path/to`
   async fn process(&self, path: &InternedPath, kind: FsEventKind, origin: Origin) {
     let appeared = matches!(origin, Origin::Disk { appeared: true })
       || (matches!(origin, Origin::Injected) && kind == FsEventKind::Create);
@@ -256,7 +240,9 @@ impl EventProcessor {
     }
     self.path_manager.set_last_watch_events(path);
 
-    let mut events = self.resolve(path, kind, initial_missing, target.as_deref());
+    let scanned = matches!(origin, Origin::Scan);
+    let mut events = ObservedBatch::new();
+    events.push(self.observe(path, kind, target.as_deref(), initial_missing, scanned));
     let directory_hint =
       appeared || (matches!(origin, Origin::Disk { .. }) && kind == FsEventKind::Change);
     if directory_hint && own.as_ref().is_some_and(std::fs::Metadata::is_dir) {
@@ -293,88 +279,51 @@ impl EventProcessor {
         if file && !self.path_manager.observe_file_mtime(&child, mtime) {
           continue;
         }
-        let recovered = self.resolve(&child, recovered_kind, false, target.as_deref());
-        events.immediate.extend(recovered.immediate);
-        events.dependencies.extend(recovered.dependencies);
-      }
-    }
-    if matches!(origin, Origin::Scan) {
-      self.analyzer.invalidate_path(path);
-      for event in &events.dependencies {
-        self.analyzer.invalidate_path(&event.path);
+        events.push(self.observe(&child, recovered_kind, target.as_deref(), false, false));
       }
     }
     let _ = self.tx.send(events);
   }
 
-  fn resolve(
+  fn observe(
     &self,
     path: &InternedPath,
     kind: FsEventKind,
-    initial_missing: bool,
     target: Option<&std::fs::Metadata>,
-  ) -> ResolvedEvents {
-    let paths = &self.path_manager;
-    let (direct, contexts) = paths.subscriptions.subscribers(path, target);
-    let mut events = ResolvedEvents::default();
-    let mut has_live_context = false;
-    let mut context_events = smallvec::SmallVec::<[(_, _); 1]>::with_capacity(contexts.len());
-    for context in contexts {
-      let watched = &context.watched;
-      let context_kind = if std::fs::symlink_metadata(watched).is_ok() {
-        has_live_context = true;
-        FsEventKind::Change
-      } else {
-        self.analyzer.invalidate_path(watched);
-        let descendants = paths.may_contain_records(watched);
-        paths.remove_file_time(watched);
-        if descendants {
-          paths.remove_file_times_under(watched);
-        }
-        FsEventKind::Remove
-      };
-      context_events.push((context, context_kind));
+    initial_missing: bool,
+    scanned: bool,
+  ) -> ObservedEvent {
+    if scanned {
+      self.analyzer.invalidate_path(path);
     }
-    let context_removal = kind == FsEventKind::Remove && !initial_missing && has_live_context;
-    if context_removal {
-      events.context_removal = Some(path.clone());
-    }
-    for (context, context_kind) in context_events {
-      for subscriber in context.requested {
-        let kind = if context_removal
-          && context_kind == FsEventKind::Remove
-          && !subscriber.file_or_missing
-        {
+    let (watched, contexts) = self.path_manager.subscriptions.observe(path);
+    let contexts = contexts
+      .into_iter()
+      .map(|context| {
+        let watched = &context.path;
+        let kind = if std::fs::symlink_metadata(watched).is_ok() {
           FsEventKind::Change
         } else {
-          context_kind
+          let descendants = self.path_manager.may_contain_records(watched);
+          self.path_manager.remove_file_time(watched);
+          if descendants {
+            self.path_manager.remove_file_times_under(watched);
+          }
+          FsEventKind::Remove
         };
-        events.dependencies.push(FsEvent {
-          path: subscriber.path,
-          kind,
-        });
-      }
+        if scanned || kind == FsEventKind::Remove {
+          self.analyzer.invalidate_path(watched);
+        }
+        (context, kind)
+      })
+      .collect();
+    ObservedEvent {
+      watched,
+      kind,
+      file_type: target.map(std::fs::Metadata::file_type),
+      initial_missing,
+      contexts,
     }
-    if !events.dependencies.is_empty()
-      && !context_removal
-      && !direct.iter().any(|s| s.path == *path)
-    {
-      events.immediate.push(FsEvent {
-        path: path.clone(),
-        kind,
-      });
-    }
-    for subscriber in direct {
-      if !context_removal || subscriber.file_or_missing {
-        let event = FsEvent {
-          path: subscriber.path,
-          kind,
-        };
-        events.immediate.push(event.clone());
-        events.dependencies.push(event);
-      }
-    }
-    events
   }
 }
 
@@ -407,14 +356,19 @@ impl DependencyFinder<'_> {
     for m in self.missing.iter() {
       subscriptions.update(&m, Subscription::Missing(m.clone()), true);
     }
-    let (direct, contexts) = subscriptions.subscribers(path, std::fs::metadata(path).ok().as_ref());
-    direct
+    let metadata = std::fs::metadata(path).ok();
+    let (watched, contexts) = subscriptions.observe(path);
+    watched
+      .subscribers(
+        metadata.as_ref().is_none_or(std::fs::Metadata::is_file),
+        metadata.as_ref().is_none_or(std::fs::Metadata::is_dir),
+      )
       .into_iter()
-      .map(|s| (s.path, kind))
+      .map(|subscriber| (subscriber.path, kind))
       .chain(
         contexts
           .into_iter()
-          .map(|context| (context.watched, FsEventKind::Change)),
+          .map(|context| (context.path, FsEventKind::Change)),
       )
       .collect()
   }
