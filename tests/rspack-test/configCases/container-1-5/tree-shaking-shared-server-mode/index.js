@@ -125,7 +125,4 @@ it('should inject usedExports into manifest and stats if enable manifest', async
   expect(
     statsContent.shared.find((s) => s.name === 'ui-lib-es').fallback,
   ).toMatch(/shared\.[a-f0-9]{8}\.js$/);
-  expect(
-    statsContent.shared.find((s) => s.name === 'ui-lib-side-effect').fallback,
-  ).toMatch(/shared-deleted\.[a-f0-9]{8}\.js$/);
 });

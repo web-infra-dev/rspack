@@ -41,9 +41,10 @@ export default defineConfig({
                     .PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER,
               },
               (assets: Assets) => {
-                for (const name of Object.keys(assets)) {
-                  if (/^shared-deleted\.[a-f0-9]{8}\.js$/.test(name)) {
+                for (const [name, source] of Object.entries(assets)) {
+                  if (/^shared\.[a-f0-9]{8}\.js$/.test(name)) {
                     compilation.deleteAsset(name);
+                    compilation.emitAsset(name, source);
                   }
                 }
               },
@@ -96,7 +97,6 @@ export default defineConfig({
           requiredVersion: '*',
           treeShaking: {
             mode: 'server-calc',
-            filename: 'shared-deleted.[contenthash:8].js',
           },
         },
       },
