@@ -262,6 +262,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .into_any()
         .downcast::<CollectedTypeScriptInfo>()
     {
+      build_info.type_reexports_presence = module_parser_options
+        .and_then(|options| options.get_javascript())
+        .and_then(|options| options.type_reexports_presence)
+        .unwrap_or_default();
       build_info.collected_typescript_info = Some(*collected_ts_info);
     }
 

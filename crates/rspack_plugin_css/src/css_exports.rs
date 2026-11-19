@@ -21,15 +21,7 @@ pub(crate) fn css_export_name(module: &dyn Module, name: &str) -> SmolStr {
   if css.exports.contains_key(name) {
     return name.into();
   }
-  let Some(options) = module
-    .as_normal_module()
-    .and_then(|module| module.get_generator_options())
-    .and_then(rspack_core::GeneratorOptions::get_css_module)
-  else {
-    return name.into();
-  };
-  let convention = options.exports_convention.unwrap_or_default();
-  export_locals_convention(name, convention)
+  export_locals_convention(name, css.exports_convention)
     .into_iter()
     .find(|name| css.exports.contains_key(name.as_str()))
     .map_or_else(|| name.into(), SmolStr::from)

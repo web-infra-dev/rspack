@@ -1167,6 +1167,7 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
     let mut effects = Vec::with_capacity(value.rules.len());
     let rules = RawModuleRule::into_rules(value.rules, &mut effects)?;
     Ok(ModuleOptions {
+      options_store: Default::default(),
       rules,
       effects,
       parser: value

@@ -336,6 +336,10 @@ impl<'context> CssModuleParser<'context> {
     }
 
     let css_build_info = self.parse_context.build_info.css.get_or_insert_default();
+    css_build_info.exports_convention = self
+      .generator_options
+      .exports_convention
+      .unwrap_or_default();
     css_build_info.exports = self.css_exports;
     css_build_info.local_names = self.css_local_names;
     css_build_info.has_charset = self.has_charset;

@@ -58,9 +58,8 @@ impl CssUrlDependency {
         .module_by_identifier(identifier)
       && module
         .as_normal_module()
-        .and_then(|module| module.get_generator_options())
-        .and_then(|options| options.asset_public_path())
-        .is_none()
+        .and_then(|module| module.get_generator_options(&compilation.options.module))
+        .is_none_or(|options| options.asset_public_path().is_none())
     {
       let filename = code_gen_result
         .data()

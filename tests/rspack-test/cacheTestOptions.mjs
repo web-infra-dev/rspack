@@ -6,18 +6,6 @@ const excludes = {
 		// This case expects stateful loaders to build again on every compiler.
 		/^css-extract\/rebuild-module$/,
 
-		// Module cache misses after restarting the compiler.
-		/^asset-modules\/custom-encoder$/,
-		/^asset-modules\/keep-source-maps$/,
-		/^asset-modules\/query-and-custom-encoder$/,
-		/^asset-modules\/rule-generator-publicPath$/,
-		/^asset\/filename$/,
-		/^contenthash\/assets$/,
-		/^css\/import-filter$/,
-		/^custom-modules\/json-custom$/,
-		/^json\/top-level-json-parser$/,
-		/^module\/rspack-issue-8785$/,
-
 		// Existing bundle/compiler assertions fail in the compatibility suite.
 		/^loader\/context-module$/,
 

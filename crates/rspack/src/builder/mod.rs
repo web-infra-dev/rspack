@@ -1774,6 +1774,7 @@ impl ModuleOptionsBuilder {
     mode: &Mode,
   ) -> Result<ModuleOptions> {
     let mut options = std::mem::take(&mut self.options);
+    options.options_store = Default::default();
     let parser = options.parser.get_or_insert(ParserOptionsMap::default());
 
     if !parser.contains_key("asset") {

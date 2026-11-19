@@ -1787,6 +1787,7 @@ CompilerOptions {
             ),
         ),
         no_parse: None,
+        ..
     },
     stats: StatsOptions {
         colors: <env-dependent>,

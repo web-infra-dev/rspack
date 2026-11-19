@@ -349,12 +349,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       //   1. export { T } from "./types";
       //   2. import { T } from "./types"; export { T };
       // Check if the export is really a type export, if it is, then skip the error.
-      let type_reexports_presence = parent_module
-        .as_normal_module()
-        .and_then(|m| m.get_parser_options())
-        .and_then(|o| o.get_javascript())
-        .and_then(|o| o.type_reexports_presence)
-        .unwrap_or_default();
+      let type_reexports_presence = parent_module.build_info().type_reexports_presence;
       // ref: https://github.com/evanw/esbuild/blob/f4159a7b823cd5fe2217da2c30e8873d2f319667/internal/linker/linker.go#L3129-L3131
       if !matches!(
         type_reexports_presence,

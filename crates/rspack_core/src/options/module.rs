@@ -1844,6 +1844,8 @@ pub enum ModuleRuleEnforce {
 
 #[derive(Debug, Default)]
 pub struct ModuleOptions {
+  #[debug(skip)]
+  pub options_store: super::ModuleRuleOptionsStore,
   pub rules: Vec<ModuleRule>,
   pub effects: Vec<ModuleRuleEffect>,
   pub parser: Option<ParserOptionsMap>,
