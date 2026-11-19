@@ -193,6 +193,10 @@ impl DependencyWrapper {
     }
   }
 
+  pub fn from_graph(dependency: DependencyRef, compilation_id: CompilationId) -> Self {
+    Self::new(dependency, Some(compilation_id))
+  }
+
   pub fn from_hook(dependency: DependencyRef, compilation_id: CompilationId) -> Self {
     Self {
       cache_compilation_id: Some(compilation_id),
