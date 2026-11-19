@@ -8,6 +8,7 @@ const common = {
 };
 
 const commonMF = {
+  implementation: require.resolve('@module-federation/runtime-tools-layers'),
   runtime: false,
   exposes: {
     './ComponentB': './ComponentB',

@@ -1,6 +1,7 @@
 const { ModuleFederationPlugin } = require('@rspack/core').container;
 
 const common = {
+  implementation: require.resolve('@module-federation/runtime-tools-layers'),
   name: 'container_8',
   filename: 'container.js',
   remotes: {
