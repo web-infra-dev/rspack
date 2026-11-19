@@ -712,7 +712,6 @@ CompilerOptions {
                                 enforce: Normal,
                                 extract_source_map: None,
                             },
-                            extract_source_map: None,
                         },
                         ModuleRule {
                             as: None,
@@ -752,7 +751,6 @@ CompilerOptions {
                                 enforce: Normal,
                                 extract_source_map: None,
                             },
-                            extract_source_map: None,
                         },
                         ModuleRule {
                             as: None,
@@ -794,7 +792,6 @@ CompilerOptions {
                                 enforce: Normal,
                                 extract_source_map: None,
                             },
-                            extract_source_map: None,
                         },
                         ModuleRule {
                             as: None,
@@ -892,7 +889,6 @@ CompilerOptions {
                                 enforce: Normal,
                                 extract_source_map: None,
                             },
-                            extract_source_map: None,
                         },
                         ModuleRule {
                             as: None,
@@ -999,7 +995,6 @@ CompilerOptions {
                                 enforce: Normal,
                                 extract_source_map: None,
                             },
-                            extract_source_map: None,
                         },
                         ModuleRule {
                             as: None,
@@ -1039,7 +1034,6 @@ CompilerOptions {
                                 enforce: Normal,
                                 extract_source_map: None,
                             },
-                            extract_source_map: None,
                         },
                         ModuleRule {
                             as: None,
@@ -1088,7 +1082,6 @@ CompilerOptions {
                                 enforce: Normal,
                                 extract_source_map: None,
                             },
-                            extract_source_map: None,
                         },
                         ModuleRule {
                             as: None,
@@ -1197,7 +1190,6 @@ CompilerOptions {
                                 enforce: Normal,
                                 extract_source_map: None,
                             },
-                            extract_source_map: None,
                         },
                         ModuleRule {
                             as: None,
@@ -1292,7 +1284,6 @@ CompilerOptions {
                                             enforce: Normal,
                                             extract_source_map: None,
                                         },
-                                        extract_source_map: None,
                                     },
                                 ],
                             ),
@@ -1310,7 +1301,6 @@ CompilerOptions {
                                 enforce: Normal,
                                 extract_source_map: None,
                             },
-                            extract_source_map: None,
                         },
                         ModuleRule {
                             as: None,
@@ -1407,7 +1397,6 @@ CompilerOptions {
                                             enforce: Normal,
                                             extract_source_map: None,
                                         },
-                                        extract_source_map: None,
                                     },
                                 ],
                             ),
@@ -1425,7 +1414,6 @@ CompilerOptions {
                                 enforce: Normal,
                                 extract_source_map: None,
                             },
-                            extract_source_map: None,
                         },
                         ModuleRule {
                             as: None,
@@ -1488,7 +1476,6 @@ CompilerOptions {
                                             enforce: Normal,
                                             extract_source_map: None,
                                         },
-                                        extract_source_map: None,
                                     },
                                     ModuleRule {
                                         as: None,
@@ -1523,7 +1510,6 @@ CompilerOptions {
                                             enforce: Normal,
                                             extract_source_map: None,
                                         },
-                                        extract_source_map: None,
                                     },
                                 ],
                             ),
@@ -1540,7 +1526,6 @@ CompilerOptions {
                                 enforce: Normal,
                                 extract_source_map: None,
                             },
-                            extract_source_map: None,
                         },
                         ModuleRule {
                             as: None,
@@ -1584,7 +1569,6 @@ CompilerOptions {
                                 enforce: Normal,
                                 extract_source_map: None,
                             },
-                            extract_source_map: None,
                         },
                     ],
                 ),
@@ -1600,7 +1584,6 @@ CompilerOptions {
                     enforce: Normal,
                     extract_source_map: None,
                 },
-                extract_source_map: None,
             },
             ModuleRule {
                 as: None,
@@ -1635,7 +1618,6 @@ CompilerOptions {
                     enforce: Normal,
                     extract_source_map: None,
                 },
-                extract_source_map: None,
             },
         ],
         parser: Some(
