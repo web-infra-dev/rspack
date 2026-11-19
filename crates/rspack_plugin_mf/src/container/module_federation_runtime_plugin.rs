@@ -6,22 +6,20 @@
 use rspack_cacheable::cacheable;
 use rspack_core::{
   BoxDependency, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation, CompilerFinishMake,
-  DependencyType, EntryOptions, Plugin, RuntimeGlobals, RuntimeModule, SourceType,
+  CompilationParams, CompilerCompilation, CompilerFinishMake, DependencyType, EntryOptions, Plugin,
+  RuntimeGlobals, RuntimeModule,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use serde::Deserialize;
 
 use super::{
-  container_entry_module::ContainerEntryModule,
   embed_federation_runtime_plugin::EmbedFederationRuntimePlugin,
   federation_data_runtime_module::FederationDataRuntimeModule,
   federation_modules_plugin::FederationModulesPlugin,
   federation_runtime_dependency::FederationRuntimeDependency,
   hoist_container_references_plugin::HoistContainerReferencesPlugin,
 };
-use crate::{ShareScope, sharing::consume_shared_module::ConsumeSharedModule};
 
 #[derive(Debug, Default, Deserialize, Clone)]
 pub struct ModuleFederationRuntimePluginOptions {
@@ -35,62 +33,6 @@ pub struct ModuleFederationRuntimePluginOptions {
 pub struct ModuleFederationRuntimeExperimentsOptions {
   #[serde(default)]
   pub async_startup: bool,
-}
-
-impl ModuleFederationRuntimeExperimentsOptions {
-  /// Whether `chunk_ukey` must wait for share-scope initialization at startup.
-  ///
-  /// Inspect initial `ConsumeSharedModule`s so separately installed
-  /// `ConsumeSharedPlugin`s are included. Ordered scopes require async startup;
-  /// scalar scopes keep synchronous startup unless the experiment enables it.
-  ///
-  /// A shared runtime installs all its entries' initial consumes together.
-  /// Every entry must use that runtime's startup mode, even if the entry has
-  /// no ordered consumes of its own.
-  pub fn needs_async_startup(&self, compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
-    if self.async_startup {
-      return true;
-    }
-    let artifact = &compilation.build_chunk_graph_artifact;
-    let chunk = artifact.chunk_by_ukey.expect_get(chunk_ukey);
-    let mut runtime_chunks: Vec<ChunkUkey> = chunk
-      .groups()
-      .iter()
-      .filter_map(|group_ukey| artifact.chunk_group_by_ukey.get(group_ukey))
-      .filter(|group| group.kind.is_entrypoint())
-      .map(|group| group.get_runtime_chunk(&artifact.chunk_group_by_ukey))
-      .collect();
-    if runtime_chunks.is_empty() {
-      runtime_chunks.push(*chunk_ukey);
-    }
-    runtime_chunks.sort_unstable();
-    runtime_chunks.dedup();
-
-    let module_graph = compilation.get_module_graph();
-    runtime_chunks
-      .iter()
-      .flat_map(|runtime_chunk| {
-        artifact
-          .chunk_by_ukey
-          .expect_get(runtime_chunk)
-          .get_all_initial_chunks(&artifact.chunk_group_by_ukey)
-      })
-      .flat_map(|chunk| {
-        artifact
-          .chunk_graph
-          .get_chunk_modules_identifier_by_source_type(
-            &chunk,
-            SourceType::ConsumeShared,
-            module_graph,
-          )
-      })
-      .any(|module_identifier| {
-        module_graph
-          .module_by_identifier(&module_identifier)
-          .and_then(|module| module.as_any().downcast_ref::<ConsumeSharedModule>())
-          .is_some_and(|module| matches!(module.share_scope(), ShareScope::Multiple(_)))
-      })
-  }
 }
 
 #[plugin]
@@ -158,42 +100,6 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-// Container startup can return a promise independently of module-level await.
-// Wait for the chunk graph so async-only consumes and separate runtimes do not
-// make synchronous containers acquire top-level await in module-library output.
-#[plugin_hook(CompilationOptimizeChunkModules for ModuleFederationRuntimePlugin, stage = -1)]
-async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
-  let module_graph = compilation.get_module_graph();
-  let async_containers: Vec<_> = module_graph
-    .modules()
-    .filter(|(_, module)| {
-      module
-        .as_ref()
-        .as_any()
-        .downcast_ref::<ContainerEntryModule>()
-        .is_some()
-    })
-    .filter(|(module_identifier, _)| {
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_module_chunks(**module_identifier)
-        .iter()
-        .any(|chunk| {
-          self
-            .options
-            .experiments
-            .needs_async_startup(compilation, chunk)
-        })
-    })
-    .map(|(module_identifier, _)| *module_identifier)
-    .collect();
-  compilation
-    .async_modules_artifact
-    .extend_startup(async_containers);
-  Ok(None)
-}
-
 impl Plugin for ModuleFederationRuntimePlugin {
   fn name(&self) -> &'static str {
     "rspack.container.ModuleFederationRuntimePlugin"
@@ -206,11 +112,6 @@ impl Plugin for ModuleFederationRuntimePlugin {
       .compilation_hooks
       .additional_tree_runtime_requirements
       .tap(additional_tree_runtime_requirements::new(self));
-
-    ctx
-      .compilation_hooks
-      .optimize_chunk_modules
-      .tap(optimize_chunk_modules::new(self));
 
     ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
 

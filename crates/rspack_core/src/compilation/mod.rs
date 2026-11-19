@@ -123,6 +123,7 @@ define_hook!(CompilationAfterOptimizeModules: Series(compilation: &Compilation))
 define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationOptimizeTree: Series(compilation: &Compilation));
 define_hook!(CompilationOptimizeChunkModules: SeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilationAfterOptimizeChunkModules: Series(compilation: &mut Compilation));
 define_hook!(CompilationReviveModules: Series(compilation: &Compilation, modules: &IdentifierSet, preserved_module_ids: &mut ModuleIdsArtifact));
 define_hook!(CompilationBeforeModuleIds: Series(compilation: &Compilation, modules: &IdentifierSet, preserved_module_ids: &mut ModuleIdsArtifact));
 define_hook!(CompilationModuleIds: Series(compilation: &Compilation, module_ids: &mut ModuleIdsArtifact, preserved_module_ids: &ModuleIdsArtifact, diagnostics: &mut Vec<Diagnostic>));
@@ -165,6 +166,7 @@ pub struct CompilationHooks {
   pub optimize_chunks: CompilationOptimizeChunksHook,
   pub optimize_tree: CompilationOptimizeTreeHook,
   pub optimize_chunk_modules: CompilationOptimizeChunkModulesHook,
+  pub after_optimize_chunk_modules: CompilationAfterOptimizeChunkModulesHook,
   pub revive_modules: CompilationReviveModulesHook,
   pub before_module_ids: CompilationBeforeModuleIdsHook,
   pub module_ids: CompilationModuleIdsHook,
@@ -249,6 +251,7 @@ pub struct Compilation {
 
   // artifact for infer_async_modules_plugin
   pub async_modules_artifact: StealCell<AsyncModulesArtifact>,
+  pub async_startup_chunks: HashSet<ChunkUkey>,
   // artifact for collect_dependencies_diagnostics
   pub dependencies_diagnostics_artifact: StealCell<DependenciesDiagnosticsArtifact>,
   // artifact for exports info
@@ -403,6 +406,7 @@ impl Compilation {
       loader_resolver_factory,
 
       async_modules_artifact: StealCell::new(AsyncModulesArtifact::default()),
+      async_startup_chunks: Default::default(),
       imported_by_defer_modules_artifact: StealCell::new(Default::default()),
       circular_modules: StealCell::new(CircularModulesInfo::default()),
       dependencies_diagnostics_artifact: StealCell::new(DependenciesDiagnosticsArtifact::default()),
