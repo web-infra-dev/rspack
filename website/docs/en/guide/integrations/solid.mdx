@@ -70,7 +70,7 @@ export default defineConfig({
 
 ### Load hydration modules
 
-During hydration, `@solidjs/web` imports modules from URLs that are only known at runtime. Add a rule to `module.rules` that sets [parser.importDynamic](/config/module-parser#javascriptimportdynamic) to `false` for this package so the browser can load those modules with native `import()`.
+When the browser hydrates a server-rendered page, `@solidjs/web` reads module URLs from the data sent by the server and loads each module with `import(url)`. Set [parser.importDynamic](/config/module-parser#javascriptimportdynamic) to `false` for `@solidjs/web` so Rspack leaves that call for the browser to execute.
 
 ```ts title="rspack.config.ts"
 import { defineConfig } from '@rspack/cli';

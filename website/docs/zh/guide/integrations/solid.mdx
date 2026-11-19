@@ -70,7 +70,7 @@ export default defineConfig({
 
 ### 加载水合模块 \{#load-hydration-modules}
 
-水合时，`@solidjs/web` 加载模块所用的 URL 在运行时才能确定。在 `module.rules` 中为这个包添加一条规则，将 [parser.importDynamic](/config/module-parser#javascriptimportdynamic) 设为 `false`，让浏览器通过原生 `import()` 加载模块。
+浏览器接管服务端渲染的页面时，`@solidjs/web` 会从服务端提供的数据中读取模块地址，再调用 `import(url)` 加载对应的模块。在 `@solidjs/web` 的规则中将 [parser.importDynamic](/config/module-parser#javascriptimportdynamic) 设为 `false`，让 Rspack 保留这个调用，交给浏览器执行。
 
 ```ts title="rspack.config.ts"
 import { defineConfig } from '@rspack/cli';
