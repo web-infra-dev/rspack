@@ -64,7 +64,7 @@ fn assignment_member_target(
   Some(member)
 }
 
-fn is_module_exports(ast: &Ast<'_>, member: MemberExpression) -> bool {
+pub(super) fn is_module_exports(ast: &Ast<'_>, member: MemberExpression) -> bool {
   static_member_property(ast, member) == Some("exports")
     && member
       .object(ast)
@@ -72,7 +72,10 @@ fn is_module_exports(ast: &Ast<'_>, member: MemberExpression) -> bool {
       .is_some_and(|identifier| ast.get_utf8(identifier.name(ast)) == "module")
 }
 
-fn static_member_property<'a>(ast: &Ast<'a>, member: MemberExpression) -> Option<&'a str> {
+pub(super) fn static_member_property<'a>(
+  ast: &Ast<'a>,
+  member: MemberExpression,
+) -> Option<&'a str> {
   match classify_property_key(ast, member.property(ast)) {
     PropertyKeyValue::IdentifierName(property) if !member.computed(ast) => {
       Some(ast.get_utf8(property.name(ast)))
