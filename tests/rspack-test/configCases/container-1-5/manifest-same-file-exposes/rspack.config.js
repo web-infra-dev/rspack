@@ -3,6 +3,8 @@ const { ModuleFederationPlugin } = require('@rspack/core').container;
 /** @type {import('@rspack/core').Configuration} */
 module.exports = {
   experiments: { layers: true },
+  optimization: { chunkIds: 'named' },
+  output: { chunkFilename: '[name].js' },
   externals: {
     '@rspack/core': 'node-commonjs @rspack/core',
     fs: 'node-commonjs fs',
