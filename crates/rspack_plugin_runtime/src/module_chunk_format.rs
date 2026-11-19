@@ -338,7 +338,13 @@ async fn render_chunk(
       };
       startup_source.push(format!(
         "var {exports} = {}{}(0, [], function() {{\n        return {return_value};\n      }});",
-        if await_startup { "await " } else { "" },
+        if await_startup
+          || (can_await_entry && compilation.async_startup_chunks.contains(chunk_ukey))
+        {
+          "await "
+        } else {
+          ""
+        },
         chunk_runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP_ENTRYPOINT),
       ));
     }

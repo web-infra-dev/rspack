@@ -34,7 +34,7 @@ async fn finish_modules(
         }
       })
       .for_each(|module| {
-        ModuleGraph::set_async(async_modules_artifact, *module, false);
+        async_modules_artifact.remove(module);
       });
   }
 
