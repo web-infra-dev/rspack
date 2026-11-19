@@ -1,7 +1,6 @@
 ```mjs title=fs-fs.mjs
 import { rspackRequire, moduleFactories } from "./runtime.mjs";
 import * as __rspack_external_fs from "fs";
-export { readFile as readFileHoisted, readFileSync as readFileSyncHoisted } from "fs";
 moduleFactories.add({
 "fs?2159"
 /*!*********************!*\
@@ -16,6 +15,7 @@ module.exports = __rspack_external_fs;
 });
 // fs?82ef
 
+export { readFile as readFileHoisted, readFileSync as readFileSyncHoisted } from "fs";
 
 ```
 

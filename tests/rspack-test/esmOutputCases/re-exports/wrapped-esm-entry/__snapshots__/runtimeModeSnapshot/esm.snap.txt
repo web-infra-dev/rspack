@@ -1,7 +1,6 @@
 ```mjs title=main.mjs
 import { rspackRequire, moduleFactories, definePropertyGetters, makeNamespaceObject, esmModuleDecorator } from "./runtime.mjs";
 import * as __rspack_external_fs from "fs";
-export * from "fs";
 moduleFactories.add({
 "./index.js"
 /*!******************!*\
@@ -67,6 +66,7 @@ var readFile = index.readFile;
 var starExports = index.starExports;
 
 export { fs, named, r, readFile, starExports };
+export * from "fs";
 
 ```
 

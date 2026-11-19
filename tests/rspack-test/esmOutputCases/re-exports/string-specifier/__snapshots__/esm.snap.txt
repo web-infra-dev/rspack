@@ -9,7 +9,6 @@ export { foo as "b.c" };
 
 ```mjs title=main.mjs
 import { "b.c" as lib_foo } from "./lib-lib_js.mjs";
-export { "b.c" } from "./lib-lib_js.mjs";
 
 // ./index.js
 
@@ -23,5 +22,6 @@ it('should have correct export', async () => {
 
   expect(foo()).toBe(42)
 });
+export { "b.c" } from "./lib-lib_js.mjs";
 
 ```

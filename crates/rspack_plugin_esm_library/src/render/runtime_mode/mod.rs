@@ -259,6 +259,7 @@ fn render_raw_import_stmts(
       request_slots
         .entry(raw_import_source.clone())
         .or_default()
+        .imports
         .add(statement);
     }
   }

@@ -84,7 +84,13 @@ fn get_chunk(compilation: &Compilation, chunk_ukey: ChunkUkey) -> &Chunk {
 use crate::EsmLibraryPlugin;
 
 // Imports and re-exports for one source share a position, even after binding optimizations.
-type RequestSlots = FxIndexMap<RawImportSource, ConcatSource>;
+#[derive(Default)]
+pub(super) struct RequestSlot {
+  pub imports: ConcatSource,
+  pub re_exports: ConcatSource,
+}
+
+type RequestSlots = FxIndexMap<RawImportSource, RequestSlot>;
 
 impl EsmLibraryPlugin {
   fn get_entrypoint(chunk_ukey: ChunkUkey, compilation: &Compilation) -> Option<&ChunkGroup> {
@@ -278,7 +284,7 @@ impl EsmLibraryPlugin {
       .request_order
       .iter()
       .cloned()
-      .map(|source| (source, ConcatSource::default()))
+      .map(|source| (source, RequestSlot::default()))
       .collect();
     let mut render_source = ConcatSource::default();
     let mut export_specifiers: FxIndexSet<Cow<str>> = Default::default();
@@ -564,7 +570,7 @@ var {} = {{}};
         .expect_get(chunk);
 
       if imported.is_empty() {
-        slot.add(RawStringSource::from(format!(
+        slot.imports.add(RawStringSource::from(format!(
           "import \"__RSPACK_ESM_CHUNK_{}\";\n",
           chunk.expect_id().as_str()
         )));
@@ -588,7 +594,7 @@ var {} = {{}};
         stmt.push_str(" } from \"__RSPACK_ESM_CHUNK_");
         stmt.push_str(chunk.expect_id().as_str());
         stmt.push_str("\";\n");
-        slot.add(RawStringSource::from(stmt));
+        slot.imports.add(RawStringSource::from(stmt));
       }
     }
 
@@ -607,14 +613,18 @@ var {} = {{}};
       request_slots
         .entry(source)
         .or_default()
+        .imports
         .add(RawStringSource::from(contents.start));
       moved_fragment_keys.insert(fragment.key().clone());
     }
     chunk_init_fragments.retain(|fragment| !moved_fragment_keys.contains(fragment.key()));
 
-    // Re-export-only slots after the last import can retain the existing footer layout.
-    // Earlier re-exports must stay with the imports to preserve their request position.
-    let last_import_slot = request_slots.iter().rposition(|(_, slot)| slot.size() != 0);
+    // Re-export-only slots after the last import, as well as re-exports whose source is already
+    // requested by an import at its slot, can retain the existing footer layout without changing
+    // ESM request order. Only earlier re-export-only slots must stay with the imports.
+    let last_import_slot = request_slots
+      .iter()
+      .rposition(|(_, slot)| slot.imports.size() != 0);
 
     // render star exports
     for (source, export_names) in &chunk_link.raw_star_exports {
@@ -623,13 +633,13 @@ var {} = {{}};
         .or_default();
       for name in export_names {
         if name == "*" {
-          slot.add(RawStringSource::from(format!(
+          slot.re_exports.add(RawStringSource::from(format!(
             "export * from {};\n",
             rspack_util::json_stringify_str(source)
           )));
         } else {
           let name_str = export_name(name).expect("should have export_name");
-          slot.add(RawStringSource::from(format!(
+          slot.re_exports.add(RawStringSource::from(format!(
             "export * as {name_str} from {};\n",
             rspack_util::json_stringify_str(source)
           )));
@@ -680,15 +690,18 @@ var {} = {{}};
       stmt.push_str(" } from \"");
       stmt.push_str(&from_str);
       stmt.push_str("\";\n");
-      slot.add(RawStringSource::from(stmt));
+      slot.re_exports.add(RawStringSource::from(stmt));
     }
 
     let mut re_export_source = ConcatSource::default();
     for (index, (_, slot)) in request_slots.into_iter().enumerate() {
-      if last_import_slot.is_some_and(|last| index <= last) {
-        import_source.add(slot);
+      if slot.imports.size() != 0 {
+        import_source.add(slot.imports);
+        re_export_source.add(slot.re_exports);
+      } else if last_import_slot.is_some_and(|last| index < last) {
+        import_source.add(slot.re_exports);
       } else {
-        re_export_source.add(slot);
+        re_export_source.add(slot.re_exports);
       }
     }
     if !imported_chunks.is_empty() || !chunk_link.raw_import_stmts.is_empty() {

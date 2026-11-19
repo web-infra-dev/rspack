@@ -1,6 +1,5 @@
 ```mjs title=main.mjs
 import * as __rspack_external_fs from "fs";
-export * from "fs";
 
 // fs
 
@@ -45,6 +44,7 @@ var r_0 = __rspack_external_fs.readFile;
 var readFile_0 = __rspack_external_fs.readFile;
 var index_starExports = (/* inlined export .starExports */42);
 export { __rspack_external_fs as fsNs, fs_0 as fs, index_named as named, index_starExports as starExports, r_0 as r, readFile_0 as readFile };
+export * from "fs";
 export default default_0;
 
 ```

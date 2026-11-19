@@ -47,7 +47,6 @@ export {};
 ```mjs title=node_events-node_events.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 import * as __rspack_external_node_events_3969b2b3 from "node:events";
-export { EventEmitter, once } from "node:events";
 
 __webpack_require__.add({
 "node:events?df85"
@@ -67,6 +66,7 @@ module.exports = __rspack_create_module_external_namespace_node_events_3969b2b3(
 });
 // node:events?41dc
 
+export { EventEmitter, once } from "node:events";
 
 ```
 
