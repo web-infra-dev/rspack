@@ -13,7 +13,9 @@ import { PackageManagerTabs } from '@theme';
 - **使用 Rsbuild**：Rsbuild 为 Solid 项目预设了 JSX 编译和模块热替换（HMR）。创建项目请参考 [Rsbuild 的 Solid 指南](https://rsbuild.rs/zh/guide/framework/solid)。
 - **手动配置 Rspack**：按照下文配置 `solid-loader`，也可以参考完整的 [Rspack + Solid 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/solid)。
 
-## 配置 JSX/TSX \{#configure-solid}
+## 配置 Solid 2 \{#configure-solid}
+
+### 编译 JSX 和 TSX \{#compile-jsx-and-tsx}
 
 要用 Rspack 2 编译 Solid 2 组件，先安装开发依赖 [solid-loader](https://github.com/rstackjs/solid-loader)。
 
@@ -27,7 +29,6 @@ import { defineConfig } from '@rspack/cli';
 export default defineConfig({
   resolve: {
     extensions: ['...', '.ts', '.tsx', '.jsx'],
-    conditionNames: ['solid', '...'],
   },
   module: {
     rules: [
@@ -44,6 +45,37 @@ export default defineConfig({
           'solid-loader',
         ],
       },
+    ],
+  },
+});
+```
+
+如果项目使用 TypeScript，请在 `tsconfig.json` 中将 `jsx` 设为 `"preserve"`，将 `jsxImportSource` 设为 `"@solidjs/web"`。
+
+### 解析 Solid 组件库 \{#resolve-solid-libraries}
+
+有些组件库通过 `solid` 导出条件提供 JSX 源码。在 [resolve.conditionNames](/config/resolve#resolveconditionnames) 中加入 `'solid'`，Rspack 就能编译这些源码。保留 `'...'` 可以沿用 Rspack 的默认条件。
+
+```ts title="rspack.config.ts"
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  resolve: {
+    conditionNames: ['solid', '...'],
+  },
+});
+```
+
+### 加载水合模块 \{#load-hydration-modules}
+
+水合时，`@solidjs/web` 加载模块所用的 URL 在运行时才能确定。在 `module.rules` 中为这个包添加一条规则，将 [parser.importDynamic](/config/module-parser#javascriptimportdynamic) 设为 `false`，让浏览器通过原生 `import()` 加载模块。
+
+```ts title="rspack.config.ts"
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  module: {
+    rules: [
       {
         descriptionData: { name: /^@solidjs\/web$/ },
         parser: { importDynamic: false },
@@ -52,12 +84,6 @@ export default defineConfig({
   },
 });
 ```
-
-有些组件库通过 `solid` 导出条件提供 JSX 源码。在 [resolve.conditionNames](/config/resolve#resolveconditionnames) 中加入 `'solid'`，Rspack 就能编译这些源码。保留 `'...'` 可以沿用 Rspack 的默认条件。
-
-水合时，`@solidjs/web` 加载模块所用的 URL 在运行时才能确定。仅对这个包将 [parser.importDynamic](/config/module-parser#javascriptimportdynamic) 设为 `false`，让浏览器通过原生 `import()` 加载模块。
-
-如果项目使用 TypeScript，请在 `tsconfig.json` 中将 `jsx` 设为 `"preserve"`，将 `jsxImportSource` 设为 `"@solidjs/web"`。
 
 ## 模块热替换 \{#hot-module-replacement}
 

@@ -13,7 +13,9 @@ There are two ways to use Solid with Rspack:
 - **Use Rsbuild**: Rsbuild configures JSX compilation and hot module replacement (HMR) for Solid projects. To create a project, follow the [Rsbuild guide for Solid](https://rsbuild.rs/guide/framework/solid).
 - **Configure Rspack manually**: Follow this guide to set up `solid-loader`, or start from the [Rspack + Solid example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/solid).
 
-## Configure JSX/TSX \{#configure-solid}
+## Configure Solid 2 \{#configure-solid}
+
+### Compile JSX and TSX
 
 To compile Solid 2 components with Rspack 2, install [solid-loader](https://github.com/rstackjs/solid-loader) as a development dependency.
 
@@ -27,7 +29,6 @@ import { defineConfig } from '@rspack/cli';
 export default defineConfig({
   resolve: {
     extensions: ['...', '.ts', '.tsx', '.jsx'],
-    conditionNames: ['solid', '...'],
   },
   module: {
     rules: [
@@ -44,6 +45,37 @@ export default defineConfig({
           'solid-loader',
         ],
       },
+    ],
+  },
+});
+```
+
+For TypeScript projects, set `jsx` to `"preserve"` and `jsxImportSource` to `"@solidjs/web"` in `tsconfig.json`.
+
+### Resolve Solid libraries
+
+In the same configuration, add `'solid'` to [resolve.conditionNames](/config/resolve#resolveconditionnames) so Rspack can compile JSX source from libraries that expose it under the `solid` export condition. Keep `'...'` to include Rspack's default conditions.
+
+```ts title="rspack.config.ts"
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  resolve: {
+    conditionNames: ['solid', '...'],
+  },
+});
+```
+
+### Load hydration modules
+
+During hydration, `@solidjs/web` imports modules from URLs that are only known at runtime. Add a rule to `module.rules` that sets [parser.importDynamic](/config/module-parser#javascriptimportdynamic) to `false` for this package so the browser can load those modules with native `import()`.
+
+```ts title="rspack.config.ts"
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  module: {
+    rules: [
       {
         descriptionData: { name: /^@solidjs\/web$/ },
         parser: { importDynamic: false },
@@ -52,12 +84,6 @@ export default defineConfig({
   },
 });
 ```
-
-Add `'solid'` to [resolve.conditionNames](/config/resolve#resolveconditionnames) so Rspack can compile JSX source from libraries that expose it under the `solid` export condition. Keep `'...'` to include Rspack's default conditions.
-
-During hydration, `@solidjs/web` imports modules from URLs that are only known at runtime. Set [parser.importDynamic](/config/module-parser#javascriptimportdynamic) to `false` for this package so the browser can load those modules with native `import()`.
-
-For TypeScript projects, set `jsx` to `"preserve"` and `jsxImportSource` to `"@solidjs/web"` in `tsconfig.json`.
 
 ## Hot module replacement
 
