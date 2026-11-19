@@ -262,7 +262,10 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
                 .collect_reserved_externals(Some(layer.clone()))
                 .await?;
               if !requests.is_empty() {
-                reserved.push(ReservedLayerExternals { layer, requests });
+                reserved.push(ReservedLayerExternals {
+                  layer: layer.clone(),
+                  requests,
+                });
               }
             }
             Result::<Arc<[ReservedLayerExternals]>>::Ok(reserved.into())
@@ -302,10 +305,10 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
   }
 }
 
-fn collect_rule_layers(effects: &[ModuleRuleEffect]) -> FxHashSet<ModuleLayer> {
+fn collect_rule_layers(effects: &[ModuleRuleEffect]) -> FxHashSet<&ModuleLayer> {
   effects
     .iter()
-    .filter_map(|effect| effect.layer.clone())
+    .filter_map(|effect| effect.layer.as_ref())
     .collect()
 }
 

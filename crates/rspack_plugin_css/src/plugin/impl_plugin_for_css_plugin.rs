@@ -408,6 +408,13 @@ async fn runtime_requirements_in_tree(
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   let link_runtime_enabled = CssLoadingRuntimeModule::link_runtime_enabled(compilation, chunk_ukey);
+  if !link_runtime_enabled
+    && !runtime_requirements
+      .intersects(RuntimeGlobals::CSS_INJECT_STYLE | RuntimeGlobals::CSS_STYLE_SHEET)
+  {
+    return Ok(None);
+  }
+
   // A compilation configured for native css (via a `type: "css*"` module rule) but
   // without any css module yet still needs the css hmr runtime baked into the initial
   // chunk, so a stylesheet added by a later hot update can be requested. Once a css
@@ -425,13 +432,6 @@ async fn runtime_requirements_in_tree(
   ) || (runtime_requirements
     .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
     && has_css_rule);
-
-  if !link_runtime_enabled
-    && !runtime_requirements
-      .intersects(RuntimeGlobals::CSS_INJECT_STYLE | RuntimeGlobals::CSS_STYLE_SHEET)
-  {
-    return Ok(None);
-  }
 
   if needs_css_loading_runtime {
     runtime_modules_to_add.push((

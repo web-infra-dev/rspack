@@ -234,7 +234,7 @@ impl ImportMetaBuiltinProperty {
       ImportMetaKnownProperties::WEBPACK => Some(concat_string!(
         property,
         ": ",
-        ImportMetaPlugin::import_meta_version()
+        ImportMetaPlugin::WEBPACK_VERSION
       )),
       ImportMetaKnownProperties::MAIN => Some(concat_string!(
         property,
@@ -268,7 +268,7 @@ impl ImportMetaBuiltinProperty {
       ImportMetaKnownProperties::URL => {
         single_quoted_string(&ImportMetaPlugin::import_meta_url(parser))
       }
-      ImportMetaKnownProperties::WEBPACK => ImportMetaPlugin::import_meta_version(),
+      ImportMetaKnownProperties::WEBPACK => ImportMetaPlugin::WEBPACK_VERSION.to_owned(),
       ImportMetaKnownProperties::MAIN => ImportMetaPlugin::import_meta_main(parser),
       ImportMetaKnownProperties::FILENAME | ImportMetaKnownProperties::DIRNAME => {
         get_import_meta_member_replacement(parser, self.property)?
@@ -303,22 +303,19 @@ impl ImportMetaBuiltinProperty {
 pub struct ImportMetaPlugin;
 
 impl ImportMetaPlugin {
-  fn known_property_from_name(name: &str) -> Option<ImportMetaKnownProperties> {
-    if let Some(property) = ImportMetaBuiltinProperty::from_name(name) {
-      return Some(property.property);
-    }
-    if let Some(api) = import_meta_runtime_api_from_name(name) {
-      return Some(api.property);
-    }
-    None
+  const WEBPACK_VERSION: &'static str = "5";
+
+  fn known_property(name: &str) -> Option<ImportMetaKnownProperties> {
+    ImportMetaBuiltinProperty::from_property(name)
+      .map(|builtin| builtin.property)
+      .or_else(|| import_meta_runtime_api_from_property(name).map(|api| api.property))
   }
 
   fn preserve_property(import_meta: &ImportMeta, property: Option<&str>) -> bool {
     match import_meta {
       ImportMeta::PreserveUnknown => true,
       ImportMeta::Granular(_) => property.is_none_or(|property| {
-        let name = concat_string!(expr_name::IMPORT_META, ".", property);
-        Self::known_property_from_name(&name)
+        Self::known_property(property)
           .is_none_or(|property| !import_meta.is_known_property_enabled(property))
       }),
       ImportMeta::Enabled | ImportMeta::Disabled => false,
@@ -328,11 +325,7 @@ impl ImportMetaPlugin {
   fn import_meta_url(parser: &JavascriptParser) -> String {
     Url::from_file_path(parser.resource_data.resource())
       .expect("should be a path")
-      .to_string()
-  }
-
-  fn import_meta_version() -> String {
-    "5".to_string()
+      .into()
   }
 
   fn import_meta_main(parser: &mut JavascriptParser) -> String {
@@ -662,24 +655,20 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
           if index > 0 {
             content.push(',');
           }
-          let res = parser
+          let rendered = parser
             .plugin_drive()
-            .import_meta_property_in_destructuring(parser, prop);
-
-          if let Some(property) = res {
-            content.push_str(&property);
-            continue;
-          }
-          let rendered =
-            if let Some(property) = ImportMetaBuiltinProperty::from_property(prop.id.as_ref()) {
-              property.render_destructuring(parser, span)
-            } else if let Some(api) = import_meta_runtime_api_from_property(prop.id.as_ref())
-              && import_meta.is_known_property_enabled(api.property)
-            {
-              render_import_meta_runtime_api_destructuring(parser, api)
-            } else {
-              None
-            };
+            .import_meta_property_in_destructuring(parser, prop)
+            .or_else(|| {
+              if let Some(property) = ImportMetaBuiltinProperty::from_property(prop.id.as_ref()) {
+                property.render_destructuring(parser, span)
+              } else if let Some(api) = import_meta_runtime_api_from_property(prop.id.as_ref())
+                && import_meta.is_known_property_enabled(api.property)
+              {
+                render_import_meta_runtime_api_destructuring(parser, api)
+              } else {
+                None
+              }
+            });
           if let Some(property) = rendered {
             content.push_str(&property);
           } else {
