@@ -1,6 +1,5 @@
 ```mjs title=main.mjs
 import * as __rspack_external_fs from "fs";
-export * from "fs";
 
 // fs
 
@@ -33,5 +32,6 @@ it("should allow local exports to override star reexports from externals", async
 });
 
 export { a, b, c, readFile, reassign };
+export * from "fs";
 
 ```

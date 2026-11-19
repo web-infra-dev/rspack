@@ -1,7 +1,6 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 import * as __rspack_external_fs from "fs";
-export * from "fs";
 
 // NAMESPACE OBJECT: ./externals.js
 var externals_namespaceObject = {};
@@ -42,6 +41,7 @@ var default_0 = __rspack_external_fs["default"];
 var externals_0 = __rspack_external_fs["default"];
 var readFile_0 = __rspack_external_fs.readFile;
 export { externals_0 as externals, externals_namespaceObject as externalsNs, readFile_0 as readFile };
+export * from "fs";
 export default default_0;
 
 ```

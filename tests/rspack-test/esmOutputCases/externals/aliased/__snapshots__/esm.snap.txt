@@ -1,6 +1,5 @@
 ```mjs title=main.mjs
 import * as __rspack_external_path from "path";
-export * from "path";
 
 // external
 
@@ -14,5 +13,6 @@ it('should have correct exports', async () => {
 	expect(resolve).toBe(nodeResolve)
 });
 
+export * from "path";
 
 ```
