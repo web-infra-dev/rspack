@@ -1553,7 +1553,6 @@ export const sync = __napiModule.exports.sync
 export const syncTraceEvent = __napiModule.exports.syncTraceEvent
 export const transform = __napiModule.exports.transform
 export const transformSync = __napiModule.exports.transformSync
-export const JsLoaderTask = __napiModule.exports.JsLoaderTask
 export const registerLoaderWorker = __napiModule.exports.registerLoaderWorker
 export const stopLoaderWorker = __napiModule.exports.stopLoaderWorker
 export const registerMainObjectRelease = __napiModule.exports.registerMainObjectRelease

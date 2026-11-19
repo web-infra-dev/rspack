@@ -342,15 +342,6 @@ export declare class JsExportsInfo {
   getUsed(name: string | string[], runtime: string | string[] | undefined):  0 | 1 | 2 | 3 | 4
 }
 
-export declare class JsLoaderTask {
-  get mainObjectHandle(): number
-  get strict(): boolean
-  getResolver(options?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
-  takeContext(): JsLoaderContext
-  complete(context: JsLoaderContext): void
-  fail(error: string): void
-}
-
 export declare class JsModuleGraph {
   getModule(dependency: Dependency | EntryDependency): Module | null
   getResolvedModule(dependency: Dependency | EntryDependency): Module | null
@@ -3480,7 +3471,7 @@ export interface RegisterJsTaps {
 }
 
 /** Register one compiler-independent entry point in the current JS env. */
-export declare function registerJsTaskRunner(runner: (arg0: unknown, arg1: unknown) => void, workerId?: number | undefined | null): void
+export declare function registerJsTaskRunner(runner: (task: { type: 'loader'; context: JsLoaderContext; compilerHandle: number; getResolver?: (options: RawResolveOptionsWithDependencyType) => JsResolver }) => Promise<JsLoaderContext>, workerId?: number | undefined | null): void
 
 export declare function registerLoaderReference(owner: number, ident: string, parallel: boolean, serialized?: Buffer | undefined | null, strict?: boolean | undefined | null, compilerOptions?: Buffer | undefined | null): boolean
 
@@ -3530,7 +3521,6 @@ export interface SourcePosition {
   column?: number
 }
 
-/** Called only after Node reports worker exit: no JS can still access its context. */
 export declare function stopLoaderWorker(id: number): void
 
 export declare function sync(path: string, request: string): ResolveResult

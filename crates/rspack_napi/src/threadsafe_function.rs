@@ -199,7 +199,9 @@ impl DynThreadsafeFunction {
       .await
   }
 
-  async fn call_with_promise_prepared<R, Guard>(
+  /// Prepare the arguments on the owning JS thread and hold the guard until
+  /// the Promise completes or its reactions are finalized.
+  pub async fn call_with_promise_prepared<R, Guard>(
     &self,
     prepare: impl FnOnce(&Env) -> napi::Result<(Vec<napi_value>, Guard)> + Send + 'static,
   ) -> Result<R>

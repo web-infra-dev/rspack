@@ -1,98 +1,78 @@
-use std::{any::Any, sync::Arc};
+use std::sync::Arc;
 
+use napi::{JsValue, bindgen_prelude::*};
+use rspack_core::ResolverFactory;
 use rspack_error::{Result, error};
+use rspack_napi::threadsafe_function::DynThreadsafeFunction;
 use tokio::sync::oneshot;
+use tokio_util::sync::CancellationToken;
 
-use super::{LoaderTaskTiming, TimingPoint};
+use crate::{
+  error::RspackResultToNapiResultExt,
+  options::raw_resolve::normalize_raw_resolve_options_with_dependency_type,
+  plugins::js_loader::JsLoaderContext, resolver::JsResolver,
+};
 
-/// The original allocation travels through the queue and back without copying.
-/// Type erasure keeps the queue independent of the loader runner's context type.
-pub type LoaderTaskResult = (Box<dyn Any + Send>, Vec<String>, Result<()>);
-
-pub struct LoaderTask {
-  pub timing: Option<Arc<LoaderTaskTiming>>,
-  context: Option<Box<dyn Any + Send>>,
-  pub main_object_handle: u32,
-  pub start: u32,
-  pub end: u32,
-  pub strict: bool,
-  result: Option<oneshot::Sender<LoaderTaskResult>>,
-}
-
-impl LoaderTask {
-  pub fn new<T: Send + 'static>(
-    context: Box<T>,
-    main_object_handle: u32,
-    start: u32,
-    end: u32,
-    result: oneshot::Sender<LoaderTaskResult>,
-  ) -> Self {
-    Self {
-      timing: None,
-      strict: false,
-      context: Some(context),
-      main_object_handle,
-      start,
-      end,
-      result: Some(result),
-    }
-  }
-
-  pub fn context<T: 'static>(&self) -> &T {
-    self
-      .context
-      .as_ref()
-      .and_then(|value| value.downcast_ref())
-      .expect("unfinished loader task owns a context of the consumer's type")
-  }
-
-  pub fn context_mut<T: 'static>(&mut self) -> &mut T {
-    self
-      .context
-      .as_mut()
-      .and_then(|value| value.downcast_mut())
-      .expect("unfinished loader task owns a context of the consumer's type")
-  }
-
-  pub fn finish(mut self, pitches: Vec<String>, result: Result<()>) {
-    if let (Some(context), Some(sender)) = (self.context.take(), self.result.take()) {
-      let _ = sender.send((context, pitches, result));
-    }
-  }
-}
-
-impl Drop for LoaderTask {
-  fn drop(&mut self) {
-    if let (Some(context), Some(sender)) = (self.context.take(), self.result.take()) {
-      let _ = sender.send((
-        context,
-        Vec::new(),
-        Err(error!("Loader task was cancelled")),
-      ));
-    }
-  }
-}
-
-/// Each task kind owns its completion protocol. Further JS operations can add a
-/// variant without changing channel or subscription ownership.
-pub enum JsTask {
+pub(crate) enum JsTask {
   Loader(LoaderTask),
 }
 
 impl JsTask {
-  pub fn mark_timing(&self, point: TimingPoint) {
+  pub(super) async fn run(self, worker: &DynThreadsafeFunction, cancel: CancellationToken) {
     match self {
-      Self::Loader(task) => {
-        if let Some(timing) = &task.timing {
-          timing.mark(point);
-        }
-      }
+      Self::Loader(task) => task.run(worker, cancel).await,
     }
   }
 
-  pub fn fail(self, message: &str) {
+  pub(super) fn fail(self, message: &str) {
     match self {
-      Self::Loader(task) => task.finish(Vec::new(), Err(error!("{message}"))),
+      Self::Loader(task) => task.fail(message),
     }
+  }
+}
+
+pub(crate) struct LoaderTask {
+  pub context: JsLoaderContext,
+  pub compiler_handle: u32,
+  pub resolver_factory: Option<Arc<ResolverFactory>>,
+  pub result: oneshot::Sender<Result<JsLoaderContext>>,
+}
+
+impl LoaderTask {
+  async fn run(self, worker: &DynThreadsafeFunction, cancel: CancellationToken) {
+    let Self {
+      context,
+      compiler_handle,
+      resolver_factory,
+      result,
+    } = self;
+    let outcome = worker
+      .call_with_promise_prepared(move |env| {
+        if cancel.is_cancelled() {
+          return Err(Error::from_reason("JS task subscription has closed"));
+        }
+        let (context, access) = context.into_jsobject(env)?;
+        let mut task = Object::new(env)?;
+        task.set("type", "loader")?;
+        task.set("context", context)?;
+        task.set("compilerHandle", compiler_handle)?;
+        if let Some(factory) = resolver_factory {
+          let get_resolver: Function<Unknown, JsResolver> =
+            env.create_function_from_closure("getResolver", move |call| {
+              let options =
+                normalize_raw_resolve_options_with_dependency_type(Some(call.get(0)?), false)
+                  .to_napi_result()?;
+              Ok(JsResolver::new(factory.get(options)))
+            })?;
+          task.set("getResolver", get_resolver)?;
+        }
+        Ok((vec![task.raw()], access))
+      })
+      .await;
+    let _ = result.send(outcome);
+  }
+
+  fn fail(self, message: &str) {
+    let _ = self.result.send(Err(error!("{message}")));
   }
 }

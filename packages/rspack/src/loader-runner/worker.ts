@@ -4,7 +4,9 @@ import {
   endJsTaskImport,
   getJsTaskSubscription,
   registerJsTaskRunner,
-  type JsLoaderTask,
+  type JsLoaderContext,
+  type JsResolver,
+  type RawResolveOptionsWithDependencyType,
 } from '@rspack/binding';
 import { runLoaders } from '.';
 import { getRawResolve } from '../config/adapter';
@@ -20,31 +22,30 @@ import {
 
 let activeBridgeTasks = 0;
 
-async function execute(task: JsLoaderTask): Promise<void> {
-  let usesObjectBridge = false;
+async function executeLoader(
+  context: JsLoaderContext,
+  compilerHandle: number,
+  getResolver?: (options: RawResolveOptionsWithDependencyType) => JsResolver,
+): Promise<JsLoaderContext> {
+  const usesObjectBridge = !getResolver;
+  if (usesObjectBridge) activeBridgeTasks++;
   let module: ReturnType<typeof createWorkerModule> | undefined;
   try {
-    const strict = task.strict;
-    const context = task.takeContext();
-    if (!strict) {
-      usesObjectBridge = true;
-      activeBridgeTasks++;
-    }
-    const main = strict
-      ? undefined
-      : await getWorkerLoaderContext(task.mainObjectHandle, context);
+    const main = usesObjectBridge
+      ? await getWorkerLoaderContext(compilerHandle, context)
+      : undefined;
     const workerModule = createWorkerModule(context._module!, main);
     module = workerModule;
-    const result = await runLoaders(
-      main?.compiler ?? createStrictWorkerCompiler(task.mainObjectHandle),
+    return await runLoaders(
+      main?.compiler ?? createStrictWorkerCompiler(compilerHandle),
       context,
       workerModule.module,
-      strict
+      getResolver
         ? {
             getResolver(options = {}) {
               const { dependencyType, resolveToContext, ...resolve } = options;
               return new Resolver(
-                task.getResolver({
+                getResolver({
                   ...getRawResolve(resolve),
                   dependencyType,
                   resolveToContext,
@@ -54,11 +55,6 @@ async function execute(task: JsLoaderTask): Promise<void> {
           }
         : undefined,
     ).finally(workerModule.commitBuildInfo);
-    task.complete(result);
-  } catch (error) {
-    task.fail(
-      error instanceof Error ? (error.stack ?? error.message) : String(error),
-    );
   } finally {
     module?.dispose();
     if (usesObjectBridge && --activeBridgeTasks === 0)
@@ -86,8 +82,15 @@ export default async function initialize({
   if (!reused) {
     setLoaderObjectBridge(port, threadId);
     setWorkerImportScheduler(beginImport);
-    registerJsTaskRunner((_compiler, task) => {
-      void execute(task as JsLoaderTask);
+    registerJsTaskRunner((task) => {
+      switch (task.type) {
+        case 'loader':
+          return executeLoader(
+            task.context,
+            task.compilerHandle,
+            task.getResolver,
+          );
+      }
     }, threadId);
     initialized = true;
   } else {

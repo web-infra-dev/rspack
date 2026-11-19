@@ -274,7 +274,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
 }
 
 impl JsLoaderContext {
-  pub(super) fn into_jsobject(
+  pub(crate) fn into_jsobject(
     mut self,
     env: &Env,
   ) -> napi::Result<(Object<'_>, Option<ModuleAccess>)> {

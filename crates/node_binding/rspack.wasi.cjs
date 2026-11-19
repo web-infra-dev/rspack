@@ -2389,7 +2389,6 @@ module.exports.sync = __napiModule.exports.sync
 module.exports.syncTraceEvent = __napiModule.exports.syncTraceEvent
 module.exports.transform = __napiModule.exports.transform
 module.exports.transformSync = __napiModule.exports.transformSync
-module.exports.JsLoaderTask = __napiModule.exports.JsLoaderTask
 module.exports.registerLoaderWorker = __napiModule.exports.registerLoaderWorker
 module.exports.stopLoaderWorker = __napiModule.exports.stopLoaderWorker
 module.exports.registerMainObjectRelease = __napiModule.exports.registerMainObjectRelease

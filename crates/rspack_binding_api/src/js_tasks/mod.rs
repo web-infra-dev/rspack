@@ -1,8 +1,6 @@
 mod dispatcher;
 mod subscription;
 mod task;
-mod timing;
-mod tsfn;
 
 use std::{
   cell::RefCell,
@@ -13,20 +11,22 @@ pub(crate) use dispatcher::js_task_dispatcher;
 use napi::bindgen_prelude::*;
 pub(crate) use subscription::{JsTaskSubscription, MAIN_TASK_SUBSCRIPTION};
 pub(crate) use task::{JsTask, LoaderTask};
-pub(crate) use timing::{LoaderTaskTiming, TimingPoint};
 
-type TaskRunner = FunctionRef<FnArgs<(Unknown<'static>, Unknown<'static>)>, ()>;
+type TaskCallback = FunctionRef<Unknown<'static>, Unknown<'static>>;
 
 thread_local! {
   static LOCAL_SUBSCRIPTION: RefCell<Weak<JsTaskSubscription>> = const { RefCell::new(Weak::new()) };
-  static RUNNER: RefCell<Option<(TaskRunner, Option<u32>)>> = const { RefCell::new(None) };
+  static RUNNER: RefCell<Option<(TaskCallback, Option<u32>)>> = const { RefCell::new(None) };
 }
 
 /// Register one compiler-independent entry point in the current JS env.
 #[napi]
 pub fn register_js_task_runner(
   env: Env,
-  runner: Function<FnArgs<(Unknown<'static>, Unknown<'static>)>, ()>,
+  #[napi(
+    ts_arg_type = "(task: { type: 'loader'; context: JsLoaderContext; compilerHandle: number; getResolver?: (options: RawResolveOptionsWithDependencyType) => JsResolver }) => Promise<JsLoaderContext>"
+  )]
+  runner: Function<Unknown<'static>, Unknown<'static>>,
   worker_id: Option<u32>,
 ) -> napi::Result<()> {
   rspack_napi::runtime::ensure_runtime(&env)?;
@@ -42,6 +42,23 @@ pub fn register_js_task_runner(
     *slot.borrow_mut() = Some((runner, worker_id));
     Ok(())
   })
+}
+
+#[napi]
+pub fn register_loader_worker(id: u32) -> napi::Result<()> {
+  // Separate WASI instances do not share the native task queue.
+  if cfg!(target_family = "wasm") {
+    return Err(napi::Error::from_reason(
+      "Rule.use.parallel requires the native Rspack binding; separate WASI instances do not share the JS task queue",
+    ));
+  }
+  js_task_dispatcher().register_worker(id);
+  Ok(())
+}
+
+#[napi]
+pub fn stop_loader_worker(id: u32) {
+  js_task_dispatcher().stop_worker(id);
 }
 
 /// The returned holder transfers its strong reference to a JsCompiler. Worker
@@ -78,7 +95,7 @@ pub fn get_js_task_subscription(
           .0
           .borrow_back(&env)?
           .raw();
-        let worker = JsTaskSubscription::new_worker(&env, callback, worker_id)?;
+        let worker = JsTaskSubscription::new_worker(&env, callback)?;
         let weak_main = Arc::downgrade(&main);
         let weak_worker = Arc::downgrade(&worker);
         let id = worker_id;

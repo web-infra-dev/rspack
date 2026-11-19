@@ -4,7 +4,6 @@ mod resolver;
 mod result;
 mod runtime;
 mod scheduler;
-pub(crate) mod worker;
 
 use std::{
   fmt::Debug,
