@@ -476,6 +476,11 @@ async fn chunk_hash(
   chunk_ukey: &ChunkUkey,
   hasher: &mut RspackHasher,
 ) -> Result<()> {
+  if let Some(metadata) = compilation.runtime_proxy_metadata_artifact.get(chunk_ukey)
+    && metadata.runtime_module_bridge != Default::default()
+  {
+    (metadata.runtime_module_bridge, metadata.context_fields()).hash(hasher);
+  }
   self.get_chunk_hash(chunk_ukey, compilation, hasher).await?;
   if compilation
     .build_chunk_graph_artifact
@@ -505,6 +510,11 @@ async fn content_hash(
     .entry(SourceType::JavaScript)
     .or_insert_with(|| RspackHasher::from(&compilation.options.output));
 
+  if let Some(metadata) = compilation.runtime_proxy_metadata_artifact.get(chunk_ukey)
+    && metadata.runtime_module_bridge != Default::default()
+  {
+    (metadata.runtime_module_bridge, metadata.context_fields()).hash(hasher);
+  }
   if !chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
     chunk.id().hash(hasher);
   }

@@ -39,8 +39,19 @@ pub fn render_lexical_declarations(
   }
 }
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, rspack_hash::RspackHash)]
+pub struct RuntimeModuleBridge {
+  /// Establish the shared loader in this runtime chunk.
+  pub owner: bool,
+  /// Factories in this chunk can be called by a webpack-style interceptor.
+  pub intercepted_factories: bool,
+  /// Source emitted in this chunk, independent of other chunks in the tree.
+  pub source: crate::RuntimeModuleSourceKind,
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct RuntimeProxyMetadata {
+  pub runtime_module_bridge: RuntimeModuleBridge,
   pub tree_runtime_requirements: RuntimeGlobals,
   pub module_proxy_requirements: RuntimeGlobals,
   pub bootstrap_proxy_requirements: RuntimeGlobals,

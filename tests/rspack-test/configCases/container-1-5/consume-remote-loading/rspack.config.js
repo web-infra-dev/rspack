@@ -4,6 +4,7 @@ const { container, CopyRspackPlugin, DefinePlugin } = require('@rspack/core');
 module.exports = (_, { testPath }) =>
   [
     ['scalar-version-first', 'version-first', 'default', false],
+    ['scalar-remote-only', 'version-first', 'default', false, true],
     ['ordered-loaded-first', 'loaded-first', ['primary', 'default'], false],
     [
       'ordered-loaded-first-initial',
@@ -18,7 +19,7 @@ module.exports = (_, { testPath }) =>
       ['primary', 'default'],
       true,
     ],
-  ].map(([name, shareStrategy, shareScope, eager]) => ({
+  ].map(([name, shareStrategy, shareScope, eager, remoteOnly]) => ({
     target: 'async-node',
     entry: eager ? './initial.js' : './index.js',
     output: {
@@ -46,7 +47,7 @@ module.exports = (_, { testPath }) =>
         },
         shared: {
           lib: {
-            import: './local.js',
+            import: remoteOnly ? false : './local.js',
             version: '1.0.0',
             requiredVersion: false,
             shareScope,
@@ -58,7 +59,8 @@ module.exports = (_, { testPath }) =>
       new DefinePlugin({
         __HAS_PENDING_REMOTE__: JSON.stringify(typeof shareScope === 'string'),
         __EXPECT_REMOTE_PROVIDER__: JSON.stringify(
-          shareStrategy === 'version-first' && Array.isArray(shareScope),
+          shareStrategy === 'version-first' &&
+            (Array.isArray(shareScope) || remoteOnly === true),
         ),
       }),
     ],
