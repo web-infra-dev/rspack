@@ -1,5 +1,5 @@
 ---
-description: '在 Rspack 中为 Solid 2 配置 JSX、TSX 和 Solid Refresh，或使用 Babel 编译 Solid 1 项目。'
+description: '在 Rspack 中为 Solid 2 配置 JSX 和 TSX，或使用 Babel 编译 Solid 1 项目。'
 ---
 
 import { PackageManagerTabs } from '@theme';
@@ -54,6 +54,8 @@ export default defineConfig({
 });
 ```
 
+### 配置 TypeScript \{#configure-typescript}
+
 在 TypeScript 项目的 `tsconfig.json` 中加入以下配置，即可为 Solid JSX 提供类型检查和编辑器补全。Rspack 构建时仍按上面的 loader 规则编译 JSX 和 TSX。
 
 ```json title="tsconfig.json"
@@ -99,10 +101,6 @@ export default defineConfig({
   },
 });
 ```
-
-## 模块热替换 \{#hot-module-replacement}
-
-在开发模式下，如果浏览器构建启用了 HMR，`solid-loader` 会自动开启 Solid Refresh。运行 `rspack dev` 后，可以试着修改一个子组件：页面会显示修改后的内容，父组件也会保留原有状态。
 
 ## Solid v1
 

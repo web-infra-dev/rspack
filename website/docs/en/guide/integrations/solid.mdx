@@ -1,5 +1,5 @@
 ---
-description: 'Configure JSX, TSX, and Solid Refresh for Solid 2 with Rspack, or use Babel for Solid 1.'
+description: 'Configure JSX and TSX for Solid 2 with Rspack, or use Babel for Solid 1.'
 ---
 
 import { PackageManagerTabs } from '@theme';
@@ -54,6 +54,8 @@ export default defineConfig({
 });
 ```
 
+### Configure TypeScript
+
 For Solid JSX type checking and editor completions, add these options to your `tsconfig.json`. Rspack compiles JSX and TSX using the loader rule above.
 
 ```json title="tsconfig.json"
@@ -99,10 +101,6 @@ export default defineConfig({
   },
 });
 ```
-
-## Hot module replacement
-
-In development mode, `solid-loader` automatically enables Solid Refresh for browser builds with HMR enabled. Run `rspack dev` and try editing a child component. The component updates in the browser and its parent keeps its state.
 
 ## Solid v1
 
