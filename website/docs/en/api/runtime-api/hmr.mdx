@@ -75,13 +75,23 @@ import.meta.webpackHot.accept(
 
 When using ESM `import`, all imported symbols from `dependencies` are automatically updated. Note: The dependency string must exactly match the `from` string in the `import`. In some cases, `callback` can be omitted. Using `require()` in the `callback` isn't useful here.
 
+If an ESM dependency uses top-level await, Rspack waits for it to finish during the update, even when `callback` is omitted. Imported values retain their previous versions until the updated dependencies finish executing. When provided, the callback runs after the dependencies finish executing.
+
+While Rspack is waiting for ESM dependencies, replacing or removing the accepting module cancels that pending refresh. Its old callback is not invoked, and the update does not wait for the obsolete dependencies.
+
+If the callback argument itself contains `await` or `yield`, such as `accept('./library.js', await createCallback())`, that expression is evaluated when registering the handler. Updates invoke the resulting callback without evaluating the expression again.
+
 When using CommonJS, update dependencies manually using `require()` in the `callback`. Omitting the `callback` isn't useful here.
+
+The `callback` can return a Promise. HMR waits for it before re-executing self-accepted modules and completing the update. As in webpack, rejections use the same `errorHandler`, `onErrored`, and `ignoreErrored` handling as synchronous exceptions. An error that is neither handled nor ignored rejects the Promise returned by `module.hot.check(true)` or `module.hot.apply()` and leaves HMR in the `fail` status.
+
+If the callback awaits a dynamic import from a newer build, Rspack first applies the updates needed to load that chunk. If a nested update replaces a pending ESM dependency, the callback waits for the new version even if the old one rejects or never settles. If the nested manifest request rejects, for example because the response contains invalid JSON, HMR enters the `fail` state and the outer update rejects with the same error.
 
 #### errorHandler for accept
 
 `(err, {moduleId, dependencyId}) => {}`
 
-- `err`: The error thrown by the callback in the second argument or during dependency execution when using ESM dependencies.
+- `err`: The error thrown by the callback in the second argument or while evaluating an ESM dependency, including Promise rejections.
 - `moduleId`: The current module ID.
 - `dependencyId`: The module ID of the (first) changed dependency.
 
@@ -103,6 +113,8 @@ import.meta.webpackHot.accept(
 When this module or its dependencies are updated, it can be disposed and re-evaluated without notifying parents. This makes sense if the module has no exports (or exports are updated in another way).
 
 The `errorHandler` fires when evaluating this module (or its dependencies) throws an exception.
+
+If a nested update removes a self-accepted module while an asynchronous accept callback is pending, the removed module is not re-executed.
 
 #### errorHandler for self accept
 
@@ -314,6 +326,8 @@ Use `autoApply` to choose whether to apply the update as soon as it finishes dow
 - An options object: apply the update immediately, using the object as the [`apply()` options](#apply).
 
 The `.then()` callback receives an array of module IDs involved in the update, or `null` if no update is available. Errors while downloading or applying the update can be handled in `.catch()`.
+
+When applying an update also requires nested updates, the result includes their updated module IDs without duplicates.
 
 ### apply
 

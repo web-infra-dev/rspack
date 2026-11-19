@@ -1,0 +1,56 @@
+# Case async-accept: Step 1
+
+## Changed Files
+- module.js
+- self.js
+
+## Asset Files
+- Bundle: bundle.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: main.LAST_HASH.hot-update.js, size: 373
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./module.js
+- ./self.js
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+self["rspackHotUpdate"]("main", {
+"./module.js"(module) {
+module.exports = 2;
+
+
+},
+"./self.js"(module, __unused_rspack_exports, __webpack_require__) {
+(__webpack_require__("./state.js")/* .push */.push)("self");
+module.hot.accept();
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```

@@ -28,6 +28,7 @@ export type TCacheCaseOptions = {
 interface CacheState {
   compilerIndex: number;
   nextStart: (advance?: boolean) => Promise<StatsCompilation>;
+  nextBuild: () => Promise<StatsCompilation>;
   nextHmr: (module: any, options?: any) => Promise<StatsCompilation>;
 }
 
@@ -138,13 +139,17 @@ function createCacheProcessor(
           );
           return jsonStats;
         },
-        nextHmr: async (module, options) => {
+        nextBuild: async () => {
           const env = testEnv;
           await updatePlugin.goNext();
           buildIndex++;
           await context.getCompiler().build();
           const jsonStats = await checkRestart(env, context, true);
           checkCache(env, context);
+          return jsonStats;
+        },
+        nextHmr: async (module, options) => {
+          const jsonStats = await state.nextBuild();
           const updatedModules = await module.hot.check(options || true);
           if (!updatedModules) throw new Error('No update available');
           return jsonStats;
@@ -440,6 +445,7 @@ function createRunner(
     moduleScope(ms, stats, options) {
       const scope = testConfig.moduleScope?.(ms, stats, options) || ms;
       scope.COMPILER_INDEX = compilerIndex;
+      scope.NEXT_BUILD = state.nextBuild;
       scope.NEXT_HMR = state.nextHmr;
       scope.NEXT_START = () => state.nextStart();
       return scope;

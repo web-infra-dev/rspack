@@ -98,6 +98,7 @@ var resolveQueue = (queue) => {
 		queue.d = 1;
 	queue.forEach((fn) => (fn.r--));
 		queue.forEach((fn) => (fn.r-- ? fn.r++ : fn()));
+		queue.length = 0;
 	}
 }
 var wrapDeps = (deps) => {
@@ -142,7 +143,6 @@ __webpack_require__.a = (module, body, hasAwait, useModuleExports) => {
 	hasAwait && ((queue = []).d = -1);
 	var depQueues = new Set();
 	var exports = module.exports;
-	var currentDeps;
 	var outerResolve;
 	var reject;
 	var promise = new Promise((resolve, rej) => {
@@ -158,9 +158,13 @@ __webpack_require__.a = (module, body, hasAwait, useModuleExports) => {
 		asyncModule.exports = exports;
 	}
 	var handle = (deps) => {
-		currentDeps = wrapDeps(deps);
+		var currentDeps = wrapDeps(deps);
+		var currentDepQueues = new Set();
 		var fn;
 		var getResult = () => {
+			currentDepQueues.forEach((depQueue) => {
+				if (depQueue.d === 1) depQueues.delete(depQueue);
+			});
 			return currentDeps.map((d) => {
 				if(d[rspackDefer]) return d;
 				if (d[rspackError]) throw d[rspackError];
@@ -170,7 +174,7 @@ __webpack_require__.a = (module, body, hasAwait, useModuleExports) => {
 		var promise = new Promise((resolve) => {
 			fn = () => (resolve(getResult));
 			fn.r = 0;
-			var fnQueue = (q) => (q !== queue && !depQueues.has(q) && (depQueues.add(q), q && !q.d && (fn.r++, q.push(fn))));
+			var fnQueue = (q) => (q !== queue && !currentDepQueues.has(q) && (currentDepQueues.add(q), depQueues.add(q), q && !q.d && (fn.r++, q.push(fn))));
 			currentDeps.map((dep) => (dep[rspackDefer] || dep[rspackQueues](fnQueue)));
 		});
 		return fn.r ? promise : getResult();

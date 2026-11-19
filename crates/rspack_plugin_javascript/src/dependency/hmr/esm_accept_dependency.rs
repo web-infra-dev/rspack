@@ -1,7 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, ImportPhase, RuntimeCondition, TemplateContext, TemplateReplaceSource,
+  DependencyTemplateType, ImportPhase, ModuleGraph, RuntimeCondition, TemplateContext,
+  TemplateReplaceSource,
 };
 
 use crate::dependency::import_emitted_runtime;
@@ -11,6 +12,7 @@ use crate::dependency::import_emitted_runtime;
 pub struct ESMAcceptDependency {
   range: DependencyRange,
   has_callback: bool,
+  callback_suspends: bool,
   dependency_ids: Vec<DependencyId>,
   loc: Option<DependencyLocation>,
 }
@@ -19,12 +21,14 @@ impl ESMAcceptDependency {
   pub fn new(
     range: DependencyRange,
     has_callback: bool,
+    callback_suspends: bool,
     dependency_ids: Vec<DependencyId>,
     loc: Option<DependencyLocation>,
   ) -> Self {
     Self {
       range,
       has_callback,
+      callback_suspends,
       dependency_ids,
       loc,
     }
@@ -69,6 +73,10 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
     } = code_generatable_context;
 
     let mut content = String::default();
+    let mut async_imports = vec![];
+    let mut async_import_values = vec![];
+    let mut async_dependency_ids = vec![];
+    let mut async_compat = String::new();
     let module_graph = compilation.get_module_graph();
     let module_identifier = module.identifier();
     dep.dependency_ids.iter().for_each(|id| {
@@ -113,32 +121,138 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
         phase,
         true,
       );
+      let is_async = target_module.is_some_and(|target_module| {
+        ModuleGraph::is_async(
+          &compilation.async_modules_artifact,
+          &target_module.identifier(),
+        )
+      });
+      if is_async {
+        let import_value =
+          runtime_template.module_raw(compilation, id, module_dependency.request(), false);
+        let module_id =
+          runtime_template.module_id(compilation, id, module_dependency.request(), false);
+        if condition == "true" {
+          async_dependency_ids.push(module_id);
+          async_import_values.push(import_value);
+          async_compat.push_str(&stmts.1);
+        } else {
+          async_dependency_ids.push(format!("{condition} ? {module_id} : null"));
+          async_import_values.push(format!("{condition} ? {import_value} : {import_var}"));
+          if !stmts.1.is_empty() {
+            async_compat.push_str(&format!("if ({condition}) {{\n{}\n}}\n", stmts.1));
+          }
+        }
+        async_imports.push(import_var);
+        return;
+      }
+      let import_content = format!("{}{}", stmts.0, stmts.1);
       if condition == "true" {
-        content.push_str(stmts.0.as_str());
-        content.push_str(stmts.1.as_str());
+        content.push_str(&import_content);
       } else {
         content.push_str(format!("if ({condition}) {{\n").as_str());
-        content.push_str(stmts.0.as_str());
-        content.push_str(stmts.1.as_str());
+        content.push_str(&import_content);
         content.push_str("\n}\n");
       }
     });
 
+    let opt_async = if async_imports.is_empty() {
+      ""
+    } else {
+      let module_argument = runtime_template.render_module_argument(module.get_module_argument());
+      let values = async_import_values.join(", ");
+      let ids = async_dependency_ids.join(", ");
+      let changed = async_import_values
+        .iter()
+        .enumerate()
+        .map(|(index, value)| format!("__rspack_async_imports[{index}] !== ({value})"))
+        .collect::<Vec<_>>()
+        .join(" || ");
+      content.push_str(&format!(
+        "for (;;) {{
+if (!{module_argument}.hot.active) return;
+var __rspack_async_imports = [{values}];
+try {{
+var __rspack_async_deps = __rspack_load_async_deps(__rspack_async_imports, [{ids}]);
+var __rspack_async_deps_result = __rspack_async_deps;
+if (__rspack_async_deps.then) {{
+var __rspack_async_get_result = await __rspack_async_deps;
+if (!{module_argument}.hot.active) return;
+if (!__rspack_async_get_result) continue;
+__rspack_async_deps_result = __rspack_async_get_result();
+}}
+}} catch (__rspack_async_error) {{
+if (!{module_argument}.hot.active) return;
+if ({changed}) continue;
+throw __rspack_async_error;
+}}
+if ({changed}) continue;
+"
+      ));
+      if async_imports.len() == 1
+        || !compilation
+          .options
+          .output
+          .environment
+          .supports_destructuring()
+      {
+        for (index, import_var) in async_imports.iter().enumerate() {
+          content.push_str(&format!(
+            "{import_var} = __rspack_async_deps_result[{index}];\n"
+          ));
+        }
+      } else {
+        let imports = async_imports.join(", ");
+        content.push_str(&format!("([{imports}] = __rspack_async_deps_result);\n"));
+      }
+      content.push_str("break;\n}\n");
+      content.push_str(&async_compat);
+      "async "
+    };
+
     if dep.has_callback {
-      source.insert(
-        dep.range.start,
-        format!("function(__rspack_hmr_outdated) {{\n{content}("),
-        None,
-      );
-      source.insert_static(
-        dep.range.end,
-        ")(__rspack_hmr_outdated); }.bind(this)",
-        None,
-      );
+      let supports_arrow_function = compilation
+        .options
+        .output
+        .environment
+        .supports_arrow_function();
+      if dep.callback_suspends {
+        let wrapper = if supports_arrow_function {
+          format!(
+            "(__rspack_hmr_callback => {opt_async}__rspack_hmr_outdated => {{\n{content}return __rspack_hmr_callback(__rspack_hmr_outdated); }})(("
+          )
+        } else {
+          format!(
+            "(function(__rspack_hmr_callback) {{ return {opt_async}function(__rspack_hmr_outdated) {{\n{content}return __rspack_hmr_callback(__rspack_hmr_outdated); }}.bind(this); }}).call(this, ("
+          )
+        };
+        source.insert(dep.range.start, wrapper, None);
+        source.insert_static(dep.range.end, "))", None);
+        return;
+      }
+      if supports_arrow_function {
+        source.insert(
+          dep.range.start,
+          format!("{opt_async}(__rspack_hmr_outdated) => {{\n{content}return ("),
+          None,
+        );
+        source.insert_static(dep.range.end, ")(__rspack_hmr_outdated); }", None);
+      } else {
+        source.insert(
+          dep.range.start,
+          format!("{opt_async}function(__rspack_hmr_outdated) {{\n{content}return ("),
+          None,
+        );
+        source.insert_static(
+          dep.range.end,
+          ")(__rspack_hmr_outdated); }.bind(this)",
+          None,
+        );
+      }
     } else {
       source.insert(
         dep.range.start,
-        format!(", function(){{\n{content}\n}}"),
+        format!(", {opt_async}function(){{\n{content}\n}}"),
         None,
       );
     }
