@@ -168,45 +168,6 @@ impl Program<'_> {
     }
   }
 
-  /// Enumerate literal next-component alternatives, or require a directory read.
-  pub(super) fn next_components(&self, states: &States) -> Option<Vec<String>> {
-    if self.negated || !self.options.case_sensitive {
-      return None;
-    }
-    let mut pending = states
-      .iter()
-      .map(|&id| (id, Vec::new()))
-      .collect::<Vec<_>>();
-    let mut names = Vec::new();
-    let mut visited = 0;
-    while let Some((id, mut name)) = pending.pop() {
-      visited += 1;
-      // Large brace products fall back to matching directory entries instead
-      // of eagerly allocating every possible name.
-      if visited > 4096 || pending.len() + names.len() > 256 {
-        return None;
-      }
-      match &self.instructions[id] {
-        Instruction::Accept | Instruction::Literal(b'/', _, _, _) => {
-          if !name.is_empty() {
-            names.push(String::from_utf8(name).ok()?);
-          }
-        }
-        Instruction::Literal(byte, next, _, _) => {
-          name.push(*byte);
-          pending.push((*next, name));
-        }
-        Instruction::Split(branches) => {
-          pending.extend(branches.iter().map(|&next| (next, name.clone())));
-        }
-        _ => return None,
-      }
-    }
-    names.sort_unstable();
-    names.dedup();
-    Some(names)
-  }
-
   pub(super) fn consume(
     &self,
     initial: &States,

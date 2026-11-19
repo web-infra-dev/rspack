@@ -83,6 +83,7 @@ struct ReadDirCountingFileSystem {
   read_dir_count: AtomicUsize,
   visited: Mutex<Vec<Utf8PathBuf>>,
   missing_metadata: Option<Utf8PathBuf>,
+  metadata_alias: Option<(Utf8PathBuf, Utf8PathBuf)>,
 }
 
 #[async_trait::async_trait]
@@ -101,6 +102,11 @@ impl ReadableFileSystem for ReadDirCountingFileSystem {
         std::io::ErrorKind::NotFound,
         "entry disappeared after read_dir",
       ));
+    }
+    if let Some((alias, actual)) = &self.metadata_alias
+      && alias == path
+    {
+      return self.inner.metadata(actual).await;
     }
     self.inner.metadata(path).await
   }
@@ -128,7 +134,9 @@ impl ReadableFileSystem for ReadDirCountingFileSystem {
       .lock()
       .expect("visited directories lock")
       .push(dir.to_path_buf());
-    ReadableFileSystem::read_dir(&self.inner, dir).await
+    let mut names = ReadableFileSystem::read_dir(&self.inner, dir).await?;
+    names.sort_unstable();
+    Ok(names)
   }
 
   fn read_dir_sync(&self, dir: &Utf8Path) -> rspack_fs::Result<Vec<String>> {
@@ -171,14 +179,14 @@ async fn walkers_preserve_their_metadata_error_policy() {
     })
     .await
     .unwrap();
-  assert_eq!(files, [entry]);
+  assert_eq!(files.as_slice(), std::slice::from_ref(&entry));
 
   let glob = GlobPattern::new(b"*.js").unwrap();
-  assert!(walk_matches(&glob, root, fs).await.is_empty());
+  assert_eq!(walk_matches(&glob, root, fs).await, [entry]);
 }
 
 #[tokio::test]
-async fn literal_pattern_does_not_walk_its_base_directory() {
+async fn literal_pattern_only_reads_its_base_directory() {
   let fs = Arc::new(ReadDirCountingFileSystem::default());
   fs.inner
     .create_dir_all("/project/deps".into())
@@ -198,7 +206,7 @@ async fn literal_pattern_does_not_walk_its_base_directory() {
   let entries = scan_matches(&pattern, Utf8Path::new("."), fs.clone()).await;
 
   assert_eq!(entries, vec![Utf8PathBuf::from("/project/index.html")]);
-  assert_eq!(fs.read_dir_count.load(Ordering::Relaxed), 0);
+  assert_eq!(*fs.visited.lock().unwrap(), [Utf8PathBuf::from("/project")]);
 }
 
 #[tokio::test]
@@ -586,20 +594,13 @@ async fn scan_prunes_unrelated_directories_and_exhausted_patterns() {
   );
   let visited = fs.visited.lock().expect("visited directories lock");
   assert_eq!(
-    visited.len(),
-    2,
-    "only the two dynamic filename directories are read"
-  );
-  assert!(!visited.iter().any(|path| path == Utf8Path::new("/project")));
-  assert!(
-    !visited
-      .iter()
-      .any(|path| path.ends_with("unrelated") || path.ends_with("nested"))
+    *visited,
+    ["/project", "/project/components", "/project/widgets"].map(Utf8PathBuf::from)
   );
 }
 
 #[tokio::test]
-async fn scan_literal_branches_uses_no_directory_reads() {
+async fn scan_literal_branches_reuses_a_directory_listing() {
   let fs = Arc::new(ReadDirCountingFileSystem::default());
   let root = Utf8Path::new("/project/[physical]");
   fs.inner
@@ -620,7 +621,26 @@ async fn scan_literal_branches_uses_no_directory_reads() {
     files,
     vec![root.join("src/one.js"), root.join("src/two.js")]
   );
-  assert_eq!(fs.read_dir_count.load(Ordering::Relaxed), 0);
+  assert_eq!(fs.read_dir_count.load(Ordering::Relaxed), 1);
+}
+
+#[tokio::test]
+async fn scan_matches_case_against_enumerated_entry_names() {
+  let root = Utf8Path::new("/project");
+  let fs = Arc::new(ReadDirCountingFileSystem {
+    metadata_alias: Some((root.join("other.js"), root.join("OTHER.js"))),
+    ..Default::default()
+  });
+  fs.inner.create_dir_all(root).await.unwrap();
+  for name in ["one.js", "OTHER.js"] {
+    fs.inner.write(&root.join(name), b"").await.unwrap();
+  }
+
+  let pattern = GlobPattern::new(b"{one,other}.js").unwrap();
+  assert_eq!(
+    walk_matches(&pattern, root, fs).await,
+    [root.join("one.js")]
+  );
 }
 
 #[tokio::test]
@@ -639,7 +659,7 @@ async fn walk_preserves_depth_first_order_and_sibling_patterns() {
   }
   let pattern = GlobPattern::new(b"{a/deep/first.js,a/last.js,z/other.js}").expect("valid glob");
   assert_eq!(walk_matches(&pattern, root, fs.clone()).await, expected);
-  assert_eq!(fs.read_dir_count.load(Ordering::Relaxed), 0);
+  assert_eq!(fs.read_dir_count.load(Ordering::Relaxed), 4);
 }
 
 #[tokio::test]

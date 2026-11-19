@@ -22,7 +22,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{Utf8Path, Utf8PathBuf, normalize_native_path_separators};
 use rspack_util::{
   fx_hash::FxDashSet,
-  glob::{GlobOptions, GlobPattern},
+  glob::{GlobOptions, GlobPattern, literal_directory_prefix, normalize_glob_path},
 };
 use sugar_path::SugarPath;
 
@@ -57,6 +57,17 @@ pub enum FromType {
   Dir,
   File,
   Glob,
+}
+
+fn escape_glob_filename(filename: &str) -> String {
+  let mut escaped = String::with_capacity(filename.len());
+  for ch in filename.chars() {
+    if matches!(ch, '\\' | '!' | '*' | '?' | '[' | '{') {
+      escaped.push('\\');
+    }
+    escaped.push(ch);
+  }
+  escaped
 }
 
 #[derive(Debug, Clone)]
@@ -289,8 +300,10 @@ impl CopyRspackPlugin {
       return Ok(None);
     };
 
-    // If this came from a glob or dir, add it to the file dependencies
-    if matches!(from_type, FromType::Dir | FromType::Glob) {
+    // Case-insensitive file patterns can also match siblings of the original file.
+    if !matches!(from_type, FromType::File)
+      || pattern.glob_options.case_sensitive_match == Some(false)
+    {
       logger.debug(format!("added '{absolute_filename}' as a file dependency",));
 
       file_dependencies.insert(
@@ -470,7 +483,7 @@ impl CopyRspackPlugin {
       }
       FromType::Glob => {}
     }
-    let glob_match_options = GlobOptions {
+    let mut glob_match_options = GlobOptions {
       case_sensitive: pattern.glob_options.case_sensitive_match.unwrap_or(true),
       require_literal_leading_dot: !dot_enable.unwrap_or(false),
       windows_paths: true,
@@ -478,17 +491,33 @@ impl CopyRspackPlugin {
       backslash_escape: !cfg!(windows),
     };
     logger.log(format!("begin globbing '{orig_from}'..."));
-    let glob_entries = if matches!(from_type, FromType::File) {
-      Ok(vec![abs_from.clone()])
-    } else {
-      let (root, matcher) = if matches!(from_type, FromType::Dir) {
-        let matcher =
-          GlobPattern::new_with_options(b"**/*", glob_match_options).expect("valid directory glob");
-        (Cow::Borrowed(abs_from.as_path()), Some(matcher))
-      } else {
-        let matcher = GlobPattern::new_with_options(orig_from.as_bytes(), glob_match_options)
-          .map_err(|err| error!("Invalid glob pattern {orig_from:?}: {err}"))?;
-        let root = matcher.scan_root(&context);
+    let glob_entries: Result<Vec<Utf8PathBuf>> = async {
+      let source = match from_type {
+        FromType::Dir => Cow::Borrowed("**/*"),
+        FromType::File if glob_match_options.case_sensitive => return Ok(vec![abs_from.clone()]),
+        FromType::File => {
+          glob_match_options.windows_paths = false;
+          glob_match_options.backslash_escape = true;
+          let filename = abs_from.file_name().expect("file path has a filename");
+          Cow::Owned(escape_glob_filename(filename))
+        }
+        // Copy's `from` is a path. In a relative path its leading bang is literal.
+        FromType::Glob if orig_from.starts_with('!') => Cow::Owned(format!("./{orig_from}")),
+        FromType::Glob => Cow::Borrowed(orig_from.as_str()),
+      };
+      let matcher = GlobPattern::new_with_options(source.as_bytes(), glob_match_options)
+        .map_err(|err| error!("Invalid glob pattern {orig_from:?}: {err}"))?;
+
+      let (root, matcher) = if matches!(from_type, FromType::Glob) {
+        let normalized = if cfg!(windows) {
+          normalize_native_path_separators(&source)
+        } else {
+          normalize_glob_path(&source)
+        };
+        // Use the configured directory spelling for the physical scan and watch root.
+        // Keep `..` in the I/O path so the filesystem resolves symlinks first.
+        let prefix = literal_directory_prefix(&normalized);
+        let root = context.join(prefix.as_ref());
         let root_exists = compilation.input_filesystem.metadata(&root).await.is_ok();
         let dependency = root.clone().into_std_path_buf().normalize().into_owned();
         // Missing roots must be registered as missing dependencies rather than
@@ -499,11 +528,12 @@ impl CopyRspackPlugin {
         } else {
           missing_dependencies.insert(dependency);
         }
-        let remaining = matcher.match_prefix(matcher.scan_directory_prefix().as_bytes());
-        (Cow::Owned(root), remaining)
+        (Cow::Owned(root), matcher.match_prefix(prefix.as_bytes()))
+      } else {
+        (Cow::Borrowed(context.as_ref()), Some(matcher))
       };
       let mut entries = Vec::new();
-      let result = if let Some(matcher) = matcher {
+      if let Some(matcher) = matcher {
         matcher
           .walk(
             &root,
@@ -511,13 +541,11 @@ impl CopyRspackPlugin {
             false,
             &mut |path, _| entries.push(path),
           )
-          .await
-      } else {
-        Ok(())
-      };
-      result.map(|()| entries)
+          .await?;
+      }
+      Ok(entries)
     }
-    .map_err(Error::from);
+    .await;
 
     match glob_entries {
       Ok(mut entries) => {

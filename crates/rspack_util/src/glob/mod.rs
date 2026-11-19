@@ -21,10 +21,12 @@ mod syntax;
 
 use std::{
   borrow::Cow,
+  path::is_separator,
   sync::{Arc, OnceLock},
 };
 
 use cow_utils::CowUtils;
+pub use path::literal_directory_prefix;
 use program::{Instructions, Program, States};
 pub use syntax::{Error, ErrorKind, validate};
 
@@ -73,6 +75,8 @@ impl Default for GlobOptions {
 ///
 /// Cloning shares the compiled graph, source and cached prefix, and copies the
 /// active states so callers can independently traverse sibling directories.
+/// Case-insensitive matching can also buffer a partial path component until it
+/// can be lowercased in context.
 /// The source borrows the input unless separator parsing or case folding changes it.
 /// Matching operates on bytes:
 /// `?` consumes one non-separator byte, including within UTF-8 strings.
@@ -85,6 +89,7 @@ pub struct GlobPattern<'a> {
   negated: bool,
   options: GlobOptions,
   component_start: bool,
+  pending_component: Vec<u8>,
 }
 
 impl<'a> GlobPattern<'a> {
@@ -118,6 +123,7 @@ impl<'a> GlobPattern<'a> {
       negated,
       options,
       component_start: true,
+      pending_component: Vec::new(),
     })
   }
 
@@ -139,15 +145,19 @@ impl<'a> GlobPattern<'a> {
       negated: self.negated,
       options: self.options,
       component_start: self.component_start,
+      pending_component: self.pending_component,
     }
   }
 
   /// The unescaped literal prefix shared by every remaining matching branch.
-  /// Returns no prefix for a complemented pattern. Matching still operates on
-  /// bytes, so the prefix may end inside a UTF-8 character.
+  /// Returns no prefix for a complemented pattern or while a partial component
+  /// is buffered for case-insensitive matching. The result may end inside UTF-8.
   /// Contiguous literals borrow the source; decoded or joined literals are
   /// cached once and shared by clones. Repeated queries allocate no prefix bytes.
   pub fn literal_prefix(&self) -> &[u8] {
+    if !self.pending_component.is_empty() {
+      return &[];
+    }
     self
       .literal_prefix
       .get_or_init(|| Arc::new(self.view().literal_prefix(&self.states, &self.source)))
@@ -167,7 +177,8 @@ impl<'a> GlobPattern<'a> {
   }
 
   /// Whether the remaining pattern can match a path containing a separator.
-  /// Complemented patterns conservatively return true.
+  /// Complemented patterns return true. Results can be conservative while a
+  /// partial case-insensitive component is buffered.
   pub fn is_recursive(&self) -> bool {
     self.view().is_recursive(&self.states)
   }
@@ -179,16 +190,11 @@ impl<'a> GlobPattern<'a> {
 
   #[inline(never)]
   fn matches_bytes(&self, path: &[u8]) -> bool {
-    let path = fold_case(path, self.options.case_sensitive);
+    let path = self.prepend_pending_component(path);
+    let path = fold_case(&path, self.options.case_sensitive);
     let program = self.view();
     let (states, _) = program.consume(&self.states, &path, self.component_start);
     program.is_match(&states)
-  }
-
-  /// Returns the set of literal names usable for direct filesystem lookups.
-  #[doc(hidden)]
-  pub fn literal_children(&self) -> Option<Vec<String>> {
-    self.view().next_components(&self.states)
   }
 
   /// Consumes a literal prefix and returns a matcher for the remaining suffix.
@@ -203,11 +209,37 @@ impl<'a> GlobPattern<'a> {
   /// to test completed paths. A negated pattern whose positive states die still
   /// matches every suffix, so it must remain usable during traversal.
   pub fn match_prefix(&self, prefix: impl AsRef<[u8]>) -> Option<Self> {
-    self.consume_prefix(prefix.as_ref())
+    let prefix = prefix.as_ref();
+    if self.options.case_sensitive {
+      return self.consume_prefix(prefix, &[]);
+    }
+
+    let prefix = self.prepend_pending_component(prefix);
+    // A separator ends the context used for Unicode lowercase (e.g. final sigma).
+    // Keep the incomplete component intact even if the input split a UTF-8 code point.
+    let end = prefix
+      .iter()
+      .rposition(|&byte| is_separator(byte as char))
+      .map_or(0, |index| index + 1);
+    self.consume_prefix(&prefix[..end], &prefix[end..])
+  }
+
+  /// Consumes a filesystem entry name followed by a separator or the end of the path.
+  #[doc(hidden)]
+  pub fn match_component(&self, name: &str) -> Option<Self> {
+    self.consume_prefix(&self.prepend_pending_component(name.as_bytes()), &[])
+  }
+
+  fn prepend_pending_component<'b>(&self, bytes: &'b [u8]) -> Cow<'b, [u8]> {
+    if self.pending_component.is_empty() {
+      Cow::Borrowed(bytes)
+    } else {
+      Cow::Owned([self.pending_component.as_slice(), bytes].concat())
+    }
   }
 
   #[inline(never)]
-  fn consume_prefix(&self, prefix: &[u8]) -> Option<Self> {
+  fn consume_prefix(&self, prefix: &[u8], pending_component: &[u8]) -> Option<Self> {
     let prefix = fold_case(prefix, self.options.case_sensitive);
     let program = self.view();
     let (states, component_start) = program.consume(&self.states, &prefix, self.component_start);
@@ -222,6 +254,7 @@ impl<'a> GlobPattern<'a> {
       negated: self.negated,
       options: self.options,
       component_start,
+      pending_component: pending_component.to_vec(),
     })
   }
 }
@@ -236,6 +269,11 @@ fn fold_case(bytes: &[u8], case_sensitive: bool) -> Cow<'_, [u8]> {
       Cow::Owned(value) => Cow::Owned(value.into_bytes()),
     }
   } else {
-    Cow::Owned(bytes.to_ascii_lowercase())
+    let mut folded = Vec::with_capacity(bytes.len());
+    for chunk in bytes.utf8_chunks() {
+      folded.extend_from_slice(chunk.valid().cow_to_lowercase().as_bytes());
+      folded.extend_from_slice(chunk.invalid());
+    }
+    Cow::Owned(folded)
   }
 }

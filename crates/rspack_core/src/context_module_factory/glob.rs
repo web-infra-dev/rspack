@@ -2,7 +2,7 @@ use cow_utils::CowUtils;
 use rspack_loader_runner::parse_resource;
 use rspack_paths::{Utf8Path, Utf8PathBuf, normalize_path_separators};
 use rspack_util::{
-  glob::{GlobOptions, GlobPattern, normalize_glob_path},
+  glob::{GlobOptions, GlobPattern, literal_directory_prefix, normalize_glob_path},
   identifier::relative_path_to_request,
   node_path::NodePath,
 };
@@ -173,11 +173,14 @@ fn resolve_context_module_glob_pattern(
   let context = source.base(context, compiler_context);
   let prefix = matcher.directory_prefix();
   let absolute_base = resolve_pattern_base(context, prefix);
-  let scan_base = if case_sensitive {
-    absolute_base.clone()
+  // Resolution needs a directory spelled out in the request. A directory shared
+  // by brace alternatives may be absent or have no equivalent raw alias prefix.
+  let scan_prefix = if case_sensitive {
+    literal_directory_prefix(&source.pattern)
   } else {
-    resolve_pattern_base(context, matcher.scan_directory_prefix().as_bytes())
+    matcher.scan_directory_prefix()
   };
+  let scan_base = resolve_pattern_base(context, scan_prefix.as_bytes());
   let recursive = matcher
     .match_prefix(prefix)
     .is_some_and(|remaining| remaining.is_recursive());

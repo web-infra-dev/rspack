@@ -432,21 +432,26 @@ fn test_options_apply_to_every_prefix_continuation() {
     ("{.env,index.js}", ".env", true),
     (r"\.env", ".env", true),
     ("Ü/*.JS", "ü/value.js", true),
+    ("ος/*.JS", "ΟΣ/value.js", true),
+    ("οσα/*.JS", "ΟΣΑ/value.js", true),
   ];
   for (pattern, path, expected) in cases {
     let pattern = GlobPattern::new_with_options(pattern.as_bytes(), options).expect("valid glob");
     assert_eq!(pattern.is_match(path), expected);
-    for (split, _) in path
-      .char_indices()
-      .chain(std::iter::once((path.len(), '\0')))
-    {
+    let path_bytes = path.as_bytes();
+    for split in 0..=path_bytes.len() {
       assert_eq!(
         pattern
-          .match_prefix(&path[..split])
-          .is_some_and(|rest| rest.is_match(&path[split..])),
-        expected
+          .match_prefix(&path_bytes[..split])
+          .is_some_and(|rest| rest.is_match(&path_bytes[split..])),
+        expected,
+        "{path:?} split at byte {split}"
       );
     }
+    let remaining = path_bytes
+      .chunks(1)
+      .try_fold(pattern, |matcher, byte| matcher.match_prefix(byte));
+    assert_eq!(remaining.is_some_and(|rest| rest.is_match("")), expected);
   }
   let negated =
     GlobPattern::new_with_options("!**".as_bytes(), options).expect("valid negated glob");
